@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dynamo-web",
+      "runtimeExecutable": "/usr/bin/python3",
+      "runtimeArgs": ["-c", "import http.server, socketserver, os; os.chdir('.'); handler = http.server.SimpleHTTPRequestHandler; httpd = socketserver.TCPServer(('', 3000), handler); httpd.serve_forever()"],
+      "port": 3000
+    }
+  ]
+}

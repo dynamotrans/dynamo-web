@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamo | Operador de Transportes — Cumplimos</title>
+    <meta name="description" content="Dynamo Operador de Transportes. Grupajes, carga completa, nacional e internacional. +230 clientes. 5,0 estrellas en Google.">
+    <link rel="icon" type="image/png" href="images/DYNAMO-NEW-LOGO.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --purple:       #3300cc;
+            --purple-dark:  #220099;
+            --purple-light: #5533dd;
+            --purple-nav:   #1a008a;
+            --green:        #5dc840;
+            --green-dark:   #3da028;
+            --green-bar:    #44cc2a;
+            --yellow:       #f0e600;
+            --yellow-dark:  #d4ca00;
+            --navy:         #0a0230;
+            --white:        #ffffff;
+            --gray-100:     #f7f8fa;
+            --gray-200:     #e8eaed;
+            --gray-500:     #9aa0ab;
+            --gray-700:     #3d4452;
+        }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; background: var(--white); color: var(--gray-700); overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--purple-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--green); border-radius: 3px; }
+
+        /* =========================================
+           TOP INFO BAR
+        ========================================= */
+        .top-bar {
+            background: var(--green-bar);
+            padding: 0.55rem 2rem;
+            text-align: center;
+            font-size: 0.88rem; font-weight: 700; color: var(--navy);
+        }
+        .top-bar span { color: var(--purple); }
+
+        /* =========================================
+           NAVBAR
+        ========================================= */
+        .navbar {
+            position: sticky; top: 0; z-index: 1000;
+            background: var(--white);
+            border-bottom: 1px solid var(--gray-200);
+            padding: 0.7rem 2.5rem;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        }
+        .nav-logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+        .nav-logo-img { height: 45px; width: auto; object-fit: contain; }
+        .nav-logo-wordmark { font-size: 1.65rem; font-weight: 900; color: var(--purple); letter-spacing: -1px; line-height: 1; }
+        .nav-logo-arc {
+            display: inline-block; width: 13px; height: 13px;
+            border: 4px solid var(--green); border-radius: 50%;
+            border-left-color: transparent; border-bottom-color: transparent;
+            transform: rotate(-45deg); margin-left: 2px; margin-bottom: 10px;
+        }
+        .nav-cumplimos {
+            background: var(--green); color: white; font-weight: 800;
+            font-size: 0.65rem; padding: 0.25rem 0.55rem; border-radius: 4px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .nav-logo-sub { display: flex; flex-direction: column; }
+        .nav-logo-sub .sub1 { font-size: 0.62rem; font-weight: 700; color: var(--purple); text-transform: uppercase; letter-spacing: 0.5px; }
+        .nav-logo-sub .sub2 { font-size: 0.52rem; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; }
+        .navbar-nav { display: flex; align-items: center; gap: 1.8rem; list-style: none; flex: 1; justify-content: center; }
+        .navbar-nav a { color: var(--gray-700); text-decoration: none; font-weight: 600; font-size: 0.88rem; transition: color 0.25s; }
+        .navbar-nav a.active { color: var(--purple); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+        .navbar-nav a:hover { color: var(--purple); }
+        .navbar-right { display: flex; align-items: center; gap: 0.8rem; }
+        .lang-selector { position: relative; }
+        .lang-btn {
+            display: flex; align-items: center; gap: 0.3rem; cursor: pointer;
+            background: var(--gray-100); border: 1.5px solid var(--gray-200); border-radius: 50px;
+            padding: 0.3rem 0.7rem 0.3rem 0.45rem; font-size: 0.78rem; font-weight: 700;
+            color: var(--gray-700); transition: all 0.2s;
+        }
+        .lang-btn:hover { border-color: var(--purple); background: white; }
+        .lang-btn .flag { font-size: 1.1rem; line-height: 1; }
+        .lang-btn .arrow { font-size: 0.6rem; margin-left: 0.15rem; transition: transform 0.2s; }
+        .lang-btn.open .arrow { transform: rotate(180deg); }
+        .lang-dropdown {
+            position: absolute; top: calc(100% + 6px); right: 0; z-index: 9999;
+            background: white; border-radius: 14px; border: 1.5px solid var(--gray-200);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.12); padding: 0.5rem;
+            display: none; min-width: 170px;
+            max-height: 350px; overflow-y: auto;
+        }
+        .lang-dropdown.open { display: block; animation: chatPop 0.2s ease; }
+        .lang-option {
+            display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.7rem;
+            border-radius: 8px; cursor: pointer; transition: background 0.15s;
+            font-size: 0.82rem; font-weight: 600; color: var(--gray-700); border: none; background: none; width: 100%; text-align: left;
+        }
+        .lang-option:hover { background: var(--gray-100); }
+        .lang-option.active { background: rgba(51,0,204,0.07); color: var(--purple); }
+        .lang-option .flag { font-size: 1.2rem; }
+        .nav-social { display: flex; gap: 0.4rem; }
+        .nav-social a {
+            width: 30px; height: 30px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid var(--gray-200); color: var(--gray-700);
+            text-decoration: none; font-size: 0.75rem; transition: all 0.25s;
+        }
+        .nav-social a:hover { background: var(--purple); color: white; border-color: var(--purple); }
+        .btn-nav-cta {
+            background: var(--purple-nav); color: white; font-weight: 800;
+            padding: 0.6rem 1.3rem; border-radius: 50px; text-decoration: none;
+            font-size: 0.82rem; white-space: nowrap; transition: all 0.25s;
+        }
+        .btn-nav-cta:hover { background: var(--purple); transform: translateY(-1px); }
+        .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; }
+        .hamburger span { display: block; width: 24px; height: 2px; background: var(--purple); border-radius: 2px; }
+
+        /* =========================================
+           MOBILE MENU
+        ========================================= */
+        .mobile-menu {
+            display: none; position: fixed; inset: 0; z-index: 9999;
+            background: var(--white); flex-direction: column; align-items: center; justify-content: center; gap: 2rem;
+        }
+        .mobile-menu.open { display: flex; }
+        .mobile-menu a { color: var(--purple); text-decoration: none; font-size: 1.5rem; font-weight: 800; }
+        .mobile-close { position: absolute; top: 1.5rem; right: 2rem; color: var(--gray-700); font-size: 1.8rem; cursor: pointer; background: none; border: none; }
+
+        /* =========================================
+           HERO
+        ========================================= */
+        .hero {
+            position: relative;
+            height: auto; min-height: 0;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+            padding: 2.5rem 0 2rem;
+        }
+        /* Fondo degradado simulando carretera/noche — funciona sin imagen */
+        .hero-bg {
+            position: absolute; inset: 0;
+            background:
+                url('images/camiones-carretera.jpg') center/cover no-repeat,
+                linear-gradient(135deg, #0a0230 0%, #1a008a 30%, #3300cc 60%, #0a0230 100%);
+            animation: heroZoom 18s ease-in-out infinite alternate;
+        }
+        .hero-bg::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(10,2,48,0.80) 0%, rgba(51,0,204,0.50) 55%, rgba(10,2,48,0.75) 100%);
+        }
+        /* Líneas de carretera animadas como fallback visual */
+        .hero-road {
+            position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none;
+        }
+        .hero-road::before {
+            content: '';
+            position: absolute; left: 50%; top: -100%;
+            width: 6px; height: 300%;
+            background: repeating-linear-gradient(
+                to bottom,
+                rgba(255,255,255,0.15) 0px, rgba(255,255,255,0.15) 60px,
+                transparent 60px, transparent 120px
+            );
+            animation: roadLines 3s linear infinite;
+        }
+        .hero-road::after {
+            content: '';
+            position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 70%, rgba(255,180,0,0.12) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 70%, rgba(255,100,0,0.08) 0%, transparent 50%);
+        }
+        @keyframes roadLines { from { transform: translateY(0); } to { transform: translateY(120px); } }
+        @keyframes heroZoom { from { transform: scale(1); } to { transform: scale(1.07); } }
+
+        .hero-content {
+            position: relative; z-index: 2; text-align: center;
+            color: white; padding: 1rem 2rem; max-width: 900px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .hero-logo { height: 80px; width: auto; opacity: 0.9; margin-bottom: 1rem; }
+        .hero-title {
+            font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 900;
+            line-height: 1.08; margin-bottom: 0.7rem;
+            animation: fadeUp 0.9s ease both;
+        }
+        .hero-title .hl  { color: var(--green); }
+        .hero-title .hl2 { color: var(--yellow); }
+        .hero-sub {
+            font-size: clamp(1rem, 2.2vw, 1.25rem); color: rgba(255,255,255,0.82);
+            margin-bottom: 1.2rem; line-height: 1.4; animation: fadeUp 0.9s ease 0.2s both;
+        }
+        .hero-sub strong { color: white; font-weight: 800; }
+        .hero-btns {
+            display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+            animation: fadeUp 0.9s ease 0.4s both;
+        }
+        .btn-wa {
+            background: var(--purple); color: white; font-weight: 800;
+            padding: 0.9rem 2rem; border-radius: 50px; text-decoration: none;
+            font-size: 0.93rem; display: flex; align-items: center; gap: 0.55rem;
+            transition: all 0.3s; box-shadow: 0 4px 20px rgba(51,0,204,0.45);
+        }
+        .btn-wa:hover { background: var(--purple-light); transform: translateY(-3px); }
+        .btn-tel {
+            background: transparent; color: white; font-weight: 700;
+            padding: 0.9rem 2rem; border-radius: 50px; text-decoration: none;
+            font-size: 0.93rem; display: flex; align-items: center; gap: 0.55rem;
+            border: 2px solid rgba(255,255,255,0.5); transition: all 0.3s;
+        }
+        .btn-tel:hover { border-color: white; background: rgba(255,255,255,0.12); transform: translateY(-3px); }
+        .hero-scroll {
+            position: absolute; bottom: 1.8rem; left: 50%; transform: translateX(-50%);
+            color: rgba(255,255,255,0.38); font-size: 0.68rem; letter-spacing: 2px;
+            text-transform: uppercase; text-align: center;
+            animation: bounceY 2.2s ease-in-out infinite;
+            display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 2;
+        }
+        .scroll-arr { width: 16px; height: 16px; border-right: 2px solid rgba(255,255,255,0.3); border-bottom: 2px solid rgba(255,255,255,0.3); transform: rotate(45deg); }
+
+        /* =========================================
+           SERVICES STRIP
+        ========================================= */
+        .services-strip { background: var(--purple); padding: 0.7rem 2rem; }
+        .strip-inner {
+            max-width: 1100px; margin: 0 auto;
+            display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+        }
+        .strip-item { color: white; font-weight: 800; font-size: 0.9rem; letter-spacing: 1.5px; text-transform: uppercase; padding: 0.3rem 2.5rem; }
+        .strip-item + .strip-item { border-left: 2px solid rgba(255,255,255,0.25); }
+
+        /* =========================================
+           CLIENTS CAROUSEL  (movido arriba)
+        ========================================= */
+        .clients-top { background: var(--white); padding: 1.2rem 0 1rem; overflow: hidden; border-bottom: 1px solid var(--gray-200); }
+        .clients-top-label {
+            text-align: center; margin-bottom: 0.8rem;
+            font-size: 0.72rem; font-weight: 700; color: var(--gray-500);
+            text-transform: uppercase; letter-spacing: 3px;
+        }
+        .carousel-wrap { position: relative; overflow: hidden; }
+        .carousel-wrap::before, .carousel-wrap::after {
+            content: ''; position: absolute; top: 0; bottom: 0; width: 120px; z-index: 2; pointer-events: none;
+        }
+        .carousel-wrap::before { left: 0; background: linear-gradient(to right, var(--white), transparent); }
+        .carousel-wrap::after  { right: 0; background: linear-gradient(to left, var(--white), transparent); }
+        .carousel-track {
+            display: flex; gap: 1.4rem; align-items: center;
+            animation: scrollLoop 40s linear infinite; width: max-content;
+        }
+        .carousel-track:hover { animation-play-state: paused; }
+
+        /* Logos estilizados */
+        .logo-pill {
+            display: flex; align-items: center; justify-content: center;
+            height: 68px; padding: 0 1.4rem; border-radius: 12px;
+            border: 1.5px solid var(--gray-200);
+            background: white; min-width: 130px;
+            transition: all 0.25s; cursor: default; white-space: nowrap;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        }
+        .logo-pill:hover { border-color: var(--purple); box-shadow: 0 4px 18px rgba(51,0,204,0.1); transform: translateY(-2px); }
+        .logo-pill .logo-box {
+            display: flex; align-items: center; gap: 0.45rem;
+        }
+        .logo-icon {
+            width: 34px; height: 34px; border-radius: 7px; flex-shrink: 0;
+            overflow: hidden; display: flex; align-items: center; justify-content: center;
+        }
+        .logo-icon img {
+            width: 100%; height: 100%; object-fit: contain;
+        }
+        .logo-name { font-weight: 800; font-size: 0.78rem; color: var(--gray-700); letter-spacing: -0.2px; }
+        .logo-sub  { font-size: 0.6rem; font-weight: 600; color: var(--gray-500); display: block; margin-top: 1px; }
+
+        /* =========================================
+           COTIZA BANNER
+        ========================================= */
+        .cotiza-bar { background: var(--yellow); padding: 1rem 2rem; text-align: center; }
+        .cotiza-bar .cotiza-title { font-weight: 900; font-size: 1.05rem; color: var(--purple); text-decoration: underline; margin-bottom: 0.9rem; }
+        .cotiza-btns { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; }
+        .btn-cotiza-main { background: var(--purple); color: white; font-weight: 800; padding: 0.65rem 1.6rem; border-radius: 50px; text-decoration: none; font-size: 0.87rem; transition: all 0.25s; }
+        .btn-cotiza-main:hover { background: var(--purple-light); transform: translateY(-2px); }
+        .btn-cotiza-out { background: transparent; color: var(--purple); font-weight: 700; padding: 0.65rem 1.6rem; border-radius: 50px; text-decoration: none; font-size: 0.87rem; border: 2px solid var(--purple); transition: all 0.25s; }
+        .btn-cotiza-out:hover { background: var(--purple); color: white; }
+
+        /* =========================================
+           SECTIONS
+        ========================================= */
+        section { padding: 5rem 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section-eyebrow { color: var(--green-dark); font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 0.7rem; }
+        .section-title { font-size: clamp(1.8rem, 3.8vw, 2.9rem); font-weight: 900; line-height: 1.12; color: var(--navy); }
+        .section-title span { color: var(--purple); }
+        .section-desc { color: var(--gray-500); font-size: 0.97rem; line-height: 1.75; max-width: 580px; margin-top: 0.9rem; }
+        .reveal   { opacity:0; transform:translateY(35px); transition:opacity .7s ease, transform .7s ease; }
+        .reveal.active   { opacity:1; transform:translateY(0); }
+        .reveal-l { opacity:0; transform:translateX(-40px); transition:opacity .7s ease, transform .7s ease; }
+        .reveal-l.active { opacity:1; transform:translateX(0); }
+        .reveal-r { opacity:0; transform:translateX(40px);  transition:opacity .7s ease, transform .7s ease; }
+        .reveal-r.active { opacity:1; transform:translateX(0); }
+
+        /* =========================================
+           SERVICES CARDS
+        ========================================= */
+        .services-sec { background: var(--gray-100); }
+        .svc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(285px, 1fr)); gap: 1.4rem; margin-top: 3rem; }
+        .svc-card {
+            background: white; border-radius: 18px; padding: 0;
+            border: 1.5px solid var(--gray-200); position: relative; overflow: hidden;
+            transition: all 0.35s ease;
+        }
+        .svc-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--purple),var(--green)); z-index:1; }
+        .svc-card:hover { transform:translateY(-7px); box-shadow:0 20px 50px rgba(51,0,204,0.12); border-color:rgba(51,0,204,0.15); }
+        .svc-card-img { width:100%; height:160px; object-fit:cover; display:block; }
+        .svc-card-body { padding: 1.5rem; }
+        .svc-icon { width:54px; height:54px; border-radius:13px; margin-bottom:1.1rem; background:linear-gradient(135deg,var(--purple),var(--purple-light)); display:flex; align-items:center; justify-content:center; font-size:1.4rem; }
+        .svc-card h3 { font-size:1.1rem; font-weight:800; color:var(--navy); margin-bottom:0.65rem; }
+        .svc-card p  { color:var(--gray-500); line-height:1.65; font-size:0.88rem; }
+        .svc-tag { display:inline-block; margin-top:1rem; background:rgba(51,0,204,0.07); color:var(--purple); padding:0.25rem 0.75rem; border-radius:50px; font-size:0.7rem; font-weight:700; }
+
+        /* =========================================
+           WHY US — sin fotos externas, todo CSS
+        ========================================= */
+        .why { background: white; }
+        .why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4.5rem; align-items: center; }
+
+        /* Panel visual lado izquierdo — 100% CSS, sin imágenes externas */
+        .why-visual { position: relative; }
+        .why-main-card {
+            border-radius: 24px; overflow: hidden; height: 420px; position: relative;
+            background: linear-gradient(135deg, #0a0230 0%, #1a008a 40%, #3300cc 100%);
+            box-shadow: 0 25px 65px rgba(51,0,204,0.22);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .why-main-card img {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            object-fit: cover; display: block; opacity: 0.75;
+        }
+        .why-main-card .why-card-content {
+            position: relative; z-index: 2; text-align: center; padding: 2rem;
+        }
+        .why-road {
+            /* Decorative road stripes */
+            position: absolute; inset: 0; overflow: hidden;
+        }
+        .why-road::before {
+            content: '';
+            position: absolute; left: 50%; top: 0; bottom: 0; width: 4px;
+            background: repeating-linear-gradient(
+                to bottom, rgba(255,255,255,0.2) 0, rgba(255,255,255,0.2) 40px, transparent 40px, transparent 80px
+            );
+        }
+        .why-road::after {
+            content: '';
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse at bottom, rgba(255,200,0,0.15), transparent 60%);
+        }
+        /* Truck silhouette CSS */
+        .truck-silhouette {
+            position: relative; z-index: 2;
+            width: 200px; height: 90px; margin: 0 auto 1.5rem;
+        }
+        .truck-body {
+            position: absolute; right: 0; top: 0;
+            width: 145px; height: 65px;
+            background: rgba(255,255,255,0.12);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 4px 8px 4px 4px;
+            backdrop-filter: blur(2px);
+        }
+        .truck-cab {
+            position: absolute; left: 0; top: 10px;
+            width: 62px; height: 55px;
+            background: rgba(255,255,255,0.18);
+            border: 2px solid rgba(255,255,255,0.4);
+            border-radius: 6px 4px 4px 4px;
+        }
+        .truck-cab::after {
+            content: ''; position: absolute; top: 6px; left: 8px; right: 8px; height: 20px;
+            background: rgba(100,180,255,0.3); border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .truck-wheel {
+            position: absolute; bottom: -12px;
+            width: 26px; height: 26px; border-radius: 50%;
+            background: rgba(255,255,255,0.15);
+            border: 3px solid rgba(255,255,255,0.5);
+        }
+        .truck-wheel::after {
+            content: ''; position: absolute; inset: 4px; border-radius: 50%;
+            background: rgba(255,255,255,0.25);
+        }
+        .tw1 { left: 18px; }
+        .tw2 { left: 110px; }
+        .tw3 { right: 20px; }
+        .why-card-text { position: relative; z-index: 2; color: white; text-align: center; }
+        .why-card-text .big-num { font-size: 3.5rem; font-weight: 900; color: var(--green); line-height: 1; }
+        .why-card-text .big-lbl { font-size: 0.85rem; color: rgba(255,255,255,0.75); margin-top: 0.3rem; }
+
+        .why-small-cards {
+            position: absolute; bottom: -24px; right: -24px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+        }
+        .why-mini {
+            background: white; border-radius: 12px; padding: 0.9rem 1rem;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.13); text-align: center; min-width: 100px;
+        }
+        .why-mini .mn { font-size: 1.4rem; font-weight: 900; color: var(--purple); }
+        .why-mini .ml { font-size: 0.65rem; color: var(--gray-500); margin-top: 2px; font-weight: 600; }
+
+        .why-list { margin-top: 2rem; display: flex; flex-direction: column; gap: 0.7rem; }
+        .why-item { display: flex; gap: 1rem; align-items: flex-start; padding: 0.9rem 1.1rem; border-radius: 12px; transition: background 0.25s; }
+        .why-item:hover { background: var(--gray-100); }
+        .why-icon { width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0; background: linear-gradient(135deg, var(--green), var(--green-dark)); display: flex; align-items: center; justify-content: center; font-size: 0.95rem; }
+        .why-text h4 { font-weight: 700; color: var(--navy); font-size: 0.93rem; }
+        .why-text p  { color: var(--gray-500); font-size: 0.83rem; margin-top: 2px; line-height: 1.5; }
+
+        /* =========================================
+           STATS
+        ========================================= */
+        .stats-sec { background: linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%); padding: 4rem 2rem; }
+        .stats-grid { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: repeat(4,1fr); gap: 2rem; text-align: center; }
+        .stat-b { color: white; }
+        .stat-num { font-size: 2.9rem; font-weight: 900; color: var(--green); line-height: 1; }
+        .stat-lbl { font-size: 0.82rem; color: rgba(255,255,255,0.6); margin-top: 0.45rem; line-height: 1.4; }
+
+        /* =========================================
+           VEHICULOS
+        ========================================= */
+        .vehicles-sec { background: var(--gray-100); }
+        .veh-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.8rem; margin-top: 2.5rem; }
+        .veh-card {
+            background: white; border-radius: 18px; padding: 2rem; border: 1.5px solid var(--gray-200);
+            transition: all 0.35s; position: relative; overflow: hidden;
+        }
+        .veh-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--purple),var(--green)); }
+        .veh-card:hover { transform:translateY(-5px); box-shadow:0 16px 40px rgba(51,0,204,0.1); }
+        .veh-card h3 { font-size: 1.1rem; font-weight: 800; color: var(--navy); margin-bottom: 0.8rem; }
+        .veh-card p { color: var(--gray-500); font-size: 0.85rem; line-height: 1.6; margin-bottom: 0.8rem; }
+        .veh-specs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem; }
+        .veh-spec { background: var(--gray-100); border-radius: 10px; padding: 0.6rem 0.8rem; }
+        .veh-spec-label { font-size: 0.65rem; font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; }
+        .veh-spec-value { font-size: 0.9rem; font-weight: 800; color: var(--purple); margin-top: 2px; }
+
+        /* =========================================
+           MERCANCIA / SECTORES
+        ========================================= */
+        .sectors-sec { background: white; }
+        .sector-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.2rem; margin-top: 2.5rem; }
+        .sector-card {
+            background: var(--gray-100); border-radius: 14px; padding: 1.4rem; text-align: center;
+            border: 1.5px solid transparent; transition: all 0.3s;
+        }
+        .sector-card:hover { border-color: var(--purple); background: white; transform: translateY(-3px); box-shadow: 0 8px 25px rgba(51,0,204,0.08); }
+        .sector-icon { font-size: 2rem; margin-bottom: 0.6rem; }
+        .sector-card h4 { font-size: 0.95rem; font-weight: 800; color: var(--navy); margin-bottom: 0.4rem; }
+        .sector-card p { font-size: 0.78rem; color: var(--gray-500); line-height: 1.5; }
+
+        /* =========================================
+           TRUST / SEGURO
+        ========================================= */
+        .trust-sec { background: var(--gray-100); }
+        .trust-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-top: 2.5rem; }
+        .trust-card {
+            background: white; border-radius: 16px; padding: 1.8rem; text-align: center;
+            border: 1.5px solid var(--gray-200); transition: all 0.3s;
+        }
+        .trust-card:hover { border-color: var(--purple); transform: translateY(-3px); box-shadow: 0 8px 25px rgba(51,0,204,0.08); }
+        .trust-card-icon { font-size: 2.2rem; margin-bottom: 0.7rem; }
+        .trust-card h4 { font-size: 1rem; font-weight: 800; color: var(--navy); margin-bottom: 0.4rem; }
+        .trust-card p { font-size: 0.83rem; color: var(--gray-500); line-height: 1.55; }
+        .trust-card .highlight { color: var(--purple); font-weight: 800; }
+
+        /* =========================================
+           GALLERY — CSS visual placeholders
+        ========================================= */
+        .gallery-sec { background: var(--navy); }
+        .gallery-sec .section-title { color: white; }
+        .gallery-grid { display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: 280px 210px; gap: 10px; margin-top: 2.5rem; }
+        .g-item { border-radius: 14px; overflow: hidden; position: relative; }
+        .g-item:nth-child(1) { grid-column: span 2; }
+
+        /* Si la imagen no carga, el fondo CSS es el visual */
+        .g-item img {
+            width: 100%; height: 100%; object-fit: cover; display: block;
+            transition: transform 0.55s ease;
+        }
+        .g-item:hover img { transform: scale(1.05); }
+        .g-overlay { position: absolute; inset: 0; background: linear-gradient(to top,rgba(10,2,48,0.55) 0%,transparent 55%); opacity:0; transition:opacity 0.3s; }
+        .g-item:hover .g-overlay { opacity: 1; }
+
+        /* Fallback visual cuando no hay imagen */
+        .g-fallback {
+            width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 0.5rem;
+            position: absolute; inset: 0;
+        }
+        .g-fallback .g-icon { font-size: 3rem; }
+        .g-fallback .g-lbl { color: rgba(255,255,255,0.6); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        .g1-bg { background: linear-gradient(135deg, #0a1628 0%, #1a3356 50%, #0d2040 100%); }
+        .g2-bg { background: linear-gradient(135deg, #1a0050 0%, #3300cc 60%, #220099 100%); }
+        .g3-bg { background: linear-gradient(135deg, #0d1f0a 0%, #1a4010 50%, #0a2808 100%); }
+        .g4-bg { background: linear-gradient(135deg, #1a1a0a 0%, #3d3510 50%, #1a1500 100%); }
+        .g5-bg { background: linear-gradient(135deg, #0a0a2a 0%, #15154a 50%, #0a0a1e 100%); }
+
+        /* =========================================
+           CTA
+        ========================================= */
+        .cta-sec { background: linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%); padding: 5.5rem 2rem; text-align: center; position: relative; overflow: hidden; }
+        .cta-sec::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 75% 15%, rgba(93,200,64,0.15), transparent 55%); }
+        .cta-sec .section-title { color:white; position:relative; z-index:1; }
+        .cta-sec .section-title span { color:var(--green); }
+        .cta-sec .section-desc { color:rgba(255,255,255,0.65); margin:1rem auto 0; text-align:center; position:relative; z-index:1; }
+        .cta-btns { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-top:2.5rem; position:relative; z-index:1; }
+        .btn-cta-wa { background:#25D366; color:white; font-weight:800; padding:1rem 2.2rem; border-radius:50px; text-decoration:none; font-size:0.96rem; display:flex; align-items:center; gap:0.6rem; transition:all 0.3s; box-shadow:0 4px 22px rgba(37,211,102,0.4); }
+        .btn-cta-wa:hover { transform:translateY(-3px); box-shadow:0 8px 32px rgba(37,211,102,0.55); }
+        .btn-cta-out { background:rgba(255,255,255,0.08); color:white; font-weight:700; padding:1rem 2.2rem; border-radius:50px; text-decoration:none; font-size:0.96rem; display:flex; align-items:center; gap:0.6rem; border:2px solid rgba(255,255,255,0.35); transition:all 0.3s; backdrop-filter:blur(8px); }
+        .btn-cta-out:hover { border-color:white; background:rgba(255,255,255,0.14); transform:translateY(-3px); }
+
+        /* =========================================
+           FOOTER
+        ========================================= */
+        footer { background: var(--navy); padding: 3.5rem 2rem 1.5rem; }
+        .footer-grid { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:3rem; padding-bottom:3rem; border-bottom:1px solid rgba(255,255,255,0.07); }
+        .f-logo { font-size:1.6rem; font-weight:900; color:white; letter-spacing:-1px; margin-bottom:0.3rem; }
+        .f-logo span { color:var(--green); }
+        .f-tagline { font-size:0.68rem; font-weight:700; color:var(--gray-500); text-transform:uppercase; letter-spacing:1px; margin-bottom:1rem; }
+        .f-desc { font-size:0.83rem; color:rgba(255,255,255,0.5); line-height:1.75; }
+        .f-social { display:flex; gap:0.6rem; margin-top:1.4rem; }
+        .f-social a { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.5); text-decoration:none; font-size:0.78rem; transition:all 0.25s; }
+        .f-social a:hover { color:white; border-color:var(--green); background:rgba(93,200,64,0.15); }
+        .f-col h4 { color:white; font-weight:700; font-size:0.87rem; margin-bottom:1.1rem; }
+        .f-col ul { list-style:none; display:flex; flex-direction:column; gap:0.55rem; }
+        .f-col ul li a { color:rgba(255,255,255,0.5); text-decoration:none; font-size:0.82rem; transition:color 0.25s; }
+        .f-col ul li a:hover { color:var(--green); }
+        .f-bottom { max-width:1200px; margin:1.5rem auto 0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.8rem; font-size:0.77rem; color:rgba(255,255,255,0.3); }
+
+        /* =========================================
+           FLOAT WA
+        ========================================= */
+        .float-wa { position:fixed; bottom:1.8rem; right:1.8rem; z-index:998; width:56px; height:56px; border-radius:50%; background:#25D366; color:white; display:flex; align-items:center; justify-content:center; text-decoration:none; box-shadow:0 4px 20px rgba(37,211,102,0.5); animation:waPulse 3s ease-in-out infinite; transition:transform 0.3s; }
+        .float-wa:hover { transform:scale(1.12); }
+
+        /* =========================================
+           KEYFRAMES
+        ========================================= */
+        @keyframes fadeUp { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes bounceY { 0%,100% { transform:translateX(-50%) translateY(0); } 50% { transform:translateX(-50%) translateY(9px); } }
+        @keyframes waPulse { 0%,100% { box-shadow:0 4px 20px rgba(37,211,102,0.5); } 50% { box-shadow:0 4px 42px rgba(37,211,102,0.75); } }
+        @keyframes scrollLoop { 0% { transform:translateX(0); } 100% { transform:translateX(-50%); } }
+
+        /* =========================================
+           RESPONSIVE
+        ========================================= */
+        @media (max-width:1024px) {
+            .why-grid { grid-template-columns:1fr; }
+            .why-visual { display:none; }
+            .stats-grid { grid-template-columns:repeat(2,1fr); }
+            .footer-grid { grid-template-columns:1fr 1fr; }
+        }
+        @media (max-width:768px) {
+            .navbar-nav, .navbar-right { display:none; }
+            .hamburger { display:flex; }
+            .nav-logo-img { height: 35px; }
+            .hero-logo { height: 80px; margin-bottom: 1.5rem; }
+            .gallery-grid { grid-template-columns:1fr 1fr; grid-template-rows:auto; }
+            .g-item:nth-child(1) { grid-column:span 2; height:230px; }
+            .g-item { height:165px; }
+            .footer-grid { grid-template-columns:1fr; gap:2rem; }
+            .strip-item+.strip-item { border-left:none; }
+        }
+        @media (max-width:500px) {
+            .nav-logo-img { height: 28px; }
+            .hero-logo { height: 55px; margin-bottom: 1rem; }
+            .stats-grid { grid-template-columns:1fr 1fr; }
+            .gallery-grid { grid-template-columns:1fr; }
+            .g-item:nth-child(1) { grid-column:span 1; }
+        }
+        /* =========================================
+           AI CHAT WIDGET
+        ========================================= */
+        .chat-overlay {
+            position: fixed; inset: 0; z-index: 10000;
+            background: rgba(10,2,48,0.55); backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 1; transition: opacity 0.3s;
+        }
+        .chat-overlay.hidden { opacity: 0; pointer-events: none; }
+        .chat-box {
+            width: 420px; max-width: 94vw; height: 520px; max-height: 85vh;
+            background: white; border-radius: 22px; display: flex; flex-direction: column;
+            box-shadow: 0 25px 80px rgba(51,0,204,0.35); overflow: hidden;
+            transform: translateY(0); transition: transform 0.3s;
+        }
+        .chat-overlay.hidden .chat-box { transform: translateY(30px); }
+        .chat-header {
+            background: linear-gradient(135deg, var(--purple), var(--purple-light));
+            padding: 1rem 1.2rem; display: flex; align-items: center; gap: 0.7rem; flex-shrink: 0;
+        }
+        .chat-avatar {
+            width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.2);
+            display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: white; font-weight: 900;
+        }
+        .chat-header-info { flex: 1; }
+        .chat-header-name { color: white; font-weight: 800; font-size: 0.95rem; }
+        .chat-header-status { color: rgba(255,255,255,0.7); font-size: 0.7rem; font-weight: 600; }
+        .chat-close {
+            background: rgba(255,255,255,0.15); border: none; color: white; width: 30px; height: 30px;
+            border-radius: 50%; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+        .chat-close:hover { background: rgba(255,255,255,0.3); }
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 1.2rem; display: flex; flex-direction: column; gap: 0.7rem;
+            background: var(--gray-100);
+        }
+        .chat-msg {
+            max-width: 82%; padding: 0.7rem 1rem; border-radius: 16px; font-size: 0.85rem; line-height: 1.5;
+            animation: chatPop 0.3s ease;
+        }
+        @keyframes chatPop { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        .chat-msg.bot {
+            background: white; color: var(--gray-700); align-self: flex-start;
+            border-bottom-left-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .chat-msg.user {
+            background: var(--purple); color: white; align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-msg.bot .bot-label { font-size: 0.65rem; font-weight: 700; color: var(--purple); margin-bottom: 2px; }
+        .chat-quick-btns {
+            display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0 1.2rem 0.8rem;
+            background: var(--gray-100);
+        }
+        .chat-quick {
+            background: white; border: 1.5px solid var(--gray-200); color: var(--purple);
+            padding: 0.4rem 0.85rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700;
+            cursor: pointer; transition: all 0.2s; white-space: nowrap;
+        }
+        .chat-quick:hover { border-color: var(--purple); background: rgba(51,0,204,0.05); }
+        .chat-input-wrap {
+            display: flex; align-items: center; gap: 0.5rem; padding: 0.8rem 1rem;
+            border-top: 1px solid var(--gray-200); background: white; flex-shrink: 0;
+        }
+        .chat-input {
+            flex: 1; border: 1.5px solid var(--gray-200); border-radius: 50px; padding: 0.6rem 1rem;
+            font-size: 0.85rem; outline: none; font-family: inherit; transition: border-color 0.2s;
+        }
+        .chat-input:focus { border-color: var(--purple); }
+        .chat-send {
+            width: 38px; height: 38px; border-radius: 50%; border: none;
+            background: var(--purple); color: white; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0;
+        }
+        .chat-send:hover { background: var(--purple-light); }
+        .chat-typing { display: flex; gap: 4px; align-items: center; padding: 0.7rem 1rem; align-self: flex-start; }
+        .chat-typing span {
+            width: 7px; height: 7px; border-radius: 50%; background: var(--gray-400);
+            animation: typingDot 1.2s infinite;
+        }
+        .chat-typing span:nth-child(2) { animation-delay: 0.2s; }
+        .chat-typing span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingDot { 0%,60%,100% { opacity:0.3; transform:translateY(0); } 30% { opacity:1; transform:translateY(-4px); } }
+
+        /* Boton para reabrir el chat */
+        .chat-fab {
+            position: fixed; bottom: 100px; right: 2rem; z-index: 9999;
+            width: 56px; height: 56px; border-radius: 50%; border: none;
+            background: linear-gradient(135deg, var(--purple), var(--purple-light));
+            color: white; font-size: 1.4rem; cursor: pointer;
+            box-shadow: 0 6px 25px rgba(51,0,204,0.4);
+            display: none; align-items: center; justify-content: center; transition: transform 0.2s;
+        }
+        .chat-fab:hover { transform: scale(1.1); }
+        .chat-fab.show { display: flex; }
+
+        @media (max-width:500px) {
+            .chat-box { height: 70vh; border-radius: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+    <button class="mobile-close" onclick="closeMobileMenu()">✕</button>
+    <a href="#servicios" onclick="closeMobileMenu()">Servicios</a>
+    <a href="#vehiculos" onclick="closeMobileMenu()">Vehículos</a>
+    <a href="#nosotros" onclick="closeMobileMenu()">Nosotros</a>
+    <a href="#clientes" onclick="closeMobileMenu()">Clientes</a>
+    <a href="#contacto" onclick="closeMobileMenu()">Contacto</a>
+    <a href="tel:+34955225945" style="font-size:1rem;color:var(--green)">📞 +34 955 225 945</a>
+    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center;margin-top:0.5rem;">
+        <button class="lang-option" onclick="changeLang('es','����🇸','ES');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇪🇸</button>
+        <button class="lang-option" onclick="changeLang('en','🇬🇧','EN');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇬🇧</button>
+        <button class="lang-option" onclick="changeLang('fr','🇫🇷','FR');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇫🇷</button>
+        <button class="lang-option" onclick="changeLang('de','🇩🇪','DE');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇩🇪</button>
+        <button class="lang-option" onclick="changeLang('pt','🇵🇹','PT');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇵🇹</button>
+        <button class="lang-option" onclick="changeLang('ar','🇲🇦','AR');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇲🇦</button>
+        <button class="lang-option" onclick="changeLang('it','🇮🇹','IT');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇮🇹</button>
+        <button class="lang-option" onclick="changeLang('uk','🇺🇦','UK');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇺🇦</button>
+        <button class="lang-option" onclick="changeLang('ro','🇷🇴','RO');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇷🇴</button>
+        <button class="lang-option" onclick="changeLang('pl','🇵🇱','PL');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇵🇱</button>
+        <button class="lang-option" onclick="changeLang('nl','🇳🇱','NL');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇳🇱</button>
+    </div>
+</div>
+
+<!-- TOP INFO BAR -->
+<div class="top-bar">
+    <span>+230 Clientes</span> confían en nosotros.&nbsp;
+    <span>5,0 ★★★★★</span> en <span>Google</span>.
+</div>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+    <a href="#inicio" class="nav-logo">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAfQAAAH0CAIAAABEtEjdAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAEwmlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSfvu78nIGlkPSdXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQnPz4KPHg6eG1wbWV0YSB4bWxuczp4PSdhZG9iZTpuczptZXRhLyc+CjxyZGY6UkRGIHhtbG5zOnJkZj0naHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyc+CgogPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9JycKICB4bWxuczpBdHRyaWI9J2h0dHA6Ly9ucy5hdHRyaWJ1dGlvbi5jb20vYWRzLzEuMC8nPgogIDxBdHRyaWI6QWRzPgogICA8cmRmOlNlcT4KICAgIDxyZGY6bGkgcmRmOnBhcnNlVHlwZT0nUmVzb3VyY2UnPgogICAgIDxBdHRyaWI6Q3JlYXRlZD4yMDI1LTExLTExPC9BdHRyaWI6Q3JlYXRlZD4KICAgICA8QXR0cmliOkV4dElkPjlkNjYzY2NmLWFjOTMtNGM2Ny05OWY5LTE3OWZiNGI2OWU4ZjwvQXR0cmliOkV4dElkPgogICAgIDxBdHRyaWI6RmJJZD41MjUyNjU5MTQxNzk1ODA8L0F0dHJpYjpGYklkPgogICAgIDxBdHRyaWI6VG91Y2hUeXBlPjI8L0F0dHJpYjpUb3VjaFR5cGU+CiAgICA8L3JkZjpsaT4KICAgPC9yZGY6U2VxPgogIDwvQXR0cmliOkFkcz4KIDwvcmRmOkRlc2NyaXB0aW9uPgoKIDxyZGY6RGVzY3JpcHRpb24gcmRmOmFib3V0PScnCiAgeG1sbnM6ZGM9J2h0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvJz4KICA8ZGM6dGl0bGU+CiAgIDxyZGY6QWx0PgogICAgPHJkZjpsaSB4bWw6bGFuZz0neC1kZWZhdWx0Jz5EWU5BTU8tTkVXLUxPR08gLSAxPC9yZGY6bGk+CiAgIDwvcmRmOkFsdD4KICA8L2RjOnRpdGxlPgogPC9yZGY6RGVzY3JpcHRpb24+CgogPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9JycKICB4bWxuczpwZGY9J2h0dHA6Ly9ucy5hZG9iZS5jb20vcGRmLzEuMy8nPgogIDxwZGY6QXV0aG9yPmFsdmFyb2JsYW5jb21vcmlsbG88L3BkZjpBdXRob3I+CiA8L3JkZjpEZXNjcmlwdGlvbj4KCiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0nJwogIHhtbG5zOnhtcD0naHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wLyc+CiAgPHhtcDpDcmVhdG9yVG9vbD5DYW52YSAoUmVuZGVyZXIpIGRvYz1EQUd6Q2dwOUVJayB1c2VyPVVBQnhvVDRZbURZIGJyYW5kPUJBQnhvY2xlVDg4IHRlbXBsYXRlPTwveG1wOkNyZWF0b3JUb29sPgogPC9yZGY6RGVzY3JpcHRpb24+CjwvcmRmOlJERj4KPC94OnhtcG1ldGE+Cjw/eHBhY2tldCBlbmQ9J3InPz5Z2P1BAABPsUlEQVR4nOzdd1hUV8IG8Dsz9DpUQaqCIKgIKFIssfc1uoSIsWbVxC/qt8maLTExmt2NyUaTbDTVNGNMYgM3JpHE2KMoClgwEREVxUKvAsPAzHx/+DwunwVmbjt3znl//22ccpbycufcc86rUnHvcMCGzz7aPG70edKjkMOxVp/U8pGkRyGHZ4svvH32FOlRyM1oUvl+8lKNzpH0QBRNTXoAIBO12pQ4sIT0KGSSrfMlPQSZDK+sID0EAgqq/ZDsXUK4syKqd5lW20J6FDI51spEuKtNpqHVlaRHQcDBGz1ID8EKINxZER9bSnoIMmk1afJavUiPQg4xDXWeej3pURCQUxZMeghWAOHOigFxrIR7vt6z1aQhPQo5sDknw3Hc8bIg0kOwAgh3ViQnXiY9BJnkt3qTHoJMkmqqSQ+BgKuN2pIGD9KjsAIIdyYEBdYGBtSRHoVMGJmT4VgN94PXe5IegnVAuDMhOfEK6SHIxMipjrf6kB6FHEKbm0Kam0iPgoBDNxDuZkG4MyEliZVwL9S71xntSI9CDphwh84h3JkQH3uN9BBkks3GIkiO44ZXsRjuNTrHojpW7qkIhHCnn1bb0iOUlclZlibcq0gPgYBfbvYwmlSkR2EdEO70S0q4olabSI9CJvl6JsLdU6/vdfs26VEQcAjbl8yGcKdfMjMT7tfbnUvbnUmPQg7DqirUJlb+YHd0EHdTzYZwp18KM0tlstlYJ8MxPOF+tsqP9CisBsKdcvb27b0jy0iPQibHcF4Y1U5WBGLC3XwId8rFx5ayM+HOyFIZT72+X0M96VEQcBxHylgC4U65lCRWTh2oNDgwMuE+qLaazQn3Q9dxN9UCCHfKsbM3lZF1Mhyrpw7oDDa4crcIwp1m9vbt7Jz0i4IOuuWUBekMNqRHYU0Q7jTrE33L3r6d9ChkwsiEu4PBkFjL4pU7LtsthXCn2QBmLtvrjHbn9e6kRyGHpJpqB4OB9CgIyMGRMhZCuNMsmZm7qaf1nkaOiUVybE64G02qwzdxN9UyCHdqMdWIjSNl6IZGbB4Q7tRCIzZ90IgN5kO4U4udUwfQiE09NGLzgHCnVnwcK2e4oxGbeijo4AHhTi12VrijEZtuaMTmB+FOJzRiU4nNcEcjNj8Idzqxc+oAGrGph0ZsfhDudEIjNn2YnXDHUhl+EO50QiM2fdgs6ChvdsGEOz8Idwox1YiN88LohiNleEO4UwiN2PTx0+lYnXDHnAxPCHcKMdWIXWFwID0KObB56gCHRmwBEO4UYmdvKhqx6YZGbCEQ7rRBIzaV2JxwRyO2EAh32qARmz5oxAYeEO60QSM2fdCIDTwg3GnDzt5URtbJcKyeOoBGbIEQ7lRBIzaV2JxwRyO2QAh3qsTHlqIRmzJoxAZ+EO5UGcDMGe5oxKYeGrEFQrhTJT6OlTkZNGLTDY3YwiHc6YFGbCqxuTcVjdjCIdzpgUZs+qARG3hDuNODnVMH0IhNvUNoXxIM4U4PNGLTh81FkBwascWAcKcHVrjTh81wv9qoLWt2JT0Kq4dwpwRTjdj5bMzJcKwulUEjtigQ7pRg59QBI6c6xcbBA6HNTd1adaRHQQAasUWBcKcEGrHpw+acDIelMiJBuFMCjdj0YbOgA43YYkG40wCN2FRi88odR8qIBeFOAzRi0weN2CAQwp0GaMSmD5unDnBoxBYPwp0G7OxNRSM23dCILSKEu9XTalvQiE0fNifc0YgtIoS71YuLQSM2bdCIDcIh3K0eO2e4oxGbemjEFhHC3eqxszeVkXUyHKunDqARW1wId+uGRmwqsTnhjkZscSHcrRsasenDbCM2FkGKC+Fu3dCITR80YoMoEO7WjZ27qTmtPow0YrO5wt1oUp0oR7iLCeFuxdCITSU276aiEVt0CHcrxlQjNiNLZdQmUwKjE+5YBCkyhLsVY+fUATRiUw+N2KJDuFux5KTLpIcgEzRiUw+N2KJDuFsxrHCnD5vhjkZsKSDcrVVQYK2P923So5AJGrHphkZsKSDcrRU7pw6gEZt6aMSWAsLdWqERmz5szslwWCojDYS7tUpOZOVuKiOnDnCsbl+62qhFI7YUEO5WydenMTCgjvQoZIK7qXTDSZASQbhbJXbWyRg51XE2qvVCm5vYbMTGkTISQbhbJXYasa+0uTAy4c7mOhkOh0FKBuFuldjZm5rHxjoZjuOSaqpID4EANGJLB+FufdCITSU2J9x/udkDjdgSQbhbHzRi04fZRmxMuEsH4W592DnD/Xq7MyON2MOqKthsxMaRMtJBuFsfdvamMnLML8fq3VQ0YksK4W5lmGrEZuSYX47VcEcjtqQQ7lYGjdj0QSM2SAHhbmVSmDnDHY3Y1MPdVEkh3K0MO3MyaMSmGxqxpYZwtyZqtSk25jrpUcgEE+50QyO21BDu1gSN2PRBIzZIBOFuTdg5dQCN2NRDI7bUEO7WBI3Y9GHz1AGjSXX4Jq7cpYVwtybs3E3FGe50u1jnhQl3qSHcrQZTjdjH2FjhrjaZhlZXkh4FAdiYKgOEu9Vg59QBI6diZMI94nYjoxPu2L4kPYS71WCqEZuRCXc2F0FyWCojC4S71UAjNn3Y3L6ERmx5INytAxqxqcTm3VRMuMsD4W4d2Fkng0Zs6uFIGXkg3K0DGrHpw/CEO+6mygHhbh3Y2ZuKRmy6oRFbNgh3K4BGbCqxOeGORmzZINytQFLCFTRiUwaN2CA1hLsVQCM2fdCIDVJDuFsBdpbKMHLML8fq3VQ0YssJ4a50aMSmEpvhjkZsOSHclQ6N2PRBIzbIAOGudGjEpg+zjdiHruNIGfkg3JWOnTkZNGLTzWhSYcJdTgh3RWOqERtHytCtoNoPE+5yQrgrGhqx6aM2mVidcMecjKwQ7orGzqkDrSbNOb2W9CjkENNQx+qEO+6mygrhrmhoxKYPm3MyaMSWH8Jd0di5m4oJd7qhEVt+CHflQiM2fdCIDbJBuCsXGrHpg0ZskA3CXbnQiE0fNk8d4LBUhgSEu3KhEZs+bG5fQiM2EQh3hQoKrEUjNn3YvJuKCXciEO4Kxc46GTRiUw8FHUQg3BWKnYIONGJTD4dBEoFwVyh29qaiEZtuaMQmBeGuRGjEphKbE+5oxCYF4a5EaMSmD7ON2IewCJIQhLsSsTPhjkZs6mGpDCkIdyViZ6lMNhvrZDhWV7jrDDanK/1Jj4JRCHfFYaoRO7/Vm/QQZMLmUhk0YhOEcFccphqxGVkq42Aw9K9nZUtaR1gESRDCXXHQiE0fNGKD/BDuisPOnAwasemGRmyyEO7KgkZsKrG5wh2N2GQh3JUFjdj0QSM2EIFwVxZ2Th1AIzb10IhNFsJdWdCITR8252TQiE0cwl1B1GpT4sAS0qOQCSbc6VZQ7YdGbLIQ7grSs0cVOxPuaMSm23Gc4U4awl1B2FkE2WrSMNKIHdNQx2Yjdg4WQZKGcFcQdhqxf23TMjLhzuapAxyWyigAwl1B2GnEzmfjsp1jNdzRiK0ECHelQCM2ldi8m3oQiyAVAOGuFOxMuKMRm3poxFYChLtSsFPQUah3Z6QRm83Ldo7jjpfjbip5CHelYGdvKiPH/HKsTrijEVshEO6KwFQjNkt3U6tID4EANGIrBMJdEdCITR80YgNZCHdFSGZmhTsasamHM9wVAuGuCAOYWSqDRmy6oRFbORDu5Nnbt0dH3SI9CpmgEZtuaMRWDoQ7eWjEpg8asYE4hDt5aMSmDxqxgTiEO3nJzKxwRyM23XQGG9xNVQ6EO2FqtYmdgwdwpAzdzlT6Y8JdORDuhEX1LmNnwp2RFe4OBgObjdjHy3GkjIIg3Alj59SBVpOGkQn32Ho0YgN5CHfCmGrEZmTCnc1TB9CIrTQId5LQiE0lNifc0YitNAh3ktCITR80YoNCINxJYmedDBqxqYdGbKVBuJOERmz6sHnqAIdGbOVBuJOERmz6sBnuaMRWIIQ7MWjEphKbd1PRiK1ACHdi2Dl1AI3Y1EMjtgIh3IkZgEZs6rB52c6hEVuREO7EsLNUhpFjfjlWJ9zRiK1MCHcy0IhNJTb3pqIRW5kQ7mSgEZs+aMQGRUG4k4FGbPow24iN9iVlQriTgUZs+jBb0IEJd2VCuBPAVCP2Maxwp1pOWRAm3JUJ4U4AGrHp42AwsDnhjjkZxUK4E8BUI/blNlfSo5BDUk01mxPuaMRWLIQ7AezsTUUjNt3QiK1kCHe5oRGbSmxOuKMRW8kQ7nJDIzZ90IgNCoRwlxsasemDRmxQIIS73NCITR82Tx1AI7bCIdxlhUZsKrE54Y5GbIVDuMsqqncZGrEpg0ZsUCaEu6zYWSeDRmzqoRFb4RDusmKnoAON2NRDI7bCIdxlhUZs+rAZ7mjEVj6Eu3x8vG+jEZs+bN5NRSO28iHc5RPVm5XqJXYasbVtejYbsQ/hvDDFQ7jLJ6wnK6uh2WnEDmluJj0EMrBURvlUKu4d0mMAAACR4codAIBCCHcAAAoh3AEAKIRwBwCgEMIdAIBCCHcAAAoh3AEAKIRwBwCgEMIdAIBCCHcAAAoh3AEAKIRwBwCgEMIdAIBCCHcAAAoh3AEAKIRwBwCgEMIdAIBCCHcAAAoh3AEAKIRwBwCgEMIdAIBCCHcAAArZkB6AHJYs6f/I8ADeT//6qws7d14ScTwAAFJjItwHJvimpobzfnpeboWIgwEAkAGmZQAAKIRwBwCgEMIdAIBCCHcAAAoh3AEAKIRwBwCgEMIdAIBCCHcAAAoh3AEAKIRwBwCgEMIdAIBCCHcAAAoh3AEAKIRwBwCgEMIdAIBCCHcAAAoh3AEAKIRwBwCgEMIdAIBCVtOh6u/vrNXau7vbtbUZa2tbKyqab99uIz0osICDg8bT08HNzc7Z2dbeXtPQoG9o0JeVNev1BtJD42xs1N26OTk72zg72zo62phMnE7X3tLS3tCgv3mzifToJKFWq7y9Hdzc7F1dbR0dberr9VVVLZWVLUajSYq3u/Pd12rt3d3t9XpDQ4O+ulpXU6OT4r14u/Pz6eJi6+pqZzSaGhv1t2+31dW1NjToSQ+ND+WGe0CAy+TJoSNGBkVGeoSFubu42Hb8V5OJu369sbCwNje3Ymdmca68HdZubnY+Po5CXuHGjds6Hc9QCw52tbXl85Grubn91q3/RpWHh72npwOP16mp0dXWtnb5sAEDfEeODIyL9w0JcQ0JcfPzc1KrVfc8pq3NWFLSUFRUd2B/aWbmpZKSBh7jsYharUpI6Na/v3dUtGdkpEdAgIuvr6O3t6NGc+/Y7o6wulpXUdF86VL9hQu1v/1as39/qUSJ7+/v7OTE51fSnB8nHx/H0aODhgwNiIjQhoS4BgW52ttr7nmM0Wi6dKn+1KnKEzll33xT1PGnxVLu7nYTJoQOeyTgzu9vYKDL/d/98vLm4uL67OxbmRnFOTllvN+Ln9BQt5EjAwcl+vXs6R4c7BoY6PKwL35tbWtpaeO1a40XLtQey7514MB1c37+iVOpuHdIj+H/sbFRp6dHzF/QZ8iQ7g/7fbtfcXHdxs/Pv/femfr6B/yN3fjFmDlzongPafkL2a+/ntvxv8TH++bmpfN+QY7jFj9z4IMPCng80c5OU1P7NL8I+PDDgmf+58Dd//n3fyS/9FICj9d55ZWcV1blPOxfx40LmTW797hxwd7elv39MxpN339/ZfWrJ0+cKOcxqs4lJflNmBiakuI/cGA3d3c7IS9lMnFFRbWHD9/Ysb3455+viTVCjuP27f/9iBGBPJ44/JGMw4dvPPCffH0d582LTnu8V2ysj/m/UBzH6XSGrKySt97MP3r0lvnPsrPTPPFExJy5UcnJ/vf/8ehEXl7F6ldP7tx5yfyn8DN4sP+MJyInTgwNDXXj9woGg+ns2apduy5v/rLw0qV6cYcnImVduT/5ZPSKlwfx+KKHh2v/+Wryn5bFrXvn9OrVue3tRimGd1d+fsWZM1X9+3vzfoURI4P4hXtiYjd+yc5x3A/fX+H3RHPY2WkWL45ZsrR/jx48f2fUatWUKT0nTeqxbt3pF5dn8/5k01Fysn/6jIhJk0J79nQX/mp3qFRcZKRHZKTHwoV9r1+/vWnT+ffePSvkIlci4eHalasSU1PDHRwsCNm7HBw006aFTZnSc+PG35a/kF1Z2dL5452dbf/8lwELF/bx93fm8XYDBvhmZE7KyChe9PT+6mrxp2ucnW0XLeq38Km+ERFagS+l0aji4nzi4nxWrBiUnX3r3fVntm27KMogxaWUG6qxsT45J6Z/+tlo3n9OOY7z9HRY9UpSXv6MlBR/Ecf2QDu2C/p2Dh3and8TBw/m+cTa2taffy7l99wuzZ0b9dv5WW++NZR3st+l0aieey7uwMFUfhlxh4uL7eLFMSdOph/NTlu6tL+IyX6PwECX5csTLhbPXf/ucC8vPnNcUnBzs3tn3SNnC2bOnBnJL9nv0mhU8+f3+eVIWnS0ZycPmzs36tyvs15+eZCQ7xrHcamp4cdzpkdFdfZelnJ0tFm5MvFi8dw1a4cIT/aO1GrVkCHdt2ydUHBu5pNPRov4yqJQRLg/91zckaNpCQndRHm1fv28ft47bfbs3qK82sNs2lQo5PNBt25Oycl8/gINGOjL7x0PHLguxa1LT0+HrdsmfL5xjLgBmpjod+BgavfuFieFu7vdypWJly7PW//u8IF8v1aWcnKyWbw45rfzs59+uq8879iJxES/EyfTly7tLzDWO4qI0B44mBob63P/P3l42G/fMfHzjWNCQlxFea+wMPe9+6b17u0hyqulpfUqODdz5apEPz8nUV7wgfr08fr0s9FHjqYlJflJ9y6WIhzuarVqw8ej3nxrKO+phgdydLT5fOOYZcviRXzNe5SWNh469OBZTjONHRfM41kDBvAMrB+zSvg9sRMxMd65eelpab1Ef2WO4yIitDv/M9nR0dwfDDs7zYsvJlwsnrtyVaLA2938+Pg4fvDhyK3bJvC7TS2KefOiDhxMFff69A4fH8ctW+/9vxYT433s+PTU1HBx38vf3zkjc5KHh72QF/HycsjInLR12wTpPrfdIyXF/5cjaWvWDrGxUcRFM8lB2Nlpvt31uwUL+kjx4mq16vV/DX7iiUgpXvyOrVuKhDydx62zoCBXftNWbW3Gb7+9zOOJnYiP9/3xp6lCptG6lJDQbfVrKeY8csqUnmfOPvGPfyZbehdXdGlpvQ4eSg0OFucy1iILFvT5+JPRIl6w3yMiQvvW20Pv/s+YGO/dWY9K8YeE47ioKM831gzh/fShQ7ufzE2fNi1MxCGZQ6NRLVsWf+hwaliYTH9ROkEs3NVq1eavxk2aFCrdW2g0qg0fj4qPl+qz+ZYtRUIWwA4a5HfP+s4uDRvGc8I9J6esyxtiFunVS5v146OSftS9Y/HimC5nV0JCXDMyJ0VGivNBXri+fb327f+9zL/e06dHfPDhSIvWw/Awc2bvOzMPvXt77M56lMe8mfnmzYvmd/Ns+vSIn/ZMk/Syo3PJyf6Hf3ls0CBx5pl5Ixbub/972GOPifxp7n5OTjbvfzBCpZLkJ/727bbdu0t4P93BQTNuXIhFTxmUyHNGb89PV/k98YE0GvVXX4+XZ+rDxka94uXEzh9z9WrjDz9IuBCIh7Aw9x0Zk9zcBK25NF9wsOv7H4yQOtm5O1emz8c7OGg2fzVO0mS/814vLLd4qe6iRf2+3DxWuo8vZvL3d/7xp6mjRwcRHAOZcJ8xI2LJkv7yvNegQd0mTLAsQ8339VcXhDx9lIXfe953CHfuFHNOZuHCPrLdq+Q4buLE0C5vr61dky/PYMzXv7/3x5+Mkue91qwdInCG2nyTJ/f47PMx0n0g7mj8+BCL7qzOnt17/bvDFTLlrdXa78iYRPAWK4GvQs+e7u+9P0Kai+kHk24edvfukhs3bvN++vDhFky729ioY2L4rKy/cKH211+reTzxYbp1k3w2piONRrVgYRerUI4cufmwXTwEpaX1Sk+PkOGN5PyO2Ntr5Pk/xXGcRqN68g/m3pMbPTroow2jZPj4Yj43N7sdGZPCwyW5LdElAuH+1ttDtVqZrjKkZjSaMjP576mLjPQw/1Z+UpKfs7Nlc/R37Nkj5i5KIsaP7/qz19tvnZJhJJZas3YIv+8a3DHOvEVlQUGum78aT3w25n7duzt/s2W8nR2Bgckd7lOnhk2Z0lPmN5XUpi/O836uSsVNnBhq5oMHD+a5M+v775Q1H81DdLRnl/fHvv328unTlfKMx3wBAS7PPNOP9CisWN++XuZsjPr4k1G+voQXSj3MgAG+r65Olv995Q73FS8PkvkdpZaXV3H2bBXvp48Yae7MzEBem7yqqlr27ZNqY6qckpO7nrtc985p3q9vNJqam9vb2sQ/uGLxkv4KmQW2Rmq1qstv/dKl/ceO5bNrRDbPPhs3bFiAzG8q69kyaWm94uIesMnN2u3YfpHfbDhnyTkE/LYv7d9/XaJDXGUW3cery8ds2lT40opB5sx01dfrT54sP3myvOBsVXFx3aVL9XfP+XN2tg0IcI6L8x2Y4Dt1apjwFY3Bwa4TJ4bu2iXyPgN29Onj1cnkp4eH/YsvKf2SUaNRvfZ6yuCU7XK+qawXFP/7x1g53042Qo4i8PZ2HDKk63znvX1p9w8lPJ6lQEFBLl0+xmg0vf/e2U4eoNMZtm+/mD49y9/v47Fjdr64PHvLlqLc3IqOJ7g2NbUVFdVt3Vr05+eP9Ar/Yu6cPWVlzQIH//tUuXfT0CSw02/9SysGKXZCpqPkZP9Zs6Q9E+Ue8oV7375eMpznRcS1a42HD9/k/fSxZqx257d9SaczfPcdJReMAQFdhzvHcR99dK68/AFZXFXVsnr1yfCwjdMfz9q27aL5R05++WXh8Ed2CDzAffRoRU8aKFxg4EO3+3p6OsyfL8kWdyn8aVmcnG8n37TMgoV9xV3+aDCYcnPLS0oabt1qdnKyCQ52TUnxl23byD22bS0aafbs+T3MOYeA3/al7OxbVtEqYA4zt8w0NbVt2HBuxYr/fk6vr9evW3f632+f4v2lKCqqW7hg7w+7H+X3dI7jund37tVLe/FiHe9XYFlAwEO/9YsW9RPxV95oNOXnV166VFde3mJjo+rWzalvXy8Rdz7HxvqMGRMsbgdAJ+QL98mTQ8V6KZ3OsH79mQ0fFdxzUr6dnWbevKg/LYuX6LyLTmzZUrRm7RBXVz4/ZwMH+rq52XV+kgG/CXdxN6aa4+bNpszM4sOHbty40eTpaT90WMCcOVGinFJg/td23Tun//jHWDc3O4PB9OWXhSteOiZkL8IdWVlXjx69xXvBEsdxw4YFyB/ura2GXbsuZ+0uuXixztnZNmVw9/nzo838DMTDiRPlmRnFp05VtrS09+3rNXNWbyFfsbs6ie95T/Iv4emopaV9/fozH35QcH8XWGysz7Ln42fMiLi/SYqHpxf1oy3cY2K8xTqb7ezZqnlzf37goje93rBhw7lNm86/9vrgJUv6y7mdoaFBn5V19fHH+ZyPaG+vGT8+pJPz/m1s1DyKQUwmToZem7uam9vf+Ffum2+eamr6b7ftDz+UvLb65EcbRvH7ynRk/vGQ1dW6L744P3x44NIlB0Xc2bT352tCoipC9qNv9uy59tyzh8+fr+n4X95+K//rbyaIvme7tLTxT8/9kpFRfPe/HDly88MPC55/Pv611wcL/E10cnrwRoHBg/1F2R907lz142m7CwtrH/ivp09Xzp710xcbf/v6m/HCt0OOHRvs7Gzb8XdEOjLNuf/udz1EeZ2CguqxY3Z2vpxZpzM89+zhhQv2trbK2rz8zdf8jyLo/BwCftuXzp2rlu1SsbCwdsjg7X//+4n7f2rr6/Xp07OE/5mx6FDoV1blJAzcIu6e1VOnBC2iDw6W6nr5fkajadXK4+PH/adjst9RX6+fNvX7M2f4L9693759pQkDt3RM9rvWrs1fsyZP4Os7Oj54B1DqYyKcNZ2XVzF6VObDkv2uvXtLx439j/C+LRcX20cflWmjj0xX7gliHJBWWdkyedKuigqzTjfcuPF8e7tp4xdjRPkwZY7vvrty82YTv9OUHnmks2l3fheMsn36y8kpe3TKd51/X55auG/UqCAh06MWXf3V1HTR0+bsbBsRoQ0KcvX3d3JysnV0tFGruaam9qamtsZGfUlJY2FhzT1z9BUVgtbMdO8uU7gbjaalSw52UuKo1xv++pcjP/40VZS3+/77K4+n7e7kBvWqlTlz5kQJOWXsYbsEhB/LVVvbmj49y8xIOXWqcsH8vbu+myLwg8iEiaFfC7gQNJ980zLCX+Rvfz1aWtpo/uM3by6M7uP5t78NFP7W5jAaTZmZxfwORIuI0IaHa4uLH3yhzW/7kjwbU4uK6rpMdo7jqqt1O3YU/+EPJKvIoqM9x48PGTK0e3S0V1iYe5e/ohUVLXl5FdlHb2ZlXc3Pr7h9W9BHaUuPd+btjTfyuqzn3bPn2uXL9cJnSk+frpyR/mPnS4/0ekNGRvHSpSIfFOjp6SC8jW/5C0ctarjOyrr66ae/PvWUoL4tsSrnuiTHtIyXl0NIiNCzlY8fL/v8898sfdbLK44XFIh5ZlbnNn9ZyPu5Eyc+dBqUx93UsrLmgwev8x6MmXQ6w4x0cy98fiF0sFdwsOvKlYlnzs489+ustW8OnTo1LCJCa87Fl6+v44QJIf/4Z3JuXvrJ3PRZwoobzb9nIMTx42XLX8g255H5+UKPatDpDLNn7TFn+vhETpnA97rf8OEBAq+gS0sbP/3U4khZ80aekH5NjuPCw93lOejt/wAAAP//7d13XBTX+j/ws7uw9C4oIIoNe0NsgAUrGntvsd5oEhONScz9JrnXkqaJidF0SzSW2AtYUakqKApiAUEiTZp0qbssW35/cH+4zC7L7s6WYfi8X/kjDrMzA7v7zJnnnPMcQwT3Hj0c6A+C/P03VZNTmiIWSz/ZeJvuudV2716B1veSgDHKnzHd3a21mL4UGmqInMyuXQnqZ6INX/ilVy/Hvw6NT3m2dPOWoX37Nj/BVYVBg1w++WQQnSMYoKaVVCr7cMNNNXem3x/z22+P1aw2mpRETf3T168/3bnuR45oM/cwLa08JITWIDQul2OYxrshgjv9JVEKCwV/a1s5/dq1rHv3CmhegPrOnmly0Itq/v5uSrsHRo3SpiTFVRqriKiprKx2x3ca9JXpdiko1Wxt+T/sHBEXv3Dp0p4MqRRogL6f0NDsu3fVbSNX0lhEjBAiEIh3/qBuDf1mu0C00KkT3ahy/ZqWDaDICLrPxIZZpcsQwb19e7pdSbdv59EpkBIebrjKWYcOJUsk2lyqk5O50joEQzUv9i8QiC/qP+EeHJyu0bQgfXzDlfL1db0ft2DDhoEMCesGo9GivjS7EMLDc9Sftfvqle5n0nXsSGuVWoFArP6NkCI6Op/OqQkhnrTvTOowRHC3oT2FLPq29pP7DSwrq1LrEXgTlJWu1iLhfutWHs2vrjoEArG+T6GFlSt7hYbN6tbNOMsjGJch3xGh0MjvvpOTOZ2Xp6WVi0RaDpW+f79AuwZcA8MsUWmI4E6/KykjgzptjMlOndSgASVPcWEm7aYvXaOXE2y5/v3vQXv3jW1tDfbWqamZTWoqL9c+KyWVyioraSW1NJq0oTVDBHdzc7q/idJSUIx1/Hiqdg1nHx8XykqYWkxfkkplhpyYyhxvv933m21+BpvWAMZFs8moutpHs+jcGwjtO5OaDBHc6dcTN8xsXV2pqBBd0ao/k8/nUdaT02L60qNHxYr1MVgvIKD9rt0jDbkwLxiXTEYrqtD8qHDpBU6aF68mQwR3+qlAmvk1wztxXMvMzNjGtWG1mL50zeDFwozOwcHswMHxRlmmEoyFZlShWUvSzo7WKtA1NYbosTBEcKf/mxim/0GHLlxI164COKVuu7e3xr2pFy+0+BVTNbX1i2E0x07IEwolNGepgAHQjCr29tpHZxMTLs1Fzw0T3A2R1y+jPQaudx8n0nTRRAaqT3yvXdtP0xd27Wrv5WWfmvqKaDV9KSen6s4duuO0WhYvL3ua08ElEtmtW7lB59NiYvKTkkrrm4QODma9ejn26uU0yMdl8OC2/fq1MWSRUWgWzWkTXbrYWViYaNf8HzasHc0Pg2E6EQ0R3LOyNCgIo5Q6C9ExzdEjKVoEd0LIG290Sk1NIISMGuWuaWbQYMXCmGPd+gF0EjJxcYXr10Up3hHLymqjo/Ojo/P37SOEEHd365Ure239YhidSwUdohlVzMx4vr6u2q0dT39FuUyDDP8zRFqmqXpY6hs6tJ1hqjHoUGzsy8REbUoRBPz/FZ20mL7EmhVT1WRiwp0/30vrl587lzZyxGl1nnVyc6ta5xgkxsqiPWogUNui9qoLdKsjLc0QtbgNEdxTU1+pv2SlUpaWJhs+1H75QVdX7cuNEkLMtB03ffaMkgrXzfLz+18dAk2nL1VWajlKp+UaP95D6872x4+LlyxupqKhDpmZob9Xl+LjC2keYfHiHlpMiejVy3FME2Wg1CSRyGJjDVEQxRDBXSSSaNeGlffWW320K8gwd263N+nV89O6O1e7UgQODmajR7trMX0pKiqXmbNG9aepamvq2PZNnMEiOyHEwcEM43l06ObNXJr93u3aWa5dq3Eh4k8/G0wz4f7sWZlhSnEYaCWmhAS6t1kHB7NjxwM1/XqMHOm+/8+xNCe2aLd+KSEkM7PitlaFE8ZP6Dh0aFtNe+Rb4cTUHj20XLuurk6qdOUgFWh+ivh8nr+/DhYUhXoVFSL6TcbNW4b27q1BudB587otWtSd5kkNVsfQQMH99i0dFIcZPLjtmbOT1R+gGhjY8XzQFO0Wraacd+xYLVuI2pUiGD3a3c9Psz5kiUQWFJSuxblaNK0LjhYXCzRt99Gv5Lf+A+1Ti6DomrZlHRtYW5uePjNZzXG0I0e6//Z7AP2JclcuG2iwsoGCe3Bwuk4yBlOmdIqMmt1sU5rL5WzePPR80BTKbH7tcLmc02cmf/DBADs7je8Tx44902J6rbe3yyiFOjOqxccX5uZWaXqilk7rO7e9vVlTi7c1ZQXtZaSmTu10PmiK1g+CQHHmtA6GR/fo4RAeMXv48GYequbP97pwcaqjI93ZlOXlokuX2BXcKypEUVG6WYhnwADnu7Hzj58IDAzsqJilsbPjr1nTJ+npks1bhuqwC8ve3mznjyMLCt969HixRqOqy8tFV69qnC0xNeVOmKCkQqQKrXBiKqFRYMTCwkSjRds//HDglCk6WOR9+vTO9+MW5OSuunZdN0uYtmbx8YVPn+pgGZBOnWxv3ppz4OD4oUOp49O4XE5gYMerIdOPnwikOam13pUrmQbr6THQGqqEkJMnUimFU7TG43Hmz/eaP9+rokKUlFRSUiIsLRVaWJh4etr26eOkv/XM+Hxe375OXTUsJ3vi+LM5c7pqei5NO20uBLe6nAyhNwd9y9Zh16+/UOe5ausXwz7/fLDWJ1Lk5mZlY2OgJVXZ7cCfSd//MIL+cXg8zvLlPZcv75mZWZGWVl5UJODxOC4ulr16Oep2evxvvz7S4dFUM1xwP3489ZttvjRHJVLY2vKbfZ4yugsXMl6+rGnXTo/j9DMyKuiPDGuJystrCdGy8EDfvk5Xrk5/c8m1Fy+anA4ze3bX/24aopPl3UEf9u9P+vw/Q3SSfa3n6WlLf+W4psTGvqS/0If6DJSWIYSIRJIjNNaPbrnEYqm+57+0womp9WgW+h8xwi3h4aIfd40cOdK9IcXn7m49d263XbtHZWSuOH1mMiI7k1VUiH7TanVlo9BoWUr6DNdyJ4Ts/OHB6tV96JTsaaGOHkl5552++jv+Jf0vqsdMiYkl06d3pnMEBwez9esHrF8/QCYj1dV15uY8TTtawbi+3R63bFlP+mt56ltYWPa5cwad5GzQz3FhoeDnnw2XcmKOO3fyddLzo1R5uej69Vbaco/Q3eq4HA6xtjZFZG9xqqrqNv33jrGvohkikeTT/4s28EkN/VHe8V18K1xKghByWhfDtpSKiMjWejXIli4yMle70srAJn/9lWzgRrGmtn0TFxdn6F4xQwf3qqq699ZG0l+bqcU5eiSF5qK6Tbl6pTUOgqwnlcpOnNByXRRgk3feDs/Oplt9Vk9u38778st7hj+vER5Cr1zJPHDgqeHPa1xpaeXR0TqYpkshFkuDgxndZtG33bsetqxVGEEfiooE8+ddpbkyqj6kp5cvmH/VKM1Z42QY170faZQ1JYyb8T91UveZmdjYgsJCWqsWtHTZ2ZV79yYa8oxhYdmRkTmGPCOo4+7dl8uX3airY9AqWsXFghnTLxkrc2ic4C4UShbMDzFw8j0yMmfDBzeNeG8/fvyZzpfXut4qJ6ZSbN50Nz293DDnSkoqmT/vauucVcB8QUFpy5ZeN2SxTxVevqyZOuUi/epmWjPa2IDs7MrJk4LpL9KkpuJiwdtrwqVS2f37BirJpqisrPbq1UzdHhMrSBBCqqrqVq4INcBXOi2tfOaMy6WlwsgItNwZ6sSJ1FkzLxk9P5ORUTFu7LnY2JdGvAZjDvxKSSmbFBhEf52mZlVX182be7V+YdJQo873OXFcl71/qamvjNguYJSbN3PXr4vSa2YzKalk7Jhz9R/XGzeyy8pq9XcuoCMkJGv0qLNG/GqEhGT5+53W3+hnNRl5VG9KSpmf72m9TrCsqRGvWH6jIUl68ODT8nKj3dWDg9N1uDbu9evIyby2b1/ihg9u6mlIUkREzrix5xsKFYhEksOHk/VxItCJhw+Lhg87deDAUwP3ZAoE4v98fmfypOD8fOOP0DX+lI2iIsGkwOCtW2P18Vidk1M1Yfz5M3LL3RUWCnbvfqjzE6lJt6UILl/K1NWh2OHnnx8tWhii20dyiUS2bVvc+HHnKXfl7dviiotbdVc2w1VX1/1rVejECUGPHxcb5oxXrmQO8j7+zTf3DXO6Zhk/uBNCpFLZ1i2xw4ae1OEgBJmMnD373M/3dEwMdVjOF1tjjTil86iOCuyUlAhbbUkZFU6f/mf4sFPaLYClKD6+cPy4859/FqPYACwoqPnXqjA9PSiAroSFZXsPPL7u/Si9pn+jo/NnTL805Y0LKSll+juLphgR3Os9flw8JuDc5EnB9L+ZsbEvAycGzZ1zRem8BqlUNmf25VOn9DVlVLWYmPzkZB0k48LCslvhXDB1JCeXjhxx5l+rQumUFXv+/NX770UO9jmhosFx4UL6ksXXqqowyp7RpFLZL7886tH9yKqVobGxL3X4rREKJRcvZowbe26E/+kLFxhXc5tBwb1eSEjWyBFnBvuc+PXXx5qODy0pER45kuLvd3r4sFOqW7VVVXUL5l9dvuxGfS+rgZ0+rdnqnUqF6HrgDcscOPC0u9fh5ctuREVpsJKyUCgJDc1etDCkR/cjv/7afLnBkydTfYefungxQ4b7LLNJpbKDB58OH3aqT++jX399PyGhSOsR8ZWVovDwnPXrojza/zl92sXwcIYOneJwyG5jX4Mq3t4u48d7DPR26dLFztPT1tHRXH4Nw9paSVZW5T//vEpMLLlxPSsyMleL2/K4cR7TpnceONDFy8ueUphfIBAXFQny8qpfvKjMyKhIfVaWlFTy+HExze6BNWv6/P7HGDpHqK2VuLv9aZg11FnAzc1q+vTOw4a79uvXxsPDWn6xNKlUVlIiTE199fRpSUx0/oUL6doNg/Hysp8/38vXz9XLy6FDBxv5tVZkMvLqVW1RkSAnp+rFi8q056+Skkrj4wsZO12+lbCz448e3X7I0HZdu9p16GDj4WHj7Gxhakpt7wqFkpcvq1+8qMzKqnyWUnbrVu6dOy81XYDXKJge3Cm4XI6Dg5mdnVldnbS0VKjzeed8Ps/BwczGhl9bK6moqNXTuJrvdvh//LE3nSNERuaMCTinq+tpbaysTO3tzczNeRUVopISoT6yW/WfUh6PU1MjLikRttrKbi0On8+zt+dbW/OlUlllpai8XNQi4rhSBq3nTl99O6ukRF8tVpFIUlBQo8PRikoNG0ZdqlFT12mv+96aVVfX6bscTVlZLQbCt0QikaSwUMCOkh6My7mznoeHzZAhbWke5Nw5HWTtAYDFENwNbeMn3g0rumknKanEKP3AANCCILjrgJWVuivZT5nS6Z13+tE83Y0bOlt+CADYCsFdB6ZO7ZSTu+qPPWMmT/a0sFDejcHlct5/v/+p05Plx1Fo5yLzRtQCANO0sA5VxnJzs1q9us/q1X1qasQJCUVPn5b8k/qqpEQoEIgdHMx693GaOLFjly529E+Uk1MVgZKEANAcBHcds7Q08fNz9fNz1dPxg4JQ4xcAmoe0TEsik5GDrW+FQgDQAoJ7SxIRkZOQUGTsqwCAFgDBvSX5fke8sS8BAFoGBPcWIzQ0OyQEq3MAgFoQ3FsGoVCy8eNbxr4KAGgxENxbhh074h89MtCCMgDAAgjuLUBISNbWLbHGvgoAaEkQ3JkuObl08aIQLLoEABpBcGe04mLBnNlXUDwWADSF4M5cOTlVU964oJMFVwGgtUH5AYZ68qRk5oxL6enlxr4QAGiRENyZ6Nq1rEULQ5CNAQCtIS3DLJWVoo8/ujUpMBiRHQDoQMudKSQS2cmTqf/5/E5mZoWxrwUAWjwEdx149aq2tlZiZqbl4nlVVXVnzjzf+cODxMQS3V4YALRaHA7ZbexrYAMXF4tFi7pPmdp58GAXGxu+Oi+pqBDFxORfvJB+7Niz8nKRvq8QAFoVBHcdMzHhjhjh5u3t0rmLXadOto6O5paWJubmvLo6qUAgLioS5ORUPUspi4srjInJF4kkxr5eAGAnBHcAABbCaBkAABZCcAcAYCEEdwAAFkJwBwBgIQR3AAAWQnAHAGAhBHcAABZCcAcAYCEEdwAAFkJwBwBgIQR3AAAWQslflrO1Faqzm0BgWlenZcli0A0TGTGXqrVnNY/I9HwxQIMNv5bHaf4dEku5VXVqVZDVDoI7mwWMTD168JA6e86Yt/p+fEd9Xw+oIFuXR6aqUdBfzOEE9iESjv6vCLRhw6/NWbHdht/8Smq/PRn2XuQ0/V0J0jJsFjghWZ3dxGLe40R3fV8MqGIiI/7qLYaeYI3IzmRveD5TJ7ITQi6m99TrlSC4s5aJiWTi+Kfq7Hk7pnNtLZ7hjMq7ijiI1dmRE26v72sBOqZ3VutLVykyC8vpotcrQXBnrRG+ac5tqtTZM/hSP31fDKgm81dv4Vwxh9y00/O1gPZs+LWTOz5TZ89zab3FUv2GXwR31lI/J3MlpLe+LwZU0SgnU4PvLHOpn5M5+Y/eW1T4oLCTRjmZqmozfV8PqIKcDFvM7/ZYnd0qRWZh2frNyRDWj5bx8LDu26+N/JaU5LL0dPVaSZro37+Ne3tr+S23b+VVVBht2WvkZFoQ5GTYwYZfO9lT3ZxMnVTvI49ZHtwnTOy4d+8Y+S2ffBL9w/cPdH6iDRsGvrm0h/wWn0EnEhKKdH4iNSEn02IgJ8MWb3g+M+WqteS9AXIyhFHB3dvbeeePI5vdTSaT1VSLKypE2dmVcfGFkRE5hYUCA1xeC0I/J9Pse1Enkrx6JSovry0pET5IKIqMyCkoqNHycls5XeRkVq7qtXRpk+PqZDKZUCApL6999ao2P7/mbuzL27fyqqvrtLlaaBqjcjKEUcHd3sF8xAg3TV8lFEouXczYvj3OiM1kpqGfk9H0vZDJSEpK6ZEjKXv3JJaVqdWhBPV0kpPx7Gir0fslEknu3y/cs+fJ8WOpUilmu+oA03IyhAUdqubmvDlzu96OnrvxE2/Fn0qlMomk0X+t4aNs+JwMh0N69nT85hvftPTlmzYP0ckxWwUj5WT4fJ6fn+vhwxP+eb509pyuujpsa8a0nAxhVMudDnNz3vbtflwu59vt8fLbDx54evCAWgkK1jDuOBk7O/7mzUNHjXRfsSL0xYtK3R6chYw9TsbT0/bEicA/fn+yceNtoVCt2ARKMS0nQxjecpdKZQKBmPKfRNJk0/vLL4f7+LgY8goZSE/jZCQSWWWlqOE/kUhVIBgd0P7a9RnOzhbqH7910t84GZFIIv9+qfjWcLmcd9f2O3x4gkbHB3kMzMkQhrfcnz4t7d/vmOL2Dh1sRge0f+edvkOGtJXfzuNxtmwZOmXKRUNdIBPpKSeTnEx9LxwdzXv0cAgY03727K79+7eh7O/lZX/6zOTAiUFoDzZJnzmZw4dS1qwJb/gnl8txdrYY5OMSMLr9goVebm5WlP1nz+n63Xd+n3wSrdFZoB4DczKE4cG9KS9eVB4+lHz0SMqxYxPnzusm/6OAMR7W1qZVVf8bCcDn82xsTOV3qK6uazbc9Ojh4D3IxdnZws6OX1Ehysurjr6dn5urVnO4WU5O5pQtZWW1uuoJUD8nExbpRTMnU1oqjInJj4nJ//qr+wsXef300yhHx0a/2ogRbhs+HLjtmzjKCyl/gZoasUAgJoRwuZxJkzsOHOhsasJ7+Kjo/Lm0pk7N5XJ8fV27dLVr08bC0tKktFRYUiK8f68gLa2ZWKn4eaisrGt4CrGwMJk0uaOnp227tpaVVXXp6eWXLmaUl+ttsoIBczJSqaygoObK5cwrlzM3bbr76ac+//epD4/XqADZhg8HBgWlx8TkN3s0NzcrXz9XZ2cLJydzoVBSUiJ88aIy+nZes9+spt76ev37t/Ef4daurWWdWJqbWx0Wmp2Zqd6TDSGEEEdH81Gj3du1s3RyMq+uFhcU1MTdL0hNfaX+EbTGwJwMaaHBvZ5UKlu3LmrK1E4WFq9/C3Nz3oiR7levZNb/882lPdQf525ry//oI++Fi7y6dFHyCBwXV7h3b+Kf+5PoXPO2bb6f/HuQ/JbLlzJnzLhE55jyNMjJXNRlC+L4sdTHj4pvhM5s29ZSfvu6dQN+/eUxZTJXTu5KPv/1k+mvvzxety7Kw8P67Lk3Bg36X1btxYtKpcF9yJC2GzcOChjT3sFByZ0pI6Pi3NnnP/yQ0NS4zFGj3UNCpstv+fe/o7/f8cDKynT7dt8FC70o96fq6ro/9z/97LMY+RikK8aauyQQiDdtupuYVHL06ET5+M7lcjZtGhIYGNzUCy0sTN57v9/ixT1693bkcqmVKWtqxHfv5P/086OLFzKaOkJu3ipT09ePIPVvPSHE39/t2+/8hg1rJ7+zTEZCrmZu3BidnFyq+jeaO6/b+vUDBg92MTFp9Hwjk5GkpJJffnm8b2+i6iPQwcycDGF4zr1ZhYWChw+LKRsVHznVMW68R3LKm//572ClkZ0Q4uPjsnfvmJu35nToYKPF8Qkhb63us/GTRpE9JiZ/4cIQHQ7gmT71iTq7icW8sIjuujppvaSk0hUrQim/i4uLxZq3+1D2rK5uFCjt7PhcLufEyUkNkV0pCwuTgwfHRcfMnTW7i9LITgjp1Mn2o4+9n6W+uepfyjNOZaXUpUuc21h06GATdXP2u2v7USI7IcTKynTd+v6RUbNtbXW9qIKx5y6dOvnPju/iKRvHT+jQVK/VuPEez1Lf3L7dr29fJ8XITgixtDQZM9YjKGhKWNhMV1fl38HKyka3+fr3cdHi7tdvzKBEdkIIh0MmTfYMj5hFyb7Kc3GxCAubeeJE4PDh7SiRvf4Iffo4/fFHQGTUbMU3V1eYmZMhLT24E2VfVzs7jb+Hc+Z2DQ6e2q6dZbN7+vm5hobN1CK+TwzsuHv3SI7clyI5uXT2rMs6nEtiYiKZNFGtBwv6ORmlroVkXb/2grJx3NgOlC2UVrCtLf/NpT0Uv9vyHBzMwsJnLl3WU2lYobCx4e/ZM+bLL4cp/ohyXyGEWFiY7N07ZuBAZxUH9PFx0X1/o7HHyRBCvvkmTvERZ/Ibnop7rljZ68KFqe7u1oo/UjQ6oP3t6Dnduim5bMpbb2dnNmRI2337xpqZNdmedXGxOHBwnPzTeYO2bS2jbs4ZHdC+2UsaMcLtash03d+hCSFMzckQFgR3B4UbsqYVXbp1s9+zZ4y5eaOPV15e9aG/kn/cmXD2zHNK/O3Sxe7AgXEanWLAAOe//54o/wnOyamaPu2SbufWjvBNs7ZSawKRbnMy8vbuoz7/DhnaVj4JQwiprW3UzLG2Nl2zhtq6p9i/f+zQodTon5hY8uf+pF0/Pjx96p/i4kZ/SQ6HfPrZ4PkLvCgvURzkM3Vap/ETOhBCMjMr9u9L+uH7B5cuZijmjqdO6zR9RmfVF6kRJtSTqa6uO3E8lbJx5Ajqsi1+fq6//DKaEn8rK0UXL2T8tPvRH78/iY19KWv88OnpaXv074mU7xQhRCRqtI6gtbXp7p9G1e8mEIizsiqVtnV69nRcuqyH4vb9+8d6eTW6hdy7V7B6dfjoUWdnzbp8+FCy/BghHx8Xpfd7mhibkyEtOudOCHFyMlccp5H8tJkMHcWuXSPt7Rs1Y69eyVy06FrDTcLLy/5G6Mz2cnXBAsa0nzW7y7mzTfb4yXNzszpzdrJ8JqG0VDhzxqVme/80ZcScTIOw0GyRSCIfzW1t+QMGtLl3r6BhCyV149Xdob5J+Phx8fnzaXl51Q4OZg72r+/ZK1f1mjGzUZNHKJSsXRvx18HX44IcHc337x8rH385HLJr18hLFzPk44XiiMD6h7DDh5LXrIloCP2DBrkEX5hCyS18+OHA4KB0Nf8OzTB2TqbBzVt56z8YIL+lbz8n+X9yuZx9+8dSwnRUZO6yZdezs1/37kyb3vnQofHyTWMfH5ePPvb++qv78i+k/P19BrtYWZnW1Ii3bIn94/cn1dV15ua8NW/33b7dl9IgmDe3254/GrUb5s7rRnnIuHolc8aMy2Lx/+4fwUHp0TH5e/a87nJb83bfffuSEhPVWMtQbYzNyZCW3nLfts3X0rLR/am4WBAbW9DU/or69HGqb7g1ePmyZvHia/LN/9TUV+vX36S8cM3qvuoc38rK9Oy5Nzp1sm3YIhCIFywIefBAx8USjJ6TqVdVVZeeTm2TOrs0GvBOCe7t21tzOOTQX8mDfU5+sfXe/n1JO7578NlnMQ07bNgwkHLAzz6LkY/shJDSUuGCBSGPHjXqgHFxsXhrdaPku9Lujbi4wrfeCpdv1MfHF777biRlt+HDXbXubqFiQE6mXuzdl5QtDg7m8rmvJW/26N7dQX6H9PTyGTMuyUd2QsiF4PS1ayMph1q9ug8lRssat/CtrExlMrJqVegP3z+ovwcLhZLdux5+/XWjWwIhZIBC3uzddxt9AUUiybvvRjZE9nr79yWFh2U3/NPUlLtyZS+iU4zNyZCWG9x79HA4dmyiYr/ZubNplDdYtWXLelIGhP19NEVx9FvQ+bT8/OqGf0oksl69HRU7cBQdPjxevjtIIpGtWhUWFpqt4iXaYUJOpp5ibZlmZzOlpr5avTpc6Rs3dpxHr16O8lsyMyt+/umR4p4ikeR7hXFQc+d2U9yTYufOBMVTXwhOpzTxeDwOpR2gNSbkZOrl51dTWtM8Hke+82n5Mmo9sp07E5RmPo/9/ezJk0Z/sfbtrScGNvMXu3I589TJfygbd/34kJKfsbc3k3+QatvW0t+/US2dmOh8pTOiT55qdHDKIyBNTM7JEIanZTp1sr11ew5lo6kp19nZomNHW45C11p5uejbb6kDAFQbMpTaEX/tOrVLsN7ECUE8Hre8vLasrFbNtP7OnSPkP0wyGfnoo1snT1CznDrBhJxMvRqFtGmzHVkHDz5t6pYcMJraXXb1SlZT44uCg9KFQol8DmHAAGdzc56K8dfV1XUXgpUnWyIjcvr0aZSj6NPbSememmFMTqZeTU2djU2jN8jBwSwvr5oQwufzfAY3GjwjFkvPnH7e1KGuX8vq27fRn8jP103FyEhCyOEjSubcVVXVPXxY7OfnKr/Rycm8oYE1arQ7pWs9KUl5MvZe4+f4jh1tPDysKY8dWmNyToYwPLhbWZn6+ro2vx8hhBCpVPbBBzc1mvVACOnXj5qyf9hEdcmmPj1NWbq057r1/eW3nD3zXGmTkz6G5GTqWVmbUrbU1DSTglAcY9NAcWRewsMmM1rV1XXp6eXyLX1zc96gQS7R0U1OzElOLmtqDHvKszLKlqaGyWqGMTkZQgiXy7G0pL5fDXMAhwxpa2XV6KcZGRVFRU2OAniikM5W7BKTJ5ORiPAcpT/Kya4kpNF3Xz4B268v9bADvZ1371ZSpNrUlNpeHjykra6CO5NzMoThwV19QqHkww9vHj6k1sz7BhYWJpRGZVVVXUkJdWyldiiRnRAyfkKHjh1tsrJ0X06LOTkZQojigGLVkzzFYqmKPi6nNtSUTkaGqvt3fl41JY3j0lbVCNec7CbfjtzcasoWa4X7lhaYk5MhhLi6WlHSkjIZafgKtHOl/ulyc1SFxaxM6h/TUWE+tryKClFTXzfFQauNDqvwGfP1dVWzIdi5s27+qgzPyZCWm3NvUH/zHzXyDKUzXR1tFb72QqHuJyI2sLPj//DDCH0cmTk5GTs7fufOtpSNz1KoTWB5VVV1KrpJ7O2pKZ2qSlW3CsWnhKZmPDWcXf0fKT6UaIxhOZlhw6kDTPPzqxt+ccUYqjrmVlVR3xrVGTkVXzfVM/u0mMvSwMZaN6PdGZ6TIQxvuYvFUqU39ro6aUWFKCuz4v79wuDg9IdNP6erZmJCTdurM0eGjpmzukyf0VlnI+oIIQzLyQSM8aD0M9fUiFUPPqMMe6eQKXzHVb9Hij9VHSYUj9+A0qQlhEgkGvTVK8eknAwhxN+PusRHqlwyStkfX9XRFP/4MhV/XxroTOrW1VQmhudkCMODe0pKmdKqkLqiOIdIMf9IR3x84Y4dDw4fHi8/IOz77/1Db2TrcGIqo3IyK5ZTB1fEROfT+Soqjr2xUfnltLKifqRV59lUZFoUf1TddDNfTYzKyfD5vLnzqCt1RN3Mbfj/khLqF0T1s4utHbXpoKdluRQTfd98fX/fPrWaOJUqn/zUxPycDGF4cNe3igqRQCCm1B1zd7fWSQHIn3Y/2rjxtlgs9fdzfe/91/n3zp3tNm8eosPaqszJyQwf3i5wUkfKxstXVA2WaFZRIXV+vGLaR56HwlB01Wni9h5NTqnv2JF6qNJSeqGKYTmZdev7UyZqSaWyoPOvHyvzFHodPDxUjfRX7HAu0s/6xpQJyYQQHo9ryMVhmJ+TIa08uBNCEhNLBg9uNBrSZ7CL0uD+9jt9Bw5wrqkRV1WJagTi6uq6M6ef148YU+rw4eT6VPKWLbGz53SV/xa9937/Y8dStc4myWNOTsbOjr9331hKTqakRHjgT1orYd2/Xzhpsqf8Fu+BTdYXa9vW0tOzUegvLRWqni/WvbsDn89TuvaI4sDHZwrjZzTDpJyMt7fzpk3UBREjI3IeP349ESwurrCiQiSfx+jQwcbV1Up+zkejYypMNbp3X4MZhepTHDGlm4FMamN+ToYguN+LLaAE94kTOirNib/3Xr+ePV8Pw5DJyNkzapUfKCur3br13h9/BDRsMTPj7f5p5KiRZyl7du5s17Vbo89oRnrFP/+oKkjNkJyMq6tVUPAUyjAVQsivvzxW0WOpjoiIHMqirBMDO5qYcJX2wS5Y6EVJlN+9Q52BSWFry586rdPZM0rGbgeMoQ6xf/S40QxYb2/nNo3nZ8XHFarIAjEnJ+Pr63r23BuUYY5SqWxb41UqxWLp/XsFY8d5NGzh8Tjz5nfbveuh4jH5fB7lNkwI0cd8PULIrZt5EolM/r329XPlcjmKCcD6boCmEoN2dvyhjSvWvSqrlS+VoVSLyMkQFoyWoenvv59RunyUrlMzfkKHHj0aRa6HD4vUz97s25t4t/E8b39/N8VauAsXeV29Ol3+vxUrmpktbfScjKur1Sf/HvTw0ULFAenJyaXffktdqUNTN2/mUh5xPDysKeVQ6jk5mX+gsH2fGvX3N270VuwJXL6iJ+UhoLJSdC0kS37LV18Np7xfg1Ss8siMnEyvXo6//DI6LHymiwt1jOmRwynyk/Xr/amwBPG6df2VDkD68KOBHo1zXLGxL2Njm7m5aqe0VEgZIO/mZrVCWWmBTZuGCGvXviz4V9LTJVE3Z585M1l+CFDv3k6Ud/C7Hf7Nnr1F5GQIWu6xsS9vRuWOGv26Ep6dHf/EyUlzZl9u6G7t3dtxz54xlAmxe/ZoNvJy48e3I6Nmy7c1vvhiWND59KaWlVCHIXMyHh4258+/Ib/F2trU2cWyZ08HpWUYyspqFy28ppM19nbuTKBU3P3yy2HFxYJDf72e1tC1q92hwxMotV/u3y9oavapvMGD2x48OG7NmvCGqx0z1uP776mDVq9eyaL1FGLYnEzAmPby7xeHw7Gz57u7WzeVvnjwoKh+3QyKkydSP/3UR37eqaen7dlzbyxZfE0+J/ne+/23bh1Kee2OHcpXxdGJ3/94Mm68h/yWHTv8MzIq5O9PowPar/9gAI/HcXa2cHa2IMQhLDS7VKFIuKZaRE6GILgTQtati7odPUd+Brafn+vT5DdDb7woLBR4etqOHedBqYp3+3aepmu7xMTkHz2SskxuMEmbNhbffee3bNkNra/ckDkZOzv+tOnq1rwtLhbMm3f18WPqOira+fvos8mTPBcsfF2/18yMd+DAuA8+GBAfV1hXJ+3c2c5/hBvlPXr1qnbVytBmD56TU9W+vfWSN3sEjGkfEZ5TVVXXs6ej/wg3Snqntlby1Vf36PwWBs7JdOlip34aOiGhaNbMS03dulatDI2InCWfwxk1yj3p6ZKI8Jzc3Co7O7Nhw9spnmvf3kQVCyXSF3Q+7eKFjKnTOjVssbPjh4RMD73xIiGhyMSEW18TUP59FAjEGzfepnnelpKTIQjuhJDExJK1ayMpKwY4OJhRVmdt8OhR8ZzZV7Q40eef35k6rZP8U+Gixd0PH0nROi9p9JyMUnfuvFz9VthTDQsvq7ZmTbirm9WoUY1Kjffr10axekS9igrR8uU31KkYcetmnouLxdhxHu7u1kveVFI0vN5338ZrWn+iEWbkZBTJZOTokZT166NUzCKOjy9cvTp8//6x8uPKbG35KgrcX76UuW4dtZCqzq1ZE96120z5njAejzMxsOPEQOqQLUKIRCJbuzaSUjdUCy0lJ0OQc6/399Fns2ZdbjZDIpORc2fTJgUGqyivoUJ+fvW2bY1y0FwuZ9eukZSyqGpizjiZBikpZe++G+Hvd1q3kZ0QUlVVFzgxeM8fiYoF2RUlJZWOHXNOdb2qBnw+d9Wq0PsqB3X89uvjLVti1b1WpZg0TqZe/dTuSZOCly+/0ewi4CeOp04KDFZd+KFeba1kx3cPpk27qHQAkm4VFNQEjD6n2E+gqLRUuGTJNfk8ntZaSk6GoOXeIORqVo/uRzZsGLhgoRdleRdCSFVVXWREzu9/PAm5mqX05Wra9ePDpUt7ymcwe/Vy/PRTn61bNY4dRh8nI5XKamrEZWW1ac9fJSQUXbyUERWZ2/zLtCUSSd59N2LPnicbNw4aO85DsT9QKJTExxceOJB0+FCK+tOmeDxOdnZVwOhzmzcPXfJmd8q47ydPSr766p6KOohqYsI4GYlEVl1dV1BQ80/qq7uxL8+dTWt24Wl5t27l9ep5dM3bfZYs6TFgQBvFjpbs7KprIVk7dsQ/f67jVWhUKCoSjB8fNGt2l/ff7z90aDvF5fqysirPnX2+Y8cDOp1bDaxNRS0lJ0MI4XDIbuNeAQN17mw30NvZycnc0tKkqEiQl1d9L7ZAh3NKdWLXjrNzZzXfYSUW83p7f26Ylrsh+fi4dOlq7+RkzudzS0qEL1/W3InJb7bDs0MHm4zM5fJbgoPSZ826XP//JiZcP39XT09bBwezwkLBo4dFtFIxDbgy2ZlktVru0bac/3jq4Ix65uRkPnRYu7ZtLR0czKqr64qLhSnJpbr5W9Fga8sf7uvq6mrp4GBeVyctKRE8elis24fI2V0ST09Wa8785AvLQ7KoqzwaGFruSqSnl6enG671oQUOR8a0nIyBxcUVxsUV0j+O/CAosVgaFZkbRXT9/OEmYlpOhqaSEuGVy5nGvgqqigrqWFWdm9VVvQoHDMjJEAT3lmuw/yfq7FZbi7fY2PL5nKnUJcOUM2BXKmjhnYgZayOnN7ubWMo1ek6GILi3UDIZp6JCVaVsYBAJh1QZ/6sO9FWIWtJDMFoKAAAshOAOAMBCCO4AACyE4A4AwELoUIVWRCAQX76UKb/lvi7GUwIwECYxAQCwENIyAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACyE4A4AwEII7gAALITgDgDAQgjuAAAshOAOAMBCCO4AACz0/wDokV5Jt+xvWwAAAABJRU5ErkJggg==" alt="Dynamo - Pick. Drop. Done." class="nav-logo-img">
+    </a>
+    <ul class="navbar-nav">
+        <li><a href="#servicios">Servicios</a></li>
+        <li><a href="#vehiculos">Vehículos</a></li>
+        <li><a href="#nosotros">Nosotros</a></li>
+        <li><a href="#clientes">Clientes</a></li>
+        <li><a href="#contacto">Contacto</a></li>
+    </ul>
+    <div class="navbar-right">
+        <div class="lang-selector">
+            <button class="lang-btn" onclick="toggleLangDropdown()" id="langBtn">
+                <span class="flag">🇪🇸</span> ES <span class="arrow">▼</span>
+            </button>
+            <div class="lang-dropdown" id="langDropdown">
+                <button class="lang-option active" onclick="changeLang('es','🇪🇸','ES')"><span class="flag">🇪🇸</span> Español</button>
+                <button class="lang-option" onclick="changeLang('en','🇬🇧','EN')"><span class="flag">🇬🇧</span> English</button>
+                <button class="lang-option" onclick="changeLang('fr','🇫🇷','FR')"><span class="flag">🇫🇷</span> Français</button>
+                <button class="lang-option" onclick="changeLang('de','🇩🇪','DE')"><span class="flag">🇩🇪</span> Deutsch</button>
+                <button class="lang-option" onclick="changeLang('pt','🇵🇹','PT')"><span class="flag">🇵🇹</span> Português</button>
+                <button class="lang-option" onclick="changeLang('ar','🇲🇦','AR')"><span class="flag">🇲🇦</span> العربية</button>
+                <button class="lang-option" onclick="changeLang('it','🇮🇹','IT')"><span class="flag">🇮🇹</span> Italiano</button>
+                <button class="lang-option" onclick="changeLang('uk','🇺🇦','UK')"><span class="flag">🇺🇦</span> Українська</button>
+                <button class="lang-option" onclick="changeLang('ro','🇷🇴','RO')"><span class="flag">🇷🇴</span> Română</button>
+                <button class="lang-option" onclick="changeLang('pl','🇵🇱','PL')"><span class="flag">🇵🇱</span> Polski</button>
+                <button class="lang-option" onclick="changeLang('nl','🇳🇱','NL')"><span class="flag">🇳🇱</span> Nederlands</button>
+            </div>
+        </div>
+        <div class="nav-social">
+            <a href="https://www.instagram.com/dynamotrans.es/" title="Instagram"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></a>
+            <a href="https://wa.me/34628995709" title="WhatsApp"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>
+        </div>
+        <a href="tel:+34955225945" class="btn-nav-cta">ATENCIÓN AL CLIENTE +34 955 225 945</a>
+    </div>
+    <div class="hamburger" onclick="openMobileMenu()">
+        <span></span><span></span><span></span>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="inicio">
+    <div class="hero-bg"></div>
+    <div class="hero-road"></div>
+    <div class="hero-content">
+        <img src="images/1.png" alt="Dynamo" class="hero-logo">
+        <h1 class="hero-title">
+            <span class="hl">Soluciones de Transporte</span><br>
+            a <span class="hl2">medida</span>.
+        </h1>
+        <p class="hero-sub">Servicio en toda <strong>España y Europa.</strong></p>
+        <div class="hero-btns">
+            <a href="https://wa.me/34628995709" class="btn-wa">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                Enviar WhatsApp
+            </a>
+            <a href="tel:+34955225945" class="btn-tel">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                Llamar al +34 955 225 945
+            </a>
+        </div>
+    </div>
+    <div class="hero-scroll"><span>Scroll</span><div class="scroll-arr"></div></div>
+</section>
+
+<!-- SERVICES STRIP -->
+<div class="services-strip">
+    <div class="strip-inner">
+        <span class="strip-item">Grupajes</span>
+        <span class="strip-item">Carga Completa</span>
+        <span class="strip-item">Import & Export</span>
+        <span class="strip-item">Nacional 24h</span>
+    </div>
+</div>
+
+<!-- CLIENTS CAROUSEL — arriba para generar confianza -->
+<div class="clients-top" id="clientes">
+    <p class="clients-top-label">Más de 230 empresas confían en Dynamo</p>
+    <div class="carousel-wrap">
+        <div class="carousel-track" id="track">
+
+            <!-- SET 1 -->
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/jardipond.png" alt="Jardí Pond"></div><div><span class="logo-name">Jardí Pond</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/ferticenter.png" alt="Ferticenter"></div><div><span class="logo-name">Ferticenter</span></div></div></div>
+
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/rosport.png" alt="Rosport"></div><div><span class="logo-name">Rosport</span><span class="logo-sub">Servicios Integrales</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/talsa.png" alt="TALSA"></div><div><span class="logo-name">TALSA</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/aceitunascazorla.png" alt="Aceitunas Cazorla"></div><div><span class="logo-name">Aceitunas Cazorla</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/solbau.png" alt="SOLBAU"></div><div><span class="logo-name">SOLBAU</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/poolback.png" alt="PoolBack"></div><div><span class="logo-name">PoolBack</span><span class="logo-sub">Logística del Envase</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/pansur.png" alt="PANSUR"></div><div><span class="logo-name">PANSUR</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/sagredo.png" alt="Sagredo"></div><div><span class="logo-name">Sagredo</span><span class="logo-sub">Abonos y Semillas</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/jysk.png" alt="JYSK"></div><div><span class="logo-name">JYSK</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/alquibox.png" alt="AlquiBox"></div><div><span class="logo-name">AlquiBox</span><span class="logo-sub">Andalucía</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/ghi.png" alt="ghi"></div><div><span class="logo-name">ghi</span><span class="logo-sub">Smart Furnaces</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/rivi.png" alt="RIVI"></div><div><span class="logo-name">RIVI</span><span class="logo-sub">Technical Group</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/almendrun.png" alt="Almendrun"></div><div><span class="logo-name">Almendrun</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/prodisa.png" alt="Prodisa"></div><div><span class="logo-name">Prodisa</span><span class="logo-sub">Comunicación</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/grupopuma.png" alt="Grupo Puma"></div><div><span class="logo-name">Grupo Puma</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/perfilesmiranda.png" alt="Perfiles Miranda"></div><div><span class="logo-name">Perfiles Miranda</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/aguacates.png" alt="Aguacates"></div><div><span class="logo-name">Aguacates</span><span class="logo-sub">Valle del Guadiana</span></div></div></div>
+
+            <!-- SET 2 duplicado -->
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/jardipond.png" alt="Jardí Pond"></div><div><span class="logo-name">Jardí Pond</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/ferticenter.png" alt="Ferticenter"></div><div><span class="logo-name">Ferticenter</span></div></div></div>
+
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/rosport.png" alt="Rosport"></div><div><span class="logo-name">Rosport</span><span class="logo-sub">Servicios Integrales</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/talsa.png" alt="TALSA"></div><div><span class="logo-name">TALSA</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/aceitunascazorla.png" alt="Aceitunas Cazorla"></div><div><span class="logo-name">Aceitunas Cazorla</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/solbau.png" alt="SOLBAU"></div><div><span class="logo-name">SOLBAU</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/poolback.png" alt="PoolBack"></div><div><span class="logo-name">PoolBack</span><span class="logo-sub">Logística del Envase</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/pansur.png" alt="PANSUR"></div><div><span class="logo-name">PANSUR</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/sagredo.png" alt="Sagredo"></div><div><span class="logo-name">Sagredo</span><span class="logo-sub">Abonos y Semillas</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/jysk.png" alt="JYSK"></div><div><span class="logo-name">JYSK</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/alquibox.png" alt="AlquiBox"></div><div><span class="logo-name">AlquiBox</span><span class="logo-sub">Andalucía</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/ghi.png" alt="ghi"></div><div><span class="logo-name">ghi</span><span class="logo-sub">Smart Furnaces</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/rivi.png" alt="RIVI"></div><div><span class="logo-name">RIVI</span><span class="logo-sub">Technical Group</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/almendrun.png" alt="Almendrun"></div><div><span class="logo-name">Almendrun</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/prodisa.png" alt="Prodisa"></div><div><span class="logo-name">Prodisa</span><span class="logo-sub">Comunicación</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/grupopuma.png" alt="Grupo Puma"></div><div><span class="logo-name">Grupo Puma</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/perfilesmiranda.png" alt="Perfiles Miranda"></div><div><span class="logo-name">Perfiles Miranda</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/aguacates.png" alt="Aguacates"></div><div><span class="logo-name">Aguacates</span><span class="logo-sub">Valle del Guadiana</span></div></div></div>
+        </div>
+    </div>
+</div>
+
+<!-- COTIZA BANNER -->
+<div class="cotiza-bar">
+    <p class="cotiza-title">¡Cotiza Online! Al instante te damos TARIFA.</p>
+    <div class="cotiza-btns">
+        <a href="mailto:info@dynamotrans.com" class="btn-cotiza-main">Envíanos un eMail</a>
+        <a href="https://wa.me/34628995709" class="btn-cotiza-out" style="display:inline-flex;align-items:center;gap:0.4rem;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            Enviar WhatsApp
+        </a>
+    </div>
+</div>
+
+<!-- SERVICES CARDS -->
+<section class="services-sec" id="servicios">
+    <div class="container">
+        <p class="section-eyebrow reveal">Lo que hacemos</p>
+        <h2 class="section-title reveal">Nuestros <span>Servicios</span></h2>
+        <p class="section-desc reveal">Mercancía paletizada (seca), cargas especiales, granel y más. Cobertura total en España y toda Europa.</p>
+        <div class="svc-grid">
+            <div class="svc-card reveal">
+                <img src="images/transporte-tauliner.jpg" alt="Grupajes" class="svc-card-img">
+                <div class="svc-card-body">
+                    <h3>Grupajes Nacionales</h3>
+                    <p>Comparte espacio y optimiza costes. Mercancía paletizada, cargas especiales y granel. Recogida en 24h, entrega en 24-48h.</p>
+                    <span class="svc-tag">Nacional 24h</span>
+                </div>
+            </div>
+            <div class="svc-card reveal" style="transition-delay:.1s">
+                <img src="images/FOTO 1 - copia55420ac5170e2.jpeg" alt="Carga Completa" class="svc-card-img">
+                <div class="svc-card-body">
+                    <h3>Carga Completa</h3>
+                    <p>El camión es tuyo. Sin transbordos, máxima seguridad y rapidez. Entrega directa origen-destino. Tauliner, rígido con plataforma y más.</p>
+                    <span class="svc-tag">Tráfico directo</span>
+                </div>
+            </div>
+            <div class="svc-card reveal" style="transition-delay:.2s">
+                <img src="images/AdobeStock_154376791.jpeg" alt="Importación" class="svc-card-img">
+                <div class="svc-card-body">
+                    <h3>Importación</h3>
+                    <p>Hasta la puerta de tu empresa. Importamos desde cualquier punto de Europa garantizando plazos de entrega y elevados estándares de calidad.</p>
+                    <span class="svc-tag">Toda Europa</span>
+                </div>
+            </div>
+            <div class="svc-card reveal" style="transition-delay:.3s">
+                <img src="images/AdobeStock_260603287.jpeg" alt="Exportación" class="svc-card-img">
+                <div class="svc-card-body">
+                    <h3>Exportación</h3>
+                    <p>Portugal, Francia, Italia, Alemania, Polonia, Austria, Bélgica, Irlanda, Dinamarca, Suiza, Países Bajos y Luxemburgo (BENELUX).</p>
+                    <span class="svc-tag">Import & Export</span>
+                </div>
+            </div>
+            <div class="svc-card reveal" style="transition-delay:.4s">
+                <img src="images/PLT.jpg" alt="Gestión Logística" class="svc-card-img">
+                <div class="svc-card-body">
+                    <h3>Gestión Logística</h3>
+                    <p>Gestión de incidencias y coordinación completa con almacenes y clientes. Próximamente (2027): estimación de entrega en tiempo real según hora de carga, distancia y ruta.</p>
+                    <span class="svc-tag">Servicio integral</span>
+                </div>
+            </div>
+            <div class="svc-card reveal" style="transition-delay:.5s">
+                <img src="images/AdobeStock_270241303.jpeg" alt="Cotización Inmediata" class="svc-card-img">
+                <div class="svc-card-body">
+                    <h3>Cotización Inmediata</h3>
+                    <p>Tarifa al instante. Sin esperas. Cuéntanos tu necesidad y tendrás precio en minutos.</p>
+                    <span class="svc-tag">Al instante</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- WHY US -->
+<section class="why" id="nosotros">
+    <div class="container">
+        <div class="why-grid">
+            <!-- Panel visual izquierdo — 100% CSS, sin imágenes externas -->
+            <div class="why-visual reveal-l">
+                <div class="why-main-card">
+                    <img src="images/OFICINA.png" alt="Oficina Dynamo Transportes" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;position:absolute;inset:0;z-index:0;">
+                    <div class="why-road"></div>
+                    <div class="why-main-card why-card-content" style="background:transparent;box-shadow:none;height:auto;position:relative">
+                        <div class="truck-silhouette">
+                            <div class="truck-body"></div>
+                            <div class="truck-cab"></div>
+                            <div class="truck-wheel tw1"></div>
+                            <div class="truck-wheel tw2"></div>
+                            <div class="truck-wheel tw3"></div>
+                        </div>
+                        <div class="why-card-text">
+                            <div class="big-num">+230</div>
+                            <div class="big-lbl">empresas nos eligen cada día</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="why-small-cards">
+                    <div class="why-mini"><div class="mn">5,0 ★</div><div class="ml">Google Reviews</div></div>
+                    <div class="why-mini"><div class="mn">24/7</div><div class="ml">Atención al cliente</div></div>
+                    <div class="why-mini"><div class="mn">+15</div><div class="ml">Años en el sector</div></div>
+                    <div class="why-mini"><div class="mn">🇪🇺</div><div class="ml">España y Europa</div></div>
+                </div>
+            </div>
+            <div class="reveal-r">
+                <p class="section-eyebrow">Por qué elegirnos</p>
+                <h2 class="section-title">Pick. Drop. <span>Done.</span></h2>
+                <p class="section-desc">Operador de transporte autorizado. Un único objetivo: que tu mercancía llegue donde tiene que llegar, cuando tiene que llegar.</p>
+                <div class="why-list">
+                    <div class="why-item">
+                        <div class="why-icon">🛡️</div>
+                        <div class="why-text">
+                            <h4>Confianza, Calidad y Compromiso</h4>
+                            <p>Garantizamos que la mercancía llega en tiempo y en perfectas condiciones. Seguro de 250.000€ con MAPFRE.</p>
+                        </div>
+                    </div>
+                    <div class="why-item">
+                        <div class="why-icon">⚡</div>
+                        <div class="why-text">
+                            <h4>Rapidez, Eficacia e Inmediatez</h4>
+                            <p>En logística la inmediatez es esencial. Respondemos a las necesidades de nuestros clientes al instante.</p>
+                        </div>
+                    </div>
+                    <div class="why-item">
+                        <div class="why-icon">👤</div>
+                        <div class="why-text">
+                            <h4>Atención Personalizada</h4>
+                            <p>Siempre el mismo gestor de transporte. Equipo cualificado que atiende de forma directa e individualizada.</p>
+                        </div>
+                    </div>
+                    <div class="why-item">
+                        <div class="why-icon">🔐</div>
+                        <div class="why-text">
+                            <h4>Operador Autorizado</h4>
+                            <p>Tarjeta O.T. 12548918-1 · CIF B01596360 · Asistencia 24h para incidencias y urgencias.</p>
+                        </div>
+                    </div>
+                    <div class="why-item">
+                        <div class="why-icon">🌍</div>
+                        <div class="why-text">
+                            <h4>Cobertura Nacional e Internacional</h4>
+                            <p>Toda España + Import/Export: Portugal, Francia, Italia, Alemania, Polonia, Austria, Bélgica, Irlanda, Dinamarca, Suiza y BENELUX.</p>
+                        </div>
+                    </div>
+                    <div class="why-item">
+                        <div class="why-icon">📍</div>
+                        <div class="why-text">
+                            <h4>Estimación de entrega en tiempo real <span style="font-size:0.7em;color:var(--purple);font-weight:600;">(próximamente 2027)</span></h4>
+                            <p>Estamos desarrollando un sistema que calculará la hora estimada de entrega según hora de carga, distancia y ruta.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-sec">
+    <div class="stats-grid">
+        <div class="stat-b reveal">
+            <div class="stat-num">+<span class="counter" data-target="230">0</span></div>
+            <div class="stat-lbl">Clientes confían<br>en nosotros</div>
+        </div>
+        <div class="stat-b reveal" style="transition-delay:.1s">
+            <div class="stat-num" style="font-size:2rem">★★★★★</div>
+            <div class="stat-num" style="font-size:2.5rem;margin-top:0.3rem">5,0</div>
+            <div class="stat-lbl">en Google Reviews</div>
+        </div>
+        <div class="stat-b reveal" style="transition-delay:.2s">
+            <div class="stat-num">+<span class="counter" data-target="15">0</span></div>
+            <div class="stat-lbl">Años de experiencia<br>en el sector</div>
+        </div>
+        <div class="stat-b reveal" style="transition-delay:.3s">
+            <div class="stat-num">24/7</div>
+            <div class="stat-lbl">Atención al cliente<br>siempre disponible</div>
+        </div>
+    </div>
+</div>
+
+
+<!-- VEHICULOS -->
+<section class="vehicles-sec" id="vehiculos">
+    <div class="container">
+        <p class="section-eyebrow reveal">Nuestra flota</p>
+        <h2 class="section-title reveal">Tipos de <span>Vehículo</span></h2>
+        <p class="section-desc reveal">Disponemos del vehículo adecuado para cada tipo de carga y necesidad.</p>
+        <div class="veh-grid">
+            <div class="veh-card reveal">
+                <h3>🚛 Tauliner — Cortina / Lona Corredera</h3>
+                <p>Similar a un furgón tipo box/caja, con cortinas correderas en lados y techo que dan fácil acceso a la carga. El vehículo más utilizado para envíos terrestres.</p>
+                <p><strong>Ideal para:</strong> mercancía paletizada, palot/box y mercancías especiales.</p>
+                <div class="veh-specs">
+                    <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">13,60 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Ancho</div><div class="veh-spec-value">2,40 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Carga máx.</div><div class="veh-spec-value">24 Tn.</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Palé europeo</div><div class="veh-spec-value">33 uds. (120x80)</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Palé americano</div><div class="veh-spec-value">26 uds. (120x100)</div></div>
+                </div>
+            </div>
+            <div class="veh-card reveal" style="transition-delay:.15s">
+                <h3>🚚 Rígido con Plataforma y Transpaleta</h3>
+                <p>Tipo tauliner con cortinas correderas. Ideal para cargas donde no existen medios de carga y/o descarga en destino.</p>
+                <p><strong>Ideal para:</strong> entregas urbanas, puntos sin muelle de carga.</p>
+                <div class="veh-specs">
+                    <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">8 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Ancho</div><div class="veh-spec-value">2,40 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Equipamiento</div><div class="veh-spec-value">Plataforma + Transpaleta</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Palé europeo</div><div class="veh-spec-value">20 uds. (120x80)</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Palé americano</div><div class="veh-spec-value">16 uds. (120x100)</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- TIPOS DE MERCANCIA -->
+<section class="sectors-sec">
+    <div class="container">
+        <p class="section-eyebrow reveal">Qué transportamos</p>
+        <h2 class="section-title reveal">Tipos de <span>Mercancía</span></h2>
+        <p class="section-desc reveal">Experiencia en todo tipo de sectores y mercancías. Si no ves tu caso, consúltanos.</p>
+        <div class="sector-grid">
+            <div class="sector-card reveal">
+                <div class="sector-icon">🛒</div>
+                <h4>Distribución General</h4>
+                <p>Bienes de consumo, alimentación, bebidas, higiene y limpieza, electrodomésticos, logística de palets.</p>
+            </div>
+            <div class="sector-card reveal" style="transition-delay:.08s">
+                <div class="sector-icon">🏗️</div>
+                <h4>Industria y Construcción</h4>
+                <p>Textil, manufacturera, muebles, madera, automoción, farmacéutica, estructuras, áridos, fertilizantes, abonos.</p>
+            </div>
+            <div class="sector-card reveal" style="transition-delay:.16s">
+                <div class="sector-icon">⚙️</div>
+                <h4>Maquinaria</h4>
+                <p>Maquinaria de construcción, campos de golf, laboratorios, equipos industriales.</p>
+            </div>
+            <div class="sector-card reveal" style="transition-delay:.24s">
+                <div class="sector-icon">🎤</div>
+                <h4>Eventos</h4>
+                <p>Deportivos, culturales, conciertos, teatros, festivales, empresariales, exposiciones, políticos.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CONFIANZA / SEGURO -->
+<section class="trust-sec">
+    <div class="container">
+        <p class="section-eyebrow reveal">Tu mercancía, protegida</p>
+        <h2 class="section-title reveal">Seguridad y <span>Confianza</span></h2>
+        <p class="section-desc reveal">La tranquilidad de nuestros clientes es una de nuestras prioridades.</p>
+        <div class="trust-grid">
+            <div class="trust-card reveal">
+                <div class="trust-card-icon">🛡️</div>
+                <h4>Seguro MAPFRE</h4>
+                <p>Seguro de mercancías de <span class="highlight">250.000€</span> con MAPFRE, adicional al que tenga cada medio de transporte.</p>
+            </div>
+            <div class="trust-card reveal" style="transition-delay:.1s">
+                <div class="trust-card-icon">📋</div>
+                <h4>Operador Autorizado</h4>
+                <p>Tarjeta O.T.: <span class="highlight">12548918-1</span><br>CIF: <span class="highlight">B01596360</span><br>Dynamo Operador Logístico S.L.</p>
+            </div>
+            <div class="trust-card reveal" style="transition-delay:.2s">
+                <div class="trust-card-icon">🚨</div>
+                <h4>Asistencia 24 horas</h4>
+                <p>Soporte <span class="highlight">24h</span> para cualquier incidencia o urgencia en el transporte. Siempre disponibles.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-sec" id="contacto">
+    <div class="container">
+        <p class="section-eyebrow reveal" style="color:var(--green);text-align:center">¿Listo para empezar?</p>
+        <h2 class="section-title reveal" style="text-align:center;color:white">Contacta y recibe tu<br><span>tarifa al instante</span></h2>
+        <p class="section-desc reveal" style="text-align:center;margin:1rem auto 0">Disponibles para resolver cualquier consulta. Nacional o internacional. Respondemos rápido.</p>
+        <div class="cta-btns reveal">
+            <a href="https://wa.me/34628995709" class="btn-cta-wa">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                Enviar WhatsApp
+            </a>
+            <a href="tel:+34955225945" class="btn-cta-out">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                Llamar +34 955 225 945
+            </a>
+            <a href="mailto:info@dynamotrans.com" class="btn-cta-out">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                Envíanos un Email
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    <div class="footer-grid">
+        <div>
+            <img src="images/1.png" alt="Dynamo" style="height:40px;width:auto;margin-bottom:0.5rem;">
+            <div class="f-tagline">Operador de Transportes · Cumplimos!</div>
+            <p class="f-desc">Especialistas en grupajes, carga completa y transporte nacional e internacional. Más de 230 clientes confían en nosotros cada día.</p>
+            <div class="f-social">
+                <a href="https://www.instagram.com/dynamotrans.es/"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></a>
+                <a href="https://wa.me/34628995709"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>
+            </div>
+        </div>
+        <div class="f-col">
+            <h4>Servicios</h4>
+            <ul>
+                <li><a href="#">Grupajes Nacionales</a></li>
+                <li><a href="#">Carga Completa</a></li>
+                <li><a href="#">Transporte Europa</a></li>
+                <li><a href="#">Urgentes 24h</a></li>
+                <li><a href="#">Cotización Online</a></li>
+            </ul>
+        </div>
+        <div class="f-col">
+            <h4>Empresa</h4>
+            <ul>
+                <li><a href="#">Sobre Dynamo</a></li>
+                <li><a href="#">Nuestro equipo</a></li>
+                <li><a href="#clientes">Clientes</a></li>
+                <li><a href="#contacto">Contacto</a></li>
+            </ul>
+        </div>
+        <div class="f-col">
+            <h4>Contacto</h4>
+            <ul>
+                <li><a href="tel:+34955225945">+34 955 225 945</a></li>
+                <li><a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a></li>
+                <li><a href="https://wa.me/34628995709">WhatsApp directo</a></li>
+            </ul>
+            <h4 style="margin-top:1rem;">Oficinas (cita previa)</h4>
+            <ul>
+                <li><a href="#">Paseo de las Delicias 1, Sevilla 41001</a></li>
+                <li><a href="#">C. de Méndez Álvaro 20, Madrid 28045</a></li>
+            </ul>
+            <p style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:0.5rem;">L-V 8:00 a 20:00 · Línea 24h urgencias</p>
+        </div>
+    </div>
+    <div class="f-bottom">
+        <span>© 2025 Dynamo Operador de Transportes · Todos los derechos reservados</span>
+        <span>Aviso Legal · Privacidad · Cookies</span>
+    </div>
+</footer>
+
+<!-- FLOATING WA -->
+<a href="https://wa.me/34628995709" class="float-wa" title="WhatsApp">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+</a>
+
+<script>
+    function openMobileMenu()  { document.getElementById('mobileMenu').classList.add('open'); }
+    function closeMobileMenu() { document.getElementById('mobileMenu').classList.remove('open'); }
+
+    // Reveal on scroll
+    const obs = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal,.reveal-l,.reveal-r').forEach(el => obs.observe(el));
+
+    // Counter
+    function runCounter(el) {
+        const target = parseInt(el.dataset.target), dur = 1800;
+        const step = target / (dur / 16); let val = 0;
+        const t = setInterval(() => {
+            val += step; if (val >= target) { val = target; clearInterval(t); }
+            el.textContent = Math.floor(val);
+        }, 16);
+    }
+    const cObs = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+            if (e.isIntersecting && !e.target.dataset.done) { e.target.dataset.done='1'; runCounter(e.target); }
+        });
+    }, { threshold: 0.5 });
+    document.querySelectorAll('.counter').forEach(el => cObs.observe(el));
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+        a.addEventListener('click', e => {
+            const id = a.getAttribute('href'); if (id === '#') return;
+            const t = document.querySelector(id);
+            if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
+        });
+    });
+</script>
+
+<!-- AI CHAT WIDGET -->
+<div class="chat-overlay hidden" id="chatOverlay">
+    <div class="chat-box">
+        <div class="chat-header">
+            <div class="chat-avatar">D</div>
+            <div class="chat-header-info">
+                <div class="chat-header-name">Dynamo Asistente</div>
+                <div class="chat-header-status">En linea - respuesta inmediata</div>
+            </div>
+            <button class="chat-close" onclick="closeChat()" title="Cerrar">&times;</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-msg bot">
+                <div class="bot-label">Dynamo IA</div>
+                Hola! Soy el asistente de <strong>Dynamo Transportes</strong>. Puedo ayudarte con precios, rutas, plazos de entrega y cualquier duda sobre nuestros servicios. Preguntame lo que necesites!
+            </div>
+        </div>
+        <div class="chat-quick-btns" id="chatQuickBtns">
+            <button class="chat-quick" onclick="sendQuick(this)">Que servicios ofreceis?</button>
+            <button class="chat-quick" onclick="sendQuick(this)">Necesito un presupuesto</button>
+            <button class="chat-quick" onclick="sendQuick(this)">Plazos de entrega</button>
+            <button class="chat-quick" onclick="sendQuick(this)">Paises de exportacion</button>
+            <button class="chat-quick" onclick="sendQuick(this)">Tipos de camion</button>
+            <button class="chat-quick" onclick="sendQuick(this)">Seguro de mercancia</button>
+            <button class="chat-quick" onclick="sendQuick(this)">Contactar</button>
+        </div>
+        <div class="chat-input-wrap">
+            <input type="text" class="chat-input" id="chatInput" placeholder="Escribe tu pregunta..." onkeydown="if(event.key==='Enter')sendMsg()">
+            <button class="chat-send" onclick="sendMsg()" title="Enviar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
+        </div>
+    </div>
+</div>
+<button class="chat-fab show" id="chatFab" onclick="openChat()" title="Abrir chat">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+</button>
+
+<script>
+(function(){
+    const overlay = document.getElementById('chatOverlay');
+    const fab = document.getElementById('chatFab');
+    const msgs = document.getElementById('chatMessages');
+    const input = document.getElementById('chatInput');
+    const quickBtns = document.getElementById('chatQuickBtns');
+
+    // ===========================================
+    // BASE DE CONOCIMIENTO DYNAMO TRANSPORTES
+    // ===========================================
+    const R = {
+        servicios: '📦 <strong>Servicios de Dynamo Transportes:</strong>\n\n• <strong>Grupajes y Cargas Completas</strong> — Mercancia paletizada (seca), cargas especiales, granel y mas.\n• <strong>Nacional 24h</strong> — Toda Espana: ambito local, regional y nacional.\n• <strong>Importacion</strong> — Desde cualquier punto de Europa hasta la puerta de tu empresa.\n• <strong>Exportacion</strong> — Portugal, Francia, Italia, Alemania, Polonia, Austria, Belgica, Irlanda, Dinamarca, Suiza, Paises Bajos y Luxemburgo (BENELUX).\n\n⚠️ <em>No realizamos grupajes con temperatura controlada.</em>\n\nSi necesitas un servicio concreto que no ves aqui, consultanos. Estaremos encantados de encontrar la solucion mas favorable.',
+
+        precio: '💰 <strong>Presupuesto personalizado:</strong>\n\nNuestros precios dependen de la ruta, tipo de mercancia y volumen. Para darte tarifa al instante necesito:\n\n• Origen y destino\n• Tipo de mercancia\n• Peso y medidas (n.º de pallets/bultos)\n\nPuedes pedirnos cotizacion directa:\n📱 <strong>WhatsApp:</strong> +34 628 995 709\n📧 <strong>Email:</strong> info@dynamotrans.com\n📞 <strong>Telefono:</strong> +34 955 225 945',
+
+        grupaje: '🚛 <strong>Grupajes nacionales:</strong>\n\nRealizamos grupajes diarios en las principales rutas nacionales. Mercancia paletizada seca, cargas especiales y granel.\n\n• Recogida en 24h\n• Entrega nacional en 24-48h\n• Presentes en los principales polos logisticos de la peninsula\n\n⚠️ No realizamos grupajes con temperatura controlada.\n\nIndicame origen, destino y tipo de mercancia para darte tarifa.',
+
+        plazo: '⏱️ <strong>Plazos de entrega:</strong>\n\n• <strong>Nacional 24h</strong> — Peninsular, local y regional\n• <strong>Internacional</strong> — Segun destino en Europa\n• <strong>Garantia:</strong> La mercancia llega en tiempo y en perfectas condiciones\n\nSomos conscientes de que la inmediatez es esencial en logistica. Respondemos a las necesidades al instante.',
+
+        internacional: '🌍 <strong>Transporte Internacional:</strong>\n\n<strong>Importacion:</strong> Desde cualquier punto de Europa hasta la puerta de tu empresa, garantizando plazos y calidad.\n\n<strong>Exportacion a:</strong> Portugal, Francia, Italia, Alemania, Polonia, Austria, Belgica, Irlanda, Dinamarca, Suiza, Paises Bajos y Luxemburgo (BENELUX).\n\n• Grupaje y carga completa\n• Servicio de traficos Import & Export\n\nIndicame pais y tipo de carga para presupuesto.',
+
+        tauliner: '🚛 <strong>TAULINER — Cortina / Lona Corredera:</strong>\n\nPara mercancia paletizada, palot/box y mercancias especiales. Cortinas correderas para facil acceso a la carga.\n\n📐 <strong>Medidas interiores:</strong>\n• Largo: 13,60m\n• Ancho: 2,40m\n• Altura: 2,70m\n\n⚖️ <strong>Carga util max:</strong> 24.000 kg (24 Tn.)\n\n📦 <strong>Capacidad:</strong>\n• 33 pales europeos (120x80 cm)\n• 26 pales americanos (120x100 cm)',
+
+        rigido: '🚚 <strong>RIGIDO con Plataforma y Transpaleta:</strong>\n\nCon cortinas correderas, ideal para cargas donde no existen medios de carga/descarga.\n\n📐 <strong>Medidas interiores:</strong>\n• Largo: 8m\n• Ancho: 2,40m\n• Alto: 2,70m\n\n📦 <strong>Capacidad:</strong>\n• 20 pales europeos (120x80 cm)\n• 16 pales americanos (120x100 cm)\n\nMuy util para entregas urbanas o puntos sin muelle de carga.',
+
+        camion: '🚛 <strong>Tipos de vehiculo disponibles:</strong>\n\n<strong>1. TAULINER (Cortina/Lona):</strong>\n• 13,60m x 2,40m x 2,70m\n• Carga max: 24 Tn.\n• 33 pales europeos o 26 americanos\n\n<strong>2. RIGIDO con Plataforma + Transpaleta:</strong>\n• 8m x 2,40m x 2,70m\n• 20 pales europeos o 16 americanos\n• Ideal sin medios de carga/descarga\n\nAmbos con cortinas correderas para facil acceso.',
+
+        seguro: '🛡️ <strong>Seguro de Mercancias:</strong>\n\nLa tranquilidad de nuestros clientes es prioridad.\n\n• <strong>Seguro de cobertura propia de 250.000€ con MAPFRE</strong>, adicional al que tenga cada medio de transporte.\n• Todos los transportes estan amparados por el Seguro de Transportes de maxima cobertura.\n• Somos <strong>Operador de Transporte Autorizado</strong> por el Ministerio de Transportes.',
+
+        operador: '📋 <strong>Datos del Operador Autorizado:</strong>\n\nSomos Operador de Transporte Autorizado conforme a la Ley de Ordenacion de Transportes Terrestres.\n\n• <strong>Titular:</strong> DYNAMO OPERADOR LOGISTICO S.L.\n• <strong>CIF:</strong> B01596360\n• <strong>N.º Tarjeta O.T.:</strong> 12548918-1\n\n🛡️ Seguro de mercancias de 250.000€ con MAPFRE.',
+
+        mercancia: '📦 <strong>Que tipo de mercancia transportamos:</strong>\n\n<strong>Distribucion general:</strong> bienes de consumo, alimentacion, bebidas, higiene y limpieza, electrodomesticos, logistica de palets.\n\n<strong>Industria/Construccion:</strong> textil, manufacturera, muebles y madera, salinera, automocion, farmaceutica, estructuras, aridos, editorial, fertilizantes, abonos.\n\n<strong>Maquinaria:</strong> de construccion, campos de golf, laboratorios, equipos industriales.\n\n<strong>Eventos:</strong> deportivos, culturales, conciertos, teatros, festivales, empresariales, exposiciones, politicos.',
+
+        ventajas: '✅ <strong>Ventajas de trabajar con Dynamo:</strong>\n\n✅ <strong>Cobertura logistica</strong> — Nacional e Internacional (Portugal, Italia, Alemania, Francia, BENELUX). Import & Export.\n\n✅ <strong>Capacidad operativa</strong> — Transportes recurrentes y puntuales de cualquier envergadura.\n\n✅ <strong>Trato personalizado</strong> — Siempre el mismo gestor de transporte.\n\n✅ <strong>Seguro 250.000€</strong> con MAPFRE, adicional al de cada transporte.\n\n✅ <strong>Asistencia 24 horas</strong> — Soporte para incidencias y urgencias.\n\n✅ <strong>Operador Autorizado</strong> — Tarjeta O.T. 12548918-1.',
+
+        garantia: '🤝 <strong>Nuestra garantia:</strong>\n\n<strong>1. CONFIANZA, CALIDAD, SEGURIDAD Y COMPROMISO</strong>\nGarantizamos que la mercancia llega en tiempo y en perfectas condiciones.\n\n<strong>2. RAPIDEZ, EFICACIA E INMEDIATEZ</strong>\nRespondemos a las necesidades de nuestros clientes al instante.\n\n<strong>3. ATENCION PERSONALIZADA</strong>\nEquipo altamente cualificado para atender y solucionar necesidades de forma directa e individualizada.',
+
+        contacto: '📞 <strong>Contacta con nosotros:</strong>\n\n📱 <strong>WhatsApp:</strong> +34 628 995 709\n📞 <strong>Telefono:</strong> +34 955 225 945\n📧 <strong>Email:</strong> info@dynamotrans.com\n\n🕐 <strong>Horario atencion telefonica:</strong>\nLunes a Viernes: 8:00 a 20:00\n(Linea 24h para incidencias/urgencias)\n\n📍 <strong>Oficinas (con cita previa):</strong>\n• Paseo de las Delicias 1, Sevilla 41001\n• C. de Mendez Alvaro 20, Madrid 28045',
+
+        horario: '🕐 <strong>Horario de atencion:</strong>\n\n• <strong>Atencion telefonica:</strong> Lunes a Viernes, 8:00 a 20:00\n• <strong>Linea 24h</strong> para incidencias y urgencias\n• <strong>WhatsApp:</strong> +34 628 995 709 (respuesta rapida)\n\nFuera de horario puedes escribirnos por WhatsApp o email y te respondemos a primera hora.',
+
+        oficina: '📍 <strong>Nuestras oficinas (cita previa):</strong>\n\n<strong>Sevilla (Central):</strong>\nPaseo de las Delicias 1\nSevilla 41001\n\n<strong>Madrid:</strong>\nC. de Mendez Alvaro 20\nMadrid 28045\n\n📞 +34 955 225 945\n📧 info@dynamotrans.com',
+
+        pallet: '📦 <strong>Capacidad por pales:</strong>\n\n<strong>Tauliner (trailer):</strong>\n• 33 pales europeos (120x80 cm)\n• 26 pales americanos (120x100 cm)\n• Carga util max: 24.000 kg (24 Tn.)\n\n<strong>Rigido con plataforma:</strong>\n• Largo 8m, ideal para entregas sin muelle\n\nIndicame origen, destino y n.º de pales para darte tarifa.',
+
+        temperatura: '❄️ <strong>Sobre temperatura controlada:</strong>\n\nActualmente <strong>no realizamos grupajes con temperatura controlada</strong>.\n\nPara mercancia refrigerada en carga completa, consultanos y valoramos tu caso concreto.\n\n📱 WhatsApp: +34 628 995 709',
+
+        defaultResp: '🤔 Gracias por tu consulta. Para darte la informacion mas precisa, te recomiendo contactar directamente:\n\n📱 <strong>WhatsApp:</strong> +34 628 995 709\n📞 <strong>Telefono:</strong> +34 955 225 945\n📧 <strong>Email:</strong> info@dynamotrans.com\n\n🕐 Lunes a Viernes: 8:00 a 20:00\n(Linea 24h para incidencias/urgencias)'
+    };
+
+    function getResponse(text) {
+        text = text.toLowerCase();
+
+        // Saludos
+        if (/^(hola|buenas|buenos|hey|hi|que tal|qtal)/.test(text))
+            return 'Hola! 👋 Bienvenido a <strong>Dynamo Transportes</strong>. Puedo informarte sobre nuestros servicios, tarifas, plazos, tipos de vehiculo, seguros o ponerte en contacto con un comercial. Que necesitas?';
+
+        // Agradecimientos
+        if (/^(gracias|vale|ok|perfecto|genial|estupendo|guay)/.test(text))
+            return 'De nada! 😊 Si necesitas algo mas, aqui estoy. Tambien puedes contactarnos directamente:\n📱 WhatsApp: +34 628 995 709\n📞 Telefono: +34 955 225 945';
+
+        // Servicios generales
+        if (text.includes('servicio') || text.includes('haceis') || text.includes('ofreceis') || text.includes('dedicais'))
+            return R.servicios;
+
+        // Precios / Presupuesto / Cotizacion
+        if (text.includes('precio') || text.includes('tarifa') || text.includes('costar') || text.includes('cuesta') || text.includes('presupuesto') || text.includes('cotiz') || text.includes('cuanto'))
+            return R.precio;
+
+        // Grupaje
+        if (text.includes('grupaje') || text.includes('grupajes'))
+            return R.grupaje;
+
+        // Plazos de entrega
+        if (text.includes('plazo') || text.includes('tarda') || text.includes('entrega') || text.includes('llega') || text.includes('rapido') || text.includes('urgente') || text.includes('24h') || text.includes('express'))
+            return R.plazo;
+
+        // Temperatura controlada / frio / refrigerado
+        if (text.includes('frio') || text.includes('refriger') || text.includes('temperatura') || text.includes('congelad'))
+            return R.temperatura;
+
+        // Tipos de camion / vehiculo
+        if (text.includes('camion') || text.includes('vehiculo') || text.includes('flota') || text.includes('tipo de'))
+            return R.camion;
+
+        // Tauliner
+        if (text.includes('tauliner') || text.includes('cortina') || text.includes('lona') || text.includes('trailer'))
+            return R.tauliner;
+
+        // Rigido
+        if (text.includes('rigido') || text.includes('plataforma') || text.includes('transpaleta'))
+            return R.rigido;
+
+        // Pallet / Pale
+        if (text.includes('pallet') || text.includes('palet') || text.includes('pale') || text.includes('europeo') || text.includes('americano'))
+            return R.pallet;
+
+        // Medidas / dimensiones / capacidad
+        if (text.includes('medida') || text.includes('dimension') || text.includes('capacidad') || text.includes('peso') || text.includes('kilos') || text.includes('tonelada') || text.includes('metros') || text.includes('largo') || text.includes('ancho') || text.includes('alto'))
+            return R.tauliner;
+
+        // Internacional / Exportacion / Importacion
+        if (text.includes('internacion') || text.includes('europa') || text.includes('exporta') || text.includes('importa') || text.includes('francia') || text.includes('portugal') || text.includes('alemania') || text.includes('italia') || text.includes('polonia') || text.includes('austria') || text.includes('belgica') || text.includes('irlanda') || text.includes('dinamarca') || text.includes('suiza') || text.includes('paises bajos') || text.includes('luxemburgo') || text.includes('benelux') || text.includes('pais'))
+            return R.internacional;
+
+        // Carga completa
+        if (text.includes('completa') || text.includes('carga completa'))
+            return R.grupaje;
+
+        // Seguro / Mapfre / Cobertura
+        if (text.includes('seguro') || text.includes('mapfre') || text.includes('cobertura') || text.includes('asegurad'))
+            return R.seguro;
+
+        // Operador / Licencia / Tarjeta / CIF / Legal
+        if (text.includes('operador') || text.includes('licencia') || text.includes('tarjeta') || text.includes('autoriza') || text.includes('cif') || text.includes('legal'))
+            return R.operador;
+
+        // Tipo de mercancia
+        if (text.includes('mercancia') || text.includes('que transporta') || text.includes('que lleva') || text.includes('producto') || text.includes('maquinaria') || text.includes('evento') || text.includes('construccion') || text.includes('industria') || text.includes('alimenta') || text.includes('electrodomestico') || text.includes('mueble') || text.includes('concierto') || text.includes('festival'))
+            return R.mercancia;
+
+        // Ventajas / Por que Dynamo
+        if (text.includes('ventaja') || text.includes('por que') || text.includes('porque') || text.includes('diferenci') || text.includes('mejor'))
+            return R.ventajas;
+
+        // Garantia / Confianza / Calidad
+        if (text.includes('garantia') || text.includes('confianza') || text.includes('calidad') || text.includes('compromiso') || text.includes('seguridad'))
+            return R.garantia;
+
+        // Contacto / Comercial / WhatsApp / Telefono
+        if (text.includes('contacta') || text.includes('comercial') || text.includes('hablar') || text.includes('llamar') || text.includes('telefono') || text.includes('whatsapp') || text.includes('email') || text.includes('correo') || text.includes('mail'))
+            return R.contacto;
+
+        // Horario
+        if (text.includes('horario') || text.includes('abierto') || text.includes('hora') || text.includes('atencion') || text.includes('cuando'))
+            return R.horario;
+
+        // Oficinas / Direccion / Sevilla / Madrid
+        if (text.includes('oficina') || text.includes('direccion') || text.includes('sevilla') || text.includes('madrid') || text.includes('donde estais') || text.includes('ubicacion') || text.includes('sede'))
+            return R.oficina;
+
+        // 24h / Urgencia / Incidencia
+        if (text.includes('urgencia') || text.includes('incidencia') || text.includes('24 hora') || text.includes('emergencia') || text.includes('asistencia'))
+            return '🚨 <strong>Asistencia 24 horas:</strong>\n\nContamos con soporte 24h para cualquier incidencia o urgencia en el transporte.\n\n📱 WhatsApp: +34 628 995 709\n📞 Telefono: +34 955 225 945\n\nLlamanos en cualquier momento.';
+
+        // Gestor / Atencion personalizada
+        if (text.includes('gestor') || text.includes('personaliza') || text.includes('directo'))
+            return '👤 <strong>Atencion personalizada:</strong>\n\nEn Dynamo siempre trataras con el mismo gestor de transporte. Equipo altamente cualificado para atenderte de forma directa e individualizada.\n\n📱 WhatsApp: +34 628 995 709';
+
+        // Granel
+        if (text.includes('granel'))
+            return '🌾 <strong>Transporte a granel:</strong>\n\nRealizamos transporte de mercancia a granel a nivel nacional e internacional. Consultanos tu caso concreto para darte la mejor solucion.\n\n📱 WhatsApp: +34 628 995 709';
+
+        // Especial / Carga especial
+        if (text.includes('especial'))
+            return '⚙️ <strong>Cargas especiales:</strong>\n\nRealizamos transporte de cargas especiales. Cada caso es unico, asi que consultanos y te damos solucion a medida.\n\n📱 WhatsApp: +34 628 995 709\n📞 Telefono: +34 955 225 945';
+
+        return R.defaultResp;
+    }
+
+    function addMsg(text, type) {
+        const div = document.createElement('div');
+        div.className = 'chat-msg ' + type;
+        if (type === 'bot') {
+            div.innerHTML = '<div class="bot-label">Dynamo IA</div>' + text.replace(/\n/g, '<br>');
+        } else {
+            div.textContent = text;
+        }
+        msgs.appendChild(div);
+        msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function showTyping() {
+        const div = document.createElement('div');
+        div.className = 'chat-typing';
+        div.id = 'typing';
+        div.innerHTML = '<span></span><span></span><span></span>';
+        msgs.appendChild(div);
+        msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function removeTyping() {
+        const t = document.getElementById('typing');
+        if (t) t.remove();
+    }
+
+    window.sendMsg = function() {
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = '';
+        quickBtns.style.display = 'none';
+        addMsg(text, 'user');
+        showTyping();
+        const delay = 800 + Math.random() * 1200;
+        setTimeout(function() {
+            removeTyping();
+            addMsg(getResponse(text), 'bot');
+        }, delay);
+    };
+
+    window.sendQuick = function(btn) {
+        input.value = btn.textContent;
+        window.sendMsg();
+    };
+
+    window.closeChat = function() {
+        overlay.classList.add('hidden');
+        fab.classList.add('show');
+    };
+
+    window.openChat = function() {
+        overlay.classList.remove('hidden');
+        fab.classList.remove('show');
+        input.focus();
+    };
+})();
+</script>
+<!-- Google Translate -->
+<div id="google_translate_element" style="position:absolute;top:-9999px;left:-9999px;"></div>
+
+<script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+<script>
+var gtReady = false;
+
+function googleTranslateElementInit() {
+    new google.translate.TranslateElement({
+        pageLanguage: 'es',
+        autoDisplay: false,
+        includedLanguages: 'en,fr,de,pt,ar,it,uk,ro,pl,nl'
+    }, 'google_translate_element');
+    // Wait for the select to be created
+    var checkReady = setInterval(function() {
+        var sel = document.querySelector('.goog-te-combo');
+        if (sel) { gtReady = true; clearInterval(checkReady); }
+    }, 300);
+}
+
+function toggleLangDropdown() {
+    var dd = document.getElementById('langDropdown');
+    var btn = document.getElementById('langBtn');
+    dd.classList.toggle('open');
+    btn.classList.toggle('open');
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.lang-selector')) {
+        document.getElementById('langDropdown').classList.remove('open');
+        document.getElementById('langBtn').classList.remove('open');
+    }
+});
+
+function triggerGoogleTranslate(lang) {
+    var sel = document.querySelector('.goog-te-combo');
+    if (sel) {
+        sel.value = lang;
+        sel.dispatchEvent(new Event('change'));
+        return true;
+    }
+    return false;
+}
+
+function changeLang(lang, flag, code) {
+    // Update button display
+    document.getElementById('langBtn').innerHTML = '<span class="flag">' + flag + '</span> ' + code + ' <span class="arrow">▼</span>';
+
+    // Update active state
+    document.querySelectorAll('.lang-option').forEach(function(o) { o.classList.remove('active'); });
+    if (event && event.target) {
+        var opt = event.target.closest('.lang-option');
+        if (opt) opt.classList.add('active');
+    }
+
+    // Close dropdown
+    document.getElementById('langDropdown').classList.remove('open');
+    document.getElementById('langBtn').classList.remove('open');
+
+    // Handle RTL for Arabic
+    if (lang === 'ar') {
+        document.documentElement.setAttribute('dir', 'rtl');
+    } else {
+        document.documentElement.removeAttribute('dir');
+    }
+
+    // Reset to Spanish
+    if (lang === 'es') {
+        // Remove Google Translate cookies
+        document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+        document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.' + location.hostname;
+        document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + location.hostname;
+        // Try to restore via iframe
+        var frame = document.querySelector('iframe.goog-te-banner-frame');
+        if (frame) {
+            try {
+                var closeBtn = frame.contentDocument.querySelector('.goog-close-link');
+                if (closeBtn) { closeBtn.click(); return; }
+            } catch(e) {}
+        }
+        location.reload();
+        return;
+    }
+
+    // Set cookies for Google Translate
+    document.cookie = 'googtrans=/es/' + lang + '; path=/';
+    document.cookie = 'googtrans=/es/' + lang + '; path=/; domain=.' + location.hostname;
+
+    // If Google Translate is ready, trigger it
+    if (gtReady && triggerGoogleTranslate(lang)) {
+        return;
+    }
+
+    // If not ready yet, wait and retry
+    var attempts = 0;
+    var retryInterval = setInterval(function() {
+        attempts++;
+        if (triggerGoogleTranslate(lang) || attempts > 20) {
+            clearInterval(retryInterval);
+            if (attempts > 20) {
+                // Last resort: reload with cookie set
+                location.reload();
+            }
+        }
+    }, 500);
+}
+</script>
+<style>
+/* Hide Google Translate UI completely */
+.goog-te-banner-frame { display: none !important; visibility: hidden !important; }
+#goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+.goog-te-gadget { display: none !important; }
+body { top: 0 !important; }
+.skiptranslate { display: none !important; height: 0 !important; overflow: hidden !important; }
+.goog-text-highlight { background: none !important; box-shadow: none !important; }
+</style>
+</body>
+</html>
