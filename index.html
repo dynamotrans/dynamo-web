@@ -618,6 +618,38 @@
         .float-wa:hover { transform:scale(1.12); }
 
         /* =========================================
+           LEGAL MODAL
+        ========================================= */
+        .legal-overlay {
+            display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000;
+            background:rgba(0,0,0,0.7); backdrop-filter:blur(4px);
+            align-items:center; justify-content:center;
+        }
+        .legal-overlay.open { display:flex; }
+        .legal-modal {
+            background:white; border-radius:16px; max-width:800px; width:92%; max-height:85vh;
+            overflow-y:auto; padding:2.5rem; position:relative; box-shadow:0 20px 60px rgba(0,0,0,0.3);
+        }
+        .legal-modal h1 { font-size:1.4rem; color:var(--navy); margin-bottom:0.3rem; }
+        .legal-modal h2 { font-size:1.05rem; color:var(--purple); margin:1.8rem 0 0.6rem; border-bottom:2px solid var(--green); padding-bottom:0.4rem; }
+        .legal-modal h3 { font-size:0.92rem; color:var(--navy); margin:1.2rem 0 0.4rem; }
+        .legal-modal p, .legal-modal li { font-size:0.85rem; color:#444; line-height:1.7; }
+        .legal-modal ul { padding-left:1.2rem; margin:0.5rem 0; }
+        .legal-modal li { margin-bottom:0.4rem; }
+        .legal-modal .legal-date { font-size:0.8rem; color:#888; margin-bottom:1.5rem; }
+        .legal-modal .legal-footer { font-size:0.8rem; color:#888; margin-top:2rem; padding-top:1rem; border-top:1px solid #eee; text-align:center; }
+        .legal-close {
+            position:sticky; top:0; float:right; width:36px; height:36px; border-radius:50%;
+            border:none; background:var(--navy); color:white; font-size:1.2rem; cursor:pointer;
+            display:flex; align-items:center; justify-content:center; z-index:1;
+        }
+        .legal-close:hover { background:var(--purple); }
+        @media (max-width:600px) {
+            .legal-modal { padding:1.5rem 1.2rem; border-radius:12px; }
+            .legal-modal h1 { font-size:1.15rem; }
+        }
+
+        /* =========================================
            KEYFRAMES
         ========================================= */
         @keyframes fadeUp { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
@@ -1221,6 +1253,83 @@
     </div>
 </section>
 
+<!-- LEGAL MODAL -->
+<div class="legal-overlay" id="legalModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="legal-modal">
+        <button class="legal-close" onclick="document.getElementById('legalModal').classList.remove('open')">✕</button>
+        <h1>Aviso Legal y Condiciones de Uso</h1>
+        <p class="legal-date">1 de junio 2020</p>
+
+        <h2>1. Informacion Legal y Aceptacion</h2>
+        <p>En cumplimiento de la Ley 34/2002, de 11 de julio, de Servicios de la Sociedad de la Informacion y de Comercio Electronico ("LSSICE"), DYNAMO OPERADOR LOGISTICO, S.L. ("Dynamo") informa que es titular del sitio web www.dynamotrans.com. De acuerdo con la exigencia del articulo 10 de la citada Ley, Dynamo informa de los siguientes datos:</p>
+        <p>El titular de este sitio web es <strong>DYNAMO OPERADOR LOGISTICO, S.L.</strong>, sociedad espanola con domicilio en Sevilla, en Calle Habana 2, 41001 e inscrita en el Registro Mercantil de Sevilla, al tomo 6.603, folio 105, hoja numero SE-119.091, con <strong>NIF B-01.596.360</strong>. La direccion de correo electronico de contacto con la empresa es: <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a>.</p>
+        <p>El presente documento (las "Condiciones de Uso") tiene como finalidad establecer y regular las normas de uso (incluyendo el mero acceso) de las paginas web integrantes del sitio web www.dynamotrans.com incluidos los contenidos, datos e informaciones puestos a disposicion en ellas.</p>
+
+        <h2>2. Usuario y Regimen de Responsabilidades</h2>
+        <p>El mero acceso al sitio web www.dynamotrans.com atribuye a quien lo realiza la condicion de usuario (el "Usuario"), y expresa la aceptacion plena y sin reservas por parte del Usuario de todas y cada una de las disposiciones recogidas en estas Condiciones de Uso.</p>
+        <p>Dynamo no garantiza: (i) la disponibilidad, la continuidad, la inexistencia de deficiencias y la seguridad del Sitio Web; (ii) que el contenido del Sitio Web o la informacion que pasa a traves de el este libre de virus o de otros elementos lesivos, asi como de errores, omisiones o incorrecciones y (iii) la privacidad y la seguridad en la utilizacion que el usuario haga del Sitio Web.</p>
+        <p>El contenido del Sitio Web tiene caracter meramente informativo de los servicios de Dynamo. El vinculo establecido entre el Usuario y Dynamo a traves de la consulta del Sitio Web en modo alguno constituye una relacion profesional ni una vinculacion contractual.</p>
+        <p>Esta responsabilidad se extendera a:</p>
+        <ul>
+            <li>La veracidad y licitud de las informaciones aportadas por el Usuario en los formularios facilitados por Dynamo para el acceso a ciertos contenidos o servicios ofrecidos a traves del Sitio Web.</li>
+            <li>El uso de la informacion, servicios y datos ofrecidos por Dynamo contrariamente a lo dispuesto por las presentes condiciones, la Ley, la moral, las buenas costumbres o el orden publico, o que de cualquier otro modo puedan suponer lesion de los derechos de terceros o del mismo funcionamiento del Sitio Web.</li>
+        </ul>
+
+        <h2>3. Propiedad Intelectual e Industrial</h2>
+        <p>Los signos distintivos, disenos, textos, imagenes, ilustraciones, fotografias, y demas contenidos que se encuentren en el Sitio Web y cualesquiera otras creaciones intelectuales y/o invenciones son titularidad de Dynamo o de terceros.</p>
+        <p>El Usuario no podra utilizar el contenido sin el consentimiento expreso y por escrito de Dynamo o de su legitimo titular, obteniendo unicamente una autorizacion para visualizar el contenido a traves de su navegacion por el Sitio Web.</p>
+        <p>No se permite la reproduccion, distribucion, comunicacion publica, transformacion, puesta a disposicion, ni el establecimiento de links a la pagina de Dynamo desde otra pagina o sitio web, o cualquier otra forma de explotacion del contenido sin la autorizacion previa y por escrito de Dynamo o de su legitimo titular.</p>
+
+        <h2>4. Condiciones de Uso</h2>
+        <p>El Usuario se obliga a hacer un uso correcto del Sitio Web de conformidad con la Ley y las presentes Condiciones de Uso. El Usuario respondera frente a Dynamo o frente a terceros de cualesquiera danos y perjuicios que pudieran causarse como consecuencia del incumplimiento de dicha obligacion.</p>
+        <p>Queda expresamente prohibido el uso del Sitio Web con fines lesivos de bienes o intereses de Dynamo o de terceros o que de cualquier otra forma sobrecarguen, danen o inutilicen las redes, servidores y demas equipos informaticos (hardware) o productos y aplicaciones informaticas (software) de Dynamo o de terceros.</p>
+        <p>Toda la informacion que pueda facilitar el Usuario a Dynamo a traves de los formularios de la web o cualesquiera otros debera ser veraz. A estos efectos, el Usuario garantiza la autenticidad de todos aquellos datos que comunique.</p>
+
+        <h2>5. Exclusion de Responsabilidad</h2>
+        <p>Dynamo en ningun caso sera responsable de:</p>
+        <ul>
+            <li>Los posibles danos o perjuicios que se pudieran derivar de interferencias, omisiones, interrupciones, virus informaticos, averias telefonicas o desconexiones en el funcionamiento operativo del Sitio Web.</li>
+            <li>Los danos o perjuicios de cualquier tipo producidos en el Usuario que traigan causa de fallos o desconexiones en las redes de telecomunicaciones.</li>
+            <li>Aquellos contenidos, actividades comerciales, productos y servicios incluidos que pudiesen visualizarse mediante enlaces electronicos (links), con finalidad meramente informativa.</li>
+            <li>Las consecuencias que pudieran derivarse de los errores en los contenidos que pudieran aparecer en este Sitio Web.</li>
+            <li>Las perdidas, danos o perjuicios de cualquier tipo que puedan derivarse del acceso y uso del Sitio Web.</li>
+        </ul>
+
+        <h2>6. Proteccion de Datos Personales</h2>
+
+        <h3>6.1. Responsable de Tratamiento y finalidad</h3>
+        <p>En cumplimiento con lo dispuesto en la normativa vigente en materia de proteccion de datos de caracter personal, los datos personales e informacion de los Usuarios, seran incorporados en un fichero de datos de caracter personal titularidad de Dynamo, con la finalidad de poder facilitar la navegacion por el sitio web y el acceso a la informacion y los servicios.</p>
+
+        <h3>6.2. Consentimiento Expreso</h3>
+        <p>El Usuario consiente expresamente el tratamiento de los datos al utilizar el Sitio Web, si bien podra retirar su consentimiento, en cualquier momento, enviando un correo electronico a <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a> o dirigiendo su peticion a la direccion postal Calle Habana 2, 41001 Sevilla.</p>
+
+        <h3>6.3. Delegado de Proteccion de Datos (el "DPO")</h3>
+        <p>Los Usuarios pueden contactar con el Delegado de Proteccion de Datos de Dynamo, cargo que ostenta DYNAMO OPERADOR LOGISTICO, S.L., con NIF B-01.596.360, dirigiendose por escrito a la direccion de correo <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a> o al telefono <a href="tel:+34955225945">955 225 945</a>.</p>
+
+        <h3>6.4. Destinatarios</h3>
+        <p>Los datos de los Usuarios seran comunicados, en caso de ser necesario, a las administraciones publicas y entidades que fueran necesarias para el cumplimiento de la finalidad con la que fueron recogidos. Asimismo, el Usuario consiente expresamente que Dynamo ceda sus datos a otros usuarios, para la realizacion del correspondiente Servicio de Transporte, siempre y cuando lo anterior sea necesario para la ejecucion del mismo.</p>
+
+        <h3>6.5. Ejercicio de derechos</h3>
+        <p>Conforme a la normativa vigente, los Usuarios podran ejercitar sus derechos de acceso, rectificacion, cancelacion, limitacion de tratamiento, portabilidad y oposicion poniendose en contacto con Dynamo en la siguiente direccion de correo electronico <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a> o dirigiendo su peticion a la direccion postal Calle Habana 2, 41001 Sevilla.</p>
+
+        <h3>6.6. Tratamiento de los datos</h3>
+        <p>Dynamo tratara los datos de manera licita, leal, transparente, adecuada, pertinente, limitada, exacta y actualizada. Es por ello por lo que se compromete a adoptar todas las medidas razonables, tecnicas y organizativas para que estos se supriman o rectifiquen sin dilacion cuando sean inexactos.</p>
+
+        <h3>6.7. Autoridad de Control</h3>
+        <p>Los Usuarios podran dirigirse, en cualquier momento, a la Autoridad de Control competente para presentar la reclamacion que consideren oportuna.</p>
+
+        <h2>7. Comunicaciones Via Correo Electronico</h2>
+        <p>La informacion contenida en los correos electronicos y/o los archivo(s) adjunto(s) de los correos electronicos enviados desde alguna direccion de correo electronico del dominio @dynamotrans.com es confidencial y privilegiada y esta destinada a ser leida solo por los destinatarios a los que va dirigida. Dicha informacion es, ademas, propiedad del remitente y queda prohibida su divulgacion, copia o distribucion a terceros sin la previa autorizacion escrita del mismo.</p>
+
+        <h2>8. Jurisdiccion y Fuero</h2>
+        <p>Dynamo se reserva, asimismo, la facultad de presentar las acciones civiles o penales que considere oportunas por la utilizacion indebida de su Sitio Web y contenidos, o por el incumplimiento de las presentes Condiciones de Uso del Sitio Web. La relacion entre el Usuario y Dynamo se regira por la normativa vigente y de aplicacion en el territorio espanol. De surgir cualquier controversia, las partes acuerdan someterse expresamente a la jurisdiccion de los Jueces y Tribunales competentes de Madrid Capital.</p>
+
+        <div class="legal-footer">
+            <p><strong>Dynamo&reg;</strong> es marca registrada.<br>Dynamo Operador Logistico, S.L.</p>
+        </div>
+    </div>
+</div>
+
 <!-- FOOTER -->
 <footer>
     <div class="footer-grid">
@@ -1269,7 +1378,7 @@
     </div>
     <div class="f-bottom">
         <span>© 2025 Dynamo Operador de Transportes · Todos los derechos reservados</span>
-        <span>Aviso Legal · Privacidad · Cookies</span>
+        <span><a href="#" onclick="document.getElementById('legalModal').classList.add('open');return false;" style="color:rgba(255,255,255,0.4);text-decoration:underline;">Aviso Legal</a> · <a href="#" onclick="document.getElementById('legalModal').classList.add('open');return false;" style="color:rgba(255,255,255,0.4);text-decoration:underline;">Privacidad</a> · <a href="#" onclick="document.getElementById('legalModal').classList.add('open');return false;" style="color:rgba(255,255,255,0.4);text-decoration:underline;">Cookies</a></span>
     </div>
 </footer>
 
