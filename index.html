@@ -661,6 +661,39 @@
         }
 
         /* =========================================
+           COOKIE BANNER
+        ========================================= */
+        .cookie-banner {
+            display:none; position:fixed; bottom:0; left:0; right:0; z-index:10001;
+            background:var(--navy); color:white; padding:1.2rem 2rem;
+            box-shadow:0 -4px 20px rgba(0,0,0,0.3);
+            animation: slideUpBanner 0.4s ease-out;
+        }
+        @keyframes slideUpBanner { from { transform:translateY(100%); } to { transform:translateY(0); } }
+        .cookie-banner.show { display:block; }
+        .cookie-inner {
+            max-width:1200px; margin:0 auto; display:flex; align-items:center;
+            gap:1.5rem; flex-wrap:wrap; justify-content:space-between;
+        }
+        .cookie-text { flex:1; min-width:280px; font-size:0.82rem; line-height:1.6; color:rgba(255,255,255,0.85); }
+        .cookie-text a { color:var(--green); text-decoration:underline; }
+        .cookie-buttons { display:flex; gap:0.6rem; flex-shrink:0; }
+        .cookie-btn {
+            padding:0.55rem 1.3rem; border-radius:8px; border:none; font-size:0.8rem;
+            font-weight:700; cursor:pointer; transition:all 0.2s;
+        }
+        .cookie-accept { background:var(--green); color:var(--navy); }
+        .cookie-accept:hover { background:#00e676; }
+        .cookie-config { background:transparent; color:white; border:1px solid rgba(255,255,255,0.3); }
+        .cookie-config:hover { border-color:white; }
+        .cookie-reject { background:transparent; color:rgba(255,255,255,0.6); border:1px solid rgba(255,255,255,0.15); }
+        .cookie-reject:hover { color:white; border-color:rgba(255,255,255,0.4); }
+        @media (max-width:600px) {
+            .cookie-inner { flex-direction:column; text-align:center; }
+            .cookie-buttons { width:100%; justify-content:center; }
+        }
+
+        /* =========================================
            KEYFRAMES
         ========================================= */
         @keyframes fadeUp { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
@@ -1271,7 +1304,8 @@
 
         <div class="legal-tabs">
             <button class="legal-tab active" onclick="switchLegalTab('aviso',this)">Aviso Legal</button>
-            <button class="legal-tab" onclick="switchLegalTab('privacidad',this)">Politica de Privacidad</button>
+            <button class="legal-tab" onclick="switchLegalTab('privacidad',this)">Privacidad</button>
+            <button class="legal-tab" onclick="switchLegalTab('cookies',this)">Cookies</button>
         </div>
 
         <!-- TAB 1: AVISO LEGAL -->
@@ -1439,6 +1473,75 @@
         </div>
         </div><!-- /legalPrivacidad -->
 
+        <!-- TAB 3: POLITICA DE COOKIES -->
+        <div class="legal-content" id="legalCookies">
+        <h1>Politica de Cookies</h1>
+        <p class="legal-date">Ultima actualizacion: abril 2026</p>
+
+        <h2>1. Que son las cookies</h2>
+        <p>Las cookies son pequenos archivos de texto que los sitios web almacenan en tu dispositivo (ordenador, movil, tablet) cuando los visitas. Sirven para que el sitio web recuerde informacion sobre tu visita, como tu idioma preferido o tus preferencias, lo que facilita tu proxima visita y hace que el sitio te resulte mas util.</p>
+
+        <h2>2. Que cookies utilizamos</h2>
+        <p>En <strong>www.dynamotrans.com</strong> utilizamos los siguientes tipos de cookies:</p>
+
+        <h3>Cookies estrictamente necesarias</h3>
+        <p>Son imprescindibles para el funcionamiento basico del sitio web. No requieren consentimiento.</p>
+        <ul>
+            <li><strong>cookie_consent</strong> — Almacena tu decision sobre las cookies (aceptar/rechazar). Duracion: 1 ano.</li>
+        </ul>
+
+        <h3>Cookies funcionales</h3>
+        <p>Permiten recordar tus preferencias y personalizar tu experiencia.</p>
+        <ul>
+            <li><strong>googtrans</strong> — Almacena el idioma seleccionado para la traduccion del sitio web mediante Google Translate. Duracion: sesion.</li>
+        </ul>
+
+        <h3>Cookies analiticas (terceros)</h3>
+        <p>Nos ayudan a entender como interactuan los visitantes con el sitio web, recopilando informacion de forma anonima.</p>
+        <ul>
+            <li><strong>_ga, _ga_*</strong> — Google Analytics. Recogen datos estadisticos anonimos sobre el uso del sitio web (paginas visitadas, duracion, origen del trafico). Duracion: hasta 2 anos. Proveedor: Google Ireland Limited.</li>
+        </ul>
+
+        <h3>Cookies de terceros (Google Translate)</h3>
+        <ul>
+            <li><strong>NID, CONSENT, 1P_JAR</strong> — Cookies establecidas por Google al cargar el servicio de traduccion. Proveedor: Google LLC. Duracion: variable (6-24 meses).</li>
+        </ul>
+
+        <h2>3. Como gestionar las cookies</h2>
+        <p>Puedes gestionar tus preferencias de cookies de las siguientes formas:</p>
+        <ul>
+            <li><strong>Desde nuestro banner:</strong> Al acceder por primera vez al sitio, puedes aceptar, rechazar o configurar las cookies.</li>
+            <li><strong>Desde tu navegador:</strong> Todos los navegadores permiten ver, eliminar y bloquear cookies desde la configuracion de privacidad. Consulta la ayuda de tu navegador para mas informacion.</li>
+        </ul>
+        <p>Enlaces de gestion de cookies por navegador:</p>
+        <ul>
+            <li><a href="https://support.google.com/chrome/answer/95647" target="_blank" rel="noopener">Google Chrome</a></li>
+            <li><a href="https://support.mozilla.org/es/kb/habilitar-y-deshabilitar-cookies-sitios-web-rastrear-preferencias" target="_blank" rel="noopener">Mozilla Firefox</a></li>
+            <li><a href="https://support.apple.com/es-es/guide/safari/sfri11471/mac" target="_blank" rel="noopener">Safari</a></li>
+            <li><a href="https://support.microsoft.com/es-es/microsoft-edge/eliminar-las-cookies-en-microsoft-edge-63947406-40ac-c3b8-57b9-2a946a29ae09" target="_blank" rel="noopener">Microsoft Edge</a></li>
+        </ul>
+
+        <h2>4. Base legal</h2>
+        <p>El uso de cookies en este sitio web se realiza de conformidad con:</p>
+        <ul>
+            <li>La Ley 34/2002, de 11 de julio, de Servicios de la Sociedad de la Informacion y de Comercio Electronico (LSSICE).</li>
+            <li>El Reglamento (UE) 2016/679 General de Proteccion de Datos (RGPD).</li>
+            <li>La Ley Organica 3/2018, de 5 de diciembre, de Proteccion de Datos Personales y garantia de los derechos digitales (LOPDGDD).</li>
+        </ul>
+
+        <h2>5. Contacto</h2>
+        <p>Si tienes preguntas sobre nuestra politica de cookies, puedes contactarnos en:</p>
+        <ul>
+            <li>Email: <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a></li>
+            <li>Telefono: <a href="tel:+34955225945">955 225 945</a></li>
+            <li>Direccion: Calle Habana 2, 41001 Sevilla</li>
+        </ul>
+
+        <div class="legal-footer">
+            <p><strong>Dynamo&reg;</strong> es marca registrada.<br>Dynamo Operador Logistico, S.L.</p>
+        </div>
+        </div><!-- /legalCookies -->
+
     </div>
 </div>
 
@@ -1447,12 +1550,14 @@ function switchLegalTab(tab, btn) {
     document.querySelectorAll('.legal-content').forEach(function(c) { c.classList.remove('active'); });
     document.querySelectorAll('.legal-tab').forEach(function(t) { t.classList.remove('active'); });
     btn.classList.add('active');
-    if (tab === 'aviso') document.getElementById('legalAviso').classList.add('active');
-    else document.getElementById('legalPrivacidad').classList.add('active');
+    var tabMap = { aviso: 'legalAviso', privacidad: 'legalPrivacidad', cookies: 'legalCookies' };
+    var el = document.getElementById(tabMap[tab]);
+    if (el) el.classList.add('active');
 }
 function openLegal(tab) {
     var tabs = document.querySelectorAll('.legal-tab');
-    switchLegalTab(tab, tab === 'aviso' ? tabs[0] : tabs[1]);
+    var idx = tab === 'aviso' ? 0 : tab === 'privacidad' ? 1 : 2;
+    switchLegalTab(tab, tabs[idx]);
     document.getElementById('legalModal').classList.add('open');
     document.querySelector('.legal-modal').scrollTop = 0;
 }
@@ -2037,5 +2142,35 @@ body { top: 0 !important; position: static !important; }
 .goog-text-highlight { background: none !important; box-shadow: none !important; }
 #google_translate_element { position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none; }
 </style>
+
+<!-- COOKIE BANNER -->
+<div class="cookie-banner" id="cookieBanner">
+    <div class="cookie-inner">
+        <div class="cookie-text">
+            Utilizamos cookies propias y de terceros para mejorar tu experiencia, analizar el trafico y mostrar contenido personalizado.
+            Puedes aceptar todas, rechazar las no esenciales o configurar tus preferencias.
+            <a href="#" onclick="openLegal('cookies');document.getElementById('cookieBanner').classList.remove('show');return false;">Politica de Cookies</a>
+        </div>
+        <div class="cookie-buttons">
+            <button class="cookie-btn cookie-reject" onclick="setCookieConsent('reject')">Rechazar</button>
+            <button class="cookie-btn cookie-config" onclick="openLegal('cookies');document.getElementById('cookieBanner').classList.remove('show')">Configurar</button>
+            <button class="cookie-btn cookie-accept" onclick="setCookieConsent('accept')">Aceptar todo</button>
+        </div>
+    </div>
+</div>
+<script>
+function setCookieConsent(choice) {
+    var d = new Date(); d.setFullYear(d.getFullYear() + 1);
+    document.cookie = 'cookie_consent=' + choice + '; expires=' + d.toUTCString() + '; path=/; SameSite=Lax';
+    document.getElementById('cookieBanner').classList.remove('show');
+}
+(function() {
+    if (document.cookie.indexOf('cookie_consent=') === -1) {
+        setTimeout(function() {
+            document.getElementById('cookieBanner').classList.add('show');
+        }, 1500);
+    }
+})();
+</script>
 </body>
 </html>
