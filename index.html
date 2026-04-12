@@ -4,6 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <!-- Google Consent Mode v2 (must be BEFORE any Google tags) -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+
+      // Check if user already gave consent
+      var _cc = document.cookie.match(/cookie_consent=(\w+)/);
+      if (_cc && _cc[1] === 'accept') {
+        gtag('consent', 'default', {
+          'ad_user_data': 'granted',
+          'ad_personalization': 'granted',
+          'ad_storage': 'granted',
+          'analytics_storage': 'granted'
+        });
+      } else {
+        gtag('consent', 'default', {
+          'ad_user_data': 'denied',
+          'ad_personalization': 'denied',
+          'ad_storage': 'denied',
+          'analytics_storage': 'denied',
+          'wait_for_update': 500
+        });
+      }
+    </script>
+
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -14,8 +39,6 @@
     <!-- Google Ads (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18085056531"></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'AW-18085056531');
     </script>
@@ -2485,6 +2508,23 @@ function setCookieConsent(choice) {
     var d = new Date(); d.setFullYear(d.getFullYear() + 1);
     document.cookie = 'cookie_consent=' + choice + '; expires=' + d.toUTCString() + '; path=/; SameSite=Lax';
     document.getElementById('cookieBanner').classList.remove('show');
+
+    // Google Consent Mode v2 update
+    if (choice === 'accept') {
+        gtag('consent', 'update', {
+            'ad_user_data': 'granted',
+            'ad_personalization': 'granted',
+            'ad_storage': 'granted',
+            'analytics_storage': 'granted'
+        });
+    } else {
+        gtag('consent', 'update', {
+            'ad_user_data': 'denied',
+            'ad_personalization': 'denied',
+            'ad_storage': 'denied',
+            'analytics_storage': 'denied'
+        });
+    }
 }
 (function() {
     if (document.cookie.indexOf('cookie_consent=') === -1) {
