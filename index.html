@@ -644,9 +644,20 @@
             display:flex; align-items:center; justify-content:center; z-index:1;
         }
         .legal-close:hover { background:var(--purple); }
+        .legal-tabs { display:flex; gap:0; margin-bottom:1.5rem; border-bottom:2px solid #eee; }
+        .legal-tab {
+            padding:0.7rem 1.2rem; font-size:0.85rem; font-weight:700; cursor:pointer;
+            border:none; background:none; color:#999; border-bottom:3px solid transparent;
+            margin-bottom:-2px; transition:all 0.2s;
+        }
+        .legal-tab.active { color:var(--purple); border-bottom-color:var(--purple); }
+        .legal-tab:hover { color:var(--navy); }
+        .legal-content { display:none; }
+        .legal-content.active { display:block; }
         @media (max-width:600px) {
             .legal-modal { padding:1.5rem 1.2rem; border-radius:12px; }
             .legal-modal h1 { font-size:1.15rem; }
+            .legal-tab { padding:0.5rem 0.7rem; font-size:0.75rem; }
         }
 
         /* =========================================
@@ -1257,6 +1268,14 @@
 <div class="legal-overlay" id="legalModal" onclick="if(event.target===this)this.classList.remove('open')">
     <div class="legal-modal">
         <button class="legal-close" onclick="document.getElementById('legalModal').classList.remove('open')">✕</button>
+
+        <div class="legal-tabs">
+            <button class="legal-tab active" onclick="switchLegalTab('aviso',this)">Aviso Legal</button>
+            <button class="legal-tab" onclick="switchLegalTab('privacidad',this)">Politica de Privacidad</button>
+        </div>
+
+        <!-- TAB 1: AVISO LEGAL -->
+        <div class="legal-content active" id="legalAviso">
         <h1>Aviso Legal y Condiciones de Uso</h1>
         <p class="legal-date">1 de junio 2020</p>
 
@@ -1327,8 +1346,117 @@
         <div class="legal-footer">
             <p><strong>Dynamo&reg;</strong> es marca registrada.<br>Dynamo Operador Logistico, S.L.</p>
         </div>
+        </div><!-- /legalAviso -->
+
+        <!-- TAB 2: POLITICA DE PRIVACIDAD -->
+        <div class="legal-content" id="legalPrivacidad">
+        <h1>Politica de Privacidad</h1>
+        <p class="legal-date">1 de junio 2020</p>
+
+        <h2>1. Politica de Proteccion de Datos</h2>
+
+        <h3>1.1. Responsable de Tratamiento</h3>
+        <p>De conformidad con lo establecido en la normativa vigente en Proteccion de Datos de Caracter Personal y la Ley 34/2002, de 11 de julio, de Servicios de la Sociedad de la Informacion y de Comercio Electronico ("LSSICE"), los datos de los Usuarios, Clientes y Candidatos seran incorporados al sistema de tratamiento titularidad de <strong>DYNAMO OPERADOR LOGISTICO, S.L.</strong> ("DYNAMO"), con NIF B-01.596.360 y domicilio social en calle Habana 2, 41001 Sevilla.</p>
+        <p>A estos efectos, Dynamo hace constar que dispone de un correo electronico (<a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a>) a disposicion de todos los usuarios de las Redes Sociales y del Sitio Web (www.dynamotrans.com).</p>
+
+        <h3>1.2. Fines de tratamiento y base juridica</h3>
+        <p>La finalidad del tratamiento de los datos personales es:</p>
+        <ul>
+            <li>Respecto de los usuarios del sitio web de Dynamo (los "Usuarios"), la prestacion del servicio de intermediacion de Dynamo y todos los servicios asociados a este (i.e. emision de facturas, emision de albaranes, emision de notificaciones por cualquier medio de comunicacion digital y/o electronico promocionales o de estado de los envios contratados, etc.).</li>
+            <li>Respecto de los proveedores, clientes u otros terceros (los "Clientes"), atender a los compromisos generados por los respectivos contratos, siendo la base juridica para el tratamiento de los datos el contrato en si.</li>
+            <li>Respecto de potenciales candidatos para trabajar en Dynamo (los "Candidatos"), la posibilidad de participar en los procesos de seleccion (actuales y futuros) de Dynamo, consintiendo expresamente el tratamiento de los datos al enviar el CV.</li>
+            <li>En cualquier caso, los Usuarios, los Clientes, los Candidatos y los Usuarios de Redes Sociales (conjuntamente, los "Interesados") pueden retirar su consentimiento, en cualquier momento, enviando un correo electronico a <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a> o dirigiendo su peticion a la direccion postal Calle Habana 2, 41001 Sevilla.</li>
+        </ul>
+        <p>A efectos meramente aclaratorios, en el caso de Usuarios o Clientes persona juridica, estos se obligan expresamente a comunicar e informar a sus empleados/asalariados/colaboradores de la Politica de Datos de Dynamo y a recabar su consentimiento cuando asi lo determine la legislacion vigente.</p>
+        <p>Ademas, los datos derivados de cualquier comunicacion (via electronica, telefonica, etc.) tambien seran incorporados a nuestros ficheros.</p>
+
+        <h3>1.3. Delegado de Proteccion de Datos (el "DPO")</h3>
+        <p>Los Interesados pueden contactar con el Delegado de Proteccion de Datos de Dynamo, cargo que ostenta DYNAMO OPERADOR LOGISTICO, S.L., con NIF B-01.596.360, dirigiendose por escrito a la direccion de correo <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a> o al telefono <a href="tel:+34955225945">955 225 945</a>.</p>
+
+        <h3>1.4. Destinatarios</h3>
+        <p>Los datos de los Interesados seran comunicados, en caso de ser necesario, a las administraciones publicas y entidades que fueran necesarias para el cumplimiento de la finalidad con la que fueron recogidos. Adicionalmente, Dynamo podra ceder los datos a terceros con los que haya suscrito un contrato de prestacion de servicios como Encargado de Tratamiento.</p>
+
+        <h3>1.5. Ejercicio de derechos de los Interesados</h3>
+        <p>Conforme a la normativa vigente, los interesados podran ejercitar sus derechos de acceso, rectificacion, cancelacion, limitacion de tratamiento, portabilidad y oposicion poniendose en contacto con Dynamo en la siguiente direccion de correo electronico <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a> o dirigiendo su peticion a la direccion postal Calle Habana 2, 41001 Sevilla.</p>
+
+        <h3>1.6. Tratamiento de los datos</h3>
+        <p>Dynamo tratara los datos de manera licita, leal, transparente, adecuada, pertinente, limitada, exacta y actualizada. Es por ello por lo que se compromete a adoptar todas las medidas razonables, tecnicas y organizativas, para que estos se supriman o rectifiquen sin dilacion cuando sean inexactos, asi como, en general, todas las medidas necesarias para garantizar la seguridad, confidencialidad e integridad de los mismos y evitar su alteracion, perdida, tratamiento o acceso no autorizado.</p>
+        <p>Dynamo conservara los datos durante el plazo legalmente establecido para ello. En cualquier caso, si los Interesados no comunican lo contrario, entendemos que sus datos no han sido modificados.</p>
+
+        <h3>1.7. Autoridad de Control</h3>
+        <p>Los Interesados podran dirigirse, en cualquier momento, a la Autoridad de Control competente para presentar la reclamacion que consideren oportuna.</p>
+
+        <h2>2. Politica de Privacidad en Redes Sociales</h2>
+
+        <h3>2.1. Informacion Previa</h3>
+        <p>Dynamo informa que ha procedido a crear un perfil en las redes sociales Facebook, Twitter, Youtube, Linkedin, Google+ (las "Redes Sociales"), con la finalidad principal de publicitar sus productos y servicios.</p>
+
+        <h3>2.2. Perfiles en Redes Sociales</h3>
+        <p>En caso de que el Usuario disponga de un perfil en cualquiera de las referidas Redes Sociales y decida unirse a las paginas creadas por Dynamo, al unirse a nuestra pagina, expresamente consiente el tratamiento de aquellos datos personales publicados en su perfil.</p>
+        <p>El Usuario de las Redes Sociales puede acceder en todo momento a las politicas de privacidad de la propia Red Social, asi como configurar su perfil para garantizar su privacidad.</p>
+        <p>Dynamo tiene acceso y trata aquella informacion publica del Usuario, en especial, su nombre de contacto. Estos datos solo son utilizados dentro de la propia Red Social. No son incorporados a ningun fichero.</p>
+
+        <h3>2.3. Derechos de los Usuarios</h3>
+        <p>Con relacion a los derechos de acceso, rectificacion, cancelacion, limitacion de tratamiento, portabilidad y oposicion, los mismos pueden ser ejercitados ante DYNAMO OPERADOR LOGISTICO S.L., de acuerdo con la normativa en materia de proteccion de datos vigente. En este sentido, debe tenerse en cuenta los siguientes matices:</p>
+        <ul>
+            <li><strong>Acceso:</strong> Vendra definido por la funcionalidad de la Red Social y la capacidad de acceso a la informacion de los perfiles de los usuarios.</li>
+            <li><strong>Rectificacion:</strong> Solo podra satisfacerse en relacion con aquella informacion que se encuentre bajo el control de Dynamo, por ejemplo, eliminar comentarios publicados en la propia pagina.</li>
+            <li><strong>Cancelacion y/u Oposicion:</strong> Como en el caso anterior, solo podra satisfacerse con relacion a aquella informacion que se encuentre bajo el control de Dynamo, por ejemplo, dejar de estar unido al perfil.</li>
+        </ul>
+        <p>Dynamo realizara las siguientes actuaciones:</p>
+        <ul>
+            <li>Acceso a la informacion publica del perfil del Usuario.</li>
+            <li>Publicacion en el perfil del Usuario de toda aquella informacion ya publicada en la pagina de Dynamo.</li>
+            <li>Enviar mensajes personales e individuales a traves de los canales de la Red Social.</li>
+            <li>Actualizaciones del estado de la pagina que se publicaran en el perfil del Usuario.</li>
+        </ul>
+        <p>El Usuario siempre puede controlar sus conexiones, eliminar los contenidos que dejen de interesarle y restringir con quien comparte sus conexiones, para ello debera acceder a su configuracion de privacidad.</p>
+
+        <h3>2.4. Publicaciones</h3>
+        <p>El Usuario, una vez unido a la pagina de Dynamo en la red social correspondiente, podra publicar en esta comentarios, enlaces, imagenes o fotografias o cualquier otro tipo de contenido multimedia soportado por la Red Social.</p>
+        <p>El Usuario, en todos los casos, debe ser el titular de estos, gozar de los derechos de autor y de propiedad intelectual o contar con el consentimiento de los terceros afectados.</p>
+        <p>Se prohibe expresamente cualquier publicacion, ya sean textos, graficos, fotografias, videos, etc. que atenten o sean susceptibles de atentar contra la moral, la etica, el buen gusto o el decoro, y/o que infrinjan, violen o quebranten los derechos de propiedad intelectual o industrial, el derecho a la imagen o la Ley. En estos casos, Dynamo se reserva el derecho a retirar de inmediato el contenido, pudiendo solicitar el bloqueo permanente del Usuario.</p>
+        <p>Dynamo Operador Logistico no se hara responsable de los contenidos que libremente ha publicado un Usuario.</p>
+
+        <h3>2.5. Concursos y promociones</h3>
+        <p>Dynamo se reserva el derecho a realizar concursos y promociones, en los que podra participar el Usuario unido a su pagina. Las bases de cada uno de ellos, cuando se utilice para ello el sitio web de la Red Social, seran publicadas en la misma, cumpliendo siempre con la LSSI-CE y con cualquier otra norma que le sea de aplicacion.</p>
+
+        <h3>2.6. Publicidad</h3>
+        <p>Dynamo utilizara la Red Social para publicitar sus productos y servicios, en todo caso, si decide tratar sus datos de contacto para realizar acciones directas de prospeccion comercial, sera siempre cumpliendo con las exigencias legales de la normativa vigente en materia de proteccion de datos y de la LSSICE.</p>
+        <p>No se considerara publicidad el hecho de recomendar a otros usuarios la pagina de Dynamo para que tambien ellos puedan disfrutar de las promociones o estar informados de su actividad.</p>
+
+        <h2>3. Google Analytics</h2>
+        <p>Este sitio web hace uso de Google Analytics, un servicio de analisis web de Google Ireland Limited. Cuando el responsable del tratamiento de los datos en este sitio web tenga su sede fuera del Espacio Economico Europeo o de Suiza, el tratamiento de los datos por parte de Google Analytics tendra lugar por Google LLC.</p>
+        <p>Google Analytics utiliza las denominadas "cookies", archivos de texto que se almacenan en el dispositivo usado y que facilitan un analisis del uso del sitio web por parte del visitante del sitio. La informacion generada por la cookie sobre su uso de este sitio web se transmite por regla general a un servidor de Google en Estados Unidos y se almacena alli.</p>
+        <p>Google Analytics se utilizara en este sitio web exclusivamente con la extension "_anonymizeIp()". Esta extension garantiza una anonimizacion de la direccion IP mediante su acortamiento y excluye una asociacion directa con las personas.</p>
+        <p>Por orden del operador del sitio web, Google usara la informacion obtenida para evaluar el uso del sitio web, para redactar informes sobre las actividades del sitio web y para prestar mas servicios relacionados con el uso del sitio web (articulo 6, parrafo 1, letra f del RGPD). El interes legitimo en el tratamiento de los datos radica en la optimizacion de este sitio web, en el analisis del uso del sitio web y en la adaptacion de los contenidos.</p>
+        <p>Los datos enviados y vinculados a las cookies, a identificadores de usuario o a identificadores de publicidad se eliminaran automaticamente tras 50 meses. La supresion de los datos que alcanzan su periodo de conservacion se realiza de manera automatica una vez al mes.</p>
+        <p>La recopilacion mediante Google Analytics puede evitarse si el visitante del sitio ajusta la configuracion de las cookies para este sitio web. Ademas, la recopilacion y el almacenamiento de la direccion IP y de los datos generados por las cookies tambien pueden ser objeto de oposicion en cualquier momento con efecto para el futuro. El complemento del navegador correspondiente puede descargarse e instalarse a traves del siguiente enlace: <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">https://tools.google.com/dlpage/gaoptout</a>.</p>
+        <p>Segun la legislacion pertinente y el RGPD, los visitantes del sitio web tienen ciertos derechos con respecto a sus datos personales tratados a traves de este tratamiento de datos de Google Analytics. En especial, tienen un derecho de acceso, rectificacion, portabilidad y supresion de sus datos. Asimismo, los visitantes del sitio tienen derecho a oponerse a un determinado tratamiento de sus datos.</p>
+
+        <div class="legal-footer">
+            <p><strong>Dynamo&reg;</strong> es marca registrada.<br>Dynamo Operador Logistico, S.L.</p>
+        </div>
+        </div><!-- /legalPrivacidad -->
+
     </div>
 </div>
+
+<script>
+function switchLegalTab(tab, btn) {
+    document.querySelectorAll('.legal-content').forEach(function(c) { c.classList.remove('active'); });
+    document.querySelectorAll('.legal-tab').forEach(function(t) { t.classList.remove('active'); });
+    btn.classList.add('active');
+    if (tab === 'aviso') document.getElementById('legalAviso').classList.add('active');
+    else document.getElementById('legalPrivacidad').classList.add('active');
+}
+function openLegal(tab) {
+    var tabs = document.querySelectorAll('.legal-tab');
+    switchLegalTab(tab, tab === 'aviso' ? tabs[0] : tabs[1]);
+    document.getElementById('legalModal').classList.add('open');
+    document.querySelector('.legal-modal').scrollTop = 0;
+}
+</script>
 
 <!-- FOOTER -->
 <footer>
@@ -1378,7 +1506,7 @@
     </div>
     <div class="f-bottom">
         <span>© 2025 Dynamo Operador de Transportes · Todos los derechos reservados</span>
-        <span><a href="#" onclick="document.getElementById('legalModal').classList.add('open');return false;" style="color:rgba(255,255,255,0.4);text-decoration:underline;">Aviso Legal</a> · <a href="#" onclick="document.getElementById('legalModal').classList.add('open');return false;" style="color:rgba(255,255,255,0.4);text-decoration:underline;">Privacidad</a> · <a href="#" onclick="document.getElementById('legalModal').classList.add('open');return false;" style="color:rgba(255,255,255,0.4);text-decoration:underline;">Cookies</a></span>
+        <span><a href="#" onclick="openLegal('aviso');return false;" style="color:rgba(255,255,255,0.4);text-decoration:underline;">Aviso Legal</a> · <a href="#" onclick="openLegal('privacidad');return false;" style="color:rgba(255,255,255,0.4);text-decoration:underline;">Privacidad</a> · <a href="#" onclick="openLegal('privacidad');return false;" style="color:rgba(255,255,255,0.4);text-decoration:underline;">Cookies</a></span>
     </div>
 </footer>
 
