@@ -2126,17 +2126,52 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // Check for googtrans cookie
+    // Check for googtrans cookie (user already chose a language before)
     var match = document.cookie.match(/googtrans=\/es\/(\w+)/);
     if (match && match[1] && langMap[match[1]]) {
         var lang = match[1];
         var info = langMap[lang];
         var langBtn = document.getElementById('langBtn');
         if (langBtn) langBtn.innerHTML = '<span class="flag">' + info.flag + '</span> ' + info.code + ' <span class="arrow">▼</span>';
-        // Handle RTL for Arabic
         if (lang === 'ar') document.documentElement.setAttribute('dir', 'rtl');
+        // Delay loading Google Translate slightly to not block page render
+        setTimeout(loadGoogleTranslate, 1000);
+        return;
     }
-    // Delay loading Google Translate slightly to not block page render
+
+    // Auto-detect browser language (only on first visit, no cookie set)
+    var autoLangDone = document.cookie.indexOf('dynamo_lang_detected=') > -1;
+    if (!autoLangDone) {
+        var browserLang = (navigator.language || navigator.userLanguage || 'es').toLowerCase().split('-')[0];
+        // Mark as detected so we don't auto-switch again (user can change manually)
+        var exp = new Date(); exp.setFullYear(exp.getFullYear() + 1);
+        document.cookie = 'dynamo_lang_detected=1; expires=' + exp.toUTCString() + '; path=/; SameSite=Lax';
+
+        if (browserLang !== 'es' && langMap[browserLang]) {
+            var info = langMap[browserLang];
+            var langBtn = document.getElementById('langBtn');
+            if (langBtn) langBtn.innerHTML = '<span class="flag">' + info.flag + '</span> ' + info.code + ' <span class="arrow">▼</span>';
+            if (browserLang === 'ar') document.documentElement.setAttribute('dir', 'rtl');
+            // Set googtrans cookie and load translator
+            document.cookie = 'googtrans=/es/' + browserLang + '; path=/';
+            document.cookie = 'googtrans=/es/' + browserLang + '; path=/; domain=' + location.hostname;
+            document.cookie = 'googtrans=/es/' + browserLang + '; path=/; domain=.' + location.hostname;
+            setTimeout(function() {
+                loadGoogleTranslate();
+                // Wait for Google Translate to be ready, then translate
+                var attempts = 0;
+                var autoInterval = setInterval(function() {
+                    attempts++;
+                    if (doTranslate(browserLang) || attempts > 40) {
+                        clearInterval(autoInterval);
+                    }
+                }, 250);
+            }, 1200);
+            return;
+        }
+    }
+
+    // Default: load Google Translate in background (for manual switching)
     setTimeout(loadGoogleTranslate, 1000);
 });
 
