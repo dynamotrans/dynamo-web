@@ -2396,15 +2396,12 @@ body { top: 0 !important; position: static !important; }
 
     function closeExitPopup() {
         document.getElementById('exitPopup').classList.remove('show');
-        // Don't show again for 7 days
-        var d = new Date(); d.setDate(d.getDate() + 7);
-        document.cookie = 'exit_popup_shown=1; expires=' + d.toUTCString() + '; path=/; SameSite=Lax';
+        exitShown = false;
     }
     window.closeExitPopup = closeExitPopup;
 
     function showExitPopup() {
         if (exitShown) return;
-        if (document.cookie.indexOf('exit_popup_shown=') > -1) return;
         exitShown = true;
         document.getElementById('exitPopup').classList.add('show');
     }
