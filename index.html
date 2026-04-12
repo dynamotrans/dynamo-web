@@ -12,6 +12,11 @@
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://www.dynamotrans.com/">
 
+    <!-- Mobile -->
+    <meta name="theme-color" content="#3300cc">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="images/DYNAMO-NEW-LOGO.png">
     <link rel="apple-touch-icon" href="images/DYNAMO-NEW-LOGO.png">
@@ -661,6 +666,54 @@
         }
 
         /* =========================================
+           TESTIMONIALS
+        ========================================= */
+        .testimonials { padding:5rem 2rem; background:var(--gray-100); }
+        .testi-grid { max-width:1100px; margin:2rem auto 0; display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem; }
+        .testi-card {
+            background:white; border-radius:14px; padding:1.5rem; position:relative;
+            box-shadow:0 2px 12px rgba(0,0,0,0.06); transition:transform 0.3s, box-shadow 0.3s;
+        }
+        .testi-card:hover { transform:translateY(-4px); box-shadow:0 8px 30px rgba(0,0,0,0.1); }
+        .testi-header { display:flex; align-items:center; gap:0.8rem; margin-bottom:0.8rem; }
+        .testi-avatar {
+            width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+            font-weight:700; font-size:1rem; color:white; flex-shrink:0;
+        }
+        .testi-name { font-weight:700; font-size:0.88rem; color:var(--navy); }
+        .testi-badge { font-size:0.7rem; color:var(--gray-500); }
+        .testi-stars { color:#f9ab00; font-size:0.85rem; margin-bottom:0.5rem; letter-spacing:1px; }
+        .testi-text { font-size:0.83rem; color:var(--gray-700); line-height:1.7; }
+        .testi-google { display:flex; align-items:center; gap:0.4rem; margin-top:0.8rem; font-size:0.7rem; color:var(--gray-500); }
+        .testi-google svg { flex-shrink:0; }
+        @media (max-width:768px) { .testi-grid { grid-template-columns:1fr; } }
+        @media (max-width:1024px) { .testi-grid { grid-template-columns:repeat(2,1fr); } }
+
+        /* =========================================
+           SCROLL REVEAL
+        ========================================= */
+        .reveal {
+            opacity:0; transform:translateY(30px); transition:opacity 0.7s ease, transform 0.7s ease;
+        }
+        .reveal.visible {
+            opacity:1; transform:translateY(0);
+        }
+
+        /* =========================================
+           BACK TO TOP
+        ========================================= */
+        .back-top {
+            position:fixed; bottom:6.5rem; right:2rem; z-index:997;
+            width:42px; height:42px; border-radius:50%; border:none;
+            background:var(--purple); color:white; font-size:1.1rem;
+            cursor:pointer; opacity:0; visibility:hidden; transition:all 0.3s;
+            display:flex; align-items:center; justify-content:center;
+            box-shadow:0 4px 15px rgba(51,0,204,0.3);
+        }
+        .back-top.show { opacity:1; visibility:visible; }
+        .back-top:hover { background:var(--purple-light); transform:scale(1.1); }
+
+        /* =========================================
            COOKIE BANNER
         ========================================= */
         .cookie-banner {
@@ -843,7 +896,7 @@
 
 <!-- MOBILE MENU -->
 <div class="mobile-menu" id="mobileMenu">
-    <button class="mobile-close" onclick="closeMobileMenu()">✕</button>
+    <button class="mobile-close" onclick="closeMobileMenu()" aria-label="Cerrar menu">✕</button>
     <a href="#servicios" onclick="closeMobileMenu()">Servicios</a>
     <a href="#vehiculos" onclick="closeMobileMenu()">Vehículos</a>
     <a href="#nosotros" onclick="closeMobileMenu()">Nosotros</a>
@@ -911,7 +964,7 @@
         </div>
         <a href="tel:+34955225945" class="btn-nav-cta">ATENCIÓN AL CLIENTE +34 955 225 945</a>
     </div>
-    <div class="hamburger" onclick="openMobileMenu()">
+    <div class="hamburger" onclick="openMobileMenu()" role="button" aria-label="Abrir menu" tabindex="0">
         <span></span><span></span><span></span>
     </div>
 </nav>
@@ -958,46 +1011,46 @@
         <div class="carousel-track" id="track">
 
             <!-- SET 1 -->
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/jardipond.png" alt="Jardí Pond"></div><div><span class="logo-name">Jardí Pond</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/ferticenter.png" alt="Ferticenter"></div><div><span class="logo-name">Ferticenter</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/jardipond.png" alt="Jardí Pond"></div><div><span class="logo-name">Jardí Pond</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/ferticenter.png" alt="Ferticenter"></div><div><span class="logo-name">Ferticenter</span></div></div></div>
 
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/rosport.png" alt="Rosport"></div><div><span class="logo-name">Rosport</span><span class="logo-sub">Servicios Integrales</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/talsa.png" alt="TALSA"></div><div><span class="logo-name">TALSA</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/aceitunascazorla.png" alt="Aceitunas Cazorla"></div><div><span class="logo-name">Aceitunas Cazorla</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/solbau.png" alt="SOLBAU"></div><div><span class="logo-name">SOLBAU</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/poolback.png" alt="PoolBack"></div><div><span class="logo-name">PoolBack</span><span class="logo-sub">Logística del Envase</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/pansur.png" alt="PANSUR"></div><div><span class="logo-name">PANSUR</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/sagredo.png" alt="Sagredo"></div><div><span class="logo-name">Sagredo</span><span class="logo-sub">Abonos y Semillas</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/jysk.png" alt="JYSK"></div><div><span class="logo-name">JYSK</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/alquibox.png" alt="AlquiBox"></div><div><span class="logo-name">AlquiBox</span><span class="logo-sub">Andalucía</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/ghi.png" alt="ghi"></div><div><span class="logo-name">ghi</span><span class="logo-sub">Smart Furnaces</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/rivi.png" alt="RIVI"></div><div><span class="logo-name">RIVI</span><span class="logo-sub">Technical Group</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/almendrun.png" alt="Almendrun"></div><div><span class="logo-name">Almendrun</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/prodisa.png" alt="Prodisa"></div><div><span class="logo-name">Prodisa</span><span class="logo-sub">Comunicación</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/grupopuma.png" alt="Grupo Puma"></div><div><span class="logo-name">Grupo Puma</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/perfilesmiranda.png" alt="Perfiles Miranda"></div><div><span class="logo-name">Perfiles Miranda</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/aguacates.png" alt="Aguacates"></div><div><span class="logo-name">Aguacates</span><span class="logo-sub">Valle del Guadiana</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/rosport.png" alt="Rosport"></div><div><span class="logo-name">Rosport</span><span class="logo-sub">Servicios Integrales</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/talsa.png" alt="TALSA"></div><div><span class="logo-name">TALSA</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/aceitunascazorla.png" alt="Aceitunas Cazorla"></div><div><span class="logo-name">Aceitunas Cazorla</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/solbau.png" alt="SOLBAU"></div><div><span class="logo-name">SOLBAU</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/poolback.png" alt="PoolBack"></div><div><span class="logo-name">PoolBack</span><span class="logo-sub">Logística del Envase</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/pansur.png" alt="PANSUR"></div><div><span class="logo-name">PANSUR</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/sagredo.png" alt="Sagredo"></div><div><span class="logo-name">Sagredo</span><span class="logo-sub">Abonos y Semillas</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/jysk.png" alt="JYSK"></div><div><span class="logo-name">JYSK</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/alquibox.png" alt="AlquiBox"></div><div><span class="logo-name">AlquiBox</span><span class="logo-sub">Andalucía</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/ghi.png" alt="ghi"></div><div><span class="logo-name">ghi</span><span class="logo-sub">Smart Furnaces</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/rivi.png" alt="RIVI"></div><div><span class="logo-name">RIVI</span><span class="logo-sub">Technical Group</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/almendrun.png" alt="Almendrun"></div><div><span class="logo-name">Almendrun</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/prodisa.png" alt="Prodisa"></div><div><span class="logo-name">Prodisa</span><span class="logo-sub">Comunicación</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/grupopuma.png" alt="Grupo Puma"></div><div><span class="logo-name">Grupo Puma</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/perfilesmiranda.png" alt="Perfiles Miranda"></div><div><span class="logo-name">Perfiles Miranda</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/aguacates.png" alt="Aguacates"></div><div><span class="logo-name">Aguacates</span><span class="logo-sub">Valle del Guadiana</span></div></div></div>
 
             <!-- SET 2 duplicado -->
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/jardipond.png" alt="Jardí Pond"></div><div><span class="logo-name">Jardí Pond</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/ferticenter.png" alt="Ferticenter"></div><div><span class="logo-name">Ferticenter</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/jardipond.png" alt="Jardí Pond"></div><div><span class="logo-name">Jardí Pond</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/ferticenter.png" alt="Ferticenter"></div><div><span class="logo-name">Ferticenter</span></div></div></div>
 
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/rosport.png" alt="Rosport"></div><div><span class="logo-name">Rosport</span><span class="logo-sub">Servicios Integrales</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/talsa.png" alt="TALSA"></div><div><span class="logo-name">TALSA</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/aceitunascazorla.png" alt="Aceitunas Cazorla"></div><div><span class="logo-name">Aceitunas Cazorla</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/solbau.png" alt="SOLBAU"></div><div><span class="logo-name">SOLBAU</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/poolback.png" alt="PoolBack"></div><div><span class="logo-name">PoolBack</span><span class="logo-sub">Logística del Envase</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/pansur.png" alt="PANSUR"></div><div><span class="logo-name">PANSUR</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/sagredo.png" alt="Sagredo"></div><div><span class="logo-name">Sagredo</span><span class="logo-sub">Abonos y Semillas</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/jysk.png" alt="JYSK"></div><div><span class="logo-name">JYSK</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/alquibox.png" alt="AlquiBox"></div><div><span class="logo-name">AlquiBox</span><span class="logo-sub">Andalucía</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/ghi.png" alt="ghi"></div><div><span class="logo-name">ghi</span><span class="logo-sub">Smart Furnaces</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/rivi.png" alt="RIVI"></div><div><span class="logo-name">RIVI</span><span class="logo-sub">Technical Group</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/almendrun.png" alt="Almendrun"></div><div><span class="logo-name">Almendrun</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/prodisa.png" alt="Prodisa"></div><div><span class="logo-name">Prodisa</span><span class="logo-sub">Comunicación</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/grupopuma.png" alt="Grupo Puma"></div><div><span class="logo-name">Grupo Puma</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/perfilesmiranda.png" alt="Perfiles Miranda"></div><div><span class="logo-name">Perfiles Miranda</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img src="images/logos/aguacates.png" alt="Aguacates"></div><div><span class="logo-name">Aguacates</span><span class="logo-sub">Valle del Guadiana</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/rosport.png" alt="Rosport"></div><div><span class="logo-name">Rosport</span><span class="logo-sub">Servicios Integrales</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/talsa.png" alt="TALSA"></div><div><span class="logo-name">TALSA</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/aceitunascazorla.png" alt="Aceitunas Cazorla"></div><div><span class="logo-name">Aceitunas Cazorla</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/solbau.png" alt="SOLBAU"></div><div><span class="logo-name">SOLBAU</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/poolback.png" alt="PoolBack"></div><div><span class="logo-name">PoolBack</span><span class="logo-sub">Logística del Envase</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/pansur.png" alt="PANSUR"></div><div><span class="logo-name">PANSUR</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/sagredo.png" alt="Sagredo"></div><div><span class="logo-name">Sagredo</span><span class="logo-sub">Abonos y Semillas</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/jysk.png" alt="JYSK"></div><div><span class="logo-name">JYSK</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/alquibox.png" alt="AlquiBox"></div><div><span class="logo-name">AlquiBox</span><span class="logo-sub">Andalucía</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/ghi.png" alt="ghi"></div><div><span class="logo-name">ghi</span><span class="logo-sub">Smart Furnaces</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/rivi.png" alt="RIVI"></div><div><span class="logo-name">RIVI</span><span class="logo-sub">Technical Group</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/almendrun.png" alt="Almendrun"></div><div><span class="logo-name">Almendrun</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/prodisa.png" alt="Prodisa"></div><div><span class="logo-name">Prodisa</span><span class="logo-sub">Comunicación</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/grupopuma.png" alt="Grupo Puma"></div><div><span class="logo-name">Grupo Puma</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/perfilesmiranda.png" alt="Perfiles Miranda"></div><div><span class="logo-name">Perfiles Miranda</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/aguacates.png" alt="Aguacates"></div><div><span class="logo-name">Aguacates</span><span class="logo-sub">Valle del Guadiana</span></div></div></div>
         </div>
     </div>
 </div>
@@ -1022,7 +1075,7 @@
         <p class="section-desc reveal">Mercancía paletizada (seca), cargas especiales, granel y más. Cobertura total en España y toda Europa.</p>
         <div class="svc-grid">
             <div class="svc-card reveal">
-                <img src="images/transporte-tauliner.jpg" alt="Grupajes" class="svc-card-img">
+                <img loading="lazy" src="images/transporte-tauliner.jpg" alt="Grupajes" class="svc-card-img">
                 <div class="svc-card-body">
                     <h3>Grupajes Nacionales</h3>
                     <p>Comparte espacio y optimiza costes. Mercancía paletizada, cargas especiales y granel. Recogida en 24h, entrega en 24-48h.</p>
@@ -1030,7 +1083,7 @@
                 </div>
             </div>
             <div class="svc-card reveal" style="transition-delay:.1s">
-                <img src="images/FOTO 1 - copia55420ac5170e2.jpeg" alt="Carga Completa" class="svc-card-img">
+                <img loading="lazy" src="images/FOTO 1 - copia55420ac5170e2.jpeg" alt="Carga Completa" class="svc-card-img">
                 <div class="svc-card-body">
                     <h3>Carga Completa</h3>
                     <p>El camión es tuyo. Sin transbordos, máxima seguridad y rapidez. Entrega directa origen-destino. Tauliner, rígido con plataforma y más.</p>
@@ -1038,7 +1091,7 @@
                 </div>
             </div>
             <div class="svc-card reveal" style="transition-delay:.2s">
-                <img src="images/AdobeStock_154376791.jpeg" alt="Importación" class="svc-card-img">
+                <img loading="lazy" src="images/AdobeStock_154376791.jpeg" alt="Importación" class="svc-card-img">
                 <div class="svc-card-body">
                     <h3>Importación</h3>
                     <p>Hasta la puerta de tu empresa. Importamos desde cualquier punto de Europa garantizando plazos de entrega y elevados estándares de calidad.</p>
@@ -1046,7 +1099,7 @@
                 </div>
             </div>
             <div class="svc-card reveal" style="transition-delay:.3s">
-                <img src="images/AdobeStock_260603287.jpeg" alt="Exportación" class="svc-card-img">
+                <img loading="lazy" src="images/AdobeStock_260603287.jpeg" alt="Exportación" class="svc-card-img">
                 <div class="svc-card-body">
                     <h3>Exportación</h3>
                     <p>Portugal, Francia, Italia, Alemania, Polonia, Austria, Bélgica, Irlanda, Dinamarca, Suiza, Países Bajos y Luxemburgo (BENELUX).</p>
@@ -1054,7 +1107,7 @@
                 </div>
             </div>
             <div class="svc-card reveal" style="transition-delay:.4s">
-                <img src="images/PLT.jpg" alt="Gestión Logística" class="svc-card-img">
+                <img loading="lazy" src="images/PLT.jpg" alt="Gestión Logística" class="svc-card-img">
                 <div class="svc-card-body">
                     <h3>Gestión Logística</h3>
                     <p>Gestión de incidencias y coordinación completa con almacenes y clientes. Próximamente (2027): estimación de entrega en tiempo real según hora de carga, distancia y ruta.</p>
@@ -1062,7 +1115,7 @@
                 </div>
             </div>
             <div class="svc-card reveal" style="transition-delay:.5s">
-                <img src="images/AdobeStock_270241303.jpeg" alt="Cotización Inmediata" class="svc-card-img">
+                <img loading="lazy" src="images/AdobeStock_270241303.jpeg" alt="Cotización Inmediata" class="svc-card-img">
                 <div class="svc-card-body">
                     <h3>Cotización Inmediata</h3>
                     <p>Tarifa al instante. Sin esperas. Cuéntanos tu necesidad y tendrás precio en minutos.</p>
@@ -1080,7 +1133,7 @@
             <!-- Panel visual izquierdo — 100% CSS, sin imágenes externas -->
             <div class="why-visual reveal-l">
                 <div class="why-main-card">
-                    <img src="images/OFICINA.png" alt="Oficina Dynamo Transportes" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;position:absolute;inset:0;z-index:0;">
+                    <img loading="lazy" src="images/OFICINA.png" alt="Oficina Dynamo Transportes" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;position:absolute;inset:0;z-index:0;">
                     <div class="why-road"></div>
                     <div class="why-main-card why-card-content" style="background:transparent;box-shadow:none;height:auto;position:relative">
                         <div class="truck-silhouette">
@@ -1103,7 +1156,7 @@
                     <div class="why-mini"><div class="mn">🇪🇺</div><div class="ml">España y Europa</div></div>
                 </div>
             </div>
-            <div class="reveal-r">
+            <div class="reveal-r reveal">
                 <p class="section-eyebrow">Por qué elegirnos</p>
                 <h2 class="section-title">Pick. Drop. <span>Done.</span></h2>
                 <p class="section-desc">Operador de transporte autorizado. Un único objetivo: que tu mercancía llegue donde tiene que llegar, cuando tiene que llegar.</p>
@@ -1269,6 +1322,70 @@
                 <div class="trust-card-icon">🚨</div>
                 <h4>Asistencia 24 horas</h4>
                 <p>Soporte <span class="highlight">24h</span> para cualquier incidencia o urgencia en el transporte. Siempre disponibles.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- TESTIMONIOS -->
+<section class="testimonials" id="testimonios">
+    <div class="container">
+        <p class="section-eyebrow reveal" style="text-align:center">Lo que dicen nuestros clientes</p>
+        <h2 class="section-title reveal" style="text-align:center">Reseñas reales de <span>Google</span></h2>
+        <div class="testi-grid">
+            <div class="testi-card reveal">
+                <div class="testi-header">
+                    <div class="testi-avatar" style="background:#e57373;">S</div>
+                    <div><div class="testi-name">Sandra</div><div class="testi-badge">Local Guide · 344 reseñas</div></div>
+                </div>
+                <div class="testi-stars">★★★★★</div>
+                <p class="testi-text">Buenos dias, he tramitado un porte con ellos y genial. Alvaro Blanco muy amable me ha buscado una buena solucion. Recomendable 100x100 GRACIAS!</p>
+                <div class="testi-google"><svg width="14" height="14" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Google</div>
+            </div>
+            <div class="testi-card reveal">
+                <div class="testi-header">
+                    <div class="testi-avatar" style="background:#f9ab00;">J</div>
+                    <div><div class="testi-name">Jesus Martin Rodriguez</div><div class="testi-badge">1 reseña</div></div>
+                </div>
+                <div class="testi-stars">★★★★★</div>
+                <p class="testi-text">Servicio rapido eficaz y puntuales, muy recomendable todo lo que a transporte se refiere. Gracias.</p>
+                <div class="testi-google"><svg width="14" height="14" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Google</div>
+            </div>
+            <div class="testi-card reveal">
+                <div class="testi-header">
+                    <div class="testi-avatar" style="background:#4285F4;">J</div>
+                    <div><div class="testi-name">Juan Carlos Ibanez Bonet</div><div class="testi-badge">2 reseñas</div></div>
+                </div>
+                <div class="testi-stars">★★★★★</div>
+                <p class="testi-text">Muy buena gestion, seriedad y profesionalidad.</p>
+                <div class="testi-google"><svg width="14" height="14" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Google</div>
+            </div>
+            <div class="testi-card reveal">
+                <div class="testi-header">
+                    <div class="testi-avatar" style="background:#f9ab00;">F</div>
+                    <div><div class="testi-name">Fernando Perez</div><div class="testi-badge">11 reseñas</div></div>
+                </div>
+                <div class="testi-stars">★★★★★</div>
+                <p class="testi-text">Me han hecho 2 transportes de Madrid a Sevilla, profesionalidad seriedad y buen trato. Los recomiendo 100%.</p>
+                <div class="testi-google"><svg width="14" height="14" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Google</div>
+            </div>
+            <div class="testi-card reveal">
+                <div class="testi-header">
+                    <div class="testi-avatar" style="background:#7b1fa2;">C</div>
+                    <div><div class="testi-name">Cristina Bernabe Marco</div><div class="testi-badge">5 reseñas</div></div>
+                </div>
+                <div class="testi-stars">★★★★★</div>
+                <p class="testi-text">Excelente servicio y trato. No defrauda.</p>
+                <div class="testi-google"><svg width="14" height="14" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Google</div>
+            </div>
+            <div class="testi-card reveal">
+                <div class="testi-header">
+                    <div class="testi-avatar" style="background:#43a047;">A</div>
+                    <div><div class="testi-name">Alba Fernandez</div><div class="testi-badge">2 reseñas</div></div>
+                </div>
+                <div class="testi-stars">★★★★★</div>
+                <p class="testi-text">Es nuestro operador logistico de confianza. Atento, profesional e involucrado. Lo recomendamos 100%.</p>
+                <div class="testi-google"><svg width="14" height="14" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Google</div>
             </div>
         </div>
     </div>
@@ -1616,13 +1733,38 @@ function openLegal(tab) {
 </footer>
 
 <!-- FLOATING WA -->
-<a href="https://wa.me/34628995709" class="float-wa" title="WhatsApp">
+<a href="https://wa.me/34628995709" class="float-wa" title="WhatsApp" aria-label="Contactar por WhatsApp">
     <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
 </a>
+
+<!-- BACK TO TOP -->
+<button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Volver arriba">↑</button>
 
 <script>
     function openMobileMenu()  { document.getElementById('mobileMenu').classList.add('open'); }
     function closeMobileMenu() { document.getElementById('mobileMenu').classList.remove('open'); }
+
+    // Back to top button
+    window.addEventListener('scroll', function() {
+        var btn = document.getElementById('backTop');
+        if (window.scrollY > 600) btn.classList.add('show');
+        else btn.classList.remove('show');
+    });
+
+    // Scroll Reveal Animation
+    (function() {
+        var observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.reveal').forEach(function(el) { observer.observe(el); });
+        });
+    })();
 
     // Reveal on scroll
     const obs = new IntersectionObserver((entries) => {
