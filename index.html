@@ -774,18 +774,21 @@
     <a href="#clientes" onclick="closeMobileMenu()">Clientes</a>
     <a href="#contacto" onclick="closeMobileMenu()">Contacto</a>
     <a href="tel:+34955225945" style="font-size:1rem;color:var(--green)">📞 +34 955 225 945</a>
-    <div class="notranslate" translate="no" style="display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center;margin-top:0.5rem;">
-        <button class="lang-option" onclick="changeLang('es','🇪🇸','ES');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇪🇸</button>
-        <button class="lang-option" onclick="changeLang('en','🇬🇧','EN');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇬🇧</button>
-        <button class="lang-option" onclick="changeLang('fr','🇫🇷','FR');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇫🇷</button>
-        <button class="lang-option" onclick="changeLang('de','🇩🇪','DE');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇩🇪</button>
-        <button class="lang-option" onclick="changeLang('pt','🇵🇹','PT');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇵🇹</button>
-        <button class="lang-option" onclick="changeLang('ar','🇲🇦','AR');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇲🇦</button>
-        <button class="lang-option" onclick="changeLang('it','🇮🇹','IT');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇮🇹</button>
-        <button class="lang-option" onclick="changeLang('uk','🇺🇦','UK');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇺🇦</button>
-        <button class="lang-option" onclick="changeLang('ro','🇷🇴','RO');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇷🇴</button>
-        <button class="lang-option" onclick="changeLang('pl','🇵🇱','PL');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇵🇱</button>
-        <button class="lang-option" onclick="changeLang('nl','🇳🇱','NL');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇳🇱</button>
+    <div class="notranslate" translate="no" style="margin-top:0.8rem;padding:0.8rem 1rem;background:rgba(255,255,255,0.06);border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+        <p style="margin:0 0 0.5rem;font-size:0.75rem;color:rgba(255,255,255,0.5);text-align:center;text-transform:uppercase;letter-spacing:1px;">Idioma / Language</p>
+        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.3rem;justify-items:center;">
+            <button onclick="changeLang('es','🇪🇸','ES');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="Español">🇪🇸</button>
+            <button onclick="changeLang('en','🇬🇧','EN');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="English">🇬🇧</button>
+            <button onclick="changeLang('fr','🇫🇷','FR');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="Français">🇫🇷</button>
+            <button onclick="changeLang('de','🇩🇪','DE');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="Deutsch">🇩🇪</button>
+            <button onclick="changeLang('pt','🇵🇹','PT');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="Português">🇵🇹</button>
+            <button onclick="changeLang('ar','🇲🇦','AR');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="العربية">🇲🇦</button>
+            <button onclick="changeLang('it','🇮🇹','IT');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="Italiano">🇮🇹</button>
+            <button onclick="changeLang('uk','🇺🇦','UK');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="Українська">🇺🇦</button>
+            <button onclick="changeLang('ro','🇷🇴','RO');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="Română">🇷🇴</button>
+            <button onclick="changeLang('pl','🇵🇱','PL');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="Polski">🇵🇱</button>
+            <button onclick="changeLang('nl','🇳🇱','NL');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="Nederlands">🇳🇱</button>
+        </div>
     </div>
 </div>
 
