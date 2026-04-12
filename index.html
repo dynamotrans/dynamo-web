@@ -1617,6 +1617,28 @@ var langMap = {
 
 // On page load: detect active language from cookie and update button
 document.addEventListener('DOMContentLoaded', function() {
+    // If we just reset to Spanish (?lang=es), clean cookies and remove param
+    if (location.search.indexOf('lang=es') > -1) {
+        var host = location.hostname;
+        var parts = host.split('.');
+        var domains = ['', host, '.' + host];
+        if (parts.length > 2) {
+            var bare = parts.slice(1).join('.');
+            domains.push(bare, '.' + bare);
+        }
+        domains.forEach(function(d) {
+            var cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+            if (d) cookie += '; domain=' + d;
+            document.cookie = cookie;
+        });
+        // Clean URL without reloading
+        if (history.replaceState) {
+            history.replaceState(null, '', location.pathname);
+        }
+        // Don't load Google Translate yet - page is in Spanish
+        return;
+    }
+
     // Check for googtrans cookie
     var match = document.cookie.match(/googtrans=\/es\/(\w+)/);
     if (match && match[1] && langMap[match[1]]) {
@@ -1684,22 +1706,52 @@ function changeLang(lang, flag, code) {
 
     // Reset to Spanish
     if (lang === 'es') {
-        // Clear all googtrans cookies
-        var domains = ['', location.hostname, '.' + location.hostname];
+        // Aggressively clear ALL googtrans cookies on every possible domain variation
+        var host = location.hostname; // e.g. www.dynamotrans.com
+        var parts = host.split('.');
+        var domains = ['', host, '.' + host];
+        // Also try without www (e.g. dynamotrans.com, .dynamotrans.com)
+        if (parts.length > 2) {
+            var bare = parts.slice(1).join('.');
+            domains.push(bare, '.' + bare);
+        }
+        var paths = ['/', ''];
         domains.forEach(function(d) {
-            var cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
-            if (d) cookie += '; domain=' + d;
-            document.cookie = cookie;
+            paths.forEach(function(p) {
+                var cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC';
+                if (p) cookie += '; path=' + p;
+                if (d) cookie += '; domain=' + d;
+                document.cookie = cookie;
+            });
         });
-        // Try clicking the restore button in the translate bar
+        // Also try setting cookie to empty/es
+        document.cookie = 'googtrans=/es/es; path=/';
+        // Try using Google Translate's own restore
+        try {
+            var sel = document.querySelector('.goog-te-combo');
+            if (sel) {
+                sel.value = 'es';
+                sel.dispatchEvent(new Event('change'));
+            }
+        } catch(e) {}
         try {
             var frame = document.querySelector('iframe.goog-te-banner-frame');
             if (frame && frame.contentDocument) {
                 var closeBtn = frame.contentDocument.querySelector('.goog-close-link');
-                if (closeBtn) { closeBtn.click(); return; }
+                if (closeBtn) closeBtn.click();
             }
         } catch(e) {}
-        location.reload();
+        // Force clean reload without cache
+        setTimeout(function() {
+            // Clear cookies one more time before reload
+            domains.forEach(function(d) {
+                var cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+                if (d) cookie += '; domain=' + d;
+                document.cookie = cookie;
+            });
+            // Navigate to clean URL to force reset
+            window.location.href = location.pathname + '?lang=es&t=' + Date.now();
+        }, 100);
         return;
     }
 
