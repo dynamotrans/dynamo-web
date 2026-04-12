@@ -774,8 +774,8 @@
     <a href="#clientes" onclick="closeMobileMenu()">Clientes</a>
     <a href="#contacto" onclick="closeMobileMenu()">Contacto</a>
     <a href="tel:+34955225945" style="font-size:1rem;color:var(--green)">📞 +34 955 225 945</a>
-    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center;margin-top:0.5rem;">
-        <button class="lang-option" onclick="changeLang('es','����🇸','ES');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇪🇸</button>
+    <div class="notranslate" translate="no" style="display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center;margin-top:0.5rem;">
+        <button class="lang-option" onclick="changeLang('es','🇪🇸','ES');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇪🇸</button>
         <button class="lang-option" onclick="changeLang('en','🇬🇧','EN');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇬🇧</button>
         <button class="lang-option" onclick="changeLang('fr','🇫🇷','FR');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇫🇷</button>
         <button class="lang-option" onclick="changeLang('de','🇩🇪','DE');closeMobileMenu()" style="padding:0.4rem;font-size:1.3rem;background:none;border:none;cursor:pointer;">🇩🇪</button>
@@ -808,7 +808,7 @@
         <li><a href="#contacto">Contacto</a></li>
     </ul>
     <div class="navbar-right">
-        <div class="lang-selector">
+        <div class="lang-selector notranslate" translate="no">
             <button class="lang-btn" onclick="toggleLangDropdown()" id="langBtn">
                 <span class="flag">🇪🇸</span> ES <span class="arrow">▼</span>
             </button>
@@ -1601,9 +1601,33 @@ function googleTranslateElementInit() {
     setTimeout(function() { clearInterval(checkReady); }, 10000);
 }
 
-// Pre-load Google Translate on page load
+// Language map for detecting active language on page load
+var langMap = {
+    'en': { flag: '🇬🇧', code: 'EN' },
+    'fr': { flag: '🇫🇷', code: 'FR' },
+    'de': { flag: '🇩🇪', code: 'DE' },
+    'pt': { flag: '🇵🇹', code: 'PT' },
+    'ar': { flag: '🇲🇦', code: 'AR' },
+    'it': { flag: '🇮🇹', code: 'IT' },
+    'uk': { flag: '🇺🇦', code: 'UK' },
+    'ro': { flag: '🇷🇴', code: 'RO' },
+    'pl': { flag: '🇵🇱', code: 'PL' },
+    'nl': { flag: '🇳🇱', code: 'NL' }
+};
+
+// On page load: detect active language from cookie and update button
 document.addEventListener('DOMContentLoaded', function() {
-    // Delay loading slightly to not block page render
+    // Check for googtrans cookie
+    var match = document.cookie.match(/googtrans=\/es\/(\w+)/);
+    if (match && match[1] && langMap[match[1]]) {
+        var lang = match[1];
+        var info = langMap[lang];
+        var langBtn = document.getElementById('langBtn');
+        if (langBtn) langBtn.innerHTML = '<span class="flag">' + info.flag + '</span> ' + info.code + ' <span class="arrow">▼</span>';
+        // Handle RTL for Arabic
+        if (lang === 'ar') document.documentElement.setAttribute('dir', 'rtl');
+    }
+    // Delay loading Google Translate slightly to not block page render
     setTimeout(loadGoogleTranslate, 1000);
 });
 
