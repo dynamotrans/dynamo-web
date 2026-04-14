@@ -292,7 +292,19 @@
             color: white; padding: 1rem 2rem; max-width: 900px;
             display: flex; flex-direction: column; align-items: center;
         }
-        .hero-logo { height: 80px; width: auto; opacity: 0.9; margin-bottom: 1rem; }
+        .hero-logo-wrap {
+            display: inline-block;
+            padding: 1.1rem 2.2rem;
+            margin-bottom: 1.2rem;
+            background: rgba(51, 0, 204, 0.32);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 22px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+            animation: fadeUp 0.9s ease both;
+        }
+        .hero-logo { height: 80px; width: auto; display: block; }
         .hero-title {
             font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 900;
             line-height: 1.08; margin-bottom: 0.7rem;
@@ -848,7 +860,8 @@
             .navbar-nav, .navbar-right { display:none; }
             .hamburger { display:flex; }
             .nav-logo-img { height: 35px; }
-            .hero-logo { height: 80px; margin-bottom: 1.5rem; }
+            .hero-logo-wrap { padding: 0.9rem 1.8rem; margin-bottom: 1.5rem; border-radius: 18px; }
+            .hero-logo { height: 80px; }
             .gallery-grid { grid-template-columns:1fr 1fr; grid-template-rows:auto; }
             .g-item:nth-child(1) { grid-column:span 2; height:230px; }
             .g-item { height:165px; }
@@ -858,7 +871,8 @@
         @media (max-width:500px) {
             .nav-logo-img { height: 28px; }
             .hero { padding: 1.5rem 0 1rem; }
-            .hero-logo { height: 50px; margin-bottom: 0.7rem; }
+            .hero-logo-wrap { padding: 0.6rem 1.2rem; margin-bottom: 0.8rem; border-radius: 14px; }
+            .hero-logo { height: 50px; }
             .hero-title { margin-bottom: 0.5rem; }
             .hero-sub { margin-bottom: 1rem; }
             .services-strip { padding: 0.4rem 0.5rem; }
@@ -1058,7 +1072,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="hero-bg"></div>
     <div class="hero-road"></div>
     <div class="hero-content">
-        <img src="images/1.png" alt="Dynamo" class="hero-logo">
+        <div class="hero-logo-wrap">
+            <img src="images/1.png" alt="Dynamo" class="hero-logo">
+        </div>
         <h1 class="hero-title">
             <span class="hl">Soluciones de Transporte</span><br>
             a <span class="hl2">medida</span>.
