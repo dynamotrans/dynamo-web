@@ -6,6 +6,12 @@ Sitio estático HTML servido con `python3 -m http.server 3000`.
 ## Flujo de trabajo con 2 Macs + GitHub Codespaces
 El usuario trabaja desde 2 Macs diferentes usando GitHub Codespaces para mantener un único entorno sincronizado en la nube.
 
+**Máquinas del usuario:**
+- 🏢 **iMac Despacho** — ordenador fijo en la oficina
+- 💻 **MacBook Pro Movilidad** — portátil para casa / viajes / fuera
+
+Al empezar cada sesión, si no se sabe, preguntar "¿Desde qué Mac estás trabajando, iMac Despacho o MacBook Pro?".
+
 ## REGLAS IMPORTANTES
 
 ### 1. Nunca hacer push automático
@@ -54,8 +60,32 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
-### 2026-04-14 — Codespace
+### 2026-04-14 — iMac Despacho (vía Codespace)
+Sesión larga y productiva. Lo que se hizo:
+
+**Infraestructura (nuevo):**
 - Configurado GitHub Codespaces (`.devcontainer/devcontainer.json`)
-- Creado `CLAUDE.md` con reglas de push-confirmation y catch-up automático
+- Creado `CLAUDE.md` con reglas de push-confirmation, catch-up y cierre automático
 - Creado `TODO.md` para pendientes manuales
-- Añadida sección de Bitácora (esta misma)
+- Añadida sección de Bitácora
+- Anotadas las 2 Macs del usuario (iMac Despacho + MacBook Pro Movilidad)
+
+**Cambios visuales en web (ya en producción www.dynamotrans.com):**
+- Logo nav: reemplazado PNG base64 inline (29k chars) por `images/2.png` (dynamo azul + arco verde) → ahorra 28 KB
+- Logo hero: recuadro con gradiente sólido morado, borde blanco, sombra inset (antes era glass translúcido)
+- Reorden de secciones: Servicios → Vehículos → Mercancía → Por qué nosotros → ...
+- Títulos de tarjetas de servicios más grandes (1.45rem, peso 900, color morado, subrayado gradiente morado→verde que se expande en hover)
+- Stats strip (+480 clientes / 5★ / +15 años / 24/7) movido justo debajo del banner Cotiza
+- Cliente count actualizado: +230 → **+480** en 8 sitios (barras, meta SEO, footer, stats, etc.)
+- Vehículos specs: ancho 2,40 → 2,45m (interior), Rígido añade Carga máx. 14 Tn., ambos añaden "Apertura: Lateral, trasero y techo", orden de filas alineado
+- Chat assistant actualizado con los nuevos datos de vehículos
+- Carrusel de clientes: añadidas **25 empresas nuevas** con letra inicial como icono discreto (SOLBAU ya existía, omitida). Pendiente recibir logos reales para sustituir iniciales
+
+**Tarifador (SOLO EN PREVIEW, NO en producción aún — se lanza en ~1 mes):**
+- Nueva sección completa "Calcula tu tarifa" justo bajo el hero
+- Campos: origen/destino (texto), tipo mercancía (select), tipo palé (botones EU/US), nº palés (stepper), peso (slider con valor en vivo), toggles urgente / sin muelle
+- Botón con gradiente + flecha
+- Resultado con spinner animado + mensajes rotativos (Verificando ruta... / Calculando peso... / etc.) → ~3-6s
+- Precio con gradiente tipográfico, ref code, CTAs WhatsApp + email pre-rellenados
+- Cálculo placeholder en JS (el real irá vía Apps Script → Google Sheet)
+- **Pendiente del usuario**: crear API key Google Places (autocompletado) y sheet con fórmulas
