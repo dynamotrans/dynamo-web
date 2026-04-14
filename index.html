@@ -448,7 +448,17 @@
         .svc-card-img { width:100%; height:160px; object-fit:cover; display:block; }
         .svc-card-body { padding: 1.5rem; }
         .svc-icon { width:54px; height:54px; border-radius:13px; margin-bottom:1.1rem; background:linear-gradient(135deg,var(--purple),var(--purple-light)); display:flex; align-items:center; justify-content:center; font-size:1.4rem; }
-        .svc-card h3 { font-size:1.1rem; font-weight:800; color:var(--navy); margin-bottom:0.65rem; }
+        .svc-card h3 {
+            font-size: 1.45rem; font-weight: 900; color: var(--purple);
+            margin-bottom: 0.95rem; letter-spacing: -0.5px; line-height: 1.15;
+            position: relative; padding-bottom: 0.6rem;
+        }
+        .svc-card h3::after {
+            content:''; position: absolute; bottom: 0; left: 0;
+            width: 38px; height: 3px; border-radius: 2px;
+            background: linear-gradient(90deg, var(--purple) 0%, var(--green) 100%);
+        }
+        .svc-card:hover h3::after { width: 60px; transition: width 0.3s ease; }
         .svc-card p  { color:var(--gray-500); line-height:1.65; font-size:0.88rem; }
         .svc-tag { display:inline-block; margin-top:1rem; background:rgba(51,0,204,0.07); color:var(--purple); padding:0.25rem 0.75rem; border-radius:50px; font-size:0.7rem; font-weight:700; }
 
@@ -1305,6 +1315,77 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     </div>
 </section>
 
+<!-- VEHICULOS -->
+<section class="vehicles-sec" id="vehiculos">
+    <div class="container">
+        <p class="section-eyebrow reveal">Nuestra flota</p>
+        <h2 class="section-title reveal">Tipos de <span>Vehículo</span></h2>
+        <p class="section-desc reveal">Disponemos del vehículo adecuado para cada tipo de carga y necesidad.</p>
+        <div class="veh-grid">
+            <div class="veh-card reveal">
+                <h3>🚛 Tauliner — Cortina / Lona Corredera</h3>
+                <p>Similar a un furgón tipo box/caja, con cortinas correderas en lados y techo que dan fácil acceso a la carga. El vehículo más utilizado para envíos terrestres.</p>
+                <p><strong>Ideal para:</strong> mercancía paletizada, palot/box y mercancías especiales.</p>
+                <div class="veh-specs">
+                    <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">13,60 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,45 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Carga máx.</div><div class="veh-spec-value">24 Tn.</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Apertura</div><div class="veh-spec-value">Lateral, trasero y techo</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Palé europeo</div><div class="veh-spec-value">33 uds. (120x80)</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Palé americano</div><div class="veh-spec-value">26 uds. (120x100)</div></div>
+                </div>
+            </div>
+            <div class="veh-card reveal" style="transition-delay:.15s">
+                <h3>🚚 Rígido con Plataforma y Transpaleta</h3>
+                <p>Tipo tauliner con cortinas correderas. Ideal para cargas donde no existen medios de carga y/o descarga en destino.</p>
+                <p><strong>Ideal para:</strong> entregas urbanas, puntos sin muelle de carga.</p>
+                <div class="veh-specs">
+                    <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">8 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,45 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Carga máx.</div><div class="veh-spec-value">14 Tn.</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Apertura</div><div class="veh-spec-value">Lateral, trasero y techo</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Palé europeo</div><div class="veh-spec-value">20 uds. (120x80)</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Palé americano</div><div class="veh-spec-value">16 uds. (120x100)</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Equipamiento</div><div class="veh-spec-value">Plataforma + Transpaleta</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- TIPOS DE MERCANCIA -->
+<section class="sectors-sec">
+    <div class="container">
+        <p class="section-eyebrow reveal">Qué transportamos</p>
+        <h2 class="section-title reveal">Tipos de <span>Mercancía</span></h2>
+        <p class="section-desc reveal">Experiencia en todo tipo de sectores y mercancías. Si no ves tu caso, consúltanos.</p>
+        <div class="sector-grid">
+            <div class="sector-card reveal">
+                <div class="sector-icon">🛒</div>
+                <h4>Distribución General</h4>
+                <p>Bienes de consumo, alimentación, bebidas, higiene y limpieza, electrodomésticos, logística de palets.</p>
+            </div>
+            <div class="sector-card reveal" style="transition-delay:.08s">
+                <div class="sector-icon">🏗️</div>
+                <h4>Industria y Construcción</h4>
+                <p>Textil, manufacturera, muebles, madera, automoción, farmacéutica, estructuras, áridos, fertilizantes, abonos.</p>
+            </div>
+            <div class="sector-card reveal" style="transition-delay:.16s">
+                <div class="sector-icon">⚙️</div>
+                <h4>Maquinaria</h4>
+                <p>Maquinaria de construcción, campos de golf, laboratorios, equipos industriales.</p>
+            </div>
+            <div class="sector-card reveal" style="transition-delay:.24s">
+                <div class="sector-icon">🎤</div>
+                <h4>Eventos</h4>
+                <p>Deportivos, culturales, conciertos, teatros, festivales, empresariales, exposiciones, políticos.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- WHY US -->
 <section class="why" id="nosotros">
     <div class="container">
@@ -1383,77 +1464,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- VEHICULOS -->
-<section class="vehicles-sec" id="vehiculos">
-    <div class="container">
-        <p class="section-eyebrow reveal">Nuestra flota</p>
-        <h2 class="section-title reveal">Tipos de <span>Vehículo</span></h2>
-        <p class="section-desc reveal">Disponemos del vehículo adecuado para cada tipo de carga y necesidad.</p>
-        <div class="veh-grid">
-            <div class="veh-card reveal">
-                <h3>🚛 Tauliner — Cortina / Lona Corredera</h3>
-                <p>Similar a un furgón tipo box/caja, con cortinas correderas en lados y techo que dan fácil acceso a la carga. El vehículo más utilizado para envíos terrestres.</p>
-                <p><strong>Ideal para:</strong> mercancía paletizada, palot/box y mercancías especiales.</p>
-                <div class="veh-specs">
-                    <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">13,60 m</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,45 m</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Carga máx.</div><div class="veh-spec-value">24 Tn.</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Apertura</div><div class="veh-spec-value">Lateral, trasero y techo</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Palé europeo</div><div class="veh-spec-value">33 uds. (120x80)</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Palé americano</div><div class="veh-spec-value">26 uds. (120x100)</div></div>
-                </div>
-            </div>
-            <div class="veh-card reveal" style="transition-delay:.15s">
-                <h3>🚚 Rígido con Plataforma y Transpaleta</h3>
-                <p>Tipo tauliner con cortinas correderas. Ideal para cargas donde no existen medios de carga y/o descarga en destino.</p>
-                <p><strong>Ideal para:</strong> entregas urbanas, puntos sin muelle de carga.</p>
-                <div class="veh-specs">
-                    <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">8 m</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,45 m</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Carga máx.</div><div class="veh-spec-value">14 Tn.</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Apertura</div><div class="veh-spec-value">Lateral, trasero y techo</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Palé europeo</div><div class="veh-spec-value">20 uds. (120x80)</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Palé americano</div><div class="veh-spec-value">16 uds. (120x100)</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Equipamiento</div><div class="veh-spec-value">Plataforma + Transpaleta</div></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- TIPOS DE MERCANCIA -->
-<section class="sectors-sec">
-    <div class="container">
-        <p class="section-eyebrow reveal">Qué transportamos</p>
-        <h2 class="section-title reveal">Tipos de <span>Mercancía</span></h2>
-        <p class="section-desc reveal">Experiencia en todo tipo de sectores y mercancías. Si no ves tu caso, consúltanos.</p>
-        <div class="sector-grid">
-            <div class="sector-card reveal">
-                <div class="sector-icon">🛒</div>
-                <h4>Distribución General</h4>
-                <p>Bienes de consumo, alimentación, bebidas, higiene y limpieza, electrodomésticos, logística de palets.</p>
-            </div>
-            <div class="sector-card reveal" style="transition-delay:.08s">
-                <div class="sector-icon">🏗️</div>
-                <h4>Industria y Construcción</h4>
-                <p>Textil, manufacturera, muebles, madera, automoción, farmacéutica, estructuras, áridos, fertilizantes, abonos.</p>
-            </div>
-            <div class="sector-card reveal" style="transition-delay:.16s">
-                <div class="sector-icon">⚙️</div>
-                <h4>Maquinaria</h4>
-                <p>Maquinaria de construcción, campos de golf, laboratorios, equipos industriales.</p>
-            </div>
-            <div class="sector-card reveal" style="transition-delay:.24s">
-                <div class="sector-icon">🎤</div>
-                <h4>Eventos</h4>
-                <p>Deportivos, culturales, conciertos, teatros, festivales, empresariales, exposiciones, políticos.</p>
             </div>
         </div>
     </div>
