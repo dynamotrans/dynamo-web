@@ -1001,6 +1001,197 @@
         @media (max-width:500px) {
             .chat-box { height: 70vh; border-radius: 16px; }
         }
+
+        /* ================ TARIFADOR ================ */
+        .tarif-sec { padding: 3.5rem 2rem 2.5rem; background: linear-gradient(180deg, var(--gray-100) 0%, #ffffff 100%); }
+        .tarif-card {
+            max-width: 1100px; margin: 0 auto; background: #fff;
+            border-radius: 24px; padding: 2.5rem;
+            box-shadow: 0 20px 60px rgba(51,0,204,0.10), 0 4px 20px rgba(0,0,0,0.04);
+            border: 1px solid rgba(51,0,204,0.08);
+            position: relative; overflow: hidden;
+        }
+        .tarif-card::before {
+            content:''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, var(--purple), var(--green), var(--yellow));
+        }
+        .tarif-header { text-align: center; margin-bottom: 2rem; }
+        .tarif-eyebrow {
+            display: inline-block; color: var(--green-dark); font-weight: 700;
+            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 3px;
+            margin-bottom: 0.5rem;
+        }
+        .tarif-title {
+            font-size: clamp(1.6rem, 3.5vw, 2.2rem); font-weight: 900;
+            color: var(--navy); letter-spacing: -0.8px; margin-bottom: 0.5rem;
+        }
+        .tarif-title span { color: var(--purple); }
+        .tarif-sub { color: var(--gray-500); font-size: 0.95rem; }
+        .tarif-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 1.4rem 1.6rem;
+        }
+        .tarif-field { display: flex; flex-direction: column; gap: 0.5rem; }
+        .tarif-field.full { grid-column: 1 / -1; }
+        .tarif-label {
+            font-size: 0.78rem; font-weight: 700; color: var(--gray-700);
+            text-transform: uppercase; letter-spacing: 0.7px;
+            display: flex; align-items: center; gap: 0.4rem;
+        }
+        .tarif-label .tarif-val {
+            margin-left: auto; color: var(--purple); font-weight: 900;
+            font-size: 0.95rem; text-transform: none; letter-spacing: -0.3px;
+        }
+        .tarif-input, .tarif-select {
+            width: 100%; padding: 0.85rem 1rem; border-radius: 12px;
+            border: 1.5px solid var(--gray-200); background: #fff;
+            font-size: 0.95rem; font-family: inherit; color: var(--gray-700);
+            transition: all 0.2s; font-weight: 600;
+        }
+        .tarif-input:focus, .tarif-select:focus {
+            outline: none; border-color: var(--purple);
+            box-shadow: 0 0 0 4px rgba(51,0,204,0.10);
+        }
+        .tarif-input::placeholder { color: var(--gray-500); font-weight: 500; }
+        .tarif-select { appearance: none; -webkit-appearance: none; cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%233300cc' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 1rem center; padding-right: 2.5rem;
+        }
+        /* Button group (palet type) */
+        .tarif-btn-group { display: flex; gap: 0.5rem; background: var(--gray-100); padding: 4px; border-radius: 12px; }
+        .tarif-opt {
+            flex: 1; padding: 0.75rem 1rem; border: none; background: transparent;
+            border-radius: 9px; font-weight: 700; font-size: 0.85rem; color: var(--gray-500);
+            cursor: pointer; transition: all 0.2s; font-family: inherit;
+        }
+        .tarif-opt.active {
+            background: #fff; color: var(--purple);
+            box-shadow: 0 2px 8px rgba(51,0,204,0.12);
+        }
+        /* Stepper */
+        .tarif-stepper {
+            display: flex; align-items: center; background: var(--gray-100);
+            border-radius: 12px; padding: 4px; gap: 4px;
+        }
+        .tarif-step {
+            width: 40px; height: 40px; border: none; background: #fff;
+            border-radius: 9px; font-size: 1.3rem; font-weight: 900; color: var(--purple);
+            cursor: pointer; transition: all 0.15s;
+            box-shadow: 0 2px 6px rgba(51,0,204,0.08);
+        }
+        .tarif-step:hover { transform: scale(1.05); background: var(--purple); color: #fff; }
+        .tarif-step:active { transform: scale(0.95); }
+        .tarif-stepper input {
+            flex: 1; border: none; background: transparent; text-align: center;
+            font-weight: 900; font-size: 1.1rem; color: var(--navy); font-family: inherit;
+            -moz-appearance: textfield;
+        }
+        .tarif-stepper input::-webkit-outer-spin-button,
+        .tarif-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        /* Range slider */
+        .tarif-range {
+            -webkit-appearance: none; appearance: none; width: 100%; height: 8px;
+            background: linear-gradient(90deg, var(--purple) 0%, var(--green) var(--fill,10%), var(--gray-200) var(--fill,10%));
+            border-radius: 10px; outline: none; cursor: pointer;
+        }
+        .tarif-range::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; width: 24px; height: 24px;
+            border-radius: 50%; background: #fff; border: 3px solid var(--purple);
+            cursor: pointer; box-shadow: 0 4px 12px rgba(51,0,204,0.25);
+            transition: transform 0.1s;
+        }
+        .tarif-range::-webkit-slider-thumb:hover { transform: scale(1.2); }
+        .tarif-range::-moz-range-thumb {
+            width: 22px; height: 22px; border-radius: 50%; background: #fff;
+            border: 3px solid var(--purple); cursor: pointer;
+            box-shadow: 0 4px 12px rgba(51,0,204,0.25);
+        }
+        /* Toggle switches */
+        .tarif-toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.3rem; }
+        .tarif-toggle {
+            display: flex; align-items: center; gap: 0.7rem; cursor: pointer;
+            padding: 0.85rem 1rem; background: var(--gray-100); border-radius: 12px;
+            border: 1.5px solid transparent; transition: all 0.2s;
+            font-size: 0.88rem; font-weight: 600; color: var(--gray-700);
+        }
+        .tarif-toggle:hover { border-color: rgba(51,0,204,0.15); }
+        .tarif-toggle input { display: none; }
+        .toggle-switch {
+            width: 38px; height: 22px; background: #cbd0d9; border-radius: 50px;
+            position: relative; transition: background 0.25s; flex-shrink: 0;
+        }
+        .toggle-switch::after {
+            content:''; position: absolute; top: 3px; left: 3px;
+            width: 16px; height: 16px; background: #fff; border-radius: 50%;
+            transition: transform 0.25s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .tarif-toggle input:checked + .toggle-switch { background: var(--purple); }
+        .tarif-toggle input:checked + .toggle-switch::after { transform: translateX(16px); }
+        .tarif-toggle:has(input:checked) { background: rgba(51,0,204,0.06); border-color: rgba(51,0,204,0.25); color: var(--purple); }
+        /* Submit button */
+        .tarif-submit {
+            margin-top: 2rem; width: 100%; padding: 1.15rem 2rem;
+            background: linear-gradient(135deg, var(--purple) 0%, var(--purple-light) 100%);
+            color: #fff; border: none; border-radius: 14px;
+            font-weight: 900; font-size: 1.05rem; font-family: inherit;
+            cursor: pointer; transition: all 0.25s;
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.7rem;
+            box-shadow: 0 10px 30px rgba(51,0,204,0.25), inset 0 1px 0 rgba(255,255,255,0.15);
+            letter-spacing: -0.2px;
+        }
+        .tarif-submit:hover { transform: translateY(-2px); box-shadow: 0 14px 38px rgba(51,0,204,0.35); }
+        .tarif-submit:active { transform: translateY(0); }
+        .tarif-submit:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+        .tarif-submit svg { transition: transform 0.2s; }
+        .tarif-submit:hover svg { transform: translateX(4px); }
+        /* Result area */
+        .tarif-result {
+            margin-top: 1.8rem; padding: 2rem; border-radius: 18px;
+            background: linear-gradient(135deg, rgba(51,0,204,0.04), rgba(93,200,64,0.05));
+            border: 1.5px dashed rgba(51,0,204,0.25);
+            text-align: center; animation: fadeUp 0.5s ease;
+        }
+        .tarif-loading { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+        .tarif-spinner {
+            width: 48px; height: 48px; border: 4px solid rgba(51,0,204,0.12);
+            border-top-color: var(--purple); border-radius: 50%;
+            animation: tspin 0.8s linear infinite;
+        }
+        @keyframes tspin { to { transform: rotate(360deg); } }
+        .tarif-status { color: var(--gray-700); font-weight: 600; font-size: 0.95rem; min-height: 1.2em; }
+        .tarif-price { animation: priceIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes priceIn { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+        .tarif-price-lbl { color: var(--gray-500); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 0.3rem; }
+        .tarif-price-num {
+            font-size: clamp(2.8rem, 6vw, 4rem); font-weight: 900;
+            background: linear-gradient(135deg, var(--purple), var(--green-dark));
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent; letter-spacing: -2px; line-height: 1;
+        }
+        .tarif-price-num small { font-size: 0.4em; font-weight: 700; margin-left: 4px; -webkit-text-fill-color: var(--purple); }
+        .tarif-price-meta { margin-top: 0.6rem; color: var(--gray-500); font-size: 0.85rem; }
+        .tarif-price-meta strong { color: var(--gray-700); }
+        .tarif-price-actions { display: flex; gap: 0.7rem; justify-content: center; margin-top: 1.5rem; flex-wrap: wrap; }
+        .tarif-price-actions a {
+            padding: 0.7rem 1.3rem; border-radius: 10px; font-weight: 700; font-size: 0.88rem;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem;
+            transition: all 0.2s;
+        }
+        .tarif-price-actions .btn-confirm { background: #25D366; color: #fff; }
+        .tarif-price-actions .btn-confirm:hover { background: #1ebe59; transform: translateY(-2px); }
+        .tarif-price-actions .btn-mail { background: var(--navy); color: #fff; }
+        .tarif-price-actions .btn-mail:hover { background: #1a008a; transform: translateY(-2px); }
+        .tarif-price-disclaimer { margin-top: 1rem; font-size: 0.72rem; color: var(--gray-500); font-style: italic; }
+
+        @media (max-width: 720px) {
+            .tarif-sec { padding: 2.5rem 1rem; }
+            .tarif-card { padding: 1.6rem 1.2rem; border-radius: 18px; }
+            .tarif-grid { grid-template-columns: 1fr; gap: 1.2rem; }
+            .tarif-toggles { grid-template-columns: 1fr; }
+            .tarif-price-actions { flex-direction: column; }
+            .tarif-price-actions a { width: 100%; justify-content: center; }
+        }
+        /* ================ END TARIFADOR ================ */
     </style>
 </head>
 <body>
@@ -1108,6 +1299,106 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </div>
     </div>
     <div class="hero-scroll"><span>Scroll</span><div class="scroll-arr"></div></div>
+</section>
+
+<!-- TARIFADOR -->
+<section class="tarif-sec" id="tarifador">
+    <div class="tarif-card reveal">
+        <div class="tarif-header">
+            <span class="tarif-eyebrow">Cotización al instante</span>
+            <h2 class="tarif-title">Calcula tu <span>tarifa</span></h2>
+            <p class="tarif-sub">Introduce los datos de tu envío y te damos precio en segundos.</p>
+        </div>
+
+        <div class="tarif-grid">
+            <!-- Origen -->
+            <div class="tarif-field">
+                <label class="tarif-label" for="t-origen">🏁 Origen</label>
+                <input type="text" class="tarif-input" id="t-origen" placeholder="Ciudad o código postal" autocomplete="off">
+            </div>
+            <!-- Destino -->
+            <div class="tarif-field">
+                <label class="tarif-label" for="t-destino">🎯 Destino</label>
+                <input type="text" class="tarif-input" id="t-destino" placeholder="Ciudad o código postal" autocomplete="off">
+            </div>
+
+            <!-- Tipo mercancía -->
+            <div class="tarif-field">
+                <label class="tarif-label" for="t-tipo">📦 Tipo de mercancía</label>
+                <select class="tarif-select" id="t-tipo">
+                    <option value="general">General (paletizada)</option>
+                    <option value="fragil">Frágil / especial</option>
+                    <option value="refri">Refrigerada</option>
+                    <option value="adr">Peligrosa (ADR)</option>
+                    <option value="granel">Granel</option>
+                </select>
+            </div>
+
+            <!-- Tipo palé -->
+            <div class="tarif-field">
+                <label class="tarif-label">🔲 Tipo de palé</label>
+                <div class="tarif-btn-group" id="t-palet-group">
+                    <button type="button" class="tarif-opt active" data-val="eu">Europeo 120×80</button>
+                    <button type="button" class="tarif-opt" data-val="us">Americano 120×100</button>
+                </div>
+            </div>
+
+            <!-- Nº palés -->
+            <div class="tarif-field">
+                <label class="tarif-label" for="t-palets">📊 Nº de palés</label>
+                <div class="tarif-stepper">
+                    <button type="button" class="tarif-step" data-act="-">−</button>
+                    <input type="number" id="t-palets" value="5" min="1" max="33">
+                    <button type="button" class="tarif-step" data-act="+">+</button>
+                </div>
+            </div>
+
+            <!-- Peso -->
+            <div class="tarif-field">
+                <label class="tarif-label" for="t-peso">⚖️ Peso total <span class="tarif-val" id="t-peso-val">500 kg</span></label>
+                <input type="range" class="tarif-range" id="t-peso" min="10" max="24000" value="500" step="10">
+            </div>
+
+            <!-- Options -->
+            <div class="tarif-field full">
+                <div class="tarif-toggles">
+                    <label class="tarif-toggle">
+                        <input type="checkbox" id="t-urgente">
+                        <span class="toggle-switch"></span>
+                        <span>⚡ Envío urgente (24h)</span>
+                    </label>
+                    <label class="tarif-toggle">
+                        <input type="checkbox" id="t-plataforma">
+                        <span class="toggle-switch"></span>
+                        <span>🛗 Descarga sin muelle</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <button type="button" class="tarif-submit" id="t-submit">
+            <span>Calcular mi tarifa</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+
+        <!-- Resultado -->
+        <div class="tarif-result" id="t-result" hidden>
+            <div class="tarif-loading" id="t-loading">
+                <div class="tarif-spinner"></div>
+                <p class="tarif-status" id="t-status">Consultando tarifas actualizadas...</p>
+            </div>
+            <div class="tarif-price" id="t-price" hidden>
+                <p class="tarif-price-lbl">Tarifa estimada</p>
+                <p class="tarif-price-num" id="t-price-num">0<small>€</small></p>
+                <p class="tarif-price-meta">Tiempo entrega: <strong id="t-price-time">24-48h</strong> · Ref: <strong id="t-price-ref">DYN-000</strong></p>
+                <div class="tarif-price-actions">
+                    <a href="https://wa.me/34628995709" class="btn-confirm" id="t-btn-wa">📱 Confirmar por WhatsApp</a>
+                    <a href="mailto:info@dynamotrans.com" class="btn-mail" id="t-btn-mail">📧 Solicitar por eMail</a>
+                </div>
+                <p class="tarif-price-disclaimer">Precio orientativo basado en datos introducidos. La tarifa definitiva se confirma al formalizar el pedido.</p>
+            </div>
+        </div>
+    </div>
 </section>
 
 <!-- SERVICES STRIP -->
@@ -2616,6 +2907,116 @@ function setCookieConsent(choice) {
             document.getElementById('cookieBanner').classList.add('show');
         }, 1500);
     }
+})();
+</script>
+
+<!-- TARIFADOR SCRIPT -->
+<script>
+(function(){
+    const $ = id => document.getElementById(id);
+    const peso = $('t-peso'), pesoVal = $('t-peso-val');
+    const palets = $('t-palets');
+    const result = $('t-result'), loading = $('t-loading'), price = $('t-price');
+    const status = $('t-status'), priceNum = $('t-price-num'), priceTime = $('t-price-time'), priceRef = $('t-price-ref');
+    const submit = $('t-submit');
+    const btnWa = $('t-btn-wa'), btnMail = $('t-btn-mail');
+
+    // Peso slider: update live value + gradient fill
+    function updateSlider() {
+        const v = parseInt(peso.value);
+        const min = parseInt(peso.min), max = parseInt(peso.max);
+        const pct = ((v - min) / (max - min)) * 100;
+        peso.style.setProperty('--fill', pct + '%');
+        pesoVal.textContent = v >= 1000 ? (v/1000).toFixed(v % 1000 === 0 ? 0 : 1) + ' T' : v + ' kg';
+    }
+    peso.addEventListener('input', updateSlider);
+    updateSlider();
+
+    // Stepper
+    document.querySelectorAll('.tarif-step').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const v = parseInt(palets.value) || 1;
+            const delta = btn.dataset.act === '+' ? 1 : -1;
+            palets.value = Math.max(1, Math.min(33, v + delta));
+        });
+    });
+
+    // Button group (palet type)
+    document.querySelectorAll('#t-palet-group .tarif-opt').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('#t-palet-group .tarif-opt').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
+
+    // Submit → fake calculation with rotating messages + result
+    const messages = [
+        '📍 Verificando ruta origen → destino...',
+        '⚖️ Calculando peso y volumen...',
+        '🛣️ Consultando disponibilidad de flota...',
+        '💰 Aplicando tarifa más competitiva...'
+    ];
+
+    function fakePrice() {
+        // Simple dummy estimator (just for visual - real calc goes via Apps Script later)
+        const p = parseInt(palets.value) || 1;
+        const pes = parseInt(peso.value) || 10;
+        const tipo = $('t-tipo').value;
+        const urg = $('t-urgente').checked;
+        const plat = $('t-plataforma').checked;
+        let base = 120 + (p * 35) + (pes * 0.08);
+        if (tipo === 'fragil') base *= 1.15;
+        if (tipo === 'refri') base *= 1.30;
+        if (tipo === 'adr') base *= 1.45;
+        if (urg) base *= 1.25;
+        if (plat) base += 45;
+        return Math.round(base / 5) * 5; // round to nearest 5
+    }
+
+    submit.addEventListener('click', async () => {
+        const origen = $('t-origen').value.trim();
+        const destino = $('t-destino').value.trim();
+        if (!origen || !destino) {
+            $('t-origen').focus();
+            (origen ? $('t-destino') : $('t-origen')).style.borderColor = 'var(--yellow-dark)';
+            setTimeout(() => { $('t-origen').style.borderColor = ''; $('t-destino').style.borderColor = ''; }, 1500);
+            return;
+        }
+        submit.disabled = true;
+        result.hidden = false;
+        loading.hidden = false;
+        price.hidden = true;
+        result.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Rotate messages
+        status.textContent = 'Consultando tarifas actualizadas...';
+        let i = 0;
+        const rotator = setInterval(() => {
+            status.textContent = messages[i % messages.length];
+            i++;
+        }, 1500);
+
+        // Simulate 3-6s wait (later: actual fetch to Apps Script)
+        await new Promise(r => setTimeout(r, 3500 + Math.random() * 2500));
+
+        clearInterval(rotator);
+        status.textContent = '✅ ¡Listo!';
+
+        setTimeout(() => {
+            const total = fakePrice();
+            const ref = 'DYN-' + Math.floor(Math.random() * 900000 + 100000);
+            const time = $('t-urgente').checked ? '24h' : '24-48h';
+            priceNum.innerHTML = total.toLocaleString('es-ES') + '<small>€</small>';
+            priceTime.textContent = time;
+            priceRef.textContent = ref;
+            const waMsg = encodeURIComponent(`Hola, vengo del tarifador web. Referencia ${ref}. Origen: ${origen} → Destino: ${destino}. ${palets.value} palés, ${peso.value}kg. Precio estimado: ${total}€. ¿Podéis confirmar?`);
+            btnWa.href = `https://wa.me/34628995709?text=${waMsg}`;
+            btnMail.href = `mailto:info@dynamotrans.com?subject=Cotización ${ref}&body=${waMsg}`;
+            loading.hidden = true;
+            price.hidden = false;
+            submit.disabled = false;
+        }, 400);
+    });
 })();
 </script>
 </body>
