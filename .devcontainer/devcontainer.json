@@ -1,0 +1,31 @@
+{
+  "name": "dynamo-web",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Dynamo Web (static site)",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "postAttachCommand": {
+    "server": "python3 -m http.server 3000"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ritwickdey.LiveServer",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "formulahendry.auto-rename-tag",
+        "ecmel.vscode-html-css"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "liveServer.settings.port": 3000
+      }
+    }
+  },
+  "remoteUser": "codespace"
+}
