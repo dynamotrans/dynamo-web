@@ -30,7 +30,17 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
   - Stack recomendado: Next.js en subcarpeta `/portal` + Supabase (auth + DB gratis)
   - Definir antes qué ve cada rol: historial envíos, facturas, documentos CMR, tracking...
   - Mismo repo que la web actual (contexto unificado para Claude)
-- [ ] Si el tarifador genera muchas consultas: añadir reCAPTCHA o honeypot para evitar abuso
+- [ ] **Tarifador: protección anti-abuso (reCAPTCHA v3 + rate limiting por IP)**
+  - Motivación: evitar que competencia haga consultas masivas / scraping del tarifador
+  - **Fase 1 — Front** (código listo para hacer cuando se decida):
+    - Registrar `dynamotrans.com` en Google reCAPTCHA Console → obtener site key + secret key
+    - Añadir script reCAPTCHA v3 al HTML
+    - Enviar token reCAPTCHA junto con cada petición de cálculo
+  - **Fase 2 — Backend** (va en el Apps Script, junto con el cálculo real de tarifa):
+    - Verificar token con secret key → si puntuación < 0.5, rechazar silenciosamente
+    - Registrar IPs en la Sheet con timestamp
+    - Límite: máx. ~10 consultas / IP / hora → si supera, responder con mensaje amable de error
+  - Prerequisito externo: cuenta en google.com/recaptcha y registrar el dominio
 - [ ] Tarifador con Distance Matrix en la propia web (no solo en sheet) → cálculo más preciso
 
 ## ✅ Hecho recientemente
