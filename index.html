@@ -2165,11 +2165,20 @@ function openLegal(tab) {
         return R.defaultResp;
     }
 
+    function sanitizeHTML(str) {
+        var temp = document.createElement('div');
+        temp.textContent = str;
+        var safe = temp.innerHTML;
+        // Re-allow only safe tags: <strong>, <b>, <em>, <i>, <br>
+        safe = safe.replace(/&lt;(\/?(strong|b|em|i|br)\s*\/?)&gt;/gi, '<$1>');
+        return safe;
+    }
+
     function addMsg(text, type) {
         const div = document.createElement('div');
         div.className = 'chat-msg ' + type;
         if (type === 'bot') {
-            div.innerHTML = '<div class="bot-label">Dynamo IA</div>' + text.replace(/\n/g, '<br>');
+            div.innerHTML = '<div class="bot-label">Dynamo IA</div>' + sanitizeHTML(text).replace(/\n/g, '<br>');
         } else {
             div.textContent = text;
         }
