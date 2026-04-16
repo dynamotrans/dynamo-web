@@ -2523,15 +2523,17 @@ body { top: 0 !important; position: static !important; }
 <script>
 (function() {
     var exitShown = false;
+    var exitDismissed = false;
 
     function closeExitPopup() {
         document.getElementById('exitPopup').classList.remove('show');
         exitShown = false;
+        exitDismissed = true;
     }
     window.closeExitPopup = closeExitPopup;
 
     function showExitPopup() {
-        if (exitShown) return;
+        if (exitShown || exitDismissed) return;
         exitShown = true;
         document.getElementById('exitPopup').classList.add('show');
     }
@@ -2555,7 +2557,7 @@ body { top: 0 !important; position: static !important; }
         }
         if (st < lastScroll) {
             scrollUpCount++;
-            if (scrollUpCount > 15) {
+            if (scrollUpCount > 25) {
                 showExitPopup();
                 scrollUpCount = 0;
             }
@@ -2565,10 +2567,10 @@ body { top: 0 !important; position: static !important; }
         lastScroll = st;
     });
 
-    // Also trigger after 45 seconds on page (if they haven't converted)
+    // Also trigger after 25 seconds on page (if they haven't converted)
     setTimeout(function() {
         showExitPopup();
-    }, 45000);
+    }, 25000);
 })();
 </script>
 
