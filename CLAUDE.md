@@ -3,6 +3,11 @@
 ## Proyecto
 Sitio estático HTML servido con `python3 -m http.server 3000`.
 
+## Hosting / Despliegue
+- **Vercel** conectado a GitHub (rama `main`).
+- Cada push a `main` se publica automáticamente en producción.
+- Tener en cuenta posibles errores de build en Vercel al hacer cambios.
+
 ## Flujo de trabajo con 2 Macs + GitHub Codespaces
 El usuario trabaja desde 2 Macs diferentes usando GitHub Codespaces para mantener un único entorno sincronizado en la nube.
 
