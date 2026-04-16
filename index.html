@@ -2523,25 +2523,30 @@ body { top: 0 !important; position: static !important; }
 <script>
 (function() {
     var exitShown = false;
-    var exitDismissed = false;
+    var activeTrigger = null;
+    var disabled = { desktop: false, mobile: false, timer: false };
 
     function closeExitPopup() {
         document.getElementById('exitPopup').classList.remove('show');
+        if (activeTrigger) {
+            disabled[activeTrigger] = true;
+        }
         exitShown = false;
-        exitDismissed = true;
+        activeTrigger = null;
     }
     window.closeExitPopup = closeExitPopup;
 
-    function showExitPopup() {
-        if (exitShown || exitDismissed) return;
+    function showExitPopup(trigger) {
+        if (exitShown || disabled[trigger]) return;
         exitShown = true;
+        activeTrigger = trigger;
         document.getElementById('exitPopup').classList.add('show');
     }
 
     // Desktop: detect mouse leaving viewport (moving to close tab/back)
     document.addEventListener('mouseout', function(e) {
         if (e.clientY <= 0 && e.relatedTarget === null) {
-            showExitPopup();
+            showExitPopup('desktop');
         }
     });
 
@@ -2558,7 +2563,7 @@ body { top: 0 !important; position: static !important; }
         if (st < lastScroll) {
             scrollUpCount++;
             if (scrollUpCount > 25) {
-                showExitPopup();
+                showExitPopup('mobile');
                 scrollUpCount = 0;
             }
         } else {
@@ -2569,7 +2574,7 @@ body { top: 0 !important; position: static !important; }
 
     // Also trigger after 25 seconds on page (if they haven't converted)
     setTimeout(function() {
-        showExitPopup();
+        showExitPopup('timer');
     }, 25000);
 })();
 </script>
