@@ -363,7 +363,7 @@
         /* =========================================
            CLIENTS CAROUSEL  (movido arriba)
         ========================================= */
-        .clients-top { background: var(--white); padding: 1.2rem 0 1rem; overflow: hidden; border-bottom: 1px solid var(--gray-200); }
+        .clients-top { background: var(--white); padding: 1.5rem 0 1.2rem; overflow: hidden; }
         .clients-top-label {
             text-align: center; margin-bottom: 0.8rem;
             font-size: 0.72rem; font-weight: 700; color: var(--gray-500);
@@ -375,6 +375,7 @@
         }
         .carousel-wrap::before { left: 0; background: linear-gradient(to right, var(--white), transparent); }
         .carousel-wrap::after  { right: 0; background: linear-gradient(to left, var(--white), transparent); }
+        .carousel-wrap { padding: 8px 0; }
         .carousel-track {
             display: flex; gap: 1.4rem; align-items: center;
             animation: scrollLoop 40s linear infinite; width: max-content;
@@ -385,13 +386,14 @@
         /* Logos estilizados */
         .logo-pill {
             display: flex; align-items: center; justify-content: center;
-            height: 68px; padding: 0 1.4rem; border-radius: 12px;
+            height: 68px; padding: 0 1.4rem; border-radius: 14px;
             border: 1.5px solid var(--gray-200);
-            background: white; min-width: 130px;
+            background: linear-gradient(135deg, #fff, #f8f7ff);
+            min-width: 130px;
             transition: all 0.25s; cursor: default; white-space: nowrap;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
-        .logo-pill:hover { border-color: var(--purple); box-shadow: 0 4px 18px rgba(51,0,204,0.1); transform: translateY(-2px); }
+        .logo-pill:hover { border-color: var(--purple); box-shadow: 0 6px 20px rgba(51,0,204,0.12); transform: translateY(-3px); }
         .logo-pill .logo-box {
             display: flex; align-items: center; gap: 0.45rem;
         }
