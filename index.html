@@ -357,7 +357,8 @@
             text-decoration: none; transition: background 0.2s, color 0.2s;
         }
         .strip-item:hover { background: white; color: var(--purple); }
-        .strip-item .si { font-size: 0.5rem; color: var(--green); }
+        .strip-item .si { font-size: 0.5rem; color: var(--green); animation: pulse-dot 1.5s ease-in-out infinite; }
+        @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 
         /* =========================================
            CLIENTS CAROUSEL  (movido arriba)
