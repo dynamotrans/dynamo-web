@@ -345,13 +345,19 @@
         /* =========================================
            SERVICES STRIP
         ========================================= */
-        .services-strip { background: var(--purple); padding: 0.7rem 2rem; }
+        .services-strip { background: var(--purple); padding: 0.75rem 2rem; }
         .strip-inner {
             max-width: 1100px; margin: 0 auto;
-            display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+            display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.4rem;
         }
-        .strip-item { color: white; font-weight: 800; font-size: 0.9rem; letter-spacing: 1.5px; text-transform: uppercase; padding: 0.3rem 2.5rem; }
-        .strip-item + .strip-item { border-left: 2px solid rgba(255,255,255,0.25); }
+        .strip-item {
+            color: white; font-weight: 800; font-size: 0.85rem; letter-spacing: 1.2px;
+            text-transform: uppercase; padding: 0.45rem 1.4rem; border-radius: 99px;
+            display: flex; align-items: center; gap: 0.45rem;
+            text-decoration: none; transition: background 0.2s, color 0.2s;
+        }
+        .strip-item:hover { background: white; color: var(--purple); }
+        .strip-item .si { font-size: 1rem; }
 
         /* =========================================
            CLIENTS CAROUSEL  (movido arriba)
@@ -843,7 +849,7 @@
             .hero-title { margin-bottom: 0.5rem; }
             .hero-sub { margin-bottom: 1rem; }
             .services-strip { padding: 0.4rem 0.5rem; }
-            .strip-item { font-size: 0.65rem; padding: 0.15rem 0.5rem; letter-spacing: 0.5px; }
+            .strip-item { font-size: 0.65rem; padding: 0.35rem 0.7rem; letter-spacing: 0.5px; }
             .strip-item+.strip-item { border-left: none; }
             .strip-inner { gap: 0.2rem; }
             .clients-top { padding: 1rem 0 0.8rem; }
@@ -1064,10 +1070,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- SERVICES STRIP -->
 <div class="services-strip">
     <div class="strip-inner">
-        <span class="strip-item">Grupajes</span>
-        <span class="strip-item">Carga Completa</span>
-        <span class="strip-item">Import & Export</span>
-        <span class="strip-item">Nacional 24h</span>
+        <a href="#servicios" class="strip-item"><span class="si">📦</span> Grupajes</a>
+        <a href="#servicios" class="strip-item"><span class="si">🚛</span> Carga Completa</a>
+        <a href="#servicios" class="strip-item"><span class="si">🌍</span> Import & Export</a>
+        <a href="#servicios" class="strip-item"><span class="si">⚡</span> Nacional 24h</a>
     </div>
 </div>
 
