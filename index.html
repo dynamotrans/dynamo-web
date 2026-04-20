@@ -483,63 +483,14 @@
         .why-main-card .why-card-content {
             position: relative; z-index: 2; text-align: center; padding: 2rem;
         }
-        .why-road {
-            /* Decorative road stripes */
-            position: absolute; inset: 0; overflow: hidden;
+        .why-card-text {
+            position: relative; z-index: 2; color: white; text-align: center;
+            background: rgba(0,0,0,0.45); backdrop-filter: blur(6px);
+            border-radius: 16px; padding: 1.4rem 2.2rem;
+            border: 1px solid rgba(255,255,255,0.15);
         }
-        .why-road::before {
-            content: '';
-            position: absolute; left: 50%; top: 0; bottom: 0; width: 4px;
-            background: repeating-linear-gradient(
-                to bottom, rgba(255,255,255,0.2) 0, rgba(255,255,255,0.2) 40px, transparent 40px, transparent 80px
-            );
-        }
-        .why-road::after {
-            content: '';
-            position: absolute; inset: 0;
-            background: radial-gradient(ellipse at bottom, rgba(255,200,0,0.15), transparent 60%);
-        }
-        /* Truck silhouette CSS */
-        .truck-silhouette {
-            position: relative; z-index: 2;
-            width: 200px; height: 90px; margin: 0 auto 1.5rem;
-        }
-        .truck-body {
-            position: absolute; right: 0; top: 0;
-            width: 145px; height: 65px;
-            background: rgba(255,255,255,0.12);
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 4px 8px 4px 4px;
-            backdrop-filter: blur(2px);
-        }
-        .truck-cab {
-            position: absolute; left: 0; top: 10px;
-            width: 62px; height: 55px;
-            background: rgba(255,255,255,0.18);
-            border: 2px solid rgba(255,255,255,0.4);
-            border-radius: 6px 4px 4px 4px;
-        }
-        .truck-cab::after {
-            content: ''; position: absolute; top: 6px; left: 8px; right: 8px; height: 20px;
-            background: rgba(100,180,255,0.3); border-radius: 3px;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        .truck-wheel {
-            position: absolute; bottom: -12px;
-            width: 26px; height: 26px; border-radius: 50%;
-            background: rgba(255,255,255,0.15);
-            border: 3px solid rgba(255,255,255,0.5);
-        }
-        .truck-wheel::after {
-            content: ''; position: absolute; inset: 4px; border-radius: 50%;
-            background: rgba(255,255,255,0.25);
-        }
-        .tw1 { left: 18px; }
-        .tw2 { left: 110px; }
-        .tw3 { right: 20px; }
-        .why-card-text { position: relative; z-index: 2; color: white; text-align: center; }
-        .why-card-text .big-num { font-size: 3.5rem; font-weight: 900; color: var(--green); line-height: 1; }
-        .why-card-text .big-lbl { font-size: 0.85rem; color: rgba(255,255,255,0.75); margin-top: 0.3rem; }
+        .why-card-text .big-num { font-size: 4rem; font-weight: 900; color: #fff; line-height: 1; letter-spacing: -2px; }
+        .why-card-text .big-lbl { font-size: 0.9rem; color: rgba(255,255,255,0.85); margin-top: 0.4rem; font-weight: 500; }
 
         .why-small-cards {
             position: absolute; bottom: -24px; right: -24px;
@@ -555,7 +506,7 @@
         .why-list { margin-top: 2rem; display: flex; flex-direction: column; gap: 0.7rem; }
         .why-item { display: flex; gap: 1rem; align-items: flex-start; padding: 0.9rem 1.1rem; border-radius: 12px; transition: background 0.25s; }
         .why-item:hover { background: var(--gray-100); }
-        .why-icon { width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0; background: linear-gradient(135deg, var(--green), var(--green-dark)); display: flex; align-items: center; justify-content: center; font-size: 0.95rem; }
+        .why-icon { width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; background: linear-gradient(135deg, var(--green), var(--green-dark)); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; box-shadow: 0 4px 12px rgba(0,180,80,0.25); }
         .why-text h4 { font-weight: 700; color: var(--navy); font-size: 0.93rem; }
         .why-text p  { color: var(--gray-500); font-size: 0.83rem; margin-top: 2px; line-height: 1.5; }
 
@@ -1394,15 +1345,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             <div class="why-visual reveal-l">
                 <div class="why-main-card">
                     <img loading="lazy" src="images/OFICINA.png" alt="Oficina Dynamo Transportes" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;position:absolute;inset:0;z-index:0;">
-                    <div class="why-road"></div>
                     <div class="why-main-card why-card-content" style="background:transparent;box-shadow:none;height:auto;position:relative">
-                        <div class="truck-silhouette">
-                            <div class="truck-body"></div>
-                            <div class="truck-cab"></div>
-                            <div class="truck-wheel tw1"></div>
-                            <div class="truck-wheel tw2"></div>
-                            <div class="truck-wheel tw3"></div>
-                        </div>
                         <div class="why-card-text">
                             <div class="big-num">+480</div>
                             <div class="big-lbl">empresas nos eligen cada día</div>
