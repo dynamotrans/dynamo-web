@@ -102,16 +102,45 @@
                 "addressLocality": "Madrid",
                 "postalCode": "28045",
                 "addressCountry": "ES"
+            },
+            {
+                "@type": "PostalAddress",
+                "streetAddress": "Placa de Catalunya 1",
+                "addressLocality": "Barcelona",
+                "postalCode": "08002",
+                "addressCountry": "ES"
+            },
+            {
+                "@type": "PostalAddress",
+                "streetAddress": "C. de les Barques 2",
+                "addressLocality": "Valencia",
+                "postalCode": "46002",
+                "addressCountry": "ES"
+            },
+            {
+                "@type": "PostalAddress",
+                "streetAddress": "Gran Via 19-21",
+                "addressLocality": "Bilbao",
+                "postalCode": "48001",
+                "addressCountry": "ES"
             }
         ],
         "areaServed": ["Espana", "Portugal", "Francia", "Alemania", "Italia", "Polonia", "Austria", "Belgica", "Paises Bajos", "Luxemburgo", "Irlanda", "Dinamarca", "Suiza"],
         "priceRange": "$$",
-        "openingHoursSpecification": {
-            "@type": "OpeningHoursSpecification",
-            "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"],
-            "opens": "08:00",
-            "closes": "20:00"
-        },
+        "openingHoursSpecification": [
+            {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday"],
+                "opens": "08:00",
+                "closes": "18:00"
+            },
+            {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": ["Friday"],
+                "opens": "08:00",
+                "closes": "14:00"
+            }
+        ],
         "sameAs": ["https://www.instagram.com/dynamotrans.es/"]
     }
     </script>
@@ -1865,8 +1894,11 @@ function openLegal(tab) {
             <ul>
                 <li><a href="https://maps.google.com/?q=Paseo+de+las+Delicias+1,+Sevilla+41001" target="_blank" rel="noopener">Paseo de las Delicias 1, Sevilla 41001</a></li>
                 <li><a href="https://maps.google.com/?q=C.+de+Méndez+Álvaro+20,+Madrid+28045" target="_blank" rel="noopener">C. de Méndez Álvaro 20, Madrid 28045</a></li>
+                <li><a href="https://maps.google.com/?q=Plaça+de+Catalunya+1,+Barcelona+08002" target="_blank" rel="noopener">Plaça de Catalunya 1, Barcelona 08002</a></li>
+                <li><a href="https://maps.google.com/?q=C.+de+les+Barques+2,+Valencia+46002" target="_blank" rel="noopener">C. de les Barques 2, Valencia 46002</a></li>
+                <li><a href="https://maps.google.com/?q=Gran+Vía+19-21,+Bilbao+48001" target="_blank" rel="noopener">Gran Vía 19-21, Bilbao 48001</a></li>
             </ul>
-            <p style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:0.5rem;">L-V 8:00 a 20:00 · Línea 24h urgencias</p>
+            <p style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:0.5rem;">L-J 8:00 a 18:00 · V 8:00-14:00 · Línea 24h urgencias</p>
         </div>
     </div>
     <div class="f-bottom">
@@ -2017,17 +2049,17 @@ function openLegal(tab) {
 
         garantia: '🤝 <strong>Nuestra garantia:</strong>\n\n<strong>1. CONFIANZA, CALIDAD, SEGURIDAD Y COMPROMISO</strong>\nGarantizamos que la mercancia llega en tiempo y en perfectas condiciones.\n\n<strong>2. RAPIDEZ, EFICACIA E INMEDIATEZ</strong>\nRespondemos a las necesidades de nuestros clientes al instante.\n\n<strong>3. ATENCION PERSONALIZADA</strong>\nEquipo altamente cualificado para atender y solucionar necesidades de forma directa e individualizada.',
 
-        contacto: '📞 <strong>Contacta con nosotros:</strong>\n\n📱 <strong>WhatsApp:</strong> +34 628 995 709\n📞 <strong>Telefono:</strong> +34 955 225 945\n📧 <strong>Email:</strong> info@dynamotrans.com\n\n🕐 <strong>Horario atencion telefonica:</strong>\nLunes a Viernes: 8:00 a 20:00\n(Linea 24h para incidencias/urgencias)\n\n📍 <strong>Oficinas (con cita previa):</strong>\n• Paseo de las Delicias 1, Sevilla 41001\n• C. de Mendez Alvaro 20, Madrid 28045',
+        contacto: '📞 <strong>Contacta con nosotros:</strong>\n\n📱 <strong>WhatsApp:</strong> +34 628 995 709\n📞 <strong>Telefono:</strong> +34 955 225 945\n📧 <strong>Email:</strong> info@dynamotrans.com\n\n🕐 <strong>Horario atencion telefonica:</strong>\nL-J: 8:00 a 18:00 · V: 8:00-14:00\n(Linea 24h para incidencias/urgencias)\n\n📍 <strong>Oficinas (con cita previa):</strong>\n• Paseo de las Delicias 1, Sevilla 41001\n• C. de Mendez Alvaro 20, Madrid 28045\n• Placa de Catalunya 1, Barcelona 08002\n• C. de les Barques 2, Valencia 46002\n• Gran Via 19-21, Bilbao 48001',
 
-        horario: '🕐 <strong>Horario de atencion:</strong>\n\n• <strong>Atencion telefonica:</strong> Lunes a Viernes, 8:00 a 20:00\n• <strong>Linea 24h</strong> para incidencias y urgencias\n• <strong>WhatsApp:</strong> +34 628 995 709 (respuesta rapida)\n\nFuera de horario puedes escribirnos por WhatsApp o email y te respondemos a primera hora.',
+        horario: '🕐 <strong>Horario de atencion:</strong>\n\n• <strong>Atencion telefonica:</strong> L-J: 8:00 a 18:00 · V: 8:00-14:00\n• <strong>Linea 24h</strong> para incidencias y urgencias\n• <strong>WhatsApp:</strong> +34 628 995 709 (respuesta rapida)\n\nFuera de horario puedes escribirnos por WhatsApp o email y te respondemos a primera hora.',
 
-        oficina: '📍 <strong>Nuestras oficinas (cita previa):</strong>\n\n<strong>Sevilla (Central):</strong>\nPaseo de las Delicias 1\nSevilla 41001\n\n<strong>Madrid:</strong>\nC. de Mendez Alvaro 20\nMadrid 28045\n\n📞 +34 955 225 945\n📧 info@dynamotrans.com',
+        oficina: '📍 <strong>Nuestras oficinas (cita previa):</strong>\n\n<strong>Sevilla (Central):</strong>\nPaseo de las Delicias 1, 41001\n\n<strong>Madrid:</strong>\nC. de Mendez Alvaro 20, 28045\n\n<strong>Barcelona:</strong>\nPlaca de Catalunya 1, 08002\n\n<strong>Valencia:</strong>\nC. de les Barques 2, 46002\n\n<strong>Bilbao:</strong>\nGran Via 19-21, 48001\n\n📞 +34 955 225 945\n📧 info@dynamotrans.com',
 
         pallet: '📦 <strong>Capacidad por pales:</strong>\n\n<strong>Tauliner (trailer):</strong>\n• 33 pales europeos (120x80 cm)\n• 26 pales americanos (120x100 cm)\n• Carga util max: 24.000 kg (24 Tn.)\n\n<strong>Rigido con plataforma:</strong>\n• 20 pales europeos o 16 americanos\n• Carga util max: 14.000 kg (14 Tn.)\n• Largo 8m, ideal para entregas sin muelle\n\nIndicame origen, destino y n.º de pales para darte tarifa.',
 
         temperatura: '❄️ <strong>Sobre temperatura controlada:</strong>\n\nActualmente <strong>no realizamos grupajes con temperatura controlada</strong>.\n\nPara mercancia refrigerada en carga completa, consultanos y valoramos tu caso concreto.\n\n📱 WhatsApp: +34 628 995 709',
 
-        defaultResp: '🤔 Gracias por tu consulta. Para darte la informacion mas precisa, te recomiendo contactar directamente:\n\n📱 <strong>WhatsApp:</strong> +34 628 995 709\n📞 <strong>Telefono:</strong> +34 955 225 945\n📧 <strong>Email:</strong> info@dynamotrans.com\n\n🕐 Lunes a Viernes: 8:00 a 20:00\n(Linea 24h para incidencias/urgencias)'
+        defaultResp: '🤔 Gracias por tu consulta. Para darte la informacion mas precisa, te recomiendo contactar directamente:\n\n📱 <strong>WhatsApp:</strong> +34 628 995 709\n📞 <strong>Telefono:</strong> +34 955 225 945\n📧 <strong>Email:</strong> info@dynamotrans.com\n\n🕐 L-J: 8:00 a 18:00 · V: 8:00-14:00\n(Linea 24h para incidencias/urgencias)'
     };
 
     function getResponse(text) {
