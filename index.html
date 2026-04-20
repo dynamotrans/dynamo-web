@@ -544,7 +544,8 @@
         }
         .veh-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--purple),var(--green)); }
         .veh-card:hover { transform:translateY(-5px); box-shadow:0 16px 40px rgba(51,0,204,0.1); }
-        .veh-card h3 { font-size: 1.1rem; font-weight: 800; color: var(--navy); margin-bottom: 0.8rem; }
+        .veh-card h3 { font-size: 1.1rem; font-weight: 800; color: var(--navy); margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem; }
+        .veh-icon { flex-shrink: 0; }
         .veh-card p { color: var(--gray-500); font-size: 0.85rem; line-height: 1.6; margin-bottom: 0.8rem; }
         .veh-specs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem; }
         .veh-spec { background: var(--gray-100); border-radius: 10px; padding: 0.6rem 0.8rem; }
@@ -1312,7 +1313,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <p class="section-desc reveal">Disponemos del vehículo adecuado para cada tipo de carga y necesidad.</p>
         <div class="veh-grid">
             <div class="veh-card reveal">
-                <h3>Trailer Tauliner — Cortina / Lona Corredera</h3>
+                <h3><svg class="veh-icon" width="28" height="18" viewBox="0 0 28 18" fill="none" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="1" width="19" height="11" rx="1.5"/><path d="M8 4H3.5A2.5 2.5 0 0 0 1 6.5V12h7"/><circle cx="5" cy="15" r="2"/><circle cx="20" cy="15" r="2"/><circle cx="24" cy="15" r="2"/><line x1="7" y1="15" x2="18" y2="15"/></svg> Trailer Tauliner — Cortina / Lona Corredera</h3>
                 <p>Similar a un furgón tipo box/caja, con cortinas correderas en lados y techo que dan fácil acceso a la carga. El vehículo más utilizado para envíos terrestres.</p>
                 <p><strong>Ideal para:</strong> mercancía paletizada, palot/box y mercancías especiales.</p>
                 <div class="veh-specs">
@@ -1326,7 +1327,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 </div>
             </div>
             <div class="veh-card reveal" style="transition-delay:.15s">
-                <h3>Rígido con Plataforma y Transpaleta</h3>
+                <h3><svg class="veh-icon" width="24" height="18" viewBox="0 0 24 18" fill="none" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="1" width="16" height="11" rx="1.5"/><path d="M7 4H3.5A2.5 2.5 0 0 0 1 6.5V12h6"/><circle cx="5" cy="15" r="2"/><circle cx="18" cy="15" r="2"/><line x1="7" y1="15" x2="16" y2="15"/><line x1="10" y1="12" x2="10" y2="1"/></svg> Rígido con Plataforma y Transpaleta</h3>
                 <p>Tipo tauliner con cortinas correderas. Ideal para cargas donde no existen medios de carga y/o descarga en destino.</p>
                 <p><strong>Ideal para:</strong> entregas urbanas, puntos sin muelle de carga.</p>
                 <div class="veh-specs">
