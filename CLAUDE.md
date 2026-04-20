@@ -59,6 +59,13 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-04-20 — iPhone
+- Ajustada ventana emergente de salida: timer 25s, scroll móvil 25+, cada mecanismo se desactiva independientemente al cerrar
+- Auditoría de seguridad: añadido `vercel.json` con cabeceras de seguridad + sanitización XSS en chat bot
+- Añadida info de hosting Vercel en CLAUDE.md
+- Fix 404 Google Search Console: rewrite en vercel.json + arreglados 9 enlaces del footer con href="#"
+- Renombrado heading "Tauliner" a "Trailer Tauliner"
+
 ### 2026-04-14 — Codespace
 - Configurado GitHub Codespaces (`.devcontainer/devcontainer.json`)
 - Creado `CLAUDE.md` con reglas de push-confirmation y catch-up automático
