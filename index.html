@@ -2144,8 +2144,9 @@ function openLegal(tab) {
         var temp = document.createElement('div');
         temp.textContent = str;
         var safe = temp.innerHTML;
-        // Re-allow only safe tags: <strong>, <b>, <em>, <i>, <br>
         safe = safe.replace(/&lt;(\/?(strong|b|em|i|br)\s*\/?)&gt;/gi, '<$1>');
+        safe = safe.replace(/([\w.-]+@[\w.-]+\.\w{2,})/g, '<a href="mailto:$1" style="color:var(--purple);text-decoration:underline;">$1</a>');
+        safe = safe.replace(/(\+34[\s]?\d{3}[\s]?\d{3}[\s]?\d{3})/g, '<a href="tel:$1" style="color:var(--purple);text-decoration:underline;">$1</a>');
         return safe;
     }
 
