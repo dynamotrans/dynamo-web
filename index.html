@@ -868,7 +868,10 @@
             .footer-grid { grid-template-columns:1fr 1fr; }
         }
         @media (max-width:768px) {
-            .navbar-nav, .navbar-right { display:none; }
+            .navbar-nav { display:none; }
+            .navbar-right .btn-nav-cta { display:none; }
+            .navbar-right { gap: 0.4rem; }
+            .lang-btn { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
             .hamburger { display:flex; }
             .nav-logo-img { height: 35px; }
             .hero-logo-wrap { padding: 0.9rem 1.8rem; margin-bottom: 1.5rem; border-radius: 18px; }
