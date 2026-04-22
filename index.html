@@ -499,6 +499,13 @@
         .svc-card:hover h3::after { width: 60px; transition: width 0.3s ease; }
         .svc-card p  { color:var(--gray-500); line-height:1.65; font-size:0.88rem; }
         .svc-tag { display:inline-block; margin-top:1rem; background:rgba(51,0,204,0.07); color:var(--purple); padding:0.25rem 0.75rem; border-radius:50px; font-size:0.7rem; font-weight:700; }
+        .svc-card.svc-featured { border-color: rgba(51,0,204,0.25); box-shadow: 0 8px 30px rgba(51,0,204,0.12); }
+        .svc-card.svc-featured::before { height: 4px; }
+        .svc-card.svc-featured::after {
+            content: 'Más solicitado'; position: absolute; top: 12px; right: 12px; z-index: 2;
+            background: var(--purple); color: white; font-size: 0.65rem; font-weight: 700;
+            padding: 0.25rem 0.7rem; border-radius: 50px; letter-spacing: 0.3px;
+        }
         .svc-btns { display:flex; gap:0.5rem; margin-top:1rem; flex-wrap:wrap; }
         .svc-btn { display:inline-flex; align-items:center; gap:0.35rem; padding:0.45rem 1rem; border-radius:50px; font-size:0.75rem; font-weight:700; text-decoration:none; transition:opacity 0.2s, transform 0.15s; }
         .svc-btn:hover { opacity:0.85; transform:translateY(-1px); }
@@ -1261,7 +1268,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <h2 class="section-title reveal">Nuestros <span>Servicios</span></h2>
         <p class="section-desc reveal">Mercancía paletizada (seca), cargas especiales, granel y más. Cobertura total en España y toda Europa.</p>
         <div class="svc-grid">
-            <div class="svc-card reveal">
+            <div class="svc-card svc-featured reveal">
                 <img loading="lazy" src="images/transporte-tauliner.jpg" alt="Grupajes" class="svc-card-img">
                 <div class="svc-card-body">
                     <h3>Grupajes Nacionales e Internacional</h3>
@@ -1273,7 +1280,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     </div>
                 </div>
             </div>
-            <div class="svc-card reveal" style="transition-delay:.1s">
+            <div class="svc-card svc-featured reveal" style="transition-delay:.1s">
                 <img loading="lazy" src="images/FOTO 1 - copia55420ac5170e2.jpeg" alt="Carga Completa" class="svc-card-img">
                 <div class="svc-card-body">
                     <h3>Carga Completa</h3>
