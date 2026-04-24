@@ -18,6 +18,13 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## 💡 Ideas / Futuro
 <!-- Mejoras a considerar -->
+- [ ] **Portal de Admin — Dashboard (dashboard.dynamotrans.com)** — Proyecto SEPARADO:
+  - Panel web tipo hoja de cálculo pero más visual y mejor presentado
+  - Info centralizada: cargas, clientes, transportistas, facturación, KPIs…
+  - Login con roles: Admin (edición completa) y Lectura (solo consulta)
+  - Vistas tipo dashboard con gráficos, tablas filtrables, resúmenes
+  - Proyecto separado del sitio web y del portal de clientes
+
 - [ ] **Portal de clientes (app.dynamotrans.com)** — Proyecto SEPARADO del sitio web:
   - Zona privada con login para clientes registrados
   - Ver estado de sus cargas en tiempo real
