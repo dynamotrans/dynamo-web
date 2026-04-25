@@ -153,9 +153,8 @@
             --purple-dark:  #220099;
             --purple-light: #5533dd;
             --purple-nav:   #1a008a;
-            --green:        #5dc840;
-            --green-dark:   #3da028;
-            --green-bar:    #44cc2a;
+            --green:        #22a55a;
+            --green-dark:   #157a3f;
             --yellow:       #f0e600;
             --yellow-dark:  #d4ca00;
             --navy:         #0a0230;
@@ -175,12 +174,15 @@
            TOP INFO BAR
         ========================================= */
         .top-bar {
-            background: var(--green-bar);
+            background: var(--navy);
             padding: 0.55rem 2rem;
             text-align: center;
-            font-size: 0.88rem; font-weight: 700; color: var(--navy);
+            font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.92);
+            letter-spacing: 0.2px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
         }
-        .top-bar span { color: var(--purple); }
+        .top-bar span { color: var(--green); font-weight: 700; }
+        .top-bar span.tb-stars { color: var(--yellow); }
 
         /* =========================================
            NAVBAR
@@ -1043,7 +1045,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- TOP INFO BAR -->
 <div class="top-bar">
     <span>+480 Clientes</span> confían en nosotros.&nbsp;
-    <span>5,0 ★★★★★</span> en <span>Google</span>.
+    <span class="tb-stars">5,0 ★★★★★</span> en <span>Google</span>.
 </div>
 
 <!-- NAVBAR -->
