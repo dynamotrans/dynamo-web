@@ -1,5 +1,8 @@
 # dynamo-web — Instrucciones para Claude
 
+> 📌 **Aviso a Claude**: este archivo y `TODO.md` son SOLO para `dynamo-web`.
+> Si la sesión va sobre el otro proyecto del usuario (`agenciadetransporte-web`), trabajar contra `HANDOFF-agenciadetransporte.md` en la raíz, **sin mezclar** ambos contextos.
+
 ## Proyecto
 Sitio estático HTML servido con `python3 -m http.server 3000`.
 
@@ -60,11 +63,9 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 -->
 
 ### 2026-04-27 — MacBook oficina
-- **Nota: sesión enfocada en proyecto NUEVO `agenciadetransporte-web` (NO se tocó código de dynamo-web).**
-- Usuario creó en Vercel un proyecto nuevo `agenciadetransporte-web` conectado a un repo nuevo de GitHub (clon inicial de dynamo-web → ahora mismo el deploy muestra contenido de Dynamo tal cual).
-- URL deploy provisional: `agenciadetransporte-web.vercel.app` (y `agenciadetransporte-3po3tnmgy-dynamotrans-projects.vercel.app`)
-- Aclarado que Claude no tiene memoria entre sesiones; toda continuidad va por `CLAUDE.md` + `TODO.md` + git.
-- **Pendiente para próxima sesión**: ver bloque `🆕 Proyecto agenciadetransporte-web` en `TODO.md` — falta nombre exacto del repo GitHub, datos de marca (colores, teléfono, email, dominio, logos, redes), y empezar el rebrand en una rama `rebrand/agenciadetransporte`.
+- Sesión NO dedicada a Dynamo: el usuario está arrancando otro proyecto (web hermana con marca distinta). NO se tocó código de dynamo-web.
+- Todo el contexto de ese otro proyecto se guardó en `HANDOFF-agenciadetransporte.md` (archivo aparte, NO mezclado con CLAUDE.md/TODO.md de Dynamo).
+- Próxima vez que la sesión sea sobre Dynamo: ignorar ese handoff y seguir con `TODO.md` normal.
 
 ### 2026-04-25 — MacBook portátil
 - Sustituida imagen del hero: nueva foto de dos camiones dynamo en autopista al atardecer con nave logística al fondo
