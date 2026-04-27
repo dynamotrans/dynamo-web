@@ -39,3 +39,8 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 <!-- Claude mueve aquí las tareas completadas. Se limpia cada ~2 semanas -->
 - [x] 2026-04-14 — Configurar GitHub Codespaces (.devcontainer)
 - [x] 2026-04-14 — Crear CLAUDE.md con reglas de push y bitácora
+
+---
+
+> 📌 **Otros proyectos del usuario (NO mezclar con Dynamo):**
+> Para tareas del proyecto **agenciadetransporte-web** ver `HANDOFF-agenciadetransporte.md` en la raíz de este repo (es un archivo de traspaso temporal hasta que se clone el repo nuevo).

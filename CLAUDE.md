@@ -1,5 +1,8 @@
 # dynamo-web — Instrucciones para Claude
 
+> 📌 **Aviso a Claude**: este archivo y `TODO.md` son SOLO para `dynamo-web`.
+> Si la sesión va sobre el otro proyecto del usuario (`agenciadetransporte-web`), trabajar contra `HANDOFF-agenciadetransporte.md` en la raíz, **sin mezclar** ambos contextos.
+
 ## Proyecto
 Sitio estático HTML servido con `python3 -m http.server 3000`.
 
@@ -58,6 +61,11 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - Otro bullet
 - **Pendiente**: lo que quedó a medias
 -->
+
+### 2026-04-27 — MacBook oficina
+- Sesión NO dedicada a Dynamo: el usuario está arrancando otro proyecto (web hermana con marca distinta). NO se tocó código de dynamo-web.
+- Todo el contexto de ese otro proyecto se guardó en `HANDOFF-agenciadetransporte.md` (archivo aparte, NO mezclado con CLAUDE.md/TODO.md de Dynamo).
+- Próxima vez que la sesión sea sobre Dynamo: ignorar ese handoff y seguir con `TODO.md` normal.
 
 ### 2026-04-25 — MacBook portátil
 - Sustituida imagen del hero: nueva foto de dos camiones dynamo en autopista al atardecer con nave logística al fondo
