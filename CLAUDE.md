@@ -59,6 +59,13 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-04-27 — MacBook oficina
+- **Nota: sesión enfocada en proyecto NUEVO `agenciadetransporte-web` (NO se tocó código de dynamo-web).**
+- Usuario creó en Vercel un proyecto nuevo `agenciadetransporte-web` conectado a un repo nuevo de GitHub (clon inicial de dynamo-web → ahora mismo el deploy muestra contenido de Dynamo tal cual).
+- URL deploy provisional: `agenciadetransporte-web.vercel.app` (y `agenciadetransporte-3po3tnmgy-dynamotrans-projects.vercel.app`)
+- Aclarado que Claude no tiene memoria entre sesiones; toda continuidad va por `CLAUDE.md` + `TODO.md` + git.
+- **Pendiente para próxima sesión**: ver bloque `🆕 Proyecto agenciadetransporte-web` en `TODO.md` — falta nombre exacto del repo GitHub, datos de marca (colores, teléfono, email, dominio, logos, redes), y empezar el rebrand en una rama `rebrand/agenciadetransporte`.
+
 ### 2026-04-25 — MacBook portátil
 - Sustituida imagen del hero: nueva foto de dos camiones dynamo en autopista al atardecer con nave logística al fondo
 - Optimizada de PNG 8,1 MB a JPG 341 KB (2000×1332, calidad 76, progresivo) → mejora notable de LCP
