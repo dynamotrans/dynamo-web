@@ -54,6 +54,12 @@ Antes de poder rebrand-ear hace falta:
 - O ¿extraer un "tema configurable" (variables de marca CSS + textos en JSON) para poder compartir mejoras entre ambas webs?
 - **Recomendación inicial**: empezar con repos independientes (más simple, más rápido). Si en 2-3 meses se ve que se duplica trabajo, plantear refactor a tema compartido.
 
+## 🚦 Regla obligatoria al arrancar sesión
+**ANTES de tocar nada**, Claude debe decir explícitamente y pedir OK:
+> "Vamos a trabajar en el proyecto **agenciadetransporte-web**, en la rama **[nombre-rama]**. ¿Correcto?"
+
+Solo tras confirmación del usuario se puede empezar a editar/commitear. Esta regla también está en `CLAUDE.md` de Dynamo (regla nº 5) y debe mantenerse en el `CLAUDE.md` del repo nuevo cuando se cree.
+
 ## 🗂️ Cómo retomarlo en la próxima sesión
 1. Leer este archivo entero.
 2. Pedir al usuario los datos del bloque "Información que falta".

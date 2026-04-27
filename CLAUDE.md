@@ -49,6 +49,23 @@ Antes de cerrar o cuando el usuario diga "hemos acabado" / "ya está" / "gracias
 ### 4. Rama de trabajo
 Respetar la rama indicada en las instrucciones de sesión. No cambiar de rama sin permiso.
 
+### 5. Confirmar proyecto + rama ANTES de tocar nada
+**ANTES de hacer cualquier cambio (editar archivos, ejecutar comandos que modifiquen estado, etc.) Claude DEBE indicar claramente y pedir confirmación:**
+
+> "Vamos a trabajar en el proyecto **[dynamo-web | agenciadetransporte-web]**, en la rama **[nombre-rama]**. ¿Correcto?"
+
+Solo después de un OK explícito del usuario se puede empezar a editar/commitear.
+
+Esto evita:
+- Mezclar código entre las dos webs hermanas.
+- Hacer cambios en `main` cuando tocaba una rama de feature.
+- Empezar a tocar Dynamo cuando la sesión era para `agenciadetransporte-web` o viceversa.
+
+Lectura para preguntas de tipo "¿qué tocamos?":
+- Si `pwd` = `dynamo-web/` → por defecto Dynamo, pero confirmar.
+- Si existe `HANDOFF-agenciadetransporte.md` → preguntar explícitamente cuál de las dos.
+- Si `pwd` = `agenciadetransporte-web/` → ese proyecto, pero confirmar la rama.
+
 ---
 
 ## Bitácora
