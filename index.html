@@ -280,22 +280,24 @@
             height: auto; min-height: 0;
             display: flex; align-items: center; justify-content: center; overflow: hidden;
             padding: 7rem 0 6.5rem;
+            background: linear-gradient(135deg, #0a0230 0%, #1a008a 30%, #3300cc 60%, #0a0230 100%);
         }
-        /* Fondo degradado simulando carretera/noche — funciona sin imagen */
-        .hero-bg {
+        /* Vídeo de fondo con zoom suave; el poster (foto) actúa de fallback */
+        .hero-video {
             position: absolute; inset: 0;
-            background:
-                url('images/hero-camiones-dynamo.jpg') center/cover no-repeat,
-                linear-gradient(135deg, #0a0230 0%, #1a008a 30%, #3300cc 60%, #0a0230 100%);
+            width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 0;
             animation: heroZoom 18s ease-in-out infinite alternate;
         }
-        .hero-bg::after {
-            content: ''; position: absolute; inset: 0;
+        /* Velo oscuro sobre el vídeo para legibilidad del texto */
+        .hero-overlay {
+            position: absolute; inset: 0; z-index: 1;
             background: linear-gradient(135deg, rgba(10,2,48,0.80) 0%, rgba(51,0,204,0.50) 55%, rgba(10,2,48,0.75) 100%);
         }
         /* Líneas de carretera animadas como fallback visual */
         .hero-road {
-            position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none;
+            position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none;
         }
         .hero-road::before {
             content: '';
@@ -319,7 +321,7 @@
         @keyframes heroZoom { from { transform: scale(1); } to { transform: scale(1.07); } }
 
         .hero-content {
-            position: relative; z-index: 2; text-align: center;
+            position: relative; z-index: 3; text-align: center;
             color: white; padding: 1rem 2rem; max-width: 900px;
             display: flex; flex-direction: column; align-items: center;
         }
@@ -369,7 +371,7 @@
             color: rgba(255,255,255,0.38); font-size: 0.68rem; letter-spacing: 2px;
             text-transform: uppercase; text-align: center;
             animation: bounceY 2.2s ease-in-out infinite;
-            display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 2;
+            display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 3;
         }
         .scroll-arr { width: 16px; height: 16px; border-right: 2px solid rgba(255,255,255,0.3); border-bottom: 2px solid rgba(255,255,255,0.3); transform: rotate(45deg); }
 
@@ -1092,7 +1094,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- HERO -->
 <section class="hero" id="inicio">
-    <div class="hero-bg"></div>
+    <video class="hero-video" autoplay muted loop playsinline preload="auto" poster="images/hero-camiones-dynamo.jpg">
+        <source src="images/mp_dynamo.mp4" type="video/mp4">
+    </video>
+    <div class="hero-overlay"></div>
     <div class="hero-road"></div>
     <div class="hero-content">
         <h1 class="hero-title">
