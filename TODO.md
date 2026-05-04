@@ -37,6 +37,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## ✅ Hecho recientemente
 <!-- Claude mueve aquí las tareas completadas. Se limpia cada ~2 semanas -->
+- [x] 2026-05-04 — Música de fondo opcional + botón flotante mute/unmute en dynamotrans.com
 - [x] 2026-04-14 — Configurar GitHub Codespaces (.devcontainer)
 - [x] 2026-04-14 — Crear CLAUDE.md con reglas de push y bitácora
 

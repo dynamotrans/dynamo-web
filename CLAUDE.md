@@ -79,6 +79,15 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-05-04 — iMac oficina
+- Añadida **música de fondo** opcional en la web (`audio/dynamo-bg.mp3`, ~6.9 MB, Pixabay royalty-free, sin atribución)
+- **Botón flotante** redondo navy con icono SVG altavoz on/off, esquina inferior derecha
+- Stack vertical limpio sin solapes: WhatsApp (1.8rem) → chat-fab (6.25rem) → música (11rem) → back-top (15.5rem)
+- `preload="none"`: el MP3 NO se descarga al cargar la web, solo cuando el usuario pulsa el botón
+- **Sin auto-resume**: cada visita arranca en silencio (estándar B2B, respeta políticas de autoplay móvil)
+- Merge a `main` y push → desplegado en producción (dynamotrans.com)
+- Borrada manualmente la rama huérfana `audio/dynamotrans-patch-1` (creada al subir el MP3 desde GitHub web por error)
+
 ### 2026-04-28 — MacBook Pro
 - Sustituida la imagen estática del hero por un **vídeo de fondo en bucle** (`images/mp_dynamo.mp4`, 3.6 MB)
 - `<video>` con `autoplay muted loop playsinline` y `poster="hero-camiones-dynamo.jpg"` como fallback si el vídeo no carga
