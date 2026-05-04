@@ -1959,32 +1959,18 @@ function openLegal(tab) {
     function openMobileMenu()  { document.getElementById('mobileMenu').classList.add('open'); }
     function closeMobileMenu() { document.getElementById('mobileMenu').classList.remove('open'); }
 
-    // Background music toggle
+    // Background music toggle: la web siempre arranca en silencio,
+    // solo suena si el visitante pulsa el botón explícitamente.
     function toggleMusic() {
         const audio = document.getElementById('bgMusic');
         const btn = document.getElementById('floatMusic');
         if (audio.paused) {
-            audio.play().then(() => {
-                btn.classList.add('playing');
-                localStorage.setItem('dynamoMusic', 'on');
-            }).catch(() => {});
+            audio.play().then(() => btn.classList.add('playing')).catch(() => {});
         } else {
             audio.pause();
             btn.classList.remove('playing');
-            localStorage.setItem('dynamoMusic', 'off');
         }
     }
-    // Reanudar música solo DESPUÉS de que el resto de la web (imágenes, vídeo del hero, etc.)
-    // haya terminado de cargar, para no competir por ancho de banda en la carga inicial.
-    window.addEventListener('load', () => {
-        if (localStorage.getItem('dynamoMusic') !== 'on') return;
-        const audio = document.getElementById('bgMusic');
-        const btn = document.getElementById('floatMusic');
-        // Delay de 2.5s tras carga completa para que la web ya esté plenamente fluida
-        setTimeout(() => {
-            audio.play().then(() => btn.classList.add('playing')).catch(() => {});
-        }, 2500);
-    });
 
     // Back to top button
     window.addEventListener('scroll', function() {
