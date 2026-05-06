@@ -2383,7 +2383,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var browserLang = (navigator.language || navigator.userLanguage || 'es').toLowerCase().split('-')[0];
         // Mark as detected so we don't auto-switch again (user can change manually)
         var exp = new Date(); exp.setFullYear(exp.getFullYear() + 1);
-        document.cookie = 'dynamo_lang_detected=1; expires=' + exp.toUTCString() + '; path=/; SameSite=Lax';
+        document.cookie = 'dynamo_lang_detected=1; expires=' + exp.toUTCString() + '; path=/; SameSite=Lax; Secure';
 
         if (browserLang !== 'es' && langMap[browserLang]) {
             var info = langMap[browserLang];
@@ -2667,7 +2667,7 @@ body { top: 0 !important; position: static !important; }
 <script>
 function setCookieConsent(choice) {
     var d = new Date(); d.setFullYear(d.getFullYear() + 1);
-    document.cookie = 'cookie_consent=' + choice + '; expires=' + d.toUTCString() + '; path=/; SameSite=Lax';
+    document.cookie = 'cookie_consent=' + choice + '; expires=' + d.toUTCString() + '; path=/; SameSite=Lax; Secure';
     document.getElementById('cookieBanner').classList.remove('show');
 
     // Google Consent Mode v2 update
