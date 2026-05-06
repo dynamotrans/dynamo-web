@@ -4,6 +4,15 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## 🔥 Prioridad alta
 <!-- Cosas urgentes -->
+- [ ] **Seguridad anti-scraping y protección de datos** — Aplicar en web y portal:
+  - **Tarifador**: lógica de precios NUNCA en JavaScript del navegador → siempre en API privada de servidor (nadie puede ver las fórmulas ni las tablas de tarifas)
+  - **Google Sheet de precios**: clave de API solo accesible desde el servidor, nunca expuesta al navegador del visitante
+  - **Portal de clientes**: proteger contra scraping de datos de empresas, rutas, precios y facturas
+  - **Rate limiting** en todos los endpoints (limitar peticiones por IP para dificultar extracción masiva de datos)
+  - **Autenticación robusta**: 2FA obligatorio para acceso al portal, bloqueo tras N intentos fallidos
+  - **Cifrado en tránsito y en reposo** de datos sensibles (NIF, direcciones, precios pactados, facturas)
+  - **Cabeceras HTTP de seguridad** ya presentes en vercel.json — revisar y mantener actualizadas
+  - **Logs de acceso y alertas** ante comportamiento sospechoso (muchas peticiones seguidas, accesos desde IPs inusuales)
 
 ## 📋 Normal
 <!-- Cosas que hacer cuando haya tiempo -->
