@@ -34,6 +34,11 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
     - Pasarela de pago PCI-DSS (Stripe/Redsys) si hay pagos
     - Logs de auditoría y alertas de actividad sospechosa
     - Pen-testing antes del lanzamiento
+  - **Caducidad de clave por inactividad** — Si un usuario (empresa cliente o transportista) no accede al portal en 9 meses, su contraseña caduca automáticamente y se le obliga a restablecerla al intentar entrar
+  - **Desactivación automática de empresas inactivas** — Una empresa se marca como inactiva (o se elimina) si cumple AMBAS condiciones:
+    - No ha iniciado sesión en los últimos 9 meses, Y
+    - No tiene ningún transporte solicitado ni finalizado en los últimos 9 meses
+    - Flujo sugerido: aviso por email a los 8 meses → desactivación a los 9 → borrado definitivo tras X días adicionales (pendiente decidir)
 
 ## ✅ Hecho recientemente
 <!-- Claude mueve aquí las tareas completadas. Se limpia cada ~2 semanas -->
