@@ -3,7 +3,7 @@
 Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo actualiza al terminar.
 
 ## 🔥 Prioridad alta
-<!-- Cosas urgentes -->
+- [ ] **Merge rama `claude/check-iphone-compatibility-idEnO` → `main`** para desplegar fixes de seguridad (CSP, cookies Secure) en producción
 - [ ] **Seguridad anti-scraping y protección de datos** — Aplicar en web y portal:
   - **Tarifador**: lógica de precios NUNCA en JavaScript del navegador → siempre en API privada de servidor (nadie puede ver las fórmulas ni las tablas de tarifas)
   - **Google Sheet de precios**: clave de API solo accesible desde el servidor, nunca expuesta al navegador del visitante

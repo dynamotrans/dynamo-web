@@ -79,6 +79,13 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-05-06 — iPhone
+- Anotados en TODO.md requisitos para el portal de clientes: **caducidad de clave a los 9 meses** de inactividad y **desactivación automática de empresas inactivas** (sin login ni transportes en 9 meses)
+- Anotados requisitos de **seguridad anti-scraping**: proteger precios/Sheet via API privada, nunca exponer lógica de tarifas en JS
+- **Security review** del sitio actual: sin críticos; encontrados 2 HIGH (CSP ausente, sanitizeHTML frágil), 3 MEDIUM, varios LOW
+- **Corregidos los HIGH/MEDIUM prioritarios**: CSP añadida en `vercel.json`, flag `; Secure` en cookies propias, `X-XSS-Protection` obsoleta eliminada, `X-Frame-Options` ajustado a `SAMEORIGIN`
+- Pendiente: merge de rama `claude/check-iphone-compatibility-idEnO` a `main` cuando el usuario lo apruebe
+
 ### 2026-05-04 — iMac oficina
 - Añadida **música de fondo** opcional en la web (`audio/dynamo-bg.mp3`, ~6.9 MB, Pixabay royalty-free, sin atribución)
 - **Botón flotante** redondo navy con icono SVG altavoz on/off, esquina inferior derecha
