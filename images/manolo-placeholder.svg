@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <rect width="800" height="1000" fill="#102a4c"/>
+  <circle cx="400" cy="380" r="140" fill="#1a3766"/>
+  <ellipse cx="400" cy="780" rx="220" ry="180" fill="#1a3766"/>
+  <text x="400" y="540" text-anchor="middle" font-family="Inter, sans-serif" font-size="22" letter-spacing="3" fill="#c8a45c" opacity="0.75">PENDIENTE FOTO</text>
+  <text x="400" y="580" text-anchor="middle" font-family="Inter, sans-serif" font-size="16" letter-spacing="2" fill="#c8a45c" opacity="0.55">images/manolo-montes.jpg</text>
+</svg>

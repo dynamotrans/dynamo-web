@@ -1,0 +1,22 @@
+# Sistema
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+*~
+
+# Editores
+.vscode/
+.idea/
+*.sublime-*
+
+# Dependencias / build
+node_modules/
+.vercel
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*

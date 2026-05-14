@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /aviso-legal.html
+Disallow: /privacidad.html
+
+Sitemap: https://www.montesblanco.com/sitemap.xml

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700">
+  <rect width="1200" height="700" fill="#0d2340"/>
+  <rect x="0" y="500" width="1200" height="200" fill="#081730"/>
+  <rect x="200" y="200" width="800" height="320" fill="#1a3766" opacity="0.7"/>
+  <text x="600" y="370" text-anchor="middle" font-family="Inter, sans-serif" font-size="24" letter-spacing="4" fill="#c8a45c" opacity="0.7">FACHADA OFICINA</text>
+  <text x="600" y="408" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" letter-spacing="2" fill="#c8a45c" opacity="0.5">images/local-fachada.jpg</text>
+</svg>

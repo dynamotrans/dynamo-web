@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0d2340">
+
+  <title data-i18n="meta.title">Montes Blanco Real Estate — Inmobiliaria boutique en Dos Hermanas</title>
+  <meta name="description" data-i18n-attr="content:meta.description" content="Compra, venta y alquiler de propiedades en Dos Hermanas y Sevilla. Inmobiliaria boutique con asesoramiento personalizado desde 2005.">
+  <meta name="author" content="Montes Blanco Real Estate SL">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Montes Blanco Real Estate">
+  <meta property="og:description" content="Inmobiliaria boutique en Dos Hermanas. Compra, venta y alquiler desde 2005.">
+  <meta property="og:image" content="images/og-cover.jpg">
+  <meta property="og:url" content="https://www.montesblanco.com">
+  <meta property="og:locale" content="es_ES">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- ============== NAVBAR ============== -->
+  <header class="nav" id="nav">
+    <div class="nav__inner">
+      <a href="#top" class="nav__brand" aria-label="Montes Blanco Real Estate — inicio">
+        <div class="nav__brand-stack">
+          <span class="nav__brand-mark">MONTES BLANCO</span>
+          <span class="nav__brand-sub">Real Estate</span>
+        </div>
+      </a>
+
+      <nav aria-label="Menú principal">
+        <ul class="nav__menu" id="navMenu">
+          <li><a href="#top" data-i18n="nav.home">Inicio</a></li>
+          <li><a href="#about" data-i18n="nav.about">Nosotros</a></li>
+          <li><a href="#services" data-i18n="nav.services">Servicios</a></li>
+          <li><a href="#properties" data-i18n="nav.properties">Inmuebles</a></li>
+          <li><a href="#visit" data-i18n="nav.visit">Visítanos</a></li>
+          <li><a href="#contact" data-i18n="nav.contact">Contacto</a></li>
+
+          <!-- Language switcher -->
+          <li class="lang-wrap">
+            <button class="lang-btn" id="langBtn" aria-haspopup="listbox" aria-expanded="false">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
+              <span id="langCurrent">ES</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <ul class="lang-menu" id="langMenu" role="listbox">
+              <li><button data-lang="es" type="button">Español</button></li>
+              <li><button data-lang="en" type="button">English</button></li>
+              <li><button data-lang="fr" type="button">Français</button></li>
+              <li><button data-lang="de" type="button">Deutsch</button></li>
+              <li><button data-lang="pt" type="button">Português</button></li>
+              <li><button data-lang="ru" type="button">Русский</button></li>
+              <li><button data-lang="ar" type="button">العربية</button></li>
+            </ul>
+          </li>
+
+          <li><a href="tel:+34635643827" class="nav__cta" data-i18n="nav.cta">Llamar ahora</a></li>
+        </ul>
+      </nav>
+
+      <button class="nav__toggle" id="navToggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="navMenu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ============== HERO ============== -->
+  <section class="hero" id="top">
+    <div class="hero__media">
+      <img src="images/hero-placeholder.svg" alt="" loading="eager" fetchpriority="high">
+    </div>
+    <div class="hero__overlay"></div>
+
+    <div class="hero__content">
+      <span class="hero__eyebrow" data-i18n="hero.eyebrow">Inmobiliaria boutique · Dos Hermanas · desde 2005</span>
+      <h1>
+        <span data-i18n="hero.title.1">Su patrimonio,</span><br>
+        <em data-i18n="hero.title.2">nuestro compromiso</em>
+      </h1>
+      <p class="hero__lead" data-i18n="hero.lead">
+        Compra, venta y alquiler de propiedades singulares en Sevilla y alrededores. Asesoramiento personalizado, sin exclusividades, con la confianza de dos décadas de experiencia.
+      </p>
+      <div class="hero__actions">
+        <a href="#properties" class="btn btn--primary" data-i18n="hero.cta.primary">Ver inmuebles</a>
+        <a href="#contact" class="btn btn--ghost" data-i18n="hero.cta.secondary">Hablar con nosotros</a>
+      </div>
+    </div>
+
+    <a href="#about" class="hero__scroll" aria-label="Scroll">
+      <span data-i18n="hero.scroll">Descubrir</span>
+      <span class="hero__scroll-line"></span>
+    </a>
+  </section>
+
+  <!-- ============== ABOUT ============== -->
+  <section class="section section--cream" id="about">
+    <div class="container">
+      <div class="about reveal">
+        <div class="about__media">
+          <img src="images/manolo-montes.jpg" onerror="this.src='images/manolo-placeholder.svg'" alt="Manolo Montes, Director Comercial de Montes Blanco Real Estate" loading="lazy">
+        </div>
+        <div class="about__text">
+          <span class="eyebrow" data-i18n="about.eyebrow">Quiénes somos</span>
+          <h2 data-i18n="about.title">Veinte años conectando vidas con hogares</h2>
+          <p data-i18n="about.p1">Desde 2005, en Montes Blanco Real Estate gestionamos de forma integral activos inmobiliarios en venta y alquiler. Acompañamos a cada cliente en todas las etapas de la operación, ocupándonos de los trámites con el rigor y la discreción que su patrimonio merece.</p>
+          <p data-i18n="about.p2">Nuestro porfolio abarca viviendas unifamiliares, chalets, propiedades de lujo, naves industriales, locales comerciales e inversiones. Cada operación es una oportunidad para demostrar nuestro compromiso con la calidad, la confianza y la satisfacción del cliente.</p>
+          <div class="about__signature">
+            <strong data-i18n="about.sig.name">Manolo Montes</strong>
+            <span data-i18n="about.sig.role">Director Comercial</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== SERVICES ============== -->
+  <section class="section" id="services">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow" data-i18n="services.eyebrow">Nuestros servicios</span>
+        <h2 data-i18n="services.title">Asesoramiento integral 360°</h2>
+        <p class="lead" data-i18n="services.lead">Una operación inmobiliaria es una de las decisiones más importantes de la vida. Estamos a su lado en cada paso del camino.</p>
+      </div>
+
+      <div class="services">
+        <article class="service reveal">
+          <svg class="service__icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 28L32 8l24 20v28a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4V28z"/><path d="M24 60V40h16v20"/></svg>
+          <h3 data-i18n="services.s1.title">Compra y venta</h3>
+          <p data-i18n="services.s1.desc">Búsqueda, negociación y cierre de operaciones con asesoramiento jurídico y fiscal completo.</p>
+        </article>
+
+        <article class="service reveal">
+          <svg class="service__icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="10" y="14" width="44" height="40" rx="2"/><path d="M22 14V6m20 8V6M10 26h44"/><circle cx="22" cy="38" r="3" fill="currentColor"/><circle cx="42" cy="38" r="3" fill="currentColor"/></svg>
+          <h3 data-i18n="services.s2.title">Alquileres</h3>
+          <p data-i18n="services.s2.desc">Gestión integral de arrendamientos: selección de inquilinos, contratos, garantías y seguimiento.</p>
+        </article>
+
+        <article class="service reveal">
+          <svg class="service__icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M32 4l7 14 16 2-12 11 4 16-15-8-15 8 4-16-12-11 16-2z"/></svg>
+          <h3 data-i18n="services.s3.title">Propiedades de lujo</h3>
+          <p data-i18n="services.s3.desc">Comercialización discreta de viviendas exclusivas, chalets y patrimonios singulares.</p>
+        </article>
+
+        <article class="service reveal">
+          <svg class="service__icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 56V28l26-18 26 18v28"/><path d="M22 56V42h20v14"/><path d="M6 56h52"/></svg>
+          <h3 data-i18n="services.s4.title">Naves y locales</h3>
+          <p data-i18n="services.s4.desc">Espacios industriales, oficinas y locales comerciales para empresas e inversores.</p>
+        </article>
+
+        <article class="service reveal">
+          <svg class="service__icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="32" cy="32" r="22"/><path d="M32 14v36M22 22l20 20M42 22L22 42"/></svg>
+          <h3 data-i18n="services.s5.title">Valoraciones</h3>
+          <p data-i18n="services.s5.desc">Tasaciones de mercado realistas basadas en datos comparativos actualizados de la zona.</p>
+        </article>
+
+        <article class="service reveal">
+          <svg class="service__icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 50l14-18 12 10 14-22 12 16"/><path d="M6 56h52"/></svg>
+          <h3 data-i18n="services.s6.title">Inversión</h3>
+          <p data-i18n="services.s6.desc">Identificación de oportunidades con rentabilidad real para diversificar su patrimonio.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== PROPERTIES (PORTALES EXTERNOS) ============== -->
+  <section class="section section--cream" id="properties">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow" data-i18n="portals.eyebrow">Cartera disponible</span>
+        <h2 data-i18n="portals.title">Nuestros inmuebles</h2>
+        <p class="lead" data-i18n="portals.lead">Toda nuestra cartera disponible está siempre actualizada en los principales portales inmobiliarios del sector.</p>
+      </div>
+
+      <div class="portals">
+        <a href="https://www.idealista.com/pro/montes-blanco-real-estate/venta-viviendas/" target="_blank" rel="noopener" class="portal portal--idealista reveal">
+          <span class="portal__label" data-i18n="portals.idealista.label">Portal verificado</span>
+          <h3 data-i18n="portals.idealista.title">Idealista</h3>
+          <p data-i18n="portals.idealista.desc">Vea nuestras propiedades publicadas en el portal inmobiliario líder de España.</p>
+          <span class="portal__arrow">
+            <span data-i18n="portals.cta">Ver propiedades</span>
+            <svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 7h17m0 0l-6-6m6 6l-6 6"/></svg>
+          </span>
+        </a>
+
+        <a href="https://www.fotocasa.es/es/inmobiliaria-montes-blanco-real-estate/comprar/inmuebles/espana/todas-las-zonas/l?clientId=9202765515624&publisherId=8b878b18-77aa-49e4-9861-717265f5fcc3" target="_blank" rel="noopener" class="portal portal--fotocasa reveal">
+          <span class="portal__label" data-i18n="portals.fotocasa.label">Portal verificado</span>
+          <h3 data-i18n="portals.fotocasa.title">Fotocasa</h3>
+          <p data-i18n="portals.fotocasa.desc">Explore nuestra oferta también en Fotocasa, con fotos y datos detallados.</p>
+          <span class="portal__arrow">
+            <span data-i18n="portals.cta">Ver propiedades</span>
+            <svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 7h17m0 0l-6-6m6 6l-6 6"/></svg>
+          </span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== VISIT / OFFICE ============== -->
+  <section class="section" id="visit">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow" data-i18n="visit.eyebrow">Nuestro espacio</span>
+        <h2 data-i18n="visit.title">Visítenos en Dos Hermanas</h2>
+      </div>
+
+      <div class="visit reveal">
+        <div class="visit__gallery">
+          <img src="images/local-fachada.jpg" onerror="this.src='images/local-placeholder-1.svg'" alt="Fachada de la oficina de Montes Blanco en Dos Hermanas" loading="lazy">
+          <img src="images/local-zona.jpg" onerror="this.src='images/local-placeholder-2.svg'" alt="Plaza con palmeras junto a la oficina" loading="lazy">
+          <img src="images/local-interior.jpg" onerror="this.src='images/local-placeholder-3.svg'" alt="Interior del local" loading="lazy">
+        </div>
+
+        <div class="visit__info">
+          <p data-i18n="visit.p1">Ubicado en una zona privilegiada del centro de Dos Hermanas, nuestro espacio ha sido cuidadosamente diseñado para ofrecerle una experiencia inmobiliaria de calidad.</p>
+          <p data-i18n="visit.p2">Aquí conocerá a nuestro equipo experto y obtendrá el mejor conocimiento del mercado para realizar sus operaciones de compra, venta o alquiler.</p>
+
+          <div class="visit__details">
+            <div class="visit__detail">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 22s-8-7.6-8-13a8 8 0 1 1 16 0c0 5.4-8 13-8 13z"/><circle cx="12" cy="9" r="3"/></svg>
+              <div>
+                <strong data-i18n="visit.detail1.label">Dirección</strong>
+                <span data-i18n="visit.detail1.value">C. Canónigo 49, oficina derecha · 41701 Dos Hermanas, Sevilla</span>
+              </div>
+            </div>
+
+            <div class="visit__detail">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              <div>
+                <strong data-i18n="visit.detail2.label">Horario</strong>
+                <span data-i18n="visit.detail2.value">Lunes a viernes · 10:00–14:00 y 17:00–21:00</span>
+              </div>
+            </div>
+
+            <div class="visit__detail">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z"/></svg>
+              <div>
+                <strong data-i18n="visit.detail3.label">Contacto directo</strong>
+                <span data-i18n="visit.detail3.value">854 69 14 60 · +34 635 64 38 27</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 36px;">
+            <a class="btn btn--outline" target="_blank" rel="noopener" href="https://maps.google.com/?q=Calle+Can%C3%B3nigo+49,+Dos+Hermanas,+Sevilla">Cómo llegar</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== CONTACT ============== -->
+  <section class="section section--dark" id="contact">
+    <div class="container">
+      <div class="contact-wrap">
+
+        <div class="contact-info reveal">
+          <span class="eyebrow" data-i18n="contact.eyebrow">Contacto</span>
+          <h2 data-i18n="contact.title">Hablemos de su próxima operación</h2>
+          <p class="lead" data-i18n="contact.lead">Estamos aquí para ayudarle. Elija el canal que prefiera y le atendemos sin compromiso.</p>
+
+          <ul class="contact-list">
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 22s-8-7.6-8-13a8 8 0 1 1 16 0c0 5.4-8 13-8 13z"/><circle cx="12" cy="9" r="3"/></svg>
+              <span>C. Canónigo 49, oficina derecha — 41701 Dos Hermanas, Sevilla</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z"/></svg>
+              <a href="tel:+34854691460">854 69 14 60</a>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="#25d366" stroke="none"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 0 1 8.413 3.488 11.824 11.824 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l.6.953-1.005 3.668 3.764-.985.62.005zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.149-.173.198-.297.297-.495.099-.198.05-.371-.025-.52-.074-.149-.669-1.612-.916-2.207-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/></svg>
+              <a href="https://wa.me/34635643827?text=Hola%2C%20vengo%20desde%20la%20web%20de%20Montes%20Blanco%20Real%20Estate" target="_blank" rel="noopener">+34 635 64 38 27 (WhatsApp)</a>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 7 9-7"/></svg>
+              <a href="mailto:info@montesblanco.com">info@montesblanco.com</a>
+            </li>
+          </ul>
+        </div>
+
+        <form class="contact-form reveal" action="https://formsubmit.co/info@montesblanco.com" method="POST">
+          <h3 data-i18n="contact.form.title">Envíenos un mensaje</h3>
+          <p class="small" data-i18n="contact.form.sub">Le respondemos en menos de 24 horas laborales.</p>
+
+          <input type="hidden" name="_subject" value="Nuevo contacto desde montesblanco.com">
+          <input type="hidden" name="_template" value="table">
+          <input type="hidden" name="_captcha" value="false">
+          <input type="text" name="_honey" style="display:none">
+
+          <div class="field">
+            <label for="f-name" data-i18n="contact.form.name">Nombre completo</label>
+            <input id="f-name" name="nombre" type="text" required>
+          </div>
+          <div class="field">
+            <label for="f-email" data-i18n="contact.form.email">Correo electrónico</label>
+            <input id="f-email" name="email" type="email" required>
+          </div>
+          <div class="field">
+            <label for="f-phone" data-i18n="contact.form.phone">Teléfono</label>
+            <input id="f-phone" name="telefono" type="tel">
+          </div>
+          <div class="field">
+            <label for="f-subject" data-i18n="contact.form.subject">Tipo de consulta</label>
+            <select id="f-subject" name="asunto" required>
+              <option data-i18n="contact.form.subject.opt1" value="comprar">Quiero comprar</option>
+              <option data-i18n="contact.form.subject.opt2" value="vender">Quiero vender</option>
+              <option data-i18n="contact.form.subject.opt3" value="alquilar">Quiero alquilar</option>
+              <option data-i18n="contact.form.subject.opt4" value="comercial">Tengo un local o nave</option>
+              <option data-i18n="contact.form.subject.opt5" value="otra">Otra consulta</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-msg" data-i18n="contact.form.message">Mensaje</label>
+            <textarea id="f-msg" name="mensaje" required></textarea>
+          </div>
+          <div class="field field--check">
+            <input id="f-priv" type="checkbox" required>
+            <label for="f-priv" data-i18n="contact.form.privacy" data-i18n-html="true">He leído y acepto la <a href="privacidad.html">Política de Privacidad</a>.</label>
+          </div>
+
+          <button type="submit" class="btn btn--primary" data-i18n="contact.form.send">Enviar mensaje</button>
+        </form>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== FOOTER ============== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div class="footer__brand">
+          <div class="footer__brand-mark">MONTES BLANCO</div>
+          <div class="footer__brand-sub">Real Estate</div>
+          <p class="footer__about" data-i18n="footer.about">Inmobiliaria boutique en el corazón de Dos Hermanas. Compra, venta y alquiler con asesoramiento personalizado desde 2005.</p>
+
+          <div class="footer__social">
+            <a href="https://wa.me/34635643827" target="_blank" rel="noopener" aria-label="WhatsApp">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0c3.2 0 6.2 1.247 8.413 3.488a11.82 11.82 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24z"/></svg>
+            </a>
+            <a href="#" target="_blank" rel="noopener" aria-label="Facebook" id="fbLink">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H8v-2.9h2.4V9.8c0-2.4 1.4-3.7 3.6-3.7 1 0 2 .2 2 .2v2.3h-1.2c-1.2 0-1.5.7-1.5 1.5V12h2.6l-.4 2.9h-2.2v7A10 10 0 0 0 22 12z"/></svg>
+            </a>
+            <a href="#" target="_blank" rel="noopener" aria-label="Instagram" id="igLink">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2.5" y="2.5" width="19" height="19" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <h4 data-i18n="footer.col.nav">Navegación</h4>
+          <ul>
+            <li><a href="#about" data-i18n="nav.about">Nosotros</a></li>
+            <li><a href="#services" data-i18n="nav.services">Servicios</a></li>
+            <li><a href="#properties" data-i18n="nav.properties">Inmuebles</a></li>
+            <li><a href="#visit" data-i18n="nav.visit">Visítanos</a></li>
+            <li><a href="#contact" data-i18n="nav.contact">Contacto</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 data-i18n="footer.col.contact">Contacto</h4>
+          <ul>
+            <li>C. Canónigo 49<br>41701 Dos Hermanas</li>
+            <li><a href="tel:+34854691460">854 69 14 60</a></li>
+            <li><a href="https://wa.me/34635643827" target="_blank" rel="noopener">+34 635 64 38 27</a></li>
+            <li><a href="mailto:info@montesblanco.com">info@montesblanco.com</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 data-i18n="footer.col.legal">Información legal</h4>
+          <ul>
+            <li><a href="aviso-legal.html" data-i18n="footer.legal.notice">Aviso legal</a></li>
+            <li><a href="privacidad.html" data-i18n="footer.legal.privacy">Política de privacidad</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer__bottom">
+        <span data-i18n="footer.copyright" id="copyright">© 2026 Montes Blanco Real Estate SL · Todos los derechos reservados</span>
+        <span>CIF B22536601</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- WhatsApp FAB -->
+  <a class="whatsapp-fab" id="waFab" href="https://wa.me/34635643827?text=Hola%2C%20vengo%20desde%20la%20web%20de%20Montes%20Blanco%20Real%20Estate" target="_blank" rel="noopener" aria-label="WhatsApp">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0c3.2 0 6.2 1.247 8.413 3.488a11.82 11.82 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l.6.953-1.005 3.668 3.764-.985.62.005zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.149-.173.198-.297.297-.495.099-.198.05-.371-.025-.52-.074-.149-.669-1.612-.916-2.207-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/></svg>
+  </a>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
