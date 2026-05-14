@@ -16,7 +16,7 @@
 
 ## 🎯 Marca y datos básicos (lo que sabemos hoy, 2026-05-14)
 
-- **Nombre comercial**: **Montes Blanco Real State** *(⚠️ revisar ortografía: lo correcto en inglés es "Real Estate". Si la marca ya está registrada como "Real State", se respeta tal cual; si no, cambiar a "Real Estate").*
+- **Nombre comercial**: **Montes Blanco Real Estate**.
 - **Sector**: Agencia inmobiliaria (real estate).
 - **Dominio previsto**: `www.montesblanco.com` *(confirmar si ya está registrado y a nombre de quién).*
 - **Servicios a listar en la web**:
@@ -43,7 +43,6 @@
 
 Antes de empezar a maquetar hace falta concretar:
 
-- [ ] **Confirmar nombre exacto de la marca** (¿"Real State" o "Real Estate"?).
 - [ ] **Nombre exacto del repo en GitHub** (sugerencia: `montesblanco-web`).
 - [ ] **Cuenta de GitHub** donde se crea el repo (la personal del usuario — confirmar usuario).
 - [ ] **Logo / favicon** de Montes Blanco (¿hay archivo? ¿hay que diseñar uno provisional?).
