@@ -79,6 +79,19 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-05-14 — MacBook Pro
+- Sesión de **planificación**, no se tocó código de Dynamo.
+- Conversación sobre arrancar una web NUEVA: **Montes Blanco Real Estate** (inmobiliaria, negocio del hermano del usuario, totalmente independiente de Dynamo y de Agencia de Transporte).
+- Decisiones tomadas:
+  - Stack: HTML estático tipo Dynamo, servido en Vercel.
+  - Marca confirmada: "Montes Blanco Real Estate" (no "Real State").
+  - Servicios: venta + alquiler de viviendas, naves/locales, suelo/terrenos.
+  - Dominio previsto: `montesblanco.com`.
+  - **Repo**: se creará en la org `dynamotrans` (`dynamotrans/montesblanco-web`) por comodidad operativa, con plan de salida a transferir a cuenta del hermano cuando la tenga.
+- Creado `HANDOFF-inmobiliaria.md` en la raíz de este repo (estilo el de Agencia de Transporte): captura marca, servicios, info pendiente, checklist de 4 fases y plan de retoma.
+- Push a la rama `claude/transport-agency-website-V8Uck` con los 3 commits del HANDOFF.
+- **Próxima sesión (probablemente iMac oficina)**: el usuario debe crear el repo vacío `dynamotrans/montesblanco-web` en GitHub + abrir Codespace ahí + arrancar Claude Code apuntando a ese repo nuevo. Claude no puede crear el repo desde esta sesión (acceso restringido).
+
 ### 2026-05-04 — iMac oficina
 - Añadida **música de fondo** opcional en la web (`audio/dynamo-bg.mp3`, ~6.9 MB, Pixabay royalty-free, sin atribución)
 - **Botón flotante** redondo navy con icono SVG altavoz on/off, esquina inferior derecha

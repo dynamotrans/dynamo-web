@@ -44,4 +44,9 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 ---
 
 > 📌 **Otros proyectos del usuario (NO mezclar con Dynamo):**
-> Para tareas del proyecto **agenciadetransporte-web** ver `HANDOFF-agenciadetransporte.md` en la raíz de este repo (es un archivo de traspaso temporal hasta que se clone el repo nuevo).
+> - **agenciadetransporte-web** → ver `HANDOFF-agenciadetransporte.md` (traspaso temporal hasta clonar el repo nuevo).
+> - **montesblanco-web** (inmobiliaria del hermano, Montes Blanco Real Estate) → ver `HANDOFF-inmobiliaria.md`.
+>   - 🔜 **Acción pendiente del usuario** (NO la puede hacer Claude desde la sesión de Dynamo):
+>     1. Crear repo vacío `dynamotrans/montesblanco-web` en GitHub (privado, sin README).
+>     2. Abrir Codespace en ese repo nuevo.
+>     3. Arrancar Claude Code dentro de ese Codespace y pedirle leer `HANDOFF-inmobiliaria.md` para empezar Fase 1.
