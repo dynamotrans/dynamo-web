@@ -31,7 +31,9 @@
 
 ## 🧭 Estado actual
 
-- ❌ **Repo en GitHub**: NO existe todavía. Se creará en la **cuenta personal** del usuario (no en la org `dynamotrans`).
+- ❌ **Repo en GitHub**: NO existe todavía. Se creará dentro de la org **`dynamotrans`** (sugerencia de nombre: `dynamotrans/montesblanco-web`).
+  - Decisión consciente: se asume que conviven con `dynamo-web` y `agenciadetransporte-web` dentro de la misma org por comodidad operativa (una sola cuenta, un solo dashboard de Vercel).
+  - **Plan de salida**: cuando el hermano del usuario tenga cuenta GitHub propia (o se cree una org `montesblanco`), se **transfiere el repo** a esa cuenta. GitHub conserva commits, issues, PRs, releases y redirige la URL antigua automáticamente. Habrá que reconectar Vercel y re-añadir colaboradores tras la transferencia, pero el código y el historial NO se pierden.
 - ❌ **Proyecto en Vercel**: NO creado.
 - ❌ **Dominio**: pendiente de confirmar registro y apuntado DNS.
 - ❌ **Logo / favicon / paleta**: pendiente.
@@ -43,8 +45,7 @@
 
 Antes de empezar a maquetar hace falta concretar:
 
-- [ ] **Nombre exacto del repo en GitHub** (sugerencia: `montesblanco-web`).
-- [ ] **Cuenta de GitHub** donde se crea el repo (la personal del usuario — confirmar usuario).
+- [ ] **Nombre exacto del repo en GitHub** (propuesta: `dynamotrans/montesblanco-web`).
 - [ ] **Logo / favicon** de Montes Blanco (¿hay archivo? ¿hay que diseñar uno provisional?).
 - [ ] **Paleta de colores** (¿algo ya pensado? ¿se inspira en algún competidor? ¿colores neutros tipo blanco/gris/dorado típicos de inmobiliaria premium?).
 - [ ] **Tipografías** preferidas.
@@ -64,7 +65,7 @@ Antes de empezar a maquetar hace falta concretar:
 ## 📋 Checklist de arranque (cuando tengamos los datos mínimos)
 
 ### Fase 0 — Preparativos (fuera de Claude, 5 min de usuario)
-- [ ] Usuario crea repo vacío en `github.com/<su-usuario>/montesblanco-web` (privado o público, como prefiera).
+- [ ] Usuario crea repo vacío en `github.com/dynamotrans/montesblanco-web` (privado o público, como prefiera).
 - [ ] Usuario abre un Codespace en ese repo nuevo (o lo clona en local).
 - [ ] Usuario arranca **una nueva sesión de Claude Code apuntada a ESE repo**.
 
