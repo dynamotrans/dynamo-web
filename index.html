@@ -1046,11 +1046,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <p style="margin:0 0 0.5rem;font-size:0.75rem;color:rgba(255,255,255,0.5);text-align:center;text-transform:uppercase;letter-spacing:1px;">Idioma / Language</p>
         <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.3rem;justify-items:center;">
             <button onclick="changeLang('es','🇪🇸','ES');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="Español">🇪🇸</button>
+            <button onclick="changeLang('pt','🇵🇹','PT');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="Português">🇵🇹</button>
             <button onclick="changeLang('en','🇬🇧','EN');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="English">🇬🇧</button>
+            <button onclick="changeLang('zh-CN','🇨🇳','ZH');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="中文">🇨🇳</button>
             <button onclick="changeLang('fr','🇫🇷','FR');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="Français">🇫🇷</button>
             <button onclick="changeLang('de','🇩🇪','DE');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="Deutsch">🇩🇪</button>
-            <button onclick="changeLang('pt','🇵🇹','PT');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="Português">🇵🇹</button>
-            <button onclick="changeLang('ar','🇲🇦','AR');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="العربية">🇲🇦</button>
             <button onclick="changeLang('it','🇮🇹','IT');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="Italiano">🇮🇹</button>
             <button onclick="changeLang('uk','🇺🇦','UK');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="Українська">🇺🇦</button>
             <button onclick="changeLang('ro','🇷🇴','RO');closeMobileMenu()" style="padding:0.5rem;font-size:1.4rem;background:none;border:none;cursor:pointer;border-radius:8px;transition:background 0.2s;" title="Română">🇷🇴</button>
@@ -1085,11 +1085,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             </button>
             <div class="lang-dropdown" id="langDropdown">
                 <button class="lang-option active" onclick="changeLang('es','🇪🇸','ES')"><span class="flag">🇪🇸</span> Español</button>
+                <button class="lang-option" onclick="changeLang('pt','🇵🇹','PT')"><span class="flag">🇵🇹</span> Português</button>
                 <button class="lang-option" onclick="changeLang('en','🇬🇧','EN')"><span class="flag">🇬🇧</span> English</button>
+                <button class="lang-option" onclick="changeLang('zh-CN','🇨🇳','ZH')"><span class="flag">🇨🇳</span> 中文</button>
                 <button class="lang-option" onclick="changeLang('fr','🇫🇷','FR')"><span class="flag">🇫🇷</span> Français</button>
                 <button class="lang-option" onclick="changeLang('de','🇩🇪','DE')"><span class="flag">🇩🇪</span> Deutsch</button>
-                <button class="lang-option" onclick="changeLang('pt','🇵🇹','PT')"><span class="flag">🇵🇹</span> Português</button>
-                <button class="lang-option" onclick="changeLang('ar','🇲🇦','AR')"><span class="flag">🇲🇦</span> العربية</button>
                 <button class="lang-option" onclick="changeLang('it','🇮🇹','IT')"><span class="flag">🇮🇹</span> Italiano</button>
                 <button class="lang-option" onclick="changeLang('uk','🇺🇦','UK')"><span class="flag">🇺🇦</span> Українська</button>
                 <button class="lang-option" onclick="changeLang('ro','🇷🇴','RO')"><span class="flag">🇷🇴</span> Română</button>
@@ -2313,7 +2313,7 @@ function googleTranslateElementInit() {
     new google.translate.TranslateElement({
         pageLanguage: 'es',
         autoDisplay: false,
-        includedLanguages: 'en,fr,de,pt,ar,it,uk,ro,pl,nl'
+        includedLanguages: 'pt,en,zh-CN,fr,de,it,uk,ro,pl,nl'
     }, 'google_translate_element');
     var checkReady = setInterval(function() {
         var sel = document.querySelector('.goog-te-combo');
@@ -2328,11 +2328,11 @@ function googleTranslateElementInit() {
 
 // Language map for detecting active language on page load
 var langMap = {
+    'pt': { flag: '🇵🇹', code: 'PT' },
     'en': { flag: '🇬🇧', code: 'EN' },
+    'zh-CN': { flag: '🇨🇳', code: 'ZH' },
     'fr': { flag: '🇫🇷', code: 'FR' },
     'de': { flag: '🇩🇪', code: 'DE' },
-    'pt': { flag: '🇵🇹', code: 'PT' },
-    'ar': { flag: '🇲🇦', code: 'AR' },
     'it': { flag: '🇮🇹', code: 'IT' },
     'uk': { flag: '🇺🇦', code: 'UK' },
     'ro': { flag: '🇷🇴', code: 'RO' },
@@ -2365,13 +2365,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Check for googtrans cookie (user already chose a language before)
-    var match = document.cookie.match(/googtrans=\/es\/(\w+)/);
+    var match = document.cookie.match(/googtrans=\/es\/([\w-]+)/);
     if (match && match[1] && langMap[match[1]]) {
         var lang = match[1];
         var info = langMap[lang];
         var langBtn = document.getElementById('langBtn');
         if (langBtn) langBtn.innerHTML = '<span class="flag">' + info.flag + '</span> ' + info.code + ' <span class="arrow">▼</span>';
-        if (lang === 'ar') document.documentElement.setAttribute('dir', 'rtl');
         // Delay loading Google Translate slightly to not block page render
         setTimeout(loadGoogleTranslate, 1000);
         return;
@@ -2389,7 +2388,6 @@ document.addEventListener('DOMContentLoaded', function() {
             var info = langMap[browserLang];
             var langBtn = document.getElementById('langBtn');
             if (langBtn) langBtn.innerHTML = '<span class="flag">' + info.flag + '</span> ' + info.code + ' <span class="arrow">▼</span>';
-            if (browserLang === 'ar') document.documentElement.setAttribute('dir', 'rtl');
             // Set googtrans cookie and load translator
             document.cookie = 'googtrans=/es/' + browserLang + '; path=/';
             document.cookie = 'googtrans=/es/' + browserLang + '; path=/; domain=' + location.hostname;
@@ -2456,13 +2454,6 @@ function changeLang(lang, flag, code) {
     var btn = document.getElementById('langBtn');
     if (dd) dd.classList.remove('open');
     if (btn) btn.classList.remove('open');
-
-    // Handle RTL for Arabic
-    if (lang === 'ar') {
-        document.documentElement.setAttribute('dir', 'rtl');
-    } else {
-        document.documentElement.removeAttribute('dir');
-    }
 
     // Reset to Spanish
     if (lang === 'es') {
