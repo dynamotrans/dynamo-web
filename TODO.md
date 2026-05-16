@@ -3,7 +3,8 @@
 Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo actualiza al terminar.
 
 ## 🔥 Prioridad alta
-<!-- Cosas urgentes -->
+- [ ] **Borrar proyecto Vercel duplicado `dynamo-web-muoi`** — Apunta al mismo repo que el bueno (`dynamo-web`, que tiene `dynamotrans.com`). El duplicado no tiene dominio personalizado y redespliega en cada push inútilmente. Borrar desde dashboard Vercel: proyecto `dynamo-web-muoi` > Settings > Advanced > Delete Project. ⚠️ Verificar antes que NO aparece `dynamotrans.com` en sus dominios
+- [ ] **Verificar FAB de contacto en producción** — Comprobar en dynamotrans.com (refresco fuerte): foto redonda, aro verde pulsante, abanico Email/WhatsApp/Llamar con rebote, cierre por click fuera / Escape / selección, y versión móvil. No se pudo probar en navegador real al implementarlo
 
 ## 📋 Normal
 <!-- Cosas que hacer cuando haya tiempo -->
@@ -37,6 +38,8 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## ✅ Hecho recientemente
 <!-- Claude mueve aquí las tareas completadas. Se limpia cada ~2 semanas -->
+- [x] 2026-05-16 — Selector de idiomas: árabe → chino + reordenado (11 idiomas)
+- [x] 2026-05-16 — Nuevo FAB de contacto (foto + abanico Email/WhatsApp/Llamar); retirado chat IA y WhatsApp flotante
 - [x] 2026-05-04 — Música de fondo opcional + botón flotante mute/unmute en dynamotrans.com
 - [x] 2026-04-14 — Configurar GitHub Codespaces (.devcontainer)
 - [x] 2026-04-14 — Crear CLAUDE.md con reglas de push y bitácora

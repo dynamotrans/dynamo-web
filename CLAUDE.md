@@ -79,6 +79,15 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-05-16 — MacBook Pro
+- **Selector de idiomas**: quitado árabe 🇲🇦, añadido chino 🇨🇳 中文 (`zh-CN`) y reordenadas las 11 opciones (ES, PT, EN, ZH, FR, DE, IT, UK, RO, PL, NL); regex de cookie `googtrans` ampliada a `[\w-]+` para detectar `zh-CN` al recargar; eliminado código RTL muerto del árabe
+- **Nuevo FAB de contacto** abajo-derecha: foto redonda (`images/mi-foto.jpg`) + aro verde pulsante + abanico Email/WhatsApp/Llamar con rebote escalonado; cierre por click fuera, Escape o selección; responsive y respeta `prefers-reduced-motion`
+- **Eliminados** el botón flotante de WhatsApp y el asistente de chat IA completo (overlay, bot, ~226 líneas JS, CSS); conservado `@keyframes chatPop` porque lo usa el dropdown de idiomas
+- Añadido `.gitignore` (excluye `.claude/settings.local.json`); todo mergeado/pusheado a `main` → desplegado en producción (dynamotrans.com)
+- Detectado: **2 proyectos Vercel** sobre el mismo repo. El bueno es `dynamo-web` (tiene `dynamotrans.com`); `dynamo-web-muoi` es un duplicado huérfano sin dominio
+- **Pendiente**: el usuario debe borrar el proyecto duplicado `dynamo-web-muoi` desde el dashboard de Vercel (Settings > Advanced > Delete Project). Verificar antes que NO tiene `dynamotrans.com`
+- **Pendiente**: verificar visualmente el FAB en producción (foto redonda, pulso, abanico, Escape) — no se pudo probar en navegador real esta sesión
+
 ### 2026-05-04 — iMac oficina
 - Añadida **música de fondo** opcional en la web (`audio/dynamo-bg.mp3`, ~6.9 MB, Pixabay royalty-free, sin atribución)
 - **Botón flotante** redondo navy con icono SVG altavoz on/off, esquina inferior derecha
