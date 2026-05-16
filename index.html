@@ -688,8 +688,58 @@
         /* =========================================
            FLOAT WA
         ========================================= */
-        .float-wa { position:fixed; bottom:1.8rem; right:1.8rem; z-index:998; width:56px; height:56px; border-radius:50%; background:#25D366; color:white; display:flex; align-items:center; justify-content:center; text-decoration:none; box-shadow:0 4px 20px rgba(37,211,102,0.5); animation:waPulse 3s ease-in-out infinite; transition:transform 0.3s; }
-        .float-wa:hover { transform:scale(1.12); }
+        /* Botón flotante de contacto (FAB) */
+        .contact-fab-wrap { position:fixed; bottom:1.8rem; right:1.8rem; z-index:998; display:flex; flex-direction:column-reverse; align-items:center; gap:0.85rem; }
+        .contact-fab {
+            width:64px; height:64px; border-radius:50%; border:none; padding:0; cursor:pointer;
+            background:none; position:relative; flex-shrink:0;
+        }
+        .contact-fab img {
+            width:100%; height:100%; border-radius:50%; object-fit:cover; display:block;
+            box-shadow:0 4px 20px rgba(10,2,48,0.35);
+        }
+        .contact-fab::before {
+            content:""; position:absolute; inset:-4px; border-radius:50%;
+            border:3px solid #25D366; animation:fabRing 2s ease-out infinite; pointer-events:none;
+        }
+        .contact-fab-wrap.open .contact-fab::before { animation:none; opacity:0; }
+        .contact-fab:hover { transform:scale(1.06); }
+        .contact-fab, .contact-fab img { transition:transform 0.25s ease; }
+        @keyframes fabRing {
+            0%   { transform:scale(1);   opacity:0.9; }
+            70%  { transform:scale(1.35); opacity:0; }
+            100% { transform:scale(1.35); opacity:0; }
+        }
+        .contact-fab-actions { display:flex; flex-direction:column; gap:0.7rem; align-items:center; }
+        .contact-fab-action {
+            width:52px; height:52px; border-radius:50%; border:none; cursor:pointer;
+            display:flex; align-items:center; justify-content:center; color:white;
+            box-shadow:0 4px 16px rgba(10,2,48,0.3); text-decoration:none;
+            opacity:0; transform:translateY(14px) scale(0.6); pointer-events:none;
+            transition:opacity 0.25s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .contact-fab-action.act-email { background:var(--purple); }
+        .contact-fab-action.act-wa    { background:#25D366; }
+        .contact-fab-action.act-call  { background:#0a0230; }
+        .contact-fab-wrap.open .contact-fab-action {
+            opacity:1; transform:translateY(0) scale(1); pointer-events:auto;
+        }
+        .contact-fab-wrap.open .contact-fab-action:nth-child(1) { transition-delay:0.05s; }
+        .contact-fab-wrap.open .contact-fab-action:nth-child(2) { transition-delay:0.12s; }
+        .contact-fab-wrap.open .contact-fab-action:nth-child(3) { transition-delay:0.19s; }
+        .contact-fab-action:hover { transform:translateY(-2px) scale(1.1) !important; }
+        @media (max-width:600px) {
+            .contact-fab-wrap { bottom:1.2rem; right:1.2rem; gap:0.6rem; }
+            .contact-fab { width:54px; height:54px; }
+            .contact-fab-action { width:46px; height:46px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .contact-fab::before { animation:none; }
+            .contact-fab, .contact-fab img, .contact-fab-action { transition:opacity 0.15s linear; }
+            .contact-fab-wrap.open .contact-fab-action { transform:none; }
+            .contact-fab-action { transform:none; }
+            .contact-fab:hover, .contact-fab-action:hover { transform:none !important; }
+        }
 
         /* =========================================
            FLOAT MUSIC
@@ -882,7 +932,6 @@
         ========================================= */
         @keyframes fadeUp { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
         @keyframes bounceY { 0%,100% { transform:translateX(-50%) translateY(0); } 50% { transform:translateX(-50%) translateY(9px); } }
-        @keyframes waPulse { 0%,100% { box-shadow:0 4px 20px rgba(37,211,102,0.5); } 50% { box-shadow:0 4px 42px rgba(37,211,102,0.75); } }
         @keyframes scrollLoop { 0% { transform:translateX(0); } 100% { transform:translateX(-50%); } }
 
         /* =========================================
@@ -925,107 +974,7 @@
             .gallery-grid { grid-template-columns:1fr; }
             .g-item:nth-child(1) { grid-column:span 1; }
         }
-        /* =========================================
-           AI CHAT WIDGET
-        ========================================= */
-        .chat-overlay {
-            position: fixed; inset: 0; z-index: 10000;
-            background: rgba(10,2,48,0.55); backdrop-filter: blur(6px);
-            display: flex; align-items: center; justify-content: center;
-            opacity: 1; transition: opacity 0.3s;
-        }
-        .chat-overlay.hidden { opacity: 0; pointer-events: none; }
-        .chat-box {
-            width: 420px; max-width: 94vw; height: 520px; max-height: 85vh;
-            background: white; border-radius: 22px; display: flex; flex-direction: column;
-            box-shadow: 0 25px 80px rgba(51,0,204,0.35); overflow: hidden;
-            transform: translateY(0); transition: transform 0.3s;
-        }
-        .chat-overlay.hidden .chat-box { transform: translateY(30px); }
-        .chat-header {
-            background: linear-gradient(135deg, var(--purple), var(--purple-light));
-            padding: 1rem 1.2rem; display: flex; align-items: center; gap: 0.7rem; flex-shrink: 0;
-        }
-        .chat-avatar {
-            width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.2);
-            display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: white; font-weight: 900;
-        }
-        .chat-header-info { flex: 1; }
-        .chat-header-name { color: white; font-weight: 800; font-size: 0.95rem; }
-        .chat-header-status { color: rgba(255,255,255,0.7); font-size: 0.7rem; font-weight: 600; }
-        .chat-close {
-            background: rgba(255,255,255,0.15); border: none; color: white; width: 30px; height: 30px;
-            border-radius: 50%; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
-            transition: background 0.2s;
-        }
-        .chat-close:hover { background: rgba(255,255,255,0.3); }
-        .chat-messages {
-            flex: 1; overflow-y: auto; padding: 1.2rem; display: flex; flex-direction: column; gap: 0.7rem;
-            background: var(--gray-100);
-        }
-        .chat-msg {
-            max-width: 82%; padding: 0.7rem 1rem; border-radius: 16px; font-size: 0.85rem; line-height: 1.5;
-            animation: chatPop 0.3s ease;
-        }
         @keyframes chatPop { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-        .chat-msg.bot {
-            background: white; color: var(--gray-700); align-self: flex-start;
-            border-bottom-left-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-        }
-        .chat-msg.user {
-            background: var(--purple); color: white; align-self: flex-end;
-            border-bottom-right-radius: 4px;
-        }
-        .chat-msg.bot .bot-label { font-size: 0.65rem; font-weight: 700; color: var(--purple); margin-bottom: 2px; }
-        .chat-quick-btns {
-            display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0 1.2rem 0.8rem;
-            background: var(--gray-100);
-        }
-        .chat-quick {
-            background: white; border: 1.5px solid var(--gray-200); color: var(--purple);
-            padding: 0.4rem 0.85rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700;
-            cursor: pointer; transition: all 0.2s; white-space: nowrap;
-        }
-        .chat-quick:hover { border-color: var(--purple); background: rgba(51,0,204,0.05); }
-        .chat-input-wrap {
-            display: flex; align-items: center; gap: 0.5rem; padding: 0.8rem 1rem;
-            border-top: 1px solid var(--gray-200); background: white; flex-shrink: 0;
-        }
-        .chat-input {
-            flex: 1; border: 1.5px solid var(--gray-200); border-radius: 50px; padding: 0.6rem 1rem;
-            font-size: 16px; outline: none; font-family: inherit; transition: border-color 0.2s;
-        }
-        .chat-input:focus { border-color: var(--purple); }
-        .chat-send {
-            width: 38px; height: 38px; border-radius: 50%; border: none;
-            background: var(--purple); color: white; cursor: pointer; display: flex;
-            align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0;
-        }
-        .chat-send:hover { background: var(--purple-light); }
-        .chat-typing { display: flex; gap: 4px; align-items: center; padding: 0.7rem 1rem; align-self: flex-start; }
-        .chat-typing span {
-            width: 7px; height: 7px; border-radius: 50%; background: var(--gray-400);
-            animation: typingDot 1.2s infinite;
-        }
-        .chat-typing span:nth-child(2) { animation-delay: 0.2s; }
-        .chat-typing span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes typingDot { 0%,60%,100% { opacity:0.3; transform:translateY(0); } 30% { opacity:1; transform:translateY(-4px); } }
-
-        /* Boton para reabrir el chat */
-        .chat-fab {
-            position: fixed; bottom: 100px; right: 2rem; z-index: 9999;
-            width: 56px; height: 56px; border-radius: 50%; border: none;
-            background: linear-gradient(135deg, var(--purple), var(--purple-light));
-            color: white; font-size: 1.4rem; cursor: pointer;
-            box-shadow: 0 6px 25px rgba(51,0,204,0.4);
-            display: none; align-items: center; justify-content: center; transition: transform 0.2s;
-        }
-        .chat-fab:hover { transform: scale(1.1); }
-        .chat-fab.show { display: flex; }
-
-        @media (max-width:500px) {
-            .chat-box { height: 70vh; border-radius: 16px; }
-        }
     </style>
 </head>
 <body>
@@ -1938,10 +1887,23 @@ function openLegal(tab) {
     </div>
 </footer>
 
-<!-- FLOATING WA -->
-<a target="_blank" rel="noopener" href="https://wa.me/34628995709" class="float-wa" title="WhatsApp" aria-label="Contactar por WhatsApp">
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-</a>
+<!-- FLOATING CONTACT FAB -->
+<div class="contact-fab-wrap" id="contactFab">
+    <button class="contact-fab" id="contactFabBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Abrir opciones de contacto">
+        <img src="images/mi-foto.jpg" alt="Contacto Dynamo Transportes">
+    </button>
+    <div class="contact-fab-actions" role="menu" aria-label="Canales de contacto">
+        <a class="contact-fab-action act-email" role="menuitem" href="mailto:info@dynamotrans.com" aria-label="Enviar email">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+        </a>
+        <a class="contact-fab-action act-wa" role="menuitem" target="_blank" rel="noopener" href="https://wa.me/34628995709" aria-label="Contactar por WhatsApp">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        </a>
+        <a class="contact-fab-action act-call" role="menuitem" href="tel:+34955225945" aria-label="Llamar por teléfono">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.18z"/></svg>
+        </a>
+    </div>
+</div>
 
 <!-- FLOATING MUSIC -->
 <audio id="bgMusic" loop preload="none">
@@ -2026,272 +1988,6 @@ function openLegal(tab) {
     });
 </script>
 
-<!-- AI CHAT WIDGET -->
-<div class="chat-overlay hidden" id="chatOverlay">
-    <div class="chat-box">
-        <div class="chat-header">
-            <div class="chat-avatar">D</div>
-            <div class="chat-header-info">
-                <div class="chat-header-name">Dynamo Asistente</div>
-                <div class="chat-header-status">En linea - respuesta inmediata</div>
-            </div>
-            <button class="chat-close" onclick="closeChat()" title="Cerrar">&times;</button>
-        </div>
-        <div class="chat-messages" id="chatMessages">
-            <div class="chat-msg bot">
-                <div class="bot-label">Dynamo IA</div>
-                Hola! Soy el asistente de <strong>Dynamo Transportes</strong>. Puedo ayudarte con precios, rutas, plazos de entrega y cualquier duda sobre nuestros servicios. Preguntame lo que necesites!
-            </div>
-        </div>
-        <div class="chat-quick-btns" id="chatQuickBtns">
-            <button class="chat-quick" onclick="sendQuick(this)">Que servicios ofreceis?</button>
-            <button class="chat-quick" onclick="sendQuick(this)">Necesito un presupuesto</button>
-            <button class="chat-quick" onclick="sendQuick(this)">Plazos de entrega</button>
-            <button class="chat-quick" onclick="sendQuick(this)">Paises de exportacion</button>
-            <button class="chat-quick" onclick="sendQuick(this)">Tipos de camion</button>
-            <button class="chat-quick" onclick="sendQuick(this)">Seguro de mercancia</button>
-            <button class="chat-quick" onclick="sendQuick(this)">Contactar</button>
-        </div>
-        <div class="chat-input-wrap">
-            <input type="text" class="chat-input" id="chatInput" placeholder="Escribe tu pregunta..." onkeydown="if(event.key==='Enter')sendMsg()">
-            <button class="chat-send" onclick="sendMsg()" title="Enviar">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-            </button>
-        </div>
-    </div>
-</div>
-<button class="chat-fab show" id="chatFab" onclick="openChat()" title="Abrir chat">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
-</button>
-
-<script>
-(function(){
-    const overlay = document.getElementById('chatOverlay');
-    const fab = document.getElementById('chatFab');
-    const msgs = document.getElementById('chatMessages');
-    const input = document.getElementById('chatInput');
-    const quickBtns = document.getElementById('chatQuickBtns');
-
-    // ===========================================
-    // BASE DE CONOCIMIENTO DYNAMO TRANSPORTES
-    // ===========================================
-    const R = {
-        servicios: '📦 <strong>Servicios de Dynamo Transportes:</strong>\n\n• <strong>Grupajes y Cargas Completas</strong> — Mercancia paletizada (seca) y cargas especiales.\n• <strong>Nacional 24h</strong> — Toda Espana: ambito local, regional y nacional.\n• <strong>Importacion</strong> — Desde cualquier punto de Europa hasta la puerta de tu empresa.\n• <strong>Exportacion</strong> — Portugal, Francia, Italia, Alemania, Polonia, Austria, Belgica, Irlanda, Dinamarca, Suiza, Paises Bajos y Luxemburgo (BENELUX).\n\n⚠️ <em>Trabajamos exclusivamente con trailer tauliner y rigido lona. No disponemos de frigorificos, pisos moviles ni bañeras basculantes.</em>\n\nSi necesitas un servicio concreto que no ves aqui, consultanos.',
-
-        precio: '💰 <strong>Presupuesto personalizado:</strong>\n\nNuestros precios dependen de la ruta, tipo de mercancia y volumen. Para darte tarifa al instante necesito:\n\n• Origen y destino\n• Tipo de mercancia\n• Peso y medidas (n.º de pallets/bultos)\n\nPuedes pedirnos cotizacion directa:\n📱 <strong>WhatsApp:</strong> +34 628 995 709\n📧 <strong>Email:</strong> info@dynamotrans.com\n📞 <strong>Telefono:</strong> +34 955 225 945',
-
-        grupaje: '🚛 <strong>Grupajes nacionales e internacional:</strong>\n\nRealizamos grupajes diarios en las principales rutas nacionales e internacionales. Mercancia paletizada seca y cargas especiales.\n\n• Recogida en 24h\n• Entrega nacional en 24-48h\n• Presentes en los principales polos logisticos de la peninsula\n• Vehiculos: trailer tauliner y rigido con plataforma\n\nIndicame origen, destino y tipo de mercancia para darte tarifa.',
-
-        plazo: '⏱️ <strong>Plazos de entrega:</strong>\n\n• <strong>Nacional 24h</strong> — Peninsular, local y regional\n• <strong>Internacional</strong> — Segun destino en Europa\n• <strong>Garantia:</strong> La mercancia llega en tiempo y en perfectas condiciones\n\nSomos conscientes de que la inmediatez es esencial en logistica. Respondemos a las necesidades al instante.',
-
-        internacional: '🌍 <strong>Transporte Internacional:</strong>\n\n<strong>Importacion:</strong> Desde cualquier punto de Europa hasta la puerta de tu empresa, garantizando plazos y calidad.\n\n<strong>Exportacion a:</strong> Portugal, Francia, Italia, Alemania, Polonia, Austria, Belgica, Irlanda, Dinamarca, Suiza, Paises Bajos y Luxemburgo (BENELUX).\n\n• Grupaje y carga completa\n• Servicio de traficos Import & Export\n\nIndicame pais y tipo de carga para presupuesto.',
-
-        tauliner: '🚛 <strong>TAULINER — Cortina / Lona Corredera:</strong>\n\nPara mercancia paletizada, palot/box y mercancias especiales. Cortinas correderas para facil acceso a la carga.\n\n📐 <strong>Medidas interiores:</strong>\n• Largo: 13,60m\n• Ancho: 2,45m\n• Altura: 2,70m\n\n⚖️ <strong>Carga util max:</strong> 24.000 kg (24 Tn.)\n\n🚪 <strong>Apertura:</strong> lateral, trasero y techo\n\n📦 <strong>Capacidad:</strong>\n• 33 pales europeos (120x80 cm)\n• 26 pales americanos (120x100 cm)',
-
-        rigido: '🚚 <strong>RIGIDO con Plataforma y Transpaleta:</strong>\n\nCon cortinas correderas, ideal para cargas donde no existen medios de carga/descarga.\n\n📐 <strong>Medidas interiores:</strong>\n• Largo: 8m\n• Ancho: 2,45m\n• Alto: 2,70m\n\n⚖️ <strong>Carga util max:</strong> 14.000 kg (14 Tn.)\n\n🚪 <strong>Apertura:</strong> lateral, trasero y techo\n\n📦 <strong>Capacidad:</strong>\n• 20 pales europeos (120x80 cm)\n• 16 pales americanos (120x100 cm)\n\nMuy util para entregas urbanas o puntos sin muelle de carga.',
-
-        camion: '🚛 <strong>Tipos de vehiculo disponibles:</strong>\n\n<strong>1. TAULINER (Cortina/Lona):</strong>\n• 13,60m x 2,45m x 2,70m (interior)\n• Carga max: 24 Tn.\n• Apertura lateral, trasero y techo\n• 33 pales europeos o 26 americanos\n\n<strong>2. RIGIDO con Plataforma + Transpaleta:</strong>\n• 8m x 2,45m x 2,70m (interior)\n• Carga max: 14 Tn.\n• Apertura lateral, trasero y techo\n• 20 pales europeos o 16 americanos\n• Ideal sin medios de carga/descarga\n\nAmbos con cortinas correderas para facil acceso.',
-
-        seguro: '🛡️ <strong>Seguro de Mercancias:</strong>\n\nLa tranquilidad de nuestros clientes es prioridad.\n\n• <strong>Seguro de cobertura propia de 250.000€ con MAPFRE</strong>, adicional al que tenga cada medio de transporte.\n• Todos los transportes estan amparados por el Seguro de Transportes de maxima cobertura.\n• Somos <strong>Operador de Transporte Autorizado</strong> por el Ministerio de Transportes.',
-
-        operador: '📋 <strong>Datos del Operador Autorizado:</strong>\n\nSomos Operador de Transporte Autorizado conforme a la Ley de Ordenacion de Transportes Terrestres.\n\n• <strong>Titular:</strong> DYNAMO OPERADOR LOGISTICO S.L.\n• <strong>CIF:</strong> B01596360\n• <strong>N.º Tarjeta O.T.:</strong> 12548918-1\n\n🛡️ Seguro de mercancias de 250.000€ con MAPFRE.',
-
-        mercancia: '📦 <strong>Que tipo de mercancia transportamos:</strong>\n\n<strong>Distribucion general:</strong> bienes de consumo, alimentacion, bebidas, higiene y limpieza, electrodomesticos, logistica de palets.\n\n<strong>Industria/Construccion:</strong> textil, manufacturera, muebles y madera, salinera, automocion, farmaceutica, estructuras, aridos, editorial, fertilizantes, abonos.\n\n<strong>Maquinaria:</strong> de construccion, campos de golf, laboratorios, equipos industriales.\n\n<strong>Eventos:</strong> deportivos, culturales, conciertos, teatros, festivales, empresariales, exposiciones, politicos.',
-
-        ventajas: '✅ <strong>Ventajas de trabajar con Dynamo:</strong>\n\n✅ <strong>Cobertura logistica</strong> — Nacional e Internacional (Portugal, Italia, Alemania, Francia, BENELUX). Import & Export.\n\n✅ <strong>Capacidad operativa</strong> — Transportes recurrentes y puntuales de cualquier envergadura.\n\n✅ <strong>Trato personalizado</strong> — Siempre el mismo gestor de transporte.\n\n✅ <strong>Seguro 250.000€</strong> con MAPFRE, adicional al de cada transporte.\n\n✅ <strong>Asistencia 24 horas</strong> — Soporte para incidencias y urgencias.\n\n✅ <strong>Operador Autorizado</strong> — Tarjeta O.T. 12548918-1.',
-
-        garantia: '🤝 <strong>Nuestra garantia:</strong>\n\n<strong>1. CONFIANZA, CALIDAD, SEGURIDAD Y COMPROMISO</strong>\nGarantizamos que la mercancia llega en tiempo y en perfectas condiciones.\n\n<strong>2. RAPIDEZ, EFICACIA E INMEDIATEZ</strong>\nRespondemos a las necesidades de nuestros clientes al instante.\n\n<strong>3. ATENCION PERSONALIZADA</strong>\nEquipo altamente cualificado para atender y solucionar necesidades de forma directa e individualizada.',
-
-        contacto: '📞 <strong>Contacta con nosotros:</strong>\n\n📱 <strong>WhatsApp:</strong> +34 628 995 709\n📞 <strong>Telefono:</strong> +34 955 225 945\n📧 <strong>Email:</strong> info@dynamotrans.com\n\n🕐 <strong>Horario:</strong>\nL-J: 8:00 a 18:00 · V: 8:00-14:00\nOnline 24h canal abierto\n\n🌍 <strong>Cobertura:</strong> Toda Espana + Europa (Portugal, Francia, Italia, Alemania, Polonia, Austria, Benelux, Irlanda, Dinamarca, Suiza)',
-
-        horario: '🕐 <strong>Horario de atencion:</strong>\n\n• <strong>Atencion telefonica:</strong> L-J: 8:00 a 18:00 · V: 8:00-14:00\n• <strong>Linea 24h</strong> para incidencias y urgencias\n• <strong>WhatsApp:</strong> +34 628 995 709 (respuesta rapida)\n\nFuera de horario puedes escribirnos por WhatsApp o email y te respondemos a primera hora.',
-
-        oficina: '🌍 <strong>Cobertura Dynamo:</strong>\n\nOperamos en <strong>toda Espana</strong> y principales rutas europeas:\n\n• Portugal, Francia, Italia, Alemania\n• Polonia, Austria, Belgica, Paises Bajos\n• Luxemburgo, Irlanda, Dinamarca, Suiza\n\nRecogida y entrega en cualquier punto.\n\n📱 WhatsApp: +34 628 995 709\n📞 Telefono: +34 955 225 945\n📧 Email: info@dynamotrans.com',
-
-        pallet: '📦 <strong>Capacidad por pales:</strong>\n\n<strong>Tauliner (trailer):</strong>\n• 33 pales europeos (120x80 cm)\n• 26 pales americanos (120x100 cm)\n• Carga util max: 24.000 kg (24 Tn.)\n\n<strong>Rigido con plataforma:</strong>\n• 20 pales europeos o 16 americanos\n• Carga util max: 14.000 kg (14 Tn.)\n• Largo 8m, ideal para entregas sin muelle\n\nIndicame origen, destino y n.º de pales para darte tarifa.',
-
-        temperatura: '⚠️ <strong>Servicio no disponible:</strong>\n\nTrabajamos exclusivamente con <strong>trailer tauliner (lona corredera)</strong> y <strong>rigido con plataforma</strong>.\n\n<strong>No disponemos de:</strong>\n• Trailers frigorificos / temperatura controlada\n• Pisos moviles\n• Bañeras basculantes\n• Servicio de granel o frio/congelado\n\nSi tu mercancia puede ir en tauliner o rigido lona, estaremos encantados de ayudarte:\n\n📱 WhatsApp: +34 628 995 709\n📞 Telefono: +34 955 225 945',
-
-        defaultResp: '🤔 Gracias por tu consulta. Para darte la informacion mas precisa, te recomiendo contactar directamente:\n\n📱 <strong>WhatsApp:</strong> +34 628 995 709\n📞 <strong>Telefono:</strong> +34 955 225 945\n📧 <strong>Email:</strong> info@dynamotrans.com\n\n🕐 L-J: 8:00 a 18:00 · V: 8:00-14:00\n(Online 24h canal abierto)'
-    };
-
-    function getResponse(text) {
-        text = text.toLowerCase();
-
-        // Saludos
-        if (/^(hola|buenas|buenos|hey|hi|que tal|qtal)/.test(text))
-            return 'Hola! 👋 Bienvenido a <strong>Dynamo Transportes</strong>. Puedo informarte sobre nuestros servicios, tarifas, plazos, tipos de vehiculo, seguros o ponerte en contacto con un comercial. Que necesitas?';
-
-        // Agradecimientos
-        if (/^(gracias|vale|ok|perfecto|genial|estupendo|guay)/.test(text))
-            return 'De nada! 😊 Si necesitas algo mas, aqui estoy. Tambien puedes contactarnos directamente:\n📱 WhatsApp: +34 628 995 709\n📞 Telefono: +34 955 225 945';
-
-        // Servicios generales
-        if (text.includes('servicio') || text.includes('haceis') || text.includes('ofreceis') || text.includes('dedicais'))
-            return R.servicios;
-
-        // Precios / Presupuesto / Cotizacion
-        if (text.includes('precio') || text.includes('tarifa') || text.includes('costar') || text.includes('cuesta') || text.includes('presupuesto') || text.includes('cotiz') || text.includes('cuanto'))
-            return R.precio;
-
-        // Grupaje
-        if (text.includes('grupaje') || text.includes('grupajes'))
-            return R.grupaje;
-
-        // Plazos de entrega
-        if (text.includes('plazo') || text.includes('tarda') || text.includes('entrega') || text.includes('llega') || text.includes('rapido') || text.includes('urgente') || text.includes('24h') || text.includes('express'))
-            return R.plazo;
-
-        // Temperatura controlada / frio / refrigerado / pisos moviles / bañeras
-        if (text.includes('frio') || text.includes('refriger') || text.includes('temperatura') || text.includes('congelad') || text.includes('piso') || text.includes('basculante') || text.includes('banera') || text.includes('frigori'))
-            return R.temperatura;
-
-        // Tipos de camion / vehiculo
-        if (text.includes('camion') || text.includes('vehiculo') || text.includes('flota') || text.includes('tipo de'))
-            return R.camion;
-
-        // Tauliner
-        if (text.includes('tauliner') || text.includes('cortina') || text.includes('lona') || text.includes('trailer'))
-            return R.tauliner;
-
-        // Rigido
-        if (text.includes('rigido') || text.includes('plataforma') || text.includes('transpaleta'))
-            return R.rigido;
-
-        // Pallet / Pale
-        if (text.includes('pallet') || text.includes('palet') || text.includes('pale') || text.includes('europeo') || text.includes('americano'))
-            return R.pallet;
-
-        // Medidas / dimensiones / capacidad
-        if (text.includes('medida') || text.includes('dimension') || text.includes('capacidad') || text.includes('peso') || text.includes('kilos') || text.includes('tonelada') || text.includes('metros') || text.includes('largo') || text.includes('ancho') || text.includes('alto'))
-            return R.tauliner;
-
-        // Internacional / Exportacion / Importacion
-        if (text.includes('internacion') || text.includes('europa') || text.includes('exporta') || text.includes('importa') || text.includes('francia') || text.includes('portugal') || text.includes('alemania') || text.includes('italia') || text.includes('polonia') || text.includes('austria') || text.includes('belgica') || text.includes('irlanda') || text.includes('dinamarca') || text.includes('suiza') || text.includes('paises bajos') || text.includes('luxemburgo') || text.includes('benelux') || text.includes('pais'))
-            return R.internacional;
-
-        // Carga completa
-        if (text.includes('completa') || text.includes('carga completa'))
-            return R.grupaje;
-
-        // Seguro / Mapfre / Cobertura
-        if (text.includes('seguro') || text.includes('mapfre') || text.includes('cobertura') || text.includes('asegurad'))
-            return R.seguro;
-
-        // Operador / Licencia / Tarjeta / CIF / Legal
-        if (text.includes('operador') || text.includes('licencia') || text.includes('tarjeta') || text.includes('autoriza') || text.includes('cif') || text.includes('legal'))
-            return R.operador;
-
-        // Tipo de mercancia
-        if (text.includes('mercancia') || text.includes('que transporta') || text.includes('que lleva') || text.includes('producto') || text.includes('maquinaria') || text.includes('evento') || text.includes('construccion') || text.includes('industria') || text.includes('alimenta') || text.includes('electrodomestico') || text.includes('mueble') || text.includes('concierto') || text.includes('festival'))
-            return R.mercancia;
-
-        // Ventajas / Por que Dynamo
-        if (text.includes('ventaja') || text.includes('por que') || text.includes('porque') || text.includes('diferenci') || text.includes('mejor'))
-            return R.ventajas;
-
-        // Garantia / Confianza / Calidad
-        if (text.includes('garantia') || text.includes('confianza') || text.includes('calidad') || text.includes('compromiso') || text.includes('seguridad'))
-            return R.garantia;
-
-        // Contacto / Comercial / WhatsApp / Telefono
-        if (text.includes('contacta') || text.includes('comercial') || text.includes('hablar') || text.includes('llamar') || text.includes('telefono') || text.includes('whatsapp') || text.includes('email') || text.includes('correo') || text.includes('mail'))
-            return R.contacto;
-
-        // Horario
-        if (text.includes('horario') || text.includes('abierto') || text.includes('hora') || text.includes('atencion') || text.includes('cuando'))
-            return R.horario;
-
-        // Oficinas / Direccion / Sevilla / Madrid
-        if (text.includes('oficina') || text.includes('direccion') || text.includes('sevilla') || text.includes('madrid') || text.includes('donde estais') || text.includes('ubicacion') || text.includes('sede'))
-            return R.oficina;
-
-        // 24h / Urgencia / Incidencia
-        if (text.includes('urgencia') || text.includes('incidencia') || text.includes('24 hora') || text.includes('emergencia') || text.includes('asistencia'))
-            return '🚨 <strong>Asistencia 24 horas:</strong>\n\nContamos con soporte 24h para cualquier incidencia o urgencia en el transporte.\n\n📱 WhatsApp: +34 628 995 709\n📞 Telefono: +34 955 225 945\n\nLlamanos en cualquier momento.';
-
-        // Gestor / Atencion personalizada
-        if (text.includes('gestor') || text.includes('personaliza') || text.includes('directo'))
-            return '👤 <strong>Atencion personalizada:</strong>\n\nEn Dynamo siempre trataras con el mismo gestor de transporte. Equipo altamente cualificado para atenderte de forma directa e individualizada.\n\n📱 WhatsApp: +34 628 995 709';
-
-        // Granel
-        if (text.includes('granel'))
-            return R.temperatura;
-
-        // Especial / Carga especial
-        if (text.includes('especial'))
-            return '⚙️ <strong>Cargas especiales:</strong>\n\nRealizamos transporte de cargas especiales. Cada caso es unico, asi que consultanos y te damos solucion a medida.\n\n📱 WhatsApp: +34 628 995 709\n📞 Telefono: +34 955 225 945';
-
-        return R.defaultResp;
-    }
-
-    function sanitizeHTML(str) {
-        var temp = document.createElement('div');
-        temp.textContent = str;
-        var safe = temp.innerHTML;
-        safe = safe.replace(/&lt;(\/?(strong|b|em|i|br)\s*\/?)&gt;/gi, '<$1>');
-        safe = safe.replace(/([\w.-]+@[\w.-]+\.\w{2,})/g, '<a href="mailto:$1" style="color:var(--purple);text-decoration:underline;">$1</a>');
-        safe = safe.replace(/(\+34[\s]?\d{3}[\s]?\d{3}[\s]?\d{3})/g, '<a href="tel:$1" style="color:var(--purple);text-decoration:underline;">$1</a>');
-        return safe;
-    }
-
-    function addMsg(text, type) {
-        const div = document.createElement('div');
-        div.className = 'chat-msg ' + type;
-        if (type === 'bot') {
-            div.innerHTML = '<div class="bot-label">Dynamo IA</div>' + sanitizeHTML(text).replace(/\n/g, '<br>');
-        } else {
-            div.textContent = text;
-        }
-        msgs.appendChild(div);
-        msgs.scrollTop = msgs.scrollHeight;
-    }
-
-    function showTyping() {
-        const div = document.createElement('div');
-        div.className = 'chat-typing';
-        div.id = 'typing';
-        div.innerHTML = '<span></span><span></span><span></span>';
-        msgs.appendChild(div);
-        msgs.scrollTop = msgs.scrollHeight;
-    }
-
-    function removeTyping() {
-        const t = document.getElementById('typing');
-        if (t) t.remove();
-    }
-
-    window.sendMsg = function() {
-        const text = input.value.trim();
-        if (!text) return;
-        input.value = '';
-        quickBtns.style.display = 'none';
-        addMsg(text, 'user');
-        showTyping();
-        const delay = 800 + Math.random() * 1200;
-        setTimeout(function() {
-            removeTyping();
-            addMsg(getResponse(text), 'bot');
-        }, delay);
-    };
-
-    window.sendQuick = function(btn) {
-        input.value = btn.textContent;
-        window.sendMsg();
-    };
-
-    window.closeChat = function() {
-        overlay.classList.add('hidden');
-        fab.classList.add('show');
-    };
-
-    window.openChat = function() {
-        overlay.classList.remove('hidden');
-        fab.classList.remove('show');
-        input.focus();
-    };
-})();
-</script>
 <!-- Google Translate -->
 <div id="google_translate_element" style="display:none;"></div>
 
@@ -2684,6 +2380,48 @@ function setCookieConsent(choice) {
             document.getElementById('cookieBanner').classList.add('show');
         }, 1500);
     }
+})();
+</script>
+<script>
+(function(){
+    var wrap = document.getElementById('contactFab');
+    if (!wrap) return;
+    var btn = document.getElementById('contactFabBtn');
+
+    function open() {
+        wrap.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+    }
+    function close() {
+        wrap.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+    }
+    function toggle() {
+        wrap.classList.contains('open') ? close() : open();
+    }
+
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        toggle();
+    });
+
+    // Cerrar al elegir un canal
+    wrap.querySelectorAll('.contact-fab-action').forEach(function(a) {
+        a.addEventListener('click', close);
+    });
+
+    // Cerrar al pulsar fuera
+    document.addEventListener('click', function(e) {
+        if (wrap.classList.contains('open') && !wrap.contains(e.target)) close();
+    });
+
+    // Cerrar con Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && wrap.classList.contains('open')) {
+            close();
+            btn.focus();
+        }
+    });
 })();
 </script>
 </body>
