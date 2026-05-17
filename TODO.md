@@ -4,7 +4,8 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## 🔥 Prioridad alta
 - [ ] **Borrar proyecto Vercel duplicado `dynamo-web-muoi`** — Apunta al mismo repo que el bueno (`dynamo-web`, que tiene `dynamotrans.com`). El duplicado no tiene dominio personalizado y redespliega en cada push inútilmente. Borrar desde dashboard Vercel: proyecto `dynamo-web-muoi` > Settings > Advanced > Delete Project. ⚠️ Verificar antes que NO aparece `dynamotrans.com` en sus dominios
-- [ ] **Verificar FAB de contacto en producción** — Comprobar en dynamotrans.com (refresco fuerte): foto redonda, aro verde pulsante, abanico Email/WhatsApp/Llamar con rebote, cierre por click fuera / Escape / selección, y versión móvil. No se pudo probar en navegador real al implementarlo
+- [ ] **Verificar FAB de contacto en producción** — Comprobar en dynamotrans.com (refresco fuerte): foto real de Álvaro (96px desktop / 81px móvil), aro verde pulsante, abanico Email/WhatsApp/Llamar con rebote, cierre por click fuera / Escape / selección, y versión móvil. No se pudo probar en navegador real al implementarlo
+- [ ] **Borrar imágenes sin usar** — `images/mi-foto.jpg` (foto antigua FOTO 1) y `images/ALVARO.jpeg` (704×947, no se usa; el FAB usa la circular v5). ~0.5 MB peso muerto. Confirmar y borrar en un commit de limpieza
 
 ## 📋 Normal
 <!-- Cosas que hacer cuando haya tiempo -->
@@ -39,6 +40,9 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 ## ✅ Hecho recientemente
 <!-- Claude mueve aquí las tareas completadas. Se limpia cada ~2 semanas -->
 - [x] 2026-05-17 — Eliminada música de fondo + botón flotante de música (borrado MP3 7 MB y carpeta audio/)
+- [x] 2026-05-17 — Foto real (Álvaro) en el FAB de contacto
+- [x] 2026-05-17 — Eliminada ventana emergente de salida (exit-intent popup)
+- [x] 2026-05-17 — Foto del FAB ampliada a 1,5x (web y móvil)
 - [x] 2026-05-16 — Selector de idiomas: árabe → chino + reordenado (11 idiomas)
 - [x] 2026-05-16 — Nuevo FAB de contacto (foto + abanico Email/WhatsApp/Llamar); retirado chat IA y WhatsApp flotante
 - [x] 2026-05-04 — Música de fondo opcional + botón flotante mute/unmute en dynamotrans.com
