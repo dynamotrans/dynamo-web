@@ -38,6 +38,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## ✅ Hecho recientemente
 <!-- Claude mueve aquí las tareas completadas. Se limpia cada ~2 semanas -->
+- [x] 2026-05-17 — Eliminada música de fondo + botón flotante de música (borrado MP3 7 MB y carpeta audio/)
 - [x] 2026-05-16 — Selector de idiomas: árabe → chino + reordenado (11 idiomas)
 - [x] 2026-05-16 — Nuevo FAB de contacto (foto + abanico Email/WhatsApp/Llamar); retirado chat IA y WhatsApp flotante
 - [x] 2026-05-04 — Música de fondo opcional + botón flotante mute/unmute en dynamotrans.com

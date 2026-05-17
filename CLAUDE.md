@@ -79,6 +79,12 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-05-17 — MacBook Pro
+- **Eliminada la música de fondo** por completo: borrado CSS `.float-music` + comentario de sección, `<audio id="bgMusic">`, botón flotante con sus 2 iconos SVG y la función JS `toggleMusic()` (–38 líneas en `index.html`)
+- Borrado `audio/dynamo-bg.mp3` (7 MB) y la carpeta `audio/` vacía → repo ~7 MB más ligero
+- No se tocaron el FAB de contacto ni el botón "subir arriba" (independientes)
+- Verificado: 0 restos, HTML balanceado, sirve 200, MP3 da 404; commit `64b03e7` pusheado a `main` → desplegado en producción (dynamotrans.com)
+
 ### 2026-05-16 — MacBook Pro
 - **Selector de idiomas**: quitado árabe 🇲🇦, añadido chino 🇨🇳 中文 (`zh-CN`) y reordenadas las 11 opciones (ES, PT, EN, ZH, FR, DE, IT, UK, RO, PL, NL); regex de cookie `googtrans` ampliada a `[\w-]+` para detectar `zh-CN` al recargar; eliminado código RTL muerto del árabe
 - **Nuevo FAB de contacto** abajo-derecha: foto redonda (`images/mi-foto.jpg`) + aro verde pulsante + abanico Email/WhatsApp/Llamar con rebote escalonado; cierre por click fuera, Escape o selección; responsive y respeta `prefers-reduced-motion`
