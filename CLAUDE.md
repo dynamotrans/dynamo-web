@@ -87,7 +87,9 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Foto real en el FAB de contacto**: el usuario subió `images/ALVARO_circular_v5.png` (800×800, ya circular con borde) por GitHub web; cambiado el `src` del FAB de `mi-foto.jpg` a esa foto (commit `775f076`). NOTA: Claude no puede guardar imágenes pegadas en el chat como archivo; el usuario debe subirlas (URL pública / Codespace / GitHub web)
 - **Eliminada la ventana emergente de salida** (exit-intent popup) por completo: CSS + HTML + JS (triggers mouseout desktop, scroll-up móvil y timer 25s) — ~139 líneas menos
 - **Foto del FAB a 1,5x**: círculo 64→96px (desktop) y 54→81px (móvil); commit `43c0096` pusheado a `main` → producción
-- **Pendiente**: quedan sin usar en el repo `images/mi-foto.jpg` y `images/ALVARO.jpeg` (~0.5 MB peso muerto); borrar cuando se confirme
+- **Iteración de foto del FAB**: el usuario subió por GitHub web `ALVARO_circular_OFICINA.png` y luego `ALVARO_circular_ZOOM.png`; quedó como definitiva la **ZOOM** (commit `bff1011`). Todas 800×800, ya circulares con borde
+- **Limpieza**: borradas las 4 imágenes sin usar (`mi-foto.jpg`, `ALVARO.jpeg`, `ALVARO_circular_v5.png`, `ALVARO_circular_OFICINA.png`) — verificadas 0 referencias antes; –1,3 MB peso muerto (commit `5dd4bc4`). Única foto del FAB en uso: `images/ALVARO_circular_ZOOM.png`
+- Todo pusheado a `main` → desplegado en producción (dynamotrans.com)
 
 ### 2026-05-16 — MacBook Pro
 - **Selector de idiomas**: quitado árabe 🇲🇦, añadido chino 🇨🇳 中文 (`zh-CN`) y reordenadas las 11 opciones (ES, PT, EN, ZH, FR, DE, IT, UK, RO, PL, NL); regex de cookie `googtrans` ampliada a `[\w-]+` para detectar `zh-CN` al recargar; eliminado código RTL muerto del árabe
