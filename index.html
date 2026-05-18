@@ -701,10 +701,14 @@
            FLOAT WA
         ========================================= */
         /* Botón flotante de contacto (FAB) */
-        .contact-fab-wrap { position:fixed; bottom:1.8rem; right:1.8rem; z-index:998; display:flex; flex-direction:column-reverse; align-items:center; gap:0.85rem; }
+        /* pointer-events:none en el contenedor para que su caja invisible
+           (incluye el hueco de los iconos cerrados) no capture clics que
+           van al botón "subir arriba" que queda debajo. Se reactivan en la
+           foto y, al abrir, en los iconos de acción. */
+        .contact-fab-wrap { position:fixed; bottom:1.8rem; right:1.8rem; z-index:998; display:flex; flex-direction:column-reverse; align-items:center; gap:0.85rem; pointer-events:none; }
         .contact-fab {
             width:96px; height:96px; border-radius:50%; border:none; padding:0; cursor:pointer;
-            background:none; position:relative; flex-shrink:0;
+            background:none; position:relative; flex-shrink:0; pointer-events:auto;
         }
         .contact-fab img {
             width:100%; height:100%; border-radius:50%; object-fit:cover; display:block;
@@ -834,7 +838,7 @@
            BACK TO TOP
         ========================================= */
         .back-top {
-            position:fixed; bottom:8.5rem; right:calc(1.8rem + 27px); z-index:997;
+            position:fixed; bottom:10.5rem; right:calc(1.8rem + 27px); z-index:997;
             width:42px; height:42px; border-radius:50%; border:none;
             background:var(--purple); color:white; font-size:1.1rem;
             cursor:pointer; opacity:0; visibility:hidden; transition:all 0.3s;
@@ -848,7 +852,7 @@
         /* Override móvil: DESPUÉS de la regla base para que gane el orden CSS.
            FAB móvil 81px a right:1.2rem → centro alineado: 1.2rem + (81-42)/2 */
         @media (max-width:600px) {
-            .back-top { bottom:7rem; right:calc(1.2rem + 19.5px); }
+            .back-top { bottom:9rem; right:calc(1.2rem + 19.5px); }
         }
 
         /* =========================================
