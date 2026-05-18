@@ -3,7 +3,6 @@
 Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo actualiza al terminar.
 
 ## 🔥 Prioridad alta
-- [ ] **Borrar proyecto Vercel duplicado `dynamo-web-muoi`** — Apunta al mismo repo que el bueno (`dynamo-web`, que tiene `dynamotrans.com`). El duplicado no tiene dominio personalizado y redespliega en cada push inútilmente. Borrar desde dashboard Vercel: proyecto `dynamo-web-muoi` > Settings > Advanced > Delete Project. ⚠️ Verificar antes que NO aparece `dynamotrans.com` en sus dominios
 - [ ] **Verificar FAB de contacto en producción** — Comprobar en dynamotrans.com (refresco fuerte): foto `ALVARO_circular_ZOOM.png` (96px desktop / 81px móvil), aro verde pulsante, abanico Email/WhatsApp/Llamar con rebote, cierre por click fuera / Escape / selección, y versión móvil. No se pudo probar en navegador real al implementarlo
 
 ## 📋 Normal
@@ -38,6 +37,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## ✅ Hecho recientemente
 <!-- Claude mueve aquí las tareas completadas. Se limpia cada ~2 semanas -->
+- [x] 2026-05-18 — Borrado el proyecto Vercel duplicado `dynamo-web-muoi` (lo hizo el usuario; verificado vía API: ya no existe)
 - [x] 2026-05-17 — Eliminada música de fondo + botón flotante de música (borrado MP3 7 MB y carpeta audio/)
 - [x] 2026-05-17 — Foto real (Álvaro) en el FAB de contacto
 - [x] 2026-05-17 — Eliminada ventana emergente de salida (exit-intent popup)
