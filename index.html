@@ -848,7 +848,11 @@
         .back-top.show { opacity:1; visibility:visible; }
         /* Oculto mientras el FAB de contacto está desplegado (evita solape) */
         .back-top.fab-hidden { opacity:0; visibility:hidden; pointer-events:none; }
-        .back-top:hover { background:var(--purple-light); transform:scale(1.1); }
+        /* :hover solo con ratón real; en táctil evita el "doble toque"
+           (1er toque = hover/selección, 2º = clic) */
+        @media (hover: hover) {
+            .back-top:hover { background:var(--purple-light); transform:scale(1.1); }
+        }
         /* Override móvil: DESPUÉS de la regla base para que gane el orden CSS.
            FAB móvil 81px a right:1.2rem → centro alineado: 1.2rem + (81-42)/2 */
         @media (max-width:600px) {
