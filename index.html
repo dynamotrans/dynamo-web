@@ -282,14 +282,23 @@
             padding: 7rem 0 6.5rem;
             background: linear-gradient(135deg, #0a0230 0%, #1a008a 30%, #3300cc 60%, #0a0230 100%);
         }
-        /* Vídeo de fondo con zoom suave; el poster (foto) actúa de fallback */
+        /* Degradado de marca con zoom suave: estado final tras el vídeo (y fallback) */
+        .hero-gradient {
+            position: absolute; inset: 0; z-index: 0;
+            background: linear-gradient(135deg, #0a0230 0%, #1a008a 30%, #3300cc 60%, #0a0230 100%);
+            animation: heroZoom 18s ease-in-out infinite alternate;
+        }
+        /* Vídeo de fondo (se reproduce una vez); al terminar se desvanece */
         .hero-video {
             position: absolute; inset: 0;
             width: 100%; height: 100%;
             object-fit: cover;
             z-index: 0;
+            opacity: 1;
+            transition: opacity 1.4s ease;
             animation: heroZoom 18s ease-in-out infinite alternate;
         }
+        .hero-video.ended { opacity: 0; }
         /* Velo oscuro sobre el vídeo para legibilidad del texto */
         .hero-overlay {
             position: absolute; inset: 0; z-index: 1;
@@ -319,6 +328,9 @@
         }
         @keyframes roadLines { from { transform: translateY(0); } to { transform: translateY(120px); } }
         @keyframes heroZoom { from { transform: scale(1); } to { transform: scale(1.07); } }
+        @media (prefers-reduced-motion: reduce) {
+            .hero-gradient, .hero-video { animation: none; }
+        }
 
         .hero-content {
             position: relative; z-index: 3; text-align: center;
@@ -997,7 +1009,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- HERO -->
 <section class="hero" id="inicio">
-    <video class="hero-video" autoplay muted loop playsinline preload="auto" poster="images/hero-camiones-dynamo.jpg">
+    <div class="hero-gradient"></div>
+    <video class="hero-video" id="heroVideo" autoplay muted playsinline preload="auto" poster="images/hero-camiones-dynamo.jpg">
         <source src="images/mp_dynamo.mp4" type="video/mp4">
     </video>
     <div class="hero-overlay"></div>
@@ -1849,6 +1862,14 @@ function openLegal(tab) {
 <script>
     function openMobileMenu()  { document.getElementById('mobileMenu').classList.add('open'); }
     function closeMobileMenu() { document.getElementById('mobileMenu').classList.remove('open'); }
+
+    // Hero: el vídeo se reproduce una vez y al terminar se desvanece
+    // hacia el degradado de marca (que tiene su propio zoom suave).
+    (function() {
+        var v = document.getElementById('heroVideo');
+        if (!v) return;
+        v.addEventListener('ended', function() { v.classList.add('ended'); });
+    })();
 
     // Back to top button
     window.addEventListener('scroll', function() {
