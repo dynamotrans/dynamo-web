@@ -83,8 +83,16 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Verificado vía API de Vercel** que el proyecto duplicado `dynamo-web-muoi` ya NO existe (lo borró el usuario desde el dashboard). Quedan 3 proyectos: dynamo-web (el bueno), montesblanco-web, agenciadetransporte-web
 - **FAB de contacto verificado en producción**: el usuario confirmó visualmente las 4 comprobaciones (foto círculo, aro verde pulsante, abanico con rebote, cierre fuera/Escape, móvil OK). NOTA: producción bloquea peticiones automáticas (403 anti-bot) → Claude no puede hacer verificación visual remota, solo estructural vía API + código local
 - **Hero sin loop + transición a degradado**: quitado el atributo `loop` del `<video>` (se reproduce una vez); nueva capa `.hero-gradient` con el degradado morado/azul de marca y zoom suave (`heroZoom` scale 1→1.07, 18s); al terminar el vídeo, JS añade clase `.ended` → fundido `opacity 1.4s` y queda el degradado animado debajo; añadido bloque `prefers-reduced-motion`. Commit `56c526f` → producción
-- **Barra "Cotiza Online"**: cambiado el fondo de amarillo (`--yellow`) a gris claro suave (`--gray-100`, #f7f8fa); título y botones siguen morados (buen contraste). Commit `b7a4ed9` → producción
-- Los pendientes de prioridad alta del TODO quedan cerrados; commits `e09eb9d`, `ee52663`, `56c526f`, `b7a4ed9` pusheados a `main`
+- **Barra "Cotiza Online"**: cambiado el fondo de amarillo (`--yellow`) a gris claro suave (`--gray-100`, #f7f8fa); título y botones siguen morados (buen contraste). Commit `b7a4ed9`. Luego cambiado el texto a "Cotizamos en 2 minutos." (commit `b296d13`) → producción
+- **Botón "subir arriba" (`.back-top`) — varias iteraciones**:
+  - Recolocado pegado encima del FAB de la foto (de `bottom:15.5rem` a `8.5/10.5rem` desktop, `7/9rem` móvil) y se oculta al abrir el FAB (clase `.fab-hidden` desde el JS open/close) — commits `1a61106`, `64434f1`
+  - Centros alineados verticalmente con el FAB vía `calc()` (`right: calc(1.8rem + 27px)` desktop con FAB 96px; `calc(1.2rem + 19.5px)` móvil con FAB 81px) — commit `a85ffcd`
+  - **Bug de orden CSS**: el override móvil estaba ANTES de la regla base → la base (valor desktop) lo pisaba en móvil. Movido el `@media (max-width:600px)` DESPUÉS de la regla base — commit `7d775cf`
+  - **Bug de clic**: la caja invisible del `.contact-fab-wrap` (z-index 998, alta) capturaba el tap del botón ↑. Solución: `pointer-events:none` en el wrap, `auto` en la foto y en los iconos al abrir — commit `64434f1`
+  - **Doble toque en móvil**: `:hover` envuelto en `@media (hover:hover)` (commit `b3bf2bd`) y, como no bastó, quitado el `onclick` inline y añadido handler `touchend` con `preventDefault()` para actuar al primer toque y matar el click fantasma de iOS — commit `79e35f3`
+- ⚠️ **PENDIENTE DEPLOY**: el commit `79e35f3` está correcto y en `origin/main`, pero Vercel NO lo autodesplegó (tras ~20 deploys hoy, probable cola/límite o fallo de webhook). Último deploy en producción: `b3bf2bd`. El usuario debe ir al dashboard de Vercel → Deployments → Redeploy del commit `79e35f3` (o Create Deployment desde `main`). No es problema de código
+- NOTA recurrente: producción bloquea peticiones automáticas (403) → Claude solo verifica vía API de Vercel + código local; la confirmación visual la hace el usuario
+- Commits del día pusheados a `main`: `e09eb9d`, `ee52663`, `56c526f`, `b7a4ed9`, `b296d13`, `1a61106`, `a85ffcd`, `7d775cf`, `64434f1`, `b3bf2bd`, `79e35f3` (este último pendiente de que Vercel lo despliegue)
 
 ### 2026-05-17 — MacBook Pro
 - **Eliminada la música de fondo** por completo: borrado CSS `.float-music` + comentario de sección, `<audio id="bgMusic">`, botón flotante con sus 2 iconos SVG y la función JS `toggleMusic()` (–38 líneas en `index.html`)
