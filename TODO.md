@@ -3,7 +3,7 @@
 Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo actualiza al terminar.
 
 ## 🔥 Prioridad alta
-- [ ] **Verificar FAB de contacto en producción** — Comprobar en dynamotrans.com (refresco fuerte): foto `ALVARO_circular_ZOOM.png` (96px desktop / 81px móvil), aro verde pulsante, abanico Email/WhatsApp/Llamar con rebote, cierre por click fuera / Escape / selección, y versión móvil. No se pudo probar en navegador real al implementarlo
+<!-- Cosas urgentes -->
 
 ## 📋 Normal
 <!-- Cosas que hacer cuando haya tiempo -->
@@ -37,6 +37,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## ✅ Hecho recientemente
 <!-- Claude mueve aquí las tareas completadas. Se limpia cada ~2 semanas -->
+- [x] 2026-05-18 — Verificado el FAB de contacto en producción (usuario confirmó: foto círculo, aro pulsante, abanico con rebote, cierre fuera/Escape, móvil OK)
 - [x] 2026-05-18 — Borrado el proyecto Vercel duplicado `dynamo-web-muoi` (lo hizo el usuario; verificado vía API: ya no existe)
 - [x] 2026-05-17 — Eliminada música de fondo + botón flotante de música (borrado MP3 7 MB y carpeta audio/)
 - [x] 2026-05-17 — Foto real (Álvaro) en el FAB de contacto
