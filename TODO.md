@@ -3,7 +3,7 @@
 Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo actualiza al terminar.
 
 ## 🔥 Prioridad alta
-- [ ] **Desplegar commit `79e35f3` en Vercel** — Está en `origin/main` pero Vercel no lo autodesplegó (cola/límite tras ~20 deploys hoy o fallo de webhook). Último deploy en prod: `b3bf2bd`. Acción: dashboard Vercel → proyecto dynamo-web → Deployments → Redeploy de `79e35f3` (o Create Deployment desde `main`). Es el fix del botón ↑ a un solo toque en móvil (touchend). Verificar luego en el móvil
+<!-- Cosas urgentes -->
 
 ## 📋 Normal
 <!-- Cosas que hacer cuando haya tiempo -->
@@ -37,6 +37,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## ✅ Hecho recientemente
 <!-- Claude mueve aquí las tareas completadas. Se limpia cada ~2 semanas -->
+- [x] 2026-05-18 — Deploy de `79e35f3` resuelto: el push de bitácora (`2e61f36`, encima) lo arrastró → fix botón ↑ en producción
 - [x] 2026-05-18 — Barra "Cotiza Online": texto "Cotizamos en 2 minutos." (commit b296d13)
 - [x] 2026-05-18 — Botón ↑ recolocado junto al FAB, alineado vertical (calc), oculto al abrir FAB, clicable (pointer-events) y a un toque en móvil (touchend) — commits 1a61106→79e35f3
 - [x] 2026-05-18 — Barra "Cotiza Online": fondo amarillo → gris claro suave (commit b7a4ed9)
