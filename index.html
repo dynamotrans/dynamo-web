@@ -1872,7 +1872,7 @@ function openLegal(tab) {
 </div>
 
 <!-- BACK TO TOP -->
-<button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Volver arriba">↑</button>
+<button class="back-top" id="backTop" aria-label="Volver arriba">↑</button>
 
 <script>
     function openMobileMenu()  { document.getElementById('mobileMenu').classList.add('open'); }
@@ -1887,11 +1887,19 @@ function openLegal(tab) {
     })();
 
     // Back to top button
+    var backTopBtn = document.getElementById('backTop');
     window.addEventListener('scroll', function() {
-        var btn = document.getElementById('backTop');
-        if (window.scrollY > 600) btn.classList.add('show');
-        else btn.classList.remove('show');
+        if (window.scrollY > 600) backTopBtn.classList.add('show');
+        else backTopBtn.classList.remove('show');
     });
+    function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    backTopBtn.addEventListener('click', scrollToTop);
+    // En táctil: actuar en el primer toque y evitar el "click fantasma"
+    // de iOS (que obligaba a pulsar dos veces).
+    backTopBtn.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        scrollToTop();
+    }, { passive: false });
 
     // Scroll Reveal Animation
     (function() {
