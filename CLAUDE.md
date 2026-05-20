@@ -79,6 +79,17 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-05-20 — MacBook Pro
+- **Chip con nombre en el FAB**: añadido `<span class="contact-fab-name">Álvaro Blanco de Dynamo</span>` dentro del botón de la foto; chip blanco con texto morado, aparece a la izquierda al abrir el FAB con la misma animación de rebote que los iconos del abanico; respeta `prefers-reduced-motion` (commits `8f40885`)
+- **FAB foto +35%**: 96→130px desktop, 81→109px móvil. Recalculado `right` y `bottom` del botón ↑ para mantener centros alineados y separación cómoda (commit `b2e415e`)
+- **Hero**: botón "Llamar al +34 955 225 945" → "Enviar un eMail" (icono sobre, `mailto:info@dynamotrans.com`); clase CSS renombrada `.btn-tel` → `.btn-email` (sólo se usaba aquí, refactor limpio) (commit `9164e18`)
+- **Banderas del menú móvil eliminadas**: borrado el bloque entero (caja + título "Idioma / Language" + grid 6col con 11 banderas). El selector de idiomas del nav (dropdown) sigue intacto con sus 11 opciones (commit `9164e18`)
+- **Barra "Cotiza Online" sustituida** por copia exacta de la sección CTA "¿Listo para empezar?" de abajo (sin `id="contacto"` para no duplicar IDs; el original conserva el id). Limpiado CSS muerto de `.cotiza-bar/.cotiza-title/.cotiza-btns/.btn-cotiza-main/.btn-cotiza-out` (commit `b327f75`)
+- **Sección stats con fondo gris**: morado degradado → `--gray-100` → finalmente `--gray-200` (#e8eaed). Texto blanco → navy, etiquetas → gris-500. Números y estrellas siguen en verde de marca. Contenido HTML intacto (commits `b582d6e`, `e54abcc`)
+- **Mensaje predefinido universal** en los 23 botones (13 WA + 10 email): "Buenos días, solicito TARIFA para transporte..." con preguntas estructuradas. Aplicado vía script Python con URL-encoding limpio. Los 10 enlaces email en textos legales (RGPD, política privacidad) intactos. Iteración 2 añadió METROS LINEALES, PESO APROX, pregunta 4 COMENTARIOS y separadores `****` en IMPORTANTE (commits `261f90d`, `6099ce5`)
+- **Chip nombre +30%**: desktop 0.78→1.01rem, móvil 0.7→0.91rem (commit `7cfe357`)
+- Todo pusheado a `main` → desplegado en producción (dynamotrans.com); verificaciones visuales pendientes del usuario
+
 ### 2026-05-18 — MacBook Pro
 - **Verificado vía API de Vercel** que el proyecto duplicado `dynamo-web-muoi` ya NO existe (lo borró el usuario desde el dashboard). Quedan 3 proyectos: dynamo-web (el bueno), montesblanco-web, agenciadetransporte-web
 - **FAB de contacto verificado en producción**: el usuario confirmó visualmente las 4 comprobaciones (foto círculo, aro verde pulsante, abanico con rebote, cierre fuera/Escape, móvil OK). NOTA: producción bloquea peticiones automáticas (403 anti-bot) → Claude no puede hacer verificación visual remota, solo estructural vía API + código local

@@ -37,6 +37,13 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## ✅ Hecho recientemente
 <!-- Claude mueve aquí las tareas completadas. Se limpia cada ~2 semanas -->
+- [x] 2026-05-20 — Mensaje predefinido (Buenos días, solicito TARIFA...) en los 23 botones WhatsApp/email — iteración 2 con METROS LINEALES, COMENTARIOS y separadores ****
+- [x] 2026-05-20 — Chip con nombre "Álvaro Blanco de Dynamo" en el FAB; tamaño texto +30%
+- [x] 2026-05-20 — FAB foto +35% (96→130 desktop, 81→109 móvil) y reposicionado botón ↑
+- [x] 2026-05-20 — Hero: botón "Llamar" → "Enviar un eMail"
+- [x] 2026-05-20 — Banderas del menú móvil eliminadas (selector del nav sigue)
+- [x] 2026-05-20 — Barra Cotiza sustituida por copia de la sección CTA "¿Listo para empezar?"
+- [x] 2026-05-20 — Sección stats con fondo gris claro (--gray-200)
 - [x] 2026-05-18 — Deploy de `79e35f3` resuelto: el push de bitácora (`2e61f36`, encima) lo arrastró → fix botón ↑ en producción
 - [x] 2026-05-18 — Barra "Cotiza Online": texto "Cotizamos en 2 minutos." (commit b296d13)
 - [x] 2026-05-18 — Botón ↑ recolocado junto al FAB, alineado vertical (calc), oculto al abrir FAB, clicable (pointer-events) y a un toque en móvil (touchend) — commits 1a61106→79e35f3
