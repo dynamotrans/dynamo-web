@@ -707,7 +707,7 @@
            foto y, al abrir, en los iconos de acción. */
         .contact-fab-wrap { position:fixed; bottom:1.8rem; right:1.8rem; z-index:998; display:flex; flex-direction:column-reverse; align-items:center; gap:0.85rem; pointer-events:none; }
         .contact-fab {
-            width:96px; height:96px; border-radius:50%; border:none; padding:0; cursor:pointer;
+            width:130px; height:130px; border-radius:50%; border:none; padding:0; cursor:pointer;
             background:none; position:relative; flex-shrink:0; pointer-events:auto;
         }
         .contact-fab img {
@@ -761,7 +761,7 @@
         .contact-fab-action:hover { transform:translateY(-2px) scale(1.1) !important; }
         @media (max-width:600px) {
             .contact-fab-wrap { bottom:1.2rem; right:1.2rem; gap:0.6rem; }
-            .contact-fab { width:81px; height:81px; }
+            .contact-fab { width:109px; height:109px; }
             .contact-fab-action { width:46px; height:46px; }
             .contact-fab-name { font-size:0.7rem; padding:0.35rem 0.7rem; }
         }
@@ -855,7 +855,7 @@
            BACK TO TOP
         ========================================= */
         .back-top {
-            position:fixed; bottom:10.5rem; right:calc(1.8rem + 27px); z-index:997;
+            position:fixed; bottom:13rem; right:calc(1.8rem + 44px); z-index:997;
             width:42px; height:42px; border-radius:50%; border:none;
             background:var(--purple); color:white; font-size:1.1rem;
             cursor:pointer; opacity:0; visibility:hidden; transition:all 0.3s;
@@ -873,7 +873,7 @@
         /* Override móvil: DESPUÉS de la regla base para que gane el orden CSS.
            FAB móvil 81px a right:1.2rem → centro alineado: 1.2rem + (81-42)/2 */
         @media (max-width:600px) {
-            .back-top { bottom:9rem; right:calc(1.2rem + 19.5px); }
+            .back-top { bottom:11rem; right:calc(1.2rem + 33.5px); }
         }
 
         /* =========================================
