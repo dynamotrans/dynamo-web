@@ -295,7 +295,7 @@
             object-fit: cover;
             z-index: 0;
             opacity: 1;
-            transition: opacity 1.4s ease;
+            transition: opacity 2.4s ease-in-out;
             animation: heroZoom 18s ease-in-out infinite alternate;
         }
         .hero-video.ended { opacity: 0; }
@@ -712,12 +712,30 @@
             position:absolute; top:50%; right:calc(100% + 0.7rem);
             transform:translateY(-50%) translateX(8px);
             background:white; color:var(--purple);
-            font-size:1.01rem; font-weight:700; letter-spacing:0.2px;
-            padding:0.45rem 0.85rem; border-radius:50px;
-            white-space:nowrap;
+            padding:0.55rem 0.95rem; border-radius:18px;
+            text-align:right;
             box-shadow:0 4px 14px rgba(10,2,48,0.18);
             opacity:0; pointer-events:none;
             transition:opacity 0.25s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .contact-fab-name-title {
+            display:block; font-size:1.01rem; font-weight:700; letter-spacing:0.2px;
+            white-space:nowrap;
+        }
+        .contact-fab-name-status {
+            display:block; font-size:0.75rem; font-weight:600;
+            color:var(--gray-500); margin-top:2px; white-space:nowrap;
+        }
+        .contact-fab-name-status::before {
+            content:""; display:inline-block;
+            width:7px; height:7px; border-radius:50%;
+            background:#22c55e; margin-right:5px; vertical-align:middle;
+            box-shadow:0 0 6px rgba(34,197,94,0.65);
+            animation:statusBlink 2s ease-in-out infinite;
+        }
+        @keyframes statusBlink {
+            0%, 100% { opacity:1; }
+            50%      { opacity:0.55; }
         }
         .contact-fab-wrap.open .contact-fab-name {
             opacity:1; transform:translateY(-50%) translateX(0);
@@ -727,6 +745,20 @@
             border:3px solid #25D366; animation:fabRing 2s ease-out infinite; pointer-events:none;
         }
         .contact-fab-wrap.open .contact-fab::before { animation:none; opacity:0; }
+        /* Online dot: indicador "disponible" en la esquina de la foto (siempre visible) */
+        .contact-fab::after {
+            content:""; position:absolute; bottom:7%; right:7%;
+            width:20px; height:20px; border-radius:50%;
+            background:#22c55e; border:3px solid white;
+            box-shadow:0 0 0 0 rgba(34,197,94,0.55);
+            animation:onlineDotPulse 2.5s ease-out infinite;
+            pointer-events:none;
+        }
+        @keyframes onlineDotPulse {
+            0%   { box-shadow:0 0 0 0 rgba(34,197,94,0.55); }
+            70%  { box-shadow:0 0 0 14px rgba(34,197,94,0); }
+            100% { box-shadow:0 0 0 0 rgba(34,197,94,0); }
+        }
         .contact-fab:hover { transform:scale(1.06); }
         .contact-fab, .contact-fab img { transition:transform 0.25s ease; }
         @keyframes fabRing {
@@ -756,10 +788,13 @@
             .contact-fab-wrap { bottom:1.2rem; right:1.2rem; gap:0.6rem; }
             .contact-fab { width:109px; height:109px; }
             .contact-fab-action { width:46px; height:46px; }
-            .contact-fab-name { font-size:0.91rem; padding:0.35rem 0.7rem; }
+            .contact-fab-name { padding:0.45rem 0.8rem; }
+            .contact-fab-name-title { font-size:0.91rem; }
+            .contact-fab-name-status { font-size:0.68rem; }
+            .contact-fab::after { width:16px; height:16px; border-width:2.5px; }
         }
         @media (prefers-reduced-motion: reduce) {
-            .contact-fab::before { animation:none; }
+            .contact-fab::before, .contact-fab::after, .contact-fab-name-status::before { animation:none; }
             .contact-fab, .contact-fab img, .contact-fab-action, .contact-fab-name { transition:opacity 0.15s linear; }
             .contact-fab-wrap.open .contact-fab-action { transform:none; }
             .contact-fab-action { transform:none; }
@@ -1861,7 +1896,10 @@ function openLegal(tab) {
 <!-- FLOATING CONTACT FAB -->
 <div class="contact-fab-wrap" id="contactFab">
     <button class="contact-fab" id="contactFabBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Abrir opciones de contacto">
-        <span class="contact-fab-name" aria-hidden="true">Álvaro Blanco de Dynamo</span>
+        <span class="contact-fab-name" aria-hidden="true">
+            <span class="contact-fab-name-title">Álvaro Blanco de Dynamo</span>
+            <span class="contact-fab-name-status">En línea · Respondo enseguida</span>
+        </span>
         <img src="images/ALVARO_circular_ZOOM.png" alt="Álvaro - Contacto Dynamo Transportes">
     </button>
     <div class="contact-fab-actions" role="menu" aria-label="Canales de contacto">
@@ -1886,10 +1924,21 @@ function openLegal(tab) {
 
     // Hero: el vídeo se reproduce una vez y al terminar se desvanece
     // hacia el degradado de marca (que tiene su propio zoom suave).
+    // Para evitar el "tirón" del último frame congelado, arrancamos el fade
+    // 1.5s ANTES de que termine el vídeo (mientras aún se reproduce).
     (function() {
         var v = document.getElementById('heroVideo');
         if (!v) return;
-        v.addEventListener('ended', function() { v.classList.add('ended'); });
+        var FADE_LEAD = 1.5; // segundos antes del final
+        function startFade() {
+            if (!v.classList.contains('ended')) v.classList.add('ended');
+        }
+        v.addEventListener('timeupdate', function() {
+            if (v.duration && isFinite(v.duration) && v.currentTime >= v.duration - FADE_LEAD) {
+                startFade();
+            }
+        });
+        v.addEventListener('ended', startFade); // fallback por si timeupdate no llega a tiempo
     })();
 
     // Back to top button
