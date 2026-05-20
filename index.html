@@ -2313,6 +2313,22 @@ function setCookieConsent(choice) {
     var btn = document.getElementById('contactFabBtn');
     var backTop = document.getElementById('backTop');
 
+    // Mostrar el botón "Llamar" del FAB solo en horario de oficina
+    // L-V 8:00-19:00 hora de Sevilla/Madrid (Europe/Madrid, gestiona DST).
+    var phoneBtn = wrap.querySelector('.contact-fab-action.act-call');
+    function inBusinessHours() {
+        var madrid = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
+        var day = madrid.getDay();    // 0=Dom, 1=Lun ... 6=Sáb
+        var hour = madrid.getHours(); // 0-23
+        return day >= 1 && day <= 5 && hour >= 8 && hour < 19;
+    }
+    function updatePhoneVisibility() {
+        if (!phoneBtn) return;
+        phoneBtn.style.display = inBusinessHours() ? '' : 'none';
+    }
+    updatePhoneVisibility();
+    setInterval(updatePhoneVisibility, 60000); // recheck cada minuto
+
     function open() {
         wrap.classList.add('open');
         btn.setAttribute('aria-expanded', 'true');
