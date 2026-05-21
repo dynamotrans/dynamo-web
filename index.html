@@ -402,7 +402,12 @@
             text-decoration: none; transition: background 0.2s, color 0.2s;
         }
         .strip-item:hover { background: white; color: var(--purple); }
-        .strip-item .si { font-size: 0.5rem; color: var(--green); animation: pulse-dot 1.5s ease-in-out infinite; }
+        .strip-item .si {
+            width: 11px; height: 11px; border-radius: 50%; background: white;
+            display: inline-block; flex-shrink: 0; font-size: 0;
+            transition: background 0.2s; animation: pulse-dot 1.5s ease-in-out infinite;
+        }
+        .strip-item:hover .si { background: var(--green); }
         @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 
         /* =========================================
