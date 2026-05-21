@@ -79,6 +79,12 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-05-21 — iMac oficina
+- **Punto de la barra de servicios** (`.si` en los botones Grupajes / Carga Completa / Import & Export / Nacional 24h): de cuadradito `■` verde con parpadeo → **círculo CSS** de 11px, **blanco fijo manteniendo el parpadeo** (`pulse-dot`) y **verde** (`var(--green)`) al hacer hover. Glyph oculto con `font-size:0` (commit `dd4d147`)
+- **Fondo final del hero** = nueva imagen `images/HERO-DYNAMO.webp` (en vez del degradado morado/azul). Se mantiene el vídeo `mp_dynamo.mp4` (se reproduce primero) y el degradado de marca queda como **fallback** detrás de la imagen si no carga. Conserva el zoom suave `heroZoom` (commit `08bd385`)
+- **Imagen del hero**: el usuario la subió por GitHub web a `main`; se trajo a la rama de trabajo vía `git checkout origin/main -- images/HERO-DYNAMO.webp` (commit `d6a4324`)
+- **Merge a `main` y push** (merge `aa8f045`): todo desplegado en producción (dynamotrans.com) vía Vercel. Verificación visual pendiente del usuario (producción bloquea peticiones automáticas de Claude)
+
 ### 2026-05-20 — MacBook Pro
 - **Chip con nombre en el FAB**: añadido `<span class="contact-fab-name">Álvaro Blanco de Dynamo</span>` dentro del botón de la foto; chip blanco con texto morado, aparece a la izquierda al abrir el FAB con la misma animación de rebote que los iconos del abanico; respeta `prefers-reduced-motion` (commits `8f40885`)
 - **FAB foto +35%**: 96→130px desktop, 81→109px móvil. Recalculado `right` y `bottom` del botón ↑ para mantener centros alineados y separación cómoda (commit `b2e415e`)
