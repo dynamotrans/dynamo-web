@@ -285,7 +285,8 @@
         /* Degradado de marca con zoom suave: estado final tras el vídeo (y fallback) */
         .hero-gradient {
             position: absolute; inset: 0; z-index: 0;
-            background: linear-gradient(135deg, #0a0230 0%, #1a008a 30%, #3300cc 60%, #0a0230 100%);
+            background: url('images/HERO-DYNAMO.webp') center/cover no-repeat,
+                        linear-gradient(135deg, #0a0230 0%, #1a008a 30%, #3300cc 60%, #0a0230 100%);
             animation: heroZoom 18s ease-in-out infinite alternate;
         }
         /* Vídeo de fondo (se reproduce una vez); al terminar se desvanece */
@@ -402,7 +403,12 @@
             text-decoration: none; transition: background 0.2s, color 0.2s;
         }
         .strip-item:hover { background: white; color: var(--purple); }
-        .strip-item .si { font-size: 0.5rem; color: var(--green); animation: pulse-dot 1.5s ease-in-out infinite; }
+        .strip-item .si {
+            width: 11px; height: 11px; border-radius: 50%; background: white;
+            display: inline-block; flex-shrink: 0; font-size: 0;
+            transition: background 0.2s; animation: pulse-dot 1.5s ease-in-out infinite;
+        }
+        .strip-item:hover .si { background: var(--green); }
         @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 
         /* =========================================
