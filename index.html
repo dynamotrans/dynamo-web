@@ -155,6 +155,7 @@
             --purple-nav:   #1a008a;
             --green:        #22a55a;
             --green-dark:   #157a3f;
+            --orange:       #ff7a00;
             --yellow:       #f0e600;
             --yellow-dark:  #d4ca00;
             --navy:         #0a0230;
@@ -404,10 +405,12 @@
         }
         .strip-item:hover { background: white; color: var(--purple); }
         .strip-item .si {
-            width: 11px; height: 11px; border-radius: 50%; background: var(--green);
+            width: 11px; height: 11px; border-radius: 50%; background: white;
             display: inline-block; flex-shrink: 0; font-size: 0;
             animation: pulse-dot 1.5s ease-in-out infinite;
+            transition: background 0.2s;
         }
+        .strip-item:hover .si, .strip-item:active .si { background: var(--orange); }
         @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 
         /* =========================================
