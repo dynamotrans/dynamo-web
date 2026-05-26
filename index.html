@@ -367,19 +367,21 @@
             animation: fadeUp 0.9s ease 0.4s both;
         }
         .btn-wa {
+            order: 2;
+            background: #25D366; color: white; font-weight: 800;
+            padding: 0.9rem 2rem; border-radius: 50px; text-decoration: none;
+            font-size: 0.93rem; display: flex; align-items: center; gap: 0.55rem;
+            transition: all 0.3s; box-shadow: 0 4px 20px rgba(37,211,102,0.45);
+        }
+        .btn-wa:hover { background: #1ebe5d; transform: translateY(-3px); }
+        .btn-email {
+            order: 1;
             background: var(--purple); color: white; font-weight: 800;
             padding: 0.9rem 2rem; border-radius: 50px; text-decoration: none;
             font-size: 0.93rem; display: flex; align-items: center; gap: 0.55rem;
             transition: all 0.3s; box-shadow: 0 4px 20px rgba(51,0,204,0.45);
         }
-        .btn-wa:hover { background: var(--purple-light); transform: translateY(-3px); }
-        .btn-email {
-            background: transparent; color: white; font-weight: 700;
-            padding: 0.9rem 2rem; border-radius: 50px; text-decoration: none;
-            font-size: 0.93rem; display: flex; align-items: center; gap: 0.55rem;
-            border: 2px solid rgba(255,255,255,0.5); transition: all 0.3s;
-        }
-        .btn-email:hover { border-color: white; background: rgba(255,255,255,0.12); transform: translateY(-3px); }
+        .btn-email:hover { background: var(--purple-light); transform: translateY(-3px); }
         .hero-scroll {
             position: absolute; bottom: 1.8rem; left: 50%; transform: translateX(-50%);
             color: rgba(255,255,255,0.38); font-size: 0.68rem; letter-spacing: 2px;
