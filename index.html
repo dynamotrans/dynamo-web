@@ -548,10 +548,22 @@
             border: 1px solid rgba(51,0,204,0.12);
             animation: fadeUp 0.35s ease both;
         }
-        .alm-precio-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; font-size: 0.82rem; color: var(--gray-700); padding: 0.25rem 0; }
+        .alm-precio-row { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.82rem; color: var(--gray-700); padding: 0.45rem 0; }
+        .alm-precio-row + .alm-precio-row { border-top: 1px dashed rgba(51,0,204,0.1); }
+        .alm-precio-line { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
         .alm-precio-row strong { color: var(--purple); font-weight: 800; white-space: nowrap; }
-        .alm-precio-row.total { margin-top: 0.4rem; padding-top: 0.55rem; border-top: 1px solid rgba(51,0,204,0.15); font-size: 0.95rem; font-weight: 800; color: var(--navy); }
-        .alm-precio-row.total strong { font-size: 1.05rem; color: var(--green); }
+        .alm-precio-qty-line { display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: var(--gray-500); padding-left: 0.1rem; }
+        .alm-precio-qty-line .alm-qty-sel {
+            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+            padding: 0.18rem 1.5rem 0.18rem 0.55rem; border-radius: 7px;
+            border: 1.5px solid var(--purple); background: white; color: var(--purple);
+            font-size: 0.78rem; font-weight: 800; cursor: pointer; line-height: 1;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%233300cc' d='M5 6L0 0h10z'/></svg>");
+            background-repeat: no-repeat; background-position: right 0.45rem center;
+        }
+        .alm-precio-qty-line .alm-qty-sel:focus { outline: none; box-shadow: 0 0 0 2px rgba(51,0,204,0.18); }
+        .alm-precio-row.total { margin-top: 0.4rem; padding-top: 0.6rem; border-top: 1.5px solid rgba(51,0,204,0.18); font-size: 0.95rem; font-weight: 800; color: var(--navy); }
+        .alm-precio-row.total .alm-precio-line strong { font-size: 1.1rem; color: var(--green); }
         .alm-precio-note { font-size: 0.7rem; color: var(--gray-500); margin-top: 0.5rem; line-height: 1.5; }
         .alm-precio-cta { display: flex; gap: 0.5rem; margin-top: 0.8rem; }
         .alm-precio-cta a {
@@ -1414,9 +1426,38 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                             <option>Zaragoza</option>
                         </select>
                         <div class="alm-precio-box" id="alm-precio-box" hidden aria-live="polite">
-                            <div class="alm-precio-row"><span>Almacenamiento 1-7 días (33 palets)</span><strong>240 € + IVA</strong></div>
-                            <div class="alm-precio-row"><span>Entrega zona urbana (camión 2 ejes · 4 m)</span><strong>180 € + IVA</strong></div>
-                            <div class="alm-precio-row total"><span>Total <em id="alm-prov-name" style="font-style:normal;font-weight:700;color:var(--purple)"></em></span><strong>420 € + IVA</strong></div>
+                            <div class="alm-precio-row">
+                                <div class="alm-precio-line">
+                                    <span>Almacenamiento 1-7 días <small style="display:block;font-size:0.68rem;color:var(--gray-500);font-weight:500;margin-top:0.1rem">33 palets máx. por trailer y tarifa</small></span>
+                                    <strong id="alm-sub-trailers">240 € + IVA</strong>
+                                </div>
+                                <div class="alm-precio-qty-line">
+                                    Nº trailers:
+                                    <select id="alm-qty-trailers" class="alm-qty-sel" onchange="updateAlmTotal()" aria-label="Numero de trailers">
+                                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+                                    </select>
+                                    <span>× 240 €</span>
+                                </div>
+                            </div>
+                            <div class="alm-precio-row">
+                                <div class="alm-precio-line">
+                                    <span>Entrega zona urbana <small style="display:block;font-size:0.68rem;color:var(--gray-500);font-weight:500;margin-top:0.1rem">camión 2 ejes · 4 m largo</small></span>
+                                    <strong id="alm-sub-deliveries">180 € + IVA</strong>
+                                </div>
+                                <div class="alm-precio-qty-line">
+                                    Nº envíos:
+                                    <select id="alm-qty-deliveries" class="alm-qty-sel" onchange="updateAlmTotal()" aria-label="Numero de envios">
+                                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="12">12</option><option value="15">15</option><option value="20">20</option>
+                                    </select>
+                                    <span>× 180 €</span>
+                                </div>
+                            </div>
+                            <div class="alm-precio-row total">
+                                <div class="alm-precio-line">
+                                    <span>Total <em id="alm-prov-name" style="font-style:normal;font-weight:700;color:var(--purple)"></em></span>
+                                    <strong id="alm-total">420 € + IVA</strong>
+                                </div>
+                            </div>
                             <p class="alm-precio-note">Precio orientativo para trailer completo (33 palets europeo) y 1 entrega en zona urbana. Contrata abajo y nos coordinamos por los detalles.</p>
                             <div class="alm-precio-cta">
                                 <a id="alm-cta-email" class="alm-cta-email" href="#" aria-label="Contratar por email">
@@ -2530,40 +2571,56 @@ document.addEventListener('keydown', function(e){
         if (heroOpen) { heroOpen.classList.remove('open'); heroOpen.querySelector('.hero-cotizar-btn').setAttribute('aria-expanded','false'); }
     }
 });
+var ALM_PRICE_TRAILER = 240;
+var ALM_PRICE_DELIVERY = 180;
 function updateAlmPrecio(sel) {
     var box = document.getElementById('alm-precio-box');
-    var name = document.getElementById('alm-prov-name');
-    var emailA = document.getElementById('alm-cta-email');
-    var waA = document.getElementById('alm-cta-wa');
     if (!sel.value) { box.hidden = true; return; }
-    var prov = sel.value;
-    name.textContent = '· ' + prov;
+    box.hidden = false;
+    updateAlmTotal();
+}
+function updateAlmTotal() {
+    var provSel = document.getElementById('alm-prov-select');
+    var prov = provSel ? provSel.value : '';
+    if (!prov) return;
+    var qtyT = parseInt(document.getElementById('alm-qty-trailers').value, 10) || 1;
+    var qtyD = parseInt(document.getElementById('alm-qty-deliveries').value, 10) || 1;
+    var subT = qtyT * ALM_PRICE_TRAILER;
+    var subD = qtyD * ALM_PRICE_DELIVERY;
+    var total = subT + subD;
+    document.getElementById('alm-prov-name').textContent = '· ' + prov;
+    document.getElementById('alm-sub-trailers').textContent = subT.toLocaleString('es-ES') + ' € + IVA';
+    document.getElementById('alm-sub-deliveries').textContent = subD.toLocaleString('es-ES') + ' € + IVA';
+    document.getElementById('alm-total').textContent = total.toLocaleString('es-ES') + ' € + IVA';
     var subject = 'Solicitud TARIFA Almacenamiento + Entrega — ' + prov;
     var bodyEmail =
         'Buenos días,\r\n\r\n' +
         'SOLICITUD DE TARIFA — ALMACENAMIENTO + ENTREGA:\r\n\r\n' +
         'Provincia: ' + prov + '\r\n' +
-        'Servicio: Almacenamiento 1-7 días (33 palets) + Entrega zona urbana (camión 2 ejes 4m)\r\n' +
-        'Precio orientativo: 420 € + IVA (240 almacenamiento + 180 entrega)\r\n\r\n' +
+        'Almacenamiento 1-7 días: ' + qtyT + ' trailer(s) × 240 € = ' + subT + ' € + IVA\r\n' +
+        '   (33 palets máx. por trailer)\r\n' +
+        'Entrega zona urbana (camión 2 ejes 4 m): ' + qtyD + ' envío(s) × 180 € = ' + subD + ' € + IVA\r\n' +
+        'TOTAL orientativo: ' + total + ' € + IVA\r\n\r\n' +
         '1. ¿Qué tipo de mercancía es?:\r\n—\r\n\r\n' +
-        '2. ¿Cuántos palets aproximados? (máx. 33):\r\n—\r\n\r\n' +
+        '2. ¿Cuántos palets aproximados?:\r\n—\r\n\r\n' +
         '3. ¿Fecha estimada de llegada al almacén?:\r\n—\r\n\r\n' +
-        '4. Dirección aproximada de entrega final:\r\n—\r\n\r\n' +
+        '4. Dirección(es) aproximada(s) de entrega final:\r\n—\r\n\r\n' +
         'Comentarios:\r\n—\r\n';
     var bodyWa =
         'Buenos días,\n\n' +
         '*SOLICITUD DE TARIFA — ALMACENAMIENTO + ENTREGA:*\n\n' +
         '*Provincia:* ' + prov + '\n' +
-        '*Servicio:* Almacenamiento 1-7 días (33 palets) + Entrega zona urbana (camión 2 ejes 4m)\n' +
-        '*Precio orientativo:* 420 € + IVA (240 almacenamiento + 180 entrega)\n\n' +
+        '*Almacenamiento 1-7 días:* ' + qtyT + ' trailer(s) × 240 € = *' + subT + ' € + IVA*\n' +
+        '   _33 palets máx. por trailer_\n' +
+        '*Entrega zona urbana (camión 2 ejes 4 m):* ' + qtyD + ' envío(s) × 180 € = *' + subD + ' € + IVA*\n' +
+        '*TOTAL orientativo:* ' + total + ' € + IVA\n\n' +
         '*1. ¿Qué tipo de mercancía es?*\n—\n\n' +
-        '*2. ¿Cuántos palets aproximados? (máx. 33):*\n—\n\n' +
-        '*3. ¿Fecha estimada de llegada al almacén?:*\n—\n\n' +
-        '*4. Dirección aproximada de entrega final:*\n—\n\n' +
+        '*2. ¿Cuántos palets aproximados?*\n—\n\n' +
+        '*3. ¿Fecha estimada de llegada al almacén?*\n—\n\n' +
+        '*4. Dirección(es) aproximada(s) de entrega final:*\n—\n\n' +
         'Comentarios:\n—\n';
-    emailA.href = 'mailto:info@dynamotrans.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(bodyEmail);
-    waA.href = 'https://wa.me/34628995709?text=' + encodeURIComponent(bodyWa);
-    box.hidden = false;
+    document.getElementById('alm-cta-email').href = 'mailto:info@dynamotrans.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(bodyEmail);
+    document.getElementById('alm-cta-wa').href = 'https://wa.me/34628995709?text=' + encodeURIComponent(bodyWa);
 }
 function toggleHeroCotizar(btn) {
     var wrap = btn.parentElement;
