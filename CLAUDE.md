@@ -79,6 +79,18 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-08 (sesión 2) — MacBook Pro
+- **Calculadora de precio en la card "Almacenamiento corta estancia"** (rama `claude/sharp-dirac-E3UIO`, mergeada en `main` por partes): nuevo bloque debajo del `<span class="svc-tag">` que despliega un desglose interactivo al seleccionar provincia
+- **Dropdown de provincias**: 47 provincias peninsulares (excluye Baleares, Canarias, Ceuta, Melilla) en `<select id="alm-prov-select">`. Hasta que no se elige una, la caja de precio queda `hidden`
+- **2 selectores de cantidad** con recálculo en vivo:
+  - **Nº trailers** (1-10) × **240 € + IVA** → almacenamiento 1-7 días, 33 palets europeo máx. por trailer y tarifa
+  - **Nº envíos** (`0 (recogida cliente)`, 1-10, 12, 15, 20) × **180 € + IVA** → entrega zona urbana con camión 2 ejes 4 m largo. **Default `0`** (asume que el cliente recoge con su propio camión/trailer)
+- **Total dinámico** con formato es-ES (`240 €`, `1.020 €`, etc.) y **nota descriptiva** debajo que se reescribe sola con singular/plural (`1 trailer completo (33 palets europeo máx.) y sin entrega — recogida por el cliente con su propio camión/trailer` / `2 trailers completos (66 palets...) y 3 entregas en zona urbana...`)
+- **2 CTAs en la propia caja**: botón morado `Email` + botón verde `WhatsApp`. JS rellena `href` dinámicamente con un mensaje preformateado que incluye provincia, cantidades, desglose, total orientativo y 4 preguntas estructuradas (tipo mercancía, palets, fecha llegada, dirección/destino). Email con CRLF (Gmail mobile), WhatsApp con LF y negrita `*`
+- **Bug detectado y corregido**: `parseInt(value) || 1` convertía silenciosamente el `0` (falsy en JS) en `1`, por lo que seleccionar "0 envíos" mostraba 180 € en vez de 0 €. Fix: validar con `isNaN()` (commit `3e9305d`)
+- **Commits del día (rama feature → main)**: `5289837` (calculadora + 47 provincias), `1aa3761` (botones Email/WhatsApp con mensaje), `c24b7b2` (selectores cantidad), `ebcfc76` (opción 0 envíos), `f0932a4` (nota dinámica), `23d2e35` (default Nº envíos = 0), `3e9305d` (fix parseInt). Merges a `main`: `068fe76` → `d264c25` → `b70c598` → `9e4036d` → `30a53dd`. Todo desplegado en producción vía Vercel
+- **Pendiente abierto del día anterior**: sigue sin decisión el texto del botón `COTIZAR` del hero (`Cotizar` vs `TARIFAR` / `PEDIR TARIFA` / `SOLICITAR TARIFA`)
+
 ### 2026-06-08 — MacBook Pro
 - **Workflow de uptime / GitHub Actions**: añadido `.github/workflows/uptime.yml` que comprueba `dynamotrans.com` cada 2 h y manda email automático si cae (commit `ad005f5`). Primer run dio falso positivo por un `307` (redirect de Vercel a www) → fixed añadiendo `curl -L` para seguir redirects (commit `77fc22c`). Verificado en producción: workflow runs en verde
 - **Barra superior — border-radius unificado**:
