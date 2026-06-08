@@ -2583,8 +2583,10 @@ function updateAlmTotal() {
     var provSel = document.getElementById('alm-prov-select');
     var prov = provSel ? provSel.value : '';
     if (!prov) return;
-    var qtyT = parseInt(document.getElementById('alm-qty-trailers').value, 10) || 1;
-    var qtyD = parseInt(document.getElementById('alm-qty-deliveries').value, 10) || 1;
+    var qtyT = parseInt(document.getElementById('alm-qty-trailers').value, 10);
+    if (isNaN(qtyT) || qtyT < 1) qtyT = 1;
+    var qtyD = parseInt(document.getElementById('alm-qty-deliveries').value, 10);
+    if (isNaN(qtyD) || qtyD < 0) qtyD = 0;
     var subT = qtyT * ALM_PRICE_TRAILER;
     var subD = qtyD * ALM_PRICE_DELIVERY;
     var total = subT + subD;
