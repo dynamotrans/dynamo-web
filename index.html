@@ -1447,7 +1447,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                 <div class="alm-precio-qty-line">
                                     Nº envíos:
                                     <select id="alm-qty-deliveries" class="alm-qty-sel" onchange="updateAlmTotal()" aria-label="Numero de envios">
-                                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="12">12</option><option value="15">15</option><option value="20">20</option>
+                                        <option value="0">0 (recogida cliente)</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="12">12</option><option value="15">15</option><option value="20">20</option>
                                     </select>
                                     <span>× 180 €</span>
                                 </div>
@@ -2593,18 +2593,25 @@ function updateAlmTotal() {
     document.getElementById('alm-sub-deliveries').textContent = subD.toLocaleString('es-ES') + ' € + IVA';
     document.getElementById('alm-total').textContent = total.toLocaleString('es-ES') + ' € + IVA';
     var subject = 'Solicitud TARIFA Almacenamiento + Entrega — ' + prov;
+    var deliveryLineEmail = qtyD === 0
+        ? 'Entrega zona urbana: 0 (recogida por el cliente con otro camión/trailer)\r\n'
+        : 'Entrega zona urbana (camión 2 ejes 4 m): ' + qtyD + ' envío(s) × 180 € = ' + subD + ' € + IVA\r\n';
+    var deliveryLineWa = qtyD === 0
+        ? '*Entrega zona urbana:* 0 _(recogida por el cliente con otro camión/trailer)_\n'
+        : '*Entrega zona urbana (camión 2 ejes 4 m):* ' + qtyD + ' envío(s) × 180 € = *' + subD + ' € + IVA*\n';
+    var destLineLabel = qtyD === 0 ? 'Destino final tras retirada del almacén' : 'Dirección(es) aproximada(s) de entrega final';
     var bodyEmail =
         'Buenos días,\r\n\r\n' +
         'SOLICITUD DE TARIFA — ALMACENAMIENTO + ENTREGA:\r\n\r\n' +
         'Provincia: ' + prov + '\r\n' +
         'Almacenamiento 1-7 días: ' + qtyT + ' trailer(s) × 240 € = ' + subT + ' € + IVA\r\n' +
         '   (33 palets máx. por trailer)\r\n' +
-        'Entrega zona urbana (camión 2 ejes 4 m): ' + qtyD + ' envío(s) × 180 € = ' + subD + ' € + IVA\r\n' +
+        deliveryLineEmail +
         'TOTAL orientativo: ' + total + ' € + IVA\r\n\r\n' +
         '1. ¿Qué tipo de mercancía es?:\r\n—\r\n\r\n' +
         '2. ¿Cuántos palets aproximados?:\r\n—\r\n\r\n' +
         '3. ¿Fecha estimada de llegada al almacén?:\r\n—\r\n\r\n' +
-        '4. Dirección(es) aproximada(s) de entrega final:\r\n—\r\n\r\n' +
+        '4. ' + destLineLabel + ':\r\n—\r\n\r\n' +
         'Comentarios:\r\n—\r\n';
     var bodyWa =
         'Buenos días,\n\n' +
@@ -2612,12 +2619,12 @@ function updateAlmTotal() {
         '*Provincia:* ' + prov + '\n' +
         '*Almacenamiento 1-7 días:* ' + qtyT + ' trailer(s) × 240 € = *' + subT + ' € + IVA*\n' +
         '   _33 palets máx. por trailer_\n' +
-        '*Entrega zona urbana (camión 2 ejes 4 m):* ' + qtyD + ' envío(s) × 180 € = *' + subD + ' € + IVA*\n' +
+        deliveryLineWa +
         '*TOTAL orientativo:* ' + total + ' € + IVA\n\n' +
         '*1. ¿Qué tipo de mercancía es?*\n—\n\n' +
         '*2. ¿Cuántos palets aproximados?*\n—\n\n' +
         '*3. ¿Fecha estimada de llegada al almacén?*\n—\n\n' +
-        '*4. Dirección(es) aproximada(s) de entrega final:*\n—\n\n' +
+        '*4. ' + destLineLabel + ':*\n—\n\n' +
         'Comentarios:\n—\n';
     document.getElementById('alm-cta-email').href = 'mailto:info@dynamotrans.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(bodyEmail);
     document.getElementById('alm-cta-wa').href = 'https://wa.me/34628995709?text=' + encodeURIComponent(bodyWa);
