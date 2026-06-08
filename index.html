@@ -1447,7 +1447,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                 <div class="alm-precio-qty-line">
                                     Nº envíos:
                                     <select id="alm-qty-deliveries" class="alm-qty-sel" onchange="updateAlmTotal()" aria-label="Numero de envios">
-                                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="12">12</option><option value="15">15</option><option value="20">20</option>
+                                        <option value="0">0 (recogida cliente)</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="12">12</option><option value="15">15</option><option value="20">20</option>
                                     </select>
                                     <span>× 180 €</span>
                                 </div>
@@ -1458,7 +1458,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                     <strong id="alm-total">420 € + IVA</strong>
                                 </div>
                             </div>
-                            <p class="alm-precio-note">Precio orientativo para trailer completo (33 palets europeo) y 1 entrega en zona urbana. Contrata abajo y nos coordinamos por los detalles.</p>
+                            <p class="alm-precio-note" id="alm-precio-note">Precio orientativo para 1 trailer completo (33 palets europeo máx.) y 1 entrega en zona urbana. Contrata abajo y nos coordinamos por los detalles.</p>
                             <div class="alm-precio-cta">
                                 <a id="alm-cta-email" class="alm-cta-email" href="#" aria-label="Contratar por email">
                                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
@@ -2592,19 +2592,34 @@ function updateAlmTotal() {
     document.getElementById('alm-sub-trailers').textContent = subT.toLocaleString('es-ES') + ' € + IVA';
     document.getElementById('alm-sub-deliveries').textContent = subD.toLocaleString('es-ES') + ' € + IVA';
     document.getElementById('alm-total').textContent = total.toLocaleString('es-ES') + ' € + IVA';
+    var maxPalets = qtyT * 33;
+    var trailerTxt = qtyT === 1 ? '1 trailer completo' : qtyT + ' trailers completos';
+    var paletsTxt = '(' + maxPalets + ' palets europeo máx.)';
+    var deliveryTxt;
+    if (qtyD === 0) deliveryTxt = 'sin entrega — recogida por el cliente con su propio camión/trailer';
+    else if (qtyD === 1) deliveryTxt = '1 entrega en zona urbana (camión 2 ejes · 4 m)';
+    else deliveryTxt = qtyD + ' entregas en zona urbana (camión 2 ejes · 4 m)';
+    document.getElementById('alm-precio-note').textContent = 'Precio orientativo para ' + trailerTxt + ' ' + paletsTxt + ' y ' + deliveryTxt + '. Contrata abajo y nos coordinamos por los detalles.';
     var subject = 'Solicitud TARIFA Almacenamiento + Entrega — ' + prov;
+    var deliveryLineEmail = qtyD === 0
+        ? 'Entrega zona urbana: 0 (recogida por el cliente con otro camión/trailer)\r\n'
+        : 'Entrega zona urbana (camión 2 ejes 4 m): ' + qtyD + ' envío(s) × 180 € = ' + subD + ' € + IVA\r\n';
+    var deliveryLineWa = qtyD === 0
+        ? '*Entrega zona urbana:* 0 _(recogida por el cliente con otro camión/trailer)_\n'
+        : '*Entrega zona urbana (camión 2 ejes 4 m):* ' + qtyD + ' envío(s) × 180 € = *' + subD + ' € + IVA*\n';
+    var destLineLabel = qtyD === 0 ? 'Destino final tras retirada del almacén' : 'Dirección(es) aproximada(s) de entrega final';
     var bodyEmail =
         'Buenos días,\r\n\r\n' +
         'SOLICITUD DE TARIFA — ALMACENAMIENTO + ENTREGA:\r\n\r\n' +
         'Provincia: ' + prov + '\r\n' +
         'Almacenamiento 1-7 días: ' + qtyT + ' trailer(s) × 240 € = ' + subT + ' € + IVA\r\n' +
         '   (33 palets máx. por trailer)\r\n' +
-        'Entrega zona urbana (camión 2 ejes 4 m): ' + qtyD + ' envío(s) × 180 € = ' + subD + ' € + IVA\r\n' +
+        deliveryLineEmail +
         'TOTAL orientativo: ' + total + ' € + IVA\r\n\r\n' +
         '1. ¿Qué tipo de mercancía es?:\r\n—\r\n\r\n' +
         '2. ¿Cuántos palets aproximados?:\r\n—\r\n\r\n' +
         '3. ¿Fecha estimada de llegada al almacén?:\r\n—\r\n\r\n' +
-        '4. Dirección(es) aproximada(s) de entrega final:\r\n—\r\n\r\n' +
+        '4. ' + destLineLabel + ':\r\n—\r\n\r\n' +
         'Comentarios:\r\n—\r\n';
     var bodyWa =
         'Buenos días,\n\n' +
@@ -2612,12 +2627,12 @@ function updateAlmTotal() {
         '*Provincia:* ' + prov + '\n' +
         '*Almacenamiento 1-7 días:* ' + qtyT + ' trailer(s) × 240 € = *' + subT + ' € + IVA*\n' +
         '   _33 palets máx. por trailer_\n' +
-        '*Entrega zona urbana (camión 2 ejes 4 m):* ' + qtyD + ' envío(s) × 180 € = *' + subD + ' € + IVA*\n' +
+        deliveryLineWa +
         '*TOTAL orientativo:* ' + total + ' € + IVA\n\n' +
         '*1. ¿Qué tipo de mercancía es?*\n—\n\n' +
         '*2. ¿Cuántos palets aproximados?*\n—\n\n' +
         '*3. ¿Fecha estimada de llegada al almacén?*\n—\n\n' +
-        '*4. Dirección(es) aproximada(s) de entrega final:*\n—\n\n' +
+        '*4. ' + destLineLabel + ':*\n—\n\n' +
         'Comentarios:\n—\n';
     document.getElementById('alm-cta-email').href = 'mailto:info@dynamotrans.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(bodyEmail);
     document.getElementById('alm-cta-wa').href = 'https://wa.me/34628995709?text=' + encodeURIComponent(bodyWa);
