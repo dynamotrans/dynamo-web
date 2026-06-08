@@ -1458,7 +1458,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                     <strong id="alm-total">420 € + IVA</strong>
                                 </div>
                             </div>
-                            <p class="alm-precio-note">Precio orientativo para trailer completo (33 palets europeo) y 1 entrega en zona urbana. Contrata abajo y nos coordinamos por los detalles.</p>
+                            <p class="alm-precio-note" id="alm-precio-note">Precio orientativo para 1 trailer completo (33 palets europeo máx.) y 1 entrega en zona urbana. Contrata abajo y nos coordinamos por los detalles.</p>
                             <div class="alm-precio-cta">
                                 <a id="alm-cta-email" class="alm-cta-email" href="#" aria-label="Contratar por email">
                                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
@@ -2592,6 +2592,14 @@ function updateAlmTotal() {
     document.getElementById('alm-sub-trailers').textContent = subT.toLocaleString('es-ES') + ' € + IVA';
     document.getElementById('alm-sub-deliveries').textContent = subD.toLocaleString('es-ES') + ' € + IVA';
     document.getElementById('alm-total').textContent = total.toLocaleString('es-ES') + ' € + IVA';
+    var maxPalets = qtyT * 33;
+    var trailerTxt = qtyT === 1 ? '1 trailer completo' : qtyT + ' trailers completos';
+    var paletsTxt = '(' + maxPalets + ' palets europeo máx.)';
+    var deliveryTxt;
+    if (qtyD === 0) deliveryTxt = 'sin entrega — recogida por el cliente con su propio camión/trailer';
+    else if (qtyD === 1) deliveryTxt = '1 entrega en zona urbana (camión 2 ejes · 4 m)';
+    else deliveryTxt = qtyD + ' entregas en zona urbana (camión 2 ejes · 4 m)';
+    document.getElementById('alm-precio-note').textContent = 'Precio orientativo para ' + trailerTxt + ' ' + paletsTxt + ' y ' + deliveryTxt + '. Contrata abajo y nos coordinamos por los detalles.';
     var subject = 'Solicitud TARIFA Almacenamiento + Entrega — ' + prov;
     var deliveryLineEmail = qtyD === 0
         ? 'Entrega zona urbana: 0 (recogida por el cliente con otro camión/trailer)\r\n'
