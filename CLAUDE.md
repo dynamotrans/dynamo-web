@@ -79,6 +79,15 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-08 — MacBook Pro
+- **Workflow de uptime / GitHub Actions**: añadido `.github/workflows/uptime.yml` que comprueba `dynamotrans.com` cada 2 h y manda email automático si cae (commit `ad005f5`). Primer run dio falso positivo por un `307` (redirect de Vercel a www) → fixed añadiendo `curl -L` para seguir redirects (commit `77fc22c`). Verificado en producción: workflow runs en verde
+- **Barra superior — border-radius unificado**:
+  - Primera iteración: `.lang-btn` (selector ES), `.nav-social a` (iconos IG/WA) y `.btn-nav-cta` (botón ATENCIÓN AL CLIENTE) pasaron de píldora (`50px` / `50%`) → **`18px`** para igualar al resto de botones de la web (commit `54586d9`)
+  - Problema detectado: en botones de ~38-39px de alto, `18px` queda casi como píldora completa (clamp visual). El usuario notó que "se veía igual"
+  - Segunda iteración: `.lang-btn` y `.btn-nav-cta` bajados a **`10px`** (proporcional al 18/55 de los botones grandes del hero) para que se vea claramente como rectángulo con esquinas suaves (commit `ac1cc42`). Los iconos IG/WA (30×30) quedan en 18px pero el clamp CSS los mantiene visualmente circulares
+- **Cajas de servicios — quitar botones WhatsApp/Email**: eliminados los 6 bloques `.svc-btns` (con sus enlaces `wa.me` y `mailto` URL-encoded) de las 6 svc-cards (Grupajes, Carga Completa, Importación, Exportación, Gestión Logística, Cotización Inmediata) y limpiado el CSS muerto asociado (`.svc-btns`, `.svc-btn`, `.svc-btn:hover`, `.svc-btn-wa`, `.svc-btn-email`). Las cajas conservan imagen + título + descripción + tag. −29 líneas (commit `da51ed6`)
+- **Verificación visual pendiente del usuario** en producción (Vercel autodespliega `main` cuando se mergee). El workflow de uptime queda activo en background
+
 ### 2026-06-04 — iPhone Pro Max 17
 - **Mensaje predefinido de tarifa — punto 3 ampliado** (primera iteración del día): añadidas 2 preguntas en los 23 botones (13 WhatsApp + 10 email): `¿Origen es Almacén, Obra o Finca?:` tras el origen y `¿Destino es Almacén, Obra o Finca?:` tras el destino, con línea en blanco separando origen y destino. Script Python con doble codificación (`%0A` WhatsApp, `%0D%0A` mailto) (commit `58feca1`)
 - **Chips de la barra de servicios** (GRUPAJES / CARGA COMPLETA / IMPORT & EXPORT / NACIONAL 24H): la caja `.strip-item` pasa de transparente con texto blanco → **fondo blanco con texto morado por defecto**, y **naranja con texto blanco al hover/pulsar** (`:hover, :active`). Añadida variable `--orange: #ff7a00`. El puntito `.si` se mantiene verde parpadeando (commit `9b4da03` cambió primero el punto y `9bdac2e` lo revirtió aplicándolo al chip)
