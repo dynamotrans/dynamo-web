@@ -4,6 +4,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## 🔥 Prioridad alta
 <!-- Cosas urgentes -->
+- [ ] **Texto del botón COTIZAR del hero**: decidir si dejarlo como `Cotizar` o cambiar a `TARIFAR` / `PEDIR TARIFA` / `SOLICITAR TARIFA` (este último encaja mejor con el mensaje prerellenado SOLICITUD DE TARIFA). Sin decisión todavía
 
 ## 📋 Normal
 <!-- Cosas que hacer cuando haya tiempo -->
@@ -37,6 +38,12 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## ✅ Hecho recientemente
 <!-- Claude mueve aquí las tareas completadas. Se limpia cada ~2 semanas -->
+- [x] 2026-06-08 — Hero: botón COTIZAR único (verde de marca) que despliega los 2 botones email/WhatsApp con fadeUp; cierre por click fuera o Escape
+- [x] 2026-06-08 — Cajas de vehículos: botón CONTRATAR morado con popup de 2 iconos circulares (email + WhatsApp) con rebote tipo FAB
+- [x] 2026-06-08 — Chips de la barra de servicios (.strip-item): border-radius de píldora 99px → 10px
+- [x] 2026-06-08 — Cajas de servicios: eliminados los 6 botones WhatsApp/Email (.svc-btns) y CSS muerto (−29 líneas)
+- [x] 2026-06-08 — Barra superior: border-radius unificado en .lang-btn / .nav-social a / .btn-nav-cta (50px/50% → 18px → 10px en botones bajos para que se note)
+- [x] 2026-06-08 — Workflow GitHub Actions de uptime cada 2h con email automático si dynamotrans.com cae (fix `curl -L` para evitar falsos 307 por redirect Vercel→www)
 - [x] 2026-05-21 — Hero: fondo final = imagen HERO-DYNAMO.webp (mantiene vídeo; degradado como fallback) — en producción
 - [x] 2026-05-21 — Punto de la barra de servicios: círculo blanco fijo con parpadeo, verde al hover — en producción
 - [x] 2026-05-20 — FAB Llamar visible solo L-V 8:00-19:00 hora de Madrid (Europe/Madrid, gestiona DST)
