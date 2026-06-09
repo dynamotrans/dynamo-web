@@ -497,7 +497,13 @@
            SERVICES CARDS
         ========================================= */
         .services-sec { background: var(--gray-100); }
-        .svc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(285px, 1fr)); gap: 1.4rem; margin-top: 3rem; }
+        .svc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.4rem; margin-top: 3rem; }
+        .svc-card.svc-almacen { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(260px, 0.9fr) 1.4fr; gap: 0; overflow: hidden; }
+        .svc-card.svc-almacen .svc-card-img { height: 100%; min-height: 100%; }
+        .svc-card.svc-almacen .svc-card-body { padding: 2rem 2.3rem; display: flex; flex-direction: column; justify-content: center; }
+        .svc-card.svc-almacen h3 { font-size: 1.7rem; }
+        .svc-card.svc-almacen > .svc-card-body > p { font-size: 0.95rem; max-width: 640px; }
+        .svc-card.svc-almacen::before { background: linear-gradient(90deg, var(--purple), var(--purple-light), var(--green)); height: 4px; }
         .svc-card {
             background: white; border-radius: 18px; padding: 0;
             border: 1.5px solid var(--gray-200); position: relative; overflow: hidden;
@@ -574,6 +580,31 @@
             content: 'Más solicitado'; position: absolute; top: 12px; right: 12px; z-index: 2;
             background: var(--purple); color: white; font-size: 0.65rem; font-weight: 700;
             padding: 0.25rem 0.7rem; border-radius: 50px; letter-spacing: 0.3px;
+        }
+        @media (max-width: 1024px) {
+            .svc-card.svc-almacen { grid-template-columns: 220px 1fr; }
+            .svc-card.svc-almacen h3 { font-size: 1.4rem; }
+            .svc-card.svc-almacen .svc-card-body { padding: 1.5rem 1.8rem; }
+        }
+        @media (max-width: 600px) {
+            .svc-grid { gap: 0.55rem; }
+            .svc-card:not(.svc-almacen) .svc-card-img { height: 70px; }
+            .svc-card:not(.svc-almacen) .svc-card-body { padding: 0.55rem 0.4rem 0.7rem; text-align: center; }
+            .svc-card:not(.svc-almacen) h3 {
+                font-size: 0.66rem; line-height: 1.15; margin-bottom: 0.3rem; padding-bottom: 0.3rem;
+                letter-spacing: -0.2px;
+                display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+                min-height: 2.3em;
+            }
+            .svc-card:not(.svc-almacen) h3::after { left: 50%; transform: translateX(-50%); width: 18px; height: 2px; }
+            .svc-card:not(.svc-almacen) p { display: none; }
+            .svc-card:not(.svc-almacen) .svc-tag { display: none; }
+            .svc-card.svc-featured::after { font-size: 0.5rem; padding: 0.12rem 0.4rem; top: 6px; right: 6px; }
+            .svc-card.svc-almacen { grid-template-columns: 1fr; }
+            .svc-card.svc-almacen .svc-card-img { height: 150px; min-height: 150px; }
+            .svc-card.svc-almacen .svc-card-body { padding: 1.3rem 1.3rem 1.5rem; }
+            .svc-card.svc-almacen h3 { font-size: 1.25rem; }
+            .svc-card.svc-almacen > .svc-card-body > p { font-size: 0.86rem; }
         }
 
         /* =========================================
@@ -1359,7 +1390,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     <span class="svc-tag">Import & Export</span>
                 </div>
             </div>
-            <div class="svc-card reveal" style="transition-delay:.4s">
+            <div class="svc-card svc-almacen reveal" style="transition-delay:.4s">
                 <img loading="lazy" src="images/PLT.jpg" alt="Almacenamiento corta estancia" class="svc-card-img">
                 <div class="svc-card-body">
                     <h3>Almacenamiento corta estancia</h3>
