@@ -2487,6 +2487,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (langBtn) langBtn.innerHTML = '<span class="flag">' + info.flag + '</span> ' + info.code + ' <span class="arrow">▼</span>';
         // Delay loading Google Translate slightly to not block page render
         setTimeout(loadGoogleTranslate, 1000);
+        // Watchdog: if GT loaded but did not auto-apply the translation, force it
+        var wdAttempts = 0;
+        var watchdog = setInterval(function() {
+            wdAttempts++;
+            var applied = document.documentElement.classList.contains('translated-ltr') ||
+                          document.documentElement.classList.contains('translated-rtl');
+            if (applied || wdAttempts > 20) { clearInterval(watchdog); return; }
+            doTranslate(lang);
+        }, 600);
         return;
     }
 
@@ -2636,7 +2645,7 @@ function changeLang(lang, flag, code) {
 
     // Wait for Google Translate to be ready, then translate
     var attempts = 0;
-    var maxAttempts = 40; // 40 x 250ms = 10 seconds
+    var maxAttempts = 16; // 16 x 250ms = 4s, then reload (cookie makes GT auto-translate on load)
     if (gtInitTimeout) clearInterval(gtInitTimeout);
     gtInitTimeout = setInterval(function() {
         attempts++;

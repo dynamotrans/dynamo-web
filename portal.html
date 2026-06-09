@@ -336,6 +336,40 @@
             .portal-card { padding: 1.8rem 1.4rem 1.4rem; border-radius: 18px; }
             .portal-title { font-size: 1.35rem; }
         }
+
+        /* Language selector (same UI as index, fixed top-right) */
+        .lang-selector { position: fixed; top: 1rem; right: 1rem; z-index: 10000; }
+        .lang-btn {
+            display: flex; align-items: center; gap: 0.3rem; cursor: pointer;
+            background: white; border: 1.5px solid var(--gray-200); border-radius: 10px;
+            padding: 0.3rem 0.7rem 0.3rem 0.45rem; font-size: 0.78rem; font-weight: 700;
+            color: var(--gray-700); transition: all 0.2s;
+            box-shadow: 0 4px 14px rgba(10,2,48,0.08);
+        }
+        .lang-btn:hover { border-color: var(--purple); }
+        .lang-btn .flag { font-size: 1.1rem; line-height: 1; }
+        .lang-btn .arrow { font-size: 0.6rem; margin-left: 0.15rem; transition: transform 0.2s; }
+        .lang-btn.open .arrow { transform: rotate(180deg); }
+        .lang-dropdown {
+            position: absolute; top: calc(100% + 6px); right: 0; z-index: 10001;
+            background: white; border-radius: 14px; border: 1.5px solid var(--gray-200);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.12); padding: 0.5rem;
+            display: none; min-width: 170px;
+            max-height: 350px; overflow-y: auto;
+        }
+        .lang-dropdown.open { display: block; animation: langPop 0.2s ease; }
+        @keyframes langPop {
+            0% { opacity: 0; transform: translateY(-6px) scale(0.97); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .lang-option {
+            display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.7rem;
+            border-radius: 8px; cursor: pointer; transition: background 0.15s;
+            font-size: 0.82rem; font-weight: 600; color: var(--gray-700); border: none; background: none; width: 100%; text-align: left;
+        }
+        .lang-option:hover { background: var(--gray-100); }
+        .lang-option.active { background: rgba(51,0,204,0.07); color: var(--purple); }
+        .lang-option .flag { font-size: 1.2rem; }
     </style>
 </head>
 <body>
@@ -353,6 +387,26 @@
             <div class="portal-exit-loader"></div>
         </div>
     </div>
+    <!-- LANGUAGE SELECTOR -->
+    <div class="lang-selector notranslate" translate="no">
+        <button class="lang-btn" onclick="toggleLangDropdown()" id="langBtn">
+            <span class="flag">🇪🇸</span> ES <span class="arrow">▼</span>
+        </button>
+        <div class="lang-dropdown" id="langDropdown">
+            <button class="lang-option active" onclick="changeLang('es','🇪🇸','ES')"><span class="flag">🇪🇸</span> Español</button>
+            <button class="lang-option" onclick="changeLang('pt','🇵🇹','PT')"><span class="flag">🇵🇹</span> Português</button>
+            <button class="lang-option" onclick="changeLang('en','🇬🇧','EN')"><span class="flag">🇬🇧</span> English</button>
+            <button class="lang-option" onclick="changeLang('zh-CN','🇨🇳','ZH')"><span class="flag">🇨🇳</span> 中文</button>
+            <button class="lang-option" onclick="changeLang('fr','🇫🇷','FR')"><span class="flag">🇫🇷</span> Français</button>
+            <button class="lang-option" onclick="changeLang('de','🇩🇪','DE')"><span class="flag">🇩🇪</span> Deutsch</button>
+            <button class="lang-option" onclick="changeLang('it','🇮🇹','IT')"><span class="flag">🇮🇹</span> Italiano</button>
+            <button class="lang-option" onclick="changeLang('uk','🇺🇦','UK')"><span class="flag">🇺🇦</span> Українська</button>
+            <button class="lang-option" onclick="changeLang('ro','🇷🇴','RO')"><span class="flag">🇷🇴</span> Română</button>
+            <button class="lang-option" onclick="changeLang('pl','🇵🇱','PL')"><span class="flag">🇵🇱</span> Polski</button>
+            <button class="lang-option" onclick="changeLang('nl','🇳🇱','NL')"><span class="flag">🇳🇱</span> Nederlands</button>
+        </div>
+    </div>
+
     <div class="portal-arrival" aria-hidden="true">
         <div class="portal-arrival-core">
             <div class="portal-arrival-lock">
@@ -453,5 +507,190 @@
             try { sessionStorage.removeItem('portalTransition'); } catch (err) {}
         });
     </script>
+
+    <!-- Google Translate (same engine as index.html, shares googtrans cookie) -->
+    <div id="google_translate_element" style="display:none;"></div>
+    <script>
+    var gtLoaded = false;
+    var gtReady = false;
+    var gtInitTimeout = null;
+
+    function loadGoogleTranslate() {
+        if (gtLoaded) return;
+        gtLoaded = true;
+        var s = document.createElement('script');
+        s.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+        s.onerror = function() { gtLoaded = false; };
+        document.body.appendChild(s);
+    }
+
+    function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+            pageLanguage: 'es',
+            autoDisplay: false,
+            includedLanguages: 'pt,en,zh-CN,fr,de,it,uk,ro,pl,nl'
+        }, 'google_translate_element');
+        var checkReady = setInterval(function() {
+            var sel = document.querySelector('.goog-te-combo');
+            if (sel) { gtReady = true; clearInterval(checkReady); }
+        }, 200);
+        setTimeout(function() { clearInterval(checkReady); }, 10000);
+    }
+
+    var langMap = {
+        'pt': { flag: '🇵🇹', code: 'PT' },
+        'en': { flag: '🇬🇧', code: 'EN' },
+        'zh-CN': { flag: '🇨🇳', code: 'ZH' },
+        'fr': { flag: '🇫🇷', code: 'FR' },
+        'de': { flag: '🇩🇪', code: 'DE' },
+        'it': { flag: '🇮🇹', code: 'IT' },
+        'uk': { flag: '🇺🇦', code: 'UK' },
+        'ro': { flag: '🇷🇴', code: 'RO' },
+        'pl': { flag: '🇵🇱', code: 'PL' },
+        'nl': { flag: '🇳🇱', code: 'NL' }
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (location.search.indexOf('lang=es') > -1) {
+            var host = location.hostname;
+            var parts = host.split('.');
+            var domains = ['', host, '.' + host];
+            if (parts.length > 2) {
+                var bare = parts.slice(1).join('.');
+                domains.push(bare, '.' + bare);
+            }
+            domains.forEach(function(d) {
+                var cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+                if (d) cookie += '; domain=' + d;
+                document.cookie = cookie;
+            });
+            if (history.replaceState) history.replaceState(null, '', location.pathname);
+            return;
+        }
+        // If user already chose a language (cookie shared with index.html), apply it
+        var match = document.cookie.match(/googtrans=\/es\/([\w-]+)/);
+        if (match && match[1] && langMap[match[1]]) {
+            var lang = match[1];
+            var info = langMap[lang];
+            var langBtn = document.getElementById('langBtn');
+            if (langBtn) langBtn.innerHTML = '<span class="flag">' + info.flag + '</span> ' + info.code + ' <span class="arrow">▼</span>';
+            setTimeout(loadGoogleTranslate, 300);
+            // Watchdog: if GT loaded but did not auto-apply the translation, force it
+            var wdAttempts = 0;
+            var watchdog = setInterval(function() {
+                wdAttempts++;
+                var applied = document.documentElement.classList.contains('translated-ltr') ||
+                              document.documentElement.classList.contains('translated-rtl');
+                if (applied || wdAttempts > 20) { clearInterval(watchdog); return; }
+                doTranslate(lang);
+            }, 600);
+            return;
+        }
+        setTimeout(loadGoogleTranslate, 800);
+    });
+
+    function toggleLangDropdown() {
+        document.getElementById('langDropdown').classList.toggle('open');
+        document.getElementById('langBtn').classList.toggle('open');
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.lang-selector')) {
+            var dd = document.getElementById('langDropdown');
+            var btn = document.getElementById('langBtn');
+            if (dd) dd.classList.remove('open');
+            if (btn) btn.classList.remove('open');
+        }
+    });
+
+    function doTranslate(lang) {
+        var sel = document.querySelector('.goog-te-combo');
+        if (sel) {
+            sel.value = lang;
+            sel.dispatchEvent(new Event('change'));
+            return true;
+        }
+        return false;
+    }
+
+    function changeLang(lang, flag, code) {
+        var langBtn = document.getElementById('langBtn');
+        if (langBtn) langBtn.innerHTML = '<span class="flag">' + flag + '</span> ' + code + ' <span class="arrow">▼</span>';
+        document.querySelectorAll('.lang-option').forEach(function(o) { o.classList.remove('active'); });
+        if (event && event.target) {
+            var opt = event.target.closest('.lang-option');
+            if (opt) opt.classList.add('active');
+        }
+        var dd = document.getElementById('langDropdown');
+        if (dd) dd.classList.remove('open');
+        if (langBtn) langBtn.classList.remove('open');
+
+        if (lang === 'es') {
+            var host = location.hostname;
+            var parts = host.split('.');
+            var domains = ['', host, '.' + host];
+            if (parts.length > 2) {
+                var bare = parts.slice(1).join('.');
+                domains.push(bare, '.' + bare);
+            }
+            var paths = ['/', ''];
+            domains.forEach(function(d) {
+                paths.forEach(function(p) {
+                    var cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC';
+                    if (p) cookie += '; path=' + p;
+                    if (d) cookie += '; domain=' + d;
+                    document.cookie = cookie;
+                });
+            });
+            document.cookie = 'googtrans=/es/es; path=/';
+            try {
+                var sel = document.querySelector('.goog-te-combo');
+                if (sel) { sel.value = 'es'; sel.dispatchEvent(new Event('change')); }
+            } catch(e) {}
+            setTimeout(function() {
+                domains.forEach(function(d) {
+                    var cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+                    if (d) cookie += '; domain=' + d;
+                    document.cookie = cookie;
+                });
+                window.location.href = location.pathname + '?lang=es&t=' + Date.now();
+            }, 100);
+            return;
+        }
+
+        var cookieVal = '/es/' + lang;
+        document.cookie = 'googtrans=' + cookieVal + '; path=/';
+        document.cookie = 'googtrans=' + cookieVal + '; path=/; domain=' + location.hostname;
+        document.cookie = 'googtrans=' + cookieVal + '; path=/; domain=.' + location.hostname;
+
+        loadGoogleTranslate();
+        if (gtReady && doTranslate(lang)) return;
+
+        var attempts = 0;
+        var maxAttempts = 16; // 16 x 250ms = 4s, then reload (cookie makes GT auto-translate)
+        if (gtInitTimeout) clearInterval(gtInitTimeout);
+        gtInitTimeout = setInterval(function() {
+            attempts++;
+            if (doTranslate(lang)) {
+                clearInterval(gtInitTimeout);
+                gtInitTimeout = null;
+            } else if (attempts >= maxAttempts) {
+                clearInterval(gtInitTimeout);
+                gtInitTimeout = null;
+                location.reload();
+            }
+        }, 250);
+    }
+    </script>
+    <style>
+    /* Hide Google Translate UI completely */
+    .goog-te-banner-frame { display: none !important; visibility: hidden !important; }
+    #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+    .goog-te-gadget { display: none !important; }
+    body { top: 0 !important; position: static !important; }
+    .skiptranslate { display: none !important; height: 0 !important; overflow: hidden !important; }
+    .goog-text-highlight { background: none !important; box-shadow: none !important; }
+    #google_translate_element { position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none; }
+    </style>
 </body>
 </html>
