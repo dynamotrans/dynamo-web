@@ -79,6 +79,15 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-09 — MacBook Pro
+- **Tipo de camión en mensaje preformateado de cajas de vehículos** (rama `claude/sharp-dirac-E3UIO`, mergeada en `main` `a799f7d`): los 4 enlaces que aparecen al pulsar `CONTRATAR` en las 2 cajas de tipos de camión (Trailer Tauliner y Rígido con Plataforma) — 2 email + 2 WhatsApp — incluyen ahora una línea **`TIPO DE CAMION SOLICITADO:`** con modelo y specs clave:
+  - `Trailer Tauliner — Cortina / Lona Corredera (13,60 m · 33 palets europeo · 24 Tn)`
+  - `Rígido con Plataforma y Transpaleta (8 m · 20 palets europeo · 14 Tn · plataforma + transpaleta)`
+- **Asunto del email diferenciado** para sortear bandeja: `Solicitud TARIFA — Trailer Tauliner` y `Solicitud TARIFA — Rígido con Plataforma`. Antes los 4 botones llevaban exactamente el mismo asunto genérico `Solicitud de TARIFA para transporte`
+- **Implementación**: script Python con `urllib.parse.quote` para regenerar los 4 URLs con encoding correcto (CRLF `%0D%0A` en mailto para Gmail mobile, LF `%0A` en WhatsApp con negrita `*`). Reemplazo por bloque scoped al `h3` de cada veh-card para no contaminar el otro
+- **Commit del día**: `00dce23` (feat) → merge `a799f7d` a `main`. Desplegado en producción vía Vercel
+- **Pendiente abierto del día anterior**: sigue sin decisión el texto del botón `COTIZAR` del hero (`Cotizar` vs `TARIFAR` / `PEDIR TARIFA` / `SOLICITAR TARIFA`)
+
 ### 2026-06-08 (sesión 2) — MacBook Pro
 - **Calculadora de precio en la card "Almacenamiento corta estancia"** (rama `claude/sharp-dirac-E3UIO`, mergeada en `main` por partes): nuevo bloque debajo del `<span class="svc-tag">` que despliega un desglose interactivo al seleccionar provincia
 - **Dropdown de provincias**: 47 provincias peninsulares (excluye Baleares, Canarias, Ceuta, Melilla) en `<select id="alm-prov-select">`. Hasta que no se elige una, la caja de precio queda `hidden`
