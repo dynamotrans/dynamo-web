@@ -131,6 +131,83 @@
             .portal-arrival-text { font-size: 0.7rem; letter-spacing: 2px; }
         }
 
+        /* Exit transition: same wormhole effect going back to index.html */
+        .portal-transition {
+            position: fixed; inset: 0; z-index: 999999; pointer-events: none;
+            --cx: 50%; --cy: 50%;
+            background:
+                radial-gradient(circle at var(--cx) var(--cy),
+                    #6b3dff 0%, var(--purple) 22%, var(--purple-nav) 55%, var(--navy) 100%);
+            clip-path: circle(0% at var(--cx) var(--cy));
+            transition: clip-path 0.75s cubic-bezier(0.7, 0, 0.25, 1);
+            overflow: hidden;
+        }
+        .portal-transition.active { clip-path: circle(160% at var(--cx) var(--cy)); pointer-events: auto; }
+        .portal-stars {
+            position: absolute; inset: 0; opacity: 0;
+            background:
+                radial-gradient(2px 2px at 15% 22%, white 50%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 78% 18%, white 50%, transparent 100%),
+                radial-gradient(2px 2px at 35% 65%, white 50%, transparent 100%),
+                radial-gradient(1px 1px at 60% 40%, white 50%, transparent 100%),
+                radial-gradient(2.5px 2.5px at 88% 75%, white 50%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 8% 80%, white 50%, transparent 100%),
+                radial-gradient(1px 1px at 45% 12%, white 50%, transparent 100%),
+                radial-gradient(2px 2px at 92% 45%, white 50%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 25% 90%, white 50%, transparent 100%),
+                radial-gradient(1px 1px at 70% 88%, white 50%, transparent 100%),
+                radial-gradient(2px 2px at 50% 30%, white 50%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 18% 50%, white 50%, transparent 100%);
+        }
+        .portal-transition.active .portal-stars { animation: portalTwinkle 0.9s ease 0.15s forwards; }
+        @keyframes portalTwinkle {
+            0%   { opacity: 0; transform: scale(0.6) rotate(-8deg); }
+            45%  { opacity: 1; }
+            100% { opacity: 0.85; transform: scale(1.06) rotate(4deg); }
+        }
+        .portal-ring {
+            position: absolute; top: 50%; left: 50%;
+            width: 0; height: 0; border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.45);
+            transform: translate(-50%, -50%); opacity: 0;
+        }
+        .portal-transition.active .portal-ring1 { animation: portalRingX 0.85s ease 0.1s forwards; }
+        .portal-transition.active .portal-ring2 { animation: portalRingX 0.85s ease 0.22s forwards; }
+        .portal-transition.active .portal-ring3 { animation: portalRingX 0.85s ease 0.34s forwards; }
+        @keyframes portalRingX {
+            0%   { width: 0; height: 0; opacity: 0.9; border-width: 3px; }
+            100% { width: 480px; height: 480px; opacity: 0; border-width: 1px; }
+        }
+        .portal-exit-core {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.4); opacity: 0;
+            display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
+            color: white; text-align: center;
+        }
+        .portal-transition.active .portal-exit-core { animation: portalExitCore 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.28s forwards; }
+        @keyframes portalExitCore {
+            0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.35) rotate(-12deg); }
+            60%  { opacity: 1; }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0); }
+        }
+        .portal-exit-loader {
+            width: 70px; height: 2px; border-radius: 2px;
+            background: rgba(255,255,255,0.18); overflow: hidden; position: relative;
+        }
+        .portal-exit-loader::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent, white, transparent);
+            transform: translateX(-100%);
+            animation: portalExitLoader 0.9s ease 0.4s infinite;
+        }
+        @keyframes portalExitLoader { to { transform: translateX(100%); } }
+        @media (max-width: 600px) {
+            @keyframes portalRingX {
+                0%   { width: 0; height: 0; opacity: 0.9; border-width: 3px; }
+                100% { width: 320px; height: 320px; opacity: 0; border-width: 1px; }
+            }
+        }
+
         @media (prefers-reduced-motion: reduce) {
             body, .portal-card, .portal-bg { animation: none; }
             .from-transition .portal-arrival { animation: portalArrivalReduce 0.3s ease both; }
@@ -139,6 +216,14 @@
                 0%   { opacity: 1; }
                 100% { opacity: 0; }
             }
+            .portal-transition { transition: opacity 0.2s ease; clip-path: none; opacity: 0; }
+            .portal-transition.active { opacity: 1; }
+            .portal-transition.active .portal-ring1,
+            .portal-transition.active .portal-ring2,
+            .portal-transition.active .portal-ring3,
+            .portal-transition.active .portal-stars,
+            .portal-transition.active .portal-exit-core { animation: none; opacity: 1; transform: translate(-50%, -50%); }
+            .portal-exit-loader::after { animation: none; }
         }
         .portal-card::before {
             content:''; position:absolute; top:0; left:0; right:0; height:4px;
@@ -254,6 +339,20 @@
     </style>
 </head>
 <body>
+    <!-- EXIT TRANSITION OVERLAY (back to index) -->
+    <div class="portal-transition" id="portalExit" aria-hidden="true">
+        <div class="portal-stars"></div>
+        <div class="portal-ring portal-ring1"></div>
+        <div class="portal-ring portal-ring2"></div>
+        <div class="portal-ring portal-ring3"></div>
+        <div class="portal-exit-core">
+            <div class="portal-arrival-lock">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <div class="portal-arrival-text">Inicio</div>
+            <div class="portal-exit-loader"></div>
+        </div>
+    </div>
     <div class="portal-arrival" aria-hidden="true">
         <div class="portal-arrival-core">
             <div class="portal-arrival-lock">
@@ -266,7 +365,7 @@
     <main class="portal-wrap">
         <div class="portal-card" role="dialog" aria-labelledby="portal-title">
             <div class="portal-logo">
-                <a href="index.html" aria-label="Volver al inicio"><img src="images/2.png" alt="Dynamo - Pick. Drop. Done."></a>
+                <a href="index.html" onclick="goToHome(event)" aria-label="Volver al inicio"><img src="images/2.png" alt="Dynamo - Pick. Drop. Done."></a>
             </div>
             <h1 id="portal-title" class="portal-title">Acceso al Portal</h1>
             <p class="portal-subtitle">Área privada para <strong>clientes</strong> y <strong>transportistas</strong> de Dynamo</p>
@@ -310,7 +409,7 @@
                 Estamos desarrollando un <strong>portal privado</strong> con acceso para clientes (estado de cargas, facturas, histórico de envíos) y transportistas (asignaciones, documentación, pagos). Mientras tanto, contáctanos por los canales habituales.
             </div>
 
-            <a href="index.html" class="portal-back">
+            <a href="index.html" class="portal-back" onclick="goToHome(event)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
                 Volver al inicio
             </a>
@@ -318,15 +417,39 @@
     </main>
     <footer class="portal-foot">
         © 2025 Dynamo Operador de Transportes ·
-        <a href="index.html">dynamotrans.com</a> ·
+        <a href="index.html" onclick="goToHome(event)">dynamotrans.com</a> ·
         <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a>
     </footer>
     <script>
-        // Reset arrival overlay state if page is restored from bfcache
+        // Exit transition: same wormhole effect going back to index.html
+        function goToHome(ev) {
+            if (ev) ev.preventDefault();
+            var overlay = document.getElementById('portalExit');
+            if (!overlay) { window.location.href = 'index.html'; return; }
+            var cx, cy;
+            if (ev && ev.clientX !== undefined && ev.clientX !== 0) {
+                cx = ev.clientX; cy = ev.clientY;
+            } else if (ev && ev.currentTarget && ev.currentTarget.getBoundingClientRect) {
+                var r = ev.currentTarget.getBoundingClientRect();
+                cx = r.left + r.width / 2; cy = r.top + r.height / 2;
+            } else {
+                cx = window.innerWidth / 2; cy = window.innerHeight / 2;
+            }
+            overlay.style.setProperty('--cx', cx + 'px');
+            overlay.style.setProperty('--cy', cy + 'px');
+            overlay.classList.add('active');
+            try { sessionStorage.setItem('homeTransition', '1'); } catch (e) {}
+            var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            var delay = reduce ? 250 : 850;
+            setTimeout(function () { window.location.href = 'index.html'; }, delay);
+        }
+        // Reset overlay state if page is restored from bfcache
         window.addEventListener('pageshow', function (e) {
             if (e.persisted) {
                 document.documentElement.classList.remove('from-transition');
             }
+            var exitOverlay = document.getElementById('portalExit');
+            if (exitOverlay) exitOverlay.classList.remove('active');
             try { sessionStorage.removeItem('portalTransition'); } catch (err) {}
         });
     </script>
