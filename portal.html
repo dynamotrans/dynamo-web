@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Acceso al Portal · Dynamo Operador de Transportes</title>
+    <link rel="icon" type="image/png" href="images/favicon.png">
+    <style>
+        :root {
+            --purple:       #3300cc;
+            --purple-dark:  #220099;
+            --purple-light: #5533dd;
+            --purple-nav:   #1a008a;
+            --green:        #22a55a;
+            --green-dark:   #157a3f;
+            --yellow:       #ffd400;
+            --orange:       #ff7a00;
+            --navy:         #0a0230;
+            --gray-100:     #f7f8fa;
+            --gray-200:     #e8eaed;
+            --gray-500:     #6b7280;
+            --gray-700:     #374151;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--navy); background: var(--gray-100);
+            min-height: 100vh; display: flex; flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+        }
+        .portal-bg {
+            position: fixed; inset: 0; z-index: 0;
+            background:
+                radial-gradient(circle at 15% 20%, rgba(51,0,204,0.10), transparent 40%),
+                radial-gradient(circle at 85% 80%, rgba(34,165,90,0.08), transparent 40%),
+                linear-gradient(135deg, #f7f8fa 0%, #ffffff 100%);
+        }
+        .portal-bg::before {
+            content: ''; position: absolute; inset: 0;
+            background-image:
+                linear-gradient(rgba(51,0,204,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(51,0,204,0.04) 1px, transparent 1px);
+            background-size: 32px 32px;
+            mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+        }
+        .portal-wrap {
+            position: relative; z-index: 1;
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            padding: 2rem 1.2rem;
+        }
+        .portal-card {
+            width: 100%; max-width: 440px;
+            background: white;
+            border-radius: 22px;
+            box-shadow: 0 30px 80px rgba(10,2,48,0.12), 0 8px 20px rgba(10,2,48,0.04);
+            border: 1px solid rgba(51,0,204,0.06);
+            padding: 2.2rem 2rem 1.8rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .portal-card::before {
+            content:''; position:absolute; top:0; left:0; right:0; height:4px;
+            background: linear-gradient(90deg, var(--purple), var(--purple-light), var(--green));
+        }
+        .portal-logo { display: flex; justify-content: center; margin-bottom: 1rem; }
+        .portal-logo img { height: 44px; width: auto; }
+        .portal-title {
+            text-align: center; font-size: 1.55rem; font-weight: 900;
+            color: var(--navy); letter-spacing: -0.5px; line-height: 1.15;
+            margin-bottom: 0.35rem;
+        }
+        .portal-subtitle {
+            text-align: center; font-size: 0.85rem; color: var(--gray-500);
+            margin-bottom: 1.3rem; line-height: 1.5;
+        }
+        .portal-badge {
+            display: flex; align-items: center; justify-content: center; gap: 0.45rem;
+            background: linear-gradient(135deg, rgba(255,122,0,0.10), rgba(255,212,0,0.10));
+            border: 1px solid rgba(255,122,0,0.25);
+            color: var(--orange);
+            padding: 0.55rem 0.9rem; border-radius: 10px;
+            font-size: 0.72rem; font-weight: 800;
+            letter-spacing: 0.8px; text-transform: uppercase;
+            margin-bottom: 1.4rem;
+        }
+        .portal-badge .dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--orange); animation: portalDot 1.6s ease-in-out infinite;
+        }
+        @keyframes portalDot { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
+
+        .portal-field { margin-bottom: 0.95rem; }
+        .portal-label {
+            display: block; font-size: 0.7rem; font-weight: 800;
+            color: var(--gray-500); text-transform: uppercase; letter-spacing: 1px;
+            margin-bottom: 0.4rem;
+        }
+        .portal-input-wrap { position: relative; }
+        .portal-input-wrap svg {
+            position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%);
+            width: 16px; height: 16px; color: var(--gray-500); pointer-events: none;
+        }
+        .portal-input {
+            width: 100%; padding: 0.85rem 0.9rem 0.85rem 2.4rem;
+            border-radius: 11px; border: 1.5px solid var(--gray-200);
+            background: var(--gray-100); color: var(--gray-500);
+            font-size: 0.92rem; font-weight: 600;
+            cursor: not-allowed;
+        }
+        .portal-input::placeholder { color: var(--gray-500); opacity: 0.7; }
+        .portal-input:disabled { background: var(--gray-100); }
+
+        .portal-row {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 1.2rem; font-size: 0.8rem;
+        }
+        .portal-check { display: flex; align-items: center; gap: 0.45rem; color: var(--gray-500); cursor: not-allowed; }
+        .portal-check input { cursor: not-allowed; accent-color: var(--purple); }
+        .portal-forgot { color: var(--gray-500); text-decoration: none; font-weight: 700; pointer-events: none; opacity: 0.6; }
+
+        .portal-submit {
+            width: 100%; padding: 0.95rem; border: none; border-radius: 12px;
+            background: linear-gradient(135deg, var(--purple), var(--purple-light));
+            color: white; font-size: 0.95rem; font-weight: 900;
+            letter-spacing: 0.5px; text-transform: uppercase;
+            cursor: not-allowed; opacity: 0.55;
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            transition: opacity 0.2s;
+        }
+        .portal-submit:disabled { cursor: not-allowed; }
+        .portal-submit svg { width: 14px; height: 14px; }
+
+        .portal-divider {
+            display: flex; align-items: center; gap: 0.8rem;
+            margin: 1.3rem 0 1rem; color: var(--gray-500);
+            font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .portal-divider::before, .portal-divider::after {
+            content: ''; flex: 1; height: 1px; background: var(--gray-200);
+        }
+        .portal-info {
+            background: rgba(51,0,204,0.04);
+            border: 1px solid rgba(51,0,204,0.08);
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+            font-size: 0.78rem; color: var(--gray-700); line-height: 1.55;
+            margin-bottom: 1rem;
+        }
+        .portal-info strong { color: var(--purple); }
+
+        .portal-back {
+            display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+            color: var(--gray-500); text-decoration: none; font-size: 0.82rem; font-weight: 700;
+            padding: 0.6rem; border-radius: 10px; transition: background 0.2s;
+        }
+        .portal-back:hover { background: var(--gray-100); color: var(--navy); }
+        .portal-back svg { width: 14px; height: 14px; }
+
+        .portal-foot {
+            position: relative; z-index: 1;
+            text-align: center; padding: 1rem;
+            font-size: 0.72rem; color: var(--gray-500);
+        }
+        .portal-foot a { color: var(--gray-500); text-decoration: none; }
+        .portal-foot a:hover { color: var(--purple); }
+
+        @media (max-width: 480px) {
+            .portal-wrap { padding: 1.2rem 1rem; }
+            .portal-card { padding: 1.8rem 1.4rem 1.4rem; border-radius: 18px; }
+            .portal-title { font-size: 1.35rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="portal-bg"></div>
+    <main class="portal-wrap">
+        <div class="portal-card" role="dialog" aria-labelledby="portal-title">
+            <div class="portal-logo">
+                <a href="index.html" aria-label="Volver al inicio"><img src="images/2.png" alt="Dynamo - Pick. Drop. Done."></a>
+            </div>
+            <h1 id="portal-title" class="portal-title">Acceso al Portal</h1>
+            <p class="portal-subtitle">Área privada para <strong>clientes</strong> y <strong>transportistas</strong> de Dynamo</p>
+
+            <div class="portal-badge">
+                <span class="dot"></span>
+                <span>Próximamente · En desarrollo</span>
+            </div>
+
+            <form onsubmit="event.preventDefault();return false;" autocomplete="off" aria-disabled="true">
+                <div class="portal-field">
+                    <label class="portal-label" for="portal-user">Usuario o correo electrónico</label>
+                    <div class="portal-input-wrap">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <input id="portal-user" class="portal-input" type="text" placeholder="tu.usuario@empresa.com" disabled aria-disabled="true" tabindex="-1">
+                    </div>
+                </div>
+
+                <div class="portal-field">
+                    <label class="portal-label" for="portal-pass">Contraseña</label>
+                    <div class="portal-input-wrap">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <input id="portal-pass" class="portal-input" type="password" placeholder="••••••••" disabled aria-disabled="true" tabindex="-1">
+                    </div>
+                </div>
+
+                <div class="portal-row">
+                    <label class="portal-check"><input type="checkbox" disabled tabindex="-1"> Recordarme</label>
+                    <a href="#" class="portal-forgot" tabindex="-1" aria-disabled="true">¿Olvidaste tu contraseña?</a>
+                </div>
+
+                <button type="submit" class="portal-submit" disabled aria-disabled="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                    Iniciar sesión
+                </button>
+            </form>
+
+            <div class="portal-divider">Información</div>
+
+            <div class="portal-info">
+                Estamos desarrollando un <strong>portal privado</strong> con acceso para clientes (estado de cargas, facturas, histórico de envíos) y transportistas (asignaciones, documentación, pagos). Mientras tanto, contáctanos por los canales habituales.
+            </div>
+
+            <a href="index.html" class="portal-back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Volver al inicio
+            </a>
+        </div>
+    </main>
+    <footer class="portal-foot">
+        © 2025 Dynamo Operador de Transportes ·
+        <a href="index.html">dynamotrans.com</a> ·
+        <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a>
+    </footer>
+</body>
+</html>
