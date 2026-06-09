@@ -2258,6 +2258,7 @@ function openLegal(tab) {
         overlay.style.setProperty('--cx', cx + 'px');
         overlay.style.setProperty('--cy', cy + 'px');
         overlay.classList.add('active');
+        try { sessionStorage.setItem('portalTransition', '1'); } catch (e) {}
         var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         var delay = reduce ? 250 : 850;
         setTimeout(function () { window.location.href = 'portal.html'; }, delay);

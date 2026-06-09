@@ -6,6 +6,15 @@
     <meta name="robots" content="noindex,nofollow">
     <title>Acceso al Portal · Dynamo Operador de Transportes</title>
     <link rel="icon" type="image/png" href="images/favicon.png">
+    <script>
+        // Detect if we arrived from index.html portal transition
+        try {
+            if (sessionStorage.getItem('portalTransition')) {
+                document.documentElement.classList.add('from-transition');
+                sessionStorage.removeItem('portalTransition');
+            }
+        } catch (e) {}
+    </script>
     <style>
         :root {
             --purple:       #3300cc;
@@ -75,8 +84,61 @@
             0%   { opacity: 0; }
             100% { opacity: 1; }
         }
+        /* Arrival overlay: only shown when coming from index portal transition */
+        .portal-arrival { display: none; }
+        .from-transition .portal-arrival {
+            display: flex; align-items: center; justify-content: center;
+            position: fixed; inset: 0; z-index: 100000; pointer-events: none;
+            background: radial-gradient(circle at 50% 50%, #6b3dff 0%, var(--purple) 25%, var(--purple-nav) 60%, var(--navy) 100%);
+            animation: portalArrivalOut 0.85s cubic-bezier(0.55, 0, 0.45, 1) 0.05s forwards;
+            will-change: opacity, transform;
+        }
+        @keyframes portalArrivalOut {
+            0%   { opacity: 1; transform: scale(1); }
+            40%  { opacity: 1; }
+            100% { opacity: 0; transform: scale(1.3); }
+        }
+        .from-transition .portal-arrival-core {
+            display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
+            color: white;
+            animation: portalArrivalCoreOut 0.75s cubic-bezier(0.55, 0, 0.45, 1) 0.05s forwards;
+            will-change: opacity, transform;
+        }
+        @keyframes portalArrivalCoreOut {
+            0%   { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.5) translateY(-30px); }
+        }
+        .portal-arrival-lock {
+            width: 72px; height: 72px; border-radius: 22px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
+            border: 1.5px solid rgba(255,255,255,0.35);
+            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.25), 0 0 30px rgba(107,61,255,0.45);
+        }
+        .portal-arrival-lock svg { width: 32px; height: 32px; color: white; }
+        .portal-arrival-text {
+            font-size: 0.78rem; font-weight: 900; letter-spacing: 3px;
+            text-transform: uppercase; color: rgba(255,255,255,0.92);
+        }
+        /* When arriving via transition, delay card so it appears AS overlay fades */
+        .from-transition .portal-card { animation-delay: 0.45s; }
+        .from-transition .portal-bg { animation-delay: 0.3s; }
+
+        @media (max-width: 600px) {
+            .portal-arrival-lock { width: 58px; height: 58px; border-radius: 18px; }
+            .portal-arrival-lock svg { width: 26px; height: 26px; }
+            .portal-arrival-text { font-size: 0.7rem; letter-spacing: 2px; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
             body, .portal-card, .portal-bg { animation: none; }
+            .from-transition .portal-arrival { animation: portalArrivalReduce 0.3s ease both; }
+            .from-transition .portal-arrival-core { animation: portalArrivalReduce 0.3s ease both; }
+            @keyframes portalArrivalReduce {
+                0%   { opacity: 1; }
+                100% { opacity: 0; }
+            }
         }
         .portal-card::before {
             content:''; position:absolute; top:0; left:0; right:0; height:4px;
@@ -192,6 +254,14 @@
     </style>
 </head>
 <body>
+    <div class="portal-arrival" aria-hidden="true">
+        <div class="portal-arrival-core">
+            <div class="portal-arrival-lock">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <div class="portal-arrival-text">Acceso Portal</div>
+        </div>
+    </div>
     <div class="portal-bg"></div>
     <main class="portal-wrap">
         <div class="portal-card" role="dialog" aria-labelledby="portal-title">
