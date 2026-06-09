@@ -321,5 +321,14 @@
         <a href="index.html">dynamotrans.com</a> ·
         <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a>
     </footer>
+    <script>
+        // Reset arrival overlay state if page is restored from bfcache
+        window.addEventListener('pageshow', function (e) {
+            if (e.persisted) {
+                document.documentElement.classList.remove('from-transition');
+            }
+            try { sessionStorage.removeItem('portalTransition'); } catch (err) {}
+        });
+    </script>
 </body>
 </html>

@@ -2263,6 +2263,12 @@ function openLegal(tab) {
         var delay = reduce ? 250 : 850;
         setTimeout(function () { window.location.href = 'portal.html'; }, delay);
     }
+    // Reset portal overlay if page is restored from bfcache (e.g. browser back)
+    window.addEventListener('pageshow', function () {
+        var overlay = document.getElementById('portalTransition');
+        if (overlay) overlay.classList.remove('active');
+        try { sessionStorage.removeItem('portalTransition'); } catch (e) {}
+    });
 
     // Hero: el vídeo se reproduce una vez y al terminar se desvanece
     // hacia el degradado de marca (que tiene su propio zoom suave).
