@@ -29,6 +29,11 @@
             color: var(--navy); background: var(--gray-100);
             min-height: 100vh; display: flex; flex-direction: column;
             -webkit-font-smoothing: antialiased;
+            animation: portalBodyIn 0.6s ease both;
+        }
+        @keyframes portalBodyIn {
+            0%   { background-color: var(--navy); }
+            100% { background-color: var(--gray-100); }
         }
         .portal-bg {
             position: fixed; inset: 0; z-index: 0;
@@ -59,6 +64,19 @@
             padding: 2.2rem 2rem 1.8rem;
             position: relative;
             overflow: hidden;
+            animation: portalCardIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+        }
+        @keyframes portalCardIn {
+            0%   { opacity: 0; transform: translateY(28px) scale(0.94); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .portal-bg { animation: portalBgIn 0.7s ease both; }
+        @keyframes portalBgIn {
+            0%   { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            body, .portal-card, .portal-bg { animation: none; }
         }
         .portal-card::before {
             content:''; position:absolute; top:0; left:0; right:0; height:4px;
