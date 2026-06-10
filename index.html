@@ -45,6 +45,15 @@
 
     <!-- SEO Basico -->
     <title>Dynamo Transportes | Grupajes, Carga Completa y Transporte Nacional e Internacional</title>
+    <script>
+        // Detect arrival from portal.html exit transition (before first paint)
+        try {
+            if (sessionStorage.getItem('homeTransition')) {
+                document.documentElement.classList.add('from-transition');
+                sessionStorage.removeItem('homeTransition');
+            }
+        } catch (e) {}
+    </script>
     <meta name="description" content="Dynamo Operador de Transportes autorizado. Grupajes, carga completa, importacion y exportacion en toda Espana y Europa. +480 clientes. Seguro MAPFRE 250.000€. Presupuesto al instante.">
     <meta name="keywords" content="transporte mercancias, grupajes nacionales, carga completa, transporte internacional, operador transporte Sevilla, transporte Europa, importacion, exportacion, logistica, tauliner, paletizado">
     <meta name="author" content="Dynamo Operador Logistico S.L.">
@@ -362,6 +371,38 @@
             .portal-transition.active .portal-stars,
             .portal-transition.active .portal-core { animation: none; opacity: 1; transform: translate(-50%, -50%); }
             .portal-core-loader::after { animation: none; }
+        }
+
+        /* Arrival overlay: shown when coming back from portal.html */
+        .home-arrival { display: none; }
+        .from-transition .home-arrival {
+            display: flex; align-items: center; justify-content: center;
+            position: fixed; inset: 0; z-index: 999999; pointer-events: none;
+            background: radial-gradient(circle at 50% 50%, #6b3dff 0%, var(--purple) 25%, var(--purple-nav) 60%, var(--navy) 100%);
+            animation: homeArrivalOut 0.85s cubic-bezier(0.55, 0, 0.45, 1) 0.05s forwards;
+            will-change: opacity, transform;
+        }
+        @keyframes homeArrivalOut {
+            0%   { opacity: 1; transform: scale(1); }
+            40%  { opacity: 1; }
+            100% { opacity: 0; transform: scale(1.3); }
+        }
+        .home-arrival-core {
+            display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
+            color: white; text-align: center;
+        }
+        .from-transition .home-arrival-core { animation: homeArrivalCoreOut 0.75s cubic-bezier(0.55, 0, 0.45, 1) 0.05s forwards; }
+        @keyframes homeArrivalCoreOut {
+            0%   { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.5) translateY(-30px); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .from-transition .home-arrival,
+            .from-transition .home-arrival-core { animation: homeArrivalReduce 0.3s ease both; }
+            @keyframes homeArrivalReduce {
+                0%   { opacity: 1; }
+                100% { opacity: 0; }
+            }
         }
 
         /* =========================================
@@ -1211,6 +1252,16 @@
 <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NDXRZM7S"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
+<!-- HOME ARRIVAL OVERLAY (coming back from portal.html) -->
+<div class="home-arrival" aria-hidden="true">
+    <div class="home-arrival-core">
+        <div class="portal-core-lock">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <div class="portal-core-text">Inicio</div>
+    </div>
+</div>
 
 <!-- PORTAL TRANSITION OVERLAY -->
 <div class="portal-transition" id="portalTransition" aria-hidden="true">
@@ -2264,10 +2315,14 @@ function openLegal(tab) {
         setTimeout(function () { window.location.href = 'portal.html'; }, delay);
     }
     // Reset portal overlay if page is restored from bfcache (e.g. browser back)
-    window.addEventListener('pageshow', function () {
+    window.addEventListener('pageshow', function (e) {
         var overlay = document.getElementById('portalTransition');
         if (overlay) overlay.classList.remove('active');
-        try { sessionStorage.removeItem('portalTransition'); } catch (e) {}
+        if (e.persisted) document.documentElement.classList.remove('from-transition');
+        try {
+            sessionStorage.removeItem('portalTransition');
+            sessionStorage.removeItem('homeTransition');
+        } catch (err) {}
     });
 
     // Hero: el vídeo se reproduce una vez y al terminar se desvanece
@@ -2432,6 +2487,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (langBtn) langBtn.innerHTML = '<span class="flag">' + info.flag + '</span> ' + info.code + ' <span class="arrow">▼</span>';
         // Delay loading Google Translate slightly to not block page render
         setTimeout(loadGoogleTranslate, 1000);
+        // Watchdog: if GT loaded but did not auto-apply the translation, force it
+        var wdAttempts = 0;
+        var watchdog = setInterval(function() {
+            wdAttempts++;
+            var applied = document.documentElement.classList.contains('translated-ltr') ||
+                          document.documentElement.classList.contains('translated-rtl');
+            if (applied || wdAttempts > 20) { clearInterval(watchdog); return; }
+            doTranslate(lang);
+        }, 600);
         return;
     }
 
@@ -2581,7 +2645,7 @@ function changeLang(lang, flag, code) {
 
     // Wait for Google Translate to be ready, then translate
     var attempts = 0;
-    var maxAttempts = 40; // 40 x 250ms = 10 seconds
+    var maxAttempts = 16; // 16 x 250ms = 4s, then reload (cookie makes GT auto-translate on load)
     if (gtInitTimeout) clearInterval(gtInitTimeout);
     gtInitTimeout = setInterval(function() {
         attempts++;
