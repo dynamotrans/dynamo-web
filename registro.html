@@ -97,17 +97,6 @@
         }
         @keyframes portalDot { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
 
-        .reg-type { display: flex; gap: 0.6rem; margin-bottom: 1.2rem; }
-        .reg-type-opt {
-            flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
-            padding: 0.85rem 0.5rem; border-radius: 12px;
-            border: 1.5px solid var(--gray-200); background: var(--gray-100);
-            color: var(--gray-500); font-size: 0.8rem; font-weight: 800;
-            cursor: not-allowed; text-align: center;
-        }
-        .reg-type-opt svg { width: 22px; height: 22px; }
-        .reg-type-opt.sel { border-color: var(--purple); background: rgba(51,0,204,0.05); color: var(--purple); }
-
         .reg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 0.9rem; }
         .reg-grid .full { grid-column: 1 / -1; }
         .portal-field { margin-bottom: 0.95rem; }
@@ -260,7 +249,7 @@
                 <a href="index.html" aria-label="Volver al inicio"><img src="images/2.png" alt="Dynamo - Pick. Drop. Done."></a>
             </div>
             <h1 id="reg-title" class="portal-title">Crear cuenta</h1>
-            <p class="portal-subtitle">Regístrate como <strong>cliente</strong> o <strong>transportista</strong> de Dynamo</p>
+            <p class="portal-subtitle">Regístrate como <strong>cliente</strong> de Dynamo y accede a tu portal privado</p>
 
             <div class="portal-badge">
                 <span class="dot"></span>
@@ -268,17 +257,6 @@
             </div>
 
             <form onsubmit="event.preventDefault();return false;" autocomplete="off" aria-disabled="true">
-                <div class="reg-type" role="radiogroup" aria-label="Tipo de cuenta" aria-disabled="true">
-                    <div class="reg-type-opt sel" role="radio" aria-checked="true" aria-disabled="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
-                        Cliente
-                    </div>
-                    <div class="reg-type-opt" role="radio" aria-checked="false" aria-disabled="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                        Transportista
-                    </div>
-                </div>
-
                 <div class="reg-grid">
                     <div class="portal-field full">
                         <label class="portal-label" for="reg-nombre">Nombre y apellidos</label>
