@@ -20,20 +20,20 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 ## 💡 Ideas / Futuro
 <!-- Mejoras a considerar -->
 - [ ] **Roles de usuario en el portal**: el `registro.html` actual envía siempre `tipo_usuario=cliente` (hidden input). Cuando se habilite el alta de transportistas/proveedores, convertir ese hidden en un selector visible (radio Cliente / Transportista / Proveedor) y persistir el rol en backend para diferenciar permisos, vistas del dashboard y notificaciones. Migración futura: usuarios ya creados como `cliente` mantienen el rol; no se permite cambiar rol via UI (solo admin)
-- [ ] **Portal de clientes (app.dynamotrans.com)** — Proyecto SEPARADO del sitio web:
+- [ ] **Portal de clientes (`dynamotrans.com/portal`)** — En ESTE MISMO repo refactorizado a Next.js (decisión 2026-06-10, no se separa en subdominio `app.`):
   - Zona privada con login para clientes registrados
-  - Ver estado de sus cargas en tiempo real
+  - Ver estado de sus cargas en tiempo real (programación + histórico)
   - Solicitar camiones / nuevos envíos
-  - Consultar facturas e histórico
+  - Consultar histórico de envíos (sin facturas en primera fase)
   - Seguridad completa desde el principio:
-    - Autenticación (login, 2FA, sesiones seguras)
-    - Autorización por roles (admin, cliente, transportista)
+    - Autenticación (login, 2FA opcional, sesiones seguras 30/90 días)
+    - Autorización por roles (admin, cliente; transportista/proveedor a futuro)
     - Validación server-side de todos los inputs
-    - Cifrado de datos sensibles (NIF, direcciones, facturas)
+    - Cifrado de datos sensibles (NIF, direcciones)
     - Protección CSRF, SQL injection, XSS
     - Rate limiting y WAF
     - Cumplimiento RGPD
-    - Pasarela de pago PCI-DSS (Stripe/Redsys) si hay pagos
+    - Pasarela de pago PCI-DSS (Stripe/Redsys) solo si hay pagos en el futuro
     - Logs de auditoría y alertas de actividad sospechosa
     - Pen-testing antes del lanzamiento
 

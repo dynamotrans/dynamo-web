@@ -89,9 +89,11 @@ Mientras el portal sea mockup HTML estático en este mismo repo:
 **Estado actual de `main` (producción) respecto al portal:** solo `portal.html` con login básico bloqueado y badge "Próximamente". Los archivos avanzados (`registro.html`, `verificar.html`, `crear-password.html`) NO están en `main`, solo en la rama feature.
 
 Cuando el portal pase de mockup a app real (backend, auth, dashboard con datos):
-- Nuevo repo separado `dynamo-portal` con framework apropiado (Next.js + Postgres o similar)
-- Proyecto Vercel separado conectado a `app.dynamotrans.com`
-- Este repo `dynamo-web` se queda solo para la web pública
+- **Refactorizamos ESTE MISMO repo a Next.js** (decisión 2026-06-10): se queda en `dynamotrans.com`, no se separa en subdominio
+- Páginas de marketing (`/`, `/servicios`, `/vehiculos`, etc.) siguen como están (estáticas, rápidas)
+- Portal (`/portal/*`) pasa a app real con server components, auth (Auth.js/Clerk/Supabase), conexión a DB (Postgres) y APIs
+- Un único proyecto Vercel, un único deploy a `dynamotrans.com`
+- Razón: 1 dev (usuario + Claude) → mantener 2 repos sería overhead inútil. Patrón válido (Notion, Linear hacen esto). Cookies, cache y seguridad se gestionan por ruta dentro de Next.js
 
 ---
 
