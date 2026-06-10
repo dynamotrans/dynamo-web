@@ -113,12 +113,18 @@
         .portal-input {
             width: 100%; padding: 0.85rem 0.9rem 0.85rem 2.4rem;
             border-radius: 11px; border: 1.5px solid var(--gray-200);
-            background: var(--gray-100); color: var(--gray-500);
+            background: white; color: var(--navy);
             font-size: 0.92rem; font-weight: 600;
-            cursor: not-allowed;
+            transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+            outline: none;
         }
         .portal-input::placeholder { color: var(--gray-500); opacity: 0.7; }
-        .portal-input:disabled { background: var(--gray-100); }
+        .portal-input:hover { border-color: rgba(51,0,204,0.4); }
+        .portal-input:focus { border-color: var(--purple); box-shadow: 0 0 0 4px rgba(51,0,204,0.08); }
+        .portal-input:disabled { background: var(--gray-100); color: var(--gray-500); cursor: not-allowed; }
+        .reg-terms input[type="checkbox"] { cursor: pointer; }
+        .reg-terms a { color: var(--purple); font-weight: 700; pointer-events: auto; }
+        .reg-terms a:hover { text-decoration: underline; }
 
         /* Country combobox (searchable, with España preselected) */
         .reg-country { position: relative; }
@@ -234,11 +240,10 @@
 
         .reg-terms {
             display: flex; align-items: flex-start; gap: 0.5rem;
-            font-size: 0.76rem; color: var(--gray-500); line-height: 1.5;
-            margin: 0.3rem 0 1.2rem; cursor: not-allowed;
+            font-size: 0.76rem; color: var(--gray-700); line-height: 1.5;
+            margin: 0.3rem 0 1.2rem; cursor: pointer;
         }
-        .reg-terms input { margin-top: 0.2rem; cursor: not-allowed; accent-color: var(--purple); }
-        .reg-terms a { color: var(--gray-500); font-weight: 700; pointer-events: none; }
+        .reg-terms input { margin-top: 0.2rem; accent-color: var(--purple); }
 
         .portal-submit {
             width: 100%; padding: 0.95rem; border: none; border-radius: 12px;
@@ -374,14 +379,14 @@
             <!-- Tipo de usuario fijado a "cliente" en esta fase. Cuando se habilite el alta de
                  transportistas/proveedores, este campo debe convertirse en un selector visible y
                  el backend debe persistir el rol para diferenciar permisos y vistas del portal. -->
-            <form onsubmit="event.preventDefault();window.location.href='verificar.html';return false;" autocomplete="off" aria-disabled="true" data-user-type="cliente">
+            <form onsubmit="event.preventDefault();window.location.href='verificar.html';return false;" autocomplete="off" data-user-type="cliente">
                 <input type="hidden" name="tipo_usuario" value="cliente">
                 <div class="reg-grid">
                     <div class="portal-field full">
                         <label class="portal-label" for="reg-email">Correo electrónico</label>
                         <div class="portal-input-wrap">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
-                            <input id="reg-email" class="portal-input" type="email" placeholder="tu@empresa.com" disabled aria-disabled="true" tabindex="-1">
+                            <input id="reg-email" class="portal-input" type="email" placeholder="tu@empresa.com">
                         </div>
                     </div>
 
@@ -389,7 +394,7 @@
                         <label class="portal-label" for="reg-nombre">Empresa o razón social / Nombre y apellidos</label>
                         <div class="portal-input-wrap">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                            <input id="reg-nombre" class="portal-input" type="text" placeholder="Empresa o nombre completo" disabled aria-disabled="true" tabindex="-1">
+                            <input id="reg-nombre" class="portal-input" type="text" placeholder="Empresa o nombre completo">
                         </div>
                     </div>
 
@@ -397,7 +402,7 @@
                         <label class="portal-label" for="reg-nif">CIF / NIF</label>
                         <div class="portal-input-wrap">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                            <input id="reg-nif" class="portal-input" type="text" placeholder="B12345678 / 12345678Z" disabled aria-disabled="true" tabindex="-1">
+                            <input id="reg-nif" class="portal-input" type="text" placeholder="B12345678 / 12345678Z">
                         </div>
                     </div>
 
@@ -438,14 +443,14 @@
                                     <div class="reg-country-empty" id="regPrefixEmpty">Sin resultados</div>
                                 </div>
                             </div>
-                            <input id="reg-tel" class="reg-phone-num" type="tel" placeholder="600 000 000" disabled aria-disabled="true" tabindex="-1">
+                            <input id="reg-tel" class="reg-phone-num" type="tel" placeholder="600 000 000">
                         </div>
                     </div>
 
                 </div>
 
                 <label class="reg-terms">
-                    <input type="checkbox" disabled tabindex="-1">
+                    <input type="checkbox" required>
                     <span>He leído y acepto el <a href="#">Aviso Legal</a> y la <a href="#">Política de Privacidad</a> de Dynamo Operador de Transportes</span>
                 </label>
 
