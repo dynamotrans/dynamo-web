@@ -79,6 +79,24 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-10 (sesión 2) — MacBook Pro
+- **Fix favicon en portal.html**: apuntaba a `images/favicon.png` (que no existía en el repo, llevaba meses fallando). Cambiado al mismo PNG que usa index.html (`images/DYNAMO-NEW-LOGO.png`) + `apple-touch-icon` para iOS. Ahora la pestaña muestra el logo de Dynamo en cualquier página del sitio
+- **Botón "Crear cuenta"** añadido al login (`portal.html`): divisor "¿No tienes cuenta?" + botón outline morado (`href="registro.html"`) con hover invertido. Es el único enlace activo del mockup junto a "Volver al inicio"
+- **Nueva página `registro.html`** (mockup): formulario con badge "Próximamente · En desarrollo", botón "Crear cuenta" deshabilitado, mismo estilo de marca, favicon, `noindex,nofollow`. Selector de idiomas fijo arriba-derecha con cookie `googtrans` compartida + watchdog (igual que portal.html). Enlaces de salida: "¿Ya tienes cuenta? Iniciar sesión" → portal.html, "Volver al inicio" → index.html
+- **Decisión: portal solo para clientes en primera fase**. Eliminadas TODAS las referencias a "transportistas" en portal.html y registro.html (subtítulos, bloque info, selector tipo de cuenta Cliente/Transportista del registro y su CSS muerto). El form de registro incluye `<input type="hidden" name="tipo_usuario" value="cliente">` + comentario HTML explicando que cuando se habilite el alta de transportistas/proveedores, este campo debe convertirse en selector visible con rol persistido en backend
+- **Campos del registro reordenados**: email es ahora el **primer campo** (full-width). Login también pasa a "Correo electrónico" (era "Usuario o correo") con `type=email`, icono sobre y placeholder `tu@empresa.com` — porque el usuario siempre será un email
+- **Texto del bloque info del portal** actualizado: *"Estamos desarrollando el portal privado para clientes: programación y estado de cargas e histórico de envíos. Mientras tanto, contáctanos por los canales habituales."* (quitada mención a facturas)
+- **Campos Nombre + Empresa unificados** en un solo campo full-width: *"Nombre y apellidos / Empresa o razón social"* (placeholder *"Nombre completo o empresa"*). Reduce 1 fila del form
+- **NIF/CIF placeholder** sin guion: `B12345678` (era `B-12345678`)
+- **Selector de país buscable** (combobox custom, SÍ funcional aunque el resto del form esté disabled): botón con icono globo + España preseleccionado por defecto, al pulsar despliega popup con input de búsqueda arriba y dos grupos:
+  - **"Más habituales"** (6): España, Portugal, Francia, Países Bajos, Alemania, Italia (en ese orden)
+  - **"Todos los países"** (~175 en orden alfabético, excluyendo los 6 prioritarios)
+  - Buscador filtra en vivo normalizando acentos y mayúsculas; si un grupo queda sin items se oculta; "Sin resultados" si no hay coincidencias. Se cierra al pulsar fuera o seleccionar
+- **Orden final del form de registro**: Email → Nombre/Empresa → NIF | País → Teléfono → Contraseña | Repetir → checkbox legal → botón Crear cuenta
+- **Commits del día (sesión 2)**: `83947df` (fix favicon portal), `33a66cd` (boton Crear cuenta + registro.html mockup), `4ec0c8b` (quitar transportistas), `f5032bc` (email primer campo + login solo email), `4ac72ff` (selector país buscable + nombre/empresa unificado + NIF sin guion). Merges a `main`: `7f87db4` → `3d54f34` → `2ab85e4` → `23da639` → `d33af9e`. Todo desplegado en producción vía Vercel
+- **Pendiente arrastrado**: sigue sin decisión el texto del botón `Cotizar` del hero
+- **Pendiente futuro**: cuando se habiliten transportistas/proveedores, convertir el hidden `tipo_usuario` del registro en selector visible
+
 ### 2026-06-10 — MacBook Pro
 - **Portal de acceso (mockup login)** — nuevo archivo `portal.html` con login bloqueado: badge "Próximamente · En desarrollo", campos usuario+contraseña `disabled` con iconos SVG, checkbox "Recordarme", "¿Olvidaste tu contraseña?" (pointer-events:none), botón "Iniciar sesión" con opacity 0.55, bloque info y botón "Volver al inicio". Logo Dynamo arriba, footer con dynamotrans.com. Estilo de marca (purple/green) con grid de fondo difuminado por máscara radial. Confirmado con el usuario: 1 solo login genérico (no separa cliente/transportista), página aparte `/portal`, campos disabled con aviso, accesos en nav + footer + mobile
 - **Limpieza nav desktop**: botón **ATENCIÓN AL CLIENTE** sustituido por botón **ACCESO** (con icono candado SVG, `href="portal.html"`). Eliminados los iconos Instagram + WhatsApp que iban junto al selector de idiomas (`.nav-social` y su CSS muerto, –10 líneas)

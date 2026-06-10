@@ -19,6 +19,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## 💡 Ideas / Futuro
 <!-- Mejoras a considerar -->
+- [ ] **Roles de usuario en el portal**: el `registro.html` actual envía siempre `tipo_usuario=cliente` (hidden input). Cuando se habilite el alta de transportistas/proveedores, convertir ese hidden en un selector visible (radio Cliente / Transportista / Proveedor) y persistir el rol en backend para diferenciar permisos, vistas del dashboard y notificaciones. Migración futura: usuarios ya creados como `cliente` mantienen el rol; no se permite cambiar rol via UI (solo admin)
 - [ ] **Portal de clientes (app.dynamotrans.com)** — Proyecto SEPARADO del sitio web:
   - Zona privada con login para clientes registrados
   - Ver estado de sus cargas en tiempo real

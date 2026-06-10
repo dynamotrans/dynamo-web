@@ -317,7 +317,11 @@
                 <span>Próximamente · En desarrollo</span>
             </div>
 
-            <form onsubmit="event.preventDefault();return false;" autocomplete="off" aria-disabled="true">
+            <!-- Tipo de usuario fijado a "cliente" en esta fase. Cuando se habilite el alta de
+                 transportistas/proveedores, este campo debe convertirse en un selector visible y
+                 el backend debe persistir el rol para diferenciar permisos y vistas del portal. -->
+            <form onsubmit="event.preventDefault();return false;" autocomplete="off" aria-disabled="true" data-user-type="cliente">
+                <input type="hidden" name="tipo_usuario" value="cliente">
                 <div class="reg-grid">
                     <div class="portal-field full">
                         <label class="portal-label" for="reg-email">Correo electrónico</label>
