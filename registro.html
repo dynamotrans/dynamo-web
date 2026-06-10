@@ -4,18 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex,nofollow">
-    <title>Acceso al Portal · Dynamo Operador de Transportes</title>
+    <title>Crear cuenta · Dynamo Operador de Transportes</title>
     <link rel="icon" type="image/png" href="images/DYNAMO-NEW-LOGO.png">
     <link rel="apple-touch-icon" href="images/DYNAMO-NEW-LOGO.png">
-    <script>
-        // Detect if we arrived from index.html portal transition
-        try {
-            if (sessionStorage.getItem('portalTransition')) {
-                document.documentElement.classList.add('from-transition');
-                sessionStorage.removeItem('portalTransition');
-            }
-        } catch (e) {}
-    </script>
     <style>
         :root {
             --purple:       #3300cc;
@@ -39,11 +30,6 @@
             color: var(--navy); background: var(--gray-100);
             min-height: 100vh; display: flex; flex-direction: column;
             -webkit-font-smoothing: antialiased;
-            animation: portalBodyIn 0.6s ease both;
-        }
-        @keyframes portalBodyIn {
-            0%   { background-color: var(--navy); }
-            100% { background-color: var(--gray-100); }
         }
         .portal-bg {
             position: fixed; inset: 0; z-index: 0;
@@ -66,7 +52,7 @@
             padding: 2rem 1.2rem;
         }
         .portal-card {
-            width: 100%; max-width: 440px;
+            width: 100%; max-width: 560px;
             background: white;
             border-radius: 22px;
             box-shadow: 0 30px 80px rgba(10,2,48,0.12), 0 8px 20px rgba(10,2,48,0.04);
@@ -74,157 +60,11 @@
             padding: 2.2rem 2rem 1.8rem;
             position: relative;
             overflow: hidden;
-            animation: portalCardIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+            animation: cardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
-        @keyframes portalCardIn {
-            0%   { opacity: 0; transform: translateY(28px) scale(0.94); }
+        @keyframes cardIn {
+            0%   { opacity: 0; transform: translateY(24px) scale(0.96); }
             100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .portal-bg { animation: portalBgIn 0.7s ease both; }
-        @keyframes portalBgIn {
-            0%   { opacity: 0; }
-            100% { opacity: 1; }
-        }
-        /* Arrival overlay: only shown when coming from index portal transition */
-        .portal-arrival { display: none; }
-        .from-transition .portal-arrival {
-            display: flex; align-items: center; justify-content: center;
-            position: fixed; inset: 0; z-index: 100000; pointer-events: none;
-            background: radial-gradient(circle at 50% 50%, #6b3dff 0%, var(--purple) 25%, var(--purple-nav) 60%, var(--navy) 100%);
-            animation: portalArrivalOut 0.85s cubic-bezier(0.55, 0, 0.45, 1) 0.05s forwards;
-            will-change: opacity, transform;
-        }
-        @keyframes portalArrivalOut {
-            0%   { opacity: 1; transform: scale(1); }
-            40%  { opacity: 1; }
-            100% { opacity: 0; transform: scale(1.3); }
-        }
-        .from-transition .portal-arrival-core {
-            display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
-            color: white;
-            animation: portalArrivalCoreOut 0.75s cubic-bezier(0.55, 0, 0.45, 1) 0.05s forwards;
-            will-change: opacity, transform;
-        }
-        @keyframes portalArrivalCoreOut {
-            0%   { opacity: 1; transform: scale(1); }
-            100% { opacity: 0; transform: scale(0.5) translateY(-30px); }
-        }
-        .portal-arrival-lock {
-            width: 72px; height: 72px; border-radius: 22px;
-            background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
-            border: 1.5px solid rgba(255,255,255,0.35);
-            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.25), 0 0 30px rgba(107,61,255,0.45);
-        }
-        .portal-arrival-lock svg { width: 32px; height: 32px; color: white; }
-        .portal-arrival-text {
-            font-size: 0.78rem; font-weight: 900; letter-spacing: 3px;
-            text-transform: uppercase; color: rgba(255,255,255,0.92);
-        }
-        /* When arriving via transition, delay card so it appears AS overlay fades */
-        .from-transition .portal-card { animation-delay: 0.45s; }
-        .from-transition .portal-bg { animation-delay: 0.3s; }
-
-        @media (max-width: 600px) {
-            .portal-arrival-lock { width: 58px; height: 58px; border-radius: 18px; }
-            .portal-arrival-lock svg { width: 26px; height: 26px; }
-            .portal-arrival-text { font-size: 0.7rem; letter-spacing: 2px; }
-        }
-
-        /* Exit transition: same wormhole effect going back to index.html */
-        .portal-transition {
-            position: fixed; inset: 0; z-index: 999999; pointer-events: none;
-            --cx: 50%; --cy: 50%;
-            background:
-                radial-gradient(circle at var(--cx) var(--cy),
-                    #6b3dff 0%, var(--purple) 22%, var(--purple-nav) 55%, var(--navy) 100%);
-            clip-path: circle(0% at var(--cx) var(--cy));
-            transition: clip-path 0.75s cubic-bezier(0.7, 0, 0.25, 1);
-            overflow: hidden;
-        }
-        .portal-transition.active { clip-path: circle(160% at var(--cx) var(--cy)); pointer-events: auto; }
-        .portal-stars {
-            position: absolute; inset: 0; opacity: 0;
-            background:
-                radial-gradient(2px 2px at 15% 22%, white 50%, transparent 100%),
-                radial-gradient(1.5px 1.5px at 78% 18%, white 50%, transparent 100%),
-                radial-gradient(2px 2px at 35% 65%, white 50%, transparent 100%),
-                radial-gradient(1px 1px at 60% 40%, white 50%, transparent 100%),
-                radial-gradient(2.5px 2.5px at 88% 75%, white 50%, transparent 100%),
-                radial-gradient(1.5px 1.5px at 8% 80%, white 50%, transparent 100%),
-                radial-gradient(1px 1px at 45% 12%, white 50%, transparent 100%),
-                radial-gradient(2px 2px at 92% 45%, white 50%, transparent 100%),
-                radial-gradient(1.5px 1.5px at 25% 90%, white 50%, transparent 100%),
-                radial-gradient(1px 1px at 70% 88%, white 50%, transparent 100%),
-                radial-gradient(2px 2px at 50% 30%, white 50%, transparent 100%),
-                radial-gradient(1.5px 1.5px at 18% 50%, white 50%, transparent 100%);
-        }
-        .portal-transition.active .portal-stars { animation: portalTwinkle 0.9s ease 0.15s forwards; }
-        @keyframes portalTwinkle {
-            0%   { opacity: 0; transform: scale(0.6) rotate(-8deg); }
-            45%  { opacity: 1; }
-            100% { opacity: 0.85; transform: scale(1.06) rotate(4deg); }
-        }
-        .portal-ring {
-            position: absolute; top: 50%; left: 50%;
-            width: 0; height: 0; border-radius: 50%;
-            border: 2px solid rgba(255,255,255,0.45);
-            transform: translate(-50%, -50%); opacity: 0;
-        }
-        .portal-transition.active .portal-ring1 { animation: portalRingX 0.85s ease 0.1s forwards; }
-        .portal-transition.active .portal-ring2 { animation: portalRingX 0.85s ease 0.22s forwards; }
-        .portal-transition.active .portal-ring3 { animation: portalRingX 0.85s ease 0.34s forwards; }
-        @keyframes portalRingX {
-            0%   { width: 0; height: 0; opacity: 0.9; border-width: 3px; }
-            100% { width: 480px; height: 480px; opacity: 0; border-width: 1px; }
-        }
-        .portal-exit-core {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%) scale(0.4); opacity: 0;
-            display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
-            color: white; text-align: center;
-        }
-        .portal-transition.active .portal-exit-core { animation: portalExitCore 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.28s forwards; }
-        @keyframes portalExitCore {
-            0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.35) rotate(-12deg); }
-            60%  { opacity: 1; }
-            100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0); }
-        }
-        .portal-exit-loader {
-            width: 70px; height: 2px; border-radius: 2px;
-            background: rgba(255,255,255,0.18); overflow: hidden; position: relative;
-        }
-        .portal-exit-loader::after {
-            content: ''; position: absolute; inset: 0;
-            background: linear-gradient(90deg, transparent, white, transparent);
-            transform: translateX(-100%);
-            animation: portalExitLoader 0.9s ease 0.4s infinite;
-        }
-        @keyframes portalExitLoader { to { transform: translateX(100%); } }
-        @media (max-width: 600px) {
-            @keyframes portalRingX {
-                0%   { width: 0; height: 0; opacity: 0.9; border-width: 3px; }
-                100% { width: 320px; height: 320px; opacity: 0; border-width: 1px; }
-            }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            body, .portal-card, .portal-bg { animation: none; }
-            .from-transition .portal-arrival { animation: portalArrivalReduce 0.3s ease both; }
-            .from-transition .portal-arrival-core { animation: portalArrivalReduce 0.3s ease both; }
-            @keyframes portalArrivalReduce {
-                0%   { opacity: 1; }
-                100% { opacity: 0; }
-            }
-            .portal-transition { transition: opacity 0.2s ease; clip-path: none; opacity: 0; }
-            .portal-transition.active { opacity: 1; }
-            .portal-transition.active .portal-ring1,
-            .portal-transition.active .portal-ring2,
-            .portal-transition.active .portal-ring3,
-            .portal-transition.active .portal-stars,
-            .portal-transition.active .portal-exit-core { animation: none; opacity: 1; transform: translate(-50%, -50%); }
-            .portal-exit-loader::after { animation: none; }
         }
         .portal-card::before {
             content:''; position:absolute; top:0; left:0; right:0; height:4px;
@@ -257,6 +97,19 @@
         }
         @keyframes portalDot { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
 
+        .reg-type { display: flex; gap: 0.6rem; margin-bottom: 1.2rem; }
+        .reg-type-opt {
+            flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+            padding: 0.85rem 0.5rem; border-radius: 12px;
+            border: 1.5px solid var(--gray-200); background: var(--gray-100);
+            color: var(--gray-500); font-size: 0.8rem; font-weight: 800;
+            cursor: not-allowed; text-align: center;
+        }
+        .reg-type-opt svg { width: 22px; height: 22px; }
+        .reg-type-opt.sel { border-color: var(--purple); background: rgba(51,0,204,0.05); color: var(--purple); }
+
+        .reg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 0.9rem; }
+        .reg-grid .full { grid-column: 1 / -1; }
         .portal-field { margin-bottom: 0.95rem; }
         .portal-label {
             display: block; font-size: 0.7rem; font-weight: 800;
@@ -278,13 +131,13 @@
         .portal-input::placeholder { color: var(--gray-500); opacity: 0.7; }
         .portal-input:disabled { background: var(--gray-100); }
 
-        .portal-row {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 1.2rem; font-size: 0.8rem;
+        .reg-terms {
+            display: flex; align-items: flex-start; gap: 0.5rem;
+            font-size: 0.76rem; color: var(--gray-500); line-height: 1.5;
+            margin: 0.3rem 0 1.2rem; cursor: not-allowed;
         }
-        .portal-check { display: flex; align-items: center; gap: 0.45rem; color: var(--gray-500); cursor: not-allowed; }
-        .portal-check input { cursor: not-allowed; accent-color: var(--purple); }
-        .portal-forgot { color: var(--gray-500); text-decoration: none; font-weight: 700; pointer-events: none; opacity: 0.6; }
+        .reg-terms input { margin-top: 0.2rem; cursor: not-allowed; accent-color: var(--purple); }
+        .reg-terms a { color: var(--gray-500); font-weight: 700; pointer-events: none; }
 
         .portal-submit {
             width: 100%; padding: 0.95rem; border: none; border-radius: 12px;
@@ -293,22 +146,9 @@
             letter-spacing: 0.5px; text-transform: uppercase;
             cursor: not-allowed; opacity: 0.55;
             display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-            transition: opacity 0.2s;
         }
-        .portal-submit:disabled { cursor: not-allowed; }
-        .portal-submit svg { width: 14px; height: 14px; }
+        .portal-submit svg { width: 15px; height: 15px; }
 
-        .portal-create {
-            width: 100%; padding: 0.85rem; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-            background: white; color: var(--purple);
-            border: 1.5px solid var(--purple);
-            font-size: 0.9rem; font-weight: 900; letter-spacing: 0.5px;
-            text-decoration: none; text-transform: uppercase;
-            transition: all 0.2s; box-sizing: border-box;
-        }
-        .portal-create:hover { background: var(--purple); color: white; transform: translateY(-1px); box-shadow: 0 8px 22px rgba(51,0,204,0.25); }
-        .portal-create svg { width: 16px; height: 16px; }
         .portal-divider {
             display: flex; align-items: center; gap: 0.8rem;
             margin: 1.3rem 0 1rem; color: var(--gray-500);
@@ -317,20 +157,23 @@
         .portal-divider::before, .portal-divider::after {
             content: ''; flex: 1; height: 1px; background: var(--gray-200);
         }
-        .portal-info {
-            background: rgba(51,0,204,0.04);
-            border: 1px solid rgba(51,0,204,0.08);
-            border-radius: 10px;
-            padding: 0.85rem 1rem;
-            font-size: 0.78rem; color: var(--gray-700); line-height: 1.55;
-            margin-bottom: 1rem;
+        .portal-login-link {
+            width: 100%; padding: 0.85rem; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            background: white; color: var(--purple);
+            border: 1.5px solid var(--purple);
+            font-size: 0.9rem; font-weight: 900; letter-spacing: 0.5px;
+            text-decoration: none; text-transform: uppercase;
+            transition: all 0.2s; box-sizing: border-box;
         }
-        .portal-info strong { color: var(--purple); }
+        .portal-login-link:hover { background: var(--purple); color: white; transform: translateY(-1px); box-shadow: 0 8px 22px rgba(51,0,204,0.25); }
+        .portal-login-link svg { width: 15px; height: 15px; }
 
         .portal-back {
             display: flex; align-items: center; justify-content: center; gap: 0.4rem;
             color: var(--gray-500); text-decoration: none; font-size: 0.82rem; font-weight: 700;
             padding: 0.6rem; border-radius: 10px; transition: background 0.2s;
+            margin-top: 0.5rem;
         }
         .portal-back:hover { background: var(--gray-100); color: var(--navy); }
         .portal-back svg { width: 14px; height: 14px; }
@@ -343,13 +186,18 @@
         .portal-foot a { color: var(--gray-500); text-decoration: none; }
         .portal-foot a:hover { color: var(--purple); }
 
-        @media (max-width: 480px) {
+        @media (max-width: 560px) {
             .portal-wrap { padding: 1.2rem 1rem; }
             .portal-card { padding: 1.8rem 1.4rem 1.4rem; border-radius: 18px; }
             .portal-title { font-size: 1.35rem; }
+            .reg-grid { grid-template-columns: 1fr; gap: 0; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .portal-card { animation: none; }
+            .portal-badge .dot { animation: none; }
         }
 
-        /* Language selector (same UI as index, fixed top-right) */
+        /* Language selector (same UI as index/portal, fixed top-right) */
         .lang-selector { position: fixed; top: 1rem; right: 1rem; z-index: 10000; }
         .lang-btn {
             display: flex; align-items: center; gap: 0.3rem; cursor: pointer;
@@ -385,20 +233,6 @@
     </style>
 </head>
 <body>
-    <!-- EXIT TRANSITION OVERLAY (back to index) -->
-    <div class="portal-transition" id="portalExit" aria-hidden="true">
-        <div class="portal-stars"></div>
-        <div class="portal-ring portal-ring1"></div>
-        <div class="portal-ring portal-ring2"></div>
-        <div class="portal-ring portal-ring3"></div>
-        <div class="portal-exit-core">
-            <div class="portal-arrival-lock">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            </div>
-            <div class="portal-arrival-text">Inicio</div>
-            <div class="portal-exit-loader"></div>
-        </div>
-    </div>
     <!-- LANGUAGE SELECTOR -->
     <div class="lang-selector notranslate" translate="no">
         <button class="lang-btn" onclick="toggleLangDropdown()" id="langBtn">
@@ -419,22 +253,14 @@
         </div>
     </div>
 
-    <div class="portal-arrival" aria-hidden="true">
-        <div class="portal-arrival-core">
-            <div class="portal-arrival-lock">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            </div>
-            <div class="portal-arrival-text">Acceso Portal</div>
-        </div>
-    </div>
     <div class="portal-bg"></div>
     <main class="portal-wrap">
-        <div class="portal-card" role="dialog" aria-labelledby="portal-title">
+        <div class="portal-card" role="dialog" aria-labelledby="reg-title">
             <div class="portal-logo">
-                <a href="index.html" onclick="goToHome(event)" aria-label="Volver al inicio"><img src="images/2.png" alt="Dynamo - Pick. Drop. Done."></a>
+                <a href="index.html" aria-label="Volver al inicio"><img src="images/2.png" alt="Dynamo - Pick. Drop. Done."></a>
             </div>
-            <h1 id="portal-title" class="portal-title">Acceso al Portal</h1>
-            <p class="portal-subtitle">Área privada para <strong>clientes</strong> y <strong>transportistas</strong> de Dynamo</p>
+            <h1 id="reg-title" class="portal-title">Crear cuenta</h1>
+            <p class="portal-subtitle">Regístrate como <strong>cliente</strong> o <strong>transportista</strong> de Dynamo</p>
 
             <div class="portal-badge">
                 <span class="dot"></span>
@@ -442,47 +268,94 @@
             </div>
 
             <form onsubmit="event.preventDefault();return false;" autocomplete="off" aria-disabled="true">
-                <div class="portal-field">
-                    <label class="portal-label" for="portal-user">Usuario o correo electrónico</label>
-                    <div class="portal-input-wrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        <input id="portal-user" class="portal-input" type="text" placeholder="tu.usuario@empresa.com" disabled aria-disabled="true" tabindex="-1">
+                <div class="reg-type" role="radiogroup" aria-label="Tipo de cuenta" aria-disabled="true">
+                    <div class="reg-type-opt sel" role="radio" aria-checked="true" aria-disabled="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+                        Cliente
+                    </div>
+                    <div class="reg-type-opt" role="radio" aria-checked="false" aria-disabled="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                        Transportista
                     </div>
                 </div>
 
-                <div class="portal-field">
-                    <label class="portal-label" for="portal-pass">Contraseña</label>
-                    <div class="portal-input-wrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        <input id="portal-pass" class="portal-input" type="password" placeholder="••••••••" disabled aria-disabled="true" tabindex="-1">
+                <div class="reg-grid">
+                    <div class="portal-field full">
+                        <label class="portal-label" for="reg-nombre">Nombre y apellidos</label>
+                        <div class="portal-input-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <input id="reg-nombre" class="portal-input" type="text" placeholder="Nombre completo" disabled aria-disabled="true" tabindex="-1">
+                        </div>
+                    </div>
+
+                    <div class="portal-field">
+                        <label class="portal-label" for="reg-empresa">Empresa / Razón social</label>
+                        <div class="portal-input-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+                            <input id="reg-empresa" class="portal-input" type="text" placeholder="Tu empresa, S.L." disabled aria-disabled="true" tabindex="-1">
+                        </div>
+                    </div>
+
+                    <div class="portal-field">
+                        <label class="portal-label" for="reg-nif">NIF / CIF</label>
+                        <div class="portal-input-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                            <input id="reg-nif" class="portal-input" type="text" placeholder="B-12345678" disabled aria-disabled="true" tabindex="-1">
+                        </div>
+                    </div>
+
+                    <div class="portal-field">
+                        <label class="portal-label" for="reg-email">Correo electrónico</label>
+                        <div class="portal-input-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+                            <input id="reg-email" class="portal-input" type="email" placeholder="tu@empresa.com" disabled aria-disabled="true" tabindex="-1">
+                        </div>
+                    </div>
+
+                    <div class="portal-field">
+                        <label class="portal-label" for="reg-tel">Teléfono</label>
+                        <div class="portal-input-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                            <input id="reg-tel" class="portal-input" type="tel" placeholder="+34 600 000 000" disabled aria-disabled="true" tabindex="-1">
+                        </div>
+                    </div>
+
+                    <div class="portal-field">
+                        <label class="portal-label" for="reg-pass">Contraseña</label>
+                        <div class="portal-input-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            <input id="reg-pass" class="portal-input" type="password" placeholder="••••••••" disabled aria-disabled="true" tabindex="-1">
+                        </div>
+                    </div>
+
+                    <div class="portal-field">
+                        <label class="portal-label" for="reg-pass2">Repetir contraseña</label>
+                        <div class="portal-input-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            <input id="reg-pass2" class="portal-input" type="password" placeholder="••••••••" disabled aria-disabled="true" tabindex="-1">
+                        </div>
                     </div>
                 </div>
 
-                <div class="portal-row">
-                    <label class="portal-check"><input type="checkbox" disabled tabindex="-1"> Recordarme</label>
-                    <a href="#" class="portal-forgot" tabindex="-1" aria-disabled="true">¿Olvidaste tu contraseña?</a>
-                </div>
+                <label class="reg-terms">
+                    <input type="checkbox" disabled tabindex="-1">
+                    <span>He leído y acepto el <a href="#">Aviso Legal</a> y la <a href="#">Política de Privacidad</a> de Dynamo Operador de Transportes</span>
+                </label>
 
                 <button type="submit" class="portal-submit" disabled aria-disabled="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-                    Iniciar sesión
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                    Crear cuenta
                 </button>
             </form>
 
-            <div class="portal-divider">¿No tienes cuenta?</div>
+            <div class="portal-divider">¿Ya tienes cuenta?</div>
 
-            <a href="registro.html" class="portal-create">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-                Crear cuenta
+            <a href="portal.html" class="portal-login-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                Iniciar sesión
             </a>
 
-            <div class="portal-divider">Información</div>
-
-            <div class="portal-info">
-                Estamos desarrollando un <strong>portal privado</strong> con acceso para clientes (estado de cargas, facturas, histórico de envíos) y transportistas (asignaciones, documentación, pagos). Mientras tanto, contáctanos por los canales habituales.
-            </div>
-
-            <a href="index.html" class="portal-back" onclick="goToHome(event)">
+            <a href="index.html" class="portal-back">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
                 Volver al inicio
             </a>
@@ -490,44 +363,11 @@
     </main>
     <footer class="portal-foot">
         © 2025 Dynamo Operador de Transportes ·
-        <a href="index.html" onclick="goToHome(event)">dynamotrans.com</a> ·
+        <a href="index.html">dynamotrans.com</a> ·
         <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a>
     </footer>
-    <script>
-        // Exit transition: same wormhole effect going back to index.html
-        function goToHome(ev) {
-            if (ev) ev.preventDefault();
-            var overlay = document.getElementById('portalExit');
-            if (!overlay) { window.location.href = 'index.html'; return; }
-            var cx, cy;
-            if (ev && ev.clientX !== undefined && ev.clientX !== 0) {
-                cx = ev.clientX; cy = ev.clientY;
-            } else if (ev && ev.currentTarget && ev.currentTarget.getBoundingClientRect) {
-                var r = ev.currentTarget.getBoundingClientRect();
-                cx = r.left + r.width / 2; cy = r.top + r.height / 2;
-            } else {
-                cx = window.innerWidth / 2; cy = window.innerHeight / 2;
-            }
-            overlay.style.setProperty('--cx', cx + 'px');
-            overlay.style.setProperty('--cy', cy + 'px');
-            overlay.classList.add('active');
-            try { sessionStorage.setItem('homeTransition', '1'); } catch (e) {}
-            var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            var delay = reduce ? 250 : 850;
-            setTimeout(function () { window.location.href = 'index.html'; }, delay);
-        }
-        // Reset overlay state if page is restored from bfcache
-        window.addEventListener('pageshow', function (e) {
-            if (e.persisted) {
-                document.documentElement.classList.remove('from-transition');
-            }
-            var exitOverlay = document.getElementById('portalExit');
-            if (exitOverlay) exitOverlay.classList.remove('active');
-            try { sessionStorage.removeItem('portalTransition'); } catch (err) {}
-        });
-    </script>
 
-    <!-- Google Translate (same engine as index.html, shares googtrans cookie) -->
+    <!-- Google Translate (same engine as index/portal, shares googtrans cookie) -->
     <div id="google_translate_element" style="display:none;"></div>
     <script>
     var gtLoaded = false;
@@ -586,7 +426,7 @@
             if (history.replaceState) history.replaceState(null, '', location.pathname);
             return;
         }
-        // If user already chose a language (cookie shared with index.html), apply it
+        // If user already chose a language (cookie shared across pages), apply it
         var match = document.cookie.match(/googtrans=\/es\/([\w-]+)/);
         if (match && match[1] && langMap[match[1]]) {
             var lang = match[1];
