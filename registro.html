@@ -181,6 +181,57 @@
         .reg-country-item.hide { display: none; }
         .reg-country-empty { padding: 0.8rem 0.7rem; font-size: 0.8rem; color: var(--gray-500); text-align: center; display: none; }
 
+        /* Phone field with prefix selector (left button + number input) */
+        .reg-phone {
+            display: flex; align-items: stretch;
+            border-radius: 11px; border: 1.5px solid var(--gray-200);
+            background: var(--gray-100);
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .reg-phone:focus-within { border-color: var(--purple); background: white; }
+        .reg-phone-prefix-wrap { position: relative; }
+        .reg-phone-prefix-btn {
+            height: 100%; padding: 0 0.7rem 0 0.85rem;
+            border: none; background: transparent;
+            display: flex; align-items: center; gap: 0.4rem;
+            font-size: 0.92rem; font-weight: 800; color: var(--navy);
+            cursor: pointer;
+            border-right: 1.5px solid var(--gray-200);
+            border-radius: 11px 0 0 11px;
+            transition: background 0.15s;
+        }
+        .reg-phone-prefix-btn:hover, .reg-phone-prefix-btn:focus { background: white; outline: none; }
+        .reg-phone-prefix-btn .chev { width: 11px; height: 11px; color: var(--gray-500); transition: transform 0.2s; }
+        .reg-phone-prefix-wrap.open .reg-phone-prefix-btn .chev { transform: rotate(180deg); }
+        .reg-phone-num {
+            flex: 1; min-width: 0; border: none; background: transparent;
+            padding: 0.85rem 0.9rem; font-size: 0.92rem; font-weight: 600;
+            color: var(--gray-500); outline: none; cursor: not-allowed;
+            border-radius: 0 11px 11px 0;
+        }
+        .reg-phone-num::placeholder { color: var(--gray-500); opacity: 0.7; }
+        .reg-phone-prefix-pop {
+            display: none; position: absolute; top: calc(100% + 4px); left: 0;
+            width: 300px; max-width: 92vw;
+            background: white; border-radius: 12px; border: 1.5px solid var(--gray-200);
+            box-shadow: 0 18px 50px rgba(10,2,48,0.15);
+            z-index: 50; overflow: hidden;
+        }
+        .reg-phone-prefix-wrap.open .reg-phone-prefix-pop { display: block; animation: cPop 0.18s ease; }
+        .reg-phone-prefix-list { max-height: 240px; overflow-y: auto; padding: 0.35rem; }
+        .reg-phone-prefix-item {
+            display: flex; align-items: center; gap: 0.7rem;
+            width: 100%; text-align: left; padding: 0.5rem 0.7rem;
+            border: none; background: none; border-radius: 7px;
+            font-size: 0.85rem; font-weight: 600; color: var(--gray-700);
+            cursor: pointer;
+        }
+        .reg-phone-prefix-item:hover { background: var(--gray-100); }
+        .reg-phone-prefix-item.sel { background: rgba(51,0,204,0.07); color: var(--purple); font-weight: 800; }
+        .reg-phone-prefix-item.hide { display: none; }
+        .reg-phone-prefix-code { font-weight: 800; color: var(--purple); min-width: 48px; }
+        .reg-phone-prefix-name { color: inherit; }
+
         .reg-terms {
             display: flex; align-items: flex-start; gap: 0.5rem;
             font-size: 0.76rem; color: var(--gray-500); line-height: 1.5;
@@ -368,9 +419,23 @@
 
                     <div class="portal-field full">
                         <label class="portal-label" for="reg-tel">Teléfono</label>
-                        <div class="portal-input-wrap">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                            <input id="reg-tel" class="portal-input" type="tel" placeholder="+34 600 000 000" disabled aria-disabled="true" tabindex="-1">
+                        <div class="reg-phone">
+                            <div class="reg-phone-prefix-wrap" id="regPrefix">
+                                <button type="button" class="reg-phone-prefix-btn" onclick="togglePrefix(event)" aria-haspopup="listbox" aria-expanded="false">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-500)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                                    <span id="reg-prefix-label">+34</span>
+                                    <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                </button>
+                                <div class="reg-phone-prefix-pop" id="regPrefixPop" role="listbox">
+                                    <div class="reg-country-search">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                        <input type="text" id="reg-prefix-search" placeholder="Buscar país o prefijo…" autocomplete="off" oninput="filterPrefixes(this.value)" onclick="event.stopPropagation()">
+                                    </div>
+                                    <div class="reg-phone-prefix-list" id="regPrefixList"></div>
+                                    <div class="reg-country-empty" id="regPrefixEmpty">Sin resultados</div>
+                                </div>
+                            </div>
+                            <input id="reg-tel" class="reg-phone-num" type="tel" placeholder="600 000 000" disabled aria-disabled="true" tabindex="-1">
                         </div>
                     </div>
 
@@ -523,7 +588,114 @@
         }
     });
 
-    document.addEventListener('DOMContentLoaded', buildCountryList);
+    // Phone prefix selector — same priority order as country
+    var DIAL_CODES = {
+        'España':'+34','Portugal':'+351','Francia':'+33','Países Bajos':'+31','Alemania':'+49','Italia':'+39',
+        'Afganistán':'+93','Albania':'+355','Andorra':'+376','Angola':'+244','Antigua y Barbuda':'+1','Arabia Saudí':'+966','Argelia':'+213','Argentina':'+54','Armenia':'+374','Australia':'+61','Austria':'+43','Azerbaiyán':'+994',
+        'Bahamas':'+1','Bangladés':'+880','Barbados':'+1','Baréin':'+973','Bélgica':'+32','Belice':'+501','Benín':'+229','Bielorrusia':'+375','Birmania':'+95','Bolivia':'+591','Bosnia y Herzegovina':'+387','Botsuana':'+267','Brasil':'+55','Brunéi':'+673','Bulgaria':'+359','Burkina Faso':'+226','Burundi':'+257','Bután':'+975',
+        'Cabo Verde':'+238','Camboya':'+855','Camerún':'+237','Canadá':'+1','Catar':'+974','Chad':'+235','Chequia':'+420','Chile':'+56','China':'+86','Chipre':'+357','Ciudad del Vaticano':'+379','Colombia':'+57','Comoras':'+269','Corea del Norte':'+850','Corea del Sur':'+82','Costa de Marfil':'+225','Costa Rica':'+506','Croacia':'+385','Cuba':'+53',
+        'Dinamarca':'+45','Dominica':'+1',
+        'Ecuador':'+593','Egipto':'+20','El Salvador':'+503','Emiratos Árabes Unidos':'+971','Eritrea':'+291','Eslovaquia':'+421','Eslovenia':'+386','Estados Unidos':'+1','Estonia':'+372','Esuatini':'+268','Etiopía':'+251',
+        'Filipinas':'+63','Finlandia':'+358','Fiyi':'+679',
+        'Gabón':'+241','Gambia':'+220','Georgia':'+995','Ghana':'+233','Granada':'+1','Grecia':'+30','Guatemala':'+502','Guinea':'+224','Guinea Ecuatorial':'+240','Guinea-Bisáu':'+245','Guyana':'+592',
+        'Haití':'+509','Honduras':'+504','Hungría':'+36',
+        'India':'+91','Indonesia':'+62','Irak':'+964','Irán':'+98','Irlanda':'+353','Islandia':'+354','Islas Marshall':'+692','Islas Salomón':'+677','Israel':'+972',
+        'Jamaica':'+1','Japón':'+81','Jordania':'+962',
+        'Kazajistán':'+7','Kenia':'+254','Kirguistán':'+996','Kiribati':'+686','Kosovo':'+383','Kuwait':'+965',
+        'Laos':'+856','Lesoto':'+266','Letonia':'+371','Líbano':'+961','Liberia':'+231','Libia':'+218','Liechtenstein':'+423','Lituania':'+370','Luxemburgo':'+352',
+        'Macedonia del Norte':'+389','Madagascar':'+261','Malasia':'+60','Malaui':'+265','Maldivas':'+960','Malí':'+223','Malta':'+356','Marruecos':'+212','Mauricio':'+230','Mauritania':'+222','México':'+52','Micronesia':'+691','Moldavia':'+373','Mónaco':'+377','Mongolia':'+976','Montenegro':'+382','Mozambique':'+258',
+        'Namibia':'+264','Nauru':'+674','Nepal':'+977','Nicaragua':'+505','Níger':'+227','Nigeria':'+234','Noruega':'+47','Nueva Zelanda':'+64',
+        'Omán':'+968',
+        'Pakistán':'+92','Palaos':'+680','Panamá':'+507','Papúa Nueva Guinea':'+675','Paraguay':'+595','Perú':'+51','Polonia':'+48',
+        'Reino Unido':'+44','República Centroafricana':'+236','República del Congo':'+242','República Democrática del Congo':'+243','República Dominicana':'+1','Ruanda':'+250','Rumanía':'+40','Rusia':'+7',
+        'Samoa':'+685','San Cristóbal y Nieves':'+1','San Marino':'+378','San Vicente y las Granadinas':'+1','Santa Lucía':'+1','Santo Tomé y Príncipe':'+239','Senegal':'+221','Serbia':'+381','Seychelles':'+248','Sierra Leona':'+232','Singapur':'+65','Siria':'+963','Somalia':'+252','Sri Lanka':'+94','Sudáfrica':'+27','Sudán':'+249','Sudán del Sur':'+211','Suecia':'+46','Suiza':'+41','Surinam':'+597',
+        'Tailandia':'+66','Tanzania':'+255','Tayikistán':'+992','Timor Oriental':'+670','Togo':'+228','Tonga':'+676','Trinidad y Tobago':'+1','Túnez':'+216','Turkmenistán':'+993','Turquía':'+90','Tuvalu':'+688',
+        'Ucrania':'+380','Uganda':'+256','Uruguay':'+598','Uzbekistán':'+998',
+        'Vanuatu':'+678','Venezuela':'+58','Vietnam':'+84',
+        'Yemen':'+967','Yibuti':'+253',
+        'Zambia':'+260','Zimbabue':'+263'
+    };
+
+    function buildPrefixList() {
+        var list = document.getElementById('regPrefixList');
+        if (!list) return;
+        function row(name, sel) {
+            var code = DIAL_CODES[name] || '';
+            return '<button type="button" class="reg-phone-prefix-item' + (sel ? ' sel' : '') +
+                '" data-name="' + name + '" data-code="' + code +
+                '" onclick="selectPrefix(\'' + name.replace(/'/g, "\\'") + '\')">' +
+                '<span class="reg-phone-prefix-code">' + code + '</span>' +
+                '<span class="reg-phone-prefix-name">' + name + '</span></button>';
+        }
+        var html = '<div class="reg-country-group">Más habituales</div>';
+        COUNTRY_PRIORITY.forEach(function(c, i) { html += row(c, i === 0); });
+        html += '<div class="reg-country-group">Todos los países</div>';
+        COUNTRY_REST.forEach(function(c) { html += row(c, false); });
+        list.innerHTML = html;
+    }
+
+    function togglePrefix(ev) {
+        if (ev) ev.stopPropagation();
+        var wrap = document.getElementById('regPrefix');
+        wrap.classList.toggle('open');
+        var btn = wrap.querySelector('.reg-phone-prefix-btn');
+        btn.setAttribute('aria-expanded', wrap.classList.contains('open') ? 'true' : 'false');
+        if (wrap.classList.contains('open')) {
+            setTimeout(function() {
+                var s = document.getElementById('reg-prefix-search');
+                if (s) s.focus();
+            }, 50);
+        }
+    }
+
+    function selectPrefix(name) {
+        var code = DIAL_CODES[name] || '';
+        document.getElementById('reg-prefix-label').textContent = code;
+        var items = document.querySelectorAll('.reg-phone-prefix-item');
+        items.forEach(function(b) { b.classList.toggle('sel', b.getAttribute('data-name') === name); });
+        var wrap = document.getElementById('regPrefix');
+        wrap.classList.remove('open');
+        wrap.querySelector('.reg-phone-prefix-btn').setAttribute('aria-expanded', 'false');
+        var s = document.getElementById('reg-prefix-search');
+        if (s) { s.value = ''; filterPrefixes(''); }
+    }
+
+    function filterPrefixes(q) {
+        var n = normalize(q || '');
+        var items = document.querySelectorAll('.reg-phone-prefix-item');
+        var any = false;
+        items.forEach(function(b) {
+            var name = b.getAttribute('data-name') || '';
+            var code = (b.getAttribute('data-code') || '').toLowerCase();
+            var match = !n || normalize(name).indexOf(n) > -1 || code.indexOf(n) > -1;
+            b.classList.toggle('hide', !match);
+            if (match) any = true;
+        });
+        var groups = document.querySelectorAll('#regPrefixList .reg-country-group');
+        groups.forEach(function(g) {
+            var next = g.nextElementSibling;
+            var visible = false;
+            while (next && !next.classList.contains('reg-country-group')) {
+                if (next.classList.contains('reg-phone-prefix-item') && !next.classList.contains('hide')) { visible = true; break; }
+                next = next.nextElementSibling;
+            }
+            g.style.display = visible ? '' : 'none';
+        });
+        document.getElementById('regPrefixEmpty').style.display = any ? 'none' : 'block';
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#regPrefix')) {
+            var wrap = document.getElementById('regPrefix');
+            if (wrap) {
+                wrap.classList.remove('open');
+                var btn = wrap.querySelector('.reg-phone-prefix-btn');
+                if (btn) btn.setAttribute('aria-expanded', 'false');
+            }
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() { buildCountryList(); buildPrefixList(); });
     </script>
 
     <!-- Google Translate (same engine as index/portal, shares googtrans cookie) -->
