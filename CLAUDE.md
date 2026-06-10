@@ -66,6 +66,29 @@ Lectura para preguntas de tipo "¿qué tocamos?":
 - Si existe `HANDOFF-agenciadetransporte.md` → preguntar explícitamente cuál de las dos.
 - Si `pwd` = `agenciadetransporte-web/` → ese proyecto, pero confirmar la rama.
 
+### 6. Nivel de publicación: SIEMPRE preguntar antes
+
+Antes de subir cualquier cambio, preguntar al usuario qué nivel de publicación quiere:
+
+- **A) Solo preview** (push a la rama de feature → URL privada de Vercel tipo `dynamo-web-git-<rama>-dynamotrans-projects.vercel.app`, nadie más la ve, no afecta `dynamotrans.com`)
+- **B) Producción** (merge a `main` + push a `main` → publica en `dynamotrans.com` tras 1-2 min de build de Vercel)
+
+Por defecto, asumir A (preview) cuando el cambio es del **portal** o de páginas en desarrollo. Promover a B solo con OK explícito del usuario.
+
+Razón: el portal está aún en mockup mientras la web pública debe verse pulida en producción. Hay que poder iterar el portal sin que se vea fuera, y publicar pequeños fixes de la web sin arrastrar el portal a producción.
+
+### 7. Estrategia de ramas (web pública vs portal mockup)
+
+Mientras el portal sea mockup HTML estático en este mismo repo:
+- **Web pública** (`index.html`, hojas de servicios, etc.): cambios pequeños → branch corto desde `main` (`fix/<algo>`) → preview → OK → merge a `main` inmediatamente
+- **Portal mockup** (`portal.html`, `registro.html`, `verificar.html`, `crear-password.html`): seguir en `claude/sharp-dirac-E3UIO` (rama feature ya viva). Solo se mergea a `main` por trozos cuando el usuario diga "publica el portal"
+- Si hay que hacer un fix público mientras la rama del portal está viva: trabajar desde `main` en una rama corta, mergear, y opcionalmente rebasear la rama del portal sobre el nuevo `main` para no acumular drift
+
+Cuando el portal pase de mockup a app real (backend, auth, dashboard con datos):
+- Nuevo repo separado `dynamo-portal` con framework apropiado (Next.js + Postgres o similar)
+- Proyecto Vercel separado conectado a `app.dynamotrans.com`
+- Este repo `dynamo-web` se queda solo para la web pública
+
 ---
 
 ## Bitácora
