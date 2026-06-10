@@ -379,7 +379,7 @@
             <!-- Tipo de usuario fijado a "cliente" en esta fase. Cuando se habilite el alta de
                  transportistas/proveedores, este campo debe convertirse en un selector visible y
                  el backend debe persistir el rol para diferenciar permisos y vistas del portal. -->
-            <form onsubmit="event.preventDefault();window.location.href='verificar.html';return false;" autocomplete="off" data-user-type="cliente">
+            <form onsubmit="event.preventDefault();try{sessionStorage.setItem('regEmail',document.getElementById('reg-email').value||'tu@empresa.com');}catch(e){}window.location.href='verificar.html';return false;" autocomplete="off" data-user-type="cliente">
                 <input type="hidden" name="tipo_usuario" value="cliente">
                 <div class="reg-grid">
                     <div class="portal-field full">

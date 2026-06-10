@@ -19,6 +19,8 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## 💡 Ideas / Futuro
 <!-- Mejoras a considerar -->
+- [ ] **Flujo de alta passwordless (decidido en mockup)**: registro → verificación con **enlace + código de 6 dígitos** enviados al email (el enlace lleva directo a crear-password.html; el código es fallback cuando el enlace no funciona / dispositivo distinto) → pantalla "Crea tu contraseña" con medidor de fortaleza y checkbox "Recordarme 90 días". Ya hay vista previa en `registro.html` → `verificar.html` → `crear-password.html`. Backend pendiente
+- [ ] **Duración de sesión del portal**: decidido en mockup → **30 días** por defecto, **90 días** si marca "Recordarme en este dispositivo". Forzar logout solo al cambiar contraseña. Estándar B2B logístico (XPO Connect, DSV, Maersk)
 - [ ] **Roles de usuario en el portal**: el `registro.html` actual envía siempre `tipo_usuario=cliente` (hidden input). Cuando se habilite el alta de transportistas/proveedores, convertir ese hidden en un selector visible (radio Cliente / Transportista / Proveedor) y persistir el rol en backend para diferenciar permisos, vistas del dashboard y notificaciones. Migración futura: usuarios ya creados como `cliente` mantienen el rol; no se permite cambiar rol via UI (solo admin)
 - [ ] **Portal de clientes (app.dynamotrans.com)** — Proyecto SEPARADO del sitio web:
   - Zona privada con login para clientes registrados
