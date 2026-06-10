@@ -37,6 +37,21 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
     - Pen-testing antes del lanzamiento
 
 ## ✅ Hecho recientemente
+- [x] 2026-06-10 — Nota de flota exclusiva ("Trabajamos exclusivamente con trailer tauliner...") añadida también al pie y luego ANTES de las cajas en sección Servicios
+- [x] 2026-06-10 — Chips de servicios (Grupajes / Carga Completa / Import & Export / Nacional 24h) y botón Cotizar del hero en minúsculas (quitado text-transform:uppercase)
+- [x] 2026-06-10 — Selector de idiomas añadido a portal.html (fijo arriba-derecha) + Google Translate completo. Comparte cookie googtrans con index. Watchdog que fuerza traducción si GT no auto-aplica la cookie (solución al "a veces no cambia"). Persistencia entre páginas
+- [x] 2026-06-10 — Transición wormhole también de vuelta portal→index con icono casa + "Inicio", misma disolución suave
+- [x] 2026-06-10 — Fix bfcache: al pulsar atrás del navegador desde portal.html, index.html ya no se queda con el overlay morado pegado (pageshow event quita .active)
+- [x] 2026-06-10 — Llegada suave al portal: sessionStorage + script en head antes del paint monta overlay con mismo gradiente que se disuelve con zoom out + fade, sin "flash" blanco entre páginas
+- [x] 2026-06-10 — Transición "wormhole" estilo agujero negro al pulsar ACCESO: clip-path circle desde el click, 3 anillos blancos, 12 estrellas titilantes, candado central con backdrop-blur y loader. 850ms total, prefers-reduced-motion respetado
+- [x] 2026-06-10 — Texto del botón "ACCESO PORTAL" acortado a solo "ACCESO" (nav, mobile, footer)
+- [x] 2026-06-10 — Mobile servicios: cambiado de 4 cards por fila (inviable en 360px) a 2 por fila con imagen + título + descripción + tag legibles. Almacenamiento full-width abajo
+- [x] 2026-06-10 — Grid de servicios reestructurado a 4 columnas fijas + Almacenamiento ocupa fila completa con layout horizontal (imagen izq + calculadora der), título 1.7rem, stripe degradado morado→verde 4px
+- [x] 2026-06-10 — Eliminada 6ª svc-card "Cotización Inmediata"
+- [x] 2026-06-10 — Mobile menu y footer (columna Empresa): añadido enlace 🔒 Acceso al portal
+- [x] 2026-06-10 — Nav desktop: botón "ATENCIÓN AL CLIENTE +34 955..." sustituido por botón "ACCESO" con icono candado (→ portal.html). Eliminados iconos Instagram + WhatsApp del nav y su CSS .nav-social
+- [x] 2026-06-10 — Nuevo `portal.html`: mockup login bloqueado (1 solo login genérico, página aparte /portal, campos disabled con badge "Próximamente"). Logo + 2 campos + checkbox + botón + info + volver al inicio, todo con estilo de marca
+- [x] 2026-06-09 — Tipo de camión seleccionado incluido en mensaje preformateado de las 2 cajas de vehículos (Trailer Tauliner / Rígido con Plataforma); asunto email diferenciado por modelo
 <!-- Claude mueve aquí las tareas completadas. Se limpia cada ~2 semanas -->
 - [x] 2026-06-08 — Caja "Gestión Logística" renombrada a "Almacenamiento corta estancia" (título + alt) y nueva descripción: 1-7 días en cualquier provincia + camiones carrozados/2 ejes para entrega urbana o recogida por el cliente
 - [x] 2026-06-08 — Hero: botón COTIZAR único (verde de marca) que despliega los 2 botones email/WhatsApp con fadeUp; cierre por click fuera o Escape
