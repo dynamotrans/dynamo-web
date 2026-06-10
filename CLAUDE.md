@@ -79,10 +79,14 @@ Razón: el portal está aún en mockup mientras la web pública debe verse pulid
 
 ### 7. Estrategia de ramas (web pública vs portal mockup)
 
+**⚠️ Regla dura del portal:** el portal **NUNCA se mergea a `main` ni se publica en `dynamotrans.com`** hasta que el usuario lo diga literalmente con una frase explícita tipo *"publica el portal"* / *"sube el portal a producción"* / *"mergea el portal a main"*. Está previsto que esa autorización llegue **dentro de unos meses**, no antes. Si hay dudas → preguntar. **NUNCA asumir.**
+
 Mientras el portal sea mockup HTML estático en este mismo repo:
 - **Web pública** (`index.html`, hojas de servicios, etc.): cambios pequeños → branch corto desde `main` (`fix/<algo>`) → preview → OK → merge a `main` inmediatamente
-- **Portal mockup** (`portal.html`, `registro.html`, `verificar.html`, `crear-password.html`): seguir en `claude/sharp-dirac-E3UIO` (rama feature ya viva). Solo se mergea a `main` por trozos cuando el usuario diga "publica el portal"
+- **Portal mockup** (`portal.html`, `registro.html`, `verificar.html`, `crear-password.html` y futuras páginas): se queda en `claude/sharp-dirac-E3UIO` (rama feature). Solo preview Vercel. Nunca producción salvo orden explícita
 - Si hay que hacer un fix público mientras la rama del portal está viva: trabajar desde `main` en una rama corta, mergear, y opcionalmente rebasear la rama del portal sobre el nuevo `main` para no acumular drift
+
+**Estado actual de `main` (producción) respecto al portal:** solo `portal.html` con login básico bloqueado y badge "Próximamente". Los archivos avanzados (`registro.html`, `verificar.html`, `crear-password.html`) NO están en `main`, solo en la rama feature.
 
 Cuando el portal pase de mockup a app real (backend, auth, dashboard con datos):
 - Nuevo repo separado `dynamo-portal` con framework apropiado (Next.js + Postgres o similar)
