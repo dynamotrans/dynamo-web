@@ -443,10 +443,10 @@
 
             <form onsubmit="event.preventDefault();return false;" autocomplete="off" aria-disabled="true">
                 <div class="portal-field">
-                    <label class="portal-label" for="portal-user">Usuario o correo electrónico</label>
+                    <label class="portal-label" for="portal-user">Correo electrónico</label>
                     <div class="portal-input-wrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        <input id="portal-user" class="portal-input" type="text" placeholder="tu.usuario@empresa.com" disabled aria-disabled="true" tabindex="-1">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+                        <input id="portal-user" class="portal-input" type="email" placeholder="tu@empresa.com" disabled aria-disabled="true" tabindex="-1">
                     </div>
                 </div>
 
@@ -479,7 +479,7 @@
             <div class="portal-divider">Información</div>
 
             <div class="portal-info">
-                Estamos desarrollando el <strong>portal privado para clientes</strong>: estado de cargas en tiempo real, facturas y histórico de envíos. Mientras tanto, contáctanos por los canales habituales.
+                Estamos desarrollando el <strong>portal privado para clientes</strong>: programación y estado de cargas e histórico de envíos. Mientras tanto, contáctanos por los canales habituales.
             </div>
 
             <a href="index.html" class="portal-back" onclick="goToHome(event)">
