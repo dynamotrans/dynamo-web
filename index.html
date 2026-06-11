@@ -783,6 +783,20 @@
         .svc-card:hover h3::after { width: 60px; transition: width 0.3s ease; }
         .svc-card p  { color:var(--gray-500); line-height:1.65; font-size:0.88rem; }
         .svc-tag { display:inline-block; margin-top:1rem; background:rgba(51,0,204,0.07); color:var(--purple); padding:0.25rem 0.75rem; border-radius:50px; font-size:0.7rem; font-weight:700; }
+        /* Badge "servicio no disponible aun" — amarillo de marca, llama la atencion sin alarmar */
+        .svc-tag.svc-tag-soon {
+            background: rgba(255,212,0,0.18);
+            color: #8a6b00;
+            border: 1px solid rgba(255,212,0,0.6);
+        }
+        /* Aviso bajo la calculadora cuando el servicio aun no esta contratable */
+        .alm-precio-pending {
+            margin-top: 0.8rem; padding: 0.7rem 0.9rem;
+            background: rgba(255,212,0,0.12);
+            border: 1px solid rgba(255,212,0,0.45);
+            border-radius: 10px;
+            font-size: 0.78rem; color: #6b5500; font-weight: 600; line-height: 1.45;
+        }
 
         .alm-precio { margin-top: 1.2rem; padding-top: 1.2rem; border-top: 1px dashed var(--gray-200); }
         .alm-precio-label { display: block; font-size: 0.7rem; font-weight: 800; color: var(--gray-500); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; }
@@ -819,17 +833,6 @@
         .alm-precio-row.total { margin-top: 0.4rem; padding-top: 0.6rem; border-top: 1.5px solid rgba(51,0,204,0.18); font-size: 0.95rem; font-weight: 800; color: var(--navy); }
         .alm-precio-row.total .alm-precio-line strong { font-size: 1.1rem; color: var(--green); }
         .alm-precio-note { font-size: 0.7rem; color: var(--gray-500); margin-top: 0.5rem; line-height: 1.5; }
-        .alm-precio-cta { display: flex; gap: 0.5rem; margin-top: 0.8rem; }
-        .alm-precio-cta a {
-            flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.4rem;
-            padding: 0.6rem 0.5rem; border-radius: 10px; font-size: 0.78rem; font-weight: 800;
-            text-decoration: none; transition: transform 0.15s, box-shadow 0.2s;
-            text-transform: uppercase; letter-spacing: 0.4px;
-        }
-        .alm-precio-cta a:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,0.12); }
-        .alm-precio-cta .alm-cta-email { background: var(--purple); color: white; }
-        .alm-precio-cta .alm-cta-wa { background: var(--green); color: white; }
-        .alm-precio-cta a svg { width: 14px; height: 14px; flex-shrink: 0; }
         .svc-card.svc-featured { border-color: rgba(51,0,204,0.25); box-shadow: 0 8px 30px rgba(51,0,204,0.12); }
         .svc-card.svc-featured::before { height: 4px; }
         .svc-card.svc-featured::after {
@@ -1675,7 +1678,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <div class="svc-card-body">
                     <h3>Almacenamiento corta estancia</h3>
                     <p>Almacenamiento de corta estancia (1 a 7 días) en cualquier provincia de España. Para entregas posteriores disponemos de camiones carrozados o de 2 ejes para zonas urbanas, o recogida por el cliente según prefiera.</p>
-                    <span class="svc-tag">Servicio integral</span>
+                    <span class="svc-tag svc-tag-soon">Servicio aún no disponible</span>
                     <div class="alm-precio">
                         <label class="alm-precio-label" for="alm-prov-select">Calcula tu precio</label>
                         <select id="alm-prov-select" class="alm-precio-select" onchange="updateAlmPrecio(this)" aria-label="Selecciona provincia">
@@ -1761,17 +1764,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                     <strong id="alm-total">240 € + IVA</strong>
                                 </div>
                             </div>
-                            <p class="alm-precio-note" id="alm-precio-note">Precio orientativo para 1 trailer completo (33 palets europeo máx.) y sin entrega — recogida por el cliente con su propio camión/trailer. Contrata abajo y nos coordinamos por los detalles.</p>
-                            <div class="alm-precio-cta">
-                                <a id="alm-cta-email" class="alm-cta-email" href="#" aria-label="Contratar por email">
-                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-                                    Email
-                                </a>
-                                <a id="alm-cta-wa" class="alm-cta-wa" target="_blank" rel="noopener" href="#" aria-label="Contratar por WhatsApp">
-                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                                    WhatsApp
-                                </a>
-                            </div>
+                            <p class="alm-precio-note" id="alm-precio-note">Precio orientativo para 1 trailer completo (33 palets europeo máx.) y sin entrega — recogida por el cliente con su propio camión/trailer.</p>
+                            <p class="alm-precio-pending">Este servicio aún no está disponible para contratar online. Estamos terminando los últimos detalles operativos antes de abrirlo.</p>
                         </div>
                     </div>
                 </div>
@@ -2982,8 +2976,8 @@ function updateAlmTotal() {
         '*3. ¿Fecha estimada de llegada al almacén?*\n—\n\n' +
         '*4. ' + destLineLabel + ':*\n—\n\n' +
         'Comentarios:\n—\n';
-    document.getElementById('alm-cta-email').href = 'mailto:info@dynamotrans.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(bodyEmail);
-    document.getElementById('alm-cta-wa').href = 'https://wa.me/34628995709?text=' + encodeURIComponent(bodyWa);
+    // Los CTAs (email/WA) se quitaron del DOM: el servicio aun no esta disponible para contratar.
+    // El calculo sigue funcionando para que el cliente vea el precio orientativo.
 }
 function toggleHeroCotizar(btn) {
     var wrap = btn.parentElement;
