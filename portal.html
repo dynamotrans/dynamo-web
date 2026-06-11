@@ -141,18 +141,27 @@
             .portal-arrival-text { font-size: 0.7rem; letter-spacing: 2px; }
         }
 
-        /* Exit transition: same wormhole effect going back to index.html */
+        /* Exit transition: cortina plana + wormhole con clip-path (mismo patron que index)
+           Capa cortina cubre el lado opuesto al click rapido, el wormhole hace el efecto */
         .portal-transition {
             position: fixed; inset: 0; z-index: 999999; pointer-events: none;
             --cx: 50%; --cy: 50%;
+            background: var(--navy);
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            will-change: opacity;
+        }
+        .portal-transition.active { opacity: 1; pointer-events: auto; }
+        .portal-warp {
+            position: absolute; inset: 0; overflow: hidden;
             background:
                 radial-gradient(circle at var(--cx) var(--cy),
                     #6b3dff 0%, var(--purple) 22%, var(--purple-nav) 55%, var(--navy) 100%);
             clip-path: circle(0% at var(--cx) var(--cy));
-            transition: clip-path 0.75s cubic-bezier(0.7, 0, 0.25, 1);
-            overflow: hidden;
+            transition: clip-path 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: clip-path;
         }
-        .portal-transition.active { clip-path: circle(160% at var(--cx) var(--cy)); pointer-events: auto; }
+        .portal-transition.active .portal-warp { clip-path: circle(180% at var(--cx) var(--cy)); }
         .portal-stars {
             position: absolute; inset: 0; opacity: 0;
             will-change: transform, opacity;
@@ -227,8 +236,8 @@
                 0%   { opacity: 1; }
                 100% { opacity: 0; }
             }
-            .portal-transition { transition: opacity 0.2s ease; clip-path: none; opacity: 0; }
-            .portal-transition.active { opacity: 1; }
+            .portal-warp { transition: none; clip-path: none; }
+            .portal-transition.active .portal-warp { clip-path: none; }
             .portal-transition.active .portal-ring1,
             .portal-transition.active .portal-ring2,
             .portal-transition.active .portal-ring3 { animation: none; opacity: 0; }
@@ -398,16 +407,18 @@
 <body>
     <!-- EXIT TRANSITION OVERLAY (back to index) -->
     <div class="portal-transition" id="portalExit" aria-hidden="true">
-        <div class="portal-stars"></div>
-        <div class="portal-ring portal-ring1"></div>
-        <div class="portal-ring portal-ring2"></div>
-        <div class="portal-ring portal-ring3"></div>
-        <div class="portal-exit-core">
-            <div class="portal-arrival-lock">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <div class="portal-warp">
+            <div class="portal-stars"></div>
+            <div class="portal-ring portal-ring1"></div>
+            <div class="portal-ring portal-ring2"></div>
+            <div class="portal-ring portal-ring3"></div>
+            <div class="portal-exit-core">
+                <div class="portal-arrival-lock">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <div class="portal-arrival-text">Inicio</div>
+                <div class="portal-exit-loader"></div>
             </div>
-            <div class="portal-arrival-text">Inicio</div>
-            <div class="portal-exit-loader"></div>
         </div>
     </div>
     <!-- LANGUAGE SELECTOR -->
@@ -529,7 +540,6 @@
             } catch (e) {}
             var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             var delay = reduce ? 250 : 850;
-            overlay.style.willChange = 'clip-path';
             // Doble rAF: deja que el navegador pinte/promocione la capa antes de animarla
             requestAnimationFrame(function () {
                 requestAnimationFrame(function () {
@@ -544,7 +554,7 @@
                 document.documentElement.classList.remove('from-transition');
             }
             var exitOverlay = document.getElementById('portalExit');
-            if (exitOverlay) { exitOverlay.classList.remove('active'); exitOverlay.style.willChange = ''; }
+            if (exitOverlay) exitOverlay.classList.remove('active');
             try {
                 sessionStorage.removeItem('portalTransition');
                 sessionStorage.removeItem('portalTransitionCenter');
