@@ -550,16 +550,18 @@
                         linear-gradient(135deg, #0a0230 0%, #1a008a 30%, #3300cc 60%, #0a0230 100%);
             animation: heroZoom 18s ease-in-out infinite alternate;
         }
-        /* Vídeo de fondo (se reproduce una vez); al terminar se desvanece */
+        /* Vídeo de fondo. Dos videos webm que se reproducen en secuencia con
+           crossfade suave: hero-1 -> hero-2 -> degradado (.hero-gradient) */
         .hero-video {
             position: absolute; inset: 0;
             width: 100%; height: 100%;
             object-fit: cover;
             z-index: 0;
-            opacity: 1;
-            transition: opacity 2.4s ease-in-out;
+            transition: opacity 1.2s ease-in-out;
             animation: heroZoom 18s ease-in-out infinite alternate;
         }
+        .hero-video-2 { opacity: 0; }
+        .hero-video-2.active { opacity: 1; }
         .hero-video.ended { opacity: 0; }
         /* Velo oscuro sobre el vídeo para legibilidad del texto */
         .hero-overlay {
@@ -737,6 +739,8 @@
             display: flex; gap: 0.6rem;
             animation: fadeUp 0.4s ease both;
         }
+        /* Atributo hidden gana sobre display:flex (gana el mas especifico) */
+        .tar-cta-options[hidden] { display: none; }
         .tar-cta-btn {
             flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
             padding: 0.85rem; border-radius: 12px;
@@ -1580,8 +1584,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- HERO -->
 <section class="hero" id="inicio">
     <div class="hero-gradient"></div>
-    <video class="hero-video" id="heroVideo" autoplay muted playsinline preload="metadata" poster="/images/hero-camiones-dynamo.jpg">
+    <video class="hero-video" id="heroVideo1" autoplay muted playsinline preload="auto" poster="/images/hero-camiones-dynamo.jpg">
+        <source src="/images/hero-1.webm" type="video/webm">
+        <!-- Fallback navegadores sin soporte webm -->
         <source src="/images/mp_dynamo.mp4" type="video/mp4">
+    </video>
+    <video class="hero-video hero-video-2" id="heroVideo2" muted playsinline preload="none">
+        <source src="/images/hero-2.webm" type="video/webm">
     </video>
     <div class="hero-overlay"></div>
     <div class="hero-road"></div>
@@ -2623,9 +2632,11 @@ function openLegal(tab) {
             sessionStorage.setItem('portalTransitionCenter',
                 (cx / window.innerWidth * 100).toFixed(1) + '% ' + (cy / window.innerHeight * 100).toFixed(1) + '%');
         } catch (e) {}
-        // Pausar el video del hero: que no decodifique frames debajo del overlay
-        var hv = document.getElementById('heroVideo');
-        if (hv && !hv.paused) { try { hv.pause(); } catch (e) {} }
+        // Pausar los videos del hero: que no decodifiquen frames debajo del overlay
+        ['heroVideo1','heroVideo2'].forEach(function(id){
+            var hv = document.getElementById(id);
+            if (hv && !hv.paused) { try { hv.pause(); } catch (e) {} }
+        });
         var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         var delay = reduce ? 250 : 850;
         // Doble rAF: deja que el navegador pinte/promocione la capa antes de animarla
@@ -2641,9 +2652,11 @@ function openLegal(tab) {
         var overlay = document.getElementById('portalTransition');
         if (overlay) overlay.classList.remove('active');
         if (e.persisted) document.documentElement.classList.remove('from-transition');
-        // Reanudar el video del hero si lo pausamos al lanzar la transicion
-        var hv = document.getElementById('heroVideo');
-        if (hv && hv.paused && !hv.ended && !hv.classList.contains('ended')) { try { hv.play(); } catch (err) {} }
+        // Reanudar el video activo del hero si lo pausamos al lanzar la transicion
+        ['heroVideo1','heroVideo2'].forEach(function(id){
+            var hv = document.getElementById(id);
+            if (hv && hv.paused && !hv.ended && !hv.classList.contains('ended')) { try { hv.play(); } catch (err) {} }
+        });
         try {
             sessionStorage.removeItem('portalTransition');
             sessionStorage.removeItem('portalTransitionCenter');
@@ -2654,21 +2667,50 @@ function openLegal(tab) {
 
     // Hero: el vídeo se reproduce una vez y al terminar se desvanece
     // hacia el degradado de marca (que tiene su propio zoom suave).
-    // Para evitar el "tirón" del último frame congelado, arrancamos el fade
-    // 1.5s ANTES de que termine el vídeo (mientras aún se reproduce).
+    // Secuencia hero: video1 (webm hero-1) -> crossfade a video2 (webm hero-2) ->
+    //                  fade al degradado de marca al terminar el segundo.
+    // El crossfade arranca 1s antes de que cada video termine para que no haya tiron
+    // con el ultimo frame congelado. Solo se descarga el segundo cuando empezamos
+    // su crossfade (preload="none") -> ahorra ~2,7 MB en la primera pintada.
     (function() {
-        var v = document.getElementById('heroVideo');
-        if (!v) return;
-        var FADE_LEAD = 1.5; // segundos antes del final
-        function startFade() {
-            if (!v.classList.contains('ended')) v.classList.add('ended');
+        var v1 = document.getElementById('heroVideo1');
+        var v2 = document.getElementById('heroVideo2');
+        if (!v1) return;
+        var FADE_LEAD = 1.0;
+        var handover = false;
+        function startHandover() {
+            if (handover) return;
+            handover = true;
+            if (v2) {
+                try { v2.load(); } catch (e) {}
+                var tryPlay = function () { var p = v2.play(); if (p && p.catch) p.catch(function(){}); };
+                if (v2.readyState >= 2) tryPlay();
+                else v2.addEventListener('canplay', tryPlay, { once: true });
+                v2.classList.add('active');
+            }
+            v1.classList.add('ended');
         }
-        v.addEventListener('timeupdate', function() {
-            if (v.duration && isFinite(v.duration) && v.currentTime >= v.duration - FADE_LEAD) {
-                startFade();
+        v1.addEventListener('timeupdate', function() {
+            if (v1.duration && isFinite(v1.duration) && v1.currentTime >= v1.duration - FADE_LEAD) {
+                startHandover();
             }
         });
-        v.addEventListener('ended', startFade); // fallback por si timeupdate no llega a tiempo
+        v1.addEventListener('ended', startHandover);
+
+        if (v2) {
+            var endHandover = false;
+            function endVideos() {
+                if (endHandover) return;
+                endHandover = true;
+                v2.classList.add('ended');
+            }
+            v2.addEventListener('timeupdate', function() {
+                if (v2.duration && isFinite(v2.duration) && v2.currentTime >= v2.duration - FADE_LEAD) {
+                    endVideos();
+                }
+            });
+            v2.addEventListener('ended', endVideos);
+        }
     })();
 
     // Back to top button
