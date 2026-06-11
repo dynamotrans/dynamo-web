@@ -12,6 +12,18 @@
       ]
     }
   ],
+  "redirects": [
+    {
+      "source": "/:lang(es|en|pt|fr|de|it|nl|pl|ro|uk|ar|zh-CN|zh|zh-TW|ja|ko|tr|el|cs|sv|no|da|fi)/:path*",
+      "destination": "/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:lang(es|en|pt|fr|de|it|nl|pl|ro|uk|ar|zh-CN|zh|zh-TW|ja|ko|tr|el|cs|sv|no|da|fi)",
+      "destination": "/",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
