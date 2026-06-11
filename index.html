@@ -472,21 +472,22 @@
         ========================================= */
         .hero {
             position: relative;
-            /* Ocupa el viewport dejando asomar abajo la services-strip + cachito del
-               carrousel de logos. 240px = nav + banner + services-strip + ~70px del
-               carrousel (etiqueta + media fila de logos). svh evita los saltos por
-               la barra de URL en iOS Safari */
-            min-height: calc(100vh - 240px);
-            min-height: calc(100svh - 240px);
+            /* Carrousel ANCLADO AL PIE del viewport en el primer paint, no recortado.
+               Sumas a restar de 100svh:
+                 desktop: nav (70) + banner (35) + services-strip (50) + carrousel completo (~165) = 320
+                 movil:   nav (58) + banner (32) + services-strip (40) + carrousel completo (~155) = 285
+               svh evita los saltos por la barra de URL en iOS Safari */
+            min-height: calc(100vh - 320px);
+            min-height: calc(100svh - 320px);
             display: flex; align-items: center; justify-content: center; overflow: hidden;
-            padding: 3rem 0 2.5rem;
+            padding: 2.5rem 0 2rem;
             background: linear-gradient(135deg, #0a0230 0%, #1a008a 30%, #3300cc 60%, #0a0230 100%);
         }
         @media (max-width: 600px) {
             .hero {
-                min-height: calc(100vh - 200px);
-                min-height: calc(100svh - 200px);
-                padding: 1.5rem 0 1rem;
+                min-height: calc(100vh - 285px);
+                min-height: calc(100svh - 285px);
+                padding: 1.2rem 0 0.8rem;
             }
         }
         /* Degradado de marca con zoom suave: estado final tras el vídeo (y fallback) */
