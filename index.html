@@ -476,18 +476,18 @@
                Sumas a restar de 100svh:
                  desktop: nav (70) + banner (35) + services-strip (50) + carrousel completo (~165) = 320
                  movil:   nav (58) + banner (32) + services-strip (40) + carrousel completo (~155) = 285
-               svh evita los saltos por la barra de URL en iOS Safari */
+               svh evita los saltos por la barra de URL en iOS Safari.
+               align-items:flex-end -> el .hero-content cae pegado al borde inferior */
             min-height: calc(100vh - 320px);
             min-height: calc(100svh - 320px);
-            display: flex; align-items: center; justify-content: center; overflow: hidden;
-            padding: 2.5rem 0 2rem;
+            display: flex; align-items: flex-end; justify-content: center; overflow: hidden;
+            padding: 0;
             background: linear-gradient(135deg, #0a0230 0%, #1a008a 30%, #3300cc 60%, #0a0230 100%);
         }
         @media (max-width: 600px) {
             .hero {
                 min-height: calc(100vh - 285px);
                 min-height: calc(100svh - 285px);
-                padding: 1.2rem 0 0.8rem;
             }
         }
         /* Degradado de marca con zoom suave: estado final tras el vídeo (y fallback) */
@@ -513,20 +513,10 @@
             position: absolute; inset: 0; z-index: 1;
             background: linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.85) 100%);
         }
-        /* Líneas de carretera animadas como fallback visual */
+        /* La línea vertical animada de "carretera" se ha retirado (se veia rara
+           con el video real de fondo). Mantenemos el ::after con la luz calida. */
         .hero-road {
             position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none;
-        }
-        .hero-road::before {
-            content: '';
-            position: absolute; left: 50%; top: -100%;
-            width: 6px; height: 300%;
-            background: repeating-linear-gradient(
-                to bottom,
-                rgba(255,255,255,0.15) 0px, rgba(255,255,255,0.15) 60px,
-                transparent 60px, transparent 120px
-            );
-            animation: roadLines 3s linear infinite;
         }
         .hero-road::after {
             content: '';
@@ -535,7 +525,6 @@
                 radial-gradient(ellipse at 20% 70%, rgba(255,180,0,0.12) 0%, transparent 50%),
                 radial-gradient(ellipse at 80% 70%, rgba(255,100,0,0.08) 0%, transparent 50%);
         }
-        @keyframes roadLines { from { transform: translateY(0); } to { transform: translateY(120px); } }
         @keyframes heroZoom { from { transform: scale(1); } to { transform: scale(1.07); } }
         @media (prefers-reduced-motion: reduce) {
             .hero-gradient, .hero-video { animation: none; }
@@ -543,8 +532,13 @@
 
         .hero-content {
             position: relative; z-index: 3; text-align: center;
-            color: white; padding: 1rem 2rem; max-width: 900px;
+            color: white;
+            /* Pegado al pie del video, con respiro lateral y vertical minimo */
+            padding: 0 2rem 1.4rem; max-width: 900px; width: 100%;
             display: flex; flex-direction: column; align-items: center;
+        }
+        @media (max-width: 600px) {
+            .hero-content { padding: 0 1rem 1rem; }
         }
         .hero-logo-wrap {
             display: inline-block;
@@ -570,7 +564,8 @@
         }
         .hero-sub strong { color: white; font-weight: 800; }
         .hero-cta-wrap {
-            display: flex; flex-direction: column; align-items: center; gap: 1rem;
+            display: flex; flex-direction: column; align-items: stretch; gap: 1rem;
+            width: 100%; max-width: 360px;
             animation: fadeUp 0.9s ease 0.4s both;
         }
         .hero-cotizar-btn {
@@ -579,8 +574,13 @@
             border: none; cursor: pointer; letter-spacing: 1px;
             box-shadow: 0 6px 28px rgba(34,165,90,0.45);
             transition: transform 0.25s, box-shadow 0.25s, background 0.2s;
+            width: 100%;
         }
         .hero-cotizar-btn:hover { transform: translateY(-3px); background: #1c8d4c; box-shadow: 0 8px 32px rgba(34,165,90,0.6); }
+        @media (max-width: 600px) {
+            .hero-cta-wrap { max-width: none; }
+            .hero-cotizar-btn { padding: 1rem 1.5rem; font-size: 1.02rem; }
+        }
         .hero-cta-wrap.open .hero-cotizar-btn { display: none; }
         .hero-btns {
             display: none; gap: 1rem; justify-content: center; flex-wrap: wrap;
