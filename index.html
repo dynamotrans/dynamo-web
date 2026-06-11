@@ -531,16 +531,16 @@
         }
 
         .hero-content {
-            position: relative; z-index: 3; text-align: center;
+            /* Anclado AL PIE del hero por position absolute (mas robusto que
+               depender de flex-end / margin-top:auto en iOS Safari) */
+            position: absolute; left: 0; right: 0; bottom: 0;
+            z-index: 3; text-align: center;
             color: white;
-            /* margin-top:auto fuerza el pegado al pie del hero (mas robusto que
-               depender solo de align-items:flex-end del padre) */
-            margin-top: auto;
-            padding: 0 2rem 1.2rem; max-width: 900px; width: 100%;
+            padding: 0 2rem calc(1.2rem + env(safe-area-inset-bottom, 0px));
             display: flex; flex-direction: column; align-items: center;
         }
         @media (max-width: 600px) {
-            .hero-content { padding: 0 1rem 1rem; }
+            .hero-content { padding: 0 1rem calc(0.8rem + env(safe-area-inset-bottom, 0px)); }
         }
         .hero-logo-wrap {
             display: inline-block;
