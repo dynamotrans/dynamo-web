@@ -688,11 +688,6 @@
             display: flex; align-items: baseline; gap: 0.4rem; flex-wrap: wrap;
         }
         .tar-field > label strong { color: var(--navy); font-weight: 900; }
-        .tar-conv {
-            margin-left: auto; font-size: 0.74rem; font-weight: 600;
-            color: var(--gray-500);
-        }
-        .tar-conv strong { color: var(--purple); font-weight: 900; }
         .tar-input-wrap {
             position: relative; display: flex; align-items: center;
             background: white; border: 1.5px solid var(--gray-200);
@@ -756,7 +751,6 @@
             .tar-grid { gap: 0.55rem 0.6rem; }
             .tar-loc { grid-column: 1 / -1; }
             .tar-field > label { font-size: 0.68rem; }
-            .tar-conv { font-size: 0.66rem; margin-left: auto; }
             .tar-input-wrap input { font-size: 16px; padding: 0.45rem 0.6rem 0.45rem 0; /* 16px evita zoom iOS */ }
             .tar-input-wrap svg { width: 15px; height: 15px; margin: 0 0.4rem 0 0.6rem; }
             .tar-select, .tar-date { font-size: 16px; padding: 0.45rem 0.55rem; }
@@ -1609,27 +1603,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 </div>
 
                 <div class="tar-field">
-                    <label for="tar-ml">
-                        Metros lineales
-                        <span class="tar-conv">≈ <strong id="tar-eur-val">5</strong> euro · <strong id="tar-amr-val">4</strong> amer.</span>
-                    </label>
                     <select id="tar-ml" class="tar-select" aria-label="Cantidad en metros lineales"></select>
                 </div>
                 <div class="tar-field">
-                    <label for="tar-peso">Peso</label>
                     <select id="tar-peso" class="tar-select" aria-label="Peso en toneladas"></select>
                 </div>
 
                 <div class="tar-field">
-                    <label for="tar-camion">Tipo de camión</label>
-                    <select id="tar-camion" class="tar-select">
+                    <select id="tar-camion" class="tar-select" aria-label="Tipo de camion">
                         <option value="tauliner" data-full="Trailer Tauliner (13,60 m · 33 europalets · 24 Tn)">Trailer Tauliner · 13,60 m</option>
                         <option value="rigido" data-full="Rígido con plataforma y transpaleta (8 m · 20 europalets · 14 Tn)">Rígido plataforma · 8 m</option>
                     </select>
                 </div>
                 <div class="tar-field">
-                    <label for="tar-merca">Tipo de mercancía</label>
-                    <select id="tar-merca" class="tar-select">
+                    <select id="tar-merca" class="tar-select" aria-label="Tipo de mercancia">
                         <option>Paletizado mercancía general — almacén a almacén (por lateral)</option>
                         <option>Por lateral — mercancía no paletizada (maquinaria, perfiles, etc.)</option>
                         <option>Por techo — mercancía no paletizada (maquinaria, perfiles, etc.)</option>
@@ -1652,9 +1639,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     </select>
                 </div>
                 <div class="tar-field" id="tar-fecha-field" hidden>
-                    <label for="tar-dia">Día de carga</label>
+                    <label for="tar-dia">Día de carga (L-V)</label>
                     <select id="tar-dia" class="tar-select"></select>
-                    <input type="date" id="tar-fecha" class="tar-date" hidden style="margin-top:0.35rem;">
+                    <input type="date" id="tar-fecha" class="tar-date" hidden>
                 </div>
             </div>
 
@@ -3226,17 +3213,14 @@ document.addEventListener('click', function(e){
 (function () {
     var ml = document.getElementById('tar-ml');
     var peso = document.getElementById('tar-peso');
-    var eurVal = document.getElementById('tar-eur-val');
-    var amrVal = document.getElementById('tar-amr-val');
     if (!ml) return;
 
     var EUR_POR_ML = 2.5;
     var AMR_POR_ML = 2;
     var fmt = function (n, d) { return n.toFixed(d || 1).replace('.', ','); };
 
-    // Poblar select metros lineales segun el tipo de camion elegido
-    // Tauliner (trailer): 1..10 + 13,2 (trailer completo)
-    // Rigido: 1..8 (rigido completo a 8 m)
+    // Poblar select metros lineales segun el tipo de camion elegido. Por defecto
+    // siempre selecciona el ULTIMO (camion completo): Tauliner 13,2 ml / Rigido 8 ml
     var camionSel = document.getElementById('tar-camion');
     var ML_OPTS = {
         tauliner: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13.2],
@@ -3252,58 +3236,99 @@ document.addEventListener('click', function(e){
             var label = fmt(v, v % 1 === 0 ? 0 : 1) + ' ml · ' + eur + ' euro / ' + amr + ' amer.' + (isFull ? ' · COMPLETO' : '');
             return '<option value="' + v + '">' + label + '</option>';
         }).join('');
-        // Mantener seleccion previa si sigue existiendo, si no escoger 2 ml
+        // Mantener seleccion previa si sigue existiendo, si no, camion COMPLETO (ultimo)
         var match = opts.indexOf(prev);
-        ml.value = match >= 0 ? prev : 2;
-        updateMl();
+        ml.value = match >= 0 ? prev : opts[opts.length - 1];
     }
     camionSel.addEventListener('change', rebuildMl);
     rebuildMl();
 
-    // Poblar select peso: 1 a 24 Tn enteros + 24,5
+    // Poblar select peso: 1 a 24 Tn enteros + 24,5 (defecto 24,5 -> carga maxima)
     var pesoOpts = [];
     for (var t = 1; t <= 24; t++) pesoOpts.push(t);
     pesoOpts.push(24.5);
     peso.innerHTML = pesoOpts.map(function (t) {
-        return '<option value="' + t + '"' + (t === 2 ? ' selected' : '') + '>' + fmt(t, t === 24.5 ? 1 : 0) + ' Tn</option>';
+        return '<option value="' + t + '"' + (t === 24.5 ? ' selected' : '') + '>' + fmt(t, t === 24.5 ? 1 : 0) + ' Tn</option>';
     }).join('');
 
-    function updateMl() {
-        var v = parseFloat(ml.value);
-        eurVal.textContent = Math.floor(v * EUR_POR_ML);
-        amrVal.textContent = Math.floor(v * AMR_POR_ML);
-    }
-    ml.addEventListener('change', updateMl);
-    updateMl();
-
-    // Fecha de carga: "Dia concreto" despliega lista de proximos 7 dias + opcion calendario
+    // Fecha de carga: "Dia concreto" despliega lista de proximos 7 LABORABLES
+    // (saltando sabados y domingos). "Otro dia" abre directamente el calendario
+    // limitado a 3 meses, rechazando fines de semana.
     var urgSel = document.getElementById('tar-urgencia');
     var fechaField = document.getElementById('tar-fecha-field');
     var diaSel = document.getElementById('tar-dia');
     var fechaInput = document.getElementById('tar-fecha');
 
+    function toIso(d) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function isWeekend(d) { return d.getDay() === 0 || d.getDay() === 6; }
+    function nextWeekday(d) {
+        var nd = new Date(d.getTime());
+        while (isWeekend(nd)) nd.setDate(nd.getDate() + 1);
+        return nd;
+    }
+
     function buildDias() {
         var hoy = new Date();
         var opts = [];
-        for (var i = 0; i < 7; i++) {
-            var d = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + i);
-            var txt = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-            var prefix = i === 0 ? 'Hoy · ' : (i === 1 ? 'Mañana · ' : '');
-            var iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-            opts.push('<option value="' + iso + '">' + prefix + txt + '</option>');
+        var cursor = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+        var added = 0;
+        var todayIso = toIso(hoy);
+        var tomorrowIso = toIso(new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1));
+        while (added < 7) {
+            if (!isWeekend(cursor)) {
+                var iso = toIso(cursor);
+                var txt = cursor.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                var prefix = iso === todayIso ? 'Hoy · ' : (iso === tomorrowIso ? 'Mañana · ' : '');
+                opts.push('<option value="' + iso + '">' + prefix + txt + '</option>');
+                added++;
+            }
+            cursor.setDate(cursor.getDate() + 1);
         }
         opts.push('<option value="otro">Otro día… (abrir calendario)</option>');
         diaSel.innerHTML = opts.join('');
     }
     buildDias();
 
+    // Limitar el date picker a hoy .. hoy+3 meses
+    (function setupFechaRange() {
+        var hoy = new Date();
+        var max = new Date(hoy.getFullYear(), hoy.getMonth() + 3, hoy.getDate());
+        fechaInput.min = toIso(hoy);
+        fechaInput.max = toIso(max);
+    })();
+
     urgSel.addEventListener('change', function () {
         fechaField.hidden = urgSel.value !== 'dia';
         if (urgSel.value !== 'dia') { fechaInput.hidden = true; }
     });
     diaSel.addEventListener('change', function () {
-        fechaInput.hidden = diaSel.value !== 'otro';
-        if (diaSel.value === 'otro') fechaInput.focus();
+        if (diaSel.value === 'otro') {
+            // No mostramos el input, abrimos el calendario nativo directamente
+            fechaInput.hidden = true;
+            try {
+                if (typeof fechaInput.showPicker === 'function') {
+                    fechaInput.showPicker();
+                } else {
+                    // Fallback navegadores antiguos: mostrar el input para clic manual
+                    fechaInput.hidden = false;
+                    fechaInput.focus();
+                }
+            } catch (e) {
+                fechaInput.hidden = false;
+                fechaInput.focus();
+            }
+        }
+    });
+    // Si el usuario elige un fin de semana en el calendario, lo movemos al lunes
+    fechaInput.addEventListener('change', function () {
+        if (!fechaInput.value) return;
+        var d = new Date(fechaInput.value + 'T00:00:00');
+        if (isWeekend(d)) {
+            var fixed = nextWeekday(d);
+            fechaInput.value = toIso(fixed);
+        }
     });
 
     // Autocomplete con Nominatim (OpenStreetMap) — gratis, sin API key
