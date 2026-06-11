@@ -200,49 +200,104 @@
         }
         .top-bar span { color: var(--green); font-weight: 700; }
         .top-bar span.tb-stars { color: var(--yellow); }
-        /* Spinner circular de cuenta atras 5s — solo visual, conic-gradient va por GPU */
+        /* Spinner circular de cuenta atras 5s.
+           @property registra --tb-progress como angulo animable -> CSS puede
+           interpolar entre 360deg y 0deg sin recrear el conic-gradient cada frame.
+           Empieza lleno (verde 360 = circulo entero) y se VACIA hasta 0 en 5s */
+        @property --tb-progress {
+            syntax: '<angle>';
+            initial-value: 360deg;
+            inherits: false;
+        }
         .tb-spin {
-            width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
-            background: conic-gradient(rgba(255,255,255,0.18) 0deg, rgba(255,255,255,0.18) 360deg);
-            position: relative; opacity: 0.85;
-            animation: tbSpin 5s linear forwards;
+            width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+            --tb-progress: 360deg;
+            background:
+                conic-gradient(
+                    var(--green) 0deg var(--tb-progress),
+                    rgba(255,255,255,0.18) var(--tb-progress) 360deg
+                );
+            position: relative;
+            animation: tbDrain 5s linear forwards;
         }
         .tb-spin::before {
             content: ''; position: absolute; inset: 3px; border-radius: 50%;
             background: var(--navy);
         }
-        @keyframes tbSpin {
-            0%   { background: conic-gradient(var(--green) 0deg, rgba(255,255,255,0.18) 0deg); }
-            100% { background: conic-gradient(var(--green) 360deg, rgba(255,255,255,0.18) 360deg); }
+        @keyframes tbDrain {
+            from { --tb-progress: 360deg; }
+            to   { --tb-progress: 0deg; }
         }
         @media (max-width: 600px) {
             .top-bar { padding: 0.45rem 1rem; font-size: 0.74rem; gap: 0.55rem; }
-            .tb-spin { width: 12px; height: 12px; }
+            .tb-spin { width: 14px; height: 14px; }
+            .tb-spin::before { inset: 2.5px; }
         }
         @media (prefers-reduced-motion: reduce) {
-            .tb-spin { animation: none; }
+            .tb-spin { animation: none; --tb-progress: 0deg; }
         }
 
-        /* Banda anclada al borde superior del hero — entrada suave fade + slide */
+        /* Banda anclada al borde superior del hero — neon morado/verde llamativo.
+           3 animaciones encadenadas: entrada slide+fade, shimmer del degradado
+           (luz que viaja de izq a der) y glow pulsante del box-shadow */
         .hero-banner {
             position: relative; z-index: 2;
-            background: linear-gradient(90deg, var(--purple) 0%, var(--purple-light) 55%, var(--green) 100%);
+            background: linear-gradient(90deg,
+                #2a008f 0%,
+                var(--purple) 18%,
+                var(--purple-light) 38%,
+                #6b3dff 50%,
+                #2eb368 65%,
+                var(--green) 82%,
+                var(--purple) 100%);
+            background-size: 220% 100%;
             color: white; text-align: center;
-            padding: 0.6rem 1.2rem; font-size: 0.92rem; font-weight: 700;
-            letter-spacing: 0.3px; line-height: 1.3;
-            box-shadow: 0 6px 18px rgba(10,2,48,0.18);
+            padding: 0.6rem 1.2rem; font-size: 0.92rem; font-weight: 800;
+            letter-spacing: 0.4px; line-height: 1.3;
+            text-shadow:
+                0 0 6px rgba(255,255,255,0.85),
+                0 0 14px rgba(255,255,255,0.45),
+                0 0 22px rgba(255,255,255,0.25);
+            box-shadow:
+                0 0 22px rgba(107,61,255,0.55),
+                0 0 44px rgba(34,165,90,0.28),
+                0 6px 18px rgba(10,2,48,0.18);
             opacity: 0; transform: translateY(-10px);
-            animation: heroBannerIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards;
+            animation:
+                heroBannerIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards,
+                bannerShimmer 4.5s linear infinite 1s,
+                bannerNeonPulse 2.8s ease-in-out infinite 1.2s;
         }
         @keyframes heroBannerIn {
             0%   { opacity: 0; transform: translateY(-10px); }
             100% { opacity: 1; transform: translateY(0); }
         }
+        @keyframes bannerShimmer {
+            0%   { background-position: 0% 50%; }
+            100% { background-position: 220% 50%; }
+        }
+        @keyframes bannerNeonPulse {
+            0%, 100% {
+                box-shadow:
+                    0 0 22px rgba(107,61,255,0.55),
+                    0 0 44px rgba(34,165,90,0.28),
+                    0 6px 18px rgba(10,2,48,0.18);
+            }
+            50% {
+                box-shadow:
+                    0 0 30px rgba(34,165,90,0.55),
+                    0 0 52px rgba(107,61,255,0.32),
+                    0 6px 18px rgba(10,2,48,0.18);
+            }
+        }
         @media (max-width: 600px) {
             .hero-banner { padding: 0.55rem 1rem; font-size: 0.82rem; }
         }
         @media (prefers-reduced-motion: reduce) {
-            .hero-banner { animation: none; opacity: 1; transform: none; }
+            .hero-banner {
+                animation: none; opacity: 1; transform: none;
+                background-position: 0% 50%;
+            }
         }
 
         /* =========================================
