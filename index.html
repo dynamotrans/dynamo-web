@@ -583,6 +583,174 @@
             transition: all 0.3s; box-shadow: 0 4px 20px rgba(51,0,204,0.45);
         }
         .btn-email:hover { background: var(--purple-light); transform: translateY(-3px); }
+        /* =========================================
+           TARIFADOR (en el hero)
+        ========================================= */
+        .tarifador {
+            width: 100%; max-width: 720px; margin: 0 auto 1.6rem;
+            background: rgba(255,255,255,0.97);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            border-radius: 22px;
+            box-shadow: 0 30px 80px rgba(10,2,48,0.45), 0 12px 30px rgba(10,2,48,0.25);
+            border: 1px solid rgba(255,255,255,0.5);
+            padding: 1.6rem 1.6rem 1.4rem;
+            color: var(--navy); text-align: left;
+            opacity: 0; transform: translateY(18px) scale(0.97);
+            animation: tarIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.35s forwards;
+            position: relative;
+        }
+        .tarifador::before {
+            content: ''; position: absolute; left: 0; right: 0; top: 0; height: 5px;
+            background: linear-gradient(90deg, var(--purple), var(--purple-light), var(--green));
+            border-radius: 22px 22px 0 0;
+        }
+        @keyframes tarIn {
+            0%   { opacity: 0; transform: translateY(18px) scale(0.97); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .tar-head { text-align: center; margin-bottom: 1.3rem; }
+        .tar-eyebrow {
+            display: inline-block; font-size: 0.7rem; font-weight: 800;
+            letter-spacing: 2.5px; text-transform: uppercase;
+            color: var(--purple); padding: 0.3rem 0.8rem;
+            background: rgba(51,0,204,0.08); border-radius: 99px;
+        }
+        .tar-title {
+            font-size: 1.55rem; font-weight: 900; letter-spacing: -0.5px;
+            color: var(--navy); margin: 0.55rem 0 0.2rem;
+        }
+        .tar-sub { font-size: 0.86rem; color: var(--gray-500); margin: 0; }
+        .tar-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem 0.9rem;
+        }
+        .tar-field { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; }
+        .tar-full { grid-column: 1 / -1; }
+        .tar-field > label {
+            font-size: 0.78rem; font-weight: 700; color: var(--gray-700);
+            display: flex; align-items: baseline; gap: 0.4rem; flex-wrap: wrap;
+        }
+        .tar-field > label strong { color: var(--navy); font-weight: 900; }
+        .tar-conv {
+            margin-left: auto; font-size: 0.74rem; font-weight: 600;
+            color: var(--gray-500);
+        }
+        .tar-conv strong { color: var(--purple); font-weight: 900; }
+        .tar-input-wrap {
+            position: relative; display: flex; align-items: center;
+            background: white; border: 1.5px solid var(--gray-200);
+            border-radius: 12px; transition: all 0.2s;
+        }
+        .tar-input-wrap:focus-within {
+            border-color: var(--purple);
+            box-shadow: 0 0 0 4px rgba(51,0,204,0.10);
+        }
+        .tar-input-wrap svg {
+            width: 18px; height: 18px; color: var(--purple);
+            margin: 0 0.5rem 0 0.75rem; flex-shrink: 0;
+        }
+        .tar-input-wrap input {
+            flex: 1; min-width: 0; border: none; outline: none; background: transparent;
+            padding: 0.7rem 0.75rem 0.7rem 0;
+            font-size: 0.92rem; color: var(--navy); font-family: inherit;
+        }
+        .tar-sug {
+            position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+            background: white; border: 1px solid var(--gray-200); border-radius: 12px;
+            box-shadow: 0 18px 40px rgba(10,2,48,0.18);
+            list-style: none; padding: 0.35rem 0; margin: 0; z-index: 10;
+            max-height: 240px; overflow-y: auto;
+        }
+        .tar-sug li {
+            padding: 0.55rem 0.85rem; font-size: 0.86rem;
+            color: var(--navy); cursor: pointer; line-height: 1.3;
+        }
+        .tar-sug li:hover, .tar-sug li.focus { background: rgba(51,0,204,0.06); }
+        .tar-sug li.empty { color: var(--gray-500); cursor: default; font-style: italic; }
+        .tar-slider {
+            -webkit-appearance: none; appearance: none;
+            width: 100%; height: 6px; border-radius: 999px;
+            background: linear-gradient(90deg, var(--purple) 0%, var(--purple) var(--p,30%), var(--gray-200) var(--p,30%), var(--gray-200) 100%);
+            outline: none; cursor: pointer; margin: 0.3rem 0 0.1rem;
+        }
+        .tar-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 22px; height: 22px; border-radius: 50%;
+            background: white; border: 3px solid var(--purple);
+            box-shadow: 0 4px 10px rgba(51,0,204,0.35);
+            cursor: pointer; transition: transform 0.15s;
+        }
+        .tar-slider::-webkit-slider-thumb:hover { transform: scale(1.12); }
+        .tar-slider::-moz-range-thumb {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: white; border: 3px solid var(--purple);
+            box-shadow: 0 4px 10px rgba(51,0,204,0.35); cursor: pointer;
+        }
+        .tar-scale {
+            display: flex; justify-content: space-between;
+            font-size: 0.7rem; color: var(--gray-500); font-weight: 600;
+            margin-top: 0.15rem;
+        }
+        .tar-radios { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .tar-r {
+            flex: 1 1 220px; min-width: 0;
+            padding: 0.7rem 0.85rem; border-radius: 12px;
+            border: 1.5px solid var(--gray-200); background: white;
+            cursor: pointer; transition: all 0.2s; text-align: left;
+            display: flex; flex-direction: column; gap: 0.15rem;
+            font-family: inherit; color: var(--gray-700);
+        }
+        .tar-r strong {
+            font-size: 0.88rem; font-weight: 800; color: var(--navy); display: block;
+        }
+        .tar-r span {
+            font-size: 0.72rem; color: var(--gray-500); font-weight: 600;
+        }
+        .tar-r:hover { border-color: var(--purple-light); }
+        .tar-r.active {
+            border-color: var(--purple); background: rgba(51,0,204,0.05);
+            box-shadow: 0 0 0 4px rgba(51,0,204,0.08);
+        }
+        .tar-r.active strong { color: var(--purple); }
+        .tar-select, .tar-date {
+            width: 100%; padding: 0.7rem 0.85rem; border-radius: 12px;
+            border: 1.5px solid var(--gray-200); background: white;
+            font-size: 0.9rem; color: var(--navy); font-family: inherit;
+            outline: none; transition: all 0.2s;
+        }
+        .tar-select:focus, .tar-date:focus {
+            border-color: var(--purple); box-shadow: 0 0 0 4px rgba(51,0,204,0.10);
+        }
+        .tar-date { display: none; margin-top: 0.5rem; }
+        .tar-date.show { display: block; }
+        .tar-cta {
+            width: 100%; margin-top: 1.2rem; padding: 0.95rem;
+            background: linear-gradient(135deg, var(--purple), var(--purple-light));
+            color: white; border: none; border-radius: 14px;
+            font-size: 0.98rem; font-weight: 900; letter-spacing: 0.5px;
+            text-transform: uppercase; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            box-shadow: 0 10px 28px rgba(51,0,204,0.35);
+            transition: all 0.2s; font-family: inherit;
+        }
+        .tar-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(51,0,204,0.45); }
+        .tar-cta svg { width: 18px; height: 18px; }
+        .tar-note {
+            text-align: center; font-size: 0.72rem; color: var(--gray-500);
+            margin-top: 0.65rem; font-weight: 600;
+        }
+        @media (max-width: 600px) {
+            .tarifador { padding: 1.25rem 1rem 1.1rem; border-radius: 18px; }
+            .tar-title { font-size: 1.25rem; }
+            .tar-sub { font-size: 0.78rem; }
+            .tar-grid { grid-template-columns: 1fr; gap: 0.8rem; }
+            .tar-r { flex: 1 1 100%; }
+            .tar-input-wrap input { font-size: 16px; /* iOS no zoom */ }
+            .tar-select, .tar-date { font-size: 16px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .tarifador { animation: none; opacity: 1; transform: none; }
+        }
+
         .hero-scroll {
             position: absolute; bottom: 1.8rem; left: 50%; transform: translateX(-50%);
             color: rgba(255,255,255,0.38); font-size: 0.68rem; letter-spacing: 2px;
@@ -1396,11 +1564,93 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="hero-overlay"></div>
     <div class="hero-road"></div>
     <div class="hero-content">
-        <h1 class="hero-title">
-            <span class="hl">Soluciones de Transporte</span><br>
-            a <span class="hl2">medida</span>.
-        </h1>
-        <p class="hero-sub">Servicio en toda <strong>España y Europa.</strong></p>
+        <!-- TARIFADOR -->
+        <div class="tarifador" id="tarifador">
+            <div class="tar-head">
+                <span class="tar-eyebrow">Calcula tu tarifa</span>
+                <h2 class="tar-title">¿Cuánto te cuesta?</h2>
+                <p class="tar-sub">Respuesta personalizada en minutos.</p>
+            </div>
+
+            <div class="tar-grid">
+                <div class="tar-field">
+                    <label for="tar-orig">Origen</label>
+                    <div class="tar-input-wrap">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <input type="text" id="tar-orig" placeholder="CP, ciudad o dirección" autocomplete="off" inputmode="search">
+                        <ul class="tar-sug" id="tar-orig-sug" hidden></ul>
+                    </div>
+                </div>
+                <div class="tar-field">
+                    <label for="tar-dest">Destino</label>
+                    <div class="tar-input-wrap">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                        <input type="text" id="tar-dest" placeholder="CP, ciudad o dirección" autocomplete="off" inputmode="search">
+                        <ul class="tar-sug" id="tar-dest-sug" hidden></ul>
+                    </div>
+                </div>
+
+                <div class="tar-field tar-full">
+                    <label for="tar-ml">
+                        Cantidad: <strong><span id="tar-ml-val">2,5</span> m lineales</strong>
+                        <span class="tar-conv">≈ <strong id="tar-eur-val">5</strong> europalets · <strong id="tar-amr-val">4</strong> americanos</span>
+                    </label>
+                    <input type="range" min="0.5" max="13.6" step="0.1" value="2.5" id="tar-ml" class="tar-slider">
+                    <div class="tar-scale"><span>0,5 ml</span><span>13,6 ml</span></div>
+                </div>
+
+                <div class="tar-field tar-full">
+                    <label for="tar-peso">Peso: <strong><span id="tar-peso-val">1,5</span> Tn</strong></label>
+                    <input type="range" min="0.1" max="24.5" step="0.1" value="1.5" id="tar-peso" class="tar-slider">
+                    <div class="tar-scale"><span>0,1 Tn</span><span>24,5 Tn</span></div>
+                </div>
+
+                <div class="tar-field tar-full">
+                    <label>Tipo de camión</label>
+                    <div class="tar-radios" data-name="camion">
+                        <button type="button" class="tar-r active" data-v="tauliner">
+                            <strong>Trailer Tauliner</strong>
+                            <span>13,60 m · 33 europalets · 24 Tn</span>
+                        </button>
+                        <button type="button" class="tar-r" data-v="rigido">
+                            <strong>Rígido con plataforma</strong>
+                            <span>8 m · 20 europalets · 14 Tn · plataforma + transpaleta</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="tar-field tar-full">
+                    <label for="tar-merca">Tipo de mercancía</label>
+                    <select id="tar-merca" class="tar-select">
+                        <option value="General paletizada">General paletizada</option>
+                        <option value="Material de construcción">Material de construcción</option>
+                        <option value="Maquinaria">Maquinaria</option>
+                        <option value="Productos químicos (no peligrosos)">Productos químicos (no peligrosos)</option>
+                        <option value="Mobiliario / muebles">Mobiliario / muebles</option>
+                        <option value="Alimentación seca">Alimentación seca</option>
+                        <option value="Bobinas / metal">Bobinas / metal</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+
+                <div class="tar-field tar-full">
+                    <label>Urgencia / fecha de carga</label>
+                    <div class="tar-radios" data-name="urgencia">
+                        <button type="button" class="tar-r active" data-v="dia">Día concreto</button>
+                        <button type="button" class="tar-r" data-v="estandar">Estándar · 1-2 días</button>
+                        <button type="button" class="tar-r" data-v="flexible">Flexible · 1-4 días</button>
+                    </div>
+                    <input type="date" id="tar-fecha" class="tar-date">
+                </div>
+            </div>
+
+            <button class="tar-cta" type="button" id="tar-cta">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                Solicitar tarifa
+            </button>
+            <div class="tar-note">Respuesta por WhatsApp o email · Sin compromiso</div>
+        </div>
+
         <div class="hero-cta-wrap">
         <button class="hero-cotizar-btn" type="button" onclick="toggleHeroCotizar(this)" aria-expanded="false">Cotizar</button>
         <div class="hero-btns">
@@ -2954,6 +3204,192 @@ document.addEventListener('click', function(e){
         wrap.querySelector('.hero-cotizar-btn').setAttribute('aria-expanded','false');
     }
 });
+
+/* =========================================
+   TARIFADOR
+   - Sliders ml / peso con conversion en vivo
+   - 1 ml = 2,5 europalets (80x120, ancho 2.45m del trailer)
+   - 1 ml = 2 americanos (100x120, mismo ancho)
+   - Botones tipo camion / urgencia
+   - Autocomplete origen/destino con Nominatim (OpenStreetMap, gratis sin API key)
+   - CTA -> mensaje preformateado WhatsApp + email
+========================================= */
+(function () {
+    var ml = document.getElementById('tar-ml');
+    var peso = document.getElementById('tar-peso');
+    var mlVal = document.getElementById('tar-ml-val');
+    var pesoVal = document.getElementById('tar-peso-val');
+    var eurVal = document.getElementById('tar-eur-val');
+    var amrVal = document.getElementById('tar-amr-val');
+    if (!ml) return;
+
+    var EUR_POR_ML = 2.5;
+    var AMR_POR_ML = 2;
+    var fmt = function (n, d) { return n.toFixed(d || 1).replace('.', ','); };
+
+    function updateMl() {
+        var v = parseFloat(ml.value);
+        mlVal.textContent = fmt(v, 1);
+        eurVal.textContent = Math.floor(v * EUR_POR_ML);
+        amrVal.textContent = Math.floor(v * AMR_POR_ML);
+        var pct = ((v - ml.min) / (ml.max - ml.min)) * 100;
+        ml.style.setProperty('--p', pct + '%');
+    }
+    function updatePeso() {
+        var v = parseFloat(peso.value);
+        pesoVal.textContent = fmt(v, 1);
+        var pct = ((v - peso.min) / (peso.max - peso.min)) * 100;
+        peso.style.setProperty('--p', pct + '%');
+    }
+    ml.addEventListener('input', updateMl);
+    peso.addEventListener('input', updatePeso);
+    updateMl(); updatePeso();
+
+    // Botones radio (tipo camion + urgencia)
+    document.querySelectorAll('.tar-radios').forEach(function (group) {
+        group.addEventListener('click', function (e) {
+            var btn = e.target.closest('.tar-r');
+            if (!btn) return;
+            group.querySelectorAll('.tar-r').forEach(function (b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            // urgencia "dia" -> mostrar el date picker
+            if (group.getAttribute('data-name') === 'urgencia') {
+                var date = document.getElementById('tar-fecha');
+                if (date) date.classList.toggle('show', btn.dataset.v === 'dia');
+            }
+        });
+    });
+    // Inicial: si "dia" esta activo de entrada, mostrar el date
+    var initialUrg = document.querySelector('.tar-radios[data-name="urgencia"] .tar-r.active');
+    if (initialUrg && initialUrg.dataset.v === 'dia') {
+        document.getElementById('tar-fecha').classList.add('show');
+    }
+
+    // Autocomplete con Nominatim (OpenStreetMap) — gratis, sin API key
+    // Rate limit: 1 req/s. Con debounce de 350ms cubierto.
+    function setupAutocomplete(inputId, sugId) {
+        var input = document.getElementById(inputId);
+        var sug = document.getElementById(sugId);
+        var timer = null;
+        var selectedLabel = '';
+
+        function render(items) {
+            if (!items.length) {
+                sug.innerHTML = '<li class="empty">Sin resultados</li>';
+                sug.hidden = false; return;
+            }
+            sug.innerHTML = items.map(function (it) {
+                return '<li data-label="' + it.label.replace(/"/g, '&quot;') + '">' + it.label + '</li>';
+            }).join('');
+            sug.hidden = false;
+        }
+        function close() { sug.hidden = true; sug.innerHTML = ''; }
+
+        input.addEventListener('input', function () {
+            var q = input.value.trim();
+            selectedLabel = '';
+            if (timer) clearTimeout(timer);
+            if (q.length < 3) { close(); return; }
+            timer = setTimeout(function () {
+                var url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&accept-language=es&countrycodes=es,pt,fr,it,de,nl,be,ch,at,pl,cz&q=' + encodeURIComponent(q);
+                fetch(url, { headers: { 'Accept': 'application/json' } })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        var items = (data || []).map(function (d) {
+                            var a = d.address || {};
+                            var city = a.city || a.town || a.village || a.municipality || a.county || '';
+                            var cp = a.postcode || '';
+                            var country = a.country || '';
+                            var parts = [];
+                            if (cp) parts.push(cp);
+                            if (city) parts.push(city);
+                            if (country) parts.push(country);
+                            return { label: parts.join(' · ') || d.display_name };
+                        });
+                        render(items);
+                    })
+                    .catch(function () { close(); });
+            }, 350);
+        });
+        sug.addEventListener('click', function (e) {
+            var li = e.target.closest('li');
+            if (!li || li.classList.contains('empty')) return;
+            input.value = li.dataset.label;
+            selectedLabel = li.dataset.label;
+            close();
+        });
+        input.addEventListener('blur', function () { setTimeout(close, 180); });
+        input.addEventListener('focus', function () {
+            if (sug.innerHTML.trim() && input.value.trim().length >= 3) sug.hidden = false;
+        });
+    }
+    setupAutocomplete('tar-orig', 'tar-orig-sug');
+    setupAutocomplete('tar-dest', 'tar-dest-sug');
+
+    // CTA: genera mensaje y abre WhatsApp + email
+    var ctaMode = 'wa'; // wa -> abre WhatsApp; mail -> abre email (modo "tambien por email")
+    var ctaEmailUrl = '';
+    document.getElementById('tar-cta').addEventListener('click', function () {
+        if (ctaMode === 'mail' && ctaEmailUrl) {
+            window.location.href = ctaEmailUrl;
+            return;
+        }
+        var orig = document.getElementById('tar-orig').value.trim() || '—';
+        var dest = document.getElementById('tar-dest').value.trim() || '—';
+        var mlV = fmt(parseFloat(ml.value), 1);
+        var eurV = Math.floor(parseFloat(ml.value) * EUR_POR_ML);
+        var amrV = Math.floor(parseFloat(ml.value) * AMR_POR_ML);
+        var pesoV = fmt(parseFloat(peso.value), 1);
+        var camion = (document.querySelector('.tar-radios[data-name="camion"] .tar-r.active') || {}).innerText || '';
+        camion = camion.replace(/\s+/g, ' ').trim();
+        var merca = document.getElementById('tar-merca').value;
+        var urgBtn = document.querySelector('.tar-radios[data-name="urgencia"] .tar-r.active');
+        var urgV = urgBtn ? urgBtn.dataset.v : 'estandar';
+        var urgTxt = { dia: 'Día concreto', estandar: 'Estándar · 1-2 días', flexible: 'Flexible · 1-4 días' }[urgV];
+        var fechaV = document.getElementById('tar-fecha').value;
+        if (urgV === 'dia' && fechaV) {
+            var d = new Date(fechaV);
+            urgTxt = 'Día concreto: ' + d.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
+        }
+
+        var lines = [
+            'Buenos días,',
+            '',
+            'Solicito TARIFA para transporte con estos datos:',
+            '',
+            '• ORIGEN: ' + orig,
+            '• DESTINO: ' + dest,
+            '• CANTIDAD: ' + mlV + ' m lineales (≈ ' + eurV + ' europalets · ' + amrV + ' americanos)',
+            '• PESO: ' + pesoV + ' Tn',
+            '• TIPO DE CAMIÓN: ' + camion,
+            '• TIPO DE MERCANCÍA: ' + merca,
+            '• URGENCIA: ' + urgTxt,
+            '',
+            '¿Podéis enviarme presupuesto? Gracias.'
+        ];
+        var bodyLF = lines.join('\n');
+        var bodyCRLF = lines.join('\r\n');
+
+        var wa = 'https://wa.me/34628995709?text=' + encodeURIComponent(bodyLF);
+        var mail = 'mailto:info@dynamotrans.com'
+            + '?subject=' + encodeURIComponent('Solicitud TARIFA — ' + (orig !== '—' ? orig + ' → ' + dest : 'transporte'))
+            + '&body=' + encodeURIComponent(bodyCRLF);
+
+        window.open(wa, '_blank', 'noopener');
+        try { navigator.clipboard.writeText(bodyLF); } catch (e) {}
+        // Cambia el CTA temporalmente: una pulsada mas abre el email
+        var cta = document.getElementById('tar-cta');
+        var prev = cta.innerHTML;
+        cta.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg> Abierto en WhatsApp — También por email';
+        ctaMode = 'mail';
+        ctaEmailUrl = mail;
+        setTimeout(function () {
+            cta.innerHTML = prev;
+            ctaMode = 'wa';
+            ctaEmailUrl = '';
+        }, 6000);
+    });
+})();
 </script>
 </body>
 </html>
