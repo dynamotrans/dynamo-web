@@ -1633,9 +1633,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <div class="tar-field">
                     <label for="tar-urgencia">Fecha de carga</label>
                     <select id="tar-urgencia" class="tar-select">
-                        <option value="estandar" selected>Estándar · franja 1-2 días</option>
-                        <option value="dia">Día concreto</option>
-                        <option value="flexible">Flexible · 1-4 días</option>
+                        <option value="dia">Fecha fija (Un único día)</option>
+                        <option value="estandar" selected>Ventana de 2 días (Estándar)</option>
+                        <option value="flexible">Ventana de 4 días (Flexible)</option>
                     </select>
                 </div>
                 <div class="tar-field" id="tar-fecha-field" hidden>
@@ -3421,12 +3421,12 @@ document.addEventListener('click', function(e){
         var camion = camionEl.options[camionEl.selectedIndex].getAttribute('data-full') || camionEl.value;
         var merca = document.getElementById('tar-merca').value;
         var urgV = urgSel.value;
-        var urgTxt = { dia: 'Día concreto', estandar: 'Estándar · franja de recogida 1-2 días', flexible: 'Flexible · 1-4 días' }[urgV];
+        var urgTxt = { dia: 'Fecha fija (un único día)', estandar: 'Ventana de 2 días (Estándar)', flexible: 'Ventana de 4 días (Flexible)' }[urgV];
         if (urgV === 'dia') {
             var fechaV = diaSel.value === 'otro' ? fechaInput.value : diaSel.value;
             if (fechaV) {
                 var d = new Date(fechaV + 'T00:00:00');
-                urgTxt = 'Día concreto: ' + d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                urgTxt = 'Fecha fija: ' + d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
             }
         }
 
