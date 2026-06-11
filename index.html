@@ -50,7 +50,15 @@
         try {
             if (sessionStorage.getItem('homeTransition')) {
                 document.documentElement.classList.add('from-transition');
+                // Centrar el gradiente de llegada donde estaba el del wormhole de salida
+                var _hc = sessionStorage.getItem('homeTransitionCenter');
+                if (_hc) {
+                    var _hp = _hc.split(' ');
+                    document.documentElement.style.setProperty('--acx', _hp[0]);
+                    document.documentElement.style.setProperty('--acy', _hp[1]);
+                }
                 sessionStorage.removeItem('homeTransition');
+                sessionStorage.removeItem('homeTransitionCenter');
             }
         } catch (e) {}
     </script>
@@ -279,6 +287,7 @@
         .portal-transition.active { clip-path: circle(160% at var(--cx) var(--cy)); pointer-events: auto; }
         .portal-stars {
             position: absolute; inset: 0; opacity: 0;
+            will-change: transform, opacity;
             background:
                 radial-gradient(2px 2px at 15% 22%, white 50%, transparent 100%),
                 radial-gradient(1.5px 1.5px at 78% 18%, white 50%, transparent 100%),
@@ -293,7 +302,7 @@
                 radial-gradient(2px 2px at 50% 30%, white 50%, transparent 100%),
                 radial-gradient(1.5px 1.5px at 18% 50%, white 50%, transparent 100%);
         }
-        .portal-transition.active .portal-stars { animation: portalTwinkle 0.9s ease 0.15s forwards; }
+        .portal-transition.active .portal-stars { animation: portalTwinkle 0.7s ease 0.1s forwards; }
         @keyframes portalTwinkle {
             0%   { opacity: 0; transform: scale(0.6) rotate(-8deg); }
             45%  { opacity: 1; }
@@ -301,18 +310,20 @@
         }
         .portal-ring {
             position: absolute; top: 50%; left: 50%;
-            width: 0; height: 0;
+            width: 480px; height: 480px;
             border-radius: 50%;
             border: 2px solid rgba(255,255,255,0.45);
-            transform: translate(-50%, -50%);
+            /* Solo transform/opacity: animar width/height fuerza layout por frame */
+            transform: translate(-50%, -50%) scale(0);
             opacity: 0;
+            will-change: transform, opacity;
         }
-        .portal-transition.active .portal-ring  { animation: portalRing 0.85s ease 0.1s forwards; }
-        .portal-transition.active .portal-ring2 { animation: portalRing 0.85s ease 0.22s forwards; }
-        .portal-transition.active .portal-ring3 { animation: portalRing 0.85s ease 0.34s forwards; }
+        .portal-transition.active .portal-ring  { animation: portalRing 0.6s ease 0.08s forwards; }
+        .portal-transition.active .portal-ring2 { animation: portalRing 0.6s ease 0.18s forwards; }
+        .portal-transition.active .portal-ring3 { animation: portalRing 0.6s ease 0.28s forwards; }
         @keyframes portalRing {
-            0%   { width: 0; height: 0; opacity: 0.9; border-width: 3px; }
-            100% { width: 480px; height: 480px; opacity: 0; border-width: 1px; }
+            0%   { transform: translate(-50%, -50%) scale(0); opacity: 0.9; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
         }
         .portal-core {
             position: absolute; top: 50%; left: 50%;
@@ -320,8 +331,9 @@
             opacity: 0;
             display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
             color: white; text-align: center;
+            will-change: transform, opacity;
         }
-        .portal-transition.active .portal-core { animation: portalCore 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.28s forwards; }
+        .portal-transition.active .portal-core { animation: portalCore 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s forwards; }
         @keyframes portalCore {
             0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.35) rotate(-12deg); }
             60%  { opacity: 1; }
@@ -329,9 +341,9 @@
         }
         .portal-core-lock {
             width: 72px; height: 72px; border-radius: 22px;
-            background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
+            /* Sin backdrop-filter: el blur por frame sobre fondo animado da tirones en movil */
+            background: linear-gradient(135deg, rgba(255,255,255,0.26), rgba(255,255,255,0.10));
             border: 1.5px solid rgba(255,255,255,0.35);
-            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 12px 40px rgba(0,0,0,0.25), 0 0 30px rgba(107,61,255,0.45);
         }
@@ -357,18 +369,15 @@
             .portal-core-lock { width: 58px; height: 58px; border-radius: 18px; }
             .portal-core-lock svg { width: 26px; height: 26px; }
             .portal-core-text { font-size: 0.7rem; letter-spacing: 2px; }
-            @keyframes portalRing {
-                0%   { width: 0; height: 0; opacity: 0.9; border-width: 3px; }
-                100% { width: 320px; height: 320px; opacity: 0; border-width: 1px; }
-            }
+            .portal-ring { width: 320px; height: 320px; }
         }
         @media (prefers-reduced-motion: reduce) {
             .portal-transition { transition: opacity 0.2s ease; clip-path: none; opacity: 0; }
             .portal-transition.active { opacity: 1; }
             .portal-transition.active .portal-ring,
             .portal-transition.active .portal-ring2,
-            .portal-transition.active .portal-ring3,
-            .portal-transition.active .portal-stars,
+            .portal-transition.active .portal-ring3 { animation: none; opacity: 0; }
+            .portal-transition.active .portal-stars { animation: none; opacity: 0.85; transform: none; }
             .portal-transition.active .portal-core { animation: none; opacity: 1; transform: translate(-50%, -50%); }
             .portal-core-loader::after { animation: none; }
         }
@@ -378,7 +387,8 @@
         .from-transition .home-arrival {
             display: flex; align-items: center; justify-content: center;
             position: fixed; inset: 0; z-index: 999999; pointer-events: none;
-            background: radial-gradient(circle at 50% 50%, #6b3dff 0%, var(--purple) 25%, var(--purple-nav) 60%, var(--navy) 100%);
+            /* --acx/--acy: mismo centro que el wormhole de salida (lo setea el script del head) */
+            background: radial-gradient(circle at var(--acx, 50%) var(--acy, 50%), #6b3dff 0%, var(--purple) 25%, var(--purple-nav) 60%, var(--navy) 100%);
             animation: homeArrivalOut 0.85s cubic-bezier(0.55, 0, 0.45, 1) 0.05s forwards;
             will-change: opacity, transform;
         }
@@ -2311,20 +2321,39 @@ function openLegal(tab) {
         }
         overlay.style.setProperty('--cx', cx + 'px');
         overlay.style.setProperty('--cy', cy + 'px');
-        overlay.classList.add('active');
-        try { sessionStorage.setItem('portalTransition', '1'); } catch (e) {}
+        try {
+            sessionStorage.setItem('portalTransition', '1');
+            // El overlay de llegada de portal.html usa este mismo centro (evita el salto del gradiente)
+            sessionStorage.setItem('portalTransitionCenter',
+                (cx / window.innerWidth * 100).toFixed(1) + '% ' + (cy / window.innerHeight * 100).toFixed(1) + '%');
+        } catch (e) {}
+        // Pausar el video del hero: que no decodifique frames debajo del overlay
+        var hv = document.getElementById('heroVideo');
+        if (hv && !hv.paused) { try { hv.pause(); } catch (e) {} }
         var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         var delay = reduce ? 250 : 850;
-        setTimeout(function () { window.location.href = 'portal.html'; }, delay);
+        overlay.style.willChange = 'clip-path';
+        // Doble rAF: deja que el navegador pinte/promocione la capa antes de animarla
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                overlay.classList.add('active');
+                setTimeout(function () { window.location.href = 'portal.html'; }, delay);
+            });
+        });
     }
     // Reset portal overlay if page is restored from bfcache (e.g. browser back)
     window.addEventListener('pageshow', function (e) {
         var overlay = document.getElementById('portalTransition');
-        if (overlay) overlay.classList.remove('active');
+        if (overlay) { overlay.classList.remove('active'); overlay.style.willChange = ''; }
         if (e.persisted) document.documentElement.classList.remove('from-transition');
+        // Reanudar el video del hero si lo pausamos al lanzar la transicion
+        var hv = document.getElementById('heroVideo');
+        if (hv && hv.paused && !hv.ended && !hv.classList.contains('ended')) { try { hv.play(); } catch (err) {} }
         try {
             sessionStorage.removeItem('portalTransition');
+            sessionStorage.removeItem('portalTransitionCenter');
             sessionStorage.removeItem('homeTransition');
+            sessionStorage.removeItem('homeTransitionCenter');
         } catch (err) {}
     });
 
