@@ -3219,12 +3219,20 @@ document.addEventListener('click', function(e){
     var AMR_POR_ML = 2;
     var fmt = function (n, d) { return n.toFixed(d || 1).replace('.', ','); };
 
-    // Poblar select metros lineales segun el tipo de camion elegido. Por defecto
-    // siempre selecciona el ULTIMO (camion completo): Tauliner 13,2 ml / Rigido 8 ml
+    // Poblar selects metros lineales Y peso segun el tipo de camion. Por defecto
+    // siempre se selecciona el ULTIMO (carga maxima):
+    //   Tauliner: 13,2 ml / 24,5 Tn
+    //   Rigido:   8 ml    / 14 Tn
     var camionSel = document.getElementById('tar-camion');
     var ML_OPTS = {
         tauliner: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13.2],
         rigido:   [1, 2, 3, 4, 5, 6, 7, 8]
+    };
+    var PESO_OPTS = {
+        // 1 a 24 Tn enteros + 24,5
+        tauliner: (function () { var a = []; for (var i = 1; i <= 24; i++) a.push(i); a.push(24.5); return a; })(),
+        // 1 a 14 Tn enteros
+        rigido:   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     };
     function rebuildMl() {
         var prev = parseFloat(ml.value);
@@ -3236,20 +3244,23 @@ document.addEventListener('click', function(e){
             var label = fmt(v, v % 1 === 0 ? 0 : 1) + ' ml · ' + eur + ' euro / ' + amr + ' amer.' + (isFull ? ' · COMPLETO' : '');
             return '<option value="' + v + '">' + label + '</option>';
         }).join('');
-        // Mantener seleccion previa si sigue existiendo, si no, camion COMPLETO (ultimo)
         var match = opts.indexOf(prev);
         ml.value = match >= 0 ? prev : opts[opts.length - 1];
     }
-    camionSel.addEventListener('change', rebuildMl);
+    function rebuildPeso() {
+        var prev = parseFloat(peso.value);
+        var opts = PESO_OPTS[camionSel.value] || PESO_OPTS.tauliner;
+        peso.innerHTML = opts.map(function (t, i) {
+            var isFull = (i === opts.length - 1);
+            var label = fmt(t, t % 1 === 0 ? 0 : 1) + ' Tn' + (isFull ? ' · MAX' : '');
+            return '<option value="' + t + '">' + label + '</option>';
+        }).join('');
+        var match = opts.indexOf(prev);
+        peso.value = match >= 0 ? prev : opts[opts.length - 1];
+    }
+    camionSel.addEventListener('change', function () { rebuildMl(); rebuildPeso(); });
     rebuildMl();
-
-    // Poblar select peso: 1 a 24 Tn enteros + 24,5 (defecto 24,5 -> carga maxima)
-    var pesoOpts = [];
-    for (var t = 1; t <= 24; t++) pesoOpts.push(t);
-    pesoOpts.push(24.5);
-    peso.innerHTML = pesoOpts.map(function (t) {
-        return '<option value="' + t + '"' + (t === 24.5 ? ' selected' : '') + '>' + fmt(t, t === 24.5 ? 1 : 0) + ' Tn</option>';
-    }).join('');
+    rebuildPeso();
 
     // Fecha de carga: "Dia concreto" despliega lista de proximos 7 LABORABLES
     // (saltando sabados y domingos). "Otro dia" abre directamente el calendario
