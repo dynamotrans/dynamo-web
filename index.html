@@ -533,12 +533,12 @@
         .hero-content {
             position: relative; z-index: 3; text-align: center;
             color: white;
-            /* Pegado al pie del video, con respiro lateral y vertical minimo */
-            padding: 0 2rem 1.4rem; max-width: 900px; width: 100%;
+            /* Pegado al pie del video, sin huequecito porque hemos quitado el scroll-arrow */
+            padding: 0 2rem 0.6rem; max-width: 900px; width: 100%;
             display: flex; flex-direction: column; align-items: center;
         }
         @media (max-width: 600px) {
-            .hero-content { padding: 0 1rem 1rem; }
+            .hero-content { padding: 0 1rem 0.5rem; }
         }
         .hero-logo-wrap {
             display: inline-block;
@@ -602,14 +602,6 @@
             transition: all 0.3s; box-shadow: 0 4px 20px rgba(51,0,204,0.45);
         }
         .btn-email:hover { background: var(--purple-light); transform: translateY(-3px); }
-        .hero-scroll {
-            position: absolute; bottom: 1.8rem; left: 50%; transform: translateX(-50%);
-            color: rgba(255,255,255,0.38); font-size: 0.68rem; letter-spacing: 2px;
-            text-transform: uppercase; text-align: center;
-            animation: bounceY 2.2s ease-in-out infinite;
-            display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 3;
-        }
-        .scroll-arr { width: 16px; height: 16px; border-right: 2px solid rgba(255,255,255,0.3); border-bottom: 2px solid rgba(255,255,255,0.3); transform: rotate(45deg); }
 
         /* =========================================
            SERVICES STRIP
@@ -1430,7 +1422,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </div>
         </div>
     </div>
-    <div class="hero-scroll"><span>Scroll</span><div class="scroll-arr"></div></div>
 </section>
 
 <!-- SERVICES STRIP -->
