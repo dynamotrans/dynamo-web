@@ -728,6 +728,14 @@
         .tar-select:focus, .tar-date:focus {
             border-color: var(--purple); box-shadow: 0 0 0 4px rgba(51,0,204,0.10);
         }
+        /* Input date superpuesto al select del dia para que el calendario nativo se
+           ancle aqui (no en la esquina de la web). Visualmente invisible. */
+        .tar-fecha-wrap { position: relative; }
+        .tar-fecha-wrap .tar-date {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            opacity: 0; pointer-events: none;
+            border: none; padding: 0; background: transparent;
+        }
         .tar-cta {
             width: 100%; margin-top: 0.85rem; padding: 0.8rem;
             background: linear-gradient(135deg, var(--purple), var(--purple-light));
@@ -1640,8 +1648,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 </div>
                 <div class="tar-field" id="tar-fecha-field" hidden>
                     <label for="tar-dia">Día de carga (L-V)</label>
-                    <select id="tar-dia" class="tar-select"></select>
-                    <input type="date" id="tar-fecha" class="tar-date" hidden>
+                    <div class="tar-fecha-wrap">
+                        <select id="tar-dia" class="tar-select"></select>
+                        <!-- Input date superpuesto invisible para que el calendario nativo se ancle aqui -->
+                        <input type="date" id="tar-fecha" class="tar-date" aria-label="Elegir fecha en calendario">
+                    </div>
                 </div>
             </div>
 
@@ -3310,34 +3321,53 @@ document.addEventListener('click', function(e){
 
     urgSel.addEventListener('change', function () {
         fechaField.hidden = urgSel.value !== 'dia';
-        if (urgSel.value !== 'dia') { fechaInput.hidden = true; }
     });
-    diaSel.addEventListener('change', function () {
-        if (diaSel.value === 'otro') {
-            // No mostramos el input, abrimos el calendario nativo directamente
-            fechaInput.hidden = true;
-            try {
-                if (typeof fechaInput.showPicker === 'function') {
-                    fechaInput.showPicker();
-                } else {
-                    // Fallback navegadores antiguos: mostrar el input para clic manual
-                    fechaInput.hidden = false;
-                    fechaInput.focus();
-                }
-            } catch (e) {
-                fechaInput.hidden = false;
+
+    // Insertar la fecha elegida en el calendario como PRIMERA opcion del select
+    // (asi el usuario la ve en el "hueco" y al desplegar la encuentra arriba)
+    function setFechaCustom(isoDate) {
+        var prev = diaSel.querySelector('option[data-custom="1"]');
+        if (prev) prev.remove();
+        var d = new Date(isoDate + 'T00:00:00');
+        var txt = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        var opt = document.createElement('option');
+        opt.value = isoDate;
+        opt.setAttribute('data-custom', '1');
+        opt.textContent = 'Fecha elegida · ' + txt;
+        diaSel.insertBefore(opt, diaSel.firstChild);
+        diaSel.value = isoDate;
+    }
+
+    function openCalendar() {
+        // Habilitar pointer-events para que showPicker funcione consistente, lo
+        // anclamos al input superpuesto al select (visualmente invisible)
+        fechaInput.style.pointerEvents = 'auto';
+        try {
+            if (typeof fechaInput.showPicker === 'function') {
+                fechaInput.showPicker();
+            } else {
                 fechaInput.focus();
+                fechaInput.click();
             }
-        }
+        } catch (e) { fechaInput.focus(); }
+        // Devolverlo a pointer-events:none tras un microtick para no estorbar al select
+        setTimeout(function () { fechaInput.style.pointerEvents = 'none'; }, 0);
+    }
+
+    diaSel.addEventListener('change', function () {
+        if (diaSel.value === 'otro') openCalendar();
     });
-    // Si el usuario elige un fin de semana en el calendario, lo movemos al lunes
+
+    // Si el usuario elige un fin de semana en el calendario, lo movemos al lunes.
+    // Luego ponemos esa fecha como primera opcion del select del dia.
     fechaInput.addEventListener('change', function () {
         if (!fechaInput.value) return;
         var d = new Date(fechaInput.value + 'T00:00:00');
         if (isWeekend(d)) {
-            var fixed = nextWeekday(d);
-            fechaInput.value = toIso(fixed);
+            d = nextWeekday(d);
+            fechaInput.value = toIso(d);
         }
+        setFechaCustom(fechaInput.value);
     });
 
     // Autocomplete con Nominatim (OpenStreetMap) — gratis, sin API key
