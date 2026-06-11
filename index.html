@@ -202,6 +202,28 @@
         .top-bar span { color: var(--green); font-weight: 700; }
         .top-bar span.tb-stars { color: var(--yellow); }
 
+        /* Banda anclada al borde superior del hero — entrada suave fade + slide */
+        .hero-banner {
+            position: relative; z-index: 2;
+            background: linear-gradient(90deg, var(--purple) 0%, var(--purple-light) 55%, var(--green) 100%);
+            color: white; text-align: center;
+            padding: 0.6rem 1.2rem; font-size: 0.92rem; font-weight: 700;
+            letter-spacing: 0.3px; line-height: 1.3;
+            box-shadow: 0 6px 18px rgba(10,2,48,0.18);
+            opacity: 0; transform: translateY(-10px);
+            animation: heroBannerIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards;
+        }
+        @keyframes heroBannerIn {
+            0%   { opacity: 0; transform: translateY(-10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 600px) {
+            .hero-banner { padding: 0.55rem 1rem; font-size: 0.82rem; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .hero-banner { animation: none; opacity: 1; transform: none; }
+        }
+
         /* =========================================
            NAVBAR
         ========================================= */
@@ -1361,6 +1383,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <span></span><span></span><span></span>
     </div>
 </nav>
+
+<!-- BANNER pegado al hero -->
+<div class="hero-banner">Soluciones de Transporte. España y Europa.</div>
 
 <!-- HERO -->
 <section class="hero" id="inicio">
