@@ -1577,21 +1577,23 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <div class="tar-field">
                     <label for="tar-camion">Tipo de camión</label>
                     <select id="tar-camion" class="tar-select">
-                        <option value="Trailer Tauliner (13,60 m · 33 europalets · 24 Tn)">Trailer Tauliner · 13,60 m</option>
-                        <option value="Rígido con plataforma y transpaleta (8 m · 20 europalets · 14 Tn)">Rígido plataforma · 8 m</option>
+                        <option value="tauliner" data-full="Trailer Tauliner (13,60 m · 33 europalets · 24 Tn)">Trailer Tauliner · 13,60 m</option>
+                        <option value="rigido" data-full="Rígido con plataforma y transpaleta (8 m · 20 europalets · 14 Tn)">Rígido plataforma · 8 m</option>
                     </select>
                 </div>
                 <div class="tar-field">
                     <label for="tar-merca">Tipo de mercancía</label>
                     <select id="tar-merca" class="tar-select">
-                        <option value="General paletizada">General paletizada</option>
-                        <option value="Material de construcción">Material de construcción</option>
-                        <option value="Maquinaria">Maquinaria</option>
-                        <option value="Productos químicos (no peligrosos)">Químicos (no peligrosos)</option>
-                        <option value="Mobiliario / muebles">Mobiliario / muebles</option>
-                        <option value="Alimentación seca">Alimentación seca</option>
-                        <option value="Bobinas / metal">Bobinas / metal</option>
-                        <option value="Otro">Otro</option>
+                        <option>Paletizado mercancía general — almacén a almacén (por lateral)</option>
+                        <option>Por lateral — mercancía no paletizada (maquinaria, perfiles, etc.)</option>
+                        <option>Por techo — mercancía no paletizada (maquinaria, perfiles, etc.)</option>
+                        <option>Material eventos / ferias</option>
+                        <option>Obra — recogidas / entregas</option>
+                        <option>Zona urbana con/sin permisos — recogidas / entregas</option>
+                        <option>ADR mercancía</option>
+                        <option>Fincas — recogidas / entregas</option>
+                        <option>Balas / sacas sin palet (limpio) — NIMA requerido</option>
+                        <option>Balas / sacas sin palet (sucios) — NIMA requerido</option>
                     </select>
                 </div>
 
@@ -3198,16 +3200,31 @@ document.addEventListener('click', function(e){
     var AMR_POR_ML = 2;
     var fmt = function (n, d) { return n.toFixed(d || 1).replace('.', ','); };
 
-    // Poblar select metros lineales: 0,5 a 13 cada 0,5 + 13,6 (trailer completo)
-    var mlOpts = [];
-    for (var v = 0.5; v <= 13.05; v += 0.5) mlOpts.push(v);
-    mlOpts.push(13.6);
-    ml.innerHTML = mlOpts.map(function (v) {
-        var eur = Math.floor(v * EUR_POR_ML);
-        var amr = Math.floor(v * AMR_POR_ML);
-        var label = fmt(v, 1) + ' ml · ' + eur + ' euro / ' + amr + ' amer.';
-        return '<option value="' + v + '"' + (v === 2.5 ? ' selected' : '') + '>' + label + '</option>';
-    }).join('');
+    // Poblar select metros lineales segun el tipo de camion elegido
+    // Tauliner (trailer): 1..10 + 13,2 (trailer completo)
+    // Rigido: 1..8 (rigido completo a 8 m)
+    var camionSel = document.getElementById('tar-camion');
+    var ML_OPTS = {
+        tauliner: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13.2],
+        rigido:   [1, 2, 3, 4, 5, 6, 7, 8]
+    };
+    function rebuildMl() {
+        var prev = parseFloat(ml.value);
+        var opts = ML_OPTS[camionSel.value] || ML_OPTS.tauliner;
+        ml.innerHTML = opts.map(function (v, i) {
+            var eur = Math.floor(v * EUR_POR_ML);
+            var amr = Math.floor(v * AMR_POR_ML);
+            var isFull = (i === opts.length - 1);
+            var label = fmt(v, v % 1 === 0 ? 0 : 1) + ' ml · ' + eur + ' euro / ' + amr + ' amer.' + (isFull ? ' · COMPLETO' : '');
+            return '<option value="' + v + '">' + label + '</option>';
+        }).join('');
+        // Mantener seleccion previa si sigue existiendo, si no escoger 2 ml
+        var match = opts.indexOf(prev);
+        ml.value = match >= 0 ? prev : 2;
+        updateMl();
+    }
+    camionSel.addEventListener('change', rebuildMl);
+    rebuildMl();
 
     // Poblar select peso: 1 a 24 Tn enteros + 24,5
     var pesoOpts = [];
@@ -3332,7 +3349,8 @@ document.addEventListener('click', function(e){
         var eurV = Math.floor(mlNum * EUR_POR_ML);
         var amrV = Math.floor(mlNum * AMR_POR_ML);
         var pesoV = fmt(pesoNum, pesoNum === 24.5 ? 1 : 0);
-        var camion = document.getElementById('tar-camion').value;
+        var camionEl = document.getElementById('tar-camion');
+        var camion = camionEl.options[camionEl.selectedIndex].getAttribute('data-full') || camionEl.value;
         var merca = document.getElementById('tar-merca').value;
         var urgV = urgSel.value;
         var urgTxt = { dia: 'Día concreto', estandar: 'Estándar · franja de recogida 1-2 días', flexible: 'Flexible · 1-4 días' }[urgV];
