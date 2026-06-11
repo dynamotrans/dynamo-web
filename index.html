@@ -74,8 +74,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="images/DYNAMO-NEW-LOGO.png">
-    <link rel="apple-touch-icon" href="images/DYNAMO-NEW-LOGO.png">
+    <link rel="icon" type="image/png" href="/images/DYNAMO-NEW-LOGO.png">
+    <link rel="apple-touch-icon" href="/images/DYNAMO-NEW-LOGO.png">
 
     <!-- Open Graph (WhatsApp, Facebook, LinkedIn) -->
     <meta property="og:title" content="Dynamo Transportes | Grupajes y Carga Completa - Espana y Europa">
@@ -208,49 +208,94 @@
         }
         .top-bar span { color: var(--green); font-weight: 700; }
         .top-bar span.tb-stars { color: var(--yellow); }
-        /* Spinner circular de cuenta atras 5s — solo visual, conic-gradient va por GPU */
+        /* Spinner circular de cuenta atras 5s.
+           @property registra --tb-progress como angulo animable -> CSS puede
+           interpolar entre 360deg y 0deg sin recrear el conic-gradient cada frame.
+           Empieza lleno (verde 360 = circulo entero) y se VACIA hasta 0 en 5s */
+        @property --tb-progress {
+            syntax: '<angle>';
+            initial-value: 360deg;
+            inherits: false;
+        }
         .tb-spin {
-            width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
-            background: conic-gradient(rgba(255,255,255,0.18) 0deg, rgba(255,255,255,0.18) 360deg);
-            position: relative; opacity: 0.85;
-            animation: tbSpin 5s linear forwards;
+            width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+            --tb-progress: 360deg;
+            background:
+                conic-gradient(
+                    var(--green) 0deg var(--tb-progress),
+                    rgba(255,255,255,0.18) var(--tb-progress) 360deg
+                );
+            position: relative;
+            animation: tbDrain 5s linear forwards;
         }
         .tb-spin::before {
             content: ''; position: absolute; inset: 3px; border-radius: 50%;
             background: var(--navy);
         }
-        @keyframes tbSpin {
-            0%   { background: conic-gradient(var(--green) 0deg, rgba(255,255,255,0.18) 0deg); }
-            100% { background: conic-gradient(var(--green) 360deg, rgba(255,255,255,0.18) 360deg); }
+        @keyframes tbDrain {
+            from { --tb-progress: 360deg; }
+            to   { --tb-progress: 0deg; }
         }
         @media (max-width: 600px) {
             .top-bar { padding: 0.45rem 1rem; font-size: 0.74rem; gap: 0.55rem; }
-            .tb-spin { width: 12px; height: 12px; }
+            .tb-spin { width: 14px; height: 14px; }
+            .tb-spin::before { inset: 2.5px; }
         }
         @media (prefers-reduced-motion: reduce) {
-            .tb-spin { animation: none; }
+            .tb-spin { animation: none; --tb-progress: 0deg; }
         }
 
-        /* Banda anclada al borde superior del hero — entrada suave fade + slide */
+        /* Banda anclada al borde superior del hero — neon sutil morado/verde */
         .hero-banner {
             position: relative; z-index: 2;
-            background: linear-gradient(90deg, var(--purple) 0%, var(--purple-light) 55%, var(--green) 100%);
+            background: linear-gradient(90deg,
+                var(--purple) 0%,
+                var(--purple-light) 35%,
+                #4d33dd 55%,
+                var(--green) 80%,
+                var(--purple) 100%);
+            background-size: 180% 100%;
             color: white; text-align: center;
             padding: 0.6rem 1.2rem; font-size: 0.92rem; font-weight: 700;
             letter-spacing: 0.3px; line-height: 1.3;
-            box-shadow: 0 6px 18px rgba(10,2,48,0.18);
+            text-shadow: 0 0 10px rgba(255,255,255,0.18);
+            box-shadow:
+                0 0 14px rgba(107,61,255,0.22),
+                0 6px 18px rgba(10,2,48,0.18);
             opacity: 0; transform: translateY(-10px);
-            animation: heroBannerIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards;
+            animation:
+                heroBannerIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards,
+                bannerShimmer 8s linear infinite 1s,
+                bannerNeonPulse 4.5s ease-in-out infinite 1.2s;
         }
         @keyframes heroBannerIn {
             0%   { opacity: 0; transform: translateY(-10px); }
             100% { opacity: 1; transform: translateY(0); }
         }
+        @keyframes bannerShimmer {
+            0%   { background-position: 0% 50%; }
+            100% { background-position: 180% 50%; }
+        }
+        @keyframes bannerNeonPulse {
+            0%, 100% {
+                box-shadow:
+                    0 0 14px rgba(107,61,255,0.22),
+                    0 6px 18px rgba(10,2,48,0.18);
+            }
+            50% {
+                box-shadow:
+                    0 0 18px rgba(34,165,90,0.22),
+                    0 6px 18px rgba(10,2,48,0.18);
+            }
+        }
         @media (max-width: 600px) {
             .hero-banner { padding: 0.55rem 1rem; font-size: 0.82rem; }
         }
         @media (prefers-reduced-motion: reduce) {
-            .hero-banner { animation: none; opacity: 1; transform: none; }
+            .hero-banner {
+                animation: none; opacity: 1; transform: none;
+                background-position: 0% 50%;
+            }
         }
 
         /* =========================================
@@ -501,7 +546,7 @@
         /* Degradado de marca con zoom suave: estado final tras el vídeo (y fallback) */
         .hero-gradient {
             position: absolute; inset: 0; z-index: 0;
-            background: url('images/HERO-DYNAMO.webp') center/cover no-repeat,
+            background: url('/images/HERO-DYNAMO.webp') center/cover no-repeat,
                         linear-gradient(135deg, #0a0230 0%, #1a008a 30%, #3300cc 60%, #0a0230 100%);
             animation: heroZoom 18s ease-in-out infinite alternate;
         }
@@ -861,6 +906,18 @@
         .svc-card:hover h3::after { width: 60px; transition: width 0.3s ease; }
         .svc-card p  { color:var(--gray-500); line-height:1.65; font-size:0.88rem; }
         .svc-tag { display:inline-block; margin-top:1rem; background:rgba(51,0,204,0.07); color:var(--purple); padding:0.25rem 0.75rem; border-radius:50px; font-size:0.7rem; font-weight:700; }
+        .svc-tag.svc-tag-soon {
+            background: rgba(255,212,0,0.18);
+            color: #8a6b00;
+            border: 1px solid rgba(255,212,0,0.6);
+        }
+        .alm-precio-pending {
+            margin-top: 0.8rem; padding: 0.7rem 0.9rem;
+            background: rgba(255,212,0,0.12);
+            border: 1px solid rgba(255,212,0,0.45);
+            border-radius: 10px;
+            font-size: 0.78rem; color: #6b5500; font-weight: 600; line-height: 1.45;
+        }
 
         .alm-precio { margin-top: 1.2rem; padding-top: 1.2rem; border-top: 1px dashed var(--gray-200); }
         .alm-precio-label { display: block; font-size: 0.7rem; font-weight: 800; color: var(--gray-500); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; }
@@ -897,17 +954,6 @@
         .alm-precio-row.total { margin-top: 0.4rem; padding-top: 0.6rem; border-top: 1.5px solid rgba(51,0,204,0.18); font-size: 0.95rem; font-weight: 800; color: var(--navy); }
         .alm-precio-row.total .alm-precio-line strong { font-size: 1.1rem; color: var(--green); }
         .alm-precio-note { font-size: 0.7rem; color: var(--gray-500); margin-top: 0.5rem; line-height: 1.5; }
-        .alm-precio-cta { display: flex; gap: 0.5rem; margin-top: 0.8rem; }
-        .alm-precio-cta a {
-            flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.4rem;
-            padding: 0.6rem 0.5rem; border-radius: 10px; font-size: 0.78rem; font-weight: 800;
-            text-decoration: none; transition: transform 0.15s, box-shadow 0.2s;
-            text-transform: uppercase; letter-spacing: 0.4px;
-        }
-        .alm-precio-cta a:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,0.12); }
-        .alm-precio-cta .alm-cta-email { background: var(--purple); color: white; }
-        .alm-precio-cta .alm-cta-wa { background: var(--green); color: white; }
-        .alm-precio-cta a svg { width: 14px; height: 14px; flex-shrink: 0; }
         .svc-card.svc-featured { border-color: rgba(51,0,204,0.25); box-shadow: 0 8px 30px rgba(51,0,204,0.12); }
         .svc-card.svc-featured::before { height: 4px; }
         .svc-card.svc-featured::after {
@@ -1487,7 +1533,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- NAVBAR -->
 <nav class="navbar" id="navbar">
     <a href="#" class="nav-logo" onclick="event.preventDefault();window.scrollTo({top:0,behavior:'smooth'})">
-        <img src="images/2.png" alt="Dynamo - Pick. Drop. Done." class="nav-logo-img">
+        <img src="/images/2.png" alt="Dynamo - Pick. Drop. Done." class="nav-logo-img">
     </a>
     <ul class="navbar-nav">
         <li><a href="#servicios">Servicios</a></li>
@@ -1532,7 +1578,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <section class="hero" id="inicio">
     <div class="hero-gradient"></div>
     <video class="hero-video" id="heroVideo" autoplay muted playsinline preload="metadata" poster="/images/hero-camiones-dynamo.jpg">
-        <source src="images/mp_dynamo.mp4" type="video/mp4">
+        <source src="/images/mp_dynamo.mp4" type="video/mp4">
     </video>
     <div class="hero-overlay"></div>
     <div class="hero-road"></div>
@@ -1640,8 +1686,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="strip-inner">
         <a href="#servicios" class="strip-item"><span class="si">■</span> Grupajes</a>
         <a href="#servicios" class="strip-item"><span class="si">■</span> Carga Completa</a>
-        <a href="#servicios" class="strip-item"><span class="si">■</span> Import & Export</a>
-        <a href="#servicios" class="strip-item"><span class="si">■</span> Nacional 24h</a>
     </div>
 </div>
 
@@ -1652,25 +1696,25 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <div class="carousel-track" id="track">
 
             <!-- SET 1 -->
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/jardipond.png" alt="Jardí Pond"></div><div><span class="logo-name">Jardí Pond</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/ferticenter.png" alt="Ferticenter"></div><div><span class="logo-name">Ferticenter</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/jardipond.png" alt="Jardí Pond"></div><div><span class="logo-name">Jardí Pond</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/ferticenter.png" alt="Ferticenter"></div><div><span class="logo-name">Ferticenter</span></div></div></div>
 
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/rosport.png" alt="Rosport"></div><div><span class="logo-name">Rosport</span><span class="logo-sub">Servicios Integrales</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/talsa.png" alt="TALSA"></div><div><span class="logo-name">TALSA</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/aceitunascazorla.png" alt="Aceitunas Cazorla"></div><div><span class="logo-name">Aceitunas Cazorla</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/solbau.png" alt="SOLBAU"></div><div><span class="logo-name">SOLBAU</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/poolback.png" alt="PoolBack"></div><div><span class="logo-name">PoolBack</span><span class="logo-sub">Logística del Envase</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/pansur.png" alt="PANSUR"></div><div><span class="logo-name">PANSUR</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/sagredo.png" alt="Sagredo"></div><div><span class="logo-name">Sagredo</span><span class="logo-sub">Abonos y Semillas</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/jysk.png" alt="JYSK"></div><div><span class="logo-name">JYSK</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/alquibox.png" alt="AlquiBox"></div><div><span class="logo-name">AlquiBox</span><span class="logo-sub">Andalucía</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/ghi.png" alt="ghi"></div><div><span class="logo-name">ghi</span><span class="logo-sub">Smart Furnaces</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/rivi.png" alt="RIVI"></div><div><span class="logo-name">RIVI</span><span class="logo-sub">Technical Group</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/almendrun.png" alt="Almendrun"></div><div><span class="logo-name">Almendrun</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/prodisa.png" alt="Prodisa"></div><div><span class="logo-name">Prodisa</span><span class="logo-sub">Comunicación</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/grupopuma.png" alt="Grupo Puma"></div><div><span class="logo-name">Grupo Puma</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/perfilesmiranda.png" alt="Perfiles Miranda"></div><div><span class="logo-name">Perfiles Miranda</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/aguacates.png" alt="Aguacates"></div><div><span class="logo-name">Aguacates</span><span class="logo-sub">Valle del Guadiana</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/rosport.png" alt="Rosport"></div><div><span class="logo-name">Rosport</span><span class="logo-sub">Servicios Integrales</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/talsa.png" alt="TALSA"></div><div><span class="logo-name">TALSA</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/aceitunascazorla.png" alt="Aceitunas Cazorla"></div><div><span class="logo-name">Aceitunas Cazorla</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/solbau.png" alt="SOLBAU"></div><div><span class="logo-name">SOLBAU</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/poolback.png" alt="PoolBack"></div><div><span class="logo-name">PoolBack</span><span class="logo-sub">Logística del Envase</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/pansur.png" alt="PANSUR"></div><div><span class="logo-name">PANSUR</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/sagredo.png" alt="Sagredo"></div><div><span class="logo-name">Sagredo</span><span class="logo-sub">Abonos y Semillas</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/jysk.png" alt="JYSK"></div><div><span class="logo-name">JYSK</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/alquibox.png" alt="AlquiBox"></div><div><span class="logo-name">AlquiBox</span><span class="logo-sub">Andalucía</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/ghi.png" alt="ghi"></div><div><span class="logo-name">ghi</span><span class="logo-sub">Smart Furnaces</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/rivi.png" alt="RIVI"></div><div><span class="logo-name">RIVI</span><span class="logo-sub">Technical Group</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/almendrun.png" alt="Almendrun"></div><div><span class="logo-name">Almendrun</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/prodisa.png" alt="Prodisa"></div><div><span class="logo-name">Prodisa</span><span class="logo-sub">Comunicación</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/grupopuma.png" alt="Grupo Puma"></div><div><span class="logo-name">Grupo Puma</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/perfilesmiranda.png" alt="Perfiles Miranda"></div><div><span class="logo-name">Perfiles Miranda</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/aguacates.png" alt="Aguacates"></div><div><span class="logo-name">Aguacates</span><span class="logo-sub">Valle del Guadiana</span></div></div></div>
             <div class="logo-pill"><div class="logo-box"><div class="logo-icon logo-initial">K</div><div><span class="logo-name">Krypton</span><span class="logo-sub">Factory</span></div></div></div>
             <div class="logo-pill"><div class="logo-box"><div class="logo-icon logo-initial">G</div><div><span class="logo-name">Gramoflor</span><span class="logo-sub">Ibérica</span></div></div></div>
             <div class="logo-pill"><div class="logo-box"><div class="logo-icon logo-initial">F</div><div><span class="logo-name">H. Ferreira</span><span class="logo-sub">Frutas</span></div></div></div>
@@ -1698,25 +1742,25 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             <div class="logo-pill"><div class="logo-box"><div class="logo-icon logo-initial">R</div><div><span class="logo-name">Rimobel</span></div></div></div>
 
             <!-- SET 2 duplicado -->
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/jardipond.png" alt="Jardí Pond"></div><div><span class="logo-name">Jardí Pond</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/ferticenter.png" alt="Ferticenter"></div><div><span class="logo-name">Ferticenter</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/jardipond.png" alt="Jardí Pond"></div><div><span class="logo-name">Jardí Pond</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/ferticenter.png" alt="Ferticenter"></div><div><span class="logo-name">Ferticenter</span></div></div></div>
 
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/rosport.png" alt="Rosport"></div><div><span class="logo-name">Rosport</span><span class="logo-sub">Servicios Integrales</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/talsa.png" alt="TALSA"></div><div><span class="logo-name">TALSA</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/aceitunascazorla.png" alt="Aceitunas Cazorla"></div><div><span class="logo-name">Aceitunas Cazorla</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/solbau.png" alt="SOLBAU"></div><div><span class="logo-name">SOLBAU</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/poolback.png" alt="PoolBack"></div><div><span class="logo-name">PoolBack</span><span class="logo-sub">Logística del Envase</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/pansur.png" alt="PANSUR"></div><div><span class="logo-name">PANSUR</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/sagredo.png" alt="Sagredo"></div><div><span class="logo-name">Sagredo</span><span class="logo-sub">Abonos y Semillas</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/jysk.png" alt="JYSK"></div><div><span class="logo-name">JYSK</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/alquibox.png" alt="AlquiBox"></div><div><span class="logo-name">AlquiBox</span><span class="logo-sub">Andalucía</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/ghi.png" alt="ghi"></div><div><span class="logo-name">ghi</span><span class="logo-sub">Smart Furnaces</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/rivi.png" alt="RIVI"></div><div><span class="logo-name">RIVI</span><span class="logo-sub">Technical Group</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/almendrun.png" alt="Almendrun"></div><div><span class="logo-name">Almendrun</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/prodisa.png" alt="Prodisa"></div><div><span class="logo-name">Prodisa</span><span class="logo-sub">Comunicación</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/grupopuma.png" alt="Grupo Puma"></div><div><span class="logo-name">Grupo Puma</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/perfilesmiranda.png" alt="Perfiles Miranda"></div><div><span class="logo-name">Perfiles Miranda</span></div></div></div>
-            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="images/logos/aguacates.png" alt="Aguacates"></div><div><span class="logo-name">Aguacates</span><span class="logo-sub">Valle del Guadiana</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/rosport.png" alt="Rosport"></div><div><span class="logo-name">Rosport</span><span class="logo-sub">Servicios Integrales</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/talsa.png" alt="TALSA"></div><div><span class="logo-name">TALSA</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/aceitunascazorla.png" alt="Aceitunas Cazorla"></div><div><span class="logo-name">Aceitunas Cazorla</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/solbau.png" alt="SOLBAU"></div><div><span class="logo-name">SOLBAU</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/poolback.png" alt="PoolBack"></div><div><span class="logo-name">PoolBack</span><span class="logo-sub">Logística del Envase</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/pansur.png" alt="PANSUR"></div><div><span class="logo-name">PANSUR</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/sagredo.png" alt="Sagredo"></div><div><span class="logo-name">Sagredo</span><span class="logo-sub">Abonos y Semillas</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/jysk.png" alt="JYSK"></div><div><span class="logo-name">JYSK</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/alquibox.png" alt="AlquiBox"></div><div><span class="logo-name">AlquiBox</span><span class="logo-sub">Andalucía</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/ghi.png" alt="ghi"></div><div><span class="logo-name">ghi</span><span class="logo-sub">Smart Furnaces</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/rivi.png" alt="RIVI"></div><div><span class="logo-name">RIVI</span><span class="logo-sub">Technical Group</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/almendrun.png" alt="Almendrun"></div><div><span class="logo-name">Almendrun</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/prodisa.png" alt="Prodisa"></div><div><span class="logo-name">Prodisa</span><span class="logo-sub">Comunicación</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/grupopuma.png" alt="Grupo Puma"></div><div><span class="logo-name">Grupo Puma</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/perfilesmiranda.png" alt="Perfiles Miranda"></div><div><span class="logo-name">Perfiles Miranda</span></div></div></div>
+            <div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/aguacates.png" alt="Aguacates"></div><div><span class="logo-name">Aguacates</span><span class="logo-sub">Valle del Guadiana</span></div></div></div>
             <div class="logo-pill"><div class="logo-box"><div class="logo-icon logo-initial">K</div><div><span class="logo-name">Krypton</span><span class="logo-sub">Factory</span></div></div></div>
             <div class="logo-pill"><div class="logo-box"><div class="logo-icon logo-initial">G</div><div><span class="logo-name">Gramoflor</span><span class="logo-sub">Ibérica</span></div></div></div>
             <div class="logo-pill"><div class="logo-box"><div class="logo-icon logo-initial">F</div><div><span class="logo-name">H. Ferreira</span><span class="logo-sub">Frutas</span></div></div></div>
@@ -1803,7 +1847,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </p>
         <div class="svc-grid">
             <div class="svc-card svc-featured reveal">
-                <img loading="lazy" src="images/transporte-tauliner.jpg" alt="Grupajes" class="svc-card-img">
+                <img loading="lazy" src="/images/transporte-tauliner.jpg" alt="Grupajes" class="svc-card-img">
                 <div class="svc-card-body">
                     <h3>Grupajes Nacionales e Internacional</h3>
                     <p>Comparte espacio y optimiza costes. Mercancía paletizada y cargas especiales. Recogida en 24h, entrega en 24-48h.</p>
@@ -1811,7 +1855,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 </div>
             </div>
             <div class="svc-card svc-featured reveal" style="transition-delay:.1s">
-                <img loading="lazy" src="images/FOTO 1 - copia55420ac5170e2.jpeg" alt="Carga Completa" class="svc-card-img">
+                <img loading="lazy" src="/images/FOTO 1 - copia55420ac5170e2.jpeg" alt="Carga Completa" class="svc-card-img">
                 <div class="svc-card-body">
                     <h3>Carga Completa Nacionales e Internacional</h3>
                     <p>El camión es tuyo. Sin transbordos, máxima seguridad y rapidez. Entrega directa origen-destino. Tauliner, rígido con plataforma y más.</p>
@@ -1819,7 +1863,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 </div>
             </div>
             <div class="svc-card reveal" style="transition-delay:.2s">
-                <img loading="lazy" src="images/AdobeStock_154376791.jpeg" alt="Importación" class="svc-card-img">
+                <img loading="lazy" src="/images/AdobeStock_154376791.jpeg" alt="Importación" class="svc-card-img">
                 <div class="svc-card-body">
                     <h3>Importación</h3>
                     <p>Hasta la puerta de tu empresa. Importamos desde cualquier punto de Europa garantizando plazos de entrega y elevados estándares de calidad.</p>
@@ -1827,7 +1871,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 </div>
             </div>
             <div class="svc-card reveal" style="transition-delay:.3s">
-                <img loading="lazy" src="images/AdobeStock_260603287.jpeg" alt="Exportación" class="svc-card-img">
+                <img loading="lazy" src="/images/AdobeStock_260603287.jpeg" alt="Exportación" class="svc-card-img">
                 <div class="svc-card-body">
                     <h3>Exportación</h3>
                     <p>Portugal, Francia, Italia, Alemania, Polonia, Austria, Bélgica, Irlanda, Dinamarca, Suiza, Países Bajos y Luxemburgo (BENELUX).</p>
@@ -1835,11 +1879,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 </div>
             </div>
             <div class="svc-card svc-almacen reveal" style="transition-delay:.4s">
-                <img loading="lazy" src="images/PLT.jpg" alt="Almacenamiento corta estancia" class="svc-card-img">
+                <img loading="lazy" src="/images/PLT.jpg" alt="Almacenamiento corta estancia" class="svc-card-img">
                 <div class="svc-card-body">
                     <h3>Almacenamiento corta estancia</h3>
                     <p>Almacenamiento de corta estancia (1 a 7 días) en cualquier provincia de España. Para entregas posteriores disponemos de camiones carrozados o de 2 ejes para zonas urbanas, o recogida por el cliente según prefiera.</p>
-                    <span class="svc-tag">Servicio integral</span>
+                    <span class="svc-tag svc-tag-soon">Servicio aún no disponible</span>
                     <div class="alm-precio">
                         <label class="alm-precio-label" for="alm-prov-select">Calcula tu precio</label>
                         <select id="alm-prov-select" class="alm-precio-select" onchange="updateAlmPrecio(this)" aria-label="Selecciona provincia">
@@ -1925,17 +1969,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                     <strong id="alm-total">240 € + IVA</strong>
                                 </div>
                             </div>
-                            <p class="alm-precio-note" id="alm-precio-note">Precio orientativo para 1 trailer completo (33 palets europeo máx.) y sin entrega — recogida por el cliente con su propio camión/trailer. Contrata abajo y nos coordinamos por los detalles.</p>
-                            <div class="alm-precio-cta">
-                                <a id="alm-cta-email" class="alm-cta-email" href="#" aria-label="Contratar por email">
-                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-                                    Email
-                                </a>
-                                <a id="alm-cta-wa" class="alm-cta-wa" target="_blank" rel="noopener" href="#" aria-label="Contratar por WhatsApp">
-                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                                    WhatsApp
-                                </a>
-                            </div>
+                            <p class="alm-precio-note" id="alm-precio-note">Precio orientativo para 1 trailer completo (33 palets europeo máx.) y sin entrega — recogida por el cliente con su propio camión/trailer.</p>
+                            <p class="alm-precio-pending">Este servicio aún no está disponible para contratar online. Estamos terminando los últimos detalles operativos antes de abrirlo.</p>
                         </div>
                     </div>
                 </div>
@@ -2037,7 +2072,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             <!-- Panel visual izquierdo — 100% CSS, sin imágenes externas -->
             <div class="why-visual reveal-l">
                 <div class="why-main-card">
-                    <img loading="lazy" src="images/OFICINA.png" alt="Oficina Dynamo Transportes" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;position:absolute;inset:0;z-index:0;">
+                    <img loading="lazy" src="/images/OFICINA.png" alt="Oficina Dynamo Transportes" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;position:absolute;inset:0;z-index:0;">
                     <div class="why-main-card why-card-content" style="background:transparent;box-shadow:none;height:auto;position:relative">
                         <div class="why-card-text">
                             <div class="big-num">+480</div>
@@ -2481,7 +2516,7 @@ function openLegal(tab) {
 <footer>
     <div class="footer-grid">
         <div>
-            <img src="images/1.png" alt="Dynamo" style="height:40px;width:auto;margin-bottom:0.5rem;">
+            <img src="/images/1.png" alt="Dynamo" style="height:40px;width:auto;margin-bottom:0.5rem;">
             <div class="f-tagline">Operador de Transportes · Cumplimos!</div>
             <p class="f-desc">Especialistas en grupajes, carga completa y transporte nacional e internacional. Más de 480 clientes confían en nosotros cada día.</p>
             <div class="f-social">
@@ -2540,7 +2575,7 @@ function openLegal(tab) {
             <span class="contact-fab-name-title">Álvaro Blanco de Dynamo</span>
             <span class="contact-fab-name-status">En línea · Respondo enseguida</span>
         </span>
-        <img src="images/ALVARO_circular_ZOOM.png" alt="Álvaro - Contacto Dynamo Transportes">
+        <img src="/images/ALVARO_circular_ZOOM.png" alt="Álvaro - Contacto Dynamo Transportes">
     </button>
     <div class="contact-fab-actions" role="menu" aria-label="Canales de contacto">
         <a class="contact-fab-action act-email" role="menuitem" href="mailto:info@dynamotrans.com?subject=Solicitud%20de%20TARIFA%20para%20transporte&body=Buenos%20d%C3%ADas%2C%0D%0A%0D%0ASOLICITUD%20DE%20TARIFA%3A%0D%0A%0D%0A1.%20%C2%BFQue%20tipo%20de%20mercanc%C3%ADa%20es%3F%0D%0APaletizado%2C%20maquinaria%2C%20etc.%3A%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A2.%20%C2%BFEs%20CARGA%20COMPLETA%20de%20Trailer%20o%20GRUPAJE%20%28carga%20parcial%3A%20metros%2Fpeso%29%3F%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A3.%20%C2%BFC%C3%B3digos%20postales%20o%20localidad%20de%20origen%20y%20destino%3F%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%0D%0AIMPORTANTE%3A%0D%0A%0D%0A%2A%20El%20cliente%20debe%20disponer%20de%20medios%20de%20carga%20y%20descarga%20en%20origen%20y%20destino.%20Por%20ejemplo%20carretilla%20elevadora%20o%20torito.%0D%0A%0D%0A%2A%20El%20lugar%20de%20carga%20y%20entrega%20son%20naves%20o%20almacenes%20y%20es%20accesible%20para%20un%20trailer.%20%28En%20caso%20de%20no%20tener%20medios%2C%20se%20puede%20valorar%20cami%C3%B3n%20con%20trampilla%20elevadora.%20En%20caso%20de%20ser%20obras%20debe%20avisarse.%29%0D%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A" aria-label="Enviar email">
@@ -3129,7 +3164,7 @@ function updateAlmTotal() {
     if (qtyD === 0) deliveryTxt = 'sin entrega — recogida por el cliente con su propio camión/trailer';
     else if (qtyD === 1) deliveryTxt = '1 entrega en zona urbana (camión 2 ejes · 4 m)';
     else deliveryTxt = qtyD + ' entregas en zona urbana (camión 2 ejes · 4 m)';
-    document.getElementById('alm-precio-note').textContent = 'Precio orientativo para ' + trailerTxt + ' ' + paletsTxt + ' y ' + deliveryTxt + '. Contrata abajo y nos coordinamos por los detalles.';
+    document.getElementById('alm-precio-note').textContent = 'Precio orientativo para ' + trailerTxt + ' ' + paletsTxt + ' y ' + deliveryTxt + '.';
     var subject = 'Solicitud TARIFA Almacenamiento + Entrega — ' + prov;
     var deliveryLineEmail = qtyD === 0
         ? 'Entrega zona urbana: 0 (recogida por el cliente con otro camión/trailer)\r\n'
@@ -3164,8 +3199,7 @@ function updateAlmTotal() {
         '*3. ¿Fecha estimada de llegada al almacén?*\n—\n\n' +
         '*4. ' + destLineLabel + ':*\n—\n\n' +
         'Comentarios:\n—\n';
-    document.getElementById('alm-cta-email').href = 'mailto:info@dynamotrans.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(bodyEmail);
-    document.getElementById('alm-cta-wa').href = 'https://wa.me/34628995709?text=' + encodeURIComponent(bodyWa);
+    // CTAs (email/WA) eliminados del DOM: servicio aun no disponible para contratar.
 }
 function toggleHeroCotizar(btn) {
     var wrap = btn.parentElement;
