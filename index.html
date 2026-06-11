@@ -237,36 +237,30 @@
             .tb-spin { animation: none; --tb-progress: 0deg; }
         }
 
-        /* Banda anclada al borde superior del hero — neon morado/verde llamativo.
-           3 animaciones encadenadas: entrada slide+fade, shimmer del degradado
-           (luz que viaja de izq a der) y glow pulsante del box-shadow */
+        /* Banda anclada al borde superior del hero — neon sutil morado/verde.
+           Entrada slide+fade + shimmer lento del degradado + glow muy suave */
         .hero-banner {
             position: relative; z-index: 2;
             background: linear-gradient(90deg,
-                #2a008f 0%,
-                var(--purple) 18%,
-                var(--purple-light) 38%,
-                #6b3dff 50%,
-                #2eb368 65%,
-                var(--green) 82%,
+                var(--purple) 0%,
+                var(--purple-light) 35%,
+                #4d33dd 55%,
+                var(--green) 80%,
                 var(--purple) 100%);
-            background-size: 220% 100%;
+            background-size: 180% 100%;
             color: white; text-align: center;
-            padding: 0.6rem 1.2rem; font-size: 0.92rem; font-weight: 800;
-            letter-spacing: 0.4px; line-height: 1.3;
-            text-shadow:
-                0 0 6px rgba(255,255,255,0.85),
-                0 0 14px rgba(255,255,255,0.45),
-                0 0 22px rgba(255,255,255,0.25);
+            padding: 0.6rem 1.2rem; font-size: 0.92rem; font-weight: 700;
+            letter-spacing: 0.3px; line-height: 1.3;
+            /* Glow del texto MUY sutil — una sola capa de halo blanco tenue */
+            text-shadow: 0 0 10px rgba(255,255,255,0.18);
             box-shadow:
-                0 0 22px rgba(107,61,255,0.55),
-                0 0 44px rgba(34,165,90,0.28),
+                0 0 14px rgba(107,61,255,0.22),
                 0 6px 18px rgba(10,2,48,0.18);
             opacity: 0; transform: translateY(-10px);
             animation:
                 heroBannerIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards,
-                bannerShimmer 4.5s linear infinite 1s,
-                bannerNeonPulse 2.8s ease-in-out infinite 1.2s;
+                bannerShimmer 8s linear infinite 1s,
+                bannerNeonPulse 4.5s ease-in-out infinite 1.2s;
         }
         @keyframes heroBannerIn {
             0%   { opacity: 0; transform: translateY(-10px); }
@@ -274,19 +268,17 @@
         }
         @keyframes bannerShimmer {
             0%   { background-position: 0% 50%; }
-            100% { background-position: 220% 50%; }
+            100% { background-position: 180% 50%; }
         }
         @keyframes bannerNeonPulse {
             0%, 100% {
                 box-shadow:
-                    0 0 22px rgba(107,61,255,0.55),
-                    0 0 44px rgba(34,165,90,0.28),
+                    0 0 14px rgba(107,61,255,0.22),
                     0 6px 18px rgba(10,2,48,0.18);
             }
             50% {
                 box-shadow:
-                    0 0 30px rgba(34,165,90,0.55),
-                    0 0 52px rgba(107,61,255,0.32),
+                    0 0 18px rgba(34,165,90,0.22),
                     0 6px 18px rgba(10,2,48,0.18);
             }
         }
