@@ -3235,7 +3235,6 @@ document.addEventListener('click', function(e){
         rigido:   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     };
     function rebuildMl() {
-        var prev = parseFloat(ml.value);
         var opts = ML_OPTS[camionSel.value] || ML_OPTS.tauliner;
         ml.innerHTML = opts.map(function (v, i) {
             var eur = Math.floor(v * EUR_POR_ML);
@@ -3244,19 +3243,18 @@ document.addEventListener('click', function(e){
             var label = fmt(v, v % 1 === 0 ? 0 : 1) + ' ml · ' + eur + ' euro / ' + amr + ' amer.' + (isFull ? ' · COMPLETO' : '');
             return '<option value="' + v + '">' + label + '</option>';
         }).join('');
-        var match = opts.indexOf(prev);
-        ml.value = match >= 0 ? prev : opts[opts.length - 1];
+        // Siempre seleccionar el MAXIMO del camion al cambiar / cargar
+        ml.value = opts[opts.length - 1];
     }
     function rebuildPeso() {
-        var prev = parseFloat(peso.value);
         var opts = PESO_OPTS[camionSel.value] || PESO_OPTS.tauliner;
         peso.innerHTML = opts.map(function (t, i) {
             var isFull = (i === opts.length - 1);
             var label = fmt(t, t % 1 === 0 ? 0 : 1) + ' Tn' + (isFull ? ' · MAX' : '');
             return '<option value="' + t + '">' + label + '</option>';
         }).join('');
-        var match = opts.indexOf(prev);
-        peso.value = match >= 0 ? prev : opts[opts.length - 1];
+        // Siempre seleccionar el MAXIMO del camion al cambiar / cargar
+        peso.value = opts[opts.length - 1];
     }
     camionSel.addEventListener('change', function () { rebuildMl(); rebuildPeso(); });
     rebuildMl();
