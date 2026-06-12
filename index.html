@@ -634,9 +634,12 @@
         ========================================= */
         .tarifador {
             width: 100%; max-width: 700px; margin: 0 auto 1.2rem;
-            background: #fff;
+            /* Sutil transparencia (~93%) sin backdrop-filter: deja respirar el video
+               de fondo sin penalizar legibilidad ni rendimiento en movil */
+            background: rgba(255,255,255,0.93);
+            border: 1px solid rgba(255,255,255,0.6);
             border-radius: 18px;
-            box-shadow: 0 24px 60px rgba(10,2,48,0.40), 0 8px 22px rgba(10,2,48,0.22);
+            box-shadow: 0 24px 60px rgba(10,2,48,0.45), 0 8px 22px rgba(10,2,48,0.28);
             padding: 1.05rem 1.2rem 1.1rem;
             color: var(--navy); text-align: left;
             opacity: 0; transform: translateY(18px) scale(0.97);
