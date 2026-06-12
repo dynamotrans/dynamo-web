@@ -547,7 +547,7 @@
                y el carrousel se va debajo del fold. Es aceptable: el tarifador es lo
                primario en el primer pintado. svh evita los saltos de la barra URL iOS */
             min-height: calc(100vh - 325px);
-            min-height: calc(100svh - 325px);
+            min-height: calc(100svh - 365px);
             display: flex; align-items: center; justify-content: center; overflow: hidden;
             padding: 1rem 0 1.2rem;
             background: linear-gradient(135deg, #0a0230 0%, #1a008a 30%, #3300cc 60%, #0a0230 100%);
@@ -556,7 +556,7 @@
             .hero {
                 /* Movil compactado: nav(58) + banner(32) + strip(36) + carrousel(~95) ≈ 220 */
                 min-height: calc(100vh - 220px);
-                min-height: calc(100svh - 220px);
+                min-height: calc(100svh - 270px);
                 padding: 0.4rem 0 0.5rem;
             }
         }
@@ -776,7 +776,8 @@
         }
         .tar-notes-counter.warn { color: #b32a25; }
         @media (max-width: 600px) {
-            .tar-notes-toggle { font-size: 0.7rem; padding: 0.38rem 0.7rem; }
+            .tar-notes-wrap { margin-top: 0.35rem; }
+            .tar-notes-toggle { font-size: 0.7rem; padding: 0.32rem 0.65rem; }
             .tar-notes-body textarea { font-size: 16px; min-height: 60px; }
         }
 
