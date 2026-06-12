@@ -3648,6 +3648,17 @@ function updateAlmTotal() {
             count.textContent = n;
             count.parentNode.classList.toggle('warn', n >= 950);
         });
+        // Movil: al abrir el teclado, hacer scroll para que el textarea quede
+        // visible por encima del teclado (block: 'center' = lo deja en el medio
+        // del viewport util). Delay 300ms para que el teclado se haya pintado.
+        var isTouch = window.matchMedia('(hover: none)').matches;
+        area.addEventListener('focus', function () {
+            if (!isTouch) return;
+            setTimeout(function () {
+                try { area.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                catch (e) { area.scrollIntoView(); }
+            }, 300);
+        });
     })();
     function clearError(input) {
         var wrap = input.closest('.tar-input-wrap');
