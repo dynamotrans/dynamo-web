@@ -671,6 +671,29 @@
             border-color: var(--purple);
             box-shadow: 0 0 0 4px rgba(51,0,204,0.10);
         }
+        /* Estado de error (origen / destino vacios al pulsar Solicitar tarifa) */
+        .tar-input-wrap.tar-error {
+            border-color: #e53935;
+            box-shadow: 0 0 0 4px rgba(229,57,53,0.12);
+            animation: tarShake 0.35s ease;
+        }
+        .tar-input-wrap.tar-error svg { color: #e53935; }
+        @keyframes tarShake {
+            0%, 100% { transform: translateX(0); }
+            25%      { transform: translateX(-4px); }
+            75%      { transform: translateX(4px); }
+        }
+        /* Cartel de aviso "Falta introducir lugar" */
+        .tar-warning {
+            display: none;
+            margin-top: 0.6rem; padding: 0.65rem 0.85rem;
+            background: rgba(229,57,53,0.08);
+            border: 1px solid rgba(229,57,53,0.4);
+            border-radius: 10px;
+            color: #b32a25; font-size: 0.8rem; font-weight: 700;
+            text-align: center;
+        }
+        .tar-warning.show { display: block; animation: fadeUp 0.3s ease both; }
         .tar-input-wrap svg {
             width: 18px; height: 18px; color: var(--purple);
             margin: 0 0.5rem 0 0.75rem; flex-shrink: 0;
@@ -1634,7 +1657,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <div class="tar-field">
                     <label for="tar-urgencia">Fecha de carga</label>
                     <select id="tar-urgencia" class="tar-select">
-                        <option value="dia">Fecha fija (Un único día, más cara)</option>
+                        <option value="dia">Fecha fija (Un día en concreto, más cara)</option>
                         <option value="estandar" selected>Ventana de 2 días (Estándar)</option>
                         <option value="flexible">Ventana de 4 días (Flexible, más económica)</option>
                     </select>
@@ -1649,6 +1672,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 </div>
             </div>
 
+            <div class="tar-warning" id="tar-warning" role="alert" aria-live="polite">⚠ Introduce el origen y el destino antes de solicitar tarifa.</div>
             <div class="tar-cta-wrap" id="tar-cta-wrap">
                 <button class="tar-cta" type="button" id="tar-cta">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
@@ -3439,11 +3463,38 @@ function updateAlmTotal() {
     setupAutocomplete('tar-orig', 'tar-orig-sug');
     setupAutocomplete('tar-dest', 'tar-dest-sug');
 
+    // Validacion: si origen/destino vacios, borde rojo + cartel y NO mostramos
+    // los botones de envio (evita solicitudes sin datos)
+    var origInput = document.getElementById('tar-orig');
+    var destInput = document.getElementById('tar-dest');
+    var warning = document.getElementById('tar-warning');
+    function clearError(input) {
+        var wrap = input.closest('.tar-input-wrap');
+        if (wrap) wrap.classList.remove('tar-error');
+        if (!origInput.closest('.tar-input-wrap').classList.contains('tar-error') &&
+            !destInput.closest('.tar-input-wrap').classList.contains('tar-error')) {
+            warning.classList.remove('show');
+        }
+    }
+    origInput.addEventListener('input', function () { clearError(origInput); });
+    destInput.addEventListener('input', function () { clearError(destInput); });
+
     // CTA: al pulsar "Solicitar tarifa" se construye el mensaje preformateado
     // y se sustituye el boton por 2 botones (Email + WhatsApp) ya listos para enviar
     document.getElementById('tar-cta').addEventListener('click', function () {
-        var orig = document.getElementById('tar-orig').value.trim() || '—';
-        var dest = document.getElementById('tar-dest').value.trim() || '—';
+        var origVal = origInput.value.trim();
+        var destVal = destInput.value.trim();
+        if (!origVal || !destVal) {
+            var origWrap = origInput.closest('.tar-input-wrap');
+            var destWrap = destInput.closest('.tar-input-wrap');
+            if (!origVal) origWrap.classList.add('tar-error');
+            if (!destVal) destWrap.classList.add('tar-error');
+            warning.classList.add('show');
+            (origVal ? destInput : origInput).focus();
+            return;
+        }
+        var orig = origVal;
+        var dest = destVal;
         var mlNum = parseFloat(ml.value);
         var pesoNum = parseFloat(peso.value);
         var mlV = fmt(mlNum, 1);
@@ -3454,7 +3505,7 @@ function updateAlmTotal() {
         var camion = camionEl.options[camionEl.selectedIndex].getAttribute('data-full') || camionEl.value;
         var merca = document.getElementById('tar-merca').value;
         var urgV = urgSel.value;
-        var urgTxt = { dia: 'Fecha fija (un único día, más cara)', estandar: 'Ventana de 2 días (Estándar)', flexible: 'Ventana de 4 días (Flexible, más económica)' }[urgV];
+        var urgTxt = { dia: 'Fecha fija (un día en concreto, más cara)', estandar: 'Ventana de 2 días (Estándar)', flexible: 'Ventana de 4 días (Flexible, más económica)' }[urgV];
         // Incluir SIEMPRE la fecha seleccionada (si la hay) — para ventanas se
         // interpreta como la fecha base desde la que empieza la franja
         var fechaV = diaSel.value === 'otro' ? fechaInput.value : diaSel.value;
