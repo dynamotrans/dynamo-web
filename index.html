@@ -50,7 +50,15 @@
         try {
             if (sessionStorage.getItem('homeTransition')) {
                 document.documentElement.classList.add('from-transition');
+                // Centrar el gradiente de llegada donde estaba el del wormhole de salida
+                var _hc = sessionStorage.getItem('homeTransitionCenter');
+                if (_hc) {
+                    var _hp = _hc.split(' ');
+                    document.documentElement.style.setProperty('--acx', _hp[0]);
+                    document.documentElement.style.setProperty('--acy', _hp[1]);
+                }
                 sessionStorage.removeItem('homeTransition');
+                sessionStorage.removeItem('homeTransitionCenter');
             }
         } catch (e) {}
     </script>
@@ -59,6 +67,10 @@
     <meta name="author" content="Dynamo Operador Logistico S.L.">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://www.dynamotrans.com/">
+    <!-- Flatpickr (calendario customizable) — usado por el tarifador del hero -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/es.js"></script>
 
     <!-- Mobile -->
     <meta name="theme-color" content="#3300cc">
@@ -237,8 +249,7 @@
             .tb-spin { animation: none; --tb-progress: 0deg; }
         }
 
-        /* Banda anclada al borde superior del hero — neon sutil morado/verde.
-           Entrada slide+fade + shimmer lento del degradado + glow muy suave */
+        /* Banda anclada al borde superior del hero — neon sutil morado/verde */
         .hero-banner {
             position: relative; z-index: 2;
             background: linear-gradient(90deg,
@@ -251,7 +262,6 @@
             color: white; text-align: center;
             padding: 0.6rem 1.2rem; font-size: 0.92rem; font-weight: 700;
             letter-spacing: 0.3px; line-height: 1.3;
-            /* Glow del texto MUY sutil — una sola capa de halo blanco tenue */
             text-shadow: 0 0 10px rgba(255,255,255,0.18);
             box-shadow:
                 0 0 14px rgba(107,61,255,0.22),
@@ -363,18 +373,29 @@
 
         /* =========================================
            PORTAL TRANSITION — expanding portal effect
+           Dos capas:
+           1) .portal-transition: cortina plana que se funde rapido (cubre el lado
+              opuesto al click mientras el wormhole esta llegando, evita franja vacia)
+           2) .portal-warp (hijo): el efecto wormhole con clip-path expandiendo desde
+              el punto del click. El clip-path solo recorta esta capa, no la cortina
         ========================================= */
         .portal-transition {
             position: fixed; inset: 0; z-index: 999999; pointer-events: none;
             --cx: 50%; --cy: 50%;
+            background: var(--navy);
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+        .portal-transition.active { opacity: 1; pointer-events: auto; }
+        .portal-warp {
+            position: absolute; inset: 0; overflow: hidden;
             background:
                 radial-gradient(circle at var(--cx) var(--cy),
                     #6b3dff 0%, var(--purple) 22%, var(--purple-nav) 55%, var(--navy) 100%);
             clip-path: circle(0% at var(--cx) var(--cy));
-            transition: clip-path 0.75s cubic-bezier(0.7, 0, 0.25, 1);
-            overflow: hidden;
+            transition: clip-path 0.7s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .portal-transition.active { clip-path: circle(160% at var(--cx) var(--cy)); pointer-events: auto; }
+        .portal-transition.active .portal-warp { clip-path: circle(180% at var(--cx) var(--cy)); }
         .portal-stars {
             position: absolute; inset: 0; opacity: 0;
             background:
@@ -391,7 +412,7 @@
                 radial-gradient(2px 2px at 50% 30%, white 50%, transparent 100%),
                 radial-gradient(1.5px 1.5px at 18% 50%, white 50%, transparent 100%);
         }
-        .portal-transition.active .portal-stars { animation: portalTwinkle 0.9s ease 0.15s forwards; }
+        .portal-transition.active .portal-stars { animation: portalTwinkle 0.7s ease 0.1s forwards; }
         @keyframes portalTwinkle {
             0%   { opacity: 0; transform: scale(0.6) rotate(-8deg); }
             45%  { opacity: 1; }
@@ -399,18 +420,19 @@
         }
         .portal-ring {
             position: absolute; top: 50%; left: 50%;
-            width: 0; height: 0;
+            width: 480px; height: 480px;
             border-radius: 50%;
             border: 2px solid rgba(255,255,255,0.45);
-            transform: translate(-50%, -50%);
+            /* Solo transform/opacity: animar width/height fuerza layout por frame */
+            transform: translate(-50%, -50%) scale(0);
             opacity: 0;
         }
-        .portal-transition.active .portal-ring  { animation: portalRing 0.85s ease 0.1s forwards; }
-        .portal-transition.active .portal-ring2 { animation: portalRing 0.85s ease 0.22s forwards; }
-        .portal-transition.active .portal-ring3 { animation: portalRing 0.85s ease 0.34s forwards; }
+        .portal-transition.active .portal-ring  { animation: portalRing 0.6s ease 0.08s forwards; }
+        .portal-transition.active .portal-ring2 { animation: portalRing 0.6s ease 0.18s forwards; }
+        .portal-transition.active .portal-ring3 { animation: portalRing 0.6s ease 0.28s forwards; }
         @keyframes portalRing {
-            0%   { width: 0; height: 0; opacity: 0.9; border-width: 3px; }
-            100% { width: 480px; height: 480px; opacity: 0; border-width: 1px; }
+            0%   { transform: translate(-50%, -50%) scale(0); opacity: 0.9; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
         }
         .portal-core {
             position: absolute; top: 50%; left: 50%;
@@ -419,7 +441,7 @@
             display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
             color: white; text-align: center;
         }
-        .portal-transition.active .portal-core { animation: portalCore 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.28s forwards; }
+        .portal-transition.active .portal-core { animation: portalCore 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s forwards; }
         @keyframes portalCore {
             0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.35) rotate(-12deg); }
             60%  { opacity: 1; }
@@ -427,9 +449,9 @@
         }
         .portal-core-lock {
             width: 72px; height: 72px; border-radius: 22px;
-            background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
+            /* Sin backdrop-filter: el blur por frame sobre fondo animado da tirones en movil */
+            background: linear-gradient(135deg, rgba(255,255,255,0.26), rgba(255,255,255,0.10));
             border: 1.5px solid rgba(255,255,255,0.35);
-            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 12px 40px rgba(0,0,0,0.25), 0 0 30px rgba(107,61,255,0.45);
         }
@@ -455,18 +477,15 @@
             .portal-core-lock { width: 58px; height: 58px; border-radius: 18px; }
             .portal-core-lock svg { width: 26px; height: 26px; }
             .portal-core-text { font-size: 0.7rem; letter-spacing: 2px; }
-            @keyframes portalRing {
-                0%   { width: 0; height: 0; opacity: 0.9; border-width: 3px; }
-                100% { width: 320px; height: 320px; opacity: 0; border-width: 1px; }
-            }
+            .portal-ring { width: 320px; height: 320px; }
         }
         @media (prefers-reduced-motion: reduce) {
-            .portal-transition { transition: opacity 0.2s ease; clip-path: none; opacity: 0; }
-            .portal-transition.active { opacity: 1; }
+            .portal-warp { transition: none; clip-path: none; }
+            .portal-transition.active .portal-warp { clip-path: none; }
             .portal-transition.active .portal-ring,
             .portal-transition.active .portal-ring2,
-            .portal-transition.active .portal-ring3,
-            .portal-transition.active .portal-stars,
+            .portal-transition.active .portal-ring3 { animation: none; opacity: 0; }
+            .portal-transition.active .portal-stars { animation: none; opacity: 0.85; transform: none; }
             .portal-transition.active .portal-core { animation: none; opacity: 1; transform: translate(-50%, -50%); }
             .portal-core-loader::after { animation: none; }
         }
@@ -476,7 +495,8 @@
         .from-transition .home-arrival {
             display: flex; align-items: center; justify-content: center;
             position: fixed; inset: 0; z-index: 999999; pointer-events: none;
-            background: radial-gradient(circle at 50% 50%, #6b3dff 0%, var(--purple) 25%, var(--purple-nav) 60%, var(--navy) 100%);
+            /* --acx/--acy: mismo centro que el wormhole de salida (lo setea el script del head) */
+            background: radial-gradient(circle at var(--acx, 50%) var(--acy, 50%), #6b3dff 0%, var(--purple) 25%, var(--purple-nav) 60%, var(--navy) 100%);
             animation: homeArrivalOut 0.85s cubic-bezier(0.55, 0, 0.45, 1) 0.05s forwards;
             will-change: opacity, transform;
         }
@@ -519,23 +539,13 @@
         ========================================= */
         .hero {
             position: relative;
-            /* Carrousel ANCLADO AL PIE del viewport en el primer paint, no recortado.
-               Sumas a restar de 100svh:
-                 desktop: nav (70) + banner (35) + services-strip (50) + carrousel completo (~165) = 320
-                 movil:   nav (58) + banner (32) + services-strip (40) + carrousel completo (~155) = 285
-               svh evita los saltos por la barra de URL en iOS Safari.
-               align-items:flex-end -> el .hero-content cae pegado al borde inferior */
-            min-height: calc(100vh - 320px);
-            min-height: calc(100svh - 320px);
-            display: flex; align-items: flex-end; justify-content: center; overflow: hidden;
-            padding: 0;
+            height: auto; min-height: 0;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+            padding: 4.5rem 0 4rem;
             background: linear-gradient(135deg, #0a0230 0%, #1a008a 30%, #3300cc 60%, #0a0230 100%);
         }
         @media (max-width: 600px) {
-            .hero {
-                min-height: calc(100vh - 285px);
-                min-height: calc(100svh - 285px);
-            }
+            .hero { padding: 1.2rem 0 2.2rem; }
         }
         /* Degradado de marca con zoom suave: estado final tras el vídeo (y fallback) */
         .hero-gradient {
@@ -544,24 +554,26 @@
                         linear-gradient(135deg, #0a0230 0%, #1a008a 30%, #3300cc 60%, #0a0230 100%);
             animation: heroZoom 18s ease-in-out infinite alternate;
         }
-        /* Vídeo de fondo (se reproduce una vez); al terminar se desvanece */
+        /* Vídeo de fondo. Dos videos webm que se reproducen en secuencia con
+           crossfade suave: hero-1 -> hero-2 -> degradado (.hero-gradient) */
         .hero-video {
             position: absolute; inset: 0;
             width: 100%; height: 100%;
             object-fit: cover;
             z-index: 0;
-            opacity: 1;
-            transition: opacity 2.4s ease-in-out;
+            transition: opacity 1.2s ease-in-out;
             animation: heroZoom 18s ease-in-out infinite alternate;
         }
+        .hero-video-2 { opacity: 0; }
+        .hero-video-2.active { opacity: 1; }
         .hero-video.ended { opacity: 0; }
         /* Velo oscuro sobre el vídeo para legibilidad del texto */
         .hero-overlay {
             position: absolute; inset: 0; z-index: 1;
             background: linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.85) 100%);
         }
-        /* La línea vertical animada de "carretera" se ha retirado (se veia rara
-           con el video real de fondo). Mantenemos el ::after con la luz calida. */
+        /* La linea blanca vertical animada (.hero-road::before) se ha retirado:
+           queda solo el ::after con la luz calida del horizonte */
         .hero-road {
             position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none;
         }
@@ -578,16 +590,9 @@
         }
 
         .hero-content {
-            /* Anclado AL PIE del hero por position absolute (mas robusto que
-               depender de flex-end / margin-top:auto en iOS Safari) */
-            position: absolute; left: 0; right: 0; bottom: 0;
-            z-index: 3; text-align: center;
-            color: white;
-            padding: 0 2rem calc(1.2rem + env(safe-area-inset-bottom, 0px));
+            position: relative; z-index: 3; text-align: center;
+            color: white; padding: 1rem 2rem; max-width: 900px;
             display: flex; flex-direction: column; align-items: center;
-        }
-        @media (max-width: 600px) {
-            .hero-content { padding: 0 1rem calc(0.8rem + env(safe-area-inset-bottom, 0px)); }
         }
         .hero-logo-wrap {
             display: inline-block;
@@ -612,29 +617,6 @@
             margin-bottom: 1.2rem; line-height: 1.4; animation: fadeUp 0.9s ease 0.2s both;
         }
         .hero-sub strong { color: white; font-weight: 800; }
-        .hero-cta-wrap {
-            display: flex; flex-direction: column; align-items: stretch; gap: 1rem;
-            width: 100%; max-width: 360px;
-            animation: fadeUp 0.9s ease 0.4s both;
-        }
-        .hero-cotizar-btn {
-            background: var(--green); color: white; font-weight: 900;
-            font-size: 1.1rem; padding: 1.1rem 3rem; border-radius: 18px;
-            border: none; cursor: pointer; letter-spacing: 1px;
-            box-shadow: 0 6px 28px rgba(34,165,90,0.45);
-            transition: transform 0.25s, box-shadow 0.25s, background 0.2s;
-            width: 100%;
-        }
-        .hero-cotizar-btn:hover { transform: translateY(-3px); background: #1c8d4c; box-shadow: 0 8px 32px rgba(34,165,90,0.6); }
-        @media (max-width: 600px) {
-            .hero-cta-wrap { max-width: none; }
-            .hero-cotizar-btn { padding: 1rem 1.5rem; font-size: 1.02rem; }
-        }
-        .hero-cta-wrap.open .hero-cotizar-btn { display: none; }
-        .hero-btns {
-            display: none; gap: 1rem; justify-content: center; flex-wrap: wrap;
-        }
-        .hero-cta-wrap.open .hero-btns { display: flex; animation: fadeUp 0.45s ease both; }
         .btn-wa {
             order: 2;
             background: #25D366; color: white; font-weight: 800;
@@ -651,6 +633,248 @@
             transition: all 0.3s; box-shadow: 0 4px 20px rgba(51,0,204,0.45);
         }
         .btn-email:hover { background: var(--purple-light); transform: translateY(-3px); }
+        /* =========================================
+           TARIFADOR (en el hero)
+        ========================================= */
+        .tarifador {
+            width: 100%; max-width: 700px; margin: 0 auto 1.2rem;
+            /* Sutil transparencia (~93%) sin backdrop-filter: deja respirar el video
+               de fondo sin penalizar legibilidad ni rendimiento en movil */
+            background: rgba(255,255,255,0.93);
+            border: 1px solid rgba(255,255,255,0.6);
+            border-radius: 18px;
+            box-shadow: 0 24px 60px rgba(10,2,48,0.45), 0 8px 22px rgba(10,2,48,0.28);
+            padding: 1.05rem 1.2rem 1.1rem;
+            color: var(--navy); text-align: left;
+            opacity: 0; transform: translateY(18px) scale(0.97);
+            animation: tarIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.35s forwards;
+            position: relative;
+        }
+        @keyframes tarIn {
+            0%   { opacity: 0; transform: translateY(18px) scale(0.97); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .tar-head { text-align: center; margin-bottom: 0.8rem; }
+        .tar-title {
+            font-size: 1.18rem; font-weight: 900; letter-spacing: -0.3px;
+            color: var(--navy); margin: 0 0 0.1rem;
+        }
+        .tar-sub { font-size: 0.76rem; color: var(--gray-500); margin: 0; font-weight: 600; }
+        .tar-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem 0.8rem;
+        }
+        .tar-field { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+        .tar-field > label {
+            font-size: 0.74rem; font-weight: 700; color: var(--gray-700);
+            display: flex; align-items: baseline; gap: 0.4rem; flex-wrap: wrap;
+        }
+        .tar-field > label strong { color: var(--navy); font-weight: 900; }
+        .tar-input-wrap {
+            position: relative; display: flex; align-items: center;
+            background: white; border: 1.5px solid var(--gray-200);
+            border-radius: 12px; transition: all 0.2s;
+        }
+        /* Borde morado al pasar el raton por encima o al escribir (focus) */
+        .tar-input-wrap:hover,
+        .tar-input-wrap:focus-within {
+            border-color: var(--purple);
+            box-shadow: 0 0 0 4px rgba(51,0,204,0.10);
+        }
+        /* Estado de error (origen / destino vacios al pulsar Solicitar tarifa) */
+        .tar-input-wrap.tar-error {
+            border-color: #e53935;
+            box-shadow: 0 0 0 4px rgba(229,57,53,0.12);
+            animation: tarShake 0.35s ease;
+        }
+        .tar-input-wrap.tar-error svg { color: #e53935; }
+        @keyframes tarShake {
+            0%, 100% { transform: translateX(0); }
+            25%      { transform: translateX(-4px); }
+            75%      { transform: translateX(4px); }
+        }
+        /* Cartel de aviso "Falta introducir lugar" */
+        .tar-warning {
+            display: none;
+            margin-top: 0.6rem; padding: 0.65rem 0.85rem;
+            background: rgba(229,57,53,0.08);
+            border: 1px solid rgba(229,57,53,0.4);
+            border-radius: 10px;
+            color: #b32a25; font-size: 0.8rem; font-weight: 700;
+            text-align: center;
+        }
+        .tar-warning.show { display: block; animation: fadeUp 0.3s ease both; }
+
+        /* Calendario Flatpickr — estilo de marca con esquinas suaves */
+        .flatpickr-calendar {
+            border-radius: 16px !important;
+            box-shadow: 0 18px 40px rgba(10,2,48,0.22), 0 6px 14px rgba(10,2,48,0.10) !important;
+            border: 1px solid var(--gray-200) !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+            padding: 0.4rem !important;
+        }
+        .flatpickr-months { padding: 0.4rem 0.2rem 0.3rem; }
+        .flatpickr-current-month .flatpickr-monthDropdown-months,
+        .flatpickr-current-month input.cur-year {
+            font-weight: 800 !important; color: var(--navy) !important;
+        }
+        .flatpickr-weekday {
+            color: var(--gray-500) !important; font-weight: 700 !important;
+        }
+        .flatpickr-day {
+            border-radius: 10px !important;
+            color: var(--navy);
+            font-weight: 600;
+        }
+        .flatpickr-day:hover {
+            background: rgba(51,0,204,0.08) !important;
+            border-color: transparent !important;
+        }
+        .flatpickr-day.today {
+            border-color: var(--green) !important;
+            color: var(--green) !important; font-weight: 800;
+        }
+        .flatpickr-day.today:hover { background: rgba(34,165,90,0.10) !important; }
+        .flatpickr-day.selected,
+        .flatpickr-day.selected:hover {
+            background: var(--purple) !important;
+            border-color: var(--purple) !important;
+            color: white !important;
+        }
+        /* Fines de semana y dias fuera de min/max -> gris bloqueado */
+        .flatpickr-day.flatpickr-disabled,
+        .flatpickr-day.flatpickr-disabled:hover {
+            color: var(--gray-200) !important;
+            background: transparent !important;
+            cursor: not-allowed !important;
+            text-decoration: line-through;
+            opacity: 0.5;
+        }
+        .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay {
+            color: var(--gray-200) !important; opacity: 0.6;
+        }
+        .flatpickr-prev-month, .flatpickr-next-month { color: var(--purple) !important; fill: var(--purple) !important; }
+        .flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { fill: var(--purple-light) !important; }
+
+        /* Tooltip discreto del camion seleccionado — aparece al hover (solo desktop).
+           Anclado al campo (.tar-camion-field es relative). En movil no aparece
+           (no hay hover) y no estorba. */
+        .tar-camion-field { position: relative; }
+        .tar-camion-tip {
+            position: absolute; top: 100%; left: 0; right: 0;
+            margin-top: 0.35rem;
+            padding: 0.55rem 0.8rem;
+            background: var(--navy); color: white;
+            border-radius: 12px;
+            font-size: 0.73rem; line-height: 1.45;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 15;
+            box-shadow: 0 10px 26px rgba(10,2,48,0.30);
+        }
+        .tar-camion-tip strong { color: white; font-weight: 800; }
+        .tar-camion-tip em { font-style: normal; color: rgba(255,255,255,0.55); font-weight: 500; }
+        /* Solo aparece al pasar el raton por encima. Al salir se quita inmediato (sin fade).
+           No usa focus-within: no debe aparecer al hacer click en el desplegable. */
+        @media (hover: hover) {
+            .tar-camion-field:hover .tar-camion-tip { opacity: 1; }
+        }
+        .tar-input-wrap svg {
+            width: 18px; height: 18px; color: var(--purple);
+            margin: 0 0.5rem 0 0.75rem; flex-shrink: 0;
+        }
+        .tar-input-wrap input {
+            flex: 1; min-width: 0; border: none; outline: none; background: transparent;
+            padding: 0.55rem 0.7rem 0.55rem 0;
+            font-size: 0.9rem; color: var(--navy); font-family: inherit;
+        }
+        .tar-sug {
+            position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+            background: white; border: 1px solid var(--gray-200); border-radius: 12px;
+            box-shadow: 0 18px 40px rgba(10,2,48,0.18);
+            list-style: none; padding: 0.35rem 0; margin: 0; z-index: 10;
+            max-height: 240px; overflow-y: auto;
+        }
+        .tar-sug li {
+            padding: 0.55rem 0.85rem; font-size: 0.86rem;
+            color: var(--navy); cursor: pointer; line-height: 1.3;
+        }
+        .tar-sug li:hover, .tar-sug li.focus { background: rgba(51,0,204,0.06); }
+        .tar-sug li.empty { color: var(--gray-500); cursor: default; font-style: italic; }
+        .tar-select, .tar-date {
+            width: 100%; padding: 0.55rem 0.7rem; border-radius: 12px;
+            border: 1.5px solid var(--gray-200); background: white;
+            font-size: 0.88rem; color: var(--navy); font-family: inherit;
+            outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        /* Borde morado al pasar el raton por encima.
+           Focus tambien resalta mientras el desplegable esta abierto;
+           al elegir un valor se hace blur() por JS y vuelve al gris. */
+        .tar-select:hover, .tar-date:hover,
+        .tar-select:focus, .tar-date:focus {
+            border-color: var(--purple); box-shadow: 0 0 0 4px rgba(51,0,204,0.10);
+        }
+        /* Input date superpuesto al select del dia para que el calendario nativo se
+           ancle aqui (no en la esquina de la web). Visualmente invisible. */
+        .tar-fecha-wrap { position: relative; }
+        .tar-fecha-wrap .tar-date {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            opacity: 0; pointer-events: none;
+            border: none; padding: 0; background: transparent;
+        }
+        .tar-cta-wrap { margin-top: 0.85rem; }
+        .tar-cta {
+            width: 100%; padding: 0.8rem;
+            background: linear-gradient(135deg, var(--purple), var(--purple-light));
+            color: white; border: none; border-radius: 12px;
+            font-size: 0.94rem; font-weight: 900; letter-spacing: 0.5px;
+            text-transform: uppercase; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            box-shadow: 0 10px 28px rgba(51,0,204,0.35);
+            transition: transform 0.2s, box-shadow 0.2s; font-family: inherit;
+        }
+        .tar-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(51,0,204,0.45); }
+        .tar-cta svg { width: 18px; height: 18px; }
+        /* Estado por defecto: solo se ve el boton "Solicitar tarifa".
+           Estado .open (al pulsarse): oculto el boton y muestro los 2 botones
+           Email/WhatsApp en su mismo sitio. */
+        .tar-cta-options { display: none; }
+        .tar-cta-wrap.open .tar-cta { display: none; }
+        .tar-cta-wrap.open .tar-cta-options {
+            display: flex; gap: 0.6rem;
+            animation: fadeUp 0.4s ease both;
+        }
+        .tar-cta-btn {
+            flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.85rem; border-radius: 12px;
+            font-size: 0.92rem; font-weight: 900; letter-spacing: 0.4px;
+            text-decoration: none; text-transform: uppercase;
+            transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
+            font-family: inherit;
+        }
+        .tar-cta-email { background: var(--purple); color: white; box-shadow: 0 8px 22px rgba(51,0,204,0.32); }
+        .tar-cta-wa { background: #25D366; color: white; box-shadow: 0 8px 22px rgba(37,211,102,0.32); }
+        .tar-cta-btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
+        .tar-cta-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+        @media (max-width: 600px) {
+            .tarifador {
+                padding: 0.9rem 0.85rem 0.95rem; border-radius: 16px;
+                margin: 0 auto 0.6rem;
+            }
+            .tar-title { font-size: 1.02rem; }
+            .tar-sub { font-size: 0.68rem; }
+            .tar-head { margin-bottom: 0.6rem; }
+            .tar-grid { gap: 0.55rem 0.6rem; }
+            .tar-loc { grid-column: 1 / -1; }
+            .tar-field > label { font-size: 0.68rem; }
+            .tar-input-wrap input { font-size: 16px; padding: 0.45rem 0.6rem 0.45rem 0; /* 16px evita zoom iOS */ }
+            .tar-input-wrap svg { width: 15px; height: 15px; margin: 0 0.4rem 0 0.6rem; }
+            .tar-select, .tar-date { font-size: 16px; padding: 0.45rem 0.55rem; }
+            .tar-cta { padding: 0.7rem; font-size: 0.88rem; margin-top: 0.65rem; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .tarifador { animation: none; opacity: 1; transform: none; }
+        }
+
 
         /* =========================================
            SERVICES STRIP
@@ -783,13 +1007,11 @@
         .svc-card:hover h3::after { width: 60px; transition: width 0.3s ease; }
         .svc-card p  { color:var(--gray-500); line-height:1.65; font-size:0.88rem; }
         .svc-tag { display:inline-block; margin-top:1rem; background:rgba(51,0,204,0.07); color:var(--purple); padding:0.25rem 0.75rem; border-radius:50px; font-size:0.7rem; font-weight:700; }
-        /* Badge "servicio no disponible aun" — amarillo de marca, llama la atencion sin alarmar */
         .svc-tag.svc-tag-soon {
             background: rgba(255,212,0,0.18);
             color: #8a6b00;
             border: 1px solid rgba(255,212,0,0.6);
         }
-        /* Aviso bajo la calculadora cuando el servicio aun no esta contratable */
         .alm-precio-pending {
             margin-top: 0.8rem; padding: 0.7rem 0.9rem;
             background: rgba(255,212,0,0.12);
@@ -1373,16 +1595,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- PORTAL TRANSITION OVERLAY -->
 <div class="portal-transition" id="portalTransition" aria-hidden="true">
-    <div class="portal-stars"></div>
-    <div class="portal-ring portal-ring1"></div>
-    <div class="portal-ring portal-ring2"></div>
-    <div class="portal-ring portal-ring3"></div>
-    <div class="portal-core">
-        <div class="portal-core-lock">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <div class="portal-warp">
+        <div class="portal-stars"></div>
+        <div class="portal-ring portal-ring1"></div>
+        <div class="portal-ring portal-ring2"></div>
+        <div class="portal-ring portal-ring3"></div>
+        <div class="portal-core">
+            <div class="portal-core-lock">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <div class="portal-core-text">Acceso Portal</div>
+            <div class="portal-core-loader"></div>
         </div>
-        <div class="portal-core-text">Acceso Portal</div>
-        <div class="portal-core-loader"></div>
     </div>
 </div>
 
@@ -1454,24 +1678,107 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- HERO -->
 <section class="hero" id="inicio">
     <div class="hero-gradient"></div>
-    <video class="hero-video" id="heroVideo" autoplay muted playsinline preload="auto" poster="/images/hero-camiones-dynamo.jpg">
+    <video class="hero-video" id="heroVideo1" autoplay muted playsinline preload="auto" poster="/images/hero-camiones-dynamo.jpg">
+        <source src="/images/hero-1.webm" type="video/webm">
+        <!-- Fallback navegadores sin soporte webm -->
         <source src="/images/mp_dynamo.mp4" type="video/mp4">
+    </video>
+    <video class="hero-video hero-video-2" id="heroVideo2" muted playsinline preload="none">
+        <source src="/images/hero-2.webm" type="video/webm">
     </video>
     <div class="hero-overlay"></div>
     <div class="hero-road"></div>
     <div class="hero-content">
-        <div class="hero-cta-wrap">
-        <button class="hero-cotizar-btn" type="button" onclick="toggleHeroCotizar(this)" aria-expanded="false">Cotizar</button>
-        <div class="hero-btns">
-            <a target="_blank" rel="noopener" href="https://wa.me/34628995709?text=Buenos%20d%C3%ADas%2C%0A%0A%2ASOLICITUD%20DE%20TARIFA%3A%2A%0A%0A%2A1.%20%C2%BFQue%20tipo%20de%20mercanc%C3%ADa%20es%3F%2A%0APaletizado%2C%20maquinaria%2C%20etc.%3A%0A%0A%E2%80%94%0A%0A%2A2.%20%C2%BFEs%20CARGA%20COMPLETA%20de%20Trailer%20o%20GRUPAJE%20%28carga%20parcial%3A%20metros%2Fpeso%29%3F%2A%0A%0A%E2%80%94%0A%0A%2A3.%20%C2%BFC%C3%B3digos%20postales%20o%20localidad%20de%20origen%20y%20destino%3F%2A%0A%0A%E2%80%94%0A%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%0A%2AIMPORTANTE%3A%2A%0A%0A%2A%20El%20cliente%20debe%20disponer%20de%20medios%20de%20carga%20y%20descarga%20en%20origen%20y%20destino.%20Por%20ejemplo%20carretilla%20elevadora%20o%20torito.%0A%0A%2A%20El%20lugar%20de%20carga%20y%20entrega%20son%20naves%20o%20almacenes%20y%20es%20accesible%20para%20un%20trailer.%20%28En%20caso%20de%20no%20tener%20medios%2C%20se%20puede%20valorar%20cami%C3%B3n%20con%20trampilla%20elevadora.%20En%20caso%20de%20ser%20obras%20debe%20avisarse.%29%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A" class="btn-wa">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                Enviar WhatsApp
-            </a>
-            <a href="mailto:info@dynamotrans.com?subject=Solicitud%20de%20TARIFA%20para%20transporte&body=Buenos%20d%C3%ADas%2C%0D%0A%0D%0ASOLICITUD%20DE%20TARIFA%3A%0D%0A%0D%0A1.%20%C2%BFQue%20tipo%20de%20mercanc%C3%ADa%20es%3F%0D%0APaletizado%2C%20maquinaria%2C%20etc.%3A%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A2.%20%C2%BFEs%20CARGA%20COMPLETA%20de%20Trailer%20o%20GRUPAJE%20%28carga%20parcial%3A%20metros%2Fpeso%29%3F%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A3.%20%C2%BFC%C3%B3digos%20postales%20o%20localidad%20de%20origen%20y%20destino%3F%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%0D%0AIMPORTANTE%3A%0D%0A%0D%0A%2A%20El%20cliente%20debe%20disponer%20de%20medios%20de%20carga%20y%20descarga%20en%20origen%20y%20destino.%20Por%20ejemplo%20carretilla%20elevadora%20o%20torito.%0D%0A%0D%0A%2A%20El%20lugar%20de%20carga%20y%20entrega%20son%20naves%20o%20almacenes%20y%20es%20accesible%20para%20un%20trailer.%20%28En%20caso%20de%20no%20tener%20medios%2C%20se%20puede%20valorar%20cami%C3%B3n%20con%20trampilla%20elevadora.%20En%20caso%20de%20ser%20obras%20debe%20avisarse.%29%0D%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A" class="btn-email">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-                Enviar un eMail
-            </a>
-        </div>
+        <!-- TARIFADOR -->
+        <div class="tarifador" id="tarifador">
+            <div class="tar-head">
+                <h2 class="tar-title">Soluciones de Transporte. España y Europa.</h2>
+                <p class="tar-sub">Respuesta personalizada en minutos · Sin compromiso</p>
+            </div>
+
+            <div class="tar-grid">
+                <div class="tar-field tar-loc">
+                    <label for="tar-orig">Origen</label>
+                    <div class="tar-input-wrap">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <input type="text" id="tar-orig" placeholder="CP o ciudad" autocomplete="off" inputmode="search">
+                        <ul class="tar-sug" id="tar-orig-sug" hidden></ul>
+                    </div>
+                </div>
+                <div class="tar-field tar-loc">
+                    <label for="tar-dest">Destino</label>
+                    <div class="tar-input-wrap">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                        <input type="text" id="tar-dest" placeholder="CP o ciudad" autocomplete="off" inputmode="search">
+                        <ul class="tar-sug" id="tar-dest-sug" hidden></ul>
+                    </div>
+                </div>
+
+                <div class="tar-field tar-camion-field">
+                    <select id="tar-camion" class="tar-select" aria-label="Tipo de camion">
+                        <option value="tauliner" data-full="Trailer Tauliner (13,60 m · 33 europalets · 24 Tn)">Trailer Tauliner · 13,60 m</option>
+                        <option value="rigido" data-full="Rígido con plataforma y transpaleta (8 m · 20 europalets · 14 Tn)">Rígido plataforma · 8 m</option>
+                    </select>
+                    <div class="tar-camion-tip" id="tar-camion-tip" role="tooltip" aria-hidden="true"></div>
+                </div>
+                <div class="tar-field">
+                    <select id="tar-merca" class="tar-select" aria-label="Tipo de mercancia">
+                        <option>Paletizado mercancía general — almacén a almacén (por lateral)</option>
+                        <option>Por lateral — mercancía no paletizada (maquinaria, perfiles, etc.)</option>
+                        <option>Por techo — mercancía no paletizada (maquinaria, perfiles, etc.)</option>
+                        <option>Material eventos / ferias</option>
+                        <option>Obra — recogidas / entregas</option>
+                        <option>Zona urbana con/sin permisos — recogidas / entregas</option>
+                        <option>ADR mercancía</option>
+                        <option>Fincas — recogidas / entregas</option>
+                        <option>Balas / sacas sin palet (limpio) — NIMA requerido</option>
+                        <option>Balas / sacas sin palet (sucios) — NIMA requerido</option>
+                    </select>
+                </div>
+
+                <div class="tar-field">
+                    <select id="tar-ml" class="tar-select" aria-label="Cantidad en metros lineales"></select>
+                </div>
+                <div class="tar-field">
+                    <select id="tar-peso" class="tar-select" aria-label="Peso en toneladas"></select>
+                </div>
+
+                <div class="tar-field">
+                    <label for="tar-urgencia">Fecha de carga</label>
+                    <select id="tar-urgencia" class="tar-select">
+                        <option value="dia">Fecha fija (Un día en concreto, más cara)</option>
+                        <option value="estandar" selected>Ventana de 2 días (Estándar)</option>
+                        <option value="flexible">Ventana de 4 días (Flexible, más económica)</option>
+                    </select>
+                </div>
+                <div class="tar-field" id="tar-fecha-field">
+                    <label for="tar-dia">Día de carga (L-V)</label>
+                    <div class="tar-fecha-wrap">
+                        <select id="tar-dia" class="tar-select"></select>
+                        <!-- Input date superpuesto invisible para que el calendario nativo se ancle aqui -->
+                        <input type="date" id="tar-fecha" class="tar-date" aria-label="Elegir fecha en calendario">
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="tar-warning" id="tar-warning" role="alert" aria-live="polite">⚠ Introduce el origen y el destino antes de calcular el precio.</div>
+            <div class="tar-cta-wrap" id="tar-cta-wrap">
+                <button class="tar-cta" type="button" id="tar-cta">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                    Calcular precio
+                </button>
+                <div class="tar-cta-options" id="tar-cta-options">
+                    <a class="tar-cta-btn tar-cta-email" id="tar-cta-email" href="#" rel="noopener" aria-label="Pedir precio por email">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                        Email
+                    </a>
+                    <a class="tar-cta-btn tar-cta-wa" id="tar-cta-wa" target="_blank" rel="noopener" href="#" aria-label="Pedir precio por WhatsApp">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                        WhatsApp
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </section>
@@ -2392,7 +2699,7 @@ function openLegal(tab) {
     function openMobileMenu()  { document.getElementById('mobileMenu').classList.add('open'); }
     function closeMobileMenu() { document.getElementById('mobileMenu').classList.remove('open'); }
 
-    // Top bar: spinner 5s y se autocolapsa para liberar espacio
+    // Top bar: spinner 5s y se autocolapsa para liberar espacio en el hero
     (function () {
         var bar = document.getElementById('topBar');
         if (!bar) return;
@@ -2416,40 +2723,91 @@ function openLegal(tab) {
         }
         overlay.style.setProperty('--cx', cx + 'px');
         overlay.style.setProperty('--cy', cy + 'px');
-        overlay.classList.add('active');
-        try { sessionStorage.setItem('portalTransition', '1'); } catch (e) {}
+        try {
+            sessionStorage.setItem('portalTransition', '1');
+            // El overlay de llegada de portal.html usa este mismo centro (evita el salto del gradiente)
+            sessionStorage.setItem('portalTransitionCenter',
+                (cx / window.innerWidth * 100).toFixed(1) + '% ' + (cy / window.innerHeight * 100).toFixed(1) + '%');
+        } catch (e) {}
+        // Pausar los videos del hero: que no decodifiquen frames debajo del overlay
+        ['heroVideo1','heroVideo2'].forEach(function(id){
+            var hv = document.getElementById(id);
+            if (hv && !hv.paused) { try { hv.pause(); } catch (e) {} }
+        });
         var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         var delay = reduce ? 250 : 850;
-        setTimeout(function () { window.location.href = 'portal.html'; }, delay);
+        // Doble rAF: deja que el navegador pinte/promocione la capa antes de animarla
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                overlay.classList.add('active');
+                setTimeout(function () { window.location.href = 'portal.html'; }, delay);
+            });
+        });
     }
     // Reset portal overlay if page is restored from bfcache (e.g. browser back)
     window.addEventListener('pageshow', function (e) {
         var overlay = document.getElementById('portalTransition');
         if (overlay) overlay.classList.remove('active');
         if (e.persisted) document.documentElement.classList.remove('from-transition');
+        // Reanudar el video activo del hero si lo pausamos al lanzar la transicion
+        ['heroVideo1','heroVideo2'].forEach(function(id){
+            var hv = document.getElementById(id);
+            if (hv && hv.paused && !hv.ended && !hv.classList.contains('ended')) { try { hv.play(); } catch (err) {} }
+        });
         try {
             sessionStorage.removeItem('portalTransition');
+            sessionStorage.removeItem('portalTransitionCenter');
             sessionStorage.removeItem('homeTransition');
+            sessionStorage.removeItem('homeTransitionCenter');
         } catch (err) {}
     });
 
     // Hero: el vídeo se reproduce una vez y al terminar se desvanece
     // hacia el degradado de marca (que tiene su propio zoom suave).
-    // Para evitar el "tirón" del último frame congelado, arrancamos el fade
-    // 1.5s ANTES de que termine el vídeo (mientras aún se reproduce).
+    // Secuencia hero: video1 (webm hero-1) -> crossfade a video2 (webm hero-2) ->
+    //                  fade al degradado de marca al terminar el segundo.
+    // El crossfade arranca 1s antes de que cada video termine para que no haya tiron
+    // con el ultimo frame congelado. Solo se descarga el segundo cuando empezamos
+    // su crossfade (preload="none") -> ahorra ~2,7 MB en la primera pintada.
     (function() {
-        var v = document.getElementById('heroVideo');
-        if (!v) return;
-        var FADE_LEAD = 1.5; // segundos antes del final
-        function startFade() {
-            if (!v.classList.contains('ended')) v.classList.add('ended');
+        var v1 = document.getElementById('heroVideo1');
+        var v2 = document.getElementById('heroVideo2');
+        if (!v1) return;
+        var FADE_LEAD = 1.0;
+        var handover = false;
+        function startHandover() {
+            if (handover) return;
+            handover = true;
+            if (v2) {
+                try { v2.load(); } catch (e) {}
+                var tryPlay = function () { var p = v2.play(); if (p && p.catch) p.catch(function(){}); };
+                if (v2.readyState >= 2) tryPlay();
+                else v2.addEventListener('canplay', tryPlay, { once: true });
+                v2.classList.add('active');
+            }
+            v1.classList.add('ended');
         }
-        v.addEventListener('timeupdate', function() {
-            if (v.duration && isFinite(v.duration) && v.currentTime >= v.duration - FADE_LEAD) {
-                startFade();
+        v1.addEventListener('timeupdate', function() {
+            if (v1.duration && isFinite(v1.duration) && v1.currentTime >= v1.duration - FADE_LEAD) {
+                startHandover();
             }
         });
-        v.addEventListener('ended', startFade); // fallback por si timeupdate no llega a tiempo
+        v1.addEventListener('ended', startHandover);
+
+        if (v2) {
+            var endHandover = false;
+            function endVideos() {
+                if (endHandover) return;
+                endHandover = true;
+                v2.classList.add('ended');
+            }
+            v2.addEventListener('timeupdate', function() {
+                if (v2.duration && isFinite(v2.duration) && v2.currentTime >= v2.duration - FADE_LEAD) {
+                    endVideos();
+                }
+            });
+            v2.addEventListener('ended', endVideos);
+        }
     })();
 
     // Back to top button
@@ -2907,8 +3265,6 @@ document.addEventListener('click', function(e){
 document.addEventListener('keydown', function(e){
     if (e.key === 'Escape') {
         document.querySelectorAll('.veh-cta.open').forEach(function(el){ el.classList.remove('open'); el.querySelector('.veh-cta-btn').setAttribute('aria-expanded','false'); el.querySelector('.veh-cta-actions').setAttribute('aria-hidden','true'); });
-        var heroOpen = document.querySelector('.hero-cta-wrap.open');
-        if (heroOpen) { heroOpen.classList.remove('open'); heroOpen.querySelector('.hero-cotizar-btn').setAttribute('aria-expanded','false'); }
     }
 });
 var ALM_PRICE_TRAILER = 240;
@@ -2941,7 +3297,7 @@ function updateAlmTotal() {
     if (qtyD === 0) deliveryTxt = 'sin entrega — recogida por el cliente con su propio camión/trailer';
     else if (qtyD === 1) deliveryTxt = '1 entrega en zona urbana (camión 2 ejes · 4 m)';
     else deliveryTxt = qtyD + ' entregas en zona urbana (camión 2 ejes · 4 m)';
-    document.getElementById('alm-precio-note').textContent = 'Precio orientativo para ' + trailerTxt + ' ' + paletsTxt + ' y ' + deliveryTxt + '. Contrata abajo y nos coordinamos por los detalles.';
+    document.getElementById('alm-precio-note').textContent = 'Precio orientativo para ' + trailerTxt + ' ' + paletsTxt + ' y ' + deliveryTxt + '.';
     var subject = 'Solicitud TARIFA Almacenamiento + Entrega — ' + prov;
     var deliveryLineEmail = qtyD === 0
         ? 'Entrega zona urbana: 0 (recogida por el cliente con otro camión/trailer)\r\n'
@@ -2976,21 +3332,356 @@ function updateAlmTotal() {
         '*3. ¿Fecha estimada de llegada al almacén?*\n—\n\n' +
         '*4. ' + destLineLabel + ':*\n—\n\n' +
         'Comentarios:\n—\n';
-    // Los CTAs (email/WA) se quitaron del DOM: el servicio aun no esta disponible para contratar.
-    // El calculo sigue funcionando para que el cliente vea el precio orientativo.
+    // CTAs (email/WA) eliminados del DOM: servicio aun no disponible para contratar.
 }
-function toggleHeroCotizar(btn) {
-    var wrap = btn.parentElement;
-    wrap.classList.add('open');
-    btn.setAttribute('aria-expanded','true');
-}
-document.addEventListener('click', function(e){
-    var wrap = document.querySelector('.hero-cta-wrap.open');
-    if (wrap && !wrap.contains(e.target)) {
-        wrap.classList.remove('open');
-        wrap.querySelector('.hero-cotizar-btn').setAttribute('aria-expanded','false');
+/* =========================================
+   TARIFADOR
+   - Sliders ml / peso con conversion en vivo
+   - 1 ml = 2,5 europalets (80x120, ancho 2.45m del trailer)
+   - 1 ml = 2 americanos (100x120, mismo ancho)
+   - Botones tipo camion / urgencia
+   - Autocomplete origen/destino con Nominatim (OpenStreetMap, gratis sin API key)
+   - CTA -> mensaje preformateado WhatsApp + email
+========================================= */
+(function () {
+    var ml = document.getElementById('tar-ml');
+    var peso = document.getElementById('tar-peso');
+    if (!ml) return;
+
+    var EUR_POR_ML = 2.5;
+    var AMR_POR_ML = 2;
+    var fmt = function (n, d) { return n.toFixed(d || 1).replace('.', ','); };
+
+    // Poblar selects metros lineales Y peso segun el tipo de camion. Por defecto
+    // siempre se selecciona el ULTIMO (carga maxima):
+    //   Tauliner: 13,2 ml / 24,5 Tn
+    //   Rigido:   8 ml    / 14 Tn
+    var camionSel = document.getElementById('tar-camion');
+    var ML_OPTS = {
+        tauliner: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13.2],
+        rigido:   [1, 2, 3, 4, 5, 6, 7, 8]
+    };
+    var PESO_OPTS = {
+        // 1 a 24 Tn enteros + 24,5
+        tauliner: (function () { var a = []; for (var i = 1; i <= 24; i++) a.push(i); a.push(24.5); return a; })(),
+        // 1 a 14 Tn enteros
+        rigido:   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    };
+    function rebuildMl() {
+        var opts = ML_OPTS[camionSel.value] || ML_OPTS.tauliner;
+        ml.innerHTML = opts.map(function (v, i) {
+            var eur = Math.floor(v * EUR_POR_ML);
+            var amr = Math.floor(v * AMR_POR_ML);
+            var isFull = (i === opts.length - 1);
+            var label = fmt(v, v % 1 === 0 ? 0 : 1) + ' ml · ' + eur + ' euro / ' + amr + ' amer.' + (isFull ? ' · COMPLETO' : '');
+            return '<option value="' + v + '">' + label + '</option>';
+        }).join('');
+        // Siempre seleccionar el MAXIMO del camion al cambiar / cargar
+        ml.value = opts[opts.length - 1];
     }
-});
+    function rebuildPeso() {
+        var opts = PESO_OPTS[camionSel.value] || PESO_OPTS.tauliner;
+        peso.innerHTML = opts.map(function (t, i) {
+            var isFull = (i === opts.length - 1);
+            var label = fmt(t, t % 1 === 0 ? 0 : 1) + ' Tn' + (isFull ? ' · MAX' : '');
+            return '<option value="' + t + '">' + label + '</option>';
+        }).join('');
+        // Siempre seleccionar el MAXIMO del camion al cambiar / cargar
+        peso.value = opts[opts.length - 1];
+    }
+    camionSel.addEventListener('change', function () { rebuildMl(); rebuildPeso(); });
+    rebuildMl();
+    rebuildPeso();
+
+    // Fecha de carga: "Dia concreto" despliega lista de proximos 7 LABORABLES
+    // (saltando sabados y domingos). "Otro dia" abre directamente el calendario
+    // limitado a 3 meses, rechazando fines de semana.
+    var urgSel = document.getElementById('tar-urgencia');
+    var fechaField = document.getElementById('tar-fecha-field');
+    var diaSel = document.getElementById('tar-dia');
+    var fechaInput = document.getElementById('tar-fecha');
+
+    function toIso(d) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function isWeekend(d) { return d.getDay() === 0 || d.getDay() === 6; }
+    function nextWeekday(d) {
+        var nd = new Date(d.getTime());
+        while (isWeekend(nd)) nd.setDate(nd.getDate() + 1);
+        return nd;
+    }
+
+    function buildDias() {
+        var hoy = new Date();
+        var opts = ['<option value="" selected>Sin fecha definida</option>'];
+        var cursor = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+        var added = 0;
+        var todayIso = toIso(hoy);
+        var tomorrowIso = toIso(new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1));
+        while (added < 7) {
+            if (!isWeekend(cursor)) {
+                var iso = toIso(cursor);
+                var txt = cursor.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                var prefix = iso === todayIso ? 'Hoy · ' : (iso === tomorrowIso ? 'Mañana · ' : '');
+                opts.push('<option value="' + iso + '">' + prefix + txt + '</option>');
+                added++;
+            }
+            cursor.setDate(cursor.getDate() + 1);
+        }
+        opts.push('<option value="otro">Otro día… (abrir calendario)</option>');
+        diaSel.innerHTML = opts.join('');
+    }
+    buildDias();
+
+    // Limitar el date picker a hoy .. hoy+3 meses
+    (function setupFechaRange() {
+        var hoy = new Date();
+        var max = new Date(hoy.getFullYear(), hoy.getMonth() + 3, hoy.getDate());
+        fechaInput.min = toIso(hoy);
+        fechaInput.max = toIso(max);
+    })();
+
+    // El campo "Día de carga (L-V)" se queda visible siempre: para ventanas
+    // (Estándar / Flexible) actua como fecha BASE desde la que empieza la franja.
+    // El mensaje preformateado incluye el dia siempre con "a partir de ...".
+
+    // Insertar la fecha elegida en el calendario como PRIMERA opcion del select
+    // (asi el usuario la ve en el "hueco" y al desplegar la encuentra arriba)
+    function setFechaCustom(isoDate) {
+        var prev = diaSel.querySelector('option[data-custom="1"]');
+        if (prev) prev.remove();
+        var d = new Date(isoDate + 'T00:00:00');
+        var txt = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        var opt = document.createElement('option');
+        opt.value = isoDate;
+        opt.setAttribute('data-custom', '1');
+        opt.textContent = txt;
+        diaSel.insertBefore(opt, diaSel.firstChild);
+        diaSel.value = isoDate;
+    }
+
+    // Flatpickr: calendario customizado anclado al select del dia. Fines de
+    // semana DESHABILITADOS visualmente (en gris tachados). Rango hoy..hoy+3 meses.
+    // Si Flatpickr no esta disponible (offline / bloqueo), fallback al date picker
+    // nativo del navegador.
+    var fpInstance = null;
+    function initFlatpickr() {
+        if (fpInstance || typeof window.flatpickr !== 'function') return;
+        var hoyD = new Date();
+        var maxD = new Date(hoyD.getFullYear(), hoyD.getMonth() + 3, hoyD.getDate());
+        fpInstance = window.flatpickr(fechaInput, {
+            locale: (window.flatpickr.l10ns && window.flatpickr.l10ns.es) ? 'es' : 'default',
+            minDate: 'today',
+            maxDate: maxD,
+            disable: [function (d) { return d.getDay() === 0 || d.getDay() === 6; }],
+            disableMobile: true, // forzar Flatpickr tambien en movil (en vez de input nativo)
+            dateFormat: 'Y-m-d',
+            onChange: function (selected, dateStr) {
+                if (dateStr) setFechaCustom(dateStr);
+            }
+        });
+    }
+    function openCalendar() {
+        initFlatpickr();
+        if (fpInstance) { fpInstance.open(); return; }
+        // Fallback al picker nativo
+        try {
+            if (typeof fechaInput.showPicker === 'function') fechaInput.showPicker();
+            else { fechaInput.focus(); fechaInput.click(); }
+        } catch (e) { fechaInput.focus(); }
+    }
+    // Inicializar Flatpickr cuando el script haya cargado (defer)
+    if (document.readyState !== 'loading') initFlatpickr();
+    else document.addEventListener('DOMContentLoaded', initFlatpickr);
+
+    diaSel.addEventListener('change', function () {
+        if (diaSel.value === 'otro') openCalendar();
+    });
+
+    // Fallback (cuando se usa el picker nativo): mover sabados/domingos al lunes
+    fechaInput.addEventListener('change', function () {
+        if (!fechaInput.value || fpInstance) return; // Flatpickr ya maneja el onChange
+        var d = new Date(fechaInput.value + 'T00:00:00');
+        if (isWeekend(d)) {
+            d = nextWeekday(d);
+            fechaInput.value = toIso(d);
+        }
+        setFechaCustom(fechaInput.value);
+    });
+
+    // Autocomplete con Nominatim (OpenStreetMap) — gratis, sin API key
+    // Rate limit: 1 req/s. Con debounce de 350ms cubierto.
+    function setupAutocomplete(inputId, sugId) {
+        var input = document.getElementById(inputId);
+        var sug = document.getElementById(sugId);
+        var timer = null;
+        var selectedLabel = '';
+
+        function render(items) {
+            if (!items.length) {
+                sug.innerHTML = '<li class="empty">Sin resultados</li>';
+                sug.hidden = false; return;
+            }
+            sug.innerHTML = items.map(function (it) {
+                return '<li data-label="' + it.label.replace(/"/g, '&quot;') + '">' + it.label + '</li>';
+            }).join('');
+            sug.hidden = false;
+        }
+        function close() { sug.hidden = true; sug.innerHTML = ''; }
+
+        input.addEventListener('input', function () {
+            var q = input.value.trim();
+            selectedLabel = '';
+            if (timer) clearTimeout(timer);
+            if (q.length < 3) { close(); return; }
+            timer = setTimeout(function () {
+                var url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&accept-language=es&countrycodes=es,pt,fr,it,de,nl,be,ch,at,pl,cz&q=' + encodeURIComponent(q);
+                fetch(url, { headers: { 'Accept': 'application/json' } })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        var items = (data || []).map(function (d) {
+                            var a = d.address || {};
+                            var city = a.city || a.town || a.village || a.municipality || a.county || '';
+                            var cp = a.postcode || '';
+                            var country = a.country || '';
+                            var parts = [];
+                            if (cp) parts.push(cp);
+                            if (city) parts.push(city);
+                            if (country) parts.push(country);
+                            return { label: parts.join(' · ') || d.display_name };
+                        });
+                        render(items);
+                    })
+                    .catch(function () { close(); });
+            }, 350);
+        });
+        sug.addEventListener('click', function (e) {
+            var li = e.target.closest('li');
+            if (!li || li.classList.contains('empty')) return;
+            input.value = li.dataset.label;
+            selectedLabel = li.dataset.label;
+            close();
+        });
+        input.addEventListener('blur', function () { setTimeout(close, 180); });
+        input.addEventListener('focus', function () {
+            if (sug.innerHTML.trim() && input.value.trim().length >= 3) sug.hidden = false;
+        });
+    }
+    setupAutocomplete('tar-orig', 'tar-orig-sug');
+    setupAutocomplete('tar-dest', 'tar-dest-sug');
+
+    // Al elegir un valor en cualquier select/date del tarifador, hacer blur
+    // -> el borde morado de :focus desaparece y queda gris hasta el siguiente hover
+    document.querySelectorAll('.tarifador select, .tarifador input[type="date"]').forEach(function (el) {
+        el.addEventListener('change', function () {
+            try { el.blur(); } catch (e) {}
+        });
+    });
+
+    // Tooltip discreto del camion — aparece al pasar el raton por el campo.
+    // El contenido cambia al cambiar el camion seleccionado.
+    (function () {
+        var tip = document.getElementById('tar-camion-tip');
+        if (!tip) return;
+        var INFO = {
+            tauliner: '<strong>Trailer Tauliner · 13,60 m</strong> · 2,45 × 2,70 m · 24 Tn · 33 EUR / 26 USA · Lat./Tras./Techo <em>· paletizado, palot/box, especiales</em>',
+            rigido:   '<strong>Rígido + Plataforma · 8 m</strong> · 2,45 × 2,70 m · 14 Tn · 20 EUR / 16 USA · plataforma + transpaleta <em>· entregas urbanas, sin muelle</em>'
+        };
+        function render() { tip.innerHTML = INFO[camionSel.value] || INFO.tauliner; }
+        camionSel.addEventListener('change', render);
+        render();
+    })();
+
+    // Validacion: si origen/destino vacios, borde rojo + cartel y NO mostramos
+    // los botones de envio (evita solicitudes sin datos)
+    var origInput = document.getElementById('tar-orig');
+    var destInput = document.getElementById('tar-dest');
+    var warning = document.getElementById('tar-warning');
+    function clearError(input) {
+        var wrap = input.closest('.tar-input-wrap');
+        if (wrap) wrap.classList.remove('tar-error');
+        if (!origInput.closest('.tar-input-wrap').classList.contains('tar-error') &&
+            !destInput.closest('.tar-input-wrap').classList.contains('tar-error')) {
+            warning.classList.remove('show');
+        }
+    }
+    origInput.addEventListener('input', function () { clearError(origInput); });
+    destInput.addEventListener('input', function () { clearError(destInput); });
+
+    // CTA: al pulsar "Solicitar tarifa" se construye el mensaje preformateado
+    // y se sustituye el boton por 2 botones (Email + WhatsApp) ya listos para enviar
+    document.getElementById('tar-cta').addEventListener('click', function () {
+        var origVal = origInput.value.trim();
+        var destVal = destInput.value.trim();
+        if (!origVal || !destVal) {
+            var origWrap = origInput.closest('.tar-input-wrap');
+            var destWrap = destInput.closest('.tar-input-wrap');
+            if (!origVal) origWrap.classList.add('tar-error');
+            if (!destVal) destWrap.classList.add('tar-error');
+            warning.classList.add('show');
+            (origVal ? destInput : origInput).focus();
+            return;
+        }
+        var orig = origVal;
+        var dest = destVal;
+        var mlNum = parseFloat(ml.value);
+        var pesoNum = parseFloat(peso.value);
+        var mlV = fmt(mlNum, 1);
+        var eurV = Math.floor(mlNum * EUR_POR_ML);
+        var amrV = Math.floor(mlNum * AMR_POR_ML);
+        var pesoV = fmt(pesoNum, pesoNum % 1 === 0 ? 0 : 1);
+        var camionEl = document.getElementById('tar-camion');
+        var camion = camionEl.options[camionEl.selectedIndex].getAttribute('data-full') || camionEl.value;
+        var merca = document.getElementById('tar-merca').value;
+        var urgV = urgSel.value;
+        var urgTxt = { dia: 'Fecha fija (un día en concreto, más cara)', estandar: 'Ventana de 2 días (Estándar)', flexible: 'Ventana de 4 días (Flexible, más económica)' }[urgV];
+        // Incluir SIEMPRE la fecha seleccionada (si la hay) — para ventanas se
+        // interpreta como la fecha base desde la que empieza la franja
+        var fechaV = diaSel.value === 'otro' ? fechaInput.value : diaSel.value;
+        if (fechaV && fechaV !== 'otro') {
+            var d = new Date(fechaV + 'T00:00:00');
+            var dStr = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            if (urgV === 'dia') {
+                urgTxt = 'Fecha fija: ' + dStr;
+            } else {
+                urgTxt += ' (a partir de ' + dStr + ')';
+            }
+        }
+
+        var lines = [
+            '*** ENVIANOS ESTE MENSAJE Y TE PASAMOS TU TARIFA ANTES DE 25 MINUTOS ***',
+            '',
+            'Buenos días,',
+            '',
+            'Solicito TARIFA para transporte con estos datos:',
+            '',
+            '• ORIGEN: ' + orig,
+            '• DESTINO: ' + dest,
+            '• CANTIDAD: ' + mlV + ' m lineales (≈ ' + eurV + ' europalets · ' + amrV + ' americanos)',
+            '• PESO: ' + pesoV + ' Tn',
+            '• TIPO DE CAMIÓN: ' + camion,
+            '• TIPO DE MERCANCÍA: ' + merca,
+            '• FECHA DE CARGA: ' + urgTxt,
+            '',
+            'INDICA AQUÍ OTRAS ANOTACIONES/TIPO DE MERCANCIA QUE DEBAMOS SABER:',
+            '',
+            ''
+        ];
+        var bodyLF = lines.join('\n');
+        var bodyCRLF = lines.join('\r\n');
+
+        var wa = 'https://wa.me/34628995709?text=' + encodeURIComponent(bodyLF);
+        var mail = 'mailto:info@dynamotrans.com'
+            + '?subject=' + encodeURIComponent('Solicitud TARIFA — ' + (orig !== '—' ? orig + ' → ' + dest : 'transporte'))
+            + '&body=' + encodeURIComponent(bodyCRLF);
+
+        // Llenar hrefs y abrir el wrap: el boton "Solicitar tarifa" se oculta y
+        // los 2 botones (Email morado + WhatsApp verde) aparecen en su mismo sitio
+        document.getElementById('tar-cta-email').href = mail;
+        document.getElementById('tar-cta-wa').href = wa;
+        document.getElementById('tar-cta-wrap').classList.add('open');
+    });
+})();
 </script>
 </body>
 </html>
