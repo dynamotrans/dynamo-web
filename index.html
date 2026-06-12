@@ -812,48 +812,17 @@
                Boton pegado al PIE del hero (no centro) para no tapar el video */
             .hero-calc-trigger { display: inline-flex; margin-bottom: 0; }
             .tarifador { display: none; }
-            /* Tarifador como BOTTOM SHEET: cuando .calc-open, el tarifador
-               es position:fixed pegado al pie del viewport. El hero NO cambia
-               de altura ni de align, asi el carrousel se queda en su sitio. */
+            /* Al pulsar el boton: el boton se oculta y el tarifador aparece
+               en su sitio (display:block) con una entrada suave */
+            .hero.calc-open .hero-calc-trigger { display: none; }
             .hero.calc-open .tarifador {
-                display: flex; flex-direction: column;
-                position: fixed; left: 0; right: 0; bottom: 0; top: auto;
-                max-width: none; margin: 0;
-                max-height: 90dvh; overflow-y: auto;
-                z-index: 9998;
-                border-radius: 22px 22px 0 0;
-                box-shadow: 0 -16px 50px rgba(10,2,48,0.45);
-                /* opacity:1 explicito porque la regla global de .tarifador
-                   tiene opacity:0 inicial (animacion tarIn). Aqui sobrescribimos */
+                display: block;
                 opacity: 1;
-                animation: tarSheetIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
-                padding-top: 1.3rem;
+                animation: tarFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
             }
-            /* Drag handle visual (la barrita gris arriba) */
-            .hero.calc-open .tarifador::before {
-                content: ''; position: absolute; top: 0.45rem; left: 50%;
-                transform: translateX(-50%);
-                width: 38px; height: 4px; border-radius: 2px;
-                background: var(--gray-200);
-            }
-            /* Overlay oscuro detras del sheet */
-            .hero.calc-open::after {
-                content: ''; position: fixed; inset: 0;
-                background: rgba(10,2,48,0.55);
-                z-index: 9997;
-                animation: tarOverlayIn 0.3s ease both;
-            }
-            .hero.calc-open .hero-calc-trigger { opacity: 0; pointer-events: none; transition: opacity 0.2s; }
-            /* Boton X solo visible en movil cuando es sheet */
-            .tar-close { display: none; }
-            .hero.calc-open .tar-close { display: flex; }
-            @keyframes tarSheetIn {
-                0%   { transform: translateY(100%); opacity: 1; }
-                100% { transform: translateY(0); opacity: 1; }
-            }
-            @keyframes tarOverlayIn {
-                0%   { opacity: 0; }
-                100% { opacity: 1; }
+            @keyframes tarFadeIn {
+                0%   { opacity: 0; transform: translateY(16px); }
+                100% { opacity: 1; transform: translateY(0); }
             }
         }
         @media (prefers-reduced-motion: reduce) {
@@ -881,19 +850,6 @@
             0%   { opacity: 0; transform: translateY(18px) scale(0.97); }
             100% { opacity: 1; transform: translateY(0) scale(1); }
         }
-        /* Boton X (cerrar sheet en movil) — gemelo del refresh, a su lado */
-        .tar-close {
-            display: none;
-            position: absolute; top: 0.95rem; right: 0.7rem;
-            width: 30px; height: 30px; border-radius: 50%;
-            background: rgba(0,0,0,0.06); color: var(--gray-700);
-            border: 1.5px solid var(--gray-200);
-            cursor: pointer; padding: 0;
-            align-items: center; justify-content: center;
-            transition: background 0.2s, color 0.2s;
-            z-index: 2;
-        }
-        .tar-close:hover { background: var(--gray-200); color: var(--navy); }
         /* Boton refresh (esquina sup-derecha del tarifador) — discreto */
         .tar-reset {
             position: absolute; top: 0.65rem; right: 0.7rem;
@@ -909,8 +865,7 @@
             border-color: var(--purple); transform: rotate(-90deg);
         }
         @media (max-width: 600px) {
-            .tar-reset { top: 0.95rem; right: 2.9rem; width: 30px; height: 30px; }
-            .tar-close { top: 0.95rem; right: 0.7rem; }
+            .tar-reset { top: 0.45rem; right: 0.5rem; width: 26px; height: 26px; }
             .tar-reset svg { width: 14px; height: 14px; }
         }
         .tar-head { text-align: center; margin-bottom: 0.8rem; }
@@ -2005,9 +1960,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             Calcular tarifa
         </button>
         <div class="tarifador" id="tarifador">
-            <button type="button" class="tar-close" id="tar-close" aria-label="Cerrar tarifador">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
             <button type="button" class="tar-reset" id="tar-reset" aria-label="Reiniciar tarifador" title="Reiniciar a valores por defecto">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <polyline points="23 4 23 10 17 10"/>
@@ -3925,39 +3877,14 @@ function updateAlmTotal() {
     var warning = document.getElementById('tar-warning');
 
     // Movil: boton "Calcular tarifa" abre el tarifador como BOTTOM SHEET.
-    // X o click fuera del sheet lo cierra.
+    // El tarifador aparece en su sitio con una entrada suave.
     (function () {
         var trigger = document.getElementById('hero-calc-trigger');
-        var closeBtn = document.getElementById('tar-close');
-        var tarifador = document.getElementById('tarifador');
         var hero = document.querySelector('.hero');
         if (!trigger || !hero) return;
-        function openSheet() {
+        trigger.addEventListener('click', function () {
             hero.classList.add('calc-open');
             trigger.setAttribute('aria-expanded', 'true');
-        }
-        function closeSheet() {
-            hero.classList.remove('calc-open');
-            trigger.setAttribute('aria-expanded', 'false');
-        }
-        trigger.addEventListener('click', function (e) {
-            e.stopPropagation();
-            openSheet();
-        });
-        if (closeBtn) closeBtn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            closeSheet();
-        });
-        // Click FUERA del tarifador y del trigger (incluyendo svg hijos) cierra
-        document.addEventListener('click', function (e) {
-            if (!hero.classList.contains('calc-open')) return;
-            if (tarifador && tarifador.contains(e.target)) return;
-            if (trigger.contains(e.target)) return;
-            closeSheet();
-        });
-        // Escape cierra
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && hero.classList.contains('calc-open')) closeSheet();
         });
     })();
 
