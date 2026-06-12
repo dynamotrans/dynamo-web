@@ -554,9 +554,10 @@
         }
         @media (max-width: 600px) {
             .hero {
-                min-height: calc(100vh - 285px);
-                min-height: calc(100svh - 285px);
-                padding: 0.6rem 0 0.8rem;
+                /* Movil compactado: nav(58) + banner(32) + strip(36) + carrousel(~95) ≈ 220 */
+                min-height: calc(100vh - 220px);
+                min-height: calc(100svh - 220px);
+                padding: 0.4rem 0 0.5rem;
             }
         }
         /* Degradado de marca con zoom suave: estado final tras el vídeo (y fallback) */
@@ -869,19 +870,20 @@
         .tar-cta-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
         @media (max-width: 600px) {
             .tarifador {
-                padding: 0.9rem 0.85rem 0.95rem; border-radius: 16px;
-                margin: 0 auto 0.6rem;
+                padding: 0.6rem 0.7rem 0.7rem; border-radius: 14px;
+                margin: 0 auto 0.4rem;
             }
-            .tar-title { font-size: 1.02rem; }
-            .tar-sub { font-size: 0.68rem; }
-            .tar-head { margin-bottom: 0.6rem; }
-            .tar-grid { gap: 0.55rem 0.6rem; }
+            .tar-title { font-size: 0.84rem; line-height: 1.2; letter-spacing: -0.1px; }
+            .tar-sub { font-size: 0.62rem; }
+            .tar-head { margin-bottom: 0.4rem; }
+            .tar-grid { gap: 0.4rem 0.5rem; }
             .tar-loc { grid-column: 1 / -1; }
-            .tar-field > label { font-size: 0.68rem; }
-            .tar-input-wrap input { font-size: 16px; padding: 0.45rem 0.6rem 0.45rem 0; /* 16px evita zoom iOS */ }
-            .tar-input-wrap svg { width: 15px; height: 15px; margin: 0 0.4rem 0 0.6rem; }
-            .tar-select, .tar-date { font-size: 16px; padding: 0.45rem 0.55rem; }
-            .tar-cta { padding: 0.7rem; font-size: 0.88rem; margin-top: 0.65rem; }
+            .tar-field > label { font-size: 0.66rem; }
+            .tar-input-wrap input { font-size: 16px; padding: 0.38rem 0.55rem 0.38rem 0; /* 16px evita zoom iOS */ }
+            .tar-input-wrap svg { width: 14px; height: 14px; margin: 0 0.35rem 0 0.55rem; }
+            .tar-select, .tar-date { font-size: 16px; padding: 0.38rem 0.5rem; }
+            .tar-cta { padding: 0.6rem; font-size: 0.84rem; margin-top: 0.5rem; }
+            .tar-cta-btn { padding: 0.55rem 0.45rem; font-size: 0.84rem; }
         }
         @media (prefers-reduced-motion: reduce) {
             .tarifador { animation: none; opacity: 1; transform: none; }
@@ -1578,11 +1580,14 @@
             .hero-logo { height: 50px; }
             .hero-title { margin-bottom: 0.5rem; }
             .hero-sub { margin-bottom: 1rem; }
-            .services-strip { padding: 0.4rem 0.5rem; }
-            .strip-item { font-size: 0.65rem; padding: 0.35rem 0.7rem; letter-spacing: 0.5px; }
+            .services-strip { padding: 0.35rem 0.5rem; }
+            .strip-item { font-size: 0.65rem; padding: 0.32rem 0.7rem; letter-spacing: 0.5px; }
             .strip-item+.strip-item { border-left: none; }
             .strip-inner { gap: 0.2rem; }
-            .clients-top { padding: 1rem 0 0.8rem; }
+            .clients-top { padding: 0.55rem 0 0.5rem; }
+            .clients-top-label { font-size: 0.6rem; letter-spacing: 2px; margin-bottom: 0.4rem; }
+            .carousel-wrap { padding: 4px 0; }
+            .logo-pill { height: 54px; padding: 0 0.9rem; }
             .stats-grid { grid-template-columns:1fr 1fr; }
             .gallery-grid { grid-template-columns:1fr; }
             .g-item:nth-child(1) { grid-column:span 1; }
