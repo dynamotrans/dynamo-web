@@ -568,20 +568,10 @@
             position: absolute; inset: 0; z-index: 1;
             background: linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.85) 100%);
         }
-        /* Líneas de carretera animadas como fallback visual */
+        /* La linea blanca vertical animada (.hero-road::before) se ha retirado:
+           queda solo el ::after con la luz calida del horizonte */
         .hero-road {
             position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none;
-        }
-        .hero-road::before {
-            content: '';
-            position: absolute; left: 50%; top: -100%;
-            width: 6px; height: 300%;
-            background: repeating-linear-gradient(
-                to bottom,
-                rgba(255,255,255,0.15) 0px, rgba(255,255,255,0.15) 60px,
-                transparent 60px, transparent 120px
-            );
-            animation: roadLines 3s linear infinite;
         }
         .hero-road::after {
             content: '';
@@ -590,7 +580,6 @@
                 radial-gradient(ellipse at 20% 70%, rgba(255,180,0,0.12) 0%, transparent 50%),
                 radial-gradient(ellipse at 80% 70%, rgba(255,100,0,0.08) 0%, transparent 50%);
         }
-        @keyframes roadLines { from { transform: translateY(0); } to { transform: translateY(120px); } }
         @keyframes heroZoom { from { transform: scale(1); } to { transform: scale(1.07); } }
         @media (prefers-reduced-motion: reduce) {
             .hero-gradient, .hero-video { animation: none; }
@@ -773,14 +762,6 @@
             .tarifador { animation: none; opacity: 1; transform: none; }
         }
 
-        .hero-scroll {
-            position: absolute; bottom: 1.8rem; left: 50%; transform: translateX(-50%);
-            color: rgba(255,255,255,0.38); font-size: 0.68rem; letter-spacing: 2px;
-            text-transform: uppercase; text-align: center;
-            animation: bounceY 2.2s ease-in-out infinite;
-            display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 3;
-        }
-        .scroll-arr { width: 16px; height: 16px; border-right: 2px solid rgba(255,255,255,0.3); border-bottom: 2px solid rgba(255,255,255,0.3); transform: rotate(45deg); }
 
         /* =========================================
            SERVICES STRIP
