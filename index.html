@@ -687,17 +687,18 @@
         }
         @media (max-width: 600px) {
             .hero {
-                /* Movil: usar dvh (dynamic viewport height) que SI se ajusta al
-                   viewport real del navegador en cada momento (incluyendo la barra
-                   inferior de Chrome iOS). Restamos solo lo de la web: nav(58) +
-                   banner(32) + strip(36) + carrousel(~95) ≈ 220px.
-                   Fallbacks: vh primero, svh despues, dvh ultimo (gana el ultimo
-                   soportado por el navegador) */
+                /* Movil: dvh (dynamic viewport height) se ajusta al viewport real
+                   incluyendo la barra inferior de Chrome iOS. Restamos los
+                   elementos fijos de la web: nav(58)+banner(32)+strip(36)+carrousel(~95) */
                 min-height: calc(100vh - 220px);
                 min-height: calc(100svh - 220px);
                 min-height: calc(100dvh - 220px);
                 padding: 0.4rem 0 0.5rem;
+                /* Boton pegado AL PIE del hero por defecto (no tapa el video) */
+                align-items: flex-end;
             }
+            /* Cuando el tarifador esta abierto, vuelve a centrarse */
+            .hero.calc-open { align-items: center; }
         }
         /* Degradado de marca con zoom suave: estado final tras el vídeo (y fallback) */
         .hero-gradient {
@@ -806,8 +807,9 @@
         }
         .hero-calc-trigger:active { transform: scale(0.96); }
         @media (max-width: 600px) {
-            /* Movil: solo el boton visible, tarifador oculto hasta pulsar */
-            .hero-calc-trigger { display: inline-flex; }
+            /* Movil: solo el boton visible, tarifador oculto hasta pulsar.
+               Boton pegado al PIE del hero (no centro) para no tapar el video */
+            .hero-calc-trigger { display: inline-flex; margin-bottom: 1.2rem; }
             .tarifador { display: none; }
             /* Estado abierto: boton fuera, tarifador visible */
             .hero.calc-open .hero-calc-trigger { display: none; }
