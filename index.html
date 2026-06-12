@@ -539,13 +539,25 @@
         ========================================= */
         .hero {
             position: relative;
-            height: auto; min-height: 0;
+            /* Carrousel ANCLADO AL PIE del viewport en el primer paint.
+               Sumas a restar de 100svh:
+                 desktop: nav (70) + banner (38) + services-strip (50) + carrousel (~165) ≈ 325
+                 movil:   nav (58) + banner (32) + services-strip (40) + carrousel (~155) ≈ 285
+               Si el tarifador es mas alto que ese espacio (caso movil), el hero crece
+               y el carrousel se va debajo del fold. Es aceptable: el tarifador es lo
+               primario en el primer pintado. svh evita los saltos de la barra URL iOS */
+            min-height: calc(100vh - 325px);
+            min-height: calc(100svh - 325px);
             display: flex; align-items: center; justify-content: center; overflow: hidden;
-            padding: 4.5rem 0 4rem;
+            padding: 1rem 0 1.2rem;
             background: linear-gradient(135deg, #0a0230 0%, #1a008a 30%, #3300cc 60%, #0a0230 100%);
         }
         @media (max-width: 600px) {
-            .hero { padding: 1.2rem 0 2.2rem; }
+            .hero {
+                min-height: calc(100vh - 285px);
+                min-height: calc(100svh - 285px);
+                padding: 0.6rem 0 0.8rem;
+            }
         }
         /* Degradado de marca con zoom suave: estado final tras el vídeo (y fallback) */
         .hero-gradient {
