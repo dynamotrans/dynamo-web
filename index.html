@@ -667,6 +667,24 @@
             0%   { opacity: 0; transform: translateY(18px) scale(0.97); }
             100% { opacity: 1; transform: translateY(0) scale(1); }
         }
+        /* Boton refresh (esquina sup-derecha del tarifador) — discreto */
+        .tar-reset {
+            position: absolute; top: 0.65rem; right: 0.7rem;
+            width: 30px; height: 30px; border-radius: 50%;
+            background: rgba(51,0,204,0.06); color: var(--purple);
+            border: 1.5px solid rgba(51,0,204,0.15);
+            cursor: pointer; padding: 0;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s, transform 0.4s ease, border-color 0.2s;
+        }
+        .tar-reset:hover {
+            background: var(--purple); color: white;
+            border-color: var(--purple); transform: rotate(-90deg);
+        }
+        @media (max-width: 600px) {
+            .tar-reset { top: 0.45rem; right: 0.5rem; width: 26px; height: 26px; }
+            .tar-reset svg { width: 14px; height: 14px; }
+        }
         .tar-head { text-align: center; margin-bottom: 0.8rem; }
         .tar-title {
             font-size: 1.18rem; font-weight: 900; letter-spacing: -0.3px;
@@ -1728,6 +1746,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="hero-content">
         <!-- TARIFADOR -->
         <div class="tarifador" id="tarifador">
+            <button type="button" class="tar-reset" id="tar-reset" aria-label="Reiniciar tarifador" title="Reiniciar a valores por defecto">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="23 4 23 10 17 10"/>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+            </button>
             <div class="tar-head">
                 <h2 class="tar-title"><span class="tt-dark">Pick.</span> <span class="tt-dark">Drop.</span> <span class="tt-purple">Done.</span></h2>
                 <p class="tar-sub">Respuesta personalizada en minutos · Sin compromiso</p>
@@ -3629,6 +3653,50 @@ function updateAlmTotal() {
     var origInput = document.getElementById('tar-orig');
     var destInput = document.getElementById('tar-dest');
     var warning = document.getElementById('tar-warning');
+
+    // Boton reset — devuelve el tarifador al estado inicial
+    (function () {
+        var btn = document.getElementById('tar-reset');
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+            // Origen / destino
+            origInput.value = '';
+            destInput.value = '';
+            origInput.closest('.tar-input-wrap').classList.remove('tar-error');
+            destInput.closest('.tar-input-wrap').classList.remove('tar-error');
+            // Camion y mercancia
+            camionSel.value = 'tauliner';
+            document.getElementById('tar-merca').selectedIndex = 0;
+            // ML y peso — repuebla y mete el maximo (default)
+            rebuildMl();
+            rebuildPeso();
+            // Fecha de carga
+            urgSel.value = 'estandar';
+            // Dia: borrar la opcion custom si existe y volver a "Sin fecha definida"
+            var custom = diaSel.querySelector('option[data-custom="1"]');
+            if (custom) custom.remove();
+            diaSel.value = '';
+            // Calendario
+            if (typeof fpInstance !== 'undefined' && fpInstance) {
+                try { fpInstance.clear(); } catch (e) {}
+            }
+            fechaInput.value = '';
+            // Anotaciones
+            var notesBody = document.getElementById('tar-notes-body');
+            var notesToggle = document.getElementById('tar-notes-toggle');
+            var notes = document.getElementById('tar-notes');
+            var notesCount = document.getElementById('tar-notes-count');
+            if (notes) { notes.value = ''; }
+            if (notesCount) { notesCount.textContent = '0'; notesCount.parentNode.classList.remove('warn'); }
+            if (notesBody) { notesBody.hidden = true; }
+            if (notesToggle) { notesToggle.setAttribute('aria-expanded', 'false'); }
+            // Cartel de error y wrap de CTA (cerrar Email/WhatsApp si estaban abiertos)
+            warning.classList.remove('show');
+            document.getElementById('tar-cta-wrap').classList.remove('open');
+            // Foco al primer campo
+            origInput.focus();
+        });
+    })();
 
     // Anotaciones libres — toggle + contador de caracteres (max 1000)
     (function () {
