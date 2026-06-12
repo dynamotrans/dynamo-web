@@ -3316,7 +3316,7 @@ function updateAlmTotal() {
 
     // Poblar selects metros lineales Y peso segun el tipo de camion. Por defecto
     // siempre se selecciona el ULTIMO (carga maxima):
-    //   Tauliner: 13,2 ml / 24,5 Tn
+    //   Tauliner: 13,2 ml / 24 Tn
     //   Rigido:   8 ml    / 14 Tn
     var camionSel = document.getElementById('tar-camion');
     var ML_OPTS = {
@@ -3324,8 +3324,8 @@ function updateAlmTotal() {
         rigido:   [1, 2, 3, 4, 5, 6, 7, 8]
     };
     var PESO_OPTS = {
-        // 1 a 24 Tn enteros + 24,5
-        tauliner: (function () { var a = []; for (var i = 1; i <= 24; i++) a.push(i); a.push(24.5); return a; })(),
+        // 1 a 24 Tn enteros (max = spec de la card del vehiculo)
+        tauliner: (function () { var a = []; for (var i = 1; i <= 24; i++) a.push(i); return a; })(),
         // 1 a 14 Tn enteros
         rigido:   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     };
