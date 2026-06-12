@@ -785,6 +785,38 @@
             transition: all 0.3s; box-shadow: 0 4px 20px rgba(51,0,204,0.45);
         }
         .btn-email:hover { background: var(--purple-light); transform: translateY(-3px); }
+        /* Boton movil "Calcular tarifa" — visible solo en movil mientras el
+           tarifador esta cerrado. Al pulsar abre el tarifador y se oculta. */
+        .hero-calc-trigger {
+            display: none;
+            margin: 0 auto;
+            padding: 1.1rem 2.5rem;
+            background: linear-gradient(135deg, var(--purple), var(--purple-light));
+            color: white; border: none; border-radius: 16px;
+            font-size: 1rem; font-weight: 900; letter-spacing: 0.5px;
+            text-transform: uppercase; cursor: pointer;
+            font-family: inherit;
+            align-items: center; gap: 0.6rem;
+            box-shadow: 0 14px 36px rgba(51,0,204,0.45);
+            animation: heroCalcPulse 2.4s ease-in-out infinite;
+        }
+        @keyframes heroCalcPulse {
+            0%, 100% { box-shadow: 0 14px 36px rgba(51,0,204,0.45); transform: translateY(0); }
+            50%      { box-shadow: 0 18px 44px rgba(51,0,204,0.60); transform: translateY(-3px); }
+        }
+        .hero-calc-trigger:active { transform: scale(0.96); }
+        @media (max-width: 600px) {
+            /* Movil: solo el boton visible, tarifador oculto hasta pulsar */
+            .hero-calc-trigger { display: inline-flex; }
+            .tarifador { display: none; }
+            /* Estado abierto: boton fuera, tarifador visible */
+            .hero.calc-open .hero-calc-trigger { display: none; }
+            .hero.calc-open .tarifador { display: block; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .hero-calc-trigger { animation: none; }
+        }
+
         /* =========================================
            TARIFADOR (en el hero)
         ========================================= */
@@ -1904,6 +1936,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="hero-road"></div>
     <div class="hero-content">
         <!-- TARIFADOR -->
+        <!-- Boton movil: abre el tarifador (oculto por defecto en movil) -->
+        <button type="button" class="hero-calc-trigger" id="hero-calc-trigger" aria-controls="tarifador" aria-expanded="false">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="4" y="2" width="16" height="20" rx="2"/>
+                <line x1="8" y1="6" x2="16" y2="6"/>
+                <line x1="8" y1="10" x2="16" y2="10"/>
+                <line x1="8" y1="14" x2="16" y2="14"/>
+                <line x1="8" y1="18" x2="12" y2="18"/>
+            </svg>
+            Calcular tarifa
+        </button>
         <div class="tarifador" id="tarifador">
             <button type="button" class="tar-reset" id="tar-reset" aria-label="Reiniciar tarifador" title="Reiniciar a valores por defecto">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -3812,6 +3855,21 @@ function updateAlmTotal() {
     var origInput = document.getElementById('tar-orig');
     var destInput = document.getElementById('tar-dest');
     var warning = document.getElementById('tar-warning');
+
+    // Movil: boton "Calcular tarifa" que abre el tarifador (oculto por defecto)
+    (function () {
+        var trigger = document.getElementById('hero-calc-trigger');
+        var hero = document.querySelector('.hero');
+        if (!trigger || !hero) return;
+        trigger.addEventListener('click', function () {
+            hero.classList.add('calc-open');
+            trigger.setAttribute('aria-expanded', 'true');
+            // Pequeno delay para que el tarifador se haya pintado antes del focus
+            setTimeout(function () {
+                if (origInput) origInput.focus({ preventScroll: false });
+            }, 50);
+        });
+    })();
 
     // Boton reset — devuelve el tarifador al estado inicial
     (function () {
