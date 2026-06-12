@@ -3482,6 +3482,8 @@ function updateAlmTotal() {
     // Si Flatpickr no esta disponible (offline / bloqueo), fallback al date picker
     // nativo del navegador.
     var fpInstance = null;
+    var diaSelPrevValue = '';   // valor del select ANTES de abrir el calendario
+    var fechaPicked = false;    // si en esta apertura el usuario eligio fecha
     function initFlatpickr() {
         if (fpInstance || typeof window.flatpickr !== 'function') return;
         var hoyD = new Date();
@@ -3494,7 +3496,14 @@ function updateAlmTotal() {
             disableMobile: true, // forzar Flatpickr tambien en movil (en vez de input nativo)
             dateFormat: 'Y-m-d',
             onChange: function (selected, dateStr) {
-                if (dateStr) setFechaCustom(dateStr);
+                if (dateStr) { fechaPicked = true; setFechaCustom(dateStr); }
+            },
+            onClose: function () {
+                // Si el usuario cerro sin elegir fecha, restaurar el valor anterior
+                // del select para que pueda volver a abrirlo ("change" sobre el mismo
+                // valor "otro" no se dispara otra vez)
+                if (!fechaPicked) diaSel.value = diaSelPrevValue;
+                fechaPicked = false;
             }
         });
     }
@@ -3511,8 +3520,13 @@ function updateAlmTotal() {
     if (document.readyState !== 'loading') initFlatpickr();
     else document.addEventListener('DOMContentLoaded', initFlatpickr);
 
+    // Guardar el valor anterior ANTES de que cambie a "otro" para poder restaurarlo
+    diaSel.addEventListener('focus', function () { diaSelPrevValue = diaSel.value; });
     diaSel.addEventListener('change', function () {
-        if (diaSel.value === 'otro') openCalendar();
+        if (diaSel.value === 'otro') {
+            fechaPicked = false;
+            openCalendar();
+        }
     });
 
     // Fallback (cuando se usa el picker nativo): mover sabados/domingos al lunes
