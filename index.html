@@ -3625,20 +3625,13 @@ function updateAlmTotal() {
     origInput.addEventListener('input', function () { clearError(origInput); });
     destInput.addEventListener('input', function () { clearError(destInput); });
 
-    // CTA: al pulsar "Solicitar tarifa" se construye el mensaje preformateado
-    // y se sustituye el boton por 2 botones (Email + WhatsApp) ya listos para enviar
-    document.getElementById('tar-cta').addEventListener('click', function () {
+    // Genera los hrefs de WhatsApp y mailto con los datos ACTUALES del tarifador.
+    // Reutilizado por "Calcular precio" y por los 2 botones Email/WhatsApp (que
+    // se regeneran en cada click para reflejar cambios posteriores al primer pulsado).
+    function buildMessage() {
         var origVal = origInput.value.trim();
         var destVal = destInput.value.trim();
-        if (!origVal || !destVal) {
-            var origWrap = origInput.closest('.tar-input-wrap');
-            var destWrap = destInput.closest('.tar-input-wrap');
-            if (!origVal) origWrap.classList.add('tar-error');
-            if (!destVal) destWrap.classList.add('tar-error');
-            warning.classList.add('show');
-            (origVal ? destInput : origInput).focus();
-            return;
-        }
+        if (!origVal || !destVal) return null;
         var orig = origVal;
         var dest = destVal;
         var mlNum = parseFloat(ml.value);
@@ -3652,8 +3645,6 @@ function updateAlmTotal() {
         var merca = document.getElementById('tar-merca').value;
         var urgV = urgSel.value;
         var urgTxt = { dia: 'Fecha fija (un día en concreto, más cara)', estandar: 'Ventana de 2 días (Estándar)', flexible: 'Ventana de 4 días (Flexible, más económica)' }[urgV];
-        // Incluir SIEMPRE la fecha seleccionada (si la hay) — para ventanas se
-        // interpreta como la fecha base desde la que empieza la franja
         var fechaV = diaSel.value === 'otro' ? fechaInput.value : diaSel.value;
         if (fechaV && fechaV !== 'otro') {
             var d = new Date(fechaV + 'T00:00:00');
@@ -3664,7 +3655,6 @@ function updateAlmTotal() {
                 urgTxt += ' (a partir de ' + dStr + ')';
             }
         }
-
         var lines = [
             '*** ENVIANOS ESTE MENSAJE Y TE PASAMOS TU TARIFA ANTES DE 25 MINUTOS ***',
             '',
@@ -3686,17 +3676,47 @@ function updateAlmTotal() {
         ];
         var bodyLF = lines.join('\n');
         var bodyCRLF = lines.join('\r\n');
+        return {
+            wa: 'https://wa.me/34628995709?text=' + encodeURIComponent(bodyLF),
+            mail: 'mailto:info@dynamotrans.com'
+                + '?subject=' + encodeURIComponent('Solicitud TARIFA — ' + orig + ' → ' + dest)
+                + '&body=' + encodeURIComponent(bodyCRLF)
+        };
+    }
 
-        var wa = 'https://wa.me/34628995709?text=' + encodeURIComponent(bodyLF);
-        var mail = 'mailto:info@dynamotrans.com'
-            + '?subject=' + encodeURIComponent('Solicitud TARIFA — ' + (orig !== '—' ? orig + ' → ' + dest : 'transporte'))
-            + '&body=' + encodeURIComponent(bodyCRLF);
-
-        // Llenar hrefs y abrir el wrap: el boton "Solicitar tarifa" se oculta y
-        // los 2 botones (Email morado + WhatsApp verde) aparecen en su mismo sitio
-        document.getElementById('tar-cta-email').href = mail;
-        document.getElementById('tar-cta-wa').href = wa;
+    // CTA: al pulsar "Calcular precio" se valida y se sustituye el boton por
+    // los 2 botones (Email + WhatsApp) ya listos para enviar.
+    document.getElementById('tar-cta').addEventListener('click', function () {
+        var origVal = origInput.value.trim();
+        var destVal = destInput.value.trim();
+        if (!origVal || !destVal) {
+            var origWrap = origInput.closest('.tar-input-wrap');
+            var destWrap = destInput.closest('.tar-input-wrap');
+            if (!origVal) origWrap.classList.add('tar-error');
+            if (!destVal) destWrap.classList.add('tar-error');
+            warning.classList.add('show');
+            (origVal ? destInput : origInput).focus();
+            return;
+        }
+        var msg = buildMessage();
+        if (!msg) return;
+        document.getElementById('tar-cta-email').href = msg.mail;
+        document.getElementById('tar-cta-wa').href = msg.wa;
         document.getElementById('tar-cta-wrap').classList.add('open');
+    });
+
+    // Regenerar el mensaje JUSTO ANTES de navegar cuando el usuario pulsa
+    // Email o WhatsApp -> refleja cualquier cambio hecho en el form tras la
+    // primera pulsacion de "Calcular precio".
+    ['tar-cta-email', 'tar-cta-wa'].forEach(function (id) {
+        var btn = document.getElementById(id);
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+            var msg = buildMessage();
+            if (!msg) return;
+            document.getElementById('tar-cta-email').href = msg.mail;
+            document.getElementById('tar-cta-wa').href = msg.wa;
+        });
     });
 })();
 </script>
