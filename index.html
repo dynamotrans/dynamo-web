@@ -533,34 +533,15 @@
             flex-direction: column;
         }
         .mobile-menu.open { display: flex; animation: mmOpen 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
-        .mobile-menu.closing { display: flex; animation: mmClose 0.4s cubic-bezier(0.7, 0, 0.84, 0) forwards; }
+        .mobile-menu.closing {
+            display: flex;
+            opacity: 0;
+            transition: opacity 0.28s ease;
+            pointer-events: none;
+        }
         @keyframes mmOpen {
             0%   { opacity: 0; clip-path: circle(0% at calc(100% - 2.6rem) 2.6rem); }
             100% { opacity: 1; clip-path: circle(160% at calc(100% - 2.6rem) 2.6rem); }
-        }
-        @keyframes mmClose {
-            0%   { opacity: 1; clip-path: circle(160% at calc(100% - 2.6rem) 2.6rem); }
-            100% { opacity: 0; clip-path: circle(0% at calc(100% - 2.6rem) 2.6rem); }
-        }
-        /* Mientras se cierra, los items salen con un slide-out hacia la derecha */
-        .mobile-menu.closing .mm-item {
-            animation: mmItemOut 0.25s ease-in forwards;
-        }
-        .mobile-menu.closing .mm-item:nth-child(5) { animation-delay: 0s; }
-        .mobile-menu.closing .mm-item:nth-child(4) { animation-delay: 0.03s; }
-        .mobile-menu.closing .mm-item:nth-child(3) { animation-delay: 0.06s; }
-        .mobile-menu.closing .mm-item:nth-child(2) { animation-delay: 0.09s; }
-        .mobile-menu.closing .mm-item:nth-child(1) { animation-delay: 0.12s; }
-        @keyframes mmItemOut {
-            0%   { opacity: 1; transform: translateX(0); }
-            100% { opacity: 0; transform: translateX(30px); }
-        }
-        .mobile-menu.closing .mm-foot {
-            animation: mmFootOut 0.2s ease-in forwards;
-        }
-        @keyframes mmFootOut {
-            0%   { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(15px); }
         }
         /* Aurora: 2 capas de gradiente radial que se mueven lentas */
         .mobile-menu::before, .mobile-menu::after {
@@ -2998,11 +2979,12 @@ function openLegal(tab) {
     function openMobileMenu()  { document.getElementById('mobileMenu').classList.add('open'); }
     function closeMobileMenu() {
         var m = document.getElementById('mobileMenu');
-        if (!m.classList.contains('open')) return;
-        // Lanza la animacion de cierre y al terminar quita open + closing
+        if (!m.classList.contains('open') && !m.classList.contains('closing')) return;
+        // Cierre simple: añade .closing (opacity 0 con transition 0.28s)
+        // y al terminar quita open + closing -> vuelve a display:none
         m.classList.add('closing');
         m.classList.remove('open');
-        setTimeout(function () { m.classList.remove('closing'); }, 400);
+        setTimeout(function () { m.classList.remove('closing'); }, 300);
     }
 
     // Top bar: spinner 5s y se autocolapsa para liberar espacio en el hero
