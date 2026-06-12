@@ -674,6 +674,8 @@
             background: white; border: 1.5px solid var(--gray-200);
             border-radius: 12px; transition: all 0.2s;
         }
+        /* Borde morado al pasar el raton por encima o al escribir (focus) */
+        .tar-input-wrap:hover,
         .tar-input-wrap:focus-within {
             border-color: var(--purple);
             box-shadow: 0 0 0 4px rgba(51,0,204,0.10);
@@ -764,20 +766,17 @@
             background: var(--navy); color: white;
             border-radius: 12px;
             font-size: 0.73rem; line-height: 1.45;
-            opacity: 0; transform: translateY(-4px);
+            opacity: 0;
             pointer-events: none;
-            transition: opacity 0.18s ease, transform 0.18s ease;
             z-index: 15;
             box-shadow: 0 10px 26px rgba(10,2,48,0.30);
         }
         .tar-camion-tip strong { color: white; font-weight: 800; }
         .tar-camion-tip em { font-style: normal; color: rgba(255,255,255,0.55); font-weight: 500; }
-        /* Hover solo en dispositivos con raton (no en touch) */
+        /* Solo aparece al pasar el raton por encima. Al salir se quita inmediato (sin fade).
+           No usa focus-within: no debe aparecer al hacer click en el desplegable. */
         @media (hover: hover) {
-            .tar-camion-field:hover .tar-camion-tip,
-            .tar-camion-field:focus-within .tar-camion-tip {
-                opacity: 1; transform: translateY(0);
-            }
+            .tar-camion-field:hover .tar-camion-tip { opacity: 1; }
         }
         .tar-input-wrap svg {
             width: 18px; height: 18px; color: var(--purple);
@@ -807,6 +806,10 @@
             font-size: 0.88rem; color: var(--navy); font-family: inherit;
             outline: none; transition: border-color 0.2s, box-shadow 0.2s;
         }
+        /* Borde morado al pasar el raton por encima.
+           Focus tambien resalta mientras el desplegable esta abierto;
+           al elegir un valor se hace blur() por JS y vuelve al gris. */
+        .tar-select:hover, .tar-date:hover,
         .tar-select:focus, .tar-date:focus {
             border-color: var(--purple); box-shadow: 0 0 0 4px rgba(51,0,204,0.10);
         }
@@ -3566,6 +3569,14 @@ function updateAlmTotal() {
     }
     setupAutocomplete('tar-orig', 'tar-orig-sug');
     setupAutocomplete('tar-dest', 'tar-dest-sug');
+
+    // Al elegir un valor en cualquier select/date del tarifador, hacer blur
+    // -> el borde morado de :focus desaparece y queda gris hasta el siguiente hover
+    document.querySelectorAll('.tarifador select, .tarifador input[type="date"]').forEach(function (el) {
+        el.addEventListener('change', function () {
+            try { el.blur(); } catch (e) {}
+        });
+    });
 
     // Tooltip discreto del camion — aparece al pasar el raton por el campo.
     // El contenido cambia al cambiar el camion seleccionado.
