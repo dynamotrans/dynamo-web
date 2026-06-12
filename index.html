@@ -687,17 +687,15 @@
         }
         @media (max-width: 600px) {
             .hero {
-                /* HEIGHT FIJO al viewport disponible — el hero NO crece, asi el
-                   carrousel queda SIEMPRE al pie. Si el tarifador no cabe el
-                   propio hero scrollea internamente (el video sigue de fondo
-                   porque es position:absolute respecto al hero) */
-                min-height: 0;
-                height: calc(100vh - 220px);
-                height: calc(100svh - 220px);
-                height: calc(100dvh - 220px);
-                max-height: calc(100dvh - 220px);
-                overflow-y: auto; -webkit-overflow-scrolling: touch;
-                align-items: flex-start;
+                /* Movil: usar dvh (dynamic viewport height) que SI se ajusta al
+                   viewport real del navegador en cada momento (incluyendo la barra
+                   inferior de Chrome iOS). Restamos solo lo de la web: nav(58) +
+                   banner(32) + strip(36) + carrousel(~95) ≈ 220px.
+                   Fallbacks: vh primero, svh despues, dvh ultimo (gana el ultimo
+                   soportado por el navegador) */
+                min-height: calc(100vh - 220px);
+                min-height: calc(100svh - 220px);
+                min-height: calc(100dvh - 220px);
                 padding: 0.4rem 0 0.5rem;
             }
         }
