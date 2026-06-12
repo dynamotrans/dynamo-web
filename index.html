@@ -723,13 +723,15 @@
         }
         .tar-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(51,0,204,0.45); }
         .tar-cta svg { width: 18px; height: 18px; }
-        /* 2 botones (Email morado + WhatsApp verde) que aparecen al pulsar "Solicitar tarifa" */
-        .tar-cta-options {
+        /* Estado por defecto: solo se ve el boton "Solicitar tarifa".
+           Estado .open (al pulsarse): oculto el boton y muestro los 2 botones
+           Email/WhatsApp en su mismo sitio. */
+        .tar-cta-options { display: none; }
+        .tar-cta-wrap.open .tar-cta { display: none; }
+        .tar-cta-wrap.open .tar-cta-options {
             display: flex; gap: 0.6rem;
             animation: fadeUp 0.4s ease both;
         }
-        /* Atributo hidden gana sobre display:flex (gana el mas especifico) */
-        .tar-cta-options[hidden] { display: none; }
         .tar-cta-btn {
             flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
             padding: 0.85rem; border-radius: 12px;
@@ -1652,7 +1654,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
                     Solicitar tarifa
                 </button>
-                <div class="tar-cta-options" id="tar-cta-options" hidden>
+                <div class="tar-cta-options" id="tar-cta-options">
                     <a class="tar-cta-btn tar-cta-email" id="tar-cta-email" href="#" rel="noopener" aria-label="Solicitar tarifa por email">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
                         Email
@@ -3484,11 +3486,11 @@ function updateAlmTotal() {
             + '?subject=' + encodeURIComponent('Solicitud TARIFA — ' + (orig !== '—' ? orig + ' → ' + dest : 'transporte'))
             + '&body=' + encodeURIComponent(bodyCRLF);
 
-        // Llenar hrefs y mostrar los 2 botones, ocultar el boton "Solicitar tarifa"
+        // Llenar hrefs y abrir el wrap: el boton "Solicitar tarifa" se oculta y
+        // los 2 botones (Email morado + WhatsApp verde) aparecen en su mismo sitio
         document.getElementById('tar-cta-email').href = mail;
         document.getElementById('tar-cta-wa').href = wa;
-        document.getElementById('tar-cta').hidden = true;
-        document.getElementById('tar-cta-options').hidden = false;
+        document.getElementById('tar-cta-wrap').classList.add('open');
     });
 })();
 </script>
