@@ -823,6 +823,9 @@
                 z-index: 9998;
                 border-radius: 22px 22px 0 0;
                 box-shadow: 0 -16px 50px rgba(10,2,48,0.45);
+                /* opacity:1 explicito porque la regla global de .tarifador
+                   tiene opacity:0 inicial (animacion tarIn). Aqui sobrescribimos */
+                opacity: 1;
                 animation: tarSheetIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
                 padding-top: 1.3rem;
             }
@@ -845,8 +848,8 @@
             .tar-close { display: none; }
             .hero.calc-open .tar-close { display: flex; }
             @keyframes tarSheetIn {
-                0%   { transform: translateY(100%); }
-                100% { transform: translateY(0); }
+                0%   { transform: translateY(100%); opacity: 1; }
+                100% { transform: translateY(0); opacity: 1; }
             }
             @keyframes tarOverlayIn {
                 0%   { opacity: 0; }
