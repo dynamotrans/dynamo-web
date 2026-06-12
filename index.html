@@ -753,38 +753,31 @@
         .flatpickr-prev-month, .flatpickr-next-month { color: var(--purple) !important; fill: var(--purple) !important; }
         .flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { fill: var(--purple-light) !important; }
 
-        /* Pastilla informativa siempre visible bajo el selector de camion.
-           Muestra ficha tecnica resumida del camion seleccionado. */
-        .tar-camion-info {
+        /* Tooltip discreto del camion seleccionado — aparece al hover (solo desktop).
+           Anclado al campo (.tar-camion-field es relative). En movil no aparece
+           (no hay hover) y no estorba. */
+        .tar-camion-field { position: relative; }
+        .tar-camion-tip {
+            position: absolute; top: 100%; left: 0; right: 0;
             margin-top: 0.35rem;
-            padding: 0.5rem 0.8rem;
-            background: rgba(51,0,204,0.045);
-            border: 1px solid rgba(51,0,204,0.14);
-            border-radius: 14px;
-            font-size: 0.74rem;
-            color: var(--gray-700);
-            line-height: 1.45;
+            padding: 0.55rem 0.8rem;
+            background: var(--navy); color: white;
+            border-radius: 12px;
+            font-size: 0.73rem; line-height: 1.45;
+            opacity: 0; transform: translateY(-4px);
+            pointer-events: none;
+            transition: opacity 0.18s ease, transform 0.18s ease;
+            z-index: 15;
+            box-shadow: 0 10px 26px rgba(10,2,48,0.30);
         }
-        .tar-camion-info .ti-specs {
-            display: flex; flex-wrap: wrap; gap: 0.35rem 0.65rem;
-            margin-bottom: 0.25rem;
-        }
-        .tar-camion-info .ti-chip {
-            display: inline-flex; align-items: baseline; gap: 0.2rem;
-            color: var(--navy); font-weight: 700;
-            white-space: nowrap;
-        }
-        .tar-camion-info .ti-chip em {
-            font-style: normal; color: var(--gray-500); font-weight: 600;
-        }
-        .tar-camion-info .ti-ideal {
-            color: var(--gray-500); font-weight: 600;
-            font-size: 0.7rem;
-        }
-        .tar-camion-info .ti-ideal strong { color: var(--purple); font-weight: 800; }
-        @media (max-width: 600px) {
-            .tar-camion-info { font-size: 0.7rem; padding: 0.45rem 0.7rem; }
-            .tar-camion-info .ti-ideal { font-size: 0.66rem; }
+        .tar-camion-tip strong { color: white; font-weight: 800; }
+        .tar-camion-tip em { font-style: normal; color: rgba(255,255,255,0.55); font-weight: 500; }
+        /* Hover solo en dispositivos con raton (no en touch) */
+        @media (hover: hover) {
+            .tar-camion-field:hover .tar-camion-tip,
+            .tar-camion-field:focus-within .tar-camion-tip {
+                opacity: 1; transform: translateY(0);
+            }
         }
         .tar-input-wrap svg {
             width: 18px; height: 18px; color: var(--purple);
@@ -1718,12 +1711,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     </div>
                 </div>
 
-                <div class="tar-field">
+                <div class="tar-field tar-camion-field">
                     <select id="tar-camion" class="tar-select" aria-label="Tipo de camion">
                         <option value="tauliner" data-full="Trailer Tauliner (13,60 m · 33 europalets · 24 Tn)">Trailer Tauliner · 13,60 m</option>
                         <option value="rigido" data-full="Rígido con plataforma y transpaleta (8 m · 20 europalets · 14 Tn)">Rígido plataforma · 8 m</option>
                     </select>
-                    <div class="tar-camion-info" id="tar-camion-info" aria-live="polite"></div>
+                    <div class="tar-camion-tip" id="tar-camion-tip" role="tooltip" aria-hidden="true"></div>
                 </div>
                 <div class="tar-field">
                     <select id="tar-merca" class="tar-select" aria-label="Tipo de mercancia">
@@ -3574,35 +3567,16 @@ function updateAlmTotal() {
     setupAutocomplete('tar-orig', 'tar-orig-sug');
     setupAutocomplete('tar-dest', 'tar-dest-sug');
 
-    // Pastilla informativa bajo el selector — ficha tecnica resumida del
-    // camion seleccionado, siempre visible. Cambia al cambiar de camion.
+    // Tooltip discreto del camion — aparece al pasar el raton por el campo.
+    // El contenido cambia al cambiar el camion seleccionado.
     (function () {
-        var infoBox = document.getElementById('tar-camion-info');
-        if (!infoBox) return;
+        var tip = document.getElementById('tar-camion-tip');
+        if (!tip) return;
         var INFO = {
-            tauliner: {
-                largo: '13,60 m', dim: '2,45 × 2,70 m', carga: '24 Tn',
-                pales: '33 EUR · 26 USA', apertura: 'Lat./Tras./Techo',
-                ideal: 'paletizado, palot/box, especiales'
-            },
-            rigido: {
-                largo: '8 m', dim: '2,45 × 2,70 m', carga: '14 Tn',
-                pales: '20 EUR · 16 USA', apertura: 'Lat./Tras./Techo',
-                ideal: 'entregas urbanas, sin muelle (plataforma + transpaleta)'
-            }
+            tauliner: '<strong>Trailer Tauliner · 13,60 m</strong> · 2,45 × 2,70 m · 24 Tn · 33 EUR / 26 USA · Lat./Tras./Techo <em>· paletizado, palot/box, especiales</em>',
+            rigido:   '<strong>Rígido + Plataforma · 8 m</strong> · 2,45 × 2,70 m · 14 Tn · 20 EUR / 16 USA · plataforma + transpaleta <em>· entregas urbanas, sin muelle</em>'
         };
-        function render() {
-            var info = INFO[camionSel.value] || INFO.tauliner;
-            infoBox.innerHTML =
-                '<div class="ti-specs">' +
-                    '<span class="ti-chip">' + info.largo + ' <em>largo</em></span>' +
-                    '<span class="ti-chip">' + info.dim + ' <em>ancho×alto</em></span>' +
-                    '<span class="ti-chip">' + info.carga + '</span>' +
-                    '<span class="ti-chip">' + info.pales + '</span>' +
-                    '<span class="ti-chip">' + info.apertura + '</span>' +
-                '</div>' +
-                '<div class="ti-ideal"><strong>Ideal para:</strong> ' + info.ideal + '.</div>';
-        }
+        function render() { tip.innerHTML = INFO[camionSel.value] || INFO.tauliner; }
         camionSel.addEventListener('change', render);
         render();
     })();
