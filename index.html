@@ -1634,9 +1634,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <div class="tar-field">
                     <label for="tar-urgencia">Fecha de carga</label>
                     <select id="tar-urgencia" class="tar-select">
-                        <option value="dia">Fecha fija (Un único día)</option>
+                        <option value="dia">Fecha fija (Un único día, más cara)</option>
                         <option value="estandar" selected>Ventana de 2 días (Estándar)</option>
-                        <option value="flexible">Ventana de 4 días (Flexible)</option>
+                        <option value="flexible">Ventana de 4 días (Flexible, más económica)</option>
                     </select>
                 </div>
                 <div class="tar-field" id="tar-fecha-field">
@@ -3454,7 +3454,7 @@ function updateAlmTotal() {
         var camion = camionEl.options[camionEl.selectedIndex].getAttribute('data-full') || camionEl.value;
         var merca = document.getElementById('tar-merca').value;
         var urgV = urgSel.value;
-        var urgTxt = { dia: 'Fecha fija (un único día)', estandar: 'Ventana de 2 días (Estándar)', flexible: 'Ventana de 4 días (Flexible)' }[urgV];
+        var urgTxt = { dia: 'Fecha fija (un único día, más cara)', estandar: 'Ventana de 2 días (Estándar)', flexible: 'Ventana de 4 días (Flexible, más económica)' }[urgV];
         // Incluir SIEMPRE la fecha seleccionada (si la hay) — para ventanas se
         // interpreta como la fecha base desde la que empieza la franja
         var fechaV = diaSel.value === 'otro' ? fechaInput.value : diaSel.value;
