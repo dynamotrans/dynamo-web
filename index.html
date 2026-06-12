@@ -577,11 +577,9 @@
             display: flex; align-items: center; justify-content: space-between;
             padding: 1.4rem 1.5rem 0.5rem;
         }
-        .mm-brand {
-            font-size: 0.85rem; font-weight: 900; letter-spacing: 2.5px;
-            text-transform: uppercase; color: rgba(255,255,255,0.85);
+        .mm-brand img {
+            height: 32px; width: auto; display: block;
         }
-        .mm-brand .mm-dot { color: var(--green); }
         .mobile-close {
             background: rgba(255,255,255,0.08);
             border: 1.5px solid rgba(255,255,255,0.25);
@@ -1807,7 +1805,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <div class="mobile-menu" id="mobileMenu">
     <div class="mm-stars" aria-hidden="true"></div>
     <div class="mm-head">
-        <span class="mm-brand">DYNAMO<span class="mm-dot">.</span></span>
+        <span class="mm-brand"><img src="/images/4.png" alt="Dynamo"></span>
         <button class="mobile-close" onclick="closeMobileMenu()" aria-label="Cerrar menu">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
