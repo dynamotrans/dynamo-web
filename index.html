@@ -719,6 +719,49 @@
         }
         .tar-warning.show { display: block; animation: fadeUp 0.3s ease both; }
 
+        /* Anotaciones libres — boton toggle + textarea limitado a 1000 chars */
+        .tar-notes-wrap { margin-top: 0.6rem; }
+        .tar-notes-toggle {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            background: transparent; border: 1.5px dashed rgba(51,0,204,0.35);
+            color: var(--purple); font-weight: 800; font-family: inherit;
+            font-size: 0.78rem; letter-spacing: 0.2px;
+            padding: 0.45rem 0.85rem; border-radius: 10px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .tar-notes-toggle:hover {
+            background: rgba(51,0,204,0.07); border-color: var(--purple);
+        }
+        .tar-notes-toggle .tnt-icon {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: var(--purple); color: white; font-weight: 900;
+            font-size: 0.9rem; line-height: 1; transition: transform 0.25s;
+        }
+        .tar-notes-toggle[aria-expanded="true"] .tnt-icon { transform: rotate(45deg); }
+        .tar-notes-body { margin-top: 0.45rem; animation: fadeUp 0.25s ease both; }
+        .tar-notes-body[hidden] { display: none; }
+        .tar-notes-body textarea {
+            width: 100%; padding: 0.55rem 0.7rem; border-radius: 12px;
+            border: 1.5px solid var(--gray-200); background: white;
+            font-size: 0.86rem; color: var(--navy); font-family: inherit;
+            outline: none; resize: vertical; min-height: 70px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .tar-notes-body textarea:hover,
+        .tar-notes-body textarea:focus {
+            border-color: var(--purple); box-shadow: 0 0 0 4px rgba(51,0,204,0.10);
+        }
+        .tar-notes-counter {
+            text-align: right; font-size: 0.7rem; color: var(--gray-500);
+            margin-top: 0.25rem; font-weight: 600;
+        }
+        .tar-notes-counter.warn { color: #b32a25; }
+        @media (max-width: 600px) {
+            .tar-notes-toggle { font-size: 0.7rem; padding: 0.38rem 0.7rem; }
+            .tar-notes-body textarea { font-size: 16px; min-height: 60px; }
+        }
+
         /* Calendario Flatpickr — estilo de marca con esquinas suaves */
         .flatpickr-calendar {
             border-radius: 16px !important;
@@ -1755,6 +1798,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 </div>
             </div>
 
+
+            <!-- Anotaciones libres (colapsable). Texto limite 1000 caracteres -->
+            <div class="tar-notes-wrap">
+                <button type="button" class="tar-notes-toggle" id="tar-notes-toggle" aria-expanded="false" aria-controls="tar-notes-body">
+                    <span class="tnt-icon" aria-hidden="true">+</span>
+                    Añadir anotaciones
+                </button>
+                <div class="tar-notes-body" id="tar-notes-body" hidden>
+                    <textarea id="tar-notes" maxlength="1000" rows="3"
+                        placeholder="Detalles que debamos saber (acceso, dimensiones especiales, ADR, etc.)"></textarea>
+                    <div class="tar-notes-counter"><span id="tar-notes-count">0</span> / 1000</div>
+                </div>
+            </div>
 
             <div class="tar-warning" id="tar-warning" role="alert" aria-live="polite">⚠ Introduce el origen y el destino antes de calcular el precio.</div>
             <div class="tar-cta-wrap" id="tar-cta-wrap">
@@ -3573,6 +3629,26 @@ function updateAlmTotal() {
     var origInput = document.getElementById('tar-orig');
     var destInput = document.getElementById('tar-dest');
     var warning = document.getElementById('tar-warning');
+
+    // Anotaciones libres — toggle + contador de caracteres (max 1000)
+    (function () {
+        var btn = document.getElementById('tar-notes-toggle');
+        var body = document.getElementById('tar-notes-body');
+        var area = document.getElementById('tar-notes');
+        var count = document.getElementById('tar-notes-count');
+        if (!btn || !body || !area || !count) return;
+        btn.addEventListener('click', function () {
+            var open = body.hidden;
+            body.hidden = !open;
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (open) area.focus();
+        });
+        area.addEventListener('input', function () {
+            var n = area.value.length;
+            count.textContent = n;
+            count.parentNode.classList.toggle('warn', n >= 950);
+        });
+    })();
     function clearError(input) {
         var wrap = input.closest('.tar-input-wrap');
         if (wrap) wrap.classList.remove('tar-error');
@@ -3631,7 +3707,7 @@ function updateAlmTotal() {
             '',
             'INDICA AQUÍ OTRAS ANOTACIONES/TIPO DE MERCANCIA QUE DEBAMOS SABER:',
             '',
-            ''
+            (document.getElementById('tar-notes') ? document.getElementById('tar-notes').value.trim() : '')
         ];
         var bodyLF = lines.join('\n');
         var bodyCRLF = lines.join('\r\n');
