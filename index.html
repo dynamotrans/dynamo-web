@@ -1639,7 +1639,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                         <option value="flexible">Ventana de 4 días (Flexible)</option>
                     </select>
                 </div>
-                <div class="tar-field" id="tar-fecha-field" hidden>
+                <div class="tar-field" id="tar-fecha-field">
                     <label for="tar-dia">Día de carga (L-V)</label>
                     <div class="tar-fecha-wrap">
                         <select id="tar-dia" class="tar-select"></select>
@@ -3299,7 +3299,7 @@ function updateAlmTotal() {
 
     function buildDias() {
         var hoy = new Date();
-        var opts = [];
+        var opts = ['<option value="" selected>Sin fecha definida</option>'];
         var cursor = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
         var added = 0;
         var todayIso = toIso(hoy);
@@ -3327,9 +3327,9 @@ function updateAlmTotal() {
         fechaInput.max = toIso(max);
     })();
 
-    urgSel.addEventListener('change', function () {
-        fechaField.hidden = urgSel.value !== 'dia';
-    });
+    // El campo "Día de carga (L-V)" se queda visible siempre: para ventanas
+    // (Estándar / Flexible) actua como fecha BASE desde la que empieza la franja.
+    // El mensaje preformateado incluye el dia siempre con "a partir de ...".
 
     // Insertar la fecha elegida en el calendario como PRIMERA opcion del select
     // (asi el usuario la ve en el "hueco" y al desplegar la encuentra arriba)
@@ -3455,15 +3455,22 @@ function updateAlmTotal() {
         var merca = document.getElementById('tar-merca').value;
         var urgV = urgSel.value;
         var urgTxt = { dia: 'Fecha fija (un único día)', estandar: 'Ventana de 2 días (Estándar)', flexible: 'Ventana de 4 días (Flexible)' }[urgV];
-        if (urgV === 'dia') {
-            var fechaV = diaSel.value === 'otro' ? fechaInput.value : diaSel.value;
-            if (fechaV) {
-                var d = new Date(fechaV + 'T00:00:00');
-                urgTxt = 'Fecha fija: ' + d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        // Incluir SIEMPRE la fecha seleccionada (si la hay) — para ventanas se
+        // interpreta como la fecha base desde la que empieza la franja
+        var fechaV = diaSel.value === 'otro' ? fechaInput.value : diaSel.value;
+        if (fechaV && fechaV !== 'otro') {
+            var d = new Date(fechaV + 'T00:00:00');
+            var dStr = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            if (urgV === 'dia') {
+                urgTxt = 'Fecha fija: ' + dStr;
+            } else {
+                urgTxt += ' (a partir de ' + dStr + ')';
             }
         }
 
         var lines = [
+            '*** TENDRÁS TU TARIFA ANTES DE 25 MINUTOS ***',
+            '',
             'Buenos días,',
             '',
             'Solicito TARIFA para transporte con estos datos:',
