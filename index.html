@@ -67,6 +67,10 @@
     <meta name="author" content="Dynamo Operador Logistico S.L.">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://www.dynamotrans.com/">
+    <!-- Flatpickr (calendario customizable) — usado por el tarifador del hero -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/es.js"></script>
 
     <!-- Mobile -->
     <meta name="theme-color" content="#3300cc">
@@ -698,86 +702,89 @@
         }
         .tar-warning.show { display: block; animation: fadeUp 0.3s ease both; }
 
-        /* Selector de camion con icono ? que abre popover con detalles */
-        .tar-camion-row { display: flex; gap: 0.4rem; align-items: stretch; position: relative; }
-        .tar-camion-row .tar-select { flex: 1; min-width: 0; }
-        .tar-info-btn {
-            flex-shrink: 0;
-            width: 36px; min-width: 36px;
-            border-radius: 12px;
-            background: rgba(51,0,204,0.08);
-            color: var(--purple);
-            border: 1.5px solid rgba(51,0,204,0.18);
-            cursor: pointer;
-            font-size: 0.95rem; font-weight: 900;
-            font-family: inherit;
-            transition: background 0.2s, border-color 0.2s, transform 0.15s;
+        /* Calendario Flatpickr — estilo de marca con esquinas suaves */
+        .flatpickr-calendar {
+            border-radius: 16px !important;
+            box-shadow: 0 18px 40px rgba(10,2,48,0.22), 0 6px 14px rgba(10,2,48,0.10) !important;
+            border: 1px solid var(--gray-200) !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+            padding: 0.4rem !important;
         }
-        .tar-info-btn:hover {
-            background: var(--purple); color: white;
-            border-color: var(--purple); transform: translateY(-1px);
+        .flatpickr-months { padding: 0.4rem 0.2rem 0.3rem; }
+        .flatpickr-current-month .flatpickr-monthDropdown-months,
+        .flatpickr-current-month input.cur-year {
+            font-weight: 800 !important; color: var(--navy) !important;
         }
-        /* Popover compacto con comparativa de camiones — sin overlay oscuro */
-        .tar-info-pop {
-            position: absolute; left: 0; right: 0; top: 100%;
-            margin-top: 0.4rem;
-            background: white;
-            border: 1px solid var(--gray-200);
-            border-radius: 12px;
-            box-shadow: 0 18px 40px rgba(10,2,48,0.28);
-            padding: 0.7rem 0.85rem 0.8rem;
-            z-index: 20;
-            animation: fadeUp 0.22s ease both;
+        .flatpickr-weekday {
+            color: var(--gray-500) !important; font-weight: 700 !important;
         }
-        .tar-info-pop[hidden] { display: none; }
-        .tar-info-pop-head {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 0.5rem;
+        .flatpickr-day {
+            border-radius: 10px !important;
+            color: var(--navy);
+            font-weight: 600;
         }
-        .tar-info-pop-head strong {
-            font-size: 0.84rem; color: var(--navy); font-weight: 900;
-            letter-spacing: 0.2px;
+        .flatpickr-day:hover {
+            background: rgba(51,0,204,0.08) !important;
+            border-color: transparent !important;
         }
-        .tar-info-close {
-            width: 26px; height: 26px; border-radius: 50%;
-            background: var(--gray-100); color: var(--gray-700);
-            border: none; cursor: pointer;
-            font-size: 1.1rem; line-height: 1; font-family: inherit;
-            display: flex; align-items: center; justify-content: center;
-            transition: background 0.2s;
+        .flatpickr-day.today {
+            border-color: var(--green) !important;
+            color: var(--green) !important; font-weight: 800;
         }
-        .tar-info-close:hover { background: var(--gray-200); }
-        .tar-info-tbl {
-            width: 100%; border-collapse: collapse;
+        .flatpickr-day.today:hover { background: rgba(34,165,90,0.10) !important; }
+        .flatpickr-day.selected,
+        .flatpickr-day.selected:hover {
+            background: var(--purple) !important;
+            border-color: var(--purple) !important;
+            color: white !important;
+        }
+        /* Fines de semana y dias fuera de min/max -> gris bloqueado */
+        .flatpickr-day.flatpickr-disabled,
+        .flatpickr-day.flatpickr-disabled:hover {
+            color: var(--gray-200) !important;
+            background: transparent !important;
+            cursor: not-allowed !important;
+            text-decoration: line-through;
+            opacity: 0.5;
+        }
+        .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay {
+            color: var(--gray-200) !important; opacity: 0.6;
+        }
+        .flatpickr-prev-month, .flatpickr-next-month { color: var(--purple) !important; fill: var(--purple) !important; }
+        .flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { fill: var(--purple-light) !important; }
+
+        /* Pastilla informativa siempre visible bajo el selector de camion.
+           Muestra ficha tecnica resumida del camion seleccionado. */
+        .tar-camion-info {
+            margin-top: 0.35rem;
+            padding: 0.5rem 0.8rem;
+            background: rgba(51,0,204,0.045);
+            border: 1px solid rgba(51,0,204,0.14);
+            border-radius: 14px;
             font-size: 0.74rem;
+            color: var(--gray-700);
+            line-height: 1.45;
         }
-        .tar-info-tbl th, .tar-info-tbl td {
-            padding: 0.32rem 0.35rem;
-            border-bottom: 1px solid var(--gray-100);
-            text-align: left;
+        .tar-camion-info .ti-specs {
+            display: flex; flex-wrap: wrap; gap: 0.35rem 0.65rem;
+            margin-bottom: 0.25rem;
         }
-        .tar-info-tbl thead th {
-            color: var(--purple); font-weight: 900;
-            background: rgba(51,0,204,0.05);
-            border-bottom: 1.5px solid rgba(51,0,204,0.18);
-        }
-        .tar-info-tbl tbody th {
-            color: var(--gray-500); font-weight: 700;
-            width: 28%;
-        }
-        .tar-info-tbl tbody td {
+        .tar-camion-info .ti-chip {
+            display: inline-flex; align-items: baseline; gap: 0.2rem;
             color: var(--navy); font-weight: 700;
+            white-space: nowrap;
         }
-        .tar-info-tip {
-            margin: 0.55rem 0 0;
-            font-size: 0.72rem; color: var(--gray-500); line-height: 1.4;
+        .tar-camion-info .ti-chip em {
+            font-style: normal; color: var(--gray-500); font-weight: 600;
         }
-        .tar-info-tip strong { color: var(--purple); font-weight: 800; }
+        .tar-camion-info .ti-ideal {
+            color: var(--gray-500); font-weight: 600;
+            font-size: 0.7rem;
+        }
+        .tar-camion-info .ti-ideal strong { color: var(--purple); font-weight: 800; }
         @media (max-width: 600px) {
-            .tar-info-btn { width: 34px; min-width: 34px; }
-            .tar-info-pop { padding: 0.6rem 0.7rem 0.7rem; }
-            .tar-info-tbl { font-size: 0.7rem; }
-            .tar-info-tip { font-size: 0.68rem; }
+            .tar-camion-info { font-size: 0.7rem; padding: 0.45rem 0.7rem; }
+            .tar-camion-info .ti-ideal { font-size: 0.66rem; }
         }
         .tar-input-wrap svg {
             width: 18px; height: 18px; color: var(--purple);
@@ -1712,36 +1719,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 </div>
 
                 <div class="tar-field">
-                    <div class="tar-camion-row">
-                        <select id="tar-camion" class="tar-select" aria-label="Tipo de camion">
-                            <option value="tauliner" data-full="Trailer Tauliner (13,60 m · 33 europalets · 24 Tn)">Trailer Tauliner · 13,60 m</option>
-                            <option value="rigido" data-full="Rígido con plataforma y transpaleta (8 m · 20 europalets · 14 Tn)">Rígido plataforma · 8 m</option>
-                        </select>
-                        <button type="button" class="tar-info-btn" id="tar-info-btn" aria-label="Ver detalles de los camiones" title="Ver detalles de los camiones">?</button>
-                        <!-- Popover compacto de detalles (se ancla aqui via position:relative del padre) -->
-                        <div class="tar-info-pop" id="tar-info-pop" hidden role="dialog" aria-labelledby="tar-info-title">
-                            <div class="tar-info-pop-head">
-                                <strong id="tar-info-title">Tipos de camión</strong>
-                                <button type="button" class="tar-info-close" id="tar-info-close" aria-label="Cerrar">×</button>
-                            </div>
-                            <table class="tar-info-tbl">
-                                <thead>
-                                    <tr><th></th><th>Tauliner</th><th>Rígido + Plat.</th></tr>
-                                </thead>
-                                <tbody>
-                                    <tr><th>Largo</th><td>13,60 m</td><td>8 m</td></tr>
-                                    <tr><th>Ancho int.</th><td>2,45 m</td><td>2,45 m</td></tr>
-                                    <tr><th>Altura</th><td>2,70 m</td><td>2,70 m</td></tr>
-                                    <tr><th>Carga máx.</th><td>24 Tn</td><td>14 Tn</td></tr>
-                                    <tr><th>Apertura</th><td>Lat./Tras./Techo</td><td>Lat./Tras./Techo</td></tr>
-                                    <tr><th>Palé EUR</th><td>33 (120×80)</td><td>20 (120×80)</td></tr>
-                                    <tr><th>Palé USA</th><td>26 (120×100)</td><td>16 (120×100)</td></tr>
-                                    <tr><th>Extras</th><td>—</td><td>Plataforma + transpaleta</td></tr>
-                                </tbody>
-                            </table>
-                            <p class="tar-info-tip"><strong>Tauliner:</strong> paletizado / box / especiales. <strong>Rígido:</strong> entregas urbanas y puntos sin muelle.</p>
-                        </div>
-                    </div>
+                    <select id="tar-camion" class="tar-select" aria-label="Tipo de camion">
+                        <option value="tauliner" data-full="Trailer Tauliner (13,60 m · 33 europalets · 24 Tn)">Trailer Tauliner · 13,60 m</option>
+                        <option value="rigido" data-full="Rígido con plataforma y transpaleta (8 m · 20 europalets · 14 Tn)">Rígido plataforma · 8 m</option>
+                    </select>
+                    <div class="tar-camion-info" id="tar-camion-info" aria-live="polite"></div>
                 </div>
                 <div class="tar-field">
                     <select id="tar-merca" class="tar-select" aria-label="Tipo de mercancia">
@@ -3482,30 +3464,47 @@ function updateAlmTotal() {
         diaSel.value = isoDate;
     }
 
-    function openCalendar() {
-        // Habilitar pointer-events para que showPicker funcione consistente, lo
-        // anclamos al input superpuesto al select (visualmente invisible)
-        fechaInput.style.pointerEvents = 'auto';
-        try {
-            if (typeof fechaInput.showPicker === 'function') {
-                fechaInput.showPicker();
-            } else {
-                fechaInput.focus();
-                fechaInput.click();
+    // Flatpickr: calendario customizado anclado al select del dia. Fines de
+    // semana DESHABILITADOS visualmente (en gris tachados). Rango hoy..hoy+3 meses.
+    // Si Flatpickr no esta disponible (offline / bloqueo), fallback al date picker
+    // nativo del navegador.
+    var fpInstance = null;
+    function initFlatpickr() {
+        if (fpInstance || typeof window.flatpickr !== 'function') return;
+        var hoyD = new Date();
+        var maxD = new Date(hoyD.getFullYear(), hoyD.getMonth() + 3, hoyD.getDate());
+        fpInstance = window.flatpickr(fechaInput, {
+            locale: (window.flatpickr.l10ns && window.flatpickr.l10ns.es) ? 'es' : 'default',
+            minDate: 'today',
+            maxDate: maxD,
+            disable: [function (d) { return d.getDay() === 0 || d.getDay() === 6; }],
+            disableMobile: true, // forzar Flatpickr tambien en movil (en vez de input nativo)
+            dateFormat: 'Y-m-d',
+            onChange: function (selected, dateStr) {
+                if (dateStr) setFechaCustom(dateStr);
             }
-        } catch (e) { fechaInput.focus(); }
-        // Devolverlo a pointer-events:none tras un microtick para no estorbar al select
-        setTimeout(function () { fechaInput.style.pointerEvents = 'none'; }, 0);
+        });
     }
+    function openCalendar() {
+        initFlatpickr();
+        if (fpInstance) { fpInstance.open(); return; }
+        // Fallback al picker nativo
+        try {
+            if (typeof fechaInput.showPicker === 'function') fechaInput.showPicker();
+            else { fechaInput.focus(); fechaInput.click(); }
+        } catch (e) { fechaInput.focus(); }
+    }
+    // Inicializar Flatpickr cuando el script haya cargado (defer)
+    if (document.readyState !== 'loading') initFlatpickr();
+    else document.addEventListener('DOMContentLoaded', initFlatpickr);
 
     diaSel.addEventListener('change', function () {
         if (diaSel.value === 'otro') openCalendar();
     });
 
-    // Si el usuario elige un fin de semana en el calendario, lo movemos al lunes.
-    // Luego ponemos esa fecha como primera opcion del select del dia.
+    // Fallback (cuando se usa el picker nativo): mover sabados/domingos al lunes
     fechaInput.addEventListener('change', function () {
-        if (!fechaInput.value) return;
+        if (!fechaInput.value || fpInstance) return; // Flatpickr ya maneja el onChange
         var d = new Date(fechaInput.value + 'T00:00:00');
         if (isWeekend(d)) {
             d = nextWeekday(d);
@@ -3575,24 +3574,37 @@ function updateAlmTotal() {
     setupAutocomplete('tar-orig', 'tar-orig-sug');
     setupAutocomplete('tar-dest', 'tar-dest-sug');
 
-    // Popover compacto de detalles de camiones (icono ? al lado del selector)
+    // Pastilla informativa bajo el selector — ficha tecnica resumida del
+    // camion seleccionado, siempre visible. Cambia al cambiar de camion.
     (function () {
-        var btn = document.getElementById('tar-info-btn');
-        var pop = document.getElementById('tar-info-pop');
-        var closeBtn = document.getElementById('tar-info-close');
-        if (!btn || !pop) return;
-        function open(e)  { if (e) e.stopPropagation(); pop.hidden = false; }
-        function close() { pop.hidden = true; }
-        btn.addEventListener('click', open);
-        closeBtn.addEventListener('click', close);
-        // Cerrar al hacer click fuera del popover/boton
-        document.addEventListener('click', function (e) {
-            if (pop.hidden) return;
-            if (!pop.contains(e.target) && e.target !== btn) close();
-        });
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && !pop.hidden) close();
-        });
+        var infoBox = document.getElementById('tar-camion-info');
+        if (!infoBox) return;
+        var INFO = {
+            tauliner: {
+                largo: '13,60 m', dim: '2,45 × 2,70 m', carga: '24 Tn',
+                pales: '33 EUR · 26 USA', apertura: 'Lat./Tras./Techo',
+                ideal: 'paletizado, palot/box, especiales'
+            },
+            rigido: {
+                largo: '8 m', dim: '2,45 × 2,70 m', carga: '14 Tn',
+                pales: '20 EUR · 16 USA', apertura: 'Lat./Tras./Techo',
+                ideal: 'entregas urbanas, sin muelle (plataforma + transpaleta)'
+            }
+        };
+        function render() {
+            var info = INFO[camionSel.value] || INFO.tauliner;
+            infoBox.innerHTML =
+                '<div class="ti-specs">' +
+                    '<span class="ti-chip">' + info.largo + ' <em>largo</em></span>' +
+                    '<span class="ti-chip">' + info.dim + ' <em>ancho×alto</em></span>' +
+                    '<span class="ti-chip">' + info.carga + '</span>' +
+                    '<span class="ti-chip">' + info.pales + '</span>' +
+                    '<span class="ti-chip">' + info.apertura + '</span>' +
+                '</div>' +
+                '<div class="ti-ideal"><strong>Ideal para:</strong> ' + info.ideal + '.</div>';
+        }
+        camionSel.addEventListener('change', render);
+        render();
     })();
 
     // Validacion: si origen/destino vacios, borde rojo + cartel y NO mostramos
