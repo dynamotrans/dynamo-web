@@ -2086,7 +2086,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <p><strong>Ideal para:</strong> mercancía paletizada, palot/box y mercancías especiales.</p>
                 <div class="veh-specs">
                     <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">13,60 m</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,45 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,40 m</div></div>
                     <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
                     <div class="veh-spec"><div class="veh-spec-label">Carga máx.</div><div class="veh-spec-value">24 Tn.</div></div>
                     <div class="veh-spec"><div class="veh-spec-label">Apertura</div><div class="veh-spec-value">Lateral, trasero y techo</div></div>
@@ -2100,7 +2100,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <p><strong>Ideal para:</strong> entregas urbanas, puntos sin muelle de carga.</p>
                 <div class="veh-specs">
                     <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">8 m</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,45 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,40 m</div></div>
                     <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
                     <div class="veh-spec"><div class="veh-spec-label">Carga máx.</div><div class="veh-spec-value">14 Tn.</div></div>
                     <div class="veh-spec"><div class="veh-spec-label">Apertura</div><div class="veh-spec-value">Lateral, trasero y techo</div></div>
@@ -3299,7 +3299,7 @@ function updateAlmTotal() {
 /* =========================================
    TARIFADOR
    - Sliders ml / peso con conversion en vivo
-   - 1 ml = 2,5 europalets (80x120, ancho 2.45m del trailer)
+   - 1 ml = 2,5 europalets (80x120, ancho 2.40m del trailer)
    - 1 ml = 2 americanos (100x120, mismo ancho)
    - Botones tipo camion / urgencia
    - Autocomplete origen/destino con Nominatim (OpenStreetMap, gratis sin API key)
@@ -3560,8 +3560,8 @@ function updateAlmTotal() {
         var tip = document.getElementById('tar-camion-tip');
         if (!tip) return;
         var INFO = {
-            tauliner: '<strong>Trailer Tauliner · 13,60 m</strong> · 2,45 × 2,70 m · 24 Tn · 33 EUR / 26 USA · Lat./Tras./Techo <em>· paletizado, palot/box, especiales</em>',
-            rigido:   '<strong>Rígido + Plataforma · 8 m</strong> · 2,45 × 2,70 m · 14 Tn · 20 EUR / 16 USA · plataforma + transpaleta <em>· entregas urbanas, sin muelle</em>'
+            tauliner: '<strong>Trailer Tauliner · 13,60 m</strong> · 2,40 × 2,70 m · 24 Tn · 33 EUR / 26 USA · Lat./Tras./Techo <em>· paletizado, palot/box, especiales</em>',
+            rigido:   '<strong>Rígido + Plataforma · 8 m</strong> · 2,40 × 2,70 m · 14 Tn · 20 EUR / 16 USA · plataforma + transpaleta <em>· entregas urbanas, sin muelle</em>'
         };
         function render() { tip.innerHTML = INFO[camionSel.value] || INFO.tauliner; }
         camionSel.addEventListener('change', render);
