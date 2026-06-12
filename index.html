@@ -698,8 +698,8 @@
         }
         .tar-warning.show { display: block; animation: fadeUp 0.3s ease both; }
 
-        /* Selector de camion con icono ? que abre modal con detalles */
-        .tar-camion-row { display: flex; gap: 0.4rem; align-items: stretch; }
+        /* Selector de camion con icono ? que abre popover con detalles */
+        .tar-camion-row { display: flex; gap: 0.4rem; align-items: stretch; position: relative; }
         .tar-camion-row .tar-select { flex: 1; min-width: 0; }
         .tar-info-btn {
             flex-shrink: 0;
@@ -717,84 +717,67 @@
             background: var(--purple); color: white;
             border-color: var(--purple); transform: translateY(-1px);
         }
-        /* Modal info camiones */
-        .tar-info-modal {
-            position: fixed; inset: 0; z-index: 99999;
-            display: flex; align-items: center; justify-content: center;
-            padding: 1rem;
+        /* Popover compacto con comparativa de camiones — sin overlay oscuro */
+        .tar-info-pop {
+            position: absolute; left: 0; right: 0; top: 100%;
+            margin-top: 0.4rem;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            box-shadow: 0 18px 40px rgba(10,2,48,0.28);
+            padding: 0.7rem 0.85rem 0.8rem;
+            z-index: 20;
+            animation: fadeUp 0.22s ease both;
         }
-        .tar-info-modal[hidden] { display: none; }
-        .tar-info-overlay {
-            position: absolute; inset: 0;
-            background: rgba(10,2,48,0.55);
-            backdrop-filter: blur(2px);
-            cursor: pointer;
-            animation: fadeUp 0.25s ease;
+        .tar-info-pop[hidden] { display: none; }
+        .tar-info-pop-head {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 0.5rem;
         }
-        .tar-info-content {
-            position: relative; z-index: 1;
-            background: white; border-radius: 16px;
-            max-width: 560px; width: 100%;
-            max-height: 88vh; overflow-y: auto;
-            padding: 1.5rem 1.4rem 1.3rem;
-            box-shadow: 0 30px 80px rgba(10,2,48,0.4);
-            animation: fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        .tar-info-pop-head strong {
+            font-size: 0.84rem; color: var(--navy); font-weight: 900;
+            letter-spacing: 0.2px;
         }
         .tar-info-close {
-            position: absolute; top: 0.7rem; right: 0.7rem;
-            width: 32px; height: 32px; border-radius: 50%;
+            width: 26px; height: 26px; border-radius: 50%;
             background: var(--gray-100); color: var(--gray-700);
             border: none; cursor: pointer;
-            font-size: 1.5rem; line-height: 1; font-family: inherit;
+            font-size: 1.1rem; line-height: 1; font-family: inherit;
             display: flex; align-items: center; justify-content: center;
             transition: background 0.2s;
         }
         .tar-info-close:hover { background: var(--gray-200); }
-        .tar-info-content h3 {
-            margin: 0 0 1.1rem; padding-right: 2.4rem;
-            font-size: 1.1rem; color: var(--navy); font-weight: 900;
+        .tar-info-tbl {
+            width: 100%; border-collapse: collapse;
+            font-size: 0.74rem;
         }
-        .tar-info-truck {
-            margin-bottom: 1.3rem; padding-bottom: 1.2rem;
-            border-bottom: 1px solid var(--gray-200);
-        }
-        .tar-info-truck:last-child {
-            margin-bottom: 0; padding-bottom: 0; border-bottom: none;
-        }
-        .tar-info-truck h4 {
-            font-size: 0.98rem; color: var(--purple); font-weight: 900;
-            margin: 0 0 0.45rem;
-        }
-        .tar-info-truck p {
-            font-size: 0.83rem; color: var(--gray-700); line-height: 1.45;
-            margin: 0 0 0.5rem;
-        }
-        .tar-info-ideal { font-weight: 700; color: var(--navy); }
-        .tar-info-specs {
-            margin: 0.6rem 0 0;
-            display: grid; grid-template-columns: 1fr; gap: 0;
-        }
-        .tar-info-specs > div {
-            display: flex; justify-content: space-between; align-items: baseline;
-            gap: 0.6rem;
-            padding: 0.42rem 0;
+        .tar-info-tbl th, .tar-info-tbl td {
+            padding: 0.32rem 0.35rem;
             border-bottom: 1px solid var(--gray-100);
+            text-align: left;
         }
-        .tar-info-specs > div:last-child { border-bottom: none; }
-        .tar-info-specs dt {
-            font-size: 0.78rem; color: var(--gray-500); font-weight: 700;
+        .tar-info-tbl thead th {
+            color: var(--purple); font-weight: 900;
+            background: rgba(51,0,204,0.05);
+            border-bottom: 1.5px solid rgba(51,0,204,0.18);
         }
-        .tar-info-specs dd {
-            font-size: 0.82rem; color: var(--navy); font-weight: 800;
-            text-align: right; margin: 0;
+        .tar-info-tbl tbody th {
+            color: var(--gray-500); font-weight: 700;
+            width: 28%;
         }
+        .tar-info-tbl tbody td {
+            color: var(--navy); font-weight: 700;
+        }
+        .tar-info-tip {
+            margin: 0.55rem 0 0;
+            font-size: 0.72rem; color: var(--gray-500); line-height: 1.4;
+        }
+        .tar-info-tip strong { color: var(--purple); font-weight: 800; }
         @media (max-width: 600px) {
             .tar-info-btn { width: 34px; min-width: 34px; }
-            .tar-info-content { padding: 1.2rem 1rem 1rem; border-radius: 14px; }
-            .tar-info-content h3 { font-size: 1rem; }
-            .tar-info-truck h4 { font-size: 0.9rem; }
-            .tar-info-truck p { font-size: 0.78rem; }
-            .tar-info-specs dt, .tar-info-specs dd { font-size: 0.76rem; }
+            .tar-info-pop { padding: 0.6rem 0.7rem 0.7rem; }
+            .tar-info-tbl { font-size: 0.7rem; }
+            .tar-info-tip { font-size: 0.68rem; }
         }
         .tar-input-wrap svg {
             width: 18px; height: 18px; color: var(--purple);
@@ -1735,6 +1718,29 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                             <option value="rigido" data-full="Rígido con plataforma y transpaleta (8 m · 20 europalets · 14 Tn)">Rígido plataforma · 8 m</option>
                         </select>
                         <button type="button" class="tar-info-btn" id="tar-info-btn" aria-label="Ver detalles de los camiones" title="Ver detalles de los camiones">?</button>
+                        <!-- Popover compacto de detalles (se ancla aqui via position:relative del padre) -->
+                        <div class="tar-info-pop" id="tar-info-pop" hidden role="dialog" aria-labelledby="tar-info-title">
+                            <div class="tar-info-pop-head">
+                                <strong id="tar-info-title">Tipos de camión</strong>
+                                <button type="button" class="tar-info-close" id="tar-info-close" aria-label="Cerrar">×</button>
+                            </div>
+                            <table class="tar-info-tbl">
+                                <thead>
+                                    <tr><th></th><th>Tauliner</th><th>Rígido + Plat.</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr><th>Largo</th><td>13,60 m</td><td>8 m</td></tr>
+                                    <tr><th>Ancho int.</th><td>2,45 m</td><td>2,45 m</td></tr>
+                                    <tr><th>Altura</th><td>2,70 m</td><td>2,70 m</td></tr>
+                                    <tr><th>Carga máx.</th><td>24 Tn</td><td>14 Tn</td></tr>
+                                    <tr><th>Apertura</th><td>Lat./Tras./Techo</td><td>Lat./Tras./Techo</td></tr>
+                                    <tr><th>Palé EUR</th><td>33 (120×80)</td><td>20 (120×80)</td></tr>
+                                    <tr><th>Palé USA</th><td>26 (120×100)</td><td>16 (120×100)</td></tr>
+                                    <tr><th>Extras</th><td>—</td><td>Plataforma + transpaleta</td></tr>
+                                </tbody>
+                            </table>
+                            <p class="tar-info-tip"><strong>Tauliner:</strong> paletizado / box / especiales. <strong>Rígido:</strong> entregas urbanas y puntos sin muelle.</p>
+                        </div>
                     </div>
                 </div>
                 <div class="tar-field">
@@ -1777,43 +1783,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 </div>
             </div>
 
-            <!-- Modal con detalles de los 2 camiones (abre desde el ? del select) -->
-            <div class="tar-info-modal" id="tar-info-modal" hidden role="dialog" aria-modal="true" aria-labelledby="tar-info-title">
-                <div class="tar-info-overlay" id="tar-info-overlay"></div>
-                <div class="tar-info-content">
-                    <button type="button" class="tar-info-close" id="tar-info-close" aria-label="Cerrar">×</button>
-                    <h3 id="tar-info-title">Detalles de los camiones</h3>
-                    <div class="tar-info-truck">
-                        <h4>Trailer Tauliner — Cortina / Lona Corredera</h4>
-                        <p>Similar a un furgón tipo box/caja, con cortinas correderas en lados y techo que dan fácil acceso a la carga. El vehículo más utilizado para envíos terrestres.</p>
-                        <p class="tar-info-ideal">Ideal para: mercancía paletizada, palot/box y mercancías especiales.</p>
-                        <dl class="tar-info-specs">
-                            <div><dt>Largo</dt><dd>13,60 m</dd></div>
-                            <div><dt>Ancho (interior)</dt><dd>2,45 m</dd></div>
-                            <div><dt>Altura</dt><dd>2,70 m</dd></div>
-                            <div><dt>Carga máx.</dt><dd>24 Tn</dd></div>
-                            <div><dt>Apertura</dt><dd>Lateral, trasero y techo</dd></div>
-                            <div><dt>Palé europeo</dt><dd>33 uds. (120×80)</dd></div>
-                            <div><dt>Palé americano</dt><dd>26 uds. (120×100)</dd></div>
-                        </dl>
-                    </div>
-                    <div class="tar-info-truck">
-                        <h4>Rígido con Plataforma y Transpaleta</h4>
-                        <p>Tipo tauliner con cortinas correderas. Ideal para cargas donde no existen medios de carga y/o descarga en destino.</p>
-                        <p class="tar-info-ideal">Ideal para: entregas urbanas, puntos sin muelle de carga.</p>
-                        <dl class="tar-info-specs">
-                            <div><dt>Largo</dt><dd>8 m</dd></div>
-                            <div><dt>Ancho (interior)</dt><dd>2,45 m</dd></div>
-                            <div><dt>Altura</dt><dd>2,70 m</dd></div>
-                            <div><dt>Carga máx.</dt><dd>14 Tn</dd></div>
-                            <div><dt>Apertura</dt><dd>Lateral, trasero y techo</dd></div>
-                            <div><dt>Palé europeo</dt><dd>20 uds. (120×80)</dd></div>
-                            <div><dt>Palé americano</dt><dd>16 uds. (120×100)</dd></div>
-                            <div><dt>Equipamiento</dt><dd>Plataforma + Transpaleta</dd></div>
-                        </dl>
-                    </div>
-                </div>
-            </div>
 
             <div class="tar-warning" id="tar-warning" role="alert" aria-live="polite">⚠ Introduce el origen y el destino antes de solicitar tarifa.</div>
             <div class="tar-cta-wrap" id="tar-cta-wrap">
@@ -3606,20 +3575,23 @@ function updateAlmTotal() {
     setupAutocomplete('tar-orig', 'tar-orig-sug');
     setupAutocomplete('tar-dest', 'tar-dest-sug');
 
-    // Modal de detalles de camiones (icono ? al lado del selector de camion)
+    // Popover compacto de detalles de camiones (icono ? al lado del selector)
     (function () {
         var btn = document.getElementById('tar-info-btn');
-        var modal = document.getElementById('tar-info-modal');
+        var pop = document.getElementById('tar-info-pop');
         var closeBtn = document.getElementById('tar-info-close');
-        var overlay = document.getElementById('tar-info-overlay');
-        if (!btn || !modal) return;
-        function open()  { modal.hidden = false; }
-        function close() { modal.hidden = true; }
+        if (!btn || !pop) return;
+        function open(e)  { if (e) e.stopPropagation(); pop.hidden = false; }
+        function close() { pop.hidden = true; }
         btn.addEventListener('click', open);
         closeBtn.addEventListener('click', close);
-        overlay.addEventListener('click', close);
+        // Cerrar al hacer click fuera del popover/boton
+        document.addEventListener('click', function (e) {
+            if (pop.hidden) return;
+            if (!pop.contains(e.target) && e.target !== btn) close();
+        });
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && !modal.hidden) close();
+            if (e.key === 'Escape' && !pop.hidden) close();
         });
     })();
 
