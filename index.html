@@ -3922,7 +3922,7 @@ function updateAlmTotal() {
     var warning = document.getElementById('tar-warning');
 
     // Movil: boton "Calcular tarifa" abre el tarifador como BOTTOM SHEET.
-    // X o click en overlay (fuera del sheet) lo cierra.
+    // X o click fuera del sheet lo cierra.
     (function () {
         var trigger = document.getElementById('hero-calc-trigger');
         var closeBtn = document.getElementById('tar-close');
@@ -3931,22 +3931,26 @@ function updateAlmTotal() {
         if (!trigger || !hero) return;
         function openSheet() {
             hero.classList.add('calc-open');
-            document.body.style.overflow = 'hidden';
             trigger.setAttribute('aria-expanded', 'true');
         }
         function closeSheet() {
             hero.classList.remove('calc-open');
-            document.body.style.overflow = '';
             trigger.setAttribute('aria-expanded', 'false');
         }
-        trigger.addEventListener('click', openSheet);
-        if (closeBtn) closeBtn.addEventListener('click', closeSheet);
-        // Click en el overlay (fuera del tarifador) -> cerrar
-        hero.addEventListener('click', function (e) {
+        trigger.addEventListener('click', function (e) {
+            e.stopPropagation();
+            openSheet();
+        });
+        if (closeBtn) closeBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            closeSheet();
+        });
+        // Click FUERA del tarifador y del trigger (incluyendo svg hijos) cierra
+        document.addEventListener('click', function (e) {
             if (!hero.classList.contains('calc-open')) return;
-            if (tarifador && !tarifador.contains(e.target) && e.target !== trigger) {
-                closeSheet();
-            }
+            if (tarifador && tarifador.contains(e.target)) return;
+            if (trigger.contains(e.target)) return;
+            closeSheet();
         });
         // Escape cierra
         document.addEventListener('keydown', function (e) {
