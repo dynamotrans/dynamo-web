@@ -4,18 +4,12 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## 🔥 Prioridad alta
 <!-- Cosas urgentes -->
-- [ ] **Texto del botón COTIZAR del hero**: decidir si dejarlo como `Cotizar` o cambiar a `TARIFAR` / `PEDIR TARIFA` / `SOLICITAR TARIFA` (este último encaja mejor con el mensaje prerellenado SOLICITUD DE TARIFA). Sin decisión todavía
+- _(nada urgente abierto)_
 
 ## 📋 Normal
 <!-- Cosas que hacer cuando haya tiempo -->
-- [ ] **Tarifador público en dynamotrans.com** — Calculadora de tarifas integrada en la web:
-  - Formulario: origen (CP/ciudad), destino (CP/ciudad), peso, nº palés, tipo servicio (grupaje/completa)
-  - Calcula precio con lógica definida (tablas por zonas, km, peso)
-  - Muestra tarifa en pantalla al instante, sin registro ni login
-  - No guarda datos, no necesita backend/base de datos
-  - Opción A: lógica en JavaScript (más simple, pero fórmula visible)
-  - Opción B: API sencilla (fórmula oculta, más profesional)
-  - Botón "Solicitar este transporte" → abre WhatsApp/email con datos pre-rellenados
+- [ ] **Implementar tabla de coeficientes en el tarifador**: el cliente pasó una tabla escalonada (0,8ml=25%, 1ml=33%, ..., 10,4ml=100%) para mostrar al cliente el % de carga del camión en vivo según `max(coef_ml, coef_tn, coef_palets)`. Tengo la tabla apuntada en bitácora del 2026-06-10 pero NO implementé el cálculo. El tarifador actual solo recoge datos y los pasa al equipo
+- [ ] **Google Places API** para autocomplete origen/destino: ahora uso OpenStreetMap Nominatim (gratis, sin API key, pero servicio público compartido → respuestas en ~0,5-1s). Migrar a Google Places cuando se valide que vale la pena. Requiere clave del cliente en Google Cloud (~200$/mes gratis cubren el tráfico esperado, son ~70k autocompletados/mes)
 
 ## 💡 Ideas / Futuro
 <!-- Mejoras a considerar -->
@@ -40,6 +34,14 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
     - Pen-testing antes del lanzamiento
 
 ## ✅ Hecho recientemente
+- [x] 2026-06-13 — **TARIFADOR EN EL HERO**: completo, producción + preview. Autocomplete OSM, Flatpickr, validación, anotaciones libres (1000 chars), botón refresh, mensaje preformateado con SLA "antes de 25 minutos", regeneración del href Email/WA en cada click
+- [x] 2026-06-13 — Menú móvil cinematográfico (aurora animada, estrellas, entrada escalonada de items, logo `images/4.png`, footer con CTAs)
+- [x] 2026-06-13 — 2 vídeos webm en secuencia con crossfade 2s (sine in-out). Velo del hero suavizado (rgba 0.65→0.85 a 0.18→0.42)
+- [x] 2026-06-13 — Botón "Cotizar" del hero eliminado. Sustituido por el flujo del tarifador
+- [x] 2026-06-13 — Cards de vehículos sin botones "Contratar". Títulos de cards de servicios igualados al de Almacenamiento. Ancho interior 2,40m. Peso máx Tauliner 24Tn. Perfiles Miranda fuera del carrousel
+- [x] 2026-06-13 — Banner "Soluciones de Transporte. España y Europa." con efecto neón sutil. Top-bar Google con spinner descontando 5s y autocolapso
+- [x] 2026-06-13 — SEO: redirect 301 de `/es/`, `/en/`, etc. + `/index.html` → `/`. 53 rutas de imágenes a absolutas (`/images/...`)
+- [x] 2026-06-13 — Eliminadas 7 MB de imágenes basura del repo
 - [x] 2026-06-10 — Nota de flota exclusiva ("Trabajamos exclusivamente con trailer tauliner...") añadida también al pie y luego ANTES de las cajas en sección Servicios
 - [x] 2026-06-10 — Chips de servicios (Grupajes / Carga Completa / Import & Export / Nacional 24h) y botón Cotizar del hero en minúsculas (quitado text-transform:uppercase)
 - [x] 2026-06-10 — Selector de idiomas añadido a portal.html (fijo arriba-derecha) + Google Translate completo. Comparte cookie googtrans con index. Watchdog que fuerza traducción si GT no auto-aplica la cookie (solución al "a veces no cambia"). Persistencia entre páginas
