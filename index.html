@@ -3085,8 +3085,17 @@ function openLegal(tab) {
         if (!v1) return;
         // Fuerza la reproduccion: en iOS Low Power Mode el autoplay del HTML
         // se ignora aunque el video sea muted+playsinline. Si play() falla,
-        // ocultamos el control nativo y dejamos el poster como fallback.
-        var tryPlay1 = function() { var p = v1.play(); if (p && p.catch) p.catch(function(){}); };
+        // ocultamos AMBOS videos para que iOS no pinte el boton play overlay
+        // (es intencional de Apple, no se puede ocultar por CSS) y queda el
+        // degradado + HERO-DYNAMO.webp como fondo estatico.
+        var hideVideos = function() {
+            v1.classList.add('ended');
+            if (v2) v2.classList.add('ended');
+        };
+        var tryPlay1 = function() {
+            var p = v1.play();
+            if (p && p.catch) p.catch(hideVideos);
+        };
         if (v1.readyState >= 2) tryPlay1();
         else v1.addEventListener('canplay', tryPlay1, { once: true });
         var FADE_LEAD = 2.0; // segundos antes del final para empezar el crossfade
