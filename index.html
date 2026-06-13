@@ -727,6 +727,20 @@
         .hero-video-2 { opacity: 0; }
         .hero-video-2.active { opacity: 1; }
         .hero-video.ended { opacity: 0; }
+        /* iOS Safari: oculta el boton play que aparece como overlay cuando
+           autoplay esta bloqueado (Modo Bajo Consumo / politica de bateria).
+           Sin estas reglas, iOS pinta un triangulo gigante encima del video. */
+        .hero-video::-webkit-media-controls,
+        .hero-video::-webkit-media-controls-enclosure,
+        .hero-video::-webkit-media-controls-panel,
+        .hero-video::-webkit-media-controls-play-button,
+        .hero-video::-webkit-media-controls-start-playback-button {
+            display: none !important;
+            -webkit-appearance: none !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        .hero-video { pointer-events: none; }
         /* Velo + vignette + grano de pelicula sobre el video */
         .hero-overlay {
             position: absolute; inset: 0; z-index: 1;
@@ -3069,6 +3083,12 @@ function openLegal(tab) {
         var v1 = document.getElementById('heroVideo1');
         var v2 = document.getElementById('heroVideo2');
         if (!v1) return;
+        // Fuerza la reproduccion: en iOS Low Power Mode el autoplay del HTML
+        // se ignora aunque el video sea muted+playsinline. Si play() falla,
+        // ocultamos el control nativo y dejamos el poster como fallback.
+        var tryPlay1 = function() { var p = v1.play(); if (p && p.catch) p.catch(function(){}); };
+        if (v1.readyState >= 2) tryPlay1();
+        else v1.addEventListener('canplay', tryPlay1, { once: true });
         var FADE_LEAD = 2.0; // segundos antes del final para empezar el crossfade
         var handover = false;
         function startHandover() {
