@@ -3999,8 +3999,11 @@ function updateAlmTotal() {
             // Cartel de error y wrap de CTA (cerrar Email/WhatsApp si estaban abiertos)
             warning.classList.remove('show');
             document.getElementById('tar-cta-wrap').classList.remove('open');
-            // Foco al primer campo
-            origInput.focus();
+            // No enfocamos ningun campo — el reset debe dejar el tarifador "limpio"
+            // sin abrir el teclado movil ni resaltar el campo de origen
+            if (document.activeElement && document.activeElement.blur) {
+                document.activeElement.blur();
+            }
         });
     })();
 
