@@ -3026,6 +3026,16 @@ function openLegal(tab) {
         if (ev) ev.preventDefault();
         var overlay = document.getElementById('portalTransition');
         if (!overlay) { window.location.href = 'portal.html'; return; }
+        // Si el menu movil esta abierto, congelamos su animacion y la del logo
+        // para que el navegador no la re-dispare durante el unload (causaba que
+        // el menu "apareciera de nuevo" un instante antes de cargar portal.html)
+        var mm = document.getElementById('mobileMenu');
+        if (mm && mm.classList.contains('open')) {
+            mm.style.animation = 'none';
+            mm.querySelectorAll('*').forEach(function (el) {
+                el.style.animation = 'none';
+            });
+        }
         var cx, cy;
         if (ev && ev.clientX !== undefined && ev.clientX !== 0) {
             cx = ev.clientX; cy = ev.clientY;
