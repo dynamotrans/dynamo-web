@@ -166,6 +166,10 @@
     }
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <!-- Prefetch portal.html para que la navegacion desde el boton ACCESO sea
+         casi instantanea y evitar el flash de la web entre el wormhole y la
+         pantalla de login -->
+    <link rel="prefetch" href="portal.html">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -3050,10 +3054,29 @@ function openLegal(tab) {
         requestAnimationFrame(function () {
             requestAnimationFrame(function () {
                 overlay.classList.add('active');
+                // Marcamos que estamos en navegacion para que el pagehide no
+                // limpie el overlay (iOS hace un repaint durante el unload que
+                // revelaba la web detras del wormhole durante 1 frame)
+                overlay.dataset.navigating = '1';
                 setTimeout(function () { window.location.href = 'portal.html'; }, delay);
             });
         });
     }
+    // Durante el unload, forzamos que el overlay del wormhole siga pintado.
+    // Si no, iOS Safari/Chrome hacen un repaint que descarta la capa y se ve
+    // la web debajo durante una fraccion de segundo antes de cargar portal.html
+    window.addEventListener('pagehide', function () {
+        var overlay = document.getElementById('portalTransition');
+        if (overlay && overlay.dataset.navigating === '1') {
+            overlay.style.opacity = '1';
+            overlay.style.transition = 'none';
+            var warp = overlay.querySelector('.portal-warp');
+            if (warp) {
+                warp.style.clipPath = 'circle(180% at var(--cx) var(--cy))';
+                warp.style.transition = 'none';
+            }
+        }
+    });
     // Reset portal overlay if page is restored from bfcache (e.g. browser back)
     window.addEventListener('pageshow', function (e) {
         var overlay = document.getElementById('portalTransition');

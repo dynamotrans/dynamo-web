@@ -34,6 +34,10 @@
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { height: 100%; }
+        /* html con fondo navy por defecto: si llegamos desde el wormhole de
+           index, este color sirve de "puente" para que entre el unload de
+           index y el primer paint de portal NO se vea blanco/web detras */
+        html { background: var(--navy); }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             color: var(--navy); background: var(--gray-100);
