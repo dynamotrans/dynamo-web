@@ -108,6 +108,73 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-12 y 2026-06-13 — iPhone (sesión maratoniana)
+
+> Dos días seguidos de iteración intensa. Documentado en bloque por la cantidad.
+
+**TARIFADOR EN EL HERO (lo grande de estas sesiones)**:
+- Tarifador completo en el hero (preview + producción) con: autocomplete OSM/Nominatim para origen/destino (gratis sin API key, debounce 350ms, 11 países EU), selector de camión, selector de mercancía (10 categorías operativas), selectores de metros lineales y peso DEPENDIENTES del camión (Tauliner 1..10+13,2 ml / 1..24 Tn; Rígido 1..8 ml / 1..14 Tn), conversión palets en vivo (2,5 europalets/ml, 2 americanos/ml — correcto según el cliente), Flatpickr para calendario con esquinas redondeadas + fines de semana en gris tachados + rango hoy..+3 meses
+- **Flujo de UX iterado MUCHAS veces**: paso de "Calcular precio + 2 botones desplegando" a probar bottom sheet con position:fixed y overlay (FALLÓ — daba trompicones, bugs de display:none, opacity heredada de animations) → vuelta al esquema simple: tarifador en su sitio, botón "Calcular tarifa" en móvil que lo despliega con fade+slide-up 0.4s, hero crece de altura para acomodarlo
+- **Validación**: si origen o destino vacíos → bordes rojos + cartel "⚠ Introduce el origen y el destino antes de calcular el precio"
+- **Anotaciones libres**: botón colapsable "+ Añadir anotaciones" antes del CTA, textarea con maxlength 1000 y contador en vivo (rojo al pasar 950). En móvil hace `scrollIntoView({block:'center'})` al hacer focus (300ms tras abrir teclado) para que no quede tapado por el teclado
+- **Botón refresh (↻)** en la esquina del tarifador que resetea TODO a valores por defecto (camión Tauliner, ml/peso al máximo, "Sin fecha definida", anotaciones vacías, etc.)
+- **Mensaje preformateado** con encabezado `*** ENVIANOS ESTE MENSAJE Y TE PASAMOS TU TARIFA ANTES DE 25 MINUTOS ***` y línea libre para "INDICA AQUÍ OTRAS ANOTACIONES…". Bug fixeado: el href de Email/WhatsApp se regeneraba SOLO al pulsar "Calcular precio" → si el usuario cambiaba un dato después y pulsaba Email/WA directamente, iba el mensaje viejo. Ahora `buildMessage()` se llama también al click de cada botón
+- **Selector de día**: opción "Sin fecha definida" como default, próximos 7 días LABORABLES (salta sábados/domingos), opción "Otro día..." abre el calendario. Bug fix: al cerrar el calendario sin elegir fecha, el select se quedaba en "otro" y la próxima pulsación no disparaba `change` → ahora `onClose` de Flatpickr restaura el select al valor previo si no se eligió fecha
+- **Textos iterados**: "Calcula tu tarifa" → "Pick. Drop. Done." → "Transporte de mercancías." (con punto final morado). CTA: "Solicitar tarifa" → "Calcular precio". Selector camión añadidos "(más económico)" y "(más caro)". Fecha de carga: "Día concreto" → "Fecha fija (un día en concreto, más cara)", "Estándar" → "Ventana de 2 días (Estándar)" default, "Flexible" → "Ventana de 4 días (Flexible, más económica)"
+- **Diseño**: tarjeta blanca semi-transparente (~93%) sin backdrop-filter (penalizaba GPU), borde sutil. Iteración del tooltip del camión: pastilla fija → tooltip al hover en desktop (en móvil no hay hover). Selector de info de los 2 camiones modal → popover compacto → solo tooltip discreto. Borde morado al **hover** de campos (no solo focus), JS hace `blur()` al cambiar select para que el borde vuelva a gris
+
+**MÓVIL — UX iterado mucho**:
+- En móvil el tarifador está OCULTO por defecto. Botón "Calcular tarifa" centrado al pie del hero (morado simple sin efectos cutres). Al pulsar: botón se oculta, tarifador aparece con fade+slide-up
+- Hero con `min-height: calc(100svh - 220px)` — usamos `svh` (no `dvh`) porque `dvh` recalcula al hacer scroll en Chrome iOS y daba "zoom raro" del tarifador
+- Compactación móvil del tarifador (padding 0.6rem, título 1.15rem, gaps 0.4rem) para que entre todo lo más posible en el viewport
+- Probamos position:fixed bottom-sheet con drag handle y overlay → demasiados bugs (opacity:0 heredada, click handlers que se cerraban al instante, body bloqueado) → revertido al esquema simple
+
+**VÍDEOS DEL HERO**:
+- Sustituido el mp4 único (3,6 MB) por DOS webm en secuencia (`hero-1.webm` 2,4 MB + `hero-2.webm` 2,7 MB) con crossfade suave. Iteramos la duración: 1,2s (brusco) → 3s (demasiado, comía vídeo limpio) → **2s** (punto medio, sine in-out)
+- Velo del hero aclarado: rgba 0,65→0,85 → rgba 0,18→0,42 (ahora el vídeo se ve con colores naturales)
+- Fallback al mp4 para navegadores sin soporte webm
+
+**MENÚ MÓVIL** — rediseño cinematográfico (era texto morado sobre blanco, muy básico):
+- Apertura con clip-path circular desde el icono hamburguesa
+- Fondo morado/navy con **doble aurora animada** (2 gradientes radiales orbitando), estrellas tenues parpadeando
+- Header con **logo Dynamo** (`images/4.png` — el que pidió el usuario) + botón X circular glass que rota 90°
+- Items numerados 01..05 con entrada **escalonada** (fade+slide-from-left) y subrayado morado→verde al active
+- Footer con 2 CTAs (Acceso + teléfono verde) + lema "Pick. Drop. Done." con Done en verde
+- **Cierre simple**: opacity 0 en 0.28s (probamos clip-path inverso + items saliendo escalonados, pero daba trompicones)
+- **Bug fixeado**: pulsar Acceso desde el menú hacía `closeMobileMenu(); goToPortal(event)`. El cierre del menú (280ms) revelaba la web brevemente antes de que el wormhole (850ms) la cubriera. Solución: quitar el `closeMobileMenu()` — el wormhole tapa el menú al expandirse
+
+**CARDS DE VEHÍCULOS Y SERVICIOS**:
+- Quitados los botones "Contratar" de las 2 cards de tipos de camión (Tauliner + Rígido) en producción y preview. El tarifador del hero los hace innecesarios
+- Títulos de las cards de servicios igualados al de "Almacenamiento corta estancia": 1,7rem desktop / 1,25rem móvil (antes 1,45rem / 0,88rem)
+- "Servicio aún no disponible para contratar online. Estamos terminando…" → "Servicio aún no está disponible para contratar." (más conciso, sin dar pistas del estado interno)
+- Ancho interior unificado a **2,40 m** (era 2,45) en cards y tooltip del tarifador
+- Peso máx. Tauliner unificado a **24 Tn** (era 24,5) — coincide con la spec de la card de vehículos
+- Quitado **Perfiles Miranda** del carrousel (las 2 ocurrencias del bucle infinito)
+
+**WEB PÚBLICA Y SEO**:
+- Banner "Soluciones de Transporte. España y Europa." con efecto neón sutil (gradiente shimmer 8s + halo box-shadow alternando morado/verde 4,5s) — iteramos intensidad varias veces
+- Top-bar Google (+480 Clientes · 5,0 ★) con spinner conic-gradient verde que se VACÍA en 5s (usando @property --tb-progress que SÍ permite animar gradientes) y autocolapso suave de la barra
+- **Quitado el cartel blanco del hero** "Soluciones de Transporte a medida" — el vídeo se ve sin texto encima
+- **Línea blanca vertical** del hero (`hero-road::before` con keyframes roadLines) eliminada — se veía rara sobre el vídeo real. También quitado el "Scroll ↓" de la parte inferior
+- **Strip reducido a 2 chips**: Grupajes + Carga Completa (antes 4) — caben en 1 línea en móvil
+- **Hero alto** con cálculo para que el carrousel quede al pie del viewport. Iteramos mucho los valores (240 → 320 → 360 → 220 con `svh`)
+- **SEO grave fixeado**: `dynamotrans.com/es/` salía indexado en Google con TODO roto (logos como texto, vídeo no carga). Causa: catch-all rewrite de Vercel servía index.html en cualquier URL + las imágenes con rutas relativas (`images/foo.png`) se buscaban en `/es/images/foo.png` → 404. Solución: redirect 301 en vercel.json de `/:lang(es|en|pt|...|fi)/...` → `/`, redirect `/index.html` → `/`, Y convertir 53 rutas de imágenes a absolutas (`/images/...`)
+- **Producción no construía 1 vez**: Vercel no creó deploy para `f9e10a3` por algo. Forzado con commit vacío `51f5af4`
+
+**PORTAL** (sigue solo en preview, no en producción):
+- Texto del portal acotado a "Espacio privado para clientes. Mientras tanto, contáctanos por los canales habituales." (eliminado el detalle de "programación y estado de cargas e histórico" para no dar pistas a la competencia)
+- En producción: portal sigue con el botón "Crear cuenta" disabled y los campos de login disabled
+- En preview: flujo completo (registro.html → verificar.html → crear-password.html) y portal.html con botón activo. Todo funcional
+
+**INFRAESTRUCTURA**:
+- 7 MB de imágenes basura eliminadas del repo (AdobeStock_270241303.jpeg 3,8MB, AdobeStock_212968647.jpeg 2,2MB, etc.) — no se usaban en ningún HTML, solo engordaban el build de Vercel
+- Lección aprendida del fast-forward: el merge `main → preview` con fast-forward borró del preview los archivos del flujo del portal (registro/verificar/crear-password) que solo existían en preview. Recuperados del histórico (`764f8a8`). Para futuras sync: **siempre `merge --no-ff` con commit explícito**, nunca fast-forward
+- Webm originales con nombres feos (`mp_dynamo-ezgif.com-gif-maker.webm`) borrados — el contenido se sirve desde `hero-1.webm`/`hero-2.webm` con el mismo peso
+
+**Pendientes detectados** (van a TODO.md):
+- Mensaje preformateado con TABLA de coeficientes del cliente (escala por bandas, 25% en 0,8ml hasta 100% en 10,4ml) para mostrar % de carga del camión al cliente en vivo. Tengo la tabla apuntada pero no implementé el cálculo
+- Cuando el portal pase a producción, evaluar integrar Google Places API (con clave del cliente) en lugar de Nominatim — mejor calidad de autocomplete pero requiere billing en Google Cloud (~200$/mes gratis cubren el tráfico esperado)
+
 ### 2026-06-11 — iPhone
 - **Producción mostraba portal "incompleto"**: tras el rollback del día anterior (`dba559c`), `dynamotrans.com/portal` quedó sin el botón "Crear cuenta" → daba imagen de mockup a medio terminar. Decisión: mejor que el botón **se vea pero esté disabled** (mismo patrón que el de "Iniciar sesión") para que el cliente perciba el diseño completo sin que pueda navegar a nada
 - **Fix `54c723e` en main**: añadido `<button class="portal-btn portal-create" disabled>Crear cuenta</button>` debajo del divisor "¿No tienes cuenta?" en `portal.html` de main. CSS `.portal-create` añadido con `cursor: not-allowed`, `opacity 0.55` y sin transition hover (no tiene sentido en un disabled). NO navega a ningún sitio → evita 404 porque `registro.html` no existe en main
