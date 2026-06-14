@@ -2056,14 +2056,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     <select id="tar-peso" class="tar-select" aria-label="Peso en toneladas"></select>
                 </div>
 
-                <div class="tar-field">
-                    <label for="tar-urgencia">Día de carga</label>
-                    <select id="tar-urgencia" class="tar-select">
-                        <option value="dia">Fecha fija (Un día en concreto, más cara)</option>
-                        <option value="estandar" selected>Ventana de 2 días (Estándar)</option>
-                        <option value="flexible">Ventana de 4 días (Flexible, más económica)</option>
-                    </select>
-                </div>
                 <div class="tar-field" id="tar-fecha-field">
                     <label for="tar-dia">Fecha de carga (L-V)</label>
                     <div class="tar-fecha-wrap">
@@ -2071,6 +2063,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                         <!-- Input date superpuesto invisible para que el calendario nativo se ancle aqui -->
                         <input type="date" id="tar-fecha" class="tar-date" aria-label="Elegir fecha en calendario">
                     </div>
+                </div>
+                <div class="tar-field">
+                    <label for="tar-urgencia">Día de carga</label>
+                    <select id="tar-urgencia" class="tar-select">
+                        <option value="dia">Fecha fija (Un día en concreto, más cara)</option>
+                        <option value="estandar" selected>Ventana de 2 días (Estándar)</option>
+                        <option value="flexible">Ventana de 4 días (Flexible, más económica)</option>
+                    </select>
                 </div>
             </div>
 
