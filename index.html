@@ -2029,7 +2029,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <div class="tar-field tar-camion-field">
                     <select id="tar-camion" class="tar-select" aria-label="Tipo de camion">
                         <option value="tauliner" data-full="Trailer Tauliner (13,60 m · 33 europalets · 24 Tn) (más económico)">Trailer Tauliner · 13,60 m (más económico)</option>
-                        <option value="rigido" data-full="Rígido con plataforma elevadora + transpaleta (8 m · 20 europalets · 14 Tn) (más caro)">Rígido con plataforma elevadora + transpaleta (más caro)</option>
+                        <option value="rigido" data-full="Rígido con plataforma elevadora + transpalet (8 m · 20 europalets · 14 Tn) (más caro)">Rígido con plataforma elevadora + transpalet (más caro)</option>
                     </select>
                     <div class="tar-camion-tip" id="tar-camion-tip" role="tooltip" aria-hidden="true"></div>
                 </div>
@@ -3944,7 +3944,7 @@ function updateAlmTotal() {
         if (!tip) return;
         var INFO = {
             tauliner: '<strong>Trailer Tauliner · 13,60 m</strong> · 2,40 × 2,70 m · 24 Tn · 33 EUR / 26 USA · Lat./Tras./Techo <em>· paletizado, palot/box, especiales</em>',
-            rigido:   '<strong>Rígido + Plataforma · 8 m</strong> · 2,40 × 2,70 m · 14 Tn · 20 EUR / 16 USA · plataforma + transpaleta <em>· entregas urbanas, sin muelle</em>'
+            rigido:   '<strong>Rígido + Plataforma · 8 m</strong> · 2,40 × 2,70 m · 14 Tn · 20 EUR / 16 USA · plataforma + transpalet <em>· entregas urbanas, sin muelle</em>'
         };
         function render() { tip.innerHTML = INFO[camionSel.value] || INFO.tauliner; }
         camionSel.addEventListener('change', render);
