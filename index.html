@@ -2028,7 +2028,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
                 <div class="tar-field tar-camion-field">
                     <select id="tar-camion" class="tar-select" aria-label="Tipo de camion">
-                        <option value="tauliner" data-full="Trailer Tauliner (13,60 m · 33 europalets · 24 Tn) (más económico)">Trailer Tauliner · 13,60 m (más económico)</option>
+                        <option value="tauliner" data-full="Trailer Tauliner (13,2 m · 33 europalets · 24 Tn) (más económico)">Trailer Tauliner · 13,2 m (más económico)</option>
                         <option value="rigido" data-full="Rígido con plataforma elevadora + transpalet (8 m · 20 europalets · 14 Tn) (más caro)">Rígido 8 m con plataforma elevadora + transpalet (más caro)</option>
                     </select>
                     <div class="tar-camion-tip" id="tar-camion-tip" role="tooltip" aria-hidden="true"></div>
@@ -2416,7 +2416,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <p>Similar a un furgón tipo box/caja, con cortinas correderas en lados y techo que dan fácil acceso a la carga. El vehículo más utilizado para envíos terrestres.</p>
                 <p><strong>Ideal para:</strong> mercancía paletizada, palot/box y mercancías especiales.</p>
                 <div class="veh-specs">
-                    <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">13,60 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">13,2 m</div></div>
                     <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,40 m</div></div>
                     <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
                     <div class="veh-spec"><div class="veh-spec-label">Carga máx.</div><div class="veh-spec-value">24 Tn.</div></div>
@@ -3934,7 +3934,7 @@ function updateAlmTotal() {
         var tip = document.getElementById('tar-camion-tip');
         if (!tip) return;
         var INFO = {
-            tauliner: '<strong>Trailer Tauliner · 13,60 m</strong> · 2,40 × 2,70 m · 24 Tn · 33 EUR / 26 USA · Lat./Tras./Techo <em>· paletizado, palot/box, especiales</em>',
+            tauliner: '<strong>Trailer Tauliner · 13,2 m</strong> · 2,40 × 2,70 m · 24 Tn · 33 EUR / 26 USA · Lat./Tras./Techo <em>· paletizado, palot/box, especiales</em>',
             rigido:   '<strong>Rígido + Plataforma · 8 m</strong> · 2,40 × 2,70 m · 14 Tn · 20 EUR / 16 USA · plataforma + transpalet <em>· entregas urbanas, sin muelle</em>'
         };
         function render() { tip.innerHTML = INFO[camionSel.value] || INFO.tauliner; }
