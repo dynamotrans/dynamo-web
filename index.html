@@ -706,9 +706,8 @@
                    svh es estable: viewport en su estado mas pequeño */
                 min-height: calc(100vh - 220px);
                 min-height: calc(100svh - 220px);
-                padding: 0.4rem 0 0;
-                /* Boton pegado AL PIE del hero por defecto (no tapa el video) */
-                align-items: flex-end;
+                padding: 1.2rem 0;
+                align-items: center;
             }
         }
         /* Degradado de marca con zoom suave: estado final tras el vídeo (y fallback) */
@@ -825,43 +824,80 @@
             transition: all 0.3s; box-shadow: 0 4px 20px rgba(51,0,204,0.45);
         }
         .btn-email:hover { background: var(--purple-light); transform: translateY(-3px); }
-        /* Boton movil "Calcular tarifa" — estilo simple del resto de la web,
-           morado solido, mismo lenguaje visual que .btn-nav-cta / .tar-cta */
-        .hero-calc-trigger {
-            display: none;
-            margin: 0 auto;
-            padding: 0.9rem 2rem;
-            background: var(--purple);
-            color: white; border: none; border-radius: 12px;
-            font-size: 0.95rem; font-weight: 900; letter-spacing: 0.5px;
-            text-transform: uppercase; cursor: pointer;
-            font-family: inherit;
-            align-items: center; gap: 0.55rem;
-            box-shadow: 0 8px 22px rgba(51,0,204,0.32);
+        /* =========================================
+           HERO DEFAULT: texto blanco + 4 CTAs (desktop y movil)
+           Se OCULTA al pulsar "Precios" -> aparece el tarifador
+        ========================================= */
+        .hero-default {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 1.6rem; padding: 0 1rem; width: 100%;
+            animation: heroDefIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        @keyframes heroDefIn {
+            0%   { opacity: 0; transform: translateY(14px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .hero-title-white {
+            font-size: clamp(2rem, 5.2vw, 3.6rem); font-weight: 900;
+            color: white; line-height: 1.1; text-align: center;
+            letter-spacing: -0.5px;
+            text-shadow: 0 4px 24px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.35);
+            margin: 0;
+        }
+        .hero-cta-group {
+            display: flex; flex-wrap: wrap; justify-content: center;
+            gap: 0.7rem; max-width: 720px;
+        }
+        .hero-cta {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.9rem 1.5rem;
+            border: none; border-radius: 14px;
+            font-family: inherit; font-size: 0.92rem; font-weight: 800;
+            letter-spacing: 0.2px; text-decoration: none; cursor: pointer;
             transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+            color: white;
         }
-        .hero-calc-trigger:hover { background: var(--purple-light); }
-        .hero-calc-trigger:active { transform: scale(0.97); box-shadow: 0 4px 14px rgba(51,0,204,0.28); }
+        .hero-cta:hover { transform: translateY(-2px); }
+        .hero-cta:active { transform: translateY(0) scale(0.97); }
+        .hero-cta-precios { background: var(--purple); box-shadow: 0 8px 22px rgba(51,0,204,0.45); }
+        .hero-cta-precios:hover { background: var(--purple-light); }
+        .hero-cta-wa { background: #25D366; box-shadow: 0 8px 22px rgba(37,211,102,0.4); }
+        .hero-cta-wa:hover { background: #1ebe5d; }
+        .hero-cta-tel { background: rgba(255,255,255,0.14); border: 1.5px solid rgba(255,255,255,0.4); box-shadow: 0 4px 18px rgba(0,0,0,0.25); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+        .hero-cta-tel:hover { background: rgba(255,255,255,0.22); }
+        .hero-cta-email { background: var(--navy); box-shadow: 0 8px 22px rgba(10,2,48,0.5); }
+        .hero-cta-email:hover { background: #181255; }
+
+        /* Tarifador oculto por defecto, aparece al pulsar "Precios" */
+        .tarifador { display: none; }
+        .hero.calc-open .hero-default { display: none; }
+        .hero.calc-open .tarifador {
+            display: block;
+            animation: tarFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        @keyframes tarFadeIn {
+            0%   { opacity: 0; transform: translateY(16px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        /* Boton minimizar tarifador: simetrico al reset, esquina superior izq */
+        .tar-minimize {
+            position: absolute; top: 0.6rem; left: 0.7rem;
+            width: 32px; height: 32px; border-radius: 50%;
+            background: rgba(255,255,255,0.95); border: 1.5px solid rgba(10,2,48,0.12);
+            color: var(--navy); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 10px rgba(10,2,48,0.12);
+            transition: background 0.2s, transform 0.15s;
+            z-index: 5;
+        }
+        .tar-minimize:hover { background: var(--gray-100); transform: scale(1.06); }
+        .tar-minimize:active { transform: scale(0.94); }
         @media (max-width: 600px) {
-            /* Movil: solo el boton visible, tarifador oculto hasta pulsar.
-               Boton pegado al PIE del hero (no centro) para no tapar el video */
-            .hero-calc-trigger { display: inline-flex; margin-bottom: 0; }
-            .tarifador { display: none; }
-            /* Al pulsar el boton: el boton se oculta y el tarifador aparece
-               en su sitio (display:block) con una entrada suave */
-            .hero.calc-open .hero-calc-trigger { display: none; }
-            .hero.calc-open .tarifador {
-                display: block;
-                opacity: 1;
-                animation: tarFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-            }
-            @keyframes tarFadeIn {
-                0%   { opacity: 0; transform: translateY(16px); }
-                100% { opacity: 1; transform: translateY(0); }
-            }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            .hero-calc-trigger { animation: none; }
+            .tar-minimize { top: 0.45rem; left: 0.5rem; width: 26px; height: 26px; }
+            .tar-minimize svg { width: 14px; height: 14px; }
+            .hero-title-white { font-size: 1.55rem; }
+            .hero-cta { padding: 0.75rem 1.05rem; font-size: 0.85rem; }
+            .hero-cta-group { gap: 0.55rem; }
         }
 
         /* =========================================
@@ -877,13 +913,7 @@
             box-shadow: 0 24px 60px rgba(10,2,48,0.45), 0 8px 22px rgba(10,2,48,0.28);
             padding: 1.05rem 1.2rem 1.1rem;
             color: var(--navy); text-align: left;
-            opacity: 0; transform: translateY(18px) scale(0.97);
-            animation: tarIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.35s forwards;
             position: relative;
-        }
-        @keyframes tarIn {
-            0%   { opacity: 0; transform: translateY(18px) scale(0.97); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
         }
         /* Boton refresh (esquina sup-derecha del tarifador) — discreto */
         .tar-reset {
@@ -1980,19 +2010,34 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="hero-overlay"></div>
     <div class="hero-road"></div>
     <div class="hero-content">
-        <!-- TARIFADOR -->
-        <!-- Boton movil: abre el tarifador (oculto por defecto en movil) -->
-        <button type="button" class="hero-calc-trigger" id="hero-calc-trigger" aria-controls="tarifador" aria-expanded="false">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="4" y="2" width="16" height="20" rx="2"/>
-                <line x1="8" y1="6" x2="16" y2="6"/>
-                <line x1="8" y1="10" x2="16" y2="10"/>
-                <line x1="8" y1="14" x2="16" y2="14"/>
-                <line x1="8" y1="18" x2="12" y2="18"/>
-            </svg>
-            Precios
-        </button>
+        <!-- Estado por defecto: texto blanco + 4 CTAs (web y movil) -->
+        <div class="hero-default" id="hero-default">
+            <h1 class="hero-title-white">Transporte de Mercancías.<br>España y Europa.</h1>
+            <div class="hero-cta-group">
+                <button type="button" class="hero-cta hero-cta-precios" id="hero-cta-precios" aria-controls="tarifador">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>
+                    Precios
+                </button>
+                <a class="hero-cta hero-cta-wa" target="_blank" rel="noopener" href="https://wa.me/34628995709?text=Buenos%20d%C3%ADas%2C%0A%0A%2ASOLICITUD%20DE%20TARIFA%3A%2A%0A%0A%2A1.%20%C2%BFQue%20tipo%20de%20mercanc%C3%ADa%20es%3F%2A%0APaletizado%2C%20maquinaria%2C%20etc.%3A%0A%0A%E2%80%94%0A%0A%2A2.%20%C2%BFEs%20CARGA%20COMPLETA%20de%20Trailer%20o%20GRUPAJE%20%28carga%20parcial%3A%20metros%2Fpeso%29%3F%2A%0A%0A%E2%80%94%0A%0A%2A3.%20%C2%BFC%C3%B3digos%20postales%20o%20localidad%20de%20origen%20y%20destino%3F%2A%0A%0A%E2%80%94">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    Enviar WhatsApp
+                </a>
+                <a class="hero-cta hero-cta-tel" href="tel:+34955225945">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                    Llamar +34 955 225 945
+                </a>
+                <a class="hero-cta hero-cta-email" href="mailto:info@dynamotrans.com?subject=Solicitud%20de%20TARIFA&body=Buenos%20d%C3%ADas%2C%0D%0A%0D%0ASOLICITUD%20DE%20TARIFA%3A%0D%0A%0D%0A1.%20%C2%BFQue%20tipo%20de%20mercanc%C3%ADa%20es%3F%0D%0APaletizado%2C%20maquinaria%2C%20etc.%3A%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A2.%20%C2%BFEs%20CARGA%20COMPLETA%20de%20Trailer%20o%20GRUPAJE%20%28carga%20parcial%3A%20metros%2Fpeso%29%3F%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A3.%20%C2%BFC%C3%B3digos%20postales%20o%20localidad%20de%20origen%20y%20destino%3F%0D%0A%0D%0A%E2%80%94">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                    Envíanos un Email
+                </a>
+            </div>
+        </div>
         <div class="tarifador" id="tarifador">
+            <button type="button" class="tar-minimize" id="tar-minimize" aria-label="Cerrar tarifador y volver al hero" title="Cerrar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+            </button>
             <button type="button" class="tar-reset" id="tar-reset" aria-label="Reiniciar tarifador" title="Reiniciar a valores por defecto">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <polyline points="23 4 23 10 17 10"/>
@@ -3923,16 +3968,26 @@ function updateAlmTotal() {
     var destInput = document.getElementById('tar-dest');
     var warning = document.getElementById('tar-warning');
 
-    // Movil: boton "Calcular tarifa" abre el tarifador como BOTTOM SHEET.
-    // El tarifador aparece en su sitio con una entrada suave.
+    // Hero: alternar entre la pantalla por defecto (texto + 4 CTAs) y el
+    // tarifador. "Precios" abre el tarifador; el boton minimizar (-) del
+    // tarifador vuelve a la pantalla por defecto.
     (function () {
-        var trigger = document.getElementById('hero-calc-trigger');
         var hero = document.querySelector('.hero');
-        if (!trigger || !hero) return;
-        trigger.addEventListener('click', function () {
-            hero.classList.add('calc-open');
-            trigger.setAttribute('aria-expanded', 'true');
-        });
+        var openBtn = document.getElementById('hero-cta-precios');
+        var closeBtn = document.getElementById('tar-minimize');
+        if (!hero) return;
+        if (openBtn) {
+            openBtn.addEventListener('click', function () {
+                hero.classList.add('calc-open');
+                openBtn.setAttribute('aria-expanded', 'true');
+            });
+        }
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function () {
+                hero.classList.remove('calc-open');
+                if (openBtn) openBtn.setAttribute('aria-expanded', 'false');
+            });
+        }
     })();
 
     // Boton reset — devuelve el tarifador al estado inicial
