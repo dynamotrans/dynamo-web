@@ -3171,7 +3171,21 @@ function openLegal(tab) {
     // Reset portal overlay if page is restored from bfcache (e.g. browser back)
     window.addEventListener('pageshow', function (e) {
         var overlay = document.getElementById('portalTransition');
-        if (overlay) overlay.classList.remove('active');
+        if (overlay) {
+            overlay.classList.remove('active');
+            // Limpia los inline styles que pagehide aplico para "quemar" el
+            // overlay durante el unload (opacity:1, transition:none, clip-path)
+            // -> sin esto, al volver con el boton atras el overlay queda como
+            // pantalla azul porque bfcache restaura los inline styles
+            overlay.style.opacity = '';
+            overlay.style.transition = '';
+            overlay.removeAttribute('data-navigating');
+            var warp = overlay.querySelector('.portal-warp');
+            if (warp) {
+                warp.style.clipPath = '';
+                warp.style.transition = '';
+            }
+        }
         if (e.persisted) document.documentElement.classList.remove('from-transition');
         // Reanudar el video activo del hero si lo pausamos al lanzar la transicion
         ['heroVideo1'].forEach(function(id){
