@@ -709,6 +709,11 @@
                 padding: 1.2rem 0;
                 align-items: center;
             }
+            /* En movil el viewport es estrecho y "cover" recorta los lados
+               horizontales -> la palabra "Dynamo" del trailer queda cortada.
+               Encuadramos a la IZQUIERDA para que se vea entera */
+            .hero-video { object-position: left center; }
+            .hero-gradient { background-position: left center; }
         }
         /* Degradado de marca con zoom suave: estado final tras el vídeo (y fallback) */
         .hero-gradient {
