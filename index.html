@@ -1542,6 +1542,9 @@
             background: linear-gradient(180deg, #ffffff 0%, var(--gray-100) 100%);
             overflow: hidden;
             position: relative;
+            /* Margen al hacer scroll desde el menu para que el navbar
+               sticky no tape el titulo "Clientes" */
+            scroll-margin-top: 80px;
         }
         /* El texto del titulo respeta el padding lateral igual que el resto
            de secciones. El wall de logos queda edge-to-edge (full width)
@@ -1589,7 +1592,7 @@
         }
         .clientes-row .logo-pill { flex-shrink: 0; }
         @media (max-width: 600px) {
-            .clientes-sec { padding: 3rem 0 3.5rem; }
+            .clientes-sec { padding: 3rem 0 3.5rem; scroll-margin-top: 70px; }
             .clientes-sec > .container { padding: 0 1.2rem; }
             .clientes-wall { gap: 0.7rem; margin-top: 2rem; }
         }
