@@ -8,6 +8,11 @@
     <link rel="icon" type="image/png" href="/images/DYNAMO-NEW-LOGO.png">
     <link rel="apple-touch-icon" href="/images/DYNAMO-NEW-LOGO.png">
     <script>
+        // El navegador puede conservar el scroll position de index.html al
+        // navegar aqui. portal.html es corto -> en posicion baja se ve el
+        // fondo navy de <html> por debajo del body. Forzamos scroll al inicio.
+        if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+        window.scrollTo(0, 0);
         // Detect if we arrived from index.html portal transition
         try {
             if (sessionStorage.getItem('portalTransition')) {
@@ -15,6 +20,8 @@
                 sessionStorage.removeItem('portalTransition');
             }
         } catch (e) {}
+        // Doble seguridad: tambien al pageshow (incluido bfcache)
+        window.addEventListener('pageshow', function () { window.scrollTo(0, 0); });
     </script>
     <style>
         :root {
