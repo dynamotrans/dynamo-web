@@ -713,9 +713,9 @@
         /* Degradado de marca con zoom suave: estado final tras el vídeo (y fallback) */
         .hero-gradient {
             position: absolute; inset: 0; z-index: 0;
-            /* 90% (bastante a la derecha del centro) para que se vea bien
-               el logo del trailer en el lado derecho de la foto */
-            background: url('/images/HERO-DYNAMO.webp') 90% center / cover no-repeat,
+            /* 10% (bastante a la izquierda del centro) — probamos el otro
+               extremo para ver el lado izquierdo de la foto */
+            background: url('/images/HERO-DYNAMO.webp') 10% center / cover no-repeat,
                         linear-gradient(135deg, #0a0230 0%, #1a008a 30%, #3300cc 60%, #0a0230 100%);
             animation: heroZoom 18s ease-in-out infinite alternate;
         }
