@@ -1543,6 +1543,10 @@
             overflow: hidden;
             position: relative;
         }
+        /* El texto del titulo respeta el padding lateral igual que el resto
+           de secciones. El wall de logos queda edge-to-edge (full width)
+           con el mask lateral haciendo el fade */
+        .clientes-sec > .container { padding: 0 2rem; }
         .clientes-sec::before, .clientes-sec::after {
             content: ''; position: absolute; pointer-events: none;
             width: 280px; height: 280px;
@@ -1586,6 +1590,7 @@
         .clientes-row .logo-pill { flex-shrink: 0; }
         @media (max-width: 600px) {
             .clientes-sec { padding: 3rem 0 3.5rem; }
+            .clientes-sec > .container { padding: 0 1.2rem; }
             .clientes-wall { gap: 0.7rem; margin-top: 2rem; }
         }
         @media (prefers-reduced-motion: reduce) {
