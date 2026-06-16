@@ -711,9 +711,10 @@
             }
             /* En movil el viewport es estrecho y "cover" recorta los lados
                horizontales -> la palabra "Dynamo" del trailer queda cortada.
-               Encuadramos a la IZQUIERDA para que se vea entera */
+               Encuadramos a la IZQUIERDA en el video. La imagen fija final
+               (.hero-gradient con HERO-DYNAMO.webp) la corremos a la DERECHA */
             .hero-video { object-position: left center; }
-            .hero-gradient { background-position: left center; }
+            .hero-gradient { background-position: right center; }
         }
         /* Degradado de marca con zoom suave: estado final tras el vídeo (y fallback) */
         .hero-gradient {
