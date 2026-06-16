@@ -709,17 +709,13 @@
                 padding: 1.2rem 0;
                 align-items: center;
             }
-            /* En movil el viewport es estrecho y "cover" recorta los lados
-               horizontales -> la palabra "Dynamo" del trailer queda cortada.
-               Encuadramos a la IZQUIERDA en el video. La imagen fija final
-               (.hero-gradient con HERO-DYNAMO.webp) la corremos a la DERECHA */
-            .hero-video { object-position: left center; }
-            .hero-gradient { background-position: right center; }
         }
         /* Degradado de marca con zoom suave: estado final tras el vídeo (y fallback) */
         .hero-gradient {
             position: absolute; inset: 0; z-index: 0;
-            background: url('/images/HERO-DYNAMO.webp') center/cover no-repeat,
+            /* 60% (10% a la derecha del centro) para que la foto se vea
+               encuadrada un poco mas hacia el lado derecho */
+            background: url('/images/HERO-DYNAMO.webp') 60% center / cover no-repeat,
                         linear-gradient(135deg, #0a0230 0%, #1a008a 30%, #3300cc 60%, #0a0230 100%);
             animation: heroZoom 18s ease-in-out infinite alternate;
         }
