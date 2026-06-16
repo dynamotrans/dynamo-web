@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="robots" content="noindex,nofollow">
     <title>Acceso al Portal · Dynamo Operador de Transportes</title>
     <link rel="icon" type="image/png" href="/images/DYNAMO-NEW-LOGO.png">
@@ -55,6 +55,11 @@
             min-height: 100lvh;
             display: flex; flex-direction: column;
             -webkit-font-smoothing: antialiased;
+            /* viewport-fit=cover + safe-area: el body se extiende hasta el
+               borde fisico de la pantalla. Asi iOS Chrome no deja un hueco
+               vacio entre el contenido y el gesture bar -> los botones de
+               la toolbar aparecen sobre la pagina, no en un hueco aparte */
+            padding-bottom: env(safe-area-inset-bottom);
         }
         .portal-bg {
             position: fixed; inset: 0; z-index: 0;
