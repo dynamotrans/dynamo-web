@@ -1313,6 +1313,15 @@
         ========================================= */
         section { padding: 5rem 2rem; }
         .container { max-width: 1200px; margin: 0 auto; }
+
+        /* Scroll global hacia anclas del menu: deja espacio para que el
+           navbar sticky (que tiene 70px aprox) NO tape el titulo de la
+           seccion. Aplica a TODAS las secciones del index para que el
+           comportamiento sea uniforme y no haya parches por seccion */
+        section[id], [id="clientes"] { scroll-margin-top: 80px; }
+        @media (max-width: 600px) {
+            section[id], [id="clientes"] { scroll-margin-top: 70px; }
+        }
         .section-eyebrow { color: var(--green-dark); font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 0.7rem; }
         .section-title { font-size: clamp(1.8rem, 3.8vw, 2.9rem); font-weight: 900; line-height: 1.12; color: var(--navy); }
         .section-title span { color: var(--purple); }
@@ -1542,9 +1551,6 @@
             background: linear-gradient(180deg, #ffffff 0%, var(--gray-100) 100%);
             overflow: hidden;
             position: relative;
-            /* Margen al hacer scroll desde el menu para que el navbar
-               sticky no tape el titulo "Clientes" */
-            scroll-margin-top: 80px;
         }
         /* El texto del titulo respeta el padding lateral igual que el resto
            de secciones. El wall de logos queda edge-to-edge (full width)
@@ -1592,7 +1598,7 @@
         }
         .clientes-row .logo-pill { flex-shrink: 0; }
         @media (max-width: 600px) {
-            .clientes-sec { padding: 3rem 0 3.5rem; scroll-margin-top: 70px; }
+            .clientes-sec { padding: 3rem 0 3.5rem; }
             .clientes-sec > .container { padding: 0 1.2rem; }
             .clientes-wall { gap: 0.7rem; margin-top: 2rem; }
         }
