@@ -1364,11 +1364,16 @@
         .cobertura-map-box svg {
             width: 100%; height: auto; display: block;
         }
-        /* Por defecto oculto. Solo los paises con .covered se muestran */
-        .cobertura-map-box svg path[id] { display: none; }
+        /* Paises NO cubiertos: contexto visual muy tenue, no interactivos.
+           El viewBox del SVG ya recorta al area de cobertura, asi que solo
+           se ven los paises adyacentes dentro del recuadro */
+        .cobertura-map-box svg path[id] {
+            fill: #ecedf1; stroke: #fff; stroke-width: 0.4;
+            pointer-events: none;
+        }
         .cobertura-map-box svg path.covered {
-            display: inline;
-            fill: #b8c2d6; stroke: #fff; stroke-width: 0.4;
+            fill: #b8c2d6;
+            pointer-events: auto;
             transition: fill 0.2s; cursor: pointer;
         }
         .cobertura-map-box svg path.covered:hover { fill: var(--purple); }
