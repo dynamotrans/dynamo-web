@@ -120,11 +120,14 @@
             width: 8px; height: 8px; border-radius: 50%;
             background: var(--red); border: 2px solid white;
         }
+        .topbar-user-wrap { position: relative; }
         .topbar-user {
             display: flex; align-items: center; gap: 0.6rem;
             padding: 0.3rem 0.7rem 0.3rem 0.4rem;
             border-radius: 999px; cursor: pointer;
             transition: background 0.2s;
+            background: transparent; border: none;
+            font: inherit;
         }
         .topbar-user:hover { background: var(--gray-100); }
         .topbar-user-avatar {
@@ -134,6 +137,201 @@
             display: flex; align-items: center; justify-content: center;
         }
         .topbar-user-name { font-size: 0.82rem; font-weight: 700; color: var(--navy); }
+        .topbar-user-arrow { color: var(--gray-500); transition: transform 0.2s; }
+        .topbar-user[aria-expanded="true"] .topbar-user-arrow { transform: rotate(180deg); }
+
+        /* User dropdown menu */
+        .user-menu {
+            position: absolute; top: calc(100% + 8px); right: 0;
+            min-width: 280px; max-width: 320px;
+            background: white; border-radius: 14px;
+            border: 1px solid var(--gray-200);
+            box-shadow: 0 14px 44px rgba(10,2,48,0.16), 0 4px 14px rgba(10,2,48,0.06);
+            padding: 0.5rem;
+            z-index: 200;
+            opacity: 0; pointer-events: none; transform: translateY(-6px) scale(0.98);
+            transition: opacity 0.18s, transform 0.2s;
+        }
+        .user-menu.open {
+            opacity: 1; pointer-events: auto; transform: translateY(0) scale(1);
+        }
+        .user-menu-head {
+            display: flex; align-items: center; gap: 0.7rem;
+            padding: 0.7rem 0.75rem 0.85rem;
+        }
+        .user-menu-head-avatar {
+            width: 42px; height: 42px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--purple), var(--green));
+            color: white; font-weight: 900; font-size: 1rem;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .user-menu-head-body { min-width: 0; flex: 1; }
+        .user-menu-head-name { font-size: 0.92rem; font-weight: 800; color: var(--navy); line-height: 1.15; }
+        .user-menu-head-email {
+            font-size: 0.78rem; color: var(--gray-500); margin-top: 0.1rem;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .user-menu-role {
+            display: inline-block; margin-top: 0.35rem;
+            font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.7px;
+            color: var(--purple); background: rgba(51,0,204,0.08);
+            padding: 0.15rem 0.5rem; border-radius: 999px;
+        }
+        .user-menu-sep {
+            height: 1px; background: var(--gray-200); margin: 0.3rem 0;
+        }
+        .user-menu-item {
+            display: flex; align-items: center; gap: 0.65rem;
+            width: 100%; padding: 0.6rem 0.75rem; border-radius: 8px;
+            background: transparent; border: none; cursor: pointer;
+            font: inherit; font-size: 0.85rem; font-weight: 600;
+            color: var(--gray-700); text-align: left;
+            transition: background 0.15s, color 0.15s;
+        }
+        .user-menu-item:hover { background: var(--gray-100); color: var(--navy); }
+        .user-menu-item svg { flex-shrink: 0; color: var(--gray-500); }
+        .user-menu-item:hover svg { color: var(--purple); }
+        .user-menu-right {
+            margin-left: auto; font-size: 0.78rem; font-weight: 700;
+            color: var(--gray-500);
+        }
+        .user-menu-chev {
+            color: var(--gray-500); transition: transform 0.2s;
+        }
+        .user-menu-item-expand[aria-expanded="true"] .user-menu-chev { transform: rotate(180deg); }
+        .user-menu-submenu {
+            display: none;
+            grid-template-columns: 1fr 1fr; gap: 0.3rem;
+            padding: 0.35rem 0.4rem 0.5rem;
+        }
+        .user-menu-submenu.open { display: grid; }
+        .lang-pill {
+            display: flex; align-items: center; gap: 0.4rem;
+            padding: 0.45rem 0.55rem; border-radius: 8px;
+            border: 1px solid transparent; background: var(--gray-100);
+            font: inherit; font-size: 0.78rem; font-weight: 600;
+            color: var(--gray-700); cursor: pointer; text-align: left;
+            min-width: 0;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+        }
+        .lang-pill:hover { background: rgba(51,0,204,0.06); color: var(--purple); }
+        .lang-pill.active { background: rgba(51,0,204,0.10); border-color: rgba(51,0,204,0.25); color: var(--purple); }
+        .lang-pill .flag { font-size: 1rem; line-height: 1; }
+        .user-menu-item-danger { color: var(--red); }
+        .user-menu-item-danger svg { color: var(--red); }
+        .user-menu-item-danger:hover { background: rgba(220,38,38,0.07); color: var(--red); }
+        .user-menu-item-danger:hover svg { color: var(--red); }
+
+        /* Theme switch (pill toggle) */
+        .theme-switch {
+            margin-left: auto;
+            width: 34px; height: 20px; border-radius: 999px;
+            background: var(--gray-200); position: relative;
+            transition: background 0.2s;
+        }
+        .theme-switch-knob {
+            position: absolute; top: 2px; left: 2px;
+            width: 16px; height: 16px; border-radius: 50%;
+            background: white; box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+            transition: left 0.2s;
+        }
+        body.theme-dark .theme-switch { background: var(--purple); }
+        body.theme-dark .theme-switch-knob { left: 16px; }
+
+        /* Mi cuenta / Datos empresa / Soporte - tarjetas */
+        .account-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+        .account-card {
+            background: white; border-radius: 14px; padding: 1.1rem 1.2rem;
+            border: 1px solid var(--gray-200);
+        }
+        .account-card-title {
+            font-size: 0.95rem; font-weight: 900; color: var(--navy);
+            margin-bottom: 0.85rem;
+        }
+        .account-card-desc {
+            font-size: 0.82rem; color: var(--gray-500); line-height: 1.5;
+            margin-bottom: 0.8rem;
+        }
+        .account-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.5rem 0; border-bottom: 1px dashed var(--gray-200);
+            font-size: 0.82rem; gap: 0.6rem;
+        }
+        .account-row:last-of-type { border-bottom: none; }
+        .account-row-label { color: var(--gray-500); font-weight: 600; }
+        .account-row-value { color: var(--navy); font-weight: 700; text-align: right; }
+        .account-edit { margin-top: 0.8rem; }
+        .support-link {
+            display: flex; align-items: center; gap: 0.55rem;
+            padding: 0.7rem 0.85rem; border-radius: 10px;
+            background: var(--gray-100); color: var(--navy);
+            text-decoration: none; font-size: 0.85rem; font-weight: 700;
+            margin-bottom: 0.5rem;
+            transition: background 0.15s, color 0.15s;
+        }
+        .support-link:hover { background: rgba(51,0,204,0.08); color: var(--purple); }
+        .support-link svg { color: var(--purple); flex-shrink: 0; }
+        .support-faq {
+            display: block; padding: 0.55rem 0; border-bottom: 1px solid var(--gray-200);
+            font-size: 0.85rem; color: var(--navy); text-decoration: none; font-weight: 600;
+        }
+        .support-faq:hover { color: var(--purple); }
+        .support-faq:last-child { border-bottom: none; color: var(--purple); }
+
+        /* ============================================
+           MODO OSCURO
+        ============================================ */
+        body.theme-dark {
+            background: #0f0820; color: #d4d0e8;
+        }
+        body.theme-dark .topbar,
+        body.theme-dark .stat-card,
+        body.theme-dark .table-wrap,
+        body.theme-dark .pagination,
+        body.theme-dark .filters,
+        body.theme-dark .mini-list-card,
+        body.theme-dark .account-card,
+        body.theme-dark .user-menu,
+        body.theme-dark .row-menu-pop {
+            background: #1a1233; border-color: rgba(255,255,255,0.08);
+            color: #e6e2f5;
+        }
+        body.theme-dark .topbar-title,
+        body.theme-dark .stat-card-value,
+        body.theme-dark .account-card-title,
+        body.theme-dark .account-row-value,
+        body.theme-dark .user-menu-head-name,
+        body.theme-dark .sec-header h2,
+        body.theme-dark table.data tbody td { color: #f3eeff; }
+        body.theme-dark .stat-card-label,
+        body.theme-dark .account-row-label,
+        body.theme-dark .user-menu-head-email,
+        body.theme-dark .topbar-user-name,
+        body.theme-dark .topbar-user-arrow,
+        body.theme-dark .mini-list-sub,
+        body.theme-dark table.data thead th { color: #a8a3c0; }
+        body.theme-dark .topbar-icon-btn,
+        body.theme-dark .btn-ghost,
+        body.theme-dark .support-link,
+        body.theme-dark .lang-pill { background: rgba(255,255,255,0.05); color: #d4d0e8; border-color: rgba(255,255,255,0.08); }
+        body.theme-dark .topbar-user:hover,
+        body.theme-dark .user-menu-item:hover,
+        body.theme-dark table.data tbody tr:hover { background: rgba(255,255,255,0.05); color: #f3eeff; }
+        body.theme-dark .user-menu-item { color: #d4d0e8; }
+        body.theme-dark .user-menu-item svg { color: #a8a3c0; }
+        body.theme-dark .user-menu-sep,
+        body.theme-dark .account-row,
+        body.theme-dark table.data tbody td,
+        body.theme-dark table.data thead th { border-color: rgba(255,255,255,0.08); }
+        body.theme-dark .filters input,
+        body.theme-dark .filters select,
+        body.theme-dark .pagination-pages button,
+        body.theme-dark .row-menu-btn { background: rgba(255,255,255,0.05); color: #d4d0e8; border-color: rgba(255,255,255,0.10); }
+        body.theme-dark .sidebar { background: #060116; }
 
         .content {
             flex: 1; padding: 1.6rem 2rem 3rem;
@@ -154,24 +352,24 @@
            DASHBOARD - STAT CARDS + CESCE + LISTS + CTAs
         ========================================= */
         .stats-row {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
-            margin-bottom: 1.4rem;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.7rem;
+            margin-bottom: 1rem;
         }
         .stats-row-3 { grid-template-columns: repeat(3, 1fr); }
         .stat-card {
-            background: white; border-radius: 14px; padding: 1.1rem 1.15rem;
+            background: white; border-radius: 12px; padding: 0.75rem 0.85rem;
             border: 1px solid var(--gray-200);
-            display: flex; flex-direction: column; gap: 0.5rem;
+            display: flex; flex-direction: column; gap: 0.3rem;
         }
         .stat-card-label {
-            font-size: 0.72rem; font-weight: 700; color: var(--gray-500);
-            text-transform: uppercase; letter-spacing: 0.5px;
+            font-size: 0.65rem; font-weight: 700; color: var(--gray-500);
+            text-transform: uppercase; letter-spacing: 0.4px;
         }
         .stat-card-value {
-            font-size: 1.85rem; font-weight: 900; color: var(--navy); line-height: 1;
+            font-size: 1.5rem; font-weight: 900; color: var(--navy); line-height: 1;
         }
         .stat-card-trend {
-            font-size: 0.72rem; font-weight: 700;
+            font-size: 0.68rem; font-weight: 700;
             display: flex; align-items: center; gap: 0.2rem;
         }
         .stat-card-trend.up   { color: var(--green-dark); }
@@ -196,23 +394,23 @@
 
         .cesce-card {
             background: linear-gradient(135deg, var(--navy), var(--purple-nav));
-            color: white; border-radius: 14px; padding: 1.4rem 1.5rem;
-            margin-bottom: 1.4rem;
-            display: grid; grid-template-columns: 1fr auto; gap: 1.5rem; align-items: center;
+            color: white; border-radius: 12px; padding: 0.9rem 1.1rem;
+            margin-bottom: 1rem;
+            display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: center;
         }
-        .cesce-header { display: flex; align-items: center; gap: 0.6rem; }
+        .cesce-header { display: flex; align-items: center; gap: 0.5rem; }
         .cesce-badge {
             background: var(--green); color: white;
-            font-size: 0.6rem; font-weight: 900; padding: 0.2rem 0.55rem;
-            border-radius: 999px; text-transform: uppercase; letter-spacing: 1px;
+            font-size: 0.55rem; font-weight: 900; padding: 0.15rem 0.45rem;
+            border-radius: 999px; text-transform: uppercase; letter-spacing: 0.8px;
         }
-        .cesce-card h3 { font-size: 0.95rem; font-weight: 700; }
-        .cesce-amounts { display: flex; gap: 1.5rem; margin-top: 0.6rem; align-items: flex-end; }
+        .cesce-card h3 { font-size: 0.82rem; font-weight: 700; }
+        .cesce-amounts { display: flex; gap: 1.2rem; margin-top: 0.4rem; align-items: flex-end; }
         .cesce-amount { }
-        .cesce-amount-label { font-size: 0.7rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.5px; }
-        .cesce-amount-value { font-size: 1.4rem; font-weight: 900; line-height: 1.2; }
+        .cesce-amount-label { font-size: 0.6rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.4px; }
+        .cesce-amount-value { font-size: 1.1rem; font-weight: 900; line-height: 1.2; }
         .cesce-bar {
-            margin-top: 0.8rem; height: 8px; border-radius: 999px;
+            margin-top: 0.5rem; height: 6px; border-radius: 999px;
             background: rgba(255,255,255,0.15); overflow: hidden;
         }
         .cesce-bar-fill {
@@ -222,8 +420,8 @@
         .cesce-credit-total {
             text-align: right;
         }
-        .cesce-credit-total .v { font-size: 2rem; font-weight: 900; line-height: 1; }
-        .cesce-credit-total .l { font-size: 0.7rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.5px; }
+        .cesce-credit-total .v { font-size: 1.5rem; font-weight: 900; line-height: 1; }
+        .cesce-credit-total .l { font-size: 0.6rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.4px; }
 
         .mini-lists {
             display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
@@ -534,13 +732,68 @@
             <h1 class="topbar-title" id="topbarTitle">Dashboard</h1>
         </div>
         <div class="topbar-actions">
-            <button class="topbar-icon-btn" title="Notificaciones">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                <span class="dot"></span>
+            <button class="topbar-icon-btn" title="Ir al Dashboard" onclick="showSection('dashboard')" aria-label="Ir al Dashboard">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </button>
-            <div class="topbar-user">
-                <div class="topbar-user-avatar">JG</div>
-                <div class="topbar-user-name">Juan García</div>
+            <div class="topbar-user-wrap">
+                <button type="button" class="topbar-user" id="userMenuBtn" aria-haspopup="menu" aria-expanded="false" onclick="toggleUserMenu(event)">
+                    <div class="topbar-user-avatar">JG</div>
+                    <div class="topbar-user-name">Juan García</div>
+                    <svg class="topbar-user-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="user-menu" id="userMenu" role="menu" aria-hidden="true">
+                    <div class="user-menu-head">
+                        <div class="user-menu-head-avatar">JG</div>
+                        <div class="user-menu-head-body">
+                            <div class="user-menu-head-name">Juan García</div>
+                            <div class="user-menu-head-email" id="userMenuEmail">juan@talsa.com</div>
+                            <span class="user-menu-role">Cliente</span>
+                        </div>
+                    </div>
+                    <div class="user-menu-sep"></div>
+                    <button type="button" class="user-menu-item" role="menuitem" onclick="goFromMenu('mi-cuenta')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Mi cuenta
+                    </button>
+                    <button type="button" class="user-menu-item" role="menuitem" onclick="goFromMenu('datos-empresa')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
+                        Datos de empresa
+                    </button>
+                    <button type="button" class="user-menu-item" role="menuitem" onclick="goFromMenu('soporte')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                        Soporte
+                    </button>
+                    <div class="user-menu-sep"></div>
+                    <button type="button" class="user-menu-item user-menu-item-expand" id="langToggleBtn" role="menuitem" aria-expanded="false" onclick="toggleLangSubmenu()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        Idioma
+                        <span class="user-menu-right" id="langCurrentLabel">🇪🇸 Español</span>
+                        <svg class="user-menu-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="user-menu-submenu" id="langSubmenu" role="menu" aria-hidden="true">
+                        <button type="button" class="lang-pill active" data-lang="es" data-flag="🇪🇸" data-label="Español" onclick="pickLanguage(this)"><span class="flag">🇪🇸</span> Español</button>
+                        <button type="button" class="lang-pill" data-lang="pt" data-flag="🇵🇹" data-label="Português" onclick="pickLanguage(this)"><span class="flag">🇵🇹</span> Português</button>
+                        <button type="button" class="lang-pill" data-lang="en" data-flag="🇬🇧" data-label="English" onclick="pickLanguage(this)"><span class="flag">🇬🇧</span> English</button>
+                        <button type="button" class="lang-pill" data-lang="fr" data-flag="🇫🇷" data-label="Français" onclick="pickLanguage(this)"><span class="flag">🇫🇷</span> Français</button>
+                        <button type="button" class="lang-pill" data-lang="de" data-flag="🇩🇪" data-label="Deutsch" onclick="pickLanguage(this)"><span class="flag">🇩🇪</span> Deutsch</button>
+                        <button type="button" class="lang-pill" data-lang="it" data-flag="🇮🇹" data-label="Italiano" onclick="pickLanguage(this)"><span class="flag">🇮🇹</span> Italiano</button>
+                        <button type="button" class="lang-pill" data-lang="nl" data-flag="🇳🇱" data-label="Nederlands" onclick="pickLanguage(this)"><span class="flag">🇳🇱</span> Nederlands</button>
+                        <button type="button" class="lang-pill" data-lang="pl" data-flag="🇵🇱" data-label="Polski" onclick="pickLanguage(this)"><span class="flag">🇵🇱</span> Polski</button>
+                        <button type="button" class="lang-pill" data-lang="ro" data-flag="🇷🇴" data-label="Română" onclick="pickLanguage(this)"><span class="flag">🇷🇴</span> Română</button>
+                        <button type="button" class="lang-pill" data-lang="uk" data-flag="🇺🇦" data-label="Українська" onclick="pickLanguage(this)"><span class="flag">🇺🇦</span> Українська</button>
+                        <button type="button" class="lang-pill" data-lang="zh-CN" data-flag="🇨🇳" data-label="中文" onclick="pickLanguage(this)"><span class="flag">🇨🇳</span> 中文</button>
+                    </div>
+                    <button type="button" class="user-menu-item" role="menuitem" onclick="toggleTheme(event)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                        Modo oscuro
+                        <span class="theme-switch" id="themeSwitch" aria-hidden="true"><span class="theme-switch-knob"></span></span>
+                    </button>
+                    <div class="user-menu-sep"></div>
+                    <button type="button" class="user-menu-item user-menu-item-danger" role="menuitem" onclick="logOut()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        Cerrar sesión
+                    </button>
+                </div>
             </div>
         </div>
     </header>
@@ -1120,6 +1373,102 @@
         </div>
     </section>
 
+    <!-- ==================== MI CUENTA ==================== -->
+    <section class="section" id="sec-mi-cuenta">
+        <div class="sec-header">
+            <h2>Mi cuenta</h2>
+            <button class="btn-ghost" onclick="showSection('dashboard');return false;">← Volver</button>
+        </div>
+        <div class="account-grid">
+            <div class="account-card">
+                <h3 class="account-card-title">Datos personales</h3>
+                <div class="account-row"><span class="account-row-label">Nombre y apellidos</span><span class="account-row-value">Juan García López</span></div>
+                <div class="account-row"><span class="account-row-label">Email</span><span class="account-row-value" id="accountEmail">juan@talsa.com</span></div>
+                <div class="account-row"><span class="account-row-label">Teléfono</span><span class="account-row-value">+34 612 345 678</span></div>
+                <div class="account-row"><span class="account-row-label">Rol</span><span class="user-menu-role">Cliente</span></div>
+                <button class="btn-ghost account-edit">Editar datos</button>
+            </div>
+            <div class="account-card">
+                <h3 class="account-card-title">Seguridad</h3>
+                <div class="account-row"><span class="account-row-label">Contraseña</span><span class="account-row-value">••••••••</span></div>
+                <div class="account-row"><span class="account-row-label">Última conexión</span><span class="account-row-value">Hoy · 09:14</span></div>
+                <div class="account-row"><span class="account-row-label">2FA</span><span class="account-row-value" style="color:var(--gray-500);">No activada</span></div>
+                <button class="btn-ghost account-edit">Cambiar contraseña</button>
+            </div>
+            <div class="account-card">
+                <h3 class="account-card-title">Preferencias</h3>
+                <div class="account-row"><span class="account-row-label">Notificaciones por email</span><span class="account-row-value">Activadas</span></div>
+                <div class="account-row"><span class="account-row-label">Alertas de cargas en ruta</span><span class="account-row-value">Activadas</span></div>
+                <div class="account-row"><span class="account-row-label">Resumen mensual</span><span class="account-row-value">Activado</span></div>
+                <button class="btn-ghost account-edit">Gestionar avisos</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== DATOS DE EMPRESA ==================== -->
+    <section class="section" id="sec-datos-empresa">
+        <div class="sec-header">
+            <h2>Datos de empresa</h2>
+            <button class="btn-ghost" onclick="showSection('dashboard');return false;">← Volver</button>
+        </div>
+        <div class="account-grid">
+            <div class="account-card">
+                <h3 class="account-card-title">Datos fiscales</h3>
+                <div class="account-row"><span class="account-row-label">Razón social</span><span class="account-row-value">Talsa Logística S.L.</span></div>
+                <div class="account-row"><span class="account-row-label">CIF</span><span class="account-row-value">B91234567</span></div>
+                <div class="account-row"><span class="account-row-label">Dirección fiscal</span><span class="account-row-value">C/ Industria 22, 41008 Sevilla</span></div>
+                <div class="account-row"><span class="account-row-label">País</span><span class="account-row-value">🇪🇸 España</span></div>
+                <button class="btn-ghost account-edit">Solicitar cambio</button>
+            </div>
+            <div class="account-card">
+                <h3 class="account-card-title">Contacto operativo</h3>
+                <div class="account-row"><span class="account-row-label">Persona de contacto</span><span class="account-row-value">Juan García</span></div>
+                <div class="account-row"><span class="account-row-label">Teléfono operativo</span><span class="account-row-value">+34 955 220 110</span></div>
+                <div class="account-row"><span class="account-row-label">Email operativo</span><span class="account-row-value">logistica@talsa.com</span></div>
+                <button class="btn-ghost account-edit">Actualizar</button>
+            </div>
+            <div class="account-card">
+                <h3 class="account-card-title">Direcciones habituales</h3>
+                <div class="account-row"><span class="account-row-label">Almacén principal</span><span class="account-row-value">Polígono La Negrilla, Sevilla</span></div>
+                <div class="account-row"><span class="account-row-label">Centro logístico</span><span class="account-row-value">Mercamadrid, Madrid</span></div>
+                <div class="account-row"><span class="account-row-label">+ 3 direcciones más</span><span class="account-row-value" style="color:var(--gray-500);">guardadas</span></div>
+                <button class="btn-ghost account-edit">Gestionar direcciones</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== SOPORTE ==================== -->
+    <section class="section" id="sec-soporte">
+        <div class="sec-header">
+            <h2>Soporte</h2>
+            <button class="btn-ghost" onclick="showSection('dashboard');return false;">← Volver</button>
+        </div>
+        <div class="account-grid">
+            <div class="account-card">
+                <h3 class="account-card-title">Atención directa</h3>
+                <p class="account-card-desc">Estamos para lo que necesites — incidencias urgentes, cambios de última hora o consultas operativas.</p>
+                <a href="tel:+34955225945" class="support-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>+34 955 225 945</a>
+                <a href="https://wa.me/34611453014" class="support-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.2-.7.2-.2.3-.8.9-1 1.1-.2.2-.4.2-.7.1-.3-.1-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6.1-.1.3-.4.4-.6.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5 0-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4 0 1.4 1 2.8 1.2 3 .1.2 2 3 4.8 4.2.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 2-1.4.3-.7.3-1.3.2-1.4-.1-.1-.3-.2-.6-.4z"/><path d="M20.5 3.5C18.3 1.2 15.3 0 12 0 5.4 0 0 5.4 0 12c0 2.1.6 4.2 1.7 6L0 24l6.2-1.6c1.7.9 3.7 1.4 5.7 1.4 6.6 0 12-5.4 12-12 0-3.2-1.2-6.2-3.4-8.4zM12 21.8c-1.8 0-3.6-.5-5.1-1.4l-.4-.2-3.7 1 1-3.6-.2-.4C2.6 15.7 2 13.9 2 12 2 6.5 6.5 2 12 2c2.7 0 5.2 1 7.1 2.9 1.9 1.9 2.9 4.4 2.9 7.1 0 5.5-4.5 11.8-10 11.8z"/></svg>WhatsApp directo</a>
+                <a href="mailto:info@dynamotrans.com" class="support-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>info@dynamotrans.com</a>
+            </div>
+            <div class="account-card">
+                <h3 class="account-card-title">Horario de atención</h3>
+                <div class="account-row"><span class="account-row-label">Teléfono</span><span class="account-row-value">L-V · 8:00 – 19:00</span></div>
+                <div class="account-row"><span class="account-row-label">WhatsApp / Email</span><span class="account-row-value">L-S · 8:00 – 20:00</span></div>
+                <div class="account-row"><span class="account-row-label">Fuera de horario</span><span class="account-row-value" style="color:var(--gray-500);">Responderemos al volver</span></div>
+                <p class="account-card-desc" style="margin-top:0.7rem;">Si tu carga está en curso y necesitas algo urgente, escríbenos por WhatsApp — lo verá un operador de guardia.</p>
+            </div>
+            <div class="account-card">
+                <h3 class="account-card-title">Preguntas frecuentes</h3>
+                <a href="#" class="support-faq">¿Cómo se calcula la tarifa?</a>
+                <a href="#" class="support-faq">¿Qué hago si mi carga llega tarde?</a>
+                <a href="#" class="support-faq">¿Cómo gestiono una reclamación?</a>
+                <a href="#" class="support-faq">¿Qué cubre el seguro CESCE?</a>
+                <a href="#" class="support-faq">Ver todas las preguntas →</a>
+            </div>
+        </div>
+    </section>
+
     </div><!-- /content -->
 </div><!-- /main -->
 
@@ -1131,7 +1480,10 @@
         'facturas':          'Facturas',
         'incidencias':       'Incidencias',
         'nueva-carga':       'Nueva carga',
-        'nuevo-presupuesto': 'Nuevo presupuesto'
+        'nuevo-presupuesto': 'Nuevo presupuesto',
+        'mi-cuenta':         'Mi cuenta',
+        'datos-empresa':     'Datos de empresa',
+        'soporte':           'Soporte'
     };
     function showSection(id) {
         document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); });
@@ -1183,6 +1535,108 @@
         s.classList.toggle('open');
         b.classList.toggle('show');
     }
+
+    /* ============================================
+       MENU DE USUARIO
+    ============================================ */
+    function toggleUserMenu(ev) {
+        if (ev) ev.stopPropagation();
+        var btn = document.getElementById('userMenuBtn');
+        var menu = document.getElementById('userMenu');
+        var open = menu.classList.toggle('open');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        menu.setAttribute('aria-hidden', open ? 'false' : 'true');
+        if (!open) closeLangSubmenu();
+    }
+    function closeUserMenu() {
+        var btn = document.getElementById('userMenuBtn');
+        var menu = document.getElementById('userMenu');
+        if (!menu) return;
+        menu.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+        menu.setAttribute('aria-hidden', 'true');
+        closeLangSubmenu();
+    }
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.topbar-user-wrap')) closeUserMenu();
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeUserMenu();
+    });
+    function goFromMenu(id) {
+        closeUserMenu();
+        showSection(id);
+    }
+    function logOut() {
+        try { sessionStorage.removeItem('demoUserEmail'); } catch (e) {}
+        window.location.href = 'portal.html';
+    }
+
+    // Submenu idiomas
+    function toggleLangSubmenu() {
+        var btn = document.getElementById('langToggleBtn');
+        var sub = document.getElementById('langSubmenu');
+        var open = sub.classList.toggle('open');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        sub.setAttribute('aria-hidden', open ? 'false' : 'true');
+    }
+    function closeLangSubmenu() {
+        var btn = document.getElementById('langToggleBtn');
+        var sub = document.getElementById('langSubmenu');
+        if (!sub) return;
+        sub.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+        sub.setAttribute('aria-hidden', 'true');
+    }
+    function pickLanguage(btn) {
+        var lang = btn.getAttribute('data-lang');
+        var flag = btn.getAttribute('data-flag');
+        var label = btn.getAttribute('data-label');
+        document.querySelectorAll('.lang-pill').forEach(function (p) { p.classList.remove('active'); });
+        btn.classList.add('active');
+        var cur = document.getElementById('langCurrentLabel');
+        if (cur) cur.textContent = flag + ' ' + label;
+        try { localStorage.setItem('dashLang', lang); } catch (e) {}
+        // El i18n real se conectara con el backend - de momento solo persiste la eleccion
+    }
+    (function restoreLang() {
+        try {
+            var saved = localStorage.getItem('dashLang');
+            if (!saved) return;
+            var pill = document.querySelector('.lang-pill[data-lang="' + saved + '"]');
+            if (pill) {
+                document.querySelectorAll('.lang-pill').forEach(function (p) { p.classList.remove('active'); });
+                pill.classList.add('active');
+                var cur = document.getElementById('langCurrentLabel');
+                if (cur) cur.textContent = pill.getAttribute('data-flag') + ' ' + pill.getAttribute('data-label');
+            }
+        } catch (e) {}
+    })();
+
+    // Modo oscuro
+    function toggleTheme(ev) {
+        if (ev) ev.stopPropagation();
+        var dark = document.body.classList.toggle('theme-dark');
+        try { localStorage.setItem('dashTheme', dark ? 'dark' : 'light'); } catch (e) {}
+    }
+    (function restoreTheme() {
+        try {
+            if (localStorage.getItem('dashTheme') === 'dark') {
+                document.body.classList.add('theme-dark');
+            }
+        } catch (e) {}
+    })();
+
+    // Email del usuario en el menu (lo guardo en portal.html al hacer login demo)
+    (function fillUserEmail() {
+        try {
+            var e = sessionStorage.getItem('demoUserEmail');
+            if (e) {
+                var em = document.getElementById('userMenuEmail');
+                if (em) em.textContent = e;
+            }
+        } catch (err) {}
+    })();
 </script>
 </body>
 </html>
