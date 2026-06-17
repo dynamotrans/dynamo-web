@@ -3423,23 +3423,45 @@ function openLegal(tab) {
                 box.insertAdjacentHTML('afterbegin', svgText);
                 var paths = box.querySelectorAll('svg path[id]');
                 var covered = [];
+                var hideTimer = null;
+                function showTooltip(name, clientX, clientY) {
+                    tooltip.textContent = name;
+                    tooltip.style.left = (clientX + 12) + 'px';
+                    tooltip.style.top  = (clientY - 8)  + 'px';
+                    tooltip.classList.add('visible');
+                    if (hideTimer) clearTimeout(hideTimer);
+                }
+                function hideTooltip(delay) {
+                    if (hideTimer) clearTimeout(hideTimer);
+                    if (delay) {
+                        hideTimer = setTimeout(function () {
+                            tooltip.classList.remove('visible');
+                        }, delay);
+                    } else {
+                        tooltip.classList.remove('visible');
+                    }
+                }
                 paths.forEach(function (p) {
                     var code = p.id.toLowerCase();
                     var name = COUNTRY_NAMES[code];
                     if (!name) return;
                     p.classList.add('covered');
                     covered.push(p);
-                    p.addEventListener('mouseenter', function () {
-                        tooltip.textContent = name;
-                        tooltip.classList.add('visible');
+                    // Desktop: hover muestra/oculta el tooltip
+                    p.addEventListener('mouseenter', function (e) {
+                        showTooltip(name, e.clientX, e.clientY);
                     });
-                    p.addEventListener('mouseleave', function () {
-                        tooltip.classList.remove('visible');
-                    });
+                    p.addEventListener('mouseleave', function () { hideTooltip(); });
                     p.addEventListener('mousemove', function (e) {
                         tooltip.style.left = (e.clientX + 12) + 'px';
                         tooltip.style.top  = (e.clientY - 8)  + 'px';
                     });
+                    // Touch (movil/tablet): tap muestra el tooltip durante 2.5s
+                    p.addEventListener('touchstart', function (e) {
+                        var t = e.touches[0];
+                        showTooltip(name, t.clientX, t.clientY);
+                        hideTooltip(2500);
+                    }, { passive: true });
                 });
                 // Ajusta automaticamente el viewBox del SVG al area de los
                 // paises cubiertos -> el resto desaparece del encuadre
