@@ -1855,8 +1855,29 @@
         .testi-text { font-size:0.83rem; color:var(--gray-700); line-height:1.7; }
         .testi-google { display:flex; align-items:center; gap:0.4rem; margin-top:0.8rem; font-size:0.7rem; color:var(--gray-500); }
         .testi-google svg { flex-shrink:0; }
-        @media (max-width:768px) { .testi-grid { grid-template-columns:1fr; } }
         @media (max-width:1024px) { .testi-grid { grid-template-columns:repeat(2,1fr); } }
+        /* Movil: carrusel horizontal swipeable de 1 card a la vez con snap */
+        @media (max-width:768px) {
+            .testi-grid {
+                display: flex;
+                grid-template-columns: none;
+                overflow-x: auto;
+                scroll-snap-type: x mandatory;
+                scroll-padding: 0 1.2rem;
+                padding: 0.3rem 1.2rem 1rem;
+                /* margenes negativos para que el carrusel sea full-bleed
+                   compensando el padding de la section (2rem) */
+                margin: 2rem -2rem 0;
+                gap: 0.85rem;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+            .testi-grid::-webkit-scrollbar { display: none; }
+            .testi-card {
+                flex: 0 0 86%;
+                scroll-snap-align: center;
+            }
+        }
 
         /* =========================================
            SCROLL REVEAL
