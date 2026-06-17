@@ -1825,8 +1825,27 @@
            TESTIMONIALS
         ========================================= */
         .testimonials { padding:5rem 2rem; background:var(--gray-100); }
-        .testi-grid { max-width:1100px; margin:2rem auto 0; display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem; }
+        /* Carrusel horizontal swipeable a TODOS los tamaños */
+        .testi-grid {
+            max-width: 1200px;
+            margin: 2rem auto 0;
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-padding: 0 0.5rem;
+            padding: 0.5rem 0.5rem 1.2rem;
+            gap: 1.2rem;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(51,0,204,0.25) transparent;
+        }
+        .testi-grid::-webkit-scrollbar { height: 6px; }
+        .testi-grid::-webkit-scrollbar-track { background: transparent; }
+        .testi-grid::-webkit-scrollbar-thumb { background: rgba(51,0,204,0.25); border-radius: 3px; }
+        .testi-grid::-webkit-scrollbar-thumb:hover { background: rgba(51,0,204,0.5); }
         .testi-card {
+            flex: 0 0 calc(33.333% - 0.8rem);
+            scroll-snap-align: start;
             background:white; border-radius:14px; padding:1.5rem; position:relative;
             box-shadow:0 2px 12px rgba(0,0,0,0.06); transition:transform 0.3s, box-shadow 0.3s;
         }
@@ -1842,21 +1861,17 @@
         .testi-text { font-size:0.83rem; color:var(--gray-700); line-height:1.7; }
         .testi-google { display:flex; align-items:center; gap:0.4rem; margin-top:0.8rem; font-size:0.7rem; color:var(--gray-500); }
         .testi-google svg { flex-shrink:0; }
-        @media (max-width:1024px) { .testi-grid { grid-template-columns:repeat(2,1fr); } }
-        /* Movil: carrusel horizontal swipeable de 1 card a la vez con snap */
+        /* Tablet: 2 cards visibles a la vez */
+        @media (max-width:1024px) {
+            .testi-card { flex: 0 0 calc(50% - 0.6rem); }
+        }
+        /* Movil: 1 card a la vez, scrollbar oculta, full-bleed */
         @media (max-width:768px) {
             .testi-grid {
-                display: flex;
-                grid-template-columns: none;
-                overflow-x: auto;
-                scroll-snap-type: x mandatory;
                 scroll-padding: 0 1.2rem;
                 padding: 0.3rem 1.2rem 1rem;
-                /* margenes negativos para que el carrusel sea full-bleed
-                   compensando el padding de la section (2rem) */
                 margin: 2rem -2rem 0;
                 gap: 0.85rem;
-                -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
             }
             .testi-grid::-webkit-scrollbar { display: none; }
