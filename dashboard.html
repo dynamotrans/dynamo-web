@@ -27,8 +27,14 @@
             --gray-700:     #374151;
             --gray-900:     #1f2937;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { height: 100%; background: var(--gray-100); }
+        * { margin: 0; padding: 0; box-sizing: border-box; min-width: 0; }
+        html, body {
+            height: 100%; background: var(--gray-100);
+            /* Cinturon: ningun caso debe permitir scroll horizontal a nivel de pagina.
+               Las tablas y los tabs hacen su propio overflow-x interno */
+            overflow-x: hidden;
+            max-width: 100vw;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             color: var(--navy);
@@ -131,7 +137,11 @@
 
         .content {
             flex: 1; padding: 1.6rem 2rem 3rem;
-            max-width: 100%; overflow-x: auto;
+            max-width: 100%;
+            /* No scroll horizontal en el contenedor. Cada hijo (tablas, tabs)
+               gestiona su propio overflow internamente */
+            overflow-x: hidden;
+            min-width: 0;
         }
         .section { display: none; animation: secFadeIn 0.25s ease both; }
         .section.active { display: block; }
@@ -147,6 +157,7 @@
             display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
             margin-bottom: 1.4rem;
         }
+        .stats-row-3 { grid-template-columns: repeat(3, 1fr); }
         .stat-card {
             background: white; border-radius: 14px; padding: 1.1rem 1.15rem;
             border: 1px solid var(--gray-200);
@@ -290,12 +301,20 @@
         .tabs {
             display: flex; gap: 0.2rem; margin-bottom: 1rem;
             border-bottom: 1px solid var(--gray-200);
+            /* En movil los tabs no caben en una sola linea -> que se pueda
+               desplazar horizontalmente DENTRO de la franja sin arrastrar la
+               pagina. Ocultamos la barra de scroll por estetica */
+            overflow-x: auto;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
         }
+        .tabs::-webkit-scrollbar { display: none; }
         .tab {
             padding: 0.7rem 1rem; font-size: 0.85rem; font-weight: 700;
             color: var(--gray-500); border: none; background: transparent;
             cursor: pointer; border-bottom: 2.5px solid transparent;
             margin-bottom: -1px;
+            white-space: nowrap; flex-shrink: 0;
         }
         .tab:hover { color: var(--navy); }
         .tab.active { color: var(--purple); border-bottom-color: var(--purple); }
@@ -310,9 +329,10 @@
             border: 1px solid var(--gray-200); background: var(--gray-50);
             font-size: 0.85rem; color: var(--navy);
             font-family: inherit;
+            min-width: 0; max-width: 100%;
         }
         .filters input:focus, .filters select:focus { outline: none; border-color: var(--purple); background: white; }
-        .filters input[type="search"] { flex: 1; min-width: 220px; }
+        .filters input[type="search"] { flex: 1 1 220px; min-width: 0; }
 
         .table-wrap {
             background: white; border-radius: 12px; overflow: hidden;
@@ -392,7 +412,7 @@
 
         /* ======= RESPONSIVE ======= */
         @media (max-width: 1100px) {
-            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .stats-row, .stats-row-3 { grid-template-columns: repeat(2, 1fr); }
             .mini-lists { grid-template-columns: 1fr; }
             .cesce-card { grid-template-columns: 1fr; }
             .cesce-credit-total { text-align: left; }
@@ -405,10 +425,23 @@
             .sidebar.open { left: 0; }
             .sidebar-toggle { display: inline-flex !important; }
             .topbar { padding: 0.75rem 1rem; }
+            .topbar-user-name { display: none; }
             .content { padding: 1rem 1rem 3rem; }
-            .stats-row { grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+            .stats-row, .stats-row-3 { grid-template-columns: 1fr 1fr; gap: 0.7rem; }
             .stat-card-value { font-size: 1.45rem; }
             .dash-ctas { grid-template-columns: 1fr; }
+            .sec-header { gap: 0.5rem; }
+            .sec-header-actions { width: 100%; }
+            .sec-header-actions .btn-primary,
+            .sec-header-actions .btn-secondary,
+            .sec-header-actions .btn-ghost { flex: 1; }
+            .filters { padding: 0.55rem; gap: 0.45rem; }
+            .filters input[type="search"] { flex: 1 1 100%; }
+            .pagination { flex-direction: column; gap: 0.6rem; align-items: stretch; }
+            .pagination-pages { justify-content: center; flex-wrap: wrap; }
+        }
+        @media (max-width: 420px) {
+            .stats-row, .stats-row-3 { grid-template-columns: 1fr; }
         }
         .sidebar-toggle {
             display: none; width: 38px; height: 38px;
@@ -850,7 +883,7 @@
                 <button class="btn-ghost">Descargar todo (ZIP)</button>
             </div>
         </div>
-        <div class="stats-row" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stats-row stats-row-3">
             <div class="stat-card">
                 <div class="stat-card-label">Facturado este año</div>
                 <div class="stat-card-value">42.380 €</div>
