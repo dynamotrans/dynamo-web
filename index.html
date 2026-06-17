@@ -1548,7 +1548,9 @@
         ========================================= */
         .clientes-sec {
             padding: 5rem 0 6rem;
-            background: var(--gray-100);
+            /* Gradient gray-200 (matches stats above) -> gray-100 (matches
+               testimonios below). Sin cortes visibles en los bordes */
+            background: linear-gradient(180deg, var(--gray-200) 0%, var(--gray-100) 50%, var(--gray-100) 100%);
             overflow: hidden;
             position: relative;
         }
