@@ -1355,23 +1355,21 @@
         }
         .cobertura-map-box {
             position: relative;
-            width: 100%; max-width: 780px;
+            width: 100%; max-width: 720px;
             background: linear-gradient(180deg, #f6f9ff 0%, #eef2fb 100%);
             border-radius: 18px;
-            padding: 1.5rem 1rem;
+            padding: 2rem 1.5rem;
             box-shadow: 0 4px 30px rgba(10,2,48,0.06);
         }
         .cobertura-map-box svg {
             width: 100%; height: auto; display: block;
         }
-        .cobertura-map-box svg path[id] {
-            fill: #e6e9ee; stroke: #fff; stroke-width: 0.4;
-            transition: fill 0.2s;
-        }
-        /* Paises CON cobertura Dynamo: tono mas vivo + hover morado */
+        /* Por defecto oculto. Solo los paises con .covered se muestran */
+        .cobertura-map-box svg path[id] { display: none; }
         .cobertura-map-box svg path.covered {
-            fill: #b8c2d6;
-            cursor: pointer;
+            display: inline;
+            fill: #b8c2d6; stroke: #fff; stroke-width: 0.4;
+            transition: fill 0.2s; cursor: pointer;
         }
         .cobertura-map-box svg path.covered:hover { fill: var(--purple); }
         .cobertura-tooltip {
@@ -3424,11 +3422,13 @@ function openLegal(tab) {
                 // Insertar SVG inline al principio del box (antes del tooltip)
                 box.insertAdjacentHTML('afterbegin', svgText);
                 var paths = box.querySelectorAll('svg path[id]');
+                var covered = [];
                 paths.forEach(function (p) {
                     var code = p.id.toLowerCase();
                     var name = COUNTRY_NAMES[code];
                     if (!name) return;
                     p.classList.add('covered');
+                    covered.push(p);
                     p.addEventListener('mouseenter', function () {
                         tooltip.textContent = name;
                         tooltip.classList.add('visible');
@@ -3441,6 +3441,24 @@ function openLegal(tab) {
                         tooltip.style.top  = (e.clientY - 8)  + 'px';
                     });
                 });
+                // Ajusta automaticamente el viewBox del SVG al area de los
+                // paises cubiertos -> el resto desaparece del encuadre
+                var svg = box.querySelector('svg');
+                if (svg && covered.length) {
+                    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                    covered.forEach(function (p) {
+                        var b = p.getBBox();
+                        if (b.x < minX) minX = b.x;
+                        if (b.y < minY) minY = b.y;
+                        if (b.x + b.width  > maxX) maxX = b.x + b.width;
+                        if (b.y + b.height > maxY) maxY = b.y + b.height;
+                    });
+                    var pad = 10;
+                    svg.setAttribute('viewBox',
+                        (minX - pad) + ' ' + (minY - pad) + ' ' +
+                        (maxX - minX + pad * 2) + ' ' + (maxY - minY + pad * 2)
+                    );
+                }
             })
             .catch(function (err) { console.warn('Mapa Europa: no se pudo cargar', err); });
     })();
