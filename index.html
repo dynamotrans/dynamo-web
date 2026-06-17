@@ -3498,9 +3498,11 @@ function openLegal(tab) {
                         placeTooltip(e.clientX, e.clientY);
                     });
                     // Touch (movil/tablet): tap muestra el tooltip durante 2.5s
+                    // centrado en el CENTRO del pais (no donde tocaron, asi
+                    // queda visualmente sobre el pais identificado)
                     p.addEventListener('touchstart', function (e) {
-                        var t = e.touches[0];
-                        showTooltip(name, t.clientX, t.clientY);
+                        var r = p.getBoundingClientRect();
+                        showTooltip(name, r.left + r.width / 2, r.top + r.height / 2);
                         hideTooltip(2500);
                     }, { passive: true });
                 });
