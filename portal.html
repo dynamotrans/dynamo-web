@@ -337,31 +337,36 @@
         .portal-input {
             width: 100%; padding: 0.85rem 0.9rem 0.85rem 2.4rem;
             border-radius: 11px; border: 1.5px solid var(--gray-200);
-            background: var(--gray-100); color: var(--gray-500);
+            background: white; color: var(--navy);
             font-size: 16px; font-weight: 600;
-            cursor: not-allowed;
+            transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+            outline: none;
         }
         .portal-input::placeholder { color: var(--gray-500); opacity: 0.7; }
-        .portal-input:disabled { background: var(--gray-100); }
+        .portal-input:hover { border-color: rgba(51,0,204,0.4); }
+        .portal-input:focus { border-color: var(--purple); box-shadow: 0 0 0 4px rgba(51,0,204,0.08); }
+        .portal-input:disabled { background: var(--gray-100); color: var(--gray-500); cursor: not-allowed; }
 
         .portal-row {
             display: flex; align-items: center; justify-content: space-between;
             margin-bottom: 1.2rem; font-size: 0.8rem;
         }
-        .portal-check { display: flex; align-items: center; gap: 0.45rem; color: var(--gray-500); cursor: not-allowed; }
-        .portal-check input { cursor: not-allowed; accent-color: var(--purple); }
-        .portal-forgot { color: var(--gray-500); text-decoration: none; font-weight: 700; pointer-events: none; opacity: 0.6; }
+        .portal-check { display: flex; align-items: center; gap: 0.45rem; color: var(--gray-700); cursor: pointer; }
+        .portal-check input { cursor: pointer; accent-color: var(--purple); }
+        .portal-forgot { color: var(--purple); text-decoration: none; font-weight: 700; }
+        .portal-forgot:hover { text-decoration: underline; }
 
         .portal-submit {
             width: 100%; padding: 0.95rem; border: none; border-radius: 12px;
             background: linear-gradient(135deg, var(--purple), var(--purple-light));
             color: white; font-size: 0.95rem; font-weight: 900;
             letter-spacing: 0.5px; text-transform: uppercase;
-            cursor: not-allowed; opacity: 0.55;
+            cursor: pointer;
             display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-            transition: opacity 0.2s;
+            transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
         }
-        .portal-submit:disabled { cursor: not-allowed; }
+        .portal-submit:hover { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(51,0,204,0.28); }
+        .portal-submit:active { transform: translateY(0); }
         .portal-submit svg { width: 14px; height: 14px; }
 
         .portal-create {
@@ -507,15 +512,15 @@
 
             <div class="portal-badge">
                 <span class="dot"></span>
-                <span>Próximamente · En desarrollo</span>
+                <span>Modo demo · acceso libre para probar</span>
             </div>
 
-            <form onsubmit="event.preventDefault();return false;" autocomplete="off" aria-disabled="true">
+            <form id="portalLogin" onsubmit="event.preventDefault();demoLogin();return false;" autocomplete="off">
                 <div class="portal-field">
                     <label class="portal-label" for="portal-user">Correo electrónico</label>
                     <div class="portal-input-wrap">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
-                        <input id="portal-user" class="portal-input" type="email" placeholder="tu@empresa.com" disabled aria-disabled="true" tabindex="-1">
+                        <input id="portal-user" class="portal-input" type="email" placeholder="tu@empresa.com" autocomplete="username" required>
                     </div>
                 </div>
 
@@ -523,16 +528,16 @@
                     <label class="portal-label" for="portal-pass">Contraseña</label>
                     <div class="portal-input-wrap">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        <input id="portal-pass" class="portal-input" type="password" placeholder="••••••••" disabled aria-disabled="true" tabindex="-1">
+                        <input id="portal-pass" class="portal-input" type="password" placeholder="cualquier contraseña" autocomplete="current-password" required>
                     </div>
                 </div>
 
                 <div class="portal-row">
-                    <label class="portal-check"><input type="checkbox" disabled tabindex="-1"> Recordarme</label>
-                    <a href="#" class="portal-forgot" tabindex="-1" aria-disabled="true">¿Olvidaste tu contraseña?</a>
+                    <label class="portal-check"><input type="checkbox"> Recordarme</label>
+                    <a href="#" class="portal-forgot" onclick="event.preventDefault()">¿Olvidaste tu contraseña?</a>
                 </div>
 
-                <button type="submit" class="portal-submit" disabled aria-disabled="true">
+                <button type="submit" class="portal-submit">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
                     Iniciar sesión
                 </button>
@@ -548,7 +553,7 @@
             <div class="portal-divider">Información</div>
 
             <div class="portal-info">
-                Espacio <strong>privado para clientes</strong>. Mientras tanto, contáctanos por los canales habituales.
+                <strong>Modo demo:</strong> introduce cualquier email + contraseña y pulsa <em>Iniciar sesión</em> para explorar el panel del cliente (cargas, presupuestos, facturas, incidencias). Sin backend todavía.
             </div>
 
             <a href="index.html" class="portal-back" onclick="goToHome(event)">
@@ -594,6 +599,15 @@
                     setTimeout(function () { window.location.href = 'index.html'; }, delay);
                 });
             });
+        }
+        // DEMO MODE: cualquier email + cualquier password navega al dashboard.
+        // No hay backend. Solo para probar la interfaz del panel.
+        function demoLogin() {
+            var user = (document.getElementById('portal-user') || {}).value || '';
+            var pass = (document.getElementById('portal-pass') || {}).value || '';
+            if (!user.trim() || !pass.trim()) return;
+            try { sessionStorage.setItem('demoUserEmail', user.trim()); } catch (e) {}
+            window.location.href = 'dashboard.html';
         }
         // Reset overlay state if page is restored from bfcache
         window.addEventListener('pageshow', function (e) {
