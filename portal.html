@@ -86,7 +86,11 @@
         }
         .portal-wrap {
             position: relative; z-index: 1;
-            flex: 1; display: flex; align-items: center; justify-content: center;
+            flex: 1; display: flex;
+            /* "safe center": centra solo si el contenido cabe en el viewport.
+               Si es mas alto que la pantalla, cae a flex-start y se scrollea
+               (asi en movil con login + extras no se corta el fondo) */
+            align-items: safe center; justify-content: center;
             padding: 2rem 1.2rem;
         }
         .portal-card {
