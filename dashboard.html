@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Dashboard · Dynamo Portal</title>
+    <link rel="icon" type="image/png" href="/images/DYNAMO-NEW-LOGO.png">
+    <meta name="theme-color" content="#0a0230">
+    <style>
+        :root {
+            --purple:       #3300cc;
+            --purple-dark:  #220099;
+            --purple-light: #5533dd;
+            --purple-nav:   #1a008a;
+            --green:        #22a55a;
+            --green-dark:   #157a3f;
+            --yellow:       #ffd400;
+            --orange:       #ff7a00;
+            --red:          #dc2626;
+            --navy:         #0a0230;
+            --gray-50:      #fbfbfc;
+            --gray-100:     #f7f8fa;
+            --gray-200:     #e8eaed;
+            --gray-300:     #d1d5db;
+            --gray-500:     #6b7280;
+            --gray-700:     #374151;
+            --gray-900:     #1f2937;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; background: var(--gray-100); }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--navy);
+            -webkit-font-smoothing: antialiased;
+            display: flex; min-height: 100vh; min-height: 100dvh;
+        }
+
+        /* =========================================
+           SIDEBAR
+        ========================================= */
+        .sidebar {
+            width: 250px; flex-shrink: 0;
+            background: var(--navy); color: white;
+            display: flex; flex-direction: column;
+            position: sticky; top: 0; height: 100vh;
+            z-index: 100;
+        }
+        .sidebar-brand {
+            padding: 1.4rem 1.2rem 1.2rem;
+            display: flex; align-items: center; gap: 0.7rem;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .sidebar-brand img { height: 28px; width: auto; }
+        .sidebar-brand-name { font-weight: 900; font-size: 1.05rem; letter-spacing: -0.3px; }
+        .sidebar-brand-sub  { font-size: 0.62rem; opacity: 0.6; text-transform: uppercase; letter-spacing: 1.5px; }
+        .sidebar-nav { flex: 1; padding: 0.6rem 0.5rem; display: flex; flex-direction: column; gap: 0.2rem; }
+        .sidebar-link {
+            display: flex; align-items: center; gap: 0.7rem;
+            padding: 0.7rem 0.85rem; border-radius: 10px;
+            color: rgba(255,255,255,0.7); text-decoration: none;
+            font-size: 0.9rem; font-weight: 600;
+            cursor: pointer; transition: background 0.18s, color 0.18s;
+            border: none; background: transparent; width: 100%; text-align: left;
+        }
+        .sidebar-link:hover { background: rgba(255,255,255,0.05); color: white; }
+        .sidebar-link.active { background: var(--purple); color: white; }
+        .sidebar-link svg { flex-shrink: 0; }
+        .sidebar-link .badge {
+            margin-left: auto; background: var(--orange); color: white;
+            font-size: 0.65rem; padding: 0.1rem 0.45rem; border-radius: 999px;
+            font-weight: 800;
+        }
+        .sidebar-link.active .badge { background: rgba(255,255,255,0.25); }
+        .sidebar-foot {
+            padding: 0.6rem 0.5rem 1.2rem;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+        .sidebar-user {
+            display: flex; align-items: center; gap: 0.6rem;
+            padding: 0.6rem 0.6rem; border-radius: 10px;
+        }
+        .sidebar-user-avatar {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--purple-light), var(--green));
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 0.9rem; color: white;
+        }
+        .sidebar-user-name { font-size: 0.82rem; font-weight: 700; }
+        .sidebar-user-sub  { font-size: 0.66rem; opacity: 0.55; }
+
+        /* =========================================
+           MAIN
+        ========================================= */
+        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .topbar {
+            background: white; border-bottom: 1px solid var(--gray-200);
+            padding: 0.85rem 2rem;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 50;
+        }
+        .topbar-title { font-size: 1.18rem; font-weight: 900; color: var(--navy); }
+        .topbar-actions { display: flex; align-items: center; gap: 0.6rem; }
+        .topbar-icon-btn {
+            width: 38px; height: 38px; border-radius: 10px;
+            background: var(--gray-100); color: var(--gray-700);
+            border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+        }
+        .topbar-icon-btn:hover { background: var(--gray-200); }
+        .topbar-icon-btn .dot {
+            position: absolute; top: 8px; right: 8px;
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--red); border: 2px solid white;
+        }
+        .topbar-user {
+            display: flex; align-items: center; gap: 0.6rem;
+            padding: 0.3rem 0.7rem 0.3rem 0.4rem;
+            border-radius: 999px; cursor: pointer;
+            transition: background 0.2s;
+        }
+        .topbar-user:hover { background: var(--gray-100); }
+        .topbar-user-avatar {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--purple), var(--green));
+            color: white; font-weight: 900; font-size: 0.85rem;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .topbar-user-name { font-size: 0.82rem; font-weight: 700; color: var(--navy); }
+
+        .content {
+            flex: 1; padding: 1.6rem 2rem 3rem;
+            max-width: 100%; overflow-x: auto;
+        }
+        .section { display: none; animation: secFadeIn 0.25s ease both; }
+        .section.active { display: block; }
+        @keyframes secFadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* =========================================
+           DASHBOARD - STAT CARDS + CESCE + LISTS + CTAs
+        ========================================= */
+        .stats-row {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
+            margin-bottom: 1.4rem;
+        }
+        .stat-card {
+            background: white; border-radius: 14px; padding: 1.1rem 1.15rem;
+            border: 1px solid var(--gray-200);
+            display: flex; flex-direction: column; gap: 0.5rem;
+        }
+        .stat-card-label {
+            font-size: 0.72rem; font-weight: 700; color: var(--gray-500);
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .stat-card-value {
+            font-size: 1.85rem; font-weight: 900; color: var(--navy); line-height: 1;
+        }
+        .stat-card-trend {
+            font-size: 0.72rem; font-weight: 700;
+            display: flex; align-items: center; gap: 0.2rem;
+        }
+        .stat-card-trend.up   { color: var(--green-dark); }
+        .stat-card-trend.down { color: var(--red); }
+
+        .cesce-card {
+            background: linear-gradient(135deg, var(--navy), var(--purple-nav));
+            color: white; border-radius: 14px; padding: 1.4rem 1.5rem;
+            margin-bottom: 1.4rem;
+            display: grid; grid-template-columns: 1fr auto; gap: 1.5rem; align-items: center;
+        }
+        .cesce-header { display: flex; align-items: center; gap: 0.6rem; }
+        .cesce-badge {
+            background: var(--green); color: white;
+            font-size: 0.6rem; font-weight: 900; padding: 0.2rem 0.55rem;
+            border-radius: 999px; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .cesce-card h3 { font-size: 0.95rem; font-weight: 700; }
+        .cesce-amounts { display: flex; gap: 1.5rem; margin-top: 0.6rem; align-items: flex-end; }
+        .cesce-amount { }
+        .cesce-amount-label { font-size: 0.7rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.5px; }
+        .cesce-amount-value { font-size: 1.4rem; font-weight: 900; line-height: 1.2; }
+        .cesce-bar {
+            margin-top: 0.8rem; height: 8px; border-radius: 999px;
+            background: rgba(255,255,255,0.15); overflow: hidden;
+        }
+        .cesce-bar-fill {
+            height: 100%; background: linear-gradient(90deg, var(--green), #6cd49a);
+            border-radius: 999px;
+        }
+        .cesce-credit-total {
+            text-align: right;
+        }
+        .cesce-credit-total .v { font-size: 2rem; font-weight: 900; line-height: 1; }
+        .cesce-credit-total .l { font-size: 0.7rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .mini-lists {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
+            margin-bottom: 1.6rem;
+        }
+        .mini-list-card {
+            background: white; border-radius: 14px; padding: 1rem 1.1rem 0.4rem;
+            border: 1px solid var(--gray-200);
+        }
+        .mini-list-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding-bottom: 0.7rem; margin-bottom: 0.4rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .mini-list-head h4 { font-size: 0.85rem; font-weight: 800; color: var(--navy); }
+        .mini-list-head a { font-size: 0.72rem; color: var(--purple); text-decoration: none; font-weight: 700; }
+        .mini-list-head a:hover { text-decoration: underline; }
+        .mini-list ul { list-style: none; }
+        .mini-list li {
+            padding: 0.5rem 0; font-size: 0.78rem;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex; justify-content: space-between; gap: 0.5rem;
+        }
+        .mini-list li:last-child { border-bottom: none; }
+        .mini-list-left { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+        .mini-list-ref { font-weight: 700; color: var(--navy); font-size: 0.8rem; }
+        .mini-list-sub { font-size: 0.7rem; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+        .mini-list-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem; }
+        .mini-list-amount { font-weight: 700; color: var(--navy); font-size: 0.78rem; }
+
+        .badge {
+            display: inline-block; font-size: 0.65rem; font-weight: 700;
+            padding: 0.15rem 0.5rem; border-radius: 999px; letter-spacing: 0.2px;
+        }
+        .badge-green   { background: rgba(34,165,90,0.12);  color: var(--green-dark); }
+        .badge-yellow  { background: rgba(255,212,0,0.18);  color: #8b6d00; }
+        .badge-orange  { background: rgba(255,122,0,0.13);  color: #b25500; }
+        .badge-red     { background: rgba(220,38,38,0.12);  color: var(--red); }
+        .badge-blue    { background: rgba(51,0,204,0.10);   color: var(--purple); }
+        .badge-gray    { background: var(--gray-200);       color: var(--gray-700); }
+
+        .dash-ctas { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .dash-cta {
+            display: flex; align-items: center; gap: 1rem;
+            padding: 1.3rem 1.5rem; border-radius: 14px;
+            text-decoration: none; cursor: pointer;
+            transition: transform 0.18s, box-shadow 0.18s;
+        }
+        .dash-cta:hover { transform: translateY(-3px); }
+        .dash-cta-icon {
+            width: 52px; height: 52px; border-radius: 12px;
+            background: rgba(255,255,255,0.2);
+            display: flex; align-items: center; justify-content: center;
+            color: white;
+        }
+        .dash-cta-text { color: white; }
+        .dash-cta-text h4 { font-size: 1.05rem; font-weight: 900; }
+        .dash-cta-text p  { font-size: 0.78rem; opacity: 0.85; margin-top: 0.15rem; }
+        .dash-cta-purple { background: linear-gradient(135deg, var(--purple), var(--purple-light)); box-shadow: 0 8px 22px rgba(51,0,204,0.3); }
+        .dash-cta-green  { background: linear-gradient(135deg, var(--green), #4dc97a);             box-shadow: 0 8px 22px rgba(34,165,90,0.3); }
+
+        /* =========================================
+           SECCIONES — header + filtros + tabla
+        ========================================= */
+        .sec-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 1rem; flex-wrap: wrap; gap: 0.8rem;
+        }
+        .sec-header h2 { font-size: 1.3rem; font-weight: 900; color: var(--navy); }
+        .sec-header-actions { display: flex; gap: 0.5rem; }
+        .btn-primary, .btn-secondary, .btn-ghost {
+            padding: 0.55rem 1rem; border-radius: 10px;
+            font-size: 0.85rem; font-weight: 700;
+            border: none; cursor: pointer; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 0.45rem;
+            transition: background 0.2s, transform 0.15s;
+        }
+        .btn-primary {
+            background: var(--purple); color: white;
+        }
+        .btn-primary:hover { background: var(--purple-light); }
+        .btn-secondary {
+            background: var(--green); color: white;
+        }
+        .btn-secondary:hover { background: #29b366; }
+        .btn-ghost {
+            background: var(--gray-100); color: var(--gray-700);
+            border: 1px solid var(--gray-200);
+        }
+        .btn-ghost:hover { background: var(--gray-200); }
+
+        .tabs {
+            display: flex; gap: 0.2rem; margin-bottom: 1rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .tab {
+            padding: 0.7rem 1rem; font-size: 0.85rem; font-weight: 700;
+            color: var(--gray-500); border: none; background: transparent;
+            cursor: pointer; border-bottom: 2.5px solid transparent;
+            margin-bottom: -1px;
+        }
+        .tab:hover { color: var(--navy); }
+        .tab.active { color: var(--purple); border-bottom-color: var(--purple); }
+
+        .filters {
+            display: flex; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap;
+            background: white; padding: 0.7rem; border-radius: 12px;
+            border: 1px solid var(--gray-200);
+        }
+        .filters input, .filters select {
+            padding: 0.5rem 0.7rem; border-radius: 8px;
+            border: 1px solid var(--gray-200); background: var(--gray-50);
+            font-size: 0.85rem; color: var(--navy);
+            font-family: inherit;
+        }
+        .filters input:focus, .filters select:focus { outline: none; border-color: var(--purple); background: white; }
+        .filters input[type="search"] { flex: 1; min-width: 220px; }
+
+        .table-wrap {
+            background: white; border-radius: 12px; overflow: hidden;
+            border: 1px solid var(--gray-200);
+            overflow-x: auto;
+        }
+        table.data {
+            width: 100%; border-collapse: collapse; font-size: 0.82rem;
+            min-width: 900px;
+        }
+        table.data thead th {
+            text-align: left; padding: 0.75rem 0.9rem;
+            font-size: 0.7rem; font-weight: 800;
+            color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px;
+            background: var(--gray-50); border-bottom: 1px solid var(--gray-200);
+            white-space: nowrap;
+        }
+        table.data tbody td {
+            padding: 0.78rem 0.9rem; border-bottom: 1px solid var(--gray-200);
+            color: var(--navy); vertical-align: middle;
+        }
+        table.data tbody tr:last-child td { border-bottom: none; }
+        table.data tbody tr:hover { background: var(--gray-50); }
+        table.data .ref { font-weight: 800; color: var(--navy); }
+        table.data .ref-cli { color: var(--gray-500); font-size: 0.77rem; }
+        table.data .amount { font-weight: 700; }
+        table.data .route { font-size: 0.78rem; }
+        table.data .route strong { color: var(--navy); }
+        table.data .route .arrow { color: var(--gray-500); margin: 0 0.35rem; }
+        table.data .meta { font-size: 0.72rem; color: var(--gray-500); }
+        table.data td.actions { text-align: right; white-space: nowrap; }
+
+        /* Dropdown de acciones */
+        .row-menu { position: relative; display: inline-block; }
+        .row-menu-btn {
+            width: 32px; height: 32px; border-radius: 8px;
+            border: 1px solid var(--gray-200); background: white;
+            cursor: pointer; color: var(--gray-700);
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .row-menu-btn:hover { background: var(--gray-100); color: var(--navy); }
+        .row-menu-pop {
+            position: absolute; top: calc(100% + 4px); right: 0;
+            min-width: 200px;
+            background: white; border-radius: 10px;
+            border: 1px solid var(--gray-200);
+            box-shadow: 0 8px 28px rgba(10,2,48,0.15);
+            padding: 0.35rem;
+            display: none; z-index: 10;
+            text-align: left;
+        }
+        .row-menu.open .row-menu-pop { display: block; }
+        .row-menu-item {
+            display: flex; align-items: center; gap: 0.55rem;
+            padding: 0.55rem 0.7rem; border-radius: 7px;
+            font-size: 0.83rem; color: var(--gray-700);
+            background: transparent; border: none; width: 100%;
+            cursor: pointer; text-align: left;
+        }
+        .row-menu-item:hover { background: var(--gray-100); color: var(--navy); }
+        .row-menu-item.danger { color: var(--red); }
+        .row-menu-item.danger:hover { background: rgba(220,38,38,0.08); }
+
+        .pagination {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0.9rem; background: white; border-radius: 12px;
+            margin-top: 0.8rem; font-size: 0.82rem; color: var(--gray-500);
+            border: 1px solid var(--gray-200);
+        }
+        .pagination-pages { display: flex; gap: 0.2rem; }
+        .pagination-pages button {
+            min-width: 32px; height: 32px; border-radius: 7px;
+            border: 1px solid var(--gray-200); background: white;
+            cursor: pointer; font-size: 0.82rem; color: var(--gray-700);
+        }
+        .pagination-pages button.active { background: var(--purple); color: white; border-color: var(--purple); }
+
+        /* ======= RESPONSIVE ======= */
+        @media (max-width: 1100px) {
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .mini-lists { grid-template-columns: 1fr; }
+            .cesce-card { grid-template-columns: 1fr; }
+            .cesce-credit-total { text-align: left; }
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed; left: -250px; top: 0;
+                transition: left 0.25s; box-shadow: 8px 0 32px rgba(0,0,0,0.2);
+            }
+            .sidebar.open { left: 0; }
+            .sidebar-toggle { display: inline-flex !important; }
+            .topbar { padding: 0.75rem 1rem; }
+            .content { padding: 1rem 1rem 3rem; }
+            .stats-row { grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+            .stat-card-value { font-size: 1.45rem; }
+            .dash-ctas { grid-template-columns: 1fr; }
+        }
+        .sidebar-toggle {
+            display: none; width: 38px; height: 38px;
+            background: var(--gray-100); border: none; border-radius: 10px;
+            cursor: pointer; align-items: center; justify-content: center;
+            color: var(--navy); margin-right: 0.5rem;
+        }
+        .sidebar-backdrop {
+            display: none; position: fixed; inset: 0;
+            background: rgba(10,2,48,0.5); z-index: 90;
+        }
+        .sidebar-backdrop.show { display: block; }
+    </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <img src="/images/4.png" alt="Dynamo">
+        <div>
+            <div class="sidebar-brand-name">Portal</div>
+            <div class="sidebar-brand-sub">Cliente</div>
+        </div>
+    </div>
+    <nav class="sidebar-nav">
+        <button class="sidebar-link active" data-section="dashboard">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/></svg>
+            Dashboard
+        </button>
+        <button class="sidebar-link" data-section="cargas">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            Cargas
+            <span class="badge">3</span>
+        </button>
+        <button class="sidebar-link" data-section="presupuestos">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+            Presupuestos
+        </button>
+        <button class="sidebar-link" data-section="facturas">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+            Facturas
+            <span class="badge">2</span>
+        </button>
+        <button class="sidebar-link" data-section="incidencias">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Incidencias
+        </button>
+    </nav>
+    <div class="sidebar-foot">
+        <div class="sidebar-user">
+            <div class="sidebar-user-avatar">JG</div>
+            <div>
+                <div class="sidebar-user-name">Juan García</div>
+                <div class="sidebar-user-sub">Talsa S.L.</div>
+            </div>
+        </div>
+        <button class="sidebar-link" onclick="window.location.href='index.html'" style="margin-top:0.4rem;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Cerrar sesión
+        </button>
+    </div>
+</aside>
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+
+<!-- MAIN -->
+<div class="main">
+    <header class="topbar">
+        <div style="display:flex;align-items:center;">
+            <button class="sidebar-toggle" onclick="toggleSidebar()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="topbar-title" id="topbarTitle">Dashboard</h1>
+        </div>
+        <div class="topbar-actions">
+            <button class="topbar-icon-btn" title="Notificaciones">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <span class="dot"></span>
+            </button>
+            <div class="topbar-user">
+                <div class="topbar-user-avatar">JG</div>
+                <div class="topbar-user-name">Juan García</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="content">
+
+    <!-- ==================== DASHBOARD ==================== -->
+    <section class="section active" id="sec-dashboard">
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-card-label">Cargas (mes)</div>
+                <div class="stat-card-value">28</div>
+                <div class="stat-card-trend up">▲ 12% vs mes anterior</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-label">Presupuestos activos</div>
+                <div class="stat-card-value">7</div>
+                <div class="stat-card-trend up">▲ 3 esta semana</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-label">Facturas pendientes</div>
+                <div class="stat-card-value">4</div>
+                <div class="stat-card-trend down">2.450 € a vencer</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-label">Incidencias abiertas</div>
+                <div class="stat-card-value">1</div>
+                <div class="stat-card-trend down">En curso</div>
+            </div>
+        </div>
+
+        <div class="cesce-card">
+            <div>
+                <div class="cesce-header">
+                    <span class="cesce-badge">CESCE</span>
+                    <h3>Crédito asegurado</h3>
+                </div>
+                <div class="cesce-amounts">
+                    <div class="cesce-amount">
+                        <div class="cesce-amount-label">Consumido</div>
+                        <div class="cesce-amount-value">8.450 €</div>
+                    </div>
+                    <div class="cesce-amount">
+                        <div class="cesce-amount-label">Disponible</div>
+                        <div class="cesce-amount-value">11.550 €</div>
+                    </div>
+                </div>
+                <div class="cesce-bar"><div class="cesce-bar-fill" style="width:42.25%;"></div></div>
+            </div>
+            <div class="cesce-credit-total">
+                <div class="v">20.000 €</div>
+                <div class="l">Límite total</div>
+            </div>
+        </div>
+
+        <div class="mini-lists">
+            <!-- 5 últimas cargas -->
+            <div class="mini-list-card">
+                <div class="mini-list-head">
+                    <h4>Últimas cargas</h4>
+                    <a href="#" onclick="showSection('cargas');return false;">Ver todas →</a>
+                </div>
+                <ul class="mini-list">
+                    <li><div class="mini-list-left"><span class="mini-list-ref">#C-2026-1284</span><span class="mini-list-sub">Sevilla → Madrid</span></div><div class="mini-list-right"><span class="badge badge-green">Entregada</span></div></li>
+                    <li><div class="mini-list-left"><span class="mini-list-ref">#C-2026-1281</span><span class="mini-list-sub">Sevilla → Barcelona</span></div><div class="mini-list-right"><span class="badge badge-blue">En ruta</span></div></li>
+                    <li><div class="mini-list-left"><span class="mini-list-ref">#C-2026-1279</span><span class="mini-list-sub">Sevilla → Valencia</span></div><div class="mini-list-right"><span class="badge badge-orange">Programada</span></div></li>
+                    <li><div class="mini-list-left"><span class="mini-list-ref">#C-2026-1275</span><span class="mini-list-sub">Sevilla → Bilbao</span></div><div class="mini-list-right"><span class="badge badge-green">Entregada</span></div></li>
+                    <li><div class="mini-list-left"><span class="mini-list-ref">#C-2026-1272</span><span class="mini-list-sub">Sevilla → Lisboa</span></div><div class="mini-list-right"><span class="badge badge-green">Entregada</span></div></li>
+                </ul>
+            </div>
+            <!-- 5 últimos presupuestos -->
+            <div class="mini-list-card">
+                <div class="mini-list-head">
+                    <h4>Últimos presupuestos</h4>
+                    <a href="#" onclick="showSection('presupuestos');return false;">Ver todos →</a>
+                </div>
+                <ul class="mini-list">
+                    <li><div class="mini-list-left"><span class="mini-list-ref">#P-2026-0421</span><span class="mini-list-sub">Sevilla → París</span></div><div class="mini-list-right"><span class="mini-list-amount">1.840 €</span><span class="badge badge-green">Vigente</span></div></li>
+                    <li><div class="mini-list-left"><span class="mini-list-ref">#P-2026-0418</span><span class="mini-list-sub">Madrid → Berlín</span></div><div class="mini-list-right"><span class="mini-list-amount">2.350 €</span><span class="badge badge-green">Vigente</span></div></li>
+                    <li><div class="mini-list-left"><span class="mini-list-ref">#P-2026-0415</span><span class="mini-list-sub">Sevilla → Roma</span></div><div class="mini-list-right"><span class="mini-list-amount">2.120 €</span><span class="badge badge-yellow">Caduca 3d</span></div></li>
+                    <li><div class="mini-list-left"><span class="mini-list-ref">#P-2026-0412</span><span class="mini-list-sub">Sevilla → Ámsterdam</span></div><div class="mini-list-right"><span class="mini-list-amount">2.680 €</span><span class="badge badge-gray">Caducado</span></div></li>
+                    <li><div class="mini-list-left"><span class="mini-list-ref">#P-2026-0408</span><span class="mini-list-sub">Sevilla → Bruselas</span></div><div class="mini-list-right"><span class="mini-list-amount">2.420 €</span><span class="badge badge-gray">Caducado</span></div></li>
+                </ul>
+            </div>
+            <!-- 5 últimas facturas -->
+            <div class="mini-list-card">
+                <div class="mini-list-head">
+                    <h4>Últimas facturas</h4>
+                    <a href="#" onclick="showSection('facturas');return false;">Ver todas →</a>
+                </div>
+                <ul class="mini-list">
+                    <li><div class="mini-list-left"><span class="mini-list-ref">F-2026/0184</span><span class="mini-list-sub">15 jun · vence 30 jun</span></div><div class="mini-list-right"><span class="mini-list-amount">748,00 €</span><span class="badge badge-orange">Pendiente</span></div></li>
+                    <li><div class="mini-list-left"><span class="mini-list-ref">F-2026/0182</span><span class="mini-list-sub">12 jun · vence 27 jun</span></div><div class="mini-list-right"><span class="mini-list-amount">1.210,00 €</span><span class="badge badge-orange">Pendiente</span></div></li>
+                    <li><div class="mini-list-left"><span class="mini-list-ref">F-2026/0178</span><span class="mini-list-sub">8 jun · vencida 23 jun</span></div><div class="mini-list-right"><span class="mini-list-amount">492,00 €</span><span class="badge badge-red">Vencida</span></div></li>
+                    <li><div class="mini-list-left"><span class="mini-list-ref">F-2026/0175</span><span class="mini-list-sub">5 jun · cobrada</span></div><div class="mini-list-right"><span class="mini-list-amount">895,00 €</span><span class="badge badge-green">Cobrada</span></div></li>
+                    <li><div class="mini-list-left"><span class="mini-list-ref">F-2026/0171</span><span class="mini-list-sub">2 jun · cobrada</span></div><div class="mini-list-right"><span class="mini-list-amount">1.380,00 €</span><span class="badge badge-green">Cobrada</span></div></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="dash-ctas">
+            <a class="dash-cta dash-cta-purple" href="#" onclick="showSection('nueva-carga');return false;">
+                <div class="dash-cta-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                </div>
+                <div class="dash-cta-text">
+                    <h4>Nueva carga</h4>
+                    <p>Solicitar un transporte con tarifa cerrada</p>
+                </div>
+            </a>
+            <a class="dash-cta dash-cta-green" href="#" onclick="showSection('nuevo-presupuesto');return false;">
+                <div class="dash-cta-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                <div class="dash-cta-text">
+                    <h4>Nuevo presupuesto</h4>
+                    <p>Pedir un precio sin compromiso (vigente 7 días)</p>
+                </div>
+            </a>
+        </div>
+    </section>
+
+    <!-- ==================== CARGAS ==================== -->
+    <section class="section" id="sec-cargas">
+        <div class="sec-header">
+            <h2>Cargas</h2>
+            <div class="sec-header-actions">
+                <button class="btn-ghost">Exportar</button>
+                <button class="btn-primary" onclick="showSection('nueva-carga');return false;">+ Nueva carga</button>
+            </div>
+        </div>
+        <div class="tabs">
+            <button class="tab active">Todas (28)</button>
+            <button class="tab">Programadas (3)</button>
+            <button class="tab">En ruta (2)</button>
+            <button class="tab">Entregadas (23)</button>
+            <button class="tab">Canceladas (0)</button>
+        </div>
+        <div class="filters">
+            <input type="search" placeholder="Buscar por nº, referencia, origen, destino…">
+            <input type="date" title="Fecha desde">
+            <input type="date" title="Fecha hasta">
+            <select><option>Todos los estados</option><option>Programada</option><option>En ruta</option><option>Entregada</option></select>
+        </div>
+        <div class="table-wrap">
+            <table class="data">
+                <thead><tr>
+                    <th>Nº carga</th><th>Ref. cliente</th><th>Fecha · Ventana</th><th>Ruta</th><th>Mercancía</th><th>m · kg</th><th>Estado</th><th></th>
+                </tr></thead>
+                <tbody>
+                    <tr>
+                        <td class="ref">#C-2026-1284</td>
+                        <td class="ref-cli">PED-0421</td>
+                        <td><strong>15/06</strong><div class="meta">±2 días</div></td>
+                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Madrid</strong><div class="meta">Pol. Carretera de la Isla → Mercamadrid</div></td>
+                        <td>Paletizado<div class="meta">Aceite envasado</div></td>
+                        <td class="amount">13,2 m · 24.000 kg</td>
+                        <td><span class="badge badge-green">Entregada</span></td>
+                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
+                            <div class="row-menu-pop" data-rm>
+                                <button class="row-menu-item">📋 Ver detalle</button>
+                                <button class="row-menu-item">🔁 Repetir</button>
+                                <button class="row-menu-item">⚠️ Reportar incidencia</button>
+                                <button class="row-menu-item">📥 Descargar albarán</button>
+                            </div></td>
+                    </tr>
+                    <tr>
+                        <td class="ref">#C-2026-1281</td>
+                        <td class="ref-cli">PED-0419</td>
+                        <td><strong>14/06</strong><div class="meta">Fija</div></td>
+                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Barcelona</strong><div class="meta">Centro logístico → Zona Franca</div></td>
+                        <td>Maquinaria<div class="meta">2 piezas, sobredim.</div></td>
+                        <td class="amount">8,4 m · 14.500 kg</td>
+                        <td><span class="badge badge-blue">En ruta</span></td>
+                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
+                            <div class="row-menu-pop" data-rm>
+                                <button class="row-menu-item">📋 Ver detalle</button>
+                                <button class="row-menu-item">📍 Seguimiento</button>
+                                <button class="row-menu-item">⚠️ Reportar incidencia</button>
+                            </div></td>
+                    </tr>
+                    <tr>
+                        <td class="ref">#C-2026-1279</td>
+                        <td class="ref-cli">PED-0418</td>
+                        <td><strong>18/06</strong><div class="meta">±4 días</div></td>
+                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Valencia</strong><div class="meta">Almacén central → Puerto</div></td>
+                        <td>Eventos / feria<div class="meta">Stand modular</div></td>
+                        <td class="amount">6,0 m · 8.200 kg</td>
+                        <td><span class="badge badge-orange">Programada</span></td>
+                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
+                            <div class="row-menu-pop" data-rm>
+                                <button class="row-menu-item">📋 Ver detalle</button>
+                                <button class="row-menu-item">✏️ Modificar</button>
+                                <button class="row-menu-item danger">✕ Cancelar carga</button>
+                            </div></td>
+                    </tr>
+                    <tr>
+                        <td class="ref">#C-2026-1275</td>
+                        <td class="ref-cli">PED-0414</td>
+                        <td><strong>10/06</strong><div class="meta">±2 días</div></td>
+                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Bilbao</strong><div class="meta">Polígono Las Pajanosas → Erandio</div></td>
+                        <td>Mercancía paletizada<div class="meta">33 europalets</div></td>
+                        <td class="amount">13,2 m · 22.500 kg</td>
+                        <td><span class="badge badge-green">Entregada</span></td>
+                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
+                            <div class="row-menu-pop" data-rm>
+                                <button class="row-menu-item">📋 Ver detalle</button>
+                                <button class="row-menu-item">🔁 Repetir</button>
+                                <button class="row-menu-item">📥 Descargar albarán</button>
+                            </div></td>
+                    </tr>
+                    <tr>
+                        <td class="ref">#C-2026-1272</td>
+                        <td class="ref-cli">PED-0411</td>
+                        <td><strong>05/06</strong><div class="meta">Fija</div></td>
+                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Lisboa (PT)</strong><div class="meta">Centro → Quinta da Beloura</div></td>
+                        <td>Material de obra<div class="meta">Perfiles metálicos</div></td>
+                        <td class="amount">10,0 m · 18.000 kg</td>
+                        <td><span class="badge badge-green">Entregada</span></td>
+                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
+                            <div class="row-menu-pop" data-rm>
+                                <button class="row-menu-item">📋 Ver detalle</button>
+                                <button class="row-menu-item">🔁 Repetir</button>
+                                <button class="row-menu-item">📥 Descargar albarán</button>
+                            </div></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="pagination">
+            <span>Mostrando 1-5 de 28 cargas</span>
+            <div class="pagination-pages">
+                <button>‹</button><button class="active">1</button><button>2</button><button>3</button><button>4</button><button>5</button><button>6</button><button>›</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== PRESUPUESTOS ==================== -->
+    <section class="section" id="sec-presupuestos">
+        <div class="sec-header">
+            <h2>Presupuestos</h2>
+            <div class="sec-header-actions">
+                <button class="btn-secondary" onclick="showSection('nuevo-presupuesto');return false;">+ Nuevo presupuesto</button>
+            </div>
+        </div>
+        <div class="tabs">
+            <button class="tab active">Activos (7)</button>
+            <button class="tab">Caducados (12)</button>
+            <button class="tab">Convertidos en carga (4)</button>
+        </div>
+        <div class="filters">
+            <input type="search" placeholder="Buscar por nº, referencia, origen, destino…">
+            <input type="date" title="Fecha desde">
+            <input type="date" title="Fecha hasta">
+        </div>
+        <div class="table-wrap">
+            <table class="data">
+                <thead><tr>
+                    <th>Nº presup.</th><th>Ref. cliente</th><th>Fecha solic.</th><th>Ruta</th><th>Mercancía</th><th>m · kg</th><th>Precio</th><th>Vigente hasta</th><th></th>
+                </tr></thead>
+                <tbody>
+                    <tr>
+                        <td class="ref">#P-2026-0421</td>
+                        <td class="ref-cli">COT-218</td>
+                        <td>18/06</td>
+                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>París (FR)</strong></td>
+                        <td>Paletizado</td>
+                        <td class="amount">13,2 m · 22.000 kg</td>
+                        <td class="amount">1.840 €</td>
+                        <td><span class="badge badge-green">25/06 (7 días)</span></td>
+                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
+                            <div class="row-menu-pop" data-rm>
+                                <button class="row-menu-item">📋 Ver detalle</button>
+                                <button class="row-menu-item">🚚 Generar carga</button>
+                                <button class="row-menu-item">📥 Descargar PDF</button>
+                            </div></td>
+                    </tr>
+                    <tr>
+                        <td class="ref">#P-2026-0418</td>
+                        <td class="ref-cli">COT-216</td>
+                        <td>17/06</td>
+                        <td class="route"><strong>Madrid</strong><span class="arrow">→</span><strong>Berlín (DE)</strong></td>
+                        <td>Maquinaria</td>
+                        <td class="amount">13,2 m · 24.000 kg</td>
+                        <td class="amount">2.350 €</td>
+                        <td><span class="badge badge-green">24/06 (6 días)</span></td>
+                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
+                            <div class="row-menu-pop" data-rm>
+                                <button class="row-menu-item">📋 Ver detalle</button>
+                                <button class="row-menu-item">🚚 Generar carga</button>
+                                <button class="row-menu-item">📥 Descargar PDF</button>
+                            </div></td>
+                    </tr>
+                    <tr>
+                        <td class="ref">#P-2026-0415</td>
+                        <td class="ref-cli">COT-214</td>
+                        <td>15/06</td>
+                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Roma (IT)</strong></td>
+                        <td>Material eventos</td>
+                        <td class="amount">10,0 m · 12.000 kg</td>
+                        <td class="amount">2.120 €</td>
+                        <td><span class="badge badge-yellow">22/06 (3 días)</span></td>
+                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
+                            <div class="row-menu-pop" data-rm>
+                                <button class="row-menu-item">📋 Ver detalle</button>
+                                <button class="row-menu-item">🚚 Generar carga</button>
+                                <button class="row-menu-item">📥 Descargar PDF</button>
+                            </div></td>
+                    </tr>
+                    <tr>
+                        <td class="ref">#P-2026-0412</td>
+                        <td class="ref-cli">COT-211</td>
+                        <td>12/06</td>
+                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Ámsterdam (NL)</strong></td>
+                        <td>Paletizado</td>
+                        <td class="amount">13,2 m · 23.500 kg</td>
+                        <td class="amount">2.680 €</td>
+                        <td><span class="badge badge-gray">Caducado el 19/06</span></td>
+                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
+                            <div class="row-menu-pop" data-rm>
+                                <button class="row-menu-item">📋 Ver detalle</button>
+                                <button class="row-menu-item">🔁 Revisar precio (renovar +7 días)</button>
+                            </div></td>
+                    </tr>
+                    <tr>
+                        <td class="ref">#P-2026-0408</td>
+                        <td class="ref-cli">COT-207</td>
+                        <td>08/06</td>
+                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Bruselas (BE)</strong></td>
+                        <td>Maquinaria</td>
+                        <td class="amount">13,2 m · 20.000 kg</td>
+                        <td class="amount">2.420 €</td>
+                        <td><span class="badge badge-gray">Caducado el 15/06</span></td>
+                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
+                            <div class="row-menu-pop" data-rm>
+                                <button class="row-menu-item">📋 Ver detalle</button>
+                                <button class="row-menu-item">🔁 Revisar precio (renovar +7 días)</button>
+                            </div></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="pagination">
+            <span>Mostrando 1-5 de 19 presupuestos</span>
+            <div class="pagination-pages">
+                <button>‹</button><button class="active">1</button><button>2</button><button>3</button><button>4</button><button>›</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== FACTURAS ==================== -->
+    <section class="section" id="sec-facturas">
+        <div class="sec-header">
+            <h2>Facturas</h2>
+            <div class="sec-header-actions">
+                <button class="btn-ghost">Exportar</button>
+                <button class="btn-ghost">Descargar todo (ZIP)</button>
+            </div>
+        </div>
+        <div class="stats-row" style="grid-template-columns:repeat(3,1fr);">
+            <div class="stat-card">
+                <div class="stat-card-label">Facturado este año</div>
+                <div class="stat-card-value">42.380 €</div>
+                <div class="stat-card-trend up">▲ 18% vs. 2025</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-label">Pendiente de cobro</div>
+                <div class="stat-card-value">2.450 €</div>
+                <div class="stat-card-trend down">3 facturas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-label">Vencidas</div>
+                <div class="stat-card-value">492 €</div>
+                <div class="stat-card-trend down">1 factura</div>
+            </div>
+        </div>
+        <div class="filters">
+            <input type="search" placeholder="Buscar por número, concepto…">
+            <input type="date" title="Fecha desde">
+            <input type="date" title="Fecha hasta">
+            <select><option>Todos los estados</option><option>Cobrada</option><option>Pendiente</option><option>Vencida</option></select>
+        </div>
+        <div class="table-wrap">
+            <table class="data">
+                <thead><tr>
+                    <th>Nº factura</th><th>F. emisión</th><th>F. vencim.</th><th>Concepto</th><th>Base</th><th>IVA 21%</th><th>Total</th><th>Estado</th><th></th>
+                </tr></thead>
+                <tbody>
+                    <tr>
+                        <td class="ref">F-2026/0184</td>
+                        <td>15/06/2026</td>
+                        <td>30/06/2026</td>
+                        <td>Transporte SE→MAD (#C-2026-1284)<div class="meta">+ servicio adicional descarga</div></td>
+                        <td class="amount">618,18 €</td>
+                        <td class="amount">129,82 €</td>
+                        <td class="amount">748,00 €</td>
+                        <td><span class="badge badge-orange">Pendiente · vence 30/06</span></td>
+                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
+                            <div class="row-menu-pop" data-rm>
+                                <button class="row-menu-item">📋 Ver detalle</button>
+                                <button class="row-menu-item">📥 Descargar PDF</button>
+                                <button class="row-menu-item">💰 Marcar como pagada</button>
+                            </div></td>
+                    </tr>
+                    <tr>
+                        <td class="ref">F-2026/0182</td>
+                        <td>12/06/2026</td>
+                        <td>27/06/2026</td>
+                        <td>Transporte SE→BCN (#C-2026-1281)</td>
+                        <td class="amount">1.000,00 €</td>
+                        <td class="amount">210,00 €</td>
+                        <td class="amount">1.210,00 €</td>
+                        <td><span class="badge badge-orange">Pendiente · vence 27/06</span></td>
+                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
+                            <div class="row-menu-pop" data-rm>
+                                <button class="row-menu-item">📋 Ver detalle</button>
+                                <button class="row-menu-item">📥 Descargar PDF</button>
+                            </div></td>
+                    </tr>
+                    <tr>
+                        <td class="ref">F-2026/0178</td>
+                        <td>08/06/2026</td>
+                        <td>23/06/2026</td>
+                        <td>Transporte SE→VAL (#C-2026-1276)</td>
+                        <td class="amount">406,61 €</td>
+                        <td class="amount">85,39 €</td>
+                        <td class="amount">492,00 €</td>
+                        <td><span class="badge badge-red">Vencida · -5 días</span></td>
+                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
+                            <div class="row-menu-pop" data-rm>
+                                <button class="row-menu-item">📋 Ver detalle</button>
+                                <button class="row-menu-item">📥 Descargar PDF</button>
+                                <button class="row-menu-item">💳 Pagar ahora</button>
+                            </div></td>
+                    </tr>
+                    <tr>
+                        <td class="ref">F-2026/0175</td>
+                        <td>05/06/2026</td>
+                        <td>20/06/2026</td>
+                        <td>Transporte SE→BIO (#C-2026-1275)</td>
+                        <td class="amount">739,67 €</td>
+                        <td class="amount">155,33 €</td>
+                        <td class="amount">895,00 €</td>
+                        <td><span class="badge badge-green">Cobrada</span></td>
+                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
+                            <div class="row-menu-pop" data-rm>
+                                <button class="row-menu-item">📋 Ver detalle</button>
+                                <button class="row-menu-item">📥 Descargar PDF</button>
+                            </div></td>
+                    </tr>
+                    <tr>
+                        <td class="ref">F-2026/0171</td>
+                        <td>02/06/2026</td>
+                        <td>17/06/2026</td>
+                        <td>Transporte SE→LIS (#C-2026-1272)</td>
+                        <td class="amount">1.140,50 €</td>
+                        <td class="amount">239,50 €</td>
+                        <td class="amount">1.380,00 €</td>
+                        <td><span class="badge badge-green">Cobrada</span></td>
+                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
+                            <div class="row-menu-pop" data-rm>
+                                <button class="row-menu-item">📋 Ver detalle</button>
+                                <button class="row-menu-item">📥 Descargar PDF</button>
+                            </div></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="pagination">
+            <span>Mostrando 1-5 de 38 facturas</span>
+            <div class="pagination-pages">
+                <button>‹</button><button class="active">1</button><button>2</button><button>3</button><button>4</button><button>5</button><button>6</button><button>7</button><button>8</button><button>›</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== INCIDENCIAS ==================== -->
+    <section class="section" id="sec-incidencias">
+        <div class="sec-header">
+            <h2>Incidencias</h2>
+            <div class="sec-header-actions">
+                <button class="btn-primary">+ Reportar incidencia</button>
+            </div>
+        </div>
+        <div class="tabs">
+            <button class="tab active">Abiertas (1)</button>
+            <button class="tab">En curso (0)</button>
+            <button class="tab">Resueltas (8)</button>
+            <button class="tab">Todas</button>
+        </div>
+        <div class="filters">
+            <input type="search" placeholder="Buscar por descripción, nº carga…">
+            <input type="date" title="Fecha desde">
+            <input type="date" title="Fecha hasta">
+        </div>
+        <div class="table-wrap">
+            <table class="data">
+                <thead><tr>
+                    <th>F. registro</th><th>Descripción</th><th>Nº carga</th><th>Ref. cliente</th><th>F. carga · Ventana</th><th>Ruta</th><th>m · kg</th><th>Estado</th><th></th>
+                </tr></thead>
+                <tbody>
+                    <tr>
+                        <td>14/06/2026<div class="meta">11:42</div></td>
+                        <td>Mercancía con palet roto a la llegada<div class="meta">3 palets dañados de 33</div></td>
+                        <td class="ref">#C-2026-1281</td>
+                        <td class="ref-cli">PED-0419</td>
+                        <td><strong>14/06</strong><div class="meta">Fija</div></td>
+                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Barcelona</strong></td>
+                        <td class="amount">8,4 m · 14.500 kg</td>
+                        <td><span class="badge badge-orange">En curso</span></td>
+                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
+                            <div class="row-menu-pop" data-rm>
+                                <button class="row-menu-item">📋 Ver detalle</button>
+                                <button class="row-menu-item">💬 Añadir comentario</button>
+                                <button class="row-menu-item">📎 Adjuntar foto</button>
+                            </div></td>
+                    </tr>
+                    <tr>
+                        <td>02/06/2026<div class="meta">16:08</div></td>
+                        <td>Retraso de 4h en la entrega<div class="meta">Resuelto: compensado en factura</div></td>
+                        <td class="ref">#C-2026-1268</td>
+                        <td class="ref-cli">PED-0405</td>
+                        <td><strong>02/06</strong><div class="meta">Fija</div></td>
+                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Zaragoza</strong></td>
+                        <td class="amount">13,2 m · 21.000 kg</td>
+                        <td><span class="badge badge-green">Resuelta</span></td>
+                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
+                            <div class="row-menu-pop" data-rm>
+                                <button class="row-menu-item">📋 Ver detalle</button>
+                            </div></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ==================== NUEVA CARGA ==================== -->
+    <section class="section" id="sec-nueva-carga">
+        <div class="sec-header">
+            <h2>Nueva carga</h2>
+            <button class="btn-ghost" onclick="showSection('dashboard');return false;">← Volver</button>
+        </div>
+        <div style="background:white;border-radius:14px;border:1px solid var(--gray-200);padding:1.5rem;max-width:780px;">
+            <p style="color:var(--gray-500);font-size:0.85rem;margin-bottom:1.2rem;">Solicitud de carga con confirmación de tarifa. Rellena los datos para que el equipo confirme precio y disponibilidad en menos de 25 minutos.</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+                <div>
+                    <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.3rem;">Referencia interna *</label>
+                    <input type="text" placeholder="PED-0422" style="width:100%;padding:0.6rem 0.8rem;border:1px solid var(--gray-200);border-radius:8px;font-family:inherit;">
+                </div>
+                <div>
+                    <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.3rem;">Tipo de camión *</label>
+                    <select style="width:100%;padding:0.6rem 0.8rem;border:1px solid var(--gray-200);border-radius:8px;font-family:inherit;background:white;">
+                        <option>Trailer Tauliner · 13,2 m</option>
+                        <option>Rígido 8 m con plataforma</option>
+                    </select>
+                </div>
+            </div>
+            <p style="font-size:0.78rem;color:var(--gray-500);font-style:italic;padding:1rem;background:var(--gray-100);border-radius:8px;text-align:center;">Aquí irá el formulario completo de Nueva Carga con: origen (con persona y teléfono de contacto), destino (idem), fecha + ventana, mercancía detallada (tipo, naturaleza, ADR sí/no), instrucciones especiales, anotaciones libres… <strong>Lo iteramos en la próxima vuelta.</strong></p>
+            <div style="display:flex;gap:0.5rem;margin-top:1.2rem;">
+                <button class="btn-primary">Solicitar carga</button>
+                <button class="btn-ghost" onclick="showSection('dashboard');return false;">Cancelar</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== NUEVO PRESUPUESTO ==================== -->
+    <section class="section" id="sec-nuevo-presupuesto">
+        <div class="sec-header">
+            <h2>Nuevo presupuesto</h2>
+            <button class="btn-ghost" onclick="showSection('dashboard');return false;">← Volver</button>
+        </div>
+        <div style="background:white;border-radius:14px;border:1px solid var(--gray-200);padding:1.5rem;max-width:780px;">
+            <p style="color:var(--gray-500);font-size:0.85rem;margin-bottom:1.2rem;">Pide un precio sin compromiso. El presupuesto será vigente <strong>durante 7 días</strong> desde su emisión.</p>
+            <p style="font-size:0.78rem;color:var(--gray-500);font-style:italic;padding:1rem;background:var(--gray-100);border-radius:8px;text-align:center;">Aquí irá el tarifador normal (similar al del hero de la web pública): origen, destino, camión, mercancía, metros lineales, peso, fecha, ventana de carga, anotaciones libres. <strong>Lo iteramos en la próxima vuelta.</strong></p>
+            <div style="display:flex;gap:0.5rem;margin-top:1.2rem;">
+                <button class="btn-secondary">Solicitar presupuesto</button>
+                <button class="btn-ghost" onclick="showSection('dashboard');return false;">Cancelar</button>
+            </div>
+        </div>
+    </section>
+
+    </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+    var sectionTitles = {
+        'dashboard':         'Dashboard',
+        'cargas':            'Cargas',
+        'presupuestos':      'Presupuestos',
+        'facturas':          'Facturas',
+        'incidencias':       'Incidencias',
+        'nueva-carga':       'Nueva carga',
+        'nuevo-presupuesto': 'Nuevo presupuesto'
+    };
+    function showSection(id) {
+        document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); });
+        var el = document.getElementById('sec-' + id);
+        if (el) el.classList.add('active');
+        document.querySelectorAll('.sidebar-link').forEach(function (l) {
+            l.classList.toggle('active', l.getAttribute('data-section') === id);
+        });
+        var t = document.getElementById('topbarTitle');
+        if (t) t.textContent = sectionTitles[id] || id;
+        // Cerrar sidebar movil
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarBackdrop').classList.remove('show');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    document.querySelectorAll('.sidebar-link[data-section]').forEach(function (l) {
+        l.addEventListener('click', function () { showSection(l.getAttribute('data-section')); });
+    });
+
+    // Dropdown de acciones por fila
+    function toggleRowMenu(btn) {
+        var menu = btn.parentElement;
+        var open = menu.classList.contains('open');
+        document.querySelectorAll('.row-menu.open').forEach(function (m) { m.classList.remove('open'); });
+        if (!open) menu.classList.add('open');
+    }
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.row-menu')) {
+            document.querySelectorAll('.row-menu.open').forEach(function (m) { m.classList.remove('open'); });
+        }
+    });
+    // Marcamos los .row-menu (los pop estan dentro del td.actions, los buscamos)
+    document.querySelectorAll('td.actions').forEach(function (td) {
+        var btn = td.querySelector('.row-menu-btn');
+        var pop = td.querySelector('.row-menu-pop');
+        if (btn && pop) {
+            var wrap = document.createElement('div');
+            wrap.className = 'row-menu';
+            btn.parentNode.insertBefore(wrap, btn);
+            wrap.appendChild(btn);
+            wrap.appendChild(pop);
+        }
+    });
+
+    // Sidebar movil
+    function toggleSidebar() {
+        var s = document.getElementById('sidebar');
+        var b = document.getElementById('sidebarBackdrop');
+        s.classList.toggle('open');
+        b.classList.toggle('show');
+    }
+</script>
+</body>
+</html>
