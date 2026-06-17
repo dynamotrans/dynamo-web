@@ -1383,7 +1383,8 @@
         .cobertura-map-box svg path.covered {
             fill: #b8c2d6; cursor: pointer;
         }
-        .cobertura-map-box svg path.covered:hover { fill: var(--purple); }
+        .cobertura-map-box svg path.covered:hover,
+        .cobertura-map-box svg path.covered.spotlight { fill: var(--purple); }
         .cobertura-tooltip {
             position: fixed;
             background: var(--navy); color: white;
@@ -3542,6 +3543,35 @@ function openLegal(tab) {
                         tooltip.classList.remove('visible');
                     }
                 }
+                // Auto-demo: los paises cubiertos van resaltandose aleatoriamente
+                // uno tras otro. Se pausa cuando el usuario interactua y
+                // se reanuda al salir
+                var spotlit = null;
+                var paused = false;
+                var resumeTimer = null;
+                function autoStep() {
+                    if (paused || !covered.length) return;
+                    if (spotlit) spotlit.classList.remove('spotlight');
+                    var p = covered[Math.floor(Math.random() * covered.length)];
+                    // Evita repetir el mismo seguido si hay mas de uno
+                    if (p === spotlit && covered.length > 1) {
+                        p = covered[(covered.indexOf(spotlit) + 1) % covered.length];
+                    }
+                    spotlit = p;
+                    p.classList.add('spotlight');
+                    var r = p.getBoundingClientRect();
+                    var code = p.id.toLowerCase();
+                    showTooltip(COUNTRY_NAMES[code], r.left + r.width / 2, r.top + r.height / 2);
+                }
+                function pauseAuto() {
+                    paused = true;
+                    if (spotlit) { spotlit.classList.remove('spotlight'); spotlit = null; }
+                    if (resumeTimer) clearTimeout(resumeTimer);
+                }
+                function resumeAuto(delay) {
+                    if (resumeTimer) clearTimeout(resumeTimer);
+                    resumeTimer = setTimeout(function () { paused = false; }, delay || 1500);
+                }
                 paths.forEach(function (p) {
                     var code = p.id.toLowerCase();
                     var name = COUNTRY_NAMES[code];
@@ -3556,14 +3586,25 @@ function openLegal(tab) {
                         var r = p.getBoundingClientRect();
                         showTooltip(name, r.left + r.width / 2, r.top + r.height / 2);
                     }
-                    p.addEventListener('mouseenter', showAtCenter);
-                    p.addEventListener('mouseleave', function () { hideTooltip(); });
+                    p.addEventListener('mouseenter', function () {
+                        pauseAuto();
+                        showAtCenter();
+                    });
+                    p.addEventListener('mouseleave', function () {
+                        hideTooltip();
+                        resumeAuto();
+                    });
                     // Touch (movil/tablet): tap durante 2.5s
                     p.addEventListener('touchstart', function () {
+                        pauseAuto();
                         showAtCenter();
                         hideTooltip(2500);
+                        resumeAuto(3000);
                     }, { passive: true });
                 });
+                // Arrancar el ciclo automatico (cada 1.4s un pais)
+                setInterval(autoStep, 1400);
+                autoStep();
                 // El tooltip es position:fixed, al hacer scroll en iPad/movil
                 // se quedaba "pegado" en pantalla. Lo escondemos en cuanto
                 // empieza cualquier scroll
