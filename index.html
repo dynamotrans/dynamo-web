@@ -1365,10 +1365,15 @@
             width: 100%; height: auto; display: block;
         }
         .cobertura-map-box svg path[id] {
-            fill: #d8dde6; stroke: #fff; stroke-width: 0.4;
-            transition: fill 0.2s; cursor: pointer;
+            fill: #e6e9ee; stroke: #fff; stroke-width: 0.4;
+            transition: fill 0.2s;
         }
-        .cobertura-map-box svg path[id]:hover { fill: var(--purple); }
+        /* Paises CON cobertura Dynamo: tono mas vivo + hover morado */
+        .cobertura-map-box svg path.covered {
+            fill: #b8c2d6;
+            cursor: pointer;
+        }
+        .cobertura-map-box svg path.covered:hover { fill: var(--purple); }
         .cobertura-tooltip {
             position: fixed;
             background: var(--navy); color: white;
@@ -3403,21 +3408,12 @@ function openLegal(tab) {
     // Mapa interactivo de Europa: carga el SVG via fetch e inyecta inline
     // (mas fiable que <object>, sin problemas de CORS / sizing)
     (function () {
+        // Solo los 10 paises con cobertura Dynamo son interactivos.
+        // El resto del mapa queda como contexto visual mas tenue.
         var COUNTRY_NAMES = {
-            ad:'Andorra', al:'Albania', am:'Armenia', at:'Austria', az:'Azerbaiyán',
-            ba:'Bosnia y Herzegovina', be:'Bélgica', by:'Bielorrusia', bg:'Bulgaria',
-            ch:'Suiza', cy:'Chipre', cz:'República Checa', de:'Alemania', dk:'Dinamarca',
-            dz:'Argelia', es:'España', ee:'Estonia', fi:'Finlandia', fo:'Islas Feroe',
-            fr:'Francia', gb:'Reino Unido', ge:'Georgia', gg:'Guernsey', gi:'Gibraltar',
-            gl:'Groenlandia', gr:'Grecia', hr:'Croacia', hu:'Hungría', ie:'Irlanda',
-            il:'Israel', im:'Isla de Man', iq:'Irak', ir:'Irán', is:'Islandia',
-            it:'Italia', je:'Jersey', jo:'Jordania', kz:'Kazajistán', lb:'Líbano',
-            li:'Liechtenstein', lt:'Lituania', lu:'Luxemburgo', lv:'Letonia',
-            ma:'Marruecos', mc:'Mónaco', md:'Moldavia', me:'Montenegro',
-            mk:'Macedonia del Norte', mt:'Malta', nl:'Países Bajos', no:'Noruega',
-            pl:'Polonia', ps:'Palestina', pt:'Portugal', ro:'Rumanía', rs:'Serbia',
-            ru:'Rusia', se:'Suecia', si:'Eslovenia', sk:'Eslovaquia', sm:'San Marino',
-            sy:'Siria', tn:'Túnez', tr:'Turquía', ua:'Ucrania', va:'Vaticano', xk:'Kosovo'
+            es:'España', pt:'Portugal', fr:'Francia', de:'Alemania',
+            pl:'Polonia', it:'Italia', ch:'Suiza', nl:'Países Bajos',
+            be:'Bélgica', at:'Austria'
         };
         var box = document.getElementById('cobertura-map-box');
         var tooltip = document.getElementById('europaTooltip');
@@ -3432,6 +3428,7 @@ function openLegal(tab) {
                     var code = p.id.toLowerCase();
                     var name = COUNTRY_NAMES[code];
                     if (!name) return;
+                    p.classList.add('covered');
                     p.addEventListener('mouseenter', function () {
                         tooltip.textContent = name;
                         tooltip.classList.add('visible');
