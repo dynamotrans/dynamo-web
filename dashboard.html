@@ -176,6 +176,23 @@
         }
         .stat-card-trend.up   { color: var(--green-dark); }
         .stat-card-trend.down { color: var(--red); }
+        /* Boton que parece tarjeta (resetea estilos de <button>) y reacciona
+           al hover/focus para indicar que es navegable */
+        .stat-card-link {
+            font: inherit; color: inherit; text-align: left;
+            cursor: pointer; appearance: none;
+            transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+        }
+        .stat-card-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 28px rgba(10,2,48,0.08);
+            border-color: rgba(51,0,204,0.25);
+        }
+        .stat-card-link:focus-visible {
+            outline: none; border-color: var(--purple);
+            box-shadow: 0 0 0 4px rgba(51,0,204,0.12);
+        }
+        .stat-card-link:active { transform: translateY(0); }
 
         .cesce-card {
             background: linear-gradient(135deg, var(--navy), var(--purple-nav));
@@ -554,26 +571,26 @@
         </div>
 
         <div class="stats-row">
-            <div class="stat-card">
+            <button type="button" class="stat-card stat-card-link" onclick="showSection('cargas')">
                 <div class="stat-card-label">Cargas (mes)</div>
                 <div class="stat-card-value">28</div>
                 <div class="stat-card-trend up">▲ 12% vs mes anterior</div>
-            </div>
-            <div class="stat-card">
+            </button>
+            <button type="button" class="stat-card stat-card-link" onclick="showSection('presupuestos')">
                 <div class="stat-card-label">Presupuestos activos</div>
                 <div class="stat-card-value">7</div>
                 <div class="stat-card-trend up">▲ 3 esta semana</div>
-            </div>
-            <div class="stat-card">
+            </button>
+            <button type="button" class="stat-card stat-card-link" onclick="showSection('facturas')">
                 <div class="stat-card-label">Facturas pendientes</div>
                 <div class="stat-card-value">4</div>
                 <div class="stat-card-trend down">2.450 € a vencer</div>
-            </div>
-            <div class="stat-card">
+            </button>
+            <button type="button" class="stat-card stat-card-link" onclick="showSection('incidencias')">
                 <div class="stat-card-label">Incidencias abiertas</div>
                 <div class="stat-card-value">1</div>
                 <div class="stat-card-trend down">En curso</div>
-            </div>
+            </button>
         </div>
 
         <div class="cesce-card">
