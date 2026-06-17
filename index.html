@@ -3335,14 +3335,14 @@ function openLegal(tab) {
     // todas las etiquetas (footer, popover, chips FAB, modal, etc.)
     // ============================================================
     var SCHEDULE = {
-        // Horario INVIERNO (todo el ano excepto verano)
-        // L-J 9-14 + 15-17, V 9-14
+        // Horario REGULAR (la mayor parte del ano): L-J 9-14 + 15-17, V 9-14
         winter: {
             1: [[9,14],[15,17]], 2: [[9,14],[15,17]],
             3: [[9,14],[15,17]], 4: [[9,14],[15,17]],
             5: [[9,14]]
         },
-        // Horario VERANO (15 jun - 1 sep): jornada intensiva L-V 9-14
+        // Horario VERANO (15 jun - 1 sep) y NAVIDAD (22 dic - 6 ene):
+        // jornada intensiva L-V 9-14 (mismo formato)
         summer: {
             1: [[9,14]], 2: [[9,14]], 3: [[9,14]], 4: [[9,14]], 5: [[9,14]]
         },
@@ -3351,7 +3351,9 @@ function openLegal(tab) {
             labelLong:  'L-J 9:00-14:00 y 15:00-17:00 · V 9:00-14:00',
             labelShort: 'L-J 9-14 y 15-17 · V 9-14',
             labelSummerLong:  'L-V 9:00-14:00 (verano)',
-            labelSummerShort: 'L-V 9-14 (verano)'
+            labelSummerShort: 'L-V 9-14 (verano)',
+            labelXmasLong:    'L-V 9:00-14:00 (Navidad)',
+            labelXmasShort:   'L-V 9-14 (Navidad)'
         },
         online: {
             labelLong:  'L-D 8:00-22:00',
@@ -3389,6 +3391,15 @@ function openLegal(tab) {
         if (m === 8 && d <= 1) return true;
         return false;
     }
+    function isXmas(date) {
+        // Navidad: 22 diciembre a 6 enero (inclusive)
+        var m = date.getMonth(); var d = date.getDate();
+        if (m === 11 && d >= 22) return true; // diciembre 22-31
+        if (m === 0 && d <= 6) return true;   // enero 1-6
+        return false;
+    }
+    // En verano O en navidad usamos el horario "intensivo" (igual estructura)
+    function isShortSchedule(date) { return isSummer(date) || isXmas(date); }
 
     // Algoritmo de Gauss (Computus) para calcular el Domingo de Pascua
     function easterSunday(year) {
@@ -3438,7 +3449,7 @@ function openLegal(tab) {
         if (getHolidayName(now)) return false; // festivo -> cerrado
         var day = now.getDay();
         if (day === 0 || day === 6) return false; // sabado/domingo
-        var table = isSummer(now) ? SCHEDULE.summer : SCHEDULE.winter;
+        var table = isShortSchedule(now) ? SCHEDULE.summer : SCHEDULE.winter;
         var ranges = table[day];
         if (!ranges) return false;
         var time = now.getHours() + now.getMinutes() / 60;
@@ -3472,7 +3483,10 @@ function openLegal(tab) {
             if (sub) sub.textContent = 'Hoy no atendemos llamadas por ser festivo nacional. Estamos disponibles por WhatsApp y email:';
         } else {
             if (title) title.textContent = 'Fuera de horario telefónico';
-            if (sub) sub.innerHTML = 'Nuestro teléfono se atiende <strong>' + (isSummer(now) ? SCHEDULE.phone.labelSummerLong : SCHEDULE.phone.labelLong) + '</strong>. Estamos disponibles por WhatsApp y email <strong>' + SCHEDULE.online.labelLong + '</strong>:';
+            var label = SCHEDULE.phone.labelLong;
+            if (isXmas(now)) label = SCHEDULE.phone.labelXmasLong;
+            else if (isSummer(now)) label = SCHEDULE.phone.labelSummerLong;
+            if (sub) sub.innerHTML = 'Nuestro teléfono se atiende <strong>' + label + '</strong>. Estamos disponibles por WhatsApp y email <strong>' + SCHEDULE.online.labelLong + '</strong>:';
         }
         modal.classList.add('open');
         document.body.style.overflow = 'hidden';
@@ -4923,9 +4937,9 @@ function updateAlmTotal() {
 // aplica HOY (verano o invierno), para que el usuario vea siempre lo real.
 document.addEventListener('DOMContentLoaded', function () {
     var now = getNow();
-    var summer = isSummer(now);
     function phoneLabel(key) {
-        if (summer) return key === 'short' ? SCHEDULE.phone.labelSummerShort : SCHEDULE.phone.labelSummerLong;
+        if (isXmas(now))   return key === 'short' ? SCHEDULE.phone.labelXmasShort   : SCHEDULE.phone.labelXmasLong;
+        if (isSummer(now)) return key === 'short' ? SCHEDULE.phone.labelSummerShort : SCHEDULE.phone.labelSummerLong;
         return key === 'short' ? SCHEDULE.phone.labelShort : SCHEDULE.phone.labelLong;
     }
     function onlineLabel(key) {
