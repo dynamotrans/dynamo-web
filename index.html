@@ -3353,7 +3353,9 @@ function openLegal(tab) {
             labelSummerLong:  'L-V 9:00-14:00 (verano)',
             labelSummerShort: 'L-V 9-14 (verano)',
             labelXmasLong:    'L-V 9:00-14:00 (Navidad)',
-            labelXmasShort:   'L-V 9-14 (Navidad)'
+            labelXmasShort:   'L-V 9-14 (Navidad)',
+            labelFeriaLong:   'Mar-Vie 9:00-14:00 (Feria)',
+            labelFeriaShort:  'M-V 9-14 (Feria)'
         },
         online: {
             labelLong:  'L-D 8:00-22:00',
@@ -3398,8 +3400,19 @@ function openLegal(tab) {
         if (m === 0 && d <= 6) return true;   // enero 1-6
         return false;
     }
-    // En verano O en navidad usamos el horario "intensivo" (igual estructura)
-    function isShortSchedule(date) { return isSummer(date) || isXmas(date); }
+    // Feria de Sevilla: martes a viernes de la segunda semana tras la Pascua
+    // (Easter Sunday + 14 dias = Domingo del Pescaito; +2 = Mar; +5 = Vie)
+    function isFeria(date) {
+        var easter = easterSunday(date.getFullYear());
+        var feriaTue = new Date(easter.getFullYear(), easter.getMonth(), easter.getDate() + 16);
+        var feriaFri = new Date(easter.getFullYear(), easter.getMonth(), easter.getDate() + 19);
+        var t = date.getTime();
+        // Comparamos sin horas (00:00 de cada dia)
+        var dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+        return dayStart >= feriaTue.getTime() && dayStart <= feriaFri.getTime();
+    }
+    // En verano, navidad O feria usamos el horario "intensivo" (igual estructura)
+    function isShortSchedule(date) { return isSummer(date) || isXmas(date) || isFeria(date); }
 
     // Algoritmo de Gauss (Computus) para calcular el Domingo de Pascua
     function easterSunday(year) {
@@ -3484,7 +3497,8 @@ function openLegal(tab) {
         } else {
             if (title) title.textContent = 'Fuera de horario telefónico';
             var label = SCHEDULE.phone.labelLong;
-            if (isXmas(now)) label = SCHEDULE.phone.labelXmasLong;
+            if (isFeria(now)) label = SCHEDULE.phone.labelFeriaLong;
+            else if (isXmas(now)) label = SCHEDULE.phone.labelXmasLong;
             else if (isSummer(now)) label = SCHEDULE.phone.labelSummerLong;
             if (sub) sub.innerHTML = 'Nuestro teléfono se atiende <strong>' + label + '</strong>. Estamos disponibles por WhatsApp y email <strong>' + SCHEDULE.online.labelLong + '</strong>:';
         }
@@ -4938,6 +4952,7 @@ function updateAlmTotal() {
 document.addEventListener('DOMContentLoaded', function () {
     var now = getNow();
     function phoneLabel(key) {
+        if (isFeria(now))  return key === 'short' ? SCHEDULE.phone.labelFeriaShort  : SCHEDULE.phone.labelFeriaLong;
         if (isXmas(now))   return key === 'short' ? SCHEDULE.phone.labelXmasShort   : SCHEDULE.phone.labelXmasLong;
         if (isSummer(now)) return key === 'short' ? SCHEDULE.phone.labelSummerShort : SCHEDULE.phone.labelSummerLong;
         return key === 'short' ? SCHEDULE.phone.labelShort : SCHEDULE.phone.labelLong;
