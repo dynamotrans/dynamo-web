@@ -1876,6 +1876,78 @@
             align-items:center; justify-content:center;
         }
         .legal-overlay.open { display:flex; }
+
+        /* =========================================
+           MODAL "Fuera de horario telefonico"
+        ========================================= */
+        .phone-modal {
+            position: fixed; inset: 0; z-index: 100000;
+            display: none; align-items: center; justify-content: center;
+            padding: 1.2rem;
+        }
+        .phone-modal.open { display: flex; animation: phoneFadeIn 0.2s ease both; }
+        @keyframes phoneFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .phone-modal-backdrop {
+            position: absolute; inset: 0;
+            background: rgba(10,2,48,0.72); backdrop-filter: blur(6px);
+        }
+        .phone-modal-card {
+            position: relative; z-index: 1;
+            background: white; border-radius: 18px;
+            max-width: 420px; width: 100%;
+            padding: 2.2rem 1.6rem 1.4rem; text-align: center;
+            box-shadow: 0 30px 80px rgba(10,2,48,0.4);
+            animation: phoneCardIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        @keyframes phoneCardIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .phone-modal-close {
+            position: absolute; top: 0.7rem; right: 0.7rem;
+            width: 32px; height: 32px; border-radius: 50%;
+            border: none; background: var(--gray-100); color: var(--gray-700);
+            font-size: 1.3rem; line-height: 1; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+        .phone-modal-close:hover { background: var(--gray-200); }
+        .phone-modal-icon {
+            width: 56px; height: 56px; margin: 0 auto 0.8rem;
+            border-radius: 50%; background: rgba(255,122,0,0.12);
+            color: var(--orange);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .phone-modal-card h3 {
+            font-size: 1.2rem; font-weight: 900; color: var(--navy);
+            margin-bottom: 0.5rem;
+        }
+        .phone-modal-sub {
+            font-size: 0.88rem; color: var(--gray-700);
+            line-height: 1.5; margin-bottom: 0.6rem;
+        }
+        .phone-modal-options {
+            display: flex; flex-direction: column; gap: 0.6rem;
+            margin: 1rem 0;
+        }
+        .phone-modal-opt {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 0.55rem; padding: 0.85rem 1.2rem;
+            border-radius: 12px; text-decoration: none;
+            font-weight: 800; font-size: 0.95rem; color: white;
+            transition: transform 0.15s, box-shadow 0.2s;
+        }
+        .phone-modal-opt:hover { transform: translateY(-2px); }
+        .phone-modal-wa { background: #25D366; box-shadow: 0 6px 18px rgba(37,211,102,0.35); }
+        .phone-modal-email { background: var(--purple); box-shadow: 0 6px 18px rgba(51,0,204,0.35); }
+        .phone-modal-anyway {
+            display: block; margin-top: 0.5rem;
+            font-size: 0.78rem; color: var(--gray-500);
+            text-decoration: underline; text-underline-offset: 3px;
+        }
+        .phone-modal-anyway span { display: block; font-size: 0.7rem; opacity: 0.75; margin-top: 0.15rem; }
+        .phone-modal-anyway:hover { color: var(--navy); }
+
         .legal-modal {
             background:white; border-radius:16px; max-width:800px; width:92%; max-height:85vh;
             overflow-y:auto; padding:2.5rem; position:relative; box-shadow:0 20px 60px rgba(0,0,0,0.3);
@@ -2235,15 +2307,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     <div class="hero-contacta-pop" id="hero-contacta-pop" role="menu" aria-hidden="true">
                         <a class="hero-cta hero-cta-wa" target="_blank" rel="noopener" href="https://wa.me/34628995709?text=Buenos%20d%C3%ADas%2C%0A%0A%2ASOLICITUD%20DE%20TARIFA%3A%2A%0A%0A%2A1.%20%C2%BFQue%20tipo%20de%20mercanc%C3%ADa%20es%3F%2A%0APaletizado%2C%20maquinaria%2C%20etc.%3A%0A%0A%E2%80%94%0A%0A%2A2.%20%C2%BFEs%20CARGA%20COMPLETA%20de%20Trailer%20o%20GRUPAJE%20%28carga%20parcial%3A%20metros%2Fpeso%29%3F%2A%0A%0A%E2%80%94%0A%0A%2A3.%20%C2%BFC%C3%B3digos%20postales%20o%20localidad%20de%20origen%20y%20destino%3F%2A%0A%0A%E2%80%94" role="menuitem">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                            <span class="cta-text">WhatsApp<span class="cta-hours">24h</span></span>
+                            <span class="cta-text">WhatsApp<span class="cta-hours" data-sched="online-long">L-D 8:00-22:00</span></span>
                         </a>
                         <a class="hero-cta hero-cta-tel" href="tel:+34955225945" role="menuitem">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-                            <span class="cta-text">Teléfono<span class="cta-hours">L-J 9:00-18:00 · V 8:00-14:00</span></span>
+                            <span class="cta-text">Teléfono<span class="cta-hours" data-sched="phone-long">L-J 8:00-18:00 · V 8:00-14:00</span></span>
                         </a>
                         <a class="hero-cta hero-cta-email" href="mailto:info@dynamotrans.com?subject=Solicitud%20de%20TARIFA&body=Buenos%20d%C3%ADas%2C%0D%0A%0D%0ASOLICITUD%20DE%20TARIFA%3A%0D%0A%0D%0A1.%20%C2%BFQue%20tipo%20de%20mercanc%C3%ADa%20es%3F%0D%0APaletizado%2C%20maquinaria%2C%20etc.%3A%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A2.%20%C2%BFEs%20CARGA%20COMPLETA%20de%20Trailer%20o%20GRUPAJE%20%28carga%20parcial%3A%20metros%2Fpeso%29%3F%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A3.%20%C2%BFC%C3%B3digos%20postales%20o%20localidad%20de%20origen%20y%20destino%3F%0D%0A%0D%0A%E2%80%94" role="menuitem">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-                            <span class="cta-text">e-Mail<span class="cta-hours">24h</span></span>
+                            <span class="cta-text">e-Mail<span class="cta-hours" data-sched="online-long">L-D 8:00-22:00</span></span>
                         </a>
                     </div>
                 </div>
@@ -2894,15 +2966,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <div class="cta-btns reveal">
             <a target="_blank" rel="noopener" href="https://wa.me/34628995709?text=Buenos%20d%C3%ADas%2C%0A%0A%2ASOLICITUD%20DE%20TARIFA%3A%2A%0A%0A%2A1.%20%C2%BFQue%20tipo%20de%20mercanc%C3%ADa%20es%3F%2A%0APaletizado%2C%20maquinaria%2C%20etc.%3A%0A%0A%E2%80%94%0A%0A%2A2.%20%C2%BFEs%20CARGA%20COMPLETA%20de%20Trailer%20o%20GRUPAJE%20%28carga%20parcial%3A%20metros%2Fpeso%29%3F%2A%0A%0A%E2%80%94%0A%0A%2A3.%20%C2%BFC%C3%B3digos%20postales%20o%20localidad%20de%20origen%20y%20destino%3F%2A%0A%0A%E2%80%94%0A%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%0A%2AIMPORTANTE%3A%2A%0A%0A%2A%20El%20cliente%20debe%20disponer%20de%20medios%20de%20carga%20y%20descarga%20en%20origen%20y%20destino.%20Por%20ejemplo%20carretilla%20elevadora%20o%20torito.%0A%0A%2A%20El%20lugar%20de%20carga%20y%20entrega%20son%20naves%20o%20almacenes%20y%20es%20accesible%20para%20un%20trailer.%20%28En%20caso%20de%20no%20tener%20medios%2C%20se%20puede%20valorar%20cami%C3%B3n%20con%20trampilla%20elevadora.%20En%20caso%20de%20ser%20obras%20debe%20avisarse.%29%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A" class="btn-cta-wa">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                <span class="cta-text">WhatsApp +34 628 995 709<span class="cta-hours">Disponible 24h</span></span>
+                <span class="cta-text">WhatsApp +34 628 995 709<span class="cta-hours" data-sched="online-long">L-D 8:00-22:00</span></span>
             </a>
             <a href="tel:+34955225945" class="btn-cta-out">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-                <span class="cta-text">Llamar +34 955 225 945<span class="cta-hours">L-J 9:00-18:00 · V 8:00-14:00</span></span>
+                <span class="cta-text">Llamar +34 955 225 945<span class="cta-hours" data-sched="phone-long">L-J 8:00-18:00 · V 8:00-14:00</span></span>
             </a>
             <a href="mailto:info@dynamotrans.com?subject=Solicitud%20de%20TARIFA%20para%20transporte&body=Buenos%20d%C3%ADas%2C%0D%0A%0D%0ASOLICITUD%20DE%20TARIFA%3A%0D%0A%0D%0A1.%20%C2%BFQue%20tipo%20de%20mercanc%C3%ADa%20es%3F%0D%0APaletizado%2C%20maquinaria%2C%20etc.%3A%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A2.%20%C2%BFEs%20CARGA%20COMPLETA%20de%20Trailer%20o%20GRUPAJE%20%28carga%20parcial%3A%20metros%2Fpeso%29%3F%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A3.%20%C2%BFC%C3%B3digos%20postales%20o%20localidad%20de%20origen%20y%20destino%3F%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%0D%0AIMPORTANTE%3A%0D%0A%0D%0A%2A%20El%20cliente%20debe%20disponer%20de%20medios%20de%20carga%20y%20descarga%20en%20origen%20y%20destino.%20Por%20ejemplo%20carretilla%20elevadora%20o%20torito.%0D%0A%0D%0A%2A%20El%20lugar%20de%20carga%20y%20entrega%20son%20naves%20o%20almacenes%20y%20es%20accesible%20para%20un%20trailer.%20%28En%20caso%20de%20no%20tener%20medios%2C%20se%20puede%20valorar%20cami%C3%B3n%20con%20trampilla%20elevadora.%20En%20caso%20de%20ser%20obras%20debe%20avisarse.%29%0D%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A" class="btn-cta-out">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-                <span class="cta-text">info@dynamotrans.com<span class="cta-hours">Disponible 24h</span></span>
+                <span class="cta-text">info@dynamotrans.com<span class="cta-hours" data-sched="online-long">L-D 8:00-22:00</span></span>
             </a>
         </div>
     </div>
@@ -3217,7 +3289,7 @@ function openLegal(tab) {
                 <li>Email: <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a></li>
                 <li>WhatsApp: <a target="_blank" rel="noopener" href="https://wa.me/34628995709">+34 628 995 709</a></li>
             </ul>
-            <p style="font-size:0.82rem;color:rgba(255,255,255,0.5);margin-top:0.6rem;line-height:1.6;">Atención telefónica: L-J 8:00 a 18:00 · V 8:00-14:00<br>Online 24h</p>
+            <p style="font-size:0.82rem;color:rgba(255,255,255,0.5);margin-top:0.6rem;line-height:1.6;">Teléfono: <span data-sched="phone-long">L-J 8:00-18:00 · V 8:00-14:00</span><br>WhatsApp y email: <span data-sched="online-long">L-D 8:00-22:00</span></p>
             <h4 style="margin-top:1rem;">Cobertura</h4>
             <ul id="footer-cobertura">
                 <!-- Generado por JS a partir de COVERED (sincronizado con el mapa) -->
@@ -3241,13 +3313,13 @@ function openLegal(tab) {
         <img src="/images/ALVARO_circular_ZOOM.png" alt="Álvaro - Contacto Dynamo Transportes">
     </button>
     <div class="contact-fab-actions" role="menu" aria-label="Canales de contacto">
-        <a class="contact-fab-action act-email" role="menuitem" href="mailto:info@dynamotrans.com?subject=Solicitud%20de%20TARIFA%20para%20transporte&body=Buenos%20d%C3%ADas%2C%0D%0A%0D%0ASOLICITUD%20DE%20TARIFA%3A%0D%0A%0D%0A1.%20%C2%BFQue%20tipo%20de%20mercanc%C3%ADa%20es%3F%0D%0APaletizado%2C%20maquinaria%2C%20etc.%3A%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A2.%20%C2%BFEs%20CARGA%20COMPLETA%20de%20Trailer%20o%20GRUPAJE%20%28carga%20parcial%3A%20metros%2Fpeso%29%3F%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A3.%20%C2%BFC%C3%B3digos%20postales%20o%20localidad%20de%20origen%20y%20destino%3F%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%0D%0AIMPORTANTE%3A%0D%0A%0D%0A%2A%20El%20cliente%20debe%20disponer%20de%20medios%20de%20carga%20y%20descarga%20en%20origen%20y%20destino.%20Por%20ejemplo%20carretilla%20elevadora%20o%20torito.%0D%0A%0D%0A%2A%20El%20lugar%20de%20carga%20y%20entrega%20son%20naves%20o%20almacenes%20y%20es%20accesible%20para%20un%20trailer.%20%28En%20caso%20de%20no%20tener%20medios%2C%20se%20puede%20valorar%20cami%C3%B3n%20con%20trampilla%20elevadora.%20En%20caso%20de%20ser%20obras%20debe%20avisarse.%29%0D%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A" aria-label="Enviar email" data-hours="24h">
+        <a class="contact-fab-action act-email" role="menuitem" href="mailto:info@dynamotrans.com?subject=Solicitud%20de%20TARIFA%20para%20transporte&body=Buenos%20d%C3%ADas%2C%0D%0A%0D%0ASOLICITUD%20DE%20TARIFA%3A%0D%0A%0D%0A1.%20%C2%BFQue%20tipo%20de%20mercanc%C3%ADa%20es%3F%0D%0APaletizado%2C%20maquinaria%2C%20etc.%3A%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A2.%20%C2%BFEs%20CARGA%20COMPLETA%20de%20Trailer%20o%20GRUPAJE%20%28carga%20parcial%3A%20metros%2Fpeso%29%3F%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A3.%20%C2%BFC%C3%B3digos%20postales%20o%20localidad%20de%20origen%20y%20destino%3F%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%0D%0AIMPORTANTE%3A%0D%0A%0D%0A%2A%20El%20cliente%20debe%20disponer%20de%20medios%20de%20carga%20y%20descarga%20en%20origen%20y%20destino.%20Por%20ejemplo%20carretilla%20elevadora%20o%20torito.%0D%0A%0D%0A%2A%20El%20lugar%20de%20carga%20y%20entrega%20son%20naves%20o%20almacenes%20y%20es%20accesible%20para%20un%20trailer.%20%28En%20caso%20de%20no%20tener%20medios%2C%20se%20puede%20valorar%20cami%C3%B3n%20con%20trampilla%20elevadora.%20En%20caso%20de%20ser%20obras%20debe%20avisarse.%29%0D%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A" aria-label="Enviar email" data-hours="L-D 8-22" data-sched-attr="online-short">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
         </a>
-        <a class="contact-fab-action act-wa" role="menuitem" target="_blank" rel="noopener" href="https://wa.me/34628995709?text=Buenos%20d%C3%ADas%2C%0A%0A%2ASOLICITUD%20DE%20TARIFA%3A%2A%0A%0A%2A1.%20%C2%BFQue%20tipo%20de%20mercanc%C3%ADa%20es%3F%2A%0APaletizado%2C%20maquinaria%2C%20etc.%3A%0A%0A%E2%80%94%0A%0A%2A2.%20%C2%BFEs%20CARGA%20COMPLETA%20de%20Trailer%20o%20GRUPAJE%20%28carga%20parcial%3A%20metros%2Fpeso%29%3F%2A%0A%0A%E2%80%94%0A%0A%2A3.%20%C2%BFC%C3%B3digos%20postales%20o%20localidad%20de%20origen%20y%20destino%3F%2A%0A%0A%E2%80%94%0A%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%0A%2AIMPORTANTE%3A%2A%0A%0A%2A%20El%20cliente%20debe%20disponer%20de%20medios%20de%20carga%20y%20descarga%20en%20origen%20y%20destino.%20Por%20ejemplo%20carretilla%20elevadora%20o%20torito.%0A%0A%2A%20El%20lugar%20de%20carga%20y%20entrega%20son%20naves%20o%20almacenes%20y%20es%20accesible%20para%20un%20trailer.%20%28En%20caso%20de%20no%20tener%20medios%2C%20se%20puede%20valorar%20cami%C3%B3n%20con%20trampilla%20elevadora.%20En%20caso%20de%20ser%20obras%20debe%20avisarse.%29%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A" aria-label="Contactar por WhatsApp" data-hours="24h">
+        <a class="contact-fab-action act-wa" role="menuitem" target="_blank" rel="noopener" href="https://wa.me/34628995709?text=Buenos%20d%C3%ADas%2C%0A%0A%2ASOLICITUD%20DE%20TARIFA%3A%2A%0A%0A%2A1.%20%C2%BFQue%20tipo%20de%20mercanc%C3%ADa%20es%3F%2A%0APaletizado%2C%20maquinaria%2C%20etc.%3A%0A%0A%E2%80%94%0A%0A%2A2.%20%C2%BFEs%20CARGA%20COMPLETA%20de%20Trailer%20o%20GRUPAJE%20%28carga%20parcial%3A%20metros%2Fpeso%29%3F%2A%0A%0A%E2%80%94%0A%0A%2A3.%20%C2%BFC%C3%B3digos%20postales%20o%20localidad%20de%20origen%20y%20destino%3F%2A%0A%0A%E2%80%94%0A%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%0A%2AIMPORTANTE%3A%2A%0A%0A%2A%20El%20cliente%20debe%20disponer%20de%20medios%20de%20carga%20y%20descarga%20en%20origen%20y%20destino.%20Por%20ejemplo%20carretilla%20elevadora%20o%20torito.%0A%0A%2A%20El%20lugar%20de%20carga%20y%20entrega%20son%20naves%20o%20almacenes%20y%20es%20accesible%20para%20un%20trailer.%20%28En%20caso%20de%20no%20tener%20medios%2C%20se%20puede%20valorar%20cami%C3%B3n%20con%20trampilla%20elevadora.%20En%20caso%20de%20ser%20obras%20debe%20avisarse.%29%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A" aria-label="Contactar por WhatsApp" data-hours="L-D 8-22" data-sched-attr="online-short">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
         </a>
-        <a class="contact-fab-action act-call" role="menuitem" href="tel:+34955225945" aria-label="Llamar por teléfono" data-hours="L-J 9-18 · V 8-14">
+        <a class="contact-fab-action act-call" role="menuitem" href="tel:+34955225945" aria-label="Llamar por teléfono" data-hours="L-J 8-18 · V 8-14" data-sched-attr="phone-short">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.18z"/></svg>
         </a>
     </div>
@@ -3257,6 +3329,67 @@ function openLegal(tab) {
 <button class="back-top" id="backTop" aria-label="Volver arriba">↑</button>
 
 <script>
+    // ============================================================
+    // HORARIOS — fuente unica de verdad para toda la web.
+    // Si cambias horarios aqui, se actualizan automaticamente
+    // todas las etiquetas (footer, popover, chips FAB, modal, etc.)
+    // ============================================================
+    var SCHEDULE = {
+        // Telefono: L-J 8-18, V 8-14, sabados y domingos cerrado
+        phone: {
+            // dia (0=Dom, 1=Lun, ..., 6=Sab): [horaApertura, horaCierre] 24h
+            1: [8, 18], 2: [8, 18], 3: [8, 18], 4: [8, 18], 5: [8, 14],
+            labelLong:  'L-J 8:00-18:00 · V 8:00-14:00',
+            labelShort: 'L-J 8-18 · V 8-14'
+        },
+        // WhatsApp y email: L-D 8-22 todos los dias
+        online: {
+            labelLong:  'L-D 8:00-22:00',
+            labelShort: 'L-D 8-22'
+        },
+        // Numero de telefono y WhatsApp para construir URLs en el modal
+        telHref: 'tel:+34955225945',
+        telDisplay: '+34 955 225 945',
+        waHref: 'https://wa.me/34628995709',
+        mailHref: 'mailto:info@dynamotrans.com'
+    };
+
+    function isPhoneHoursNow() {
+        var m = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
+        var range = SCHEDULE.phone[m.getDay()];
+        if (!range) return false;
+        var h = m.getHours();
+        return h >= range[0] && h < range[1];
+    }
+
+    // Interceptor global: cualquier click en a[href^="tel:"] dispara el modal
+    // si estamos fuera de horario. Si esta en horario, pasa la llamada directa.
+    document.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('a[href^="tel:"]');
+        if (!a) return;
+        if (isPhoneHoursNow()) return; // dentro de horario -> llamada normal
+        e.preventDefault();
+        showPhoneOutOfHoursModal(a.getAttribute('href'));
+    });
+
+    function showPhoneOutOfHoursModal(telHref) {
+        var modal = document.getElementById('phoneModal');
+        if (!modal) return;
+        // Actualiza el href "llamar igualmente" al numero del enlace pulsado
+        var anyway = modal.querySelector('.phone-modal-anyway');
+        if (anyway) anyway.setAttribute('href', telHref || SCHEDULE.telHref);
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+    function closePhoneModal() {
+        var modal = document.getElementById('phoneModal');
+        if (modal) modal.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closePhoneModal();
+    });
+
     function openMobileMenu()  { document.getElementById('mobileMenu').classList.add('open'); }
     function closeMobileMenu() {
         var m = document.getElementById('mobileMenu');
@@ -4040,21 +4173,9 @@ function setCookieConsent(choice) {
     var btn = document.getElementById('contactFabBtn');
     var backTop = document.getElementById('backTop');
 
-    // Mostrar el botón "Llamar" del FAB solo en horario de oficina
-    // L-V 8:00-19:00 hora de Sevilla/Madrid (Europe/Madrid, gestiona DST).
-    var phoneBtn = wrap.querySelector('.contact-fab-action.act-call');
-    function inBusinessHours() {
-        var madrid = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
-        var day = madrid.getDay();    // 0=Dom, 1=Lun ... 6=Sáb
-        var hour = madrid.getHours(); // 0-23
-        return day >= 1 && day <= 5 && hour >= 8 && hour < 19;
-    }
-    function updatePhoneVisibility() {
-        if (!phoneBtn) return;
-        phoneBtn.style.display = inBusinessHours() ? '' : 'none';
-    }
-    updatePhoneVisibility();
-    setInterval(updatePhoneVisibility, 60000); // recheck cada minuto
+    // Boton "Llamar" del FAB: SIEMPRE visible. Si esta fuera de horario el
+    // interceptor global de tel: muestra un modal con opciones alternativas
+    // (whatsapp / email / llamar igualmente). Quitamos la logica de auto-hide.
 
     function open() {
         wrap.classList.add('open');
@@ -4700,6 +4821,55 @@ function updateAlmTotal() {
         });
     });
 })();
+
+// Una vez cargado el DOM, sincroniza las etiquetas de horario por toda la
+// web a partir de SCHEDULE (footer, popovers, chips FAB, modal). Asi solo
+// hay que actualizar SCHEDULE para cambiar horarios en TODAS partes.
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-sched]').forEach(function (el) {
+        var key = el.getAttribute('data-sched');
+        // Mapping: "phone-long", "phone-short", "online-long", "online-short"
+        var parts = key.split('-');
+        var src = SCHEDULE[parts[0]];
+        if (!src) return;
+        var labelKey = parts[1] === 'short' ? 'labelShort' : 'labelLong';
+        el.textContent = src[labelKey];
+    });
+    // Chips data-hours del FAB (atributo, no textContent)
+    document.querySelectorAll('[data-sched-attr]').forEach(function (el) {
+        var key = el.getAttribute('data-sched-attr');
+        var parts = key.split('-');
+        var src = SCHEDULE[parts[0]];
+        if (!src) return;
+        var labelKey = parts[1] === 'short' ? 'labelShort' : 'labelLong';
+        el.setAttribute('data-hours', src[labelKey]);
+    });
+});
 </script>
+
+<!-- MODAL fuera de horario telefonico (se muestra al pulsar tel:) -->
+<div class="phone-modal" id="phoneModal" role="dialog" aria-modal="true" aria-labelledby="phoneModalTitle">
+    <div class="phone-modal-backdrop" onclick="closePhoneModal()"></div>
+    <div class="phone-modal-card">
+        <button type="button" class="phone-modal-close" onclick="closePhoneModal()" aria-label="Cerrar">×</button>
+        <div class="phone-modal-icon" aria-hidden="true">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <h3 id="phoneModalTitle">Fuera de horario telefónico</h3>
+        <p class="phone-modal-sub">Nuestro teléfono se atiende <strong data-sched="phone-long">L-J 8:00-18:00 · V 8:00-14:00</strong>.</p>
+        <p class="phone-modal-sub">WhatsApp y email están operativos <strong data-sched="online-long">L-D 8:00-22:00</strong>:</p>
+        <div class="phone-modal-options">
+            <a class="phone-modal-opt phone-modal-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener" onclick="closePhoneModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884"/></svg>
+                WhatsApp
+            </a>
+            <a class="phone-modal-opt phone-modal-email" href="mailto:info@dynamotrans.com" onclick="closePhoneModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                e-Mail
+            </a>
+        </div>
+        <a class="phone-modal-anyway" href="tel:+34955225945">Llamar igualmente <span>(posiblemente no se atienda ahora)</span></a>
+    </div>
+</div>
 </body>
 </html>
