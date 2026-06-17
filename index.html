@@ -3368,19 +3368,7 @@ function openLegal(tab) {
         mailHref: 'mailto:info@dynamotrans.com'
     };
 
-    // Modo testing: ?testdate=YYYY-MM-DD o YYYY-MM-DDTHH:MM permite simular
-    // cualquier fecha para verificar el modal sin esperar al festivo real.
     function getNow() {
-        try {
-            var url = new URL(window.location.href);
-            var test = url.searchParams.get('testdate');
-            if (test) {
-                var parts = test.split('T');
-                var d = parts[0].split('-');
-                var t = (parts[1] || '12:00').split(':');
-                return new Date(+d[0], +d[1] - 1, +d[2], +(t[0] || 12), +(t[1] || 0));
-            }
-        } catch (e) {}
         // Hora real en Sevilla (Europe/Madrid, gestiona DST automaticamente)
         return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
     }
