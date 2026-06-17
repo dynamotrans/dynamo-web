@@ -885,6 +885,14 @@
         }
         .hero-contacta-pop .hero-cta {
             justify-content: flex-start; padding: 0.7rem 1rem; font-size: 0.88rem;
+            text-align: left;
+        }
+        .hero-contacta-pop .cta-text {
+            display: flex; flex-direction: column; gap: 0.1rem; line-height: 1.15;
+        }
+        .hero-contacta-pop .cta-hours {
+            font-size: 0.66rem; font-weight: 600;
+            opacity: 0.78; letter-spacing: 0.1px;
         }
         .hero-cta-wa { background: #25D366; box-shadow: 0 4px 14px rgba(37,211,102,0.4); }
         .hero-cta-wa:hover { background: #1ebe5d; }
@@ -1702,6 +1710,13 @@
         .btn-cta-wa { background:#25D366; color:white; font-weight:800; padding:1rem 2.2rem; border-radius:18px; text-decoration:none; font-size:0.96rem; display:flex; align-items:center; gap:0.6rem; transition:all 0.3s; box-shadow:0 4px 22px rgba(37,211,102,0.4); }
         .btn-cta-wa:hover { transform:translateY(-3px); box-shadow:0 8px 32px rgba(37,211,102,0.55); }
         .btn-cta-out { background:rgba(255,255,255,0.08); color:white; font-weight:700; padding:1rem 2.2rem; border-radius:18px; text-decoration:none; font-size:0.96rem; display:flex; align-items:center; gap:0.6rem; border:2px solid rgba(255,255,255,0.35); transition:all 0.3s; backdrop-filter:blur(8px); }
+        /* Texto + horario dentro de los botones CTA de la seccion contacto */
+        .btn-cta-wa .cta-text, .btn-cta-out .cta-text {
+            display: flex; flex-direction: column; gap: 0.15rem; line-height: 1.2; text-align: left;
+        }
+        .btn-cta-wa .cta-hours, .btn-cta-out .cta-hours {
+            font-size: 0.72rem; font-weight: 600; opacity: 0.82; letter-spacing: 0.1px;
+        }
         .btn-cta-out:hover { border-color:white; background:rgba(255,255,255,0.14); transform:translateY(-3px); }
 
         /* =========================================
@@ -2202,15 +2217,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     <div class="hero-contacta-pop" id="hero-contacta-pop" role="menu" aria-hidden="true">
                         <a class="hero-cta hero-cta-wa" target="_blank" rel="noopener" href="https://wa.me/34628995709?text=Buenos%20d%C3%ADas%2C%0A%0A%2ASOLICITUD%20DE%20TARIFA%3A%2A%0A%0A%2A1.%20%C2%BFQue%20tipo%20de%20mercanc%C3%ADa%20es%3F%2A%0APaletizado%2C%20maquinaria%2C%20etc.%3A%0A%0A%E2%80%94%0A%0A%2A2.%20%C2%BFEs%20CARGA%20COMPLETA%20de%20Trailer%20o%20GRUPAJE%20%28carga%20parcial%3A%20metros%2Fpeso%29%3F%2A%0A%0A%E2%80%94%0A%0A%2A3.%20%C2%BFC%C3%B3digos%20postales%20o%20localidad%20de%20origen%20y%20destino%3F%2A%0A%0A%E2%80%94" role="menuitem">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                            WhatsApp
+                            <span class="cta-text">WhatsApp<span class="cta-hours">24h</span></span>
                         </a>
                         <a class="hero-cta hero-cta-tel" href="tel:+34955225945" role="menuitem">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-                            Teléfono
+                            <span class="cta-text">Teléfono<span class="cta-hours">L-J 9:00-18:00 · V 8:00-14:00</span></span>
                         </a>
                         <a class="hero-cta hero-cta-email" href="mailto:info@dynamotrans.com?subject=Solicitud%20de%20TARIFA&body=Buenos%20d%C3%ADas%2C%0D%0A%0D%0ASOLICITUD%20DE%20TARIFA%3A%0D%0A%0D%0A1.%20%C2%BFQue%20tipo%20de%20mercanc%C3%ADa%20es%3F%0D%0APaletizado%2C%20maquinaria%2C%20etc.%3A%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A2.%20%C2%BFEs%20CARGA%20COMPLETA%20de%20Trailer%20o%20GRUPAJE%20%28carga%20parcial%3A%20metros%2Fpeso%29%3F%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A3.%20%C2%BFC%C3%B3digos%20postales%20o%20localidad%20de%20origen%20y%20destino%3F%0D%0A%0D%0A%E2%80%94" role="menuitem">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-                            e-Mail
+                            <span class="cta-text">e-Mail<span class="cta-hours">24h</span></span>
                         </a>
                     </div>
                 </div>
@@ -2861,15 +2876,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <div class="cta-btns reveal">
             <a target="_blank" rel="noopener" href="https://wa.me/34628995709?text=Buenos%20d%C3%ADas%2C%0A%0A%2ASOLICITUD%20DE%20TARIFA%3A%2A%0A%0A%2A1.%20%C2%BFQue%20tipo%20de%20mercanc%C3%ADa%20es%3F%2A%0APaletizado%2C%20maquinaria%2C%20etc.%3A%0A%0A%E2%80%94%0A%0A%2A2.%20%C2%BFEs%20CARGA%20COMPLETA%20de%20Trailer%20o%20GRUPAJE%20%28carga%20parcial%3A%20metros%2Fpeso%29%3F%2A%0A%0A%E2%80%94%0A%0A%2A3.%20%C2%BFC%C3%B3digos%20postales%20o%20localidad%20de%20origen%20y%20destino%3F%2A%0A%0A%E2%80%94%0A%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%0A%2AIMPORTANTE%3A%2A%0A%0A%2A%20El%20cliente%20debe%20disponer%20de%20medios%20de%20carga%20y%20descarga%20en%20origen%20y%20destino.%20Por%20ejemplo%20carretilla%20elevadora%20o%20torito.%0A%0A%2A%20El%20lugar%20de%20carga%20y%20entrega%20son%20naves%20o%20almacenes%20y%20es%20accesible%20para%20un%20trailer.%20%28En%20caso%20de%20no%20tener%20medios%2C%20se%20puede%20valorar%20cami%C3%B3n%20con%20trampilla%20elevadora.%20En%20caso%20de%20ser%20obras%20debe%20avisarse.%29%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A" class="btn-cta-wa">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                WhatsApp +34 628 995 709
+                <span class="cta-text">WhatsApp +34 628 995 709<span class="cta-hours">Disponible 24h</span></span>
             </a>
             <a href="tel:+34955225945" class="btn-cta-out">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-                Llamar +34 955 225 945
+                <span class="cta-text">Llamar +34 955 225 945<span class="cta-hours">L-J 9:00-18:00 · V 8:00-14:00</span></span>
             </a>
             <a href="mailto:info@dynamotrans.com?subject=Solicitud%20de%20TARIFA%20para%20transporte&body=Buenos%20d%C3%ADas%2C%0D%0A%0D%0ASOLICITUD%20DE%20TARIFA%3A%0D%0A%0D%0A1.%20%C2%BFQue%20tipo%20de%20mercanc%C3%ADa%20es%3F%0D%0APaletizado%2C%20maquinaria%2C%20etc.%3A%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A2.%20%C2%BFEs%20CARGA%20COMPLETA%20de%20Trailer%20o%20GRUPAJE%20%28carga%20parcial%3A%20metros%2Fpeso%29%3F%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A3.%20%C2%BFC%C3%B3digos%20postales%20o%20localidad%20de%20origen%20y%20destino%3F%0D%0A%0D%0A%E2%80%94%0D%0A%0D%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%0D%0AIMPORTANTE%3A%0D%0A%0D%0A%2A%20El%20cliente%20debe%20disponer%20de%20medios%20de%20carga%20y%20descarga%20en%20origen%20y%20destino.%20Por%20ejemplo%20carretilla%20elevadora%20o%20torito.%0D%0A%0D%0A%2A%20El%20lugar%20de%20carga%20y%20entrega%20son%20naves%20o%20almacenes%20y%20es%20accesible%20para%20un%20trailer.%20%28En%20caso%20de%20no%20tener%20medios%2C%20se%20puede%20valorar%20cami%C3%B3n%20con%20trampilla%20elevadora.%20En%20caso%20de%20ser%20obras%20debe%20avisarse.%29%0D%0A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A%2A" class="btn-cta-out">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-                info@dynamotrans.com
+                <span class="cta-text">info@dynamotrans.com<span class="cta-hours">Disponible 24h</span></span>
             </a>
         </div>
     </div>
