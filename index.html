@@ -1558,21 +1558,6 @@
            de secciones. El wall de logos queda edge-to-edge (full width)
            con el mask lateral haciendo el fade */
         .clientes-sec > .container { padding: 0 2rem; }
-        .clientes-sec::before, .clientes-sec::after {
-            content: ''; position: absolute; pointer-events: none;
-            width: 280px; height: 280px;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.5;
-        }
-        .clientes-sec::before {
-            top: -100px; left: -100px;
-            background: rgba(51,0,204,0.18);
-        }
-        .clientes-sec::after {
-            bottom: -100px; right: -100px;
-            background: rgba(34,165,90,0.15);
-        }
         .clientes-wall {
             margin-top: 3rem;
             display: flex; flex-direction: column;
