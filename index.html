@@ -3604,9 +3604,35 @@ function openLegal(tab) {
                         resumeAuto(3000);
                     }, { passive: true });
                 });
-                // Arrancar el ciclo automatico (cada 1.4s un pais)
-                setInterval(autoStep, 1400);
-                autoStep();
+                // Arrancar el ciclo automatico (cada 1.4s un pais) SOLO
+                // cuando la seccion del mapa esta visible en el viewport,
+                // para que los tooltips no aparezcan flotando por la web
+                // cuando el usuario esta en otra parte de la pagina
+                var autoTimer = null;
+                var mapVisible = false;
+                function startCycle() {
+                    if (autoTimer) return;
+                    autoTimer = setInterval(autoStep, 1400);
+                    autoStep();
+                }
+                function stopCycle() {
+                    if (autoTimer) clearInterval(autoTimer);
+                    autoTimer = null;
+                    if (spotlit) { spotlit.classList.remove('spotlight'); spotlit = null; }
+                    hideTooltip();
+                }
+                if ('IntersectionObserver' in window) {
+                    var io = new IntersectionObserver(function (entries) {
+                        entries.forEach(function (e) {
+                            mapVisible = e.isIntersecting;
+                            if (mapVisible) startCycle();
+                            else stopCycle();
+                        });
+                    }, { threshold: 0.25 });
+                    io.observe(box);
+                } else {
+                    startCycle();
+                }
                 // El tooltip es position:fixed, al hacer scroll en iPad/movil
                 // se quedaba "pegado" en pantalla. Lo escondemos en cuanto
                 // empieza cualquier scroll
