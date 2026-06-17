@@ -10,7 +10,7 @@
     <!-- theme-color para iOS Chrome: la zona de la barra de URL se pinta
          con este color. Si no se pone, iOS hereda el morado de index.html
          brevemente y se ve "franja azul" abajo al navegar con scroll. -->
-    <meta name="theme-color" content="#f7f8fa">
+    <meta name="theme-color" content="#f7f8fa" id="themeColorMeta">
     <script>
         // El navegador puede conservar el scroll position de index.html al
         // navegar aqui. portal.html es corto -> en posicion baja se ve el
@@ -32,8 +32,33 @@
                 sessionStorage.removeItem('portalTransitionCenter');
             }
         } catch (e) {}
-        // Doble seguridad: tambien al pageshow (incluido bfcache)
-        window.addEventListener('pageshow', function () { window.scrollTo(0, 0); });
+        // iOS Chrome a veces cachea el theme-color de la pagina anterior
+        // (en index.html es morado #3300cc) en la barra de URL inferior.
+        // Forzar refresco quitando y re-añadiendo la meta tag obliga al
+        // navegador a re-leer el color. Se ejecuta al cargar y al volver.
+        function forceThemeColorRefresh() {
+            var meta = document.getElementById('themeColorMeta');
+            if (!meta) return;
+            var parent = meta.parentNode;
+            var color = meta.getAttribute('content');
+            parent.removeChild(meta);
+            // Forzar reflow antes de re-añadir
+            void document.documentElement.offsetHeight;
+            var newMeta = document.createElement('meta');
+            newMeta.setAttribute('name', 'theme-color');
+            newMeta.setAttribute('content', color);
+            newMeta.setAttribute('id', 'themeColorMeta');
+            parent.appendChild(newMeta);
+        }
+        // Doble seguridad: scroll + theme-color tambien al pageshow (incluido bfcache)
+        window.addEventListener('pageshow', function () {
+            window.scrollTo(0, 0);
+            forceThemeColorRefresh();
+        });
+        // Y al cargar inicial despues de paint
+        window.addEventListener('load', function () {
+            requestAnimationFrame(forceThemeColorRefresh);
+        });
     </script>
     <style>
         :root {
@@ -59,8 +84,13 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             color: var(--navy);
+            /* 100svh = smallest viewport (con toolbars VISIBLES). Asi el body
+               siempre cabe en la zona realmente visible de iOS Chrome,
+               incluso cuando la barra de URL esta abajo y ocupa pantalla.
+               Antes usabamos 100lvh -> el body se extendia detras de la
+               barra de URL y se veia franja morada al fondo */
             min-height: 100vh;
-            min-height: 100lvh;
+            min-height: 100svh;
             display: flex; flex-direction: column;
             -webkit-font-smoothing: antialiased;
             /* viewport-fit=cover + safe-area: el body se extiende hasta el
@@ -68,6 +98,9 @@
                vacio entre el contenido y el gesture bar -> los botones de
                la toolbar aparecen sobre la pagina, no en un hueco aparte */
             padding-bottom: env(safe-area-inset-bottom);
+            /* overscroll-behavior: bloquear bounce vertical evita que iOS
+               muestre el color del <html> debajo del body al rebotar */
+            overscroll-behavior-y: contain;
         }
         .portal-bg {
             position: fixed; inset: 0; z-index: 0;
