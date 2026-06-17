@@ -1364,17 +1364,16 @@
         .cobertura-map-box svg {
             width: 100%; height: auto; display: block;
         }
-        /* Paises NO cubiertos: contexto visual muy tenue, no interactivos.
-           El viewBox del SVG ya recorta al area de cobertura, asi que solo
-           se ven los paises adyacentes dentro del recuadro */
+        /* Paises NO cubiertos: contexto visual tenue + identificables al
+           hover/tap (saben cual es cada uno) pero sin resaltado de marca */
         .cobertura-map-box svg path[id] {
             fill: #ecedf1; stroke: #fff; stroke-width: 0.4;
-            pointer-events: none;
+            transition: fill 0.2s; cursor: default;
         }
+        .cobertura-map-box svg path[id]:hover { fill: #d2d6df; }
+        /* Paises CON cobertura Dynamo: tono mas vivo + hover morado de marca */
         .cobertura-map-box svg path.covered {
-            fill: #b8c2d6;
-            pointer-events: auto;
-            transition: fill 0.2s; cursor: pointer;
+            fill: #b8c2d6; cursor: pointer;
         }
         .cobertura-map-box svg path.covered:hover { fill: var(--purple); }
         .cobertura-tooltip {
@@ -3411,13 +3410,27 @@ function openLegal(tab) {
     // Mapa interactivo de Europa: carga el SVG via fetch e inyecta inline
     // (mas fiable que <object>, sin problemas de CORS / sizing)
     (function () {
-        // Solo los 10 paises con cobertura Dynamo son interactivos.
-        // El resto del mapa queda como contexto visual mas tenue.
-        var COUNTRY_NAMES = {
+        // Paises con cobertura Dynamo: interactivos y resaltados.
+        var COVERED = {
             es:'España', pt:'Portugal', fr:'Francia', de:'Alemania',
             pl:'Polonia', it:'Italia', ch:'Suiza', nl:'Países Bajos',
             be:'Bélgica', at:'Austria', cz:'República Checa', lu:'Luxemburgo'
         };
+        // Todos los paises europeos: tambien identificables al hover/tap
+        // (no resaltados como cubiertos pero saber cual es cada uno)
+        var COUNTRY_NAMES = Object.assign({}, COVERED, {
+            ad:'Andorra', al:'Albania', ba:'Bosnia y Herzegovina', by:'Bielorrusia',
+            bg:'Bulgaria', cy:'Chipre', dk:'Dinamarca', dz:'Argelia',
+            ee:'Estonia', fi:'Finlandia', fo:'Islas Feroe', gb:'Reino Unido',
+            ge:'Georgia', gi:'Gibraltar', gl:'Groenlandia', gr:'Grecia',
+            hr:'Croacia', hu:'Hungría', ie:'Irlanda', is:'Islandia',
+            li:'Liechtenstein', lt:'Lituania', lv:'Letonia', ma:'Marruecos',
+            mc:'Mónaco', md:'Moldavia', me:'Montenegro', mk:'Macedonia del Norte',
+            mt:'Malta', no:'Noruega', ro:'Rumanía', rs:'Serbia',
+            ru:'Rusia', se:'Suecia', si:'Eslovenia', sk:'Eslovaquia',
+            sm:'San Marino', tn:'Túnez', tr:'Turquía', ua:'Ucrania',
+            va:'Vaticano', xk:'Kosovo'
+        });
         var box = document.getElementById('cobertura-map-box');
         var tooltip = document.getElementById('europaTooltip');
         if (!box || !tooltip) return;
@@ -3429,11 +3442,33 @@ function openLegal(tab) {
                 var paths = box.querySelectorAll('svg path[id]');
                 var covered = [];
                 var hideTimer = null;
+                function placeTooltip(clientX, clientY) {
+                    // Posiciona temporal para medir el tamaño real del tooltip
+                    tooltip.style.left = '0'; tooltip.style.top = '0';
+                    tooltip.style.visibility = 'hidden';
+                    tooltip.classList.add('visible');
+                    var w = tooltip.offsetWidth;
+                    var h = tooltip.offsetHeight;
+                    var vw = window.innerWidth;
+                    var vh = window.innerHeight;
+                    var margin = 8;
+                    // Por defecto a la derecha y abajo del puntero/tap
+                    var x = clientX + 14;
+                    var y = clientY + 16;
+                    // Si se sale por la derecha -> a la izquierda
+                    if (x + w + margin > vw) x = clientX - w - 14;
+                    // Si se sale por abajo -> arriba
+                    if (y + h + margin > vh) y = clientY - h - 14;
+                    // Mantener dentro de los limites
+                    if (x < margin) x = margin;
+                    if (y < margin) y = margin;
+                    tooltip.style.left = x + 'px';
+                    tooltip.style.top  = y + 'px';
+                    tooltip.style.visibility = 'visible';
+                }
                 function showTooltip(name, clientX, clientY) {
                     tooltip.textContent = name;
-                    tooltip.style.left = (clientX + 12) + 'px';
-                    tooltip.style.top  = (clientY - 8)  + 'px';
-                    tooltip.classList.add('visible');
+                    placeTooltip(clientX, clientY);
                     if (hideTimer) clearTimeout(hideTimer);
                 }
                 function hideTooltip(delay) {
@@ -3450,16 +3485,17 @@ function openLegal(tab) {
                     var code = p.id.toLowerCase();
                     var name = COUNTRY_NAMES[code];
                     if (!name) return;
-                    p.classList.add('covered');
-                    covered.push(p);
+                    if (COVERED[code]) {
+                        p.classList.add('covered');
+                        covered.push(p);
+                    }
                     // Desktop: hover muestra/oculta el tooltip
                     p.addEventListener('mouseenter', function (e) {
                         showTooltip(name, e.clientX, e.clientY);
                     });
                     p.addEventListener('mouseleave', function () { hideTooltip(); });
                     p.addEventListener('mousemove', function (e) {
-                        tooltip.style.left = (e.clientX + 12) + 'px';
-                        tooltip.style.top  = (e.clientY - 8)  + 'px';
+                        placeTooltip(e.clientX, e.clientY);
                     });
                     // Touch (movil/tablet): tap muestra el tooltip durante 2.5s
                     p.addEventListener('touchstart', function (e) {
