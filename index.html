@@ -1899,12 +1899,14 @@
             gap: 1.2rem;
             width: max-content;
             padding: 0.5rem 0 1.2rem;
-            animation: testiScroll 60s linear infinite;
+            /* --scroll-px lo setea el JS al ancho EXACTO de un set para que
+               el loop sea perfecto (translateX -50% con gap deja un hueco) */
+            animation: testiScroll var(--scroll-dur, 60s) linear infinite;
             will-change: transform;
         }
         @keyframes testiScroll {
             0%   { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
+            100% { transform: translateX(calc(-1 * var(--scroll-px, 50%))); }
         }
         @media (hover: hover) {
             .testi-track:hover { animation-play-state: paused; }
@@ -3399,12 +3401,27 @@ function openLegal(tab) {
         });
     })();
 
-    // Carrusel infinito de reseñas: duplica las cards dentro del track
-    // para que el marquee CSS pueda hacer loop suave sin saltos visibles
+    // Carrusel infinito de reseñas: duplica las cards dentro del track y
+    // calcula el ancho exacto de un set en px para que el marquee CSS
+    // haga loop perfecto (translateX -50% deja hueco por el gap del flexbox)
     (function () {
         var track = document.getElementById('testi-track');
         if (!track) return;
-        track.innerHTML += track.innerHTML;
+        var originalHTML = track.innerHTML;
+        track.innerHTML = originalHTML + originalHTML;
+        // Medimos el ancho de un set (la mitad del track) tras un frame
+        function setMarqueeWidth() {
+            // scrollWidth incluye contenido completo + paddings, no gap entre
+            // sets. La mitad es exactamente la anchura de un set + 1 gap final
+            var fullWidth = track.scrollWidth;
+            // gap calculado del computed style (rem -> px)
+            var gap = parseFloat(window.getComputedStyle(track).columnGap || '0') || 0;
+            var setPx = (fullWidth + gap) / 2;
+            track.style.setProperty('--scroll-px', setPx + 'px');
+        }
+        // Calcular tras montar y al redimensionar
+        requestAnimationFrame(setMarqueeWidth);
+        window.addEventListener('resize', setMarqueeWidth);
     })();
 
     // Mapa interactivo de Europa: carga el SVG via fetch e inyecta inline
@@ -3505,6 +3522,10 @@ function openLegal(tab) {
                         hideTooltip(2500);
                     }, { passive: true });
                 });
+                // El tooltip es position:fixed, al hacer scroll en iPad/movil
+                // se quedaba "pegado" en pantalla. Lo escondemos en cuanto
+                // empieza cualquier scroll
+                window.addEventListener('scroll', function () { hideTooltip(); }, { passive: true });
                 // Ajusta automaticamente el viewBox del SVG al area de los
                 // paises cubiertos -> el resto desaparece del encuadre
                 var svg = box.querySelector('svg');
