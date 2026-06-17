@@ -266,6 +266,17 @@
         }
         .sec-header h2 { font-size: 1.3rem; font-weight: 900; color: var(--navy); }
         .sec-header-actions { display: flex; gap: 0.5rem; }
+        .sec-note {
+            display: flex; align-items: flex-start; gap: 0.55rem;
+            background: rgba(51,0,204,0.04);
+            border: 1px solid rgba(51,0,204,0.10);
+            border-radius: 10px;
+            padding: 0.7rem 0.9rem;
+            font-size: 0.82rem; color: var(--gray-700); line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+        .sec-note svg { flex: 0 0 16px; color: var(--purple); margin-top: 2px; }
+        .sec-note strong { color: var(--purple); }
         .btn-primary, .btn-secondary, .btn-ghost {
             padding: 0.55rem 1rem; border-radius: 10px;
             font-size: 0.85rem; font-weight: 700;
@@ -846,9 +857,12 @@
         <div class="sec-header">
             <h2>Facturas</h2>
             <div class="sec-header-actions">
-                <button class="btn-ghost">Exportar</button>
                 <button class="btn-ghost">Descargar todo (ZIP)</button>
             </div>
+        </div>
+        <div class="sec-note">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>Solo lectura. Datos sincronizados desde <strong>Holded</strong>. Para emitir, modificar o anular facturas, accede a Holded.</span>
         </div>
         <div class="stats-row" style="grid-template-columns:repeat(3,1fr);">
             <div class="stat-card">
@@ -892,7 +906,6 @@
                             <div class="row-menu-pop" data-rm>
                                 <button class="row-menu-item">📋 Ver detalle</button>
                                 <button class="row-menu-item">📥 Descargar PDF</button>
-                                <button class="row-menu-item">💰 Marcar como pagada</button>
                             </div></td>
                     </tr>
                     <tr>
@@ -923,7 +936,6 @@
                             <div class="row-menu-pop" data-rm>
                                 <button class="row-menu-item">📋 Ver detalle</button>
                                 <button class="row-menu-item">📥 Descargar PDF</button>
-                                <button class="row-menu-item">💳 Pagar ahora</button>
                             </div></td>
                     </tr>
                     <tr>
