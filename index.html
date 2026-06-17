@@ -1361,13 +1361,14 @@
             padding: 1.5rem 1rem;
             box-shadow: 0 4px 30px rgba(10,2,48,0.06);
         }
-        .cobertura-map-box object {
-            width: 100%; display: block;
-            /* Aspect ratio del SVG fuente (680x520). Sin esto, <object>
-               colapsa a height 0 porque no tiene dimensiones intrinsecas */
-            aspect-ratio: 680 / 520;
-            pointer-events: auto;
+        .cobertura-map-box svg {
+            width: 100%; height: auto; display: block;
         }
+        .cobertura-map-box svg path[id] {
+            fill: #d8dde6; stroke: #fff; stroke-width: 0.4;
+            transition: fill 0.2s; cursor: pointer;
+        }
+        .cobertura-map-box svg path[id]:hover { fill: var(--purple); }
         .cobertura-tooltip {
             position: fixed;
             background: var(--navy); color: white;
@@ -2527,8 +2528,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <p class="section-desc reveal">Pasa el ratón por encima de un país para ver su nombre. Trabajamos en toda la Unión Europea más Reino Unido, Suiza y Noruega.</p>
     </div>
     <div class="cobertura-wrap reveal">
-        <div class="cobertura-map-box">
-            <object id="europaMap" type="image/svg+xml" data="/images/europa-map.svg" aria-label="Mapa interactivo de Europa"></object>
+        <div class="cobertura-map-box" id="cobertura-map-box">
             <div class="cobertura-tooltip" id="europaTooltip" aria-hidden="true"></div>
         </div>
     </div>
@@ -3400,8 +3400,8 @@ function openLegal(tab) {
         track.innerHTML += track.innerHTML;
     })();
 
-    // Mapa interactivo de Europa: inyecta CSS+JS dentro del <object> para que
-    // cada pais (path con id ISO 3166 alpha-2) reaccione al hover con tooltip.
+    // Mapa interactivo de Europa: carga el SVG via fetch e inyecta inline
+    // (mas fiable que <object>, sin problemas de CORS / sizing)
     (function () {
         var COUNTRY_NAMES = {
             ad:'Andorra', al:'Albania', am:'Armenia', at:'Austria', az:'Azerbaiyán',
@@ -3419,40 +3419,33 @@ function openLegal(tab) {
             ru:'Rusia', se:'Suecia', si:'Eslovenia', sk:'Eslovaquia', sm:'San Marino',
             sy:'Siria', tn:'Túnez', tr:'Turquía', ua:'Ucrania', va:'Vaticano', xk:'Kosovo'
         };
-        var obj = document.getElementById('europaMap');
+        var box = document.getElementById('cobertura-map-box');
         var tooltip = document.getElementById('europaTooltip');
-        if (!obj || !tooltip) return;
-        obj.addEventListener('load', function () {
-            var svgDoc = obj.contentDocument;
-            if (!svgDoc) return;
-            // Inyectamos estilos dentro del SVG (los del HTML no llegan al
-            // contentDocument del <object>)
-            var style = svgDoc.createElementNS('http://www.w3.org/2000/svg', 'style');
-            style.textContent =
-                'path { fill:#d8dde6; stroke:#fff; stroke-width:0.4; transition:fill 0.2s; cursor:pointer; }' +
-                'path:hover { fill:#3300cc; }';
-            svgDoc.documentElement.appendChild(style);
-            // Cada path con id de pais -> handlers
-            var paths = svgDoc.querySelectorAll('path[id]');
-            paths.forEach(function (p) {
-                var code = p.id.toLowerCase();
-                var name = COUNTRY_NAMES[code];
-                if (!name) return;
-                p.addEventListener('mouseenter', function (e) {
-                    tooltip.textContent = name;
-                    tooltip.classList.add('visible');
+        if (!box || !tooltip) return;
+        fetch('/images/europa-map.svg')
+            .then(function (r) { return r.text(); })
+            .then(function (svgText) {
+                // Insertar SVG inline al principio del box (antes del tooltip)
+                box.insertAdjacentHTML('afterbegin', svgText);
+                var paths = box.querySelectorAll('svg path[id]');
+                paths.forEach(function (p) {
+                    var code = p.id.toLowerCase();
+                    var name = COUNTRY_NAMES[code];
+                    if (!name) return;
+                    p.addEventListener('mouseenter', function () {
+                        tooltip.textContent = name;
+                        tooltip.classList.add('visible');
+                    });
+                    p.addEventListener('mouseleave', function () {
+                        tooltip.classList.remove('visible');
+                    });
+                    p.addEventListener('mousemove', function (e) {
+                        tooltip.style.left = (e.clientX + 12) + 'px';
+                        tooltip.style.top  = (e.clientY - 8)  + 'px';
+                    });
                 });
-                p.addEventListener('mouseleave', function () {
-                    tooltip.classList.remove('visible');
-                });
-                p.addEventListener('mousemove', function (e) {
-                    // contentDocument event - coords relativos al SVG
-                    var objRect = obj.getBoundingClientRect();
-                    tooltip.style.left = (objRect.left + e.clientX + 12) + 'px';
-                    tooltip.style.top  = (objRect.top  + e.clientY - 8)  + 'px';
-                });
-            });
-        });
+            })
+            .catch(function (err) { console.warn('Mapa Europa: no se pudo cargar', err); });
     })();
 
     // Back to top button
