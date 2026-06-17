@@ -3216,12 +3216,9 @@ function openLegal(tab) {
             </ul>
             <p style="font-size:0.82rem;color:rgba(255,255,255,0.5);margin-top:0.6rem;line-height:1.6;">Atención telefónica: L-J 8:00 a 18:00 · V 8:00-14:00<br>Online 24h</p>
             <h4 style="margin-top:1rem;">Cobertura</h4>
-            <ul>
+            <ul id="footer-cobertura">
+                <!-- Generado por JS a partir de COVERED (sincronizado con el mapa) -->
                 <li>Toda España · Nacional 24h</li>
-                <li>Portugal · Francia · Italia</li>
-                <li>Alemania · Polonia · Austria</li>
-                <li>Bélgica · Países Bajos · Luxemburgo</li>
-                <li>Irlanda · Dinamarca · Suiza</li>
             </ul>
         </div>
     </div>
@@ -3463,6 +3460,21 @@ function openLegal(tab) {
             pl:'Polonia', it:'Italia', ch:'Suiza', nl:'Países Bajos',
             be:'Bélgica', at:'Austria', cz:'República Checa', lu:'Luxemburgo'
         };
+        // Footer "Cobertura": generar lista a partir de COVERED para que
+        // SIEMPRE este sincronizada con el mapa
+        var footerList = document.getElementById('footer-cobertura');
+        if (footerList) {
+            // Orden: Espana primero (mercado principal), resto en el orden
+            // del objeto. Cabe en 3-4 lineas con bullets de 3 por linea
+            var items = Object.keys(COVERED).map(function (k) { return COVERED[k]; });
+            // Espana arriba sola con badge "Nacional 24h", el resto agrupado de 3 en 3
+            var html = '<li>España · Nacional 24h</li>';
+            var rest = items.filter(function (n) { return n !== 'España'; });
+            for (var i = 0; i < rest.length; i += 3) {
+                html += '<li>' + rest.slice(i, i + 3).join(' · ') + '</li>';
+            }
+            footerList.innerHTML = html;
+        }
         // Todos los paises europeos: tambien identificables al hover/tap
         // (no resaltados como cubiertos pero saber cual es cada uno)
         var COUNTRY_NAMES = Object.assign({}, COVERED, {
