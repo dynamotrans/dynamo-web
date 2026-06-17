@@ -3612,8 +3612,8 @@ function openLegal(tab) {
                 var mapVisible = false;
                 function startCycle() {
                     if (autoTimer) return;
-                    autoTimer = setInterval(autoStep, 1400);
                     autoStep();
+                    autoTimer = setInterval(autoStep, 800);
                 }
                 function stopCycle() {
                     if (autoTimer) clearInterval(autoTimer);
@@ -3628,7 +3628,7 @@ function openLegal(tab) {
                             if (mapVisible) startCycle();
                             else stopCycle();
                         });
-                    }, { threshold: 0.25 });
+                    }, { threshold: 0.05 });
                     io.observe(box);
                 } else {
                     startCycle();
