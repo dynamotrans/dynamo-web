@@ -3434,6 +3434,10 @@ function openLegal(tab) {
         var box = document.getElementById('cobertura-map-box');
         var tooltip = document.getElementById('europaTooltip');
         if (!box || !tooltip) return;
+        // Movemos el tooltip al <body>: si se queda dentro de un ancestor
+        // con CSS transform (la clase .reveal por ejemplo), position:fixed
+        // se vuelve relativo a ese ancestor y el tooltip aparece lejos del puntero
+        document.body.appendChild(tooltip);
         fetch('/images/europa-map.svg')
             .then(function (r) { return r.text(); })
             .then(function (svgText) {
@@ -3443,7 +3447,7 @@ function openLegal(tab) {
                 var covered = [];
                 var hideTimer = null;
                 function placeTooltip(clientX, clientY) {
-                    // Posiciona temporal para medir el tamaño real del tooltip
+                    // Centramos el tooltip sobre el punto (centro del pais)
                     tooltip.style.left = '0'; tooltip.style.top = '0';
                     tooltip.style.visibility = 'hidden';
                     tooltip.classList.add('visible');
@@ -3452,16 +3456,14 @@ function openLegal(tab) {
                     var vw = window.innerWidth;
                     var vh = window.innerHeight;
                     var margin = 8;
-                    // Por defecto a la derecha y abajo del puntero/tap
-                    var x = clientX + 14;
-                    var y = clientY + 16;
-                    // Si se sale por la derecha -> a la izquierda
-                    if (x + w + margin > vw) x = clientX - w - 14;
-                    // Si se sale por abajo -> arriba
-                    if (y + h + margin > vh) y = clientY - h - 14;
-                    // Mantener dentro de los limites
+                    // Centrado horizontalmente sobre el punto, justo encima
+                    var x = clientX - w / 2;
+                    var y = clientY - h - 8;
+                    // Mantener dentro de los limites del viewport
                     if (x < margin) x = margin;
-                    if (y < margin) y = margin;
+                    if (x + w + margin > vw) x = vw - w - margin;
+                    if (y < margin) y = clientY + 8; // si no cabe arriba, abajo
+                    if (y + h + margin > vh) y = vh - h - margin;
                     tooltip.style.left = x + 'px';
                     tooltip.style.top  = y + 'px';
                     tooltip.style.visibility = 'visible';
@@ -3489,20 +3491,17 @@ function openLegal(tab) {
                         p.classList.add('covered');
                         covered.push(p);
                     }
-                    // Desktop: hover muestra/oculta el tooltip
-                    p.addEventListener('mouseenter', function (e) {
-                        showTooltip(name, e.clientX, e.clientY);
-                    });
-                    p.addEventListener('mouseleave', function () { hideTooltip(); });
-                    p.addEventListener('mousemove', function (e) {
-                        placeTooltip(e.clientX, e.clientY);
-                    });
-                    // Touch (movil/tablet): tap muestra el tooltip durante 2.5s
-                    // centrado en el CENTRO del pais (no donde tocaron, asi
-                    // queda visualmente sobre el pais identificado)
-                    p.addEventListener('touchstart', function (e) {
+                    // Tooltip SIEMPRE en el centro del pais (predecible,
+                    // no depende del puntero). Tanto en desktop como en movil
+                    function showAtCenter() {
                         var r = p.getBoundingClientRect();
                         showTooltip(name, r.left + r.width / 2, r.top + r.height / 2);
+                    }
+                    p.addEventListener('mouseenter', showAtCenter);
+                    p.addEventListener('mouseleave', function () { hideTooltip(); });
+                    // Touch (movil/tablet): tap durante 2.5s
+                    p.addEventListener('touchstart', function () {
+                        showAtCenter();
                         hideTooltip(2500);
                     }, { passive: true });
                 });
