@@ -1362,7 +1362,10 @@
             box-shadow: 0 4px 30px rgba(10,2,48,0.06);
         }
         .cobertura-map-box object {
-            width: 100%; height: auto; display: block;
+            width: 100%; display: block;
+            /* Aspect ratio del SVG fuente (680x520). Sin esto, <object>
+               colapsa a height 0 porque no tiene dimensiones intrinsecas */
+            aspect-ratio: 680 / 520;
             pointer-events: auto;
         }
         .cobertura-tooltip {
