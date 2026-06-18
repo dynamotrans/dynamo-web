@@ -388,7 +388,10 @@
 
         .content {
             flex: 1; padding: 1.6rem 2rem 3rem;
-            max-width: 100%;
+            /* Cap a 1400px y centrado para que en pantallas anchas las
+               tablas no queden con celdas vacias diluidas; en monitores
+               normales/iPad/movil ocupa todo el ancho disponible */
+            max-width: 1400px; margin: 0 auto; width: 100%;
             /* No scroll horizontal en el contenedor. Cada hijo (tablas, tabs)
                gestiona su propio overflow internamente */
             overflow-x: hidden;
@@ -626,7 +629,10 @@
         }
         table.data {
             width: 100%; border-collapse: collapse; font-size: 0.82rem;
-            min-width: 900px;
+            /* Min-width mas bajo (era 900px) -> menos scroll horizontal
+               en iPad portrait/movil. En desktop sigue llenando el 100%
+               del contenedor por width: 100% */
+            min-width: 720px;
         }
         table.data thead th {
             text-align: left; padding: 0.75rem 0.9rem;
@@ -742,9 +748,14 @@
             .filters input[type="search"] { flex: 1 1 100%; }
             .pagination { flex-direction: column; gap: 0.6rem; align-items: stretch; }
             .pagination-pages { justify-content: center; flex-wrap: wrap; }
+            /* Tablas mas densas en movil/tablet */
+            table.data { font-size: 0.78rem; min-width: 680px; }
+            table.data thead th { padding: 0.55rem 0.65rem; font-size: 0.65rem; }
+            table.data tbody td { padding: 0.6rem 0.65rem; }
         }
         @media (max-width: 420px) {
             .stats-row, .stats-row-3 { grid-template-columns: 1fr; }
+            table.data { min-width: 620px; }
         }
         .sidebar-toggle {
             display: none; width: 38px; height: 38px;
