@@ -848,6 +848,11 @@
         .badge-red     { background: rgba(220,38,38,0.12);  color: var(--red); }
         .badge-blue    { background: rgba(51,0,204,0.10);   color: var(--purple); }
         .badge-gray    { background: var(--gray-200);       color: var(--gray-700); }
+        /* Chip 📄 al lado del estado cuando la entrega tiene albaran PDF */
+        .badge-doc {
+            display: inline-block; font-size: 0.85rem;
+            margin-left: 0.25rem; cursor: help; vertical-align: middle;
+        }
 
         .dash-ctas { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.4rem; }
         .dash-cta {
@@ -1441,6 +1446,7 @@
             <button class="tab" data-filter="programada">Programadas (<span data-count="programada">0</span>)</button>
             <button class="tab" data-filter="en-ruta">En ruta (<span data-count="en-ruta">0</span>)</button>
             <button class="tab" data-filter="entregada">Entregadas (<span data-count="entregada">0</span>)</button>
+            <button class="tab" data-filter="sin-albaran">Sin albarán (<span data-count="sin-albaran">0</span>)</button>
             <button class="tab" data-filter="cancelada">Canceladas (<span data-count="cancelada">0</span>)</button>
         </div>
         <div class="filters">
@@ -2105,6 +2111,29 @@
         var name = 'Albaran-' + d.ref.replace(/[^A-Za-z0-9-]/g, '') + '.pdf';
         downloadFakePDF(name);
     }
+    function cargaReclamarAlbaran(row) {
+        var d = cargaRowData(row);
+        openDashModal({
+            icon: '📩',
+            title: 'Reclamar albarán ' + d.ref,
+            sub: 'Pedimos al transportista que nos envíe la documentación',
+            body:
+                '<div class="modal-warn-box">Vamos a contactar al transportista para que nos envíe el <strong>albarán firmado</strong> de esta carga. Te llegará por email en cuanto lo recibamos (normalmente en 24-48h).</div>' +
+                infoGrid([
+                    { label: 'Nº carga', value: d.ref },
+                    { label: 'Fecha entrega', value: d.fecha },
+                    { label: 'Ruta', value: d.origen + ' → ' + d.destino, span: true },
+                    { label: 'Mercancía', value: d.mercancia }
+                ]) +
+                '<div class="modal-form-row" style="margin-top:0.8rem;"><label>Notas para el equipo (opcional)</label><textarea placeholder="Ej. urgente para contabilidad, lo necesita el cliente final, etc."></textarea></div>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                    '<button class="btn-primary" onclick="cargaReclamarAlbaranConfirm(\'' + escapeHtml(d.ref) + '\')">Enviar reclamación</button>'
+        });
+    }
+    function cargaReclamarAlbaranConfirm(ref) {
+        showModalSuccess('Reclamación enviada', 'Hemos pedido el albarán de ' + ref + ' al transportista. Te lo enviaremos por email en cuanto lo tengamos.');
+    }
+    window.cargaReclamarAlbaranConfirm = cargaReclamarAlbaranConfirm;
     function cargaSeguimiento(row) {
         var d = cargaRowData(row);
         openDashModal({
@@ -2259,6 +2288,8 @@
         if (text.indexOf('ver detalle') > -1) return 'ver-detalle';
         if (text.indexOf('reportar incidencia') > -1) return 'reportar-incidencia';
         if (text.indexOf('descargar alb') > -1) return 'descargar-albaran';
+        if (text.indexOf('reclamar alb') > -1) return 'reclamar-albaran';
+        if (text.indexOf('procesándose') > -1 || text.indexOf('procesandose') > -1) return null; // boton informativo, no acciona
         if (text.indexOf('repetir') > -1) return 'repetir';
         if (text.indexOf('seguimiento') > -1) return 'seguimiento';
         if (text.indexOf('modificar') > -1) return 'modificar';
@@ -2275,6 +2306,7 @@
             if (action === 'repetir') return cargaRepetir(row);
             if (action === 'reportar-incidencia') return cargaReportarIncidencia(row);
             if (action === 'descargar-albaran') return cargaDescargarAlbaran(row);
+            if (action === 'reclamar-albaran') return cargaReclamarAlbaran(row);
             if (action === 'seguimiento') return cargaSeguimiento(row);
             if (action === 'modificar') return cargaModificar(row);
             if (action === 'cancelar-carga') return cargaCancelar(row);
@@ -2806,13 +2838,37 @@
     };
 
     // ---- DATA: cargas (28) ----
-    function makeCarga(ref, refCli, fecha, ventana, origen, destino, direcciones, mercancia, mercanciaMeta, medidas, kind) {
+    // hasAlbaran: solo aplica a entregadas (true por defecto). Si false,
+    // la accion sera "Reclamar albaran" (>1 dia desde fecha) o
+    // "Albaran procesandose" (<=1 dia)
+    function makeCarga(ref, refCli, fecha, ventana, origen, destino, direcciones, mercancia, mercanciaMeta, medidas, kind, hasAlbaran) {
         var estado, color;
         if (kind === 'programada')   { estado = 'Programada'; color = 'orange'; }
         else if (kind === 'en-ruta') { estado = 'En ruta';    color = 'blue';   }
         else if (kind === 'cancelada'){ estado = 'Cancelada'; color = 'gray';   }
         else                          { estado = 'Entregada'; color = 'green';  kind = 'entregada'; }
-        return { ref: ref, refCli: refCli, fecha: fecha, ventana: ventana, origen: origen, destino: destino, direcciones: direcciones, mercancia: mercancia, mercanciaMeta: mercanciaMeta, medidas: medidas, estado: estado, estadoColor: color, kind: kind };
+        return {
+            ref: ref, refCli: refCli, fecha: fecha, ventana: ventana,
+            origen: origen, destino: destino, direcciones: direcciones,
+            mercancia: mercancia, mercanciaMeta: mercanciaMeta, medidas: medidas,
+            estado: estado, estadoColor: color, kind: kind,
+            hasAlbaran: kind === 'entregada' ? (hasAlbaran !== false) : false
+        };
+    }
+    // Dias transcurridos desde fecha (DD/MM, año 2026). Usado para decidir
+    // si el boton "Reclamar albaran" ya esta disponible o sigue
+    // procesandose por el transportista (margen 1 dia)
+    function daysSinceCargaFecha(fechaStr) {
+        if (!fechaStr) return 999;
+        var parts = fechaStr.split('/');
+        if (parts.length < 2) return 999;
+        var d = parseInt(parts[0], 10);
+        var m = parseInt(parts[1], 10) - 1;
+        var year = (new Date()).getFullYear();
+        var cargaDate = new Date(year, m, d);
+        var now = new Date();
+        var diff = Math.floor((now.getTime() - cargaDate.getTime()) / (1000*60*60*24));
+        return diff;
     }
     var CARGAS_DATA = [
         makeCarga('#C-2026-1290','PED-0426','28/06','±2 días','Sevilla','Madrid','Pol. Industrial Carretera de la Isla → Mercamadrid','Paletizado','Productos químicos','13,2 m · 22.000 kg','programada'),
@@ -2820,13 +2876,13 @@
         makeCarga('#C-2026-1286','PED-0424','22/06','±4 días','Sevilla','Valencia','Almacén central → Puerto','Eventos / feria','Stand modular','6,0 m · 8.200 kg','programada'),
         makeCarga('#C-2026-1285','PED-0423','16/06','Fija','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Paletizado','Repuestos automoción','12,0 m · 20.000 kg','en-ruta'),
         makeCarga('#C-2026-1281','PED-0419','14/06','Fija','Sevilla','Barcelona','Centro logístico → Zona Franca','Maquinaria','2 piezas, sobredim.','8,4 m · 14.500 kg','en-ruta'),
-        makeCarga('#C-2026-1284','PED-0421','15/06','±2 días','Sevilla','Madrid','Pol. Carretera de la Isla → Mercamadrid','Paletizado','Aceite envasado','13,2 m · 24.000 kg','entregada'),
+        makeCarga('#C-2026-1284','PED-0421','15/06','±2 días','Sevilla','Madrid','Pol. Carretera de la Isla → Mercamadrid','Paletizado','Aceite envasado','13,2 m · 24.000 kg','entregada', false),
         makeCarga('#C-2026-1283','PED-0420','13/06','Fija','Madrid','Valencia','Vallecas → Puerto','Paletizado','Bebidas refrigeradas','13,2 m · 22.000 kg','entregada'),
         makeCarga('#C-2026-1282','PED-0419B','12/06','±2 días','Sevilla','Vigo','Polígono → Bouzas','Material obra','Cerámica','13,2 m · 20.000 kg','entregada'),
-        makeCarga('#C-2026-1278','PED-0417','11/06','Fija','Sevilla','A Coruña','Centro → Pol. Pocomaco','Paletizado','Cosméticos','10,0 m · 15.000 kg','entregada'),
+        makeCarga('#C-2026-1278','PED-0417','11/06','Fija','Sevilla','A Coruña','Centro → Pol. Pocomaco','Paletizado','Cosméticos','10,0 m · 15.000 kg','entregada', false),
         makeCarga('#C-2026-1276','PED-0416','11/06','±2 días','Sevilla','Valencia','Almacén central → Puerto','Material','Tubos PVC','13,2 m · 22.500 kg','entregada'),
         makeCarga('#C-2026-1275','PED-0414','10/06','±2 días','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Mercancía paletizada','33 europalets','13,2 m · 22.500 kg','entregada'),
-        makeCarga('#C-2026-1273','PED-0413','09/06','Fija','Sevilla','Pamplona','Centro → Pol. Landaben','Maquinaria','1 pieza compacta','8,4 m · 9.500 kg','entregada'),
+        makeCarga('#C-2026-1273','PED-0413','09/06','Fija','Sevilla','Pamplona','Centro → Pol. Landaben','Maquinaria','1 pieza compacta','8,4 m · 9.500 kg','entregada', false),
         makeCarga('#C-2026-1272','PED-0411','05/06','Fija','Sevilla','Lisboa (PT)','Centro → Quinta da Beloura','Material de obra','Perfiles metálicos','10,0 m · 18.000 kg','entregada'),
         makeCarga('#C-2026-1270','PED-0410','03/06','±2 días','Sevilla','Murcia','Centro → Pol. Cabezo Beaza','Eventos','Stand modular','6,0 m · 7.500 kg','entregada'),
         makeCarga('#C-2026-1268','PED-0405','02/06','±2 días','Sevilla','Zaragoza','Polígono → Plaza','Paletizado','Material eléctrico','13,2 m · 19.000 kg','entregada'),
@@ -2844,6 +2900,20 @@
         makeCarga('#C-2026-1244','PED-0389','02/05','±2 días','Sevilla','Cádiz','Centro → Puerto','Maquinaria','Repuestos navales','8,4 m · 11.000 kg','entregada'),
         makeCarga('#C-2026-1242','PED-0387','30/04','Fija','Sevilla','Cartagena','Centro → Pol. Cabezo Beaza','Paletizado','Productos químicos','13,2 m · 24.000 kg','entregada')
     ];
+    // Anadir 2 entregas dinamicas (hoy + ayer) para que se vea el estado
+    // "Albaran procesandose" (entregadas hoy o ayer, transportistas aun
+    // tienen que mandarnos el doc) y "Reclamar albaran" (>1 dia despues)
+    (function injectRecentEntregas() {
+        function fechaDDMM(diasAtras) {
+            var d = new Date();
+            d.setDate(d.getDate() - diasAtras);
+            return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth()+1)).slice(-2);
+        }
+        // Hoy: sin albaran -> "Albaran procesandose"
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1296','PED-0432', fechaDDMM(0), 'Fija','Sevilla','Córdoba','Centro → Pol. Las Quemadas','Paletizado','Repuestos automoción','10,0 m · 16.000 kg','entregada', false));
+        // Ayer: sin albaran -> "Reclamar" (>1 dia? no, exactamente 1 -> reclamar)
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1295','PED-0431', fechaDDMM(1), '±2 días','Sevilla','Jaén','Centro → Pol. Olivar','Paletizado','Maquinaria agricola','12,0 m · 18.000 kg','entregada', false));
+    })();
 
     // ---- DATA: presupuestos (19) ----
     function makePresupuesto(ref, refCli, fecha, origen, destino, mercancia, medidas, precio, vigencia, vigenciaColor, kind) {
@@ -2918,11 +2988,25 @@
 
     // ---- ESCAPE + RENDER HELPERS ----
     function esc(s) { return escapeHtml(s); }
-    function actionItemsCarga(kind) {
+    function actionItemsCarga(c) {
+        var kind = c.kind;
         if (kind === 'programada') return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">✏️ Modificar</button><button class="row-menu-item danger">✕ Cancelar carga</button>';
         if (kind === 'en-ruta')    return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">📍 Seguimiento</button><button class="row-menu-item">⚠️ Reportar incidencia</button>';
         if (kind === 'cancelada')  return '<button class="row-menu-item">📋 Ver detalle</button>';
-        return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">🔁 Repetir</button><button class="row-menu-item">⚠️ Reportar incidencia</button><button class="row-menu-item">📥 Descargar albarán</button>';
+        // entregada
+        var albaranItem;
+        if (c.hasAlbaran) {
+            albaranItem = '<button class="row-menu-item">📥 Descargar albarán</button>';
+        } else {
+            var dias = daysSinceCargaFecha(c.fecha);
+            if (dias >= 1) {
+                albaranItem = '<button class="row-menu-item">📩 Reclamar albarán</button>';
+            } else {
+                // <1 dia: el transportista aun nos lo tiene que mandar
+                albaranItem = '<button class="row-menu-item" disabled style="opacity:0.55;cursor:not-allowed;" title="El transportista aun no nos ha enviado el albaran. Disponible al dia siguiente de la entrega.">⏳ Albarán procesándose…</button>';
+            }
+        }
+        return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">🔁 Repetir</button><button class="row-menu-item">⚠️ Reportar incidencia</button>' + albaranItem;
     }
     function actionItemsPresupuesto(kind) {
         if (kind === 'caducados')   return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">🔁 Revisar precio (renovar +7 días)</button>';
@@ -2940,6 +3024,7 @@
     function filteredCargas() {
         var f = TABLE_STATE.cargas.filter;
         if (f === 'todas') return CARGAS_DATA;
+        if (f === 'sin-albaran') return CARGAS_DATA.filter(function (c) { return c.kind === 'entregada' && !c.hasAlbaran; });
         return CARGAS_DATA.filter(function (c) { return c.kind === f; });
     }
     function filteredPresupuestos() {
@@ -2973,8 +3058,8 @@
                     '<td class="route"><strong>' + esc(c.origen) + '</strong><span class="arrow">→</span><strong>' + esc(c.destino) + '</strong>' + (c.direcciones ? '<div class="meta">' + esc(c.direcciones) + '</div>' : '') + '</td>' +
                     '<td>' + esc(c.mercancia) + (c.mercanciaMeta ? '<div class="meta">' + esc(c.mercanciaMeta) + '</div>' : '') + '</td>' +
                     '<td class="amount">' + esc(c.medidas) + '</td>' +
-                    '<td><span class="badge badge-' + c.estadoColor + '">' + esc(c.estado) + '</span></td>' +
-                    actionsCell(actionItemsCarga(c.kind)) +
+                    '<td><span class="badge badge-' + c.estadoColor + '">' + esc(c.estado) + '</span>' + (c.kind === 'entregada' && c.hasAlbaran ? ' <span class="badge-doc" title="Albarán PDF disponible">📄</span>' : '') + '</td>' +
+                    actionsCell(actionItemsCarga(c)) +
                     '</tr>';
             }).join('');
             wrapRowMenus(tbody);
@@ -2985,11 +3070,12 @@
         // Tab counts
         var tabs = document.querySelector('.tabs[data-table="cargas"]');
         if (tabs) {
-            setText(tabs.querySelector('[data-count="todas"]'),      CARGAS_DATA.length);
-            setText(tabs.querySelector('[data-count="programada"]'), CARGAS_DATA.filter(function(c){return c.kind==='programada';}).length);
-            setText(tabs.querySelector('[data-count="en-ruta"]'),    CARGAS_DATA.filter(function(c){return c.kind==='en-ruta';}).length);
-            setText(tabs.querySelector('[data-count="entregada"]'),  CARGAS_DATA.filter(function(c){return c.kind==='entregada';}).length);
-            setText(tabs.querySelector('[data-count="cancelada"]'),  CARGAS_DATA.filter(function(c){return c.kind==='cancelada';}).length);
+            setText(tabs.querySelector('[data-count="todas"]'),       CARGAS_DATA.length);
+            setText(tabs.querySelector('[data-count="programada"]'),  CARGAS_DATA.filter(function(c){return c.kind==='programada';}).length);
+            setText(tabs.querySelector('[data-count="en-ruta"]'),     CARGAS_DATA.filter(function(c){return c.kind==='en-ruta';}).length);
+            setText(tabs.querySelector('[data-count="entregada"]'),   CARGAS_DATA.filter(function(c){return c.kind==='entregada';}).length);
+            setText(tabs.querySelector('[data-count="sin-albaran"]'), CARGAS_DATA.filter(function(c){return c.kind==='entregada' && !c.hasAlbaran;}).length);
+            setText(tabs.querySelector('[data-count="cancelada"]'),   CARGAS_DATA.filter(function(c){return c.kind==='cancelada';}).length);
         }
     }
     function renderPresupuestosTable() {
