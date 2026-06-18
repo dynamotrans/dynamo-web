@@ -1676,6 +1676,9 @@
         var lang = btn.getAttribute('data-lang');
         updateLangLabel(btn);
         try { localStorage.setItem('dashLang', lang); } catch (e) {}
+        // Cerrar el menu (y el submenu de idiomas) para dejar la pantalla
+        // libre. Se hace siempre, da igual el idioma elegido.
+        closeUserMenu();
 
         // Volver al original: borrar cookie googtrans en todos los dominios y recargar
         if (lang === 'es') {
