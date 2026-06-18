@@ -531,12 +531,24 @@
         .tabs {
             display: flex; gap: 0.2rem; margin-bottom: 1rem;
             border-bottom: 1px solid var(--gray-200);
-            /* En movil los tabs no caben en una sola linea -> que se pueda
-               desplazar horizontalmente DENTRO de la franja sin arrastrar la
-               pagina. Ocultamos la barra de scroll por estetica */
+            align-items: stretch;
+            /* En movil los tabs no caben en una sola linea -> swipe horizontal
+               estable dentro de la franja, sin arrastrar la pagina ni temblar
+               en vertical */
             overflow-x: auto;
-            scrollbar-width: none;
+            overflow-y: hidden;
+            /* Restringir el gesto tactil a solo horizontal: sin esto, iOS
+               interpreta el swipe como pan en X+Y simultaneo y el contenido
+               "salta" verticalmente al rebotar */
+            touch-action: pan-x;
+            /* Evitar que el rebote del scroll horizontal propague al body */
+            overscroll-behavior-x: contain;
             -webkit-overflow-scrolling: touch;
+            /* Snap suave en cada tab para acabar siempre en una posicion
+               limpia, no a medio camino entre dos */
+            scroll-snap-type: x proximity;
+            scrollbar-width: none;
+            scroll-padding: 0 0.5rem;
         }
         .tabs::-webkit-scrollbar { display: none; }
         .tab {
@@ -545,6 +557,8 @@
             cursor: pointer; border-bottom: 2.5px solid transparent;
             margin-bottom: -1px;
             white-space: nowrap; flex-shrink: 0;
+            scroll-snap-align: start;
+            -webkit-tap-highlight-color: transparent;
         }
         .tab:hover { color: var(--navy); }
         .tab.active { color: var(--purple); border-bottom-color: var(--purple); }
@@ -565,9 +579,12 @@
         .filters input[type="search"] { flex: 1 1 220px; min-width: 0; }
 
         .table-wrap {
-            background: white; border-radius: 12px; overflow: hidden;
+            background: white; border-radius: 12px;
             border: 1px solid var(--gray-200);
             overflow-x: auto;
+            overflow-y: hidden;
+            overscroll-behavior-x: contain;
+            -webkit-overflow-scrolling: touch;
         }
         table.data {
             width: 100%; border-collapse: collapse; font-size: 0.82rem;
