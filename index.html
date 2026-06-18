@@ -190,8 +190,11 @@
             --gray-500:     #9aa0ab;
             --gray-700:     #3d4452;
         }
-        html { scroll-behavior: smooth; }
-        body { font-family: 'Inter', sans-serif; background: var(--white); color: var(--gray-700); overflow-x: hidden; }
+        /* overflow-x: hidden en HTML (no en body): si lo pones en body,
+           iOS Chrome convierte el body en contenedor de scroll propio y
+           el scroll vertical se desborda en blanco al final de la pagina */
+        html { scroll-behavior: smooth; overflow-x: hidden; }
+        body { font-family: 'Inter', sans-serif; background: var(--white); color: var(--gray-700); overscroll-behavior-y: none; }
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: var(--purple-dark); }
         ::-webkit-scrollbar-thumb { background: var(--green); border-radius: 3px; }
