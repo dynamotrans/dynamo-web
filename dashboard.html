@@ -129,6 +129,132 @@
             box-sizing: content-box;
         }
         .topbar-actions { display: flex; align-items: center; gap: 0.6rem; }
+
+        /* ============================================
+           BOTON DE CONTACTO (Alvaro) EN LA TOPBAR
+           Reemplaza al FAB flotante. Avatar pequeño que al hover/click
+           se agranda y abre un dropdown con los 3 canales de contacto
+        ============================================ */
+        .topbar-contact-wrap { position: relative; }
+        .topbar-contact-btn {
+            width: 38px; height: 38px; border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.4);
+            background: white; padding: 0;
+            cursor: pointer; position: relative; flex-shrink: 0;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.18s, box-shadow 0.18s;
+            box-shadow: 0 4px 12px rgba(10,2,48,0.18);
+        }
+        .topbar-contact-btn img {
+            width: 100%; height: 100%; border-radius: 50%;
+            object-fit: cover; display: block;
+        }
+        .topbar-contact-btn:hover,
+        .topbar-contact-btn:focus-visible,
+        .topbar-contact-btn[aria-expanded="true"] {
+            transform: scale(1.18);
+            border-color: white;
+            box-shadow: 0 8px 22px rgba(10,2,48,0.32), 0 0 0 3px rgba(34,197,94,0.35);
+            outline: none;
+        }
+        /* Dot verde "online" en la esquina del avatar */
+        .topbar-contact-dot {
+            position: absolute; bottom: -2px; right: -2px;
+            width: 12px; height: 12px; border-radius: 50%;
+            background: #22c55e; border: 2px solid var(--purple);
+            box-shadow: 0 0 0 0 rgba(34,197,94,0.45);
+            animation: topbarContactDot 2.5s ease-out infinite;
+        }
+        @keyframes topbarContactDot {
+            0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.55); }
+            70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+            100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+        }
+
+        /* Dropdown */
+        .topbar-contact-menu {
+            position: absolute; top: calc(100% + 10px); right: 0;
+            min-width: 280px; max-width: 320px;
+            background: white; border-radius: 14px;
+            border: 1px solid var(--gray-200);
+            box-shadow: 0 14px 44px rgba(10,2,48,0.18), 0 4px 14px rgba(10,2,48,0.06);
+            padding: 0.45rem;
+            z-index: 200;
+            opacity: 0; pointer-events: none;
+            transform: translateY(-6px) scale(0.96);
+            transform-origin: top right;
+            transition: opacity 0.18s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .topbar-contact-menu.open {
+            opacity: 1; pointer-events: auto;
+            transform: translateY(0) scale(1);
+        }
+        .topbar-contact-head {
+            display: flex; align-items: center; gap: 0.7rem;
+            padding: 0.7rem 0.7rem 0.85rem;
+        }
+        .topbar-contact-head img {
+            width: 44px; height: 44px; border-radius: 50%;
+            object-fit: cover; flex-shrink: 0;
+            border: 2px solid rgba(34,197,94,0.35);
+        }
+        .topbar-contact-head-body { min-width: 0; flex: 1; }
+        .topbar-contact-name {
+            font-size: 0.92rem; font-weight: 800; color: var(--navy);
+            line-height: 1.15;
+        }
+        .topbar-contact-status {
+            font-size: 0.74rem; color: var(--gray-500); margin-top: 0.15rem;
+            font-weight: 600;
+        }
+        .topbar-contact-status::before {
+            content: ""; display: inline-block;
+            width: 7px; height: 7px; border-radius: 50%;
+            background: #22c55e; margin-right: 5px; vertical-align: middle;
+            box-shadow: 0 0 5px rgba(34,197,94,0.6);
+            animation: topbarStatusBlink 2s ease-in-out infinite;
+        }
+        @keyframes topbarStatusBlink {
+            0%, 100% { opacity: 1; }
+            50%      { opacity: 0.55; }
+        }
+        .topbar-contact-sep {
+            height: 1px; background: var(--gray-200); margin: 0.2rem 0.3rem;
+        }
+        .topbar-contact-item {
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 0.6rem 0.7rem; border-radius: 10px;
+            text-decoration: none;
+            transition: background 0.15s;
+            margin-bottom: 0.15rem;
+        }
+        .topbar-contact-item:hover { background: var(--gray-100); }
+        .topbar-contact-icon {
+            width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: white; flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(10,2,48,0.18);
+        }
+        .act-email-bg { background: var(--purple); }
+        .act-wa-bg    { background: #25D366; }
+        .act-call-bg  { background: var(--navy); }
+        .topbar-contact-text {
+            display: flex; flex-direction: column; gap: 0.1rem; min-width: 0;
+        }
+        .topbar-contact-text .t {
+            font-size: 0.88rem; font-weight: 800; color: var(--navy);
+        }
+        .topbar-contact-text .h {
+            font-size: 0.7rem; font-weight: 700; color: var(--gray-500);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        @media (max-width: 480px) {
+            .topbar-contact-menu {
+                /* En movil pequeño, alinear con el borde derecho con margen */
+                right: -0.5rem;
+                min-width: 260px;
+            }
+        }
+
         .topbar-icon-btn {
             width: 38px; height: 38px; border-radius: 10px;
             background: rgba(255,255,255,0.15); color: white;
@@ -358,14 +484,14 @@
         body.theme-dark .sidebar { background: #060116; }
 
         /* ============================================
-           BOTON "VOLVER ARRIBA" + AVATAR FAB
+           BOTON "VOLVER ARRIBA"
         ============================================ */
-        /* El back-top sube por encima del FAB del avatar (130px desktop /
-           109px movil) y se alinea horizontalmente con su centro. */
+        /* Margenes generosos para que no quede pegado a la esquina.
+           env(safe-area-inset-*) suma el area de la home bar / notch en iPhone */
         .back-top {
             position: fixed;
-            bottom: calc(13rem + env(safe-area-inset-bottom));
-            right: calc(1.8rem + 42px + env(safe-area-inset-right));
+            bottom: calc(2rem + env(safe-area-inset-bottom));
+            right: calc(2rem + env(safe-area-inset-right));
             width: 46px; height: 46px; border-radius: 50%;
             background: var(--purple); color: white;
             border: none; cursor: pointer; z-index: 90;
@@ -377,288 +503,14 @@
         }
         .back-top.show { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
         .back-top:hover { background: var(--purple-light); transform: translateY(-2px); }
-        /* Cuando el FAB del avatar se abre, ocultar back-top para que los
-           iconos de canal no choquen visualmente con el ↑ */
-        .back-top.fab-hidden { opacity: 0 !important; pointer-events: none !important; transform: scale(0.8) !important; }
         @media (max-width: 600px) {
             .back-top {
-                bottom: calc(11rem + env(safe-area-inset-bottom));
-                right: calc(1.2rem + 32.5px + env(safe-area-inset-right));
+                bottom: calc(1.6rem + env(safe-area-inset-bottom));
+                right: calc(1.6rem + env(safe-area-inset-right));
                 width: 44px; height: 44px;
             }
         }
 
-        /* ============================================
-           AVATAR FAB (foto + canales contacto)
-        ============================================ */
-        .contact-fab-wrap { position:fixed; bottom:1.8rem; right:1.8rem; z-index:998; display:flex; flex-direction:column-reverse; align-items:center; gap:0.85rem; pointer-events:none; }
-        .contact-fab {
-            width:130px; height:130px; border-radius:50%; border:none; padding:0; cursor:pointer;
-            background:none; position:relative; flex-shrink:0; pointer-events:auto;
-        }
-        .contact-fab img {
-            width:100%; height:100%; border-radius:50%; object-fit:cover; display:block;
-            box-shadow:0 4px 20px rgba(10,2,48,0.35);
-        }
-        .contact-fab-name {
-            position:absolute; top:50%; right:calc(100% + 0.7rem);
-            transform:translateY(-50%) translateX(8px);
-            background:white; color:var(--purple);
-            padding:0.55rem 0.95rem; border-radius:18px;
-            text-align:right;
-            box-shadow:0 4px 14px rgba(10,2,48,0.18);
-            opacity:0; pointer-events:none;
-            transition:opacity 0.25s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
-        }
-        .contact-fab-name-title {
-            display:block; font-size:1.01rem; font-weight:700; letter-spacing:0.2px;
-            white-space:nowrap;
-        }
-        .contact-fab-name-status {
-            display:block; font-size:0.75rem; font-weight:600;
-            color:var(--gray-500); margin-top:2px; white-space:nowrap;
-        }
-        .contact-fab-name-status::before {
-            content:""; display:inline-block;
-            width:7px; height:7px; border-radius:50%;
-            background:#22c55e; margin-right:5px; vertical-align:middle;
-            box-shadow:0 0 6px rgba(34,197,94,0.65);
-            animation:fabStatusBlink 2s ease-in-out infinite;
-        }
-        @keyframes fabStatusBlink {
-            0%, 100% { opacity:1; }
-            50%      { opacity:0.55; }
-        }
-        .contact-fab-wrap.open .contact-fab-name {
-            opacity:1; transform:translateY(-50%) translateX(0);
-        }
-        .contact-fab::before {
-            content:""; position:absolute; inset:-4px; border-radius:50%;
-            border:3px solid #25D366; animation:fabRing 2s ease-out infinite; pointer-events:none;
-        }
-        .contact-fab-wrap.open .contact-fab::before { animation:none; opacity:0; }
-        .contact-fab::after {
-            content:""; position:absolute; bottom:7%; right:7%;
-            width:20px; height:20px; border-radius:50%;
-            background:#22c55e; border:3px solid white;
-            box-shadow:0 0 0 0 rgba(34,197,94,0.55);
-            animation:fabOnlineDotPulse 2.5s ease-out infinite;
-            pointer-events:none;
-        }
-        @keyframes fabOnlineDotPulse {
-            0%   { box-shadow:0 0 0 0 rgba(34,197,94,0.55); }
-            70%  { box-shadow:0 0 0 14px rgba(34,197,94,0); }
-            100% { box-shadow:0 0 0 0 rgba(34,197,94,0); }
-        }
-        .contact-fab:hover { transform:scale(1.06); }
-        .contact-fab, .contact-fab img { transition:transform 0.25s ease; }
-        @keyframes fabRing {
-            0%   { transform:scale(1);   opacity:0.9; }
-            70%  { transform:scale(1.35); opacity:0; }
-            100% { transform:scale(1.35); opacity:0; }
-        }
-        /* Boton ↔ para mover el avatar entre lado derecho/izquierdo */
-        .contact-fab-side-toggle {
-            position: absolute;
-            top: -8px; left: 50%; transform: translateX(-50%);
-            width: 28px; height: 28px; border-radius: 50%;
-            background: white; color: var(--purple);
-            border: 1.5px solid rgba(51,0,204,0.18);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; pointer-events: auto;
-            box-shadow: 0 4px 14px rgba(10,2,48,0.18);
-            opacity: 0; z-index: 2;
-            transition: opacity 0.22s ease, transform 0.22s ease, background 0.18s, color 0.18s;
-        }
-        .contact-fab-wrap:hover .contact-fab-side-toggle,
-        .contact-fab-wrap.open .contact-fab-side-toggle,
-        .contact-fab-side-toggle:focus-visible { opacity: 1; }
-        .contact-fab-side-toggle:hover { background: var(--purple); color: white; transform: translateX(-50%) scale(1.1); }
-        /* En movil/tablet el hover no es fiable -> siempre visible (pero suave) */
-        @media (hover: none) {
-            .contact-fab-side-toggle { opacity: 0.85; }
-        }
-        /* CUANDO EL FAB ESTA A LA IZQUIERDA */
-        .contact-fab-wrap.left { right: auto; left: 1.8rem; }
-        @media (max-width: 600px) {
-            .contact-fab-wrap.left { left: 1.2rem; }
-        }
-        /* El chip con nombre aparece a la DERECHA cuando el FAB esta a la izquierda */
-        .contact-fab-wrap.left .contact-fab-name {
-            right: auto; left: calc(100% + 0.7rem);
-            text-align: left;
-            transform: translateY(-50%) translateX(-8px);
-        }
-        .contact-fab-wrap.left.open .contact-fab-name {
-            transform: translateY(-50%) translateX(0);
-        }
-        /* Online dot pasa a la otra esquina inferior */
-        .contact-fab-wrap.left .contact-fab::after {
-            right: auto; left: 7%;
-        }
-        /* Back-top tambien sigue al avatar */
-        body.fab-left .back-top {
-            right: auto;
-            left: calc(1.8rem + 42px + env(safe-area-inset-left));
-        }
-        @media (max-width: 600px) {
-            body.fab-left .back-top {
-                left: calc(1.2rem + 32.5px + env(safe-area-inset-left));
-            }
-        }
-        .contact-fab-actions { display:flex; flex-direction:column; gap:0.7rem; align-items:center; }
-        .contact-fab-action {
-            width:52px; height:52px; border-radius:50%; border:none; cursor:pointer;
-            display:flex; align-items:center; justify-content:center; color:white;
-            box-shadow:0 4px 16px rgba(10,2,48,0.3); text-decoration:none;
-            opacity:0; transform:translateY(14px) scale(0.6); pointer-events:none;
-            transition:opacity 0.25s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
-        }
-        .contact-fab-action.act-email { background:var(--purple); }
-        .contact-fab-action.act-wa    { background:#25D366; }
-        .contact-fab-action.act-call  { background:#0a0230; }
-        .contact-fab-wrap.open .contact-fab-action {
-            opacity:1; transform:translateY(0) scale(1); pointer-events:auto;
-        }
-        .contact-fab-wrap.open .contact-fab-action:nth-child(1) { transition-delay:0.05s; }
-        .contact-fab-wrap.open .contact-fab-action:nth-child(2) { transition-delay:0.12s; }
-        .contact-fab-wrap.open .contact-fab-action:nth-child(3) { transition-delay:0.19s; }
-        .contact-fab-action:hover { transform:translateY(-2px) scale(1.1) !important; }
-        /* Chip de horario que aparece a la izquierda del icono cuando el FAB esta abierto */
-        .contact-fab-action[data-hours] { position: relative; }
-        .contact-fab-action[data-hours]::before {
-            content: attr(data-hours);
-            position: absolute; right: calc(100% + 0.5rem); top: 50%;
-            transform: translateY(-50%);
-            background: white; color: var(--navy);
-            font-size: 0.7rem; font-weight: 700;
-            padding: 0.3rem 0.55rem; border-radius: 10px;
-            white-space: nowrap;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.18);
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.25s ease 0.15s;
-        }
-        .contact-fab-wrap.open .contact-fab-action[data-hours]::before { opacity: 1; }
-
-        /* ============================================
-           MODAL "Fuera de horario telefonico"
-        ============================================ */
-        .phone-modal {
-            position: fixed; inset: 0; z-index: 100000;
-            display: none; align-items: center; justify-content: center;
-            padding: 1.2rem;
-        }
-        .phone-modal.open { display: flex; animation: phoneFadeIn 0.2s ease both; }
-        @keyframes phoneFadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .phone-modal-backdrop {
-            position: absolute; inset: 0;
-            background: rgba(10,2,48,0.55); backdrop-filter: blur(2px);
-            -webkit-backdrop-filter: blur(2px);
-        }
-        .phone-modal-card {
-            position: relative; z-index: 1;
-            background: white; border-radius: 18px;
-            max-width: 420px; width: 100%;
-            padding: 2.2rem 1.6rem 1.4rem; text-align: center;
-            box-shadow: 0 30px 80px rgba(10,2,48,0.4);
-            animation: phoneCardIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
-        }
-        @keyframes phoneCardIn {
-            from { opacity: 0; transform: translateY(20px) scale(0.96); }
-            to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .phone-modal-close {
-            position: absolute; top: 0.8rem; right: 0.8rem;
-            width: 32px; height: 32px; border-radius: 50%;
-            border: none; background: var(--gray-100); color: var(--gray-700);
-            font-size: 1.2rem; line-height: 1; cursor: pointer;
-        }
-        .phone-modal-close:hover { background: var(--gray-200); color: var(--navy); }
-        .phone-modal-icon {
-            width: 60px; height: 60px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--orange), #ffaa44);
-            color: white; margin: 0 auto 0.9rem;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 10px 28px rgba(255,122,0,0.3);
-        }
-        .phone-modal-card h3 {
-            font-size: 1.2rem; font-weight: 900; color: var(--navy);
-            margin-bottom: 0.5rem;
-        }
-        .phone-modal-sub {
-            font-size: 0.88rem; color: var(--gray-700);
-            line-height: 1.5; margin-bottom: 1rem;
-        }
-        .phone-modal-sub strong { color: var(--navy); }
-        .phone-modal-options {
-            display: flex; gap: 0.6rem; margin-bottom: 1rem;
-        }
-        .phone-modal-opt {
-            flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.45rem;
-            padding: 0.85rem 0.5rem; border-radius: 11px;
-            color: white; text-decoration: none;
-            font-size: 0.88rem; font-weight: 800;
-            transition: transform 0.15s, box-shadow 0.15s;
-        }
-        .phone-modal-opt:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(0,0,0,0.18); }
-        .phone-modal-wa { background: #25D366; }
-        .phone-modal-email { background: var(--purple); }
-        .phone-modal-anyway {
-            display: block; text-align: center;
-            font-size: 0.82rem; font-weight: 700; color: var(--gray-500);
-            text-decoration: none; padding: 0.55rem;
-        }
-        .phone-modal-anyway:hover { color: var(--navy); }
-        .phone-modal-anyway span {
-            display: block; font-size: 0.7rem; font-weight: 600; opacity: 0.65;
-            margin-top: 0.1rem;
-        }
-
-        /* ============================================
-           CARTEL DE TEMPORADA (verano / feria / navidad / festivo)
-           Aparece en lo alto del contenido del panel cuando aplica
-        ============================================ */
-        .season-banner {
-            display: none; align-items: center; gap: 0.65rem;
-            padding: 0.6rem 0.9rem; border-radius: 10px;
-            font-size: 0.83rem; font-weight: 700;
-            margin: 0 0 1rem;
-        }
-        .season-banner.show { display: flex; }
-        .season-banner .sb-icon {
-            font-size: 1.15rem; flex-shrink: 0;
-        }
-        .season-banner .sb-label {
-            font-weight: 800; margin-right: 0.25rem;
-        }
-        .season-banner .sb-sub {
-            font-weight: 600; opacity: 0.8;
-        }
-        .season-banner.summer { background: rgba(255,212,0,0.16); color: #8a6e00; border: 1px solid rgba(255,212,0,0.45); }
-        .season-banner.feria  { background: rgba(255,122,0,0.13); color: #884000; border: 1px solid rgba(255,122,0,0.45); }
-        .season-banner.xmas   { background: rgba(34,165,90,0.13); color: #0b5b30; border: 1px solid rgba(34,165,90,0.40); }
-        .season-banner.holiday{ background: rgba(220,38,38,0.10); color: #931515; border: 1px solid rgba(220,38,38,0.35); }
-        @media (max-width: 600px) {
-            .season-banner { font-size: 0.78rem; padding: 0.55rem 0.7rem; gap: 0.5rem; }
-        }
-
-        @media (max-width: 600px) {
-            .contact-fab-wrap { bottom:1.2rem; right:1.2rem; gap:0.6rem; }
-            .contact-fab { width:109px; height:109px; }
-            .contact-fab-action { width:46px; height:46px; }
-            .contact-fab-name { padding:0.45rem 0.8rem; }
-            .contact-fab-name-title { font-size:0.91rem; }
-            .contact-fab-name-status { font-size:0.68rem; }
-            .contact-fab::after { width:16px; height:16px; border-width:2.5px; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            .contact-fab::before, .contact-fab::after, .contact-fab-name-status::before { animation:none; }
-            .contact-fab, .contact-fab img, .contact-fab-action, .contact-fab-name { transition:opacity 0.15s linear; }
-            .contact-fab-wrap.open .contact-fab-action { transform:none; }
-            .contact-fab-action { transform:none; }
-            .contact-fab-name, .contact-fab-wrap.open .contact-fab-name { transform:translateY(-50%); }
-            .contact-fab:hover, .contact-fab-action:hover { transform:none !important; }
-        }
 
         /* ============================================
            MODAL GENERICO DEL PANEL (ver detalle, repetir, incidencia, etc.)
@@ -1253,31 +1105,6 @@
     </div>
 </div>
 
-<!-- FLOATING CONTACT FAB - avatar Alvaro -->
-<div class="contact-fab-wrap" id="contactFab">
-    <button type="button" class="contact-fab-side-toggle" id="contactFabSideToggle" aria-label="Mover avatar al otro lado" title="Mover al otro lado">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 8 3 12 7 16"/><polyline points="17 8 21 12 17 16"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
-    </button>
-    <button class="contact-fab" id="contactFabBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Abrir opciones de contacto">
-        <span class="contact-fab-name" aria-hidden="true">
-            <span class="contact-fab-name-title">Álvaro Blanco de Dynamo</span>
-            <span class="contact-fab-name-status">En línea · Respondo enseguida</span>
-        </span>
-        <img src="/images/ALVARO_circular_ZOOM.png" alt="Álvaro - Contacto Dynamo Transportes">
-    </button>
-    <div class="contact-fab-actions" role="menu" aria-label="Canales de contacto">
-        <a class="contact-fab-action act-email" role="menuitem" href="mailto:info@dynamotrans.com?subject=Consulta%20portal%20cliente" aria-label="Enviar email" data-hours="L-S 8-20" data-sched-attr="online-short">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-        </a>
-        <a class="contact-fab-action act-wa" role="menuitem" target="_blank" rel="noopener" href="https://wa.me/34628995709" aria-label="Contactar por WhatsApp" data-hours="L-S 8-20" data-sched-attr="online-short">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-        </a>
-        <a class="contact-fab-action act-call" role="menuitem" href="tel:+34955225945" aria-label="Llamar por teléfono" data-hours="L-J 9-14 y 15-17 · V 9-14" data-sched-attr="phone-short">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.18z"/></svg>
-        </a>
-    </div>
-</div>
-
 <!-- MAIN -->
 <div class="main">
     <header class="topbar">
@@ -1291,6 +1118,51 @@
             </button>
         </div>
         <div class="topbar-actions">
+            <!-- Boton de contacto con Alvaro (antes era un FAB flotante).
+                 Pequeño en la topbar, al pulsar abre dropdown con canales. -->
+            <div class="topbar-contact-wrap">
+                <button type="button" class="topbar-contact-btn" id="topbarContactBtn" aria-haspopup="menu" aria-expanded="false" aria-label="Contactar con Álvaro">
+                    <img src="/images/ALVARO_circular_ZOOM.png" alt="Álvaro - Contacto Dynamo Transportes">
+                    <span class="topbar-contact-dot" aria-hidden="true"></span>
+                </button>
+                <div class="topbar-contact-menu" id="topbarContactMenu" role="menu" aria-hidden="true">
+                    <div class="topbar-contact-head">
+                        <img src="/images/ALVARO_circular_ZOOM.png" alt="" aria-hidden="true">
+                        <div class="topbar-contact-head-body">
+                            <div class="topbar-contact-name">Álvaro Blanco</div>
+                            <div class="topbar-contact-status">En línea · Respondo enseguida</div>
+                        </div>
+                    </div>
+                    <div class="topbar-contact-sep"></div>
+                    <a class="topbar-contact-item act-email" role="menuitem" href="mailto:info@dynamotrans.com?subject=Consulta%20portal%20cliente">
+                        <span class="topbar-contact-icon act-email-bg">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                        </span>
+                        <div class="topbar-contact-text">
+                            <span class="t">Enviar email</span>
+                            <span class="h" data-sched="online-short">L-S 8-20</span>
+                        </div>
+                    </a>
+                    <a class="topbar-contact-item act-wa" role="menuitem" target="_blank" rel="noopener" href="https://wa.me/34628995709">
+                        <span class="topbar-contact-icon act-wa-bg">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884"/></svg>
+                        </span>
+                        <div class="topbar-contact-text">
+                            <span class="t">WhatsApp</span>
+                            <span class="h" data-sched="online-short">L-S 8-20</span>
+                        </div>
+                    </a>
+                    <a class="topbar-contact-item act-call" role="menuitem" href="tel:+34955225945">
+                        <span class="topbar-contact-icon act-call-bg">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.18z"/></svg>
+                        </span>
+                        <div class="topbar-contact-text">
+                            <span class="t">Llamar</span>
+                            <span class="h" data-sched="phone-short">L-J 9-14 y 15-17 · V 9-14</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
             <div class="topbar-user-wrap">
                 <button type="button" class="topbar-user" id="userMenuBtn" aria-haspopup="menu" aria-expanded="false" onclick="toggleUserMenu(event)">
                     <div class="topbar-user-avatar">JG</div>
@@ -2632,68 +2504,37 @@
         } catch (err) {}
     })();
 
-    // Avatar FAB (toggle + abanico de canales contacto)
+    // Boton de contacto (Alvaro) en la topbar - dropdown con canales
     (function () {
-        var wrap = document.getElementById('contactFab');
-        if (!wrap) return;
-        var btn = document.getElementById('contactFabBtn');
-        var backTop = document.getElementById('backTop');
-        function openFab() {
-            wrap.classList.add('open');
+        var btn = document.getElementById('topbarContactBtn');
+        var menu = document.getElementById('topbarContactMenu');
+        if (!btn || !menu) return;
+        function openMenu() {
+            menu.classList.add('open');
             btn.setAttribute('aria-expanded', 'true');
-            if (backTop) backTop.classList.add('fab-hidden');
+            menu.setAttribute('aria-hidden', 'false');
         }
-        function closeFab() {
-            wrap.classList.remove('open');
+        function closeMenu() {
+            menu.classList.remove('open');
             btn.setAttribute('aria-expanded', 'false');
-            if (backTop) backTop.classList.remove('fab-hidden');
+            menu.setAttribute('aria-hidden', 'true');
         }
         btn.addEventListener('click', function (e) {
             e.stopPropagation();
-            wrap.classList.contains('open') ? closeFab() : openFab();
+            menu.classList.contains('open') ? closeMenu() : openMenu();
         });
-        wrap.querySelectorAll('.contact-fab-action').forEach(function (a) {
-            a.addEventListener('click', closeFab);
+        menu.querySelectorAll('.topbar-contact-item').forEach(function (a) {
+            a.addEventListener('click', closeMenu);
         });
         document.addEventListener('click', function (e) {
-            if (wrap.classList.contains('open') && !wrap.contains(e.target)) closeFab();
+            if (menu.classList.contains('open') && !e.target.closest('.topbar-contact-wrap')) closeMenu();
         });
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && wrap.classList.contains('open')) {
-                closeFab();
+            if (e.key === 'Escape' && menu.classList.contains('open')) {
+                closeMenu();
                 btn.focus();
             }
         });
-
-        // Toggle entre lado derecho/izquierdo del avatar
-        var sideToggle = document.getElementById('contactFabSideToggle');
-        function applyFabSide(side) {
-            if (side === 'left') {
-                wrap.classList.add('left');
-                document.body.classList.add('fab-left');
-            } else {
-                wrap.classList.remove('left');
-                document.body.classList.remove('fab-left');
-            }
-        }
-        // Restaurar lado preferido al cargar
-        try {
-            var savedSide = localStorage.getItem('dashFabSide');
-            if (savedSide === 'left') applyFabSide('left');
-        } catch (e) {}
-        if (sideToggle) {
-            sideToggle.addEventListener('click', function (e) {
-                e.stopPropagation();
-                var nowLeft = wrap.classList.contains('left');
-                applyFabSide(nowLeft ? 'right' : 'left');
-                try { localStorage.setItem('dashFabSide', nowLeft ? 'right' : 'left'); } catch (e) {}
-                // Si esta abierto el abanico, recolocar (cerrar y reabrir suave)
-                if (wrap.classList.contains('open')) {
-                    closeFab();
-                    setTimeout(openFab, 50);
-                }
-            });
-        }
     })();
 
     /* ============================================================
