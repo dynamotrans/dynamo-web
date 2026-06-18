@@ -358,15 +358,14 @@
         body.theme-dark .sidebar { background: #060116; }
 
         /* ============================================
-           BOTON "VOLVER ARRIBA"
+           BOTON "VOLVER ARRIBA" + AVATAR FAB
         ============================================ */
+        /* El back-top sube por encima del FAB del avatar (130px desktop /
+           109px movil) y se alinea horizontalmente con su centro. */
         .back-top {
             position: fixed;
-            /* Margenes generosos para que no quede pegado a la esquina.
-               env(safe-area-inset-*) suma el area de la home bar / notch
-               en iPhone para que el boton quede comodo */
-            bottom: calc(2rem + env(safe-area-inset-bottom));
-            right: calc(2rem + env(safe-area-inset-right));
+            bottom: calc(13rem + env(safe-area-inset-bottom));
+            right: calc(1.8rem + 42px + env(safe-area-inset-right));
             width: 46px; height: 46px; border-radius: 50%;
             background: var(--purple); color: white;
             border: none; cursor: pointer; z-index: 90;
@@ -378,12 +377,120 @@
         }
         .back-top.show { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
         .back-top:hover { background: var(--purple-light); transform: translateY(-2px); }
+        /* Cuando el FAB del avatar se abre, ocultar back-top para que los
+           iconos de canal no choquen visualmente con el ↑ */
+        .back-top.fab-hidden { opacity: 0 !important; pointer-events: none !important; transform: scale(0.8) !important; }
         @media (max-width: 600px) {
             .back-top {
-                bottom: calc(1.6rem + env(safe-area-inset-bottom));
-                right: calc(1.6rem + env(safe-area-inset-right));
+                bottom: calc(11rem + env(safe-area-inset-bottom));
+                right: calc(1.2rem + 32.5px + env(safe-area-inset-right));
                 width: 44px; height: 44px;
             }
+        }
+
+        /* ============================================
+           AVATAR FAB (foto + canales contacto)
+        ============================================ */
+        .contact-fab-wrap { position:fixed; bottom:1.8rem; right:1.8rem; z-index:998; display:flex; flex-direction:column-reverse; align-items:center; gap:0.85rem; pointer-events:none; }
+        .contact-fab {
+            width:130px; height:130px; border-radius:50%; border:none; padding:0; cursor:pointer;
+            background:none; position:relative; flex-shrink:0; pointer-events:auto;
+        }
+        .contact-fab img {
+            width:100%; height:100%; border-radius:50%; object-fit:cover; display:block;
+            box-shadow:0 4px 20px rgba(10,2,48,0.35);
+        }
+        .contact-fab-name {
+            position:absolute; top:50%; right:calc(100% + 0.7rem);
+            transform:translateY(-50%) translateX(8px);
+            background:white; color:var(--purple);
+            padding:0.55rem 0.95rem; border-radius:18px;
+            text-align:right;
+            box-shadow:0 4px 14px rgba(10,2,48,0.18);
+            opacity:0; pointer-events:none;
+            transition:opacity 0.25s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .contact-fab-name-title {
+            display:block; font-size:1.01rem; font-weight:700; letter-spacing:0.2px;
+            white-space:nowrap;
+        }
+        .contact-fab-name-status {
+            display:block; font-size:0.75rem; font-weight:600;
+            color:var(--gray-500); margin-top:2px; white-space:nowrap;
+        }
+        .contact-fab-name-status::before {
+            content:""; display:inline-block;
+            width:7px; height:7px; border-radius:50%;
+            background:#22c55e; margin-right:5px; vertical-align:middle;
+            box-shadow:0 0 6px rgba(34,197,94,0.65);
+            animation:fabStatusBlink 2s ease-in-out infinite;
+        }
+        @keyframes fabStatusBlink {
+            0%, 100% { opacity:1; }
+            50%      { opacity:0.55; }
+        }
+        .contact-fab-wrap.open .contact-fab-name {
+            opacity:1; transform:translateY(-50%) translateX(0);
+        }
+        .contact-fab::before {
+            content:""; position:absolute; inset:-4px; border-radius:50%;
+            border:3px solid #25D366; animation:fabRing 2s ease-out infinite; pointer-events:none;
+        }
+        .contact-fab-wrap.open .contact-fab::before { animation:none; opacity:0; }
+        .contact-fab::after {
+            content:""; position:absolute; bottom:7%; right:7%;
+            width:20px; height:20px; border-radius:50%;
+            background:#22c55e; border:3px solid white;
+            box-shadow:0 0 0 0 rgba(34,197,94,0.55);
+            animation:fabOnlineDotPulse 2.5s ease-out infinite;
+            pointer-events:none;
+        }
+        @keyframes fabOnlineDotPulse {
+            0%   { box-shadow:0 0 0 0 rgba(34,197,94,0.55); }
+            70%  { box-shadow:0 0 0 14px rgba(34,197,94,0); }
+            100% { box-shadow:0 0 0 0 rgba(34,197,94,0); }
+        }
+        .contact-fab:hover { transform:scale(1.06); }
+        .contact-fab, .contact-fab img { transition:transform 0.25s ease; }
+        @keyframes fabRing {
+            0%   { transform:scale(1);   opacity:0.9; }
+            70%  { transform:scale(1.35); opacity:0; }
+            100% { transform:scale(1.35); opacity:0; }
+        }
+        .contact-fab-actions { display:flex; flex-direction:column; gap:0.7rem; align-items:center; }
+        .contact-fab-action {
+            width:52px; height:52px; border-radius:50%; border:none; cursor:pointer;
+            display:flex; align-items:center; justify-content:center; color:white;
+            box-shadow:0 4px 16px rgba(10,2,48,0.3); text-decoration:none;
+            opacity:0; transform:translateY(14px) scale(0.6); pointer-events:none;
+            transition:opacity 0.25s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .contact-fab-action.act-email { background:var(--purple); }
+        .contact-fab-action.act-wa    { background:#25D366; }
+        .contact-fab-action.act-call  { background:#0a0230; }
+        .contact-fab-wrap.open .contact-fab-action {
+            opacity:1; transform:translateY(0) scale(1); pointer-events:auto;
+        }
+        .contact-fab-wrap.open .contact-fab-action:nth-child(1) { transition-delay:0.05s; }
+        .contact-fab-wrap.open .contact-fab-action:nth-child(2) { transition-delay:0.12s; }
+        .contact-fab-wrap.open .contact-fab-action:nth-child(3) { transition-delay:0.19s; }
+        .contact-fab-action:hover { transform:translateY(-2px) scale(1.1) !important; }
+        @media (max-width: 600px) {
+            .contact-fab-wrap { bottom:1.2rem; right:1.2rem; gap:0.6rem; }
+            .contact-fab { width:109px; height:109px; }
+            .contact-fab-action { width:46px; height:46px; }
+            .contact-fab-name { padding:0.45rem 0.8rem; }
+            .contact-fab-name-title { font-size:0.91rem; }
+            .contact-fab-name-status { font-size:0.68rem; }
+            .contact-fab::after { width:16px; height:16px; border-width:2.5px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .contact-fab::before, .contact-fab::after, .contact-fab-name-status::before { animation:none; }
+            .contact-fab, .contact-fab img, .contact-fab-action, .contact-fab-name { transition:opacity 0.15s linear; }
+            .contact-fab-wrap.open .contact-fab-action { transform:none; }
+            .contact-fab-action { transform:none; }
+            .contact-fab-name, .contact-fab-wrap.open .contact-fab-name { transform:translateY(-50%); }
+            .contact-fab:hover, .contact-fab-action:hover { transform:none !important; }
         }
 
         .content {
@@ -827,6 +934,28 @@
 <button type="button" class="back-top" id="backTop" aria-label="Volver arriba" onclick="scrollToTop()">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
 </button>
+
+<!-- FLOATING CONTACT FAB - avatar Alvaro -->
+<div class="contact-fab-wrap" id="contactFab">
+    <button class="contact-fab" id="contactFabBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Abrir opciones de contacto">
+        <span class="contact-fab-name" aria-hidden="true">
+            <span class="contact-fab-name-title">Álvaro Blanco de Dynamo</span>
+            <span class="contact-fab-name-status">En línea · Respondo enseguida</span>
+        </span>
+        <img src="/images/ALVARO_circular_ZOOM.png" alt="Álvaro - Contacto Dynamo Transportes">
+    </button>
+    <div class="contact-fab-actions" role="menu" aria-label="Canales de contacto">
+        <a class="contact-fab-action act-email" role="menuitem" href="mailto:info@dynamotrans.com?subject=Consulta%20portal%20cliente" aria-label="Enviar email">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+        </a>
+        <a class="contact-fab-action act-wa" role="menuitem" target="_blank" rel="noopener" href="https://wa.me/34628995709" aria-label="Contactar por WhatsApp">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        </a>
+        <a class="contact-fab-action act-call" role="menuitem" href="tel:+34955225945" aria-label="Llamar por teléfono">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.18z"/></svg>
+        </a>
+    </div>
+</div>
 
 <!-- MAIN -->
 <div class="main">
@@ -1928,6 +2057,40 @@
                 if (em) em.textContent = e;
             }
         } catch (err) {}
+    })();
+
+    // Avatar FAB (toggle + abanico de canales contacto)
+    (function () {
+        var wrap = document.getElementById('contactFab');
+        if (!wrap) return;
+        var btn = document.getElementById('contactFabBtn');
+        var backTop = document.getElementById('backTop');
+        function openFab() {
+            wrap.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+            if (backTop) backTop.classList.add('fab-hidden');
+        }
+        function closeFab() {
+            wrap.classList.remove('open');
+            btn.setAttribute('aria-expanded', 'false');
+            if (backTop) backTop.classList.remove('fab-hidden');
+        }
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            wrap.classList.contains('open') ? closeFab() : openFab();
+        });
+        wrap.querySelectorAll('.contact-fab-action').forEach(function (a) {
+            a.addEventListener('click', closeFab);
+        });
+        document.addEventListener('click', function (e) {
+            if (wrap.classList.contains('open') && !wrap.contains(e.target)) closeFab();
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && wrap.classList.contains('open')) {
+                closeFab();
+                btn.focus();
+            }
+        });
     })();
 </script>
 
