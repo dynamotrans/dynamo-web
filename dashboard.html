@@ -361,7 +361,12 @@
            BOTON "VOLVER ARRIBA"
         ============================================ */
         .back-top {
-            position: fixed; bottom: 1.4rem; right: 1.4rem;
+            position: fixed;
+            /* Margenes generosos para que no quede pegado a la esquina.
+               env(safe-area-inset-*) suma el area de la home bar / notch
+               en iPhone para que el boton quede comodo */
+            bottom: calc(2rem + env(safe-area-inset-bottom));
+            right: calc(2rem + env(safe-area-inset-right));
             width: 46px; height: 46px; border-radius: 50%;
             background: var(--purple); color: white;
             border: none; cursor: pointer; z-index: 90;
@@ -375,8 +380,9 @@
         .back-top:hover { background: var(--purple-light); transform: translateY(-2px); }
         @media (max-width: 600px) {
             .back-top {
-                bottom: 1rem; right: 1rem;
-                width: 42px; height: 42px;
+                bottom: calc(1.6rem + env(safe-area-inset-bottom));
+                right: calc(1.6rem + env(safe-area-inset-right));
+                width: 44px; height: 44px;
             }
         }
 
