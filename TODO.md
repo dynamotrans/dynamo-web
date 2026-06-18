@@ -8,7 +8,6 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## 📋 Normal
 <!-- Cosas que hacer cuando haya tiempo -->
-- [ ] **Horarios sincronizados en login pages del portal**: SCHEDULE + phone modal + interceptor `tel:` están en `dashboard.html` pero NO en `portal.html` / `registro.html` / `verificar.html` / `crear-password.html`. Esas 4 páginas tienen el FAB pero sin chips de horario dinámicos ni modal "fuera de horario". Hay que replicar el sistema (~150 líneas SCHEDULE + ~80 modal CSS + modal HTML + interceptor) a cada página. Posible alternativa: extraer a un `.js` compartido si el patrón inline se queda corto
 - [ ] **Implementar tabla de coeficientes en el tarifador**: el cliente pasó una tabla escalonada (0,8ml=25%, 1ml=33%, ..., 10,4ml=100%) para mostrar al cliente el % de carga del camión en vivo según `max(coef_ml, coef_tn, coef_palets)`. Tengo la tabla apuntada en bitácora del 2026-06-10 pero NO implementé el cálculo. El tarifador actual solo recoge datos y los pasa al equipo
 - [ ] **Google Places API** para autocomplete origen/destino: ahora uso OpenStreetMap Nominatim (gratis, sin API key, pero servicio público compartido → respuestas en ~0,5-1s). Migrar a Google Places cuando se valide que vale la pena. Requiere clave del cliente en Google Cloud (~200$/mes gratis cubren el tráfico esperado, son ~70k autocompletados/mes)
 
@@ -44,6 +43,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
     - Pen-testing antes del lanzamiento
 
 ## ✅ Hecho recientemente
+- [x] 2026-06-18 — **Horarios sincronizados en las 4 login pages del portal** (`portal/registro/verificar/crear-password`): SCHEDULE + chips data-hours en el FAB + modal "Fuera de horario telefónico" + interceptor `tel:` (en horario llama directo, fuera de horario muestra el modal). Mismo motor que `dashboard.html` y `index.html`. ~165 líneas por página (refactor pendiente cuando llegue Next.js)
 - [x] 2026-06-18 — **PANEL CLIENTE — bloque grande** (todo en preview `claude/sharp-dirac-E3UIO`):
   - `dashboard.html` (~3.000 líneas): sidebar + topbar morada con logo Dynamo blanco + casita unificados a la izquierda, avatar JG con menú (Mi cuenta · Datos empresa · Soporte · Idioma · Modo oscuro · Cerrar sesión), 4 stat cards clickables, CTAs Nueva carga/presupuesto arriba, CESCE compacta, mini listas
   - **Modal genérico** (`openDashModal`/`closeDashModal`) + **`downloadFakePDF`** (PDF mínimo válido). Acciones funcionales por fila en cargas/presupuestos/facturas: 📋 Ver detalle (+ Editar form), 🔁 Repetir / Generar carga / Revisar precio, ⚠️ Reportar incidencia (con drop de archivos), 📍 Seguimiento (timeline), ✕ Cancelar carga, 📥 Descargar albarán/PDF, 📩 Reclamar albarán
