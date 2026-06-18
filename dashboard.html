@@ -457,6 +457,55 @@
             70%  { transform:scale(1.35); opacity:0; }
             100% { transform:scale(1.35); opacity:0; }
         }
+        /* Boton ↔ para mover el avatar entre lado derecho/izquierdo */
+        .contact-fab-side-toggle {
+            position: absolute;
+            top: -8px; left: 50%; transform: translateX(-50%);
+            width: 28px; height: 28px; border-radius: 50%;
+            background: white; color: var(--purple);
+            border: 1.5px solid rgba(51,0,204,0.18);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; pointer-events: auto;
+            box-shadow: 0 4px 14px rgba(10,2,48,0.18);
+            opacity: 0; z-index: 2;
+            transition: opacity 0.22s ease, transform 0.22s ease, background 0.18s, color 0.18s;
+        }
+        .contact-fab-wrap:hover .contact-fab-side-toggle,
+        .contact-fab-wrap.open .contact-fab-side-toggle,
+        .contact-fab-side-toggle:focus-visible { opacity: 1; }
+        .contact-fab-side-toggle:hover { background: var(--purple); color: white; transform: translateX(-50%) scale(1.1); }
+        /* En movil/tablet el hover no es fiable -> siempre visible (pero suave) */
+        @media (hover: none) {
+            .contact-fab-side-toggle { opacity: 0.85; }
+        }
+        /* CUANDO EL FAB ESTA A LA IZQUIERDA */
+        .contact-fab-wrap.left { right: auto; left: 1.8rem; }
+        @media (max-width: 600px) {
+            .contact-fab-wrap.left { left: 1.2rem; }
+        }
+        /* El chip con nombre aparece a la DERECHA cuando el FAB esta a la izquierda */
+        .contact-fab-wrap.left .contact-fab-name {
+            right: auto; left: calc(100% + 0.7rem);
+            text-align: left;
+            transform: translateY(-50%) translateX(-8px);
+        }
+        .contact-fab-wrap.left.open .contact-fab-name {
+            transform: translateY(-50%) translateX(0);
+        }
+        /* Online dot pasa a la otra esquina inferior */
+        .contact-fab-wrap.left .contact-fab::after {
+            right: auto; left: 7%;
+        }
+        /* Back-top tambien sigue al avatar */
+        body.fab-left .back-top {
+            right: auto;
+            left: calc(1.8rem + 42px + env(safe-area-inset-left));
+        }
+        @media (max-width: 600px) {
+            body.fab-left .back-top {
+                left: calc(1.2rem + 32.5px + env(safe-area-inset-left));
+            }
+        }
         .contact-fab-actions { display:flex; flex-direction:column; gap:0.7rem; align-items:center; }
         .contact-fab-action {
             width:52px; height:52px; border-radius:50%; border:none; cursor:pointer;
@@ -1206,6 +1255,9 @@
 
 <!-- FLOATING CONTACT FAB - avatar Alvaro -->
 <div class="contact-fab-wrap" id="contactFab">
+    <button type="button" class="contact-fab-side-toggle" id="contactFabSideToggle" aria-label="Mover avatar al otro lado" title="Mover al otro lado">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 8 3 12 7 16"/><polyline points="17 8 21 12 17 16"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
+    </button>
     <button class="contact-fab" id="contactFabBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Abrir opciones de contacto">
         <span class="contact-fab-name" aria-hidden="true">
             <span class="contact-fab-name-title">Álvaro Blanco de Dynamo</span>
@@ -2612,6 +2664,36 @@
                 btn.focus();
             }
         });
+
+        // Toggle entre lado derecho/izquierdo del avatar
+        var sideToggle = document.getElementById('contactFabSideToggle');
+        function applyFabSide(side) {
+            if (side === 'left') {
+                wrap.classList.add('left');
+                document.body.classList.add('fab-left');
+            } else {
+                wrap.classList.remove('left');
+                document.body.classList.remove('fab-left');
+            }
+        }
+        // Restaurar lado preferido al cargar
+        try {
+            var savedSide = localStorage.getItem('dashFabSide');
+            if (savedSide === 'left') applyFabSide('left');
+        } catch (e) {}
+        if (sideToggle) {
+            sideToggle.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var nowLeft = wrap.classList.contains('left');
+                applyFabSide(nowLeft ? 'right' : 'left');
+                try { localStorage.setItem('dashFabSide', nowLeft ? 'right' : 'left'); } catch (e) {}
+                // Si esta abierto el abanico, recolocar (cerrar y reabrir suave)
+                if (wrap.classList.contains('open')) {
+                    closeFab();
+                    setTimeout(openFab, 50);
+                }
+            });
+        }
     })();
 
     /* ============================================================
