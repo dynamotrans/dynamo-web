@@ -493,6 +493,111 @@
             .contact-fab:hover, .contact-fab-action:hover { transform:none !important; }
         }
 
+        /* ============================================
+           MODAL GENERICO DEL PANEL (ver detalle, repetir, incidencia, etc.)
+        ============================================ */
+        .dash-modal {
+            position: fixed; inset: 0; z-index: 10000;
+            display: none; align-items: flex-start; justify-content: center;
+            padding: 2rem 1rem; overflow-y: auto;
+        }
+        .dash-modal.open { display: flex; animation: dashModalFadeIn 0.18s ease both; }
+        @keyframes dashModalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .dash-modal-backdrop {
+            position: fixed; inset: 0; background: rgba(10,2,48,0.55);
+            backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+        }
+        .dash-modal-card {
+            position: relative; z-index: 1; background: white;
+            border-radius: 16px; max-width: 640px; width: 100%;
+            padding: 1.6rem 1.5rem 1.3rem;
+            box-shadow: 0 30px 80px rgba(10,2,48,0.4);
+            margin: 4rem auto 2rem;
+            animation: dashModalSlideUp 0.25s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        @keyframes dashModalSlideUp { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .dash-modal-close {
+            position: absolute; top: 0.85rem; right: 0.9rem;
+            width: 34px; height: 34px; border-radius: 50%;
+            border: none; background: var(--gray-100); color: var(--gray-700);
+            font-size: 1rem; cursor: pointer; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .dash-modal-close:hover { background: var(--gray-200); color: var(--navy); }
+        .dash-modal-header {
+            display: flex; align-items: flex-start; gap: 0.85rem;
+            margin-bottom: 1.2rem; padding-right: 2.5rem;
+        }
+        .dash-modal-icon {
+            flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(51,0,204,0.10); font-size: 1.35rem;
+        }
+        .dash-modal-title { font-size: 1.1rem; font-weight: 900; color: var(--navy); line-height: 1.25; }
+        .dash-modal-sub { font-size: 0.8rem; color: var(--gray-500); margin-top: 0.2rem; }
+        .dash-modal-body { margin-bottom: 1.1rem; }
+        .dash-modal-footer {
+            display: flex; gap: 0.6rem; justify-content: flex-end;
+            padding-top: 1rem; border-top: 1px solid var(--gray-200);
+        }
+        .modal-info-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem 1.2rem;
+            margin-bottom: 0.6rem;
+        }
+        .modal-info-grid > div { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+        .modal-info-grid label {
+            font-size: 0.64rem; font-weight: 800; color: var(--gray-500);
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .modal-info-grid .v { font-size: 0.86rem; color: var(--navy); font-weight: 700; word-break: break-word; }
+        .modal-form-row { margin-bottom: 0.85rem; }
+        .modal-form-row label {
+            display: block; font-size: 0.68rem; font-weight: 800; color: var(--gray-500);
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem;
+        }
+        .modal-form-row input, .modal-form-row textarea, .modal-form-row select {
+            width: 100%; padding: 0.62rem 0.8rem;
+            border: 1px solid var(--gray-200); border-radius: 9px;
+            font-family: inherit; font-size: 0.88rem; color: var(--navy);
+            background: white; outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .modal-form-row input:focus, .modal-form-row textarea:focus, .modal-form-row select:focus {
+            border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.10);
+        }
+        .modal-form-row textarea { resize: vertical; min-height: 90px; line-height: 1.45; }
+        .modal-warn-box {
+            background: rgba(255,122,0,0.07); border: 1px solid rgba(255,122,0,0.22);
+            border-radius: 10px; padding: 0.7rem 0.85rem; font-size: 0.82rem;
+            color: var(--navy); margin-bottom: 1rem; line-height: 1.5;
+        }
+        .modal-warn-box strong { color: var(--orange); }
+        .modal-file-drop {
+            border: 2px dashed var(--gray-200); border-radius: 10px;
+            padding: 1.1rem; text-align: center; color: var(--gray-500); font-size: 0.85rem;
+            cursor: pointer; transition: border-color 0.15s, background 0.15s, color 0.15s;
+        }
+        .modal-file-drop:hover { border-color: var(--purple); background: rgba(51,0,204,0.03); color: var(--purple); }
+        .modal-file-drop-sub { font-size: 0.72rem; margin-top: 0.3rem; opacity: 0.8; }
+        .modal-success {
+            text-align: center; padding: 1.2rem 0 0.6rem;
+        }
+        .modal-success-icon {
+            width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 0.8rem;
+            background: linear-gradient(135deg, var(--green), var(--green-dark));
+            color: white; display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; box-shadow: 0 10px 28px rgba(34,165,90,0.32);
+        }
+        .modal-success-title { font-size: 1.1rem; font-weight: 900; color: var(--navy); margin-bottom: 0.35rem; }
+        .modal-success-text { font-size: 0.85rem; color: var(--gray-500); line-height: 1.5; }
+        @media (max-width: 600px) {
+            .dash-modal { padding: 1rem 0.6rem; }
+            .dash-modal-card { padding: 1.3rem 1.1rem; margin-top: 2rem; }
+            .modal-info-grid { grid-template-columns: 1fr; }
+            .dash-modal-footer { flex-direction: column-reverse; }
+            .dash-modal-footer button { width: 100%; }
+        }
+
         .content {
             flex: 1; padding: 1.6rem 2rem 3rem;
             /* Cap a 1400px y centrado para que en pantallas anchas las
@@ -934,6 +1039,23 @@
 <button type="button" class="back-top" id="backTop" aria-label="Volver arriba" onclick="scrollToTop()">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
 </button>
+
+<!-- MODAL GENERICO DEL PANEL -->
+<div class="dash-modal" id="dashModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="dashModalTitle">
+    <div class="dash-modal-backdrop" onclick="closeDashModal()"></div>
+    <div class="dash-modal-card" role="document">
+        <button class="dash-modal-close" onclick="closeDashModal()" aria-label="Cerrar">✕</button>
+        <div class="dash-modal-header">
+            <div class="dash-modal-icon" id="dashModalIcon">📋</div>
+            <div style="flex:1;min-width:0;">
+                <h2 class="dash-modal-title" id="dashModalTitle">Título</h2>
+                <p class="dash-modal-sub" id="dashModalSub">Subtítulo</p>
+            </div>
+        </div>
+        <div class="dash-modal-body" id="dashModalBody"></div>
+        <div class="dash-modal-footer" id="dashModalFooter"></div>
+    </div>
+</div>
 
 <!-- FLOATING CONTACT FAB - avatar Alvaro -->
 <div class="contact-fab-wrap" id="contactFab">
@@ -1760,6 +1882,11 @@
         if (!pop) return;
         // Mover al body para escapar del overflow de la tabla
         pop._originalParent = menu;
+        // Guardar referencias para que las acciones puedan leer datos de la
+        // fila aunque el pop ya este desconectado del td
+        var row = menu.closest('tr');
+        pop._sourceRow = row;
+        pop._sourceSection = row ? row.closest('section.section') : null;
         document.body.appendChild(pop);
         pop.classList.add('float');
         menu.classList.add('open');
@@ -1821,6 +1948,449 @@
     }
     window.addEventListener('scroll', scheduleRowMenuReposition, { passive: true, capture: true });
     window.addEventListener('resize', scheduleRowMenuReposition);
+
+    /* ============================================
+       MODAL GENERICO DEL PANEL + ACCIONES POR FILA
+       Cada item ⋯ del menu por fila (Ver detalle, Repetir, Reportar
+       incidencia, Descargar, etc.) dispara un modal con la informacion
+       de esa fila o un PDF ficticio en caso de descarga.
+    ============================================ */
+    function openDashModal(opts) {
+        var modal = document.getElementById('dashModal');
+        document.getElementById('dashModalIcon').textContent = opts.icon || '📋';
+        document.getElementById('dashModalTitle').textContent = opts.title || '';
+        document.getElementById('dashModalSub').textContent = opts.sub || '';
+        document.getElementById('dashModalBody').innerHTML = opts.body || '';
+        document.getElementById('dashModalFooter').innerHTML = opts.footer || '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>';
+        modal.classList.add('open');
+        modal.setAttribute('aria-hidden', 'false');
+        if (opts.afterOpen) setTimeout(opts.afterOpen, 0);
+    }
+    function closeDashModal() {
+        var modal = document.getElementById('dashModal');
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+    }
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            var modal = document.getElementById('dashModal');
+            if (modal && modal.classList.contains('open')) closeDashModal();
+        }
+    });
+    function showModalSuccess(title, text) {
+        document.getElementById('dashModalBody').innerHTML =
+            '<div class="modal-success">' +
+            '<div class="modal-success-icon">✓</div>' +
+            '<div class="modal-success-title">' + escapeHtml(title) + '</div>' +
+            '<p class="modal-success-text">' + escapeHtml(text) + '</p>' +
+            '</div>';
+        document.getElementById('dashModalFooter').innerHTML =
+            '<button class="btn-primary" onclick="closeDashModal()" style="flex:1;">Cerrar</button>';
+    }
+    function escapeHtml(s) {
+        s = String(s == null ? '' : s);
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function downloadFakePDF(filename) {
+        // PDF minimo valido (1 pagina con titulo) - tamaño ~500 bytes
+        var content = filename.replace(/\.pdf$/i, '');
+        var stream = 'BT /F1 18 Tf 60 760 Td (' + content + ') Tj 0 -30 Td /F1 11 Tf (Dynamo Operador de Transportes) Tj 0 -22 Td (Documento de demostracion del panel cliente) Tj ET';
+        var pdf =
+            '%PDF-1.4\n' +
+            '1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n' +
+            '2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n' +
+            '3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]/Contents 4 0 R/Resources<</Font<</F1<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>>>>>>>endobj\n' +
+            '4 0 obj<</Length ' + stream.length + '>>stream\n' + stream + '\nendstream\nendobj\n' +
+            'xref\n0 5\n0000000000 65535 f\n' +
+            'trailer<</Size 5/Root 1 0 R>>\n%%EOF';
+        var blob = new Blob([pdf], { type: 'application/pdf' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click();
+        setTimeout(function () { URL.revokeObjectURL(url); document.body.removeChild(a); }, 100);
+    }
+
+    /* ---- Extractores de datos por fila ---- */
+    function txt(el) { return el ? el.textContent.trim().replace(/\s+/g, ' ') : ''; }
+    function cargaRowData(row) {
+        if (!row) return {};
+        var cells = row.cells;
+        var route = row.querySelector('.route');
+        var routeStrongs = route ? route.querySelectorAll('strong') : [];
+        return {
+            ref: txt(row.querySelector('.ref')),
+            refCli: txt(row.querySelector('.ref-cli')),
+            fecha: txt(cells[2] && cells[2].querySelector('strong')),
+            ventana: txt(cells[2] && cells[2].querySelector('.meta')),
+            origen: routeStrongs[0] ? routeStrongs[0].textContent.trim() : '',
+            destino: routeStrongs[1] ? routeStrongs[1].textContent.trim() : '',
+            direcciones: txt(route && route.querySelector('.meta')),
+            mercancia: cells[4] ? (cells[4].firstChild ? cells[4].firstChild.textContent.trim() : '') : '',
+            mercanciaMeta: txt(cells[4] && cells[4].querySelector('.meta')),
+            medidas: txt(row.querySelector('.amount')),
+            estado: txt(row.querySelector('.badge'))
+        };
+    }
+    function presupuestoRowData(row) {
+        if (!row) return {};
+        var cells = row.cells;
+        var route = row.querySelector('.route');
+        var routeStrongs = route ? route.querySelectorAll('strong') : [];
+        var amounts = row.querySelectorAll('.amount');
+        return {
+            ref: txt(row.querySelector('.ref')),
+            refCli: txt(row.querySelector('.ref-cli')),
+            fecha: txt(cells[2]),
+            origen: routeStrongs[0] ? routeStrongs[0].textContent.trim() : '',
+            destino: routeStrongs[1] ? routeStrongs[1].textContent.trim() : '',
+            mercancia: txt(cells[4]),
+            medidas: amounts[0] ? amounts[0].textContent.trim() : '',
+            precio: amounts[1] ? amounts[1].textContent.trim() : '',
+            estado: txt(row.querySelector('.badge'))
+        };
+    }
+    function facturaRowData(row) {
+        if (!row) return {};
+        var cells = row.cells;
+        var amounts = row.querySelectorAll('.amount');
+        return {
+            ref: txt(row.querySelector('.ref')),
+            emision: txt(cells[1]),
+            vencimiento: txt(cells[2]),
+            concepto: cells[3] ? (cells[3].firstChild ? cells[3].firstChild.textContent.trim() : '') : '',
+            conceptoMeta: txt(cells[3] && cells[3].querySelector('.meta')),
+            base: amounts[0] ? amounts[0].textContent.trim() : '',
+            iva: amounts[1] ? amounts[1].textContent.trim() : '',
+            total: amounts[2] ? amounts[2].textContent.trim() : '',
+            estado: txt(row.querySelector('.badge'))
+        };
+    }
+
+    /* ---- Builders de cuerpo del modal ---- */
+    function infoGrid(items) {
+        var html = '<div class="modal-info-grid">';
+        items.forEach(function (it) {
+            html += '<div' + (it.span ? ' style="grid-column:1/-1"' : '') + '>' +
+                '<label>' + escapeHtml(it.label) + '</label>' +
+                '<span class="v">' + escapeHtml(it.value || '—') + '</span></div>';
+        });
+        return html + '</div>';
+    }
+    function todayISO(plusDays) {
+        var d = new Date();
+        if (plusDays) d.setDate(d.getDate() + plusDays);
+        return d.toISOString().slice(0, 10);
+    }
+
+    /* ---- ACCIONES CARGAS ---- */
+    function cargaVerDetalle(row) {
+        var d = cargaRowData(row);
+        openDashModal({
+            icon: '📋',
+            title: 'Detalle de carga ' + d.ref,
+            sub: 'Información completa del envío',
+            body: infoGrid([
+                { label: 'Nº carga', value: d.ref },
+                { label: 'Ref. cliente', value: d.refCli },
+                { label: 'Fecha · Ventana', value: d.fecha + (d.ventana ? ' · ' + d.ventana : '') },
+                { label: 'Estado', value: d.estado },
+                { label: 'Origen', value: d.origen },
+                { label: 'Destino', value: d.destino },
+                { label: 'Direcciones', value: d.direcciones, span: true },
+                { label: 'Mercancía', value: d.mercancia + (d.mercanciaMeta ? ' · ' + d.mercanciaMeta : '') },
+                { label: 'Medidas', value: d.medidas }
+            ]),
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>' +
+                    '<button class="btn-primary" onclick="cargaEditar(\'' + d.ref + '\')">Editar datos</button>'
+        });
+    }
+    function cargaEditar(ref) {
+        openDashModal({
+            icon: '✏️',
+            title: 'Editar carga ' + ref,
+            sub: 'Modifica solo los datos editables',
+            body:
+                '<div class="modal-form-row"><label>Persona de contacto en origen</label><input type="text" value="Carlos López"></div>' +
+                '<div class="modal-form-row"><label>Teléfono origen</label><input type="tel" value="+34 612 345 678"></div>' +
+                '<div class="modal-form-row"><label>Persona de contacto en destino</label><input type="text" value="María Sánchez"></div>' +
+                '<div class="modal-form-row"><label>Teléfono destino</label><input type="tel" value="+34 698 123 456"></div>' +
+                '<div class="modal-form-row"><label>Anotaciones</label><textarea>Carga frágil. Acceso por muelle norte.</textarea></div>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                    '<button class="btn-primary" onclick="cargaGuardar(\'' + escapeHtml(ref) + '\')">Guardar cambios</button>'
+        });
+    }
+    window.cargaEditar = cargaEditar;
+    function cargaGuardar(ref) {
+        showModalSuccess('Cambios guardados', 'Los datos de ' + ref + ' se han actualizado correctamente.');
+    }
+    window.cargaGuardar = cargaGuardar;
+    function cargaRepetir(row) {
+        var d = cargaRowData(row);
+        openDashModal({
+            icon: '🔁',
+            title: 'Repetir carga ' + d.ref,
+            sub: 'Mismos datos · fecha y precio nuevos',
+            body:
+                '<div class="modal-warn-box">Estás generando una <strong>nueva carga</strong> con los datos de ' + escapeHtml(d.ref) + '. La <strong>fecha</strong> y el <strong>precio</strong> se calculan de nuevo (precio del tarifador).</div>' +
+                infoGrid([
+                    { label: 'Origen', value: d.origen },
+                    { label: 'Destino', value: d.destino },
+                    { label: 'Mercancía', value: d.mercancia },
+                    { label: 'Medidas', value: d.medidas }
+                ]) +
+                '<div class="modal-form-row" style="margin-top:0.8rem;"><label>Nueva fecha de carga *</label><input type="date" min="' + todayISO() + '" required></div>' +
+                '<div class="modal-form-row"><label>Ventana</label><select><option>Fija (un día)</option><option>±2 días</option><option>±4 días</option></select></div>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                    '<button class="btn-primary" onclick="cargaRepetirConfirm()">Calcular precio y crear</button>'
+        });
+    }
+    function cargaRepetirConfirm() {
+        showModalSuccess('Nueva carga creada', 'El tarifador ha calculado el precio. La carga aparecerá en el listado en unos segundos.');
+    }
+    window.cargaRepetirConfirm = cargaRepetirConfirm;
+    function cargaReportarIncidencia(row) {
+        var d = cargaRowData(row);
+        openDashModal({
+            icon: '⚠️',
+            title: 'Reportar incidencia',
+            sub: 'Cuéntanos lo ocurrido para actuar rápido',
+            body:
+                infoGrid([
+                    { label: 'Nº carga', value: d.ref },
+                    { label: 'Ruta', value: d.origen + ' → ' + d.destino },
+                    { label: 'Mercancía', value: d.mercancia },
+                    { label: 'Estado', value: d.estado }
+                ]) +
+                '<div class="modal-form-row" style="margin-top:0.8rem;"><label>Detalle de la incidencia *</label><textarea required placeholder="Describe lo ocurrido: daños, retraso, mercancía incorrecta, falta de albarán firmado…"></textarea></div>' +
+                '<div class="modal-form-row"><label>Adjuntar fotos / documentos</label>' +
+                '<div class="modal-file-drop" onclick="document.getElementById(\'incidFiles\').click()">' +
+                '<div id="incidFilesLabel">📎 Selecciona archivos o arrástralos aquí</div>' +
+                '<div class="modal-file-drop-sub">JPG, PNG, PDF · máx 10 MB cada uno</div>' +
+                '</div>' +
+                '<input type="file" id="incidFiles" multiple accept="image/*,.pdf" style="display:none">' +
+                '</div>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                    '<button class="btn-primary" onclick="cargaIncidenciaConfirm(\'' + escapeHtml(d.ref) + '\')">Enviar incidencia</button>',
+            afterOpen: function () {
+                var input = document.getElementById('incidFiles');
+                var label = document.getElementById('incidFilesLabel');
+                if (input && label) {
+                    input.addEventListener('change', function () {
+                        label.textContent = '📎 ' + input.files.length + ' archivo' + (input.files.length === 1 ? '' : 's') + ' seleccionado' + (input.files.length === 1 ? '' : 's');
+                    });
+                }
+            }
+        });
+    }
+    function cargaIncidenciaConfirm(ref) {
+        showModalSuccess('Incidencia enviada', 'Hemos recibido tu reporte para ' + ref + '. El equipo lo revisa y te avisamos en cuanto haya respuesta.');
+    }
+    window.cargaIncidenciaConfirm = cargaIncidenciaConfirm;
+    function cargaDescargarAlbaran(row) {
+        var d = cargaRowData(row);
+        var name = 'Albaran-' + d.ref.replace(/[^A-Za-z0-9-]/g, '') + '.pdf';
+        downloadFakePDF(name);
+    }
+    function cargaSeguimiento(row) {
+        var d = cargaRowData(row);
+        openDashModal({
+            icon: '📍',
+            title: 'Seguimiento de ' + d.ref,
+            sub: d.origen + ' → ' + d.destino + ' · ' + d.estado,
+            body:
+                '<ul style="list-style:none;padding:0;margin:0;">' +
+                '<li style="display:flex;gap:0.7rem;padding:0.6rem 0;border-bottom:1px solid var(--gray-200);"><span style="font-size:1.1rem;">✅</span><div><strong style="color:var(--navy);">Recogida realizada</strong><div style="font-size:0.78rem;color:var(--gray-500);">14/06 · 09:14 · ' + escapeHtml(d.origen) + '</div></div></li>' +
+                '<li style="display:flex;gap:0.7rem;padding:0.6rem 0;border-bottom:1px solid var(--gray-200);"><span style="font-size:1.1rem;">🚚</span><div><strong style="color:var(--navy);">En tránsito</strong><div style="font-size:0.78rem;color:var(--gray-500);">14/06 · 11:32 · A-66 km 142</div></div></li>' +
+                '<li style="display:flex;gap:0.7rem;padding:0.6rem 0;border-bottom:1px solid var(--gray-200);"><span style="font-size:1.1rem;">📍</span><div><strong style="color:var(--navy);">Última posición</strong><div style="font-size:0.78rem;color:var(--gray-500);">Hace 12 min · AP-7 km 354 · ETA destino mañana 09:30</div></div></li>' +
+                '<li style="display:flex;gap:0.7rem;padding:0.6rem 0;color:var(--gray-500);"><span style="font-size:1.1rem;opacity:0.4;">⚪</span><div><strong>Entrega pendiente</strong><div style="font-size:0.78rem;">' + escapeHtml(d.destino) + '</div></div></li>' +
+                '</ul>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>'
+        });
+    }
+    function cargaModificar(row) {
+        cargaVerDetalle(row);
+    }
+    function cargaCancelar(row) {
+        var d = cargaRowData(row);
+        openDashModal({
+            icon: '✕',
+            title: 'Cancelar carga ' + d.ref,
+            sub: '¿Seguro que quieres cancelar este envío?',
+            body:
+                '<div class="modal-warn-box">Si cancelas la carga, el equipo recibirá un aviso y no se llevará a cabo el transporte. Si la cancelación se realiza con menos de 24h de antelación pueden aplicarse cargos.</div>' +
+                infoGrid([
+                    { label: 'Nº carga', value: d.ref },
+                    { label: 'Fecha', value: d.fecha },
+                    { label: 'Ruta', value: d.origen + ' → ' + d.destino, span: true }
+                ]) +
+                '<div class="modal-form-row" style="margin-top:0.8rem;"><label>Motivo (opcional)</label><textarea placeholder="¿Por qué cancelas? Nos ayuda a mejorar."></textarea></div>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">No, conservar</button>' +
+                    '<button class="btn-primary" style="background:var(--red);" onclick="cargaCancelarConfirm(\'' + escapeHtml(d.ref) + '\')">Sí, cancelar carga</button>'
+        });
+    }
+    function cargaCancelarConfirm(ref) {
+        showModalSuccess('Carga cancelada', 'La carga ' + ref + ' se ha marcado como cancelada. El equipo recibirá el aviso.');
+    }
+    window.cargaCancelarConfirm = cargaCancelarConfirm;
+
+    /* ---- ACCIONES PRESUPUESTOS ---- */
+    function presupuestoVerDetalle(row) {
+        var d = presupuestoRowData(row);
+        openDashModal({
+            icon: '📋',
+            title: 'Presupuesto ' + d.ref,
+            sub: 'Detalle y vigencia',
+            body: infoGrid([
+                { label: 'Nº presupuesto', value: d.ref },
+                { label: 'Ref. cliente', value: d.refCli },
+                { label: 'Fecha solicitud', value: d.fecha },
+                { label: 'Estado', value: d.estado },
+                { label: 'Origen', value: d.origen },
+                { label: 'Destino', value: d.destino },
+                { label: 'Mercancía', value: d.mercancia },
+                { label: 'Medidas', value: d.medidas },
+                { label: 'Precio', value: d.precio, span: true }
+            ]),
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>'
+        });
+    }
+    function presupuestoGenerarCarga(row) {
+        var d = presupuestoRowData(row);
+        openDashModal({
+            icon: '🚚',
+            title: 'Generar carga de ' + d.ref,
+            sub: 'Mismos datos + precio cerrado · solo fecha pendiente',
+            body:
+                '<div class="modal-warn-box">Estás creando una <strong>nueva carga</strong> con los datos y el <strong>precio</strong> de este presupuesto (' + escapeHtml(d.precio) + '). Solo te queda elegir la <strong>fecha</strong>.</div>' +
+                infoGrid([
+                    { label: 'Origen', value: d.origen },
+                    { label: 'Destino', value: d.destino },
+                    { label: 'Mercancía', value: d.mercancia },
+                    { label: 'Medidas', value: d.medidas },
+                    { label: 'Precio cerrado', value: d.precio, span: true }
+                ]) +
+                '<div class="modal-form-row" style="margin-top:0.8rem;"><label>Fecha de carga *</label><input type="date" min="' + todayISO() + '" required></div>' +
+                '<div class="modal-form-row"><label>Ventana</label><select><option>Fija (un día)</option><option>±2 días</option><option>±4 días</option></select></div>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                    '<button class="btn-primary" onclick="presupuestoGenerarConfirm()">Crear carga</button>'
+        });
+    }
+    function presupuestoGenerarConfirm() {
+        showModalSuccess('Carga creada', 'La carga se ha generado con el precio del presupuesto. Aparecerá en el listado en unos segundos.');
+    }
+    window.presupuestoGenerarConfirm = presupuestoGenerarConfirm;
+    function presupuestoDescargarPDF(row) {
+        var d = presupuestoRowData(row);
+        var name = 'Presupuesto-' + d.ref.replace(/[^A-Za-z0-9-]/g, '') + '.pdf';
+        downloadFakePDF(name);
+    }
+    function presupuestoRevisarPrecio(row) {
+        var d = presupuestoRowData(row);
+        openDashModal({
+            icon: '🔁',
+            title: 'Revisar precio ' + d.ref,
+            sub: 'Nuevo presupuesto con vigencia 7 días más',
+            body:
+                '<div class="modal-warn-box">Este presupuesto está caducado. Generaremos un <strong>nuevo presupuesto</strong> con los mismos datos. El <strong>precio</strong> y la <strong>fecha</strong> se recalculan (precio del tarifador).</div>' +
+                infoGrid([
+                    { label: 'Origen', value: d.origen },
+                    { label: 'Destino', value: d.destino },
+                    { label: 'Mercancía', value: d.mercancia },
+                    { label: 'Medidas', value: d.medidas },
+                    { label: 'Precio anterior', value: d.precio, span: true }
+                ]) +
+                '<div class="modal-form-row" style="margin-top:0.8rem;"><label>Nueva fecha estimada de carga</label><input type="date" min="' + todayISO() + '"></div>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                    '<button class="btn-primary" onclick="presupuestoRevisarConfirm()">Calcular nuevo precio</button>'
+        });
+    }
+    function presupuestoRevisarConfirm() {
+        showModalSuccess('Nuevo presupuesto generado', 'Vigencia 7 días. El tarifador ha calculado el nuevo precio según las tarifas actuales.');
+    }
+    window.presupuestoRevisarConfirm = presupuestoRevisarConfirm;
+
+    /* ---- ACCIONES FACTURAS ---- */
+    function facturaVerDetalle(row) {
+        var d = facturaRowData(row);
+        openDashModal({
+            icon: '📋',
+            title: 'Factura ' + d.ref,
+            sub: 'Solo lectura',
+            body: infoGrid([
+                { label: 'Nº factura', value: d.ref },
+                { label: 'F. emisión', value: d.emision },
+                { label: 'F. vencimiento', value: d.vencimiento },
+                { label: 'Estado', value: d.estado },
+                { label: 'Concepto', value: d.concepto + (d.conceptoMeta ? ' · ' + d.conceptoMeta : ''), span: true },
+                { label: 'Base imponible', value: d.base },
+                { label: 'IVA', value: d.iva },
+                { label: 'TOTAL', value: d.total, span: true }
+            ]),
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>' +
+                    '<button class="btn-primary" onclick="facturaDescargarPDFByRef(\'' + escapeHtml(d.ref) + '\')">📥 Descargar PDF</button>'
+        });
+    }
+    function facturaDescargarPDFByRef(ref) {
+        downloadFakePDF('Factura-' + ref.replace(/[^A-Za-z0-9-/]/g, '') + '.pdf');
+    }
+    window.facturaDescargarPDFByRef = facturaDescargarPDFByRef;
+    function facturaDescargarPDF(row) {
+        var d = facturaRowData(row);
+        downloadFakePDF('Factura-' + d.ref.replace(/[^A-Za-z0-9-/]/g, '') + '.pdf');
+    }
+
+    /* ---- DISPATCH: del texto del item al handler correcto ---- */
+    function actionFromText(text) {
+        text = (text || '').toLowerCase();
+        if (text.indexOf('ver detalle') > -1) return 'ver-detalle';
+        if (text.indexOf('reportar incidencia') > -1) return 'reportar-incidencia';
+        if (text.indexOf('descargar alb') > -1) return 'descargar-albaran';
+        if (text.indexOf('repetir') > -1) return 'repetir';
+        if (text.indexOf('seguimiento') > -1) return 'seguimiento';
+        if (text.indexOf('modificar') > -1) return 'modificar';
+        if (text.indexOf('cancelar carga') > -1) return 'cancelar-carga';
+        if (text.indexOf('generar carga') > -1) return 'generar-carga';
+        if (text.indexOf('descargar pdf') > -1) return 'descargar-pdf';
+        if (text.indexOf('revisar precio') > -1) return 'revisar-precio';
+        return null;
+    }
+    function dispatchRowAction(action, row, sectionId) {
+        if (!row || !action) return;
+        if (sectionId === 'sec-cargas') {
+            if (action === 'ver-detalle') return cargaVerDetalle(row);
+            if (action === 'repetir') return cargaRepetir(row);
+            if (action === 'reportar-incidencia') return cargaReportarIncidencia(row);
+            if (action === 'descargar-albaran') return cargaDescargarAlbaran(row);
+            if (action === 'seguimiento') return cargaSeguimiento(row);
+            if (action === 'modificar') return cargaModificar(row);
+            if (action === 'cancelar-carga') return cargaCancelar(row);
+        }
+        if (sectionId === 'sec-presupuestos') {
+            if (action === 'ver-detalle') return presupuestoVerDetalle(row);
+            if (action === 'generar-carga') return presupuestoGenerarCarga(row);
+            if (action === 'descargar-pdf') return presupuestoDescargarPDF(row);
+            if (action === 'revisar-precio') return presupuestoRevisarPrecio(row);
+        }
+        if (sectionId === 'sec-facturas') {
+            if (action === 'ver-detalle') return facturaVerDetalle(row);
+            if (action === 'descargar-pdf') return facturaDescargarPDF(row);
+        }
+    }
+    // Handler que dispara las acciones - registrado DESPUES de los handlers
+    // de close del row-menu para que el orden no importe (usa pop._sourceRow
+    // que persiste aunque el pop vuelva a su sitio en el DOM)
+    document.addEventListener('click', function (e) {
+        var item = e.target.closest('.row-menu-item');
+        if (!item) return;
+        var pop = item.closest('.row-menu-pop');
+        if (!pop) return;
+        var row = pop._sourceRow;
+        var section = pop._sourceSection;
+        var sectionId = section ? section.id : '';
+        var action = actionFromText(item.textContent);
+        if (row && action) dispatchRowAction(action, row, sectionId);
+    });
 
     // Marcamos los .row-menu (los pop estan dentro del td.actions, los buscamos)
     document.querySelectorAll('td.actions').forEach(function (td) {
