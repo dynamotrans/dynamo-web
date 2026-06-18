@@ -45,23 +45,6 @@
 
     <!-- SEO Basico -->
     <title>Dynamo Transportes | Grupajes, Carga Completa y Transporte Nacional e Internacional</title>
-    <script>
-        // Detect arrival from portal.html exit transition (before first paint)
-        try {
-            if (sessionStorage.getItem('homeTransition')) {
-                document.documentElement.classList.add('from-transition');
-                // Centrar el gradiente de llegada donde estaba el del wormhole de salida
-                var _hc = sessionStorage.getItem('homeTransitionCenter');
-                if (_hc) {
-                    var _hp = _hc.split(' ');
-                    document.documentElement.style.setProperty('--acx', _hp[0]);
-                    document.documentElement.style.setProperty('--acy', _hp[1]);
-                }
-                sessionStorage.removeItem('homeTransition');
-                sessionStorage.removeItem('homeTransitionCenter');
-            }
-        } catch (e) {}
-    </script>
     <meta name="description" content="Dynamo Operador de Transportes autorizado. Grupajes, carga completa, importacion y exportacion en toda Espana y Europa. +480 clientes. Seguro MAPFRE 250.000€. Presupuesto al instante.">
     <meta name="keywords" content="transporte mercancias, grupajes nacionales, carga completa, transporte internacional, operador transporte Sevilla, transporte Europa, importacion, exportacion, logistica, tauliner, paletizado">
     <meta name="author" content="Dynamo Operador Logistico S.L.">
@@ -166,10 +149,6 @@
     }
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <!-- Prefetch portal.html para que la navegacion desde el boton ACCESO sea
-         casi instantanea y evitar el flash de la web entre el wormhole y la
-         pantalla de login -->
-    <link rel="prefetch" href="portal.html">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -366,169 +345,8 @@
         .lang-option:hover { background: var(--gray-100); }
         .lang-option.active { background: rgba(51,0,204,0.07); color: var(--purple); }
         .lang-option .flag { font-size: 1.2rem; }
-        .btn-nav-cta {
-            background: var(--purple-nav); color: white; font-weight: 800;
-            padding: 0.6rem 1.3rem; border-radius: 10px; text-decoration: none;
-            font-size: 0.82rem; white-space: nowrap; transition: all 0.25s;
-        }
-        .btn-nav-cta:hover { background: var(--purple); transform: translateY(-1px); }
         .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; }
         .hamburger span { display: block; width: 24px; height: 2px; background: var(--purple); border-radius: 2px; }
-
-        /* =========================================
-           PORTAL TRANSITION — expanding portal effect
-           Dos capas:
-           1) .portal-transition: cortina plana que se funde rapido (cubre el lado
-              opuesto al click mientras el wormhole esta llegando, evita franja vacia)
-           2) .portal-warp (hijo): el efecto wormhole con clip-path expandiendo desde
-              el punto del click. El clip-path solo recorta esta capa, no la cortina
-        ========================================= */
-        .portal-transition {
-            position: fixed; inset: 0; z-index: 999999; pointer-events: none;
-            --cx: 50%; --cy: 50%;
-            background: var(--navy);
-            opacity: 0;
-            /* La cortina aparece INSTANTANEAMENTE para evitar el "se ve a traves"
-               durante 250ms (que dejaba asomar los botones del menu movil). El
-               efecto wormhole lo da el .portal-warp expandiendose encima */
-            transition: opacity 0s;
-        }
-        .portal-transition.active { opacity: 1; pointer-events: auto; }
-        .portal-warp {
-            position: absolute; inset: 0; overflow: hidden;
-            background:
-                radial-gradient(circle at var(--cx) var(--cy),
-                    #6b3dff 0%, var(--purple) 22%, var(--purple-nav) 55%, var(--navy) 100%);
-            clip-path: circle(0% at var(--cx) var(--cy));
-            transition: clip-path 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .portal-transition.active .portal-warp { clip-path: circle(180% at var(--cx) var(--cy)); }
-        .portal-stars {
-            position: absolute; inset: 0; opacity: 0;
-            background:
-                radial-gradient(2px 2px at 15% 22%, white 50%, transparent 100%),
-                radial-gradient(1.5px 1.5px at 78% 18%, white 50%, transparent 100%),
-                radial-gradient(2px 2px at 35% 65%, white 50%, transparent 100%),
-                radial-gradient(1px 1px at 60% 40%, white 50%, transparent 100%),
-                radial-gradient(2.5px 2.5px at 88% 75%, white 50%, transparent 100%),
-                radial-gradient(1.5px 1.5px at 8% 80%, white 50%, transparent 100%),
-                radial-gradient(1px 1px at 45% 12%, white 50%, transparent 100%),
-                radial-gradient(2px 2px at 92% 45%, white 50%, transparent 100%),
-                radial-gradient(1.5px 1.5px at 25% 90%, white 50%, transparent 100%),
-                radial-gradient(1px 1px at 70% 88%, white 50%, transparent 100%),
-                radial-gradient(2px 2px at 50% 30%, white 50%, transparent 100%),
-                radial-gradient(1.5px 1.5px at 18% 50%, white 50%, transparent 100%);
-        }
-        .portal-transition.active .portal-stars { animation: portalTwinkle 0.7s ease 0.1s forwards; }
-        @keyframes portalTwinkle {
-            0%   { opacity: 0; transform: scale(0.6) rotate(-8deg); }
-            45%  { opacity: 1; }
-            100% { opacity: 0.85; transform: scale(1.06) rotate(4deg); }
-        }
-        .portal-ring {
-            position: absolute; top: 50%; left: 50%;
-            width: 480px; height: 480px;
-            border-radius: 50%;
-            border: 2px solid rgba(255,255,255,0.45);
-            /* Solo transform/opacity: animar width/height fuerza layout por frame */
-            transform: translate(-50%, -50%) scale(0);
-            opacity: 0;
-        }
-        .portal-transition.active .portal-ring  { animation: portalRing 0.6s ease 0.08s forwards; }
-        .portal-transition.active .portal-ring2 { animation: portalRing 0.6s ease 0.18s forwards; }
-        .portal-transition.active .portal-ring3 { animation: portalRing 0.6s ease 0.28s forwards; }
-        @keyframes portalRing {
-            0%   { transform: translate(-50%, -50%) scale(0); opacity: 0.9; }
-            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
-        }
-        .portal-core {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%) scale(0.4);
-            opacity: 0;
-            display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
-            color: white; text-align: center;
-        }
-        .portal-transition.active .portal-core { animation: portalCore 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s forwards; }
-        @keyframes portalCore {
-            0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.35) rotate(-12deg); }
-            60%  { opacity: 1; }
-            100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0); }
-        }
-        .portal-core-lock {
-            width: 72px; height: 72px; border-radius: 22px;
-            /* Sin backdrop-filter: el blur por frame sobre fondo animado da tirones en movil */
-            background: linear-gradient(135deg, rgba(255,255,255,0.26), rgba(255,255,255,0.10));
-            border: 1.5px solid rgba(255,255,255,0.35);
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.25), 0 0 30px rgba(107,61,255,0.45);
-        }
-        .portal-core-lock svg { width: 32px; height: 32px; color: white; }
-        .portal-core-text {
-            font-size: 0.78rem; font-weight: 900; letter-spacing: 3px;
-            text-transform: uppercase; color: rgba(255,255,255,0.92);
-        }
-        .portal-core-loader {
-            width: 70px; height: 2px; border-radius: 2px;
-            background: rgba(255,255,255,0.18); overflow: hidden; position: relative;
-        }
-        .portal-core-loader::after {
-            content: ''; position: absolute; inset: 0;
-            background: linear-gradient(90deg, transparent, white, transparent);
-            transform: translateX(-100%);
-            animation: portalLoader 0.9s ease 0.4s infinite;
-        }
-        @keyframes portalLoader {
-            to { transform: translateX(100%); }
-        }
-        @media (max-width: 600px) {
-            .portal-core-lock { width: 58px; height: 58px; border-radius: 18px; }
-            .portal-core-lock svg { width: 26px; height: 26px; }
-            .portal-core-text { font-size: 0.7rem; letter-spacing: 2px; }
-            .portal-ring { width: 320px; height: 320px; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            .portal-warp { transition: none; clip-path: none; }
-            .portal-transition.active .portal-warp { clip-path: none; }
-            .portal-transition.active .portal-ring,
-            .portal-transition.active .portal-ring2,
-            .portal-transition.active .portal-ring3 { animation: none; opacity: 0; }
-            .portal-transition.active .portal-stars { animation: none; opacity: 0.85; transform: none; }
-            .portal-transition.active .portal-core { animation: none; opacity: 1; transform: translate(-50%, -50%); }
-            .portal-core-loader::after { animation: none; }
-        }
-
-        /* Arrival overlay: shown when coming back from portal.html */
-        .home-arrival { display: none; }
-        .from-transition .home-arrival {
-            display: flex; align-items: center; justify-content: center;
-            position: fixed; inset: 0; z-index: 999999; pointer-events: none;
-            /* --acx/--acy: mismo centro que el wormhole de salida (lo setea el script del head) */
-            background: radial-gradient(circle at var(--acx, 50%) var(--acy, 50%), #6b3dff 0%, var(--purple) 25%, var(--purple-nav) 60%, var(--navy) 100%);
-            animation: homeArrivalOut 0.85s cubic-bezier(0.55, 0, 0.45, 1) 0.05s forwards;
-            will-change: opacity, transform;
-        }
-        @keyframes homeArrivalOut {
-            0%   { opacity: 1; transform: scale(1); }
-            40%  { opacity: 1; }
-            100% { opacity: 0; transform: scale(1.3); }
-        }
-        .home-arrival-core {
-            display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
-            color: white; text-align: center;
-        }
-        .from-transition .home-arrival-core { animation: homeArrivalCoreOut 0.75s cubic-bezier(0.55, 0, 0.45, 1) 0.05s forwards; }
-        @keyframes homeArrivalCoreOut {
-            0%   { opacity: 1; transform: scale(1); }
-            100% { opacity: 0; transform: scale(0.5) translateY(-30px); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            .from-transition .home-arrival,
-            .from-transition .home-arrival-core { animation: homeArrivalReduce 0.3s ease both; }
-            @keyframes homeArrivalReduce {
-                0%   { opacity: 1; }
-                100% { opacity: 0; }
-            }
-        }
 
         /* =========================================
            MOBILE MENU — cinematografico, fondo morado con aurora animada
@@ -661,10 +479,6 @@
             font-size: 0.84rem; font-weight: 800; letter-spacing: 0.3px;
             text-decoration: none; transition: all 0.2s;
             border: 1.5px solid rgba(255,255,255,0.18);
-        }
-        .mm-cta-access {
-            background: rgba(255,255,255,0.1); color: white;
-            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
         }
         .mm-cta-tel {
             background: var(--green); color: white;
@@ -2135,7 +1949,6 @@
         @media (max-width:768px) {
             .navbar { padding: 0.7rem 1rem; }
             .navbar-nav { display:none; }
-            .navbar-right .btn-nav-cta { display:none; }
             .navbar-right { gap: 0.4rem; }
             .lang-btn { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
             .hamburger { display:flex; }
@@ -2175,33 +1988,6 @@
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NDXRZM7S"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
-<!-- HOME ARRIVAL OVERLAY (coming back from portal.html) -->
-<div class="home-arrival" aria-hidden="true">
-    <div class="home-arrival-core">
-        <div class="portal-core-lock">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        </div>
-        <div class="portal-core-text">Inicio</div>
-    </div>
-</div>
-
-<!-- PORTAL TRANSITION OVERLAY -->
-<div class="portal-transition" id="portalTransition" aria-hidden="true">
-    <div class="portal-warp">
-        <div class="portal-stars"></div>
-        <div class="portal-ring portal-ring1"></div>
-        <div class="portal-ring portal-ring2"></div>
-        <div class="portal-ring portal-ring3"></div>
-        <div class="portal-core">
-            <div class="portal-core-lock">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            </div>
-            <div class="portal-core-text">Acceso Portal</div>
-            <div class="portal-core-loader"></div>
-        </div>
-    </div>
-</div>
-
 <!-- MOBILE MENU -->
 <div class="mobile-menu" id="mobileMenu">
     <div class="mm-stars" aria-hidden="true"></div>
@@ -2220,10 +2006,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     </nav>
     <div class="mm-foot">
         <div class="mm-cta-row">
-            <a class="mm-cta mm-cta-access" href="portal.html" onclick="goToPortal(event)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                Acceso
-            </a>
             <a class="mm-cta mm-cta-tel" href="tel:+34955225945">
                 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
                 +34 955 225 945
@@ -2275,10 +2057,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <button class="lang-option" onclick="changeLang('nl','🇳🇱','NL')"><span class="flag">🇳🇱</span> Nederlands</button>
             </div>
         </div>
-        <a href="portal.html" class="btn-nav-cta" onclick="goToPortal(event)" style="display:inline-flex;align-items:center;gap:0.45rem;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            ACCESO
-        </a>
     </div>
     <div class="hamburger" onclick="openMobileMenu()" role="button" aria-label="Abrir menu" tabindex="0">
         <span></span><span></span><span></span>
@@ -3283,7 +3061,6 @@ function openLegal(tab) {
                 <li><a href="#nosotros">Nuestro equipo</a></li>
                 <li><a href="#clientes">Clientes</a></li>
                 <li><a href="#contacto">Contacto</a></li>
-                <li><a href="portal.html" onclick="goToPortal(event)">🔒 Acceso</a></li>
             </ul>
         </div>
         <div class="f-col">
@@ -3529,102 +3306,12 @@ function openLegal(tab) {
         setTimeout(function () { bar.classList.add('tb-collapsed'); }, reduce ? 1500 : 5000);
     })();
 
-    // Portal transition: expanding circle from button click position with stars + lock
-    function goToPortal(ev) {
-        if (ev) ev.preventDefault();
-        var overlay = document.getElementById('portalTransition');
-        if (!overlay) { window.location.href = 'portal.html'; return; }
-        // Si el menu movil esta abierto, congelamos su animacion y la del logo
-        // para que el navegador no la re-dispare durante el unload (causaba que
-        // el menu "apareciera de nuevo" un instante antes de cargar portal.html)
-        var mm = document.getElementById('mobileMenu');
-        if (mm && mm.classList.contains('open')) {
-            mm.style.animation = 'none';
-            mm.querySelectorAll('*').forEach(function (el) {
-                el.style.animation = 'none';
-            });
-        }
-        var cx, cy;
-        if (ev && ev.clientX !== undefined && ev.clientX !== 0) {
-            cx = ev.clientX; cy = ev.clientY;
-        } else if (ev && ev.currentTarget && ev.currentTarget.getBoundingClientRect) {
-            var r = ev.currentTarget.getBoundingClientRect();
-            cx = r.left + r.width / 2; cy = r.top + r.height / 2;
-        } else {
-            cx = window.innerWidth / 2; cy = window.innerHeight / 2;
-        }
-        overlay.style.setProperty('--cx', cx + 'px');
-        overlay.style.setProperty('--cy', cy + 'px');
-        try {
-            sessionStorage.setItem('portalTransition', '1');
-            // El overlay de llegada de portal.html usa este mismo centro (evita el salto del gradiente)
-            sessionStorage.setItem('portalTransitionCenter',
-                (cx / window.innerWidth * 100).toFixed(1) + '% ' + (cy / window.innerHeight * 100).toFixed(1) + '%');
-        } catch (e) {}
-        // Pausar los videos del hero: que no decodifiquen frames debajo del overlay
-        ['heroVideo1'].forEach(function(id){
-            var hv = document.getElementById(id);
-            if (hv && !hv.paused) { try { hv.pause(); } catch (e) {} }
-        });
-        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        var delay = reduce ? 250 : 850;
-        // Doble rAF: deja que el navegador pinte/promocione la capa antes de animarla
-        requestAnimationFrame(function () {
-            requestAnimationFrame(function () {
-                overlay.classList.add('active');
-                // Marcamos que estamos en navegacion para que el pagehide no
-                // limpie el overlay (iOS hace un repaint durante el unload que
-                // revelaba la web detras del wormhole durante 1 frame)
-                overlay.dataset.navigating = '1';
-                setTimeout(function () { window.location.href = 'portal.html'; }, delay);
-            });
-        });
-    }
-    // Durante el unload, forzamos que el overlay del wormhole siga pintado.
-    // Si no, iOS Safari/Chrome hacen un repaint que descarta la capa y se ve
-    // la web debajo durante una fraccion de segundo antes de cargar portal.html
-    window.addEventListener('pagehide', function () {
-        var overlay = document.getElementById('portalTransition');
-        if (overlay && overlay.dataset.navigating === '1') {
-            overlay.style.opacity = '1';
-            overlay.style.transition = 'none';
-            var warp = overlay.querySelector('.portal-warp');
-            if (warp) {
-                warp.style.clipPath = 'circle(180% at var(--cx) var(--cy))';
-                warp.style.transition = 'none';
-            }
-        }
-    });
-    // Reset portal overlay if page is restored from bfcache (e.g. browser back)
-    window.addEventListener('pageshow', function (e) {
-        var overlay = document.getElementById('portalTransition');
-        if (overlay) {
-            overlay.classList.remove('active');
-            // Limpia los inline styles que pagehide aplico para "quemar" el
-            // overlay durante el unload (opacity:1, transition:none, clip-path)
-            // -> sin esto, al volver con el boton atras el overlay queda como
-            // pantalla azul porque bfcache restaura los inline styles
-            overlay.style.opacity = '';
-            overlay.style.transition = '';
-            overlay.removeAttribute('data-navigating');
-            var warp = overlay.querySelector('.portal-warp');
-            if (warp) {
-                warp.style.clipPath = '';
-                warp.style.transition = '';
-            }
-        }
-        if (e.persisted) document.documentElement.classList.remove('from-transition');
-        // Reanudar el video activo del hero si lo pausamos al lanzar la transicion
+    // Reanudar el video activo del hero al volver via bfcache
+    window.addEventListener('pageshow', function () {
         ['heroVideo1'].forEach(function(id){
             var hv = document.getElementById(id);
             if (hv && hv.paused && !hv.ended && !hv.classList.contains('ended')) { try { hv.play(); } catch (err) {} }
         });
-        try {
-            sessionStorage.removeItem('portalTransition');
-            sessionStorage.removeItem('portalTransitionCenter');
-            sessionStorage.removeItem('homeTransition');
-            sessionStorage.removeItem('homeTransitionCenter');
-        } catch (err) {}
     });
 
     // Hero: el video se reproduce una vez y al terminar se desvanece hacia el
