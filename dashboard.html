@@ -816,6 +816,8 @@
                     </button>
                     <div class="user-menu-submenu" id="langSubmenu" role="menu" aria-hidden="true">
                         <button type="button" class="lang-pill active" data-lang="es" data-flag="🇪🇸" data-label="Español" onclick="pickLanguage(this)"><span class="flag">🇪🇸</span> Español</button>
+                        <button type="button" class="lang-pill" data-lang="ca" data-flag="🟡" data-label="Català" onclick="pickLanguage(this)"><span class="flag">🟡</span> Català</button>
+                        <button type="button" class="lang-pill" data-lang="eu" data-flag="🟢" data-label="Euskara" onclick="pickLanguage(this)"><span class="flag">🟢</span> Euskara</button>
                         <button type="button" class="lang-pill" data-lang="pt" data-flag="🇵🇹" data-label="Português" onclick="pickLanguage(this)"><span class="flag">🇵🇹</span> Português</button>
                         <button type="button" class="lang-pill" data-lang="en" data-flag="🇬🇧" data-label="English" onclick="pickLanguage(this)"><span class="flag">🇬🇧</span> English</button>
                         <button type="button" class="lang-pill" data-lang="fr" data-flag="🇫🇷" data-label="Français" onclick="pickLanguage(this)"><span class="flag">🇫🇷</span> Français</button>
@@ -1635,28 +1637,106 @@
         btn.setAttribute('aria-expanded', 'false');
         sub.setAttribute('aria-hidden', 'true');
     }
+    // Motor de traduccion compartido con portal.html / index.html (cookie googtrans)
+    var gtLoaded = false, gtReady = false, gtInitTimeout = null;
+    function loadGoogleTranslate() {
+        if (gtLoaded) return;
+        gtLoaded = true;
+        var s = document.createElement('script');
+        s.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+        s.onerror = function () { gtLoaded = false; };
+        document.body.appendChild(s);
+    }
+    function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+            pageLanguage: 'es',
+            autoDisplay: false,
+            includedLanguages: 'ca,eu,pt,en,zh-CN,fr,de,it,uk,ro,pl,nl'
+        }, 'google_translate_element');
+        var c = setInterval(function () {
+            var sel = document.querySelector('.goog-te-combo');
+            if (sel) { gtReady = true; clearInterval(c); }
+        }, 200);
+        setTimeout(function () { clearInterval(c); }, 10000);
+    }
+    function doTranslate(lang) {
+        var sel = document.querySelector('.goog-te-combo');
+        if (!sel) return false;
+        sel.value = lang;
+        sel.dispatchEvent(new Event('change'));
+        return true;
+    }
+    function updateLangLabel(btn) {
+        document.querySelectorAll('.lang-pill').forEach(function (p) { p.classList.remove('active'); });
+        if (btn) btn.classList.add('active');
+        var cur = document.getElementById('langCurrentLabel');
+        if (btn && cur) cur.textContent = btn.getAttribute('data-flag') + ' ' + btn.getAttribute('data-label');
+    }
     function pickLanguage(btn) {
         var lang = btn.getAttribute('data-lang');
-        var flag = btn.getAttribute('data-flag');
-        var label = btn.getAttribute('data-label');
-        document.querySelectorAll('.lang-pill').forEach(function (p) { p.classList.remove('active'); });
-        btn.classList.add('active');
-        var cur = document.getElementById('langCurrentLabel');
-        if (cur) cur.textContent = flag + ' ' + label;
+        updateLangLabel(btn);
         try { localStorage.setItem('dashLang', lang); } catch (e) {}
-        // El i18n real se conectara con el backend - de momento solo persiste la eleccion
+
+        // Volver al original: borrar cookie googtrans en todos los dominios y recargar
+        if (lang === 'es') {
+            var host = location.hostname;
+            var parts = host.split('.');
+            var domains = ['', host, '.' + host];
+            if (parts.length > 2) {
+                var bare = parts.slice(1).join('.');
+                domains.push(bare, '.' + bare);
+            }
+            domains.forEach(function (d) {
+                var c = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+                if (d) c += '; domain=' + d;
+                document.cookie = c;
+            });
+            window.location.href = location.pathname + '?lang=es&t=' + Date.now();
+            return;
+        }
+        // Cualquier otro idioma: cookie googtrans = /es/<lang> y traducir
+        var cookieVal = '/es/' + lang;
+        document.cookie = 'googtrans=' + cookieVal + '; path=/';
+        document.cookie = 'googtrans=' + cookieVal + '; path=/; domain=' + location.hostname;
+        document.cookie = 'googtrans=' + cookieVal + '; path=/; domain=.' + location.hostname;
+        loadGoogleTranslate();
+        if (gtReady && doTranslate(lang)) return;
+        var attempts = 0, max = 16;
+        if (gtInitTimeout) clearInterval(gtInitTimeout);
+        gtInitTimeout = setInterval(function () {
+            attempts++;
+            if (doTranslate(lang)) { clearInterval(gtInitTimeout); gtInitTimeout = null; }
+            else if (attempts >= max) { clearInterval(gtInitTimeout); gtInitTimeout = null; location.reload(); }
+        }, 250);
     }
+    // Al cargar la pagina, detectar idioma activo (cookie compartida con index/portal)
     (function restoreLang() {
         try {
-            var saved = localStorage.getItem('dashLang');
-            if (!saved) return;
-            var pill = document.querySelector('.lang-pill[data-lang="' + saved + '"]');
-            if (pill) {
-                document.querySelectorAll('.lang-pill').forEach(function (p) { p.classList.remove('active'); });
-                pill.classList.add('active');
-                var cur = document.getElementById('langCurrentLabel');
-                if (cur) cur.textContent = pill.getAttribute('data-flag') + ' ' + pill.getAttribute('data-label');
+            // Si venimos de "volver a Espanol" con ?lang=es, limpiamos URL y salimos
+            if (location.search.indexOf('lang=es') > -1) {
+                if (history.replaceState) history.replaceState(null, '', location.pathname);
+                return;
             }
+            var match = document.cookie.match(/googtrans=\/es\/([\w-]+)/);
+            var lang = match && match[1];
+            // Si no hay cookie pero hay eleccion guardada, respetarla
+            if (!lang) {
+                var saved = localStorage.getItem('dashLang');
+                if (saved && saved !== 'es') lang = saved;
+            }
+            if (!lang || lang === 'es') return;
+            var pill = document.querySelector('.lang-pill[data-lang="' + lang + '"]');
+            if (pill) updateLangLabel(pill);
+            // Cargar GT y aplicar idioma con un watchdog
+            setTimeout(loadGoogleTranslate, 300);
+            var attempts = 0;
+            var wd = setInterval(function () {
+                attempts++;
+                var applied = document.documentElement.classList.contains('translated-ltr') ||
+                              document.documentElement.classList.contains('translated-rtl');
+                if (applied || attempts > 20) { clearInterval(wd); return; }
+                doTranslate(lang);
+            }, 600);
         } catch (e) {}
     })();
 
@@ -1685,5 +1765,18 @@
         } catch (err) {}
     })();
 </script>
+
+<!-- Google Translate (mismo motor que index.html / portal.html, cookie googtrans compartida path=/) -->
+<div id="google_translate_element" style="display:none;"></div>
+<style>
+/* Ocultar UI de Google Translate por completo */
+.goog-te-banner-frame { display: none !important; visibility: hidden !important; }
+#goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+.goog-te-gadget { display: none !important; }
+body { top: 0 !important; position: static !important; }
+.skiptranslate { display: none !important; height: 0 !important; overflow: hidden !important; }
+.goog-text-highlight { background: none !important; box-shadow: none !important; }
+#google_translate_element { position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none; }
+</style>
 </body>
 </html>

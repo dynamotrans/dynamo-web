@@ -2255,6 +2255,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             </button>
             <div class="lang-dropdown" id="langDropdown">
                 <button class="lang-option active" onclick="changeLang('es','🇪🇸','ES')"><span class="flag">🇪🇸</span> Español</button>
+                <button class="lang-option" onclick="changeLang('ca','🟡','CAT')"><span class="flag">🟡</span> Català</button>
+                <button class="lang-option" onclick="changeLang('eu','🟢','EUS')"><span class="flag">🟢</span> Euskara</button>
                 <button class="lang-option" onclick="changeLang('pt','🇵🇹','PT')"><span class="flag">🇵🇹</span> Português</button>
                 <button class="lang-option" onclick="changeLang('en','🇬🇧','EN')"><span class="flag">🇬🇧</span> English</button>
                 <button class="lang-option" onclick="changeLang('zh-CN','🇨🇳','ZH')"><span class="flag">🇨🇳</span> 中文</button>
@@ -3987,7 +3989,7 @@ function googleTranslateElementInit() {
     new google.translate.TranslateElement({
         pageLanguage: 'es',
         autoDisplay: false,
-        includedLanguages: 'pt,en,zh-CN,fr,de,it,uk,ro,pl,nl'
+        includedLanguages: 'ca,eu,pt,en,zh-CN,fr,de,it,uk,ro,pl,nl'
     }, 'google_translate_element');
     var checkReady = setInterval(function() {
         var sel = document.querySelector('.goog-te-combo');
@@ -4002,6 +4004,8 @@ function googleTranslateElementInit() {
 
 // Language map for detecting active language on page load
 var langMap = {
+    'ca': { flag: '🟡', code: 'CAT' },
+    'eu': { flag: '🟢', code: 'EUS' },
     'pt': { flag: '🇵🇹', code: 'PT' },
     'en': { flag: '🇬🇧', code: 'EN' },
     'zh-CN': { flag: '🇨🇳', code: 'ZH' },
