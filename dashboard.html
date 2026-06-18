@@ -136,30 +136,59 @@
            se agranda y abre un dropdown con los 3 canales de contacto
         ============================================ */
         .topbar-contact-wrap { position: relative; }
+        /* Boton pildora: avatar + texto "Contacto: Álvaro" + ▾ */
         .topbar-contact-btn {
-            width: 38px; height: 38px; border-radius: 50%;
-            border: 2px solid rgba(255,255,255,0.4);
-            background: white; padding: 0;
-            cursor: pointer; position: relative; flex-shrink: 0;
-            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.18s, box-shadow 0.18s;
-            box-shadow: 0 4px 12px rgba(10,2,48,0.18);
+            display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.25rem 0.7rem 0.25rem 0.3rem;
+            border-radius: 999px;
+            border: 1.5px solid rgba(255,255,255,0.35);
+            background: rgba(255,255,255,0.16);
+            color: white;
+            cursor: pointer; position: relative;
+            font: inherit;
+            transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.18s, box-shadow 0.18s, background 0.18s;
         }
-        .topbar-contact-btn img {
+        .topbar-contact-avatar {
+            position: relative; flex-shrink: 0;
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .topbar-contact-avatar img {
             width: 100%; height: 100%; border-radius: 50%;
             object-fit: cover; display: block;
+            border: 1.5px solid white;
         }
+        .topbar-contact-label {
+            display: flex; flex-direction: column; gap: 0; line-height: 1.1;
+            text-align: left;
+        }
+        .topbar-contact-label .t-pre {
+            font-size: 0.62rem; font-weight: 700;
+            color: rgba(255,255,255,0.7);
+            text-transform: uppercase; letter-spacing: 0.6px;
+        }
+        .topbar-contact-label .t-name {
+            font-size: 0.88rem; font-weight: 800; color: white;
+        }
+        .topbar-contact-arrow {
+            color: rgba(255,255,255,0.85);
+            transition: transform 0.2s;
+        }
+        .topbar-contact-btn[aria-expanded="true"] .topbar-contact-arrow { transform: rotate(180deg); }
         .topbar-contact-btn:hover,
         .topbar-contact-btn:focus-visible,
         .topbar-contact-btn[aria-expanded="true"] {
-            transform: scale(1.18);
-            border-color: white;
-            box-shadow: 0 8px 22px rgba(10,2,48,0.32), 0 0 0 3px rgba(34,197,94,0.35);
+            transform: translateY(-1px) scale(1.04);
+            border-color: rgba(255,255,255,0.65);
+            background: rgba(255,255,255,0.26);
+            box-shadow: 0 8px 22px rgba(10,2,48,0.28), 0 0 0 3px rgba(34,197,94,0.30);
             outline: none;
         }
         /* Dot verde "online" en la esquina del avatar */
         .topbar-contact-dot {
-            position: absolute; bottom: -2px; right: -2px;
-            width: 12px; height: 12px; border-radius: 50%;
+            position: absolute; bottom: 0; right: 0;
+            width: 11px; height: 11px; border-radius: 50%;
             background: #22c55e; border: 2px solid var(--purple);
             box-shadow: 0 0 0 0 rgba(34,197,94,0.45);
             animation: topbarContactDot 2.5s ease-out infinite;
@@ -168,6 +197,18 @@
             0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.55); }
             70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
             100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+        }
+        /* Movil: ocultar el "Contacto:" pequeño y dejar solo "Álvaro" */
+        @media (max-width: 768px) {
+            .topbar-contact-btn { padding: 0.2rem 0.55rem 0.2rem 0.25rem; gap: 0.4rem; }
+            .topbar-contact-avatar { width: 30px; height: 30px; }
+            .topbar-contact-label .t-pre { display: none; }
+            .topbar-contact-label .t-name { font-size: 0.82rem; }
+        }
+        @media (max-width: 480px) {
+            /* Muy estrecho: ocultar el label entero, dejar solo foto + chevron */
+            .topbar-contact-label { display: none; }
+            .topbar-contact-btn { padding: 0.2rem 0.45rem 0.2rem 0.25rem; }
         }
 
         /* Dropdown */
@@ -1122,8 +1163,15 @@
                  Pequeño en la topbar, al pulsar abre dropdown con canales. -->
             <div class="topbar-contact-wrap">
                 <button type="button" class="topbar-contact-btn" id="topbarContactBtn" aria-haspopup="menu" aria-expanded="false" aria-label="Contactar con Álvaro">
-                    <img src="/images/ALVARO_circular_ZOOM.png" alt="Álvaro - Contacto Dynamo Transportes">
-                    <span class="topbar-contact-dot" aria-hidden="true"></span>
+                    <span class="topbar-contact-avatar">
+                        <img src="/images/ALVARO_circular_ZOOM.png" alt="Álvaro - Contacto Dynamo Transportes">
+                        <span class="topbar-contact-dot" aria-hidden="true"></span>
+                    </span>
+                    <span class="topbar-contact-label">
+                        <span class="t-pre">Contacto:</span>
+                        <span class="t-name">Álvaro</span>
+                    </span>
+                    <svg class="topbar-contact-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
                 <div class="topbar-contact-menu" id="topbarContactMenu" role="menu" aria-hidden="true">
                     <div class="topbar-contact-head">
