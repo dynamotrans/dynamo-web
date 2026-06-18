@@ -2889,10 +2889,10 @@
         makeCarga('#C-2026-1266','PED-0404','30/05','Fija','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Aceite oliva virgen','13,2 m · 23.500 kg','entregada'),
         makeCarga('#C-2026-1264','PED-0403','28/05','±4 días','Sevilla','Oviedo','Centro → Pol. Silvota','Maquinaria','Sobredimensionada','8,4 m · 12.000 kg','entregada'),
         makeCarga('#C-2026-1262','PED-0402','26/05','Fija','Sevilla','Granada','Centro → Pol. Asegra','Material obra','Áridos','10,0 m · 24.000 kg','entregada'),
-        makeCarga('#C-2026-1260','PED-0401','23/05','±2 días','Sevilla','Málaga','Centro → Pol. Guadalhorce','Paletizado','Vino tinto','13,2 m · 21.000 kg','entregada'),
+        makeCarga('#C-2026-1260','PED-0401','23/05','±2 días','Sevilla','Málaga','Centro → Pol. Guadalhorce','Paletizado','Vino tinto','13,2 m · 21.000 kg','entregada', false),
         makeCarga('#C-2026-1258','PED-0400','20/05','Fija','Sevilla','Toulouse (FR)','Centro → Eurocentre','Paletizado','Aceite oliva','13,2 m · 22.500 kg','entregada'),
         makeCarga('#C-2026-1256','PED-0399','17/05','±2 días','Sevilla','Valladolid','Centro → Pol. Argales','Maquinaria','Pieza única','8,4 m · 13.000 kg','entregada'),
-        makeCarga('#C-2026-1254','PED-0398','15/05','Fija','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Tabacos','13,2 m · 24.000 kg','entregada'),
+        makeCarga('#C-2026-1254','PED-0398','15/05','Fija','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Tabacos','13,2 m · 24.000 kg','entregada', false),
         makeCarga('#C-2026-1252','PED-0397','13/05','±4 días','Sevilla','París (FR)','Centro → Rungis','Eventos','Mobiliario feria','10,0 m · 9.500 kg','entregada'),
         makeCarga('#C-2026-1250','PED-0395','10/05','Fija','Sevilla','Lyon (FR)','Centro → Eurexpo','Paletizado','Aceite oliva','13,2 m · 23.500 kg','entregada'),
         makeCarga('#C-2026-1248','PED-0393','07/05','±2 días','Sevilla','Burgos','Centro → Villalonquejar','Material obra','Hormigón prefabricado','10,0 m · 22.000 kg','entregada'),
@@ -2999,11 +2999,13 @@
             albaranItem = '<button class="row-menu-item">📥 Descargar albarán</button>';
         } else {
             var dias = daysSinceCargaFecha(c.fecha);
-            if (dias >= 1) {
+            if (dias >= 14) {
                 albaranItem = '<button class="row-menu-item">📩 Reclamar albarán</button>';
             } else {
-                // <1 dia: el transportista aun nos lo tiene que mandar
-                albaranItem = '<button class="row-menu-item" disabled style="opacity:0.55;cursor:not-allowed;" title="El transportista aun no nos ha enviado el albaran. Disponible al dia siguiente de la entrega.">⏳ Albarán procesándose…</button>';
+                // <14 dias: el transportista aun nos lo tiene que mandar.
+                // Asi evitamos que clientes nos pidan albaranes nada mas
+                // entregar (los transportistas tardan en mandarlos)
+                albaranItem = '<button class="row-menu-item" disabled style="opacity:0.55;cursor:not-allowed;" title="El transportista aun no nos ha enviado el albaran. Si pasados 14 dias sigue sin estar, podras reclamarlo.">⏳ Albarán procesándose…</button>';
             }
         }
         return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">🔁 Repetir</button><button class="row-menu-item">⚠️ Reportar incidencia</button>' + albaranItem;
