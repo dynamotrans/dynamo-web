@@ -1436,12 +1436,12 @@
                 <button class="btn-primary" onclick="showSection('nueva-carga');return false;">+ Nueva carga</button>
             </div>
         </div>
-        <div class="tabs">
-            <button class="tab active">Todas (28)</button>
-            <button class="tab">Programadas (3)</button>
-            <button class="tab">En ruta (2)</button>
-            <button class="tab">Entregadas (23)</button>
-            <button class="tab">Canceladas (0)</button>
+        <div class="tabs" data-table="cargas">
+            <button class="tab active" data-filter="todas">Todas (<span data-count="todas">0</span>)</button>
+            <button class="tab" data-filter="programada">Programadas (<span data-count="programada">0</span>)</button>
+            <button class="tab" data-filter="en-ruta">En ruta (<span data-count="en-ruta">0</span>)</button>
+            <button class="tab" data-filter="entregada">Entregadas (<span data-count="entregada">0</span>)</button>
+            <button class="tab" data-filter="cancelada">Canceladas (<span data-count="cancelada">0</span>)</button>
         </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por nº, referencia, origen, destino…">
@@ -1454,91 +1454,12 @@
                 <thead><tr>
                     <th>Nº carga</th><th>Ref. cliente</th><th>Fecha · Ventana</th><th>Ruta</th><th>Mercancía</th><th>m · kg</th><th>Estado</th><th></th>
                 </tr></thead>
-                <tbody>
-                    <tr>
-                        <td class="ref">#C-2026-1284</td>
-                        <td class="ref-cli">PED-0421</td>
-                        <td><strong>15/06</strong><div class="meta">±2 días</div></td>
-                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Madrid</strong><div class="meta">Pol. Carretera de la Isla → Mercamadrid</div></td>
-                        <td>Paletizado<div class="meta">Aceite envasado</div></td>
-                        <td class="amount">13,2 m · 24.000 kg</td>
-                        <td><span class="badge badge-green">Entregada</span></td>
-                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
-                            <div class="row-menu-pop" data-rm>
-                                <button class="row-menu-item">📋 Ver detalle</button>
-                                <button class="row-menu-item">🔁 Repetir</button>
-                                <button class="row-menu-item">⚠️ Reportar incidencia</button>
-                                <button class="row-menu-item">📥 Descargar albarán</button>
-                            </div></td>
-                    </tr>
-                    <tr>
-                        <td class="ref">#C-2026-1281</td>
-                        <td class="ref-cli">PED-0419</td>
-                        <td><strong>14/06</strong><div class="meta">Fija</div></td>
-                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Barcelona</strong><div class="meta">Centro logístico → Zona Franca</div></td>
-                        <td>Maquinaria<div class="meta">2 piezas, sobredim.</div></td>
-                        <td class="amount">8,4 m · 14.500 kg</td>
-                        <td><span class="badge badge-blue">En ruta</span></td>
-                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
-                            <div class="row-menu-pop" data-rm>
-                                <button class="row-menu-item">📋 Ver detalle</button>
-                                <button class="row-menu-item">📍 Seguimiento</button>
-                                <button class="row-menu-item">⚠️ Reportar incidencia</button>
-                            </div></td>
-                    </tr>
-                    <tr>
-                        <td class="ref">#C-2026-1279</td>
-                        <td class="ref-cli">PED-0418</td>
-                        <td><strong>18/06</strong><div class="meta">±4 días</div></td>
-                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Valencia</strong><div class="meta">Almacén central → Puerto</div></td>
-                        <td>Eventos / feria<div class="meta">Stand modular</div></td>
-                        <td class="amount">6,0 m · 8.200 kg</td>
-                        <td><span class="badge badge-orange">Programada</span></td>
-                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
-                            <div class="row-menu-pop" data-rm>
-                                <button class="row-menu-item">📋 Ver detalle</button>
-                                <button class="row-menu-item">✏️ Modificar</button>
-                                <button class="row-menu-item danger">✕ Cancelar carga</button>
-                            </div></td>
-                    </tr>
-                    <tr>
-                        <td class="ref">#C-2026-1275</td>
-                        <td class="ref-cli">PED-0414</td>
-                        <td><strong>10/06</strong><div class="meta">±2 días</div></td>
-                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Bilbao</strong><div class="meta">Polígono Las Pajanosas → Erandio</div></td>
-                        <td>Mercancía paletizada<div class="meta">33 europalets</div></td>
-                        <td class="amount">13,2 m · 22.500 kg</td>
-                        <td><span class="badge badge-green">Entregada</span></td>
-                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
-                            <div class="row-menu-pop" data-rm>
-                                <button class="row-menu-item">📋 Ver detalle</button>
-                                <button class="row-menu-item">🔁 Repetir</button>
-                                <button class="row-menu-item">📥 Descargar albarán</button>
-                            </div></td>
-                    </tr>
-                    <tr>
-                        <td class="ref">#C-2026-1272</td>
-                        <td class="ref-cli">PED-0411</td>
-                        <td><strong>05/06</strong><div class="meta">Fija</div></td>
-                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Lisboa (PT)</strong><div class="meta">Centro → Quinta da Beloura</div></td>
-                        <td>Material de obra<div class="meta">Perfiles metálicos</div></td>
-                        <td class="amount">10,0 m · 18.000 kg</td>
-                        <td><span class="badge badge-green">Entregada</span></td>
-                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
-                            <div class="row-menu-pop" data-rm>
-                                <button class="row-menu-item">📋 Ver detalle</button>
-                                <button class="row-menu-item">🔁 Repetir</button>
-                                <button class="row-menu-item">📥 Descargar albarán</button>
-                            </div></td>
-                    </tr>
-                </tbody>
+                <tbody id="tbodyCargas"></tbody>
             </table>
         </div>
         <div class="pagination">
-            <span>Mostrando 1-5 de 28 cargas</span>
-            <div class="pagination-pages">
-                <button>‹</button><button class="active">1</button><button>2</button><button>3</button><button>4</button><button>5</button><button>6</button><button>›</button>
-            </div>
+            <span id="cargasShowing">Cargando…</span>
+            <div class="pagination-pages" id="cargasPagination"></div>
         </div>
     </section>
 
@@ -1550,10 +1471,10 @@
                 <button class="btn-secondary" onclick="showSection('nuevo-presupuesto');return false;">+ Nuevo presupuesto</button>
             </div>
         </div>
-        <div class="tabs">
-            <button class="tab active">Activos (7)</button>
-            <button class="tab">Caducados (12)</button>
-            <button class="tab">Convertidos en carga (4)</button>
+        <div class="tabs" data-table="presupuestos">
+            <button class="tab active" data-filter="activos">Activos (<span data-count="activos">0</span>)</button>
+            <button class="tab" data-filter="caducados">Caducados (<span data-count="caducados">0</span>)</button>
+            <button class="tab" data-filter="convertidos">Convertidos en carga (<span data-count="convertidos">0</span>)</button>
         </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por nº, referencia, origen, destino…">
@@ -1565,93 +1486,12 @@
                 <thead><tr>
                     <th>Nº presup.</th><th>Ref. cliente</th><th>Fecha solic.</th><th>Ruta</th><th>Mercancía</th><th>m · kg</th><th>Precio</th><th>Vigente hasta</th><th></th>
                 </tr></thead>
-                <tbody>
-                    <tr>
-                        <td class="ref">#P-2026-0421</td>
-                        <td class="ref-cli">COT-218</td>
-                        <td>18/06</td>
-                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>París (FR)</strong></td>
-                        <td>Paletizado</td>
-                        <td class="amount">13,2 m · 22.000 kg</td>
-                        <td class="amount">1.840 €</td>
-                        <td><span class="badge badge-green">25/06 (7 días)</span></td>
-                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
-                            <div class="row-menu-pop" data-rm>
-                                <button class="row-menu-item">📋 Ver detalle</button>
-                                <button class="row-menu-item">🚚 Generar carga</button>
-                                <button class="row-menu-item">📥 Descargar PDF</button>
-                            </div></td>
-                    </tr>
-                    <tr>
-                        <td class="ref">#P-2026-0418</td>
-                        <td class="ref-cli">COT-216</td>
-                        <td>17/06</td>
-                        <td class="route"><strong>Madrid</strong><span class="arrow">→</span><strong>Berlín (DE)</strong></td>
-                        <td>Maquinaria</td>
-                        <td class="amount">13,2 m · 24.000 kg</td>
-                        <td class="amount">2.350 €</td>
-                        <td><span class="badge badge-green">24/06 (6 días)</span></td>
-                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
-                            <div class="row-menu-pop" data-rm>
-                                <button class="row-menu-item">📋 Ver detalle</button>
-                                <button class="row-menu-item">🚚 Generar carga</button>
-                                <button class="row-menu-item">📥 Descargar PDF</button>
-                            </div></td>
-                    </tr>
-                    <tr>
-                        <td class="ref">#P-2026-0415</td>
-                        <td class="ref-cli">COT-214</td>
-                        <td>15/06</td>
-                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Roma (IT)</strong></td>
-                        <td>Material eventos</td>
-                        <td class="amount">10,0 m · 12.000 kg</td>
-                        <td class="amount">2.120 €</td>
-                        <td><span class="badge badge-yellow">22/06 (3 días)</span></td>
-                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
-                            <div class="row-menu-pop" data-rm>
-                                <button class="row-menu-item">📋 Ver detalle</button>
-                                <button class="row-menu-item">🚚 Generar carga</button>
-                                <button class="row-menu-item">📥 Descargar PDF</button>
-                            </div></td>
-                    </tr>
-                    <tr>
-                        <td class="ref">#P-2026-0412</td>
-                        <td class="ref-cli">COT-211</td>
-                        <td>12/06</td>
-                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Ámsterdam (NL)</strong></td>
-                        <td>Paletizado</td>
-                        <td class="amount">13,2 m · 23.500 kg</td>
-                        <td class="amount">2.680 €</td>
-                        <td><span class="badge badge-gray">Caducado el 19/06</span></td>
-                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
-                            <div class="row-menu-pop" data-rm>
-                                <button class="row-menu-item">📋 Ver detalle</button>
-                                <button class="row-menu-item">🔁 Revisar precio (renovar +7 días)</button>
-                            </div></td>
-                    </tr>
-                    <tr>
-                        <td class="ref">#P-2026-0408</td>
-                        <td class="ref-cli">COT-207</td>
-                        <td>08/06</td>
-                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Bruselas (BE)</strong></td>
-                        <td>Maquinaria</td>
-                        <td class="amount">13,2 m · 20.000 kg</td>
-                        <td class="amount">2.420 €</td>
-                        <td><span class="badge badge-gray">Caducado el 15/06</span></td>
-                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
-                            <div class="row-menu-pop" data-rm>
-                                <button class="row-menu-item">📋 Ver detalle</button>
-                                <button class="row-menu-item">🔁 Revisar precio (renovar +7 días)</button>
-                            </div></td>
-                    </tr>
-                </tbody>
+                <tbody id="tbodyPresupuestos"></tbody>
             </table>
         </div>
         <div class="pagination">
-            <span>Mostrando 1-5 de 19 presupuestos</span>
-            <div class="pagination-pages">
-                <button>‹</button><button class="active">1</button><button>2</button><button>3</button><button>4</button><button>›</button>
-            </div>
+            <span id="presupuestosShowing">Cargando…</span>
+            <div class="pagination-pages" id="presupuestosPagination"></div>
         </div>
     </section>
 
@@ -1691,90 +1531,12 @@
                 <thead><tr>
                     <th>Nº factura</th><th>F. emisión</th><th>F. vencim.</th><th>Concepto</th><th>Base</th><th>IVA 21%</th><th>Total</th><th>Estado</th><th></th>
                 </tr></thead>
-                <tbody>
-                    <tr>
-                        <td class="ref">F-2026/0184</td>
-                        <td>15/06/2026</td>
-                        <td>30/06/2026</td>
-                        <td>Transporte SE→MAD (#C-2026-1284)<div class="meta">+ servicio adicional descarga</div></td>
-                        <td class="amount">618,18 €</td>
-                        <td class="amount">129,82 €</td>
-                        <td class="amount">748,00 €</td>
-                        <td><span class="badge badge-orange">Pendiente · vence 30/06</span></td>
-                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
-                            <div class="row-menu-pop" data-rm>
-                                <button class="row-menu-item">📋 Ver detalle</button>
-                                <button class="row-menu-item">📥 Descargar PDF</button>
-                            </div></td>
-                    </tr>
-                    <tr>
-                        <td class="ref">F-2026/0182</td>
-                        <td>12/06/2026</td>
-                        <td>27/06/2026</td>
-                        <td>Transporte SE→BCN (#C-2026-1281)</td>
-                        <td class="amount">1.000,00 €</td>
-                        <td class="amount">210,00 €</td>
-                        <td class="amount">1.210,00 €</td>
-                        <td><span class="badge badge-orange">Pendiente · vence 27/06</span></td>
-                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
-                            <div class="row-menu-pop" data-rm>
-                                <button class="row-menu-item">📋 Ver detalle</button>
-                                <button class="row-menu-item">📥 Descargar PDF</button>
-                            </div></td>
-                    </tr>
-                    <tr>
-                        <td class="ref">F-2026/0178</td>
-                        <td>08/06/2026</td>
-                        <td>23/06/2026</td>
-                        <td>Transporte SE→VAL (#C-2026-1276)</td>
-                        <td class="amount">406,61 €</td>
-                        <td class="amount">85,39 €</td>
-                        <td class="amount">492,00 €</td>
-                        <td><span class="badge badge-red">Vencida · -5 días</span></td>
-                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
-                            <div class="row-menu-pop" data-rm>
-                                <button class="row-menu-item">📋 Ver detalle</button>
-                                <button class="row-menu-item">📥 Descargar PDF</button>
-                            </div></td>
-                    </tr>
-                    <tr>
-                        <td class="ref">F-2026/0175</td>
-                        <td>05/06/2026</td>
-                        <td>20/06/2026</td>
-                        <td>Transporte SE→BIO (#C-2026-1275)</td>
-                        <td class="amount">739,67 €</td>
-                        <td class="amount">155,33 €</td>
-                        <td class="amount">895,00 €</td>
-                        <td><span class="badge badge-green">Cobrada</span></td>
-                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
-                            <div class="row-menu-pop" data-rm>
-                                <button class="row-menu-item">📋 Ver detalle</button>
-                                <button class="row-menu-item">📥 Descargar PDF</button>
-                            </div></td>
-                    </tr>
-                    <tr>
-                        <td class="ref">F-2026/0171</td>
-                        <td>02/06/2026</td>
-                        <td>17/06/2026</td>
-                        <td>Transporte SE→LIS (#C-2026-1272)</td>
-                        <td class="amount">1.140,50 €</td>
-                        <td class="amount">239,50 €</td>
-                        <td class="amount">1.380,00 €</td>
-                        <td><span class="badge badge-green">Cobrada</span></td>
-                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
-                            <div class="row-menu-pop" data-rm>
-                                <button class="row-menu-item">📋 Ver detalle</button>
-                                <button class="row-menu-item">📥 Descargar PDF</button>
-                            </div></td>
-                    </tr>
-                </tbody>
+                <tbody id="tbodyFacturas"></tbody>
             </table>
         </div>
         <div class="pagination">
-            <span>Mostrando 1-5 de 38 facturas</span>
-            <div class="pagination-pages">
-                <button>‹</button><button class="active">1</button><button>2</button><button>3</button><button>4</button><button>5</button><button>6</button><button>7</button><button>8</button><button>›</button>
-            </div>
+            <span id="facturasShowing">Cargando…</span>
+            <div class="pagination-pages" id="facturasPagination"></div>
         </div>
     </section>
 
@@ -1963,8 +1725,8 @@
             </div>
             <div class="account-card">
                 <h3 class="account-card-title">Horario de atención</h3>
-                <div class="account-row"><span class="account-row-label">Teléfono</span><span class="account-row-value">L-V · 8:00 – 19:00</span></div>
-                <div class="account-row"><span class="account-row-label">WhatsApp / Email</span><span class="account-row-value">L-S · 8:00 – 20:00</span></div>
+                <div class="account-row"><span class="account-row-label">Teléfono</span><span class="account-row-value" data-sched="phone-long">L-J 9:00-14:00 y 15:00-17:00 · V 9:00-14:00</span></div>
+                <div class="account-row"><span class="account-row-label">WhatsApp / Email</span><span class="account-row-value" data-sched="online-long">L-S 8:00-20:00</span></div>
                 <div class="account-row"><span class="account-row-label">Fuera de horario</span><span class="account-row-value" style="color:var(--gray-500);">Responderemos al volver</span></div>
                 <p class="account-card-desc" style="margin-top:0.7rem;">Si tu carga está en curso y necesitas algo urgente, escríbenos por WhatsApp — lo verá un operador de guardia.</p>
             </div>
@@ -2543,18 +2305,24 @@
         if (row && action) dispatchRowAction(action, row, sectionId);
     });
 
-    // Marcamos los .row-menu (los pop estan dentro del td.actions, los buscamos)
-    document.querySelectorAll('td.actions').forEach(function (td) {
-        var btn = td.querySelector('.row-menu-btn');
-        var pop = td.querySelector('.row-menu-pop');
-        if (btn && pop) {
-            var wrap = document.createElement('div');
-            wrap.className = 'row-menu';
-            btn.parentNode.insertBefore(wrap, btn);
-            wrap.appendChild(btn);
-            wrap.appendChild(pop);
-        }
-    });
+    // Envolver el boton ⋯ + pop en un .row-menu (necesario para que el
+    // toggleRowMenu use el wrapper como contenedor). Se llama tras render
+    // de tablas dinamicas tambien.
+    function wrapRowMenus(scope) {
+        (scope || document).querySelectorAll('td.actions').forEach(function (td) {
+            if (td.querySelector('.row-menu')) return;
+            var btn = td.querySelector('.row-menu-btn');
+            var pop = td.querySelector('.row-menu-pop');
+            if (btn && pop) {
+                var wrap = document.createElement('div');
+                wrap.className = 'row-menu';
+                btn.parentNode.insertBefore(wrap, btn);
+                wrap.appendChild(btn);
+                wrap.appendChild(pop);
+            }
+        });
+    }
+    wrapRowMenus();
 
     // Sidebar movil
     function toggleSidebar() {
@@ -3022,6 +2790,337 @@
             return;
         }
     })();
+
+    /* ============================================================
+       DATOS FICTICIOS + PAGINACION FUNCIONAL
+       Sustituye los tbody vacios de cargas/presupuestos/facturas por
+       rows generados desde datos JS. Tabs hacen filtrado en cliente.
+       Cuando exista backend, basta con sustituir los arrays por una
+       llamada fetch() y refactorizar renderTable() a async.
+    ============================================================ */
+    var ROWS_PER_PAGE = 10;
+    var TABLE_STATE = {
+        cargas:       { page: 1, filter: 'todas',  perPage: ROWS_PER_PAGE },
+        presupuestos: { page: 1, filter: 'activos', perPage: ROWS_PER_PAGE },
+        facturas:     { page: 1, filter: 'todas',  perPage: ROWS_PER_PAGE }
+    };
+
+    // ---- DATA: cargas (28) ----
+    function makeCarga(ref, refCli, fecha, ventana, origen, destino, direcciones, mercancia, mercanciaMeta, medidas, kind) {
+        var estado, color;
+        if (kind === 'programada')   { estado = 'Programada'; color = 'orange'; }
+        else if (kind === 'en-ruta') { estado = 'En ruta';    color = 'blue';   }
+        else if (kind === 'cancelada'){ estado = 'Cancelada'; color = 'gray';   }
+        else                          { estado = 'Entregada'; color = 'green';  kind = 'entregada'; }
+        return { ref: ref, refCli: refCli, fecha: fecha, ventana: ventana, origen: origen, destino: destino, direcciones: direcciones, mercancia: mercancia, mercanciaMeta: mercanciaMeta, medidas: medidas, estado: estado, estadoColor: color, kind: kind };
+    }
+    var CARGAS_DATA = [
+        makeCarga('#C-2026-1290','PED-0426','28/06','±2 días','Sevilla','Madrid','Pol. Industrial Carretera de la Isla → Mercamadrid','Paletizado','Productos químicos','13,2 m · 22.000 kg','programada'),
+        makeCarga('#C-2026-1288','PED-0425','25/06','Fija','Sevilla','Barcelona','Polígono Carretera Amarilla → Mercabarna','Paletizado','Frutas y verduras','13,2 m · 24.000 kg','programada'),
+        makeCarga('#C-2026-1286','PED-0424','22/06','±4 días','Sevilla','Valencia','Almacén central → Puerto','Eventos / feria','Stand modular','6,0 m · 8.200 kg','programada'),
+        makeCarga('#C-2026-1285','PED-0423','16/06','Fija','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Paletizado','Repuestos automoción','12,0 m · 20.000 kg','en-ruta'),
+        makeCarga('#C-2026-1281','PED-0419','14/06','Fija','Sevilla','Barcelona','Centro logístico → Zona Franca','Maquinaria','2 piezas, sobredim.','8,4 m · 14.500 kg','en-ruta'),
+        makeCarga('#C-2026-1284','PED-0421','15/06','±2 días','Sevilla','Madrid','Pol. Carretera de la Isla → Mercamadrid','Paletizado','Aceite envasado','13,2 m · 24.000 kg','entregada'),
+        makeCarga('#C-2026-1283','PED-0420','13/06','Fija','Madrid','Valencia','Vallecas → Puerto','Paletizado','Bebidas refrigeradas','13,2 m · 22.000 kg','entregada'),
+        makeCarga('#C-2026-1282','PED-0419B','12/06','±2 días','Sevilla','Vigo','Polígono → Bouzas','Material obra','Cerámica','13,2 m · 20.000 kg','entregada'),
+        makeCarga('#C-2026-1278','PED-0417','11/06','Fija','Sevilla','A Coruña','Centro → Pol. Pocomaco','Paletizado','Cosméticos','10,0 m · 15.000 kg','entregada'),
+        makeCarga('#C-2026-1276','PED-0416','11/06','±2 días','Sevilla','Valencia','Almacén central → Puerto','Material','Tubos PVC','13,2 m · 22.500 kg','entregada'),
+        makeCarga('#C-2026-1275','PED-0414','10/06','±2 días','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Mercancía paletizada','33 europalets','13,2 m · 22.500 kg','entregada'),
+        makeCarga('#C-2026-1273','PED-0413','09/06','Fija','Sevilla','Pamplona','Centro → Pol. Landaben','Maquinaria','1 pieza compacta','8,4 m · 9.500 kg','entregada'),
+        makeCarga('#C-2026-1272','PED-0411','05/06','Fija','Sevilla','Lisboa (PT)','Centro → Quinta da Beloura','Material de obra','Perfiles metálicos','10,0 m · 18.000 kg','entregada'),
+        makeCarga('#C-2026-1270','PED-0410','03/06','±2 días','Sevilla','Murcia','Centro → Pol. Cabezo Beaza','Eventos','Stand modular','6,0 m · 7.500 kg','entregada'),
+        makeCarga('#C-2026-1268','PED-0405','02/06','±2 días','Sevilla','Zaragoza','Polígono → Plaza','Paletizado','Material eléctrico','13,2 m · 19.000 kg','entregada'),
+        makeCarga('#C-2026-1266','PED-0404','30/05','Fija','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Aceite oliva virgen','13,2 m · 23.500 kg','entregada'),
+        makeCarga('#C-2026-1264','PED-0403','28/05','±4 días','Sevilla','Oviedo','Centro → Pol. Silvota','Maquinaria','Sobredimensionada','8,4 m · 12.000 kg','entregada'),
+        makeCarga('#C-2026-1262','PED-0402','26/05','Fija','Sevilla','Granada','Centro → Pol. Asegra','Material obra','Áridos','10,0 m · 24.000 kg','entregada'),
+        makeCarga('#C-2026-1260','PED-0401','23/05','±2 días','Sevilla','Málaga','Centro → Pol. Guadalhorce','Paletizado','Vino tinto','13,2 m · 21.000 kg','entregada'),
+        makeCarga('#C-2026-1258','PED-0400','20/05','Fija','Sevilla','Toulouse (FR)','Centro → Eurocentre','Paletizado','Aceite oliva','13,2 m · 22.500 kg','entregada'),
+        makeCarga('#C-2026-1256','PED-0399','17/05','±2 días','Sevilla','Valladolid','Centro → Pol. Argales','Maquinaria','Pieza única','8,4 m · 13.000 kg','entregada'),
+        makeCarga('#C-2026-1254','PED-0398','15/05','Fija','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Tabacos','13,2 m · 24.000 kg','entregada'),
+        makeCarga('#C-2026-1252','PED-0397','13/05','±4 días','Sevilla','París (FR)','Centro → Rungis','Eventos','Mobiliario feria','10,0 m · 9.500 kg','entregada'),
+        makeCarga('#C-2026-1250','PED-0395','10/05','Fija','Sevilla','Lyon (FR)','Centro → Eurexpo','Paletizado','Aceite oliva','13,2 m · 23.500 kg','entregada'),
+        makeCarga('#C-2026-1248','PED-0393','07/05','±2 días','Sevilla','Burgos','Centro → Villalonquejar','Material obra','Hormigón prefabricado','10,0 m · 22.000 kg','entregada'),
+        makeCarga('#C-2026-1246','PED-0391','04/05','Fija','Sevilla','Algeciras','Centro → Puerto','Paletizado','Exportación textil','13,2 m · 18.000 kg','entregada'),
+        makeCarga('#C-2026-1244','PED-0389','02/05','±2 días','Sevilla','Cádiz','Centro → Puerto','Maquinaria','Repuestos navales','8,4 m · 11.000 kg','entregada'),
+        makeCarga('#C-2026-1242','PED-0387','30/04','Fija','Sevilla','Cartagena','Centro → Pol. Cabezo Beaza','Paletizado','Productos químicos','13,2 m · 24.000 kg','entregada')
+    ];
+
+    // ---- DATA: presupuestos (19) ----
+    function makePresupuesto(ref, refCli, fecha, origen, destino, mercancia, medidas, precio, vigencia, vigenciaColor, kind) {
+        return { ref: ref, refCli: refCli, fecha: fecha, origen: origen, destino: destino, mercancia: mercancia, medidas: medidas, precio: precio, vigencia: vigencia, vigenciaColor: vigenciaColor, kind: kind };
+    }
+    var PRESUPUESTOS_DATA = [
+        makePresupuesto('#P-2026-0421','COT-218','18/06','Sevilla','París (FR)','Paletizado','13,2 m · 22.000 kg','1.840 €','25/06 (7 días)','green','activos'),
+        makePresupuesto('#P-2026-0420','COT-217','18/06','Sevilla','Lyon (FR)','Paletizado','13,2 m · 21.000 kg','1.720 €','25/06 (7 días)','green','activos'),
+        makePresupuesto('#P-2026-0419','COT-217B','17/06','Sevilla','Berlín (DE)','Maquinaria','13,2 m · 24.000 kg','2.350 €','24/06 (6 días)','green','activos'),
+        makePresupuesto('#P-2026-0417','COT-215','16/06','Sevilla','Milán (IT)','Paletizado / Aceite','13,2 m · 22.000 kg','2.080 €','23/06 (5 días)','green','activos'),
+        makePresupuesto('#P-2026-0415','COT-214','15/06','Sevilla','Roma (IT)','Material eventos','10,0 m · 12.000 kg','2.120 €','22/06 (3 días)','yellow','activos'),
+        makePresupuesto('#P-2026-0414','COT-213','15/06','Madrid','Ámsterdam (NL)','Paletizado','13,2 m · 23.000 kg','2.650 €','22/06 (3 días)','yellow','activos'),
+        makePresupuesto('#P-2026-0413','COT-212','14/06','Sevilla','Lisboa (PT)','Maquinaria','8,4 m · 11.000 kg','980 €','21/06 (2 días)','yellow','activos'),
+        makePresupuesto('#P-2026-0418','COT-216','13/06','Sevilla','Madrid','Paletizado / Aceite','13,2 m · 24.000 kg','748 €','Convertido en #C-2026-1284','green','convertidos'),
+        makePresupuesto('#P-2026-0416','COT-215B','13/06','Sevilla','Barcelona','Maquinaria · 2 piezas','8,4 m · 14.500 kg','1.210 €','Convertido en #C-2026-1281','green','convertidos'),
+        makePresupuesto('#P-2026-0406','COT-205B','05/06','Sevilla','Bilbao','Paletizado · 33 europalets','13,2 m · 22.500 kg','895 €','Convertido en #C-2026-1275','green','convertidos'),
+        makePresupuesto('#P-2026-0404','COT-204','03/06','Sevilla','Lisboa (PT)','Material de obra','10,0 m · 18.000 kg','1.380 €','Convertido en #C-2026-1272','green','convertidos'),
+        makePresupuesto('#P-2026-0412','COT-211','12/06','Sevilla','Ámsterdam (NL)','Paletizado','13,2 m · 23.500 kg','2.680 €','Caducado el 19/06','gray','caducados'),
+        makePresupuesto('#P-2026-0411','COT-210','12/06','Sevilla','Bruselas (BE)','Maquinaria','13,2 m · 22.000 kg','2.490 €','Caducado el 19/06','gray','caducados'),
+        makePresupuesto('#P-2026-0410','COT-209','10/06','Sevilla','Praga (CZ)','Paletizado','13,2 m · 24.000 kg','2.850 €','Caducado el 17/06','gray','caducados'),
+        makePresupuesto('#P-2026-0409','COT-208','10/06','Madrid','Viena (AT)','Maquinaria','13,2 m · 20.000 kg','2.580 €','Caducado el 17/06','gray','caducados'),
+        makePresupuesto('#P-2026-0408','COT-207','08/06','Sevilla','Bruselas (BE)','Maquinaria','13,2 m · 20.000 kg','2.420 €','Caducado el 15/06','gray','caducados'),
+        makePresupuesto('#P-2026-0407','COT-206','06/06','Sevilla','Hamburgo (DE)','Paletizado','13,2 m · 23.500 kg','2.940 €','Caducado el 13/06','gray','caducados'),
+        makePresupuesto('#P-2026-0405','COT-205','04/06','Sevilla','Zúrich (CH)','Maquinaria','13,2 m · 19.500 kg','2.380 €','Caducado el 11/06','gray','caducados'),
+        makePresupuesto('#P-2026-0403','COT-203','02/06','Sevilla','Liverpool (UK)','Paletizado / Aceite','13,2 m · 22.500 kg','3.120 €','Caducado el 09/06','gray','caducados')
+    ];
+
+    // ---- DATA: facturas (38) ----
+    function makeFactura(ref, emision, vencimiento, concepto, conceptoMeta, base, iva, total, estado, color, kind) {
+        return { ref: ref, emision: emision, vencimiento: vencimiento, concepto: concepto, conceptoMeta: conceptoMeta, base: base, iva: iva, total: total, estado: estado, estadoColor: color, kind: kind };
+    }
+    var FACTURAS_DATA = [
+        makeFactura('F-2026/0184','15/06/2026','30/06/2026','Transporte SE→MAD (#C-2026-1284)','+ servicio adicional descarga','618,18 €','129,82 €','748,00 €','Pendiente · vence 30/06','orange','pendiente'),
+        makeFactura('F-2026/0183','13/06/2026','28/06/2026','Transporte MAD→VAL (#C-2026-1283)','','909,09 €','190,91 €','1.100,00 €','Pendiente · vence 28/06','orange','pendiente'),
+        makeFactura('F-2026/0182','12/06/2026','27/06/2026','Transporte SE→BCN (#C-2026-1281)','','1.000,00 €','210,00 €','1.210,00 €','Pendiente · vence 27/06','orange','pendiente'),
+        makeFactura('F-2026/0181','02/06/2026','17/06/2026','Transporte SE→ZGZ (#C-2026-1268)','','421,49 €','88,51 €','510,00 €','Pendiente · vence 17/06','orange','pendiente'),
+        makeFactura('F-2026/0178','08/06/2026','23/06/2026','Transporte SE→VAL (#C-2026-1276)','','406,61 €','85,39 €','492,00 €','Vencida · -5 días','red','vencida'),
+        makeFactura('F-2026/0177','06/06/2026','21/06/2026','Transporte SE→VGO (#C-2026-1282)','','809,92 €','170,08 €','980,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0176','06/06/2026','21/06/2026','Transporte SE→ACO (#C-2026-1278)','','727,27 €','152,73 €','880,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0175','05/06/2026','20/06/2026','Transporte SE→BIO (#C-2026-1275)','','739,67 €','155,33 €','895,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0174','04/06/2026','19/06/2026','Transporte SE→PAM (#C-2026-1273)','','503,31 €','105,69 €','609,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0173','03/06/2026','18/06/2026','Transporte SE→MUR (#C-2026-1270)','','454,55 €','95,45 €','550,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0172','02/06/2026','17/06/2026','Transporte SE→ZGZ (#C-2026-1268) anticipo','','165,29 €','34,71 €','200,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0171','02/06/2026','17/06/2026','Transporte SE→LIS (#C-2026-1272)','','1.140,50 €','239,50 €','1.380,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0170','30/05/2026','14/06/2026','Transporte SE→MAD (#C-2026-1266)','','991,74 €','208,26 €','1.200,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0169','28/05/2026','12/06/2026','Transporte SE→OVI (#C-2026-1264)','sobredimensionada','991,74 €','208,26 €','1.200,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0168','26/05/2026','10/06/2026','Transporte SE→GRA (#C-2026-1262)','','355,37 €','74,63 €','430,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0167','23/05/2026','07/06/2026','Transporte SE→MLG (#C-2026-1260)','','347,11 €','72,89 €','420,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0166','20/05/2026','04/06/2026','Transporte SE→TLS (#C-2026-1258) Francia','','1.768,60 €','371,40 €','2.140,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0165','17/05/2026','01/06/2026','Transporte SE→VLD (#C-2026-1256)','','661,16 €','138,84 €','800,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0164','15/05/2026','30/05/2026','Transporte SE→MAD (#C-2026-1254)','','805,79 €','169,21 €','975,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0163','13/05/2026','28/05/2026','Transporte SE→PAR (#C-2026-1252) Francia','feria','1.553,72 €','326,28 €','1.880,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0162','10/05/2026','25/05/2026','Transporte SE→LYO (#C-2026-1250) Francia','','1.611,57 €','338,43 €','1.950,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0161','07/05/2026','22/05/2026','Transporte SE→BGS (#C-2026-1248)','obra','590,08 €','123,92 €','714,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0160','04/05/2026','19/05/2026','Transporte SE→ALG (#C-2026-1246)','export','495,87 €','104,13 €','600,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0159','02/05/2026','17/05/2026','Transporte SE→CAD (#C-2026-1244)','','280,99 €','59,01 €','340,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0158','30/04/2026','15/05/2026','Transporte SE→CAR (#C-2026-1242)','','479,34 €','100,66 €','580,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0157','27/04/2026','12/05/2026','Transporte SE→MAD #1240','','619,83 €','130,17 €','750,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0156','24/04/2026','09/05/2026','Transporte SE→BCN #1238','','999,17 €','209,83 €','1.209,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0155','22/04/2026','07/05/2026','Transporte SE→VAL #1236','','454,55 €','95,45 €','550,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0154','19/04/2026','04/05/2026','Transporte SE→BIO #1234','','727,27 €','152,73 €','880,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0153','17/04/2026','02/05/2026','Transporte SE→LIS #1232','PT','1.107,44 €','232,56 €','1.340,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0152','15/04/2026','30/04/2026','Transporte SE→MUR #1230','','450,41 €','94,59 €','545,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0151','12/04/2026','27/04/2026','Transporte SE→ZGZ #1228','','421,49 €','88,51 €','510,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0150','10/04/2026','25/04/2026','Transporte SE→MAD #1226','','785,12 €','164,88 €','950,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0149','07/04/2026','22/04/2026','Transporte SE→OVI #1224','','990,08 €','207,92 €','1.198,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0148','05/04/2026','20/04/2026','Transporte SE→GRA #1222','','355,37 €','74,63 €','430,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0147','03/04/2026','18/04/2026','Transporte SE→MLG #1220','','347,11 €','72,89 €','420,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0146','31/03/2026','15/04/2026','Transporte SE→VLD #1218','','661,16 €','138,84 €','800,00 €','Cobrada','green','cobrada'),
+        makeFactura('F-2026/0145','29/03/2026','13/04/2026','Transporte SE→PAR #1216','feria FR','1.553,72 €','326,28 €','1.880,00 €','Cobrada','green','cobrada')
+    ];
+
+    // ---- ESCAPE + RENDER HELPERS ----
+    function esc(s) { return escapeHtml(s); }
+    function actionItemsCarga(kind) {
+        if (kind === 'programada') return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">✏️ Modificar</button><button class="row-menu-item danger">✕ Cancelar carga</button>';
+        if (kind === 'en-ruta')    return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">📍 Seguimiento</button><button class="row-menu-item">⚠️ Reportar incidencia</button>';
+        if (kind === 'cancelada')  return '<button class="row-menu-item">📋 Ver detalle</button>';
+        return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">🔁 Repetir</button><button class="row-menu-item">⚠️ Reportar incidencia</button><button class="row-menu-item">📥 Descargar albarán</button>';
+    }
+    function actionItemsPresupuesto(kind) {
+        if (kind === 'caducados')   return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">🔁 Revisar precio (renovar +7 días)</button>';
+        if (kind === 'convertidos') return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">📥 Descargar PDF</button>';
+        return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">🚚 Generar carga</button><button class="row-menu-item">📥 Descargar PDF</button>';
+    }
+    function actionItemsFactura() {
+        return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">📥 Descargar PDF</button>';
+    }
+    function actionsCell(itemsHtml) {
+        return '<td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button><div class="row-menu-pop" data-rm>' + itemsHtml + '</div></td>';
+    }
+
+    // ---- FILTERS ----
+    function filteredCargas() {
+        var f = TABLE_STATE.cargas.filter;
+        if (f === 'todas') return CARGAS_DATA;
+        return CARGAS_DATA.filter(function (c) { return c.kind === f; });
+    }
+    function filteredPresupuestos() {
+        var f = TABLE_STATE.presupuestos.filter;
+        return PRESUPUESTOS_DATA.filter(function (p) { return p.kind === f; });
+    }
+    function filteredFacturas() {
+        var f = TABLE_STATE.facturas.filter;
+        if (f === 'todas') return FACTURAS_DATA;
+        return FACTURAS_DATA.filter(function (x) { return x.kind === f; });
+    }
+
+    // ---- RENDER ----
+    function renderCargasTable() {
+        var st = TABLE_STATE.cargas;
+        var rows = filteredCargas();
+        var totalPages = Math.max(1, Math.ceil(rows.length / st.perPage));
+        if (st.page > totalPages) st.page = totalPages;
+        var start = (st.page - 1) * st.perPage;
+        var slice = rows.slice(start, start + st.perPage);
+        var tbody = document.getElementById('tbodyCargas');
+        if (!tbody) return;
+        if (slice.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin cargas en este filtro</td></tr>';
+        } else {
+            tbody.innerHTML = slice.map(function (c) {
+                return '<tr>' +
+                    '<td class="ref">' + esc(c.ref) + '</td>' +
+                    '<td class="ref-cli">' + esc(c.refCli) + '</td>' +
+                    '<td><strong>' + esc(c.fecha) + '</strong>' + (c.ventana ? '<div class="meta">' + esc(c.ventana) + '</div>' : '') + '</td>' +
+                    '<td class="route"><strong>' + esc(c.origen) + '</strong><span class="arrow">→</span><strong>' + esc(c.destino) + '</strong>' + (c.direcciones ? '<div class="meta">' + esc(c.direcciones) + '</div>' : '') + '</td>' +
+                    '<td>' + esc(c.mercancia) + (c.mercanciaMeta ? '<div class="meta">' + esc(c.mercanciaMeta) + '</div>' : '') + '</td>' +
+                    '<td class="amount">' + esc(c.medidas) + '</td>' +
+                    '<td><span class="badge badge-' + c.estadoColor + '">' + esc(c.estado) + '</span></td>' +
+                    actionsCell(actionItemsCarga(c.kind)) +
+                    '</tr>';
+            }).join('');
+            wrapRowMenus(tbody);
+        }
+        var sho = document.getElementById('cargasShowing');
+        if (sho) sho.textContent = rows.length ? 'Mostrando ' + (start+1) + '-' + Math.min(start+st.perPage, rows.length) + ' de ' + rows.length + ' cargas' : 'Sin cargas';
+        renderPagination('cargas', 'cargasPagination', st.page, totalPages);
+        // Tab counts
+        var tabs = document.querySelector('.tabs[data-table="cargas"]');
+        if (tabs) {
+            setText(tabs.querySelector('[data-count="todas"]'),      CARGAS_DATA.length);
+            setText(tabs.querySelector('[data-count="programada"]'), CARGAS_DATA.filter(function(c){return c.kind==='programada';}).length);
+            setText(tabs.querySelector('[data-count="en-ruta"]'),    CARGAS_DATA.filter(function(c){return c.kind==='en-ruta';}).length);
+            setText(tabs.querySelector('[data-count="entregada"]'),  CARGAS_DATA.filter(function(c){return c.kind==='entregada';}).length);
+            setText(tabs.querySelector('[data-count="cancelada"]'),  CARGAS_DATA.filter(function(c){return c.kind==='cancelada';}).length);
+        }
+    }
+    function renderPresupuestosTable() {
+        var st = TABLE_STATE.presupuestos;
+        var rows = filteredPresupuestos();
+        var totalPages = Math.max(1, Math.ceil(rows.length / st.perPage));
+        if (st.page > totalPages) st.page = totalPages;
+        var start = (st.page - 1) * st.perPage;
+        var slice = rows.slice(start, start + st.perPage);
+        var tbody = document.getElementById('tbodyPresupuestos');
+        if (!tbody) return;
+        if (slice.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin presupuestos en este filtro</td></tr>';
+        } else {
+            tbody.innerHTML = slice.map(function (p) {
+                return '<tr>' +
+                    '<td class="ref">' + esc(p.ref) + '</td>' +
+                    '<td class="ref-cli">' + esc(p.refCli) + '</td>' +
+                    '<td>' + esc(p.fecha) + '</td>' +
+                    '<td class="route"><strong>' + esc(p.origen) + '</strong><span class="arrow">→</span><strong>' + esc(p.destino) + '</strong></td>' +
+                    '<td>' + esc(p.mercancia) + '</td>' +
+                    '<td class="amount">' + esc(p.medidas) + '</td>' +
+                    '<td class="amount">' + esc(p.precio) + '</td>' +
+                    '<td><span class="badge badge-' + p.vigenciaColor + '">' + esc(p.vigencia) + '</span></td>' +
+                    actionsCell(actionItemsPresupuesto(p.kind)) +
+                    '</tr>';
+            }).join('');
+            wrapRowMenus(tbody);
+        }
+        var sho = document.getElementById('presupuestosShowing');
+        if (sho) sho.textContent = rows.length ? 'Mostrando ' + (start+1) + '-' + Math.min(start+st.perPage, rows.length) + ' de ' + rows.length + ' presupuestos' : 'Sin presupuestos';
+        renderPagination('presupuestos', 'presupuestosPagination', st.page, totalPages);
+        var tabs = document.querySelector('.tabs[data-table="presupuestos"]');
+        if (tabs) {
+            setText(tabs.querySelector('[data-count="activos"]'),     PRESUPUESTOS_DATA.filter(function(p){return p.kind==='activos';}).length);
+            setText(tabs.querySelector('[data-count="caducados"]'),   PRESUPUESTOS_DATA.filter(function(p){return p.kind==='caducados';}).length);
+            setText(tabs.querySelector('[data-count="convertidos"]'), PRESUPUESTOS_DATA.filter(function(p){return p.kind==='convertidos';}).length);
+        }
+    }
+    function renderFacturasTable() {
+        var st = TABLE_STATE.facturas;
+        var rows = filteredFacturas();
+        var totalPages = Math.max(1, Math.ceil(rows.length / st.perPage));
+        if (st.page > totalPages) st.page = totalPages;
+        var start = (st.page - 1) * st.perPage;
+        var slice = rows.slice(start, start + st.perPage);
+        var tbody = document.getElementById('tbodyFacturas');
+        if (!tbody) return;
+        if (slice.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin facturas</td></tr>';
+        } else {
+            tbody.innerHTML = slice.map(function (f) {
+                return '<tr>' +
+                    '<td class="ref">' + esc(f.ref) + '</td>' +
+                    '<td>' + esc(f.emision) + '</td>' +
+                    '<td>' + esc(f.vencimiento) + '</td>' +
+                    '<td>' + esc(f.concepto) + (f.conceptoMeta ? '<div class="meta">' + esc(f.conceptoMeta) + '</div>' : '') + '</td>' +
+                    '<td class="amount">' + esc(f.base) + '</td>' +
+                    '<td class="amount">' + esc(f.iva) + '</td>' +
+                    '<td class="amount">' + esc(f.total) + '</td>' +
+                    '<td><span class="badge badge-' + f.estadoColor + '">' + esc(f.estado) + '</span></td>' +
+                    actionsCell(actionItemsFactura()) +
+                    '</tr>';
+            }).join('');
+            wrapRowMenus(tbody);
+        }
+        var sho = document.getElementById('facturasShowing');
+        if (sho) sho.textContent = rows.length ? 'Mostrando ' + (start+1) + '-' + Math.min(start+st.perPage, rows.length) + ' de ' + rows.length + ' facturas' : 'Sin facturas';
+        renderPagination('facturas', 'facturasPagination', st.page, totalPages);
+    }
+    function setText(el, val) { if (el) el.textContent = val; }
+    function renderTable(table) {
+        if (table === 'cargas') renderCargasTable();
+        else if (table === 'presupuestos') renderPresupuestosTable();
+        else if (table === 'facturas') renderFacturasTable();
+    }
+
+    // ---- PAGINATION RENDERER ----
+    function renderPagination(table, containerId, currentPage, totalPages) {
+        var container = document.getElementById(containerId);
+        if (!container) return;
+        if (totalPages <= 1) { container.innerHTML = ''; return; }
+        var html = '<button data-pag-prev>‹</button>';
+        var maxButtons = 6;
+        var start = Math.max(1, currentPage - Math.floor(maxButtons/2));
+        var end = Math.min(totalPages, start + maxButtons - 1);
+        start = Math.max(1, end - maxButtons + 1);
+        if (start > 1) {
+            html += '<button data-pag-page="1">1</button>';
+            if (start > 2) html += '<span style="padding:0 0.3rem;color:var(--gray-500);">…</span>';
+        }
+        for (var i = start; i <= end; i++) {
+            html += '<button class="' + (i === currentPage ? 'active' : '') + '" data-pag-page="' + i + '">' + i + '</button>';
+        }
+        if (end < totalPages) {
+            if (end < totalPages - 1) html += '<span style="padding:0 0.3rem;color:var(--gray-500);">…</span>';
+            html += '<button data-pag-page="' + totalPages + '">' + totalPages + '</button>';
+        }
+        html += '<button data-pag-next>›</button>';
+        container.innerHTML = html;
+        container.querySelectorAll('[data-pag-page]').forEach(function (b) {
+            b.addEventListener('click', function () {
+                TABLE_STATE[table].page = parseInt(b.getAttribute('data-pag-page'), 10);
+                renderTable(table);
+            });
+        });
+        var prev = container.querySelector('[data-pag-prev]');
+        var next = container.querySelector('[data-pag-next]');
+        if (prev) prev.addEventListener('click', function () { if (TABLE_STATE[table].page > 1) { TABLE_STATE[table].page--; renderTable(table); } });
+        if (next) next.addEventListener('click', function () { if (TABLE_STATE[table].page < totalPages) { TABLE_STATE[table].page++; renderTable(table); } });
+    }
+
+    // ---- TABS ----
+    function bindTabs() {
+        document.querySelectorAll('.tabs[data-table]').forEach(function (tabs) {
+            var table = tabs.getAttribute('data-table');
+            tabs.querySelectorAll('.tab').forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    tabs.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+                    tab.classList.add('active');
+                    TABLE_STATE[table].filter = tab.getAttribute('data-filter');
+                    TABLE_STATE[table].page = 1;
+                    renderTable(table);
+                });
+            });
+        });
+    }
+    bindTabs();
+    renderCargasTable();
+    renderPresupuestosTable();
+    renderFacturasTable();
 </script>
 
 <!-- Google Translate (mismo motor que index.html / portal.html, cookie googtrans compartida path=/) -->
