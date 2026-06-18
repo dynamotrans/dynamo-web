@@ -100,21 +100,34 @@
         ========================================= */
         .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
         .topbar {
-            background: white; border-bottom: 1px solid var(--gray-200);
+            background: linear-gradient(135deg, var(--purple), var(--purple-light));
+            border-bottom: 1px solid rgba(0,0,0,0.08);
             padding: 0.85rem 2rem;
             display: flex; align-items: center; justify-content: space-between;
             position: sticky; top: 0; z-index: 50;
+            color: white;
         }
-        .topbar-title { font-size: 1.18rem; font-weight: 900; color: var(--navy); }
+        .topbar-left { display: flex; align-items: center; min-width: 0; }
+        .topbar-title { font-size: 1.18rem; font-weight: 900; color: white; }
+        .topbar-brand {
+            background: transparent; border: none; cursor: pointer;
+            padding: 0.3rem 0.6rem; border-radius: 10px;
+            display: flex; align-items: center;
+            margin: 0 auto; /* centrado entre title (izq) y actions (der) */
+            transition: background 0.2s;
+        }
+        .topbar-brand:hover { background: rgba(255,255,255,0.12); }
+        .topbar-brand img { height: 26px; width: auto; display: block; }
         .topbar-actions { display: flex; align-items: center; gap: 0.6rem; }
         .topbar-icon-btn {
             width: 38px; height: 38px; border-radius: 10px;
-            background: var(--gray-100); color: var(--gray-700);
+            background: rgba(255,255,255,0.15); color: white;
             border: none; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             position: relative;
+            transition: background 0.2s;
         }
-        .topbar-icon-btn:hover { background: var(--gray-200); }
+        .topbar-icon-btn:hover { background: rgba(255,255,255,0.25); }
         .topbar-icon-btn .dot {
             position: absolute; top: 8px; right: 8px;
             width: 8px; height: 8px; border-radius: 50%;
@@ -126,18 +139,19 @@
             padding: 0.3rem 0.7rem 0.3rem 0.4rem;
             border-radius: 999px; cursor: pointer;
             transition: background 0.2s;
-            background: transparent; border: none;
+            background: rgba(255,255,255,0.15); border: none;
             font: inherit;
         }
-        .topbar-user:hover { background: var(--gray-100); }
+        .topbar-user:hover { background: rgba(255,255,255,0.25); }
         .topbar-user-avatar {
             width: 32px; height: 32px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--purple), var(--green));
+            background: linear-gradient(135deg, var(--green), #4dc97a);
             color: white; font-weight: 900; font-size: 0.85rem;
             display: flex; align-items: center; justify-content: center;
+            border: 1.5px solid rgba(255,255,255,0.85);
         }
-        .topbar-user-name { font-size: 0.82rem; font-weight: 700; color: var(--navy); }
-        .topbar-user-arrow { color: var(--gray-500); transition: transform 0.2s; }
+        .topbar-user-name { font-size: 0.82rem; font-weight: 700; color: white; }
+        .topbar-user-arrow { color: rgba(255,255,255,0.85); transition: transform 0.2s; }
         .topbar-user[aria-expanded="true"] .topbar-user-arrow { transform: rotate(180deg); }
 
         /* User dropdown menu */
@@ -288,7 +302,6 @@
         body.theme-dark {
             background: #0f0820; color: #d4d0e8;
         }
-        body.theme-dark .topbar,
         body.theme-dark .stat-card,
         body.theme-dark .table-wrap,
         body.theme-dark .pagination,
@@ -300,6 +313,11 @@
             background: #1a1233; border-color: rgba(255,255,255,0.08);
             color: #e6e2f5;
         }
+        /* La topbar morada se mantiene tambien en dark, pero un poco mas oscura */
+        body.theme-dark .topbar {
+            background: linear-gradient(135deg, var(--purple-nav), var(--purple));
+            border-bottom-color: rgba(255,255,255,0.08);
+        }
         body.theme-dark .topbar-title,
         body.theme-dark .stat-card-value,
         body.theme-dark .account-card-title,
@@ -310,11 +328,8 @@
         body.theme-dark .stat-card-label,
         body.theme-dark .account-row-label,
         body.theme-dark .user-menu-head-email,
-        body.theme-dark .topbar-user-name,
-        body.theme-dark .topbar-user-arrow,
         body.theme-dark .mini-list-sub,
         body.theme-dark table.data thead th { color: #a8a3c0; }
-        body.theme-dark .topbar-icon-btn,
         body.theme-dark .btn-ghost,
         body.theme-dark .support-link,
         body.theme-dark .lang-pill { background: rgba(255,255,255,0.05); color: #d4d0e8; border-color: rgba(255,255,255,0.08); }
@@ -639,7 +654,10 @@
             }
             .sidebar.open { left: 0; }
             .sidebar-toggle { display: inline-flex !important; }
-            .topbar { padding: 0.75rem 1rem; }
+            .topbar { padding: 0.65rem 0.85rem; }
+            .topbar-title { font-size: 1rem; }
+            .topbar-brand img { height: 22px; }
+            .topbar-actions { gap: 0.4rem; }
             .topbar-user-name { display: none; }
             .content { padding: 1rem 1rem 3rem; }
             .stats-row, .stats-row-3 { grid-template-columns: 1fr 1fr; gap: 0.7rem; }
@@ -660,10 +678,12 @@
         }
         .sidebar-toggle {
             display: none; width: 38px; height: 38px;
-            background: var(--gray-100); border: none; border-radius: 10px;
+            background: rgba(255,255,255,0.15); border: none; border-radius: 10px;
             cursor: pointer; align-items: center; justify-content: center;
-            color: var(--navy); margin-right: 0.5rem;
+            color: white; margin-right: 0.5rem;
+            transition: background 0.2s;
         }
+        .sidebar-toggle:hover { background: rgba(255,255,255,0.25); }
         .sidebar-backdrop {
             display: none; position: fixed; inset: 0;
             background: rgba(10,2,48,0.5); z-index: 90;
@@ -725,12 +745,15 @@
 <!-- MAIN -->
 <div class="main">
     <header class="topbar">
-        <div style="display:flex;align-items:center;">
+        <div class="topbar-left">
             <button class="sidebar-toggle" onclick="toggleSidebar()">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
             <h1 class="topbar-title" id="topbarTitle">Dashboard</h1>
         </div>
+        <button type="button" class="topbar-brand" onclick="showSection('dashboard')" aria-label="Inicio del panel">
+            <img src="/images/4.png" alt="Dynamo">
+        </button>
         <div class="topbar-actions">
             <button class="topbar-icon-btn" title="Ir al Dashboard" onclick="showSection('dashboard')" aria-label="Ir al Dashboard">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
