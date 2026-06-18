@@ -670,6 +670,19 @@
             text-align: left;
         }
         .row-menu.open .row-menu-pop { display: block; }
+        /* Cuando se mueve al <body> para escapar del overflow:hidden de la
+           tabla, pasa a position:fixed con coords seteadas por JS */
+        .row-menu-pop.float {
+            position: fixed;
+            display: block;
+            z-index: 1000;
+            top: auto; left: auto; right: auto;
+            animation: rowMenuPopIn 0.14s ease both;
+        }
+        @keyframes rowMenuPopIn {
+            0% { opacity: 0; transform: translateY(-4px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
         .row-menu-item {
             display: flex; align-items: center; gap: 0.55rem;
             padding: 0.55rem 0.7rem; border-radius: 7px;
@@ -1590,18 +1603,85 @@
         l.addEventListener('click', function () { showSection(l.getAttribute('data-section')); });
     });
 
-    // Dropdown de acciones por fila
+    /* ============================================
+       Dropdown de acciones por fila
+       Los popups se mueven al <body> al abrirse para escapar del
+       overflow:hidden de la table-wrap. Posicion calculada por JS
+       en base al getBoundingClientRect() del boton + reposicion en
+       scroll/resize.
+    ============================================ */
+    var currentRowMenu = null; // { menu, pop, btn }
     function toggleRowMenu(btn) {
         var menu = btn.parentElement;
-        var open = menu.classList.contains('open');
-        document.querySelectorAll('.row-menu.open').forEach(function (m) { m.classList.remove('open'); });
-        if (!open) menu.classList.add('open');
+        var isThisOpen = currentRowMenu && currentRowMenu.menu === menu;
+        closeRowMenu();
+        if (isThisOpen) return;
+        var pop = menu.querySelector('.row-menu-pop');
+        if (!pop) return;
+        // Mover al body para escapar del overflow de la tabla
+        pop._originalParent = menu;
+        document.body.appendChild(pop);
+        pop.classList.add('float');
+        menu.classList.add('open');
+        currentRowMenu = { menu: menu, pop: pop, btn: btn };
+        positionRowMenu();
+    }
+    function closeRowMenu() {
+        if (!currentRowMenu) return;
+        var pop = currentRowMenu.pop;
+        if (pop._originalParent) pop._originalParent.appendChild(pop);
+        pop.classList.remove('float');
+        pop.style.top = pop.style.left = pop.style.right = '';
+        currentRowMenu.menu.classList.remove('open');
+        currentRowMenu = null;
+    }
+    function positionRowMenu() {
+        if (!currentRowMenu) return;
+        var btn = currentRowMenu.btn;
+        var pop = currentRowMenu.pop;
+        var rect = btn.getBoundingClientRect();
+        // Si el boton ya no esta visible (scrolleado fuera), cerrar
+        if (rect.bottom < 0 || rect.top > window.innerHeight) {
+            closeRowMenu();
+            return;
+        }
+        var popH = pop.offsetHeight;
+        var popW = pop.offsetWidth;
+        var vw = window.innerWidth;
+        var vh = window.innerHeight;
+        var GAP = 6, EDGE = 8;
+        // Por defecto: debajo del boton, alineado a la derecha
+        var top = rect.bottom + GAP;
+        if (top + popH > vh - EDGE) {
+            // No cabe debajo -> intentar arriba
+            var topAbove = rect.top - popH - GAP;
+            if (topAbove > EDGE) top = topAbove;
+            else top = Math.max(EDGE, vh - popH - EDGE);
+        }
+        var right = vw - rect.right;
+        if (right < EDGE) right = EDGE;
+        if (right + popW > vw - EDGE) right = vw - popW - EDGE;
+        pop.style.top = top + 'px';
+        pop.style.right = right + 'px';
+        pop.style.left = 'auto';
     }
     document.addEventListener('click', function (e) {
-        if (!e.target.closest('.row-menu')) {
-            document.querySelectorAll('.row-menu.open').forEach(function (m) { m.classList.remove('open'); });
-        }
+        // El boton dispara toggle por su onclick, no cerrar desde aqui
+        if (e.target.closest('.row-menu-btn')) return;
+        closeRowMenu();
     });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeRowMenu();
+    });
+    // Reposicionar en scroll (incluso dentro de table-wrap) y resize
+    var rowMenuRaf = null;
+    function scheduleRowMenuReposition() {
+        if (rowMenuRaf) return;
+        rowMenuRaf = requestAnimationFrame(function () { rowMenuRaf = null; positionRowMenu(); });
+    }
+    window.addEventListener('scroll', scheduleRowMenuReposition, { passive: true, capture: true });
+    window.addEventListener('resize', scheduleRowMenuReposition);
+
     // Marcamos los .row-menu (los pop estan dentro del td.actions, los buscamos)
     document.querySelectorAll('td.actions').forEach(function (td) {
         var btn = td.querySelector('.row-menu-btn');
