@@ -108,6 +108,112 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-15 a 2026-06-18 — iPhone (sesión maratoniana de PANEL CLIENTE)
+
+> Cuatro días de iteración intensa centrada en el **dashboard del cliente** + cleanup de la web pública. Documentado en bloque por la cantidad de trabajo.
+
+**DASHBOARD CLIENTE (`dashboard.html`)** — pieza más grande, todo en preview:
+
+- **Layout y navegación**:
+  - Topbar **morada** (gradiente `purple → purple-light`) con **logo Dynamo blanco** (`images/4.png`) + **🏠 casita** unificados a la **izquierda** como UN solo botón → vuelve al Dashboard al pulsar
+  - Quitado el nombre de sección del topbar (ya está como `<h2>` dentro de cada página)
+  - Avatar JG a la derecha como `<button>` con flecha ▾ y menú desplegable: **Mi cuenta · Datos de empresa · Soporte · Idioma · Modo oscuro · Cerrar sesión**. Cabecera con email + badge "Cliente"
+  - Sidebar navy con Dashboard/Cargas/Presupuestos/Facturas/Incidencias. Mobile: oculta detrás de hamburguesa
+  - 4 stat cards del top **clickables** → llevan a su sección. CTAs grandes **Nueva carga / Nuevo presupuesto** movidos al inicio del panel
+  - Card CESCE compactada (padding 1.4 → 0.9, total 2 → 1.5rem, barra 8 → 6px)
+  - Botón **⬆ volver arriba** abajo-derecha con margen generoso (2rem desktop / 1.6rem móvil + `env(safe-area-inset-*)`) y se oculta cuando el FAB del avatar está abierto
+
+- **Sistema de modales + acciones por fila** (cargas, presupuestos, facturas):
+  - Modal genérico (`openDashModal({icon,title,sub,body,footer})` + `closeDashModal()`) con backdrop blur, card animada, header con icono, body + footer
+  - **`downloadFakePDF(filename)`** genera un PDF mínimo válido con título → albaranes, presupuestos y facturas se descargan de verdad
+  - **Cargas** (según `kind`):
+    - 📋 Ver detalle (info grid completa + botón Editar → form de contactos + anotaciones + Guardar)
+    - 🔁 Repetir: warn-box + datos prefilados + selector fecha y ventana; texto explícito de que el precio se recalcula (tarifador)
+    - ⚠️ Reportar incidencia: info + textarea + drop de ficheros (JPG/PNG/PDF) con contador
+    - 📍 Seguimiento (en-ruta): timeline con 4 eventos mock
+    - ✕ Cancelar carga (programadas): confirmación con warn-box + textarea motivo + botón rojo
+  - **Presupuestos**:
+    - 📋 Ver detalle (incluyendo el precio)
+    - 🚚 Generar carga (Vigentes): warn-box "precio del presupuesto", selector fecha
+    - 🔁 Revisar precio (Caducados): warn-box "precio se recalcula", fecha estimada
+    - 📥 Descargar PDF: archivo `Presupuesto-PXXXX.pdf`
+  - **Facturas**: Ver detalle + botón Descargar PDF en el footer del modal
+  - `actionFromText()` reconoce el texto del item y `dispatchRowAction(action, row, sectionId)` ejecuta el handler correcto
+
+- **Dropdown ⋯ por fila — portal pattern**:
+  - El popup se trasladaba al `<body>` con `position: fixed` al abrirse para escapar del `overflow:hidden` de la tabla (clipping en las últimas filas)
+  - Posición calculada por JS via `getBoundingClientRect()`, debajo del botón o encima si no cabe
+  - Reposición en scroll/resize (capture: true) con rAF. Cierra al click fuera, click en item, Escape, o si el botón se sale del viewport
+
+- **Listas paginadas con datos ficticios** (gran refactor):
+  - **28 cargas**, **19 presupuestos** y **38 facturas** definidas en arrays JS (refs reales `#C-2026-1XXX`, `#P-2026-0XXX`, `F-2026/0XXX` + ref clientes `PED-XXXX` / `COT-XXX`)
+  - **TABLE_STATE** `{ page, filter, perPage: 10 }` por sección
+  - **Tabs como filtros**: `data-table` + `data-filter` cablean al render. Contadores dinámicos `data-count="X"` por tab
+  - **Paginación**: renderer dinámico con máximo 6 botones visibles + saltos `…` cuando hay muchas. Prev/Next funcionando
+  - **Albarán** — flujo completo: campo `hasAlbaran` en cada carga. Etiqueta 📄 al lado del estado si tiene PDF. Tab "**Sin albarán (N)**". Acciones según fecha:
+    - Con albarán → "📥 Descargar albarán"
+    - Sin albarán + **<14 días**: "⏳ Albarán procesándose…" (disabled, tooltip "Disponible al cabo de 14 días")
+    - Sin albarán + **≥14 días**: "📩 Reclamar albarán" → modal que reclama al transportista (umbral subido de 1 día → 14 días para no agobiar a transportistas)
+  - 2 entregas dinámicas añadidas (hoy + ayer) para que se vea el estado "Procesándose" independientemente de cuándo se mire
+
+- **Horarios sincronizados con web pública**:
+  - **SCHEDULE** completo copiado de `index.html` (winter/summer/feria/xmas + festivos nacionales + Semana Santa via Computus de Gauss). Zona Europe/Madrid con DST
+  - **Chips data-hours** en el FAB del avatar con `data-sched-attr` (phone-short / online-short) — texto cambia por temporada activa
+  - **Interceptor global de `tel:`** — en horario llama directo, fuera de horario abre modal "Fuera de horario" con WhatsApp + email + "Llamar igualmente"
+  - **Cartel de temporada** (`.season-banner`) en lo alto del contenido: ☀️ verano (amarillo) / 🌹 feria (naranja) / 🎄 navidad (verde) / 🏛️ festivo (rojo). Solo visible cuando aplica
+  - "Horario de atención" del menú **Soporte** conectado al SCHEDULE via `data-sched` (se actualiza con la temporada)
+
+- **Selector de idiomas funcional** (estaba solo persistiendo en localStorage):
+  - Mismo motor de Google Translate que portal/index, cookie `googtrans` compartida en `path=/`
+  - Si eliges inglés en `dynamotrans.com` y entras al panel, el panel ya viene en inglés (sync vía cookie)
+  - **Catalán + Euskera** añadidos al panel, `portal.html`, `index.html` (códigos GT `ca` / `eu`). Como no hay emoji flag oficial para CCAA, placeholders 🟡 / 🟢
+  - Menú se cierra automáticamente al elegir idioma
+
+- **Avatar FAB** (foto de Álvaro circular + abanico email/WA/llamar) **añadido a TODAS las páginas del portal**:
+  - `portal.html`, `registro.html`, `verificar.html`, `crear-password.html`, `dashboard.html`
+  - Mismo patrón visual que la web pública (halo verde pulsante, chip con nombre al abrir, rebote escalonado)
+  - En el dashboard el botón ⬆ back-top se reposiciona **encima del avatar** y se oculta con `.fab-hidden` cuando el FAB se abre
+
+- **Modo oscuro** del panel: toggle pill switch con `localStorage.dashTheme`. Cubre topbar, sidebar, stat cards, tablas, menús. Topbar mantiene su gradiente morado en dark (un poco más oscuro) para no perder identidad
+
+- **Mockup login bypass**: `portal.html` ahora acepta cualquier email + contraseña y navega a `dashboard.html`. Texto del badge: "Modo demo · acceso libre para probar". Inputs editables, submit clickable. `crear-password.html` al terminar el flujo passwordless redirige también a `dashboard.html` (antes mostraba "Tu cuenta está casi lista")
+
+- **Responsive y estabilidad**:
+  - **Pestañas (Programadas / En ruta / Entregadas…)**: `touch-action: pan-x` + `overscroll-behavior-x: contain` + `scroll-snap-type: x proximity`. Antes temblaban verticalmente al hacer swipe horizontal en móvil
+  - **Tablas no se diluyen**: `.content { max-width: 1400px; margin: 0 auto }` en pantallas anchas; `table.data { min-width: 720px desktop / 680px tablet / 620px móvil }` (era 900px)
+  - **Cinturón anti-overflow horizontal**: `html { overflow-x: hidden }` (no body), `* { min-width: 0 }`, `.tabs` y `.table-wrap` con scroll interno con `overscroll-behavior-x: contain`
+  - **Mobile fixes** en `portal.html` / `registro.html` / `verificar.html` / `crear-password.html`: `viewport-fit=cover` + `theme-color` + `min-height: 100svh` + `padding-bottom: env(safe-area-inset-bottom)` + `overscroll-behavior-y: contain` para evitar la "franja morada" al final del scroll en iOS Chrome con barra inferior (causa: el theme-color de index.html quedaba cacheado en la barra inferior)
+
+- **Decisión Holded para facturas** (sin nombrarlo en UI):
+  - El portal NO permite emitir/modificar/anular facturas. Solo lectura + descarga PDF. Toda acción editable ocurre en Holded
+  - **IMPORTANTE — nunca mencionar "Holded" en la UI del cliente** (ni notas, ni tooltips, ni meta). Quitado el cartel "Sincronizado desde Holded" que había puesto inicialmente. El cliente no debe saber qué herramientas internas usamos
+  - Quitados de las acciones de cada factura los botones "Marcar como pagada" y "Pagar ahora" — solo quedan "Ver detalle" y "Descargar PDF"
+
+**WEB PÚBLICA (`index.html`, en `main` → producción)** — cleanup y fix:
+
+- **Quitado todo rastro del portal de la web pública** (decisión definitiva):
+  - 315 líneas eliminadas: botón ACCESO del nav desktop, botón Acceso del menú móvil, 🔒 Acceso del footer, prefetch `portal.html`, HOME ARRIVAL OVERLAY HTML+CSS, PORTAL TRANSITION OVERLAY HTML+CSS, script `<head>` de detección de regreso, función `goToPortal()`, handlers pagehide/pageshow del wormhole, todas las clases CSS `.portal-*`, `.home-arrival*`, `.from-transition`, `.btn-nav-cta`, `.mm-cta-access` y 5 animaciones
+  - `portal.html` sigue accesible escribiendo la URL directamente (en producción es el mockup bloqueado original). El preview mantiene TODO intacto para seguir desarrollando privado
+  - Cuando el usuario diga literalmente "publica el portal", se promueve a producción
+- **Cobertura España y Europa** movida **después de "Tipos de mercancía"** (antes estaba entre Testimonios y Servicios). Flujo: qué transportamos → dónde llegamos
+- **"Pick. Drop. Done."** en "Por qué elegirnos" sustituido por el **logo Dynamo color** (`images/2.png`) con tamaño clamp 46-70px
+- **Franja blanca al final del scroll en móvil** arreglada: `overflow-x: hidden` movido de `body` a `html` (así el scroll vertical sigue en window y no se desborda) + `overscroll-behavior-y: none`
+- **Catalán + Euskera** añadidos al selector de idiomas también en producción
+
+**Commits del día en `main`** (vía ramas cortas):
+- `12cc22d` (merge `fix/white-space-mobile` con `d244aef`): fix franja blanca móvil
+- `be08ff2` (merge `chore/hide-portal-from-public` con `98a0516`): quitar todo rastro del portal de la web pública
+
+**Cantidad total**: ~25 commits en preview (`claude/sharp-dirac-E3UIO`) + 2 merges a `main`. Todos los commits con author/committer `Claude <noreply@anthropic.com>` (firma SSH no disponible en el entorno → GitHub los marca Unverified, no afecta la validez)
+
+**Pendientes detectados** (van a TODO.md):
+- **Horarios sincronizados en páginas de login** (portal/registro/verificar/crear-password): solo está en dashboard.html. Las login pages tienen FAB pero sin chips de horario ni phone modal. Falta replicar el SCHEDULE + interceptor + modal a esas 4 páginas
+- **Reclamar albarán backend**: cuando exista Supabase + n8n, el endpoint debe disparar un email/WhatsApp automático al transportista
+- **Filtros backend para listas**: los filtros actuales del panel son frontend (mockup). Cuando exista Supabase los listados se filtran server-side con paginación real
+- **Holded API integration**: token API en backend, endpoints listado + GET PDF, refresco periódico (cron o webhook si Holded lo soporta). NUNCA mencionar Holded en la UI
+- **Roles en el portal**: el `registro.html` actual fuerza `tipo_usuario=cliente` (hidden). Convertir a selector cuando se habilite transportista/proveedor
+- **Tabla de coeficientes en tarifador** (arrastrado de bitácora anterior): cálculo de % carga del camión en vivo según `max(coef_ml, coef_tn, coef_palets)`
+
 ### 2026-06-12 y 2026-06-13 — iPhone (sesión maratoniana)
 
 > Dos días seguidos de iteración intensa. Documentado en bloque por la cantidad.
