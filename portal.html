@@ -497,6 +497,11 @@
             0%, 100% { opacity:1; }
             50%      { opacity:0.55; }
         }
+        /* Estado OFFLINE: dot del status pasa a naranja */
+        .contact-fab-name-status.offline::before {
+            background: var(--orange) !important;
+            box-shadow: 0 0 6px rgba(255,122,0,0.65) !important;
+        }
         .contact-fab-wrap.open .contact-fab-name {
             opacity:1; transform:translateY(-50%) translateX(0);
         }
@@ -1091,6 +1096,49 @@
         var t=n.getHours()+n.getMinutes()/60;
         return rg.some(function(r){return t>=r[0]&&t<r[1];});
     }
+    // Horario online L-S 8-20 (WhatsApp/email) + estado dinamico del chip
+    function isOnlineHoursNow() {
+        var now=getNow();
+        if (getHolidayName(now)) return false;
+        var day=now.getDay();
+        if (day===0) return false;
+        var h=now.getHours();
+        return h>=8 && h<20;
+    }
+    function nextOnlineMoment() {
+        var c=new Date(getNow());
+        for (var i=0;i<8;i++) {
+            var day=c.getDay();
+            if (day!==0 && !getHolidayName(c)) {
+                if (i===0) {
+                    var h=c.getHours();
+                    if (h>=8&&h<20) return null;
+                    if (h<8) { var t=new Date(c); t.setHours(8,0,0,0); return t; }
+                } else { var t=new Date(c); t.setHours(8,0,0,0); return t; }
+            }
+            c.setDate(c.getDate()+1); c.setHours(0,0,0,0);
+        }
+        return null;
+    }
+    function formatTimeUntilOnline() {
+        var next=nextOnlineMoment(); if (!next) return '';
+        var diffMs=next.getTime()-getNow().getTime();
+        var diffMin=Math.round(diffMs/60000);
+        if (diffMin<60) return 'en breve';
+        var diffH=Math.round(diffMs/3600000);
+        if (diffH<=18) return diffH===1?'en 1 hora':'en '+diffH+' horas';
+        var diffD=Math.ceil(diffH/24);
+        return diffD===1?'mañana':'en '+diffD+' días';
+    }
+    function syncOnlineStatus() {
+        var online=isOnlineHoursNow();
+        var txt=online?'En línea · Respondo enseguida':'He salido · Vuelvo '+formatTimeUntilOnline();
+        document.querySelectorAll('.contact-fab-name-status').forEach(function (el) {
+            el.textContent=txt; el.classList.toggle('offline', !online);
+        });
+    }
+    syncOnlineStatus();
+    setInterval(syncOnlineStatus, 60000);
     // Interceptor global de tel:
     document.addEventListener('click', function (e) {
         var a = e.target.closest && e.target.closest('a[href^="tel:"]');
