@@ -2813,7 +2813,7 @@
             body: infoGrid([
                 { label: 'Nº carga', value: d.ref },
                 { label: 'Ref. cliente', value: d.refCli },
-                { label: 'Fecha · Ventana', value: d.fecha + (d.ventana ? ' · ' + d.ventana : '') },
+                { label: 'Fecha · Ventana', value: fechaConDia(d.fecha) + (d.ventana ? ' · ' + d.ventana : '') },
                 { label: 'Estado', value: d.estado },
                 { label: 'Origen', value: d.origen },
                 { label: 'Destino', value: d.destino },
@@ -2922,7 +2922,7 @@
                 '<div class="modal-warn-box">Vamos a contactar al transportista para que nos envíe el <strong>albarán firmado</strong> de esta carga. Te llegará por email en cuanto lo recibamos (normalmente en 24-48h).</div>' +
                 infoGrid([
                     { label: 'Nº carga', value: d.ref },
-                    { label: 'Fecha entrega', value: d.fecha },
+                    { label: 'Fecha entrega', value: fechaConDia(d.fecha) },
                     { label: 'Ruta', value: d.origen + ' → ' + d.destino, span: true },
                     { label: 'Mercancía', value: d.mercancia }
                 ]) +
@@ -2964,7 +2964,7 @@
                 '<div class="modal-warn-box">Si cancelas la carga, el equipo recibirá un aviso y no se llevará a cabo el transporte. Si la cancelación se realiza con menos de 24h de antelación pueden aplicarse cargos.</div>' +
                 infoGrid([
                     { label: 'Nº carga', value: d.ref },
-                    { label: 'Fecha', value: d.fecha },
+                    { label: 'Fecha', value: fechaConDia(d.fecha) },
                     { label: 'Ruta', value: d.origen + ' → ' + d.destino, span: true }
                 ]) +
                 '<div class="modal-form-row" style="margin-top:0.8rem;"><label>Motivo (opcional)</label><textarea placeholder="¿Por qué cancelas? Nos ayuda a mejorar."></textarea></div>',
@@ -2987,7 +2987,7 @@
             body: infoGrid([
                 { label: 'Nº presupuesto', value: d.ref },
                 { label: 'Ref. cliente', value: d.refCli },
-                { label: 'Fecha solicitud', value: d.fecha },
+                { label: 'Fecha solicitud', value: fechaConDia(d.fecha) },
                 { label: 'Estado', value: d.estado },
                 { label: 'Origen', value: d.origen },
                 { label: 'Destino', value: d.destino },
@@ -3955,6 +3955,16 @@
         var m = String(c.ref).match(/(\d+)\D*$/);
         return m ? parseInt(m[1], 10) : 0;
     }
+    // "19/06" → "Vie 19/06". "Sin fecha" se respeta. Si no parsea
+    // devuelve el original tal cual. Útil para tablas y mini-listas.
+    var DOW_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    function fechaConDia(s) {
+        if (!s || s === 'Sin fecha') return s || '';
+        var m = String(s).match(/^(\d{1,2})\/(\d{1,2})$/);
+        if (!m) return s;
+        var d = new Date(new Date().getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+        return DOW_SHORT[d.getDay()] + ' ' + s;
+    }
     function filteredCargas() {
         var f = TABLE_STATE.cargas.filter;
         var arr;
@@ -4024,7 +4034,7 @@
                 return '<tr' + rowCls + '>' +
                     '<td class="ref">' + esc(c.ref) + '</td>' +
                     '<td class="ref-cli">' + esc(c.refCli) + '</td>' +
-                    '<td><strong>' + esc(c.fecha) + '</strong>' + whenTag + (c.ventana ? '<div class="meta">' + esc(c.ventana) + '</div>' : '') + '</td>' +
+                    '<td><strong>' + esc(fechaConDia(c.fecha)) + '</strong>' + whenTag + (c.ventana ? '<div class="meta">' + esc(c.ventana) + '</div>' : '') + '</td>' +
                     '<td class="route"><strong>' + esc(c.origen) + '</strong><span class="arrow">→</span><strong>' + esc(c.destino) + '</strong>' + (c.direcciones ? '<div class="meta">' + esc(c.direcciones) + '</div>' : '') + '</td>' +
                     '<td>' + esc(c.mercancia) + (c.mercanciaMeta ? '<div class="meta">' + esc(c.mercanciaMeta) + '</div>' : '') + '</td>' +
                     '<td class="amount">' + esc(c.medidas) + '</td>' +
@@ -4063,7 +4073,7 @@
                 return '<tr>' +
                     '<td class="ref">' + esc(p.ref) + '</td>' +
                     '<td class="ref-cli">' + esc(p.refCli) + '</td>' +
-                    '<td>' + esc(p.fecha) + '</td>' +
+                    '<td>' + esc(fechaConDia(p.fecha)) + '</td>' +
                     '<td class="route"><strong>' + esc(p.origen) + '</strong><span class="arrow">→</span><strong>' + esc(p.destino) + '</strong></td>' +
                     '<td>' + esc(p.mercancia) + '</td>' +
                     '<td class="amount">' + esc(p.medidas) + '</td>' +
@@ -4098,8 +4108,8 @@
             tbody.innerHTML = slice.map(function (f) {
                 return '<tr>' +
                     '<td class="ref">' + esc(f.ref) + '</td>' +
-                    '<td>' + esc(f.emision) + '</td>' +
-                    '<td>' + esc(f.vencimiento) + '</td>' +
+                    '<td>' + esc(fechaConDia(f.emision)) + '</td>' +
+                    '<td>' + esc(fechaConDia(f.vencimiento)) + '</td>' +
                     '<td>' + esc(f.concepto) + (f.conceptoMeta ? '<div class="meta">' + esc(f.conceptoMeta) + '</div>' : '') + '</td>' +
                     '<td class="amount">' + esc(f.base) + '</td>' +
                     '<td class="amount">' + esc(f.iva) + '</td>' +
