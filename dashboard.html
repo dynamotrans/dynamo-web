@@ -1090,6 +1090,22 @@
             cursor: pointer; font-size: 0.82rem; color: var(--gray-700);
         }
         .pagination-pages button.active { background: var(--purple); color: white; border-color: var(--purple); }
+        /* Selector "Mostrar 10/20/50/100" en la esquina izquierda */
+        .pagination-left { display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap; }
+        .pagination-perpage-wrap {
+            display: inline-flex; align-items: center; gap: 0.45rem;
+            font-size: 0.78rem; font-weight: 700; color: var(--gray-700);
+        }
+        .pagination-perpage {
+            padding: 0.35rem 0.55rem; border-radius: 7px;
+            border: 1px solid var(--gray-200); background: white;
+            font-size: 0.82rem; font-weight: 700; color: var(--navy);
+            cursor: pointer; outline: none;
+            font-family: inherit;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .pagination-perpage:hover { border-color: rgba(51,0,204,0.4); }
+        .pagination-perpage:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.10); }
 
         /* ======= RESPONSIVE ======= */
         @media (max-width: 1100px) {
@@ -1536,7 +1552,17 @@
             </table>
         </div>
         <div class="pagination">
-            <span id="cargasShowing">Cargando…</span>
+            <div class="pagination-left">
+                <label class="pagination-perpage-wrap">Mostrar
+                    <select class="pagination-perpage" data-table="cargas">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+                <span id="cargasShowing">Cargando…</span>
+            </div>
             <div class="pagination-pages" id="cargasPagination"></div>
         </div>
     </section>
@@ -1568,7 +1594,17 @@
             </table>
         </div>
         <div class="pagination">
-            <span id="presupuestosShowing">Cargando…</span>
+            <div class="pagination-left">
+                <label class="pagination-perpage-wrap">Mostrar
+                    <select class="pagination-perpage" data-table="presupuestos">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+                <span id="presupuestosShowing">Cargando…</span>
+            </div>
             <div class="pagination-pages" id="presupuestosPagination"></div>
         </div>
     </section>
@@ -1613,7 +1649,17 @@
             </table>
         </div>
         <div class="pagination">
-            <span id="facturasShowing">Cargando…</span>
+            <div class="pagination-left">
+                <label class="pagination-perpage-wrap">Mostrar
+                    <select class="pagination-perpage" data-table="facturas">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+                <span id="facturasShowing">Cargando…</span>
+            </div>
             <div class="pagination-pages" id="facturasPagination"></div>
         </div>
     </section>
@@ -2955,11 +3001,27 @@
        Cuando exista backend, basta con sustituir los arrays por una
        llamada fetch() y refactorizar renderTable() a async.
     ============================================================ */
-    var ROWS_PER_PAGE = 10;
+    // Filas por pagina: default 20 (estandar B2B). El usuario puede
+    // cambiarlo a 10/20/50/100 desde el selector de cada tabla.
+    // En movil se aplica un cap de 50 para evitar scroll infinito en mano
+    var ROWS_PER_PAGE_DEFAULT = 20;
+    var ROWS_PER_PAGE_OPTIONS = [10, 20, 50, 100];
+    var ROWS_PER_PAGE_MOBILE_CAP = 50;
+    function isMobileViewport() { return window.matchMedia && window.matchMedia('(max-width: 600px)').matches; }
+    function readPerPage(table) {
+        var saved;
+        try { saved = parseInt(localStorage.getItem('dashPerPage_' + table), 10); } catch (e) {}
+        var v = ROWS_PER_PAGE_OPTIONS.indexOf(saved) > -1 ? saved : ROWS_PER_PAGE_DEFAULT;
+        if (isMobileViewport() && v > ROWS_PER_PAGE_MOBILE_CAP) v = ROWS_PER_PAGE_MOBILE_CAP;
+        return v;
+    }
+    function savePerPage(table, v) {
+        try { localStorage.setItem('dashPerPage_' + table, String(v)); } catch (e) {}
+    }
     var TABLE_STATE = {
-        cargas:       { page: 1, filter: 'todas',  perPage: ROWS_PER_PAGE },
-        presupuestos: { page: 1, filter: 'activos', perPage: ROWS_PER_PAGE },
-        facturas:     { page: 1, filter: 'todas',  perPage: ROWS_PER_PAGE }
+        cargas:       { page: 1, filter: 'todas',  perPage: readPerPage('cargas') },
+        presupuestos: { page: 1, filter: 'activos', perPage: readPerPage('presupuestos') },
+        facturas:     { page: 1, filter: 'todas',  perPage: readPerPage('facturas') }
     };
 
     // ---- DATA: cargas (28) ----
@@ -3330,7 +3392,42 @@
             });
         });
     }
+    function bindPerPageSelectors() {
+        document.querySelectorAll('.pagination-perpage[data-table]').forEach(function (sel) {
+            var table = sel.getAttribute('data-table');
+            // Marcar la opcion guardada en localStorage al cargar
+            sel.value = String(TABLE_STATE[table].perPage);
+            sel.addEventListener('change', function () {
+                var v = parseInt(sel.value, 10);
+                if (ROWS_PER_PAGE_OPTIONS.indexOf(v) === -1) v = ROWS_PER_PAGE_DEFAULT;
+                savePerPage(table, v);
+                TABLE_STATE[table].perPage = v;
+                TABLE_STATE[table].page = 1;
+                renderTable(table);
+            });
+        });
+    }
+    // Si cambia el viewport (rotacion / resize), recalcular perPage por si
+    // el usuario tenia 100 en desktop y ahora paso a movil -> cap a 50
+    window.addEventListener('resize', function () {
+        var changed = false;
+        ['cargas', 'presupuestos', 'facturas'].forEach(function (table) {
+            var fresh = readPerPage(table);
+            if (TABLE_STATE[table].perPage !== fresh) {
+                TABLE_STATE[table].perPage = fresh;
+                changed = true;
+                var sel = document.querySelector('.pagination-perpage[data-table="' + table + '"]');
+                if (sel) sel.value = String(fresh);
+            }
+        });
+        if (changed) {
+            renderCargasTable();
+            renderPresupuestosTable();
+            renderFacturasTable();
+        }
+    });
     bindTabs();
+    bindPerPageSelectors();
     renderCargasTable();
     renderPresupuestosTable();
     renderFacturasTable();
