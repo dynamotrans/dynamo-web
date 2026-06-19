@@ -7,6 +7,10 @@
     <title>Dashboard · Dynamo Portal</title>
     <link rel="icon" type="image/png" href="/images/DYNAMO-NEW-LOGO.png">
     <meta name="theme-color" content="#0a0230">
+    <!-- Flatpickr (calendario) — usado por el tarifador interno del panel -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/es.js" defer></script>
     <style>
         :root {
             --purple:       #3300cc;
@@ -1122,6 +1126,160 @@
         .pagination-perpage:hover { border-color: rgba(51,0,204,0.4); }
         .pagination-perpage:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.10); }
 
+        /* =========================================
+           TARIFADOR INTERNO DEL PANEL
+           Mismo motor que el del hero de la web pública pero
+           adaptado a contexto logueado: sin campos de contacto,
+           submit añade la entrada a CARGAS_DATA / PRESUPUESTOS_DATA
+        ========================================= */
+        .ptar-card {
+            background: white; border-radius: 14px;
+            border: 1px solid var(--gray-200);
+            padding: 1.5rem; max-width: 920px;
+            box-shadow: 0 1px 3px rgba(10,2,48,0.04);
+            position: relative;
+        }
+        .ptar-intro {
+            color: var(--gray-500); font-size: 0.85rem;
+            margin-bottom: 1.2rem; line-height: 1.5;
+        }
+        .ptar-intro strong { color: var(--gray-700); }
+        .ptar-reset {
+            position: absolute; top: 1rem; right: 1rem;
+            width: 32px; height: 32px; border-radius: 8px;
+            background: var(--gray-100); border: 1px solid var(--gray-200);
+            color: var(--gray-500); cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            transition: all 0.18s;
+        }
+        .ptar-reset:hover { background: var(--gray-200); color: var(--purple); }
+        .ptar-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem 1rem;
+        }
+        .ptar-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+        .ptar-field-full { grid-column: 1 / -1; }
+        .ptar-label {
+            font-size: 0.7rem; font-weight: 700;
+            color: var(--gray-500); text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .ptar-input-wrap {
+            position: relative;
+            display: flex; align-items: center; gap: 0.55rem;
+            padding: 0.55rem 0.8rem;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 10px;
+            background: white;
+            transition: border-color 0.18s, box-shadow 0.18s;
+        }
+        .ptar-input-wrap:hover,
+        .ptar-input-wrap:focus-within { border-color: var(--purple); }
+        .ptar-input-wrap:focus-within { box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
+        .ptar-input-wrap.ptar-error { border-color: var(--red); background: #fef2f2; }
+        .ptar-input-wrap.ptar-error svg { color: var(--red); }
+        .ptar-input-wrap svg { width: 16px; height: 16px; color: var(--gray-500); flex-shrink: 0; }
+        .ptar-input-wrap input {
+            flex: 1; border: none; outline: none; background: transparent;
+            font: inherit; color: var(--gray-900); font-size: 0.9rem; min-width: 0;
+        }
+        .ptar-input-wrap input::placeholder { color: var(--gray-300); }
+        .ptar-select, .ptar-date {
+            width: 100%; padding: 0.6rem 0.8rem;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 10px; background: white;
+            font: inherit; color: var(--gray-900); font-size: 0.9rem;
+            cursor: pointer; transition: border-color 0.18s, box-shadow 0.18s;
+        }
+        .ptar-select:hover, .ptar-date:hover,
+        .ptar-select:focus, .ptar-date:focus {
+            border-color: var(--purple); outline: none;
+        }
+        .ptar-select:focus, .ptar-date:focus { box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
+        .ptar-fecha-wrap { position: relative; }
+        .ptar-fecha-wrap input.ptar-date {
+            position: absolute; inset: 0;
+            opacity: 0; pointer-events: none;
+        }
+        /* Suggestions OSM */
+        .ptar-sug {
+            position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+            background: white; border: 1px solid var(--gray-200);
+            border-radius: 10px; max-height: 240px; overflow-y: auto;
+            box-shadow: 0 12px 28px rgba(10,2,48,0.12);
+            list-style: none; padding: 0.3rem; z-index: 50;
+        }
+        .ptar-sug li {
+            padding: 0.55rem 0.75rem; border-radius: 7px;
+            cursor: pointer; font-size: 0.85rem; color: var(--gray-700);
+        }
+        .ptar-sug li:hover, .ptar-sug li.active {
+            background: rgba(51,0,204,0.06); color: var(--purple);
+        }
+        .ptar-camion-tip {
+            display: none; font-size: 0.72rem; color: var(--gray-500);
+            margin-top: 0.3rem; padding: 0.35rem 0.55rem;
+            background: var(--gray-100); border-radius: 6px;
+        }
+        .ptar-camion-tip.show { display: block; }
+        /* Anotaciones libres colapsable */
+        .ptar-notes-wrap { margin-top: 1rem; }
+        .ptar-notes-toggle {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            font-size: 0.78rem; color: var(--purple); font-weight: 700;
+            background: none; border: none; cursor: pointer;
+            padding: 0.25rem 0;
+        }
+        .ptar-notes-toggle .pnt-icon {
+            width: 18px; height: 18px; border-radius: 50%;
+            background: rgba(51,0,204,0.1); display: inline-flex;
+            align-items: center; justify-content: center; font-weight: 900;
+            transition: transform 0.22s;
+        }
+        .ptar-notes-toggle[aria-expanded="true"] .pnt-icon { transform: rotate(45deg); }
+        .ptar-notes-body { margin-top: 0.55rem; }
+        .ptar-notes-body textarea {
+            width: 100%; padding: 0.7rem 0.9rem;
+            border: 1.5px solid var(--gray-200); border-radius: 10px;
+            font: inherit; font-size: 0.88rem; color: var(--gray-900);
+            resize: vertical; min-height: 80px; line-height: 1.5;
+        }
+        .ptar-notes-body textarea:focus {
+            outline: none; border-color: var(--purple);
+            box-shadow: 0 0 0 3px rgba(51,0,204,0.08);
+        }
+        .ptar-notes-counter {
+            font-size: 0.7rem; color: var(--gray-500);
+            text-align: right; margin-top: 0.25rem;
+        }
+        .ptar-notes-counter.warn { color: var(--red); font-weight: 700; }
+        /* Validación */
+        .ptar-warning {
+            display: none; margin-top: 1rem;
+            padding: 0.7rem 0.95rem;
+            background: #fef2f2; color: var(--red);
+            border: 1px solid #fecaca; border-radius: 10px;
+            font-size: 0.82rem; font-weight: 600;
+        }
+        .ptar-warning.show { display: block; }
+        /* CTAs */
+        .ptar-actions {
+            display: flex; gap: 0.6rem; margin-top: 1.4rem;
+            padding-top: 1.2rem; border-top: 1px solid var(--gray-200);
+            flex-wrap: wrap;
+        }
+        .ptar-actions .btn-primary,
+        .ptar-actions .btn-secondary { flex: 1; min-width: 180px; }
+        .ptar-actions .btn-ghost { flex: 0 0 auto; }
+
+        @media (max-width: 768px) {
+            .ptar-card { padding: 1.1rem; }
+            .ptar-grid { grid-template-columns: 1fr; gap: 0.7rem; }
+            .ptar-input-wrap input,
+            .ptar-select, .ptar-date { font-size: 16px; }
+            .ptar-actions { flex-direction: column; }
+            .ptar-actions .btn-ghost { width: 100%; }
+        }
+
         /* ======= RESPONSIVE ======= */
         @media (max-width: 1100px) {
             .stats-row, .stats-row-3 { grid-template-columns: repeat(2, 1fr); }
@@ -1778,25 +1936,105 @@
             <h2>Nueva carga</h2>
             <button class="btn-ghost" onclick="showSection('dashboard');return false;">← Volver</button>
         </div>
-        <div style="background:white;border-radius:14px;border:1px solid var(--gray-200);padding:1.5rem;max-width:780px;">
-            <p style="color:var(--gray-500);font-size:0.85rem;margin-bottom:1.2rem;">Solicitud de carga con confirmación de tarifa. Rellena los datos para que el equipo confirme precio y disponibilidad en menos de 25 minutos.</p>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
-                <div>
-                    <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.3rem;">Referencia interna *</label>
-                    <input type="text" placeholder="PED-0422" style="width:100%;padding:0.6rem 0.8rem;border:1px solid var(--gray-200);border-radius:8px;font-family:inherit;">
+        <div class="ptar-card" data-ptar-mode="carga">
+            <button type="button" class="ptar-reset" data-ptar-reset aria-label="Reiniciar formulario" title="Reiniciar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="23 4 23 10 17 10"/>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+            </button>
+            <p class="ptar-intro">Solicitud de carga con <strong>tarifa cerrada</strong>. El equipo confirma precio y disponibilidad en menos de 25 minutos. Aparecerá en tu listado como "Programada" en cuanto se confirme.</p>
+
+            <div class="ptar-grid">
+                <div class="ptar-field">
+                    <label class="ptar-label" for="ptar-orig-carga">Origen *</label>
+                    <div class="ptar-input-wrap" data-ptar-orig-wrap>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <input type="text" id="ptar-orig-carga" data-ptar-orig placeholder="CP o ciudad" autocomplete="off" inputmode="search">
+                        <ul class="ptar-sug" data-ptar-orig-sug hidden></ul>
+                    </div>
                 </div>
-                <div>
-                    <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.3rem;">Tipo de camión *</label>
-                    <select style="width:100%;padding:0.6rem 0.8rem;border:1px solid var(--gray-200);border-radius:8px;font-family:inherit;background:white;">
-                        <option>Trailer Tauliner · 13,2 m</option>
-                        <option>Rígido 8 m con plataforma</option>
+                <div class="ptar-field">
+                    <label class="ptar-label" for="ptar-dest-carga">Destino *</label>
+                    <div class="ptar-input-wrap" data-ptar-dest-wrap>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                        <input type="text" id="ptar-dest-carga" data-ptar-dest placeholder="CP o ciudad" autocomplete="off" inputmode="search">
+                        <ul class="ptar-sug" data-ptar-dest-sug hidden></ul>
+                    </div>
+                </div>
+
+                <div class="ptar-field">
+                    <label class="ptar-label" for="ptar-camion-carga">Tipo de camión</label>
+                    <select id="ptar-camion-carga" data-ptar-camion class="ptar-select">
+                        <option value="tauliner" data-ml-max="13" data-peso-max="24">Trailer Tauliner · 13,2 m (más económico)</option>
+                        <option value="rigido" data-ml-max="8" data-peso-max="14">Rígido 8 m con plataforma + transpalet (más caro)</option>
+                    </select>
+                    <div class="ptar-camion-tip" data-ptar-camion-tip></div>
+                </div>
+                <div class="ptar-field">
+                    <label class="ptar-label" for="ptar-merca-carga">Tipo de mercancía</label>
+                    <select id="ptar-merca-carga" data-ptar-merca class="ptar-select">
+                        <option>Paletizado mercancía general — almacén a almacén (por lateral)</option>
+                        <option>Por lateral — mercancía no paletizada (maquinaria, perfiles…)</option>
+                        <option>Por techo — mercancía no paletizada (maquinaria, perfiles…)</option>
+                        <option>Material eventos / ferias</option>
+                        <option>Obra — recogidas / entregas</option>
+                        <option>Zona urbana con/sin permisos — recogidas / entregas</option>
+                        <option>ADR mercancía</option>
+                        <option>Fincas — recogidas / entregas</option>
+                        <option>Balas / sacas sin palet (limpio) — NIMA requerido</option>
+                        <option>Balas / sacas sin palet (sucios) — NIMA requerido</option>
                     </select>
                 </div>
+
+                <div class="ptar-field">
+                    <label class="ptar-label" for="ptar-ml-carga">Metros lineales</label>
+                    <select id="ptar-ml-carga" data-ptar-ml class="ptar-select"></select>
+                </div>
+                <div class="ptar-field">
+                    <label class="ptar-label" for="ptar-peso-carga">Peso (toneladas)</label>
+                    <select id="ptar-peso-carga" data-ptar-peso class="ptar-select"></select>
+                </div>
+
+                <div class="ptar-field">
+                    <label class="ptar-label" for="ptar-dia-carga">Fecha de carga (L-V)</label>
+                    <div class="ptar-fecha-wrap">
+                        <select id="ptar-dia-carga" data-ptar-dia class="ptar-select"></select>
+                        <input type="date" data-ptar-fecha class="ptar-date" aria-label="Elegir fecha en calendario">
+                    </div>
+                </div>
+                <div class="ptar-field">
+                    <label class="ptar-label" for="ptar-urgencia-carga">Ventana</label>
+                    <select id="ptar-urgencia-carga" data-ptar-urgencia class="ptar-select">
+                        <option value="dia">Fecha fija (un día concreto, más cara)</option>
+                        <option value="estandar" selected>Ventana de 2 días (Estándar)</option>
+                        <option value="flexible">Ventana de 4 días (Flexible, más económica)</option>
+                    </select>
+                </div>
+
+                <div class="ptar-field ptar-field-full">
+                    <label class="ptar-label" for="ptar-refcli-carga">Tu referencia interna (opcional)</label>
+                    <input type="text" id="ptar-refcli-carga" data-ptar-refcli class="ptar-select" placeholder="Ej. PED-0426">
+                </div>
             </div>
-            <p style="font-size:0.78rem;color:var(--gray-500);font-style:italic;padding:1rem;background:var(--gray-100);border-radius:8px;text-align:center;">Aquí irá el formulario completo de Nueva Carga con: origen (con persona y teléfono de contacto), destino (idem), fecha + ventana, mercancía detallada (tipo, naturaleza, ADR sí/no), instrucciones especiales, anotaciones libres… <strong>Lo iteramos en la próxima vuelta.</strong></p>
-            <div style="display:flex;gap:0.5rem;margin-top:1.2rem;">
-                <button class="btn-primary">Solicitar carga</button>
-                <button class="btn-ghost" onclick="showSection('dashboard');return false;">Cancelar</button>
+
+            <div class="ptar-notes-wrap">
+                <button type="button" class="ptar-notes-toggle" data-ptar-notes-toggle aria-expanded="false">
+                    <span class="pnt-icon" aria-hidden="true">+</span>
+                    Añadir anotaciones
+                </button>
+                <div class="ptar-notes-body" data-ptar-notes-body hidden>
+                    <textarea data-ptar-notes maxlength="1000" rows="3"
+                        placeholder="Detalles que debamos saber (acceso, dimensiones especiales, ADR, instrucciones de entrega…)"></textarea>
+                    <div class="ptar-notes-counter"><span data-ptar-notes-count>0</span> / 1000</div>
+                </div>
+            </div>
+
+            <div class="ptar-warning" data-ptar-warning role="alert">⚠ Introduce el origen y el destino antes de solicitar la carga.</div>
+
+            <div class="ptar-actions">
+                <button type="button" class="btn-primary" data-ptar-submit>Solicitar carga</button>
+                <button type="button" class="btn-ghost" onclick="showSection('dashboard');return false;">Cancelar</button>
             </div>
         </div>
     </section>
@@ -1807,12 +2045,105 @@
             <h2>Nuevo presupuesto</h2>
             <button class="btn-ghost" onclick="showSection('dashboard');return false;">← Volver</button>
         </div>
-        <div style="background:white;border-radius:14px;border:1px solid var(--gray-200);padding:1.5rem;max-width:780px;">
-            <p style="color:var(--gray-500);font-size:0.85rem;margin-bottom:1.2rem;">Pide un precio sin compromiso. El presupuesto será vigente <strong>durante 7 días</strong> desde su emisión.</p>
-            <p style="font-size:0.78rem;color:var(--gray-500);font-style:italic;padding:1rem;background:var(--gray-100);border-radius:8px;text-align:center;">Aquí irá el tarifador normal (similar al del hero de la web pública): origen, destino, camión, mercancía, metros lineales, peso, fecha, ventana de carga, anotaciones libres. <strong>Lo iteramos en la próxima vuelta.</strong></p>
-            <div style="display:flex;gap:0.5rem;margin-top:1.2rem;">
-                <button class="btn-secondary">Solicitar presupuesto</button>
-                <button class="btn-ghost" onclick="showSection('dashboard');return false;">Cancelar</button>
+        <div class="ptar-card" data-ptar-mode="presupuesto">
+            <button type="button" class="ptar-reset" data-ptar-reset aria-label="Reiniciar formulario" title="Reiniciar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="23 4 23 10 17 10"/>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+            </button>
+            <p class="ptar-intro">Pide un precio <strong>sin compromiso</strong>. El presupuesto será vigente <strong>durante 7 días</strong> desde su emisión. Si te encaja, lo conviertes en carga con un solo clic.</p>
+
+            <div class="ptar-grid">
+                <div class="ptar-field">
+                    <label class="ptar-label" for="ptar-orig-presu">Origen *</label>
+                    <div class="ptar-input-wrap" data-ptar-orig-wrap>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <input type="text" id="ptar-orig-presu" data-ptar-orig placeholder="CP o ciudad" autocomplete="off" inputmode="search">
+                        <ul class="ptar-sug" data-ptar-orig-sug hidden></ul>
+                    </div>
+                </div>
+                <div class="ptar-field">
+                    <label class="ptar-label" for="ptar-dest-presu">Destino *</label>
+                    <div class="ptar-input-wrap" data-ptar-dest-wrap>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                        <input type="text" id="ptar-dest-presu" data-ptar-dest placeholder="CP o ciudad" autocomplete="off" inputmode="search">
+                        <ul class="ptar-sug" data-ptar-dest-sug hidden></ul>
+                    </div>
+                </div>
+
+                <div class="ptar-field">
+                    <label class="ptar-label" for="ptar-camion-presu">Tipo de camión</label>
+                    <select id="ptar-camion-presu" data-ptar-camion class="ptar-select">
+                        <option value="tauliner" data-ml-max="13" data-peso-max="24">Trailer Tauliner · 13,2 m (más económico)</option>
+                        <option value="rigido" data-ml-max="8" data-peso-max="14">Rígido 8 m con plataforma + transpalet (más caro)</option>
+                    </select>
+                    <div class="ptar-camion-tip" data-ptar-camion-tip></div>
+                </div>
+                <div class="ptar-field">
+                    <label class="ptar-label" for="ptar-merca-presu">Tipo de mercancía</label>
+                    <select id="ptar-merca-presu" data-ptar-merca class="ptar-select">
+                        <option>Paletizado mercancía general — almacén a almacén (por lateral)</option>
+                        <option>Por lateral — mercancía no paletizada (maquinaria, perfiles…)</option>
+                        <option>Por techo — mercancía no paletizada (maquinaria, perfiles…)</option>
+                        <option>Material eventos / ferias</option>
+                        <option>Obra — recogidas / entregas</option>
+                        <option>Zona urbana con/sin permisos — recogidas / entregas</option>
+                        <option>ADR mercancía</option>
+                        <option>Fincas — recogidas / entregas</option>
+                        <option>Balas / sacas sin palet (limpio) — NIMA requerido</option>
+                        <option>Balas / sacas sin palet (sucios) — NIMA requerido</option>
+                    </select>
+                </div>
+
+                <div class="ptar-field">
+                    <label class="ptar-label" for="ptar-ml-presu">Metros lineales</label>
+                    <select id="ptar-ml-presu" data-ptar-ml class="ptar-select"></select>
+                </div>
+                <div class="ptar-field">
+                    <label class="ptar-label" for="ptar-peso-presu">Peso (toneladas)</label>
+                    <select id="ptar-peso-presu" data-ptar-peso class="ptar-select"></select>
+                </div>
+
+                <div class="ptar-field">
+                    <label class="ptar-label" for="ptar-dia-presu">Fecha estimada (L-V)</label>
+                    <div class="ptar-fecha-wrap">
+                        <select id="ptar-dia-presu" data-ptar-dia class="ptar-select"></select>
+                        <input type="date" data-ptar-fecha class="ptar-date" aria-label="Elegir fecha en calendario">
+                    </div>
+                </div>
+                <div class="ptar-field">
+                    <label class="ptar-label" for="ptar-urgencia-presu">Ventana</label>
+                    <select id="ptar-urgencia-presu" data-ptar-urgencia class="ptar-select">
+                        <option value="dia">Fecha fija (un día concreto, más cara)</option>
+                        <option value="estandar" selected>Ventana de 2 días (Estándar)</option>
+                        <option value="flexible">Ventana de 4 días (Flexible, más económica)</option>
+                    </select>
+                </div>
+
+                <div class="ptar-field ptar-field-full">
+                    <label class="ptar-label" for="ptar-refcli-presu">Tu referencia interna (opcional)</label>
+                    <input type="text" id="ptar-refcli-presu" data-ptar-refcli class="ptar-select" placeholder="Ej. COT-219">
+                </div>
+            </div>
+
+            <div class="ptar-notes-wrap">
+                <button type="button" class="ptar-notes-toggle" data-ptar-notes-toggle aria-expanded="false">
+                    <span class="pnt-icon" aria-hidden="true">+</span>
+                    Añadir anotaciones
+                </button>
+                <div class="ptar-notes-body" data-ptar-notes-body hidden>
+                    <textarea data-ptar-notes maxlength="1000" rows="3"
+                        placeholder="Detalles que debamos saber (acceso, dimensiones especiales, ADR, instrucciones de entrega…)"></textarea>
+                    <div class="ptar-notes-counter"><span data-ptar-notes-count>0</span> / 1000</div>
+                </div>
+            </div>
+
+            <div class="ptar-warning" data-ptar-warning role="alert">⚠ Introduce el origen y el destino antes de solicitar el presupuesto.</div>
+
+            <div class="ptar-actions">
+                <button type="button" class="btn-secondary" data-ptar-submit>Solicitar presupuesto</button>
+                <button type="button" class="btn-ghost" onclick="showSection('dashboard');return false;">Cancelar</button>
             </div>
         </div>
     </section>
@@ -3479,6 +3810,334 @@
     renderCargasTable();
     renderPresupuestosTable();
     renderFacturasTable();
+
+    /* =========================================
+       TARIFADOR INTERNO DEL PANEL (Nueva carga / Nuevo presupuesto)
+       Mismo motor que el del hero en index.html, pero adaptado a contexto
+       logueado: el submit añade la entrada al array LOCAL (CARGAS_DATA o
+       PRESUPUESTOS_DATA) y muestra un modal de éxito. Mientras NO haya
+       backend, todo es mockup en memoria.
+    ========================================= */
+    (function () {
+        var CAMION_INFO = {
+            tauliner: { mlMax: 13, pesoMax: 24, label: 'Trailer Tauliner · 13,2 m · 33 europalets · 24 Tn' },
+            rigido:   { mlMax: 8,  pesoMax: 14, label: 'Rígido 8 m con plataforma + transpalet · 20 europalets · 14 Tn' }
+        };
+        var refCounter = { carga: 1290, presupuesto: 421 };
+
+        // --- Helpers ---
+        function fmtDate(d) {
+            return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+        }
+        function fmtFull(d) {
+            var dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            return dias[d.getDay()] + ' ' + fmtDate(d);
+        }
+        function isWeekend(d) { var x = d.getDay(); return x === 0 || x === 6; }
+        function nextWeekdays(count) {
+            var out = [], d = new Date(), added = 0;
+            d.setDate(d.getDate() + 1); // mañana
+            while (added < count) {
+                if (!isWeekend(d)) { out.push(new Date(d)); added++; }
+                d.setDate(d.getDate() + 1);
+            }
+            return out;
+        }
+        function nextRef(mode) {
+            refCounter[mode]++;
+            if (mode === 'carga') return '#C-2026-' + refCounter.carga;
+            return '#P-2026-0' + refCounter.presupuesto;
+        }
+
+        // --- ML / Peso selectores reactivos al camión ---
+        function fillMlSelect(sel, mlMax) {
+            sel.innerHTML = '';
+            for (var i = 1; i <= mlMax; i++) {
+                var opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = i + ' m (' + (i * 2.5).toFixed(1).replace('.0', '') + ' europalets / ' + (i * 2) + ' americanos)';
+                sel.appendChild(opt);
+            }
+            // Tauliner tiene 13,2m como tope real
+            if (mlMax === 13) {
+                var opt2 = document.createElement('option');
+                opt2.value = '13.2'; opt2.textContent = '13,2 m (33 europalets / 26 americanos) — CARGA COMPLETA';
+                sel.appendChild(opt2);
+                sel.value = '13.2';
+            } else {
+                sel.value = mlMax;
+            }
+        }
+        function fillPesoSelect(sel, pesoMax) {
+            sel.innerHTML = '';
+            for (var i = 1; i <= pesoMax; i++) {
+                var opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = i + ' Tn' + (i === pesoMax ? ' (máximo)' : '');
+                sel.appendChild(opt);
+            }
+            sel.value = pesoMax;
+        }
+
+        // --- Día selector con próximos 7 laborables + "Otro día" ---
+        function fillDiaSelect(sel) {
+            sel.innerHTML = '';
+            var none = document.createElement('option');
+            none.value = ''; none.textContent = 'Sin fecha definida'; sel.appendChild(none);
+            nextWeekdays(7).forEach(function (d) {
+                var opt = document.createElement('option');
+                opt.value = d.toISOString().slice(0, 10);
+                opt.textContent = fmtFull(d);
+                sel.appendChild(opt);
+            });
+            var otro = document.createElement('option');
+            otro.value = 'otro'; otro.textContent = 'Otro día…';
+            sel.appendChild(otro);
+            sel.value = '';
+        }
+
+        // --- OSM Nominatim autocomplete (mismo motor que index.html) ---
+        var fetchAbort = null;
+        function osmSearch(query, cb) {
+            if (fetchAbort) fetchAbort.abort();
+            fetchAbort = new AbortController();
+            var url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&countrycodes=es,pt,fr,it,de,nl,be,lu,at,ch,pl&accept-language=es&q=' + encodeURIComponent(query);
+            fetch(url, { signal: fetchAbort.signal, headers: { 'Accept-Language': 'es' } })
+                .then(function (r) { return r.json(); })
+                .then(function (data) { cb(data || []); })
+                .catch(function () { /* abort / network */ });
+        }
+        function formatSugLabel(item) {
+            var a = item.address || {};
+            var place = a.city || a.town || a.village || a.municipality || a.county || item.display_name.split(',')[0];
+            var prov = a.state || a.province || '';
+            var cp = a.postcode || '';
+            var pais = a.country || '';
+            var parts = [place];
+            if (cp) parts.push(cp);
+            if (prov && prov !== place) parts.push(prov);
+            if (pais && pais !== 'España' && pais !== 'Spain') parts.push('(' + pais + ')');
+            return parts.join(', ');
+        }
+        function bindAutocomplete(wrap, input, sugList) {
+            var deb;
+            input.addEventListener('input', function () {
+                wrap.classList.remove('ptar-error');
+                var q = input.value.trim();
+                if (q.length < 2) { sugList.hidden = true; return; }
+                clearTimeout(deb);
+                deb = setTimeout(function () {
+                    osmSearch(q, function (items) {
+                        sugList.innerHTML = '';
+                        if (!items.length) { sugList.hidden = true; return; }
+                        items.forEach(function (it) {
+                            var li = document.createElement('li');
+                            li.textContent = formatSugLabel(it);
+                            li.addEventListener('mousedown', function (e) {
+                                e.preventDefault();
+                                input.value = li.textContent;
+                                sugList.hidden = true;
+                            });
+                            sugList.appendChild(li);
+                        });
+                        sugList.hidden = false;
+                    });
+                }, 350);
+            });
+            input.addEventListener('blur', function () {
+                setTimeout(function () { sugList.hidden = true; }, 150);
+            });
+        }
+
+        // --- Init para cada .ptar-card ---
+        function initTarifador(card) {
+            var mode = card.getAttribute('data-ptar-mode'); // 'carga' | 'presupuesto'
+            var origWrap = card.querySelector('[data-ptar-orig-wrap]');
+            var destWrap = card.querySelector('[data-ptar-dest-wrap]');
+            var origInput = card.querySelector('[data-ptar-orig]');
+            var destInput = card.querySelector('[data-ptar-dest]');
+            var origSug = card.querySelector('[data-ptar-orig-sug]');
+            var destSug = card.querySelector('[data-ptar-dest-sug]');
+            var camionSel = card.querySelector('[data-ptar-camion]');
+            var camionTip = card.querySelector('[data-ptar-camion-tip]');
+            var mercaSel = card.querySelector('[data-ptar-merca]');
+            var mlSel = card.querySelector('[data-ptar-ml]');
+            var pesoSel = card.querySelector('[data-ptar-peso]');
+            var diaSel = card.querySelector('[data-ptar-dia]');
+            var fechaInput = card.querySelector('[data-ptar-fecha]');
+            var urgenciaSel = card.querySelector('[data-ptar-urgencia]');
+            var refCliInput = card.querySelector('[data-ptar-refcli]');
+            var notesToggle = card.querySelector('[data-ptar-notes-toggle]');
+            var notesBody = card.querySelector('[data-ptar-notes-body]');
+            var notesTxt = card.querySelector('[data-ptar-notes]');
+            var notesCount = card.querySelector('[data-ptar-notes-count]');
+            var warning = card.querySelector('[data-ptar-warning]');
+            var submit = card.querySelector('[data-ptar-submit]');
+            var reset = card.querySelector('[data-ptar-reset]');
+
+            // Inicializa ML, peso y fecha según el camión por defecto
+            function applyCamion() {
+                var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
+                fillMlSelect(mlSel, info.mlMax);
+                fillPesoSelect(pesoSel, info.pesoMax);
+                camionTip.textContent = info.label;
+                camionTip.classList.add('show');
+            }
+            camionSel.addEventListener('change', applyCamion);
+            applyCamion();
+
+            fillDiaSelect(diaSel);
+
+            // Día → "Otro día…" abre el date picker (Flatpickr si está disponible)
+            var fp = null;
+            function attachFlatpickr() {
+                if (!window.flatpickr || fp) return;
+                fp = window.flatpickr(fechaInput, {
+                    locale: window.flatpickr.l10ns && window.flatpickr.l10ns.es ? 'es' : 'default',
+                    minDate: 'today',
+                    maxDate: new Date(Date.now() + 90 * 24 * 3600 * 1000),
+                    disable: [function (d) { return isWeekend(d); }],
+                    dateFormat: 'Y-m-d',
+                    onClose: function (selDates) {
+                        if (selDates && selDates.length) {
+                            var iso = selDates[0].toISOString().slice(0, 10);
+                            // Inserta opción si no existe
+                            var existing = diaSel.querySelector('option[value="' + iso + '"]');
+                            if (!existing) {
+                                var opt = document.createElement('option');
+                                opt.value = iso; opt.textContent = fmtFull(selDates[0]);
+                                diaSel.insertBefore(opt, diaSel.querySelector('option[value="otro"]'));
+                            }
+                            diaSel.value = iso;
+                        } else {
+                            // Si no eligió nada, vuelve a "sin fecha"
+                            if (diaSel.value === 'otro') diaSel.value = '';
+                        }
+                    }
+                });
+            }
+            diaSel.addEventListener('change', function () {
+                if (diaSel.value === 'otro') {
+                    attachFlatpickr();
+                    if (fp) fp.open(); else fechaInput.focus();
+                }
+            });
+
+            // Anotaciones libres
+            notesToggle.addEventListener('click', function () {
+                var open = notesToggle.getAttribute('aria-expanded') === 'true';
+                notesToggle.setAttribute('aria-expanded', open ? 'false' : 'true');
+                notesBody.hidden = open;
+                if (!open) setTimeout(function () { notesTxt.focus(); }, 50);
+            });
+            notesTxt.addEventListener('input', function () {
+                var n = notesTxt.value.length;
+                notesCount.textContent = n;
+                notesCount.parentNode.classList.toggle('warn', n > 950);
+            });
+
+            // Autocomplete
+            bindAutocomplete(origWrap, origInput, origSug);
+            bindAutocomplete(destWrap, destInput, destSug);
+
+            // Reset
+            reset.addEventListener('click', function () {
+                origInput.value = ''; destInput.value = '';
+                origWrap.classList.remove('ptar-error');
+                destWrap.classList.remove('ptar-error');
+                camionSel.value = 'tauliner';
+                mercaSel.selectedIndex = 0;
+                applyCamion();
+                fillDiaSelect(diaSel);
+                urgenciaSel.value = 'estandar';
+                refCliInput.value = '';
+                notesTxt.value = '';
+                notesCount.textContent = '0';
+                notesCount.parentNode.classList.remove('warn');
+                notesBody.hidden = true;
+                notesToggle.setAttribute('aria-expanded', 'false');
+                warning.classList.remove('show');
+            });
+
+            // Submit → valida y añade al array correspondiente
+            submit.addEventListener('click', function () {
+                var orig = origInput.value.trim();
+                var dest = destInput.value.trim();
+                var origOk = orig.length >= 2;
+                var destOk = dest.length >= 2;
+                origWrap.classList.toggle('ptar-error', !origOk);
+                destWrap.classList.toggle('ptar-error', !destOk);
+                if (!origOk || !destOk) {
+                    warning.classList.add('show');
+                    (origOk ? destInput : origInput).focus();
+                    return;
+                }
+                warning.classList.remove('show');
+
+                var camion = camionSel.value;
+                var info = CAMION_INFO[camion];
+                var ml = mlSel.value;
+                var peso = pesoSel.value;
+                var medidas = (ml === '13.2' ? '13,2' : ml) + ' m · ' + (parseInt(peso, 10) * 1000).toLocaleString('es-ES') + ' kg';
+                var origCorto = orig.split(',')[0].trim();
+                var destCorto = dest.split(',')[0].trim();
+                var mercanciaShort = mercaSel.options[mercaSel.selectedIndex].text.split('—')[0].trim();
+                var urgenciaTxt = urgenciaSel.value === 'dia' ? 'Fija'
+                    : urgenciaSel.value === 'flexible' ? '±4 días' : '±2 días';
+                var fechaTxt;
+                if (diaSel.value && diaSel.value !== 'otro') {
+                    var d = new Date(diaSel.value);
+                    fechaTxt = fmtDate(d);
+                } else {
+                    fechaTxt = 'A confirmar';
+                }
+                var refCli = refCliInput.value.trim() || (mode === 'carga' ? 'PED-NUEVO' : 'COT-NUEVO');
+                var ref = nextRef(mode);
+
+                if (mode === 'carga') {
+                    CARGAS_DATA.unshift(makeCarga(
+                        ref, refCli, fechaTxt, urgenciaTxt,
+                        origCorto, destCorto, origCorto + ' → ' + destCorto,
+                        mercanciaShort, '', medidas, 'programada'
+                    ));
+                    // Refresca contador del tab si existe (UI cosmética)
+                    TABLE_STATE.cargas.page = 1;
+                    TABLE_STATE.cargas.filter = 'programadas';
+                    renderCargasTable();
+                    showModalSuccess(
+                        'Carga ' + ref + ' creada',
+                        'Tu solicitud está en cola. El equipo confirmará precio y disponibilidad en menos de 25 minutos. La verás en "Programadas" con el detalle completo.'
+                    );
+                    setTimeout(function () { showSection('cargas'); }, 1200);
+                } else {
+                    // Precio mockup: longitud ml + peso + factor camión, redondeado a centena
+                    var base = (camion === 'tauliner' ? 950 : 720)
+                        + (parseFloat(ml === '13.2' ? 13.2 : ml) * 70)
+                        + (parseFloat(peso) * 35);
+                    var precio = Math.round(base / 10) * 10;
+                    var vigencia = (function () {
+                        var d = new Date(); d.setDate(d.getDate() + 7);
+                        return fmtDate(d) + ' (7 días)';
+                    })();
+                    PRESUPUESTOS_DATA.unshift(makePresupuesto(
+                        ref, refCli, fmtDate(new Date()),
+                        origCorto, destCorto, mercanciaShort, medidas,
+                        precio.toLocaleString('es-ES') + ' €', vigencia, 'green', 'activos'
+                    ));
+                    TABLE_STATE.presupuestos.page = 1;
+                    TABLE_STATE.presupuestos.filter = 'activos';
+                    renderPresupuestosTable();
+                    showModalSuccess(
+                        'Presupuesto ' + ref + ' generado',
+                        'Precio orientativo: ' + precio.toLocaleString('es-ES') + ' € · Vigente 7 días. Si te encaja, conviértelo en carga con un solo clic desde el listado.'
+                    );
+                    setTimeout(function () { showSection('presupuestos'); }, 1200);
+                }
+            });
+        }
+
+        document.querySelectorAll('.ptar-card').forEach(initTarifador);
+    })();
 </script>
 
 <!-- Google Translate (mismo motor que index.html / portal.html, cookie googtrans compartida path=/) -->
