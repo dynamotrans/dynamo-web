@@ -95,6 +95,17 @@ Cuando el portal pase de mockup a app real (backend, auth, dashboard con datos):
 - Un único proyecto Vercel, un único deploy a `dynamotrans.com`
 - Razón: 1 dev (usuario + Claude) → mantener 2 repos sería overhead inútil. Patrón válido (Notion, Linear hacen esto). Cookies, cache y seguridad se gestionan por ruta dentro de Next.js
 
+### 8. Cambios públicos: SIEMPRE empezar desde `main`
+
+Para evitar que cambios de la web pública se queden "atascados" solo en preview (como pasó con "Pick. Drop. Done." → logo Dynamo, que estuvo días solo en preview):
+
+- **Cualquier cambio de web pública** (`index.html`, `vercel.json`, imágenes, SEO, copy, etc.) → **arrancar en `main`** vía rama corta `fix/<algo>` desde `origin/main`
+- Mergear a `main` → push → desplegado en `dynamotrans.com`
+- Después, **rebasear/mergear la rama del portal sobre el nuevo `main`** para que preview tenga también el cambio. Así nunca hay drift entre las dos webs públicas
+- **NUNCA hacer cambios de web pública directamente en la rama del portal** (`claude/sharp-dirac-E3UIO`). Si se nos cuela uno por error, cherry-pick a `main` el mismo día
+
+Razón: la rama del portal es `main + código del portal`. `git merge preview → main` arrastraría el portal a producción (prohibido). Pero `main → preview` es seguro. Por tanto el sentido del flujo siempre es **main primero, preview después**.
+
 ---
 
 ## Bitácora
