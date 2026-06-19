@@ -1898,12 +1898,12 @@
             </div>
         </div>
         <div class="tabs" data-table="cargas">
-            <button class="tab active" data-filter="todas">Todas (<span data-count="todas">0</span>)</button>
-            <button class="tab" data-filter="programada">Programadas (<span data-count="programada">0</span>)</button>
-            <button class="tab" data-filter="en-ruta">En ruta (<span data-count="en-ruta">0</span>)</button>
+            <button class="tab active" data-filter="programada">Programadas (<span data-count="programada">0</span>)</button>
+            <button class="tab" data-filter="prevision">Previsión (<span data-count="prevision">0</span>)</button>
+            <button class="tab" data-filter="cargando-hoy">Cargando hoy (<span data-count="cargando-hoy">0</span>)</button>
             <button class="tab" data-filter="entregada">Entregadas (<span data-count="entregada">0</span>)</button>
-            <button class="tab" data-filter="sin-albaran">Sin albarán (<span data-count="sin-albaran">0</span>)</button>
             <button class="tab" data-filter="cancelada">Canceladas (<span data-count="cancelada">0</span>)</button>
+            <button class="tab" data-filter="todas">Todas (<span data-count="todas">0</span>)</button>
         </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por nº, referencia, origen, destino…">
@@ -2211,7 +2211,7 @@
             <h3 class="ptar-confirm-heading">Revisa los datos antes de confirmar</h3>
             <p class="ptar-confirm-lead">El equipo confirma precio y disponibilidad en <strong>menos de 25 minutos</strong>. Lee primero estos avisos sobre grupajes y tarifa.</p>
 
-            <div class="ptar-confirm-note ptar-confirm-note-info">
+            <div class="ptar-confirm-note ptar-confirm-note-info" data-ptar-grupaje-warn hidden>
                 <strong>Si este envío es un GRUPAJE</strong>, no se puede garantizar al 100% la fecha de recogida y entrega, aunque <em>podrá asignarse antes transportista ofertando precio superior al de tarifa presente</em>, con mayor probabilidad de cargar. Dependen de completar camión y también se ven influidos por demoras en otras recogidas/entregas. Si es <strong>grupaje urgente</strong>, valora la opción de <strong>camión completo</strong>.
             </div>
 
@@ -3586,7 +3586,7 @@
         try { localStorage.setItem('dashPerPage_' + table, String(v)); } catch (e) {}
     }
     var TABLE_STATE = {
-        cargas:       { page: 1, filter: 'todas',  perPage: readPerPage('cargas') },
+        cargas:       { page: 1, filter: 'programada',  perPage: readPerPage('cargas') },
         presupuestos: { page: 1, filter: 'activos', perPage: readPerPage('presupuestos') },
         facturas:     { page: 1, filter: 'todas',  perPage: readPerPage('facturas') }
     };
@@ -3777,10 +3777,19 @@
     }
 
     // ---- FILTERS ----
+    // Una carga puede caer en 3 estados dentro de "Programadas/Previsión/Cargando hoy":
+    // - prevision     → kind 'programada' SIN fecha definida (fecha === 'Sin fecha')
+    // - cargando-hoy  → kind 'en-ruta' (mantenemos el dato interno, cambia solo el label)
+    // - programada    → kind 'programada' CON fecha definida
+    function isPrevision(c) { return c.kind === 'programada' && c.fecha === 'Sin fecha'; }
+    function isCargandoHoy(c) { return c.kind === 'en-ruta'; }
+    function isProgramada(c) { return c.kind === 'programada' && c.fecha !== 'Sin fecha'; }
     function filteredCargas() {
         var f = TABLE_STATE.cargas.filter;
-        if (f === 'todas') return CARGAS_DATA;
-        if (f === 'sin-albaran') return CARGAS_DATA.filter(function (c) { return c.kind === 'entregada' && !c.hasAlbaran; });
+        if (f === 'todas')        return CARGAS_DATA;
+        if (f === 'prevision')    return CARGAS_DATA.filter(isPrevision);
+        if (f === 'cargando-hoy') return CARGAS_DATA.filter(isCargandoHoy);
+        if (f === 'programada')   return CARGAS_DATA.filter(isProgramada);
         return CARGAS_DATA.filter(function (c) { return c.kind === f; });
     }
     function filteredPresupuestos() {
@@ -3826,12 +3835,12 @@
         // Tab counts
         var tabs = document.querySelector('.tabs[data-table="cargas"]');
         if (tabs) {
-            setText(tabs.querySelector('[data-count="todas"]'),       CARGAS_DATA.length);
-            setText(tabs.querySelector('[data-count="programada"]'),  CARGAS_DATA.filter(function(c){return c.kind==='programada';}).length);
-            setText(tabs.querySelector('[data-count="en-ruta"]'),     CARGAS_DATA.filter(function(c){return c.kind==='en-ruta';}).length);
-            setText(tabs.querySelector('[data-count="entregada"]'),   CARGAS_DATA.filter(function(c){return c.kind==='entregada';}).length);
-            setText(tabs.querySelector('[data-count="sin-albaran"]'), CARGAS_DATA.filter(function(c){return c.kind==='entregada' && !c.hasAlbaran;}).length);
-            setText(tabs.querySelector('[data-count="cancelada"]'),   CARGAS_DATA.filter(function(c){return c.kind==='cancelada';}).length);
+            setText(tabs.querySelector('[data-count="programada"]'),   CARGAS_DATA.filter(isProgramada).length);
+            setText(tabs.querySelector('[data-count="prevision"]'),    CARGAS_DATA.filter(isPrevision).length);
+            setText(tabs.querySelector('[data-count="cargando-hoy"]'), CARGAS_DATA.filter(isCargandoHoy).length);
+            setText(tabs.querySelector('[data-count="entregada"]'),    CARGAS_DATA.filter(function(c){return c.kind==='entregada';}).length);
+            setText(tabs.querySelector('[data-count="cancelada"]'),    CARGAS_DATA.filter(function(c){return c.kind==='cancelada';}).length);
+            setText(tabs.querySelector('[data-count="todas"]'),        CARGAS_DATA.length);
         }
     }
     function renderPresupuestosTable() {
@@ -4325,11 +4334,15 @@
                         d.mercanciaShort, '', d.medidas, 'programada'
                     ));
                     TABLE_STATE.cargas.page = 1;
-                    TABLE_STATE.cargas.filter = 'programadas';
+                    // Si la carga es "Programado sin fecha definida" cae en
+                    // la pestaña "Previsión" (no está en agenda real); en
+                    // caso contrario va a "Programadas".
+                    TABLE_STATE.cargas.filter = (d.fechaTxt === 'Sin fecha') ? 'prevision' : 'programada';
                     renderCargasTable();
+                    var destTabLabel = (d.fechaTxt === 'Sin fecha') ? '"Previsión"' : '"Programadas"';
                     showModalSuccess(
                         'Carga ' + ref + ' creada',
-                        'Tu solicitud está en cola. El equipo confirmará precio y disponibilidad en menos de 25 minutos. La verás en "Programadas" con el detalle completo.'
+                        'Tu solicitud está en cola. El equipo confirmará precio y disponibilidad en menos de 25 minutos. La verás en ' + destTabLabel + ' con el detalle completo.'
                     );
                     setTimeout(function () { showSection('cargas'); }, 1200);
                 } else {
@@ -4380,6 +4393,16 @@
                     '<dt>Fecha de carga</dt><dd>' + escapeHtml(d.fechaLarga) + '</dd>' +
                     (d.refCli && d.refCli.indexOf('NUEVO') === -1 ? '<dt>Tu referencia</dt><dd>' + escapeHtml(d.refCli) + '</dd>' : '') +
                     (d.notes ? '<dt class="full">Anotaciones</dt><dd class="full">' + escapeHtml(d.notes) + '</dd>' : '');
+                // Aviso de grupaje: solo si la carga NO es completa
+                // (Tauliner completo = 13,2 m; Rígido completo = 8 m).
+                // Si los ml elegidos son menores, sí es grupaje → mostrar.
+                var grupajeWarn = confirmCard.querySelector('[data-ptar-grupaje-warn]');
+                if (grupajeWarn) {
+                    var camionMax = (d.camion === 'tauliner') ? 13.2 : 8;
+                    var mlNum = parseFloat(d.ml === '13.2' ? '13.2' : d.ml);
+                    var esGrupaje = mlNum < camionMax;
+                    grupajeWarn.hidden = !esGrupaje;
+                }
                 card.hidden = true;
                 confirmCard.hidden = false;
                 window.scrollTo({ top: 0, behavior: 'smooth' });
