@@ -1280,6 +1280,30 @@
         }
         .ptar-field-hint strong { color: var(--gray-700); }
 
+        /* === ETA box ===
+           Aparece debajo de Ventana de carga. Lee lat/lon del autocomplete
+           OSM y calcula días de tracción (~600 km/día). Si falta algo,
+           muestra placeholder con instrucciones. */
+        .ptar-eta-box {
+            padding: 0.75rem 0.9rem;
+            background: var(--gray-50);
+            border: 1.5px solid var(--gray-200);
+            border-radius: 10px;
+            font-size: 0.88rem; color: var(--navy);
+            min-height: 56px;
+            display: flex; align-items: center;
+        }
+        .ptar-eta-placeholder { color: var(--gray-500); font-size: 0.82rem; font-style: italic; }
+        .ptar-eta-data { display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 1.1rem; width: 100%; font-size: 0.83rem; align-items: center; }
+        .ptar-eta-data dt { font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.4px; font-size: 0.7rem; }
+        .ptar-eta-data dd { color: var(--navy); font-weight: 700; }
+        .ptar-eta-data .ptar-eta-range {
+            font-size: 1rem; font-weight: 900;
+            color: var(--purple);
+        }
+        .ptar-eta-data .ptar-eta-stat { color: var(--gray-700); font-weight: 600; }
+        .ptar-eta-data .ptar-eta-warn { color: #b45309; }
+
         /* === Confirm card (paso 2 de Nueva carga) === */
         .ptar-confirm-card {
             background: white; border-radius: 14px;
@@ -2183,6 +2207,14 @@
                     <p class="ptar-field-hint">Días <strong>laborables consecutivos</strong> a partir del día indicado. Sábados, domingos y festivos quedan excluidos automáticamente.</p>
                 </div>
 
+                <div class="ptar-field ptar-field-full ptar-eta-field" data-ptar-eta-field>
+                    <label class="ptar-label">Fecha de entrega estimada (ETA)</label>
+                    <div class="ptar-eta-box" data-ptar-eta-box>
+                        <span class="ptar-eta-placeholder">Indica origen, destino y fecha de carga para calcular la entrega estimada.</span>
+                    </div>
+                    <p class="ptar-field-hint">Cálculo de referencia con flota a <strong>~600 km/día</strong> (7:00 — 18:00, ~9 h de conducción). Solo L–V, sin sábados ni domingos. La ETA real puede variar por tráfico, controles o disponibilidad en destino.</p>
+                </div>
+
                 <div class="ptar-field ptar-field-full">
                     <label class="ptar-label" for="ptar-refcli-carga">Tu referencia interna (opcional)</label>
                     <input type="text" id="ptar-refcli-carga" data-ptar-refcli class="ptar-select" placeholder="Ej. PED-0426">
@@ -2314,6 +2346,14 @@
                         <option value="flexible">1 a 4 días (flexible, más económica)</option>
                     </select>
                     <p class="ptar-field-hint">Días <strong>laborables consecutivos</strong>. Sábados, domingos y festivos no cuentan: no operamos en transporte ni entrega.</p>
+                </div>
+
+                <div class="ptar-field ptar-field-full ptar-eta-field" data-ptar-eta-field>
+                    <label class="ptar-label">Tránsito y entrega estimada</label>
+                    <div class="ptar-eta-box" data-ptar-eta-box>
+                        <span class="ptar-eta-placeholder">Indica origen y destino para ver la duración estimada del transporte (la fecha de carga la fijas al convertir en carga).</span>
+                    </div>
+                    <p class="ptar-field-hint">Cálculo de referencia con flota a <strong>~600 km/día</strong> (7:00 — 18:00, ~9 h conducción). Solo L–V.</p>
                 </div>
 
                 <div class="ptar-field ptar-field-full">
@@ -4131,10 +4171,18 @@
             if (pais && pais !== 'España' && pais !== 'Spain') parts.push('(' + pais + ')');
             return parts.join(', ');
         }
-        function bindAutocomplete(wrap, input, sugList) {
+        function bindAutocomplete(wrap, input, sugList, onPick) {
             var deb;
+            // Limpia el lat/lon almacenado en el wrap cuando el usuario edita
+            // el texto manualmente — sin coordenadas no podemos calcular ETA.
+            function clearGeo() {
+                delete wrap.dataset.lat;
+                delete wrap.dataset.lon;
+                if (onPick) onPick(null);
+            }
             input.addEventListener('input', function () {
                 wrap.classList.remove('ptar-error');
+                clearGeo();
                 var q = input.value.trim();
                 if (q.length < 2) { sugList.hidden = true; return; }
                 clearTimeout(deb);
@@ -4148,7 +4196,10 @@
                             li.addEventListener('mousedown', function (e) {
                                 e.preventDefault();
                                 input.value = li.textContent;
+                                wrap.dataset.lat = it.lat;
+                                wrap.dataset.lon = it.lon;
                                 sugList.hidden = true;
+                                if (onPick) onPick({ lat: parseFloat(it.lat), lon: parseFloat(it.lon), label: li.textContent });
                             });
                             sugList.appendChild(li);
                         });
@@ -4159,6 +4210,39 @@
             input.addEventListener('blur', function () {
                 setTimeout(function () { sugList.hidden = true; }, 150);
             });
+        }
+
+        // --- Cálculo ETA ---
+        // Distancia gran círculo entre dos puntos lat/lon (km)
+        function haversineKm(a, b) {
+            var R = 6371;
+            var dLat = (b.lat - a.lat) * Math.PI / 180;
+            var dLon = (b.lon - a.lon) * Math.PI / 180;
+            var lat1 = a.lat * Math.PI / 180;
+            var lat2 = b.lat * Math.PI / 180;
+            var h = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                  + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+        }
+        // Aproximación a kms de carretera. La línea recta infraestima ~20-30%
+        // en rutas peninsulares; factor 1.25 da un valor realista sin tener
+        // que llamar a una API de routing (OSRM, Mapbox) en cada cambio.
+        var ROAD_FACTOR = 1.25;
+        var KM_POR_DIA = 600; // 7-18h, ~9h conducción
+        function addBusinessDays(date, n) {
+            var d = new Date(date.getTime());
+            var added = 0;
+            while (added < n) {
+                d.setDate(d.getDate() + 1);
+                var wd = d.getDay();
+                if (wd !== 0 && wd !== 6) added++;
+            }
+            return d;
+        }
+        var DAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+        var MONTH_NAMES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        function fmtEtaDate(d) {
+            return DAY_NAMES[d.getDay()] + ' ' + d.getDate() + ' ' + MONTH_NAMES[d.getMonth()];
         }
 
         // --- Init para cada .ptar-card ---
@@ -4256,13 +4340,95 @@
                 notesCount.parentNode.classList.toggle('warn', n > 950);
             });
 
-            // Autocomplete
-            bindAutocomplete(origWrap, origInput, origSug);
-            bindAutocomplete(destWrap, destInput, destSug);
+            // === ETA: cálculo de fecha de entrega estimada ===
+            // Se recalcula cada vez que cambia origen, destino, fecha o ventana.
+            // Necesita lat/lon almacenadas por bindAutocomplete (al pickear del
+            // desplegable). Si el usuario teclea sin pickear, el campo muestra
+            // un placeholder pidiendo seleccionar del autocompletado.
+            var etaBox = card.parentNode.querySelector('[data-ptar-eta-box]');
+            function renderEta() {
+                if (!etaBox) return;
+                var oLat = origWrap.dataset.lat, oLon = origWrap.dataset.lon;
+                var dLat = destWrap.dataset.lat, dLon = destWrap.dataset.lon;
+                if (!oLat || !dLat) {
+                    etaBox.innerHTML = '<span class="ptar-eta-placeholder">' +
+                        (mode === 'carga'
+                            ? 'Indica origen, destino y fecha de carga para calcular la entrega estimada.'
+                            : 'Indica origen y destino para ver la duración estimada del transporte.') +
+                        '</span>';
+                    return;
+                }
+                var dist = haversineKm(
+                    { lat: parseFloat(oLat), lon: parseFloat(oLon) },
+                    { lat: parseFloat(dLat), lon: parseFloat(dLon) }
+                ) * ROAD_FACTOR;
+                var driveDays = Math.max(1, Math.ceil(dist / KM_POR_DIA));
+                var driveTxt = driveDays === 1 ? '1 día' : driveDays + ' días';
+
+                // Lectura de la fecha de carga (si la sección tiene día)
+                var loadStart = null;
+                if (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) {
+                    loadStart = new Date(diaSel.value + 'T00:00:00');
+                }
+                var ventana = urgenciaSel.value === 'dia' ? 1
+                            : urgenciaSel.value === 'flexible' ? 4 : 2;
+
+                var rangoHtml = '';
+                if (loadStart) {
+                    // Día más tarde de carga = inicio + (ventana - 1) días laborables
+                    var loadEnd = ventana === 1 ? loadStart : addBusinessDays(loadStart, ventana - 1);
+                    var etaStart = addBusinessDays(loadStart, driveDays);
+                    var etaEnd   = addBusinessDays(loadEnd, driveDays);
+                    if (etaStart.getTime() === etaEnd.getTime()) {
+                        rangoHtml = '<dd class="ptar-eta-range">' + fmtEtaDate(etaStart) + '</dd>';
+                    } else {
+                        rangoHtml = '<dd class="ptar-eta-range">' + fmtEtaDate(etaStart) + ' — ' + fmtEtaDate(etaEnd) + '</dd>';
+                    }
+                } else if (mode === 'carga') {
+                    rangoHtml = '<dd class="ptar-eta-warn">Asigna fecha de carga para ver la ETA exacta.</dd>';
+                } else {
+                    rangoHtml = '<dd class="ptar-eta-stat">' + driveTxt + ' tras la carga</dd>';
+                }
+                etaBox.innerHTML =
+                    '<dl class="ptar-eta-data">' +
+                    '<dt>Distancia ≈</dt><dd class="ptar-eta-stat">' + Math.round(dist) + ' km</dd>' +
+                    '<dt>Tracción ≈</dt><dd class="ptar-eta-stat">' + driveTxt + ' (a ~' + KM_POR_DIA + ' km/día)</dd>' +
+                    (rangoHtml ? '<dt>Entrega estimada</dt>' + rangoHtml : '') +
+                    '</dl>';
+            }
+
+            // Autocomplete con callback para recalcular ETA al pickear
+            bindAutocomplete(origWrap, origInput, origSug, renderEta);
+            bindAutocomplete(destWrap, destInput, destSug, renderEta);
+            if (urgenciaSel) urgenciaSel.addEventListener('change', renderEta);
+            if (diaSel) diaSel.addEventListener('change', renderEta);
+
+            // === DEFAULTS DE PRUEBA (BORRAR EN PRODUCCIÓN) ===
+            // Pre-rellena Sevilla→Madrid con lat/lon hardcoded para no
+            // tener que rellenar a mano en cada prueba. El usuario lo
+            // sobrescribe simplemente editando los campos.
+            if (!origInput.value) {
+                origInput.value = 'Sevilla, 41001, Andalucía';
+                origWrap.dataset.lat = '37.3886';
+                origWrap.dataset.lon = '-5.9823';
+            }
+            if (!destInput.value) {
+                destInput.value = 'Madrid, 28001, Comunidad de Madrid';
+                destWrap.dataset.lat = '40.4168';
+                destWrap.dataset.lon = '-3.7038';
+            }
+            // Render inicial (con o sin defaults, el cálculo se dispara)
+            renderEta();
 
             // Reset
             reset.addEventListener('click', function () {
-                origInput.value = ''; destInput.value = '';
+                // Reset → vuelve a Sevilla→Madrid (defaults de prueba).
+                // Cuando quitemos los defaults en producción, dejar
+                // los inputs vacíos también aquí.
+                origInput.value = 'Sevilla, 41001, Andalucía';
+                destInput.value = 'Madrid, 28001, Comunidad de Madrid';
+                origWrap.dataset.lat = '37.3886'; origWrap.dataset.lon = '-5.9823';
+                destWrap.dataset.lat = '40.4168'; destWrap.dataset.lon = '-3.7038';
                 origWrap.classList.remove('ptar-error');
                 destWrap.classList.remove('ptar-error');
                 camionSel.value = 'tauliner';
@@ -4277,6 +4443,7 @@
                 notesBody.hidden = true;
                 notesToggle.setAttribute('aria-expanded', 'false');
                 warning.classList.remove('show');
+                renderEta();
             });
 
             // Lee y valida el formulario. Devuelve null si hay errores
