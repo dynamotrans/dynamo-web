@@ -1336,6 +1336,13 @@
         .why { background: white; }
         .why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4.5rem; align-items: center; }
 
+        .why-brand-logo {
+            display: block;
+            height: clamp(46px, 7vw, 70px);
+            width: auto;
+            margin: 0.6rem 0 1.2rem;
+        }
+
         /* Panel visual lado izquierdo — 100% CSS, sin imágenes externas */
         .why-visual { position: relative; }
         .why-main-card {
@@ -2678,7 +2685,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             </div>
             <div class="reveal-r reveal">
                 <p class="section-eyebrow">Por qué elegirnos</p>
-                <h2 class="section-title">Pick. Drop. <span>Done.</span></h2>
+                <img src="/images/2.png" alt="Dynamo" class="why-brand-logo">
                 <p class="section-desc">Operador de transporte autorizado. Un único objetivo: que tu mercancía llegue donde tiene que llegar, cuando tiene que llegar.</p>
                 <div class="why-list">
                     <div class="why-item">
