@@ -3981,12 +3981,20 @@
     }
     function filteredPresupuestos() {
         var f = TABLE_STATE.presupuestos.filter;
-        return PRESUPUESTOS_DATA.filter(function (p) { return p.kind === f; });
+        var arr = PRESUPUESTOS_DATA.filter(function (p) { return p.kind === f; });
+        // Tanto Activos como Caducados: fecha de emisión DESC (los más
+        // recientes arriba). Backend = ORDER BY emision DESC.
+        arr.sort(function (a, b) { return parseFechaDDMM(b.fecha) - parseFechaDDMM(a.fecha); });
+        return arr;
     }
     function filteredFacturas() {
         var f = TABLE_STATE.facturas.filter;
-        if (f === 'todas') return FACTURAS_DATA;
-        return FACTURAS_DATA.filter(function (x) { return x.kind === f; });
+        var arr = (f === 'todas') ? FACTURAS_DATA.slice()
+            : FACTURAS_DATA.filter(function (x) { return x.kind === f; });
+        // Todas las pestañas: fecha de emisión DESC (la última factura
+        // arriba). Backend = ORDER BY emision DESC.
+        arr.sort(function (a, b) { return parseFechaDDMM(b.emision) - parseFechaDDMM(a.emision); });
+        return arr;
     }
 
     // ---- RENDER ----
