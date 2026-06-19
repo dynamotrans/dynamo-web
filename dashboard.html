@@ -1043,6 +1043,41 @@
         }
         table.data tbody tr:last-child td { border-bottom: none; }
         table.data tbody tr:hover { background: var(--gray-50); }
+        /* Resaltado por proximidad de fecha en la tabla "Programadas".
+           Gradiente coral → ámbar → verde: cuanto más cercana la carga
+           más cálido el color, para llamar atención sobre lo inminente.
+           Fines de semana excluidos (mañana de viernes = lunes). */
+        table.data tr.row-today {
+            background: #fff1f1;
+            box-shadow: inset 4px 0 0 0 #ef4444;
+        }
+        table.data tr.row-today:hover { background: #ffe2e2; }
+        table.data tr.row-tomorrow {
+            background: #fff8eb;
+            box-shadow: inset 4px 0 0 0 #f59e0b;
+        }
+        table.data tr.row-tomorrow:hover { background: #fef0d3; }
+        table.data tr.row-aftertomorrow {
+            background: #f0fdf4;
+            box-shadow: inset 4px 0 0 0 #10b981;
+        }
+        table.data tr.row-aftertomorrow:hover { background: #dcfce7; }
+        /* Pequeña etiqueta junto a la fecha para reforzar el resaltado */
+        .row-when-tag {
+            display: inline-block;
+            margin-left: 0.4rem;
+            padding: 0.05rem 0.4rem;
+            border-radius: 999px;
+            font-size: 0.62rem; font-weight: 800;
+            letter-spacing: 0.4px; text-transform: uppercase;
+            vertical-align: middle;
+        }
+        .row-when-tag.tag-today    { background: #ef4444; color: white; }
+        .row-when-tag.tag-tomorrow { background: #f59e0b; color: white; }
+        .row-when-tag.tag-after    { background: #10b981; color: white; }
+        body.theme-dark table.data tr.row-today        { background: rgba(239,68,68,0.12); }
+        body.theme-dark table.data tr.row-tomorrow     { background: rgba(245,158,11,0.12); }
+        body.theme-dark table.data tr.row-aftertomorrow{ background: rgba(16,185,129,0.12); }
         table.data .ref { font-weight: 800; color: var(--navy); }
         table.data .ref-cli { color: var(--gray-500); font-size: 0.77rem; }
         table.data .amount { font-weight: 700; }
@@ -1951,8 +1986,7 @@
             </div>
         </div>
         <div class="tabs" data-table="cargas">
-            <button class="tab active" data-filter="cargando-hoy">Cargando hoy (<span data-count="cargando-hoy">0</span>)</button>
-            <button class="tab" data-filter="programada">Programadas (<span data-count="programada">0</span>)</button>
+            <button class="tab active" data-filter="programada">Programadas (<span data-count="programada">0</span>)</button>
             <button class="tab" data-filter="prevision">Previsión (<span data-count="prevision">0</span>)</button>
             <button class="tab" data-filter="entregada">Entregadas (<span data-count="entregada">0</span>)</button>
             <button class="tab" data-filter="cancelada">Canceladas (<span data-count="cancelada">0</span>)</button>
@@ -3668,7 +3702,7 @@
         try { localStorage.setItem('dashPerPage_' + table, String(v)); } catch (e) {}
     }
     var TABLE_STATE = {
-        cargas:       { page: 1, filter: 'cargando-hoy',  perPage: readPerPage('cargas') },
+        cargas:       { page: 1, filter: 'programada',  perPage: readPerPage('cargas') },
         presupuestos: { page: 1, filter: 'activos', perPage: readPerPage('presupuestos') },
         facturas:     { page: 1, filter: 'todas',  perPage: readPerPage('facturas') }
     };
@@ -3745,10 +3779,35 @@
             d.setDate(d.getDate() - diasAtras);
             return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth()+1)).slice(-2);
         }
+        // Igual que fechaDDMM pero hacia DELANTE saltando fines de semana.
+        // Sirve para sembrar cargas futuras en hoy/mañana/pasado mañana
+        // y que se aprecien los colores del resaltado.
+        function fechaFuturaLaborable(nBus) {
+            var d = new Date();
+            var added = 0;
+            while (added < nBus) {
+                d.setDate(d.getDate() + 1);
+                var w = d.getDay();
+                if (w !== 0 && w !== 6) added++;
+            }
+            return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth()+1)).slice(-2);
+        }
+        function hoyLaborable() {
+            var d = new Date();
+            // Si hoy es Sáb o Dom, devolvemos el último laborable atrás para
+            // que la inserción siga teniendo sentido (no se pintará como HOY).
+            return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth()+1)).slice(-2);
+        }
         // Hoy: sin albaran -> "Albaran procesandose"
         CARGAS_DATA.unshift(makeCarga('#C-2026-1296','PED-0432', fechaDDMM(0), 'Fija','Sevilla','Córdoba','Centro → Pol. Las Quemadas','Paletizado','Repuestos automoción','10,0 m · 16.000 kg','entregada', false));
         // Ayer: sin albaran -> "Reclamar" (>1 dia? no, exactamente 1 -> reclamar)
         CARGAS_DATA.unshift(makeCarga('#C-2026-1295','PED-0431', fechaDDMM(1), '1 a 2 días','Sevilla','Jaén','Centro → Pol. Olivar','Paletizado','Maquinaria agricola','12,0 m · 18.000 kg','entregada', false));
+        // === SEMILLAS PARA VER EL RESALTADO de Programadas (HOY/MAÑANA/PASADO).
+        //     Para producción se pueden borrar — basta con que las cargas reales
+        //     del cliente caigan en los próximos 3 días laborables.
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1299','PED-0435', hoyLaborable(),          'Fija','Sevilla','Málaga','Pol. Carretera Amarilla → Pol. San Luis','Paletizado','Aceitunas envasadas','10,0 m · 17.000 kg','en-ruta'));
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1298','PED-0434', fechaFuturaLaborable(1), '1 a 2 días','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Conservas','13,2 m · 23.000 kg','programada'));
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1297','PED-0433', fechaFuturaLaborable(2), 'Fija','Sevilla','Valencia','Pol. Las Pajanosas → Puerto','Paletizado / Aceite','Aceite oliva virgen','13,2 m · 24.000 kg','programada'));
     })();
 
     // ---- DATA: presupuestos (19) ----
@@ -3854,19 +3913,40 @@
     }
 
     // ---- FILTERS ----
-    // Una carga puede caer en 3 estados dentro de "Programadas/Previsión/Cargando hoy":
-    // - prevision     → kind 'programada' SIN fecha definida (fecha === 'Sin fecha')
-    // - cargando-hoy  → kind 'en-ruta' (mantenemos el dato interno, cambia solo el label)
-    // - programada    → kind 'programada' CON fecha definida
-    function isPrevision(c) { return c.kind === 'programada' && c.fecha === 'Sin fecha'; }
-    function isCargandoHoy(c) { return c.kind === 'en-ruta'; }
-    function isProgramada(c) { return c.kind === 'programada' && c.fecha !== 'Sin fecha'; }
+    // Una carga puede caer en 2 estados de "próximas":
+    // - prevision   → kind 'programada' SIN fecha definida (fecha === 'Sin fecha')
+    // - programada  → kind 'programada' CON fecha + kind 'en-ruta' (las que están
+    //                cargando hoy). Se unificó en una sola pestaña; el resaltado
+    //                visual por proximidad (hoy/mañana/pasado) reemplaza el filtro
+    function isPrevision(c)  { return c.kind === 'programada' && c.fecha === 'Sin fecha'; }
+    function isProgramada(c) { return (c.kind === 'programada' && c.fecha !== 'Sin fecha') || c.kind === 'en-ruta'; }
+    // Días laborables entre HOY y una fecha "DD/MM" del año actual.
+    //  0 → hoy   1 → próximo día laborable (lunes si hoy es viernes)   2 → siguiente
+    //  null si la fecha no se entiende, es pasada, cae en fin de semana
+    //       o supera 2 días laborables (no se resalta)
+    function businessDaysFromToday(dateStr) {
+        if (!dateStr || dateStr === 'Sin fecha') return null;
+        var m = String(dateStr).match(/^(\d{1,2})\/(\d{1,2})$/);
+        if (!m) return null;
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        var d = new Date(today.getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+        d.setHours(0, 0, 0, 0);
+        if (d < today) return null;
+        var wd = d.getDay();
+        if (wd === 0 || wd === 6) return null;
+        var count = 0, cursor = new Date(today);
+        while (cursor.getTime() < d.getTime() && count <= 3) {
+            cursor.setDate(cursor.getDate() + 1);
+            var w = cursor.getDay();
+            if (w !== 0 && w !== 6) count++;
+        }
+        return count <= 2 ? count : null;
+    }
     function filteredCargas() {
         var f = TABLE_STATE.cargas.filter;
-        if (f === 'todas')        return CARGAS_DATA;
-        if (f === 'prevision')    return CARGAS_DATA.filter(isPrevision);
-        if (f === 'cargando-hoy') return CARGAS_DATA.filter(isCargandoHoy);
-        if (f === 'programada')   return CARGAS_DATA.filter(isProgramada);
+        if (f === 'todas')      return CARGAS_DATA;
+        if (f === 'prevision')  return CARGAS_DATA.filter(isPrevision);
+        if (f === 'programada') return CARGAS_DATA.filter(isProgramada);
         return CARGAS_DATA.filter(function (c) { return c.kind === f; });
     }
     function filteredPresupuestos() {
@@ -3893,10 +3973,20 @@
             tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin cargas en este filtro</td></tr>';
         } else {
             tbody.innerHTML = slice.map(function (c) {
-                return '<tr>' +
+                // Resaltado por proximidad: solo cargas futuras (programada/en-ruta)
+                // y solo si su fecha cae en hoy, mañana o pasado mañana (días
+                // laborables; los fines de semana NO suman, ej. mañana de viernes
+                // = lunes). Cualquier otra fecha → fila normal.
+                var bd = (c.kind === 'programada' || c.kind === 'en-ruta')
+                    ? businessDaysFromToday(c.fecha) : null;
+                var rowCls = '', whenTag = '';
+                if (bd === 0)      { rowCls = ' class="row-today"';         whenTag = '<span class="row-when-tag tag-today">HOY</span>'; }
+                else if (bd === 1) { rowCls = ' class="row-tomorrow"';      whenTag = '<span class="row-when-tag tag-tomorrow">MAÑANA</span>'; }
+                else if (bd === 2) { rowCls = ' class="row-aftertomorrow"'; whenTag = '<span class="row-when-tag tag-after">PASADO</span>'; }
+                return '<tr' + rowCls + '>' +
                     '<td class="ref">' + esc(c.ref) + '</td>' +
                     '<td class="ref-cli">' + esc(c.refCli) + '</td>' +
-                    '<td><strong>' + esc(c.fecha) + '</strong>' + (c.ventana ? '<div class="meta">' + esc(c.ventana) + '</div>' : '') + '</td>' +
+                    '<td><strong>' + esc(c.fecha) + '</strong>' + whenTag + (c.ventana ? '<div class="meta">' + esc(c.ventana) + '</div>' : '') + '</td>' +
                     '<td class="route"><strong>' + esc(c.origen) + '</strong><span class="arrow">→</span><strong>' + esc(c.destino) + '</strong>' + (c.direcciones ? '<div class="meta">' + esc(c.direcciones) + '</div>' : '') + '</td>' +
                     '<td>' + esc(c.mercancia) + (c.mercanciaMeta ? '<div class="meta">' + esc(c.mercanciaMeta) + '</div>' : '') + '</td>' +
                     '<td class="amount">' + esc(c.medidas) + '</td>' +
@@ -3912,12 +4002,11 @@
         // Tab counts
         var tabs = document.querySelector('.tabs[data-table="cargas"]');
         if (tabs) {
-            setText(tabs.querySelector('[data-count="programada"]'),   CARGAS_DATA.filter(isProgramada).length);
-            setText(tabs.querySelector('[data-count="prevision"]'),    CARGAS_DATA.filter(isPrevision).length);
-            setText(tabs.querySelector('[data-count="cargando-hoy"]'), CARGAS_DATA.filter(isCargandoHoy).length);
-            setText(tabs.querySelector('[data-count="entregada"]'),    CARGAS_DATA.filter(function(c){return c.kind==='entregada';}).length);
-            setText(tabs.querySelector('[data-count="cancelada"]'),    CARGAS_DATA.filter(function(c){return c.kind==='cancelada';}).length);
-            setText(tabs.querySelector('[data-count="todas"]'),        CARGAS_DATA.length);
+            setText(tabs.querySelector('[data-count="programada"]'), CARGAS_DATA.filter(isProgramada).length);
+            setText(tabs.querySelector('[data-count="prevision"]'),  CARGAS_DATA.filter(isPrevision).length);
+            setText(tabs.querySelector('[data-count="entregada"]'),  CARGAS_DATA.filter(function(c){return c.kind==='entregada';}).length);
+            setText(tabs.querySelector('[data-count="cancelada"]'),  CARGAS_DATA.filter(function(c){return c.kind==='cancelada';}).length);
+            setText(tabs.querySelector('[data-count="todas"]'),      CARGAS_DATA.length);
         }
     }
     function renderPresupuestosTable() {
