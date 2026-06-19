@@ -1261,6 +1261,19 @@
             font-size: 0.82rem; font-weight: 600;
         }
         .ptar-warning.show { display: block; }
+        /* Aviso amarillo cuando seleccionas "Programado sin fecha definida"
+           en Nueva carga. Es informativo, no bloquea el submit. */
+        .ptar-nofecha-warn {
+            margin-top: 0.45rem;
+            padding: 0.55rem 0.7rem;
+            background: #fffbe6;
+            color: #7a5d00;
+            border: 1px solid #f7e29b;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            line-height: 1.4;
+        }
+        .ptar-nofecha-warn strong { color: #5c4500; }
         /* CTAs */
         .ptar-actions {
             display: flex; gap: 0.6rem; margin-top: 1.4rem;
@@ -2002,6 +2015,9 @@
                         <select id="ptar-dia-carga" data-ptar-dia class="ptar-select"></select>
                         <input type="date" data-ptar-fecha class="ptar-date" aria-label="Elegir fecha en calendario">
                     </div>
+                    <div class="ptar-nofecha-warn" data-ptar-nofecha-warn hidden>
+                        ⚠ <strong>Previsión, no se tramita</strong>: la carga queda guardada en estado "Programado sin fecha" y <strong>no se asignará camión hasta que confirmes una fecha</strong>. Útil para reservar hueco en agenda.
+                    </div>
                 </div>
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-urgencia-carga">Ventana</label>
@@ -2106,14 +2122,7 @@
                 </div>
 
                 <div class="ptar-field">
-                    <label class="ptar-label" for="ptar-dia-presu">Fecha estimada (L-V)</label>
-                    <div class="ptar-fecha-wrap">
-                        <select id="ptar-dia-presu" data-ptar-dia class="ptar-select"></select>
-                        <input type="date" data-ptar-fecha class="ptar-date" aria-label="Elegir fecha en calendario">
-                    </div>
-                </div>
-                <div class="ptar-field">
-                    <label class="ptar-label" for="ptar-urgencia-presu">Ventana</label>
+                    <label class="ptar-label" for="ptar-urgencia-presu">Ventana de carga</label>
                     <select id="ptar-urgencia-presu" data-ptar-urgencia class="ptar-select">
                         <option value="dia">Fecha fija (un día concreto, más cara)</option>
                         <option value="estandar" selected>Ventana de 2 días (Estándar)</option>
@@ -3880,10 +3889,18 @@
         }
 
         // --- Día selector con próximos 7 laborables + "Otro día" ---
-        function fillDiaSelect(sel) {
+        // El texto de la opción "sin fecha" cambia según el modo: en
+        // carga es "Programado sin fecha definida" + aviso amarillo
+        // (el equipo no la tramita hasta tener fecha); en presupuesto
+        // basta con "Sin fecha definida" porque es solo una cotización.
+        function fillDiaSelect(sel, mode) {
             sel.innerHTML = '';
             var none = document.createElement('option');
-            none.value = ''; none.textContent = 'Sin fecha definida'; sel.appendChild(none);
+            none.value = '';
+            none.textContent = mode === 'carga'
+                ? 'Programado sin fecha definida'
+                : 'Sin fecha definida';
+            sel.appendChild(none);
             nextWeekdays(7).forEach(function (d) {
                 var opt = document.createElement('option');
                 opt.value = d.toISOString().slice(0, 10);
@@ -3986,42 +4003,50 @@
             camionSel.addEventListener('change', applyCamion);
             applyCamion();
 
-            fillDiaSelect(diaSel);
-
-            // Día → "Otro día…" abre el date picker (Flatpickr si está disponible)
+            // Nuevo presupuesto NO tiene campo de fecha — solo "Ventana".
+            // Solo inicializamos día / flatpickr / aviso si el select existe.
             var fp = null;
-            function attachFlatpickr() {
-                if (!window.flatpickr || fp) return;
-                fp = window.flatpickr(fechaInput, {
-                    locale: window.flatpickr.l10ns && window.flatpickr.l10ns.es ? 'es' : 'default',
-                    minDate: 'today',
-                    maxDate: new Date(Date.now() + 90 * 24 * 3600 * 1000),
-                    disable: [function (d) { return isWeekend(d); }],
-                    dateFormat: 'Y-m-d',
-                    onClose: function (selDates) {
-                        if (selDates && selDates.length) {
-                            var iso = selDates[0].toISOString().slice(0, 10);
-                            // Inserta opción si no existe
-                            var existing = diaSel.querySelector('option[value="' + iso + '"]');
-                            if (!existing) {
-                                var opt = document.createElement('option');
-                                opt.value = iso; opt.textContent = fmtFull(selDates[0]);
-                                diaSel.insertBefore(opt, diaSel.querySelector('option[value="otro"]'));
-                            }
-                            diaSel.value = iso;
-                        } else {
-                            // Si no eligió nada, vuelve a "sin fecha"
-                            if (diaSel.value === 'otro') diaSel.value = '';
-                        }
-                    }
-                });
+            var nofechaWarn = card.querySelector('[data-ptar-nofecha-warn]');
+            function syncNofechaWarn() {
+                if (!nofechaWarn || !diaSel) return;
+                nofechaWarn.hidden = diaSel.value !== '';
             }
-            diaSel.addEventListener('change', function () {
-                if (diaSel.value === 'otro') {
-                    attachFlatpickr();
-                    if (fp) fp.open(); else fechaInput.focus();
+            if (diaSel) {
+                fillDiaSelect(diaSel, mode);
+                function attachFlatpickr() {
+                    if (!window.flatpickr || fp || !fechaInput) return;
+                    fp = window.flatpickr(fechaInput, {
+                        locale: window.flatpickr.l10ns && window.flatpickr.l10ns.es ? 'es' : 'default',
+                        minDate: 'today',
+                        maxDate: new Date(Date.now() + 90 * 24 * 3600 * 1000),
+                        disable: [function (d) { return isWeekend(d); }],
+                        dateFormat: 'Y-m-d',
+                        onClose: function (selDates) {
+                            if (selDates && selDates.length) {
+                                var iso = selDates[0].toISOString().slice(0, 10);
+                                var existing = diaSel.querySelector('option[value="' + iso + '"]');
+                                if (!existing) {
+                                    var opt = document.createElement('option');
+                                    opt.value = iso; opt.textContent = fmtFull(selDates[0]);
+                                    diaSel.insertBefore(opt, diaSel.querySelector('option[value="otro"]'));
+                                }
+                                diaSel.value = iso;
+                            } else {
+                                if (diaSel.value === 'otro') diaSel.value = '';
+                            }
+                            syncNofechaWarn();
+                        }
+                    });
                 }
-            });
+                diaSel.addEventListener('change', function () {
+                    if (diaSel.value === 'otro') {
+                        attachFlatpickr();
+                        if (fp) fp.open(); else if (fechaInput) fechaInput.focus();
+                    }
+                    syncNofechaWarn();
+                });
+                syncNofechaWarn();
+            }
 
             // Anotaciones libres
             notesToggle.addEventListener('click', function () {
@@ -4048,7 +4073,7 @@
                 camionSel.value = 'tauliner';
                 mercaSel.selectedIndex = 0;
                 applyCamion();
-                fillDiaSelect(diaSel);
+                if (diaSel) { fillDiaSelect(diaSel, mode); syncNofechaWarn(); }
                 urgenciaSel.value = 'estandar';
                 refCliInput.value = '';
                 notesTxt.value = '';
@@ -4085,9 +4110,13 @@
                 var urgenciaTxt = urgenciaSel.value === 'dia' ? 'Fija'
                     : urgenciaSel.value === 'flexible' ? '±4 días' : '±2 días';
                 var fechaTxt;
-                if (diaSel.value && diaSel.value !== 'otro') {
+                if (diaSel && diaSel.value && diaSel.value !== 'otro') {
                     var d = new Date(diaSel.value);
                     fechaTxt = fmtDate(d);
+                } else if (mode === 'carga') {
+                    // "Programado sin fecha definida" → previsión; el equipo
+                    // no tramita hasta que el cliente asigne fecha
+                    fechaTxt = 'Sin fecha';
                 } else {
                     fechaTxt = 'A confirmar';
                 }
