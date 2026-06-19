@@ -1951,7 +1951,10 @@
         @media (max-width:768px) {
             .navbar { padding: 0.7rem 1rem; }
             .navbar-nav { display:none; }
-            .navbar-right { gap: 0.4rem; }
+            /* En movil empuja el selector de idioma al lado derecho, junto a la hamburguesa.
+               Sin esto, con justify-content:space-between y nav-nav oculto, el selector
+               se queda flotando en el medio de la barra */
+            .navbar-right { gap: 0.4rem; margin-left: auto; margin-right: 0.5rem; }
             .lang-btn { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
             .hamburger { display:flex; }
             .nav-logo-img { height: 35px; }
