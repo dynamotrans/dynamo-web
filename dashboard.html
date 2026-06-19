@@ -1274,6 +1274,81 @@
             line-height: 1.4;
         }
         .ptar-nofecha-warn strong { color: #5c4500; }
+
+        /* === Confirm card (paso 2 de Nueva carga) === */
+        .ptar-confirm-card {
+            background: white; border-radius: 14px;
+            border: 1px solid var(--gray-200);
+            padding: 1.5rem; max-width: 920px;
+            box-shadow: 0 1px 3px rgba(10,2,48,0.04);
+        }
+        .ptar-confirm-heading {
+            font-size: 1.1rem; font-weight: 800; color: var(--navy);
+            margin-bottom: 0.3rem;
+        }
+        .ptar-confirm-lead {
+            color: var(--gray-500); font-size: 0.85rem;
+            margin-bottom: 1.1rem; line-height: 1.5;
+        }
+        .ptar-confirm-note {
+            padding: 0.75rem 0.9rem;
+            background: var(--gray-100);
+            border-left: 3px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 0.78rem; line-height: 1.55; color: var(--gray-700);
+            margin-bottom: 0.7rem;
+        }
+        .ptar-confirm-note p + p { margin-top: 0.45rem; }
+        .ptar-confirm-note-info {
+            background: #eef2ff; border-left-color: var(--purple);
+            color: #2a1a7a;
+        }
+        .ptar-confirm-note strong { color: var(--navy); }
+        .ptar-confirm-note-info strong { color: var(--purple); }
+        .ptar-confirm-sumtitle {
+            font-size: 0.75rem; font-weight: 700;
+            color: var(--gray-500); text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 1rem 0 0.5rem;
+        }
+        .ptar-confirm-summary {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem 1.2rem;
+            padding: 0.85rem 1rem; border: 1px solid var(--gray-200);
+            border-radius: 10px; background: var(--gray-50);
+            font-size: 0.85rem;
+        }
+        .ptar-confirm-summary dt {
+            font-size: 0.7rem; font-weight: 700;
+            color: var(--gray-500); text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .ptar-confirm-summary dd { color: var(--navy); font-weight: 600; margin-bottom: 0.35rem; }
+        .ptar-confirm-summary .full { grid-column: 1 / -1; }
+        .ptar-confirm-legal-link {
+            margin-top: 0.9rem; font-size: 0.78rem; color: var(--gray-500);
+        }
+        .ptar-confirm-legal-link a { color: var(--purple); font-weight: 700; text-decoration: underline; }
+        .ptar-confirm-card .ptar-actions { padding-top: 1.2rem; }
+        @media (max-width: 768px) {
+            .ptar-confirm-card { padding: 1.1rem; }
+            .ptar-confirm-summary { grid-template-columns: 1fr; gap: 0.3rem; }
+            .ptar-confirm-summary dd { margin-bottom: 0.4rem; }
+        }
+
+        /* === Modal de condiciones generales ===
+           Reusa el contenedor genérico .dash-modal pero sustituye el body
+           por contenido largo scrolleable. La clase .dash-modal-card.wide se
+           aplica vía clase extra al abrir. */
+        .ptar-terms-body { font-size: 0.82rem; color: var(--gray-700); line-height: 1.55; }
+        .ptar-terms-body h4 {
+            font-size: 0.9rem; color: var(--navy); margin: 1rem 0 0.4rem;
+            padding-bottom: 0.25rem; border-bottom: 1px solid var(--gray-200);
+        }
+        .ptar-terms-body h4:first-child { margin-top: 0; }
+        .ptar-terms-body p { margin-bottom: 0.5rem; }
+        .ptar-terms-body ul { margin: 0.4rem 0 0.5rem 1.2rem; }
+        .ptar-terms-body li { margin-bottom: 0.3rem; }
+        .ptar-terms-body strong { color: var(--navy); }
         /* CTAs */
         .ptar-actions {
             display: flex; gap: 0.6rem; margin-top: 1.4rem;
@@ -1440,6 +1515,80 @@
 <button type="button" class="back-top" id="backTop" aria-label="Volver arriba" onclick="scrollToTop()">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
 </button>
+
+<!-- TEMPLATE: condiciones generales de transporte (texto consolidado del cliente).
+     Se inyecta en el modal genérico al abrir el aviso legal desde el paso 2 de
+     Nueva carga. Se ha unificado para eliminar duplicados manteniendo cada
+     cláusula y su carga jurídica. -->
+<template id="ptar-terms-template">
+    <div class="ptar-terms-body">
+        <p><strong>CONDICIONES GENERALES DE TRANSPORTE — Dynamo Operador Logístico, S.L. (B01596360)</strong></p>
+
+        <h4>1. Facturación y documentos — sólo vía digital</h4>
+        <p>Las facturas y albaranes se envían exclusivamente por email; no se realizan envíos en papel. Si el cliente tiene referencias internas de envío/transporte, debe informarnos para asignarlas correctamente y facilitar trazabilidad, revisión y facturación.</p>
+        <p>Los documentos de transporte (albaranes, CMR, pedidos, etc.) que facilitaremos tras finalizar el servicio serán los entregados en mano en carga y entrega. Cualquier documento enviado por vía digital no será tenido en cuenta, ya que dificulta la operativa al no llevar impresora los camiones. Si el camión debe llevar documentación adicional, hágala llegar directamente al cargador o destinatario para que la entreguen al conductor en mano.</p>
+
+        <h4>2. Aceptación de la orden de carga</h4>
+        <p>La ausencia de rechazo escrito a este email en un plazo de <strong>8 horas</strong> desde su envío y/o la realización del servicio equivalen a aceptación total de la orden de carga y todas sus condiciones.</p>
+        <p>Se presume que ningún cliente cargaría mercancía de alto valor (hasta 250.000 €) sin verificar previamente las matrículas del camión asignado. Si el cliente no solicita la matrícula por email antes de cargar, se entiende que ha aceptado íntegramente la orden de carga y sus condiciones, eximiendo a Dynamo de toda responsabilidad posterior. Lo mismo aplica si las matrículas se comunican por WhatsApp u otro medio distinto al email: la responsabilidad de verificación recae igualmente en el cliente.</p>
+
+        <h4>3. Declaración de mercancía y ADR</h4>
+        <ul>
+            <li><strong>Declaración del cargador.</strong> El cliente garantiza que la mercancía NO está sujeta a normativa ADR (ni por naturaleza ni por cantidad, excediendo los límites de la exención 1.1.3.6), salvo notificación previa, expresa y por escrito antes de contratar.</li>
+            <li><strong>Derecho de rechazo en carga.</strong> Si el transportista detecta en origen que la mercancía es ADR y no se ha declarado, rechazará inmediatamente la carga. Al no haber sido informada previamente, la agencia no puede garantizar equipación reglamentaria, placas naranja ni titulación ADR del conductor.</li>
+            <li><strong>Costes y falso desplazamiento.</strong> La omisión de la naturaleza peligrosa será causa de cancelación por causas imputables al cargador. Se facturará el <strong>100% del transporte contratado</strong> en concepto de falso desplazamiento, daños y perjuicios y lucro cesante por pérdida de disponibilidad del vehículo.</li>
+            <li><strong>Exención y sanciones.</strong> Dynamo queda eximida de toda responsabilidad civil, administrativa o penal derivada del transporte de mercancías peligrosas no declaradas. Cualquier sanción (LOTT/ADR), coste de paralización, limpieza de vía o trasvase será repercutida íntegramente al cliente.</li>
+        </ul>
+
+        <h4>4. Aranceles e impuestos de importación</h4>
+        <p>Si el cliente o destinatario en el país de destino no abona aranceles, impuestos u otros gastos de importación exigidos por aduanas, Dynamo o el transportista subcontratado podrá adelantar dichos pagos para evitar demoras o bloqueos. El cliente se compromete a reembolsar la totalidad en un plazo máximo de <strong>7 días</strong> desde la notificación con justificantes. Esta condición es vinculante desde el momento de la contratación del servicio y prevalece sobre cualquier acuerdo con terceros en destino.</p>
+
+        <h4>5. Comunicaciones y urgencias</h4>
+        <p>El único medio válido para notificaciones relacionadas con la orden de carga es el email mediante la propia orden de carga enviada. No se aceptarán notificaciones por WhatsApp ni otros medios alternativos. Para urgencias o incidencias en el transporte, el cliente puede contactar 24h en el teléfono <strong>+34 955 225 945</strong>.</p>
+
+        <h4>6. Condiciones de transporte</h4>
+        <ul>
+            <li>En mercancía a granel con cobro por peso transportado, la tarifa se aplicará en €/Tn con un importe <strong>mínimo facturable de 25 Tn</strong>. El peso válido será el de báscula en origen.</li>
+            <li>Dimensiones interiores y pesos máximos pueden consultarse en <a href="https://www.dynamotrans.es" target="_blank" rel="noopener">www.dynamotrans.es</a> o llamando al +34 955 225 945.</li>
+            <li>Las fechas de recogida y/o entrega pueden sufrir modificaciones en ocasiones.</li>
+            <li>En grupajes o cargas parciales, salvo pacto contrario reflejado en la orden, la mercancía podrá ser transbordada a otro camión o recolocada para optimizar rutas.</li>
+        </ul>
+
+        <h4>7. Fuerza mayor y sustitución de medios</h4>
+        <p>Dynamo no será responsable de penalizaciones, sanciones ni costes derivados de retrasos siempre que se deban a causas de fuerza mayor debidamente justificadas (entre otras: enfermedad repentina del conductor, accidentes de tráfico, averías mecánicas no previsibles o inclemencias meteorológicas graves). En tales casos comunicará de inmediato la incidencia y, siempre que sea posible, designará vehículo o conductor alternativo. El cliente reconoce expresamente que el retraso no será considerado incumplimiento ni generará derecho a indemnización o penalización, salvo prueba de dolo o negligencia grave por parte de Dynamo.</p>
+
+        <h4>8. Horarios, penalizaciones y cancelaciones</h4>
+        <ul>
+            <li>Se contempla <strong>1 hora para carga y 1 hora para descarga</strong>. A partir de ese tiempo se aplicará un coste conforme al art. 2.2 del Real Decreto-ley 3/2022 a razón de <strong>2 veces el IPREM diario</strong> (referencia 2024: 20,00 €/h — 40,00 €/h).</li>
+            <li>Si el cliente cancela el servicio <strong>después de las 9:00 AM del día hábil anterior</strong> a la carga, Dynamo se reserva el derecho a facturar el servicio completo en concepto de indemnización.</li>
+        </ul>
+
+        <h4>9. Accesos, permisos y medios en carga/descarga</h4>
+        <p>El lugar de carga y descarga debe ser accesible para tráiler y disponer de medios adecuados (muelle, carretilla elevadora, puente grúa, etc.). Si la carga o entrega requieren permisos especiales (ayuntamiento, puertos, aeropuertos, etc.), el cliente deberá gestionarlos, eximiendo a Dynamo de toda responsabilidad o coste derivado. En caso de imposibilidad de acceso, demoras o sanciones por permisos no gestionados, el cliente asumirá los costes correspondientes.</p>
+
+        <h4>10. Dynamo como operador — exención de responsabilidad</h4>
+        <p>Dynamo actúa como organizador del servicio y no realiza la ejecución material del transporte, que es llevada a cabo por transportistas efectivos subcontratados. El cliente acepta expresamente que:</p>
+        <ul>
+            <li>La responsabilidad sobre la mercancía recae <strong>exclusivamente en el transportista efectivo</strong>, único obligado a responder por pérdidas, daños o siniestros durante el transporte.</li>
+            <li>Dynamo no asumirá ninguna responsabilidad económica por daño, pérdida, robo o siniestro de la mercancía.</li>
+            <li>El seguro de transporte es obligación exclusiva del transportista efectivo; el seguro en origen corresponde al cargador y en destino al descargador. Si dichos seguros no estuvieran en vigor, no cubrieran el siniestro o fueran insuficientes, Dynamo queda exonerada de cualquier reclamación.</li>
+            <li>En caso de siniestro, el cliente reclamará directamente al transportista efectivo o a su compañía de seguros, renunciando expresamente a cualquier reclamación contra Dynamo.</li>
+        </ul>
+
+        <h4>11. No circunvención</h4>
+        <p>El cliente reconoce que los transportistas y colaboradores presentados por Dynamo forman parte de su red comercial y su know-how. En consecuencia, se obliga a no contratar — directa o indirectamente — los servicios de transporte de dichos proveedores al margen de la intermediación de Dynamo durante <strong>18 meses</strong> tras la última operación realizada. El incumplimiento facultará a Dynamo a reclamar una indemnización fija y única de <strong>6.000 €</strong> (seis mil euros) en concepto de cláusula penal por daños y perjuicios, con independencia del volumen de servicios contravenidos. La contratación directa, además, exime a Dynamo de cualquier responsabilidad sobre mercancía, seguros, plazos de entrega o incidencias derivadas de dicha relación.</p>
+
+        <h4>12. Mercancía no recepcionada / falta de instrucciones del cliente</h4>
+        <p>Si la mercancía no es recepcionada por el destinatario y el cliente o cargador no se hace cargo de la misma (por decisión expresa, omisión de respuesta, falta de instrucciones o ausencia de indicaciones tras ser requerido), siempre que no sea imputable a Dynamo, y como consecuencia la mercancía deba ser almacenada provisionalmente por Dynamo (en almacén propio o de terceros), el cliente reconoce y acepta que:</p>
+        <ul>
+            <li><strong>Costes desde el primer día.</strong> Todos los costes derivados de almacenaje, custodia, manipulación, traslados, gestión o cualquier otra actuación serán de su exclusiva cuenta.</li>
+            <li><strong>Naturaleza del depósito.</strong> Dynamo no asume en ningún caso la propiedad; actúa únicamente como depositario involuntario, sin responsabilidad sobre el destino final más allá de una custodia razonable.</li>
+            <li><strong>Consignación (7 días).</strong> Transcurridos 7 días naturales desde el primer requerimiento fehaciente de retirada sin respuesta ni instrucciones claras, Dynamo quedará facultada para consignar la mercancía en Depósito Público o Almacén General de Depósito por cuenta y riesgo del cliente.</li>
+            <li><strong>Destrucción (30 días).</strong> Transcurridos 30 días naturales desde dicho requerimiento sin retirada ni instrucciones, Dynamo podrá, en los supuestos legalmente permitidos, proceder a la destrucción de la mercancía (únicamente cuando carezca de valor comercial, sea perecedera, peligrosa o cuando su mantenimiento resulte manifiestamente desproporcionado), dejando constancia documental.</li>
+            <li><strong>Exoneración.</strong> En ningún caso la falta de retirada podrá interpretarse como transmisión de propiedad, renuncia a costes devengados ni asunción de responsabilidad por parte de Dynamo.</li>
+        </ul>
+    </div>
+</template>
 
 <!-- MODAL GENERICO DEL PANEL -->
 <div class="dash-modal" id="dashModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="dashModalTitle">
@@ -2016,7 +2165,7 @@
                         <input type="date" data-ptar-fecha class="ptar-date" aria-label="Elegir fecha en calendario">
                     </div>
                     <div class="ptar-nofecha-warn" data-ptar-nofecha-warn hidden>
-                        ⚠ <strong>Previsión, no se tramita</strong>: la carga queda guardada en estado "Programado sin fecha" y <strong>no se asignará camión hasta que confirmes una fecha</strong>. Útil para reservar hueco en agenda.
+                        ⚠ <strong>Previsión, no se tramita</strong>: la carga queda guardada en estado "Programado sin fecha" y <strong>no se asignará camión hasta que confirmes una fecha</strong>. Útil para anotar previsiones de cargas sin fecha definida, aunque si la fecha es posterior a 7 días de generar esta carga, el precio se revisará a precios de mercado actuales cuando se asigne fecha.
                     </div>
                 </div>
                 <div class="ptar-field">
@@ -2051,6 +2200,36 @@
             <div class="ptar-actions">
                 <button type="button" class="btn-primary" data-ptar-submit>Solicitar carga</button>
                 <button type="button" class="btn-ghost" onclick="showSection('dashboard');return false;">Cancelar</button>
+            </div>
+        </div>
+
+        <!-- ====== PASO 2 — Confirmación con avisos legales + resumen ======
+             Se muestra al pulsar "Solicitar carga" si el formulario es válido.
+             Reemplaza visualmente al formulario hasta que el cliente o bien
+             vuelve atrás a editar o pulsa "Confirmar carga" (modal IMPORTANTE). -->
+        <div class="ptar-confirm-card" data-ptar-confirm hidden>
+            <h3 class="ptar-confirm-heading">Revisa los datos antes de confirmar</h3>
+            <p class="ptar-confirm-lead">El equipo confirma precio y disponibilidad en <strong>menos de 25 minutos</strong>. Lee primero estos avisos sobre grupajes y tarifa.</p>
+
+            <div class="ptar-confirm-note ptar-confirm-note-info">
+                <strong>Si este envío es un GRUPAJE</strong>, no se puede garantizar al 100% la fecha de recogida y entrega, aunque <em>podrá asignarse antes transportista ofertando precio superior al de tarifa presente</em>, con mayor probabilidad de cargar. Dependen de completar camión y también se ven influidos por demoras en otras recogidas/entregas. Si es <strong>grupaje urgente</strong>, valora la opción de <strong>camión completo</strong>.
+            </div>
+
+            <div class="ptar-confirm-note">
+                <p><strong>Disponibilidad y ajustes de tarifa.</strong> La validez de este presupuesto queda sujeta a la disponibilidad real de flota en la zona y fechas solicitadas. En caso de falta de vehículos o cambios de mercado, la tarifa podría sufrir modificaciones para garantizar el servicio. Cualquier variación se comunicará al cliente para su validación previa.</p>
+                <p><strong>Garantías y confirmación.</strong> La falta de disponibilidad de vehículos no dará lugar a penalizaciones, reclamaciones de daños y perjuicios ni retenciones de pagos por parte del cliente. La presentación de este presupuesto o el ajuste de precios no garantizan la carga; el servicio solo se considerará confirmado una vez se emita la orden de carga definitiva y se ejecute la carga en el cargador.</p>
+            </div>
+
+            <h4 class="ptar-confirm-sumtitle">Resumen del transporte</h4>
+            <dl class="ptar-confirm-summary" data-ptar-summary></dl>
+
+            <p class="ptar-confirm-legal-link">
+                Al confirmar aceptas las <a href="#" data-ptar-show-terms>condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L.
+            </p>
+
+            <div class="ptar-actions">
+                <button type="button" class="btn-ghost" data-ptar-back>← Editar datos</button>
+                <button type="button" class="btn-primary" data-ptar-final-confirm>Confirmar carga</button>
             </div>
         </div>
     </section>
@@ -4084,8 +4263,9 @@
                 warning.classList.remove('show');
             });
 
-            // Submit → valida y añade al array correspondiente
-            submit.addEventListener('click', function () {
+            // Lee y valida el formulario. Devuelve null si hay errores
+            // (también marca los campos en rojo y muestra el warning).
+            function readAndValidate() {
                 var orig = origInput.value.trim();
                 var dest = destInput.value.trim();
                 var origOk = orig.length >= 2;
@@ -4095,41 +4275,55 @@
                 if (!origOk || !destOk) {
                     warning.classList.add('show');
                     (origOk ? destInput : origInput).focus();
-                    return;
+                    return null;
                 }
                 warning.classList.remove('show');
 
                 var camion = camionSel.value;
-                var info = CAMION_INFO[camion];
                 var ml = mlSel.value;
                 var peso = pesoSel.value;
                 var medidas = (ml === '13.2' ? '13,2' : ml) + ' m · ' + (parseInt(peso, 10) * 1000).toLocaleString('es-ES') + ' kg';
                 var origCorto = orig.split(',')[0].trim();
                 var destCorto = dest.split(',')[0].trim();
-                var mercanciaShort = mercaSel.options[mercaSel.selectedIndex].text.split('—')[0].trim();
+                var mercaTxt = mercaSel.options[mercaSel.selectedIndex].text;
+                var mercanciaShort = mercaTxt.split('—')[0].trim();
+                var urgenciaSel_label = urgenciaSel.options[urgenciaSel.selectedIndex].text;
                 var urgenciaTxt = urgenciaSel.value === 'dia' ? 'Fija'
                     : urgenciaSel.value === 'flexible' ? '±4 días' : '±2 días';
-                var fechaTxt;
+                var fechaTxt, fechaLarga;
                 if (diaSel && diaSel.value && diaSel.value !== 'otro') {
                     var d = new Date(diaSel.value);
                     fechaTxt = fmtDate(d);
+                    fechaLarga = fmtFull(d);
                 } else if (mode === 'carga') {
-                    // "Programado sin fecha definida" → previsión; el equipo
-                    // no tramita hasta que el cliente asigne fecha
                     fechaTxt = 'Sin fecha';
+                    fechaLarga = 'Programado sin fecha definida (previsión)';
                 } else {
                     fechaTxt = 'A confirmar';
+                    fechaLarga = 'A confirmar';
                 }
-                var refCli = refCliInput.value.trim() || (mode === 'carga' ? 'PED-NUEVO' : 'COT-NUEVO');
-                var ref = nextRef(mode);
+                return {
+                    camion: camion, camionLabel: CAMION_INFO[camion] ? CAMION_INFO[camion].label : camion,
+                    ml: ml, peso: peso, medidas: medidas,
+                    orig: orig, dest: dest, origCorto: origCorto, destCorto: destCorto,
+                    mercaTxt: mercaTxt, mercanciaShort: mercanciaShort,
+                    urgenciaTxt: urgenciaTxt, urgenciaLabel: urgenciaSel_label,
+                    fechaTxt: fechaTxt, fechaLarga: fechaLarga,
+                    refCli: refCliInput.value.trim() || (mode === 'carga' ? 'PED-NUEVO' : 'COT-NUEVO'),
+                    notes: notesTxt.value.trim()
+                };
+            }
 
+            // Inserta la carga/presupuesto en la data y navega — paso final
+            // común para presupuesto (directo) y carga (tras confirm + modal).
+            function finalizeSave(d) {
+                var ref = nextRef(mode);
                 if (mode === 'carga') {
                     CARGAS_DATA.unshift(makeCarga(
-                        ref, refCli, fechaTxt, urgenciaTxt,
-                        origCorto, destCorto, origCorto + ' → ' + destCorto,
-                        mercanciaShort, '', medidas, 'programada'
+                        ref, d.refCli, d.fechaTxt, d.urgenciaTxt,
+                        d.origCorto, d.destCorto, d.origCorto + ' → ' + d.destCorto,
+                        d.mercanciaShort, '', d.medidas, 'programada'
                     ));
-                    // Refresca contador del tab si existe (UI cosmética)
                     TABLE_STATE.cargas.page = 1;
                     TABLE_STATE.cargas.filter = 'programadas';
                     renderCargasTable();
@@ -4139,18 +4333,17 @@
                     );
                     setTimeout(function () { showSection('cargas'); }, 1200);
                 } else {
-                    // Precio mockup: longitud ml + peso + factor camión, redondeado a centena
-                    var base = (camion === 'tauliner' ? 950 : 720)
-                        + (parseFloat(ml === '13.2' ? 13.2 : ml) * 70)
-                        + (parseFloat(peso) * 35);
+                    var base = (d.camion === 'tauliner' ? 950 : 720)
+                        + (parseFloat(d.ml === '13.2' ? 13.2 : d.ml) * 70)
+                        + (parseFloat(d.peso) * 35);
                     var precio = Math.round(base / 10) * 10;
                     var vigencia = (function () {
-                        var d = new Date(); d.setDate(d.getDate() + 7);
-                        return fmtDate(d) + ' (7 días)';
+                        var t = new Date(); t.setDate(t.getDate() + 7);
+                        return fmtDate(t) + ' (7 días)';
                     })();
                     PRESUPUESTOS_DATA.unshift(makePresupuesto(
-                        ref, refCli, fmtDate(new Date()),
-                        origCorto, destCorto, mercanciaShort, medidas,
+                        ref, d.refCli, fmtDate(new Date()),
+                        d.origCorto, d.destCorto, d.mercanciaShort, d.medidas,
                         precio.toLocaleString('es-ES') + ' €', vigencia, 'green', 'activos'
                     ));
                     TABLE_STATE.presupuestos.page = 1;
@@ -4162,7 +4355,96 @@
                     );
                     setTimeout(function () { showSection('presupuestos'); }, 1200);
                 }
+            }
+
+            // === Paso 2 (sólo carga): panel de confirmación con avisos legales
+            //     + resumen del transporte → "Confirmar carga" abre modal con
+            //     aviso de cancelación. Paso 1: el formulario, ya cableado. ===
+            var confirmCard = card.parentNode.querySelector('[data-ptar-confirm]');
+            var summaryEl   = confirmCard ? confirmCard.querySelector('[data-ptar-summary]') : null;
+            var backBtn     = confirmCard ? confirmCard.querySelector('[data-ptar-back]') : null;
+            var finalBtn    = confirmCard ? confirmCard.querySelector('[data-ptar-final-confirm]') : null;
+            var termsLink   = confirmCard ? confirmCard.querySelector('[data-ptar-show-terms]') : null;
+            var pendingData = null;
+
+            function showConfirmStep(d) {
+                if (!confirmCard || !summaryEl) return;
+                pendingData = d;
+                summaryEl.innerHTML =
+                    '<dt>Origen</dt><dd>' + escapeHtml(d.orig) + '</dd>' +
+                    '<dt>Destino</dt><dd>' + escapeHtml(d.dest) + '</dd>' +
+                    '<dt>Tipo de camión</dt><dd>' + escapeHtml(d.camionLabel) + '</dd>' +
+                    '<dt>Mercancía</dt><dd>' + escapeHtml(d.mercaTxt) + '</dd>' +
+                    '<dt>Ocupación</dt><dd>' + escapeHtml(d.medidas) + '</dd>' +
+                    '<dt>Ventana</dt><dd>' + escapeHtml(d.urgenciaLabel) + '</dd>' +
+                    '<dt>Fecha de carga</dt><dd>' + escapeHtml(d.fechaLarga) + '</dd>' +
+                    (d.refCli && d.refCli.indexOf('NUEVO') === -1 ? '<dt>Tu referencia</dt><dd>' + escapeHtml(d.refCli) + '</dd>' : '') +
+                    (d.notes ? '<dt class="full">Anotaciones</dt><dd class="full">' + escapeHtml(d.notes) + '</dd>' : '');
+                card.hidden = true;
+                confirmCard.hidden = false;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            function exitConfirmStep() {
+                if (!confirmCard) return;
+                confirmCard.hidden = true;
+                card.hidden = false;
+                pendingData = null;
+            }
+            if (backBtn) backBtn.addEventListener('click', exitConfirmStep);
+            if (finalBtn) finalBtn.addEventListener('click', function () {
+                if (!pendingData) return;
+                openDashModal({
+                    icon: '⚠️',
+                    title: 'IMPORTANTE: vas a confirmar un pedido de transporte',
+                    sub: 'Aviso sobre cancelaciones',
+                    body:
+                        '<p style="font-size:0.88rem;line-height:1.55;color:var(--gray-700);">' +
+                        'Si el cliente cancela el servicio <strong>después de las 9:00 AM del día hábil anterior</strong> a la carga, <strong>Dynamo Operador Logístico, S.L.</strong> se reserva el derecho de <strong>facturar el servicio completo</strong> en concepto de indemnización.' +
+                        '</p>' +
+                        '<p style="font-size:0.85rem;line-height:1.55;color:var(--gray-700);margin-top:0.6rem;">' +
+                        'Por parte de Dynamo, se hará lo posible para evitar o minimizar los costes derivados de la cancelación en favor del cliente, pero la legislación es muy clara y, si el transportista decide aplicar los gastos estando en su derecho, deben ser asumidos por el cliente.' +
+                        '</p>',
+                    footer:
+                        '<button class="btn-ghost" onclick="closeDashModal()" style="flex:1;">Cancelar</button>' +
+                        '<button class="btn-primary" data-ptar-modal-confirm style="flex:1;">Confirmar carga</button>'
+                });
+                // El botón "Confirmar carga" del modal se cablea cada vez que se abre
+                setTimeout(function () {
+                    var b = document.querySelector('[data-ptar-modal-confirm]');
+                    if (b) b.addEventListener('click', function () {
+                        var data = pendingData; // capturado antes de salir
+                        closeDashModal();
+                        exitConfirmStep();
+                        if (data) finalizeSave(data);
+                    });
+                }, 0);
             });
+            if (termsLink) termsLink.addEventListener('click', function (e) {
+                e.preventDefault();
+                var tpl = document.getElementById('ptar-terms-template');
+                openDashModal({
+                    icon: '📑',
+                    title: 'Condiciones generales de transporte',
+                    sub: 'Dynamo Operador Logístico, S.L. — B01596360',
+                    body: tpl ? tpl.innerHTML : '<p>Texto no disponible.</p>',
+                    footer: '<button class="btn-primary" onclick="closeDashModal()" style="flex:1;">He leído y entiendo</button>'
+                });
+            });
+
+            // Submit del formulario → valida y bifurca según modo
+            submit.addEventListener('click', function () {
+                var d = readAndValidate();
+                if (!d) return;
+                if (mode === 'carga') showConfirmStep(d);
+                else finalizeSave(d);
+            });
+        }
+
+        // Helper local para escapar HTML al inyectar valores del usuario en el resumen
+        function escapeHtml(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
         document.querySelectorAll('.ptar-card').forEach(initTarifador);
