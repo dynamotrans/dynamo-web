@@ -2276,14 +2276,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <button class="lang-option" onclick="changeLang('eu','🟢','EUS')"><span class="flag">🟢</span> Euskara</button>
                 <button class="lang-option" onclick="changeLang('pt','🇵🇹','PT')"><span class="flag">🇵🇹</span> Português</button>
                 <button class="lang-option" onclick="changeLang('en','🇬🇧','EN')"><span class="flag">🇬🇧</span> English</button>
-                <button class="lang-option" onclick="changeLang('zh-CN','🇨🇳','ZH')"><span class="flag">🇨🇳</span> 中文</button>
                 <button class="lang-option" onclick="changeLang('fr','🇫🇷','FR')"><span class="flag">🇫🇷</span> Français</button>
                 <button class="lang-option" onclick="changeLang('de','🇩🇪','DE')"><span class="flag">🇩🇪</span> Deutsch</button>
                 <button class="lang-option" onclick="changeLang('it','🇮🇹','IT')"><span class="flag">🇮🇹</span> Italiano</button>
-                <button class="lang-option" onclick="changeLang('uk','🇺🇦','UK')"><span class="flag">🇺🇦</span> Українська</button>
-                <button class="lang-option" onclick="changeLang('ro','🇷🇴','RO')"><span class="flag">🇷🇴</span> Română</button>
-                <button class="lang-option" onclick="changeLang('pl','🇵🇱','PL')"><span class="flag">🇵🇱</span> Polski</button>
                 <button class="lang-option" onclick="changeLang('nl','🇳🇱','NL')"><span class="flag">🇳🇱</span> Nederlands</button>
+                <button class="lang-option" onclick="changeLang('pl','🇵🇱','PL')"><span class="flag">🇵🇱</span> Polski</button>
+                <button class="lang-option" onclick="changeLang('ro','🇷🇴','RO')"><span class="flag">🇷🇴</span> Română</button>
+                <button class="lang-option" onclick="changeLang('uk','🇺🇦','UK')"><span class="flag">🇺🇦</span> Українська</button>
+                <button class="lang-option" onclick="changeLang('zh-CN','🇨🇳','ZH')"><span class="flag">🇨🇳</span> 中文</button>
             </div>
         </div>
         <a href="portal.html" class="btn-nav-cta" onclick="goToPortal(event)" style="display:inline-flex;align-items:center;gap:0.45rem;">
@@ -4057,7 +4057,7 @@ function googleTranslateElementInit() {
     new google.translate.TranslateElement({
         pageLanguage: 'es',
         autoDisplay: false,
-        includedLanguages: 'ca,eu,pt,en,zh-CN,fr,de,it,uk,ro,pl,nl'
+        includedLanguages: 'ca,eu,pt,en,fr,de,it,nl,pl,ro,uk,zh-CN'
     }, 'google_translate_element');
     var checkReady = setInterval(function() {
         var sel = document.querySelector('.goog-te-combo');
@@ -4076,14 +4076,14 @@ var langMap = {
     'eu': { flag: '🟢', code: 'EUS' },
     'pt': { flag: '🇵🇹', code: 'PT' },
     'en': { flag: '🇬🇧', code: 'EN' },
-    'zh-CN': { flag: '🇨🇳', code: 'ZH' },
     'fr': { flag: '🇫🇷', code: 'FR' },
     'de': { flag: '🇩🇪', code: 'DE' },
     'it': { flag: '🇮🇹', code: 'IT' },
-    'uk': { flag: '🇺🇦', code: 'UK' },
-    'ro': { flag: '🇷🇴', code: 'RO' },
+    'nl': { flag: '🇳🇱', code: 'NL' },
     'pl': { flag: '🇵🇱', code: 'PL' },
-    'nl': { flag: '🇳🇱', code: 'NL' }
+    'ro': { flag: '🇷🇴', code: 'RO' },
+    'uk': { flag: '🇺🇦', code: 'UK' },
+    'zh-CN': { flag: '🇨🇳', code: 'ZH' }
 };
 
 // On page load: detect active language from cookie and update button
