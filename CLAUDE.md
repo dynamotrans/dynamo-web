@@ -119,6 +119,71 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-19 — iPhone (TARIFADOR INTERNO DEL PANEL)
+
+> Día completo dedicado al **tarifador / generador de cargas del panel cliente**. Todo en preview (`claude/sharp-dirac-E3UIO`). En `main` solo entran un par de fixes públicos al principio del día.
+
+**WEB PÚBLICA (`index.html`, en `main`)** — sync con preview:
+- **Sector "Industria y Construcción"** — texto extendido: "Textil, manufacturera, muebles, automoción, farmacéutica, estructuras, áridos, fertilizantes, abonos. Materias primas: plástico, madera, aluminio, acero…" (commit `ddade90` → merge a `main`)
+- **Selector de idiomas unificado** entre web pública, panel y 4 páginas del portal. Producción tenía 11 idiomas en orden distinto; panel tenía 13 (incluyendo Català + Euskara) en otro orden. Ahora los 6 HTML (index + portal + registro + verificar + crear-password + dashboard) comparten la misma lista en el mismo orden: ES, CA, EU, PT, EN, FR, DE, IT, NL, PL, RO, UK, ZH (commit `accf1b4` → merge `c361aa4` a `main`)
+- **"Pick. Drop. Done." → logo Dynamo** en "Por qué elegirnos": el cambio llevaba días solo en preview, ahora también en producción (commit `a2fa156` → merge `4d7b3cb` a `main`)
+- **Regla 8 en CLAUDE.md**: cambios públicos siempre arrancan en `main` vía rama corta para evitar drift entre web pública en preview/main. Codificado tras el incidente del logo (`17679cf` a `main`, mergeado a preview)
+
+**PANEL CLIENTE (`dashboard.html`)** — sesión grande, todo en preview:
+
+- **Fila superior unificada** `dash-top-row` (3 cols): Nueva carga + Nuevo presupuesto + **CESCE** en la misma horizontal, también en móvil (3 cols con CTAs verticales en pantallas pequeñas). CESCE quedaba más bajo por padding/radio distintos → unificados a 1.3/1.5rem y 14px para casar visualmente (commits `51a6f18` + `c7f2efc`)
+- **Avatares JG unificados**: sidebar/topbar/dropdown tenían 3 gradientes distintos. Todos a `linear-gradient(purple → green)`. Tamaños sí siguen distintos por contexto (32/34/42px) (`34ef702`)
+- **TARIFADOR / GENERADOR DE CARGAS** — pieza enorme. Reemplaza placeholders de "Nueva carga" y "Nuevo presupuesto" con un formulario completo:
+  - **Campos**: origen + destino con autocomplete OSM Nominatim, tipo camión (Tauliner / Rígido) con tooltip de especificaciones, tipo mercancía (10 opciones), metros lineales y peso reactivos al camión elegido, fecha de carga (próximos 7 laborables + Flatpickr para "Otro día"), ventana de carga, tu referencia interna (opcional), anotaciones libres con contador 1000 chars
+  - **Flatpickr** cargado desde CDN (esquinas redondas, fines de semana en gris tachados, locale español)
+  - **Validación**: origen + destino obligatorios con bordes rojos + aviso bajo el formulario
+  - **Botón Reiniciar** (↻) en esquina sup-derecha que vuelve a defaults
+  - **Defaults de prueba** (BORRAR EN PRODUCCIÓN): origen Sevilla 41001 + destino Madrid 28001 pre-rellenados con lat/lon hardcoded. Marcado en código con `=== DEFAULTS DE PRUEBA ===` para encontrarlo
+- **"Programado sin fecha definida"**: opción del select de fecha (solo en Nueva carga) que guarda la carga como previsión sin compromiso. Cartel amarillo bajo el campo cuando está seleccionada: "Previsión, no se tramita: la carga queda en estado Programado sin fecha y no se asignará camión hasta que confirmes una fecha. Si la fecha definitiva es posterior a 7 días, el precio se revisará a precios de mercado actuales cuando se asigne fecha."
+- **Nuevo presupuesto sin campo de fecha**: solo "Ventana de carga". Un presupuesto es cotización, no programación
+- **Etiquetas de ventana actualizadas**: `±2 días` → `1 a 2 días`, `±4 días` → `1 a 4 días`, label "Ventana" → "Ventana de carga". Hint debajo: "Días laborables consecutivos a partir del día indicado. Sábados, domingos y festivos quedan excluidos automáticamente." Default sigue siendo "1 a 2 días"
+- **Flujo de 2 pasos para Nueva carga (con fecha)**:
+  - **Paso 1**: formulario completo. Submit → validación
+  - **Paso 2**: panel de confirmación con: aviso azul condicional de GRUPAJE (solo si ml < máx camión, en carga completa se omite); párrafos legales "Disponibilidad y ajustes de tarifa" + "Garantías y confirmación"; resumen del transporte (incluyendo % carga del camión); enlace a "Condiciones generales de transporte"; botones "← Editar datos" / "Confirmar carga"
+  - **Confirmar carga** → modal con aviso de cancelación (después de las 9:00 AM del día hábil anterior se factura el servicio completo). Solo entonces se inserta en CARGAS_DATA
+  - **Excepción**: si la carga es "Sin fecha" (Previsión), se salta TODO el paso 2 → guarda directo en Previsión. No tiene sentido enseñar avisos legales si no hay compromiso. Cuando luego se edite una Previsión para asignar fecha, ahí sí disparará el flujo legal (TODO al cablear el editor)
+- **Condiciones generales** consolidadas en un `<template>` que se inyecta en el modal. Texto largo del cliente venía duplicado (8h aceptación ×2, Medios comunicación ×2, etc.) → unificado en 12 apartados numerados sin perder cláusulas
+- **Pestañas de "Cargas" reorganizadas** + bugfix:
+  - Antes: Todas / Programadas / En ruta / Entregadas / Sin albarán / Canceladas
+  - Ahora: **Programadas / Previsión / Cargando hoy / Entregadas / Canceladas / Todas**
+  - Previsión = kind 'programada' AND fecha='Sin fecha'
+  - Cargando hoy = renombrado de "En ruta"
+  - "Sin albarán" eliminada (el chip 📄 al lado del estado sigue)
+  - Default activo: Programadas (antes Todas)
+  - **Bug fixed**: el código ponía `filter='programadas'` (con s) al crear una carga → no coincidía con ningún tab → tabla vacía. Ahora 'programada' o 'prevision' según fecha
+- **ETA de entrega (estimación)** — campo nuevo debajo de Ventana de carga:
+  - Captura lat/lon de Nominatim al pickear del autocompletado (data-lat/data-lon en el wrap)
+  - Distancia = Haversine × 1.25 (factor de carretera vs línea recta)
+  - Tracción = ceil(km / 600). Configurado a 600 km/día (horario 7-18h, ~9h conducción real)
+  - addBusinessDays() suma días saltando sábados y domingos
+  - Si ventana > 1 día → rango "del jueves 2 jul al martes 7 jul" (no "X — Y" porque inducía a leer como 2 fechas alternativas en vez de rango continuo, fix `2289b30`)
+  - Caja con borde gris claro + hint con la metodología
+  - En presupuesto sin fecha, ETA muestra solo duración tránsito ("2 días tras la carga")
+- **Tabla de coeficientes de % carga del camión** (cierra TODO del 2026-06-10):
+  - Función `coefMl(ml, camion)` con tabla escalonada (aproximación basada en lo que pasó el cliente: 0.8ml=25%, 1ml=33%, ..., 10.4ml=100%) — los valores intermedios son una interpolación razonable, AFINAR cuando llegue la tabla exacta del cliente
+  - `coefTn = tn/maxTn` y `coefPalets = palets/maxPalets` (estimado 2.5 europalets por ml)
+  - **% mostrado = max(ml, tn, palets)** — refleja el factor que MÁS limita, no la suma
+  - UI: barra horizontal animada con gradient (verde <70%, amarillo 70-99%, morado 100%) + texto "65% ocupación · limitado por palets · 6 m · 15 europalets · 18 Tn"
+  - También aparece en el paso 2 (resumen de confirmación)
+
+**Lecciones del día**:
+- Cuando un rango temporal incluye fin de semana, **siempre escribirlo como "del X al Y"** y no "X — Y". El segundo se interpreta como 2 fechas alternativas en lugar de rango continuo
+- La rama del portal (`claude/sharp-dirac-E3UIO`) tiene su propia versión avanzada de `portal.html`. Al cambiar de rama (ej. crear `fix/lang-selector-sync` desde main), git muestra portal.html como "modificado" — es normal, son archivos distintos en cada rama, NO revertir
+
+**Commits del día (preview)**: `d45e66a` materias primas · `6871cc9` lang sync · `49e32e5` merge main · `51a6f18` dash-top-row · `c7f2efc` CESCE altura · `34ef702` avatares · `1f6aca6` Programado sin fecha + Presupuesto sin fecha · `8828ae9` flujo 2 pasos + condiciones · `9ce3628` pestañas Programadas/Previsión/etc + grupaje condicional · `df90c88` skip avisos en previsión · `caa05ba` 1 a 2 / 1 a 4 días + hint · `7b9b25e` ETA + defaults SEV→MAD · `073a51f` coeficientes % carga · `2289b30` ETA wording "del X al Y"
+
+**Commits a `main`**: `accf1b4`/`c361aa4` lang selector · `a2fa156`/`4d7b3cb` logo Dynamo en "Por qué elegirnos" · `17679cf` regla 8 CLAUDE.md
+
+**Pendientes detectados** (van a TODO.md):
+- **Editor de cargas con flujo legal al asignar fecha a una Previsión** — sesión dedicada cuando el usuario lo pida. Es muchos estados (ver detalle, editar, asignar fecha, validar fecha, disparar paso 2 del flujo legal, etc.) y prefiere ir verificando estado por estado
+- **Quitar defaults SEV→MAD del tarifador** — antes de producción. Marcados con `=== DEFAULTS DE PRUEBA (BORRAR EN PRODUCCIÓN) ===` en código
+- **Afinar tabla de coeficientes** con los valores intermedios exactos del cliente (entre 25% y 100%). Lo que está ahora es una aproximación funcional
+
 ### 2026-06-15 a 2026-06-18 — iPhone (sesión maratoniana de PANEL CLIENTE)
 
 > Cuatro días de iteración intensa centrada en el **dashboard del cliente** + cleanup de la web pública. Documentado en bloque por la cantidad de trabajo.
