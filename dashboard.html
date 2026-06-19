@@ -1999,7 +1999,6 @@
         <div class="tabs" data-table="presupuestos">
             <button class="tab active" data-filter="activos">Activos (<span data-count="activos">0</span>)</button>
             <button class="tab" data-filter="caducados">Caducados (<span data-count="caducados">0</span>)</button>
-            <button class="tab" data-filter="convertidos">Convertidos en carga (<span data-count="convertidos">0</span>)</button>
         </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por nº, referencia, origen, destino…">
@@ -3764,10 +3763,6 @@
         makePresupuesto('#P-2026-0415','COT-214','15/06','Sevilla','Roma (IT)','Material eventos','10,0 m · 12.000 kg','2.120 €','22/06 (3 días)','yellow','activos'),
         makePresupuesto('#P-2026-0414','COT-213','15/06','Madrid','Ámsterdam (NL)','Paletizado','13,2 m · 23.000 kg','2.650 €','22/06 (3 días)','yellow','activos'),
         makePresupuesto('#P-2026-0413','COT-212','14/06','Sevilla','Lisboa (PT)','Maquinaria','8,4 m · 11.000 kg','980 €','21/06 (2 días)','yellow','activos'),
-        makePresupuesto('#P-2026-0418','COT-216','13/06','Sevilla','Madrid','Paletizado / Aceite','13,2 m · 24.000 kg','748 €','Convertido en #C-2026-1284','green','convertidos'),
-        makePresupuesto('#P-2026-0416','COT-215B','13/06','Sevilla','Barcelona','Maquinaria · 2 piezas','8,4 m · 14.500 kg','1.210 €','Convertido en #C-2026-1281','green','convertidos'),
-        makePresupuesto('#P-2026-0406','COT-205B','05/06','Sevilla','Bilbao','Paletizado · 33 europalets','13,2 m · 22.500 kg','895 €','Convertido en #C-2026-1275','green','convertidos'),
-        makePresupuesto('#P-2026-0404','COT-204','03/06','Sevilla','Lisboa (PT)','Material de obra','10,0 m · 18.000 kg','1.380 €','Convertido en #C-2026-1272','green','convertidos'),
         makePresupuesto('#P-2026-0412','COT-211','12/06','Sevilla','Ámsterdam (NL)','Paletizado','13,2 m · 23.500 kg','2.680 €','Caducado el 19/06','gray','caducados'),
         makePresupuesto('#P-2026-0411','COT-210','12/06','Sevilla','Bruselas (BE)','Maquinaria','13,2 m · 22.000 kg','2.490 €','Caducado el 19/06','gray','caducados'),
         makePresupuesto('#P-2026-0410','COT-209','10/06','Sevilla','Praga (CZ)','Paletizado','13,2 m · 24.000 kg','2.850 €','Caducado el 17/06','gray','caducados'),
@@ -3849,7 +3844,6 @@
     }
     function actionItemsPresupuesto(kind) {
         if (kind === 'caducados')   return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">🔁 Revisar precio (renovar +7 días)</button>';
-        if (kind === 'convertidos') return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">📥 Descargar PDF</button>';
         return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">🚚 Generar carga</button><button class="row-menu-item">📥 Descargar PDF</button>';
     }
     function actionItemsFactura() {
@@ -3958,9 +3952,8 @@
         renderPagination('presupuestos', 'presupuestosPagination', st.page, totalPages);
         var tabs = document.querySelector('.tabs[data-table="presupuestos"]');
         if (tabs) {
-            setText(tabs.querySelector('[data-count="activos"]'),     PRESUPUESTOS_DATA.filter(function(p){return p.kind==='activos';}).length);
-            setText(tabs.querySelector('[data-count="caducados"]'),   PRESUPUESTOS_DATA.filter(function(p){return p.kind==='caducados';}).length);
-            setText(tabs.querySelector('[data-count="convertidos"]'), PRESUPUESTOS_DATA.filter(function(p){return p.kind==='convertidos';}).length);
+            setText(tabs.querySelector('[data-count="activos"]'),   PRESUPUESTOS_DATA.filter(function(p){return p.kind==='activos';}).length);
+            setText(tabs.querySelector('[data-count="caducados"]'), PRESUPUESTOS_DATA.filter(function(p){return p.kind==='caducados';}).length);
         }
     }
     function renderFacturasTable() {
