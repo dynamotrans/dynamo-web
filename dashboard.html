@@ -1274,6 +1274,11 @@
             line-height: 1.4;
         }
         .ptar-nofecha-warn strong { color: #5c4500; }
+        .ptar-field-hint {
+            font-size: 0.72rem; color: var(--gray-500);
+            line-height: 1.4; margin-top: 0.3rem;
+        }
+        .ptar-field-hint strong { color: var(--gray-700); }
 
         /* === Confirm card (paso 2 de Nueva carga) === */
         .ptar-confirm-card {
@@ -2169,12 +2174,13 @@
                     </div>
                 </div>
                 <div class="ptar-field">
-                    <label class="ptar-label" for="ptar-urgencia-carga">Ventana</label>
+                    <label class="ptar-label" for="ptar-urgencia-carga">Ventana de carga</label>
                     <select id="ptar-urgencia-carga" data-ptar-urgencia class="ptar-select">
                         <option value="dia">Fecha fija (un día concreto, más cara)</option>
-                        <option value="estandar" selected>Ventana de 2 días (Estándar)</option>
-                        <option value="flexible">Ventana de 4 días (Flexible, más económica)</option>
+                        <option value="estandar" selected>1 a 2 días (estándar)</option>
+                        <option value="flexible">1 a 4 días (flexible, más económica)</option>
                     </select>
+                    <p class="ptar-field-hint">Días <strong>laborables consecutivos</strong> a partir del día indicado. Sábados, domingos y festivos quedan excluidos automáticamente.</p>
                 </div>
 
                 <div class="ptar-field ptar-field-full">
@@ -2304,9 +2310,10 @@
                     <label class="ptar-label" for="ptar-urgencia-presu">Ventana de carga</label>
                     <select id="ptar-urgencia-presu" data-ptar-urgencia class="ptar-select">
                         <option value="dia">Fecha fija (un día concreto, más cara)</option>
-                        <option value="estandar" selected>Ventana de 2 días (Estándar)</option>
-                        <option value="flexible">Ventana de 4 días (Flexible, más económica)</option>
+                        <option value="estandar" selected>1 a 2 días (estándar)</option>
+                        <option value="flexible">1 a 4 días (flexible, más económica)</option>
                     </select>
+                    <p class="ptar-field-hint">Días <strong>laborables consecutivos</strong>. Sábados, domingos y festivos no cuentan: no operamos en transporte ni entrega.</p>
                 </div>
 
                 <div class="ptar-field ptar-field-full">
@@ -2744,7 +2751,7 @@
                     { label: 'Medidas', value: d.medidas }
                 ]) +
                 '<div class="modal-form-row" style="margin-top:0.8rem;"><label>Nueva fecha de carga *</label><input type="date" min="' + todayISO() + '" required></div>' +
-                '<div class="modal-form-row"><label>Ventana</label><select><option>Fija (un día)</option><option>±2 días</option><option>±4 días</option></select></div>',
+                '<div class="modal-form-row"><label>Ventana de carga</label><select><option>Fija (un día)</option><option selected>1 a 2 días</option><option>1 a 4 días</option></select></div>',
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
                     '<button class="btn-primary" onclick="cargaRepetirConfirm()">Calcular precio y crear</button>'
         });
@@ -2898,7 +2905,7 @@
                     { label: 'Precio cerrado', value: d.precio, span: true }
                 ]) +
                 '<div class="modal-form-row" style="margin-top:0.8rem;"><label>Fecha de carga *</label><input type="date" min="' + todayISO() + '" required></div>' +
-                '<div class="modal-form-row"><label>Ventana</label><select><option>Fija (un día)</option><option>±2 días</option><option>±4 días</option></select></div>',
+                '<div class="modal-form-row"><label>Ventana de carga</label><select><option>Fija (un día)</option><option selected>1 a 2 días</option><option>1 a 4 días</option></select></div>',
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
                     '<button class="btn-primary" onclick="presupuestoGenerarConfirm()">Crear carga</button>'
         });
@@ -3625,33 +3632,33 @@
         return diff;
     }
     var CARGAS_DATA = [
-        makeCarga('#C-2026-1290','PED-0426','28/06','±2 días','Sevilla','Madrid','Pol. Industrial Carretera de la Isla → Mercamadrid','Paletizado','Productos químicos','13,2 m · 22.000 kg','programada'),
+        makeCarga('#C-2026-1290','PED-0426','28/06','1 a 2 días','Sevilla','Madrid','Pol. Industrial Carretera de la Isla → Mercamadrid','Paletizado','Productos químicos','13,2 m · 22.000 kg','programada'),
         makeCarga('#C-2026-1288','PED-0425','25/06','Fija','Sevilla','Barcelona','Polígono Carretera Amarilla → Mercabarna','Paletizado','Frutas y verduras','13,2 m · 24.000 kg','programada'),
-        makeCarga('#C-2026-1286','PED-0424','22/06','±4 días','Sevilla','Valencia','Almacén central → Puerto','Eventos / feria','Stand modular','6,0 m · 8.200 kg','programada'),
+        makeCarga('#C-2026-1286','PED-0424','22/06','1 a 4 días','Sevilla','Valencia','Almacén central → Puerto','Eventos / feria','Stand modular','6,0 m · 8.200 kg','programada'),
         makeCarga('#C-2026-1285','PED-0423','16/06','Fija','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Paletizado','Repuestos automoción','12,0 m · 20.000 kg','en-ruta'),
         makeCarga('#C-2026-1281','PED-0419','14/06','Fija','Sevilla','Barcelona','Centro logístico → Zona Franca','Maquinaria','2 piezas, sobredim.','8,4 m · 14.500 kg','en-ruta'),
-        makeCarga('#C-2026-1284','PED-0421','15/06','±2 días','Sevilla','Madrid','Pol. Carretera de la Isla → Mercamadrid','Paletizado','Aceite envasado','13,2 m · 24.000 kg','entregada', false),
+        makeCarga('#C-2026-1284','PED-0421','15/06','1 a 2 días','Sevilla','Madrid','Pol. Carretera de la Isla → Mercamadrid','Paletizado','Aceite envasado','13,2 m · 24.000 kg','entregada', false),
         makeCarga('#C-2026-1283','PED-0420','13/06','Fija','Madrid','Valencia','Vallecas → Puerto','Paletizado','Bebidas refrigeradas','13,2 m · 22.000 kg','entregada'),
-        makeCarga('#C-2026-1282','PED-0419B','12/06','±2 días','Sevilla','Vigo','Polígono → Bouzas','Material obra','Cerámica','13,2 m · 20.000 kg','entregada'),
+        makeCarga('#C-2026-1282','PED-0419B','12/06','1 a 2 días','Sevilla','Vigo','Polígono → Bouzas','Material obra','Cerámica','13,2 m · 20.000 kg','entregada'),
         makeCarga('#C-2026-1278','PED-0417','11/06','Fija','Sevilla','A Coruña','Centro → Pol. Pocomaco','Paletizado','Cosméticos','10,0 m · 15.000 kg','entregada', false),
-        makeCarga('#C-2026-1276','PED-0416','11/06','±2 días','Sevilla','Valencia','Almacén central → Puerto','Material','Tubos PVC','13,2 m · 22.500 kg','entregada'),
-        makeCarga('#C-2026-1275','PED-0414','10/06','±2 días','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Mercancía paletizada','33 europalets','13,2 m · 22.500 kg','entregada'),
+        makeCarga('#C-2026-1276','PED-0416','11/06','1 a 2 días','Sevilla','Valencia','Almacén central → Puerto','Material','Tubos PVC','13,2 m · 22.500 kg','entregada'),
+        makeCarga('#C-2026-1275','PED-0414','10/06','1 a 2 días','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Mercancía paletizada','33 europalets','13,2 m · 22.500 kg','entregada'),
         makeCarga('#C-2026-1273','PED-0413','09/06','Fija','Sevilla','Pamplona','Centro → Pol. Landaben','Maquinaria','1 pieza compacta','8,4 m · 9.500 kg','entregada', false),
         makeCarga('#C-2026-1272','PED-0411','05/06','Fija','Sevilla','Lisboa (PT)','Centro → Quinta da Beloura','Material de obra','Perfiles metálicos','10,0 m · 18.000 kg','entregada'),
-        makeCarga('#C-2026-1270','PED-0410','03/06','±2 días','Sevilla','Murcia','Centro → Pol. Cabezo Beaza','Eventos','Stand modular','6,0 m · 7.500 kg','entregada'),
-        makeCarga('#C-2026-1268','PED-0405','02/06','±2 días','Sevilla','Zaragoza','Polígono → Plaza','Paletizado','Material eléctrico','13,2 m · 19.000 kg','entregada'),
+        makeCarga('#C-2026-1270','PED-0410','03/06','1 a 2 días','Sevilla','Murcia','Centro → Pol. Cabezo Beaza','Eventos','Stand modular','6,0 m · 7.500 kg','entregada'),
+        makeCarga('#C-2026-1268','PED-0405','02/06','1 a 2 días','Sevilla','Zaragoza','Polígono → Plaza','Paletizado','Material eléctrico','13,2 m · 19.000 kg','entregada'),
         makeCarga('#C-2026-1266','PED-0404','30/05','Fija','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Aceite oliva virgen','13,2 m · 23.500 kg','entregada'),
-        makeCarga('#C-2026-1264','PED-0403','28/05','±4 días','Sevilla','Oviedo','Centro → Pol. Silvota','Maquinaria','Sobredimensionada','8,4 m · 12.000 kg','entregada'),
+        makeCarga('#C-2026-1264','PED-0403','28/05','1 a 4 días','Sevilla','Oviedo','Centro → Pol. Silvota','Maquinaria','Sobredimensionada','8,4 m · 12.000 kg','entregada'),
         makeCarga('#C-2026-1262','PED-0402','26/05','Fija','Sevilla','Granada','Centro → Pol. Asegra','Material obra','Áridos','10,0 m · 24.000 kg','entregada'),
-        makeCarga('#C-2026-1260','PED-0401','23/05','±2 días','Sevilla','Málaga','Centro → Pol. Guadalhorce','Paletizado','Vino tinto','13,2 m · 21.000 kg','entregada', false),
+        makeCarga('#C-2026-1260','PED-0401','23/05','1 a 2 días','Sevilla','Málaga','Centro → Pol. Guadalhorce','Paletizado','Vino tinto','13,2 m · 21.000 kg','entregada', false),
         makeCarga('#C-2026-1258','PED-0400','20/05','Fija','Sevilla','Toulouse (FR)','Centro → Eurocentre','Paletizado','Aceite oliva','13,2 m · 22.500 kg','entregada'),
-        makeCarga('#C-2026-1256','PED-0399','17/05','±2 días','Sevilla','Valladolid','Centro → Pol. Argales','Maquinaria','Pieza única','8,4 m · 13.000 kg','entregada'),
+        makeCarga('#C-2026-1256','PED-0399','17/05','1 a 2 días','Sevilla','Valladolid','Centro → Pol. Argales','Maquinaria','Pieza única','8,4 m · 13.000 kg','entregada'),
         makeCarga('#C-2026-1254','PED-0398','15/05','Fija','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Tabacos','13,2 m · 24.000 kg','entregada', false),
-        makeCarga('#C-2026-1252','PED-0397','13/05','±4 días','Sevilla','París (FR)','Centro → Rungis','Eventos','Mobiliario feria','10,0 m · 9.500 kg','entregada'),
+        makeCarga('#C-2026-1252','PED-0397','13/05','1 a 4 días','Sevilla','París (FR)','Centro → Rungis','Eventos','Mobiliario feria','10,0 m · 9.500 kg','entregada'),
         makeCarga('#C-2026-1250','PED-0395','10/05','Fija','Sevilla','Lyon (FR)','Centro → Eurexpo','Paletizado','Aceite oliva','13,2 m · 23.500 kg','entregada'),
-        makeCarga('#C-2026-1248','PED-0393','07/05','±2 días','Sevilla','Burgos','Centro → Villalonquejar','Material obra','Hormigón prefabricado','10,0 m · 22.000 kg','entregada'),
+        makeCarga('#C-2026-1248','PED-0393','07/05','1 a 2 días','Sevilla','Burgos','Centro → Villalonquejar','Material obra','Hormigón prefabricado','10,0 m · 22.000 kg','entregada'),
         makeCarga('#C-2026-1246','PED-0391','04/05','Fija','Sevilla','Algeciras','Centro → Puerto','Paletizado','Exportación textil','13,2 m · 18.000 kg','entregada'),
-        makeCarga('#C-2026-1244','PED-0389','02/05','±2 días','Sevilla','Cádiz','Centro → Puerto','Maquinaria','Repuestos navales','8,4 m · 11.000 kg','entregada'),
+        makeCarga('#C-2026-1244','PED-0389','02/05','1 a 2 días','Sevilla','Cádiz','Centro → Puerto','Maquinaria','Repuestos navales','8,4 m · 11.000 kg','entregada'),
         makeCarga('#C-2026-1242','PED-0387','30/04','Fija','Sevilla','Cartagena','Centro → Pol. Cabezo Beaza','Paletizado','Productos químicos','13,2 m · 24.000 kg','entregada')
     ];
     // Anadir 2 entregas dinamicas (hoy + ayer) para que se vea el estado
@@ -3666,7 +3673,7 @@
         // Hoy: sin albaran -> "Albaran procesandose"
         CARGAS_DATA.unshift(makeCarga('#C-2026-1296','PED-0432', fechaDDMM(0), 'Fija','Sevilla','Córdoba','Centro → Pol. Las Quemadas','Paletizado','Repuestos automoción','10,0 m · 16.000 kg','entregada', false));
         // Ayer: sin albaran -> "Reclamar" (>1 dia? no, exactamente 1 -> reclamar)
-        CARGAS_DATA.unshift(makeCarga('#C-2026-1295','PED-0431', fechaDDMM(1), '±2 días','Sevilla','Jaén','Centro → Pol. Olivar','Paletizado','Maquinaria agricola','12,0 m · 18.000 kg','entregada', false));
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1295','PED-0431', fechaDDMM(1), '1 a 2 días','Sevilla','Jaén','Centro → Pol. Olivar','Paletizado','Maquinaria agricola','12,0 m · 18.000 kg','entregada', false));
     })();
 
     // ---- DATA: presupuestos (19) ----
@@ -4298,7 +4305,7 @@
                 var mercanciaShort = mercaTxt.split('—')[0].trim();
                 var urgenciaSel_label = urgenciaSel.options[urgenciaSel.selectedIndex].text;
                 var urgenciaTxt = urgenciaSel.value === 'dia' ? 'Fija'
-                    : urgenciaSel.value === 'flexible' ? '±4 días' : '±2 días';
+                    : urgenciaSel.value === 'flexible' ? '1 a 4 días' : '1 a 2 días';
                 var fechaTxt, fechaLarga;
                 if (diaSel && diaSel.value && diaSel.value !== 'otro') {
                     var d = new Date(diaSel.value);
