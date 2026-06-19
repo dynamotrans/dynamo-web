@@ -4483,7 +4483,13 @@
                     if (etaStart.getTime() === etaEnd.getTime()) {
                         rangoHtml = '<dd class="ptar-eta-range">' + fmtEtaDate(etaStart) + '</dd>';
                     } else {
-                        rangoHtml = '<dd class="ptar-eta-range">' + fmtEtaDate(etaStart) + ' — ' + fmtEtaDate(etaEnd) + '</dd>';
+                        // Rango continuo: cualquier día laborable entre los
+                        // dos extremos es ETA válida. Importante explicitar
+                        // "del X al Y" porque "X — Y" se lee a veces como
+                        // dos fechas alternativas saltándose los días entre
+                        // medias (Vie 3 / Lun 6 SÍ son fechas posibles).
+                        rangoHtml = '<dd class="ptar-eta-range">del ' + fmtEtaDate(etaStart) + ' al ' + fmtEtaDate(etaEnd) + '</dd>' +
+                                    '<dt></dt><dd class="ptar-eta-stat" style="font-weight:600;font-size:0.78rem;">Cualquier día laborable dentro del rango (Sáb y Dom excluidos)</dd>';
                     }
                 } else if (mode === 'carga') {
                     rangoHtml = '<dd class="ptar-eta-warn">Asigna fecha de carga para ver la ETA exacta.</dd>';
