@@ -1951,9 +1951,9 @@
             </div>
         </div>
         <div class="tabs" data-table="cargas">
-            <button class="tab active" data-filter="programada">Programadas (<span data-count="programada">0</span>)</button>
+            <button class="tab active" data-filter="cargando-hoy">Cargando hoy (<span data-count="cargando-hoy">0</span>)</button>
+            <button class="tab" data-filter="programada">Programadas (<span data-count="programada">0</span>)</button>
             <button class="tab" data-filter="prevision">Previsión (<span data-count="prevision">0</span>)</button>
-            <button class="tab" data-filter="cargando-hoy">Cargando hoy (<span data-count="cargando-hoy">0</span>)</button>
             <button class="tab" data-filter="entregada">Entregadas (<span data-count="entregada">0</span>)</button>
             <button class="tab" data-filter="cancelada">Canceladas (<span data-count="cancelada">0</span>)</button>
             <button class="tab" data-filter="todas">Todas (<span data-count="todas">0</span>)</button>
@@ -3669,7 +3669,7 @@
         try { localStorage.setItem('dashPerPage_' + table, String(v)); } catch (e) {}
     }
     var TABLE_STATE = {
-        cargas:       { page: 1, filter: 'programada',  perPage: readPerPage('cargas') },
+        cargas:       { page: 1, filter: 'cargando-hoy',  perPage: readPerPage('cargas') },
         presupuestos: { page: 1, filter: 'activos', perPage: readPerPage('presupuestos') },
         facturas:     { page: 1, filter: 'todas',  perPage: readPerPage('facturas') }
     };
