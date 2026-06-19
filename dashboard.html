@@ -3942,12 +3942,42 @@
         }
         return count <= 2 ? count : null;
     }
+    // Parser DD/MM → timestamp (año actual). "Sin fecha" → Infinity para
+    // que caiga al final en orden ascendente y al principio en descendente
+    // (lo evitamos descartando esas filas en su rama 'prevision').
+    function parseFechaDDMM(s) {
+        if (!s || s === 'Sin fecha') return Infinity;
+        var m = String(s).match(/^(\d{1,2})\/(\d{1,2})$/);
+        if (!m) return Infinity;
+        return new Date(new Date().getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10)).getTime();
+    }
+    function refNumber(c) {
+        var m = String(c.ref).match(/(\d+)\D*$/);
+        return m ? parseInt(m[1], 10) : 0;
+    }
     function filteredCargas() {
         var f = TABLE_STATE.cargas.filter;
-        if (f === 'todas')      return CARGAS_DATA;
-        if (f === 'prevision')  return CARGAS_DATA.filter(isPrevision);
-        if (f === 'programada') return CARGAS_DATA.filter(isProgramada);
-        return CARGAS_DATA.filter(function (c) { return c.kind === f; });
+        var arr;
+        if (f === 'todas')           arr = CARGAS_DATA.slice();
+        else if (f === 'prevision')  arr = CARGAS_DATA.filter(isPrevision);
+        else if (f === 'programada') arr = CARGAS_DATA.filter(isProgramada);
+        else                         arr = CARGAS_DATA.filter(function (c) { return c.kind === f; });
+        // Orden (frontend, mockup. Cuando llegue el backend, ORDER BY en
+        // SQL hace este trabajo y el frontend solo lo respeta o cambia
+        // por interacción del usuario):
+        // - Programadas:   fecha ASC (más próximas arriba, encaja con
+        //                  el resaltado HOY / MAÑANA / PASADO)
+        // - Previsión:     no tiene fecha → por ref DESC (las recién
+        //                  apuntadas arriba)
+        // - resto:         fecha DESC (la más reciente arriba)
+        if (f === 'programada') {
+            arr.sort(function (a, b) { return parseFechaDDMM(a.fecha) - parseFechaDDMM(b.fecha); });
+        } else if (f === 'prevision') {
+            arr.sort(function (a, b) { return refNumber(b) - refNumber(a); });
+        } else {
+            arr.sort(function (a, b) { return parseFechaDDMM(b.fecha) - parseFechaDDMM(a.fecha); });
+        }
+        return arr;
     }
     function filteredPresupuestos() {
         var f = TABLE_STATE.presupuestos.filter;
