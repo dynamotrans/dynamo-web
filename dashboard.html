@@ -1304,6 +1304,30 @@
         .ptar-eta-data .ptar-eta-stat { color: var(--gray-700); font-weight: 600; }
         .ptar-eta-data .ptar-eta-warn { color: #b45309; }
 
+        /* === % carga del camión (ocupación) ===
+           Barra que combina coeficientes ml/Tn/palets. El % visible
+           es el coeficiente que MÁS limita la carga (no la suma) */
+        .ptar-occ-bar {
+            height: 12px; border-radius: 999px;
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+        }
+        .ptar-occ-fill {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, var(--green), #4dc97a);
+            border-radius: 999px;
+            transition: width 0.25s ease, background 0.25s ease;
+        }
+        .ptar-occ-fill.warn { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        .ptar-occ-fill.full { background: linear-gradient(90deg, var(--purple), var(--purple-light)); }
+        .ptar-occ-meta {
+            font-size: 0.78rem; color: var(--gray-700);
+            margin-top: 0.45rem; line-height: 1.4;
+        }
+        .ptar-occ-meta strong { color: var(--navy); font-weight: 800; }
+        .ptar-occ-meta .driver { color: var(--purple); font-weight: 700; }
+
         /* === Confirm card (paso 2 de Nueva carga) === */
         .ptar-confirm-card {
             background: white; border-radius: 14px;
@@ -2187,6 +2211,12 @@
                     <select id="ptar-peso-carga" data-ptar-peso class="ptar-select"></select>
                 </div>
 
+                <div class="ptar-field ptar-field-full ptar-occ-field" data-ptar-occ-field>
+                    <label class="ptar-label">% carga del camión</label>
+                    <div class="ptar-occ-bar"><div class="ptar-occ-fill" data-ptar-occ-fill></div></div>
+                    <p class="ptar-occ-meta" data-ptar-occ-meta>—</p>
+                </div>
+
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-dia-carga">Fecha de carga (L-V)</label>
                     <div class="ptar-fecha-wrap">
@@ -2336,6 +2366,12 @@
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-peso-presu">Peso (toneladas)</label>
                     <select id="ptar-peso-presu" data-ptar-peso class="ptar-select"></select>
+                </div>
+
+                <div class="ptar-field ptar-field-full ptar-occ-field" data-ptar-occ-field>
+                    <label class="ptar-label">% carga del camión</label>
+                    <div class="ptar-occ-bar"><div class="ptar-occ-fill" data-ptar-occ-fill></div></div>
+                    <p class="ptar-occ-meta" data-ptar-occ-meta>—</p>
                 </div>
 
                 <div class="ptar-field">
@@ -4064,9 +4100,40 @@
     ========================================= */
     (function () {
         var CAMION_INFO = {
-            tauliner: { mlMax: 13, pesoMax: 24, label: 'Trailer Tauliner · 13,2 m · 33 europalets · 24 Tn' },
-            rigido:   { mlMax: 8,  pesoMax: 14, label: 'Rígido 8 m con plataforma + transpalet · 20 europalets · 14 Tn' }
+            tauliner: { mlMax: 13, mlReal: 13.2, pesoMax: 24, paletsMax: 33, label: 'Trailer Tauliner · 13,2 m · 33 europalets · 24 Tn' },
+            rigido:   { mlMax: 8,  mlReal: 8,    pesoMax: 14, paletsMax: 20, label: 'Rígido 8 m con plataforma + transpalet · 20 europalets · 14 Tn' }
         };
+
+        // --- Tabla de coeficientes de ocupación (% carga del camión) ---
+        // Aproximación a la tabla escalonada usada en grupaje: en transporte
+        // los precios no son lineales con los ml ocupados, hay "bandas" que
+        // marcan saltos de coeficiente. El cliente pasó los extremos
+        // (0,8ml=25%, 1ml=33%, ..., 10,4ml=100%) en bitácora del 2026-06-10.
+        // Mientras no tengamos la tabla exacta, se interpola por bandas
+        // razonables del sector. Devuelve 0-1.
+        function coefMl(ml, camion) {
+            var ratio = ml / camion.mlReal;
+            if (ratio <= 0.061) return 0.25;  // 0.8 / 13.2
+            if (ratio <= 0.080) return 0.33;  // 1 / 13.2
+            if (ratio <= 0.125) return 0.40;
+            if (ratio <= 0.190) return 0.50;
+            if (ratio <= 0.250) return 0.60;
+            if (ratio <= 0.310) return 0.65;
+            if (ratio <= 0.400) return 0.70;
+            if (ratio <= 0.500) return 0.80;
+            if (ratio <= 0.620) return 0.85;
+            if (ratio <= 0.790) return 1.00;  // 10.4 / 13.2 ≈ 0.787
+            return 1.00;
+        }
+        function coefTn(tn, camion)         { return Math.min(tn / camion.pesoMax, 1); }
+        function coefPalets(palets, camion) { return Math.min(palets / camion.paletsMax, 1); }
+        function ocupacion(ml, tn, palets, camion) {
+            var c = { ml: coefMl(ml, camion), tn: coefTn(tn, camion), pl: coefPalets(palets, camion) };
+            var maxKey = 'ml', maxVal = c.ml;
+            if (c.tn > maxVal) { maxVal = c.tn; maxKey = 'tn'; }
+            if (c.pl > maxVal) { maxVal = c.pl; maxKey = 'pl'; }
+            return { pct: Math.round(maxVal * 100), driver: maxKey, breakdown: c };
+        }
         var refCounter = { carga: 1290, presupuesto: 421 };
 
         // --- Helpers ---
@@ -4278,8 +4345,42 @@
                 fillPesoSelect(pesoSel, info.pesoMax);
                 camionTip.textContent = info.label;
                 camionTip.classList.add('show');
+                renderOcupacion();
             }
             camionSel.addEventListener('change', applyCamion);
+            mlSel.addEventListener('change', function () { renderOcupacion(); });
+            pesoSel.addEventListener('change', function () { renderOcupacion(); });
+
+            // === Ocupación del camión (% carga) ===
+            // El % visible es el coeficiente que MÁS limita la carga (no la
+            // suma): max(coef_ml, coef_tn, coef_palets). Refleja la realidad
+            // del grupaje — si ocupas 5ml pero pesas el tope, pagas como si
+            // lleváras el camión lleno.
+            var occFill = card.querySelector('[data-ptar-occ-fill]');
+            var occMeta = card.querySelector('[data-ptar-occ-meta]');
+            function renderOcupacion() {
+                if (!occFill || !occMeta) return;
+                var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
+                var ml = parseFloat(mlSel.value === '13.2' ? '13.2' : mlSel.value) || 0;
+                var tn = parseFloat(pesoSel.value) || 0;
+                // Estimación de palets europeos a partir de los ml (2,5/ml)
+                var palets = Math.round(ml * 2.5);
+                var occ = ocupacion(ml, tn, palets, info);
+                occFill.style.width = occ.pct + '%';
+                occFill.classList.toggle('warn', occ.pct >= 70 && occ.pct < 100);
+                occFill.classList.toggle('full', occ.pct >= 100);
+                var driverLabel = occ.driver === 'ml' ? 'metros lineales'
+                                : occ.driver === 'tn' ? 'peso'
+                                : 'palets';
+                occMeta.innerHTML =
+                    '<strong>' + occ.pct + '%</strong> ocupación · ' +
+                    'limitado por <span class="driver">' + driverLabel + '</span> · ' +
+                    ml.toString().replace('.', ',') + ' m · ' + palets + ' europalets · ' + tn + ' Tn ' +
+                    '<span style="color:var(--gray-500);font-weight:600;">/ ' +
+                        info.mlReal.toString().replace('.', ',') + ' m · ' +
+                        info.paletsMax + ' eur · ' + info.pesoMax + ' Tn' +
+                    '</span>';
+            }
             applyCamion();
 
             // Nuevo presupuesto NO tiene campo de fecha — solo "Ventana".
@@ -4559,12 +4660,18 @@
             function showConfirmStep(d) {
                 if (!confirmCard || !summaryEl) return;
                 pendingData = d;
+                var info = CAMION_INFO[d.camion] || CAMION_INFO.tauliner;
+                var mlNum = parseFloat(d.ml === '13.2' ? '13.2' : d.ml) || 0;
+                var tnNum = parseFloat(d.peso) || 0;
+                var occ = ocupacion(mlNum, tnNum, Math.round(mlNum * 2.5), info);
                 summaryEl.innerHTML =
                     '<dt>Origen</dt><dd>' + escapeHtml(d.orig) + '</dd>' +
                     '<dt>Destino</dt><dd>' + escapeHtml(d.dest) + '</dd>' +
                     '<dt>Tipo de camión</dt><dd>' + escapeHtml(d.camionLabel) + '</dd>' +
                     '<dt>Mercancía</dt><dd>' + escapeHtml(d.mercaTxt) + '</dd>' +
-                    '<dt>Ocupación</dt><dd>' + escapeHtml(d.medidas) + '</dd>' +
+                    '<dt>Medidas</dt><dd>' + escapeHtml(d.medidas) + '</dd>' +
+                    '<dt>% carga del camión</dt><dd><strong>' + occ.pct + '%</strong> · limitado por ' +
+                        (occ.driver === 'ml' ? 'metros lineales' : occ.driver === 'tn' ? 'peso' : 'palets') + '</dd>' +
                     '<dt>Ventana</dt><dd>' + escapeHtml(d.urgenciaLabel) + '</dd>' +
                     '<dt>Fecha de carga</dt><dd>' + escapeHtml(d.fechaLarga) + '</dd>' +
                     (d.refCli && d.refCli.indexOf('NUEVO') === -1 ? '<dt>Tu referencia</dt><dd>' + escapeHtml(d.refCli) + '</dd>' : '') +
