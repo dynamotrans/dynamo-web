@@ -903,7 +903,15 @@
             gap: 1rem; margin-bottom: 1.4rem;
             align-items: stretch;
         }
-        .dash-top-row > * { min-width: 0; }
+        .dash-top-row > * { min-width: 0; height: 100%; }
+        /* Anular margen y padding propios cuando viven en el wrapper compartido
+           para que las 3 cajas casen visualmente: misma altura, mismo padding,
+           mismo radio. */
+        .dash-top-row .cesce-card {
+            margin-bottom: 0;
+            padding: 1.3rem 1.5rem;
+            border-radius: 14px;
+        }
         .dash-cta {
             display: flex; align-items: center; gap: 1rem;
             padding: 1.3rem 1.5rem; border-radius: 14px;
