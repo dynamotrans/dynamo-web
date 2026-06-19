@@ -4337,12 +4337,14 @@
                     // Si la carga es "Programado sin fecha definida" cae en
                     // la pestaña "Previsión" (no está en agenda real); en
                     // caso contrario va a "Programadas".
-                    TABLE_STATE.cargas.filter = (d.fechaTxt === 'Sin fecha') ? 'prevision' : 'programada';
+                    var isPrev = (d.fechaTxt === 'Sin fecha');
+                    TABLE_STATE.cargas.filter = isPrev ? 'prevision' : 'programada';
                     renderCargasTable();
-                    var destTabLabel = (d.fechaTxt === 'Sin fecha') ? '"Previsión"' : '"Programadas"';
                     showModalSuccess(
-                        'Carga ' + ref + ' creada',
-                        'Tu solicitud está en cola. El equipo confirmará precio y disponibilidad en menos de 25 minutos. La verás en ' + destTabLabel + ' con el detalle completo.'
+                        isPrev ? 'Previsión ' + ref + ' guardada' : 'Carga ' + ref + ' creada',
+                        isPrev
+                            ? 'Queda anotada en "Previsión" sin asignar camión. Cuando le pongas fecha pasará por el proceso de confirmación con avisos y condiciones, y se tramitará como pedido real.'
+                            : 'Tu solicitud está en cola. El equipo confirmará precio y disponibilidad en menos de 25 minutos. La verás en "Programadas" con el detalle completo.'
                     );
                     setTimeout(function () { showSection('cargas'); }, 1200);
                 } else {
@@ -4454,12 +4456,23 @@
                 });
             });
 
-            // Submit del formulario → valida y bifurca según modo
+            // Submit del formulario → valida y bifurca según modo:
+            //  - presupuesto: directo, sin paso intermedio
+            //  - carga "Programado sin fecha": directo a Previsión, sin
+            //    avisos legales (no es compromiso real, solo una nota)
+            //  - carga CON fecha: paso de confirmación con avisos + modal
+            //    legal antes de guardar (es un pedido vinculante)
+            //    Cuando luego se edite esa Previsión para asignar fecha,
+            //    también pasará por el mismo flujo legal (TODO al cablear
+            //    el editor de cargas).
             submit.addEventListener('click', function () {
                 var d = readAndValidate();
                 if (!d) return;
-                if (mode === 'carga') showConfirmStep(d);
-                else finalizeSave(d);
+                if (mode === 'carga' && d.fechaTxt !== 'Sin fecha') {
+                    showConfirmStep(d);
+                } else {
+                    finalizeSave(d);
+                }
             });
         }
 
