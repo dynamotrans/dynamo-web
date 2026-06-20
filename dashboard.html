@@ -3030,7 +3030,8 @@
                         { label: 'ETA entrega', value: pend(src.etaEntrega), html: true },
                         { label: 'Tipo de carga', value: pend(src.tipoCarga), html: true },
                         { label: 'Tipo de camión', value: pend(src.tipoCamion), html: true },
-                        { label: 'Matrícula', value: pend(src.matricula), html: true },
+                        { label: 'Transportista', value: pend(src.transportistaNombre), html: true, span: true },
+                        { label: 'Matrícula del camión', value: pend(src.matricula), html: true },
                         { label: 'Conductor', value: pend(src.conductor), html: true },
                         { label: 'Tfno. conductor', value: pend(src.tfnoConductor), html: true }
                     ]);
@@ -3972,6 +3973,14 @@
             horarioDestino: extra.horarioDestino || null,
             tipoCamion: extra.tipoCamion || null,
             tipoCarga: extra.tipoCarga || null,   // 'Carga completa' | 'Grupaje'
+            // Transportista (carrier) vs matrícula (camión concreto) son
+            // dos cosas distintas. El equipo puede tener confirmado QUIÉN
+            // hará el transporte (transportista X) antes de cerrar QUÉ
+            // camión usará (matrícula). Por eso transportistaAsignado es
+            // la señal que dispara "Confirmado transportista" — la
+            // matrícula puede llegar después.
+            transportistaAsignado: !!extra.transportistaAsignado || !!extra.matricula,
+            transportistaNombre: extra.transportistaNombre || null,
             matricula: extra.matricula || null,
             conductor: extra.conductor || null,
             tfnoConductor: extra.tfnoConductor || null
@@ -4000,28 +4009,34 @@
             precio: '1.340 €',
             tipoCarga: 'Carga completa'
         }),
-        // Programada con fecha lejana + camión YA asignado → Confirmado transportista
-        // (caso típico cuando el cliente reserva con tiempo y el equipo confirma camión propio)
+        // Programada con fecha lejana + transportista Y matrícula YA asignados → Confirmado
+        // (caso típico: cliente reserva con tiempo y se cierra camión propio antes de la franja operativa)
         makeCarga('#C-2026-1293','PED-0429','10/07','Fija','Sevilla','Valencia','Pol. Pajanosas → Puerto Valencia','Paletizado','Material eléctrico','13,2 m · 22.500 kg','programada', undefined, {
             precio: '1.180 €', fechaAsignada: '10/07 07:00', horaCargaEst: '07:00', etaEntrega: 'Lun 13/07',
             horarioOrigen: 'L-V 7:00-15:00', horarioDestino: 'L-V 6:30-14:00',
             tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa',
+            transportistaAsignado: true, transportistaNombre: 'Dynamo (camión propio)',
             matricula: '7204 LMR / R-9852', conductor: 'Pedro Rodríguez', tfnoConductor: '+34 661 902 411'
         }),
-        // Previsión sin fecha definida → siempre "En espera" (sin asignación porque no hay fecha)
+        // Previsión sin fecha definida → siempre "En espera"
         makeCarga('#C-2026-1292','PED-0428','Sin fecha','1 a 4 días','Sevilla','Vigo','Polígono Industrial → Bouzas','Maquinaria','Pieza única','8,4 m · 11.000 kg','programada'),
-        // Programada con fecha cercana + camión asignado → Confirmado transportista
+        // Programada con fecha cercana + transportista Y matrícula → Confirmado
         makeCarga('#C-2026-1290','PED-0426','28/06','1 a 2 días','Sevilla','Madrid','Pol. Industrial Carretera de la Isla → Mercamadrid','Paletizado','Productos químicos','13,2 m · 22.000 kg','programada', undefined, {
             precio: '880 €', fechaAsignada: '29/06 08:00', horaCargaEst: '08:00', etaEntrega: 'Mar 30/06',
             horarioOrigen: 'L-V 7:00-15:00', horarioDestino: 'L-S 0:00-24:00',
             tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa',
+            transportistaAsignado: true, transportistaNombre: 'Transportes Beltrán S.L.',
             matricula: '4502 NDZ', conductor: 'Antonio Beltrán', tfnoConductor: '+34 644 778 332'
         }),
-        // Programada fecha cercana, sin transportista aún → Asignándose transportista
+        // Programada con fecha cercana + transportista YA confirmado pero AÚN sin
+        // matrícula concreta (el transportista tiene 2 camiones en la zona y
+        // decidirá cuál usa el día anterior) → Confirmado transportista
         makeCarga('#C-2026-1288','PED-0425','25/06','Fija','Sevilla','Barcelona','Polígono Carretera Amarilla → Mercabarna','Paletizado','Frutas y verduras','13,2 m · 24.000 kg','programada', undefined, {
             precio: '1.480 €', fechaAsignada: '25/06 06:00', horaCargaEst: '06:00', etaEntrega: 'Vie 26/06',
             horarioOrigen: 'L-V 5:30-13:00', horarioDestino: 'L-S 5:00-13:00',
-            tipoCamion: 'Trailer Tauliner · 13,2 m frigorífico (subcontratado)', tipoCarga: 'Carga completa'
+            tipoCamion: 'Trailer Tauliner frigorífico', tipoCarga: 'Carga completa',
+            transportistaAsignado: true, transportistaNombre: 'Transfrío Sur S.L.'
+            // matricula/conductor/tfno → null (pendientes; el transportista decidirá)
         }),
         // Programada con datos mínimos sin asignación todavía
         makeCarga('#C-2026-1286','PED-0424','22/06','1 a 4 días','Sevilla','Valencia','Almacén central → Puerto','Eventos / feria','Stand modular','6,0 m · 8.200 kg','programada'),
@@ -4029,12 +4044,14 @@
             precio: '1.420 €', fechaAsignada: '16/06 07:30', horaCargaEst: '07:30', etaEntrega: 'Mié 17/06',
             horarioOrigen: 'L-V 7:00-15:00', horarioDestino: 'L-V 8:00-17:00',
             tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa',
+            transportistaAsignado: true, transportistaNombre: 'Logística López e Hijos S.L.',
             matricula: '8743 LZB / R-8214', conductor: 'José Ramón Pérez', tfnoConductor: '+34 612 998 401'
         }),
         makeCarga('#C-2026-1281','PED-0419','14/06','Fija','Sevilla','Barcelona','Centro logístico → Zona Franca','Maquinaria','2 piezas, sobredim.','8,4 m · 14.500 kg','en-ruta', undefined, {
             precio: '1.180 €', fechaAsignada: '14/06 08:00', horaCargaEst: '08:00', etaEntrega: 'Mar 16/06',
             horarioOrigen: 'L-V 8:00-14:00', horarioDestino: 'L-V 6:00-14:00',
             tipoCamion: 'Rígido 8 m con plataforma', tipoCarga: 'Grupaje',
+            transportistaAsignado: true, transportistaNombre: 'Trans Andalucía 24h',
             matricula: '4291 KMN', conductor: 'Manuel Reyes', tfnoConductor: '+34 655 217 880'
         }),
         makeCarga('#C-2026-1284','PED-0421','15/06','1 a 2 días','Sevilla','Madrid','Pol. Carretera de la Isla → Mercamadrid','Paletizado','Aceite envasado','13,2 m · 24.000 kg','entregada', false),
@@ -4102,6 +4119,7 @@
             precio: '780 €', fechaAsignada: fechaFuturaLaborable(0) + ' 09:00', horaCargaEst: '09:00', etaEntrega: fechaFuturaLaborable(0),
             horarioOrigen: 'L-V 8:00-15:00', horarioDestino: 'L-V 7:30-14:00',
             tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Grupaje',
+            transportistaAsignado: true, transportistaNombre: 'Dynamo (camión propio)',
             matricula: '6217 PCF', conductor: 'David Núñez', tfnoConductor: '+34 678 442 113'
         }));
         CARGAS_DATA.unshift(makeCarga('#C-2026-1298','PED-0434', fechaFuturaLaborable(1), '1 a 2 días','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Conservas','13,2 m · 23.000 kg','programada'));
@@ -4262,11 +4280,15 @@
     // No aplica a entregada/cancelada.
     function getAsignacionEstado(c) {
         if (c.kind === 'entregada' || c.kind === 'cancelada') return null;
-        if (c.matricula && c.conductor) {
+        // La señal que dispara "Confirmado" es transportistaAsignado, no la
+        // matrícula. El equipo puede tener al transportista cerrado y aún
+        // estar pendiente de definir qué camión exacto irá (puede tener 2 en
+        // la zona). Matrícula/conductor/tfno son detalles que llegan después.
+        if (c.transportistaAsignado) {
             return { key: 'confirmado', label: 'Confirmado transportista' };
         }
         if (c.kind === 'en-ruta') {
-            return { key: 'asignandose', label: 'Asignándose transportista' };
+            return { key: 'confirmado', label: 'Confirmado transportista' };
         }
         var bd = businessDaysUntil(c.fecha);
         if (bd != null && bd >= 0 && bd <= 4) {
