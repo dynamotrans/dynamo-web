@@ -1031,6 +1031,11 @@
             color: var(--navy); vertical-align: middle;
         }
         table.data tbody tr:last-child td { border-bottom: none; }
+        /* Cualquier fila es clicable (abre Ver detalle); las celdas de
+           acciones (td.actions) cambian a cursor default para que el ⋯
+           se sienta como un botón aparte y no como "más de lo mismo" */
+        table.data tbody tr { cursor: pointer; }
+        table.data tbody tr td.actions { cursor: default; }
         table.data tbody tr:hover { background: var(--gray-50); }
         /* Resaltado por proximidad de fecha en la tabla "Programadas".
            Gradiente coral → ámbar → verde: cuanto más cercana la carga
@@ -3104,6 +3109,21 @@
         var sectionId = section ? section.id : '';
         var action = actionFromText(item.textContent);
         if (row && action) dispatchRowAction(action, row, sectionId);
+    });
+
+    // Filas clicables: pulsar cualquier sitio de la fila (excepto la celda
+    // de acciones con el ⋯) abre el "Ver detalle" de esa entrada. Funciona
+    // en cargas, presupuestos y facturas porque dispatchRowAction conoce
+    // los tres tipos por sectionId.
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('td.actions')) return;
+        if (e.target.closest('.row-menu-pop')) return;
+        if (e.target.closest('a, button')) return;
+        var tr = e.target.closest('table.data tbody tr');
+        if (!tr) return;
+        var section = tr.closest('section.section');
+        if (!section) return;
+        dispatchRowAction('ver-detalle', tr, section.id);
     });
 
     // Envolver el boton ⋯ + pop en un .row-menu (necesario para que el
