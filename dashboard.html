@@ -3922,27 +3922,46 @@
     //                visual por proximidad (hoy/mañana/pasado) reemplaza el filtro
     function isPrevision(c)  { return c.kind === 'programada' && c.fecha === 'Sin fecha'; }
     function isProgramada(c) { return (c.kind === 'programada' && c.fecha !== 'Sin fecha') || c.kind === 'en-ruta'; }
-    // Días laborables entre HOY y una fecha "DD/MM" del año actual.
-    //  0 → hoy   1 → próximo día laborable (lunes si hoy es viernes)   2 → siguiente
-    //  null si la fecha no se entiende, es pasada, cae en fin de semana
-    //       o supera 2 días laborables (no se resalta)
-    function businessDaysFromToday(dateStr) {
+    // Información de resaltado de una fila por su fecha "DD/MM":
+    //   level: 0 (carga del anchor), 1 (siguiente día laborable), 2 (el siguiente)
+    //          → null si supera 2 o cae en fin de semana o es pasada
+    //   label: "HOY" / "MAÑANA" / "PASADO" si la fecha coincide LITERALMENTE
+    //          en calendario con hoy / hoy+1 / hoy+2. Si no, null (sin chip).
+    //
+    // El "anchor" es hoy si hoy es laborable, o el próximo lunes si hoy es
+    // fin de semana. El color va por business-days desde el anchor; el chip
+    // solo se pinta si el día de calendario también coincide.
+    function highlightInfo(dateStr) {
         if (!dateStr || dateStr === 'Sin fecha') return null;
         var m = String(dateStr).match(/^(\d{1,2})\/(\d{1,2})$/);
         if (!m) return null;
-        var today = new Date(); today.setHours(0, 0, 0, 0);
-        var d = new Date(today.getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+        var year = new Date().getFullYear();
+        var d = new Date(year, parseInt(m[2], 10) - 1, parseInt(m[1], 10));
         d.setHours(0, 0, 0, 0);
+        var today = new Date(); today.setHours(0, 0, 0, 0);
         if (d < today) return null;
         var wd = d.getDay();
         if (wd === 0 || wd === 6) return null;
-        var count = 0, cursor = new Date(today);
-        while (cursor.getTime() < d.getTime() && count <= 3) {
+        // Anchor (hoy o próximo laborable si hoy es Sáb/Dom)
+        var anchor = new Date(today);
+        while (anchor.getDay() === 0 || anchor.getDay() === 6) {
+            anchor.setDate(anchor.getDate() + 1);
+        }
+        if (d < anchor) return null;
+        var level = 0, cursor = new Date(anchor);
+        while (cursor.getTime() < d.getTime() && level <= 3) {
             cursor.setDate(cursor.getDate() + 1);
             var w = cursor.getDay();
-            if (w !== 0 && w !== 6) count++;
+            if (w !== 0 && w !== 6) level++;
         }
-        return count <= 2 ? count : null;
+        if (level > 2) return null;
+        // Etiqueta: calendar match literal
+        var diff = Math.round((d.getTime() - today.getTime()) / 86400000);
+        var label = null;
+        if (diff === 0) label = 'HOY';
+        else if (diff === 1) label = 'MAÑANA';
+        else if (diff === 2) label = 'PASADO';
+        return { level: level, label: label };
     }
     // Parser DD/MM → timestamp (año actual). "Sin fecha" → Infinity para
     // que caiga al final en orden ascendente y al principio en descendente
@@ -4023,16 +4042,21 @@
             tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin cargas en este filtro</td></tr>';
         } else {
             tbody.innerHTML = slice.map(function (c) {
-                // Resaltado por proximidad: solo cargas futuras (programada/en-ruta)
-                // y solo si su fecha cae en hoy, mañana o pasado mañana (días
-                // laborables; los fines de semana NO suman, ej. mañana de viernes
-                // = lunes). Cualquier otra fecha → fila normal.
-                var bd = (c.kind === 'programada' || c.kind === 'en-ruta')
-                    ? businessDaysFromToday(c.fecha) : null;
+                // Resaltado: solo cargas futuras (programada / en-ruta).
+                // COLOR por business-days desde el anchor (hoy o, si hoy es
+                // Sáb/Dom, el próximo lunes). ETIQUETA "HOY"/"MAÑANA"/"PASADO"
+                // solo si la fecha coincide en calendario; si no, sin chip.
+                var hi = (c.kind === 'programada' || c.kind === 'en-ruta')
+                    ? highlightInfo(c.fecha) : null;
                 var rowCls = '', whenTag = '';
-                if (bd === 0)      { rowCls = ' class="row-today"';         whenTag = '<span class="row-when-tag tag-today">HOY</span>'; }
-                else if (bd === 1) { rowCls = ' class="row-tomorrow"';      whenTag = '<span class="row-when-tag tag-tomorrow">MAÑANA</span>'; }
-                else if (bd === 2) { rowCls = ' class="row-aftertomorrow"'; whenTag = '<span class="row-when-tag tag-after">PASADO</span>'; }
+                if (hi) {
+                    if (hi.level === 0)      rowCls = ' class="row-today"';
+                    else if (hi.level === 1) rowCls = ' class="row-tomorrow"';
+                    else if (hi.level === 2) rowCls = ' class="row-aftertomorrow"';
+                    if (hi.label === 'HOY')        whenTag = '<span class="row-when-tag tag-today">HOY</span>';
+                    else if (hi.label === 'MAÑANA') whenTag = '<span class="row-when-tag tag-tomorrow">MAÑANA</span>';
+                    else if (hi.label === 'PASADO') whenTag = '<span class="row-when-tag tag-after">PASADO</span>';
+                }
                 return '<tr' + rowCls + '>' +
                     '<td class="ref">' + esc(c.ref) + '</td>' +
                     '<td class="ref-cli">' + esc(c.refCli) + '</td>' +
