@@ -1109,6 +1109,10 @@
         }
         .filters input:focus, .filters select:focus { outline: none; border-color: var(--purple); background: white; }
         .filters input[type="search"] { flex: 1 1 220px; min-width: 0; }
+        /* Filtro por mes — select + input month inline; el input solo aparece
+           cuando el cliente elige "Otro mes / año…" del select */
+        .filters .filter-mes { flex: 0 0 auto; min-width: 170px; }
+        .filters .filter-mes-custom { flex: 0 0 auto; min-width: 160px; }
 
         .table-wrap {
             background: white; border-radius: 12px;
@@ -2119,9 +2123,10 @@
         </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por nº, referencia, origen, destino…">
-            <input type="date" title="Fecha desde">
-            <input type="date" title="Fecha hasta">
-            <select><option>Todos los estados</option><option>Programada</option><option>En ruta</option><option>Entregada</option></select>
+            <select class="filter-mes" data-filter-mes>
+                <!-- Opciones pobladas por JS al cargar -->
+            </select>
+            <input type="month" class="filter-mes-custom" data-filter-mes-custom hidden aria-label="Selecciona mes y año">
         </div>
         <div class="table-wrap">
             <table class="data">
@@ -2161,8 +2166,10 @@
         </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por nº, referencia, origen, destino…">
-            <input type="date" title="Fecha desde">
-            <input type="date" title="Fecha hasta">
+            <select class="filter-mes" data-filter-mes>
+                <!-- Opciones pobladas por JS al cargar -->
+            </select>
+            <input type="month" class="filter-mes-custom" data-filter-mes-custom hidden aria-label="Selecciona mes y año">
         </div>
         <div class="table-wrap">
             <table class="data">
@@ -2215,9 +2222,10 @@
         </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por número, concepto…">
-            <input type="date" title="Fecha desde">
-            <input type="date" title="Fecha hasta">
-            <select><option>Todos los estados</option><option>Cobrada</option><option>Pendiente</option><option>Vencida</option></select>
+            <select class="filter-mes" data-filter-mes>
+                <!-- Opciones pobladas por JS al cargar -->
+            </select>
+            <input type="month" class="filter-mes-custom" data-filter-mes-custom hidden aria-label="Selecciona mes y año">
         </div>
         <div class="table-wrap">
             <table class="data">
@@ -2259,8 +2267,10 @@
         </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por descripción, nº carga…">
-            <input type="date" title="Fecha desde">
-            <input type="date" title="Fecha hasta">
+            <select class="filter-mes" data-filter-mes>
+                <!-- Opciones pobladas por JS al cargar -->
+            </select>
+            <input type="month" class="filter-mes-custom" data-filter-mes-custom hidden aria-label="Selecciona mes y año">
         </div>
         <div class="table-wrap">
             <table class="data">
@@ -4500,6 +4510,53 @@
         arr.sort(function (a, b) { return parseFechaDDMM(b.emision) - parseFechaDDMM(a.emision); });
         return arr;
     }
+
+    // ---- FILTRO POR MES ----
+    // Rellena cada <select data-filter-mes> con: "Todos los meses",
+    // los últimos 3 meses (incluyendo el actual) y "Otro mes / año…".
+    // Al elegir "Otro" muestra un <input type="month"> al lado para
+    // que el cliente pique mes y año concretos.
+    var MES_NOMBRES = [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    function populateMesFilters() {
+        var now = new Date();
+        document.querySelectorAll('[data-filter-mes]').forEach(function (sel) {
+            sel.innerHTML = '';
+            var opt = document.createElement('option');
+            opt.value = ''; opt.textContent = 'Todos los meses';
+            sel.appendChild(opt);
+            for (var i = 0; i < 3; i++) {
+                var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                var o = document.createElement('option');
+                o.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+                o.textContent = MES_NOMBRES[d.getMonth()] + ' ' + d.getFullYear();
+                sel.appendChild(o);
+            }
+            var otro = document.createElement('option');
+            otro.value = '__otro__'; otro.textContent = 'Otro mes / año…';
+            sel.appendChild(otro);
+        });
+    }
+    document.addEventListener('change', function (e) {
+        var sel = e.target.closest('[data-filter-mes]');
+        if (!sel) return;
+        var custom = sel.parentNode.querySelector('[data-filter-mes-custom]');
+        if (!custom) return;
+        if (sel.value === '__otro__') {
+            custom.hidden = false;
+            setTimeout(function () { custom.focus(); }, 0);
+        } else {
+            custom.hidden = true;
+            custom.value = '';
+        }
+        // Hook para que el filtro real se aplique cuando exista backend:
+        // - sel.value === '' → mostrar todo
+        // - sel.value === 'YYYY-MM' → filtrar por mes
+        // - sel.value === '__otro__' → usar custom.value (YYYY-MM)
+    });
+    populateMesFilters();
 
     // ---- RENDER ----
     function renderCargasTable() {
