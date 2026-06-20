@@ -685,6 +685,70 @@
             display: flex; gap: 0.6rem; justify-content: flex-end;
             padding-top: 1rem; border-top: 1px solid var(--gray-200);
         }
+        /* Paleta refinada y plana SOLO dentro del footer del modal —
+           el resto del panel (Nueva carga / Nuevo presupuesto / etc.)
+           mantiene su look. Reglas:
+           - btn-primary: navy macizo, una sola acción principal por modal
+           - btn-secondary: gris claro con borde, acciones secundarias
+           - btn-ghost: muy neutro, para Cerrar/Cancelar
+           - btn-primary con style "--red" → variante destructiva con
+             borde rojo y texto rojo en fondo blanco, sin chillar */
+        .dash-modal-footer .btn-primary,
+        .dash-modal-footer .btn-secondary,
+        .dash-modal-footer .btn-ghost {
+            padding: 0.5rem 0.9rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+        }
+        .dash-modal-footer .btn-primary {
+            background: var(--navy);
+            color: white;
+            border-color: var(--navy);
+        }
+        .dash-modal-footer .btn-primary:hover {
+            background: #1a1530;
+            border-color: #1a1530;
+        }
+        .dash-modal-footer .btn-secondary {
+            background: white;
+            color: var(--gray-700);
+            border-color: var(--gray-300);
+        }
+        .dash-modal-footer .btn-secondary:hover {
+            background: var(--gray-50);
+            border-color: var(--gray-500);
+            color: var(--navy);
+        }
+        .dash-modal-footer .btn-ghost {
+            background: var(--gray-100);
+            color: var(--gray-500);
+            border-color: var(--gray-200);
+        }
+        .dash-modal-footer .btn-ghost:hover {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+        /* Override para la variante destructiva (btn-primary + style con --red) */
+        .dash-modal-footer .btn-primary[style*="--red"] {
+            background: white !important;
+            color: #b91c1c !important;
+            border-color: #fca5a5 !important;
+        }
+        .dash-modal-footer .btn-primary[style*="--red"]:hover {
+            background: #fef2f2 !important;
+            border-color: #b91c1c !important;
+        }
+        /* Iconos SVG dentro de los botones — sutiles, no protagonistas */
+        .dash-modal-footer button svg {
+            width: 14px; height: 14px;
+            flex-shrink: 0;
+            opacity: 0.75;
+        }
+        .dash-modal-footer .btn-primary svg { opacity: 0.9; }
         .modal-info-grid {
             display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem 1.2rem;
             margin-bottom: 0.6rem;
@@ -1124,6 +1188,15 @@
         .row-menu-item:hover { background: var(--gray-100); color: var(--navy); }
         .row-menu-item.danger { color: var(--red); }
         .row-menu-item.danger:hover { background: rgba(220,38,38,0.08); }
+        /* Icono SVG dentro del item del menú ⋯ — pequeño y discreto */
+        .row-menu-item .rm-icon {
+            width: 16px; height: 16px;
+            display: inline-flex; align-items: center; justify-content: center;
+            flex-shrink: 0; opacity: 0.6;
+        }
+        .row-menu-item .rm-icon svg { width: 100%; height: 100%; }
+        .row-menu-item:hover .rm-icon { opacity: 0.9; }
+        .row-menu-item.danger .rm-icon { opacity: 0.75; }
 
         .pagination {
             display: flex; align-items: center; justify-content: space-between;
@@ -2798,36 +2871,42 @@
     window.presupuestoActionByRef = actionByRef('sec-presupuestos');
     window.facturaActionByRef     = actionByRef('sec-facturas');
 
-    // Genera los botones de acciones del footer del modal Ver detalle
-    // según el estado de la carga. Mismo árbol de decisión que el menú ⋯
-    // (actionItemsCarga), pero como botones primarios en el footer.
+    // Botones del footer del modal Ver detalle según el estado del item.
+    // Mismo árbol de decisión que el menú ⋯; iconos SVG planos y paleta
+    // refinada (override en .dash-modal-footer .btn-*).
+    function fb(kind, action, refByFn, label, iconName) {
+        return '<button class="' + kind + '" onclick="' + refByFn + '(\'' + action + '\',\'' + refByFn + '_REFPLACEHOLDER\')">' + icon(iconName) + label + '</button>';
+    }
     function cargaDetailFooter(d, row) {
         var ref = escapeHtml(d.ref);
+        function b(cls, action, label, iconName) {
+            return '<button class="' + cls + '" onclick="cargaActionByRef(\'' + action + '\',\'' + ref + '\')">' + icon(iconName) + label + '</button>';
+        }
         var btns = ['<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>'];
         var est = (d.estado || '').toLowerCase();
         var isPrevision = est.indexOf('programada') > -1 && d.fecha === 'Sin fecha';
         if (est.indexOf('programada') > -1) {
             if (isPrevision) {
-                btns.push('<button class="btn-primary" onclick="cargaActionByRef(\'modificar\',\'' + ref + '\')">📅 Asignar fecha y datos</button>');
+                btns.push(b('btn-primary', 'modificar', 'Asignar fecha y datos', 'calendar'));
             } else {
-                btns.push('<button class="btn-secondary" onclick="cargaActionByRef(\'modificar\',\'' + ref + '\')">✏️ Modificar</button>');
+                btns.push(b('btn-secondary', 'modificar', 'Modificar', 'edit'));
             }
-            btns.push('<button class="btn-primary" style="background:var(--red);" onclick="cargaActionByRef(\'cancelar-carga\',\'' + ref + '\')">✕ Cancelar carga</button>');
+            btns.push('<button class="btn-primary" style="background:var(--red);" onclick="cargaActionByRef(\'cancelar-carga\',\'' + ref + '\')">' + icon('x') + 'Cancelar carga</button>');
         } else if (est.indexOf('en ruta') > -1) {
-            btns.push('<button class="btn-secondary" onclick="cargaActionByRef(\'seguimiento\',\'' + ref + '\')">📍 Seguimiento</button>');
-            btns.push('<button class="btn-primary" onclick="cargaActionByRef(\'reportar-incidencia\',\'' + ref + '\')">⚠️ Reportar incidencia</button>');
+            btns.push(b('btn-secondary', 'seguimiento', 'Seguimiento', 'mapPin'));
+            btns.push(b('btn-primary', 'reportar-incidencia', 'Reportar incidencia', 'alert'));
         } else if (est.indexOf('entregada') > -1) {
-            btns.push('<button class="btn-secondary" onclick="cargaActionByRef(\'repetir\',\'' + ref + '\')">🔁 Repetir carga</button>');
-            btns.push('<button class="btn-secondary" onclick="cargaActionByRef(\'reportar-incidencia\',\'' + ref + '\')">⚠️ Incidencia</button>');
+            btns.push(b('btn-secondary', 'repetir', 'Repetir carga', 'refresh'));
+            btns.push(b('btn-secondary', 'reportar-incidencia', 'Incidencia', 'alert'));
             var hasAlb = row && row.querySelector('.badge-doc');
             if (hasAlb) {
-                btns.push('<button class="btn-primary" onclick="cargaActionByRef(\'descargar-albaran\',\'' + ref + '\')">📥 Descargar albarán</button>');
+                btns.push(b('btn-primary', 'descargar-albaran', 'Descargar albarán', 'download'));
             } else {
                 var days = (typeof daysSinceCargaFecha === 'function') ? daysSinceCargaFecha(d.fecha) : 0;
                 if (days >= 14) {
-                    btns.push('<button class="btn-primary" onclick="cargaActionByRef(\'reclamar-albaran\',\'' + ref + '\')">📩 Reclamar albarán</button>');
+                    btns.push(b('btn-primary', 'reclamar-albaran', 'Reclamar albarán', 'mail'));
                 } else {
-                    btns.push('<button class="btn-ghost" disabled style="opacity:0.55;cursor:not-allowed;" title="Disponible al cabo de 14 días">⏳ Albarán procesándose…</button>');
+                    btns.push('<button class="btn-ghost" disabled style="opacity:0.55;cursor:not-allowed;" title="Disponible al cabo de 14 días">' + icon('clock') + 'Albarán procesándose…</button>');
                 }
             }
         }
@@ -2836,21 +2915,24 @@
     }
     function presupuestoDetailFooter(d) {
         var ref = escapeHtml(d.ref);
+        function b(cls, action, label, iconName) {
+            return '<button class="' + cls + '" onclick="presupuestoActionByRef(\'' + action + '\',\'' + ref + '\')">' + icon(iconName) + label + '</button>';
+        }
         var est = (d.estado || '').toLowerCase();
         var isCaducado = est.indexOf('caducado') > -1;
         var btns = ['<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>'];
         if (isCaducado) {
-            btns.push('<button class="btn-secondary" onclick="presupuestoActionByRef(\'revisar-precio\',\'' + ref + '\')">🔁 Revisar precio</button>');
+            btns.push(b('btn-secondary', 'revisar-precio', 'Revisar precio', 'refresh'));
         } else {
-            btns.push('<button class="btn-primary" onclick="presupuestoActionByRef(\'generar-carga\',\'' + ref + '\')">🚚 Generar carga</button>');
+            btns.push(b('btn-primary', 'generar-carga', 'Generar carga', 'truck'));
         }
-        btns.push('<button class="btn-secondary" onclick="presupuestoActionByRef(\'descargar-pdf\',\'' + ref + '\')">📥 Descargar PDF</button>');
+        btns.push(b('btn-secondary', 'descargar-pdf', 'Descargar PDF', 'download'));
         return btns.join('');
     }
     function facturaDetailFooter(d) {
         var ref = escapeHtml(d.ref);
         return '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>' +
-               '<button class="btn-primary" onclick="facturaActionByRef(\'descargar-pdf\',\'' + ref + '\')">📥 Descargar PDF</button>';
+               '<button class="btn-primary" onclick="facturaActionByRef(\'descargar-pdf\',\'' + ref + '\')">' + icon('download') + 'Descargar PDF</button>';
     }
 
     /* ---- ACCIONES CARGAS ---- */
@@ -3132,6 +3214,24 @@
     }
 
     /* ---- DISPATCH: del texto del item al handler correcto ---- */
+    // Set de iconos planos (Feather-style) usados en menús ⋯ y footer de
+    // modales. Monocromos por currentColor; tamaño se hereda del padre.
+    var ICONS = {
+        eye:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+        edit:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+        x:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+        calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+        mapPin:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+        alert:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+        refresh:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
+        download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+        mail:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+        clock:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+        truck:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
+        file:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+    };
+    function icon(name) { return ICONS[name] || ''; }
+
     function actionFromText(text) {
         text = (text || '').toLowerCase();
         if (text.indexOf('ver detalle') > -1) return 'ver-detalle';
@@ -3924,34 +4024,37 @@
 
     // ---- ESCAPE + RENDER HELPERS ----
     function esc(s) { return escapeHtml(s); }
+    function mi(iconName, label, extra) {
+        return '<button class="row-menu-item"' + (extra || '') + '><span class="rm-icon">' + icon(iconName) + '</span>' + label + '</button>';
+    }
     function actionItemsCarga(c) {
         var kind = c.kind;
-        if (kind === 'programada') return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">✏️ Modificar</button><button class="row-menu-item danger">✕ Cancelar carga</button>';
-        if (kind === 'en-ruta')    return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">📍 Seguimiento</button><button class="row-menu-item">⚠️ Reportar incidencia</button>';
-        if (kind === 'cancelada')  return '<button class="row-menu-item">📋 Ver detalle</button>';
+        if (kind === 'programada') return mi('eye', 'Ver detalle') + mi('edit', 'Modificar') + '<button class="row-menu-item danger"><span class="rm-icon">' + icon('x') + '</span>Cancelar carga</button>';
+        if (kind === 'en-ruta')    return mi('eye', 'Ver detalle') + mi('mapPin', 'Seguimiento') + mi('alert', 'Reportar incidencia');
+        if (kind === 'cancelada')  return mi('eye', 'Ver detalle');
         // entregada
         var albaranItem;
         if (c.hasAlbaran) {
-            albaranItem = '<button class="row-menu-item">📥 Descargar albarán</button>';
+            albaranItem = mi('download', 'Descargar albarán');
         } else {
             var dias = daysSinceCargaFecha(c.fecha);
             if (dias >= 14) {
-                albaranItem = '<button class="row-menu-item">📩 Reclamar albarán</button>';
+                albaranItem = mi('mail', 'Reclamar albarán');
             } else {
                 // <14 dias: el transportista aun nos lo tiene que mandar.
                 // Asi evitamos que clientes nos pidan albaranes nada mas
                 // entregar (los transportistas tardan en mandarlos)
-                albaranItem = '<button class="row-menu-item" disabled style="opacity:0.55;cursor:not-allowed;" title="El transportista aun no nos ha enviado el albaran. Si pasados 14 dias sigue sin estar, podras reclamarlo.">⏳ Albarán procesándose…</button>';
+                albaranItem = mi('clock', 'Albarán procesándose…', ' disabled style="opacity:0.55;cursor:not-allowed;" title="El transportista aún no nos ha enviado el albarán. Si pasados 14 días sigue sin estar, podrás reclamarlo."');
             }
         }
-        return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">🔁 Repetir</button><button class="row-menu-item">⚠️ Reportar incidencia</button>' + albaranItem;
+        return mi('eye', 'Ver detalle') + mi('refresh', 'Repetir') + mi('alert', 'Reportar incidencia') + albaranItem;
     }
     function actionItemsPresupuesto(kind) {
-        if (kind === 'caducados')   return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">🔁 Revisar precio (renovar +7 días)</button>';
-        return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">🚚 Generar carga</button><button class="row-menu-item">📥 Descargar PDF</button>';
+        if (kind === 'caducados')   return mi('eye', 'Ver detalle') + mi('refresh', 'Revisar precio (renovar +7 días)');
+        return mi('eye', 'Ver detalle') + mi('truck', 'Generar carga') + mi('download', 'Descargar PDF');
     }
     function actionItemsFactura() {
-        return '<button class="row-menu-item">📋 Ver detalle</button><button class="row-menu-item">📥 Descargar PDF</button>';
+        return mi('eye', 'Ver detalle') + mi('download', 'Descargar PDF');
     }
     function actionsCell(itemsHtml) {
         return '<td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button><div class="row-menu-pop" data-rm>' + itemsHtml + '</div></td>';
