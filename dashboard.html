@@ -1096,10 +1096,14 @@
         .tab.active { color: var(--purple); border-bottom-color: var(--purple); }
 
         .filters {
-            display: flex; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap;
+            display: flex; gap: 0.5rem; margin-bottom: 1rem;
             background: white; padding: 0.7rem; border-radius: 12px;
             border: 1px solid var(--gray-200);
+            align-items: center;
         }
+        /* Buscador + selector de mes SIEMPRE en la misma fila. El selector
+           "Otro mes / año…" sí salta a la siguiente fila si está activo
+           (es opcional) gracias al wrap controlado abajo. */
         .filters input, .filters select {
             padding: 0.5rem 0.7rem; border-radius: 8px;
             border: 1px solid var(--gray-200); background: var(--gray-50);
@@ -1108,11 +1112,18 @@
             min-width: 0; max-width: 100%;
         }
         .filters input:focus, .filters select:focus { outline: none; border-color: var(--purple); background: white; }
-        .filters input[type="search"] { flex: 1 1 220px; min-width: 0; }
+        .filters input[type="search"] { flex: 1 1 0; min-width: 0; }
         /* Filtro por mes — select + input month inline; el input solo aparece
-           cuando el cliente elige "Otro mes / año…" del select */
-        .filters .filter-mes { flex: 0 0 auto; min-width: 170px; }
-        .filters .filter-mes-custom { flex: 0 0 auto; min-width: 160px; }
+           cuando el cliente elige "Otro mes / año…" del select. Ambos van
+           en la misma fila que el buscador, ajustando ancho. */
+        .filters .filter-mes { flex: 0 0 auto; min-width: 140px; max-width: 180px; }
+        .filters .filter-mes-custom { flex: 0 0 auto; min-width: 130px; max-width: 170px; }
+        @media (max-width: 600px) {
+            .filters { gap: 0.4rem; padding: 0.55rem; }
+            .filters input[type="search"] { font-size: 0.78rem; padding: 0.45rem 0.55rem; }
+            .filters .filter-mes { min-width: 130px; max-width: 160px; font-size: 0.75rem; padding: 0.45rem 0.55rem; }
+            .filters .filter-mes-custom { min-width: 120px; max-width: 150px; font-size: 0.75rem; }
+        }
 
         .table-wrap {
             background: white; border-radius: 12px;
