@@ -884,7 +884,7 @@
         .dash-ctas { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.4rem; }
         .dash-top-row {
             display: grid;
-            grid-template-columns: 1fr 1fr 1.6fr;
+            grid-template-columns: repeat(3, 1fr);
             gap: 1rem; margin-bottom: 1.4rem;
             align-items: stretch;
         }
@@ -1443,9 +1443,13 @@
             .mini-lists { grid-template-columns: 1fr; }
             .cesce-card { grid-template-columns: 1fr; }
             .cesce-credit-total { text-align: left; }
-            /* CESCE más estrecha cuando la fila se aprieta: damos peso a las CTAs */
-            .dash-top-row { grid-template-columns: 1fr 1fr 1.2fr; gap: 0.7rem; }
+            /* Mantenemos las 3 cajas exactamente iguales. Apretamos gap para
+               compensar y ocultamos los subtítulos de las CTAs. */
+            .dash-top-row { grid-template-columns: repeat(3, 1fr); gap: 0.7rem; }
             .dash-top-row .dash-cta-text p { display: none; }
+            /* CESCE pierde el "Límite total" lateral para no aparecer más
+               ancha visualmente que las CTAs */
+            .dash-top-row .cesce-credit-total { display: none; }
         }
         @media (max-width: 768px) {
             .sidebar {
@@ -1465,9 +1469,10 @@
             .stats-row, .stats-row-3 { grid-template-columns: 1fr 1fr; gap: 0.7rem; }
             .stat-card-value { font-size: 1.45rem; }
             .dash-ctas { grid-template-columns: 1fr; }
-            /* Mantener los 3 elementos en la misma fila en móvil */
+            /* Mantener los 3 elementos en la misma fila en móvil — todos
+               del mismo ancho para que se vean alineados */
             .dash-top-row {
-                grid-template-columns: 1fr 1fr 1.4fr;
+                grid-template-columns: repeat(3, 1fr);
                 gap: 0.5rem;
             }
             .dash-top-row .dash-cta {
@@ -1506,8 +1511,8 @@
         @media (max-width: 420px) {
             .stats-row, .stats-row-3 { grid-template-columns: 1fr; }
             table.data { min-width: 620px; }
-            /* Mantener los 3 elementos en la misma fila incluso en móviles muy estrechos */
-            .dash-top-row { gap: 0.4rem; grid-template-columns: 1fr 1fr 1.5fr; }
+            /* Mismo ancho también en móviles muy estrechos */
+            .dash-top-row { gap: 0.4rem; grid-template-columns: repeat(3, 1fr); }
             .dash-top-row .dash-cta { padding: 0.7rem 0.4rem; }
             .dash-top-row .dash-cta-text h4 { font-size: 0.7rem; }
             .dash-top-row .cesce-card { padding: 0.6rem; }
