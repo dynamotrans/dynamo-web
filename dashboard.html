@@ -3993,6 +3993,13 @@
         return diff;
     }
     var CARGAS_DATA = [
+        // Programada con fecha lejana (>4 días laborables) + SIN transportista
+        // todavía → En espera. El backend aún no intenta asignar porque es
+        // demasiado pronto para la operativa diaria.
+        makeCarga('#C-2026-1294','PED-0430','03/07','1 a 2 días','Sevilla','Pamplona','Pol. Aeropuerto → Pol. Landaben','Paletizado','Componentes industriales','13,2 m · 23.500 kg','programada', undefined, {
+            precio: '1.340 €',
+            tipoCarga: 'Carga completa'
+        }),
         // Programada con fecha lejana + camión YA asignado → Confirmado transportista
         // (caso típico cuando el cliente reserva con tiempo y el equipo confirma camión propio)
         makeCarga('#C-2026-1293','PED-0429','10/07','Fija','Sevilla','Valencia','Pol. Pajanosas → Puerto Valencia','Paletizado','Material eléctrico','13,2 m · 22.500 kg','programada', undefined, {
