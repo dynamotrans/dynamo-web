@@ -638,25 +638,6 @@
         .phone-modal-anyway:hover { color: var(--navy); }
         .phone-modal-anyway span { display: block; font-size: 0.7rem; font-weight: 600; opacity: 0.65; margin-top: 0.1rem; }
 
-        /* Cartel de temporada (verano / feria / navidad / festivo) */
-        .season-banner {
-            display: none; align-items: center; gap: 0.65rem;
-            padding: 0.6rem 0.9rem; border-radius: 10px;
-            font-size: 0.83rem; font-weight: 700;
-            margin: 0 0 1rem;
-        }
-        .season-banner.show { display: flex; }
-        .season-banner .sb-icon { font-size: 1.15rem; flex-shrink: 0; }
-        .season-banner .sb-label { font-weight: 800; margin-right: 0.25rem; }
-        .season-banner .sb-sub { font-weight: 600; opacity: 0.8; }
-        .season-banner.summer { background: rgba(255,212,0,0.16); color: #8a6e00; border: 1px solid rgba(255,212,0,0.45); }
-        .season-banner.feria  { background: rgba(255,122,0,0.13); color: #884000; border: 1px solid rgba(255,122,0,0.45); }
-        .season-banner.xmas   { background: rgba(34,165,90,0.13); color: #0b5b30; border: 1px solid rgba(34,165,90,0.40); }
-        .season-banner.holiday{ background: rgba(220,38,38,0.10); color: #931515; border: 1px solid rgba(220,38,38,0.35); }
-        @media (max-width: 600px) {
-            .season-banner { font-size: 0.78rem; padding: 0.55rem 0.7rem; gap: 0.5rem; }
-        }
-
         /* ============================================
            MODAL GENERICO DEL PANEL (ver detalle, repetir, incidencia, etc.)
         ============================================ */
@@ -1851,14 +1832,6 @@
 
     <div class="content">
 
-    <!-- Cartel de temporada (verano / feria / navidad / festivo nacional) -->
-    <div class="season-banner" id="seasonBanner">
-        <span class="sb-icon" id="seasonBannerIcon">☀️</span>
-        <div>
-            <span class="sb-label" id="seasonBannerLabel">Temporada</span>
-            <span class="sb-sub" id="seasonBannerSub">Horario reducido</span>
-        </div>
-    </div>
 
     <!-- ==================== DASHBOARD ==================== -->
     <section class="section active" id="sec-dashboard">
@@ -3635,46 +3608,6 @@
             var v = resolve(el.getAttribute('data-sched-attr'));
             if (v) el.setAttribute('data-hours', v);
         });
-    })();
-
-    // Cartel de temporada: aparece solo cuando es verano, feria, navidad o festivo
-    (function syncSeasonBanner() {
-        var banner = document.getElementById('seasonBanner');
-        if (!banner) return;
-        var now = getNow();
-        var icon = document.getElementById('seasonBannerIcon');
-        var label = document.getElementById('seasonBannerLabel');
-        var sub = document.getElementById('seasonBannerSub');
-        banner.classList.remove('show', 'summer', 'feria', 'xmas', 'holiday');
-        var hol = getHolidayName(now);
-        if (hol) {
-            icon.textContent = '🏛️';
-            label.textContent = 'Hoy es festivo (' + hol + '). ';
-            sub.textContent = 'No atendemos llamadas hoy. WhatsApp y email disponibles ' + SCHEDULE.online.labelLong + '.';
-            banner.classList.add('show', 'holiday');
-            return;
-        }
-        if (isFeria(now)) {
-            icon.textContent = '🌹';
-            label.textContent = 'Feria de Sevilla. ';
-            sub.textContent = 'Teléfono ' + SCHEDULE.phone.labelFeriaLong.replace(' (Feria)', '') + '. WhatsApp y email igual: ' + SCHEDULE.online.labelLong + '.';
-            banner.classList.add('show', 'feria');
-            return;
-        }
-        if (isXmas(now)) {
-            icon.textContent = '🎄';
-            label.textContent = 'Horario de Navidad. ';
-            sub.textContent = 'Teléfono ' + SCHEDULE.phone.labelXmasLong.replace(' (Navidad)', '') + '. WhatsApp y email ' + SCHEDULE.online.labelLong + '.';
-            banner.classList.add('show', 'xmas');
-            return;
-        }
-        if (isSummer(now)) {
-            icon.textContent = '☀️';
-            label.textContent = 'Horario de verano. ';
-            sub.textContent = 'Teléfono ' + SCHEDULE.phone.labelSummerLong.replace(' (verano)', '') + '. WhatsApp y email ' + SCHEDULE.online.labelLong + '.';
-            banner.classList.add('show', 'summer');
-            return;
-        }
     })();
 
     /* ============================================================
