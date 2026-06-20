@@ -980,6 +980,40 @@
         .badge-red     { background: rgba(220,38,38,0.12);  color: var(--red); }
         .badge-blue    { background: rgba(51,0,204,0.10);   color: var(--purple); }
         .badge-gray    { background: var(--gray-200);       color: var(--gray-700); }
+        /* Progresión del estado de carga (de pasivo → activo → en curso → completado).
+           Los 5 estados pasan por una gama coherente: gris → cyan → ámbar → índigo → verde,
+           imitando una "barra de progreso" mental para el cliente. */
+        .badge-prog      { background: #e2e8f0; color: #475569; }  /* Programado: slate */
+        .badge-hacia     { background: #cffafe; color: #155e75; }  /* Hacia la carga: cyan */
+        .badge-cargando  { background: #fef3c7; color: #92400e; }  /* Cargando: amber */
+        .badge-enruta    { background: #dbeafe; color: #1e40af; }  /* En ruta: blue */
+        .badge-entregado { background: #d1fae5; color: #065f46; }  /* Entregado: green */
+        .badge-cancelada { background: #fee2e2; color: #991b1b; }  /* Cancelada: red */
+        /* Leyenda de progresión de estado bajo las pestañas */
+        .estado-legend {
+            display: flex; align-items: center; flex-wrap: wrap;
+            gap: 0.4rem 0.3rem;
+            padding: 0.55rem 0.8rem;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            margin: 0.6rem 0 0.9rem;
+            font-size: 0.78rem;
+        }
+        .estado-legend-label {
+            font-size: 0.7rem; font-weight: 800;
+            color: var(--gray-500); text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-right: 0.25rem;
+        }
+        .estado-legend-arrow {
+            color: var(--gray-300); font-weight: 700;
+            font-size: 0.95rem; padding: 0 0.05rem;
+        }
+        @media (max-width: 600px) {
+            .estado-legend { font-size: 0.7rem; }
+            .estado-legend .badge { font-size: 0.65rem; padding: 0.1rem 0.4rem; }
+        }
         /* Chip 📄 al lado del estado cuando la entrega tiene albaran PDF */
         .badge-doc {
             display: inline-block; font-size: 0.85rem;
@@ -2107,6 +2141,19 @@
             <button class="tab" data-filter="entregada">Entregadas (<span data-count="entregada">0</span>)</button>
             <button class="tab" data-filter="cancelada">Canceladas (<span data-count="cancelada">0</span>)</button>
             <button class="tab" data-filter="todas">Todas (<span data-count="todas">0</span>)</button>
+        </div>
+        <!-- Leyenda de progresión del estado de la carga -->
+        <div class="estado-legend">
+            <span class="estado-legend-label">Progresión:</span>
+            <span class="badge badge-prog">Programado</span>
+            <span class="estado-legend-arrow">›</span>
+            <span class="badge badge-hacia">Hacia la carga</span>
+            <span class="estado-legend-arrow">›</span>
+            <span class="badge badge-cargando">Cargando</span>
+            <span class="estado-legend-arrow">›</span>
+            <span class="badge badge-enruta">En ruta</span>
+            <span class="estado-legend-arrow">›</span>
+            <span class="badge badge-entregado">Entregado</span>
         </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por nº, referencia, origen, destino…">
@@ -4327,24 +4374,27 @@
     //                  desde la fecha de carga (operativa no busca antes)
     //  - espera      → más de 4 días, o sin fecha
     // No aplica a entregada/cancelada.
-    // Estado VISUAL de la carga. Cambia dinámicamente según la hora del
-    // día cuando la fecha asignada coincide con HOY:
+    // Estado VISUAL de la carga, con paleta PROGRESIVA:
+    //   Programado    → slate (gris) — pasivo, futuro
+    //   Hacia la carga → cyan        — movimiento inicial
+    //   Cargando      → amber        — operación en curso
+    //   En ruta       → indigo       — transit sostenido
+    //   Entregado     → green        — completado
+    //   Cancelada     → red          — anulado
+    // El paso entre estados se decide por kind + hora del día cuando la
+    // fecha asignada coincide con HOY:
     //   < 07:00 → "Programada hoy"
-    //   07-13   → "Hacia la carga"   (conductor en camino al cargador)
+    //   07-13   → "Hacia la carga"
     //   13-16   → "Cargando"
     //   16-ETA  → "En ruta"
-    // En cualquier otro caso devuelve el estado original (Programada,
-    // En ruta, Entregada, Cancelada). En el mockup admite _phaseSim
-    // para forzar una fase concreta y ver los 3 chips en la tabla.
     function getEstadoVisual(c, now) {
         now = now || new Date();
-        if (c.kind === 'entregada' || c.kind === 'cancelada') {
-            return { label: c.estado, color: c.estadoColor };
-        }
-        if (c._phaseSim === 'hacia')    return { label: 'Hacia la carga', color: 'blue' };
-        if (c._phaseSim === 'cargando') return { label: 'Cargando',       color: 'orange' };
-        if (c._phaseSim === 'enruta')   return { label: 'En ruta',        color: 'blue' };
-        if (c._phaseSim === 'pre7')     return { label: 'Programada hoy', color: 'orange' };
+        if (c.kind === 'entregada') return { label: 'Entregado',  color: 'entregado' };
+        if (c.kind === 'cancelada') return { label: 'Cancelada',  color: 'cancelada' };
+        if (c._phaseSim === 'hacia')    return { label: 'Hacia la carga', color: 'hacia' };
+        if (c._phaseSim === 'cargando') return { label: 'Cargando',       color: 'cargando' };
+        if (c._phaseSim === 'enruta')   return { label: 'En ruta',        color: 'enruta' };
+        if (c._phaseSim === 'pre7')     return { label: 'Programado hoy', color: 'prog' };
         // ¿fechaAsignada es hoy?
         var isToday = false;
         if (c.fechaAsignada) {
@@ -4359,12 +4409,13 @@
         }
         if (isToday) {
             var h = now.getHours();
-            if (h < 7)   return { label: 'Programada hoy', color: 'orange' };
-            if (h < 13)  return { label: 'Hacia la carga', color: 'blue' };
-            if (h < 16)  return { label: 'Cargando',       color: 'orange' };
-            return { label: 'En ruta', color: 'blue' };
+            if (h < 7)  return { label: 'Programado hoy', color: 'prog' };
+            if (h < 13) return { label: 'Hacia la carga', color: 'hacia' };
+            if (h < 16) return { label: 'Cargando',       color: 'cargando' };
+            return { label: 'En ruta', color: 'enruta' };
         }
-        return { label: c.estado, color: c.estadoColor };
+        // Programada futura
+        return { label: 'Programado', color: 'prog' };
     }
 
     function getAsignacionEstado(c) {
