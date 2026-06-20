@@ -4461,20 +4461,20 @@
         else if (f === 'prevision')  arr = CARGAS_DATA.filter(isPrevision);
         else if (f === 'programada') arr = CARGAS_DATA.filter(isProgramada);
         else                         arr = CARGAS_DATA.filter(function (c) { return c.kind === f; });
-        // Orden (frontend, mockup. Cuando llegue el backend, ORDER BY en
-        // SQL hace este trabajo y el frontend solo lo respeta o cambia
-        // por interacción del usuario):
-        // - Programadas:   fecha ASC (más próximas arriba, encaja con
-        //                  el resaltado HOY / MAÑANA / PASADO)
-        // - Previsión:     no tiene fecha → por ref DESC (las recién
-        //                  apuntadas arriba)
-        // - resto:         fecha DESC (la más reciente arriba)
-        if (f === 'programada') {
-            arr.sort(function (a, b) { return parseFechaDDMM(a.fecha) - parseFechaDDMM(b.fecha); });
-        } else if (f === 'prevision') {
+        // Orden ÚNICO para todas las pestañas: por fecha de carga EFECTIVA
+        // (la asignada si existe, si no la solicitada) en ASC — las más
+        // próximas a cargar arriba, las más tardías abajo. Operativamente
+        // es lo que el cliente quiere ver primero. Previsión (sin fecha)
+        // se queda con orden por ref DESC (recién apuntadas arriba).
+        function effFecha(c) {
+            return c.fechaAsignada ? c.fechaAsignada.split(' ')[0] : c.fecha;
+        }
+        if (f === 'prevision') {
             arr.sort(function (a, b) { return refNumber(b) - refNumber(a); });
         } else {
-            arr.sort(function (a, b) { return parseFechaDDMM(b.fecha) - parseFechaDDMM(a.fecha); });
+            arr.sort(function (a, b) {
+                return parseFechaDDMM(effFecha(a)) - parseFechaDDMM(effFecha(b));
+            });
         }
         return arr;
     }
