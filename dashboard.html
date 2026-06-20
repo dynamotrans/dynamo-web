@@ -3993,16 +3993,30 @@
         return diff;
     }
     var CARGAS_DATA = [
+        // Programada con fecha lejana + camión YA asignado → Confirmado transportista
+        // (caso típico cuando el cliente reserva con tiempo y el equipo confirma camión propio)
+        makeCarga('#C-2026-1293','PED-0429','10/07','Fija','Sevilla','Valencia','Pol. Pajanosas → Puerto Valencia','Paletizado','Material eléctrico','13,2 m · 22.500 kg','programada', undefined, {
+            precio: '1.180 €', fechaAsignada: '10/07 07:00', horaCargaEst: '07:00', etaEntrega: 'Lun 13/07',
+            horarioOrigen: 'L-V 7:00-15:00', horarioDestino: 'L-V 6:30-14:00',
+            tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa',
+            matricula: '7204 LMR / R-9852', conductor: 'Pedro Rodríguez', tfnoConductor: '+34 661 902 411'
+        }),
+        // Previsión sin fecha definida → siempre "En espera" (sin asignación porque no hay fecha)
+        makeCarga('#C-2026-1292','PED-0428','Sin fecha','1 a 4 días','Sevilla','Vigo','Polígono Industrial → Bouzas','Maquinaria','Pieza única','8,4 m · 11.000 kg','programada'),
+        // Programada con fecha cercana + camión asignado → Confirmado transportista
         makeCarga('#C-2026-1290','PED-0426','28/06','1 a 2 días','Sevilla','Madrid','Pol. Industrial Carretera de la Isla → Mercamadrid','Paletizado','Productos químicos','13,2 m · 22.000 kg','programada', undefined, {
             precio: '880 €', fechaAsignada: '29/06 08:00', horaCargaEst: '08:00', etaEntrega: 'Mar 30/06',
             horarioOrigen: 'L-V 7:00-15:00', horarioDestino: 'L-S 0:00-24:00',
-            tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa'
+            tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa',
+            matricula: '4502 NDZ', conductor: 'Antonio Beltrán', tfnoConductor: '+34 644 778 332'
         }),
+        // Programada fecha cercana, sin transportista aún → Asignándose transportista
         makeCarga('#C-2026-1288','PED-0425','25/06','Fija','Sevilla','Barcelona','Polígono Carretera Amarilla → Mercabarna','Paletizado','Frutas y verduras','13,2 m · 24.000 kg','programada', undefined, {
             precio: '1.480 €', fechaAsignada: '25/06 06:00', horaCargaEst: '06:00', etaEntrega: 'Vie 26/06',
             horarioOrigen: 'L-V 5:30-13:00', horarioDestino: 'L-S 5:00-13:00',
             tipoCamion: 'Trailer Tauliner · 13,2 m frigorífico (subcontratado)', tipoCarga: 'Carga completa'
         }),
+        // Programada con datos mínimos sin asignación todavía
         makeCarga('#C-2026-1286','PED-0424','22/06','1 a 4 días','Sevilla','Valencia','Almacén central → Puerto','Eventos / feria','Stand modular','6,0 m · 8.200 kg','programada'),
         makeCarga('#C-2026-1285','PED-0423','16/06','Fija','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Paletizado','Repuestos automoción','12,0 m · 20.000 kg','en-ruta', undefined, {
             precio: '1.420 €', fechaAsignada: '16/06 07:30', horaCargaEst: '07:30', etaEntrega: 'Mié 17/06',
