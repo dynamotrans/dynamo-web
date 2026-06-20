@@ -942,7 +942,7 @@
         }
 
         .mini-lists {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;
             margin-bottom: 1.6rem;
         }
         .mini-list-card {
@@ -1727,11 +1727,6 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
             Presupuestos
         </button>
-        <button class="sidebar-link" data-section="facturas">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-            Facturas
-            <span class="badge">2</span>
-        </button>
         <button class="sidebar-link" data-section="incidencias">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             Incidencias
@@ -2046,7 +2041,7 @@
             </div>
         </div>
 
-        <div class="stats-row">
+        <div class="stats-row stats-row-3">
             <button type="button" class="stat-card stat-card-link" onclick="showSection('cargas')">
                 <div class="stat-card-label">Cargas (mes)</div>
                 <div class="stat-card-value">28</div>
@@ -2056,11 +2051,6 @@
                 <div class="stat-card-label">Presupuestos activos</div>
                 <div class="stat-card-value">7</div>
                 <div class="stat-card-trend up">▲ 3 esta semana</div>
-            </button>
-            <button type="button" class="stat-card stat-card-link" onclick="showSection('facturas')">
-                <div class="stat-card-label">Facturas pendientes</div>
-                <div class="stat-card-value">4</div>
-                <div class="stat-card-trend down">2.450 € a vencer</div>
             </button>
             <button type="button" class="stat-card stat-card-link" onclick="showSection('incidencias')">
                 <div class="stat-card-label">Incidencias abiertas</div>
@@ -2096,20 +2086,6 @@
                     <li><div class="mini-list-left"><span class="mini-list-ref">#P-2026-0415</span><span class="mini-list-sub">Sevilla → Roma</span></div><div class="mini-list-right"><span class="mini-list-amount">2.120 €</span><span class="badge badge-yellow">Caduca 3d</span></div></li>
                     <li><div class="mini-list-left"><span class="mini-list-ref">#P-2026-0412</span><span class="mini-list-sub">Sevilla → Ámsterdam</span></div><div class="mini-list-right"><span class="mini-list-amount">2.680 €</span><span class="badge badge-gray">Caducado</span></div></li>
                     <li><div class="mini-list-left"><span class="mini-list-ref">#P-2026-0408</span><span class="mini-list-sub">Sevilla → Bruselas</span></div><div class="mini-list-right"><span class="mini-list-amount">2.420 €</span><span class="badge badge-gray">Caducado</span></div></li>
-                </ul>
-            </div>
-            <!-- 5 últimas facturas -->
-            <div class="mini-list-card">
-                <div class="mini-list-head">
-                    <h4>Últimas facturas</h4>
-                    <a href="#" onclick="showSection('facturas');return false;">Ver todas →</a>
-                </div>
-                <ul class="mini-list">
-                    <li><div class="mini-list-left"><span class="mini-list-ref">F-2026/0184</span><span class="mini-list-sub">15 jun · vence 30 jun</span></div><div class="mini-list-right"><span class="mini-list-amount">748,00 €</span><span class="badge badge-orange">Pendiente</span></div></li>
-                    <li><div class="mini-list-left"><span class="mini-list-ref">F-2026/0182</span><span class="mini-list-sub">12 jun · vence 27 jun</span></div><div class="mini-list-right"><span class="mini-list-amount">1.210,00 €</span><span class="badge badge-orange">Pendiente</span></div></li>
-                    <li><div class="mini-list-left"><span class="mini-list-ref">F-2026/0178</span><span class="mini-list-sub">8 jun · vencida 23 jun</span></div><div class="mini-list-right"><span class="mini-list-amount">492,00 €</span><span class="badge badge-red">Vencida</span></div></li>
-                    <li><div class="mini-list-left"><span class="mini-list-ref">F-2026/0175</span><span class="mini-list-sub">5 jun · cobrada</span></div><div class="mini-list-right"><span class="mini-list-amount">895,00 €</span><span class="badge badge-green">Cobrada</span></div></li>
-                    <li><div class="mini-list-left"><span class="mini-list-ref">F-2026/0171</span><span class="mini-list-sub">2 jun · cobrada</span></div><div class="mini-list-right"><span class="mini-list-amount">1.380,00 €</span><span class="badge badge-green">Cobrada</span></div></li>
                 </ul>
             </div>
         </div>
@@ -2203,62 +2179,6 @@
                 <span id="presupuestosShowing">Cargando…</span>
             </div>
             <div class="pagination-pages" id="presupuestosPagination"></div>
-        </div>
-    </section>
-
-    <!-- ==================== FACTURAS ==================== -->
-    <section class="section" id="sec-facturas">
-        <div class="sec-header">
-            <h2>Facturas</h2>
-            <div class="sec-header-actions">
-                <button class="btn-ghost">Descargar todo (ZIP)</button>
-            </div>
-        </div>
-        <div class="stats-row stats-row-3">
-            <div class="stat-card">
-                <div class="stat-card-label">Facturado este año</div>
-                <div class="stat-card-value">42.380 €</div>
-                <div class="stat-card-trend up">▲ 18% vs. 2025</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-card-label">Pendiente de cobro</div>
-                <div class="stat-card-value">2.450 €</div>
-                <div class="stat-card-trend down">3 facturas</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-card-label">Vencidas</div>
-                <div class="stat-card-value">492 €</div>
-                <div class="stat-card-trend down">1 factura</div>
-            </div>
-        </div>
-        <div class="filters">
-            <input type="search" placeholder="Buscar por número, concepto…">
-            <select class="filter-mes" data-filter-mes>
-                <!-- Opciones pobladas por JS al cargar -->
-            </select>
-            <input type="month" class="filter-mes-custom" data-filter-mes-custom hidden aria-label="Selecciona mes y año">
-        </div>
-        <div class="table-wrap">
-            <table class="data">
-                <thead><tr>
-                    <th>Nº factura</th><th>F. emisión</th><th>F. vencim.</th><th>Concepto</th><th>Base</th><th>IVA 21%</th><th>Total</th><th>Estado</th>
-                </tr></thead>
-                <tbody id="tbodyFacturas"></tbody>
-            </table>
-        </div>
-        <div class="pagination">
-            <div class="pagination-left">
-                <label class="pagination-perpage-wrap">Mostrar
-                    <select class="pagination-perpage" data-table="facturas">
-                        <option value="10">10</option>
-                        <option value="20" selected>20</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                    </select>
-                </label>
-                <span id="facturasShowing">Cargando…</span>
-            </div>
-            <div class="pagination-pages" id="facturasPagination"></div>
         </div>
     </section>
 
@@ -2692,7 +2612,6 @@
         'dashboard':         'Dashboard',
         'cargas':            'Cargas',
         'presupuestos':      'Presupuestos',
-        'facturas':          'Facturas',
         'incidencias':       'Incidencias',
         'nueva-carga':       'Nueva carga',
         'nuevo-presupuesto': 'Nuevo presupuesto',
