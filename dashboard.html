@@ -1158,6 +1158,9 @@
            para que se vean a simple vista: Asignada en azul navy, ETA en verde */
         table.data .meta-asignada { color: var(--navy); font-weight: 700; }
         table.data .meta-eta      { color: #15803d; font-weight: 700; }
+        /* Matrícula resaltada en navy bold; pendientes en itálica gris claro */
+        table.data .meta-matricula { color: var(--navy); font-weight: 700; letter-spacing: 0.3px; }
+        table.data .meta-pend      { color: var(--gray-400); font-style: italic; }
         /* Estado de asignación de transportista — línea bajo el badge de estado.
             espera     gris
             asignandose ámbar con punto pulsante (backend buscando)
@@ -2998,13 +3001,22 @@
             sub: 'Información completa del envío',
             body:
                 sectionTitle('Solicitud') +
-                infoGrid([
-                    { label: 'Nº carga', value: d.ref },
-                    { label: 'Ref. cliente', value: d.refCli },
-                    { label: 'Estado', value: d.estado },
-                    { label: 'Precio', value: pend(src.precio), html: true },
-                    { label: 'Fecha solicitada · Ventana', value: fechaConDia(d.fecha) + (d.ventana ? ' · ' + d.ventana : ''), span: true }
-                ]) +
+                (function () {
+                    var items = [
+                        { label: 'Nº carga', value: d.ref },
+                        { label: 'Ref. cliente', value: d.refCli },
+                        { label: 'Estado', value: d.estado },
+                        { label: 'Precio', value: pend(src.precio), html: true }
+                    ];
+                    // Si ya hay fecha asignada por el equipo, la "fecha
+                    // solicitada + ventana" sobra: el rango pedido queda
+                    // superado por la fecha real. Solo se muestra cuando
+                    // la carga sigue sin confirmar día concreto.
+                    if (!src.fechaAsignada) {
+                        items.push({ label: 'Fecha solicitada · Ventana', value: fechaConDia(d.fecha) + (d.ventana ? ' · ' + d.ventana : ''), span: true });
+                    }
+                    return infoGrid(items);
+                })() +
                 sectionTitle('Asignación') +
                 (function () {
                     var a = getAsignacionEstado(src);
@@ -4353,12 +4365,17 @@
             tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin cargas en este filtro</td></tr>';
         } else {
             tbody.innerHTML = slice.map(function (c) {
-                // Resaltado: solo cargas futuras (programada / en-ruta).
-                // COLOR por business-days desde el anchor (hoy o, si hoy es
-                // Sáb/Dom, el próximo lunes). ETIQUETA "HOY"/"MAÑANA"/"PASADO"
-                // solo si la fecha coincide en calendario; si no, sin chip.
+                // Si la carga tiene fecha asignada por el equipo, la
+                // tabla muestra la asignada como principal (con su chip
+                // HOY/MAÑANA/PASADO MAÑANA basado en ella) y oculta la
+                // ventana — el rango pedido queda superado por la fecha
+                // real. Si no, vemos la fecha solicitada + ventana.
+                var asigParts = c.fechaAsignada ? c.fechaAsignada.split(' ') : null;
+                var asigDate = asigParts ? asigParts[0] : null;
+                var asigTime = asigParts && asigParts[1] ? asigParts[1] : null;
+                var fechaPrincipal = asigDate || c.fecha;
                 var hi = (c.kind === 'programada' || c.kind === 'en-ruta')
-                    ? highlightInfo(c.fecha) : null;
+                    ? highlightInfo(fechaPrincipal) : null;
                 var rowCls = '', whenTag = '';
                 if (hi) {
                     if (hi.level === 0)      rowCls = ' class="row-today"';
@@ -4368,17 +4385,23 @@
                     else if (hi.label === 'MAÑANA') whenTag = '<span class="row-when-tag tag-tomorrow">MAÑANA</span>';
                     else if (hi.label === 'PASADO MAÑANA') whenTag = '<span class="row-when-tag tag-after">PASADO MAÑANA</span>';
                 }
+                function pendMeta(label) { return '<div class="meta meta-pend">' + label + ' pdte.</div>'; }
                 return '<tr' + rowCls + '>' +
                     '<td class="ref">' + esc(c.ref) + '</td>' +
                     '<td class="ref-cli">' + esc(c.refCli) + '</td>' +
-                    '<td><strong>' + esc(fechaConDia(c.fecha)) + '</strong>' + whenTag +
-                        (c.ventana ? '<div class="meta">' + esc(c.ventana) + '</div>' : '') +
-                        (c.fechaAsignada ? '<div class="meta meta-asignada">Asignada: ' + esc(c.fechaAsignada) + '</div>' : '') +
+                    '<td><strong>' + esc(fechaConDia(fechaPrincipal)) + '</strong>' + whenTag +
+                        (asigDate
+                            ? '<div class="meta meta-asignada">Carga ' + (asigTime ? esc(asigTime) : 'confirmada') + '</div>'
+                            : (c.ventana ? '<div class="meta">' + esc(c.ventana) + '</div>' : '')) +
                         (c.etaEntrega ? '<div class="meta meta-eta">ETA: ' + esc(c.etaEntrega) + '</div>' : '') +
                     '</td>' +
                     '<td class="route"><strong>' + esc(c.origen) + '</strong><span class="arrow">→</span><strong>' + esc(c.destino) + '</strong>' + (c.direcciones ? '<div class="meta">' + esc(c.direcciones) + '</div>' : '') + '</td>' +
                     '<td>' + esc(c.mercancia) + (c.mercanciaMeta ? '<div class="meta">' + esc(c.mercanciaMeta) + '</div>' : '') + '</td>' +
-                    '<td class="amount">' + esc(c.medidas) + '</td>' +
+                    '<td class="amount">' + esc(c.medidas) +
+                        (c.tipoCarga ? '<div class="meta">' + esc(c.tipoCarga) + '</div>' : pendMeta('Tipo carga')) +
+                        (c.tipoCamion ? '<div class="meta">' + esc(c.tipoCamion) + '</div>' : pendMeta('Camión')) +
+                        (c.matricula ? '<div class="meta meta-matricula">' + esc(c.matricula) + '</div>' : pendMeta('Matrícula')) +
+                    '</td>' +
                     '<td><span class="badge badge-' + c.estadoColor + '">' + esc(c.estado) + '</span>' +
                         (c.kind === 'entregada' && c.hasAlbaran ? ' <span class="badge-doc" title="Albarán PDF disponible">📄</span>' : '') +
                         (function () {
