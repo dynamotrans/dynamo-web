@@ -4106,7 +4106,7 @@
         var label = null;
         if (diff === 0) label = 'HOY';
         else if (diff === 1) label = 'MAÑANA';
-        else if (diff === 2) label = 'PASADO';
+        else if (diff === 2) label = 'PASADO MAÑANA';
         return { level: level, label: label };
     }
     // Parser DD/MM → timestamp (año actual). "Sin fecha" → Infinity para
@@ -4201,7 +4201,7 @@
                     else if (hi.level === 2) rowCls = ' class="row-aftertomorrow"';
                     if (hi.label === 'HOY')        whenTag = '<span class="row-when-tag tag-today">HOY</span>';
                     else if (hi.label === 'MAÑANA') whenTag = '<span class="row-when-tag tag-tomorrow">MAÑANA</span>';
-                    else if (hi.label === 'PASADO') whenTag = '<span class="row-when-tag tag-after">PASADO</span>';
+                    else if (hi.label === 'PASADO MAÑANA') whenTag = '<span class="row-when-tag tag-after">PASADO MAÑANA</span>';
                 }
                 return '<tr' + rowCls + '>' +
                     '<td class="ref">' + esc(c.ref) + '</td>' +
