@@ -2065,7 +2065,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Nº carga</th><th>Ref. cliente</th><th>Fecha · Ventana</th><th>Ruta</th><th>Mercancía</th><th>m · kg</th><th>Estado</th><th></th>
+                    <th>Nº carga</th><th>Ref. cliente</th><th>Fecha · Ventana</th><th>Ruta</th><th>Mercancía</th><th>m · kg</th><th>Estado</th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -2106,7 +2106,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Nº presup.</th><th>Ref. cliente</th><th>Fecha solic.</th><th>Ruta</th><th>Mercancía</th><th>m · kg</th><th>Precio</th><th>Vigente hasta</th><th></th>
+                    <th>Nº presup.</th><th>Ref. cliente</th><th>Fecha solic.</th><th>Ruta</th><th>Mercancía</th><th>m · kg</th><th>Precio</th><th>Vigente hasta</th>
                 </tr></thead>
                 <tbody id="tbodyPresupuestos"></tbody>
             </table>
@@ -2161,7 +2161,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Nº factura</th><th>F. emisión</th><th>F. vencim.</th><th>Concepto</th><th>Base</th><th>IVA 21%</th><th>Total</th><th>Estado</th><th></th>
+                    <th>Nº factura</th><th>F. emisión</th><th>F. vencim.</th><th>Concepto</th><th>Base</th><th>IVA 21%</th><th>Total</th><th>Estado</th>
                 </tr></thead>
                 <tbody id="tbodyFacturas"></tbody>
             </table>
@@ -2204,7 +2204,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>F. registro</th><th>Descripción</th><th>Nº carga</th><th>Ref. cliente</th><th>F. carga · Ventana</th><th>Ruta</th><th>m · kg</th><th>Estado</th><th></th>
+                    <th>F. registro</th><th>Descripción</th><th>Nº carga</th><th>Ref. cliente</th><th>F. carga · Ventana</th><th>Ruta</th><th>m · kg</th><th>Estado</th>
                 </tr></thead>
                 <tbody>
                     <tr>
@@ -2216,12 +2216,6 @@
                         <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Barcelona</strong></td>
                         <td class="amount">8,4 m · 14.500 kg</td>
                         <td><span class="badge badge-orange">En curso</span></td>
-                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
-                            <div class="row-menu-pop" data-rm>
-                                <button class="row-menu-item">📋 Ver detalle</button>
-                                <button class="row-menu-item">💬 Añadir comentario</button>
-                                <button class="row-menu-item">📎 Adjuntar foto</button>
-                            </div></td>
                     </tr>
                     <tr>
                         <td>02/06/2026<div class="meta">16:08</div></td>
@@ -2232,10 +2226,6 @@
                         <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Zaragoza</strong></td>
                         <td class="amount">13,2 m · 21.000 kg</td>
                         <td><span class="badge badge-green">Resuelta</span></td>
-                        <td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button>
-                            <div class="row-menu-pop" data-rm>
-                                <button class="row-menu-item">📋 Ver detalle</button>
-                            </div></td>
                     </tr>
                 </tbody>
             </table>
@@ -4153,7 +4143,9 @@
         return mi('eye', 'Ver detalle') + mi('download', 'Descargar PDF');
     }
     function actionsCell(itemsHtml) {
-        return '<td class="actions"><button class="row-menu-btn" onclick="toggleRowMenu(this)">⋯</button><div class="row-menu-pop" data-rm>' + itemsHtml + '</div></td>';
+        // Botón ⋯ eliminado: las acciones de cada fila viven ahora en el
+        // footer del modal Ver detalle, que se abre al pulsar la fila.
+        return '';
     }
 
     // ---- FILTERS ----
@@ -4281,7 +4273,7 @@
         var tbody = document.getElementById('tbodyCargas');
         if (!tbody) return;
         if (slice.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin cargas en este filtro</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin cargas en este filtro</td></tr>';
         } else {
             tbody.innerHTML = slice.map(function (c) {
                 // Resaltado: solo cargas futuras (programada / en-ruta).
@@ -4339,7 +4331,7 @@
         var tbody = document.getElementById('tbodyPresupuestos');
         if (!tbody) return;
         if (slice.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin presupuestos en este filtro</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin presupuestos en este filtro</td></tr>';
         } else {
             tbody.innerHTML = slice.map(function (p) {
                 return '<tr>' +
@@ -4375,7 +4367,7 @@
         var tbody = document.getElementById('tbodyFacturas');
         if (!tbody) return;
         if (slice.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin facturas</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin facturas</td></tr>';
         } else {
             tbody.innerHTML = slice.map(function (f) {
                 return '<tr>' +
