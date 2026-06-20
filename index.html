@@ -1276,6 +1276,19 @@
             background-repeat: no-repeat; background-position: right 0.9rem center; padding-right: 2.2rem;
         }
         .alm-precio-select:focus, .alm-precio-select:hover { border-color: var(--purple); outline: none; }
+        /* Estado deshabilitado: el almacenamiento no está activo todavía,
+           dejamos el selector visible para que el cliente vea que existe
+           pero gris e inerte para que no pueda elegir nada. */
+        .alm-precio-select:disabled,
+        .alm-precio-select[disabled] {
+            background-color: var(--gray-100);
+            color: var(--gray-500);
+            cursor: not-allowed;
+            opacity: 0.65;
+            border-color: var(--gray-200);
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%23a0a4af' d='M6 8L0 0h12z'/></svg>");
+        }
+        .alm-precio-select:disabled:hover { border-color: var(--gray-200); }
         .alm-precio-box {
             margin-top: 0.9rem; padding: 0.9rem 1rem; border-radius: 12px;
             background: linear-gradient(135deg, rgba(51,0,204,0.05), rgba(34,165,90,0.05));
@@ -2503,8 +2516,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     <span class="svc-tag svc-tag-soon">Servicio aún no disponible</span>
                     <div class="alm-precio">
                         <label class="alm-precio-label" for="alm-prov-select">Calcula tu precio</label>
-                        <select id="alm-prov-select" class="alm-precio-select" onchange="updateAlmPrecio(this)" aria-label="Selecciona provincia">
-                            <option value="">Selecciona provincia…</option>
+                        <select id="alm-prov-select" class="alm-precio-select" disabled aria-disabled="true" title="Servicio aún no disponible — próximamente" aria-label="Selecciona provincia (servicio aún no disponible)">
+                            <option value="">Servicio aún no disponible</option>
                             <option>A Coruña</option>
                             <option>Álava</option>
                             <option>Albacete</option>
