@@ -44,6 +44,53 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
     - Logs de auditoría y alertas de actividad sospechosa
     - Pen-testing antes del lanzamiento
 
+## 🏗️ Stack y decisiones para el backend (sesión 2026-06-20)
+
+Bloque consolidado para tener todo en un sitio cuando arranquemos la implementación. Plan estimado: **3-4 semanas concentradas para MVP** sin Holded ni n8n; **5-7 semanas** si añadimos los dos.
+
+### Plataforma
+- **Supabase** (Postgres gestionado + Auth + Storage + Edge Functions + Realtime + RLS). Cuenta y proyecto pendientes de crear.
+- **Vercel** ya conectado al repo. Se mantiene para hosting del front (web pública + futuro panel Next.js). Cuando el panel pase a producción real, activar Deployment Protection para previews.
+- **Dominio panel**: `panel.dynamotrans.com` (subdominio dedicado para el portal). Apuntar al deploy de Vercel cuando el back esté listo.
+
+### Email transaccional → **Postmark** (decidido 2026-06-20)
+- Razón: deliverability líder del mercado, separa estricto transaccional vs marketing. En B2B logístico con facturas y albaranes legales no se puede permitir que un email "se pierda" en spam.
+- Coste: **$15/mes hasta 10k emails** (asumible desde el día 1).
+- Se descartó Resend aunque tiene free tier 3k/mes — la diferencia anual con Postmark es marginal y el upside en deliverability + soporte vale la pena.
+- Free tier de Postmark (100/mes) basta para fase de pruebas, luego se pasa al plan de pago.
+- Setup: cuenta en `postmarkapp.com`, añadir dominio `dynamotrans.com` con 3 registros DNS (SPF / DKIM / Return-Path), generar API token, guardarlo en `POSTMARK_API_KEY` de Supabase Edge Functions. Llamadas desde Edge Functions con SDK npm.
+- Casos de uso: confirmación de carga creada, cambio de estado de carga (programada → en ruta → entregada), albarán disponible, recuperación de contraseña, alertas de incidencia al equipo, recordatorios.
+
+### WhatsApp transaccional → **WhatsApp Cloud API (Meta/Facebook)** (ya provisionado por el cliente)
+- El cliente confirmó que **ya tiene la API de WhatsApp dada de alta con Facebook + número de teléfono verificado**. Pendiente solo de cablear cuando entre el backend.
+- Casos de uso: avisos al cliente cuando se confirma transportista, recordatorio de carga el día anterior, alerta de incidencia, recuperar contraseña si email no llega.
+- Cliente puede optar por canal preferido (email / whatsapp / ambos) por tipo de evento.
+- Coste de Meta: gratis hasta 1.000 conversaciones iniciadas por usuario/mes; ~0,03-0,06 € por conversación adicional según país (España es barato).
+- Implementación: Edge Function que hace POST a `graph.facebook.com/v18.0/{phone-number-id}/messages` con token de Meta en `META_WA_TOKEN`. Plantillas aprobadas en Meta Business Manager.
+
+### Naming convention de columnas/campos
+- **`snake_case` en español** (confirmado 2026-06-20 leyendo la base del cliente en Google Sheets `IA-DYNAMO-2030`, ID `11hUKWFHu0cirk-IAGIiVPETFxwt5_Lo4QAHmYlUtO8o`, propietario `info@dynamotrans.com`).
+- Los nombres usados en el Sheets (`referencia_continua_carga`, `fecha_hora_asignacion_camion`, `transportista_concatenar`, etc.) son la **fuente de verdad** para el schema de Supabase y para los campos del JSON en frontend.
+- TODO pendiente: refactor del mockup actual para renombrar `fechaAsignada` → `fecha_hora_asignacion_camion`, `transportistaNombre` → `transportista_concatenar`, `matricula` → `matriculas_autorizadas`, etc. Sale gratis con un find&replace masivo cuando se haga la primera sincronización.
+
+### Migración AppScript → Edge Functions
+- La lógica de negocio que el cliente ya tiene en AppScript del Sheets (tarifador, validaciones, cálculos de margen, etc.) se porta a Supabase Edge Functions.
+- Esfuerzo estimado: 1-2 semanas para alguien que ya maneja JS (el cliente lo maneja). La lógica se reaprovecha en un 95%, solo cambia el plumbing de I/O (SpreadsheetApp.getRange → supabase.from().select()).
+- Triggers temporales de AppScript (`onEdit`, `onChange`, `time-based`) → Postgres triggers o `pg_cron`.
+
+### Plan por fases (3-4 semanas MVP sin Holded ni n8n)
+- **Semana 1** — Schema + RLS + Auth + conectar dashboard: cliente entra y ve sus cargas reales de Supabase.
+- **Semana 2** — Tarifador en Edge Function + POST de cargas/presupuestos + estados dinámicos.
+- **Semana 3** — Editor de cargas con flujo legal + incidencias + Storage para fotos + pulido del frontend.
+- **Semana 4** — Deploy producción + cliente piloto + bugfix.
+- **Fase 2 (1-2 semanas más)**: integración Holded (facturas read-only) + n8n para automatizaciones (albarán recibido en `info@`, recordatorios, etc.).
+
+### Lo que NO entra en MVP
+- Holded (facturas): fase 2.
+- n8n (automatizaciones de email/whatsapp al detectar eventos): fase 2. Mientras tanto el código manda emails directamente desde Edge Functions usando Postmark + WhatsApp Cloud API.
+- Pasarela de pago: fase 3 (solo si llegamos a aceptar pagos en el panel).
+- Roles transportista / proveedor: fase 4 (cuando se valide la operativa con clientes).
+
 ## ✅ Hecho recientemente
 - [x] 2026-06-19 — **TARIFADOR INTERNO DEL PANEL** (preview): formulario completo en Nueva carga y Nuevo presupuesto con OSM autocomplete, Flatpickr, selectores reactivos al camión, anotaciones libres con contador
 - [x] 2026-06-19 — **Flujo de 2 pasos para Nueva carga** (con fecha): paso 1 formulario, paso 2 confirmación con aviso de grupaje condicional (solo si ml < máx camión) + Disponibilidad/Garantías + resumen + condiciones generales → modal IMPORTANTE de cancelación → guarda. Si la carga es "Sin fecha" (Previsión) salta el paso 2 y guarda directo en Previsión
