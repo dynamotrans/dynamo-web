@@ -954,6 +954,20 @@
         }
 
         .dash-ctas { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.4rem; }
+        /* === Dashboard: fila principal === */
+        /* Tarifador a la izquierda + CESCE como sidebar pegada arriba.
+           El CESCE no se estira; el tarifador determina la altura. */
+        .dash-main-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 280px;
+            gap: 1rem; margin-bottom: 1.4rem;
+            align-items: start;
+        }
+        .dash-main-row .cesce-card { margin-bottom: 0; }
+        @media (max-width: 1100px) {
+            .dash-main-row { grid-template-columns: 1fr; }
+        }
+
         .dash-top-row {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -1914,29 +1928,126 @@
 
     <!-- ==================== DASHBOARD ==================== -->
     <section class="section active" id="sec-dashboard">
-        <div class="dash-top-row">
-            <a class="dash-cta dash-cta-purple" href="#" onclick="showSection('nueva-carga');return false;">
-                <div class="dash-cta-icon">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        <!-- Fila principal: TARIFADOR a la izquierda (mode="precio" — genera
+             un presupuesto guardado y opcionalmente lo convierte en carga
+             con el mismo flujo de Nueva carga) + CESCE como sidebar -->
+        <div class="dash-main-row">
+            <div class="ptar-card" data-ptar-mode="precio">
+                <button type="button" class="ptar-reset" data-ptar-reset aria-label="Reiniciar formulario" title="Reiniciar">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                    </svg>
+                </button>
+                <p class="ptar-intro"><strong>Pide tu tarifa.</strong> Te damos precio orientativo al instante. Se guarda como presupuesto vigente 7 días — si te encaja, lo conviertes en carga en un clic.</p>
+
+                <div class="ptar-grid">
+                    <div class="ptar-field">
+                        <label class="ptar-label" for="ptar-orig-precio">Origen *</label>
+                        <div class="ptar-input-wrap" data-ptar-orig-wrap>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <input type="text" id="ptar-orig-precio" data-ptar-orig placeholder="CP o ciudad" autocomplete="off" inputmode="search">
+                            <ul class="ptar-sug" data-ptar-orig-sug hidden></ul>
+                        </div>
+                    </div>
+                    <div class="ptar-field">
+                        <label class="ptar-label" for="ptar-dest-precio">Destino *</label>
+                        <div class="ptar-input-wrap" data-ptar-dest-wrap>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                            <input type="text" id="ptar-dest-precio" data-ptar-dest placeholder="CP o ciudad" autocomplete="off" inputmode="search">
+                            <ul class="ptar-sug" data-ptar-dest-sug hidden></ul>
+                        </div>
+                    </div>
+
+                    <div class="ptar-field">
+                        <label class="ptar-label" for="ptar-camion-precio">Tipo de camión</label>
+                        <select id="ptar-camion-precio" data-ptar-camion class="ptar-select">
+                            <option value="tauliner" data-ml-max="13" data-peso-max="24">Trailer Tauliner · 13,2 m (más económico)</option>
+                            <option value="rigido" data-ml-max="8" data-peso-max="14">Rígido 8 m con plataforma + transpalet (más caro)</option>
+                        </select>
+                        <div class="ptar-camion-tip" data-ptar-camion-tip></div>
+                    </div>
+                    <div class="ptar-field">
+                        <label class="ptar-label" for="ptar-merca-precio">Tipo de mercancía</label>
+                        <select id="ptar-merca-precio" data-ptar-merca class="ptar-select">
+                            <option>Paletizado mercancía general — almacén a almacén (por lateral)</option>
+                            <option>Por lateral — mercancía no paletizada (maquinaria, perfiles…)</option>
+                            <option>Por techo — mercancía no paletizada (maquinaria, perfiles…)</option>
+                            <option>Material eventos / ferias</option>
+                            <option>Obra — recogidas / entregas</option>
+                            <option>Zona urbana con/sin permisos — recogidas / entregas</option>
+                            <option>ADR mercancía</option>
+                            <option>Fincas — recogidas / entregas</option>
+                            <option>Balas / sacas sin palet (limpio) — NIMA requerido</option>
+                            <option>Balas / sacas sin palet (sucios) — NIMA requerido</option>
+                        </select>
+                    </div>
+
+                    <div class="ptar-field">
+                        <label class="ptar-label" for="ptar-ml-precio">Metros lineales</label>
+                        <select id="ptar-ml-precio" data-ptar-ml class="ptar-select"></select>
+                    </div>
+                    <div class="ptar-field">
+                        <label class="ptar-label" for="ptar-peso-precio">Peso (toneladas)</label>
+                        <select id="ptar-peso-precio" data-ptar-peso class="ptar-select"></select>
+                    </div>
+
+                    <div class="ptar-field ptar-field-full ptar-occ-field" data-ptar-occ-field>
+                        <label class="ptar-label">% carga del camión</label>
+                        <div class="ptar-occ-bar"><div class="ptar-occ-fill" data-ptar-occ-fill></div></div>
+                        <p class="ptar-occ-meta" data-ptar-occ-meta>—</p>
+                    </div>
+
+                    <div class="ptar-field">
+                        <label class="ptar-label" for="ptar-dia-precio">Fecha de carga (L-V)</label>
+                        <div class="ptar-fecha-wrap">
+                            <select id="ptar-dia-precio" data-ptar-dia class="ptar-select"></select>
+                            <input type="date" data-ptar-fecha class="ptar-date" aria-label="Elegir fecha en calendario">
+                        </div>
+                    </div>
+                    <div class="ptar-field">
+                        <label class="ptar-label" for="ptar-urgencia-precio">Ventana de carga</label>
+                        <select id="ptar-urgencia-precio" data-ptar-urgencia class="ptar-select">
+                            <option value="dia">Fecha fija (un día concreto, más cara)</option>
+                            <option value="estandar" selected>1 a 2 días (estándar)</option>
+                            <option value="flexible">1 a 4 días (flexible, más económica)</option>
+                        </select>
+                    </div>
+
+                    <div class="ptar-field ptar-field-full ptar-eta-field" data-ptar-eta-field>
+                        <label class="ptar-label">Tránsito y entrega estimada</label>
+                        <div class="ptar-eta-box" data-ptar-eta-box>
+                            <span class="ptar-eta-placeholder">Indica origen, destino y fecha para ver la entrega estimada.</span>
+                        </div>
+                    </div>
+
+                    <div class="ptar-field ptar-field-full">
+                        <label class="ptar-label" for="ptar-refcli-precio">Tu referencia interna (opcional)</label>
+                        <input type="text" id="ptar-refcli-precio" data-ptar-refcli class="ptar-select" placeholder="Ej. COT-219">
+                    </div>
                 </div>
-                <div class="dash-cta-text">
-                    <h4>Nueva carga</h4>
-                    <p>Solicitar un transporte con tarifa cerrada</p>
+
+                <div class="ptar-notes-wrap">
+                    <button type="button" class="ptar-notes-toggle" data-ptar-notes-toggle aria-expanded="false">
+                        <span class="pnt-icon" aria-hidden="true">+</span>
+                        Añadir anotaciones
+                    </button>
+                    <div class="ptar-notes-body" data-ptar-notes-body hidden>
+                        <textarea data-ptar-notes maxlength="1000" rows="3"
+                            placeholder="Detalles que debamos saber (acceso, dimensiones especiales, ADR, instrucciones de entrega…)"></textarea>
+                        <div class="ptar-notes-counter"><span data-ptar-notes-count>0</span> / 1000</div>
+                    </div>
                 </div>
-            </a>
-            <a class="dash-cta dash-cta-green" href="#" onclick="showSection('nuevo-presupuesto');return false;">
-                <div class="dash-cta-icon">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+
+                <div class="ptar-warning" data-ptar-warning role="alert">⚠ Introduce el origen y el destino antes de generar el precio.</div>
+
+                <div class="ptar-actions">
+                    <button type="button" class="btn-primary" data-ptar-submit>Generar precio</button>
                 </div>
-                <div class="dash-cta-text">
-                    <h4>Nuevo presupuesto</h4>
-                    <p>Pedir un precio sin compromiso (vigente 7 días)</p>
-                </div>
-            </a>
-            <!-- CESCE: solo se muestra el ESTADO de cobertura al cliente
-                 (no consumo / disponible / límite). 3 estados posibles —
-                 cambiar la clase modificadora y el texto cuando llegue el
-                 backend de CESCE:
+            </div>
+
+            <!-- CESCE sidebar: solo estado de cobertura. 3 estados posibles —
+                 cambiar la clase modificadora o usar ?cesce=ok|warn|none:
                   · cesce-status-ok    → "Con crédito disponible"
                   · cesce-status-warn  → "Crédito agotado"
                   · cesce-status-none  → "Sin cobertura · pago previo a carga" -->
@@ -4106,7 +4217,7 @@
         var label = null;
         if (diff === 0) label = 'HOY';
         else if (diff === 1) label = 'MAÑANA';
-        else if (diff === 2) label = 'PASADO';
+        else if (diff === 2) label = 'PASADO MAÑANA';
         return { level: level, label: label };
     }
     // Parser DD/MM → timestamp (año actual). "Sin fecha" → Infinity para
@@ -4201,7 +4312,7 @@
                     else if (hi.level === 2) rowCls = ' class="row-aftertomorrow"';
                     if (hi.label === 'HOY')        whenTag = '<span class="row-when-tag tag-today">HOY</span>';
                     else if (hi.label === 'MAÑANA') whenTag = '<span class="row-when-tag tag-tomorrow">MAÑANA</span>';
-                    else if (hi.label === 'PASADO') whenTag = '<span class="row-when-tag tag-after">PASADO</span>';
+                    else if (hi.label === 'PASADO MAÑANA') whenTag = '<span class="row-when-tag tag-after">PASADO MAÑANA</span>';
                 }
                 return '<tr' + rowCls + '>' +
                     '<td class="ref">' + esc(c.ref) + '</td>' +
@@ -4898,16 +5009,120 @@
                     camion: camion, camionLabel: CAMION_INFO[camion] ? CAMION_INFO[camion].label : camion,
                     ml: ml, peso: peso, medidas: medidas,
                     orig: orig, dest: dest, origCorto: origCorto, destCorto: destCorto,
+                    origLat: origWrap.dataset.lat, origLon: origWrap.dataset.lon,
+                    destLat: destWrap.dataset.lat, destLon: destWrap.dataset.lon,
                     mercaTxt: mercaTxt, mercanciaShort: mercanciaShort,
+                    mercaIndex: mercaSel.selectedIndex,
+                    urgenciaValue: urgenciaSel.value,
                     urgenciaTxt: urgenciaTxt, urgenciaLabel: urgenciaSel_label,
+                    diaValue: diaSel ? diaSel.value : '',
                     fechaTxt: fechaTxt, fechaLarga: fechaLarga,
                     refCli: refCliInput.value.trim() || (mode === 'carga' ? 'PED-NUEVO' : 'COT-NUEVO'),
+                    refCliRaw: refCliInput.value.trim(),
                     notes: notesTxt.value.trim()
                 };
             }
 
             // Inserta la carga/presupuesto en la data y navega — paso final
             // común para presupuesto (directo) y carga (tras confirm + modal).
+            // Tarifador del dashboard (mode='precio'): calcula precio,
+            // guarda como presupuesto y abre el modal de resultado con
+            // opción de convertirlo en carga.
+            function finalizePrecio(d) {
+                var base = (d.camion === 'tauliner' ? 950 : 720)
+                    + (parseFloat(d.ml === '13.2' ? 13.2 : d.ml) * 70)
+                    + (parseFloat(d.peso) * 35);
+                var precio = Math.round(base / 10) * 10;
+                var ref = nextRef('presupuesto');
+                var vigencia = (function () {
+                    var t = new Date(); t.setDate(t.getDate() + 7);
+                    return fmtDate(t) + ' (7 días)';
+                })();
+                PRESUPUESTOS_DATA.unshift(makePresupuesto(
+                    ref, d.refCli, fmtDate(new Date()),
+                    d.origCorto, d.destCorto, d.mercanciaShort, d.medidas,
+                    precio.toLocaleString('es-ES') + ' €', vigencia, 'green', 'activos'
+                ));
+                TABLE_STATE.presupuestos.page = 1;
+                TABLE_STATE.presupuestos.filter = 'activos';
+                renderPresupuestosTable();
+                window._lastPrecioData = d;
+                window._lastPrecioRef = ref;
+                window._lastPrecioValue = precio;
+                showPrecioGeneradoModal(ref, precio, d);
+            }
+            function showPrecioGeneradoModal(ref, precio, d) {
+                var precioStr = precio.toLocaleString('es-ES') + ' €';
+                openDashModal({
+                    icon: '€',
+                    title: 'Precio generado',
+                    sub: 'Presupuesto ' + ref + ' · vigente 7 días',
+                    body:
+                        '<div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:1.1rem 1.2rem;text-align:center;">' +
+                            '<div style="font-size:0.68rem;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.6px;font-weight:700;">Tarifa orientativa</div>' +
+                            '<div style="font-size:2rem;font-weight:900;color:var(--navy);margin-top:0.35rem;line-height:1;">' + precioStr + '</div>' +
+                            '<div style="font-size:0.8rem;color:var(--gray-700);margin-top:0.45rem;">' + escapeHtml(d.origCorto) + ' → ' + escapeHtml(d.destCorto) + '</div>' +
+                            '<div style="font-size:0.74rem;color:var(--gray-500);margin-top:0.1rem;">' + escapeHtml(d.camionLabel.split(' · ')[0]) + ' · ' + escapeHtml(d.medidas) + '</div>' +
+                        '</div>' +
+                        '<p style="font-size:0.85rem;color:var(--gray-700);margin-top:1.1rem;line-height:1.55;">' +
+                            'El presupuesto ya está guardado en <a href="#" onclick="closeDashModal();showSection(\'presupuestos\');return false;" style="color:var(--purple);font-weight:700;text-decoration:underline;">tus presupuestos</a>. Si te encaja, puedes convertirlo en carga ahora — pasarás por el mismo proceso de confirmación que en Nueva carga.' +
+                        '</p>',
+                    footer:
+                        '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>' +
+                        '<button class="btn-primary" onclick="closeDashModal();window.precioConvertirEnCarga()">Generar carga ahora</button>'
+                });
+            }
+            // Convertir un presupuesto recién generado en carga. Navega a
+            // Nueva carga, prefilla los campos con los datos del tarifador
+            // del dashboard y dispara el submit programáticamente para que
+            // el flujo de confirmación se abra como si el cliente hubiera
+            // rellenado la Nueva carga directamente.
+            window.precioConvertirEnCarga = function () {
+                var d = window._lastPrecioData;
+                if (!d) return;
+                showSection('nueva-carga');
+                setTimeout(function () { prefillNuevaCarga(d); }, 80);
+                setTimeout(function () {
+                    var btn = document.querySelector('#sec-nueva-carga [data-ptar-submit]');
+                    if (btn) btn.click();
+                }, 250);
+            };
+            function prefillNuevaCarga(d) {
+                var card = document.querySelector('#sec-nueva-carga .ptar-card');
+                if (!card) return;
+                var nO = card.querySelector('[data-ptar-orig]');
+                var nD = card.querySelector('[data-ptar-dest]');
+                var nOW = card.querySelector('[data-ptar-orig-wrap]');
+                var nDW = card.querySelector('[data-ptar-dest-wrap]');
+                var nC = card.querySelector('[data-ptar-camion]');
+                var nM = card.querySelector('[data-ptar-merca]');
+                var nMl = card.querySelector('[data-ptar-ml]');
+                var nP = card.querySelector('[data-ptar-peso]');
+                var nDia = card.querySelector('[data-ptar-dia]');
+                var nU = card.querySelector('[data-ptar-urgencia]');
+                var nR = card.querySelector('[data-ptar-refcli]');
+                var nN = card.querySelector('[data-ptar-notes]');
+                if (nO) nO.value = d.orig;
+                if (nD) nD.value = d.dest;
+                if (nOW && d.origLat) { nOW.dataset.lat = d.origLat; nOW.dataset.lon = d.origLon; }
+                if (nDW && d.destLat) { nDW.dataset.lat = d.destLat; nDW.dataset.lon = d.destLon; }
+                if (nC) { nC.value = d.camion; nC.dispatchEvent(new Event('change')); }
+                if (nM) nM.selectedIndex = d.mercaIndex || 0;
+                // ml/peso se rellenan tras applyCamion; pequeño delay
+                setTimeout(function () {
+                    if (nMl) nMl.value = d.ml;
+                    if (nP) nP.value = d.peso;
+                    if (nDia && d.diaValue) nDia.value = d.diaValue;
+                    if (nU) nU.value = d.urgenciaValue;
+                    if (nR) nR.value = d.refCliRaw || '';
+                    if (nN) nN.value = d.notes || '';
+                    // Disparar change para recalcular ETA, ocupación, aviso "sin fecha"
+                    [nMl, nP, nDia, nU, nC].forEach(function (el) {
+                        if (el) el.dispatchEvent(new Event('change'));
+                    });
+                }, 60);
+            }
+
             function finalizeSave(d) {
                 var ref = nextRef(mode);
                 if (mode === 'carga') {
@@ -5057,7 +5272,14 @@
             submit.addEventListener('click', function () {
                 var d = readAndValidate();
                 if (!d) return;
-                if (mode === 'carga' && d.fechaTxt !== 'Sin fecha') {
+                if (mode === 'precio') {
+                    // Tarifador del dashboard: SIEMPRE se guarda como
+                    // presupuesto. El modal post-guardado deja al cliente
+                    // convertirlo en carga (mismo flujo que Nueva carga,
+                    // con prefill desde estos datos) o cerrar y dejarlo
+                    // como presupuesto vigente 7 días.
+                    finalizePrecio(d);
+                } else if (mode === 'carga' && d.fechaTxt !== 'Sin fecha') {
                     showConfirmStep(d);
                 } else {
                     finalizeSave(d);
