@@ -753,6 +753,17 @@
             display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem 1.2rem;
             margin-bottom: 0.6rem;
         }
+        /* Título de sección dentro del modal de Ver detalle, separa
+           bloques visualmente (Solicitud / Asignación / Ruta y carga) */
+        .modal-section-title {
+            font-size: 0.7rem; font-weight: 800;
+            color: var(--gray-500); text-transform: uppercase;
+            letter-spacing: 0.7px;
+            margin: 1.2rem 0 0.5rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .modal-section-title:first-child { margin-top: 0; }
         .modal-info-grid > div { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
         .modal-info-grid label {
             font-size: 0.64rem; font-weight: 800; color: var(--gray-500);
@@ -1143,6 +1154,10 @@
         table.data .route strong { color: var(--navy); }
         table.data .route .arrow { color: var(--gray-500); margin: 0 0.35rem; }
         table.data .meta { font-size: 0.72rem; color: var(--gray-500); }
+        /* Sub-líneas extra en la columna de fecha — diferenciadas en color
+           para que se vean a simple vista: Asignada en azul navy, ETA en verde */
+        table.data .meta-asignada { color: var(--navy); font-weight: 700; }
+        table.data .meta-eta      { color: #15803d; font-weight: 700; }
         table.data td.actions { text-align: right; white-space: nowrap; }
 
         /* Dropdown de acciones */
@@ -2840,11 +2855,27 @@
     function infoGrid(items) {
         var html = '<div class="modal-info-grid">';
         items.forEach(function (it) {
+            var raw = it.value == null || it.value === '' ? '—' : it.value;
+            var val = it.html ? raw : escapeHtml(raw);
             html += '<div' + (it.span ? ' style="grid-column:1/-1"' : '') + '>' +
                 '<label>' + escapeHtml(it.label) + '</label>' +
-                '<span class="v">' + escapeHtml(it.value || '—') + '</span></div>';
+                '<span class="v">' + val + '</span></div>';
         });
         return html + '</div>';
+    }
+    // Pendiente: pinta "Pendiente" en itálica si el valor está vacío.
+    function pend(v) {
+        if (v != null && v !== '') return escapeHtml(v);
+        return '<span style="color:var(--gray-500);font-style:italic;font-weight:500;">Pendiente</span>';
+    }
+    function sectionTitle(t) {
+        return '<h4 class="modal-section-title">' + escapeHtml(t) + '</h4>';
+    }
+    function findCargaDataByRef(ref) {
+        for (var i = 0; i < CARGAS_DATA.length; i++) {
+            if (CARGAS_DATA[i].ref === ref) return CARGAS_DATA[i];
+        }
+        return null;
     }
     function todayISO(plusDays) {
         var d = new Date();
@@ -2941,21 +2972,43 @@
     /* ---- ACCIONES CARGAS ---- */
     function cargaVerDetalle(row) {
         var d = cargaRowData(row);
+        // Datos detallados: vienen de CARGAS_DATA por ref (el DOM solo
+        // tiene los campos visibles en la tabla)
+        var src = findCargaDataByRef(d.ref) || {};
         openDashModal({
             icon: '📋',
             title: 'Detalle de carga ' + d.ref,
             sub: 'Información completa del envío',
-            body: infoGrid([
-                { label: 'Nº carga', value: d.ref },
-                { label: 'Ref. cliente', value: d.refCli },
-                { label: 'Fecha · Ventana', value: fechaConDia(d.fecha) + (d.ventana ? ' · ' + d.ventana : '') },
-                { label: 'Estado', value: d.estado },
-                { label: 'Origen', value: d.origen },
-                { label: 'Destino', value: d.destino },
-                { label: 'Direcciones', value: d.direcciones, span: true },
-                { label: 'Mercancía', value: d.mercancia + (d.mercanciaMeta ? ' · ' + d.mercanciaMeta : '') },
-                { label: 'Medidas', value: d.medidas }
-            ]),
+            body:
+                sectionTitle('Solicitud') +
+                infoGrid([
+                    { label: 'Nº carga', value: d.ref },
+                    { label: 'Ref. cliente', value: d.refCli },
+                    { label: 'Estado', value: d.estado },
+                    { label: 'Precio', value: pend(src.precio), html: true },
+                    { label: 'Fecha solicitada · Ventana', value: fechaConDia(d.fecha) + (d.ventana ? ' · ' + d.ventana : ''), span: true }
+                ]) +
+                sectionTitle('Asignación') +
+                infoGrid([
+                    { label: 'Fecha asignada de carga', value: pend(src.fechaAsignada), html: true },
+                    { label: 'Hora estimada de llegada', value: pend(src.horaCargaEst), html: true },
+                    { label: 'ETA entrega', value: pend(src.etaEntrega), html: true },
+                    { label: 'Tipo de carga', value: pend(src.tipoCarga), html: true },
+                    { label: 'Tipo de camión', value: pend(src.tipoCamion), html: true },
+                    { label: 'Matrícula', value: pend(src.matricula), html: true },
+                    { label: 'Conductor', value: pend(src.conductor), html: true },
+                    { label: 'Tfno. conductor', value: pend(src.tfnoConductor), html: true }
+                ]) +
+                sectionTitle('Ruta y mercancía') +
+                infoGrid([
+                    { label: 'Origen', value: d.origen },
+                    { label: 'Destino', value: d.destino },
+                    { label: 'Horario almacén origen', value: pend(src.horarioOrigen), html: true },
+                    { label: 'Horario almacén destino', value: pend(src.horarioDestino), html: true },
+                    { label: 'Direcciones', value: d.direcciones, span: true },
+                    { label: 'Tipo de mercancía', value: d.mercancia + (d.mercanciaMeta ? ' · ' + d.mercanciaMeta : '') },
+                    { label: 'Medidas', value: d.medidas }
+                ]),
             footer: cargaDetailFooter(d, row)
         });
     }
@@ -3904,11 +3957,29 @@
         return diff;
     }
     var CARGAS_DATA = [
-        makeCarga('#C-2026-1290','PED-0426','28/06','1 a 2 días','Sevilla','Madrid','Pol. Industrial Carretera de la Isla → Mercamadrid','Paletizado','Productos químicos','13,2 m · 22.000 kg','programada'),
-        makeCarga('#C-2026-1288','PED-0425','25/06','Fija','Sevilla','Barcelona','Polígono Carretera Amarilla → Mercabarna','Paletizado','Frutas y verduras','13,2 m · 24.000 kg','programada'),
+        makeCarga('#C-2026-1290','PED-0426','28/06','1 a 2 días','Sevilla','Madrid','Pol. Industrial Carretera de la Isla → Mercamadrid','Paletizado','Productos químicos','13,2 m · 22.000 kg','programada', undefined, {
+            precio: '880 €', fechaAsignada: '29/06 08:00', horaCargaEst: '08:00', etaEntrega: 'Mar 30/06',
+            horarioOrigen: 'L-V 7:00-15:00', horarioDestino: 'L-S 0:00-24:00',
+            tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa'
+        }),
+        makeCarga('#C-2026-1288','PED-0425','25/06','Fija','Sevilla','Barcelona','Polígono Carretera Amarilla → Mercabarna','Paletizado','Frutas y verduras','13,2 m · 24.000 kg','programada', undefined, {
+            precio: '1.480 €', fechaAsignada: '25/06 06:00', horaCargaEst: '06:00', etaEntrega: 'Vie 26/06',
+            horarioOrigen: 'L-V 5:30-13:00', horarioDestino: 'L-S 5:00-13:00',
+            tipoCamion: 'Trailer Tauliner · 13,2 m frigorífico (subcontratado)', tipoCarga: 'Carga completa'
+        }),
         makeCarga('#C-2026-1286','PED-0424','22/06','1 a 4 días','Sevilla','Valencia','Almacén central → Puerto','Eventos / feria','Stand modular','6,0 m · 8.200 kg','programada'),
-        makeCarga('#C-2026-1285','PED-0423','16/06','Fija','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Paletizado','Repuestos automoción','12,0 m · 20.000 kg','en-ruta'),
-        makeCarga('#C-2026-1281','PED-0419','14/06','Fija','Sevilla','Barcelona','Centro logístico → Zona Franca','Maquinaria','2 piezas, sobredim.','8,4 m · 14.500 kg','en-ruta'),
+        makeCarga('#C-2026-1285','PED-0423','16/06','Fija','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Paletizado','Repuestos automoción','12,0 m · 20.000 kg','en-ruta', undefined, {
+            precio: '1.420 €', fechaAsignada: '16/06 07:30', horaCargaEst: '07:30', etaEntrega: 'Mié 17/06',
+            horarioOrigen: 'L-V 7:00-15:00', horarioDestino: 'L-V 8:00-17:00',
+            tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa',
+            matricula: '8743 LZB / R-8214', conductor: 'José Ramón Pérez', tfnoConductor: '+34 612 998 401'
+        }),
+        makeCarga('#C-2026-1281','PED-0419','14/06','Fija','Sevilla','Barcelona','Centro logístico → Zona Franca','Maquinaria','2 piezas, sobredim.','8,4 m · 14.500 kg','en-ruta', undefined, {
+            precio: '1.180 €', fechaAsignada: '14/06 08:00', horaCargaEst: '08:00', etaEntrega: 'Mar 16/06',
+            horarioOrigen: 'L-V 8:00-14:00', horarioDestino: 'L-V 6:00-14:00',
+            tipoCamion: 'Rígido 8 m con plataforma', tipoCarga: 'Grupaje',
+            matricula: '4291 KMN', conductor: 'Manuel Reyes', tfnoConductor: '+34 655 217 880'
+        }),
         makeCarga('#C-2026-1284','PED-0421','15/06','1 a 2 días','Sevilla','Madrid','Pol. Carretera de la Isla → Mercamadrid','Paletizado','Aceite envasado','13,2 m · 24.000 kg','entregada', false),
         makeCarga('#C-2026-1283','PED-0420','13/06','Fija','Madrid','Valencia','Vallecas → Puerto','Paletizado','Bebidas refrigeradas','13,2 m · 22.000 kg','entregada'),
         makeCarga('#C-2026-1282','PED-0419B','12/06','1 a 2 días','Sevilla','Vigo','Polígono → Bouzas','Material obra','Cerámica','13,2 m · 20.000 kg','entregada'),
@@ -3970,7 +4041,12 @@
         // === SEMILLAS PARA VER EL RESALTADO de Programadas (HOY/MAÑANA/PASADO).
         //     Para producción se pueden borrar — basta con que las cargas reales
         //     del cliente caigan en los próximos 3 días laborables.
-        CARGAS_DATA.unshift(makeCarga('#C-2026-1299','PED-0435', fechaFuturaLaborable(0), 'Fija','Sevilla','Málaga','Pol. Carretera Amarilla → Pol. San Luis','Paletizado','Aceitunas envasadas','10,0 m · 17.000 kg','en-ruta'));
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1299','PED-0435', fechaFuturaLaborable(0), 'Fija','Sevilla','Málaga','Pol. Carretera Amarilla → Pol. San Luis','Paletizado','Aceitunas envasadas','10,0 m · 17.000 kg','en-ruta', undefined, {
+            precio: '780 €', fechaAsignada: fechaFuturaLaborable(0) + ' 09:00', horaCargaEst: '09:00', etaEntrega: fechaFuturaLaborable(0),
+            horarioOrigen: 'L-V 8:00-15:00', horarioDestino: 'L-V 7:30-14:00',
+            tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Grupaje',
+            matricula: '6217 PCF', conductor: 'David Núñez', tfnoConductor: '+34 678 442 113'
+        }));
         CARGAS_DATA.unshift(makeCarga('#C-2026-1298','PED-0434', fechaFuturaLaborable(1), '1 a 2 días','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Conservas','13,2 m · 23.000 kg','programada'));
         CARGAS_DATA.unshift(makeCarga('#C-2026-1297','PED-0433', fechaFuturaLaborable(2), 'Fija','Sevilla','Valencia','Pol. Las Pajanosas → Puerto','Paletizado / Aceite','Aceite oliva virgen','13,2 m · 24.000 kg','programada'));
     })();
@@ -4226,7 +4302,11 @@
                 return '<tr' + rowCls + '>' +
                     '<td class="ref">' + esc(c.ref) + '</td>' +
                     '<td class="ref-cli">' + esc(c.refCli) + '</td>' +
-                    '<td><strong>' + esc(fechaConDia(c.fecha)) + '</strong>' + whenTag + (c.ventana ? '<div class="meta">' + esc(c.ventana) + '</div>' : '') + '</td>' +
+                    '<td><strong>' + esc(fechaConDia(c.fecha)) + '</strong>' + whenTag +
+                        (c.ventana ? '<div class="meta">' + esc(c.ventana) + '</div>' : '') +
+                        (c.fechaAsignada ? '<div class="meta meta-asignada">Asignada: ' + esc(c.fechaAsignada) + '</div>' : '') +
+                        (c.etaEntrega ? '<div class="meta meta-eta">ETA: ' + esc(c.etaEntrega) + '</div>' : '') +
+                    '</td>' +
                     '<td class="route"><strong>' + esc(c.origen) + '</strong><span class="arrow">→</span><strong>' + esc(c.destino) + '</strong>' + (c.direcciones ? '<div class="meta">' + esc(c.direcciones) + '</div>' : '') + '</td>' +
                     '<td>' + esc(c.mercancia) + (c.mercanciaMeta ? '<div class="meta">' + esc(c.mercanciaMeta) + '</div>' : '') + '</td>' +
                     '<td class="amount">' + esc(c.medidas) + '</td>' +
