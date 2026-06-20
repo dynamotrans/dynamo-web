@@ -1158,6 +1158,33 @@
            para que se vean a simple vista: Asignada en azul navy, ETA en verde */
         table.data .meta-asignada { color: var(--navy); font-weight: 700; }
         table.data .meta-eta      { color: #15803d; font-weight: 700; }
+        /* Estado de asignación de transportista — línea bajo el badge de estado.
+            espera     gris
+            asignandose ámbar con punto pulsante (backend buscando)
+            confirmado verde con punto fijo
+           Visible en la tabla y en el modal Ver detalle (sección Asignación). */
+        .asig-line {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            font-size: 0.7rem; font-weight: 700;
+            margin-top: 0.35rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+        .asig-line .asig-dot {
+            width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+        }
+        .asig-espera      { background: var(--gray-100); color: var(--gray-500); border-color: var(--gray-200); }
+        .asig-espera      .asig-dot { background: var(--gray-300); }
+        .asig-asignandose { background: #fff7e6; color: #b45309; border-color: #fde6b3; }
+        .asig-asignandose .asig-dot { background: #f59e0b; animation: asigPulse 1.4s ease infinite; }
+        .asig-confirmado  { background: #ecfdf5; color: #047857; border-color: #b7ebcd; }
+        .asig-confirmado  .asig-dot { background: #10b981; }
+        @keyframes asigPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); }
+            50%      { box-shadow: 0 0 0 6px rgba(245,158,11,0.0); }
+        }
         table.data td.actions { text-align: right; white-space: nowrap; }
 
         /* Dropdown de acciones */
@@ -2979,16 +3006,23 @@
                     { label: 'Fecha solicitada · Ventana', value: fechaConDia(d.fecha) + (d.ventana ? ' · ' + d.ventana : ''), span: true }
                 ]) +
                 sectionTitle('Asignación') +
-                infoGrid([
-                    { label: 'Fecha asignada de carga', value: pend(src.fechaAsignada), html: true },
-                    { label: 'Hora estimada de llegada', value: pend(src.horaCargaEst), html: true },
-                    { label: 'ETA entrega', value: pend(src.etaEntrega), html: true },
-                    { label: 'Tipo de carga', value: pend(src.tipoCarga), html: true },
-                    { label: 'Tipo de camión', value: pend(src.tipoCamion), html: true },
-                    { label: 'Matrícula', value: pend(src.matricula), html: true },
-                    { label: 'Conductor', value: pend(src.conductor), html: true },
-                    { label: 'Tfno. conductor', value: pend(src.tfnoConductor), html: true }
-                ]) +
+                (function () {
+                    var a = getAsignacionEstado(src);
+                    var asigHtml = a
+                        ? '<span class="asig-line asig-' + a.key + '" style="margin-top:0;"><span class="asig-dot"></span>' + escapeHtml(a.label) + '</span>'
+                        : pend(null);
+                    return infoGrid([
+                        { label: 'Estado asignación transportista', value: asigHtml, html: true, span: true },
+                        { label: 'Fecha asignada de carga', value: pend(src.fechaAsignada), html: true },
+                        { label: 'Hora estimada de llegada', value: pend(src.horaCargaEst), html: true },
+                        { label: 'ETA entrega', value: pend(src.etaEntrega), html: true },
+                        { label: 'Tipo de carga', value: pend(src.tipoCarga), html: true },
+                        { label: 'Tipo de camión', value: pend(src.tipoCamion), html: true },
+                        { label: 'Matrícula', value: pend(src.matricula), html: true },
+                        { label: 'Conductor', value: pend(src.conductor), html: true },
+                        { label: 'Tfno. conductor', value: pend(src.tfnoConductor), html: true }
+                    ]);
+                })() +
                 sectionTitle('Ruta y mercancía') +
                 infoGrid([
                     { label: 'Origen', value: d.origen },
@@ -4165,6 +4199,49 @@
     // El "anchor" es hoy si hoy es laborable, o el próximo lunes si hoy es
     // fin de semana. El color va por business-days desde el anchor; el chip
     // solo se pinta si el día de calendario también coincide.
+    // Días laborables hasta una fecha "DD/MM" del año actual. Distinto
+    // a highlightInfo: devuelve el conteo real (>2) sin acotar.
+    //  0 → la fecha es hoy   1 → próximo día laborable
+    //  -1 → fecha pasada     null → fecha inválida o fin de semana
+    function businessDaysUntil(dateStr) {
+        if (!dateStr || dateStr === 'Sin fecha') return null;
+        var m = String(dateStr).match(/^(\d{1,2})\/(\d{1,2})$/);
+        if (!m) return null;
+        var d = new Date(new Date().getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+        d.setHours(0, 0, 0, 0);
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        if (d.getTime() < today.getTime()) return -1;
+        var wd = d.getDay();
+        if (wd === 0 || wd === 6) return null;
+        var count = 0, cursor = new Date(today);
+        while (cursor.getTime() < d.getTime()) {
+            cursor.setDate(cursor.getDate() + 1);
+            var w = cursor.getDay();
+            if (w !== 0 && w !== 6) count++;
+        }
+        return count;
+    }
+    // Estado de asignación de transportista. 3 valores:
+    //  - confirmado  → si la carga ya tiene matrícula + conductor
+    //  - asignandose → backend lo activa a 4 días laborables o menos
+    //                  desde la fecha de carga (operativa no busca antes)
+    //  - espera      → más de 4 días, o sin fecha
+    // No aplica a entregada/cancelada.
+    function getAsignacionEstado(c) {
+        if (c.kind === 'entregada' || c.kind === 'cancelada') return null;
+        if (c.matricula && c.conductor) {
+            return { key: 'confirmado', label: 'Confirmado transportista' };
+        }
+        if (c.kind === 'en-ruta') {
+            return { key: 'asignandose', label: 'Asignándose transportista' };
+        }
+        var bd = businessDaysUntil(c.fecha);
+        if (bd != null && bd >= 0 && bd <= 4) {
+            return { key: 'asignandose', label: 'Asignándose transportista' };
+        }
+        return { key: 'espera', label: 'En espera' };
+    }
+
     function highlightInfo(dateStr) {
         if (!dateStr || dateStr === 'Sin fecha') return null;
         var m = String(dateStr).match(/^(\d{1,2})\/(\d{1,2})$/);
@@ -4302,7 +4379,13 @@
                     '<td class="route"><strong>' + esc(c.origen) + '</strong><span class="arrow">→</span><strong>' + esc(c.destino) + '</strong>' + (c.direcciones ? '<div class="meta">' + esc(c.direcciones) + '</div>' : '') + '</td>' +
                     '<td>' + esc(c.mercancia) + (c.mercanciaMeta ? '<div class="meta">' + esc(c.mercanciaMeta) + '</div>' : '') + '</td>' +
                     '<td class="amount">' + esc(c.medidas) + '</td>' +
-                    '<td><span class="badge badge-' + c.estadoColor + '">' + esc(c.estado) + '</span>' + (c.kind === 'entregada' && c.hasAlbaran ? ' <span class="badge-doc" title="Albarán PDF disponible">📄</span>' : '') + '</td>' +
+                    '<td><span class="badge badge-' + c.estadoColor + '">' + esc(c.estado) + '</span>' +
+                        (c.kind === 'entregada' && c.hasAlbaran ? ' <span class="badge-doc" title="Albarán PDF disponible">📄</span>' : '') +
+                        (function () {
+                            var a = getAsignacionEstado(c);
+                            return a ? '<div class="asig-line asig-' + a.key + '"><span class="asig-dot"></span>' + esc(a.label) + '</div>' : '';
+                        })() +
+                    '</td>' +
                     actionsCell(actionItemsCarga(c)) +
                     '</tr>';
             }).join('');
