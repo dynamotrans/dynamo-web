@@ -809,7 +809,7 @@
             background: linear-gradient(135deg, var(--navy), var(--purple-nav));
             color: white; border-radius: 12px; padding: 0.9rem 1.1rem;
             margin-bottom: 1rem;
-            display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: center;
+            display: flex; flex-direction: column; justify-content: center; gap: 0.55rem;
         }
         .cesce-header { display: flex; align-items: center; gap: 0.5rem; }
         .cesce-badge {
@@ -818,23 +818,31 @@
             border-radius: 999px; text-transform: uppercase; letter-spacing: 0.8px;
         }
         .cesce-card h3 { font-size: 0.82rem; font-weight: 700; }
-        .cesce-amounts { display: flex; gap: 1.2rem; margin-top: 0.4rem; align-items: flex-end; }
-        .cesce-amount { }
-        .cesce-amount-label { font-size: 0.6rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.4px; }
-        .cesce-amount-value { font-size: 1.1rem; font-weight: 900; line-height: 1.2; }
-        .cesce-bar {
-            margin-top: 0.5rem; height: 6px; border-radius: 999px;
-            background: rgba(255,255,255,0.15); overflow: hidden;
+        /* Estado de cobertura: 1 chip con punto + texto. 3 variantes
+           (ok / warn / none). Cambiar la clase modificadora en el HTML
+           para alternar — lo unirá el backend de CESCE cuando exista */
+        .cesce-status {
+            display: inline-flex; align-items: center; gap: 0.55rem;
+            padding: 0.5rem 0.8rem; border-radius: 10px;
+            font-size: 0.88rem; font-weight: 800;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            width: fit-content;
         }
-        .cesce-bar-fill {
-            height: 100%; background: linear-gradient(90deg, var(--green), #6cd49a);
-            border-radius: 999px;
+        .cesce-status-dot {
+            width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+            box-shadow: 0 0 0 4px rgba(255,255,255,0.05);
         }
-        .cesce-credit-total {
-            text-align: right;
+        .cesce-status-ok   .cesce-status-dot { background: var(--green); box-shadow: 0 0 0 4px rgba(34,165,90,0.20); animation: cescePulse 2.2s ease infinite; }
+        .cesce-status-warn .cesce-status-dot { background: #f59e0b; box-shadow: 0 0 0 4px rgba(245,158,11,0.20); }
+        .cesce-status-none .cesce-status-dot { background: #ef4444; box-shadow: 0 0 0 4px rgba(239,68,68,0.20); }
+        .cesce-status-ok   { color: #b6f5cc; }
+        .cesce-status-warn { color: #fde7a8; }
+        .cesce-status-none { color: #ffc4c4; }
+        @keyframes cescePulse {
+            0%, 100% { box-shadow: 0 0 0 4px rgba(34,165,90,0.20); }
+            50%      { box-shadow: 0 0 0 7px rgba(34,165,90,0.08); }
         }
-        .cesce-credit-total .v { font-size: 1.5rem; font-weight: 900; line-height: 1; }
-        .cesce-credit-total .l { font-size: 0.6rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.4px; }
 
         .mini-lists {
             display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
@@ -1441,15 +1449,10 @@
         @media (max-width: 1100px) {
             .stats-row, .stats-row-3 { grid-template-columns: repeat(2, 1fr); }
             .mini-lists { grid-template-columns: 1fr; }
-            .cesce-card { grid-template-columns: 1fr; }
-            .cesce-credit-total { text-align: left; }
-            /* Mantenemos las 3 cajas exactamente iguales. Apretamos gap para
-               compensar y ocultamos los subtítulos de las CTAs. */
+            /* Mantenemos las 3 cajas exactamente iguales. Apretamos gap
+               y ocultamos los subtítulos de las CTAs. */
             .dash-top-row { grid-template-columns: repeat(3, 1fr); gap: 0.7rem; }
             .dash-top-row .dash-cta-text p { display: none; }
-            /* CESCE pierde el "Límite total" lateral para no aparecer más
-               ancha visualmente que las CTAs */
-            .dash-top-row .cesce-credit-total { display: none; }
         }
         @media (max-width: 768px) {
             .sidebar {
@@ -1483,17 +1486,11 @@
             .dash-top-row .dash-cta-icon svg { width: 20px; height: 20px; }
             .dash-top-row .dash-cta-text h4 { font-size: 0.78rem; line-height: 1.1; }
             .dash-top-row .dash-cta-text p  { display: none; }
-            .dash-top-row .cesce-card {
-                padding: 0.7rem 0.75rem;
-                grid-template-columns: 1fr; gap: 0.4rem;
-            }
+            .dash-top-row .cesce-card { padding: 0.7rem 0.75rem; gap: 0.4rem; }
             .dash-top-row .cesce-card h3 { font-size: 0.7rem; }
             .dash-top-row .cesce-badge { font-size: 0.5rem; padding: 0.1rem 0.35rem; }
-            .dash-top-row .cesce-amounts { gap: 0.55rem; margin-top: 0.25rem; }
-            .dash-top-row .cesce-amount-value { font-size: 0.85rem; }
-            .dash-top-row .cesce-amount-label { font-size: 0.5rem; }
-            .dash-top-row .cesce-credit-total { display: none; }
-            .dash-top-row .cesce-bar { height: 4px; margin-top: 0.4rem; }
+            .dash-top-row .cesce-status { font-size: 0.72rem; padding: 0.4rem 0.55rem; gap: 0.4rem; }
+            .dash-top-row .cesce-status-dot { width: 8px; height: 8px; }
             .sec-header { gap: 0.5rem; }
             .sec-header-actions { width: 100%; }
             .sec-header-actions .btn-primary,
@@ -1516,8 +1513,7 @@
             .dash-top-row .dash-cta { padding: 0.7rem 0.4rem; }
             .dash-top-row .dash-cta-text h4 { font-size: 0.7rem; }
             .dash-top-row .cesce-card { padding: 0.6rem; }
-            .dash-top-row .cesce-amount-value { font-size: 0.78rem; }
-            .dash-top-row .cesce-amounts { gap: 0.4rem; }
+            .dash-top-row .cesce-status { font-size: 0.65rem; padding: 0.35rem 0.45rem; }
         }
         .sidebar-toggle {
             display: none; width: 38px; height: 38px;
@@ -1859,27 +1855,21 @@
                     <p>Pedir un precio sin compromiso (vigente 7 días)</p>
                 </div>
             </a>
+            <!-- CESCE: solo se muestra el ESTADO de cobertura al cliente
+                 (no consumo / disponible / límite). 3 estados posibles —
+                 cambiar la clase modificadora y el texto cuando llegue el
+                 backend de CESCE:
+                  · cesce-status-ok    → "Con crédito disponible"
+                  · cesce-status-warn  → "Crédito agotado"
+                  · cesce-status-none  → "Sin cobertura · pago previo a carga" -->
             <div class="cesce-card">
-                <div>
-                    <div class="cesce-header">
-                        <span class="cesce-badge">CESCE</span>
-                        <h3>Crédito asegurado</h3>
-                    </div>
-                    <div class="cesce-amounts">
-                        <div class="cesce-amount">
-                            <div class="cesce-amount-label">Consumido</div>
-                            <div class="cesce-amount-value">8.450 €</div>
-                        </div>
-                        <div class="cesce-amount">
-                            <div class="cesce-amount-label">Disponible</div>
-                            <div class="cesce-amount-value">11.550 €</div>
-                        </div>
-                    </div>
-                    <div class="cesce-bar"><div class="cesce-bar-fill" style="width:42.25%;"></div></div>
+                <div class="cesce-header">
+                    <span class="cesce-badge">CESCE</span>
+                    <h3>Cobertura</h3>
                 </div>
-                <div class="cesce-credit-total">
-                    <div class="v">20.000 €</div>
-                    <div class="l">Límite total</div>
+                <div class="cesce-status cesce-status-ok">
+                    <span class="cesce-status-dot"></span>
+                    <span class="cesce-status-text">Con crédito disponible</span>
                 </div>
             </div>
         </div>
