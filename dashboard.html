@@ -2054,9 +2054,9 @@
 
         <div class="stats-row stats-row-3">
             <button type="button" class="stat-card stat-card-link" onclick="showSection('cargas')">
-                <div class="stat-card-label">Cargas (mes)</div>
-                <div class="stat-card-value">28</div>
-                <div class="stat-card-trend up">▲ 12% vs mes anterior</div>
+                <div class="stat-card-label">Cargas activas</div>
+                <div class="stat-card-value" data-stat-cargas-activas>—</div>
+                <div class="stat-card-trend" data-stat-cargas-activas-meta>Programadas + en ruta</div>
             </button>
             <button type="button" class="stat-card stat-card-link" onclick="showSection('presupuestos')">
                 <div class="stat-card-label">Presupuestos activos</div>
@@ -4736,6 +4736,22 @@
             renderFacturasTable();
         }
     });
+    // Stat card "Cargas activas": muestra cuántas cargas están en flujo
+    // operativo (programadas con fecha + en-ruta). Excluye Previsión,
+    // Entregadas y Canceladas (que no son "activas"). Sub-línea con el
+    // desglose para que se entienda de un vistazo.
+    function refreshStatCargasActivas() {
+        var el = document.querySelector('[data-stat-cargas-activas]');
+        var meta = document.querySelector('[data-stat-cargas-activas-meta]');
+        if (!el) return;
+        var prog = CARGAS_DATA.filter(function (c) { return c.kind === 'programada' && c.fecha !== 'Sin fecha'; }).length;
+        var enRuta = CARGAS_DATA.filter(function (c) { return c.kind === 'en-ruta'; }).length;
+        var total = prog + enRuta;
+        el.textContent = total;
+        if (meta) meta.textContent = prog + ' programadas · ' + enRuta + ' en ruta';
+    }
+    refreshStatCargasActivas();
+
     bindTabs();
     bindPerPageSelectors();
     renderCargasTable();
@@ -5308,6 +5324,7 @@
                     var isPrev = (d.fechaTxt === 'Sin fecha');
                     TABLE_STATE.cargas.filter = isPrev ? 'prevision' : 'programada';
                     renderCargasTable();
+                    if (typeof refreshStatCargasActivas === 'function') refreshStatCargasActivas();
                     showModalSuccess(
                         isPrev ? 'Previsión ' + ref + ' guardada' : 'Carga ' + ref + ' creada',
                         isPrev
