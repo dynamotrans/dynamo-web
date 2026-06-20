@@ -676,8 +676,30 @@
         .dash-modal-icon {
             flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
-            background: rgba(51,0,204,0.10); font-size: 1.35rem;
+            background: rgba(51,0,204,0.10); color: var(--purple);
         }
+        .dash-modal-icon svg { width: 22px; height: 22px; }
+        /* Variantes según tipo de acción del modal */
+        .dash-modal-icon.icon-warn   { background: rgba(245,158,11,0.13); color: #b45309; }
+        .dash-modal-icon.icon-danger { background: rgba(220,38,38,0.10); color: #b91c1c; }
+        .dash-modal-icon.icon-success { background: rgba(16,185,129,0.13); color: #047857; }
+        /* Timeline del modal Seguimiento */
+        .timeline-item {
+            display: flex; gap: 0.7rem; padding: 0.6rem 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .timeline-item:last-child { border-bottom: none; }
+        .timeline-item strong { color: var(--navy); display: block; font-size: 0.88rem; }
+        .timeline-item .timeline-meta { font-size: 0.78rem; color: var(--gray-500); margin-top: 0.1rem; }
+        .timeline-icon {
+            width: 28px; height: 28px; border-radius: 8px;
+            background: var(--gray-100); color: var(--gray-500);
+            display: inline-flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .timeline-icon svg { width: 14px; height: 14px; }
+        .timeline-icon.timeline-done { background: rgba(16,185,129,0.13); color: #047857; }
+        .timeline-icon.timeline-now  { background: rgba(51,0,204,0.10); color: var(--purple); }
         .dash-modal-title { font-size: 1.1rem; font-weight: 900; color: var(--navy); line-height: 1.25; }
         .dash-modal-sub { font-size: 0.8rem; color: var(--gray-500); margin-top: 0.2rem; }
         .dash-modal-body { margin-bottom: 1.1rem; }
@@ -1790,9 +1812,9 @@
 <div class="dash-modal" id="dashModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="dashModalTitle">
     <div class="dash-modal-backdrop" onclick="closeDashModal()"></div>
     <div class="dash-modal-card" role="document">
-        <button class="dash-modal-close" onclick="closeDashModal()" aria-label="Cerrar">✕</button>
+        <button class="dash-modal-close" onclick="closeDashModal()" aria-label="Cerrar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         <div class="dash-modal-header">
-            <div class="dash-modal-icon" id="dashModalIcon">📋</div>
+            <div class="dash-modal-icon" id="dashModalIcon"></div>
             <div style="flex:1;min-width:0;">
                 <h2 class="dash-modal-title" id="dashModalTitle">Título</h2>
                 <p class="dash-modal-sub" id="dashModalSub">Subtítulo</p>
@@ -2761,7 +2783,11 @@
     ============================================ */
     function openDashModal(opts) {
         var modal = document.getElementById('dashModal');
-        document.getElementById('dashModalIcon').textContent = opts.icon || '📋';
+        var iconEl = document.getElementById('dashModalIcon');
+        var iconName = opts.icon || 'file';
+        var iconSvg = (typeof ICONS !== 'undefined' && ICONS[iconName]) ? ICONS[iconName] : ICONS && ICONS.file ? ICONS.file : '';
+        iconEl.className = 'dash-modal-icon' + (opts.iconVariant ? ' icon-' + opts.iconVariant : '');
+        iconEl.innerHTML = iconSvg;
         document.getElementById('dashModalTitle').textContent = opts.title || '';
         document.getElementById('dashModalSub').textContent = opts.sub || '';
         document.getElementById('dashModalBody').innerHTML = opts.body || '';
@@ -2996,7 +3022,7 @@
         // tiene los campos visibles en la tabla)
         var src = findCargaDataByRef(d.ref) || {};
         openDashModal({
-            icon: '📋',
+            icon: 'eye',
             title: 'Detalle de carga ' + d.ref,
             sub: 'Información completa del envío',
             body:
@@ -3051,7 +3077,7 @@
     }
     function cargaEditar(ref) {
         openDashModal({
-            icon: '✏️',
+            icon: 'edit',
             title: 'Editar carga ' + ref,
             sub: 'Modifica solo los datos editables',
             body:
@@ -3072,7 +3098,7 @@
     function cargaRepetir(row) {
         var d = cargaRowData(row);
         openDashModal({
-            icon: '🔁',
+            icon: 'refresh',
             title: 'Repetir carga ' + d.ref,
             sub: 'Mismos datos · fecha y precio nuevos',
             body:
@@ -3096,7 +3122,7 @@
     function cargaReportarIncidencia(row) {
         var d = cargaRowData(row);
         openDashModal({
-            icon: '⚠️',
+            icon: 'alert', iconVariant: 'warn',
             title: 'Reportar incidencia',
             sub: 'Cuéntanos lo ocurrido para actuar rápido',
             body:
@@ -3139,7 +3165,7 @@
     function cargaReclamarAlbaran(row) {
         var d = cargaRowData(row);
         openDashModal({
-            icon: '📩',
+            icon: 'mail',
             title: 'Reclamar albarán ' + d.ref,
             sub: 'Pedimos al transportista que nos envíe la documentación',
             body:
@@ -3162,14 +3188,14 @@
     function cargaSeguimiento(row) {
         var d = cargaRowData(row);
         openDashModal({
-            icon: '📍',
+            icon: 'mapPin',
             title: 'Seguimiento de ' + d.ref,
             sub: d.origen + ' → ' + d.destino + ' · ' + d.estado,
             body:
                 '<ul style="list-style:none;padding:0;margin:0;">' +
-                '<li style="display:flex;gap:0.7rem;padding:0.6rem 0;border-bottom:1px solid var(--gray-200);"><span style="font-size:1.1rem;">✅</span><div><strong style="color:var(--navy);">Recogida realizada</strong><div style="font-size:0.78rem;color:var(--gray-500);">14/06 · 09:14 · ' + escapeHtml(d.origen) + '</div></div></li>' +
-                '<li style="display:flex;gap:0.7rem;padding:0.6rem 0;border-bottom:1px solid var(--gray-200);"><span style="font-size:1.1rem;">🚚</span><div><strong style="color:var(--navy);">En tránsito</strong><div style="font-size:0.78rem;color:var(--gray-500);">14/06 · 11:32 · A-66 km 142</div></div></li>' +
-                '<li style="display:flex;gap:0.7rem;padding:0.6rem 0;border-bottom:1px solid var(--gray-200);"><span style="font-size:1.1rem;">📍</span><div><strong style="color:var(--navy);">Última posición</strong><div style="font-size:0.78rem;color:var(--gray-500);">Hace 12 min · AP-7 km 354 · ETA destino mañana 09:30</div></div></li>' +
+                '<li class="timeline-item"><span class="timeline-icon timeline-done">' + icon('eye') + '</span><div><strong>Recogida realizada</strong><div class="timeline-meta">14/06 · 09:14 · ' + escapeHtml(d.origen) + '</div></div></li>' +
+                '<li class="timeline-item"><span class="timeline-icon">' + icon('truck') + '</span><div><strong>En tránsito</strong><div class="timeline-meta">14/06 · 11:32 · A-66 km 142</div></div></li>' +
+                '<li class="timeline-item"><span class="timeline-icon timeline-now">' + icon('mapPin') + '</span><div><strong>Última posición</strong><div class="timeline-meta">Hace 12 min · AP-7 km 354 · ETA destino mañana 09:30</div></div></li>' +
                 '<li style="display:flex;gap:0.7rem;padding:0.6rem 0;color:var(--gray-500);"><span style="font-size:1.1rem;opacity:0.4;">⚪</span><div><strong>Entrega pendiente</strong><div style="font-size:0.78rem;">' + escapeHtml(d.destino) + '</div></div></li>' +
                 '</ul>',
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>'
@@ -3181,7 +3207,7 @@
     function cargaCancelar(row) {
         var d = cargaRowData(row);
         openDashModal({
-            icon: '✕',
+            icon: 'x', iconVariant: 'danger',
             title: 'Cancelar carga ' + d.ref,
             sub: '¿Seguro que quieres cancelar este envío?',
             body:
@@ -3205,7 +3231,7 @@
     function presupuestoVerDetalle(row) {
         var d = presupuestoRowData(row);
         openDashModal({
-            icon: '📋',
+            icon: 'eye',
             title: 'Presupuesto ' + d.ref,
             sub: 'Detalle y vigencia',
             body: infoGrid([
@@ -3225,7 +3251,7 @@
     function presupuestoGenerarCarga(row) {
         var d = presupuestoRowData(row);
         openDashModal({
-            icon: '🚚',
+            icon: 'truck',
             title: 'Generar carga de ' + d.ref,
             sub: 'Mismos datos + precio cerrado · solo fecha pendiente',
             body:
@@ -3255,7 +3281,7 @@
     function presupuestoRevisarPrecio(row) {
         var d = presupuestoRowData(row);
         openDashModal({
-            icon: '🔁',
+            icon: 'refresh',
             title: 'Revisar precio ' + d.ref,
             sub: 'Nuevo presupuesto con vigencia 7 días más',
             body:
@@ -3281,7 +3307,7 @@
     function facturaVerDetalle(row) {
         var d = facturaRowData(row);
         openDashModal({
-            icon: '📋',
+            icon: 'eye',
             title: 'Factura ' + d.ref,
             sub: 'Solo lectura',
             body: infoGrid([
@@ -5285,7 +5311,7 @@
             if (finalBtn) finalBtn.addEventListener('click', function () {
                 if (!pendingData) return;
                 openDashModal({
-                    icon: '⚠️',
+                    icon: 'alert', iconVariant: 'warn',
                     title: 'IMPORTANTE: vas a confirmar un pedido de transporte',
                     sub: 'Aviso sobre cancelaciones',
                     body:
@@ -5314,7 +5340,7 @@
                 e.preventDefault();
                 var tpl = document.getElementById('ptar-terms-template');
                 openDashModal({
-                    icon: '📑',
+                    icon: 'file',
                     title: 'Condiciones generales de transporte',
                     sub: 'Dynamo Operador Logístico, S.L. — B01596360',
                     body: tpl ? tpl.innerHTML : '<p>Texto no disponible.</p>',
