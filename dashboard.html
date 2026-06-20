@@ -2776,6 +2776,83 @@
         return d.toISOString().slice(0, 10);
     }
 
+    // Busca la <tr> de una sección por su ref (#C-…, #P-…, F-…). Se usa
+    // desde el modal de Ver detalle para disparar acciones contextuales
+    // sin necesidad de mantener la <tr> en una variable global.
+    function findRowByRef(sectionId, ref) {
+        var sec = document.getElementById(sectionId);
+        if (!sec) return null;
+        var refs = sec.querySelectorAll('tbody tr td.ref');
+        for (var i = 0; i < refs.length; i++) {
+            if (refs[i].textContent.trim() === ref) return refs[i].closest('tr');
+        }
+        return null;
+    }
+    function actionByRef(sectionId) {
+        return function (action, ref) {
+            var row = findRowByRef(sectionId, ref);
+            if (row) dispatchRowAction(action, row, sectionId);
+        };
+    }
+    window.cargaActionByRef       = actionByRef('sec-cargas');
+    window.presupuestoActionByRef = actionByRef('sec-presupuestos');
+    window.facturaActionByRef     = actionByRef('sec-facturas');
+
+    // Genera los botones de acciones del footer del modal Ver detalle
+    // según el estado de la carga. Mismo árbol de decisión que el menú ⋯
+    // (actionItemsCarga), pero como botones primarios en el footer.
+    function cargaDetailFooter(d, row) {
+        var ref = escapeHtml(d.ref);
+        var btns = ['<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>'];
+        var est = (d.estado || '').toLowerCase();
+        var isPrevision = est.indexOf('programada') > -1 && d.fecha === 'Sin fecha';
+        if (est.indexOf('programada') > -1) {
+            if (isPrevision) {
+                btns.push('<button class="btn-primary" onclick="cargaActionByRef(\'modificar\',\'' + ref + '\')">📅 Asignar fecha y datos</button>');
+            } else {
+                btns.push('<button class="btn-secondary" onclick="cargaActionByRef(\'modificar\',\'' + ref + '\')">✏️ Modificar</button>');
+            }
+            btns.push('<button class="btn-primary" style="background:var(--red);" onclick="cargaActionByRef(\'cancelar-carga\',\'' + ref + '\')">✕ Cancelar carga</button>');
+        } else if (est.indexOf('en ruta') > -1) {
+            btns.push('<button class="btn-secondary" onclick="cargaActionByRef(\'seguimiento\',\'' + ref + '\')">📍 Seguimiento</button>');
+            btns.push('<button class="btn-primary" onclick="cargaActionByRef(\'reportar-incidencia\',\'' + ref + '\')">⚠️ Reportar incidencia</button>');
+        } else if (est.indexOf('entregada') > -1) {
+            btns.push('<button class="btn-secondary" onclick="cargaActionByRef(\'repetir\',\'' + ref + '\')">🔁 Repetir carga</button>');
+            btns.push('<button class="btn-secondary" onclick="cargaActionByRef(\'reportar-incidencia\',\'' + ref + '\')">⚠️ Incidencia</button>');
+            var hasAlb = row && row.querySelector('.badge-doc');
+            if (hasAlb) {
+                btns.push('<button class="btn-primary" onclick="cargaActionByRef(\'descargar-albaran\',\'' + ref + '\')">📥 Descargar albarán</button>');
+            } else {
+                var days = (typeof daysSinceCargaFecha === 'function') ? daysSinceCargaFecha(d.fecha) : 0;
+                if (days >= 14) {
+                    btns.push('<button class="btn-primary" onclick="cargaActionByRef(\'reclamar-albaran\',\'' + ref + '\')">📩 Reclamar albarán</button>');
+                } else {
+                    btns.push('<button class="btn-ghost" disabled style="opacity:0.55;cursor:not-allowed;" title="Disponible al cabo de 14 días">⏳ Albarán procesándose…</button>');
+                }
+            }
+        }
+        // cancelada: solo Cerrar (sin acciones extra)
+        return btns.join('');
+    }
+    function presupuestoDetailFooter(d) {
+        var ref = escapeHtml(d.ref);
+        var est = (d.estado || '').toLowerCase();
+        var isCaducado = est.indexOf('caducado') > -1;
+        var btns = ['<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>'];
+        if (isCaducado) {
+            btns.push('<button class="btn-secondary" onclick="presupuestoActionByRef(\'revisar-precio\',\'' + ref + '\')">🔁 Revisar precio</button>');
+        } else {
+            btns.push('<button class="btn-primary" onclick="presupuestoActionByRef(\'generar-carga\',\'' + ref + '\')">🚚 Generar carga</button>');
+        }
+        btns.push('<button class="btn-secondary" onclick="presupuestoActionByRef(\'descargar-pdf\',\'' + ref + '\')">📥 Descargar PDF</button>');
+        return btns.join('');
+    }
+    function facturaDetailFooter(d) {
+        var ref = escapeHtml(d.ref);
+        return '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>' +
+               '<button class="btn-primary" onclick="facturaActionByRef(\'descargar-pdf\',\'' + ref + '\')">📥 Descargar PDF</button>';
+    }
+
     /* ---- ACCIONES CARGAS ---- */
     function cargaVerDetalle(row) {
         var d = cargaRowData(row);
@@ -2794,8 +2871,7 @@
                 { label: 'Mercancía', value: d.mercancia + (d.mercanciaMeta ? ' · ' + d.mercanciaMeta : '') },
                 { label: 'Medidas', value: d.medidas }
             ]),
-            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>' +
-                    '<button class="btn-primary" onclick="cargaEditar(\'' + d.ref + '\')">Editar datos</button>'
+            footer: cargaDetailFooter(d, row)
         });
     }
     function cargaEditar(ref) {
@@ -2968,7 +3044,7 @@
                 { label: 'Medidas', value: d.medidas },
                 { label: 'Precio', value: d.precio, span: true }
             ]),
-            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>'
+            footer: presupuestoDetailFooter(d)
         });
     }
     function presupuestoGenerarCarga(row) {
@@ -3043,8 +3119,7 @@
                 { label: 'IVA', value: d.iva },
                 { label: 'TOTAL', value: d.total, span: true }
             ]),
-            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>' +
-                    '<button class="btn-primary" onclick="facturaDescargarPDFByRef(\'' + escapeHtml(d.ref) + '\')">📥 Descargar PDF</button>'
+            footer: facturaDetailFooter(d)
         });
     }
     function facturaDescargarPDFByRef(ref) {
