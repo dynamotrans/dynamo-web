@@ -3782,20 +3782,22 @@
         // Igual que fechaDDMM pero hacia DELANTE saltando fines de semana.
         // Sirve para sembrar cargas futuras en hoy/mañana/pasado mañana
         // y que se aprecien los colores del resaltado.
+        //   nBus = 0 → hoy si hoy es laborable; si no, próximo lunes
+        //   nBus = 1 → siguiente día laborable
+        //   nBus = 2 → el siguiente
         function fechaFuturaLaborable(nBus) {
             var d = new Date();
+            // Si hoy es Sáb o Dom, primero saltamos al próximo lunes
+            // (cuenta como "día 0", luego sumamos nBus desde ahí).
+            while (d.getDay() === 0 || d.getDay() === 6) {
+                d.setDate(d.getDate() + 1);
+            }
             var added = 0;
             while (added < nBus) {
                 d.setDate(d.getDate() + 1);
                 var w = d.getDay();
                 if (w !== 0 && w !== 6) added++;
             }
-            return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth()+1)).slice(-2);
-        }
-        function hoyLaborable() {
-            var d = new Date();
-            // Si hoy es Sáb o Dom, devolvemos el último laborable atrás para
-            // que la inserción siga teniendo sentido (no se pintará como HOY).
             return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth()+1)).slice(-2);
         }
         // Hoy: sin albaran -> "Albaran procesandose"
@@ -3805,7 +3807,7 @@
         // === SEMILLAS PARA VER EL RESALTADO de Programadas (HOY/MAÑANA/PASADO).
         //     Para producción se pueden borrar — basta con que las cargas reales
         //     del cliente caigan en los próximos 3 días laborables.
-        CARGAS_DATA.unshift(makeCarga('#C-2026-1299','PED-0435', hoyLaborable(),          'Fija','Sevilla','Málaga','Pol. Carretera Amarilla → Pol. San Luis','Paletizado','Aceitunas envasadas','10,0 m · 17.000 kg','en-ruta'));
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1299','PED-0435', fechaFuturaLaborable(0), 'Fija','Sevilla','Málaga','Pol. Carretera Amarilla → Pol. San Luis','Paletizado','Aceitunas envasadas','10,0 m · 17.000 kg','en-ruta'));
         CARGAS_DATA.unshift(makeCarga('#C-2026-1298','PED-0434', fechaFuturaLaborable(1), '1 a 2 días','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Conservas','13,2 m · 23.000 kg','programada'));
         CARGAS_DATA.unshift(makeCarga('#C-2026-1297','PED-0433', fechaFuturaLaborable(2), 'Fija','Sevilla','Valencia','Pol. Las Pajanosas → Puerto','Paletizado / Aceite','Aceite oliva virgen','13,2 m · 24.000 kg','programada'));
     })();
