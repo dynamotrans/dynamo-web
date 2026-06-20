@@ -1376,6 +1376,9 @@
             line-height: 1.4;
         }
         .ptar-nofecha-warn strong { color: #5c4500; }
+        .ptar-nofecha-warn a { color: #5c4500; font-weight: 700; }
+        .ptar-select.ptar-select-error { border-color: var(--red); background: #fef2f2; }
+        .ptar-select.ptar-select-error:focus { box-shadow: 0 0 0 3px rgba(220,38,38,0.10); }
         .ptar-field-hint {
             font-size: 0.72rem; color: var(--gray-500);
             line-height: 1.4; margin-top: 0.3rem;
@@ -2303,7 +2306,7 @@
                         <input type="date" data-ptar-fecha class="ptar-date" aria-label="Elegir fecha en calendario">
                     </div>
                     <div class="ptar-nofecha-warn" data-ptar-nofecha-warn hidden>
-                        ⚠ <strong>Previsión, no se tramita</strong>: la carga queda guardada en estado "Programado sin fecha" y <strong>no se asignará camión hasta que confirmes una fecha</strong>. Útil para anotar previsiones de cargas sin fecha definida, aunque si la fecha es posterior a 7 días de generar esta carga, el precio se revisará a precios de mercado actuales cuando se asigne fecha.
+                        ⚠ Sin compromiso. No se asigna camión hasta confirmar fecha. <a href="#" data-ptar-prev-more onclick="event.preventDefault();this.nextElementSibling.hidden=!this.nextElementSibling.hidden;">Más info</a><span hidden style="display:block;margin-top:0.3rem;">La carga queda en la pestaña "Previsión". Si la fecha definitiva es posterior a 7 días desde hoy, el precio se revisará a tarifa de mercado al asignar fecha.</span>
                     </div>
                 </div>
                 <div class="ptar-field">
@@ -3854,18 +3857,35 @@
     // hasAlbaran: solo aplica a entregadas (true por defecto). Si false,
     // la accion sera "Reclamar albaran" (>1 dia desde fecha) o
     // "Albaran procesandose" (<=1 dia)
-    function makeCarga(ref, refCli, fecha, ventana, origen, destino, direcciones, mercancia, mercanciaMeta, medidas, kind, hasAlbaran) {
+    // makeCarga acepta un 13º argumento opcional `extra` con los campos
+    // detallados que el equipo va rellenando una vez confirma la carga
+    // (precio, fecha asignada, ETA, matrículas, conductor, horarios…).
+    // Todos opcionales: si no se pasan, el detalle muestra "Pendiente".
+    function makeCarga(ref, refCli, fecha, ventana, origen, destino, direcciones, mercancia, mercanciaMeta, medidas, kind, hasAlbaran, extra) {
         var estado, color;
         if (kind === 'programada')   { estado = 'Programada'; color = 'orange'; }
         else if (kind === 'en-ruta') { estado = 'En ruta';    color = 'blue';   }
         else if (kind === 'cancelada'){ estado = 'Cancelada'; color = 'gray';   }
         else                          { estado = 'Entregada'; color = 'green';  kind = 'entregada'; }
+        extra = extra || {};
         return {
             ref: ref, refCli: refCli, fecha: fecha, ventana: ventana,
             origen: origen, destino: destino, direcciones: direcciones,
             mercancia: mercancia, mercanciaMeta: mercanciaMeta, medidas: medidas,
             estado: estado, estadoColor: color, kind: kind,
-            hasAlbaran: kind === 'entregada' ? (hasAlbaran !== false) : false
+            hasAlbaran: kind === 'entregada' ? (hasAlbaran !== false) : false,
+            // Datos detallados (pueden ser null → "Pendiente" en el detalle)
+            precio: extra.precio || null,
+            fechaAsignada: extra.fechaAsignada || null,
+            horaCargaEst: extra.horaCargaEst || null,
+            etaEntrega: extra.etaEntrega || null,
+            horarioOrigen: extra.horarioOrigen || null,
+            horarioDestino: extra.horarioDestino || null,
+            tipoCamion: extra.tipoCamion || null,
+            tipoCarga: extra.tipoCarga || null,   // 'Carga completa' | 'Grupaje'
+            matricula: extra.matricula || null,
+            conductor: extra.conductor || null,
+            tfnoConductor: extra.tfnoConductor || null
         };
     }
     // Dias transcurridos desde fecha (DD/MM, año 2026). Usado para decidir
@@ -4493,18 +4513,30 @@
         }
 
         // --- Día selector con próximos 7 laborables + "Otro día" ---
-        // El texto de la opción "sin fecha" cambia según el modo: en
-        // carga es "Programado sin fecha definida" + aviso amarillo
-        // (el equipo no la tramita hasta tener fecha); en presupuesto
-        // basta con "Sin fecha definida" porque es solo una cotización.
+        // Selector de día. Por defecto NO hay opción elegida: el cliente
+        // tiene que seleccionar una explícitamente (validación bloquea
+        // el submit si se queda en el placeholder). En carga, además de
+        // las fechas, hay opción "Previsión" con tooltip explicativo en
+        // hover (en lugar del cartel grande de antes que ocupaba demasiado).
         function fillDiaSelect(sel, mode) {
             sel.innerHTML = '';
-            var none = document.createElement('option');
-            none.value = '';
-            none.textContent = mode === 'carga'
-                ? 'Programado sin fecha definida'
-                : 'Sin fecha definida';
-            sel.appendChild(none);
+            var ph = document.createElement('option');
+            ph.value = '';
+            ph.textContent = 'Selecciona una fecha';
+            ph.disabled = true;
+            ph.selected = true;
+            sel.appendChild(ph);
+            if (mode === 'carga') {
+                var prev = document.createElement('option');
+                prev.value = 'prevision';
+                prev.textContent = 'Previsión, sin fecha definida';
+                prev.title = 'No se tramita: la carga queda guardada en la pestaña "Previsión", sin asignar camión hasta que confirmes una fecha. Útil para anotar previsiones; si la fecha definitiva es posterior a 7 días, el precio se revisará a precios de mercado actuales.';
+                sel.appendChild(prev);
+            } else {
+                var sf = document.createElement('option');
+                sf.value = 'sinfecha'; sf.textContent = 'Sin fecha definida';
+                sel.appendChild(sf);
+            }
             nextWeekdays(7).forEach(function (d) {
                 var opt = document.createElement('option');
                 opt.value = d.toISOString().slice(0, 10);
@@ -4691,8 +4723,12 @@
             var nofechaWarn = card.querySelector('[data-ptar-nofecha-warn]');
             function syncNofechaWarn() {
                 if (!nofechaWarn || !diaSel) return;
-                nofechaWarn.hidden = diaSel.value !== '';
+                nofechaWarn.hidden = diaSel.value !== 'prevision';
             }
+            // Quita la marca de error del select en cuanto cambie a algo válido
+            if (diaSel) diaSel.addEventListener('change', function () {
+                if (diaSel.value) diaSel.classList.remove('ptar-select-error');
+            });
             if (diaSel) {
                 fillDiaSelect(diaSel, mode);
                 function attachFlatpickr() {
@@ -4883,17 +4919,37 @@
                 var urgenciaTxt = urgenciaSel.value === 'dia' ? 'Fija'
                     : urgenciaSel.value === 'flexible' ? '1 a 4 días' : '1 a 2 días';
                 var fechaTxt, fechaLarga;
-                if (diaSel && diaSel.value && diaSel.value !== 'otro') {
-                    var d = new Date(diaSel.value);
-                    fechaTxt = fmtDate(d);
-                    fechaLarga = fmtFull(d);
-                } else if (mode === 'carga') {
-                    fechaTxt = 'Sin fecha';
-                    fechaLarga = 'Programado sin fecha definida (previsión)';
+                // Si el modo es 'carga' el selector de fecha existe y NO puede
+                // quedarse en el placeholder ('') — hay que elegir una opción
+                // explícita: una fecha, "Previsión, sin fecha definida" o "Otro día…"
+                if (diaSel) {
+                    if (diaSel.value === '') {
+                        warning.classList.add('show');
+                        diaSel.classList.add('ptar-select-error');
+                        diaSel.focus();
+                        return null;
+                    }
+                    if (diaSel.value === 'prevision') {
+                        fechaTxt = 'Sin fecha';
+                        fechaLarga = 'Previsión, sin fecha definida';
+                    } else if (diaSel.value === 'sinfecha') {
+                        fechaTxt = 'A confirmar';
+                        fechaLarga = 'A confirmar';
+                    } else if (diaSel.value !== 'otro') {
+                        var d = new Date(diaSel.value);
+                        fechaTxt = fmtDate(d);
+                        fechaLarga = fmtFull(d);
+                    } else {
+                        // 'otro' sin elegir realmente una fecha
+                        warning.classList.add('show');
+                        diaSel.classList.add('ptar-select-error');
+                        return null;
+                    }
                 } else {
                     fechaTxt = 'A confirmar';
                     fechaLarga = 'A confirmar';
                 }
+                if (diaSel) diaSel.classList.remove('ptar-select-error');
                 return {
                     camion: camion, camionLabel: CAMION_INFO[camion] ? CAMION_INFO[camion].label : camion,
                     ml: ml, peso: peso, medidas: medidas,
