@@ -989,31 +989,6 @@
         .badge-enruta    { background: #dbeafe; color: #1e40af; }  /* En ruta: blue */
         .badge-entregado { background: #d1fae5; color: #065f46; }  /* Entregado: green */
         .badge-cancelada { background: #fee2e2; color: #991b1b; }  /* Cancelada: red */
-        /* Leyenda de progresión de estado bajo las pestañas */
-        .estado-legend {
-            display: flex; align-items: center; flex-wrap: wrap;
-            gap: 0.4rem 0.3rem;
-            padding: 0.55rem 0.8rem;
-            background: var(--gray-50);
-            border: 1px solid var(--gray-200);
-            border-radius: 10px;
-            margin: 0.6rem 0 0.9rem;
-            font-size: 0.78rem;
-        }
-        .estado-legend-label {
-            font-size: 0.7rem; font-weight: 800;
-            color: var(--gray-500); text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-right: 0.25rem;
-        }
-        .estado-legend-arrow {
-            color: var(--gray-300); font-weight: 700;
-            font-size: 0.95rem; padding: 0 0.05rem;
-        }
-        @media (max-width: 600px) {
-            .estado-legend { font-size: 0.7rem; }
-            .estado-legend .badge { font-size: 0.65rem; padding: 0.1rem 0.4rem; }
-        }
         /* Chip 📄 al lado del estado cuando la entrega tiene albaran PDF */
         .badge-doc {
             display: inline-block; font-size: 0.85rem;
@@ -2141,19 +2116,6 @@
             <button class="tab" data-filter="entregada">Entregadas (<span data-count="entregada">0</span>)</button>
             <button class="tab" data-filter="cancelada">Canceladas (<span data-count="cancelada">0</span>)</button>
             <button class="tab" data-filter="todas">Todas (<span data-count="todas">0</span>)</button>
-        </div>
-        <!-- Leyenda de progresión del estado de la carga -->
-        <div class="estado-legend">
-            <span class="estado-legend-label">Progresión:</span>
-            <span class="badge badge-prog">Programado</span>
-            <span class="estado-legend-arrow">›</span>
-            <span class="badge badge-hacia">Hacia la carga</span>
-            <span class="estado-legend-arrow">›</span>
-            <span class="badge badge-cargando">Cargando</span>
-            <span class="estado-legend-arrow">›</span>
-            <span class="badge badge-enruta">En ruta</span>
-            <span class="estado-legend-arrow">›</span>
-            <span class="badge badge-entregado">Entregado</span>
         </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por nº, referencia, origen, destino…">
