@@ -4461,16 +4461,21 @@
         else if (f === 'prevision')  arr = CARGAS_DATA.filter(isPrevision);
         else if (f === 'programada') arr = CARGAS_DATA.filter(isProgramada);
         else                         arr = CARGAS_DATA.filter(function (c) { return c.kind === f; });
-        // Orden ÚNICO para todas las pestañas: por fecha de carga EFECTIVA
-        // (la asignada si existe, si no la solicitada) en ASC — las más
-        // próximas a cargar arriba, las más tardías abajo. Operativamente
-        // es lo que el cliente quiere ver primero. Previsión (sin fecha)
-        // se queda con orden por ref DESC (recién apuntadas arriba).
+        // Orden por pestaña:
+        // - Previsión:   sin fecha → por ref DESC (recién apuntadas arriba)
+        // - Entregadas:  fecha efectiva DESC (la entrega más reciente arriba —
+        //                las del pasado lejano interesan menos)
+        // - Resto (Programadas, Canceladas, Todas): fecha efectiva ASC
+        //                (las más próximas a cargar arriba — operativo)
         function effFecha(c) {
             return c.fechaAsignada ? c.fechaAsignada.split(' ')[0] : c.fecha;
         }
         if (f === 'prevision') {
             arr.sort(function (a, b) { return refNumber(b) - refNumber(a); });
+        } else if (f === 'entregada') {
+            arr.sort(function (a, b) {
+                return parseFechaDDMM(effFecha(b)) - parseFechaDDMM(effFecha(a));
+            });
         } else {
             arr.sort(function (a, b) {
                 return parseFechaDDMM(effFecha(a)) - parseFechaDDMM(effFecha(b));
