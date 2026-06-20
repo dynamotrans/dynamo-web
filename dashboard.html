@@ -3533,6 +3533,26 @@
     syncOnlineStatus();
     setInterval(syncOnlineStatus, 60000);
 
+    // === MOCKUP: ?cesce=ok|warn|none cambia el estado de la card CESCE ===
+    // Sin backend todavía; útil para previsualizar los 3 estados desde la URL.
+    // Cuando exista el endpoint de CESCE, este bloque se sustituye por la
+    // respuesta real del API.
+    (function applyCesceFromQuery() {
+        var s = new URLSearchParams(location.search).get('cesce');
+        var conf = {
+            ok:   { cls: 'cesce-status-ok',   txt: 'Con crédito disponible' },
+            warn: { cls: 'cesce-status-warn', txt: 'Crédito agotado' },
+            none: { cls: 'cesce-status-none', txt: 'Sin cobertura · pago previo a carga' }
+        }[s];
+        if (!conf) return;
+        var el = document.querySelector('.cesce-status');
+        if (!el) return;
+        el.classList.remove('cesce-status-ok', 'cesce-status-warn', 'cesce-status-none');
+        el.classList.add(conf.cls);
+        var t = el.querySelector('.cesce-status-text');
+        if (t) t.textContent = conf.txt;
+    })();
+
     // Interceptor global de tel:
     document.addEventListener('click', function (e) {
         var a = e.target.closest && e.target.closest('a[href^="tel:"]');
