@@ -3031,7 +3031,7 @@
                     var items = [
                         { label: 'Nº carga', value: d.ref },
                         { label: 'Ref. cliente', value: d.refCli },
-                        { label: 'Estado', value: d.estado },
+                        { label: 'Estado', value: getEstadoVisual(src).label },
                         { label: 'Precio', value: pend(src.precio), html: true }
                     ];
                     // Si ya hay fecha asignada por el equipo, la "fecha
@@ -4009,7 +4009,11 @@
             transportistaNombre: extra.transportistaNombre || null,
             matricula: extra.matricula || null,
             conductor: extra.conductor || null,
-            tfnoConductor: extra.tfnoConductor || null
+            tfnoConductor: extra.tfnoConductor || null,
+            // Solo mockup: fuerza la fase del día para visualizar los chips
+            // de "Hacia la carga / Cargando / En ruta" sin esperar a la hora
+            // exacta. En producción se deja undefined y el cálculo es por hora.
+            _phaseSim: extra._phaseSim || null
         };
     }
     // Dias transcurridos desde fecha (DD/MM, año 2026). Usado para decidir
@@ -4141,12 +4145,31 @@
         // === SEMILLAS PARA VER EL RESALTADO de Programadas (HOY/MAÑANA/PASADO).
         //     Para producción se pueden borrar — basta con que las cargas reales
         //     del cliente caigan en los próximos 3 días laborables.
+        // === SEMILLAS de las 3 fases del día (mock): "Hacia la carga",
+        //     "Cargando" y "En ruta". En producción no se forzaría
+        //     _phaseSim: el cálculo por hora actual de getEstadoVisual()
+        //     pone el chip correcto automáticamente.
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1305','PED-0440', fechaFuturaLaborable(0), 'Fija','Sevilla','Córdoba','Pol. Calonge → Centro logístico','Paletizado','Cosméticos','10,0 m · 16.000 kg','en-ruta', undefined, {
+            precio: '640 €', fechaAsignada: fechaFuturaLaborable(0) + ' 16:30', horaCargaEst: '16:30', etaEntrega: 'Mañana 09:00',
+            tipoCamion: 'Rígido 8 m con plataforma', tipoCarga: 'Carga completa',
+            transportistaAsignado: true, transportistaNombre: 'Dynamo (camión propio)',
+            matricula: '9183 KDR', conductor: 'Luis Martínez', tfnoConductor: '+34 622 511 098',
+            _phaseSim: 'enruta'
+        }));
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1304','PED-0439', fechaFuturaLaborable(0), 'Fija','Sevilla','Granada','Pol. Calonge → Pol. Juncaril','Paletizado','Bebidas','13,2 m · 22.000 kg','en-ruta', undefined, {
+            precio: '820 €', fechaAsignada: fechaFuturaLaborable(0) + ' 14:30', horaCargaEst: '14:30', etaEntrega: 'Hoy 19:30',
+            tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa',
+            transportistaAsignado: true, transportistaNombre: 'Transportes Beltrán S.L.',
+            matricula: '5829 MGT', conductor: 'Rafael Vega', tfnoConductor: '+34 690 334 221',
+            _phaseSim: 'cargando'
+        }));
         CARGAS_DATA.unshift(makeCarga('#C-2026-1299','PED-0435', fechaFuturaLaborable(0), 'Fija','Sevilla','Málaga','Pol. Carretera Amarilla → Pol. San Luis','Paletizado','Aceitunas envasadas','10,0 m · 17.000 kg','en-ruta', undefined, {
-            precio: '780 €', fechaAsignada: fechaFuturaLaborable(0) + ' 09:00', horaCargaEst: '09:00', etaEntrega: fechaFuturaLaborable(0),
+            precio: '780 €', fechaAsignada: fechaFuturaLaborable(0) + ' 09:00', horaCargaEst: '09:00', etaEntrega: 'Hoy 14:00',
             horarioOrigen: 'L-V 8:00-15:00', horarioDestino: 'L-V 7:30-14:00',
             tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Grupaje',
             transportistaAsignado: true, transportistaNombre: 'Dynamo (camión propio)',
-            matricula: '6217 PCF', conductor: 'David Núñez', tfnoConductor: '+34 678 442 113'
+            matricula: '6217 PCF', conductor: 'David Núñez', tfnoConductor: '+34 678 442 113',
+            _phaseSim: 'hacia'
         }));
         CARGAS_DATA.unshift(makeCarga('#C-2026-1298','PED-0434', fechaFuturaLaborable(1), '1 a 2 días','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Conservas','13,2 m · 23.000 kg','programada'));
         CARGAS_DATA.unshift(makeCarga('#C-2026-1297','PED-0433', fechaFuturaLaborable(2), 'Fija','Sevilla','Valencia','Pol. Las Pajanosas → Puerto','Paletizado / Aceite','Aceite oliva virgen','13,2 m · 24.000 kg','programada'));
@@ -4304,6 +4327,46 @@
     //                  desde la fecha de carga (operativa no busca antes)
     //  - espera      → más de 4 días, o sin fecha
     // No aplica a entregada/cancelada.
+    // Estado VISUAL de la carga. Cambia dinámicamente según la hora del
+    // día cuando la fecha asignada coincide con HOY:
+    //   < 07:00 → "Programada hoy"
+    //   07-13   → "Hacia la carga"   (conductor en camino al cargador)
+    //   13-16   → "Cargando"
+    //   16-ETA  → "En ruta"
+    // En cualquier otro caso devuelve el estado original (Programada,
+    // En ruta, Entregada, Cancelada). En el mockup admite _phaseSim
+    // para forzar una fase concreta y ver los 3 chips en la tabla.
+    function getEstadoVisual(c, now) {
+        now = now || new Date();
+        if (c.kind === 'entregada' || c.kind === 'cancelada') {
+            return { label: c.estado, color: c.estadoColor };
+        }
+        if (c._phaseSim === 'hacia')    return { label: 'Hacia la carga', color: 'blue' };
+        if (c._phaseSim === 'cargando') return { label: 'Cargando',       color: 'orange' };
+        if (c._phaseSim === 'enruta')   return { label: 'En ruta',        color: 'blue' };
+        if (c._phaseSim === 'pre7')     return { label: 'Programada hoy', color: 'orange' };
+        // ¿fechaAsignada es hoy?
+        var isToday = false;
+        if (c.fechaAsignada) {
+            var dateStr = c.fechaAsignada.split(' ')[0];
+            var m = dateStr.match(/^(\d{1,2})\/(\d{1,2})$/);
+            if (m) {
+                var d = new Date(now.getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+                d.setHours(0, 0, 0, 0);
+                var todayD = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                isToday = d.getTime() === todayD.getTime();
+            }
+        }
+        if (isToday) {
+            var h = now.getHours();
+            if (h < 7)   return { label: 'Programada hoy', color: 'orange' };
+            if (h < 13)  return { label: 'Hacia la carga', color: 'blue' };
+            if (h < 16)  return { label: 'Cargando',       color: 'orange' };
+            return { label: 'En ruta', color: 'blue' };
+        }
+        return { label: c.estado, color: c.estadoColor };
+    }
+
     function getAsignacionEstado(c) {
         if (c.kind === 'entregada' || c.kind === 'cancelada') return null;
         // La señal que dispara "Confirmado" es transportistaAsignado, no la
@@ -4471,7 +4534,10 @@
                         (c.tipoCamion ? '<div class="meta">' + esc(c.tipoCamion) + '</div>' : pendMeta('Camión')) +
                         (c.matricula ? '<div class="meta meta-matricula">' + esc(c.matricula) + '</div>' : pendMeta('Matrícula')) +
                     '</td>' +
-                    '<td><span class="badge badge-' + c.estadoColor + '">' + esc(c.estado) + '</span>' +
+                    (function () {
+                        var ev = getEstadoVisual(c);
+                        return '<td><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span>';
+                    })() +
                         (c.kind === 'entregada' && c.hasAlbaran ? ' <span class="badge-doc" title="Albarán PDF disponible">📄</span>' : '') +
                         (function () {
                             var a = getAsignacionEstado(c);
