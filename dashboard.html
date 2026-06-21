@@ -1026,6 +1026,7 @@
         /* Progresión del estado de carga (de pasivo → activo → en curso → completado).
            Los 5 estados pasan por una gama coherente: gris → cyan → ámbar → índigo → verde,
            imitando una "barra de progreso" mental para el cliente. */
+        .badge-retrasada { background: #fecaca; color: #991b1b; box-shadow: inset 0 0 0 1px #b91c1c; }  /* Retrasada: rojo profundo */
         .badge-prog      { background: #e2e8f0; color: #475569; }  /* Programado: slate */
         .badge-hacia     { background: #cffafe; color: #155e75; }  /* Hacia la carga: cyan */
         .badge-cargando  { background: #fef3c7; color: #92400e; }  /* Cargando: amber */
@@ -1205,6 +1206,14 @@
            Gradiente coral → ámbar → verde: cuanto más cercana la carga
            más cálido el color, para llamar atención sobre lo inminente.
            Fines de semana excluidos (mañana de viernes = lunes). */
+        /* Carga retrasada: fecha pasada y todavía sin recoger. Más
+           llamativo que HOY (que ya es rojo claro): rojo más saturado,
+           borde grueso, y la etiqueta pulsa para llamar la atención. */
+        table.data tr.row-overdue {
+            background: #fee2e2;
+            box-shadow: inset 6px 0 0 0 #b91c1c;
+        }
+        table.data tr.row-overdue:hover { background: #fecaca; }
         table.data tr.row-today {
             background: #fff1f1;
             box-shadow: inset 4px 0 0 0 #ef4444;
@@ -1230,9 +1239,23 @@
             letter-spacing: 0.4px; text-transform: uppercase;
             vertical-align: middle;
         }
+        .row-when-tag.tag-overdue  {
+            background: #b91c1c; color: white;
+            box-shadow: 0 0 0 0 rgba(185,28,28,0.7);
+            animation: overduePulse 1.6s ease-in-out infinite;
+        }
         .row-when-tag.tag-today    { background: #ef4444; color: white; }
         .row-when-tag.tag-tomorrow { background: #f59e0b; color: white; }
         .row-when-tag.tag-after    { background: #10b981; color: white; }
+        @keyframes overduePulse {
+            0%   { box-shadow: 0 0 0 0 rgba(185,28,28,0.55); }
+            70%  { box-shadow: 0 0 0 6px rgba(185,28,28,0); }
+            100% { box-shadow: 0 0 0 0 rgba(185,28,28,0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .row-when-tag.tag-overdue { animation: none; }
+        }
+        body.theme-dark table.data tr.row-overdue      { background: rgba(185,28,28,0.18); }
         body.theme-dark table.data tr.row-today        { background: rgba(239,68,68,0.12); }
         body.theme-dark table.data tr.row-tomorrow     { background: rgba(245,158,11,0.12); }
         body.theme-dark table.data tr.row-aftertomorrow{ background: rgba(16,185,129,0.12); }
@@ -4116,6 +4139,16 @@
             transportistaAsignado: true, transportistaNombre: 'Transfrío Sur S.L.'
             // matricula/conductor/tfno → null (pendientes; el transportista decidirá)
         }),
+        // === MOCK PARA VER ESTADO "RETRASADA" ===
+        // Cargas programadas con fecha pasada que todavía no se han recogido.
+        // La ventana abrió hace varios días y el transportista no ha podido
+        // entrar en la finca de origen — son las más urgentes y deben
+        // resaltarse por encima de HOY/MAÑANA.
+        makeCarga('#C-2026-1289','PED-0425B','19/06','1 a 2 días','Sevilla','Logroño','Pol. Las Pajanosas → Pol. Cantabria','Maquinaria','Compresor industrial','8,4 m · 6.500 kg','programada', undefined, {
+            precio: '1.520 €', tipoCarga: 'Carga completa',
+            transportistaAsignado: true, transportistaNombre: 'Transportes Norte S.L.'
+        }),
+        makeCarga('#C-2026-1287','PED-0424B','18/06','1 a 4 días','Sevilla','Oviedo','Centro logístico → Pol. Silvota','Material obra','Perfiles metálicos','10,0 m · 16.500 kg','programada'),
         // Programada con datos mínimos sin asignación todavía
         makeCarga('#C-2026-1286','PED-0424','22/06','1 a 4 días','Sevilla','Valencia','Almacén central → Puerto','Eventos / feria','Stand modular','6,0 m · 8.200 kg','programada'),
         makeCarga('#C-2026-1285','PED-0423','16/06','Fija','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Paletizado','Repuestos automoción','12,0 m · 20.000 kg','en-ruta', undefined, {
@@ -4415,6 +4448,20 @@
             if (h < 16) return { label: 'Cargando',       color: 'cargando' };
             return { label: 'En ruta', color: 'enruta' };
         }
+        // Programada con fecha pasada y todavía sin recoger (kind sigue
+        // siendo 'programada' porque al cargarse pasaría a 'en-ruta' y al
+        // entregarse a 'entregada'). Es la más urgente de todas.
+        if (c.kind === 'programada' && c.fecha && c.fecha !== 'Sin fecha') {
+            var fm = String(c.fecha).match(/^(\d{1,2})\/(\d{1,2})$/);
+            if (fm) {
+                var fd = new Date(now.getFullYear(), parseInt(fm[2], 10) - 1, parseInt(fm[1], 10));
+                fd.setHours(0, 0, 0, 0);
+                var todayD2 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                if (fd.getTime() < todayD2.getTime()) {
+                    return { label: 'Retrasada', color: 'retrasada' };
+                }
+            }
+        }
         // Programada futura
         return { label: 'Programado', color: 'prog' };
     }
@@ -4446,7 +4493,10 @@
         var d = new Date(year, parseInt(m[2], 10) - 1, parseInt(m[1], 10));
         d.setHours(0, 0, 0, 0);
         var today = new Date(); today.setHours(0, 0, 0, 0);
-        if (d < today) return null;
+        if (d < today) {
+            // Carga con fecha pasada todavía no recogida. Urgencia máxima.
+            return { level: -1, label: 'RETRASADA' };
+        }
         var wd = d.getDay();
         if (wd === 0 || wd === 6) return null;
         // Anchor (hoy o próximo laborable si hoy es Sáb/Dom)
@@ -4612,13 +4662,19 @@
                 var fechaPrincipal = asigDate || c.fecha;
                 var hi = (c.kind === 'programada' || c.kind === 'en-ruta')
                     ? highlightInfo(fechaPrincipal) : null;
+                // "RETRASADA" solo aplica a programadas (en-ruta con fecha
+                // pasada significa que ya se cargó y va de camino, no hay
+                // retraso real)
+                if (hi && hi.level === -1 && c.kind !== 'programada') hi = null;
                 var rowCls = '', whenTag = '';
                 if (hi) {
-                    if (hi.level === 0)      rowCls = ' class="row-today"';
+                    if (hi.level === -1)     rowCls = ' class="row-overdue"';
+                    else if (hi.level === 0) rowCls = ' class="row-today"';
                     else if (hi.level === 1) rowCls = ' class="row-tomorrow"';
                     else if (hi.level === 2) rowCls = ' class="row-aftertomorrow"';
-                    if (hi.label === 'HOY')        whenTag = '<span class="row-when-tag tag-today">HOY</span>';
-                    else if (hi.label === 'MAÑANA') whenTag = '<span class="row-when-tag tag-tomorrow">MAÑANA</span>';
+                    if (hi.label === 'RETRASADA')           whenTag = '<span class="row-when-tag tag-overdue">RETRASADA</span>';
+                    else if (hi.label === 'HOY')            whenTag = '<span class="row-when-tag tag-today">HOY</span>';
+                    else if (hi.label === 'MAÑANA')         whenTag = '<span class="row-when-tag tag-tomorrow">MAÑANA</span>';
                     else if (hi.label === 'PASADO MAÑANA') whenTag = '<span class="row-when-tag tag-after">PASADO MAÑANA</span>';
                 }
                 function pendMeta(label) { return '<div class="meta meta-pend">' + label + ' pdte.</div>'; }
