@@ -1849,7 +1849,9 @@
         }
         .testi-track {
             display: flex;
-            gap: 1.2rem;
+            gap: 20px; /* px ENTEROS: con cards de ancho entero, una tira mide
+                          un nº entero de px → el loop empalma al píxel (sin
+                          parpadeo). Con rem (19,2px) quedaba fracción. */
             width: max-content;
             padding: 0.5rem 0 1.2rem;
             /* --scroll-px lo setea el JS al ancho EXACTO de un set para que
@@ -1889,7 +1891,7 @@
         .testi-google svg { flex-shrink:0; }
         /* Movil: cards mas pequeñas para que entren mas en el flujo */
         @media (max-width:768px) {
-            .testi-track { gap: 0.85rem; }
+            .testi-track { gap: 14px; }
             .testi-card { flex: 0 0 280px; padding: 1.2rem; }
         }
 
@@ -3481,8 +3483,10 @@ function openLegal(tab) {
             // tira 1). Así no acumulamos errores de redondeo del gap → el
             // bucle reinicia sin salto/parpadeo.
             track.innerHTML = originalHTML + originalHTML;
-            var setPx = track.children[perSet].getBoundingClientRect().left
-                      - track.children[0].getBoundingClientRect().left;
+            var setPx = Math.round(
+                track.children[perSet].getBoundingClientRect().left
+                - track.children[0].getBoundingClientRect().left
+            ); // entero → el reinicio del loop cae justo en un píxel
             if (setPx <= 0) return;
             // Duplicar hasta cubrir viewport + una tira (mínimo 2 tiras)
             var html = originalHTML + originalHTML;
