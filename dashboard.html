@@ -4423,12 +4423,28 @@
     //   16-ETA  → "En ruta"
     function getEstadoVisual(c, now) {
         now = now || new Date();
+        // Helper: ¿la fecha DD/MM contenida en s es anterior a hoy?
+        function isPastDate(s) {
+            if (!s || s === 'Sin fecha') return false;
+            var m = String(s).match(/(\d{1,2})\/(\d{1,2})/);
+            if (!m) return false;
+            var d = new Date(now.getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+            d.setHours(0, 0, 0, 0);
+            var todayD = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            return d.getTime() < todayD.getTime();
+        }
         if (c.kind === 'entregada') return { label: 'Entregado',  color: 'entregado' };
         if (c.kind === 'cancelada') return { label: 'Cancelada',  color: 'cancelada' };
         if (c._phaseSim === 'hacia')    return { label: 'Hacia la carga', color: 'hacia' };
         if (c._phaseSim === 'cargando') return { label: 'Cargando',       color: 'cargando' };
         if (c._phaseSim === 'enruta')   return { label: 'En ruta',        color: 'enruta' };
         if (c._phaseSim === 'pre7')     return { label: 'Programado hoy', color: 'prog' };
+        // En ruta: si la ETA de entrega es pasada → Retrasada (debería
+        // haber llegado al destino). Si no, "En ruta" normal.
+        if (c.kind === 'en-ruta') {
+            if (isPastDate(c.etaEntrega)) return { label: 'Pendiente Asignar', color: 'retrasada' };
+            return { label: 'En ruta', color: 'enruta' };
+        }
         // ¿fechaAsignada es hoy?
         var isToday = false;
         if (c.fechaAsignada) {
@@ -4448,19 +4464,9 @@
             if (h < 16) return { label: 'Cargando',       color: 'cargando' };
             return { label: 'En ruta', color: 'enruta' };
         }
-        // Programada con fecha pasada y todavía sin recoger (kind sigue
-        // siendo 'programada' porque al cargarse pasaría a 'en-ruta' y al
-        // entregarse a 'entregada'). Es la más urgente de todas.
-        if (c.kind === 'programada' && c.fecha && c.fecha !== 'Sin fecha') {
-            var fm = String(c.fecha).match(/^(\d{1,2})\/(\d{1,2})$/);
-            if (fm) {
-                var fd = new Date(now.getFullYear(), parseInt(fm[2], 10) - 1, parseInt(fm[1], 10));
-                fd.setHours(0, 0, 0, 0);
-                var todayD2 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                if (fd.getTime() < todayD2.getTime()) {
-                    return { label: 'Retrasada', color: 'retrasada' };
-                }
-            }
+        // Programada con fecha pasada y todavía sin recoger. La más urgente.
+        if (c.kind === 'programada' && isPastDate(c.fecha)) {
+            return { label: 'Pendiente Asignar', color: 'retrasada' };
         }
         // Programada futura
         return { label: 'Programado', color: 'prog' };
@@ -4660,32 +4666,46 @@
                 var asigDate = asigParts ? asigParts[0] : null;
                 var asigTime = asigParts && asigParts[1] ? asigParts[1] : null;
                 var fechaPrincipal = asigDate || c.fecha;
-                var hi = (c.kind === 'programada' || c.kind === 'en-ruta')
-                    ? highlightInfo(fechaPrincipal) : null;
-                // "RETRASADA" solo aplica a programadas (en-ruta con fecha
-                // pasada significa que ya se cargó y va de camino, no hay
-                // retraso real)
-                if (hi && hi.level === -1 && c.kind !== 'programada') hi = null;
-                var rowCls = '', whenTag = '';
+                // Resaltado de fila:
+                //  - programada → según fecha de carga (recogida)
+                //  - en-ruta    → según ETA de entrega (la carga ya está
+                //                  hecha; lo urgente es que llegue al destino)
+                // Si la fecha relevante es pasada → RETRASADA.
+                function extractDDMM(s) {
+                    if (!s) return null;
+                    var m = String(s).match(/(\d{1,2}\/\d{1,2})/);
+                    return m ? m[1] : null;
+                }
+                var hiSrc = null;
+                if (c.kind === 'programada') hiSrc = fechaPrincipal;
+                else if (c.kind === 'en-ruta') hiSrc = extractDDMM(c.etaEntrega) || fechaPrincipal;
+                var hi = hiSrc ? highlightInfo(hiSrc) : null;
+                var rowCls = '', tagHtml = '';
+                // El chip va junto a la fecha de carga para programada,
+                // y junto a la ETA para en-ruta (la fecha relevante en
+                // cada caso).
+                var whenTagTop = '', whenTagEta = '';
                 if (hi) {
                     if (hi.level === -1)     rowCls = ' class="row-overdue"';
                     else if (hi.level === 0) rowCls = ' class="row-today"';
                     else if (hi.level === 1) rowCls = ' class="row-tomorrow"';
                     else if (hi.level === 2) rowCls = ' class="row-aftertomorrow"';
-                    if (hi.label === 'RETRASADA')           whenTag = '<span class="row-when-tag tag-overdue">RETRASADA</span>';
-                    else if (hi.label === 'HOY')            whenTag = '<span class="row-when-tag tag-today">HOY</span>';
-                    else if (hi.label === 'MAÑANA')         whenTag = '<span class="row-when-tag tag-tomorrow">MAÑANA</span>';
-                    else if (hi.label === 'PASADO MAÑANA') whenTag = '<span class="row-when-tag tag-after">PASADO MAÑANA</span>';
+                    if (hi.label === 'RETRASADA')           tagHtml = '<span class="row-when-tag tag-overdue">PENDIENTE ASIGNAR</span>';
+                    else if (hi.label === 'HOY')            tagHtml = '<span class="row-when-tag tag-today">HOY</span>';
+                    else if (hi.label === 'MAÑANA')         tagHtml = '<span class="row-when-tag tag-tomorrow">MAÑANA</span>';
+                    else if (hi.label === 'PASADO MAÑANA') tagHtml = '<span class="row-when-tag tag-after">PASADO MAÑANA</span>';
+                    if (c.kind === 'en-ruta') whenTagEta = tagHtml;
+                    else whenTagTop = tagHtml;
                 }
                 function pendMeta(label) { return '<div class="meta meta-pend">' + label + ' pdte.</div>'; }
                 return '<tr' + rowCls + '>' +
                     '<td class="ref">' + esc(c.ref) + '</td>' +
                     '<td class="ref-cli">' + esc(c.refCli) + '</td>' +
-                    '<td><strong>' + esc(fechaConDia(fechaPrincipal)) + '</strong>' + whenTag +
+                    '<td><strong>' + esc(fechaConDia(fechaPrincipal)) + '</strong>' + whenTagTop +
                         (asigDate
                             ? '<div class="meta meta-asignada">Carga ' + (asigTime ? esc(asigTime) : 'confirmada') + '</div>'
                             : (c.ventana ? '<div class="meta">' + esc(c.ventana) + '</div>' : '')) +
-                        (c.etaEntrega ? '<div class="meta meta-eta">ETA: ' + esc(c.etaEntrega) + '</div>' : '') +
+                        (c.etaEntrega ? '<div class="meta meta-eta">ETA: ' + esc(c.etaEntrega) + (whenTagEta ? ' ' + whenTagEta : '') + '</div>' : '') +
                     '</td>' +
                     '<td class="route"><strong>' + esc(c.origen) + '</strong><span class="arrow">→</span><strong>' + esc(c.destino) + '</strong>' + (c.direcciones ? '<div class="meta">' + esc(c.direcciones) + '</div>' : '') + '</td>' +
                     '<td>' + esc(c.mercancia) + (c.mercanciaMeta ? '<div class="meta">' + esc(c.mercanciaMeta) + '</div>' : '') + '</td>' +
