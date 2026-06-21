@@ -170,6 +170,56 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-21 — (reconstruida desde git — chat original se quedó pillado)
+
+> ⚠️ Esta entrada se reconstruyó el 2026-06-21 a partir del historial de commits porque el chat de esos días se colgó antes de escribir bitácora. Refleja lo que dicen los commits; si hubo decisiones habladas no commiteadas, no quedaron registradas.
+
+**MODELO DE 3 RAMAS (decisión grande del día)** — `regla 9` añadida a `CLAUDE.md`:
+- `main` → producción (`dynamotrans.com`) · `claude/sharp-dirac-E3UIO` → **preview** (estable validado) · `lab` → sandbox experimental
+- `preview` es la rama de trabajo por defecto de Claude. `lab` ramificó de preview (todo preview + experimentos). Cascadas de merge documentadas (main→preview→lab) (commit `2408bab`)
+
+**WEB PÚBLICA (a `main`)**:
+- **Orden de contacto unificado a Email · WhatsApp · Teléfono** en toda la web pública (`eb91f89` → `4904e04` → merge `d6d63da` a main, luego `5ab231b` sync main→preview)
+
+**PANEL — Dashboard de Cargas (preview)**:
+- **Pestañas reorganizadas en pendientes / confirmadas** (`53bc9ac`)
+- **Cargas RETRASADAS destacadas**: Programadas con fecha pasada se marcan como retrasadas (`4a67bb0`); chip muestra "Hace X días (queda Y días)" (`189255a`); en-ruta con ETA pasada se marca y label "Pendiente Asignar" (`c66f6e5`)
+- **Modal Ver detalle**: acciones colocadas arriba + scroll reseteado al abrir (`8f30eec`); fix acciones por estado que volvían a aparecer (`e3599af`)
+- **Cobertura**: quitado duplicado del mapa de Europa antes de "Por qué elegirnos" (`7da1a14`)
+
+**LAB**: sincronizada con preview vía commits "Sync: preview → lab" (tabs, chip retrasada, Pendiente Asignar, RETRASADA, acciones modal, duplicado cobertura, orden contacto)
+
+---
+
+### 2026-06-20 — (reconstruida desde git — chat original se quedó pillado)
+
+> ⚠️ Reconstruida desde commits el 2026-06-21 (chat colgado). Día muy intenso en el **dashboard de Cargas** del panel.
+
+**PANEL — Dashboard (preview)**:
+- **Stat cards**: "Cargas activas" calculada en vivo (`b7ab12a`); las 3 stat cards se mantienen en una fila en todos los tamaños (`d29e419`)
+- **Facturas retiradas del panel de momento** → se reactivarán en fase 2 con Holded (`5b132e2`)
+- **Filtros simplificados** a buscador + selector de mes/año, en la misma fila siempre (`3719ed5`, `725eda8`); selector "Mostrar 10/20/50/100" ya existía
+- **Cargas — sistema de estados y asignación de transportista (pieza grande del día)**:
+  - Detalle completo en tabla y modal: precio, fecha asignada, ETA, conductor… (`3f793ca`)
+  - Estado de asignación de transportista en cada fila (`d43b32d`); tabla muestra fecha asignada + tipo carga/camión/matrícula (`006ada0`); "Transportista asignado" separado de la matrícula del camión (`c2a2670`)
+  - **Estado dinámico por hora** el día de carga + ejemplos en mock (`732ef2c`); ejemplos mock para cubrir todos los estados de asignación, incluido Programada >4 días sin transportista = "En espera" (`8f758d0`, `4c35b33`)
+  - **Paleta progresiva de estados** (slate → cyan → amber → blue → green) (`7f81af5`); color (business) desacoplado de etiqueta (calendario literal) (`58fbef1`); quitada la leyenda de progresión bajo las pestañas (`895a779`)
+  - **Orden de pestañas** por fecha de carga efectiva ASC; Entregadas en DESC (más reciente arriba) (`2beb228`, `4cc0e09`)
+  - Semilla "hoy" salta a próximo lunes si cae en fin de semana (`fb2371f`)
+  - Filas clicables → abren "Ver detalle" (`267f872`); botón ⋯ eliminado de las filas (acciones viven en el modal) (`b4d5a5e`); acciones contextuales en el footer del modal (`c009afd`)
+- **Tarifador en el panel principal + "PASADO MAÑANA"** → **probado y REVERTIDO** el mismo día (`fed065f` → revert `43d37af`). Quedó solo el rename de chip "PASADO" → "PASADO MAÑANA" (`ae3fb51`) y placeholder en fecha + tooltip en Previsión (`0522177`)
+- **CESCE**: simplificado a sólo estado de cobertura sin importes (`8837b57`); se puede alternar estado vía `?cesce=ok|warn|none` para pruebas (`2fde2d3`)
+- **Limpieza visual**: emojis → iconos SVG planos en modal/timeline/menús (`c6eee6a`, `405852b`); igualado ancho de las 3 cajas Nueva carga/Nuevo presupuesto/CESCE (`26b8c8f`); quitado el cartel de temporada del dashboard (`6c7d576`); fix espacio vacío al final en móvil (`f9386ac`)
+
+**WEB PÚBLICA (a `main`)**:
+- **Selector de provincia de "Almacenamiento corta estancia" bloqueado** (`b993efb` → merge `7f5ca8f` a main, mergeado a preview `dc64e4f`)
+
+**DOCS**: stack del backend registrado en `TODO.md` — **Supabase + Postmark + WhatsApp + naming** (`49efe64`)
+
+**Pendiente arrastrado**: afinar tabla de coeficientes del tarifador con valores exactos del cliente; quitar defaults SEV→MAD antes de producción.
+
+---
+
 ### 2026-06-19 — iPhone (TARIFADOR INTERNO DEL PANEL)
 
 > Día completo dedicado al **tarifador / generador de cargas del panel cliente**. Todo en preview (`claude/sharp-dirac-E3UIO`). En `main` solo entran un par de fixes públicos al principio del día.
