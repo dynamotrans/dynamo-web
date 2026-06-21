@@ -3329,7 +3329,7 @@
         openDashModal({
             icon: 'truck',
             title: 'Generar carga de ' + d.ref,
-            sub: 'Mismos datos + precio cerrado · solo fecha pendiente',
+            sub: 'Mismos datos del presupuesto · solo fecha pendiente',
             body:
                 '<div class="modal-warn-box">Estás creando una <strong>nueva carga</strong> con los datos y el <strong>precio</strong> de este presupuesto (' + escapeHtml(d.precio) + '). Solo te queda elegir la <strong>fecha</strong>.</div>' +
                 infoGrid([
@@ -3337,7 +3337,7 @@
                     { label: 'Destino', value: d.destino },
                     { label: 'Mercancía', value: d.mercancia },
                     { label: 'Medidas', value: d.medidas },
-                    { label: 'Precio cerrado', value: d.precio, span: true }
+                    { label: 'Precio', value: d.precio, span: true }
                 ]) +
                 '<div class="modal-form-row" style="margin-top:0.8rem;"><label>Fecha de carga *</label><input type="date" min="' + todayISO() + '" required></div>' +
                 '<div class="modal-form-row"><label>Ventana de carga</label><select><option>Fija (un día)</option><option selected>1 a 2 días</option><option>1 a 4 días</option></select></div>',
