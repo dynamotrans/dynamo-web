@@ -106,6 +106,57 @@ Para evitar que cambios de la web pública se queden "atascados" solo en preview
 
 Razón: la rama del portal es `main + código del portal`. `git merge preview → main` arrastraría el portal a producción (prohibido). Pero `main → preview` es seguro. Por tanto el sentido del flujo siempre es **main primero, preview después**.
 
+### 9. Tres ramas: main / preview / lab — quién contiene qué y cómo se propaga
+
+Estructura del proyecto desde 2026-06-20 (decisión del usuario):
+
+```
+main                        → dynamotrans.com (producción pública)
+claude/sharp-dirac-E3UIO    → preview (lo "estable validado", URL preview Vercel)
+lab                         → sandbox experimental (URL preview Vercel propia)
+```
+
+**Inheritance**:
+- `preview` ramificó de `main` con código del portal/panel encima.
+- `lab` ramificó de `preview`. Contiene **TODO lo que preview tiene** + experimentos extras del usuario.
+
+**Default working branch para Claude**: `preview` (claude/sharp-dirac-E3UIO).
+
+**Triggers para entrar en MODO LAB** (usuario lo dice explícito; Claude hace `git checkout lab` y se queda ahí hasta que el usuario diga lo contrario):
+- "vamos a lab" / "modo lab" / "entramos en laboratorio"
+- "esto va en lab"
+- "probamos en lab"
+- Mención de feature experimental que se sabe que NO va a producción todavía (facturación con Holded, multi-rol con transportistas/proveedores, etc.)
+
+**Triggers para SALIR DE MODO LAB** (volver a preview):
+- "volvemos a preview"
+- "salimos de lab"
+- "modo preview"
+- "esto va en preview"
+
+**Confirmación visible obligatoria**: cada commit y cambio de rama Claude lo anuncia ("Subido a lab (`abc`)", "Modo lab activado", "Vuelvo a preview"). Si hay duda sobre qué rama tocar, preguntar antes de editar.
+
+**Cascadas obligatorias tras merges**:
+
+| Acción | Pasos en cascada |
+|---|---|
+| Cambio público merge a main | 1. main → 2. `git merge main` en preview + push → 3. `git merge preview` en lab + push |
+| Promoción preview → main | 1. main → 2. `git merge preview` en lab + push (para que lab no se quede atrás) |
+| Promoción lab → preview | 1. `git merge lab` en preview + push. **Después preguntar** si también va a main |
+| Lab queda atrás de preview | Periódicamente `git merge preview` desde lab para que no acumule drift |
+
+**Regla dura de lab**:
+- Lab NUNCA se mergea a main directamente (siempre pasa por preview primero)
+- Lab NUNCA se mergea a preview sin orden EXPLÍCITA del usuario (no asumir aunque parezca "listo")
+- Cambios en lab pueden vivir indefinidamente sin promocionar — no presionar al usuario para moverlos
+
+**Cosas que SOLO ocurren con orden explícita**:
+- Promover lab → preview
+- Promover preview → main
+- Borrar la rama lab (nunca sin orden)
+
+**Drift entre ramas**: si pasan >1 semana sin sincronizar, antes de cualquier operación Claude propone primero "sincronizar las tres ramas" para evitar conflictos acumulados.
+
 ---
 
 ## Bitácora
