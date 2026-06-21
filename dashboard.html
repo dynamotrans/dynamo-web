@@ -1243,6 +1243,10 @@
             background: #b91c1c; color: white;
             box-shadow: 0 0 0 0 rgba(185,28,28,0.7);
             animation: overduePulse 1.6s ease-in-out infinite;
+            text-transform: none;
+            letter-spacing: 0;
+            font-size: 0.68rem;
+            padding: 0.1rem 0.5rem;
         }
         .row-when-tag.tag-today    { background: #ef4444; color: white; }
         .row-when-tag.tag-tomorrow { background: #f59e0b; color: white; }
@@ -4384,6 +4388,59 @@
     // a highlightInfo: devuelve el conteo real (>2) sin acotar.
     //  0 → la fecha es hoy   1 → próximo día laborable
     //  -1 → fecha pasada     null → fecha inválida o fin de semana
+    // Días laborables transcurridos desde una fecha pasada (exclusiva)
+    // hasta hoy (inclusivo). Sábado/Domingo no cuentan. Devuelve null si
+    // la fecha no es parseable, 0 si es hoy o futuro.
+    function businessDaysSince(fechaStr) {
+        if (!fechaStr || fechaStr === 'Sin fecha') return null;
+        var m = String(fechaStr).match(/(\d{1,2})\/(\d{1,2})/);
+        if (!m) return null;
+        var d = new Date(new Date().getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+        d.setHours(0, 0, 0, 0);
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        if (d.getTime() >= today.getTime()) return 0;
+        var count = 0, cursor = new Date(d);
+        while (cursor.getTime() < today.getTime()) {
+            cursor.setDate(cursor.getDate() + 1);
+            var w = cursor.getDay();
+            if (w !== 0 && w !== 6) count++;
+        }
+        return count;
+    }
+    // "Fija" → 1 día laborable; "1 a 2 días" → 2; "1 a 4 días" → 4
+    function parseVentanaDays(v) {
+        if (!v) return 1;
+        var m = String(v).match(/(\d+)\s*a\s*(\d+)/);
+        if (m) return parseInt(m[2], 10);
+        return 1;
+    }
+    // Construye el texto del chip "Hace X días (queda Y días)" para
+    // cargas retrasadas. Para en-ruta el concepto de ventana no aplica
+    // (entrega = día único) → solo "Hace X días".
+    function pendienteAsignarText(c) {
+        var dateStr;
+        if (c.kind === 'en-ruta') {
+            var em = c.etaEntrega ? String(c.etaEntrega).match(/(\d{1,2}\/\d{1,2})/) : null;
+            dateStr = em ? em[1] : c.fecha;
+        } else {
+            dateStr = c.fecha;
+        }
+        var since = businessDaysSince(dateStr);
+        if (since == null || since < 1) return null;
+        var txt = 'Hace ' + since + ' día' + (since === 1 ? '' : 's');
+        if (c.kind !== 'en-ruta') {
+            // queda = días laborables restantes en la ventana.
+            // Hoy es el último día → queda 0. Si se ha excedido la ventana,
+            // entra en negativo (quedan -2 días) para mostrar el exceso.
+            var ventana = parseVentanaDays(c.ventana);
+            var queda = ventana - since;
+            var abs = Math.abs(queda);
+            var verb = (abs === 1) ? 'queda' : 'quedan';
+            var noun = (abs === 1) ? 'día' : 'días';
+            txt += ' (' + verb + ' ' + queda + ' ' + noun + ')';
+        }
+        return txt;
+    }
     function businessDaysUntil(dateStr) {
         if (!dateStr || dateStr === 'Sin fecha') return null;
         var m = String(dateStr).match(/^(\d{1,2})\/(\d{1,2})$/);
@@ -4690,7 +4747,10 @@
                     else if (hi.level === 0) rowCls = ' class="row-today"';
                     else if (hi.level === 1) rowCls = ' class="row-tomorrow"';
                     else if (hi.level === 2) rowCls = ' class="row-aftertomorrow"';
-                    if (hi.label === 'RETRASADA')           tagHtml = '<span class="row-when-tag tag-overdue">PENDIENTE ASIGNAR</span>';
+                    if (hi.label === 'RETRASADA') {
+                        var lateText = pendienteAsignarText(c) || 'Pendiente Asignar';
+                        tagHtml = '<span class="row-when-tag tag-overdue">' + esc(lateText) + '</span>';
+                    }
                     else if (hi.label === 'HOY')            tagHtml = '<span class="row-when-tag tag-today">HOY</span>';
                     else if (hi.label === 'MAÑANA')         tagHtml = '<span class="row-when-tag tag-tomorrow">MAÑANA</span>';
                     else if (hi.label === 'PASADO MAÑANA') tagHtml = '<span class="row-when-tag tag-after">PASADO MAÑANA</span>';
