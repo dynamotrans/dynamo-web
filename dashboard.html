@@ -2923,19 +2923,36 @@
             return '<button class="' + cls + '" onclick="cargaActionByRef(\'' + action + '\',\'' + ref + '\')">' + icon(iconName) + label + '</button>';
         }
         var btns = ['<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>'];
-        var est = (d.estado || '').toLowerCase();
-        var isPrevision = est.indexOf('programada') > -1 && d.fecha === 'Sin fecha';
-        if (est.indexOf('programada') > -1) {
+        // Usamos kind del dato fuente (determinista) en vez de parsear la
+        // etiqueta visual de la badge, que cambia según hora/fase
+        // ("Programado", "Programado hoy", "Hacia la carga", "Cargando",
+        // "En ruta", "Entregado", "Cancelada").
+        var src = (typeof findCargaDataByRef === 'function') ? (findCargaDataByRef(d.ref) || {}) : {};
+        var kind = src.kind || '';
+        var phase = src._phaseSim || (typeof getEstadoVisual === 'function' ? (getEstadoVisual(src).label || '').toLowerCase() : '');
+        var isPrevision = kind === 'programada' && (src.fecha === 'Sin fecha' || d.fecha === 'Sin fecha');
+        var isCargando = phase === 'cargando' || phase.indexOf('cargando') > -1;
+        var isHacia    = phase === 'hacia'    || phase.indexOf('hacia la carga') > -1;
+
+        if (kind === 'programada') {
             if (isPrevision) {
                 btns.push(b('btn-primary', 'modificar', 'Asignar fecha y datos', 'calendar'));
+            } else if (isCargando) {
+                // Camión en el muelle: ya no se puede modificar ni cancelar
+                btns.push(b('btn-primary', 'reportar-incidencia', 'Reportar incidencia', 'alert'));
             } else {
                 btns.push(b('btn-secondary', 'modificar', 'Modificar', 'edit'));
+                if (isHacia) {
+                    // Camión yendo a cargar: incidencia disponible, cancelar
+                    // se mantiene pero ya con riesgo de cargos
+                    btns.push(b('btn-secondary', 'reportar-incidencia', 'Reportar incidencia', 'alert'));
+                }
+                btns.push('<button class="btn-primary" style="background:var(--red);" onclick="cargaActionByRef(\'cancelar-carga\',\'' + ref + '\')">' + icon('x') + 'Cancelar carga</button>');
             }
-            btns.push('<button class="btn-primary" style="background:var(--red);" onclick="cargaActionByRef(\'cancelar-carga\',\'' + ref + '\')">' + icon('x') + 'Cancelar carga</button>');
-        } else if (est.indexOf('en ruta') > -1) {
+        } else if (kind === 'en-ruta') {
             btns.push(b('btn-secondary', 'seguimiento', 'Seguimiento', 'mapPin'));
             btns.push(b('btn-primary', 'reportar-incidencia', 'Reportar incidencia', 'alert'));
-        } else if (est.indexOf('entregada') > -1) {
+        } else if (kind === 'entregada') {
             btns.push(b('btn-secondary', 'repetir', 'Repetir carga', 'refresh'));
             btns.push(b('btn-secondary', 'reportar-incidencia', 'Incidencia', 'alert'));
             var hasAlb = row && row.querySelector('.badge-doc');
