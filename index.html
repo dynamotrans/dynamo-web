@@ -1849,17 +1849,22 @@
         }
         .testi-track {
             display: flex;
-            gap: 1.2rem;
+            gap: 20px; /* px ENTEROS: con cards de ancho entero, una tira mide
+                          un nº entero de px → el loop empalma al píxel (sin
+                          parpadeo). Con rem (19,2px) quedaba fracción. */
             width: max-content;
             padding: 0.5rem 0 1.2rem;
             /* --scroll-px lo setea el JS al ancho EXACTO de un set para que
                el loop sea perfecto (translateX -50% con gap deja un hueco) */
             animation: testiScroll var(--scroll-dur, 60s) linear infinite;
+            /* backface + translate3d → capa GPU propia, el reinicio del bucle
+               lo hace el compositor sin repintar (evita el parpadeo al loop) */
             will-change: transform;
+            backface-visibility: hidden;
         }
         @keyframes testiScroll {
-            0%   { transform: translateX(0); }
-            100% { transform: translateX(calc(-1 * var(--scroll-px, 50%))); }
+            0%   { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(calc(-1 * var(--scroll-px, 50%)), 0, 0); }
         }
         @media (hover: hover) {
             .testi-track:hover { animation-play-state: paused; }
@@ -1886,7 +1891,7 @@
         .testi-google svg { flex-shrink:0; }
         /* Movil: cards mas pequeñas para que entren mas en el flujo */
         @media (max-width:768px) {
-            .testi-track { gap: 0.85rem; animation-duration: 45s; }
+            .testi-track { gap: 14px; }
             .testi-card { flex: 0 0 280px; padding: 1.2rem; }
         }
 
@@ -3454,27 +3459,79 @@ function openLegal(tab) {
         });
     })();
 
-    // Carrusel infinito de reseñas: duplica las cards dentro del track y
-    // calcula el ancho exacto de un set en px para que el marquee CSS
-    // haga loop perfecto (translateX -50% deja hueco por el gap del flexbox)
+    // Carrusel infinito de reseñas — scroll continuo SIN reinicio visible.
+    // En vez de mover toda la tira y reiniciarla (lo que provoca el salto al
+    // empalmar), se anima con requestAnimationFrame: cada reseña que sale por
+    // la izquierda se recoloca al final del track sobre la marcha. Así la tira
+    // nunca "vuelve al principio" → no hay punto de salto/parpadeo posible.
     (function () {
         var track = document.getElementById('testi-track');
         if (!track) return;
+        var viewport = track.parentElement; // .testi-grid (zona visible)
         var originalHTML = track.innerHTML;
-        track.innerHTML = originalHTML + originalHTML;
-        // Medimos el ancho de un set (la mitad del track) tras un frame
-        function setMarqueeWidth() {
-            // scrollWidth incluye contenido completo + paddings, no gap entre
-            // sets. La mitad es exactamente la anchura de un set + 1 gap final
-            var fullWidth = track.scrollWidth;
-            // gap calculado del computed style (rem -> px)
+        var reduce = window.matchMedia &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var SPEED = 140;   // px por segundo (sube/baja este nº para el ritmo)
+        var unitPx = 0;    // ancho de una card + gap (todas miden igual)
+
+        function build() {
+            // El JS toma el control: desactivamos la animación CSS
+            track.style.animation = 'none';
+            track.style.transform = 'translate3d(0,0,0)';
+            // Duplicar hasta cubrir holgadamente la pantalla, para que al
+            // reciclar cards siempre quede contenido llenando el viewport
+            track.innerHTML = originalHTML;
+            var guard = 0;
+            while (track.scrollWidth < viewport.offsetWidth * 2 + 400 && guard < 40) {
+                track.insertAdjacentHTML('beforeend', originalHTML);
+                guard++;
+            }
+            // Forzar visibles todas las cards (quitar el estado oculto .reveal)
+            var nodes = track.querySelectorAll('.reveal');
+            for (var j = 0; j < nodes.length; j++) {
+                nodes[j].classList.add('visible', 'active');
+            }
+            // Medir el "paso" (ancho card + gap) una sola vez
             var gap = parseFloat(window.getComputedStyle(track).columnGap || '0') || 0;
-            var setPx = (fullWidth + gap) / 2;
-            track.style.setProperty('--scroll-px', setPx + 'px');
+            var first = track.firstElementChild;
+            unitPx = first ? first.getBoundingClientRect().width + gap : 0;
         }
-        // Calcular tras montar y al redimensionar
-        requestAnimationFrame(setMarqueeWidth);
-        window.addEventListener('resize', setMarqueeWidth);
+
+        build();
+
+        var offset = 0, paused = false, lastT = null;
+        function frame(t) {
+            if (lastT === null) lastT = t;
+            var dt = (t - lastT) / 1000; lastT = t;
+            if (dt > 0.05) dt = 0.05; // si la pestaña estuvo oculta, no pegar saltos
+            if (!paused && unitPx > 0) {
+                offset += SPEED * dt;
+                // Reciclar las cards que ya salieron por la izquierda: se
+                // mueven al final y se descuenta su ancho del offset, así el
+                // desplazamiento se mantiene pequeño y nunca hay un reinicio.
+                while (offset >= unitPx) {
+                    offset -= unitPx;
+                    track.appendChild(track.firstElementChild);
+                }
+                track.style.transform = 'translate3d(' + (-offset) + 'px,0,0)';
+            }
+            requestAnimationFrame(frame);
+        }
+        if (!reduce) requestAnimationFrame(frame);
+
+        // Pausa al pasar el ratón (desktop) para poder leer una reseña
+        track.addEventListener('mouseenter', function () { paused = true; });
+        track.addEventListener('mouseleave', function () { paused = false; });
+
+        // Rebuild solo si cambia el ANCHO (giro de pantalla). En móvil el scroll
+        // cambia la ALTURA (barra de URL) y dispara 'resize'; lo ignoramos.
+        var lastW = window.innerWidth, rt;
+        window.addEventListener('resize', function () {
+            if (window.innerWidth === lastW) return;
+            lastW = window.innerWidth;
+            clearTimeout(rt);
+            rt = setTimeout(function () { offset = 0; build(); }, 200);
+        });
     })();
 
     // Mapa interactivo de Europa: carga el SVG via fetch e inyecta inline

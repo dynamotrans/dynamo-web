@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <meta name="robots" content="noindex,nofollow">
     <title>Dashboard · Dynamo Portal</title>
     <link rel="icon" type="image/png" href="/images/DYNAMO-NEW-LOGO.png">
@@ -1164,9 +1164,9 @@
         .filters .filter-mes-custom { flex: 0 0 auto; min-width: 130px; max-width: 170px; }
         @media (max-width: 600px) {
             .filters { gap: 0.4rem; padding: 0.55rem; }
-            .filters input[type="search"] { font-size: 0.78rem; padding: 0.45rem 0.55rem; }
-            .filters .filter-mes { min-width: 130px; max-width: 160px; font-size: 0.75rem; padding: 0.45rem 0.55rem; }
-            .filters .filter-mes-custom { min-width: 120px; max-width: 150px; font-size: 0.75rem; }
+            .filters input[type="search"] { font-size: 0.9rem; padding: 0.55rem 0.6rem; }
+            .filters .filter-mes { min-width: 112px; max-width: 150px; font-size: 0.85rem; padding: 0.55rem 0.5rem; }
+            .filters .filter-mes-custom { min-width: 108px; max-width: 140px; font-size: 0.85rem; padding: 0.55rem 0.5rem; }
         }
 
         .table-wrap {
@@ -1749,9 +1749,9 @@
             .pagination { flex-direction: column; gap: 0.6rem; align-items: stretch; }
             .pagination-pages { justify-content: center; flex-wrap: wrap; }
             /* Tablas mas densas en movil/tablet */
-            table.data { font-size: 0.78rem; min-width: 680px; }
-            table.data thead th { padding: 0.55rem 0.65rem; font-size: 0.65rem; }
-            table.data tbody td { padding: 0.6rem 0.65rem; }
+            table.data { font-size: 0.83rem; min-width: 680px; }
+            table.data thead th { padding: 0.6rem 0.65rem; font-size: 0.72rem; }
+            table.data tbody td { padding: 0.7rem 0.65rem; }
         }
         @media (max-width: 420px) {
             .stats-row { grid-template-columns: 1fr; }
@@ -2092,7 +2092,7 @@
                 </div>
                 <div class="dash-cta-text">
                     <h4>Nueva carga</h4>
-                    <p>Solicitar un transporte con tarifa cerrada</p>
+                    <p>Solicita un transporte</p>
                 </div>
             </a>
             <a class="dash-cta dash-cta-green" href="#" onclick="showSection('nuevo-presupuesto');return false;">
@@ -2184,7 +2184,8 @@
             </div>
         </div>
         <div class="tabs" data-table="cargas">
-            <button class="tab active" data-filter="programada-pendiente">Programadas pendientes (<span data-count="programada-pendiente">0</span>)</button>
+            <button class="tab active" data-filter="programada">Programadas (<span data-count="programada">0</span>)</button>
+            <button class="tab" data-filter="programada-pendiente">Programadas pendientes (<span data-count="programada-pendiente">0</span>)</button>
             <button class="tab" data-filter="programada-confirmada">Programadas confirmadas (<span data-count="programada-confirmada">0</span>)</button>
             <button class="tab" data-filter="entregada">Entregadas (<span data-count="entregada">0</span>)</button>
             <button class="tab" data-filter="cancelada">Canceladas (<span data-count="cancelada">0</span>)</button>
@@ -2449,7 +2450,6 @@
              vuelve atrás a editar o pulsa "Confirmar carga" (modal IMPORTANTE). -->
         <div class="ptar-confirm-card" data-ptar-confirm hidden>
             <h3 class="ptar-confirm-heading">Revisa los datos antes de confirmar</h3>
-            <p class="ptar-confirm-lead">El equipo confirma precio y disponibilidad en <strong>menos de 25 minutos</strong>. Lee primero estos avisos sobre grupajes y tarifa.</p>
 
             <div class="ptar-confirm-note ptar-confirm-note-info" data-ptar-grupaje-warn hidden>
                 <strong>Si este envío es un GRUPAJE</strong>, no se puede garantizar al 100% la fecha de recogida y entrega, aunque <em>podrá asignarse antes transportista ofertando precio superior al de tarifa presente</em>, con mayor probabilidad de cargar. Dependen de completar camión y también se ven influidos por demoras en otras recogidas/entregas. Si es <strong>grupaje urgente</strong>, valora la opción de <strong>camión completo</strong>.
@@ -3328,7 +3328,7 @@
         openDashModal({
             icon: 'truck',
             title: 'Generar carga de ' + d.ref,
-            sub: 'Mismos datos + precio cerrado · solo fecha pendiente',
+            sub: 'Mismos datos del presupuesto · solo fecha pendiente',
             body:
                 '<div class="modal-warn-box">Estás creando una <strong>nueva carga</strong> con los datos y el <strong>precio</strong> de este presupuesto (' + escapeHtml(d.precio) + '). Solo te queda elegir la <strong>fecha</strong>.</div>' +
                 infoGrid([
@@ -3336,7 +3336,7 @@
                     { label: 'Destino', value: d.destino },
                     { label: 'Mercancía', value: d.mercancia },
                     { label: 'Medidas', value: d.medidas },
-                    { label: 'Precio cerrado', value: d.precio, span: true }
+                    { label: 'Precio', value: d.precio, span: true }
                 ]) +
                 '<div class="modal-form-row" style="margin-top:0.8rem;"><label>Fecha de carga *</label><input type="date" min="' + todayISO() + '" required></div>' +
                 '<div class="modal-form-row"><label>Ventana de carga</label><select><option>Fija (un día)</option><option selected>1 a 2 días</option><option>1 a 4 días</option></select></div>',
@@ -4040,7 +4040,7 @@
         try { localStorage.setItem('dashPerPage_' + table, String(v)); } catch (e) {}
     }
     var TABLE_STATE = {
-        cargas:       { page: 1, filter: 'programada-pendiente',  perPage: readPerPage('cargas') },
+        cargas:       { page: 1, filter: 'programada',  perPage: readPerPage('cargas') },
         presupuestos: { page: 1, filter: 'activos', perPage: readPerPage('presupuestos') },
         facturas:     { page: 1, filter: 'todas',  perPage: readPerPage('facturas') }
     };
@@ -4807,6 +4807,7 @@
         // Tab counts
         var tabs = document.querySelector('.tabs[data-table="cargas"]');
         if (tabs) {
+            setText(tabs.querySelector('[data-count="programada"]'),            CARGAS_DATA.filter(isProgramada).length);
             setText(tabs.querySelector('[data-count="programada-pendiente"]'),  CARGAS_DATA.filter(isProgramadaPendiente).length);
             setText(tabs.querySelector('[data-count="programada-confirmada"]'), CARGAS_DATA.filter(isProgramadaConfirmada).length);
             setText(tabs.querySelector('[data-count="entregada"]'),             CARGAS_DATA.filter(function(c){return c.kind==='entregada';}).length);
