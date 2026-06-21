@@ -2184,10 +2184,11 @@
             </div>
         </div>
         <div class="tabs" data-table="cargas">
-            <button class="tab active" data-filter="programada">Programadas (<span data-count="programada">0</span>)</button>
-            <button class="tab" data-filter="prevision">Previsión (<span data-count="prevision">0</span>)</button>
+            <button class="tab active" data-filter="programada-pendiente">Programadas pendientes (<span data-count="programada-pendiente">0</span>)</button>
+            <button class="tab" data-filter="programada-confirmada">Programadas confirmadas (<span data-count="programada-confirmada">0</span>)</button>
             <button class="tab" data-filter="entregada">Entregadas (<span data-count="entregada">0</span>)</button>
             <button class="tab" data-filter="cancelada">Canceladas (<span data-count="cancelada">0</span>)</button>
+            <button class="tab" data-filter="prevision">Previsión sin fecha (<span data-count="prevision">0</span>)</button>
             <button class="tab" data-filter="todas">Todas (<span data-count="todas">0</span>)</button>
         </div>
         <div class="filters">
@@ -2395,7 +2396,7 @@
                         <input type="date" data-ptar-fecha class="ptar-date" aria-label="Elegir fecha en calendario">
                     </div>
                     <div class="ptar-nofecha-warn" data-ptar-nofecha-warn hidden>
-                        ⚠ Sin compromiso. No se asigna camión hasta confirmar fecha. <a href="#" data-ptar-prev-more onclick="event.preventDefault();this.nextElementSibling.hidden=!this.nextElementSibling.hidden;">Más info</a><span hidden style="display:block;margin-top:0.3rem;">La carga queda en la pestaña "Previsión". Si la fecha definitiva es posterior a 7 días desde hoy, el precio se revisará a tarifa de mercado al asignar fecha.</span>
+                        ⚠ Sin compromiso. No se asigna camión hasta confirmar fecha. <a href="#" data-ptar-prev-more onclick="event.preventDefault();this.nextElementSibling.hidden=!this.nextElementSibling.hidden;">Más info</a><span hidden style="display:block;margin-top:0.3rem;">La carga queda en la pestaña "Previsión sin fecha". Si la fecha definitiva es posterior a 7 días desde hoy, el precio se revisará a tarifa de mercado al asignar fecha.</span>
                     </div>
                 </div>
                 <div class="ptar-field">
@@ -4039,7 +4040,7 @@
         try { localStorage.setItem('dashPerPage_' + table, String(v)); } catch (e) {}
     }
     var TABLE_STATE = {
-        cargas:       { page: 1, filter: 'programada',  perPage: readPerPage('cargas') },
+        cargas:       { page: 1, filter: 'programada-pendiente',  perPage: readPerPage('cargas') },
         presupuestos: { page: 1, filter: 'activos', perPage: readPerPage('presupuestos') },
         facturas:     { page: 1, filter: 'todas',  perPage: readPerPage('facturas') }
     };
@@ -4375,6 +4376,15 @@
     //                visual por proximidad (hoy/mañana/pasado) reemplaza el filtro
     function isPrevision(c)  { return c.kind === 'programada' && c.fecha === 'Sin fecha'; }
     function isProgramada(c) { return (c.kind === 'programada' && c.fecha !== 'Sin fecha') || c.kind === 'en-ruta'; }
+    // Pendiente = programada con fecha y sin transportista asignado todavía.
+    // Confirmada = programada con transportista (aunque no haya matrícula ni
+    // chofer), o ya cargada y en ruta (en-ruta implica transportista cerrado).
+    function isProgramadaPendiente(c)  {
+        return c.kind === 'programada' && c.fecha !== 'Sin fecha' && !c.transportistaAsignado;
+    }
+    function isProgramadaConfirmada(c) {
+        return (c.kind === 'programada' && c.fecha !== 'Sin fecha' && !!c.transportistaAsignado) || c.kind === 'en-ruta';
+    }
     // Información de resaltado de una fila por su fecha "DD/MM":
     //   level: 0 (carga del anchor), 1 (siguiente día laborable), 2 (el siguiente)
     //          → null si supera 2 o cae en fin de semana o es pasada
@@ -4609,10 +4619,12 @@
     function filteredCargas() {
         var f = TABLE_STATE.cargas.filter;
         var arr;
-        if (f === 'todas')           arr = CARGAS_DATA.slice();
-        else if (f === 'prevision')  arr = CARGAS_DATA.filter(isPrevision);
-        else if (f === 'programada') arr = CARGAS_DATA.filter(isProgramada);
-        else                         arr = CARGAS_DATA.filter(function (c) { return c.kind === f; });
+        if (f === 'todas')                      arr = CARGAS_DATA.slice();
+        else if (f === 'prevision')             arr = CARGAS_DATA.filter(isPrevision);
+        else if (f === 'programada')            arr = CARGAS_DATA.filter(isProgramada);
+        else if (f === 'programada-pendiente')  arr = CARGAS_DATA.filter(isProgramadaPendiente);
+        else if (f === 'programada-confirmada') arr = CARGAS_DATA.filter(isProgramadaConfirmada);
+        else                                    arr = CARGAS_DATA.filter(function (c) { return c.kind === f; });
         // Orden por pestaña:
         // - Previsión:   sin fecha → por ref DESC (recién apuntadas arriba)
         // - Entregadas:  fecha efectiva DESC (la entrega más reciente arriba —
@@ -4795,11 +4807,12 @@
         // Tab counts
         var tabs = document.querySelector('.tabs[data-table="cargas"]');
         if (tabs) {
-            setText(tabs.querySelector('[data-count="programada"]'), CARGAS_DATA.filter(isProgramada).length);
-            setText(tabs.querySelector('[data-count="prevision"]'),  CARGAS_DATA.filter(isPrevision).length);
-            setText(tabs.querySelector('[data-count="entregada"]'),  CARGAS_DATA.filter(function(c){return c.kind==='entregada';}).length);
-            setText(tabs.querySelector('[data-count="cancelada"]'),  CARGAS_DATA.filter(function(c){return c.kind==='cancelada';}).length);
-            setText(tabs.querySelector('[data-count="todas"]'),      CARGAS_DATA.length);
+            setText(tabs.querySelector('[data-count="programada-pendiente"]'),  CARGAS_DATA.filter(isProgramadaPendiente).length);
+            setText(tabs.querySelector('[data-count="programada-confirmada"]'), CARGAS_DATA.filter(isProgramadaConfirmada).length);
+            setText(tabs.querySelector('[data-count="entregada"]'),             CARGAS_DATA.filter(function(c){return c.kind==='entregada';}).length);
+            setText(tabs.querySelector('[data-count="cancelada"]'),             CARGAS_DATA.filter(function(c){return c.kind==='cancelada';}).length);
+            setText(tabs.querySelector('[data-count="prevision"]'),             CARGAS_DATA.filter(isPrevision).length);
+            setText(tabs.querySelector('[data-count="todas"]'),                 CARGAS_DATA.length);
         }
     }
     function renderPresupuestosTable() {
@@ -4968,11 +4981,11 @@
         var el = document.querySelector('[data-stat-cargas-activas]');
         var meta = document.querySelector('[data-stat-cargas-activas-meta]');
         if (!el) return;
-        var prog = CARGAS_DATA.filter(function (c) { return c.kind === 'programada' && c.fecha !== 'Sin fecha'; }).length;
-        var enRuta = CARGAS_DATA.filter(function (c) { return c.kind === 'en-ruta'; }).length;
-        var total = prog + enRuta;
+        var pendientes  = CARGAS_DATA.filter(isProgramadaPendiente).length;
+        var confirmadas = CARGAS_DATA.filter(isProgramadaConfirmada).length;
+        var total = pendientes + confirmadas;
         el.textContent = total;
-        if (meta) meta.textContent = prog + ' programadas · ' + enRuta + ' en ruta';
+        if (meta) meta.textContent = pendientes + ' pendientes · ' + confirmadas + ' confirmadas';
     }
     refreshStatCargasActivas();
 
@@ -5099,7 +5112,7 @@
                 var prev = document.createElement('option');
                 prev.value = 'prevision';
                 prev.textContent = 'Previsión, sin fecha definida';
-                prev.title = 'No se tramita: la carga queda guardada en la pestaña "Previsión", sin asignar camión hasta que confirmes una fecha. Útil para anotar previsiones; si la fecha definitiva es posterior a 7 días, el precio se revisará a precios de mercado actuales.';
+                prev.title = 'No se tramita: la carga queda guardada en la pestaña "Previsión sin fecha", sin asignar camión hasta que confirmes una fecha. Útil para anotar previsiones; si la fecha definitiva es posterior a 7 días, el precio se revisará a precios de mercado actuales.';
                 sel.appendChild(prev);
             } else {
                 var sf = document.createElement('option');
@@ -5543,17 +5556,20 @@
                     ));
                     TABLE_STATE.cargas.page = 1;
                     // Si la carga es "Programado sin fecha definida" cae en
-                    // la pestaña "Previsión" (no está en agenda real); en
+                    // la pestaña "Previsión sin fecha" (no está en agenda real); en
                     // caso contrario va a "Programadas".
                     var isPrev = (d.fechaTxt === 'Sin fecha');
-                    TABLE_STATE.cargas.filter = isPrev ? 'prevision' : 'programada';
+                    // Una carga recién creada nunca tiene transportista todavía
+                    // → cae en "Programadas pendientes". Si es sin fecha va a
+                    // "Previsión sin fecha".
+                    TABLE_STATE.cargas.filter = isPrev ? 'prevision' : 'programada-pendiente';
                     renderCargasTable();
                     if (typeof refreshStatCargasActivas === 'function') refreshStatCargasActivas();
                     showModalSuccess(
                         isPrev ? 'Previsión ' + ref + ' guardada' : 'Carga ' + ref + ' creada',
                         isPrev
-                            ? 'Queda anotada en "Previsión" sin asignar camión. Cuando le pongas fecha pasará por el proceso de confirmación con avisos y condiciones, y se tramitará como pedido real.'
-                            : 'Tu solicitud está en cola. El equipo confirmará precio y disponibilidad en menos de 25 minutos. La verás en "Programadas" con el detalle completo.'
+                            ? 'Queda anotada en "Previsión sin fecha" sin asignar camión. Cuando le pongas fecha pasará por el proceso de confirmación con avisos y condiciones, y se tramitará como pedido real.'
+                            : 'Tu solicitud está en cola. El equipo confirmará precio y disponibilidad en menos de 25 minutos. La verás en "Programadas pendientes" con el detalle completo.'
                     );
                     setTimeout(function () { showSection('cargas'); }, 1200);
                 } else {
