@@ -3494,7 +3494,7 @@ function openLegal(tab) {
             track.style.setProperty('--scroll-px', setPx + 'px');
             // Velocidad constante (px/s) → duración proporcional al ancho de
             // una tira. Así va igual de rápido en móvil y escritorio.
-            var SPEED = 70; // px por segundo (sube/baja este nº para el ritmo)
+            var SPEED = 140; // px por segundo (sube/baja este nº para el ritmo)
             track.style.setProperty('--scroll-dur', (setPx / SPEED) + 's');
         }
         requestAnimationFrame(build);
