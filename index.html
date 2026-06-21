@@ -1855,11 +1855,14 @@
             /* --scroll-px lo setea el JS al ancho EXACTO de un set para que
                el loop sea perfecto (translateX -50% con gap deja un hueco) */
             animation: testiScroll var(--scroll-dur, 60s) linear infinite;
+            /* backface + translate3d → capa GPU propia, el reinicio del bucle
+               lo hace el compositor sin repintar (evita el parpadeo al loop) */
             will-change: transform;
+            backface-visibility: hidden;
         }
         @keyframes testiScroll {
-            0%   { transform: translateX(0); }
-            100% { transform: translateX(calc(-1 * var(--scroll-px, 50%))); }
+            0%   { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(calc(-1 * var(--scroll-px, 50%)), 0, 0); }
         }
         @media (hover: hover) {
             .testi-track:hover { animation-play-state: paused; }
