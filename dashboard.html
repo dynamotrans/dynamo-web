@@ -703,6 +703,49 @@
         .dash-modal-title { font-size: 1.1rem; font-weight: 900; color: var(--navy); line-height: 1.25; }
         .dash-modal-sub { font-size: 0.8rem; color: var(--gray-500); margin-top: 0.2rem; }
         .dash-modal-body { margin-bottom: 1.1rem; }
+        .dash-modal-actions {
+            display: flex; gap: 0.5rem; flex-wrap: wrap;
+            margin: -0.4rem 0 1.1rem;
+            padding-bottom: 0.95rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .dash-modal-actions .btn-primary,
+        .dash-modal-actions .btn-secondary,
+        .dash-modal-actions .btn-ghost {
+            padding: 0.5rem 0.9rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            border-radius: 9px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+        }
+        .dash-modal-actions .btn-primary {
+            background: var(--navy); color: white; border-color: var(--navy);
+        }
+        .dash-modal-actions .btn-primary:hover { background: #1a0d4e; border-color: #1a0d4e; }
+        .dash-modal-actions .btn-secondary {
+            background: var(--gray-100); color: var(--navy); border-color: var(--gray-200);
+        }
+        .dash-modal-actions .btn-secondary:hover { background: var(--gray-200); border-color: var(--gray-300); }
+        .dash-modal-actions .btn-ghost {
+            background: transparent; color: var(--gray-700);
+        }
+        .dash-modal-actions .btn-ghost:hover { background: var(--gray-100); color: var(--navy); }
+        .dash-modal-actions .btn-primary[style*="--red"] {
+            background: white !important; color: var(--red); border-color: var(--red);
+        }
+        .dash-modal-actions .btn-primary[style*="--red"]:hover { background: rgba(220,38,38,0.06) !important; }
+        .dash-modal-actions button svg {
+            width: 14px; height: 14px;
+        }
+        .dash-modal-actions .btn-primary svg { opacity: 0.9; }
+        @media (max-width: 600px) {
+            .dash-modal-actions { flex-direction: column; }
+            .dash-modal-actions button { width: 100%; justify-content: center; }
+        }
         .dash-modal-footer {
             display: flex; gap: 0.6rem; justify-content: flex-end;
             padding-top: 1rem; border-top: 1px solid var(--gray-200);
@@ -1850,6 +1893,7 @@
                 <p class="dash-modal-sub" id="dashModalSub">Subtítulo</p>
             </div>
         </div>
+        <div class="dash-modal-actions" id="dashModalActions" style="display:none;"></div>
         <div class="dash-modal-body" id="dashModalBody"></div>
         <div class="dash-modal-footer" id="dashModalFooter"></div>
     </div>
@@ -2750,10 +2794,20 @@
         iconEl.innerHTML = iconSvg;
         document.getElementById('dashModalTitle').textContent = opts.title || '';
         document.getElementById('dashModalSub').textContent = opts.sub || '';
+        var actionsEl = document.getElementById('dashModalActions');
+        if (actionsEl) {
+            var act = opts.actions || '';
+            actionsEl.innerHTML = act;
+            actionsEl.style.display = act ? '' : 'none';
+        }
         document.getElementById('dashModalBody').innerHTML = opts.body || '';
         document.getElementById('dashModalFooter').innerHTML = opts.footer || '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>';
         modal.classList.add('open');
         modal.setAttribute('aria-hidden', 'false');
+        // Cada apertura empieza por arriba, aunque el modal anterior haya
+        // quedado scrolleado hacia abajo justo antes de cerrarlo.
+        modal.scrollTop = 0;
+        requestAnimationFrame(function () { modal.scrollTop = 0; });
         if (opts.afterOpen) setTimeout(opts.afterOpen, 0);
     }
     function closeDashModal() {
@@ -2917,12 +2971,17 @@
     function fb(kind, action, refByFn, label, iconName) {
         return '<button class="' + kind + '" onclick="' + refByFn + '(\'' + action + '\',\'' + refByFn + '_REFPLACEHOLDER\')">' + icon(iconName) + label + '</button>';
     }
-    function cargaDetailFooter(d, row) {
+    // Acciones contextuales que se pintan en la barra superior del modal
+    // Ver detalle (NO incluyen "Cerrar" — ese vive en el footer). El orden
+    // dentro de cada estado pone primero las acciones más relevantes para
+    // ese momento del envío. "Repetir carga" aparece siempre porque
+    // cualquier carga puede repetirse (independientemente del estado).
+    function cargaDetailActions(d, row) {
         var ref = escapeHtml(d.ref);
-        function b(cls, action, label, iconName) {
-            return '<button class="' + cls + '" onclick="cargaActionByRef(\'' + action + '\',\'' + ref + '\')">' + icon(iconName) + label + '</button>';
+        function b(cls, action, label, iconName, extraStyle) {
+            return '<button class="' + cls + '"' + (extraStyle ? ' style="' + extraStyle + '"' : '') +
+                ' onclick="cargaActionByRef(\'' + action + '\',\'' + ref + '\')">' + icon(iconName) + label + '</button>';
         }
-        var btns = ['<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>'];
         // Usamos kind del dato fuente (determinista) en vez de parsear la
         // etiqueta visual de la badge, que cambia según hora/fase
         // ("Programado", "Programado hoy", "Hacia la carga", "Cargando",
@@ -2933,6 +2992,7 @@
         var isPrevision = kind === 'programada' && (src.fecha === 'Sin fecha' || d.fecha === 'Sin fecha');
         var isCargando = phase === 'cargando' || phase.indexOf('cargando') > -1;
         var isHacia    = phase === 'hacia'    || phase.indexOf('hacia la carga') > -1;
+        var btns = [];
 
         if (kind === 'programada') {
             if (isPrevision) {
@@ -2947,13 +3007,12 @@
                     // se mantiene pero ya con riesgo de cargos
                     btns.push(b('btn-secondary', 'reportar-incidencia', 'Reportar incidencia', 'alert'));
                 }
-                btns.push('<button class="btn-primary" style="background:var(--red);" onclick="cargaActionByRef(\'cancelar-carga\',\'' + ref + '\')">' + icon('x') + 'Cancelar carga</button>');
+                btns.push(b('btn-primary', 'cancelar-carga', 'Cancelar carga', 'x', 'background:var(--red);'));
             }
         } else if (kind === 'en-ruta') {
             btns.push(b('btn-secondary', 'seguimiento', 'Seguimiento', 'mapPin'));
             btns.push(b('btn-primary', 'reportar-incidencia', 'Reportar incidencia', 'alert'));
         } else if (kind === 'entregada') {
-            btns.push(b('btn-secondary', 'repetir', 'Repetir carga', 'refresh'));
             btns.push(b('btn-secondary', 'reportar-incidencia', 'Incidencia', 'alert'));
             var hasAlb = row && row.querySelector('.badge-doc');
             if (hasAlb) {
@@ -2967,17 +3026,25 @@
                 }
             }
         }
-        // cancelada: solo Cerrar (sin acciones extra)
+        // "Repetir carga" siempre disponible: cualquier envío (incluso
+        // cancelado o entregado hace tiempo) puede usarse como plantilla
+        // para una carga nueva. Va al final salvo en entregada/cancelada
+        // donde es la acción más natural y por tanto va al principio.
+        if (kind === 'entregada' || kind === 'cancelada') {
+            btns.unshift(b('btn-secondary', 'repetir', 'Repetir carga', 'refresh'));
+        } else {
+            btns.push(b('btn-secondary', 'repetir', 'Repetir carga', 'refresh'));
+        }
         return btns.join('');
     }
-    function presupuestoDetailFooter(d) {
+    function presupuestoDetailActions(d) {
         var ref = escapeHtml(d.ref);
         function b(cls, action, label, iconName) {
             return '<button class="' + cls + '" onclick="presupuestoActionByRef(\'' + action + '\',\'' + ref + '\')">' + icon(iconName) + label + '</button>';
         }
         var est = (d.estado || '').toLowerCase();
         var isCaducado = est.indexOf('caducado') > -1;
-        var btns = ['<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>'];
+        var btns = [];
         if (isCaducado) {
             btns.push(b('btn-secondary', 'revisar-precio', 'Revisar precio', 'refresh'));
         } else {
@@ -2986,11 +3053,12 @@
         btns.push(b('btn-secondary', 'descargar-pdf', 'Descargar PDF', 'download'));
         return btns.join('');
     }
-    function facturaDetailFooter(d) {
+    function facturaDetailActions(d) {
         var ref = escapeHtml(d.ref);
-        return '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>' +
-               '<button class="btn-primary" onclick="facturaActionByRef(\'descargar-pdf\',\'' + ref + '\')">' + icon('download') + 'Descargar PDF</button>';
+        return '<button class="btn-primary" onclick="facturaActionByRef(\'descargar-pdf\',\'' + ref + '\')">' + icon('download') + 'Descargar PDF</button>';
     }
+    // Footer común para los modales Ver detalle: solo Cerrar
+    var DETAIL_FOOTER = '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>';
 
     /* ---- ACCIONES CARGAS ---- */
     function cargaVerDetalle(row) {
@@ -3049,7 +3117,8 @@
                     { label: 'Tipo de mercancía', value: d.mercancia + (d.mercanciaMeta ? ' · ' + d.mercanciaMeta : '') },
                     { label: 'Medidas', value: d.medidas }
                 ]),
-            footer: cargaDetailFooter(d, row)
+            actions: cargaDetailActions(d, row),
+            footer: DETAIL_FOOTER
         });
     }
     function cargaEditar(ref) {
@@ -3222,7 +3291,8 @@
                 { label: 'Medidas', value: d.medidas },
                 { label: 'Precio', value: d.precio, span: true }
             ]),
-            footer: presupuestoDetailFooter(d)
+            actions: presupuestoDetailActions(d),
+            footer: DETAIL_FOOTER
         });
     }
     function presupuestoGenerarCarga(row) {
@@ -3297,7 +3367,8 @@
                 { label: 'IVA', value: d.iva },
                 { label: 'TOTAL', value: d.total, span: true }
             ]),
-            footer: facturaDetailFooter(d)
+            actions: facturaDetailActions(d),
+            footer: DETAIL_FOOTER
         });
     }
     function facturaDescargarPDFByRef(ref) {
