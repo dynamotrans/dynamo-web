@@ -3469,22 +3469,24 @@ function openLegal(tab) {
         var viewport = track.parentElement; // .testi-grid (zona visible)
         var originalHTML = track.innerHTML;
         function build() {
-            track.innerHTML = originalHTML; // una sola tira para medir limpio
-            var cs = window.getComputedStyle(track);
-            var gap = parseFloat(cs.columnGap || cs.gap || '0') || 0;
-            // Ancho de una tira = suma de cards + un gap por card. Ese gap
-            // extra es la separación con la siguiente tira → distancia de loop.
-            var cards = track.children;
-            var setPx = 0;
-            for (var i = 0; i < cards.length; i++) {
-                setPx += cards[i].getBoundingClientRect().width + gap;
-            }
+            // Contamos cuántas cards tiene una tira
+            track.innerHTML = originalHTML;
+            var perSet = track.children.length;
+            if (!perSet) return;
+            // Montamos 2 tiras y medimos el ancho EXACTO de una por la
+            // POSICIÓN real (left de la 1ª card de la tira 2 menos la de la
+            // tira 1). Así no acumulamos errores de redondeo del gap → el
+            // bucle reinicia sin salto/parpadeo.
+            track.innerHTML = originalHTML + originalHTML;
+            var setPx = track.children[perSet].getBoundingClientRect().left
+                      - track.children[0].getBoundingClientRect().left;
             if (setPx <= 0) return;
             // Duplicar hasta cubrir viewport + una tira (mínimo 2 tiras)
-            var need = viewport.offsetWidth + setPx;
-            var html = originalHTML, total = setPx;
-            while (total < need) { html += originalHTML; total += setPx; }
-            track.innerHTML = html;
+            var html = originalHTML + originalHTML;
+            while (track.scrollWidth < viewport.offsetWidth + setPx) {
+                html += originalHTML;
+                track.innerHTML = html;
+            }
             // Forzar visibles todas las cards del carrusel (quitar el estado
             // oculto de .reveal que nunca se activaría en las copias)
             var nodes = track.querySelectorAll('.reveal');
