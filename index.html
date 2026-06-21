@@ -3459,63 +3459,78 @@ function openLegal(tab) {
         });
     })();
 
-    // Carrusel infinito de reseñas. Dos cosas para que el bucle sea continuo
-    // y sin hueco en blanco:
-    //  1) Las cards llevan la clase .reveal (opacity:0 hasta hacer scroll). En
-    //     un carrusel en bucle las copias nunca se "revelan" y quedan
-    //     invisibles → se veía blanco. Se fuerzan todas a visibles.
-    //  2) Se duplica la tira las veces necesarias para cubrir SIEMPRE el
-    //     viewport + una tira (antes solo x2 → en pantallas anchas faltaba
-    //     contenido al final del ciclo). Se mide el ancho exacto de una tira
-    //     para que el loop reinicie sin saltos (translada justo una tira).
+    // Carrusel infinito de reseñas — scroll continuo SIN reinicio visible.
+    // En vez de mover toda la tira y reiniciarla (lo que provoca el salto al
+    // empalmar), se anima con requestAnimationFrame: cada reseña que sale por
+    // la izquierda se recoloca al final del track sobre la marcha. Así la tira
+    // nunca "vuelve al principio" → no hay punto de salto/parpadeo posible.
     (function () {
         var track = document.getElementById('testi-track');
         if (!track) return;
         var viewport = track.parentElement; // .testi-grid (zona visible)
         var originalHTML = track.innerHTML;
+        var reduce = window.matchMedia &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var SPEED = 140;   // px por segundo (sube/baja este nº para el ritmo)
+        var unitPx = 0;    // ancho de una card + gap (todas miden igual)
+
         function build() {
-            // Contamos cuántas cards tiene una tira
+            // El JS toma el control: desactivamos la animación CSS
+            track.style.animation = 'none';
+            track.style.transform = 'translate3d(0,0,0)';
+            // Duplicar hasta cubrir holgadamente la pantalla, para que al
+            // reciclar cards siempre quede contenido llenando el viewport
             track.innerHTML = originalHTML;
-            var perSet = track.children.length;
-            if (!perSet) return;
-            // Montamos 2 tiras y medimos el ancho EXACTO de una por la
-            // POSICIÓN real (left de la 1ª card de la tira 2 menos la de la
-            // tira 1). Así no acumulamos errores de redondeo del gap → el
-            // bucle reinicia sin salto/parpadeo.
-            track.innerHTML = originalHTML + originalHTML;
-            var setPx = Math.round(
-                track.children[perSet].getBoundingClientRect().left
-                - track.children[0].getBoundingClientRect().left
-            ); // entero → el reinicio del loop cae justo en un píxel
-            if (setPx <= 0) return;
-            // Duplicar hasta cubrir viewport + una tira (mínimo 2 tiras)
-            var html = originalHTML + originalHTML;
-            while (track.scrollWidth < viewport.offsetWidth + setPx) {
-                html += originalHTML;
-                track.innerHTML = html;
+            var guard = 0;
+            while (track.scrollWidth < viewport.offsetWidth * 2 + 400 && guard < 40) {
+                track.insertAdjacentHTML('beforeend', originalHTML);
+                guard++;
             }
-            // Forzar visibles todas las cards del carrusel (quitar el estado
-            // oculto de .reveal que nunca se activaría en las copias)
+            // Forzar visibles todas las cards (quitar el estado oculto .reveal)
             var nodes = track.querySelectorAll('.reveal');
             for (var j = 0; j < nodes.length; j++) {
                 nodes[j].classList.add('visible', 'active');
             }
-            track.style.setProperty('--scroll-px', setPx + 'px');
-            // Velocidad constante (px/s) → duración proporcional al ancho de
-            // una tira. Así va igual de rápido en móvil y escritorio.
-            var SPEED = 140; // px por segundo (sube/baja este nº para el ritmo)
-            track.style.setProperty('--scroll-dur', (setPx / SPEED) + 's');
+            // Medir el "paso" (ancho card + gap) una sola vez
+            var gap = parseFloat(window.getComputedStyle(track).columnGap || '0') || 0;
+            var first = track.firstElementChild;
+            unitPx = first ? first.getBoundingClientRect().width + gap : 0;
         }
-        requestAnimationFrame(build);
-        // Reconstruir SOLO si cambia el ANCHO (giro de pantalla, etc.). En
-        // móvil, al hacer scroll la barra de URL se oculta/muestra y cambia
-        // la ALTURA disparando 'resize'; si reconstruyéramos ahí, la animación
-        // se reiniciaría y se vería un salto. Por eso ignoramos cambios de alto.
+
+        build();
+
+        var offset = 0, paused = false, lastT = null;
+        function frame(t) {
+            if (lastT === null) lastT = t;
+            var dt = (t - lastT) / 1000; lastT = t;
+            if (dt > 0.05) dt = 0.05; // si la pestaña estuvo oculta, no pegar saltos
+            if (!paused && unitPx > 0) {
+                offset += SPEED * dt;
+                // Reciclar las cards que ya salieron por la izquierda: se
+                // mueven al final y se descuenta su ancho del offset, así el
+                // desplazamiento se mantiene pequeño y nunca hay un reinicio.
+                while (offset >= unitPx) {
+                    offset -= unitPx;
+                    track.appendChild(track.firstElementChild);
+                }
+                track.style.transform = 'translate3d(' + (-offset) + 'px,0,0)';
+            }
+            requestAnimationFrame(frame);
+        }
+        if (!reduce) requestAnimationFrame(frame);
+
+        // Pausa al pasar el ratón (desktop) para poder leer una reseña
+        track.addEventListener('mouseenter', function () { paused = true; });
+        track.addEventListener('mouseleave', function () { paused = false; });
+
+        // Rebuild solo si cambia el ANCHO (giro de pantalla). En móvil el scroll
+        // cambia la ALTURA (barra de URL) y dispara 'resize'; lo ignoramos.
         var lastW = window.innerWidth, rt;
         window.addEventListener('resize', function () {
-            if (window.innerWidth === lastW) return; // solo cambió el alto → ignorar
+            if (window.innerWidth === lastW) return;
             lastW = window.innerWidth;
-            clearTimeout(rt); rt = setTimeout(build, 200);
+            clearTimeout(rt);
+            rt = setTimeout(function () { offset = 0; build(); }, 200);
         });
     })();
 
