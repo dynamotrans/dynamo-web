@@ -1886,7 +1886,7 @@
         .testi-google svg { flex-shrink:0; }
         /* Movil: cards mas pequeñas para que entren mas en el flujo */
         @media (max-width:768px) {
-            .testi-track { gap: 0.85rem; animation-duration: 45s; }
+            .testi-track { gap: 0.85rem; }
             .testi-card { flex: 0 0 280px; padding: 1.2rem; }
         }
 
@@ -3492,6 +3492,10 @@ function openLegal(tab) {
                 nodes[j].classList.add('visible', 'active');
             }
             track.style.setProperty('--scroll-px', setPx + 'px');
+            // Velocidad constante (px/s) → duración proporcional al ancho de
+            // una tira. Así va igual de rápido en móvil y escritorio.
+            var SPEED = 70; // px por segundo (sube/baja este nº para el ritmo)
+            track.style.setProperty('--scroll-dur', (setPx / SPEED) + 's');
         }
         requestAnimationFrame(build);
         // Recalcular al redimensionar (debounce para no recrear en cada px)
