@@ -3447,27 +3447,44 @@ function openLegal(tab) {
         });
     })();
 
-    // Carrusel infinito de reseñas: duplica las cards dentro del track y
-    // calcula el ancho exacto de un set en px para que el marquee CSS
-    // haga loop perfecto (translateX -50% deja hueco por el gap del flexbox)
+    // Carrusel infinito de reseñas: duplica las cards dentro del track las
+    // veces necesarias para cubrir SIEMPRE el viewport + una tira completa,
+    // de modo que el bucle no deje hueco en blanco ni en pantallas anchas.
+    // Mide el ancho EXACTO de una tira (cards + un gap por card) para que el
+    // marquee CSS reinicie sin saltos (el loop translada justo una tira).
     (function () {
         var track = document.getElementById('testi-track');
         if (!track) return;
+        var viewport = track.parentElement; // .testi-grid (zona visible)
         var originalHTML = track.innerHTML;
-        track.innerHTML = originalHTML + originalHTML;
-        // Medimos el ancho de un set (la mitad del track) tras un frame
-        function setMarqueeWidth() {
-            // scrollWidth incluye contenido completo + paddings, no gap entre
-            // sets. La mitad es exactamente la anchura de un set + 1 gap final
-            var fullWidth = track.scrollWidth;
-            // gap calculado del computed style (rem -> px)
-            var gap = parseFloat(window.getComputedStyle(track).columnGap || '0') || 0;
-            var setPx = (fullWidth + gap) / 2;
+        function build() {
+            // Partimos siempre de una sola tira para medir limpio
+            track.innerHTML = originalHTML;
+            var cs = window.getComputedStyle(track);
+            var gap = parseFloat(cs.columnGap || cs.gap || '0') || 0;
+            // Ancho de una tira = suma de cada card + un gap por card. Ese gap
+            // extra es la separación entre el final de una tira y el inicio de
+            // la siguiente → es justo la distancia que debe translatar el loop.
+            var cards = track.children;
+            var setPx = 0;
+            for (var i = 0; i < cards.length; i++) {
+                setPx += cards[i].getBoundingClientRect().width + gap;
+            }
+            if (setPx <= 0) return;
+            // Duplicamos hasta que el contenido total cubra viewport + una tira
+            // (mínimo 2 tiras). Así al final del ciclo nunca se ve blanco.
+            var need = viewport.offsetWidth + setPx;
+            var html = originalHTML, total = setPx;
+            while (total < need) { html += originalHTML; total += setPx; }
+            track.innerHTML = html;
             track.style.setProperty('--scroll-px', setPx + 'px');
         }
-        // Calcular tras montar y al redimensionar
-        requestAnimationFrame(setMarqueeWidth);
-        window.addEventListener('resize', setMarqueeWidth);
+        requestAnimationFrame(build);
+        // Recalcular al redimensionar (con debounce para no recrear en cada px)
+        var rt;
+        window.addEventListener('resize', function () {
+            clearTimeout(rt); rt = setTimeout(build, 200);
+        });
     })();
 
     // Mapa interactivo de Europa: carga el SVG via fetch e inyecta inline
