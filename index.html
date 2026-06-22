@@ -1229,27 +1229,37 @@
         .svc-card.svc-almacen > .svc-card-body > p { font-size: 0.95rem; max-width: 640px; }
         .svc-card.svc-almacen::before { background: linear-gradient(90deg, var(--purple), var(--purple-light), var(--green)); height: 4px; }
         .svc-card {
-            background: white; border-radius: 18px; padding: 0;
-            border: 1.5px solid var(--gray-200); position: relative; overflow: hidden;
-            transition: all 0.35s ease;
+            background: white; border-radius: 16px; padding: 0;
+            border: 1px solid var(--gray-200); position: relative; overflow: hidden;
+            box-shadow: 0 2px 10px rgba(10,2,48,0.04);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            display: flex; flex-direction: column;
         }
-        .svc-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--purple),var(--green)); z-index:1; }
-        .svc-card:hover { transform:translateY(-7px); box-shadow:0 20px 50px rgba(51,0,204,0.12); border-color:rgba(51,0,204,0.15); }
+        .svc-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--purple),var(--green)); z-index:3; }
+        .svc-card:hover { transform:translateY(-6px); box-shadow:0 18px 40px rgba(51,0,204,0.12); border-color:rgba(51,0,204,0.22); }
+        /* Media: imagen con velo inferior + etiqueta flotante (chip), look limpio tipo carrusel */
+        .svc-card-media { position: relative; overflow: hidden; }
+        .svc-card-media .svc-card-img { height: 150px; transition: transform 0.5s ease; }
+        .svc-card:hover .svc-card-media .svc-card-img { transform: scale(1.05); }
+        .svc-card-media::after { content:''; position:absolute; inset:0; background:linear-gradient(to top, rgba(10,2,48,0.5), rgba(10,2,48,0) 55%); pointer-events:none; }
+        .svc-chip {
+            position: absolute; left: 12px; bottom: 12px; z-index: 2;
+            background: rgba(255,255,255,0.92); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+            color: var(--purple); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.2px;
+            padding: 0.3rem 0.72rem; border-radius: 50px; box-shadow: 0 2px 8px rgba(10,2,48,0.18);
+        }
         .svc-card-img { width:100%; height:160px; object-fit:cover; display:block; }
-        .svc-card-body { padding: 1.5rem; }
+        .svc-card-body { padding: 1.25rem 1.3rem 1.4rem; flex: 1; }
         .svc-icon { width:54px; height:54px; border-radius:13px; margin-bottom:1.1rem; background:linear-gradient(135deg,var(--purple),var(--purple-light)); display:flex; align-items:center; justify-content:center; font-size:1.4rem; }
         .svc-card h3 {
-            font-size: 1.7rem; font-weight: 900; color: var(--purple);
-            margin-bottom: 0.95rem; letter-spacing: -0.5px; line-height: 1.15;
-            position: relative; padding-bottom: 0.6rem;
+            font-size: 1.18rem; font-weight: 800; color: var(--purple);
+            margin: 0 0 0.5rem; letter-spacing: -0.3px; line-height: 1.25;
         }
-        .svc-card h3::after {
-            content:''; position: absolute; bottom: 0; left: 0;
-            width: 38px; height: 3px; border-radius: 2px;
-            background: linear-gradient(90deg, var(--purple) 0%, var(--green) 100%);
+        .svc-card h3 .svc-sub {
+            display: block; font-size: 0.76rem; font-weight: 600; color: var(--gray-500);
+            letter-spacing: 0; margin-top: 0.28rem;
         }
-        .svc-card:hover h3::after { width: 60px; transition: width 0.3s ease; }
-        .svc-card p  { color:var(--gray-500); line-height:1.65; font-size:0.88rem; }
+        .svc-card p  { color:var(--gray-500); line-height:1.6; font-size:0.84rem; margin:0; }
         .svc-tag { display:inline-block; margin-top:1rem; background:rgba(51,0,204,0.07); color:var(--purple); padding:0.25rem 0.75rem; border-radius:50px; font-size:0.7rem; font-weight:700; }
         .svc-tag.svc-tag-soon {
             background: rgba(255,212,0,0.18);
@@ -1326,14 +1336,15 @@
         }
         @media (max-width: 600px) {
             .svc-grid { grid-template-columns: repeat(2, 1fr); gap: 0.85rem; }
-            .svc-card:not(.svc-almacen) .svc-card-img { height: 110px; }
-            .svc-card:not(.svc-almacen) .svc-card-body { padding: 0.95rem 0.85rem 1.05rem; }
+            .svc-card:not(.svc-almacen) .svc-card-img { height: 112px; }
+            .svc-card:not(.svc-almacen) .svc-card-body { padding: 0.9rem 0.85rem 1rem; }
             .svc-card:not(.svc-almacen) h3 {
-                font-size: 1.25rem; line-height: 1.15; margin-bottom: 0.5rem; padding-bottom: 0.45rem;
-                letter-spacing: -0.3px;
+                font-size: 1rem; line-height: 1.2; margin-bottom: 0.4rem;
+                letter-spacing: -0.2px;
             }
-            .svc-card:not(.svc-almacen) h3::after { width: 28px; height: 2.5px; }
+            .svc-card:not(.svc-almacen) h3 .svc-sub { font-size: 0.68rem; margin-top: 0.2rem; }
             .svc-card:not(.svc-almacen) p { font-size: 0.74rem; line-height: 1.5; }
+            .svc-chip { font-size: 0.6rem; padding: 0.22rem 0.55rem; left: 8px; bottom: 8px; }
             .svc-card:not(.svc-almacen) .svc-tag { font-size: 0.6rem; padding: 0.18rem 0.55rem; margin-top: 0.7rem; }
             .svc-card.svc-featured::after { font-size: 0.55rem; padding: 0.18rem 0.5rem; top: 8px; right: 8px; }
             .svc-card.svc-almacen { grid-column: 1 / -1; grid-template-columns: 1fr; }
@@ -2479,35 +2490,43 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </p>
         <div class="svc-grid">
             <div class="svc-card svc-featured reveal">
-                <img loading="lazy" src="/images/transporte-tauliner.jpg" alt="Grupajes" class="svc-card-img">
+                <div class="svc-card-media">
+                    <img loading="lazy" src="/images/transporte-tauliner.jpg" alt="Grupajes" class="svc-card-img">
+                    <span class="svc-chip">Nacional 24h</span>
+                </div>
                 <div class="svc-card-body">
-                    <h3>Grupajes <span style="font-weight:400">Nacionales e Internacional</span></h3>
+                    <h3>Grupajes <span class="svc-sub">Nacionales e Internacional</span></h3>
                     <p>Comparte espacio y optimiza costes. Mercancía paletizada y cargas especiales. Recogida en 24h, entrega en 24-48h.</p>
-                    <span class="svc-tag">Nacional 24h</span>
                 </div>
             </div>
             <div class="svc-card svc-featured reveal" style="transition-delay:.1s">
-                <img loading="lazy" src="/images/FOTO 1 - copia55420ac5170e2.jpeg" alt="Carga Completa" class="svc-card-img">
+                <div class="svc-card-media">
+                    <img loading="lazy" src="/images/FOTO 1 - copia55420ac5170e2.jpeg" alt="Carga Completa" class="svc-card-img">
+                    <span class="svc-chip">Tráfico directo</span>
+                </div>
                 <div class="svc-card-body">
-                    <h3>Carga Completa <span style="font-weight:400">Nacionales e Internacional</span></h3>
-                    <p>El camión es tuyo. Sin transbordos, máxima seguridad y rapidez. Entrega directa origen-destino. Tauliner, rígido con plataforma y más.</p>
-                    <span class="svc-tag">Tráfico directo</span>
+                    <h3>Carga Completa <span class="svc-sub">Nacionales e Internacional</span></h3>
+                    <p>El camión es tuyo. Sin transbordos: máxima seguridad, rapidez y entrega directa origen-destino.</p>
                 </div>
             </div>
             <div class="svc-card reveal" style="transition-delay:.2s">
-                <img loading="lazy" src="/images/AdobeStock_154376791.jpeg" alt="Importación" class="svc-card-img">
+                <div class="svc-card-media">
+                    <img loading="lazy" src="/images/AdobeStock_154376791.jpeg" alt="Importación" class="svc-card-img">
+                    <span class="svc-chip">Toda Europa</span>
+                </div>
                 <div class="svc-card-body">
                     <h3>Importación</h3>
-                    <p>Hasta la puerta de tu empresa. Importamos desde cualquier punto de Europa garantizando plazos de entrega y elevados estándares de calidad.</p>
-                    <span class="svc-tag">Toda Europa</span>
+                    <p>Hasta la puerta de tu empresa, desde cualquier punto de Europa, con plazos garantizados y máxima calidad.</p>
                 </div>
             </div>
             <div class="svc-card reveal" style="transition-delay:.3s">
-                <img loading="lazy" src="/images/AdobeStock_260603287.jpeg" alt="Exportación" class="svc-card-img">
+                <div class="svc-card-media">
+                    <img loading="lazy" src="/images/AdobeStock_260603287.jpeg" alt="Exportación" class="svc-card-img">
+                    <span class="svc-chip">Import & Export</span>
+                </div>
                 <div class="svc-card-body">
                     <h3>Exportación</h3>
                     <p>Portugal, Francia, Alemania, Italia, Suiza, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.</p>
-                    <span class="svc-tag">Import & Export</span>
                 </div>
             </div>
             <div class="svc-card svc-almacen reveal" style="transition-delay:.4s">
