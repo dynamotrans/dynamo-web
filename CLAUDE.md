@@ -170,6 +170,33 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-22 — (sesión web / Claude Code en la nube)
+
+> Sesión larga. Cambio de criterio de ramas (lo pide el usuario): **trabajar SIEMPRE en `preview`** por defecto; los cambios públicos se llevan a `main` por **cherry-pick** del/los commits (nunca merge de preview entero, para no arrastrar el portal). El portal (`dashboard.html` etc.) **no va a `main`** (regla 7 reconfirmada en vivo).
+
+**Arranque**:
+- Reconstruidas las entradas **20 y 21 de junio** desde git (el chat anterior se colgó sin escribir bitácora). Aclarado al usuario que solo persiste lo commiteado + lo escrito en CLAUDE.md/TODO; no puedo leer otros chats salvo que los pegue.
+
+**WEB PÚBLICA (`index.html`, a `main` por cherry-pick + cascada a preview/lab)**:
+- **Carrusel de reseñas en bucle continuo** — varias iteraciones hasta dejarlo perfecto: (1) las cards `.reveal` (opacity:0) duplicadas quedaban invisibles → blanco; (2) duplicación insuficiente en pantallas anchas; (3) velocidad por px/s; (4) salto al hacer scroll en móvil (resize por barra de URL → ignorar cambios de alto); (5) parpadeo del reinicio. **Solución final**: reescrito con `requestAnimationFrame` + **reciclado de cards** (la que sale por la izq. se recoloca al final) → sin reinicio, sin salto, sin blanco. Velocidad 140 px/s, pausa al hover, respeta reduced-motion. Commits a main `c68c1e5`
+- **Países unificados con el mapa de cobertura**: Exportación, tarjeta "Cobertura" y structured data (areaServed) → fuera Irlanda y Dinamarca, dentro República Checa. Mismo criterio que el mapa. Commit a main `82669ce`
+- **Emojis → iconos SVG profesionales** (línea, color de marca) en Tipos de Mercancía, Por qué elegirnos, Seguridad/Confianza y mini "España y Europa". Banderas del selector de idioma y glifos ★/⚠/✕ se mantienen (no son emoticonos). Commit a main `d06ae09`
+
+**PANEL / PORTAL (`dashboard.html` + páginas portal, SOLO preview + lab)**:
+- **Pestaña "Programadas"** (total = pendientes + confirmadas) como primera y activa por defecto
+- **Copys**: caja Nueva carga → "Solicita un transporte" (sin "tarifa cerrada"); quitado "precio cerrado" del flujo Generar carga; quitada la frase "El equipo confirma… 25 minutos / lee primero avisos" del paso de confirmación
+- **Anti-zoom iOS**: `maximum-scale=1.0` en viewport de portal.html, dashboard.html, registro/verificar/crear-password → al tocar campos ya no hace zoom ni descuadra. (No se tocó index.html)
+- **Tamaños móvil** del dashboard subidos (buscador, selector de mes, tablas) para legibilidad, manteniendo buscador+mes en una fila
+- **Cargas con fecha a >7 días → fila en gris claro** (atenuada, menos urgente). Escala: RETRASADA/HOY/MAÑANA/PASADO MAÑANA resaltadas · 3-7 días normal · >7 días gris
+
+**Aclarado sobre presupuestos**: no llevan fecha de carga, solo fecha de generación (ya era así en datos/tabla/detalle). El campo "Ventana de carga" se queda (sirve para calcular precio)
+
+**Limpieza**: rama suelta `fix/carrusel-resenas` borrada en local; el remoto **no se pudo borrar** (el entorno devuelve 403 al borrar ramas) → el usuario puede borrarla desde GitHub si quiere
+
+**Pendiente**: el usuario decidió **no** publicar el portal a `main` (filas gris se quedan en preview+lab). Sigue en pie publicar el portal "dentro de unos meses" con frase explícita
+
+---
+
 ### 2026-06-21 — (reconstruida desde git — chat original se quedó pillado)
 
 > ⚠️ Esta entrada se reconstruyó el 2026-06-21 a partir del historial de commits porque el chat de esos días se colgó antes de escribir bitácora. Refleja lo que dicen los commits; si hubo decisiones habladas no commiteadas, no quedaron registradas.
