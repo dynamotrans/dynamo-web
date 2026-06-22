@@ -170,6 +170,28 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-22 (sesión 2) — MacBook Pro
+
+> Sesión de pulido de la **web pública** (home) + arreglo de fondo de los **horarios multilingües** en web y portal. Todo lo público a `main` por cherry-pick + cascada a preview/lab; el portal solo en preview/lab.
+
+**WEB PÚBLICA (`index.html`, a `main`)**:
+- **"Nacionales e Internacional" sin negrita** en las tarjetas de Grupajes y Carga Completa (la primera palabra del título sigue en negrita; el resto normal). Commits `d42b779`→`1ec4043`
+- **Reordenado de secciones de la home** (en 2 peticiones): orden final → Servicios → **Tipos de Mercancía → Seguridad y Confianza → Tipos de Vehículo → Por qué elegirnos → Cobertura (España y Europa)** → CTA. Commits `dd51ee3` y `508b335`
+- **Rediseño de la sección de cifras (stats)**: primero se probó banda morada con tarjetas glass (`3ea939c`), pero "pesaba mucho / todo muy morado" → versión final **clara y fina**: fondo gris suave, tarjetas blancas con borde finísimo, números en morado solo como acento, estrellas doradas, hover sutil, compacto en móvil (2×2). Commit `45f12fe`
+
+**HORARIOS MULTILINGÜES — arreglo de raíz (web pública `main` + portal preview/lab)**:
+- **Problema (reportado por el usuario)**: con la web en catalán/portugués/etc., los horarios del FAB del avatar y del modal "Fuera de horario" salían en español o mal traducidos (Google traducía "L-S" → "Monday to Friday" en vez de Saturday, o dejaba "LS 8-20" sin traducir).
+- **Causa real**: (1) los chips del FAB usan `content: attr(data-hours)` en CSS → Google Translate **nunca** traduce contenido CSS; (2) el texto inyectado por JS tampoco se retraduce fiable; (3) abreviaturas de día (L-S, L-J, y "Mar"=sea) confunden al traductor.
+- **Solución**: generamos las etiquetas **nosotros** en el idioma activo (cookie `googtrans`) con diccionario de **13 idiomas** (`SCHED_VOCAB` + `buildLabels`) marcadas `.notranslate`. Días en **palabra completa** (decisión del usuario). Salen siempre correctas (Lunes a Sábado / Monday to Saturday / Dilluns a Dissabte…). Commits `0018991`→`93e9a66`
+- **Cambio de idioma en caliente**: Google traduce sin recargar → las etiquetas se quedaban en el idioma anterior. Refactorizado a función global `applyScheduleLabels(lang)` que se **re-ejecuta desde `doTranslate`** en cada cambio (actualiza FAB, chips y modal). Commit `8e7da54`
+- **Semana Santa**: nuevo horario reducido **Lunes a Miércoles Santo 9:00–14:00** (calculado solo cada año desde la Pascua). Jueves y Viernes Santo siguen festivo (cerrado). Web + portal
+- **Bonus — bug corregido**: un `perl` anterior corrupió "Sábado" → "SÃ¡bado" (mojibake UTF-8) en los 5 archivos del portal. Arreglado con `perl -Mutf8`
+- **Portal (preview/lab)**: mismo arreglo en las 5 páginas (`dashboard`/`portal`/`registro`/`verificar`/`crear-password`) vía script Node. Syntax-check JS de los 6 archivos sin errores
+
+**Aclarado al usuario**: en portugués el sábado es **"Sábado"** igual que en español (coincidencia), así que "Segunda a Sábado" es correcto.
+
+**Confirmado que los horarios son automáticos "de por vida"**: temporadas (verano, Navidad, Feria y Semana Santa por Pascua) + festivos nacionales se recalculan en cada carga con hora real `Europe/Madrid` (DST). **Pendiente opcional**: faltan festivos **autonómicos (Andalucía) y locales de Sevilla** (solo están los nacionales).
+
 ### 2026-06-22 — (sesión web / Claude Code en la nube)
 
 > Sesión larga. Cambio de criterio de ramas (lo pide el usuario): **trabajar SIEMPRE en `preview`** por defecto; los cambios públicos se llevan a `main` por **cherry-pick** del/los commits (nunca merge de preview entero, para no arrastrar el portal). El portal (`dashboard.html` etc.) **no va a `main`** (regla 7 reconfirmada en vivo).
