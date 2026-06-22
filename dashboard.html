@@ -1229,6 +1229,13 @@
             box-shadow: inset 4px 0 0 0 #10b981;
         }
         table.data tr.row-aftertomorrow:hover { background: #dcfce7; }
+        /* Carga lejana (> 7 días): se atenúa en gris claro para que se
+           perciba como menos urgente / más lejana en el tiempo */
+        table.data tr.row-far { background: #fafbfc; }
+        table.data tr.row-far td { color: var(--gray-500, #6b7280); }
+        table.data tr.row-far .ref,
+        table.data tr.row-far strong { color: var(--gray-500, #6b7280); font-weight: 600; }
+        table.data tr.row-far:hover { background: #f3f4f6; }
         /* Pequeña etiqueta junto a la fecha para reforzar el resaltado */
         .row-when-tag {
             display: inline-block;
@@ -1263,6 +1270,9 @@
         body.theme-dark table.data tr.row-today        { background: rgba(239,68,68,0.12); }
         body.theme-dark table.data tr.row-tomorrow     { background: rgba(245,158,11,0.12); }
         body.theme-dark table.data tr.row-aftertomorrow{ background: rgba(16,185,129,0.12); }
+        body.theme-dark table.data tr.row-far          { background: rgba(255,255,255,0.02); }
+        body.theme-dark table.data tr.row-far td,
+        body.theme-dark table.data tr.row-far strong   { color: rgba(255,255,255,0.45); }
         table.data .ref { font-weight: 800; color: var(--navy); }
         table.data .ref-cli { color: var(--gray-500); font-size: 0.77rem; }
         table.data .amount { font-weight: 700; }
@@ -4584,7 +4594,14 @@
             var w = cursor.getDay();
             if (w !== 0 && w !== 6) level++;
         }
-        if (level > 2) return null;
+        if (level > 2) {
+            // Más allá de pasado mañana: si la fecha está a más de 7 días,
+            // se marca como "lejana" (fila atenuada, menos urgente). Entre
+            // 3 y 7 días queda como fila normal.
+            var diffFar = Math.round((d.getTime() - today.getTime()) / 86400000);
+            if (diffFar > 7) return { level: 9, label: null };
+            return null;
+        }
         // Etiqueta: calendar match literal
         var diff = Math.round((d.getTime() - today.getTime()) / 86400000);
         var label = null;
@@ -4759,6 +4776,8 @@
                     else if (hi.level === 0) rowCls = ' class="row-today"';
                     else if (hi.level === 1) rowCls = ' class="row-tomorrow"';
                     else if (hi.level === 2) rowCls = ' class="row-aftertomorrow"';
+                    // Lejana (>7 días) solo para programadas: la atenuamos en gris
+                    else if (hi.level === 9 && c.kind === 'programada') rowCls = ' class="row-far"';
                     if (hi.label === 'RETRASADA') {
                         var lateText = pendienteAsignarText(c) || 'Pendiente Asignar';
                         tagHtml = '<span class="row-when-tag tag-overdue">' + esc(lateText) + '</span>';
