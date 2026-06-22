@@ -875,10 +875,10 @@
             <img src="/images/ALVARO_circular_ZOOM.png" alt="Álvaro - Contacto Dynamo Transportes">
         </button>
         <div class="contact-fab-actions" role="menu" aria-label="Canales de contacto">
-            <a class="contact-fab-action act-email" role="menuitem" href="mailto:info@dynamotrans.com?subject=Consulta%20portal%20cliente" aria-label="Enviar email" data-hours="Lunes a SÃ¡bado 8-20" data-sched-attr="online-short">
+            <a class="contact-fab-action act-email" role="menuitem" href="mailto:info@dynamotrans.com?subject=Consulta%20portal%20cliente" aria-label="Enviar email" data-hours="Lunes a Sábado 8-20" data-sched-attr="online-short">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
             </a>
-            <a class="contact-fab-action act-wa" role="menuitem" target="_blank" rel="noopener" href="https://wa.me/34628995709" aria-label="Contactar por WhatsApp" data-hours="Lunes a SÃ¡bado 8-20" data-sched-attr="online-short">
+            <a class="contact-fab-action act-wa" role="menuitem" target="_blank" rel="noopener" href="https://wa.me/34628995709" aria-label="Contactar por WhatsApp" data-hours="Lunes a Sábado 8-20" data-sched-attr="online-short">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
             </a>
             <a class="contact-fab-action act-call" role="menuitem" href="tel:+34955225945" aria-label="Llamar por teléfono" data-hours="Lunes a Jueves 9-14 y 15-17 · Viernes 9-14" data-sched-attr="phone-short">
@@ -928,18 +928,41 @@
     var SCHEDULE = {
         winter: { 1:[[9,14],[15,17]], 2:[[9,14],[15,17]], 3:[[9,14],[15,17]], 4:[[9,14],[15,17]], 5:[[9,14]] },
         summer: { 1:[[9,14]], 2:[[9,14]], 3:[[9,14]], 4:[[9,14]], 5:[[9,14]] },
-        phone: { labelLong:'Lunes a Jueves 9:00-14:00 y 15:00-17:00 · Viernes 9:00-14:00', labelShort:'Lunes a Jueves 9-14 y 15-17 · Viernes 9-14',
-                 labelSummerLong:'Lunes a Viernes 9:00-14:00 (verano)', labelSummerShort:'Lunes a Viernes 9-14 (verano)',
-                 labelXmasLong:'Lunes a Viernes 9:00-14:00 (Navidad)', labelXmasShort:'Lunes a Viernes 9-14 (Navidad)',
-                 labelFeriaLong:'Martes a Viernes 9:00-14:00 (Feria)', labelFeriaShort:'Martes a Viernes 9-14 (Feria)' },
-        online: { labelLong:'Lunes a SÃ¡bado 8:00-20:00', labelShort:'Lunes a SÃ¡bado 8-20' },
         telHref: 'tel:+34955225945'
     };
+    // Etiquetas de horario auto-traducidas por nosotros (Google no traduce el
+    // texto inyectado por JS ni el contenido CSS del FAB). Idioma activo via cookie.
+    var SCHED_VOCAB = {
+        es:{mon:'Lunes',tue:'Martes',wed:'Miércoles',thu:'Jueves',fri:'Viernes',sat:'Sábado',to:'a',and:'y',summer:'verano',xmas:'Navidad',feria:'Feria',holy:'Semana Santa'},
+        en:{mon:'Monday',tue:'Tuesday',wed:'Wednesday',thu:'Thursday',fri:'Friday',sat:'Saturday',to:'to',and:'and',summer:'summer',xmas:'Christmas',feria:'Feria',holy:'Holy Week'},
+        ca:{mon:'Dilluns',tue:'Dimarts',wed:'Dimecres',thu:'Dijous',fri:'Divendres',sat:'Dissabte',to:'a',and:'i',summer:'estiu',xmas:'Nadal',feria:'Fira',holy:'Setmana Santa'},
+        eu:{mon:'Astelehena',tue:'Asteartea',wed:'Asteazkena',thu:'Osteguna',fri:'Ostirala',sat:'Larunbata',to:'–',and:'eta',summer:'uda',xmas:'Gabonak',feria:'Feria',holy:'Aste Santua'},
+        pt:{mon:'Segunda',tue:'Terça',wed:'Quarta',thu:'Quinta',fri:'Sexta',sat:'Sábado',to:'a',and:'e',summer:'verão',xmas:'Natal',feria:'Feira',holy:'Semana Santa'},
+        fr:{mon:'Lundi',tue:'Mardi',wed:'Mercredi',thu:'Jeudi',fri:'Vendredi',sat:'Samedi',to:'au',and:'et',summer:'été',xmas:'Noël',feria:'Feria',holy:'Semaine Sainte'},
+        de:{mon:'Montag',tue:'Dienstag',wed:'Mittwoch',thu:'Donnerstag',fri:'Freitag',sat:'Samstag',to:'bis',and:'und',summer:'Sommer',xmas:'Weihnachten',feria:'Feria',holy:'Karwoche'},
+        it:{mon:'Lunedì',tue:'Martedì',wed:'Mercoledì',thu:'Giovedì',fri:'Venerdì',sat:'Sabato',to:'a',and:'e',summer:'estate',xmas:'Natale',feria:'Feria',holy:'Settimana Santa'},
+        nl:{mon:'Maandag',tue:'Dinsdag',wed:'Woensdag',thu:'Donderdag',fri:'Vrijdag',sat:'Zaterdag',to:'tot',and:'en',summer:'zomer',xmas:'Kerst',feria:'Feria',holy:'Goede Week'},
+        pl:{mon:'Poniedziałek',tue:'Wtorek',wed:'Środa',thu:'Czwartek',fri:'Piątek',sat:'Sobota',to:'–',and:'i',summer:'lato',xmas:'Boże Narodzenie',feria:'Feria',holy:'Wielki Tydzień'},
+        ro:{mon:'Luni',tue:'Marți',wed:'Miercuri',thu:'Joi',fri:'Vineri',sat:'Sâmbătă',to:'–',and:'și',summer:'vară',xmas:'Crăciun',feria:'Feria',holy:'Săptămâna Mare'},
+        uk:{mon:'Понеділок',tue:'Вівторок',wed:'Середа',thu:'Четвер',fri:'П\'ятниця',sat:'Субота',to:'–',and:'і',summer:'літо',xmas:'Різдво',feria:'Feria',holy:'Страсний тиждень'},
+        'zh-CN':{mon:'周一',tue:'周二',wed:'周三',thu:'周四',fri:'周五',sat:'周六',to:'至',and:'和',summer:'夏季',xmas:'圣诞',feria:'节庆',holy:'圣周'}
+    };
+    function schedLang(){ var m=document.cookie.match(/googtrans=\/[\w-]+\/([\w-]+)/); var l=m?m[1]:'es'; return SCHED_VOCAB[l]?l:'es'; }
+    function buildLabels(lang){ var v=SCHED_VOCAB[lang]||SCHED_VOCAB.es; function rng(a,b){return v.to==='–'?(a+'–'+b):(a+' '+v.to+' '+b);}
+        return { phone:{ labelLong:rng(v.mon,v.thu)+' 9:00-14:00 '+v.and+' 15:00-17:00 · '+v.fri+' 9:00-14:00', labelShort:rng(v.mon,v.thu)+' 9-14 '+v.and+' 15-17 · '+v.fri+' 9-14',
+            labelSummerLong:rng(v.mon,v.fri)+' 9:00-14:00 ('+v.summer+')', labelSummerShort:rng(v.mon,v.fri)+' 9-14 ('+v.summer+')',
+            labelXmasLong:rng(v.mon,v.fri)+' 9:00-14:00 ('+v.xmas+')', labelXmasShort:rng(v.mon,v.fri)+' 9-14 ('+v.xmas+')',
+            labelFeriaLong:rng(v.tue,v.fri)+' 9:00-14:00 ('+v.feria+')', labelFeriaShort:rng(v.tue,v.fri)+' 9-14 ('+v.feria+')',
+            labelHolyLong:rng(v.mon,v.wed)+' 9:00-14:00 ('+v.holy+')', labelHolyShort:rng(v.mon,v.wed)+' 9-14 ('+v.holy+')' },
+            online:{ labelLong:rng(v.mon,v.sat)+' 8:00-20:00', labelShort:rng(v.mon,v.sat)+' 8-20' } };
+    }
+    var LABELS = buildLabels(schedLang());
     function getNow() { return new Date(new Date().toLocaleString('en-US', { timeZone:'Europe/Madrid' })); }
     function isSummer(d) { var m=d.getMonth(), dd=d.getDate(); if(m===5&&dd>=15)return true; if(m===6||m===7)return true; if(m===8&&dd<=1)return true; return false; }
     function isXmas(d) { var m=d.getMonth(), dd=d.getDate(); if(m===11&&dd>=22)return true; if(m===0&&dd<=6)return true; return false; }
     function isFeria(d) { var e=easterSunday(d.getFullYear()); var f1=new Date(e.getFullYear(),e.getMonth(),e.getDate()+16); var f2=new Date(e.getFullYear(),e.getMonth(),e.getDate()+19); var s=new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime(); return s>=f1.getTime()&&s<=f2.getTime(); }
-    function isShortSchedule(d) { return isSummer(d)||isXmas(d)||isFeria(d); }
+    function isHolyWeek(d) { var e=easterSunday(d.getFullYear()); var mo=new Date(e.getFullYear(),e.getMonth(),e.getDate()-6).getTime(); var we=new Date(e.getFullYear(),e.getMonth(),e.getDate()-4).getTime(); var s=new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime(); return s>=mo&&s<=we; }
+    function isShortSchedule(d) { return isSummer(d)||isXmas(d)||isFeria(d)||isHolyWeek(d); }
     function easterSunday(y) { var a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3); var h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,mm=Math.floor((a+11*h+22*l)/451); var mo=Math.floor((h+l-7*mm+114)/31); var da=((h+l-7*mm+114)%31)+1; return new Date(y,mo-1,da); }
     function getHolidayName(d) {
         var k=(d.getMonth()+1)+'-'+d.getDate();
@@ -1024,11 +1047,12 @@
             if (sub) sub.textContent = 'Hoy no atendemos llamadas por ser festivo nacional. Estamos disponibles por email y WhatsApp:';
         } else {
             if (title) title.textContent = 'Fuera de horario telefónico';
-            var lbl = SCHEDULE.phone.labelLong;
-            if (isFeria(now)) lbl = SCHEDULE.phone.labelFeriaLong;
-            else if (isXmas(now)) lbl = SCHEDULE.phone.labelXmasLong;
-            else if (isSummer(now)) lbl = SCHEDULE.phone.labelSummerLong;
-            if (sub) sub.innerHTML = 'Nuestro teléfono se atiende <strong>' + lbl + '</strong>. Estamos disponibles por email y WhatsApp <strong>' + SCHEDULE.online.labelLong + '</strong>:';
+            var lbl = LABELS.phone.labelLong;
+            if (isHolyWeek(now)) lbl = LABELS.phone.labelHolyLong;
+            else if (isFeria(now)) lbl = LABELS.phone.labelFeriaLong;
+            else if (isXmas(now)) lbl = LABELS.phone.labelXmasLong;
+            else if (isSummer(now)) lbl = LABELS.phone.labelSummerLong;
+            if (sub) sub.innerHTML = 'Nuestro teléfono se atiende <strong class="notranslate">' + lbl + '</strong>. Estamos disponibles por email y WhatsApp <strong class="notranslate">' + LABELS.online.labelLong + '</strong>:';
         }
         modal.classList.add('open');
     }
@@ -1046,12 +1070,13 @@
     (function syncScheduleLabels() {
         var now = getNow();
         function phoneLabel(key) {
-            if (isFeria(now))  return key==='short' ? SCHEDULE.phone.labelFeriaShort  : SCHEDULE.phone.labelFeriaLong;
-            if (isXmas(now))   return key==='short' ? SCHEDULE.phone.labelXmasShort   : SCHEDULE.phone.labelXmasLong;
-            if (isSummer(now)) return key==='short' ? SCHEDULE.phone.labelSummerShort : SCHEDULE.phone.labelSummerLong;
-            return key==='short' ? SCHEDULE.phone.labelShort : SCHEDULE.phone.labelLong;
+            if (isHolyWeek(now)) return key==='short' ? LABELS.phone.labelHolyShort   : LABELS.phone.labelHolyLong;
+            if (isFeria(now))  return key==='short' ? LABELS.phone.labelFeriaShort  : LABELS.phone.labelFeriaLong;
+            if (isXmas(now))   return key==='short' ? LABELS.phone.labelXmasShort   : LABELS.phone.labelXmasLong;
+            if (isSummer(now)) return key==='short' ? LABELS.phone.labelSummerShort : LABELS.phone.labelSummerLong;
+            return key==='short' ? LABELS.phone.labelShort : LABELS.phone.labelLong;
         }
-        function onlineLabel(key) { return key==='short' ? SCHEDULE.online.labelShort : SCHEDULE.online.labelLong; }
+        function onlineLabel(key) { return key==='short' ? LABELS.online.labelShort : LABELS.online.labelLong; }
         function resolve(key) {
             var p = key.split('-'), w = p[1];
             if (p[0]==='phone')  return phoneLabel(w);
@@ -1059,7 +1084,7 @@
             return null;
         }
         document.querySelectorAll('[data-sched]').forEach(function (el) {
-            var v = resolve(el.getAttribute('data-sched')); if (v) el.textContent = v;
+            var v = resolve(el.getAttribute('data-sched')); if (v) { el.textContent = v; el.classList.add('notranslate'); }
         });
         document.querySelectorAll('[data-sched-attr]').forEach(function (el) {
             var v = resolve(el.getAttribute('data-sched-attr')); if (v) el.setAttribute('data-hours', v);
