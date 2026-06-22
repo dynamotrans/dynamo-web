@@ -913,6 +913,7 @@
         if (sel) {
             sel.value = lang;
             sel.dispatchEvent(new Event('change'));
+            if (typeof applyScheduleLabels === 'function') applyScheduleLabels(lang);
             return true;
         }
         return false;
@@ -1206,7 +1207,8 @@
         }
     });
     // Actualiza chips data-hours en el FAB segun temporada activa
-    (function syncScheduleLabels() {
+    function applyScheduleLabels(lang) {
+        LABELS = buildLabels(lang && SCHED_VOCAB[lang] ? lang : schedLang());
         var now = getNow();
         function phoneLabel(key) {
             if (isHolyWeek(now)) return key==='short' ? LABELS.phone.labelHolyShort   : LABELS.phone.labelHolyLong;
@@ -1228,7 +1230,8 @@
         document.querySelectorAll('[data-sched-attr]').forEach(function (el) {
             var v = resolve(el.getAttribute('data-sched-attr')); if (v) el.setAttribute('data-hours', v);
         });
-    })();
+    }
+    applyScheduleLabels();
     </script>
 </body>
 </html>
