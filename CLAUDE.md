@@ -170,6 +170,31 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-22 (sesión 3) — Claude Code web (nube)
+
+> Sesión de **rediseño de la home pública**. Trabajo en `preview` (claude/sharp-dirac-E3UIO) y, tras OK del usuario ("Ok todo"), **promoción a producción** por cherry-pick de los 5 commits + cascada a lab. Todo web pública, sin tocar portal.
+
+**SERVICIOS — rediseño limpio de tarjetas (estilo carrusel)**:
+- Tarjetas más finas: borde 1px, sombra suave, radio 16px. Título más ligero (peso 800 en vez de 900) con *"Nacionales e Internacional"* como **subtítulo gris en línea aparte** (antes iba pegado en el título gigante a 2 líneas, que se veía "raro").
+- **Etiqueta convertida en chip flotante** (glass) sobre la imagen + velo inferior; zoom sutil de la foto al hover. Descripciones un pelín más cortas para igualar alturas. Ajustes móvil acordes. Commit `8dac181`(preview)/`cf6bdb9`(main)
+
+**SERVICIOS — intercambio de fotos** (pedido del usuario):
+- **Grupajes** → foto de carga de palets en tauliner (la que tenía Carga Completa, `FOTO 1`).
+- **Carga Completa** → foto del hero con el trailer Dynamo (`HERO-DYNAMO.webp`), encuadrada con `object-position:34%` para que el trailer se vea completo en la tarjeta. La vieja `transporte-tauliner.jpg` queda sin usar. Commit `fc90776`/`970bb37`
+
+**REESTRUCTURA DE LA HOME**:
+- **Cobertura** (sección "Nuestra cobertura · España y Europa" CON su mapa interactivo) **movida a justo después de Servicios** (antes estaba antes del CTA). Una sola sección, sin duplicar.
+- **Almacenamiento corta estancia** sacado del grid de Servicios a su **propia sección** (`.almacen-sec`, fondo blanco), colocada al final **antes de "Por qué elegirnos"**. Servicios queda con 4 tarjetas limpias. Commits `1fae8bb`/`21b5d51` y `cc4a42a`/`73151c2`
+- La sección de Almacenamiento lleva **encabezado propio** (eyebrow "Servicio adicional" + título "Almacenamiento corta estancia" + descripción), estilo "Nuestra flota / Tipos de Vehículo". Se quitaron el título y la descripción que estaban DENTRO de la tarjeta para no duplicar.
+
+**MENÚ (nav desktop + móvil)** — reescrito a 7 enlaces en este orden: **Clientes · Testimonios · Servicios · Cobertura · Vehículos · Almacenamiento · Contacto**. Añadidos retardos de animación para ítems 6-7 del menú móvil. **Quitado "Nosotros"** del menú (la sección *Por qué elegirnos* sigue existiendo, solo que ya no se enlaza). Commit `2b86c28`/`5fd739d`
+
+**Orden final de la home**: Hero → franja chips → carrusel logos → cifras → Clientes (muro) → Testimonios → **Servicios** → **Cobertura (mapa)** → Tipos de Mercancía → Seguridad → Vehículos → **Almacenamiento** → Por qué elegirnos → CTA.
+
+**Despliegue**: los 5 commits cherry-pickeados a `main` (`cf6bdb9`→`5fd739d`) → producción `dynamotrans.com`. Cascada `preview → lab` (merge `41aad6b`). Las 3 ramas sincronizadas.
+
+**Pendiente menor**: si el usuario quiere "Nosotros" de vuelta en el menú, reañadir. El eyebrow "Servicio adicional" de Almacenamiento es provisional (se puede cambiar a "Servicio de almacenaje" u otro).
+
 ### 2026-06-22 (sesión 2) — MacBook Pro
 
 > Sesión de pulido de la **web pública** (home) + arreglo de fondo de los **horarios multilingües** en web y portal. Todo lo público a `main` por cherry-pick + cascada a preview/lab; el portal solo en preview/lab.
