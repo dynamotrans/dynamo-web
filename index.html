@@ -3235,6 +3235,24 @@ function openLegal(tab) {
         };
     }
     var LABELS = buildLabels(schedLang());
+    // Aplica/actualiza las etiquetas de horario en el idioma dado (o el de la
+    // cookie). Se llama al cargar y CADA VEZ que se cambia de idioma, porque
+    // Google traduce en caliente sin recargar y nuestras etiquetas son notranslate.
+    function applyScheduleLabels(lang) {
+        LABELS = buildLabels(lang && SCHED_VOCAB[lang] ? lang : schedLang());
+        var now = getNow();
+        function phoneLabel(key) {
+            if (isHolyWeek(now)) return key === 'short' ? LABELS.phone.labelHolyShort   : LABELS.phone.labelHolyLong;
+            if (isFeria(now))    return key === 'short' ? LABELS.phone.labelFeriaShort  : LABELS.phone.labelFeriaLong;
+            if (isXmas(now))     return key === 'short' ? LABELS.phone.labelXmasShort   : LABELS.phone.labelXmasLong;
+            if (isSummer(now))   return key === 'short' ? LABELS.phone.labelSummerShort : LABELS.phone.labelSummerLong;
+            return key === 'short' ? LABELS.phone.labelShort : LABELS.phone.labelLong;
+        }
+        function onlineLabel(key) { return key === 'short' ? LABELS.online.labelShort : LABELS.online.labelLong; }
+        function resolve(key) { var p = key.split('-'); if (p[0] === 'phone') return phoneLabel(p[1]); if (p[0] === 'online') return onlineLabel(p[1]); return null; }
+        document.querySelectorAll('[data-sched]').forEach(function (el) { var v = resolve(el.getAttribute('data-sched')); if (v) { el.textContent = v; el.classList.add('notranslate'); } });
+        document.querySelectorAll('[data-sched-attr]').forEach(function (el) { var v = resolve(el.getAttribute('data-sched-attr')); if (v) el.setAttribute('data-hours', v); });
+    }
 
     function getNow() {
         // Hora real en Sevilla (Europe/Madrid, gestiona DST automaticamente)
@@ -4008,6 +4026,8 @@ function doTranslate(lang) {
     if (sel) {
         sel.value = lang;
         sel.dispatchEvent(new Event('change'));
+        // Regenera nuestras etiquetas de horario (notranslate) en el nuevo idioma
+        if (typeof applyScheduleLabels === 'function') applyScheduleLabels(lang);
         return true;
     }
     return false;
@@ -4831,32 +4851,7 @@ function updateAlmTotal() {
 // web a partir de SCHEDULE. La etiqueta del telefono usa el horario que
 // aplica HOY (verano o invierno), para que el usuario vea siempre lo real.
 document.addEventListener('DOMContentLoaded', function () {
-    var now = getNow();
-    function phoneLabel(key) {
-        if (isHolyWeek(now)) return key === 'short' ? LABELS.phone.labelHolyShort   : LABELS.phone.labelHolyLong;
-        if (isFeria(now))    return key === 'short' ? LABELS.phone.labelFeriaShort  : LABELS.phone.labelFeriaLong;
-        if (isXmas(now))     return key === 'short' ? LABELS.phone.labelXmasShort   : LABELS.phone.labelXmasLong;
-        if (isSummer(now))   return key === 'short' ? LABELS.phone.labelSummerShort : LABELS.phone.labelSummerLong;
-        return key === 'short' ? LABELS.phone.labelShort : LABELS.phone.labelLong;
-    }
-    function onlineLabel(key) {
-        return key === 'short' ? LABELS.online.labelShort : LABELS.online.labelLong;
-    }
-    function resolve(key) {
-        var parts = key.split('-');
-        var which = parts[1];
-        if (parts[0] === 'phone')  return phoneLabel(which);
-        if (parts[0] === 'online') return onlineLabel(which);
-        return null;
-    }
-    document.querySelectorAll('[data-sched]').forEach(function (el) {
-        var v = resolve(el.getAttribute('data-sched'));
-        if (v) { el.textContent = v; el.classList.add('notranslate'); }
-    });
-    document.querySelectorAll('[data-sched-attr]').forEach(function (el) {
-        var v = resolve(el.getAttribute('data-sched-attr'));
-        if (v) el.setAttribute('data-hours', v);
-    });
+    applyScheduleLabels();
 });
 </script>
 
