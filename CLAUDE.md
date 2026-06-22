@@ -106,6 +106,57 @@ Para evitar que cambios de la web pública se queden "atascados" solo en preview
 
 Razón: la rama del portal es `main + código del portal`. `git merge preview → main` arrastraría el portal a producción (prohibido). Pero `main → preview` es seguro. Por tanto el sentido del flujo siempre es **main primero, preview después**.
 
+### 9. Tres ramas: main / preview / lab — quién contiene qué y cómo se propaga
+
+Estructura del proyecto desde 2026-06-20 (decisión del usuario):
+
+```
+main                        → dynamotrans.com (producción pública)
+claude/sharp-dirac-E3UIO    → preview (lo "estable validado", URL preview Vercel)
+lab                         → sandbox experimental (URL preview Vercel propia)
+```
+
+**Inheritance**:
+- `preview` ramificó de `main` con código del portal/panel encima.
+- `lab` ramificó de `preview`. Contiene **TODO lo que preview tiene** + experimentos extras del usuario.
+
+**Default working branch para Claude**: `preview` (claude/sharp-dirac-E3UIO).
+
+**Triggers para entrar en MODO LAB** (usuario lo dice explícito; Claude hace `git checkout lab` y se queda ahí hasta que el usuario diga lo contrario):
+- "vamos a lab" / "modo lab" / "entramos en laboratorio"
+- "esto va en lab"
+- "probamos en lab"
+- Mención de feature experimental que se sabe que NO va a producción todavía (facturación con Holded, multi-rol con transportistas/proveedores, etc.)
+
+**Triggers para SALIR DE MODO LAB** (volver a preview):
+- "volvemos a preview"
+- "salimos de lab"
+- "modo preview"
+- "esto va en preview"
+
+**Confirmación visible obligatoria**: cada commit y cambio de rama Claude lo anuncia ("Subido a lab (`abc`)", "Modo lab activado", "Vuelvo a preview"). Si hay duda sobre qué rama tocar, preguntar antes de editar.
+
+**Cascadas obligatorias tras merges**:
+
+| Acción | Pasos en cascada |
+|---|---|
+| Cambio público merge a main | 1. main → 2. `git merge main` en preview + push → 3. `git merge preview` en lab + push |
+| Promoción preview → main | 1. main → 2. `git merge preview` en lab + push (para que lab no se quede atrás) |
+| Promoción lab → preview | 1. `git merge lab` en preview + push. **Después preguntar** si también va a main |
+| Lab queda atrás de preview | Periódicamente `git merge preview` desde lab para que no acumule drift |
+
+**Regla dura de lab**:
+- Lab NUNCA se mergea a main directamente (siempre pasa por preview primero)
+- Lab NUNCA se mergea a preview sin orden EXPLÍCITA del usuario (no asumir aunque parezca "listo")
+- Cambios en lab pueden vivir indefinidamente sin promocionar — no presionar al usuario para moverlos
+
+**Cosas que SOLO ocurren con orden explícita**:
+- Promover lab → preview
+- Promover preview → main
+- Borrar la rama lab (nunca sin orden)
+
+**Drift entre ramas**: si pasan >1 semana sin sincronizar, antes de cualquier operación Claude propone primero "sincronizar las tres ramas" para evitar conflictos acumulados.
+
 ---
 
 ## Bitácora
@@ -118,6 +169,276 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - Otro bullet
 - **Pendiente**: lo que quedó a medias
 -->
+
+### 2026-06-22 (sesión 2) — MacBook Pro
+
+> Sesión de pulido de la **web pública** (home) + arreglo de fondo de los **horarios multilingües** en web y portal. Todo lo público a `main` por cherry-pick + cascada a preview/lab; el portal solo en preview/lab.
+
+**WEB PÚBLICA (`index.html`, a `main`)**:
+- **"Nacionales e Internacional" sin negrita** en las tarjetas de Grupajes y Carga Completa (la primera palabra del título sigue en negrita; el resto normal). Commits `d42b779`→`1ec4043`
+- **Reordenado de secciones de la home** (en 2 peticiones): orden final → Servicios → **Tipos de Mercancía → Seguridad y Confianza → Tipos de Vehículo → Por qué elegirnos → Cobertura (España y Europa)** → CTA. Commits `dd51ee3` y `508b335`
+- **Rediseño de la sección de cifras (stats)**: primero se probó banda morada con tarjetas glass (`3ea939c`), pero "pesaba mucho / todo muy morado" → versión final **clara y fina**: fondo gris suave, tarjetas blancas con borde finísimo, números en morado solo como acento, estrellas doradas, hover sutil, compacto en móvil (2×2). Commit `45f12fe`
+
+**HORARIOS MULTILINGÜES — arreglo de raíz (web pública `main` + portal preview/lab)**:
+- **Problema (reportado por el usuario)**: con la web en catalán/portugués/etc., los horarios del FAB del avatar y del modal "Fuera de horario" salían en español o mal traducidos (Google traducía "L-S" → "Monday to Friday" en vez de Saturday, o dejaba "LS 8-20" sin traducir).
+- **Causa real**: (1) los chips del FAB usan `content: attr(data-hours)` en CSS → Google Translate **nunca** traduce contenido CSS; (2) el texto inyectado por JS tampoco se retraduce fiable; (3) abreviaturas de día (L-S, L-J, y "Mar"=sea) confunden al traductor.
+- **Solución**: generamos las etiquetas **nosotros** en el idioma activo (cookie `googtrans`) con diccionario de **13 idiomas** (`SCHED_VOCAB` + `buildLabels`) marcadas `.notranslate`. Días en **palabra completa** (decisión del usuario). Salen siempre correctas (Lunes a Sábado / Monday to Saturday / Dilluns a Dissabte…). Commits `0018991`→`93e9a66`
+- **Cambio de idioma en caliente**: Google traduce sin recargar → las etiquetas se quedaban en el idioma anterior. Refactorizado a función global `applyScheduleLabels(lang)` que se **re-ejecuta desde `doTranslate`** en cada cambio (actualiza FAB, chips y modal). Commit `8e7da54`
+- **Semana Santa**: nuevo horario reducido **Lunes a Miércoles Santo 9:00–14:00** (calculado solo cada año desde la Pascua). Jueves y Viernes Santo siguen festivo (cerrado). Web + portal
+- **Bonus — bug corregido**: un `perl` anterior corrupió "Sábado" → "SÃ¡bado" (mojibake UTF-8) en los 5 archivos del portal. Arreglado con `perl -Mutf8`
+- **Portal (preview/lab)**: mismo arreglo en las 5 páginas (`dashboard`/`portal`/`registro`/`verificar`/`crear-password`) vía script Node. Syntax-check JS de los 6 archivos sin errores
+
+**Aclarado al usuario**: en portugués el sábado es **"Sábado"** igual que en español (coincidencia), así que "Segunda a Sábado" es correcto.
+
+**Confirmado que los horarios son automáticos "de por vida"**: temporadas (verano, Navidad, Feria y Semana Santa por Pascua) + festivos nacionales se recalculan en cada carga con hora real `Europe/Madrid` (DST). **Pendiente opcional**: faltan festivos **autonómicos (Andalucía) y locales de Sevilla** (solo están los nacionales).
+
+### 2026-06-22 — (sesión web / Claude Code en la nube)
+
+> Sesión larga. Cambio de criterio de ramas (lo pide el usuario): **trabajar SIEMPRE en `preview`** por defecto; los cambios públicos se llevan a `main` por **cherry-pick** del/los commits (nunca merge de preview entero, para no arrastrar el portal). El portal (`dashboard.html` etc.) **no va a `main`** (regla 7 reconfirmada en vivo).
+
+**Arranque**:
+- Reconstruidas las entradas **20 y 21 de junio** desde git (el chat anterior se colgó sin escribir bitácora). Aclarado al usuario que solo persiste lo commiteado + lo escrito en CLAUDE.md/TODO; no puedo leer otros chats salvo que los pegue.
+
+**WEB PÚBLICA (`index.html`, a `main` por cherry-pick + cascada a preview/lab)**:
+- **Carrusel de reseñas en bucle continuo** — varias iteraciones hasta dejarlo perfecto: (1) las cards `.reveal` (opacity:0) duplicadas quedaban invisibles → blanco; (2) duplicación insuficiente en pantallas anchas; (3) velocidad por px/s; (4) salto al hacer scroll en móvil (resize por barra de URL → ignorar cambios de alto); (5) parpadeo del reinicio. **Solución final**: reescrito con `requestAnimationFrame` + **reciclado de cards** (la que sale por la izq. se recoloca al final) → sin reinicio, sin salto, sin blanco. Velocidad 140 px/s, pausa al hover, respeta reduced-motion. Commits a main `c68c1e5`
+- **Países unificados con el mapa de cobertura**: Exportación, tarjeta "Cobertura" y structured data (areaServed) → fuera Irlanda y Dinamarca, dentro República Checa. Mismo criterio que el mapa. Commit a main `82669ce`
+- **Emojis → iconos SVG profesionales** (línea, color de marca) en Tipos de Mercancía, Por qué elegirnos, Seguridad/Confianza y mini "España y Europa". Banderas del selector de idioma y glifos ★/⚠/✕ se mantienen (no son emoticonos). Commit a main `d06ae09`
+
+**PANEL / PORTAL (`dashboard.html` + páginas portal, SOLO preview + lab)**:
+- **Pestaña "Programadas"** (total = pendientes + confirmadas) como primera y activa por defecto
+- **Copys**: caja Nueva carga → "Solicita un transporte" (sin "tarifa cerrada"); quitado "precio cerrado" del flujo Generar carga; quitada la frase "El equipo confirma… 25 minutos / lee primero avisos" del paso de confirmación
+- **Anti-zoom iOS**: `maximum-scale=1.0` en viewport de portal.html, dashboard.html, registro/verificar/crear-password → al tocar campos ya no hace zoom ni descuadra. (No se tocó index.html)
+- **Tamaños móvil** del dashboard subidos (buscador, selector de mes, tablas) para legibilidad, manteniendo buscador+mes en una fila
+- **Cargas con fecha a >7 días → fila en gris claro** (atenuada, menos urgente). Escala: RETRASADA/HOY/MAÑANA/PASADO MAÑANA resaltadas · 3-7 días normal · >7 días gris
+
+**Aclarado sobre presupuestos**: no llevan fecha de carga, solo fecha de generación (ya era así en datos/tabla/detalle). El campo "Ventana de carga" se queda (sirve para calcular precio)
+
+**Limpieza**: rama suelta `fix/carrusel-resenas` borrada en local; el remoto **no se pudo borrar** (el entorno devuelve 403 al borrar ramas) → el usuario puede borrarla desde GitHub si quiere
+
+**Pendiente**: el usuario decidió **no** publicar el portal a `main` (filas gris se quedan en preview+lab). Sigue en pie publicar el portal "dentro de unos meses" con frase explícita
+
+---
+
+### 2026-06-21 — (reconstruida desde git — chat original se quedó pillado)
+
+> ⚠️ Esta entrada se reconstruyó el 2026-06-21 a partir del historial de commits porque el chat de esos días se colgó antes de escribir bitácora. Refleja lo que dicen los commits; si hubo decisiones habladas no commiteadas, no quedaron registradas.
+
+**MODELO DE 3 RAMAS (decisión grande del día)** — `regla 9` añadida a `CLAUDE.md`:
+- `main` → producción (`dynamotrans.com`) · `claude/sharp-dirac-E3UIO` → **preview** (estable validado) · `lab` → sandbox experimental
+- `preview` es la rama de trabajo por defecto de Claude. `lab` ramificó de preview (todo preview + experimentos). Cascadas de merge documentadas (main→preview→lab) (commit `2408bab`)
+
+**WEB PÚBLICA (a `main`)**:
+- **Orden de contacto unificado a Email · WhatsApp · Teléfono** en toda la web pública (`eb91f89` → `4904e04` → merge `d6d63da` a main, luego `5ab231b` sync main→preview)
+
+**PANEL — Dashboard de Cargas (preview)**:
+- **Pestañas reorganizadas en pendientes / confirmadas** (`53bc9ac`)
+- **Cargas RETRASADAS destacadas**: Programadas con fecha pasada se marcan como retrasadas (`4a67bb0`); chip muestra "Hace X días (queda Y días)" (`189255a`); en-ruta con ETA pasada se marca y label "Pendiente Asignar" (`c66f6e5`)
+- **Modal Ver detalle**: acciones colocadas arriba + scroll reseteado al abrir (`8f30eec`); fix acciones por estado que volvían a aparecer (`e3599af`)
+- **Cobertura**: quitado duplicado del mapa de Europa antes de "Por qué elegirnos" (`7da1a14`)
+
+**LAB**: sincronizada con preview vía commits "Sync: preview → lab" (tabs, chip retrasada, Pendiente Asignar, RETRASADA, acciones modal, duplicado cobertura, orden contacto)
+
+---
+
+### 2026-06-20 — (reconstruida desde git — chat original se quedó pillado)
+
+> ⚠️ Reconstruida desde commits el 2026-06-21 (chat colgado). Día muy intenso en el **dashboard de Cargas** del panel.
+
+**PANEL — Dashboard (preview)**:
+- **Stat cards**: "Cargas activas" calculada en vivo (`b7ab12a`); las 3 stat cards se mantienen en una fila en todos los tamaños (`d29e419`)
+- **Facturas retiradas del panel de momento** → se reactivarán en fase 2 con Holded (`5b132e2`)
+- **Filtros simplificados** a buscador + selector de mes/año, en la misma fila siempre (`3719ed5`, `725eda8`); selector "Mostrar 10/20/50/100" ya existía
+- **Cargas — sistema de estados y asignación de transportista (pieza grande del día)**:
+  - Detalle completo en tabla y modal: precio, fecha asignada, ETA, conductor… (`3f793ca`)
+  - Estado de asignación de transportista en cada fila (`d43b32d`); tabla muestra fecha asignada + tipo carga/camión/matrícula (`006ada0`); "Transportista asignado" separado de la matrícula del camión (`c2a2670`)
+  - **Estado dinámico por hora** el día de carga + ejemplos en mock (`732ef2c`); ejemplos mock para cubrir todos los estados de asignación, incluido Programada >4 días sin transportista = "En espera" (`8f758d0`, `4c35b33`)
+  - **Paleta progresiva de estados** (slate → cyan → amber → blue → green) (`7f81af5`); color (business) desacoplado de etiqueta (calendario literal) (`58fbef1`); quitada la leyenda de progresión bajo las pestañas (`895a779`)
+  - **Orden de pestañas** por fecha de carga efectiva ASC; Entregadas en DESC (más reciente arriba) (`2beb228`, `4cc0e09`)
+  - Semilla "hoy" salta a próximo lunes si cae en fin de semana (`fb2371f`)
+  - Filas clicables → abren "Ver detalle" (`267f872`); botón ⋯ eliminado de las filas (acciones viven en el modal) (`b4d5a5e`); acciones contextuales en el footer del modal (`c009afd`)
+- **Tarifador en el panel principal + "PASADO MAÑANA"** → **probado y REVERTIDO** el mismo día (`fed065f` → revert `43d37af`). Quedó solo el rename de chip "PASADO" → "PASADO MAÑANA" (`ae3fb51`) y placeholder en fecha + tooltip en Previsión (`0522177`)
+- **CESCE**: simplificado a sólo estado de cobertura sin importes (`8837b57`); se puede alternar estado vía `?cesce=ok|warn|none` para pruebas (`2fde2d3`)
+- **Limpieza visual**: emojis → iconos SVG planos en modal/timeline/menús (`c6eee6a`, `405852b`); igualado ancho de las 3 cajas Nueva carga/Nuevo presupuesto/CESCE (`26b8c8f`); quitado el cartel de temporada del dashboard (`6c7d576`); fix espacio vacío al final en móvil (`f9386ac`)
+
+**WEB PÚBLICA (a `main`)**:
+- **Selector de provincia de "Almacenamiento corta estancia" bloqueado** (`b993efb` → merge `7f5ca8f` a main, mergeado a preview `dc64e4f`)
+
+**DOCS**: stack del backend registrado en `TODO.md` — **Supabase + Postmark + WhatsApp + naming** (`49efe64`)
+
+**Pendiente arrastrado**: afinar tabla de coeficientes del tarifador con valores exactos del cliente; quitar defaults SEV→MAD antes de producción.
+
+---
+
+### 2026-06-19 — iPhone (TARIFADOR INTERNO DEL PANEL)
+
+> Día completo dedicado al **tarifador / generador de cargas del panel cliente**. Todo en preview (`claude/sharp-dirac-E3UIO`). En `main` solo entran un par de fixes públicos al principio del día.
+
+**WEB PÚBLICA (`index.html`, en `main`)** — sync con preview:
+- **Sector "Industria y Construcción"** — texto extendido: "Textil, manufacturera, muebles, automoción, farmacéutica, estructuras, áridos, fertilizantes, abonos. Materias primas: plástico, madera, aluminio, acero…" (commit `ddade90` → merge a `main`)
+- **Selector de idiomas unificado** entre web pública, panel y 4 páginas del portal. Producción tenía 11 idiomas en orden distinto; panel tenía 13 (incluyendo Català + Euskara) en otro orden. Ahora los 6 HTML (index + portal + registro + verificar + crear-password + dashboard) comparten la misma lista en el mismo orden: ES, CA, EU, PT, EN, FR, DE, IT, NL, PL, RO, UK, ZH (commit `accf1b4` → merge `c361aa4` a `main`)
+- **"Pick. Drop. Done." → logo Dynamo** en "Por qué elegirnos": el cambio llevaba días solo en preview, ahora también en producción (commit `a2fa156` → merge `4d7b3cb` a `main`)
+- **Regla 8 en CLAUDE.md**: cambios públicos siempre arrancan en `main` vía rama corta para evitar drift entre web pública en preview/main. Codificado tras el incidente del logo (`17679cf` a `main`, mergeado a preview)
+
+**PANEL CLIENTE (`dashboard.html`)** — sesión grande, todo en preview:
+
+- **Fila superior unificada** `dash-top-row` (3 cols): Nueva carga + Nuevo presupuesto + **CESCE** en la misma horizontal, también en móvil (3 cols con CTAs verticales en pantallas pequeñas). CESCE quedaba más bajo por padding/radio distintos → unificados a 1.3/1.5rem y 14px para casar visualmente (commits `51a6f18` + `c7f2efc`)
+- **Avatares JG unificados**: sidebar/topbar/dropdown tenían 3 gradientes distintos. Todos a `linear-gradient(purple → green)`. Tamaños sí siguen distintos por contexto (32/34/42px) (`34ef702`)
+- **TARIFADOR / GENERADOR DE CARGAS** — pieza enorme. Reemplaza placeholders de "Nueva carga" y "Nuevo presupuesto" con un formulario completo:
+  - **Campos**: origen + destino con autocomplete OSM Nominatim, tipo camión (Tauliner / Rígido) con tooltip de especificaciones, tipo mercancía (10 opciones), metros lineales y peso reactivos al camión elegido, fecha de carga (próximos 7 laborables + Flatpickr para "Otro día"), ventana de carga, tu referencia interna (opcional), anotaciones libres con contador 1000 chars
+  - **Flatpickr** cargado desde CDN (esquinas redondas, fines de semana en gris tachados, locale español)
+  - **Validación**: origen + destino obligatorios con bordes rojos + aviso bajo el formulario
+  - **Botón Reiniciar** (↻) en esquina sup-derecha que vuelve a defaults
+  - **Defaults de prueba** (BORRAR EN PRODUCCIÓN): origen Sevilla 41001 + destino Madrid 28001 pre-rellenados con lat/lon hardcoded. Marcado en código con `=== DEFAULTS DE PRUEBA ===` para encontrarlo
+- **"Programado sin fecha definida"**: opción del select de fecha (solo en Nueva carga) que guarda la carga como previsión sin compromiso. Cartel amarillo bajo el campo cuando está seleccionada: "Previsión, no se tramita: la carga queda en estado Programado sin fecha y no se asignará camión hasta que confirmes una fecha. Si la fecha definitiva es posterior a 7 días, el precio se revisará a precios de mercado actuales cuando se asigne fecha."
+- **Nuevo presupuesto sin campo de fecha**: solo "Ventana de carga". Un presupuesto es cotización, no programación
+- **Etiquetas de ventana actualizadas**: `±2 días` → `1 a 2 días`, `±4 días` → `1 a 4 días`, label "Ventana" → "Ventana de carga". Hint debajo: "Días laborables consecutivos a partir del día indicado. Sábados, domingos y festivos quedan excluidos automáticamente." Default sigue siendo "1 a 2 días"
+- **Flujo de 2 pasos para Nueva carga (con fecha)**:
+  - **Paso 1**: formulario completo. Submit → validación
+  - **Paso 2**: panel de confirmación con: aviso azul condicional de GRUPAJE (solo si ml < máx camión, en carga completa se omite); párrafos legales "Disponibilidad y ajustes de tarifa" + "Garantías y confirmación"; resumen del transporte (incluyendo % carga del camión); enlace a "Condiciones generales de transporte"; botones "← Editar datos" / "Confirmar carga"
+  - **Confirmar carga** → modal con aviso de cancelación (después de las 9:00 AM del día hábil anterior se factura el servicio completo). Solo entonces se inserta en CARGAS_DATA
+  - **Excepción**: si la carga es "Sin fecha" (Previsión), se salta TODO el paso 2 → guarda directo en Previsión. No tiene sentido enseñar avisos legales si no hay compromiso. Cuando luego se edite una Previsión para asignar fecha, ahí sí disparará el flujo legal (TODO al cablear el editor)
+- **Condiciones generales** consolidadas en un `<template>` que se inyecta en el modal. Texto largo del cliente venía duplicado (8h aceptación ×2, Medios comunicación ×2, etc.) → unificado en 12 apartados numerados sin perder cláusulas
+- **Pestañas de "Cargas" reorganizadas** + bugfix:
+  - Antes: Todas / Programadas / En ruta / Entregadas / Sin albarán / Canceladas
+  - Ahora: **Programadas / Previsión / Cargando hoy / Entregadas / Canceladas / Todas**
+  - Previsión = kind 'programada' AND fecha='Sin fecha'
+  - Cargando hoy = renombrado de "En ruta"
+  - "Sin albarán" eliminada (el chip 📄 al lado del estado sigue)
+  - Default activo: Programadas (antes Todas)
+  - **Bug fixed**: el código ponía `filter='programadas'` (con s) al crear una carga → no coincidía con ningún tab → tabla vacía. Ahora 'programada' o 'prevision' según fecha
+- **ETA de entrega (estimación)** — campo nuevo debajo de Ventana de carga:
+  - Captura lat/lon de Nominatim al pickear del autocompletado (data-lat/data-lon en el wrap)
+  - Distancia = Haversine × 1.25 (factor de carretera vs línea recta)
+  - Tracción = ceil(km / 600). Configurado a 600 km/día (horario 7-18h, ~9h conducción real)
+  - addBusinessDays() suma días saltando sábados y domingos
+  - Si ventana > 1 día → rango "del jueves 2 jul al martes 7 jul" (no "X — Y" porque inducía a leer como 2 fechas alternativas en vez de rango continuo, fix `2289b30`)
+  - Caja con borde gris claro + hint con la metodología
+  - En presupuesto sin fecha, ETA muestra solo duración tránsito ("2 días tras la carga")
+- **Tabla de coeficientes de % carga del camión** (cierra TODO del 2026-06-10):
+  - Función `coefMl(ml, camion)` con tabla escalonada (aproximación basada en lo que pasó el cliente: 0.8ml=25%, 1ml=33%, ..., 10.4ml=100%) — los valores intermedios son una interpolación razonable, AFINAR cuando llegue la tabla exacta del cliente
+  - `coefTn = tn/maxTn` y `coefPalets = palets/maxPalets` (estimado 2.5 europalets por ml)
+  - **% mostrado = max(ml, tn, palets)** — refleja el factor que MÁS limita, no la suma
+  - UI: barra horizontal animada con gradient (verde <70%, amarillo 70-99%, morado 100%) + texto "65% ocupación · limitado por palets · 6 m · 15 europalets · 18 Tn"
+  - También aparece en el paso 2 (resumen de confirmación)
+
+**Lecciones del día**:
+- Cuando un rango temporal incluye fin de semana, **siempre escribirlo como "del X al Y"** y no "X — Y". El segundo se interpreta como 2 fechas alternativas en lugar de rango continuo
+- La rama del portal (`claude/sharp-dirac-E3UIO`) tiene su propia versión avanzada de `portal.html`. Al cambiar de rama (ej. crear `fix/lang-selector-sync` desde main), git muestra portal.html como "modificado" — es normal, son archivos distintos en cada rama, NO revertir
+
+**Commits del día (preview)**: `d45e66a` materias primas · `6871cc9` lang sync · `49e32e5` merge main · `51a6f18` dash-top-row · `c7f2efc` CESCE altura · `34ef702` avatares · `1f6aca6` Programado sin fecha + Presupuesto sin fecha · `8828ae9` flujo 2 pasos + condiciones · `9ce3628` pestañas Programadas/Previsión/etc + grupaje condicional · `df90c88` skip avisos en previsión · `caa05ba` 1 a 2 / 1 a 4 días + hint · `7b9b25e` ETA + defaults SEV→MAD · `073a51f` coeficientes % carga · `2289b30` ETA wording "del X al Y"
+
+**Commits a `main`**: `accf1b4`/`c361aa4` lang selector · `a2fa156`/`4d7b3cb` logo Dynamo en "Por qué elegirnos" · `17679cf` regla 8 CLAUDE.md
+
+**Pendientes detectados** (van a TODO.md):
+- **Editor de cargas con flujo legal al asignar fecha a una Previsión** — sesión dedicada cuando el usuario lo pida. Es muchos estados (ver detalle, editar, asignar fecha, validar fecha, disparar paso 2 del flujo legal, etc.) y prefiere ir verificando estado por estado
+- **Quitar defaults SEV→MAD del tarifador** — antes de producción. Marcados con `=== DEFAULTS DE PRUEBA (BORRAR EN PRODUCCIÓN) ===` en código
+- **Afinar tabla de coeficientes** con los valores intermedios exactos del cliente (entre 25% y 100%). Lo que está ahora es una aproximación funcional
+
+### 2026-06-15 a 2026-06-18 — iPhone (sesión maratoniana de PANEL CLIENTE)
+
+> Cuatro días de iteración intensa centrada en el **dashboard del cliente** + cleanup de la web pública. Documentado en bloque por la cantidad de trabajo.
+
+**DASHBOARD CLIENTE (`dashboard.html`)** — pieza más grande, todo en preview:
+
+- **Layout y navegación**:
+  - Topbar **morada** (gradiente `purple → purple-light`) con **logo Dynamo blanco** (`images/4.png`) + **🏠 casita** unificados a la **izquierda** como UN solo botón → vuelve al Dashboard al pulsar
+  - Quitado el nombre de sección del topbar (ya está como `<h2>` dentro de cada página)
+  - Avatar JG a la derecha como `<button>` con flecha ▾ y menú desplegable: **Mi cuenta · Datos de empresa · Soporte · Idioma · Modo oscuro · Cerrar sesión**. Cabecera con email + badge "Cliente"
+  - Sidebar navy con Dashboard/Cargas/Presupuestos/Facturas/Incidencias. Mobile: oculta detrás de hamburguesa
+  - 4 stat cards del top **clickables** → llevan a su sección. CTAs grandes **Nueva carga / Nuevo presupuesto** movidos al inicio del panel
+  - Card CESCE compactada (padding 1.4 → 0.9, total 2 → 1.5rem, barra 8 → 6px)
+  - Botón **⬆ volver arriba** abajo-derecha con margen generoso (2rem desktop / 1.6rem móvil + `env(safe-area-inset-*)`) y se oculta cuando el FAB del avatar está abierto
+
+- **Sistema de modales + acciones por fila** (cargas, presupuestos, facturas):
+  - Modal genérico (`openDashModal({icon,title,sub,body,footer})` + `closeDashModal()`) con backdrop blur, card animada, header con icono, body + footer
+  - **`downloadFakePDF(filename)`** genera un PDF mínimo válido con título → albaranes, presupuestos y facturas se descargan de verdad
+  - **Cargas** (según `kind`):
+    - 📋 Ver detalle (info grid completa + botón Editar → form de contactos + anotaciones + Guardar)
+    - 🔁 Repetir: warn-box + datos prefilados + selector fecha y ventana; texto explícito de que el precio se recalcula (tarifador)
+    - ⚠️ Reportar incidencia: info + textarea + drop de ficheros (JPG/PNG/PDF) con contador
+    - 📍 Seguimiento (en-ruta): timeline con 4 eventos mock
+    - ✕ Cancelar carga (programadas): confirmación con warn-box + textarea motivo + botón rojo
+  - **Presupuestos**:
+    - 📋 Ver detalle (incluyendo el precio)
+    - 🚚 Generar carga (Vigentes): warn-box "precio del presupuesto", selector fecha
+    - 🔁 Revisar precio (Caducados): warn-box "precio se recalcula", fecha estimada
+    - 📥 Descargar PDF: archivo `Presupuesto-PXXXX.pdf`
+  - **Facturas**: Ver detalle + botón Descargar PDF en el footer del modal
+  - `actionFromText()` reconoce el texto del item y `dispatchRowAction(action, row, sectionId)` ejecuta el handler correcto
+
+- **Dropdown ⋯ por fila — portal pattern**:
+  - El popup se trasladaba al `<body>` con `position: fixed` al abrirse para escapar del `overflow:hidden` de la tabla (clipping en las últimas filas)
+  - Posición calculada por JS via `getBoundingClientRect()`, debajo del botón o encima si no cabe
+  - Reposición en scroll/resize (capture: true) con rAF. Cierra al click fuera, click en item, Escape, o si el botón se sale del viewport
+
+- **Listas paginadas con datos ficticios** (gran refactor):
+  - **28 cargas**, **19 presupuestos** y **38 facturas** definidas en arrays JS (refs reales `#C-2026-1XXX`, `#P-2026-0XXX`, `F-2026/0XXX` + ref clientes `PED-XXXX` / `COT-XXX`)
+  - **TABLE_STATE** `{ page, filter, perPage: 10 }` por sección
+  - **Tabs como filtros**: `data-table` + `data-filter` cablean al render. Contadores dinámicos `data-count="X"` por tab
+  - **Paginación**: renderer dinámico con máximo 6 botones visibles + saltos `…` cuando hay muchas. Prev/Next funcionando
+  - **Albarán** — flujo completo: campo `hasAlbaran` en cada carga. Etiqueta 📄 al lado del estado si tiene PDF. Tab "**Sin albarán (N)**". Acciones según fecha:
+    - Con albarán → "📥 Descargar albarán"
+    - Sin albarán + **<14 días**: "⏳ Albarán procesándose…" (disabled, tooltip "Disponible al cabo de 14 días")
+    - Sin albarán + **≥14 días**: "📩 Reclamar albarán" → modal que reclama al transportista (umbral subido de 1 día → 14 días para no agobiar a transportistas)
+  - 2 entregas dinámicas añadidas (hoy + ayer) para que se vea el estado "Procesándose" independientemente de cuándo se mire
+
+- **Horarios sincronizados con web pública**:
+  - **SCHEDULE** completo copiado de `index.html` (winter/summer/feria/xmas + festivos nacionales + Semana Santa via Computus de Gauss). Zona Europe/Madrid con DST
+  - **Chips data-hours** en el FAB del avatar con `data-sched-attr` (phone-short / online-short) — texto cambia por temporada activa
+  - **Interceptor global de `tel:`** — en horario llama directo, fuera de horario abre modal "Fuera de horario" con WhatsApp + email + "Llamar igualmente"
+  - **Cartel de temporada** (`.season-banner`) en lo alto del contenido: ☀️ verano (amarillo) / 🌹 feria (naranja) / 🎄 navidad (verde) / 🏛️ festivo (rojo). Solo visible cuando aplica
+  - "Horario de atención" del menú **Soporte** conectado al SCHEDULE via `data-sched` (se actualiza con la temporada)
+
+- **Selector de idiomas funcional** (estaba solo persistiendo en localStorage):
+  - Mismo motor de Google Translate que portal/index, cookie `googtrans` compartida en `path=/`
+  - Si eliges inglés en `dynamotrans.com` y entras al panel, el panel ya viene en inglés (sync vía cookie)
+  - **Catalán + Euskera** añadidos al panel, `portal.html`, `index.html` (códigos GT `ca` / `eu`). Como no hay emoji flag oficial para CCAA, placeholders 🟡 / 🟢
+  - Menú se cierra automáticamente al elegir idioma
+
+- **Avatar FAB** (foto de Álvaro circular + abanico email/WA/llamar) **añadido a TODAS las páginas del portal**:
+  - `portal.html`, `registro.html`, `verificar.html`, `crear-password.html`, `dashboard.html`
+  - Mismo patrón visual que la web pública (halo verde pulsante, chip con nombre al abrir, rebote escalonado)
+  - En el dashboard el botón ⬆ back-top se reposiciona **encima del avatar** y se oculta con `.fab-hidden` cuando el FAB se abre
+
+- **Modo oscuro** del panel: toggle pill switch con `localStorage.dashTheme`. Cubre topbar, sidebar, stat cards, tablas, menús. Topbar mantiene su gradiente morado en dark (un poco más oscuro) para no perder identidad
+
+- **Mockup login bypass**: `portal.html` ahora acepta cualquier email + contraseña y navega a `dashboard.html`. Texto del badge: "Modo demo · acceso libre para probar". Inputs editables, submit clickable. `crear-password.html` al terminar el flujo passwordless redirige también a `dashboard.html` (antes mostraba "Tu cuenta está casi lista")
+
+- **Responsive y estabilidad**:
+  - **Pestañas (Programadas / En ruta / Entregadas…)**: `touch-action: pan-x` + `overscroll-behavior-x: contain` + `scroll-snap-type: x proximity`. Antes temblaban verticalmente al hacer swipe horizontal en móvil
+  - **Tablas no se diluyen**: `.content { max-width: 1400px; margin: 0 auto }` en pantallas anchas; `table.data { min-width: 720px desktop / 680px tablet / 620px móvil }` (era 900px)
+  - **Cinturón anti-overflow horizontal**: `html { overflow-x: hidden }` (no body), `* { min-width: 0 }`, `.tabs` y `.table-wrap` con scroll interno con `overscroll-behavior-x: contain`
+  - **Mobile fixes** en `portal.html` / `registro.html` / `verificar.html` / `crear-password.html`: `viewport-fit=cover` + `theme-color` + `min-height: 100svh` + `padding-bottom: env(safe-area-inset-bottom)` + `overscroll-behavior-y: contain` para evitar la "franja morada" al final del scroll en iOS Chrome con barra inferior (causa: el theme-color de index.html quedaba cacheado en la barra inferior)
+
+- **Decisión Holded para facturas** (sin nombrarlo en UI):
+  - El portal NO permite emitir/modificar/anular facturas. Solo lectura + descarga PDF. Toda acción editable ocurre en Holded
+  - **IMPORTANTE — nunca mencionar "Holded" en la UI del cliente** (ni notas, ni tooltips, ni meta). Quitado el cartel "Sincronizado desde Holded" que había puesto inicialmente. El cliente no debe saber qué herramientas internas usamos
+  - Quitados de las acciones de cada factura los botones "Marcar como pagada" y "Pagar ahora" — solo quedan "Ver detalle" y "Descargar PDF"
+
+**WEB PÚBLICA (`index.html`, en `main` → producción)** — cleanup y fix:
+
+- **Quitado todo rastro del portal de la web pública** (decisión definitiva):
+  - 315 líneas eliminadas: botón ACCESO del nav desktop, botón Acceso del menú móvil, 🔒 Acceso del footer, prefetch `portal.html`, HOME ARRIVAL OVERLAY HTML+CSS, PORTAL TRANSITION OVERLAY HTML+CSS, script `<head>` de detección de regreso, función `goToPortal()`, handlers pagehide/pageshow del wormhole, todas las clases CSS `.portal-*`, `.home-arrival*`, `.from-transition`, `.btn-nav-cta`, `.mm-cta-access` y 5 animaciones
+  - `portal.html` sigue accesible escribiendo la URL directamente (en producción es el mockup bloqueado original). El preview mantiene TODO intacto para seguir desarrollando privado
+  - Cuando el usuario diga literalmente "publica el portal", se promueve a producción
+- **Cobertura España y Europa** movida **después de "Tipos de mercancía"** (antes estaba entre Testimonios y Servicios). Flujo: qué transportamos → dónde llegamos
+- **"Pick. Drop. Done."** en "Por qué elegirnos" sustituido por el **logo Dynamo color** (`images/2.png`) con tamaño clamp 46-70px
+- **Franja blanca al final del scroll en móvil** arreglada: `overflow-x: hidden` movido de `body` a `html` (así el scroll vertical sigue en window y no se desborda) + `overscroll-behavior-y: none`
+- **Catalán + Euskera** añadidos al selector de idiomas también en producción
+
+**Commits del día en `main`** (vía ramas cortas):
+- `12cc22d` (merge `fix/white-space-mobile` con `d244aef`): fix franja blanca móvil
+- `be08ff2` (merge `chore/hide-portal-from-public` con `98a0516`): quitar todo rastro del portal de la web pública
+
+**Cantidad total**: ~25 commits en preview (`claude/sharp-dirac-E3UIO`) + 2 merges a `main`. Todos los commits con author/committer `Claude <noreply@anthropic.com>` (firma SSH no disponible en el entorno → GitHub los marca Unverified, no afecta la validez)
+
+**Pendientes detectados** (van a TODO.md):
+- **Horarios sincronizados en páginas de login** (portal/registro/verificar/crear-password): solo está en dashboard.html. Las login pages tienen FAB pero sin chips de horario ni phone modal. Falta replicar el SCHEDULE + interceptor + modal a esas 4 páginas
+- **Reclamar albarán backend**: cuando exista Supabase + n8n, el endpoint debe disparar un email/WhatsApp automático al transportista
+- **Filtros backend para listas**: los filtros actuales del panel son frontend (mockup). Cuando exista Supabase los listados se filtran server-side con paginación real
+- **Holded API integration**: token API en backend, endpoints listado + GET PDF, refresco periódico (cron o webhook si Holded lo soporta). NUNCA mencionar Holded en la UI
+- **Roles en el portal**: el `registro.html` actual fuerza `tipo_usuario=cliente` (hidden). Convertir a selector cuando se habilite transportista/proveedor
+- **Tabla de coeficientes en tarifador** (arrastrado de bitácora anterior): cálculo de % carga del camión en vivo según `max(coef_ml, coef_tn, coef_palets)`
 
 ### 2026-06-12 y 2026-06-13 — iPhone (sesión maratoniana)
 
