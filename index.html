@@ -447,6 +447,8 @@
         .mobile-menu.open .mm-item:nth-child(3) { animation-delay: 0.22s; }
         .mobile-menu.open .mm-item:nth-child(4) { animation-delay: 0.28s; }
         .mobile-menu.open .mm-item:nth-child(5) { animation-delay: 0.34s; }
+        .mobile-menu.open .mm-item:nth-child(6) { animation-delay: 0.40s; }
+        .mobile-menu.open .mm-item:nth-child(7) { animation-delay: 0.46s; }
         @keyframes mmItemIn {
             0%   { opacity: 0; transform: translateX(-20px); }
             100% { opacity: 1; transform: translateX(0); }
@@ -1164,6 +1166,8 @@
            SERVICES CARDS
         ========================================= */
         .services-sec { background: var(--gray-100); }
+        .almacen-sec { background: var(--white); }
+        .almacen-sec .svc-card.svc-almacen { margin-top: 3rem; }
 
         /* =========================================
            COBERTURA — mapa interactivo de Europa
@@ -1229,27 +1233,37 @@
         .svc-card.svc-almacen > .svc-card-body > p { font-size: 0.95rem; max-width: 640px; }
         .svc-card.svc-almacen::before { background: linear-gradient(90deg, var(--purple), var(--purple-light), var(--green)); height: 4px; }
         .svc-card {
-            background: white; border-radius: 18px; padding: 0;
-            border: 1.5px solid var(--gray-200); position: relative; overflow: hidden;
-            transition: all 0.35s ease;
+            background: white; border-radius: 16px; padding: 0;
+            border: 1px solid var(--gray-200); position: relative; overflow: hidden;
+            box-shadow: 0 2px 10px rgba(10,2,48,0.04);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            display: flex; flex-direction: column;
         }
-        .svc-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--purple),var(--green)); z-index:1; }
-        .svc-card:hover { transform:translateY(-7px); box-shadow:0 20px 50px rgba(51,0,204,0.12); border-color:rgba(51,0,204,0.15); }
+        .svc-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--purple),var(--green)); z-index:3; }
+        .svc-card:hover { transform:translateY(-6px); box-shadow:0 18px 40px rgba(51,0,204,0.12); border-color:rgba(51,0,204,0.22); }
+        /* Media: imagen con velo inferior + etiqueta flotante (chip), look limpio tipo carrusel */
+        .svc-card-media { position: relative; overflow: hidden; }
+        .svc-card-media .svc-card-img { height: 150px; transition: transform 0.5s ease; }
+        .svc-card:hover .svc-card-media .svc-card-img { transform: scale(1.05); }
+        .svc-card-media::after { content:''; position:absolute; inset:0; background:linear-gradient(to top, rgba(10,2,48,0.5), rgba(10,2,48,0) 55%); pointer-events:none; }
+        .svc-chip {
+            position: absolute; left: 12px; bottom: 12px; z-index: 2;
+            background: rgba(255,255,255,0.92); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+            color: var(--purple); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.2px;
+            padding: 0.3rem 0.72rem; border-radius: 50px; box-shadow: 0 2px 8px rgba(10,2,48,0.18);
+        }
         .svc-card-img { width:100%; height:160px; object-fit:cover; display:block; }
-        .svc-card-body { padding: 1.5rem; }
+        .svc-card-body { padding: 1.25rem 1.3rem 1.4rem; flex: 1; }
         .svc-icon { width:54px; height:54px; border-radius:13px; margin-bottom:1.1rem; background:linear-gradient(135deg,var(--purple),var(--purple-light)); display:flex; align-items:center; justify-content:center; font-size:1.4rem; }
         .svc-card h3 {
-            font-size: 1.7rem; font-weight: 900; color: var(--purple);
-            margin-bottom: 0.95rem; letter-spacing: -0.5px; line-height: 1.15;
-            position: relative; padding-bottom: 0.6rem;
+            font-size: 1.18rem; font-weight: 800; color: var(--purple);
+            margin: 0 0 0.5rem; letter-spacing: -0.3px; line-height: 1.25;
         }
-        .svc-card h3::after {
-            content:''; position: absolute; bottom: 0; left: 0;
-            width: 38px; height: 3px; border-radius: 2px;
-            background: linear-gradient(90deg, var(--purple) 0%, var(--green) 100%);
+        .svc-card h3 .svc-sub {
+            display: block; font-size: 0.76rem; font-weight: 600; color: var(--gray-500);
+            letter-spacing: 0; margin-top: 0.28rem;
         }
-        .svc-card:hover h3::after { width: 60px; transition: width 0.3s ease; }
-        .svc-card p  { color:var(--gray-500); line-height:1.65; font-size:0.88rem; }
+        .svc-card p  { color:var(--gray-500); line-height:1.6; font-size:0.84rem; margin:0; }
         .svc-tag { display:inline-block; margin-top:1rem; background:rgba(51,0,204,0.07); color:var(--purple); padding:0.25rem 0.75rem; border-radius:50px; font-size:0.7rem; font-weight:700; }
         .svc-tag.svc-tag-soon {
             background: rgba(255,212,0,0.18);
@@ -1326,14 +1340,15 @@
         }
         @media (max-width: 600px) {
             .svc-grid { grid-template-columns: repeat(2, 1fr); gap: 0.85rem; }
-            .svc-card:not(.svc-almacen) .svc-card-img { height: 110px; }
-            .svc-card:not(.svc-almacen) .svc-card-body { padding: 0.95rem 0.85rem 1.05rem; }
+            .svc-card:not(.svc-almacen) .svc-card-img { height: 112px; }
+            .svc-card:not(.svc-almacen) .svc-card-body { padding: 0.9rem 0.85rem 1rem; }
             .svc-card:not(.svc-almacen) h3 {
-                font-size: 1.25rem; line-height: 1.15; margin-bottom: 0.5rem; padding-bottom: 0.45rem;
-                letter-spacing: -0.3px;
+                font-size: 1rem; line-height: 1.2; margin-bottom: 0.4rem;
+                letter-spacing: -0.2px;
             }
-            .svc-card:not(.svc-almacen) h3::after { width: 28px; height: 2.5px; }
+            .svc-card:not(.svc-almacen) h3 .svc-sub { font-size: 0.68rem; margin-top: 0.2rem; }
             .svc-card:not(.svc-almacen) p { font-size: 0.74rem; line-height: 1.5; }
+            .svc-chip { font-size: 0.6rem; padding: 0.22rem 0.55rem; left: 8px; bottom: 8px; }
             .svc-card:not(.svc-almacen) .svc-tag { font-size: 0.6rem; padding: 0.18rem 0.55rem; margin-top: 0.7rem; }
             .svc-card.svc-featured::after { font-size: 0.55rem; padding: 0.18rem 0.5rem; top: 8px; right: 8px; }
             .svc-card.svc-almacen { grid-column: 1 / -1; grid-template-columns: 1fr; }
@@ -2046,11 +2061,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </button>
     </div>
     <nav class="mm-body">
-        <a class="mm-item" href="#servicios" onclick="closeMobileMenu()"><span class="mm-num">01</span>Servicios</a>
-        <a class="mm-item" href="#vehiculos" onclick="closeMobileMenu()"><span class="mm-num">02</span>Vehículos</a>
-        <a class="mm-item" href="#nosotros" onclick="closeMobileMenu()"><span class="mm-num">03</span>Nosotros</a>
-        <a class="mm-item" href="#clientes" onclick="closeMobileMenu()"><span class="mm-num">04</span>Clientes</a>
-        <a class="mm-item" href="#contacto" onclick="closeMobileMenu()"><span class="mm-num">05</span>Contacto</a>
+        <a class="mm-item" href="#clientes" onclick="closeMobileMenu()"><span class="mm-num">01</span>Clientes</a>
+        <a class="mm-item" href="#testimonios" onclick="closeMobileMenu()"><span class="mm-num">02</span>Testimonios</a>
+        <a class="mm-item" href="#servicios" onclick="closeMobileMenu()"><span class="mm-num">03</span>Servicios</a>
+        <a class="mm-item" href="#cobertura" onclick="closeMobileMenu()"><span class="mm-num">04</span>Cobertura</a>
+        <a class="mm-item" href="#vehiculos" onclick="closeMobileMenu()"><span class="mm-num">05</span>Vehículos</a>
+        <a class="mm-item" href="#almacenamiento" onclick="closeMobileMenu()"><span class="mm-num">06</span>Almacenamiento</a>
+        <a class="mm-item" href="#contacto" onclick="closeMobileMenu()"><span class="mm-num">07</span>Contacto</a>
     </nav>
     <div class="mm-foot">
         <div class="mm-cta-row">
@@ -2078,10 +2095,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <img src="/images/2.png" alt="Dynamo - Pick. Drop. Done." class="nav-logo-img">
     </a>
     <ul class="navbar-nav">
-        <li><a href="#servicios">Servicios</a></li>
-        <li><a href="#vehiculos">Vehículos</a></li>
-        <li><a href="#nosotros">Nosotros</a></li>
         <li><a href="#clientes">Clientes</a></li>
+        <li><a href="#testimonios">Testimonios</a></li>
+        <li><a href="#servicios">Servicios</a></li>
+        <li><a href="#cobertura">Cobertura</a></li>
+        <li><a href="#vehiculos">Vehículos</a></li>
+        <li><a href="#almacenamiento">Almacenamiento</a></li>
         <li><a href="#contacto">Contacto</a></li>
     </ul>
     <div class="navbar-right">
@@ -2479,134 +2498,59 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </p>
         <div class="svc-grid">
             <div class="svc-card svc-featured reveal">
-                <img loading="lazy" src="/images/transporte-tauliner.jpg" alt="Grupajes" class="svc-card-img">
+                <div class="svc-card-media">
+                    <img loading="lazy" src="/images/FOTO 1 - copia55420ac5170e2.jpeg" alt="Grupajes" class="svc-card-img">
+                    <span class="svc-chip">Nacional 24h</span>
+                </div>
                 <div class="svc-card-body">
-                    <h3>Grupajes <span style="font-weight:400">Nacionales e Internacional</span></h3>
+                    <h3>Grupajes <span class="svc-sub">Nacionales e Internacional</span></h3>
                     <p>Comparte espacio y optimiza costes. Mercancía paletizada y cargas especiales. Recogida en 24h, entrega en 24-48h.</p>
-                    <span class="svc-tag">Nacional 24h</span>
                 </div>
             </div>
             <div class="svc-card svc-featured reveal" style="transition-delay:.1s">
-                <img loading="lazy" src="/images/FOTO 1 - copia55420ac5170e2.jpeg" alt="Carga Completa" class="svc-card-img">
+                <div class="svc-card-media">
+                    <img loading="lazy" src="/images/HERO-DYNAMO.webp" alt="Carga Completa — trailer Dynamo en ruta" class="svc-card-img" style="object-position:34% center;">
+                    <span class="svc-chip">Tráfico directo</span>
+                </div>
                 <div class="svc-card-body">
-                    <h3>Carga Completa <span style="font-weight:400">Nacionales e Internacional</span></h3>
-                    <p>El camión es tuyo. Sin transbordos, máxima seguridad y rapidez. Entrega directa origen-destino. Tauliner, rígido con plataforma y más.</p>
-                    <span class="svc-tag">Tráfico directo</span>
+                    <h3>Carga Completa <span class="svc-sub">Nacionales e Internacional</span></h3>
+                    <p>El camión es tuyo. Sin transbordos: máxima seguridad, rapidez y entrega directa origen-destino.</p>
                 </div>
             </div>
             <div class="svc-card reveal" style="transition-delay:.2s">
-                <img loading="lazy" src="/images/AdobeStock_154376791.jpeg" alt="Importación" class="svc-card-img">
+                <div class="svc-card-media">
+                    <img loading="lazy" src="/images/AdobeStock_154376791.jpeg" alt="Importación" class="svc-card-img">
+                    <span class="svc-chip">Toda Europa</span>
+                </div>
                 <div class="svc-card-body">
                     <h3>Importación</h3>
-                    <p>Hasta la puerta de tu empresa. Importamos desde cualquier punto de Europa garantizando plazos de entrega y elevados estándares de calidad.</p>
-                    <span class="svc-tag">Toda Europa</span>
+                    <p>Hasta la puerta de tu empresa, desde cualquier punto de Europa, con plazos garantizados y máxima calidad.</p>
                 </div>
             </div>
             <div class="svc-card reveal" style="transition-delay:.3s">
-                <img loading="lazy" src="/images/AdobeStock_260603287.jpeg" alt="Exportación" class="svc-card-img">
+                <div class="svc-card-media">
+                    <img loading="lazy" src="/images/AdobeStock_260603287.jpeg" alt="Exportación" class="svc-card-img">
+                    <span class="svc-chip">Import & Export</span>
+                </div>
                 <div class="svc-card-body">
                     <h3>Exportación</h3>
                     <p>Portugal, Francia, Alemania, Italia, Suiza, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.</p>
-                    <span class="svc-tag">Import & Export</span>
                 </div>
             </div>
-            <div class="svc-card svc-almacen reveal" style="transition-delay:.4s">
-                <img loading="lazy" src="/images/PLT.jpg" alt="Almacenamiento corta estancia" class="svc-card-img">
-                <div class="svc-card-body">
-                    <h3>Almacenamiento corta estancia</h3>
-                    <p>Almacenamiento de corta estancia (1 a 7 días) en cualquier provincia de España. Para entregas posteriores disponemos de camiones carrozados o de 2 ejes para zonas urbanas, o recogida por el cliente según prefiera.</p>
-                    <span class="svc-tag svc-tag-soon">Servicio aún no disponible</span>
-                    <div class="alm-precio">
-                        <label class="alm-precio-label" for="alm-prov-select">Calcula tu precio</label>
-                        <select id="alm-prov-select" class="alm-precio-select" disabled aria-disabled="true" title="Servicio aún no disponible — próximamente" aria-label="Selecciona provincia (servicio aún no disponible)">
-                            <option value="">Servicio aún no disponible</option>
-                            <option>A Coruña</option>
-                            <option>Álava</option>
-                            <option>Albacete</option>
-                            <option>Alicante</option>
-                            <option>Almería</option>
-                            <option>Asturias</option>
-                            <option>Ávila</option>
-                            <option>Badajoz</option>
-                            <option>Barcelona</option>
-                            <option>Bizkaia</option>
-                            <option>Burgos</option>
-                            <option>Cáceres</option>
-                            <option>Cádiz</option>
-                            <option>Cantabria</option>
-                            <option>Castellón</option>
-                            <option>Ciudad Real</option>
-                            <option>Córdoba</option>
-                            <option>Cuenca</option>
-                            <option>Gipuzkoa</option>
-                            <option>Girona</option>
-                            <option>Granada</option>
-                            <option>Guadalajara</option>
-                            <option>Huelva</option>
-                            <option>Huesca</option>
-                            <option>Jaén</option>
-                            <option>La Rioja</option>
-                            <option>León</option>
-                            <option>Lleida</option>
-                            <option>Lugo</option>
-                            <option>Madrid</option>
-                            <option>Málaga</option>
-                            <option>Murcia</option>
-                            <option>Navarra</option>
-                            <option>Ourense</option>
-                            <option>Palencia</option>
-                            <option>Pontevedra</option>
-                            <option>Salamanca</option>
-                            <option>Segovia</option>
-                            <option>Sevilla</option>
-                            <option>Soria</option>
-                            <option>Tarragona</option>
-                            <option>Teruel</option>
-                            <option>Toledo</option>
-                            <option>Valencia</option>
-                            <option>Valladolid</option>
-                            <option>Zamora</option>
-                            <option>Zaragoza</option>
-                        </select>
-                        <div class="alm-precio-box" id="alm-precio-box" hidden aria-live="polite">
-                            <div class="alm-precio-row">
-                                <div class="alm-precio-line">
-                                    <span>Almacenamiento 1-7 días <small style="display:block;font-size:0.68rem;color:var(--gray-500);font-weight:500;margin-top:0.1rem">33 palets máx. por trailer y tarifa</small></span>
-                                    <strong id="alm-sub-trailers">240 € + IVA</strong>
-                                </div>
-                                <div class="alm-precio-qty-line">
-                                    Nº trailers:
-                                    <select id="alm-qty-trailers" class="alm-qty-sel" onchange="updateAlmTotal()" aria-label="Numero de trailers">
-                                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
-                                    </select>
-                                    <span>× 240 €</span>
-                                </div>
-                            </div>
-                            <div class="alm-precio-row">
-                                <div class="alm-precio-line">
-                                    <span>Entrega zona urbana <small style="display:block;font-size:0.68rem;color:var(--gray-500);font-weight:500;margin-top:0.1rem">camión 2 ejes · 4 m largo</small></span>
-                                    <strong id="alm-sub-deliveries">0 € + IVA</strong>
-                                </div>
-                                <div class="alm-precio-qty-line">
-                                    Nº envíos:
-                                    <select id="alm-qty-deliveries" class="alm-qty-sel" onchange="updateAlmTotal()" aria-label="Numero de envios">
-                                        <option value="0" selected>0 (recogida cliente)</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="12">12</option><option value="15">15</option><option value="20">20</option>
-                                    </select>
-                                    <span>× 180 €</span>
-                                </div>
-                            </div>
-                            <div class="alm-precio-row total">
-                                <div class="alm-precio-line">
-                                    <span>Total <em id="alm-prov-name" style="font-style:normal;font-weight:700;color:var(--purple)"></em></span>
-                                    <strong id="alm-total">240 € + IVA</strong>
-                                </div>
-                            </div>
-                            <p class="alm-precio-note" id="alm-precio-note">Precio orientativo para 1 trailer completo (33 palets europeo máx.) y sin entrega — recogida por el cliente con su propio camión/trailer.</p>
-                            <p class="alm-precio-pending">Este servicio aún no está disponible para contratar.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        </div>
+    </div>
+</section>
+
+<!-- COBERTURA — mapa europa interactivo -->
+<section class="cobertura-sec" id="cobertura">
+    <div class="container">
+        <p class="section-eyebrow reveal">Nuestra cobertura</p>
+        <h2 class="section-title reveal">España y <span>Europa</span></h2>
+        <p class="section-desc reveal">Cubrimos España, Portugal, Francia, Alemania, Italia, Suiza, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.</p>
+    </div>
+    <div class="cobertura-wrap reveal">
+        <div class="cobertura-map-box" id="cobertura-map-box">
+            <div class="cobertura-tooltip" id="europaTooltip" aria-hidden="true"></div>
         </div>
     </div>
 </section>
@@ -2710,6 +2654,110 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     </div>
 </section>
 
+<!-- ALMACENAMIENTO — sección propia -->
+<section class="almacen-sec" id="almacenamiento">
+    <div class="container">
+        <p class="section-eyebrow reveal">Servicio adicional</p>
+        <h2 class="section-title reveal">Almacenamiento <span>corta estancia</span></h2>
+        <p class="section-desc reveal">Almacenamiento de corta estancia (1 a 7 días) en cualquier provincia de España. Para entregas posteriores disponemos de camiones carrozados o de 2 ejes para zonas urbanas, o recogida por el cliente según prefiera.</p>
+            <div class="svc-card svc-almacen reveal" style="transition-delay:.4s">
+                <img loading="lazy" src="/images/PLT.jpg" alt="Almacenamiento corta estancia" class="svc-card-img">
+                <div class="svc-card-body">
+                    <span class="svc-tag svc-tag-soon">Servicio aún no disponible</span>
+                    <div class="alm-precio">
+                        <label class="alm-precio-label" for="alm-prov-select">Calcula tu precio</label>
+                        <select id="alm-prov-select" class="alm-precio-select" disabled aria-disabled="true" title="Servicio aún no disponible — próximamente" aria-label="Selecciona provincia (servicio aún no disponible)">
+                            <option value="">Servicio aún no disponible</option>
+                            <option>A Coruña</option>
+                            <option>Álava</option>
+                            <option>Albacete</option>
+                            <option>Alicante</option>
+                            <option>Almería</option>
+                            <option>Asturias</option>
+                            <option>Ávila</option>
+                            <option>Badajoz</option>
+                            <option>Barcelona</option>
+                            <option>Bizkaia</option>
+                            <option>Burgos</option>
+                            <option>Cáceres</option>
+                            <option>Cádiz</option>
+                            <option>Cantabria</option>
+                            <option>Castellón</option>
+                            <option>Ciudad Real</option>
+                            <option>Córdoba</option>
+                            <option>Cuenca</option>
+                            <option>Gipuzkoa</option>
+                            <option>Girona</option>
+                            <option>Granada</option>
+                            <option>Guadalajara</option>
+                            <option>Huelva</option>
+                            <option>Huesca</option>
+                            <option>Jaén</option>
+                            <option>La Rioja</option>
+                            <option>León</option>
+                            <option>Lleida</option>
+                            <option>Lugo</option>
+                            <option>Madrid</option>
+                            <option>Málaga</option>
+                            <option>Murcia</option>
+                            <option>Navarra</option>
+                            <option>Ourense</option>
+                            <option>Palencia</option>
+                            <option>Pontevedra</option>
+                            <option>Salamanca</option>
+                            <option>Segovia</option>
+                            <option>Sevilla</option>
+                            <option>Soria</option>
+                            <option>Tarragona</option>
+                            <option>Teruel</option>
+                            <option>Toledo</option>
+                            <option>Valencia</option>
+                            <option>Valladolid</option>
+                            <option>Zamora</option>
+                            <option>Zaragoza</option>
+                        </select>
+                        <div class="alm-precio-box" id="alm-precio-box" hidden aria-live="polite">
+                            <div class="alm-precio-row">
+                                <div class="alm-precio-line">
+                                    <span>Almacenamiento 1-7 días <small style="display:block;font-size:0.68rem;color:var(--gray-500);font-weight:500;margin-top:0.1rem">33 palets máx. por trailer y tarifa</small></span>
+                                    <strong id="alm-sub-trailers">240 € + IVA</strong>
+                                </div>
+                                <div class="alm-precio-qty-line">
+                                    Nº trailers:
+                                    <select id="alm-qty-trailers" class="alm-qty-sel" onchange="updateAlmTotal()" aria-label="Numero de trailers">
+                                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+                                    </select>
+                                    <span>× 240 €</span>
+                                </div>
+                            </div>
+                            <div class="alm-precio-row">
+                                <div class="alm-precio-line">
+                                    <span>Entrega zona urbana <small style="display:block;font-size:0.68rem;color:var(--gray-500);font-weight:500;margin-top:0.1rem">camión 2 ejes · 4 m largo</small></span>
+                                    <strong id="alm-sub-deliveries">0 € + IVA</strong>
+                                </div>
+                                <div class="alm-precio-qty-line">
+                                    Nº envíos:
+                                    <select id="alm-qty-deliveries" class="alm-qty-sel" onchange="updateAlmTotal()" aria-label="Numero de envios">
+                                        <option value="0" selected>0 (recogida cliente)</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="12">12</option><option value="15">15</option><option value="20">20</option>
+                                    </select>
+                                    <span>× 180 €</span>
+                                </div>
+                            </div>
+                            <div class="alm-precio-row total">
+                                <div class="alm-precio-line">
+                                    <span>Total <em id="alm-prov-name" style="font-style:normal;font-weight:700;color:var(--purple)"></em></span>
+                                    <strong id="alm-total">240 € + IVA</strong>
+                                </div>
+                            </div>
+                            <p class="alm-precio-note" id="alm-precio-note">Precio orientativo para 1 trailer completo (33 palets europeo máx.) y sin entrega — recogida por el cliente con su propio camión/trailer.</p>
+                            <p class="alm-precio-pending">Este servicio aún no está disponible para contratar.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+</section>
+
 <!-- WHY US -->
 <section class="why" id="nosotros">
     <div class="container">
@@ -2774,20 +2822,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</section>
-
-<!-- COBERTURA — mapa europa interactivo -->
-<section class="cobertura-sec" id="cobertura">
-    <div class="container">
-        <p class="section-eyebrow reveal">Nuestra cobertura</p>
-        <h2 class="section-title reveal">España y <span>Europa</span></h2>
-        <p class="section-desc reveal">Cubrimos España, Portugal, Francia, Alemania, Italia, Suiza, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.</p>
-    </div>
-    <div class="cobertura-wrap reveal">
-        <div class="cobertura-map-box" id="cobertura-map-box">
-            <div class="cobertura-tooltip" id="europaTooltip" aria-hidden="true"></div>
         </div>
     </div>
 </section>
