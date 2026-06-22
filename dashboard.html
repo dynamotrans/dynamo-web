@@ -2002,7 +2002,7 @@
                         </span>
                         <div class="topbar-contact-text">
                             <span class="t">Enviar email</span>
-                            <span class="h" data-sched="online-short">L-S 8-20</span>
+                            <span class="h" data-sched="online-short">Lunes a SÃ¡bado 8-20</span>
                         </div>
                     </a>
                     <a class="topbar-contact-item act-wa" role="menuitem" target="_blank" rel="noopener" href="https://wa.me/34628995709">
@@ -2011,7 +2011,7 @@
                         </span>
                         <div class="topbar-contact-text">
                             <span class="t">WhatsApp</span>
-                            <span class="h" data-sched="online-short">L-S 8-20</span>
+                            <span class="h" data-sched="online-short">Lunes a SÃ¡bado 8-20</span>
                         </div>
                     </a>
                     <a class="topbar-contact-item act-call" role="menuitem" href="tel:+34955225945">
@@ -2020,7 +2020,7 @@
                         </span>
                         <div class="topbar-contact-text">
                             <span class="t">Llamar</span>
-                            <span class="h" data-sched="phone-short">L-J 9-14 y 15-17 · V 9-14</span>
+                            <span class="h" data-sched="phone-short">Lunes a Jueves 9-14 y 15-17 · Viernes 9-14</span>
                         </div>
                     </a>
                 </div>
@@ -2681,8 +2681,8 @@
             </div>
             <div class="account-card">
                 <h3 class="account-card-title">Horario de atención</h3>
-                <div class="account-row"><span class="account-row-label">Teléfono</span><span class="account-row-value" data-sched="phone-long">L-J 9:00-14:00 y 15:00-17:00 · V 9:00-14:00</span></div>
-                <div class="account-row"><span class="account-row-label">WhatsApp / Email</span><span class="account-row-value" data-sched="online-long">L-S 8:00-20:00</span></div>
+                <div class="account-row"><span class="account-row-label">Teléfono</span><span class="account-row-value" data-sched="phone-long">Lunes a Jueves 9:00-14:00 y 15:00-17:00 · Viernes 9:00-14:00</span></div>
+                <div class="account-row"><span class="account-row-label">WhatsApp / Email</span><span class="account-row-value" data-sched="online-long">Lunes a SÃ¡bado 8:00-20:00</span></div>
                 <div class="account-row"><span class="account-row-label">Fuera de horario</span><span class="account-row-value" style="color:var(--gray-500);">Responderemos al volver</span></div>
                 <p class="account-card-desc" style="margin-top:0.7rem;">Si tu carga está en curso y necesitas algo urgente, escríbenos por WhatsApp — lo verá un operador de guardia.</p>
             </div>
@@ -3797,18 +3797,18 @@
             1: [[9,14]], 2: [[9,14]], 3: [[9,14]], 4: [[9,14]], 5: [[9,14]]
         },
         phone: {
-            labelLong:  'L-J 9:00-14:00 y 15:00-17:00 · V 9:00-14:00',
-            labelShort: 'L-J 9-14 y 15-17 · V 9-14',
-            labelSummerLong:  'L-V 9:00-14:00 (verano)',
-            labelSummerShort: 'L-V 9-14 (verano)',
-            labelXmasLong:    'L-V 9:00-14:00 (Navidad)',
-            labelXmasShort:   'L-V 9-14 (Navidad)',
-            labelFeriaLong:   'Mar-Vie 9:00-14:00 (Feria)',
-            labelFeriaShort:  'M-V 9-14 (Feria)'
+            labelLong:  'Lunes a Jueves 9:00-14:00 y 15:00-17:00 · Viernes 9:00-14:00',
+            labelShort: 'Lunes a Jueves 9-14 y 15-17 · Viernes 9-14',
+            labelSummerLong:  'Lunes a Viernes 9:00-14:00 (verano)',
+            labelSummerShort: 'Lunes a Viernes 9-14 (verano)',
+            labelXmasLong:    'Lunes a Viernes 9:00-14:00 (Navidad)',
+            labelXmasShort:   'Lunes a Viernes 9-14 (Navidad)',
+            labelFeriaLong:   'Martes a Viernes 9:00-14:00 (Feria)',
+            labelFeriaShort:  'Martes a Viernes 9-14 (Feria)'
         },
         online: {
-            labelLong:  'L-S 8:00-20:00',
-            labelShort: 'L-S 8-20'
+            labelLong:  'Lunes a SÃ¡bado 8:00-20:00',
+            labelShort: 'Lunes a SÃ¡bado 8-20'
         },
         telHref: 'tel:+34955225945',
         telDisplay: '+34 955 225 945',
@@ -3878,7 +3878,7 @@
         var time = now.getHours() + now.getMinutes()/60;
         return ranges.some(function (r) { return time >= r[0] && time < r[1]; });
     }
-    // ¿Estamos dentro del horario online (WhatsApp/email)? L-S 8-20, sin festivos
+    // ¿Estamos dentro del horario online (WhatsApp/email)? Lunes a SÃ¡bado 8-20, sin festivos
     function isOnlineHoursNow() {
         var now = getNow();
         if (getHolidayName(now)) return false;
