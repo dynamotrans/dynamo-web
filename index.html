@@ -1164,6 +1164,7 @@
            SERVICES CARDS
         ========================================= */
         .services-sec { background: var(--gray-100); }
+        .almacen-sec { background: var(--white); }
 
         /* =========================================
            COBERTURA — mapa interactivo de Europa
@@ -2529,103 +2530,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     <p>Portugal, Francia, Alemania, Italia, Suiza, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.</p>
                 </div>
             </div>
-            <div class="svc-card svc-almacen reveal" style="transition-delay:.4s">
-                <img loading="lazy" src="/images/PLT.jpg" alt="Almacenamiento corta estancia" class="svc-card-img">
-                <div class="svc-card-body">
-                    <h3>Almacenamiento corta estancia</h3>
-                    <p>Almacenamiento de corta estancia (1 a 7 días) en cualquier provincia de España. Para entregas posteriores disponemos de camiones carrozados o de 2 ejes para zonas urbanas, o recogida por el cliente según prefiera.</p>
-                    <span class="svc-tag svc-tag-soon">Servicio aún no disponible</span>
-                    <div class="alm-precio">
-                        <label class="alm-precio-label" for="alm-prov-select">Calcula tu precio</label>
-                        <select id="alm-prov-select" class="alm-precio-select" disabled aria-disabled="true" title="Servicio aún no disponible — próximamente" aria-label="Selecciona provincia (servicio aún no disponible)">
-                            <option value="">Servicio aún no disponible</option>
-                            <option>A Coruña</option>
-                            <option>Álava</option>
-                            <option>Albacete</option>
-                            <option>Alicante</option>
-                            <option>Almería</option>
-                            <option>Asturias</option>
-                            <option>Ávila</option>
-                            <option>Badajoz</option>
-                            <option>Barcelona</option>
-                            <option>Bizkaia</option>
-                            <option>Burgos</option>
-                            <option>Cáceres</option>
-                            <option>Cádiz</option>
-                            <option>Cantabria</option>
-                            <option>Castellón</option>
-                            <option>Ciudad Real</option>
-                            <option>Córdoba</option>
-                            <option>Cuenca</option>
-                            <option>Gipuzkoa</option>
-                            <option>Girona</option>
-                            <option>Granada</option>
-                            <option>Guadalajara</option>
-                            <option>Huelva</option>
-                            <option>Huesca</option>
-                            <option>Jaén</option>
-                            <option>La Rioja</option>
-                            <option>León</option>
-                            <option>Lleida</option>
-                            <option>Lugo</option>
-                            <option>Madrid</option>
-                            <option>Málaga</option>
-                            <option>Murcia</option>
-                            <option>Navarra</option>
-                            <option>Ourense</option>
-                            <option>Palencia</option>
-                            <option>Pontevedra</option>
-                            <option>Salamanca</option>
-                            <option>Segovia</option>
-                            <option>Sevilla</option>
-                            <option>Soria</option>
-                            <option>Tarragona</option>
-                            <option>Teruel</option>
-                            <option>Toledo</option>
-                            <option>Valencia</option>
-                            <option>Valladolid</option>
-                            <option>Zamora</option>
-                            <option>Zaragoza</option>
-                        </select>
-                        <div class="alm-precio-box" id="alm-precio-box" hidden aria-live="polite">
-                            <div class="alm-precio-row">
-                                <div class="alm-precio-line">
-                                    <span>Almacenamiento 1-7 días <small style="display:block;font-size:0.68rem;color:var(--gray-500);font-weight:500;margin-top:0.1rem">33 palets máx. por trailer y tarifa</small></span>
-                                    <strong id="alm-sub-trailers">240 € + IVA</strong>
-                                </div>
-                                <div class="alm-precio-qty-line">
-                                    Nº trailers:
-                                    <select id="alm-qty-trailers" class="alm-qty-sel" onchange="updateAlmTotal()" aria-label="Numero de trailers">
-                                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
-                                    </select>
-                                    <span>× 240 €</span>
-                                </div>
-                            </div>
-                            <div class="alm-precio-row">
-                                <div class="alm-precio-line">
-                                    <span>Entrega zona urbana <small style="display:block;font-size:0.68rem;color:var(--gray-500);font-weight:500;margin-top:0.1rem">camión 2 ejes · 4 m largo</small></span>
-                                    <strong id="alm-sub-deliveries">0 € + IVA</strong>
-                                </div>
-                                <div class="alm-precio-qty-line">
-                                    Nº envíos:
-                                    <select id="alm-qty-deliveries" class="alm-qty-sel" onchange="updateAlmTotal()" aria-label="Numero de envios">
-                                        <option value="0" selected>0 (recogida cliente)</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="12">12</option><option value="15">15</option><option value="20">20</option>
-                                    </select>
-                                    <span>× 180 €</span>
-                                </div>
-                            </div>
-                            <div class="alm-precio-row total">
-                                <div class="alm-precio-line">
-                                    <span>Total <em id="alm-prov-name" style="font-style:normal;font-weight:700;color:var(--purple)"></em></span>
-                                    <strong id="alm-total">240 € + IVA</strong>
-                                </div>
-                            </div>
-                            <p class="alm-precio-note" id="alm-precio-note">Precio orientativo para 1 trailer completo (33 palets europeo máx.) y sin entrega — recogida por el cliente con su propio camión/trailer.</p>
-                            <p class="alm-precio-pending">Este servicio aún no está disponible para contratar.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        </div>
+    </div>
+</section>
+
+<!-- COBERTURA — mapa europa interactivo -->
+<section class="cobertura-sec" id="cobertura">
+    <div class="container">
+        <p class="section-eyebrow reveal">Nuestra cobertura</p>
+        <h2 class="section-title reveal">España y <span>Europa</span></h2>
+        <p class="section-desc reveal">Cubrimos España, Portugal, Francia, Alemania, Italia, Suiza, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.</p>
+    </div>
+    <div class="cobertura-wrap reveal">
+        <div class="cobertura-map-box" id="cobertura-map-box">
+            <div class="cobertura-tooltip" id="europaTooltip" aria-hidden="true"></div>
         </div>
     </div>
 </section>
@@ -2729,6 +2647,109 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     </div>
 </section>
 
+<!-- ALMACENAMIENTO — sección propia -->
+<section class="almacen-sec" id="almacenamiento">
+    <div class="container">
+            <div class="svc-card svc-almacen reveal" style="transition-delay:.4s">
+                <img loading="lazy" src="/images/PLT.jpg" alt="Almacenamiento corta estancia" class="svc-card-img">
+                <div class="svc-card-body">
+                    <h3>Almacenamiento corta estancia</h3>
+                    <p>Almacenamiento de corta estancia (1 a 7 días) en cualquier provincia de España. Para entregas posteriores disponemos de camiones carrozados o de 2 ejes para zonas urbanas, o recogida por el cliente según prefiera.</p>
+                    <span class="svc-tag svc-tag-soon">Servicio aún no disponible</span>
+                    <div class="alm-precio">
+                        <label class="alm-precio-label" for="alm-prov-select">Calcula tu precio</label>
+                        <select id="alm-prov-select" class="alm-precio-select" disabled aria-disabled="true" title="Servicio aún no disponible — próximamente" aria-label="Selecciona provincia (servicio aún no disponible)">
+                            <option value="">Servicio aún no disponible</option>
+                            <option>A Coruña</option>
+                            <option>Álava</option>
+                            <option>Albacete</option>
+                            <option>Alicante</option>
+                            <option>Almería</option>
+                            <option>Asturias</option>
+                            <option>Ávila</option>
+                            <option>Badajoz</option>
+                            <option>Barcelona</option>
+                            <option>Bizkaia</option>
+                            <option>Burgos</option>
+                            <option>Cáceres</option>
+                            <option>Cádiz</option>
+                            <option>Cantabria</option>
+                            <option>Castellón</option>
+                            <option>Ciudad Real</option>
+                            <option>Córdoba</option>
+                            <option>Cuenca</option>
+                            <option>Gipuzkoa</option>
+                            <option>Girona</option>
+                            <option>Granada</option>
+                            <option>Guadalajara</option>
+                            <option>Huelva</option>
+                            <option>Huesca</option>
+                            <option>Jaén</option>
+                            <option>La Rioja</option>
+                            <option>León</option>
+                            <option>Lleida</option>
+                            <option>Lugo</option>
+                            <option>Madrid</option>
+                            <option>Málaga</option>
+                            <option>Murcia</option>
+                            <option>Navarra</option>
+                            <option>Ourense</option>
+                            <option>Palencia</option>
+                            <option>Pontevedra</option>
+                            <option>Salamanca</option>
+                            <option>Segovia</option>
+                            <option>Sevilla</option>
+                            <option>Soria</option>
+                            <option>Tarragona</option>
+                            <option>Teruel</option>
+                            <option>Toledo</option>
+                            <option>Valencia</option>
+                            <option>Valladolid</option>
+                            <option>Zamora</option>
+                            <option>Zaragoza</option>
+                        </select>
+                        <div class="alm-precio-box" id="alm-precio-box" hidden aria-live="polite">
+                            <div class="alm-precio-row">
+                                <div class="alm-precio-line">
+                                    <span>Almacenamiento 1-7 días <small style="display:block;font-size:0.68rem;color:var(--gray-500);font-weight:500;margin-top:0.1rem">33 palets máx. por trailer y tarifa</small></span>
+                                    <strong id="alm-sub-trailers">240 € + IVA</strong>
+                                </div>
+                                <div class="alm-precio-qty-line">
+                                    Nº trailers:
+                                    <select id="alm-qty-trailers" class="alm-qty-sel" onchange="updateAlmTotal()" aria-label="Numero de trailers">
+                                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+                                    </select>
+                                    <span>× 240 €</span>
+                                </div>
+                            </div>
+                            <div class="alm-precio-row">
+                                <div class="alm-precio-line">
+                                    <span>Entrega zona urbana <small style="display:block;font-size:0.68rem;color:var(--gray-500);font-weight:500;margin-top:0.1rem">camión 2 ejes · 4 m largo</small></span>
+                                    <strong id="alm-sub-deliveries">0 € + IVA</strong>
+                                </div>
+                                <div class="alm-precio-qty-line">
+                                    Nº envíos:
+                                    <select id="alm-qty-deliveries" class="alm-qty-sel" onchange="updateAlmTotal()" aria-label="Numero de envios">
+                                        <option value="0" selected>0 (recogida cliente)</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="12">12</option><option value="15">15</option><option value="20">20</option>
+                                    </select>
+                                    <span>× 180 €</span>
+                                </div>
+                            </div>
+                            <div class="alm-precio-row total">
+                                <div class="alm-precio-line">
+                                    <span>Total <em id="alm-prov-name" style="font-style:normal;font-weight:700;color:var(--purple)"></em></span>
+                                    <strong id="alm-total">240 € + IVA</strong>
+                                </div>
+                            </div>
+                            <p class="alm-precio-note" id="alm-precio-note">Precio orientativo para 1 trailer completo (33 palets europeo máx.) y sin entrega — recogida por el cliente con su propio camión/trailer.</p>
+                            <p class="alm-precio-pending">Este servicio aún no está disponible para contratar.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+</section>
+
 <!-- WHY US -->
 <section class="why" id="nosotros">
     <div class="container">
@@ -2793,20 +2814,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</section>
-
-<!-- COBERTURA — mapa europa interactivo -->
-<section class="cobertura-sec" id="cobertura">
-    <div class="container">
-        <p class="section-eyebrow reveal">Nuestra cobertura</p>
-        <h2 class="section-title reveal">España y <span>Europa</span></h2>
-        <p class="section-desc reveal">Cubrimos España, Portugal, Francia, Alemania, Italia, Suiza, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.</p>
-    </div>
-    <div class="cobertura-wrap reveal">
-        <div class="cobertura-map-box" id="cobertura-map-box">
-            <div class="cobertura-tooltip" id="europaTooltip" aria-hidden="true"></div>
         </div>
     </div>
 </section>
