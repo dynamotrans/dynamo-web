@@ -170,6 +170,17 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-23 — Claude Code web (nube)
+
+> Continuación de la sesión de home. **Imagen de compartir (Open Graph)**.
+
+**OG IMAGE para compartir enlace (WhatsApp, Facebook, etc.)** — web pública, a producción:
+- Antes la `og:image`/`twitter:image` era el **logo cuadrado 500×500** (`DYNAMO-NEW-LOGO.png`) → WhatsApp mostraba miniatura pequeña, no preview grande.
+- Generada **`images/og-dynamo.jpg`** (1200×630, JPG progresivo 196 KB) recortando la foto del hero `HERO-DYNAMO.webp` centrada en el **trailer dynamo blanco** en autopista (Pillow, crop a ratio 1.905 favoreciendo el trailer).
+- Actualizadas `og:image` + `twitter:image` y añadidas `og:image:width/height/type/alt` para preview grande (`summary_large_image`). Commit `310b8df`(preview)/`44f72eb`(main), cascada lab `19fa2a1`.
+- **Nota caché**: WhatsApp/Facebook cachean el preview. Refrescar vía Facebook Sharing Debugger ("Scrape Again") y/o compartir con `?v=2`. WhatsApp puede tardar días.
+- **Cómo cambiarla a futuro**: sustituir `/images/og-dynamo.jpg` por otra 1200×630 JPG/PNG (no WebP) o editar las 2 metas en el `<head>`.
+
 ### 2026-06-22 (sesión 3) — Claude Code web (nube)
 
 > Sesión de **rediseño de la home pública**. Trabajo en `preview` (claude/sharp-dirac-E3UIO) y, tras OK del usuario ("Ok todo"), **promoción a producción** por cherry-pick de los 5 commits + cascada a lab. Todo web pública, sin tocar portal.
