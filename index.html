@@ -1273,11 +1273,14 @@
         .svc-grid > .svc-card:not(.svc-almacen) h3 { color: #fff; }
         .svc-grid > .svc-card:not(.svc-almacen) h3 .svc-sub { color: rgba(255,255,255,0.82); }
         .svc-grid > .svc-card:not(.svc-almacen) p { color: rgba(255,255,255,0.88); }
-        .svc-grid > .svc-card:not(.svc-almacen) .svc-title-hl {
-            background: linear-gradient(var(--green), var(--green)) left 100% / 100% 3px no-repeat;
-            -webkit-box-decoration-break: clone; box-decoration-break: clone;
-            padding-bottom: 4px;
+        /* Barra de acento corta bajo el titulo: separada del subtitulo y animada al revelar la tarjeta */
+        .svc-grid > .svc-card:not(.svc-almacen) .svc-title-hl { display: inline-block; }
+        .svc-grid > .svc-card:not(.svc-almacen) .svc-title-hl::after {
+            content: ''; display: block; height: 3px; width: 0; margin-top: 0.6rem;
+            border-radius: 3px; background: linear-gradient(90deg, var(--green), #6fe6b0);
+            transition: width 0.6s cubic-bezier(0.22,1,0.36,1) 0.15s;
         }
+        .svc-grid > .svc-card.active:not(.svc-almacen) .svc-title-hl::after { width: 38px; }
         .svc-tag { display:inline-block; margin-top:1rem; background:rgba(51,0,204,0.07); color:var(--purple); padding:0.25rem 0.75rem; border-radius:50px; font-size:0.7rem; font-weight:700; }
         .svc-tag.svc-tag-soon {
             background: rgba(255,212,0,0.18);
