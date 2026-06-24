@@ -170,6 +170,17 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-24 — Claude Code web (nube)
+
+> **Horario reducido de agosto** en web pública + portal.
+
+**HORARIO REDUCIDO DE AGOSTO (6-27 de cada año): L-V 10:30-13:30** — "horario reducido · urgencias transportes":
+- Nueva tabla `SCHEDULE.august` (L-V `[[10.5,13.5]]`) con **prioridad sobre el verano** (que también cubre esas fechas).
+- `isAugustReduced(date)` = mes agosto y día 6-27. Automático "de por vida". Festivo 15 ago sigue cerrado; fuera de la ventana vuelve a verano 9-14.
+- Etiqueta **"horario reducido"** traducida a los **13 idiomas** (`reduced` en `SCHED_VOCAB`) + `labelAug`. Aplica a chips FAB, popover, footer y modal "fuera de horario".
+- Probada la lógica con casos límite (10:30 abre, 13:30 cierra, días 6 y 27 incluidos, 5/28 ago = verano). Syntax-check JS OK en los 6 archivos.
+- **Web pública** (`index.html`) → producción `main` (`cec2f35`). **Portal** (las 5 páginas: dashboard/portal/registro/verificar/crear-password) replicado vía script Python → solo preview/lab (`53ea465`, merge lab `2b77c45`).
+
 ### 2026-06-23 — Claude Code web (nube)
 
 > Continuación de la sesión de home. **Imagen de compartir (Open Graph)**.
