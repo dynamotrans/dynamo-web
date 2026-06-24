@@ -170,6 +170,16 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-24 (sesión 3) — Claude Code web (nube)
+
+> Bug del **muro de Clientes** (carrusel triple de logos). Web pública → `main` + cascada lab.
+
+**FIX — tarjeta del muro de Clientes se recortaba al pulsarla**:
+- Síntoma (reportado con capturas): al pulsar/hover una tarjeta de logo (`.logo-pill`) aparecía el borde morado pero la tarjeta **se cortaba por arriba** (no salía entera).
+- Causa: `.logo-pill:hover` eleva la tarjeta `translateY(-3px)` + sombra, pero `.clientes-row` tenía `overflow:hidden` pegado a la altura de la tarjeta → recortaba la parte elevada y la sombra. (El `overflow:hidden` es necesario para clipar el bucle horizontal.)
+- Solución: `padding: 8px 0` en `.clientes-row` (deja sitio vertical para la elevación + sombra; el clip horizontal se mantiene) y ajustado el `gap` del `.clientes-wall` (1.1rem → 0.45rem desktop, 0.7rem → 0.3rem móvil) para que la separación entre las 3 filas quede igual.
+- Commit `463b439`(preview)/`71e2e17`(main), cascada lab `d8e7f33`. Producción `dynamotrans.com`.
+
 ### 2026-06-24 (sesión 2) — Claude Code web (nube)
 
 > Sesión de **estilo de las tarjetas de Servicios** (home pública). Todo web pública → `main` + cascada preview/lab.
