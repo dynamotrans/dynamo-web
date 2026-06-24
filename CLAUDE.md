@@ -170,6 +170,23 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-24 (sesión 2) — Claude Code web (nube)
+
+> Sesión de **estilo de las tarjetas de Servicios** (home pública). Todo web pública → `main` + cascada preview/lab.
+
+**TARJETAS DE SERVICIOS (`index.html`, sección Servicios — Grupajes / Carga Completa / Importación / Exportación)**:
+- **Chips sobre la foto** (Nacional 24h · Tráfico directo · Toda Europa · Import & Export): probado pasarlos a "negativo morado" (fondo morado translúcido + texto blanco) → **el usuario pidió revertir** → quedan como estaban (**fondo blanco glass + texto morado**). Commits `e02be9f` (morado) y `33cd392` (revert).
+- **Cuerpo de texto de las 4 tarjetas → negativo morado** (a petición): fondo `var(--purple)`, título blanco, subtítulo blanco 82%, descripción blanco 88%. **Acotado con `.svc-grid > .svc-card:not(.svc-almacen)`** para NO tocar la tarjeta de Almacenamiento (que tiene su calculadora). Commit `3ec3bb1`.
+- **Resaltado de títulos** — varias iteraciones hasta dar con lo bueno:
+  1. Marcador verde (banda tipo rotulador) `5db2b48` →
+  2. Subrayado raya verde pegado al texto `8e2c91a` → **el usuario reportó que la raya pisaba/se pegaba al subtítulo** →
+  3. **SOLUCIÓN FINAL**: **barra de acento corta** (`.svc-title-hl::after`, 38×3px, degradado `var(--green)`→`#6fe6b0`, redondeada) **separada** del subtítulo (`margin-top:0.6rem`) y **animada**: se dibuja creciendo de izq→der al revelar la tarjeta (enganchada a `.reveal.active`, `cubic-bezier(.22,1,.36,1)`). Se ve también en móvil (no depende de hover). Commit `0c96a10`.
+- Los 4 títulos van envueltos en `<span class="svc-title-hl">…</span>` (solo el título, no el subtítulo) para acotar el acento.
+
+**Despliegue**: 6 commits a `main` (producción `dynamotrans.com`), cada uno con cascada `main → preview → lab`. Hubo un conflicto puntual de merge en `index.html` (el chip) al cascadear a preview, resuelto tomando la versión de main. Estado final `main 0c96a10` · `preview 38b3bb2` · `lab ca7fd9a`.
+
+**Pendiente menor**: afinar a gusto del usuario el ancho/grosor/velocidad/color de la barra de acento si lo pide.
+
 ### 2026-06-24 — Claude Code web (nube)
 
 > **Horario reducido de agosto** en web pública + portal.
