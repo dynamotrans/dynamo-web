@@ -4045,21 +4045,30 @@ document.addEventListener('DOMContentLoaded', function() {
         var exp = new Date(); exp.setFullYear(exp.getFullYear() + 1);
         document.cookie = 'dynamo_lang_detected=1; expires=' + exp.toUTCString() + '; path=/; SameSite=Lax';
 
-        if (browserLang !== 'es' && langMap[browserLang]) {
-            var info = langMap[browserLang];
+        // Idioma destino en la PRIMERA visita:
+        //  - español del navegador  -> se queda en español (base, useLang null)
+        //  - idioma soportado       -> ese idioma
+        //  - idioma NO soportado    -> inglés por defecto (croata, ruso, etc.)
+        var useLang = null;
+        if (browserLang === 'es')        useLang = null;
+        else if (langMap[browserLang])   useLang = browserLang;
+        else                             useLang = 'en';
+
+        if (useLang) {
+            var info = langMap[useLang];
             var langBtn = document.getElementById('langBtn');
             if (langBtn) langBtn.innerHTML = '<span class="flag">' + info.flag + '</span> ' + info.code + ' <span class="arrow">▼</span>';
             // Set googtrans cookie and load translator
-            document.cookie = 'googtrans=/es/' + browserLang + '; path=/';
-            document.cookie = 'googtrans=/es/' + browserLang + '; path=/; domain=' + location.hostname;
-            document.cookie = 'googtrans=/es/' + browserLang + '; path=/; domain=.' + location.hostname;
+            document.cookie = 'googtrans=/es/' + useLang + '; path=/';
+            document.cookie = 'googtrans=/es/' + useLang + '; path=/; domain=' + location.hostname;
+            document.cookie = 'googtrans=/es/' + useLang + '; path=/; domain=.' + location.hostname;
             setTimeout(function() {
                 loadGoogleTranslate();
                 // Wait for Google Translate to be ready, then translate
                 var attempts = 0;
                 var autoInterval = setInterval(function() {
                     attempts++;
-                    if (doTranslate(browserLang) || attempts > 40) {
+                    if (doTranslate(useLang) || attempts > 40) {
                         clearInterval(autoInterval);
                     }
                 }, 250);
