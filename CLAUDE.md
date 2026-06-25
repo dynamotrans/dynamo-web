@@ -170,6 +170,16 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-25 — Claude Code web (nube)
+
+> **Autodetección de idioma**: fallback a inglés para idiomas no soportados. Web pública → `main` + cascada lab.
+
+**FALLBACK A INGLÉS (autodetección de idioma del navegador, `index.html`)**:
+- Pregunta del usuario: "¿si me conecto desde Portugal saldrá en portugués?" → aclarado que la web **no detecta por país/IP**, sino por **idioma del navegador** (`navigator.language`), solo en la 1ª visita (cookie `dynamo_lang_detected`, 1 año). Geo no influye.
+- Petición: si el idioma del navegador **no está en la lista** (croata, ruso, árabe, griego…), poner **inglés** por defecto (antes se quedaba en español).
+- Implementado `useLang`: español→base (null), idioma soportado→ese, no soportado→`en`. Probado con es/pt/fr/hr/ru/en/ar (los no soportados → inglés). Commit `2e63897`(preview)/`a756800`(main), cascada lab `5ea4af7`.
+- **Nota**: las páginas del **portal NO tienen** este bloque de autodetección (solo `index.html`); heredan la cookie `googtrans`, así que no hubo nada que replicar.
+
 ### 2026-06-24 (sesión 3) — Claude Code web (nube)
 
 > Bug del **muro de Clientes** (carrusel triple de logos). Web pública → `main` + cascada lab.
