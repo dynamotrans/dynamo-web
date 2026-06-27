@@ -1803,6 +1803,16 @@
         .hor-time { color: var(--navy); font-weight: 700; text-align: right; }
         .hor-row.closed .hor-time { color: #c0392b; }
         .hor-sub { display: block; font-size: 0.72rem; font-weight: 500; color: var(--gray-500); margin-top: 0.12rem; }
+        /* Lista de periodos que comparten la jornada intensiva 9:00–14:00 */
+        .hor-intensiva { list-style: none; margin: 0.2rem 0 0.1rem; padding: 0; }
+        .hor-intensiva li {
+            position: relative; padding: 0.3rem 0 0.3rem 0.95rem;
+            font-size: 0.84rem; font-weight: 600; color: var(--gray-700);
+            border-bottom: 1px dashed var(--gray-200);
+        }
+        .hor-intensiva li:last-child { border-bottom: none; }
+        .hor-intensiva li::before { content: '·'; position: absolute; left: 0.15rem; color: var(--purple); font-weight: 800; }
+        .hor-intensiva .hor-i-when { display: block; font-size: 0.74rem; font-weight: 500; color: var(--gray-500); margin-top: 0.05rem; }
         .hor-note { font-size: 0.76rem; color: var(--gray-500); margin-top: 0.7rem; line-height: 1.5; }
         @media (max-width: 520px) {
             .hor-row { flex-direction: column; gap: 0.15rem; align-items: flex-start; }
@@ -5030,10 +5040,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 Teléfono
             </div>
             <div class="hor-row"><span class="hor-when">Horario habitual</span><span class="hor-time">L–J 9:00–14:00 y 15:00–17:00 · V 9:00–14:00</span></div>
-            <div class="hor-row"><span class="hor-when">Verano (15 jun – 1 sep)</span><span class="hor-time">L–V 9:00–14:00</span></div>
-            <div class="hor-row"><span class="hor-when">Navidad (22 dic – 6 ene)</span><span class="hor-time">L–V 9:00–14:00</span></div>
-            <div class="hor-row"><span class="hor-when">Semana festiva local<small class="hor-sub" id="hor-feria-dates"></small></span><span class="hor-time">M–V 9:00–14:00</span></div>
-            <div class="hor-row"><span class="hor-when">Semana Santa (Lun–Mié Santo)</span><span class="hor-time">9:00–14:00</span></div>
+            <div class="hor-row"><span class="hor-when">Jornada intensiva</span><span class="hor-time">9:00–14:00</span></div>
+            <ul class="hor-intensiva">
+                <li>Verano<span class="hor-i-when">15 jun – 1 sep · L–V</span></li>
+                <li>Navidad<span class="hor-i-when">22 dic – 6 ene · L–V</span></li>
+                <li>Semana Santa<span class="hor-i-when">Lun–Mié Santo</span></li>
+                <li>Semana festiva local<span class="hor-i-when" id="hor-feria-dates"></span></li>
+            </ul>
             <div class="hor-row closed"><span class="hor-when">Agosto (6–27)</span><span class="hor-time">Solo email y WhatsApp</span></div>
         </div>
 
