@@ -170,6 +170,26 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-27 (sesión 2) — Claude Code web (nube)
+
+> **Lema de marca "Dynamo. Always Moving."** + banner que alterna + refinos del popup de horarios. Todo web pública → `main` + cascada lab.
+
+**LEMA "Dynamo. Always Moving."** (sustituye a "Pick. Drop. Done." / "Operador de Transportes · Cumplimos!"):
+- **Pie del menú móvil** (`mm-claim`), **footer** (`f-tagline`, sustituye "Operador de Transportes · Cumplimos!"), ambos con **Dynamo** en negrita y sin uppercase.
+- **Junto al logo en el navbar**: solo **"Always Moving."** (opción B elegida por el usuario, sin repetir "Dynamo" que ya está en el logo), en **2 líneas** y más grande, con separador. Visible en móvil y escritorio; oculto solo en tablet 769-1024 (ahí el menú de 7 enlaces apretaría). Primer intento estaba oculto ≤1024 (no se veía en móvil) → corregido.
+- **Banner morado superior**: ahora **alterna cada 3s** con cross-fade entre "Soluciones de Transporte. España y Europa." (traducible) y "Dynamo. Always Moving." (lema). Rehecho a **2 capas** que conviven en el DOM (no swap de innerHTML) para que GT traduzca el claim sin perderse.
+- **El lema SIEMPRE en inglés**: marcado `notranslate`/`translate="no"` en las 4 ubicaciones (navbar, footer, menú móvil, capa del banner). Google Translate no lo toca.
+- **Commits** (cherry-pick a main, los SHA finales fueron variando): el navbar tuvo un lío de cherry-pick (el slogan solo vivía en preview) resuelto aplicando el cambio aislado a main/lab.
+
+**FIX menú móvil en francés** (`mm-item`): el número "04" de "Couverture" (Cobertura traducida) saltaba a la derecha porque GT **reordena** el `<span>` del número al traducir el enlace. Solución: número via **CSS** (`data-num` + `::before` con `attr()`, que GT no puede reordenar); subrayado animado movido a `::after`.
+
+**POPUP HORARIOS — refinos**:
+- Fila de agosto: "Cerrado · solo email y WhatsApp" → **"Solo email y WhatsApp"**.
+- Grupo **Email y WhatsApp reordenado ANTES que Teléfono**.
+- "Feria de Sevilla" → **"Semana festiva local"** + **fechas dinámicas** (martes-viernes de Feria calculados desde la Pascua, con día/fecha/mes/año, p.ej. "Del martes 21 al viernes 24 de abril de 2026"); se actualiza cada año y si ya pasó muestra la del año siguiente. **No** se nombra "Feria". JS self-contained (Computus de Gauss propio).
+- **Bug de alineación**: "Semana festiva local" salía centrada. Causa real: la tarjeta heredaba `text-align:center` de `.phone-modal-card` (ganaba a `.hor-modal-card` por orden). Fix: selector doble clase `.phone-modal-card.hor-modal-card { text-align:left }`, título y subtítulo re-centrados.
+- **Nota**: las fechas del popup se generan en español por JS; al traducir podrían quedarse en español (pendiente opcional: diccionario multilingüe).
+
 ### 2026-06-27 — Claude Code web (nube)
 
 > **Agosto 6-27 sin atención telefónica** (solo email/WhatsApp). Web pública → `main` + portal preview/lab.
