@@ -266,6 +266,9 @@
             0%   { opacity: 0; transform: translateY(-10px); }
             100% { opacity: 1; transform: translateY(0); }
         }
+        /* Texto del banner que alterna cada 3s con fundido */
+        .hero-banner-text { display: inline-block; transition: opacity 0.4s ease; }
+        .hero-banner-text strong { font-weight: 800; }
         @keyframes bannerShimmer {
             0%   { background-position: 0% 50%; }
             100% { background-position: 180% 50%; }
@@ -306,8 +309,8 @@
         .nav-logo { display: flex; align-items: center; gap: 0.7rem; text-decoration: none; }
         .nav-logo-img { height: 45px; width: auto; object-fit: contain; }
         .nav-logo-slogan {
-            font-size: 0.74rem; font-weight: 500; color: var(--gray-500);
-            letter-spacing: 0.2px; line-height: 1.15; white-space: nowrap;
+            font-size: 0.82rem; font-weight: 700; color: var(--gray-500);
+            letter-spacing: 0.2px; line-height: 1.1; text-align: left;
             padding-left: 0.7rem; border-left: 1.5px solid var(--gray-200);
         }
         .nav-logo-slogan strong { font-weight: 800; color: var(--purple); }
@@ -2067,7 +2070,7 @@
             .lang-btn { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
             .hamburger { display:flex; }
             .nav-logo-img { height: 35px; }
-            .nav-logo-slogan { font-size: 0.6rem; padding-left: 0.5rem; line-height: 1.1; }
+            .nav-logo-slogan { font-size: 0.7rem; padding-left: 0.5rem; line-height: 1.1; }
             .hero-logo-wrap { padding: 0.9rem 1.8rem; margin-bottom: 1.5rem; border-radius: 18px; }
             .hero-logo { height: 80px; }
             .gallery-grid { grid-template-columns:1fr 1fr; grid-template-rows:auto; }
@@ -2151,7 +2154,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <nav class="navbar" id="navbar">
     <a href="#" class="nav-logo" onclick="event.preventDefault();window.scrollTo({top:0,behavior:'smooth'})">
         <img src="/images/2.png" alt="Dynamo - Always Moving" class="nav-logo-img">
-        <span class="nav-logo-slogan">Always Moving.</span>
+        <span class="nav-logo-slogan">Always<br>Moving.</span>
     </a>
     <ul class="navbar-nav">
         <li><a href="#clientes">Clientes</a></li>
@@ -2190,7 +2193,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </nav>
 
 <!-- BANNER pegado al hero -->
-<div class="hero-banner">Soluciones de Transporte. España y Europa.</div>
+<div class="hero-banner"><span id="heroBannerText" class="hero-banner-text">Soluciones de Transporte. España y Europa.</span></div>
 
 <!-- HERO -->
 <section class="hero" id="inicio">
@@ -5055,6 +5058,25 @@ document.addEventListener('DOMContentLoaded', function () {
             if (m && m.classList.contains('open')) closeHorariosModal();
         }
     });
+
+    // Banner superior: alterna cada 3s entre el claim y el lema, con fundido.
+    (function () {
+        var el = document.getElementById('heroBannerText');
+        if (!el) return;
+        var msgs = [
+            'Soluciones de Transporte. España y Europa.',
+            '<strong>Dynamo.</strong> Always Moving.'
+        ];
+        var i = 0;
+        setInterval(function () {
+            el.style.opacity = '0';
+            setTimeout(function () {
+                i = (i + 1) % msgs.length;
+                el.innerHTML = msgs[i];
+                el.style.opacity = '1';
+            }, 400);
+        }, 3000);
+    })();
 </script>
 </body>
 </html>
