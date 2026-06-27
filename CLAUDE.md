@@ -170,6 +170,18 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-27 — Claude Code web (nube)
+
+> **Agosto 6-27 sin atención telefónica** (solo email/WhatsApp). Web pública → `main` + portal preview/lab.
+
+**AGOSTO 6-27 → TELÉFONO CERRADO (solo email y WhatsApp)**:
+- Contexto: el 24-jun pusimos agosto 6-27 como horario reducido L-V 10:30-13:30. El usuario lo cambia: del **6 al 27 de agosto NO hay atención telefónica**, solo email y WhatsApp.
+- `index.html` (producción `main` `abc477d`): quitada `SCHEDULE.august`; `isPhoneHoursNow` devuelve `false` en esa ventana; etiqueta `reduced` → **"Cerrado · email y WhatsApp"** (13 idiomas); `labelAug` ya no muestra horas; modal específico **"Teléfono cerrado (6-27 agosto)"**.
+- **Bug detectado y arreglado de paso**: el modal "Fuera de horario" NO contemplaba agosto (mostraba el de verano). Ahora sí.
+- Online (email/WhatsApp) sigue **L-S 8:00-20:00**. Festivo 15-ago y fines de semana siguen cerrados igual.
+- **Portal** (5 páginas, preview/lab `df870a4`/`46f0e14`): mismo cambio vía script (`august: {}` = teléfono cerrado, etiqueta cerrado 13 idiomas, modal agosto). No va a `main` (regla portal).
+- Probado con casos límite (6 y 27 ago cerrado, 5 y 28 ago = verano 9-14, octubre 14:23 = pausa mediodía cerrado).
+
 ### 2026-06-25 — Claude Code web (nube)
 
 > **Autodetección de idioma**: fallback a inglés para idiomas no soportados. Web pública → `main` + cascada lab.
