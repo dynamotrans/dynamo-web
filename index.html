@@ -1800,6 +1800,7 @@
         .hor-when { color: var(--gray-700); font-weight: 600; }
         .hor-time { color: var(--navy); font-weight: 700; text-align: right; }
         .hor-row.closed .hor-time { color: #c0392b; }
+        .hor-sub { display: block; font-size: 0.72rem; font-weight: 500; color: var(--gray-500); margin-top: 0.12rem; }
         .hor-note { font-size: 0.76rem; color: var(--gray-500); margin-top: 0.7rem; line-height: 1.5; }
         @media (max-width: 520px) {
             .hor-row { flex-direction: column; gap: 0.15rem; }
@@ -5029,7 +5030,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <div class="hor-row"><span class="hor-when">Horario habitual</span><span class="hor-time">L–J 9:00–14:00 y 15:00–17:00 · V 9:00–14:00</span></div>
             <div class="hor-row"><span class="hor-when">Verano (15 jun – 1 sep)</span><span class="hor-time">L–V 9:00–14:00</span></div>
             <div class="hor-row"><span class="hor-when">Navidad (22 dic – 6 ene)</span><span class="hor-time">L–V 9:00–14:00</span></div>
-            <div class="hor-row"><span class="hor-when">Semana festiva local</span><span class="hor-time">M–V 9:00–14:00</span></div>
+            <div class="hor-row"><span class="hor-when">Semana festiva local<small class="hor-sub" id="hor-feria-dates"></small></span><span class="hor-time">M–V 9:00–14:00</span></div>
             <div class="hor-row"><span class="hor-when">Semana Santa (Lun–Mié Santo)</span><span class="hor-time">9:00–14:00</span></div>
             <div class="hor-row closed"><span class="hor-when">Agosto (6–27)</span><span class="hor-time">Solo email y WhatsApp</span></div>
         </div>
@@ -5074,6 +5075,42 @@ document.addEventListener('DOMContentLoaded', function () {
             a.style.opacity = showB ? '0' : '1';
             b.style.opacity = showB ? '1' : '0';
         }, 3000);
+    })();
+
+    // Popup horarios: fechas de la "semana festiva local" (interna: martes a
+    // viernes de la Feria de Sevilla, calculada desde la Pascua). Se actualiza
+    // sola cada año; si ya pasó la de este año, muestra la del año siguiente.
+    (function () {
+        var el = document.getElementById('hor-feria-dates');
+        if (!el) return;
+        function easter(year) { // Computus de Gauss
+            var a = year % 19, b = Math.floor(year / 100), c = year % 100,
+                d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25),
+                g = Math.floor((b - f + 1) / 3),
+                h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4,
+                l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451),
+                mo = Math.floor((h + l - 7 * m + 114) / 31), da = ((h + l - 7 * m + 114) % 31) + 1;
+            return new Date(year, mo - 1, da);
+        }
+        function range(year) {
+            var e = easter(year);
+            return {
+                tue: new Date(year, e.getMonth(), e.getDate() + 16),
+                fri: new Date(year, e.getMonth(), e.getDate() + 19)
+            };
+        }
+        var now = (typeof getNow === 'function') ? getNow() : new Date();
+        var r = range(now.getFullYear());
+        if (now > r.fri) r = range(now.getFullYear() + 1);
+        var dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+        var meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        var t = r.tue, f = r.fri, txt;
+        if (t.getMonth() === f.getMonth()) {
+            txt = 'Del ' + dias[t.getDay()] + ' ' + t.getDate() + ' al ' + dias[f.getDay()] + ' ' + f.getDate() + ' de ' + meses[f.getMonth()] + ' de ' + f.getFullYear();
+        } else {
+            txt = 'Del ' + dias[t.getDay()] + ' ' + t.getDate() + ' de ' + meses[t.getMonth()] + ' al ' + dias[f.getDay()] + ' ' + f.getDate() + ' de ' + meses[f.getMonth()] + ' de ' + f.getFullYear();
+        }
+        el.textContent = txt;
     })();
 </script>
 </body>
