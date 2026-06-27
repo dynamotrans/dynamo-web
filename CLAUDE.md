@@ -182,6 +182,11 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Portal** (5 páginas, preview/lab `df870a4`/`46f0e14`): mismo cambio vía script (`august: {}` = teléfono cerrado, etiqueta cerrado 13 idiomas, modal agosto). No va a `main` (regla portal).
 - Probado con casos límite (6 y 27 ago cerrado, 5 y 28 ago = verano 9-14, octubre 14:23 = pausa mediodía cerrado).
 
+**POPUP "Horarios de todo el año" en la sección Contacto** (`index.html`, producción `main` `8113299`):
+- Enlace **"Ver todos los horarios del año"** bajo los botones de contacto → abre popup (reusa `.phone-modal`).
+- Lista: teléfono (habitual L-J 9-14 y 15-17 · V 9-14; verano; Navidad; Feria; Semana Santa; **agosto 6-27 cerrado** en rojo), email/WhatsApp todo el año L-S 8-20, y festivos nacionales + Jueves/Viernes Santo. Cierra con backdrop, ✕ o Escape. Texto traducible por Google Translate.
+- Es **lista estática** (no marca el horario activo "hoy"). Pendiente opcional: badge "(actual)" dinámico si el usuario lo pide. Cascada lab `f7dd290`.
+
 ### 2026-06-25 — Claude Code web (nube)
 
 > **Autodetección de idioma**: fallback a inglés para idiomas no soportados. Web pública → `main` + cascada lab.
