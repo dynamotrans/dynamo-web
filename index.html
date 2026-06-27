@@ -1759,6 +1759,33 @@
         }
         .legal-overlay.open { display:flex; }
 
+        /* Enlace "Ver todos los horarios" en la seccion de contacto (fondo oscuro) */
+        .cta-horarios-wrap { text-align: center; margin-top: 1.6rem; }
+        .cta-horarios-link {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.32);
+            color: white; font-weight: 700; font-size: 0.9rem; font-family: inherit;
+            padding: 0.65rem 1.3rem; border-radius: 50px; cursor: pointer;
+            transition: background 0.25s, border-color 0.25s, transform 0.2s;
+        }
+        .cta-horarios-link:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.6); transform: translateY(-2px); }
+        /* Popup de horarios del año (reusa .phone-modal) */
+        .hor-modal-card { max-width: 560px; text-align: left; max-height: 86vh; overflow-y: auto; padding: 2rem 1.7rem 1.6rem; }
+        .hor-modal-card h3 { margin-bottom: 0.2rem; }
+        .hor-group { margin-top: 1.3rem; }
+        .hor-group-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 800; color: var(--purple); font-size: 0.95rem; margin-bottom: 0.5rem; }
+        .hor-group-title svg { flex-shrink: 0; }
+        .hor-row { display: flex; justify-content: space-between; gap: 0.8rem; padding: 0.5rem 0; border-bottom: 1px dashed var(--gray-200); font-size: 0.85rem; align-items: baseline; }
+        .hor-row:last-child { border-bottom: none; }
+        .hor-when { color: var(--gray-700); font-weight: 600; }
+        .hor-time { color: var(--navy); font-weight: 700; text-align: right; }
+        .hor-row.closed .hor-time { color: #c0392b; }
+        .hor-note { font-size: 0.76rem; color: var(--gray-500); margin-top: 0.7rem; line-height: 1.5; }
+        @media (max-width: 520px) {
+            .hor-row { flex-direction: column; gap: 0.15rem; }
+            .hor-time { text-align: left; }
+        }
+
         /* =========================================
            MODAL "Fuera de horario telefonico"
         ========================================= */
@@ -2858,6 +2885,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
                 <span class="cta-text">Llamar +34 955 225 945<span class="cta-hours" data-sched="phone-long">Lunes a Jueves 9:00-14:00 y 15:00-17:00 · Viernes 9:00-14:00</span></span>
             </a>
+        </div>
+        <div class="cta-horarios-wrap reveal">
+            <button type="button" class="cta-horarios-link" onclick="openHorariosModal()" aria-haspopup="dialog">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Ver todos los horarios del año
+            </button>
         </div>
     </div>
 </section>
@@ -4946,5 +4979,63 @@ document.addEventListener('DOMContentLoaded', function () {
         <a class="phone-modal-anyway" href="tel:+34955225945">Llamar igualmente <span>(posiblemente no se atienda ahora)</span></a>
     </div>
 </div>
+
+<!-- MODAL horarios del año (se abre desde el enlace de la seccion Contacto) -->
+<div class="phone-modal" id="horariosModal" role="dialog" aria-modal="true" aria-labelledby="horModalTitle">
+    <div class="phone-modal-backdrop" onclick="closeHorariosModal()"></div>
+    <div class="phone-modal-card hor-modal-card">
+        <button type="button" class="phone-modal-close" onclick="closeHorariosModal()" aria-label="Cerrar">×</button>
+        <h3 id="horModalTitle">Horarios de atención</h3>
+        <p class="phone-modal-sub" style="margin-bottom:0.2rem">Teléfono según temporada · Email y WhatsApp todo el año.</p>
+
+        <div class="hor-group">
+            <div class="hor-group-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                Teléfono
+            </div>
+            <div class="hor-row"><span class="hor-when">Horario habitual</span><span class="hor-time">L–J 9:00–14:00 y 15:00–17:00 · V 9:00–14:00</span></div>
+            <div class="hor-row"><span class="hor-when">Verano (15 jun – 1 sep)</span><span class="hor-time">L–V 9:00–14:00</span></div>
+            <div class="hor-row"><span class="hor-when">Navidad (22 dic – 6 ene)</span><span class="hor-time">L–V 9:00–14:00</span></div>
+            <div class="hor-row"><span class="hor-when">Feria de Sevilla</span><span class="hor-time">M–V 9:00–14:00</span></div>
+            <div class="hor-row"><span class="hor-when">Semana Santa (Lun–Mié Santo)</span><span class="hor-time">9:00–14:00</span></div>
+            <div class="hor-row closed"><span class="hor-when">Agosto (6–27)</span><span class="hor-time">Cerrado · solo email y WhatsApp</span></div>
+        </div>
+
+        <div class="hor-group">
+            <div class="hor-group-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+                Email y WhatsApp
+            </div>
+            <div class="hor-row"><span class="hor-when">Todo el año</span><span class="hor-time">Lunes a Sábado 8:00–20:00</span></div>
+        </div>
+
+        <div class="hor-group">
+            <div class="hor-group-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5z"/></svg>
+                Festivos (teléfono cerrado)
+            </div>
+            <p class="hor-note" style="margin-top:0">Año Nuevo (1 ene) · Reyes (6 ene) · Día del Trabajo (1 may) · Asunción (15 ago) · Fiesta Nacional (12 oct) · Todos los Santos (1 nov) · Constitución (6 dic) · Inmaculada (8 dic) · Navidad (25 dic) · Jueves y Viernes Santo.</p>
+        </div>
+
+        <p class="hor-note">Horario peninsular (Europe/Madrid), se ajusta solo en cada temporada. Email y WhatsApp también cierran domingos y festivos. Los festivos locales de Sevilla pueden variar.</p>
+    </div>
+</div>
+
+<script>
+    function openHorariosModal() {
+        var m = document.getElementById('horariosModal');
+        if (m) { m.classList.add('open'); document.body.style.overflow = 'hidden'; }
+    }
+    function closeHorariosModal() {
+        var m = document.getElementById('horariosModal');
+        if (m) { m.classList.remove('open'); document.body.style.overflow = ''; }
+    }
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            var m = document.getElementById('horariosModal');
+            if (m && m.classList.contains('open')) closeHorariosModal();
+        }
+    });
+</script>
 </body>
 </html>
