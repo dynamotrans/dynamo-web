@@ -472,19 +472,23 @@
             0%   { opacity: 0; transform: translateX(-20px); }
             100% { opacity: 1; transform: translateX(0); }
         }
+        /* Número via CSS (data-num): Google Translate NO puede reordenar un
+           pseudo-elemento. Antes el '04' de "Couverture" (Cobertura traducida)
+           saltaba a la derecha porque GT movía el <span> del número. */
         .mm-item::before {
+            content: attr(data-num);
+            font-size: 0.65rem; color: rgba(255,255,255,0.4);
+            font-weight: 700; letter-spacing: 1.5px;
+            margin-right: 0.5rem; vertical-align: middle;
+        }
+        .mm-item::after {
             content: ''; position: absolute;
             left: 0; bottom: 0.4rem; height: 3px; width: 0;
             background: linear-gradient(90deg, var(--purple-light), var(--green));
             border-radius: 2px;
             transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .mm-item:hover::before, .mm-item:active::before { width: 70%; }
-        .mm-item .mm-num {
-            font-size: 0.65rem; color: rgba(255,255,255,0.4);
-            font-weight: 700; letter-spacing: 1.5px;
-            margin-right: 0.5rem; vertical-align: middle;
-        }
+        .mm-item:hover::after, .mm-item:active::after { width: 70%; }
         /* Footer: accesos rapidos */
         .mm-foot {
             position: relative; z-index: 2;
@@ -2125,13 +2129,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </button>
     </div>
     <nav class="mm-body">
-        <a class="mm-item" href="#clientes" onclick="closeMobileMenu()"><span class="mm-num">01</span>Clientes</a>
-        <a class="mm-item" href="#testimonios" onclick="closeMobileMenu()"><span class="mm-num">02</span>Testimonios</a>
-        <a class="mm-item" href="#servicios" onclick="closeMobileMenu()"><span class="mm-num">03</span>Servicios</a>
-        <a class="mm-item" href="#cobertura" onclick="closeMobileMenu()"><span class="mm-num">04</span>Cobertura</a>
-        <a class="mm-item" href="#vehiculos" onclick="closeMobileMenu()"><span class="mm-num">05</span>Vehículos</a>
-        <a class="mm-item" href="#almacenamiento" onclick="closeMobileMenu()"><span class="mm-num">06</span>Almacenamiento</a>
-        <a class="mm-item" href="#contacto" onclick="closeMobileMenu()"><span class="mm-num">07</span>Contacto</a>
+        <a class="mm-item" data-num="01" href="#clientes" onclick="closeMobileMenu()">Clientes</a>
+        <a class="mm-item" data-num="02" href="#testimonios" onclick="closeMobileMenu()">Testimonios</a>
+        <a class="mm-item" data-num="03" href="#servicios" onclick="closeMobileMenu()">Servicios</a>
+        <a class="mm-item" data-num="04" href="#cobertura" onclick="closeMobileMenu()">Cobertura</a>
+        <a class="mm-item" data-num="05" href="#vehiculos" onclick="closeMobileMenu()">Vehículos</a>
+        <a class="mm-item" data-num="06" href="#almacenamiento" onclick="closeMobileMenu()">Almacenamiento</a>
+        <a class="mm-item" data-num="07" href="#contacto" onclick="closeMobileMenu()">Contacto</a>
     </nav>
     <div class="mm-foot">
         <div class="mm-cta-row">
