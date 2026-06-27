@@ -303,8 +303,15 @@
             display: flex; align-items: center; justify-content: space-between;
             box-shadow: 0 2px 12px rgba(0,0,0,0.07);
         }
-        .nav-logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+        .nav-logo { display: flex; align-items: center; gap: 0.7rem; text-decoration: none; }
         .nav-logo-img { height: 45px; width: auto; object-fit: contain; }
+        .nav-logo-slogan {
+            font-size: 0.74rem; font-weight: 500; color: var(--gray-500);
+            letter-spacing: 0.2px; line-height: 1.15; white-space: nowrap;
+            padding-left: 0.7rem; border-left: 1.5px solid var(--gray-200);
+        }
+        .nav-logo-slogan strong { font-weight: 800; color: var(--purple); }
+        @media (max-width: 1024px) { .nav-logo-slogan { display: none; } }
         .nav-logo-wordmark { font-size: 1.65rem; font-weight: 900; color: var(--purple); letter-spacing: -1px; line-height: 1; }
         .nav-logo-arc {
             display: inline-block; width: 13px; height: 13px;
@@ -2141,6 +2148,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <nav class="navbar" id="navbar">
     <a href="#" class="nav-logo" onclick="event.preventDefault();window.scrollTo({top:0,behavior:'smooth'})">
         <img src="/images/2.png" alt="Dynamo - Always Moving" class="nav-logo-img">
+        <span class="nav-logo-slogan"><strong>Dynamo.</strong> Always Moving.</span>
     </a>
     <ul class="navbar-nav">
         <li><a href="#clientes">Clientes</a></li>
