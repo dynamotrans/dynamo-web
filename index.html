@@ -266,9 +266,12 @@
             0%   { opacity: 0; transform: translateY(-10px); }
             100% { opacity: 1; transform: translateY(0); }
         }
-        /* Texto del banner que alterna cada 3s con fundido */
-        .hero-banner-text { display: inline-block; transition: opacity 0.4s ease; }
+        /* Banner que alterna cada 3s con cross-fade. hbt-1 (claim) en flujo
+           define la altura y Google Translate lo traduce; hbt-2 (lema)
+           superpuesto y SIEMPRE en inglés (.notranslate). */
+        .hero-banner-text { transition: opacity 0.4s ease; }
         .hero-banner-text strong { font-weight: 800; }
+        .hbt-2 { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); opacity: 0; padding: 0 1.2rem; }
         @keyframes bannerShimmer {
             0%   { background-position: 0% 50%; }
             100% { background-position: 180% 50%; }
@@ -2137,7 +2140,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 +34 955 225 945
             </a>
         </div>
-        <p class="mm-claim"><span class="mm-claim-brand">Dynamo.</span> Always Moving.</p>
+        <p class="mm-claim notranslate" translate="no"><span class="mm-claim-brand">Dynamo.</span> Always Moving.</p>
     </div>
 </div>
 
@@ -2154,7 +2157,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <nav class="navbar" id="navbar">
     <a href="#" class="nav-logo" onclick="event.preventDefault();window.scrollTo({top:0,behavior:'smooth'})">
         <img src="/images/2.png" alt="Dynamo - Always Moving" class="nav-logo-img">
-        <span class="nav-logo-slogan">Always<br>Moving.</span>
+        <span class="nav-logo-slogan notranslate" translate="no">Always<br>Moving.</span>
     </a>
     <ul class="navbar-nav">
         <li><a href="#clientes">Clientes</a></li>
@@ -2193,7 +2196,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </nav>
 
 <!-- BANNER pegado al hero -->
-<div class="hero-banner"><span id="heroBannerText" class="hero-banner-text">Soluciones de Transporte. España y Europa.</span></div>
+<div class="hero-banner">
+    <span class="hero-banner-text hbt-1">Soluciones de Transporte. España y Europa.</span>
+    <span class="hero-banner-text hbt-2 notranslate" translate="no"><strong>Dynamo.</strong> Always Moving.</span>
+</div>
 
 <!-- HERO -->
 <section class="hero" id="inicio">
@@ -3188,7 +3194,7 @@ function openLegal(tab) {
     <div class="footer-grid">
         <div>
             <img src="/images/1.png" alt="Dynamo" style="height:40px;width:auto;margin-bottom:0.5rem;">
-            <div class="f-tagline"><span class="f-brand">Dynamo.</span> Always Moving.</div>
+            <div class="f-tagline notranslate" translate="no"><span class="f-brand">Dynamo.</span> Always Moving.</div>
             <p class="f-desc">Especialistas en grupajes, carga completa y transporte nacional e internacional. Más de 480 clientes confían en nosotros cada día.</p>
             <div class="f-social">
                 <a target="_blank" rel="noopener" href="https://www.instagram.com/dynamotrans.es/"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></a>
@@ -5059,22 +5065,17 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Banner superior: alterna cada 3s entre el claim y el lema, con fundido.
+    // Banner superior: cross-fade cada 3s entre el claim (traducible) y el
+    // lema (fijo en inglés). Ambos viven en el DOM para que Google Translate
+    // traduzca el claim una sola vez sin pisar el lema notranslate.
     (function () {
-        var el = document.getElementById('heroBannerText');
-        if (!el) return;
-        var msgs = [
-            'Soluciones de Transporte. España y Europa.',
-            '<strong>Dynamo.</strong> Always Moving.'
-        ];
-        var i = 0;
+        var a = document.querySelector('.hbt-1'), b = document.querySelector('.hbt-2');
+        if (!a || !b) return;
+        var showB = false;
         setInterval(function () {
-            el.style.opacity = '0';
-            setTimeout(function () {
-                i = (i + 1) % msgs.length;
-                el.innerHTML = msgs[i];
-                el.style.opacity = '1';
-            }, 400);
+            showB = !showB;
+            a.style.opacity = showB ? '0' : '1';
+            b.style.opacity = showB ? '1' : '0';
         }, 3000);
     })();
 </script>
