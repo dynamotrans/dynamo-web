@@ -189,6 +189,7 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - "Feria de Sevilla" → **"Semana festiva local"** + **fechas dinámicas** (martes-viernes de Feria calculados desde la Pascua, con día/fecha/mes/año, p.ej. "Del martes 21 al viernes 24 de abril de 2026"); se actualiza cada año y si ya pasó muestra la del año siguiente. **No** se nombra "Feria". JS self-contained (Computus de Gauss propio).
 - **Bug de alineación**: "Semana festiva local" salía centrada. Causa real: la tarjeta heredaba `text-align:center` de `.phone-modal-card` (ganaba a `.hor-modal-card` por orden). Fix: selector doble clase `.phone-modal-card.hor-modal-card { text-align:left }`, título y subtítulo re-centrados.
 - **Nota**: las fechas del popup se generan en español por JS; al traducir podrían quedarse en español (pendiente opcional: diccionario multilingüe).
+- Después: **agrupados** todos los periodos de 9:00-14:00 bajo una sola fila **"Jornada intensiva · 9:00–14:00"** con lista debajo (Verano, Navidad, Semana Santa, Semana festiva local con sus fechas), para no repetir la hora. "Horario habitual" y "Agosto" se mantienen aparte. **Quitada** la frase de "festivos locales de Sevilla" (no referenciar Sevilla).
 
 ### 2026-06-27 — Claude Code web (nube)
 
