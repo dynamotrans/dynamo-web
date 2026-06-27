@@ -186,6 +186,7 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - Enlace **"Ver todos los horarios del año"** bajo los botones de contacto → abre popup (reusa `.phone-modal`).
 - Lista: teléfono (habitual L-J 9-14 y 15-17 · V 9-14; verano; Navidad; Feria; Semana Santa; **agosto 6-27 cerrado** en rojo), email/WhatsApp todo el año L-S 8-20, y festivos nacionales + Jueves/Viernes Santo. Cierra con backdrop, ✕ o Escape. Texto traducible por Google Translate.
 - Es **lista estática** (no marca el horario activo "hoy"). Pendiente opcional: badge "(actual)" dinámico si el usuario lo pide. Cascada lab `f7dd290`.
+- Ajustes posteriores (a petición): fila de agosto pasa de "Cerrado · solo email y WhatsApp" → **"Solo email y WhatsApp"** (`b24f13a`); grupo **Email y WhatsApp reordenado ANTES que Teléfono** (`e05fc1d`). Ambos en producción + cascada.
 
 ### 2026-06-25 — Claude Code web (nube)
 
