@@ -1790,7 +1790,9 @@
         }
         .cta-horarios-link:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.6); transform: translateY(-2px); }
         /* Popup de horarios del año (reusa .phone-modal) */
-        .hor-modal-card { max-width: 560px; text-align: left; max-height: 86vh; overflow-y: auto; padding: 2rem 1.7rem 1.6rem; }
+        /* doble clase para ganar a .phone-modal-card { text-align:center } */
+        .phone-modal-card.hor-modal-card { max-width: 560px; text-align: left; max-height: 86vh; overflow-y: auto; padding: 2rem 1.7rem 1.6rem; }
+        .hor-modal-card h3, .hor-modal-card .phone-modal-sub { text-align: center; }
         .hor-modal-card h3 { margin-bottom: 0.2rem; }
         .hor-group { margin-top: 1.3rem; }
         .hor-group-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 800; color: var(--purple); font-size: 0.95rem; margin-bottom: 0.5rem; }
