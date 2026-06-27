@@ -311,7 +311,9 @@
             padding-left: 0.7rem; border-left: 1.5px solid var(--gray-200);
         }
         .nav-logo-slogan strong { font-weight: 800; color: var(--purple); }
-        @media (max-width: 1024px) { .nav-logo-slogan { display: none; } }
+        /* Oculto solo en el rango tablet (769-1024), donde el menú de 7 enlaces
+           apretaría. En móvil (≤768) el menú va en la hamburguesa → hay sitio. */
+        @media (min-width: 769px) and (max-width: 1024px) { .nav-logo-slogan { display: none; } }
         .nav-logo-wordmark { font-size: 1.65rem; font-weight: 900; color: var(--purple); letter-spacing: -1px; line-height: 1; }
         .nav-logo-arc {
             display: inline-block; width: 13px; height: 13px;
@@ -2065,6 +2067,7 @@
             .lang-btn { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
             .hamburger { display:flex; }
             .nav-logo-img { height: 35px; }
+            .nav-logo-slogan { font-size: 0.6rem; padding-left: 0.5rem; line-height: 1.1; }
             .hero-logo-wrap { padding: 0.9rem 1.8rem; margin-bottom: 1.5rem; border-radius: 18px; }
             .hero-logo { height: 80px; }
             .gallery-grid { grid-template-columns:1fr 1fr; grid-template-rows:auto; }
