@@ -1532,9 +1532,10 @@
             background: var(--gray-50);
         }
         .ptar-route-row { display: flex; gap: 0.5rem; align-items: stretch; }
-        .ptar-route-row .ptar-input-wrap { flex: 1 1 auto; min-width: 0; }
+        /* 75 / 25: input de origen/destino largo, selector de tipo corto. */
+        .ptar-route-row .ptar-input-wrap { flex: 3 1 0; min-width: 0; }
         .ptar-route-row .ptar-select-sm {
-            flex: 0 0 auto; width: auto; min-width: 6.5rem; max-width: 48%; margin-top: 0;
+            flex: 1 1 0; width: auto; min-width: 0; max-width: none; margin-top: 0;
         }
         .ptar-select:hover, .ptar-date:hover,
         .ptar-select:focus, .ptar-date:focus {
