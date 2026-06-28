@@ -1584,6 +1584,16 @@
             background: var(--purple); color: #fff; font-size: 0.7rem; font-weight: 800;
             display: inline-flex; align-items: center; justify-content: center;
         }
+        /* Naranja = recogida/origen, Verde = entrega/destino. */
+        .ptar-route-num.rec { background: var(--orange); }
+        .ptar-route-num.ent { background: var(--green); }
+        /* Botón "+" al final de la fila de origen/destino. */
+        .ptar-route-add {
+            flex: 0 0 auto; width: 30px; height: 44px; border: none; background: none;
+            color: var(--purple); cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 8px; transition: color 0.15s, background 0.15s;
+        }
+        .ptar-route-add:hover { background: rgba(51,0,204,0.07); }
         .ptar-route-row { display: flex; gap: 0.5rem; align-items: stretch; }
         /* 75 / 25: input de origen/destino largo, selector de tipo corto. */
         .ptar-route-row .ptar-input-wrap { flex: 3 1 0; min-width: 0; }
@@ -2530,7 +2540,7 @@
                 <div class="ptar-field">
                     <div class="ptar-route-row">
                         <div class="ptar-input-wrap" data-ptar-orig-wrap>
-                            <span class="ptar-route-num" data-route-num>1</span>
+                            <span class="ptar-route-num rec" data-route-num>1</span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                             <input type="text" id="ptar-orig-carga" data-ptar-orig placeholder="Desde · CP o ciudad" aria-label="Origen" autocomplete="off" inputmode="search">
                             <ul class="ptar-sug" data-ptar-orig-sug hidden></ul>
@@ -2547,7 +2557,7 @@
                 <div class="ptar-field">
                     <div class="ptar-route-row">
                         <div class="ptar-input-wrap" data-ptar-dest-wrap>
-                            <span class="ptar-route-num" data-route-num>2</span>
+                            <span class="ptar-route-num ent" data-route-num>2</span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
                             <input type="text" id="ptar-dest-carga" data-ptar-dest placeholder="Hasta · CP o ciudad" aria-label="Destino" autocomplete="off" inputmode="search">
                             <ul class="ptar-sug" data-ptar-dest-sug hidden></ul>
@@ -2561,19 +2571,7 @@
                         </select>
                     </div>
                 </div>
-                <div class="ptar-field-full ptar-paradas-wrap">
-                    <div data-ptar-paradas></div>
-                    <div class="ptar-add-paradas-row">
-                        <button type="button" class="ptar-add-parada" data-ptar-add-recogida>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            Añadir recogida
-                        </button>
-                        <button type="button" class="ptar-add-parada" data-ptar-add-entrega>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            Añadir entrega
-                        </button>
-                    </div>
-                </div>
+                <div class="ptar-field-full ptar-paradas-wrap" data-ptar-paradas></div>
 
                 <div class="ptar-section-head">Carga</div>
                 <div class="ptar-pair">
@@ -2728,7 +2726,7 @@
                 <div class="ptar-field">
                     <div class="ptar-route-row">
                         <div class="ptar-input-wrap" data-ptar-orig-wrap>
-                            <span class="ptar-route-num" data-route-num>1</span>
+                            <span class="ptar-route-num rec" data-route-num>1</span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                             <input type="text" id="ptar-orig-presu" data-ptar-orig placeholder="Desde · CP o ciudad" aria-label="Origen" autocomplete="off" inputmode="search">
                             <ul class="ptar-sug" data-ptar-orig-sug hidden></ul>
@@ -2745,7 +2743,7 @@
                 <div class="ptar-field">
                     <div class="ptar-route-row">
                         <div class="ptar-input-wrap" data-ptar-dest-wrap>
-                            <span class="ptar-route-num" data-route-num>2</span>
+                            <span class="ptar-route-num ent" data-route-num>2</span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
                             <input type="text" id="ptar-dest-presu" data-ptar-dest placeholder="Hasta · CP o ciudad" aria-label="Destino" autocomplete="off" inputmode="search">
                             <ul class="ptar-sug" data-ptar-dest-sug hidden></ul>
@@ -2759,19 +2757,7 @@
                         </select>
                     </div>
                 </div>
-                <div class="ptar-field-full ptar-paradas-wrap">
-                    <div data-ptar-paradas></div>
-                    <div class="ptar-add-paradas-row">
-                        <button type="button" class="ptar-add-parada" data-ptar-add-recogida>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            Añadir recogida
-                        </button>
-                        <button type="button" class="ptar-add-parada" data-ptar-add-entrega>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            Añadir entrega
-                        </button>
-                    </div>
-                </div>
+                <div class="ptar-field-full ptar-paradas-wrap" data-ptar-paradas></div>
 
                 <div class="ptar-section-head">Carga</div>
                 <div class="ptar-pair">
@@ -5877,8 +5863,7 @@
             //     (destino adicional). Mismo formato que origen/destino, con su
             //     selector de tipo (Almacén/Obra/…). Hasta 4 en total. ---
             var paradasBox = card.querySelector('[data-ptar-paradas]');
-            var addRecBtn = card.querySelector('[data-ptar-add-recogida]');
-            var addEntBtn = card.querySelector('[data-ptar-add-entrega]');
+            var origPlus = null, destPlus = null; // botones "+" de origen/destino
             var PARADA_TIPOS = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento', 'Finca / Agrícola'];
             function paradaRows() {
                 return paradasBox ? Array.prototype.slice.call(paradasBox.querySelectorAll('[data-ptar-parada]')) : [];
@@ -5897,8 +5882,8 @@
             }
             function syncAddBtns() {
                 var full = paradaRows().length >= 4;
-                if (addRecBtn) addRecBtn.style.display = full ? 'none' : '';
-                if (addEntBtn) addEntBtn.style.display = full ? 'none' : '';
+                if (origPlus) origPlus.style.display = full ? 'none' : '';
+                if (destPlus) destPlus.style.display = full ? 'none' : '';
                 renumberRoute();
             }
             // Alias usado por reset/del (mantiene compatibilidad de nombre).
@@ -5918,12 +5903,12 @@
                 var aria = esRec ? 'Recogida (origen adicional)' : 'Entrega (destino adicional)';
                 row.innerHTML =
                     '<div class="ptar-route-row">' +
-                        '<div class="ptar-input-wrap"><span class="ptar-route-num" data-route-num></span>' + icon +
+                        '<div class="ptar-input-wrap"><span class="ptar-route-num ' + (esRec ? 'rec' : 'ent') + '" data-route-num></span>' + icon +
                             '<input type="text" autocomplete="off" inputmode="search" placeholder="' + ph + '" aria-label="' + aria + '">' +
                             '<ul class="ptar-sug" hidden></ul>' +
                         '</div>' +
                         '<select class="ptar-select ptar-select-sm" aria-label="Tipo de ' + (esRec ? 'recogida' : 'entrega') + '">' + opts + '</select>' +
-                        '<button type="button" class="ptar-parada-del" aria-label="Quitar"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
+                        '<button type="button" class="ptar-parada-del" aria-label="Quitar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>' +
                     '</div>';
                 paradasBox.appendChild(row);
                 bindAutocomplete(row.querySelector('.ptar-input-wrap'), row.querySelector('input'), row.querySelector('.ptar-sug'), renderEta);
@@ -5935,8 +5920,21 @@
                 syncAddBtns();
                 row.querySelector('input').focus();
             }
-            if (addRecBtn) addRecBtn.addEventListener('click', function () { addParada('recogida'); });
-            if (addEntBtn) addEntBtn.addEventListener('click', function () { addParada('entrega'); });
+            // "+" al final de la fila de origen (añade recogida) y de destino (añade entrega).
+            function makePlus(wrap, kind) {
+                if (!wrap || !wrap.parentNode) return null;
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'ptar-route-add';
+                btn.setAttribute('aria-label', kind === 'recogida' ? 'Añadir recogida' : 'Añadir entrega');
+                btn.title = kind === 'recogida' ? 'Añadir recogida (origen adicional)' : 'Añadir entrega (destino adicional)';
+                btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+                btn.addEventListener('click', function () { addParada(kind); });
+                wrap.parentNode.appendChild(btn);
+                return btn;
+            }
+            origPlus = makePlus(origWrap, 'recogida');
+            destPlus = makePlus(destWrap, 'entrega');
             if (urgenciaSel) urgenciaSel.addEventListener('change', renderEta);
             // Al cambiar la ventana, recalcula las fechas disponibles (el corte
             // de las 14:00 y "hoy/mañana" dependen de la ventana). Si la fecha ya
@@ -6033,6 +6031,7 @@
                 origWrap.classList.toggle('ptar-error', !origOk);
                 destWrap.classList.toggle('ptar-error', !destOk);
                 if (!origOk || !destOk) {
+                    warning.textContent = '⚠ Introduce el origen y el destino antes de continuar.';
                     warning.classList.add('show');
                     (origOk ? destInput : origInput).focus();
                     return null;
@@ -6045,6 +6044,7 @@
                 mlSel.classList.toggle('ptar-select-error', ml === '');
                 pesoSel.classList.toggle('ptar-select-error', peso === '');
                 if (ml === '' || peso === '') {
+                    warning.textContent = '⚠ Selecciona los metros lineales y el peso (toneladas) antes de continuar.';
                     warning.classList.add('show');
                     (ml === '' ? mlSel : pesoSel).focus();
                     return null;
