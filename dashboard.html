@@ -1470,6 +1470,20 @@
         }
         .ptar-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
         .ptar-field-full { grid-column: 1 / -1; }
+        /* Cabecera de bloque dentro del tarifador (Ruta / Carga / Fecha y entrega).
+           Ocupa toda la fila del grid y separa visualmente sin trocear el form. */
+        .ptar-section-head {
+            grid-column: 1 / -1;
+            display: flex; align-items: center; gap: 0.6rem;
+            margin: 0.7rem 0 0.05rem;
+            font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+            color: var(--purple);
+        }
+        .ptar-section-head:first-child { margin-top: 0; }
+        .ptar-section-head::after {
+            content: ''; flex: 1; height: 1px;
+            background: linear-gradient(90deg, rgba(124,58,237,0.30), transparent);
+        }
         .ptar-label {
             font-size: 0.7rem; font-weight: 700;
             color: var(--gray-500); text-transform: uppercase;
@@ -1612,10 +1626,10 @@
         .ptar-eta-data { display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 1.1rem; width: 100%; font-size: 0.83rem; align-items: center; }
         .ptar-eta-data dt { font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.4px; font-size: 0.7rem; }
         .ptar-eta-data dd { color: var(--navy); font-weight: 700; }
-        .ptar-eta-data .ptar-eta-range {
-            font-size: 1rem; font-weight: 900;
-            color: var(--purple);
-        }
+        /* Mismo tamaño que el resto; solo cambia el color:
+           Carga (ventana) = naranja, Entrega estimada = verde. */
+        .ptar-eta-data .ptar-eta-range { color: var(--green); font-weight: 800; }
+        .ptar-eta-data .ptar-eta-carga { color: var(--orange); font-weight: 800; }
         .ptar-eta-data .ptar-eta-stat { color: var(--gray-700); font-weight: 600; }
         .ptar-eta-data .ptar-eta-warn { color: #b45309; }
         .ptar-eta-festivo {
@@ -2413,6 +2427,7 @@
             </button>
 
             <div class="ptar-grid">
+                <div class="ptar-section-head">Ruta</div>
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-orig-carga">Origen *</label>
                     <div class="ptar-input-wrap" data-ptar-orig-wrap>
@@ -2430,6 +2445,7 @@
                     </div>
                 </div>
 
+                <div class="ptar-section-head">Carga</div>
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-camion-carga">Tipo de camión</label>
                     <select id="ptar-camion-carga" data-ptar-camion class="ptar-select">
@@ -2479,6 +2495,7 @@
                     <p class="ptar-occ-meta" data-ptar-occ-meta>—</p>
                 </div>
 
+                <div class="ptar-section-head">Fecha y entrega</div>
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-dia-carga">Fecha de carga (L-V)</label>
                     <div class="ptar-fecha-wrap">
@@ -2592,6 +2609,7 @@
             <p class="ptar-intro">Pide un precio <strong>sin compromiso</strong>. El presupuesto será vigente <strong>durante 7 días</strong> desde su emisión. Si te encaja, lo conviertes en carga con un solo clic.</p>
 
             <div class="ptar-grid">
+                <div class="ptar-section-head">Ruta</div>
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-orig-presu">Origen *</label>
                     <div class="ptar-input-wrap" data-ptar-orig-wrap>
@@ -2609,6 +2627,7 @@
                     </div>
                 </div>
 
+                <div class="ptar-section-head">Carga</div>
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-camion-presu">Tipo de camión</label>
                     <select id="ptar-camion-presu" data-ptar-camion class="ptar-select">
@@ -2658,6 +2677,7 @@
                     <p class="ptar-occ-meta" data-ptar-occ-meta>—</p>
                 </div>
 
+                <div class="ptar-section-head">Entrega</div>
                 <div class="ptar-field">
                     <label class="ptar-label ptar-has-tip" for="ptar-urgencia-presu" tabindex="0">
                         Ventana de carga
@@ -5607,7 +5627,7 @@
                     var cargaTxt = (loadStart.getTime() === loadEnd.getTime())
                         ? fmtEtaDate(loadStart)
                         : 'del ' + fmtEtaDate(loadStart) + ' al ' + fmtEtaDate(loadEnd);
-                    cargaHtml = '<dt>Carga (ventana)</dt><dd class="ptar-eta-stat">' + cargaTxt + '</dd>';
+                    cargaHtml = '<dt>Carga (ventana)</dt><dd class="ptar-eta-carga">' + cargaTxt + '</dd>';
                     var etaStart = addBusinessDays(loadStart, driveDays);
                     var etaEnd   = addBusinessDays(loadEnd, driveDays);
                     // Enriquecer con festivos regionales (API, front). Al llegar
