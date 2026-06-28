@@ -170,6 +170,30 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-28 — Claude Code web (nube)
+
+> **Festivos unificados en un registro único** (`/js/festivos.js`) compartido por web pública + portal, **promovido a producción**. Después, **capa regional opcional vía Nager.Date** (API en el front, sin clave) con dedupe. Las 3 ramas con `festivos.js` byte-idéntico.
+
+**REGISTRO ÚNICO DE FESTIVOS (`/js/festivos.js`) — a producción (`main`)**:
+- Nuevo archivo `js/festivos.js`: `window.FESTIVOS` con `get(cc,date)`, `getLocal`, `countryName`, `supported`, `easterSunday` (Computus de Gauss). Festivos **nacionales de los 12 países** de servicio (España, Portugal, Francia, Alemania, Italia, Suiza, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia, Rep. Checa), con fijos + móviles por offset de Pascua.
+- **`index.html`** (producción `main` `7fb99fc`): `easterSunday`/`getHolidayName` ahora **delegan** en `FESTIVOS` (antes lista inline propia). Añadido `<script src="/js/festivos.js">`. Mismo comportamiento exacto (se añadió Jueves Santo al registro `es` para conservarlo). Cascada preview (`99d72b8`) + lab (`10c8b55`).
+- **Portal** (5 páginas, ya estaba en preview/lab): mismo patrón de delegación.
+- **Verificación sin tocar fechas futuras**: generada la lista completa 2026 de los 12 países por consola (node) para cotejar a ojo con un calendario público. Móviles tipo Pascua se recalculan solos cada año (Pascua 2026 = 05/04).
+
+**CAPA REGIONAL OPCIONAL — Nager.Date (API en el front)** (preview/lab, e `festivos.js` también a `main`):
+- `FESTIVOS.ensure(cc, year)` llama a `https://date.nager.at/api/v3/PublicHolidays/{año}/{PAÍS}` (**gratis, sin API key, sin backend, CORS abierto**). Cachea 30 días en `localStorage` (1 petición por país+año).
+- **Dedupe**: el local nacional **manda**; la API solo añade fechas que el local NO tiene (los regionales). Navidad/Año Nuevo nunca se duplican. Regionales etiquetados **"(regional)"** porque solo conocemos el país, no la provincia exacta (sobre-aviso prudente; el aviso solo informa, no bloquea).
+- **Degradación limpia**: si la API falla / no hay red / CORS → se ignora y queda el local. La web pública **no llama** a `ensure` (capa inerte en producción).
+- **Dashboard** (`dashboard.html`, preview/lab `f7bf518`): el aviso de festivo en origen/destino del tarifador pide los regionales y **se re-pinta** al llegar (flag `etaEnsured` evita bucle). Cascada lab `5c21cee`.
+- Probado con mock de respuesta Nager (nacional + 2 regionales): dedupe correcto, etiqueta "(regional)" OK, caché escrita.
+
+**Single source en las 3 ramas**: `festivos.js` byte-idéntico en main/preview/lab (hash `c9ab038`). Cambiar un festivo se hace **en un solo sitio**. Commits: main `76492a2` (capa regional inerte), preview `101c13b`, lab `327190f`.
+- ⚠️ No pude probar la llamada real a Nager desde el entorno (proxy bloquea ese dominio, 403). En navegador/preview Vercel debería ir; si no, el nacional sale igual.
+
+**Detectado (no tocado)**: **drift previo** en CSS de `index.html` entre main y preview (bloque `.why-brand-logo` duplicado + regla `.navbar-right .btn-nav-cta`), ajeno a los festivos. Pendiente de limpiar en otra pasada si el usuario quiere.
+
+**Pendiente opcional**: festivos **regionales con subdivisión exacta** (mapear provincia del origen/destino vía Nominatim `address.state` a código ISO para no sobre-avisar); locales/municipales (Feria de Sevilla) NO los cubre ni Nager.
+
 ### 2026-06-27 (sesión 2) — Claude Code web (nube)
 
 > **Lema de marca "Dynamo. Always Moving."** + banner que alterna + refinos del popup de horarios. Todo web pública → `main` + cascada lab.
