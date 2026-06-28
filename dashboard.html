@@ -1447,7 +1447,7 @@
         .ptar-card {
             background: white; border-radius: 14px;
             border: 1px solid var(--gray-200);
-            padding: 2.5rem 1.5rem 1.5rem; max-width: 920px;
+            padding: 1.4rem 1.5rem 1.5rem; max-width: 920px;
             box-shadow: 0 1px 3px rgba(10,2,48,0.04);
             position: relative;
         }
@@ -1465,6 +1465,8 @@
             transition: all 0.18s;
         }
         .ptar-reset:hover { background: var(--gray-200); color: var(--purple); }
+        /* Botón "Limpiar" en la cabecera (sustituye a Volver). */
+        .ptar-reset-btn { display: inline-flex; align-items: center; gap: 0.35rem; }
         .ptar-grid {
             display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem 1rem;
         }
@@ -1818,12 +1820,25 @@
         .ptar-actions .btn-ghost { flex: 0 0 auto; }
 
         @media (max-width: 768px) {
-            .ptar-card { padding: 2.2rem 1.1rem 1.1rem; }
-            .ptar-grid { grid-template-columns: 1fr; gap: 0.7rem; }
+            .ptar-card { padding: 0.9rem 0.9rem 1rem; }
+            .ptar-grid { grid-template-columns: 1fr; gap: 0.5rem; }
             .ptar-input-wrap input,
             .ptar-select, .ptar-date { font-size: 16px; }
             .ptar-actions { flex-direction: column; }
             .ptar-actions .btn-ghost { width: 100%; }
+            /* Compactación móvil: que el formulario entre sin scroll. */
+            .ptar-pair { gap: 0.5rem; }
+            .ptar-field { gap: 0.25rem; }
+            .ptar-section-head { margin: 0.35rem 0 0; font-size: 0.66rem; }
+            .ptar-label { font-size: 0.72rem; }
+            .ptar-select, .ptar-date, .ptar-input-wrap input { padding: 0.5rem 0.7rem; }
+            .ptar-select-sm { padding: 0.4rem 0.5rem; font-size: 16px; }
+            .ptar-tramp-box { min-height: 0; padding: 0.5rem 0.7rem; }
+            .ptar-eta-box { padding: 0.55rem 0.7rem; min-height: 0; }
+            .ptar-eta-field .ptar-field-hint, .ptar-eta-field { margin: 0; }
+            .ptar-actions { gap: 0.5rem; margin-top: 0.6rem; }
+            .ptar-notes-wrap { margin-top: 0.5rem; }
+            .ptar-nofecha-warn { font-size: 0.72rem; padding: 0.45rem 0.6rem; }
         }
 
         /* ======= RESPONSIVE ======= */
@@ -2462,15 +2477,15 @@
     <section class="section" id="sec-nueva-carga">
         <div class="sec-header">
             <h2>Nueva carga</h2>
-            <button class="btn-ghost" onclick="showSection('dashboard');return false;">← Volver</button>
-        </div>
-        <div class="ptar-card" data-ptar-mode="carga">
-            <button type="button" class="ptar-reset" data-ptar-reset aria-label="Reiniciar formulario" title="Reiniciar">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <button type="button" class="btn-ghost ptar-reset-btn" data-ptar-reset title="Limpiar formulario">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <polyline points="23 4 23 10 17 10"/>
                     <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                 </svg>
+                Limpiar
             </button>
+        </div>
+        <div class="ptar-card" data-ptar-mode="carga">
 
             <div class="ptar-grid">
                 <div class="ptar-section-head">Ruta</div>
@@ -2663,15 +2678,15 @@
     <section class="section" id="sec-nuevo-presupuesto">
         <div class="sec-header">
             <h2>Nuevo presupuesto</h2>
-            <button class="btn-ghost" onclick="showSection('dashboard');return false;">← Volver</button>
-        </div>
-        <div class="ptar-card" data-ptar-mode="presupuesto">
-            <button type="button" class="ptar-reset" data-ptar-reset aria-label="Reiniciar formulario" title="Reiniciar">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <button type="button" class="btn-ghost ptar-reset-btn" data-ptar-reset title="Limpiar formulario">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <polyline points="23 4 23 10 17 10"/>
                     <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                 </svg>
+                Limpiar
             </button>
+        </div>
+        <div class="ptar-card" data-ptar-mode="presupuesto">
             <p class="ptar-intro">Pide un precio <strong>sin compromiso</strong>. El presupuesto será vigente <strong>durante 7 días</strong> desde su emisión. Si te encaja, lo conviertes en carga con un solo clic.</p>
 
             <div class="ptar-grid">
@@ -5511,7 +5526,7 @@
             var notesCount = card.querySelector('[data-ptar-notes-count]');
             var warning = card.querySelector('[data-ptar-warning]');
             var submit = card.querySelector('[data-ptar-submit]');
-            var reset = card.querySelector('[data-ptar-reset]');
+            var reset = card.parentNode.querySelector('[data-ptar-reset]');
 
             // Inicializa ML, peso y fecha según el camión por defecto
             function applyCamion() {
