@@ -2382,7 +2382,6 @@
             <button class="tab" data-filter="programada-confirmada">Programadas confirmadas (<span data-count="programada-confirmada">0</span>)</button>
             <button class="tab" data-filter="entregada">Entregadas (<span data-count="entregada">0</span>)</button>
             <button class="tab" data-filter="cancelada">Canceladas (<span data-count="cancelada">0</span>)</button>
-            <button class="tab" data-filter="prevision">Previsión sin fecha (<span data-count="prevision">0</span>)</button>
             <button class="tab" data-filter="todas">Todas (<span data-count="todas">0</span>)</button>
         </div>
         <div class="filters">
@@ -4391,7 +4390,7 @@
             matricula: '7204 LMR / R-9852', conductor: 'Pedro Rodríguez', tfnoConductor: '+34 661 902 411'
         }),
         // Previsión sin fecha definida → siempre "En espera"
-        makeCarga('#C-2026-1292','PED-0428','Sin fecha','1 a 4 días','Sevilla','Vigo','Polígono Industrial → Bouzas','Maquinaria','Pieza única','8,4 m · 11.000 kg','programada'),
+        makeCarga('#C-2026-1292','PED-0428','10/07','1 a 4 días','Sevilla','Vigo','Polígono Industrial → Bouzas','Maquinaria','Pieza única','8,4 m · 11.000 kg','programada'),
         // Programada con fecha cercana + transportista Y matrícula → Confirmado
         makeCarga('#C-2026-1290','PED-0426','28/06','1 a 2 días','Sevilla','Madrid','Pol. Industrial Carretera de la Isla → Mercamadrid','Paletizado','Productos químicos','13,2 m · 22.000 kg','programada', undefined, {
             precio: '880 €', fechaAsignada: '29/06 08:00', horaCargaEst: '08:00', etaEntrega: 'Mar 30/06',
@@ -5424,17 +5423,6 @@
             ph.disabled = true;
             ph.selected = true;
             sel.appendChild(ph);
-            if (mode === 'carga') {
-                var prev = document.createElement('option');
-                prev.value = 'prevision';
-                prev.textContent = 'Previsión, sin fecha definida';
-                prev.title = 'No se tramita: la carga queda guardada en la pestaña "Previsión sin fecha", sin asignar camión hasta que confirmes una fecha. Útil para anotar previsiones; si la fecha definitiva es posterior a 7 días, el precio se revisará a precios de mercado actuales.';
-                sel.appendChild(prev);
-            } else {
-                var sf = document.createElement('option');
-                sf.value = 'sinfecha'; sf.textContent = 'Sin fecha definida';
-                sel.appendChild(sf);
-            }
             loadDates(windowVal || 'flexible', 7).forEach(function (d) {
                 var opt = document.createElement('option');
                 opt.value = isoLocal(d);
