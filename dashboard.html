@@ -3873,34 +3873,8 @@
         return dayStart >= mo && dayStart <= we;
     }
     function isShortSchedule(date) { return isSummer(date) || isXmas(date) || isFeria(date) || isHolyWeek(date); }
-    function easterSunday(year) {
-        var a = year % 19, b = Math.floor(year/100), c = year % 100;
-        var d = Math.floor(b/4), e = b % 4, f = Math.floor((b+8)/25);
-        var g = Math.floor((b-f+1)/3);
-        var h = (19*a + b - d - g + 15) % 30;
-        var i = Math.floor(c/4), k = c % 4;
-        var l = (32 + 2*e + 2*i - h - k) % 7;
-        var mm = Math.floor((a + 11*h + 22*l)/451);
-        var month = Math.floor((h + l - 7*mm + 114)/31);
-        var day = ((h + l - 7*mm + 114) % 31) + 1;
-        return new Date(year, month-1, day);
-    }
-    function getHolidayName(date) {
-        var key = (date.getMonth()+1) + '-' + date.getDate();
-        var fixed = {
-            '1-1': 'Año Nuevo', '1-6': 'Reyes', '5-1': 'Día del Trabajo',
-            '8-15': 'Asunción de la Virgen', '10-12': 'Fiesta Nacional de España',
-            '11-1': 'Todos los Santos', '12-6': 'Día de la Constitución',
-            '12-8': 'Inmaculada Concepción', '12-25': 'Navidad'
-        };
-        if (fixed[key]) return fixed[key];
-        var easter = easterSunday(date.getFullYear());
-        var jueves = new Date(easter); jueves.setDate(easter.getDate() - 3);
-        var viernes = new Date(easter); viernes.setDate(easter.getDate() - 2);
-        if (date.toDateString() === jueves.toDateString())  return 'Jueves Santo';
-        if (date.toDateString() === viernes.toDateString()) return 'Viernes Santo';
-        return null;
-    }
+    function easterSunday(year) { return FESTIVOS.easterSunday(year); }
+    function getHolidayName(date) { return FESTIVOS.get('es', date); }
     function isPhoneHoursNow() {
         var now = getNow();
         if (getHolidayName(now)) return false;
