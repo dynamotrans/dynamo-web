@@ -2591,9 +2591,6 @@
                     <div class="ptar-nofecha-warn" data-ptar-fecha-warn hidden>
                         ⚠ Con <strong>fecha fija</strong> ya no es posible cargar el día elegido (solicitud después de las 14:00). <strong>Amplía la ventana de carga</strong> (1 a 2 o 1 a 4 días) o <strong>elige un día posterior</strong>.
                     </div>
-                    <div class="ptar-nofecha-warn ptar-dyn-warn" data-ptar-dyn-warn hidden>
-                        ⚠ Fecha a <strong>más de 7 días</strong>. El precio se <strong>auto-revisa cada 7 días</strong> a tarifa de mercado para seguir vigente hasta el momento de la carga. Son <strong>precios dinámicos</strong>.
-                    </div>
                 </div>
 
                 <div class="ptar-field ptar-field-full ptar-eta-field" data-ptar-eta-field>
@@ -2645,6 +2642,10 @@
 
             <div class="ptar-confirm-note ptar-confirm-note-info" data-ptar-grupaje-warn hidden>
                 <strong>Si este envío es un GRUPAJE</strong>, no se puede garantizar al 100% la fecha de recogida y entrega, aunque <em>podrá asignarse antes transportista ofertando precio superior al de tarifa presente</em>, con mayor probabilidad de cargar. Dependen de completar camión y también se ven influidos por demoras en otras recogidas/entregas. Si es <strong>grupaje urgente</strong>, valora la opción de <strong>camión completo</strong>.
+            </div>
+
+            <div class="ptar-confirm-note ptar-confirm-note-info" data-ptar-dyn-note hidden>
+                <strong>Precios dinámicos.</strong> La fecha de carga es a <strong>más de 7 días</strong>: el precio se <strong>auto-revisa cada 7 días</strong> a tarifa de mercado para seguir vigente hasta el momento de la carga.
             </div>
 
             <div class="ptar-confirm-note">
@@ -5600,21 +5601,18 @@
             // Solo inicializamos día / flatpickr / aviso si el select existe.
             var fp = null;
             var nofechaWarn = card.querySelector('[data-ptar-nofecha-warn]');
-            var dynWarn = card.querySelector('[data-ptar-dyn-warn]');
             function syncNofechaWarn() {
                 if (!diaSel) return;
                 if (nofechaWarn) nofechaWarn.hidden = diaSel.value !== 'prevision';
-                // Precios dinámicos: si la fecha de carga es a más de 7 días desde
-                // hoy, el precio se auto-revisa cada 7 días hasta el momento de carga.
-                if (dynWarn) {
-                    var show = false, v = diaSel.value;
-                    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-                        var d = new Date(v + 'T00:00:00');
-                        var t = nowMadrid(); t.setHours(0, 0, 0, 0);
-                        show = Math.round((d - t) / 86400000) > 7;
-                    }
-                    dynWarn.hidden = !show;
-                }
+            }
+            // ¿Fecha de carga a más de 7 días desde hoy? → precios dinámicos
+            // (el aviso se muestra en el resumen de confirmación, no en el form).
+            function loadDateIsFar() {
+                var v = diaSel ? diaSel.value : '';
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+                var d = new Date(v + 'T00:00:00');
+                var t = nowMadrid(); t.setHours(0, 0, 0, 0);
+                return Math.round((d - t) / 86400000) > 7;
             }
             // Quita la marca de error del select en cuanto cambie a algo válido
             if (diaSel) diaSel.addEventListener('change', function () {
@@ -6046,8 +6044,6 @@
                     '<dt>Tipo de camión</dt><dd>' + escapeHtml(d.camionLabel) + '</dd>' +
                     '<dt>Mercancía</dt><dd>' + escapeHtml(d.mercaTxt) + '</dd>' +
                     '<dt>Medidas</dt><dd>' + escapeHtml(d.medidas) + '</dd>' +
-                    '<dt>% carga del camión</dt><dd><strong>' + occ.pct + '%</strong> · limitado por ' +
-                        (occ.driver === 'ml' ? 'metros lineales' : occ.driver === 'tn' ? 'peso' : 'palets') + '</dd>' +
                     '<dt>Ventana</dt><dd>' + escapeHtml(d.urgenciaLabel) + '</dd>' +
                     '<dt>Fecha de carga</dt><dd>' + escapeHtml(d.fechaLarga) + '</dd>' +
                     cargaRangoHtml +
@@ -6063,6 +6059,8 @@
                     var esGrupaje = mlNum < camionMax;
                     grupajeWarn.hidden = !esGrupaje;
                 }
+                var dynNote = confirmCard.querySelector('[data-ptar-dyn-note]');
+                if (dynNote) dynNote.hidden = !loadDateIsFar();
                 card.hidden = true;
                 confirmCard.hidden = false;
                 window.scrollTo({ top: 0, behavior: 'smooth' });
