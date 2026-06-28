@@ -1625,6 +1625,30 @@
         }
         .ptar-eta-festivo strong { color: #b45309; }
 
+        /* Label con tooltip (ℹ): el texto de ayuda sale al pasar por encima,
+           sin ocupar layout. Reutilizable en cualquier .ptar-label. */
+        .ptar-has-tip {
+            position: relative; display: inline-flex; align-items: center; gap: 0.3rem;
+            cursor: help; width: fit-content;
+        }
+        .ptar-tip-ico { width: 14px; height: 14px; opacity: 0.5; flex-shrink: 0; }
+        .ptar-has-tip:hover .ptar-tip-ico, .ptar-has-tip:focus .ptar-tip-ico { opacity: 0.9; }
+        .ptar-tip-pop {
+            position: absolute; top: calc(100% + 6px); left: 0;
+            width: 262px; max-width: 78vw;
+            background: var(--navy); color: #fff; text-align: left;
+            border-radius: 9px; padding: 0.55rem 0.7rem;
+            font-size: 0.74rem; line-height: 1.45; font-weight: 500;
+            text-transform: none; letter-spacing: 0;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+            opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(4px);
+            transition: opacity 0.15s ease, transform 0.15s ease; z-index: 60;
+        }
+        .ptar-tip-pop strong { color: #ffd98a; font-weight: 800; }
+        .ptar-has-tip:hover .ptar-tip-pop, .ptar-has-tip:focus .ptar-tip-pop, .ptar-has-tip:focus-within .ptar-tip-pop {
+            opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0);
+        }
+
         /* === % carga del camión (ocupación) ===
            Barra que combina coeficientes ml/Tn/palets. El % visible
            es el coeficiente que MÁS limita la carga (no la suma) */
@@ -2469,13 +2493,16 @@
                     </div>
                 </div>
                 <div class="ptar-field">
-                    <label class="ptar-label" for="ptar-urgencia-carga">Ventana de carga</label>
+                    <label class="ptar-label ptar-has-tip" for="ptar-urgencia-carga" tabindex="0">
+                        Ventana de carga
+                        <svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
+                        <span class="ptar-tip-pop" role="tooltip">Días <strong>laborables consecutivos</strong> a partir del día indicado. Sábados, domingos y festivos quedan excluidos automáticamente.</span>
+                    </label>
                     <select id="ptar-urgencia-carga" data-ptar-urgencia class="ptar-select">
                         <option value="dia">Fecha fija (un día concreto, más cara)</option>
                         <option value="estandar">1 a 2 días (estándar)</option>
                         <option value="flexible" selected>1 a 4 días (flexible, más económica)</option>
                     </select>
-                    <p class="ptar-field-hint">Días <strong>laborables consecutivos</strong> a partir del día indicado. Sábados, domingos y festivos quedan excluidos automáticamente.</p>
                 </div>
 
                 <div class="ptar-field ptar-field-full ptar-eta-field" data-ptar-eta-field>
@@ -2632,13 +2659,16 @@
                 </div>
 
                 <div class="ptar-field">
-                    <label class="ptar-label" for="ptar-urgencia-presu">Ventana de carga</label>
+                    <label class="ptar-label ptar-has-tip" for="ptar-urgencia-presu" tabindex="0">
+                        Ventana de carga
+                        <svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
+                        <span class="ptar-tip-pop" role="tooltip">Días <strong>laborables consecutivos</strong> a partir del día indicado. Sábados, domingos y festivos quedan excluidos automáticamente.</span>
+                    </label>
                     <select id="ptar-urgencia-presu" data-ptar-urgencia class="ptar-select">
                         <option value="dia">Fecha fija (un día concreto, más cara)</option>
                         <option value="estandar">1 a 2 días (estándar)</option>
                         <option value="flexible" selected>1 a 4 días (flexible, más económica)</option>
                     </select>
-                    <p class="ptar-field-hint">Días <strong>laborables consecutivos</strong>. Sábados, domingos y festivos no cuentan: no operamos en transporte ni entrega.</p>
                 </div>
 
                 <div class="ptar-field ptar-field-full ptar-eta-field" data-ptar-eta-field>
