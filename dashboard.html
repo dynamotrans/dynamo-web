@@ -5339,13 +5339,13 @@
             for (var i = 1; i <= mlMax; i++) {
                 var opt = document.createElement('option');
                 opt.value = i;
-                opt.textContent = i + ' m';
+                opt.textContent = i + (i === 1 ? ' metro' : ' metros');
                 sel.appendChild(opt);
             }
             // Tauliner tiene 13,2m como tope real
             if (mlMax === 13) {
                 var opt2 = document.createElement('option');
-                opt2.value = '13.2'; opt2.textContent = '13,2 m — carga completa';
+                opt2.value = '13.2'; opt2.textContent = '13,2 metros — carga completa';
                 sel.appendChild(opt2);
             }
             sel.value = '';
@@ -5358,7 +5358,7 @@
             for (var i = 1; i <= pesoMax; i++) {
                 var opt = document.createElement('option');
                 opt.value = i;
-                opt.textContent = i + ' Tn' + (i === pesoMax ? ' (máximo)' : '');
+                opt.textContent = i + (i === 1 ? ' tonelada' : ' toneladas') + (i === pesoMax ? ' (máximo)' : '');
                 sel.appendChild(opt);
             }
             sel.value = '';
