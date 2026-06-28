@@ -1470,6 +1470,13 @@
         }
         .ptar-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
         .ptar-field-full { grid-column: 1 / -1; }
+        /* Par de campos que se mantiene a 2 columnas SIEMPRE (también en móvil):
+           Metros lineales + Peso, y Fecha de carga + Ventana. */
+        .ptar-pair {
+            grid-column: 1 / -1;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem 0.8rem;
+        }
+        .ptar-pair > .ptar-field { min-width: 0; }
         /* Cabecera de bloque dentro del tarifador (Ruta / Carga / Fecha y entrega).
            Ocupa toda la fila del grid y separa visualmente sin trocear el form. */
         .ptar-section-head {
@@ -2476,7 +2483,6 @@
                         <option value="tauliner" data-ml-max="13" data-peso-max="24">Trailer Tauliner · 13,2 m (más económico)</option>
                         <option value="rigido" data-ml-max="8" data-peso-max="14">Rígido 8 m con plataforma + transpalet (más caro)</option>
                     </select>
-                    <div class="ptar-camion-tip" data-ptar-camion-tip></div>
                 </div>
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-merca-carga">Tipo de mercancía</label>
@@ -2494,16 +2500,19 @@
                     </select>
                 </div>
 
-                <div class="ptar-field">
-                    <label class="ptar-label" for="ptar-ml-carga">Metros lineales</label>
-                    <select id="ptar-ml-carga" data-ptar-ml class="ptar-select"></select>
-                </div>
-                <div class="ptar-field">
-                    <label class="ptar-label" for="ptar-peso-carga">Peso (toneladas)</label>
-                    <select id="ptar-peso-carga" data-ptar-peso class="ptar-select"></select>
+                <div class="ptar-pair">
+                    <div class="ptar-field">
+                        <label class="ptar-label" for="ptar-ml-carga">Metros lineales</label>
+                        <select id="ptar-ml-carga" data-ptar-ml class="ptar-select"></select>
+                    </div>
+                    <div class="ptar-field">
+                        <label class="ptar-label" for="ptar-peso-carga">Peso (toneladas)</label>
+                        <select id="ptar-peso-carga" data-ptar-peso class="ptar-select"></select>
+                    </div>
                 </div>
 
                 <div class="ptar-section-head">Fecha y entrega</div>
+                <div class="ptar-pair">
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-dia-carga">Fecha de carga (L-V)</label>
                     <div class="ptar-fecha-wrap">
@@ -2528,6 +2537,7 @@
                         <option value="estandar">1 a 2 días (estándar)</option>
                         <option value="flexible" selected>1 a 4 días (flexible, más económica)</option>
                     </select>
+                </div>
                 </div>
 
                 <div class="ptar-field ptar-field-full ptar-eta-field" data-ptar-eta-field>
@@ -2658,7 +2668,6 @@
                         <option value="tauliner" data-ml-max="13" data-peso-max="24">Trailer Tauliner · 13,2 m (más económico)</option>
                         <option value="rigido" data-ml-max="8" data-peso-max="14">Rígido 8 m con plataforma + transpalet (más caro)</option>
                     </select>
-                    <div class="ptar-camion-tip" data-ptar-camion-tip></div>
                 </div>
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-merca-presu">Tipo de mercancía</label>
@@ -2675,13 +2684,15 @@
                         <option>Balas / sacas sin palet (sucios) — NIMA requerido</option>
                     </select>
                 </div>
-                <div class="ptar-field">
-                    <label class="ptar-label" for="ptar-ml-presu">Metros lineales</label>
-                    <select id="ptar-ml-presu" data-ptar-ml class="ptar-select"></select>
-                </div>
-                <div class="ptar-field">
-                    <label class="ptar-label" for="ptar-peso-presu">Peso (toneladas)</label>
-                    <select id="ptar-peso-presu" data-ptar-peso class="ptar-select"></select>
+                <div class="ptar-pair">
+                    <div class="ptar-field">
+                        <label class="ptar-label" for="ptar-ml-presu">Metros lineales</label>
+                        <select id="ptar-ml-presu" data-ptar-ml class="ptar-select"></select>
+                    </div>
+                    <div class="ptar-field">
+                        <label class="ptar-label" for="ptar-peso-presu">Peso (toneladas)</label>
+                        <select id="ptar-peso-presu" data-ptar-peso class="ptar-select"></select>
+                    </div>
                 </div>
 
                 <div class="ptar-section-head">Entrega</div>
@@ -5451,8 +5462,6 @@
                 var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
                 fillMlSelect(mlSel, info.mlMax);
                 fillPesoSelect(pesoSel, info.pesoMax);
-                camionTip.textContent = info.label;
-                camionTip.classList.add('show');
                 renderOcupacion();
             }
             camionSel.addEventListener('change', applyCamion);
