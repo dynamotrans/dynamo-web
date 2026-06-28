@@ -1523,13 +1523,18 @@
             font: inherit; color: var(--gray-900); font-size: 0.9rem;
             cursor: pointer; transition: border-color 0.18s, box-shadow 0.18s;
         }
-        /* Select pequeño (Tipo origen / Tipo destino) bajo cada input de la ruta. */
+        /* Select pequeño (Tipo origen / Tipo destino). Va en la misma línea,
+           a la derecha del input de origen/destino (no en una fila debajo). */
         .ptar-select-sm {
-            margin-top: 0.4rem;
             padding: 0.42rem 0.6rem;
             font-size: 0.78rem;
             color: var(--gray-700);
             background: var(--gray-50);
+        }
+        .ptar-route-row { display: flex; gap: 0.5rem; align-items: stretch; }
+        .ptar-route-row .ptar-input-wrap { flex: 1 1 auto; min-width: 0; }
+        .ptar-route-row .ptar-select-sm {
+            flex: 0 0 auto; width: auto; min-width: 6.5rem; max-width: 48%; margin-top: 0;
         }
         .ptar-select:hover, .ptar-date:hover,
         .ptar-select:focus, .ptar-date:focus {
@@ -2445,38 +2450,41 @@
                 <div class="ptar-section-head">Ruta</div>
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-orig-carga">Origen *</label>
-                    <div class="ptar-input-wrap" data-ptar-orig-wrap>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        <input type="text" id="ptar-orig-carga" data-ptar-orig placeholder="CP o ciudad" autocomplete="off" inputmode="search">
-                        <ul class="ptar-sug" data-ptar-orig-sug hidden></ul>
+                    <div class="ptar-route-row">
+                        <div class="ptar-input-wrap" data-ptar-orig-wrap>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <input type="text" id="ptar-orig-carga" data-ptar-orig placeholder="CP o ciudad" autocomplete="off" inputmode="search">
+                            <ul class="ptar-sug" data-ptar-orig-sug hidden></ul>
+                        </div>
+                        <select id="ptar-tipoorig-carga" data-ptar-tipoorig class="ptar-select ptar-select-sm" aria-label="Tipo de origen">
+                            <option selected>Empresas / Almacenes / Naves</option>
+                            <option>Obras</option>
+                            <option>Zona urbana</option>
+                            <option>Eventos</option>
+                            <option>Fincas / zona Agrícola</option>
+                        </select>
                     </div>
-                    <select id="ptar-tipoorig-carga" data-ptar-tipoorig class="ptar-select ptar-select-sm" aria-label="Tipo de origen">
-                        <option value="" disabled selected>Tipo de origen…</option>
-                        <option>Empresas / Almacenes / Naves</option>
-                        <option>Obras</option>
-                        <option>Zona urbana</option>
-                        <option>Eventos</option>
-                        <option>Fincas / zona Agrícola</option>
-                    </select>
                 </div>
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-dest-carga">Destino *</label>
-                    <div class="ptar-input-wrap" data-ptar-dest-wrap>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-                        <input type="text" id="ptar-dest-carga" data-ptar-dest placeholder="CP o ciudad" autocomplete="off" inputmode="search">
-                        <ul class="ptar-sug" data-ptar-dest-sug hidden></ul>
+                    <div class="ptar-route-row">
+                        <div class="ptar-input-wrap" data-ptar-dest-wrap>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                            <input type="text" id="ptar-dest-carga" data-ptar-dest placeholder="CP o ciudad" autocomplete="off" inputmode="search">
+                            <ul class="ptar-sug" data-ptar-dest-sug hidden></ul>
+                        </div>
+                        <select id="ptar-tipodest-carga" data-ptar-tipodest class="ptar-select ptar-select-sm" aria-label="Tipo de destino">
+                            <option selected>Empresas / Almacenes / Naves</option>
+                            <option>Obras</option>
+                            <option>Zona urbana</option>
+                            <option>Eventos</option>
+                            <option>Fincas / zona Agrícola</option>
+                        </select>
                     </div>
-                    <select id="ptar-tipodest-carga" data-ptar-tipodest class="ptar-select ptar-select-sm" aria-label="Tipo de destino">
-                        <option value="" disabled selected>Tipo de destino…</option>
-                        <option>Empresas / Almacenes / Naves</option>
-                        <option>Obras</option>
-                        <option>Zona urbana</option>
-                        <option>Eventos</option>
-                        <option>Fincas / zona Agrícola</option>
-                    </select>
                 </div>
 
                 <div class="ptar-section-head">Carga</div>
+                <div class="ptar-pair">
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-camion-carga">Tipo de camión</label>
                     <select id="ptar-camion-carga" data-ptar-camion class="ptar-select">
@@ -2498,6 +2506,7 @@
                         <option>Balas / sacas sin palet (limpio) — NIMA requerido</option>
                         <option>Balas / sacas sin palet (sucios) — NIMA requerido</option>
                     </select>
+                </div>
                 </div>
 
                 <div class="ptar-pair">
@@ -2630,38 +2639,41 @@
                 <div class="ptar-section-head">Ruta</div>
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-orig-presu">Origen *</label>
-                    <div class="ptar-input-wrap" data-ptar-orig-wrap>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        <input type="text" id="ptar-orig-presu" data-ptar-orig placeholder="CP o ciudad" autocomplete="off" inputmode="search">
-                        <ul class="ptar-sug" data-ptar-orig-sug hidden></ul>
+                    <div class="ptar-route-row">
+                        <div class="ptar-input-wrap" data-ptar-orig-wrap>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <input type="text" id="ptar-orig-presu" data-ptar-orig placeholder="CP o ciudad" autocomplete="off" inputmode="search">
+                            <ul class="ptar-sug" data-ptar-orig-sug hidden></ul>
+                        </div>
+                        <select id="ptar-tipoorig-presu" data-ptar-tipoorig class="ptar-select ptar-select-sm" aria-label="Tipo de origen">
+                            <option selected>Empresas / Almacenes / Naves</option>
+                            <option>Obras</option>
+                            <option>Zona urbana</option>
+                            <option>Eventos</option>
+                            <option>Fincas / zona Agrícola</option>
+                        </select>
                     </div>
-                    <select id="ptar-tipoorig-presu" data-ptar-tipoorig class="ptar-select ptar-select-sm" aria-label="Tipo de origen">
-                        <option value="" disabled selected>Tipo de origen…</option>
-                        <option>Empresas / Almacenes / Naves</option>
-                        <option>Obras</option>
-                        <option>Zona urbana</option>
-                        <option>Eventos</option>
-                        <option>Fincas / zona Agrícola</option>
-                    </select>
                 </div>
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-dest-presu">Destino *</label>
-                    <div class="ptar-input-wrap" data-ptar-dest-wrap>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-                        <input type="text" id="ptar-dest-presu" data-ptar-dest placeholder="CP o ciudad" autocomplete="off" inputmode="search">
-                        <ul class="ptar-sug" data-ptar-dest-sug hidden></ul>
+                    <div class="ptar-route-row">
+                        <div class="ptar-input-wrap" data-ptar-dest-wrap>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                            <input type="text" id="ptar-dest-presu" data-ptar-dest placeholder="CP o ciudad" autocomplete="off" inputmode="search">
+                            <ul class="ptar-sug" data-ptar-dest-sug hidden></ul>
+                        </div>
+                        <select id="ptar-tipodest-presu" data-ptar-tipodest class="ptar-select ptar-select-sm" aria-label="Tipo de destino">
+                            <option selected>Empresas / Almacenes / Naves</option>
+                            <option>Obras</option>
+                            <option>Zona urbana</option>
+                            <option>Eventos</option>
+                            <option>Fincas / zona Agrícola</option>
+                        </select>
                     </div>
-                    <select id="ptar-tipodest-presu" data-ptar-tipodest class="ptar-select ptar-select-sm" aria-label="Tipo de destino">
-                        <option value="" disabled selected>Tipo de destino…</option>
-                        <option>Empresas / Almacenes / Naves</option>
-                        <option>Obras</option>
-                        <option>Zona urbana</option>
-                        <option>Eventos</option>
-                        <option>Fincas / zona Agrícola</option>
-                    </select>
                 </div>
 
                 <div class="ptar-section-head">Carga</div>
+                <div class="ptar-pair">
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-camion-presu">Tipo de camión</label>
                     <select id="ptar-camion-presu" data-ptar-camion class="ptar-select">
@@ -2684,6 +2696,8 @@
                         <option>Balas / sacas sin palet (sucios) — NIMA requerido</option>
                     </select>
                 </div>
+                </div>
+
                 <div class="ptar-pair">
                     <div class="ptar-field">
                         <label class="ptar-label" for="ptar-ml-presu">Metros lineales</label>
