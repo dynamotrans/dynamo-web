@@ -28,7 +28,7 @@ window.FESTIVOS = (function () {
     function key(d) { return (d.getMonth() + 1) + '-' + d.getDate(); }
 
     // Offsets desde el Domingo de Pascua (0) para los móviles.
-    var EO = { goodFri: -2, easterSun: 0, easterMon: 1, ascension: 39, whitSun: 49, whitMon: 50, corpus: 60 };
+    var EO = { holyThu: -3, goodFri: -2, easterSun: 0, easterMon: 1, ascension: 39, whitSun: 49, whitMon: 50, corpus: 60 };
 
     var COUNTRY_NAMES = {
         es: 'España', pt: 'Portugal', fr: 'Francia', de: 'Alemania', it: 'Italia',
@@ -40,7 +40,7 @@ window.FESTIVOS = (function () {
     var DATA = {
         es: {
             fixed: { '1-1': 'Año Nuevo', '1-6': 'Reyes', '5-1': 'Día del Trabajo', '8-15': 'Asunción', '10-12': 'Fiesta Nacional', '11-1': 'Todos los Santos', '12-6': 'Constitución', '12-8': 'Inmaculada', '12-25': 'Navidad' },
-            easter: [['goodFri', 'Viernes Santo']]
+            easter: [['holyThu', 'Jueves Santo'], ['goodFri', 'Viernes Santo']]
         },
         pt: {
             fixed: { '1-1': 'Año Nuevo', '4-25': 'Día de la Libertad', '5-1': 'Día del Trabajo', '6-10': 'Día de Portugal', '8-15': 'Asunción', '10-5': 'Día de la República', '11-1': 'Todos los Santos', '12-1': 'Restauración', '12-8': 'Inmaculada', '12-25': 'Navidad' },
