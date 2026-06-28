@@ -5548,6 +5548,19 @@
                 renderOcupacion();
             }
             camionSel.addEventListener('change', applyCamion);
+            // Trampilla elevadora → camión rígido (máx 8 m / 14 Tn).
+            // Sin trampilla → Tauliner (máx 13,2 m / 24 Tn).
+            var trampillaChk = card.querySelector('[data-ptar-trampilla]');
+            if (trampillaChk) {
+                trampillaChk.addEventListener('change', function () {
+                    var prevMl = mlSel.value, prevPeso = pesoSel.value;
+                    camionSel.value = trampillaChk.checked ? 'rigido' : 'tauliner';
+                    applyCamion();
+                    // Conserva la elección si sigue siendo válida con el nuevo máximo.
+                    if (prevMl && mlSel.querySelector('option[value="' + prevMl + '"]')) mlSel.value = prevMl;
+                    if (prevPeso && pesoSel.querySelector('option[value="' + prevPeso + '"]')) pesoSel.value = prevPeso;
+                });
+            }
             mlSel.addEventListener('change', function () { mlSel.classList.remove('ptar-select-error'); renderOcupacion(); });
             pesoSel.addEventListener('change', function () { pesoSel.classList.remove('ptar-select-error'); renderOcupacion(); });
 
