@@ -5938,6 +5938,10 @@
                 origWrap.classList.remove('ptar-error');
                 destWrap.classList.remove('ptar-error');
                 if (paradasBox) { paradasBox.innerHTML = ''; renumberParadas(); }
+                var tipoOrig = card.querySelector('[data-ptar-tipoorig]');
+                var tipoDest = card.querySelector('[data-ptar-tipodest]');
+                if (tipoOrig) tipoOrig.selectedIndex = 0;
+                if (tipoDest) tipoDest.selectedIndex = 0;
                 camionSel.value = 'tauliner';
                 mercaSel.selectedIndex = 0;
                 var tramp = card.querySelector('[data-ptar-trampilla]');
