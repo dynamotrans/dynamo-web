@@ -986,6 +986,13 @@
         .cesce-status-ok   { color: #b6f5cc; }
         .cesce-status-warn { color: #fde7a8; }
         .cesce-status-none { color: #ffc4c4; }
+        /* Aviso de pago previo con proforma cuando NO hay crédito (warn/none) */
+        .cesce-note {
+            font-size: 0.74rem; line-height: 1.5; font-weight: 500; color: #fde7a8;
+            background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35);
+            border-radius: 8px; padding: 0.5rem 0.65rem; margin: 0;
+        }
+        .cesce-note strong { color: #ffd98a; font-weight: 800; }
         @keyframes cescePulse {
             0%, 100% { box-shadow: 0 0 0 4px rgba(34,165,90,0.20); }
             50%      { box-shadow: 0 0 0 7px rgba(34,165,90,0.08); }
@@ -2132,6 +2139,7 @@
                     <span class="cesce-status-dot"></span>
                     <span class="cesce-status-text">Con crédito disponible</span>
                 </div>
+                <p class="cesce-note" hidden>Sin crédito disponible: la carga requiere <strong>pago previo con proforma</strong>. Una vez validado el cobro en cuenta, procedemos con la asignación del transporte. Esto <strong>ralentiza el proceso</strong> de cargas.</p>
             </div>
         </div>
 
@@ -3962,6 +3970,9 @@
         el.classList.add(conf.cls);
         var t = el.querySelector('.cesce-status-text');
         if (t) t.textContent = conf.txt;
+        // Sin crédito (warn/none) → mostrar aviso de pago previo con proforma
+        var note = document.querySelector('.cesce-note');
+        if (note) note.hidden = (s === 'ok');
     })();
 
     // Interceptor global de tel:
