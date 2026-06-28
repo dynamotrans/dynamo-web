@@ -5445,6 +5445,22 @@
             // desplegable). Si el usuario teclea sin pickear, el campo muestra
             // un placeholder pidiendo seleccionar del autocompletado.
             var etaBox = card.parentNode.querySelector('[data-ptar-eta-box]');
+            // Pide a la API (Nager.Date) los festivos regionales de un país+año
+            // y, cuando llegan, re-pinta el aviso. El flag evita bucle infinito:
+            // se marca ANTES del async, así el re-render no vuelve a lanzar fetch.
+            var etaEnsured = {};
+            function ensureFests(cc, year) {
+                if (!cc || !year || !window.FESTIVOS || !FESTIVOS.ensure) return;
+                var k = cc + '-' + year;
+                if (etaEnsured[k]) return;
+                etaEnsured[k] = true;
+                FESTIVOS.ensure(cc, year).then(function () { renderEta(); });
+            }
+            function ensureRange(cc, a, b) {
+                if (!cc || !a || !b) return;
+                ensureFests(cc, a.getFullYear());
+                if (b.getFullYear() !== a.getFullYear()) ensureFests(cc, b.getFullYear());
+            }
             function renderEta() {
                 if (!etaBox) return;
                 var oLat = origWrap.dataset.lat, oLon = origWrap.dataset.lon;
@@ -5495,7 +5511,12 @@
                     cargaHtml = '<dt>Carga (ventana)</dt><dd class="ptar-eta-stat">' + cargaTxt + '</dd>';
                     var etaStart = addBusinessDays(loadStart, driveDays);
                     var etaEnd   = addBusinessDays(loadEnd, driveDays);
-                    // Avisos de festivo nacional en origen (carga) y destino (entrega).
+                    // Enriquecer con festivos regionales (API, front). Al llegar
+                    // re-pinta este aviso con lo que falte del local.
+                    ensureRange(origWrap.dataset.cc, loadStart, loadEnd);
+                    ensureRange(destWrap.dataset.cc, etaStart, etaEnd);
+                    // Avisos de festivo (nacional local + regional de la API) en
+                    // origen (carga) y destino (entrega).
                     var avisos = [];
                     holsInRange(origWrap.dataset.cc, loadStart, loadEnd).forEach(function (h) {
                         avisos.push('Origen (' + FESTIVOS.countryName(origWrap.dataset.cc) + '): ' + h.name + ' el ' + fmtEtaDate(h.d));

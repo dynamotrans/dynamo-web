@@ -88,8 +88,9 @@ window.FESTIVOS = (function () {
         }
     };
 
-    // Festivo nacional del país `cc` en la fecha `date` → nombre o null.
-    function get(cc, date) {
+    // Festivo NACIONAL local del país `cc` en la fecha `date` → nombre o null.
+    // Esta es la fuente de la verdad: instantánea, offline, siempre disponible.
+    function getLocal(cc, date) {
         cc = (cc || '').toLowerCase();
         var c = DATA[cc];
         if (!c || !date) return null;
@@ -105,8 +106,69 @@ window.FESTIVOS = (function () {
         return null;
     }
 
+    /* -----------------------------------------------------------------
+       CAPA OPCIONAL — enriquecer con festivos REGIONALES vía Nager.Date.
+       Se llama desde el front (navegador) con FESTIVOS.ensure(cc, year).
+       - Dedupe: solo se guardan fechas que NO estén ya en el local
+         (Navidad, Año Nuevo… nunca se duplican → manda el local).
+       - Los regionales se etiquetan "(regional)" porque solo conocemos
+         el PAÍS, no la provincia exacta: puede no aplicar a la zona.
+       - Caché en localStorage 30 días por país+año (1 sola petición).
+       - Si la API falla / no hay red / CORS → se ignora y queda el local
+         (degradación limpia: el aviso es informativo, no bloquea nada).
+       ----------------------------------------------------------------- */
+    var apiCache = {}; // apiCache[cc][year] = { 'M-D': 'Nombre (regional)' }
+
+    function ensure(cc, year) {
+        cc = (cc || '').toLowerCase();
+        if (!cc || !year || !DATA[cc]) return Promise.resolve({});
+        if (!apiCache[cc]) apiCache[cc] = {};
+        if (apiCache[cc][year]) return Promise.resolve(apiCache[cc][year]);
+        var lsKey = 'festivos_api_' + cc + '_' + year;
+        try {
+            var raw = localStorage.getItem(lsKey);
+            if (raw) {
+                var o = JSON.parse(raw);
+                if (o && o.exp > Date.now() && o.map) { apiCache[cc][year] = o.map; return Promise.resolve(o.map); }
+            }
+        } catch (e) {}
+        if (typeof fetch !== 'function') { apiCache[cc][year] = {}; return Promise.resolve({}); }
+        var url = 'https://date.nager.at/api/v3/PublicHolidays/' + year + '/' + cc.toUpperCase();
+        return fetch(url)
+            .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+            .then(function (list) {
+                var map = {};
+                (list || []).forEach(function (h) {
+                    if (!h || !h.date) return;
+                    var p = h.date.split('-');
+                    var d = new Date(+p[0], +p[1] - 1, +p[2]);
+                    if (getLocal(cc, d)) return;          // ya está en el local → no duplicar
+                    var k = key(d);
+                    if (map[k]) return;                   // primera ocurrencia del día
+                    var nm = h.localName || h.name || 'Festivo';
+                    if (h.global === false) nm += ' (regional)';
+                    map[k] = nm;
+                });
+                apiCache[cc][year] = map;
+                try { localStorage.setItem(lsKey, JSON.stringify({ exp: Date.now() + 2592000000, map: map })); } catch (e) {}
+                return map;
+            })
+            .catch(function () { apiCache[cc][year] = {}; return {}; });
+    }
+
+    // Festivo del país `cc` en `date` → nombre o null.
+    // Local (nacional) primero; si no, regional cacheado de la API.
+    function get(cc, date) {
+        cc = (cc || '').toLowerCase();
+        var local = getLocal(cc, date);
+        if (local) return local;
+        if (!date) return null;
+        var ext = apiCache[cc] && apiCache[cc][date.getFullYear()];
+        return (ext && ext[key(date)]) || null;
+    }
+
     function countryName(cc) { return COUNTRY_NAMES[(cc || '').toLowerCase()] || cc || ''; }
     function supported(cc) { return !!DATA[(cc || '').toLowerCase()]; }
 
-    return { get: get, countryName: countryName, supported: supported, easterSunday: easterSunday };
+    return { get: get, getLocal: getLocal, ensure: ensure, countryName: countryName, supported: supported, easterSunday: easterSunday };
 })();
