@@ -1570,6 +1570,8 @@
         }
         .ptar-add-parada:hover { background: rgba(51,0,204,0.05); border-color: var(--purple); }
         .ptar-add-parada svg { width: 16px; height: 16px; }
+        .ptar-add-paradas-row { display: flex; gap: 0.5rem; }
+        .ptar-add-paradas-row .ptar-add-parada { flex: 1 1 0; }
         .ptar-parada-del {
             flex: 0 0 auto; width: 30px; height: 44px; border: none; background: none;
             color: #9aa0aa; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
@@ -2551,10 +2553,16 @@
                 </div>
                 <div class="ptar-field-full ptar-paradas-wrap">
                     <div data-ptar-paradas></div>
-                    <button type="button" class="ptar-add-parada" data-ptar-add-parada>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        Añadir parada (máx. 4)
-                    </button>
+                    <div class="ptar-add-paradas-row">
+                        <button type="button" class="ptar-add-parada" data-ptar-add-recogida>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Añadir recogida
+                        </button>
+                        <button type="button" class="ptar-add-parada" data-ptar-add-entrega>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Añadir entrega
+                        </button>
+                    </div>
                 </div>
 
                 <div class="ptar-section-head">Carga</div>
@@ -2741,10 +2749,16 @@
                 </div>
                 <div class="ptar-field-full ptar-paradas-wrap">
                     <div data-ptar-paradas></div>
-                    <button type="button" class="ptar-add-parada" data-ptar-add-parada>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        Añadir parada (máx. 4)
-                    </button>
+                    <div class="ptar-add-paradas-row">
+                        <button type="button" class="ptar-add-parada" data-ptar-add-recogida>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Añadir recogida
+                        </button>
+                        <button type="button" class="ptar-add-parada" data-ptar-add-entrega>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Añadir entrega
+                        </button>
+                    </div>
                 </div>
 
                 <div class="ptar-section-head">Carga</div>
@@ -5830,51 +5844,60 @@
             bindAutocomplete(origWrap, origInput, origSug, renderEta);
             bindAutocomplete(destWrap, destInput, destSug, renderEta);
 
-            // --- Paradas intermedias (hasta 4, mismo esquema que origen/destino) ---
+            // --- Paradas adicionales: recogidas (origen adicional) o entregas
+            //     (destino adicional). Mismo formato que origen/destino, con su
+            //     selector de tipo (Almacén/Obra/…). Hasta 4 en total. ---
             var paradasBox = card.querySelector('[data-ptar-paradas]');
-            var addParadaBtn = card.querySelector('[data-ptar-add-parada]');
-            var PARADA_TIPOS = ['Recogida', 'Entrega'];
+            var addRecBtn = card.querySelector('[data-ptar-add-recogida]');
+            var addEntBtn = card.querySelector('[data-ptar-add-entrega]');
+            var PARADA_TIPOS = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento', 'Finca / Agrícola'];
             function paradaRows() {
                 return paradasBox ? Array.prototype.slice.call(paradasBox.querySelectorAll('[data-ptar-parada]')) : [];
             }
             function paradaWraps() {
                 return paradaRows().map(function (r) { return r.querySelector('.ptar-input-wrap'); });
             }
-            function renumberParadas() {
-                paradaRows().forEach(function (r, i) {
-                    var inp = r.querySelector('input'), sel = r.querySelector('select');
-                    if (inp) { inp.placeholder = 'Parada ' + (i + 1) + ' · CP o ciudad'; inp.setAttribute('aria-label', 'Parada ' + (i + 1)); }
-                    if (sel) sel.setAttribute('aria-label', 'Tipo parada ' + (i + 1));
-                });
-                if (addParadaBtn) addParadaBtn.style.display = (paradaRows().length >= 4) ? 'none' : '';
+            function syncAddBtns() {
+                var full = paradaRows().length >= 4;
+                if (addRecBtn) addRecBtn.style.display = full ? 'none' : '';
+                if (addEntBtn) addEntBtn.style.display = full ? 'none' : '';
             }
-            function addParada() {
+            // Alias usado por reset/del (mantiene compatibilidad de nombre).
+            function renumberParadas() { syncAddBtns(); }
+            function addParada(kind) {
                 if (!paradasBox || paradaRows().length >= 4) return;
+                var esRec = kind === 'recogida';
                 var row = document.createElement('div');
                 row.className = 'ptar-field ptar-parada-row';
                 row.setAttribute('data-ptar-parada', '');
+                row.setAttribute('data-kind', kind);
                 var opts = PARADA_TIPOS.map(function (o, i) { return '<option' + (i === 0 ? ' selected' : '') + '>' + o + '</option>'; }).join('');
+                var icon = esRec
+                    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
+                    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>';
+                var ph = esRec ? 'Recogida · CP o ciudad' : 'Entrega · CP o ciudad';
+                var aria = esRec ? 'Recogida (origen adicional)' : 'Entrega (destino adicional)';
                 row.innerHTML =
                     '<div class="ptar-route-row">' +
-                        '<div class="ptar-input-wrap">' +
-                            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v5M12 17v5"/></svg>' +
-                            '<input type="text" autocomplete="off" inputmode="search">' +
+                        '<div class="ptar-input-wrap">' + icon +
+                            '<input type="text" autocomplete="off" inputmode="search" placeholder="' + ph + '" aria-label="' + aria + '">' +
                             '<ul class="ptar-sug" hidden></ul>' +
                         '</div>' +
-                        '<select class="ptar-select ptar-select-sm">' + opts + '</select>' +
-                        '<button type="button" class="ptar-parada-del" aria-label="Quitar parada"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
+                        '<select class="ptar-select ptar-select-sm" aria-label="Tipo de ' + (esRec ? 'recogida' : 'entrega') + '">' + opts + '</select>' +
+                        '<button type="button" class="ptar-parada-del" aria-label="Quitar"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
                     '</div>';
                 paradasBox.appendChild(row);
                 bindAutocomplete(row.querySelector('.ptar-input-wrap'), row.querySelector('input'), row.querySelector('.ptar-sug'), renderEta);
                 row.querySelector('.ptar-parada-del').addEventListener('click', function () {
                     paradasBox.removeChild(row);
-                    renumberParadas();
+                    syncAddBtns();
                     renderEta();
                 });
-                renumberParadas();
+                syncAddBtns();
                 row.querySelector('input').focus();
             }
-            if (addParadaBtn) addParadaBtn.addEventListener('click', addParada);
+            if (addRecBtn) addRecBtn.addEventListener('click', function () { addParada('recogida'); });
+            if (addEntBtn) addEntBtn.addEventListener('click', function () { addParada('entrega'); });
             if (urgenciaSel) urgenciaSel.addEventListener('change', renderEta);
             // Al cambiar la ventana, recalcula las fechas disponibles (el corte
             // de las 14:00 y "hoy/mañana" dependen de la ventana). Si la fecha ya
@@ -6041,7 +6064,7 @@
                     refCli: refCliInput.value.trim() || (mode === 'carga' ? 'PED-NUEVO' : 'COT-NUEVO'),
                     notes: notesTxt.value.trim(),
                     paradas: paradaRows().map(function (r) {
-                        return { texto: (r.querySelector('input').value || '').trim(), tipo: r.querySelector('select').value };
+                        return { texto: (r.querySelector('input').value || '').trim(), tipo: r.querySelector('select').value, kind: r.getAttribute('data-kind') };
                     }).filter(function (p) { return p.texto; })
                 };
             }
@@ -6129,9 +6152,9 @@
                 summaryEl.innerHTML =
                     '<dt>Origen</dt><dd>' + escapeHtml(d.orig) + '</dd>' +
                     (d.paradas && d.paradas.length
-                        ? d.paradas.map(function (p, i) {
-                            var tipoTxt = p.tipo === 'Recogida' ? 'Recogida (origen adicional)' : 'Entrega (destino adicional)';
-                            return '<dt>Parada ' + (i + 1) + '</dt><dd>' + escapeHtml(p.texto) + ' · ' + tipoTxt + '</dd>';
+                        ? d.paradas.map(function (p) {
+                            var k = p.kind === 'recogida' ? 'Recogida (origen adicional)' : 'Entrega (destino adicional)';
+                            return '<dt>' + k + '</dt><dd>' + escapeHtml(p.texto) + ' · ' + escapeHtml(p.tipo) + '</dd>';
                         }).join('')
                         : '') +
                     '<dt>Destino</dt><dd>' + escapeHtml(d.dest) + '</dd>' +
