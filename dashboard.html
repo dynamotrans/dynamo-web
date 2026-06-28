@@ -2424,8 +2424,8 @@
                     <label class="ptar-label" for="ptar-urgencia-carga">Ventana de carga</label>
                     <select id="ptar-urgencia-carga" data-ptar-urgencia class="ptar-select">
                         <option value="dia">Fecha fija (un día concreto, más cara)</option>
-                        <option value="estandar" selected>1 a 2 días (estándar)</option>
-                        <option value="flexible">1 a 4 días (flexible, más económica)</option>
+                        <option value="estandar">1 a 2 días (estándar)</option>
+                        <option value="flexible" selected>1 a 4 días (flexible, más económica)</option>
                     </select>
                     <p class="ptar-field-hint">Días <strong>laborables consecutivos</strong> a partir del día indicado. Sábados, domingos y festivos quedan excluidos automáticamente.</p>
                 </div>
@@ -2570,8 +2570,8 @@
                     <label class="ptar-label" for="ptar-urgencia-presu">Ventana de carga</label>
                     <select id="ptar-urgencia-presu" data-ptar-urgencia class="ptar-select">
                         <option value="dia">Fecha fija (un día concreto, más cara)</option>
-                        <option value="estandar" selected>1 a 2 días (estándar)</option>
-                        <option value="flexible">1 a 4 días (flexible, más económica)</option>
+                        <option value="estandar">1 a 2 días (estándar)</option>
+                        <option value="flexible" selected>1 a 4 días (flexible, más económica)</option>
                     </select>
                     <p class="ptar-field-hint">Días <strong>laborables consecutivos</strong>. Sábados, domingos y festivos no cuentan: no operamos en transporte ni entrega.</p>
                 </div>
@@ -5518,7 +5518,7 @@
                 mercaSel.selectedIndex = 0;
                 applyCamion();
                 if (diaSel) { fillDiaSelect(diaSel, mode); syncNofechaWarn(); }
-                urgenciaSel.value = 'estandar';
+                urgenciaSel.value = 'flexible';
                 refCliInput.value = '';
                 notesTxt.value = '';
                 notesCount.textContent = '0';
