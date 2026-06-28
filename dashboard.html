@@ -1477,6 +1477,31 @@
             display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem 0.8rem;
         }
         .ptar-pair > .ptar-field { min-width: 0; }
+        /* Toggle on/off "Requiere trampilla elevadora" (con icono + nota sobrecoste). */
+        .ptar-tramp {
+            display: flex; align-items: center; justify-content: space-between; gap: 0.8rem;
+            padding: 0.7rem 0.9rem; border: 1.5px solid var(--gray-200); border-radius: 10px;
+            background: var(--gray-50); cursor: pointer;
+        }
+        .ptar-tramp-info { display: flex; align-items: center; gap: 0.65rem; min-width: 0; }
+        .ptar-tramp-ico { width: 26px; height: 26px; color: var(--purple); flex-shrink: 0; }
+        .ptar-tramp-txt { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+        .ptar-tramp-txt strong { font-size: 0.9rem; color: var(--navy); font-weight: 700; }
+        .ptar-tramp-sub { font-size: 0.74rem; color: var(--gray-500); line-height: 1.35; }
+        .ptar-tramp-sub em { color: #b45309; font-style: normal; font-weight: 700; }
+        .ptar-switch-input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .ptar-switch {
+            flex-shrink: 0; width: 44px; height: 26px; border-radius: 999px;
+            background: #cbd0d8; position: relative; transition: background 0.18s;
+        }
+        .ptar-switch::after {
+            content: ''; position: absolute; top: 3px; left: 3px;
+            width: 20px; height: 20px; border-radius: 50%; background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: transform 0.18s;
+        }
+        .ptar-switch-input:checked + .ptar-switch { background: var(--green); }
+        .ptar-switch-input:checked + .ptar-switch::after { transform: translateX(18px); }
+        .ptar-switch-input:focus-visible + .ptar-switch { box-shadow: 0 0 0 3px rgba(51,0,204,0.18); }
         /* Cabecera de bloque dentro del tarifador (Ruta / Carga / Fecha y entrega).
            Ocupa toda la fila del grid y separa visualmente sin trocear el form. */
         .ptar-section-head {
@@ -2484,15 +2509,7 @@
                 </div>
 
                 <div class="ptar-section-head">Carga</div>
-                <div class="ptar-pair">
-                <div class="ptar-field">
-                    <label class="ptar-label" for="ptar-camion-carga">Tipo de camión</label>
-                    <select id="ptar-camion-carga" data-ptar-camion class="ptar-select">
-                        <option value="tauliner" data-ml-max="13" data-peso-max="24">Trailer Tauliner · 13,2 m (más económico)</option>
-                        <option value="rigido" data-ml-max="8" data-peso-max="14">Rígido 8 m con plataforma + transpalet (más caro)</option>
-                    </select>
-                </div>
-                <div class="ptar-field">
+                <div class="ptar-field ptar-field-full">
                     <label class="ptar-label" for="ptar-merca-carga">Tipo de mercancía</label>
                     <select id="ptar-merca-carga" data-ptar-merca class="ptar-select">
                         <option>Paletizado mercancía general — almacén a almacén (por lateral)</option>
@@ -2506,7 +2523,20 @@
                         <option>Balas / sacas sin palet (limpio) — NIMA requerido</option>
                         <option>Balas / sacas sin palet (sucios) — NIMA requerido</option>
                     </select>
+                    <input type="hidden" data-ptar-camion value="tauliner">
                 </div>
+                <div class="ptar-field ptar-field-full">
+                    <label class="ptar-tramp">
+                        <span class="ptar-tramp-info">
+                            <svg class="ptar-tramp-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M6 21v-5h12v5"/><path d="M12 13V3"/><path d="M8 7l4-4 4 4"/></svg>
+                            <span class="ptar-tramp-txt">
+                                <strong>Requiere trampilla elevadora</strong>
+                                <span class="ptar-tramp-sub">Para carga/descarga sin muelle. <em>Supone un sobrecoste.</em></span>
+                            </span>
+                        </span>
+                        <input type="checkbox" data-ptar-trampilla class="ptar-switch-input">
+                        <span class="ptar-switch" aria-hidden="true"></span>
+                    </label>
                 </div>
 
                 <div class="ptar-pair">
@@ -2680,15 +2710,7 @@
                 </div>
 
                 <div class="ptar-section-head">Carga</div>
-                <div class="ptar-pair">
-                <div class="ptar-field">
-                    <label class="ptar-label" for="ptar-camion-presu">Tipo de camión</label>
-                    <select id="ptar-camion-presu" data-ptar-camion class="ptar-select">
-                        <option value="tauliner" data-ml-max="13" data-peso-max="24">Trailer Tauliner · 13,2 m (más económico)</option>
-                        <option value="rigido" data-ml-max="8" data-peso-max="14">Rígido 8 m con plataforma + transpalet (más caro)</option>
-                    </select>
-                </div>
-                <div class="ptar-field">
+                <div class="ptar-field ptar-field-full">
                     <label class="ptar-label" for="ptar-merca-presu">Tipo de mercancía</label>
                     <select id="ptar-merca-presu" data-ptar-merca class="ptar-select">
                         <option>Paletizado mercancía general — almacén a almacén (por lateral)</option>
@@ -2702,7 +2724,20 @@
                         <option>Balas / sacas sin palet (limpio) — NIMA requerido</option>
                         <option>Balas / sacas sin palet (sucios) — NIMA requerido</option>
                     </select>
+                    <input type="hidden" data-ptar-camion value="tauliner">
                 </div>
+                <div class="ptar-field ptar-field-full">
+                    <label class="ptar-tramp">
+                        <span class="ptar-tramp-info">
+                            <svg class="ptar-tramp-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M6 21v-5h12v5"/><path d="M12 13V3"/><path d="M8 7l4-4 4 4"/></svg>
+                            <span class="ptar-tramp-txt">
+                                <strong>Requiere trampilla elevadora</strong>
+                                <span class="ptar-tramp-sub">Para carga/descarga sin muelle. <em>Supone un sobrecoste.</em></span>
+                            </span>
+                        </span>
+                        <input type="checkbox" data-ptar-trampilla class="ptar-switch-input">
+                        <span class="ptar-switch" aria-hidden="true"></span>
+                    </label>
                 </div>
 
                 <div class="ptar-pair">
@@ -5712,8 +5747,6 @@
                 }
                 etaBox.innerHTML =
                     '<dl class="ptar-eta-data">' +
-                    '<dt>Distancia ≈</dt><dd class="ptar-eta-stat">' + Math.round(dist) + ' km</dd>' +
-                    '<dt>Tracción ≈</dt><dd class="ptar-eta-stat">' + driveTxt + ' (a ~' + KM_POR_DIA + ' km/día)</dd>' +
                     cargaHtml +
                     (rangoHtml ? '<dt>Entrega estimada</dt>' + rangoHtml : '') +
                     '</dl>';
@@ -5787,6 +5820,8 @@
                 destWrap.classList.remove('ptar-error');
                 camionSel.value = 'tauliner';
                 mercaSel.selectedIndex = 0;
+                var tramp = card.querySelector('[data-ptar-trampilla]');
+                if (tramp) tramp.checked = false;
                 applyCamion();
                 if (diaSel) { fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'flexible'); syncNofechaWarn(); }
                 urgenciaSel.value = 'flexible';
