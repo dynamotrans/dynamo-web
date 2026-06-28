@@ -5710,6 +5710,23 @@
             // un placeholder pidiendo seleccionar del autocompletado.
             var etaBox = card.parentNode.querySelector('[data-ptar-eta-box]');
             var festBox = card.querySelector('[data-ptar-fest-box]');
+            // --- Efecto contador del precio (rolling number) ---
+            var lastPrice = 0, priceRaf = null;
+            function animatePrice(el, from, to) {
+                if (priceRaf) cancelAnimationFrame(priceRaf);
+                if (from === to) { el.textContent = to.toLocaleString('es-ES'); return; }
+                var dur = 480, t0 = null;
+                function step(ts) {
+                    if (t0 === null) t0 = ts;
+                    var t = Math.min(1, (ts - t0) / dur);
+                    var ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
+                    var val = Math.round((from + (to - from) * ease) / 10) * 10;
+                    el.textContent = val.toLocaleString('es-ES');
+                    if (t < 1) { priceRaf = requestAnimationFrame(step); }
+                    else { el.textContent = to.toLocaleString('es-ES'); priceRaf = null; }
+                }
+                priceRaf = requestAnimationFrame(step);
+            }
             // Pide a la API (Nager.Date) los festivos regionales de un país+año
             // y, cuando llegan, re-pinta el aviso. El flag evita bucle infinito:
             // se marca ANTES del async, así el re-render no vuelve a lanzar fetch.
@@ -5763,7 +5780,8 @@
                 if (trampOn && trampOn.checked) precio += 60;
                 precio += paradaRows().length * 40;
                 precio = Math.round(precio / 10) * 10;
-                var precioHtml = '<dt>Precio</dt><dd class="ptar-eta-precio">' + precio.toLocaleString('es-ES') + ' € <span>(IVA 21% no incluido)</span></dd>';
+                // El número arranca en el valor anterior y se anima (contador) al nuevo.
+                var precioHtml = '<dt>Precio</dt><dd class="ptar-eta-precio"><span data-precio-num>' + lastPrice.toLocaleString('es-ES') + '</span> € <span>(IVA 21% no incluido)</span></dd>';
 
                 // Lectura de la fecha de carga (si la sección tiene día)
                 var loadStart = null;
@@ -5834,6 +5852,10 @@
                     (rangoHtml ? '<dt>Entrega estimada</dt>' + rangoHtml : '') +
                     precioHtml +
                     '</dl>';
+                // Efecto contador: anima el número desde el precio anterior al nuevo.
+                var pnum = etaBox.querySelector('[data-precio-num]');
+                if (pnum) animatePrice(pnum, lastPrice, precio);
+                lastPrice = precio;
                 if (festBox) festBox.innerHTML = festHtml;  // aviso de festivo fuera de la caja, antes de referencia
             }
 
