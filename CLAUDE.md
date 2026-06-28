@@ -194,6 +194,11 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 
 **Pendiente opcional**: festivos **regionales con subdivisión exacta** (mapear provincia del origen/destino vía Nominatim `address.state` a código ISO para no sobre-avisar); locales/municipales (Feria de Sevilla) NO los cubre ni Nager.
 
+**CESCE — aviso de proforma en icono ℹ con tooltip** (dashboard, preview `748604e` / lab `0af4c96`):
+- Problema: el aviso "sin crédito → pago previo con proforma" era un **párrafo inline** que agrandaba la `cesce-card`; como las 3 cajas de la fila superior comparten altura (`dash-top-row`, `align-items:stretch`), **deformaba los botones** Nueva carga / Nuevo presupuesto (se hacían enormes).
+- Solución: el texto pasa a un **icono ℹ** junto al estado de cobertura, con el mensaje en **tooltip** al hover/focus (tarjeta ámbar flotante, `position:absolute`, sin ocupar layout). El icono **solo aparece sin crédito** (`?cesce=warn|none`); con `ok` oculto. JS togglea `.cesce-info` en vez del antiguo `.cesce-note`.
+- Solo portal (preview/lab). No toca producción.
+
 ### 2026-06-27 (sesión 2) — Claude Code web (nube)
 
 > **Lema de marca "Dynamo. Always Moving."** + banner que alterna + refinos del popup de horarios. Todo web pública → `main` + cascada lab.
