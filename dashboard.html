@@ -1081,7 +1081,7 @@
         .dash-ctas { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.4rem; }
         .dash-top-row {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 1rem; margin-bottom: 1.4rem;
             align-items: stretch;
         }
@@ -1890,7 +1890,7 @@
             .mini-lists { grid-template-columns: 1fr; }
             /* Mantenemos las 3 cajas exactamente iguales. Apretamos gap
                y ocultamos los subtítulos de las CTAs. */
-            .dash-top-row { grid-template-columns: repeat(3, 1fr); gap: 0.7rem; }
+            .dash-top-row { grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
             .dash-top-row .dash-cta-text p { display: none; }
         }
         @media (max-width: 768px) {
@@ -1958,7 +1958,7 @@
             .stats-row-3 .stat-card-trend { font-size: 0.55rem; }
             table.data { min-width: 620px; }
             /* Mismo ancho también en móviles muy estrechos */
-            .dash-top-row { gap: 0.4rem; grid-template-columns: repeat(3, 1fr); }
+            .dash-top-row { gap: 0.4rem; grid-template-columns: repeat(2, 1fr); }
             .dash-top-row .dash-cta { padding: 0.7rem 0.4rem; }
             .dash-top-row .dash-cta-text h4 { font-size: 0.7rem; }
             .dash-top-row .cesce-card { padding: 0.6rem; }
@@ -2288,17 +2288,8 @@
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
                 </div>
                 <div class="dash-cta-text">
-                    <h4>Nueva carga</h4>
+                    <h4>Nuevo envío</h4>
                     <p>Solicita un transporte</p>
-                </div>
-            </a>
-            <a class="dash-cta dash-cta-green" href="#" onclick="showSection('nuevo-presupuesto');return false;">
-                <div class="dash-cta-icon">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                </div>
-                <div class="dash-cta-text">
-                    <h4>Nuevo presupuesto</h4>
-                    <p>Pedir un precio sin compromiso (vigente 7 días)</p>
                 </div>
             </a>
             <!-- CESCE: solo se muestra el ESTADO de cobertura al cliente
@@ -2524,7 +2515,7 @@
     <!-- ==================== NUEVA CARGA ==================== -->
     <section class="section" id="sec-nueva-carga">
         <div class="sec-header">
-            <h2>Nueva carga</h2>
+            <h2>Nuevo envío</h2>
             <button type="button" class="btn-ghost ptar-reset-btn" data-ptar-reset title="Limpiar formulario">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <polyline points="23 4 23 10 17 10"/>
@@ -2537,7 +2528,7 @@
 
             <div class="ptar-grid">
                 <div class="ptar-section-head">Ruta</div>
-                <div class="ptar-field">
+                <div class="ptar-field ptar-field-full">
                     <div class="ptar-route-row">
                         <div class="ptar-input-wrap" data-ptar-orig-wrap>
                             <span class="ptar-route-num rec" data-route-num>1</span>
@@ -2554,7 +2545,8 @@
                         </select>
                     </div>
                 </div>
-                <div class="ptar-field">
+                <div class="ptar-field-full" data-ptar-recogidas></div>
+                <div class="ptar-field ptar-field-full">
                     <div class="ptar-route-row">
                         <div class="ptar-input-wrap" data-ptar-dest-wrap>
                             <span class="ptar-route-num ent" data-route-num>2</span>
@@ -2571,7 +2563,7 @@
                         </select>
                     </div>
                 </div>
-                <div class="ptar-field-full ptar-paradas-wrap" data-ptar-paradas></div>
+                <div class="ptar-field-full" data-ptar-entregas></div>
 
                 <div class="ptar-section-head">Carga</div>
                 <div class="ptar-pair">
@@ -2723,7 +2715,7 @@
 
             <div class="ptar-grid">
                 <div class="ptar-section-head">Ruta</div>
-                <div class="ptar-field">
+                <div class="ptar-field ptar-field-full">
                     <div class="ptar-route-row">
                         <div class="ptar-input-wrap" data-ptar-orig-wrap>
                             <span class="ptar-route-num rec" data-route-num>1</span>
@@ -2740,7 +2732,8 @@
                         </select>
                     </div>
                 </div>
-                <div class="ptar-field">
+                <div class="ptar-field-full" data-ptar-recogidas></div>
+                <div class="ptar-field ptar-field-full">
                     <div class="ptar-route-row">
                         <div class="ptar-input-wrap" data-ptar-dest-wrap>
                             <span class="ptar-route-num ent" data-route-num>2</span>
@@ -2757,7 +2750,7 @@
                         </select>
                     </div>
                 </div>
-                <div class="ptar-field-full ptar-paradas-wrap" data-ptar-paradas></div>
+                <div class="ptar-field-full" data-ptar-entregas></div>
 
                 <div class="ptar-section-head">Carga</div>
                 <div class="ptar-pair">
@@ -5757,12 +5750,12 @@
                         '</span>';
                     return;
                 }
-                // Distancia por tramos: origen → paradas (con coords) → destino.
-                var pts = [{ lat: parseFloat(oLat), lon: parseFloat(oLon) }];
-                paradaWraps().forEach(function (w) {
+                // Distancia por tramos en orden de recorrido:
+                // origen → recogidas → destino → entregas (solo puntos con coords).
+                var pts = [];
+                routeWraps().forEach(function (w) {
                     if (w && w.dataset.lat) pts.push({ lat: parseFloat(w.dataset.lat), lon: parseFloat(w.dataset.lon) });
                 });
-                pts.push({ lat: parseFloat(dLat), lon: parseFloat(dLon) });
                 var dist = 0;
                 for (var pi = 0; pi < pts.length - 1; pi++) dist += haversineKm(pts[pi], pts[pi + 1]);
                 dist *= ROAD_FACTOR;
@@ -5862,23 +5855,26 @@
             // --- Paradas adicionales: recogidas (origen adicional) o entregas
             //     (destino adicional). Mismo formato que origen/destino, con su
             //     selector de tipo (Almacén/Obra/…). Hasta 4 en total. ---
-            var paradasBox = card.querySelector('[data-ptar-paradas]');
+            var recBox = card.querySelector('[data-ptar-recogidas]'); // tras origen
+            var entBox = card.querySelector('[data-ptar-entregas]');  // tras destino
             var origPlus = null, destPlus = null; // botones "+" de origen/destino
             var PARADA_TIPOS = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento', 'Finca / Agrícola'];
-            function paradaRows() {
-                return paradasBox ? Array.prototype.slice.call(paradasBox.querySelectorAll('[data-ptar-parada]')) : [];
+            function rowsOf(box) { return box ? Array.prototype.slice.call(box.querySelectorAll('[data-ptar-parada]')) : []; }
+            function recRows() { return rowsOf(recBox); }
+            function entRows() { return rowsOf(entBox); }
+            function paradaRows() { return recRows().concat(entRows()); } // total
+            function wrapsWithGeo(rows) {
+                return rows.map(function (r) { return r.querySelector('.ptar-input-wrap'); });
             }
-            function paradaWraps() {
-                return paradaRows().map(function (r) { return r.querySelector('.ptar-input-wrap'); });
+            // Recorrido: origen → recogidas → destino → entregas.
+            function routeWraps() {
+                return [origWrap].concat(wrapsWithGeo(recRows()), [destWrap], wrapsWithGeo(entRows()));
             }
-            // Número de orden del recorrido: 1 = origen, 2.. = paradas, último = destino.
             function renumberRoute() {
-                var n = 1;
-                var ob = origWrap.querySelector('[data-route-num]'); if (ob) ob.textContent = n++;
-                paradaRows().forEach(function (r) {
-                    var b = r.querySelector('[data-route-num]'); if (b) b.textContent = n++;
+                var seq = [origWrap].concat(recRows(), [destWrap], entRows());
+                seq.forEach(function (el, i) {
+                    var b = el.querySelector('[data-route-num]'); if (b) b.textContent = (i + 1);
                 });
-                var db = destWrap.querySelector('[data-route-num]'); if (db) db.textContent = n;
             }
             function syncAddBtns() {
                 var full = paradaRows().length >= 4;
@@ -5889,10 +5885,11 @@
             // Alias usado por reset/del (mantiene compatibilidad de nombre).
             function renumberParadas() { syncAddBtns(); }
             function addParada(kind) {
-                if (!paradasBox || paradaRows().length >= 4) return;
+                var box = kind === 'recogida' ? recBox : entBox;
+                if (!box || paradaRows().length >= 4) return;
                 var esRec = kind === 'recogida';
                 var row = document.createElement('div');
-                row.className = 'ptar-field ptar-parada-row';
+                row.className = 'ptar-field ptar-field-full ptar-parada-row';
                 row.setAttribute('data-ptar-parada', '');
                 row.setAttribute('data-kind', kind);
                 var opts = PARADA_TIPOS.map(function (o, i) { return '<option' + (i === 0 ? ' selected' : '') + '>' + o + '</option>'; }).join('');
@@ -5910,10 +5907,10 @@
                         '<select class="ptar-select ptar-select-sm" aria-label="Tipo de ' + (esRec ? 'recogida' : 'entrega') + '">' + opts + '</select>' +
                         '<button type="button" class="ptar-parada-del" aria-label="Quitar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>' +
                     '</div>';
-                paradasBox.appendChild(row);
+                box.appendChild(row);
                 bindAutocomplete(row.querySelector('.ptar-input-wrap'), row.querySelector('input'), row.querySelector('.ptar-sug'), renderEta);
                 row.querySelector('.ptar-parada-del').addEventListener('click', function () {
-                    paradasBox.removeChild(row);
+                    box.removeChild(row);
                     syncAddBtns();
                     renderEta();
                 });
@@ -5997,7 +5994,9 @@
                 destWrap.dataset.lat = '40.4168'; destWrap.dataset.lon = '-3.7038'; destWrap.dataset.cc = 'es';
                 origWrap.classList.remove('ptar-error');
                 destWrap.classList.remove('ptar-error');
-                if (paradasBox) { paradasBox.innerHTML = ''; renumberParadas(); }
+                if (recBox) recBox.innerHTML = '';
+                if (entBox) entBox.innerHTML = '';
+                renumberParadas();
                 var tipoOrig = card.querySelector('[data-ptar-tipoorig]');
                 var tipoDest = card.querySelector('[data-ptar-tipodest]');
                 if (tipoOrig) tipoOrig.selectedIndex = 0;
@@ -6188,15 +6187,17 @@
                         : 'del ' + fmtEtaDate(ls) + ' al ' + fmtEtaDate(le) + ' · cualquier día laborable';
                     cargaRangoHtml = '<dt>Carga (ventana)</dt><dd>' + escapeHtml(cargaRangoTxt) + '</dd>';
                 }
+                function paradasHtml(kind) {
+                    return (d.paradas || []).filter(function (p) { return p.kind === kind; }).map(function (p) {
+                        var k = kind === 'recogida' ? 'Recogida (origen adicional)' : 'Entrega (destino adicional)';
+                        return '<dt>' + k + '</dt><dd>' + escapeHtml(p.texto) + ' · ' + escapeHtml(p.tipo) + '</dd>';
+                    }).join('');
+                }
                 summaryEl.innerHTML =
                     '<dt>Origen</dt><dd>' + escapeHtml(d.orig) + '</dd>' +
-                    (d.paradas && d.paradas.length
-                        ? d.paradas.map(function (p) {
-                            var k = p.kind === 'recogida' ? 'Recogida (origen adicional)' : 'Entrega (destino adicional)';
-                            return '<dt>' + k + '</dt><dd>' + escapeHtml(p.texto) + ' · ' + escapeHtml(p.tipo) + '</dd>';
-                        }).join('')
-                        : '') +
+                    paradasHtml('recogida') +
                     '<dt>Destino</dt><dd>' + escapeHtml(d.dest) + '</dd>' +
+                    paradasHtml('entrega') +
                     '<dt>Tipo de camión</dt><dd>' + escapeHtml(d.camionLabel) + '</dd>' +
                     '<dt>Mercancía</dt><dd>' + escapeHtml(d.mercaTxt) + '</dd>' +
                     '<dt>Medidas</dt><dd>' + escapeHtml(d.medidas) + '</dd>' +
