@@ -2530,10 +2530,13 @@
                         <input type="date" data-ptar-fecha class="ptar-date" aria-label="Elegir fecha en calendario">
                     </div>
                     <div class="ptar-nofecha-warn" data-ptar-nofecha-warn hidden>
-                        ⚠ Sin compromiso. No se asigna camión hasta confirmar fecha. <a href="#" data-ptar-prev-more onclick="event.preventDefault();this.nextElementSibling.hidden=!this.nextElementSibling.hidden;">Más info</a><span hidden style="display:block;margin-top:0.3rem;">La carga queda en la pestaña "Previsión sin fecha". Si la fecha definitiva es posterior a 7 días desde hoy, el precio se revisará a tarifa de mercado al asignar fecha.</span>
+                        ⚠ Sin compromiso. No se asigna camión hasta confirmar fecha. <a href="#" data-ptar-prev-more onclick="event.preventDefault();this.nextElementSibling.hidden=!this.nextElementSibling.hidden;">Más info</a><span hidden style="display:block;margin-top:0.3rem;">La carga queda en la pestaña "Previsión sin fecha". Mientras la fecha definitiva esté a más de 7 días, el precio se <strong>auto-revisa cada 7 días</strong> a tarifa de mercado, hasta el momento de la carga. Son <strong>precios dinámicos</strong>.</span>
                     </div>
                     <div class="ptar-nofecha-warn" data-ptar-fecha-warn hidden>
                         ⚠ Con <strong>fecha fija</strong> ya no es posible cargar el día elegido (solicitud después de las 14:00). <strong>Amplía la ventana de carga</strong> (1 a 2 o 1 a 4 días) o <strong>elige un día posterior</strong>.
+                    </div>
+                    <div class="ptar-nofecha-warn ptar-dyn-warn" data-ptar-dyn-warn hidden>
+                        ⚠ Fecha a <strong>más de 7 días</strong>. El precio se <strong>auto-revisa cada 7 días</strong> a tarifa de mercado para seguir vigente hasta el momento de la carga. Son <strong>precios dinámicos</strong>.
                     </div>
                 </div>
                 <div class="ptar-field">
@@ -5519,9 +5522,21 @@
             // Solo inicializamos día / flatpickr / aviso si el select existe.
             var fp = null;
             var nofechaWarn = card.querySelector('[data-ptar-nofecha-warn]');
+            var dynWarn = card.querySelector('[data-ptar-dyn-warn]');
             function syncNofechaWarn() {
-                if (!nofechaWarn || !diaSel) return;
-                nofechaWarn.hidden = diaSel.value !== 'prevision';
+                if (!diaSel) return;
+                if (nofechaWarn) nofechaWarn.hidden = diaSel.value !== 'prevision';
+                // Precios dinámicos: si la fecha de carga es a más de 7 días desde
+                // hoy, el precio se auto-revisa cada 7 días hasta el momento de carga.
+                if (dynWarn) {
+                    var show = false, v = diaSel.value;
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                        var d = new Date(v + 'T00:00:00');
+                        var t = nowMadrid(); t.setHours(0, 0, 0, 0);
+                        show = Math.round((d - t) / 86400000) > 7;
+                    }
+                    dynWarn.hidden = !show;
+                }
             }
             // Quita la marca de error del select en cuanto cambie a algo válido
             if (diaSel) diaSel.addEventListener('change', function () {
