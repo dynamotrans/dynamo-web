@@ -1666,6 +1666,7 @@
             position: relative; display: inline-flex; align-items: center; gap: 0.3rem;
             cursor: help; width: fit-content;
         }
+        .ptar-warn-info { vertical-align: -3px; margin-left: 0.15rem; }
         .ptar-tip-ico { width: 14px; height: 14px; opacity: 0.5; flex-shrink: 0; }
         .ptar-has-tip:hover .ptar-tip-ico, .ptar-has-tip:focus .ptar-tip-ico { opacity: 0.9; }
         .ptar-tip-pop {
@@ -2527,15 +2528,6 @@
                         <select id="ptar-dia-carga" data-ptar-dia class="ptar-select"></select>
                         <input type="date" data-ptar-fecha class="ptar-date" aria-label="Elegir fecha en calendario">
                     </div>
-                    <div class="ptar-nofecha-warn" data-ptar-nofecha-warn hidden>
-                        ⚠ Sin compromiso. No se asigna camión hasta confirmar fecha. <a href="#" data-ptar-prev-more onclick="event.preventDefault();this.nextElementSibling.hidden=!this.nextElementSibling.hidden;">Más info</a><span hidden style="display:block;margin-top:0.3rem;">La carga queda en la pestaña "Previsión sin fecha". Mientras la fecha definitiva esté a más de 7 días, el precio se <strong>auto-revisa cada 7 días</strong> a tarifa de mercado, hasta el momento de la carga. Son <strong>precios dinámicos</strong>.</span>
-                    </div>
-                    <div class="ptar-nofecha-warn" data-ptar-fecha-warn hidden>
-                        ⚠ Con <strong>fecha fija</strong> ya no es posible cargar el día elegido (solicitud después de las 14:00). <strong>Amplía la ventana de carga</strong> (1 a 2 o 1 a 4 días) o <strong>elige un día posterior</strong>.
-                    </div>
-                    <div class="ptar-nofecha-warn ptar-dyn-warn" data-ptar-dyn-warn hidden>
-                        ⚠ Fecha a <strong>más de 7 días</strong>. El precio se <strong>auto-revisa cada 7 días</strong> a tarifa de mercado para seguir vigente hasta el momento de la carga. Son <strong>precios dinámicos</strong>.
-                    </div>
                 </div>
                 <div class="ptar-field">
                     <label class="ptar-label ptar-has-tip" for="ptar-urgencia-carga" tabindex="0">
@@ -2549,6 +2541,22 @@
                         <option value="flexible" selected>1 a 4 días (flexible, más económica)</option>
                     </select>
                 </div>
+                </div>
+
+                <div class="ptar-field-full">
+                    <div class="ptar-nofecha-warn" data-ptar-nofecha-warn hidden>
+                        ⚠ No se asigna camión hasta confirmar fecha.
+                        <span class="ptar-has-tip ptar-warn-info" tabindex="0" role="button" aria-label="Más información">
+                            <svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
+                            <span class="ptar-tip-pop" role="tooltip">La carga queda en la pestaña "Previsión sin fecha". Mientras la fecha definitiva esté a más de 7 días, el precio se <strong>auto-revisa cada 7 días</strong> a tarifa de mercado, hasta el momento de la carga. Son <strong>precios dinámicos</strong>.</span>
+                        </span>
+                    </div>
+                    <div class="ptar-nofecha-warn" data-ptar-fecha-warn hidden>
+                        ⚠ Con <strong>fecha fija</strong> ya no es posible cargar el día elegido (solicitud después de las 14:00). <strong>Amplía la ventana de carga</strong> (1 a 2 o 1 a 4 días) o <strong>elige un día posterior</strong>.
+                    </div>
+                    <div class="ptar-nofecha-warn ptar-dyn-warn" data-ptar-dyn-warn hidden>
+                        ⚠ Fecha a <strong>más de 7 días</strong>. El precio se <strong>auto-revisa cada 7 días</strong> a tarifa de mercado para seguir vigente hasta el momento de la carga. Son <strong>precios dinámicos</strong>.
+                    </div>
                 </div>
 
                 <div class="ptar-field ptar-field-full ptar-eta-field" data-ptar-eta-field>
