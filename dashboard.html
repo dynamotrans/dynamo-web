@@ -1696,15 +1696,15 @@
         .ptar-tip-ico { width: 14px; height: 14px; opacity: 0.5; flex-shrink: 0; }
         .ptar-has-tip:hover .ptar-tip-ico, .ptar-has-tip:focus .ptar-tip-ico { opacity: 0.9; }
         .ptar-tip-pop {
-            position: absolute; top: calc(100% + 6px); left: 0;
-            width: 262px; max-width: 78vw;
+            position: fixed; top: 0; left: 0;
+            width: min(262px, calc(100vw - 16px));
             background: var(--navy); color: #fff; text-align: left;
             border-radius: 9px; padding: 0.55rem 0.7rem;
             font-size: 0.74rem; line-height: 1.45; font-weight: 500;
             text-transform: none; letter-spacing: 0;
             box-shadow: 0 12px 30px rgba(0,0,0,0.28);
             opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(4px);
-            transition: opacity 0.15s ease, transform 0.15s ease; z-index: 60;
+            transition: opacity 0.15s ease, transform 0.15s ease; z-index: 2000;
         }
         .ptar-tip-pop strong { color: #ffd98a; font-weight: 800; }
         .ptar-has-tip:hover .ptar-tip-pop, .ptar-has-tip:focus .ptar-tip-pop, .ptar-has-tip:focus-within .ptar-tip-pop {
@@ -1842,16 +1842,6 @@
             .ptar-actions { gap: 0.5rem; margin-top: 0.6rem; }
             .ptar-notes-wrap { margin-top: 0.5rem; }
             .ptar-nofecha-warn { font-size: 0.72rem; padding: 0.45rem 0.6rem; }
-            /* Tooltips ℹ: en móvil van fijos abajo, a todo el ancho, para que
-               nunca se salgan de pantalla ni se recorten. */
-            .ptar-tip-pop {
-                position: fixed; left: 0.8rem; right: 0.8rem; bottom: 0.8rem;
-                top: auto; width: auto; max-width: none;
-                font-size: 0.82rem; padding: 0.75rem 0.9rem;
-                transform: translateY(12px); z-index: 2000;
-            }
-            .ptar-has-tip:hover .ptar-tip-pop,
-            .ptar-has-tip:focus .ptar-tip-pop { transform: translateY(0); }
         }
 
         /* ======= RESPONSIVE ======= */
@@ -4144,6 +4134,34 @@
         // Sin crédito (warn/none) → mostrar el icono ℹ con el aviso de proforma
         var info = document.querySelector('.cesce-info');
         if (info) info.hidden = (s === 'ok');
+    })();
+
+    // === Posiciona los tooltips ℹ (.ptar-tip-pop) pegados al icono y
+    //     clampeados dentro de la pantalla (no se salen ni se recortan). ===
+    (function () {
+        function placeTip(trigger) {
+            var tip = trigger.querySelector('.ptar-tip-pop');
+            if (!tip) return;
+            var r = trigger.getBoundingClientRect();
+            var tw = tip.offsetWidth || 260;
+            var th = tip.offsetHeight || 60;
+            var vw = window.innerWidth, vh = window.innerHeight, m = 8;
+            // Horizontal: centrado en el icono, clamp a los bordes.
+            var left = r.left + r.width / 2 - tw / 2;
+            left = Math.max(m, Math.min(left, vw - tw - m));
+            // Vertical: debajo del icono; si no cabe, encima.
+            var top = r.bottom + 6;
+            if (top + th > vh - m && r.top - th - 6 > m) top = r.top - th - 6;
+            tip.style.left = left + 'px';
+            tip.style.top = top + 'px';
+        }
+        function onShow(e) {
+            var t = e.target.closest && e.target.closest('.ptar-has-tip');
+            if (t) placeTip(t);
+        }
+        document.addEventListener('mouseover', onShow);
+        document.addEventListener('focusin', onShow);
+        document.addEventListener('touchstart', onShow, { passive: true });
     })();
 
     // Interceptor global de tel:
