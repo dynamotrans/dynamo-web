@@ -992,13 +992,32 @@
         .cesce-status-ok   { color: #b6f5cc; }
         .cesce-status-warn { color: #fde7a8; }
         .cesce-status-none { color: #ffc4c4; }
-        /* Aviso de pago previo con proforma cuando NO hay crédito (warn/none) */
-        .cesce-note {
-            font-size: 0.74rem; line-height: 1.5; font-weight: 500; color: #fde7a8;
-            background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35);
-            border-radius: 8px; padding: 0.5rem 0.65rem; margin: 0;
+        /* Icono ℹ con tooltip: aviso de pago previo con proforma cuando NO hay
+           crédito (warn/none). El mensaje va en hover/focus, sin ocupar layout
+           (antes era un párrafo que agrandaba la tarjeta y deformaba la fila). */
+        .cesce-info {
+            position: relative; display: inline-flex; align-items: center; justify-content: center;
+            width: 18px; height: 18px; padding: 0; margin-left: 0.15rem;
+            border: none; background: transparent; color: currentColor; cursor: help; flex-shrink: 0;
         }
-        .cesce-note strong { color: #ffd98a; font-weight: 800; }
+        .cesce-info[hidden] { display: none; }
+        .cesce-info svg { width: 16px; height: 16px; display: block; opacity: 0.8; }
+        .cesce-info:hover svg, .cesce-info:focus svg { opacity: 1; }
+        .cesce-tip {
+            position: absolute; top: calc(100% + 8px); right: -4px; left: auto;
+            width: 244px; max-width: 70vw;
+            background: #fff8e6; color: #7a4a00; text-align: left;
+            border: 1px solid rgba(245,158,11,0.55); border-radius: 10px;
+            padding: 0.6rem 0.7rem; font-size: 0.72rem; line-height: 1.45; font-weight: 500;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.30);
+            opacity: 0; visibility: hidden; pointer-events: none;
+            transform: translateY(4px); transition: opacity 0.16s ease, transform 0.16s ease;
+            z-index: 60; white-space: normal;
+        }
+        .cesce-tip strong { color: #b45309; font-weight: 800; }
+        .cesce-info:hover .cesce-tip, .cesce-info:focus .cesce-tip {
+            opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0);
+        }
         @keyframes cescePulse {
             0%, 100% { box-shadow: 0 0 0 4px rgba(34,165,90,0.20); }
             50%      { box-shadow: 0 0 0 7px rgba(34,165,90,0.08); }
@@ -2150,8 +2169,13 @@
                 <div class="cesce-status cesce-status-ok">
                     <span class="cesce-status-dot"></span>
                     <span class="cesce-status-text">Con crédito disponible</span>
+                    <!-- Icono ℹ con tooltip: solo visible sin crédito (warn/none).
+                         Evita que el texto largo agrande la tarjeta y deforme la fila. -->
+                    <button type="button" class="cesce-info" hidden aria-label="Detalle de cobertura">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
+                        <span class="cesce-tip" role="tooltip">Sin crédito disponible: la carga requiere <strong>pago previo con proforma</strong>. Una vez validado el cobro en cuenta, procedemos con la asignación del transporte. Esto <strong>ralentiza el proceso</strong> de cargas.</span>
+                    </button>
                 </div>
-                <p class="cesce-note" hidden>Sin crédito disponible: la carga requiere <strong>pago previo con proforma</strong>. Una vez validado el cobro en cuenta, procedemos con la asignación del transporte. Esto <strong>ralentiza el proceso</strong> de cargas.</p>
             </div>
         </div>
 
@@ -3959,9 +3983,9 @@
         el.classList.add(conf.cls);
         var t = el.querySelector('.cesce-status-text');
         if (t) t.textContent = conf.txt;
-        // Sin crédito (warn/none) → mostrar aviso de pago previo con proforma
-        var note = document.querySelector('.cesce-note');
-        if (note) note.hidden = (s === 'ok');
+        // Sin crédito (warn/none) → mostrar el icono ℹ con el aviso de proforma
+        var info = document.querySelector('.cesce-info');
+        if (info) info.hidden = (s === 'ok');
     })();
 
     // Interceptor global de tel:
