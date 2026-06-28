@@ -2566,31 +2566,23 @@
 
                 <div class="ptar-pair">
                     <div class="ptar-field">
-                        <label class="ptar-label" for="ptar-ml-carga">Metros lineales</label>
-                        <select id="ptar-ml-carga" data-ptar-ml class="ptar-select"></select>
+                        <select id="ptar-ml-carga" data-ptar-ml class="ptar-select" aria-label="Metros lineales"></select>
                     </div>
                     <div class="ptar-field">
-                        <label class="ptar-label" for="ptar-peso-carga">Peso (toneladas)</label>
-                        <select id="ptar-peso-carga" data-ptar-peso class="ptar-select"></select>
+                        <select id="ptar-peso-carga" data-ptar-peso class="ptar-select" aria-label="Peso (toneladas)"></select>
                     </div>
                 </div>
 
                 <div class="ptar-section-head">Fecha y entrega</div>
                 <div class="ptar-pair">
                 <div class="ptar-field">
-                    <label class="ptar-label" for="ptar-dia-carga">Fecha de carga (L-V)</label>
                     <div class="ptar-fecha-wrap">
-                        <select id="ptar-dia-carga" data-ptar-dia class="ptar-select"></select>
+                        <select id="ptar-dia-carga" data-ptar-dia class="ptar-select" aria-label="Fecha de carga (L-V)"></select>
                         <input type="date" data-ptar-fecha class="ptar-date" aria-label="Elegir fecha en calendario">
                     </div>
                 </div>
                 <div class="ptar-field">
-                    <label class="ptar-label ptar-has-tip" for="ptar-urgencia-carga" tabindex="0">
-                        Ventana de carga
-                        <svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
-                        <span class="ptar-tip-pop" role="tooltip">Días <strong>laborables consecutivos</strong> a partir del día indicado. Sábados, domingos y festivos quedan excluidos automáticamente.</span>
-                    </label>
-                    <select id="ptar-urgencia-carga" data-ptar-urgencia class="ptar-select">
+                    <select id="ptar-urgencia-carga" data-ptar-urgencia class="ptar-select" aria-label="Ventana de carga">
                         <option value="dia">Fecha fija (un día concreto, más cara)</option>
                         <option value="estandar">1 a 2 días (estándar)</option>
                         <option value="flexible" selected>1 a 4 días (flexible, más económica)</option>
@@ -2768,23 +2760,16 @@
 
                 <div class="ptar-pair">
                     <div class="ptar-field">
-                        <label class="ptar-label" for="ptar-ml-presu">Metros lineales</label>
-                        <select id="ptar-ml-presu" data-ptar-ml class="ptar-select"></select>
+                        <select id="ptar-ml-presu" data-ptar-ml class="ptar-select" aria-label="Metros lineales"></select>
                     </div>
                     <div class="ptar-field">
-                        <label class="ptar-label" for="ptar-peso-presu">Peso (toneladas)</label>
-                        <select id="ptar-peso-presu" data-ptar-peso class="ptar-select"></select>
+                        <select id="ptar-peso-presu" data-ptar-peso class="ptar-select" aria-label="Peso (toneladas)"></select>
                     </div>
                 </div>
 
                 <div class="ptar-section-head">Entrega</div>
                 <div class="ptar-field">
-                    <label class="ptar-label ptar-has-tip" for="ptar-urgencia-presu" tabindex="0">
-                        Ventana de carga
-                        <svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
-                        <span class="ptar-tip-pop" role="tooltip">Días <strong>laborables consecutivos</strong> a partir del día indicado. Sábados, domingos y festivos quedan excluidos automáticamente.</span>
-                    </label>
-                    <select id="ptar-urgencia-presu" data-ptar-urgencia class="ptar-select">
+                    <select id="ptar-urgencia-presu" data-ptar-urgencia class="ptar-select" aria-label="Ventana de carga">
                         <option value="dia">Fecha fija (un día concreto, más cara)</option>
                         <option value="estandar">1 a 2 días (estándar)</option>
                         <option value="flexible" selected>1 a 4 días (flexible, más económica)</option>
@@ -5350,13 +5335,13 @@
             for (var i = 1; i <= mlMax; i++) {
                 var opt = document.createElement('option');
                 opt.value = i;
-                opt.textContent = i + ' m (' + (i * 2.5).toFixed(1).replace('.0', '') + ' europalets / ' + (i * 2) + ' americanos)';
+                opt.textContent = i + ' m';
                 sel.appendChild(opt);
             }
             // Tauliner tiene 13,2m como tope real
             if (mlMax === 13) {
                 var opt2 = document.createElement('option');
-                opt2.value = '13.2'; opt2.textContent = '13,2 m (33 europalets / 26 americanos) — CARGA COMPLETA';
+                opt2.value = '13.2'; opt2.textContent = '13,2 m — carga completa';
                 sel.appendChild(opt2);
                 sel.value = '13.2';
             } else {
