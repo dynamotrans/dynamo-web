@@ -2483,11 +2483,18 @@
                     <div class="ptar-eta-box" data-ptar-eta-box>
                         <span class="ptar-eta-placeholder">Indica origen, destino y fecha de carga para calcular la entrega estimada.</span>
                     </div>
-                    <p class="ptar-field-hint">Cálculo de referencia con flota a <strong>~600 km/día</strong> (7:00 — 18:00, ~9 h de conducción). Solo L–V, sin sábados ni domingos. La ETA real puede variar por tráfico, controles o disponibilidad en destino.</p>
                 </div>
 
-                <div class="ptar-field ptar-field-full">
-                    <label class="ptar-label" for="ptar-refcli-carga">Tu referencia interna (opcional)</label>
+            </div>
+
+            <div class="ptar-fest-out" data-ptar-fest-box></div>
+
+            <div class="ptar-notes-wrap">
+                <button type="button" class="ptar-notes-toggle" data-ptar-refcli-toggle aria-expanded="false">
+                    <span class="pnt-icon" aria-hidden="true">+</span>
+                    Añadir tu referencia interna (opcional)
+                </button>
+                <div class="ptar-notes-body" data-ptar-refcli-body hidden>
                     <input type="text" id="ptar-refcli-carga" data-ptar-refcli class="ptar-select" placeholder="Ej. PED-0426">
                 </div>
             </div>
@@ -2639,11 +2646,18 @@
                     <div class="ptar-eta-box" data-ptar-eta-box>
                         <span class="ptar-eta-placeholder">Indica origen y destino para ver la duración estimada del transporte (la fecha de carga la fijas al convertir en carga).</span>
                     </div>
-                    <p class="ptar-field-hint">Cálculo de referencia con flota a <strong>~600 km/día</strong> (7:00 — 18:00, ~9 h conducción). Solo L–V.</p>
                 </div>
 
-                <div class="ptar-field ptar-field-full">
-                    <label class="ptar-label" for="ptar-refcli-presu">Tu referencia interna (opcional)</label>
+            </div>
+
+            <div class="ptar-fest-out" data-ptar-fest-box></div>
+
+            <div class="ptar-notes-wrap">
+                <button type="button" class="ptar-notes-toggle" data-ptar-refcli-toggle aria-expanded="false">
+                    <span class="pnt-icon" aria-hidden="true">+</span>
+                    Añadir tu referencia interna (opcional)
+                </button>
+                <div class="ptar-notes-body" data-ptar-refcli-body hidden>
                     <input type="text" id="ptar-refcli-presu" data-ptar-refcli class="ptar-select" placeholder="Ej. COT-219">
                 </div>
             </div>
@@ -5365,6 +5379,8 @@
             var fechaInput = card.querySelector('[data-ptar-fecha]');
             var urgenciaSel = card.querySelector('[data-ptar-urgencia]');
             var refCliInput = card.querySelector('[data-ptar-refcli]');
+            var refCliToggle = card.querySelector('[data-ptar-refcli-toggle]');
+            var refCliBody = card.querySelector('[data-ptar-refcli-body]');
             var notesToggle = card.querySelector('[data-ptar-notes-toggle]');
             var notesBody = card.querySelector('[data-ptar-notes-body]');
             var notesTxt = card.querySelector('[data-ptar-notes]');
@@ -5470,6 +5486,14 @@
             }
 
             // Anotaciones libres
+            if (refCliToggle && refCliBody) {
+                refCliToggle.addEventListener('click', function () {
+                    var open = refCliToggle.getAttribute('aria-expanded') === 'true';
+                    refCliToggle.setAttribute('aria-expanded', open ? 'false' : 'true');
+                    refCliBody.hidden = open;
+                    if (!open) setTimeout(function () { refCliInput.focus(); }, 50);
+                });
+            }
             notesToggle.addEventListener('click', function () {
                 var open = notesToggle.getAttribute('aria-expanded') === 'true';
                 notesToggle.setAttribute('aria-expanded', open ? 'false' : 'true');
@@ -5488,6 +5512,7 @@
             // desplegable). Si el usuario teclea sin pickear, el campo muestra
             // un placeholder pidiendo seleccionar del autocompletado.
             var etaBox = card.parentNode.querySelector('[data-ptar-eta-box]');
+            var festBox = card.querySelector('[data-ptar-fest-box]');
             // Pide a la API (Nager.Date) los festivos regionales de un país+año
             // y, cuando llegan, re-pinta el aviso. El flag evita bucle infinito:
             // se marca ANTES del async, así el re-render no vuelve a lanzar fetch.
@@ -5506,6 +5531,7 @@
             }
             function renderEta() {
                 if (!etaBox) return;
+                if (festBox) festBox.innerHTML = '';  // aviso de festivo va fuera de la caja ETA
                 var oLat = origWrap.dataset.lat, oLon = origWrap.dataset.lon;
                 var dLat = destWrap.dataset.lat, dLon = destWrap.dataset.lon;
                 if (!oLat || !dLat) {
@@ -5592,7 +5618,8 @@
                     '<dt>Tracción ≈</dt><dd class="ptar-eta-stat">' + driveTxt + ' (a ~' + KM_POR_DIA + ' km/día)</dd>' +
                     cargaHtml +
                     (rangoHtml ? '<dt>Entrega estimada</dt>' + rangoHtml : '') +
-                    '</dl>' + festHtml;
+                    '</dl>';
+                if (festBox) festBox.innerHTML = festHtml;  // aviso de festivo fuera de la caja, antes de referencia
             }
 
             // Autocomplete con callback para recalcular ETA al pickear
@@ -5666,6 +5693,8 @@
                 if (diaSel) { fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'flexible'); syncNofechaWarn(); }
                 urgenciaSel.value = 'flexible';
                 refCliInput.value = '';
+                if (refCliBody) refCliBody.hidden = true;
+                if (refCliToggle) refCliToggle.setAttribute('aria-expanded', 'false');
                 notesTxt.value = '';
                 notesCount.textContent = '0';
                 notesCount.parentNode.classList.remove('warn');
