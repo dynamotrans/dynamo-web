@@ -5332,6 +5332,10 @@
         // --- ML / Peso selectores reactivos al camión ---
         function fillMlSelect(sel, mlMax) {
             sel.innerHTML = '';
+            // Título del desplegable (sin etiqueta encima).
+            var ph = document.createElement('option');
+            ph.value = ''; ph.disabled = true; ph.selected = true; ph.textContent = 'Metros lineales';
+            sel.appendChild(ph);
             for (var i = 1; i <= mlMax; i++) {
                 var opt = document.createElement('option');
                 opt.value = i;
@@ -5343,20 +5347,21 @@
                 var opt2 = document.createElement('option');
                 opt2.value = '13.2'; opt2.textContent = '13,2 m — carga completa';
                 sel.appendChild(opt2);
-                sel.value = '13.2';
-            } else {
-                sel.value = mlMax;
             }
+            sel.value = '';
         }
         function fillPesoSelect(sel, pesoMax) {
             sel.innerHTML = '';
+            var ph = document.createElement('option');
+            ph.value = ''; ph.disabled = true; ph.selected = true; ph.textContent = 'Toneladas';
+            sel.appendChild(ph);
             for (var i = 1; i <= pesoMax; i++) {
                 var opt = document.createElement('option');
                 opt.value = i;
                 opt.textContent = i + ' Tn' + (i === pesoMax ? ' (máximo)' : '');
                 sel.appendChild(opt);
             }
-            sel.value = pesoMax;
+            sel.value = '';
         }
 
         // --- Día selector con próximos 7 laborables + "Otro día" ---
@@ -5531,8 +5536,8 @@
                 renderOcupacion();
             }
             camionSel.addEventListener('change', applyCamion);
-            mlSel.addEventListener('change', function () { renderOcupacion(); });
-            pesoSel.addEventListener('change', function () { renderOcupacion(); });
+            mlSel.addEventListener('change', function () { mlSel.classList.remove('ptar-select-error'); renderOcupacion(); });
+            pesoSel.addEventListener('change', function () { pesoSel.classList.remove('ptar-select-error'); renderOcupacion(); });
 
             // === Ocupación del camión (% carga) ===
             // El % visible es el coeficiente que MÁS limita la carga (no la
@@ -5864,9 +5869,18 @@
                 }
                 warning.classList.remove('show');
 
-                var camion = camionSel.value;
+                // Metros lineales y peso obligatorios (placeholder = sin elegir).
                 var ml = mlSel.value;
                 var peso = pesoSel.value;
+                mlSel.classList.toggle('ptar-select-error', ml === '');
+                pesoSel.classList.toggle('ptar-select-error', peso === '');
+                if (ml === '' || peso === '') {
+                    warning.classList.add('show');
+                    (ml === '' ? mlSel : pesoSel).focus();
+                    return null;
+                }
+
+                var camion = camionSel.value;
                 var medidas = (ml === '13.2' ? '13,2' : ml) + ' m · ' + (parseInt(peso, 10) * 1000).toLocaleString('es-ES') + ' kg';
                 var origCorto = orig.split(',')[0].trim();
                 var destCorto = dest.split(',')[0].trim();
