@@ -1486,10 +1486,13 @@
             height: 44px; padding: 0 0.6rem; border: 1.5px solid var(--gray-200); border-radius: 10px;
             background: var(--gray-50); cursor: pointer; overflow: hidden;
         }
+        /* Texto del toggle como DOM real (no CSS content) para que Google
+           Translate lo traduzca al cambiar de idioma. */
         .ptar-tramp-state { font-size: 0.74rem; font-weight: 700; color: var(--gray-500); white-space: nowrap; }
-        .ptar-tramp-state::after { content: 'No (más económico)'; }
+        .ptar-tramp-state .tramp-on { display: none; }
         .ptar-switch-input:checked ~ .ptar-tramp-state { color: var(--green); }
-        .ptar-switch-input:checked ~ .ptar-tramp-state::after { content: 'Sí (más caro)'; }
+        .ptar-switch-input:checked ~ .ptar-tramp-state .tramp-off { display: none; }
+        .ptar-switch-input:checked ~ .ptar-tramp-state .tramp-on { display: inline; }
         .ptar-switch-input { position: absolute; opacity: 0; width: 0; height: 0; }
         .ptar-switch {
             flex-shrink: 0; width: 40px; height: 24px; border-radius: 999px;
@@ -2546,7 +2549,7 @@
                     <label class="ptar-tramp-box">
                         <input type="checkbox" data-ptar-trampilla class="ptar-switch-input">
                         <span class="ptar-switch" aria-hidden="true"></span>
-                        <span class="ptar-tramp-state" aria-hidden="true"></span>
+                        <span class="ptar-tramp-state" aria-hidden="true"><span class="tramp-off">No (más económico)</span><span class="tramp-on">Sí (más caro)</span></span>
                     </label>
                 </div>
                 </div>
@@ -2734,7 +2737,7 @@
                     <label class="ptar-tramp-box">
                         <input type="checkbox" data-ptar-trampilla class="ptar-switch-input">
                         <span class="ptar-switch" aria-hidden="true"></span>
-                        <span class="ptar-tramp-state" aria-hidden="true"></span>
+                        <span class="ptar-tramp-state" aria-hidden="true"><span class="tramp-off">No (más económico)</span><span class="tramp-on">Sí (más caro)</span></span>
                     </label>
                 </div>
                 </div>
