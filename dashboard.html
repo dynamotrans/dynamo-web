@@ -1560,6 +1560,22 @@
             color: var(--gray-700);
             background: var(--gray-50);
         }
+        /* Paradas intermedias (hasta 4), mismo esquema que origen/destino. */
+        .ptar-paradas-wrap { display: flex; flex-direction: column; gap: 0.5rem; }
+        .ptar-add-parada {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+            width: 100%; background: none; border: 1.5px dashed #cbd0d8; color: var(--purple);
+            border-radius: 10px; padding: 0.55rem 0.8rem; font: inherit; font-size: 0.8rem; font-weight: 700;
+            cursor: pointer; transition: border-color 0.18s, background 0.18s;
+        }
+        .ptar-add-parada:hover { background: rgba(51,0,204,0.05); border-color: var(--purple); }
+        .ptar-add-parada svg { width: 16px; height: 16px; }
+        .ptar-parada-del {
+            flex: 0 0 auto; width: 30px; height: 44px; border: none; background: none;
+            color: #9aa0aa; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 8px; transition: color 0.15s, background 0.15s;
+        }
+        .ptar-parada-del:hover { color: var(--red); background: #fef2f2; }
         .ptar-route-row { display: flex; gap: 0.5rem; align-items: stretch; }
         /* 75 / 25: input de origen/destino largo, selector de tipo corto. */
         .ptar-route-row .ptar-input-wrap { flex: 3 1 0; min-width: 0; }
@@ -2533,6 +2549,13 @@
                         </select>
                     </div>
                 </div>
+                <div class="ptar-field-full ptar-paradas-wrap">
+                    <div data-ptar-paradas></div>
+                    <button type="button" class="ptar-add-parada" data-ptar-add-parada>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Añadir parada (máx. 4)
+                    </button>
+                </div>
 
                 <div class="ptar-section-head">Carga</div>
                 <div class="ptar-pair">
@@ -2715,6 +2738,13 @@
                             <option>Finca / Agrícola</option>
                         </select>
                     </div>
+                </div>
+                <div class="ptar-field-full ptar-paradas-wrap">
+                    <div data-ptar-paradas></div>
+                    <button type="button" class="ptar-add-parada" data-ptar-add-parada>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Añadir parada (máx. 4)
+                    </button>
                 </div>
 
                 <div class="ptar-section-head">Carga</div>
@@ -5713,10 +5743,15 @@
                         '</span>';
                     return;
                 }
-                var dist = haversineKm(
-                    { lat: parseFloat(oLat), lon: parseFloat(oLon) },
-                    { lat: parseFloat(dLat), lon: parseFloat(dLon) }
-                ) * ROAD_FACTOR;
+                // Distancia por tramos: origen → paradas (con coords) → destino.
+                var pts = [{ lat: parseFloat(oLat), lon: parseFloat(oLon) }];
+                paradaWraps().forEach(function (w) {
+                    if (w && w.dataset.lat) pts.push({ lat: parseFloat(w.dataset.lat), lon: parseFloat(w.dataset.lon) });
+                });
+                pts.push({ lat: parseFloat(dLat), lon: parseFloat(dLon) });
+                var dist = 0;
+                for (var pi = 0; pi < pts.length - 1; pi++) dist += haversineKm(pts[pi], pts[pi + 1]);
+                dist *= ROAD_FACTOR;
                 var driveDays = Math.max(1, Math.ceil(dist / KM_POR_DIA));
                 var driveTxt = driveDays === 1 ? '1 día' : driveDays + ' días';
 
@@ -5794,6 +5829,52 @@
             // Autocomplete con callback para recalcular ETA al pickear
             bindAutocomplete(origWrap, origInput, origSug, renderEta);
             bindAutocomplete(destWrap, destInput, destSug, renderEta);
+
+            // --- Paradas intermedias (hasta 4, mismo esquema que origen/destino) ---
+            var paradasBox = card.querySelector('[data-ptar-paradas]');
+            var addParadaBtn = card.querySelector('[data-ptar-add-parada]');
+            var PARADA_TIPOS = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento', 'Finca / Agrícola'];
+            function paradaRows() {
+                return paradasBox ? Array.prototype.slice.call(paradasBox.querySelectorAll('[data-ptar-parada]')) : [];
+            }
+            function paradaWraps() {
+                return paradaRows().map(function (r) { return r.querySelector('.ptar-input-wrap'); });
+            }
+            function renumberParadas() {
+                paradaRows().forEach(function (r, i) {
+                    var inp = r.querySelector('input'), sel = r.querySelector('select');
+                    if (inp) { inp.placeholder = 'Parada ' + (i + 1) + ' · CP o ciudad'; inp.setAttribute('aria-label', 'Parada ' + (i + 1)); }
+                    if (sel) sel.setAttribute('aria-label', 'Tipo parada ' + (i + 1));
+                });
+                if (addParadaBtn) addParadaBtn.style.display = (paradaRows().length >= 4) ? 'none' : '';
+            }
+            function addParada() {
+                if (!paradasBox || paradaRows().length >= 4) return;
+                var row = document.createElement('div');
+                row.className = 'ptar-field ptar-parada-row';
+                row.setAttribute('data-ptar-parada', '');
+                var opts = PARADA_TIPOS.map(function (o, i) { return '<option' + (i === 0 ? ' selected' : '') + '>' + o + '</option>'; }).join('');
+                row.innerHTML =
+                    '<div class="ptar-route-row">' +
+                        '<div class="ptar-input-wrap">' +
+                            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v5M12 17v5"/></svg>' +
+                            '<input type="text" autocomplete="off" inputmode="search">' +
+                            '<ul class="ptar-sug" hidden></ul>' +
+                        '</div>' +
+                        '<select class="ptar-select ptar-select-sm">' + opts + '</select>' +
+                        '<button type="button" class="ptar-parada-del" aria-label="Quitar parada"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
+                    '</div>';
+                paradasBox.appendChild(row);
+                bindAutocomplete(row.querySelector('.ptar-input-wrap'), row.querySelector('input'), row.querySelector('.ptar-sug'), renderEta);
+                row.querySelector('.ptar-parada-del').addEventListener('click', function () {
+                    paradasBox.removeChild(row);
+                    renumberParadas();
+                    renderEta();
+                });
+                renumberParadas();
+                row.querySelector('input').focus();
+            }
+            if (addParadaBtn) addParadaBtn.addEventListener('click', addParada);
             if (urgenciaSel) urgenciaSel.addEventListener('change', renderEta);
             // Al cambiar la ventana, recalcula las fechas disponibles (el corte
             // de las 14:00 y "hoy/mañana" dependen de la ventana). Si la fecha ya
@@ -5856,6 +5937,7 @@
                 destWrap.dataset.lat = '40.4168'; destWrap.dataset.lon = '-3.7038'; destWrap.dataset.cc = 'es';
                 origWrap.classList.remove('ptar-error');
                 destWrap.classList.remove('ptar-error');
+                if (paradasBox) { paradasBox.innerHTML = ''; renumberParadas(); }
                 camionSel.value = 'tauliner';
                 mercaSel.selectedIndex = 0;
                 var tramp = card.querySelector('[data-ptar-trampilla]');
@@ -5953,7 +6035,10 @@
                     fechaIso: (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) ? diaSel.value : null,
                     ventanaDias: urgenciaSel.value === 'dia' ? 1 : urgenciaSel.value === 'flexible' ? 4 : 2,
                     refCli: refCliInput.value.trim() || (mode === 'carga' ? 'PED-NUEVO' : 'COT-NUEVO'),
-                    notes: notesTxt.value.trim()
+                    notes: notesTxt.value.trim(),
+                    paradas: paradaRows().map(function (r) {
+                        return { texto: (r.querySelector('input').value || '').trim(), tipo: r.querySelector('select').value };
+                    }).filter(function (p) { return p.texto; })
                 };
             }
 
@@ -6039,6 +6124,11 @@
                 }
                 summaryEl.innerHTML =
                     '<dt>Origen</dt><dd>' + escapeHtml(d.orig) + '</dd>' +
+                    (d.paradas && d.paradas.length
+                        ? d.paradas.map(function (p, i) {
+                            return '<dt>Parada ' + (i + 1) + '</dt><dd>' + escapeHtml(p.texto) + ' · ' + escapeHtml(p.tipo) + '</dd>';
+                        }).join('')
+                        : '') +
                     '<dt>Destino</dt><dd>' + escapeHtml(d.dest) + '</dd>' +
                     '<dt>Tipo de camión</dt><dd>' + escapeHtml(d.camionLabel) + '</dd>' +
                     '<dt>Mercancía</dt><dd>' + escapeHtml(d.mercaTxt) + '</dd>' +
