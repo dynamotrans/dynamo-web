@@ -1578,6 +1578,12 @@
             border-radius: 8px; transition: color 0.15s, background 0.15s;
         }
         .ptar-parada-del:hover { color: var(--red); background: #fef2f2; }
+        /* Número de orden del recorrido (1 origen, 2.. paradas, último destino). */
+        .ptar-route-num {
+            flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%;
+            background: var(--purple); color: #fff; font-size: 0.7rem; font-weight: 800;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
         .ptar-route-row { display: flex; gap: 0.5rem; align-items: stretch; }
         /* 75 / 25: input de origen/destino largo, selector de tipo corto. */
         .ptar-route-row .ptar-input-wrap { flex: 3 1 0; min-width: 0; }
@@ -1698,6 +1704,8 @@
            Carga (ventana) = naranja, Entrega estimada = verde. */
         .ptar-eta-data .ptar-eta-range { color: var(--green); font-weight: 800; }
         .ptar-eta-data .ptar-eta-carga { color: var(--orange); font-weight: 800; }
+        .ptar-eta-data .ptar-eta-precio { color: var(--purple); font-weight: 900; font-size: 1.05rem; }
+        .ptar-eta-data .ptar-eta-precio span { color: var(--gray-500); font-weight: 600; font-size: 0.72rem; white-space: nowrap; }
         .ptar-eta-data .ptar-eta-stat { color: var(--gray-700); font-weight: 600; }
         .ptar-eta-data .ptar-eta-warn { color: #b45309; }
         .ptar-eta-festivo {
@@ -2522,6 +2530,7 @@
                 <div class="ptar-field">
                     <div class="ptar-route-row">
                         <div class="ptar-input-wrap" data-ptar-orig-wrap>
+                            <span class="ptar-route-num" data-route-num>1</span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                             <input type="text" id="ptar-orig-carga" data-ptar-orig placeholder="Desde · CP o ciudad" aria-label="Origen" autocomplete="off" inputmode="search">
                             <ul class="ptar-sug" data-ptar-orig-sug hidden></ul>
@@ -2538,6 +2547,7 @@
                 <div class="ptar-field">
                     <div class="ptar-route-row">
                         <div class="ptar-input-wrap" data-ptar-dest-wrap>
+                            <span class="ptar-route-num" data-route-num>2</span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
                             <input type="text" id="ptar-dest-carga" data-ptar-dest placeholder="Hasta · CP o ciudad" aria-label="Destino" autocomplete="off" inputmode="search">
                             <ul class="ptar-sug" data-ptar-dest-sug hidden></ul>
@@ -2718,6 +2728,7 @@
                 <div class="ptar-field">
                     <div class="ptar-route-row">
                         <div class="ptar-input-wrap" data-ptar-orig-wrap>
+                            <span class="ptar-route-num" data-route-num>1</span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                             <input type="text" id="ptar-orig-presu" data-ptar-orig placeholder="Desde · CP o ciudad" aria-label="Origen" autocomplete="off" inputmode="search">
                             <ul class="ptar-sug" data-ptar-orig-sug hidden></ul>
@@ -2734,6 +2745,7 @@
                 <div class="ptar-field">
                     <div class="ptar-route-row">
                         <div class="ptar-input-wrap" data-ptar-dest-wrap>
+                            <span class="ptar-route-num" data-route-num>2</span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
                             <input type="text" id="ptar-dest-presu" data-ptar-dest placeholder="Hasta · CP o ciudad" aria-label="Destino" autocomplete="off" inputmode="search">
                             <ul class="ptar-sug" data-ptar-dest-sug hidden></ul>
@@ -5603,8 +5615,10 @@
                     // Conserva la elección si sigue siendo válida con el nuevo máximo.
                     if (prevMl && mlSel.querySelector('option[value="' + prevMl + '"]')) mlSel.value = prevMl;
                     if (prevPeso && pesoSel.querySelector('option[value="' + prevPeso + '"]')) pesoSel.value = prevPeso;
+                    renderEta();
                 });
             }
+            if (mercaSel) mercaSel.addEventListener('change', renderEta);
             mlSel.addEventListener('change', function () { mlSel.classList.remove('ptar-select-error'); renderOcupacion(); });
             pesoSel.addEventListener('change', function () { pesoSel.classList.remove('ptar-select-error'); renderOcupacion(); });
 
@@ -5769,6 +5783,20 @@
                 var driveDays = Math.max(1, Math.ceil(dist / KM_POR_DIA));
                 var driveTxt = driveDays === 1 ? '1 día' : driveDays + ' días';
 
+                // === Precio orientativo (MOCK, solo demo de usabilidad) ===
+                // Sin IVA. Varía con distancia, ventana, tipo de mercancía,
+                // trampilla y nº de paradas. Pendiente: tarifa real del cliente.
+                var precio = 50 + dist * 0.85;
+                var uv = urgenciaSel ? urgenciaSel.value : 'flexible';
+                precio *= (uv === 'dia' ? 1.15 : uv === 'estandar' ? 1.0 : 0.9);
+                var mi = mercaSel ? mercaSel.selectedIndex : 0;
+                precio *= (mi === 2 ? 1.2 : mi === 1 ? 1.1 : 1.0); // techo > no palet lateral > paletizado
+                var trampOn = card.querySelector('[data-ptar-trampilla]');
+                if (trampOn && trampOn.checked) precio += 60;
+                precio += paradaRows().length * 40;
+                precio = Math.round(precio / 10) * 10;
+                var precioHtml = '<dt>Precio</dt><dd class="ptar-eta-precio">' + precio.toLocaleString('es-ES') + ' € <span>(IVA 21% no incluido)</span></dd>';
+
                 // Lectura de la fecha de carga (si la sección tiene día)
                 var loadStart = null;
                 if (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) {
@@ -5836,6 +5864,7 @@
                     '<dl class="ptar-eta-data">' +
                     cargaHtml +
                     (rangoHtml ? '<dt>Entrega estimada</dt>' + rangoHtml : '') +
+                    precioHtml +
                     '</dl>';
                 if (festBox) festBox.innerHTML = festHtml;  // aviso de festivo fuera de la caja, antes de referencia
             }
@@ -5857,10 +5886,20 @@
             function paradaWraps() {
                 return paradaRows().map(function (r) { return r.querySelector('.ptar-input-wrap'); });
             }
+            // Número de orden del recorrido: 1 = origen, 2.. = paradas, último = destino.
+            function renumberRoute() {
+                var n = 1;
+                var ob = origWrap.querySelector('[data-route-num]'); if (ob) ob.textContent = n++;
+                paradaRows().forEach(function (r) {
+                    var b = r.querySelector('[data-route-num]'); if (b) b.textContent = n++;
+                });
+                var db = destWrap.querySelector('[data-route-num]'); if (db) db.textContent = n;
+            }
             function syncAddBtns() {
                 var full = paradaRows().length >= 4;
                 if (addRecBtn) addRecBtn.style.display = full ? 'none' : '';
                 if (addEntBtn) addEntBtn.style.display = full ? 'none' : '';
+                renumberRoute();
             }
             // Alias usado por reset/del (mantiene compatibilidad de nombre).
             function renumberParadas() { syncAddBtns(); }
@@ -5879,7 +5918,7 @@
                 var aria = esRec ? 'Recogida (origen adicional)' : 'Entrega (destino adicional)';
                 row.innerHTML =
                     '<div class="ptar-route-row">' +
-                        '<div class="ptar-input-wrap">' + icon +
+                        '<div class="ptar-input-wrap"><span class="ptar-route-num" data-route-num></span>' + icon +
                             '<input type="text" autocomplete="off" inputmode="search" placeholder="' + ph + '" aria-label="' + aria + '">' +
                             '<ul class="ptar-sug" hidden></ul>' +
                         '</div>' +
