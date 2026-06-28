@@ -1483,8 +1483,8 @@
            en el tooltip ℹ del label. */
         .ptar-tramp-box {
             display: flex; align-items: center; gap: 0.6rem;
-            padding: 0.6rem 0.8rem; border: 1.5px solid var(--gray-200); border-radius: 10px;
-            background: var(--gray-50); cursor: pointer; min-height: 44px;
+            height: 44px; padding: 0 0.8rem; border: 1.5px solid var(--gray-200); border-radius: 10px;
+            background: var(--gray-50); cursor: pointer;
         }
         .ptar-tramp-state { font-size: 0.84rem; font-weight: 700; color: var(--gray-500); }
         .ptar-tramp-state::after { content: 'No'; }
@@ -1525,7 +1525,7 @@
         .ptar-input-wrap {
             position: relative;
             display: flex; align-items: center; gap: 0.55rem;
-            padding: 0.55rem 0.8rem;
+            height: 44px; padding: 0 0.8rem;
             border: 1.5px solid var(--gray-200);
             border-radius: 10px;
             background: white;
@@ -1543,7 +1543,7 @@
         }
         .ptar-input-wrap input::placeholder { color: var(--gray-300); }
         .ptar-select, .ptar-date {
-            width: 100%; padding: 0.6rem 0.8rem;
+            width: 100%; height: 44px; padding: 0 0.8rem;
             border: 1.5px solid var(--gray-200);
             border-radius: 10px; background: white;
             font: inherit; color: var(--gray-900); font-size: 0.9rem;
@@ -1552,8 +1552,8 @@
         /* Select pequeño (Tipo origen / Tipo destino). Va en la misma línea,
            a la derecha del input de origen/destino (no en una fila debajo). */
         .ptar-select-sm {
-            padding: 0.42rem 0.6rem;
-            font-size: 0.78rem;
+            height: 44px; padding: 0 0.6rem;
+            font-size: 0.8rem;
             color: var(--gray-700);
             background: var(--gray-50);
         }
@@ -1831,9 +1831,12 @@
             .ptar-field { gap: 0.25rem; }
             .ptar-section-head { margin: 0.35rem 0 0; font-size: 0.66rem; }
             .ptar-label { font-size: 0.72rem; }
-            .ptar-select, .ptar-date, .ptar-input-wrap input { padding: 0.5rem 0.7rem; }
-            .ptar-select-sm { padding: 0.4rem 0.5rem; font-size: 16px; }
-            .ptar-tramp-box { min-height: 0; padding: 0.5rem 0.7rem; }
+            /* Alturas uniformes: mantenemos los 44px de base; en móvil solo
+               16px de fuente (anti-zoom iOS) y sin doble padding del input. */
+            .ptar-select, .ptar-date { padding: 0 0.7rem; }
+            .ptar-input-wrap input { padding: 0; }
+            .ptar-select-sm { padding: 0 0.5rem; font-size: 16px; }
+            .ptar-tramp-box { padding: 0 0.7rem; }
             .ptar-eta-box { padding: 0.55rem 0.7rem; min-height: 0; }
             .ptar-eta-field .ptar-field-hint, .ptar-eta-field { margin: 0; }
             .ptar-actions { gap: 0.5rem; margin-top: 0.6rem; }
