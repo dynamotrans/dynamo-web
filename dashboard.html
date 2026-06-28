@@ -5393,7 +5393,8 @@
                 opt2.value = '13.2'; opt2.textContent = '13,2 metros — carga completa';
                 sel.appendChild(opt2);
             }
-            sel.value = '';
+            // Por defecto: carga completa (13,2 m en Tauliner; máximo en rígido).
+            sel.value = (mlMax === 13) ? '13.2' : String(mlMax);
         }
         function fillPesoSelect(sel, pesoMax) {
             sel.innerHTML = '';
@@ -5406,7 +5407,8 @@
                 opt.textContent = i + (i === 1 ? ' tonelada' : ' toneladas') + (i === pesoMax ? ' (máximo)' : '');
                 sel.appendChild(opt);
             }
-            sel.value = '';
+            // Por defecto: peso máximo (24 Tn en Tauliner; 14 en rígido).
+            sel.value = String(pesoMax);
         }
 
         // --- Día selector con próximos 7 laborables + "Otro día" ---
