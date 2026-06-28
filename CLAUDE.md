@@ -170,6 +170,31 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-06-28 (sesión 2) — Claude Code web (nube)
+
+> **Sesión larguísima de rediseño del tarifador del panel** (`dashboard.html`, solo preview/lab). Todo commiteado y pusheado a `preview` (`fc307ca`) y `lab` (`c6c5bd5`). `main` sin tocar hoy. Al final saltó el **límite de Vercel Hobby (100 deploys/día)** por la cantidad de pushes — no se pierde nada, los previews vuelven a construir solos en ~24h.
+
+**TARIFADOR / FORMULARIO "NUEVO ENVÍO" (antes "Nueva carga") — reescritura grande**:
+- **Terminología**: "carga(s)" → **"envío(s)"** en textos de entidad (menú, sección, botones: *Crear envío*, *Confirmar envío*, *Guardar presupuesto*, *Nº envío*, *Envíos activos*, etc.). Se mantienen términos del **acto de cargar** (*Fecha de carga/envío*, *Ventana de carga*, sección **Carga**, texto legal). CTA del dashboard "Nuevo envío"; **quitado el CTA "Nuevo presupuesto"** (fila a 2 columnas).
+- **Bloques** del formulario: **Ruta / Carga / Fecha de envío** (cabeceras de sección dentro del grid).
+- **Ruta apilada con paradas**: origen y destino a ancho completo; **+** al final de la fila de origen (añade **recogida** = origen adicional) y de destino (añade **entrega** = destino adicional), con **−** para quitar. Hasta **4** en total. Se insertan en su sitio (recogidas tras origen, entregas tras destino). **Nº de orden del recorrido** en badge (1 origen → 2.. → último destino), **naranja** recogidas/origen y **verde** entregas/destino. Mismo esquema que origen/destino (autocomplete OSM + selector de tipo Almacén/Obra/Urbana/Evento/Finca). ETA suma los tramos en orden.
+- **Tipo de camión quitado** (fijo Tauliner; con **trampilla elevadora** ON pasa a rígido → máx 8 m / 14 Tn; OFF → 13,2 m / 24 Tn). Toggle "Trampilla elevadora" (No/Sí con precio, traducible). Label de camión en resumen: *Trailer Tauliner Lona* / *Camión Rígido con trampilla elevadora*.
+- **Tipo de mercancía** reducido a 3: Paletizado (por lateral) · No paletizada lateral · No paletizada por TECHO.
+- **Tipo origen/destino**: Almacén / Nave · Obra · Zona urbana · Evento · Finca / Agrícola (por defecto Almacén/Nave). Pequeño a la derecha del input (75/25).
+- **Metros/Toneladas**: opciones "N metros"/"N toneladas"; **por defecto carga completa (13,2 m) y 24 Tn**. Sin labels (placeholder/aria).
+- **Caja ETA**: sin título; sin Distancia/Tracción ni % carga del camión; solo **Carga (ventana)** (naranja) y **Entrega estimada** (verde), mismo tamaño. **Precio orientativo (MOCK)** con **efecto contador** (rolling, de 10 en 10, easeOutCubic ~480ms) que varía con distancia/ventana/mercancía/trampilla/paradas. ⚠ Falta la **tarifa real** del cliente.
+- **Avisos**: el de festivo y el de "no se asigna camión hasta confirmar" van a **ancho completo** bajo el par fecha+ventana; el de **precios dinámicos (>7 días)** pasó al **resumen del paso 2** (fuera del formulario). Tooltips ℹ posicionados por JS **pegados al icono y clampeados** a pantalla (no se recortan en móvil).
+- **Alturas uniformes 44px** en todos los controles (inputs, selects, tipo, toggle). **Compactado** para móvil. Botón **Limpiar** en la cabecera (sustituye a "Volver"); resetea todo incluido paradas y tipos.
+- **Quitado**: "Sin fecha definida/Previsión" del selector y la pestaña "Previsión sin fecha" de la tabla; botón **Exportar** de la tabla de envíos; intro de "tarifa cerrada/25 min"; explicación del camión.
+- **CESCE**: aviso de proforma en icono ℹ con tooltip (no agranda la tarjeta). **Modo oscuro eliminado**.
+- **Condiciones generales**: añadidos apdos **13 (Disponibilidad y ajustes de tarifa)** y **14 (Garantías y confirmación)**; quitados de la pantalla de confirmación (siguen en el enlace).
+
+**Pendientes**:
+- **Tarifa real** del cliente para sustituir el precio MOCK del tarifador.
+- Vercel: agrupar pushes para no volver a tocar el límite de 100/día (o pasar a Pro cuando el portal vaya en serio).
+- Festivos **regionales por subdivisión exacta** (Nominatim `address.state`) si se quiere afinar el sobre-aviso.
+- Decidir si quitar también el "+ Nuevo presupuesto" del listado de Presupuestos / deprecar presupuestos.
+
 ### 2026-06-28 — Claude Code web (nube)
 
 > **Festivos unificados en un registro único** (`/js/festivos.js`) compartido por web pública + portal, **promovido a producción**. Después, **capa regional opcional vía Nager.Date** (API en el front, sin clave) con dedupe. Las 3 ramas con `festivos.js` byte-idéntico.
