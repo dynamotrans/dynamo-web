@@ -2422,6 +2422,9 @@
                     <div class="ptar-nofecha-warn" data-ptar-nofecha-warn hidden>
                         ⚠ Sin compromiso. No se asigna camión hasta confirmar fecha. <a href="#" data-ptar-prev-more onclick="event.preventDefault();this.nextElementSibling.hidden=!this.nextElementSibling.hidden;">Más info</a><span hidden style="display:block;margin-top:0.3rem;">La carga queda en la pestaña "Previsión sin fecha". Si la fecha definitiva es posterior a 7 días desde hoy, el precio se revisará a tarifa de mercado al asignar fecha.</span>
                     </div>
+                    <div class="ptar-nofecha-warn" data-ptar-fecha-warn hidden>
+                        ⚠ Con <strong>fecha fija</strong> ya no es posible cargar el día elegido (solicitud después de las 14:00). <strong>Amplía la ventana de carga</strong> (1 a 2 o 1 a 4 días) o <strong>elige un día posterior</strong>.
+                    </div>
                 </div>
                 <div class="ptar-field">
                     <label class="ptar-label" for="ptar-urgencia-carga">Ventana de carga</label>
@@ -5102,14 +5105,45 @@
             return dias[d.getDay()] + ' ' + fmtDate(d);
         }
         function isWeekend(d) { var x = d.getDay(); return x === 0 || x === 6; }
-        function nextWeekdays(count) {
-            var out = [], d = new Date(), added = 0;
-            d.setDate(d.getDate() + 1); // mañana
-            while (added < count) {
-                if (!isWeekend(d)) { out.push(new Date(d)); added++; }
+        // Hora real de Sevilla (Europe/Madrid) para el corte de las 14:00.
+        function nowMadrid() {
+            return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
+        }
+        function nextBiz(d) { while (isWeekend(d)) d.setDate(d.getDate() + 1); return d; }
+        function isoLocal(d) {
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+        // Primera fecha de carga seleccionable según ventana + corte de las 14:00:
+        //  · Fecha fija ('dia'): mañana si se solicita antes de 14:00; si es más
+        //    tarde, pasado mañana (ya no se organiza para el día siguiente).
+        //  · Ventana 1-2 / 1-4 días: se puede empezar HOY o mañana siempre.
+        function firstLoadDate(windowVal) {
+            var now = nowMadrid();
+            var after14 = now.getHours() >= 14;
+            var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            if (windowVal === 'dia') {
+                d.setDate(d.getDate() + 1); nextBiz(d);
+                if (after14) { d.setDate(d.getDate() + 1); nextBiz(d); }
+            } else {
+                nextBiz(d);
+            }
+            return d;
+        }
+        function loadDates(windowVal, count) {
+            var d = firstLoadDate(windowVal), out = [];
+            while (out.length < count) {
+                if (!isWeekend(d)) out.push(new Date(d));
                 d.setDate(d.getDate() + 1);
             }
             return out;
+        }
+        // Etiqueta de la opción: añade "· hoy" / "· mañana" para claridad.
+        function dayLabel(d) {
+            var now = nowMadrid();
+            var t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            var diff = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() - t0) / 86400000);
+            var base = fmtFull(d);
+            return diff === 0 ? base + ' · hoy' : diff === 1 ? base + ' · mañana' : base;
         }
         function nextRef(mode) {
             refCounter[mode]++;
@@ -5153,7 +5187,7 @@
         // el submit si se queda en el placeholder). En carga, además de
         // las fechas, hay opción "Previsión" con tooltip explicativo en
         // hover (en lugar del cartel grande de antes que ocupaba demasiado).
-        function fillDiaSelect(sel, mode) {
+        function fillDiaSelect(sel, mode, windowVal) {
             sel.innerHTML = '';
             var ph = document.createElement('option');
             ph.value = '';
@@ -5172,10 +5206,10 @@
                 sf.value = 'sinfecha'; sf.textContent = 'Sin fecha definida';
                 sel.appendChild(sf);
             }
-            nextWeekdays(7).forEach(function (d) {
+            loadDates(windowVal || 'flexible', 7).forEach(function (d) {
                 var opt = document.createElement('option');
-                opt.value = d.toISOString().slice(0, 10);
-                opt.textContent = fmtFull(d);
+                opt.value = isoLocal(d);
+                opt.textContent = dayLabel(d);
                 sel.appendChild(opt);
             });
             var otro = document.createElement('option');
@@ -5363,9 +5397,11 @@
             // Quita la marca de error del select en cuanto cambie a algo válido
             if (diaSel) diaSel.addEventListener('change', function () {
                 if (diaSel.value) diaSel.classList.remove('ptar-select-error');
+                var fw = card.querySelector('[data-ptar-fecha-warn]');
+                if (fw && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) fw.hidden = true;
             });
             if (diaSel) {
-                fillDiaSelect(diaSel, mode);
+                fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'flexible');
                 function attachFlatpickr() {
                     if (!window.flatpickr || fp || !fechaInput) return;
                     fp = window.flatpickr(fechaInput, {
@@ -5487,6 +5523,35 @@
             bindAutocomplete(origWrap, origInput, origSug, renderEta);
             bindAutocomplete(destWrap, destInput, destSug, renderEta);
             if (urgenciaSel) urgenciaSel.addEventListener('change', renderEta);
+            // Al cambiar la ventana, recalcula las fechas disponibles (el corte
+            // de las 14:00 y "hoy/mañana" dependen de la ventana). Si la fecha ya
+            // elegida deja de ser válida (típico: pasar a "fija" después de las
+            // 14:00), avisa de ampliar la ventana o elegir un día posterior.
+            if (urgenciaSel && diaSel) urgenciaSel.addEventListener('change', function () {
+                var prev = diaSel.value;
+                var isRealDate = /^\d{4}-\d{2}-\d{2}$/.test(prev);
+                var nv = urgenciaSel.value;
+                var minIso = isoLocal(firstLoadDate(nv));
+                fillDiaSelect(diaSel, mode, nv);
+                var fw = card.querySelector('[data-ptar-fecha-warn]');
+                if (isRealDate && prev >= minIso) {
+                    if (!diaSel.querySelector('option[value="' + prev + '"]')) {
+                        var opt = document.createElement('option');
+                        opt.value = prev; opt.textContent = dayLabel(new Date(prev + 'T00:00:00'));
+                        diaSel.insertBefore(opt, diaSel.querySelector('option[value="otro"]'));
+                    }
+                    diaSel.value = prev;
+                    if (fw) fw.hidden = true;
+                } else if (isRealDate) {
+                    diaSel.value = '';
+                    if (fw) fw.hidden = false;
+                } else {
+                    if (prev === 'prevision' || prev === 'sinfecha') diaSel.value = prev;
+                    if (fw) fw.hidden = true;
+                }
+                syncNofechaWarn();
+                renderEta();
+            });
             if (diaSel) diaSel.addEventListener('change', renderEta);
 
             // === DEFAULTS DE PRUEBA (BORRAR EN PRODUCCIÓN) ===
@@ -5520,7 +5585,7 @@
                 camionSel.value = 'tauliner';
                 mercaSel.selectedIndex = 0;
                 applyCamion();
-                if (diaSel) { fillDiaSelect(diaSel, mode); syncNofechaWarn(); }
+                if (diaSel) { fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'flexible'); syncNofechaWarn(); }
                 urgenciaSel.value = 'flexible';
                 refCliInput.value = '';
                 notesTxt.value = '';
