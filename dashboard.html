@@ -5453,9 +5453,14 @@
                             : urgenciaSel.value === 'flexible' ? 4 : 2;
 
                 var rangoHtml = '';
+                var cargaHtml = '';
                 if (loadStart) {
                     // Día más tarde de carga = inicio + (ventana - 1) días laborables
                     var loadEnd = ventana === 1 ? loadStart : addBusinessDays(loadStart, ventana - 1);
+                    var cargaTxt = (loadStart.getTime() === loadEnd.getTime())
+                        ? fmtEtaDate(loadStart)
+                        : 'del ' + fmtEtaDate(loadStart) + ' al ' + fmtEtaDate(loadEnd);
+                    cargaHtml = '<dt>Carga (ventana)</dt><dd class="ptar-eta-stat">' + cargaTxt + '</dd>';
                     var etaStart = addBusinessDays(loadStart, driveDays);
                     var etaEnd   = addBusinessDays(loadEnd, driveDays);
                     if (etaStart.getTime() === etaEnd.getTime()) {
@@ -5478,6 +5483,7 @@
                     '<dl class="ptar-eta-data">' +
                     '<dt>Distancia ≈</dt><dd class="ptar-eta-stat">' + Math.round(dist) + ' km</dd>' +
                     '<dt>Tracción ≈</dt><dd class="ptar-eta-stat">' + driveTxt + ' (a ~' + KM_POR_DIA + ' km/día)</dd>' +
+                    cargaHtml +
                     (rangoHtml ? '<dt>Entrega estimada</dt>' + rangoHtml : '') +
                     '</dl>';
             }
@@ -5597,6 +5603,8 @@
                     mercaTxt: mercaTxt, mercanciaShort: mercanciaShort,
                     urgenciaTxt: urgenciaTxt, urgenciaLabel: urgenciaSel_label,
                     fechaTxt: fechaTxt, fechaLarga: fechaLarga,
+                    fechaIso: (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) ? diaSel.value : null,
+                    ventanaDias: urgenciaSel.value === 'dia' ? 1 : urgenciaSel.value === 'flexible' ? 4 : 2,
                     refCli: refCliInput.value.trim() || (mode === 'carga' ? 'PED-NUEVO' : 'COT-NUEVO'),
                     notes: notesTxt.value.trim()
                 };
@@ -5672,6 +5680,16 @@
                 var mlNum = parseFloat(d.ml === '13.2' ? '13.2' : d.ml) || 0;
                 var tnNum = parseFloat(d.peso) || 0;
                 var occ = ocupacion(mlNum, tnNum, Math.round(mlNum * 2.5), info);
+                // Rango de fechas de carga según la ventana (cualquier día laborable)
+                var cargaRangoHtml = '';
+                if (d.fechaIso) {
+                    var ls = new Date(d.fechaIso + 'T00:00:00');
+                    var le = d.ventanaDias <= 1 ? ls : addBusinessDays(ls, d.ventanaDias - 1);
+                    var cargaRangoTxt = (ls.getTime() === le.getTime())
+                        ? fmtEtaDate(ls)
+                        : 'del ' + fmtEtaDate(ls) + ' al ' + fmtEtaDate(le) + ' · cualquier día laborable';
+                    cargaRangoHtml = '<dt>Carga (ventana)</dt><dd>' + escapeHtml(cargaRangoTxt) + '</dd>';
+                }
                 summaryEl.innerHTML =
                     '<dt>Origen</dt><dd>' + escapeHtml(d.orig) + '</dd>' +
                     '<dt>Destino</dt><dd>' + escapeHtml(d.dest) + '</dd>' +
@@ -5682,6 +5700,7 @@
                         (occ.driver === 'ml' ? 'metros lineales' : occ.driver === 'tn' ? 'peso' : 'palets') + '</dd>' +
                     '<dt>Ventana</dt><dd>' + escapeHtml(d.urgenciaLabel) + '</dd>' +
                     '<dt>Fecha de carga</dt><dd>' + escapeHtml(d.fechaLarga) + '</dd>' +
+                    cargaRangoHtml +
                     (d.refCli && d.refCli.indexOf('NUEVO') === -1 ? '<dt>Tu referencia</dt><dd>' + escapeHtml(d.refCli) + '</dd>' : '') +
                     (d.notes ? '<dt class="full">Anotaciones</dt><dd class="full">' + escapeHtml(d.notes) + '</dd>' : '');
                 // Aviso de grupaje: solo si la carga NO es completa
