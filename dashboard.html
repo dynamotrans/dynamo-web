@@ -2082,11 +2082,6 @@
                         <button type="button" class="lang-pill" data-lang="uk" data-flag="🇺🇦" data-label="Українська" onclick="pickLanguage(this)"><span class="flag">🇺🇦</span> Українська</button>
                         <button type="button" class="lang-pill" data-lang="zh-CN" data-flag="🇨🇳" data-label="中文" onclick="pickLanguage(this)"><span class="flag">🇨🇳</span> 中文</button>
                     </div>
-                    <button type="button" class="user-menu-item" role="menuitem" onclick="toggleTheme(event)">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-                        Modo oscuro
-                        <span class="theme-switch" id="themeSwitch" aria-hidden="true"><span class="theme-switch-knob"></span></span>
-                    </button>
                     <div class="user-menu-sep"></div>
                     <button type="button" class="user-menu-item user-menu-item-danger" role="menuitem" onclick="logOut()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -3696,20 +3691,6 @@
                 if (applied || attempts > 20) { clearInterval(wd); return; }
                 doTranslate(lang);
             }, 600);
-        } catch (e) {}
-    })();
-
-    // Modo oscuro
-    function toggleTheme(ev) {
-        if (ev) ev.stopPropagation();
-        var dark = document.body.classList.toggle('theme-dark');
-        try { localStorage.setItem('dashTheme', dark ? 'dark' : 'light'); } catch (e) {}
-    }
-    (function restoreTheme() {
-        try {
-            if (localStorage.getItem('dashTheme') === 'dark') {
-                document.body.classList.add('theme-dark');
-            }
         } catch (e) {}
     })();
 
