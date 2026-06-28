@@ -11,6 +11,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/es.js" defer></script>
+    <!-- Registro único de festivos (nacionales 12 países). Sin defer: debe estar
+         disponible (window.FESTIVOS) antes del script del tarifador. -->
+    <script src="/js/festivos.js"></script>
     <style>
         :root {
             --purple:       #3300cc;
@@ -1596,6 +1599,12 @@
         }
         .ptar-eta-data .ptar-eta-stat { color: var(--gray-700); font-weight: 600; }
         .ptar-eta-data .ptar-eta-warn { color: #b45309; }
+        .ptar-eta-festivo {
+            margin-top: 0.7rem; padding: 0.55rem 0.7rem;
+            background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.4);
+            border-radius: 9px; font-size: 0.78rem; line-height: 1.5; color: #92400e; font-weight: 600;
+        }
+        .ptar-eta-festivo strong { color: #b45309; }
 
         /* === % carga del camión (ocupación) ===
            Barra que combina coeficientes ml/Tn/palets. El % visible
@@ -5227,7 +5236,7 @@
         function osmSearch(query, cb) {
             if (fetchAbort) fetchAbort.abort();
             fetchAbort = new AbortController();
-            var url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&countrycodes=es,pt,fr,it,de,nl,be,lu,at,ch,pl&accept-language=es&q=' + encodeURIComponent(query);
+            var url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&countrycodes=es,pt,fr,it,de,nl,be,lu,at,ch,pl,cz&accept-language=es&q=' + encodeURIComponent(query);
             fetch(url, { signal: fetchAbort.signal, headers: { 'Accept-Language': 'es' } })
                 .then(function (r) { return r.json(); })
                 .then(function (data) { cb(data || []); })
@@ -5252,6 +5261,7 @@
             function clearGeo() {
                 delete wrap.dataset.lat;
                 delete wrap.dataset.lon;
+                delete wrap.dataset.cc;
                 if (onPick) onPick(null);
             }
             input.addEventListener('input', function () {
@@ -5272,6 +5282,7 @@
                                 input.value = li.textContent;
                                 wrap.dataset.lat = it.lat;
                                 wrap.dataset.lon = it.lon;
+                                wrap.dataset.cc = (it.address && it.address.country_code) || '';
                                 sugList.hidden = true;
                                 if (onPick) onPick({ lat: parseFloat(it.lat), lon: parseFloat(it.lon), label: li.textContent });
                             });
@@ -5489,6 +5500,18 @@
 
                 var rangoHtml = '';
                 var cargaHtml = '';
+                var festHtml = '';
+                // Festivos NACIONALES en origen (ventana de carga) y destino (ETA).
+                function holsInRange(cc, a, b) {
+                    if (!window.FESTIVOS || !cc || !a || !b) return [];
+                    var out = [], d = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+                    while (d.getTime() <= b.getTime() && out.length < 6) {
+                        var n = FESTIVOS.get(cc, d);
+                        if (n) out.push({ d: new Date(d), name: n });
+                        d.setDate(d.getDate() + 1);
+                    }
+                    return out;
+                }
                 if (loadStart) {
                     // Día más tarde de carga = inicio + (ventana - 1) días laborables
                     var loadEnd = ventana === 1 ? loadStart : addBusinessDays(loadStart, ventana - 1);
@@ -5498,6 +5521,17 @@
                     cargaHtml = '<dt>Carga (ventana)</dt><dd class="ptar-eta-stat">' + cargaTxt + '</dd>';
                     var etaStart = addBusinessDays(loadStart, driveDays);
                     var etaEnd   = addBusinessDays(loadEnd, driveDays);
+                    // Avisos de festivo nacional en origen (carga) y destino (entrega).
+                    var avisos = [];
+                    holsInRange(origWrap.dataset.cc, loadStart, loadEnd).forEach(function (h) {
+                        avisos.push('Origen (' + FESTIVOS.countryName(origWrap.dataset.cc) + '): ' + h.name + ' el ' + fmtEtaDate(h.d));
+                    });
+                    holsInRange(destWrap.dataset.cc, etaStart, etaEnd).forEach(function (h) {
+                        avisos.push('Destino (' + FESTIVOS.countryName(destWrap.dataset.cc) + '): ' + h.name + ' el ' + fmtEtaDate(h.d));
+                    });
+                    if (avisos.length) {
+                        festHtml = '<div class="ptar-eta-festivo">⚠ <strong>Festivo</strong> en la ventana — ' + avisos.join(' · ') + '. Posible cierre en carga/entrega.</div>';
+                    }
                     if (etaStart.getTime() === etaEnd.getTime()) {
                         rangoHtml = '<dd class="ptar-eta-range">' + fmtEtaDate(etaStart) + '</dd>';
                     } else {
@@ -5520,7 +5554,7 @@
                     '<dt>Tracción ≈</dt><dd class="ptar-eta-stat">' + driveTxt + ' (a ~' + KM_POR_DIA + ' km/día)</dd>' +
                     cargaHtml +
                     (rangoHtml ? '<dt>Entrega estimada</dt>' + rangoHtml : '') +
-                    '</dl>';
+                    '</dl>' + festHtml;
             }
 
             // Autocomplete con callback para recalcular ETA al pickear
@@ -5566,11 +5600,13 @@
                 origInput.value = 'Sevilla, 41001, Andalucía';
                 origWrap.dataset.lat = '37.3886';
                 origWrap.dataset.lon = '-5.9823';
+                origWrap.dataset.cc = 'es';
             }
             if (!destInput.value) {
                 destInput.value = 'Madrid, 28001, Comunidad de Madrid';
                 destWrap.dataset.lat = '40.4168';
                 destWrap.dataset.lon = '-3.7038';
+                destWrap.dataset.cc = 'es';
             }
             // Render inicial (con o sin defaults, el cálculo se dispara)
             renderEta();
@@ -5582,8 +5618,8 @@
                 // los inputs vacíos también aquí.
                 origInput.value = 'Sevilla, 41001, Andalucía';
                 destInput.value = 'Madrid, 28001, Comunidad de Madrid';
-                origWrap.dataset.lat = '37.3886'; origWrap.dataset.lon = '-5.9823';
-                destWrap.dataset.lat = '40.4168'; destWrap.dataset.lon = '-3.7038';
+                origWrap.dataset.lat = '37.3886'; origWrap.dataset.lon = '-5.9823'; origWrap.dataset.cc = 'es';
+                destWrap.dataset.lat = '40.4168'; destWrap.dataset.lon = '-3.7038'; destWrap.dataset.cc = 'es';
                 origWrap.classList.remove('ptar-error');
                 destWrap.classList.remove('ptar-error');
                 camionSel.value = 'tauliner';
