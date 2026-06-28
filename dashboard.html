@@ -5833,7 +5833,7 @@
             // --- Paradas intermedias (hasta 4, mismo esquema que origen/destino) ---
             var paradasBox = card.querySelector('[data-ptar-paradas]');
             var addParadaBtn = card.querySelector('[data-ptar-add-parada]');
-            var PARADA_TIPOS = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento', 'Finca / Agrícola'];
+            var PARADA_TIPOS = ['Recogida', 'Entrega'];
             function paradaRows() {
                 return paradasBox ? Array.prototype.slice.call(paradasBox.querySelectorAll('[data-ptar-parada]')) : [];
             }
@@ -6126,7 +6126,8 @@
                     '<dt>Origen</dt><dd>' + escapeHtml(d.orig) + '</dd>' +
                     (d.paradas && d.paradas.length
                         ? d.paradas.map(function (p, i) {
-                            return '<dt>Parada ' + (i + 1) + '</dt><dd>' + escapeHtml(p.texto) + ' · ' + escapeHtml(p.tipo) + '</dd>';
+                            var tipoTxt = p.tipo === 'Recogida' ? 'Recogida (origen adicional)' : 'Entrega (destino adicional)';
+                            return '<dt>Parada ' + (i + 1) + '</dt><dd>' + escapeHtml(p.texto) + ' · ' + tipoTxt + '</dd>';
                         }).join('')
                         : '') +
                     '<dt>Destino</dt><dd>' + escapeHtml(d.dest) + '</dd>' +
