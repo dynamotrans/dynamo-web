@@ -5109,7 +5109,9 @@
         function nowMadrid() {
             return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
         }
-        function nextBiz(d) { while (isWeekend(d)) d.setDate(d.getDate() + 1); return d; }
+        // No laborable = fin de semana O festivo (no cuentan para el cálculo).
+        function nonBiz(d) { return isWeekend(d) || !!getHolidayName(d); }
+        function nextBiz(d) { while (nonBiz(d)) d.setDate(d.getDate() + 1); return d; }
         function isoLocal(d) {
             return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
         }
@@ -5119,11 +5121,13 @@
         //  · Ventana 1-2 / 1-4 días: se puede empezar HOY o mañana siempre.
         function firstLoadDate(windowVal) {
             var now = nowMadrid();
-            var after14 = now.getHours() >= 14;
+            // El corte cuenta como "pasado" si hoy NO es hábil (finde/festivo →
+            // nos remitimos al último día hábil, p.ej. viernes) o ya son ≥14:00.
+            var cutoffPassed = nonBiz(now) || now.getHours() >= 14;
             var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             if (windowVal === 'dia') {
                 d.setDate(d.getDate() + 1); nextBiz(d);
-                if (after14) { d.setDate(d.getDate() + 1); nextBiz(d); }
+                if (cutoffPassed) { d.setDate(d.getDate() + 1); nextBiz(d); }
             } else {
                 nextBiz(d);
             }
@@ -5132,7 +5136,7 @@
         function loadDates(windowVal, count) {
             var d = firstLoadDate(windowVal), out = [];
             while (out.length < count) {
-                if (!isWeekend(d)) out.push(new Date(d));
+                if (!nonBiz(d)) out.push(new Date(d));
                 d.setDate(d.getDate() + 1);
             }
             return out;
@@ -5408,7 +5412,7 @@
                         locale: window.flatpickr.l10ns && window.flatpickr.l10ns.es ? 'es' : 'default',
                         minDate: 'today',
                         maxDate: new Date(Date.now() + 90 * 24 * 3600 * 1000),
-                        disable: [function (d) { return isWeekend(d); }],
+                        disable: [function (d) { return nonBiz(d); }],
                         dateFormat: 'Y-m-d',
                         onClose: function (selDates) {
                             if (selDates && selDates.length) {
