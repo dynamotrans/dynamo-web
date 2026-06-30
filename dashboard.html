@@ -2570,15 +2570,7 @@
                 <div class="ptar-field-full" data-ptar-entregas></div>
 
                 <div class="ptar-section-head">Carga</div>
-                <div class="ptar-field ptar-field-full">
-                    <label class="ptar-label" for="ptar-merca-carga">Tipo de mercancía</label>
-                    <select id="ptar-merca-carga" data-ptar-merca class="ptar-select">
-                        <option>Paletizado mercancía general (por lateral)</option>
-                        <option>No paletizada (maquinaria, perfiles, tubos, balas…) (por lateral)</option>
-                        <option>No paletizada (maquinaria, perfiles, tubos, balas…) (por TECHO)</option>
-                    </select>
-                    <input type="hidden" data-ptar-camion value="tauliner">
-                </div>
+                <input type="hidden" data-ptar-camion value="tauliner">
                 <div class="ptar-pair">
                     <div class="ptar-field">
                         <select id="ptar-ml-carga" data-ptar-ml class="ptar-select" aria-label="Metros lineales"></select>
@@ -6057,7 +6049,7 @@
                 if (tipoOrig) tipoOrig.selectedIndex = 0;
                 if (tipoDest) tipoDest.selectedIndex = 0;
                 camionSel.value = 'tauliner';
-                mercaSel.selectedIndex = 0;
+                if (mercaSel) mercaSel.selectedIndex = 0;
                 var tramp = card.querySelector('[data-ptar-trampilla]');
                 if (tramp) tramp.checked = false;
                 var nima = card.querySelector('[data-ptar-nima]');
@@ -6110,8 +6102,8 @@
                 var medidas = (ml === '13.2' ? '13,2' : ml) + ' m · ' + (parseInt(peso, 10) * 1000).toLocaleString('es-ES') + ' kg';
                 var origCorto = orig.split(',')[0].trim();
                 var destCorto = dest.split(',')[0].trim();
-                var mercaTxt = mercaSel.options[mercaSel.selectedIndex].text;
-                var mercanciaShort = mercaTxt.split('—')[0].trim();
+                var mercaTxt = mercaSel ? mercaSel.options[mercaSel.selectedIndex].text : '';
+                var mercanciaShort = mercaTxt ? mercaTxt.split('—')[0].trim() : '';
                 var urgenciaSel_label = urgenciaSel.options[urgenciaSel.selectedIndex].text;
                 var urgenciaTxt = urgenciaSel.value === 'dia' ? 'Fija'
                     : urgenciaSel.value === 'flexible' ? '1 a 4 días' : '1 a 2 días';
@@ -6259,7 +6251,7 @@
                     '<dt>Destino</dt><dd>' + escapeHtml(d.dest) + '</dd>' +
                     paradasHtml('entrega') +
                     '<dt>Tipo de camión</dt><dd>' + escapeHtml(d.camionLabel) + '</dd>' +
-                    '<dt>Mercancía</dt><dd>' + escapeHtml(d.mercaTxt) + '</dd>' +
+                    (d.mercaTxt ? '<dt>Mercancía</dt><dd>' + escapeHtml(d.mercaTxt) + '</dd>' : '') +
                     (d.nima ? '<dt>NIMA (residuos)</dt><dd>Sí</dd>' : '') +
                     '<dt>Medidas</dt><dd>' + escapeHtml(d.medidas) + '</dd>' +
                     '<dt>Ventana</dt><dd>' + escapeHtml(d.urgenciaLabel) + '</dd>' +
