@@ -5593,10 +5593,15 @@
                 trampillaChk.addEventListener('change', function () {
                     var prevMl = mlSel.value, prevPeso = pesoSel.value;
                     camionSel.value = trampillaChk.checked ? 'rigido' : 'tauliner';
-                    applyCamion();
-                    // Conserva la elección si sigue siendo válida con el nuevo máximo.
-                    if (prevMl && mlSel.querySelector('option[value="' + prevMl + '"]')) mlSel.value = prevMl;
-                    if (prevPeso && pesoSel.querySelector('option[value="' + prevPeso + '"]')) pesoSel.value = prevPeso;
+                    applyCamion(); // deja ml/peso al máximo del camión nuevo
+                    // Al ACTIVAR la trampilla (rígido) conserva la elección si cabe
+                    // en el nuevo máximo. Al DESACTIVAR (Tauliner) se queda al máximo
+                    // del trailer completo (13,2 m / 24 Tn), no al valor previo.
+                    if (trampillaChk.checked) {
+                        if (prevMl && mlSel.querySelector('option[value="' + prevMl + '"]')) mlSel.value = prevMl;
+                        if (prevPeso && pesoSel.querySelector('option[value="' + prevPeso + '"]')) pesoSel.value = prevPeso;
+                    }
+                    renderOcupacion();
                     renderEta();
                 });
             }
