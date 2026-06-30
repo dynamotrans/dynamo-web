@@ -5906,20 +5906,19 @@
                 });
             }
             function syncAddBtns() {
-                // Máximo 1 recogida + 1 entrega (independientes). El "+" de origen
-                // está disponible mientras no haya recogida; el de destino,
-                // mientras no haya entrega. Así siempre puedes tener una de cada.
-                if (origPlus) origPlus.style.display = recRows().length >= 1 ? 'none' : '';
-                if (destPlus) destPlus.style.display = entRows().length >= 1 ? 'none' : '';
+                // Máximo 2 paradas adicionales EN TOTAL entre recogidas y entregas,
+                // en cualquier reparto (2+0, 0+2 o 1+1). Al llegar a 2 se ocultan
+                // ambos "+"; al borrar una con su "−" reaparecen.
+                var full = paradaRows().length >= 2;
+                if (origPlus) origPlus.style.display = full ? 'none' : '';
+                if (destPlus) destPlus.style.display = full ? 'none' : '';
                 renumberRoute();
             }
             // Alias usado por reset/del (mantiene compatibilidad de nombre).
             function renumberParadas() { syncAddBtns(); }
             function addParada(kind) {
                 var box = kind === 'recogida' ? recBox : entBox;
-                if (!box) return;
-                if (kind === 'recogida' && recRows().length >= 1) return;
-                if (kind === 'entrega' && entRows().length >= 1) return;
+                if (!box || paradaRows().length >= 2) return;
                 var esRec = kind === 'recogida';
                 var row = document.createElement('div');
                 row.className = 'ptar-field ptar-field-full ptar-parada-row';
