@@ -1705,9 +1705,12 @@
             display: flex; align-items: center;
         }
         .ptar-eta-placeholder { color: var(--gray-500); font-size: 0.82rem; font-style: italic; }
-        .ptar-eta-data { display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 1.1rem; width: 100%; font-size: 0.83rem; align-items: center; }
-        .ptar-eta-data dt { font-weight: 600; color: var(--gray-500); letter-spacing: 0; font-size: 0.78rem; }
-        .ptar-eta-data dd { color: var(--navy); font-weight: 700; }
+        /* Una sola columna: etiqueta encima, valor debajo (apilado). */
+        .ptar-eta-data { display: block; width: 100%; font-size: 0.83rem; margin: 0; }
+        .ptar-eta-data dt { font-weight: 600; color: var(--gray-500); letter-spacing: 0; font-size: 0.78rem; margin: 0 0 0.1rem; }
+        .ptar-eta-data dt:empty { display: none; }
+        .ptar-eta-data dd { color: var(--navy); font-weight: 700; margin: 0 0 0.6rem; }
+        .ptar-eta-data dd:last-child { margin-bottom: 0; }
         /* Mismo tamaño que el resto; solo cambia el color:
            Carga (ventana) = naranja, Entrega estimada = verde. */
         .ptar-eta-data .ptar-eta-range { color: var(--green); font-weight: 800; }
