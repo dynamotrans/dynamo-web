@@ -4247,6 +4247,11 @@ body { top: 0 !important; position: static !important; }
 .skiptranslate { display: none !important; height: 0 !important; overflow: hidden !important; }
 .goog-text-highlight { background: none !important; box-shadow: none !important; }
 #google_translate_element { position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none; }
+/* El "spinner" de carga de Google Translate a veces se queda colgado en la
+   esquina (bug conocido de GT). Lo ocultamos siempre. */
+.goog-te-spinner-pos, .goog-te-spinner-pos *, img.goog-te-spinner,
+.goog-te-gadget-icon, .goog-te-gadget-simple { display: none !important; }
+iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
 </style>
 
 <!-- COOKIE BANNER -->
