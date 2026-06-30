@@ -5868,11 +5868,12 @@
                 } else {
                     rangoHtml = '<dd class="ptar-eta-stat">' + driveTxt + ' tras la carga</dd>';
                 }
-                // Aviso "hoy para hoy": si la carga empieza HOY mismo, no se
-                // garantiza la carga en el día y la cancelación <24h con
-                // transportista asignado conlleva cargos.
+                // Aviso "hoy para hoy": solo si la carga es HOY mismo Y con
+                // FECHA FIJA (1 día concreto). Con ventana 1-2 o 1-4 días no se
+                // muestra (hay margen). No se garantiza cargar hoy y la
+                // cancelación <24h con transportista asignado conlleva cargos.
                 var hoyHtml = '';
-                if (loadStart) {
+                if (loadStart && ventana === 1) {
                     var nM = nowMadrid();
                     if (loadStart.getFullYear() === nM.getFullYear() &&
                         loadStart.getMonth() === nM.getMonth() &&
@@ -6287,7 +6288,7 @@
             if (finalBtn) finalBtn.addEventListener('click', function () {
                 if (!pendingData) return;
                 // Aviso extra "hoy para hoy" si la carga empieza hoy mismo.
-                var hoyBloque = (pendingData.fechaIso && pendingData.fechaIso === isoLocal(nowMadrid()))
+                var hoyBloque = (pendingData.fechaIso && pendingData.ventanaDias === 1 && pendingData.fechaIso === isoLocal(nowMadrid()))
                     ? '<div style="margin-bottom:0.8rem;padding:0.6rem 0.75rem;background:rgba(245,158,11,0.14);border:1px solid rgba(245,158,11,0.45);border-radius:9px;font-size:0.85rem;line-height:1.55;color:#92400e;font-weight:600;">' +
                       '⚠ <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. La cancelación de una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista.' +
                       '</div>'
