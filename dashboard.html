@@ -85,7 +85,7 @@
         .sidebar-link svg { flex-shrink: 0; }
         .sidebar-link .badge {
             margin-left: auto; background: var(--orange); color: white;
-            font-size: 0.65rem; padding: 0.1rem 0.45rem; border-radius: 999px;
+            font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 999px;
             font-weight: 800;
         }
         .sidebar-link.active .badge { background: rgba(255,255,255,0.25); }
@@ -104,7 +104,7 @@
             font-weight: 900; font-size: 0.9rem; color: white;
         }
         .sidebar-user-name { font-size: 0.82rem; font-weight: 700; }
-        .sidebar-user-sub  { font-size: 0.66rem; opacity: 0.55; }
+        .sidebar-user-sub  { font-size: 0.72rem; opacity: 0.6; }
 
         /* =========================================
            MAIN
@@ -934,7 +934,7 @@
             font-size: 1.5rem; font-weight: 900; color: var(--navy); line-height: 1;
         }
         .stat-card-trend {
-            font-size: 0.68rem; font-weight: 700;
+            font-size: 0.74rem; font-weight: 700;
             display: flex; align-items: center; gap: 0.2rem;
         }
         .stat-card-trend.up   { color: var(--green-dark); }
@@ -958,16 +958,16 @@
         .stat-card-link:active { transform: translateY(0); }
 
         .cesce-card {
-            background: linear-gradient(135deg, var(--navy), var(--purple-nav));
-            color: white; border-radius: 12px; padding: 0.9rem 1.1rem;
+            background: #ffffff;
+            color: var(--navy); border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.9rem 1.1rem;
             margin-bottom: 1rem;
             display: flex; flex-direction: column; justify-content: center; gap: 0.55rem;
         }
         .cesce-header { display: flex; align-items: center; gap: 0.5rem; }
         .cesce-badge {
             background: var(--green); color: white;
-            font-size: 0.55rem; font-weight: 900; padding: 0.15rem 0.45rem;
-            border-radius: 999px; text-transform: uppercase; letter-spacing: 0.8px;
+            font-size: 0.62rem; font-weight: 900; padding: 0.15rem 0.5rem;
+            border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px;
         }
         .cesce-card h3 { font-size: 0.82rem; font-weight: 700; }
         /* Estado de cobertura: 1 chip con punto + texto. 3 variantes
@@ -977,20 +977,20 @@
             display: inline-flex; align-items: center; gap: 0.55rem;
             padding: 0.5rem 0.8rem; border-radius: 10px;
             font-size: 0.88rem; font-weight: 800;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.12);
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
             width: fit-content;
         }
         .cesce-status-dot {
             width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
-            box-shadow: 0 0 0 4px rgba(255,255,255,0.05);
+            box-shadow: 0 0 0 4px rgba(10,2,48,0.04);
         }
         .cesce-status-ok   .cesce-status-dot { background: var(--green); box-shadow: 0 0 0 4px rgba(34,165,90,0.20); animation: cescePulse 2.2s ease infinite; }
         .cesce-status-warn .cesce-status-dot { background: #f59e0b; box-shadow: 0 0 0 4px rgba(245,158,11,0.20); }
         .cesce-status-none .cesce-status-dot { background: #ef4444; box-shadow: 0 0 0 4px rgba(239,68,68,0.20); }
-        .cesce-status-ok   { color: #b6f5cc; }
-        .cesce-status-warn { color: #fde7a8; }
-        .cesce-status-none { color: #ffc4c4; }
+        .cesce-status-ok   { color: var(--green-dark); }
+        .cesce-status-warn { color: #b45309; }
+        .cesce-status-none { color: #dc2626; }
         /* Icono ℹ con tooltip: aviso de pago previo con proforma cuando NO hay
            crédito (warn/none). El mensaje va en hover/focus, sin ocupar layout
            (antes era un párrafo que agrandaba la tarjeta y deformaba la fila). */
@@ -1052,8 +1052,8 @@
         .mini-list-amount { font-weight: 700; color: var(--navy); font-size: 0.78rem; }
 
         .badge {
-            display: inline-block; font-size: 0.65rem; font-weight: 700;
-            padding: 0.15rem 0.5rem; border-radius: 999px; letter-spacing: 0.2px;
+            display: inline-block; font-size: 0.72rem; font-weight: 700;
+            padding: 0.15rem 0.55rem; border-radius: 999px; letter-spacing: 0;
         }
         .badge-green   { background: rgba(34,165,90,0.12);  color: var(--green-dark); }
         .badge-yellow  { background: rgba(255,212,0,0.18);  color: #8b6d00; }
@@ -1874,7 +1874,7 @@
             /* Compactación móvil: que el formulario entre sin scroll. */
             .ptar-pair { gap: 0.5rem; }
             .ptar-field { gap: 0.25rem; }
-            .ptar-section-head { margin: 0.35rem 0 0; font-size: 0.66rem; }
+            .ptar-section-head { margin: 0.35rem 0 0; font-size: 0.8rem; }
             .ptar-label { font-size: 0.72rem; }
             /* Alturas uniformes: mantenemos los 44px de base; en móvil solo
                16px de fuente (anti-zoom iOS) y sin doble padding del input. */
