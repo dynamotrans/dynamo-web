@@ -1558,7 +1558,7 @@
             color: var(--gray-700);
             background: var(--gray-50);
         }
-        /* Paradas intermedias (hasta 4), mismo esquema que origen/destino. */
+        /* Paradas intermedias (hasta 2 en total), mismo esquema que origen/destino. */
         .ptar-paradas-wrap { display: flex; flex-direction: column; gap: 0.5rem; }
         .ptar-add-parada {
             display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
@@ -5903,7 +5903,9 @@
                 });
             }
             function syncAddBtns() {
-                var full = paradaRows().length >= 4;
+                // Máximo 2 paradas adicionales en total (da igual el reparto
+                // entre recogidas y entregas: 2+0, 1+1 o 0+2).
+                var full = paradaRows().length >= 2;
                 if (origPlus) origPlus.style.display = full ? 'none' : '';
                 if (destPlus) destPlus.style.display = full ? 'none' : '';
                 renumberRoute();
@@ -5912,7 +5914,7 @@
             function renumberParadas() { syncAddBtns(); }
             function addParada(kind) {
                 var box = kind === 'recogida' ? recBox : entBox;
-                if (!box || paradaRows().length >= 4) return;
+                if (!box || paradaRows().length >= 2) return;
                 var esRec = kind === 'recogida';
                 var row = document.createElement('div');
                 row.className = 'ptar-field ptar-field-full ptar-parada-row';
