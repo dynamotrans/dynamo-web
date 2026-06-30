@@ -1724,7 +1724,7 @@
         .ptar-eta-festivo strong { color: #b45309; }
         /* Aviso "hoy para hoy" dentro de la caja ETA (no garantía + cancelación) */
         .ptar-eta-hoy {
-            margin-top: 0.7rem; padding: 0.55rem 0.7rem;
+            display: block; width: 100%; margin: 0 0 0.8rem; padding: 0.55rem 0.7rem;
             background: rgba(245,158,11,0.14); border: 1px solid rgba(245,158,11,0.45);
             border-radius: 9px; font-size: 0.78rem; line-height: 1.5; color: #92400e; font-weight: 600;
         }
@@ -5861,11 +5861,12 @@
                     }
                 }
                 etaBox.innerHTML =
+                    hoyHtml +
                     '<dl class="ptar-eta-data">' +
                     cargaHtml +
                     (rangoHtml ? '<dt>Entrega estimada</dt>' + rangoHtml : '') +
                     precioHtml +
-                    '</dl>' + hoyHtml;
+                    '</dl>';
                 // Efecto contador: anima el número desde el precio anterior al nuevo.
                 var pnum = etaBox.querySelector('[data-precio-num]');
                 if (pnum) animatePrice(pnum, fromPrice, precio);
