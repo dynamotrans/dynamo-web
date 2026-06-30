@@ -1724,6 +1724,13 @@
             border-radius: 9px; font-size: 0.78rem; line-height: 1.5; color: #92400e; font-weight: 600;
         }
         .ptar-eta-festivo strong { color: #b45309; }
+        /* Aviso "hoy para hoy" dentro de la caja ETA (no garantía + cancelación) */
+        .ptar-eta-hoy {
+            margin-top: 0.7rem; padding: 0.55rem 0.7rem;
+            background: rgba(245,158,11,0.14); border: 1px solid rgba(245,158,11,0.45);
+            border-radius: 9px; font-size: 0.78rem; line-height: 1.5; color: #92400e; font-weight: 600;
+        }
+        .ptar-eta-hoy strong { color: #b45309; }
 
         /* Label con tooltip (ℹ): el texto de ayuda sale al pasar por encima,
            sin ocupar layout. Reutilizable en cualquier .ptar-label. */
@@ -5339,17 +5346,13 @@
         //    tarde, pasado mañana (ya no se organiza para el día siguiente).
         //  · Ventana 1-2 / 1-4 días: se puede empezar HOY o mañana siempre.
         function firstLoadDate(windowVal) {
+            // "Hoy para hoy" permitido a cualquier hora: el primer día ofertado
+            // es HOY si es laborable; si no (finde/festivo) el siguiente hábil.
+            // Igual para fecha fija y para ventana. No garantizamos cargar hoy
+            // mismo — se avisa en la caja ETA (aviso .ptar-eta-hoy).
             var now = nowMadrid();
-            // El corte cuenta como "pasado" si hoy NO es hábil (finde/festivo →
-            // nos remitimos al último día hábil, p.ej. viernes) o ya son ≥14:00.
-            var cutoffPassed = nonBiz(now) || now.getHours() >= 14;
             var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            if (windowVal === 'dia') {
-                d.setDate(d.getDate() + 1); nextBiz(d);
-                if (cutoffPassed) { d.setDate(d.getDate() + 1); nextBiz(d); }
-            } else {
-                nextBiz(d);
-            }
+            nextBiz(d);
             return d;
         }
         function loadDates(windowVal, count) {
@@ -5849,12 +5852,24 @@
                 } else {
                     rangoHtml = '<dd class="ptar-eta-stat">' + driveTxt + ' tras la carga</dd>';
                 }
+                // Aviso "hoy para hoy": si la carga empieza HOY mismo, no se
+                // garantiza la carga en el día y la cancelación <24h con
+                // transportista asignado conlleva cargos.
+                var hoyHtml = '';
+                if (loadStart) {
+                    var nM = nowMadrid();
+                    if (loadStart.getFullYear() === nM.getFullYear() &&
+                        loadStart.getMonth() === nM.getMonth() &&
+                        loadStart.getDate() === nM.getDate()) {
+                        hoyHtml = '<div class="ptar-eta-hoy">⚠ <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. Cancelar una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista.</div>';
+                    }
+                }
                 etaBox.innerHTML =
                     '<dl class="ptar-eta-data">' +
                     cargaHtml +
                     (rangoHtml ? '<dt>Entrega estimada</dt>' + rangoHtml : '') +
                     precioHtml +
-                    '</dl>';
+                    '</dl>' + hoyHtml;
                 // Efecto contador: anima el número desde el precio anterior al nuevo.
                 var pnum = etaBox.querySelector('[data-precio-num]');
                 if (pnum) animatePrice(pnum, fromPrice, precio);
