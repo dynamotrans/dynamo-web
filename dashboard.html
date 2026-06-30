@@ -6262,11 +6262,18 @@
             if (backBtn) backBtn.addEventListener('click', exitConfirmStep);
             if (finalBtn) finalBtn.addEventListener('click', function () {
                 if (!pendingData) return;
+                // Aviso extra "hoy para hoy" si la carga empieza hoy mismo.
+                var hoyBloque = (pendingData.fechaIso && pendingData.fechaIso === isoLocal(nowMadrid()))
+                    ? '<div style="margin-bottom:0.8rem;padding:0.6rem 0.75rem;background:rgba(245,158,11,0.14);border:1px solid rgba(245,158,11,0.45);border-radius:9px;font-size:0.85rem;line-height:1.55;color:#92400e;font-weight:600;">' +
+                      '⚠ <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. La cancelación de una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista.' +
+                      '</div>'
+                    : '';
                 openDashModal({
                     icon: 'alert', iconVariant: 'warn',
                     title: 'IMPORTANTE: vas a confirmar un pedido de transporte',
                     sub: 'Aviso sobre cancelaciones',
                     body:
+                        hoyBloque +
                         '<p style="font-size:0.88rem;line-height:1.55;color:var(--gray-700);">' +
                         'Si el cliente cancela el servicio <strong>después de las 9:00 AM del día hábil anterior</strong> a la carga, <strong>Dynamo Operador Logístico, S.L.</strong> se reserva el derecho de <strong>facturar el servicio completo</strong> en concepto de indemnización.' +
                         '</p>' +
