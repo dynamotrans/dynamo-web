@@ -1715,7 +1715,7 @@
         .ptar-eta-data .ptar-eta-range { color: var(--green); font-weight: 800; }
         .ptar-eta-data .ptar-eta-carga { color: var(--orange); font-weight: 800; }
         .ptar-eta-data .ptar-eta-precio { color: var(--purple); font-weight: 900; font-size: 1.05rem; }
-        .ptar-eta-data .ptar-eta-precio span { color: var(--gray-500); font-weight: 600; font-size: 0.72rem; white-space: nowrap; }
+        .ptar-eta-data .ptar-eta-precio .ptar-iva { color: var(--gray-500); font-weight: 600; font-size: 0.72rem; white-space: nowrap; }
         .ptar-eta-data .ptar-eta-stat { color: var(--gray-700); font-weight: 600; }
         .ptar-eta-data .ptar-eta-warn { color: #b45309; }
         .ptar-eta-festivo {
@@ -5780,8 +5780,11 @@
                 if (trampOn && trampOn.checked) precio += 60;
                 precio += paradaRows().length * 40;
                 precio = Math.round(precio / 10) * 10;
-                // El número arranca en el valor anterior y se anima (contador) al nuevo.
-                var precioHtml = '<dt>Precio</dt><dd class="ptar-eta-precio"><span data-precio-num>' + lastPrice.toLocaleString('es-ES') + '</span> € <span>(IVA 21% no incluido)</span></dd>';
+                // Arranca en el número que se está mostrando AHORA (no en lastPrice)
+                // para que la animación encadene aunque renderEta se llame 2 veces.
+                var shownEl = etaBox.querySelector('[data-precio-num]');
+                var fromPrice = shownEl ? (parseInt(shownEl.textContent.replace(/[^\d]/g, ''), 10) || lastPrice) : lastPrice;
+                var precioHtml = '<dt>Precio</dt><dd class="ptar-eta-precio"><span data-precio-num>' + fromPrice.toLocaleString('es-ES') + '</span> € <span class="ptar-iva">(IVA 21% no incluido)</span></dd>';
 
                 // Lectura de la fecha de carga (si la sección tiene día)
                 var loadStart = null;
@@ -5854,7 +5857,7 @@
                     '</dl>';
                 // Efecto contador: anima el número desde el precio anterior al nuevo.
                 var pnum = etaBox.querySelector('[data-precio-num]');
-                if (pnum) animatePrice(pnum, lastPrice, precio);
+                if (pnum) animatePrice(pnum, fromPrice, precio);
                 lastPrice = precio;
                 if (festBox) festBox.innerHTML = festHtml;  // aviso de festivo fuera de la caja, antes de referencia
             }
