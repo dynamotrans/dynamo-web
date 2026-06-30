@@ -70,7 +70,7 @@
         }
         .sidebar-brand img { height: 28px; width: auto; }
         .sidebar-brand-name { font-weight: 900; font-size: 1.05rem; letter-spacing: -0.3px; }
-        .sidebar-brand-sub  { font-size: 0.62rem; opacity: 0.6; text-transform: uppercase; letter-spacing: 1.5px; }
+        .sidebar-brand-sub  { font-size: 0.7rem; opacity: 0.6; letter-spacing: 0; }
         .sidebar-nav { flex: 1; padding: 0.6rem 0.5rem; display: flex; flex-direction: column; gap: 0.2rem; }
         .sidebar-link {
             display: flex; align-items: center; gap: 0.7rem;
@@ -171,9 +171,9 @@
             text-align: left;
         }
         .topbar-contact-label .t-pre {
-            font-size: 0.62rem; font-weight: 700;
+            font-size: 0.72rem; font-weight: 600;
             color: rgba(255,255,255,0.7);
-            text-transform: uppercase; letter-spacing: 0.6px;
+            letter-spacing: 0;
         }
         .topbar-contact-label .t-name {
             font-size: 0.88rem; font-weight: 800; color: white;
@@ -401,7 +401,7 @@
         }
         .user-menu-role {
             display: inline-block; margin-top: 0.35rem;
-            font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.7px;
+            font-size: 0.72rem; font-weight: 700; letter-spacing: 0;
             color: var(--purple); background: rgba(51,0,204,0.08);
             padding: 0.15rem 0.5rem; border-radius: 999px;
         }
@@ -834,9 +834,8 @@
         /* Título de sección dentro del modal de Ver detalle, separa
            bloques visualmente (Solicitud / Asignación / Ruta y carga) */
         .modal-section-title {
-            font-size: 0.7rem; font-weight: 800;
-            color: var(--gray-500); text-transform: uppercase;
-            letter-spacing: 0.7px;
+            font-size: 0.82rem; font-weight: 700;
+            color: var(--navy); letter-spacing: 0;
             margin: 1.2rem 0 0.5rem;
             padding-bottom: 0.3rem;
             border-bottom: 1px solid var(--gray-200);
@@ -844,14 +843,14 @@
         .modal-section-title:first-child { margin-top: 0; }
         .modal-info-grid > div { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
         .modal-info-grid label {
-            font-size: 0.64rem; font-weight: 800; color: var(--gray-500);
-            text-transform: uppercase; letter-spacing: 0.5px;
+            font-size: 0.78rem; font-weight: 600; color: var(--gray-500);
+            letter-spacing: 0;
         }
         .modal-info-grid .v { font-size: 0.86rem; color: var(--navy); font-weight: 700; word-break: break-word; }
         .modal-form-row { margin-bottom: 0.85rem; }
         .modal-form-row label {
-            display: block; font-size: 0.68rem; font-weight: 800; color: var(--gray-500);
-            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem;
+            display: block; font-size: 0.78rem; font-weight: 600; color: var(--gray-500);
+            letter-spacing: 0; margin-bottom: 0.3rem;
         }
         .modal-form-row input, .modal-form-row textarea, .modal-form-row select {
             width: 100%; padding: 0.62rem 0.8rem;
@@ -928,8 +927,8 @@
             display: flex; flex-direction: column; gap: 0.3rem;
         }
         .stat-card-label {
-            font-size: 0.65rem; font-weight: 700; color: var(--gray-500);
-            text-transform: uppercase; letter-spacing: 0.4px;
+            font-size: 0.78rem; font-weight: 600; color: var(--gray-500);
+            letter-spacing: 0;
         }
         .stat-card-value {
             font-size: 1.5rem; font-weight: 900; color: var(--navy); line-height: 1;
@@ -1225,8 +1224,8 @@
         }
         table.data thead th {
             text-align: left; padding: 0.75rem 0.9rem;
-            font-size: 0.7rem; font-weight: 800;
-            color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px;
+            font-size: 0.78rem; font-weight: 600;
+            color: var(--gray-500); letter-spacing: 0;
             background: var(--gray-50); border-bottom: 1px solid var(--gray-200);
             white-space: nowrap;
         }
@@ -1512,8 +1511,8 @@
             grid-column: 1 / -1;
             display: flex; align-items: center; gap: 0.6rem;
             margin: 0.7rem 0 0.05rem;
-            font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
-            color: var(--purple);
+            font-size: 0.82rem; font-weight: 700; letter-spacing: 0;
+            color: var(--navy);
         }
         .ptar-section-head:first-child { margin-top: 0; }
         .ptar-section-head::after {
@@ -1521,9 +1520,8 @@
             background: linear-gradient(90deg, rgba(124,58,237,0.30), transparent);
         }
         .ptar-label {
-            font-size: 0.7rem; font-weight: 700;
-            color: var(--gray-500); text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 0.78rem; font-weight: 600;
+            color: var(--gray-500); letter-spacing: 0;
         }
         .ptar-input-wrap {
             position: relative;
@@ -1708,7 +1706,7 @@
         }
         .ptar-eta-placeholder { color: var(--gray-500); font-size: 0.82rem; font-style: italic; }
         .ptar-eta-data { display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 1.1rem; width: 100%; font-size: 0.83rem; align-items: center; }
-        .ptar-eta-data dt { font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.4px; font-size: 0.7rem; }
+        .ptar-eta-data dt { font-weight: 600; color: var(--gray-500); letter-spacing: 0; font-size: 0.78rem; }
         .ptar-eta-data dd { color: var(--navy); font-weight: 700; }
         /* Mismo tamaño que el resto; solo cambia el color:
            Carga (ventana) = naranja, Entrega estimada = verde. */
@@ -1812,9 +1810,8 @@
         .ptar-confirm-note strong { color: var(--navy); }
         .ptar-confirm-note-info strong { color: var(--purple); }
         .ptar-confirm-sumtitle {
-            font-size: 0.75rem; font-weight: 700;
-            color: var(--gray-500); text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 0.82rem; font-weight: 700;
+            color: var(--navy); letter-spacing: 0;
             margin: 1rem 0 0.5rem;
         }
         .ptar-confirm-summary {
@@ -1824,9 +1821,8 @@
             font-size: 0.85rem;
         }
         .ptar-confirm-summary dt {
-            font-size: 0.7rem; font-weight: 700;
-            color: var(--gray-500); text-transform: uppercase;
-            letter-spacing: 0.4px;
+            font-size: 0.78rem; font-weight: 600;
+            color: var(--gray-500); letter-spacing: 0;
         }
         .ptar-confirm-summary dd { color: var(--navy); font-weight: 600; margin-bottom: 0.35rem; }
         .ptar-confirm-summary .full { grid-column: 1 / -1; }
