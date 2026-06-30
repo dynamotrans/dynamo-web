@@ -5641,7 +5641,7 @@
             }
             // Quita la marca de error del select en cuanto cambie a algo válido
             if (diaSel) diaSel.addEventListener('change', function () {
-                if (diaSel.value) diaSel.classList.remove('ptar-select-error');
+                if (diaSel.value) { diaSel.classList.remove('ptar-select-error'); warning.classList.remove('show'); }
                 var fw = card.querySelector('[data-ptar-fecha-warn]');
                 if (fw && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) fw.hidden = true;
             });
@@ -6078,6 +6078,7 @@
                 // explícita: una fecha, "Previsión, sin fecha definida" o "Otro día…"
                 if (diaSel) {
                     if (diaSel.value === '') {
+                        warning.textContent = '⚠ Selecciona la fecha de envío antes de continuar.';
                         warning.classList.add('show');
                         diaSel.classList.add('ptar-select-error');
                         diaSel.focus();
@@ -6095,6 +6096,7 @@
                         fechaLarga = fmtFull(d);
                     } else {
                         // 'otro' sin elegir realmente una fecha
+                        warning.textContent = '⚠ Selecciona la fecha de envío antes de continuar.';
                         warning.classList.add('show');
                         diaSel.classList.add('ptar-select-error');
                         return null;
@@ -6325,6 +6327,12 @@ body { top: 0 !important; position: static !important; }
 .skiptranslate { display: none !important; height: 0 !important; overflow: hidden !important; }
 .goog-text-highlight { background: none !important; box-shadow: none !important; }
 #google_translate_element { position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none; }
+/* El "spinner" de carga de Google Translate a veces se queda colgado en la
+   esquina (bug conocido de GT). Lo ocultamos siempre: la traducción se
+   dispara por el combo .goog-te-combo, no por esa UI. */
+.goog-te-spinner-pos, .goog-te-spinner-pos *, img.goog-te-spinner,
+.goog-te-gadget-icon, .goog-te-gadget-simple { display: none !important; }
+iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
 </style>
 </body>
 </html>
