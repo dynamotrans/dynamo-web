@@ -4896,7 +4896,9 @@ function updateAlmTotal() {
             syncAddBtns();
         });
         syncAddBtns();
-        row.querySelector('input').focus({ preventScroll: true });
+        // NO auto-enfocar en la web pública: el foco programático hace que iOS
+        // amplíe la página (aquí no hay maximum-scale, a diferencia del panel).
+        // El usuario toca el campo cuando quiera; a mano (tap) no hay zoom (16px).
     }
     function makePlus(wrap, kind) {
         if (!wrap || !wrap.parentNode) return null;
