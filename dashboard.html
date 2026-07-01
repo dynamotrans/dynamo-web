@@ -1888,6 +1888,17 @@
             .ptar-notes-wrap { margin-top: 0.5rem; }
             .ptar-nofecha-warn { font-size: 0.72rem; padding: 0.45rem 0.6rem; }
         }
+        /* Anti-zoom iOS en CUALQUIER dispositivo táctil (no solo <=600px): iOS
+           10+ ignora maximum-scale, así que lo único que evita el zoom al
+           enfocar es font-size>=16px. Cubre inputs, selects, paradas y textarea
+           en móviles grandes/landscape/tablets donde el bloque <=600 no aplica. */
+        @media (pointer: coarse) {
+            .ptar-card .ptar-input-wrap input,
+            .ptar-card .ptar-select,
+            .ptar-card .ptar-date,
+            .ptar-card .ptar-select-sm,
+            .ptar-card textarea { font-size: 16px; }
+        }
 
         /* ======= RESPONSIVE ======= */
         @media (max-width: 1100px) {
