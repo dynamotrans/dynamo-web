@@ -754,7 +754,11 @@
         .hero.calc-open .hero-default { display: none; }
         .hero.calc-open .tarifador {
             display: block;
-            animation: tarFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+            /* 'backwards' (no 'both'/'forwards'): aplica el estado inicial para
+               que no haya flash, pero NO retiene el transform final. Con 'both'
+               quedaba una matriz identidad residual en .tarifador que crea un
+               containing block y rompía el position:fixed de los tooltips ℹ. */
+            animation: tarFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
         }
         @keyframes tarFadeIn {
             0%   { opacity: 0; transform: translateY(16px); }
