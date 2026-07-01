@@ -4898,23 +4898,38 @@ function updateAlmTotal() {
     syncAddBtns();
 
     // Tooltips ℹ (Trampilla / NIMA): posicionar el pop pegado al icono y
-    // clampeado a pantalla (position:fixed, no se recorta en móvil).
+    // clampeado a pantalla (position:fixed). Se posiciona ANTES de mostrarse,
+    // también al TOCAR (móvil): mouseenter/focus no disparan bien en táctil.
     card.querySelectorAll('.ptar-has-tip').forEach(function (host) {
         var pop = host.querySelector('.ptar-tip-pop');
         if (!pop) return;
+        var ico = host.querySelector('.ptar-tip-ico') || host;
         function place() {
-            var r = host.getBoundingClientRect();
-            var pw = pop.offsetWidth || 262;
-            var left = r.left;
+            var r = ico.getBoundingClientRect();
+            // El pop es visibility:hidden (no display:none) → ya tiene tamaño real.
+            var pw = pop.offsetWidth || Math.min(262, window.innerWidth - 16);
+            var ph = pop.offsetHeight || 60;
+            var left = r.left + r.width / 2 - pw / 2;   // centrado bajo el icono
             var maxLeft = window.innerWidth - pw - 8;
             if (left > maxLeft) left = maxLeft;
             if (left < 8) left = 8;
-            pop.style.left = left + 'px';
-            pop.style.top = (r.bottom + 6) + 'px';
+            var top = r.bottom + 8;
+            // Si no cabe debajo, colócalo encima del icono.
+            if (top + ph > window.innerHeight - 8) top = r.top - ph - 8;
+            if (top < 8) top = 8;
+            pop.style.left = Math.round(left) + 'px';
+            pop.style.top = Math.round(top) + 'px';
         }
-        host.addEventListener('mouseenter', place);
-        host.addEventListener('focus', place, true);
+        ['pointerenter', 'focusin', 'touchstart', 'click'].forEach(function (ev) {
+            host.addEventListener(ev, place, { passive: true });
+        });
     });
+    // Cierra los tooltips (quita el hover "pegajoso" de iOS) al tocar fuera.
+    document.addEventListener('touchstart', function (e) {
+        if (!e.target.closest('.ptar-has-tip')) {
+            card.querySelectorAll('.ptar-has-tip').forEach(function (h) { h.blur && h.blur(); });
+        }
+    }, { passive: true });
 
     // Hero: alternar entre la pantalla por defecto (texto + 2 CTAs) y el
     // tarifador. "Precios" abre el tarifador; el boton minimizar (-) del
