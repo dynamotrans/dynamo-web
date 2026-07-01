@@ -794,7 +794,7 @@
             border: 1px solid rgba(255,255,255,0.6);
             border-radius: 18px;
             box-shadow: 0 24px 60px rgba(10,2,48,0.45), 0 8px 22px rgba(10,2,48,0.28);
-            padding: 1.05rem 1.2rem 1.1rem;
+            padding: 0.75rem 1.1rem 0.85rem;
             color: var(--navy); text-align: left;
             position: relative;
         }
@@ -817,29 +817,29 @@
             .tar-reset { top: 0.45rem; right: 0.5rem; width: 26px; height: 26px; }
             .tar-reset svg { width: 14px; height: 14px; }
         }
-        .tar-head { text-align: center; margin-bottom: 0.8rem; padding: 0 2.2rem; }
+        .tar-head { text-align: center; margin-bottom: 0.4rem; padding: 0 2.2rem; }
         .tar-title {
-            font-size: clamp(1.4rem, 4.5vw, 1.85rem); font-weight: 900; letter-spacing: -0.6px;
+            font-size: clamp(1.15rem, 3.5vw, 1.45rem); font-weight: 900; letter-spacing: -0.6px;
             color: var(--navy); margin: 0 0 0.15rem; line-height: 1.1;
         }
         .tar-title .tt-dark   { color: var(--purple); }
         .tar-title .tt-purple { color: var(--purple); }
-        .tar-sub { font-size: 0.95rem; color: var(--gray-500); margin: 0; font-weight: 600; }
+        .tar-sub { font-size: 0.82rem; color: var(--gray-500); margin: 0; font-weight: 600; }
 
         /* ===== .ptar-* (mismo diseño que el tarifador del panel) ===== */
         .ptar-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem 1rem;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 0.9rem;
         }
-        .ptar-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+        .ptar-field { display: flex; flex-direction: column; gap: 0.22rem; min-width: 0; }
         .ptar-field-full { grid-column: 1 / -1; }
         .ptar-pair {
             grid-column: 1 / -1;
-            display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem 0.8rem;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 0.75rem;
         }
         .ptar-pair > .ptar-field { min-width: 0; }
         .ptar-tramp-box {
             display: flex; align-items: center; gap: 0.5rem;
-            height: 44px; padding: 0 0.6rem; border: 1.5px solid var(--gray-200); border-radius: 10px;
+            height: 40px; padding: 0 0.6rem; border: 1.5px solid var(--gray-200); border-radius: 10px;
             background: var(--gray-50); cursor: pointer; overflow: hidden;
         }
         .ptar-tramp-state { font-size: 0.74rem; font-weight: 700; color: var(--gray-500); white-space: nowrap; }
@@ -863,7 +863,7 @@
         .ptar-section-head {
             grid-column: 1 / -1;
             display: flex; align-items: center; gap: 0.6rem;
-            margin: 0.7rem 0 0.05rem;
+            margin: 0.35rem 0 0;
             font-size: 0.82rem; font-weight: 700; letter-spacing: 0;
             color: var(--navy);
         }
@@ -879,7 +879,7 @@
         .ptar-input-wrap {
             position: relative;
             display: flex; align-items: center; gap: 0.55rem;
-            height: 44px; padding: 0 0.8rem;
+            height: 40px; padding: 0 0.8rem;
             border: 1.5px solid var(--gray-200);
             border-radius: 10px;
             background: white;
@@ -897,21 +897,21 @@
         }
         .ptar-input-wrap input::placeholder { color: var(--gray-300); }
         .ptar-select, .ptar-date {
-            width: 100%; height: 44px; padding: 0 0.8rem;
+            width: 100%; height: 40px; padding: 0 0.8rem;
             border: 1.5px solid var(--gray-200);
             border-radius: 10px; background: white;
             font: inherit; color: var(--gray-900); font-size: 0.9rem;
             cursor: pointer; transition: border-color 0.18s, box-shadow 0.18s;
         }
         .ptar-select-sm {
-            height: 44px; padding: 0 0.6rem;
+            height: 40px; padding: 0 0.6rem;
             font-size: 0.8rem;
             color: var(--gray-700);
             background: var(--gray-50);
         }
         .ptar-paradas-wrap { display: flex; flex-direction: column; gap: 0.5rem; }
         .ptar-parada-del {
-            flex: 0 0 auto; width: 30px; height: 44px; border: none; background: none;
+            flex: 0 0 auto; width: 30px; height: 40px; border: none; background: none;
             color: #9aa0aa; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
             border-radius: 8px; transition: color 0.15s, background 0.15s;
         }
@@ -924,7 +924,7 @@
         .ptar-route-num.rec { background: var(--orange); }
         .ptar-route-num.ent { background: var(--green); }
         .ptar-route-add {
-            flex: 0 0 auto; width: 30px; height: 44px; border: none; background: none;
+            flex: 0 0 auto; width: 30px; height: 40px; border: none; background: none;
             color: var(--purple); cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
             border-radius: 8px; transition: color 0.15s, background 0.15s;
         }
