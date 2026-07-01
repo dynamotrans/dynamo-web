@@ -1083,6 +1083,17 @@
             .tar-cta-wrap { margin-top: 0.7rem; }
             .tar-cta-btn { padding: 0.55rem 0.45rem; font-size: 0.84rem; }
         }
+        /* Anti-zoom iOS: en CUALQUIER dispositivo táctil (no solo <=600px, para
+           cubrir móviles grandes/landscape/tablets) los campos escribibles del
+           tarifador van a 16px. Con <16px iOS hace zoom al enfocar. Incluye la
+           textarea de anotaciones, que se quedaba en 14px. */
+        @media (pointer: coarse) {
+            .tarifador .ptar-input-wrap input,
+            .tarifador .ptar-select,
+            .tarifador .ptar-date,
+            .tarifador .ptar-select-sm,
+            .tarifador .ptar-notes-body textarea { font-size: 16px; }
+        }
 
         /* Calendario Flatpickr — estilo de marca con esquinas suaves */
         .flatpickr-calendar {
