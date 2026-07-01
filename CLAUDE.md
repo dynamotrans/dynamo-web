@@ -170,6 +170,43 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-07-01 — Claude Code web (nube)
+
+> **Sesión larga de pulido del PANEL + port del tarifador a la web pública.** Casi todo en **preview** (`claude/sharp-dirac-E3UIO`) con cascada a **lab**. **Única cosa a producción (`main`)**: ocultar el spinner colgado de Google Translate en `index.html`. El tarifador público replicado está SOLO en preview, pendiente del OK del usuario para promocionar.
+
+**TARIFADOR DEL PANEL (`dashboard.html`, preview/lab) — muchos ajustes**:
+- **Efecto contador del precio**: corregido para que anime en **todas** las opciones que mueven el precio (no solo la trampilla) y recupere su **tamaño** (el span de "(IVA 21%…)" ahora tiene clase `.ptar-iva`, ya no encoge el número). La animación arranca del número visible en el DOM (`fromPrice`).
+- **Aviso rojo correcto al faltar fecha**: antes mostraba "Introduce el origen y el destino" aunque estuvieran puestos; ahora el caso sin fecha dice "Selecciona la fecha de envío…" y el aviso se oculta al elegir fecha válida.
+- **Carga HOY para HOY a cualquier hora**: `firstLoadDate` ofrece HOY como primer día en todos los modos (fuera el corte de las 14:00; solo salta findes/festivos). Nuevo **aviso ámbar** en la caja ETA (y en el modal de confirmación, junto a lo de cancelar): "no se garantiza cargar en el día… cancelación <24 h conlleva cargos una vez asignado transportista". El aviso solo sale si es **hoy + fecha fija (1 día)**; con ventana 1-2/1-4 no.
+- **Caja ETA a una sola columna** (etiqueta encima del valor), y el aviso hoy-para-hoy **arriba** a ancho completo (el `.ptar-eta-box` pasó a `flex-direction:column`).
+- **Paradas** (recogidas/entregas): límite final **máx 2 en total** en cualquier reparto (2+0, 0+2, 1+1). Al llegar a 2 se ocultan los "+", reaparecen al borrar con "−".
+- **Toggle "Requiere NIMA"** (residuos) junto a la trampilla, mismo estilo No/Sí, **+50 €**, tooltip, se refleja en resumen. **Trampilla y NIMA colocados después de metros/toneladas**.
+- **Al desactivar la trampilla** (vuelve a Tauliner) → metros/toneladas al **máximo de trailer completo (13,2 m / 24 Tn)**, no al valor previo del rígido.
+- **Tipo de mercancía**: quitado solo el **título** (el selector se queda, con `aria-label`). **Nuevo envío y Nuevo presupuesto igualados** (mismos campos y orden: mercancía → ml/peso → trampilla/NIMA; NIMA añadido también a presupuesto).
+
+**REDISEÑO CLARO DEL PANEL (`dashboard.html`, preview/lab)**:
+- **Tipografía**: fuera `text-transform:uppercase` en labels/encabezados/tablas/stats/modales; todo **sentence case**, `letter-spacing:0`, escala de texto pequeño unificada a 2 niveles (etiqueta 0,78rem/600 gris · encabezado sección 0,82rem/700 navy). Solo quedan en mayúscula el acrónimo **CESCE** y los chips de urgencia (HOY/MAÑANA/RETRASADA).
+- **Barra superior (topbar) blanca** con acentos morado/verde (antes gradiente morado). Logo a color, píldoras Álvaro/JG sobre gris claro con texto navy, halos verde/morado al hover.
+- **Tarjeta CESCE a clara** (era negra) — blanca con borde gris, verde "Cobertura" y ámbar/rojo del estado como acentos.
+- **Tamaño mínimo de texto** subido (badges 0,65→0,72rem, sub sidebar, etc.); en móvil las stats ya no bajan de ~0,7rem (antes 0,52–0,6rem, casi ilegible).
+- **Sidebar clara estilo Cabify**: blanca con borde gris, enlaces gris oscuro, **activo en morado suave** (fondo rgba morado + texto/icono morado), badge naranja, logo a color. El panel queda **todo claro y coherente** (topbar + sidebar + CESCE).
+
+**TARIFADOR EN LA WEB PÚBLICA (`index.html`, SOLO preview/lab — pendiente OK para producción)**:
+- **Replicado el formulario del panel** en el hero público (sustituye al antiguo `.tar-*` por `.ptar-*`): ruta con **paradas** (recogidas/entregas máx 2), tipo origen/destino, mercancía (3), metros/toneladas reactivos a la trampilla, toggles **Trampilla + NIMA**, fecha (hoy permitido) y ventana. Reutiliza autocomplete OSM, Flatpickr y `festivos.js`.
+- **Sin precio/ETA/festivos/guardado** (decisión acordada: no enseñar precio inventado en público). El botón "**Solicitar tarifa**" sigue generando el **mensaje** para email (`info@dynamotrans.com`) y WhatsApp (`34628995709`) con TODOS los campos nuevos.
+- **Compactado en 2 pasadas** (controles 44→38px, gaps y título menores): la caja bajó de ~ tamaño pantalla completa a **~510px**.
+- Portado por subagente y **verificado en Chromium headless** (se abre, campos OK, paradas OK, CTA revela email/WhatsApp con URL correcta, sin overflow, sin errores JS nuevos).
+
+**A PRODUCCIÓN (`main`)** — **único cambio público del día**:
+- **Ocultar el spinner colgado de Google Translate** (bug conocido de GT que se quedaba en la esquina). Reglas CSS (`.goog-te-spinner-pos`, iframe de carga) en `index.html` (main `6ec8cda`) + las 5 páginas del portal (preview/lab). Flujo main-first respetado (rama corta `fix/gt-spinner-public` → merge a main → cascada preview/lab).
+
+**Pendientes**:
+- **Promocionar el tarifador público a producción** cuando el usuario lo revise en preview y dé el OK ("publica el tarifador").
+- **Tarifa real** del cliente para sustituir el precio MOCK del tarifador del panel.
+- Opcional: mostrar "entrega estimada" (sin precio) también en el tarifador público, si el usuario lo quiere.
+- Opcional: separadores de sección tipo Cabify ("GESTIÓN/CUENTA") en la sidebar si crecen los enlaces.
+- Single source real del tarifador (módulo compartido panel/público) para no acumular drift — hoy son copias independientes.
+
 ### 2026-06-28 (sesión 2) — Claude Code web (nube)
 
 > **Sesión larguísima de rediseño del tarifador del panel** (`dashboard.html`, solo preview/lab). Todo commiteado y pusheado a `preview` (`fc307ca`) y `lab` (`c6c5bd5`). `main` sin tocar hoy. Al final saltó el **límite de Vercel Hobby (100 deploys/día)** por la cantidad de pushes — no se pierde nada, los previews vuelven a construir solos en ~24h.
