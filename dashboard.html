@@ -2283,6 +2283,7 @@
                         <button type="button" class="lang-pill" data-lang="ro" data-flag="🇷🇴" data-label="Română" onclick="pickLanguage(this)"><span class="flag">🇷🇴</span> Română</button>
                         <button type="button" class="lang-pill" data-lang="uk" data-flag="🇺🇦" data-label="Українська" onclick="pickLanguage(this)"><span class="flag">🇺🇦</span> Українська</button>
                         <button type="button" class="lang-pill" data-lang="zh-CN" data-flag="🇨🇳" data-label="中文" onclick="pickLanguage(this)"><span class="flag">🇨🇳</span> 中文</button>
+                        <button type="button" class="lang-pill" data-lang="ar" data-flag="🇸🇦" data-label="العربية" onclick="pickLanguage(this)"><span class="flag">🇸🇦</span> العربية</button>
                     </div>
                     <div class="user-menu-sep"></div>
                     <button type="button" class="user-menu-item user-menu-item-danger" role="menuitem" onclick="logOut()">
@@ -3872,7 +3873,7 @@
         new google.translate.TranslateElement({
             pageLanguage: 'es',
             autoDisplay: false,
-            includedLanguages: 'ca,eu,pt,en,fr,de,it,nl,pl,ro,uk,zh-CN'
+            includedLanguages: 'ca,eu,pt,en,fr,de,it,nl,pl,ro,uk,zh-CN,ar'
         }, 'google_translate_element');
         var c = setInterval(function () {
             var sel = document.querySelector('.goog-te-combo');
@@ -4077,7 +4078,7 @@
         pl:{mon:'Poniedziałek',tue:'Wtorek',wed:'Środa',thu:'Czwartek',fri:'Piątek',sat:'Sobota',to:'–',and:'i',summer:'lato',xmas:'Boże Narodzenie',feria:'Feria',holy:'Wielki Tydzień',reduced:'Zamknięte · email i WhatsApp'},
         ro:{mon:'Luni',tue:'Marți',wed:'Miercuri',thu:'Joi',fri:'Vineri',sat:'Sâmbătă',to:'–',and:'și',summer:'vară',xmas:'Crăciun',feria:'Feria',holy:'Săptămâna Mare',reduced:'Închis · email și WhatsApp'},
         uk:{mon:'Понеділок',tue:'Вівторок',wed:'Середа',thu:'Четвер',fri:'П\'ятниця',sat:'Субота',to:'–',and:'і',summer:'літо',xmas:'Різдво',feria:'Feria',holy:'Страсний тиждень',reduced:'Зачинено · email і WhatsApp'},
-        'zh-CN':{mon:'周一',tue:'周二',wed:'周三',thu:'周四',fri:'周五',sat:'周六',to:'至',and:'和',summer:'夏季',xmas:'圣诞',feria:'节庆',holy:'圣周',reduced:'关闭 · 邮件和 WhatsApp'}
+        'zh-CN':{mon:'周一',tue:'周二',wed:'周三',thu:'周四',fri:'周五',sat:'周六',to:'至',and:'和',summer:'夏季',xmas:'圣诞',feria:'节庆',holy:'圣周',reduced:'关闭 · 邮件和 WhatsApp'}, 'ar':{mon:'الاثنين',tue:'الثلاثاء',wed:'الأربعاء',thu:'الخميس',fri:'الجمعة',sat:'السبت',to:'إلى',and:'و',summer:'الصيف',xmas:'عيد الميلاد',feria:'موسم الأعياد',holy:'أسبوع الآلام',reduced:'مغلق · البريد وواتساب'}
     };
     function schedLang(){ var m=document.cookie.match(/googtrans=\/[\w-]+\/([\w-]+)/); var l=m?m[1]:'es'; return SCHED_VOCAB[l]?l:'es'; }
     function buildLabels(lang){ var v=SCHED_VOCAB[lang]||SCHED_VOCAB.es; function rng(a,b){return v.to==='–'?(a+'–'+b):(a+' '+v.to+' '+b);}
