@@ -832,13 +832,13 @@
 
         /* ===== .ptar-* (mismo diseño que el tarifador del panel) ===== */
         .ptar-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 0.85rem;
+            display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.4rem 0.85rem;
         }
         .ptar-field { display: flex; flex-direction: column; gap: 0.22rem; min-width: 0; }
-        .ptar-field-full { grid-column: 1 / -1; }
+        .ptar-field-full { grid-column: 1 / -1; min-width: 0; }
         .ptar-pair {
             grid-column: 1 / -1;
-            display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 0.7rem;
+            display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.4rem 0.7rem;
         }
         .ptar-pair > .ptar-field { min-width: 0; }
         .ptar-tramp-box {
@@ -1067,7 +1067,7 @@
             .tar-title { font-size: 1.15rem; line-height: 1.15; letter-spacing: -0.3px; }
             .tar-sub { font-size: 0.85rem; }
             .tar-head { margin-bottom: 0.4rem; }
-            .ptar-grid { grid-template-columns: 1fr; gap: 0.5rem; }
+            .ptar-grid { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
             .ptar-pair { gap: 0.5rem; }
             .ptar-field { gap: 0.25rem; }
             .ptar-section-head { margin: 0.22rem 0 0; font-size: 0.8rem; }

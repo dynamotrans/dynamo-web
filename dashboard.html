@@ -429,7 +429,7 @@
         .user-menu-item-expand[aria-expanded="true"] .user-menu-chev { transform: rotate(180deg); }
         .user-menu-submenu {
             display: none;
-            grid-template-columns: 1fr 1fr; gap: 0.3rem;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.3rem;
             padding: 0.35rem 0.4rem 0.5rem;
         }
         .user-menu-submenu.open { display: grid; }
@@ -828,7 +828,7 @@
         }
         .dash-modal-footer .btn-primary svg { opacity: 0.9; }
         .modal-info-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem 1.2rem;
+            display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.7rem 1.2rem;
             margin-bottom: 0.6rem;
         }
         /* Título de sección dentro del modal de Ver detalle, separa
@@ -1077,7 +1077,7 @@
             margin-left: 0.25rem; cursor: help; vertical-align: middle;
         }
 
-        .dash-ctas { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.4rem; }
+        .dash-ctas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; margin-bottom: 1.4rem; }
         .dash-top-row {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -1467,15 +1467,15 @@
         /* Botón "Limpiar" en la cabecera (sustituye a Volver). */
         .ptar-reset-btn { display: inline-flex; align-items: center; gap: 0.35rem; }
         .ptar-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem 1rem;
+            display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.9rem 1rem;
         }
         .ptar-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
-        .ptar-field-full { grid-column: 1 / -1; }
+        .ptar-field-full { grid-column: 1 / -1; min-width: 0; }
         /* Par de campos que se mantiene a 2 columnas SIEMPRE (también en móvil):
            Metros lineales + Peso, y Fecha de carga + Ventana. */
         .ptar-pair {
             grid-column: 1 / -1;
-            display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem 0.8rem;
+            display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.7rem 0.8rem;
         }
         .ptar-pair > .ptar-field { min-width: 0; }
         /* Toggle compacto "Trampilla" (caja con switch + Sí/No). El detalle va
@@ -1818,7 +1818,7 @@
             margin: 1rem 0 0.5rem;
         }
         .ptar-confirm-summary {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem 1.2rem;
+            display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.45rem 1.2rem;
             padding: 0.85rem 1rem; border: 1px solid var(--gray-200);
             border-radius: 10px; background: var(--gray-50);
             font-size: 0.85rem;
@@ -1866,7 +1866,7 @@
 
         @media (max-width: 768px) {
             .ptar-card { padding: 0.9rem 0.9rem 1rem; }
-            .ptar-grid { grid-template-columns: 1fr; gap: 0.5rem; }
+            .ptar-grid { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
             .ptar-input-wrap input,
             .ptar-select, .ptar-date { font-size: 16px; }
             .ptar-actions { flex-direction: column; }
@@ -1925,7 +1925,7 @@
             .topbar-actions { gap: 0.4rem; }
             .topbar-user-name { display: none; }
             .content { padding: 1rem 1rem 3rem; }
-            .stats-row { grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+            .stats-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.7rem; }
             .stats-row-3 { grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
             .stat-card-value { font-size: 1.45rem; }
             .stats-row-3 .stat-card { padding: 0.7rem 0.6rem; }
