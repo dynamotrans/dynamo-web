@@ -168,10 +168,14 @@
             --yellow-dark:  #d4ca00;
             --navy:         #0a0230;
             --white:        #ffffff;
+            --gray-50:      #fafbfc;
             --gray-100:     #f7f8fa;
             --gray-200:     #e8eaed;
+            --gray-300:     #cbd0d8;
             --gray-500:     #9aa0ab;
             --gray-700:     #3d4452;
+            --gray-900:     #0a0230;
+            --red:          #dc2626;
         }
         /* overflow-x: hidden en HTML (no en body): si lo pones en body,
            iOS Chrome convierte el body en contenedor de scroll propio y
@@ -778,13 +782,15 @@
         }
 
         /* =========================================
-           TARIFADOR (en el hero)
+           TARIFADOR (en el hero) — mismos campos y estilo que el panel
+           (clases .ptar-* copiadas de dashboard.html). El submit construye
+           un mensaje de Email/WhatsApp (no guarda nada en portal).
         ========================================= */
         .tarifador {
             width: 100%; max-width: 700px; margin: 0 auto 1.2rem;
             /* Sutil transparencia (~93%) sin backdrop-filter: deja respirar el video
                de fondo sin penalizar legibilidad ni rendimiento en movil */
-            background: rgba(255,255,255,0.93);
+            background: rgba(255,255,255,0.96);
             border: 1px solid rgba(255,255,255,0.6);
             border-radius: 18px;
             box-shadow: 0 24px 60px rgba(10,2,48,0.45), 0 8px 22px rgba(10,2,48,0.28);
@@ -801,6 +807,7 @@
             cursor: pointer; padding: 0;
             display: flex; align-items: center; justify-content: center;
             transition: background 0.2s, transform 0.4s ease, border-color 0.2s;
+            z-index: 5;
         }
         .tar-reset:hover {
             background: var(--purple); color: white;
@@ -810,7 +817,7 @@
             .tar-reset { top: 0.45rem; right: 0.5rem; width: 26px; height: 26px; }
             .tar-reset svg { width: 14px; height: 14px; }
         }
-        .tar-head { text-align: center; margin-bottom: 0.8rem; }
+        .tar-head { text-align: center; margin-bottom: 0.8rem; padding: 0 2.2rem; }
         .tar-title {
             font-size: clamp(1.4rem, 4.5vw, 1.85rem); font-weight: 900; letter-spacing: -0.6px;
             color: var(--navy); margin: 0 0 0.15rem; line-height: 1.1;
@@ -818,92 +825,259 @@
         .tar-title .tt-dark   { color: var(--purple); }
         .tar-title .tt-purple { color: var(--purple); }
         .tar-sub { font-size: 0.95rem; color: var(--gray-500); margin: 0; font-weight: 600; }
-        .tar-grid {
+
+        /* ===== .ptar-* (mismo diseño que el tarifador del panel) ===== */
+        .ptar-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem 1rem;
+        }
+        .ptar-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+        .ptar-field-full { grid-column: 1 / -1; }
+        .ptar-pair {
+            grid-column: 1 / -1;
             display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem 0.8rem;
         }
-        .tar-field { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
-        .tar-field > label {
-            font-size: 0.74rem; font-weight: 700; color: var(--gray-700);
-            display: flex; align-items: baseline; gap: 0.4rem; flex-wrap: wrap;
+        .ptar-pair > .ptar-field { min-width: 0; }
+        .ptar-tramp-box {
+            display: flex; align-items: center; gap: 0.5rem;
+            height: 44px; padding: 0 0.6rem; border: 1.5px solid var(--gray-200); border-radius: 10px;
+            background: var(--gray-50); cursor: pointer; overflow: hidden;
         }
-        .tar-field > label strong { color: var(--navy); font-weight: 900; }
-        .tar-input-wrap {
-            position: relative; display: flex; align-items: center;
-            background: white; border: 1.5px solid var(--gray-200);
-            border-radius: 12px; transition: all 0.2s;
+        .ptar-tramp-state { font-size: 0.74rem; font-weight: 700; color: var(--gray-500); white-space: nowrap; }
+        .ptar-tramp-state .tramp-on { display: none; }
+        .ptar-switch-input:checked ~ .ptar-tramp-state { color: var(--green); }
+        .ptar-switch-input:checked ~ .ptar-tramp-state .tramp-off { display: none; }
+        .ptar-switch-input:checked ~ .ptar-tramp-state .tramp-on { display: inline; }
+        .ptar-switch-input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .ptar-switch {
+            flex-shrink: 0; width: 40px; height: 24px; border-radius: 999px;
+            background: #cbd0d8; position: relative; transition: background 0.18s;
         }
-        /* Borde morado al pasar el raton por encima o al escribir (focus) */
-        .tar-input-wrap:hover,
-        .tar-input-wrap:focus-within {
-            border-color: var(--purple);
-            box-shadow: 0 0 0 4px rgba(51,0,204,0.10);
+        .ptar-switch::after {
+            content: ''; position: absolute; top: 3px; left: 3px;
+            width: 18px; height: 18px; border-radius: 50%; background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: transform 0.18s;
         }
-        /* Estado de error (origen / destino vacios al pulsar Solicitar tarifa) */
-        .tar-input-wrap.tar-error {
-            border-color: #e53935;
-            box-shadow: 0 0 0 4px rgba(229,57,53,0.12);
-            animation: tarShake 0.35s ease;
+        .ptar-switch-input:checked + .ptar-switch { background: var(--green); }
+        .ptar-switch-input:checked + .ptar-switch::after { transform: translateX(16px); }
+        .ptar-switch-input:focus-visible + .ptar-switch { box-shadow: 0 0 0 3px rgba(51,0,204,0.18); }
+        .ptar-section-head {
+            grid-column: 1 / -1;
+            display: flex; align-items: center; gap: 0.6rem;
+            margin: 0.7rem 0 0.05rem;
+            font-size: 0.82rem; font-weight: 700; letter-spacing: 0;
+            color: var(--navy);
         }
-        .tar-input-wrap.tar-error svg { color: #e53935; }
-        @keyframes tarShake {
-            0%, 100% { transform: translateX(0); }
-            25%      { transform: translateX(-4px); }
-            75%      { transform: translateX(4px); }
+        .ptar-section-head:first-child { margin-top: 0; }
+        .ptar-section-head::after {
+            content: ''; flex: 1; height: 1px;
+            background: linear-gradient(90deg, rgba(124,58,237,0.30), transparent);
         }
-        /* Cartel de aviso "Falta introducir lugar" */
-        .tar-warning {
-            display: none;
-            margin-top: 0.6rem; padding: 0.65rem 0.85rem;
-            background: rgba(229,57,53,0.08);
-            border: 1px solid rgba(229,57,53,0.4);
+        .ptar-label {
+            font-size: 0.78rem; font-weight: 600;
+            color: var(--gray-500); letter-spacing: 0;
+        }
+        .ptar-input-wrap {
+            position: relative;
+            display: flex; align-items: center; gap: 0.55rem;
+            height: 44px; padding: 0 0.8rem;
+            border: 1.5px solid var(--gray-200);
             border-radius: 10px;
-            color: #b32a25; font-size: 0.8rem; font-weight: 700;
-            text-align: center;
+            background: white;
+            transition: border-color 0.18s, box-shadow 0.18s;
         }
-        .tar-warning.show { display: block; animation: fadeUp 0.3s ease both; }
-
-        /* Anotaciones libres — boton toggle + textarea limitado a 1000 chars */
-        .tar-notes-wrap { margin-top: 0.6rem; }
-        .tar-notes-toggle {
-            display: inline-flex; align-items: center; gap: 0.4rem;
-            background: transparent; border: 1.5px dashed rgba(51,0,204,0.35);
-            color: var(--purple); font-weight: 800; font-family: inherit;
-            font-size: 0.78rem; letter-spacing: 0.2px;
-            padding: 0.45rem 0.85rem; border-radius: 10px;
-            cursor: pointer; transition: all 0.2s;
+        .ptar-input-wrap:hover,
+        .ptar-input-wrap:focus-within { border-color: var(--purple); }
+        .ptar-input-wrap:focus-within { box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
+        .ptar-input-wrap.ptar-error { border-color: var(--red); background: #fef2f2; }
+        .ptar-input-wrap.ptar-error svg { color: var(--red); }
+        .ptar-input-wrap svg { width: 16px; height: 16px; color: var(--gray-500); flex-shrink: 0; }
+        .ptar-input-wrap input {
+            flex: 1; border: none; outline: none; background: transparent;
+            font: inherit; color: var(--gray-900); font-size: 0.9rem; min-width: 0;
         }
-        .tar-notes-toggle:hover {
-            background: rgba(51,0,204,0.07); border-color: var(--purple);
+        .ptar-input-wrap input::placeholder { color: var(--gray-300); }
+        .ptar-select, .ptar-date {
+            width: 100%; height: 44px; padding: 0 0.8rem;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 10px; background: white;
+            font: inherit; color: var(--gray-900); font-size: 0.9rem;
+            cursor: pointer; transition: border-color 0.18s, box-shadow 0.18s;
         }
-        .tar-notes-toggle .tnt-icon {
+        .ptar-select-sm {
+            height: 44px; padding: 0 0.6rem;
+            font-size: 0.8rem;
+            color: var(--gray-700);
+            background: var(--gray-50);
+        }
+        .ptar-paradas-wrap { display: flex; flex-direction: column; gap: 0.5rem; }
+        .ptar-parada-del {
+            flex: 0 0 auto; width: 30px; height: 44px; border: none; background: none;
+            color: #9aa0aa; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 8px; transition: color 0.15s, background 0.15s;
+        }
+        .ptar-parada-del:hover { color: var(--red); background: #fef2f2; }
+        .ptar-route-num {
+            flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%;
+            background: var(--purple); color: #fff; font-size: 0.7rem; font-weight: 800;
             display: inline-flex; align-items: center; justify-content: center;
+        }
+        .ptar-route-num.rec { background: var(--orange); }
+        .ptar-route-num.ent { background: var(--green); }
+        .ptar-route-add {
+            flex: 0 0 auto; width: 30px; height: 44px; border: none; background: none;
+            color: var(--purple); cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 8px; transition: color 0.15s, background 0.15s;
+        }
+        .ptar-route-add:hover { background: rgba(51,0,204,0.07); }
+        .ptar-route-row { display: flex; gap: 0.5rem; align-items: stretch; }
+        .ptar-route-row .ptar-input-wrap { flex: 3 1 0; min-width: 0; }
+        .ptar-route-row .ptar-select-sm {
+            flex: 1 1 0; width: auto; min-width: 0; max-width: none; margin-top: 0;
+        }
+        .ptar-select:hover, .ptar-date:hover,
+        .ptar-select:focus, .ptar-date:focus {
+            border-color: var(--purple); outline: none;
+        }
+        .ptar-select:focus, .ptar-date:focus { box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
+        .ptar-fecha-wrap { position: relative; }
+        .ptar-fecha-wrap input.ptar-date {
+            position: absolute; inset: 0;
+            opacity: 0; pointer-events: none;
+        }
+        .ptar-sug {
+            position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+            background: white; border: 1px solid var(--gray-200);
+            border-radius: 10px; max-height: 240px; overflow-y: auto;
+            box-shadow: 0 12px 28px rgba(10,2,48,0.12);
+            list-style: none; padding: 0.3rem; z-index: 50;
+        }
+        .ptar-sug li {
+            padding: 0.55rem 0.75rem; border-radius: 7px;
+            cursor: pointer; font-size: 0.85rem; color: var(--gray-700);
+        }
+        .ptar-sug li:hover, .ptar-sug li.active {
+            background: rgba(51,0,204,0.06); color: var(--purple);
+        }
+        /* Anotaciones libres colapsable */
+        .ptar-notes-wrap { margin-top: 1rem; }
+        .ptar-notes-toggle {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            font-size: 0.78rem; color: var(--purple); font-weight: 700;
+            background: none; border: none; cursor: pointer;
+            padding: 0.25rem 0; font-family: inherit;
+        }
+        .ptar-notes-toggle .pnt-icon {
             width: 18px; height: 18px; border-radius: 50%;
-            background: var(--purple); color: white; font-weight: 900;
-            font-size: 0.9rem; line-height: 1; transition: transform 0.25s;
+            background: rgba(51,0,204,0.1); display: inline-flex;
+            align-items: center; justify-content: center; font-weight: 900;
+            transition: transform 0.22s;
         }
-        .tar-notes-toggle[aria-expanded="true"] .tnt-icon { transform: rotate(45deg); }
-        .tar-notes-body { margin-top: 0.45rem; animation: fadeUp 0.25s ease both; }
-        .tar-notes-body[hidden] { display: none; }
-        .tar-notes-body textarea {
-            width: 100%; padding: 0.55rem 0.7rem; border-radius: 12px;
-            border: 1.5px solid var(--gray-200); background: white;
-            font-size: 0.86rem; color: var(--navy); font-family: inherit;
-            outline: none; resize: vertical; min-height: 70px;
-            transition: border-color 0.2s, box-shadow 0.2s;
+        .ptar-notes-toggle[aria-expanded="true"] .pnt-icon { transform: rotate(45deg); }
+        .ptar-notes-body { margin-top: 0.55rem; }
+        .ptar-notes-body[hidden] { display: none; }
+        .ptar-notes-body textarea {
+            width: 100%; padding: 0.7rem 0.9rem;
+            border: 1.5px solid var(--gray-200); border-radius: 10px;
+            font: inherit; font-size: 0.88rem; color: var(--gray-900);
+            resize: vertical; min-height: 80px; line-height: 1.5;
         }
-        .tar-notes-body textarea:hover,
-        .tar-notes-body textarea:focus {
-            border-color: var(--purple); box-shadow: 0 0 0 4px rgba(51,0,204,0.10);
+        .ptar-notes-body textarea:focus {
+            outline: none; border-color: var(--purple);
+            box-shadow: 0 0 0 3px rgba(51,0,204,0.08);
         }
-        .tar-notes-counter {
-            text-align: right; font-size: 0.7rem; color: var(--gray-500);
-            margin-top: 0.25rem; font-weight: 600;
+        .ptar-notes-counter {
+            font-size: 0.7rem; color: var(--gray-500);
+            text-align: right; margin-top: 0.25rem;
         }
-        .tar-notes-counter.warn { color: #b32a25; }
+        .ptar-notes-counter.warn { color: var(--red); font-weight: 700; }
+        /* Validación */
+        .ptar-warning {
+            display: none; margin-top: 1rem;
+            padding: 0.7rem 0.95rem;
+            background: #fef2f2; color: var(--red);
+            border: 1px solid #fecaca; border-radius: 10px;
+            font-size: 0.82rem; font-weight: 600;
+        }
+        .ptar-warning.show { display: block; }
+        .ptar-select.ptar-select-error { border-color: var(--red); background: #fef2f2; }
+        .ptar-select.ptar-select-error:focus { box-shadow: 0 0 0 3px rgba(220,38,38,0.10); }
+        /* Label con tooltip (ℹ) */
+        .ptar-has-tip {
+            position: relative; display: inline-flex; align-items: center; gap: 0.3rem;
+            cursor: help; width: fit-content;
+        }
+        .ptar-tip-ico { width: 14px; height: 14px; opacity: 0.5; flex-shrink: 0; }
+        .ptar-has-tip:hover .ptar-tip-ico, .ptar-has-tip:focus .ptar-tip-ico { opacity: 0.9; }
+        .ptar-tip-pop {
+            position: fixed; top: 0; left: 0;
+            width: min(262px, calc(100vw - 16px));
+            background: var(--navy); color: #fff; text-align: left;
+            border-radius: 9px; padding: 0.55rem 0.7rem;
+            font-size: 0.74rem; line-height: 1.45; font-weight: 500;
+            text-transform: none; letter-spacing: 0;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+            opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(4px);
+            transition: opacity 0.15s ease, transform 0.15s ease; z-index: 2000;
+        }
+        .ptar-tip-pop strong { color: #ffd98a; font-weight: 800; }
+        .ptar-has-tip:hover .ptar-tip-pop, .ptar-has-tip:focus .ptar-tip-pop, .ptar-has-tip:focus-within .ptar-tip-pop {
+            opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0);
+        }
+        /* CTA: solicitar tarifa -> revela Email + WhatsApp */
+        .tar-cta-wrap { margin-top: 1.1rem; }
+        .tar-cta {
+            width: 100%; padding: 0.8rem;
+            background: linear-gradient(135deg, var(--purple), var(--purple-light));
+            color: white; border: none; border-radius: 12px;
+            font-size: 0.94rem; font-weight: 900; letter-spacing: 0.5px;
+            text-transform: uppercase; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            box-shadow: 0 10px 28px rgba(51,0,204,0.35);
+            transition: transform 0.2s, box-shadow 0.2s; font-family: inherit;
+        }
+        .tar-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(51,0,204,0.45); }
+        .tar-cta svg { width: 18px; height: 18px; }
+        .tar-cta-options { display: none; }
+        .tar-cta-wrap.open .tar-cta { display: none; }
+        .tar-cta-wrap.open .tar-cta-options {
+            display: flex; gap: 0.6rem;
+            animation: fadeUp 0.4s ease both;
+        }
+        .tar-cta-btn {
+            flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.85rem; border-radius: 12px;
+            font-size: 0.92rem; font-weight: 900; letter-spacing: 0.4px;
+            text-decoration: none; text-transform: uppercase;
+            transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
+            font-family: inherit;
+        }
+        .tar-cta-email { background: var(--purple); color: white; box-shadow: 0 8px 22px rgba(51,0,204,0.32); }
+        .tar-cta-wa { background: #25D366; color: white; box-shadow: 0 8px 22px rgba(37,211,102,0.32); }
+        .tar-cta-btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
+        .tar-cta-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
         @media (max-width: 600px) {
-            .tar-notes-wrap { margin-top: 0.35rem; }
-            .tar-notes-toggle { font-size: 0.7rem; padding: 0.32rem 0.65rem; }
-            .tar-notes-body textarea { font-size: 16px; min-height: 60px; }
+            .tarifador {
+                padding: 0.6rem 0.7rem 0.7rem; border-radius: 14px;
+                margin: 0 auto 0.4rem;
+            }
+            .tar-title { font-size: 1.15rem; line-height: 1.15; letter-spacing: -0.3px; }
+            .tar-sub { font-size: 0.85rem; }
+            .tar-head { margin-bottom: 0.4rem; }
+            .ptar-grid { grid-template-columns: 1fr; gap: 0.5rem; }
+            .ptar-pair { gap: 0.5rem; }
+            .ptar-field { gap: 0.25rem; }
+            .ptar-section-head { margin: 0.35rem 0 0; font-size: 0.8rem; }
+            .ptar-label { font-size: 0.72rem; }
+            .ptar-input-wrap input,
+            .ptar-select, .ptar-date { font-size: 16px; }
+            .ptar-select, .ptar-date { padding: 0 0.7rem; }
+            .ptar-input-wrap input { padding: 0; }
+            .ptar-select-sm { padding: 0 0.5rem; font-size: 16px; }
+            .ptar-tramp-box { padding: 0 0.7rem; }
+            .ptar-notes-wrap { margin-top: 0.5rem; }
+            .tar-cta { padding: 0.6rem; font-size: 0.84rem; margin-top: 0.5rem; }
+            .tar-cta-wrap { margin-top: 0.7rem; }
+            .tar-cta-btn { padding: 0.55rem 0.45rem; font-size: 0.84rem; }
         }
 
         /* Calendario Flatpickr — estilo de marca con esquinas suaves */
@@ -957,123 +1131,6 @@
         .flatpickr-prev-month, .flatpickr-next-month { color: var(--purple) !important; fill: var(--purple) !important; }
         .flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { fill: var(--purple-light) !important; }
 
-        /* Tooltip discreto del camion seleccionado — aparece al hover (solo desktop).
-           Anclado al campo (.tar-camion-field es relative). En movil no aparece
-           (no hay hover) y no estorba. */
-        .tar-camion-field { position: relative; }
-        .tar-camion-tip {
-            position: absolute; top: 100%; left: 0; right: 0;
-            margin-top: 0.35rem;
-            padding: 0.55rem 0.8rem;
-            background: var(--navy); color: white;
-            border-radius: 12px;
-            font-size: 0.73rem; line-height: 1.45;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 15;
-            box-shadow: 0 10px 26px rgba(10,2,48,0.30);
-        }
-        .tar-camion-tip strong { color: white; font-weight: 800; }
-        .tar-camion-tip em { font-style: normal; color: rgba(255,255,255,0.55); font-weight: 500; }
-        /* Solo aparece al pasar el raton por encima. Al salir se quita inmediato (sin fade).
-           No usa focus-within: no debe aparecer al hacer click en el desplegable. */
-        @media (hover: hover) {
-            .tar-camion-field:hover .tar-camion-tip { opacity: 1; }
-        }
-        .tar-input-wrap svg {
-            width: 18px; height: 18px; color: var(--purple);
-            margin: 0 0.5rem 0 0.75rem; flex-shrink: 0;
-        }
-        .tar-input-wrap input {
-            flex: 1; min-width: 0; border: none; outline: none; background: transparent;
-            padding: 0.55rem 0.7rem 0.55rem 0;
-            font-size: 0.9rem; color: var(--navy); font-family: inherit;
-        }
-        .tar-sug {
-            position: absolute; top: calc(100% + 4px); left: 0; right: 0;
-            background: white; border: 1px solid var(--gray-200); border-radius: 12px;
-            box-shadow: 0 18px 40px rgba(10,2,48,0.18);
-            list-style: none; padding: 0.35rem 0; margin: 0; z-index: 10;
-            max-height: 240px; overflow-y: auto;
-        }
-        .tar-sug li {
-            padding: 0.55rem 0.85rem; font-size: 0.86rem;
-            color: var(--navy); cursor: pointer; line-height: 1.3;
-        }
-        .tar-sug li:hover, .tar-sug li.focus { background: rgba(51,0,204,0.06); }
-        .tar-sug li.empty { color: var(--gray-500); cursor: default; font-style: italic; }
-        .tar-select, .tar-date {
-            width: 100%; padding: 0.55rem 0.7rem; border-radius: 12px;
-            border: 1.5px solid var(--gray-200); background: white;
-            font-size: 0.88rem; color: var(--navy); font-family: inherit;
-            outline: none; transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        /* Borde morado al pasar el raton por encima.
-           Focus tambien resalta mientras el desplegable esta abierto;
-           al elegir un valor se hace blur() por JS y vuelve al gris. */
-        .tar-select:hover, .tar-date:hover,
-        .tar-select:focus, .tar-date:focus {
-            border-color: var(--purple); box-shadow: 0 0 0 4px rgba(51,0,204,0.10);
-        }
-        /* Input date superpuesto al select del dia para que el calendario nativo se
-           ancle aqui (no en la esquina de la web). Visualmente invisible. */
-        .tar-fecha-wrap { position: relative; }
-        .tar-fecha-wrap .tar-date {
-            position: absolute; inset: 0; width: 100%; height: 100%;
-            opacity: 0; pointer-events: none;
-            border: none; padding: 0; background: transparent;
-        }
-        .tar-cta-wrap { margin-top: 0.85rem; }
-        .tar-cta {
-            width: 100%; padding: 0.8rem;
-            background: linear-gradient(135deg, var(--purple), var(--purple-light));
-            color: white; border: none; border-radius: 12px;
-            font-size: 0.94rem; font-weight: 900; letter-spacing: 0.5px;
-            text-transform: uppercase; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-            box-shadow: 0 10px 28px rgba(51,0,204,0.35);
-            transition: transform 0.2s, box-shadow 0.2s; font-family: inherit;
-        }
-        .tar-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(51,0,204,0.45); }
-        .tar-cta svg { width: 18px; height: 18px; }
-        /* Estado por defecto: solo se ve el boton "Solicitar tarifa".
-           Estado .open (al pulsarse): oculto el boton y muestro los 2 botones
-           Email/WhatsApp en su mismo sitio. */
-        .tar-cta-options { display: none; }
-        .tar-cta-wrap.open .tar-cta { display: none; }
-        .tar-cta-wrap.open .tar-cta-options {
-            display: flex; gap: 0.6rem;
-            animation: fadeUp 0.4s ease both;
-        }
-        .tar-cta-btn {
-            flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-            padding: 0.85rem; border-radius: 12px;
-            font-size: 0.92rem; font-weight: 900; letter-spacing: 0.4px;
-            text-decoration: none; text-transform: uppercase;
-            transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
-            font-family: inherit;
-        }
-        .tar-cta-email { background: var(--purple); color: white; box-shadow: 0 8px 22px rgba(51,0,204,0.32); }
-        .tar-cta-wa { background: #25D366; color: white; box-shadow: 0 8px 22px rgba(37,211,102,0.32); }
-        .tar-cta-btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
-        .tar-cta-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
-        @media (max-width: 600px) {
-            .tarifador {
-                padding: 0.6rem 0.7rem 0.7rem; border-radius: 14px;
-                margin: 0 auto 0.4rem;
-            }
-            .tar-title { font-size: 1.15rem; line-height: 1.15; letter-spacing: -0.3px; }
-            .tar-sub { font-size: 0.85rem; }
-            .tar-head { margin-bottom: 0.4rem; }
-            .tar-grid { gap: 0.4rem 0.5rem; }
-            .tar-loc { grid-column: 1 / -1; }
-            .tar-field > label { font-size: 0.66rem; }
-            .tar-input-wrap input { font-size: 16px; padding: 0.38rem 0.55rem 0.38rem 0; /* 16px evita zoom iOS */ }
-            .tar-input-wrap svg { width: 14px; height: 14px; margin: 0 0.35rem 0 0.55rem; }
-            .tar-select, .tar-date { font-size: 16px; padding: 0.38rem 0.5rem; }
-            .tar-cta { padding: 0.6rem; font-size: 0.84rem; margin-top: 0.5rem; }
-            .tar-cta-btn { padding: 0.55rem 0.45rem; font-size: 0.84rem; }
-        }
         @media (prefers-reduced-motion: reduce) {
             .tarifador { animation: none; opacity: 1; transform: none; }
         }
@@ -2279,90 +2336,128 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <p class="tar-sub">En minutos · Sin compromiso</p>
             </div>
 
-            <div class="tar-grid">
-                <div class="tar-field tar-loc">
-                    <label for="tar-orig">Origen</label>
-                    <div class="tar-input-wrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        <input type="text" id="tar-orig" placeholder="CP o ciudad" autocomplete="off" inputmode="search">
-                        <ul class="tar-sug" id="tar-orig-sug" hidden></ul>
+            <div class="ptar-card" id="tarifador-card">
+                <div class="ptar-grid">
+                    <div class="ptar-section-head">Ruta</div>
+                    <div class="ptar-field ptar-field-full">
+                        <div class="ptar-route-row">
+                            <div class="ptar-input-wrap" data-ptar-orig-wrap>
+                                <span class="ptar-route-num rec" data-route-num>1</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                <input type="text" data-ptar-orig placeholder="Desde · CP o ciudad" aria-label="Origen" autocomplete="off" inputmode="search">
+                                <ul class="ptar-sug" data-ptar-orig-sug hidden></ul>
+                            </div>
+                            <select data-ptar-tipoorig class="ptar-select ptar-select-sm" aria-label="Tipo de origen">
+                                <option selected>Almacén / Nave</option>
+                                <option>Obra</option>
+                                <option>Zona urbana</option>
+                                <option>Evento</option>
+                                <option>Finca / Agrícola</option>
+                            </select>
+                        </div>
                     </div>
-                </div>
-                <div class="tar-field tar-loc">
-                    <label for="tar-dest">Destino</label>
-                    <div class="tar-input-wrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-                        <input type="text" id="tar-dest" placeholder="CP o ciudad" autocomplete="off" inputmode="search">
-                        <ul class="tar-sug" id="tar-dest-sug" hidden></ul>
+                    <div class="ptar-field-full" data-ptar-recogidas></div>
+                    <div class="ptar-field ptar-field-full">
+                        <div class="ptar-route-row">
+                            <div class="ptar-input-wrap" data-ptar-dest-wrap>
+                                <span class="ptar-route-num ent" data-route-num>2</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                                <input type="text" data-ptar-dest placeholder="Hasta · CP o ciudad" aria-label="Destino" autocomplete="off" inputmode="search">
+                                <ul class="ptar-sug" data-ptar-dest-sug hidden></ul>
+                            </div>
+                            <select data-ptar-tipodest class="ptar-select ptar-select-sm" aria-label="Tipo de destino">
+                                <option selected>Almacén / Nave</option>
+                                <option>Obra</option>
+                                <option>Zona urbana</option>
+                                <option>Evento</option>
+                                <option>Finca / Agrícola</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="ptar-field-full" data-ptar-entregas></div>
+
+                    <div class="ptar-section-head">Carga</div>
+                    <div class="ptar-field ptar-field-full">
+                        <select data-ptar-merca class="ptar-select" aria-label="Tipo de mercancía">
+                            <option>Paletizado mercancía general (por lateral)</option>
+                            <option>No paletizada (maquinaria, perfiles, tubos, balas…) (por lateral)</option>
+                            <option>No paletizada (maquinaria, perfiles, tubos, balas…) (por TECHO)</option>
+                        </select>
+                        <input type="hidden" data-ptar-camion value="tauliner">
+                    </div>
+                    <div class="ptar-pair">
+                        <div class="ptar-field">
+                            <select data-ptar-ml class="ptar-select" aria-label="Metros lineales"></select>
+                        </div>
+                        <div class="ptar-field">
+                            <select data-ptar-peso class="ptar-select" aria-label="Peso (toneladas)"></select>
+                        </div>
+                    </div>
+
+                    <div class="ptar-pair">
+                        <div class="ptar-field">
+                            <label class="ptar-label ptar-has-tip" tabindex="0">
+                                Trampilla elevadora
+                                <svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
+                                <span class="ptar-tip-pop" role="tooltip">Trampilla elevadora. Para carga/descarga sin muelle o carretilla elevadora. <strong>Supone un sobrecoste.</strong></span>
+                            </label>
+                            <label class="ptar-tramp-box">
+                                <input type="checkbox" data-ptar-trampilla class="ptar-switch-input">
+                                <span class="ptar-switch" aria-hidden="true"></span>
+                                <span class="ptar-tramp-state" aria-hidden="true"><span class="tramp-off">No (más económico)</span><span class="tramp-on">Sí (más caro)</span></span>
+                            </label>
+                        </div>
+                        <div class="ptar-field">
+                            <label class="ptar-label ptar-has-tip" tabindex="0">
+                                Requiere NIMA
+                                <svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
+                                <span class="ptar-tip-pop" role="tooltip">NIMA: Número de Identificación Medioambiental. Necesario para transportar residuos. <strong>Supone un sobrecoste.</strong></span>
+                            </label>
+                            <label class="ptar-tramp-box">
+                                <input type="checkbox" data-ptar-nima class="ptar-switch-input">
+                                <span class="ptar-switch" aria-hidden="true"></span>
+                                <span class="ptar-tramp-state" aria-hidden="true"><span class="tramp-off">No (más económico)</span><span class="tramp-on">Sí (más caro)</span></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="ptar-section-head">Fecha de envío</div>
+                    <div class="ptar-pair">
+                        <div class="ptar-field">
+                            <div class="ptar-fecha-wrap">
+                                <select data-ptar-dia class="ptar-select" aria-label="Fecha de carga (L-V)"></select>
+                                <input type="date" data-ptar-fecha class="ptar-date" aria-label="Elegir fecha en calendario">
+                            </div>
+                        </div>
+                        <div class="ptar-field">
+                            <select data-ptar-urgencia class="ptar-select" aria-label="Ventana de carga">
+                                <option value="dia">Fecha fija (un día concreto, más cara)</option>
+                                <option value="estandar">1 a 2 días (estándar)</option>
+                                <option value="flexible" selected>1 a 4 días (flexible, más económica)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                <div class="tar-field tar-camion-field">
-                    <select id="tar-camion" class="tar-select" aria-label="Tipo de camion">
-                        <option value="tauliner" data-full="Trailer Tauliner (13,2 m · 33 europalets · 24 Tn) (más económico)">Trailer Tauliner · 13,2 m (más económico)</option>
-                        <option value="rigido" data-full="Rígido con plataforma elevadora + transpalet (8 m · 20 europalets · 14 Tn) (más caro)">Rígido 8 m con plataforma elevadora + transpalet (más caro)</option>
-                    </select>
-                    <div class="tar-camion-tip" id="tar-camion-tip" role="tooltip" aria-hidden="true"></div>
-                </div>
-                <div class="tar-field">
-                    <select id="tar-merca" class="tar-select" aria-label="Tipo de mercancia">
-                        <option>Paletizado mercancía general — almacén a almacén (por lateral)</option>
-                        <option>Por lateral — mercancía no paletizada (maquinaria, perfiles, etc.)</option>
-                        <option>Por techo — mercancía no paletizada (maquinaria, perfiles, etc.)</option>
-                        <option>Material eventos / ferias</option>
-                        <option>Obra — recogidas / entregas</option>
-                        <option>Zona urbana con/sin permisos — recogidas / entregas</option>
-                        <option>ADR mercancía</option>
-                        <option>Fincas — recogidas / entregas</option>
-                        <option>Balas / sacas sin palet (limpio) — NIMA requerido</option>
-                        <option>Balas / sacas sin palet (sucios) — NIMA requerido</option>
-                    </select>
-                </div>
-
-                <div class="tar-field">
-                    <select id="tar-ml" class="tar-select" aria-label="Cantidad en metros lineales"></select>
-                </div>
-                <div class="tar-field">
-                    <select id="tar-peso" class="tar-select" aria-label="Peso en toneladas"></select>
-                </div>
-
-                <div class="tar-field" id="tar-fecha-field">
-                    <label for="tar-dia">Fecha de carga (L-V)</label>
-                    <div class="tar-fecha-wrap">
-                        <select id="tar-dia" class="tar-select"></select>
-                        <!-- Input date superpuesto invisible para que el calendario nativo se ancle aqui -->
-                        <input type="date" id="tar-fecha" class="tar-date" aria-label="Elegir fecha en calendario">
+                <div class="ptar-notes-wrap">
+                    <button type="button" class="ptar-notes-toggle" data-ptar-notes-toggle aria-expanded="false">
+                        <span class="pnt-icon" aria-hidden="true">+</span>
+                        Añadir anotaciones
+                    </button>
+                    <div class="ptar-notes-body" data-ptar-notes-body hidden>
+                        <textarea data-ptar-notes maxlength="1000" rows="3"
+                            placeholder="Detalles que debamos saber (acceso, dimensiones especiales, ADR, instrucciones de entrega…)"></textarea>
+                        <div class="ptar-notes-counter"><span data-ptar-notes-count>0</span> / 1000</div>
                     </div>
                 </div>
-                <div class="tar-field">
-                    <label for="tar-urgencia">Día de carga</label>
-                    <select id="tar-urgencia" class="tar-select">
-                        <option value="dia">Fecha fija (Un día en concreto, más cara)</option>
-                        <option value="estandar" selected>Ventana de 2 días (Estándar)</option>
-                        <option value="flexible">Ventana de 4 días (Flexible, más económica)</option>
-                    </select>
-                </div>
+
+                <div class="ptar-warning" data-ptar-warning role="alert" aria-live="polite">⚠ Introduce el origen y el destino antes de solicitar la tarifa.</div>
             </div>
 
-
-            <!-- Anotaciones libres (colapsable). Texto limite 1000 caracteres -->
-            <div class="tar-notes-wrap">
-                <button type="button" class="tar-notes-toggle" id="tar-notes-toggle" aria-expanded="false" aria-controls="tar-notes-body">
-                    <span class="tnt-icon" aria-hidden="true">+</span>
-                    Añadir anotaciones
-                </button>
-                <div class="tar-notes-body" id="tar-notes-body" hidden>
-                    <textarea id="tar-notes" maxlength="1000" rows="3"
-                        placeholder="Detalles que debamos saber (acceso, dimensiones especiales, ADR, etc.)"></textarea>
-                    <div class="tar-notes-counter"><span id="tar-notes-count">0</span> / 1000</div>
-                </div>
-            </div>
-
-            <div class="tar-warning" id="tar-warning" role="alert" aria-live="polite">⚠ Introduce el origen y el destino antes de calcular el precio.</div>
             <div class="tar-cta-wrap" id="tar-cta-wrap">
                 <button class="tar-cta" type="button" id="tar-cta">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-                    Calcular precio
+                    Solicitar tarifa
                 </button>
                 <div class="tar-cta-options" id="tar-cta-options">
                     <a class="tar-cta-btn tar-cta-email" id="tar-cta-email" href="#" rel="noopener" aria-label="Pedir precio por email">
@@ -4430,282 +4525,362 @@ function updateAlmTotal() {
     // CTAs (email/WA) eliminados del DOM: servicio aun no disponible para contratar.
 }
 /* =========================================
-   TARIFADOR
-   - Sliders ml / peso con conversion en vivo
-   - 1 ml = 2,5 europalets (80x120, ancho 2.40m del trailer)
-   - 1 ml = 2 americanos (100x120, mismo ancho)
-   - Botones tipo camion / urgencia
-   - Autocomplete origen/destino con Nominatim (OpenStreetMap, gratis sin API key)
-   - CTA -> mensaje preformateado WhatsApp + email
+   TARIFADOR (hero) — mismos campos y estilo que el tarifador del panel
+   (dashboard.html), pero el submit construye un mensaje de Email/WhatsApp
+   (NO guarda nada en portal). IIFE autocontenido: sus únicas dependencias
+   externas son window.flatpickr (CDN) y la función global getHolidayName()
+   (definida en el script de horarios; sirve para excluir festivos ES del
+   selector de fechas).
+   - Ruta con paradas (recogidas/entregas, máx 2 en total)
+   - Trampilla elevadora → rígido (8 m / 14 Tn); OFF → Tauliner (13,2 m / 24 Tn)
+   - Autocomplete origen/destino/paradas con Nominatim (OSM, gratis sin API key)
+   - "Solicitar tarifa" → revela Email + WhatsApp con mensaje preformateado
 ========================================= */
 (function () {
-    var ml = document.getElementById('tar-ml');
-    var peso = document.getElementById('tar-peso');
-    if (!ml) return;
+    var card = document.getElementById('tarifador-card');
+    if (!card) return;
 
-    var EUR_POR_ML = 2.5;
-    var AMR_POR_ML = 2;
-    var fmt = function (n, d) { return n.toFixed(d || 1).replace('.', ','); };
-
-    // Poblar selects metros lineales Y peso segun el tipo de camion. Por defecto
-    // siempre se selecciona el ULTIMO (carga maxima):
-    //   Tauliner: 13,2 ml / 24 Tn
-    //   Rigido:   8 ml    / 14 Tn
-    var camionSel = document.getElementById('tar-camion');
-    var ML_OPTS = {
-        tauliner: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13.2],
-        rigido:   [1, 2, 3, 4, 5, 6, 7, 8]
+    // ---- Info de camión (define máx ml / Tn) ----
+    var CAMION_INFO = {
+        tauliner: { mlMax: 13, mlReal: 13.2, pesoMax: 24, label: 'Trailer Tauliner Lona' },
+        rigido:   { mlMax: 8,  mlReal: 8,    pesoMax: 14, label: 'Camión Rígido con trampilla elevadora' }
     };
-    var PESO_OPTS = {
-        // 1 a 24 Tn enteros (max = spec de la card del vehiculo)
-        tauliner: (function () { var a = []; for (var i = 1; i <= 24; i++) a.push(i); return a; })(),
-        // 1 a 14 Tn enteros
-        rigido:   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-    };
-    function rebuildMl() {
-        var opts = ML_OPTS[camionSel.value] || ML_OPTS.tauliner;
-        ml.innerHTML = opts.map(function (v, i) {
-            var eur = Math.floor(v * EUR_POR_ML);
-            var amr = Math.floor(v * AMR_POR_ML);
-            var isFull = (i === opts.length - 1);
-            var label = fmt(v, v % 1 === 0 ? 0 : 1) + ' ml · ' + eur + ' euro / ' + amr + ' amer.' + (isFull ? ' · COMPLETO' : '');
-            return '<option value="' + v + '">' + label + '</option>';
-        }).join('');
-        // Siempre seleccionar el MAXIMO del camion al cambiar / cargar
-        ml.value = opts[opts.length - 1];
-    }
-    function rebuildPeso() {
-        var opts = PESO_OPTS[camionSel.value] || PESO_OPTS.tauliner;
-        peso.innerHTML = opts.map(function (t, i) {
-            var isFull = (i === opts.length - 1);
-            var label = fmt(t, t % 1 === 0 ? 0 : 1) + ' Tn' + (isFull ? ' · MAX' : '');
-            return '<option value="' + t + '">' + label + '</option>';
-        }).join('');
-        // Siempre seleccionar el MAXIMO del camion al cambiar / cargar
-        peso.value = opts[opts.length - 1];
-    }
-    camionSel.addEventListener('change', function () { rebuildMl(); rebuildPeso(); });
-    rebuildMl();
-    rebuildPeso();
+    var PARADA_TIPOS = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento', 'Finca / Agrícola'];
 
-    // Fecha de carga: "Dia concreto" despliega lista de proximos 7 LABORABLES
-    // (saltando sabados y domingos). "Otro dia" abre directamente el calendario
-    // limitado a 3 meses, rechazando fines de semana.
-    var urgSel = document.getElementById('tar-urgencia');
-    var fechaField = document.getElementById('tar-fecha-field');
-    var diaSel = document.getElementById('tar-dia');
-    var fechaInput = document.getElementById('tar-fecha');
-
-    function toIso(d) {
+    // ---- Helpers de fecha ----
+    function isWeekend(d) { var x = d.getDay(); return x === 0 || x === 6; }
+    // Festivo nacional ES: usa el registro global getHolidayName si existe.
+    function isHoliday(d) {
+        try { return typeof getHolidayName === 'function' && !!getHolidayName(d); }
+        catch (e) { return false; }
+    }
+    function nonBiz(d) { return isWeekend(d) || isHoliday(d); }
+    function nextBiz(d) { while (nonBiz(d)) d.setDate(d.getDate() + 1); return d; }
+    function isoLocal(d) {
         return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     }
-    function isWeekend(d) { return d.getDay() === 0 || d.getDay() === 6; }
-    function nextWeekday(d) {
-        var nd = new Date(d.getTime());
-        while (isWeekend(nd)) nd.setDate(nd.getDate() + 1);
-        return nd;
+    // "Hoy para hoy" permitido a cualquier hora: primer día ofertado es HOY si
+    // es laborable; si no, el siguiente hábil (igual para fija y ventana).
+    function firstLoadDate() {
+        var now = new Date();
+        var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        nextBiz(d);
+        return d;
     }
-
-    function buildDias() {
-        var hoy = new Date();
-        var opts = ['<option value="" selected>Sin fecha definida</option>'];
-        var cursor = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-        var added = 0;
-        var todayIso = toIso(hoy);
-        var tomorrowIso = toIso(new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1));
-        while (added < 7) {
-            if (!isWeekend(cursor)) {
-                var iso = toIso(cursor);
-                var txt = cursor.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-                var prefix = iso === todayIso ? 'Hoy · ' : (iso === tomorrowIso ? 'Mañana · ' : '');
-                opts.push('<option value="' + iso + '">' + prefix + txt + '</option>');
-                added++;
-            }
-            cursor.setDate(cursor.getDate() + 1);
+    function loadDates(count) {
+        var d = firstLoadDate(), out = [];
+        while (out.length < count) {
+            if (!nonBiz(d)) out.push(new Date(d));
+            d.setDate(d.getDate() + 1);
         }
-        opts.push('<option value="otro">Otro día… (abrir calendario)</option>');
-        diaSel.innerHTML = opts.join('');
+        return out;
     }
-    buildDias();
-
-    // Limitar el date picker a hoy .. hoy+3 meses
-    (function setupFechaRange() {
-        var hoy = new Date();
-        var max = new Date(hoy.getFullYear(), hoy.getMonth() + 3, hoy.getDate());
-        fechaInput.min = toIso(hoy);
-        fechaInput.max = toIso(max);
-    })();
-
-    // El campo "Día de carga (L-V)" se queda visible siempre: para ventanas
-    // (Estándar / Flexible) actua como fecha BASE desde la que empieza la franja.
-    // El mensaje preformateado incluye el dia siempre con "a partir de ...".
-
-    // Insertar la fecha elegida en el calendario como PRIMERA opcion del select
-    // (asi el usuario la ve en el "hueco" y al desplegar la encuentra arriba)
-    function setFechaCustom(isoDate) {
-        var prev = diaSel.querySelector('option[data-custom="1"]');
-        if (prev) prev.remove();
-        var d = new Date(isoDate + 'T00:00:00');
-        var txt = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-        var opt = document.createElement('option');
-        opt.value = isoDate;
-        opt.setAttribute('data-custom', '1');
-        opt.textContent = txt;
-        diaSel.insertBefore(opt, diaSel.firstChild);
-        diaSel.value = isoDate;
+    var DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    function fmtDate(d) { return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); }
+    function fmtFull(d) { return DIAS[d.getDay()] + ' ' + fmtDate(d); }
+    function dayLabel(d) {
+        var now = new Date();
+        var t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        var diff = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() - t0) / 86400000);
+        var base = fmtFull(d);
+        return diff === 0 ? base + ' · hoy' : diff === 1 ? base + ' · mañana' : base;
+    }
+    // Fecha larga en español (para el mensaje preformateado)
+    function fmtLarga(d) {
+        return d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     }
 
-    // Flatpickr: calendario customizado anclado al select del dia. Fines de
-    // semana DESHABILITADOS visualmente (en gris tachados). Rango hoy..hoy+3 meses.
-    // Si Flatpickr no esta disponible (offline / bloqueo), fallback al date picker
-    // nativo del navegador.
-    var fpInstance = null;
-    var diaSelPrevValue = '';   // valor del select ANTES de abrir el calendario
-    var fechaPicked = false;    // si en esta apertura el usuario eligio fecha
-    function initFlatpickr() {
-        if (fpInstance || typeof window.flatpickr !== 'function') return;
-        var hoyD = new Date();
-        var maxD = new Date(hoyD.getFullYear(), hoyD.getMonth() + 3, hoyD.getDate());
-        fpInstance = window.flatpickr(fechaInput, {
-            locale: (window.flatpickr.l10ns && window.flatpickr.l10ns.es) ? 'es' : 'default',
-            minDate: 'today',
-            maxDate: maxD,
-            disable: [function (d) { return d.getDay() === 0 || d.getDay() === 6; }],
-            disableMobile: true, // forzar Flatpickr tambien en movil (en vez de input nativo)
-            dateFormat: 'Y-m-d',
-            onChange: function (selected, dateStr) {
-                if (dateStr) { fechaPicked = true; setFechaCustom(dateStr); }
-            },
-            onClose: function () {
-                // Si el usuario cerro sin elegir fecha, restaurar el valor anterior
-                // del select para que pueda volver a abrirlo ("change" sobre el mismo
-                // valor "otro" no se dispara otra vez)
-                if (!fechaPicked) diaSel.value = diaSelPrevValue;
-                fechaPicked = false;
-            }
+    // ---- Selectores ML / Peso reactivos al camión ----
+    function fillMlSelect(sel, mlMax) {
+        sel.innerHTML = '';
+        var ph = document.createElement('option');
+        ph.value = ''; ph.disabled = true; ph.selected = true; ph.textContent = 'Metros lineales';
+        sel.appendChild(ph);
+        for (var i = 1; i <= mlMax; i++) {
+            var opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = i + (i === 1 ? ' metro' : ' metros');
+            sel.appendChild(opt);
+        }
+        if (mlMax === 13) {
+            var opt2 = document.createElement('option');
+            opt2.value = '13.2'; opt2.textContent = '13,2 metros — carga completa';
+            sel.appendChild(opt2);
+        }
+        sel.value = (mlMax === 13) ? '13.2' : String(mlMax);
+    }
+    function fillPesoSelect(sel, pesoMax) {
+        sel.innerHTML = '';
+        var ph = document.createElement('option');
+        ph.value = ''; ph.disabled = true; ph.selected = true; ph.textContent = 'Toneladas';
+        sel.appendChild(ph);
+        for (var i = 1; i <= pesoMax; i++) {
+            var opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = i + (i === 1 ? ' tonelada' : ' toneladas') + (i === pesoMax ? ' (máximo)' : '');
+            sel.appendChild(opt);
+        }
+        sel.value = String(pesoMax);
+    }
+    // Día selector: placeholder + próximos 7 laborables + "Otro día…"
+    function fillDiaSelect(sel) {
+        sel.innerHTML = '';
+        var ph = document.createElement('option');
+        ph.value = ''; ph.textContent = 'Selecciona una fecha'; ph.disabled = true; ph.selected = true;
+        sel.appendChild(ph);
+        loadDates(7).forEach(function (d) {
+            var opt = document.createElement('option');
+            opt.value = isoLocal(d); opt.textContent = dayLabel(d);
+            sel.appendChild(opt);
         });
+        var otro = document.createElement('option');
+        otro.value = 'otro'; otro.textContent = 'Otro día…';
+        sel.appendChild(otro);
+        sel.value = '';
     }
-    function openCalendar() {
-        initFlatpickr();
-        if (fpInstance) { fpInstance.open(); return; }
-        // Fallback al picker nativo
-        try {
-            if (typeof fechaInput.showPicker === 'function') fechaInput.showPicker();
-            else { fechaInput.focus(); fechaInput.click(); }
-        } catch (e) { fechaInput.focus(); }
+
+    // ---- Autocomplete OSM Nominatim ----
+    var fetchAbort = null;
+    function osmSearch(query, cb) {
+        if (fetchAbort) fetchAbort.abort();
+        fetchAbort = new AbortController();
+        var url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&countrycodes=es,pt,fr,it,de,nl,be,lu,at,ch,pl,cz&accept-language=es&q=' + encodeURIComponent(query);
+        fetch(url, { signal: fetchAbort.signal, headers: { 'Accept-Language': 'es' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) { cb(data || []); })
+            .catch(function () { /* abort / red */ });
     }
-    // Inicializar Flatpickr cuando el script haya cargado (defer)
-    if (document.readyState !== 'loading') initFlatpickr();
-    else document.addEventListener('DOMContentLoaded', initFlatpickr);
-
-    // Guardar el valor anterior ANTES de que cambie a "otro" para poder restaurarlo
-    diaSel.addEventListener('focus', function () { diaSelPrevValue = diaSel.value; });
-    diaSel.addEventListener('change', function () {
-        if (diaSel.value === 'otro') {
-            fechaPicked = false;
-            openCalendar();
-        }
-    });
-
-    // Fallback (cuando se usa el picker nativo): mover sabados/domingos al lunes
-    fechaInput.addEventListener('change', function () {
-        if (!fechaInput.value || fpInstance) return; // Flatpickr ya maneja el onChange
-        var d = new Date(fechaInput.value + 'T00:00:00');
-        if (isWeekend(d)) {
-            d = nextWeekday(d);
-            fechaInput.value = toIso(d);
-        }
-        setFechaCustom(fechaInput.value);
-    });
-
-    // Autocomplete con Nominatim (OpenStreetMap) — gratis, sin API key
-    // Rate limit: 1 req/s. Con debounce de 350ms cubierto.
-    function setupAutocomplete(inputId, sugId) {
-        var input = document.getElementById(inputId);
-        var sug = document.getElementById(sugId);
-        var timer = null;
-        var selectedLabel = '';
-
-        function render(items) {
-            if (!items.length) {
-                sug.innerHTML = '<li class="empty">Sin resultados</li>';
-                sug.hidden = false; return;
-            }
-            sug.innerHTML = items.map(function (it) {
-                return '<li data-label="' + it.label.replace(/"/g, '&quot;') + '">' + it.label + '</li>';
-            }).join('');
-            sug.hidden = false;
-        }
-        function close() { sug.hidden = true; sug.innerHTML = ''; }
-
+    function formatSugLabel(item) {
+        var a = item.address || {};
+        var place = a.city || a.town || a.village || a.municipality || a.county || item.display_name.split(',')[0];
+        var prov = a.state || a.province || '';
+        var cp = a.postcode || '';
+        var pais = a.country || '';
+        var parts = [place];
+        if (cp) parts.push(cp);
+        if (prov && prov !== place) parts.push(prov);
+        if (pais && pais !== 'España' && pais !== 'Spain') parts.push('(' + pais + ')');
+        return parts.join(', ');
+    }
+    function bindAutocomplete(wrap, input, sugList) {
+        var deb;
+        function clearGeo() { delete wrap.dataset.lat; delete wrap.dataset.lon; delete wrap.dataset.cc; }
         input.addEventListener('input', function () {
+            wrap.classList.remove('ptar-error');
+            clearGeo();
             var q = input.value.trim();
-            selectedLabel = '';
-            if (timer) clearTimeout(timer);
-            if (q.length < 3) { close(); return; }
-            timer = setTimeout(function () {
-                var url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&accept-language=es&countrycodes=es,pt,fr,it,de,nl,be,ch,at,pl,cz&q=' + encodeURIComponent(q);
-                fetch(url, { headers: { 'Accept': 'application/json' } })
-                    .then(function (r) { return r.json(); })
-                    .then(function (data) {
-                        var items = (data || []).map(function (d) {
-                            var a = d.address || {};
-                            var city = a.city || a.town || a.village || a.municipality || a.county || '';
-                            var cp = a.postcode || '';
-                            var country = a.country || '';
-                            var parts = [];
-                            if (cp) parts.push(cp);
-                            if (city) parts.push(city);
-                            if (country) parts.push(country);
-                            return { label: parts.join(' · ') || d.display_name };
+            if (q.length < 2) { sugList.hidden = true; return; }
+            clearTimeout(deb);
+            deb = setTimeout(function () {
+                osmSearch(q, function (items) {
+                    sugList.innerHTML = '';
+                    if (!items.length) { sugList.hidden = true; return; }
+                    items.forEach(function (it) {
+                        var li = document.createElement('li');
+                        li.textContent = formatSugLabel(it);
+                        li.addEventListener('mousedown', function (e) {
+                            e.preventDefault();
+                            input.value = li.textContent;
+                            wrap.dataset.lat = it.lat;
+                            wrap.dataset.lon = it.lon;
+                            wrap.dataset.cc = (it.address && it.address.country_code) || '';
+                            sugList.hidden = true;
                         });
-                        render(items);
-                    })
-                    .catch(function () { close(); });
+                        sugList.appendChild(li);
+                    });
+                    sugList.hidden = false;
+                });
             }, 350);
         });
-        sug.addEventListener('click', function (e) {
-            var li = e.target.closest('li');
-            if (!li || li.classList.contains('empty')) return;
-            input.value = li.dataset.label;
-            selectedLabel = li.dataset.label;
-            close();
-        });
-        input.addEventListener('blur', function () { setTimeout(close, 180); });
-        input.addEventListener('focus', function () {
-            if (sug.innerHTML.trim() && input.value.trim().length >= 3) sug.hidden = false;
+        input.addEventListener('blur', function () { setTimeout(function () { sugList.hidden = true; }, 150); });
+    }
+
+    // ---- Referencias del formulario ----
+    var origWrap = card.querySelector('[data-ptar-orig-wrap]');
+    var destWrap = card.querySelector('[data-ptar-dest-wrap]');
+    var origInput = card.querySelector('[data-ptar-orig]');
+    var destInput = card.querySelector('[data-ptar-dest]');
+    var origSug = card.querySelector('[data-ptar-orig-sug]');
+    var destSug = card.querySelector('[data-ptar-dest-sug]');
+    var tipoOrig = card.querySelector('[data-ptar-tipoorig]');
+    var tipoDest = card.querySelector('[data-ptar-tipodest]');
+    var camionSel = card.querySelector('[data-ptar-camion]'); // hidden input
+    var mercaSel = card.querySelector('[data-ptar-merca]');
+    var mlSel = card.querySelector('[data-ptar-ml]');
+    var pesoSel = card.querySelector('[data-ptar-peso]');
+    var trampChk = card.querySelector('[data-ptar-trampilla]');
+    var nimaChk = card.querySelector('[data-ptar-nima]');
+    var diaSel = card.querySelector('[data-ptar-dia]');
+    var fechaInput = card.querySelector('[data-ptar-fecha]');
+    var urgSel = card.querySelector('[data-ptar-urgencia]');
+    var notesToggle = card.querySelector('[data-ptar-notes-toggle]');
+    var notesBody = card.querySelector('[data-ptar-notes-body]');
+    var notesTxt = card.querySelector('[data-ptar-notes]');
+    var notesCount = card.querySelector('[data-ptar-notes-count]');
+    var warning = card.querySelector('[data-ptar-warning]');
+    var recBox = card.querySelector('[data-ptar-recogidas]');
+    var entBox = card.querySelector('[data-ptar-entregas]');
+
+    // ---- Camión / ml / peso ----
+    function applyCamion() {
+        var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
+        fillMlSelect(mlSel, info.mlMax);
+        fillPesoSelect(pesoSel, info.pesoMax);
+    }
+    // Trampilla ON → rígido (8 m / 14 Tn); OFF → Tauliner (13,2 m / 24 Tn).
+    if (trampChk) {
+        trampChk.addEventListener('change', function () {
+            var prevMl = mlSel.value, prevPeso = pesoSel.value;
+            camionSel.value = trampChk.checked ? 'rigido' : 'tauliner';
+            applyCamion();
+            if (trampChk.checked) {
+                if (prevMl && mlSel.querySelector('option[value="' + prevMl + '"]')) mlSel.value = prevMl;
+                if (prevPeso && pesoSel.querySelector('option[value="' + prevPeso + '"]')) pesoSel.value = prevPeso;
+            }
         });
     }
-    setupAutocomplete('tar-orig', 'tar-orig-sug');
-    setupAutocomplete('tar-dest', 'tar-dest-sug');
+    mlSel.addEventListener('change', function () { mlSel.classList.remove('ptar-select-error'); });
+    pesoSel.addEventListener('change', function () { pesoSel.classList.remove('ptar-select-error'); });
+    applyCamion();
 
-    // Al elegir un valor en cualquier select/date del tarifador, hacer blur
-    // -> el borde morado de :focus desaparece y queda gris hasta el siguiente hover
-    document.querySelectorAll('.tarifador select, .tarifador input[type="date"]').forEach(function (el) {
-        el.addEventListener('change', function () {
-            try { el.blur(); } catch (e) {}
+    // ---- Fecha: día + Flatpickr ----
+    var fp = null;
+    function attachFlatpickr() {
+        if (!window.flatpickr || fp || !fechaInput) return;
+        fp = window.flatpickr(fechaInput, {
+            locale: window.flatpickr.l10ns && window.flatpickr.l10ns.es ? 'es' : 'default',
+            minDate: 'today',
+            maxDate: new Date(Date.now() + 90 * 24 * 3600 * 1000),
+            disable: [function (d) { return nonBiz(d); }],
+            disableMobile: true,
+            dateFormat: 'Y-m-d',
+            onClose: function (selDates) {
+                if (selDates && selDates.length) {
+                    var iso = selDates[0].toISOString().slice(0, 10);
+                    if (!diaSel.querySelector('option[value="' + iso + '"]')) {
+                        var opt = document.createElement('option');
+                        opt.value = iso; opt.textContent = fmtFull(selDates[0]);
+                        diaSel.insertBefore(opt, diaSel.querySelector('option[value="otro"]'));
+                    }
+                    diaSel.value = iso;
+                } else if (diaSel.value === 'otro') {
+                    diaSel.value = '';
+                }
+            }
         });
+    }
+    if (diaSel) {
+        fillDiaSelect(diaSel);
+        diaSel.addEventListener('change', function () {
+            if (diaSel.value) { diaSel.classList.remove('ptar-select-error'); warning.classList.remove('show'); }
+            if (diaSel.value === 'otro') {
+                attachFlatpickr();
+                if (fp) fp.open(); else if (fechaInput) fechaInput.focus();
+            }
+        });
+    }
+
+    // ---- Anotaciones ----
+    notesToggle.addEventListener('click', function () {
+        var open = notesToggle.getAttribute('aria-expanded') === 'true';
+        notesToggle.setAttribute('aria-expanded', open ? 'false' : 'true');
+        notesBody.hidden = open;
+        if (!open) setTimeout(function () { notesTxt.focus(); }, 50);
+    });
+    notesTxt.addEventListener('input', function () {
+        var n = notesTxt.value.length;
+        notesCount.textContent = n;
+        notesCount.parentNode.classList.toggle('warn', n > 950);
     });
 
-    // Tooltip discreto del camion — aparece al pasar el raton por el campo.
-    // El contenido cambia al cambiar el camion seleccionado.
-    (function () {
-        var tip = document.getElementById('tar-camion-tip');
-        if (!tip) return;
-        var INFO = {
-            tauliner: '<strong>Trailer Tauliner · 13,2 m</strong> · 2,40 × 2,70 m · 24 Tn · 33 EUR / 26 USA · Lat./Tras./Techo <em>· paletizado, palot/box, especiales</em>',
-            rigido:   '<strong>Rígido + Plataforma · 8 m</strong> · 2,40 × 2,70 m · 14 Tn · 20 EUR / 16 USA · plataforma + transpalet <em>· entregas urbanas, sin muelle</em>'
-        };
-        function render() { tip.innerHTML = INFO[camionSel.value] || INFO.tauliner; }
-        camionSel.addEventListener('change', render);
-        render();
-    })();
+    // ---- Autocomplete en origen / destino ----
+    bindAutocomplete(origWrap, origInput, origSug);
+    bindAutocomplete(destWrap, destInput, destSug);
 
-    // Validacion: si origen/destino vacios, borde rojo + cartel y NO mostramos
-    // los botones de envio (evita solicitudes sin datos)
-    var origInput = document.getElementById('tar-orig');
-    var destInput = document.getElementById('tar-dest');
-    var warning = document.getElementById('tar-warning');
+    // ---- Paradas adicionales (recogidas / entregas, máx 2 en total) ----
+    var origPlus = null, destPlus = null;
+    function rowsOf(box) { return box ? Array.prototype.slice.call(box.querySelectorAll('[data-ptar-parada]')) : []; }
+    function recRows() { return rowsOf(recBox); }
+    function entRows() { return rowsOf(entBox); }
+    function paradaRows() { return recRows().concat(entRows()); }
+    function renumberRoute() {
+        var seq = [origWrap].concat(recRows(), [destWrap], entRows());
+        seq.forEach(function (el, i) {
+            var b = el.querySelector('[data-route-num]'); if (b) b.textContent = (i + 1);
+        });
+    }
+    function syncAddBtns() {
+        var full = paradaRows().length >= 2;
+        if (origPlus) origPlus.style.display = full ? 'none' : '';
+        if (destPlus) destPlus.style.display = full ? 'none' : '';
+        renumberRoute();
+    }
+    function addParada(kind) {
+        var box = kind === 'recogida' ? recBox : entBox;
+        if (!box || paradaRows().length >= 2) return;
+        var esRec = kind === 'recogida';
+        var row = document.createElement('div');
+        row.className = 'ptar-field ptar-field-full ptar-parada-row';
+        row.setAttribute('data-ptar-parada', '');
+        row.setAttribute('data-kind', kind);
+        var opts = PARADA_TIPOS.map(function (o, i) { return '<option' + (i === 0 ? ' selected' : '') + '>' + o + '</option>'; }).join('');
+        var icon = esRec
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>';
+        var ph = esRec ? 'Recogida · CP o ciudad' : 'Entrega · CP o ciudad';
+        var aria = esRec ? 'Recogida (origen adicional)' : 'Entrega (destino adicional)';
+        row.innerHTML =
+            '<div class="ptar-route-row">' +
+                '<div class="ptar-input-wrap"><span class="ptar-route-num ' + (esRec ? 'rec' : 'ent') + '" data-route-num></span>' + icon +
+                    '<input type="text" autocomplete="off" inputmode="search" placeholder="' + ph + '" aria-label="' + aria + '">' +
+                    '<ul class="ptar-sug" hidden></ul>' +
+                '</div>' +
+                '<select class="ptar-select ptar-select-sm" aria-label="Tipo de ' + (esRec ? 'recogida' : 'entrega') + '">' + opts + '</select>' +
+                '<button type="button" class="ptar-parada-del" aria-label="Quitar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>' +
+            '</div>';
+        box.appendChild(row);
+        bindAutocomplete(row.querySelector('.ptar-input-wrap'), row.querySelector('input'), row.querySelector('.ptar-sug'));
+        row.querySelector('.ptar-parada-del').addEventListener('click', function () {
+            box.removeChild(row);
+            syncAddBtns();
+        });
+        syncAddBtns();
+        row.querySelector('input').focus();
+    }
+    function makePlus(wrap, kind) {
+        if (!wrap || !wrap.parentNode) return null;
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ptar-route-add';
+        btn.setAttribute('aria-label', kind === 'recogida' ? 'Añadir recogida' : 'Añadir entrega');
+        btn.title = kind === 'recogida' ? 'Añadir recogida (origen adicional)' : 'Añadir entrega (destino adicional)';
+        btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+        btn.addEventListener('click', function () { addParada(kind); });
+        wrap.parentNode.appendChild(btn);
+        return btn;
+    }
+    origPlus = makePlus(origWrap, 'recogida');
+    destPlus = makePlus(destWrap, 'entrega');
+    syncAddBtns();
+
+    // Tooltips ℹ (Trampilla / NIMA): posicionar el pop pegado al icono y
+    // clampeado a pantalla (position:fixed, no se recorta en móvil).
+    card.querySelectorAll('.ptar-has-tip').forEach(function (host) {
+        var pop = host.querySelector('.ptar-tip-pop');
+        if (!pop) return;
+        function place() {
+            var r = host.getBoundingClientRect();
+            var pw = pop.offsetWidth || 262;
+            var left = r.left;
+            var maxLeft = window.innerWidth - pw - 8;
+            if (left > maxLeft) left = maxLeft;
+            if (left < 8) left = 8;
+            pop.style.left = left + 'px';
+            pop.style.top = (r.bottom + 6) + 'px';
+        }
+        host.addEventListener('mouseenter', place);
+        host.addEventListener('focus', place, true);
+    });
 
     // Hero: alternar entre la pantalla por defecto (texto + 2 CTAs) y el
     // tarifador. "Precios" abre el tarifador; el boton minimizar (-) del
@@ -4780,167 +4955,147 @@ function updateAlmTotal() {
         });
     })();
 
-    // Boton reset — devuelve el tarifador al estado inicial
+    // Limpia el estado de error del origen/destino al escribir.
+    function clearError(input, wrap) {
+        if (wrap) wrap.classList.remove('ptar-error');
+        if (!origWrap.classList.contains('ptar-error') && !destWrap.classList.contains('ptar-error')) {
+            warning.classList.remove('show');
+        }
+    }
+    origInput.addEventListener('input', function () { clearError(origInput, origWrap); });
+    destInput.addEventListener('input', function () { clearError(destInput, destWrap); });
+
+    // Botón reset (↻) — devuelve el tarifador al estado inicial (limpio).
     (function () {
         var btn = document.getElementById('tar-reset');
         if (!btn) return;
         btn.addEventListener('click', function () {
-            // Origen / destino
             origInput.value = '';
             destInput.value = '';
-            origInput.closest('.tar-input-wrap').classList.remove('tar-error');
-            destInput.closest('.tar-input-wrap').classList.remove('tar-error');
-            // Camion y mercancia
+            origWrap.classList.remove('ptar-error');
+            destWrap.classList.remove('ptar-error');
+            delete origWrap.dataset.lat; delete origWrap.dataset.lon; delete origWrap.dataset.cc;
+            delete destWrap.dataset.lat; delete destWrap.dataset.lon; delete destWrap.dataset.cc;
+            if (tipoOrig) tipoOrig.selectedIndex = 0;
+            if (tipoDest) tipoDest.selectedIndex = 0;
+            // Paradas
+            if (recBox) recBox.innerHTML = '';
+            if (entBox) entBox.innerHTML = '';
+            syncAddBtns();
+            // Camión / mercancía / trampilla / NIMA
             camionSel.value = 'tauliner';
-            document.getElementById('tar-merca').selectedIndex = 0;
-            // ML y peso — repuebla y mete el maximo (default)
-            rebuildMl();
-            rebuildPeso();
-            // Fecha de carga
-            urgSel.value = 'estandar';
-            // Dia: borrar la opcion custom si existe y volver a "Sin fecha definida"
-            var custom = diaSel.querySelector('option[data-custom="1"]');
-            if (custom) custom.remove();
-            diaSel.value = '';
-            // Calendario
-            if (typeof fpInstance !== 'undefined' && fpInstance) {
-                try { fpInstance.clear(); } catch (e) {}
-            }
-            fechaInput.value = '';
+            if (mercaSel) mercaSel.selectedIndex = 0;
+            if (trampChk) trampChk.checked = false;
+            if (nimaChk) nimaChk.checked = false;
+            applyCamion();
+            // Fecha / ventana
+            if (diaSel) fillDiaSelect(diaSel);
+            if (fp) { try { fp.clear(); } catch (e) {} }
+            if (fechaInput) fechaInput.value = '';
+            if (urgSel) urgSel.value = 'flexible';
             // Anotaciones
-            var notesBody = document.getElementById('tar-notes-body');
-            var notesToggle = document.getElementById('tar-notes-toggle');
-            var notes = document.getElementById('tar-notes');
-            var notesCount = document.getElementById('tar-notes-count');
-            if (notes) { notes.value = ''; }
+            if (notesTxt) notesTxt.value = '';
             if (notesCount) { notesCount.textContent = '0'; notesCount.parentNode.classList.remove('warn'); }
-            if (notesBody) { notesBody.hidden = true; }
-            if (notesToggle) { notesToggle.setAttribute('aria-expanded', 'false'); }
-            // Cartel de error y wrap de CTA (cerrar Email/WhatsApp si estaban abiertos)
+            if (notesBody) notesBody.hidden = true;
+            if (notesToggle) notesToggle.setAttribute('aria-expanded', 'false');
+            // Cartel de error + cerrar Email/WhatsApp si estaban abiertos
             warning.classList.remove('show');
             document.getElementById('tar-cta-wrap').classList.remove('open');
-            // No enfocamos ningun campo — el reset debe dejar el tarifador "limpio"
-            // sin abrir el teclado movil ni resaltar el campo de origen
-            if (document.activeElement && document.activeElement.blur) {
-                document.activeElement.blur();
-            }
+            if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         });
     })();
 
-    // Anotaciones libres — toggle + contador de caracteres (max 1000)
-    (function () {
-        var btn = document.getElementById('tar-notes-toggle');
-        var body = document.getElementById('tar-notes-body');
-        var area = document.getElementById('tar-notes');
-        var count = document.getElementById('tar-notes-count');
-        if (!btn || !body || !area || !count) return;
-        btn.addEventListener('click', function () {
-            var open = body.hidden;
-            body.hidden = !open;
-            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-            if (open) area.focus();
+    // ---- Mensaje preformateado (Email / WhatsApp) ----
+    // Se regenera en cada click de Email/WhatsApp para capturar ediciones
+    // hechas tras pulsar "Solicitar tarifa".
+    function paradaLines() {
+        var out = [];
+        recRows().forEach(function (r) {
+            var inp = r.querySelector('input');
+            var tip = r.querySelector('select');
+            var v = inp && inp.value.trim();
+            if (v) out.push('• RECOGIDA: ' + v + ' (' + (tip ? tip.value : 'Almacén / Nave') + ')');
         });
-        area.addEventListener('input', function () {
-            var n = area.value.length;
-            count.textContent = n;
-            count.parentNode.classList.toggle('warn', n >= 950);
-        });
-        // Movil: al abrir el teclado, hacer scroll para que el textarea quede
-        // visible por encima del teclado (block: 'center' = lo deja en el medio
-        // del viewport util). Delay 300ms para que el teclado se haya pintado.
-        var isTouch = window.matchMedia('(hover: none)').matches;
-        area.addEventListener('focus', function () {
-            if (!isTouch) return;
-            setTimeout(function () {
-                try { area.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-                catch (e) { area.scrollIntoView(); }
-            }, 300);
-        });
-    })();
-    function clearError(input) {
-        var wrap = input.closest('.tar-input-wrap');
-        if (wrap) wrap.classList.remove('tar-error');
-        if (!origInput.closest('.tar-input-wrap').classList.contains('tar-error') &&
-            !destInput.closest('.tar-input-wrap').classList.contains('tar-error')) {
-            warning.classList.remove('show');
-        }
+        return out;
     }
-    origInput.addEventListener('input', function () { clearError(origInput); });
-    destInput.addEventListener('input', function () { clearError(destInput); });
-
-    // Genera los hrefs de WhatsApp y mailto con los datos ACTUALES del tarifador.
-    // Reutilizado por "Calcular precio" y por los 2 botones Email/WhatsApp (que
-    // se regeneran en cada click para reflejar cambios posteriores al primer pulsado).
+    function entregaLines() {
+        var out = [];
+        entRows().forEach(function (r) {
+            var inp = r.querySelector('input');
+            var tip = r.querySelector('select');
+            var v = inp && inp.value.trim();
+            if (v) out.push('• ENTREGA: ' + v + ' (' + (tip ? tip.value : 'Almacén / Nave') + ')');
+        });
+        return out;
+    }
     function buildMessage() {
-        var origVal = origInput.value.trim();
-        var destVal = destInput.value.trim();
-        if (!origVal || !destVal) return null;
-        var orig = origVal;
-        var dest = destVal;
-        var mlNum = parseFloat(ml.value);
-        var pesoNum = parseFloat(peso.value);
-        var mlV = fmt(mlNum, 1);
-        var eurV = Math.floor(mlNum * EUR_POR_ML);
-        var amrV = Math.floor(mlNum * AMR_POR_ML);
-        var pesoV = fmt(pesoNum, pesoNum % 1 === 0 ? 0 : 1);
-        var camionEl = document.getElementById('tar-camion');
-        var camion = camionEl.options[camionEl.selectedIndex].getAttribute('data-full') || camionEl.value;
-        var merca = document.getElementById('tar-merca').value;
-        var urgV = urgSel.value;
-        var urgTxt = { dia: 'Fecha fija (un día en concreto, más cara)', estandar: 'Ventana de 2 días (Estándar)', flexible: 'Ventana de 4 días (Flexible, más económica)' }[urgV];
-        var fechaV = diaSel.value === 'otro' ? fechaInput.value : diaSel.value;
-        if (fechaV && fechaV !== 'otro') {
-            var d = new Date(fechaV + 'T00:00:00');
-            var dStr = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-            if (urgV === 'dia') {
-                urgTxt = 'Fecha fija: ' + dStr;
-            } else {
-                urgTxt += ' (a partir de ' + dStr + ')';
-            }
+        var orig = origInput.value.trim();
+        var dest = destInput.value.trim();
+        if (!orig || !dest) return null;
+        var mlV = mlSel.value === '13.2' ? '13,2' : mlSel.value;
+        var pesoV = pesoSel.value;
+        var camion = (CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner).label;
+        var merca = mercaSel ? mercaSel.options[mercaSel.selectedIndex].text : '';
+        var trampV = (trampChk && trampChk.checked) ? 'Sí' : 'No';
+        var nimaV = (nimaChk && nimaChk.checked) ? 'Sí' : 'No';
+        var urgV = urgSel ? urgSel.value : 'flexible';
+        var urgTxt = { dia: 'Fecha fija (un día concreto)', estandar: '1 a 2 días (estándar)', flexible: '1 a 4 días (flexible)' }[urgV] || '1 a 4 días (flexible)';
+        // Fecha de carga
+        var fechaTxt = 'Sin especificar';
+        if (diaSel) {
+            var v = diaSel.value;
+            if (/^\d{4}-\d{2}-\d{2}$/.test(v)) fechaTxt = fmtLarga(new Date(v + 'T00:00:00'));
+            else if (v === 'otro' && fechaInput && fechaInput.value) fechaTxt = fmtLarga(new Date(fechaInput.value + 'T00:00:00'));
         }
         var lines = [
-            '*** ENVIANOS ESTE MENSAJE Y TE PASAMOS TU TARIFA EN MINUTOS ***',
+            '*** ENVIANOS ESTE MENSAJE Y TE PASAMOS TU TARIFA ***',
             '',
             'Buenos días,',
             '',
             'Solicito TARIFA para transporte con estos datos:',
             '',
-            '• ORIGEN: ' + orig,
-            '• DESTINO: ' + dest,
-            '• CANTIDAD: ' + mlV + ' m lineales (≈ ' + eurV + ' europalets · ' + amrV + ' americanos)',
-            '• PESO: ' + pesoV + ' Tn',
-            '• TIPO DE CAMIÓN: ' + camion,
-            '• TIPO DE MERCANCÍA: ' + merca,
-            '• FECHA DE CARGA: ' + urgTxt,
-            '',
-            'INDICA AQUÍ OTRAS ANOTACIONES/TIPO DE MERCANCIA QUE DEBAMOS SABER:',
-            '',
-            (document.getElementById('tar-notes') ? document.getElementById('tar-notes').value.trim() : '')
+            '• ORIGEN: ' + orig + ' (' + (tipoOrig ? tipoOrig.value : 'Almacén / Nave') + ')'
         ];
+        lines = lines.concat(paradaLines());
+        lines.push('• DESTINO: ' + dest + ' (' + (tipoDest ? tipoDest.value : 'Almacén / Nave') + ')');
+        lines = lines.concat(entregaLines());
+        lines = lines.concat([
+            '• MERCANCÍA: ' + merca,
+            '• METROS LINEALES: ' + mlV + ' m',
+            '• TONELADAS: ' + pesoV + ' Tn',
+            '• TRAMPILLA ELEVADORA: ' + trampV,
+            '• REQUIERE NIMA: ' + nimaV,
+            '• FECHA DE CARGA: ' + fechaTxt,
+            '• VENTANA DE CARGA: ' + urgTxt,
+            '',
+            'OTRAS ANOTACIONES:',
+            '',
+            (notesTxt ? notesTxt.value.trim() : '')
+        ]);
         var bodyLF = lines.join('\n');
         var bodyCRLF = lines.join('\r\n');
+        var origCorto = orig.split(',')[0].trim();
+        var destCorto = dest.split(',')[0].trim();
         return {
             wa: 'https://wa.me/34628995709?text=' + encodeURIComponent(bodyLF),
             mail: 'mailto:info@dynamotrans.com'
-                + '?subject=' + encodeURIComponent('Solicitud TARIFA — ' + orig + ' → ' + dest)
+                + '?subject=' + encodeURIComponent('Solicitud TARIFA — ' + origCorto + ' → ' + destCorto)
                 + '&body=' + encodeURIComponent(bodyCRLF)
         };
     }
 
-    // CTA: al pulsar "Calcular precio" se valida y se sustituye el boton por
-    // los 2 botones (Email + WhatsApp) ya listos para enviar.
+    // CTA "Solicitar tarifa": valida origen+destino y revela Email/WhatsApp.
     document.getElementById('tar-cta').addEventListener('click', function () {
-        var origVal = origInput.value.trim();
-        var destVal = destInput.value.trim();
-        if (!origVal || !destVal) {
-            var origWrap = origInput.closest('.tar-input-wrap');
-            var destWrap = destInput.closest('.tar-input-wrap');
-            if (!origVal) origWrap.classList.add('tar-error');
-            if (!destVal) destWrap.classList.add('tar-error');
+        var orig = origInput.value.trim();
+        var dest = destInput.value.trim();
+        if (orig.length < 2 || dest.length < 2) {
+            origWrap.classList.toggle('ptar-error', orig.length < 2);
+            destWrap.classList.toggle('ptar-error', dest.length < 2);
             warning.classList.add('show');
-            (origVal ? destInput : origInput).focus();
+            (orig.length >= 2 ? destInput : origInput).focus();
             return;
         }
+        warning.classList.remove('show');
         var msg = buildMessage();
         if (!msg) return;
         document.getElementById('tar-cta-email').href = msg.mail;
@@ -4948,9 +5103,7 @@ function updateAlmTotal() {
         document.getElementById('tar-cta-wrap').classList.add('open');
     });
 
-    // Regenerar el mensaje JUSTO ANTES de navegar cuando el usuario pulsa
-    // Email o WhatsApp -> refleja cualquier cambio hecho en el form tras la
-    // primera pulsacion de "Calcular precio".
+    // Regenerar el mensaje justo antes de navegar (captura ediciones tardías).
     ['tar-cta-email', 'tar-cta-wa'].forEach(function (id) {
         var btn = document.getElementById(id);
         if (!btn) return;
