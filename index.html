@@ -4653,6 +4653,39 @@ function updateAlmTotal() {
             .then(function (data) { cb(data || []); })
             .catch(function () { /* abort / red */ });
     }
+    // País del visitante → para priorizar SUS resultados en el autocomplete
+    // (un CP "pelado" como 41011 existe en varios países; Nominatim a veces
+    // pone Italia antes que España). Detección por IP con GeoJS (gratis, CORS
+    // abierto, sin clave). Fallback: España. Cacheado 30 días en localStorage.
+    var prefCC = 'es';
+    var GEO_SUP = ['es','pt','fr','it','de','nl','be','lu','at','ch','pl','cz'];
+    (function detectCountry() {
+        try {
+            var raw = localStorage.getItem('dynamo_geo_cc');
+            if (raw) { var o = JSON.parse(raw); if (o && o.exp > Date.now() && o.cc) { prefCC = o.cc; return; } }
+        } catch (e) {}
+        if (typeof fetch !== 'function') return;
+        fetch('https://get.geojs.io/v1/ip/country.json')
+            .then(function (r) { return r.json(); })
+            .then(function (o) {
+                var cc = ((o && (o.country || o.country_code)) || '').toLowerCase();
+                if (cc && GEO_SUP.indexOf(cc) !== -1) {
+                    prefCC = cc;
+                    try { localStorage.setItem('dynamo_geo_cc', JSON.stringify({ cc: cc, exp: Date.now() + 2592000000 })); } catch (e) {}
+                }
+            })
+            .catch(function () {});
+    })();
+    // Ordena los resultados poniendo primero los del país del visitante,
+    // conservando el orden relativo de Nominatim dentro de cada grupo.
+    function prioritizeCountry(items) {
+        var pref = [], rest = [];
+        items.forEach(function (it) {
+            var cc = (it.address && it.address.country_code) || '';
+            (cc === prefCC ? pref : rest).push(it);
+        });
+        return pref.concat(rest);
+    }
     function formatSugLabel(item) {
         var a = item.address || {};
         var place = a.city || a.town || a.village || a.municipality || a.county || item.display_name.split(',')[0];
@@ -4678,6 +4711,7 @@ function updateAlmTotal() {
                 osmSearch(q, function (items) {
                     sugList.innerHTML = '';
                     if (!items.length) { sugList.hidden = true; return; }
+                    items = prioritizeCountry(items);
                     items.forEach(function (it) {
                         var li = document.createElement('li');
                         li.textContent = formatSugLabel(it);
