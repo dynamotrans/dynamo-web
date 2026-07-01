@@ -1709,9 +1709,6 @@
            van al botón "subir arriba" que queda debajo. Se reactivan en la
            foto y, al abrir, en los iconos de acción. */
         .contact-fab-wrap { position:fixed; bottom:1.8rem; right:1.8rem; z-index:998; display:flex; flex-direction:column-reverse; align-items:center; gap:0.85rem; pointer-events:none; }
-        /* Con el tarifador abierto en móvil/tablet, oculta el avatar flotante:
-           tapaba el botón "Solicitar tarifa" al final del formulario. */
-        @media (max-width: 900px) { body.tar-open .contact-fab-wrap { display: none !important; } }
         .contact-fab {
             width:130px; height:130px; border-radius:50%; border:none; padding:0; cursor:pointer;
             background:none; position:relative; flex-shrink:0; pointer-events:auto;
@@ -4930,14 +4927,12 @@ function updateAlmTotal() {
         if (openBtn) {
             openBtn.addEventListener('click', function () {
                 hero.classList.add('calc-open');
-                document.body.classList.add('tar-open'); // oculta el FAB en móvil
                 openBtn.setAttribute('aria-expanded', 'true');
             });
         }
         if (closeBtn) {
             closeBtn.addEventListener('click', function () {
                 hero.classList.remove('calc-open');
-                document.body.classList.remove('tar-open');
                 if (openBtn) openBtn.setAttribute('aria-expanded', 'false');
             });
         }
