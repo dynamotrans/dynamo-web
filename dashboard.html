@@ -6011,7 +6011,7 @@
                 row.innerHTML =
                     '<div class="ptar-route-row">' +
                         '<div class="ptar-input-wrap"><span class="ptar-route-num ' + (esRec ? 'rec' : 'ent') + '" data-route-num></span>' + icon +
-                            '<input type="text" autocomplete="off" inputmode="search" placeholder="' + ph + '" aria-label="' + aria + '">' +
+                            '<input type="text" style="font-size:16px" autocomplete="off" inputmode="search" placeholder="' + ph + '" aria-label="' + aria + '">' +
                             '<ul class="ptar-sug" hidden></ul>' +
                         '</div>' +
                         '<select class="ptar-select ptar-select-sm" aria-label="Tipo de ' + (esRec ? 'recogida' : 'entrega') + '">' + opts + '</select>' +
@@ -6025,7 +6025,7 @@
                     renderEta();
                 });
                 syncAddBtns();
-                row.querySelector('input').focus();
+                row.querySelector('input').focus({ preventScroll: true });
             }
             // "+" al final de la fila de origen (añade recogida) y de destino (añade entrega).
             function makePlus(wrap, kind) {
