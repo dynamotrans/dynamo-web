@@ -2590,7 +2590,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Envío</th><th>Fecha · Ventana</th><th>Ruta</th><th>Mercancía</th><th>Vehículo</th><th>Estado</th>
+                    <th>Envío</th><th>Fecha · Ventana</th><th>Ruta</th><th>Mercancía</th><th>Vehículo</th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -5379,7 +5379,10 @@
                 return '<tr' + rowCls + '>' +
                     '<td class="ref"><strong>' + esc(c.ref) + '</strong>' +
                         (c.refCli ? '<div class="ref-cli-line">' + esc(c.refCli) + '</div>' : '') +
-                        '<div class="envio-estado"><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span></div>' +
+                        '<div class="envio-estado"><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span>' +
+                            (c.kind === 'entregada' && c.hasAlbaran ? ' <span class="badge-doc" title="Albarán PDF disponible">📄</span>' : '') +
+                        '</div>' +
+                        (asig ? '<div class="asig-line asig-' + asig.key + '" style="margin-top:0.32rem;"><span class="asig-dot"></span>' + esc(asig.label) + '</div>' : '') +
                     '</td>' +
                     '<td>' +
                         '<div class="fecha-linea"><strong>' + esc(fechaLinea) + '</strong></div>' +
@@ -5407,10 +5410,6 @@
                     '</td>' +
                     '<td class="vehiculo">' + (c.matricula ? '<span class="meta-matricula">' + esc(c.matricula) + '</span>' : '<span class="meta meta-pend">Sin matrícula</span>') +
                         (c.tipoCamion ? '<div class="meta">' + esc(c.tipoCamion) + '</div>' : '') +
-                    '</td>' +
-                    '<td>' +
-                        (asig ? '<div class="asig-line asig-' + asig.key + '"><span class="asig-dot"></span>' + esc(asig.label) + '</div>' : '<span class="meta meta-pend">—</span>') +
-                        (c.kind === 'entregada' && c.hasAlbaran ? ' <span class="badge-doc" title="Albarán PDF disponible">📄</span>' : '') +
                     '</td>' +
                     actionsCell(actionItemsCarga(c)) +
                     '</tr>';
