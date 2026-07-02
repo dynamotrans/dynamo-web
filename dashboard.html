@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <!-- Evita que iOS convierta CP/direcciones/teléfonos en enlaces automáticos -->
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
     <meta name="robots" content="noindex,nofollow">
     <title>Dashboard · Dynamo Portal</title>
     <link rel="icon" type="image/png" href="/images/DYNAMO-NEW-LOGO.png">
@@ -1360,6 +1362,17 @@
         table.data td.route-full .rf-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 0.32rem; }
         table.data td.route-full .rf-dot.orig { background: var(--orange); }
         table.data td.route-full .rf-dot.dest { background: var(--green); }
+        /* iOS "data detectors": aunque las direcciones son texto plano, Safari
+           las convierte en enlaces al mapa. Las neutralizamos (texto normal, no
+           clicable) para que al tocar la fila se abra el detalle del viaje. */
+        a[x-apple-data-detectors],
+        a[x-apple-data-detectors] * {
+            color: inherit !important;
+            text-decoration: none !important;
+            pointer-events: none !important;
+            -webkit-touch-callout: none !important;
+        }
+        table.data td.route-full { -webkit-touch-callout: none; }
         table.data .row-when-wrap { margin-bottom: 0.32rem; }
         table.data .fecha-linea strong { color: var(--navy); }
         table.data td.ref .ref-cli-line { color: var(--gray-500); font-size: 0.74rem; margin-top: 0.15rem; }
@@ -2615,9 +2628,6 @@
     <section class="section" id="sec-presupuestos">
         <div class="sec-header">
             <h2>Presupuestos</h2>
-            <div class="sec-header-actions">
-                <button class="btn-secondary" onclick="showSection('nuevo-presupuesto');return false;">+ Nuevo presupuesto</button>
-            </div>
         </div>
         <div class="tabs" data-table="presupuestos">
             <button class="tab active" data-filter="activos">Activos (<span data-count="activos">0</span>)</button>
@@ -2870,6 +2880,7 @@
 
             <div class="ptar-actions">
                 <button type="button" class="btn-primary" data-ptar-submit>Crear envío</button>
+                <button type="button" class="btn-secondary" data-ptar-save-presupuesto>Guardar presupuesto</button>
                 <button type="button" class="btn-ghost" onclick="showSection('dashboard');return false;">Cancelar</button>
             </div>
         </div>
@@ -6455,7 +6466,7 @@
 
             // Lee y valida el formulario. Devuelve null si hay errores
             // (también marca los campos en rojo y muestra el warning).
-            function readAndValidate() {
+            function readAndValidate(skipFecha) {
                 var orig = origInput.value.trim();
                 var dest = destInput.value.trim();
                 var origOk = orig.length >= 2;
@@ -6495,7 +6506,16 @@
                 // Si el modo es 'carga' el selector de fecha existe y NO puede
                 // quedarse en el placeholder ('') — hay que elegir una opción
                 // explícita: una fecha, "Previsión, sin fecha definida" o "Otro día…"
-                if (diaSel) {
+                if (diaSel && skipFecha) {
+                    // Guardar como presupuesto: la fecha NO es obligatoria (un
+                    // presupuesto es una cotización, no un compromiso de fecha).
+                    if (diaSel.value && diaSel.value !== 'otro' && diaSel.value !== 'prevision' && diaSel.value !== 'sinfecha' && diaSel.value !== '') {
+                        var dP = new Date(diaSel.value);
+                        fechaTxt = fmtDate(dP); fechaLarga = fmtFull(dP);
+                    } else {
+                        fechaTxt = 'A confirmar'; fechaLarga = 'A confirmar';
+                    }
+                } else if (diaSel) {
                     if (diaSel.value === '') {
                         warning.textContent = '⚠ Selecciona la fecha de envío antes de continuar.';
                         warning.classList.add('show');
@@ -6545,9 +6565,10 @@
 
             // Inserta la carga/presupuesto en la data y navega — paso final
             // común para presupuesto (directo) y carga (tras confirm + modal).
-            function finalizeSave(d) {
-                var ref = nextRef(mode);
-                if (mode === 'carga') {
+            function finalizeSave(d, saveMode) {
+                saveMode = saveMode || mode;
+                var ref = nextRef(saveMode);
+                if (saveMode === 'carga') {
                     CARGAS_DATA.unshift(makeCarga(
                         ref, d.refCli, d.fechaTxt, d.urgenciaTxt,
                         d.origCorto, d.destCorto, d.origCorto + ' → ' + d.destCorto,
@@ -6581,7 +6602,7 @@
                         return fmtDate(t) + ' (7 días)';
                     })();
                     PRESUPUESTOS_DATA.unshift(makePresupuesto(
-                        ref, d.refCli, fmtDate(new Date()),
+                        ref, (d.refCli === 'PED-NUEVO' ? 'COT-NUEVO' : d.refCli), fmtDate(new Date()),
                         d.origCorto, d.destCorto, d.mercanciaShort, d.medidas,
                         precio.toLocaleString('es-ES') + ' €', vigencia, 'green', 'activos'
                     ));
@@ -6730,6 +6751,15 @@
                 } else {
                     finalizeSave(d);
                 }
+            });
+            // Botón secundario "Guardar presupuesto" (solo en el form de crear
+            // envío): guarda los mismos datos como presupuesto, sin exigir fecha
+            // ni pasar por el flujo legal de confirmación.
+            var savePresupBtn = card.querySelector('[data-ptar-save-presupuesto]');
+            if (savePresupBtn) savePresupBtn.addEventListener('click', function () {
+                var d = readAndValidate(true);
+                if (!d) return;
+                finalizeSave(d, 'presupuesto');
             });
         }
 
