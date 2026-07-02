@@ -3492,30 +3492,16 @@
         showModalSuccess('Cambios guardados', 'Los datos de ' + ref + ' se han actualizado correctamente.');
     }
     window.cargaGuardar = cargaGuardar;
+    // Repetir envío: abre el MISMO formulario de crear envío auto-rellenado con
+    // los datos de la carga existente. El usuario decide en esa pantalla si
+    // Crear envío o Guardar presupuesto (flujo unificado).
     function cargaRepetir(row) {
-        var d = cargaRowData(row);
-        openDashModal({
-            icon: 'refresh',
-            title: 'Repetir envío ' + d.ref,
-            sub: 'Mismos datos · fecha y precio nuevos',
-            body:
-                '<div class="modal-warn-box">Estás generando una <strong>nuevo envío</strong> con los datos de ' + escapeHtml(d.ref) + '. La <strong>fecha</strong> y el <strong>precio</strong> se calculan de nuevo (precio del tarifador).</div>' +
-                infoGrid([
-                    { label: 'Origen', value: d.origen },
-                    { label: 'Destino', value: d.destino },
-                    { label: 'Mercancía', value: d.mercancia },
-                    { label: 'Medidas', value: d.medidas }
-                ]) +
-                '<div class="modal-form-row" style="margin-top:0.8rem;"><label>Nueva fecha de carga *</label><input type="date" min="' + todayISO() + '" required></div>' +
-                '<div class="modal-form-row"><label>Ventana de carga</label><select><option>Fija (un día)</option><option selected>1 a 2 días</option><option>1 a 4 días</option></select></div>',
-            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
-                    '<button class="btn-primary" onclick="cargaRepetirConfirm()">Calcular precio y crear</button>'
-        });
+        var ref = txt(row.querySelector('.ref strong')) || txt(row.querySelector('.ref'));
+        var src = CARGAS_DATA.filter(function (c) { return c.ref === ref; })[0];
+        closeDashModal();
+        showSection('nueva-carga');
+        if (window.prefillTarifador) window.prefillTarifador(src);
     }
-    function cargaRepetirConfirm() {
-        showModalSuccess('Nueva carga creada', 'El tarifador ha calculado el precio. La carga aparecerá en el listado en unos segundos.');
-    }
-    window.cargaRepetirConfirm = cargaRepetirConfirm;
     function cargaReportarIncidencia(row) {
         var d = cargaRowData(row);
         openDashModal({
@@ -3646,31 +3632,15 @@
             footer: DETAIL_FOOTER
         });
     }
+    // Generar carga desde presupuesto: abre el MISMO formulario de crear envío
+    // auto-rellenado con los datos del presupuesto (flujo unificado).
     function presupuestoGenerarCarga(row) {
-        var d = presupuestoRowData(row);
-        openDashModal({
-            icon: 'truck',
-            title: 'Generar carga de ' + d.ref,
-            sub: 'Mismos datos del presupuesto · solo fecha pendiente',
-            body:
-                '<div class="modal-warn-box">Estás creando una <strong>nuevo envío</strong> con los datos y el <strong>precio</strong> de este presupuesto (' + escapeHtml(d.precio) + '). Solo te queda elegir la <strong>fecha</strong>.</div>' +
-                infoGrid([
-                    { label: 'Origen', value: d.origen },
-                    { label: 'Destino', value: d.destino },
-                    { label: 'Mercancía', value: d.mercancia },
-                    { label: 'Medidas', value: d.medidas },
-                    { label: 'Precio', value: d.precio, span: true }
-                ]) +
-                '<div class="modal-form-row" style="margin-top:0.8rem;"><label>Fecha de carga *</label><input type="date" min="' + todayISO() + '" required></div>' +
-                '<div class="modal-form-row"><label>Ventana de carga</label><select><option>Fija (un día)</option><option selected>1 a 2 días</option><option>1 a 4 días</option></select></div>',
-            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
-                    '<button class="btn-primary" onclick="presupuestoGenerarConfirm()">Crear envío</button>'
-        });
+        var ref = txt(row.querySelector('.ref strong')) || txt(row.querySelector('.ref'));
+        var src = PRESUPUESTOS_DATA.filter(function (p) { return p.ref === ref; })[0];
+        closeDashModal();
+        showSection('nueva-carga');
+        if (window.prefillTarifador) window.prefillTarifador(src);
     }
-    function presupuestoGenerarConfirm() {
-        showModalSuccess('Envío creado', 'El envío se ha generado con el precio del presupuesto. Aparecerá en el listado en unos segundos.');
-    }
-    window.presupuestoGenerarConfirm = presupuestoGenerarConfirm;
     function presupuestoDescargarPDF(row) {
         var d = presupuestoRowData(row);
         var name = 'Presupuesto-' + d.ref.replace(/[^A-Za-z0-9-]/g, '') + '.pdf';
@@ -6611,6 +6581,61 @@
                 if (!d) return;
                 finalizeSave(d, 'presupuesto');
             });
+
+            // Auto-relleno del formulario desde una carga o presupuesto existente
+            // ("Repetir envío" / "Generar carga"). Reutiliza este mismo form para
+            // unificar el flujo: se rellena y el usuario decide Crear envío o
+            // Guardar presupuesto en la misma pantalla.
+            if (mode === 'carga') {
+                window.prefillTarifador = function (src) {
+                    if (!src) return;
+                    // Volver al paso 1 por si el paso de confirmación estaba abierto.
+                    if (confirmCard) { confirmCard.hidden = true; }
+                    card.hidden = false;
+                    warning.classList.remove('show');
+                    origWrap.classList.remove('ptar-error'); destWrap.classList.remove('ptar-error');
+                    // Origen / destino (texto). Dirección completa si el objeto la trae.
+                    origInput.value = src.origenDir || src.origen || '';
+                    destInput.value = src.destinoDir || src.destino || '';
+                    // Camión / trampilla a partir del tipo de camión (si lo hay).
+                    var esRigido = /r[íi]gido/i.test(src.tipoCamion || '');
+                    if (trampillaChk) trampillaChk.checked = esRigido;
+                    camionSel.value = esRigido ? 'rigido' : 'tauliner';
+                    applyCamion(); // rellena ml/peso al máximo del camión elegido
+                    var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
+                    // Metros lineales desde medidas.
+                    var mM = String(src.medidas || '').match(/([\d,.]+)\s*m\b/);
+                    if (mM) {
+                        var mlNum = parseFloat(mM[1].replace(',', '.'));
+                        var mlVal = mlNum >= 13 ? '13.2' : String(Math.max(1, Math.min(Math.round(mlNum), info.mlMax)));
+                        if (mlSel.querySelector('option[value="' + mlVal + '"]')) mlSel.value = mlVal;
+                    }
+                    // Peso (kg → toneladas).
+                    var kM = String(src.medidas || '').match(/([\d.]+)\s*kg/i);
+                    if (kM) {
+                        var tn = Math.round(parseInt(kM[1].replace(/\./g, ''), 10) / 1000);
+                        var pv = String(Math.max(1, Math.min(tn, info.pesoMax)));
+                        if (pesoSel.querySelector('option[value="' + pv + '"]')) pesoSel.value = pv;
+                    }
+                    // Mercancía (match por texto).
+                    if (mercaSel && src.mercancia) {
+                        var want = String(src.mercancia).toLowerCase();
+                        Array.prototype.some.call(mercaSel.options, function (o) {
+                            if (o.value !== '' && o.text.toLowerCase().indexOf(want) > -1) { mercaSel.value = o.value; return true; }
+                            return false;
+                        });
+                    }
+                    // Ventana de carga.
+                    if (urgenciaSel) {
+                        urgenciaSel.value = /4/.test(src.ventana || '') ? 'flexible'
+                            : /fija/i.test(src.ventana || '') ? 'dia' : 'media';
+                    }
+                    if (notesTxt) notesTxt.value = '';
+                    renderOcupacion();
+                    renderEta();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+            }
         }
 
         // Helper local para escapar HTML al inyectar valores del usuario en el resumen
