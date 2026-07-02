@@ -5134,6 +5134,15 @@
     }
     // Tipo de carga en versión corta para la columna Vehículo
     function cargaCorta(t) { if (!t) return ''; return /completa/i.test(t) ? 'Completo' : t; }
+    // Deriva Completo/Grupaje a partir de los metros (los presupuestos no
+    // guardan el tipo de carga): trailer completo (13,2 m) → Completo; menos
+    // metros → Grupaje.
+    function cargaFromMedidas(medidas) {
+        var m = String(medidas || '').match(/([\d,]+)\s*m/);
+        if (!m) return 'Grupaje';
+        var metros = parseFloat(m[1].replace(',', '.'));
+        return metros >= 13 ? 'Completo' : 'Grupaje';
+    }
     // Convierte el peso en kg del string de medidas a toneladas para ocupar
     // menos espacio. "8,4 m · 14.500 kg" → "8,4 m · 14,5 Tn". Sin decimales
     // cuando es entero: "24.000 kg" → "24 Tn".
@@ -5409,7 +5418,7 @@
                         '<div class="rf-line"><span class="rf-dot orig"></span><span>' + esc(ciudadDir(p.origen, p.origenDir)) + '</span></div>' +
                         '<div class="rf-line"><span class="rf-dot dest"></span><span>' + esc(ciudadDir(p.destino, p.destinoDir)) + '</span></div>' +
                     '</td>' +
-                    '<td>' + esc(p.mercancia) + '<div class="meta">' + esc(medidasTn(p.medidas)) + '</div></td>' +
+                    '<td>' + esc(p.mercancia) + '<div class="meta">' + esc(medidasTn(p.medidas)) + '</div><div class="meta">' + esc(cargaFromMedidas(p.medidas)) + '</div></td>' +
                     '<td class="amount">' + esc(p.precio) + '</td>' +
                     '<td>' + esc(p.vigencia) + '</td>' +
                     actionsCell(actionItemsPresupuesto(p.kind)) +
