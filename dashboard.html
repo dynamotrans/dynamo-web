@@ -1314,36 +1314,8 @@
         table.data tr.row-far .ref,
         table.data tr.row-far strong { color: var(--gray-500, #6b7280); font-weight: 600; }
         table.data tr.row-far:hover { background: #f3f4f6; }
-        /* Pequeña etiqueta junto a la fecha para reforzar el resaltado */
-        .row-when-tag {
-            display: inline-block;
-            margin-left: 0.4rem;
-            padding: 0.05rem 0.4rem;
-            border-radius: 999px;
-            font-size: 0.62rem; font-weight: 800;
-            letter-spacing: 0.4px; text-transform: uppercase;
-            vertical-align: middle;
-        }
-        .row-when-tag.tag-overdue  {
-            background: #b91c1c; color: white;
-            box-shadow: 0 0 0 0 rgba(185,28,28,0.7);
-            animation: overduePulse 1.6s ease-in-out infinite;
-            text-transform: none;
-            letter-spacing: 0;
-            font-size: 0.68rem;
-            padding: 0.1rem 0.5rem;
-        }
-        .row-when-tag.tag-today    { background: #ef4444; color: white; }
-        .row-when-tag.tag-tomorrow { background: #f59e0b; color: white; }
-        .row-when-tag.tag-after    { background: #10b981; color: white; }
-        @keyframes overduePulse {
-            0%   { box-shadow: 0 0 0 0 rgba(185,28,28,0.55); }
-            70%  { box-shadow: 0 0 0 6px rgba(185,28,28,0); }
-            100% { box-shadow: 0 0 0 0 rgba(185,28,28,0); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            .row-when-tag.tag-overdue { animation: none; }
-        }
+        /* (Los chips .row-when-tag se eliminaron: el resaltado de urgencia
+           ahora es únicamente el color de fondo de la fila.) */
         body.theme-dark table.data tr.row-overdue      { background: rgba(185,28,28,0.18); }
         body.theme-dark table.data tr.row-today        { background: rgba(239,68,68,0.12); }
         body.theme-dark table.data tr.row-tomorrow     { background: rgba(245,158,11,0.12); }
@@ -5188,33 +5160,17 @@
                 if (c.kind === 'programada') hiSrc = fechaPrincipal;
                 else if (c.kind === 'en-ruta') hiSrc = extractDDMM(c.etaEntrega) || fechaPrincipal;
                 var hi = hiSrc ? highlightInfo(hiSrc) : null;
-                var rowCls = '', tagHtml = '';
-                // El chip va junto a la fecha de carga para programada,
-                // y junto a la ETA para en-ruta (la fecha relevante en
-                // cada caso).
-                var whenTagTop = '', whenTagEta = '';
+                var rowCls = '';
                 if (hi) {
                     // Solo 3 casos resaltan la fila: retrasada (rojo claro),
                     // hoy (ámbar claro) y siguiente día hábil (amarillo claro).
                     // El resto (pasado mañana, 3-7 días, >7 días) queda como
-                    // fila estándar sin color.
+                    // fila estándar sin color. Ya no se pintan chips
+                    // HOY/MAÑANA/RETRASADA: el color de la fila es la señal.
                     if (hi.level === -1)     rowCls = ' class="row-overdue"';
                     else if (hi.level === 0) rowCls = ' class="row-today"';
                     else if (hi.level === 1) rowCls = ' class="row-tomorrow"';
-                    if (hi.label === 'RETRASADA') {
-                        var lateText = pendienteAsignarText(c) || 'Pendiente Asignar';
-                        tagHtml = '<span class="row-when-tag tag-overdue">' + esc(lateText) + '</span>';
-                    }
-                    else if (hi.label === 'HOY')            tagHtml = '<span class="row-when-tag tag-today">HOY</span>';
-                    else if (hi.label === 'MAÑANA')         tagHtml = '<span class="row-when-tag tag-tomorrow">MAÑANA</span>';
-                    else if (hi.label === 'PASADO MAÑANA') tagHtml = '<span class="row-when-tag tag-after">PASADO MAÑANA</span>';
-                    if (c.kind === 'en-ruta') whenTagEta = tagHtml;
-                    else whenTagTop = tagHtml;
                 }
-                function pendMeta(label) { return '<div class="meta meta-pend">' + label + ' pdte.</div>'; }
-                // Chip de urgencia (HOY/MAÑANA/RETRASADA) — siempre arriba de la
-                // celda de fecha, sea programada (whenTagTop) o en-ruta (whenTagEta).
-                var chipTop = whenTagTop || whenTagEta;
                 // Estado de envío (fase): Programado / Hacia la carga / Cargando /
                 // En ruta / Entregado. Va en la 1ª columna junto al Nº de envío.
                 var ev = getEstadoVisual(c);
