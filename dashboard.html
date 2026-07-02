@@ -1358,6 +1358,9 @@
         table.data td.vehiculo { width: 1%; white-space: nowrap; }
         table.data td.vehiculo .meta-matricula { white-space: nowrap; }
         table.data td.vehiculo .meta { white-space: nowrap; }
+        /* Estado del transportista: siempre en su propia línea y como último
+           dato de la celda (píldora a ancho de contenido, no inline). */
+        table.data td.vehiculo .asig-line { display: flex; width: fit-content; margin-top: 0.4rem; }
         /* Mercancía: la línea de metros · toneladas nunca se parte (la columna
            se ensancha lo necesario para mostrarla completa en una sola línea).
            El nombre de la mercancía sí puede envolver. */
