@@ -2632,7 +2632,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Presupuesto</th><th>Fecha solic.</th><th>Ruta</th><th>Mercancía</th><th>Precio</th><th>Vigente hasta</th>
+                    <th>Presupuesto</th><th>Fecha solic.</th><th>Ruta</th><th>Mercancía</th><th>Precio</th>
                 </tr></thead>
                 <tbody id="tbodyPresupuestos"></tbody>
             </table>
@@ -5163,6 +5163,15 @@
         var metros = parseFloat(m[1].replace(',', '.'));
         return metros >= 13 ? 'Completo' : 'Grupaje';
     }
+    // Extrae de la vigencia de un presupuesto la fecha de caducidad y los días
+    // de validez. vigencia activos: "25/06 (7 días)"; caducados: "Caducado el 19/06".
+    function presupVigencia(p) {
+        var txt = String(p.vigencia || '');
+        var caducado = p.kind === 'caducados' || /caducad/i.test(txt);
+        var dateM = txt.match(/(\d{1,2}\/\d{1,2})/);
+        var diasM = txt.match(/\((\d+)\s*d[ií]as?\)/i);
+        return { caducado: caducado, caduca: dateM ? dateM[1] : null, dias: diasM ? parseInt(diasM[1], 10) : null };
+    }
     // Convierte el peso en kg del string de medidas a toneladas para ocupar
     // menos espacio. "8,4 m · 14.500 kg" → "8,4 m · 14,5 Tn". Sin decimales
     // cuando es entero: "24.000 kg" → "24 Tn".
@@ -5433,14 +5442,22 @@
                         (p.refCli ? '<div class="ref-cli-line">' + esc(p.refCli) + '</div>' : '') +
                         '<div class="envio-estado"><span class="badge badge-' + p.vigenciaColor + '">' + esc(estadoLabel) + '</span></div>' +
                     '</td>' +
-                    '<td>' + esc(fechaConDia(p.fecha)) + '</td>' +
+                    (function () {
+                        var v = presupVigencia(p);
+                        return '<td>' +
+                            '<div class="fecha-linea"><strong>' + esc(fechaConDia(p.fecha)) + '</strong></div>' +
+                            (v.caduca ? '<div class="meta">' + esc(fechaConDia(v.caduca)) + '</div>' : '') +
+                            (v.caducado
+                                ? '<div class="meta meta-pend">Caducado</div>'
+                                : '<div class="meta meta-eta">En ' + (v.dias != null ? v.dias : '—') + ' días caduca</div>') +
+                        '</td>';
+                    })() +
                     '<td class="route-full">' +
                         '<div class="rf-line"><span class="rf-dot orig"></span><span>' + esc(ciudadDir(p.origen, p.origenDir)) + '</span></div>' +
                         '<div class="rf-line"><span class="rf-dot dest"></span><span>' + esc(ciudadDir(p.destino, p.destinoDir)) + '</span></div>' +
                     '</td>' +
                     '<td>' + esc(p.mercancia) + '<div class="meta">' + esc(medidasTn(p.medidas)) + '</div><div class="meta">' + esc(cargaFromMedidas(p.medidas)) + '</div></td>' +
                     '<td class="amount">' + esc(p.precio) + '</td>' +
-                    '<td>' + esc(p.vigencia) + '</td>' +
                     actionsCell(actionItemsPresupuesto(p.kind)) +
                     '</tr>';
             }).join('');
