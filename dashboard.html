@@ -1088,7 +1088,7 @@
         .dash-ctas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; margin-bottom: 1.4rem; }
         .dash-top-row {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 2fr 1fr;
             gap: 1rem; margin-bottom: 1.4rem;
             align-items: stretch;
         }
@@ -1915,7 +1915,7 @@
             .mini-lists { grid-template-columns: 1fr; }
             /* Mantenemos las 3 cajas exactamente iguales. Apretamos gap
                y ocultamos los subtítulos de las CTAs. */
-            .dash-top-row { grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
+            .dash-top-row { grid-template-columns: 2fr 1fr; gap: 0.7rem; }
             .dash-top-row .dash-cta-text p { display: none; }
         }
         @media (max-width: 768px) {
@@ -1983,7 +1983,7 @@
             .stats-row-3 .stat-card-trend { font-size: 0.68rem; }
             table.data { min-width: 620px; }
             /* Mismo ancho también en móviles muy estrechos */
-            .dash-top-row { gap: 0.4rem; grid-template-columns: repeat(2, 1fr); }
+            .dash-top-row { gap: 0.4rem; grid-template-columns: 2fr 1fr; }
             .dash-top-row .dash-cta { padding: 0.7rem 0.4rem; }
             .dash-top-row .dash-cta-text h4 { font-size: 0.7rem; }
             .dash-top-row .cesce-card { padding: 0.6rem; }
