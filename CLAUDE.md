@@ -170,6 +170,54 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-07-02 — Claude Code web (nube)
+
+> **Sesión larguísima de rediseño de las TABLAS del panel + flujo unificado de creación + pulido del tarifador.** Casi todo **preview** (`claude/sharp-dirac-E3UIO`) con cascada a **lab**. **A producción (`main`)**: fix de tooltips del tarifador público, equivalencia de palets en el selector de metros (web pública) y alineación/separación de paradas en el tarifador público. Estado final: `main 4fc957c` · `preview a3c04c3` · `lab f6e2ae4`.
+
+**REDISEÑO TABLA DE ENVÍOS (`dashboard.html`, preview/lab)** — `renderCargasTable`, columnas nuevas:
+- Columnas finales: **Envío · Fecha · Ventana · Ruta · Mercancía · Vehículo** (se quitó la columna Estado; todo el estado vive en Envío).
+- **Envío** (col 1): nº + ref. cliente (línea gris) + **badge de fase** (Programado/Hacia la carga/Cargando/En ruta/Entregado) + **línea de asignación de transportista** (Confirmado/Asignándose/En espera) debajo + icono 📄 albarán en entregadas.
+- **Fecha · Ventana**: fecha confirmada, o **rango inicio–fin de ventana** (`ventanaRango`); debajo horario del almacén origen + hora estimada de carga. **Sin chips** HOY/MAÑANA (los quitó el usuario). Añadida línea **"(Faltan N días)" / "(Excedido N días)"** hasta la fecha más tardía de la ventana (solo programadas vivas, no entregadas/canceladas).
+- **Ruta**: dirección completa `CP, población, provincia, país` con **punto naranja (origen) / verde (destino)**. Mock: mapa `CITY_ADDR` por ciudad + `ciudadDir()` con fallback país (PT/FR/DE/IT/NL/BE/LU/AT/PL/CZ/CH/UK). En producción vendrá del backend.
+- **Mercancía**: tipo + medidas en **toneladas** (`medidasTn`, `m · Tn`, no kg) + **Completo/Grupaje** (`cargaCorta`/`cargaFromMedidas`: 13,2 m→Completo, menos→Grupaje; derivado si falta el dato). Sin el detalle de mercancía (queda en el modal).
+- **Vehículo** (nueva): **matrícula** + tipo camión; ancho ajustado a la matrícula más larga (`td.vehiculo` nowrap).
+- **Badges de fase con punto parpadeante** (col Envío): Programado gris oscuro · **Hacia la carga blanco + punto azul** · Cargando naranja flúor · En ruta azul oscuro/letras blancas + verde flúor · Pendiente Asignar rojo. Entregado/Cancelada sin punto. Anim `badgeDotBlink`, respeta `prefers-reduced-motion`.
+- Quitadas las subpestañas **Programadas pendientes/confirmadas** (quedan Programadas · Entregadas · Canceladas · Todas).
+
+**TABLA DE PRESUPUESTOS (`dashboard.html`)** — unificada con envíos:
+- Col **Presupuesto** (nº + ref cliente + badge Vigente/Caducado) · **Fecha solic.** (solicitud / caduca / "En N días caduca" o "Caducado", `presupVigencia`) · **Ruta** con puntos · **Mercancía** (tipo + m·Tn + Completo/Grupaje) · **Precio**. Quitada la columna "Vigente hasta".
+
+**FECHAS MOCK DINÁMICAS (`CARGAS_DATA`)** — helpers `mockHoy/mockFuturo/mockPasado` para que **siempre** se vean todos los estados relativos a hoy (2 pasadas pendientes de asignar, 3 hoy en fases Hacia la carga/Cargando/En ruta vía inyección existente 1299/1304/1305, resto futuras Programado). Ya no se quedan obsoletas.
+
+**FLUJO UNIFICADO DE CREACIÓN (`dashboard.html`)**:
+- El formulario de **crear envío** es el único punto de entrada. Dos botones abajo **en 2 columnas** (Crear envío | Guardar presupuesto) más altos (60px) + Cancelar a lo ancho (52px). `finalizeSave(d, saveMode)` + `readAndValidate(skipFecha)` → Guardar presupuesto no exige fecha ni flujo legal.
+- **Eliminada la sección `sec-nuevo-presupuesto`** y el botón "+ Nuevo presupuesto" del listado.
+- **"Repetir envío"** (cualquier carga) y **"Generar carga"** (cualquier presupuesto) abren ese MISMO formulario **auto-rellenado** (`window.prefillTarifador`) con origen/destino/ml/peso/mercancía/ventana/camión + **precio heredado** en la caja ETA.
+
+**BUGS ARREGLADOS (raíz: el rediseño de columnas rompió lecturas del DOM)**:
+- `cargaRowData`/`presupuestoRowData` leían con selectores antiguos (`.route`, `.amount`, `cells[4]`) → ahora leen del **objeto por ref** (`rowRef` + `shallowCopy`). Arreglaba "Ver detalle", "Reportar incidencia", etc.
+- **`findRowByRef`** comparaba el `textContent` completo de la celda `.ref` (que ahora lleva nº + ref cliente + badge) → nunca casaba → **los botones del modal (Generar carga/Repetir) no hacían nada**. Ahora compara solo con `.ref strong`. (Era el "no acciona nada" reportado.)
+
+**TARIFADOR (panel + web pública)**:
+- **Tooltips ℹ (Trampilla/NIMA)**: ya no se quedan fijos al clicar con ratón (`:hover` solo con `@media (hover:hover)` + `:focus-visible` + clase `.tip-open` para táctil; tap fuera cierra). Colocación arreglada: la animación `secFadeIn` de `.section` con `fill:both` dejaba un transform residual que rompía el `position:fixed` → cambiado a `backwards`. **→ web pública a producción.**
+- **Equivalencia de metros lineales en palets** en el selector (`paletsEquiv`): "N europalets · M americanos" (2,5 europ/ml, 2 amer/ml, **enteros redondeando hacia abajo**; 13,2 m = 33 europalets · 26 americanos). Panel + web pública. **→ producción.**
+- **Paradas (recogidas/entregas)**: alineadas con origen/destino (reservado el hueco del botón "−" con `padding-right`) y **separadas entre sí** (gap interno = row-gap del grid). Panel + web pública. **→ producción.**
+- Etiquetas caja ETA: "Carga (ventana)" → **"Fecha de envío"**; "Entrega estimada" → **"Fecha entrega estimada"**.
+
+**OTROS**:
+- `.dash-top-row`: **Nuevo envío 2/3 + CESCE 1/3**, grid de 3 col alineado con las stat cards.
+- Mini-listas "Últimos envíos/presupuestos" con filas detalladas (fecha / direcciones con puntos / estado+metros+peso+mercancía).
+- **Árabe** añadido al selector de idiomas (web pública + panel + páginas del portal) tras Francés — la web pública fue a producción.
+- Banner de cookies reducido al mínimo legal.
+- **iOS data detectors**: las direcciones de la tabla se convertían en enlaces al mapa → `<meta format-detection>` + neutralizado `a[x-apple-data-detectors]` con `pointer-events:none` (al tocar la fila se abre el detalle, no Google Maps).
+- **Botones**: `justify-content:center` en la regla base `.btn-*` (criterio unificado; antes unos a la izquierda).
+
+**Pendientes**:
+- **Tarifa real del cliente** para sustituir el precio MOCK del tarifador (y la equivalencia exacta de palets si difiere de 2,5/2 por ml).
+- **Direcciones reales** de cargas/presupuestos (hoy `CITY_ADDR` es mock por ciudad).
+- Contradicción visible en algunos envíos: badge de fase "Pendiente Asignar" (retrasada) junto a "Confirmado transportista" — revisar semántica cuando haya datos reales.
+- Vercel: muchos pushes hoy → posible cola del plan Hobby; si la preview/producción no refresca, cancelar deploys en cola dejando el último.
+
 ### 2026-07-01 — Claude Code web (nube)
 
 > **Sesión larga de pulido del PANEL + port del tarifador a la web pública.** Casi todo en **preview** (`claude/sharp-dirac-E3UIO`) con cascada a **lab**. **Única cosa a producción (`main`)**: ocultar el spinner colgado de Google Translate en `index.html`. El tarifador público replicado está SOLO en preview, pendiente del OK del usuario para promocionar.
