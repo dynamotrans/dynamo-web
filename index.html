@@ -933,7 +933,13 @@
             border-radius: 8px; transition: color 0.15s, background 0.15s;
         }
         .ptar-route-add:hover { background: rgba(51,0,204,0.07); }
-        .ptar-route-row { display: flex; gap: 0.5rem; align-items: stretch; }
+        /* Hueco reservado a la derecha del tamaño del botón "−" de las paradas
+           (30px + gap) para que origen/destino queden alineados con las
+           recogidas/entregas añadidas. */
+        .ptar-route-row { display: flex; gap: 0.5rem; align-items: stretch; padding-right: calc(30px + 0.5rem); }
+        .ptar-parada-row .ptar-route-row { padding-right: 0; }
+        /* Separación entre paradas igual al row-gap del grid, para que no queden pegadas. */
+        [data-ptar-recogidas], [data-ptar-entregas] { display: flex; flex-direction: column; gap: 0.4rem; }
         .ptar-route-row .ptar-input-wrap { flex: 3 1 0; min-width: 0; }
         .ptar-route-row .ptar-select-sm {
             flex: 1 1 0; width: auto; min-width: 0; max-width: none; margin-top: 0;
