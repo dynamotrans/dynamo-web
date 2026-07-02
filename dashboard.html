@@ -1326,6 +1326,11 @@
         table.data .ref { font-weight: 800; color: var(--navy); }
         table.data .ref-cli { color: var(--gray-500); font-size: 0.77rem; }
         table.data .amount { font-weight: 700; }
+        /* Cabecera de la columna Importe: subtítulo "impuestos no incluidos" */
+        table.data th.th-amount .th-sub {
+            display: block; font-weight: 500; font-size: 0.66rem;
+            color: var(--gray-400); letter-spacing: 0; margin-top: 1px;
+        }
         table.data .route { font-size: 0.78rem; }
         table.data .route strong { color: var(--navy); }
         table.data .route .arrow { color: var(--gray-500); margin: 0 0.35rem; }
@@ -2603,7 +2608,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Envío</th><th>Fecha de carga</th><th>Ruta</th><th>Mercancía</th><th>Vehículo</th>
+                    <th>Envío</th><th>Fecha de carga</th><th>Ruta</th><th>Mercancía</th><th>Vehículo</th><th class="th-amount">Importe<span class="th-sub">Impuestos no incl.</span></th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -2643,7 +2648,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Presupuesto</th><th>Fecha solic.</th><th>Ruta</th><th>Mercancía</th><th>Precio</th>
+                    <th>Presupuesto</th><th>Fecha solic.</th><th>Ruta</th><th>Mercancía</th><th class="th-amount">Importe<span class="th-sub">Impuestos no incl.</span></th>
                 </tr></thead>
                 <tbody id="tbodyPresupuestos"></tbody>
             </table>
@@ -5220,6 +5225,7 @@
                         (c.tipoCamion ? '<div class="meta">' + esc(c.tipoCamion) + '</div>' : '') +
                         (asig ? '<div class="asig-line asig-' + asig.key + '"><span class="asig-dot"></span>' + esc(asig.label) + '</div>' : '') +
                     '</td>' +
+                    '<td class="amount">' + esc(c.precio || '—') + '</td>' +
                     actionsCell(actionItemsCarga(c)) +
                     '</tr>';
             }).join('');
