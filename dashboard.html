@@ -1328,6 +1328,18 @@
         table.data .route { font-size: 0.78rem; }
         table.data .route strong { color: var(--navy); }
         table.data .route .arrow { color: var(--gray-500); margin: 0 0.35rem; }
+        /* Ruta con dirección completa (CP, población, provincia, país) y
+           punto naranja (origen) / verde (destino), como en las mini-listas. */
+        table.data td.route-full { font-size: 0.78rem; color: var(--gray-700); min-width: 190px; }
+        table.data td.route-full .rf-line { display: flex; align-items: flex-start; gap: 0.4rem; line-height: 1.3; }
+        table.data td.route-full .rf-line + .rf-line { margin-top: 0.28rem; }
+        table.data td.route-full .rf-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 0.32rem; }
+        table.data td.route-full .rf-dot.orig { background: var(--orange); }
+        table.data td.route-full .rf-dot.dest { background: var(--green); }
+        table.data .row-when-wrap { margin-bottom: 0.32rem; }
+        table.data .fecha-linea strong { color: var(--navy); }
+        table.data .envio-estado { margin-top: 0.35rem; }
+        table.data td.ref .envio-estado .badge { font-size: 0.68rem; }
         table.data .meta { font-size: 0.72rem; color: var(--gray-500); }
         /* Sub-líneas extra en la columna de fecha — diferenciadas en color
            para que se vean a simple vista: Asignada en azul navy, ETA en verde */
@@ -2539,7 +2551,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Nº envío</th><th>Ref. cliente</th><th>Fecha · Ventana</th><th>Ruta</th><th>Mercancía</th><th>m · kg</th><th>Estado</th>
+                    <th>Envío</th><th>Ref. cliente</th><th>Fecha · Ventana</th><th>Ruta</th><th>Mercancía</th><th>m · kg</th><th>Vehículo</th><th>Estado</th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -5056,6 +5068,58 @@
         var d = new Date(new Date().getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
         return DOW_SHORT[d.getDay()] + ' ' + s;
     }
+    // --- Ventana de carga como rango inicio–fin (días laborables) ---
+    // 'Fija' → un solo día. '1 a 2 días' → inicio + 1 laborable.
+    // '1 a 4 días' → inicio + 3 laborables. Sáb/Dom se saltan.
+    function ventanaDiasN(v) {
+        if (!v) return 1;
+        if (/4/.test(v)) return 4;
+        if (/3/.test(v)) return 3;
+        if (/2/.test(v)) return 2;
+        return 1;
+    }
+    function addBizDays(date, n) {
+        var d = new Date(date.getTime()), a = 0;
+        while (a < n) { d.setDate(d.getDate() + 1); var w = d.getDay(); if (w !== 0 && w !== 6) a++; }
+        return d;
+    }
+    function toDDMM(d) { return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2); }
+    function ventanaRango(fecha, ventana) {
+        var m = String(fecha || '').match(/^(\d{1,2})\/(\d{1,2})$/);
+        var dias = ventanaDiasN(ventana);
+        if (!m || dias <= 1) return fechaConDia(fecha);
+        var ini = new Date(new Date().getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+        var fin = addBizDays(ini, dias - 1);
+        return fechaConDia(fecha) + ' – ' + fechaConDia(toDDMM(fin));
+    }
+    // Tipo de carga en versión corta para la columna Vehículo
+    function cargaCorta(t) { if (!t) return ''; return /completa/i.test(t) ? 'Completo' : t; }
+    // Dirección completa por ciudad (mock; en producción vendrá del backend
+    // con la dirección real capturada en el tarifador). Formato:
+    // "CP, población, provincia, país". Fallback: "<ciudad>, España".
+    var CITY_ADDR = {
+        'Sevilla': '41001, Sevilla, España', 'Madrid': '28001, Madrid, España',
+        'Barcelona': '08040, Barcelona, España', 'Valencia': '46024, Valencia, España',
+        'Vigo': '36207, Vigo, Pontevedra, España', 'Bilbao': '48950, Erandio, Bizkaia, España',
+        'A Coruña': '15008, A Coruña, España', 'Pamplona': '31012, Pamplona, Navarra, España',
+        'Lisboa (PT)': '2710-297, Sintra, Lisboa, Portugal', 'Murcia': '30169, Murcia, España',
+        'Zaragoza': '50197, Zaragoza, España', 'Oviedo': '33192, Llanera, Asturias, España',
+        'Logroño': '26006, Logroño, La Rioja, España', 'Granada': '18210, Peligros, Granada, España',
+        'Málaga': '29004, Málaga, España', 'Toulouse (FR)': '31150, Toulouse, Francia',
+        'Valladolid': '47008, Valladolid, España', 'París (FR)': '94150, Rungis, París, Francia',
+        'Lyon (FR)': '69680, Chassieu, Lyon, Francia', 'Burgos': '09001, Burgos, España',
+        'Algeciras': '11207, Algeciras, Cádiz, España', 'Cádiz': '11011, Cádiz, España',
+        'Cartagena': '30353, Cartagena, Murcia, España'
+    };
+    var PAIS_SUFIJO = { PT: 'Portugal', FR: 'Francia', DE: 'Alemania', IT: 'Italia', NL: 'Países Bajos', BE: 'Bélgica', LU: 'Luxemburgo', AT: 'Austria', PL: 'Polonia', CZ: 'Rep. Checa' };
+    function ciudadDir(ciudad, override) {
+        if (override) return override;
+        if (!ciudad) return '';
+        if (CITY_ADDR[ciudad]) return CITY_ADDR[ciudad];
+        var pm = ciudad.match(/^(.*)\s*\((PT|FR|DE|IT|NL|BE|LU|AT|PL|CZ)\)$/);
+        if (pm) return pm[1].trim() + ', ' + (PAIS_SUFIJO[pm[2]] || '');
+        return ciudad + ', España';
+    }
     function filteredCargas() {
         var f = TABLE_STATE.cargas.filter;
         var arr;
@@ -5163,7 +5227,7 @@
         var tbody = document.getElementById('tbodyCargas');
         if (!tbody) return;
         if (slice.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
         } else {
             tbody.innerHTML = slice.map(function (c) {
                 // Si la carga tiene fecha asignada por el equipo, la
@@ -5212,31 +5276,41 @@
                     else whenTagTop = tagHtml;
                 }
                 function pendMeta(label) { return '<div class="meta meta-pend">' + label + ' pdte.</div>'; }
+                // Chip de urgencia (HOY/MAÑANA/RETRASADA) — siempre arriba de la
+                // celda de fecha, sea programada (whenTagTop) o en-ruta (whenTagEta).
+                var chipTop = whenTagTop || whenTagEta;
+                // Estado de envío (fase): Programado / Hacia la carga / Cargando /
+                // En ruta / Entregado. Va en la 1ª columna junto al Nº de envío.
+                var ev = getEstadoVisual(c);
+                // Fecha: si está confirmada, la fecha asignada; si no, el rango
+                // inicio–fin de la ventana de carga.
+                var fechaLinea = asigDate ? fechaConDia(asigDate) : ventanaRango(c.fecha, c.ventana);
+                // Vehículo: "Grupaje - Rígido 8 m con plataforma" (tipo carga + camión)
+                var vehTipo = (cargaCorta(c.tipoCarga) || '') + (c.tipoCarga && c.tipoCamion ? ' - ' : '') + (c.tipoCamion || '');
+                // Estado (última columna): solo estado de asignación de transportista.
+                var asig = getAsignacionEstado(c);
                 return '<tr' + rowCls + '>' +
-                    '<td class="ref">' + esc(c.ref) + '</td>' +
+                    '<td class="ref"><strong>' + esc(c.ref) + '</strong>' +
+                        '<div class="envio-estado"><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span></div>' +
+                    '</td>' +
                     '<td class="ref-cli">' + esc(c.refCli) + '</td>' +
-                    '<td><strong>' + esc(fechaConDia(fechaPrincipal)) + '</strong>' + whenTagTop +
-                        (asigDate
-                            ? '<div class="meta meta-asignada">Carga ' + (asigTime ? esc(asigTime) : 'confirmada') + '</div>'
-                            : (c.ventana ? '<div class="meta">' + esc(c.ventana) + '</div>' : '')) +
-                        (c.etaEntrega ? '<div class="meta meta-eta">ETA: ' + esc(c.etaEntrega) + (whenTagEta ? ' ' + whenTagEta : '') + '</div>' : '') +
+                    '<td>' + (chipTop ? '<div class="row-when-wrap">' + chipTop + '</div>' : '') +
+                        '<div class="fecha-linea"><strong>' + esc(fechaLinea) + '</strong></div>' +
+                        (c.horarioOrigen ? '<div class="meta">Almacén: ' + esc(c.horarioOrigen) + '</div>' : '') +
+                        (c.horaCargaEst ? '<div class="meta meta-asignada">Carga est. ' + esc(c.horaCargaEst) + '</div>' : '') +
                     '</td>' +
-                    '<td class="route"><strong>' + esc(c.origen) + '</strong><span class="arrow">→</span><strong>' + esc(c.destino) + '</strong>' + (c.direcciones ? '<div class="meta">' + esc(c.direcciones) + '</div>' : '') + '</td>' +
+                    '<td class="route-full">' +
+                        '<div class="rf-line"><span class="rf-dot orig"></span><span>' + esc(ciudadDir(c.origen, c.origenDir)) + '</span></div>' +
+                        '<div class="rf-line"><span class="rf-dot dest"></span><span>' + esc(ciudadDir(c.destino, c.destinoDir)) + '</span></div>' +
+                    '</td>' +
                     '<td>' + esc(c.mercancia) + (c.mercanciaMeta ? '<div class="meta">' + esc(c.mercanciaMeta) + '</div>' : '') + '</td>' +
-                    '<td class="amount">' + esc(c.medidas) +
-                        (c.tipoCarga ? '<div class="meta">' + esc(c.tipoCarga) + '</div>' : pendMeta('Tipo carga')) +
-                        (c.tipoCamion ? '<div class="meta">' + esc(c.tipoCamion) + '</div>' : pendMeta('Camión')) +
-                        (c.matricula ? '<div class="meta meta-matricula">' + esc(c.matricula) + '</div>' : pendMeta('Matrícula')) +
+                    '<td class="amount">' + esc(c.medidas) + '</td>' +
+                    '<td>' + (c.matricula ? '<span class="meta-matricula">' + esc(c.matricula) + '</span>' : '<span class="meta meta-pend">Sin matrícula</span>') +
+                        (vehTipo ? '<div class="meta">' + esc(vehTipo) + '</div>' : '') +
                     '</td>' +
-                    (function () {
-                        var ev = getEstadoVisual(c);
-                        return '<td><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span>';
-                    })() +
+                    '<td>' +
+                        (asig ? '<div class="asig-line asig-' + asig.key + '"><span class="asig-dot"></span>' + esc(asig.label) + '</div>' : '<span class="meta meta-pend">—</span>') +
                         (c.kind === 'entregada' && c.hasAlbaran ? ' <span class="badge-doc" title="Albarán PDF disponible">📄</span>' : '') +
-                        (function () {
-                            var a = getAsignacionEstado(c);
-                            return a ? '<div class="asig-line asig-' + a.key + '"><span class="asig-dot"></span>' + esc(a.label) + '</div>' : '';
-                        })() +
                     '</td>' +
                     actionsCell(actionItemsCarga(c)) +
                     '</tr>';
