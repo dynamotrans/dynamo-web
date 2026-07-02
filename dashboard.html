@@ -1324,6 +1324,8 @@
         body.theme-dark table.data tr.row-far td,
         body.theme-dark table.data tr.row-far strong   { color: rgba(255,255,255,0.45); }
         table.data .ref { font-weight: 800; color: var(--navy); }
+        /* El nº de envío/presupuesto nunca se parte en dos líneas */
+        table.data td.ref > strong { white-space: nowrap; }
         table.data .ref-cli { color: var(--gray-500); font-size: 0.77rem; }
         table.data .amount { font-weight: 700; }
         /* Cabecera de la columna Importe: subtítulo "impuestos no incluidos" */
