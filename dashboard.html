@@ -5728,6 +5728,12 @@
         }
 
         // --- ML / Peso selectores reactivos al camión ---
+        // Equivalencia de metros lineales en palets (factores del cliente):
+        // 2,5 europalets/ml y 2 americanos/ml (13,2 m = 33 europalets = trailer completo).
+        function paletsEquiv(ml) {
+            function fmt(n) { return (Math.round(n * 10) / 10).toString().replace('.', ','); }
+            return fmt(ml * 2.5) + ' europalets · ' + fmt(ml * 2) + ' americanos';
+        }
         function fillMlSelect(sel, mlMax) {
             sel.innerHTML = '';
             // Título del desplegable (sin etiqueta encima).
@@ -5737,13 +5743,13 @@
             for (var i = 1; i <= mlMax; i++) {
                 var opt = document.createElement('option');
                 opt.value = i;
-                opt.textContent = i + (i === 1 ? ' metro' : ' metros');
+                opt.textContent = i + (i === 1 ? ' metro' : ' metros') + ' · ' + paletsEquiv(i);
                 sel.appendChild(opt);
             }
             // Tauliner tiene 13,2m como tope real
             if (mlMax === 13) {
                 var opt2 = document.createElement('option');
-                opt2.value = '13.2'; opt2.textContent = '13,2 metros — carga completa';
+                opt2.value = '13.2'; opt2.textContent = '13,2 metros — carga completa · ' + paletsEquiv(13.2);
                 sel.appendChild(opt2);
             }
             // Por defecto: carga completa (13,2 m en Tauliner; máximo en rígido).
