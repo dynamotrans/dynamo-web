@@ -2612,7 +2612,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Nº presup.</th><th>Ref. cliente</th><th>Fecha solic.</th><th>Ruta</th><th>Mercancía</th><th>m · kg</th><th>Precio</th><th>Vigente hasta</th>
+                    <th>Presupuesto</th><th>Fecha solic.</th><th>Ruta</th><th>Mercancía</th><th>m · Tn</th><th>Precio</th><th>Vigente hasta</th>
                 </tr></thead>
                 <tbody id="tbodyPresupuestos"></tbody>
             </table>
@@ -5162,12 +5162,12 @@
         'Algeciras': '11207, Algeciras, Cádiz, España', 'Cádiz': '11011, Cádiz, España',
         'Cartagena': '30353, Cartagena, Murcia, España'
     };
-    var PAIS_SUFIJO = { PT: 'Portugal', FR: 'Francia', DE: 'Alemania', IT: 'Italia', NL: 'Países Bajos', BE: 'Bélgica', LU: 'Luxemburgo', AT: 'Austria', PL: 'Polonia', CZ: 'Rep. Checa' };
+    var PAIS_SUFIJO = { PT: 'Portugal', FR: 'Francia', DE: 'Alemania', IT: 'Italia', NL: 'Países Bajos', BE: 'Bélgica', LU: 'Luxemburgo', AT: 'Austria', PL: 'Polonia', CZ: 'Rep. Checa', CH: 'Suiza', UK: 'Reino Unido' };
     function ciudadDir(ciudad, override) {
         if (override) return override;
         if (!ciudad) return '';
         if (CITY_ADDR[ciudad]) return CITY_ADDR[ciudad];
-        var pm = ciudad.match(/^(.*)\s*\((PT|FR|DE|IT|NL|BE|LU|AT|PL|CZ)\)$/);
+        var pm = ciudad.match(/^(.*)\s*\((PT|FR|DE|IT|NL|BE|LU|AT|PL|CZ|CH|UK)\)$/);
         if (pm) return pm[1].trim() + ', ' + (PAIS_SUFIJO[pm[2]] || '');
         return ciudad + ', España';
     }
@@ -5396,15 +5396,23 @@
             tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin presupuestos en este filtro</td></tr>';
         } else {
             tbody.innerHTML = slice.map(function (p) {
+                // Estado corto para el badge (mismo patrón que los envíos):
+                // Vigente / Caducado. El detalle de vigencia va en su columna.
+                var estadoLabel = p.kind === 'caducados' ? 'Caducado' : 'Vigente';
                 return '<tr>' +
-                    '<td class="ref">' + esc(p.ref) + '</td>' +
-                    '<td class="ref-cli">' + esc(p.refCli) + '</td>' +
+                    '<td class="ref"><strong>' + esc(p.ref) + '</strong>' +
+                        (p.refCli ? '<div class="ref-cli-line">' + esc(p.refCli) + '</div>' : '') +
+                        '<div class="envio-estado"><span class="badge badge-' + p.vigenciaColor + '">' + esc(estadoLabel) + '</span></div>' +
+                    '</td>' +
                     '<td>' + esc(fechaConDia(p.fecha)) + '</td>' +
-                    '<td class="route"><strong>' + esc(p.origen) + '</strong><span class="arrow">→</span><strong>' + esc(p.destino) + '</strong></td>' +
+                    '<td class="route-full">' +
+                        '<div class="rf-line"><span class="rf-dot orig"></span><span>' + esc(ciudadDir(p.origen, p.origenDir)) + '</span></div>' +
+                        '<div class="rf-line"><span class="rf-dot dest"></span><span>' + esc(ciudadDir(p.destino, p.destinoDir)) + '</span></div>' +
+                    '</td>' +
                     '<td>' + esc(p.mercancia) + '</td>' +
-                    '<td class="amount">' + esc(p.medidas) + '</td>' +
+                    '<td class="amount">' + esc(medidasTn(p.medidas)) + '</td>' +
                     '<td class="amount">' + esc(p.precio) + '</td>' +
-                    '<td><span class="badge badge-' + p.vigenciaColor + '">' + esc(p.vigencia) + '</span></td>' +
+                    '<td>' + esc(p.vigencia) + '</td>' +
                     actionsCell(actionItemsPresupuesto(p.kind)) +
                     '</tr>';
             }).join('');
