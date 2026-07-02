@@ -1338,6 +1338,7 @@
         table.data td.route-full .rf-dot.dest { background: var(--green); }
         table.data .row-when-wrap { margin-bottom: 0.32rem; }
         table.data .fecha-linea strong { color: var(--navy); }
+        table.data td.ref .ref-cli-line { color: var(--gray-500); font-size: 0.74rem; margin-top: 0.15rem; }
         table.data .envio-estado { margin-top: 0.35rem; }
         table.data td.ref .envio-estado .badge { font-size: 0.68rem; }
         table.data .meta { font-size: 0.72rem; color: var(--gray-500); }
@@ -2551,7 +2552,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Envío</th><th>Ref. cliente</th><th>Fecha · Ventana</th><th>Ruta</th><th>Mercancía</th><th>m · kg</th><th>Vehículo</th><th>Estado</th>
+                    <th>Envío</th><th>Fecha · Ventana</th><th>Ruta</th><th>Mercancía</th><th>m · kg</th><th>Vehículo</th><th>Estado</th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -5227,7 +5228,7 @@
         var tbody = document.getElementById('tbodyCargas');
         if (!tbody) return;
         if (slice.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
         } else {
             tbody.innerHTML = slice.map(function (c) {
                 // Si la carga tiene fecha asignada por el equipo, la
@@ -5291,9 +5292,9 @@
                 var asig = getAsignacionEstado(c);
                 return '<tr' + rowCls + '>' +
                     '<td class="ref"><strong>' + esc(c.ref) + '</strong>' +
+                        (c.refCli ? '<div class="ref-cli-line">' + esc(c.refCli) + '</div>' : '') +
                         '<div class="envio-estado"><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span></div>' +
                     '</td>' +
-                    '<td class="ref-cli">' + esc(c.refCli) + '</td>' +
                     '<td>' + (chipTop ? '<div class="row-when-wrap">' + chipTop + '</div>' : '') +
                         '<div class="fecha-linea"><strong>' + esc(fechaLinea) + '</strong></div>' +
                         (c.horarioOrigen ? '<div class="meta">Almacén: ' + esc(c.horarioOrigen) + '</div>' : '') +
