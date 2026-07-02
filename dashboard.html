@@ -5730,8 +5730,8 @@
         // Equivalencia de metros lineales en palets (factores del cliente):
         // 2,5 europalets/ml y 2 americanos/ml (13,2 m = 33 europalets = trailer completo).
         function paletsEquiv(ml) {
-            function fmt(n) { return (Math.round(n * 10) / 10).toString().replace('.', ','); }
-            return fmt(ml * 2.5) + ' europalets · ' + fmt(ml * 2) + ' americanos';
+            // Palets enteros: se redondea hacia abajo (no cabe medio palet).
+            return Math.floor(ml * 2.5) + ' europalets · ' + Math.floor(ml * 2) + ' americanos';
         }
         function fillMlSelect(sel, mlMax) {
             sel.innerHTML = '';
