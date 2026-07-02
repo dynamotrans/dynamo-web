@@ -3208,42 +3208,25 @@
 
     /* ---- Extractores de datos por fila ---- */
     function txt(el) { return el ? el.textContent.trim().replace(/\s+/g, ' ') : ''; }
+    // Copia superficial de un objeto (ES5).
+    function shallowCopy(o) { var out = {}; for (var k in o) { if (o.hasOwnProperty(k)) out[k] = o[k]; } return out; }
+    // Ref (#C-...) de una fila: primer <strong> de la celda Envío/Presupuesto.
+    function rowRef(row) { return txt(row.querySelector('.ref strong')) || txt(row.querySelector('.ref')); }
+    // Los datos se leen del OBJETO real (no del DOM) por su ref: robusto ante
+    // cambios de columnas de la tabla.
     function cargaRowData(row) {
         if (!row) return {};
-        var cells = row.cells;
-        var route = row.querySelector('.route');
-        var routeStrongs = route ? route.querySelectorAll('strong') : [];
-        return {
-            ref: txt(row.querySelector('.ref')),
-            refCli: txt(row.querySelector('.ref-cli')),
-            fecha: txt(cells[2] && cells[2].querySelector('strong')),
-            ventana: txt(cells[2] && cells[2].querySelector('.meta')),
-            origen: routeStrongs[0] ? routeStrongs[0].textContent.trim() : '',
-            destino: routeStrongs[1] ? routeStrongs[1].textContent.trim() : '',
-            direcciones: txt(route && route.querySelector('.meta')),
-            mercancia: cells[4] ? (cells[4].firstChild ? cells[4].firstChild.textContent.trim() : '') : '',
-            mercanciaMeta: txt(cells[4] && cells[4].querySelector('.meta')),
-            medidas: txt(row.querySelector('.amount')),
-            estado: txt(row.querySelector('.badge'))
-        };
+        var c = CARGAS_DATA.filter(function (x) { return x.ref === rowRef(row); })[0];
+        if (!c) return {};
+        var out = shallowCopy(c);
+        var ev = (typeof getEstadoVisual === 'function') ? getEstadoVisual(c) : null;
+        out.estado = ev ? ev.label : c.estado;
+        return out;
     }
     function presupuestoRowData(row) {
         if (!row) return {};
-        var cells = row.cells;
-        var route = row.querySelector('.route');
-        var routeStrongs = route ? route.querySelectorAll('strong') : [];
-        var amounts = row.querySelectorAll('.amount');
-        return {
-            ref: txt(row.querySelector('.ref')),
-            refCli: txt(row.querySelector('.ref-cli')),
-            fecha: txt(cells[2]),
-            origen: routeStrongs[0] ? routeStrongs[0].textContent.trim() : '',
-            destino: routeStrongs[1] ? routeStrongs[1].textContent.trim() : '',
-            mercancia: txt(cells[4]),
-            medidas: amounts[0] ? amounts[0].textContent.trim() : '',
-            precio: amounts[1] ? amounts[1].textContent.trim() : '',
-            estado: txt(row.querySelector('.badge'))
-        };
+        var p = PRESUPUESTOS_DATA.filter(function (x) { return x.ref === rowRef(row); })[0];
+        return p ? shallowCopy(p) : {};
     }
     function facturaRowData(row) {
         if (!row) return {};
