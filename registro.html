@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="theme-color" content="#f7f8fa" id="themeColorMeta">
+    <title>Crear cuenta · Dynamo Operador de Transportes</title>
+    <link rel="icon" type="image/png" href="images/DYNAMO-NEW-LOGO.png">
+    <link rel="apple-touch-icon" href="images/DYNAMO-NEW-LOGO.png">
+    <style>
+        :root {
+            --purple:       #3300cc;
+            --purple-dark:  #220099;
+            --purple-light: #5533dd;
+            --purple-nav:   #1a008a;
+            --green:        #22a55a;
+            --green-dark:   #157a3f;
+            --yellow:       #ffd400;
+            --orange:       #ff7a00;
+            --navy:         #0a0230;
+            --gray-100:     #f7f8fa;
+            --gray-200:     #e8eaed;
+            --gray-500:     #6b7280;
+            --gray-700:     #374151;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { background: var(--gray-100); }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--navy);
+            min-height: 100vh; min-height: 100svh;
+            display: flex; flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+            padding-bottom: env(safe-area-inset-bottom);
+            overscroll-behavior-y: contain;
+        }
+        .portal-bg {
+            position: fixed; inset: 0; z-index: 0;
+            background:
+                radial-gradient(circle at 15% 20%, rgba(51,0,204,0.10), transparent 40%),
+                radial-gradient(circle at 85% 80%, rgba(34,165,90,0.08), transparent 40%),
+                linear-gradient(135deg, #f7f8fa 0%, #ffffff 100%);
+        }
+        .portal-bg::before {
+            content: ''; position: absolute; inset: 0;
+            background-image:
+                linear-gradient(rgba(51,0,204,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(51,0,204,0.04) 1px, transparent 1px);
+            background-size: 32px 32px;
+            mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+        }
+        .portal-wrap {
+            position: relative; z-index: 1;
+            flex: 1; display: flex;
+            align-items: safe center; justify-content: center;
+            padding: 2rem 1.2rem;
+        }
+        .portal-card {
+            width: 100%; max-width: 560px;
+            background: white;
+            border-radius: 22px;
+            box-shadow: 0 30px 80px rgba(10,2,48,0.12), 0 8px 20px rgba(10,2,48,0.04);
+            border: 1px solid rgba(51,0,204,0.06);
+            padding: 2.2rem 2rem 1.8rem;
+            position: relative;
+            overflow: hidden;
+            animation: cardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        @keyframes cardIn {
+            0%   { opacity: 0; transform: translateY(24px) scale(0.96); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .portal-card::before {
+            content:''; position:absolute; top:0; left:0; right:0; height:4px;
+            background: linear-gradient(90deg, var(--purple), var(--purple-light), var(--green));
+        }
+        .portal-logo { display: flex; justify-content: center; margin-bottom: 1rem; }
+        .portal-logo img { height: 44px; width: auto; }
+        .portal-title {
+            text-align: center; font-size: 1.55rem; font-weight: 900;
+            color: var(--navy); letter-spacing: -0.5px; line-height: 1.15;
+            margin-bottom: 0.35rem;
+        }
+        .portal-subtitle {
+            text-align: center; font-size: 0.85rem; color: var(--gray-500);
+            margin-bottom: 1.3rem; line-height: 1.5;
+        }
+        .portal-badge {
+            display: flex; align-items: center; justify-content: center; gap: 0.45rem;
+            background: linear-gradient(135deg, rgba(255,122,0,0.10), rgba(255,212,0,0.10));
+            border: 1px solid rgba(255,122,0,0.25);
+            color: var(--orange);
+            padding: 0.55rem 0.9rem; border-radius: 10px;
+            font-size: 0.72rem; font-weight: 800;
+            letter-spacing: 0.8px; text-transform: uppercase;
+            margin-bottom: 1.4rem;
+        }
+        .portal-badge .dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--orange); animation: portalDot 1.6s ease-in-out infinite;
+        }
+        @keyframes portalDot { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
+
+        .reg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 0.9rem; }
+        .reg-grid .full { grid-column: 1 / -1; }
+        .portal-field { margin-bottom: 0.95rem; }
+        .portal-label {
+            display: block; font-size: 0.7rem; font-weight: 800;
+            color: var(--gray-500); text-transform: uppercase; letter-spacing: 1px;
+            margin-bottom: 0.4rem;
+        }
+        .portal-input-wrap { position: relative; }
+        .portal-input-wrap svg {
+            position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%);
+            width: 16px; height: 16px; color: var(--gray-500); pointer-events: none;
+        }
+        .portal-input {
+            width: 100%; padding: 0.85rem 0.9rem 0.85rem 2.4rem;
+            border-radius: 11px; border: 1.5px solid var(--gray-200);
+            background: white; color: var(--navy);
+            font-size: 16px; font-weight: 600;
+            transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+            outline: none;
+        }
+        .portal-input::placeholder { color: var(--gray-500); opacity: 0.7; }
+        .portal-input:hover { border-color: rgba(51,0,204,0.4); }
+        .portal-input:focus { border-color: var(--purple); box-shadow: 0 0 0 4px rgba(51,0,204,0.08); }
+        .portal-input:disabled { background: var(--gray-100); color: var(--gray-500); cursor: not-allowed; }
+        .reg-terms input[type="checkbox"] { cursor: pointer; }
+        .reg-terms a { color: var(--purple); font-weight: 700; pointer-events: auto; }
+        .reg-terms a:hover { text-decoration: underline; }
+
+        /* Country combobox (searchable, with España preselected) */
+        .reg-country { position: relative; }
+        .reg-country-trigger {
+            width: 100%; padding: 0.85rem 2.2rem 0.85rem 2.4rem;
+            border-radius: 11px; border: 1.5px solid var(--gray-200);
+            background: var(--gray-100); color: var(--navy);
+            font-size: 0.92rem; font-weight: 700;
+            cursor: pointer; text-align: left;
+            display: flex; align-items: center; gap: 0.5rem;
+            position: relative;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .reg-country-trigger:hover, .reg-country-trigger:focus { border-color: var(--purple); background: white; outline: none; }
+        .reg-country-trigger .chev {
+            position: absolute; right: 0.95rem; top: 50%; transform: translateY(-50%);
+            width: 12px; height: 12px; color: var(--gray-500); transition: transform 0.2s;
+        }
+        .reg-country.open .reg-country-trigger .chev { transform: translateY(-50%) rotate(180deg); }
+        .reg-country-pop {
+            display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+            background: white; border-radius: 12px; border: 1.5px solid var(--gray-200);
+            box-shadow: 0 18px 50px rgba(10,2,48,0.15);
+            z-index: 50; overflow: hidden;
+        }
+        .reg-country.open .reg-country-pop { display: block; animation: cPop 0.18s ease; }
+        @keyframes cPop {
+            0% { opacity: 0; transform: translateY(-4px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .reg-country-search {
+            position: relative; padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--gray-200);
+            background: var(--gray-100);
+        }
+        .reg-country-search input {
+            width: 100%; padding: 0.5rem 0.7rem 0.5rem 2.1rem;
+            border-radius: 8px; border: 1.5px solid var(--gray-200);
+            background: white; font-size: 0.85rem; font-weight: 600; color: var(--navy);
+            outline: none;
+        }
+        .reg-country-search input:focus { border-color: var(--purple); }
+        .reg-country-search svg {
+            position: absolute; left: 1.25rem; top: 50%; transform: translateY(-50%);
+            width: 14px; height: 14px; color: var(--gray-500); pointer-events: none;
+        }
+        .reg-country-list { max-height: 240px; overflow-y: auto; padding: 0.35rem; }
+        .reg-country-group {
+            font-size: 0.65rem; font-weight: 800; color: var(--gray-500);
+            text-transform: uppercase; letter-spacing: 1px;
+            padding: 0.5rem 0.7rem 0.3rem;
+        }
+        .reg-country-item {
+            display: block; width: 100%; text-align: left; padding: 0.5rem 0.7rem;
+            border: none; background: none; border-radius: 7px;
+            font-size: 0.85rem; font-weight: 600; color: var(--gray-700);
+            cursor: pointer;
+        }
+        .reg-country-item:hover { background: var(--gray-100); }
+        .reg-country-item.sel { background: rgba(51,0,204,0.07); color: var(--purple); font-weight: 800; }
+        .reg-country-item.hide { display: none; }
+        .reg-country-empty { padding: 0.8rem 0.7rem; font-size: 0.8rem; color: var(--gray-500); text-align: center; display: none; }
+
+        /* Phone field with prefix selector (left button + number input) */
+        .reg-phone {
+            display: flex; align-items: stretch;
+            border-radius: 11px; border: 1.5px solid var(--gray-200);
+            background: var(--gray-100);
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .reg-phone:focus-within { border-color: var(--purple); background: white; }
+        .reg-phone-prefix-wrap { position: relative; }
+        .reg-phone-prefix-btn {
+            height: 100%; padding: 0 0.7rem 0 0.85rem;
+            border: none; background: transparent;
+            display: flex; align-items: center; gap: 0.4rem;
+            font-size: 0.92rem; font-weight: 800; color: var(--navy);
+            cursor: pointer;
+            border-right: 1.5px solid var(--gray-200);
+            border-radius: 11px 0 0 11px;
+            transition: background 0.15s;
+        }
+        .reg-phone-prefix-btn:hover, .reg-phone-prefix-btn:focus { background: white; outline: none; }
+        .reg-phone-prefix-btn .chev { width: 11px; height: 11px; color: var(--gray-500); transition: transform 0.2s; }
+        .reg-phone-prefix-wrap.open .reg-phone-prefix-btn .chev { transform: rotate(180deg); }
+        .reg-phone-num {
+            flex: 1; min-width: 0; border: none; background: transparent;
+            padding: 0.85rem 0.9rem; font-size: 0.92rem; font-weight: 600;
+            color: var(--gray-500); outline: none; cursor: not-allowed;
+            border-radius: 0 11px 11px 0;
+        }
+        .reg-phone-num::placeholder { color: var(--gray-500); opacity: 0.7; }
+        .reg-phone-prefix-pop {
+            display: none; position: absolute; top: calc(100% + 4px); left: 0;
+            width: 300px; max-width: 92vw;
+            background: white; border-radius: 12px; border: 1.5px solid var(--gray-200);
+            box-shadow: 0 18px 50px rgba(10,2,48,0.15);
+            z-index: 50; overflow: hidden;
+        }
+        .reg-phone-prefix-wrap.open .reg-phone-prefix-pop { display: block; animation: cPop 0.18s ease; }
+        .reg-phone-prefix-list { max-height: 240px; overflow-y: auto; padding: 0.35rem; }
+        .reg-phone-prefix-item {
+            display: flex; align-items: center; gap: 0.7rem;
+            width: 100%; text-align: left; padding: 0.5rem 0.7rem;
+            border: none; background: none; border-radius: 7px;
+            font-size: 0.85rem; font-weight: 600; color: var(--gray-700);
+            cursor: pointer;
+        }
+        .reg-phone-prefix-item:hover { background: var(--gray-100); }
+        .reg-phone-prefix-item.sel { background: rgba(51,0,204,0.07); color: var(--purple); font-weight: 800; }
+        .reg-phone-prefix-item.hide { display: none; }
+        .reg-phone-prefix-code { font-weight: 800; color: var(--purple); min-width: 48px; }
+        .reg-phone-prefix-name { color: inherit; }
+
+        .reg-terms {
+            display: flex; align-items: flex-start; gap: 0.5rem;
+            font-size: 0.76rem; color: var(--gray-700); line-height: 1.5;
+            margin: 0.3rem 0 1.2rem; cursor: pointer;
+        }
+        .reg-terms input { margin-top: 0.2rem; accent-color: var(--purple); }
+
+        .portal-submit {
+            width: 100%; padding: 0.95rem; border: none; border-radius: 12px;
+            background: linear-gradient(135deg, var(--purple), var(--purple-light));
+            color: white; font-size: 0.95rem; font-weight: 900;
+            letter-spacing: 0.5px; text-transform: uppercase;
+            cursor: not-allowed; opacity: 0.55;
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+        }
+        .portal-submit svg { width: 15px; height: 15px; }
+        .portal-submit-active { opacity: 1; cursor: pointer; transition: transform 0.15s, box-shadow 0.2s; }
+        .portal-submit-active:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(51,0,204,0.3); }
+        .reg-helper { font-size: 0.75rem; color: var(--gray-500); text-align: center; line-height: 1.5; margin: 0 0 0.9rem; padding: 0 0.4rem; }
+
+        .portal-divider {
+            display: flex; align-items: center; gap: 0.8rem;
+            margin: 1.3rem 0 1rem; color: var(--gray-500);
+            font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .portal-divider::before, .portal-divider::after {
+            content: ''; flex: 1; height: 1px; background: var(--gray-200);
+        }
+        .portal-login-link {
+            width: 100%; padding: 0.85rem; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            background: white; color: var(--purple);
+            border: 1.5px solid var(--purple);
+            font-size: 0.9rem; font-weight: 900; letter-spacing: 0.5px;
+            text-decoration: none; text-transform: uppercase;
+            transition: all 0.2s; box-sizing: border-box;
+        }
+        .portal-login-link:hover { background: var(--purple); color: white; transform: translateY(-1px); box-shadow: 0 8px 22px rgba(51,0,204,0.25); }
+        .portal-login-link svg { width: 15px; height: 15px; }
+
+        .portal-back {
+            display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+            color: var(--gray-500); text-decoration: none; font-size: 0.82rem; font-weight: 700;
+            padding: 0.6rem; border-radius: 10px; transition: background 0.2s;
+            margin-top: 0.5rem;
+        }
+        .portal-back:hover { background: var(--gray-100); color: var(--navy); }
+        .portal-back svg { width: 14px; height: 14px; }
+
+        .portal-foot {
+            position: relative; z-index: 1;
+            text-align: center; padding: 1rem;
+            font-size: 0.72rem; color: var(--gray-500);
+        }
+        .portal-foot a { color: var(--gray-500); text-decoration: none; }
+        .portal-foot a:hover { color: var(--purple); }
+
+        @media (max-width: 560px) {
+            .portal-wrap { padding: 1.2rem 1rem; }
+            .portal-card { padding: 1.8rem 1.4rem 1.4rem; border-radius: 18px; }
+            .portal-title { font-size: 1.35rem; }
+            .reg-grid { grid-template-columns: 1fr; gap: 0; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .portal-card { animation: none; }
+            .portal-badge .dot { animation: none; }
+        }
+
+        /* Language selector (same UI as index/portal, fixed top-right) */
+        .lang-selector { position: fixed; top: 1rem; right: 1rem; z-index: 10000; }
+        .lang-btn {
+            display: flex; align-items: center; gap: 0.3rem; cursor: pointer;
+            background: white; border: 1.5px solid var(--gray-200); border-radius: 10px;
+            padding: 0.3rem 0.7rem 0.3rem 0.45rem; font-size: 0.78rem; font-weight: 700;
+            color: var(--gray-700); transition: all 0.2s;
+            box-shadow: 0 4px 14px rgba(10,2,48,0.08);
+        }
+        .lang-btn:hover { border-color: var(--purple); }
+        .lang-btn .flag { font-size: 1.1rem; line-height: 1; }
+        .lang-btn .arrow { font-size: 0.6rem; margin-left: 0.15rem; transition: transform 0.2s; }
+        .lang-btn.open .arrow { transform: rotate(180deg); }
+        .lang-dropdown {
+            position: absolute; top: calc(100% + 6px); right: 0; z-index: 10001;
+            background: white; border-radius: 14px; border: 1.5px solid var(--gray-200);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.12); padding: 0.5rem;
+            display: none; min-width: 170px;
+            max-height: 350px; overflow-y: auto;
+        }
+        .lang-dropdown.open { display: block; animation: langPop 0.2s ease; }
+        @keyframes langPop {
+            0% { opacity: 0; transform: translateY(-6px) scale(0.97); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .lang-option {
+            display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.7rem;
+            border-radius: 8px; cursor: pointer; transition: background 0.15s;
+            font-size: 0.82rem; font-weight: 600; color: var(--gray-700); border: none; background: none; width: 100%; text-align: left;
+        }
+        .lang-option:hover { background: var(--gray-100); }
+        .lang-option.active { background: rgba(51,0,204,0.07); color: var(--purple); }
+        .lang-option .flag { font-size: 1.2rem; }
+
+        /* AVATAR FAB - mismo patron en toda la web del portal */
+        .contact-fab-wrap { position:fixed; bottom:1.8rem; right:1.8rem; z-index:998; display:flex; flex-direction:column-reverse; align-items:center; gap:0.85rem; pointer-events:none; }
+        .contact-fab { width:130px; height:130px; border-radius:50%; border:none; padding:0; cursor:pointer; background:none; position:relative; flex-shrink:0; pointer-events:auto; }
+        .contact-fab img { width:100%; height:100%; border-radius:50%; object-fit:cover; display:block; box-shadow:0 4px 20px rgba(10,2,48,0.35); }
+        .contact-fab-name { position:absolute; top:50%; right:calc(100% + 0.7rem); transform:translateY(-50%) translateX(8px); background:white; color:var(--purple); padding:0.55rem 0.95rem; border-radius:18px; text-align:right; box-shadow:0 4px 14px rgba(10,2,48,0.18); opacity:0; pointer-events:none; transition:opacity 0.25s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+        .contact-fab-name-title { display:block; font-size:1.01rem; font-weight:700; letter-spacing:0.2px; white-space:nowrap; }
+        .contact-fab-name-status { display:block; font-size:0.75rem; font-weight:600; color:var(--gray-500); margin-top:2px; white-space:nowrap; }
+        .contact-fab-name-status::before { content:""; display:inline-block; width:7px; height:7px; border-radius:50%; background:#22c55e; margin-right:5px; vertical-align:middle; box-shadow:0 0 6px rgba(34,197,94,0.65); animation:fabStatusBlink 2s ease-in-out infinite; }
+        @keyframes fabStatusBlink { 0%,100% { opacity:1; } 50% { opacity:0.55; } }
+        .contact-fab-name-status.offline::before {
+            background: var(--orange) !important;
+            box-shadow: 0 0 6px rgba(255,122,0,0.65) !important;
+        }
+        .contact-fab-wrap.open .contact-fab-name { opacity:1; transform:translateY(-50%) translateX(0); }
+        .contact-fab::before { content:""; position:absolute; inset:-4px; border-radius:50%; border:3px solid #25D366; animation:fabRing 2s ease-out infinite; pointer-events:none; }
+        .contact-fab-wrap.open .contact-fab::before { animation:none; opacity:0; }
+        .contact-fab::after { content:""; position:absolute; bottom:7%; right:7%; width:20px; height:20px; border-radius:50%; background:#22c55e; border:3px solid white; box-shadow:0 0 0 0 rgba(34,197,94,0.55); animation:fabOnlineDotPulse 2.5s ease-out infinite; pointer-events:none; }
+        @keyframes fabOnlineDotPulse { 0% { box-shadow:0 0 0 0 rgba(34,197,94,0.55); } 70% { box-shadow:0 0 0 14px rgba(34,197,94,0); } 100% { box-shadow:0 0 0 0 rgba(34,197,94,0); } }
+        .contact-fab:hover { transform:scale(1.06); }
+        .contact-fab, .contact-fab img { transition:transform 0.25s ease; }
+        @keyframes fabRing { 0% { transform:scale(1); opacity:0.9; } 70% { transform:scale(1.35); opacity:0; } 100% { transform:scale(1.35); opacity:0; } }
+        .contact-fab-actions { display:flex; flex-direction:column; gap:0.7rem; align-items:center; }
+        .contact-fab-action { width:52px; height:52px; border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; color:white; box-shadow:0 4px 16px rgba(10,2,48,0.3); text-decoration:none; opacity:0; transform:translateY(14px) scale(0.6); pointer-events:none; transition:opacity 0.25s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+        .contact-fab-action.act-email { background:var(--purple); }
+        .contact-fab-action.act-wa    { background:#25D366; }
+        .contact-fab-action.act-call  { background:var(--navy); }
+        .contact-fab-wrap.open .contact-fab-action { opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+        .contact-fab-wrap.open .contact-fab-action:nth-child(1) { transition-delay:0.05s; }
+        .contact-fab-wrap.open .contact-fab-action:nth-child(2) { transition-delay:0.12s; }
+        .contact-fab-wrap.open .contact-fab-action:nth-child(3) { transition-delay:0.19s; }
+        .contact-fab-action:hover { transform:translateY(-2px) scale(1.1) !important; }
+        .contact-fab-action[data-hours] { position: relative; }
+        .contact-fab-action[data-hours]::before {
+            content: attr(data-hours);
+            position: absolute; right: calc(100% + 0.5rem); top: 50%;
+            transform: translateY(-50%);
+            background: white; color: var(--navy);
+            font-size: 0.7rem; font-weight: 700;
+            padding: 0.3rem 0.55rem; border-radius: 10px;
+            white-space: nowrap;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.25s ease 0.15s;
+        }
+        .contact-fab-wrap.open .contact-fab-action[data-hours]::before { opacity: 1; }
+        .phone-modal { position: fixed; inset: 0; z-index: 100000; display: none; align-items: center; justify-content: center; padding: 1.2rem; }
+        .phone-modal.open { display: flex; animation: phoneFadeIn 0.2s ease both; }
+        @keyframes phoneFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .phone-modal-backdrop { position: absolute; inset: 0; background: rgba(10,2,48,0.55); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+        .phone-modal-card { position: relative; z-index: 1; background: white; border-radius: 18px; max-width: 420px; width: 100%; padding: 2.2rem 1.6rem 1.4rem; text-align: center; box-shadow: 0 30px 80px rgba(10,2,48,0.4); animation: phoneCardIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        @keyframes phoneCardIn { from { opacity: 0; transform: translateY(20px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .phone-modal-close { position: absolute; top: 0.8rem; right: 0.8rem; width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--gray-100); color: var(--gray-700); font-size: 1.2rem; line-height: 1; cursor: pointer; }
+        .phone-modal-close:hover { background: var(--gray-200); color: var(--navy); }
+        .phone-modal-icon { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, var(--orange), #ffaa44); color: white; margin: 0 auto 0.9rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 28px rgba(255,122,0,0.3); }
+        .phone-modal-card h3 { font-size: 1.2rem; font-weight: 900; color: var(--navy); margin-bottom: 0.5rem; }
+        .phone-modal-sub { font-size: 0.88rem; color: var(--gray-700); line-height: 1.5; margin-bottom: 1rem; }
+        .phone-modal-sub strong { color: var(--navy); }
+        .phone-modal-options { display: flex; gap: 0.6rem; margin-bottom: 1rem; }
+        .phone-modal-opt { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.45rem; padding: 0.85rem 0.5rem; border-radius: 11px; color: white; text-decoration: none; font-size: 0.88rem; font-weight: 800; transition: transform 0.15s, box-shadow 0.15s; }
+        .phone-modal-opt:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(0,0,0,0.18); }
+        .phone-modal-wa { background: #25D366; }
+        .phone-modal-email { background: var(--purple); }
+        .phone-modal-anyway { display: block; text-align: center; font-size: 0.82rem; font-weight: 700; color: var(--gray-500); text-decoration: none; padding: 0.55rem; }
+        .phone-modal-anyway:hover { color: var(--navy); }
+        .phone-modal-anyway span { display: block; font-size: 0.7rem; font-weight: 600; opacity: 0.65; margin-top: 0.1rem; }
+        @media (max-width: 600px) {
+            .contact-fab-wrap { bottom:1.2rem; right:1.2rem; gap:0.6rem; }
+            .contact-fab { width:109px; height:109px; }
+            .contact-fab-action { width:46px; height:46px; }
+            .contact-fab-name { padding:0.45rem 0.8rem; }
+            .contact-fab-name-title { font-size:0.91rem; }
+            .contact-fab-name-status { font-size:0.68rem; }
+            .contact-fab::after { width:16px; height:16px; border-width:2.5px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .contact-fab::before, .contact-fab::after, .contact-fab-name-status::before { animation:none; }
+            .contact-fab, .contact-fab img, .contact-fab-action, .contact-fab-name { transition:opacity 0.15s linear; }
+            .contact-fab-wrap.open .contact-fab-action { transform:none; }
+            .contact-fab-action { transform:none; }
+            .contact-fab-name, .contact-fab-wrap.open .contact-fab-name { transform:translateY(-50%); }
+            .contact-fab:hover, .contact-fab-action:hover { transform:none !important; }
+        }
+    </style>
+    <script src="/js/festivos.js"></script>
+</head>
+<body>
+    <!-- LANGUAGE SELECTOR -->
+    <div class="lang-selector notranslate" translate="no">
+        <button class="lang-btn" onclick="toggleLangDropdown()" id="langBtn">
+            <span class="flag">🇪🇸</span> ES <span class="arrow">▼</span>
+        </button>
+        <div class="lang-dropdown" id="langDropdown">
+            <button class="lang-option active" onclick="changeLang('es','🇪🇸','ES')"><span class="flag">🇪🇸</span> Español</button>
+            <button class="lang-option" onclick="changeLang('ca','🟡','CAT')"><span class="flag">🟡</span> Català</button>
+            <button class="lang-option" onclick="changeLang('eu','🟢','EUS')"><span class="flag">🟢</span> Euskara</button>
+            <button class="lang-option" onclick="changeLang('pt','🇵🇹','PT')"><span class="flag">🇵🇹</span> Português</button>
+            <button class="lang-option" onclick="changeLang('en','🇬🇧','EN')"><span class="flag">🇬🇧</span> English</button>
+            <button class="lang-option" onclick="changeLang('fr','🇫🇷','FR')"><span class="flag">🇫🇷</span> Français</button>
+            <button class="lang-option" onclick="changeLang('ar','🇸🇦','AR')"><span class="flag">🇸🇦</span> العربية</button>
+            <button class="lang-option" onclick="changeLang('de','🇩🇪','DE')"><span class="flag">🇩🇪</span> Deutsch</button>
+            <button class="lang-option" onclick="changeLang('it','🇮🇹','IT')"><span class="flag">🇮🇹</span> Italiano</button>
+            <button class="lang-option" onclick="changeLang('nl','🇳🇱','NL')"><span class="flag">🇳🇱</span> Nederlands</button>
+            <button class="lang-option" onclick="changeLang('pl','🇵🇱','PL')"><span class="flag">🇵🇱</span> Polski</button>
+            <button class="lang-option" onclick="changeLang('ro','🇷🇴','RO')"><span class="flag">🇷🇴</span> Română</button>
+            <button class="lang-option" onclick="changeLang('uk','🇺🇦','UK')"><span class="flag">🇺🇦</span> Українська</button>
+            <button class="lang-option" onclick="changeLang('zh-CN','🇨🇳','ZH')"><span class="flag">🇨🇳</span> 中文</button>
+        </div>
+    </div>
+
+    <div class="portal-bg"></div>
+    <main class="portal-wrap">
+        <div class="portal-card" role="dialog" aria-labelledby="reg-title">
+            <div class="portal-logo">
+                <a href="index.html" aria-label="Volver al inicio" onclick="goToHome(event)"><img src="images/2.png" alt="Dynamo - Always Moving"></a>
+            </div>
+            <h1 id="reg-title" class="portal-title">Crear cuenta</h1>
+            <p class="portal-subtitle">Regístrate como <strong>cliente</strong> de Dynamo y accede a tu portal privado</p>
+
+            <div class="portal-badge">
+                <span class="dot"></span>
+                <span>Próximamente · En desarrollo</span>
+            </div>
+
+            <!-- Tipo de usuario fijado a "cliente" en esta fase. Cuando se habilite el alta de
+                 transportistas/proveedores, este campo debe convertirse en un selector visible y
+                 el backend debe persistir el rol para diferenciar permisos y vistas del portal. -->
+            <form onsubmit="event.preventDefault();try{sessionStorage.setItem('regEmail',document.getElementById('reg-email').value||'tu@empresa.com');}catch(e){}window.location.href='verificar.html';return false;" autocomplete="off" data-user-type="cliente">
+                <input type="hidden" name="tipo_usuario" value="cliente">
+                <div class="reg-grid">
+                    <div class="portal-field full">
+                        <label class="portal-label" for="reg-email">Correo electrónico</label>
+                        <div class="portal-input-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+                            <input id="reg-email" class="portal-input" type="email" placeholder="tu@empresa.com">
+                        </div>
+                    </div>
+
+                    <div class="portal-field full">
+                        <label class="portal-label" for="reg-nombre">Empresa o razón social / Nombre y apellidos</label>
+                        <div class="portal-input-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <input id="reg-nombre" class="portal-input" type="text" placeholder="Empresa o nombre completo">
+                        </div>
+                    </div>
+
+                    <div class="portal-field">
+                        <label class="portal-label" for="reg-nif">CIF / NIF</label>
+                        <div class="portal-input-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                            <input id="reg-nif" class="portal-input" type="text" placeholder="B12345678 / 12345678Z">
+                        </div>
+                    </div>
+
+                    <div class="portal-field">
+                        <label class="portal-label" for="reg-pais-trigger">País</label>
+                        <div class="reg-country" id="regCountry">
+                            <button type="button" id="reg-pais-trigger" class="reg-country-trigger" onclick="toggleCountry(event)" aria-haspopup="listbox" aria-expanded="false">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-500)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                                <span id="reg-pais-label">España</span>
+                                <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
+                            <div class="reg-country-pop" id="regCountryPop" role="listbox">
+                                <div class="reg-country-search">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                    <input type="text" id="reg-pais-search" placeholder="Buscar país…" autocomplete="off" oninput="filterCountries(this.value)" onclick="event.stopPropagation()">
+                                </div>
+                                <div class="reg-country-list" id="regCountryList"></div>
+                                <div class="reg-country-empty" id="regCountryEmpty">Sin resultados</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="portal-field full">
+                        <label class="portal-label" for="reg-tel">Teléfono</label>
+                        <div class="reg-phone">
+                            <div class="reg-phone-prefix-wrap" id="regPrefix">
+                                <button type="button" class="reg-phone-prefix-btn" onclick="togglePrefix(event)" aria-haspopup="listbox" aria-expanded="false">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-500)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                                    <span id="reg-prefix-label">+34</span>
+                                    <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                </button>
+                                <div class="reg-phone-prefix-pop" id="regPrefixPop" role="listbox">
+                                    <div class="reg-country-search">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                        <input type="text" id="reg-prefix-search" placeholder="Buscar país o prefijo…" autocomplete="off" oninput="filterPrefixes(this.value)" onclick="event.stopPropagation()">
+                                    </div>
+                                    <div class="reg-phone-prefix-list" id="regPrefixList"></div>
+                                    <div class="reg-country-empty" id="regPrefixEmpty">Sin resultados</div>
+                                </div>
+                            </div>
+                            <input id="reg-tel" class="reg-phone-num" type="tel" placeholder="600 000 000">
+                        </div>
+                    </div>
+
+                </div>
+
+                <label class="reg-terms">
+                    <input type="checkbox" required>
+                    <span>He leído y acepto el <a href="#">Aviso Legal</a> y la <a href="#">Política de Privacidad</a> de Dynamo Operador de Transportes</span>
+                </label>
+
+                <p class="reg-helper">Te enviaremos un código de verificación a tu email para confirmar el alta. La contraseña la elegirás después dentro de tu cuenta.</p>
+
+                <button type="submit" class="portal-submit portal-submit-active">
+                    Continuar
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </button>
+            </form>
+
+            <div class="portal-divider">¿Ya tienes cuenta?</div>
+
+            <a href="portal.html" class="portal-login-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                Iniciar sesión
+            </a>
+
+            <a href="index.html" class="portal-back" onclick="goToHome(event)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Volver al inicio
+            </a>
+        </div>
+    </main>
+    <footer class="portal-foot">
+        © 2025 Dynamo Operador de Transportes ·
+        <a href="index.html" onclick="goToHome(event)">dynamotrans.com</a> ·
+        <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a>
+    </footer>
+
+    <!-- Country selector (searchable, España preselected) -->
+    <script>
+    var COUNTRY_PRIORITY = ['España','Portugal','Francia','Países Bajos','Alemania','Italia'];
+    var COUNTRY_REST = [
+        'Afganistán','Albania','Andorra','Angola','Antigua y Barbuda','Arabia Saudí','Argelia','Argentina','Armenia','Australia','Austria','Azerbaiyán',
+        'Bahamas','Bangladés','Barbados','Baréin','Bélgica','Belice','Benín','Bielorrusia','Birmania','Bolivia','Bosnia y Herzegovina','Botsuana','Brasil','Brunéi','Bulgaria','Burkina Faso','Burundi','Bután',
+        'Cabo Verde','Camboya','Camerún','Canadá','Catar','Chad','Chequia','Chile','China','Chipre','Ciudad del Vaticano','Colombia','Comoras','Corea del Norte','Corea del Sur','Costa de Marfil','Costa Rica','Croacia','Cuba',
+        'Dinamarca','Dominica',
+        'Ecuador','Egipto','El Salvador','Emiratos Árabes Unidos','Eritrea','Eslovaquia','Eslovenia','Estados Unidos','Estonia','Esuatini','Etiopía',
+        'Filipinas','Finlandia','Fiyi',
+        'Gabón','Gambia','Georgia','Ghana','Granada','Grecia','Guatemala','Guinea','Guinea Ecuatorial','Guinea-Bisáu','Guyana',
+        'Haití','Honduras','Hungría',
+        'India','Indonesia','Irak','Irán','Irlanda','Islandia','Islas Marshall','Islas Salomón','Israel',
+        'Jamaica','Japón','Jordania',
+        'Kazajistán','Kenia','Kirguistán','Kiribati','Kosovo','Kuwait',
+        'Laos','Lesoto','Letonia','Líbano','Liberia','Libia','Liechtenstein','Lituania','Luxemburgo',
+        'Macedonia del Norte','Madagascar','Malasia','Malaui','Maldivas','Malí','Malta','Marruecos','Mauricio','Mauritania','México','Micronesia','Moldavia','Mónaco','Mongolia','Montenegro','Mozambique',
+        'Namibia','Nauru','Nepal','Nicaragua','Níger','Nigeria','Noruega','Nueva Zelanda',
+        'Omán',
+        'Pakistán','Palaos','Panamá','Papúa Nueva Guinea','Paraguay','Perú','Polonia',
+        'Reino Unido','República Centroafricana','República del Congo','República Democrática del Congo','República Dominicana','Ruanda','Rumanía','Rusia',
+        'Samoa','San Cristóbal y Nieves','San Marino','San Vicente y las Granadinas','Santa Lucía','Santo Tomé y Príncipe','Senegal','Serbia','Seychelles','Sierra Leona','Singapur','Siria','Somalia','Sri Lanka','Sudáfrica','Sudán','Sudán del Sur','Suecia','Suiza','Surinam',
+        'Tailandia','Tanzania','Tayikistán','Timor Oriental','Togo','Tonga','Trinidad y Tobago','Túnez','Turkmenistán','Turquía','Tuvalu',
+        'Ucrania','Uganda','Uruguay','Uzbekistán',
+        'Vanuatu','Venezuela','Vietnam',
+        'Yemen','Yibuti',
+        'Zambia','Zimbabue'
+    ];
+
+    function buildCountryList() {
+        var list = document.getElementById('regCountryList');
+        if (!list) return;
+        var html = '<div class="reg-country-group">Más habituales</div>';
+        COUNTRY_PRIORITY.forEach(function(c, i) {
+            html += '<button type="button" class="reg-country-item' + (i === 0 ? ' sel' : '') + '" data-name="' + c + '" onclick="selectCountry(\'' + c.replace(/'/g, "\\'") + '\')">' + c + '</button>';
+        });
+        html += '<div class="reg-country-group">Todos los países</div>';
+        COUNTRY_REST.forEach(function(c) {
+            html += '<button type="button" class="reg-country-item" data-name="' + c + '" onclick="selectCountry(\'' + c.replace(/'/g, "\\'") + '\')">' + c + '</button>';
+        });
+        list.innerHTML = html;
+    }
+
+    function toggleCountry(ev) {
+        if (ev) ev.stopPropagation();
+        var wrap = document.getElementById('regCountry');
+        wrap.classList.toggle('open');
+        var trig = document.getElementById('reg-pais-trigger');
+        trig.setAttribute('aria-expanded', wrap.classList.contains('open') ? 'true' : 'false');
+        if (wrap.classList.contains('open')) {
+            setTimeout(function() {
+                var s = document.getElementById('reg-pais-search');
+                if (s) s.focus();
+            }, 50);
+        }
+    }
+
+    function selectCountry(name) {
+        document.getElementById('reg-pais-label').textContent = name;
+        var items = document.querySelectorAll('.reg-country-item');
+        items.forEach(function(b) { b.classList.toggle('sel', b.getAttribute('data-name') === name); });
+        document.getElementById('regCountry').classList.remove('open');
+        document.getElementById('reg-pais-trigger').setAttribute('aria-expanded', 'false');
+        var s = document.getElementById('reg-pais-search');
+        if (s) { s.value = ''; filterCountries(''); }
+    }
+
+    function normalize(s) {
+        return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    }
+    function filterCountries(q) {
+        var n = normalize(q || '');
+        var items = document.querySelectorAll('.reg-country-item');
+        var any = false;
+        items.forEach(function(b) {
+            var name = b.getAttribute('data-name') || '';
+            var match = !n || normalize(name).indexOf(n) > -1;
+            b.classList.toggle('hide', !match);
+            if (match) any = true;
+        });
+        var groups = document.querySelectorAll('.reg-country-group');
+        groups.forEach(function(g) {
+            var next = g.nextElementSibling;
+            var visible = false;
+            while (next && !next.classList.contains('reg-country-group')) {
+                if (next.classList.contains('reg-country-item') && !next.classList.contains('hide')) { visible = true; break; }
+                next = next.nextElementSibling;
+            }
+            g.style.display = visible ? '' : 'none';
+        });
+        document.getElementById('regCountryEmpty').style.display = any ? 'none' : 'block';
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#regCountry')) {
+            var wrap = document.getElementById('regCountry');
+            if (wrap) wrap.classList.remove('open');
+            var trig = document.getElementById('reg-pais-trigger');
+            if (trig) trig.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    // Phone prefix selector — same priority order as country
+    var DIAL_CODES = {
+        'España':'+34','Portugal':'+351','Francia':'+33','Países Bajos':'+31','Alemania':'+49','Italia':'+39',
+        'Afganistán':'+93','Albania':'+355','Andorra':'+376','Angola':'+244','Antigua y Barbuda':'+1','Arabia Saudí':'+966','Argelia':'+213','Argentina':'+54','Armenia':'+374','Australia':'+61','Austria':'+43','Azerbaiyán':'+994',
+        'Bahamas':'+1','Bangladés':'+880','Barbados':'+1','Baréin':'+973','Bélgica':'+32','Belice':'+501','Benín':'+229','Bielorrusia':'+375','Birmania':'+95','Bolivia':'+591','Bosnia y Herzegovina':'+387','Botsuana':'+267','Brasil':'+55','Brunéi':'+673','Bulgaria':'+359','Burkina Faso':'+226','Burundi':'+257','Bután':'+975',
+        'Cabo Verde':'+238','Camboya':'+855','Camerún':'+237','Canadá':'+1','Catar':'+974','Chad':'+235','Chequia':'+420','Chile':'+56','China':'+86','Chipre':'+357','Ciudad del Vaticano':'+379','Colombia':'+57','Comoras':'+269','Corea del Norte':'+850','Corea del Sur':'+82','Costa de Marfil':'+225','Costa Rica':'+506','Croacia':'+385','Cuba':'+53',
+        'Dinamarca':'+45','Dominica':'+1',
+        'Ecuador':'+593','Egipto':'+20','El Salvador':'+503','Emiratos Árabes Unidos':'+971','Eritrea':'+291','Eslovaquia':'+421','Eslovenia':'+386','Estados Unidos':'+1','Estonia':'+372','Esuatini':'+268','Etiopía':'+251',
+        'Filipinas':'+63','Finlandia':'+358','Fiyi':'+679',
+        'Gabón':'+241','Gambia':'+220','Georgia':'+995','Ghana':'+233','Granada':'+1','Grecia':'+30','Guatemala':'+502','Guinea':'+224','Guinea Ecuatorial':'+240','Guinea-Bisáu':'+245','Guyana':'+592',
+        'Haití':'+509','Honduras':'+504','Hungría':'+36',
+        'India':'+91','Indonesia':'+62','Irak':'+964','Irán':'+98','Irlanda':'+353','Islandia':'+354','Islas Marshall':'+692','Islas Salomón':'+677','Israel':'+972',
+        'Jamaica':'+1','Japón':'+81','Jordania':'+962',
+        'Kazajistán':'+7','Kenia':'+254','Kirguistán':'+996','Kiribati':'+686','Kosovo':'+383','Kuwait':'+965',
+        'Laos':'+856','Lesoto':'+266','Letonia':'+371','Líbano':'+961','Liberia':'+231','Libia':'+218','Liechtenstein':'+423','Lituania':'+370','Luxemburgo':'+352',
+        'Macedonia del Norte':'+389','Madagascar':'+261','Malasia':'+60','Malaui':'+265','Maldivas':'+960','Malí':'+223','Malta':'+356','Marruecos':'+212','Mauricio':'+230','Mauritania':'+222','México':'+52','Micronesia':'+691','Moldavia':'+373','Mónaco':'+377','Mongolia':'+976','Montenegro':'+382','Mozambique':'+258',
+        'Namibia':'+264','Nauru':'+674','Nepal':'+977','Nicaragua':'+505','Níger':'+227','Nigeria':'+234','Noruega':'+47','Nueva Zelanda':'+64',
+        'Omán':'+968',
+        'Pakistán':'+92','Palaos':'+680','Panamá':'+507','Papúa Nueva Guinea':'+675','Paraguay':'+595','Perú':'+51','Polonia':'+48',
+        'Reino Unido':'+44','República Centroafricana':'+236','República del Congo':'+242','República Democrática del Congo':'+243','República Dominicana':'+1','Ruanda':'+250','Rumanía':'+40','Rusia':'+7',
+        'Samoa':'+685','San Cristóbal y Nieves':'+1','San Marino':'+378','San Vicente y las Granadinas':'+1','Santa Lucía':'+1','Santo Tomé y Príncipe':'+239','Senegal':'+221','Serbia':'+381','Seychelles':'+248','Sierra Leona':'+232','Singapur':'+65','Siria':'+963','Somalia':'+252','Sri Lanka':'+94','Sudáfrica':'+27','Sudán':'+249','Sudán del Sur':'+211','Suecia':'+46','Suiza':'+41','Surinam':'+597',
+        'Tailandia':'+66','Tanzania':'+255','Tayikistán':'+992','Timor Oriental':'+670','Togo':'+228','Tonga':'+676','Trinidad y Tobago':'+1','Túnez':'+216','Turkmenistán':'+993','Turquía':'+90','Tuvalu':'+688',
+        'Ucrania':'+380','Uganda':'+256','Uruguay':'+598','Uzbekistán':'+998',
+        'Vanuatu':'+678','Venezuela':'+58','Vietnam':'+84',
+        'Yemen':'+967','Yibuti':'+253',
+        'Zambia':'+260','Zimbabue':'+263'
+    };
+
+    function buildPrefixList() {
+        var list = document.getElementById('regPrefixList');
+        if (!list) return;
+        function row(name, sel) {
+            var code = DIAL_CODES[name] || '';
+            return '<button type="button" class="reg-phone-prefix-item' + (sel ? ' sel' : '') +
+                '" data-name="' + name + '" data-code="' + code +
+                '" onclick="selectPrefix(\'' + name.replace(/'/g, "\\'") + '\')">' +
+                '<span class="reg-phone-prefix-code">' + code + '</span>' +
+                '<span class="reg-phone-prefix-name">' + name + '</span></button>';
+        }
+        var html = '<div class="reg-country-group">Más habituales</div>';
+        COUNTRY_PRIORITY.forEach(function(c, i) { html += row(c, i === 0); });
+        html += '<div class="reg-country-group">Todos los países</div>';
+        COUNTRY_REST.forEach(function(c) { html += row(c, false); });
+        list.innerHTML = html;
+    }
+
+    function togglePrefix(ev) {
+        if (ev) ev.stopPropagation();
+        var wrap = document.getElementById('regPrefix');
+        wrap.classList.toggle('open');
+        var btn = wrap.querySelector('.reg-phone-prefix-btn');
+        btn.setAttribute('aria-expanded', wrap.classList.contains('open') ? 'true' : 'false');
+        if (wrap.classList.contains('open')) {
+            setTimeout(function() {
+                var s = document.getElementById('reg-prefix-search');
+                if (s) s.focus();
+            }, 50);
+        }
+    }
+
+    function selectPrefix(name) {
+        var code = DIAL_CODES[name] || '';
+        document.getElementById('reg-prefix-label').textContent = code;
+        var items = document.querySelectorAll('.reg-phone-prefix-item');
+        items.forEach(function(b) { b.classList.toggle('sel', b.getAttribute('data-name') === name); });
+        var wrap = document.getElementById('regPrefix');
+        wrap.classList.remove('open');
+        wrap.querySelector('.reg-phone-prefix-btn').setAttribute('aria-expanded', 'false');
+        var s = document.getElementById('reg-prefix-search');
+        if (s) { s.value = ''; filterPrefixes(''); }
+    }
+
+    function filterPrefixes(q) {
+        var n = normalize(q || '');
+        var items = document.querySelectorAll('.reg-phone-prefix-item');
+        var any = false;
+        items.forEach(function(b) {
+            var name = b.getAttribute('data-name') || '';
+            var code = (b.getAttribute('data-code') || '').toLowerCase();
+            var match = !n || normalize(name).indexOf(n) > -1 || code.indexOf(n) > -1;
+            b.classList.toggle('hide', !match);
+            if (match) any = true;
+        });
+        var groups = document.querySelectorAll('#regPrefixList .reg-country-group');
+        groups.forEach(function(g) {
+            var next = g.nextElementSibling;
+            var visible = false;
+            while (next && !next.classList.contains('reg-country-group')) {
+                if (next.classList.contains('reg-phone-prefix-item') && !next.classList.contains('hide')) { visible = true; break; }
+                next = next.nextElementSibling;
+            }
+            g.style.display = visible ? '' : 'none';
+        });
+        document.getElementById('regPrefixEmpty').style.display = any ? 'none' : 'block';
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#regPrefix')) {
+            var wrap = document.getElementById('regPrefix');
+            if (wrap) {
+                wrap.classList.remove('open');
+                var btn = wrap.querySelector('.reg-phone-prefix-btn');
+                if (btn) btn.setAttribute('aria-expanded', 'false');
+            }
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() { buildCountryList(); buildPrefixList(); });
+    </script>
+
+    <!-- Google Translate (same engine as index/portal, shares googtrans cookie) -->
+    <div id="google_translate_element" style="display:none;"></div>
+    <script>
+    var gtLoaded = false;
+    var gtReady = false;
+    var gtInitTimeout = null;
+
+    function loadGoogleTranslate() {
+        if (gtLoaded) return;
+        gtLoaded = true;
+        var s = document.createElement('script');
+        s.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+        s.onerror = function() { gtLoaded = false; };
+        document.body.appendChild(s);
+    }
+
+    function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+            pageLanguage: 'es',
+            autoDisplay: false,
+            includedLanguages: 'ca,eu,pt,en,fr,de,it,nl,pl,ro,uk,zh-CN,ar'
+        }, 'google_translate_element');
+        var checkReady = setInterval(function() {
+            var sel = document.querySelector('.goog-te-combo');
+            if (sel) { gtReady = true; clearInterval(checkReady); }
+        }, 200);
+        setTimeout(function() { clearInterval(checkReady); }, 10000);
+    }
+
+    var langMap = {
+        'ca': { flag: '🟡', code: 'CAT' },
+        'eu': { flag: '🟢', code: 'EUS' },
+        'pt': { flag: '🇵🇹', code: 'PT' },
+        'en': { flag: '🇬🇧', code: 'EN' },
+        'fr': { flag: '🇫🇷', code: 'FR' },
+        'de': { flag: '🇩🇪', code: 'DE' },
+        'it': { flag: '🇮🇹', code: 'IT' },
+        'nl': { flag: '🇳🇱', code: 'NL' },
+        'pl': { flag: '🇵🇱', code: 'PL' },
+        'ro': { flag: '🇷🇴', code: 'RO' },
+        'uk': { flag: '🇺🇦', code: 'UK' },
+        'zh-CN': { flag: '🇨🇳', code: 'ZH' },
+        'ar': { flag: '🇸🇦', code: 'AR' }
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (location.search.indexOf('lang=es') > -1) {
+            var host = location.hostname;
+            var parts = host.split('.');
+            var domains = ['', host, '.' + host];
+            if (parts.length > 2) {
+                var bare = parts.slice(1).join('.');
+                domains.push(bare, '.' + bare);
+            }
+            domains.forEach(function(d) {
+                var cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+                if (d) cookie += '; domain=' + d;
+                document.cookie = cookie;
+            });
+            if (history.replaceState) history.replaceState(null, '', location.pathname);
+            return;
+        }
+        // If user already chose a language (cookie shared across pages), apply it
+        var match = document.cookie.match(/googtrans=\/es\/([\w-]+)/);
+        if (match && match[1] && langMap[match[1]]) {
+            var lang = match[1];
+            var info = langMap[lang];
+            var langBtn = document.getElementById('langBtn');
+            if (langBtn) langBtn.innerHTML = '<span class="flag">' + info.flag + '</span> ' + info.code + ' <span class="arrow">▼</span>';
+            setTimeout(loadGoogleTranslate, 300);
+            // Watchdog: if GT loaded but did not auto-apply the translation, force it
+            var wdAttempts = 0;
+            var watchdog = setInterval(function() {
+                wdAttempts++;
+                var applied = document.documentElement.classList.contains('translated-ltr') ||
+                              document.documentElement.classList.contains('translated-rtl');
+                if (applied || wdAttempts > 20) { clearInterval(watchdog); return; }
+                doTranslate(lang);
+            }, 600);
+            return;
+        }
+        setTimeout(loadGoogleTranslate, 800);
+    });
+
+    function toggleLangDropdown() {
+        document.getElementById('langDropdown').classList.toggle('open');
+        document.getElementById('langBtn').classList.toggle('open');
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.lang-selector')) {
+            var dd = document.getElementById('langDropdown');
+            var btn = document.getElementById('langBtn');
+            if (dd) dd.classList.remove('open');
+            if (btn) btn.classList.remove('open');
+        }
+    });
+
+    function doTranslate(lang) {
+        var sel = document.querySelector('.goog-te-combo');
+        if (sel) {
+            sel.value = lang;
+            sel.dispatchEvent(new Event('change'));
+            if (typeof applyScheduleLabels === 'function') applyScheduleLabels(lang);
+            return true;
+        }
+        return false;
+    }
+
+    function changeLang(lang, flag, code) {
+        var langBtn = document.getElementById('langBtn');
+        if (langBtn) langBtn.innerHTML = '<span class="flag">' + flag + '</span> ' + code + ' <span class="arrow">▼</span>';
+        document.querySelectorAll('.lang-option').forEach(function(o) { o.classList.remove('active'); });
+        if (event && event.target) {
+            var opt = event.target.closest('.lang-option');
+            if (opt) opt.classList.add('active');
+        }
+        var dd = document.getElementById('langDropdown');
+        if (dd) dd.classList.remove('open');
+        if (langBtn) langBtn.classList.remove('open');
+
+        if (lang === 'es') {
+            var host = location.hostname;
+            var parts = host.split('.');
+            var domains = ['', host, '.' + host];
+            if (parts.length > 2) {
+                var bare = parts.slice(1).join('.');
+                domains.push(bare, '.' + bare);
+            }
+            var paths = ['/', ''];
+            domains.forEach(function(d) {
+                paths.forEach(function(p) {
+                    var cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC';
+                    if (p) cookie += '; path=' + p;
+                    if (d) cookie += '; domain=' + d;
+                    document.cookie = cookie;
+                });
+            });
+            document.cookie = 'googtrans=/es/es; path=/';
+            try {
+                var sel = document.querySelector('.goog-te-combo');
+                if (sel) { sel.value = 'es'; sel.dispatchEvent(new Event('change')); }
+            } catch(e) {}
+            setTimeout(function() {
+                domains.forEach(function(d) {
+                    var cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+                    if (d) cookie += '; domain=' + d;
+                    document.cookie = cookie;
+                });
+                window.location.href = location.pathname + '?lang=es&t=' + Date.now();
+            }, 100);
+            return;
+        }
+
+        var cookieVal = '/es/' + lang;
+        document.cookie = 'googtrans=' + cookieVal + '; path=/';
+        document.cookie = 'googtrans=' + cookieVal + '; path=/; domain=' + location.hostname;
+        document.cookie = 'googtrans=' + cookieVal + '; path=/; domain=.' + location.hostname;
+
+        loadGoogleTranslate();
+        if (gtReady && doTranslate(lang)) return;
+
+        var attempts = 0;
+        var maxAttempts = 16; // 16 x 250ms = 4s, then reload (cookie makes GT auto-translate)
+        if (gtInitTimeout) clearInterval(gtInitTimeout);
+        gtInitTimeout = setInterval(function() {
+            attempts++;
+            if (doTranslate(lang)) {
+                clearInterval(gtInitTimeout);
+                gtInitTimeout = null;
+            } else if (attempts >= maxAttempts) {
+                clearInterval(gtInitTimeout);
+                gtInitTimeout = null;
+                location.reload();
+            }
+        }, 250);
+    }
+    </script>
+    <style>
+    /* Hide Google Translate UI completely */
+    .goog-te-banner-frame { display: none !important; visibility: hidden !important; }
+    #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+    .goog-te-gadget { display: none !important; }
+    body { top: 0 !important; position: static !important; }
+    .skiptranslate { display: none !important; height: 0 !important; overflow: hidden !important; }
+    .goog-text-highlight { background: none !important; box-shadow: none !important; }
+    #google_translate_element { position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none; }
+    /* Spinner de carga de Google Translate que a veces se queda colgado (bug GT). */
+    .goog-te-spinner-pos, .goog-te-spinner-pos *, img.goog-te-spinner,
+    .goog-te-gadget-icon, .goog-te-gadget-simple { display: none !important; }
+    iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
+
+        /* Wormhole "Volver al inicio" — misma transicion que portal.html (doble capa) */
+        .portal-transition {
+            position: fixed; inset: 0; z-index: 999999; pointer-events: none;
+            --cx: 50%; --cy: 50%;
+            background: var(--navy);
+            opacity: 0; transition: opacity 0.25s ease;
+        }
+        .portal-transition.active { opacity: 1; pointer-events: auto; }
+        .portal-warp {
+            position: absolute; inset: 0; overflow: hidden;
+            background: radial-gradient(circle at var(--cx) var(--cy), #6b3dff 0%, var(--purple) 22%, var(--purple-nav) 55%, var(--navy) 100%);
+            clip-path: circle(0% at var(--cx) var(--cy));
+            transition: clip-path 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .portal-transition.active .portal-warp { clip-path: circle(180% at var(--cx) var(--cy)); }
+        .portal-stars {
+            position: absolute; inset: 0; opacity: 0;
+            background:
+                radial-gradient(2px 2px at 15% 22%, white 50%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 78% 18%, white 50%, transparent 100%),
+                radial-gradient(2px 2px at 35% 65%, white 50%, transparent 100%),
+                radial-gradient(1px 1px at 60% 40%, white 50%, transparent 100%),
+                radial-gradient(2.5px 2.5px at 88% 75%, white 50%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 8% 80%, white 50%, transparent 100%),
+                radial-gradient(1px 1px at 45% 12%, white 50%, transparent 100%),
+                radial-gradient(2px 2px at 92% 45%, white 50%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 25% 90%, white 50%, transparent 100%),
+                radial-gradient(1px 1px at 70% 88%, white 50%, transparent 100%),
+                radial-gradient(2px 2px at 50% 30%, white 50%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 18% 50%, white 50%, transparent 100%);
+        }
+        .portal-transition.active .portal-stars { animation: portalTwinkle 0.7s ease 0.1s forwards; }
+        @keyframes portalTwinkle {
+            0%   { opacity: 0; transform: scale(0.6) rotate(-8deg); }
+            45%  { opacity: 1; }
+            100% { opacity: 0.85; transform: scale(1.06) rotate(4deg); }
+        }
+        .portal-ring {
+            position: absolute; top: 50%; left: 50%;
+            width: 480px; height: 480px; border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.45);
+            transform: translate(-50%, -50%) scale(0); opacity: 0;
+        }
+        .portal-transition.active .portal-ring1 { animation: portalRingX 0.6s ease 0.08s forwards; }
+        .portal-transition.active .portal-ring2 { animation: portalRingX 0.6s ease 0.18s forwards; }
+        .portal-transition.active .portal-ring3 { animation: portalRingX 0.6s ease 0.28s forwards; }
+        @keyframes portalRingX {
+            0%   { transform: translate(-50%, -50%) scale(0); opacity: 0.9; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+        .portal-exit-core {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.4); opacity: 0;
+            display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
+            color: white; text-align: center;
+        }
+        .portal-transition.active .portal-exit-core { animation: portalExitCore 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s forwards; }
+        @keyframes portalExitCore {
+            0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.35) rotate(-12deg); }
+            60%  { opacity: 1; }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0); }
+        }
+        .portal-exit-home-lock {
+            width: 72px; height: 72px; border-radius: 22px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.26), rgba(255,255,255,0.10));
+            border: 1.5px solid rgba(255,255,255,0.35);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.25), 0 0 30px rgba(107,61,255,0.45);
+        }
+        .portal-exit-home-lock svg { width: 32px; height: 32px; color: white; }
+        .portal-exit-home-text {
+            font-size: 0.78rem; font-weight: 900; letter-spacing: 3px;
+            text-transform: uppercase; color: rgba(255,255,255,0.92);
+        }
+        .portal-exit-loader {
+            width: 70px; height: 2px; border-radius: 2px;
+            background: rgba(255,255,255,0.18); overflow: hidden; position: relative;
+        }
+        .portal-exit-loader::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent, white, transparent);
+            transform: translateX(-100%);
+            animation: portalExitLoader 0.9s ease 0.4s infinite;
+        }
+        @keyframes portalExitLoader { to { transform: translateX(100%); } }
+        @media (max-width: 600px) {
+            .portal-ring { width: 320px; height: 320px; }
+            .portal-exit-home-lock { width: 58px; height: 58px; border-radius: 18px; }
+            .portal-exit-home-lock svg { width: 26px; height: 26px; }
+            .portal-exit-home-text { font-size: 0.7rem; letter-spacing: 2px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .portal-warp { transition: none; clip-path: none; }
+            .portal-transition.active .portal-warp { clip-path: none; }
+            .portal-transition.active .portal-ring1,
+            .portal-transition.active .portal-ring2,
+            .portal-transition.active .portal-ring3 { animation: none; opacity: 0; }
+            .portal-transition.active .portal-stars { animation: none; opacity: 0.85; transform: none; }
+            .portal-transition.active .portal-exit-core { animation: none; opacity: 1; transform: translate(-50%, -50%); }
+            .portal-exit-loader::after { animation: none; }
+        }
+
+    </style>
+    <!-- EXIT TRANSITION OVERLAY (back to index) -->
+    <div class="portal-transition" id="portalExit" aria-hidden="true">
+        <div class="portal-warp">
+            <div class="portal-stars"></div>
+            <div class="portal-ring portal-ring1"></div>
+            <div class="portal-ring portal-ring2"></div>
+            <div class="portal-ring portal-ring3"></div>
+            <div class="portal-exit-core">
+                <div class="portal-exit-home-lock">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <div class="portal-exit-home-text">Inicio</div>
+                <div class="portal-exit-loader"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Wormhole exit a index.html con cortina opaca + clip-path
+        function goToHome(ev) {
+            if (ev) ev.preventDefault();
+            var overlay = document.getElementById('portalExit');
+            if (!overlay) { window.location.href = 'index.html'; return; }
+            var cx, cy;
+            if (ev && ev.clientX !== undefined && ev.clientX !== 0) {
+                cx = ev.clientX; cy = ev.clientY;
+            } else if (ev && ev.currentTarget && ev.currentTarget.getBoundingClientRect) {
+                var r = ev.currentTarget.getBoundingClientRect();
+                cx = r.left + r.width / 2; cy = r.top + r.height / 2;
+            } else {
+                cx = window.innerWidth / 2; cy = window.innerHeight / 2;
+            }
+            overlay.style.setProperty('--cx', cx + 'px');
+            overlay.style.setProperty('--cy', cy + 'px');
+            try {
+                sessionStorage.setItem('homeTransition', '1');
+                sessionStorage.setItem('homeTransitionCenter',
+                    (cx / window.innerWidth * 100).toFixed(1) + '% ' + (cy / window.innerHeight * 100).toFixed(1) + '%');
+            } catch (e) {}
+            var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            var delay = reduce ? 250 : 850;
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    overlay.classList.add('active');
+                    setTimeout(function () { window.location.href = 'index.html'; }, delay);
+                });
+            });
+        }
+        window.addEventListener('pageshow', function (e) {
+            var exitOverlay = document.getElementById('portalExit');
+            if (exitOverlay) exitOverlay.classList.remove('active');
+            try {
+                sessionStorage.removeItem('homeTransition');
+                sessionStorage.removeItem('homeTransitionCenter');
+            } catch (err) {}
+        });
+    </script>
+
+    <!-- FLOATING CONTACT FAB - avatar Alvaro -->
+    <div class="contact-fab-wrap" id="contactFab">
+        <button class="contact-fab" id="contactFabBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Abrir opciones de contacto">
+            <span class="contact-fab-name" aria-hidden="true">
+                <span class="contact-fab-name-title">Álvaro Blanco de Dynamo</span>
+                <span class="contact-fab-name-status">En línea · Respondo enseguida</span>
+            </span>
+            <img src="/images/ALVARO_circular_ZOOM.png" alt="Álvaro - Contacto Dynamo Transportes">
+        </button>
+        <div class="contact-fab-actions" role="menu" aria-label="Canales de contacto">
+            <a class="contact-fab-action act-email" role="menuitem" href="mailto:info@dynamotrans.com?subject=Consulta%20portal%20cliente" aria-label="Enviar email" data-hours="Lunes a Sábado 8-20" data-sched-attr="online-short">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+            </a>
+            <a class="contact-fab-action act-wa" role="menuitem" target="_blank" rel="noopener" href="https://wa.me/34628995709" aria-label="Contactar por WhatsApp" data-hours="Lunes a Sábado 8-20" data-sched-attr="online-short">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            </a>
+            <a class="contact-fab-action act-call" role="menuitem" href="tel:+34955225945" aria-label="Llamar por teléfono" data-hours="Lunes a Jueves 9-14 y 15-17 · Viernes 9-14" data-sched-attr="phone-short">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.18z"/></svg>
+            </a>
+        </div>
+    </div>
+    <script>
+    (function () {
+        var wrap = document.getElementById('contactFab');
+        if (!wrap) return;
+        var btn = document.getElementById('contactFabBtn');
+        function openFab() { wrap.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
+        function closeFab() { wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+        btn.addEventListener('click', function (e) { e.stopPropagation(); wrap.classList.contains('open') ? closeFab() : openFab(); });
+        wrap.querySelectorAll('.contact-fab-action').forEach(function (a) { a.addEventListener('click', closeFab); });
+        document.addEventListener('click', function (e) { if (wrap.classList.contains('open') && !wrap.contains(e.target)) closeFab(); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && wrap.classList.contains('open')) { closeFab(); btn.focus(); } });
+    })();
+    </script>
+
+    <!-- MODAL fuera de horario telefonico -->
+    <div class="phone-modal" id="phoneModal" role="dialog" aria-modal="true" aria-labelledby="phoneModalTitle">
+        <div class="phone-modal-backdrop" onclick="closePhoneModal()"></div>
+        <div class="phone-modal-card">
+            <button type="button" class="phone-modal-close" onclick="closePhoneModal()" aria-label="Cerrar">×</button>
+            <div class="phone-modal-icon" aria-hidden="true">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <h3 id="phoneModalTitle">Fuera de horario telefónico</h3>
+            <p class="phone-modal-sub phone-modal-reason">Nuestro teléfono está fuera de horario. Estamos disponibles por email y WhatsApp:</p>
+            <div class="phone-modal-options">
+                <a class="phone-modal-opt phone-modal-email" href="mailto:info@dynamotrans.com" onclick="closePhoneModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                    e-Mail
+                </a>
+                <a class="phone-modal-opt phone-modal-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener" onclick="closePhoneModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884"/></svg>
+                    WhatsApp
+                </a>
+            </div>
+            <a class="phone-modal-anyway" href="tel:+34955225945">Llamar igualmente <span>(posiblemente no se atienda ahora)</span></a>
+        </div>
+    </div>
+
+    <script>
+    /* SCHEDULE - mismo motor que dashboard/index/portal */
+    var SCHEDULE = {
+        winter: { 1:[[9,14],[15,17]], 2:[[9,14],[15,17]], 3:[[9,14],[15,17]], 4:[[9,14],[15,17]], 5:[[9,14]] },
+        summer: { 1:[[9,14]], 2:[[9,14]], 3:[[9,14]], 4:[[9,14]], 5:[[9,14]] },
+        august: {},
+        telHref: 'tel:+34955225945'
+    };
+    // Etiquetas de horario auto-traducidas por nosotros (Google no traduce el
+    // texto inyectado por JS ni el contenido CSS del FAB). Idioma activo via cookie.
+    var SCHED_VOCAB = {
+        es:{mon:'Lunes',tue:'Martes',wed:'Miércoles',thu:'Jueves',fri:'Viernes',sat:'Sábado',to:'a',and:'y',summer:'verano',xmas:'Navidad',feria:'Feria',holy:'Semana Santa',reduced:'Cerrado · email y WhatsApp'},
+        en:{mon:'Monday',tue:'Tuesday',wed:'Wednesday',thu:'Thursday',fri:'Friday',sat:'Saturday',to:'to',and:'and',summer:'summer',xmas:'Christmas',feria:'Feria',holy:'Holy Week',reduced:'Closed · email & WhatsApp'},
+        ca:{mon:'Dilluns',tue:'Dimarts',wed:'Dimecres',thu:'Dijous',fri:'Divendres',sat:'Dissabte',to:'a',and:'i',summer:'estiu',xmas:'Nadal',feria:'Fira',holy:'Setmana Santa',reduced:'Tancat · email i WhatsApp'},
+        eu:{mon:'Astelehena',tue:'Asteartea',wed:'Asteazkena',thu:'Osteguna',fri:'Ostirala',sat:'Larunbata',to:'–',and:'eta',summer:'uda',xmas:'Gabonak',feria:'Feria',holy:'Aste Santua',reduced:'Itxita · email eta WhatsApp'},
+        pt:{mon:'Segunda',tue:'Terça',wed:'Quarta',thu:'Quinta',fri:'Sexta',sat:'Sábado',to:'a',and:'e',summer:'verão',xmas:'Natal',feria:'Feira',holy:'Semana Santa',reduced:'Fechado · email e WhatsApp'},
+        fr:{mon:'Lundi',tue:'Mardi',wed:'Mercredi',thu:'Jeudi',fri:'Vendredi',sat:'Samedi',to:'au',and:'et',summer:'été',xmas:'Noël',feria:'Feria',holy:'Semaine Sainte',reduced:'Fermé · email et WhatsApp'},
+        de:{mon:'Montag',tue:'Dienstag',wed:'Mittwoch',thu:'Donnerstag',fri:'Freitag',sat:'Samstag',to:'bis',and:'und',summer:'Sommer',xmas:'Weihnachten',feria:'Feria',holy:'Karwoche',reduced:'Geschlossen · E-Mail & WhatsApp'},
+        it:{mon:'Lunedì',tue:'Martedì',wed:'Mercoledì',thu:'Giovedì',fri:'Venerdì',sat:'Sabato',to:'a',and:'e',summer:'estate',xmas:'Natale',feria:'Feria',holy:'Settimana Santa',reduced:'Chiuso · email e WhatsApp'},
+        nl:{mon:'Maandag',tue:'Dinsdag',wed:'Woensdag',thu:'Donderdag',fri:'Vrijdag',sat:'Zaterdag',to:'tot',and:'en',summer:'zomer',xmas:'Kerst',feria:'Feria',holy:'Goede Week',reduced:'Gesloten · e-mail & WhatsApp'},
+        pl:{mon:'Poniedziałek',tue:'Wtorek',wed:'Środa',thu:'Czwartek',fri:'Piątek',sat:'Sobota',to:'–',and:'i',summer:'lato',xmas:'Boże Narodzenie',feria:'Feria',holy:'Wielki Tydzień',reduced:'Zamknięte · email i WhatsApp'},
+        ro:{mon:'Luni',tue:'Marți',wed:'Miercuri',thu:'Joi',fri:'Vineri',sat:'Sâmbătă',to:'–',and:'și',summer:'vară',xmas:'Crăciun',feria:'Feria',holy:'Săptămâna Mare',reduced:'Închis · email și WhatsApp'},
+        uk:{mon:'Понеділок',tue:'Вівторок',wed:'Середа',thu:'Четвер',fri:'П\'ятниця',sat:'Субота',to:'–',and:'і',summer:'літо',xmas:'Різдво',feria:'Feria',holy:'Страсний тиждень',reduced:'Зачинено · email і WhatsApp'},
+        'zh-CN':{mon:'周一',tue:'周二',wed:'周三',thu:'周四',fri:'周五',sat:'周六',to:'至',and:'和',summer:'夏季',xmas:'圣诞',feria:'节庆',holy:'圣周',reduced:'关闭 · 邮件和 WhatsApp'}, 'ar':{mon:'الاثنين',tue:'الثلاثاء',wed:'الأربعاء',thu:'الخميس',fri:'الجمعة',sat:'السبت',to:'إلى',and:'و',summer:'الصيف',xmas:'عيد الميلاد',feria:'موسم الأعياد',holy:'أسبوع الآلام',reduced:'مغلق · البريد وواتساب'}
+    };
+    function schedLang(){ var m=document.cookie.match(/googtrans=\/[\w-]+\/([\w-]+)/); var l=m?m[1]:'es'; return SCHED_VOCAB[l]?l:'es'; }
+    function buildLabels(lang){ var v=SCHED_VOCAB[lang]||SCHED_VOCAB.es; function rng(a,b){return v.to==='–'?(a+'–'+b):(a+' '+v.to+' '+b);}
+        return { phone:{ labelLong:rng(v.mon,v.thu)+' 9:00-14:00 '+v.and+' 15:00-17:00 · '+v.fri+' 9:00-14:00', labelShort:rng(v.mon,v.thu)+' 9-14 '+v.and+' 15-17 · '+v.fri+' 9-14',
+            labelSummerLong:rng(v.mon,v.fri)+' 9:00-14:00 ('+v.summer+')', labelSummerShort:rng(v.mon,v.fri)+' 9-14 ('+v.summer+')',
+            labelXmasLong:rng(v.mon,v.fri)+' 9:00-14:00 ('+v.xmas+')', labelXmasShort:rng(v.mon,v.fri)+' 9-14 ('+v.xmas+')',
+            labelFeriaLong:rng(v.tue,v.fri)+' 9:00-14:00 ('+v.feria+')', labelFeriaShort:rng(v.tue,v.fri)+' 9-14 ('+v.feria+')',
+            labelHolyLong:rng(v.mon,v.wed)+' 9:00-14:00 ('+v.holy+')', labelHolyShort:rng(v.mon,v.wed)+' 9-14 ('+v.holy+')', labelAugLong:(v.reduced||'Cerrado · email y WhatsApp'), labelAugShort:(v.reduced||'Cerrado · email y WhatsApp') },
+            online:{ labelLong:rng(v.mon,v.sat)+' 8:00-20:00', labelShort:rng(v.mon,v.sat)+' 8-20' } };
+    }
+    var LABELS = buildLabels(schedLang());
+    function getNow() { return new Date(new Date().toLocaleString('en-US', { timeZone:'Europe/Madrid' })); }
+    function isAugustReduced(date){ return date.getMonth()===7 && date.getDate()>=6 && date.getDate()<=27; }
+    function isSummer(d) { var m=d.getMonth(), dd=d.getDate(); if(m===5&&dd>=15)return true; if(m===6||m===7)return true; if(m===8&&dd<=1)return true; return false; }
+    function isXmas(d) { var m=d.getMonth(), dd=d.getDate(); if(m===11&&dd>=22)return true; if(m===0&&dd<=6)return true; return false; }
+    function isFeria(d) { var e=easterSunday(d.getFullYear()); var f1=new Date(e.getFullYear(),e.getMonth(),e.getDate()+16); var f2=new Date(e.getFullYear(),e.getMonth(),e.getDate()+19); var s=new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime(); return s>=f1.getTime()&&s<=f2.getTime(); }
+    function isHolyWeek(d) { var e=easterSunday(d.getFullYear()); var mo=new Date(e.getFullYear(),e.getMonth(),e.getDate()-6).getTime(); var we=new Date(e.getFullYear(),e.getMonth(),e.getDate()-4).getTime(); var s=new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime(); return s>=mo&&s<=we; }
+    function isShortSchedule(d) { return isSummer(d)||isXmas(d)||isFeria(d)||isHolyWeek(d); }
+    function easterSunday(y) { return FESTIVOS.easterSunday(y); }
+    function getHolidayName(d) { return FESTIVOS.get('es', d); }
+    function isPhoneHoursNow() {
+        var n=getNow();
+        if (getHolidayName(n)) return false;
+        var day=n.getDay();
+        if (day===0||day===6) return false;
+        var tbl=isAugustReduced(n)?SCHEDULE.august:(isShortSchedule(n)?SCHEDULE.summer:SCHEDULE.winter);
+        var rg=tbl[day]; if (!rg) return false;
+        var t=n.getHours()+n.getMinutes()/60;
+        return rg.some(function(r){return t>=r[0]&&t<r[1];});
+    }
+    // Horario online Lunes a Sábado 8-20 + estado dinamico del chip "En linea"
+    function isOnlineHoursNow() {
+        var now=getNow();
+        if (getHolidayName(now)) return false;
+        var day=now.getDay();
+        if (day===0) return false;
+        var h=now.getHours();
+        return h>=8 && h<20;
+    }
+    function nextOnlineMoment() {
+        var c=new Date(getNow());
+        for (var i=0;i<8;i++) {
+            var day=c.getDay();
+            if (day!==0 && !getHolidayName(c)) {
+                if (i===0) {
+                    var h=c.getHours();
+                    if (h>=8&&h<20) return null;
+                    if (h<8) { var t=new Date(c); t.setHours(8,0,0,0); return t; }
+                } else { var t=new Date(c); t.setHours(8,0,0,0); return t; }
+            }
+            c.setDate(c.getDate()+1); c.setHours(0,0,0,0);
+        }
+        return null;
+    }
+    function formatTimeUntilOnline() {
+        var next=nextOnlineMoment(); if (!next) return '';
+        var diffMs=next.getTime()-getNow().getTime();
+        var diffMin=Math.round(diffMs/60000);
+        if (diffMin<60) return 'en breve';
+        var diffH=Math.round(diffMs/3600000);
+        if (diffH<=18) return diffH===1?'en 1 hora':'en '+diffH+' horas';
+        var diffD=Math.ceil(diffH/24);
+        return diffD===1?'mañana':'en '+diffD+' días';
+    }
+    function syncOnlineStatus() {
+        var online=isOnlineHoursNow();
+        var txt=online?'En línea · Respondo enseguida':'He salido · Vuelvo '+formatTimeUntilOnline();
+        document.querySelectorAll('.contact-fab-name-status').forEach(function (el) {
+            el.textContent=txt; el.classList.toggle('offline', !online);
+        });
+    }
+    syncOnlineStatus();
+    setInterval(syncOnlineStatus, 60000);
+    document.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('a[href^="tel:"]');
+        if (!a) return;
+        if (a.closest('#phoneModal')) return;
+        if (isPhoneHoursNow()) return;
+        e.preventDefault();
+        showPhoneOutOfHoursModal(a.getAttribute('href'));
+    });
+    function showPhoneOutOfHoursModal(telHref) {
+        var modal = document.getElementById('phoneModal');
+        if (!modal) return;
+        var anyway = modal.querySelector('.phone-modal-anyway');
+        if (anyway) anyway.setAttribute('href', telHref || SCHEDULE.telHref);
+        var now = getNow();
+        var hol = getHolidayName(now);
+        var title = modal.querySelector('#phoneModalTitle');
+        var sub = modal.querySelector('.phone-modal-reason');
+        if (hol) {
+            if (title) title.textContent = 'Hoy es festivo (' + hol + ')';
+            if (sub) sub.textContent = 'Hoy no atendemos llamadas por ser festivo nacional. Estamos disponibles por email y WhatsApp:';
+        } else if (isAugustReduced(now)) {
+            if (title) title.textContent = 'Teléfono cerrado (6-27 agosto)';
+            if (sub) sub.textContent = 'Del 6 al 27 de agosto no atendemos llamadas. Estamos disponibles por email y WhatsApp:';
+        } else {
+            if (title) title.textContent = 'Fuera de horario telefónico';
+            var lbl = LABELS.phone.labelLong;
+            if (isAugustReduced(now)) lbl = LABELS.phone.labelAugLong;
+            else if (isHolyWeek(now)) lbl = LABELS.phone.labelHolyLong;
+            else if (isFeria(now)) lbl = LABELS.phone.labelFeriaLong;
+            else if (isXmas(now)) lbl = LABELS.phone.labelXmasLong;
+            else if (isSummer(now)) lbl = LABELS.phone.labelSummerLong;
+            if (sub) sub.innerHTML = 'Nuestro teléfono se atiende <strong class="notranslate">' + lbl + '</strong>. Estamos disponibles por email y WhatsApp <strong class="notranslate">' + LABELS.online.labelLong + '</strong>:';
+        }
+        modal.classList.add('open');
+    }
+    function closePhoneModal() {
+        var modal = document.getElementById('phoneModal');
+        if (modal) modal.classList.remove('open');
+    }
+    window.closePhoneModal = closePhoneModal;
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            var modal = document.getElementById('phoneModal');
+            if (modal && modal.classList.contains('open')) closePhoneModal();
+        }
+    });
+    function applyScheduleLabels(lang) {
+        LABELS = buildLabels(lang && SCHED_VOCAB[lang] ? lang : schedLang());
+        var now = getNow();
+        function phoneLabel(key) {
+            if (isAugustReduced(now)) return key==='short' ? LABELS.phone.labelAugShort : LABELS.phone.labelAugLong;
+            if (isHolyWeek(now)) return key==='short' ? LABELS.phone.labelHolyShort   : LABELS.phone.labelHolyLong;
+            if (isFeria(now))  return key==='short' ? LABELS.phone.labelFeriaShort  : LABELS.phone.labelFeriaLong;
+            if (isXmas(now))   return key==='short' ? LABELS.phone.labelXmasShort   : LABELS.phone.labelXmasLong;
+            if (isSummer(now)) return key==='short' ? LABELS.phone.labelSummerShort : LABELS.phone.labelSummerLong;
+            return key==='short' ? LABELS.phone.labelShort : LABELS.phone.labelLong;
+        }
+        function onlineLabel(key) { return key==='short' ? LABELS.online.labelShort : LABELS.online.labelLong; }
+        function resolve(key) {
+            var p = key.split('-'), w = p[1];
+            if (p[0]==='phone')  return phoneLabel(w);
+            if (p[0]==='online') return onlineLabel(w);
+            return null;
+        }
+        document.querySelectorAll('[data-sched]').forEach(function (el) {
+            var v = resolve(el.getAttribute('data-sched')); if (v) { el.textContent = v; el.classList.add('notranslate'); }
+        });
+        document.querySelectorAll('[data-sched-attr]').forEach(function (el) {
+            var v = resolve(el.getAttribute('data-sched-attr')); if (v) el.setAttribute('data-hours', v);
+        });
+    }
+    applyScheduleLabels();
+    </script>
+
+</body>
+</html>
