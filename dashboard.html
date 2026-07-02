@@ -1940,6 +1940,18 @@
         .ptar-actions .btn-primary,
         .ptar-actions .btn-secondary { flex: 1; min-width: 180px; }
         .ptar-actions .btn-ghost { flex: 0 0 auto; }
+        /* Acciones del form de crear envío: 2 columnas (Crear envío | Guardar
+           presupuesto) más altas para pulsar sin errar, y Cancelar a lo ancho
+           debajo con la misma altura. */
+        .ptar-actions-main { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+        .ptar-actions-main .btn-primary,
+        .ptar-actions-main .btn-secondary {
+            flex: none; min-width: 0; min-height: 60px;
+            font-size: 1.02rem; font-weight: 800;
+        }
+        .ptar-actions-main .btn-ghost {
+            grid-column: 1 / -1; width: 100%; min-height: 52px; font-size: 0.98rem;
+        }
 
         @media (max-width: 768px) {
             .ptar-card { padding: 0.9rem 0.9rem 1rem; }
@@ -2878,7 +2890,7 @@
 
             <div class="ptar-warning" data-ptar-warning role="alert">⚠ Introduce el origen y el destino antes de continuar.</div>
 
-            <div class="ptar-actions">
+            <div class="ptar-actions ptar-actions-main">
                 <button type="button" class="btn-primary" data-ptar-submit>Crear envío</button>
                 <button type="button" class="btn-secondary" data-ptar-save-presupuesto>Guardar presupuesto</button>
                 <button type="button" class="btn-ghost" onclick="showSection('dashboard');return false;">Cancelar</button>
