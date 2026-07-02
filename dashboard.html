@@ -3283,9 +3283,15 @@
     function findRowByRef(sectionId, ref) {
         var sec = document.getElementById(sectionId);
         if (!sec) return null;
-        var refs = sec.querySelectorAll('tbody tr td.ref');
-        for (var i = 0; i < refs.length; i++) {
-            if (refs[i].textContent.trim() === ref) return refs[i].closest('tr');
+        var rows = sec.querySelectorAll('tbody tr');
+        for (var i = 0; i < rows.length; i++) {
+            // La celda .ref ahora contiene nº + ref. cliente + badge; el nº real
+            // es el primer <strong>. Comparamos SOLO con él.
+            var refCell = rows[i].querySelector('td.ref');
+            if (!refCell) continue;
+            var strong = refCell.querySelector('strong');
+            var rref = strong ? strong.textContent.trim() : refCell.textContent.trim();
+            if (rref === ref) return rows[i];
         }
         return null;
     }
@@ -6616,6 +6622,17 @@
                     if (notesTxt) notesTxt.value = '';
                     renderOcupacion();
                     renderEta();
+                    // Precio heredado del presupuesto/carga origen. Como al
+                    // pre-rellenar no hay coordenadas, renderEta no calcula precio;
+                    // lo mostramos aquí. Al modificar cualquier campo, renderEta
+                    // recalcula (o pide origen/destino con coords).
+                    if (src.precio && etaBox) {
+                        var fromP = String(src.ref || '').indexOf('#P') === 0 ? 'presupuesto' : 'envío anterior';
+                        etaBox.innerHTML = '<dl class="ptar-eta-data">' +
+                            '<dt>Precio (del ' + fromP + ')</dt>' +
+                            '<dd class="ptar-eta-precio">' + escapeHtml(src.precio) + ' <span class="ptar-iva">(IVA 21% no incluido)</span></dd>' +
+                            '</dl>';
+                    }
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 };
             }
