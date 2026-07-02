@@ -5042,8 +5042,13 @@
         //                las del pasado lejano interesan menos)
         // - Resto (Programadas, Canceladas, Todas): fecha efectiva ASC
         //                (las más próximas a cargar arriba — operativo)
+        // Fecha efectiva para ordenar: la fijada por el equipo si existe;
+        // en su defecto, el ÚLTIMO día de la ventana de carga (mismo criterio
+        // que el color de la fila), no el primero.
         function effFecha(c) {
-            return c.fechaAsignada ? c.fechaAsignada.split(' ')[0] : c.fecha;
+            if (c.fechaAsignada) return c.fechaAsignada.split(' ')[0];
+            var fin = ventanaFin(c.fecha, c.ventana);
+            return fin ? toDDMM(fin) : c.fecha;
         }
         if (f === 'prevision') {
             arr.sort(function (a, b) { return refNumber(b) - refNumber(a); });
