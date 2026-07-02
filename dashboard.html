@@ -1371,7 +1371,6 @@
         /* Matrícula resaltada en navy bold; pendientes en itálica gris claro */
         table.data .meta-matricula { color: var(--navy); font-weight: 700; letter-spacing: 0.3px; }
         table.data .meta-pend      { color: var(--gray-400); font-style: italic; }
-        table.data .meta-exceso    { color: #b91c1c; font-weight: 700; }
         /* Estado de asignación de transportista — línea bajo el badge de estado.
             espera     gris
             asignandose ámbar con punto pulsante (backend buscando)
@@ -5204,19 +5203,8 @@
                     '</td>' +
                     '<td>' +
                         '<div class="fecha-linea"><strong>' + esc(fechaLinea) + '</strong></div>' +
-                        (function () {
-                            // Días desde hoy hasta el último día de la ventana (solo
-                            // mientras no hay fecha confirmada y la carga sigue viva).
-                            // En entregadas/canceladas no aplica. Negativo = excedidos.
-                            if (asigDate || c.kind === 'entregada' || c.kind === 'cancelada') return '';
-                            var d = diasHasta(ventanaFin(c.fecha, c.ventana));
-                            if (d == null) return '';
-                            if (d > 0)  return '<div class="meta">(Faltan ' + d + ' día' + (d === 1 ? '' : 's') + ')</div>';
-                            if (d === 0) return '<div class="meta meta-eta">(Hoy, último día para cargar)</div>';
-                            return '<div class="meta meta-exceso">(Excedido ' + Math.abs(d) + ' día' + (Math.abs(d) === 1 ? '' : 's') + ')</div>';
-                        })() +
                         (c.horarioOrigen ? '<div class="meta">' + esc(c.horarioOrigen) + '</div>' : '') +
-                        (c.horaCargaEst ? '<div class="meta meta-asignada">Carga est. ' + esc(c.horaCargaEst) + '</div>' : '') +
+                        (c.horaCargaEst ? '<div class="meta meta-asignada">Est. ' + esc(c.horaCargaEst) + '</div>' : '') +
                     '</td>' +
                     '<td class="route-full">' +
                         '<div class="rf-line"><span class="rf-dot orig"></span><span>' + esc(ciudadDir(c.origen, c.origenDir)) + '</span></div>' +
