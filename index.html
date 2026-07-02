@@ -1011,7 +1011,7 @@
             cursor: help; width: fit-content;
         }
         .ptar-tip-ico { width: 14px; height: 14px; opacity: 0.5; flex-shrink: 0; }
-        .ptar-has-tip:hover .ptar-tip-ico, .ptar-has-tip:focus .ptar-tip-ico { opacity: 0.9; }
+        .ptar-has-tip:focus-visible .ptar-tip-ico, .ptar-has-tip.tip-open .ptar-tip-ico { opacity: 0.9; }
         .ptar-tip-pop {
             position: fixed; top: 0; left: 0;
             width: min(262px, calc(100vw - 16px));
@@ -1024,8 +1024,18 @@
             transition: opacity 0.15s ease, transform 0.15s ease; z-index: 2000;
         }
         .ptar-tip-pop strong { color: #ffd98a; font-weight: 800; }
-        .ptar-has-tip:hover .ptar-tip-pop, .ptar-has-tip:focus .ptar-tip-pop, .ptar-has-tip:focus-within .ptar-tip-pop {
+        /* Se muestra: con teclado (:focus-visible, NO con click de ratón) o
+           en táctil vía clase .tip-open (JS). El hover va aparte, solo en
+           dispositivos con puntero real, para no quedar pegado en desktop
+           tras un click ni en iOS por el hover pegajoso. */
+        .ptar-has-tip:focus-visible .ptar-tip-pop, .ptar-has-tip.tip-open .ptar-tip-pop {
             opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0);
+        }
+        @media (hover: hover) {
+            .ptar-has-tip:hover .ptar-tip-ico { opacity: 0.9; }
+            .ptar-has-tip:hover .ptar-tip-pop {
+                opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0);
+            }
         }
         /* CTA: solicitar tarifa -> revela Email + WhatsApp */
         .tar-cta-wrap { margin-top: 0.55rem; }
@@ -4938,16 +4948,29 @@ function updateAlmTotal() {
             pop.style.left = Math.round(left) + 'px';
             pop.style.top = Math.round(top) + 'px';
         }
-        ['pointerenter', 'focusin', 'touchstart', 'click'].forEach(function (ev) {
-            host.addEventListener(ev, place, { passive: true });
-        });
+        // Ratón/teclado (desktop): se coloca al entrar o al enfocar; el CSS lo
+        // muestra con :hover / :focus-visible y se oculta solo al salir. Un click
+        // ya no lo deja pegado.
+        host.addEventListener('pointerenter', place, { passive: true });
+        host.addEventListener('focusin', place, { passive: true });
+        // Táctil (móvil): tap para abrir/cerrar. Cierra cualquier otro abierto.
+        host.addEventListener('touchstart', function () {
+            var willOpen = !host.classList.contains('tip-open');
+            card.querySelectorAll('.ptar-has-tip.tip-open').forEach(function (h) { h.classList.remove('tip-open'); });
+            if (willOpen) { place(); host.classList.add('tip-open'); }
+        }, { passive: true });
     });
-    // Cierra los tooltips (quita el hover "pegajoso" de iOS) al tocar fuera.
-    document.addEventListener('touchstart', function (e) {
-        if (!e.target.closest('.ptar-has-tip')) {
-            card.querySelectorAll('.ptar-has-tip').forEach(function (h) { h.blur && h.blur(); });
-        }
-    }, { passive: true });
+    // Cierra los tooltips al tocar/clicar fuera (móvil y desktop).
+    ['touchstart', 'pointerdown'].forEach(function (ev) {
+        document.addEventListener(ev, function (e) {
+            if (!e.target.closest('.ptar-has-tip')) {
+                card.querySelectorAll('.ptar-has-tip').forEach(function (h) {
+                    h.classList.remove('tip-open');
+                    if (h.blur) h.blur();
+                });
+            }
+        }, { passive: true });
+    });
 
     // Hero: alternar entre la pantalla por defecto (texto + 2 CTAs) y el
     // tarifador. "Precios" abre el tarifador; el boton minimizar (-) del
