@@ -2569,7 +2569,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Envío</th><th>Fecha · Ventana</th><th>Ruta</th><th>Mercancía</th><th>m · Tn</th><th>Vehículo</th><th>Estado</th>
+                    <th>Envío</th><th>Fecha · Ventana</th><th>Ruta</th><th>Mercancía</th><th>Vehículo</th><th>Estado</th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -2612,7 +2612,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Presupuesto</th><th>Fecha solic.</th><th>Ruta</th><th>Mercancía</th><th>m · Tn</th><th>Precio</th><th>Vigente hasta</th>
+                    <th>Presupuesto</th><th>Fecha solic.</th><th>Ruta</th><th>Mercancía</th><th>Precio</th><th>Vigente hasta</th>
                 </tr></thead>
                 <tbody id="tbodyPresupuestos"></tbody>
             </table>
@@ -5336,8 +5336,6 @@
                 // Fecha: si está confirmada, la fecha asignada; si no, el rango
                 // inicio–fin de la ventana de carga.
                 var fechaLinea = asigDate ? fechaConDia(asigDate) : ventanaRango(c.fecha, c.ventana);
-                // Vehículo: "Grupaje - Rígido 8 m con plataforma" (tipo carga + camión)
-                var vehTipo = (cargaCorta(c.tipoCarga) || '') + (c.tipoCarga && c.tipoCamion ? ' - ' : '') + (c.tipoCamion || '');
                 // Estado (última columna): solo estado de asignación de transportista.
                 var asig = getAsignacionEstado(c);
                 return '<tr' + rowCls + '>' +
@@ -5354,10 +5352,12 @@
                         '<div class="rf-line"><span class="rf-dot orig"></span><span>' + esc(ciudadDir(c.origen, c.origenDir)) + '</span></div>' +
                         '<div class="rf-line"><span class="rf-dot dest"></span><span>' + esc(ciudadDir(c.destino, c.destinoDir)) + '</span></div>' +
                     '</td>' +
-                    '<td>' + esc(c.mercancia) + '</td>' +
-                    '<td class="amount">' + esc(medidasTn(c.medidas)) + '</td>' +
+                    '<td>' + esc(c.mercancia) +
+                        '<div class="meta">' + esc(medidasTn(c.medidas)) + '</div>' +
+                        (c.tipoCarga ? '<div class="meta">' + esc(cargaCorta(c.tipoCarga)) + '</div>' : '') +
+                    '</td>' +
                     '<td class="vehiculo">' + (c.matricula ? '<span class="meta-matricula">' + esc(c.matricula) + '</span>' : '<span class="meta meta-pend">Sin matrícula</span>') +
-                        (vehTipo ? '<div class="meta">' + esc(vehTipo) + '</div>' : '') +
+                        (c.tipoCamion ? '<div class="meta">' + esc(c.tipoCamion) + '</div>' : '') +
                     '</td>' +
                     '<td>' +
                         (asig ? '<div class="asig-line asig-' + asig.key + '"><span class="asig-dot"></span>' + esc(asig.label) + '</div>' : '<span class="meta meta-pend">—</span>') +
@@ -5409,8 +5409,7 @@
                         '<div class="rf-line"><span class="rf-dot orig"></span><span>' + esc(ciudadDir(p.origen, p.origenDir)) + '</span></div>' +
                         '<div class="rf-line"><span class="rf-dot dest"></span><span>' + esc(ciudadDir(p.destino, p.destinoDir)) + '</span></div>' +
                     '</td>' +
-                    '<td>' + esc(p.mercancia) + '</td>' +
-                    '<td class="amount">' + esc(medidasTn(p.medidas)) + '</td>' +
+                    '<td>' + esc(p.mercancia) + '<div class="meta">' + esc(medidasTn(p.medidas)) + '</div></td>' +
                     '<td class="amount">' + esc(p.precio) + '</td>' +
                     '<td>' + esc(p.vigencia) + '</td>' +
                     actionsCell(actionItemsPresupuesto(p.kind)) +
