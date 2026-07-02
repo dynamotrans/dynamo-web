@@ -1358,6 +1358,10 @@
         table.data td.vehiculo { width: 1%; white-space: nowrap; }
         table.data td.vehiculo .meta-matricula { white-space: nowrap; }
         table.data td.vehiculo .meta { white-space: normal; }
+        /* Mercancía: la línea de metros · toneladas nunca se parte (la columna
+           se ensancha lo necesario para mostrarla completa en una sola línea).
+           El nombre de la mercancía sí puede envolver. */
+        table.data td.mercancia .meta-medidas { white-space: nowrap; }
         table.data td.ref .envio-estado .badge { font-size: 0.68rem; }
         table.data .meta { font-size: 0.72rem; color: var(--gray-500); }
         /* Sub-líneas extra en la columna de fecha — diferenciadas en color
@@ -5218,8 +5222,8 @@
                         '<div class="rf-line"><span class="rf-dot orig"></span><span>' + esc(ciudadDir(c.origen, c.origenDir)) + '</span></div>' +
                         '<div class="rf-line"><span class="rf-dot dest"></span><span>' + esc(ciudadDir(c.destino, c.destinoDir)) + '</span></div>' +
                     '</td>' +
-                    '<td>' + esc(c.mercancia) +
-                        '<div class="meta">' + esc(medidasTn(c.medidas)) + '</div>' +
+                    '<td class="mercancia">' + esc(c.mercancia) +
+                        '<div class="meta meta-medidas">' + esc(medidasTn(c.medidas)) + '</div>' +
                         '<div class="meta">' + esc(cargaCorta(c.tipoCarga) || cargaFromMedidas(c.medidas)) + '</div>' +
                     '</td>' +
                     '<td class="vehiculo">' + (c.matricula ? '<span class="meta-matricula">' + esc(c.matricula) + '</span>' : '<span class="meta meta-pend">Sin matrícula</span>') +
