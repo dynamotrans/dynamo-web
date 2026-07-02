@@ -5383,7 +5383,7 @@
                     '</td>' +
                     '<td>' + esc(c.mercancia) +
                         '<div class="meta">' + esc(medidasTn(c.medidas)) + '</div>' +
-                        (c.tipoCarga ? '<div class="meta">' + esc(cargaCorta(c.tipoCarga)) + '</div>' : '') +
+                        '<div class="meta">' + esc(cargaCorta(c.tipoCarga) || cargaFromMedidas(c.medidas)) + '</div>' +
                     '</td>' +
                     '<td class="vehiculo">' + (c.matricula ? '<span class="meta-matricula">' + esc(c.matricula) + '</span>' : '<span class="meta meta-pend">Sin matrícula</span>') +
                         (c.tipoCamion ? '<div class="meta">' + esc(c.tipoCamion) + '</div>' : '') +
