@@ -5157,7 +5157,13 @@
                     return m ? m[1] : null;
                 }
                 var hiSrc = null;
-                if (c.kind === 'programada') hiSrc = fechaPrincipal;
+                if (c.kind === 'programada') {
+                    // Color de urgencia: la fecha fijada por el equipo si existe;
+                    // en su defecto, el ÚLTIMO día de la ventana de carga (el
+                    // plazo real para poder cargar), no el primero.
+                    var finVent = ventanaFin(c.fecha, c.ventana);
+                    hiSrc = asigDate || (finVent ? toDDMM(finVent) : c.fecha);
+                }
                 else if (c.kind === 'en-ruta') hiSrc = extractDDMM(c.etaEntrega) || fechaPrincipal;
                 var hi = hiSrc ? highlightInfo(hiSrc) : null;
                 var rowCls = '';
