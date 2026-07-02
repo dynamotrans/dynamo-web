@@ -2552,7 +2552,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Envío</th><th>Fecha · Ventana</th><th>Ruta</th><th>Mercancía</th><th>m · kg</th><th>Vehículo</th><th>Estado</th>
+                    <th>Envío</th><th>Fecha · Ventana</th><th>Ruta</th><th>Mercancía</th><th>m · Tn</th><th>Vehículo</th><th>Estado</th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -5095,6 +5095,17 @@
     }
     // Tipo de carga en versión corta para la columna Vehículo
     function cargaCorta(t) { if (!t) return ''; return /completa/i.test(t) ? 'Completo' : t; }
+    // Convierte el peso en kg del string de medidas a toneladas para ocupar
+    // menos espacio. "8,4 m · 14.500 kg" → "8,4 m · 14,5 Tn". Sin decimales
+    // cuando es entero: "24.000 kg" → "24 Tn".
+    function medidasTn(s) {
+        return String(s || '').replace(/([\d.]+)\s*kg/i, function (_, num) {
+            var kg = parseInt(num.replace(/\./g, ''), 10);
+            if (isNaN(kg)) return num + ' kg';
+            var tn = Math.round((kg / 1000) * 10) / 10;
+            return String(tn).replace('.', ',') + ' Tn';
+        });
+    }
     // Dirección completa por ciudad (mock; en producción vendrá del backend
     // con la dirección real capturada en el tarifador). Formato:
     // "CP, población, provincia, país". Fallback: "<ciudad>, España".
@@ -5305,7 +5316,7 @@
                         '<div class="rf-line"><span class="rf-dot dest"></span><span>' + esc(ciudadDir(c.destino, c.destinoDir)) + '</span></div>' +
                     '</td>' +
                     '<td>' + esc(c.mercancia) + (c.mercanciaMeta ? '<div class="meta">' + esc(c.mercanciaMeta) + '</div>' : '') + '</td>' +
-                    '<td class="amount">' + esc(c.medidas) + '</td>' +
+                    '<td class="amount">' + esc(medidasTn(c.medidas)) + '</td>' +
                     '<td>' + (c.matricula ? '<span class="meta-matricula">' + esc(c.matricula) + '</span>' : '<span class="meta meta-pend">Sin matrícula</span>') +
                         (vehTipo ? '<div class="meta">' + esc(vehTipo) + '</div>' : '') +
                     '</td>' +
