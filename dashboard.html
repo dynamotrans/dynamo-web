@@ -1290,16 +1290,18 @@
             box-shadow: inset 6px 0 0 0 #b91c1c;
         }
         table.data tr.row-overdue:hover { background: #fecaca; }
+        /* Hoy: ámbar claro */
         table.data tr.row-today {
-            background: #fff1f1;
-            box-shadow: inset 4px 0 0 0 #ef4444;
-        }
-        table.data tr.row-today:hover { background: #ffe2e2; }
-        table.data tr.row-tomorrow {
-            background: #fff8eb;
+            background: #fff7ea;
             box-shadow: inset 4px 0 0 0 #f59e0b;
         }
-        table.data tr.row-tomorrow:hover { background: #fef0d3; }
+        table.data tr.row-today:hover { background: #ffefd3; }
+        /* Siguiente día hábil: amarillo claro */
+        table.data tr.row-tomorrow {
+            background: #fefce8;
+            box-shadow: inset 4px 0 0 0 #eab308;
+        }
+        table.data tr.row-tomorrow:hover { background: #fef9c3; }
         table.data tr.row-aftertomorrow {
             background: #f0fdf4;
             box-shadow: inset 4px 0 0 0 #10b981;
@@ -5192,12 +5194,13 @@
                 // cada caso).
                 var whenTagTop = '', whenTagEta = '';
                 if (hi) {
+                    // Solo 3 casos resaltan la fila: retrasada (rojo claro),
+                    // hoy (ámbar claro) y siguiente día hábil (amarillo claro).
+                    // El resto (pasado mañana, 3-7 días, >7 días) queda como
+                    // fila estándar sin color.
                     if (hi.level === -1)     rowCls = ' class="row-overdue"';
                     else if (hi.level === 0) rowCls = ' class="row-today"';
                     else if (hi.level === 1) rowCls = ' class="row-tomorrow"';
-                    else if (hi.level === 2) rowCls = ' class="row-aftertomorrow"';
-                    // Lejana (>7 días) solo para programadas: la atenuamos en gris
-                    else if (hi.level === 9 && c.kind === 'programada') rowCls = ' class="row-far"';
                     if (hi.label === 'RETRASADA') {
                         var lateText = pendienteAsignarText(c) || 'Pendiente Asignar';
                         tagHtml = '<span class="row-when-tag tag-overdue">' + esc(lateText) + '</span>';
