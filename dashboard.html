@@ -4613,69 +4613,53 @@
         var diff = Math.floor((now.getTime() - cargaDate.getTime()) / (1000*60*60*24));
         return diff;
     }
+    // Helpers de fecha DINÁMICA para el mock: que los estados coincidan con
+    // "hoy" al visualizar (son datos ficticios, no reales). En producción las
+    // fechas vendrán del backend.
+    function _mockDDMM(d) { return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2); }
+    function _mockHoyLaborable() { var d = new Date(); while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1); return d; }
+    function mockHoy() { return _mockDDMM(_mockHoyLaborable()); }
+    function mockFuturo(nBiz) { var d = _mockHoyLaborable(); var a = 0; while (a < nBiz) { d.setDate(d.getDate() + 1); var w = d.getDay(); if (w !== 0 && w !== 6) a++; } return _mockDDMM(d); }
+    function mockPasado(nBiz) { var d = new Date(); var a = 0; while (a < nBiz) { d.setDate(d.getDate() - 1); var w = d.getDay(); if (w !== 0 && w !== 6) a++; } return _mockDDMM(d); }
     var CARGAS_DATA = [
-        // Programada con fecha lejana (>4 días laborables) + SIN transportista
-        // todavía → En espera. El backend aún no intenta asignar porque es
-        // demasiado pronto para la operativa diaria.
-        makeCarga('#C-2026-1294','PED-0430','03/07','1 a 2 días','Sevilla','Pamplona','Pol. Aeropuerto → Pol. Landaben','Paletizado','Componentes industriales','13,2 m · 23.500 kg','programada', undefined, {
-            precio: '1.340 €',
-            tipoCarga: 'Carga completa'
+        // === PASADO: 2 cargas con fecha ya vencida y todavía SIN transportista →
+        //     Pendiente Asignar (ayer y antes de ayer). Son las más urgentes. ===
+        makeCarga('#C-2026-1289','PED-0425B', mockPasado(1),'1 a 2 días','Sevilla','Logroño','Pol. Las Pajanosas → Pol. Cantabria','Maquinaria','Compresor industrial','8,4 m · 6.500 kg','programada', undefined, {
+            precio: '1.520 €', tipoCarga: 'Carga completa'
         }),
-        // Programada con fecha lejana + transportista Y matrícula YA asignados → Confirmado
-        // (caso típico: cliente reserva con tiempo y se cierra camión propio antes de la franja operativa)
-        makeCarga('#C-2026-1293','PED-0429','10/07','Fija','Sevilla','Valencia','Pol. Pajanosas → Puerto Valencia','Paletizado','Material eléctrico','13,2 m · 22.500 kg','programada', undefined, {
-            precio: '1.180 €', fechaAsignada: '10/07 07:00', horaCargaEst: '07:00', etaEntrega: 'Lun 13/07',
-            horarioOrigen: 'L-V 7:00-15:00', horarioDestino: 'L-V 6:30-14:00',
-            tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa',
-            transportistaAsignado: true, transportistaNombre: 'Dynamo (camión propio)',
-            matricula: '7204 LMR / R-9852', conductor: 'Pedro Rodríguez', tfnoConductor: '+34 661 902 411'
+        makeCarga('#C-2026-1287','PED-0424B', mockPasado(2),'1 a 4 días','Sevilla','Oviedo','Centro logístico → Pol. Silvota','Material obra','Perfiles metálicos','10,0 m · 16.500 kg','programada'),
+        // === FUTURO: programadas aún por cargar. El estado de asignación varía
+        //     (En espera / Asignándose / Confirmado) según transportista y días. ===
+        makeCarga('#C-2026-1281','PED-0419', mockFuturo(3),'Fija','Sevilla','Barcelona','Centro logístico → Zona Franca','Maquinaria','2 piezas, sobredim.','8,4 m · 14.500 kg','programada', undefined, {
+            precio: '1.180 €', tipoCarga: 'Grupaje',
+            transportistaAsignado: true, transportistaNombre: 'Trans Andalucía 24h',
+            matricula: '4291 KMN', conductor: 'Manuel Reyes', tfnoConductor: '+34 655 217 880'
         }),
-        // Previsión sin fecha definida → siempre "En espera"
-        makeCarga('#C-2026-1292','PED-0428','10/07','1 a 4 días','Sevilla','Vigo','Polígono Industrial → Bouzas','Maquinaria','Pieza única','8,4 m · 11.000 kg','programada'),
-        // Programada con fecha cercana + transportista Y matrícula → Confirmado
-        makeCarga('#C-2026-1290','PED-0426','28/06','1 a 2 días','Sevilla','Madrid','Pol. Industrial Carretera de la Isla → Mercamadrid','Paletizado','Productos químicos','13,2 m · 22.000 kg','programada', undefined, {
-            precio: '880 €', fechaAsignada: '29/06 08:00', horaCargaEst: '08:00', etaEntrega: 'Mar 30/06',
+        makeCarga('#C-2026-1285','PED-0423', mockFuturo(4),'Fija','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Paletizado','Repuestos automoción','12,0 m · 20.000 kg','programada', undefined, {
+            precio: '1.420 €', tipoCarga: 'Carga completa'
+        }),
+        makeCarga('#C-2026-1290','PED-0426', mockFuturo(7),'1 a 2 días','Sevilla','Madrid','Pol. Industrial Carretera de la Isla → Mercamadrid','Paletizado','Productos químicos','13,2 m · 22.000 kg','programada', undefined, {
+            precio: '880 €', fechaAsignada: mockFuturo(7) + ' 08:00', horaCargaEst: '08:00',
             horarioOrigen: 'L-V 7:00-15:00', horarioDestino: 'L-S 0:00-24:00',
             tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa',
             transportistaAsignado: true, transportistaNombre: 'Transportes Beltrán S.L.',
             matricula: '4502 NDZ', conductor: 'Antonio Beltrán', tfnoConductor: '+34 644 778 332'
         }),
-        // Programada con fecha cercana + transportista YA confirmado pero AÚN sin
-        // matrícula concreta (el transportista tiene 2 camiones en la zona y
-        // decidirá cuál usa el día anterior) → Confirmado transportista
-        makeCarga('#C-2026-1288','PED-0425','25/06','Fija','Sevilla','Barcelona','Polígono Carretera Amarilla → Mercabarna','Paletizado','Frutas y verduras','13,2 m · 24.000 kg','programada', undefined, {
-            precio: '1.480 €', fechaAsignada: '25/06 06:00', horaCargaEst: '06:00', etaEntrega: 'Vie 26/06',
-            horarioOrigen: 'L-V 5:30-13:00', horarioDestino: 'L-S 5:00-13:00',
-            tipoCamion: 'Trailer Tauliner frigorífico', tipoCarga: 'Carga completa',
-            transportistaAsignado: true, transportistaNombre: 'Transfrío Sur S.L.'
-            // matricula/conductor/tfno → null (pendientes; el transportista decidirá)
+        makeCarga('#C-2026-1294','PED-0430', mockFuturo(5),'1 a 2 días','Sevilla','Pamplona','Pol. Aeropuerto → Pol. Landaben','Paletizado','Componentes industriales','13,2 m · 23.500 kg','programada', undefined, {
+            precio: '1.340 €', tipoCarga: 'Carga completa'
         }),
-        // === MOCK PARA VER ESTADO "RETRASADA" ===
-        // Cargas programadas con fecha pasada que todavía no se han recogido.
-        // La ventana abrió hace varios días y el transportista no ha podido
-        // entrar en la finca de origen — son las más urgentes y deben
-        // resaltarse por encima de HOY/MAÑANA.
-        makeCarga('#C-2026-1289','PED-0425B','19/06','1 a 2 días','Sevilla','Logroño','Pol. Las Pajanosas → Pol. Cantabria','Maquinaria','Compresor industrial','8,4 m · 6.500 kg','programada', undefined, {
-            precio: '1.520 €', tipoCarga: 'Carga completa',
-            transportistaAsignado: true, transportistaNombre: 'Transportes Norte S.L.'
-        }),
-        makeCarga('#C-2026-1287','PED-0424B','18/06','1 a 4 días','Sevilla','Oviedo','Centro logístico → Pol. Silvota','Material obra','Perfiles metálicos','10,0 m · 16.500 kg','programada'),
-        // Programada con datos mínimos sin asignación todavía
-        makeCarga('#C-2026-1286','PED-0424','22/06','1 a 4 días','Sevilla','Valencia','Almacén central → Puerto','Eventos / feria','Stand modular','6,0 m · 8.200 kg','programada'),
-        makeCarga('#C-2026-1285','PED-0423','16/06','Fija','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Paletizado','Repuestos automoción','12,0 m · 20.000 kg','en-ruta', undefined, {
-            precio: '1.420 €', fechaAsignada: '16/06 07:30', horaCargaEst: '07:30', etaEntrega: 'Mié 17/06',
-            horarioOrigen: 'L-V 7:00-15:00', horarioDestino: 'L-V 8:00-17:00',
+        makeCarga('#C-2026-1293','PED-0429', mockFuturo(6),'Fija','Sevilla','Valencia','Pol. Pajanosas → Puerto Valencia','Paletizado','Material eléctrico','13,2 m · 22.500 kg','programada', undefined, {
+            precio: '1.180 €', fechaAsignada: mockFuturo(6) + ' 07:00', horaCargaEst: '07:00',
+            horarioOrigen: 'L-V 7:00-15:00', horarioDestino: 'L-V 6:30-14:00',
             tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa',
-            transportistaAsignado: true, transportistaNombre: 'Logística López e Hijos S.L.',
-            matricula: '8743 LZB / R-8214', conductor: 'José Ramón Pérez', tfnoConductor: '+34 612 998 401'
+            transportistaAsignado: true, transportistaNombre: 'Dynamo (camión propio)',
+            matricula: '7204 LMR / R-9852', conductor: 'Pedro Rodríguez', tfnoConductor: '+34 661 902 411'
         }),
-        makeCarga('#C-2026-1281','PED-0419','14/06','Fija','Sevilla','Barcelona','Centro logístico → Zona Franca','Maquinaria','2 piezas, sobredim.','8,4 m · 14.500 kg','en-ruta', undefined, {
-            precio: '1.180 €', fechaAsignada: '14/06 08:00', horaCargaEst: '08:00', etaEntrega: 'Mar 16/06',
-            horarioOrigen: 'L-V 8:00-14:00', horarioDestino: 'L-V 6:00-14:00',
-            tipoCamion: 'Rígido 8 m con plataforma', tipoCarga: 'Grupaje',
-            transportistaAsignado: true, transportistaNombre: 'Trans Andalucía 24h',
-            matricula: '4291 KMN', conductor: 'Manuel Reyes', tfnoConductor: '+34 655 217 880'
+        makeCarga('#C-2026-1292','PED-0428', mockFuturo(8),'1 a 4 días','Sevilla','Vigo','Polígono Industrial → Bouzas','Maquinaria','Pieza única','8,4 m · 11.000 kg','programada'),
+        makeCarga('#C-2026-1288','PED-0425', mockFuturo(2),'Fija','Sevilla','Barcelona','Polígono Carretera Amarilla → Mercabarna','Paletizado','Frutas y verduras','13,2 m · 24.000 kg','programada', undefined, {
+            precio: '1.480 €', tipoCarga: 'Carga completa'
         }),
+        makeCarga('#C-2026-1286','PED-0424', mockFuturo(9),'1 a 4 días','Sevilla','Valencia','Almacén central → Puerto','Eventos / feria','Stand modular','6,0 m · 8.200 kg','programada'),
         makeCarga('#C-2026-1284','PED-0421','15/06','1 a 2 días','Sevilla','Madrid','Pol. Carretera de la Isla → Mercamadrid','Paletizado','Aceite envasado','13,2 m · 24.000 kg','entregada', false),
         makeCarga('#C-2026-1283','PED-0420','13/06','Fija','Madrid','Valencia','Vallecas → Puerto','Paletizado','Bebidas refrigeradas','13,2 m · 22.000 kg','entregada'),
         makeCarga('#C-2026-1282','PED-0419B','12/06','1 a 2 días','Sevilla','Vigo','Polígono → Bouzas','Material obra','Cerámica','13,2 m · 20.000 kg','entregada'),
