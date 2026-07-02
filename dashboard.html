@@ -1340,6 +1340,12 @@
         table.data .fecha-linea strong { color: var(--navy); }
         table.data td.ref .ref-cli-line { color: var(--gray-500); font-size: 0.74rem; margin-top: 0.15rem; }
         table.data .envio-estado { margin-top: 0.35rem; }
+        /* Columna Vehículo ajustada al ancho de la matrícula más larga:
+           la matrícula nunca parte de línea; el tipo de camión de debajo se
+           reparte dentro de ese mismo ancho. */
+        table.data td.vehiculo { width: 1%; white-space: nowrap; }
+        table.data td.vehiculo .meta-matricula { white-space: nowrap; }
+        table.data td.vehiculo .meta { white-space: normal; }
         table.data td.ref .envio-estado .badge { font-size: 0.68rem; }
         table.data .meta { font-size: 0.72rem; color: var(--gray-500); }
         /* Sub-líneas extra en la columna de fecha — diferenciadas en color
@@ -5315,7 +5321,7 @@
                     '</td>' +
                     '<td>' + esc(c.mercancia) + '</td>' +
                     '<td class="amount">' + esc(medidasTn(c.medidas)) + '</td>' +
-                    '<td>' + (c.matricula ? '<span class="meta-matricula">' + esc(c.matricula) + '</span>' : '<span class="meta meta-pend">Sin matrícula</span>') +
+                    '<td class="vehiculo">' + (c.matricula ? '<span class="meta-matricula">' + esc(c.matricula) + '</span>' : '<span class="meta meta-pend">Sin matrícula</span>') +
                         (vehTipo ? '<div class="meta">' + esc(vehTipo) + '</div>' : '') +
                     '</td>' +
                     '<td>' +
