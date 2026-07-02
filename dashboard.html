@@ -1379,6 +1379,7 @@
         /* Matrícula resaltada en navy bold; pendientes en itálica gris claro */
         table.data .meta-matricula { color: var(--navy); font-weight: 700; letter-spacing: 0.3px; }
         table.data .meta-pend      { color: var(--gray-400); font-style: italic; }
+        table.data .meta-exceso    { color: #b91c1c; font-weight: 700; }
         /* Estado de asignación de transportista — línea bajo el badge de estado.
             espera     gris
             asignandose ámbar con punto pulsante (backend buscando)
@@ -5152,6 +5153,21 @@
         var fin = addBizDays(ini, dias - 1);
         return fechaConDia(fecha) + ' – ' + fechaConDia(toDDMM(fin));
     }
+    // Fecha más tardía de la ventana (último día para poder cargar).
+    function ventanaFin(fecha, ventana) {
+        var m = String(fecha || '').match(/^(\d{1,2})\/(\d{1,2})$/);
+        if (!m) return null;
+        var dias = ventanaDiasN(ventana);
+        var ini = new Date(new Date().getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+        return dias <= 1 ? ini : addBizDays(ini, dias - 1);
+    }
+    // Días naturales desde hoy hasta una fecha (negativo si ya pasó).
+    function diasHasta(date) {
+        if (!date) return null;
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        var d = new Date(date.getTime()); d.setHours(0, 0, 0, 0);
+        return Math.round((d.getTime() - today.getTime()) / 86400000);
+    }
     // Tipo de carga en versión corta para la columna Vehículo
     function cargaCorta(t) { if (!t) return ''; return /completa/i.test(t) ? 'Completo' : t; }
     // Deriva Completo/Grupaje a partir de los metros (los presupuestos no
@@ -5383,6 +5399,16 @@
                     '</td>' +
                     '<td>' +
                         '<div class="fecha-linea"><strong>' + esc(fechaLinea) + '</strong></div>' +
+                        (function () {
+                            // Días desde hoy hasta el último día de la ventana (solo
+                            // mientras no hay fecha confirmada). Negativo = excedidos.
+                            if (asigDate) return '';
+                            var d = diasHasta(ventanaFin(c.fecha, c.ventana));
+                            if (d == null) return '';
+                            if (d > 0)  return '<div class="meta">(Faltan ' + d + ' día' + (d === 1 ? '' : 's') + ')</div>';
+                            if (d === 0) return '<div class="meta meta-eta">(Hoy, último día para cargar)</div>';
+                            return '<div class="meta meta-exceso">(Excedido ' + Math.abs(d) + ' día' + (Math.abs(d) === 1 ? '' : 's') + ')</div>';
+                        })() +
                         (c.horarioOrigen ? '<div class="meta">' + esc(c.horarioOrigen) + '</div>' : '') +
                         (c.horaCargaEst ? '<div class="meta meta-asignada">Carga est. ' + esc(c.horaCargaEst) + '</div>' : '') +
                     '</td>' +
