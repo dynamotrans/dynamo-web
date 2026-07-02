@@ -3226,7 +3226,10 @@
     function presupuestoRowData(row) {
         if (!row) return {};
         var p = PRESUPUESTOS_DATA.filter(function (x) { return x.ref === rowRef(row); })[0];
-        return p ? shallowCopy(p) : {};
+        if (!p) return {};
+        var out = shallowCopy(p);
+        out.estado = p.kind === 'caducados' ? 'Caducado' : 'Vigente';
+        return out;
     }
     function facturaRowData(row) {
         if (!row) return {};
