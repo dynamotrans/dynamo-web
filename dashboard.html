@@ -906,7 +906,11 @@
             overflow-x: hidden;
             min-width: 0;
         }
-        .section { display: none; animation: secFadeIn 0.25s ease both; }
+        /* fill 'backwards' (no 'both'): al terminar, la sección NO conserva el
+           transform del keyframe final. Un transform residual (aunque sea la
+           identidad) crea un containing block y rompe el position:fixed de los
+           tooltips ℹ del tarifador (aparecían descolocados). */
+        .section { display: none; animation: secFadeIn 0.25s ease backwards; }
         .section.active { display: block; }
         @keyframes secFadeIn {
             from { opacity: 0; transform: translateY(6px); }
@@ -1771,7 +1775,7 @@
         }
         .ptar-warn-info { vertical-align: -3px; margin-left: 0.15rem; }
         .ptar-tip-ico { width: 14px; height: 14px; opacity: 0.5; flex-shrink: 0; }
-        .ptar-has-tip:hover .ptar-tip-ico, .ptar-has-tip:focus .ptar-tip-ico { opacity: 0.9; }
+        .ptar-has-tip:focus-visible .ptar-tip-ico, .ptar-has-tip.tip-open .ptar-tip-ico { opacity: 0.9; }
         .ptar-tip-pop {
             position: fixed; top: 0; left: 0;
             width: min(262px, calc(100vw - 16px));
@@ -1784,8 +1788,17 @@
             transition: opacity 0.15s ease, transform 0.15s ease; z-index: 2000;
         }
         .ptar-tip-pop strong { color: #ffd98a; font-weight: 800; }
-        .ptar-has-tip:hover .ptar-tip-pop, .ptar-has-tip:focus .ptar-tip-pop, .ptar-has-tip:focus-within .ptar-tip-pop {
+        /* Se muestra: con teclado (:focus-visible, NO con click de ratón) o
+           en táctil vía clase .tip-open (JS). El hover va aparte, solo en
+           dispositivos con puntero real. */
+        .ptar-has-tip:focus-visible .ptar-tip-pop, .ptar-has-tip.tip-open .ptar-tip-pop {
             opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0);
+        }
+        @media (hover: hover) {
+            .ptar-has-tip:hover .ptar-tip-ico { opacity: 0.9; }
+            .ptar-has-tip:hover .ptar-tip-pop {
+                opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0);
+            }
         }
 
         /* === % carga del camión (ocupación) ===
@@ -4363,7 +4376,10 @@
         function placeTip(trigger) {
             var tip = trigger.querySelector('.ptar-tip-pop');
             if (!tip) return;
-            var r = trigger.getBoundingClientRect();
+            // Anclar al icono ℹ, no al label completo (que ocupa todo el ancho
+            // de la fila y descentraba el tooltip hacia la derecha).
+            var anchor = trigger.querySelector('.ptar-tip-ico') || trigger;
+            var r = anchor.getBoundingClientRect();
             var tw = tip.offsetWidth || 260;
             var th = tip.offsetHeight || 60;
             var vw = window.innerWidth, vh = window.innerHeight, m = 8;
@@ -4380,9 +4396,28 @@
             var t = e.target.closest && e.target.closest('.ptar-has-tip');
             if (t) placeTip(t);
         }
-        document.addEventListener('mouseover', onShow);
+        // Ratón/teclado: colocar al pasar por encima o enfocar. El CSS lo
+        // muestra con :hover (solo puntero real) / :focus-visible (solo teclado),
+        // así un click de ratón ya no deja el tooltip pegado.
+        document.addEventListener('pointerover', onShow);
         document.addEventListener('focusin', onShow);
-        document.addEventListener('touchstart', onShow, { passive: true });
+        // Táctil (móvil): tap para abrir/cerrar mediante la clase .tip-open.
+        document.addEventListener('touchstart', function (e) {
+            var t = e.target.closest && e.target.closest('.ptar-has-tip');
+            if (!t) return;
+            var willOpen = !t.classList.contains('tip-open');
+            document.querySelectorAll('.ptar-has-tip.tip-open').forEach(function (h) { h.classList.remove('tip-open'); });
+            if (willOpen) { placeTip(t); t.classList.add('tip-open'); }
+        }, { passive: true });
+        // Cierra los tooltips al tocar/clicar fuera (móvil y desktop).
+        ['touchstart', 'pointerdown'].forEach(function (ev) {
+            document.addEventListener(ev, function (e) {
+                if (!(e.target.closest && e.target.closest('.ptar-has-tip'))) {
+                    document.querySelectorAll('.ptar-has-tip.tip-open').forEach(function (h) { h.classList.remove('tip-open'); });
+                    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+                }
+            }, { passive: true });
+        });
     })();
 
     // Interceptor global de tel:
