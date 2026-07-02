@@ -1629,6 +1629,9 @@
         }
         /* Paradas intermedias (hasta 2 en total), mismo esquema que origen/destino. */
         .ptar-paradas-wrap { display: flex; flex-direction: column; gap: 0.5rem; }
+        /* Separación entre paradas iguales a la del resto de filas de la ruta
+           (row-gap del grid) para que no queden pegadas entre sí. */
+        [data-ptar-recogidas], [data-ptar-entregas] { display: flex; flex-direction: column; gap: 0.9rem; }
         .ptar-add-parada {
             display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
             width: 100%; background: none; border: 1.5px dashed #cbd0d8; color: var(--purple);
