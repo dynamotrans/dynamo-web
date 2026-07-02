@@ -6214,7 +6214,7 @@
                     var cargaTxt = (loadStart.getTime() === loadEnd.getTime())
                         ? fmtEtaDate(loadStart)
                         : 'del ' + fmtEtaDate(loadStart) + ' al ' + fmtEtaDate(loadEnd);
-                    cargaHtml = '<dt>Carga (ventana)</dt><dd class="ptar-eta-carga">' + cargaTxt + '</dd>';
+                    cargaHtml = '<dt>Fecha de envío</dt><dd class="ptar-eta-carga">' + cargaTxt + '</dd>';
                     var etaStart = addBusinessDays(loadStart, driveDays);
                     var etaEnd   = addBusinessDays(loadEnd, driveDays);
                     // Enriquecer con festivos regionales (API, front). Al llegar
@@ -6621,7 +6621,7 @@
                     var cargaRangoTxt = (ls.getTime() === le.getTime())
                         ? fmtEtaDate(ls)
                         : 'del ' + fmtEtaDate(ls) + ' al ' + fmtEtaDate(le) + ' · cualquier día laborable';
-                    cargaRangoHtml = '<dt>Carga (ventana)</dt><dd>' + escapeHtml(cargaRangoTxt) + '</dd>';
+                    cargaRangoHtml = '<dt>Fecha de envío</dt><dd>' + escapeHtml(cargaRangoTxt) + '</dd>';
                 }
                 function paradasHtml(kind) {
                     return (d.paradas || []).filter(function (p) { return p.kind === kind; }).map(function (p) {
