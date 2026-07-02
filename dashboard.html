@@ -4838,11 +4838,12 @@
         if (c._phaseSim === 'hacia')    return { label: 'Hacia la carga', color: 'hacia' };
         if (c._phaseSim === 'cargando') return { label: 'Cargando',       color: 'cargando' };
         if (c._phaseSim === 'enruta')   return { label: 'En ruta',        color: 'enruta' };
-        if (c._phaseSim === 'pre7')     return { label: 'Programado hoy', color: 'prog' };
+        if (c._phaseSim === 'pre7')     return { label: 'Programado',     color: 'prog' };
         // En ruta: si la ETA de entrega es pasada → Retrasada (debería
         // haber llegado al destino). Si no, "En ruta" normal.
         if (c.kind === 'en-ruta') {
-            if (isPastDate(c.etaEntrega)) return { label: 'Pendiente Asignar', color: 'retrasada' };
+            // Antes, una entrega con ETA ya pasada mostraba "Pendiente Asignar"
+            // (rojo). Simplificado: se muestra igualmente "En ruta".
             return { label: 'En ruta', color: 'enruta' };
         }
         // ¿fechaAsignada es hoy?
@@ -4859,14 +4860,15 @@
         }
         if (isToday) {
             var h = now.getHours();
-            if (h < 7)  return { label: 'Programado hoy', color: 'prog' };
+            if (h < 7)  return { label: 'Programado',     color: 'prog' };
             if (h < 13) return { label: 'Hacia la carga', color: 'hacia' };
             if (h < 16) return { label: 'Cargando',       color: 'cargando' };
             return { label: 'En ruta', color: 'enruta' };
         }
-        // Programada con fecha pasada y todavía sin recoger. La más urgente.
+        // Programada con fecha pasada y todavía sin recoger: antes mostraba
+        // "Pendiente Asignar" (rojo). Simplificado: se muestra "Programado".
         if (c.kind === 'programada' && isPastDate(c.fecha)) {
-            return { label: 'Pendiente Asignar', color: 'retrasada' };
+            return { label: 'Programado', color: 'prog' };
         }
         // Programada futura
         return { label: 'Programado', color: 'prog' };
