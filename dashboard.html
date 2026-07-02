@@ -4884,11 +4884,10 @@
         if (c.kind === 'en-ruta') {
             return { key: 'confirmado', label: 'Confirmado transportista' };
         }
-        var bd = businessDaysUntil(c.fecha);
-        if (bd != null && bd >= 0 && bd <= 4) {
-            return { key: 'asignandose', label: 'Asignándose transportista' };
-        }
-        return { key: 'espera', label: 'En espera' };
+        // Cualquier programada aún sin transportista → "Asignándose
+        // transportista". (Fusionadas "Asignándose" y "En espera" en una sola
+        // etiqueta; antes se separaban según faltaran ≤4 días laborables.)
+        return { key: 'asignandose', label: 'Asignándose transportista' };
     }
 
     function highlightInfo(dateStr) {
