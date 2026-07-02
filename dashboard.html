@@ -5401,8 +5401,9 @@
                         '<div class="fecha-linea"><strong>' + esc(fechaLinea) + '</strong></div>' +
                         (function () {
                             // Días desde hoy hasta el último día de la ventana (solo
-                            // mientras no hay fecha confirmada). Negativo = excedidos.
-                            if (asigDate) return '';
+                            // mientras no hay fecha confirmada y la carga sigue viva).
+                            // En entregadas/canceladas no aplica. Negativo = excedidos.
+                            if (asigDate || c.kind === 'entregada' || c.kind === 'cancelada') return '';
                             var d = diasHasta(ventanaFin(c.fecha, c.ventana));
                             if (d == null) return '';
                             if (d > 0)  return '<div class="meta">(Faltan ' + d + ' día' + (d === 1 ? '' : 's') + ')</div>';
