@@ -4797,6 +4797,9 @@ function updateAlmTotal() {
     // ---- Camión / ml / peso ----
     // Grupaje (ml < máximo del camión): no se puede garantizar fecha fija →
     // se deshabilita "Fecha fija" y, si estaba elegida, pasa a "1 a 4 días".
+    // Opciones originales del selector de ventana (para reconstruirlo mostrando
+    // solo las permitidas — se OMITEN por completo, no se dejan en gris).
+    var ventanaOptsAll = urgSel ? Array.prototype.slice.call(urgSel.options) : [];
     function syncGrupajeVentana() {
         if (!urgSel) return;
         var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
@@ -4806,15 +4809,21 @@ function updateAlmTotal() {
         var oc = (origWrap.dataset.cc || '').toLowerCase();
         var dc = (destWrap.dataset.cc || '').toLowerCase();
         var internacional = !!(oc && dc && oc !== dc);
-        var fijaOpt = urgSel.querySelector('option[value="dia"]');
-        var estOpt = urgSel.querySelector('option[value="estandar"]');
         // Grupaje → sin "Fecha fija". Grupaje INTERNACIONAL (origen y destino en
         // países distintos) → solo "1 a 4 días".
-        var offFija = esGrupaje;
-        var offEst = esGrupaje && internacional;
-        if (fijaOpt) { fijaOpt.disabled = offFija; fijaOpt.hidden = offFija; }
-        if (estOpt) { estOpt.disabled = offEst; estOpt.hidden = offEst; }
-        if ((urgSel.value === 'dia' && offFija) || (urgSel.value === 'estandar' && offEst)) {
+        var allowDia = !esGrupaje;
+        var allowEst = !(esGrupaje && internacional);
+        var prev = urgSel.value;
+        urgSel.innerHTML = '';
+        ventanaOptsAll.forEach(function (opt) {
+            if (opt.value === 'dia' && !allowDia) return;
+            if (opt.value === 'estandar' && !allowEst) return;
+            opt.disabled = false; opt.hidden = false;
+            urgSel.appendChild(opt);
+        });
+        if (urgSel.querySelector('option[value="' + prev + '"]')) {
+            urgSel.value = prev;
+        } else {
             urgSel.value = 'flexible';
             urgSel.dispatchEvent(new Event('change'));
         }
