@@ -1239,11 +1239,13 @@
            en la misma fila que el buscador, ajustando ancho. */
         .filters .filter-mes { flex: 0 0 auto; min-width: 140px; max-width: 180px; }
         .filters .filter-mes-custom { flex: 0 0 auto; min-width: 130px; max-width: 170px; }
+        .filters .filter-estado { flex: 0 0 auto; min-width: 150px; max-width: 210px; }
         @media (max-width: 600px) {
             .filters { gap: 0.4rem; padding: 0.55rem; }
             .filters input[type="search"] { font-size: 0.9rem; padding: 0.55rem 0.6rem; }
             .filters .filter-mes { min-width: 112px; max-width: 150px; font-size: 0.85rem; padding: 0.55rem 0.5rem; }
             .filters .filter-mes-custom { min-width: 108px; max-width: 140px; font-size: 0.85rem; padding: 0.55rem 0.5rem; }
+            .filters .filter-estado { min-width: 130px; max-width: 100%; font-size: 0.85rem; padding: 0.55rem 0.5rem; }
         }
 
         .table-wrap {
@@ -2684,6 +2686,22 @@
                 <!-- Opciones pobladas por JS al cargar -->
             </select>
             <input type="month" class="filter-mes-custom" data-filter-mes-custom hidden aria-label="Selecciona mes y año">
+            <select class="filter-estado" data-filter-estado aria-label="Filtrar por estado">
+                <option value="">Todos los estados</option>
+                <optgroup label="Estado del envío">
+                    <option value="env:prog">Programado</option>
+                    <option value="env:hacia">Llegando a la recogida</option>
+                    <option value="env:cargando">Cargando</option>
+                    <option value="env:enruta">En ruta</option>
+                    <option value="env:entrega">Llegando a la entrega</option>
+                    <option value="env:entregado">Entregado</option>
+                    <option value="env:cancelada">Cancelada</option>
+                </optgroup>
+                <optgroup label="Estado del vehículo">
+                    <option value="veh:confirmado">Confirmado transportista</option>
+                    <option value="veh:asignandose">Asignándose transportista</option>
+                </optgroup>
+            </select>
         </div>
         <div class="table-wrap">
             <table class="data">
@@ -4477,7 +4495,7 @@
         try { localStorage.setItem('dashPerPage_' + table, String(v)); } catch (e) {}
     }
     var TABLE_STATE = {
-        cargas:       { page: 1, filter: 'programada',  perPage: readPerPage('cargas') },
+        cargas:       { page: 1, filter: 'programada',  perPage: readPerPage('cargas'), estado: '' },
         presupuestos: { page: 1, filter: 'activos', perPage: readPerPage('presupuestos') },
         facturas:     { page: 1, filter: 'todas',  perPage: readPerPage('facturas') }
     };
@@ -5158,6 +5176,22 @@
         else if (f === 'programada-pendiente')  arr = CARGAS_DATA.filter(isProgramadaPendiente);
         else if (f === 'programada-confirmada') arr = CARGAS_DATA.filter(isProgramadaConfirmada);
         else                                    arr = CARGAS_DATA.filter(function (c) { return c.kind === f; });
+        // Filtro adicional por estado (desplegable unificado): estado de envío
+        // (env:<color de getEstadoVisual>) o estado de vehículo/asignación
+        // (veh:<key de getAsignacionEstado>).
+        var est = TABLE_STATE.cargas.estado;
+        if (est) {
+            arr = arr.filter(function (c) {
+                if (est.indexOf('env:') === 0) {
+                    return getEstadoVisual(c).color === est.slice(4);
+                }
+                if (est.indexOf('veh:') === 0) {
+                    var a = getAsignacionEstado(c);
+                    return a && a.key === est.slice(4);
+                }
+                return true;
+            });
+        }
         // Orden por pestaña:
         // - Previsión:   sin fecha → por ref DESC (recién apuntadas arriba)
         // - Entregadas:  fecha efectiva DESC (la entrega más reciente arriba —
@@ -5247,6 +5281,14 @@
         // - sel.value === '' → mostrar todo
         // - sel.value === 'YYYY-MM' → filtrar por mes
         // - sel.value === '__otro__' → usar custom.value (YYYY-MM)
+    });
+    // Filtro por estado (envío + vehículo) de la tabla de Envíos.
+    document.addEventListener('change', function (e) {
+        var sel = e.target.closest('[data-filter-estado]');
+        if (!sel) return;
+        TABLE_STATE.cargas.estado = sel.value;
+        TABLE_STATE.cargas.page = 1;
+        renderCargasTable();
     });
     populateMesFilters();
 
