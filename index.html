@@ -940,6 +940,9 @@
         .ptar-parada-row .ptar-route-row { padding-right: 0; }
         /* Separación entre paradas igual al row-gap del grid, para que no queden pegadas. */
         [data-ptar-recogidas], [data-ptar-entregas] { display: flex; flex-direction: column; gap: 0.4rem; }
+        /* Contenedor de paradas VACÍO no ocupa fila del grid (evita doble gap:
+           que el espaciado difiera según haya parada o no). */
+        [data-ptar-recogidas]:empty, [data-ptar-entregas]:empty { display: none; }
         /* Nota informativa (verde) bajo Fecha de envío según la ventana elegida.
            Ocupa el ancho completo del formulario para no quedar estrecha y alta. */
         .ptar-ventana-note {
