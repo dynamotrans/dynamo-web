@@ -1921,7 +1921,22 @@
             margin-top: 0.9rem; font-size: 0.78rem; color: var(--gray-500);
         }
         .ptar-confirm-legal-link a { color: var(--purple); font-weight: 700; text-decoration: underline; }
+        /* Checks obligatorios (disponibilidad de recogida + condiciones
+           generales) antes de poder confirmar el envío. */
+        .ptar-confirm-check {
+            display: flex; align-items: flex-start; gap: 0.6rem;
+            margin-top: 0.75rem; cursor: pointer;
+            font-size: 0.8rem; line-height: 1.5; color: var(--gray-700);
+        }
+        .ptar-confirm-check input[type="checkbox"] {
+            margin: 0.1rem 0 0; width: 18px; height: 18px; flex: 0 0 auto;
+            accent-color: var(--purple); cursor: pointer;
+        }
+        .ptar-confirm-check a { color: var(--purple); font-weight: 700; text-decoration: underline; }
         .ptar-confirm-card .ptar-actions { padding-top: 1.2rem; }
+        .ptar-confirm-card .btn-primary:disabled {
+            opacity: 0.45; cursor: not-allowed; pointer-events: none;
+        }
         @media (max-width: 768px) {
             .ptar-confirm-card { padding: 1.1rem; }
             .ptar-confirm-summary { grid-template-columns: 1fr; gap: 0.3rem; }
@@ -2972,13 +2987,18 @@
                 <p>La falta de disponibilidad de vehículos que suponga cancelar o posponer la carga a otra fecha no dará lugar a penalizaciones, reclamaciones de daños y perjuicios ni retenciones de pagos por parte del cliente. La presentación de este presupuesto o el ajuste de precios no garantizan la carga; el servicio solo se considerará confirmado una vez se emita la orden de carga definitiva, se ejecute la carga y se finalice con su entrega.</p>
             </div>
 
-            <p class="ptar-confirm-legal-link">
-                Al confirmar aceptas las <a href="#" data-ptar-show-terms>condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L.
-            </p>
+            <label class="ptar-confirm-check">
+                <input type="checkbox" data-ptar-check-recogida>
+                <span>He leído y acepto lo indicado sobre la <strong>disponibilidad de la recogida</strong> y las condiciones de cancelación o aplazamiento por falta de vehículos.</span>
+            </label>
+            <label class="ptar-confirm-check">
+                <input type="checkbox" data-ptar-check-terms>
+                <span>He leído y acepto las <a href="#" data-ptar-show-terms>condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L.</span>
+            </label>
 
             <div class="ptar-actions">
                 <button type="button" class="btn-ghost" data-ptar-back>← Editar datos</button>
-                <button type="button" class="btn-primary" data-ptar-final-confirm>Confirmar envío</button>
+                <button type="button" class="btn-primary" data-ptar-final-confirm disabled>Confirmar envío</button>
             </div>
         </div>
     </section>
@@ -6564,7 +6584,19 @@
             var backBtn     = confirmCard ? confirmCard.querySelector('[data-ptar-back]') : null;
             var finalBtn    = confirmCard ? confirmCard.querySelector('[data-ptar-final-confirm]') : null;
             var termsLink   = confirmCard ? confirmCard.querySelector('[data-ptar-show-terms]') : null;
+            var chkRecogida = confirmCard ? confirmCard.querySelector('[data-ptar-check-recogida]') : null;
+            var chkTerms    = confirmCard ? confirmCard.querySelector('[data-ptar-check-terms]') : null;
             var pendingData = null;
+
+            // "Confirmar envío" queda deshabilitado hasta marcar los 2 checks
+            // (disponibilidad de recogida + condiciones generales).
+            function refreshConfirmEnabled() {
+                if (!finalBtn) return;
+                var ok = (!chkRecogida || chkRecogida.checked) && (!chkTerms || chkTerms.checked);
+                finalBtn.disabled = !ok;
+            }
+            if (chkRecogida) chkRecogida.addEventListener('change', refreshConfirmEnabled);
+            if (chkTerms) chkTerms.addEventListener('change', refreshConfirmEnabled);
 
             function showConfirmStep(d) {
                 if (!confirmCard || !summaryEl) return;
@@ -6615,6 +6647,11 @@
                 }
                 var dynNote = confirmCard.querySelector('[data-ptar-dyn-note]');
                 if (dynNote) dynNote.hidden = !loadDateIsFar();
+                // Reiniciar los checks obligatorios cada vez que se entra al paso
+                // de confirmación (por si se editó y se volvió a entrar).
+                if (chkRecogida) chkRecogida.checked = false;
+                if (chkTerms) chkTerms.checked = false;
+                refreshConfirmEnabled();
                 card.hidden = true;
                 confirmCard.hidden = false;
                 var secStep = document.getElementById('sec-nueva-carga');
