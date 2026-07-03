@@ -1787,6 +1787,7 @@
         .ptar-eta-data .ptar-eta-precio { color: var(--purple); font-weight: 900; font-size: 1.05rem; }
         .ptar-eta-data .ptar-eta-precio .ptar-iva { color: var(--gray-500); font-weight: 600; font-size: 0.72rem; white-space: nowrap; }
         .ptar-eta-data .ptar-eta-stat { color: var(--gray-700); font-weight: 600; }
+        .ptar-eta-data .ptar-eta-note { color: #047857; font-weight: 700; font-size: 0.78rem; }
         .ptar-eta-data .ptar-eta-warn { color: #b45309; }
         .ptar-eta-festivo {
             margin-top: 0.7rem; padding: 0.55rem 0.7rem;
@@ -2855,7 +2856,6 @@
                     <div class="ptar-nofecha-warn" data-ptar-fecha-warn hidden>
                         ⚠ Con <strong>fecha fija</strong> ya no es posible cargar el día elegido (solicitud después de las 14:00). <strong>Amplía la ventana de carga</strong> (1 a 2 o 1 a 4 días) o <strong>elige un día posterior</strong>.
                     </div>
-                    <div class="ptar-ventana-note" data-ptar-ventana-note hidden></div>
                 </div>
 
                 <div class="ptar-field ptar-field-full ptar-eta-field" data-ptar-eta-field>
@@ -6075,6 +6075,9 @@
                         ? fmtEtaDate(loadStart)
                         : 'del ' + fmtEtaDate(loadStart) + ' al ' + fmtEtaDate(loadEnd);
                     cargaHtml = '<dt>Fecha de envío</dt><dd class="ptar-eta-carga">' + cargaTxt + '</dd>';
+                    // Nota de probabilidad de recogida según la ventana (no en fija).
+                    if (ventana === 2) cargaHtml += '<dt></dt><dd class="ptar-eta-note">El 80% de las ocasiones recogemos en el 1.º día.</dd>';
+                    else if (ventana >= 3) cargaHtml += '<dt></dt><dd class="ptar-eta-note">El 80% de las ocasiones recogemos en los 2 primeros días.</dd>';
                     var etaStart = addBusinessDays(loadStart, driveDays);
                     var etaEnd   = addBusinessDays(loadEnd, driveDays);
                     // Enriquecer con festivos regionales (API, front). Al llegar
@@ -6224,17 +6227,6 @@
             origPlus = makePlus(origWrap, 'recogida');
             destPlus = makePlus(destWrap, 'entrega');
             if (urgenciaSel) urgenciaSel.addEventListener('change', renderEta);
-            // Nota informativa según la ventana: probabilidad de recogida temprana.
-            function syncVentanaNote() {
-                var el = card.querySelector('[data-ptar-ventana-note]');
-                if (!el || !urgenciaSel) return;
-                var v = urgenciaSel.value;
-                if (v === 'estandar') { el.textContent = 'El 80% de las ocasiones recogemos en el 1.º día.'; el.hidden = false; }
-                else if (v === 'flexible') { el.textContent = 'El 80% de las ocasiones recogemos en los 2 primeros días.'; el.hidden = false; }
-                else { el.hidden = true; }
-            }
-            if (urgenciaSel) urgenciaSel.addEventListener('change', syncVentanaNote);
-            syncVentanaNote();
             // Al cambiar la ventana, recalcula las fechas disponibles (el corte
             // de las 14:00 y "hoy/mañana" dependen de la ventana). Si la fecha ya
             // elegida deja de ser válida (típico: pasar a "fija" después de las
