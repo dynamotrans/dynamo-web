@@ -4965,14 +4965,16 @@ function updateAlmTotal() {
         });
     }
     function syncAddBtns() {
-        var full = paradaRows().length >= 2;
+        // Máximo 1 parada adicional EN TOTAL (recogida o entrega): el camión para
+        // como mucho 3 veces (origen + 1 parada + destino).
+        var full = paradaRows().length >= 1;
         if (origPlus) origPlus.style.display = full ? 'none' : '';
         if (destPlus) destPlus.style.display = full ? 'none' : '';
         renumberRoute();
     }
     function addParada(kind) {
         var box = kind === 'recogida' ? recBox : entBox;
-        if (!box || paradaRows().length >= 2) return;
+        if (!box || paradaRows().length >= 1) return;
         var esRec = kind === 'recogida';
         var row = document.createElement('div');
         row.className = 'ptar-field ptar-field-full ptar-parada-row';
