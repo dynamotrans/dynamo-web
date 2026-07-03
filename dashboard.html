@@ -4822,7 +4822,7 @@
         }
         if (c.kind === 'entregada') return { label: 'Entregado',  color: 'entregado' };
         if (c.kind === 'cancelada') return { label: 'Cancelada',  color: 'cancelada' };
-        if (c._phaseSim === 'hacia')    return { label: 'Hacia la carga', color: 'hacia' };
+        if (c._phaseSim === 'hacia')    return { label: 'Llegando', color: 'hacia' };
         if (c._phaseSim === 'cargando') return { label: 'Cargando',       color: 'cargando' };
         if (c._phaseSim === 'enruta')   return { label: 'En ruta',        color: 'enruta' };
         if (c._phaseSim === 'pre7')     return { label: 'Programado',     color: 'prog' };
@@ -4848,7 +4848,7 @@
         if (isToday) {
             var h = now.getHours();
             if (h < 7)  return { label: 'Programado',     color: 'prog' };
-            if (h < 13) return { label: 'Hacia la carga', color: 'hacia' };
+            if (h < 13) return { label: 'Llegando', color: 'hacia' };
             if (h < 16) return { label: 'Cargando',       color: 'cargando' };
             return { label: 'En ruta', color: 'enruta' };
         }
