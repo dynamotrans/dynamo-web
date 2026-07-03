@@ -4794,10 +4794,26 @@ function updateAlmTotal() {
     var entBox = card.querySelector('[data-ptar-entregas]');
 
     // ---- Camión / ml / peso ----
+    // Grupaje (ml < máximo del camión): no se puede garantizar fecha fija →
+    // se deshabilita "Fecha fija" y, si estaba elegida, pasa a "1 a 4 días".
+    function syncGrupajeVentana() {
+        if (!urgSel) return;
+        var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
+        var max = info.mlReal || info.mlMax;
+        var mlv = mlSel.value === '13.2' ? 13.2 : parseFloat(mlSel.value);
+        var esGrupaje = !isNaN(mlv) && mlv < max;
+        var fijaOpt = urgSel.querySelector('option[value="dia"]');
+        if (fijaOpt) { fijaOpt.disabled = esGrupaje; fijaOpt.hidden = esGrupaje; }
+        if (esGrupaje && urgSel.value === 'dia') {
+            urgSel.value = 'flexible';
+            urgSel.dispatchEvent(new Event('change'));
+        }
+    }
     function applyCamion() {
         var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
         fillMlSelect(mlSel, info.mlMax);
         fillPesoSelect(pesoSel, info.pesoMax);
+        syncGrupajeVentana();
     }
     // Trampilla ON → rígido (8 m / 14 Tn); OFF → Tauliner (13,2 m / 24 Tn).
     if (trampChk) {
@@ -4811,7 +4827,7 @@ function updateAlmTotal() {
             }
         });
     }
-    mlSel.addEventListener('change', function () { mlSel.classList.remove('ptar-select-error'); });
+    mlSel.addEventListener('change', function () { mlSel.classList.remove('ptar-select-error'); syncGrupajeVentana(); });
     pesoSel.addEventListener('change', function () { pesoSel.classList.remove('ptar-select-error'); });
     applyCamion();
 
