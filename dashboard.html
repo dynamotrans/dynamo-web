@@ -1805,6 +1805,14 @@
             border-radius: 9px; font-size: 0.78rem; line-height: 1.5; color: #92400e; font-weight: 600;
         }
         .ptar-eta-hoy strong { color: #b45309; }
+        /* Aviso informativo cuando se elige FECHA FIJA (1 solo día) en un día
+           futuro: recomendar ventana de 2 días (más probabilidad y más barato). */
+        .ptar-eta-fija {
+            display: block; width: 100%; margin: 0 0 0.8rem; padding: 0.55rem 0.7rem;
+            background: rgba(51,0,204,0.06); border: 1px solid rgba(51,0,204,0.22);
+            border-radius: 9px; font-size: 0.78rem; line-height: 1.5; color: #2a1a7a; font-weight: 600;
+        }
+        .ptar-eta-fija strong { color: var(--purple); }
 
         /* Label con tooltip (ℹ): el texto de ayuda sale al pasar por encima,
            sin ocupar layout. Reutilizable en cualquier .ptar-label. */
@@ -2267,8 +2275,9 @@
         <h4>13. Disponibilidad y ajustes de tarifa</h4>
         <p>La validez de este presupuesto queda sujeta a la disponibilidad real de flota en la zona y fechas solicitadas. En caso de falta de vehículos o cambios de mercado, la tarifa podría sufrir modificaciones para garantizar el servicio. Cualquier variación se comunicará al cliente para su validación previa.</p>
 
-        <h4>14. Garantías y confirmación</h4>
-        <p>La falta de disponibilidad de vehículos no dará lugar a penalizaciones, reclamaciones de daños y perjuicios ni retenciones de pagos por parte del cliente. La presentación de este presupuesto o el ajuste de precios no garantizan la carga; el servicio solo se considerará confirmado una vez se emita la orden de carga definitiva y se ejecute la carga en el cargador.</p>
+        <h4>14. Garantías y confirmación — la recogida nunca está garantizada al 100%</h4>
+        <p>La recogida nunca está garantizada al 100%. En circunstancias normales se cumple, pero pueden darse incidencias ajenas a nuestra voluntad: retraso del camión asignado, una devolución de mercancía que debía descargar antes de venir a cargar, una demanda no prevista el día de la carga sin vehículos disponibles, un accidente, retenciones graves de tráfico o cualquier otra circunstancia que impida cumplir con el servicio programado.</p>
+        <p>La falta de disponibilidad de vehículos que suponga cancelar o posponer la carga a otra fecha no dará lugar a penalizaciones, reclamaciones de daños y perjuicios ni retenciones de pagos por parte del cliente. La presentación de este presupuesto o el ajuste de precios no garantizan la carga; el servicio solo se considerará confirmado una vez se emita la orden de carga definitiva, se ejecute la carga y se finalice con su entrega.</p>
     </div>
 </template>
 
@@ -2988,12 +2997,8 @@
             </div>
 
             <label class="ptar-confirm-check">
-                <input type="checkbox" data-ptar-check-recogida>
-                <span>He leído y acepto lo indicado sobre la <strong>disponibilidad de la recogida</strong> y las condiciones de cancelación o aplazamiento por falta de vehículos.</span>
-            </label>
-            <label class="ptar-confirm-check">
                 <input type="checkbox" data-ptar-check-terms>
-                <span>He leído y acepto las <a href="#" data-ptar-show-terms>condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L.</span>
+                <span>He leído y acepto las <a href="#" data-ptar-show-terms>condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L. (incluyen las condiciones de disponibilidad de la recogida y de cancelación o aplazamiento por falta de vehículos).</span>
             </label>
 
             <div class="ptar-actions">
@@ -6224,10 +6229,14 @@
                 var hoyHtml = '';
                 if (loadStart && ventana === 1) {
                     var nM = nowMadrid();
-                    if (loadStart.getFullYear() === nM.getFullYear() &&
+                    var esHoy = loadStart.getFullYear() === nM.getFullYear() &&
                         loadStart.getMonth() === nM.getMonth() &&
-                        loadStart.getDate() === nM.getDate()) {
+                        loadStart.getDate() === nM.getDate();
+                    if (esHoy) {
                         hoyHtml = '<div class="ptar-eta-hoy">⚠ <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. Cancelar una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. <strong>Recomendación:</strong> amplía ya la ventana de carga; así, si no se consigue hoy, podremos asignar camión para los días siguientes (esperar a última hora deja sin margen).</div>';
+                    } else {
+                        // Fecha fija en un día futuro: recomendar ventana de 2 días.
+                        hoyHtml = '<div class="ptar-eta-fija"><strong>Has elegido fecha fija (un solo día).</strong> Una <strong>ventana de 1 a 2 días</strong> aumenta mucho la probabilidad de cargar a tiempo y suele salir más económica. Con fecha fija, si ese día no hay vehículo disponible habría que reprogramar la carga.</div>';
                     }
                 }
                 etaBox.innerHTML =
@@ -6584,18 +6593,16 @@
             var backBtn     = confirmCard ? confirmCard.querySelector('[data-ptar-back]') : null;
             var finalBtn    = confirmCard ? confirmCard.querySelector('[data-ptar-final-confirm]') : null;
             var termsLink   = confirmCard ? confirmCard.querySelector('[data-ptar-show-terms]') : null;
-            var chkRecogida = confirmCard ? confirmCard.querySelector('[data-ptar-check-recogida]') : null;
             var chkTerms    = confirmCard ? confirmCard.querySelector('[data-ptar-check-terms]') : null;
             var pendingData = null;
 
-            // "Confirmar envío" queda deshabilitado hasta marcar los 2 checks
-            // (disponibilidad de recogida + condiciones generales).
+            // "Confirmar envío" queda deshabilitado hasta aceptar las
+            // condiciones generales de transporte (que ya incluyen el aviso de
+            // disponibilidad de la recogida y cancelación/aplazamiento).
             function refreshConfirmEnabled() {
                 if (!finalBtn) return;
-                var ok = (!chkRecogida || chkRecogida.checked) && (!chkTerms || chkTerms.checked);
-                finalBtn.disabled = !ok;
+                finalBtn.disabled = !(!chkTerms || chkTerms.checked);
             }
-            if (chkRecogida) chkRecogida.addEventListener('change', refreshConfirmEnabled);
             if (chkTerms) chkTerms.addEventListener('change', refreshConfirmEnabled);
 
             function showConfirmStep(d) {
@@ -6647,9 +6654,8 @@
                 }
                 var dynNote = confirmCard.querySelector('[data-ptar-dyn-note]');
                 if (dynNote) dynNote.hidden = !loadDateIsFar();
-                // Reiniciar los checks obligatorios cada vez que se entra al paso
+                // Reiniciar el check obligatorio cada vez que se entra al paso
                 // de confirmación (por si se editó y se volvió a entrar).
-                if (chkRecogida) chkRecogida.checked = false;
                 if (chkTerms) chkTerms.checked = false;
                 refreshConfirmEnabled();
                 card.hidden = true;
