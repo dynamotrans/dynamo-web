@@ -5777,6 +5777,7 @@
                 fillMlSelect(mlSel, info.mlMax);
                 fillPesoSelect(pesoSel, info.pesoMax);
                 renderOcupacion();
+                syncGrupajeVentana();
             }
             camionSel.addEventListener('change', applyCamion);
             // Trampilla elevadora → camión rígido (máx 8 m / 14 Tn).
@@ -5802,7 +5803,7 @@
             // NIMA (residuos): no cambia el camión, solo suma al precio.
             var nimaChk = card.querySelector('[data-ptar-nima]');
             if (nimaChk) nimaChk.addEventListener('change', renderEta);
-            mlSel.addEventListener('change', function () { mlSel.classList.remove('ptar-select-error'); renderOcupacion(); });
+            mlSel.addEventListener('change', function () { mlSel.classList.remove('ptar-select-error'); renderOcupacion(); syncGrupajeVentana(); });
             pesoSel.addEventListener('change', function () { pesoSel.classList.remove('ptar-select-error'); renderOcupacion(); });
 
             // === Ocupación del camión (% carga) ===
@@ -5834,6 +5835,22 @@
                         info.mlReal.toString().replace('.', ',') + ' m · ' +
                         info.paletsMax + ' eur · ' + info.pesoMax + ' Tn' +
                     '</span>';
+            }
+            // Grupaje (ml < máximo del camión): NO se puede garantizar fecha
+            // fija (depende de completar camión) → se deshabilita "Fecha fija" en
+            // el selector de ventana y, si estaba elegida, pasa a "1 a 4 días".
+            function syncGrupajeVentana() {
+                if (!urgenciaSel) return;
+                var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
+                var max = info.mlReal || info.mlMax;
+                var mlv = mlSel.value === '13.2' ? 13.2 : parseFloat(mlSel.value);
+                var esGrupaje = !isNaN(mlv) && mlv < max;
+                var fijaOpt = urgenciaSel.querySelector('option[value="dia"]');
+                if (fijaOpt) { fijaOpt.disabled = esGrupaje; fijaOpt.hidden = esGrupaje; }
+                if (esGrupaje && urgenciaSel.value === 'dia') {
+                    urgenciaSel.value = 'flexible';
+                    urgenciaSel.dispatchEvent(new Event('change'));
+                }
             }
             applyCamion();
 
