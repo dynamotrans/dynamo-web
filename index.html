@@ -940,12 +940,22 @@
         .ptar-parada-row .ptar-route-row { padding-right: 0; }
         /* Separación entre paradas igual al row-gap del grid, para que no queden pegadas. */
         [data-ptar-recogidas], [data-ptar-entregas] { display: flex; flex-direction: column; gap: 0.4rem; }
-        /* Nota informativa (verde) bajo Fecha de envío según la ventana elegida. */
+        /* Nota informativa (verde) bajo Fecha de envío según la ventana elegida.
+           Ocupa el ancho completo del formulario para no quedar estrecha y alta. */
         .ptar-ventana-note {
+            grid-column: 1 / -1; width: 100%;
             margin-top: 0.4rem; padding: 0.5rem 0.65rem;
             background: #ecfdf5; color: #047857; border: 1px solid #b7ebcd;
             border-radius: 8px; font-size: 0.78rem; line-height: 1.4;
         }
+        /* Aviso "carga hoy para hoy" (ámbar) a ancho completo del formulario. */
+        .ptar-hoy-warn {
+            grid-column: 1 / -1; width: 100%;
+            margin-top: 0.4rem; padding: 0.55rem 0.7rem;
+            background: rgba(245,158,11,0.14); color: #92400e; border: 1px solid rgba(245,158,11,0.45);
+            border-radius: 8px; font-size: 0.78rem; line-height: 1.5; font-weight: 600;
+        }
+        .ptar-hoy-warn strong { color: #7a3e06; }
         .ptar-route-row .ptar-input-wrap { flex: 3 1 0; min-width: 0; }
         .ptar-route-row .ptar-select-sm {
             flex: 1 1 0; width: auto; min-width: 0; max-width: none; margin-top: 0;
@@ -2476,6 +2486,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                         </div>
                     </div>
                     <div class="ptar-ventana-note" data-ptar-ventana-note hidden></div>
+                    <div class="ptar-hoy-warn" data-ptar-hoy-warn hidden>⚠ <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. Cancelar una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. <strong>Recomendación:</strong> amplía ya la ventana de carga; así, si no se consigue hoy, podremos asignar camión para los días siguientes (esperar a última hora deja sin margen).</div>
                 </div>
 
                 <div class="ptar-notes-wrap">
@@ -4812,7 +4823,10 @@ function updateAlmTotal() {
         var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
         var max = info.mlReal || info.mlMax;
         var mlv = mlSel.value === '13.2' ? 13.2 : parseFloat(mlSel.value);
-        var esGrupaje = !isNaN(mlv) && mlv < max;
+        var pesoV = parseFloat(pesoSel.value);
+        // Grupaje solo si NI metros NI peso llegan al máximo. Si el peso va al
+        // tope (aunque sean pocos metros) es tarifa de camión COMPLETO.
+        var esGrupaje = !isNaN(mlv) && mlv < max && !(!isNaN(pesoV) && pesoV >= info.pesoMax);
         var oc = (origWrap.dataset.cc || '').toLowerCase();
         var dc = (destWrap.dataset.cc || '').toLowerCase();
         var internacional = !!(oc && dc && oc !== dc);
@@ -4854,7 +4868,7 @@ function updateAlmTotal() {
         });
     }
     mlSel.addEventListener('change', function () { mlSel.classList.remove('ptar-select-error'); syncGrupajeVentana(); });
-    pesoSel.addEventListener('change', function () { pesoSel.classList.remove('ptar-select-error'); });
+    pesoSel.addEventListener('change', function () { pesoSel.classList.remove('ptar-select-error'); syncGrupajeVentana(); });
     // Nota informativa según la ventana: probabilidad de recogida temprana.
     function syncVentanaNote() {
         var el = card.querySelector('[data-ptar-ventana-note]');
@@ -4865,8 +4879,19 @@ function updateAlmTotal() {
         else { el.hidden = true; }
     }
     if (urgSel) urgSel.addEventListener('change', syncVentanaNote);
+    // Aviso "carga hoy para hoy": solo con fecha fija (ventana 1 día) y fecha = hoy.
+    function syncHoyWarn() {
+        var el = card.querySelector('[data-ptar-hoy-warn]');
+        if (!el || !urgSel || !diaSel) return;
+        var now = new Date();
+        var todayIso = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+        el.hidden = !(urgSel.value === 'dia' && diaSel.value === todayIso);
+    }
+    if (urgSel) urgSel.addEventListener('change', syncHoyWarn);
+    if (diaSel) diaSel.addEventListener('change', syncHoyWarn);
     applyCamion();
     syncVentanaNote();
+    syncHoyWarn();
 
     // ---- Fecha: día + Flatpickr ----
     var fp = null;

@@ -5811,7 +5811,7 @@
             var nimaChk = card.querySelector('[data-ptar-nima]');
             if (nimaChk) nimaChk.addEventListener('change', renderEta);
             mlSel.addEventListener('change', function () { mlSel.classList.remove('ptar-select-error'); renderOcupacion(); syncGrupajeVentana(); });
-            pesoSel.addEventListener('change', function () { pesoSel.classList.remove('ptar-select-error'); renderOcupacion(); });
+            pesoSel.addEventListener('change', function () { pesoSel.classList.remove('ptar-select-error'); renderOcupacion(); syncGrupajeVentana(); });
 
             // === Ocupación del camión (% carga) ===
             // El % visible es el coeficiente que MÁS limita la carga (no la
@@ -5855,7 +5855,11 @@
                 var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
                 var max = info.mlReal || info.mlMax;
                 var mlv = mlSel.value === '13.2' ? 13.2 : parseFloat(mlSel.value);
-                var esGrupaje = !isNaN(mlv) && mlv < max;
+                var pesoV = parseFloat(pesoSel.value);
+                // Es grupaje solo si NI los metros NI el peso llegan al máximo del
+                // camión. Si el peso va al tope (aunque sean pocos metros) ocupa la
+                // capacidad completa → tarifa de camión COMPLETO, no grupaje.
+                var esGrupaje = !isNaN(mlv) && mlv < max && !(!isNaN(pesoV) && pesoV >= info.pesoMax);
                 var oc = (origWrap.dataset.cc || '').toLowerCase();
                 var dc = (destWrap.dataset.cc || '').toLowerCase();
                 var internacional = !!(oc && dc && oc !== dc);
@@ -6074,10 +6078,12 @@
                     var cargaTxt = (loadStart.getTime() === loadEnd.getTime())
                         ? fmtEtaDate(loadStart)
                         : 'del ' + fmtEtaDate(loadStart) + ' al ' + fmtEtaDate(loadEnd);
-                    cargaHtml = '<dt>Fecha de envío</dt><dd class="ptar-eta-carga">' + cargaTxt + '</dd>';
-                    // Nota de probabilidad de recogida según la ventana (no en fija).
-                    if (ventana === 2) cargaHtml += '<dt></dt><dd class="ptar-eta-note">El 80% de las ocasiones recogemos en el 1.º día.</dd>';
-                    else if (ventana >= 3) cargaHtml += '<dt></dt><dd class="ptar-eta-note">El 80% de las ocasiones recogemos en los 2 primeros días.</dd>';
+                    // Nota de probabilidad de recogida según la ventana (no en fija),
+                    // en línea y entre paréntesis tras el rango de fechas.
+                    var recNota = ventana === 2 ? 'El 80% de las ocasiones recogemos en el 1.º día.'
+                                : ventana >= 3 ? 'El 80% de las ocasiones recogemos en los 2 primeros días.' : '';
+                    cargaHtml = '<dt>Fecha de envío</dt><dd class="ptar-eta-carga">' + cargaTxt +
+                        (recNota ? ' <span class="ptar-eta-note">(' + recNota + ')</span>' : '') + '</dd>';
                     var etaStart = addBusinessDays(loadStart, driveDays);
                     var etaEnd   = addBusinessDays(loadEnd, driveDays);
                     // Enriquecer con festivos regionales (API, front). Al llegar
