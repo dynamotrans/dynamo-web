@@ -1746,6 +1746,12 @@
         }
         .ptar-nofecha-warn strong { color: #5c4500; }
         .ptar-nofecha-warn a { color: #5c4500; font-weight: 700; }
+        /* Nota informativa (verde) bajo Fecha de envío según la ventana elegida. */
+        .ptar-ventana-note {
+            margin-top: 0.45rem; padding: 0.55rem 0.7rem;
+            background: #ecfdf5; color: #047857; border: 1px solid #b7ebcd;
+            border-radius: 8px; font-size: 0.75rem; line-height: 1.4;
+        }
         .ptar-select.ptar-select-error { border-color: var(--red); background: #fef2f2; }
         .ptar-select.ptar-select-error:focus { box-shadow: 0 0 0 3px rgba(220,38,38,0.10); }
         .ptar-field-hint {
@@ -2849,6 +2855,7 @@
                     <div class="ptar-nofecha-warn" data-ptar-fecha-warn hidden>
                         ⚠ Con <strong>fecha fija</strong> ya no es posible cargar el día elegido (solicitud después de las 14:00). <strong>Amplía la ventana de carga</strong> (1 a 2 o 1 a 4 días) o <strong>elige un día posterior</strong>.
                     </div>
+                    <div class="ptar-ventana-note" data-ptar-ventana-note hidden></div>
                 </div>
 
                 <div class="ptar-field ptar-field-full ptar-eta-field" data-ptar-eta-field>
@@ -6217,6 +6224,17 @@
             origPlus = makePlus(origWrap, 'recogida');
             destPlus = makePlus(destWrap, 'entrega');
             if (urgenciaSel) urgenciaSel.addEventListener('change', renderEta);
+            // Nota informativa según la ventana: probabilidad de recogida temprana.
+            function syncVentanaNote() {
+                var el = card.querySelector('[data-ptar-ventana-note]');
+                if (!el || !urgenciaSel) return;
+                var v = urgenciaSel.value;
+                if (v === 'estandar') { el.textContent = 'El 80% de las ocasiones recogemos en el 1.º día.'; el.hidden = false; }
+                else if (v === 'flexible') { el.textContent = 'El 80% de las ocasiones recogemos en los 2 primeros días.'; el.hidden = false; }
+                else { el.hidden = true; }
+            }
+            if (urgenciaSel) urgenciaSel.addEventListener('change', syncVentanaNote);
+            syncVentanaNote();
             // Al cambiar la ventana, recalcula las fechas disponibles (el corte
             // de las 14:00 y "hoy/mañana" dependen de la ventana). Si la fecha ya
             // elegida deja de ser válida (típico: pasar a "fija" después de las

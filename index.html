@@ -940,6 +940,12 @@
         .ptar-parada-row .ptar-route-row { padding-right: 0; }
         /* Separación entre paradas igual al row-gap del grid, para que no queden pegadas. */
         [data-ptar-recogidas], [data-ptar-entregas] { display: flex; flex-direction: column; gap: 0.4rem; }
+        /* Nota informativa (verde) bajo Fecha de envío según la ventana elegida. */
+        .ptar-ventana-note {
+            margin-top: 0.4rem; padding: 0.5rem 0.65rem;
+            background: #ecfdf5; color: #047857; border: 1px solid #b7ebcd;
+            border-radius: 8px; font-size: 0.78rem; line-height: 1.4;
+        }
         .ptar-route-row .ptar-input-wrap { flex: 3 1 0; min-width: 0; }
         .ptar-route-row .ptar-select-sm {
             flex: 1 1 0; width: auto; min-width: 0; max-width: none; margin-top: 0;
@@ -2469,6 +2475,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                             </select>
                         </div>
                     </div>
+                    <div class="ptar-ventana-note" data-ptar-ventana-note hidden></div>
                 </div>
 
                 <div class="ptar-notes-wrap">
@@ -4848,7 +4855,18 @@ function updateAlmTotal() {
     }
     mlSel.addEventListener('change', function () { mlSel.classList.remove('ptar-select-error'); syncGrupajeVentana(); });
     pesoSel.addEventListener('change', function () { pesoSel.classList.remove('ptar-select-error'); });
+    // Nota informativa según la ventana: probabilidad de recogida temprana.
+    function syncVentanaNote() {
+        var el = card.querySelector('[data-ptar-ventana-note]');
+        if (!el || !urgSel) return;
+        var v = urgSel.value;
+        if (v === 'estandar') { el.textContent = 'El 80% de las ocasiones recogemos en el 1.º día.'; el.hidden = false; }
+        else if (v === 'flexible') { el.textContent = 'El 80% de las ocasiones recogemos en los 2 primeros días.'; el.hidden = false; }
+        else { el.hidden = true; }
+    }
+    if (urgSel) urgSel.addEventListener('change', syncVentanaNote);
     applyCamion();
+    syncVentanaNote();
 
     // ---- Fecha: día + Flatpickr ----
     var fp = null;
