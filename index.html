@@ -4733,7 +4733,7 @@ function updateAlmTotal() {
         if (pais && pais !== 'España' && pais !== 'Spain') parts.push('(' + pais + ')');
         return parts.join(', ');
     }
-    function bindAutocomplete(wrap, input, sugList) {
+    function bindAutocomplete(wrap, input, sugList, onPick) {
         var deb;
         function clearGeo() { delete wrap.dataset.lat; delete wrap.dataset.lon; delete wrap.dataset.cc; }
         input.addEventListener('input', function () {
@@ -4757,6 +4757,7 @@ function updateAlmTotal() {
                             wrap.dataset.lon = it.lon;
                             wrap.dataset.cc = (it.address && it.address.country_code) || '';
                             sugList.hidden = true;
+                            if (onPick) onPick();
                         });
                         sugList.appendChild(li);
                     });
@@ -4802,9 +4803,18 @@ function updateAlmTotal() {
         var max = info.mlReal || info.mlMax;
         var mlv = mlSel.value === '13.2' ? 13.2 : parseFloat(mlSel.value);
         var esGrupaje = !isNaN(mlv) && mlv < max;
+        var oc = (origWrap.dataset.cc || '').toLowerCase();
+        var dc = (destWrap.dataset.cc || '').toLowerCase();
+        var internacional = !!(oc && dc && oc !== dc);
         var fijaOpt = urgSel.querySelector('option[value="dia"]');
-        if (fijaOpt) { fijaOpt.disabled = esGrupaje; fijaOpt.hidden = esGrupaje; }
-        if (esGrupaje && urgSel.value === 'dia') {
+        var estOpt = urgSel.querySelector('option[value="estandar"]');
+        // Grupaje → sin "Fecha fija". Grupaje INTERNACIONAL (origen y destino en
+        // países distintos) → solo "1 a 4 días".
+        var offFija = esGrupaje;
+        var offEst = esGrupaje && internacional;
+        if (fijaOpt) { fijaOpt.disabled = offFija; fijaOpt.hidden = offFija; }
+        if (estOpt) { estOpt.disabled = offEst; estOpt.hidden = offEst; }
+        if ((urgSel.value === 'dia' && offFija) || (urgSel.value === 'estandar' && offEst)) {
             urgSel.value = 'flexible';
             urgSel.dispatchEvent(new Event('change'));
         }
@@ -4882,8 +4892,8 @@ function updateAlmTotal() {
     });
 
     // ---- Autocomplete en origen / destino ----
-    bindAutocomplete(origWrap, origInput, origSug);
-    bindAutocomplete(destWrap, destInput, destSug);
+    bindAutocomplete(origWrap, origInput, origSug, syncGrupajeVentana);
+    bindAutocomplete(destWrap, destInput, destSug, syncGrupajeVentana);
 
     // ---- Paradas adicionales (recogidas / entregas, máx 2 en total) ----
     var origPlus = null, destPlus = null;
