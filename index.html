@@ -960,6 +960,15 @@
             border-radius: 8px; font-size: 0.78rem; line-height: 1.5; font-weight: 600;
         }
         .ptar-hoy-warn strong { color: #7a3e06; }
+        /* Aviso (morado suave) al elegir FECHA FIJA de un solo día en un día
+           futuro: recomendar la ventana de 1 a 2 días. Ancho completo. */
+        .ptar-fija-note {
+            grid-column: 1 / -1; width: 100%;
+            margin-top: 0.4rem; padding: 0.55rem 0.7rem;
+            background: rgba(51,0,204,0.06); color: #2a1a7a; border: 1px solid rgba(51,0,204,0.22);
+            border-radius: 8px; font-size: 0.78rem; line-height: 1.5; font-weight: 600;
+        }
+        .ptar-fija-note strong { color: var(--purple); }
         .ptar-route-row .ptar-input-wrap { flex: 3 1 0; min-width: 0; }
         .ptar-route-row .ptar-select-sm {
             flex: 1 1 0; width: auto; min-width: 0; max-width: none; margin-top: 0;
@@ -2491,6 +2500,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     </div>
                     <div class="ptar-ventana-note" data-ptar-ventana-note hidden></div>
                     <div class="ptar-hoy-warn" data-ptar-hoy-warn hidden>⚠ <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. Cancelar una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. <strong>Recomendación:</strong> amplía ya la ventana de carga; así, si no se consigue hoy, podremos asignar camión para los días siguientes (esperar a última hora deja sin margen).</div>
+                    <div class="ptar-fija-note" data-ptar-fija-note hidden><strong>Has elegido fecha fija (un solo día).</strong> Una <strong>ventana de 1 a 2 días</strong> aumenta mucho la probabilidad de cargar a tiempo y suele salir más económica. Con fecha fija, si ese día no hay vehículo disponible habría que reprogramar la carga.</div>
                 </div>
 
                 <div class="ptar-notes-wrap">
@@ -4888,13 +4898,20 @@ function updateAlmTotal() {
         else { el.hidden = true; }
     }
     if (urgSel) urgSel.addEventListener('change', syncVentanaNote);
-    // Aviso "carga hoy para hoy": solo con fecha fija (ventana 1 día) y fecha = hoy.
+    // Avisos de fecha fija (ventana 1 día):
+    //  · si la fecha es HOY → aviso fuerte "carga hoy para hoy" (ámbar).
+    //  · si es un día futuro → recomendación de ampliar a ventana de 1 a 2 días.
     function syncHoyWarn() {
         var el = card.querySelector('[data-ptar-hoy-warn]');
-        if (!el || !urgSel || !diaSel) return;
+        var fija = card.querySelector('[data-ptar-fija-note]');
+        if (!urgSel || !diaSel) return;
         var now = new Date();
         var todayIso = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-        el.hidden = !(urgSel.value === 'dia' && diaSel.value === todayIso);
+        var esFija = (urgSel.value === 'dia');
+        var esHoy = esFija && diaSel.value === todayIso;
+        if (el) el.hidden = !esHoy;
+        // Recomendación solo para fecha fija en día futuro (con fecha elegida).
+        if (fija) fija.hidden = !(esFija && !!diaSel.value && !esHoy);
     }
     if (urgSel) urgSel.addEventListener('change', syncHoyWarn);
     if (diaSel) diaSel.addEventListener('change', syncHoyWarn);
