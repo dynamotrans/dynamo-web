@@ -1083,15 +1083,16 @@
         .badge-hacia     { background: #fff; color: #1e40af; box-shadow: inset 0 0 0 1px #cbd5e1; }  /* Hacia la carga: blanco, punto azul */
         .badge-cargando  { background: #fef3c7; color: #92400e; }  /* Cargando: amber */
         .badge-enruta    { background: #1e40af; color: #fff; }     /* En ruta: azul oscuro, letras blancas */
+        .badge-entrega   { background: #fff; color: #047857; box-shadow: inset 0 0 0 1px #b7ebcd; } /* Llegando a la entrega: blanco, punto verde */
         .badge-entregado { background: #d1fae5; color: #065f46; }  /* Entregado: green */
         .badge-cancelada { background: #fee2e2; color: #991b1b; }  /* Cancelada: red */
         /* Punto parpadeante a la izquierda del texto en ciertos estados de envío.
            (Entregado y Cancelada se quedan sin punto.) */
-        .badge-prog, .badge-hacia, .badge-cargando, .badge-enruta, .badge-retrasada {
+        .badge-prog, .badge-hacia, .badge-cargando, .badge-enruta, .badge-entrega, .badge-retrasada {
             display: inline-flex; align-items: center; gap: 0.42em;
         }
         .badge-prog::before, .badge-hacia::before, .badge-cargando::before,
-        .badge-enruta::before, .badge-retrasada::before {
+        .badge-enruta::before, .badge-entrega::before, .badge-retrasada::before {
             content: ""; width: 7px; height: 7px; border-radius: 50%;
             flex-shrink: 0; animation: badgeDotBlink 1.3s ease-in-out infinite;
         }
@@ -1099,11 +1100,12 @@
         .badge-hacia::before     { background: #2563eb; box-shadow: 0 0 5px #2563eb; }    /* azul */
         .badge-cargando::before  { background: #ff6a00; box-shadow: 0 0 5px #ff6a00; }    /* naranja flúor */
         .badge-enruta::before    { background: #00e676; box-shadow: 0 0 5px #00e676; }    /* verde flúor */
+        .badge-entrega::before   { background: #00e676; box-shadow: 0 0 5px #00e676; }    /* verde flúor */
         .badge-retrasada::before { background: #ef4444; box-shadow: 0 0 4px #ef4444; }    /* rojo */
         @keyframes badgeDotBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
         @media (prefers-reduced-motion: reduce) {
             .badge-prog::before, .badge-hacia::before, .badge-cargando::before,
-            .badge-enruta::before, .badge-retrasada::before { animation: none; }
+            .badge-enruta::before, .badge-entrega::before, .badge-retrasada::before { animation: none; }
         }
         /* Chip 📄 al lado del estado cuando la entrega tiene albaran PDF */
         .badge-doc {
@@ -4569,6 +4571,13 @@
             matricula: '9183 KDR', conductor: 'Luis Martínez', tfnoConductor: '+34 622 511 098',
             _phaseSim: 'enruta'
         }));
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1306','PED-0441', fechaFuturaLaborable(0), 'Fija','Sevilla','Jaén','Pol. Calonge → Pol. Los Olivares','Paletizado','Material eléctrico','13,2 m · 21.000 kg','en-ruta', undefined, {
+            precio: '590 €', fechaAsignada: fechaFuturaLaborable(0) + ' 07:00', horaCargaEst: '07:00', etaEntrega: 'Hoy 15:00',
+            tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa',
+            transportistaAsignado: true, transportistaNombre: 'Dynamo (camión propio)',
+            matricula: '3471 QTB', conductor: 'Andrés Gil', tfnoConductor: '+34 611 220 447',
+            _phaseSim: 'entrega'
+        }));
         CARGAS_DATA.unshift(makeCarga('#C-2026-1304','PED-0439', fechaFuturaLaborable(0), 'Fija','Sevilla','Granada','Pol. Calonge → Pol. Juncaril','Paletizado','Bebidas','13,2 m · 22.000 kg','en-ruta', undefined, {
             precio: '820 €', fechaAsignada: fechaFuturaLaborable(0) + ' 14:30', horaCargaEst: '14:30', etaEntrega: 'Hoy 19:30',
             tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa',
@@ -4829,9 +4838,10 @@
         }
         if (c.kind === 'entregada') return { label: 'Entregado',  color: 'entregado' };
         if (c.kind === 'cancelada') return { label: 'Cancelada',  color: 'cancelada' };
-        if (c._phaseSim === 'hacia')    return { label: 'Llegando', color: 'hacia' };
+        if (c._phaseSim === 'hacia')    return { label: 'Llegando a la recogida', color: 'hacia' };
         if (c._phaseSim === 'cargando') return { label: 'Cargando',       color: 'cargando' };
         if (c._phaseSim === 'enruta')   return { label: 'En ruta',        color: 'enruta' };
+        if (c._phaseSim === 'entrega')  return { label: 'Llegando a la entrega', color: 'entrega' };
         if (c._phaseSim === 'pre7')     return { label: 'Programado',     color: 'prog' };
         // En ruta: si la ETA de entrega es pasada → Retrasada (debería
         // haber llegado al destino). Si no, "En ruta" normal.
@@ -4855,7 +4865,7 @@
         if (isToday) {
             var h = now.getHours();
             if (h < 7)  return { label: 'Programado',     color: 'prog' };
-            if (h < 13) return { label: 'Llegando', color: 'hacia' };
+            if (h < 13) return { label: 'Llegando a la recogida', color: 'hacia' };
             if (h < 16) return { label: 'Cargando',       color: 'cargando' };
             return { label: 'En ruta', color: 'enruta' };
         }
@@ -5519,13 +5529,15 @@
         //    tarde, pasado mañana (ya no se organiza para el día siguiente).
         //  · Ventana 1-2 / 1-4 días: se puede empezar HOY o mañana siempre.
         function firstLoadDate(windowVal) {
-            // "Hoy para hoy" permitido a cualquier hora: el primer día ofertado
-            // es HOY si es laborable; si no (finde/festivo) el siguiente hábil.
-            // Igual para fecha fija y para ventana. No garantizamos cargar hoy
-            // mismo — se avisa en la caja ETA (aviso .ptar-eta-hoy).
+            // Primer día ofertado = HOY si es laborable Y aún no han pasado las
+            // 10:30 (hora Madrid). Pasado ese corte, no se admite carga para hoy
+            // → el primer día seleccionable es el siguiente día hábil.
             var now = nowMadrid();
             var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             nextBiz(d);
+            var esHoy = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+            var pasadoCorte = now.getHours() > 10 || (now.getHours() === 10 && now.getMinutes() >= 30);
+            if (esHoy && pasadoCorte) { d.setDate(d.getDate() + 1); nextBiz(d); }
             return d;
         }
         function loadDates(windowVal, count) {

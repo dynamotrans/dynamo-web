@@ -4612,9 +4612,14 @@ function updateAlmTotal() {
     // "Hoy para hoy" permitido a cualquier hora: primer día ofertado es HOY si
     // es laborable; si no, el siguiente hábil (igual para fija y ventana).
     function firstLoadDate() {
+        // Primer día = HOY si es laborable y aún no han pasado las 10:30; pasado
+        // ese corte no se admite carga para hoy → siguiente día hábil.
         var now = new Date();
         var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         nextBiz(d);
+        var esHoy = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+        var pasadoCorte = now.getHours() > 10 || (now.getHours() === 10 && now.getMinutes() >= 30);
+        if (esHoy && pasadoCorte) { d.setDate(d.getDate() + 1); nextBiz(d); }
         return d;
     }
     function loadDates(count) {
