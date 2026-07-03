@@ -1121,21 +1121,8 @@
             align-items: stretch;
         }
         .dash-top-row > * { min-width: 0; height: 100%; }
-        /* Nuevo envío ocupa 2/3 (2 columnas), CESCE 1/3 (1 columna),
-           alineado con las 3 stat cards de debajo. La columna 2/3 apila el CTA
-           grande de "Nuevo envío" y un botón discreto de "Nuevo presupuesto". */
-        .dash-top-row > .dash-cta { grid-column: span 2; }
-        .dash-cta-stack { grid-column: span 2; display: flex; flex-direction: column; gap: 0.6rem; }
-        .dash-cta-stack > .dash-cta { flex: 1; }
-        .dash-cta-presup {
-            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-            padding: 0.75rem 1rem; border-radius: 12px;
-            background: #fff; border: 1.5px solid var(--purple);
-            color: var(--purple); font-weight: 800; font-size: 0.9rem;
-            text-decoration: none; cursor: pointer;
-            transition: background 0.18s, transform 0.18s;
-        }
-        .dash-cta-presup:hover { background: #f3f0ff; transform: translateY(-2px); }
+        /* Nuevo envío · Nuevo presupuesto · CESCE en la misma fila (3 columnas
+           iguales), alineadas con las 3 stat cards de debajo. */
         /* Anular margen y padding propios cuando viven en el wrapper compartido
            para que las 3 cajas casen visualmente: misma altura, mismo padding,
            mismo radio. */
@@ -1987,6 +1974,17 @@
         #sec-nueva-carga[data-entry-mode="presupuesto"] .ptar-actions-main [data-ptar-submit]:hover {
             background: var(--gray-200);
         }
+        /* Modo envío (por defecto): la acción principal es Crear envío (morado)
+           y Guardar presupuesto queda discreta en gris claro. */
+        #sec-nueva-carga[data-entry-mode="envio"] .ptar-actions-main [data-ptar-save-presupuesto],
+        #sec-nueva-carga:not([data-entry-mode]) .ptar-actions-main [data-ptar-save-presupuesto] {
+            background: var(--gray-100); color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+        }
+        #sec-nueva-carga[data-entry-mode="envio"] .ptar-actions-main [data-ptar-save-presupuesto]:hover,
+        #sec-nueva-carga:not([data-entry-mode]) .ptar-actions-main [data-ptar-save-presupuesto]:hover {
+            background: var(--gray-200);
+        }
         /* Cancelar debe quedar SIEMPRE debajo (al reordenar las 2 acciones con
            order, sin esto el ghost de order:0 subiría a la primera posición). */
         #sec-nueva-carga[data-entry-mode="presupuesto"] .ptar-actions-main .btn-ghost { order: 3; }
@@ -2432,21 +2430,24 @@
     <!-- ==================== DASHBOARD ==================== -->
     <section class="section active" id="sec-dashboard">
         <div class="dash-top-row">
-            <div class="dash-cta-stack">
-                <a class="dash-cta dash-cta-purple" href="#" onclick="openNuevaCarga('envio');return false;">
-                    <div class="dash-cta-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                    </div>
-                    <div class="dash-cta-text">
-                        <h4>Nuevo envío</h4>
-                        <p>Solicita un transporte</p>
-                    </div>
-                </a>
-                <a class="dash-cta-presup" href="#" onclick="openNuevaCarga('presupuesto');return false;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-                    Nuevo presupuesto
-                </a>
-            </div>
+            <a class="dash-cta dash-cta-purple" href="#" onclick="openNuevaCarga('envio');return false;">
+                <div class="dash-cta-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                </div>
+                <div class="dash-cta-text">
+                    <h4>Nuevo envío</h4>
+                    <p>Solicita un transporte</p>
+                </div>
+            </a>
+            <a class="dash-cta dash-cta-green" href="#" onclick="openNuevaCarga('presupuesto');return false;">
+                <div class="dash-cta-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                </div>
+                <div class="dash-cta-text">
+                    <h4>Nuevo presupuesto</h4>
+                    <p>Calcula y guarda el precio</p>
+                </div>
+            </a>
             <!-- CESCE: solo se muestra el ESTADO de cobertura al cliente
                  (no consumo / disponible / límite). 3 estados posibles —
                  cambiar la clase modificadora y el texto cuando llegue el
