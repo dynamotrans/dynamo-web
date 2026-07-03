@@ -5839,6 +5839,10 @@
             // Grupaje (ml < máximo del camión): NO se puede garantizar fecha
             // fija (depende de completar camión) → se deshabilita "Fecha fija" en
             // el selector de ventana y, si estaba elegida, pasa a "1 a 4 días".
+            // Opciones originales del selector de ventana (guardadas una vez para
+            // poder reconstruir el select mostrando solo las permitidas — así se
+            // OMITEN por completo, no se dejan en gris).
+            var ventanaOptsAll = urgenciaSel ? Array.prototype.slice.call(urgenciaSel.options) : [];
             function syncGrupajeVentana() {
                 if (!urgenciaSel) return;
                 var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
@@ -5848,15 +5852,21 @@
                 var oc = (origWrap.dataset.cc || '').toLowerCase();
                 var dc = (destWrap.dataset.cc || '').toLowerCase();
                 var internacional = !!(oc && dc && oc !== dc);
-                var fijaOpt = urgenciaSel.querySelector('option[value="dia"]');
-                var estOpt = urgenciaSel.querySelector('option[value="estandar"]');
                 // Grupaje → sin "Fecha fija". Grupaje INTERNACIONAL (origen y
                 // destino en países distintos) → solo "1 a 4 días".
-                var offFija = esGrupaje;
-                var offEst = esGrupaje && internacional;
-                if (fijaOpt) { fijaOpt.disabled = offFija; fijaOpt.hidden = offFija; }
-                if (estOpt) { estOpt.disabled = offEst; estOpt.hidden = offEst; }
-                if ((urgenciaSel.value === 'dia' && offFija) || (urgenciaSel.value === 'estandar' && offEst)) {
+                var allowDia = !esGrupaje;
+                var allowEst = !(esGrupaje && internacional);
+                var prev = urgenciaSel.value;
+                urgenciaSel.innerHTML = '';
+                ventanaOptsAll.forEach(function (opt) {
+                    if (opt.value === 'dia' && !allowDia) return;
+                    if (opt.value === 'estandar' && !allowEst) return;
+                    opt.disabled = false; opt.hidden = false;
+                    urgenciaSel.appendChild(opt);
+                });
+                if (urgenciaSel.querySelector('option[value="' + prev + '"]')) {
+                    urgenciaSel.value = prev;
+                } else {
                     urgenciaSel.value = 'flexible';
                     urgenciaSel.dispatchEvent(new Event('change'));
                 }
