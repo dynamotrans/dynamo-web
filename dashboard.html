@@ -5845,9 +5845,18 @@
                 var max = info.mlReal || info.mlMax;
                 var mlv = mlSel.value === '13.2' ? 13.2 : parseFloat(mlSel.value);
                 var esGrupaje = !isNaN(mlv) && mlv < max;
+                var oc = (origWrap.dataset.cc || '').toLowerCase();
+                var dc = (destWrap.dataset.cc || '').toLowerCase();
+                var internacional = !!(oc && dc && oc !== dc);
                 var fijaOpt = urgenciaSel.querySelector('option[value="dia"]');
-                if (fijaOpt) { fijaOpt.disabled = esGrupaje; fijaOpt.hidden = esGrupaje; }
-                if (esGrupaje && urgenciaSel.value === 'dia') {
+                var estOpt = urgenciaSel.querySelector('option[value="estandar"]');
+                // Grupaje → sin "Fecha fija". Grupaje INTERNACIONAL (origen y
+                // destino en países distintos) → solo "1 a 4 días".
+                var offFija = esGrupaje;
+                var offEst = esGrupaje && internacional;
+                if (fijaOpt) { fijaOpt.disabled = offFija; fijaOpt.hidden = offFija; }
+                if (estOpt) { estOpt.disabled = offEst; estOpt.hidden = offEst; }
+                if ((urgenciaSel.value === 'dia' && offFija) || (urgenciaSel.value === 'estandar' && offEst)) {
                     urgenciaSel.value = 'flexible';
                     urgenciaSel.dispatchEvent(new Event('change'));
                 }
@@ -6111,8 +6120,8 @@
             }
 
             // Autocomplete con callback para recalcular ETA al pickear
-            bindAutocomplete(origWrap, origInput, origSug, renderEta);
-            bindAutocomplete(destWrap, destInput, destSug, renderEta);
+            bindAutocomplete(origWrap, origInput, origSug, function () { renderEta(); syncGrupajeVentana(); });
+            bindAutocomplete(destWrap, destInput, destSug, function () { renderEta(); syncGrupajeVentana(); });
 
             // --- Paradas adicionales: recogidas (origen adicional) o entregas
             //     (destino adicional). Mismo formato que origen/destino, con su
