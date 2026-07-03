@@ -1656,11 +1656,10 @@
             border-radius: 8px; transition: color 0.15s, background 0.15s;
         }
         .ptar-route-add:hover { background: rgba(51,0,204,0.07); }
-        /* Hueco reservado a la derecha del mismo tamaño que el botón "−" de las
-           paradas (30px + gap), para que el input + selector de origen/destino
-           queden alineados exactamente con los de las recogidas/entregas. */
-        .ptar-route-row { display: flex; gap: 0.5rem; align-items: stretch; padding-right: calc(30px + 0.5rem); }
-        .ptar-parada-row .ptar-route-row { padding-right: 0; }
+        /* Todas las filas de ruta llevan al final un botón de 30px (+ / − o "+"
+           oculto con visibility para conservar el hueco). Así input + selector y
+           los botones quedan alineados en cualquier estado, sin padding extra. */
+        .ptar-route-row { display: flex; gap: 0.5rem; align-items: stretch; }
         /* 75 / 25: input de origen/destino largo, selector de tipo corto. */
         .ptar-route-row .ptar-input-wrap { flex: 3 1 0; min-width: 0; }
         .ptar-route-row .ptar-select-sm {
@@ -6193,8 +6192,10 @@
                 // donde sea). Así el camión para como mucho 3 veces: origen +
                 // 1 parada + destino. Al añadirla se ocultan ambos "+".
                 var full = paradaRows().length >= 1;
-                if (origPlus) origPlus.style.display = full ? 'none' : '';
-                if (destPlus) destPlus.style.display = full ? 'none' : '';
+                // visibility (no display) → el "+" se oculta pero conserva su hueco
+                // de 30px, así las filas quedan alineadas con la parada (que lleva "−").
+                if (origPlus) origPlus.style.visibility = full ? 'hidden' : 'visible';
+                if (destPlus) destPlus.style.visibility = full ? 'hidden' : 'visible';
                 renumberRoute();
             }
             // Alias usado por reset/del (mantiene compatibilidad de nombre).

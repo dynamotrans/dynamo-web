@@ -936,8 +936,9 @@
         /* Hueco reservado a la derecha del tamaño del botón "−" de las paradas
            (30px + gap) para que origen/destino queden alineados con las
            recogidas/entregas añadidas. */
-        .ptar-route-row { display: flex; gap: 0.5rem; align-items: stretch; padding-right: calc(30px + 0.5rem); }
-        .ptar-parada-row .ptar-route-row { padding-right: 0; }
+        /* Botón de 30px al final de cada fila (+ / − o "+" oculto con visibility):
+           input + selector y botones alineados en cualquier estado. */
+        .ptar-route-row { display: flex; gap: 0.5rem; align-items: stretch; }
         /* Separación entre paradas igual al row-gap del grid, para que no queden pegadas. */
         [data-ptar-recogidas], [data-ptar-entregas] { display: flex; flex-direction: column; gap: 0.4rem; }
         /* Contenedor de paradas VACÍO no ocupa fila del grid (evita doble gap:
@@ -4971,8 +4972,9 @@ function updateAlmTotal() {
         // Máximo 1 parada adicional EN TOTAL (recogida o entrega): el camión para
         // como mucho 3 veces (origen + 1 parada + destino).
         var full = paradaRows().length >= 1;
-        if (origPlus) origPlus.style.display = full ? 'none' : '';
-        if (destPlus) destPlus.style.display = full ? 'none' : '';
+        // visibility (no display): el "+" oculto conserva su hueco de 30px → filas alineadas.
+        if (origPlus) origPlus.style.visibility = full ? 'hidden' : 'visible';
+        if (destPlus) destPlus.style.visibility = full ? 'hidden' : 'visible';
         renumberRoute();
     }
     function addParada(kind) {
