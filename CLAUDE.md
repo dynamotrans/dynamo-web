@@ -106,56 +106,36 @@ Para evitar que cambios de la web pública se queden "atascados" solo en preview
 
 Razón: la rama del portal es `main + código del portal`. `git merge preview → main` arrastraría el portal a producción (prohibido). Pero `main → preview` es seguro. Por tanto el sentido del flujo siempre es **main primero, preview después**.
 
-### 9. Tres ramas: main / preview / lab — quién contiene qué y cómo se propaga
+### 9. Dos ramas: main / preview — quién contiene qué y cómo se propaga
 
-Estructura del proyecto desde 2026-06-20 (decisión del usuario):
+Estructura del proyecto (simplificada el **2026-07-04**; antes existía además una rama `lab` permanente que se **eliminó por redundante** para 1 dev — sus contenidos eran idénticos a preview y solo generaba cascadas y conflictos de merge):
 
 ```
 main                        → dynamotrans.com (producción pública)
-claude/sharp-dirac-E3UIO    → preview (lo "estable validado", URL preview Vercel)
-lab                         → sandbox experimental (URL preview Vercel propia)
+claude/sharp-dirac-E3UIO    → preview (portal + web pública validada, URL preview Vercel)
 ```
 
-**Inheritance**:
-- `preview` ramificó de `main` con código del portal/panel encima.
-- `lab` ramificó de `preview`. Contiene **TODO lo que preview tiene** + experimentos extras del usuario.
+**Inheritance**: `preview` = `main` + código del portal/panel encima.
 
 **Default working branch para Claude**: `preview` (claude/sharp-dirac-E3UIO).
 
-**Triggers para entrar en MODO LAB** (usuario lo dice explícito; Claude hace `git checkout lab` y se queda ahí hasta que el usuario diga lo contrario):
-- "vamos a lab" / "modo lab" / "entramos en laboratorio"
-- "esto va en lab"
-- "probamos en lab"
-- Mención de feature experimental que se sabe que NO va a producción todavía (facturación con Holded, multi-rol con transportistas/proveedores, etc.)
+**Experimentos / features que NO van a producción todavía** (facturación con Holded, multi-rol con transportistas/proveedores, etc.): **NO** se usa una rama permanente. Se crea una **rama corta** desde `preview` con prefijo `lab/<algo>` (p.ej. `lab/facturacion-holded`). Vercel le da su propia URL de preview automáticamente. Vive lo que haga falta y luego se mergea a `preview` (solo con orden explícita) o se borra. Sin sandbox permanente.
 
-**Triggers para SALIR DE MODO LAB** (volver a preview):
-- "volvemos a preview"
-- "salimos de lab"
-- "modo preview"
-- "esto va en preview"
+**Confirmación visible obligatoria**: cada commit y cambio de rama Claude lo anuncia ("Subido a preview (`abc`)", "Creo rama `lab/x`", etc.). Si hay duda sobre qué rama tocar, preguntar antes de editar.
 
-**Confirmación visible obligatoria**: cada commit y cambio de rama Claude lo anuncia ("Subido a lab (`abc`)", "Modo lab activado", "Vuelvo a preview"). Si hay duda sobre qué rama tocar, preguntar antes de editar.
+**Propagación tras merges** (ya solo 2 destinos vivos, sin cascada a lab):
 
-**Cascadas obligatorias tras merges**:
-
-| Acción | Pasos en cascada |
+| Acción | Pasos |
 |---|---|
-| Cambio público merge a main | 1. main → 2. `git merge main` en preview + push → 3. `git merge preview` en lab + push |
-| Promoción preview → main | 1. main → 2. `git merge preview` en lab + push (para que lab no se quede atrás) |
-| Promoción lab → preview | 1. `git merge lab` en preview + push. **Después preguntar** si también va a main |
-| Lab queda atrás de preview | Periódicamente `git merge preview` desde lab para que no acumule drift |
+| Cambio público | rama corta `fix/<x>` desde `origin/main` → merge a `main` + push → luego `git merge main` en preview + push (para que preview no acumule drift) |
+| Promoción de un experimento | `git merge lab/<x>` en preview (**solo con orden explícita**) + push. Después preguntar si algo va también a `main` |
 
-**Regla dura de lab**:
-- Lab NUNCA se mergea a main directamente (siempre pasa por preview primero)
-- Lab NUNCA se mergea a preview sin orden EXPLÍCITA del usuario (no asumir aunque parezca "listo")
-- Cambios en lab pueden vivir indefinidamente sin promocionar — no presionar al usuario para moverlos
+**Reglas duras**:
+- El portal NUNCA se mergea a `main` sin frase explícita (regla 7).
+- Una rama de experimento `lab/<x>` NUNCA se mergea a `preview` sin orden EXPLÍCITA del usuario.
+- Los cambios públicos SIEMPRE arrancan desde `main` (regla 8), nunca desde preview.
 
-**Cosas que SOLO ocurren con orden explícita**:
-- Promover lab → preview
-- Promover preview → main
-- Borrar la rama lab (nunca sin orden)
-
-**Drift entre ramas**: si pasan >1 semana sin sincronizar, antes de cualquier operación Claude propone primero "sincronizar las tres ramas" para evitar conflictos acumulados.
+**Drift**: como `preview = main + portal`, tras cada cambio público hay que `git merge main` en preview para que no se acumule drift entre las dos copias de la web pública.
 
 ---
 
@@ -169,6 +149,23 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - Otro bullet
 - **Pendiente**: lo que quedó a medias
 -->
+
+### 2026-07-04 — Claude Code web (nube)
+
+> **Sesión de flujo del tarifador/panel + simplificación del modelo de ramas.** Trabajo de portal en **preview** (`claude/sharp-dirac-E3UIO`); un cambio público a **producción** (`main`): aviso de fecha fija en el tarifador del hero.
+
+**FLUJO NUEVO ENVÍO / PRESUPUESTO (`dashboard.html`, preview)**:
+- Botón **"Nuevo presupuesto"** de vuelta en el listado de Presupuestos y en el panel general. Ambos abren el MISMO formulario unificado vía `openNuevaCarga(mode)`.
+- **Modo de entrada** ('envio' | 'presupuesto'): desde presupuesto → Guardar presupuesto a la izquierda (destacado) y Crear envío a la derecha (discreto, con aviso "¿generar un envío?"); desde envío → Guardar presupuesto discreto en gris, con aviso "solo guarda el precio, no genera envío".
+- **Pantalla de confirmación**: aviso legal ámbar ("la recogida nunca está garantizada al 100%…") + **un solo check** de condiciones generales (el texto de la recogida se incorporó al apartado 14 de las condiciones). "Confirmar envío" bloqueado hasta marcarlo. "Limpiar" oculto en el paso de confirmación.
+- **Aviso de fecha fija** (1 solo día futuro) en la caja ETA del panel Y en el tarifador público (`index.html` → **main**): recomienda ventana de 1 a 2 días. Si es hoy, se mantiene "carga hoy para hoy".
+
+**DASHBOARD — layout y filtros (`dashboard.html`, preview)**:
+- Stat cards simplificadas: **Envíos · Presupuestos · Incidencias** (sin subtítulos). **CESCE** baja a esa fila → **fila de 4**. Botones Nuevo envío/presupuesto en su **fila de 2**.
+- Barra de filtros de Envíos: desplegable de mes con título **"Fecha"** (reaparece al restablecer) y más corto; desplegable **"Estado"** unificado (envío + vehículo) **solo en la pestaña Programadas** y sin Entregado/Cancelada; **buscador ensanchado** (ya no enano).
+
+**SIMPLIFICACIÓN DEL MODELO DE RAMAS (decisión del usuario)**:
+- **Eliminada la rama permanente `lab`** (contenido idéntico a preview; solo generaba cascadas de 3 pasos y conflictos de merge). Ahora **2 ramas vivas**: `main` (producción) + `preview` (portal). Experimentos → ramas cortas `lab/<algo>` desde preview, previsualizadas por Vercel y borradas/mergeadas a demanda. **Regla 9 reescrita** a este modelo.
 
 ### 2026-07-02 — Claude Code web (nube)
 
