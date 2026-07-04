@@ -735,7 +735,7 @@
         }
         .timeline-item:last-child { border-bottom: none; }
         .timeline-item strong { color: var(--navy); display: block; font-size: 0.88rem; }
-        .timeline-item .timeline-meta { font-size: 0.78rem; color: var(--gray-500); margin-top: 0.1rem; }
+        .timeline-item .timeline-meta { font-size: 0.82rem; color: var(--gray-500); margin-top: 0.1rem; }
         .timeline-icon {
             width: 28px; height: 28px; border-radius: 8px;
             background: var(--gray-100); color: var(--gray-500);
@@ -874,20 +874,22 @@
         }
         .modal-section-title:first-child { margin-top: 0; }
         .modal-info-grid > div { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+        /* Cuerpo de los modales a tamaño ÚNICO 0.82rem (igual que las
+           tablas): etiquetas, valores, avisos y timeline. */
         .modal-info-grid label {
-            font-size: 0.78rem; font-weight: 600; color: var(--gray-500);
+            font-size: 0.82rem; font-weight: 600; color: var(--gray-500);
             letter-spacing: 0;
         }
-        .modal-info-grid .v { font-size: 0.86rem; color: var(--navy); font-weight: 700; word-break: break-word; }
+        .modal-info-grid .v { font-size: 0.82rem; color: var(--navy); font-weight: 700; word-break: break-word; }
         .modal-form-row { margin-bottom: 0.85rem; }
         .modal-form-row label {
-            display: block; font-size: 0.78rem; font-weight: 600; color: var(--gray-500);
+            display: block; font-size: 0.82rem; font-weight: 600; color: var(--gray-500);
             letter-spacing: 0; margin-bottom: 0.3rem;
         }
         .modal-form-row input, .modal-form-row textarea, .modal-form-row select {
             width: 100%; padding: 0.62rem 0.8rem;
             border: 1px solid var(--gray-200); border-radius: 9px;
-            font-family: inherit; font-size: 0.88rem; color: var(--navy);
+            font-family: inherit; font-size: 0.82rem; color: var(--navy);
             background: white; outline: none;
             transition: border-color 0.15s, box-shadow 0.15s;
         }
@@ -903,11 +905,11 @@
         .modal-warn-box strong { color: var(--orange); }
         .modal-file-drop {
             border: 2px dashed var(--gray-200); border-radius: 10px;
-            padding: 1.1rem; text-align: center; color: var(--gray-500); font-size: 0.85rem;
+            padding: 1.1rem; text-align: center; color: var(--gray-500); font-size: 0.82rem;
             cursor: pointer; transition: border-color 0.15s, background 0.15s, color 0.15s;
         }
         .modal-file-drop:hover { border-color: var(--purple); background: rgba(51,0,204,0.03); color: var(--purple); }
-        .modal-file-drop-sub { font-size: 0.72rem; margin-top: 0.3rem; opacity: 0.8; }
+        .modal-file-drop-sub { font-size: 0.82rem; margin-top: 0.3rem; opacity: 0.8; }
         .modal-success {
             text-align: center; padding: 1.2rem 0 0.6rem;
         }
@@ -918,7 +920,7 @@
             font-size: 1.8rem; box-shadow: 0 10px 28px rgba(34,165,90,0.32);
         }
         .modal-success-title { font-size: 1.1rem; font-weight: 900; color: var(--navy); margin-bottom: 0.35rem; }
-        .modal-success-text { font-size: 0.85rem; color: var(--gray-500); line-height: 1.5; }
+        .modal-success-text { font-size: 0.82rem; color: var(--gray-500); line-height: 1.5; }
         @media (max-width: 600px) {
             .dash-modal { padding: 1rem 0.6rem; }
             .dash-modal-card { padding: 1.3rem 1.1rem; margin-top: 2rem; }
@@ -5459,8 +5461,8 @@
             extra.push('Tfno: <a href="tel:' + escapeHtml(String(s.tfno).replace(/[^+\d]/g, '')) + '" style="color:var(--purple);font-weight:600;">' + escapeHtml(s.tfno) + '</a>' +
                 (s.contacto ? ' (' + escapeHtml(s.contacto) + ')' : ''));
         }
-        if (extra.length) h += '<div style="font-size:0.78rem;color:var(--gray-500);margin-top:2px;">' + extra.join(' · ') + '</div>';
-        if (s && s.notas) h += '<div style="font-size:0.76rem;color:#b45309;background:#fef3c7;border-radius:8px;padding:0.35rem 0.5rem;margin-top:4px;">⚠ ' + escapeHtml(s.notas) + '</div>';
+        if (extra.length) h += '<div style="font-size:0.82rem;color:var(--gray-500);margin-top:2px;">' + extra.join(' · ') + '</div>';
+        if (s && s.notas) h += '<div style="font-size:0.82rem;color:#b45309;background:#fef3c7;border-radius:8px;padding:0.35rem 0.5rem;margin-top:4px;">⚠ ' + escapeHtml(s.notas) + '</div>';
         return h;
     }
     // Columna UNIFICADA Ruta + fechas: cada parada lleva su fecha y hora
