@@ -2099,6 +2099,13 @@
             .dash-top-row { grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
             .dash-top-row .dash-cta-text p { display: none; }
         }
+        /* En escritorio, igualar la altura de la cabecera del sidebar y de la
+           barra superior para que su borde inferior quede en la misma línea.
+           En móvil (≤768px) se deja como está (el sidebar es off-canvas). */
+        @media (min-width: 769px) {
+            .sidebar-brand { height: 72px; padding-top: 0; padding-bottom: 0; box-sizing: border-box; }
+            .topbar { height: 72px; box-sizing: border-box; }
+        }
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed; left: -250px; top: 0;
@@ -2387,13 +2394,13 @@
             <!-- Boton de contacto con Alvaro (antes era un FAB flotante).
                  Pequeño en la topbar, al pulsar abre dropdown con canales. -->
             <div class="topbar-contact-wrap">
-                <button type="button" class="topbar-contact-btn" id="topbarContactBtn" aria-haspopup="menu" aria-expanded="false" aria-label="Contactar con Álvaro">
+                <button type="button" class="topbar-contact-btn" id="topbarContactBtn" aria-haspopup="menu" aria-expanded="false" aria-label="Soporte con Álvaro">
                     <span class="topbar-contact-avatar">
                         <img src="/images/ALVARO_circular_ZOOM.png" alt="Álvaro - Contacto Dynamo Transportes">
                         <span class="topbar-contact-dot" aria-hidden="true"></span>
                     </span>
                     <span class="topbar-contact-label">
-                        <span class="t-pre">Contacto:</span>
+                        <span class="t-pre">Soporte:</span>
                         <span class="t-name">Álvaro</span>
                     </span>
                     <svg class="topbar-contact-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
