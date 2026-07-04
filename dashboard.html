@@ -1744,6 +1744,21 @@
         .ptar-sug li:hover, .ptar-sug li.active {
             background: rgba(51,0,204,0.06); color: var(--purple);
         }
+        /* Buscador de 3 niveles: chips Guardado / Google / Dirección */
+        .ptar-sug .sug-chip { float: right; margin-left: 0.6rem; font-size: 0.7rem; font-weight: 700; padding: 0.05rem 0.45rem; border-radius: 999px; }
+        .ptar-sug .sug-chip-saved  { background: rgba(34,165,90,0.12); color: #15803d; }
+        .ptar-sug .sug-chip-google { background: rgba(66,133,244,0.12); color: #1a73e8; }
+        .ptar-sug .sug-chip-addr   { background: var(--gray-100); color: var(--gray-500); }
+        .ptar-sug .sug-dir { display: block; font-size: 0.78rem; color: var(--gray-500); }
+        .cmp-table td.cmp-l { color: var(--gray-500); font-weight: 600; white-space: nowrap; }
+        /* Fichas editables de los lugares en el paso de confirmación */
+        .ptar-sitio-card { border: 1px solid var(--gray-200); border-radius: 10px; padding: 0.8rem 0.9rem; margin-bottom: 0.7rem; background: #fff; }
+        .ptar-sitio-card h5 { font-size: 0.82rem; color: var(--navy); margin-bottom: 0.5rem; }
+        .ptar-sitio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 0.8rem; }
+        .ptar-sitio-grid label { display: block; font-size: 0.82rem; color: var(--gray-500); font-weight: 600; margin-bottom: 0.15rem; }
+        .ptar-sitio-grid input { width: 100%; padding: 0.45rem 0.6rem; border: 1px solid var(--gray-200); border-radius: 8px; font: inherit; font-size: 0.82rem; color: var(--navy); }
+        .ptar-sitio-grid .full { grid-column: 1 / -1; }
+        @media (max-width: 600px) { .ptar-sitio-grid { grid-template-columns: 1fr; } }
         .ptar-camion-tip {
             display: none; font-size: 0.72rem; color: var(--gray-500);
             margin-top: 0.3rem; padding: 0.35rem 0.55rem;
@@ -2909,6 +2924,15 @@
 
             <h4 class="ptar-confirm-sumtitle">Resumen del transporte</h4>
             <dl class="ptar-confirm-summary" data-ptar-summary></dl>
+
+            <!-- Fichas de los lugares elegidos en el buscador (agenda o
+                 Google): prerellenadas y EDITABLES. Lo corregido se guarda
+                 en la agenda de sitios al confirmar el envío. -->
+            <div data-ptar-sitios hidden>
+                <h4 class="ptar-confirm-sumtitle">Datos de los lugares (editables)</h4>
+                <p class="ptar-confirm-lead" style="margin-bottom:0.6rem;">Revisa horario, teléfono y notas de cada punto. Los cambios se guardan en tu agenda de sitios al confirmar el envío.</p>
+                <div data-ptar-sitios-list></div>
+            </div>
 
             <div class="ptar-confirm-note ptar-confirm-note-caution">
                 <p><strong>La recogida nunca está garantizada al 100%.</strong> En circunstancias normales se cumple, pero pueden darse incidencias ajenas a nuestra voluntad: retraso del camión asignado, una devolución de mercancía que debía descargar antes de venir a cargar, una demanda no prevista el día de la carga sin vehículos disponibles, un accidente, retenciones graves de tráfico o cualquier otra circunstancia que impida cumplir con el servicio programado.</p>
@@ -5427,7 +5451,106 @@
         'stalam-s-p-a-nove-vi': { empresa: 'STALAM S.p.A.', dir: '36055, NOVE VI, Italia', horario: 'L-V 8:30-12:30 · 13:30-16:30', tfno: '+390424597400', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/bkQQwundPbhavvXU8', freq: 1 },
         'produccion-tecnica-tjl-huercal-de-alm': { empresa: 'Producción Técnica TJL, S.L. (Almacén)', dir: '04230, Huércal de Almería, Almería, España', horario: '13:00-16:00', tfno: '678 56 24 36', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/MZ9DeVMP2UCEXsmY8', freq: 1 }
     };
-    function siteDe(ref) { return typeof ref === 'string' ? SITES[ref] : ref; }
+    // Sitios guardados por el usuario (mock de la futura BBDD, persiste en
+    // el navegador): lugares elegidos de "Google" y editados al crear envío.
+    var SITES_CUSTOM = {};
+    try { SITES_CUSTOM = JSON.parse(localStorage.getItem('dynamoSitesCustom') || '{}') || {}; } catch (e) {}
+    function saveCustomSite(key, site) {
+        SITES_CUSTOM[key] = site;
+        try { localStorage.setItem('dynamoSitesCustom', JSON.stringify(SITES_CUSTOM)); } catch (e) {}
+    }
+    function siteDe(ref) { return typeof ref === 'string' ? (SITES_CUSTOM[ref] || SITES[ref]) : ref; }
+    function allSitesEntries() {
+        var out = [];
+        Object.keys(SITES).forEach(function (k) { if (!SITES_CUSTOM[k]) out.push([k, SITES[k]]); });
+        Object.keys(SITES_CUSTOM).forEach(function (k) { out.push([k, SITES_CUSTOM[k]]); });
+        return out;
+    }
+    // === MOCK de la API de Google Places (nivel 2 del buscador) ===
+    // Sin API key todavía (ver TODO). Fichas ficticias al estilo Google:
+    // incluyen DOBLES de sitios ya guardados (Grupal Art, Modular, Circular
+    // Polimeri) con datos ligeramente distintos, para poder demostrar el
+    // flujo de duplicados; y empresas nuevas que no están en la agenda.
+    var SITES_GOOGLE = [
+        { empresa: 'Grupal Art SL', dir: 'Carrer Perdellot, 12, 08185 Lliçà de Vall, Barcelona', cp: '08185', horario: 'L-V 8:00-13:30', tfno: '938 44 51 87', maps: 'https://goo.gl/maps/q4ECJQVWoezFTaHA6' },
+        { empresa: 'Modular Normalizada S.L.', dir: 'Calle del Berilio, 3, 28946 Fuenlabrada, Madrid', cp: '28946', horario: 'L-V 7:00-14:30', tfno: '916 42 17 61', maps: 'https://maps.app.goo.gl/wm2DhtjTyovfFkXe6' },
+        { empresa: 'Circular Polimeri', dir: 'Carrer Nou, 21, 46469 Beniparrell, Valencia', cp: '46469', horario: 'L-V 8:00-17:00', tfno: '961 21 40 88', maps: 'https://maps.app.goo.gl/a9eiXJTidcnLHVjD6' },
+        { empresa: 'Talleres Norte SL', dir: 'Pol. Malpica, Calle E, 30, 50016 Zaragoza', cp: '50016', horario: 'L-V 8:00-18:00', tfno: '976 57 30 21', maps: 'https://maps.app.goo.gl/talleresnorte' },
+        { empresa: 'Logística Manchega SL', dir: 'Pol. Campollano, Av. 2ª, 40, 02007 Albacete', cp: '02007', horario: 'L-V 7:30-15:30', tfno: '967 21 84 50', maps: 'https://maps.app.goo.gl/logmanchega' },
+        { empresa: 'Cerámicas Levante SA', dir: 'Ctra. Alcora, km 9, 12006 Castellón de la Plana', cp: '12006', horario: 'L-V 6:00-14:00', tfno: '964 25 71 33', maps: 'https://maps.app.goo.gl/ceramicaslevante' },
+        { empresa: 'Frutas del Sur SCA', dir: 'Ctra. de la Mojonera, km 3, 04745 La Mojonera, Almería', cp: '04745', horario: 'L-S 6:00-20:00', tfno: '950 58 12 47', maps: 'https://maps.app.goo.gl/frutasdelsur' },
+        { empresa: 'Hierros Cantabria SL', dir: 'Pol. Barros, Nave 12, 39408 Los Corrales de Buelna, Cantabria', cp: '39408', horario: 'L-V 8:00-17:00', tfno: '942 83 07 19', maps: 'https://maps.app.goo.gl/hierroscantabria' }
+    ];
+    function buscarSitesGuardados(q) {
+        q = normTxt(q);
+        return allSitesEntries().filter(function (kv) {
+            var s = kv[1];
+            return normTxt((s.empresa || '') + ' ' + (s.dir || '')).indexOf(q) !== -1;
+        }).slice(0, 4);
+    }
+    function buscarSitesGoogle(q) {
+        q = normTxt(q);
+        return SITES_GOOGLE.filter(function (g) {
+            return normTxt(g.empresa + ' ' + g.dir).indexOf(q) !== -1;
+        }).slice(0, 3);
+    }
+    // ¿Este resultado de Google se parece a un sitio ya guardado? Criterio:
+    // misma primera palabra "fuerte" (≥4 letras) del nombre, o mismo CP con
+    // parte del nombre coincidente.
+    function sitioSimilarGuardado(g) {
+        var gTok = normTxt(g.empresa).split(/\s+/).filter(function (w) { return w.length >= 4; })[0] || '';
+        var gcp = g.cp || (String(g.dir).match(/\b\d{5}\b/) || [''])[0];
+        var hit = null;
+        allSitesEntries().forEach(function (kv) {
+            if (hit) return;
+            var s = kv[1];
+            var sTok = normTxt(s.empresa || '').split(/\s+/).filter(function (w) { return w.length >= 4; })[0] || '';
+            var scp = (String(s.dir || '').match(/\b\d{5}\b/) || [''])[0];
+            if ((gTok && sTok && gTok === sTok) || (gcp && scp && gcp === scp && gTok && normTxt(s.empresa || '').indexOf(gTok) !== -1)) hit = { key: kv[0], site: s };
+        });
+        return hit;
+    }
+    // Aviso de posible duplicado al elegir un resultado de Google muy similar
+    // a un sitio guardado. 3 salidas: usar el guardado (recomendado — puede
+    // tener anotaciones o el teléfono bueno), seguir con Google, o COMPARAR
+    // ambos lado a lado para elegir con criterio.
+    function abrirModalDuplicado(dup, g, cb) {
+        window._dupPick = function (cual) { closeDashModal(); cb(cual); };
+        window._dupComparar = function () {
+            var s = dup.site;
+            function fila(label, a, b) {
+                function celda(v) { return v ? escapeHtml(v) : '<span style="color:var(--gray-400);">—</span>'; }
+                return '<tr><td class="cmp-l">' + escapeHtml(label) + '</td><td>' + celda(a) + '</td><td>' + celda(b) + '</td></tr>';
+            }
+            openDashModal({
+                icon: 'eye', title: 'Comparar sitios',
+                sub: 'Tu registro guardado frente a la ficha de Google',
+                body: '<div class="table-wrap"><table class="data cmp-table">' +
+                    '<thead><tr><th></th><th>Tu registro</th><th>Ficha de Google</th></tr></thead><tbody>' +
+                    fila('Nombre', s.empresa, g.empresa) +
+                    fila('Dirección', s.dir, g.dir) +
+                    fila('Horario', s.horario, g.horario) +
+                    fila('Teléfono', s.tfno, g.tfno) +
+                    fila('Contacto', s.contacto, null) +
+                    fila('Notas', s.notas, null) +
+                    '</tbody></table></div>',
+                footer: '<button class="btn-ghost" onclick="_dupPick(\'google\')">Usar el de Google</button>' +
+                        '<button class="btn-primary" onclick="_dupPick(\'guardado\')">Usar mi registro</button>'
+            });
+        };
+        openDashModal({
+            icon: 'alert', title: 'Este sitio ya parece estar guardado',
+            sub: 'El resultado de Google es muy similar a un sitio de tu agenda',
+            body: '<div class="modal-warn-box">Si sigues con el de Google se <strong>duplicaría el registro</strong>. Tu sitio guardado puede tener <strong>anotaciones importantes</strong> o el <strong>teléfono correcto</strong> que la ficha de Google no trae.</div>' +
+                infoGrid([
+                    { label: 'Tu registro', value: (dup.site.empresa || '') + ' · ' + (dup.site.dir || ''), span: true },
+                    { label: 'Ficha de Google', value: g.empresa + ' · ' + g.dir, span: true }
+                ]),
+            footer: '<button class="btn-ghost" onclick="_dupComparar()">Comparar ambos</button>' +
+                    '<button class="btn-ghost" onclick="_dupPick(\'google\')">Seguir con Google</button>' +
+                    '<button class="btn-primary" onclick="_dupPick(\'guardado\')">Usar mi registro</button>'
+        });
+    }
     // "(EMPRESA)" en la misma línea de la dirección, en texto plano y
     // discreto — sin enlace: en la tabla cargaba mucho y no aporta; el
     // enlace a Google Maps y el teléfono viven en el modal "Ver detalle".
@@ -6347,42 +6470,94 @@
             if (pais && pais !== 'España' && pais !== 'Spain') parts.push('(' + pais + ')');
             return parts.join(', ');
         }
+        // Buscador de 3 niveles (desde el 1er carácter):
+        //   1º sitios GUARDADOS (agenda propia: catálogo + guardados del
+        //      usuario) · 2º empresas de GOOGLE (mock de Places hasta tener
+        //      API key) · 3º DIRECCIONES (Nominatim, como el buscador de
+        //      Google Maps cuando nada coincide).
         function bindAutocomplete(wrap, input, sugList, onPick) {
             var deb;
-            // Limpia el lat/lon almacenado en el wrap cuando el usuario edita
-            // el texto manualmente — sin coordenadas no podemos calcular ETA.
             function clearGeo() {
-                delete wrap.dataset.lat;
-                delete wrap.dataset.lon;
-                delete wrap.dataset.cc;
+                delete wrap.dataset.lat; delete wrap.dataset.lon; delete wrap.dataset.cc;
+                delete wrap.dataset.siteKey; delete wrap.dataset.gsite;
                 if (onPick) onPick(null);
+            }
+            // Geocodifica en 2º plano la dirección del sitio elegido para que
+            // la ETA siga funcionando (la agenda no guarda lat/lon todavía).
+            function geoFromDir(dir) {
+                osmSearch(dir, function (items) {
+                    if (!items || !items[0]) return;
+                    wrap.dataset.lat = items[0].lat; wrap.dataset.lon = items[0].lon;
+                    wrap.dataset.cc = (items[0].address && items[0].address.country_code) || '';
+                    if (onPick) onPick({ lat: parseFloat(items[0].lat), lon: parseFloat(items[0].lon), label: input.value });
+                });
+            }
+            function aplicarGuardado(key, s) {
+                input.value = (s.empresa ? s.empresa + ' — ' : '') + (s.dir || '');
+                wrap.dataset.siteKey = key;
+                delete wrap.dataset.gsite;
+                sugList.hidden = true;
+                geoFromDir(s.dir || input.value);
+            }
+            function aplicarGoogle(g) {
+                input.value = g.empresa + ' — ' + g.dir;
+                wrap.dataset.gsite = JSON.stringify(g);
+                delete wrap.dataset.siteKey;
+                sugList.hidden = true;
+                geoFromDir(g.dir);
+            }
+            function pickGoogle(g) {
+                var dup = sitioSimilarGuardado(g);
+                if (!dup) { aplicarGoogle(g); return; }
+                abrirModalDuplicado(dup, g, function (usar) {
+                    if (usar === 'guardado') aplicarGuardado(dup.key, dup.site);
+                    else aplicarGoogle(g);
+                });
+            }
+            function li(html) { var el = document.createElement('li'); el.innerHTML = html; return el; }
+            function chip(t, cls) { return '<span class="sug-chip ' + cls + '">' + t + '</span>'; }
+            function renderLocales(q) {
+                sugList.innerHTML = '';
+                buscarSitesGuardados(q).forEach(function (kv) {
+                    var k = kv[0], s = kv[1];
+                    var el = li(chip('Guardado', 'sug-chip-saved') + '<strong>' + esc(s.empresa || '') + '</strong><span class="sug-dir">' + esc(s.dir || '') + '</span>');
+                    el.addEventListener('mousedown', function (e) { e.preventDefault(); aplicarGuardado(k, s); });
+                    sugList.appendChild(el);
+                });
+                buscarSitesGoogle(q).forEach(function (g) {
+                    var el = li(chip('Google', 'sug-chip-google') + '<strong>' + esc(g.empresa) + '</strong><span class="sug-dir">' + esc(g.dir) + '</span>');
+                    el.addEventListener('mousedown', function (e) { e.preventDefault(); pickGoogle(g); });
+                    sugList.appendChild(el);
+                });
+                sugList.hidden = !sugList.children.length;
             }
             input.addEventListener('input', function () {
                 wrap.classList.remove('ptar-error');
                 clearGeo();
                 var q = input.value.trim();
-                if (q.length < 2) { sugList.hidden = true; return; }
+                if (q.length < 1) { sugList.hidden = true; return; }
+                // Niveles 1-2 al instante desde el primer carácter
+                renderLocales(q);
+                // Nivel 3 (direcciones) con debounce, se añade debajo al llegar
                 clearTimeout(deb);
+                if (q.length < 2) return;
                 deb = setTimeout(function () {
                     osmSearch(q, function (items) {
-                        sugList.innerHTML = '';
-                        if (!items.length) { sugList.hidden = true; return; }
-                        items = prioritizeCountry(items);
-                        items.forEach(function (it) {
-                            var li = document.createElement('li');
-                            li.textContent = formatSugLabel(it);
-                            li.addEventListener('mousedown', function (e) {
+                        if (input.value.trim() !== q) return;   // el texto ya cambió
+                        prioritizeCountry(items || []).slice(0, 4).forEach(function (it) {
+                            var el = li(chip('Dirección', 'sug-chip-addr') + esc(formatSugLabel(it)));
+                            el.addEventListener('mousedown', function (e) {
                                 e.preventDefault();
-                                input.value = li.textContent;
-                                wrap.dataset.lat = it.lat;
-                                wrap.dataset.lon = it.lon;
+                                input.value = formatSugLabel(it);
+                                wrap.dataset.lat = it.lat; wrap.dataset.lon = it.lon;
                                 wrap.dataset.cc = (it.address && it.address.country_code) || '';
+                                delete wrap.dataset.siteKey; delete wrap.dataset.gsite;
                                 sugList.hidden = true;
-                                if (onPick) onPick({ lat: parseFloat(it.lat), lon: parseFloat(it.lon), label: li.textContent });
+                                if (onPick) onPick({ lat: parseFloat(it.lat), lon: parseFloat(it.lon), label: input.value });
                             });
-                            sugList.appendChild(li);
+                            sugList.appendChild(el);
                         });
-                        sugList.hidden = false;
+                        sugList.hidden = !sugList.children.length;
                     });
                 }, 350);
             });
@@ -7095,10 +7270,21 @@
                     ventanaDias: urgenciaSel.value === 'dia' ? 1 : urgenciaSel.value === 'flexible' ? 4 : 2,
                     refCli: refCliInput.value.trim() || (mode === 'carga' ? 'PED-NUEVO' : 'COT-NUEVO'),
                     notes: notesTxt.value.trim(),
+                    origSitePick: sitePickDe(origWrap),
+                    destSitePick: sitePickDe(destWrap),
                     paradas: paradaRows().map(function (r) {
-                        return { texto: (r.querySelector('input').value || '').trim(), tipo: r.querySelector('select').value, kind: r.getAttribute('data-kind') };
+                        return { texto: (r.querySelector('input').value || '').trim(), tipo: r.querySelector('select').value, kind: r.getAttribute('data-kind'), sitePick: sitePickDe(r.querySelector('.ptar-input-wrap')) };
                     }).filter(function (p) { return p.texto; })
                 };
+            }
+            // Qué sitio se eligió en el buscador de un punto: de la agenda
+            // (siteKey) o de Google (ficha completa en JSON). null = dirección
+            // a secas sin empresa asociada.
+            function sitePickDe(w) {
+                if (!w) return null;
+                if (w.dataset.siteKey) return { tipo: 'guardado', key: w.dataset.siteKey };
+                if (w.dataset.gsite) { try { return { tipo: 'google', g: JSON.parse(w.dataset.gsite) }; } catch (e) {} }
+                return null;
             }
 
             // Inserta la carga/presupuesto en la data y navega — paso final
@@ -7106,11 +7292,47 @@
             function finalizeSave(d, saveMode) {
                 saveMode = saveMode || mode;
                 var ref = nextRef(saveMode);
+                // Consolida el sitio de un punto: aplica lo editado en su ficha
+                // del paso 2 y lo GUARDA en la agenda (los de Google pasan a
+                // ser sitios propios; los guardados actualizan sus datos).
+                function consolidarSitio(pick, id) {
+                    if (!pick) return null;
+                    var src0 = pick.tipo === 'guardado' ? (siteDe(pick.key) || {}) : {
+                        empresa: pick.g.empresa, dir: pick.g.dir, horario: pick.g.horario,
+                        tfno: pick.g.tfno, contacto: null, notas: null, maps: pick.g.maps, freq: 1
+                    };
+                    var base = {};
+                    Object.keys(src0).forEach(function (k) { base[k] = src0[k]; });
+                    var edito = false;
+                    document.querySelectorAll('[data-sitio-id="' + id + '"]').forEach(function (el) {
+                        var f = el.getAttribute('data-sitio-f');
+                        var v = el.value.trim() || null;
+                        if (base[f] !== v) edito = true;
+                        base[f] = v;
+                    });
+                    var key = pick.tipo === 'guardado' ? pick.key
+                        : ('mi-' + normTxt(base.empresa || 'sitio').replace(/[^a-z0-9]+/g, '-').slice(0, 30) + '-' + ((String(base.dir || '').match(/\b\d{5}\b/) || ['x'])[0]));
+                    if (pick.tipo === 'google' || edito) saveCustomSite(key, base);
+                    return { key: key, site: base };
+                }
                 if (saveMode === 'carga') {
+                    var oS = consolidarSitio(d.origSitePick, 'orig');
+                    var dS = consolidarSitio(d.destSitePick, 'dest');
                     CARGAS_DATA.unshift(makeCarga(
                         ref, d.refCli, d.fechaTxt, d.urgenciaTxt,
                         d.origCorto, d.destCorto, d.origCorto + ' → ' + d.destCorto,
-                        d.mercanciaShort, '', d.medidas, 'programada'
+                        d.mercanciaShort, '', d.medidas, 'programada', undefined, {
+                            origenSite: oS ? oS.key : null,
+                            origenDir: oS ? oS.site.dir : null,
+                            destinoSite: dS ? dS.key : null,
+                            destinoDir: dS ? dS.site.dir : null,
+                            horarioOrigen: (oS && oS.site.horario) || null,
+                            horarioDestino: (dS && dS.site.horario) || null,
+                            paradas: (d.paradas || []).map(function (p, i) {
+                                var ps = consolidarSitio(p.sitePick, 'parada' + i);
+                                return { tipo: p.kind, dir: ps ? ps.site.dir : p.texto, site: ps ? ps.key : null };
+                            })
+                        }
                     ));
                     TABLE_STATE.cargas.page = 1;
                     // Si la carga es "Programado sin fecha definida" cae en
@@ -7224,6 +7446,35 @@
                 }
                 var dynNote = confirmCard.querySelector('[data-ptar-dyn-note]');
                 if (dynNote) dynNote.hidden = !loadDateIsFar();
+                // Fichas editables de los lugares (agenda o Google)
+                var sitiosWrap = confirmCard.querySelector('[data-ptar-sitios]');
+                var sitiosList = confirmCard.querySelector('[data-ptar-sitios-list]');
+                if (sitiosWrap && sitiosList) {
+                    var picks = [];
+                    if (d.origSitePick) picks.push({ rol: 'Recogida (origen)', pick: d.origSitePick, id: 'orig' });
+                    (d.paradas || []).forEach(function (p, i) {
+                        if (p.sitePick) picks.push({ rol: p.kind === 'recogida' ? 'Recogida adicional' : 'Entrega adicional', pick: p.sitePick, id: 'parada' + i });
+                    });
+                    if (d.destSitePick) picks.push({ rol: 'Entrega (destino)', pick: d.destSitePick, id: 'dest' });
+                    sitiosList.innerHTML = picks.map(function (p) {
+                        var s = p.pick.tipo === 'guardado' ? (siteDe(p.pick.key) || {}) : p.pick.g;
+                        var fuente = p.pick.tipo === 'guardado' ? 'de tu agenda' : 'de Google · se guardará en tu agenda';
+                        function inp(lbl, f, val, ph) {
+                            return '<div><label>' + lbl + '</label><input data-sitio-f="' + f + '" data-sitio-id="' + p.id + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '"></div>';
+                        }
+                        return '<div class="ptar-sitio-card">' +
+                            '<h5>' + escapeHtml(p.rol) + ' · <span style="color:var(--gray-500);font-weight:600;">' + escapeHtml(fuente) + '</span></h5>' +
+                            '<div class="ptar-sitio-grid">' +
+                                inp('Empresa', 'empresa', s.empresa) +
+                                inp('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
+                                inp('Teléfono', 'tfno', s.tfno) +
+                                inp('Contacto', 'contacto', s.contacto, 'Persona de contacto') +
+                                '<div class="full"><label>Notas del sitio</label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="' + escapeHtml(s.notas || '') + '" placeholder="Ej. pedir cita, báscula, NIMA…"></div>' +
+                            '</div>' +
+                        '</div>';
+                    }).join('');
+                    sitiosWrap.hidden = !picks.length;
+                }
                 // Reiniciar el check obligatorio cada vez que se entra al paso
                 // de confirmación (por si se editó y se volvió a entrar).
                 if (chkTerms) chkTerms.checked = false;
