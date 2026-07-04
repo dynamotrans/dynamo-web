@@ -1376,6 +1376,8 @@
         table.data td.route-full .rf-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 0.32rem; }
         table.data td.route-full .rf-dot.orig { background: var(--orange); }
         table.data td.route-full .rf-dot.dest { background: var(--green); }
+        /* Parada donde está el camión AHORA (cargando/entregando): parpadea */
+        table.data td.route-full .rf-dot.rf-dot-blink { animation: badgeDotBlink 1.3s ease-in-out infinite; }
         /* Segunda línea discreta bajo cada dirección: empresa (enlace a su
            Google Maps) + horario del sitio */
         table.data td.route-full .rf-site { display: block; font-size: 0.72rem; color: var(--gray-500); margin-top: 1px; }
@@ -4447,6 +4449,11 @@
             paradas: extra.paradas || null,
             origenSite: extra.origenSite || null,
             destinoSite: extra.destinoSite || null,
+            // Índice (en orden de recorrido) de la parada donde está el camión
+            // AHORA. Con varias recogidas/entregas, su punto parpadea para
+            // saber en cuál está. Si no se indica: Cargando → origen (0);
+            // Llegando a la entrega → destino (última).
+            stopActivo: (extra.stopActivo != null ? extra.stopActivo : null),
             tipoCamion: extra.tipoCamion || null,
             tipoCarga: extra.tipoCarga || null,   // 'Carga completa' | 'Grupaje'
             // Transportista (carrier) vs matrícula (camión concreto) son
@@ -4612,9 +4619,11 @@
             tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa',
             transportistaAsignado: true, transportistaNombre: 'Transportes Beltrán S.L.',
             matricula: '5829 MGT', conductor: 'Rafael Vega', tfnoConductor: '+34 690 334 221',
-            // Demo de ruta con parada extra + empresa en cada punto
+            // Demo de ruta con parada extra + empresa en cada punto. El camión
+            // está cargando en la 2ª recogida (Dos Hermanas) → su punto parpadea.
             origenSite: 'bidafarma-sevilla',
             paradas: [{ tipo: 'recogida', dir: '41700, Dos Hermanas, Sevilla, España' }],
+            stopActivo: 1,
             _phaseSim: 'cargando'
         }));
         CARGAS_DATA.unshift(makeCarga('#C-2026-1299','PED-0435', fechaFuturaLaborable(0), 'Fija','Sevilla','Málaga','Pol. Carretera Amarilla → Pol. San Luis','Paletizado','Aceitunas envasadas','10,0 m · 17.000 kg','en-ruta', undefined, {
@@ -5344,8 +5353,15 @@
         extras.filter(function (p) { return p.tipo === 'recogida'; }).forEach(function (p) { stops.push({ t: 'recogida', dir: p.dir, site: p.site }); });
         extras.filter(function (p) { return p.tipo !== 'recogida'; }).forEach(function (p) { stops.push({ t: 'entrega', dir: p.dir, site: p.site }); });
         stops.push({ t: 'entrega', dir: ciudadDir(c.destino, c.destinoDir), site: c.destinoSite });
-        return '<td class="route-full">' + stops.map(function (s) {
-            return '<div class="rf-line"><span class="rf-dot ' + (s.t === 'recogida' ? 'orig' : 'dest') + '"></span><span>' + esc(s.dir) + rfSiteHTML(s.site) + '</span></div>';
+        // Parada activa: su punto parpadea. Cargando → recogida (origen por
+        // defecto); Llegando a la entrega → entrega (destino por defecto).
+        var ev = getEstadoVisual(c);
+        var act = null;
+        if (ev.color === 'cargando')     act = (c.stopActivo != null) ? c.stopActivo : 0;
+        else if (ev.color === 'entrega') act = (c.stopActivo != null) ? c.stopActivo : stops.length - 1;
+        return '<td class="route-full">' + stops.map(function (s, i) {
+            var blink = (i === act) ? ' rf-dot-blink' : '';
+            return '<div class="rf-line"><span class="rf-dot ' + (s.t === 'recogida' ? 'orig' : 'dest') + blink + '"></span><span>' + esc(s.dir) + rfSiteHTML(s.site) + '</span></div>';
         }).join('') + '</td>';
     }
     // Fecha de carga efectiva de un envío (asignada si existe, si no la
