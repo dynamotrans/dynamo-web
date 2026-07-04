@@ -5395,11 +5395,12 @@
                 qo.value = q[0]; qo.textContent = q[1];
                 sel.appendChild(qo);
             });
-            // Próximos 6 meses (mes actual + 5 siguientes) en el mismo
-            // desplegable. Sencillo: se elige y ya, sin selector nativo de
-            // mes/año. No hace falta ir más allá: al crear un envío solo se
-            // puede elegir fecha de transporte a unos 3-4 meses vista.
-            for (var i = 0; i < 6; i++) {
+            // Mes pasado + mes actual + 5 siguientes en el mismo desplegable
+            // (dinámico: en julio sale "Junio", en septiembre "Agosto"…).
+            // Sencillo: se elige y ya, sin selector nativo de mes/año. Más
+            // allá no hace falta: al crear un envío solo se puede elegir
+            // fecha de transporte a unos 3-4 meses vista.
+            for (var i = -1; i < 6; i++) {
                 var d = new Date(now.getFullYear(), now.getMonth() + i, 1);
                 var o = document.createElement('option');
                 o.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
