@@ -166,6 +166,8 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 
 **SIMPLIFICACIÓN DEL MODELO DE RAMAS (decisión del usuario)**:
 - **Eliminada la rama permanente `lab`** (contenido idéntico a preview; solo generaba cascadas de 3 pasos y conflictos de merge). Ahora **2 ramas vivas**: `main` (producción) + `preview` (portal). Experimentos → ramas cortas `lab/<algo>` desde preview, previsualizadas por Vercel y borradas/mergeadas a demanda. **Regla 9 reescrita** a este modelo.
+- **Limpieza de ~20 ramas muertas** en GitHub (las borró el usuario; el entorno da 403 al borrar remotas): todas las `fix/*` y `chore/*` ya mergeadas a main, las `claude/*` de sesiones antiguas, `lab`, y dos ajenas a la web (`claude/email-template-web-style-gyb3js` = plantilla de email Brevo; `staging/montesblanco-export` = otro proyecto). **Repo final: solo `main` + `claude/sharp-dirac-E3UIO`.** `main` sigue sin proteger (si se activa "Protect this branch": solo bloquear force-push/borrado, NO exigir PR — rompería el push directo a main).
+- Repaso de calidad del código (a petición): sólido y pragmático para un mockup estático, pero con deuda técnica real — sobre todo **duplicación** (tarifador copiado en `index.html` y `dashboard.html` → causó el conflicto de merge del día; chrome del portal repetido en 6 páginas). **Pendiente propuesto**: extraer el tarifador a `js/tarifador.js` compartido (Paso A), como ya se hizo con `festivos.js`. No iniciado.
 
 ### 2026-07-02 — Claude Code web (nube)
 
