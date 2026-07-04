@@ -1397,6 +1397,11 @@
            se ensancha lo necesario para mostrarla completa en una sola línea).
            El nombre de la mercancía sí puede envolver. */
         table.data td.mercancia .meta-medidas { white-space: nowrap; }
+        /* Tipo de carga en la misma línea que las medidas: Completo en negro,
+           Grupaje en rojo. */
+        table.data .carga-tag { font-weight: 700; }
+        table.data .carga-completo { color: var(--navy); }
+        table.data .carga-grupaje  { color: #dc2626; }
         table.data td.ref .envio-estado .badge { font-size: 0.68rem; }
         table.data .meta { font-size: 0.72rem; color: var(--gray-500); }
         /* Sub-líneas extra en la columna de fecha — diferenciadas en color
@@ -5472,8 +5477,12 @@
                         '<div class="rf-line"><span class="rf-dot dest"></span><span>' + esc(ciudadDir(c.destino, c.destinoDir)) + '</span></div>' +
                     '</td>' +
                     '<td class="mercancia">' + esc(c.mercancia) +
-                        '<div class="meta meta-medidas">' + esc(medidasTn(c.medidas)) + '</div>' +
-                        '<div class="meta">' + esc(cargaCorta(c.tipoCarga) || cargaFromMedidas(c.medidas)) + '</div>' +
+                        (function () {
+                            var lbl = cargaCorta(c.tipoCarga) || cargaFromMedidas(c.medidas);
+                            var cls = /completo/i.test(lbl) ? 'carga-completo' : 'carga-grupaje';
+                            return '<div class="meta meta-medidas">' + esc(medidasTn(c.medidas)) +
+                                ' · <span class="carga-tag ' + cls + '">' + esc(lbl) + '</span></div>';
+                        })() +
                     '</td>' +
                     '<td class="vehiculo">' + (c.matricula ? '<span class="meta-matricula">' + esc(c.matricula) + '</span>' : '<span class="meta meta-pend">Sin matrícula</span>') +
                         (c.tipoCamion ? '<div class="meta">' + esc(c.tipoCamion) + '</div>' : '') +
