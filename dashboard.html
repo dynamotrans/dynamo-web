@@ -5278,10 +5278,11 @@
         if (val === 'hoy')    return dd.getTime() === today.getTime();
         if (val === 'manana') return dd.getTime() === today.getTime() + DAY;
         if (val === 'ayer')   return dd.getTime() === today.getTime() - DAY;
-        if (val === 'esta-semana' || val === 'semana-pasada') {
+        if (val === 'esta-semana' || val === 'semana-pasada' || val === 'proxima-semana') {
             var dow = (today.getDay() + 6) % 7; // 0 = lunes
             var monday = new Date(today); monday.setDate(today.getDate() - dow);
-            if (val === 'semana-pasada') monday.setDate(monday.getDate() - 7);
+            if (val === 'semana-pasada')  monday.setDate(monday.getDate() - 7);
+            if (val === 'proxima-semana') monday.setDate(monday.getDate() + 7);
             var sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
             return dd.getTime() >= monday.getTime() && dd.getTime() <= sunday.getTime();
         }
@@ -5388,7 +5389,7 @@
             sel.appendChild(opt);
             // Accesos rápidos por día/semana (además de los meses).
             [['hoy', 'Hoy'], ['manana', 'Mañana'], ['ayer', 'Ayer'],
-             ['esta-semana', 'Esta semana'], ['semana-pasada', 'Semana pasada']
+             ['esta-semana', 'Esta semana'], ['proxima-semana', 'Próxima semana'], ['semana-pasada', 'Semana pasada']
             ].forEach(function (q) {
                 var qo = document.createElement('option');
                 qo.value = q[0]; qo.textContent = q[1];
