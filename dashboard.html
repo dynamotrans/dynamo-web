@@ -2535,152 +2535,24 @@
         </div>
 
         <div class="mini-lists">
-            <!-- 5 últimas cargas -->
+            <!-- Envíos de hoy y próximos días (dinámico) -->
             <div class="mini-list-card">
                 <div class="mini-list-head">
                     <h4>Últimos envíos (<span data-stat-cargas-activas>—</span>)</h4>
                     <a href="#" onclick="showSection('cargas');return false;">Ver todas →</a>
                 </div>
-                <ul class="mini-list">
-                    <li>
-                        <div class="mini-list-left">
-                            <span class="mini-list-date">Lunes 3 junio 2026 <span class="ml-ref">#C-2026-1284</span></span>
-                            <span class="mini-list-route"><span class="ml-dot orig"></span>41700, Dos Hermanas, Sevilla, España</span>
-                            <span class="mini-list-route"><span class="ml-dot dest"></span>28440, Fuenlabrada, Madrid, España</span>
-                        </div>
-                        <div class="mini-list-right">
-                            <span class="badge badge-green">Entregada</span>
-                            <span class="mini-list-amount">748 €</span>
-                            <span class="mini-list-meta">13,2 m · 24 Tn</span>
-                            <span class="mini-list-meta">Paletizado</span>
-                        </div>
-                    </li>
-                    <li>
-                        <div class="mini-list-left">
-                            <span class="mini-list-date">Viernes 30 mayo 2026 <span class="ml-ref">#C-2026-1281</span></span>
-                            <span class="mini-list-route"><span class="ml-dot orig"></span>41015, Sevilla, España</span>
-                            <span class="mini-list-route"><span class="ml-dot dest"></span>08040, Barcelona, España</span>
-                        </div>
-                        <div class="mini-list-right">
-                            <span class="badge badge-blue">En ruta</span>
-                            <span class="mini-list-amount">1.150 €</span>
-                            <span class="mini-list-meta">10 m · 18 Tn</span>
-                            <span class="mini-list-meta">Maquinaria</span>
-                        </div>
-                    </li>
-                    <li>
-                        <div class="mini-list-left">
-                            <span class="mini-list-date">Miércoles 28 mayo 2026 <span class="ml-ref">#C-2026-1279</span></span>
-                            <span class="mini-list-route"><span class="ml-dot orig"></span>41500, Alcalá de Guadaíra, Sevilla, España</span>
-                            <span class="mini-list-route"><span class="ml-dot dest"></span>46013, Valencia, España</span>
-                        </div>
-                        <div class="mini-list-right">
-                            <span class="badge badge-orange">Programada</span>
-                            <span class="mini-list-amount">980 €</span>
-                            <span class="mini-list-meta">13,2 m · 22 Tn</span>
-                            <span class="mini-list-meta">Paletizado</span>
-                        </div>
-                    </li>
-                    <li>
-                        <div class="mini-list-left">
-                            <span class="mini-list-date">Lunes 26 mayo 2026 <span class="ml-ref">#C-2026-1275</span></span>
-                            <span class="mini-list-route"><span class="ml-dot orig"></span>41008, Sevilla, España</span>
-                            <span class="mini-list-route"><span class="ml-dot dest"></span>48001, Bilbao, Bizkaia, España</span>
-                        </div>
-                        <div class="mini-list-right">
-                            <span class="badge badge-green">Entregada</span>
-                            <span class="mini-list-amount">895 €</span>
-                            <span class="mini-list-meta">8 m · 14 Tn</span>
-                            <span class="mini-list-meta">No paletizada</span>
-                        </div>
-                    </li>
-                    <li>
-                        <div class="mini-list-left">
-                            <span class="mini-list-date">Jueves 22 mayo 2026 <span class="ml-ref">#C-2026-1272</span></span>
-                            <span class="mini-list-route"><span class="ml-dot orig"></span>41013, Sevilla, España</span>
-                            <span class="mini-list-route"><span class="ml-dot dest"></span>1000-001, Lisboa, Portugal</span>
-                        </div>
-                        <div class="mini-list-right">
-                            <span class="badge badge-green">Entregada</span>
-                            <span class="mini-list-amount">1.380 €</span>
-                            <span class="mini-list-meta">12 m · 20 Tn</span>
-                            <span class="mini-list-meta">Paletizado</span>
-                        </div>
-                    </li>
+                <ul class="mini-list" id="miniEnvios">
+                    <!-- Rellenado por renderMiniEnvios(): cargando hoy + próximos días -->
                 </ul>
             </div>
-            <!-- 5 últimos presupuestos -->
+            <!-- Presupuestos vigentes, de nuevo a antiguo (dinámico) -->
             <div class="mini-list-card">
                 <div class="mini-list-head">
                     <h4>Últimos presupuestos (<span data-stat-presup-vigentes>—</span>)</h4>
                     <a href="#" onclick="showSection('presupuestos');return false;">Ver todos →</a>
                 </div>
-                <ul class="mini-list">
-                    <li>
-                        <div class="mini-list-left">
-                            <span class="mini-list-date">Miércoles 18 junio 2026 <span class="ml-ref">#P-2026-0421</span></span>
-                            <span class="mini-list-route"><span class="ml-dot orig"></span>41700, Dos Hermanas, Sevilla, España</span>
-                            <span class="mini-list-route"><span class="ml-dot dest"></span>75001, París, Francia</span>
-                        </div>
-                        <div class="mini-list-right">
-                            <span class="badge badge-green">Vigente</span>
-                            <span class="mini-list-amount">1.840 €</span>
-                            <span class="mini-list-meta">13,2 m · 22 Tn</span>
-                            <span class="mini-list-meta">Paletizado</span>
-                        </div>
-                    </li>
-                    <li>
-                        <div class="mini-list-left">
-                            <span class="mini-list-date">Miércoles 18 junio 2026 <span class="ml-ref">#P-2026-0418</span></span>
-                            <span class="mini-list-route"><span class="ml-dot orig"></span>28020, Madrid, España</span>
-                            <span class="mini-list-route"><span class="ml-dot dest"></span>10115, Berlín, Alemania</span>
-                        </div>
-                        <div class="mini-list-right">
-                            <span class="badge badge-green">Vigente</span>
-                            <span class="mini-list-amount">2.350 €</span>
-                            <span class="mini-list-meta">13,2 m · 24 Tn</span>
-                            <span class="mini-list-meta">Maquinaria</span>
-                        </div>
-                    </li>
-                    <li>
-                        <div class="mini-list-left">
-                            <span class="mini-list-date">Lunes 15 junio 2026 <span class="ml-ref">#P-2026-0415</span></span>
-                            <span class="mini-list-route"><span class="ml-dot orig"></span>41013, Sevilla, España</span>
-                            <span class="mini-list-route"><span class="ml-dot dest"></span>00185, Roma, Italia</span>
-                        </div>
-                        <div class="mini-list-right">
-                            <span class="badge badge-yellow">Caduca 3d</span>
-                            <span class="mini-list-amount">2.120 €</span>
-                            <span class="mini-list-meta">10 m · 12 Tn</span>
-                            <span class="mini-list-meta">Eventos</span>
-                        </div>
-                    </li>
-                    <li>
-                        <div class="mini-list-left">
-                            <span class="mini-list-date">Viernes 12 junio 2026 <span class="ml-ref">#P-2026-0412</span></span>
-                            <span class="mini-list-route"><span class="ml-dot orig"></span>41015, Sevilla, España</span>
-                            <span class="mini-list-route"><span class="ml-dot dest"></span>1012, Ámsterdam, Países Bajos</span>
-                        </div>
-                        <div class="mini-list-right">
-                            <span class="badge badge-gray">Caducado</span>
-                            <span class="mini-list-amount">2.680 €</span>
-                            <span class="mini-list-meta">13,2 m · 23 Tn</span>
-                            <span class="mini-list-meta">Paletizado</span>
-                        </div>
-                    </li>
-                    <li>
-                        <div class="mini-list-left">
-                            <span class="mini-list-date">Lunes 8 junio 2026 <span class="ml-ref">#P-2026-0408</span></span>
-                            <span class="mini-list-route"><span class="ml-dot orig"></span>41008, Sevilla, España</span>
-                            <span class="mini-list-route"><span class="ml-dot dest"></span>1000, Bruselas, Bélgica</span>
-                        </div>
-                        <div class="mini-list-right">
-                            <span class="badge badge-gray">Caducado</span>
-                            <span class="mini-list-amount">2.420 €</span>
-                            <span class="mini-list-meta">13,2 m · 20 Tn</span>
-                            <span class="mini-list-meta">Maquinaria</span>
-                        </div>
-                    </li>
+                <ul class="mini-list" id="miniPresup">
+                    <!-- Rellenado por renderMiniPresup(): vigentes, de nuevo a antiguo -->
                 </ul>
             </div>
         </div>
@@ -5932,6 +5804,90 @@
         if (!els.length) return;
         els.forEach(function (el) { el.textContent = ahoraHMS(el.getAttribute('data-ahora-tz')); });
     }, 1000);
+
+    // === Mini-listas del panel (dinámicas desde los datos) ===
+    // Envíos: lo que se está cargando HOY + los próximos días, en orden
+    // cronológico, tantos como quepan en pantalla. Presupuestos: los
+    // VIGENTES de más nuevo a más antiguo. Se re-renderizan al redimensionar.
+    var DOW_LARGO = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    var MESES_LARGO = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    function fechaLarga(ddmm) {
+        var m = String(ddmm || '').match(/^(\d{1,2})\/(\d{1,2})$/);
+        if (!m) return ddmm || '';
+        var d = new Date(new Date().getFullYear(), +m[2] - 1, +m[1]);
+        return DOW_LARGO[d.getDay()] + ' ' + d.getDate() + ' ' + MESES_LARGO[d.getMonth()] + ' ' + d.getFullYear();
+    }
+    // Cuántas filas caben desde la posición de la lista hasta el borde
+    // inferior del viewport (~92px por fila). Entre 4 y 12.
+    function miniFit(ul) {
+        if (!ul) return 5;
+        var top = ul.getBoundingClientRect().top;
+        var n = Math.floor((window.innerHeight - top - 20) / 92);
+        return Math.max(4, Math.min(12, n));
+    }
+    function renderMiniEnvios() {
+        var ul = document.getElementById('miniEnvios');
+        if (!ul) return;
+        function eff(c) { return parseDDMM((c.fechaAsignada ? c.fechaAsignada.split(' ')[0] : null) || c.fecha); }
+        var arr = CARGAS_DATA
+            .filter(function (c) { return (c.kind === 'en-ruta' || c.kind === 'programada') && eff(c); })
+            .sort(function (a, b) { return eff(a) - eff(b); });
+        ul.innerHTML = arr.slice(0, miniFit(ul)).map(function (c) {
+            var ev = getEstadoVisual(c);
+            var asigDate = c.fechaAsignada ? c.fechaAsignada.split(' ')[0] : null;
+            var fecha = (asigDate || ventanaDiasN(c.ventana) <= 1) ? fechaLarga(asigDate || c.fecha) : ventanaRango(c.fecha, c.ventana);
+            return '<li>' +
+                '<div class="mini-list-left">' +
+                    '<span class="mini-list-date">' + esc(fecha) + ' <span class="ml-ref">' + esc(c.ref) + '</span></span>' +
+                    '<span class="mini-list-route"><span class="ml-dot orig"></span>' + esc(ciudadDir(c.origen, c.origenDir)) + '</span>' +
+                    '<span class="mini-list-route"><span class="ml-dot dest"></span>' + esc(ciudadDir(c.destino, c.destinoDir)) + '</span>' +
+                '</div>' +
+                '<div class="mini-list-right">' +
+                    '<span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span>' +
+                    (c.precio ? '<span class="mini-list-amount">' + esc(c.precio) + '</span>' : '') +
+                    '<span class="mini-list-meta">' + esc(medidasTn(c.medidas)) + '</span>' +
+                    '<span class="mini-list-meta">' + esc(c.mercancia) + '</span>' +
+                '</div>' +
+            '</li>';
+        }).join('');
+    }
+    function renderMiniPresup() {
+        var ul = document.getElementById('miniPresup');
+        if (!ul) return;
+        var arr = PRESUPUESTOS_DATA
+            .filter(function (p) { return p.kind === 'activos'; })
+            .sort(function (a, b) {
+                var da = parseDDMM(a.fecha), db = parseDDMM(b.fecha);
+                var t = (db ? db.getTime() : 0) - (da ? da.getTime() : 0);
+                return t || (a.ref < b.ref ? 1 : -1);
+            });
+        ul.innerHTML = arr.slice(0, miniFit(ul)).map(function (p) {
+            var v = presupVigencia(p);
+            var badge = (v.dias != null && v.dias <= 3)
+                ? '<span class="badge badge-yellow">Caduca ' + v.dias + 'd</span>'
+                : '<span class="badge badge-green">Vigente</span>';
+            return '<li>' +
+                '<div class="mini-list-left">' +
+                    '<span class="mini-list-date">' + esc(fechaLarga(p.fecha)) + ' <span class="ml-ref">' + esc(p.ref) + '</span></span>' +
+                    '<span class="mini-list-route"><span class="ml-dot orig"></span>' + esc(ciudadDir(p.origen)) + '</span>' +
+                    '<span class="mini-list-route"><span class="ml-dot dest"></span>' + esc(ciudadDir(p.destino)) + '</span>' +
+                '</div>' +
+                '<div class="mini-list-right">' +
+                    badge +
+                    '<span class="mini-list-amount">' + esc(p.precio) + '</span>' +
+                    '<span class="mini-list-meta">' + esc(medidasTn(p.medidas)) + '</span>' +
+                    '<span class="mini-list-meta">' + esc(p.mercancia) + '</span>' +
+                '</div>' +
+            '</li>';
+        }).join('');
+    }
+    renderMiniEnvios();
+    renderMiniPresup();
+    var _miniRz;
+    window.addEventListener('resize', function () {
+        clearTimeout(_miniRz);
+        _miniRz = setTimeout(function () { renderMiniEnvios(); renderMiniPresup(); }, 200);
+    });
 
     bindTabs();
     bindPerPageSelectors();
