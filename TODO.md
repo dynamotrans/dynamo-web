@@ -7,6 +7,12 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - _(nada urgente abierto)_
 
 ## 📋 Normal
+- [ ] **Buscador de recogidas/entregas con autocompletar de 3 niveles** (dashboard.html, EN CURSO — plan acordado 2026-07-05):
+  1. Desde el 1er carácter: **1º sitios propios registrados** (catálogo SITES + guardados del usuario, chip "Guardado") · **2º empresas de Google Places** (SIMULADO en mock hasta tener API key; chip "Google") · **3º direcciones** (Nominatim, chip "Dirección").
+  2. Al seleccionar: ficha del lugar **prerellenada y editable** en el paso de confirmación (empresa, dirección, horario, tfno, contacto, notas). Si viene de Google, se prerellena con su ficha.
+  3. Al crear el envío, el lugar de Google (con ediciones a mano) **se guarda como sitio propio** (mock: localStorage; con backend: Supabase).
+  4. **Duplicados** (caso GRUPAL ART): en el desplegable marcar "Guardado" vs "Google"; si clica el de Google y es muy similar a uno guardado → alerta con 3 opciones: usar nuestro registro (puede tener anotaciones/tfno bueno) / seguir con Google / **comparar ambos** lado a lado (nombre, dirección, horario, tfno, notas) y elegir.
+  5. Cuando haya API key de Google, los niveles 2-3 se enchufan a Places real sin cambiar la UX.
 <!-- Cosas que hacer cuando haya tiempo -->
 - [ ] **Refactor anti-duplicación del tarifador (Paso A)** — _decidido 2026-07-04: NO se hace sobre el mockup HTML (código que se reescribe en Next.js); se hace al migrar, con este plano._
   - **Problema**: el tarifador está **copiado** en `index.html` (público) y `dashboard.html` (panel). (Ojo: dentro del panel, "Nuevo envío" vs "Nuevo presupuesto" NO son copias — ya es el mismo form con flag `entryMode`/`data-ptar-mode`. La duplicación real es solo público ↔ panel.) Se desincronizan → bugs (p.ej. el aviso de fecha fija estuvo primero solo en el panel).
