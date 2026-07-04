@@ -1387,6 +1387,10 @@
            ruta ya no procede. */
         table.data .meta-est { color: #2563eb; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
         table.data .meta-est .est-dot { width: 7px; height: 7px; border-radius: 50%; background: #2563eb; flex-shrink: 0; animation: badgeDotBlink 1.3s ease-in-out infinite; }
+        /* Hora estimada de ENTREGA — verde con punto parpadeante (mientras la
+           ruta está en curso; en las entregadas no se muestra). */
+        table.data .meta-est-ent { color: #15803d; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+        table.data .meta-est-ent .est-dot-ent { width: 7px; height: 7px; border-radius: 50%; background: #15803d; flex-shrink: 0; animation: badgeDotBlink 1.3s ease-in-out infinite; }
         /* Matrícula resaltada en navy bold; pendientes en itálica gris claro */
         table.data .meta-matricula { color: var(--navy); font-weight: 700; letter-spacing: 0.3px; }
         table.data .meta-pend      { color: var(--gray-400); font-style: italic; }
@@ -2710,7 +2714,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Envío</th><th>Fecha de carga</th><th>Ruta</th><th>Mercancía</th><th>Vehículo</th><th class="th-amount">Importe<span class="th-sub">Impuestos no incl.</span></th>
+                    <th>Envío</th><th>Fecha de carga</th><th>Entrega</th><th>Ruta</th><th>Mercancía</th><th>Vehículo</th><th class="th-amount">Importe<span class="th-sub">Impuestos no incl.</span></th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -5114,6 +5118,78 @@
         var d = new Date(date.getTime()); d.setHours(0, 0, 0, 0);
         return Math.round((d.getTime() - today.getTime()) / 86400000);
     }
+    // --- Entrega estimada (columna Entrega de la tabla de envíos) ---
+    // Heurística de MOCK: tránsito nacional = 1 día laborable ("Nacional 24h"),
+    // internacional = 2. Se sustituirá por el cálculo real (distancia/ruta)
+    // cuando haya backend con direcciones geolocalizadas.
+    function esInternacional(c) {
+        var dir = ciudadDir(c.destino, c.destinoDir) || '';
+        return !/españa\s*$/i.test(dir.trim());
+    }
+    function transitoDias(c) { return esInternacional(c) ? 2 : 1; }
+    function parseDDMM(s) {
+        var m = String(s || '').match(/^(\d{1,2})\/(\d{1,2})$/);
+        if (!m) return null;
+        return new Date(new Date().getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+    }
+    // Interpreta la ETA de entrega guardada ("Hoy 15:00", "Mañana 09:00",
+    // "12/07 10:00") → { date, hora }.
+    function parseEtaEntrega(s) {
+        if (!s) return null;
+        var mt = String(s).match(/(\d{1,2}:\d{2})/);
+        var hora = mt ? mt[1] : null;
+        var base = new Date(); base.setHours(0, 0, 0, 0);
+        if (/ma[nñ]ana/i.test(s)) { base.setDate(base.getDate() + 1); return { date: base, hora: hora }; }
+        if (/hoy/i.test(s)) return { date: base, hora: hora };
+        var dm = String(s).match(/(\d{1,2})\/(\d{1,2})/);
+        if (dm) { var d = parseDDMM(dm[1] + '/' + dm[2]); if (d) return { date: d, hora: hora }; }
+        return hora ? { date: null, hora: hora } : null;
+    }
+    // Info de entrega de una carga:
+    //   { tipo:'fecha', fecha:'DD/MM', hora:'HH:MM'|null }   día calculado
+    //   { tipo:'ventana', ini, fin }                          aún sin fecha fija
+    //   { tipo:'pendiente' }                                  previsión sin fecha
+    function entregaInfo(c, asigDate) {
+        var entregada = (c.kind === 'entregada');
+        var loadD = parseDDMM(asigDate || (c.fecha && c.fecha !== 'Sin fecha' ? c.fecha : ''));
+        var eta = parseEtaEntrega(c.etaEntrega);
+        // 1) ETA de entrega guardada, si es coherente (nunca anterior a la
+        //    carga; en fin de semana el "Hoy/Mañana" simulado podría serlo).
+        if (eta && eta.date && (!loadD || eta.date.getTime() >= loadD.getTime())) {
+            return { tipo: 'fecha', fecha: toDDMM(eta.date), hora: eta.hora };
+        }
+        // 2) Sin fecha de carga ni asignación → no calculable.
+        if (!loadD) return { tipo: 'pendiente' };
+        var t = transitoDias(c);
+        // Día de carga único conocido: asignado, entregada (ya ocurrió) o
+        // ventana "Fija"/1 día. Ventana >1 día sin asignar → rango de entrega.
+        var single = (asigDate || entregada || ventanaDiasN(c.ventana) <= 1) ? loadD : null;
+        if (single) {
+            return { tipo: 'fecha', fecha: toDDMM(addBizDays(loadD, t)), hora: (eta && eta.hora) || c.horaCargaEst || null };
+        }
+        var fin = ventanaFin(c.fecha, c.ventana);
+        if (!fin) return { tipo: 'pendiente' };
+        return { tipo: 'ventana', ini: toDDMM(addBizDays(loadD, t)), fin: toDDMM(addBizDays(fin, t)) };
+    }
+    // Celda <td> de la columna Entrega.
+    function entregaCell(c, asigDate) {
+        if (c.kind === 'cancelada') return '<td><span class="meta meta-pend">—</span></td>';
+        var e = entregaInfo(c, asigDate);
+        if (e.tipo === 'pendiente') return '<td><span class="meta meta-pend">Sin programar</span></td>';
+        if (e.tipo === 'ventana') {
+            return '<td>' +
+                '<div class="fecha-linea"><strong>' + esc(fechaConDia(e.ini) + ' – ' + fechaConDia(e.fin)) + '</strong></div>' +
+                '<div class="meta">Ventana estimada</div>' +
+            '</td>';
+        }
+        var html = '<td><div class="fecha-linea"><strong>' + esc(fechaConDia(e.fecha)) + '</strong></div>';
+        if (c.horarioDestino) html += '<div class="meta">' + esc(c.horarioDestino) + '</div>';
+        // Est. hora de entrega solo mientras la ruta está en curso (no entregada).
+        if (c.kind !== 'entregada' && e.hora) {
+            html += '<div class="meta meta-est-ent"><span class="est-dot-ent"></span>Est. ' + esc(e.hora) + '</div>';
+        }
+        return html + '</td>';
+    }
     // Tipo de carga en versión corta para la columna Vehículo
     function cargaCorta(t) { if (!t) return ''; return /completa/i.test(t) ? 'Completo' : t; }
     // Deriva Completo/Grupaje a partir de los metros (los presupuestos no
@@ -5320,7 +5396,7 @@
         var tbody = document.getElementById('tbodyCargas');
         if (!tbody) return;
         if (slice.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
         } else {
             tbody.innerHTML = slice.map(function (c) {
                 // Si la carga tiene fecha asignada por el equipo, la
@@ -5383,6 +5459,7 @@
                         (c.horarioOrigen ? '<div class="meta">' + esc(c.horarioOrigen) + '</div>' : '') +
                         (c.horaCargaEst && (ev.color === 'prog' || ev.color === 'hacia') ? '<div class="meta meta-est"><span class="est-dot"></span>Est. ' + esc(c.horaCargaEst) + '</div>' : '') +
                     '</td>' +
+                    entregaCell(c, asigDate) +
                     '<td class="route-full">' +
                         '<div class="rf-line"><span class="rf-dot orig"></span><span>' + esc(ciudadDir(c.origen, c.origenDir)) + '</span></div>' +
                         '<div class="rf-line"><span class="rf-dot dest"></span><span>' + esc(ciudadDir(c.destino, c.destinoDir)) + '</span></div>' +
