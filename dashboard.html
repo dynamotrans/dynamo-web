@@ -1416,6 +1416,11 @@
            ruta está en curso; en las entregadas no se muestra). */
         table.data .meta-est-ent { color: #15803d; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
         table.data .meta-est-ent .est-dot-ent { width: 7px; height: 7px; border-radius: 50%; background: #15803d; flex-shrink: 0; animation: badgeDotBlink 1.3s ease-in-out infinite; }
+        /* Reloj en vivo mientras CARGA — naranja con punto parpadeante y
+           segundos corriendo (hora local del lugar de carga). */
+        table.data .meta-ahora { color: var(--orange); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+        table.data .meta-ahora .ahora-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--orange); flex-shrink: 0; animation: badgeDotBlink 1.3s ease-in-out infinite; }
+        table.data .meta-ahora [data-ahora-clock] { font-variant-numeric: tabular-nums; }
         /* Matrícula resaltada en navy bold; pendientes en itálica gris claro */
         table.data .meta-matricula { color: var(--navy); font-weight: 700; letter-spacing: 0.3px; }
         table.data .meta-pend      { color: var(--gray-400); font-style: italic; }
@@ -5315,6 +5320,33 @@
         if (!fin) return { tipo: 'pendiente' };
         return { tipo: 'ventana', ini: toDDMM(addBizDays(loadD, t)), fin: toDDMM(addBizDays(fin, t)) };
     }
+    // --- Reloj en vivo de las filas "Cargando" ---
+    // Muestra la hora ACTUAL del lugar de carga según su huso horario
+    // (España → Europe/Madrid, Alemania → Europe/Berlin…), con segundos
+    // corriendo en directo (ticker de 1 s más abajo).
+    var TZ_PAIS = {
+        'España': 'Europe/Madrid', 'Portugal': 'Europe/Lisbon', 'Francia': 'Europe/Paris',
+        'Alemania': 'Europe/Berlin', 'Italia': 'Europe/Rome', 'Países Bajos': 'Europe/Amsterdam',
+        'Bélgica': 'Europe/Brussels', 'Luxemburgo': 'Europe/Luxembourg', 'Austria': 'Europe/Vienna',
+        'Polonia': 'Europe/Warsaw', 'Rep. Checa': 'Europe/Prague', 'Suiza': 'Europe/Zurich',
+        'Reino Unido': 'Europe/London'
+    };
+    function tzDeCarga(c) {
+        var dir = ciudadDir(c.origen, c.origenDir) || '';
+        var pais = dir.split(',').pop().trim();
+        return TZ_PAIS[pais] || 'Europe/Madrid';
+    }
+    function ahoraHMS(tz) {
+        try {
+            return new Intl.DateTimeFormat('es-ES', {
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: false, timeZone: tz || 'Europe/Madrid'
+            }).format(new Date());
+        } catch (e) {
+            var d = new Date();
+            return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
+        }
+    }
     // Celda <td> de la columna Entrega.
     function entregaCell(c, asigDate) {
         if (c.kind === 'cancelada') return '<td><span class="meta meta-pend">—</span></td>';
@@ -5632,6 +5664,10 @@
                         '<div class="fecha-linea"><strong>' + esc(fechaLinea) + '</strong></div>' +
                         (c.horarioOrigen ? '<div class="meta">' + esc(c.horarioOrigen) + '</div>' : '') +
                         (c.horaCargaEst && (ev.color === 'prog' || ev.color === 'hacia') ? '<div class="meta meta-est"><span class="est-dot"></span>Est. ' + esc(c.horaCargaEst) + '</div>' : '') +
+                        (ev.color === 'cargando' ? (function () {
+                            var tz = tzDeCarga(c);
+                            return '<div class="meta meta-ahora"><span class="ahora-dot"></span>Ahora <span data-ahora-clock data-ahora-tz="' + tz + '">' + ahoraHMS(tz) + '</span></div>';
+                        })() : '') +
                     '</td>' +
                     entregaCell(c, asigDate) +
                     '<td class="route-full">' +
@@ -5888,6 +5924,14 @@
         wrap.classList.toggle('no-open', abiertas === 0);
     }
     refreshIncidenciasBadge();
+
+    // Ticker de 1 s: actualiza el reloj "Ahora HH:MM:SS" de las filas en fase
+    // Cargando, cada uno en el huso horario de su lugar de carga.
+    setInterval(function () {
+        var els = document.querySelectorAll('[data-ahora-clock]');
+        if (!els.length) return;
+        els.forEach(function (el) { el.textContent = ahoraHMS(el.getAttribute('data-ahora-tz')); });
+    }, 1000);
 
     bindTabs();
     bindPerPageSelectors();
