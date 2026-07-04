@@ -4379,9 +4379,9 @@
         try { localStorage.setItem('dashPerPage_' + table, String(v)); } catch (e) {}
     }
     var TABLE_STATE = {
-        cargas:       { page: 1, filter: 'programada',  perPage: readPerPage('cargas'), estado: '', fecha: '' },
-        presupuestos: { page: 1, filter: 'activos', perPage: readPerPage('presupuestos') },
-        facturas:     { page: 1, filter: 'todas',  perPage: readPerPage('facturas') }
+        cargas:       { page: 1, filter: 'programada',  perPage: readPerPage('cargas'), estado: '', fecha: '', q: '' },
+        presupuestos: { page: 1, filter: 'activos', perPage: readPerPage('presupuestos'), q: '' },
+        facturas:     { page: 1, filter: 'todas',  perPage: readPerPage('facturas'), q: '' }
     };
 
     // --- Horarios de almacén realistas para el mockup ---
@@ -5359,6 +5359,9 @@
                 return fechaEnRango(cargaFechaDate(c), fFecha);
             });
         }
+        // Búsqueda en vivo (se filtra al teclear, sin mayúsculas ni acentos)
+        var q = normTxt(TABLE_STATE.cargas.q);
+        if (q) arr = arr.filter(function (c) { return cargaSearchBlob(c).indexOf(q) !== -1; });
         // Orden por pestaña:
         // - Previsión:   sin fecha → por ref DESC (recién apuntadas arriba)
         // - Entregadas:  fecha efectiva DESC (la entrega más reciente arriba —
@@ -5389,10 +5392,35 @@
     function filteredPresupuestos() {
         var f = TABLE_STATE.presupuestos.filter;
         var arr = PRESUPUESTOS_DATA.filter(function (p) { return p.kind === f; });
+        var q = normTxt(TABLE_STATE.presupuestos.q);
+        if (q) arr = arr.filter(function (p) { return presupSearchBlob(p).indexOf(q) !== -1; });
         // Tanto Activos como Caducados: fecha de emisión DESC (los más
         // recientes arriba). Backend = ORDER BY emision DESC.
         arr.sort(function (a, b) { return parseFechaDDMM(b.fecha) - parseFechaDDMM(a.fecha); });
         return arr;
+    }
+
+    // ---- BUSCADOR EN VIVO ----
+    // Normaliza texto para buscar: minúsculas y sin acentos ("Malaga"
+    // encuentra "Málaga").
+    function normTxt(s) {
+        s = String(s == null ? '' : s).toLowerCase();
+        try { s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) {}
+        return s;
+    }
+    // Texto buscable de cada fila: nº, referencia, ruta (ciudades y
+    // direcciones completas), mercancía, matrícula, transportista, precio…
+    function cargaSearchBlob(c) {
+        return normTxt([c.ref, c.refCli, c.origen, c.destino,
+            ciudadDir(c.origen, c.origenDir), ciudadDir(c.destino, c.destinoDir),
+            c.direcciones, c.mercancia, c.mercanciaMeta, c.medidas, medidasTn(c.medidas),
+            c.matricula, c.transportistaNombre, c.conductor, c.tipoCamion,
+            c.precio, c.estado, getEstadoVisual(c).label].join(' '));
+    }
+    function presupSearchBlob(p) {
+        return normTxt([p.ref, p.refCli, p.origen, p.destino,
+            ciudadDir(p.origen), ciudadDir(p.destino),
+            p.mercancia, p.medidas, medidasTn(p.medidas), p.precio, p.vigencia].join(' '));
     }
     function filteredFacturas() {
         var f = TABLE_STATE.facturas.filter;
@@ -5887,6 +5915,26 @@
     window.addEventListener('resize', function () {
         clearTimeout(_miniRz);
         _miniRz = setTimeout(function () { renderMiniEnvios(); renderMiniPresup(); }, 200);
+    });
+
+    // Buscadores en vivo: filtran al teclear. Envíos y Presupuestos filtran
+    // sobre los datos (con paginación); Incidencias oculta filas del DOM
+    // (su tabla es estática de momento).
+    document.querySelectorAll('.filters input[type="search"]').forEach(function (inp) {
+        var sec = inp.closest('.section');
+        if (!sec) return;
+        inp.addEventListener('input', function () {
+            if (sec.id === 'sec-cargas') {
+                TABLE_STATE.cargas.q = inp.value; TABLE_STATE.cargas.page = 1; renderCargasTable();
+            } else if (sec.id === 'sec-presupuestos') {
+                TABLE_STATE.presupuestos.q = inp.value; TABLE_STATE.presupuestos.page = 1; renderPresupuestosTable();
+            } else if (sec.id === 'sec-incidencias') {
+                var q = normTxt(inp.value);
+                sec.querySelectorAll('tbody tr').forEach(function (tr) {
+                    tr.hidden = !!q && normTxt(tr.textContent).indexOf(q) === -1;
+                });
+            }
+        });
     });
 
     bindTabs();
