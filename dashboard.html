@@ -6153,6 +6153,9 @@
     // dispara resize en pleno scroll y repintaba más filas.
     function miniFit(ul) {
         if (!ul) return 5;
+        // Móvil: 4 filas fijas por lista (las dos tarjetas van apiladas y
+        // "llenar pantalla" no aplica). En el resto, hasta llenar pantalla.
+        if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) return 4;
         var absTop = ul.getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
         var n = Math.floor((window.innerHeight - absTop - 20) / 92);
         return Math.max(4, Math.min(12, n));
