@@ -2502,19 +2502,16 @@
 
         <div class="stats-row stats-row-3">
             <button type="button" class="stat-card stat-card-link" onclick="showSection('cargas')">
-                <div class="stat-card-label">Envíos activos</div>
+                <div class="stat-card-label">Envíos</div>
                 <div class="stat-card-value" data-stat-cargas-activas>—</div>
-                <div class="stat-card-trend" data-stat-cargas-activas-meta>Programadas + en ruta</div>
             </button>
             <button type="button" class="stat-card stat-card-link" onclick="showSection('presupuestos')">
-                <div class="stat-card-label">Presupuestos activos</div>
+                <div class="stat-card-label">Presupuestos</div>
                 <div class="stat-card-value">7</div>
-                <div class="stat-card-trend up">▲ 3 esta semana</div>
             </button>
             <button type="button" class="stat-card stat-card-link" onclick="showSection('incidencias')">
-                <div class="stat-card-label">Incidencias abiertas</div>
+                <div class="stat-card-label">Incidencias</div>
                 <div class="stat-card-value">1</div>
-                <div class="stat-card-trend down">En curso</div>
             </button>
         </div>
 
@@ -5578,13 +5575,10 @@
     // desglose para que se entienda de un vistazo.
     function refreshStatCargasActivas() {
         var el = document.querySelector('[data-stat-cargas-activas]');
-        var meta = document.querySelector('[data-stat-cargas-activas-meta]');
         if (!el) return;
         var pendientes  = CARGAS_DATA.filter(isProgramadaPendiente).length;
         var confirmadas = CARGAS_DATA.filter(isProgramadaConfirmada).length;
-        var total = pendientes + confirmadas;
-        el.textContent = total;
-        if (meta) meta.textContent = pendientes + ' pendientes · ' + confirmadas + ' confirmadas';
+        el.textContent = pendientes + confirmadas;
     }
     refreshStatCargasActivas();
 
