@@ -4523,7 +4523,7 @@
     var EST_HORAS = ['08:00', '09:00', '07:30', '10:30', '11:00', '12:00', '13:00'];
     function estHoraPorRef(ref) { return EST_HORAS[hashStr(ref) % EST_HORAS.length]; }
 
-    // ---- DATA: cargas (28) ----
+    // ---- DATA: cargas (mock, ampliado a 70 más abajo) ----
     // hasAlbaran: solo aplica a entregadas (true por defecto). Si false,
     // la accion sera "Reclamar albaran" (>1 dia desde fecha) o
     // "Albaran procesandose" (<=1 dia)
@@ -4730,7 +4730,88 @@
         CARGAS_DATA.unshift(makeCarga('#C-2026-1297','PED-0433', fechaFuturaLaborable(2), 'Fija','Sevilla','Valencia','Pol. Las Pajanosas → Puerto','Paletizado / Aceite','Aceite oliva virgen','13,2 m · 24.000 kg','programada'));
     })();
 
-    // ---- DATA: presupuestos (19) ----
+    // === MOCK: ampliar el listado de envíos hasta 70 ===
+    // Generación DETERMINISTA (sin azar → estable entre recargas) para probar
+    // paginación y filtros con volumen realista. Todos los campos coherentes
+    // con el estado: programadas en fechas futuras (algunas confirmadas con
+    // precio+matrícula+conductor), entregadas en el pasado (con precio y
+    // algún albarán pendiente), 3 canceladas. En producción este bloque
+    // desaparece: los datos vendrán del backend.
+    (function expandMockCargas() {
+        var destinos = ['Madrid','Barcelona','Valencia','Bilbao','Zaragoza','Málaga','Granada','Murcia','Valladolid','Burgos','Pamplona','Oviedo','Logroño','A Coruña','Vigo','Cádiz','Algeciras','Cartagena','Lisboa (PT)','Oporto (PT)','Toulouse (FR)','París (FR)','Lyon (FR)','Marsella (FR)'];
+        var mercancias = [
+            ['Paletizado', 'Aceite envasado', '13,2 m · 24.000 kg'],
+            ['Paletizado', 'Conservas vegetales', '13,2 m · 22.000 kg'],
+            ['Maquinaria', 'Compresor industrial', '8,4 m · 12.500 kg'],
+            ['Paletizado', 'Bebidas', '13,2 m · 23.000 kg'],
+            ['Material obra', 'Perfiles metálicos', '10,0 m · 18.000 kg'],
+            ['Paletizado', 'Textil', '12,0 m · 15.000 kg'],
+            ['Eventos / feria', 'Stand modular', '6,0 m · 7.500 kg'],
+            ['Paletizado', 'Papel y cartón', '13,2 m · 21.500 kg'],
+            ['Maquinaria', 'Pieza única sobredim.', '8,4 m · 11.000 kg'],
+            ['Paletizado', 'Fertilizantes', '13,2 m · 24.000 kg'],
+            ['Material obra', 'Cerámica', '10,0 m · 20.000 kg'],
+            ['Paletizado', 'Repuestos automoción', '12,0 m · 17.000 kg']
+        ];
+        var dirsOri = ['Centro logístico', 'Pol. Carretera Amarilla', 'Pol. Las Pajanosas', 'Pol. La Isla', 'Pol. Calonge'];
+        var dirsDes = ['Centro logístico', 'Polígono industrial', 'Puerto', 'Mercado central', 'Plataforma logística'];
+        function direcciones(i) { return dirsOri[i % dirsOri.length] + ' → ' + dirsDes[(i * 3 + 1) % dirsDes.length]; }
+        var PRECIOS = { corta: ['560 €','610 €','680 €','740 €'], media: ['920 €','1.050 €','1.180 €','1.320 €'], larga: ['1.380 €','1.460 €','1.540 €','1.620 €'], intl: ['1.780 €','2.150 €','2.480 €','2.920 €'] };
+        var CORTAS = { 'Málaga':1, 'Granada':1, 'Cádiz':1, 'Algeciras':1, 'Murcia':1, 'Cartagena':1 };
+        var LARGAS = { 'Bilbao':1, 'Pamplona':1, 'Oviedo':1, 'Logroño':1, 'A Coruña':1, 'Vigo':1, 'Barcelona':1 };
+        function precioPara(dest, i) {
+            var pool = /\((PT|FR|DE|IT|NL|BE|LU|AT|PL|CZ|CH|UK)\)$/.test(dest) ? PRECIOS.intl
+                : CORTAS[dest] ? PRECIOS.corta : LARGAS[dest] ? PRECIOS.larga : PRECIOS.media;
+            return pool[i % pool.length];
+        }
+        var matriculas = ['1042 JKL','8830 HTR','2915 LFC','7448 MZS','5061 KPT','3389 NRD','6702 LWB','9127 MCV'];
+        var transportistas = ['Dynamo (camión propio)','Transportes Beltrán S.L.','Trans Andalucía 24h','Logística Guadalquivir S.L.','TransIberia Cargo','Hnos. Molina Transportes'];
+        var conductores = [['Manuel Reyes','+34 655 217 880'],['Rafael Vega','+34 690 334 221'],['Luis Martínez','+34 622 511 098'],['Andrés Gil','+34 611 220 447'],['Pedro Rodríguez','+34 661 902 411'],['David Núñez','+34 678 442 113']];
+        var ventanas = ['Fija','1 a 2 días','1 a 4 días'];
+        var i, m, dest;
+        // 12 programadas futuras (10-43 días laborables vista → caen en los
+        // meses siguientes y se ven en el filtro de Fecha). Las pares van
+        // confirmadas con transportista/matrícula/conductor/precio.
+        for (i = 0; i < 12; i++) {
+            dest = destinos[(i * 5 + 1) % destinos.length];
+            m = mercancias[(i * 7) % mercancias.length];
+            var extra;
+            if (i % 2 === 0) {
+                var cond = conductores[i % conductores.length];
+                extra = {
+                    precio: precioPara(dest, i), tipoCamion: 'Trailer Tauliner · 13,2 m',
+                    transportistaAsignado: true, transportistaNombre: transportistas[i % transportistas.length],
+                    matricula: matriculas[i % matriculas.length], conductor: cond[0], tfnoConductor: cond[1]
+                };
+                if (i % 4 === 0) extra.fechaAsignada = mockFuturo(10 + i * 3) + ' ' + EST_HORAS[i % EST_HORAS.length];
+            } else {
+                extra = (i % 3 === 1) ? { precio: precioPara(dest, i) } : undefined;
+            }
+            CARGAS_DATA.push(makeCarga('#C-2026-' + (1307 + i), 'PED-0' + (443 + i), mockFuturo(10 + i * 3), ventanas[i % 3], 'Sevilla', dest, direcciones(i), m[0], m[1], m[2], 'programada', undefined, extra));
+        }
+        // 3 canceladas en el pasado reciente
+        for (i = 0; i < 3; i++) {
+            dest = destinos[(i * 9 + 4) % destinos.length];
+            m = mercancias[(i * 5 + 3) % mercancias.length];
+            CARGAS_DATA.push(makeCarga('#C-2026-' + (1236 - i * 2), 'PED-0' + (384 - i * 2), mockPasado(6 + i * 4), ventanas[i % 3], 'Sevilla', dest, direcciones(i + 3), m[0], m[1], m[2], 'cancelada'));
+        }
+        // Entregadas históricas hasta completar 70 (con precio; alguna sin
+        // albarán para ver el flujo de reclamación)
+        var n = 0;
+        while (CARGAS_DATA.length < 70) {
+            dest = destinos[(n * 3 + 2) % destinos.length];
+            m = mercancias[(n * 11 + 5) % mercancias.length];
+            CARGAS_DATA.push(makeCarga('#C-2026-' + (1230 - n * 2), 'PED-0' + (380 - n * 2), mockPasado(24 + n * 2), ventanas[n % 3], 'Sevilla', dest, direcciones(n), m[0], m[1], m[2], 'entregada', n % 6 === 3 ? false : undefined, { precio: precioPara(dest, n) }));
+            n++;
+        }
+        // Backfill: toda entregada lleva precio (ya está facturada). Cubre
+        // las entradas antiguas escritas a mano que no lo traían.
+        CARGAS_DATA.forEach(function (c, idx) {
+            if (c.kind === 'entregada' && !c.precio) c.precio = precioPara(c.destino, idx);
+        });
+    })();
+
+    // ---- DATA: presupuestos (mock, ampliado a 70 más abajo) ----
     function makePresupuesto(ref, refCli, fecha, origen, destino, mercancia, medidas, precio, vigencia, vigenciaColor, kind) {
         return { ref: ref, refCli: refCli, fecha: fecha, origen: origen, destino: destino, mercancia: mercancia, medidas: medidas, precio: precio, vigencia: vigencia, vigenciaColor: vigenciaColor, kind: kind };
     }
@@ -4751,6 +4832,54 @@
         makePresupuesto('#P-2026-0405','COT-205','04/06','Sevilla','Zúrich (CH)','Maquinaria','13,2 m · 19.500 kg','2.380 €','Caducado el 11/06','gray','caducados'),
         makePresupuesto('#P-2026-0403','COT-203','02/06','Sevilla','Liverpool (UK)','Paletizado / Aceite','13,2 m · 22.500 kg','3.120 €','Caducado el 09/06','gray','caducados')
     ];
+    // === MOCK: ampliar el listado de presupuestos hasta 70 ===
+    // Igual que expandMockCargas: determinista, campos coherentes. Los
+    // vigentes se generan RELATIVOS A HOY (solicitados hace 0-6 días,
+    // caducan en 1-7) para que los badges "Caduca Nd" siempre tengan
+    // sentido; los caducados van quedando escalonados hacia atrás.
+    (function expandMockPresupuestos() {
+        function ddmm(d) { return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2); }
+        function diasNat(n) { var d = new Date(); d.setDate(d.getDate() + n); return d; }
+        var destinos = ['París (FR)','Lyon (FR)','Berlín (DE)','Hamburgo (DE)','Milán (IT)','Roma (IT)','Ámsterdam (NL)','Bruselas (BE)','Praga (CZ)','Viena (AT)','Varsovia (PL)','Zúrich (CH)','Lisboa (PT)','Oporto (PT)','Madrid','Barcelona','Valencia','Bilbao','Zaragoza','Málaga'];
+        var mercancias = [
+            ['Paletizado', '13,2 m · 22.000 kg'],
+            ['Maquinaria', '13,2 m · 20.000 kg'],
+            ['Paletizado / Aceite', '13,2 m · 23.000 kg'],
+            ['Material eventos', '10,0 m · 12.000 kg'],
+            ['Maquinaria', '8,4 m · 11.000 kg'],
+            ['Paletizado', '12,0 m · 16.500 kg'],
+            ['Material obra', '10,0 m · 19.000 kg']
+        ];
+        var precios = ['980 €','1.240 €','1.480 €','1.720 €','1.960 €','2.180 €','2.420 €','2.650 €','2.880 €','3.120 €'];
+        // Re-datar los vigentes estáticos RELATIVOS A HOY (sus fechas fijas
+        // quedaban obsoletas al pasar los días): caduca = hoy + N días del
+        // literal "(N días)", solicitado = caduca − 7.
+        PRESUPUESTOS_DATA.forEach(function (p) {
+            if (p.kind !== 'activos') return;
+            var mm = String(p.vigencia).match(/\((\d+)\s*d/i);
+            var dias = mm ? parseInt(mm[1], 10) : 7;
+            p.fecha = ddmm(diasNat(dias - 7));
+            p.vigencia = ddmm(diasNat(dias)) + ' (' + dias + (dias === 1 ? ' día' : ' días') + ')';
+        });
+        var i, dest, m;
+        // 15 vigentes relativos a hoy
+        for (i = 0; i < 15; i++) {
+            dest = destinos[(i * 7 + 2) % destinos.length];
+            m = mercancias[(i * 5 + 1) % mercancias.length];
+            var quedan = 1 + (i % 7);                 // días hasta caducar
+            var sol = diasNat(quedan - 7);            // solicitado hace 7-quedan días
+            var cad = diasNat(quedan);
+            PRESUPUESTOS_DATA.push(makePresupuesto('#P-2026-0' + (422 + i), 'COT-' + (219 + i), ddmm(sol), (i % 4 === 3) ? 'Madrid' : 'Sevilla', dest, m[0], m[1], precios[(i * 3) % precios.length], ddmm(cad) + ' (' + quedan + (quedan === 1 ? ' día' : ' días') + ')', quedan <= 3 ? 'yellow' : 'green', 'activos'));
+        }
+        // Caducados históricos escalonados hasta completar 70
+        var n = 0;
+        while (PRESUPUESTOS_DATA.length < 70) {
+            dest = destinos[(n * 11 + 5) % destinos.length];
+            m = mercancias[(n * 3 + 4) % mercancias.length];
+            PRESUPUESTOS_DATA.push(makePresupuesto('#P-2026-0' + (401 - n * 2), 'COT-' + (202 - n), ddmm(diasNat(-15 - n * 2)), (n % 5 === 2) ? 'Madrid' : 'Sevilla', dest, m[0], m[1], precios[(n * 7) % precios.length], 'Caducado el ' + ddmm(diasNat(-8 - n * 2)), 'gray', 'caducados'));
+            n++;
+        }
+    })();
 
     // ---- DATA: facturas (38) ----
     function makeFactura(ref, emision, vencimiento, concepto, conceptoMeta, base, iva, total, estado, color, kind) {
@@ -5570,7 +5699,7 @@
                             (v.caduca ? '<div class="meta">' + esc(fechaConDia(v.caduca)) + '</div>' : '') +
                             (v.caducado
                                 ? '<div class="meta meta-pend">Caducado</div>'
-                                : '<div class="meta meta-eta">En ' + (v.dias != null ? v.dias : '—') + ' días caduca</div>') +
+                                : '<div class="meta meta-eta">En ' + (v.dias != null ? v.dias : '—') + (v.dias === 1 ? ' día caduca' : ' días caduca') + '</div>') +
                         '</td>';
                     })() +
                     '<td class="route-full">' +
