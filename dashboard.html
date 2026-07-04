@@ -1378,11 +1378,18 @@
         table.data td.route-full .rf-dot.dest { background: var(--green); }
         /* Parada donde está el camión AHORA (cargando/entregando): parpadea */
         table.data td.route-full .rf-dot.rf-dot-blink { animation: badgeDotBlink 1.3s ease-in-out infinite; }
-        /* Segunda línea discreta bajo cada dirección: empresa (enlace a su
-           Google Maps) + horario del sitio */
-        table.data td.route-full .rf-site { display: block; font-size: 0.72rem; color: var(--gray-500); margin-top: 1px; }
+        /* Empresa entre paréntesis en la misma línea de la dirección,
+           enlazada a su Google Maps */
+        table.data td.route-full .rf-site { font-size: 0.72rem; color: var(--gray-500); }
         table.data td.route-full .rf-site a { color: var(--purple); font-weight: 600; text-decoration: none; }
         table.data td.route-full .rf-site a:hover { text-decoration: underline; }
+        /* Columna unificada Ruta y fechas: bloque por parada — línea 1 fecha
+           (+ horario del almacén + Est./reloj), línea 2 dirección (+ empresa) */
+        table.data td.route-full .rf-stop + .rf-stop { margin-top: 0.5rem; }
+        table.data td.route-full .rf-fecha { display: block; }
+        table.data td.route-full .rf-fecha strong { color: var(--navy); }
+        table.data td.route-full .rf-hor { font-size: 0.72rem; color: var(--gray-500); }
+        table.data td.route-full .rf-dir { display: block; }
         /* iOS "data detectors": aunque las direcciones son texto plano, Safari
            las convierte en enlaces al mapa. Las neutralizamos (texto normal, no
            clicable) para que al tocar la fila se abra el detalle del viaje. */
@@ -2611,7 +2618,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Envío</th><th>Fecha de carga</th><th>Fecha entrega</th><th>Ruta</th><th>Mercancía</th><th>Vehículo</th><th class="th-amount">Importe<span class="th-sub">Impuestos no incl.</span></th>
+                    <th>Envío</th><th>Ruta y fechas</th><th>Mercancía</th><th>Vehículo</th><th class="th-amount">Importe<span class="th-sub">Impuestos no incl.</span></th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -5323,25 +5330,6 @@
             return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
         }
     }
-    // Celda <td> de la columna Entrega.
-    function entregaCell(c, asigDate) {
-        if (c.kind === 'cancelada') return '<td><span class="meta meta-pend">—</span></td>';
-        var e = entregaInfo(c, asigDate);
-        if (e.tipo === 'pendiente') return '<td><span class="meta meta-pend">Sin programar</span></td>';
-        if (e.tipo === 'ventana') {
-            return '<td>' +
-                '<div class="fecha-linea"><strong>' + esc(fechaConDia(e.ini) + ' – ' + fechaConDia(e.fin)) + '</strong></div>' +
-                (c.horarioDestino ? '<div class="meta">' + esc(c.horarioDestino) + '</div>' : '') +
-            '</td>';
-        }
-        var html = '<td><div class="fecha-linea"><strong>' + esc(fechaConDia(e.fecha)) + '</strong></div>';
-        if (c.horarioDestino) html += '<div class="meta">' + esc(c.horarioDestino) + '</div>';
-        // Est. hora de entrega solo mientras la ruta está en curso (no entregada).
-        if (c.kind !== 'entregada' && e.hora) {
-            html += '<div class="meta meta-est-ent"><span class="est-dot-ent"></span>Est. ' + esc(e.hora) + '</div>';
-        }
-        return html + '</td>';
-    }
     // Tipo de carga en versión corta para la columna Vehículo
     function cargaCorta(t) { if (!t) return ''; return /completa/i.test(t) ? 'Completo' : t; }
     // Deriva Completo/Grupaje a partir de los metros (los presupuestos no
@@ -5475,16 +5463,17 @@
         'produccion-tecnica-tjl-huercal-de-alm': { empresa: 'Producción Técnica TJL, S.L. (Almacén)', dir: '04230, Huércal de Almería, Almería, España', horario: '13:00-16:00', tfno: '678 56 24 36', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/MZ9DeVMP2UCEXsmY8', freq: 1 }
     };
     function siteDe(ref) { return typeof ref === 'string' ? SITES[ref] : ref; }
-    // Segunda línea discreta bajo la dirección: "(EMPRESA | horario)" con la
-    // empresa enlazada a su Google Maps. stopPropagation: la fila abre el
-    // detalle al clicar; el enlace no debe disparar los dos.
+    // "(EMPRESA)" en la misma línea de la dirección, con la empresa enlazada
+    // a su Google Maps. El horario del almacén va en la línea de la fecha —
+    // no se repite aquí. stopPropagation: la fila abre el detalle al clicar;
+    // el enlace no debe disparar los dos.
     function rfSiteHTML(ref) {
         var s = siteDe(ref);
         if (!s || !s.empresa) return '';
         var nombre = s.maps
             ? '<a href="' + esc(s.maps) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">' + esc(s.empresa) + '</a>'
             : esc(s.empresa);
-        return '<span class="rf-site">(' + nombre + (s.horario ? ' | ' + esc(s.horario) : '') + ')</span>';
+        return ' <span class="rf-site">(' + nombre + ')</span>';
     }
     // Bloque de detalle de un punto de la ruta para el modal "Ver detalle":
     // empresa (enlace a Maps), dirección, horario, teléfono clicable con
@@ -5509,9 +5498,24 @@
         if (s && s.notas) h += '<div style="font-size:0.76rem;color:#b45309;background:#fef3c7;border-radius:8px;padding:0.35rem 0.5rem;margin-top:4px;">⚠ ' + escapeHtml(s.notas) + '</div>';
         return h;
     }
-    // Celda Ruta con TODAS las paradas en orden de recorrido: origen +
-    // recogidas extra (punto naranja) → entregas extra + destino (verde).
-    function rutaCell(c) {
+    // Suma horas enteras a una hora "HH:MM" (mock: est. de paradas sucesivas)
+    function sumaHora(hhmm, plus) {
+        var m = String(hhmm || '').match(/^(\d{1,2}):(\d{2})$/);
+        if (!m) return null;
+        return ('0' + ((+m[1] + plus) % 24)).slice(-2) + ':' + m[2];
+    }
+    // Columna UNIFICADA Ruta + fechas: cada parada lleva su fecha y hora
+    // estimada encima de la dirección y la empresa. Sustituye a las antiguas
+    // columnas "Fecha de carga" y "Fecha entrega" — todo más compacto, mejor
+    // aprovechado el ancho y sin repetir datos (el horario del almacén va
+    // solo en la línea de la empresa).
+    function rutaFechasCell(c, asigDate) {
+        var ev = getEstadoVisual(c);
+        var fechaCarga = asigDate ? fechaConDia(asigDate) : ventanaRango(c.fecha, c.ventana);
+        var e = entregaInfo(c, asigDate);
+        var fechaEntrega = e.tipo === 'fecha' ? fechaConDia(e.fecha)
+            : e.tipo === 'ventana' ? (fechaConDia(e.ini) + ' – ' + fechaConDia(e.fin))
+            : 'Sin programar';
         var stops = [{ t: 'recogida', dir: ciudadDir(c.origen, c.origenDir), site: c.origenSite }];
         var extras = c.paradas || [];
         extras.filter(function (p) { return p.tipo === 'recogida'; }).forEach(function (p) { stops.push({ t: 'recogida', dir: p.dir, site: p.site }); });
@@ -5519,14 +5523,38 @@
         stops.push({ t: 'entrega', dir: ciudadDir(c.destino, c.destinoDir), site: c.destinoSite });
         // Parada activa: su punto parpadea. Cargando → recogida (origen por
         // defecto); Llegando a la entrega → entrega (destino por defecto).
-        var ev = getEstadoVisual(c);
         var act = null;
         if (ev.color === 'cargando')     act = (c.stopActivo != null) ? c.stopActivo : 0;
         else if (ev.color === 'entrega') act = (c.stopActivo != null) ? c.stopActivo : stops.length - 1;
-        return '<td class="route-full">' + stops.map(function (s, i) {
+        var nRec = 0;
+        var html = stops.map(function (s, i) {
             var blink = (i === act) ? ' rf-dot-blink' : '';
-            return '<div class="rf-line"><span class="rf-dot ' + (s.t === 'recogida' ? 'orig' : 'dest') + blink + '"></span><span>' + esc(s.dir) + rfSiteHTML(s.site) + '</span></div>';
-        }).join('') + '</td>';
+            var fecha = s.t === 'recogida' ? fechaCarga : fechaEntrega;
+            // Horario del almacén de ESTA parada, junto a la fecha.
+            var st = siteDe(s.site);
+            var hor = (st && st.horario) || (i === 0 ? c.horarioOrigen : (i === stops.length - 1 ? c.horarioDestino : null));
+            // Hora de la parada: recogidas → Est. azul antes de cargar (la 2ª
+            // recogida estima +3h, mock) y reloj naranja EN VIVO en la parada
+            // activa mientras carga; destino → Est. verde con la ruta en curso.
+            var extra = '';
+            if (s.t === 'recogida') {
+                var estR = nRec === 0 ? c.horaCargaEst : sumaHora(c.horaCargaEst, 3 * nRec);
+                if (ev.color === 'cargando' && i === act) {
+                    var tz = tzDeCarga(c);
+                    extra = ' <span class="meta meta-ahora"><span class="ahora-dot"></span>Ahora <span data-ahora-clock data-ahora-tz="' + tz + '">' + ahoraHMS(tz) + '</span></span>';
+                } else if (estR && (ev.color === 'prog' || ev.color === 'hacia')) {
+                    extra = ' <span class="meta meta-est"><span class="est-dot"></span>Est. ' + esc(estR) + '</span>';
+                }
+                nRec++;
+            } else if (i === stops.length - 1 && c.kind !== 'entregada' && c.kind !== 'cancelada' && e.tipo === 'fecha' && e.hora) {
+                extra = ' <span class="meta meta-est-ent"><span class="est-dot-ent"></span>Est. ' + esc(e.hora) + '</span>';
+            }
+            return '<div class="rf-stop"><div class="rf-line"><span class="rf-dot ' + (s.t === 'recogida' ? 'orig' : 'dest') + blink + '"></span><span>' +
+                '<span class="rf-fecha"><strong>' + esc(fecha) + '</strong>' + (hor ? ' <span class="rf-hor">(' + esc(hor) + ')</span>' : '') + extra + '</span>' +
+                '<span class="rf-dir">' + esc(s.dir) + rfSiteHTML(s.site) + '</span>' +
+            '</span></div></div>';
+        }).join('');
+        return '<td class="route-full">' + html + '</td>';
     }
     // Fecha de carga efectiva de un envío (asignada si existe, si no la
     // solicitada) como Date. null si es "Sin fecha" (previsión).
@@ -5735,7 +5763,7 @@
         var tbody = document.getElementById('tbodyCargas');
         if (!tbody) return;
         if (slice.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
         } else {
             tbody.innerHTML = slice.map(function (c) {
                 // Si la carga tiene fecha asignada por el equipo, la
@@ -5781,9 +5809,6 @@
                 // Estado de envío (fase): Programado / Hacia la carga / Cargando /
                 // En ruta / Entregado. Va en la 1ª columna junto al Nº de envío.
                 var ev = getEstadoVisual(c);
-                // Fecha: si está confirmada, la fecha asignada; si no, el rango
-                // inicio–fin de la ventana de carga.
-                var fechaLinea = asigDate ? fechaConDia(asigDate) : ventanaRango(c.fecha, c.ventana);
                 // Estado (última columna): solo estado de asignación de transportista.
                 var asig = getAsignacionEstado(c);
                 return '<tr' + rowCls + '>' +
@@ -5793,17 +5818,7 @@
                             (c.kind === 'entregada' && c.hasAlbaran ? ' <span class="badge-doc" title="Albarán PDF disponible">📄</span>' : '') +
                         '</div>' +
                     '</td>' +
-                    '<td>' +
-                        '<div class="fecha-linea"><strong>' + esc(fechaLinea) + '</strong></div>' +
-                        (c.horarioOrigen ? '<div class="meta">' + esc(c.horarioOrigen) + '</div>' : '') +
-                        (c.horaCargaEst && (ev.color === 'prog' || ev.color === 'hacia') ? '<div class="meta meta-est"><span class="est-dot"></span>Est. ' + esc(c.horaCargaEst) + '</div>' : '') +
-                        (ev.color === 'cargando' ? (function () {
-                            var tz = tzDeCarga(c);
-                            return '<div class="meta meta-ahora"><span class="ahora-dot"></span>Ahora <span data-ahora-clock data-ahora-tz="' + tz + '">' + ahoraHMS(tz) + '</span></div>';
-                        })() : '') +
-                    '</td>' +
-                    entregaCell(c, asigDate) +
-                    rutaCell(c) +
+                    rutaFechasCell(c, asigDate) +
                     '<td class="mercancia">' + esc(c.mercancia) +
                         (function () {
                             var lbl = cargaCorta(c.tipoCarga) || cargaFromMedidas(c.medidas);
