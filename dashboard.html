@@ -4508,6 +4508,22 @@
         facturas:     { page: 1, filter: 'todas',  perPage: readPerPage('facturas') }
     };
 
+    // --- Horarios de almacén realistas para el mockup ---
+    // Los más frecuentes en clientes/receptores: continuos de mañana o de
+    // mañana-tarde y uno partido. Se asignan de forma determinista por ciudad
+    // (misma ciudad → mismo horario, como un almacén real) para que la tabla
+    // se vea coherente. Cuando haya backend vendrán del dato real del almacén.
+    var HORARIOS_ALMACEN = [
+        'L-V 8:00-17:00', 'L-V 7:00-15:00', 'L-V 8:00-13:00 · 15:00-18:00',
+        'L-V 8:00-15:00', 'L-V 9:00-18:00', 'L-V 7:30-14:00'
+    ];
+    function hashStr(s) { s = String(s || ''); var h = 5381; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h; }
+    function horarioAlmacen(ciudad, salt) { return HORARIOS_ALMACEN[(hashStr(ciudad) + (salt || 0)) % HORARIOS_ALMACEN.length]; }
+    // Hora estimada de carga por defecto (mañana, dentro del horario habitual),
+    // determinista por referencia para que cada envío tenga la suya estable.
+    var EST_HORAS = ['08:00', '09:00', '07:30', '10:30', '11:00', '12:00', '13:00'];
+    function estHoraPorRef(ref) { return EST_HORAS[hashStr(ref) % EST_HORAS.length]; }
+
     // ---- DATA: cargas (28) ----
     // hasAlbaran: solo aplica a entregadas (true por defecto). Si false,
     // la accion sera "Reclamar albaran" (>1 dia desde fecha) o
@@ -4532,10 +4548,10 @@
             // Datos detallados (pueden ser null → "Pendiente" en el detalle)
             precio: extra.precio || null,
             fechaAsignada: extra.fechaAsignada || null,
-            horaCargaEst: extra.horaCargaEst || null,
+            horaCargaEst: extra.horaCargaEst || estHoraPorRef(ref),
             etaEntrega: extra.etaEntrega || null,
-            horarioOrigen: extra.horarioOrigen || null,
-            horarioDestino: extra.horarioDestino || null,
+            horarioOrigen: extra.horarioOrigen || horarioAlmacen(origen, 0),
+            horarioDestino: extra.horarioDestino || horarioAlmacen(destino, 3),
             tipoCamion: extra.tipoCamion || null,
             tipoCarga: extra.tipoCarga || null,   // 'Carga completa' | 'Grupaje'
             // Transportista (carrier) vs matrícula (camión concreto) son
@@ -5179,7 +5195,7 @@
         if (e.tipo === 'ventana') {
             return '<td>' +
                 '<div class="fecha-linea"><strong>' + esc(fechaConDia(e.ini) + ' – ' + fechaConDia(e.fin)) + '</strong></div>' +
-                '<div class="meta">Ventana estimada</div>' +
+                (c.horarioDestino ? '<div class="meta">' + esc(c.horarioDestino) + '</div>' : '') +
             '</td>';
         }
         var html = '<td><div class="fecha-linea"><strong>' + esc(fechaConDia(e.fecha)) + '</strong></div>';
