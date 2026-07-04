@@ -926,7 +926,7 @@
             display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.7rem;
             margin-bottom: 1rem;
         }
-        .stats-row-3 { grid-template-columns: repeat(3, 1fr); }
+        .stats-row-4 { grid-template-columns: repeat(4, 1fr); }
         .stat-card {
             background: white; border-radius: 12px; padding: 0.75rem 0.85rem;
             border: 1px solid var(--gray-200);
@@ -1116,21 +1116,23 @@
         .dash-ctas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; margin-bottom: 1.4rem; }
         .dash-top-row {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0.7rem; margin-bottom: 1.4rem;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.7rem; margin-bottom: 1rem;
             align-items: stretch;
         }
         .dash-top-row > * { min-width: 0; height: 100%; }
-        /* Nuevo envío · Nuevo presupuesto · CESCE en la misma fila (3 columnas
-           iguales), alineadas con las 3 stat cards de debajo. */
-        /* Anular margen y padding propios cuando viven en el wrapper compartido
-           para que las 3 cajas casen visualmente: misma altura, mismo padding,
-           mismo radio. */
-        .dash-top-row .cesce-card {
+        /* Nuevo envío · Nuevo presupuesto en una fila de 2 botones. CESCE baja
+           a la fila de stats (fila de 4). */
+        /* CESCE integrado como 4ª tarjeta de la fila de stats: sin margen
+           propio y con el mismo padding/radio que las stat cards. */
+        .stats-row-4 .cesce-card {
             margin-bottom: 0;
-            padding: 1.3rem 1.5rem;
-            border-radius: 14px;
+            padding: 0.75rem 0.85rem;
+            border-radius: 12px;
+            gap: 0.4rem;
         }
+        .stats-row-4 .cesce-card h3 { font-size: 0.78rem; }
+        .stats-row-4 .cesce-status { font-size: 0.8rem; padding: 0.4rem 0.6rem; }
         .dash-cta {
             display: flex; align-items: center; gap: 1rem;
             padding: 1.3rem 1.5rem; border-radius: 14px;
@@ -1220,11 +1222,11 @@
             display: flex; gap: 0.5rem; margin-bottom: 1rem;
             background: white; padding: 0.7rem; border-radius: 12px;
             border: 1px solid var(--gray-200);
-            align-items: center;
+            align-items: center; flex-wrap: wrap;
         }
-        /* Buscador + selector de mes SIEMPRE en la misma fila. El selector
-           "Otro mes / año…" sí salta a la siguiente fila si está activo
-           (es opcional) gracias al wrap controlado abajo. */
+        /* Buscador ancho por defecto (crece). Los desplegables cortos (Fecha /
+           Estado) se quedan a su lado y, si no caben, saltan a la fila de
+           abajo — el buscador nunca se queda enano. */
         .filters input, .filters select {
             padding: 0.5rem 0.7rem; border-radius: 8px;
             border: 1px solid var(--gray-200); background: var(--gray-50);
@@ -1233,19 +1235,18 @@
             min-width: 0; max-width: 100%;
         }
         .filters input:focus, .filters select:focus { outline: none; border-color: var(--purple); background: white; }
-        .filters input[type="search"] { flex: 1 1 0; min-width: 0; }
-        /* Filtro por mes — select + input month inline; el input solo aparece
-           cuando el cliente elige "Otro mes / año…" del select. Ambos van
-           en la misma fila que el buscador, ajustando ancho. */
-        .filters .filter-mes { flex: 0 0 auto; min-width: 140px; max-width: 180px; }
-        .filters .filter-mes-custom { flex: 0 0 auto; min-width: 130px; max-width: 170px; }
-        .filters .filter-estado { flex: 0 0 auto; min-width: 150px; max-width: 210px; }
+        .filters input[type="search"] { flex: 1 1 240px; min-width: 180px; }
+        /* Filtro por mes ("Fecha") — corto; el input "Otro mes / año…" solo
+           aparece al elegir esa opción. */
+        .filters .filter-mes { flex: 0 0 auto; min-width: 96px; max-width: 130px; }
+        .filters .filter-mes-custom { flex: 0 0 auto; min-width: 120px; max-width: 160px; }
+        .filters .filter-estado { flex: 0 1 auto; min-width: 110px; max-width: 190px; }
         @media (max-width: 600px) {
             .filters { gap: 0.4rem; padding: 0.55rem; }
-            .filters input[type="search"] { font-size: 0.9rem; padding: 0.55rem 0.6rem; }
-            .filters .filter-mes { min-width: 112px; max-width: 150px; font-size: 0.85rem; padding: 0.55rem 0.5rem; }
+            .filters input[type="search"] { font-size: 0.9rem; padding: 0.55rem 0.6rem; flex: 1 1 100%; }
+            .filters .filter-mes { min-width: 92px; max-width: 130px; font-size: 0.85rem; padding: 0.55rem 0.5rem; }
             .filters .filter-mes-custom { min-width: 108px; max-width: 140px; font-size: 0.85rem; padding: 0.55rem 0.5rem; }
-            .filters .filter-estado { min-width: 130px; max-width: 100%; font-size: 0.85rem; padding: 0.55rem 0.5rem; }
+            .filters .filter-estado { flex: 1 1 110px; min-width: 110px; max-width: 100%; font-size: 0.85rem; padding: 0.55rem 0.5rem; }
         }
 
         .table-wrap {
@@ -2057,11 +2058,10 @@
         /* ======= RESPONSIVE ======= */
         @media (max-width: 1100px) {
             .stats-row { grid-template-columns: repeat(2, 1fr); }
-            .stats-row-3 { grid-template-columns: repeat(3, 1fr); }
+            .stats-row-4 { grid-template-columns: repeat(4, 1fr); }
             .mini-lists { grid-template-columns: 1fr; }
-            /* Mantenemos las 3 cajas exactamente iguales. Apretamos gap
-               y ocultamos los subtítulos de las CTAs. */
-            .dash-top-row { grid-template-columns: repeat(3, 1fr); gap: 0.7rem; }
+            /* Botones a 2 columnas; subtítulos de las CTAs ocultos. */
+            .dash-top-row { grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
             .dash-top-row .dash-cta-text p { display: none; }
         }
         @media (max-width: 768px) {
@@ -2080,18 +2080,17 @@
             .topbar-user-name { display: none; }
             .content { padding: 1rem 1rem 3rem; }
             .stats-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.7rem; }
-            .stats-row-3 { grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
-            .dash-top-row { grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+            .stats-row-4 { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+            .dash-top-row { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
             .stat-card-value { font-size: 1.45rem; }
-            .stats-row-3 .stat-card { padding: 0.7rem 0.6rem; }
-            .stats-row-3 .stat-card-label { font-size: 0.72rem; }
-            .stats-row-3 .stat-card-value { font-size: 1.2rem; }
-            .stats-row-3 .stat-card-trend { font-size: 0.7rem; }
+            .stats-row-4 .stat-card { padding: 0.7rem 0.6rem; }
+            .stats-row-4 .stat-card-label { font-size: 0.72rem; }
+            .stats-row-4 .stat-card-value { font-size: 1.2rem; }
+            .stats-row-4 .stat-card-trend { font-size: 0.7rem; }
             .dash-ctas { grid-template-columns: 1fr; }
-            /* Mantener los 3 elementos en la misma fila en móvil — todos
-               del mismo ancho para que se vean alineados */
+            /* Botones a 2 columnas en móvil. */
             .dash-top-row {
-                grid-template-columns: repeat(3, 1fr);
+                grid-template-columns: repeat(2, 1fr);
                 gap: 0.5rem;
             }
             .dash-top-row .dash-cta {
@@ -2102,11 +2101,12 @@
             .dash-top-row .dash-cta-icon svg { width: 20px; height: 20px; }
             .dash-top-row .dash-cta-text h4 { font-size: 0.78rem; line-height: 1.1; }
             .dash-top-row .dash-cta-text p  { display: none; }
-            .dash-top-row .cesce-card { padding: 0.7rem 0.75rem; gap: 0.4rem; }
-            .dash-top-row .cesce-card h3 { font-size: 0.7rem; }
-            .dash-top-row .cesce-badge { font-size: 0.6rem; padding: 0.1rem 0.35rem; }
-            .dash-top-row .cesce-status { font-size: 0.72rem; padding: 0.4rem 0.55rem; gap: 0.4rem; }
-            .dash-top-row .cesce-status-dot { width: 8px; height: 8px; }
+            /* CESCE (4ª tarjeta de stats) compacta en móvil. */
+            .stats-row-4 .cesce-card { padding: 0.7rem 0.6rem; gap: 0.4rem; }
+            .stats-row-4 .cesce-card h3 { font-size: 0.7rem; }
+            .stats-row-4 .cesce-badge { font-size: 0.6rem; padding: 0.1rem 0.35rem; }
+            .stats-row-4 .cesce-status { font-size: 0.72rem; padding: 0.4rem 0.5rem; gap: 0.4rem; }
+            .stats-row-4 .cesce-status-dot { width: 8px; height: 8px; }
             .sec-header { gap: 0.5rem; }
             .sec-header-actions { width: 100%; }
             .sec-header-actions .btn-primary,
@@ -2123,18 +2123,17 @@
         }
         @media (max-width: 420px) {
             .stats-row { grid-template-columns: 1fr; }
-            .stats-row-3 { grid-template-columns: repeat(3, 1fr); gap: 0.35rem; }
-            .stats-row-3 .stat-card { padding: 0.55rem 0.4rem; }
-            .stats-row-3 .stat-card-label { font-size: 0.7rem; letter-spacing: 0; }
-            .stats-row-3 .stat-card-value { font-size: 1.05rem; }
-            .stats-row-3 .stat-card-trend { font-size: 0.68rem; }
+            .stats-row-4 { grid-template-columns: repeat(2, 1fr); gap: 0.35rem; }
+            .stats-row-4 .stat-card { padding: 0.55rem 0.4rem; }
+            .stats-row-4 .stat-card-label { font-size: 0.7rem; letter-spacing: 0; }
+            .stats-row-4 .stat-card-value { font-size: 1.05rem; }
+            .stats-row-4 .stat-card-trend { font-size: 0.68rem; }
             table.data { min-width: 620px; }
-            /* Mismo ancho también en móviles muy estrechos */
-            .dash-top-row { gap: 0.35rem; grid-template-columns: repeat(3, 1fr); }
+            .dash-top-row { gap: 0.35rem; grid-template-columns: repeat(2, 1fr); }
             .dash-top-row .dash-cta { padding: 0.7rem 0.4rem; }
             .dash-top-row .dash-cta-text h4 { font-size: 0.7rem; }
-            .dash-top-row .cesce-card { padding: 0.6rem; }
-            .dash-top-row .cesce-status { font-size: 0.65rem; padding: 0.35rem 0.45rem; }
+            .stats-row-4 .cesce-card { padding: 0.55rem 0.4rem; }
+            .stats-row-4 .cesce-status { font-size: 0.65rem; padding: 0.35rem 0.45rem; }
         }
         .sidebar-toggle {
             display: none; width: 38px; height: 38px;
@@ -2475,6 +2474,21 @@
                     <p>Calcula y guarda el precio</p>
                 </div>
             </a>
+        </div>
+
+        <div class="stats-row stats-row-4">
+            <button type="button" class="stat-card stat-card-link" onclick="showSection('cargas')">
+                <div class="stat-card-label">Envíos</div>
+                <div class="stat-card-value" data-stat-cargas-activas>—</div>
+            </button>
+            <button type="button" class="stat-card stat-card-link" onclick="showSection('presupuestos')">
+                <div class="stat-card-label">Presupuestos</div>
+                <div class="stat-card-value">7</div>
+            </button>
+            <button type="button" class="stat-card stat-card-link" onclick="showSection('incidencias')">
+                <div class="stat-card-label">Incidencias</div>
+                <div class="stat-card-value">1</div>
+            </button>
             <!-- CESCE: solo se muestra el ESTADO de cobertura al cliente
                  (no consumo / disponible / límite). 3 estados posibles —
                  cambiar la clase modificadora y el texto cuando llegue el
@@ -2498,21 +2512,6 @@
                     </button>
                 </div>
             </div>
-        </div>
-
-        <div class="stats-row stats-row-3">
-            <button type="button" class="stat-card stat-card-link" onclick="showSection('cargas')">
-                <div class="stat-card-label">Envíos</div>
-                <div class="stat-card-value" data-stat-cargas-activas>—</div>
-            </button>
-            <button type="button" class="stat-card stat-card-link" onclick="showSection('presupuestos')">
-                <div class="stat-card-label">Presupuestos</div>
-                <div class="stat-card-value">7</div>
-            </button>
-            <button type="button" class="stat-card stat-card-link" onclick="showSection('incidencias')">
-                <div class="stat-card-label">Incidencias</div>
-                <div class="stat-card-value">1</div>
-            </button>
         </div>
 
         <div class="mini-lists">
@@ -2684,15 +2683,13 @@
             </select>
             <input type="month" class="filter-mes-custom" data-filter-mes-custom hidden aria-label="Selecciona mes y año">
             <select class="filter-estado" data-filter-estado aria-label="Filtrar por estado">
-                <option value="">Todos los estados</option>
+                <option value="">Estado</option>
                 <optgroup label="Estado del envío">
                     <option value="env:prog">Programado</option>
                     <option value="env:hacia">Llegando a la recogida</option>
                     <option value="env:cargando">Cargando</option>
                     <option value="env:enruta">En ruta</option>
                     <option value="env:entrega">Llegando a la entrega</option>
-                    <option value="env:entregado">Entregado</option>
-                    <option value="env:cancelada">Cancelada</option>
                 </optgroup>
                 <optgroup label="Estado del vehículo">
                     <option value="veh:confirmado">Confirmado transportista</option>
@@ -5175,9 +5172,11 @@
         else                                    arr = CARGAS_DATA.filter(function (c) { return c.kind === f; });
         // Filtro adicional por estado (desplegable unificado): estado de envío
         // (env:<color de getEstadoVisual>) o estado de vehículo/asignación
-        // (veh:<key de getAsignacionEstado>).
+        // (veh:<key de getAsignacionEstado>). Solo aplica en la pestaña
+        // "Programadas" (los estados vivos no tienen sentido en Entregadas/
+        // Canceladas/Todas).
         var est = TABLE_STATE.cargas.estado;
-        if (est) {
+        if (est && f === 'programada') {
             arr = arr.filter(function (c) {
                 if (est.indexOf('env:') === 0) {
                     return getEstadoVisual(c).color === est.slice(4);
@@ -5235,10 +5234,10 @@
     }
 
     // ---- FILTRO POR MES ----
-    // Rellena cada <select data-filter-mes> con: "Todos los meses",
-    // los últimos 3 meses (incluyendo el actual) y "Otro mes / año…".
-    // Al elegir "Otro" muestra un <input type="month"> al lado para
-    // que el cliente pique mes y año concretos.
+    // Rellena cada <select data-filter-mes> con el título "Fecha" (= todos los
+    // meses / sin filtro), los últimos 3 meses (incluyendo el actual) y
+    // "Otro mes / año…". Al elegir "Otro" muestra un <input type="month"> al
+    // lado para que el cliente pique mes y año concretos.
     var MES_NOMBRES = [
         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
@@ -5248,7 +5247,7 @@
         document.querySelectorAll('[data-filter-mes]').forEach(function (sel) {
             sel.innerHTML = '';
             var opt = document.createElement('option');
-            opt.value = ''; opt.textContent = 'Todos los meses';
+            opt.value = ''; opt.textContent = 'Fecha';
             sel.appendChild(opt);
             for (var i = 0; i < 3; i++) {
                 var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -5263,6 +5262,17 @@
         });
     }
     document.addEventListener('change', function (e) {
+        // Al vaciar el input de mes/año concreto (restablecer), volver al
+        // título "Fecha" en vez de dejar el select en "Otro…" o en blanco.
+        var custIn = e.target.closest('[data-filter-mes-custom]');
+        if (custIn) {
+            if (!custIn.value) {
+                var selRef = custIn.parentNode.querySelector('[data-filter-mes]');
+                if (selRef) selRef.value = '';
+                custIn.hidden = true;
+            }
+            return;
+        }
         var sel = e.target.closest('[data-filter-mes]');
         if (!sel) return;
         var custom = sel.parentNode.querySelector('[data-filter-mes-custom]');
@@ -5521,6 +5531,18 @@
     }
 
     // ---- TABS ----
+    // El filtro de estado solo tiene sentido en la pestaña "Programadas".
+    // En el resto se oculta y se resetea para no filtrar en segundo plano.
+    function syncEstadoFilterVisibility() {
+        var sel = document.querySelector('#sec-cargas [data-filter-estado]');
+        if (!sel) return;
+        var enProgramadas = TABLE_STATE.cargas.filter === 'programada';
+        sel.hidden = !enProgramadas;
+        if (!enProgramadas && TABLE_STATE.cargas.estado) {
+            TABLE_STATE.cargas.estado = '';
+            sel.value = '';
+        }
+    }
     function bindTabs() {
         document.querySelectorAll('.tabs[data-table]').forEach(function (tabs) {
             var table = tabs.getAttribute('data-table');
@@ -5530,6 +5552,7 @@
                     tab.classList.add('active');
                     TABLE_STATE[table].filter = tab.getAttribute('data-filter');
                     TABLE_STATE[table].page = 1;
+                    if (table === 'cargas') syncEstadoFilterVisibility();
                     renderTable(table);
                 });
             });
@@ -5584,6 +5607,7 @@
 
     bindTabs();
     bindPerPageSelectors();
+    syncEstadoFilterVisibility();
     renderCargasTable();
     renderPresupuestosTable();
     renderFacturasTable();
