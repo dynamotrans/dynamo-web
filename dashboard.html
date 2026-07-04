@@ -1355,9 +1355,11 @@
         body.theme-dark table.data tr.row-far          { background: rgba(255,255,255,0.02); }
         body.theme-dark table.data tr.row-far td,
         body.theme-dark table.data tr.row-far strong   { color: rgba(255,255,255,0.45); }
-        table.data .ref { font-weight: 800; color: var(--navy); }
+        /* Nº de envío homogéneo con el resto de la tabla (antes 800 y
+           destacaba demasiado) */
+        table.data .ref { font-weight: 500; color: var(--gray-700); }
         /* El nº de envío/presupuesto nunca se parte en dos líneas */
-        table.data td.ref > strong { white-space: nowrap; }
+        table.data td.ref > strong { white-space: nowrap; font-weight: 600; }
         table.data .ref-cli { color: var(--gray-500); font-size: 0.77rem; }
         table.data .amount { font-weight: 700; }
         /* Cabecera de la columna Importe: subtítulo "impuestos no incluidos" */
@@ -5761,8 +5763,8 @@
                         (function () {
                             var lbl = cargaCorta(c.tipoCarga) || cargaFromMedidas(c.medidas);
                             var cls = /completo/i.test(lbl) ? 'carga-completo' : 'carga-grupaje';
-                            return '<div class="meta meta-medidas">' + esc(medidasTn(c.medidas)) +
-                                ' · <span class="carga-tag ' + cls + '">' + esc(lbl) + '</span></div>';
+                            return '<div class="meta meta-medidas">' + esc(medidasTn(c.medidas)) + '</div>' +
+                                '<div class="meta"><span class="carga-tag ' + cls + '">' + esc(lbl) + '</span></div>';
                         })() +
                     '</td>' +
                     '<td class="vehiculo">' + (c.matricula ? '<span class="meta-matricula">' + esc(c.matricula) + '</span>' : '<span class="meta meta-pend">Sin matrícula</span>') +
