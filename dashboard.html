@@ -6147,11 +6147,14 @@
         return DOW_LARGO[d.getDay()] + ' ' + d.getDate() + ' ' + MESES_LARGO[d.getMonth()] + ' ' + d.getFullYear();
     }
     // Cuántas filas caben desde la posición de la lista hasta el borde
-    // inferior del viewport (~92px por fila). Entre 4 y 12.
+    // inferior del viewport (~92px por fila). Entre 4 y 12. OJO: se mide con
+    // la posición ABSOLUTA en el documento (no la del viewport), para que el
+    // scroll no altere el cálculo — en iOS el colapso de la barra de URL
+    // dispara resize en pleno scroll y repintaba más filas.
     function miniFit(ul) {
         if (!ul) return 5;
-        var top = ul.getBoundingClientRect().top;
-        var n = Math.floor((window.innerHeight - top - 20) / 92);
+        var absTop = ul.getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
+        var n = Math.floor((window.innerHeight - absTop - 20) / 92);
         return Math.max(4, Math.min(12, n));
     }
     function renderMiniEnvios() {
@@ -6212,8 +6215,12 @@
     }
     renderMiniEnvios();
     renderMiniPresup();
-    var _miniRz;
+    // Re-render solo si cambia el ANCHO: en iOS, mostrar/ocultar la barra
+    // de URL al hacer scroll dispara resize con cambio solo de alto.
+    var _miniRz, _miniW = window.innerWidth;
     window.addEventListener('resize', function () {
+        if (window.innerWidth === _miniW) return;
+        _miniW = window.innerWidth;
         clearTimeout(_miniRz);
         _miniRz = setTimeout(function () { renderMiniEnvios(); renderMiniPresup(); }, 200);
     });
