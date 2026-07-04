@@ -1260,14 +1260,12 @@
         .filters input[type="search"] { flex: 1 1 240px; min-width: 180px; }
         /* Filtro por mes ("Fecha") — corto; el input "Otro mes / año…" solo
            aparece al elegir esa opción. */
-        .filters .filter-mes { flex: 0 0 auto; min-width: 96px; max-width: 130px; }
-        .filters .filter-mes-custom { flex: 0 0 auto; min-width: 120px; max-width: 160px; }
+        .filters .filter-mes { flex: 0 0 auto; min-width: 96px; max-width: 150px; }
         .filters .filter-estado { flex: 0 1 auto; min-width: 110px; max-width: 190px; }
         @media (max-width: 600px) {
             .filters { gap: 0.4rem; padding: 0.55rem; }
             .filters input[type="search"] { font-size: 0.9rem; padding: 0.55rem 0.6rem; flex: 1 1 100%; }
-            .filters .filter-mes { min-width: 92px; max-width: 130px; font-size: 0.85rem; padding: 0.55rem 0.5rem; }
-            .filters .filter-mes-custom { min-width: 108px; max-width: 140px; font-size: 0.85rem; padding: 0.55rem 0.5rem; }
+            .filters .filter-mes { min-width: 92px; max-width: 150px; font-size: 0.85rem; padding: 0.55rem 0.5rem; }
             .filters .filter-estado { flex: 1 1 110px; min-width: 110px; max-width: 100%; font-size: 0.85rem; padding: 0.55rem 0.5rem; }
         }
 
@@ -2703,7 +2701,6 @@
             <select class="filter-mes" data-filter-mes>
                 <!-- Opciones pobladas por JS al cargar -->
             </select>
-            <input type="month" class="filter-mes-custom" data-filter-mes-custom hidden aria-label="Selecciona mes y año">
             <select class="filter-estado" data-filter-estado aria-label="Filtrar por estado">
                 <option value="">Estado</option>
                 <optgroup label="Estado del envío">
@@ -2760,7 +2757,6 @@
             <select class="filter-mes" data-filter-mes>
                 <!-- Opciones pobladas por JS al cargar -->
             </select>
-            <input type="month" class="filter-mes-custom" data-filter-mes-custom hidden aria-label="Selecciona mes y año">
         </div>
         <div class="table-wrap">
             <table class="data">
@@ -2805,7 +2801,6 @@
             <select class="filter-mes" data-filter-mes>
                 <!-- Opciones pobladas por JS al cargar -->
             </select>
-            <input type="month" class="filter-mes-custom" data-filter-mes-custom hidden aria-label="Selecciona mes y año">
         </div>
         <div class="table-wrap">
             <table class="data">
@@ -4507,7 +4502,7 @@
         try { localStorage.setItem('dashPerPage_' + table, String(v)); } catch (e) {}
     }
     var TABLE_STATE = {
-        cargas:       { page: 1, filter: 'programada',  perPage: readPerPage('cargas'), estado: '' },
+        cargas:       { page: 1, filter: 'programada',  perPage: readPerPage('cargas'), estado: '', fecha: '' },
         presupuestos: { page: 1, filter: 'activos', perPage: readPerPage('presupuestos') },
         facturas:     { page: 1, filter: 'todas',  perPage: readPerPage('facturas') }
     };
@@ -5267,6 +5262,33 @@
         if (pm) return pm[1].trim() + ', ' + (PAIS_SUFIJO[pm[2]] || '');
         return ciudad + ', España';
     }
+    // Fecha de carga efectiva de un envío (asignada si existe, si no la
+    // solicitada) como Date. null si es "Sin fecha" (previsión).
+    function cargaFechaDate(c) {
+        var s = c.fechaAsignada ? c.fechaAsignada.split(' ')[0] : c.fecha;
+        return parseDDMM(s);
+    }
+    // ¿La fecha d entra en el rango elegido en el desplegable "Fecha"?
+    function fechaEnRango(d, val) {
+        if (!val) return true;
+        if (!d) return false;
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        var dd = new Date(d.getTime()); dd.setHours(0, 0, 0, 0);
+        var DAY = 86400000;
+        if (val === 'hoy')    return dd.getTime() === today.getTime();
+        if (val === 'manana') return dd.getTime() === today.getTime() + DAY;
+        if (val === 'ayer')   return dd.getTime() === today.getTime() - DAY;
+        if (val === 'esta-semana' || val === 'semana-pasada') {
+            var dow = (today.getDay() + 6) % 7; // 0 = lunes
+            var monday = new Date(today); monday.setDate(today.getDate() - dow);
+            if (val === 'semana-pasada') monday.setDate(monday.getDate() - 7);
+            var sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+            return dd.getTime() >= monday.getTime() && dd.getTime() <= sunday.getTime();
+        }
+        var m = /^(\d{4})-(\d{2})$/.exec(val);
+        if (m) return dd.getFullYear() === parseInt(m[1], 10) && (dd.getMonth() + 1) === parseInt(m[2], 10);
+        return true;
+    }
     function filteredCargas() {
         var f = TABLE_STATE.cargas.filter;
         var arr;
@@ -5292,6 +5314,15 @@
                     return a && a.key === est.slice(4);
                 }
                 return true;
+            });
+        }
+        // Filtro por fecha (desplegable "Fecha"): accesos rápidos
+        // (hoy/mañana/ayer/esta-semana/semana-pasada) o un mes concreto
+        // (YYYY-MM). Se compara con la fecha de carga efectiva del envío.
+        var fFecha = TABLE_STATE.cargas.fecha;
+        if (fFecha) {
+            arr = arr.filter(function (c) {
+                return fechaEnRango(cargaFechaDate(c), fFecha);
             });
         }
         // Orden por pestaña:
@@ -5355,45 +5386,37 @@
             var opt = document.createElement('option');
             opt.value = ''; opt.textContent = 'Fecha';
             sel.appendChild(opt);
-            for (var i = 0; i < 3; i++) {
-                var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            // Accesos rápidos por día/semana (además de los meses).
+            [['hoy', 'Hoy'], ['manana', 'Mañana'], ['ayer', 'Ayer'],
+             ['esta-semana', 'Esta semana'], ['semana-pasada', 'Semana pasada']
+            ].forEach(function (q) {
+                var qo = document.createElement('option');
+                qo.value = q[0]; qo.textContent = q[1];
+                sel.appendChild(qo);
+            });
+            // Próximos 6 meses (mes actual + 5 siguientes) en el mismo
+            // desplegable. Sencillo: se elige y ya, sin selector nativo de
+            // mes/año. No hace falta ir más allá: al crear un envío solo se
+            // puede elegir fecha de transporte a unos 3-4 meses vista.
+            for (var i = 0; i < 6; i++) {
+                var d = new Date(now.getFullYear(), now.getMonth() + i, 1);
                 var o = document.createElement('option');
                 o.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
                 o.textContent = MES_NOMBRES[d.getMonth()] + ' ' + d.getFullYear();
                 sel.appendChild(o);
             }
-            var otro = document.createElement('option');
-            otro.value = '__otro__'; otro.textContent = 'Otro mes / año…';
-            sel.appendChild(otro);
         });
     }
     document.addEventListener('change', function (e) {
-        // Al vaciar el input de mes/año concreto (restablecer), volver al
-        // título "Fecha" en vez de dejar el select en "Otro…" o en blanco.
-        var custIn = e.target.closest('[data-filter-mes-custom]');
-        if (custIn) {
-            if (!custIn.value) {
-                var selRef = custIn.parentNode.querySelector('[data-filter-mes]');
-                if (selRef) selRef.value = '';
-                custIn.hidden = true;
-            }
-            return;
-        }
         var sel = e.target.closest('[data-filter-mes]');
         if (!sel) return;
-        var custom = sel.parentNode.querySelector('[data-filter-mes-custom]');
-        if (!custom) return;
-        if (sel.value === '__otro__') {
-            custom.hidden = false;
-            setTimeout(function () { custom.focus(); }, 0);
-        } else {
-            custom.hidden = true;
-            custom.value = '';
+        // Solo la tabla de Envíos filtra de verdad por fecha. (Presupuestos e
+        // incidencias muestran el selector pero aún no filtran.)
+        if (sel.closest('#sec-cargas')) {
+            TABLE_STATE.cargas.fecha = sel.value;   // '' | hoy | manana | ayer | esta-semana | semana-pasada | YYYY-MM
+            TABLE_STATE.cargas.page = 1;
+            renderCargasTable();
         }
-        // Hook para que el filtro real se aplique cuando exista backend:
-        // - sel.value === '' → mostrar todo
-        // - sel.value === 'YYYY-MM' → filtrar por mes
-        // - sel.value === '__otro__' → usar custom.value (YYYY-MM)
     });
     // Filtro por estado (envío + vehículo) de la tabla de Envíos.
     document.addEventListener('change', function (e) {
