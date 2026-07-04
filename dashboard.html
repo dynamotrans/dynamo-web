@@ -1368,6 +1368,11 @@
         table.data td.route-full .rf-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 0.32rem; }
         table.data td.route-full .rf-dot.orig { background: var(--orange); }
         table.data td.route-full .rf-dot.dest { background: var(--green); }
+        /* Segunda línea discreta bajo cada dirección: empresa (enlace a su
+           Google Maps) + horario del sitio */
+        table.data td.route-full .rf-site { display: block; font-size: 0.72rem; color: var(--gray-500); margin-top: 1px; }
+        table.data td.route-full .rf-site a { color: var(--purple); font-weight: 600; text-decoration: none; }
+        table.data td.route-full .rf-site a:hover { text-decoration: underline; }
         /* iOS "data detectors": aunque las direcciones son texto plano, Safari
            las convierte en enlaces al mapa. Las neutralizamos (texto normal, no
            clicable) para que al tocar la fila se abra el detalle del viaje. */
@@ -4428,6 +4433,12 @@
             etaEntrega: extra.etaEntrega || null,
             horarioOrigen: extra.horarioOrigen || horarioAlmacen(origen, 0),
             horarioDestino: extra.horarioDestino || horarioAlmacen(destino, 3),
+            // Paradas adicionales de la ruta y empresa (sitio) de cada punto.
+            // paradas: [{ tipo:'recogida'|'entrega', dir:'CP, población…', site }]
+            // site: clave del catálogo SITES o objeto { empresa, horario, tfno, maps }
+            paradas: extra.paradas || null,
+            origenSite: extra.origenSite || null,
+            destinoSite: extra.destinoSite || null,
             tipoCamion: extra.tipoCamion || null,
             tipoCarga: extra.tipoCarga || null,   // 'Carga completa' | 'Grupaje'
             // Transportista (carrier) vs matrícula (camión concreto) son
@@ -4593,6 +4604,9 @@
             tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa',
             transportistaAsignado: true, transportistaNombre: 'Transportes Beltrán S.L.',
             matricula: '5829 MGT', conductor: 'Rafael Vega', tfnoConductor: '+34 690 334 221',
+            // Demo de ruta con parada extra + empresa en cada punto
+            origenSite: 'bidafarma-sevilla',
+            paradas: [{ tipo: 'recogida', dir: '41700, Dos Hermanas, Sevilla, España' }],
             _phaseSim: 'cargando'
         }));
         CARGAS_DATA.unshift(makeCarga('#C-2026-1299','PED-0435', fechaFuturaLaborable(0), 'Fija','Sevilla','Málaga','Pol. Carretera Amarilla → Pol. San Luis','Paletizado','Aceitunas envasadas','10,0 m · 17.000 kg','en-ruta', undefined, {
@@ -5295,6 +5309,37 @@
         if (pm) return pm[1].trim() + ', ' + (PAIS_SUFIJO[pm[2]] || '');
         return ciudad + ', España';
     }
+    // --- Catálogo de sitios (empresas de recogida/entrega) — mock demo ---
+    // Cada sitio: empresa, horario, teléfono y enlace a Google Maps. Las
+    // cargas lo referencian por clave (origenSite/destinoSite/paradas[].site).
+    // Se rellenará con la lista de empresas ficticias de demo del cliente.
+    var SITES = {
+        'bidafarma-sevilla': { empresa: 'BIDAFARMA SEVILLA SL', horario: '9:00-14:00', tfno: null, maps: 'https://goo.gl/maps/rkDhfNaJU5474pFp6' }
+    };
+    function siteDe(ref) { return typeof ref === 'string' ? SITES[ref] : ref; }
+    // Segunda línea discreta bajo la dirección: "(EMPRESA | horario)" con la
+    // empresa enlazada a su Google Maps. stopPropagation: la fila abre el
+    // detalle al clicar; el enlace no debe disparar los dos.
+    function rfSiteHTML(ref) {
+        var s = siteDe(ref);
+        if (!s || !s.empresa) return '';
+        var nombre = s.maps
+            ? '<a href="' + esc(s.maps) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">' + esc(s.empresa) + '</a>'
+            : esc(s.empresa);
+        return '<span class="rf-site">(' + nombre + (s.horario ? ' | ' + esc(s.horario) : '') + ')</span>';
+    }
+    // Celda Ruta con TODAS las paradas en orden de recorrido: origen +
+    // recogidas extra (punto naranja) → entregas extra + destino (verde).
+    function rutaCell(c) {
+        var stops = [{ t: 'recogida', dir: ciudadDir(c.origen, c.origenDir), site: c.origenSite }];
+        var extras = c.paradas || [];
+        extras.filter(function (p) { return p.tipo === 'recogida'; }).forEach(function (p) { stops.push({ t: 'recogida', dir: p.dir, site: p.site }); });
+        extras.filter(function (p) { return p.tipo !== 'recogida'; }).forEach(function (p) { stops.push({ t: 'entrega', dir: p.dir, site: p.site }); });
+        stops.push({ t: 'entrega', dir: ciudadDir(c.destino, c.destinoDir), site: c.destinoSite });
+        return '<td class="route-full">' + stops.map(function (s) {
+            return '<div class="rf-line"><span class="rf-dot ' + (s.t === 'recogida' ? 'orig' : 'dest') + '"></span><span>' + esc(s.dir) + rfSiteHTML(s.site) + '</span></div>';
+        }).join('') + '</td>';
+    }
     // Fecha de carga efectiva de un envío (asignada si existe, si no la
     // solicitada) como Date. null si es "Sin fecha" (previsión).
     function cargaFechaDate(c) {
@@ -5570,10 +5615,7 @@
                         })() : '') +
                     '</td>' +
                     entregaCell(c, asigDate) +
-                    '<td class="route-full">' +
-                        '<div class="rf-line"><span class="rf-dot orig"></span><span>' + esc(ciudadDir(c.origen, c.origenDir)) + '</span></div>' +
-                        '<div class="rf-line"><span class="rf-dot dest"></span><span>' + esc(ciudadDir(c.destino, c.destinoDir)) + '</span></div>' +
-                    '</td>' +
+                    rutaCell(c) +
                     '<td class="mercancia">' + esc(c.mercancia) +
                         (function () {
                             var lbl = cargaCorta(c.tipoCarga) || cargaFromMedidas(c.medidas);
