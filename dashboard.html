@@ -7129,34 +7129,19 @@
             });
             if (diaSel) diaSel.addEventListener('change', renderEta);
 
-            // === DEFAULTS DE PRUEBA (BORRAR EN PRODUCCIÓN) ===
-            // Pre-rellena Sevilla→Madrid con lat/lon hardcoded para no
-            // tener que rellenar a mano en cada prueba. El usuario lo
-            // sobrescribe simplemente editando los campos.
-            if (!origInput.value) {
-                origInput.value = 'Sevilla, 41001, Andalucía';
-                origWrap.dataset.lat = '37.3886';
-                origWrap.dataset.lon = '-5.9823';
-                origWrap.dataset.cc = 'es';
-            }
-            if (!destInput.value) {
-                destInput.value = 'Madrid, 28001, Comunidad de Madrid';
-                destWrap.dataset.lat = '40.4168';
-                destWrap.dataset.lon = '-3.7038';
-                destWrap.dataset.cc = 'es';
-            }
-            // Render inicial (con o sin defaults, el cálculo se dispara)
+            // Los campos de recogida/entrega arrancan VACÍOS (los defaults
+            // de prueba Sevilla→Madrid se retiraron).
             renderEta();
 
             // Reset
             reset.addEventListener('click', function () {
-                // Reset → vuelve a Sevilla→Madrid (defaults de prueba).
-                // Cuando quitemos los defaults en producción, dejar
-                // los inputs vacíos también aquí.
-                origInput.value = 'Sevilla, 41001, Andalucía';
-                destInput.value = 'Madrid, 28001, Comunidad de Madrid';
-                origWrap.dataset.lat = '37.3886'; origWrap.dataset.lon = '-5.9823'; origWrap.dataset.cc = 'es';
-                destWrap.dataset.lat = '40.4168'; destWrap.dataset.lon = '-3.7038'; destWrap.dataset.cc = 'es';
+                // Reset → campos de recogida/entrega vacíos
+                origInput.value = '';
+                destInput.value = '';
+                delete origWrap.dataset.lat; delete origWrap.dataset.lon; delete origWrap.dataset.cc;
+                delete destWrap.dataset.lat; delete destWrap.dataset.lon; delete destWrap.dataset.cc;
+                delete origWrap.dataset.siteKey; delete origWrap.dataset.gsite;
+                delete destWrap.dataset.siteKey; delete destWrap.dataset.gsite;
                 origWrap.classList.remove('ptar-error');
                 destWrap.classList.remove('ptar-error');
                 if (recBox) recBox.innerHTML = '';
