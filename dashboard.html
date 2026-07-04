@@ -1429,20 +1429,6 @@
            para que se vean a simple vista: Asignada en azul navy, ETA en verde */
         table.data .meta-asignada { color: var(--navy); font-weight: 700; }
         table.data .meta-eta      { color: #15803d; font-weight: 700; }
-        /* Hora estimada de carga — azul con punto parpadeante. Solo antes de
-           cargar (Programado / Llegando a la recogida); una vez cargando o en
-           ruta ya no procede. */
-        table.data .meta-est { color: #2563eb; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
-        table.data .meta-est .est-dot { width: 7px; height: 7px; border-radius: 50%; background: #2563eb; flex-shrink: 0; animation: badgeDotBlink 1.3s ease-in-out infinite; }
-        /* Hora estimada de ENTREGA — verde con punto parpadeante (mientras la
-           ruta está en curso; en las entregadas no se muestra). */
-        table.data .meta-est-ent { color: #15803d; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
-        table.data .meta-est-ent .est-dot-ent { width: 7px; height: 7px; border-radius: 50%; background: #15803d; flex-shrink: 0; animation: badgeDotBlink 1.3s ease-in-out infinite; }
-        /* Reloj en vivo mientras CARGA — naranja con punto parpadeante y
-           segundos corriendo (hora local del lugar de carga). */
-        table.data .meta-ahora { color: var(--orange); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
-        table.data .meta-ahora .ahora-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--orange); flex-shrink: 0; animation: badgeDotBlink 1.3s ease-in-out infinite; }
-        table.data .meta-ahora [data-ahora-clock] { font-variant-numeric: tabular-nums; }
         /* Matrícula resaltada en navy bold; pendientes en itálica gris claro */
         table.data .meta-matricula { color: var(--navy); font-weight: 700; letter-spacing: 0.3px; }
         table.data .meta-pend      { color: var(--gray-400); font-style: italic; }
@@ -5304,33 +5290,6 @@
         if (!fin) return { tipo: 'pendiente' };
         return { tipo: 'ventana', ini: toDDMM(addBizDays(loadD, t)), fin: toDDMM(addBizDays(fin, t)) };
     }
-    // --- Reloj en vivo de las filas "Cargando" ---
-    // Muestra la hora ACTUAL del lugar de carga según su huso horario
-    // (España → Europe/Madrid, Alemania → Europe/Berlin…), con segundos
-    // corriendo en directo (ticker de 1 s más abajo).
-    var TZ_PAIS = {
-        'España': 'Europe/Madrid', 'Portugal': 'Europe/Lisbon', 'Francia': 'Europe/Paris',
-        'Alemania': 'Europe/Berlin', 'Italia': 'Europe/Rome', 'Países Bajos': 'Europe/Amsterdam',
-        'Bélgica': 'Europe/Brussels', 'Luxemburgo': 'Europe/Luxembourg', 'Austria': 'Europe/Vienna',
-        'Polonia': 'Europe/Warsaw', 'Rep. Checa': 'Europe/Prague', 'Suiza': 'Europe/Zurich',
-        'Reino Unido': 'Europe/London'
-    };
-    function tzDeCarga(c) {
-        var dir = ciudadDir(c.origen, c.origenDir) || '';
-        var pais = dir.split(',').pop().trim();
-        return TZ_PAIS[pais] || 'Europe/Madrid';
-    }
-    function ahoraHMS(tz) {
-        try {
-            return new Intl.DateTimeFormat('es-ES', {
-                hour: '2-digit', minute: '2-digit', second: '2-digit',
-                hour12: false, timeZone: tz || 'Europe/Madrid'
-            }).format(new Date());
-        } catch (e) {
-            var d = new Date();
-            return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
-        }
-    }
     // Tipo de carga en versión corta para la columna Vehículo
     function cargaCorta(t) { if (!t) return ''; return /completa/i.test(t) ? 'Completo' : t; }
     // Deriva Completo/Grupaje a partir de los metros (los presupuestos no
@@ -5499,12 +5458,6 @@
         if (s && s.notas) h += '<div style="font-size:0.76rem;color:#b45309;background:#fef3c7;border-radius:8px;padding:0.35rem 0.5rem;margin-top:4px;">⚠ ' + escapeHtml(s.notas) + '</div>';
         return h;
     }
-    // Suma horas enteras a una hora "HH:MM" (mock: est. de paradas sucesivas)
-    function sumaHora(hhmm, plus) {
-        var m = String(hhmm || '').match(/^(\d{1,2}):(\d{2})$/);
-        if (!m) return null;
-        return ('0' + ((+m[1] + plus) % 24)).slice(-2) + ':' + m[2];
-    }
     // Columna UNIFICADA Ruta + fechas: cada parada lleva su fecha y hora
     // estimada encima de la dirección y la empresa. Sustituye a las antiguas
     // columnas "Fecha de carga" y "Fecha entrega" — todo más compacto, mejor
@@ -5527,31 +5480,15 @@
         var act = null;
         if (ev.color === 'cargando')     act = (c.stopActivo != null) ? c.stopActivo : 0;
         else if (ev.color === 'entrega') act = (c.stopActivo != null) ? c.stopActivo : stops.length - 1;
-        var nRec = 0;
         var html = stops.map(function (s, i) {
             var blink = (i === act) ? ' rf-dot-blink' : '';
             var fecha = s.t === 'recogida' ? fechaCarga : fechaEntrega;
-            // Horario del almacén de ESTA parada, junto a la fecha.
+            // Horario del almacén de ESTA parada, junto a la fecha. (Las horas
+            // estimadas y el reloj en vivo se quitaron: cargaban mucho la vista.)
             var st = siteDe(s.site);
             var hor = (st && st.horario) || (i === 0 ? c.horarioOrigen : (i === stops.length - 1 ? c.horarioDestino : null));
-            // Hora de la parada: recogidas → Est. azul antes de cargar (la 2ª
-            // recogida estima +3h, mock) y reloj naranja EN VIVO en la parada
-            // activa mientras carga; destino → Est. verde con la ruta en curso.
-            var extra = '';
-            if (s.t === 'recogida') {
-                var estR = nRec === 0 ? c.horaCargaEst : sumaHora(c.horaCargaEst, 3 * nRec);
-                if (ev.color === 'cargando' && i === act) {
-                    var tz = tzDeCarga(c);
-                    extra = ' <span class="meta meta-ahora"><span class="ahora-dot"></span>Ahora <span data-ahora-clock data-ahora-tz="' + tz + '">' + ahoraHMS(tz) + '</span></span>';
-                } else if (estR && (ev.color === 'prog' || ev.color === 'hacia')) {
-                    extra = ' <span class="meta meta-est"><span class="est-dot"></span>Est. ' + esc(estR) + '</span>';
-                }
-                nRec++;
-            } else if (i === stops.length - 1 && c.kind !== 'entregada' && c.kind !== 'cancelada' && e.tipo === 'fecha' && e.hora) {
-                extra = ' <span class="meta meta-est-ent"><span class="est-dot-ent"></span>Est. ' + esc(e.hora) + '</span>';
-            }
             return '<div class="rf-stop"><div class="rf-line"><span class="rf-dot ' + (s.t === 'recogida' ? 'orig' : 'dest') + blink + '"></span><span>' +
-                '<span class="rf-fecha"><strong>' + esc(fecha) + '</strong>' + (hor ? ' <span class="rf-hor">(' + esc(hor) + ')</span>' : '') + extra + '</span>' +
+                '<span class="rf-fecha"><strong>' + esc(fecha) + '</strong>' + (hor ? ' <span class="rf-hor">(' + esc(hor) + ')</span>' : '') + '</span>' +
                 '<span class="rf-dir">' + esc(s.dir) + rfSiteHTML(s.site) + '</span>' +
             '</span></div></div>';
         }).join('');
@@ -6072,14 +6009,6 @@
         wrap.classList.toggle('no-open', abiertas === 0);
     }
     refreshIncidenciasBadge();
-
-    // Ticker de 1 s: actualiza el reloj "Ahora HH:MM:SS" de las filas en fase
-    // Cargando, cada uno en el huso horario de su lugar de carga.
-    setInterval(function () {
-        var els = document.querySelectorAll('[data-ahora-clock]');
-        if (!els.length) return;
-        els.forEach(function (el) { el.textContent = ahoraHMS(el.getAttribute('data-ahora-tz')); });
-    }, 1000);
 
     // === Mini-listas del panel (dinámicas desde los datos) ===
     // Envíos: lo que se está cargando HOY + los próximos días, en orden
