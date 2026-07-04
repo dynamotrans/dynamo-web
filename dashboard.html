@@ -1382,6 +1382,11 @@
            para que se vean a simple vista: Asignada en azul navy, ETA en verde */
         table.data .meta-asignada { color: var(--navy); font-weight: 700; }
         table.data .meta-eta      { color: #15803d; font-weight: 700; }
+        /* Hora estimada de carga — azul con punto parpadeante. Solo antes de
+           cargar (Programado / Llegando a la recogida); una vez cargando o en
+           ruta ya no procede. */
+        table.data .meta-est { color: #2563eb; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+        table.data .meta-est .est-dot { width: 7px; height: 7px; border-radius: 50%; background: #2563eb; flex-shrink: 0; animation: badgeDotBlink 1.3s ease-in-out infinite; }
         /* Matrícula resaltada en navy bold; pendientes en itálica gris claro */
         table.data .meta-matricula { color: var(--navy); font-weight: 700; letter-spacing: 0.3px; }
         table.data .meta-pend      { color: var(--gray-400); font-style: italic; }
@@ -5376,7 +5381,7 @@
                     '<td>' +
                         '<div class="fecha-linea"><strong>' + esc(fechaLinea) + '</strong></div>' +
                         (c.horarioOrigen ? '<div class="meta">' + esc(c.horarioOrigen) + '</div>' : '') +
-                        (c.horaCargaEst ? '<div class="meta meta-asignada">Est. ' + esc(c.horaCargaEst) + '</div>' : '') +
+                        (c.horaCargaEst && (ev.color === 'prog' || ev.color === 'hacia') ? '<div class="meta meta-est"><span class="est-dot"></span>Est. ' + esc(c.horaCargaEst) + '</div>' : '') +
                     '</td>' +
                     '<td class="route-full">' +
                         '<div class="rf-line"><span class="rf-dot orig"></span><span>' + esc(ciudadDir(c.origen, c.origenDir)) + '</span></div>' +
