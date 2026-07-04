@@ -131,13 +131,32 @@
         }
         .topbar-brand:hover { background: var(--gray-200); border-color: #d6d9de; }
         .topbar-brand img { height: 22px; width: auto; display: block; }
-        .topbar-brand-home {
-            color: var(--purple);
-            padding-left: 0.55rem;
-            border-left: 1px solid var(--gray-200);
-            box-sizing: content-box;
-        }
         .topbar-actions { display: flex; align-items: center; gap: 0.6rem; }
+
+        /* Indicadores compactos de la topbar: Incidencias (campana) y CESCE */
+        .topbar-ind {
+            display: inline-flex; align-items: center; gap: 0.35rem;
+            background: var(--gray-100); border: 1px solid var(--gray-200);
+            border-radius: 10px; padding: 0.3rem 0.5rem; color: var(--navy);
+            transition: background 0.2s, border-color 0.2s;
+            flex-shrink: 0; white-space: nowrap;
+        }
+        .topbar-ind .cesce-badge { flex-shrink: 0; }
+        .topbar-ind-inc { cursor: pointer; color: var(--gray-600); }
+        .topbar-ind-inc:hover { background: var(--gray-200); border-color: #d6d9de; }
+        .topbar-ind-inc svg { display: block; }
+        .topbar-ind-badge {
+            min-width: 18px; height: 18px; border-radius: 9px; padding: 0 5px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 0.72rem; font-weight: 800; color: #fff; background: var(--green);
+        }
+        .topbar-ind-inc.has-open .topbar-ind-badge { background: #f59e0b; }
+        .topbar-ind-inc.no-open  .topbar-ind-badge { background: var(--green); }
+        .topbar-ind-cesce { gap: 0.4rem; }
+        .topbar-cesce-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+        .topbar-ind-cesce.cesce-status-ok   .topbar-cesce-dot { background: var(--green); box-shadow: 0 0 0 3px rgba(34,165,90,0.20); animation: cescePulse 2.2s ease infinite; }
+        .topbar-ind-cesce.cesce-status-warn .topbar-cesce-dot { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.20); }
+        .topbar-ind-cesce.cesce-status-none .topbar-cesce-dot { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.20); }
 
         /* ============================================
            BOTON DE CONTACTO (Alvaro) EN LA TOPBAR
@@ -2342,10 +2361,22 @@
             </button>
             <button type="button" class="topbar-brand" onclick="showSection('dashboard')" aria-label="Ir al Dashboard">
                 <img src="/images/2.png" alt="Dynamo">
-                <svg class="topbar-brand-home" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </button>
         </div>
         <div class="topbar-actions">
+            <!-- Incidencias abiertas: campana con contador (naranja si hay
+                 abiertas, verde con 0 si no hay ninguna). Lleva al listado. -->
+            <button type="button" class="topbar-ind topbar-ind-inc" onclick="showSection('incidencias')" aria-label="Incidencias abiertas" title="Incidencias abiertas">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <span class="topbar-ind-badge" data-stat-incidencias>0</span>
+            </button>
+            <!-- CESCE: estado de cobertura. Punto verde = con crédito ·
+                 naranja = crédito agotado · rojo = sin cobertura (crédito 0).
+                 El estado se puede previsualizar con ?cesce=ok|warn|none. -->
+            <div class="topbar-ind topbar-ind-cesce cesce-status-ok" data-cesce-chip title="Cobertura CESCE · Con crédito disponible">
+                <span class="cesce-badge">CESCE</span>
+                <span class="topbar-cesce-dot" aria-hidden="true"></span>
+            </div>
             <!-- Boton de contacto con Alvaro (antes era un FAB flotante).
                  Pequeño en la topbar, al pulsar abre dropdown con canales. -->
             <div class="topbar-contact-wrap">
@@ -2485,49 +2516,11 @@
             </a>
         </div>
 
-        <div class="stats-row stats-row-4">
-            <button type="button" class="stat-card stat-card-link" onclick="showSection('cargas')">
-                <div class="stat-card-label">Envíos</div>
-                <div class="stat-card-value" data-stat-cargas-activas>—</div>
-            </button>
-            <button type="button" class="stat-card stat-card-link" onclick="showSection('presupuestos')">
-                <div class="stat-card-label">Presupuestos</div>
-                <div class="stat-card-value">7</div>
-            </button>
-            <button type="button" class="stat-card stat-card-link" onclick="showSection('incidencias')">
-                <div class="stat-card-label">Incidencias</div>
-                <div class="stat-card-value">1</div>
-            </button>
-            <!-- CESCE: solo se muestra el ESTADO de cobertura al cliente
-                 (no consumo / disponible / límite). 3 estados posibles —
-                 cambiar la clase modificadora y el texto cuando llegue el
-                 backend de CESCE:
-                  · cesce-status-ok    → "Con crédito disponible"
-                  · cesce-status-warn  → "Crédito agotado"
-                  · cesce-status-none  → "Sin cobertura · pago previo a carga" -->
-            <div class="cesce-card">
-                <div class="cesce-header">
-                    <span class="cesce-badge">CESCE</span>
-                    <h3>Cobertura</h3>
-                </div>
-                <div class="cesce-status cesce-status-ok">
-                    <span class="cesce-status-dot"></span>
-                    <span class="cesce-status-text">Con crédito disponible</span>
-                    <!-- Icono ℹ con tooltip: solo visible sin crédito (warn/none).
-                         Evita que el texto largo agrande la tarjeta y deforme la fila. -->
-                    <button type="button" class="cesce-info" hidden aria-label="Detalle de cobertura">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
-                        <span class="cesce-tip" role="tooltip">Sin crédito disponible: el envío requiere <strong>pago previo con proforma</strong>. Una vez validado el cobro en cuenta, procedemos con la asignación del transporte. Esto <strong>ralentiza el proceso</strong> de envíos.</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <div class="mini-lists">
             <!-- 5 últimas cargas -->
             <div class="mini-list-card">
                 <div class="mini-list-head">
-                    <h4>Últimos envíos</h4>
+                    <h4>Últimos envíos (<span data-stat-cargas-activas>—</span>)</h4>
                     <a href="#" onclick="showSection('cargas');return false;">Ver todas →</a>
                 </div>
                 <ul class="mini-list">
@@ -2601,7 +2594,7 @@
             <!-- 5 últimos presupuestos -->
             <div class="mini-list-card">
                 <div class="mini-list-head">
-                    <h4>Últimos presupuestos</h4>
+                    <h4>Últimos presupuestos (<span data-stat-presup-vigentes>—</span>)</h4>
                     <a href="#" onclick="showSection('presupuestos');return false;">Ver todos →</a>
                 </div>
                 <ul class="mini-list">
@@ -4337,15 +4330,11 @@
             none: { cls: 'cesce-status-none', txt: 'Sin cobertura · pago previo a carga' }
         }[s];
         if (!conf) return;
-        var el = document.querySelector('.cesce-status');
-        if (!el) return;
-        el.classList.remove('cesce-status-ok', 'cesce-status-warn', 'cesce-status-none');
-        el.classList.add(conf.cls);
-        var t = el.querySelector('.cesce-status-text');
-        if (t) t.textContent = conf.txt;
-        // Sin crédito (warn/none) → mostrar el icono ℹ con el aviso de proforma
-        var info = document.querySelector('.cesce-info');
-        if (info) info.hidden = (s === 'ok');
+        var chip = document.querySelector('[data-cesce-chip]');
+        if (!chip) return;
+        chip.classList.remove('cesce-status-ok', 'cesce-status-warn', 'cesce-status-none');
+        chip.classList.add(conf.cls);
+        chip.title = 'Cobertura CESCE · ' + conf.txt;
     })();
 
     // === Posiciona los tooltips ℹ (.ptar-tip-pop) pegados al icono y
@@ -5700,13 +5689,32 @@
     // Entregadas y Canceladas (que no son "activas"). Sub-línea con el
     // desglose para que se entienda de un vistazo.
     function refreshStatCargasActivas() {
-        var el = document.querySelector('[data-stat-cargas-activas]');
-        if (!el) return;
         var pendientes  = CARGAS_DATA.filter(isProgramadaPendiente).length;
         var confirmadas = CARGAS_DATA.filter(isProgramadaConfirmada).length;
-        el.textContent = pendientes + confirmadas;
+        var activas = pendientes + confirmadas;
+        document.querySelectorAll('[data-stat-cargas-activas]').forEach(function (el) { el.textContent = activas; });
+        var vigentes = PRESUPUESTOS_DATA.filter(function (p) { return p.kind === 'activos'; }).length;
+        document.querySelectorAll('[data-stat-presup-vigentes]').forEach(function (el) { el.textContent = vigentes; });
     }
     refreshStatCargasActivas();
+
+    // Contador de incidencias ABIERTAS en la campana de la topbar. Una
+    // incidencia se considera cerrada cuando su estado es "Resuelta"
+    // (badge verde); el resto (En curso, etc.) cuenta como abierta. Naranja
+    // si hay ≥1 abierta; verde con 0 si no hay ninguna.
+    function refreshIncidenciasBadge() {
+        var badge = document.querySelector('[data-stat-incidencias]');
+        var wrap = document.querySelector('.topbar-ind-inc');
+        if (!badge || !wrap) return;
+        var abiertas = 0;
+        document.querySelectorAll('#sec-incidencias tbody tr').forEach(function (tr) {
+            if (!tr.querySelector('.badge-green')) abiertas++;
+        });
+        badge.textContent = abiertas;
+        wrap.classList.toggle('has-open', abiertas > 0);
+        wrap.classList.toggle('no-open', abiertas === 0);
+    }
+    refreshIncidenciasBadge();
 
     bindTabs();
     bindPerPageSelectors();
