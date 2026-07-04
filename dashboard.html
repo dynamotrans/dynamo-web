@@ -3480,15 +3480,20 @@
                     ]);
                 })() +
                 sectionTitle('Ruta y mercancía') +
-                infoGrid([
-                    { label: 'Origen', value: d.origen },
-                    { label: 'Destino', value: d.destino },
-                    { label: 'Horario almacén origen', value: pend(src.horarioOrigen), html: true },
-                    { label: 'Horario almacén destino', value: pend(src.horarioDestino), html: true },
-                    { label: 'Direcciones', value: d.direcciones, span: true },
-                    { label: 'Tipo de mercancía', value: d.mercancia + (d.mercanciaMeta ? ' · ' + d.mercanciaMeta : '') },
-                    { label: 'Medidas', value: d.medidas }
-                ]),
+                (function () {
+                    // Cada punto con su empresa, dirección, horario, teléfono
+                    // clicable y notas operativas (del catálogo SITES).
+                    var items = [
+                        { label: 'Recogida', value: puntoDetalleHTML(src.origenSite, ciudadDir(src.origen, src.origenDir), src.horarioOrigen), html: true, span: true }
+                    ];
+                    (src.paradas || []).forEach(function (pr) {
+                        items.push({ label: pr.tipo === 'recogida' ? 'Recogida adicional' : 'Entrega adicional', value: puntoDetalleHTML(pr.site, pr.dir, null), html: true, span: true });
+                    });
+                    items.push({ label: 'Entrega', value: puntoDetalleHTML(src.destinoSite, ciudadDir(src.destino, src.destinoDir), src.horarioDestino), html: true, span: true });
+                    items.push({ label: 'Tipo de mercancía', value: d.mercancia + (d.mercanciaMeta ? ' · ' + d.mercanciaMeta : '') });
+                    items.push({ label: 'Medidas', value: d.medidas });
+                    return infoGrid(items);
+                })(),
             actions: cargaDetailActions(d, row),
             footer: DETAIL_FOOTER
         });
@@ -4449,6 +4454,8 @@
             paradas: extra.paradas || null,
             origenSite: extra.origenSite || null,
             destinoSite: extra.destinoSite || null,
+            origenDir: extra.origenDir || null,
+            destinoDir: extra.destinoDir || null,
             // Índice (en orden de recorrido) de la parada donde está el camión
             // AHORA. Con varias recogidas/entregas, su punto parpadea para
             // saber en cuál está. Si no se indica: Cargando → origen (0);
@@ -4602,6 +4609,8 @@
         //     pone el chip correcto automáticamente.
         CARGAS_DATA.unshift(makeCarga('#C-2026-1305','PED-0440', fechaFuturaLaborable(0), 'Fija','Sevilla','Córdoba','Pol. Calonge → Centro logístico','Paletizado','Cosméticos','10,0 m · 16.000 kg','en-ruta', undefined, {
             precio: '640 €', fechaAsignada: fechaFuturaLaborable(0) + ' 16:30', horaCargaEst: '16:30', etaEntrega: 'Mañana 09:00',
+            origenSite: 'carrecas-carretillas-cas-lora-de-estepa', origenDir: '41564, Lora de Estepa, Sevilla, España',
+            destinoSite: 'pedro-pino-martinez-villafranca-de', destinoDir: '14420, Villafranca de Córdoba, Córdoba, España',
             tipoCamion: 'Rígido 8 m con plataforma', tipoCarga: 'Carga completa',
             transportistaAsignado: true, transportistaNombre: 'Dynamo (camión propio)',
             matricula: '9183 KDR', conductor: 'Luis Martínez', tfnoConductor: '+34 622 511 098',
@@ -4609,6 +4618,7 @@
         }));
         CARGAS_DATA.unshift(makeCarga('#C-2026-1306','PED-0441', fechaFuturaLaborable(0), 'Fija','Sevilla','Jaén','Pol. Calonge → Pol. Los Olivares','Paletizado','Material eléctrico','13,2 m · 21.000 kg','en-ruta', undefined, {
             precio: '590 €', fechaAsignada: fechaFuturaLaborable(0) + ' 07:00', horaCargaEst: '07:00', etaEntrega: 'Hoy 15:00',
+            origenSite: 'cerramientos-sevilla-cey-carmona', origenDir: '41410, Carmona, Sevilla, España',
             tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa',
             transportistaAsignado: true, transportistaNombre: 'Dynamo (camión propio)',
             matricula: '3471 QTB', conductor: 'Andrés Gil', tfnoConductor: '+34 611 220 447',
@@ -4620,15 +4630,20 @@
             transportistaAsignado: true, transportistaNombre: 'Transportes Beltrán S.L.',
             matricula: '5829 MGT', conductor: 'Rafael Vega', tfnoConductor: '+34 690 334 221',
             // Demo de ruta con parada extra + empresa en cada punto. El camión
-            // está cargando en la 2ª recogida (Dos Hermanas) → su punto parpadea.
-            origenSite: 'bidafarma-sevilla',
-            paradas: [{ tipo: 'recogida', dir: '41700, Dos Hermanas, Sevilla, España' }],
+            // está cargando en la 2ª recogida (Salteras) → su punto parpadea.
+            origenSite: 'fasur-tecnologia-para-la-i-bollullos-de-l',
+            origenDir: '41110, Bollullos de la Mitación, Sevilla, España',
+            paradas: [{ tipo: 'recogida', dir: '41909, Salteras, Sevilla, España', site: 'cliente-almacen-salteras' }],
+            destinoSite: 'artesania-y-terrazos-toyca-loja',
+            destinoDir: '18300, Loja, Granada, España',
             stopActivo: 1,
             _phaseSim: 'cargando'
         }));
         CARGAS_DATA.unshift(makeCarga('#C-2026-1299','PED-0435', fechaFuturaLaborable(0), 'Fija','Sevilla','Málaga','Pol. Carretera Amarilla → Pol. San Luis','Paletizado','Aceitunas envasadas','10,0 m · 17.000 kg','en-ruta', undefined, {
             precio: '780 €', fechaAsignada: fechaFuturaLaborable(0) + ' 09:00', horaCargaEst: '09:00', etaEntrega: 'Hoy 14:00',
-            horarioOrigen: 'L-V 8:00-15:00', horarioDestino: 'L-V 7:30-14:00',
+            origenSite: 'eurocabos-sur-alcala-de-guad', origenDir: '41500, Alcalá de Guadaíra, Sevilla, España',
+            destinoSite: 'almacen-malaga', destinoDir: '29006, Málaga, España',
+            horarioOrigen: '7:30-15:30', horarioDestino: '6:30-17:00',
             tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Grupaje',
             transportistaAsignado: true, transportistaNombre: 'Dynamo (camión propio)',
             matricula: '6217 PCF', conductor: 'David Núñez', tfnoConductor: '+34 678 442 113',
@@ -4788,6 +4803,64 @@
             n++;
         }
     })();
+
+    // === MOCK: asignar los sitios REALES (SITES) a envíos y presupuestos ===
+    // Reparto DETERMINISTA ponderado por la frecuencia real de uso (freq del
+    // CSV): los remitentes habituales (Modular, Grupal Art…) salen más, como
+    // en la realidad. Algunas programadas llevan destino internacional para
+    // ver el tránsito +2 y los husos horarios. Las filas de demo de "hoy" ya
+    // vienen asignadas a mano (rutas andaluzas coherentes) y se respetan.
+    // (Se llama en el init, cuando SITES ya está definido más abajo.)
+    function asignarSitios() {
+        var keys = Object.keys(SITES);
+        var pool = [];                              // ponderada por freq
+        keys.forEach(function (k) { for (var i = 0; i < (SITES[k].freq || 1); i++) pool.push(k); });
+        var nacionales = pool.filter(function (k) { return /España$/.test(SITES[k].dir); });
+        var intl = keys.filter(function (k) { return !/España$/.test(SITES[k].dir); });
+        function locDe(dir) { var p = String(dir).split(','); return (p[1] || '').trim(); }
+        function distinto(oKey, j) {
+            var dKey = nacionales[j % nacionales.length], guard = 0;
+            while ((dKey === oKey || locDe(SITES[dKey].dir) === locDe(SITES[oKey].dir)) && guard++ < 12) {
+                j += 7; dKey = nacionales[j % nacionales.length];
+            }
+            return dKey;
+        }
+        var iIntl = 0;
+        CARGAS_DATA.forEach(function (c, i) {
+            if (c.origenSite || c.destinoSite) return;   // demos ya asignadas
+            var oKey = nacionales[(i * 13 + 5) % nacionales.length];
+            var dKey;
+            if (c.kind === 'programada' && i % 12 === 7 && iIntl < intl.length) dKey = intl[iIntl++];
+            else dKey = distinto(oKey, i * 29 + 11);
+            var o = SITES[oKey], d = SITES[dKey];
+            c.origenSite = oKey; c.destinoSite = dKey;
+            c.origenDir = o.dir; c.destinoDir = d.dir;
+            c.origen = locDe(o.dir); c.destino = locDe(d.dir);
+            c.horarioOrigen = o.horario; c.horarioDestino = d.horario;
+            c.direcciones = o.empresa + ' → ' + d.empresa;
+        });
+        // Garantizar que los 4 sitios internacionales (Suiza, Países Bajos,
+        // Portugal, Italia) aparecen como destino de alguna programada.
+        var progFut = CARGAS_DATA.filter(function (c) { return c.kind === 'programada'; });
+        var pi = 2;
+        while (iIntl < intl.length && pi < progFut.length) {
+            var c2 = progFut[pi];
+            if (/España$/.test(c2.destinoDir || '')) {
+                var dK = intl[iIntl++], dS = SITES[dK];
+                c2.destinoSite = dK; c2.destinoDir = dS.dir; c2.destino = locDe(dS.dir);
+                c2.horarioDestino = dS.horario;
+                c2.direcciones = ((SITES[c2.origenSite] || {}).empresa || c2.origen) + ' → ' + dS.empresa;
+            }
+            pi += 5;
+        }
+        PRESUPUESTOS_DATA.forEach(function (p, i) {
+            var oKey = nacionales[(i * 17 + 3) % nacionales.length];
+            var dKey = (i % 10 === 4 && intl.length) ? intl[i % intl.length] : distinto(oKey, i * 23 + 9);
+            p.origenSite = oKey; p.destinoSite = dKey;
+            p.origenDir = SITES[oKey].dir; p.destinoDir = SITES[dKey].dir;
+            p.origen = locDe(SITES[oKey].dir); p.destino = locDe(SITES[dKey].dir);
+        });
+    }
 
     // ---- DATA: facturas (38) ----
     function makeFactura(ref, emision, vencimiento, concepto, conceptoMeta, base, iva, total, estado, color, kind) {
@@ -5330,8 +5403,76 @@
     // Cada sitio: empresa, horario, teléfono y enlace a Google Maps. Las
     // cargas lo referencian por clave (origenSite/destinoSite/paradas[].site).
     // Se rellenará con la lista de empresas ficticias de demo del cliente.
+    // Catálogo de sitios REALES de demo (65, del CSV del cliente):
+    // empresa, dirección corta, horario normalizado, teléfono, contacto,
+    // notas operativas (NIMA, básculas, avisos…) y URL de Google Maps.
+    // freq = frecuencia real de uso (pondera el reparto en el mock).
     var SITES = {
-        'bidafarma-sevilla': { empresa: 'BIDAFARMA SEVILLA SL', horario: '9:00-14:00', tfno: null, maps: 'https://goo.gl/maps/rkDhfNaJU5474pFp6' }
+        'green-global-polymers-riba-roja-de-t': { empresa: 'Green Global Polymers', dir: '46190, Riba-roja de Túria, Valencia, España', horario: '8:00-18:00', tfno: '+34961487924', contacto: null, notas: 'TFNO +34961487924 **** A 300M MISMO POLIGONO ANTES CARGAR PARA NO VOLVER, PESAR EN BÁSCULA MUNICIPAL: Bàscula municipal -- Mas del Conde, 46393 Loriguilla, Valencia ( https://maps.app.goo.gl/9YKgQNuprSh6sTGW9 ) **** ***PIDEN NIMA - VALIDAR EN REGISTRO NIMAS COMUNIDAD AUTÓNOMA***', maps: 'https://goo.gl/maps/Lw47P6cn4mEYiXPy8', freq: 1 },
+        'modular-normalizada-fuenlabrada': { empresa: 'MODULAR NORMALIZADA SL', dir: '28940, Fuenlabrada, Madrid, España', horario: 'L-V 7:00-14:00', tfno: '916421761', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/wm2DhtjTyovfFkXe6', freq: 14 },
+        'truma-store-manises': { empresa: 'TRUMA STORE, S.L.', dir: '46940, Manises, Valencia, España', horario: '9:00-16:00', tfno: '+34 623 58 83 15', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/wGs9DHyTTWCZgzbv6', freq: 1 },
+        'puertas-metalicas-sanchez-penaranda-de-b': { empresa: 'Puertas Metálicas Sánchez', dir: '37300, Peñaranda de Bracamonte, Salamanca, España', horario: '8:00-14:00 · 15:30-18:00', tfno: '923 54 13 06', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/dMg4HSUKSkoaLYXq7', freq: 8 },
+        'grupal-art-llica-de-vall': { empresa: 'GRUPAL ART, S.L.', dir: '08185, Lliçà de Vall, Barcelona, España', horario: 'L-V 7:45-13:00', tfno: '93 844 51 87', contacto: null, notas: null, maps: 'https://goo.gl/maps/q4ECJQVWoezFTaHA6', freq: 11 },
+        'ainair-urduliz': { empresa: 'Ainair SL', dir: '48610, Urduliz, Bizkaia, España', horario: '8:00-17:00', tfno: '944804390', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/VBVau3Ur1uEwatqw8', freq: 4 },
+        'protecnos-sant-andreu-de': { empresa: 'PROTECNOS', dir: '08740, Sant Andreu de la Barca, Barcelona, España', horario: '9:00-18:00', tfno: '689248272', contacto: 'Francisco Sintes', notas: null, maps: 'https://maps.app.goo.gl/7fXD7iDycPkboSA59', freq: 1 },
+        'almacen-servigatrans-2010-santa-perpetua': { empresa: 'ALMACÉN SERVIGATRANS 2010 SL', dir: '08130, Santa Perpètua de Mogoda, Barcelona, España', horario: '7:00-10:00', tfno: '936617165', contacto: null, notas: null, maps: 'https://g.page/Servigatrans?share', freq: 2 },
+        'grupo-tititos-bcn-casa-m-llica-de-vall': { empresa: 'GRUPO TITITOS BCN / CASA MEXICO', dir: '08185, Lliçà de Vall, Barcelona, España', horario: 'L-V 7:00-14:00', tfno: '682287711', contacto: null, notas: '682287711 ****EL CMR RELLENAR COMO ADJUNTO**** EL ALBARÁN ADJUNTO DE: "J&J PAGAN MURCIA SL": POR FAVOR FIRMAR ****SÓLO EN DESTINO***** . NO ENSEÑAR EN ORIGEN, DISCRECCIÓN COMERCIAL -- ALBARÁN ADJUNTO PDF. ASI COMO EL CORRESPONDIENTE CMR REQUERIDO.', maps: 'https://maps.app.goo.gl/yvoErPAtGwL6W7vt6', freq: 2 },
+        'epost-logistica-9-ocana': { empresa: 'EPOST - Logistica 9', dir: '45300, Ocaña, Toledo, España', horario: '10:00-17:00', tfno: '624891680', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/774bN7n1SL5qUNge7', freq: 3 },
+        'nax-industrias-villares-de-la': { empresa: 'NAX Industrias, S.L.', dir: '37184, Villares de la Reina, Salamanca, España', horario: '8:00-14:00', tfno: '+34 618 20 06 44', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/Qrb1BGjQ1S9QW3vC7', freq: 2 },
+        'cliente-muelle-val-de-san-vic': { empresa: 'CLIENTE MUELLE', dir: '39548, Val de San Vicente, Cantabria, España', horario: '8:00-16:00', tfno: '652 817 274 --', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/MAgKmdE27HfA1DrY9', freq: 1 },
+        'protecnos-valdeolmos-ala': { empresa: 'PROTECNOS', dir: '28130, Valdeolmos-Alalpardo, Madrid, España', horario: '9:00-18:00', tfno: '689248272', contacto: 'Francisco Sintes', notas: null, maps: 'https://maps.app.goo.gl/r2gzTiwixDM21sJ18', freq: 1 },
+        'gruas-garcia-ibi': { empresa: 'GRUAS GARCIA', dir: '03440, Ibi, Alicante/Alacant, España', horario: '8:00-18:00', tfno: '609689208', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/aq6f725KKPTfpsWj6', freq: 1 },
+        'expomobilia-gmbh-effretikon': { empresa: 'Expomobilia GmbH', dir: '8307, Effretikon, Suiza', horario: '8:00-12:00 · 13:00-17:30', tfno: null, contacto: 'Tlf', notas: null, maps: 'https://maps.app.goo.gl/aRn6BHwCc9HYGpyW9', freq: 1 },
+        'kubiko-playground-coin': { empresa: 'KUBIKO Playground', dir: '29100, Coín, Málaga, España', horario: '7:00AM-15:00PM', tfno: '+34 618 73 17 97', contacto: null, notas: null, maps: 'https://g.page/kubiko-playgrounds?share', freq: 2 },
+        'cliente-arroyomolinos': { empresa: 'CLIENTE', dir: '28939, Arroyomolinos, Madrid, España', horario: '10:00-14:00', tfno: '34 656 48 25 29', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/MYiqmZdYDuvAxTQb7', freq: 1 },
+        'coover-ibi-ibi': { empresa: 'COOVER IBI, S.L.', dir: '03440, Ibi, Alicante/Alacant, España', horario: '8:00-13:00 · 15:00-19:00', tfno: '965553757', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/PFPq7gDiDxCMrq4t7', freq: 1 },
+        'raimsa-terrassa': { empresa: 'Raimsa', dir: '08228, Terrassa, Barcelona, España', horario: '8:00-17:00', tfno: '937310418', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/2ng5dAhzhQcszTb67', freq: 2 },
+        'artesania-y-terrazos-toyca-loja': { empresa: 'ARTESANIA Y TERRAZOS TOYCA SL', dir: '18300, Loja, Granada, España', horario: '8:00-15:00', tfno: '653 94 16 53', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/Jnpt5pLNCXdVfEjd7', freq: 3 },
+        'weldinox-marbella': { empresa: 'WELDINOX', dir: '29600, Marbella, Málaga, España', horario: '7:00-15:00', tfno: '652868142 -', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/yQE6whhAxwsVB2Mn6', freq: 1 },
+        'almacen-malaga': { empresa: 'ALMACÉN', dir: '29006, Málaga, España', horario: '6:30-17:00', tfno: '34 630 78 77 20', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/23abPebdkxv8cpxg8', freq: 1 },
+        'cliente-almacen-salteras': { empresa: 'CLIENTE ALMACÉN', dir: '41909, Salteras, Sevilla, España', horario: '8:00-14:00', tfno: '679129027', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/mHrdtveJFCPf4ob27', freq: 1 },
+        'pretensados-arnal-batea': { empresa: 'PRETENSADOS ARNAL, S.A. -Ctra. de Maella, s/n', dir: '43786, Batea, Tarragona, España', horario: '8:00-13:00 · 15:00-18:00', tfno: '686 05 95 09', contacto: null, notas: 'Santi Arnal Martí (686 05 95 09) / 977430181 **** SI LLEGA MAS TARDE AVISAR Y OS ESPERAN****', maps: 'https://maps.app.goo.gl/3Z6XiHRp74AZ4ZsX9', freq: 1 },
+        'reciclajes-rodilla-s-l-sant-adria-de': { empresa: 'Reciclajes Rodilla S L', dir: '08930, Sant Adrià de Besòs, Barcelona, España', horario: '8:00-14:00', tfno: '933847695', contacto: null, notas: '**** CON NIMA ****', maps: 'https://maps.app.goo.gl/q2YdTcD4uzuFV1GA6', freq: 2 },
+        'electro-jet-gurb': { empresa: 'Electro-Jet, S.L.', dir: '08503, Gurb, Barcelona, España', horario: '7:00-12:45 · 13:15-15:00', tfno: '938816341', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/aaFsm9SvGLvt26Pc7', freq: 1 },
+        'grupo-tititos-logistica-azuqueca-de-he': { empresa: 'GRUPO TITITOS LOGISTICA', dir: '19200, Azuqueca de Henares, Guadalajara, España', horario: '8:00-18:00', tfno: '949 26 59 47', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/Yk3wwuDpUMcQoyAY7', freq: 1 },
+        'best-buy-polinya': { empresa: 'BEST BUY', dir: '08213, Polinyà, Barcelona, España', horario: '8:00-14:00', tfno: null, contacto: null, notas: null, maps: 'https://maps.app.goo.gl/UM4hHiyMMeLkFMeC8', freq: 4 },
+        'areca-manutencion-san-fernando-d': { empresa: 'ARECA MANUTENCION S.L', dir: '28830, San Fernando de Henares, Madrid, España', horario: '8:00-17:00', tfno: '+34 665 27 67 69', contacto: 'Fran', notas: null, maps: 'https://maps.app.goo.gl/abmU7gXWqPcX4dNk8', freq: 1 },
+        'circular-polimeri-beniparrell': { empresa: 'CIRCULAR POLIMERI SL', dir: '46469, Beniparrell, Valencia, España', horario: '8:00-17:00', tfno: '+34 616 44 57 43', contacto: null, notas: 'LLAMAR ANTES PARA COORDINAR HORA POSICIONA EL CAMION: PABLO .--- +34 616 44 57 43', maps: 'https://maps.app.goo.gl/a9eiXJTidcnLHVjD6', freq: 8 },
+        'frio-silla-almacen-frigo-silla': { empresa: 'Frio Silla (almacén frigorífico)', dir: '46460, Silla, Valencia, España', horario: '8:00-14:00 · 15:00-17:30', tfno: '961200073', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/zZCXQRSUTvTUFyp28', freq: 1 },
+        'aceros-del-valles-la-llagosta': { empresa: 'Aceros del Valles, SL / B08319048', dir: '08120, La Llagosta, Barcelona, España', horario: '8:00-16:00', tfno: '935749110', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/hz6eWymkBMuJXqEy7', freq: 1 },
+        'pedro-pino-martinez-villafranca-de': { empresa: 'PEDRO PINO MARTINEZ SL', dir: '14420, Villafranca de Córdoba, Córdoba, España', horario: '8:00-18:00', tfno: '957190011', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/DBL1or5udPQ5zWy67', freq: 1 },
+        'enagas-iruna-oka-irun': { empresa: 'ENAGAS, S.A.', dir: '01230, Iruña Oka/Iruña de Oca, Araba/Álava, España', horario: '8:00-16:00', tfno: '659649540', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/ivB9eEq2FojcwrKv5', freq: 1 },
+        'entorno-urbano-murcia': { empresa: 'ENTORNO URBANO', dir: '30120, Murcia, España', horario: '8:00-14:00', tfno: '968379918', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/YycPHRgEX1QhdTk89', freq: 1 },
+        'almacen-huetor-tajar': { empresa: 'ALMACÉN', dir: '18360, Huétor Tájar, Granada, España', horario: '8:00-16:00', tfno: '+34 645 89 87 95', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/PASmcX8p7XPxtM7L7', freq: 1 },
+        'produccion-tecnica-tjl-castellbisbal': { empresa: 'Producción Técnica TJL, S.L.', dir: '08755, Castellbisbal, Barcelona, España', horario: '13:00-16:00', tfno: '678 56 24 36', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/uGEXL2USejY1efJi8', freq: 1 },
+        'carrecas-carretillas-cas-lora-de-estepa': { empresa: 'CARRECAS · Carretillas Casariche SL', dir: '41564, Lora de Estepa, Sevilla, España', horario: 'L-J 8:00-14:00 · 15:20-17:00 · V 8:00-14:30', tfno: '+34 665 27 67 69', contacto: 'Fran', notas: null, maps: 'https://maps.app.goo.gl/DtNNk5vCEhWsPrF4A', freq: 1 },
+        'bcn-bonded-parets-del-val': { empresa: 'BCN BONDED', dir: '08150, Parets del Vallès, Barcelona, España', horario: 'L-V 7:00-14:00', tfno: '931600144', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/M52BViVGjorLhkLAA', freq: 1 },
+        'amalift-solana-de-los': { empresa: 'AMALIFT, S.L. - SOLANA DE LOS BARROS - FRENTE A NEUMATICOS SOLANA', dir: '06209, Solana de los Barros, Badajoz, España', horario: '8:00-15:00', tfno: '623320631', contacto: 'Juan', notas: null, maps: 'https://maps.app.goo.gl/JJJJmgX87EnH2quY8', freq: 1 },
+        'carrecas-carretillas-cas-casariche': { empresa: 'CARRECAS · Carretillas Casariche SL', dir: '41580, Casariche, Sevilla, España', horario: '7:00-15:00', tfno: '+34 665 27 67 69', contacto: 'Fran', notas: null, maps: 'https://maps.app.goo.gl/LhqfPARzQjSS2SKu6', freq: 1 },
+        'evaliax-market-rubi': { empresa: 'Evaliax Market', dir: '08191, Rubí, Barcelona, España', horario: '8:00-14:00', tfno: '656766695', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/h7VojgvpEurWoHVz9', freq: 1 },
+        'rosa-gres-vallmoll-vallmoll': { empresa: 'Rosa Gres Vallmoll', dir: '43144, Vallmoll, Tarragona, España', horario: '7:00-15:00', tfno: '977105800', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/TUrgzBTfgt5bo77f6', freq: 1 },
+        'tbh-taller-barragan-hnos-villanubla': { empresa: 'TBH - Taller Barragán Hnos, S.L.', dir: '47620, Villanubla, Valladolid, España', horario: '8:45-16:15', tfno: '983 56 00 31', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/GezvhsC3K2wEKE6M8', freq: 1 },
+        'tysa-europa-granollers': { empresa: 'TYSA EUROPA, S.L.', dir: '08403, Granollers, Barcelona, España', horario: 'L-J 7:00-16:00 · V 7:00-14:00', tfno: '938409191', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/3SVGViGPgGEjdJvd9', freq: 3 },
+        'united-petfood-nederland-c-coevorden': { empresa: 'UNITED PETFOOD COEVORDEN B.V.', dir: '7742, COEVORDEN, Países Bajos', horario: '6:00-18:00', tfno: '+31 524 593 100', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/vAAbZpRHw6X8KPMz7', freq: 1 },
+        'coinnde-el-puerto-de-s': { empresa: 'COINNDE SL', dir: '11500, El Puerto de Santa María, Cádiz, España', horario: '8:00-14:00', tfno: '+34 670 81 76 54', contacto: null, notas: '**** AVISAR DIA DE ANTES ****. ANTONIO QUIROS: +34 670 81 76 54', maps: 'https://maps.app.goo.gl/y9nt8Fg4vg63iXCQ6', freq: 1 },
+        'fasur-tecnologia-para-la-i-bollullos-de-l': { empresa: 'FASUR Tecnología para la Industria Alimentaria', dir: '41110, Bollullos de la Mitación, Sevilla, España', horario: '7:00-15:00', tfno: '954885594', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/6MUB6p8ZRWD4ZLsi9', freq: 1 },
+        'basculas-romero-madridejos': { empresa: 'BÁSCULAS ROMERO, S.L.U.', dir: '45710, Madridejos, Toledo, España', horario: 'L-J 8:00-13:00 · 15:30-17:30 · V 8:00-14:00', tfno: '925462884', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/2N8bqQEErfR6mjgE6', freq: 2 },
+        'atp-iluminacion-juslapena': { empresa: 'ATP ILUMINACION', dir: '31194, Juslapeña, Navarra, España', horario: '7:00-14:30', tfno: '948330715', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/Lztd9wUdjAzFD5Z36', freq: 1 },
+        'cerramientos-sevilla-cey-carmona': { empresa: 'Cerramientos Sevilla - Ceyconse SL', dir: '41410, Carmona, Sevilla, España', horario: '9:00-14:00 · 16:00-17:00 (verano 7:00-15:00)', tfno: '+34 664 40 78 39', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/uuEKy2oV3LG9aGZr8', freq: 2 },
+        'nave-roja-frente-a-gasolin-estremera': { empresa: 'NAVE ROJA FRENTE A GASOLINERA', dir: '28595, Estremera, Madrid, España', horario: 'Coordinar con Javier', tfno: '629708678', contacto: null, notas: null, maps: 'https://goo.gl/maps/bGPy2wN64vg1odVx8', freq: 1 },
+        'reciclados-simar-puerto-lumbrer': { empresa: 'Reciclados Simar SL', dir: '30891, Puerto Lumbreras, Murcia, España', horario: '8:00-17:30 · V 8:00-12:00', tfno: '650479366', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/WS9KaJEwCBQ4HXeJ9', freq: 1 },
+        'future-logistics-fontanar': { empresa: 'FUTURE LOGISTICS', dir: '19290, Fontanar, Guadalajara, España', horario: '8:00-14:00', tfno: '949 329 700', contacto: null, notas: 'Para coordinar la carga contactar con: Judit Lizana Lázaro -- T: 949 329 700', maps: 'https://maps.app.goo.gl/my16pWRVJhv1TvWP8', freq: 1 },
+        'picking-y-docks-picassent': { empresa: 'PICKING Y DOCKS SL', dir: '46220, Picassent, Valencia, España', horario: 'L-J 8:30-16:00 · V hasta 13:00', tfno: '668 564 332', contacto: 'Miguel', notas: 'Miguel : 668.564.332 (Deben avisar con al menos 1 día de antelación)', maps: 'https://maps.app.goo.gl/VzHMumN5YCyDrFyM6', freq: 1 },
+        'eurocabos-sur-alcala-de-guad': { empresa: 'EUROCABOS SUR, S.L.', dir: '41500, Alcalá de Guadaíra, Sevilla, España', horario: '7:30-15:30', tfno: '954677856 --- 952 105 048', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/JhpE7ajK1wrGQN5b9', freq: 1 },
+        'la-cala-golf-club-mijas': { empresa: 'La Cala Golf Club', dir: '29649, Mijas, Málaga, España', horario: '8:00-14:00', tfno: '616 23 79 85', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/51aaETiWbTKisCbRA', freq: 3 },
+        'almacen-sant-jaume-del': { empresa: 'ALMACÉN', dir: '43713, Sant Jaume dels Domenys, Tarragona, España', horario: '13:00-18:00', tfno: '+34 681 11 47 94', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/qmSjap6ffoVByz8h6', freq: 1 },
+        'ovargado-sao-joao-ova': { empresa: 'OVARGADO', dir: '3380-728, São João - OVAR, Portugal', horario: '9:00-18:00', tfno: '+351 256 580 680', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/gd81nADh4pBh2QBz9', freq: 1 },
+        'disaltrans-paterna': { empresa: 'DISALTRANS S.L. ( MONLLOR )', dir: '46980, Paterna, Valencia, España', horario: '8:30-13:30 · 15:30-18:00', tfno: '961343009', contacto: null, notas: null, maps: 'https://goo.gl/maps/sJyAG8ifgroo9yvBA', freq: 1 },
+        'elaborados-carnicos-medina-bunol': { empresa: 'Elaborados Cárnicos Medina', dir: '46360, Buñol, Valencia, España', horario: '8:00-12:30', tfno: null, contacto: null, notas: null, maps: 'https://maps.app.goo.gl/kbQDGSse6U7P7akF8', freq: 1 },
+        'ravago-plasticos-vilallonga-del': { empresa: 'Ravago Plásticos', dir: '43141, Vilallonga del Camp, Tarragona, España', horario: 'L-V 8:00-14:00 · 14:30-16:00', tfno: '977840421', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/7HKceLN11oK34XKA9', freq: 1 },
+        'el-pozo-food-alhama-de-murc': { empresa: 'EL POZO FOOD, SA', dir: '30840, Alhama de Murcia, Murcia, España', horario: '8:00-18:00 · V 8:00-11:00', tfno: '968636800', contacto: null, notas: 'POSICIONA 12,00-14,00', maps: 'https://maps.app.goo.gl/QfBamLxZPqkd3WgL7', freq: 1 },
+        'stalam-s-p-a-nove-vi': { empresa: 'STALAM S.p.A.', dir: '36055, NOVE VI, Italia', horario: 'L-V 8:30-12:30 · 13:30-16:30', tfno: '+390424597400', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/bkQQwundPbhavvXU8', freq: 1 },
+        'produccion-tecnica-tjl-huercal-de-alm': { empresa: 'Producción Técnica TJL, S.L. (Almacén)', dir: '04230, Huércal de Almería, Almería, España', horario: '13:00-16:00', tfno: '678 56 24 36', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/MZ9DeVMP2UCEXsmY8', freq: 1 }
     };
     function siteDe(ref) { return typeof ref === 'string' ? SITES[ref] : ref; }
     // Segunda línea discreta bajo la dirección: "(EMPRESA | horario)" con la
@@ -5344,6 +5485,29 @@
             ? '<a href="' + esc(s.maps) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">' + esc(s.empresa) + '</a>'
             : esc(s.empresa);
         return '<span class="rf-site">(' + nombre + (s.horario ? ' | ' + esc(s.horario) : '') + ')</span>';
+    }
+    // Bloque de detalle de un punto de la ruta para el modal "Ver detalle":
+    // empresa (enlace a Maps), dirección, horario, teléfono clicable con
+    // persona de contacto y notas operativas (NIMA, básculas, avisos…).
+    function puntoDetalleHTML(siteRef, dir, horario) {
+        var s = siteDe(siteRef);
+        var h = '';
+        if (s && s.empresa) {
+            h += '<strong>' + (s.maps
+                ? '<a href="' + escapeHtml(s.maps) + '" target="_blank" rel="noopener" style="color:var(--purple);">' + escapeHtml(s.empresa) + '</a>'
+                : escapeHtml(s.empresa)) + '</strong><br>';
+        }
+        h += escapeHtml(dir || '');
+        var extra = [];
+        var hor = (s && s.horario) || horario;
+        if (hor) extra.push('Horario: ' + escapeHtml(hor));
+        if (s && s.tfno) {
+            extra.push('Tfno: <a href="tel:' + escapeHtml(String(s.tfno).replace(/[^+\d]/g, '')) + '" style="color:var(--purple);font-weight:600;">' + escapeHtml(s.tfno) + '</a>' +
+                (s.contacto ? ' (' + escapeHtml(s.contacto) + ')' : ''));
+        }
+        if (extra.length) h += '<div style="font-size:0.78rem;color:var(--gray-500);margin-top:2px;">' + extra.join(' · ') + '</div>';
+        if (s && s.notas) h += '<div style="font-size:0.76rem;color:#b45309;background:#fef3c7;border-radius:8px;padding:0.35rem 0.5rem;margin-top:4px;">⚠ ' + escapeHtml(s.notas) + '</div>';
+        return h;
     }
     // Celda Ruta con TODAS las paradas en orden de recorrido: origen +
     // recogidas extra (punto naranja) → entregas extra + destino (verde).
@@ -5705,8 +5869,8 @@
                         '</td>';
                     })() +
                     '<td class="route-full">' +
-                        '<div class="rf-line"><span class="rf-dot orig"></span><span>' + esc(ciudadDir(p.origen, p.origenDir)) + '</span></div>' +
-                        '<div class="rf-line"><span class="rf-dot dest"></span><span>' + esc(ciudadDir(p.destino, p.destinoDir)) + '</span></div>' +
+                        '<div class="rf-line"><span class="rf-dot orig"></span><span>' + esc(ciudadDir(p.origen, p.origenDir)) + rfSiteHTML(p.origenSite) + '</span></div>' +
+                        '<div class="rf-line"><span class="rf-dot dest"></span><span>' + esc(ciudadDir(p.destino, p.destinoDir)) + rfSiteHTML(p.destinoSite) + '</span></div>' +
                     '</td>' +
                     '<td>' + esc(p.mercancia) + '<div class="meta">' + esc(medidasTn(p.medidas)) + '</div><div class="meta">' + esc(cargaFromMedidas(p.medidas)) + '</div></td>' +
                     '<td class="amount">' + esc(p.precio) + '</td>' +
@@ -5871,6 +6035,8 @@
         var vigentes = PRESUPUESTOS_DATA.filter(function (p) { return p.kind === 'activos'; }).length;
         document.querySelectorAll('[data-stat-presup-vigentes]').forEach(function (el) { el.textContent = vigentes; });
     }
+    // Reparto de sitios reales sobre el mock (SITES ya definido arriba)
+    asignarSitios();
     refreshStatCargasActivas();
 
     // Contador de incidencias ABIERTAS en la campana de la topbar. Una
@@ -5963,8 +6129,8 @@
             return '<li>' +
                 '<div class="mini-list-left">' +
                     '<span class="mini-list-date">' + esc(fechaLarga(p.fecha)) + ' <span class="ml-ref">' + esc(p.ref) + '</span></span>' +
-                    '<span class="mini-list-route"><span class="ml-dot orig"></span>' + esc(ciudadDir(p.origen)) + '</span>' +
-                    '<span class="mini-list-route"><span class="ml-dot dest"></span>' + esc(ciudadDir(p.destino)) + '</span>' +
+                    '<span class="mini-list-route"><span class="ml-dot orig"></span>' + esc(ciudadDir(p.origen, p.origenDir)) + '</span>' +
+                    '<span class="mini-list-route"><span class="ml-dot dest"></span>' + esc(ciudadDir(p.destino, p.destinoDir)) + '</span>' +
                 '</div>' +
                 '<div class="mini-list-right">' +
                     badge +
