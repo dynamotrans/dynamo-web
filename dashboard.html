@@ -64,6 +64,10 @@
             border-right: 1px solid var(--gray-200);
             display: flex; flex-direction: column;
             position: sticky; top: 0; height: 100vh;
+            /* Altura del viewport REAL (dvh): en iOS 100vh incluye la zona
+               tapada por las barras de Safari y el pie (usuario + cerrar
+               sesión) quedaba cortado por abajo. */
+            height: 100dvh;
             z-index: 100;
         }
         .sidebar-brand {
@@ -74,7 +78,9 @@
         .sidebar-brand img { height: 28px; width: auto; }
         .sidebar-brand-name { font-weight: 900; font-size: 1.05rem; letter-spacing: -0.3px; }
         .sidebar-brand-sub  { font-size: 0.7rem; opacity: 0.6; letter-spacing: 0; }
-        .sidebar-nav { flex: 1; padding: 0.6rem 0.5rem; display: flex; flex-direction: column; gap: 0.2rem; }
+        /* Los enlaces scrollean si no caben; el pie queda SIEMPRE anclado
+           abajo y visible (min-height:0 permite encoger al flex item). */
+        .sidebar-nav { flex: 1; min-height: 0; overflow-y: auto; padding: 0.6rem 0.5rem; display: flex; flex-direction: column; gap: 0.2rem; }
         .sidebar-link {
             display: flex; align-items: center; gap: 0.7rem;
             padding: 0.7rem 0.85rem; border-radius: 10px;
@@ -92,7 +98,9 @@
             font-weight: 800;
         }
         .sidebar-foot {
-            padding: 0.6rem 0.5rem 1.2rem;
+            flex-shrink: 0;
+            /* Safe-area de iOS: que el pie no quede bajo la barra inferior */
+            padding: 0.6rem 0.5rem calc(1.2rem + env(safe-area-inset-bottom));
             border-top: 1px solid var(--gray-200);
         }
         .sidebar-user {
