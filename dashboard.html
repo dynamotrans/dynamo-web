@@ -1385,8 +1385,6 @@
         /* Empresa entre paréntesis en la misma línea de la dirección,
            enlazada a su Google Maps */
         table.data td.route-full .rf-site { color: var(--gray-500); }
-        table.data td.route-full .rf-site a { color: var(--purple); font-weight: 600; text-decoration: none; }
-        table.data td.route-full .rf-site a:hover { text-decoration: underline; }
         /* Columna unificada Ruta y fechas: bloque por parada — línea 1 fecha
            (+ horario del almacén + Est./reloj), línea 2 dirección (+ empresa) */
         table.data td.route-full .rf-stop + .rf-stop { margin-top: 0.5rem; }
@@ -5430,17 +5428,13 @@
         'produccion-tecnica-tjl-huercal-de-alm': { empresa: 'Producción Técnica TJL, S.L. (Almacén)', dir: '04230, Huércal de Almería, Almería, España', horario: '13:00-16:00', tfno: '678 56 24 36', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/MZ9DeVMP2UCEXsmY8', freq: 1 }
     };
     function siteDe(ref) { return typeof ref === 'string' ? SITES[ref] : ref; }
-    // "(EMPRESA)" en la misma línea de la dirección, con la empresa enlazada
-    // a su Google Maps. El horario del almacén va en la línea de la fecha —
-    // no se repite aquí. stopPropagation: la fila abre el detalle al clicar;
-    // el enlace no debe disparar los dos.
+    // "(EMPRESA)" en la misma línea de la dirección, en texto plano y
+    // discreto — sin enlace: en la tabla cargaba mucho y no aporta; el
+    // enlace a Google Maps y el teléfono viven en el modal "Ver detalle".
     function rfSiteHTML(ref) {
         var s = siteDe(ref);
         if (!s || !s.empresa) return '';
-        var nombre = s.maps
-            ? '<a href="' + esc(s.maps) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">' + esc(s.empresa) + '</a>'
-            : esc(s.empresa);
-        return ' <span class="rf-site">(' + nombre + ')</span>';
+        return ' <span class="rf-site">(' + esc(s.empresa) + ')</span>';
     }
     // Bloque de detalle de un punto de la ruta para el modal "Ver detalle":
     // empresa (enlace a Maps), dirección, horario, teléfono clicable con
