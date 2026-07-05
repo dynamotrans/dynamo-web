@@ -399,6 +399,22 @@
         .topbar-user-arrow { color: var(--gray-500); transition: transform 0.2s; }
         .topbar-user[aria-expanded="true"] .topbar-user-arrow { transform: rotate(180deg); }
 
+        /* Chips de la topbar UNIFICADOS (logo, campana, CESCE, Álvaro, JG):
+           misma altura, mismo radio píldora, mismo borde y fondo. El ANCHO
+           lo pone el contenido de cada uno. */
+        .topbar-brand, .topbar-ind, .topbar-contact-btn, .topbar-user {
+            height: 40px; box-sizing: border-box;
+            border-radius: 999px;
+            border: 1.5px solid var(--gray-200);
+            background: var(--gray-100);
+        }
+        .topbar-brand { padding: 0 0.85rem; }
+        .topbar-ind   { padding: 0 0.6rem; }
+        @media (max-width: 768px) {
+            .topbar-brand, .topbar-ind, .topbar-contact-btn, .topbar-user { height: 36px; }
+            .topbar-user-avatar { width: 30px; height: 30px; font-size: 0.78rem; }
+        }
+
         /* User dropdown menu */
         .user-menu {
             position: absolute; top: calc(100% + 8px); right: 0;
