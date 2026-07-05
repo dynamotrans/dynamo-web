@@ -5506,6 +5506,9 @@
     var SITES_CUSTOM = {};
     try { SITES_CUSTOM = JSON.parse(localStorage.getItem('dynamoSitesCustom') || '{}') || {}; } catch (e) {}
     function saveCustomSite(key, site) {
+        // Fecha de creación (se conserva en ediciones): la etiqueta "Nuevo"
+        // del listado de Sitios dura 7 días desde que se creó.
+        site.creado = (SITES_CUSTOM[key] && SITES_CUSTOM[key].creado) || site.creado || Date.now();
         SITES_CUSTOM[key] = site;
         try { localStorage.setItem('dynamoSitesCustom', JSON.stringify(SITES_CUSTOM)); } catch (e) {}
     }
@@ -5642,7 +5645,12 @@
     // ====== SITIOS: agenda propia de lugares (sección del menú) ======
     // Lista SOLO los sitios nuestros (catálogo + guardados por el usuario);
     // los de Google no aparecen hasta que se eligen/guardan.
-    function esSitioNuevo(k) { return !!SITES_CUSTOM[k] && !SITES[k]; }
+    // "Nuevo" = sitio creado por el usuario hace MENOS DE 7 DÍAS. Pasada la
+    // semana, la etiqueta desaparece sola y queda como uno más de la agenda.
+    function esSitioNuevo(k) {
+        var s = SITES_CUSTOM[k];
+        return !!s && !SITES[k] && !!s.creado && (Date.now() - s.creado) < 7 * 86400000;
+    }
     // Solo la parte de CALLE (lo anterior al CP): el CP/ciudad/provincia/país
     // van únicamente en la línea gris — sin duplicar datos.
     function calleCorta(s) {
