@@ -7764,11 +7764,13 @@
                     var precioNum = d.precioMock || (Math.round(((d.camion === 'tauliner' ? 950 : 720)
                         + (parseFloat(d.ml === '13.2' ? 13.2 : d.ml) * 70)
                         + (parseFloat(d.peso) * 35)) / 10) * 10);
+                    // Separador de miles SIEMPRE (es-ES no lo pone en 4 cifras)
+                    function fmtEur(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
                     CARGAS_DATA.unshift(makeCarga(
                         ref, d.refCli, d.fechaTxt, d.urgenciaTxt,
                         d.origCorto, d.destCorto, d.origCorto + ' → ' + d.destCorto,
                         d.mercanciaShort, '', d.medidas, 'programada', undefined, {
-                            precio: precioNum.toLocaleString('es-ES') + ' €',
+                            precio: fmtEur(precioNum) + ' €',
                             origenSite: oS ? oS.key : null,
                             origenDir: oS ? oS.site.dir : null,
                             destinoSite: dS ? dS.key : null,
@@ -7811,7 +7813,7 @@
                     PRESUPUESTOS_DATA.unshift(makePresupuesto(
                         ref, (d.refCli === 'PED-NUEVO' ? 'COT-NUEVO' : d.refCli), fmtDate(new Date()),
                         d.origCorto, d.destCorto, d.mercanciaShort, d.medidas,
-                        precio.toLocaleString('es-ES') + ' €', vigencia, 'green', 'activos'
+                        String(precio).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €', vigencia, 'green', 'activos'
                     ));
                     TABLE_STATE.presupuestos.page = 1;
                     TABLE_STATE.presupuestos.filter = 'activos';
