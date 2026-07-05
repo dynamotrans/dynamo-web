@@ -914,6 +914,14 @@
             border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.10);
         }
         .modal-form-row textarea { resize: vertical; min-height: 90px; line-height: 1.45; }
+        /* Nota informativa discreta sobre una tabla (p.ej. retención de
+           presupuestos caducados) */
+        .tabla-aviso {
+            background: var(--gray-100); border: 1px solid var(--gray-200);
+            border-radius: 10px; padding: 0.6rem 0.85rem; font-size: 0.8rem;
+            color: var(--gray-600); margin: 0 0 0.8rem; line-height: 1.5;
+        }
+        .tabla-aviso strong { color: var(--navy); }
         .modal-warn-box {
             background: rgba(255,122,0,0.07); border: 1px solid rgba(255,122,0,0.22);
             border-radius: 10px; padding: 0.7rem 0.85rem; font-size: 0.82rem;
@@ -2713,6 +2721,7 @@
                 <!-- Opciones pobladas por JS al cargar -->
             </select>
         </div>
+        <div class="tabla-aviso" id="presupCaducadosAviso" hidden>Los presupuestos caducados se muestran durante los <strong>30 días</strong> siguientes a su caducidad. Pasado ese plazo se <strong>eliminan automáticamente</strong> del listado.</div>
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
@@ -4914,6 +4923,17 @@
             p.fecha = ddmm(diasNat(dias - 7));
             p.vigencia = ddmm(diasNat(dias)) + ' (' + dias + (dias === 1 ? ' día' : ' días') + ')';
         });
+        // Regla de retención: un presupuesto caducado solo se conserva los
+        // 30 DÍAS siguientes a su caducidad; después se BORRA. Aquí se simula
+        // el borrado del backend filtrando al cargar (afecta a los estáticos
+        // con fecha fija cuando envejecen).
+        var hoy0 = new Date(); hoy0.setHours(0, 0, 0, 0);
+        PRESUPUESTOS_DATA = PRESUPUESTOS_DATA.filter(function (p) {
+            if (p.kind !== 'caducados') return true;
+            var mc = String(p.vigencia).match(/(\d{1,2}\/\d{1,2})/);
+            if (!mc) return true;
+            return (hoy0.getTime() - parseFechaDDMM(mc[1])) <= 30 * 86400000;
+        });
         var i, dest, m;
         // 15 vigentes relativos a hoy
         for (i = 0; i < 15; i++) {
@@ -4924,12 +4944,15 @@
             var cad = diasNat(quedan);
             PRESUPUESTOS_DATA.push(makePresupuesto('#P-2026-0' + (422 + i), 'COT-' + (219 + i), ddmm(sol), (i % 4 === 3) ? 'Madrid' : 'Sevilla', dest, m[0], m[1], precios[(i * 3) % precios.length], ddmm(cad) + ' (' + quedan + (quedan === 1 ? ' día' : ' días') + ')', quedan <= 3 ? 'yellow' : 'green', 'activos'));
         }
-        // Caducados históricos escalonados hasta completar 70
+        // Caducados históricos escalonados hasta completar 70 — SIEMPRE
+        // dentro de la ventana de retención (caducaron hace 2-29 días; a los
+        // 30 el backend los borraría).
         var n = 0;
         while (PRESUPUESTOS_DATA.length < 70) {
             dest = destinos[(n * 11 + 5) % destinos.length];
             m = mercancias[(n * 3 + 4) % mercancias.length];
-            PRESUPUESTOS_DATA.push(makePresupuesto('#P-2026-0' + (401 - n * 2), 'COT-' + (202 - n), ddmm(diasNat(-15 - n * 2)), (n % 5 === 2) ? 'Madrid' : 'Sevilla', dest, m[0], m[1], precios[(n * 7) % precios.length], 'Caducado el ' + ddmm(diasNat(-8 - n * 2)), 'gray', 'caducados'));
+            var hace = 2 + (n % 27);                  // caducó hace 2-28 días
+            PRESUPUESTOS_DATA.push(makePresupuesto('#P-2026-0' + (401 - n * 2), 'COT-' + (202 - n), ddmm(diasNat(-hace - 7)), (n % 5 === 2) ? 'Madrid' : 'Sevilla', dest, m[0], m[1], precios[(n * 7) % precios.length], 'Caducado el ' + ddmm(diasNat(-hace)), 'gray', 'caducados'));
             n++;
         }
     })();
@@ -6349,6 +6372,9 @@
             }).join('');
             wrapRowMenus(tbody);
         }
+        // Aviso de retención: solo visible en la pestaña Caducados.
+        var avisoCad = document.getElementById('presupCaducadosAviso');
+        if (avisoCad) avisoCad.hidden = st.filter !== 'caducados';
         var sho = document.getElementById('presupuestosShowing');
         if (sho) sho.textContent = rows.length ? 'Mostrando ' + (start+1) + '-' + Math.min(start+st.perPage, rows.length) + ' de ' + rows.length + ' presupuestos' : 'Sin presupuestos';
         renderPagination('presupuestos', 'presupuestosPagination', st.page, totalPages);
