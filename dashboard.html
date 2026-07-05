@@ -46,6 +46,11 @@
                window.scrollTo funcionan */
             overflow-x: hidden;
             max-width: 100vw;
+            /* Sin "font boosting" de Safari iOS: con contenido ancho (tabla
+               de rutas en nowrap) inflaba el texto de unas filas sí y otras
+               no, dejando tamaños dispares sin criterio. */
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
