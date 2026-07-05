@@ -1399,7 +1399,9 @@
         table.data .route .arrow { color: var(--gray-500); margin: 0 0.35rem; }
         /* Ruta con dirección completa (CP, población, provincia, país) y
            punto naranja (origen) / verde (destino), como en las mini-listas. */
-        table.data td.route-full { color: var(--gray-700); min-width: 190px; }
+        /* Cada línea (fecha+horario / dirección+empresa) va ENTERA a lo
+           ancho, sin partirse: la tabla crece y el table-wrap hace scroll. */
+        table.data td.route-full { color: var(--gray-700); min-width: 190px; white-space: nowrap; }
         table.data td.route-full .rf-line { display: flex; align-items: flex-start; gap: 0.4rem; line-height: 1.3; }
         table.data td.route-full .rf-line + .rf-line { margin-top: 0.28rem; }
         table.data td.route-full .rf-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 0.32rem; }
@@ -1409,14 +1411,16 @@
         table.data td.route-full .rf-dot.rf-dot-blink { animation: badgeDotBlink 1.3s ease-in-out infinite; }
         /* Empresa entre paréntesis en la misma línea de la dirección,
            enlazada a su Google Maps */
-        table.data td.route-full .rf-site { color: var(--gray-500); }
+        table.data td.route-full .rf-site { color: var(--gray-500); font-weight: 400; }
         /* Columna unificada Ruta y fechas: bloque por parada — línea 1 fecha
            (+ horario del almacén + Est./reloj), línea 2 dirección (+ empresa) */
         table.data td.route-full .rf-stop + .rf-stop { margin-top: 0.5rem; }
         table.data td.route-full .rf-fecha { display: block; }
         table.data td.route-full .rf-fecha strong { color: var(--navy); }
         table.data td.route-full .rf-hor { color: var(--gray-500); }
-        table.data td.route-full .rf-dir { display: block; }
+        /* Dirección (CP, localidad, provincia, país) en negrita; la empresa
+           entre paréntesis se queda discreta. */
+        table.data td.route-full .rf-dir { display: block; font-weight: 700; }
         /* iOS "data detectors": aunque las direcciones son texto plano, Safari
            las convierte en enlaces al mapa. Las neutralizamos (texto normal, no
            clicable) para que al tocar la fila se abra el detalle del viaje. */
@@ -2717,9 +2721,6 @@
         </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por nº, referencia, origen, destino…">
-            <select class="filter-mes" data-filter-mes>
-                <!-- Opciones pobladas por JS al cargar -->
-            </select>
         </div>
         <div class="tabla-aviso" id="presupCaducadosAviso" hidden>Los presupuestos caducados se muestran durante los <strong>30 días</strong> siguientes a su caducidad. Pasado ese plazo se <strong>eliminan automáticamente</strong> del listado.</div>
         <div class="table-wrap">
@@ -6211,8 +6212,8 @@
     document.addEventListener('change', function (e) {
         var sel = e.target.closest('[data-filter-mes]');
         if (!sel) return;
-        // Solo la tabla de Envíos filtra de verdad por fecha. (Presupuestos e
-        // incidencias muestran el selector pero aún no filtran.)
+        // Solo la tabla de Envíos filtra de verdad por fecha. (Incidencias
+        // muestra el selector pero aún no filtra; Presupuestos ya no lo lleva.)
         if (sel.closest('#sec-cargas')) {
             TABLE_STATE.cargas.fecha = sel.value;   // '' | hoy | manana | ayer | esta-semana | semana-pasada | YYYY-MM
             TABLE_STATE.cargas.page = 1;
@@ -6362,8 +6363,8 @@
                         '</td>';
                     })() +
                     '<td class="route-full">' +
-                        '<div class="rf-line"><span class="rf-dot orig"></span><span>' + esc(ciudadDir(p.origen, p.origenDir)) + rfSiteHTML(p.origenSite) + '</span></div>' +
-                        '<div class="rf-line"><span class="rf-dot dest"></span><span>' + esc(ciudadDir(p.destino, p.destinoDir)) + rfSiteHTML(p.destinoSite) + '</span></div>' +
+                        '<div class="rf-line"><span class="rf-dot orig"></span><span class="rf-dir">' + esc(ciudadDir(p.origen, p.origenDir)) + rfSiteHTML(p.origenSite) + '</span></div>' +
+                        '<div class="rf-line"><span class="rf-dot dest"></span><span class="rf-dir">' + esc(ciudadDir(p.destino, p.destinoDir)) + rfSiteHTML(p.destinoSite) + '</span></div>' +
                     '</td>' +
                     '<td>' + esc(p.mercancia) + '<div class="meta">' + esc(medidasTn(p.medidas)) + '</div><div class="meta">' + esc(cargaFromMedidas(p.medidas)) + '</div></td>' +
                     '<td class="amount">' + esc(p.precio) + '</td>' +
