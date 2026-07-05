@@ -7704,6 +7704,14 @@
                     notes: notesTxt.value.trim(),
                     origSitePick: sitePickDe(origWrap),
                     destSitePick: sitePickDe(destWrap),
+                    // Precio orientativo (MOCK) mostrado en la caja ETA en el
+                    // momento de enviar — se hereda en el envío creado.
+                    precioMock: (function () {
+                        var el = card.querySelector('[data-precio-num]');
+                        if (!el) return null;
+                        var n = parseInt(el.textContent.replace(/[^\d]/g, ''), 10);
+                        return n || null;
+                    })(),
                     paradas: paradaRows().map(function (r) {
                         return { texto: (r.querySelector('input').value || '').trim(), tipo: r.querySelector('select').value, kind: r.getAttribute('data-kind'), sitePick: sitePickDe(r.querySelector('.ptar-input-wrap')) };
                     }).filter(function (p) { return p.texto; })
@@ -7751,10 +7759,16 @@
                 if (saveMode === 'carga') {
                     var oS = consolidarSitio(d.origSitePick, 'orig');
                     var dS = consolidarSitio(d.destSitePick, 'dest');
+                    // Precio orientativo del tarifador; si la caja ETA no llegó
+                    // a calcular (sin coordenadas), fórmula base de respaldo.
+                    var precioNum = d.precioMock || (Math.round(((d.camion === 'tauliner' ? 950 : 720)
+                        + (parseFloat(d.ml === '13.2' ? 13.2 : d.ml) * 70)
+                        + (parseFloat(d.peso) * 35)) / 10) * 10);
                     CARGAS_DATA.unshift(makeCarga(
                         ref, d.refCli, d.fechaTxt, d.urgenciaTxt,
                         d.origCorto, d.destCorto, d.origCorto + ' → ' + d.destCorto,
                         d.mercanciaShort, '', d.medidas, 'programada', undefined, {
+                            precio: precioNum.toLocaleString('es-ES') + ' €',
                             origenSite: oS ? oS.key : null,
                             origenDir: oS ? oS.site.dir : null,
                             destinoSite: dS ? dS.key : null,
