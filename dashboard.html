@@ -5632,6 +5632,15 @@
     // Lista SOLO los sitios nuestros (catálogo + guardados por el usuario);
     // los de Google no aparecen hasta que se eligen/guardan.
     function esSitioNuevo(k) { return !!SITES_CUSTOM[k] && !SITES[k]; }
+    // Solo la parte de CALLE (lo anterior al CP): el CP/ciudad/provincia/país
+    // van únicamente en la línea gris — sin duplicar datos.
+    function calleCorta(s) {
+        var c = String(s.calle || '');
+        var m = c.search(/,?\s*[-–]?\s*\b\d{4,5}(?:-\d{3})?\b/);
+        if (m > 3) return c.slice(0, m).replace(/[\s,;·–-]+$/, '');
+        if (m >= 0 && m <= 3) return '';   // la "calle" empezaba por el CP
+        return c;
+    }
     function renderSitiosTable(q) {
         var tbody = document.getElementById('tbodySitios');
         if (!tbody) return;
@@ -5653,7 +5662,10 @@
                 '<td><strong>' + esc(s.empresa || '—') + '</strong>' + (esSitioNuevo(k) ? ' <span class="badge badge-green">Nuevo</span>' : '') +
                     (s.maps ? '<div class="meta"><a href="' + esc(s.maps) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--purple);font-weight:600;text-decoration:none;">Ver en Maps</a></div>' : '') +
                 '</td>' +
-                '<td>' + esc(s.calle || '') + (s.dir ? '<div class="meta">' + esc(s.dir) + '</div>' : '') + '</td>' +
+                (function () {
+                    var cc = calleCorta(s);
+                    return '<td>' + (cc ? esc(cc) + (s.dir ? '<div class="meta">' + esc(s.dir) + '</div>' : '') : esc(s.dir || s.calle || '—')) + '</td>';
+                })() +
                 '<td>' + esc(s.horario || '—') + '</td>' +
                 '<td>' + esc(s.tfno || '—') + (s.contacto ? '<div class="meta">' + esc(s.contacto) + '</div>' : '') + '</td>' +
                 '<td>' + (s.notas ? '<span style="color:#b45309;">⚠ ' + esc(String(s.notas).slice(0, 60)) + (String(s.notas).length > 60 ? '…' : '') + '</span>' : '—') + '</td>' +
