@@ -1848,8 +1848,17 @@
         .ptar-sitio-card h5 { font-size: 0.82rem; color: var(--navy); margin-bottom: 0.5rem; }
         .ptar-sitio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 0.8rem; }
         .ptar-sitio-grid label { display: block; font-size: 0.82rem; color: var(--gray-500); font-weight: 600; margin-bottom: 0.15rem; }
-        .ptar-sitio-grid input { width: 100%; padding: 0.45rem 0.6rem; border: 1px solid var(--gray-200); border-radius: 8px; font: inherit; font-size: 0.82rem; color: var(--navy); }
+        .ptar-sitio-grid input, .ptar-sitio-grid select { width: 100%; padding: 0.45rem 0.6rem; border: 1px solid var(--gray-200); border-radius: 8px; font: inherit; font-size: 0.82rem; color: var(--navy); background: #fff; }
         .ptar-sitio-grid .full { grid-column: 1 / -1; }
+        /* Referencia + anotaciones editables en el paso de confirmación */
+        .ptar-confirm-extra { display: grid; gap: 0.7rem; margin: 1rem 0; }
+        .ptar-confirm-extra label { display: block; font-size: 0.82rem; color: var(--gray-500); font-weight: 600; margin-bottom: 0.15rem; }
+        .ptar-confirm-extra input, .ptar-confirm-extra textarea {
+            width: 100%; box-sizing: border-box; padding: 0.5rem 0.65rem;
+            border: 1px solid var(--gray-200); border-radius: 8px;
+            font: inherit; font-size: 0.85rem; color: var(--navy); resize: vertical;
+        }
+        .ptar-confirm-extra input:focus, .ptar-confirm-extra textarea:focus { outline: none; border-color: var(--purple); }
         /* Campo bloqueado (solo lectura) en las fichas de lugares: la
            dirección define la ruta y no se edita aquí. */
         .ptar-sitio-grid input.sitio-f-lock {
@@ -3068,6 +3077,13 @@
                 <h4 class="ptar-confirm-sumtitle">Datos de los lugares (editables)</h4>
                 <p class="ptar-confirm-lead" style="margin-bottom:0.6rem;">Revisa horario, teléfono y notas de cada punto. Los cambios se guardan en tu agenda de sitios al confirmar el envío.</p>
                 <div data-ptar-sitios-list></div>
+            </div>
+
+            <!-- Referencia interna y anotaciones: editables también aquí,
+                 sin volver al paso 1. -->
+            <div class="ptar-confirm-extra">
+                <div><label>Añadir tu referencia interna (opcional)</label><input data-ptar-conf-ref placeholder="Ej. PED-1234" maxlength="40"></div>
+                <div><label>Añadir anotaciones</label><textarea data-ptar-conf-notes rows="2" maxlength="1000" placeholder="Anotaciones para el equipo (opcional)"></textarea></div>
             </div>
 
             <!-- El aviso de "la recogida nunca está garantizada al 100%" vive
@@ -5920,6 +5936,9 @@
         function inp(lbl, id, val, ph, full) {
             return '<div' + (full ? ' class="full"' : '') + '><label>' + lbl + '</label><input id="' + id + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '"></div>';
         }
+        var tipoOpts = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento', 'Finca / Agrícola'].map(function (t) {
+            return '<option' + ((s.tipoLugar || 'Almacén / Nave') === t ? ' selected' : '') + '>' + t + '</option>';
+        }).join('');
         return (esNuevo
             ? '<div class="modal-form-row" style="position:relative;">' +
                 '<label>Buscar para autorrellenar (tu agenda, Google o dirección)</label>' +
@@ -5930,6 +5949,7 @@
             : '') +
             '<div class="ptar-sitio-grid">' +
                 inp('Empresa', 'sitio-f-empresa', s.empresa) +
+                '<div><label>Tipo de lugar</label><select id="sitio-f-tipo">' + tipoOpts + '</select></div>' +
                 inp('Horario', 'sitio-f-horario', s.horario, 'Ej. L-V 8:00-14:00') +
                 inp('Dirección (calle y número)', 'sitio-f-calle', s.calle, '', true) +
                 inp('CP, localidad, provincia y país', 'sitio-f-dir', s.dir, 'Ej. 41001, Sevilla, España', true) +
@@ -6029,6 +6049,8 @@
         base.calle = v('sitio-f-calle'); base.dir = v('sitio-f-dir') || base.dir || v('sitio-f-calle');
         base.tfno = v('sitio-f-tfno'); base.contacto = v('sitio-f-contacto');
         base.notas = v('sitio-f-notas'); base.maps = v('sitio-f-maps');
+        var tipoEl = document.getElementById('sitio-f-tipo');
+        if (tipoEl) base.tipoLugar = tipoEl.options[tipoEl.selectedIndex].text;
         if (!base.freq) base.freq = 1;
         if (!base.empresa || !(base.calle || base.dir)) {
             ['sitio-f-empresa', 'sitio-f-calle'].forEach(function (id) {
@@ -7079,6 +7101,15 @@
                 sugList.hidden = true;
                 setPicked(true);
                 syncClear();
+                // El tipo de lugar guardado en la ficha del sitio autoselecciona
+                // el desplegable de al lado (se puede cambiar a mano; el cambio
+                // mueve el precio y se guarda en la ficha al confirmar).
+                var tipoSel = wrap.parentNode ? wrap.parentNode.querySelector('select.ptar-select-sm') : null;
+                if (tipoSel && s.tipoLugar) {
+                    for (var oi = 0; oi < tipoSel.options.length; oi++) {
+                        if (tipoSel.options[oi].text === s.tipoLugar) { tipoSel.selectedIndex = oi; tipoSel.dispatchEvent(new Event('change', { bubbles: true })); break; }
+                    }
+                }
                 geoFromDir(s.dir || s.calle || input.value);
             }
             function aplicarGoogle(g) {
@@ -7587,6 +7618,19 @@
                 var nimaOn = card.querySelector('[data-ptar-nima]');
                 if (nimaOn && nimaOn.checked) precio += 50;
                 precio += paradaRows().length * 40;
+                // Recargo por TIPO DE LUGAR de cada punto (Almacén 0 · Obra
+                // +5% · Evento +15% · Zona urbana +20% · Finca/Agrícola +25%).
+                // Se suman los recargos de origen, destino y paradas.
+                var recTipo = 0;
+                var selO = card.querySelector('[data-ptar-tipoorig]');
+                var selD = card.querySelector('[data-ptar-tipodest]');
+                if (selO) recTipo += (TIPO_RECARGO[selO.value] || 0);
+                if (selD) recTipo += (TIPO_RECARGO[selD.value] || 0);
+                paradaRows().forEach(function (r) {
+                    var s2 = r.querySelector('select');
+                    if (s2) recTipo += (TIPO_RECARGO[s2.value] || 0);
+                });
+                precio *= (1 + recTipo);
                 precio = Math.round(precio / 10) * 10;
                 // Arranca en el número que se está mostrando AHORA (no en lastPrice)
                 // para que la animación encadene aunque renderEta se llame 2 veces.
@@ -7696,6 +7740,11 @@
             // Autocomplete con callback para recalcular ETA al pickear
             bindAutocomplete(origWrap, origInput, origSug, function () { renderEta(); syncGrupajeVentana(); }, 'recogida');
             bindAutocomplete(destWrap, destInput, destSug, function () { renderEta(); syncGrupajeVentana(); }, 'entrega');
+            // Cambiar el TIPO de lugar (Almacén/Obra/…) mueve el precio.
+            ['[data-ptar-tipoorig]', '[data-ptar-tipodest]'].forEach(function (sel) {
+                var el = card.querySelector(sel);
+                if (el) el.addEventListener('change', renderEta);
+            });
 
             // --- Paradas adicionales: recogidas (origen adicional) o entregas
             //     (destino adicional). Mismo formato que origen/destino, con su
@@ -7704,6 +7753,8 @@
             var entBox = card.querySelector('[data-ptar-entregas]');  // tras destino
             var origPlus = null, destPlus = null; // botones "+" de origen/destino
             var PARADA_TIPOS = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento', 'Finca / Agrícola'];
+            // Recargo de precio por tipo de lugar (se suma por cada punto).
+            var TIPO_RECARGO = { 'Almacén / Nave': 0, 'Obra': 0.05, 'Evento': 0.15, 'Zona urbana': 0.20, 'Finca / Agrícola': 0.25 };
             function rowsOf(box) { return box ? Array.prototype.slice.call(box.querySelectorAll('[data-ptar-parada]')) : []; }
             function recRows() { return rowsOf(recBox); }
             function entRows() { return rowsOf(entBox); }
@@ -7759,6 +7810,7 @@
                     '</div>';
                 box.appendChild(row);
                 bindAutocomplete(row.querySelector('.ptar-input-wrap'), row.querySelector('input'), row.querySelector('.ptar-sug'), renderEta, esRec ? 'recogida' : 'entrega');
+                row.querySelector('select').addEventListener('change', renderEta);
                 row.querySelector('.ptar-parada-del').addEventListener('click', function () {
                     box.removeChild(row);
                     syncAddBtns();
@@ -7954,6 +8006,8 @@
                     notes: notesTxt.value.trim(),
                     origSitePick: sitePickDe(origWrap),
                     destSitePick: sitePickDe(destWrap),
+                    origTipo: (function () { var t = card.querySelector('[data-ptar-tipoorig]'); return t ? t.value : null; })(),
+                    destTipo: (function () { var t = card.querySelector('[data-ptar-tipodest]'); return t ? t.value : null; })(),
                     // Precio orientativo (MOCK) mostrado en la caja ETA en el
                     // momento de enviar — se hereda en el envío creado.
                     precioMock: (function () {
@@ -7985,7 +8039,7 @@
                 // Consolida el sitio de un punto: aplica lo editado en su ficha
                 // del paso 2 y lo GUARDA en la agenda (los de Google pasan a
                 // ser sitios propios; los guardados actualizan sus datos).
-                function consolidarSitio(pick, id) {
+                function consolidarSitio(pick, id, tipoLugar) {
                     if (!pick) return null;
                     var src0 = pick.tipo === 'guardado' ? (siteDe(pick.key) || {}) : {
                         empresa: pick.g.empresa, dir: pick.g.dir, horario: pick.g.horario,
@@ -7994,6 +8048,9 @@
                     var base = {};
                     Object.keys(src0).forEach(function (k) { base[k] = src0[k]; });
                     var edito = false;
+                    // El tipo de lugar elegido en el formulario se consolida en
+                    // la ficha del sitio (si cambió, queda para próximos envíos).
+                    if (tipoLugar && base.tipoLugar !== tipoLugar) { base.tipoLugar = tipoLugar; edito = true; }
                     document.querySelectorAll('[data-sitio-id="' + id + '"]').forEach(function (el) {
                         var f = el.getAttribute('data-sitio-f');
                         var v = el.value.trim() || null;
@@ -8007,8 +8064,8 @@
                 }
                 showLoadingOverlay(saveMode === 'carga' ? 'Creando tu envío…' : 'Generando tu presupuesto…', 900, function () {
                 if (saveMode === 'carga') {
-                    var oS = consolidarSitio(d.origSitePick, 'orig');
-                    var dS = consolidarSitio(d.destSitePick, 'dest');
+                    var oS = consolidarSitio(d.origSitePick, 'orig', d.origTipo);
+                    var dS = consolidarSitio(d.destSitePick, 'dest', d.destTipo);
                     // Precio orientativo del tarifador; si la caja ETA no llegó
                     // a calcular (sin coordenadas), fórmula base de respaldo.
                     var precioNum = d.precioMock || (Math.round(((d.camion === 'tauliner' ? 950 : 720)
@@ -8029,7 +8086,7 @@
                             horarioOrigen: (oS && oS.site.horario) || null,
                             horarioDestino: (dS && dS.site.horario) || null,
                             paradas: (d.paradas || []).map(function (p, i) {
-                                var ps = consolidarSitio(p.sitePick, 'parada' + i);
+                                var ps = consolidarSitio(p.sitePick, 'parada' + i, p.tipo);
                                 return { tipo: p.kind, dir: ps ? ps.site.dir : p.texto, site: ps ? ps.key : null };
                             })
                         }
@@ -8135,8 +8192,9 @@
                     '<dt>Ventana</dt><dd>' + escapeHtml(d.urgenciaLabel) + '</dd>' +
                     '<dt>Fecha de carga</dt><dd>' + escapeHtml(d.fechaLarga) + '</dd>' +
                     cargaRangoHtml +
-                    (d.refCli && d.refCli.indexOf('NUEVO') === -1 ? '<dt>Tu referencia</dt><dd>' + escapeHtml(d.refCli) + '</dd>' : '') +
-                    (d.notes ? '<dt class="full">Anotaciones</dt><dd class="full">' + escapeHtml(d.notes) + '</dd>' : '');
+                    (d.precioMock ? '<dt>Precio</dt><dd>' + String(d.precioMock).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' € <span style="color:var(--gray-500);font-weight:600;">(IVA 21% no incluido)</span></dd>' : '');
+                // La referencia interna y las anotaciones se muestran abajo
+                // como campos EDITABLES (data-ptar-conf-ref / -notes).
                 // Aviso de grupaje: solo si la carga NO es completa
                 // (Tauliner completo = 13,2 m; Rígido completo = 8 m).
                 // Si los ml elegidos son menores, sí es grupaje → mostrar.
@@ -8161,26 +8219,28 @@
                     var picks = [];
                     var paradasArr = d.paradas || [];
                     var numRec = 1, numEnt = 1;
-                    picks.push({ kind: 'recogida', num: numRec++, pick: d.origSitePick, texto: d.orig, id: 'orig' });
+                    picks.push({ kind: 'recogida', num: numRec++, pick: d.origSitePick, texto: d.orig, tipoLugar: d.origTipo, id: 'orig' });
                     paradasArr.forEach(function (p, i) {
-                        if (p.kind === 'recogida') picks.push({ kind: 'recogida', num: numRec++, pick: p.sitePick, texto: p.texto, id: 'parada' + i });
+                        if (p.kind === 'recogida') picks.push({ kind: 'recogida', num: numRec++, pick: p.sitePick, texto: p.texto, tipoLugar: p.tipo, id: 'parada' + i });
                     });
                     paradasArr.forEach(function (p, i) {
-                        if (p.kind !== 'recogida') picks.push({ kind: 'entrega', num: numEnt++, pick: p.sitePick, texto: p.texto, id: 'parada' + i });
+                        if (p.kind !== 'recogida') picks.push({ kind: 'entrega', num: numEnt++, pick: p.sitePick, texto: p.texto, tipoLugar: p.tipo, id: 'parada' + i });
                     });
-                    picks.push({ kind: 'entrega', num: numEnt++, pick: d.destSitePick, texto: d.dest, id: 'dest' });
+                    picks.push({ kind: 'entrega', num: numEnt++, pick: d.destSitePick, texto: d.dest, tipoLugar: d.destTipo, id: 'dest' });
                     sitiosList.innerHTML = picks.map(function (p) {
                         // Circulito numerado naranja/verde — el mismo de la
                         // ruta del formulario (.ptar-route-num).
                         var rolHtml = '<span class="ptar-route-num ' + (p.kind === 'recogida' ? 'rec' : 'ent') + '" style="vertical-align:-4px;margin-right:0.35rem;">' + p.num + '</span>' +
                             '<span style="color:' + (p.kind === 'recogida' ? 'var(--orange)' : 'var(--green)') + ';">' +
                             (p.kind === 'recogida' ? 'Recogida' : 'Entrega') + '</span>';
+                        var tipoLock = p.tipoLugar ? '<div><label>Tipo de lugar</label><input class="sitio-f-lock" value="' + escapeHtml(p.tipoLugar) + '" readonly tabindex="-1"></div>' : '';
                         // Punto SIN ficha de sitio: tarjeta solo con la dirección.
                         if (!p.pick) {
                             return '<div class="ptar-sitio-card">' +
                                 '<h5>' + rolHtml + ' · <span style="color:var(--gray-500);font-weight:600;">dirección (sin ficha en tu agenda)</span></h5>' +
                                 '<div class="ptar-sitio-grid">' +
                                     '<div class="full"><label>Dirección</label><input class="sitio-f-lock" value="' + escapeHtml(p.texto || '') + '" readonly tabindex="-1"></div>' +
+                                    tipoLock +
                                 '</div>' +
                             '</div>';
                         }
@@ -8206,9 +8266,10 @@
                             '<h5>' + rolHtml + ' · <span style="color:var(--gray-500);font-weight:600;">' + escapeHtml(fuente) + '</span>' + mapsLink + '</h5>' +
                             '<div class="ptar-sitio-grid">' +
                                 inp('Empresa', 'empresa', s.empresa) +
-                                inp('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
+                                tipoLock +
                                 inpLock('Dirección (calle y número)', calleVal, !dirVal) +
                                 inpLock('CP, localidad, provincia y país', dirVal, !calleVal) +
+                                inp('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
                                 inp('Teléfono', 'tfno', s.tfno) +
                                 inp('Contacto', 'contacto', s.contacto, 'Persona de contacto') +
                                 '<div class="full"><label>Notas del sitio</label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="' + escapeHtml(s.notas || '') + '" placeholder="Ej. pedir cita, báscula, NIMA…"></div>' +
@@ -8217,6 +8278,12 @@
                     }).join('');
                     sitiosWrap.hidden = !picks.length;
                 }
+                // Referencia y anotaciones editables en este paso (precargadas
+                // con lo escrito en el paso 1, si algo).
+                var confRef = confirmCard.querySelector('[data-ptar-conf-ref]');
+                var confNotes = confirmCard.querySelector('[data-ptar-conf-notes]');
+                if (confRef) confRef.value = refCliInput.value;
+                if (confNotes) confNotes.value = notesTxt.value;
                 // Reiniciar el check obligatorio cada vez que se entra al paso
                 // de confirmación (por si se editó y se volvió a entrar).
                 if (chkTerms) chkTerms.checked = false;
@@ -8240,6 +8307,18 @@
             if (backBtn) backBtn.addEventListener('click', exitConfirmStep);
             if (finalBtn) finalBtn.addEventListener('click', function () {
                 if (!pendingData) return;
+                // Volcar la referencia/anotaciones editadas en este paso al
+                // formulario y al pedido pendiente.
+                var confRef2 = confirmCard.querySelector('[data-ptar-conf-ref]');
+                var confNotes2 = confirmCard.querySelector('[data-ptar-conf-notes]');
+                if (confRef2) {
+                    refCliInput.value = confRef2.value;
+                    pendingData.refCli = confRef2.value.trim() || 'PED-NUEVO';
+                }
+                if (confNotes2) {
+                    notesTxt.value = confNotes2.value;
+                    pendingData.notes = confNotes2.value.trim();
+                }
                 // Check de condiciones sin marcar → señalar dónde está el fallo
                 if (chkTerms && !chkTerms.checked) {
                     if (checkLbl) {
