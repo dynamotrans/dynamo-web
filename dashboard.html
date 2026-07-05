@@ -8180,9 +8180,10 @@
                             if (!val) return '';
                             return '<div' + (full ? ' class="full"' : '') + '><label>' + lbl + '</label><input class="sitio-f-lock" value="' + escapeHtml(val) + '" readonly tabindex="-1"></div>';
                         }
-                        // Ficha de Google: dirección completa en g.dir; ficha
-                        // de agenda: calle + línea de CP/localidad.
-                        var calleVal = s.calle || (p.pick.tipo === 'google' ? s.dir : '');
+                        // Ficha de Google: dirección completa en g.dir (una
+                        // sola línea). Ficha de agenda: SOLO la calle (sin CP
+                        // ni localidad — eso va en su propia línea debajo).
+                        var calleVal = p.pick.tipo === 'guardado' ? calleCorta(s) : (s.calle || s.dir || '');
                         var dirVal = p.pick.tipo === 'guardado' ? s.dir : '';
                         var mapsLink = s.maps ? ' · <a href="' + escapeHtml(s.maps) + '" target="_blank" rel="noopener" style="color:var(--purple);font-weight:700;text-decoration:none;">Ver en Maps</a>' : '';
                         return '<div class="ptar-sitio-card">' +
