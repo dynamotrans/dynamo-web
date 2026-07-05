@@ -745,6 +745,23 @@
         .timeline-icon svg { width: 14px; height: 14px; }
         .timeline-icon.timeline-done { background: rgba(16,185,129,0.13); color: #047857; }
         .timeline-icon.timeline-now  { background: rgba(51,0,204,0.10); color: var(--purple); }
+        /* Overlay de carga entre "confirmar" y la lista (transición suave) */
+        .dash-loading {
+            position: fixed; inset: 0; z-index: 1600;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.78); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+            opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+        }
+        .dash-loading.show { opacity: 1; pointer-events: auto; }
+        .dash-loading-card { text-align: center; }
+        .dash-loading-spinner {
+            width: 46px; height: 46px; margin: 0 auto 0.8rem;
+            border: 4px solid var(--gray-200); border-top-color: var(--purple);
+            border-radius: 50%; animation: dashSpin 0.8s linear infinite;
+        }
+        @keyframes dashSpin { to { transform: rotate(360deg); } }
+        .dash-loading-text { font-size: 0.95rem; font-weight: 700; color: var(--navy); }
+        @media (prefers-reduced-motion: reduce) { .dash-loading-spinner { animation-duration: 1.6s; } }
         .dash-modal-title { font-size: 1.1rem; font-weight: 900; color: var(--navy); line-height: 1.25; }
         .dash-modal-sub { font-size: 0.8rem; color: var(--gray-500); margin-top: 0.2rem; }
         .dash-modal-body { margin-bottom: 1.1rem; }
@@ -3276,15 +3293,39 @@
             if (modal && modal.classList.contains('open')) closeDashModal();
         }
     });
+    // Overlay de carga con spinner: pequeño "beat" de transición entre
+    // confirmar una acción y aterrizar en su lista (evita el salto brusco).
+    function showLoadingOverlay(text, ms, cb) {
+        var ov = document.getElementById('dashLoading');
+        if (!ov) {
+            ov = document.createElement('div');
+            ov.id = 'dashLoading';
+            ov.className = 'dash-loading';
+            ov.setAttribute('role', 'status');
+            ov.innerHTML = '<div class="dash-loading-card"><div class="dash-loading-spinner"></div><div class="dash-loading-text"></div></div>';
+            document.body.appendChild(ov);
+        }
+        ov.querySelector('.dash-loading-text').textContent = text || 'Un momento…';
+        ov.classList.add('show');
+        setTimeout(function () {
+            ov.classList.remove('show');
+            if (cb) cb();
+        }, ms || 900);
+    }
     function showModalSuccess(title, text) {
-        document.getElementById('dashModalBody').innerHTML =
-            '<div class="modal-success">' +
-            '<div class="modal-success-icon">✓</div>' +
-            '<div class="modal-success-title">' + escapeHtml(title) + '</div>' +
-            '<p class="modal-success-text">' + escapeHtml(text) + '</p>' +
-            '</div>';
-        document.getElementById('dashModalFooter').innerHTML =
-            '<button class="btn-primary" onclick="closeDashModal()" style="flex:1;">Cerrar</button>';
+        // Usa openDashModal para ABRIR el modal si estaba cerrado (tras el
+        // overlay de carga ya no hay ningún modal abierto debajo).
+        openDashModal({
+            icon: 'file',
+            title: title,
+            sub: '',
+            body: '<div class="modal-success">' +
+                '<div class="modal-success-icon">✓</div>' +
+                '<div class="modal-success-title">' + escapeHtml(title) + '</div>' +
+                '<p class="modal-success-text">' + escapeHtml(text) + '</p>' +
+                '</div>',
+            footer: '<button class="btn-primary" onclick="closeDashModal()" style="flex:1;">Cerrar</button>'
+        });
     }
     function escapeHtml(s) {
         s = String(s == null ? '' : s);
@@ -7706,6 +7747,7 @@
                     if (pick.tipo === 'google' || edito) saveCustomSite(key, base);
                     return { key: key, site: base };
                 }
+                showLoadingOverlay(saveMode === 'carga' ? 'Creando tu envío…' : 'Generando tu presupuesto…', 900, function () {
                 if (saveMode === 'carga') {
                     var oS = consolidarSitio(d.origSitePick, 'orig');
                     var dS = consolidarSitio(d.destSitePick, 'dest');
@@ -7766,6 +7808,7 @@
                     );
                     setTimeout(function () { showSection('presupuestos'); }, 1200);
                 }
+                });
             }
 
             // === Paso 2 (sólo carga): panel de confirmación con avisos legales
