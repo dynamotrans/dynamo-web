@@ -2265,6 +2265,10 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             Incidencias
         </button>
+        <button class="sidebar-link" data-section="sitios">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Sitios
+        </button>
     </nav>
     <div class="sidebar-foot">
         <div class="sidebar-user">
@@ -2750,6 +2754,28 @@
         </div>
     </section>
 
+    <!-- ==================== SITIOS (agenda de lugares) ==================== -->
+    <section class="section" id="sec-sitios">
+        <div class="sec-header">
+            <h2>Sitios</h2>
+            <div class="sec-header-actions">
+                <button class="btn-primary" onclick="abrirNuevoSitio();return false;">+ Nuevo sitio</button>
+            </div>
+        </div>
+        <p style="color:var(--gray-500);font-size:0.82rem;margin:-0.4rem 0 0.9rem;">Tu agenda de lugares de recogida y entrega. Se usan en el buscador al crear envíos; los que eliges de Google o editas al confirmar un envío se guardan aquí solos.</p>
+        <div class="filters">
+            <input type="search" id="sitiosSearch" placeholder="Buscar por empresa, dirección, teléfono, notas…">
+        </div>
+        <div class="table-wrap">
+            <table class="data">
+                <thead><tr>
+                    <th>Empresa</th><th>Dirección</th><th>Horario</th><th>Contacto</th><th>Notas</th>
+                </tr></thead>
+                <tbody id="tbodySitios"></tbody>
+            </table>
+        </div>
+    </section>
+
     <!-- ==================== NUEVA CARGA ==================== -->
     <section class="section" id="sec-nueva-carga">
         <div class="sec-header">
@@ -3069,6 +3095,7 @@
         'cargas':            'Envíos',
         'presupuestos':      'Presupuestos',
         'incidencias':       'Incidencias',
+        'sitios':            'Sitios',
         'nueva-carga':       'Nueva carga',
         'mi-cuenta':         'Mi cuenta',
         'datos-empresa':     'Datos de empresa',
@@ -5580,6 +5607,200 @@
         if (!s || !s.empresa) return '';
         return ' <span class="rf-site">(' + esc(s.empresa) + ')</span>';
     }
+    // ====== SITIOS: agenda propia de lugares (sección del menú) ======
+    // Lista SOLO los sitios nuestros (catálogo + guardados por el usuario);
+    // los de Google no aparecen hasta que se eligen/guardan.
+    function esSitioNuevo(k) { return !!SITES_CUSTOM[k] && !SITES[k]; }
+    function renderSitiosTable(q) {
+        var tbody = document.getElementById('tbodySitios');
+        if (!tbody) return;
+        q = expandVia(normTxt(q || ''));
+        var rows = allSitesEntries().filter(function (kv) {
+            if (!q) return true;
+            var s = kv[1];
+            return expandVia(normTxt([s.empresa, s.dir, s.calle, s.tfno, s.contacto, s.notas].join(' '))).indexOf(q) !== -1;
+        }).sort(function (a, b) { return String(a[1].empresa || '').localeCompare(String(b[1].empresa || ''), 'es'); });
+        var h2 = document.querySelector('#sec-sitios h2');
+        if (h2) h2.textContent = 'Sitios (' + rows.length + ')';
+        if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin sitios que coincidan</td></tr>';
+            return;
+        }
+        tbody.innerHTML = rows.map(function (kv) {
+            var k = kv[0], s = kv[1];
+            return '<tr data-sitio-key="' + esc(k) + '">' +
+                '<td><strong>' + esc(s.empresa || '—') + '</strong>' + (esSitioNuevo(k) ? ' <span class="badge badge-green">Nuevo</span>' : '') +
+                    (s.maps ? '<div class="meta"><a href="' + esc(s.maps) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--purple);font-weight:600;text-decoration:none;">Ver en Maps</a></div>' : '') +
+                '</td>' +
+                '<td>' + esc(s.calle || '') + (s.dir ? '<div class="meta">' + esc(s.dir) + '</div>' : '') + '</td>' +
+                '<td>' + esc(s.horario || '—') + '</td>' +
+                '<td>' + esc(s.tfno || '—') + (s.contacto ? '<div class="meta">' + esc(s.contacto) + '</div>' : '') + '</td>' +
+                '<td>' + (s.notas ? '<span style="color:#b45309;">⚠ ' + esc(String(s.notas).slice(0, 60)) + (String(s.notas).length > 60 ? '…' : '') + '</span>' : '—') + '</td>' +
+            '</tr>';
+        }).join('');
+        tbody.querySelectorAll('tr[data-sitio-key]').forEach(function (tr) {
+            tr.addEventListener('click', function () { openSitioModal(tr.getAttribute('data-sitio-key')); });
+        });
+    }
+    // Nominatim mínimo para el buscador del formulario de sitio
+    var _sitioAb = null;
+    function osmSearchLite(query, cb) {
+        if (_sitioAb) _sitioAb.abort();
+        _sitioAb = new AbortController();
+        fetch('https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=4&countrycodes=es,pt,fr,it,de,nl,be,lu,at,ch,pl,cz&accept-language=es&q=' + encodeURIComponent(query), { signal: _sitioAb.signal })
+            .then(function (r) { return r.json(); })
+            .then(function (d) { cb(d || []); })
+            .catch(function () {});
+    }
+    function dirLabelDe(item) {
+        var a = item.address || {};
+        var road = a.road || a.pedestrian || '';
+        if (road && a.house_number) road += ', ' + a.house_number;
+        var place = a.city || a.town || a.village || a.municipality || a.county || String(item.display_name || '').split(',')[0];
+        var parts = [];
+        if (road) parts.push(road);
+        if (place && place !== road) parts.push(place);
+        if (a.postcode) parts.push(a.postcode);
+        if (a.state && a.state !== place) parts.push(a.state);
+        return parts.join(', ');
+    }
+    function sitioFormHTML(s, esNuevo) {
+        s = s || {};
+        function inp(lbl, id, val, ph, full) {
+            return '<div' + (full ? ' class="full"' : '') + '><label>' + lbl + '</label><input id="' + id + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '"></div>';
+        }
+        return (esNuevo
+            ? '<div class="modal-form-row" style="position:relative;">' +
+                '<label>Buscar para autorrellenar (tu agenda, Google o dirección)</label>' +
+                '<input id="sitioBuscar" autocomplete="off" placeholder="Escribe empresa o dirección…">' +
+                '<ul class="ptar-sug" id="sitioSug" hidden style="z-index:1300;"></ul>' +
+              '</div>' +
+              '<div id="sitioDupWarn" class="modal-warn-box" hidden></div>'
+            : '') +
+            '<div class="ptar-sitio-grid">' +
+                inp('Empresa', 'sitio-f-empresa', s.empresa) +
+                inp('Horario', 'sitio-f-horario', s.horario, 'Ej. L-V 8:00-14:00') +
+                inp('Dirección (calle y número)', 'sitio-f-calle', s.calle, '', true) +
+                inp('CP, localidad, provincia', 'sitio-f-dir', s.dir, 'Ej. 41001, Sevilla, España', true) +
+                inp('Teléfono', 'sitio-f-tfno', s.tfno) +
+                inp('Contacto', 'sitio-f-contacto', s.contacto, 'Persona de contacto') +
+                inp('Notas del sitio', 'sitio-f-notas', s.notas, 'Ej. pedir cita, báscula, NIMA…', true) +
+                inp('Enlace de Google Maps', 'sitio-f-maps', s.maps, 'https://maps.app.goo.gl/…', true) +
+            '</div>';
+    }
+    function openSitioModal(key) {
+        var s = key ? (siteDe(key) || {}) : null;
+        openDashModal({
+            icon: 'mapPin',
+            title: key ? 'Editar sitio' : 'Nuevo sitio',
+            sub: key ? (s.empresa || key) : 'Crea un lugar de recogida/entrega para tu agenda',
+            body: sitioFormHTML(s, !key),
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                (key && key.indexOf('mi-') === 0 ? '<button class="btn-ghost" style="color:#dc2626;" onclick="sitioEliminar(\'' + esc(key) + '\')">Eliminar</button>' : '') +
+                '<button class="btn-primary" onclick="sitioGuardar(\'' + esc(key || '') + '\')">Guardar</button>',
+            afterOpen: (!key ? bindSitioBuscar : null)
+        });
+    }
+    window.abrirNuevoSitio = function () { openSitioModal(null); };
+    window.openSitioModal = openSitioModal;
+    // Buscador del formulario Nuevo sitio: mismos 3 niveles que en envíos.
+    function bindSitioBuscar() {
+        var inp = document.getElementById('sitioBuscar');
+        var ul = document.getElementById('sitioSug');
+        var warn = document.getElementById('sitioDupWarn');
+        if (!inp || !ul) return;
+        var deb;
+        function setF(id, v) { var el = document.getElementById(id); if (el) el.value = v || ''; }
+        function pickGoogleSitio(g) {
+            setF('sitio-f-empresa', g.empresa); setF('sitio-f-calle', g.dir);
+            setF('sitio-f-horario', g.horario); setF('sitio-f-tfno', g.tfno);
+            setF('sitio-f-maps', g.maps);
+            ul.hidden = true;
+            inp.value = g.empresa;
+            var dup = sitioSimilarGuardado(g);
+            if (warn) {
+                if (dup) {
+                    warn.innerHTML = 'Ya tienes un sitio muy parecido guardado: <strong>' + escapeHtml(dup.site.empresa || dup.key) + '</strong>. Puede tener anotaciones o el teléfono bueno. ' +
+                        '<a href="#" onclick="openSitioModal(\'' + esc(dup.key) + '\');return false;" style="color:var(--purple);font-weight:700;">Abrir mi registro</a>';
+                    warn.hidden = false;
+                } else warn.hidden = true;
+            }
+        }
+        inp.addEventListener('input', function () {
+            var q = inp.value.trim();
+            if (warn) warn.hidden = true;
+            if (q.length < 1) { ul.hidden = true; return; }
+            ul.innerHTML = '';
+            buscarSitesGuardados(q).forEach(function (kv) {
+                var li = document.createElement('li');
+                li.innerHTML = '<span class="sug-chip sug-chip-saved">Guardado</span><strong>' + esc(kv[1].empresa || '') + '</strong><span class="sug-dir">' + esc(kv[1].calle || kv[1].dir || '') + '</span>';
+                li.addEventListener('click', function () { openSitioModal(kv[0]); });
+                ul.appendChild(li);
+            });
+            buscarSitesGoogle(q).forEach(function (g) {
+                var li = document.createElement('li');
+                li.innerHTML = '<span class="sug-chip sug-chip-google">Google</span><strong>' + esc(g.empresa) + '</strong><span class="sug-dir">' + esc(g.dir) + '</span>';
+                li.addEventListener('click', function () { pickGoogleSitio(g); });
+                ul.appendChild(li);
+            });
+            ul.hidden = !ul.children.length;
+            clearTimeout(deb);
+            if (q.length < 2) return;
+            deb = setTimeout(function () {
+                osmSearchLite(q, function (items) {
+                    if (inp.value.trim() !== q) return;
+                    (items || []).forEach(function (it) {
+                        var li = document.createElement('li');
+                        li.innerHTML = '<span class="sug-chip sug-chip-addr">Dirección</span>' + esc(dirLabelDe(it));
+                        li.addEventListener('click', function () {
+                            var a = it.address || {};
+                            setF('sitio-f-calle', dirLabelDe(it));
+                            setF('sitio-f-dir', [a.postcode, a.city || a.town || a.village || '', a.state || '', a.country || ''].filter(Boolean).join(', '));
+                            ul.hidden = true;
+                            inp.value = dirLabelDe(it);
+                        });
+                        ul.appendChild(li);
+                    });
+                    ul.hidden = !ul.children.length;
+                });
+            }, 350);
+        });
+    }
+    window.sitioGuardar = function (key) {
+        function v(id) { var el = document.getElementById(id); return el ? (el.value.trim() || null) : null; }
+        var s0 = key ? (siteDe(key) || {}) : {};
+        var base = {};
+        Object.keys(s0).forEach(function (k2) { base[k2] = s0[k2]; });
+        base.empresa = v('sitio-f-empresa'); base.horario = v('sitio-f-horario');
+        base.calle = v('sitio-f-calle'); base.dir = v('sitio-f-dir') || base.dir || v('sitio-f-calle');
+        base.tfno = v('sitio-f-tfno'); base.contacto = v('sitio-f-contacto');
+        base.notas = v('sitio-f-notas'); base.maps = v('sitio-f-maps');
+        if (!base.freq) base.freq = 1;
+        if (!base.empresa || !(base.calle || base.dir)) {
+            ['sitio-f-empresa', 'sitio-f-calle'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el && !el.value.trim()) el.style.borderColor = '#dc2626';
+            });
+            return;
+        }
+        if (!key) {
+            key = 'mi-' + normTxt(base.empresa).replace(/[^a-z0-9]+/g, '-').slice(0, 30) + '-' + ((String(base.calle || base.dir || '').match(/\b\d{5}\b/) || ['x'])[0]);
+        }
+        saveCustomSite(key, base);
+        closeDashModal();
+        var si = document.getElementById('sitiosSearch');
+        renderSitiosTable(si ? si.value : '');
+        showModalSuccess('Sitio guardado', escapeHtml(base.empresa) + ' queda en tu agenda: aparecerá el primero al buscarlo al crear envíos.');
+    };
+    window.sitioEliminar = function (key) {
+        delete SITES_CUSTOM[key];
+        try { localStorage.setItem('dynamoSitesCustom', JSON.stringify(SITES_CUSTOM)); } catch (e) {}
+        closeDashModal();
+        var si = document.getElementById('sitiosSearch');
+        renderSitiosTable(si ? si.value : '');
+        showModalSuccess('Sitio eliminado', 'Se ha quitado de tu agenda.');
+    };
+
     // Bloque de detalle de un punto de la ruta para el modal "Ver detalle":
     // empresa (enlace a Maps), dirección, horario, teléfono clicable con
     // persona de contacto y notas operativas (NIMA, básculas, avisos…).
@@ -6239,6 +6460,11 @@
     }
     renderMiniEnvios();
     renderMiniPresup();
+    renderSitiosTable();
+    (function () {
+        var si = document.getElementById('sitiosSearch');
+        if (si) si.addEventListener('input', function () { renderSitiosTable(si.value); });
+    })();
     // Re-render solo si cambia el ANCHO: en iOS, mostrar/ocultar la barra
     // de URL al hacer scroll dispara resize con cambio solo de alto.
     var _miniRz, _miniW = window.innerWidth;
