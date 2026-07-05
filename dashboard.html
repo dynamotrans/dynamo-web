@@ -5520,6 +5520,27 @@
         { empresa: 'Frutas del Sur SCA', dir: 'Ctra. de la Mojonera, km 3, 04745 La Mojonera, Almería', cp: '04745', horario: 'L-S 6:00-20:00', tfno: '950 58 12 47', maps: 'https://maps.app.goo.gl/frutasdelsur' },
         { empresa: 'Hierros Cantabria SL', dir: 'Pol. Barros, Nave 12, 39408 Los Corrales de Buelna, Cantabria', cp: '39408', horario: 'L-V 8:00-17:00', tfno: '942 83 07 19', maps: 'https://maps.app.goo.gl/hierroscantabria' }
     ];
+    // En la realidad casi CUALQUIER empresa aparece en Google: se genera la
+    // "ficha de Google" de todos los sitios del catálogo para que el nivel
+    // Google se comporte igual con todos (y el flujo de duplicados siempre
+    // sea demostrable). Los 3 dobles de arriba (Grupal Art, Modular,
+    // Circular Polimeri) se mantienen a mano porque llevan datos DISTINTOS
+    // a los guardados — hacen interesante el comparador.
+    (function generarFichasGoogle() {
+        var manuales = { grupal: 1, modular: 1, circular: 1 };
+        Object.keys(SITES).forEach(function (k) {
+            var s = SITES[k];
+            if (!s.empresa) return;
+            var tok = normTxt(s.empresa).split(/\s+/).filter(function (w) { return w.length >= 4; })[0] || '';
+            if (manuales[tok]) return;
+            SITES_GOOGLE.push({
+                empresa: s.empresa.replace(/[\s,]*(S\.?L\.?U?\.?|S\.?A\.?|SCA|B\.?V\.?)\s*$/i, '').trim() || s.empresa,
+                dir: s.calle || s.dir,
+                cp: (String(s.dir || '').match(/\b\d{5}\b/) || [''])[0],
+                horario: s.horario, tfno: s.tfno, maps: s.maps
+            });
+        });
+    })();
     // Expande abreviaturas de vía para que "calle del berilio" también
     // encuentre "C. del Berilio" (y Av./Avda., Ctra., Pol., Cam.).
     function expandVia(t) {
