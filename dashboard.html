@@ -5533,13 +5533,13 @@
         q = expandVia(normTxt(q));
         return allSitesEntries().filter(function (kv) {
             var s = kv[1];
-            return expandVia(normTxt((s.empresa || '') + ' ' + (s.dir || '') + ' ' + (s.calle || ''))).indexOf(q) !== -1;
+            return matchTokens(expandVia(normTxt((s.empresa || '') + ' ' + (s.dir || '') + ' ' + (s.calle || ''))), q);
         }).slice(0, 4);
     }
     function buscarSitesGoogle(q) {
         q = expandVia(normTxt(q));
         return SITES_GOOGLE.filter(function (g) {
-            return expandVia(normTxt(g.empresa + ' ' + g.dir)).indexOf(q) !== -1;
+            return matchTokens(expandVia(normTxt(g.empresa + ' ' + g.dir)), q);
         }).slice(0, 3);
     }
     // ¿Este resultado de Google se parece a un sitio ya guardado? Criterio:
@@ -5618,7 +5618,7 @@
         var rows = allSitesEntries().filter(function (kv) {
             if (!q) return true;
             var s = kv[1];
-            return expandVia(normTxt([s.empresa, s.dir, s.calle, s.tfno, s.contacto, s.notas].join(' '))).indexOf(q) !== -1;
+            return matchTokens(expandVia(normTxt([s.empresa, s.dir, s.calle, s.tfno, s.contacto, s.notas].join(' '))), q);
         }).sort(function (a, b) { return String(a[1].empresa || '').localeCompare(String(b[1].empresa || ''), 'es'); });
         var h2 = document.querySelector('#sec-sitios h2');
         if (h2) h2.textContent = 'Sitios (' + rows.length + ')';
@@ -5926,7 +5926,7 @@
         }
         // Búsqueda en vivo (se filtra al teclear, sin mayúsculas ni acentos)
         var q = normTxt(TABLE_STATE.cargas.q);
-        if (q) arr = arr.filter(function (c) { return cargaSearchBlob(c).indexOf(q) !== -1; });
+        if (q) arr = arr.filter(function (c) { return matchTokens(cargaSearchBlob(c), q); });
         // Orden por pestaña:
         // - Previsión:   sin fecha → por ref DESC (recién apuntadas arriba)
         // - Entregadas:  fecha efectiva DESC (la entrega más reciente arriba —
@@ -5958,7 +5958,7 @@
         var f = TABLE_STATE.presupuestos.filter;
         var arr = PRESUPUESTOS_DATA.filter(function (p) { return p.kind === f; });
         var q = normTxt(TABLE_STATE.presupuestos.q);
-        if (q) arr = arr.filter(function (p) { return presupSearchBlob(p).indexOf(q) !== -1; });
+        if (q) arr = arr.filter(function (p) { return matchTokens(presupSearchBlob(p), q); });
         // Tanto Activos como Caducados: fecha de emisión DESC (los más
         // recientes arriba). Backend = ORDER BY emision DESC.
         arr.sort(function (a, b) { return parseFechaDDMM(b.fecha) - parseFechaDDMM(a.fecha); });
@@ -5972,6 +5972,17 @@
         s = String(s == null ? '' : s).toLowerCase();
         try { s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) {}
         return s;
+    }
+    // Coincidencia por PALABRAS: cada palabra tecleada debe aparecer en algún
+    // punto del texto, sin importar el orden ni que vayan seguidas —
+    // "tititos bar" encuentra "GRUPO TITITOS BCN … Barcelona".
+    function matchTokens(hay, q) {
+        var toks = String(q).split(/\s+/).filter(Boolean);
+        if (!toks.length) return true;
+        for (var i = 0; i < toks.length; i++) {
+            if (hay.indexOf(toks[i]) === -1) return false;
+        }
+        return true;
     }
     // Texto buscable de cada fila: nº, referencia, ruta (ciudades y
     // direcciones completas), mercancía, matrícula, transportista, precio…
@@ -6489,7 +6500,7 @@
             } else if (sec.id === 'sec-incidencias') {
                 var q = normTxt(inp.value);
                 sec.querySelectorAll('tbody tr').forEach(function (tr) {
-                    tr.hidden = !!q && normTxt(tr.textContent).indexOf(q) === -1;
+                    tr.hidden = !!q && !matchTokens(normTxt(tr.textContent), q);
                 });
             }
         });
