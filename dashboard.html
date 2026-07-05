@@ -3919,6 +3919,8 @@
     ============================================ */
     function toggleUserMenu(ev) {
         if (ev) ev.stopPropagation();
+        // Exclusión mutua: al abrir este menú se cierra el de Soporte
+        if (window.closeTopbarContactMenu) window.closeTopbarContactMenu();
         var btn = document.getElementById('userMenuBtn');
         var menu = document.getElementById('userMenu');
         var open = menu.classList.toggle('open');
@@ -4132,9 +4134,14 @@
             btn.setAttribute('aria-expanded', 'false');
             menu.setAttribute('aria-hidden', 'true');
         }
+        // Cierre accesible desde el menú de usuario (exclusión mutua)
+        window.closeTopbarContactMenu = closeMenu;
         btn.addEventListener('click', function (e) {
             e.stopPropagation();
-            menu.classList.contains('open') ? closeMenu() : openMenu();
+            if (menu.classList.contains('open')) { closeMenu(); return; }
+            // Exclusión mutua: al abrir este menú se cierra el de usuario
+            if (typeof closeUserMenu === 'function') closeUserMenu();
+            openMenu();
         });
         menu.querySelectorAll('.topbar-contact-item').forEach(function (a) {
             a.addEventListener('click', closeMenu);
