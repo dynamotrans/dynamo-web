@@ -3766,7 +3766,7 @@
             title: 'Cancelar envío ' + d.ref,
             sub: '¿Seguro que quieres cancelar este envío?',
             body:
-                '<div class="modal-warn-box">Si cancelas el envío, el equipo recibirá un aviso y no se llevará a cabo el transporte. Si la cancelación se realiza con menos de 24h de antelación pueden aplicarse cargos.</div>' +
+                '<div class="modal-warn-box">Si cancelas el envío, el equipo recibirá un aviso y no se llevará a cabo el transporte. <strong>Importante:</strong> cancelar más tarde de las <strong>9:00 de la mañana del día hábil anterior a la carga</strong> puede conllevar el <strong>coste del servicio completo</strong>. No es un criterio nuestro: lo establece la ley. Intentamos siempre que no se apliquen cargos, pero el transportista está en su derecho y lo habitual es que los aplique — en arbitrajes y juicios estos casos se resuelven a su favor de forma casi automática, y antes o después terminan abonándose. Por favor, no solicites transportes si no tienes seguridad de que se van a realizar.</div>' +
                 infoGrid([
                     { label: 'Nº carga', value: d.ref },
                     { label: 'Fecha', value: fechaConDia(d.fecha) },
