@@ -1845,6 +1845,12 @@
         .ptar-sitio-grid label { display: block; font-size: 0.82rem; color: var(--gray-500); font-weight: 600; margin-bottom: 0.15rem; }
         .ptar-sitio-grid input { width: 100%; padding: 0.45rem 0.6rem; border: 1px solid var(--gray-200); border-radius: 8px; font: inherit; font-size: 0.82rem; color: var(--navy); }
         .ptar-sitio-grid .full { grid-column: 1 / -1; }
+        /* Campo bloqueado (solo lectura) en las fichas de lugares: la
+           dirección define la ruta y no se edita aquí. */
+        .ptar-sitio-grid input.sitio-f-lock {
+            background: var(--gray-100); color: var(--gray-600);
+            border-color: var(--gray-200); cursor: default; pointer-events: none;
+        }
         @media (max-width: 600px) { .ptar-sitio-grid { grid-template-columns: 1fr; } }
         .ptar-camion-tip {
             display: none; font-size: 0.72rem; color: var(--gray-500);
@@ -8162,11 +8168,25 @@
                         function inp(lbl, f, val, ph) {
                             return '<div><label>' + lbl + '</label><input data-sitio-f="' + f + '" data-sitio-id="' + p.id + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '"></div>';
                         }
+                        // Campos BLOQUEADOS (gris, solo lectura): la dirección
+                        // define la ruta elegida — para cambiarla hay que
+                        // volver al paso 1 y elegir otro sitio.
+                        function inpLock(lbl, val, full) {
+                            if (!val) return '';
+                            return '<div' + (full ? ' class="full"' : '') + '><label>' + lbl + '</label><input class="sitio-f-lock" value="' + escapeHtml(val) + '" readonly tabindex="-1"></div>';
+                        }
+                        // Ficha de Google: dirección completa en g.dir; ficha
+                        // de agenda: calle + línea de CP/localidad.
+                        var calleVal = s.calle || (p.pick.tipo === 'google' ? s.dir : '');
+                        var dirVal = p.pick.tipo === 'guardado' ? s.dir : '';
+                        var mapsLink = s.maps ? ' · <a href="' + escapeHtml(s.maps) + '" target="_blank" rel="noopener" style="color:var(--purple);font-weight:700;text-decoration:none;">Ver en Maps</a>' : '';
                         return '<div class="ptar-sitio-card">' +
-                            '<h5>' + escapeHtml(p.rol) + ' · <span style="color:var(--gray-500);font-weight:600;">' + escapeHtml(fuente) + '</span></h5>' +
+                            '<h5>' + escapeHtml(p.rol) + ' · <span style="color:var(--gray-500);font-weight:600;">' + escapeHtml(fuente) + '</span>' + mapsLink + '</h5>' +
                             '<div class="ptar-sitio-grid">' +
                                 inp('Empresa', 'empresa', s.empresa) +
                                 inp('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
+                                inpLock('Dirección (calle y número)', calleVal, !dirVal) +
+                                inpLock('CP, localidad, provincia', dirVal, !calleVal) +
                                 inp('Teléfono', 'tfno', s.tfno) +
                                 inp('Contacto', 'contacto', s.contacto, 'Persona de contacto') +
                                 '<div class="full"><label>Notas del sitio</label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="' + escapeHtml(s.notas || '') + '" placeholder="Ej. pedir cita, báscula, NIMA…"></div>' +
