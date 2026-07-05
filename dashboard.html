@@ -1423,6 +1423,9 @@
         table.data .row-when-wrap { margin-bottom: 0.32rem; }
         table.data .fecha-linea strong { color: var(--navy); }
         table.data td.ref .ref-cli-line { color: var(--gray-500); margin-top: 0.15rem; }
+        table.data td.ref .ref-cli-inline { color: var(--gray-500); font-weight: 500; }
+        /* Fecha/hora de creación: pequeñita y en UNA línea */
+        table.data td.ref .ref-creado { display: block; font-size: 0.7rem; color: var(--gray-400); white-space: nowrap; margin-top: 2px; }
         table.data .envio-estado { margin-top: 0.35rem; }
         /* Columna Vehículo ajustada al ancho de la matrícula más larga:
            la matrícula nunca parte de línea; el tipo de camión de debajo se
@@ -4584,6 +4587,9 @@
             // saber en cuál está. Si no se indica: Cargando → origen (0);
             // Llegando a la entrega → destino (última).
             stopActivo: (extra.stopActivo != null ? extra.stopActivo : null),
+            // Timestamp de creación de la solicitud (ms). El mock lo rellena
+            // de forma determinista; los envíos nuevos llevan la hora real.
+            creadoEn: extra.creadoEn || null,
             tipoCamion: extra.tipoCamion || null,
             tipoCarga: extra.tipoCarga || null,   // 'Carga completa' | 'Grupaje'
             // Transportista (carrier) vs matrícula (camión concreto) son
@@ -5321,6 +5327,12 @@
     // "19/06" → "Vie 19/06". "Sin fecha" se respeta. Si no parsea
     // devuelve el original tal cual. Útil para tablas y mini-listas.
     var DOW_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    // "16/07/26 · 12:44" — fecha/hora de creación compacta para la tabla
+    function fmtCreado(ms) {
+        var d = new Date(ms);
+        function p(n) { return ('0' + n).slice(-2); }
+        return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + String(d.getFullYear()).slice(-2) + ' · ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    }
     function fechaConDia(s) {
         if (!s || s === 'Sin fecha') return s || '';
         var m = String(s).match(/^(\d{1,2})\/(\d{1,2})$/);
@@ -6231,7 +6243,8 @@
                 var asig = getAsignacionEstado(c);
                 return '<tr' + rowCls + '>' +
                     '<td class="ref"><strong>' + esc(c.ref) + '</strong>' +
-                        (c.refCli ? '<div class="ref-cli-line">' + esc(c.refCli) + '</div>' : '') +
+                        (c.refCli ? ' <span class="ref-cli-inline">(' + esc(c.refCli) + ')</span>' : '') +
+                        (c.creadoEn ? '<span class="ref-creado">(Creado: ' + fmtCreado(c.creadoEn) + ')</span>' : '') +
                         '<div class="envio-estado"><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span>' +
                             (c.kind === 'entregada' && c.hasAlbaran ? ' <span class="badge-doc" title="Albarán PDF disponible">📄</span>' : '') +
                         '</div>' +
@@ -6288,7 +6301,7 @@
                 var estadoLabel = p.kind === 'caducados' ? 'Caducado' : 'Vigente';
                 return '<tr>' +
                     '<td class="ref"><strong>' + esc(p.ref) + '</strong>' +
-                        (p.refCli ? '<div class="ref-cli-line">' + esc(p.refCli) + '</div>' : '') +
+                        (p.refCli ? ' <span class="ref-cli-inline">(' + esc(p.refCli) + ')</span>' : '') +
                         '<div class="envio-estado"><span class="badge badge-' + p.vigenciaColor + '">' + esc(estadoLabel) + '</span></div>' +
                     '</td>' +
                     (function () {
@@ -6470,6 +6483,19 @@
     }
     // Reparto de sitios reales sobre el mock (SITES ya definido arriba)
     asignarSitios();
+    // Fecha/hora de creación de cada carga del mock: 2-6 días antes de su
+    // fecha de carga, en horario laboral (determinista por referencia).
+    (function rellenarCreadoEn() {
+        CARGAS_DATA.forEach(function (c) {
+            if (c.creadoEn) return;
+            var h = hashStr(c.ref);
+            var base = parseDDMM(c.fecha && c.fecha !== 'Sin fecha' ? c.fecha : null) || new Date();
+            var d = new Date(base.getTime());
+            d.setDate(d.getDate() - (2 + (h % 5)));
+            d.setHours(8 + (h % 10), h % 60, 0, 0);
+            c.creadoEn = d.getTime();
+        });
+    })();
     refreshStatCargasActivas();
 
     // Contador de incidencias ABIERTAS en la campana de la topbar. Una
@@ -7770,6 +7796,7 @@
                         ref, d.refCli, d.fechaTxt, d.urgenciaTxt,
                         d.origCorto, d.destCorto, d.origCorto + ' → ' + d.destCorto,
                         d.mercanciaShort, '', d.medidas, 'programada', undefined, {
+                            creadoEn: Date.now(),
                             precio: fmtEur(precioNum) + ' €',
                             origenSite: oS ? oS.key : null,
                             origenDir: oS ? oS.site.dir : null,
