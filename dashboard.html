@@ -944,6 +944,11 @@
         .dash-carousel-title { font-size: 0.82rem; font-weight: 700; color: var(--navy); margin: 0 0 0.2rem; }
         .dash-clientes { margin-top: 1.6rem; }
         .dash-servicios { margin-top: 1.2rem; padding-bottom: 0.4rem; }
+        /* Mismo difuminado lateral que el muro de clientes (sin corte seco). */
+        .dash-servicios .clientes-row {
+            -webkit-mask-image: linear-gradient(90deg, transparent 0, black 7%, black 93%, transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0, black 7%, black 93%, transparent 100%);
+        }
         .logo-pill {
             display: flex; align-items: center; justify-content: center;
             height: 54px; padding: 0 1.1rem; border-radius: 14px;
