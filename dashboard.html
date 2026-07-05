@@ -8170,8 +8170,11 @@
                     });
                     picks.push({ kind: 'entrega', num: numEnt++, pick: d.destSitePick, texto: d.dest, id: 'dest' });
                     sitiosList.innerHTML = picks.map(function (p) {
-                        var rolHtml = '<span style="color:' + (p.kind === 'recogida' ? 'var(--orange)' : 'var(--green)') + ';">' +
-                            (p.kind === 'recogida' ? 'Recogida ' : 'Entrega ') + p.num + '</span>';
+                        // Circulito numerado naranja/verde — el mismo de la
+                        // ruta del formulario (.ptar-route-num).
+                        var rolHtml = '<span class="ptar-route-num ' + (p.kind === 'recogida' ? 'rec' : 'ent') + '" style="vertical-align:-4px;margin-right:0.35rem;">' + p.num + '</span>' +
+                            '<span style="color:' + (p.kind === 'recogida' ? 'var(--orange)' : 'var(--green)') + ';">' +
+                            (p.kind === 'recogida' ? 'Recogida' : 'Entrega') + '</span>';
                         // Punto SIN ficha de sitio: tarjeta solo con la dirección.
                         if (!p.pick) {
                             return '<div class="ptar-sitio-card">' +
