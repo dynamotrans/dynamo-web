@@ -51,10 +51,8 @@
                no, dejando tamaños dispares sin criterio. */
             -webkit-text-size-adjust: 100%;
             text-size-adjust: 100%;
-            /* Sin rebote elástico vertical en iOS: al llegar al final, el
-               estirón enseñaba una pantalla entera de fondo gris (muy
-               visible ahora que el dashboard es corto). */
-            overscroll-behavior-y: none;
+            /* OJO: no poner overscroll-behavior-y aquí — bloquea el gesto de
+               "tirar hacia abajo para recargar" del móvil (probado). */
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
