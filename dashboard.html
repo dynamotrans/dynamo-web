@@ -5737,40 +5737,30 @@
     // a un sitio guardado. 3 salidas: usar el guardado (recomendado — puede
     // tener anotaciones o el teléfono bueno), seguir con Google, o COMPARAR
     // ambos lado a lado para elegir con criterio.
+    // UN SOLO modal: aviso de duplicado + comparación lado a lado + decisión.
+    // (Antes había un paso intermedio con botón "Comparar ambos"; se decide
+    // directamente viendo la comparación.)
     function abrirModalDuplicado(dup, g, cb) {
         window._dupPick = function (cual) { closeDashModal(); cb(cual); };
-        window._dupComparar = function () {
-            var s = dup.site;
-            function fila(label, a, b) {
-                function celda(v) { return v ? escapeHtml(v) : '<span style="color:var(--gray-400);">—</span>'; }
-                return '<tr><td class="cmp-l">' + escapeHtml(label) + '</td><td>' + celda(a) + '</td><td>' + celda(b) + '</td></tr>';
-            }
-            openDashModal({
-                icon: 'eye', title: 'Comparar sitios',
-                sub: 'Tu registro guardado frente a la ficha de Google',
-                body: '<div class="table-wrap"><table class="data cmp-table">' +
-                    '<thead><tr><th></th><th>Tu registro</th><th>Ficha de Google</th></tr></thead><tbody>' +
-                    fila('Nombre', s.empresa, g.empresa) +
-                    fila('Dirección', s.dir, g.dir) +
-                    fila('Horario', s.horario, g.horario) +
-                    fila('Teléfono', s.tfno, g.tfno) +
-                    fila('Contacto', s.contacto, null) +
-                    fila('Notas', s.notas, null) +
-                    '</tbody></table></div>',
-                footer: '<button class="btn-ghost" onclick="_dupPick(\'google\')">Usar el de Google</button>' +
-                        '<button class="btn-primary" onclick="_dupPick(\'guardado\')">Usar mi registro</button>'
-            });
-        };
+        var s = dup.site;
+        function fila(label, a, b) {
+            function celda(v) { return v ? escapeHtml(v) : '<span style="color:var(--gray-400);">—</span>'; }
+            return '<tr><td class="cmp-l">' + escapeHtml(label) + '</td><td>' + celda(a) + '</td><td>' + celda(b) + '</td></tr>';
+        }
         openDashModal({
             icon: 'alert', title: 'Este sitio ya parece estar guardado',
             sub: 'El resultado de Google es muy similar a un sitio de tu agenda',
-            body: '<div class="modal-warn-box">Si sigues con el de Google se <strong>duplicaría el registro</strong>. Tu sitio guardado puede tener <strong>anotaciones importantes</strong> o el <strong>teléfono correcto</strong> que la ficha de Google no trae.</div>' +
-                infoGrid([
-                    { label: 'Tu registro', value: (dup.site.empresa || '') + ' · ' + (dup.site.dir || ''), span: true },
-                    { label: 'Ficha de Google', value: g.empresa + ' · ' + g.dir, span: true }
-                ]),
-            footer: '<button class="btn-ghost" onclick="_dupComparar()">Comparar ambos</button>' +
-                    '<button class="btn-ghost" onclick="_dupPick(\'google\')">Seguir con Google</button>' +
+            body: '<div class="modal-warn-box">Si sigues con el de Google se <strong>duplicaría el registro</strong>. Tu sitio guardado puede tener <strong>anotaciones importantes</strong> o el <strong>teléfono correcto</strong> que la ficha de Google no trae. Compara ambos y decide.</div>' +
+                '<div class="table-wrap"><table class="data cmp-table">' +
+                '<thead><tr><th></th><th>Tu registro</th><th>Ficha de Google</th></tr></thead><tbody>' +
+                fila('Nombre', s.empresa, g.empresa) +
+                fila('Dirección', s.dir, g.dir) +
+                fila('Horario', s.horario, g.horario) +
+                fila('Teléfono', s.tfno, g.tfno) +
+                fila('Contacto', s.contacto, null) +
+                fila('Notas', s.notas, null) +
+                '</tbody></table></div>',
+            footer: '<button class="btn-ghost" onclick="_dupPick(\'google\')">Usar el de Google</button>' +
                     '<button class="btn-primary" onclick="_dupPick(\'guardado\')">Usar mi registro</button>'
         });
     }
