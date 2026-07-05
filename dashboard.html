@@ -5568,18 +5568,27 @@
     // el navegador): lugares elegidos de "Google" y editados al crear envío.
     var SITES_CUSTOM = {};
     try { SITES_CUSTOM = JSON.parse(localStorage.getItem('dynamoSitesCustom') || '{}') || {}; } catch (e) {}
+    // Sitios BORRADOS por el usuario (del catálogo o propios): se ocultan de
+    // la agenda y del buscador, pero el sitio NO desaparece de los envíos y
+    // presupuestos ya consolidados — siteDe() sigue resolviendo la clave para
+    // que esas filas conserven empresa, horario, teléfono y notas.
+    var SITES_DELETED = {};
+    try { (JSON.parse(localStorage.getItem('dynamoSitesDeleted') || '[]') || []).forEach(function (k) { SITES_DELETED[k] = 1; }); } catch (e) {}
+    function saveDeletedSites() { try { localStorage.setItem('dynamoSitesDeleted', JSON.stringify(Object.keys(SITES_DELETED))); } catch (e) {} }
     function saveCustomSite(key, site) {
         // Fecha de creación (se conserva en ediciones): la etiqueta "Nuevo"
         // del listado de Sitios dura 7 días desde que se creó.
         site.creado = (SITES_CUSTOM[key] && SITES_CUSTOM[key].creado) || site.creado || Date.now();
         SITES_CUSTOM[key] = site;
         try { localStorage.setItem('dynamoSitesCustom', JSON.stringify(SITES_CUSTOM)); } catch (e) {}
+        // Guardar de nuevo un sitio borrado lo "revive" en la agenda.
+        if (SITES_DELETED[key]) { delete SITES_DELETED[key]; saveDeletedSites(); }
     }
     function siteDe(ref) { return typeof ref === 'string' ? (SITES_CUSTOM[ref] || SITES[ref]) : ref; }
     function allSitesEntries() {
         var out = [];
-        Object.keys(SITES).forEach(function (k) { if (!SITES_CUSTOM[k]) out.push([k, SITES[k]]); });
-        Object.keys(SITES_CUSTOM).forEach(function (k) { out.push([k, SITES_CUSTOM[k]]); });
+        Object.keys(SITES).forEach(function (k) { if (!SITES_CUSTOM[k] && !SITES_DELETED[k]) out.push([k, SITES[k]]); });
+        Object.keys(SITES_CUSTOM).forEach(function (k) { if (!SITES_DELETED[k]) out.push([k, SITES_CUSTOM[k]]); });
         return out;
     }
     // === MOCK de la API de Google Places (nivel 2 del buscador) ===
@@ -5811,7 +5820,7 @@
             sub: key ? (s.empresa || key) : 'Crea un lugar de recogida/entrega para tu agenda',
             body: sitioFormHTML(s, !key),
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
-                (key && key.indexOf('mi-') === 0 ? '<button class="btn-ghost" style="color:#dc2626;" onclick="sitioEliminar(\'' + esc(key) + '\')">Eliminar</button>' : '') +
+                (key ? '<button class="btn-ghost" style="color:#dc2626;" onclick="sitioEliminar(\'' + esc(key) + '\')">Borrar</button>' : '') +
                 '<button class="btn-primary" onclick="sitioGuardar(\'' + esc(key || '') + '\')">Guardar</button>',
             afterOpen: (!key ? bindSitioBuscar : null)
         });
@@ -5907,13 +5916,28 @@
         renderSitiosTable(si ? si.value : '');
         showModalSuccess('Sitio guardado', escapeHtml(base.empresa) + ' queda en tu agenda: aparecerá el primero al buscarlo al crear envíos.');
     };
+    // Borrar sitio (con confirmación). El borrado solo lo quita de la agenda
+    // y del buscador: los envíos/presupuestos ya consolidados con este sitio
+    // NO se tocan (la clave sigue resolviendo vía siteDe).
     window.sitioEliminar = function (key) {
-        delete SITES_CUSTOM[key];
-        try { localStorage.setItem('dynamoSitesCustom', JSON.stringify(SITES_CUSTOM)); } catch (e) {}
-        closeDashModal();
-        var si = document.getElementById('sitiosSearch');
-        renderSitiosTable(si ? si.value : '');
-        showModalSuccess('Sitio eliminado', 'Se ha quitado de tu agenda.');
+        var s = siteDe(key) || {};
+        var nombre = s.empresa || key;
+        window._sitioBorrarOk = function () {
+            SITES_DELETED[key] = 1;
+            saveDeletedSites();
+            closeDashModal();
+            var si = document.getElementById('sitiosSearch');
+            renderSitiosTable(si ? si.value : '');
+            showModalSuccess('Sitio borrado', escapeHtml(nombre) + ' se ha quitado de tu agenda y del buscador. Los envíos y presupuestos ya creados con este sitio conservan todos sus datos.');
+        };
+        openDashModal({
+            icon: 'alert', title: '¿Borrar este sitio?',
+            sub: nombre,
+            body: '<div class="modal-warn-box">Se quitará de tu agenda y dejará de aparecer en el buscador al crear envíos o presupuestos.</div>' +
+                '<p style="font-size:0.85rem;color:var(--gray-600);margin:0.9rem 0 0;">Los <strong>envíos y presupuestos ya creados</strong> con este sitio <strong>no se modifican</strong>: conservan la empresa, dirección, horario, teléfono y notas tal y como quedaron consolidados.</p>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                    '<button class="btn-primary" style="background:var(--red);" onclick="_sitioBorrarOk()">Borrar sitio</button>'
+        });
     };
 
     // Bloque de detalle de un punto de la ruta para el modal "Ver detalle":
