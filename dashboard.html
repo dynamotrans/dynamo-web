@@ -1799,6 +1799,7 @@
         .ptar-sug .sug-chip-saved  { background: rgba(34,165,90,0.12); color: #15803d; }
         .ptar-sug .sug-chip-google { background: rgba(66,133,244,0.12); color: #1a73e8; }
         .ptar-sug .sug-chip-addr   { background: var(--gray-100); color: var(--gray-500); }
+        .ptar-sug .sug-chip-recent { background: rgba(51,0,204,0.08); color: var(--purple); }
         .ptar-sug .sug-dir { display: block; font-size: 0.78rem; color: var(--gray-500); }
         /* Botón × para borrar de golpe el campo de recogida/entrega */
         .ptar-clear {
@@ -5631,6 +5632,33 @@
         Object.keys(SITES_CUSTOM).forEach(function (k) { if (!SITES_DELETED[k]) out.push([k, SITES_CUSTOM[k]]); });
         return out;
     }
+    // Últimos 5 sitios usados como recogida o como entrega — para sugerirlos
+    // al pulsar un campo VACÍO del formulario (antes de escribir nada). Se
+    // sacan de los envíos, del más reciente al más antiguo por fecha de
+    // creación; los sitios borrados de la agenda no se sugieren.
+    function ultimosSitiosUsados(tipo) {
+        var out = [], vistos = {};
+        CARGAS_DATA.slice()
+            .sort(function (a, b) { return (b.creadoEn || 0) - (a.creadoEn || 0); })
+            .forEach(function (c) {
+                var keys = [];
+                if (tipo === 'recogida') {
+                    if (c.origenSite) keys.push(c.origenSite);
+                    (c.paradas || []).forEach(function (p) { if (p.tipo === 'recogida' && p.site) keys.push(p.site); });
+                } else {
+                    if (c.destinoSite) keys.push(c.destinoSite);
+                    (c.paradas || []).forEach(function (p) { if (p.tipo !== 'recogida' && p.site) keys.push(p.site); });
+                }
+                keys.forEach(function (k) {
+                    if (out.length >= 5 || typeof k !== 'string' || vistos[k] || SITES_DELETED[k]) return;
+                    var s = siteDe(k);
+                    if (!s || !s.empresa) return;
+                    vistos[k] = 1;
+                    out.push([k, s]);
+                });
+            });
+        return out;
+    }
     // === MOCK de la API de Google Places (nivel 2 del buscador) ===
     // Sin API key todavía (ver TODO). Fichas ficticias al estilo Google:
     // incluyen DOBLES de sitios ya guardados (Grupal Art, Modular, Circular
@@ -6946,7 +6974,10 @@
         //      usuario) · 2º empresas de GOOGLE (mock de Places hasta tener
         //      API key) · 3º DIRECCIONES (Nominatim, como el buscador de
         //      Google Maps cuando nada coincide).
-        function bindAutocomplete(wrap, input, sugList, onPick) {
+        // tipoCampo ('recogida' | 'entrega'): al pulsar el campo VACÍO se
+        // sugieren los últimos 5 sitios usados en ese rol; al escribir, el
+        // buscador normal de 3 niveles toma el relevo.
+        function bindAutocomplete(wrap, input, sugList, onPick, tipoCampo) {
             var deb;
             function clearGeo() {
                 delete wrap.dataset.lat; delete wrap.dataset.lon; delete wrap.dataset.cc;
@@ -7007,10 +7038,30 @@
                 sugList.hidden = true;
                 syncClear();
                 input.focus();
+                renderRecientes();
             });
+            // Últimos 5 sitios usados en este rol (recogida/entrega), al
+            // pulsar el campo vacío. Facilita rellenar sin teclear.
+            function renderRecientes() {
+                if (!tipoCampo || input.value.trim()) return;
+                var rec = ultimosSitiosUsados(tipoCampo);
+                if (!rec.length) { sugList.hidden = true; return; }
+                sugList.innerHTML = '';
+                rec.forEach(function (kv) {
+                    var k = kv[0], s = kv[1];
+                    var el = li(chip('Reciente', 'sug-chip-recent') + '<strong>' + esc(s.empresa || '') + '</strong><span class="sug-dir">' + esc(s.calle || s.dir || '') + '</span>');
+                    bindPick(el, function () { aplicarGuardado(k, s); });
+                    sugList.appendChild(el);
+                });
+                sugList.hidden = false;
+            }
             // Al enfocar, el cursor se queda donde se pulsa (edición normal);
-            // para borrar todo de golpe está el botón ×.
-            input.addEventListener('focus', syncClear);
+            // para borrar todo de golpe está el botón ×. Si el campo está
+            // vacío, se ofrecen los últimos sitios usados.
+            input.addEventListener('focus', function () {
+                syncClear();
+                renderRecientes();
+            });
             // Selección robusta en táctil: el pick va en CLICK (un scroll con
             // el dedo no dispara click; un toque sí). El mousedown solo evita
             // perder el foco del input en escritorio.
@@ -7065,7 +7116,7 @@
                 clearGeo();
                 syncClear();
                 var q = input.value.trim();
-                if (q.length < 1) { sugList.hidden = true; return; }
+                if (q.length < 1) { sugList.hidden = true; renderRecientes(); return; }
                 // Niveles 1-2 al instante desde el primer carácter
                 renderLocales(q);
                 // Nivel 3 (direcciones) con debounce, se añade debajo al llegar
@@ -7537,8 +7588,8 @@
             }
 
             // Autocomplete con callback para recalcular ETA al pickear
-            bindAutocomplete(origWrap, origInput, origSug, function () { renderEta(); syncGrupajeVentana(); });
-            bindAutocomplete(destWrap, destInput, destSug, function () { renderEta(); syncGrupajeVentana(); });
+            bindAutocomplete(origWrap, origInput, origSug, function () { renderEta(); syncGrupajeVentana(); }, 'recogida');
+            bindAutocomplete(destWrap, destInput, destSug, function () { renderEta(); syncGrupajeVentana(); }, 'entrega');
 
             // --- Paradas adicionales: recogidas (origen adicional) o entregas
             //     (destino adicional). Mismo formato que origen/destino, con su
@@ -7601,7 +7652,7 @@
                         '<button type="button" class="ptar-parada-del" aria-label="Quitar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>' +
                     '</div>';
                 box.appendChild(row);
-                bindAutocomplete(row.querySelector('.ptar-input-wrap'), row.querySelector('input'), row.querySelector('.ptar-sug'), renderEta);
+                bindAutocomplete(row.querySelector('.ptar-input-wrap'), row.querySelector('input'), row.querySelector('.ptar-sug'), renderEta, esRec ? 'recogida' : 'entrega');
                 row.querySelector('.ptar-parada-del').addEventListener('click', function () {
                     box.removeChild(row);
                     syncAddBtns();
