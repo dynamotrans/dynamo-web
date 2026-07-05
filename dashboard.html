@@ -1812,6 +1812,25 @@
         .ptar-clear:hover { background: var(--gray-300, #d1d5db); }
         .ptar-clear[hidden] { display: none; }
         .cmp-table td.cmp-l { color: var(--gray-500); font-weight: 600; white-space: nowrap; }
+        /* Comparador de duplicados: campos propios editables + botón ← para
+           copiar el dato de Google al registro propio. */
+        .cmp-table .dup-inp {
+            width: 100%; min-width: 150px; box-sizing: border-box;
+            font: inherit; font-size: 0.8rem; color: var(--navy);
+            padding: 0.32rem 0.45rem; background: #fff;
+            border: 1px solid var(--gray-200); border-radius: 8px;
+            transition: border-color 0.25s;
+        }
+        .cmp-table .dup-inp:focus { outline: none; border-color: var(--purple); }
+        .cmp-table .dup-copy {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 24px; height: 24px; margin-right: 0.45rem;
+            border: 1px solid var(--gray-200); border-radius: 8px;
+            background: var(--gray-100); color: var(--purple);
+            font-size: 0.85rem; font-weight: 800; line-height: 1;
+            cursor: pointer; vertical-align: middle; flex-shrink: 0;
+        }
+        .cmp-table .dup-copy:hover { background: rgba(51,0,204,0.08); border-color: var(--purple); }
         /* Fichas editables de los lugares en el paso de confirmación */
         .ptar-sitio-card { border: 1px solid var(--gray-200); border-radius: 10px; padding: 0.8rem 0.9rem; margin-bottom: 0.7rem; background: #fff; }
         .ptar-sitio-card h5 { font-size: 0.82rem; color: var(--navy); margin-bottom: 0.5rem; }
@@ -5738,27 +5757,59 @@
     // tener anotaciones o el teléfono bueno), seguir con Google, o COMPARAR
     // ambos lado a lado para elegir con criterio.
     // UN SOLO modal: aviso de duplicado + comparación lado a lado + decisión.
-    // (Antes había un paso intermedio con botón "Comparar ambos"; se decide
-    // directamente viendo la comparación.)
+    // Los campos de "Tu registro" son EDITABLES y cada dato de Google lleva
+    // un botón ← para copiarlo al registro propio. Al elegir "Usar mi
+    // registro" las ediciones se guardan en la agenda.
     function abrirModalDuplicado(dup, g, cb) {
-        window._dupPick = function (cual) { closeDashModal(); cb(cual); };
         var s = dup.site;
-        function fila(label, a, b) {
-            function celda(v) { return v ? escapeHtml(v) : '<span style="color:var(--gray-400);">—</span>'; }
-            return '<tr><td class="cmp-l">' + escapeHtml(label) + '</td><td>' + celda(a) + '</td><td>' + celda(b) + '</td></tr>';
+        var CAMPOS = [
+            { f: 'empresa',   label: 'Nombre',    mio: s.empresa,          goog: g.empresa },
+            { f: 'direccion', label: 'Dirección', mio: s.calle || s.dir,   goog: g.dir },
+            { f: 'horario',   label: 'Horario',   mio: s.horario,          goog: g.horario },
+            { f: 'tfno',      label: 'Teléfono',  mio: s.tfno,             goog: g.tfno },
+            { f: 'contacto',  label: 'Contacto',  mio: s.contacto,         goog: null },
+            { f: 'notas',     label: 'Notas',     mio: s.notas,            goog: null }
+        ];
+        var googVals = {};
+        CAMPOS.forEach(function (c) { if (c.goog) googVals[c.f] = c.goog; });
+        window._dupCopy = function (f) {
+            var inp = document.getElementById('dup-f-' + f);
+            if (!inp || googVals[f] == null) return;
+            inp.value = googVals[f];
+            inp.style.borderColor = 'var(--green)';
+            setTimeout(function () { inp.style.borderColor = ''; }, 900);
+        };
+        window._dupPick = function (cual) {
+            if (cual === 'guardado') {
+                // Consolidar en la agenda lo editado/copiado en la tabla.
+                var upd = {};
+                Object.keys(s).forEach(function (k) { upd[k] = s[k]; });
+                CAMPOS.forEach(function (c) {
+                    var inp = document.getElementById('dup-f-' + c.f);
+                    if (!inp) return;
+                    var v = inp.value.trim() || null;
+                    if (c.f === 'direccion') { if (s.calle) upd.calle = v; else upd.dir = v || upd.dir; }
+                    else upd[c.f] = v;
+                });
+                saveCustomSite(dup.key, upd);
+                dup.site = upd;
+            }
+            closeDashModal(); cb(cual);
+        };
+        function fila(c) {
+            return '<tr><td class="cmp-l">' + escapeHtml(c.label) + '</td>' +
+                '<td><input class="dup-inp" id="dup-f-' + c.f + '" value="' + escapeHtml(c.mio || '') + '"></td>' +
+                '<td>' + (c.goog
+                    ? '<button type="button" class="dup-copy" onclick="_dupCopy(\'' + c.f + '\')" title="Copiar este dato a mi registro" aria-label="Copiar a mi registro">←</button>' + escapeHtml(c.goog)
+                    : '<span style="color:var(--gray-400);">—</span>') + '</td></tr>';
         }
         openDashModal({
             icon: 'alert', title: 'Este sitio ya parece estar guardado',
             sub: 'El resultado de Google es muy similar a un sitio de tu agenda',
-            body: '<div class="modal-warn-box">Si sigues con el de Google se <strong>duplicaría el registro</strong>. Tu sitio guardado puede tener <strong>anotaciones importantes</strong> o el <strong>teléfono correcto</strong> que la ficha de Google no trae. Compara ambos y decide.</div>' +
+            body: '<div class="modal-warn-box">Si sigues con el de Google se <strong>duplicaría el registro</strong>. Tu sitio guardado puede tener <strong>anotaciones importantes</strong> o el <strong>teléfono correcto</strong> que la ficha de Google no trae. Compara ambos y decide: puedes <strong>editar tus campos</strong> o copiar un dato de Google con el botón <strong>←</strong>.</div>' +
                 '<div class="table-wrap"><table class="data cmp-table">' +
                 '<thead><tr><th></th><th>Tu registro</th><th>Ficha de Google</th></tr></thead><tbody>' +
-                fila('Nombre', s.empresa, g.empresa) +
-                fila('Dirección', s.dir, g.dir) +
-                fila('Horario', s.horario, g.horario) +
-                fila('Teléfono', s.tfno, g.tfno) +
-                fila('Contacto', s.contacto, null) +
-                fila('Notas', s.notas, null) +
+                CAMPOS.map(fila).join('') +
                 '</tbody></table></div>',
             footer: '<button class="btn-ghost" onclick="_dupPick(\'google\')">Usar el de Google</button>' +
                     '<button class="btn-primary" onclick="_dupPick(\'guardado\')">Usar mi registro</button>'
