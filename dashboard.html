@@ -1800,6 +1800,13 @@
         .ptar-sug .sug-chip-google { background: rgba(66,133,244,0.12); color: #1a73e8; }
         .ptar-sug .sug-chip-addr   { background: var(--gray-100); color: var(--gray-500); }
         .ptar-sug .sug-chip-recent { background: rgba(51,0,204,0.08); color: var(--purple); }
+        /* Última opción del desplegable: alta de sitio nuevo */
+        .ptar-sug .sug-crear { border-top: 1px solid var(--gray-200); }
+        .ptar-sug .sug-crear .sug-crear-lbl { color: var(--purple); font-weight: 800; }
+        /* Sitio/dirección seleccionado: el campo queda como chip bloqueado
+           (se cambia solo con el botón ×, no editando el texto). */
+        .ptar-input-wrap.ptar-picked { background: rgba(51,0,204,0.05); border-color: rgba(51,0,204,0.35); }
+        .ptar-input-wrap.ptar-picked input { background: transparent; font-weight: 600; cursor: default; }
         .ptar-sug .sug-dir { display: block; font-size: 0.78rem; color: var(--gray-500); }
         /* Botón × para borrar de golpe el campo de recogida/entrega */
         .ptar-clear {
@@ -5922,6 +5929,9 @@
             '</div>';
     }
     function openSitioModal(key) {
+        // Se limpia cualquier callback pendiente de "crear sitio desde un
+        // campo del envío" (quien lo necesite lo asigna DESPUÉS de abrir).
+        window._sitioOnSave = null;
         var s = key ? (siteDe(key) || {}) : null;
         openDashModal({
             icon: 'mapPin',
@@ -6023,7 +6033,15 @@
         closeDashModal();
         var si = document.getElementById('sitiosSearch');
         renderSitiosTable(si ? si.value : '');
-        showModalSuccess('Sitio guardado', escapeHtml(base.empresa) + ' queda en tu agenda: aparecerá el primero al buscarlo al crear envíos.');
+        // Si el alta vino de un campo del formulario de envío, el sitio
+        // recién creado rellena ese campo directamente.
+        if (window._sitioOnSave) {
+            var cb = window._sitioOnSave; window._sitioOnSave = null;
+            cb(key, base);
+            showModalSuccess('Sitio guardado', escapeHtml(base.empresa) + ' queda en tu agenda y ya está puesto en el campo del envío.');
+        } else {
+            showModalSuccess('Sitio guardado', escapeHtml(base.empresa) + ' queda en tu agenda: aparecerá el primero al buscarlo al crear envíos.');
+        }
     };
     // Borrar sitio (con confirmación). El borrado solo lo quita de la agenda
     // y del buscador: los envíos/presupuestos ya consolidados con este sitio
@@ -7020,9 +7038,17 @@
         // buscador normal de 3 niveles toma el relevo.
         function bindAutocomplete(wrap, input, sugList, onPick, tipoCampo) {
             var deb;
+            // Sitio/dirección elegido = CHIP bloqueado: no se puede editar a
+            // trozos (editarlo rompía la selección y el resumen perdía la
+            // ficha). Para cambiarlo: botón × y elegir/escribir de nuevo.
+            function setPicked(on) {
+                input.readOnly = !!on;
+                wrap.classList.toggle('ptar-picked', !!on);
+            }
             function clearGeo() {
                 delete wrap.dataset.lat; delete wrap.dataset.lon; delete wrap.dataset.cc;
                 delete wrap.dataset.siteKey; delete wrap.dataset.gsite;
+                setPicked(false);
                 if (onPick) onPick(null);
             }
             // Geocodifica en 2º plano la dirección del sitio elegido para que
@@ -7040,6 +7066,7 @@
                 wrap.dataset.siteKey = key;
                 delete wrap.dataset.gsite;
                 sugList.hidden = true;
+                setPicked(true);
                 syncClear();
                 geoFromDir(s.dir || s.calle || input.value);
             }
@@ -7048,6 +7075,7 @@
                 wrap.dataset.gsite = JSON.stringify(g);
                 delete wrap.dataset.siteKey;
                 sugList.hidden = true;
+                setPicked(true);
                 syncClear();
                 geoFromDir(g.dir);
             }
@@ -7081,12 +7109,28 @@
                 input.focus();
                 renderRecientes();
             });
+            // Opción fija al FINAL del desplegable: si ningún resultado vale,
+            // alta de sitio con el MISMO formulario de la sección Sitios
+            // (buscador Google/dirección + campos editables, Empresa separada
+            // de la dirección). Al guardar, el sitio nuevo rellena este campo.
+            function liCrear(q) {
+                var el = li('<span class="sug-crear-lbl">+ Crear nuevo sitio</span><span class="sug-dir">¿No está en la lista? Créalo con sus datos y se guarda en tu agenda</span>');
+                el.classList.add('sug-crear');
+                bindPick(el, function () {
+                    sugList.hidden = true;
+                    openSitioModal(null);
+                    window._sitioOnSave = function (key, s) { aplicarGuardado(key, s); };
+                    var b = document.getElementById('sitioBuscar');
+                    if (b && q) { b.value = q; b.dispatchEvent(new Event('input', { bubbles: true })); }
+                });
+                return el;
+            }
             // Últimos 5 sitios usados en este rol (recogida/entrega), al
             // pulsar el campo vacío. Facilita rellenar sin teclear.
             function renderRecientes() {
                 if (!tipoCampo || input.value.trim()) return;
+                if (document.activeElement !== input) return;
                 var rec = ultimosSitiosUsados(tipoCampo);
-                if (!rec.length) { sugList.hidden = true; return; }
                 sugList.innerHTML = '';
                 rec.forEach(function (kv) {
                     var k = kv[0], s = kv[1];
@@ -7094,6 +7138,7 @@
                     bindPick(el, function () { aplicarGuardado(k, s); });
                     sugList.appendChild(el);
                 });
+                sugList.appendChild(liCrear(''));
                 sugList.hidden = false;
             }
             // Al enfocar, el cursor se queda donde se pulsa (edición normal);
@@ -7150,7 +7195,8 @@
                     bindPick(el, function () { pickGoogle(g); });
                     sugList.appendChild(el);
                 });
-                sugList.hidden = !sugList.children.length;
+                sugList.appendChild(liCrear(q));
+                sugList.hidden = false;
             }
             input.addEventListener('input', function () {
                 wrap.classList.remove('ptar-error');
@@ -7174,11 +7220,15 @@
                                 wrap.dataset.cc = (it.address && it.address.country_code) || '';
                                 delete wrap.dataset.siteKey; delete wrap.dataset.gsite;
                                 sugList.hidden = true;
+                                setPicked(true);
                                 syncClear();
                                 if (onPick) onPick({ lat: parseFloat(it.lat), lon: parseFloat(it.lon), label: input.value });
                             });
                             sugList.appendChild(el);
                         });
+                        // "Crear nuevo sitio" se mantiene como ÚLTIMA opción.
+                        var cr = sugList.querySelector('.sug-crear');
+                        if (cr) sugList.appendChild(cr);
                         sugList.hidden = !sugList.children.length;
                     });
                 }, 350);
@@ -7192,7 +7242,11 @@
                     setTimeout(function () { justBlurred = false; }, 700);
                     return;
                 }
-                setTimeout(function () { if (!pointerInList) sugList.hidden = true; }, 180);
+                setTimeout(function () {
+                    // Si el foco ha VUELTO al input (p.ej. tras pulsar la ×,
+                    // que refoca y muestra los recientes), no se cierra.
+                    if (!pointerInList && document.activeElement !== input) sugList.hidden = true;
+                }, 180);
             });
         }
 
