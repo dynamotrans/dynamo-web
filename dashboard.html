@@ -935,6 +935,62 @@
             border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.10);
         }
         .modal-form-row textarea { resize: vertical; min-height: 90px; line-height: 1.45; }
+        /* ==== Carruseles del dashboard: muro de clientes (triple, como la
+           web pública) + servicios en una línea. CSS portado de index.html. */
+        .dash-carousel-title { font-size: 0.82rem; font-weight: 700; color: var(--navy); margin: 0 0 0.2rem; }
+        .dash-clientes { margin-top: 1.6rem; }
+        .dash-servicios { margin-top: 1.2rem; padding-bottom: 0.4rem; }
+        .logo-pill {
+            display: flex; align-items: center; justify-content: center;
+            height: 54px; padding: 0 1.1rem; border-radius: 14px;
+            border: 1.5px solid var(--gray-200);
+            background: linear-gradient(135deg, #fff, #f8f7ff);
+            min-width: 110px;
+            transition: all 0.25s; cursor: default; white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .logo-pill:hover { border-color: var(--purple); box-shadow: 0 6px 20px rgba(51,0,204,0.12); transform: translateY(-3px); }
+        .logo-pill .logo-box { display: flex; align-items: center; gap: 0.45rem; }
+        .logo-icon { width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .logo-icon img { width: 100%; height: 100%; object-fit: contain; }
+        .logo-name { font-weight: 800; font-size: 0.76rem; color: var(--gray-700); letter-spacing: -0.2px; }
+        .logo-sub  { font-size: 0.6rem; font-weight: 600; color: var(--gray-500); display: block; margin-top: 1px; }
+        .clientes-wall {
+            margin-top: 0.4rem;
+            display: flex; flex-direction: column; gap: 0.3rem;
+            -webkit-mask-image: linear-gradient(90deg, transparent 0, black 7%, black 93%, transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0, black 7%, black 93%, transparent 100%);
+        }
+        .clientes-row { overflow: hidden; position: relative; padding: 8px 0; }
+        .clientes-row-track {
+            display: flex; gap: 1rem; width: max-content;
+            animation: clientesScroll var(--dur, 90s) linear infinite;
+            will-change: transform;
+        }
+        .clientes-row[data-dir="rtl"] .clientes-row-track { animation-direction: reverse; }
+        @keyframes clientesScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        @media (hover: hover) { .clientes-row-track:hover { animation-play-state: paused; } }
+        .clientes-row .logo-pill { flex-shrink: 0; }
+        @media (prefers-reduced-motion: reduce) { .clientes-row-track { animation: none; } }
+        /* Tarjeta de servicio compacta (foto + chip + cuerpo morado, como la web) */
+        .dash-svc-card {
+            flex: 0 0 auto; width: 250px; border-radius: 14px; overflow: hidden;
+            border: 1.5px solid var(--gray-200); background: var(--purple);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: default;
+        }
+        .dash-svc-img { position: relative; height: 92px; background: var(--gray-200); }
+        .dash-svc-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .dash-svc-chip {
+            position: absolute; left: 8px; bottom: 8px;
+            background: rgba(255,255,255,0.92); color: var(--purple);
+            font-size: 0.62rem; font-weight: 800; padding: 0.16rem 0.5rem; border-radius: 999px;
+        }
+        .dash-svc-body { padding: 0.6rem 0.75rem 0.7rem; }
+        .dash-svc-body strong { display: block; color: #fff; font-size: 0.88rem; letter-spacing: -0.2px; }
+        .dash-svc-body span {
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+            color: rgba(255,255,255,0.85); font-size: 0.7rem; line-height: 1.4; margin-top: 2px; white-space: normal;
+        }
         /* Nota informativa discreta sobre una tabla (p.ej. retención de
            presupuestos caducados) */
         .tabla-aviso {
@@ -2708,6 +2764,59 @@
                     <!-- Rellenado por renderMiniPresup(): vigentes, de nuevo a antiguo -->
                 </ul>
             </div>
+        </div>
+
+        <!-- ===== Muro de clientes: MISMO carrusel triple de la web pública
+             (logos extraídos de index.html; el JS los reparte en 3 filas y
+             duplica cada fila para el bucle infinito). ===== -->
+        <div class="dash-clientes" translate="no">
+            <h4 class="dash-carousel-title">Más de 480 empresas confían en Dynamo</h4>
+            <div class="clientes-wall">
+                <div class="clientes-row" data-dir="ltr" style="--dur: 30s;"><div class="clientes-row-track" id="dashClientesRow1"></div></div>
+                <div class="clientes-row" data-dir="rtl" style="--dur: 38s;"><div class="clientes-row-track" id="dashClientesRow2"></div></div>
+                <div class="clientes-row" data-dir="ltr" style="--dur: 45s;"><div class="clientes-row-track" id="dashClientesRow3"></div></div>
+            </div>
+            <div id="dashClientesSrc" hidden>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/jardipond.webp" alt="Jardí Pond"></div><div><span class="logo-name">Jardí Pond</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/ferticenter.webp" alt="Ferticenter"></div><div><span class="logo-name">Ferticenter</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/rosport.webp" alt="Rosport"></div><div><span class="logo-name">Rosport</span><span class="logo-sub">Servicios Integrales</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/talsa.webp" alt="TALSA"></div><div><span class="logo-name">TALSA</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/aceitunascazorla.webp" alt="Aceitunas Cazorla"></div><div><span class="logo-name">Aceitunas Cazorla</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/solbau.webp" alt="SOLBAU"></div><div><span class="logo-name">SOLBAU</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/poolback.webp" alt="PoolBack"></div><div><span class="logo-name">PoolBack</span><span class="logo-sub">Logística del Envase</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/pansur.webp" alt="PANSUR"></div><div><span class="logo-name">PANSUR</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/sagredo.webp" alt="Sagredo"></div><div><span class="logo-name">Sagredo</span><span class="logo-sub">Abonos y Semillas</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/jysk.webp" alt="JYSK"></div><div><span class="logo-name">JYSK</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/alquibox.webp" alt="AlquiBox"></div><div><span class="logo-name">AlquiBox</span><span class="logo-sub">Andalucía</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/ghi.webp" alt="ghi"></div><div><span class="logo-name">ghi</span><span class="logo-sub">Smart Furnaces</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/rivi.webp" alt="RIVI"></div><div><span class="logo-name">RIVI</span><span class="logo-sub">Technical Group</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/almendrun.webp" alt="Almendrun"></div><div><span class="logo-name">Almendrun</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/prodisa.webp" alt="Prodisa"></div><div><span class="logo-name">Prodisa</span><span class="logo-sub">Comunicación</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/grupopuma.webp" alt="Grupo Puma"></div><div><span class="logo-name">Grupo Puma</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/aguacates.webp" alt="Aguacates"></div><div><span class="logo-name">Aguacates</span><span class="logo-sub">Valle del Guadiana</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/GRAMOFLOR.webp" alt="Gramoflor"></div><div><span class="logo-name">Gramoflor</span><span class="logo-sub">Ibérica</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/TRANSMETALICAS.webp" alt="Transmetálicas"></div><div><span class="logo-name">Transmetálicas</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/DIMASIBER.webp" alt="Dimasiber"></div><div><span class="logo-name">Dimasiber</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/COAVANTIA.webp" alt="Coavantia"></div><div><span class="logo-name">Coavantia</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/TODOEMBALAJE.webp" alt="Todoembalaje"></div><div><span class="logo-name">Todoembalaje</span><span class="logo-sub">.com</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/hidrodiseno.webp" alt="Hydrodiseño"></div><div><span class="logo-name">Hydrodiseño</span><span class="logo-sub">Global</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/QUIMICAS%20ORO.webp" alt="Químicas Oro"></div><div><span class="logo-name">Químicas Oro</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/JUMASA.webp" alt="Jumasa"></div><div><span class="logo-name">Jumasa</span><span class="logo-sub">Parts</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/BRELLO.webp" alt="Brello"></div><div><span class="logo-name">Brello</span><span class="logo-sub">Plásticos</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/PISCIMAR.webp" alt="Piscimar"></div><div><span class="logo-name">Piscimar</span><span class="logo-sub">Pools</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/BIGMAT.webp" alt="BigMat"></div><div><span class="logo-name">BigMat</span><span class="logo-sub">Logística</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/STRUGAL.webp" alt="Strugal"></div><div><span class="logo-name">Strugal</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/COTAIN%20SA.webp" alt="Cotain"></div><div><span class="logo-name">Cotain</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/RIMOBEL.webp" alt="Rimobel"></div><div><span class="logo-name">Rimobel</span></div></div></div>
+<div class="logo-pill"><div class="logo-box"><div class="logo-icon"><img loading="lazy" src="/images/logos/SKLUM.webp" alt="SKLUM"></div><div><span class="logo-name">SKLUM</span></div></div></div>
+            </div>
+        </div>
+
+        <!-- ===== Servicios: las 4 tarjetas de la web pública en UNA línea,
+             moviéndose solas (mismo mecanismo de carrusel). ===== -->
+        <div class="dash-servicios">
+            <h4 class="dash-carousel-title">Nuestros servicios</h4>
+            <div class="clientes-row" data-dir="ltr" style="--dur: 60s;"><div class="clientes-row-track" id="dashServiciosRow"></div></div>
         </div>
 
     </section>
@@ -6721,13 +6830,9 @@
     // scroll no altere el cálculo — en iOS el colapso de la barra de URL
     // dispara resize en pleno scroll y repintaba más filas.
     function miniFit(ul) {
-        if (!ul) return 5;
-        // Móvil: 4 filas fijas por lista (las dos tarjetas van apiladas y
-        // "llenar pantalla" no aplica). En el resto, hasta llenar pantalla.
-        if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) return 4;
-        var absTop = ul.getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
-        var n = Math.floor((window.innerHeight - absTop - 20) / 92);
-        return Math.max(4, Math.min(12, n));
+        // 1 fila de MUESTRA por lista (el resto vive en su sección); debajo
+        // van los carruseles de clientes y servicios.
+        return 1;
     }
     function renderMiniEnvios() {
         var ul = document.getElementById('miniEnvios');
@@ -6788,6 +6893,40 @@
     renderMiniEnvios();
     renderMiniPresup();
     renderSitiosTable();
+    // ==== Carruseles del dashboard (mismo mecanismo que la web pública) ====
+    (function initDashCarousels() {
+        // Muro de clientes: repartir los logos en 3 filas y duplicar cada
+        // fila para el bucle infinito (translateX -50%).
+        var srcC = document.getElementById('dashClientesSrc');
+        var rowsC = [document.getElementById('dashClientesRow1'), document.getElementById('dashClientesRow2'), document.getElementById('dashClientesRow3')];
+        if (srcC && !rowsC.some(function (r) { return !r; })) {
+            var pills = Array.prototype.slice.call(srcC.querySelectorAll('.logo-pill'));
+            pills.forEach(function (pill, i) { rowsC[i % 3].appendChild(pill.cloneNode(true)); });
+            rowsC.forEach(function (row) { row.innerHTML += row.innerHTML; });
+            srcC.innerHTML = '';
+        }
+        // Servicios: las 4 tarjetas de la web, repetidas para que el track
+        // sea más ancho que la pantalla y el bucle no muestre huecos.
+        var rowS = document.getElementById('dashServiciosRow');
+        if (rowS) {
+            var SVCS = [
+                { t: 'Grupajes', chip: 'Nacional 24h', img: '/images/FOTO 1 - copia55420ac5170e2.jpeg', pos: '', d: 'Comparte espacio y optimiza costes. Mercancía paletizada y cargas especiales. Recogida en 24h, entrega en 24-48h.' },
+                { t: 'Carga Completa', chip: 'Tráfico directo', img: '/images/HERO-DYNAMO.webp', pos: '34% center', d: 'El camión es tuyo. Sin transbordos: máxima seguridad, rapidez y entrega directa origen-destino.' },
+                { t: 'Importación', chip: 'Toda Europa', img: '/images/AdobeStock_154376791.jpeg', pos: '', d: 'Hasta la puerta de tu empresa, desde cualquier punto de Europa, con plazos garantizados y máxima calidad.' },
+                { t: 'Exportación', chip: 'Import & Export', img: '/images/AdobeStock_260603287.jpeg', pos: '', d: 'Portugal, Francia, Alemania, Italia, Suiza, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.' }
+            ];
+            var mitad = '';
+            for (var rep = 0; rep < 2; rep++) {
+                SVCS.forEach(function (s) {
+                    mitad += '<div class="dash-svc-card">' +
+                        '<div class="dash-svc-img"><img loading="lazy" src="' + s.img + '" alt="' + s.t + '"' + (s.pos ? ' style="object-position:' + s.pos + ';"' : '') + '><span class="dash-svc-chip">' + s.chip + '</span></div>' +
+                        '<div class="dash-svc-body"><strong>' + s.t + '</strong><span>' + s.d + '</span></div>' +
+                    '</div>';
+                });
+            }
+            rowS.innerHTML = mitad + mitad;  // 2 mitades idénticas = loop sin salto
+        }
+    })();
     (function () {
         var si = document.getElementById('sitiosSearch');
         if (si) si.addEventListener('input', function () { renderSitiosTable(si.value); });
