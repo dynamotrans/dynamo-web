@@ -6801,12 +6801,9 @@
                 syncClear();
                 input.focus();
             });
-            // Al enfocar con texto: se selecciona TODO (se puede reescribir
-            // encima sin borrar a mano).
-            input.addEventListener('focus', function () {
-                syncClear();
-                if (input.value) setTimeout(function () { try { input.select(); } catch (e) {} }, 0);
-            });
+            // Al enfocar, el cursor se queda donde se pulsa (edición normal);
+            // para borrar todo de golpe está el botón ×.
+            input.addEventListener('focus', syncClear);
             // Selección robusta en táctil: el pick va en CLICK (un scroll con
             // el dedo no dispara click; un toque sí). El mousedown solo evita
             // perder el foco del input en escritorio.
