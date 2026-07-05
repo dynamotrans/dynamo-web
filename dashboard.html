@@ -984,6 +984,44 @@
         @media (hover: hover) { .clientes-row-track:hover { animation-play-state: paused; } }
         .clientes-row .logo-pill { flex-shrink: 0; }
         @media (prefers-reduced-motion: reduce) { .clientes-row-track { animation: none; } }
+        /* Fila de 3: Nuevo envío · Últimos envíos (muestra) · Nuevo presupuesto.
+           Selector doble clase: gana a la regla base de .dash-top-row (2 col)
+           definida más abajo. */
+        .dash-top-row.dash-top-3 { grid-template-columns: 1fr 1.5fr 1fr !important; align-items: stretch; }
+        .dash-top-row.dash-top-3 .mini-list-card { margin: 0; min-width: 0; }
+        @media (max-width: 768px) {
+            /* En móvil: los 2 botones arriba en fila y la muestra de envíos
+               debajo a lo ancho. */
+            .dash-top-row.dash-top-3 { grid-template-columns: 1fr 1fr !important; }
+            .dash-top-row.dash-top-3 .mini-list-card { grid-column: 1 / -1; order: 3; }
+        }
+        /* Nuestra flota (sección de la web pública portada al panel) */
+        .dash-flota { margin-top: 1.8rem; }
+        .dash-flota-eyebrow { font-size: 0.68rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--green); margin: 0 0 0.15rem; }
+        .dash-flota-title { font-size: 1.15rem; font-weight: 900; color: var(--navy); margin: 0 0 0.15rem; }
+        .dash-flota-desc { font-size: 0.85rem; color: var(--gray-500); margin: 0 0 1rem; }
+        .veh-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        @media (max-width: 900px) { .veh-grid { grid-template-columns: 1fr; } }
+        .veh-card {
+            background: white; border-radius: 16px; padding: 1.4rem; border: 1.5px solid var(--gray-200);
+            transition: all 0.35s; position: relative; overflow: hidden;
+        }
+        .veh-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--purple), var(--green)); }
+        .veh-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(51,0,204,0.1); }
+        .veh-card h3 { font-size: 1rem; font-weight: 800; color: var(--navy); margin-bottom: 0.7rem; display: flex; align-items: center; gap: 0.5rem; }
+        .veh-icon { flex-shrink: 0; }
+        .veh-card p { color: var(--gray-500); font-size: 0.83rem; line-height: 1.6; margin-bottom: 0.7rem; }
+        .veh-card p strong { color: var(--navy); }
+        .veh-specs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.9rem; }
+        .veh-spec { background: var(--gray-100); border-radius: 10px; padding: 0.55rem 0.75rem; }
+        .veh-spec-label { font-size: 0.65rem; font-weight: 700; color: var(--gray-500); }
+        .veh-spec-value { font-size: 0.88rem; font-weight: 800; color: var(--purple); margin-top: 2px; }
+        .veh-nota {
+            margin: 1rem auto 0; max-width: 720px; text-align: center;
+            font-size: 0.8rem; color: var(--gray-500); line-height: 1.6;
+            padding: 0.9rem 1.3rem; background: white; border-radius: 12px; border: 1px solid var(--gray-200);
+        }
+        .veh-nota strong { color: var(--navy); }
         /* Tarjeta de servicio compacta (foto + chip + cuerpo morado, como la web) */
         .dash-svc-card {
             flex: 0 0 auto; width: 250px; border-radius: 14px; overflow: hidden;
@@ -2734,7 +2772,8 @@
 
     <!-- ==================== DASHBOARD ==================== -->
     <section class="section active" id="sec-dashboard">
-        <div class="dash-top-row">
+        <!-- Fila única: Nuevo envío · Últimos envíos (muestra) · Nuevo presupuesto -->
+        <div class="dash-top-row dash-top-3">
             <a class="dash-cta dash-cta-purple" href="#" onclick="openNuevaCarga('envio');return false;">
                 <div class="dash-cta-icon">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
@@ -2744,6 +2783,15 @@
                     <p>Solicita un transporte</p>
                 </div>
             </a>
+            <div class="mini-list-card">
+                <div class="mini-list-head">
+                    <h4>Últimos envíos (<span data-stat-cargas-activas>—</span>)</h4>
+                    <a href="#" onclick="showSection('cargas');return false;">Ver todos →</a>
+                </div>
+                <ul class="mini-list" id="miniEnvios">
+                    <!-- Rellenado por renderMiniEnvios(): 1 fila de muestra -->
+                </ul>
+            </div>
             <a class="dash-cta dash-cta-green" href="#" onclick="openNuevaCarga('presupuesto');return false;">
                 <div class="dash-cta-icon">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
@@ -2753,29 +2801,6 @@
                     <p>Calcula y guarda el precio</p>
                 </div>
             </a>
-        </div>
-
-        <div class="mini-lists">
-            <!-- Envíos de hoy y próximos días (dinámico) -->
-            <div class="mini-list-card">
-                <div class="mini-list-head">
-                    <h4>Últimos envíos (<span data-stat-cargas-activas>—</span>)</h4>
-                    <a href="#" onclick="showSection('cargas');return false;">Ver todos →</a>
-                </div>
-                <ul class="mini-list" id="miniEnvios">
-                    <!-- Rellenado por renderMiniEnvios(): cargando hoy + próximos días -->
-                </ul>
-            </div>
-            <!-- Presupuestos vigentes, de nuevo a antiguo (dinámico) -->
-            <div class="mini-list-card">
-                <div class="mini-list-head">
-                    <h4>Últimos presupuestos (<span data-stat-presup-vigentes>—</span>)</h4>
-                    <a href="#" onclick="showSection('presupuestos');return false;">Ver todos →</a>
-                </div>
-                <ul class="mini-list" id="miniPresup">
-                    <!-- Rellenado por renderMiniPresup(): vigentes, de nuevo a antiguo -->
-                </ul>
-            </div>
         </div>
 
         <!-- ===== Muro de clientes: MISMO carrusel triple de la web pública
@@ -2829,6 +2854,45 @@
         <div class="dash-servicios">
             <h4 class="dash-carousel-title">Nuestros servicios</h4>
             <div class="clientes-row" data-dir="ltr" style="--dur: 60s;"><div class="clientes-row-track" id="dashServiciosRow"></div></div>
+        </div>
+
+        <!-- ===== Nuestra flota: sección de la web pública (tipos de vehículo) ===== -->
+        <div class="dash-flota">
+            <p class="dash-flota-eyebrow">Nuestra flota</p>
+            <h4 class="dash-flota-title">Tipos de Vehículo</h4>
+            <p class="dash-flota-desc">Disponemos del vehículo adecuado para cada tipo de carga y necesidad.</p>
+            <div class="veh-grid">
+                <div class="veh-card">
+                    <h3><svg class="veh-icon" width="28" height="18" viewBox="0 0 28 18" fill="none" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="1" width="19" height="11" rx="1.5"/><path d="M8 4H3.5A2.5 2.5 0 0 0 1 6.5V12h7"/><circle cx="5" cy="15" r="2"/><circle cx="20" cy="15" r="2"/><circle cx="24" cy="15" r="2"/><line x1="7" y1="15" x2="18" y2="15"/></svg> Trailer Tauliner — Cortina / Lona Corredera</h3>
+                    <p>Similar a un furgón tipo box/caja, con cortinas correderas en lados y techo que dan fácil acceso a la carga. El vehículo más utilizado para envíos terrestres.</p>
+                    <p><strong>Ideal para:</strong> mercancía paletizada, palot/box y mercancías especiales.</p>
+                    <div class="veh-specs">
+                        <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">13,2 m</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,40 m</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Carga máx.</div><div class="veh-spec-value">24 Tn.</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Apertura</div><div class="veh-spec-value">Lateral, trasero y techo</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Palé europeo</div><div class="veh-spec-value">33 uds. (120x80)</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Palé americano</div><div class="veh-spec-value">26 uds. (120x100)</div></div>
+                    </div>
+                </div>
+                <div class="veh-card">
+                    <h3><svg class="veh-icon" width="24" height="18" viewBox="0 0 24 18" fill="none" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="1" width="16" height="11" rx="1.5"/><path d="M7 4H3.5A2.5 2.5 0 0 0 1 6.5V12h6"/><circle cx="5" cy="15" r="2"/><circle cx="18" cy="15" r="2"/><line x1="7" y1="15" x2="16" y2="15"/><line x1="10" y1="12" x2="10" y2="1"/></svg> Rígido con Plataforma y Transpaleta — Cortina / Lona Corredera</h3>
+                    <p>Tipo tauliner con cortinas correderas. Ideal para cargas donde no existen medios de carga y/o descarga en destino.</p>
+                    <p><strong>Ideal para:</strong> entregas urbanas, puntos sin muelle de carga.</p>
+                    <div class="veh-specs">
+                        <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">8 m</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,40 m</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Carga máx.</div><div class="veh-spec-value">14 Tn.</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Apertura</div><div class="veh-spec-value">Lateral, trasero y techo</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Palé europeo</div><div class="veh-spec-value">20 uds. (120x80)</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Palé americano</div><div class="veh-spec-value">16 uds. (120x100)</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Equipamiento</div><div class="veh-spec-value">Plataforma + Transpaleta</div></div>
+                    </div>
+                </div>
+            </div>
+            <p class="veh-nota">Trabajamos <strong>exclusivamente con trailer tauliner (lona corredera) y rígido con plataforma (lona corredera)</strong>. No disponemos de pisos móviles, bañeras basculantes, frigoríficos ni servicio de granel o temperatura controlada.</p>
         </div>
 
     </section>
