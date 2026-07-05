@@ -972,10 +972,15 @@
         }
         .clientes-row { overflow: hidden; position: relative; padding: 8px 0; }
         .clientes-row-track {
-            display: flex; gap: 1rem; width: max-content;
+            display: flex; width: max-content;
             animation: clientesScroll var(--dur, 90s) linear infinite;
             will-change: transform;
         }
+        /* Separación por MARGEN (no gap): con gap, translateX(-50%) no cae
+           exactamente en un ciclo (sobra medio gap) y el bucle daba un
+           brinco al empalmar. Con margen por tarjeta las dos mitades del
+           track son pixel-idénticas → empalme invisible. */
+        .clientes-row-track > * { margin-right: 1rem; }
         .clientes-row[data-dir="rtl"] .clientes-row-track { animation-direction: reverse; }
         @keyframes clientesScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         @media (hover: hover) { .clientes-row-track:hover { animation-play-state: paused; } }
