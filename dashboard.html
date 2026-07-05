@@ -3324,7 +3324,7 @@
                 '<div class="modal-success-title">' + escapeHtml(title) + '</div>' +
                 '<p class="modal-success-text">' + escapeHtml(text) + '</p>' +
                 '</div>',
-            footer: '<button class="btn-primary" onclick="closeDashModal()" style="flex:1;">Cerrar</button>'
+            footer: '<button class="btn-primary" onclick="closeDashModal()" style="flex:1;">Ok, gracias</button>'
         });
     }
     function escapeHtml(s) {
@@ -7782,7 +7782,7 @@
                         isPrev ? 'Previsión ' + ref + ' guardada' : 'Envío ' + ref + ' creado',
                         isPrev
                             ? 'Queda anotada en "Previsión sin fecha" sin asignar camión. Cuando le pongas fecha pasará por el proceso de confirmación con avisos y condiciones, y se tramitará como pedido real.'
-                            : 'Tu solicitud está en cola. El equipo confirmará precio y disponibilidad en menos de 25 minutos. La verás en "Programadas pendientes" con el detalle completo.'
+                            : 'Tu solicitud está creada. La verás en el listado de "Programadas" con el detalle completo.'
                     );
                     setTimeout(function () { showSection('cargas'); }, 1200);
                 } else {
