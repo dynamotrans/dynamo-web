@@ -5932,7 +5932,7 @@
                 inp('Empresa', 'sitio-f-empresa', s.empresa) +
                 inp('Horario', 'sitio-f-horario', s.horario, 'Ej. L-V 8:00-14:00') +
                 inp('Dirección (calle y número)', 'sitio-f-calle', s.calle, '', true) +
-                inp('CP, localidad, provincia', 'sitio-f-dir', s.dir, 'Ej. 41001, Sevilla, España', true) +
+                inp('CP, localidad, provincia y país', 'sitio-f-dir', s.dir, 'Ej. 41001, Sevilla, España', true) +
                 inp('Teléfono', 'sitio-f-tfno', s.tfno) +
                 inp('Contacto', 'sitio-f-contacto', s.contacto, 'Persona de contacto') +
                 inp('Notas del sitio', 'sitio-f-notas', s.notas, 'Ej. pedir cita, báscula, NIMA…', true) +
@@ -8192,7 +8192,7 @@
                                 inp('Empresa', 'empresa', s.empresa) +
                                 inp('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
                                 inpLock('Dirección (calle y número)', calleVal, !dirVal) +
-                                inpLock('CP, localidad, provincia', dirVal, !calleVal) +
+                                inpLock('CP, localidad, provincia y país', dirVal, !calleVal) +
                                 inp('Teléfono', 'tfno', s.tfno) +
                                 inp('Contacto', 'contacto', s.contacto, 'Persona de contacto') +
                                 '<div class="full"><label>Notas del sitio</label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="' + escapeHtml(s.notas || '') + '" placeholder="Ej. pedir cita, báscula, NIMA…"></div>' +
