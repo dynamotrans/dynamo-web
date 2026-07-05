@@ -7395,8 +7395,10 @@
                     bindPick(el, function () { aplicarGuardado(k, s); });
                     sugList.appendChild(el);
                 });
-                sugList.appendChild(liCrear(''));
-                sugList.hidden = false;
+                // Sin "Crear nuevo sitio" aquí: junto a los recientes daba a
+                // entender que no había más sitios y se creaban duplicados
+                // sin buscar. Solo aparece tras escribir 3+ caracteres.
+                sugList.hidden = !sugList.children.length;
             }
             // Al enfocar, el cursor se queda donde se pulsa (edición normal);
             // para borrar todo de golpe está el botón ×. Si el campo está
@@ -7452,8 +7454,10 @@
                     bindPick(el, function () { pickGoogle(g); });
                     sugList.appendChild(el);
                 });
-                sugList.appendChild(liCrear(q));
-                sugList.hidden = false;
+                // "Crear nuevo sitio" solo tras una búsqueda real (3+ chars):
+                // así el usuario busca primero y no crea duplicados a la ligera.
+                if (q.length >= 3) sugList.appendChild(liCrear(q));
+                sugList.hidden = !sugList.children.length;
             }
             input.addEventListener('input', function () {
                 wrap.classList.remove('ptar-error');
