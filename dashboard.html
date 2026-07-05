@@ -6562,9 +6562,21 @@
                 pointerInList = true;
                 setTimeout(function () { pointerInList = false; }, 800);
             }, { passive: true });
-            // Toque/click FUERA del campo y de la lista → cerrar
+            // Cierre por toque fuera — con matiz táctil: el PRIMER toque
+            // fuera (el que baja el teclado) NO cierra la lista, para poder
+            // navegarla con scroll a pantalla completa. Se cierra al elegir,
+            // al segundo toque fuera, o si se toca otro campo/botón.
+            var COARSE = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+            // El toque que BAJA el teclado no debe cerrar: según el orden de
+            // eventos del navegador, el blur puede llegar antes o después del
+            // pointerdown — se cubren ambos casos con el foco actual O un
+            // flag "acaba de bajar el teclado" que enciende el blur táctil.
+            var justBlurred = false;
             document.addEventListener('pointerdown', function (e) {
-                if (!sugList.hidden && !wrap.contains(e.target)) sugList.hidden = true;
+                if (sugList.hidden || wrap.contains(e.target)) return;
+                var interactivo = e.target.closest ? e.target.closest('input, select, textarea, button, a, label, .ptar-sug') : null;
+                if (COARSE && !interactivo && (document.activeElement === input || justBlurred)) return; // solo baja el teclado
+                sugList.hidden = true;
             });
             function renderLocales(q) {
                 sugList.innerHTML = '';
@@ -6611,6 +6623,14 @@
                 }, 350);
             });
             input.addEventListener('blur', function () {
+                // En táctil el blur NO cierra (es el gesto de bajar el teclado
+                // para navegar la lista); en escritorio sí, salvo que se esté
+                // interactuando con la lista.
+                if (COARSE) {
+                    justBlurred = true;
+                    setTimeout(function () { justBlurred = false; }, 700);
+                    return;
+                }
                 setTimeout(function () { if (!pointerInList) sugList.hidden = true; }, 180);
             });
         }
