@@ -2018,12 +2018,23 @@
             margin-top: 0.75rem; cursor: pointer;
             font-size: 0.8rem; line-height: 1.5; color: var(--gray-700);
         }
+        /* Check de condiciones sin marcar al intentar confirmar: en rojo */
+        .ptar-confirm-check.check-error { color: #dc2626; }
+        .ptar-confirm-check.check-error span { color: #dc2626; }
+        .ptar-confirm-check.check-error input[type="checkbox"] { outline: 2px solid #dc2626; outline-offset: 2px; border-radius: 3px; }
+        .ptar-terms-warn {
+            display: none; margin: 0.5rem 0 0; padding: 0.55rem 0.75rem;
+            background: rgba(220,38,38,0.08); border: 1px solid rgba(220,38,38,0.35);
+            border-radius: 9px; color: #dc2626; font-size: 0.82rem; font-weight: 600;
+        }
+        .ptar-terms-warn.show { display: block; }
         .ptar-confirm-check input[type="checkbox"] {
             margin: 0.1rem 0 0; width: 18px; height: 18px; flex: 0 0 auto;
             accent-color: var(--purple); cursor: pointer;
         }
         .ptar-confirm-check a { color: var(--purple); font-weight: 700; text-decoration: underline; }
         .ptar-confirm-card .ptar-actions { padding-top: 1.2rem; }
+        .ptar-confirm-card .btn-primary.btn-visual-disabled,
         .ptar-confirm-card .btn-primary:disabled {
             opacity: 0.45; cursor: not-allowed; pointer-events: none;
         }
@@ -2980,10 +2991,11 @@
                 <input type="checkbox" data-ptar-check-terms>
                 <span>He leído y acepto las <a href="#" data-ptar-show-terms>condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L. (incluyen las condiciones de disponibilidad de la recogida y de cancelación o aplazamiento por falta de vehículos).</span>
             </label>
+            <div class="ptar-terms-warn" data-ptar-terms-warn>⚠ No has aceptado las condiciones generales de transporte. Marca la casilla para poder confirmar el envío.</div>
 
             <div class="ptar-actions">
                 <button type="button" class="btn-ghost" data-ptar-back>← Editar datos</button>
-                <button type="button" class="btn-primary" data-ptar-final-confirm disabled>Confirmar envío</button>
+                <button type="button" class="btn-primary btn-visual-disabled" data-ptar-final-confirm>Confirmar envío</button>
             </div>
         </div>
     </section>
@@ -7752,9 +7764,19 @@
             // "Confirmar envío" queda deshabilitado hasta aceptar las
             // condiciones generales de transporte (que ya incluyen el aviso de
             // disponibilidad de la recogida y cancelación/aplazamiento).
+            // El botón NO usa disabled real: así el clic con el check sin
+            // marcar puede explicar el fallo (check y texto en rojo + aviso).
+            var termsWarn = confirmCard ? confirmCard.querySelector('[data-ptar-terms-warn]') : null;
+            var checkLbl = confirmCard ? confirmCard.querySelector('.ptar-confirm-check') : null;
             function refreshConfirmEnabled() {
                 if (!finalBtn) return;
-                finalBtn.disabled = !(!chkTerms || chkTerms.checked);
+                var ok = (!chkTerms || chkTerms.checked);
+                finalBtn.classList.toggle('btn-visual-disabled', !ok);
+                finalBtn.setAttribute('aria-disabled', ok ? 'false' : 'true');
+                if (ok) {
+                    if (checkLbl) checkLbl.classList.remove('check-error');
+                    if (termsWarn) termsWarn.classList.remove('show');
+                }
             }
             if (chkTerms) chkTerms.addEventListener('change', refreshConfirmEnabled);
 
@@ -7839,6 +7861,8 @@
                 // Reiniciar el check obligatorio cada vez que se entra al paso
                 // de confirmación (por si se editó y se volvió a entrar).
                 if (chkTerms) chkTerms.checked = false;
+                if (checkLbl) checkLbl.classList.remove('check-error');
+                if (termsWarn) termsWarn.classList.remove('show');
                 refreshConfirmEnabled();
                 card.hidden = true;
                 confirmCard.hidden = false;
@@ -7857,6 +7881,15 @@
             if (backBtn) backBtn.addEventListener('click', exitConfirmStep);
             if (finalBtn) finalBtn.addEventListener('click', function () {
                 if (!pendingData) return;
+                // Check de condiciones sin marcar → señalar dónde está el fallo
+                if (chkTerms && !chkTerms.checked) {
+                    if (checkLbl) {
+                        checkLbl.classList.add('check-error');
+                        checkLbl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    if (termsWarn) termsWarn.classList.add('show');
+                    return;
+                }
                 // Aviso extra "hoy para hoy" si la carga empieza hoy mismo.
                 var hoyBloque = (pendingData.fechaIso && pendingData.ventanaDias === 1 && pendingData.fechaIso === isoLocal(nowMadrid()))
                     ? '<div style="margin-bottom:0.8rem;padding:0.6rem 0.75rem;background:rgba(245,158,11,0.14);border:1px solid rgba(245,158,11,0.45);border-radius:9px;font-size:0.85rem;line-height:1.55;color:#92400e;font-weight:600;">' +
