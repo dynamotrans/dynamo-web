@@ -2036,8 +2036,11 @@
         .ptar-confirm-card .ptar-actions { padding-top: 1.2rem; }
         .ptar-confirm-card .btn-primary.btn-visual-disabled,
         .ptar-confirm-card .btn-primary:disabled {
-            opacity: 0.45; cursor: not-allowed; pointer-events: none;
+            opacity: 0.45; cursor: not-allowed;
         }
+        /* El deshabilitado VISUAL sí recibe el toque: al pulsarlo explica el
+           fallo (check en rojo + aviso). El disabled real sigue inerte. */
+        .ptar-confirm-card .btn-primary:disabled { pointer-events: none; }
         @media (max-width: 768px) {
             .ptar-confirm-card { padding: 1.1rem; }
             .ptar-confirm-summary { grid-template-columns: 1fr; gap: 0.3rem; }
