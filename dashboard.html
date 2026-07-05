@@ -1736,6 +1736,8 @@
             border-radius: 10px; max-height: 240px; overflow-y: auto;
             box-shadow: 0 12px 28px rgba(10,2,48,0.12);
             list-style: none; padding: 0.3rem; z-index: 50;
+            /* Scroll táctil dentro del desplegable sin arrastrar la página */
+            -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y;
         }
         .ptar-sug li {
             padding: 0.55rem 0.75rem; border-radius: 7px;
@@ -6542,17 +6544,39 @@
             }
             function li(html) { var el = document.createElement('li'); el.innerHTML = html; return el; }
             function chip(t, cls) { return '<span class="sug-chip ' + cls + '">' + t + '</span>'; }
+            // Selección robusta en táctil: el pick va en CLICK (un scroll con
+            // el dedo no dispara click; un toque sí). El mousedown solo evita
+            // perder el foco del input en escritorio.
+            function bindPick(el, fn) {
+                el.addEventListener('mousedown', function (e) { e.preventDefault(); });
+                el.addEventListener('click', function (e) { e.preventDefault(); fn(); });
+            }
+            // Mientras el dedo/puntero está sobre la lista (tocando o
+            // scrolleando), el blur del input NO la cierra.
+            var pointerInList = false;
+            sugList.addEventListener('pointerdown', function () {
+                pointerInList = true;
+                setTimeout(function () { pointerInList = false; }, 800);
+            });
+            sugList.addEventListener('touchstart', function () {
+                pointerInList = true;
+                setTimeout(function () { pointerInList = false; }, 800);
+            }, { passive: true });
+            // Toque/click FUERA del campo y de la lista → cerrar
+            document.addEventListener('pointerdown', function (e) {
+                if (!sugList.hidden && !wrap.contains(e.target)) sugList.hidden = true;
+            });
             function renderLocales(q) {
                 sugList.innerHTML = '';
                 buscarSitesGuardados(q).forEach(function (kv) {
                     var k = kv[0], s = kv[1];
                     var el = li(chip('Guardado', 'sug-chip-saved') + '<strong>' + esc(s.empresa || '') + '</strong><span class="sug-dir">' + esc(s.calle || s.dir || '') + '</span>');
-                    el.addEventListener('mousedown', function (e) { e.preventDefault(); aplicarGuardado(k, s); });
+                    bindPick(el, function () { aplicarGuardado(k, s); });
                     sugList.appendChild(el);
                 });
                 buscarSitesGoogle(q).forEach(function (g) {
                     var el = li(chip('Google', 'sug-chip-google') + '<strong>' + esc(g.empresa) + '</strong><span class="sug-dir">' + esc(g.dir) + '</span>');
-                    el.addEventListener('mousedown', function (e) { e.preventDefault(); pickGoogle(g); });
+                    bindPick(el, function () { pickGoogle(g); });
                     sugList.appendChild(el);
                 });
                 sugList.hidden = !sugList.children.length;
@@ -6572,8 +6596,7 @@
                         if (input.value.trim() !== q) return;   // el texto ya cambió
                         prioritizeCountry(items || []).slice(0, 4).forEach(function (it) {
                             var el = li(chip('Dirección', 'sug-chip-addr') + esc(formatSugLabel(it)));
-                            el.addEventListener('mousedown', function (e) {
-                                e.preventDefault();
+                            bindPick(el, function () {
                                 input.value = formatSugLabel(it);
                                 wrap.dataset.lat = it.lat; wrap.dataset.lon = it.lon;
                                 wrap.dataset.cc = (it.address && it.address.country_code) || '';
@@ -6588,7 +6611,7 @@
                 }, 350);
             });
             input.addEventListener('blur', function () {
-                setTimeout(function () { sugList.hidden = true; }, 150);
+                setTimeout(function () { if (!pointerInList) sugList.hidden = true; }, 180);
             });
         }
 
