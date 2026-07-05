@@ -8125,17 +8125,9 @@
                         : 'del ' + fmtEtaDate(ls) + ' al ' + fmtEtaDate(le) + ' · cualquier día laborable';
                     cargaRangoHtml = '<dt>Fecha de envío</dt><dd>' + escapeHtml(cargaRangoTxt) + '</dd>';
                 }
-                function paradasHtml(kind) {
-                    return (d.paradas || []).filter(function (p) { return p.kind === kind; }).map(function (p) {
-                        var k = kind === 'recogida' ? 'Recogida (origen adicional)' : 'Entrega (destino adicional)';
-                        return '<dt>' + k + '</dt><dd>' + escapeHtml(p.texto) + ' · ' + escapeHtml(p.tipo) + '</dd>';
-                    }).join('');
-                }
+                // El resumen NO repite recogidas/entregas: van solo abajo, en
+                // las fichas numeradas de "Datos de los lugares".
                 summaryEl.innerHTML =
-                    '<dt>Origen</dt><dd>' + escapeHtml(d.orig) + '</dd>' +
-                    paradasHtml('recogida') +
-                    '<dt>Destino</dt><dd>' + escapeHtml(d.dest) + '</dd>' +
-                    paradasHtml('entrega') +
                     '<dt>Tipo de camión</dt><dd>' + escapeHtml(d.camionLabel) + '</dd>' +
                     (d.mercaTxt ? '<dt>Mercancía</dt><dd>' + escapeHtml(d.mercaTxt) + '</dd>' : '') +
                     (d.nima ? '<dt>NIMA (residuos)</dt><dd>Sí</dd>' : '') +
@@ -8161,13 +8153,34 @@
                 var sitiosWrap = confirmCard.querySelector('[data-ptar-sitios]');
                 var sitiosList = confirmCard.querySelector('[data-ptar-sitios-list]');
                 if (sitiosWrap && sitiosList) {
+                    // TODOS los puntos de la ruta, en su orden (origen →
+                    // recogidas → entregas → destino), numerados por rol:
+                    // Recogida 1..N (naranja) y Entrega 1..N (verde). Los que
+                    // no tienen ficha (dirección suelta) también salen, solo
+                    // con su dirección.
                     var picks = [];
-                    if (d.origSitePick) picks.push({ rol: 'Recogida (origen)', pick: d.origSitePick, id: 'orig' });
-                    (d.paradas || []).forEach(function (p, i) {
-                        if (p.sitePick) picks.push({ rol: p.kind === 'recogida' ? 'Recogida adicional' : 'Entrega adicional', pick: p.sitePick, id: 'parada' + i });
+                    var paradasArr = d.paradas || [];
+                    var numRec = 1, numEnt = 1;
+                    picks.push({ kind: 'recogida', num: numRec++, pick: d.origSitePick, texto: d.orig, id: 'orig' });
+                    paradasArr.forEach(function (p, i) {
+                        if (p.kind === 'recogida') picks.push({ kind: 'recogida', num: numRec++, pick: p.sitePick, texto: p.texto, id: 'parada' + i });
                     });
-                    if (d.destSitePick) picks.push({ rol: 'Entrega (destino)', pick: d.destSitePick, id: 'dest' });
+                    paradasArr.forEach(function (p, i) {
+                        if (p.kind !== 'recogida') picks.push({ kind: 'entrega', num: numEnt++, pick: p.sitePick, texto: p.texto, id: 'parada' + i });
+                    });
+                    picks.push({ kind: 'entrega', num: numEnt++, pick: d.destSitePick, texto: d.dest, id: 'dest' });
                     sitiosList.innerHTML = picks.map(function (p) {
+                        var rolHtml = '<span style="color:' + (p.kind === 'recogida' ? 'var(--orange)' : 'var(--green)') + ';">' +
+                            (p.kind === 'recogida' ? 'Recogida ' : 'Entrega ') + p.num + '</span>';
+                        // Punto SIN ficha de sitio: tarjeta solo con la dirección.
+                        if (!p.pick) {
+                            return '<div class="ptar-sitio-card">' +
+                                '<h5>' + rolHtml + ' · <span style="color:var(--gray-500);font-weight:600;">dirección (sin ficha en tu agenda)</span></h5>' +
+                                '<div class="ptar-sitio-grid">' +
+                                    '<div class="full"><label>Dirección</label><input class="sitio-f-lock" value="' + escapeHtml(p.texto || '') + '" readonly tabindex="-1"></div>' +
+                                '</div>' +
+                            '</div>';
+                        }
                         var s = p.pick.tipo === 'guardado' ? (siteDe(p.pick.key) || {}) : p.pick.g;
                         var fuente = p.pick.tipo === 'guardado' ? 'de tu agenda' : 'de Google · se guardará en tu agenda';
                         function inp(lbl, f, val, ph) {
@@ -8187,7 +8200,7 @@
                         var dirVal = p.pick.tipo === 'guardado' ? s.dir : '';
                         var mapsLink = s.maps ? ' · <a href="' + escapeHtml(s.maps) + '" target="_blank" rel="noopener" style="color:var(--purple);font-weight:700;text-decoration:none;">Ver en Maps</a>' : '';
                         return '<div class="ptar-sitio-card">' +
-                            '<h5>' + escapeHtml(p.rol) + ' · <span style="color:var(--gray-500);font-weight:600;">' + escapeHtml(fuente) + '</span>' + mapsLink + '</h5>' +
+                            '<h5>' + rolHtml + ' · <span style="color:var(--gray-500);font-weight:600;">' + escapeHtml(fuente) + '</span>' + mapsLink + '</h5>' +
                             '<div class="ptar-sitio-grid">' +
                                 inp('Empresa', 'empresa', s.empresa) +
                                 inp('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
