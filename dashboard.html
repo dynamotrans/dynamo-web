@@ -1752,6 +1752,16 @@
         .ptar-sug .sug-chip-google { background: rgba(66,133,244,0.12); color: #1a73e8; }
         .ptar-sug .sug-chip-addr   { background: var(--gray-100); color: var(--gray-500); }
         .ptar-sug .sug-dir { display: block; font-size: 0.78rem; color: var(--gray-500); }
+        /* Botón × para borrar de golpe el campo de recogida/entrega */
+        .ptar-clear {
+            position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+            width: 22px; height: 22px; border-radius: 50%; border: none;
+            background: var(--gray-200); color: var(--gray-600, #4b5563);
+            font-size: 0.85rem; line-height: 1; cursor: pointer; padding: 0;
+            display: flex; align-items: center; justify-content: center; z-index: 5;
+        }
+        .ptar-clear:hover { background: var(--gray-300, #d1d5db); }
+        .ptar-clear[hidden] { display: none; }
         .cmp-table td.cmp-l { color: var(--gray-500); font-weight: 600; white-space: nowrap; }
         /* Fichas editables de los lugares en el paso de confirmación */
         .ptar-sitio-card { border: 1px solid var(--gray-200); border-radius: 10px; padding: 0.8rem 0.9rem; margin-bottom: 0.7rem; background: #fff; }
@@ -6525,6 +6535,7 @@
                 wrap.dataset.siteKey = key;
                 delete wrap.dataset.gsite;
                 sugList.hidden = true;
+                syncClear();
                 geoFromDir(s.dir || s.calle || input.value);
             }
             function aplicarGoogle(g) {
@@ -6532,6 +6543,7 @@
                 wrap.dataset.gsite = JSON.stringify(g);
                 delete wrap.dataset.siteKey;
                 sugList.hidden = true;
+                syncClear();
                 geoFromDir(g.dir);
             }
             function pickGoogle(g) {
@@ -6544,6 +6556,31 @@
             }
             function li(html) { var el = document.createElement('li'); el.innerHTML = html; return el; }
             function chip(t, cls) { return '<span class="sug-chip ' + cls + '">' + t + '</span>'; }
+            // Botón × dentro de la caja: borra todo de golpe (texto + sitio
+            // elegido) y deja el campo listo para escribir.
+            var clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.className = 'ptar-clear';
+            clearBtn.setAttribute('aria-label', 'Borrar');
+            clearBtn.innerHTML = '✕';
+            clearBtn.hidden = true;
+            input.style.paddingRight = '2.1rem';
+            wrap.appendChild(clearBtn);
+            function syncClear() { clearBtn.hidden = !input.value; }
+            clearBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                input.value = '';
+                clearGeo();
+                sugList.hidden = true;
+                syncClear();
+                input.focus();
+            });
+            // Al enfocar con texto: se selecciona TODO (se puede reescribir
+            // encima sin borrar a mano).
+            input.addEventListener('focus', function () {
+                syncClear();
+                if (input.value) setTimeout(function () { try { input.select(); } catch (e) {} }, 0);
+            });
             // Selección robusta en táctil: el pick va en CLICK (un scroll con
             // el dedo no dispara click; un toque sí). El mousedown solo evita
             // perder el foco del input en escritorio.
@@ -6596,6 +6633,7 @@
             input.addEventListener('input', function () {
                 wrap.classList.remove('ptar-error');
                 clearGeo();
+                syncClear();
                 var q = input.value.trim();
                 if (q.length < 1) { sugList.hidden = true; return; }
                 // Niveles 1-2 al instante desde el primer carácter
@@ -6614,6 +6652,7 @@
                                 wrap.dataset.cc = (it.address && it.address.country_code) || '';
                                 delete wrap.dataset.siteKey; delete wrap.dataset.gsite;
                                 sugList.hidden = true;
+                                syncClear();
                                 if (onPick) onPick({ lat: parseFloat(it.lat), lon: parseFloat(it.lon), label: input.value });
                             });
                             sugList.appendChild(el);
@@ -7197,6 +7236,8 @@
                 // Reset → campos de recogida/entrega vacíos
                 origInput.value = '';
                 destInput.value = '';
+                origInput.dispatchEvent(new Event('input', { bubbles: true }));
+                destInput.dispatchEvent(new Event('input', { bubbles: true }));
                 delete origWrap.dataset.lat; delete origWrap.dataset.lon; delete origWrap.dataset.cc;
                 delete destWrap.dataset.lat; delete destWrap.dataset.lon; delete destWrap.dataset.cc;
                 delete origWrap.dataset.siteKey; delete origWrap.dataset.gsite;
