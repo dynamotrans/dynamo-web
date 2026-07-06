@@ -7420,14 +7420,22 @@
             input.style.paddingRight = '2.1rem';
             wrap.appendChild(clearBtn);
             function syncClear() { clearBtn.hidden = !input.value; }
-            clearBtn.addEventListener('click', function (e) {
-                e.preventDefault();
+            function limpiarYRecientes() {
                 input.value = '';
                 clearGeo();
-                sugList.hidden = true;
                 syncClear();
                 input.focus();
                 renderRecientes();
+            }
+            clearBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                sugList.hidden = true;
+                limpiarYRecientes();
+            });
+            // Pulsar un campo YA elegido (chip bloqueado) lo borra y reabre los
+            // recientes para elegir/escribir otro — igual que la ×.
+            input.addEventListener('click', function () {
+                if (wrap.classList.contains('ptar-picked')) limpiarYRecientes();
             });
             // Opción fija al FINAL del desplegable: si ningún resultado vale,
             // alta de sitio con el MISMO formulario de la sección Sitios
