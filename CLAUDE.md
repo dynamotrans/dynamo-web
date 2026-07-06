@@ -150,6 +150,28 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-07-05 (cont.) — Claude Code web (nube)
+
+> **Continuación de la sesión del panel (tarde/noche).** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `d8210d1`.
+
+**BUSCADOR DE SITIOS — más pulido**:
+- **Solo ubicaciones elegidas de la lista** (agenda/Google/dirección): teclear texto suelto ya no cuela. Si sales del campo sin elegir, **el texto se borra solo** (vuelve a vacío) — el aviso de "texto a mano" casi nunca aparece. Al pulsar Crear también limpia lo no elegido.
+- **Pista** no clicable bajo los recientes ("✎ Escribe para buscar en toda tu agenda o en Google Maps…"); al pulsarla, enfoca el campo.
+- **Pulsar un chip ya elegido** lo borra y reabre los recientes (como la ×).
+- **"Crear nuevo sitio"** solo con 3+ caracteres.
+- **Formulario Nuevo sitio**: al elegir dirección de Google/Nominatim, "Dirección (calle y número)" recibe SOLO calle+número; el CP/localidad/provincia/país va en su campo (sin duplicar; dedupe ciudad=provincia en ciudades-estado).
+
+**AL SALIR DE CREAR ENVÍO** → el formulario se resetea (campos, paradas, tipo, camión, fecha, ref, notas, vuelve al paso 1).
+
+**CONFIRMACIÓN DE ENVÍO — rehecha**:
+- **Tipo de lugar EDITABLE aquí** (en envío se quitó del paso 1; los sitios ya lo traen): select por punto, autoseleccionado; al cambiarlo **recalcula el precio en vivo** y se consolida en la ficha al confirmar. En **presupuesto** seguía en el paso 1 (irrelevante ya, ver abajo).
+- **Fichas de lugares PLEGADAS por defecto** (acordeón): cabecera = nº + Recogida/Entrega + empresa + CP/localidad/provincia/país + flecha circular; se despliega para editar.
+- **Referencia y anotaciones** pasan al **resumen** (solo lectura, con lo del paso 1; en blanco se omiten) — ya no se editan en confirmación.
+- **Precio** solo en la **caja destacada** justo antes del botón (fuera del resumen). Fuera "Fecha de carga" (redundante con "Fecha de envío"); "Medidas" → "Ocupación".
+- **Botones apilados**: caja de precio → **Confirmar envío** grande (64px, a lo ancho) → **← Editar datos** debajo. Texto del checkbox de condiciones acortado.
+
+**PRESUPUESTOS ELIMINADOS del portal** (decisión del usuario: precios dinámicos → no tiene sentido guardar presupuestos): fuera el enlace del sidebar, la sección `#sec-presupuestos` entera, el CTA verde "Nuevo presupuesto" del dashboard (fila a 2: Nuevo envío + Mis últimos envíos), el botón "Guardar presupuesto" del formulario y el modo de entrada `presupuesto` (`openNuevaCarga` fuerza envío). El código de datos/render de presupuestos queda **inerte** (guards por null); sin errores JS. Usuario demo de Marbex Industrial.
+
 ### 2026-07-05 — Claude Code web (nube)
 
 > **Sesión maratoniana del PANEL: buscador de sitios completo + agenda + confirmación de envío + dashboard rediseñado.** TODO en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `3efd0d3` + 2 commits de cierre pendientes de push (≈25 commits del día).
