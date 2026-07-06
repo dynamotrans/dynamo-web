@@ -1668,7 +1668,7 @@
         }
         table.data tbody td {
             padding: 0.78rem 0.9rem; border-bottom: 1px solid var(--gray-200);
-            color: var(--navy); vertical-align: middle;
+            color: var(--navy); vertical-align: top;
         }
         table.data tbody tr:last-child td { border-bottom: none; }
         /* Cualquier fila es clicable (abre Ver detalle); las celdas de
@@ -1779,6 +1779,9 @@
         /* Fecha/hora de creación: pequeñita y en UNA línea */
         table.data td.ref .ref-creado { display: block; font-size: 0.7rem; color: var(--gray-400); white-space: nowrap; margin-top: 2px; }
         table.data .envio-estado { margin-top: 0.35rem; }
+        /* Chip primero: el badge de fase arriba, con separación hacia el nº
+           de envío que va debajo. */
+        table.data .envio-estado.envio-estado-top { margin-top: 0; margin-bottom: 0.35rem; }
         /* Columna Vehículo ajustada al ancho de la matrícula más larga:
            la matrícula nunca parte de línea; el tipo de camión de debajo se
            reparte dentro de ese mismo ancho. */
@@ -1788,6 +1791,9 @@
         /* Estado del transportista: siempre en su propia línea y como último
            dato de la celda (píldora a ancho de contenido, no inline). */
         table.data td.vehiculo .asig-line { display: flex; width: fit-content; margin-top: 0.4rem; }
+        /* Chip primero: el estado del transportista arriba, con separación
+           hacia la matrícula que va debajo. */
+        table.data td.vehiculo .asig-line.asig-top { margin-top: 0; margin-bottom: 0.4rem; }
         /* Mercancía: la línea de metros · toneladas nunca se parte (la columna
            se ensancha lo necesario para mostrarla completa en una sola línea).
            El nombre de la mercancía sí puede envolver. */
@@ -7240,12 +7246,13 @@
                 // Estado (última columna): solo estado de asignación de transportista.
                 var asig = getAsignacionEstado(c);
                 return '<tr' + rowCls + '>' +
-                    '<td class="ref"><strong>' + esc(c.ref) + '</strong>' +
-                        (c.refCli ? ' <span class="ref-cli-inline">(' + esc(c.refCli) + ')</span>' : '') +
-                        (c.creadoEn ? '<span class="ref-creado">(Creado: ' + fmtCreado(c.creadoEn) + ')</span>' : '') +
-                        '<div class="envio-estado"><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span>' +
+                    '<td class="ref">' +
+                        '<div class="envio-estado envio-estado-top"><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span>' +
                             (c.kind === 'entregada' && c.hasAlbaran ? ' <span class="badge-doc" title="Albarán PDF disponible">📄</span>' : '') +
                         '</div>' +
+                        '<strong>' + esc(c.ref) + '</strong>' +
+                        (c.refCli ? ' <span class="ref-cli-inline">(' + esc(c.refCli) + ')</span>' : '') +
+                        (c.creadoEn ? '<span class="ref-creado">(Creado: ' + fmtCreado(c.creadoEn) + ')</span>' : '') +
                     '</td>' +
                     rutaFechasCell(c, asigDate) +
                     '<td class="mercancia">' + esc(c.mercancia) +
@@ -7256,9 +7263,10 @@
                                 '<div class="meta"><span class="carga-tag ' + cls + '">' + esc(lbl) + '</span></div>';
                         })() +
                     '</td>' +
-                    '<td class="vehiculo">' + (c.matricula ? '<span class="meta-matricula">' + esc(c.matricula) + '</span>' : '<span class="meta meta-pend">Sin matrícula</span>') +
+                    '<td class="vehiculo">' +
+                        (asig ? '<div class="asig-line asig-top asig-' + asig.key + '"><span class="asig-dot"></span>' + esc(asig.label) + '</div>' : '') +
+                        (c.matricula ? '<span class="meta-matricula">' + esc(c.matricula) + '</span>' : '<span class="meta meta-pend">Sin matrícula</span>') +
                         (c.tipoCamion ? '<div class="meta">' + esc(c.tipoCamion) + '</div>' : '') +
-                        (asig ? '<div class="asig-line asig-' + asig.key + '"><span class="asig-dot"></span>' + esc(asig.label) + '</div>' : '') +
                     '</td>' +
                     '<td class="amount">' + esc(c.precio || '—') + '</td>' +
                     actionsCell(actionItemsCarga(c)) +
