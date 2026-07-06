@@ -3405,6 +3405,12 @@
         'soporte':           'Soporte'
     };
     function showSection(id) {
+        // Al SALIR del formulario de crear envío/presupuesto hacia otra
+        // sección, limpiarlo (que no quede nada a medias para la próxima vez).
+        var nc = document.getElementById('sec-nueva-carga');
+        if (nc && nc.classList.contains('active') && id !== 'nueva-carga' && window._ptarReset) {
+            window._ptarReset();
+        }
         document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); });
         var el = document.getElementById('sec-' + id);
         if (el) el.classList.add('active');
@@ -7440,7 +7446,10 @@
                 // es clicable (no roba el foco al pulsarla).
                 var hint = li('<span class="sug-hint-txt">✎ Escribe para buscar en toda tu agenda de sitios o en Google Maps…</span>');
                 hint.className = 'sug-hint';
+                // Al pulsarla, activa el campo de escritura (foco → teclado en
+                // móvil) para empezar a buscar. No cierra la lista.
                 hint.addEventListener('mousedown', function (e) { e.preventDefault(); });
+                hint.addEventListener('click', function (e) { e.preventDefault(); input.focus(); });
                 sugList.appendChild(hint);
                 // Sin "Crear nuevo sitio" aquí: junto a los recientes daba a
                 // entender que no había más sitios y se creaban duplicados
@@ -8141,7 +8150,7 @@
             renderEta();
 
             // Reset
-            reset.addEventListener('click', function () {
+            function doReset() {
                 // Reset → campos de recogida/entrega vacíos
                 origInput.value = '';
                 destInput.value = '';
@@ -8178,8 +8187,21 @@
                 notesBody.hidden = true;
                 notesToggle.setAttribute('aria-expanded', 'false');
                 warning.classList.remove('show');
+                // Volver siempre al paso 1 (formulario) y limpiar la
+                // confirmación (referencia/anotaciones de ese paso).
+                var secNC = document.getElementById('sec-nueva-carga');
+                if (secNC) secNC.dataset.step = 'form';
+                if (confirmCard) {
+                    confirmCard.hidden = true;
+                    var cr = confirmCard.querySelector('[data-ptar-conf-ref]');
+                    var cn = confirmCard.querySelector('[data-ptar-conf-notes]');
+                    if (cr) cr.value = ''; if (cn) cn.value = '';
+                }
+                if (card) card.hidden = false;
                 renderEta();
-            });
+            }
+            reset.addEventListener('click', doReset);
+            window._ptarReset = doReset;   // limpiar al salir de la sección
 
             // Lee y valida el formulario. Devuelve null si hay errores
             // (también marca los campos en rojo y muestra el warning).
