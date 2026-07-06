@@ -2009,6 +2009,19 @@
         .ptar-sitio-body { display: none; margin-top: 0.8rem; }
         .ptar-sitio-card.open .ptar-sitio-body { display: block; }
         .ptar-sitio-body-meta { font-size: 0.78rem; color: var(--gray-500); font-weight: 600; margin-bottom: 0.6rem; }
+        /* Campos obligatorios de una dirección sin ficha */
+        .ptar-sitio-warn {
+            display: inline-flex; align-items: center; gap: 0.3rem;
+            margin-top: 3px; font-size: 0.74rem; font-weight: 700; color: #dc2626;
+        }
+        .ptar-sitio-card.req-ok .ptar-sitio-warn { display: none; }
+        .sitio-req { color: #dc2626; font-weight: 700; font-size: 0.72rem; }
+        .ptar-sitio-grid input.sitio-f-err {
+            border-color: #dc2626 !important;
+            background: rgba(220,38,38,0.05) !important;
+        }
+        .sitio-req-msg { font-size: 0.72rem; color: #dc2626; font-weight: 600; margin-top: 3px; display: none; }
+        .sitio-req-msg.show { display: block; }
         .ptar-camion-tip {
             display: none; font-size: 0.72rem; color: var(--gray-500);
             margin-top: 0.3rem; padding: 0.35rem 0.55rem;
@@ -8559,6 +8572,38 @@
                 if (sumP) sumP.textContent = eur + ' €';
             }
 
+            // Valida los campos obligatorios de las direcciones sin ficha
+            // (empresa, teléfono). Pinta rojo + mensaje y marca la cabecera.
+            // Si reveal=true, despliega y hace scroll a la primera con fallo.
+            // Devuelve true si TODAS las direcciones sueltas están completas.
+            function validateLooseSites(reveal) {
+                if (!confirmCard) return true;
+                var cards = confirmCard.querySelectorAll('[data-sitio-loose]');
+                var firstBad = null;
+                cards.forEach(function (cardEl) {
+                    var reqs = cardEl.querySelectorAll('input[data-sitio-req]');
+                    var cardOk = true;
+                    reqs.forEach(function (inp) {
+                        var bad = !inp.value.trim();
+                        inp.classList.toggle('sitio-f-err', bad);
+                        var msg = inp.parentNode.querySelector('.sitio-req-msg');
+                        if (msg) msg.classList.toggle('show', bad);
+                        if (bad) cardOk = false;
+                    });
+                    cardEl.classList.toggle('req-ok', cardOk);
+                    if (!cardOk && !firstBad) firstBad = cardEl;
+                });
+                if (firstBad && reveal) {
+                    firstBad.classList.add('open');
+                    var h = firstBad.querySelector('.ptar-sitio-head');
+                    if (h) h.setAttribute('aria-expanded', 'true');
+                    firstBad.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    var badInp = firstBad.querySelector('input.sitio-f-err');
+                    if (badInp) setTimeout(function () { badInp.focus(); }, 350);
+                }
+                return !firstBad;
+            }
+
             function showConfirmStep(d) {
                 if (!confirmCard || !summaryEl) return;
                 pendingData = d;
@@ -8621,10 +8666,11 @@
                     // gris con CP/localidad/provincia/país. La flechita despliega
                     // los campos editables.
                     var CHEV = '<span class="ptar-sitio-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>';
-                    function cardHead(rolHtml, empresa, dirLine) {
+                    function cardHead(rolHtml, empresa, dirLine, warnHtml) {
                         return '<button type="button" class="ptar-sitio-head" aria-expanded="false">' +
                             '<span class="ptar-sitio-head-main">' + rolHtml + (empresa ? ' · <span class="ptar-sitio-head-emp">' + escapeHtml(empresa) + '</span>' : '') +
                             (dirLine ? '<span class="ptar-sitio-head-dir">' + escapeHtml(dirLine) + '</span>' : '') +
+                            (warnHtml || '') +
                             '</span>' + CHEV + '</button>';
                     }
                     // TODOS los puntos de la ruta, en su orden (origen →
@@ -8659,16 +8705,24 @@
                         // dirección queda bloqueada. Al confirmar se guarda como
                         // sitio en la agenda.
                         if (!p.pick) {
-                            return '<div class="ptar-sitio-card">' +
-                                cardHead(rolHtml, '', p.texto || '') +
+                            // Campo OBLIGATORIO (empresa, teléfono): marca roja +
+                            // mensaje. La cabecera plegada avisa de que faltan datos.
+                            function inpReq(lbl, f, ph) {
+                                return '<div><label>' + lbl + ' <span class="sitio-req">· obligatorio</span></label>' +
+                                    '<input data-sitio-f="' + f + '" data-sitio-id="' + p.id + '" data-sitio-req value="" placeholder="' + (ph || '') + '">' +
+                                    '<div class="sitio-req-msg">Este campo es obligatorio.</div></div>';
+                            }
+                            var warnHead = '<span class="ptar-sitio-warn">⚠ Faltan datos obligatorios</span>';
+                            return '<div class="ptar-sitio-card" data-sitio-loose>' +
+                                cardHead(rolHtml, '', p.texto || '', warnHead) +
                                 '<div class="ptar-sitio-body">' +
-                                    '<div class="ptar-sitio-body-meta">Dirección sin ficha — completa los datos que quieras y se guardará como sitio en tu agenda.</div>' +
+                                    '<div class="ptar-sitio-body-meta">Dirección sin ficha — completa los datos obligatorios (empresa y teléfono) y se guardará como sitio en tu agenda.</div>' +
                                     '<div class="ptar-sitio-grid">' +
-                                        inp('Empresa', 'empresa', '') +
+                                        inpReq('Empresa', 'empresa') +
                                         tipoLock +
                                         '<div class="full"><label>Dirección</label><input class="sitio-f-lock" value="' + escapeHtml(p.texto || '') + '" readonly tabindex="-1"></div>' +
                                         inp('Horario', 'horario', '', 'Ej. L-V 8:00-14:00') +
-                                        inp('Teléfono', 'tfno', '') +
+                                        inpReq('Teléfono', 'tfno') +
                                         inp('Contacto', 'contacto', '', 'Persona de contacto') +
                                         '<div class="full"><label>Notas del sitio</label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="" placeholder="Ej. pedir cita, báscula, NIMA…"></div>' +
                                     '</div>' +
@@ -8730,6 +8784,19 @@
                         sel.addEventListener('change', function () { syncConfTipos(); recalcConfPrice(); });
                     });
                     syncConfTipos();
+                    // Campos obligatorios de direcciones sueltas: revalidar en vivo
+                    // mientras se escribe (limpia el rojo y el aviso de la cabecera).
+                    confirmCard.querySelectorAll('input[data-sitio-req]').forEach(function (inp) {
+                        inp.addEventListener('input', function () { validateLooseSites(false); });
+                    });
+                    // Aviso inicial: marca las cabeceras que tienen datos pendientes
+                    // (sin desplegar ni pintar rojo el campo hasta que se intente
+                    // confirmar o el usuario escriba).
+                    confirmCard.querySelectorAll('[data-sitio-loose]').forEach(function (cardEl) {
+                        var ok = true;
+                        cardEl.querySelectorAll('input[data-sitio-req]').forEach(function (i) { if (!i.value.trim()) ok = false; });
+                        cardEl.classList.toggle('req-ok', ok);
+                    });
                 }
                 recalcConfPrice();
                 // Reiniciar el check obligatorio cada vez que se entra al paso
@@ -8755,6 +8822,9 @@
             if (backBtn) backBtn.addEventListener('click', exitConfirmStep);
             if (finalBtn) finalBtn.addEventListener('click', function () {
                 if (!pendingData) return;
+                // Direcciones sueltas con datos obligatorios sin rellenar →
+                // desplegar, pintar rojo y hacer scroll a la primera. Bloquea.
+                if (!validateLooseSites(true)) return;
                 // Referencia y anotaciones vienen del paso 1 (ya en pendingData).
                 // Check de condiciones sin marcar → señalar dónde está el fallo
                 if (chkTerms && !chkTerms.checked) {
