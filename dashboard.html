@@ -1976,6 +1976,46 @@
         }
         .ptar-confirm-price .pcp-num { font-size: 1.5rem; font-weight: 900; color: var(--purple); letter-spacing: -0.5px; }
         .ptar-confirm-price .pcp-iva { font-size: 0.78rem; font-weight: 600; color: var(--gray-500); }
+        /* ===== Forma de pago (bajo el precio) ===== */
+        .ptar-pay { margin: -0.4rem 0 1rem; }
+        .ptar-pay[hidden] { display: none; }
+        .ptar-pay-box { border-radius: 12px; padding: 0.85rem 1rem; }
+        .ptar-pay-box.pay-credit { background: rgba(34,165,90,0.10); border: 1px solid rgba(34,165,90,0.40); }
+        .ptar-pay-box.pay-prepago { background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.45); }
+        .ptar-pay-title { font-size: 0.9rem; font-weight: 800; display: flex; align-items: center; gap: 0.4rem; }
+        .ptar-pay-box.pay-credit .ptar-pay-title { color: var(--green-dark); }
+        .ptar-pay-box.pay-prepago .ptar-pay-title { color: #b45309; }
+        .ptar-pay-desc { font-size: 0.82rem; line-height: 1.5; color: var(--gray-700); margin-top: 0.35rem; }
+        .ptar-pay-methods { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.7rem; }
+        .ptar-pay-method {
+            flex: 1; min-width: 140px; display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.6rem 0.7rem; background: #fff; border: 1.5px solid var(--gray-200);
+            border-radius: 10px; cursor: pointer; font-size: 0.86rem; font-weight: 700; color: var(--navy);
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .ptar-pay-method:hover { border-color: rgba(245,158,11,0.55); }
+        .ptar-pay-method input { accent-color: #d97706; width: 16px; height: 16px; flex: none; }
+        .ptar-pay-method.sel { border-color: #d97706; background: rgba(245,158,11,0.08); }
+        .ptar-pay-detail {
+            margin-top: 0.7rem; padding: 0.75rem 0.85rem; background: #fff;
+            border: 1px solid var(--gray-200); border-radius: 10px; font-size: 0.84rem; line-height: 1.55; color: var(--gray-700);
+        }
+        .ptar-pay-detail[hidden] { display: none; }
+        .ptar-pay-detail .pay-bank-row { display: flex; justify-content: space-between; gap: 0.8rem; padding: 0.2rem 0; border-bottom: 1px dashed var(--gray-200); }
+        .ptar-pay-detail .pay-bank-row:last-child { border-bottom: none; }
+        .ptar-pay-detail .pay-bank-k { color: var(--gray-500); font-weight: 600; }
+        .ptar-pay-detail .pay-bank-v { font-weight: 800; color: var(--navy); text-align: right; }
+        .ptar-pay-note {
+            margin-top: 0.7rem; padding: 0.6rem 0.75rem; background: rgba(239,68,68,0.08);
+            border: 1px solid rgba(239,68,68,0.35); border-radius: 9px;
+            font-size: 0.8rem; line-height: 1.5; color: #b91c1c; font-weight: 600;
+        }
+        .ptar-pay-pdf-btn {
+            display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.6rem;
+            padding: 0.5rem 0.85rem; background: var(--purple); color: #fff; border: none;
+            border-radius: 9px; font-weight: 700; font-size: 0.84rem; cursor: pointer;
+        }
+        .ptar-pay-pdf-btn:hover { filter: brightness(1.08); }
         /* En modo ENVÍO, el tipo de lugar NO se elige en el paso 1 (los sitios
            ya lo tienen); se ajusta en la confirmación. En PRESUPUESTO sí sale. */
         #sec-nueva-carga[data-entry-mode="envio"] .ptar-route-row .ptar-select-sm { display: none; }
@@ -3313,6 +3353,11 @@
 
             <!-- Precio, también aquí abajo (junto al botón de confirmar) -->
             <div class="ptar-confirm-price" data-ptar-conf-price hidden></div>
+
+            <!-- Forma de pago según el crédito CESCE del cliente:
+                 con crédito → transferencia/domiciliación (confirma directo);
+                 sin crédito → pago por adelantado (transferencia/tarjeta/plataforma). -->
+            <div class="ptar-pay" data-ptar-pay hidden></div>
 
             <!-- Confirmar (grande) justo bajo el precio; Editar datos debajo. -->
             <div class="ptar-actions ptar-actions-confirm">
@@ -8531,6 +8576,7 @@
             //     aviso de cancelación. Paso 1: el formulario, ya cableado. ===
             var confirmCard = card.parentNode.querySelector('[data-ptar-confirm]');
             var summaryEl   = confirmCard ? confirmCard.querySelector('[data-ptar-summary]') : null;
+            var payEl       = confirmCard ? confirmCard.querySelector('[data-ptar-pay]') : null;
             var backBtn     = confirmCard ? confirmCard.querySelector('[data-ptar-back]') : null;
             var finalBtn    = confirmCard ? confirmCard.querySelector('[data-ptar-final-confirm]') : null;
             var termsLink   = confirmCard ? confirmCard.querySelector('[data-ptar-show-terms]') : null;
@@ -8614,6 +8660,93 @@
                     if (badInp) setTimeout(function () { badInp.focus(); }, 350);
                 }
                 return !firstBad;
+            }
+
+            // ¿El cliente tiene crédito CESCE disponible? (mockup: lo lee del
+            // chip de la topbar; con backend vendrá del API). ok = con crédito;
+            // warn (agotado) / none (sin cobertura, crédito 0) = pago previo.
+            function creditoDisponible() {
+                var chip = document.querySelector('[data-cesce-chip]');
+                return !chip || chip.classList.contains('cesce-status-ok');
+            }
+            // Cuenta bancaria de Dynamo (mock; el backend dará la real).
+            var PAGO_BANCO = { titular: 'Dynamo Operador Logístico, S.L.', iban: 'ES68 2100 0418 4502 0005 1332', banco: 'CaixaBank', bic: 'CAIXESBBXXX' };
+            function eurStr(n) { return String(n || 0).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
+            // Aviso común de validación de pago (24 h · ventana 1-3 días).
+            var PAGO_NOTA_24H = '<div class="ptar-pay-note">⏱ El transporte <strong>no se gestiona ni se asigna camión hasta validar el pago</strong>. La validación puede tardar <strong>hasta 24&nbsp;h</strong> (no es instantánea). Por eso estas cargas se programan con <strong>ventana de 1 a 3 días</strong>, para dar margen a validar el pago antes de cargar. Cuanto antes pagues, antes se procesa.</div>';
+            // Detalle según el método de pago por adelantado elegido.
+            function pagoDetalle(metodo, eur) {
+                if (metodo === 'tarjeta') {
+                    return '<div class="ptar-pay-detail">Al confirmar te llevaremos a la <strong>pasarela de pago seguro</strong> para abonar <strong>' + eur + '</strong> con tarjeta. El pago con tarjeta suele validarse antes.' + PAGO_NOTA_24H + '</div>';
+                }
+                if (metodo === 'plataforma') {
+                    return '<div class="ptar-pay-detail">Genera el <strong>PDF de pago</strong> con los datos de la plataforma y el importe (<strong>' + eur + '</strong>). Realiza el pago desde la plataforma y guárdate el justificante.' +
+                        '<button type="button" class="ptar-pay-pdf-btn" data-pay-pdf><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Descargar PDF de pago</button>' +
+                        PAGO_NOTA_24H + '</div>';
+                }
+                // transferencia (por defecto)
+                return '<div class="ptar-pay-detail">' +
+                    '<div class="pay-bank-row"><span class="pay-bank-k">Titular</span><span class="pay-bank-v">' + PAGO_BANCO.titular + '</span></div>' +
+                    '<div class="pay-bank-row"><span class="pay-bank-k">IBAN</span><span class="pay-bank-v">' + PAGO_BANCO.iban + '</span></div>' +
+                    '<div class="pay-bank-row"><span class="pay-bank-k">Banco</span><span class="pay-bank-v">' + PAGO_BANCO.banco + ' · ' + PAGO_BANCO.bic + '</span></div>' +
+                    '<div class="pay-bank-row"><span class="pay-bank-k">Importe</span><span class="pay-bank-v">' + eur + '</span></div>' +
+                    '<div style="margin-top:0.5rem;">Indica como <strong>concepto</strong> tu referencia o el nº de envío que te enviaremos por email. Envíanos el justificante para agilizar la validación.</div>' +
+                    PAGO_NOTA_24H + '</div>';
+            }
+            // Pinta el bloque de forma de pago según el crédito del cliente.
+            function renderPago(d) {
+                if (!payEl) return;
+                var eur = eurStr(d && d.precioMock);
+                if (creditoDisponible()) {
+                    if (pendingData) pendingData.formaPago = 'credito';
+                    payEl.innerHTML =
+                        '<div class="ptar-pay-box pay-credit">' +
+                            '<div class="ptar-pay-title"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Forma de pago: Transferencia / Domiciliación</div>' +
+                            '<div class="ptar-pay-desc">Tienes <strong>crédito disponible</strong>: este envío se factura y se cobra por <strong>transferencia o domiciliación bancaria</strong>. Puedes confirmar directamente y seguimos con la gestión.</div>' +
+                        '</div>';
+                    payEl.hidden = false;
+                    return;
+                }
+                // Sin crédito → pago por adelantado (transferencia/tarjeta/plataforma)
+                if (pendingData && (!pendingData.formaPago || pendingData.formaPago === 'credito')) pendingData.formaPago = 'transferencia';
+                var sel = (pendingData && pendingData.formaPago) || 'transferencia';
+                function method(val, label) {
+                    return '<label class="ptar-pay-method' + (sel === val ? ' sel' : '') + '"><input type="radio" name="ptarPago" value="' + val + '"' + (sel === val ? ' checked' : '') + '>' + label + '</label>';
+                }
+                payEl.innerHTML =
+                    '<div class="ptar-pay-box pay-prepago">' +
+                        '<div class="ptar-pay-title"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Pago por adelantado</div>' +
+                        '<div class="ptar-pay-desc">No tienes crédito disponible, así que este envío requiere <strong>pago por adelantado</strong>. Elige cómo quieres pagar:</div>' +
+                        '<div class="ptar-pay-methods">' +
+                            method('transferencia', 'Transferencia') +
+                            method('tarjeta', 'Tarjeta') +
+                            method('plataforma', 'Plataforma') +
+                        '</div>' +
+                        pagoDetalle(sel, eur) +
+                    '</div>';
+                payEl.hidden = false;
+            }
+            // Listeners del bloque de pago (una sola vez; el HTML se re-pinta).
+            if (payEl && !payEl._payBound) {
+                payEl.addEventListener('change', function (e) {
+                    var r = e.target.closest ? e.target.closest('input[name="ptarPago"]') : null;
+                    if (!r) return;
+                    if (pendingData) pendingData.formaPago = r.value;
+                    // Actualiza .sel y el detalle sin reconstruir el resto.
+                    payEl.querySelectorAll('.ptar-pay-method').forEach(function (m) {
+                        m.classList.toggle('sel', m.querySelector('input').value === r.value);
+                    });
+                    var det = payEl.querySelector('.ptar-pay-detail');
+                    var box = payEl.querySelector('.ptar-pay-box');
+                    if (det && box) { var tmp = document.createElement('div'); tmp.innerHTML = pagoDetalle(r.value, eurStr(pendingData && pendingData.precioMock)); box.replaceChild(tmp.firstChild, det); }
+                });
+                payEl.addEventListener('click', function (e) {
+                    var b = e.target.closest ? e.target.closest('[data-pay-pdf]') : null;
+                    if (!b) return;
+                    var ref = (pendingData && pendingData.refCli && pendingData.refCli.indexOf('NUEVO') === -1) ? pendingData.refCli : 'envio';
+                    downloadFakePDF('Pago-Dynamo-' + ref + '.pdf');
+                });
+                payEl._payBound = true;
             }
 
             function showConfirmStep(d) {
@@ -8794,7 +8927,7 @@
                     // Cambiar el tipo de lugar aquí → recalcula precio + lo
                     // vuelca en pendingData (para consolidarlo al confirmar).
                     confirmCard.querySelectorAll('[data-sitio-tipo]').forEach(function (sel) {
-                        sel.addEventListener('change', function () { syncConfTipos(); recalcConfPrice(); });
+                        sel.addEventListener('change', function () { syncConfTipos(); recalcConfPrice(); renderPago(pendingData); });
                     });
                     syncConfTipos();
                     // Campos obligatorios de direcciones sueltas: revalidar en vivo
@@ -8812,6 +8945,8 @@
                     });
                 }
                 recalcConfPrice();
+                // Forma de pago según el crédito CESCE (después de fijar el precio).
+                renderPago(pendingData);
                 // Reiniciar el check obligatorio cada vez que se entra al paso
                 // de confirmación (por si se editó y se volvió a entrar).
                 if (chkTerms) chkTerms.checked = false;
@@ -8854,12 +8989,21 @@
                       '⚠ <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. La cancelación de una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. <strong>Recomendación:</strong> amplía ya la ventana de carga; así, si no se consigue hoy, podremos asignar camión para los días siguientes (esperar a última hora deja sin margen).' +
                       '</div>'
                     : '';
+                // Pago por adelantado (sin crédito): el envío queda pendiente de
+                // pago hasta validar el cobro (hasta 24 h).
+                var esPrepago = pendingData.formaPago && pendingData.formaPago !== 'credito';
+                var metodoTxt = { transferencia: 'Transferencia bancaria', tarjeta: 'Tarjeta', plataforma: 'Plataforma de pago' }[pendingData.formaPago] || '';
+                var pagoBloque = esPrepago
+                    ? '<div style="margin-bottom:0.8rem;padding:0.6rem 0.75rem;background:rgba(245,158,11,0.14);border:1px solid rgba(245,158,11,0.45);border-radius:9px;font-size:0.85rem;line-height:1.55;color:#92400e;font-weight:600;">' +
+                      '💳 <strong>Pago por adelantado — ' + metodoTxt + '.</strong> Este envío queda <strong>pendiente de pago</strong>: no se gestiona ni se asigna camión hasta validar el cobro (<strong>hasta 24&nbsp;h</strong>). Tienes los datos de pago en la pantalla anterior y te los reenviaremos por email.' +
+                      '</div>'
+                    : '';
                 openDashModal({
                     icon: 'alert', iconVariant: 'warn',
                     title: 'IMPORTANTE: vas a confirmar un pedido de transporte',
                     sub: 'Aviso sobre cancelaciones',
                     body:
-                        hoyBloque +
+                        hoyBloque + pagoBloque +
                         '<p style="font-size:0.88rem;line-height:1.55;color:var(--gray-700);">' +
                         'Si el cliente cancela el servicio <strong>después de las 9:00 AM del día hábil anterior</strong> a la carga, <strong>Dynamo Operador Logístico, S.L.</strong> se reserva el derecho de <strong>facturar el servicio completo</strong> en concepto de indemnización.' +
                         '</p>' +
@@ -8868,7 +9012,7 @@
                         '</p>',
                     footer:
                         '<button class="btn-ghost" onclick="closeDashModal()" style="flex:1;">Cancelar</button>' +
-                        '<button class="btn-primary" data-ptar-modal-confirm style="flex:1;">Confirmar envío</button>'
+                        '<button class="btn-primary" data-ptar-modal-confirm style="flex:1;">' + (esPrepago ? 'Confirmar (pago pendiente)' : 'Confirmar envío') + '</button>'
                 });
                 // El botón "Confirmar carga" del modal se cablea cada vez que se abre
                 setTimeout(function () {
