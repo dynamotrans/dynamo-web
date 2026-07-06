@@ -1997,7 +1997,7 @@
         }
         .ptar-sitio-head-main { flex: 1; min-width: 0; font-size: 0.9rem; }
         .ptar-sitio-head-emp { font-weight: 800; color: var(--navy); }
-        .ptar-sitio-head-hor { font-weight: 600; color: var(--gray-500); font-size: 0.84rem; }
+        .ptar-sitio-head-hor { display: block; font-size: 0.78rem; color: var(--gray-500); font-weight: 500; margin-top: 1px; }
         .ptar-sitio-head-dir { display: block; font-size: 0.78rem; color: var(--gray-500); font-weight: 500; margin-top: 1px; }
         .ptar-sitio-chev {
             flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%;
@@ -8681,7 +8681,7 @@
                     function cardHead(rolHtml, empresa, dirLine, warnHtml, horario) {
                         return '<button type="button" class="ptar-sitio-head" aria-expanded="false">' +
                             '<span class="ptar-sitio-head-main">' + rolHtml + (empresa ? ' · <span class="ptar-sitio-head-emp">' + escapeHtml(empresa) + '</span>' : '') +
-                            (empresa && horario ? ' <span class="ptar-sitio-head-hor">(' + escapeHtml(horario) + ')</span>' : '') +
+                            (empresa && horario ? '<span class="ptar-sitio-head-hor">(' + escapeHtml(horario) + ')</span>' : '') +
                             (dirLine ? '<span class="ptar-sitio-head-dir">' + escapeHtml(dirLine) + '</span>' : '') +
                             (warnHtml || '') +
                             '</span>' + CHEV + '</button>';
