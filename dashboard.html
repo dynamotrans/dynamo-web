@@ -1162,6 +1162,14 @@
         }
         @media (max-width: 640px) {
             .dash-svc-grid { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+            /* Cuadros más bajos en móvil para que el carrusel de abajo se vea
+               entero sin tener que hacer tanto scroll. Prefijo .dash-svc-grid
+               para ganar en especificidad a las reglas base .dash-svc-*. */
+            .dash-svc-grid .dash-svc-img { height: 58px; }
+            .dash-svc-grid .dash-svc-chip { font-size: 0.56rem; padding: 0.12rem 0.4rem; }
+            .dash-svc-grid .dash-svc-body { padding: 0.4rem 0.55rem 0.5rem; }
+            .dash-svc-grid .dash-svc-body strong { font-size: 0.78rem; }
+            .dash-svc-grid .dash-svc-body span { font-size: 0.66rem; -webkit-line-clamp: 2; }
         }
         /* Tarjeta de servicio compacta (foto + chip + cuerpo morado, como la web) */
         .dash-svc-card {
