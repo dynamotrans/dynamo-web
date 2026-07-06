@@ -1422,11 +1422,61 @@
            aparece al elegir esa opción. */
         .filters .filter-mes { flex: 0 0 auto; min-width: 96px; max-width: 150px; }
         .filters .filter-estado { flex: 0 1 auto; min-width: 110px; max-width: 190px; }
+        /* Selector de rango de fechas (tipo Holded) para Facturas. */
+        .fact-range { position: relative; flex: 0 0 auto; }
+        .fact-range-btn {
+            display: inline-flex; align-items: center; gap: 0.45rem;
+            padding: 0.6rem 0.8rem; background: #fff; border: 1.5px solid var(--gray-200);
+            border-radius: 10px; font: inherit; font-size: 0.88rem; font-weight: 600;
+            color: var(--navy); cursor: pointer; white-space: nowrap;
+        }
+        .fact-range-btn:hover { border-color: var(--purple); }
+        .fact-range-btn svg:first-child { color: var(--gray-500); flex: none; }
+        .fact-range-pop {
+            position: absolute; top: calc(100% + 6px); right: 0; z-index: 200;
+            width: 320px; max-width: 92vw; background: #fff;
+            border: 1px solid var(--gray-200); border-radius: 12px;
+            box-shadow: 0 12px 34px rgba(15,23,42,0.16); padding: 0.85rem;
+        }
+        .fact-range-pop[hidden] { display: none; }
+        .fact-range-fields { display: flex; gap: 0.6rem; }
+        .fact-range-fields label {
+            flex: 1; display: flex; flex-direction: column; gap: 0.25rem;
+            font-size: 0.72rem; font-weight: 700; color: var(--gray-500);
+        }
+        .fact-range-fields input {
+            padding: 0.5rem 0.6rem; border: 1.5px solid var(--gray-200);
+            border-radius: 8px; font: inherit; font-size: 0.85rem; color: var(--navy);
+        }
+        .fact-range-fields input:focus { outline: none; border-color: var(--purple); }
+        .fact-range-presets {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem;
+            margin-top: 0.75rem;
+        }
+        .fact-range-presets button {
+            padding: 0.45rem 0.55rem; background: var(--gray-100);
+            border: 1px solid transparent; border-radius: 8px;
+            font: inherit; font-size: 0.8rem; font-weight: 600; color: var(--navy);
+            cursor: pointer; text-align: left;
+        }
+        .fact-range-presets button:hover { background: rgba(51,0,204,0.08); color: var(--purple); }
+        .fact-range-presets button.sel { background: rgba(51,0,204,0.12); border-color: var(--purple); color: var(--purple); }
+        .fact-range-actions { display: flex; gap: 0.5rem; margin-top: 0.8rem; }
+        .fact-range-actions button { flex: 1; padding: 0.55rem; font-size: 0.85rem; }
+        /* Tabla de facturas: muchas columnas → scroll horizontal interno. */
+        table.data-facturas { min-width: 1160px; }
+        table.data-facturas td.amount, table.data-facturas th.th-amount { text-align: right; white-space: nowrap; }
+        table.data-facturas td { white-space: nowrap; }
+        table.data-facturas td.fac-num { font-weight: 700; color: var(--navy); white-space: nowrap; }
+        table.data-facturas td.fac-pend { font-weight: 700; }
         @media (max-width: 600px) {
             .filters { gap: 0.4rem; padding: 0.55rem; }
             .filters input[type="search"] { font-size: 0.9rem; padding: 0.55rem 0.6rem; flex: 1 1 100%; }
             .filters .filter-mes { min-width: 92px; max-width: 150px; font-size: 0.85rem; padding: 0.55rem 0.5rem; }
             .filters .filter-estado { flex: 1 1 110px; min-width: 110px; max-width: 100%; font-size: 0.85rem; padding: 0.55rem 0.5rem; }
+            .fact-range { flex: 1 1 100%; }
+            .fact-range-btn { width: 100%; justify-content: space-between; font-size: 0.85rem; }
+            .fact-range-pop { left: 0; right: auto; }
         }
 
         .table-wrap {
@@ -2594,6 +2644,10 @@
             Envíos
             <span class="badge">3</span>
         </button>
+        <button class="sidebar-link" data-section="facturas">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg>
+            Facturas
+        </button>
         <button class="sidebar-link" data-section="incidencias">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             Incidencias
@@ -3066,6 +3120,80 @@
 
     <!-- Sección Presupuestos ELIMINADA: el portal es solo de envíos (precios
          dinámicos → no tiene sentido guardar presupuestos). -->
+
+    <!-- ==================== FACTURAS ====================
+         Listado tipo Holded. Los datos llegarán por API de Holded (nunca
+         nombrar "Holded" en la UI del cliente). Buscador + filtro de estado
+         + selector de rango de fechas con accesos rápidos (últimos 12 meses,
+         mes actual, trimestre, año…). -->
+    <section class="section" id="sec-facturas">
+        <div class="sec-header">
+            <h2>Facturas</h2>
+        </div>
+        <div class="filters">
+            <input type="search" placeholder="Buscar por nº, cliente, importe…">
+            <select class="filter-estado" data-fact-estado aria-label="Filtrar por estado">
+                <option value="">Estado</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="vencida">Vencida</option>
+                <option value="cobrada">Cobrada</option>
+            </select>
+            <div class="fact-range" data-fact-range>
+                <button type="button" class="fact-range-btn" data-fact-range-btn aria-haspopup="true" aria-expanded="false">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    <span data-fact-range-label>Todas las fechas</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="fact-range-pop" data-fact-range-pop hidden>
+                    <div class="fact-range-fields">
+                        <label>Desde<input type="date" data-fact-from></label>
+                        <label>Hasta<input type="date" data-fact-to></label>
+                    </div>
+                    <div class="fact-range-presets" data-fact-presets>
+                        <button type="button" data-preset="12m">Últimos 12 meses</button>
+                        <button type="button" data-preset="hoy">Hoy</button>
+                        <button type="button" data-preset="ayer">Ayer</button>
+                        <button type="button" data-preset="7d">Últimos 7 días</button>
+                        <button type="button" data-preset="mes">Mes actual</button>
+                        <button type="button" data-preset="mes-1">Mes anterior</button>
+                        <button type="button" data-preset="tri">Trimestre actual</button>
+                        <button type="button" data-preset="tri-1">Trimestre anterior</button>
+                        <button type="button" data-preset="anio">Año actual</button>
+                        <button type="button" data-preset="anio-1">Año anterior</button>
+                    </div>
+                    <div class="fact-range-actions">
+                        <button type="button" class="btn-ghost" data-fact-range-clear>Quitar filtro</button>
+                        <button type="button" class="btn-primary" data-fact-range-apply>Aplicar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table class="data data-facturas">
+                <thead><tr>
+                    <th>Fecha</th><th>Nº</th><th>Vencimiento</th><th>Cliente</th>
+                    <th class="th-amount">Subtotal</th><th class="th-amount">IVA</th><th class="th-amount">Retención</th>
+                    <th class="th-amount">Total</th><th class="th-amount">Cobrado</th><th class="th-amount">Pendiente</th>
+                    <th>Estado</th><th>Fecha de cobro</th>
+                </tr></thead>
+                <tbody id="tbodyFacturas"></tbody>
+            </table>
+        </div>
+        <div class="pagination">
+            <div class="pagination-left">
+                <label class="pagination-perpage-wrap">Mostrar
+                    <select class="pagination-perpage" data-table="facturas">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+                <span id="facturasShowing">Cargando…</span>
+            </div>
+            <div class="pagination-pages" id="facturasPagination"></div>
+        </div>
+    </section>
 
     <!-- ==================== INCIDENCIAS ==================== -->
     <section class="section" id="sec-incidencias">
@@ -4910,7 +5038,7 @@
     var TABLE_STATE = {
         cargas:       { page: 1, filter: 'programada',  perPage: readPerPage('cargas'), estado: '', fecha: '', q: '' },
         presupuestos: { page: 1, filter: 'activos', perPage: readPerPage('presupuestos'), q: '' },
-        facturas:     { page: 1, filter: 'todas',  perPage: readPerPage('facturas'), q: '' }
+        facturas:     { page: 1, filter: 'todas',  perPage: readPerPage('facturas'), q: '', estado: '', from: '', to: '' }
     };
 
     // --- Horarios de almacén realistas para el mockup ---
@@ -5392,6 +5520,20 @@
     // ---- DATA: facturas (38) ----
     function makeFactura(ref, emision, vencimiento, concepto, conceptoMeta, base, iva, total, estado, color, kind) {
         return { ref: ref, emision: emision, vencimiento: vencimiento, concepto: concepto, conceptoMeta: conceptoMeta, base: base, iva: iva, total: total, estado: estado, estadoColor: color, kind: kind };
+    }
+    // Cliente del portal (la cuenta logueada). Con backend saldrá del perfil.
+    var CLIENTE_ACTUAL = 'Marbex Industrial S.L.';
+    // Estado de la factura por su tipo (badge de la tabla).
+    function facturaEstado(kind) {
+        if (kind === 'cobrada') return { label: 'Cobrada', color: 'green' };
+        if (kind === 'vencida') return { label: 'Vencida', color: 'red' };
+        return { label: 'Pendiente', color: 'orange' };
+    }
+    // "DD/MM/YYYY" → timestamp (para ordenar y filtrar por rango de fechas).
+    function parseFechaDMY(s) {
+        var m = String(s || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (!m) return NaN;
+        return new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10)).getTime();
     }
     var FACTURAS_DATA = [
         makeFactura('F-2026/0184','15/06/2026','30/06/2026','Transporte SE→MAD (#C-2026-1284)','+ servicio adicional descarga','618,18 €','129,82 €','748,00 €','Pendiente · vence 30/06','orange','pendiente'),
@@ -6624,13 +6766,25 @@
             ciudadDir(p.origen), ciudadDir(p.destino),
             p.mercancia, p.medidas, medidasTn(p.medidas), p.precio, p.vigencia].join(' '));
     }
+    function factSearchBlob(f) {
+        return normTxt([f.ref, CLIENTE_ACTUAL, f.emision, f.vencimiento,
+            f.base, f.iva, f.total, facturaEstado(f.kind).label].join(' '));
+    }
     function filteredFacturas() {
-        var f = TABLE_STATE.facturas.filter;
-        var arr = (f === 'todas') ? FACTURAS_DATA.slice()
-            : FACTURAS_DATA.filter(function (x) { return x.kind === f; });
-        // Todas las pestañas: fecha de emisión DESC (la última factura
-        // arriba). Backend = ORDER BY emision DESC.
-        arr.sort(function (a, b) { return parseFechaDDMM(b.emision) - parseFechaDDMM(a.emision); });
+        var st = TABLE_STATE.facturas;
+        var fromMs = st.from ? new Date(st.from + 'T00:00:00').getTime() : null;
+        var toMs = st.to ? new Date(st.to + 'T23:59:59').getTime() : null;
+        var q = normTxt(st.q);
+        var arr = FACTURAS_DATA.filter(function (x) {
+            if (st.estado && x.kind !== st.estado) return false;
+            var em = parseFechaDMY(x.emision);
+            if (fromMs != null && !(em >= fromMs)) return false;
+            if (toMs != null && !(em <= toMs)) return false;
+            if (q && !matchTokens(factSearchBlob(x), q)) return false;
+            return true;
+        });
+        // Fecha de emisión DESC (la última factura arriba).
+        arr.sort(function (a, b) { return parseFechaDMY(b.emision) - parseFechaDMY(a.emision); });
         return arr;
     }
 
@@ -6858,22 +7012,29 @@
         var tbody = document.getElementById('tbodyFacturas');
         if (!tbody) return;
         if (slice.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin facturas</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin facturas para el filtro elegido</td></tr>';
         } else {
             tbody.innerHTML = slice.map(function (f) {
+                var est = facturaEstado(f.kind);
+                var cobrada = f.kind === 'cobrada';
+                var cobrado = cobrada ? f.total : '0,00 €';
+                var pendiente = cobrada ? '0,00 €' : f.total;
+                var fechaCobro = cobrada ? f.vencimiento : '—';
                 return '<tr>' +
-                    '<td class="ref">' + esc(f.ref) + '</td>' +
-                    '<td>' + esc(fechaConDia(f.emision)) + '</td>' +
-                    '<td>' + esc(fechaConDia(f.vencimiento)) + '</td>' +
-                    '<td>' + esc(f.concepto) + (f.conceptoMeta ? '<div class="meta">' + esc(f.conceptoMeta) + '</div>' : '') + '</td>' +
+                    '<td>' + esc(f.emision) + '</td>' +
+                    '<td class="fac-num">' + esc(f.ref) + '</td>' +
+                    '<td>' + esc(f.vencimiento) + '</td>' +
+                    '<td>' + esc(CLIENTE_ACTUAL) + '</td>' +
                     '<td class="amount">' + esc(f.base) + '</td>' +
                     '<td class="amount">' + esc(f.iva) + '</td>' +
-                    '<td class="amount">' + esc(f.total) + '</td>' +
-                    '<td><span class="badge badge-' + f.estadoColor + '">' + esc(f.estado) + '</span></td>' +
-                    actionsCell(actionItemsFactura()) +
+                    '<td class="amount">0,00 €</td>' +
+                    '<td class="amount"><strong>' + esc(f.total) + '</strong></td>' +
+                    '<td class="amount">' + esc(cobrado) + '</td>' +
+                    '<td class="amount fac-pend" style="color:' + (cobrada ? 'var(--green-dark)' : '#b45309') + ';">' + esc(pendiente) + '</td>' +
+                    '<td><span class="badge badge-' + est.color + '">' + esc(est.label) + '</span></td>' +
+                    '<td>' + esc(fechaCobro) + '</td>' +
                     '</tr>';
             }).join('');
-            wrapRowMenus(tbody);
         }
         var sho = document.getElementById('facturasShowing');
         if (sho) sho.textContent = rows.length ? 'Mostrando ' + (start+1) + '-' + Math.min(start+st.perPage, rows.length) + ' de ' + rows.length + ' facturas' : 'Sin facturas';
@@ -7170,6 +7331,8 @@
                 TABLE_STATE.cargas.q = inp.value; TABLE_STATE.cargas.page = 1; renderCargasTable();
             } else if (sec.id === 'sec-presupuestos') {
                 TABLE_STATE.presupuestos.q = inp.value; TABLE_STATE.presupuestos.page = 1; renderPresupuestosTable();
+            } else if (sec.id === 'sec-facturas') {
+                TABLE_STATE.facturas.q = inp.value; TABLE_STATE.facturas.page = 1; renderFacturasTable();
             } else if (sec.id === 'sec-incidencias') {
                 var q = normTxt(inp.value);
                 sec.querySelectorAll('tbody tr').forEach(function (tr) {
@@ -7178,6 +7341,66 @@
             }
         });
     });
+
+    // ---- Facturas: filtro de estado + selector de rango de fechas (Holded) ----
+    (function initFacturasFilters() {
+        var estadoSel = document.querySelector('#sec-facturas [data-fact-estado]');
+        if (estadoSel) estadoSel.addEventListener('change', function () {
+            TABLE_STATE.facturas.estado = estadoSel.value;
+            TABLE_STATE.facturas.page = 1;
+            renderFacturasTable();
+        });
+        var range = document.querySelector('#sec-facturas [data-fact-range]');
+        if (!range) return;
+        var btn = range.querySelector('[data-fact-range-btn]');
+        var pop = range.querySelector('[data-fact-range-pop]');
+        var label = range.querySelector('[data-fact-range-label]');
+        var fromI = range.querySelector('[data-fact-from]');
+        var toI = range.querySelector('[data-fact-to]');
+        function iso(d) { function p(n) { return ('0' + n).slice(-2); } return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); }
+        function dmy(s) { var m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? m[3] + '/' + m[2] + '/' + m[1] : s; }
+        function openPop(o) { pop.hidden = !o; btn.setAttribute('aria-expanded', o ? 'true' : 'false'); }
+        function clearPresetSel() { range.querySelectorAll('[data-preset]').forEach(function (x) { x.classList.remove('sel'); }); }
+        btn.addEventListener('click', function (e) { e.stopPropagation(); openPop(pop.hidden); });
+        document.addEventListener('click', function (e) { if (!range.contains(e.target)) openPop(false); });
+        range.querySelectorAll('[data-preset]').forEach(function (b) {
+            b.addEventListener('click', function () {
+                var now = new Date(); now.setHours(0, 0, 0, 0);
+                var y = now.getFullYear(), mo = now.getMonth(), from, to, p = b.getAttribute('data-preset');
+                if (p === '12m') { to = new Date(now); from = new Date(now); from.setFullYear(y - 1); }
+                else if (p === 'hoy') { from = new Date(now); to = new Date(now); }
+                else if (p === 'ayer') { from = new Date(now); from.setDate(now.getDate() - 1); to = new Date(from); }
+                else if (p === '7d') { to = new Date(now); from = new Date(now); from.setDate(now.getDate() - 6); }
+                else if (p === 'mes') { from = new Date(y, mo, 1); to = new Date(y, mo + 1, 0); }
+                else if (p === 'mes-1') { from = new Date(y, mo - 1, 1); to = new Date(y, mo, 0); }
+                else if (p === 'tri') { var q = Math.floor(mo / 3); from = new Date(y, q * 3, 1); to = new Date(y, q * 3 + 3, 0); }
+                else if (p === 'tri-1') { var q2 = Math.floor(mo / 3) - 1; from = new Date(y, q2 * 3, 1); to = new Date(y, q2 * 3 + 3, 0); }
+                else if (p === 'anio') { from = new Date(y, 0, 1); to = new Date(y, 11, 31); }
+                else if (p === 'anio-1') { from = new Date(y - 1, 0, 1); to = new Date(y - 1, 11, 31); }
+                fromI.value = iso(from); toI.value = iso(to);
+                clearPresetSel(); b.classList.add('sel');
+            });
+        });
+        [fromI, toI].forEach(function (i) { i.addEventListener('input', clearPresetSel); });
+        range.querySelector('[data-fact-range-apply]').addEventListener('click', function () {
+            TABLE_STATE.facturas.from = fromI.value || '';
+            TABLE_STATE.facturas.to = toI.value || '';
+            TABLE_STATE.facturas.page = 1;
+            var selPreset = range.querySelector('[data-preset].sel');
+            if (selPreset) label.textContent = selPreset.textContent;
+            else if (fromI.value || toI.value) label.textContent = (fromI.value ? dmy(fromI.value) : '…') + ' – ' + (toI.value ? dmy(toI.value) : '…');
+            else label.textContent = 'Todas las fechas';
+            renderFacturasTable();
+            openPop(false);
+        });
+        range.querySelector('[data-fact-range-clear]').addEventListener('click', function () {
+            fromI.value = ''; toI.value = ''; clearPresetSel();
+            TABLE_STATE.facturas.from = ''; TABLE_STATE.facturas.to = ''; TABLE_STATE.facturas.page = 1;
+            label.textContent = 'Todas las fechas';
+            renderFacturasTable();
+            openPop(false);
+        });
+    })();
 
     bindTabs();
     bindPerPageSelectors();
