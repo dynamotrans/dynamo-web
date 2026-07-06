@@ -3118,19 +3118,23 @@
                 <div class="ptar-section-head">Carga</div>
                 <div class="ptar-pair">
                     <div class="ptar-field">
-                        <select id="ptar-merca-carga" data-ptar-merca class="ptar-select" aria-label="Mercancía paletizada o no">
-                            <option>Paletizada (mercancía general)</option>
-                            <option>No paletizada (maquinaria, perfiles, tubos, balas…)</option>
+                        <select id="ptar-merca-carga" data-ptar-merca class="ptar-select" aria-label="Tipo de mercancía">
+                            <optgroup label="Tipo de mercancía">
+                                <option>Paletizada (mercancía general)</option>
+                                <option>No paletizada (maquinaria, perfiles, tubos, balas…)</option>
+                            </optgroup>
                         </select>
                     </div>
                     <div class="ptar-field">
-                        <select id="ptar-cargatipo-carga" data-ptar-cargatipo class="ptar-select" aria-label="Tipo de carga (por dónde se carga)">
-                            <option>Lateral</option>
-                            <option>Trasera</option>
-                            <option>Techo</option>
-                            <option>Lateral y trasera</option>
-                            <option>Lateral y techo</option>
-                            <option>Trasera y techo</option>
+                        <select id="ptar-cargatipo-carga" data-ptar-cargatipo class="ptar-select" aria-label="Tipo de carga">
+                            <optgroup label="Tipo de carga">
+                                <option>Lateral</option>
+                                <option>Trasera</option>
+                                <option>Techo</option>
+                                <option>Lateral y trasera</option>
+                                <option>Lateral y techo</option>
+                                <option>Trasera y techo</option>
+                            </optgroup>
                         </select>
                     </div>
                     <input type="hidden" data-ptar-camion value="tauliner">
