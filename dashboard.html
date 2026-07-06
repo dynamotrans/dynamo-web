@@ -8595,8 +8595,9 @@
                     '<dt>Fecha de carga</dt><dd>' + escapeHtml(d.fechaLarga) + '</dd>' +
                     cargaRangoHtml +
                     (d.refCli && d.refCli.indexOf('NUEVO') === -1 ? '<dt>Tu referencia</dt><dd>' + escapeHtml(d.refCli) + '</dd>' : '') +
-                    (d.notes ? '<dt class="full">Anotaciones</dt><dd class="full">' + escapeHtml(d.notes) + '</dd>' : '') +
-                    (d.precioMock ? '<dt>Precio</dt><dd><span data-sum-precio>' + String(d.precioMock).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €</span> <span style="color:var(--gray-500);font-weight:600;">(IVA 21% no incluido)</span></dd>' : '');
+                    (d.notes ? '<dt class="full">Anotaciones</dt><dd class="full">' + escapeHtml(d.notes) + '</dd>' : '');
+                // El PRECIO no va en el resumen: sale destacado justo antes del
+                // botón de confirmar (data-ptar-conf-price).
                 // Referencia y anotaciones se muestran en el RESUMEN (solo
                 // lectura, con lo puesto en el paso 1; en blanco se omiten).
                 // Aviso de grupaje: solo si la carga NO es completa
