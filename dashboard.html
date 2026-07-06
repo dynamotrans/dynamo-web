@@ -987,13 +987,11 @@
         /* Fila de 3: Nuevo envío · Últimos envíos (muestra) · Nuevo presupuesto.
            Selector doble clase: gana a la regla base de .dash-top-row (2 col)
            definida más abajo. */
-        .dash-top-row.dash-top-3 { grid-template-columns: 1fr 1.5fr 1fr !important; align-items: stretch; }
-        .dash-top-row.dash-top-3 .mini-list-card { margin: 0; min-width: 0; }
+        .dash-top-row.dash-top-2 { grid-template-columns: 1fr 1.6fr !important; align-items: stretch; }
+        .dash-top-row.dash-top-2 .mini-list-card { margin: 0; min-width: 0; }
         @media (max-width: 768px) {
-            /* En móvil: los 2 botones arriba en fila y la muestra de envíos
-               debajo a lo ancho. */
-            .dash-top-row.dash-top-3 { grid-template-columns: 1fr 1fr !important; }
-            .dash-top-row.dash-top-3 .mini-list-card { grid-column: 1 / -1; order: 3; }
+            /* En móvil: botón arriba y la muestra de envíos debajo a lo ancho. */
+            .dash-top-row.dash-top-2 { grid-template-columns: 1fr !important; }
         }
         /* Nuestra flota (sección de la web pública portada al panel) */
         .dash-flota { margin-top: 1.8rem; }
@@ -2518,10 +2516,6 @@
             Envíos
             <span class="badge">3</span>
         </button>
-        <button class="sidebar-link" data-section="presupuestos">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
-            Presupuestos
-        </button>
         <button class="sidebar-link" data-section="incidencias">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             Incidencias
@@ -2818,8 +2812,8 @@
 
     <!-- ==================== DASHBOARD ==================== -->
     <section class="section active" id="sec-dashboard">
-        <!-- Fila única: Nuevo envío · Últimos envíos (muestra) · Nuevo presupuesto -->
-        <div class="dash-top-row dash-top-3">
+        <!-- Fila: Nuevo envío · Mis últimos envíos (muestra) -->
+        <div class="dash-top-row dash-top-2">
             <a class="dash-cta dash-cta-purple" href="#" onclick="openNuevaCarga('envio');return false;">
                 <div class="dash-cta-icon">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
@@ -2838,15 +2832,6 @@
                     <!-- Rellenado por renderMiniEnvios(): 1 fila de muestra -->
                 </ul>
             </div>
-            <a class="dash-cta dash-cta-green" href="#" onclick="openNuevaCarga('presupuesto');return false;">
-                <div class="dash-cta-icon">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-                </div>
-                <div class="dash-cta-text">
-                    <h4>Nuevo presupuesto</h4>
-                    <p>Calcula y guarda el precio</p>
-                </div>
-            </a>
         </div>
 
         <!-- ===== Muro de clientes: MISMO carrusel triple de la web pública
@@ -3001,45 +2986,8 @@
         </div>
     </section>
 
-    <!-- ==================== PRESUPUESTOS ==================== -->
-    <section class="section" id="sec-presupuestos">
-        <div class="sec-header">
-            <h2>Presupuestos</h2>
-            <div class="sec-header-actions">
-                <button class="btn-primary" onclick="openNuevaCarga('presupuesto');return false;">+ Nuevo presupuesto</button>
-            </div>
-        </div>
-        <div class="tabs" data-table="presupuestos">
-            <button class="tab active" data-filter="activos">Activos (<span data-count="activos">0</span>)</button>
-            <button class="tab" data-filter="caducados">Caducados (<span data-count="caducados">0</span>)</button>
-        </div>
-        <div class="filters">
-            <input type="search" placeholder="Buscar por nº, referencia, origen, destino…">
-        </div>
-        <div class="tabla-aviso" id="presupCaducadosAviso" hidden>Los presupuestos caducados se muestran durante los <strong>30 días</strong> siguientes a su caducidad. Pasado ese plazo se <strong>eliminan automáticamente</strong> del listado.</div>
-        <div class="table-wrap">
-            <table class="data">
-                <thead><tr>
-                    <th>Presupuesto</th><th>Fecha solic.</th><th>Ruta</th><th>Mercancía</th><th class="th-amount">Importe<span class="th-sub">Impuestos no incl.</span></th>
-                </tr></thead>
-                <tbody id="tbodyPresupuestos"></tbody>
-            </table>
-        </div>
-        <div class="pagination">
-            <div class="pagination-left">
-                <label class="pagination-perpage-wrap">Mostrar
-                    <select class="pagination-perpage" data-table="presupuestos">
-                        <option value="10">10</option>
-                        <option value="20" selected>20</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                    </select>
-                </label>
-                <span id="presupuestosShowing">Cargando…</span>
-            </div>
-            <div class="pagination-pages" id="presupuestosPagination"></div>
-        </div>
-    </section>
+    <!-- Sección Presupuestos ELIMINADA: el portal es solo de envíos (precios
+         dinámicos → no tiene sentido guardar presupuestos). -->
 
     <!-- ==================== INCIDENCIAS ==================== -->
     <section class="section" id="sec-incidencias">
@@ -3278,7 +3226,6 @@
 
             <div class="ptar-actions ptar-actions-main">
                 <button type="button" class="btn-primary" data-ptar-submit>Crear envío</button>
-                <button type="button" class="btn-secondary" data-ptar-save-presupuesto>Guardar presupuesto</button>
                 <button type="button" class="btn-ghost" onclick="showSection('dashboard');return false;">Cancelar</button>
             </div>
         </div>
@@ -3479,11 +3426,12 @@
        presupuesto"). El modo cambia el orden/énfasis de los botones y qué
        aviso salta al pulsar cada acción. El formulario es el MISMO. */
     function openNuevaCarga(mode) {
-        var m = (mode === 'presupuesto') ? 'presupuesto' : 'envio';
+        // El portal es solo de ENVÍOS (presupuestos eliminados: precios
+        // dinámicos). Se ignora cualquier modo 'presupuesto' heredado.
         var sec = document.getElementById('sec-nueva-carga');
-        if (sec) { sec.dataset.entryMode = m; sec.dataset.step = 'form'; }
+        if (sec) { sec.dataset.entryMode = 'envio'; sec.dataset.step = 'form'; }
         var h2 = document.querySelector('[data-nueva-carga-title]');
-        if (h2) h2.textContent = (m === 'presupuesto') ? 'Nuevo presupuesto' : 'Nuevo envío';
+        if (h2) h2.textContent = 'Nuevo envío';
         showSection('nueva-carga');
     }
     window.openNuevaCarga = openNuevaCarga;
