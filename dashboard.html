@@ -2123,6 +2123,19 @@
         }
         .ptar-nofecha-warn strong { color: #5c4500; }
         .ptar-nofecha-warn a { color: #5c4500; font-weight: 700; }
+        /* Aviso de pago por adelantado (sin crédito) bajo Fecha de envío. */
+        .ptar-prepago-warn {
+            margin-top: 0.45rem;
+            padding: 0.6rem 0.75rem;
+            background: rgba(245,158,11,0.12);
+            color: #92400e;
+            border: 1px solid rgba(245,158,11,0.45);
+            border-radius: 9px;
+            font-size: 0.78rem;
+            line-height: 1.5;
+        }
+        .ptar-prepago-warn[hidden] { display: none; }
+        .ptar-prepago-warn strong { color: #7c3a06; }
         /* Nota informativa (verde) bajo Fecha de envío según la ventana elegida. */
         .ptar-ventana-note {
             margin-top: 0.45rem; padding: 0.55rem 0.7rem;
@@ -3257,6 +3270,15 @@
                 </div>
                 </div>
 
+                <!-- Aviso de pago por adelantado (solo si la cuenta NO tiene
+                     crédito CESCE): la ventana se elige libremente, pero el
+                     plazo empieza a contar desde que se valida el pago. -->
+                <div class="ptar-field-full">
+                    <div class="ptar-prepago-warn" data-ptar-prepago-warn hidden>
+                        <strong>💳 Pago por adelantado.</strong> Tu cuenta no tiene crédito disponible, así que este envío se paga por <strong>transferencia por adelantado</strong>. Puedes elegir la ventana de carga que quieras, pero <strong>el plazo empieza a contar desde que validamos tu pago</strong> en nuestra cuenta, no desde hoy (la validación puede tardar <strong>hasta 24&nbsp;h</strong>). Si el pago se verifica <strong>antes de las 9:00</strong>, se puede cargar <strong>al día siguiente</strong>; si no, dentro de la ventana elegida contando desde ese momento. Los datos de la transferencia aparecen al confirmar.
+                    </div>
+                </div>
+
                 <div class="ptar-field-full">
                     <div class="ptar-nofecha-warn" data-ptar-nofecha-warn hidden>
                         ⚠ No se asigna camión hasta confirmar fecha.
@@ -3517,9 +3539,19 @@
         if (sec) { sec.dataset.entryMode = 'envio'; sec.dataset.step = 'form'; }
         var h2 = document.querySelector('[data-nueva-carga-title]');
         if (h2) h2.textContent = 'Nuevo envío';
+        updatePrepagoWarn();
         showSection('nueva-carga');
     }
     window.openNuevaCarga = openNuevaCarga;
+    // Muestra el aviso de pago por adelantado del formulario solo si la
+    // cuenta NO tiene crédito CESCE (chip de la topbar; lo dará el backend).
+    function updatePrepagoWarn() {
+        var chip = document.querySelector('[data-cesce-chip]');
+        var conCredito = !chip || chip.classList.contains('cesce-status-ok');
+        var w = document.querySelector('[data-ptar-prepago-warn]');
+        if (w) w.hidden = conCredito;
+    }
+    window.updatePrepagoWarn = updatePrepagoWarn;
 
     /* ============================================
        Dropdown de acciones por fila
@@ -8673,7 +8705,7 @@
             var PAGO_BANCO = { titular: 'Dynamo Operador Logístico, S.L.', iban: 'ES68 2100 0418 4502 0005 1332', banco: 'CaixaBank', bic: 'CAIXESBBXXX' };
             function eurStr(n) { return String(n || 0).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
             // Aviso común de validación de pago (24 h · ventana 1-3 días).
-            var PAGO_NOTA_24H = '<div class="ptar-pay-note">⏱ El transporte <strong>no se gestiona ni se asigna camión hasta validar el pago</strong>. La validación puede tardar <strong>hasta 24&nbsp;h</strong> (no es instantánea). Por eso estas cargas se programan con <strong>ventana de 1 a 3 días</strong>, para dar margen a validar el pago antes de cargar. Cuanto antes pagues, antes se procesa.</div>';
+            var PAGO_NOTA_24H = '<div class="ptar-pay-note">⏱ El transporte <strong>no se gestiona ni se asigna camión hasta validar el pago</strong> (la validación puede tardar <strong>hasta 24&nbsp;h</strong>, no es instantánea). El <strong>plazo de carga empieza a contar desde que validamos el pago</strong>, no desde hoy: si se verifica antes de las 9:00 se puede cargar al día siguiente; si no, dentro de la ventana elegida desde ese momento. Cuanto antes pagues, antes se procesa.</div>';
             // Detalle según el método de pago por adelantado elegido.
             function pagoDetalle(metodo, eur) {
                 if (metodo === 'tarjeta') {
