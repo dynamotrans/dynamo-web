@@ -520,7 +520,9 @@
         /* Solo iniciales en la topbar: el avatar JG ya identifica al usuario;
            el nombre completo (largo) se oculta aquí (sí sale en el menú). */
         .topbar-user-name { display: none; }
-        .topbar-user-arrow { color: var(--gray-500); transition: transform 0.2s; }
+        /* Sin flecha en el avatar JG (el avatar ya invita a pulsar) → más
+           espacio en la barra. */
+        .topbar-user-arrow { display: none; }
         .topbar-user[aria-expanded="true"] .topbar-user-arrow { transform: rotate(180deg); }
 
         /* Logo (izquierda): su propia píldora. */
