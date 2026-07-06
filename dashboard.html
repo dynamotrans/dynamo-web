@@ -1156,9 +1156,16 @@
             padding: 0.9rem 1.3rem; background: white; border-radius: 12px; border: 1px solid var(--gray-200);
         }
         .veh-nota strong { color: var(--navy); }
+        /* Servicios como cuadros FIJOS: fila de 4 en escritorio, 2×2 en móvil. */
+        .dash-svc-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.9rem;
+        }
+        @media (max-width: 640px) {
+            .dash-svc-grid { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+        }
         /* Tarjeta de servicio compacta (foto + chip + cuerpo morado, como la web) */
         .dash-svc-card {
-            flex: 0 0 auto; width: 250px; border-radius: 14px; overflow: hidden;
+            width: auto; border-radius: 14px; overflow: hidden;
             border: 1.5px solid var(--gray-200); background: var(--purple);
             box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: default;
         }
@@ -3109,42 +3116,11 @@
             </div>
         </div>
 
-        <!-- ===== Nuestra flota: sección de la web pública (tipos de vehículo) ===== -->
-        <div class="dash-flota">
-            <p class="dash-flota-eyebrow">Nuestra flota</p>
-            <h4 class="dash-flota-title">Tipos de Vehículo</h4>
-            <p class="dash-flota-desc">Disponemos del vehículo adecuado para cada tipo de carga y necesidad.</p>
-            <div class="veh-grid">
-                <div class="veh-card">
-                    <h3><svg class="veh-icon" width="28" height="18" viewBox="0 0 28 18" fill="none" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="1" width="19" height="11" rx="1.5"/><path d="M8 4H3.5A2.5 2.5 0 0 0 1 6.5V12h7"/><circle cx="5" cy="15" r="2"/><circle cx="20" cy="15" r="2"/><circle cx="24" cy="15" r="2"/><line x1="7" y1="15" x2="18" y2="15"/></svg> Trailer Tauliner — Cortina / Lona Corredera</h3>
-                    <p>Similar a un furgón tipo box/caja, con cortinas correderas en lados y techo que dan fácil acceso a la carga. El vehículo más utilizado para envíos terrestres.</p>
-                    <p><strong>Ideal para:</strong> mercancía paletizada, palot/box y mercancías especiales.</p>
-                    <div class="veh-specs">
-                        <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">13,2 m</div></div>
-                        <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,40 m</div></div>
-                        <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
-                        <div class="veh-spec"><div class="veh-spec-label">Carga máx.</div><div class="veh-spec-value">24 Tn.</div></div>
-                        <div class="veh-spec"><div class="veh-spec-label">Apertura</div><div class="veh-spec-value">Lateral, trasero y techo</div></div>
-                        <div class="veh-spec"><div class="veh-spec-label">Palé europeo</div><div class="veh-spec-value">33 uds. (120x80)</div></div>
-                        <div class="veh-spec"><div class="veh-spec-label">Palé americano</div><div class="veh-spec-value">26 uds. (120x100)</div></div>
-                    </div>
-                </div>
-                <div class="veh-card">
-                    <h3><svg class="veh-icon" width="24" height="18" viewBox="0 0 24 18" fill="none" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="1" width="16" height="11" rx="1.5"/><path d="M7 4H3.5A2.5 2.5 0 0 0 1 6.5V12h6"/><circle cx="5" cy="15" r="2"/><circle cx="18" cy="15" r="2"/><line x1="7" y1="15" x2="16" y2="15"/><line x1="10" y1="12" x2="10" y2="1"/></svg> Rígido con Plataforma y Transpaleta — Cortina / Lona Corredera</h3>
-                    <p>Tipo tauliner con cortinas correderas. Ideal para cargas donde no existen medios de carga y/o descarga en destino.</p>
-                    <p><strong>Ideal para:</strong> entregas urbanas, puntos sin muelle de carga.</p>
-                    <div class="veh-specs">
-                        <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">8 m</div></div>
-                        <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,40 m</div></div>
-                        <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
-                        <div class="veh-spec"><div class="veh-spec-label">Carga máx.</div><div class="veh-spec-value">14 Tn.</div></div>
-                        <div class="veh-spec"><div class="veh-spec-label">Apertura</div><div class="veh-spec-value">Lateral, trasero y techo</div></div>
-                        <div class="veh-spec"><div class="veh-spec-label">Palé europeo</div><div class="veh-spec-value">20 uds. (120x80)</div></div>
-                        <div class="veh-spec"><div class="veh-spec-label">Palé americano</div><div class="veh-spec-value">16 uds. (120x100)</div></div>
-                        <div class="veh-spec"><div class="veh-spec-label">Equipamiento</div><div class="veh-spec-value">Plataforma + Transpaleta</div></div>
-                    </div>
-                </div>
-            </div>
+        <!-- ===== Servicios: las 4 tarjetas de la web pública como cuadros
+             FIJOS (fila en escritorio, 2×2 en móvil). ===== -->
+        <div class="dash-servicios">
+            <h4 class="dash-carousel-title">Nuestros servicios</h4>
+            <div class="dash-svc-grid" id="dashServiciosRow"></div>
         </div>
 
         <!-- ===== Muro de clientes: MISMO carrusel triple de la web pública
@@ -3193,11 +3169,42 @@
             </div>
         </div>
 
-        <!-- ===== Servicios: las 4 tarjetas de la web pública en UNA línea,
-             moviéndose solas (mismo mecanismo de carrusel). ===== -->
-        <div class="dash-servicios">
-            <h4 class="dash-carousel-title">Nuestros servicios</h4>
-            <div class="clientes-row" data-dir="ltr" style="--dur: 60s;"><div class="clientes-row-track" id="dashServiciosRow"></div></div>
+        <!-- ===== Nuestra flota: sección de la web pública (tipos de vehículo) ===== -->
+        <div class="dash-flota">
+            <p class="dash-flota-eyebrow">Nuestra flota</p>
+            <h4 class="dash-flota-title">Tipos de Vehículo</h4>
+            <p class="dash-flota-desc">Disponemos del vehículo adecuado para cada tipo de carga y necesidad.</p>
+            <div class="veh-grid">
+                <div class="veh-card">
+                    <h3><svg class="veh-icon" width="28" height="18" viewBox="0 0 28 18" fill="none" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="1" width="19" height="11" rx="1.5"/><path d="M8 4H3.5A2.5 2.5 0 0 0 1 6.5V12h7"/><circle cx="5" cy="15" r="2"/><circle cx="20" cy="15" r="2"/><circle cx="24" cy="15" r="2"/><line x1="7" y1="15" x2="18" y2="15"/></svg> Trailer Tauliner — Cortina / Lona Corredera</h3>
+                    <p>Similar a un furgón tipo box/caja, con cortinas correderas en lados y techo que dan fácil acceso a la carga. El vehículo más utilizado para envíos terrestres.</p>
+                    <p><strong>Ideal para:</strong> mercancía paletizada, palot/box y mercancías especiales.</p>
+                    <div class="veh-specs">
+                        <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">13,2 m</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,40 m</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Carga máx.</div><div class="veh-spec-value">24 Tn.</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Apertura</div><div class="veh-spec-value">Lateral, trasero y techo</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Palé europeo</div><div class="veh-spec-value">33 uds. (120x80)</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Palé americano</div><div class="veh-spec-value">26 uds. (120x100)</div></div>
+                    </div>
+                </div>
+                <div class="veh-card">
+                    <h3><svg class="veh-icon" width="24" height="18" viewBox="0 0 24 18" fill="none" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="1" width="16" height="11" rx="1.5"/><path d="M7 4H3.5A2.5 2.5 0 0 0 1 6.5V12h6"/><circle cx="5" cy="15" r="2"/><circle cx="18" cy="15" r="2"/><line x1="7" y1="15" x2="16" y2="15"/><line x1="10" y1="12" x2="10" y2="1"/></svg> Rígido con Plataforma y Transpaleta — Cortina / Lona Corredera</h3>
+                    <p>Tipo tauliner con cortinas correderas. Ideal para cargas donde no existen medios de carga y/o descarga en destino.</p>
+                    <p><strong>Ideal para:</strong> entregas urbanas, puntos sin muelle de carga.</p>
+                    <div class="veh-specs">
+                        <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">8 m</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,40 m</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Carga máx.</div><div class="veh-spec-value">14 Tn.</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Apertura</div><div class="veh-spec-value">Lateral, trasero y techo</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Palé europeo</div><div class="veh-spec-value">20 uds. (120x80)</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Palé americano</div><div class="veh-spec-value">16 uds. (120x100)</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Equipamiento</div><div class="veh-spec-value">Plataforma + Transpaleta</div></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
     </section>
@@ -7592,8 +7599,7 @@
             rowsC.forEach(function (row) { row.innerHTML += row.innerHTML; });
             srcC.innerHTML = '';
         }
-        // Servicios: las 4 tarjetas de la web, repetidas para que el track
-        // sea más ancho que la pantalla y el bucle no muestre huecos.
+        // Servicios: las 4 tarjetas de la web como cuadros FIJOS (grid).
         var rowS = document.getElementById('dashServiciosRow');
         if (rowS) {
             var SVCS = [
@@ -7602,16 +7608,12 @@
                 { t: 'Importación', chip: 'Toda Europa', img: '/images/AdobeStock_154376791.jpeg', pos: '', d: 'Hasta la puerta de tu empresa, desde cualquier punto de Europa, con plazos garantizados y máxima calidad.' },
                 { t: 'Exportación', chip: 'Import & Export', img: '/images/AdobeStock_260603287.jpeg', pos: '', d: 'Portugal, Francia, Alemania, Italia, Suiza, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.' }
             ];
-            var mitad = '';
-            for (var rep = 0; rep < 2; rep++) {
-                SVCS.forEach(function (s) {
-                    mitad += '<div class="dash-svc-card">' +
-                        '<div class="dash-svc-img"><img loading="lazy" src="' + s.img + '" alt="' + s.t + '"' + (s.pos ? ' style="object-position:' + s.pos + ';"' : '') + '><span class="dash-svc-chip">' + s.chip + '</span></div>' +
-                        '<div class="dash-svc-body"><strong>' + s.t + '</strong><span>' + s.d + '</span></div>' +
-                    '</div>';
-                });
-            }
-            rowS.innerHTML = mitad + mitad;  // 2 mitades idénticas = loop sin salto
+            rowS.innerHTML = SVCS.map(function (s) {
+                return '<div class="dash-svc-card">' +
+                    '<div class="dash-svc-img"><img loading="lazy" src="' + s.img + '" alt="' + s.t + '"' + (s.pos ? ' style="object-position:' + s.pos + ';"' : '') + '><span class="dash-svc-chip">' + s.chip + '</span></div>' +
+                    '<div class="dash-svc-body"><strong>' + s.t + '</strong><span>' + s.d + '</span></div>' +
+                '</div>';
+            }).join('');
         }
     })();
     (function () {
