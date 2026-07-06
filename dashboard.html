@@ -2342,16 +2342,15 @@
         #sec-nueva-carga[data-entry-mode="presupuesto"] .ptar-actions-main [data-ptar-submit]:hover {
             background: var(--gray-200);
         }
-        /* Modo envío (por defecto): la acción principal es Crear envío (morado)
-           y Guardar presupuesto queda discreta en gris claro. */
+        /* Modo envío (por defecto): SOLO "Crear envío" (a lo ancho). El botón
+           "Guardar presupuesto" se oculta en este flujo. */
         #sec-nueva-carga[data-entry-mode="envio"] .ptar-actions-main [data-ptar-save-presupuesto],
         #sec-nueva-carga:not([data-entry-mode]) .ptar-actions-main [data-ptar-save-presupuesto] {
-            background: var(--gray-100); color: var(--gray-700);
-            border: 1px solid var(--gray-300);
+            display: none;
         }
-        #sec-nueva-carga[data-entry-mode="envio"] .ptar-actions-main [data-ptar-save-presupuesto]:hover,
-        #sec-nueva-carga:not([data-entry-mode]) .ptar-actions-main [data-ptar-save-presupuesto]:hover {
-            background: var(--gray-200);
+        #sec-nueva-carga[data-entry-mode="envio"] .ptar-actions-main [data-ptar-submit],
+        #sec-nueva-carga:not([data-entry-mode]) .ptar-actions-main [data-ptar-submit] {
+            grid-column: 1 / -1;
         }
         /* Cancelar debe quedar SIEMPRE debajo (al reordenar las 2 acciones con
            order, sin esto el ghost de order:0 subiría a la primera posición). */
@@ -3311,12 +3310,9 @@
                 <div data-ptar-sitios-list></div>
             </div>
 
-            <!-- Referencia interna y anotaciones: editables también aquí,
-                 sin volver al paso 1. -->
-            <div class="ptar-confirm-extra">
-                <div><label>Añadir tu referencia interna (opcional)</label><input data-ptar-conf-ref placeholder="Ej. PED-1234" maxlength="40"></div>
-                <div><label>Añadir anotaciones</label><textarea data-ptar-conf-notes rows="2" maxlength="1000" placeholder="Anotaciones para el equipo (opcional)"></textarea></div>
-            </div>
+            <!-- La referencia interna y las anotaciones NO se editan aquí: se
+                 muestran en el resumen de arriba (con lo puesto en el paso 1;
+                 si están en blanco, se omiten). -->
 
             <!-- El aviso de "la recogida nunca está garantizada al 100%" vive
                  dentro de las condiciones generales (apartado 14), enlazadas
@@ -8598,9 +8594,11 @@
                     '<dt>Ventana</dt><dd>' + escapeHtml(d.urgenciaLabel) + '</dd>' +
                     '<dt>Fecha de carga</dt><dd>' + escapeHtml(d.fechaLarga) + '</dd>' +
                     cargaRangoHtml +
+                    (d.refCli && d.refCli.indexOf('NUEVO') === -1 ? '<dt>Tu referencia</dt><dd>' + escapeHtml(d.refCli) + '</dd>' : '') +
+                    (d.notes ? '<dt class="full">Anotaciones</dt><dd class="full">' + escapeHtml(d.notes) + '</dd>' : '') +
                     (d.precioMock ? '<dt>Precio</dt><dd><span data-sum-precio>' + String(d.precioMock).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €</span> <span style="color:var(--gray-500);font-weight:600;">(IVA 21% no incluido)</span></dd>' : '');
-                // La referencia interna y las anotaciones se muestran abajo
-                // como campos EDITABLES (data-ptar-conf-ref / -notes).
+                // Referencia y anotaciones se muestran en el RESUMEN (solo
+                // lectura, con lo puesto en el paso 1; en blanco se omiten).
                 // Aviso de grupaje: solo si la carga NO es completa
                 // (Tauliner completo = 13,2 m; Rígido completo = 8 m).
                 // Si los ml elegidos son menores, sí es grupaje → mostrar.
@@ -8731,12 +8729,6 @@
                     syncConfTipos();
                 }
                 recalcConfPrice();
-                // Referencia y anotaciones editables en este paso (precargadas
-                // con lo escrito en el paso 1, si algo).
-                var confRef = confirmCard.querySelector('[data-ptar-conf-ref]');
-                var confNotes = confirmCard.querySelector('[data-ptar-conf-notes]');
-                if (confRef) confRef.value = refCliInput.value;
-                if (confNotes) confNotes.value = notesTxt.value;
                 // Reiniciar el check obligatorio cada vez que se entra al paso
                 // de confirmación (por si se editó y se volvió a entrar).
                 if (chkTerms) chkTerms.checked = false;
@@ -8760,18 +8752,7 @@
             if (backBtn) backBtn.addEventListener('click', exitConfirmStep);
             if (finalBtn) finalBtn.addEventListener('click', function () {
                 if (!pendingData) return;
-                // Volcar la referencia/anotaciones editadas en este paso al
-                // formulario y al pedido pendiente.
-                var confRef2 = confirmCard.querySelector('[data-ptar-conf-ref]');
-                var confNotes2 = confirmCard.querySelector('[data-ptar-conf-notes]');
-                if (confRef2) {
-                    refCliInput.value = confRef2.value;
-                    pendingData.refCli = confRef2.value.trim() || 'PED-NUEVO';
-                }
-                if (confNotes2) {
-                    notesTxt.value = confNotes2.value;
-                    pendingData.notes = confNotes2.value.trim();
-                }
+                // Referencia y anotaciones vienen del paso 1 (ya en pendingData).
                 // Check de condiciones sin marcar → señalar dónde está el fallo
                 if (chkTerms && !chkTerms.checked) {
                     if (checkLbl) {
