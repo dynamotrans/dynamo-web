@@ -7,12 +7,8 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - _(nada urgente abierto)_
 
 ## 📋 Normal
-- [ ] **Buscador de recogidas/entregas con autocompletar de 3 niveles** (dashboard.html, EN CURSO — plan acordado 2026-07-05):
-  1. Desde el 1er carácter: **1º sitios propios registrados** (catálogo SITES + guardados del usuario, chip "Guardado") · **2º empresas de Google Places** (SIMULADO en mock hasta tener API key; chip "Google") · **3º direcciones** (Nominatim, chip "Dirección").
-  2. Al seleccionar: ficha del lugar **prerellenada y editable** en el paso de confirmación (empresa, dirección, horario, tfno, contacto, notas). Si viene de Google, se prerellena con su ficha.
-  3. Al crear el envío, el lugar de Google (con ediciones a mano) **se guarda como sitio propio** (mock: localStorage; con backend: Supabase).
-  4. **Duplicados** (caso GRUPAL ART): en el desplegable marcar "Guardado" vs "Google"; si clica el de Google y es muy similar a uno guardado → alerta con 3 opciones: usar nuestro registro (puede tener anotaciones/tfno bueno) / seguir con Google / **comparar ambos** lado a lado (nombre, dirección, horario, tfno, notas) y elegir.
-  5. Cuando haya API key de Google, los niveles 2-3 se enchufan a Places real sin cambiar la UX.
+- [ ] **Aplicar a la web pública el fix del micro-brinco del carrusel de clientes** (`index.html` → `main`): el track usa `gap` de flex y `translateX(-50%)` no cae exacto (salta ~8px por vuelta). En el panel ya está arreglado (2026-07-05) con `margin-right` por tarjeta en vez de `gap` — son 3 líneas de CSS. Pendiente de OK del usuario (es cambio público → rama corta desde main, regla 8).
+- [ ] **Validar con el cliente los recargos por tipo de lugar** del tarifador (2026-07-05, mock): Almacén 0 · Obra +5% · Evento +15% · Zona urbana +20% · Finca/Agrícola +25%, sumando origen + destino + paradas. Ajustar cuando llegue la tarifa real.
 <!-- Cosas que hacer cuando haya tiempo -->
 - [ ] **Refactor anti-duplicación del tarifador (Paso A)** — _decidido 2026-07-04: NO se hace sobre el mockup HTML (código que se reescribe en Next.js); se hace al migrar, con este plano._
   - **Problema**: el tarifador está **copiado** en `index.html` (público) y `dashboard.html` (panel). (Ojo: dentro del panel, "Nuevo envío" vs "Nuevo presupuesto" NO son copias — ya es el mismo form con flag `entryMode`/`data-ptar-mode`. La duplicación real es solo público ↔ panel.) Se desincronizan → bugs (p.ej. el aviso de fecha fija estuvo primero solo en el panel).
@@ -107,6 +103,13 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 - Roles transportista / proveedor: fase 4 (cuando se valide la operativa con clientes).
 
 ## ✅ Hecho recientemente
+- [x] 2026-07-05 — **Buscador de recogidas/entregas de 3 niveles COMPLETO** (cierra el plan del día): Guardado/Google(mock)/Dirección desde el 1er carácter + **Recientes** (últimos 5 sitios por rol al enfocar vacío) + **chip bloqueado** al seleccionar (editar a trozos rompía la ficha) + **"+ Crear nuevo sitio"** al final del desplegable (solo con 3+ chars; abre el formulario de la sección Sitios y al guardar rellena el campo) + **duplicados en un solo modal** con comparación editable y botones ← para copiar datos de Google al registro propio
+- [x] 2026-07-05 — **Sección Sitios**: borrar cualquier sitio con confirmación (se oculta de agenda/buscador; los envíos/presupuestos consolidados conservan sus datos; re-guardar lo revive). **Tipo de lugar** en la ficha (desplegable) con autoselección en el tarifador y **recargos de precio** (Obra +5% · Evento +15% · Urbana +20% · Finca +25%)
+- [x] 2026-07-05 — **Confirmación de envío**: resumen sin repetir ruta; fichas de lugares numeradas con circulito naranja/verde (Recogida/Entrega 1..N) y TODOS los datos (dirección bloqueada en gris, Ver en Maps, tipo de lugar); fila de Precio (IVA no incl.); referencia interna y anotaciones editables ahí mismo. Aviso legal completo en Cancelar envío (9:00 del día hábil anterior, coste completo, por ley)
+- [x] 2026-07-05 — **Dashboard rediseñado**: fila única Nuevo envío · Mis últimos envíos (1 muestra) · Nuevo presupuesto; fuera Últimos presupuestos; muro de clientes triple + carrusel de servicios (de la web pública, con fade lateral y bucle sin brincos); sección NUESTRA FLOTA / Tipos de Vehículo portada de la web
+- [x] 2026-07-05 — **Presupuestos caducados**: retención de 30 días tras caducar (luego se borran) + aviso en la pestaña Caducados; fuera el filtro de fecha (solo buscador)
+- [x] 2026-07-05 — **Tablas**: Ruta y fechas a línea completa sin saltos con dirección en negrita; fix font boosting de Safari iOS (tamaños dispares); chips de la topbar unificados; usuario demo → Marbex Industrial S.L.; (Creado: dd/mm/yy · hh:mm) en la 1ª columna de envíos
+- [x] 2026-07-05 — **Preview compartible**: explicado cómo desactivar Vercel Authentication (Deployment Protection del proyecto) para que externos prueben el mockup por enlace sin cuenta
 - [x] 2026-07-05 — **Defaults SEV→MAD del tarifador retirados**: los campos de recogida/entrega arrancan vacíos (también tras Limpiar). Cierra el TODO de producción
 - [x] 2026-07-04 — **Modelo de ramas simplificado a `main` + `preview`** (regla 9 reescrita): eliminada la rama permanente `lab` + limpieza de ~20 ramas muertas en GitHub. Experimentos futuros → ramas cortas `lab/<algo>` desde preview
 - [x] 2026-07-04 — **Flujo Nuevo envío/presupuesto** (preview): botón "Nuevo presupuesto" de vuelta (listado + panel), modo de entrada envío/presupuesto con reordenado y avisos de botones, pantalla de confirmación con aviso legal ámbar + un solo check de condiciones (texto de recogida integrado en apdo. 14), "Limpiar" oculto en confirmación

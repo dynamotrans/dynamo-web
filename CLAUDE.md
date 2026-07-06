@@ -150,6 +150,44 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-07-05 — Claude Code web (nube)
+
+> **Sesión maratoniana del PANEL: buscador de sitios completo + agenda + confirmación de envío + dashboard rediseñado.** TODO en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `3efd0d3` + 2 commits de cierre pendientes de push (≈25 commits del día).
+
+**BUSCADOR DE RECOGIDAS/ENTREGAS — completado el plan de 3 niveles** (`dashboard.html`):
+- **Recientes**: al pulsar un campo VACÍO de recogida/entrega salen los **últimos 5 sitios usados en ese rol** (chip morado "Reciente", calculados de los envíos por fecha de creación). Al escribir toma el relevo el buscador normal; al vaciar (tecla o ×) vuelven.
+- **Chip bloqueado**: al elegir sitio/dirección el campo queda `readonly` con estilo chip (fondo morado suave). **Arregla el bug** de que editar a trozos el texto rompía la selección y el resumen perdía la ficha. Se cambia solo con la ×.
+- **"+ Crear nuevo sitio"** como última opción del desplegable — SOLO tras escribir **3+ caracteres** (junto a los recientes invitaba a crear duplicados sin buscar). Abre el MISMO formulario de la sección Sitios (unificación pedida por el usuario) con el texto prefijado; al guardar, el sitio nuevo rellena el campo (`_sitioOnSave`).
+- **Duplicados en UN solo modal**: aviso ("se duplicaría el registro…") + tabla comparativa + decisión, sin paso intermedio. Los campos de "Tu registro" son **editables** y cada dato de Google lleva botón **←** que lo copia al propio (destello verde). "Usar mi registro" guarda las ediciones en la agenda.
+- Fix: la lista de recientes ya no se cierra sola tras pulsar × (el blur-timeout respeta el foco devuelto al input).
+- **Solo ubicaciones elegidas de la lista** (no texto a mano): origen/destino/paradas deben seleccionarse del desplegable (chip bloqueado `ptar-picked`); teclear "SDAa" y darle a Crear ya no cuela como dirección suelta — avisa y no avanza. Prefill (Repetir/Generar) marca los campos como elegidos. Bajo los recientes, **pista** no clicable "✎ Escribe para buscar en toda tu agenda o en Google Maps…" (que no parezca que solo hay 5).
+
+**SITIOS (agenda)**:
+- **Borrar** cualquier sitio (catálogo o propio) desde su detalle, con confirmación. El borrado solo lo quita de agenda+buscador (`localStorage dynamoSitesDeleted`); **los envíos/presupuestos consolidados conservan todos sus datos** (siteDe sigue resolviendo la clave). Re-guardar el sitio lo revive.
+- **Tipo de lugar** (`tipoLugar`) en la ficha: desplegable en el formulario (Almacén/Nave · Obra · Zona urbana · Evento · Finca/Agrícola). Al elegir un sitio en el tarifador se **autoselecciona** su tipo; si el usuario lo cambia, al confirmar **se consolida en la ficha**.
+- **Recargos de precio por tipo** (mock, pendiente validar): Almacén 0 · **Obra +5% · Evento +15% · Zona urbana +20% · Finca/Agrícola +25%**, sumando origen + destino + paradas; cambiar un tipo recalcula el precio en vivo.
+
+**CONFIRMACIÓN DE ENVÍO** (paso 2):
+- Resumen SIN origen/destino/paradas (no duplica las fichas). Añadida fila **Precio … € (IVA 21% no incluido)**.
+- Fichas de lugares **numeradas en orden de ruta** con el circulito naranja/verde del formulario (① Recogida / ① Entrega; el destino es la última entrega). Los puntos sin ficha (dirección suelta) también salen.
+- Cada ficha con TODOS los datos: dirección (solo calle) y CP/localidad/provincia/país en **campos grises bloqueados**, "Ver en Maps", **Tipo de lugar** no editable, y editables empresa/horario/tfno/contacto/notas.
+- **Referencia interna y anotaciones editables ahí mismo** (sincronizadas con el paso 1 y el pedido).
+- **Cancelar envío**: aviso legal completo (después de las **9:00 del día hábil anterior** puede conllevar el **coste del servicio completo**, es por ley, arbitrajes fallan a favor del transportista, no pedir transportes sin seguridad).
+
+**PRESUPUESTOS**: caducados con **retención de 30 días** tras caducar (después se borran; purga simulada al cargar + mock re-escalonado 2-28 días) + aviso en la pestaña Caducados. Fuera el desplegable de fecha (no filtraba); queda solo el buscador.
+
+**TABLAS**: Ruta y fechas a **línea completa sin saltos** (nowrap, scroll horizontal interno) con **dirección en negrita** (envíos y presupuestos). **(Creado: dd/mm/yy · hh:mm)** en la 1ª columna de envíos. Fix **font boosting de Safari iOS** (`text-size-adjust:100%` — inflaba texto de unas filas sí y otras no).
+
+**DASHBOARD rediseñado**:
+- Fila única: **Nuevo envío · Mis últimos envíos (1 fila de muestra) · Nuevo presupuesto** (móvil: botones arriba, muestra debajo). Eliminada la tarjeta Últimos presupuestos.
+- **Muro de clientes** (carrusel TRIPLE de la web pública, 32 logos de `index.html`) + **carrusel de servicios** (las 4 tarjetas de la web) — con fade lateral y **bucle sin brincos** (margen por tarjeta en vez de `gap`: con gap, translateX(-50%) no cae exacto y saltaba ~8px/vuelta; la web pública AÚN tiene ese gap → TODO con OK pendiente).
+- Sección **NUESTRA FLOTA / Tipos de Vehículo** al final, portada de la web (2 veh-cards con specs + nota de flota exclusiva).
+- Chips de la topbar **unificados** (logo, campana, CESCE, Álvaro, JG: 40px escritorio / 36px móvil, píldora, mismo borde/fondo).
+
+**OTROS**: usuario demo → **Marbex Industrial S.L.** (inventada, fuera Talsa). "Ver todos" en Mis últimos envíos. Etiqueta "CP, localidad, provincia y país". Revertido `overscroll-behavior-y:none` (bloqueaba pull-to-refresh y amortiguación en iOS; el "espacio fantasma" era caché). **Preview compartible**: para que externos prueben el mockup sin cuenta, desactivar **Vercel Authentication** en Settings → Deployment Protection del proyecto `dynamo-web` y compartir el enlace del preview (los previews no se indexan).
+
+**Pendientes** (en TODO.md): aplicar el fix del micro-brinco al muro de clientes de la web pública (`main`, con OK); validar recargos por tipo de lugar y tarifa real con el cliente.
+
 ### 2026-07-04 — Claude Code web (nube)
 
 > **Sesión de flujo del tarifador/panel + simplificación del modelo de ramas.** Trabajo de portal en **preview** (`claude/sharp-dirac-E3UIO`); un cambio público a **producción** (`main`): aviso de fecha fija en el tarifador del hero.
