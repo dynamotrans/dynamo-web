@@ -39,20 +39,24 @@
         * { margin: 0; padding: 0; box-sizing: border-box; min-width: 0; }
         html {
             background: var(--gray-100);
-            /* Cinturon: ningun caso debe permitir scroll horizontal a nivel
-               de pagina. Las tablas y tabs hacen su propio overflow-x interno.
-               Lo aplicamos a <html> (no a body) para que el SCROLL VERTICAL
-               siga ocurriendo en window/documentElement -> back-top y
-               window.scrollTo funcionan */
+            /* Cinturón anti-scroll horizontal a nivel de página. Las tablas y
+               tabs hacen su propio overflow-x interno.
+               overflow-x: clip es más fiable que hidden en iOS Safari (donde
+               hidden sobre <html> a veces NO impedía el desplazamiento lateral)
+               y NO crea contenedor de scroll → el scroll vertical sigue en
+               window (back-top y pull-to-refresh funcionan). */
             overflow-x: hidden;
+            overflow-x: clip;
             max-width: 100vw;
+            /* Rebote SOLO vertical: el lateral queda fijo (sin amortiguación
+               horizontal). El eje Y no se toca, así el "tirar para recargar"
+               del móvil se mantiene. */
+            overscroll-behavior-x: none;
             /* Sin "font boosting" de Safari iOS: con contenido ancho (tabla
                de rutas en nowrap) inflaba el texto de unas filas sí y otras
                no, dejando tamaños dispares sin criterio. */
             -webkit-text-size-adjust: 100%;
             text-size-adjust: 100%;
-            /* OJO: no poner overscroll-behavior-y aquí — bloquea el gesto de
-               "tirar hacia abajo para recargar" del móvil (probado). */
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -60,6 +64,12 @@
             background: var(--gray-100);
             -webkit-font-smoothing: antialiased;
             display: flex;
+            /* Refuerzo iOS: clipa cualquier hijo que se pase de ancho (carrusel,
+               tabla) sin crear scroll horizontal de página. */
+            overflow-x: hidden;
+            overflow-x: clip;
+            max-width: 100vw;
+            overscroll-behavior-x: none;
         }
 
         /* =========================================
@@ -262,6 +272,16 @@
         .bell-item-count.fac { background: #ef4444; }
         .bell-item-count.zero { background: var(--gray-300); color: var(--gray-600); }
         .bell-empty { padding: 1rem 0.6rem; text-align: center; color: var(--gray-500); font-size: 0.82rem; }
+        /* En móvil, los menús de la topbar (que cuelgan de botones a mitad de
+           la barra) se anclan FIJOS a la derecha de la pantalla con margen,
+           para que no se salgan por la izquierda ni los recorte overflow:clip. */
+        @media (max-width: 600px) {
+            .cesce-menu, .bell-menu, .topbar-contact-menu, .user-menu {
+                position: fixed; top: 64px; right: 8px; left: auto;
+                width: auto; min-width: 240px; max-width: calc(100vw - 16px);
+                transform-origin: top right;
+            }
+        }
 
         /* ============================================
            BOTON DE CONTACTO (Alvaro) EN LA TOPBAR
