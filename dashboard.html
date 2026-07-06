@@ -8698,11 +8698,13 @@
                 if (!payEl) return;
                 var eur = eurStr(d && d.precioMock);
                 if (creditoDisponible()) {
-                    // Con crédito: se factura por transferencia/domiciliación sin
-                    // mostrar nada extra. El cliente confirma directamente.
                     if (pendingData) pendingData.formaPago = 'credito';
-                    payEl.innerHTML = '';
-                    payEl.hidden = true;
+                    payEl.innerHTML =
+                        '<div class="ptar-pay-box pay-credit">' +
+                            '<div class="ptar-pay-title"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Forma de pago: Transferencia / Domiciliación</div>' +
+                            '<div class="ptar-pay-desc">Tienes <strong>crédito disponible</strong>: este envío se factura y se cobra por <strong>transferencia o domiciliación bancaria</strong>. Puedes confirmar directamente y seguimos con la gestión.</div>' +
+                        '</div>';
+                    payEl.hidden = false;
                     return;
                 }
                 // Sin crédito → pago por adelantado (transferencia/tarjeta/plataforma)
