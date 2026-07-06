@@ -7327,6 +7327,18 @@
                 setPicked(false);
                 if (onPick) onPick(null);
             }
+            // Al salir del campo sin ELEGIR nada de la lista, el texto tecleado
+            // se borra (vuelve a vacío como estaba): así nunca queda una
+            // ubicación "a medias" sin ficha y no hace falta avisar de ello.
+            function resetIfUnpicked() {
+                if (!wrap.classList.contains('ptar-picked') && input.value) {
+                    input.value = '';
+                    clearGeo();
+                    wrap.classList.remove('ptar-error');
+                    syncClear();
+                }
+            }
+            wrap._resetUnpicked = resetIfUnpicked;  // accesible desde la validación
             // Geocodifica en 2º plano la dirección del sitio elegido para que
             // la ETA siga funcionando (la agenda no guarda lat/lon todavía).
             function geoFromDir(dir) {
@@ -7475,6 +7487,7 @@
                 var interactivo = e.target.closest ? e.target.closest('input, select, textarea, button, a, label, .ptar-sug') : null;
                 if (COARSE && !interactivo && (document.activeElement === input || justBlurred)) return; // solo baja el teclado
                 sugList.hidden = true;
+                resetIfUnpicked();  // toque fuera sin elegir → limpia el texto
             });
             function renderLocales(q) {
                 sugList.innerHTML = '';
@@ -7541,7 +7554,10 @@
                 setTimeout(function () {
                     // Si el foco ha VUELTO al input (p.ej. tras pulsar la ×,
                     // que refoca y muestra los recientes), no se cierra.
-                    if (!pointerInList && document.activeElement !== input) sugList.hidden = true;
+                    if (!pointerInList && document.activeElement !== input) {
+                        sugList.hidden = true;
+                        resetIfUnpicked();  // salió del campo sin elegir → limpia
+                    }
                 }, 180);
             });
         }
@@ -8168,6 +8184,12 @@
             // Lee y valida el formulario. Devuelve null si hay errores
             // (también marca los campos en rojo y muestra el warning).
             function readAndValidate(skipFecha) {
+                // Por si se pulsa Crear/Guardar sin salir antes del campo:
+                // limpia cualquier texto tecleado que no se haya elegido de la
+                // lista (queda vacío, como si no se hubiera escrito nada).
+                if (origWrap._resetUnpicked) origWrap._resetUnpicked();
+                if (destWrap._resetUnpicked) destWrap._resetUnpicked();
+                paradaRows().forEach(function (r) { var w = r.querySelector('.ptar-input-wrap'); if (w && w._resetUnpicked) w._resetUnpicked(); });
                 var orig = origInput.value.trim();
                 var dest = destInput.value.trim();
                 // El origen y el destino deben ELEGIRSE de la lista (tu agenda,
