@@ -1990,6 +1990,27 @@
             border-color: var(--gray-200); cursor: default; pointer-events: none;
         }
         @media (max-width: 600px) { .ptar-sitio-grid { grid-template-columns: 1fr; } }
+        /* Ficha de sitio PLEGABLE en la confirmación: por defecto solo la
+           cabecera (nº + Recogida/Entrega + empresa + CP/localidad…). Se
+           despliega para editar con la flechita circular. */
+        .ptar-sitio-head {
+            display: flex; align-items: center; gap: 0.6rem; cursor: pointer;
+            width: 100%; text-align: left; background: none; border: none; font: inherit; padding: 0;
+        }
+        .ptar-sitio-head-main { flex: 1; min-width: 0; font-size: 0.9rem; }
+        .ptar-sitio-head-emp { font-weight: 800; color: var(--navy); }
+        .ptar-sitio-head-dir { display: block; font-size: 0.78rem; color: var(--gray-500); font-weight: 500; margin-top: 1px; }
+        .ptar-sitio-chev {
+            flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%;
+            background: var(--gray-100); border: 1px solid var(--gray-200);
+            display: inline-flex; align-items: center; justify-content: center;
+            color: var(--purple); transition: transform 0.2s, background 0.15s;
+        }
+        .ptar-sitio-head:hover .ptar-sitio-chev { background: rgba(51,0,204,0.08); }
+        .ptar-sitio-card.open .ptar-sitio-chev { transform: rotate(180deg); }
+        .ptar-sitio-body { display: none; margin-top: 0.8rem; }
+        .ptar-sitio-card.open .ptar-sitio-body { display: block; }
+        .ptar-sitio-body-meta { font-size: 0.78rem; color: var(--gray-500); font-weight: 600; margin-bottom: 0.6rem; }
         .ptar-camion-tip {
             display: none; font-size: 0.72rem; color: var(--gray-500);
             margin-top: 0.3rem; padding: 0.35rem 0.55rem;
@@ -3278,7 +3299,7 @@
                  en la agenda de sitios al confirmar el envío. -->
             <div data-ptar-sitios hidden>
                 <h4 class="ptar-confirm-sumtitle">Datos de los lugares (editables)</h4>
-                <p class="ptar-confirm-lead" style="margin-bottom:0.6rem;">Revisa horario, teléfono y notas de cada punto. Los cambios se guardan en tu agenda de sitios al confirmar el envío.</p>
+                <p class="ptar-confirm-lead" style="margin-bottom:0.6rem;">Pulsa cada punto para ver o editar sus datos (horario, teléfono, notas…). Los cambios se guardan en tu agenda de sitios al confirmar el envío.</p>
                 <div data-ptar-sitios-list></div>
             </div>
 
@@ -8595,6 +8616,16 @@
                         var opts = TIPOS_LUGAR.map(function (t) { return '<option' + ((val || 'Almacén / Nave') === t ? ' selected' : '') + '>' + t + '</option>'; }).join('');
                         return '<div><label>Tipo de lugar</label><select class="sitio-f-tipo" data-sitio-tipo data-sitio-id="' + id + '">' + opts + '</select></div>';
                     }
+                    // Cabecera PLEGADA: nº + Recogida/Entrega + empresa + línea
+                    // gris con CP/localidad/provincia/país. La flechita despliega
+                    // los campos editables.
+                    var CHEV = '<span class="ptar-sitio-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>';
+                    function cardHead(rolHtml, empresa, dirLine) {
+                        return '<button type="button" class="ptar-sitio-head" aria-expanded="false">' +
+                            '<span class="ptar-sitio-head-main">' + rolHtml + (empresa ? ' · <span class="ptar-sitio-head-emp">' + escapeHtml(empresa) + '</span>' : '') +
+                            (dirLine ? '<span class="ptar-sitio-head-dir">' + escapeHtml(dirLine) + '</span>' : '') +
+                            '</span>' + CHEV + '</button>';
+                    }
                     // TODOS los puntos de la ruta, en su orden (origen →
                     // recogidas → entregas → destino), numerados por rol:
                     // Recogida 1..N (naranja) y Entrega 1..N (verde). Los que
@@ -8621,10 +8652,13 @@
                         // Punto SIN ficha de sitio: tarjeta solo con la dirección.
                         if (!p.pick) {
                             return '<div class="ptar-sitio-card">' +
-                                '<h5>' + rolHtml + ' · <span style="color:var(--gray-500);font-weight:600;">dirección (sin ficha en tu agenda)</span></h5>' +
-                                '<div class="ptar-sitio-grid">' +
-                                    '<div class="full"><label>Dirección</label><input class="sitio-f-lock" value="' + escapeHtml(p.texto || '') + '" readonly tabindex="-1"></div>' +
-                                    tipoLock +
+                                cardHead(rolHtml, '', p.texto || '') +
+                                '<div class="ptar-sitio-body">' +
+                                    '<div class="ptar-sitio-body-meta">dirección (sin ficha en tu agenda)</div>' +
+                                    '<div class="ptar-sitio-grid">' +
+                                        '<div class="full"><label>Dirección</label><input class="sitio-f-lock" value="' + escapeHtml(p.texto || '') + '" readonly tabindex="-1"></div>' +
+                                        tipoLock +
+                                    '</div>' +
                                 '</div>' +
                             '</div>';
                         }
@@ -8646,21 +8680,40 @@
                         var calleVal = p.pick.tipo === 'guardado' ? calleCorta(s) : (s.calle || s.dir || '');
                         var dirVal = p.pick.tipo === 'guardado' ? s.dir : '';
                         var mapsLink = s.maps ? ' · <a href="' + escapeHtml(s.maps) + '" target="_blank" rel="noopener" style="color:var(--purple);font-weight:700;text-decoration:none;">Ver en Maps</a>' : '';
+                        // Línea gris de la cabecera plegada: CP/localidad/… (para
+                        // Google, la parte tras el CP; para agenda, s.dir).
+                        var dirHead = p.pick.tipo === 'guardado' ? (s.dir || '') : (splitDirPorCP(s.dir || '').resto || s.dir || '');
                         return '<div class="ptar-sitio-card">' +
-                            '<h5>' + rolHtml + ' · <span style="color:var(--gray-500);font-weight:600;">' + escapeHtml(fuente) + '</span>' + mapsLink + '</h5>' +
-                            '<div class="ptar-sitio-grid">' +
-                                inp('Empresa', 'empresa', s.empresa) +
-                                tipoLock +
-                                inpLock('Dirección (calle y número)', calleVal, !dirVal) +
-                                inpLock('CP, localidad, provincia y país', dirVal, !calleVal) +
-                                inp('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
-                                inp('Teléfono', 'tfno', s.tfno) +
-                                inp('Contacto', 'contacto', s.contacto, 'Persona de contacto') +
-                                '<div class="full"><label>Notas del sitio</label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="' + escapeHtml(s.notas || '') + '" placeholder="Ej. pedir cita, báscula, NIMA…"></div>' +
+                            cardHead(rolHtml, s.empresa, dirHead) +
+                            '<div class="ptar-sitio-body">' +
+                                '<div class="ptar-sitio-body-meta">' + escapeHtml(fuente) + mapsLink + '</div>' +
+                                '<div class="ptar-sitio-grid">' +
+                                    inp('Empresa', 'empresa', s.empresa) +
+                                    tipoLock +
+                                    inpLock('Dirección (calle y número)', calleVal, !dirVal) +
+                                    inpLock('CP, localidad, provincia y país', dirVal, !calleVal) +
+                                    inp('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
+                                    inp('Teléfono', 'tfno', s.tfno) +
+                                    inp('Contacto', 'contacto', s.contacto, 'Persona de contacto') +
+                                    '<div class="full"><label>Notas del sitio</label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="' + escapeHtml(s.notas || '') + '" placeholder="Ej. pedir cita, báscula, NIMA…"></div>' +
+                                '</div>' +
                             '</div>' +
                         '</div>';
                     }).join('');
                     sitiosWrap.hidden = !picks.length;
+                    // Acordeón: pulsar la cabecera despliega/pliega la ficha
+                    // (delegado, se ata una sola vez). "Ver en Maps" vive en el
+                    // cuerpo, así que no interfiere.
+                    if (!sitiosList._accBound) {
+                        sitiosList.addEventListener('click', function (e) {
+                            var h = e.target.closest ? e.target.closest('.ptar-sitio-head') : null;
+                            if (!h || !sitiosList.contains(h)) return;
+                            var cardEl = h.closest('.ptar-sitio-card');
+                            var open = cardEl.classList.toggle('open');
+                            h.setAttribute('aria-expanded', open ? 'true' : 'false');
+                        });
+                        sitiosList._accBound = true;
+                    }
                     // Cambiar el tipo de lugar aquí → recalcula precio + lo
                     // vuelca en pendingData (para consolidarlo al confirmar).
                     confirmCard.querySelectorAll('[data-sitio-tipo]').forEach(function (sel) {
