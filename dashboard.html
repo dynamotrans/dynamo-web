@@ -2310,6 +2310,14 @@
         .ptar-actions .btn-primary,
         .ptar-actions .btn-secondary { flex: 1; min-width: 180px; }
         .ptar-actions .btn-ghost { flex: 0 0 auto; }
+        /* Confirmación: apiladas — Confirmar envío grande arriba, Editar datos
+           debajo como última opción. */
+        .ptar-actions-confirm { flex-direction: column; gap: 0.6rem; }
+        .ptar-actions-confirm .btn-primary {
+            flex: none; width: 100%; min-height: 64px;
+            font-size: 1.12rem; font-weight: 800; border-radius: 14px;
+        }
+        .ptar-actions-confirm .btn-ghost { flex: none; width: 100%; }
         /* Acciones del form de crear envío: 2 columnas (Crear envío | Guardar
            presupuesto) más altas para pulsar sin errar, y Cancelar a lo ancho
            debajo con la misma altura. */
@@ -3323,9 +3331,10 @@
             <!-- Precio, también aquí abajo (junto al botón de confirmar) -->
             <div class="ptar-confirm-price" data-ptar-conf-price hidden></div>
 
-            <div class="ptar-actions">
-                <button type="button" class="btn-ghost" data-ptar-back>← Editar datos</button>
+            <!-- Confirmar (grande) justo bajo el precio; Editar datos debajo. -->
+            <div class="ptar-actions ptar-actions-confirm">
                 <button type="button" class="btn-primary btn-visual-disabled" data-ptar-final-confirm>Confirmar envío</button>
+                <button type="button" class="btn-ghost" data-ptar-back>← Editar datos</button>
             </div>
         </div>
     </section>
