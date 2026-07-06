@@ -175,6 +175,93 @@
         .topbar-ind-cesce.cesce-status-ok   .topbar-cesce-dot { background: var(--green); box-shadow: 0 0 0 3px rgba(34,165,90,0.20); animation: cescePulse 2.2s ease infinite; }
         .topbar-ind-cesce.cesce-status-warn .topbar-cesce-dot { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.20); }
         .topbar-ind-cesce.cesce-status-none .topbar-cesce-dot { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.20); }
+        .topbar-ind-cesce { cursor: pointer; }
+        /* Menú desplegable de CESCE (detalle del crédito + contacto). */
+        .topbar-cesce-wrap { position: relative; }
+        .cesce-menu {
+            position: absolute; top: calc(100% + 10px); right: 0;
+            width: 320px; max-width: 92vw;
+            background: #fff; border-radius: 14px;
+            border: 1px solid var(--gray-200);
+            box-shadow: 0 14px 44px rgba(10,2,48,0.18), 0 4px 14px rgba(10,2,48,0.06);
+            padding: 0.9rem; z-index: 200;
+            opacity: 0; pointer-events: none;
+            transform: translateY(-6px) scale(0.96); transform-origin: top right;
+            transition: opacity 0.18s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .cesce-menu.open { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
+        .cesce-menu-head { display: flex; align-items: center; gap: 0.55rem; }
+        .cesce-menu-logo { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; background: #fff; border: 1px solid var(--gray-200); }
+        .cesce-menu-head-t { font-size: 0.9rem; font-weight: 800; color: var(--navy); line-height: 1.1; }
+        .cesce-menu-head-s { font-size: 0.72rem; color: var(--gray-500); font-weight: 600; }
+        .cesce-menu-badge {
+            display: inline-flex; align-items: center; gap: 0.35rem; margin: 0.7rem 0 0.2rem;
+            padding: 0.35rem 0.6rem; border-radius: 999px; font-size: 0.78rem; font-weight: 800;
+        }
+        .cesce-menu-badge .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .cesce-b-ok   { background: rgba(34,165,90,0.12); color: var(--green-dark); }
+        .cesce-b-ok .dot   { background: var(--green); }
+        .cesce-b-warn { background: rgba(245,158,11,0.14); color: #b45309; }
+        .cesce-b-warn .dot { background: #f59e0b; }
+        .cesce-b-none { background: rgba(239,68,68,0.12); color: #dc2626; }
+        .cesce-b-none .dot { background: #ef4444; }
+        .cesce-rows { margin: 0.7rem 0; border: 1px solid var(--gray-200); border-radius: 10px; overflow: hidden; }
+        .cesce-row { display: flex; justify-content: space-between; gap: 0.8rem; padding: 0.5rem 0.7rem; font-size: 0.82rem; }
+        .cesce-row + .cesce-row { border-top: 1px dashed var(--gray-200); }
+        .cesce-row .k { color: var(--gray-500); font-weight: 600; }
+        .cesce-row .v { font-weight: 800; color: var(--navy); text-align: right; }
+        .cesce-row .v.big { font-size: 0.95rem; }
+        .cesce-row .v.ok { color: var(--green-dark); }
+        .cesce-row .v.warn { color: #b45309; }
+        .cesce-row .v.none { color: #dc2626; }
+        .cesce-note { font-size: 0.76rem; line-height: 1.5; color: var(--gray-600); }
+        .cesce-note.warn { color: #b45309; font-weight: 600; }
+        .cesce-contact { margin-top: 0.7rem; border-top: 1px solid var(--gray-200); padding-top: 0.7rem; }
+        .cesce-contact-t { font-size: 0.74rem; font-weight: 800; color: var(--navy); margin-bottom: 0.4rem; }
+        .cesce-contact a {
+            display: flex; align-items: center; gap: 0.55rem; padding: 0.45rem 0.5rem;
+            border-radius: 9px; text-decoration: none; color: var(--navy); font-size: 0.84rem; font-weight: 700;
+        }
+        .cesce-contact a:hover { background: var(--gray-100); }
+        .cesce-contact a svg { width: 16px; height: 16px; color: var(--purple); flex: none; }
+        /* Menú de la campana (notificaciones): incidencias + facturas vencidas. */
+        .topbar-bell-wrap { position: relative; }
+        .bell-menu {
+            position: absolute; top: calc(100% + 10px); right: 0;
+            width: 300px; max-width: 92vw;
+            background: #fff; border-radius: 14px; border: 1px solid var(--gray-200);
+            box-shadow: 0 14px 44px rgba(10,2,48,0.18), 0 4px 14px rgba(10,2,48,0.06);
+            padding: 0.55rem; z-index: 200;
+            opacity: 0; pointer-events: none;
+            transform: translateY(-6px) scale(0.96); transform-origin: top right;
+            transition: opacity 0.18s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .bell-menu.open { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
+        .bell-menu-title { font-size: 0.74rem; font-weight: 800; color: var(--gray-500); padding: 0.4rem 0.5rem 0.3rem; text-transform: none; }
+        .bell-item {
+            display: flex; align-items: center; gap: 0.7rem; width: 100%;
+            padding: 0.6rem 0.6rem; border: none; background: none; cursor: pointer;
+            border-radius: 10px; text-align: left; font: inherit;
+        }
+        .bell-item:hover { background: var(--gray-100); }
+        .bell-item-ico {
+            width: 34px; height: 34px; border-radius: 9px; flex: none;
+            display: flex; align-items: center; justify-content: center; color: #fff;
+        }
+        .bell-item-ico.inc { background: #f59e0b; }
+        .bell-item-ico.fac { background: #ef4444; }
+        .bell-item-body { flex: 1; min-width: 0; }
+        .bell-item-t { display: block; font-size: 0.86rem; font-weight: 800; color: var(--navy); }
+        .bell-item-s { display: block; font-size: 0.74rem; color: var(--gray-500); font-weight: 600; }
+        .bell-item-count {
+            min-width: 22px; height: 22px; border-radius: 11px; padding: 0 6px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 0.76rem; font-weight: 800; color: #fff; flex: none;
+        }
+        .bell-item-count.inc { background: #f59e0b; }
+        .bell-item-count.fac { background: #ef4444; }
+        .bell-item-count.zero { background: var(--gray-300); color: var(--gray-600); }
+        .bell-empty { padding: 1rem 0.6rem; text-align: center; color: var(--gray-500); font-size: 0.82rem; }
 
         /* ============================================
            BOTON DE CONTACTO (Alvaro) EN LA TOPBAR
@@ -402,23 +489,52 @@
             display: flex; align-items: center; justify-content: center;
             border: 1.5px solid rgba(255,255,255,0.85);
         }
-        .topbar-user-name { font-size: 0.88rem; font-weight: 800; color: var(--navy); }
+        /* Solo iniciales en la topbar: el avatar JG ya identifica al usuario;
+           el nombre completo (largo) se oculta aquí (sí sale en el menú). */
+        .topbar-user-name { display: none; }
         .topbar-user-arrow { color: var(--gray-500); transition: transform 0.2s; }
         .topbar-user[aria-expanded="true"] .topbar-user-arrow { transform: rotate(180deg); }
 
-        /* Chips de la topbar UNIFICADOS (logo, campana, CESCE, Álvaro, JG):
-           misma altura, mismo radio píldora, mismo borde y fondo. El ANCHO
-           lo pone el contenido de cada uno. */
-        .topbar-brand, .topbar-ind, .topbar-contact-btn, .topbar-user {
-            height: 40px; box-sizing: border-box;
-            border-radius: 999px;
-            border: 1.5px solid var(--gray-200);
-            background: var(--gray-100);
+        /* Logo (izquierda): su propia píldora. */
+        .topbar-brand {
+            height: 40px; box-sizing: border-box; border-radius: 999px;
+            border: 1.5px solid var(--gray-200); background: var(--gray-100);
+            padding: 0 0.85rem;
         }
-        .topbar-brand { padding: 0 0.85rem; }
-        .topbar-ind   { padding: 0 0.6rem; }
+        /* Barra superior derecha UNIFICADA: un ÚNICO contenedor tipo píldora
+           (campana, CESCE, Álvaro, JG) con los botones como segmentos
+           separados por finas divisorias, en vez de píldoras sueltas. */
+        .topbar-actions {
+            background: var(--gray-100);
+            border: 1.5px solid var(--gray-200);
+            border-radius: 999px;
+            padding: 3px; gap: 0;
+        }
+        .topbar-actions > * { position: relative; }
+        .topbar-actions > * + *::before {
+            content: ""; position: absolute; left: 0; top: 50%;
+            transform: translateY(-50%);
+            height: 22px; width: 1px; background: var(--gray-200);
+        }
+        /* Segmentos: sin borde/fondo propio; el contenedor pone la píldora. */
+        .topbar-ind, .topbar-contact-btn, .topbar-user {
+            height: 34px; box-sizing: border-box;
+            border: none; background: transparent;
+            border-radius: 999px; margin: 0 3px;
+            box-shadow: none;
+        }
+        .topbar-ind:hover,
+        .topbar-user:hover, .topbar-user[aria-expanded="true"],
+        .topbar-contact-btn:hover, .topbar-contact-btn:focus-visible,
+        .topbar-contact-btn[aria-expanded="true"],
+        .topbar-ind-cesce.cesce-open {
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(10,2,48,0.10);
+            transform: none;
+        }
         @media (max-width: 768px) {
-            .topbar-brand, .topbar-ind, .topbar-contact-btn, .topbar-user { height: 36px; }
+            .topbar-brand { height: 36px; }
+            .topbar-ind, .topbar-contact-btn, .topbar-user { height: 32px; }
             .topbar-user-avatar { width: 30px; height: 30px; font-size: 0.78rem; }
         }
 
@@ -2815,16 +2931,23 @@
         <div class="topbar-actions">
             <!-- Incidencias abiertas: campana con contador (naranja si hay
                  abiertas, verde con 0 si no hay ninguna). Lleva al listado. -->
-            <button type="button" class="topbar-ind topbar-ind-inc" onclick="showSection('incidencias')" aria-label="Incidencias abiertas" title="Incidencias abiertas">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                <span class="topbar-ind-badge" data-stat-incidencias>0</span>
-            </button>
+            <div class="topbar-bell-wrap">
+                <button type="button" class="topbar-ind topbar-ind-inc" id="bellBtn" onclick="toggleBellMenu(event)" aria-haspopup="menu" aria-expanded="false" aria-label="Notificaciones" title="Notificaciones">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    <span class="topbar-ind-badge" data-stat-incidencias>0</span>
+                </button>
+                <div class="bell-menu" id="bellMenu" role="menu" aria-hidden="true"></div>
+            </div>
             <!-- CESCE: estado de cobertura. Punto verde = con crédito ·
                  naranja = crédito agotado · rojo = sin cobertura (crédito 0).
-                 El estado se puede previsualizar con ?cesce=ok|warn|none. -->
-            <div class="topbar-ind topbar-ind-cesce cesce-status-ok" data-cesce-chip title="Cobertura CESCE · Con crédito disponible">
-                <img class="topbar-cesce-logo" src="/images/cesce-azul.webp" alt="CESCE">
-                <span class="topbar-cesce-dot" aria-hidden="true"></span>
+                 El estado se puede previsualizar con ?cesce=ok|warn|none.
+                 Al pulsar despliega el detalle del crédito + contacto CESCE. -->
+            <div class="topbar-cesce-wrap">
+                <button type="button" class="topbar-ind topbar-ind-cesce cesce-status-ok" data-cesce-chip id="cesceBtn" aria-haspopup="menu" aria-expanded="false" title="Cobertura de crédito CESCE" onclick="toggleCesceMenu(event)">
+                    <img class="topbar-cesce-logo" src="/images/cesce-azul.webp" alt="CESCE">
+                    <span class="topbar-cesce-dot" aria-hidden="true"></span>
+                </button>
+                <div class="cesce-menu" id="cesceMenu" role="menu" aria-hidden="true"></div>
             </div>
             <!-- Boton de contacto con Alvaro (antes era un FAB flotante).
                  Pequeño en la topbar, al pulsar abre dropdown con canales. -->
@@ -4477,8 +4600,10 @@
     ============================================ */
     function toggleUserMenu(ev) {
         if (ev) ev.stopPropagation();
-        // Exclusión mutua: al abrir este menú se cierra el de Soporte
+        // Exclusión mutua: al abrir este menú se cierran los de Soporte, CESCE y campana
         if (window.closeTopbarContactMenu) window.closeTopbarContactMenu();
+        if (window.closeCesceMenu) window.closeCesceMenu();
+        if (window.closeBellMenu) window.closeBellMenu();
         var btn = document.getElementById('userMenuBtn');
         var menu = document.getElementById('userMenu');
         var open = menu.classList.toggle('open');
@@ -4500,6 +4625,164 @@
     });
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') closeUserMenu();
+    });
+
+    /* ============================================
+       MENU DE COBERTURA CESCE
+       Al pulsar el chip CESCE se despliega el detalle del crédito según el
+       estado (con crédito / agotado / sin cobertura) + datos de contacto de
+       CESCE por si el cliente no está conforme con su línea. Cifras mock; el
+       backend las traerá de la póliza real. Contacto CESCE inventado.
+    ============================================ */
+    var CESCE_CONTACT = { tel: '900 30 40 50', telHref: '+34900304050', email: 'clientes@cesce.es' };
+    function cesceState() {
+        var chip = document.querySelector('[data-cesce-chip]');
+        if (!chip) return 'ok';
+        if (chip.classList.contains('cesce-status-warn')) return 'warn';
+        if (chip.classList.contains('cesce-status-none')) return 'none';
+        return 'ok';
+    }
+    function renderCesceMenu() {
+        var menu = document.getElementById('cesceMenu');
+        if (!menu) return;
+        var st = cesceState();
+        var cfg = {
+            ok:   { badge: 'cesce-b-ok',   dot: '', label: 'Con crédito disponible', clas: 'A · Riesgo bajo',
+                    limite: '30.000 €', disp: '22.400 €', dispCls: 'ok', cons: '7.600 €',
+                    note: 'CESCE es la compañía aseguradora de crédito que respalda esta cuenta: garantiza el cobro de los envíos, por eso puedes trabajar <strong>a crédito</strong> y pagar por transferencia o domiciliación.' },
+            warn: { badge: 'cesce-b-warn', dot: '', label: 'Crédito agotado', clas: 'B · Riesgo medio',
+                    limite: '30.000 €', disp: '850 €', dispCls: 'warn', cons: '29.150 €',
+                    note: 'Apenas queda crédito asegurado. Mientras esté agotado, los nuevos envíos se cobran <strong>por adelantado</strong>. Si crees que tu línea debería ser mayor, contacta con CESCE para revisarla.' },
+            none: { badge: 'cesce-b-none', dot: '', label: 'Sin cobertura · crédito 0', clas: 'Sin clasificar',
+                    limite: '0 €', disp: '0 €', dispCls: 'none', cons: '—',
+                    note: 'CESCE no tiene cobertura de crédito asignada a esta cuenta, así que los envíos se cobran <strong>por adelantado</strong>. Si no estás conforme, contacta con CESCE para solicitar o ampliar tu línea.' }
+        }[st];
+        menu.innerHTML =
+            '<div class="cesce-menu-head">' +
+                '<img class="cesce-menu-logo" src="/images/cesce-azul.webp" alt="CESCE">' +
+                '<div><div class="cesce-menu-head-t">Cobertura de crédito</div>' +
+                '<div class="cesce-menu-head-s">Asegurada por CESCE</div></div>' +
+            '</div>' +
+            '<div class="cesce-menu-badge ' + cfg.badge + '"><span class="dot"></span>' + cfg.label + '</div>' +
+            '<div class="cesce-rows">' +
+                '<div class="cesce-row"><span class="k">Clasificación</span><span class="v">' + cfg.clas + '</span></div>' +
+                '<div class="cesce-row"><span class="k">Límite asignado</span><span class="v">' + cfg.limite + '</span></div>' +
+                '<div class="cesce-row"><span class="k">Crédito disponible</span><span class="v big ' + cfg.dispCls + '">' + cfg.disp + '</span></div>' +
+                '<div class="cesce-row"><span class="k">Consumido</span><span class="v">' + cfg.cons + '</span></div>' +
+            '</div>' +
+            '<div class="cesce-note' + (st === 'ok' ? '' : ' warn') + '">' + cfg.note + '</div>' +
+            '<div class="cesce-contact">' +
+                '<div class="cesce-contact-t">¿No estás conforme con tu crédito? Contacta con CESCE</div>' +
+                '<a href="tel:' + CESCE_CONTACT.telHref + '"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.18z"/></svg>' + CESCE_CONTACT.tel + '</a>' +
+                '<a href="mailto:' + CESCE_CONTACT.email + '?subject=Consulta%20sobre%20mi%20l%C3%ADnea%20de%20cr%C3%A9dito"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>' + CESCE_CONTACT.email + '</a>' +
+            '</div>';
+    }
+    function toggleCesceMenu(ev) {
+        if (ev) ev.stopPropagation();
+        if (window.closeTopbarContactMenu) window.closeTopbarContactMenu();
+        if (window.closeBellMenu) window.closeBellMenu();
+        closeUserMenu();
+        var btn = document.getElementById('cesceBtn');
+        var menu = document.getElementById('cesceMenu');
+        if (!menu) return;
+        var willOpen = !menu.classList.contains('open');
+        if (willOpen) renderCesceMenu();
+        menu.classList.toggle('open', willOpen);
+        btn.classList.toggle('cesce-open', willOpen);
+        btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        menu.setAttribute('aria-hidden', willOpen ? 'false' : 'true');
+    }
+    window.toggleCesceMenu = toggleCesceMenu;
+    function closeCesceMenu() {
+        var btn = document.getElementById('cesceBtn');
+        var menu = document.getElementById('cesceMenu');
+        if (!menu) return;
+        menu.classList.remove('open');
+        if (btn) { btn.classList.remove('cesce-open'); btn.setAttribute('aria-expanded', 'false'); }
+        menu.setAttribute('aria-hidden', 'true');
+    }
+    window.closeCesceMenu = closeCesceMenu;
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.topbar-cesce-wrap')) closeCesceMenu();
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeCesceMenu();
+    });
+
+    /* ============================================
+       MENU DE LA CAMPANA (notificaciones)
+       Despliega las secciones con avisos: incidencias abiertas y facturas
+       vencidas, con su contador. Cada una lleva a su listado.
+    ============================================ */
+    function contarIncidenciasAbiertas() {
+        var n = 0;
+        document.querySelectorAll('#sec-incidencias tbody tr').forEach(function (tr) {
+            if (!tr.querySelector('.badge-green')) n++;
+        });
+        return n;
+    }
+    function contarFacturasVencidas() {
+        return (typeof FACTURAS_DATA !== 'undefined')
+            ? FACTURAS_DATA.filter(function (f) { return f.kind === 'vencida'; }).length : 0;
+    }
+    function renderBellMenu() {
+        var menu = document.getElementById('bellMenu');
+        if (!menu) return;
+        var inc = contarIncidenciasAbiertas();
+        var venc = contarFacturasVencidas();
+        var items = '';
+        items += '<button type="button" class="bell-item" role="menuitem" onclick="bellGo(\'incidencias\')">' +
+            '<span class="bell-item-ico inc"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>' +
+            '<span class="bell-item-body"><span class="bell-item-t">Incidencias abiertas</span><span class="bell-item-s">' + (inc ? 'Pendientes de resolver' : 'Sin incidencias abiertas') + '</span></span>' +
+            '<span class="bell-item-count ' + (inc ? 'inc' : 'zero') + '">' + inc + '</span></button>';
+        items += '<button type="button" class="bell-item" role="menuitem" onclick="bellGo(\'facturas\')">' +
+            '<span class="bell-item-ico fac"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></span>' +
+            '<span class="bell-item-body"><span class="bell-item-t">Facturas vencidas</span><span class="bell-item-s">' + (venc ? 'Pendientes de pago' : 'Ninguna vencida') + '</span></span>' +
+            '<span class="bell-item-count ' + (venc ? 'fac' : 'zero') + '">' + venc + '</span></button>';
+        menu.innerHTML = '<div class="bell-menu-title">Notificaciones</div>' + items +
+            (inc + venc === 0 ? '<div class="bell-empty">Todo al día 🎉</div>' : '');
+    }
+    function toggleBellMenu(ev) {
+        if (ev) ev.stopPropagation();
+        if (window.closeTopbarContactMenu) window.closeTopbarContactMenu();
+        if (window.closeCesceMenu) window.closeCesceMenu();
+        closeUserMenu();
+        var btn = document.getElementById('bellBtn');
+        var menu = document.getElementById('bellMenu');
+        if (!menu) return;
+        var willOpen = !menu.classList.contains('open');
+        if (willOpen) renderBellMenu();
+        menu.classList.toggle('open', willOpen);
+        btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        menu.setAttribute('aria-hidden', willOpen ? 'false' : 'true');
+    }
+    window.toggleBellMenu = toggleBellMenu;
+    function closeBellMenu() {
+        var btn = document.getElementById('bellBtn');
+        var menu = document.getElementById('bellMenu');
+        if (!menu) return;
+        menu.classList.remove('open');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+        menu.setAttribute('aria-hidden', 'true');
+    }
+    window.closeBellMenu = closeBellMenu;
+    function bellGo(section) {
+        closeBellMenu();
+        if (section === 'facturas' && TABLE_STATE && TABLE_STATE.facturas) {
+            // Al venir de "facturas vencidas", filtrar por vencidas.
+            TABLE_STATE.facturas.estado = 'vencida'; TABLE_STATE.facturas.page = 1;
+            var sel = document.querySelector('#sec-facturas [data-fact-estado]');
+            if (sel) sel.value = 'vencida';
+            if (typeof renderFacturasTable === 'function') renderFacturasTable();
+        }
+        showSection(section);
+    }
+    window.bellGo = bellGo;
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.topbar-bell-wrap')) closeBellMenu();
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeBellMenu();
     });
     function goFromMenu(id) {
         closeUserMenu();
@@ -4697,8 +4980,10 @@
         btn.addEventListener('click', function (e) {
             e.stopPropagation();
             if (menu.classList.contains('open')) { closeMenu(); return; }
-            // Exclusión mutua: al abrir este menú se cierra el de usuario
+            // Exclusión mutua: al abrir este menú se cierran los de usuario, CESCE y campana
             if (typeof closeUserMenu === 'function') closeUserMenu();
+            if (window.closeCesceMenu) window.closeCesceMenu();
+            if (window.closeBellMenu) window.closeBellMenu();
             openMenu();
         });
         menu.querySelectorAll('.topbar-contact-item').forEach(function (a) {
@@ -7185,9 +7470,13 @@
         document.querySelectorAll('#sec-incidencias tbody tr').forEach(function (tr) {
             if (!tr.querySelector('.badge-green')) abiertas++;
         });
-        badge.textContent = abiertas;
-        wrap.classList.toggle('has-open', abiertas > 0);
-        wrap.classList.toggle('no-open', abiertas === 0);
+        // La campana agrupa incidencias abiertas + facturas vencidas.
+        var vencidas = (typeof FACTURAS_DATA !== 'undefined')
+            ? FACTURAS_DATA.filter(function (f) { return f.kind === 'vencida'; }).length : 0;
+        var total = abiertas + vencidas;
+        badge.textContent = total;
+        wrap.classList.toggle('has-open', total > 0);
+        wrap.classList.toggle('no-open', total === 0);
     }
     refreshIncidenciasBadge();
 
