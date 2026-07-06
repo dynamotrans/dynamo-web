@@ -1997,6 +1997,7 @@
         }
         .ptar-sitio-head-main { flex: 1; min-width: 0; font-size: 0.9rem; }
         .ptar-sitio-head-emp { font-weight: 800; color: var(--navy); }
+        .ptar-sitio-head-hor { font-weight: 600; color: var(--gray-500); font-size: 0.84rem; }
         .ptar-sitio-head-dir { display: block; font-size: 0.78rem; color: var(--gray-500); font-weight: 500; margin-top: 1px; }
         .ptar-sitio-chev {
             flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%;
@@ -2258,6 +2259,17 @@
         }
         .ptar-confirm-summary dd { color: var(--navy); font-weight: 600; margin-bottom: 0.35rem; }
         .ptar-confirm-summary .full { grid-column: 1 / -1; }
+        /* Fecha de envío destacada (banda verde muy visible) */
+        .ptar-confirm-summary dt.sum-fecha-dt {
+            grid-column: 1 / -1; color: var(--green); font-weight: 800;
+            font-size: 0.82rem; margin-top: 0.25rem;
+        }
+        .ptar-confirm-summary dd.sum-fecha-dd {
+            grid-column: 1 / -1; color: #0f5132; font-weight: 800; font-size: 0.95rem;
+            background: rgba(34,165,90,0.14); border: 1px solid rgba(34,165,90,0.45);
+            border-radius: 9px; padding: 0.55rem 0.75rem; margin-bottom: 0.15rem;
+            display: flex; align-items: center; gap: 0.4rem;
+        }
         .ptar-confirm-legal-link {
             margin-top: 0.9rem; font-size: 0.78rem; color: var(--gray-500);
         }
@@ -6179,12 +6191,12 @@
               '<div id="sitioDupWarn" class="modal-warn-box" hidden></div>'
             : '') +
             '<div class="ptar-sitio-grid">' +
-                inp('Empresa', 'sitio-f-empresa', s.empresa) +
+                inp('Empresa', 'sitio-f-empresa', s.empresa, 'Ej. Talleres Vega e Hijos S.L.') +
                 '<div><label>Tipo de lugar</label><select id="sitio-f-tipo">' + tipoOpts + '</select></div>' +
                 inp('Horario', 'sitio-f-horario', s.horario, 'Ej. L-V 8:00-14:00') +
                 inp('Dirección (calle y número)', 'sitio-f-calle', s.calle, '', true) +
                 inp('CP, localidad, provincia y país', 'sitio-f-dir', s.dir, 'Ej. 41001, Sevilla, España', true) +
-                inp('Teléfono', 'sitio-f-tfno', s.tfno) +
+                inp('Teléfono', 'sitio-f-tfno', s.tfno, 'Ej. +34 612 345 678') +
                 inp('Contacto', 'sitio-f-contacto', s.contacto, 'Persona de contacto') +
                 inp('Notas del sitio', 'sitio-f-notas', s.notas, 'Ej. pedir cita, báscula, NIMA…', true) +
                 inp('Enlace de Google Maps', 'sitio-f-maps', s.maps, 'https://maps.app.goo.gl/…', true) +
@@ -8619,7 +8631,7 @@
                     var cargaRangoTxt = (ls.getTime() === le.getTime())
                         ? fmtEtaDate(ls)
                         : 'del ' + fmtEtaDate(ls) + ' al ' + fmtEtaDate(le) + ' · cualquier día laborable';
-                    cargaRangoHtml = '<dt>Fecha de envío</dt><dd>' + escapeHtml(cargaRangoTxt) + '</dd>';
+                    cargaRangoHtml = '<dt class="sum-fecha-dt">Fecha de envío</dt><dd class="sum-fecha-dd"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' + escapeHtml(cargaRangoTxt) + '</dd>';
                 }
                 // El resumen NO repite recogidas/entregas: van solo abajo, en
                 // las fichas numeradas de "Datos de los lugares".
@@ -8631,7 +8643,7 @@
                     '<dt>Ventana</dt><dd>' + escapeHtml(d.urgenciaLabel) + '</dd>' +
                     // Solo "Fecha de envío" (la de carga era redundante). Si hay
                     // rango se usa ese; si no (previsión/a confirmar), el literal.
-                    (cargaRangoHtml || '<dt>Fecha de envío</dt><dd>' + escapeHtml(d.fechaLarga) + '</dd>') +
+                    (cargaRangoHtml || '<dt class="sum-fecha-dt">Fecha de envío</dt><dd class="sum-fecha-dd"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' + escapeHtml(d.fechaLarga) + '</dd>') +
                     (d.refCli && d.refCli.indexOf('NUEVO') === -1 ? '<dt>Tu referencia</dt><dd>' + escapeHtml(d.refCli) + '</dd>' : '') +
                     (d.notes ? '<dt class="full">Anotaciones</dt><dd class="full">' + escapeHtml(d.notes) + '</dd>' : '');
                 // El PRECIO no va en el resumen: sale destacado justo antes del
@@ -8666,9 +8678,10 @@
                     // gris con CP/localidad/provincia/país. La flechita despliega
                     // los campos editables.
                     var CHEV = '<span class="ptar-sitio-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>';
-                    function cardHead(rolHtml, empresa, dirLine, warnHtml) {
+                    function cardHead(rolHtml, empresa, dirLine, warnHtml, horario) {
                         return '<button type="button" class="ptar-sitio-head" aria-expanded="false">' +
                             '<span class="ptar-sitio-head-main">' + rolHtml + (empresa ? ' · <span class="ptar-sitio-head-emp">' + escapeHtml(empresa) + '</span>' : '') +
+                            (empresa && horario ? ' <span class="ptar-sitio-head-hor">(' + escapeHtml(horario) + ')</span>' : '') +
                             (dirLine ? '<span class="ptar-sitio-head-dir">' + escapeHtml(dirLine) + '</span>' : '') +
                             (warnHtml || '') +
                             '</span>' + CHEV + '</button>';
@@ -8748,7 +8761,7 @@
                         // Google, la parte tras el CP; para agenda, s.dir).
                         var dirHead = p.pick.tipo === 'guardado' ? (s.dir || '') : (splitDirPorCP(s.dir || '').resto || s.dir || '');
                         return '<div class="ptar-sitio-card">' +
-                            cardHead(rolHtml, s.empresa, dirHead) +
+                            cardHead(rolHtml, s.empresa, dirHead, '', s.horario) +
                             '<div class="ptar-sitio-body">' +
                                 '<div class="ptar-sitio-body-meta">' + escapeHtml(fuente) + mapsLink + '</div>' +
                                 '<div class="ptar-sitio-grid">' +
