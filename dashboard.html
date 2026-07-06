@@ -1969,6 +1969,20 @@
             font: inherit; font-size: 0.85rem; color: var(--navy); resize: vertical;
         }
         .ptar-confirm-extra input:focus, .ptar-confirm-extra textarea:focus { outline: none; border-color: var(--purple); }
+        /* Precio destacado junto al botón de confirmar */
+        .ptar-confirm-price {
+            display: flex; align-items: baseline; justify-content: center; gap: 0.5rem;
+            margin: 0.4rem 0 1rem; padding: 0.7rem 1rem;
+            background: rgba(51,0,204,0.05); border: 1px solid rgba(51,0,204,0.18);
+            border-radius: 12px; text-align: center;
+        }
+        .ptar-confirm-price .pcp-num { font-size: 1.5rem; font-weight: 900; color: var(--purple); letter-spacing: -0.5px; }
+        .ptar-confirm-price .pcp-iva { font-size: 0.78rem; font-weight: 600; color: var(--gray-500); }
+        /* En modo ENVÍO, el tipo de lugar NO se elige en el paso 1 (los sitios
+           ya lo tienen); se ajusta en la confirmación. En PRESUPUESTO sí sale. */
+        #sec-nueva-carga[data-entry-mode="envio"] .ptar-route-row .ptar-select-sm { display: none; }
+        /* Tipo de lugar editable en las fichas de la confirmación */
+        .ptar-sitio-grid select.sitio-f-tipo { background: #fff; }
         /* Campo bloqueado (solo lectura) en las fichas de lugares: la
            dirección define la ruta y no se edita aquí. */
         .ptar-sitio-grid input.sitio-f-lock {
@@ -3284,6 +3298,9 @@
                 <span>He leído y acepto las <a href="#" data-ptar-show-terms>condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L. (incluyen las condiciones de disponibilidad de la recogida y de cancelación o aplazamiento por falta de vehículos).</span>
             </label>
             <div class="ptar-terms-warn" data-ptar-terms-warn>⚠ No has aceptado las condiciones generales de transporte. Marca la casilla para poder confirmar el envío.</div>
+
+            <!-- Precio, también aquí abajo (junto al botón de confirmar) -->
+            <div class="ptar-confirm-price" data-ptar-conf-price hidden></div>
 
             <div class="ptar-actions">
                 <button type="button" class="btn-ghost" data-ptar-back>← Editar datos</button>
@@ -7909,6 +7926,10 @@
                     var s2 = r.querySelector('select');
                     if (s2) recTipo += (TIPO_RECARGO[s2.value] || 0);
                 });
+                // Base ANTES del recargo por tipo (para poder recalcular el
+                // precio en la confirmación al cambiar el tipo allí).
+                card.dataset.precioBase = String(Math.round(precio / 10) * 10);
+                card.dataset.recargoTipo = String(recTipo);
                 precio *= (1 + recTipo);
                 precio = Math.round(precio / 10) * 10;
                 // Arranca en el número que se está mostrando AHORA (no en lastPrice)
@@ -8484,6 +8505,34 @@
             }
             if (chkTerms) chkTerms.addEventListener('change', refreshConfirmEnabled);
 
+            // Vuelca en pendingData el tipo de lugar elegido en la confirmación
+            // (por punto), para consolidarlo en la ficha al confirmar el envío.
+            function syncConfTipos() {
+                if (!pendingData) return;
+                confirmCard.querySelectorAll('[data-sitio-tipo]').forEach(function (sel) {
+                    var id = sel.getAttribute('data-sitio-id'), val = sel.value;
+                    if (id === 'orig') pendingData.origTipo = val;
+                    else if (id === 'dest') pendingData.destTipo = val;
+                    else { var m = /^parada(\d+)$/.exec(id); if (m && pendingData.paradas && pendingData.paradas[+m[1]]) pendingData.paradas[+m[1]].tipo = val; }
+                });
+            }
+            // Recalcula el precio con los tipos de lugar de la confirmación:
+            // base (sin recargo, del paso 1) × (1 + suma de recargos por tipo).
+            function recalcConfPrice() {
+                if (!pendingData) return;
+                var base = parseInt(card.dataset.precioBase || '0', 10);
+                if (!base) { var r0 = parseFloat(card.dataset.recargoTipo || '0') || 0; base = Math.round((pendingData.precioMock || 0) / (1 + r0)); }
+                var rec = 0;
+                confirmCard.querySelectorAll('[data-sitio-tipo]').forEach(function (sel) { rec += (TIPO_RECARGO[sel.value] || 0); });
+                var precio = Math.round(base * (1 + rec) / 10) * 10;
+                pendingData.precioMock = precio;
+                var eur = String(precio).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                var box = confirmCard.querySelector('[data-ptar-conf-price]');
+                if (box) { box.hidden = !precio; box.innerHTML = '<span class="pcp-lbl">Precio</span> <span class="pcp-num">' + eur + ' €</span> <span class="pcp-iva">(IVA 21% no incluido)</span>'; }
+                var sumP = summaryEl.querySelector('[data-sum-precio]');
+                if (sumP) sumP.textContent = eur + ' €';
+            }
+
             function showConfirmStep(d) {
                 if (!confirmCard || !summaryEl) return;
                 pendingData = d;
@@ -8511,7 +8560,7 @@
                     '<dt>Ventana</dt><dd>' + escapeHtml(d.urgenciaLabel) + '</dd>' +
                     '<dt>Fecha de carga</dt><dd>' + escapeHtml(d.fechaLarga) + '</dd>' +
                     cargaRangoHtml +
-                    (d.precioMock ? '<dt>Precio</dt><dd>' + String(d.precioMock).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' € <span style="color:var(--gray-500);font-weight:600;">(IVA 21% no incluido)</span></dd>' : '');
+                    (d.precioMock ? '<dt>Precio</dt><dd><span data-sum-precio>' + String(d.precioMock).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €</span> <span style="color:var(--gray-500);font-weight:600;">(IVA 21% no incluido)</span></dd>' : '');
                 // La referencia interna y las anotaciones se muestran abajo
                 // como campos EDITABLES (data-ptar-conf-ref / -notes).
                 // Aviso de grupaje: solo si la carga NO es completa
@@ -8530,6 +8579,14 @@
                 var sitiosWrap = confirmCard.querySelector('[data-ptar-sitios]');
                 var sitiosList = confirmCard.querySelector('[data-ptar-sitios-list]');
                 if (sitiosWrap && sitiosList) {
+                    // Tipo de lugar EDITABLE aquí (en envío ya no está en el
+                    // paso 1): al cambiarlo se recalcula el precio y se guarda
+                    // en la ficha del sitio al confirmar.
+                    var TIPOS_LUGAR = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento', 'Finca / Agrícola'];
+                    function tipoSelect(id, val) {
+                        var opts = TIPOS_LUGAR.map(function (t) { return '<option' + ((val || 'Almacén / Nave') === t ? ' selected' : '') + '>' + t + '</option>'; }).join('');
+                        return '<div><label>Tipo de lugar</label><select class="sitio-f-tipo" data-sitio-tipo data-sitio-id="' + id + '">' + opts + '</select></div>';
+                    }
                     // TODOS los puntos de la ruta, en su orden (origen →
                     // recogidas → entregas → destino), numerados por rol:
                     // Recogida 1..N (naranja) y Entrega 1..N (verde). Los que
@@ -8552,7 +8609,7 @@
                         var rolHtml = '<span class="ptar-route-num ' + (p.kind === 'recogida' ? 'rec' : 'ent') + '" style="vertical-align:-4px;margin-right:0.35rem;">' + p.num + '</span>' +
                             '<span style="color:' + (p.kind === 'recogida' ? 'var(--orange)' : 'var(--green)') + ';">' +
                             (p.kind === 'recogida' ? 'Recogida' : 'Entrega') + '</span>';
-                        var tipoLock = p.tipoLugar ? '<div><label>Tipo de lugar</label><input class="sitio-f-lock" value="' + escapeHtml(p.tipoLugar) + '" readonly tabindex="-1"></div>' : '';
+                        var tipoLock = tipoSelect(p.id, p.tipoLugar);
                         // Punto SIN ficha de sitio: tarjeta solo con la dirección.
                         if (!p.pick) {
                             return '<div class="ptar-sitio-card">' +
@@ -8596,7 +8653,14 @@
                         '</div>';
                     }).join('');
                     sitiosWrap.hidden = !picks.length;
+                    // Cambiar el tipo de lugar aquí → recalcula precio + lo
+                    // vuelca en pendingData (para consolidarlo al confirmar).
+                    confirmCard.querySelectorAll('[data-sitio-tipo]').forEach(function (sel) {
+                        sel.addEventListener('change', function () { syncConfTipos(); recalcConfPrice(); });
+                    });
+                    syncConfTipos();
                 }
+                recalcConfPrice();
                 // Referencia y anotaciones editables en este paso (precargadas
                 // con lo escrito en el paso 1, si algo).
                 var confRef = confirmCard.querySelector('[data-ptar-conf-ref]');
