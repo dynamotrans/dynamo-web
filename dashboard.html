@@ -3116,12 +3116,23 @@
                 <div class="ptar-field-full" data-ptar-entregas></div>
 
                 <div class="ptar-section-head">Carga</div>
-                <div class="ptar-field ptar-field-full">
-                    <select id="ptar-merca-carga" data-ptar-merca class="ptar-select" aria-label="Tipo de mercancía">
-                        <option>Paletizado mercancía general (por lateral)</option>
-                        <option>No paletizada (maquinaria, perfiles, tubos, balas…) (por lateral)</option>
-                        <option>No paletizada (maquinaria, perfiles, tubos, balas…) (por TECHO)</option>
-                    </select>
+                <div class="ptar-pair">
+                    <div class="ptar-field">
+                        <select id="ptar-merca-carga" data-ptar-merca class="ptar-select" aria-label="Mercancía paletizada o no">
+                            <option>Paletizada (mercancía general)</option>
+                            <option>No paletizada (maquinaria, perfiles, tubos, balas…)</option>
+                        </select>
+                    </div>
+                    <div class="ptar-field">
+                        <select id="ptar-cargatipo-carga" data-ptar-cargatipo class="ptar-select" aria-label="Tipo de carga (por dónde se carga)">
+                            <option>Lateral</option>
+                            <option>Trasera</option>
+                            <option>Techo</option>
+                            <option>Lateral y trasera</option>
+                            <option>Lateral y techo</option>
+                            <option>Trasera y techo</option>
+                        </select>
+                    </div>
                     <input type="hidden" data-ptar-camion value="tauliner">
                 </div>
                 <div class="ptar-pair">
@@ -7615,6 +7626,7 @@
             var camionSel = card.querySelector('[data-ptar-camion]');
             var camionTip = card.querySelector('[data-ptar-camion-tip]');
             var mercaSel = card.querySelector('[data-ptar-merca]');
+            var cargaTipoSel = card.querySelector('[data-ptar-cargatipo]');
             var mlSel = card.querySelector('[data-ptar-ml]');
             var pesoSel = card.querySelector('[data-ptar-peso]');
             var diaSel = card.querySelector('[data-ptar-dia]');
@@ -7660,6 +7672,7 @@
                 });
             }
             if (mercaSel) mercaSel.addEventListener('change', renderEta);
+            if (cargaTipoSel) cargaTipoSel.addEventListener('change', renderEta);
             // NIMA (residuos): no cambia el camión, solo suma al precio.
             var nimaChk = card.querySelector('[data-ptar-nima]');
             if (nimaChk) nimaChk.addEventListener('change', renderEta);
@@ -7889,8 +7902,9 @@
                 var precio = 50 + dist * 0.85;
                 var uv = urgenciaSel ? urgenciaSel.value : 'flexible';
                 precio *= (uv === 'dia' ? 1.15 : uv === 'estandar' ? 1.0 : 0.9);
-                var mi = mercaSel ? mercaSel.selectedIndex : 0;
-                precio *= (mi === 2 ? 1.2 : mi === 1 ? 1.1 : 1.0); // techo > no palet lateral > paletizado
+                // Mercancía: no paletizada +10%. Tipo de carga: si implica techo +15%.
+                if (mercaSel && mercaSel.selectedIndex === 1) precio *= 1.1;
+                if (cargaTipoSel && /techo/i.test(cargaTipoSel.value)) precio *= 1.15;
                 var trampOn = card.querySelector('[data-ptar-trampilla]');
                 if (trampOn && trampOn.checked) precio += 60;
                 var nimaOn = card.querySelector('[data-ptar-nima]');
@@ -8174,6 +8188,7 @@
                 if (tipoDest) tipoDest.selectedIndex = 0;
                 camionSel.value = 'tauliner';
                 if (mercaSel) mercaSel.selectedIndex = 0;
+                if (cargaTipoSel) cargaTipoSel.selectedIndex = 0;
                 var tramp = card.querySelector('[data-ptar-trampilla]');
                 if (tramp) tramp.checked = false;
                 var nima = card.querySelector('[data-ptar-nima]');
@@ -8266,8 +8281,11 @@
                 var medidas = (ml === '13.2' ? '13,2' : ml) + ' m · ' + (parseInt(peso, 10) * 1000).toLocaleString('es-ES') + ' kg';
                 var origCorto = orig.split(',')[0].trim();
                 var destCorto = dest.split(',')[0].trim();
-                var mercaTxt = mercaSel ? mercaSel.options[mercaSel.selectedIndex].text : '';
-                var mercanciaShort = mercaTxt ? mercaTxt.split('—')[0].trim() : '';
+                var mercaPal = mercaSel ? mercaSel.options[mercaSel.selectedIndex].text : '';
+                var mercaPalShort = mercaPal ? mercaPal.split(/[—(]/)[0].trim() : '';
+                var cargaTipoTxt = cargaTipoSel ? cargaTipoSel.options[cargaTipoSel.selectedIndex].text : '';
+                var mercaTxt = [mercaPalShort, cargaTipoTxt].filter(Boolean).join(' · ');
+                var mercanciaShort = mercaTxt;
                 var urgenciaSel_label = urgenciaSel.options[urgenciaSel.selectedIndex].text;
                 var urgenciaTxt = urgenciaSel.value === 'dia' ? 'Fija'
                     : urgenciaSel.value === 'flexible' ? '1 a 4 días' : '1 a 2 días';
@@ -8924,13 +8942,18 @@
                         var pv = String(Math.max(1, Math.min(tn, info.pesoMax)));
                         if (pesoSel.querySelector('option[value="' + pv + '"]')) pesoSel.value = pv;
                     }
-                    // Mercancía (match por texto).
-                    if (mercaSel && src.mercancia) {
-                        var want = String(src.mercancia).toLowerCase();
-                        Array.prototype.some.call(mercaSel.options, function (o) {
-                            if (o.value !== '' && o.text.toLowerCase().indexOf(want) > -1) { mercaSel.value = o.value; return true; }
-                            return false;
-                        });
+                    // Mercancía (match por texto). El origen puede venir como
+                    // "Paletizada · Lateral y techo" (dos partes separadas por ·).
+                    if (src.mercancia) {
+                        var wantAll = String(src.mercancia).toLowerCase();
+                        if (mercaSel) mercaSel.selectedIndex = /no\s*paletiz/.test(wantAll) ? 1 : 0;
+                        if (cargaTipoSel) {
+                            var wantTipo = wantAll.split('·').pop().trim();
+                            Array.prototype.some.call(cargaTipoSel.options, function (o) {
+                                if (o.text.toLowerCase() === wantTipo) { cargaTipoSel.value = o.value; return true; }
+                                return false;
+                            });
+                        }
                     }
                     // Ventana de carga.
                     if (urgenciaSel) {
