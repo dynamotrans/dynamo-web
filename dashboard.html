@@ -1914,6 +1914,10 @@
         /* Última opción del desplegable: alta de sitio nuevo */
         .ptar-sug .sug-crear { border-top: 1px solid var(--gray-200); }
         .ptar-sug .sug-crear .sug-crear-lbl { color: var(--purple); font-weight: 800; }
+        /* Pista bajo los recientes: no clicable (fondo gris, sin hover) */
+        .ptar-sug .sug-hint { cursor: default; border-top: 1px solid var(--gray-200); background: var(--gray-100); padding: 0.5rem 0.8rem; }
+        .ptar-sug .sug-hint:hover { background: var(--gray-100); }
+        .ptar-sug .sug-hint .sug-hint-txt { color: var(--gray-500); font-size: 0.78rem; font-weight: 600; }
         /* Sitio/dirección seleccionado: el campo queda como chip bloqueado
            (se cambia solo con el botón ×, no editando el texto). */
         .ptar-input-wrap.ptar-picked { background: rgba(51,0,204,0.05); border-color: rgba(51,0,204,0.35); }
@@ -7395,10 +7399,17 @@
                     bindPick(el, function () { aplicarGuardado(k, s); });
                     sugList.appendChild(el);
                 });
+                // Pista al final: deja claro que hay MÁS que estos recientes —
+                // al escribir se busca en TODA la agenda y en Google Maps. No
+                // es clicable (no roba el foco al pulsarla).
+                var hint = li('<span class="sug-hint-txt">✎ Escribe para buscar en toda tu agenda de sitios o en Google Maps…</span>');
+                hint.className = 'sug-hint';
+                hint.addEventListener('mousedown', function (e) { e.preventDefault(); });
+                sugList.appendChild(hint);
                 // Sin "Crear nuevo sitio" aquí: junto a los recientes daba a
                 // entender que no había más sitios y se creaban duplicados
                 // sin buscar. Solo aparece tras escribir 3+ caracteres.
-                sugList.hidden = !sugList.children.length;
+                sugList.hidden = false;
             }
             // Al enfocar, el cursor se queda donde se pulsa (edición normal);
             // para borrar todo de golpe está el botón ×. Si el campo está
@@ -8135,14 +8146,35 @@
             function readAndValidate(skipFecha) {
                 var orig = origInput.value.trim();
                 var dest = destInput.value.trim();
-                var origOk = orig.length >= 2;
-                var destOk = dest.length >= 2;
+                // El origen y el destino deben ELEGIRSE de la lista (tu agenda,
+                // Google o una dirección) — al elegir, el campo se bloquea como
+                // chip (clase ptar-picked). NO vale texto escrito a mano sin
+                // seleccionar: así el envío siempre lleva una ubicación real.
+                var origOk = origWrap.classList.contains('ptar-picked');
+                var destOk = destWrap.classList.contains('ptar-picked');
                 origWrap.classList.toggle('ptar-error', !origOk);
                 destWrap.classList.toggle('ptar-error', !destOk);
                 if (!origOk || !destOk) {
-                    warning.textContent = '⚠ Introduce el origen y el destino antes de continuar.';
+                    var algunVacio = (!origOk && !orig) || (!destOk && !dest);
+                    warning.textContent = algunVacio
+                        ? '⚠ Introduce el origen y el destino antes de continuar.'
+                        : '⚠ Elige el origen y el destino de la lista de sugerencias (tu agenda, Google o una dirección). El texto escrito a mano no vale: pulsa una opción del desplegable.';
                     warning.classList.add('show');
-                    (origOk ? destInput : origInput).focus();
+                    (!origOk ? origInput : destInput).focus();
+                    return null;
+                }
+                // Cada recogida/entrega adicional con texto debe estar también
+                // elegida de la lista (mismo criterio que origen/destino).
+                var paradaSinElegir = paradaRows().filter(function (r) {
+                    var pin = r.querySelector('input'), pw = r.querySelector('.ptar-input-wrap');
+                    var mal = pin.value.trim() && !pw.classList.contains('ptar-picked');
+                    pw.classList.toggle('ptar-error', !!mal);
+                    return mal;
+                });
+                if (paradaSinElegir.length) {
+                    warning.textContent = '⚠ Elige cada recogida/entrega adicional de la lista de sugerencias. El texto escrito a mano no vale.';
+                    warning.classList.add('show');
+                    paradaSinElegir[0].querySelector('input').focus();
                     return null;
                 }
                 warning.classList.remove('show');
@@ -8695,6 +8727,19 @@
                     // Origen / destino (texto). Dirección completa si el objeto la trae.
                     origInput.value = src.origenDir || src.origen || '';
                     destInput.value = src.destinoDir || src.destino || '';
+                    // Son ubicaciones reales YA consolidadas (vienen de un envío
+                    // o presupuesto existente): se marcan como ELEGIDAS (chip
+                    // bloqueado) para pasar la validación de "no texto a mano".
+                    [[origWrap, origInput, src.origenSite], [destWrap, destInput, src.destinoSite]].forEach(function (t) {
+                        var w = t[0], i = t[1], sk = t[2];
+                        if (!i.value) return;
+                        if (sk) w.dataset.siteKey = sk; else delete w.dataset.siteKey;
+                        delete w.dataset.gsite;
+                        w.classList.add('ptar-picked');
+                        i.readOnly = true;
+                        var cb = w.querySelector('.ptar-clear');
+                        if (cb) cb.hidden = false;
+                    });
                     // Camión / trampilla a partir del tipo de camión (si lo hay).
                     var esRigido = /r[íi]gido/i.test(src.tipoCamion || '');
                     if (trampillaChk) trampillaChk.checked = esRigido;
