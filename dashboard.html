@@ -359,9 +359,17 @@
             .topbar-contact-label .t-name { font-size: 0.82rem; }
         }
         @media (max-width: 480px) {
-            /* Muy estrecho: ocultar el label entero, dejar solo foto + chevron */
+            /* Muy estrecho: el chip de Álvaro se queda SOLO con la foto (sin
+               texto ni flecha) y el logo se aprieta, para que la barra
+               izquierda ocupe lo mínimo y no se junte con la derecha. */
             .topbar-contact-label { display: none; }
-            .topbar-contact-btn { padding: 0.2rem 0.45rem 0.2rem 0.25rem; }
+            .topbar-contact-arrow { display: none; }
+            .topbar-contact-btn { padding: 0.15rem 0.3rem; }
+            .topbar-leftbar .topbar-brand { padding: 0 0.4rem; margin: 0 1px; }
+            .topbar-leftbar .topbar-brand img { height: 18px; }
+            .topbar-leftbar { padding: 2px; }
+            .topbar-actions { padding: 2px; }
+            .topbar { padding-left: 0.7rem; padding-right: 0.7rem; }
         }
 
         /* Dropdown */
