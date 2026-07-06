@@ -6120,6 +6120,23 @@
         if (a.state && a.state !== place) parts.push(a.state);
         return parts.join(', ');
     }
+    // SOLO la calle y el número (para el campo "Dirección (calle y número)"):
+    // sin ciudad/CP/provincia — esos van en su propio campo, no se duplican.
+    function calleDe(item) {
+        var a = item.address || {};
+        var road = a.road || a.pedestrian || a.footway || a.neighbourhood || '';
+        if (road && a.house_number) road += ', ' + a.house_number;
+        return road || String(item.display_name || '').split(',')[0];
+    }
+    // Parte un string de dirección completo por el CP: lo anterior es la
+    // calle+número; el CP y lo que le sigue (localidad/provincia/país) va al
+    // campo de CP. Para direcciones de Google que vienen en una sola línea.
+    function splitDirPorCP(dir) {
+        dir = String(dir || '');
+        var m = dir.search(/,?\s*[-–]?\s*\b\d{4,5}(?:-\d{3})?\b/);
+        if (m > 3) return { calle: dir.slice(0, m).replace(/[\s,;·–-]+$/, ''), resto: dir.slice(m).replace(/^[\s,;·–-]+/, '') };
+        return { calle: dir, resto: '' };
+    }
     function sitioFormHTML(s, esNuevo) {
         s = s || {};
         function inp(lbl, id, val, ph, full) {
@@ -6175,7 +6192,11 @@
         var deb;
         function setF(id, v) { var el = document.getElementById(id); if (el) el.value = v || ''; }
         function pickGoogleSitio(g) {
-            setF('sitio-f-empresa', g.empresa); setF('sitio-f-calle', g.dir);
+            // g.dir viene en un solo string ("Calle X, 3, 28946 Fuenlabrada,
+            // Madrid"): se parte por el CP en calle+número vs CP/localidad.
+            var sp = splitDirPorCP(g.dir);
+            setF('sitio-f-empresa', g.empresa); setF('sitio-f-calle', sp.calle);
+            setF('sitio-f-dir', sp.resto);
             setF('sitio-f-horario', g.horario); setF('sitio-f-tfno', g.tfno);
             setF('sitio-f-maps', g.maps);
             ul.hidden = true;
@@ -6217,8 +6238,11 @@
                         li.innerHTML = '<span class="sug-chip sug-chip-addr">Dirección</span>' + esc(dirLabelDe(it));
                         li.addEventListener('click', function () {
                             var a = it.address || {};
-                            setF('sitio-f-calle', dirLabelDe(it));
-                            setF('sitio-f-dir', [a.postcode, a.city || a.town || a.village || '', a.state || '', a.country || ''].filter(Boolean).join(', '));
+                            // Calle+número en su campo; CP/localidad/provincia/país
+                            // en el suyo — sin duplicar la ciudad ni el CP.
+                            setF('sitio-f-calle', calleDe(it));
+                            var loc = a.city || a.town || a.village || '';
+                            setF('sitio-f-dir', [a.postcode, loc, (a.state && a.state !== loc ? a.state : ''), a.country || ''].filter(Boolean).join(', '));
                             ul.hidden = true;
                             inp.value = dirLabelDe(it);
                         });
