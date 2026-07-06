@@ -521,6 +521,19 @@
             border: 1.5px solid var(--gray-200); background: var(--gray-100);
             padding: 0 0.85rem;
         }
+        /* Barra unificada IZQUIERDA: logo + "Soporte: Álvaro" como segmentos de
+           una única píldora (misma que la barra derecha, reutiliza .topbar-actions). */
+        .topbar-leftbar .topbar-brand {
+            height: 34px; border: none; background: transparent;
+            box-shadow: none; margin: 0 3px; padding: 0 0.6rem;
+        }
+        .topbar-leftbar .topbar-brand:hover {
+            background: #fff; box-shadow: 0 2px 8px rgba(10,2,48,0.10); border: none;
+        }
+        /* El menú de Álvaro, al estar a la izquierda, se ancla por la izquierda. */
+        .topbar-leftbar .topbar-contact-menu {
+            right: auto; left: 0; transform-origin: top left;
+        }
         /* Barra superior derecha UNIFICADA: un ÚNICO contenedor tipo píldora
            (campana, CESCE, Álvaro, JG) con los botones como segmentos
            separados por finas divisorias, en vez de píldoras sueltas. */
@@ -554,6 +567,7 @@
         }
         @media (max-width: 768px) {
             .topbar-brand { height: 36px; }
+            .topbar-leftbar .topbar-brand { height: 32px; }
             .topbar-ind, .topbar-contact-btn, .topbar-user { height: 32px; }
             .topbar-user-avatar { width: 30px; height: 30px; font-size: 0.78rem; }
         }
@@ -2959,29 +2973,10 @@
             <button class="sidebar-toggle" onclick="toggleSidebar()">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
+            <div class="topbar-actions topbar-leftbar">
             <button type="button" class="topbar-brand" onclick="showSection('dashboard')" aria-label="Ir al Dashboard">
                 <img src="/images/2.png" alt="Dynamo">
             </button>
-        </div>
-        <div class="topbar-actions">
-            <!-- Incidencias abiertas: campana con contador (naranja si hay
-                 abiertas, verde con 0 si no hay ninguna). Lleva al listado. -->
-            <div class="topbar-bell-wrap">
-                <button type="button" class="topbar-ind topbar-ind-inc" id="bellBtn" onclick="toggleBellMenu(event)" aria-haspopup="menu" aria-expanded="false" aria-label="Notificaciones" title="Notificaciones">
-                    <span class="topbar-ind-badge" data-stat-incidencias>0</span>
-                </button>
-                <div class="bell-menu" id="bellMenu" role="menu" aria-hidden="true"></div>
-            </div>
-            <!-- CESCE: estado de cobertura. Punto verde = con crédito ·
-                 naranja = crédito agotado · rojo = sin cobertura (crédito 0).
-                 El estado se puede previsualizar con ?cesce=ok|warn|none.
-                 Al pulsar despliega el detalle del crédito + contacto CESCE. -->
-            <div class="topbar-cesce-wrap">
-                <button type="button" class="topbar-ind topbar-ind-cesce cesce-status-ok" data-cesce-chip id="cesceBtn" aria-haspopup="menu" aria-expanded="false" title="Cobertura de crédito CESCE" onclick="toggleCesceMenu(event)">
-                    <span class="topbar-cesce-dot" aria-hidden="true"></span>
-                </button>
-                <div class="cesce-menu" id="cesceMenu" role="menu" aria-hidden="true"></div>
-            </div>
             <!-- Boton de contacto con Alvaro (antes era un FAB flotante).
                  Pequeño en la topbar, al pulsar abre dropdown con canales. -->
             <div class="topbar-contact-wrap">
@@ -3033,6 +3028,27 @@
                         </div>
                     </a>
                 </div>
+            </div>
+            </div>
+        </div>
+        <div class="topbar-actions">
+            <!-- Incidencias abiertas: campana con contador (naranja si hay
+                 abiertas, verde con 0 si no hay ninguna). Lleva al listado. -->
+            <div class="topbar-bell-wrap">
+                <button type="button" class="topbar-ind topbar-ind-inc" id="bellBtn" onclick="toggleBellMenu(event)" aria-haspopup="menu" aria-expanded="false" aria-label="Notificaciones" title="Notificaciones">
+                    <span class="topbar-ind-badge" data-stat-incidencias>0</span>
+                </button>
+                <div class="bell-menu" id="bellMenu" role="menu" aria-hidden="true"></div>
+            </div>
+            <!-- CESCE: estado de cobertura. Punto verde = con crédito ·
+                 naranja = crédito agotado · rojo = sin cobertura (crédito 0).
+                 El estado se puede previsualizar con ?cesce=ok|warn|none.
+                 Al pulsar despliega el detalle del crédito + contacto CESCE. -->
+            <div class="topbar-cesce-wrap">
+                <button type="button" class="topbar-ind topbar-ind-cesce cesce-status-ok" data-cesce-chip id="cesceBtn" aria-haspopup="menu" aria-expanded="false" title="Cobertura de crédito CESCE" onclick="toggleCesceMenu(event)">
+                    <span class="topbar-cesce-dot" aria-hidden="true"></span>
+                </button>
+                <div class="cesce-menu" id="cesceMenu" role="menu" aria-hidden="true"></div>
             </div>
             <div class="topbar-user-wrap">
                 <button type="button" class="topbar-user" id="userMenuBtn" aria-haspopup="menu" aria-expanded="false" onclick="toggleUserMenu(event)">
