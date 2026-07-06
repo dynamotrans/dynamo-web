@@ -8361,8 +8361,29 @@
                 // Consolida el sitio de un punto: aplica lo editado en su ficha
                 // del paso 2 y lo GUARDA en la agenda (los de Google pasan a
                 // ser sitios propios; los guardados actualizan sus datos).
-                function consolidarSitio(pick, id, tipoLugar) {
-                    if (!pick) return null;
+                function consolidarSitio(pick, id, tipoLugar, looseDir) {
+                    // Punto SIN ficha (dirección básica): si el usuario ha
+                    // rellenado algún campo en la confirmación, se crea un sitio
+                    // nuevo con la dirección + esos datos y se guarda en la
+                    // agenda. Si no rellenó nada, sigue como dirección suelta.
+                    if (!pick) {
+                        var b2 = {}, tocado = false;
+                        document.querySelectorAll('[data-sitio-id="' + id + '"]').forEach(function (el) {
+                            var f = el.getAttribute('data-sitio-f');
+                            if (!f) return;   // (el select de tipo no tiene data-sitio-f)
+                            var v = el.value.trim() || null;
+                            if (v) tocado = true;
+                            b2[f] = v;
+                        });
+                        if (!tocado) return null;   // dirección suelta, sin ficha
+                        b2.dir = looseDir || null;
+                        b2.calle = b2.calle || null;
+                        if (tipoLugar) b2.tipoLugar = tipoLugar;
+                        b2.freq = 1;
+                        var k2 = 'mi-' + normTxt(b2.empresa || 'sitio').replace(/[^a-z0-9]+/g, '-').slice(0, 30) + '-' + ((String(looseDir || '').match(/\b\d{4,5}\b/) || ['x'])[0]);
+                        saveCustomSite(k2, b2);
+                        return { key: k2, site: b2 };
+                    }
                     var src0 = pick.tipo === 'guardado' ? (siteDe(pick.key) || {}) : {
                         empresa: pick.g.empresa, dir: pick.g.dir, horario: pick.g.horario,
                         tfno: pick.g.tfno, contacto: null, notas: null, maps: pick.g.maps, freq: 1
@@ -8375,6 +8396,7 @@
                     if (tipoLugar && base.tipoLugar !== tipoLugar) { base.tipoLugar = tipoLugar; edito = true; }
                     document.querySelectorAll('[data-sitio-id="' + id + '"]').forEach(function (el) {
                         var f = el.getAttribute('data-sitio-f');
+                        if (!f) return;   // ignora el select de tipo (sin data-sitio-f)
                         var v = el.value.trim() || null;
                         if (base[f] !== v) edito = true;
                         base[f] = v;
@@ -8386,8 +8408,8 @@
                 }
                 showLoadingOverlay(saveMode === 'carga' ? 'Creando tu envío…' : 'Generando tu presupuesto…', 900, function () {
                 if (saveMode === 'carga') {
-                    var oS = consolidarSitio(d.origSitePick, 'orig', d.origTipo);
-                    var dS = consolidarSitio(d.destSitePick, 'dest', d.destTipo);
+                    var oS = consolidarSitio(d.origSitePick, 'orig', d.origTipo, d.orig);
+                    var dS = consolidarSitio(d.destSitePick, 'dest', d.destTipo, d.dest);
                     // Precio orientativo del tarifador; si la caja ETA no llegó
                     // a calcular (sin coordenadas), fórmula base de respaldo.
                     var precioNum = d.precioMock || (Math.round(((d.camion === 'tauliner' ? 950 : 720)
@@ -8408,7 +8430,7 @@
                             horarioOrigen: (oS && oS.site.horario) || null,
                             horarioDestino: (dS && dS.site.horario) || null,
                             paradas: (d.paradas || []).map(function (p, i) {
-                                var ps = consolidarSitio(p.sitePick, 'parada' + i, p.tipo);
+                                var ps = consolidarSitio(p.sitePick, 'parada' + i, p.tipo, p.texto);
                                 return { tipo: p.kind, dir: ps ? ps.site.dir : p.texto, site: ps ? ps.key : null };
                             })
                         }
@@ -8606,24 +8628,33 @@
                             '<span style="color:' + (p.kind === 'recogida' ? 'var(--orange)' : 'var(--green)') + ';">' +
                             (p.kind === 'recogida' ? 'Recogida' : 'Entrega') + '</span>';
                         var tipoLock = tipoSelect(p.id, p.tipoLugar);
-                        // Punto SIN ficha de sitio: tarjeta solo con la dirección.
+                        function inp(lbl, f, val, ph) {
+                            return '<div><label>' + lbl + '</label><input data-sitio-f="' + f + '" data-sitio-id="' + p.id + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '"></div>';
+                        }
+                        // Punto SIN ficha (dirección básica del buscador, sin
+                        // empresa): TODOS los campos editables para completarlo
+                        // (empresa, horario, tfno, contacto, notas); solo la
+                        // dirección queda bloqueada. Al confirmar se guarda como
+                        // sitio en la agenda.
                         if (!p.pick) {
                             return '<div class="ptar-sitio-card">' +
                                 cardHead(rolHtml, '', p.texto || '') +
                                 '<div class="ptar-sitio-body">' +
-                                    '<div class="ptar-sitio-body-meta">dirección (sin ficha en tu agenda)</div>' +
+                                    '<div class="ptar-sitio-body-meta">Dirección sin ficha — completa los datos que quieras y se guardará como sitio en tu agenda.</div>' +
                                     '<div class="ptar-sitio-grid">' +
-                                        '<div class="full"><label>Dirección</label><input class="sitio-f-lock" value="' + escapeHtml(p.texto || '') + '" readonly tabindex="-1"></div>' +
+                                        inp('Empresa', 'empresa', '') +
                                         tipoLock +
+                                        '<div class="full"><label>Dirección</label><input class="sitio-f-lock" value="' + escapeHtml(p.texto || '') + '" readonly tabindex="-1"></div>' +
+                                        inp('Horario', 'horario', '', 'Ej. L-V 8:00-14:00') +
+                                        inp('Teléfono', 'tfno', '') +
+                                        inp('Contacto', 'contacto', '', 'Persona de contacto') +
+                                        '<div class="full"><label>Notas del sitio</label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="" placeholder="Ej. pedir cita, báscula, NIMA…"></div>' +
                                     '</div>' +
                                 '</div>' +
                             '</div>';
                         }
                         var s = p.pick.tipo === 'guardado' ? (siteDe(p.pick.key) || {}) : p.pick.g;
                         var fuente = p.pick.tipo === 'guardado' ? 'de tu agenda' : 'de Google · se guardará en tu agenda';
-                        function inp(lbl, f, val, ph) {
-                            return '<div><label>' + lbl + '</label><input data-sitio-f="' + f + '" data-sitio-id="' + p.id + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '"></div>';
-                        }
                         // Campos BLOQUEADOS (gris, solo lectura): la dirección
                         // define la ruta elegida — para cambiarla hay que
                         // volver al paso 1 y elegir otro sitio.
