@@ -4756,10 +4756,18 @@
         for (i = 0; i < pdf.length; i++) bytes[i] = pdf.charCodeAt(i) & 0xFF;
         var blob = new Blob([bytes], { type: 'application/pdf' });
         var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url; a.download = 'Proforma-Dynamo-' + (refCli ? String(refCli).replace(/[^A-Za-z0-9-]/g, '') : pno) + '.pdf';
-        document.body.appendChild(a); a.click();
-        setTimeout(function () { URL.revokeObjectURL(url); document.body.removeChild(a); }, 100);
+        // Abrir el PDF EN EL NAVEGADOR (visor), no forzar descarga. Si el
+        // navegador bloquea la ventana (poco común desde un click), como
+        // respaldo se descarga.
+        var win = window.open(url, '_blank');
+        if (!win) {
+            var a = document.createElement('a');
+            a.href = url; a.download = 'Proforma-Dynamo-' + (refCli ? String(refCli).replace(/[^A-Za-z0-9-]/g, '') : pno) + '.pdf';
+            document.body.appendChild(a); a.click();
+            setTimeout(function () { document.body.removeChild(a); }, 100);
+        }
+        // Liberar el objeto más tarde (el visor necesita la URL viva un rato).
+        setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
     }
     window.descargarProforma = descargarProforma;
 
