@@ -1157,7 +1157,7 @@
         /* Fila de 3: Nuevo envío · Últimos envíos (muestra) · Nuevo presupuesto.
            Selector doble clase: gana a la regla base de .dash-top-row (2 col)
            definida más abajo. */
-        .dash-top-row.dash-top-2 { grid-template-columns: 1fr 1.6fr !important; align-items: stretch; }
+        .dash-top-row.dash-top-2 { grid-template-columns: 1.4fr 1fr !important; align-items: stretch; }
         .dash-top-row.dash-top-2 .mini-list-card { margin: 0; min-width: 0; }
         @media (max-width: 768px) {
             /* En móvil: botón arriba y la muestra de envíos debajo a lo ancho. */
@@ -1520,8 +1520,10 @@
         .dash-cta-text p  { font-size: 0.78rem; opacity: 0.85; margin-top: 0.15rem; }
         .dash-cta-purple { background: linear-gradient(135deg, var(--purple), var(--purple-light)); box-shadow: 0 8px 22px rgba(51,0,204,0.3); }
         .dash-cta-green  { background: linear-gradient(135deg, var(--green), #4dc97a);             box-shadow: 0 8px 22px rgba(34,165,90,0.3); }
-        .dash-cta-stack { display: flex; flex-direction: column; gap: 0.8rem; }
-        .dash-cta-stack .dash-cta { flex: 1; }
+        /* Nuevo envío + Nuevo almacenamiento en la MISMA línea (fila de 2). */
+        .dash-cta-stack { display: flex; flex-direction: row; gap: 0.8rem; }
+        .dash-cta-stack .dash-cta { flex: 1; min-width: 0; padding: 1.1rem 1rem; }
+        .dash-cta-stack .dash-cta-text h4 { font-size: 0.95rem; line-height: 1.2; }
         /* ===== Formulario "Nuevo almacenamiento" ===== */
         .alm-form { max-width: 680px; }
         .alm-intro {
@@ -4333,8 +4335,34 @@
     var PROFORMA_EMISOR = { nombre: 'Dynamo Operador Logístico SL', cif: 'B01596360', email: 'info@dynamotrans.com', tel: '+34 955 225 945', web: 'dynamotrans.com' };
     var PROFORMA_CLIENTE = { nombre: 'Marbex Industrial S.L.', cif: 'B91234567', dir: 'C/ Industria 22, 41008 Sevilla', pais: 'España' };
     var PROFORMA_BANCO = { titular: 'Dynamo Operador Logístico SL', cif: 'B01596360', iban: 'ES63 0049 1837 5928 1046 8445', banco: 'Banco Santander', bic: 'BSCHESMM' };
-    // Genera y descarga un PDF proforma con formato profesional del envío `d`.
+    // Logo Dynamo para el PDF: se rasteriza /images/4.png (logo blanco) sobre
+    // el morado exacto de la cabecera (#3300cc) vía canvas → JPEG (DCTDecode,
+    // el único formato que un PDF admite tal cual sin descomprimir). Cacheado.
+    var _proformaLogo = null;   // { data: binario, w, h } | 'fail'
+    function proformaLogoLoad(cb) {
+        if (_proformaLogo) return cb(_proformaLogo === 'fail' ? null : _proformaLogo);
+        var img = new Image();
+        img.onload = function () {
+            try {
+                var w = 800, h = Math.round(800 * img.naturalHeight / img.naturalWidth) || 210;
+                var c = document.createElement('canvas'); c.width = w; c.height = h;
+                var ctx = c.getContext('2d');
+                ctx.fillStyle = '#3300cc'; ctx.fillRect(0, 0, w, h);
+                ctx.drawImage(img, 0, 0, w, h);
+                var b64 = c.toDataURL('image/jpeg', 0.92).split(',')[1];
+                _proformaLogo = { data: atob(b64), w: w, h: h };
+            } catch (e) { _proformaLogo = 'fail'; }
+            cb(_proformaLogo === 'fail' ? null : _proformaLogo);
+        };
+        img.onerror = function () { _proformaLogo = 'fail'; cb(null); };
+        img.src = '/images/4.png';
+    }
+    // Genera y descarga el PDF proforma. Carga el logo (1ª vez) y delega en
+    // buildProforma; si el logo falla, sale con el wordmark en texto.
     function descargarProforma(d) {
+        proformaLogoLoad(function (logo) { buildProforma(d, logo); });
+    }
+    function buildProforma(d, logo) {
         d = d || {};
         var W = 595.28, H = 841.89, mL = 48, mR = 547;
         // Codificación WinAnsi con escapes octales (mantiene el stream ASCII →
@@ -4387,8 +4415,15 @@
 
         // ---- Cabecera ----
         fill(PURPLE[0], PURPLE[1], PURPLE[2]); rect(0, H - 74, W, 74);
-        text(mL, 34, 'dynamo', 23, true, [1, 1, 1]);
-        text(mL, 52, 'Operador Logístico', 9.5, false, [0.85, 0.85, 1]);
+        if (logo) {
+            // Logo real (JPEG sobre morado idéntico → se funde con la banda).
+            var lh = 30, lw2 = lh * logo.w / logo.h;
+            ops.push('q ' + lw2.toFixed(1) + ' 0 0 ' + lh + ' ' + mL + ' ' + (H - 52).toFixed(1) + ' cm /Im1 Do Q');
+            text(mL + 2, 63, 'Operador Logístico', 9, false, [0.85, 0.85, 1]);
+        } else {
+            text(mL, 34, 'dynamo', 23, true, [1, 1, 1]);
+            text(mL, 52, 'Operador Logístico', 9.5, false, [0.85, 0.85, 1]);
+        }
         textR(mR, 33, 'FACTURA PROFORMA', 14, true, [1, 1, 1]);
         textR(mR, 50, 'Documento no contable · pago por adelantado', 8, false, [0.85, 0.85, 1]);
 
@@ -4490,14 +4525,21 @@
 
         // ---- Ensamblado del PDF con xref correcto ----
         var stream = ops.join('\n');
+        var resources = '<</Font<</F1 5 0 R/F2 6 0 R>>' + (logo ? '/XObject<</Im1 7 0 R>>' : '') + '>>';
         var objs = [
             '<</Type/Catalog/Pages 2 0 R>>',
             '<</Type/Pages/Count 1/Kids[3 0 R]>>',
-            '<</Type/Page/Parent 2 0 R/MediaBox[0 0 ' + W.toFixed(2) + ' ' + H.toFixed(2) + ']/Contents 4 0 R/Resources<</Font<</F1 5 0 R/F2 6 0 R>>>>>>',
+            '<</Type/Page/Parent 2 0 R/MediaBox[0 0 ' + W.toFixed(2) + ' ' + H.toFixed(2) + ']/Contents 4 0 R/Resources' + resources + '>>',
             '<</Length ' + stream.length + '>>\nstream\n' + stream + '\nendstream',
             '<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>',
             '<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold/Encoding/WinAnsiEncoding>>'
         ];
+        if (logo) {
+            // Imagen JPEG incrustada tal cual (DCTDecode). El binario viaja en
+            // el string como latin1; abajo se vuelca byte a byte al Uint8Array.
+            objs.push('<</Type/XObject/Subtype/Image/Width ' + logo.w + '/Height ' + logo.h +
+                '/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/DCTDecode/Length ' + logo.data.length + '>>\nstream\n' + logo.data + '\nendstream');
+        }
         var pdf = '%PDF-1.4\n', offsets = [];
         for (i = 0; i < objs.length; i++) {
             offsets.push(pdf.length);
@@ -4509,7 +4551,11 @@
             pdf += ('0000000000' + offsets[i]).slice(-10) + ' 00000 n \n';
         }
         pdf += 'trailer<</Size ' + (objs.length + 1) + '/Root 1 0 R>>\nstartxref\n' + xrefPos + '\n%%EOF';
-        var blob = new Blob([pdf], { type: 'application/pdf' });
+        // A bytes vía latin1 (un char = un byte): un Blob de string codificaría
+        // UTF-8 y corrompería el JPEG. Con ASCII puro también es equivalente.
+        var bytes = new Uint8Array(pdf.length);
+        for (i = 0; i < pdf.length; i++) bytes[i] = pdf.charCodeAt(i) & 0xFF;
+        var blob = new Blob([bytes], { type: 'application/pdf' });
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
         a.href = url; a.download = 'Proforma-Dynamo-' + (refCli ? String(refCli).replace(/[^A-Za-z0-9-]/g, '') : pno) + '.pdf';
