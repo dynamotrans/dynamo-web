@@ -1632,7 +1632,8 @@
         /* Anti-zoom iOS en el buscador de reparto (mismo criterio que el
            tarifador, cuya regla está acotada a .ptar-card). */
         @media (pointer: coarse) {
-            #almRepDest .ptar-input-wrap input, #almRepDest .ptar-select-sm { font-size: 16px; }
+            #almRepDest .ptar-input-wrap input, #almRepDest .ptar-select-sm,
+            .alm-form .ptar-select, .alm-field select { font-size: 16px; }
         }
         /* Entrada y salida SIEMPRE en la misma línea (también en móvil). */
 
@@ -4059,8 +4060,8 @@
             <div class="alm-field">
                 <label>Fechas de entrada y salida <span class="alm-opt">· estancia máx. 7 días</span></label>
                 <div class="alm-dates">
-                    <div><label style="font-size:0.78rem;color:var(--gray-500);font-weight:600;margin-bottom:0.25rem;">Entrada</label><div class="alm-date-wrap" id="almEntradaWrap"><input type="date" id="almEntrada" onchange="almOnDates()"><span class="alm-date-ph">Selecciona fecha de entrada</span></div></div>
-                    <div><label style="font-size:0.78rem;color:var(--gray-500);font-weight:600;margin-bottom:0.25rem;">Salida</label><div class="alm-date-wrap" id="almSalidaWrap"><input type="date" id="almSalida" onchange="almOnDates()"><span class="alm-date-ph">Selecciona fecha de salida</span></div></div>
+                    <div><label style="font-size:0.78rem;color:var(--gray-500);font-weight:600;margin-bottom:0.25rem;">Entrada</label><div class="ptar-fecha-wrap"><select id="almEntrada" class="ptar-select" onchange="almDiaChange('ent')" aria-label="Fecha de entrada"></select><input type="date" id="almEntFp" class="ptar-date" tabindex="-1" aria-hidden="true"></div></div>
+                    <div><label style="font-size:0.78rem;color:var(--gray-500);font-weight:600;margin-bottom:0.25rem;">Salida</label><div class="ptar-fecha-wrap"><select id="almSalida" class="ptar-select" onchange="almDiaChange('sal')" aria-label="Fecha de salida"></select><input type="date" id="almSalFp" class="ptar-date" tabindex="-1" aria-hidden="true"></div></div>
                 </div>
                 <div class="alm-note">La mercancía no puede entrar en el almacén hasta <strong>2 días después de hoy</strong> (necesitamos prepararlo). Al elegir la entrada, la salida se pone sola en <strong>entrada + 7 días</strong> (el máximo); ajústala si sales antes.</div>
             </div>
@@ -4069,10 +4070,10 @@
                 <label>Reparto urbano posterior <span class="alm-opt">· opcional</span></label>
                 <select id="almReparto" onchange="almRepartoChange()">
                     <option value="0">No — lo recojo yo o pediré un transporte aparte</option>
-                    <option value="1">1 camión de reparto (4 m con plataforma)</option>
-                    <option value="2">2 camiones de reparto</option>
-                    <option value="3">3 camiones de reparto (tráiler completo aprox.)</option>
-                    <option value="4">4 camiones de reparto</option>
+                    <option value="1">1 camión de 4 m · 4 metros total</option>
+                    <option value="2">2 camiones de 4 m · 8 metros total</option>
+                    <option value="3">3 camiones de 4 m · 12 metros total (casi tráiler completo 13,60 m)</option>
+                    <option value="4">4 camiones de 4 m · 16 metros (tráiler completo 13,60 m)</option>
                 </select>
                 <div class="alm-note">Entrega en <strong>zona urbana</strong> en destino con <strong>camión de 4 m y plataforma</strong>. Un tráiler completo suele repartirse en unos 3 camiones. <strong>220 € + IVA por camión</strong>. Si la salida es en tráiler normal, se pide como <strong>nuevo envío</strong> con origen en el almacén.</div>
                 <div id="almRepDest" hidden>
@@ -4093,7 +4094,7 @@
                     </div>
                     <div class="alm-field" style="margin-bottom:0;">
                         <label>Fecha de entrega en destino</label>
-                        <div class="alm-date-wrap" id="almEntregaWrap" style="max-width:300px;"><input type="date" id="almEntrega" onchange="almDatePh()"><span class="alm-date-ph">Selecciona fecha de entrega</span></div>
+                        <div class="ptar-fecha-wrap" style="max-width:300px;"><select id="almEntrega" class="ptar-select" onchange="almDiaChange('entg')" aria-label="Fecha de entrega"></select><input type="date" id="almEntgFp" class="ptar-date" tabindex="-1" aria-hidden="true"></div>
                     </div>
                 </div>
             </div>
@@ -4819,45 +4820,131 @@
         var err = document.getElementById('almErr'); if (err) err.classList.remove('show');
         almRepClear();
         var repDest = document.getElementById('almRepDest'); if (repDest) repDest.hidden = true;
-        var entg = document.getElementById('almEntrega'); if (entg) entg.value = '';
-        // Fechas: la mercancía NO puede entrar hasta 2 días después de hoy
-        // (preparación del almacén). Ventana de entrada: hoy+2 … hoy+9.
-        var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-        var min = new Date(hoy); min.setDate(min.getDate() + 2);
-        var max = new Date(hoy); max.setDate(max.getDate() + 9);
-        var maxSal = new Date(hoy); maxSal.setDate(maxSal.getDate() + 16);
-        var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida');
-        if (ent) { ent.min = almISO(min); ent.max = almISO(max); ent.value = ''; }
-        if (sal) { sal.min = almISO(min); sal.max = almISO(maxSal); sal.value = ''; }
-        almDatePh();
+        // Fechas: MISMO desplegable que el envío (lista de días + "Otro día…"
+        // con el calendario Flatpickr). La entrada empieza 2 días naturales
+        // después de hoy (preparación del almacén). Estancia máx. 7 días.
+        Object.keys(_almFp).forEach(function (k) { if (_almFp[k]) { _almFp[k].destroy(); _almFp[k] = null; } });
+        var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida'), entg = document.getElementById('almEntrega');
+        if (ent) almFillDaySel(ent, almRelISO(2), 7, 'Selecciona fecha de entrada');
+        if (sal) almPlaceholderSel(sal, 'Elige primero la entrada');
+        if (entg) almPlaceholderSel(entg, 'Elige primero la salida');
         almRenderPrecio();
         showSection('nuevo-almacen');
     }
     window.openNuevoAlmacen = openNuevoAlmacen;
-    function almOnDates() {
+    // ---- Selector de fecha estilo envío (lista de días + "Otro día…") ----
+    var _almFp = {};
+    function almNaturalDays(firstIso, count) {
+        var out = [], d = new Date(firstIso + 'T00:00:00');
+        for (var i = 0; i < count; i++) { out.push(new Date(d)); d.setDate(d.getDate() + 1); }
+        return out;
+    }
+    function almDayLabel(d) {
+        var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+        var diff = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - hoy) / 86400000);
+        var dias = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+        var mes = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        var base = dias[d.getDay()] + ' ' + d.getDate() + ' ' + mes[d.getMonth()] + ' ' + d.getFullYear();
+        return diff === 0 ? base + ' · hoy' : diff === 1 ? base + ' · mañana' : base;
+    }
+    function almPlaceholderSel(sel, phTxt) {
+        sel.innerHTML = '';
+        var ph = document.createElement('option'); ph.value = ''; ph.textContent = phTxt; ph.disabled = true; ph.selected = true;
+        sel.appendChild(ph); sel.value = '';
+    }
+    function almFillDaySel(sel, firstIso, count, phTxt, selectIso) {
+        sel.innerHTML = '';
+        var ph = document.createElement('option'); ph.value = ''; ph.textContent = phTxt; ph.disabled = true; ph.selected = true;
+        sel.appendChild(ph);
+        almNaturalDays(firstIso, count).forEach(function (d) {
+            var o = document.createElement('option'); o.value = almISO(d); o.textContent = almDayLabel(d); sel.appendChild(o);
+        });
+        var otro = document.createElement('option'); otro.value = 'otro'; otro.textContent = 'Otro día…';
+        sel.appendChild(otro);
+        // Si el valor a preseleccionar no está en la lista (p.ej. entrada+7 sale
+        // fuera de las N mostradas) se inserta antes de "Otro día…".
+        if (selectIso) {
+            if (!sel.querySelector('option[value="' + selectIso + '"]')) {
+                var o2 = document.createElement('option'); o2.value = selectIso; o2.textContent = almDayLabel(new Date(selectIso + 'T00:00:00'));
+                sel.insertBefore(o2, otro);
+            }
+            sel.value = selectIso;
+        } else { sel.value = ''; }
+    }
+    function almAttachFp(which, sel, fpInput, minIso, maxIso) {
+        if (!window.flatpickr || !fpInput) return;
+        if (_almFp[which]) { _almFp[which].destroy(); _almFp[which] = null; }
+        _almFp[which] = window.flatpickr(fpInput, {
+            locale: window.flatpickr.l10ns && window.flatpickr.l10ns.es ? 'es' : 'default',
+            minDate: minIso, maxDate: maxIso, dateFormat: 'Y-m-d',
+            onClose: function (selDates) {
+                if (selDates && selDates.length) {
+                    var iso = almISO(selDates[0]);
+                    if (!sel.querySelector('option[value="' + iso + '"]')) {
+                        var opt = document.createElement('option'); opt.value = iso; opt.textContent = almDayLabel(selDates[0]);
+                        sel.insertBefore(opt, sel.querySelector('option[value="otro"]'));
+                    }
+                    sel.value = iso;
+                } else if (sel.value === 'otro') { sel.value = ''; }
+                almDiaSync(which);
+            }
+        });
+    }
+    // Cambio en un selector de fecha: "Otro día…" abre el calendario; una
+    // fecha concreta recalcula dependencias (salida≥entrada, entrega≥salida).
+    function almDiaChange(which) {
+        var sel = document.getElementById(which === 'ent' ? 'almEntrada' : which === 'sal' ? 'almSalida' : 'almEntrega');
+        if (!sel) return;
+        if (sel.value === 'otro') {
+            var lims = almFpLimits(which);
+            var fpInput = document.getElementById(which === 'ent' ? 'almEntFp' : which === 'sal' ? 'almSalFp' : 'almEntgFp');
+            almAttachFp(which, sel, fpInput, lims.min, lims.max);
+            if (_almFp[which]) { _almFp[which].open(); }
+            else if (fpInput) {
+                // Fallback sin Flatpickr: calendario nativo (mismo criterio que el envío).
+                fpInput.min = lims.min; fpInput.max = lims.max;
+                fpInput.onchange = function () {
+                    var iso = fpInput.value;
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+                        if (!sel.querySelector('option[value="' + iso + '"]')) {
+                            var opt = document.createElement('option'); opt.value = iso; opt.textContent = almDayLabel(new Date(iso + 'T00:00:00'));
+                            sel.insertBefore(opt, sel.querySelector('option[value="otro"]'));
+                        }
+                        sel.value = iso; almDiaSync(which);
+                    } else if (sel.value === 'otro') { sel.value = ''; }
+                };
+                if (fpInput.showPicker) { try { fpInput.showPicker(); } catch (e) { fpInput.focus(); } } else fpInput.focus();
+            }
+            return;
+        }
+        almDiaSync(which);
+    }
+    window.almDiaChange = almDiaChange;
+    function almFpLimits(which) {
         var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida');
-        if (ent && ent.value) {
-            // Salida: nunca antes de la entrada ni más de 7 días de estancia.
-            var e = new Date(ent.value + 'T00:00:00');
-            var maxSal = new Date(e); maxSal.setDate(maxSal.getDate() + 7);
-            sal.min = ent.value; sal.max = almISO(maxSal);
-            // Por defecto la salida se pone en entrada + 7 días (el máximo);
-            // el usuario la acorta si sale antes.
-            if (!sal.value || sal.value > sal.max) sal.value = sal.max;
-            if (sal.value < ent.value) sal.value = ent.value;
+        if (which === 'ent') return { min: almRelISO(2), max: almRelISO(30) };
+        if (which === 'sal') { var e = (ent && /^\d{4}-\d{2}-\d{2}$/.test(ent.value)) ? ent.value : almRelISO(2); var m = new Date(e + 'T00:00:00'); m.setDate(m.getDate() + 7); return { min: e, max: almISO(m) }; }
+        var s = (sal && /^\d{4}-\d{2}-\d{2}$/.test(sal.value)) ? sal.value : almRelISO(2); var m2 = new Date(s + 'T00:00:00'); m2.setDate(m2.getDate() + 14); return { min: s, max: almISO(m2) };
+    }
+    function almDiaSync(which) {
+        var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida'), entg = document.getElementById('almEntrega');
+        var eIso = (ent && /^\d{4}-\d{2}-\d{2}$/.test(ent.value)) ? ent.value : '';
+        if (which === 'ent' && eIso) {
+            // Rellena la salida: días entrada … entrada+7, por defecto entrada+7.
+            var e = new Date(eIso + 'T00:00:00'), maxSal = new Date(e); maxSal.setDate(maxSal.getDate() + 7);
+            almFillDaySel(sal, eIso, 8, 'Selecciona fecha de salida', almISO(maxSal));
         }
-        // La entrega del reparto nunca antes de la salida del almacén.
-        var entg = document.getElementById('almEntrega');
-        if (entg && sal && sal.value) {
-            entg.min = sal.value;
-            if (entg.value && entg.value < sal.value) entg.value = sal.value;
-            var n = parseInt((document.getElementById('almReparto') || {}).value, 10) || 0;
-            if (n > 0 && !entg.value) entg.value = sal.value;
+        var sIso = (sal && /^\d{4}-\d{2}-\d{2}$/.test(sal.value)) ? sal.value : '';
+        var n = parseInt((document.getElementById('almReparto') || {}).value, 10) || 0;
+        if ((which === 'ent' || which === 'sal') && sIso && n > 0) {
+            // Entrega del reparto: desde la salida en adelante, por defecto la salida.
+            almFillDaySel(entg, sIso, 8, 'Selecciona fecha de entrega', sIso);
         }
-        almDatePh();
         almRenderPrecio();
     }
-    window.almOnDates = almOnDates;
+    // Compat: quedaba llamado desde el buscador de reparto; ahora es no-op.
+    function almDatePh() {}
+    window.almDatePh = almDatePh;
     // ---- Reparto urbano: dirección de entrega ----
     // Reutiliza EL MISMO buscador del tarifador (recientes + agenda + Google +
     // crear sitio, chip bloqueado). Se cablea una sola vez sobre el punto.
@@ -4889,8 +4976,12 @@
         if (block) block.hidden = n === 0;
         if (n > 0) almRepEnsureBound();
         var sal = document.getElementById('almSalida'), entg = document.getElementById('almEntrega');
-        if (n > 0 && entg && !entg.value && sal && sal.value) { entg.min = sal.value; entg.value = sal.value; }
-        almDatePh();
+        var sIso = (sal && /^\d{4}-\d{2}-\d{2}$/.test(sal.value)) ? sal.value : '';
+        if (n > 0 && entg && sIso && !(/^\d{4}-\d{2}-\d{2}$/.test(entg.value))) {
+            almFillDaySel(entg, sIso, 8, 'Selecciona fecha de entrega', sIso);
+        } else if (n > 0 && entg && !sIso) {
+            almPlaceholderSel(entg, 'Elige primero la salida');
+        }
         almRenderPrecio();
     }
     window.almRepartoChange = almRepartoChange;
@@ -5181,10 +5272,10 @@
             '<div class="modal-form-row"><label>Fecha de salida <span style="color:var(--gray-500);font-weight:600;">· máx. entrada + 7 días</span></label><input type="date" id="almDxSal" value="' + r.salida + '" onchange="almDxRefresh(\'' + ref + '\')"></div>' +
             '<div class="modal-form-row"><label>Reparto urbano posterior</label><select id="almDxRep" onchange="almDxRefresh(\'' + ref + '\')">' +
                 '<option value="0"' + (r.reparto === 0 ? ' selected' : '') + '>No — lo recojo yo o pediré un transporte aparte</option>' +
-                '<option value="1"' + (r.reparto === 1 ? ' selected' : '') + '>1 camión de reparto (4 m con plataforma)</option>' +
-                '<option value="2"' + (r.reparto === 2 ? ' selected' : '') + '>2 camiones de reparto</option>' +
-                '<option value="3"' + (r.reparto === 3 ? ' selected' : '') + '>3 camiones de reparto (tráiler completo aprox.)</option>' +
-                '<option value="4"' + (r.reparto === 4 ? ' selected' : '') + '>4 camiones de reparto</option>' +
+                '<option value="1"' + (r.reparto === 1 ? ' selected' : '') + '>1 camión de 4 m · 4 metros total</option>' +
+                '<option value="2"' + (r.reparto === 2 ? ' selected' : '') + '>2 camiones de 4 m · 8 metros total</option>' +
+                '<option value="3"' + (r.reparto === 3 ? ' selected' : '') + '>3 camiones de 4 m · 12 metros total (casi tráiler completo 13,60 m)</option>' +
+                '<option value="4"' + (r.reparto === 4 ? ' selected' : '') + '>4 camiones de 4 m · 16 metros (tráiler completo 13,60 m)</option>' +
             '</select></div>' +
             '<div id="almDxRepInfo" hidden>' +
                 (r.destinoDir
