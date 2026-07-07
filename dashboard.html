@@ -1673,6 +1673,15 @@
             border: 1.5px solid #f59e0b; color: #b45309; font-weight: 700; font-size: 0.78rem; cursor: pointer;
         }
         .alb-reclamar:hover { background: rgba(245,158,11,0.10); }
+        /* Fechas de creación/modificación de un sitio (cabecera del modal). */
+        .sitio-meta-fechas {
+            display: flex; flex-wrap: wrap; gap: 0.3rem 1.1rem;
+            margin: -0.3rem 0 0.9rem; padding: 0.5rem 0.7rem;
+            background: var(--gray-100); border-radius: 9px;
+            font-size: 0.76rem; color: var(--gray-600);
+        }
+        .sitio-meta-fechas strong { color: var(--navy); font-weight: 700; }
+        table.data td .sitio-fechas { color: var(--gray-400); }
         /* Campo "Notas del sitio" resaltado (aquí va la referencia de
            carga/entrega): fondo y borde naranja para que destaque. */
         .ptar-sitio-grid input[data-sitio-f="notas"],
@@ -6624,9 +6633,10 @@
     try { (JSON.parse(localStorage.getItem('dynamoSitesDeleted') || '[]') || []).forEach(function (k) { SITES_DELETED[k] = 1; }); } catch (e) {}
     function saveDeletedSites() { try { localStorage.setItem('dynamoSitesDeleted', JSON.stringify(Object.keys(SITES_DELETED))); } catch (e) {} }
     function saveCustomSite(key, site) {
-        // Fecha de creación (se conserva en ediciones): la etiqueta "Nuevo"
-        // del listado de Sitios dura 7 días desde que se creó.
+        // Fecha de creación (se conserva en ediciones) y de última
+        // modificación (se actualiza en cada guardado).
         site.creado = (SITES_CUSTOM[key] && SITES_CUSTOM[key].creado) || site.creado || Date.now();
+        site.modificado = Date.now();
         SITES_CUSTOM[key] = site;
         try { localStorage.setItem('dynamoSitesCustom', JSON.stringify(SITES_CUSTOM)); } catch (e) {}
         // Guardar de nuevo un sitio borrado lo "revive" en la agenda.
@@ -6816,9 +6826,12 @@
     // los de Google no aparecen hasta que se eligen/guardan.
     // "Nuevo" = sitio creado por el usuario hace MENOS DE 7 DÍAS. Pasada la
     // semana, la etiqueta desaparece sola y queda como uno más de la agenda.
+    // Un sitio se considera NUEVO durante 48 h desde su creación: lleva badge
+    // "Nuevo" y se mantiene arriba del listado aunque no toque por orden
+    // alfabético (los más recientes primero).
     function esSitioNuevo(k) {
         var s = SITES_CUSTOM[k];
-        return !!s && !SITES[k] && !!s.creado && (Date.now() - s.creado) < 7 * 86400000;
+        return !!s && !SITES[k] && !!s.creado && (Date.now() - s.creado) < 2 * 86400000;
     }
     // Solo la parte de CALLE (lo anterior al CP): el CP/ciudad/provincia/país
     // van únicamente en la línea gris — sin duplicar datos.
@@ -6837,7 +6850,15 @@
             if (!q) return true;
             var s = kv[1];
             return matchTokens(expandVia(normTxt([s.empresa, s.dir, s.calle, s.tfno, s.contacto, s.notas].join(' '))), q);
-        }).sort(function (a, b) { return String(a[1].empresa || '').localeCompare(String(b[1].empresa || ''), 'es'); });
+        }).sort(function (a, b) {
+            // Los sitios nuevos (creados hace <48 h) se fijan arriba, del más
+            // reciente al más antiguo; el resto, orden alfabético por empresa.
+            var an = esSitioNuevo(a[0]), bn = esSitioNuevo(b[0]);
+            if (an && bn) return (b[1].creado || 0) - (a[1].creado || 0);
+            if (an) return -1;
+            if (bn) return 1;
+            return String(a[1].empresa || '').localeCompare(String(b[1].empresa || ''), 'es');
+        });
         var h2 = document.querySelector('#sec-sitios h2');
         if (h2) h2.textContent = 'Sitios (' + rows.length + ')';
         if (!rows.length) {
@@ -6849,6 +6870,7 @@
             return '<tr data-sitio-key="' + esc(k) + '">' +
                 '<td><strong>' + esc(s.empresa || '—') + '</strong>' + (esSitioNuevo(k) ? ' <span class="badge badge-green">Nuevo</span>' : '') +
                     (s.maps ? '<div class="meta"><a href="' + esc(s.maps) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--purple);font-weight:600;text-decoration:none;">Ver en Maps</a></div>' : '') +
+                    (s.creado ? '<div class="meta sitio-fechas">Creado: ' + esc(fmtCreado(s.creado)) + (s.modificado && s.modificado - s.creado > 60000 ? ' · Modificado: ' + esc(fmtCreado(s.modificado)) : '') + '</div>' : '') +
                 '</td>' +
                 (function () {
                     var cc = calleCorta(s);
@@ -6910,7 +6932,15 @@
         var tipoOpts = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento', 'Finca / Agrícola'].map(function (t) {
             return '<option' + ((s.tipoLugar || 'Almacén / Nave') === t ? ' selected' : '') + '>' + t + '</option>';
         }).join('');
-        return (esNuevo
+        // Cabecera con fecha de creación y última modificación (solo sitios
+        // propios ya guardados; los del catálogo no las tienen).
+        var fechasHead = (!esNuevo && s.creado)
+            ? '<div class="sitio-meta-fechas">' +
+                '<span><strong>Creado:</strong> ' + escapeHtml(fmtCreado(s.creado)) + '</span>' +
+                (s.modificado ? '<span><strong>Última modificación:</strong> ' + escapeHtml(fmtCreado(s.modificado)) + '</span>' : '') +
+              '</div>'
+            : '';
+        return fechasHead + (esNuevo
             ? '<div class="modal-form-row" style="position:relative;">' +
                 '<label>Buscar para autorrellenar (tu agenda, Google o dirección)</label>' +
                 '<input id="sitioBuscar" autocomplete="off" placeholder="Escribe empresa o dirección…">' +
