@@ -4042,7 +4042,7 @@
             <h2>Nuevo almacenamiento</h2>
             <button class="btn-ghost" onclick="showSection('almacenes');return false;">← Volver</button>
         </div>
-        <div class="alm-form">
+        <div class="alm-form" id="almFormPanel">
             <div class="alm-intro">
                 Almacenamiento de <strong>corta estancia</strong> (máximo <strong>7 días</strong>) en nuestros almacenes asociados. El precio es para <strong>tráiler completo</strong> (tarifa mínima actual; para menos carga no hay tarifa reducida). <strong>Incluye descarga, almacenamiento y posterior carga a otro camión</strong> para la salida de la mercancía.
             </div>
@@ -4106,8 +4106,11 @@
             <div class="alm-price" id="almPrice"></div>
 
             <p class="alm-err" id="almErr"></p>
-            <button class="btn-primary" style="width:100%;height:56px;font-size:1rem;" onclick="almSolicitar();return false;">Solicitar almacenamiento</button>
+            <button class="btn-primary" style="width:100%;height:56px;font-size:1rem;" onclick="almSolicitar();return false;">Continuar</button>
         </div>
+        <!-- Paso 2: confirmación (idéntica a la del envío: resumen + fichas de
+             sitio editables + pago con CESCE + botón Crear almacenamiento). -->
+        <div class="alm-form" id="almConfirm" hidden></div>
     </section>
 
     </div><!-- /content -->
@@ -4567,9 +4570,10 @@
         fill(NAVY[0], NAVY[1], NAVY[2]); rect(mL, H - 240, mR - mL, 20);
         text(mL + 10, 234, 'CONCEPTO', 8.5, true, [1, 1, 1]);
         textR(mR - 10, 234, 'IMPORTE', 8.5, true, [1, 1, 1]);
-        text(mL + 10, 262, 'Servicio de transporte de ' + (d.origCorto || '') + ' a ' + (d.destCorto || ''), 10, true, NAVY);
+        var conceptoTit = d.conceptoLinea || ('Servicio de transporte de ' + (d.origCorto || '') + ' a ' + (d.destCorto || ''));
+        text(mL + 10, 262, conceptoTit, 10, true, NAVY);
         textR(mR - 10, 262, eur(base), 10, true, NAVY);
-        var det = [d.mercaTxt, d.medidas, d.camionLabel].filter(Boolean).join('  ·  ');
+        var det = d.conceptoSub || [d.mercaTxt, d.medidas, d.camionLabel].filter(Boolean).join('  ·  ');
         text(mL + 10, 276, det, 8.5, false, GRAY);
         lw(0.6); strokeC(0.85, 0.87, 0.90); line(mL, 288, mR, 288);
 
@@ -4579,10 +4583,10 @@
         fill(PURPLE[0], PURPLE[1], PURPLE[2]); rect(348, H - 356, mR - 348, 26);
         text(360, 348, 'TOTAL A PAGAR', 10.5, true, [1, 1, 1]); textR(mR - 10, 348, eur(total), 12, true, [1, 1, 1]);
 
-        // ---- Detalles del envío ----
-        text(mL, 378, 'DETALLES DEL ENVÍO', 9, true, PURPLE);
+        // ---- Detalles ----
+        text(mL, 378, d.detalleTitulo || 'DETALLES DEL ENVÍO', 9, true, PURPLE);
         lw(0.6); strokeC(0.85, 0.87, 0.90); line(mL, 384, mR, 384);
-        var rows = [
+        var rows = d.detalleRows || [
             ['Origen', d.orig || d.origCorto || '—'],
             ['Destino', d.dest || d.destCorto || '—'],
             ['Mercancía', d.mercaTxt || '—'],
@@ -4804,7 +4808,9 @@
     }
     window.almDatePh = almDatePh;
     function openNuevoAlmacen() {
-        _almSel = -1;
+        _almSel = -1; _almPending = null;
+        var cf = document.getElementById('almConfirm'); if (cf) { cf.hidden = true; cf.innerHTML = ''; }
+        var fp = document.getElementById('almFormPanel'); if (fp) fp.hidden = false;
         var inp = document.getElementById('almSearch'); if (inp) inp.value = '';
         var list = document.getElementById('almComboList'); if (list) list.hidden = true;
         var addr = document.getElementById('almAddr'); if (addr) addr.hidden = true;
@@ -4899,6 +4905,8 @@
         box.innerHTML = html;
     }
     window.almRenderPrecio = almRenderPrecio;
+    // Paso 1 → valida y pasa a la CONFIRMACIÓN (misma mecánica que el envío).
+    var _almPending = null;
     function almSolicitar() {
         var err = document.getElementById('almErr');
         var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida');
@@ -4915,8 +4923,6 @@
         var entg = document.getElementById('almEntrega');
         var repWrap = almRepWrap(), repInput = almRepInputEl();
         var pick = n > 0 && window.__ptarSitePickDe ? window.__ptarSitePickDe(repWrap) : null;
-        // "Elegido" = chip bloqueado (incluye dirección suelta de Google/OSM,
-        // que como en los envíos no trae ficha y se completa al confirmar).
         var elegido = repWrap && (repWrap.classList.contains('ptar-picked') || pick);
         if (n > 0) {
             if (!elegido) return fail('Elige la dirección de entrega del reparto de la lista (tu agenda, Google o «Crear nuevo sitio»).');
@@ -4924,117 +4930,184 @@
             if (entg.value < sal.value) return fail('La entrega en destino no puede ser anterior a la salida del almacén.');
         }
         if (err) err.classList.remove('show');
-        // Con reparto: si el sitio de entrega no está completo (empresa,
-        // horario y teléfono obligatorios — igual que en los envíos), se
-        // piden ANTES de confirmar; el sitio queda guardado en la agenda.
+        // Datos base del sitio de entrega (para la ficha editable del paso 2).
+        var repSite = null;
         if (n > 0) {
-            if (pick && pick.tipo === 'guardado') {
-                var sg = siteDe(pick.key) || {};
-                if (sg.empresa && sg.horario && sg.tfno) return almFinalizar({ key: pick.key, dir: sg.dir, empresa: sg.empresa });
-                return almRepCompletar(sg.dir || '', sg, pick.key);
-            }
-            if (pick && pick.tipo === 'google') {
-                // Ficha de Google con empresa; puede faltar horario/tfno.
-                var g = pick.g || {};
-                if (g.empresa && g.horario && g.tfno) return almFinalizar({ key: null, dir: g.dir, empresa: g.empresa });
-                return almRepCompletar(g.dir || '', g, null);
-            }
-            // Dirección suelta (sin ficha): se completa igual que en el envío.
-            return almRepCompletar((repInput && repInput.value) || '', null, null);
+            if (pick && pick.tipo === 'guardado') { var sg = siteDe(pick.key) || {}; repSite = { key: pick.key, dir: sg.dir || '', empresa: sg.empresa || '', horario: sg.horario || '', tfno: sg.tfno || '', contacto: sg.contacto || '', notas: sg.notas || '', maps: sg.maps || '', tipoLugar: sg.tipoLugar || '' }; }
+            else if (pick && pick.tipo === 'google') { var g = pick.g || {}; repSite = { key: null, dir: g.dir || '', empresa: g.empresa || '', horario: g.horario || '', tfno: g.tfno || '', contacto: '', notas: '', maps: g.maps || '', tipoLugar: '' }; }
+            else { repSite = { key: null, dir: (repInput && repInput.value) || '', empresa: '', horario: '', tfno: '', contacto: '', notas: '', maps: '', tipoLugar: (document.querySelector('#almRepDest [data-alm-rep-tipo]') || {}).value || '' }; }
         }
-        almFinalizar(null);
+        _almPending = {
+            almIdx: _almSel, entrada: ent.value, salida: sal.value, dias: dias,
+            reparto: n, entrega: n > 0 ? entg.value : null,
+            notas: (document.getElementById('almNotas') || {}).value || '',
+            repSite: repSite
+        };
+        almShowConfirm();
     }
     window.almSolicitar = almSolicitar;
-    // Modal para COMPLETAR el sitio de entrega del reparto (mismos campos y
-    // obligatorios que las fichas de sitio de la confirmación de envío).
-    var _almRcCtx = null;   // { dir, key } del sitio pendiente de completar
-    function almRepCompletar(dir, base, existingKey) {
-        base = base || {};
-        _almRcCtx = { dir: dir, key: existingKey };
-        function fld(lbl, id, val, ph, req) {
-            return '<div class="modal-form-row"><label>' + lbl +
-                (req ? ' <span class="sitio-req">· obligatorio</span>' : ' <span style="color:var(--gray-500);font-weight:600;">· opcional</span>') +
-                '</label><input type="text" id="' + id + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '"></div>';
+    function almFechaLarga(iso) {
+        var d = new Date(iso + 'T00:00:00');
+        var dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+        var mes = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        return dias[d.getDay()] + ' ' + d.getDate() + ' de ' + mes[d.getMonth()] + ' de ' + d.getFullYear();
+    }
+    function almShowConfirm() {
+        var p = _almPending; if (!p) return;
+        var a = DYNAMO_ALMACENES[p.almIdx] || {};
+        var base = ALM_BASE + p.reparto * ALM_REPARTO, iva = Math.round(base * 0.21 * 100) / 100, tot = base * 1.21;
+        var box = document.getElementById('almConfirm');
+        // Resumen (solo lectura).
+        var resumen =
+            '<dl class="ptar-confirm-summary">' +
+                '<dt>Almacén</dt><dd>Dynamo · ' + escapeHtml(a.prov) + ' (' + escapeHtml(a.ciudad) + ')</dd>' +
+                '<dt>Dirección</dt><dd>' + escapeHtml(almDireccionCompleta(a)) + '</dd>' +
+                '<dt>Entrada</dt><dd>' + almFechaLarga(p.entrada) + '</dd>' +
+                '<dt>Salida</dt><dd>' + almFechaLarga(p.salida) + '</dd>' +
+                '<dt>Estancia</dt><dd>' + (p.dias === 0 ? 'mismo día' : p.dias + ' día' + (p.dias > 1 ? 's' : '')) + ' (máx. 7)</dd>' +
+                '<dt>Reparto urbano</dt><dd>' + (p.reparto > 0 ? p.reparto + ' ' + (p.reparto > 1 ? 'camiones' : 'camión') + ' de 4 m · entrega ' + almFechaLarga(p.entrega) : 'No — recogida por el cliente') + '</dd>' +
+                (p.notas ? '<dt>Mercancía / ref.</dt><dd>' + escapeHtml(p.notas) + '</dd>' : '') +
+            '</dl>';
+        // Ficha del sitio de entrega (editable, con obligatorios) — solo reparto.
+        var sitio = '';
+        if (p.reparto > 0) {
+            var s = p.repSite || {};
+            function req(lbl, f, val, ph) {
+                return '<div><label>' + lbl + ' <span class="sitio-req">· obligatorio</span></label>' +
+                    '<input data-almc-f="' + f + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '">' +
+                    '<div class="sitio-req-msg">Este campo es obligatorio.</div></div>';
+            }
+            function opt(lbl, f, val, ph, green) {
+                return '<div class="full"><label' + (green ? ' style="color:var(--green);"' : '') + '>' + lbl + ' <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label>' +
+                    '<input data-almc-f="' + f + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '"></div>';
+            }
+            var sp = splitDirPorCP(s.dir || '');
+            sitio =
+                '<h3 style="font-size:0.95rem;font-weight:800;color:var(--navy);margin:1.4rem 0 0.6rem;">Datos del sitio de entrega <span style="color:var(--gray-500);font-weight:600;font-size:0.82rem;">· revisa y completa</span></h3>' +
+                '<div class="ptar-sitio-card open"><div class="ptar-sitio-body"><div class="ptar-sitio-grid">' +
+                    req('Empresa', 'empresa', s.empresa, 'Ej. Talleres Vega e Hijos S.L.') +
+                    '<div><label>Dirección (calle y número)</label><input class="sitio-f-lock" value="' + escapeHtml(sp.calle || s.dir || '') + '" readonly tabindex="-1"></div>' +
+                    (sp.resto ? '<div><label>CP, localidad, provincia y país</label><input class="sitio-f-lock" value="' + escapeHtml(sp.resto) + '" readonly tabindex="-1"></div>' : '') +
+                    req('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
+                    req('Teléfono', 'tfno', s.tfno, 'Ej. +34 612 345 678') +
+                    opt('Contacto', 'contacto', s.contacto, 'Persona de contacto') +
+                    opt('Notas del sitio', 'notas', s.notas, 'Ej. referencia de entrega, pedir cita…', true) +
+                    opt('Enlace de Google Maps', 'maps', s.maps, 'https://maps.app.goo.gl/…') +
+                '</div></div></div>';
         }
-        var body =
-            '<div class="alm-lock-box"><div class="t">Dirección de entrega</div>' + escapeHtml(dir || '') +
-                '<div class="lock-note">La dirección viene del buscador y no se edita aquí. Completa los datos del sitio: se guardará en tu agenda.</div></div>' +
-            fld('Empresa', 'almRcEmp', base.empresa, 'Ej. Talleres Vega e Hijos S.L.', true) +
-            fld('Horario', 'almRcHor', base.horario, 'Ej. L-V 8:00-14:00', true) +
-            fld('Teléfono', 'almRcTfn', base.tfno, 'Ej. +34 612 345 678', true) +
-            fld('Contacto', 'almRcCon', base.contacto, 'Persona de contacto', false) +
-            fld('Notas del sitio', 'almRcNot', base.notas, 'Ej. referencia de entrega, pedir cita…', false) +
-            '<p class="alm-err" id="almRcErr"></p>';
-        openDashModal({
-            icon: 'file',
-            title: 'Completa el sitio de entrega',
-            sub: 'Faltan datos obligatorios del punto de reparto',
-            body: body,
-            footer: '<button class="btn-ghost" onclick="closeDashModal();return false;">Cancelar</button>' +
-                '<button class="btn-primary" onclick="almRepCompletarOk();return false;">Guardar y solicitar</button>',
-            afterOpen: function () { var x = document.getElementById('almRcEmp'); if (x) x.focus(); }
+        var precio =
+            '<div class="alm-price" style="margin-top:1.3rem;">' +
+                '<div class="alm-price-row"><span class="k">Almacenamiento (tráiler completo)</span><span class="v">' + almEur(ALM_BASE) + '</span></div>' +
+                (p.reparto > 0 ? '<div class="alm-price-row"><span class="k">Reparto urbano · ' + p.reparto + ' ' + (p.reparto > 1 ? 'camiones' : 'camión') + ' × ' + almEur(ALM_REPARTO) + '</span><span class="v">' + almEur(p.reparto * ALM_REPARTO) + '</span></div>' : '') +
+                '<div class="alm-price-row"><span class="k">IVA (21%)</span><span class="v">' + almEur(iva) + '</span></div>' +
+                '<div class="alm-price-row alm-price-total"><span class="k">Total (IVA incl.)</span><span class="v">' + almEur(tot) + '</span></div>' +
+            '</div>';
+        box.innerHTML =
+            '<div class="alm-intro" style="background:rgba(51,0,204,0.05);border-color:rgba(51,0,204,0.22);">Revisa tu solicitud de almacenamiento antes de confirmar. La mercancía no entra hasta <strong>2 días después de hoy</strong>; estancia máx. <strong>7 días</strong>.</div>' +
+            resumen + sitio + precio +
+            '<div data-almc-pay style="margin-top:1.3rem;"></div>' +
+            '<p class="alm-err" id="almcErr"></p>' +
+            '<button class="btn-primary" style="width:100%;height:56px;font-size:1rem;margin-top:0.4rem;" onclick="almCrear();return false;">Crear almacenamiento</button>' +
+            '<button class="btn-ghost" style="width:100%;height:48px;margin-top:0.6rem;" onclick="almBackToForm();return false;">← Editar datos</button>';
+        // Pago (idéntico al envío) vía el renderizador reutilizable del tarifador.
+        _almPending.formaPago = window.__ptarRenderPagoInto
+            ? window.__ptarRenderPagoInto(box.querySelector('[data-almc-pay]'), base, 'almacenamiento', almProforma)
+            : 'transferencia';
+        document.getElementById('almFormPanel').hidden = true;
+        box.hidden = false;
+        box.scrollIntoView ? box.scrollIntoView({ block: 'start' }) : null;
+        window.scrollTo(0, 0);
+    }
+    function almBackToForm() {
+        document.getElementById('almConfirm').hidden = true;
+        document.getElementById('almFormPanel').hidden = false;
+        window.scrollTo(0, 0);
+    }
+    window.almBackToForm = almBackToForm;
+    // Proforma del almacenamiento (mismo PDF, concepto adaptado).
+    function almProforma() {
+        var p = _almPending; if (!p) return;
+        var a = DYNAMO_ALMACENES[p.almIdx] || {};
+        var base = ALM_BASE + p.reparto * ALM_REPARTO;
+        descargarProforma({
+            precioMock: base,
+            refCli: null,
+            conceptoLinea: 'Almacenamiento de corta estancia · Dynamo ' + a.prov,
+            conceptoSub: 'Entrada ' + p.entrada + '  ·  salida ' + p.salida + '  ·  ' + p.dias + ' día(s)' + (p.reparto > 0 ? '  ·  reparto ' + p.reparto + ' camión(es)' : ''),
+            detalleTitulo: 'DETALLES DEL ALMACENAMIENTO',
+            detalleRows: [
+                ['Almacén', 'Dynamo · ' + a.prov],
+                ['Dirección', almDireccionCompleta(a)],
+                ['Entrada', p.entrada],
+                ['Salida', p.salida],
+                ['Estancia', (p.dias === 0 ? 'mismo día' : p.dias + ' días') + ' (máx. 7)'],
+                ['Reparto urbano', p.reparto > 0 ? p.reparto + ' camión(es) de 4 m' : 'No'],
+                ['Incluye', 'Descarga, almacenamiento y carga posterior']
+            ]
         });
     }
-    function almRepCompletarOk() {
-        var ctx = _almRcCtx || {};
-        var existingKey = ctx.key || null, dir = ctx.dir || '';
-        var emp = document.getElementById('almRcEmp'), hor = document.getElementById('almRcHor'), tfn = document.getElementById('almRcTfn');
-        var err = document.getElementById('almRcErr');
-        var bad = null;
-        [emp, hor, tfn].forEach(function (i) {
-            if (!i) return;
-            var vacio = !i.value.trim();
-            i.classList.toggle('alm-f-err', vacio);
-            if (vacio && !bad) bad = i;
-        });
-        if (bad) {
-            if (err) { err.textContent = 'Empresa, horario y teléfono son obligatorios.'; err.classList.add('show'); }
-            bad.focus();
-            return;
+    // Paso 2 → valida la ficha del sitio (si hay reparto) y CREA el registro.
+    function almCrear() {
+        var p = _almPending; if (!p) return;
+        var box = document.getElementById('almConfirm');
+        var err = document.getElementById('almcErr');
+        var destino = null;
+        if (p.reparto > 0) {
+            var bad = null;
+            ['empresa', 'horario', 'tfno'].forEach(function (f) {
+                var i = box.querySelector('[data-almc-f="' + f + '"]');
+                var vacio = i && !i.value.trim();
+                if (i) { i.classList.toggle('sitio-f-err', !!vacio); var m = i.parentNode.querySelector('.sitio-req-msg'); if (m) m.classList.toggle('show', !!vacio); }
+                if (vacio && !bad) bad = i;
+            });
+            if (bad) { if (err) { err.textContent = 'Completa los datos obligatorios del sitio de entrega (empresa, horario y teléfono).'; err.classList.add('show'); } bad.focus(); return; }
+            if (err) err.classList.remove('show');
+            // Consolidar el sitio en la agenda (nuevo o actualizado).
+            var s = p.repSite || {};
+            var val = function (f) { var i = box.querySelector('[data-almc-f="' + f + '"]'); return i ? i.value.trim() : ''; };
+            var site = {};
+            if (s.key) { var s0 = siteDe(s.key) || {}; Object.keys(s0).forEach(function (k) { site[k] = s0[k]; }); }
+            else { site.dir = s.dir; site.freq = 1; }
+            site.empresa = val('empresa'); site.horario = val('horario'); site.tfno = val('tfno');
+            site.contacto = val('contacto') || null; site.notas = val('notas') || null;
+            var mp = val('maps'); if (mp) site.maps = mp;
+            if (s.tipoLugar) site.tipoLugar = s.tipoLugar;
+            var key = s.key || ('mi-' + normTxt(site.empresa).replace(/[^a-z0-9]+/g, '-').slice(0, 30) + '-' + ((String(s.dir || '').match(/\b\d{4,5}\b/) || ['x'])[0]));
+            saveCustomSite(key, site);
+            destino = { key: key, dir: site.dir || s.dir, empresa: site.empresa };
         }
-        var site = existingKey ? (function () { var c = {}; var s0 = siteDe(existingKey) || {}; Object.keys(s0).forEach(function (k) { c[k] = s0[k]; }); return c; })() : { dir: dir, freq: 1 };
-        site.empresa = emp.value.trim();
-        site.horario = hor.value.trim();
-        site.tfno = tfn.value.trim();
-        site.contacto = (document.getElementById('almRcCon') || {}).value || null;
-        site.notas = (document.getElementById('almRcNot') || {}).value || null;
-        var tipoSel = document.querySelector('#almRepDest [data-alm-rep-tipo]');
-        if (tipoSel && tipoSel.value) site.tipoLugar = tipoSel.value;
-        var key = existingKey || ('mi-' + normTxt(site.empresa).replace(/[^a-z0-9]+/g, '-').slice(0, 30) + '-' + ((String(dir || '').match(/\b\d{4,5}\b/) || ['x'])[0]));
-        saveCustomSite(key, site);
-        closeDashModal();
-        almFinalizar({ key: key, dir: site.dir || dir, empresa: site.empresa });
+        almFinalizarReg(destino);
     }
-    window.almRepCompletarOk = almRepCompletarOk;
-    // Crea el registro del almacenamiento (destino = sitio del reparto o null).
-    function almFinalizar(destino) {
-        var a = DYNAMO_ALMACENES[_almSel];
-        var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida');
-        var entg = document.getElementById('almEntrega');
-        var n = parseInt(document.getElementById('almReparto').value, 10) || 0;
-        var e = new Date(ent.value + 'T00:00:00'), s = new Date(sal.value + 'T00:00:00');
-        var dias = Math.round((s - e) / 86400000);
-        var tot = (ALM_BASE + n * ALM_REPARTO) * 1.21;
+    window.almCrear = almCrear;
+    function almFinalizarReg(destino) {
+        var p = _almPending; if (!p) return;
+        var a = DYNAMO_ALMACENES[p.almIdx];
+        var tot = (ALM_BASE + p.reparto * ALM_REPARTO) * 1.21;
         var reg = {
             ref: '#AL-' + (ALM_SEQ++),
-            almIdx: _almSel,
-            entrada: ent.value, salida: sal.value,
-            reparto: n,
-            entrega: n > 0 && entg ? entg.value : null,
+            almIdx: p.almIdx,
+            entrada: p.entrada, salida: p.salida,
+            reparto: p.reparto,
+            entrega: p.reparto > 0 ? p.entrega : null,
             destinoKey: destino ? destino.key : null,
             destinoDir: destino ? (destino.empresa ? destino.empresa + ' — ' : '') + (destino.dir || '') : null,
-            notas: (document.getElementById('almNotas') || {}).value || '',
+            notas: p.notas,
+            formaPago: p.formaPago || 'transferencia',
             creado: almISO(new Date())
         };
         ALMACENES_DATA.unshift(reg);
         renderAlmacenesTable();
-        function fmt(d) { return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear(); }
+        document.getElementById('almConfirm').hidden = true;
+        document.getElementById('almFormPanel').hidden = false;
+        function fmt(iso) { var d = new Date(iso + 'T00:00:00'); return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear(); }
+        var prepago = reg.formaPago === 'transferencia';
         showLoadingOverlay('Enviando tu solicitud…', 900, function () {
             showModalSuccess('Almacenamiento ' + reg.ref + ' solicitado',
-                'Almacén Dynamo · ' + a.prov + ' (' + a.ciudad + '). Entrada ' + fmt(e) + ' · salida ' + fmt(s) + ' · ' + (dias === 0 ? 'mismo día' : dias + ' día' + (dias > 1 ? 's' : '')) + '. ' +
-                (n > 0 ? 'Con ' + n + ' ' + (n > 1 ? 'camiones' : 'camión') + ' de reparto urbano hasta ' + (reg.destinoDir || 'el destino') + '. ' : '') +
-                'Total orientativo ' + almEur(tot) + ' (IVA incl.). Te confirmamos disponibilidad por email. Lo verás en la sección Almacenamientos.');
-            setTimeout(function () { showSection('almacenes'); }, 1200);
+                'Almacén Dynamo · ' + a.prov + ' (' + a.ciudad + '). Entrada ' + fmt(reg.entrada) + ' · salida ' + fmt(reg.salida) + '. ' +
+                (reg.reparto > 0 ? 'Con ' + reg.reparto + ' ' + (reg.reparto > 1 ? 'camiones' : 'camión') + ' de reparto urbano. ' : '') +
+                (prepago ? 'Sin crédito CESCE: se procesa al validar el pago por adelantado (' + almEur(tot) + ', IVA incl.). ' : 'Se factura a crédito por transferencia/domiciliación. Total ' + almEur(tot) + ' (IVA incl.). ') +
+                'Lo verás en la sección Almacenamientos.');
+            setTimeout(function () { showSection('almacenes'); }, 1300);
         });
     }
 
@@ -10757,6 +10830,39 @@
                 });
                 payEl._payBound = true;
             }
+            // Renderizador de pago REUTILIZABLE (mismo bloque crédito/prepago
+            // con CESCE que el envío) para otros flujos, p.ej. la confirmación
+            // del almacenamiento. Devuelve la forma de pago ('credito' |
+            // 'transferencia'). onProforma: callback del botón de proforma.
+            window.__ptarRenderPagoInto = function (el, precioBase, noun, onProforma) {
+                if (!el) return 'credito';
+                noun = noun || 'servicio';
+                if (creditoDisponible()) {
+                    el.innerHTML =
+                        '<div class="ptar-pay-box pay-credit">' +
+                            '<div class="ptar-pay-title"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Forma de pago: Transferencia / Domiciliación</div>' +
+                            '<div class="ptar-pay-desc">Tienes <strong>crédito disponible</strong>: este ' + noun + ' se factura y se cobra por <strong>transferencia o domiciliación bancaria</strong>. Puedes confirmar directamente y seguimos con la gestión.</div>' +
+                        '</div>';
+                    el.hidden = false;
+                    if (!el._almPayBound) { el._almPayBound = true; }
+                    return 'credito';
+                }
+                var eurIva = eurStr(Math.round((precioBase || 0) * 1.21));
+                el.innerHTML =
+                    '<div class="ptar-pay-box pay-prepago">' +
+                        '<div class="ptar-pay-title"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Pago por adelantado</div>' +
+                        '<div class="ptar-pay-desc">No tienes crédito disponible, así que este ' + noun + ' requiere <strong>pago por adelantado</strong> mediante <strong>transferencia bancaria</strong>:</div>' +
+                        pagoDetalle('transferencia', eurIva) +
+                    '</div>';
+                el.hidden = false;
+                if (!el._almPayBound) {
+                    el.addEventListener('click', function (e) {
+                        if (e.target.closest && e.target.closest('[data-proforma-pdf]') && typeof onProforma === 'function') onProforma();
+                    });
+                    el._almPayBound = true;
+                }
+                return 'transferencia';
+            };
 
             function showConfirmStep(d) {
                 if (!confirmCard || !summaryEl) return;
