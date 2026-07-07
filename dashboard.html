@@ -2488,10 +2488,13 @@
         .ptar-pay-detail .pay-bank-row:last-child { border-bottom: none; }
         .ptar-pay-detail .pay-bank-k { color: var(--gray-500); font-weight: 600; }
         .ptar-pay-detail .pay-bank-v { font-weight: 800; color: var(--navy); text-align: right; }
+        /* Avisos con icono: MISMA sangría de texto en ambos (icono en su
+           gutter de ancho fijo + el texto alineado a partir de ahí). */
         .ptar-pay-note {
             margin-top: 0.7rem; padding: 0.6rem 0.75rem; background: rgba(239,68,68,0.08);
             border: 1px solid rgba(239,68,68,0.35); border-radius: 9px;
             font-size: 0.8rem; line-height: 1.5; color: #b91c1c; font-weight: 600;
+            display: flex; gap: 0.55rem; align-items: flex-start;
         }
         /* Aviso anti-fraude (BEC / cambio de IBAN por email). Estilo seguridad
            navy para diferenciarlo del aviso rojo de validación de pago. */
@@ -2501,7 +2504,13 @@
             font-size: 0.8rem; line-height: 1.5; color: var(--navy);
             display: flex; gap: 0.55rem; align-items: flex-start;
         }
-        .ptar-pay-fraud svg { flex: 0 0 auto; margin-top: 1px; color: var(--purple); }
+        /* Gutter de icono compartido (ancho fijo → el texto empieza en la
+           misma X en las dos cajas). Vale para el emoji y para el SVG. */
+        .ptar-pay-note > .pay-note-ico,
+        .ptar-pay-fraud > svg {
+            flex: 0 0 16px; width: 16px; margin-top: 1px; text-align: center;
+        }
+        .ptar-pay-fraud > svg { color: var(--purple); }
         .ptar-pay-fraud strong { color: var(--purple); }
         .ptar-pay-pdf-btn {
             display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.6rem;
@@ -2531,6 +2540,7 @@
         .ptar-sitio-head-main { flex: 1; min-width: 0; font-size: 0.9rem; }
         .ptar-sitio-head-emp { font-weight: 800; color: var(--navy); }
         .ptar-sitio-head-hor { display: block; font-size: 0.78rem; color: var(--gray-500); font-weight: 500; margin-top: 1px; }
+        .ptar-sitio-head-fecha { display: block; font-size: 0.78rem; color: var(--navy); font-weight: 700; margin-top: 2px; }
         .ptar-sitio-head-dir { display: block; font-size: 0.78rem; color: var(--gray-500); font-weight: 500; margin-top: 1px; }
         .ptar-sitio-chev {
             flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%;
@@ -4161,6 +4171,7 @@
 
             <p class="alm-err" id="almErr"></p>
             <button class="btn-primary" style="width:100%;height:56px;font-size:1rem;" onclick="almSolicitar();return false;">Crear almacenamiento</button>
+            <button type="button" class="btn-ghost" style="width:100%;height:48px;margin-top:0.6rem;" onclick="showSection('dashboard');return false;">Cancelar</button>
         </div>
         <!-- Paso 2: confirmación (idéntica a la del envío: resumen + fichas de
              sitio editables + pago con CESCE + botón Crear almacenamiento). -->
@@ -11005,7 +11016,7 @@
             var PAGO_BANCO = { titular: 'Dynamo Operador Logístico SL', cif: 'B01596360', iban: 'ES63 0049 1837 5928 1046 8445', banco: 'Banco Santander', bic: 'BSCHESMM' };
             function eurStr(n) { return String(n || 0).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
             // Aviso común de validación de pago (24 h · ventana 1-3 días).
-            var PAGO_NOTA_24H = '<div class="ptar-pay-note">⏱ El transporte <strong>no se gestiona ni se asigna camión hasta validar el pago</strong> (la validación puede tardar <strong>hasta 24&nbsp;h</strong>, no es instantánea). El <strong>plazo de carga empieza a contar desde que validamos el pago</strong>, no desde hoy: si se verifica antes de las 9:00 se puede cargar al día siguiente; si no, dentro de la ventana elegida desde ese momento. Cuanto antes pagues, antes se procesa.</div>';
+            var PAGO_NOTA_24H = '<div class="ptar-pay-note"><span class="pay-note-ico">⏱</span><span>El transporte <strong>no se gestiona ni se asigna camión hasta validar el pago</strong> (la validación puede tardar <strong>hasta 24&nbsp;h</strong>, no es instantánea). El <strong>plazo de carga empieza a contar desde que validamos el pago</strong>, no desde hoy: si se verifica antes de las 9:00 se puede cargar al día siguiente; si no, dentro de la ventana elegida desde ese momento. Cuanto antes pagues, antes se procesa.</span></div>';
             // Detalle según el método de pago por adelantado elegido.
             function pagoDetalle(metodo, eur) {
                 if (metodo === 'tarjeta') {
@@ -11130,6 +11141,30 @@
                         : 'del ' + fmtEtaDate(ls) + ' al ' + fmtEtaDate(le) + ' · cualquier día laborable';
                     cargaRangoHtml = '<dt class="sum-fecha-dt">Fecha de envío</dt><dd class="sum-fecha-dd"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' + escapeHtml(cargaRangoTxt) + '</dd>';
                 }
+                // Fecha de RECOGIDA (carga) y de ENTREGA (ETA) para las cabeceras
+                // de cada ficha de sitio. Mismo formato que la caja ETA / resumen
+                // de crear envío: fecha fija → "viernes 10 jul"; con ventana →
+                // "del viernes 10 jul al miércoles 15 jul".
+                var cargaFechaCab = null, entregaFechaCab = null;
+                if (d.fechaIso) {
+                    var _rangoCab = function (a, b) {
+                        return a.getTime() === b.getTime()
+                            ? fmtEtaDate(a)
+                            : 'del ' + fmtEtaDate(a) + ' al ' + fmtEtaDate(b);
+                    };
+                    var _ls = new Date(d.fechaIso + 'T00:00:00');
+                    var _le = d.ventanaDias <= 1 ? _ls : addBusinessDays(_ls, d.ventanaDias - 1);
+                    cargaFechaCab = _rangoCab(_ls, _le);
+                    // ETA de entrega: recalcula los días de tránsito por tramos con
+                    // el mismo criterio que la caja ETA (haversine × factor / km-día).
+                    var _pts = [];
+                    routeWraps().forEach(function (w) { if (w && w.dataset.lat) _pts.push({ lat: parseFloat(w.dataset.lat), lon: parseFloat(w.dataset.lon) }); });
+                    var _dist = 0;
+                    for (var _pi = 0; _pi < _pts.length - 1; _pi++) _dist += haversineKm(_pts[_pi], _pts[_pi + 1]);
+                    _dist *= ROAD_FACTOR;
+                    var _dd = Math.max(1, Math.ceil(_dist / KM_POR_DIA));
+                    entregaFechaCab = _rangoCab(addBusinessDays(_ls, _dd), addBusinessDays(_le, _dd));
+                }
                 // El resumen NO repite recogidas/entregas: van solo abajo, en
                 // las fichas numeradas de "Datos de los lugares".
                 summaryEl.innerHTML =
@@ -11175,9 +11210,10 @@
                     // gris con CP/localidad/provincia/país. La flechita despliega
                     // los campos editables.
                     var CHEV = '<span class="ptar-sitio-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>';
-                    function cardHead(rolHtml, empresa, dirLine, warnHtml, horario) {
+                    function cardHead(rolHtml, empresa, dirLine, warnHtml, horario, fecha) {
                         return '<button type="button" class="ptar-sitio-head" aria-expanded="false">' +
                             '<span class="ptar-sitio-head-main">' + rolHtml + (empresa ? ' · <span class="ptar-sitio-head-emp">' + escapeHtml(empresa) + '</span>' : '') +
+                            (fecha ? '<span class="ptar-sitio-head-fecha">' + escapeHtml(fecha) + '</span>' : '') +
                             (empresa && horario ? '<span class="ptar-sitio-head-hor">(' + escapeHtml(horario) + ')</span>' : '') +
                             (dirLine ? '<span class="ptar-sitio-head-dir">' + escapeHtml(dirLine) + '</span>' : '') +
                             (warnHtml || '') +
@@ -11205,6 +11241,8 @@
                         var rolHtml = '<span class="ptar-route-num ' + (p.kind === 'recogida' ? 'rec' : 'ent') + '" style="vertical-align:-4px;margin-right:0.35rem;">' + p.num + '</span>' +
                             '<span style="color:' + (p.kind === 'recogida' ? 'var(--orange)' : 'var(--green)') + ';">' +
                             (p.kind === 'recogida' ? 'Recogida' : 'Entrega') + '</span>';
+                        // Fecha de la cabecera: recogida → fecha de carga; entrega → ETA.
+                        var fechaCab = p.kind === 'recogida' ? cargaFechaCab : entregaFechaCab;
                         var tipoLock = tipoSelect(p.id, p.tipoLugar);
                         function inp(lbl, f, val, ph) {
                             return '<div><label>' + lbl + '</label><input data-sitio-f="' + f + '" data-sitio-id="' + p.id + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '"></div>';
@@ -11223,7 +11261,7 @@
                         // solo la dirección queda bloqueada. Al confirmar se guarda.
                         if (!p.pick) {
                             return '<div class="ptar-sitio-card" data-sitio-loose>' +
-                                cardHead(rolHtml, '', p.texto || '', warnHead) +
+                                cardHead(rolHtml, '', p.texto || '', warnHead, null, fechaCab) +
                                 '<div class="ptar-sitio-body">' +
                                     '<div class="ptar-sitio-body-meta">Dirección sin ficha — completa los datos obligatorios (empresa, horario y teléfono) y se guardará como sitio en tu agenda.</div>' +
                                     '<div class="ptar-sitio-grid">' +
@@ -11264,7 +11302,7 @@
                         // Google, la parte tras el CP; para agenda, s.dir).
                         var dirHead = p.pick.tipo === 'guardado' ? (s.dir || '') : (splitDirPorCP(s.dir || '').resto || s.dir || '');
                         return '<div class="ptar-sitio-card">' +
-                            cardHead(rolHtml, s.empresa, dirHead, warnHead, s.horario) +
+                            cardHead(rolHtml, s.empresa, dirHead, warnHead, s.horario, fechaCab) +
                             '<div class="ptar-sitio-body">' +
                                 '<div class="ptar-sitio-body-meta">' + escapeHtml(fuente) + mapsLink + '</div>' +
                                 '<div class="ptar-sitio-grid">' +
