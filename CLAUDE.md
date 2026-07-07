@@ -150,6 +150,30 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-07-07 — Claude Code web (nube)
+
+> **Sesión de pulido de ALMACENAMIENTO + unificación de precio/estilos + fixes de UI.** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `17a5912` (8 commits del día, todos pusheados a preview).
+
+**PRECIO UNIFICADO en las 4 pantallas** (crear/confirmar envío + nuevo/confirmar almacenamiento):
+- Nuevo componente global `__priceBoxHtml` / `__animateEur` / `__renderPriceBox` que pinta **Base imponible + IVA (21%) desglosado + Total (IVA incl.)** con el mismo diseño (`.alm-price`) en todas. Antes envío mostraba solo "500 € IVA no incluido" y almacenamiento un desglose distinto.
+- **Efecto contador** (rolling) ahora también en almacenamiento, en las 4 pantallas. **Salta de 10 en 10** (los pasos intermedios redondean a decena; el valor final es exacto) — antes con los decimales iba de 1 en 1.
+- Almacenamiento sin reparto muestra solo Base/IVA/Total (no duplica la línea "Almacenamiento" con la base); con reparto salen las filas de concepto.
+
+**ALMACENAMIENTO — confirmar = igual que confirmar envío**:
+- **Checkbox de condiciones generales** ("He leído y acepto…") con enlace al mismo texto legal y el mismo bloqueo/aviso rojo: no se confirma hasta marcarlo.
+- **Ficha del sitio de entrega → acordeón plegable** idéntico a las fichas del envío: cabecera (① Entrega + empresa + fecha de salida + horario + dirección + "⚠ Faltan datos obligatorios") con chevron que despliega el cuerpo editable. Aviso que se oculta al completar empresa/horario/teléfono (`req-ok`); al confirmar sin completar, abre la ficha y hace scroll al campo.
+- **Botón Cancelar** bajo "Crear almacenamiento" (paso 1), como en crear envío.
+- **Proforma** se abre en el **visor del navegador** (`window.open`) en vez de descargarse.
+
+**FECHAS en las fichas de recogida/entrega (confirmar envío)**: cada ficha muestra su fecha en línea propia sobre el horario, con el MISMO formato que la caja ETA/resumen (fija → `viernes 10 jul`; ventana → `del viernes 10 jul al miércoles 15 jul`). Recogida = fecha de carga; entrega = ETA recalculada por tramos.
+
+**FIXES de UI**:
+- **Sangría unificada de las cajas de aviso de pago** (Seguridad morada + validación roja): mismo gutter de icono de ancho fijo → el texto arranca en la misma X en ambas.
+- **Popovers de filtro ya no se cortan por abajo**: `.content` usaba `overflow-x:hidden` (que obliga al eje Y a `auto` y recortaba); cambiado a `overflow-x:clip` (patrón de html/body). Afecta a TODOS los popovers de filtro del panel (p. ej. el rango de fechas de Facturas).
+- **Avisos que se ocultan al elegir**: "⚠ Elige un almacén Dynamo" (al elegir almacén) y "⚠ Elige la dirección de entrega del reparto" (al elegir dirección) — antes solo se quitaba el borde rojo, la caja del mensaje se quedaba.
+
+**Método**: cada cambio verificado en Chromium headless (desktop + móvil) con screenshots antes de commitear. Sin nuevos pendientes (todo cerrado). TODO.md sin cambios.
+
 ### 2026-07-05 (cont.) — Claude Code web (nube)
 
 > **Continuación de la sesión del panel (tarde/noche).** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `d8210d1`.
