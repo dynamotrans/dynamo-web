@@ -1280,8 +1280,12 @@
                normales/iPad/movil ocupa todo el ancho disponible */
             max-width: 1400px; margin: 0 auto; width: 100%;
             /* No scroll horizontal en el contenedor. Cada hijo (tablas, tabs)
-               gestiona su propio overflow internamente */
+               gestiona su propio overflow internamente.
+               clip (no hidden): 'hidden' obliga al eje Y a 'auto' y recortaba
+               por abajo los popovers (p. ej. el rango de fechas de Facturas);
+               'clip' recorta solo en X y deja el eje Y visible. */
             overflow-x: hidden;
+            overflow-x: clip;
             min-width: 0;
         }
         /* fill 'backwards' (no 'both'): al terminar, la sección NO conserva el
