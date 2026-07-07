@@ -5430,7 +5430,11 @@
             document.addEventListener(ev, function (e) {
                 if (!(e.target.closest && e.target.closest('.ptar-has-tip'))) {
                     document.querySelectorAll('.ptar-has-tip.tip-open').forEach(function (h) { h.classList.remove('tip-open'); });
-                    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+                    // Solo quitar el foco a un disparador de tooltip; NUNCA a
+                    // inputs/textareas/selects (rompería la selección y el cursor
+                    // al editar texto).
+                    var ae = document.activeElement;
+                    if (ae && ae.classList && ae.classList.contains('ptar-has-tip') && ae.blur) ae.blur();
                 }
             }, { passive: true });
         });
