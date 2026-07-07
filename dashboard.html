@@ -1663,6 +1663,20 @@
             border: 1.5px solid #f59e0b; color: #b45309; font-weight: 700; font-size: 0.78rem; cursor: pointer;
         }
         .alb-reclamar:hover { background: rgba(245,158,11,0.10); }
+        /* Campo "Notas del sitio" resaltado (aquí va la referencia de
+           carga/entrega): fondo y borde naranja para que destaque. */
+        .ptar-sitio-grid input[data-sitio-f="notas"],
+        #sitio-f-notas {
+            background: rgba(255,122,0,0.09) !important;
+            border-color: rgba(255,122,0,0.55) !important;
+        }
+        .ptar-sitio-grid input[data-sitio-f="notas"]:focus,
+        #sitio-f-notas:focus {
+            border-color: var(--orange) !important;
+            box-shadow: 0 0 0 3px rgba(255,122,0,0.18) !important;
+        }
+        .ptar-sitio-grid input[data-sitio-f="notas"]::placeholder,
+        #sitio-f-notas::placeholder { color: #c2601a; opacity: 0.75; }
         /* Popup "Ver todos los horarios del año" (dentro del modal del panel). */
         .hor-group { margin-top: 1.1rem; }
         .hor-group:first-child { margin-top: 0; }
@@ -6899,7 +6913,7 @@
                 inp('CP, localidad, provincia y país', 'sitio-f-dir', s.dir, 'Ej. 41001, Sevilla, España', true) +
                 inp('Teléfono', 'sitio-f-tfno', s.tfno, 'Ej. +34 612 345 678') +
                 inp('Contacto', 'sitio-f-contacto', s.contacto, 'Persona de contacto') +
-                inp('Notas del sitio', 'sitio-f-notas', s.notas, 'Ej. pedir cita, báscula, NIMA…', true) +
+                inp('<span style="color:var(--orange);">Notas del sitio</span>', 'sitio-f-notas', s.notas, 'Ej. referencia de carga/entrega, pedir cita, báscula…', true) +
                 inp('Enlace de Google Maps', 'sitio-f-maps', s.maps, 'https://maps.app.goo.gl/…', true) +
             '</div>';
     }
@@ -9698,7 +9712,7 @@
                                         inpReq('Horario', 'horario', 'Ej. L-V 8:00-14:00') +
                                         inpReq('Teléfono', 'tfno', 'Ej. +34 612 345 678') +
                                         inpReq('Contacto', 'contacto', 'Persona de contacto') +
-                                        '<div class="full"><label>Notas del sitio</label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="" placeholder="Ej. pedir cita, báscula, NIMA…"></div>' +
+                                        '<div class="full"><label style="color:var(--orange);">Notas del sitio</label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="" placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…"></div>' +
                                     '</div>' +
                                 '</div>' +
                             '</div>';
@@ -9733,7 +9747,7 @@
                                     inp('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
                                     inp('Teléfono', 'tfno', s.tfno) +
                                     inp('Contacto', 'contacto', s.contacto, 'Persona de contacto') +
-                                    '<div class="full"><label>Notas del sitio</label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="' + escapeHtml(s.notas || '') + '" placeholder="Ej. pedir cita, báscula, NIMA…"></div>' +
+                                    '<div class="full"><label style="color:var(--orange);">Notas del sitio</label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="' + escapeHtml(s.notas || '') + '" placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…"></div>' +
                                 '</div>' +
                             '</div>' +
                         '</div>';
