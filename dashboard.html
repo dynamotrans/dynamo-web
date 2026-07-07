@@ -1564,6 +1564,51 @@
         .alm-note { font-size: 0.8rem; color: var(--gray-500); line-height: 1.45; margin-top: 0.6rem; }
         .alm-err { color: #d33; font-size: 0.82rem; margin: 0.4rem 0 0; display: none; }
         .alm-err.show { display: block; }
+        /* Combobox BUSCABLE de almacenes (input + lista filtrada) */
+        .alm-combo { position: relative; }
+        .alm-combo-list {
+            position: absolute; z-index: 40; left: 0; right: 0; top: calc(100% + 4px);
+            background: #fff; border: 1px solid var(--gray-200); border-radius: 10px;
+            box-shadow: 0 14px 34px rgba(10,15,40,0.14); max-height: 264px; overflow: auto;
+        }
+        .alm-combo-list[hidden] { display: none; }
+        .alm-combo-item {
+            padding: 0.6rem 0.85rem; font-size: 0.88rem; color: var(--navy); cursor: pointer;
+            display: flex; justify-content: space-between; align-items: baseline; gap: 0.6rem;
+        }
+        .alm-combo-item:hover { background: var(--gray-100); }
+        .alm-combo-item strong { font-weight: 800; }
+        .alm-combo-item .sub { color: var(--gray-500); font-size: 0.76rem; white-space: nowrap; }
+        .alm-combo-empty { padding: 0.7rem 0.85rem; color: var(--gray-500); font-size: 0.85rem; }
+        /* Fechas: mismo ancho, sin desbordes (iOS date tiene ancho intrínseco)
+           y texto-guía en el hueco cuando aún no hay fecha elegida. */
+        .alm-dates > div { min-width: 0; }
+        .alm-field input[type=date] {
+            -webkit-appearance: none; appearance: none; height: 48px;
+            max-width: 100%; min-width: 0; background: #fff; text-align: left;
+        }
+        .alm-date-wrap { position: relative; }
+        .alm-date-ph {
+            position: absolute; left: 1px; top: 1px; bottom: 1px; right: 44px;
+            display: flex; align-items: center; padding: 0 0.85rem;
+            border-radius: 9px 0 0 9px; background: #fff;
+            color: var(--gray-500); font-size: 0.86rem; pointer-events: none;
+        }
+        .alm-date-wrap.has-value .alm-date-ph { display: none; }
+        /* Listado de almacenamientos */
+        table.data-almacenes { min-width: 860px; }
+        table.data-almacenes td { white-space: nowrap; }
+        #tbodyAlmacenes tr { cursor: pointer; }
+        .alm-lock-box {
+            padding: 0.8rem 0.95rem; background: var(--gray-100); border: 1px solid var(--gray-200);
+            border-radius: 10px; font-size: 0.86rem; line-height: 1.5; color: var(--navy); margin-bottom: 0.9rem;
+        }
+        .alm-lock-box .t { font-weight: 800; color: var(--green-dark); }
+        .alm-lock-box .lock-note { color: var(--gray-500); font-size: 0.76rem; margin-top: 0.3rem; }
+        .alm-envio-hint {
+            margin-top: 0.9rem; padding: 0.75rem 0.9rem; background: rgba(51,0,204,0.06);
+            border: 1px solid rgba(51,0,204,0.25); border-radius: 10px; font-size: 0.82rem; line-height: 1.5; color: var(--navy);
+        }
         @media (max-width: 600px) { .alm-dates { grid-template-columns: 1fr; } }
 
         /* =========================================
@@ -2961,6 +3006,10 @@
             Envíos
             <span class="badge">3</span>
         </button>
+        <button class="sidebar-link" data-section="almacenes">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-5 9 5v12"/><path d="M3 21h18"/><rect x="8" y="13" width="8" height="8"/></svg>
+            Almacenamientos
+        </button>
         <button class="sidebar-link" data-section="facturas">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg>
             Facturas
@@ -3946,11 +3995,27 @@
         </div>
     </section>
 
+    <!-- ==================== ALMACENAMIENTOS (listado) ==================== -->
+    <section class="section" id="sec-almacenes">
+        <div class="sec-header">
+            <h2>Almacenamientos</h2>
+            <button class="btn-primary" onclick="openNuevoAlmacen();return false;">+ Nuevo almacenamiento</button>
+        </div>
+        <div class="table-wrap">
+            <table class="data data-almacenes">
+                <thead>
+                    <tr><th>Almacenamiento</th><th>Almacén</th><th>Entrada</th><th>Salida</th><th>Reparto urbano</th><th>Total (IVA incl.)</th><th>Estado</th></tr>
+                </thead>
+                <tbody id="tbodyAlmacenes"></tbody>
+            </table>
+        </div>
+    </section>
+
     <!-- ==================== NUEVO ALMACENAMIENTO ==================== -->
     <section class="section" id="sec-nuevo-almacen">
         <div class="sec-header">
             <h2>Nuevo almacenamiento</h2>
-            <button class="btn-ghost" onclick="showSection('dashboard');return false;">← Volver</button>
+            <button class="btn-ghost" onclick="showSection('almacenes');return false;">← Volver</button>
         </div>
         <div class="alm-form">
             <div class="alm-intro">
@@ -3959,29 +4024,31 @@
 
             <div class="alm-field">
                 <label>Almacén Dynamo</label>
-                <select id="almSelect" onchange="almOnSelect()">
-                    <option value="">Selecciona un almacén…</option>
-                </select>
+                <div class="alm-combo" id="almCombo">
+                    <input type="text" id="almSearch" placeholder="Busca por provincia o ciudad… (48 almacenes)" autocomplete="off" oninput="almFilter()" onfocus="almFilter()">
+                    <div class="alm-combo-list" id="almComboList" hidden></div>
+                </div>
                 <div class="alm-addr" id="almAddr" hidden></div>
             </div>
 
             <div class="alm-field">
-                <label>Fechas de entrada y salida <span class="alm-opt">· dentro de los próximos 7 días naturales, estancia máx. 7 días</span></label>
+                <label>Fechas de entrada y salida <span class="alm-opt">· entrada en los próximos 7 días naturales, estancia máx. 7 días</span></label>
                 <div class="alm-dates">
-                    <div><label style="font-size:0.78rem;color:var(--gray-500);font-weight:600;margin-bottom:0.25rem;">Entrada</label><input type="date" id="almEntrada" onchange="almOnDates()"></div>
-                    <div><label style="font-size:0.78rem;color:var(--gray-500);font-weight:600;margin-bottom:0.25rem;">Salida</label><input type="date" id="almSalida" onchange="almOnDates()"></div>
+                    <div><label style="font-size:0.78rem;color:var(--gray-500);font-weight:600;margin-bottom:0.25rem;">Entrada</label><div class="alm-date-wrap" id="almEntradaWrap"><input type="date" id="almEntrada" onchange="almOnDates()"><span class="alm-date-ph">Selecciona fecha de entrada</span></div></div>
+                    <div><label style="font-size:0.78rem;color:var(--gray-500);font-weight:600;margin-bottom:0.25rem;">Salida</label><div class="alm-date-wrap" id="almSalidaWrap"><input type="date" id="almSalida" onchange="almOnDates()"><span class="alm-date-ph">Selecciona fecha de salida</span></div></div>
                 </div>
+                <div class="alm-note">Al elegir la entrada, la salida se pone sola en <strong>entrada + 7 días</strong> (el máximo); ajústala si sales antes.</div>
             </div>
 
             <div class="alm-field">
                 <label>Reparto urbano posterior <span class="alm-opt">· opcional</span></label>
                 <select id="almReparto" onchange="almRenderPrecio()">
-                    <option value="0">No — recojo yo la mercancía en el almacén</option>
+                    <option value="0">No — lo recojo yo o pediré un transporte aparte</option>
                     <option value="1">1 camión de reparto (4 m con plataforma)</option>
                     <option value="2">2 camiones de reparto</option>
                     <option value="3">3 camiones de reparto (tráiler completo aprox.)</option>
                 </select>
-                <div class="alm-note">Entrega urbana en destino con camión de 4 m y plataforma. Un tráiler completo suele repartirse en unos 3 camiones. <strong>220 € + IVA por camión</strong>.</div>
+                <div class="alm-note">Entrega urbana en destino con camión de 4 m y plataforma. Un tráiler completo suele repartirse en unos 3 camiones. <strong>220 € + IVA por camión</strong>. Si la salida es en tráiler normal, se pide como <strong>nuevo envío</strong> con origen en el almacén.</div>
             </div>
 
             <div class="alm-field">
@@ -4008,6 +4075,7 @@
         'sitios':            'Sitios',
         'nueva-carga':       'Nueva carga',
         'mi-cuenta':         'Mi cuenta',
+        'almacenes':         'Almacenamientos',
         'nuevo-almacen':     'Nuevo almacenamiento',
         'soporte':           'Soporte'
     };
@@ -4623,18 +4691,74 @@
     function almEur(n) { return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
     function almISO(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
     function almDireccionCompleta(a) { return a.dir + ', ' + a.cp + ' ' + a.ciudad + ' (' + a.prov + ')'; }
+    // Coordenadas aproximadas de cada almacén (por provincia) — para poder
+    // generar un envío con origen en el almacén (el tarifador necesita lat/lon).
+    var ALM_COORDS = {
+        'Álava': [42.85, -2.67], 'Albacete': [38.99, -1.86], 'Alicante': [38.35, -0.48],
+        'Almería': [36.93, -2.40], 'Asturias': [43.44, -5.86], 'Ávila': [40.66, -4.70],
+        'Badajoz': [38.88, -6.97], 'Baleares (Mallorca)': [39.57, 2.65], 'Barcelona': [41.35, 2.13],
+        'Burgos': [42.35, -3.70], 'Cáceres': [39.48, -6.37], 'Cádiz': [36.53, -6.19],
+        'Cantabria': [43.41, -3.89], 'Castellón': [39.99, -0.04], 'Ciudad Real': [38.99, -3.93],
+        'Córdoba': [37.90, -4.75], 'A Coruña': [43.33, -8.44], 'Cuenca': [40.06, -2.14],
+        'Girona': [41.97, 2.80], 'Granada': [37.23, -3.66], 'Guadalajara': [40.64, -3.17],
+        'Gipuzkoa': [43.29, -2.01], 'Huelva': [37.27, -6.92], 'Huesca': [42.13, -0.41],
+        'Jaén': [37.79, -3.79], 'León': [42.52, -5.60], 'Lleida': [41.60, 0.60],
+        'Lugo': [43.00, -7.56], 'Madrid': [40.40, -3.61], 'Málaga': [36.68, -4.46],
+        'Murcia': [37.94, -1.17], 'Navarra': [42.82, -1.68], 'Ourense': [42.28, -7.87],
+        'Palencia': [42.02, -4.52], 'Pontevedra': [42.16, -8.62], 'La Rioja': [42.45, -2.43],
+        'Salamanca': [40.94, -5.65], 'Segovia': [40.93, -4.10], 'Sevilla': [37.41, -5.94],
+        'Soria': [41.75, -2.47], 'Tarragona': [41.13, 1.20], 'Teruel': [40.35, -1.11],
+        'Toledo': [39.88, -3.99], 'Valencia': [39.51, -0.45], 'Valladolid': [41.62, -4.70],
+        'Bizkaia': [43.28, -2.86], 'Zamora': [41.51, -5.73], 'Zaragoza': [41.62, -0.99]
+    };
+    // ---- Combobox BUSCABLE de almacenes ----
+    var _almSel = -1;   // índice del almacén elegido en el formulario
+    function almAddrHTML(a) {
+        var q = encodeURIComponent(a.dir + ', ' + a.cp + ' ' + a.ciudad);
+        return '<div class="alm-addr-t">Dynamo · ' + escapeHtml(a.prov) + '</div>' +
+            escapeHtml(a.dir) + '<br>' + escapeHtml(a.cp + ' ' + a.ciudad + ' (' + a.prov + ')') +
+            '<br><a href="https://www.google.com/maps/search/?api=1&query=' + q + '" target="_blank" rel="noopener">Ver en Google Maps</a>';
+    }
+    function almFilter() {
+        var inp = document.getElementById('almSearch'), list = document.getElementById('almComboList');
+        if (!inp || !list) return;
+        var q = normTxt(inp.value);
+        var items = [];
+        DYNAMO_ALMACENES.forEach(function (a, i) {
+            if (q && normTxt(a.prov + ' ' + a.ciudad + ' ' + a.dir).indexOf(q) === -1) return;
+            items.push('<div class="alm-combo-item" onmousedown="almPickAlmacen(' + i + ');event.preventDefault();">' +
+                '<span><strong>' + escapeHtml(a.prov) + '</strong> · ' + escapeHtml(a.ciudad) + '</span>' +
+                '<span class="sub">' + escapeHtml(a.dir.split(',')[0]) + '</span></div>');
+        });
+        list.innerHTML = items.length ? items.join('') : '<div class="alm-combo-empty">Sin resultados — prueba con la provincia o la ciudad</div>';
+        list.hidden = false;
+    }
+    window.almFilter = almFilter;
+    function almPickAlmacen(i) {
+        var a = DYNAMO_ALMACENES[i]; if (!a) return;
+        _almSel = i;
+        var inp = document.getElementById('almSearch'), list = document.getElementById('almComboList'), addr = document.getElementById('almAddr');
+        if (inp) inp.value = 'Dynamo almacén asociado · ' + a.prov;
+        if (list) list.hidden = true;
+        if (addr) { addr.innerHTML = almAddrHTML(a); addr.hidden = false; }
+    }
+    window.almPickAlmacen = almPickAlmacen;
+    // Cerrar la lista al pinchar fuera (una sola vez).
+    document.addEventListener('pointerdown', function (e) {
+        var list = document.getElementById('almComboList');
+        if (list && !list.hidden && !(e.target.closest && e.target.closest('#almCombo'))) list.hidden = true;
+    });
+    function almDatePh() {
+        // Texto-guía visible solo mientras el campo no tiene fecha.
+        ['almEntrada', 'almSalida'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el && el.parentElement) el.parentElement.classList.toggle('has-value', !!el.value);
+        });
+    }
     function openNuevoAlmacen() {
-        var sel = document.getElementById('almSelect');
-        if (sel && sel.options.length <= 1) {
-            DYNAMO_ALMACENES.forEach(function (a, i) {
-                var o = document.createElement('option');
-                o.value = String(i);
-                o.textContent = 'Dynamo almacén asociado · ' + a.prov;
-                sel.appendChild(o);
-            });
-        }
-        // Reset
-        if (sel) sel.value = '';
+        _almSel = -1;
+        var inp = document.getElementById('almSearch'); if (inp) inp.value = '';
+        var list = document.getElementById('almComboList'); if (list) list.hidden = true;
         var addr = document.getElementById('almAddr'); if (addr) addr.hidden = true;
         var rep = document.getElementById('almReparto'); if (rep) rep.value = '0';
         var notas = document.getElementById('almNotas'); if (notas) notas.value = '';
@@ -4642,34 +4766,28 @@
         // Fechas: entrada dentro de los próximos 7 días naturales.
         var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
         var max = new Date(hoy); max.setDate(max.getDate() + 7);
+        var maxSal = new Date(hoy); maxSal.setDate(maxSal.getDate() + 14);
         var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida');
         if (ent) { ent.min = almISO(hoy); ent.max = almISO(max); ent.value = ''; }
-        if (sal) { sal.min = almISO(hoy); sal.max = almISO(max); sal.value = ''; }
+        if (sal) { sal.min = almISO(hoy); sal.max = almISO(maxSal); sal.value = ''; }
+        almDatePh();
         almRenderPrecio();
         showSection('nuevo-almacen');
     }
     window.openNuevoAlmacen = openNuevoAlmacen;
-    function almOnSelect() {
-        var sel = document.getElementById('almSelect'), addr = document.getElementById('almAddr');
-        if (!sel || !addr) return;
-        var a = DYNAMO_ALMACENES[parseInt(sel.value, 10)];
-        if (!a) { addr.hidden = true; return; }
-        var q = encodeURIComponent(a.dir + ', ' + a.cp + ' ' + a.ciudad);
-        addr.innerHTML = '<div class="alm-addr-t">Dynamo · ' + escapeHtml(a.prov) + '</div>' +
-            escapeHtml(a.dir) + '<br>' + escapeHtml(a.cp + ' ' + a.ciudad + ' (' + a.prov + ')') +
-            '<br><a href="https://www.google.com/maps/search/?api=1&query=' + q + '" target="_blank" rel="noopener">Ver en Google Maps</a>';
-        addr.hidden = false;
-    }
-    window.almOnSelect = almOnSelect;
     function almOnDates() {
         var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida');
         if (ent && ent.value) {
-            // La salida no puede ser anterior a la entrada ni superar 7 días de estancia.
+            // Salida: nunca antes de la entrada ni más de 7 días de estancia.
             var e = new Date(ent.value + 'T00:00:00');
             var maxSal = new Date(e); maxSal.setDate(maxSal.getDate() + 7);
             sal.min = ent.value; sal.max = almISO(maxSal);
-            if (sal.value && sal.value < ent.value) sal.value = ent.value;
+            // Por defecto la salida se pone en entrada + 7 días (el máximo);
+            // el usuario la acorta si sale antes.
+            if (!sal.value || sal.value > sal.max) sal.value = sal.max;
+            if (sal.value < ent.value) sal.value = ent.value;
         }
+        almDatePh();
         almRenderPrecio();
     }
     window.almOnDates = almOnDates;
@@ -4686,11 +4804,10 @@
     window.almRenderPrecio = almRenderPrecio;
     function almSolicitar() {
         var err = document.getElementById('almErr');
-        var sel = document.getElementById('almSelect');
         var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida');
         function fail(msg) { if (err) { err.textContent = msg; err.classList.add('show'); } }
-        var a = DYNAMO_ALMACENES[parseInt(sel && sel.value, 10)];
-        if (!a) return fail('Elige un almacén Dynamo.');
+        var a = DYNAMO_ALMACENES[_almSel];
+        if (!a) return fail('Elige un almacén Dynamo (busca por provincia o ciudad).');
         if (!ent.value) return fail('Indica la fecha de entrada.');
         if (!sal.value) return fail('Indica la fecha de salida.');
         var e = new Date(ent.value + 'T00:00:00'), s = new Date(sal.value + 'T00:00:00');
@@ -4700,15 +4817,184 @@
         if (err) err.classList.remove('show');
         var n = parseInt(document.getElementById('almReparto').value, 10) || 0;
         var tot = (ALM_BASE + n * ALM_REPARTO) * 1.21;
+        // Se guarda en el listado de Almacenamientos (mock; irá a backend).
+        var reg = {
+            ref: '#AL-' + (ALM_SEQ++),
+            almIdx: _almSel,
+            entrada: ent.value, salida: sal.value,
+            reparto: n,
+            notas: (document.getElementById('almNotas') || {}).value || '',
+            creado: almISO(new Date())
+        };
+        ALMACENES_DATA.unshift(reg);
+        renderAlmacenesTable();
         function fmt(d) { return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear(); }
         showLoadingOverlay('Enviando tu solicitud…', 900, function () {
-            showModalSuccess('Solicitud de almacenamiento enviada',
+            showModalSuccess('Almacenamiento ' + reg.ref + ' solicitado',
                 'Almacén Dynamo · ' + a.prov + ' (' + a.ciudad + '). Entrada ' + fmt(e) + ' · salida ' + fmt(s) + ' · ' + (dias === 0 ? 'mismo día' : dias + ' día' + (dias > 1 ? 's' : '')) + '. ' +
                 (n > 0 ? 'Con ' + n + ' ' + (n > 1 ? 'camiones' : 'camión') + ' de reparto urbano. ' : '') +
-                'Total orientativo ' + almEur(tot) + ' (IVA incl.). Te confirmamos disponibilidad por email.');
+                'Total orientativo ' + almEur(tot) + ' (IVA incl.). Te confirmamos disponibilidad por email. Lo verás en la sección Almacenamientos.');
+            setTimeout(function () { showSection('almacenes'); }, 1200);
         });
     }
     window.almSolicitar = almSolicitar;
+
+    // ---- LISTADO de almacenamientos (sección del sidebar) ----
+    var ALM_SEQ = 1046;
+    function almIdxByProv(p) { for (var i = 0; i < DYNAMO_ALMACENES.length; i++) if (DYNAMO_ALMACENES[i].prov === p) return i; return 0; }
+    function almRelISO(days) { var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + days); return almISO(d); }
+    // Mock con fechas relativas a hoy para ver los 3 estados. En producción
+    // vendrá del backend.
+    var ALMACENES_DATA = [
+        { ref: '#AL-1042', almIdx: almIdxByProv('Sevilla'),   entrada: almRelISO(-2),  salida: almRelISO(3),   reparto: 0, notas: '26 palets de conservas · PED-0451', creado: almRelISO(-4) },
+        { ref: '#AL-1041', almIdx: almIdxByProv('Madrid'),    entrada: almRelISO(2),   salida: almRelISO(9),   reparto: 3, notas: 'Tráiler completo textil · reparto en 3 camiones', creado: almRelISO(-1) },
+        { ref: '#AL-1038', almIdx: almIdxByProv('Barcelona'), entrada: almRelISO(-15), salida: almRelISO(-10), reparto: 1, notas: '', creado: almRelISO(-18) }
+    ];
+    function almEstadoDe(r) {
+        var hoy = almISO(new Date());
+        if (r.salida < hoy) return { label: 'Finalizado', color: 'entregado' };
+        if (r.entrada <= hoy) return { label: 'En almacén', color: 'cargando' };
+        return { label: 'Programado', color: 'prog' };
+    }
+    function almTotalDe(r) { return (ALM_BASE + r.reparto * ALM_REPARTO) * 1.21; }
+    function almFmtFecha(iso) {
+        var d = new Date(iso + 'T00:00:00');
+        var dows = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        return dows[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + String(d.getFullYear()).slice(-2);
+    }
+    function almDiasDe(r) { return Math.round((new Date(r.salida + 'T00:00:00') - new Date(r.entrada + 'T00:00:00')) / 86400000); }
+    function renderAlmacenesTable() {
+        var tbody = document.getElementById('tbodyAlmacenes');
+        if (!tbody) return;
+        // Vivos primero (por entrada ASC), finalizados al final.
+        var arr = ALMACENES_DATA.slice().sort(function (a, b) {
+            var fa = almEstadoDe(a).label === 'Finalizado' ? 1 : 0, fb = almEstadoDe(b).label === 'Finalizado' ? 1 : 0;
+            if (fa !== fb) return fa - fb;
+            return a.entrada < b.entrada ? -1 : 1;
+        });
+        if (!arr.length) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-500);">Aún no tienes almacenamientos. Crea uno con "+ Nuevo almacenamiento".</td></tr>';
+            return;
+        }
+        tbody.innerHTML = arr.map(function (r) {
+            var a = DYNAMO_ALMACENES[r.almIdx] || {};
+            var est = almEstadoDe(r);
+            var dias = almDiasDe(r);
+            return '<tr onclick="almOpenDetail(\'' + r.ref + '\')">' +
+                '<td class="ref"><strong>' + esc(r.ref) + '</strong><div class="meta">' + (r.notas ? esc(r.notas) : 'Sin descripción') + '</div></td>' +
+                '<td><strong>Dynamo · ' + esc(a.prov || '') + '</strong><div class="meta">' + esc(a.dir || '') + '</div></td>' +
+                '<td>' + almFmtFecha(r.entrada) + '</td>' +
+                '<td>' + almFmtFecha(r.salida) + '<div class="meta">' + (dias === 0 ? 'mismo día' : dias + ' día' + (dias > 1 ? 's' : '')) + '</div></td>' +
+                '<td>' + (r.reparto > 0 ? r.reparto + ' ' + (r.reparto > 1 ? 'camiones' : 'camión') : 'No') + '</td>' +
+                '<td><strong>' + almEur(almTotalDe(r)) + '</strong></td>' +
+                '<td><span class="badge badge-' + est.color + '">' + est.label + '</span></td>' +
+                '</tr>';
+        }).join('');
+    }
+    function almFindByRef(ref) { for (var i = 0; i < ALMACENES_DATA.length; i++) if (ALMACENES_DATA[i].ref === ref) return ALMACENES_DATA[i]; return null; }
+    // Detalle EDITABLE (fechas, reparto, notas). El almacén NO se puede
+    // cambiar: es la ubicación física donde está/estará la mercancía.
+    function almOpenDetail(ref) {
+        var r = almFindByRef(ref); if (!r) return;
+        var a = DYNAMO_ALMACENES[r.almIdx] || {};
+        var est = almEstadoDe(r);
+        var body =
+            '<div class="alm-lock-box">' + almAddrHTML(a) +
+                '<div class="lock-note">El almacén no se puede cambiar. Si necesitas otra ubicación, crea un nuevo almacenamiento.</div></div>' +
+            '<div class="modal-form-row"><label>Fecha de entrada</label><input type="date" id="almDxEnt" value="' + r.entrada + '" onchange="almDxRefresh(\'' + ref + '\')"></div>' +
+            '<div class="modal-form-row"><label>Fecha de salida <span style="color:var(--gray-500);font-weight:600;">· máx. entrada + 7 días</span></label><input type="date" id="almDxSal" value="' + r.salida + '" onchange="almDxRefresh(\'' + ref + '\')"></div>' +
+            '<div class="modal-form-row"><label>Reparto urbano posterior</label><select id="almDxRep" onchange="almDxRefresh(\'' + ref + '\')">' +
+                '<option value="0"' + (r.reparto === 0 ? ' selected' : '') + '>No — lo recojo yo o pediré un transporte aparte</option>' +
+                '<option value="1"' + (r.reparto === 1 ? ' selected' : '') + '>1 camión de reparto (4 m con plataforma)</option>' +
+                '<option value="2"' + (r.reparto === 2 ? ' selected' : '') + '>2 camiones de reparto</option>' +
+                '<option value="3"' + (r.reparto === 3 ? ' selected' : '') + '>3 camiones de reparto (tráiler completo aprox.)</option>' +
+            '</select></div>' +
+            '<div class="modal-form-row"><label>Mercancía y referencia</label><textarea id="almDxNotas" placeholder="Ej. 22 palets de material eléctrico · tu referencia…">' + escapeHtml(r.notas || '') + '</textarea></div>' +
+            '<div class="alm-price" id="almDxPrice"></div>' +
+            '<div class="alm-envio-hint" id="almDxHint" hidden>Sin reparto urbano: si necesitas transporte de salida en <strong>tráiler normal</strong>, genera un <strong>nuevo envío</strong> con origen en este almacén y destino donde nos digas.' +
+                '<br><button type="button" class="btn-ghost" style="margin-top:0.55rem;" onclick="almGenerarEnvio(\'' + ref + '\')">Generar envío de salida desde este almacén →</button></div>' +
+            '<p class="alm-err" id="almDxErr"></p>';
+        openDashModal({
+            icon: 'file',
+            title: 'Almacenamiento ' + ref,
+            sub: 'Dynamo · ' + (a.prov || '') + ' — ' + est.label,
+            body: body,
+            footer: '<button class="btn-ghost" onclick="closeDashModal();return false;">Cerrar</button>' +
+                '<button class="btn-primary" onclick="almGuardarDetalle(\'' + ref + '\');return false;">Guardar cambios</button>',
+            afterOpen: function () { almDxRefresh(ref); }
+        });
+    }
+    window.almOpenDetail = almOpenDetail;
+    function almDxRefresh(ref) {
+        var ent = document.getElementById('almDxEnt'), sal = document.getElementById('almDxSal');
+        if (ent && ent.value && sal) {
+            var e = new Date(ent.value + 'T00:00:00');
+            var maxSal = new Date(e); maxSal.setDate(maxSal.getDate() + 7);
+            sal.min = ent.value; sal.max = almISO(maxSal);
+        }
+        var n = parseInt((document.getElementById('almDxRep') || {}).value, 10) || 0;
+        var box = document.getElementById('almDxPrice');
+        if (box) {
+            var rep = n * ALM_REPARTO, sub = ALM_BASE + rep, iva = sub * 0.21, tot = sub * 1.21;
+            var html = '<div class="alm-price-row"><span class="k">Almacenamiento (tráiler completo)</span><span class="v">' + almEur(ALM_BASE) + '</span></div>';
+            if (n > 0) html += '<div class="alm-price-row"><span class="k">Reparto urbano · ' + n + ' ' + (n > 1 ? 'camiones' : 'camión') + ' × ' + almEur(ALM_REPARTO) + '</span><span class="v">' + almEur(rep) + '</span></div>';
+            html += '<div class="alm-price-row"><span class="k">IVA (21%)</span><span class="v">' + almEur(iva) + '</span></div>' +
+                '<div class="alm-price-row alm-price-total"><span class="k">Total (IVA incl.)</span><span class="v">' + almEur(tot) + '</span></div>';
+            box.innerHTML = html;
+        }
+        var hint = document.getElementById('almDxHint');
+        if (hint) hint.hidden = n > 0;
+    }
+    window.almDxRefresh = almDxRefresh;
+    function almGuardarDetalle(ref) {
+        var r = almFindByRef(ref); if (!r) return;
+        var ent = document.getElementById('almDxEnt'), sal = document.getElementById('almDxSal');
+        var err = document.getElementById('almDxErr');
+        function fail(msg) { if (err) { err.textContent = msg; err.classList.add('show'); } }
+        if (!ent.value || !sal.value) return fail('Indica las fechas de entrada y salida.');
+        if (sal.value < ent.value) return fail('La fecha de salida no puede ser anterior a la de entrada.');
+        var dias = Math.round((new Date(sal.value + 'T00:00:00') - new Date(ent.value + 'T00:00:00')) / 86400000);
+        if (dias > 7) return fail('La estancia máxima es de 7 días.');
+        r.entrada = ent.value; r.salida = sal.value;
+        r.reparto = parseInt(document.getElementById('almDxRep').value, 10) || 0;
+        r.notas = (document.getElementById('almDxNotas') || {}).value || '';
+        renderAlmacenesTable();
+        showLoadingOverlay('Guardando…', 700, function () {
+            showModalSuccess('Almacenamiento ' + ref + ' actualizado', 'Los cambios se han guardado. Te confirmamos cualquier ajuste por email.');
+        });
+    }
+    window.almGuardarDetalle = almGuardarDetalle;
+    // "Generar envío de salida": abre el formulario de Nuevo envío con el
+    // ORIGEN prefijado en el almacén (ficha completa + coordenadas para que
+    // el tarifador calcule). El destino lo pone el cliente.
+    function almGenerarEnvio(ref) {
+        var r = almFindByRef(ref); if (!r) return;
+        var a = DYNAMO_ALMACENES[r.almIdx] || {};
+        closeDashModal();
+        openNuevaCarga('envio');
+        setTimeout(function () {
+            var card = document.querySelector('#sec-nueva-carga .ptar-card');
+            if (!card) return;
+            var ow = card.querySelector('[data-ptar-orig-wrap]');
+            var oi = card.querySelector('[data-ptar-orig]');
+            if (!ow || !oi) return;
+            var cc = ALM_COORDS[a.prov] || [40.4, -3.7];
+            delete ow.dataset.siteKey;
+            ow.dataset.gsite = JSON.stringify({
+                empresa: 'Dynamo Almacén · ' + a.prov,
+                dir: almDireccionCompleta(a),
+                horario: 'L-V 8:00-18:00',
+                tfno: '+34 955 225 945',
+                maps: null
+            });
+            ow.dataset.lat = String(cc[0]); ow.dataset.lon = String(cc[1]); ow.dataset.cc = 'es';
+            oi.value = 'Dynamo Almacén · ' + a.prov + ' — ' + almDireccionCompleta(a);
+            ow.classList.add('ptar-picked');
+            oi.dispatchEvent(new Event('change', { bubbles: true }));
+        }, 120);
+    }
+    window.almGenerarEnvio = almGenerarEnvio;
+    renderAlmacenesTable();
 
     /* ---- Extractores de datos por fila ---- */
     function txt(el) { return el ? el.textContent.trim().replace(/\s+/g, ' ') : ''; }
