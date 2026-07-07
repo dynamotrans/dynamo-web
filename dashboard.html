@@ -3448,7 +3448,6 @@
                 <option value="">Estado</option>
                 <option value="disponible">Disponible</option>
                 <option value="procesandose">Procesándose</option>
-                <option value="reclamar">Por reclamar</option>
             </select>
         </div>
         <div class="table-wrap">
@@ -3713,10 +3712,10 @@
             <div class="ptar-notes-wrap">
                 <button type="button" class="ptar-notes-toggle" data-ptar-refcli-toggle aria-expanded="false">
                     <span class="pnt-icon" aria-hidden="true">+</span>
-                    Añadir tu referencia interna (opcional)
+                    Añadir tu nº de albarán/pedido (opcional)
                 </button>
                 <div class="ptar-notes-body" data-ptar-refcli-body hidden>
-                    <input type="text" id="ptar-refcli-carga" data-ptar-refcli class="ptar-select" placeholder="Ej. PED-0426">
+                    <input type="text" id="ptar-refcli-carga" data-ptar-refcli class="ptar-select" placeholder="Ej. PED-0426 / ALB-1234">
                 </div>
             </div>
 
@@ -7517,21 +7516,26 @@
     // ALB-2026-1284). Estado: disponible (ya tenemos el PDF) · procesándose
     // (entregado hace <14 días, el transportista aún no lo ha enviado) ·
     // reclamar (≥14 días sin albarán).
+    // Estado del albarán: solo DISPONIBLE (ya tenemos el PDF) o PROCESÁNDOSE
+    // (el transportista aún no lo ha enviado). La opción de "Reclamar" no es
+    // un estado: es solo la acción cuando han pasado >45 días sin albarán.
     function albEstado(c) {
-        if (c.hasAlbaran) return 'disponible';
-        return daysSinceCargaFecha(c.fecha) < 14 ? 'procesandose' : 'reclamar';
+        return c.hasAlbaran ? 'disponible' : 'procesandose';
+    }
+    // ¿Se puede reclamar? (sin albarán y entregado hace más de 45 días).
+    function albReclamable(c) {
+        return !c.hasAlbaran && daysSinceCargaFecha(c.fecha) > 45;
     }
     function albNum(ref) { return String(ref || '').replace(/^#C-/, 'ALB-').replace(/^#/, 'ALB-'); }
     function buildAlbaranes() {
         return CARGAS_DATA.filter(function (c) { return c.kind === 'entregada'; })
             .map(function (c) {
                 return { fecha: c.fecha, num: albNum(c.ref), envio: c.ref, refCli: c.refCli,
-                    origen: c.origen, destino: c.destino, estado: albEstado(c) };
+                    origen: c.origen, destino: c.destino, estado: albEstado(c), reclamable: albReclamable(c) };
             });
     }
     function albEstadoBadge(e) {
         if (e === 'disponible') return { label: 'Disponible', color: 'green' };
-        if (e === 'reclamar') return { label: 'Por reclamar', color: 'orange' };
         return { label: 'Procesándose', color: 'gray' };
     }
     function albSearchBlob(a) {
@@ -7569,9 +7573,11 @@
         } else {
             tbody.innerHTML = slice.map(function (a) {
                 var est = albEstadoBadge(a.estado);
+                // Descargar si está disponible; si no, Procesándose (o Reclamar
+                // solo cuando han pasado >45 días desde la entrega).
                 var accion = a.estado === 'disponible'
                     ? '<button type="button" class="alb-dl" onclick="albDescargar(\'' + esc(a.num) + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Descargar</button>'
-                    : a.estado === 'reclamar'
+                    : a.reclamable
                         ? '<button type="button" class="alb-reclamar" onclick="albReclamar(\'' + esc(a.envio) + '\')">Reclamar</button>'
                         : '<span class="alb-wait">Procesándose…</span>';
                 return '<tr>' +
