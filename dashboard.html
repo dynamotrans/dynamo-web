@@ -3453,7 +3453,7 @@
         <div class="table-wrap">
             <table class="data data-albaranes">
                 <thead><tr>
-                    <th>Fecha entrega</th><th>Nº albarán</th><th>Envío</th><th>Ruta</th><th>Estado</th><th>Albarán</th>
+                    <th>Fecha entrega</th><th>Nº albarán</th><th>Envío</th><th>Nº albarán/pedido cliente</th><th>Ruta</th><th>Estado</th><th>Albarán</th>
                 </tr></thead>
                 <tbody id="tbodyAlbaranes"></tbody>
             </table>
@@ -7569,7 +7569,7 @@
         var tbody = document.getElementById('tbodyAlbaranes');
         if (!tbody) return;
         if (slice.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin albaranes para el filtro elegido</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin albaranes para el filtro elegido</td></tr>';
         } else {
             tbody.innerHTML = slice.map(function (a) {
                 var est = albEstadoBadge(a.estado);
@@ -7583,7 +7583,8 @@
                 return '<tr>' +
                     '<td>' + esc(fechaConDia(a.fecha)) + '</td>' +
                     '<td class="alb-num">' + esc(a.num) + '</td>' +
-                    '<td>' + esc(a.envio) + (a.refCli ? ' <span class="ref-cli-inline">(' + esc(a.refCli) + ')</span>' : '') + '</td>' +
+                    '<td>' + esc(a.envio) + '</td>' +
+                    '<td>' + (a.refCli ? esc(a.refCli) : '') + '</td>' +
                     '<td>' + esc(a.origen) + ' → ' + esc(a.destino) + '</td>' +
                     '<td><span class="badge badge-' + est.color + '">' + esc(est.label) + '</span></td>' +
                     '<td>' + accion + '</td>' +
