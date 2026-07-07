@@ -3564,8 +3564,8 @@
                 </button>
                 <div class="fact-range-pop" data-fact-range-pop hidden>
                     <div class="fact-range-fields">
-                        <label>Desde<input type="date" data-fact-from></label>
-                        <label>Hasta<input type="date" data-fact-to></label>
+                        <label>Desde<input type="date" class="fp-date" data-fact-from></label>
+                        <label>Hasta<input type="date" class="fp-date" data-fact-to></label>
                     </div>
                     <div class="fact-range-presets" data-fact-presets>
                         <button type="button" data-preset="12m">Últimos 12 meses</button>
@@ -4093,10 +4093,7 @@
                             <ul class="ptar-sug" data-alm-rep-sug hidden></ul>
                         </div>
                     </div>
-                    <div class="alm-field" style="margin-bottom:0;">
-                        <label>Fecha de entrega en destino</label>
-                        <div class="ptar-fecha-wrap" style="max-width:300px;"><select id="almEntrega" class="ptar-select" onchange="almDiaChange('entg')" aria-label="Fecha de entrega"></select><input type="date" id="almEntgFp" class="ptar-date" tabindex="-1" aria-hidden="true"></div>
-                    </div>
+                    <div class="alm-note" style="margin-top:-0.2rem;">La entrega en destino se hará en la <strong>fecha de salida</strong> de la mercancía indicada arriba.</div>
                 </div>
             </div>
 
@@ -4274,6 +4271,25 @@
        incidencia, Descargar, etc.) dispara un modal con la informacion
        de esa fila o un PDF ficticio en caso de descarga.
     ============================================ */
+    // ===== Calendario UNIFICADO (Flatpickr) para toda la plataforma =====
+    // disableMobile:true fuerza el calendario Flatpickr también en móvil (no el
+    // nativo de iOS/Android) → mismo estilo en todos los dispositivos.
+    function fpAttach(el) {
+        if (!window.flatpickr || !el || el._fp) return;
+        el._fp = window.flatpickr(el, {
+            locale: (window.flatpickr.l10ns && window.flatpickr.l10ns.es) ? 'es' : 'default',
+            dateFormat: 'Y-m-d',
+            disableMobile: true,
+            minDate: el.min || el.getAttribute('data-min') || null,
+            maxDate: el.max || el.getAttribute('data-max') || null
+        });
+    }
+    function fpify(root) {
+        if (!root) root = document;
+        var els = root.querySelectorAll ? root.querySelectorAll('input.fp-date') : [];
+        for (var i = 0; i < els.length; i++) fpAttach(els[i]);
+    }
+    window.fpAttach = fpAttach; window.fpify = fpify;
     function openDashModal(opts) {
         var modal = document.getElementById('dashModal');
         var iconEl = document.getElementById('dashModalIcon');
@@ -4291,6 +4307,9 @@
         }
         document.getElementById('dashModalBody').innerHTML = opts.body || '';
         document.getElementById('dashModalFooter').innerHTML = opts.footer || '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>';
+        // Calendario UNIFICADO en toda la plataforma: cualquier input de fecha
+        // del modal usa Flatpickr (mismo estilo en web/Android/iPhone).
+        fpify(document.getElementById('dashModalBody'));
         modal.classList.add('open');
         modal.setAttribute('aria-hidden', 'false');
         // Cada apertura empieza por arriba, aunque el modal anterior haya
@@ -4825,10 +4844,9 @@
         // con el calendario Flatpickr). La entrada empieza 2 días naturales
         // después de hoy (preparación del almacén). Estancia máx. 7 días.
         Object.keys(_almFp).forEach(function (k) { if (_almFp[k]) { _almFp[k].destroy(); _almFp[k] = null; } });
-        var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida'), entg = document.getElementById('almEntrega');
+        var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida');
         if (ent) almFillDaySel(ent, almRelISO(2), 7, 'Selecciona fecha de entrada');
         if (sal) almPlaceholderSel(sal, 'Elige primero la entrada');
-        if (entg) almPlaceholderSel(entg, 'Elige primero la salida');
         almRenderPrecio();
         showSection('nuevo-almacen');
     }
@@ -4877,7 +4895,7 @@
         if (_almFp[which]) { _almFp[which].destroy(); _almFp[which] = null; }
         _almFp[which] = window.flatpickr(fpInput, {
             locale: window.flatpickr.l10ns && window.flatpickr.l10ns.es ? 'es' : 'default',
-            minDate: minIso, maxDate: maxIso, dateFormat: 'Y-m-d',
+            minDate: minIso, maxDate: maxIso, dateFormat: 'Y-m-d', disableMobile: true,
             onClose: function (selDates) {
                 if (selDates && selDates.length) {
                     var iso = almISO(selDates[0]);
@@ -4928,19 +4946,14 @@
         var s = (sal && /^\d{4}-\d{2}-\d{2}$/.test(sal.value)) ? sal.value : almRelISO(2); var m2 = new Date(s + 'T00:00:00'); m2.setDate(m2.getDate() + 14); return { min: s, max: almISO(m2) };
     }
     function almDiaSync(which) {
-        var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida'), entg = document.getElementById('almEntrega');
+        var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida');
         var eIso = (ent && /^\d{4}-\d{2}-\d{2}$/.test(ent.value)) ? ent.value : '';
         if (which === 'ent' && eIso) {
             // Rellena la salida: días entrada … entrada+7, por defecto entrada+7.
             var e = new Date(eIso + 'T00:00:00'), maxSal = new Date(e); maxSal.setDate(maxSal.getDate() + 7);
             almFillDaySel(sal, eIso, 8, 'Selecciona fecha de salida', almISO(maxSal));
         }
-        var sIso = (sal && /^\d{4}-\d{2}-\d{2}$/.test(sal.value)) ? sal.value : '';
-        var n = parseInt((document.getElementById('almReparto') || {}).value, 10) || 0;
-        if ((which === 'ent' || which === 'sal') && sIso && n > 0) {
-            // Entrega del reparto: desde la salida en adelante, por defecto la salida.
-            almFillDaySel(entg, sIso, 8, 'Selecciona fecha de entrega', sIso);
-        }
+        // La entrega del reparto es la propia fecha de salida (no hay campo aparte).
         almRenderPrecio();
     }
     // Compat: quedaba llamado desde el buscador de reparto; ahora es no-op.
@@ -4976,13 +4989,6 @@
         var block = document.getElementById('almRepDest');
         if (block) block.hidden = n === 0;
         if (n > 0) almRepEnsureBound();
-        var sal = document.getElementById('almSalida'), entg = document.getElementById('almEntrega');
-        var sIso = (sal && /^\d{4}-\d{2}-\d{2}$/.test(sal.value)) ? sal.value : '';
-        if (n > 0 && entg && sIso && !(/^\d{4}-\d{2}-\d{2}$/.test(entg.value))) {
-            almFillDaySel(entg, sIso, 8, 'Selecciona fecha de entrega', sIso);
-        } else if (n > 0 && entg && !sIso) {
-            almPlaceholderSel(entg, 'Elige primero la salida');
-        }
         almRenderPrecio();
     }
     window.almRepartoChange = almRepartoChange;
@@ -5012,14 +5018,11 @@
         var dias = Math.round((s - e) / 86400000);
         if (dias > 7) return fail('La estancia máxima es de 7 días.');
         var n = parseInt(document.getElementById('almReparto').value, 10) || 0;
-        var entg = document.getElementById('almEntrega');
         var repWrap = almRepWrap(), repInput = almRepInputEl();
         var pick = n > 0 && window.__ptarSitePickDe ? window.__ptarSitePickDe(repWrap) : null;
         var elegido = repWrap && (repWrap.classList.contains('ptar-picked') || pick);
         if (n > 0) {
             if (!elegido) return fail('Elige la dirección de entrega del reparto de la lista (tu agenda, Google o «Crear nuevo sitio»).');
-            if (!entg || !entg.value) return fail('Indica la fecha de entrega en destino.');
-            if (entg.value < sal.value) return fail('La entrega en destino no puede ser anterior a la salida del almacén.');
         }
         if (err) err.classList.remove('show');
         // Datos base del sitio de entrega (para la ficha editable del paso 2).
@@ -5031,7 +5034,7 @@
         }
         _almPending = {
             almIdx: _almSel, entrada: ent.value, salida: sal.value, dias: dias,
-            reparto: n, entrega: n > 0 ? entg.value : null,
+            reparto: n, entrega: n > 0 ? sal.value : null,
             notas: (document.getElementById('almNotas') || {}).value || '',
             repSite: repSite
         };
@@ -5057,7 +5060,7 @@
                 '<dt>Entrada</dt><dd>' + almFechaLarga(p.entrada) + '</dd>' +
                 '<dt>Salida</dt><dd>' + almFechaLarga(p.salida) + '</dd>' +
                 '<dt>Estancia</dt><dd>' + (p.dias === 0 ? 'mismo día' : p.dias + ' día' + (p.dias > 1 ? 's' : '')) + ' (máx. 7)</dd>' +
-                '<dt>Reparto urbano</dt><dd>' + (p.reparto > 0 ? p.reparto + ' ' + (p.reparto > 1 ? 'camiones' : 'camión') + ' de 4 m · entrega ' + almFechaLarga(p.entrega) : 'No — recogida por el cliente') + '</dd>' +
+                '<dt>Reparto urbano</dt><dd>' + (p.reparto > 0 ? p.reparto + ' ' + (p.reparto > 1 ? 'camiones' : 'camión') + ' de 4 m · entrega el día de salida' : 'No — recogida por el cliente') + '</dd>' +
                 (p.notas ? '<dt>Mercancía / ref.</dt><dd>' + escapeHtml(p.notas) + '</dd>' : '') +
             '</dl>';
         // Ficha del sitio de entrega (editable, con obligatorios) — solo reparto.
@@ -5255,7 +5258,6 @@
                 '<td>' + almFmtFecha(r.salida) + '<div class="meta">' + (dias === 0 ? 'mismo día' : dias + ' día' + (dias > 1 ? 's' : '')) + '</div></td>' +
                 '<td>' + (r.reparto > 0
                     ? r.reparto + ' ' + (r.reparto > 1 ? 'camiones' : 'camión') +
-                        (r.entrega ? '<div class="meta">Entrega ' + almFmtFecha(r.entrega) + '</div>' : '') +
                         (r.destinoDir ? '<div class="meta">' + esc(String(r.destinoDir).slice(0, 34)) + '…</div>' : '')
                     : 'No') + '</td>' +
                 '<td><strong>' + almEur(almTotalDe(r)) + '</strong></td>' +
@@ -5273,8 +5275,8 @@
         var body =
             '<div class="alm-lock-box">' + almAddrHTML(a) +
                 '<div class="lock-note">El almacén no se puede cambiar. Si necesitas otra ubicación, crea un nuevo almacenamiento.</div></div>' +
-            '<div class="modal-form-row"><label>Fecha de entrada</label><input type="date" id="almDxEnt" value="' + r.entrada + '" onchange="almDxRefresh(\'' + ref + '\')"></div>' +
-            '<div class="modal-form-row"><label>Fecha de salida <span style="color:var(--gray-500);font-weight:600;">· máx. entrada + 7 días</span></label><input type="date" id="almDxSal" value="' + r.salida + '" onchange="almDxRefresh(\'' + ref + '\')"></div>' +
+            '<div class="modal-form-row"><label>Fecha de entrada</label><input type="date" class="fp-date" id="almDxEnt" value="' + r.entrada + '" onchange="almDxRefresh(\'' + ref + '\')"></div>' +
+            '<div class="modal-form-row"><label>Fecha de salida <span style="color:var(--gray-500);font-weight:600;">· máx. entrada + 7 días</span></label><input type="date" class="fp-date" id="almDxSal" value="' + r.salida + '" onchange="almDxRefresh(\'' + ref + '\')"></div>' +
             '<div class="modal-form-row"><label>Reparto urbano posterior</label><select id="almDxRep" onchange="almDxRefresh(\'' + ref + '\')">' +
                 '<option value="0"' + (r.reparto === 0 ? ' selected' : '') + '>No — lo recojo yo o pediré un transporte aparte</option>' +
                 '<option value="1"' + (r.reparto === 1 ? ' selected' : '') + '>1 camión de 4 m · 4 metros total</option>' +
@@ -5286,7 +5288,7 @@
                 (r.destinoDir
                     ? '<div class="modal-form-row"><label>Destino del reparto</label><input type="text" value="' + escapeHtml(r.destinoDir) + '" readonly style="background:var(--gray-100);color:var(--gray-700);"></div>'
                     : '<div class="alm-note" style="margin:0 0 0.8rem;">La dirección de entrega del reparto se concreta con nuestro equipo al confirmar.</div>') +
-                '<div class="modal-form-row"><label>Fecha de entrega en destino</label><input type="date" id="almDxEntrega" value="' + (r.entrega || '') + '"></div>' +
+                '<div class="alm-note" style="margin:0 0 0.8rem;">La entrega en destino se hace el <strong>día de salida</strong> de la mercancía.</div>' +
             '</div>' +
             '<div class="modal-form-row"><label>Mercancía y referencia</label><textarea id="almDxNotas" placeholder="Ej. 22 palets de material eléctrico · tu referencia…">' + escapeHtml(r.notas || '') + '</textarea></div>' +
             '<div class="alm-price" id="almDxPrice"></div>' +
@@ -5323,14 +5325,9 @@
         }
         var hint = document.getElementById('almDxHint');
         if (hint) hint.hidden = n > 0;
-        // Con reparto: destino + fecha de entrega visibles (entrega ≥ salida).
+        // Con reparto: destino visible (la entrega es el día de salida).
         var repInfo = document.getElementById('almDxRepInfo');
         if (repInfo) repInfo.hidden = n === 0;
-        var dxEntg = document.getElementById('almDxEntrega');
-        if (dxEntg && sal && sal.value) {
-            dxEntg.min = sal.value;
-            if (n > 0 && !dxEntg.value) dxEntg.value = sal.value;
-        }
     }
     window.almDxRefresh = almDxRefresh;
     function almGuardarDetalle(ref) {
@@ -5344,13 +5341,8 @@
         if (dias > 7) return fail('La estancia máxima es de 7 días.');
         r.entrada = ent.value; r.salida = sal.value;
         r.reparto = parseInt(document.getElementById('almDxRep').value, 10) || 0;
-        var dxEntg = document.getElementById('almDxEntrega');
-        if (r.reparto > 0 && dxEntg && dxEntg.value) {
-            if (dxEntg.value < sal.value) return fail('La entrega en destino no puede ser anterior a la salida del almacén.');
-            r.entrega = dxEntg.value;
-        } else if (r.reparto === 0) {
-            r.entrega = null;
-        }
+        // La entrega del reparto es el propio día de salida.
+        r.entrega = r.reparto > 0 ? sal.value : null;
         r.notas = (document.getElementById('almDxNotas') || {}).value || '';
         renderAlmacenesTable();
         showLoadingOverlay('Guardando…', 700, function () {
@@ -5833,7 +5825,7 @@
                     { label: 'Medidas', value: d.medidas },
                     { label: 'Precio anterior', value: d.precio, span: true }
                 ]) +
-                '<div class="modal-form-row" style="margin-top:0.8rem;"><label>Nueva fecha estimada de carga</label><input type="date" min="' + todayISO() + '"></div>',
+                '<div class="modal-form-row" style="margin-top:0.8rem;"><label>Nueva fecha estimada de carga</label><input type="date" class="fp-date" min="' + todayISO() + '"></div>',
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
                     '<button class="btn-primary" onclick="presupuestoRevisarConfirm()">Calcular nuevo precio</button>'
         });
@@ -9314,6 +9306,13 @@
     renderPresupuestosTable();
     renderFacturasTable();
     renderAlbaranesTable();
+    // Calendario unificado (Flatpickr) en los inputs de fecha estáticos
+    // (p.ej. el rango Desde/Hasta de Facturas). Flatpickr carga con defer, así
+    // que reintenta un momento si aún no está disponible.
+    (function initStaticFp() {
+        if (window.flatpickr) fpify(document);
+        else setTimeout(initStaticFp, 200);
+    })();
 
     /* =========================================
        TARIFADOR INTERNO DEL PANEL (Nueva carga / Nuevo presupuesto)
@@ -10016,6 +10015,7 @@
                         locale: window.flatpickr.l10ns && window.flatpickr.l10ns.es ? 'es' : 'default',
                         minDate: 'today',
                         maxDate: new Date(Date.now() + 90 * 24 * 3600 * 1000),
+                        disableMobile: true,
                         disable: [function (d) { return nonBiz(d); }],
                         dateFormat: 'Y-m-d',
                         onClose: function (selDates) {
