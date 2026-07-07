@@ -1663,6 +1663,33 @@
             border: 1.5px solid #f59e0b; color: #b45309; font-weight: 700; font-size: 0.78rem; cursor: pointer;
         }
         .alb-reclamar:hover { background: rgba(245,158,11,0.10); }
+        /* Popup "Ver todos los horarios del año" (dentro del modal del panel). */
+        .hor-group { margin-top: 1.1rem; }
+        .hor-group:first-child { margin-top: 0; }
+        .hor-group-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 800; color: var(--purple); font-size: 0.92rem; margin-bottom: 0.5rem; }
+        .hor-group-title svg { flex-shrink: 0; }
+        .hor-row { display: flex; justify-content: space-between; gap: 0.8rem; padding: 0.5rem 0; border-bottom: 1px dashed var(--gray-200); font-size: 0.85rem; align-items: baseline; }
+        .hor-row:last-child { border-bottom: none; }
+        .hor-when { color: var(--gray-700); font-weight: 600; }
+        .hor-time { color: var(--navy); font-weight: 700; text-align: right; }
+        .hor-row.closed .hor-time { color: #c0392b; }
+        .hor-intensiva { list-style: none; margin: 0.2rem 0 0.1rem; padding: 0; }
+        .hor-intensiva li { position: relative; padding: 0.3rem 0 0.3rem 0.95rem; font-size: 0.84rem; font-weight: 600; color: var(--gray-700); border-bottom: 1px dashed var(--gray-200); }
+        .hor-intensiva li:last-child { border-bottom: none; }
+        .hor-intensiva li::before { content: '·'; position: absolute; left: 0.15rem; color: var(--purple); font-weight: 800; }
+        .hor-intensiva .hor-i-when { display: block; font-size: 0.74rem; font-weight: 500; color: var(--gray-500); margin-top: 0.05rem; }
+        .hor-note { font-size: 0.76rem; color: var(--gray-500); margin-top: 0.7rem; line-height: 1.5; }
+        @media (max-width: 520px) {
+            .hor-row { flex-direction: column; gap: 0.15rem; align-items: flex-start; }
+            .hor-time { text-align: left; }
+        }
+        /* Enlace "Ver todos los horarios del año" en el desplegable de soporte. */
+        .topbar-contact-hor {
+            display: block; text-align: center; margin-top: 0.35rem; padding: 0.5rem;
+            font-size: 0.8rem; font-weight: 700; color: var(--purple);
+            text-decoration: none; border-radius: 9px; cursor: pointer;
+        }
+        .topbar-contact-hor:hover { background: rgba(51,0,204,0.08); }
         @media (max-width: 600px) {
             .filters { gap: 0.4rem; padding: 0.55rem; }
             .filters input[type="search"] { font-size: 0.9rem; padding: 0.55rem 0.6rem; flex: 1 1 100%; }
@@ -3044,7 +3071,7 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
                         </span>
                         <div class="topbar-contact-text">
-                            <span class="t">Enviar email</span>
+                            <span class="t">info@dynamotrans.com</span>
                             <span class="h" data-sched="online-short">Lunes a Sábado 8-20</span>
                         </div>
                     </a>
@@ -3053,7 +3080,7 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884"/></svg>
                         </span>
                         <div class="topbar-contact-text">
-                            <span class="t">WhatsApp</span>
+                            <span class="t">WhatsApp +34 628 995 709</span>
                             <span class="h" data-sched="online-short">Lunes a Sábado 8-20</span>
                         </div>
                     </a>
@@ -3062,10 +3089,12 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.18z"/></svg>
                         </span>
                         <div class="topbar-contact-text">
-                            <span class="t">Llamar</span>
+                            <span class="t">Llamar +34 955 225 945</span>
                             <span class="h" data-sched="phone-short">Lunes a Jueves 9-14 y 15-17 · Viernes 9-14</span>
                         </div>
                     </a>
+                    <div class="topbar-contact-sep"></div>
+                    <a class="topbar-contact-hor" role="menuitem" href="#" onclick="verHorariosModal();return false;">Ver todos los horarios del año</a>
                 </div>
             </div>
             </div>
@@ -4903,6 +4932,55 @@
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') closeBellMenu();
     });
+
+    /* ============================================
+       POPUP "Ver todos los horarios del año" (desde el desplegable de soporte)
+       Mismo contenido que en la web pública. Las fechas de la "semana festiva
+       local" (martes-viernes de Feria) se calculan desde la Pascua.
+    ============================================ */
+    function verHorariosModal() {
+        if (window.closeTopbarContactMenu) window.closeTopbarContactMenu();
+        function easter(y) { var a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451), mo = Math.floor((h + l - 7 * m + 114) / 31), da = ((h + l - 7 * m + 114) % 31) + 1; return new Date(y, mo - 1, da); }
+        function fr(y) { var e = easter(y); return { tue: new Date(y, e.getMonth(), e.getDate() + 16), fri: new Date(y, e.getMonth(), e.getDate() + 19) }; }
+        var now = (typeof nowMadrid === 'function') ? nowMadrid() : new Date();
+        var r = fr(now.getFullYear()); if (now > r.fri) r = fr(now.getFullYear() + 1);
+        var dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+        var meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        var t = r.tue, f = r.fri, feria;
+        if (t.getMonth() === f.getMonth()) feria = 'Del ' + dias[t.getDay()] + ' ' + t.getDate() + ' al ' + dias[f.getDay()] + ' ' + f.getDate() + ' de ' + meses[f.getMonth()] + ' de ' + f.getFullYear();
+        else feria = 'Del ' + dias[t.getDay()] + ' ' + t.getDate() + ' de ' + meses[t.getMonth()] + ' al ' + dias[f.getDay()] + ' ' + f.getDate() + ' de ' + meses[f.getMonth()] + ' de ' + f.getFullYear();
+        var body =
+            '<div class="hor-group">' +
+                '<div class="hor-group-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg> Email y WhatsApp</div>' +
+                '<div class="hor-row"><span class="hor-when">Todo el año</span><span class="hor-time">Lunes a Sábado 8:00–20:00</span></div>' +
+            '</div>' +
+            '<div class="hor-group">' +
+                '<div class="hor-group-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg> Teléfono</div>' +
+                '<div class="hor-row"><span class="hor-when">Horario habitual</span><span class="hor-time">L–J 9:00–14:00 y 15:00–17:00 · V 9:00–14:00</span></div>' +
+                '<div class="hor-row"><span class="hor-when">Jornada intensiva</span><span class="hor-time">9:00–14:00</span></div>' +
+                '<ul class="hor-intensiva">' +
+                    '<li>Verano<span class="hor-i-when">15 jun – 1 sep · L–V</span></li>' +
+                    '<li>Navidad<span class="hor-i-when">22 dic – 6 ene · L–V</span></li>' +
+                    '<li>Semana Santa<span class="hor-i-when">Lun–Mié Santo</span></li>' +
+                    '<li>Semana festiva local<span class="hor-i-when">' + escapeHtml(feria) + '</span></li>' +
+                '</ul>' +
+                '<div class="hor-row closed"><span class="hor-when">Agosto (6–27)</span><span class="hor-time">Solo email y WhatsApp</span></div>' +
+            '</div>' +
+            '<div class="hor-group">' +
+                '<div class="hor-group-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5z"/></svg> Festivos (teléfono cerrado)</div>' +
+                '<p class="hor-note" style="margin-top:0">Año Nuevo (1 ene) · Reyes (6 ene) · Día del Trabajo (1 may) · Asunción (15 ago) · Fiesta Nacional (12 oct) · Todos los Santos (1 nov) · Constitución (6 dic) · Inmaculada (8 dic) · Navidad (25 dic) · Jueves y Viernes Santo.</p>' +
+            '</div>' +
+            '<p class="hor-note">Horario peninsular (Europe/Madrid), se ajusta solo en cada temporada. Email y WhatsApp también cierran domingos y festivos.</p>';
+        openDashModal({
+            icon: 'clock',
+            title: 'Horarios de atención',
+            sub: 'Teléfono según temporada · Email y WhatsApp todo el año.',
+            body: body,
+            footer: '<button class="btn-primary" onclick="closeDashModal()" style="flex:1;">Entendido</button>'
+        });
+    }
+    window.verHorariosModal = verHorariosModal;
+
     function goFromMenu(id) {
         closeUserMenu();
         showSection(id);
