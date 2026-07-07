@@ -4127,7 +4127,7 @@
             <div class="alm-price" id="almPrice"></div>
 
             <p class="alm-err" id="almErr"></p>
-            <button class="btn-primary" style="width:100%;height:56px;font-size:1rem;" onclick="almSolicitar();return false;">Continuar</button>
+            <button class="btn-primary" style="width:100%;height:56px;font-size:1rem;" onclick="almSolicitar();return false;">Crear almacenamiento</button>
         </div>
         <!-- Paso 2: confirmación (idéntica a la del envío: resumen + fichas de
              sitio editables + pago con CESCE + botón Crear almacenamiento). -->
@@ -4837,7 +4837,7 @@
         // Chip bloqueado (igual que el buscador del envío): readonly + estilo
         // ptar-picked + botón × para cambiarlo.
         if (inp) { inp.value = 'Dynamo almacén asociado · ' + a.prov; inp.readOnly = true; }
-        if (wrap) wrap.classList.add('ptar-picked');
+        if (wrap) { wrap.classList.add('ptar-picked'); wrap.classList.remove('ptar-error'); }
         if (x) x.hidden = false;
         if (list) list.hidden = true;
         if (addr) { addr.innerHTML = almAddrHTML(a); addr.hidden = false; }
@@ -4953,6 +4953,7 @@
     function almDiaChange(which) {
         var sel = document.getElementById(which === 'ent' ? 'almEntrada' : which === 'sal' ? 'almSalida' : 'almEntrega');
         if (!sel) return;
+        if (sel.value && sel.value !== 'otro') sel.classList.remove('ptar-select-error');
         if (sel.value === 'otro') {
             var lims = almFpLimits(which);
             var fpInput = document.getElementById(which === 'ent' ? 'almEntFp' : which === 'sal' ? 'almSalFp' : 'almEntgFp');
@@ -5010,7 +5011,7 @@
         var input = almRepInputEl();
         var sug = document.querySelector('#almRepDest [data-alm-rep-sug]');
         if (!wrap || !input || !sug || !window.__ptarBindAutocomplete) return;
-        window.__ptarBindAutocomplete(wrap, input, sug, function () { almDatePh(); }, 'entrega');
+        window.__ptarBindAutocomplete(wrap, input, sug, function () { if (wrap.classList.contains('ptar-picked')) wrap.classList.remove('ptar-error'); }, 'entrega');
         _almRepBound = true;
     }
     function almRepClear() {
@@ -5047,21 +5048,35 @@
     function almSolicitar() {
         var err = document.getElementById('almErr');
         var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida');
-        function fail(msg) { if (err) { err.textContent = msg; err.classList.add('show'); } }
+        var combo = document.getElementById('almCombo'), repWrap0 = almRepWrap();
+        // Limpia resaltes de error previos antes de revalidar.
+        [ent, sal].forEach(function (s) { if (s) s.classList.remove('ptar-select-error'); });
+        if (combo) combo.classList.remove('ptar-error');
+        if (repWrap0) repWrap0.classList.remove('ptar-error');
+        // fail: mensaje + resalta EN ROJO el campo/desplegable que falta (mismo
+        // estilo que el envío) y hace scroll hasta él.
+        function fail(msg, el, isSelect) {
+            if (err) { err.textContent = msg; err.classList.add('show'); }
+            if (el) {
+                el.classList.add(isSelect ? 'ptar-select-error' : 'ptar-error');
+                if (el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }
+            return false;
+        }
         var a = DYNAMO_ALMACENES[_almSel];
-        if (!a) return fail('Elige un almacén Dynamo (busca por provincia o ciudad).');
-        if (!ent.value) return fail('Indica la fecha de entrada.');
-        if (!sal.value) return fail('Indica la fecha de salida.');
+        if (!a) return fail('Elige un almacén Dynamo (busca por provincia o ciudad).', combo, false);
+        if (!ent.value) return fail('Indica la fecha de entrada.', ent, true);
+        if (!sal.value) return fail('Indica la fecha de salida.', sal, true);
         var e = new Date(ent.value + 'T00:00:00'), s = new Date(sal.value + 'T00:00:00');
-        if (s < e) return fail('La fecha de salida no puede ser anterior a la de entrada.');
+        if (s < e) return fail('La fecha de salida no puede ser anterior a la de entrada.', sal, true);
         var dias = Math.round((s - e) / 86400000);
-        if (dias > 7) return fail('La estancia máxima es de 7 días.');
+        if (dias > 7) return fail('La estancia máxima es de 7 días.', sal, true);
         var n = parseInt(document.getElementById('almReparto').value, 10) || 0;
         var repWrap = almRepWrap(), repInput = almRepInputEl();
         var pick = n > 0 && window.__ptarSitePickDe ? window.__ptarSitePickDe(repWrap) : null;
         var elegido = repWrap && (repWrap.classList.contains('ptar-picked') || pick);
         if (n > 0) {
-            if (!elegido) return fail('Elige la dirección de entrega del reparto de la lista (tu agenda, Google o «Crear nuevo sitio»).');
+            if (!elegido) return fail('Elige la dirección de entrega del reparto de la lista (tu agenda, Google o «Crear nuevo sitio»).', repWrap, false);
         }
         if (err) err.classList.remove('show');
         // Datos base del sitio de entrega (para la ficha editable del paso 2).
@@ -5141,7 +5156,7 @@
             resumen + sitio + precio +
             '<div data-almc-pay style="margin-top:1.3rem;"></div>' +
             '<p class="alm-err" id="almcErr"></p>' +
-            '<button class="btn-primary" style="width:100%;height:56px;font-size:1rem;margin-top:0.4rem;" onclick="almCrear();return false;">Crear almacenamiento</button>' +
+            '<button class="btn-primary" style="width:100%;height:56px;font-size:1rem;margin-top:0.4rem;" onclick="almCrear();return false;">Confirmar almacenamiento</button>' +
             '<button class="btn-ghost" style="width:100%;height:48px;margin-top:0.6rem;" onclick="almBackToForm();return false;">← Editar datos</button>';
         // Pago (idéntico al envío) vía el renderizador reutilizable del tarifador.
         _almPending.formaPago = window.__ptarRenderPagoInto
