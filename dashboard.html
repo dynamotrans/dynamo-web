@@ -3503,7 +3503,7 @@
                     <tr>
                         <td>14/06/2026<div class="meta">11:42</div></td>
                         <td>Mercancía con palet roto a la llegada<div class="meta">3 palets dañados de 33</div></td>
-                        <td class="ref">#C-2026-1281</td>
+                        <td class="ref">#GX684814</td>
                         <td class="ref-cli">PED-0419</td>
                         <td><strong>14/06</strong><div class="meta">Fija</div></td>
                         <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Barcelona</strong></td>
@@ -3513,7 +3513,7 @@
                     <tr>
                         <td>02/06/2026<div class="meta">16:08</div></td>
                         <td>Retraso de 4h en la entrega<div class="meta">Resuelto: compensado en factura</div></td>
-                        <td class="ref">#C-2026-1268</td>
+                        <td class="ref">#GX684723</td>
                         <td class="ref-cli">PED-0405</td>
                         <td><strong>02/06</strong><div class="meta">Fija</div></td>
                         <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Zaragoza</strong></td>
@@ -5547,7 +5547,20 @@
     // detallados que el equipo va rellenando una vez confirma la carga
     // (precio, fecha asignada, ETA, matrículas, conductor, horarios…).
     // Todos opcionales: si no se pasan, el detalle muestra "Pendiente".
+    // Referencia de VIAJE/envío de Dynamo en formato #GX###### (determinista y
+    // estable a partir de la ref original; idempotente). En producción vendrá
+    // del backend; el formato #C-2026-XXXX ya no se usa.
+    function envioRef(seed) {
+        var s = String(seed || '');
+        if (/^#GX\d+$/.test(s)) return s;
+        // A partir del nº original: la numeración sube de 7 en 7
+        // (#GX684919, #GX684926, …). Referencia #C-2026-1296 → #GX684919.
+        var m = s.match(/(\d+)\D*$/);
+        var num = m ? parseInt(m[1], 10) : 1296;
+        return '#GX' + (684919 + (num - 1296) * 7);
+    }
     function makeCarga(ref, refCli, fecha, ventana, origen, destino, direcciones, mercancia, mercanciaMeta, medidas, kind, hasAlbaran, extra) {
+        ref = envioRef(ref);
         var estado, color;
         if (kind === 'programada')   { estado = 'Programada'; color = 'orange'; }
         else if (kind === 'en-ruta') { estado = 'En ruta';    color = 'blue';   }
@@ -7526,7 +7539,7 @@
     function albReclamable(c) {
         return !c.hasAlbaran && daysSinceCargaFecha(c.fecha) > 45;
     }
-    function albNum(ref) { return String(ref || '').replace(/^#C-/, 'ALB-').replace(/^#/, 'ALB-'); }
+    function albNum(ref) { return String(ref || '').replace(/^#GX/, 'ALB-').replace(/^#C-/, 'ALB-').replace(/^#/, 'ALB-'); }
     function buildAlbaranes() {
         return CARGAS_DATA.filter(function (c) { return c.kind === 'entregada'; })
             .map(function (c) {
@@ -8076,7 +8089,7 @@
         }
         function nextRef(mode) {
             refCounter[mode]++;
-            if (mode === 'carga') return '#C-2026-' + refCounter.carga;
+            if (mode === 'carga') return envioRef('#C-2026-' + refCounter.carga);
             return '#P-2026-0' + refCounter.presupuesto;
         }
 
