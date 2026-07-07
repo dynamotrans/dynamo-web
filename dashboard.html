@@ -1096,17 +1096,26 @@
             display: block; font-size: 0.82rem; font-weight: 600; color: var(--gray-500);
             letter-spacing: 0; margin-bottom: 0.3rem;
         }
-        .modal-form-row input, .modal-form-row textarea, .modal-form-row select {
-            width: 100%; padding: 0.62rem 0.8rem;
-            border: 1px solid var(--gray-200); border-radius: 9px;
-            font-family: inherit; font-size: 0.82rem; color: var(--navy);
+        /* Mismo estándar que el resto del panel (.ptar-select): borde 1.5px,
+           radio 10px, alto 44px, hover/focus morado con anillo. */
+        .modal-form-row input, .modal-form-row select {
+            width: 100%; height: 44px; padding: 0 0.85rem;
+            border: 1.5px solid var(--gray-200); border-radius: 10px;
+            font-family: inherit; font-size: 0.88rem; color: var(--navy);
             background: white; outline: none;
             transition: border-color 0.15s, box-shadow 0.15s;
         }
-        .modal-form-row input:focus, .modal-form-row textarea:focus, .modal-form-row select:focus {
-            border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.10);
+        .modal-form-row textarea {
+            width: 100%; padding: 0.62rem 0.85rem;
+            border: 1.5px solid var(--gray-200); border-radius: 10px;
+            font-family: inherit; font-size: 0.88rem; color: var(--navy);
+            background: white; outline: none; resize: vertical; min-height: 90px; line-height: 1.45;
+            transition: border-color 0.15s, box-shadow 0.15s;
         }
-        .modal-form-row textarea { resize: vertical; min-height: 90px; line-height: 1.45; }
+        .modal-form-row input:hover, .modal-form-row select:hover, .modal-form-row textarea:hover { border-color: var(--purple); }
+        .modal-form-row input:focus, .modal-form-row textarea:focus, .modal-form-row select:focus {
+            border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08);
+        }
         /* ==== Carruseles del dashboard: muro de clientes (triple, como la
            web pública) + servicios en una línea. CSS portado de index.html. */
         .dash-carousel-title { font-size: 0.82rem; font-weight: 700; color: var(--navy); margin: 0 0 0.2rem; }
@@ -4422,7 +4431,7 @@
             '<input type="email" value="' + escapeHtml(email) + '" disabled style="background:var(--gray-100);color:var(--gray-500);cursor:not-allowed;"></div>' +
             '<div class="modal-form-row"><label>Rol <span style="color:var(--gray-500);font-weight:600;">· no editable</span></label>' +
             '<input type="text" value="Cliente" disabled style="background:var(--gray-100);color:var(--gray-500);cursor:not-allowed;"></div>' +
-            '<p class="modal-form-note" id="edDatosErr" style="display:none;color:#d33;font-size:0.8rem;margin:0.3rem 0 0;">Revisa los campos: el nombre no puede quedar vacío.</p>';
+            '<p class="alm-err" id="edDatosErr">⚠ Revisa los campos: el nombre no puede quedar vacío.</p>';
         openDashModal({
             icon: 'file',
             title: 'Editar datos',
@@ -4440,10 +4449,12 @@
         var nombre = n ? n.value.trim() : '';
         var tel = t ? t.value.trim() : '';
         if (!nombre) {
-            if (err) err.style.display = 'block';
+            if (err) err.classList.add('show');
             if (n) { n.classList.add('sitio-f-err'); n.focus(); }
             return;
         }
+        if (err) err.classList.remove('show');
+        if (n) n.classList.remove('sitio-f-err');
         var nv = document.getElementById('accountNombre');
         var tv = document.getElementById('accountTel');
         if (nv) nv.textContent = nombre;
@@ -4460,7 +4471,7 @@
             '<input type="password" id="pwNueva" autocomplete="new-password"></div>' +
             '<div class="modal-form-row"><label>Repetir nueva contraseña</label>' +
             '<input type="password" id="pwRepetir" autocomplete="new-password"></div>' +
-            '<p class="modal-form-note" id="pwErr" style="display:none;color:#d33;font-size:0.8rem;margin:0.3rem 0 0;"></p>' +
+            '<p class="alm-err" id="pwErr"></p>' +
             '<p class="account-card-desc" style="margin:0.5rem 0 0;">Mínimo 8 caracteres. Usa mayúsculas, minúsculas y algún número.</p>';
         openDashModal({
             icon: 'file',
@@ -4481,9 +4492,10 @@
         var nueva = nu ? nu.value : '';
         var rep = re ? re.value : '';
         function fail(msg, focusEl) {
-            if (err) { err.textContent = msg; err.style.display = 'block'; }
+            if (err) { err.textContent = '⚠ ' + msg; err.classList.add('show'); }
             if (focusEl) focusEl.focus();
         }
+        if (err) err.classList.remove('show');
         if (!actual) return fail('Escribe tu contraseña actual.', a);
         if (nueva.length < 8) return fail('La nueva contraseña debe tener al menos 8 caracteres.', nu);
         if (nueva !== rep) return fail('Las contraseñas nuevas no coinciden.', re);
