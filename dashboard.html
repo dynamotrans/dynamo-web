@@ -4870,7 +4870,9 @@
             if (t0 === null) t0 = ts;
             var t = Math.min(1, (ts - t0) / dur);
             var ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
-            el.textContent = eur(from + (to - from) * ease);
+            // Los pasos intermedios saltan de 10 en 10 (mismo efecto contador
+            // en toda la plataforma); al terminar se muestra el valor exacto.
+            el.textContent = eur(Math.round((from + (to - from) * ease) / 10) * 10);
             if (t < 1) { el.__raf = requestAnimationFrame(step); }
             else { el.textContent = eur(to); el.__raf = null; }
         }
@@ -5121,7 +5123,13 @@
         var input = almRepInputEl();
         var sug = document.querySelector('#almRepDest [data-alm-rep-sug]');
         if (!wrap || !input || !sug || !window.__ptarBindAutocomplete) return;
-        window.__ptarBindAutocomplete(wrap, input, sug, function () { if (wrap.classList.contains('ptar-picked')) wrap.classList.remove('ptar-error'); }, 'entrega');
+        window.__ptarBindAutocomplete(wrap, input, sug, function () {
+            if (wrap.classList.contains('ptar-picked')) {
+                wrap.classList.remove('ptar-error');
+                // Al elegir la dirección de reparto desaparece su aviso.
+                var err = document.getElementById('almErr'); if (err) err.classList.remove('show');
+            }
+        }, 'entrega');
         _almRepBound = true;
     }
     function almRepClear() {
