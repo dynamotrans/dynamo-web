@@ -4813,14 +4813,11 @@
         if (!menu) return;
         var st = cesceState();
         var cfg = {
-            ok:   { badge: 'cesce-b-ok',   dot: '', label: 'Con crédito disponible', clas: 'A · Riesgo bajo',
-                    limite: '30.000 €', disp: '22.400 €', dispCls: 'ok', cons: '7.600 €',
+            ok:   { badge: 'cesce-b-ok',   label: 'Con crédito disponible', clasif: 'Clasificado', clasifCls: 'ok',
                     note: 'CESCE es la compañía aseguradora de crédito que respalda esta cuenta: garantiza el cobro de los envíos, por eso puedes trabajar <strong>a crédito</strong> y pagar por transferencia o domiciliación.' },
-            warn: { badge: 'cesce-b-warn', dot: '', label: 'Crédito agotado', clas: 'B · Riesgo medio',
-                    limite: '30.000 €', disp: '850 €', dispCls: 'warn', cons: '29.150 €',
+            warn: { badge: 'cesce-b-warn', label: 'Crédito agotado', clasif: 'Clasificado', clasifCls: 'ok',
                     note: 'Apenas queda crédito asegurado. Mientras esté agotado, los nuevos envíos se cobran <strong>por adelantado</strong>. Si crees que tu línea debería ser mayor, contacta con CESCE para revisarla.' },
-            none: { badge: 'cesce-b-none', dot: '', label: 'Crédito nulo o sin clasificar', clas: 'Sin clasificar',
-                    limite: '0 €', disp: '0 €', dispCls: 'none', cons: '—',
+            none: { badge: 'cesce-b-none', label: 'Crédito nulo o sin clasificar', clasif: 'Sin clasificar', clasifCls: 'none',
                     note: 'Tu empresa está <strong>sin clasificar</strong> por CESCE (o con crédito nulo), así que los envíos se cobran <strong>por adelantado</strong>. Puedes solicitar que CESCE clasifique tu empresa para trabajar a crédito.' }
         }[st];
         // Estado ROJO "sin clasificar": botón para reclamar la clasificación
@@ -4837,6 +4834,7 @@
                 '<div class="cesce-menu-head-s">Asegurada por CESCE</div></div>' +
             '</div>' +
             '<div class="cesce-menu-badge ' + cfg.badge + '"><span class="dot"></span>' + cfg.label + '</div>' +
+            '<div class="cesce-rows"><div class="cesce-row"><span class="k">Clasificación</span><span class="v ' + cfg.clasifCls + '">' + cfg.clasif + '</span></div></div>' +
             '<div class="cesce-note' + (st === 'ok' ? '' : ' warn') + '">' + cfg.note + '</div>' +
             reclamarBlock +
             '<div class="cesce-contact">' +
