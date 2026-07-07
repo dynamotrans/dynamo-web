@@ -6003,7 +6003,7 @@
             c.horarioOrigen = o.horario; c.horarioDestino = d.horario;
             c.direcciones = o.empresa + ' → ' + d.empresa;
         });
-        // Garantizar que los 4 sitios internacionales (Suiza, Países Bajos,
+        // Garantizar que los sitios internacionales (Países Bajos,
         // Portugal, Italia) aparecen como destino de alguna programada.
         var progFut = CARGAS_DATA.filter(function (c) { return c.kind === 'programada'; });
         var pi = 2;
@@ -6515,7 +6515,7 @@
         'Algeciras': '11207, Algeciras, Cádiz, España', 'Cádiz': '11011, Cádiz, España',
         'Cartagena': '30353, Cartagena, Murcia, España'
     };
-    var PAIS_SUFIJO = { PT: 'Portugal', FR: 'Francia', DE: 'Alemania', IT: 'Italia', NL: 'Países Bajos', BE: 'Bélgica', LU: 'Luxemburgo', AT: 'Austria', PL: 'Polonia', CZ: 'Rep. Checa', CH: 'Suiza', UK: 'Reino Unido' };
+    var PAIS_SUFIJO = { PT: 'Portugal', FR: 'Francia', DE: 'Alemania', IT: 'Italia', NL: 'Países Bajos', BE: 'Bélgica', LU: 'Luxemburgo', AT: 'Austria', PL: 'Polonia', CZ: 'Rep. Checa', UK: 'Reino Unido' };
     function ciudadDir(ciudad, override) {
         if (override) return override;
         if (!ciudad) return '';
@@ -6547,7 +6547,6 @@
         'cliente-muelle-val-de-san-vic': { empresa: 'CLIENTE MUELLE', dir: '39548, Val de San Vicente, Cantabria, España', calle: 'Polígono industrial Los Tanagos - 39548 - San Vicente de la Barquera - Cantabria', horario: '8:00-16:00', tfno: '652 817 274 --', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/MAgKmdE27HfA1DrY9', freq: 1 },
         'protecnos-valdeolmos-ala': { empresa: 'PROTECNOS', dir: '28130, Valdeolmos-Alalpardo, Madrid, España', calle: 'Calle Paeque 6 - 28130 Alalpardo (Madrid)', horario: '9:00-18:00', tfno: '689248272', contacto: 'Francisco Sintes', notas: null, maps: 'https://maps.app.goo.gl/r2gzTiwixDM21sJ18', freq: 1 },
         'gruas-garcia-ibi': { empresa: 'GRUAS GARCIA', dir: '03440, Ibi, Alicante/Alacant, España', calle: 'C. Pinoses, 0, 03440 Ibi, Alicante', horario: '8:00-18:00', tfno: '609689208', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/aq6f725KKPTfpsWj6', freq: 1 },
-        'expomobilia-gmbh-effretikon': { empresa: 'Expomobilia GmbH', dir: '8307, Effretikon, Suiza', calle: 'Im Langhag 2, 8307 Illnau-Effretikon, Suiza', horario: '8:00-12:00 · 13:00-17:30', tfno: null, contacto: 'Tlf', notas: null, maps: 'https://maps.app.goo.gl/aRn6BHwCc9HYGpyW9', freq: 1 },
         'kubiko-playground-coin': { empresa: 'KUBIKO Playground', dir: '29100, Coín, Málaga, España', calle: 'P.I. LOURDES, CALLE LA CHARCA, 10, 29100 Coín, Málaga', horario: '7:00AM-15:00PM', tfno: '+34 618 73 17 97', contacto: null, notas: null, maps: 'https://g.page/kubiko-playgrounds?share', freq: 2 },
         'cliente-arroyomolinos': { empresa: 'CLIENTE', dir: '28939, Arroyomolinos, Madrid, España', calle: 'Av. de la Unión Europea, 61, 28939 Arroyomolinos, Madrid', horario: '10:00-14:00', tfno: '34 656 48 25 29', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/MYiqmZdYDuvAxTQb7', freq: 1 },
         'coover-ibi-ibi': { empresa: 'COOVER IBI, S.L.', dir: '03440, Ibi, Alicante/Alacant, España', calle: 'C. Huelva, 2, 03440 Ibi, Alicante', horario: '8:00-13:00 · 15:00-19:00', tfno: '965553757', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/PFPq7gDiDxCMrq4t7', freq: 1 },
@@ -7879,7 +7878,7 @@
                 { t: 'Grupajes', chip: 'Nacional 24h', img: '/images/FOTO 1 - copia55420ac5170e2.jpeg', pos: '', d: 'Comparte espacio y optimiza costes. Mercancía paletizada y cargas especiales. Recogida en 24h, entrega en 24-48h.' },
                 { t: 'Carga Completa', chip: 'Tráfico directo', img: '/images/HERO-DYNAMO.webp', pos: '34% center', d: 'El camión es tuyo. Sin transbordos: máxima seguridad, rapidez y entrega directa origen-destino.' },
                 { t: 'Importación', chip: 'Toda Europa', img: '/images/AdobeStock_154376791.jpeg', pos: '', d: 'Hasta la puerta de tu empresa, desde cualquier punto de Europa, con plazos garantizados y máxima calidad.' },
-                { t: 'Exportación', chip: 'Import & Export', img: '/images/AdobeStock_260603287.jpeg', pos: '', d: 'Portugal, Francia, Alemania, Italia, Suiza, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.' }
+                { t: 'Exportación', chip: 'Import & Export', img: '/images/AdobeStock_260603287.jpeg', pos: '', d: 'Portugal, Francia, Alemania, Italia, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.' }
             ];
             rowS.innerHTML = SVCS.map(function (s) {
                 return '<div class="dash-svc-card">' +
