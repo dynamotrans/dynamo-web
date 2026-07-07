@@ -1556,6 +1556,13 @@
             border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.10);
         }
         .alm-field textarea { resize: vertical; min-height: 70px; }
+        /* Los buscadores tipo envío (.ptar-input-wrap) dentro de .alm-field NO
+           deben heredar el borde/fondo de los inputs normales (si no, se ve una
+           caja dentro de otra). El borde lo pone el .ptar-input-wrap. */
+        .alm-field .ptar-input-wrap input {
+            border: none !important; background: transparent !important; padding: 0 !important;
+            border-radius: 0 !important; box-shadow: none !important; width: auto; flex: 1;
+        }
         .alm-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
         .alm-addr {
             margin-top: 0.7rem; padding: 0.8rem 0.95rem; background: var(--gray-100);
@@ -4067,9 +4074,11 @@
 
             <div class="alm-field">
                 <label>Almacén Dynamo</label>
-                <div class="alm-combo" id="almCombo">
-                    <input type="text" id="almSearch" placeholder="Busca por provincia o ciudad… (48 almacenes)" autocomplete="off" oninput="almFilter()" onfocus="almFilter()">
-                    <div class="alm-combo-list" id="almComboList" hidden></div>
+                <div class="ptar-input-wrap alm-rep-wrap" id="almCombo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21V9l9-5 9 5v12"/><path d="M3 21h18"/><rect x="8" y="13" width="8" height="8"/></svg>
+                    <input type="text" id="almSearch" placeholder="Busca por provincia o ciudad… (48 almacenes)" autocomplete="off" inputmode="search" oninput="almFilter()" onfocus="almFilter()">
+                    <button type="button" class="ptar-clear" id="almSelClearBtn" hidden onclick="almSelClear(true)" aria-label="Cambiar almacén">✕</button>
+                    <ul class="ptar-sug alm-combo-list" id="almComboList" hidden></ul>
                 </div>
                 <div class="alm-addr" id="almAddr" hidden></div>
             </div>
@@ -4806,28 +4815,47 @@
     }
     function almFilter() {
         var inp = document.getElementById('almSearch'), list = document.getElementById('almComboList');
-        if (!inp || !list) return;
+        if (!inp || !list || inp.readOnly) return;   // bloqueado (chip) → no abre
         var q = normTxt(inp.value);
         var items = [];
         DYNAMO_ALMACENES.forEach(function (a, i) {
             if (q && normTxt(a.prov + ' ' + a.ciudad + ' ' + a.dir).indexOf(q) === -1) return;
-            items.push('<div class="alm-combo-item" onmousedown="almPickAlmacen(' + i + ');event.preventDefault();">' +
+            items.push('<li class="alm-combo-item" onmousedown="almPickAlmacen(' + i + ');event.preventDefault();">' +
                 '<span><strong>' + escapeHtml(a.prov) + '</strong> · ' + escapeHtml(a.ciudad) + '</span>' +
-                '<span class="sub">' + escapeHtml(a.dir.split(',')[0]) + '</span></div>');
+                '<span class="sub">' + escapeHtml(a.dir.split(',')[0]) + '</span></li>');
         });
-        list.innerHTML = items.length ? items.join('') : '<div class="alm-combo-empty">Sin resultados — prueba con la provincia o la ciudad</div>';
+        list.innerHTML = items.length ? items.join('') : '<li class="alm-combo-empty">Sin resultados — prueba con la provincia o la ciudad</li>';
         list.hidden = false;
     }
     window.almFilter = almFilter;
     function almPickAlmacen(i) {
         var a = DYNAMO_ALMACENES[i]; if (!a) return;
         _almSel = i;
-        var inp = document.getElementById('almSearch'), list = document.getElementById('almComboList'), addr = document.getElementById('almAddr');
-        if (inp) inp.value = 'Dynamo almacén asociado · ' + a.prov;
+        var inp = document.getElementById('almSearch'), list = document.getElementById('almComboList'),
+            addr = document.getElementById('almAddr'), wrap = document.getElementById('almCombo'),
+            x = document.getElementById('almSelClearBtn');
+        // Chip bloqueado (igual que el buscador del envío): readonly + estilo
+        // ptar-picked + botón × para cambiarlo.
+        if (inp) { inp.value = 'Dynamo almacén asociado · ' + a.prov; inp.readOnly = true; }
+        if (wrap) wrap.classList.add('ptar-picked');
+        if (x) x.hidden = false;
         if (list) list.hidden = true;
         if (addr) { addr.innerHTML = almAddrHTML(a); addr.hidden = false; }
     }
     window.almPickAlmacen = almPickAlmacen;
+    function almSelClear(focus) {
+        _almSel = -1;
+        var inp = document.getElementById('almSearch'), addr = document.getElementById('almAddr'),
+            wrap = document.getElementById('almCombo'), x = document.getElementById('almSelClearBtn'),
+            list = document.getElementById('almComboList');
+        if (inp) { inp.readOnly = false; inp.value = ''; }
+        if (wrap) wrap.classList.remove('ptar-picked');
+        if (x) x.hidden = true;
+        if (addr) addr.hidden = true;
+        if (list) list.hidden = true;
+        if (focus && inp) inp.focus();
+    }
+    window.almSelClear = almSelClear;
     // Cerrar la lista al pinchar fuera (una sola vez).
     document.addEventListener('pointerdown', function (e) {
         var list = document.getElementById('almComboList');
@@ -4845,9 +4873,7 @@
         _almSel = -1; _almPending = null;
         var cf = document.getElementById('almConfirm'); if (cf) { cf.hidden = true; cf.innerHTML = ''; }
         var fp = document.getElementById('almFormPanel'); if (fp) fp.hidden = false;
-        var inp = document.getElementById('almSearch'); if (inp) inp.value = '';
-        var list = document.getElementById('almComboList'); if (list) list.hidden = true;
-        var addr = document.getElementById('almAddr'); if (addr) addr.hidden = true;
+        almSelClear();   // desbloquea el chip del almacén y limpia
         var rep = document.getElementById('almReparto'); if (rep) rep.value = '0';
         var notas = document.getElementById('almNotas'); if (notas) notas.value = '';
         var err = document.getElementById('almErr'); if (err) err.classList.remove('show');
