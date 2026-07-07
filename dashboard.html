@@ -1453,13 +1453,14 @@
         .badge-entrega   { background: #fff; color: #047857; box-shadow: inset 0 0 0 1px #b7ebcd; } /* Llegando a la entrega: blanco, punto verde */
         .badge-entregado { background: #d1fae5; color: #065f46; }  /* Entregado: green */
         .badge-cancelada { background: #fee2e2; color: #991b1b; }  /* Cancelada: red */
+        .badge-pago      { background: #ffe4b3; color: #92400e; box-shadow: inset 0 0 0 1px #f59e0b; }  /* Pendiente de pago: ámbar */
         /* Punto parpadeante a la izquierda del texto en ciertos estados de envío.
            (Entregado y Cancelada se quedan sin punto.) */
-        .badge-prog, .badge-hacia, .badge-cargando, .badge-enruta, .badge-entrega, .badge-retrasada {
+        .badge-prog, .badge-hacia, .badge-cargando, .badge-enruta, .badge-entrega, .badge-retrasada, .badge-pago {
             display: inline-flex; align-items: center; gap: 0.42em;
         }
         .badge-prog::before, .badge-hacia::before, .badge-cargando::before,
-        .badge-enruta::before, .badge-entrega::before, .badge-retrasada::before {
+        .badge-enruta::before, .badge-entrega::before, .badge-retrasada::before, .badge-pago::before {
             content: ""; width: 7px; height: 7px; border-radius: 50%;
             flex-shrink: 0; animation: badgeDotBlink 1.3s ease-in-out infinite;
         }
@@ -1469,10 +1470,11 @@
         .badge-enruta::before    { background: #00e676; box-shadow: 0 0 5px #00e676; }    /* verde flúor */
         .badge-entrega::before   { background: #00e676; box-shadow: 0 0 5px #00e676; }    /* verde flúor */
         .badge-retrasada::before { background: #ef4444; box-shadow: 0 0 4px #ef4444; }    /* rojo */
+        .badge-pago::before      { background: #f59e0b; box-shadow: 0 0 5px #f59e0b; }    /* ámbar */
         @keyframes badgeDotBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
         @media (prefers-reduced-motion: reduce) {
             .badge-prog::before, .badge-hacia::before, .badge-cargando::before,
-            .badge-enruta::before, .badge-entrega::before, .badge-retrasada::before { animation: none; }
+            .badge-enruta::before, .badge-entrega::before, .badge-retrasada::before, .badge-pago::before { animation: none; }
         }
         /* Chip 📄 al lado del estado cuando la entrega tiene albaran PDF */
         .badge-doc {
@@ -3348,6 +3350,7 @@
         </div>
         <div class="tabs" data-table="cargas">
             <button class="tab active" data-filter="programada">Programadas (<span data-count="programada">0</span>)</button>
+            <button class="tab" data-filter="pendiente-pago">Pendiente de pago (<span data-count="pendiente-pago">0</span>)</button>
             <button class="tab" data-filter="entregada">Entregadas (<span data-count="entregada">0</span>)</button>
             <button class="tab" data-filter="cancelada">Canceladas (<span data-count="cancelada">0</span>)</button>
             <button class="tab" data-filter="todas">Todas (<span data-count="todas">0</span>)</button>
@@ -5693,6 +5696,9 @@
             matricula: extra.matricula || null,
             conductor: extra.conductor || null,
             tfnoConductor: extra.tfnoConductor || null,
+            // Pago por adelantado sin verificar: el envío queda "Pendiente de
+            // pago" y no avanza hasta que backend lo marque como pagado.
+            pendientePago: !!extra.pendientePago,
             // Solo mockup: fuerza la fase del día para visualizar los chips
             // de "Hacia la carga / Cargando / En ruta" sin esperar a la hora
             // exacta. En producción se deja undefined y el cálculo es por hora.
@@ -5871,6 +5877,10 @@
         }));
         CARGAS_DATA.unshift(makeCarga('#C-2026-1298','PED-0434', fechaFuturaLaborable(1), '1 a 2 días','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Conservas','13,2 m · 23.000 kg','programada'));
         CARGAS_DATA.unshift(makeCarga('#C-2026-1297','PED-0433', fechaFuturaLaborable(2), 'Fija','Sevilla','Valencia','Pol. Las Pajanosas → Puerto','Paletizado / Aceite','Aceite oliva virgen','13,2 m · 24.000 kg','programada'));
+        // === SEMILLAS: envíos con pago por adelantado sin verificar todavía →
+        //     estado "Pendiente de pago" (no avanzan hasta validar el pago).
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1301','PED-0437', fechaFuturaLaborable(2), '1 a 2 días','Sevilla','Bilbao','Pol. Store → Pol. Erandio','Paletizado','Material eléctrico','13,2 m · 21.000 kg','programada', undefined, { precio: '980 €', pendientePago: true }));
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1300','PED-0436', fechaFuturaLaborable(3), 'Fija','Sevilla','Barcelona','Centro → Mercabarna','Paletizado','Conservas vegetales','13,2 m · 22.000 kg','programada', undefined, { precio: '1.180 €', pendientePago: true }));
     })();
 
     // === MOCK: ampliar el listado de envíos hasta 70 ===
@@ -6202,16 +6212,20 @@
     // - programada  → kind 'programada' CON fecha + kind 'en-ruta' (las que están
     //                cargando hoy). Se unificó en una sola pestaña; el resaltado
     //                visual por proximidad (hoy/mañana/pasado) reemplaza el filtro
-    function isPrevision(c)  { return c.kind === 'programada' && c.fecha === 'Sin fecha'; }
-    function isProgramada(c) { return (c.kind === 'programada' && c.fecha !== 'Sin fecha') || c.kind === 'en-ruta'; }
+    // Pendiente de pago = envío de pago por adelantado (sin crédito) que NO
+    // avanza hasta que backend lo marque como pagado. Al marcarse pagado se
+    // limpia el flag y pasa a "Programado" con normalidad.
+    function isPendientePago(c) { return c.kind === 'programada' && !!c.pendientePago; }
+    function isPrevision(c)  { return c.kind === 'programada' && c.fecha === 'Sin fecha' && !c.pendientePago; }
+    function isProgramada(c) { return (c.kind === 'programada' && c.fecha !== 'Sin fecha' && !c.pendientePago) || c.kind === 'en-ruta'; }
     // Pendiente = programada con fecha y sin transportista asignado todavía.
     // Confirmada = programada con transportista (aunque no haya matrícula ni
     // chofer), o ya cargada y en ruta (en-ruta implica transportista cerrado).
     function isProgramadaPendiente(c)  {
-        return c.kind === 'programada' && c.fecha !== 'Sin fecha' && !c.transportistaAsignado;
+        return c.kind === 'programada' && c.fecha !== 'Sin fecha' && !c.pendientePago && !c.transportistaAsignado;
     }
     function isProgramadaConfirmada(c) {
-        return (c.kind === 'programada' && c.fecha !== 'Sin fecha' && !!c.transportistaAsignado) || c.kind === 'en-ruta';
+        return (c.kind === 'programada' && c.fecha !== 'Sin fecha' && !c.pendientePago && !!c.transportistaAsignado) || c.kind === 'en-ruta';
     }
     // Información de resaltado de una fila por su fecha "DD/MM":
     //   level: 0 (carga del anchor), 1 (siguiente día laborable), 2 (el siguiente)
@@ -6330,6 +6344,9 @@
         }
         if (c.kind === 'entregada') return { label: 'Entregado',  color: 'entregado' };
         if (c.kind === 'cancelada') return { label: 'Cancelada',  color: 'cancelada' };
+        // Pago por adelantado sin verificar: el envío no avanza hasta que el
+        // equipo confirme el pago. Manda sobre cualquier otra fase.
+        if (c.pendientePago)        return { label: 'Pendiente de pago', color: 'pago' };
         if (c._phaseSim === 'hacia')    return { label: 'Llegando a la recogida', color: 'hacia' };
         if (c._phaseSim === 'cargando') return { label: 'Cargando',       color: 'cargando' };
         if (c._phaseSim === 'enruta')   return { label: 'En ruta',        color: 'enruta' };
@@ -6372,6 +6389,8 @@
 
     function getAsignacionEstado(c) {
         if (c.kind === 'entregada' || c.kind === 'cancelada') return null;
+        // Mientras el pago no esté verificado no se asigna transportista.
+        if (c.pendientePago) return { key: 'pendiente-pago', label: 'A la espera del pago' };
         // La señal que dispara "Confirmado" es transportistaAsignado, no la
         // matrícula. El equipo puede tener al transportista cerrado y aún
         // estar pendiente de definir qué camión exacto irá (puede tener 2 en
@@ -7262,6 +7281,7 @@
         if (f === 'todas')                      arr = CARGAS_DATA.slice();
         else if (f === 'prevision')             arr = CARGAS_DATA.filter(isPrevision);
         else if (f === 'programada')            arr = CARGAS_DATA.filter(isProgramada);
+        else if (f === 'pendiente-pago')        arr = CARGAS_DATA.filter(isPendientePago);
         else if (f === 'programada-pendiente')  arr = CARGAS_DATA.filter(isProgramadaPendiente);
         else if (f === 'programada-confirmada') arr = CARGAS_DATA.filter(isProgramadaConfirmada);
         else                                    arr = CARGAS_DATA.filter(function (c) { return c.kind === f; });
@@ -7540,6 +7560,7 @@
         var tabs = document.querySelector('.tabs[data-table="cargas"]');
         if (tabs) {
             setText(tabs.querySelector('[data-count="programada"]'),            CARGAS_DATA.filter(isProgramada).length);
+            setText(tabs.querySelector('[data-count="pendiente-pago"]'),        CARGAS_DATA.filter(isPendientePago).length);
             setText(tabs.querySelector('[data-count="programada-pendiente"]'),  CARGAS_DATA.filter(isProgramadaPendiente).length);
             setText(tabs.querySelector('[data-count="programada-confirmada"]'), CARGAS_DATA.filter(isProgramadaConfirmada).length);
             setText(tabs.querySelector('[data-count="entregada"]'),             CARGAS_DATA.filter(function(c){return c.kind==='entregada';}).length);
@@ -9469,6 +9490,9 @@
                         d.mercanciaShort, '', d.medidas, 'programada', undefined, {
                             creadoEn: Date.now(),
                             precio: fmtEur(precioNum) + ' €',
+                            // Sin crédito → pago por adelantado: el envío nace
+                            // "Pendiente de pago" y no avanza hasta validar el pago.
+                            pendientePago: d.formaPago === 'transferencia',
                             origenSite: oS ? oS.key : null,
                             origenDir: oS ? oS.site.dir : null,
                             destinoSite: dS ? dS.key : null,
@@ -9486,17 +9510,21 @@
                     // la pestaña "Previsión sin fecha" (no está en agenda real); en
                     // caso contrario va a "Programadas".
                     var isPrev = (d.fechaTxt === 'Sin fecha');
+                    var esPrepago = (d.formaPago === 'transferencia');
                     // Una carga recién creada nunca tiene transportista todavía
                     // → cae en "Programadas pendientes". Si es sin fecha va a
-                    // "Previsión sin fecha".
-                    TABLE_STATE.cargas.filter = isPrev ? 'prevision' : 'programada-pendiente';
+                    // "Previsión sin fecha". Si es pago por adelantado sin
+                    // verificar, va a "Pendiente de pago".
+                    TABLE_STATE.cargas.filter = isPrev ? 'prevision' : (esPrepago ? 'pendiente-pago' : 'programada-pendiente');
                     renderCargasTable();
                     if (typeof refreshStatCargasActivas === 'function') refreshStatCargasActivas();
                     showModalSuccess(
                         isPrev ? 'Previsión ' + ref + ' guardada' : 'Envío ' + ref + ' creado',
                         isPrev
                             ? 'Queda anotada en "Previsión sin fecha" sin asignar camión. Cuando le pongas fecha pasará por el proceso de confirmación con avisos y condiciones, y se tramitará como pedido real.'
-                            : 'Tu solicitud está creada. La verás en el listado de "Programadas" con el detalle completo.'
+                            : esPrepago
+                                ? 'Tu solicitud está creada en estado "Pendiente de pago". No se asigna camión ni avanza hasta que validemos el pago por adelantado. En cuanto lo confirmemos pasará a "Programado".'
+                                : 'Tu solicitud está creada. La verás en el listado de "Programadas" con el detalle completo.'
                     );
                     setTimeout(function () { showSection('cargas'); }, 1200);
                 } else {
@@ -9626,7 +9654,7 @@
                 return !chip || chip.classList.contains('cesce-status-ok');
             }
             // Cuenta bancaria de Dynamo (mock; el backend dará la real).
-            var PAGO_BANCO = { titular: 'Dynamo Operador Logístico, S.L.', iban: 'ES68 2100 0418 4502 0005 1332', banco: 'CaixaBank', bic: 'CAIXESBBXXX' };
+            var PAGO_BANCO = { titular: 'Dynamo Operador Logístico, S.L.', iban: 'ES63 0049 1837 5928 1046 8445', banco: 'Banco Santander', bic: 'BSCHESMM' };
             function eurStr(n) { return String(n || 0).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
             // Aviso común de validación de pago (24 h · ventana 1-3 días).
             var PAGO_NOTA_24H = '<div class="ptar-pay-note">⏱ El transporte <strong>no se gestiona ni se asigna camión hasta validar el pago</strong> (la validación puede tardar <strong>hasta 24&nbsp;h</strong>, no es instantánea). El <strong>plazo de carga empieza a contar desde que validamos el pago</strong>, no desde hoy: si se verifica antes de las 9:00 se puede cargar al día siguiente; si no, dentro de la ventana elegida desde ese momento. Cuanto antes pagues, antes se procesa.</div>';
