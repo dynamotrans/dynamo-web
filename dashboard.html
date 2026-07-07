@@ -3171,10 +3171,6 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         Mi cuenta
                     </button>
-                    <button type="button" class="user-menu-item" role="menuitem" onclick="goFromMenu('datos-empresa')">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
-                        Datos de empresa
-                    </button>
                     <button type="button" class="user-menu-item" role="menuitem" onclick="goFromMenu('soporte')">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
                         Soporte
@@ -3833,57 +3829,25 @@
         <div class="account-grid">
             <div class="account-card">
                 <h3 class="account-card-title">Datos personales</h3>
-                <div class="account-row"><span class="account-row-label">Nombre y apellidos</span><span class="account-row-value">Juan García López</span></div>
+                <div class="account-row"><span class="account-row-label">Nombre y apellidos</span><span class="account-row-value" id="accountNombre">Juan García López</span></div>
                 <div class="account-row"><span class="account-row-label">Email</span><span class="account-row-value" id="accountEmail">juan@marbexindustrial.com</span></div>
-                <div class="account-row"><span class="account-row-label">Teléfono</span><span class="account-row-value">+34 612 345 678</span></div>
+                <div class="account-row"><span class="account-row-label">Teléfono</span><span class="account-row-value" id="accountTel">+34 612 345 678</span></div>
                 <div class="account-row"><span class="account-row-label">Rol</span><span class="user-menu-role">Cliente</span></div>
-                <button class="btn-ghost account-edit">Editar datos</button>
+                <button class="btn-ghost account-edit" onclick="openEditarDatos();return false;">Editar datos</button>
             </div>
             <div class="account-card">
                 <h3 class="account-card-title">Seguridad</h3>
                 <div class="account-row"><span class="account-row-label">Contraseña</span><span class="account-row-value">••••••••</span></div>
                 <div class="account-row"><span class="account-row-label">Última conexión</span><span class="account-row-value">Hoy · 09:14</span></div>
-                <div class="account-row"><span class="account-row-label">2FA</span><span class="account-row-value" style="color:var(--gray-500);">No activada</span></div>
-                <button class="btn-ghost account-edit">Cambiar contraseña</button>
+                <button class="btn-ghost account-edit" onclick="openCambiarPassword();return false;">Cambiar contraseña</button>
             </div>
-            <div class="account-card">
-                <h3 class="account-card-title">Preferencias</h3>
-                <div class="account-row"><span class="account-row-label">Notificaciones por email</span><span class="account-row-value">Activadas</span></div>
-                <div class="account-row"><span class="account-row-label">Alertas de envíos en ruta</span><span class="account-row-value">Activadas</span></div>
-                <div class="account-row"><span class="account-row-label">Resumen mensual</span><span class="account-row-value">Activado</span></div>
-                <button class="btn-ghost account-edit">Gestionar avisos</button>
-            </div>
-        </div>
-    </section>
-
-    <!-- ==================== DATOS DE EMPRESA ==================== -->
-    <section class="section" id="sec-datos-empresa">
-        <div class="sec-header">
-            <h2>Datos de empresa</h2>
-            <button class="btn-ghost" onclick="showSection('dashboard');return false;">← Volver</button>
-        </div>
-        <div class="account-grid">
             <div class="account-card">
                 <h3 class="account-card-title">Datos fiscales</h3>
                 <div class="account-row"><span class="account-row-label">Razón social</span><span class="account-row-value">Marbex Industrial S.L.</span></div>
                 <div class="account-row"><span class="account-row-label">CIF</span><span class="account-row-value">B91234567</span></div>
                 <div class="account-row"><span class="account-row-label">Dirección fiscal</span><span class="account-row-value">C/ Industria 22, 41008 Sevilla</span></div>
                 <div class="account-row"><span class="account-row-label">País</span><span class="account-row-value">🇪🇸 España</span></div>
-                <button class="btn-ghost account-edit">Solicitar cambio</button>
-            </div>
-            <div class="account-card">
-                <h3 class="account-card-title">Contacto operativo</h3>
-                <div class="account-row"><span class="account-row-label">Persona de contacto</span><span class="account-row-value">Juan García</span></div>
-                <div class="account-row"><span class="account-row-label">Teléfono operativo</span><span class="account-row-value">+34 955 220 110</span></div>
-                <div class="account-row"><span class="account-row-label">Email operativo</span><span class="account-row-value">logistica@marbexindustrial.com</span></div>
-                <button class="btn-ghost account-edit">Actualizar</button>
-            </div>
-            <div class="account-card">
-                <h3 class="account-card-title">Direcciones habituales</h3>
-                <div class="account-row"><span class="account-row-label">Almacén principal</span><span class="account-row-value">Polígono La Negrilla, Sevilla</span></div>
-                <div class="account-row"><span class="account-row-label">Centro logístico</span><span class="account-row-value">Mercamadrid, Madrid</span></div>
-                <div class="account-row"><span class="account-row-label">+ 3 direcciones más</span><span class="account-row-value" style="color:var(--gray-500);">guardadas</span></div>
-                <button class="btn-ghost account-edit">Gestionar direcciones</button>
+                <p class="account-card-desc" style="margin-top:0.8rem;">Para modificar tus datos fiscales, llámanos o escríbenos y lo actualizamos.</p>
             </div>
         </div>
     </section>
@@ -3906,16 +3870,7 @@
                 <h3 class="account-card-title">Horario de atención</h3>
                 <div class="account-row"><span class="account-row-label">Teléfono</span><span class="account-row-value" data-sched="phone-long">Lunes a Jueves 9:00-14:00 y 15:00-17:00 · Viernes 9:00-14:00</span></div>
                 <div class="account-row"><span class="account-row-label">WhatsApp / Email</span><span class="account-row-value" data-sched="online-long">Lunes a Viernes 8:00-18:00</span></div>
-                <div class="account-row"><span class="account-row-label">Fuera de horario</span><span class="account-row-value" style="color:var(--gray-500);">Responderemos al volver</span></div>
                 <p class="account-card-desc" style="margin-top:0.7rem;">Si tu envío está en curso y necesitas algo urgente, escríbenos por WhatsApp — lo verá un operador de guardia.</p>
-            </div>
-            <div class="account-card">
-                <h3 class="account-card-title">Preguntas frecuentes</h3>
-                <a href="#" class="support-faq">¿Cómo se calcula la tarifa?</a>
-                <a href="#" class="support-faq">¿Qué hago si mi envío llega tarde?</a>
-                <a href="#" class="support-faq">¿Cómo gestiono una reclamación?</a>
-                <a href="#" class="support-faq">¿Qué cubre el seguro CESCE?</a>
-                <a href="#" class="support-faq">Ver todas las preguntas →</a>
             </div>
         </div>
     </section>
@@ -3932,7 +3887,6 @@
         'sitios':            'Sitios',
         'nueva-carga':       'Nueva carga',
         'mi-cuenta':         'Mi cuenta',
-        'datos-empresa':     'Datos de empresa',
         'soporte':           'Soporte'
     };
     function showSection(id) {
@@ -4150,6 +4104,89 @@
     function escapeHtml(s) {
         s = String(s == null ? '' : s);
         return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    // ===== Mi cuenta: editar datos personales / cambiar contraseña =====
+    function openEditarDatos() {
+        var nombre = (document.getElementById('accountNombre') || {}).textContent || '';
+        var email = (document.getElementById('accountEmail') || {}).textContent || '';
+        var tel = (document.getElementById('accountTel') || {}).textContent || '';
+        var body =
+            '<div class="modal-form-row"><label>Nombre y apellidos</label>' +
+            '<input type="text" id="edNombre" value="' + escapeHtml(nombre) + '"></div>' +
+            '<div class="modal-form-row"><label>Teléfono</label>' +
+            '<input type="tel" id="edTel" value="' + escapeHtml(tel) + '"></div>' +
+            '<div class="modal-form-row"><label>Email <span style="color:var(--gray-500);font-weight:600;">· no editable</span></label>' +
+            '<input type="email" value="' + escapeHtml(email) + '" disabled style="background:var(--gray-100);color:var(--gray-500);cursor:not-allowed;"></div>' +
+            '<div class="modal-form-row"><label>Rol <span style="color:var(--gray-500);font-weight:600;">· no editable</span></label>' +
+            '<input type="text" value="Cliente" disabled style="background:var(--gray-100);color:var(--gray-500);cursor:not-allowed;"></div>' +
+            '<p class="modal-form-note" id="edDatosErr" style="display:none;color:#d33;font-size:0.8rem;margin:0.3rem 0 0;">Revisa los campos: el nombre no puede quedar vacío.</p>';
+        openDashModal({
+            icon: 'file',
+            title: 'Editar datos',
+            sub: 'Actualiza tu nombre y teléfono de contacto',
+            body: body,
+            footer: '<button class="btn-ghost" onclick="closeDashModal();return false;">Cerrar</button>' +
+                '<button class="btn-primary" onclick="guardarDatosCuenta();return false;">Guardar</button>',
+            afterOpen: function () { var n = document.getElementById('edNombre'); if (n) n.focus(); }
+        });
+    }
+    function guardarDatosCuenta() {
+        var n = document.getElementById('edNombre');
+        var t = document.getElementById('edTel');
+        var err = document.getElementById('edDatosErr');
+        var nombre = n ? n.value.trim() : '';
+        var tel = t ? t.value.trim() : '';
+        if (!nombre) {
+            if (err) err.style.display = 'block';
+            if (n) { n.classList.add('sitio-f-err'); n.focus(); }
+            return;
+        }
+        var nv = document.getElementById('accountNombre');
+        var tv = document.getElementById('accountTel');
+        if (nv) nv.textContent = nombre;
+        if (tv) tv.textContent = tel || '—';
+        showLoadingOverlay('Guardando…', 700, function () {
+            showModalSuccess('Datos actualizados', 'Tus datos personales se han guardado correctamente.');
+        });
+    }
+    function openCambiarPassword() {
+        var body =
+            '<div class="modal-form-row"><label>Contraseña actual</label>' +
+            '<input type="password" id="pwActual" autocomplete="current-password"></div>' +
+            '<div class="modal-form-row"><label>Nueva contraseña</label>' +
+            '<input type="password" id="pwNueva" autocomplete="new-password"></div>' +
+            '<div class="modal-form-row"><label>Repetir nueva contraseña</label>' +
+            '<input type="password" id="pwRepetir" autocomplete="new-password"></div>' +
+            '<p class="modal-form-note" id="pwErr" style="display:none;color:#d33;font-size:0.8rem;margin:0.3rem 0 0;"></p>' +
+            '<p class="account-card-desc" style="margin:0.5rem 0 0;">Mínimo 8 caracteres. Usa mayúsculas, minúsculas y algún número.</p>';
+        openDashModal({
+            icon: 'file',
+            title: 'Cambiar contraseña',
+            sub: 'Introduce tu contraseña actual y la nueva',
+            body: body,
+            footer: '<button class="btn-ghost" onclick="closeDashModal();return false;">Cerrar</button>' +
+                '<button class="btn-primary" onclick="guardarPasswordCuenta();return false;">Guardar</button>',
+            afterOpen: function () { var a = document.getElementById('pwActual'); if (a) a.focus(); }
+        });
+    }
+    function guardarPasswordCuenta() {
+        var a = document.getElementById('pwActual');
+        var nu = document.getElementById('pwNueva');
+        var re = document.getElementById('pwRepetir');
+        var err = document.getElementById('pwErr');
+        var actual = a ? a.value : '';
+        var nueva = nu ? nu.value : '';
+        var rep = re ? re.value : '';
+        function fail(msg, focusEl) {
+            if (err) { err.textContent = msg; err.style.display = 'block'; }
+            if (focusEl) focusEl.focus();
+        }
+        if (!actual) return fail('Escribe tu contraseña actual.', a);
+        if (nueva.length < 8) return fail('La nueva contraseña debe tener al menos 8 caracteres.', nu);
+        if (nueva !== rep) return fail('Las contraseñas nuevas no coinciden.', re);
+        showLoadingOverlay('Guardando…', 700, function () {
+            showModalSuccess('Contraseña cambiada', 'Tu contraseña se ha actualizado correctamente.');
+        });
     }
     function downloadFakePDF(filename) {
         // PDF minimo valido (1 pagina con titulo) - tamaño ~500 bytes
