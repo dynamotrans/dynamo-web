@@ -1750,14 +1750,18 @@
         /* Buscador ancho por defecto (crece). Los desplegables cortos (Fecha /
            Estado) se quedan a su lado y, si no caben, saltan a la fila de
            abajo — el buscador nunca se queda enano. */
+        /* Mismo estándar que el resto del panel (.ptar-select / .fact-range-btn):
+           alto 44px, borde 1.5px, radio 10px, fondo blanco, hover/focus morado. */
         .filters input, .filters select {
-            padding: 0.5rem 0.7rem; border-radius: 8px;
-            border: 1px solid var(--gray-200); background: var(--gray-50);
-            font-size: 0.85rem; color: var(--navy);
+            height: 44px; padding: 0 0.8rem; border-radius: 10px;
+            border: 1.5px solid var(--gray-200); background: white;
+            font-size: 0.9rem; color: var(--navy);
             font-family: inherit;
             min-width: 0; max-width: 100%;
+            transition: border-color 0.15s, box-shadow 0.15s;
         }
-        .filters input:focus, .filters select:focus { outline: none; border-color: var(--purple); background: white; }
+        .filters input:hover, .filters select:hover { border-color: var(--purple); }
+        .filters input:focus, .filters select:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); background: white; }
         .filters input[type="search"] { flex: 1 1 240px; min-width: 180px; }
         /* Filtro por mes ("Fecha") — corto; el input "Otro mes / año…" solo
            aparece al elegir esa opción. */
@@ -2162,15 +2166,15 @@
             font-size: 0.78rem; font-weight: 700; color: var(--gray-700);
         }
         .pagination-perpage {
-            padding: 0.35rem 0.55rem; border-radius: 7px;
-            border: 1px solid var(--gray-200); background: white;
+            padding: 0.4rem 0.6rem; border-radius: 10px;
+            border: 1.5px solid var(--gray-200); background: white;
             font-size: 0.82rem; font-weight: 700; color: var(--navy);
             cursor: pointer; outline: none;
             font-family: inherit;
             transition: border-color 0.15s, box-shadow 0.15s;
         }
-        .pagination-perpage:hover { border-color: rgba(51,0,204,0.4); }
-        .pagination-perpage:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.10); }
+        .pagination-perpage:hover { border-color: var(--purple); }
+        .pagination-perpage:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
 
         /* =========================================
            TARIFADOR INTERNO DEL PANEL
