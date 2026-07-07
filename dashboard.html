@@ -4220,6 +4220,195 @@
         document.body.appendChild(a); a.click();
         setTimeout(function () { URL.revokeObjectURL(url); document.body.removeChild(a); }, 100);
     }
+    // Datos fiscales del emisor y del cliente para la proforma (mock; en
+    // producción vendrán del backend / perfil de empresa).
+    var PROFORMA_EMISOR = { nombre: 'Dynamo Operador Logístico SL', cif: 'B01596360', email: 'info@dynamotrans.com', tel: '+34 955 225 945', web: 'dynamotrans.com' };
+    var PROFORMA_CLIENTE = { nombre: 'Marbex Industrial S.L.', cif: 'B91234567', dir: 'C/ Industria 22, 41008 Sevilla', pais: 'España' };
+    var PROFORMA_BANCO = { titular: 'Dynamo Operador Logístico SL', cif: 'B01596360', iban: 'ES63 0049 1837 5928 1046 8445', banco: 'Banco Santander', bic: 'BSCHESMM' };
+    // Genera y descarga un PDF proforma con formato profesional del envío `d`.
+    function descargarProforma(d) {
+        d = d || {};
+        var W = 595.28, H = 841.89, mL = 48, mR = 547;
+        // Codificación WinAnsi con escapes octales (mantiene el stream ASCII →
+        // el Blob no corrompe los acentos; el lector los interpreta como CP1252).
+        var WIN = { 'á': '\\341', 'é': '\\351', 'í': '\\355', 'ó': '\\363', 'ú': '\\372', 'ü': '\\374', 'ñ': '\\361', 'Á': '\\301', 'É': '\\311', 'Í': '\\315', 'Ó': '\\323', 'Ú': '\\332', 'Ñ': '\\321', '¿': '\\277', '¡': '\\241', '·': '\\267', 'º': '\\272', 'ª': '\\252', '€': '\\200', '–': '\\226', '—': '\\227' };
+        function enc(s) {
+            s = String(s == null ? '' : s); var o = '';
+            for (var i = 0; i < s.length; i++) {
+                var c = s.charAt(i), code = s.charCodeAt(i);
+                if (c === '(' || c === ')' || c === '\\') o += '\\' + c;
+                else if (WIN[c]) o += WIN[c];
+                else if (code >= 32 && code < 127) o += c;
+                else o += '?';
+            }
+            return o;
+        }
+        var ops = [];
+        function fill(r, g, b) { ops.push(r + ' ' + g + ' ' + b + ' rg'); }
+        function strokeC(r, g, b) { ops.push(r + ' ' + g + ' ' + b + ' RG'); }
+        function rect(x, y, w, h) { ops.push(x.toFixed(1) + ' ' + y.toFixed(1) + ' ' + w.toFixed(1) + ' ' + h.toFixed(1) + ' re f'); }
+        function lw(n) { ops.push(n + ' w'); }
+        function ty(t) { return (H - t).toFixed(1); }
+        function line(x1, t1, x2, t2) { ops.push(x1.toFixed(1) + ' ' + ty(t1) + ' m ' + x2.toFixed(1) + ' ' + ty(t2) + ' l S'); }
+        function tw(str, size, bold) { return String(str).length * size * (bold ? 0.54 : 0.5); }
+        function text(x, top, str, size, bold, col) {
+            col = col || [0, 0, 0]; fill(col[0], col[1], col[2]);
+            ops.push('BT /' + (bold ? 'F2' : 'F1') + ' ' + size + ' Tf ' + x.toFixed(1) + ' ' + ty(top) + ' Td (' + enc(str) + ') Tj ET');
+        }
+        function textR(xr, top, str, size, bold, col) { text(xr - tw(str, size, bold), top, str, size, bold, col); }
+        function wrap(str, max) {
+            var words = String(str).split(' '), lines = [], cur = '';
+            for (var i = 0; i < words.length; i++) {
+                var t = cur ? cur + ' ' + words[i] : words[i];
+                if (t.length > max && cur) { lines.push(cur); cur = words[i]; } else cur = t;
+            }
+            if (cur) lines.push(cur); return lines;
+        }
+        var PURPLE = [0.20, 0.00, 0.80], NAVY = [0.07, 0.09, 0.18], GRAY = [0.42, 0.45, 0.50], LIGHT = [0.95, 0.96, 0.98], GREEN = [0.13, 0.65, 0.35];
+        // Importes: base = precio orientativo; total con IVA 21%; IVA = total-base.
+        var base = parseInt(d.precioMock, 10) || 0;
+        var total = Math.round(base * 1.21), iva = total - base;
+        function eur(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
+        var now = new Date();
+        function dd(x) { return ('0' + x).slice(-2); }
+        var fecha = dd(now.getDate()) + '/' + dd(now.getMonth() + 1) + '/' + now.getFullYear();
+        var seed = (typeof hashStr === 'function') ? hashStr((d.origCorto || '') + (d.destCorto || '') + base + (d.refCli || '')) : 1234;
+        var pno = 'PRO-' + now.getFullYear() + '-' + (1000 + (seed % 9000));
+        var refCli = (d.refCli && d.refCli.indexOf('NUEVO') === -1) ? d.refCli : null;
+        var conceptoTransfer = refCli || 'Nº de envío (te lo enviamos por email)';
+
+        // ---- Cabecera ----
+        fill(PURPLE[0], PURPLE[1], PURPLE[2]); rect(0, H - 74, W, 74);
+        text(mL, 34, 'dynamo', 23, true, [1, 1, 1]);
+        text(mL, 52, 'Operador Logístico', 9.5, false, [0.85, 0.85, 1]);
+        textR(mR, 33, 'FACTURA PROFORMA', 14, true, [1, 1, 1]);
+        textR(mR, 50, 'Documento no contable · pago por adelantado', 8, false, [0.85, 0.85, 1]);
+
+        // ---- Emisor / Cliente ----
+        text(mL, 104, 'EMISOR', 8, true, GRAY);
+        text(320, 104, 'CLIENTE', 8, true, GRAY);
+        text(mL, 119, PROFORMA_EMISOR.nombre, 10.5, true, NAVY);
+        text(320, 119, PROFORMA_CLIENTE.nombre, 10.5, true, NAVY);
+        text(mL, 133, 'CIF ' + PROFORMA_EMISOR.cif, 9, false, NAVY);
+        text(320, 133, 'CIF ' + PROFORMA_CLIENTE.cif, 9, false, NAVY);
+        text(mL, 146, PROFORMA_EMISOR.email, 9, false, GRAY);
+        text(320, 146, PROFORMA_CLIENTE.dir, 9, false, GRAY);
+        text(mL, 159, PROFORMA_EMISOR.tel + ' · ' + PROFORMA_EMISOR.web, 9, false, GRAY);
+        text(320, 159, PROFORMA_CLIENTE.pais, 9, false, GRAY);
+
+        // ---- Meta (nº proforma / fecha / envío) ----
+        fill(LIGHT[0], LIGHT[1], LIGHT[2]); rect(mL, H - 200, mR - mL, 26);
+        text(mL + 10, 190, 'Nº PROFORMA', 7.5, true, GRAY);
+        text(mL + 10, 202, pno, 10, true, NAVY);
+        text(240, 190, 'FECHA', 7.5, true, GRAY);
+        text(240, 202, fecha, 10, true, NAVY);
+        text(370, 190, 'REFERENCIA', 7.5, true, GRAY);
+        text(370, 202, refCli || '—', 10, true, NAVY);
+
+        // ---- Tabla concepto / importe ----
+        fill(NAVY[0], NAVY[1], NAVY[2]); rect(mL, H - 240, mR - mL, 20);
+        text(mL + 10, 234, 'CONCEPTO', 8.5, true, [1, 1, 1]);
+        textR(mR - 10, 234, 'IMPORTE', 8.5, true, [1, 1, 1]);
+        text(mL + 10, 262, 'Servicio de transporte de ' + (d.origCorto || '') + ' a ' + (d.destCorto || ''), 10, true, NAVY);
+        textR(mR - 10, 262, eur(base), 10, true, NAVY);
+        var det = [d.mercaTxt, d.medidas, d.camionLabel].filter(Boolean).join('  ·  ');
+        text(mL + 10, 276, det, 8.5, false, GRAY);
+        lw(0.6); strokeC(0.85, 0.87, 0.90); line(mL, 288, mR, 288);
+
+        // ---- Totales ----
+        text(360, 304, 'Base imponible', 9.5, false, GRAY); textR(mR - 10, 304, eur(base), 9.5, false, NAVY);
+        text(360, 320, 'IVA (21%)', 9.5, false, GRAY); textR(mR - 10, 320, eur(iva), 9.5, false, NAVY);
+        fill(PURPLE[0], PURPLE[1], PURPLE[2]); rect(348, H - 356, mR - 348, 26);
+        text(360, 348, 'TOTAL A PAGAR', 10.5, true, [1, 1, 1]); textR(mR - 10, 348, eur(total), 12, true, [1, 1, 1]);
+
+        // ---- Detalles del envío ----
+        text(mL, 378, 'DETALLES DEL ENVÍO', 9, true, PURPLE);
+        lw(0.6); strokeC(0.85, 0.87, 0.90); line(mL, 384, mR, 384);
+        var rows = [
+            ['Origen', d.orig || d.origCorto || '—'],
+            ['Destino', d.dest || d.destCorto || '—'],
+            ['Mercancía', d.mercaTxt || '—'],
+            ['Ocupación', d.medidas || '—'],
+            ['Camión', d.camionLabel || '—'],
+            ['Fecha de envío', d.fechaLarga || '—'],
+            ['Ventana', d.urgenciaLabel || '—']
+        ];
+        var yy = 400;
+        for (var i = 0; i < rows.length; i++) {
+            text(mL, yy, rows[i][0], 9, true, GRAY);
+            text(170, yy, rows[i][1], 9, false, NAVY);
+            yy += 15;
+        }
+
+        // ---- Datos para la transferencia ----
+        var by = yy + 12;
+        text(mL, by, 'DATOS PARA LA TRANSFERENCIA', 9, true, PURPLE);
+        lw(0.6); strokeC(0.85, 0.87, 0.90); line(mL, by + 6, mR, by + 6);
+        var brows = [
+            ['Titular', PROFORMA_BANCO.titular],
+            ['CIF', PROFORMA_BANCO.cif],
+            ['IBAN', PROFORMA_BANCO.iban],
+            ['Banco', PROFORMA_BANCO.banco + ' · ' + PROFORMA_BANCO.bic],
+            ['Importe (IVA 21% incl.)', eur(total)],
+            ['Concepto', conceptoTransfer]
+        ];
+        yy = by + 22;
+        for (i = 0; i < brows.length; i++) {
+            text(mL, yy, brows[i][0], 9, true, GRAY);
+            text(230, yy, brows[i][1], 9, (i === 2 || i === 4), NAVY);
+            yy += 15;
+        }
+
+        // ---- Nota de seguridad ----
+        var sy = yy + 14;
+        fill(0.96, 0.96, 1); rect(mL, H - (sy + 62), mR - mL, 62);
+        text(mL + 10, sy + 12, 'SEGURIDAD DEL PAGO', 8, true, PURPLE);
+        var seg = 'Al ordenar la transferencia, tu banco mostrará el nombre del beneficiario: debe coincidir exactamente con ' + PROFORMA_BANCO.titular + ' (CIF ' + PROFORMA_BANCO.cif + '). Si el titular no coincide, no autorices el pago. Nuestro IBAN es siempre este y nunca cambiamos de cuenta por email; ante cualquier duda llama al ' + PROFORMA_EMISOR.tel + ' antes de pagar.';
+        var segLines = wrap(seg, 108);
+        for (i = 0; i < segLines.length; i++) text(mL + 10, sy + 26 + i * 11, segLines[i], 7.8, false, NAVY);
+
+        // ---- Condiciones ----
+        var cy = sy + 78;
+        var cond = 'El transporte no se gestiona ni se asigna camión hasta validar el pago (la validación puede tardar hasta 24 h). El plazo de carga empieza a contar desde que validamos el pago.';
+        var condLines = wrap(cond, 118);
+        for (i = 0; i < condLines.length; i++) text(mL, cy + i * 11, condLines[i], 7.6, false, GRAY);
+
+        // ---- Pie ----
+        lw(0.6); strokeC(0.85, 0.87, 0.90); line(mL, 806, mR, 806);
+        var pie1 = PROFORMA_EMISOR.nombre + ' · CIF ' + PROFORMA_EMISOR.cif + ' · ' + PROFORMA_EMISOR.email + ' · ' + PROFORMA_EMISOR.tel + ' · ' + PROFORMA_EMISOR.web;
+        text((W - tw(pie1, 7.5, false)) / 2, 818, pie1, 7.5, false, GRAY);
+        var pie2 = 'Documento proforma sin valor contable. Se emitirá factura al validar el pago.';
+        text((W - tw(pie2, 7.5, false)) / 2, 829, pie2, 7.5, false, GRAY);
+
+        // ---- Ensamblado del PDF con xref correcto ----
+        var stream = ops.join('\n');
+        var objs = [
+            '<</Type/Catalog/Pages 2 0 R>>',
+            '<</Type/Pages/Count 1/Kids[3 0 R]>>',
+            '<</Type/Page/Parent 2 0 R/MediaBox[0 0 ' + W.toFixed(2) + ' ' + H.toFixed(2) + ']/Contents 4 0 R/Resources<</Font<</F1 5 0 R/F2 6 0 R>>>>>>',
+            '<</Length ' + stream.length + '>>\nstream\n' + stream + '\nendstream',
+            '<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>',
+            '<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold/Encoding/WinAnsiEncoding>>'
+        ];
+        var pdf = '%PDF-1.4\n', offsets = [];
+        for (i = 0; i < objs.length; i++) {
+            offsets.push(pdf.length);
+            pdf += (i + 1) + ' 0 obj\n' + objs[i] + '\nendobj\n';
+        }
+        var xrefPos = pdf.length;
+        pdf += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n';
+        for (i = 0; i < offsets.length; i++) {
+            pdf += ('0000000000' + offsets[i]).slice(-10) + ' 00000 n \n';
+        }
+        pdf += 'trailer<</Size ' + (objs.length + 1) + '/Root 1 0 R>>\nstartxref\n' + xrefPos + '\n%%EOF';
+        var blob = new Blob([pdf], { type: 'application/pdf' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = 'Proforma-Dynamo-' + (refCli ? String(refCli).replace(/[^A-Za-z0-9-]/g, '') : pno) + '.pdf';
+        document.body.appendChild(a); a.click();
+        setTimeout(function () { URL.revokeObjectURL(url); document.body.removeChild(a); }, 100);
+    }
+    window.descargarProforma = descargarProforma;
 
     /* ---- Extractores de datos por fila ---- */
     function txt(el) { return el ? el.textContent.trim().replace(/\s+/g, ' ') : ''; }
@@ -9681,6 +9870,7 @@
                     '<div class="pay-bank-row"><span class="pay-bank-k">Banco</span><span class="pay-bank-v">' + PAGO_BANCO.banco + ' · ' + PAGO_BANCO.bic + '</span></div>' +
                     '<div class="pay-bank-row"><span class="pay-bank-k">Importe <span style="font-weight:600;color:var(--gray-500);">(IVA 21% incl.)</span></span><span class="pay-bank-v">' + eur + '</span></div>' +
                     '<div style="margin-top:0.5rem;">Indica como <strong>concepto</strong> tu referencia o el nº de envío que te enviaremos por email. Envíanos el justificante para agilizar la validación.</div>' +
+                    '<button type="button" class="ptar-pay-pdf-btn" data-proforma-pdf><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Descargar proforma (PDF)</button>' +
                     '<div class="ptar-pay-fraud"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span><strong>Seguridad:</strong> al ordenar la transferencia, tu banco te mostrará el <strong>nombre del beneficiario</strong>: debe coincidir exactamente con <strong>Dynamo Operador Logístico SL</strong> (CIF <strong>' + PAGO_BANCO.cif + '</strong>). <strong>Si el titular no coincide, no firmes ni autorices el pago.</strong> Nuestro IBAN es siempre este (<strong>' + PAGO_BANCO.iban + '</strong>) y <strong>nunca cambiamos de cuenta por email</strong>. Ante cualquier duda o aviso de cambio de cuenta, llámanos al <strong>+34&nbsp;955&nbsp;225&nbsp;945</strong> antes de pagar.</span></div>' +
                     PAGO_NOTA_24H + '</div>';
             }
@@ -9725,7 +9915,10 @@
                     if (det && box) { var tmp = document.createElement('div'); tmp.innerHTML = pagoDetalle(r.value, eurStr(pendingData && pendingData.precioMock)); box.replaceChild(tmp.firstChild, det); }
                 });
                 payEl.addEventListener('click', function (e) {
-                    var b = e.target.closest ? e.target.closest('[data-pay-pdf]') : null;
+                    if (!e.target.closest) return;
+                    // Proforma con formato profesional (pago por adelantado).
+                    if (e.target.closest('[data-proforma-pdf]')) { descargarProforma(pendingData || {}); return; }
+                    var b = e.target.closest('[data-pay-pdf]');
                     if (!b) return;
                     var ref = (pendingData && pendingData.refCli && pendingData.refCli.indexOf('NUEVO') === -1) ? pendingData.refCli : 'envio';
                     downloadFakePDF('Pago-Dynamo-' + ref + '.pdf');
