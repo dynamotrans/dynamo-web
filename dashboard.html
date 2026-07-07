@@ -5270,6 +5270,11 @@
             '<div class="alm-intro" style="background:rgba(51,0,204,0.05);border-color:rgba(51,0,204,0.22);">Revisa tu solicitud de almacenamiento antes de confirmar. Estancia máx. <strong>7 días</strong>.</div>' +
             resumen + sitio + precio +
             '<div data-almc-pay style="margin-top:1.3rem;"></div>' +
+            '<label class="ptar-confirm-check" id="almcCheckLbl">' +
+                '<input type="checkbox" id="almcCheckTerms">' +
+                '<span>He leído y acepto las <a href="#" id="almcTermsLink">condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L.</span>' +
+            '</label>' +
+            '<div class="ptar-terms-warn" id="almcTermsWarn">⚠ No has aceptado las condiciones generales de transporte. Marca la casilla para poder confirmar el almacenamiento.</div>' +
             '<p class="alm-err" id="almcErr"></p>' +
             '<button class="btn-primary" style="width:100%;height:56px;font-size:1rem;margin-top:0.4rem;" onclick="almCrear();return false;">Confirmar almacenamiento</button>' +
             '<button class="btn-ghost" style="width:100%;height:48px;margin-top:0.6rem;" onclick="almBackToForm();return false;">← Editar datos</button>';
@@ -5284,6 +5289,28 @@
         _almPending.formaPago = window.__ptarRenderPagoInto
             ? window.__ptarRenderPagoInto(box.querySelector('[data-almc-pay]'), base, 'almacenamiento', almProforma)
             : 'transferencia';
+        // Condiciones generales: enlace al mismo texto legal y quitar el aviso
+        // de error al marcar la casilla (igual que en confirmar envío).
+        var almcTermsLink = document.getElementById('almcTermsLink');
+        if (almcTermsLink) almcTermsLink.addEventListener('click', function (e) {
+            e.preventDefault();
+            var tpl = document.getElementById('ptar-terms-template');
+            openDashModal({
+                icon: 'file',
+                title: 'Condiciones generales de transporte',
+                sub: 'Dynamo Operador Logístico, S.L. — B01596360',
+                body: tpl ? tpl.innerHTML : '<p>Texto no disponible.</p>',
+                footer: '<button class="btn-primary" onclick="closeDashModal()" style="flex:1;">He leído y entiendo</button>'
+            });
+        });
+        var almcChk = document.getElementById('almcCheckTerms');
+        if (almcChk) almcChk.addEventListener('change', function () {
+            if (almcChk.checked) {
+                var lbl = document.getElementById('almcCheckLbl'), warn = document.getElementById('almcTermsWarn');
+                if (lbl) lbl.classList.remove('check-error');
+                if (warn) warn.classList.remove('show');
+            }
+        });
         document.getElementById('almFormPanel').hidden = true;
         box.hidden = false;
         box.scrollIntoView ? box.scrollIntoView({ block: 'start' }) : null;
@@ -5350,6 +5377,15 @@
             var key = s.key || ('mi-' + normTxt(site.empresa).replace(/[^a-z0-9]+/g, '-').slice(0, 30) + '-' + ((String(s.dir || '').match(/\b\d{4,5}\b/) || ['x'])[0]));
             saveCustomSite(key, site);
             destino = { key: key, dir: site.dir || s.dir, empresa: site.empresa };
+        }
+        // Condiciones generales: hay que aceptarlas para poder confirmar
+        // (mismo criterio y estilo que el envío).
+        var chkT = document.getElementById('almcCheckTerms');
+        if (chkT && !chkT.checked) {
+            var lblT = document.getElementById('almcCheckLbl'), warnT = document.getElementById('almcTermsWarn');
+            if (lblT) { lblT.classList.add('check-error'); if (lblT.scrollIntoView) lblT.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            if (warnT) warnT.classList.add('show');
+            return;
         }
         almFinalizarReg(destino);
     }
