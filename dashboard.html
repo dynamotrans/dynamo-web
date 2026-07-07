@@ -5163,7 +5163,11 @@
             site.empresa = val('empresa'); site.horario = val('horario'); site.tfno = val('tfno');
             site.contacto = val('contacto') || null; site.notas = val('notas') || null;
             var mp = val('maps'); if (mp) site.maps = mp;
+            // El reparto va en camión pequeño a ZONA URBANA → el sitio de
+            // entrega se guarda con ese tipo por defecto (si no tenía otro).
+            // Se puede cambiar luego en la edición del sitio, no aquí.
             if (s.tipoLugar) site.tipoLugar = s.tipoLugar;
+            if (!site.tipoLugar) site.tipoLugar = 'Zona urbana';
             var key = s.key || ('mi-' + normTxt(site.empresa).replace(/[^a-z0-9]+/g, '-').slice(0, 30) + '-' + ((String(s.dir || '').match(/\b\d{4,5}\b/) || ['x'])[0]));
             saveCustomSite(key, site);
             destino = { key: key, dir: site.dir || s.dir, empresa: site.empresa };
