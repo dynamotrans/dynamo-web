@@ -1527,14 +1527,14 @@
         .dash-cta-stack .dash-cta-purple { flex: 2 1 0; }
         .dash-cta-stack .dash-cta-green  { flex: 1 1 0; }
         .dash-cta-stack .dash-cta-text h4 { font-size: 0.95rem; line-height: 1.2; }
-        /* Almacenamiento: acción secundaria → estilo claro y sutil (no el
-           verde macizo), para que "Nuevo envío" sea claramente el principal. */
+        /* Almacenamiento: acción secundaria → estilo claro y discreto
+           (blanco/gris), para que "Nuevo envío" sea claramente el principal. */
         .dash-cta-green {
-            background: rgba(34,165,90,0.09); box-shadow: none;
-            border: 1px solid rgba(34,165,90,0.30);
+            background: #fff; box-shadow: none;
+            border: 1px solid var(--gray-200);
         }
-        .dash-cta-green .dash-cta-icon { background: rgba(34,165,90,0.16); color: var(--green-dark); }
-        .dash-cta-green .dash-cta-text, .dash-cta-green .dash-cta-text h4 { color: var(--green-dark); }
+        .dash-cta-green .dash-cta-icon { background: var(--gray-100); color: var(--gray-700); }
+        .dash-cta-green .dash-cta-text, .dash-cta-green .dash-cta-text h4 { color: var(--navy); }
         .dash-cta-green .dash-cta-text p { color: var(--gray-500); }
         /* ===== Formulario "Nuevo almacenamiento" ===== */
         .alm-form { max-width: 680px; }
@@ -1582,7 +1582,12 @@
         .alm-price-total .v { font-weight: 900; color: var(--purple); font-size: 1.15rem; }
         .alm-dates { grid-template-columns: 1fr 1fr; }
         .alm-note { font-size: 0.8rem; color: var(--gray-500); line-height: 1.45; margin-top: 0.6rem; }
-        .alm-err { color: #d33; font-size: 0.82rem; margin: 0.4rem 0 0; display: none; }
+        /* Aviso de campos que faltan: MISMA caja que el envío (.ptar-warning). */
+        .alm-err {
+            display: none; margin-top: 1rem; padding: 0.7rem 0.95rem;
+            background: #fef2f2; color: var(--red); border: 1px solid #fecaca;
+            border-radius: 10px; font-size: 0.82rem; font-weight: 600;
+        }
         .alm-err.show { display: block; }
         /* Combobox BUSCABLE de almacenes (input + lista filtrada) */
         .alm-combo { position: relative; }
@@ -5056,7 +5061,7 @@
         // fail: mensaje + resalta EN ROJO el campo/desplegable que falta (mismo
         // estilo que el envío) y hace scroll hasta él.
         function fail(msg, el, isSelect) {
-            if (err) { err.textContent = msg; err.classList.add('show'); }
+            if (err) { err.textContent = '⚠ ' + msg; err.classList.add('show'); }
             if (el) {
                 el.classList.add(isSelect ? 'ptar-select-error' : 'ptar-error');
                 if (el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -5209,7 +5214,7 @@
                 if (i) { i.classList.toggle('sitio-f-err', !!vacio); var m = i.parentNode.querySelector('.sitio-req-msg'); if (m) m.classList.toggle('show', !!vacio); }
                 if (vacio && !bad) bad = i;
             });
-            if (bad) { if (err) { err.textContent = 'Completa los datos obligatorios del sitio de entrega (empresa, horario y teléfono).'; err.classList.add('show'); } bad.focus(); return; }
+            if (bad) { if (err) { err.textContent = '⚠ Completa los datos obligatorios del sitio de entrega (empresa, horario y teléfono).'; err.classList.add('show'); } bad.focus(); return; }
             if (err) err.classList.remove('show');
             // Consolidar el sitio en la agenda (nuevo o actualizado).
             var s = p.repSite || {};
@@ -5388,7 +5393,7 @@
         var r = almFindByRef(ref); if (!r) return;
         var ent = document.getElementById('almDxEnt'), sal = document.getElementById('almDxSal');
         var err = document.getElementById('almDxErr');
-        function fail(msg) { if (err) { err.textContent = msg; err.classList.add('show'); } }
+        function fail(msg) { if (err) { err.textContent = '⚠ ' + msg; err.classList.add('show'); } }
         if (!ent.value || !sal.value) return fail('Indica las fechas de entrada y salida.');
         if (sal.value < ent.value) return fail('La fecha de salida no puede ser anterior a la de entrada.');
         var dias = Math.round((new Date(sal.value + 'T00:00:00') - new Date(ent.value + 'T00:00:00')) / 86400000);
