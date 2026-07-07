@@ -1561,6 +1561,7 @@
         .alm-price-total { border-top: 1px dashed var(--gray-200); margin-top: 0.4rem; padding-top: 0.55rem; }
         .alm-price-total .k { font-weight: 800; color: var(--navy); font-size: 0.98rem; }
         .alm-price-total .v { font-weight: 900; color: var(--purple); font-size: 1.15rem; }
+        .alm-dates { grid-template-columns: 1fr 1fr; }
         .alm-note { font-size: 0.8rem; color: var(--gray-500); line-height: 1.45; margin-top: 0.6rem; }
         .alm-err { color: #d33; font-size: 0.82rem; margin: 0.4rem 0 0; display: none; }
         .alm-err.show { display: block; }
@@ -1628,7 +1629,12 @@
         input.alm-f-err, .dash-modal input.alm-f-err {
             border-color: #dc2626 !important; box-shadow: 0 0 0 3px rgba(220,38,38,0.12) !important;
         }
-        @media (max-width: 600px) { .alm-dates { grid-template-columns: 1fr; } }
+        /* Anti-zoom iOS en el buscador de reparto (mismo criterio que el
+           tarifador, cuya regla está acotada a .ptar-card). */
+        @media (pointer: coarse) {
+            #almRepDest .ptar-input-wrap input, #almRepDest .ptar-select-sm { font-size: 16px; }
+        }
+        /* Entrada y salida SIEMPRE en la misma línea (también en móvil). */
 
         /* =========================================
            SECCIONES — header + filtros + tabla
@@ -4066,15 +4072,23 @@
                     <option value="1">1 camión de reparto (4 m con plataforma)</option>
                     <option value="2">2 camiones de reparto</option>
                     <option value="3">3 camiones de reparto (tráiler completo aprox.)</option>
+                    <option value="4">4 camiones de reparto</option>
                 </select>
-                <div class="alm-note">Entrega urbana en destino con camión de 4 m y plataforma. Un tráiler completo suele repartirse en unos 3 camiones. <strong>220 € + IVA por camión</strong>. Si la salida es en tráiler normal, se pide como <strong>nuevo envío</strong> con origen en el almacén.</div>
+                <div class="alm-note">Entrega en <strong>zona urbana</strong> en destino con <strong>camión de 4 m y plataforma</strong>. Un tráiler completo suele repartirse en unos 3 camiones. <strong>220 € + IVA por camión</strong>. Si la salida es en tráiler normal, se pide como <strong>nuevo envío</strong> con origen en el almacén.</div>
                 <div id="almRepDest" hidden>
                     <div class="alm-field" style="margin-top:0.9rem;margin-bottom:0.9rem;">
                         <label>Dirección de entrega del reparto</label>
-                        <div class="alm-combo" id="almRepCombo">
-                            <input type="text" id="almRepSearch" placeholder="Busca en tu agenda, en Google o escribe la dirección…" autocomplete="off" oninput="almRepInput()" onfocus="almRepInput()">
-                            <button type="button" class="alm-rep-x" id="almRepX" hidden onclick="almRepClear()" aria-label="Quitar dirección">×</button>
-                            <div class="alm-combo-list" id="almRepList" hidden></div>
+                        <!-- MISMO buscador que recogida/entrega del Nuevo envío
+                             (recientes + agenda + Google + crear sitio, chip). -->
+                        <div class="ptar-route-row">
+                            <div class="ptar-input-wrap" data-alm-rep-wrap>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                <input type="text" data-alm-rep-input autocomplete="off" inputmode="search" placeholder="Entrega · CP o ciudad" aria-label="Dirección de entrega del reparto">
+                                <ul class="ptar-sug" data-alm-rep-sug hidden></ul>
+                            </div>
+                            <select class="ptar-select ptar-select-sm" data-alm-rep-tipo aria-label="Tipo de lugar">
+                                <option>Almacén / Nave</option><option>Obra</option><option>Zona urbana</option><option>Evento</option><option>Finca / Agrícola</option>
+                            </select>
                         </div>
                     </div>
                     <div class="alm-field" style="margin-bottom:0;">
@@ -4838,103 +4852,42 @@
         almRenderPrecio();
     }
     window.almOnDates = almOnDates;
-    // ---- Reparto urbano: dirección de entrega (agenda + Google + a mano) ----
-    var _almRepPick = null, _almRepTimer = null, _almRepGoogle = [];
+    // ---- Reparto urbano: dirección de entrega ----
+    // Reutiliza EL MISMO buscador del tarifador (recientes + agenda + Google +
+    // crear sitio, chip bloqueado). Se cablea una sola vez sobre el punto.
+    var _almRepBound = false;
+    function almRepWrap() { return document.querySelector('#almRepDest [data-alm-rep-wrap]'); }
+    function almRepInputEl() { return document.querySelector('#almRepDest [data-alm-rep-input]'); }
+    function almRepEnsureBound() {
+        if (_almRepBound) return;
+        var wrap = almRepWrap();
+        var input = almRepInputEl();
+        var sug = document.querySelector('#almRepDest [data-alm-rep-sug]');
+        if (!wrap || !input || !sug || !window.__ptarBindAutocomplete) return;
+        window.__ptarBindAutocomplete(wrap, input, sug, function () { almDatePh(); }, 'entrega');
+        _almRepBound = true;
+    }
+    function almRepClear() {
+        var wrap = almRepWrap(), input = almRepInputEl();
+        if (wrap) {
+            delete wrap.dataset.lat; delete wrap.dataset.lon; delete wrap.dataset.cc;
+            delete wrap.dataset.siteKey; delete wrap.dataset.gsite;
+            wrap.classList.remove('ptar-picked', 'ptar-error');
+        }
+        if (input) { input.readOnly = false; input.value = ''; }
+    }
+    window.almRepClear = almRepClear;
     function almRepartoChange() {
         var n = parseInt((document.getElementById('almReparto') || {}).value, 10) || 0;
         var block = document.getElementById('almRepDest');
         if (block) block.hidden = n === 0;
+        if (n > 0) almRepEnsureBound();
         var sal = document.getElementById('almSalida'), entg = document.getElementById('almEntrega');
         if (n > 0 && entg && !entg.value && sal && sal.value) { entg.min = sal.value; entg.value = sal.value; }
         almDatePh();
         almRenderPrecio();
     }
     window.almRepartoChange = almRepartoChange;
-    function almRepRenderList(agendaItems, googleItems, q) {
-        var list = document.getElementById('almRepList');
-        if (!list) return;
-        var html = agendaItems.map(function (x) {
-            return '<div class="alm-combo-item" onmousedown="almRepPickAgenda(\'' + esc(x.key) + '\');event.preventDefault();">' +
-                '<span><strong>' + escapeHtml(x.s.empresa || 'Sitio') + '</strong> · ' + escapeHtml((x.s.dir || '').slice(0, 42)) + '</span>' +
-                '<span class="src agenda">Tu agenda</span></div>';
-        }).join('') + googleItems.map(function (x, i) {
-            return '<div class="alm-combo-item" onmousedown="almRepPickGoogle(' + i + ');event.preventDefault();">' +
-                '<span>' + escapeHtml(dirLabelDe(x).slice(0, 55)) + '</span>' +
-                '<span class="src google">Google</span></div>';
-        }).join('');
-        if (q && q.length >= 5) {
-            html += '<div class="alm-combo-item" onmousedown="almRepPickMano();event.preventDefault();">' +
-                '<span>Usar tal cual: «' + escapeHtml(q.slice(0, 45)) + '»</span>' +
-                '<span class="src mano">A mano</span></div>';
-        }
-        list.innerHTML = html || '<div class="alm-combo-empty">Escribe empresa, calle o población…</div>';
-        list.hidden = false;
-    }
-    function almRepInput() {
-        var inp = document.getElementById('almRepSearch');
-        if (!inp || inp.readOnly) return;
-        _almRepPick = null;
-        clearTimeout(_almRepTimer);
-        var q = inp.value.trim();
-        _almRepTimer = setTimeout(function () {
-            var agenda = [];
-            if (q.length >= 2) {
-                var nq = normTxt(q);
-                allSitesEntries().forEach(function (ent) {
-                    if (agenda.length >= 4) return;
-                    var s = ent[1];
-                    if (normTxt((s.empresa || '') + ' ' + (s.dir || '')).indexOf(nq) !== -1) agenda.push({ key: ent[0], s: s });
-                });
-            }
-            _almRepGoogle = [];
-            almRepRenderList(agenda, [], q);
-            if (q.length >= 3) {
-                osmSearchLite(q, function (res) {
-                    _almRepGoogle = res || [];
-                    almRepRenderList(agenda, _almRepGoogle, q);
-                });
-            }
-        }, 280);
-    }
-    window.almRepInput = almRepInput;
-    function almRepChip(label) {
-        var inp = document.getElementById('almRepSearch');
-        var list = document.getElementById('almRepList');
-        var x = document.getElementById('almRepX');
-        if (inp) { inp.value = label; inp.readOnly = true; inp.classList.add('alm-picked'); }
-        if (list) list.hidden = true;
-        if (x) x.hidden = false;
-    }
-    function almRepPickAgenda(key) {
-        var s = siteDe(key) || {};
-        _almRepPick = { tipo: 'guardado', key: key };
-        almRepChip((s.empresa ? s.empresa + ' — ' : '') + (s.dir || ''));
-    }
-    window.almRepPickAgenda = almRepPickAgenda;
-    function almRepPickGoogle(i) {
-        var it = _almRepGoogle[i]; if (!it) return;
-        _almRepPick = { tipo: 'google', dir: dirLabelDe(it) };
-        almRepChip(dirLabelDe(it));
-    }
-    window.almRepPickGoogle = almRepPickGoogle;
-    function almRepPickMano() {
-        var inp = document.getElementById('almRepSearch');
-        var q = inp ? inp.value.trim() : '';
-        if (!q) return;
-        _almRepPick = { tipo: 'texto', dir: q };
-        almRepChip(q);
-    }
-    window.almRepPickMano = almRepPickMano;
-    function almRepClear() {
-        _almRepPick = null; _almRepGoogle = [];
-        var inp = document.getElementById('almRepSearch');
-        var list = document.getElementById('almRepList');
-        var x = document.getElementById('almRepX');
-        if (inp) { inp.readOnly = false; inp.classList.remove('alm-picked'); inp.value = ''; }
-        if (list) list.hidden = true;
-        if (x) x.hidden = true;
-    }
-    window.almRepClear = almRepClear;
     function almRenderPrecio() {
         var box = document.getElementById('almPrice'); if (!box) return;
         var n = parseInt((document.getElementById('almReparto') || {}).value, 10) || 0;
@@ -4960,8 +4913,13 @@
         if (dias > 7) return fail('La estancia máxima es de 7 días.');
         var n = parseInt(document.getElementById('almReparto').value, 10) || 0;
         var entg = document.getElementById('almEntrega');
+        var repWrap = almRepWrap(), repInput = almRepInputEl();
+        var pick = n > 0 && window.__ptarSitePickDe ? window.__ptarSitePickDe(repWrap) : null;
+        // "Elegido" = chip bloqueado (incluye dirección suelta de Google/OSM,
+        // que como en los envíos no trae ficha y se completa al confirmar).
+        var elegido = repWrap && (repWrap.classList.contains('ptar-picked') || pick);
         if (n > 0) {
-            if (!_almRepPick) return fail('Elige la dirección de entrega del reparto (tu agenda, Google o escríbela a mano).');
+            if (!elegido) return fail('Elige la dirección de entrega del reparto de la lista (tu agenda, Google o «Crear nuevo sitio»).');
             if (!entg || !entg.value) return fail('Indica la fecha de entrega en destino.');
             if (entg.value < sal.value) return fail('La entrega en destino no puede ser anterior a la salida del almacén.');
         }
@@ -4970,13 +4928,19 @@
         // horario y teléfono obligatorios — igual que en los envíos), se
         // piden ANTES de confirmar; el sitio queda guardado en la agenda.
         if (n > 0) {
-            var pick = _almRepPick;
-            if (pick.tipo === 'guardado') {
+            if (pick && pick.tipo === 'guardado') {
                 var sg = siteDe(pick.key) || {};
                 if (sg.empresa && sg.horario && sg.tfno) return almFinalizar({ key: pick.key, dir: sg.dir, empresa: sg.empresa });
                 return almRepCompletar(sg.dir || '', sg, pick.key);
             }
-            return almRepCompletar(pick.dir, null, null);
+            if (pick && pick.tipo === 'google') {
+                // Ficha de Google con empresa; puede faltar horario/tfno.
+                var g = pick.g || {};
+                if (g.empresa && g.horario && g.tfno) return almFinalizar({ key: null, dir: g.dir, empresa: g.empresa });
+                return almRepCompletar(g.dir || '', g, null);
+            }
+            // Dirección suelta (sin ficha): se completa igual que en el envío.
+            return almRepCompletar((repInput && repInput.value) || '', null, null);
         }
         almFinalizar(null);
     }
@@ -5034,6 +4998,8 @@
         site.tfno = tfn.value.trim();
         site.contacto = (document.getElementById('almRcCon') || {}).value || null;
         site.notas = (document.getElementById('almRcNot') || {}).value || null;
+        var tipoSel = document.querySelector('#almRepDest [data-alm-rep-tipo]');
+        if (tipoSel && tipoSel.value) site.tipoLugar = tipoSel.value;
         var key = existingKey || ('mi-' + normTxt(site.empresa).replace(/[^a-z0-9]+/g, '-').slice(0, 30) + '-' + ((String(dir || '').match(/\b\d{4,5}\b/) || ['x'])[0]));
         saveCustomSite(key, site);
         closeDashModal();
@@ -5145,6 +5111,7 @@
                 '<option value="1"' + (r.reparto === 1 ? ' selected' : '') + '>1 camión de reparto (4 m con plataforma)</option>' +
                 '<option value="2"' + (r.reparto === 2 ? ' selected' : '') + '>2 camiones de reparto</option>' +
                 '<option value="3"' + (r.reparto === 3 ? ' selected' : '') + '>3 camiones de reparto (tráiler completo aprox.)</option>' +
+                '<option value="4"' + (r.reparto === 4 ? ' selected' : '') + '>4 camiones de reparto</option>' +
             '</select></div>' +
             '<div id="almDxRepInfo" hidden>' +
                 (r.destinoDir
@@ -10469,6 +10436,11 @@
                 if (w.dataset.gsite) { try { return { tipo: 'google', g: JSON.parse(w.dataset.gsite) }; } catch (e) {} }
                 return null;
             }
+            // Exponemos el MISMO buscador del tarifador (recientes + agenda +
+            // Google + crear sitio, chip bloqueado, ×) para reutilizarlo tal
+            // cual en otros formularios (p.ej. el reparto del almacenamiento).
+            window.__ptarBindAutocomplete = bindAutocomplete;
+            window.__ptarSitePickDe = sitePickDe;
 
             // Inserta la carga/presupuesto en la data y navega — paso final
             // común para presupuesto (directo) y carga (tras confirm + modal).
