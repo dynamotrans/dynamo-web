@@ -3153,12 +3153,14 @@
                 </button>
                 <div class="bell-menu" id="bellMenu" role="menu" aria-hidden="true"></div>
             </div>
-            <!-- CESCE: estado de cobertura. Punto verde = con crédito ·
-                 naranja = crédito agotado · rojo = sin cobertura (crédito 0).
-                 El estado se puede previsualizar con ?cesce=ok|warn|none.
-                 Al pulsar despliega el detalle del crédito + contacto CESCE. -->
+            <!-- CESCE: estado de cobertura de crédito. 4 estados / 3 colores:
+                 🟢 verde = Disponible (clasificado, con crédito) o Agotado
+                 (clasificado, crédito consumido) · 🟠 naranja = Sin clasificar
+                 (trámite CESCE pendiente) · 🔴 rojo = Nulo (CESCE autoriza 0).
+                 Previsualizable con ?cesce=disponible|agotado|sinclasif|nulo
+                 (alias antiguos ok|warn|none). Al pulsar despliega el detalle. -->
             <div class="topbar-cesce-wrap">
-                <button type="button" class="topbar-ind topbar-ind-cesce cesce-status-ok" data-cesce-chip id="cesceBtn" aria-haspopup="menu" aria-expanded="false" title="Cobertura de crédito CESCE" onclick="toggleCesceMenu(event)">
+                <button type="button" class="topbar-ind topbar-ind-cesce cesce-status-ok" data-cesce-chip data-cesce-state="disponible" id="cesceBtn" aria-haspopup="menu" aria-expanded="false" title="Cobertura de crédito CESCE" onclick="toggleCesceMenu(event)">
                     <span class="topbar-cesce-dot" aria-hidden="true"></span>
                 </button>
                 <div class="cesce-menu" id="cesceMenu" role="menu" aria-hidden="true"></div>
@@ -3948,7 +3950,8 @@
     // cuenta NO tiene crédito CESCE (chip de la topbar; lo dará el backend).
     function updatePrepagoWarn() {
         var chip = document.querySelector('[data-cesce-chip]');
-        var conCredito = !chip || chip.classList.contains('cesce-status-ok');
+        var st = chip && chip.getAttribute('data-cesce-state');
+        var conCredito = !chip || (st ? st === 'disponible' : chip.classList.contains('cesce-status-ok'));
         var w = document.querySelector('[data-ptar-prepago-warn]');
         if (w) w.hidden = conCredito;
     }
@@ -5051,33 +5054,41 @@
     var CLIENTE_CIF = 'B-91384726';   // CIF del cliente (mock; vendrá del perfil)
     function cesceState() {
         var chip = document.querySelector('[data-cesce-chip]');
-        if (!chip) return 'ok';
-        if (chip.classList.contains('cesce-status-warn')) return 'warn';
-        if (chip.classList.contains('cesce-status-none')) return 'none';
-        return 'ok';
+        if (!chip) return 'disponible';
+        var st = chip.getAttribute('data-cesce-state');
+        if (st) return st;
+        if (chip.classList.contains('cesce-status-warn')) return 'sinclasif';
+        if (chip.classList.contains('cesce-status-none')) return 'nulo';
+        return 'disponible';
     }
     function renderCesceMenu() {
         var menu = document.getElementById('cesceMenu');
         if (!menu) return;
         var st = cesceState();
         var cfg = {
-            ok:   { badge: 'cesce-b-ok',   label: 'Con crédito disponible', clasif: 'Clasificado', clasifCls: 'ok',
+            // 🟢 Disponible: clasificado con crédito → trabaja a crédito.
+            disponible: { badge: 'cesce-b-ok',   label: 'Con crédito disponible', clasif: 'Clasificado', clasifCls: 'ok',
                     note: 'CESCE es la compañía aseguradora de crédito que respalda esta cuenta: garantiza el cobro de los envíos, por eso puedes trabajar <strong>a crédito</strong> y pagar por transferencia o domiciliación.' },
-            warn: { badge: 'cesce-b-warn', label: 'Crédito agotado', clasif: 'Clasificado', clasifCls: 'ok',
-                    note: 'Mientras esté agotado, los nuevos envíos se cobran <strong>por adelantado</strong>. También puedes <strong>pagar facturas pendientes</strong> para liberar crédito y disponer de él en los siguientes envíos, así no tienes que pararte a hacer esos pagos justo cuando necesites transporte.' },
-            none: { badge: 'cesce-b-none', label: 'Crédito nulo o sin clasificar', clasif: 'Sin clasificar', clasifCls: 'none',
-                    note: 'Tu empresa está <strong>sin clasificar</strong> por CESCE (o con crédito nulo), así que los envíos se cobran <strong>por adelantado</strong>. Puedes solicitar que CESCE clasifique tu empresa para trabajar a crédito.' }
-        }[st];
-        // Estado ROJO "sin clasificar": botón para reclamar la clasificación
-        // (muestra el CIF entre paréntesis).
-        var reclamarBlock = (st === 'none')
+            // 🟢 Agotado: clasificado pero crédito consumido → pago por adelantado.
+            agotado:    { badge: 'cesce-b-ok',   label: 'Crédito agotado', clasif: 'Clasificado', clasifCls: 'ok',
+                    note: 'Estás <strong>clasificado</strong>, pero el crédito está <strong>consumido</strong>: mientras esté agotado, los nuevos envíos se cobran <strong>por adelantado</strong>. También puedes <strong>pagar facturas pendientes</strong> para liberar crédito y disponer de él en los siguientes envíos, así no tienes que pararte a hacer esos pagos justo cuando necesites transporte.' },
+            // 🟠 Sin clasificar: trámite CESCE pendiente → pago por adelantado.
+            sinclasif:  { badge: 'cesce-b-warn', label: 'Sin clasificar', clasif: 'Sin clasificar', clasifCls: 'none',
+                    note: 'Tu empresa está <strong>sin clasificar</strong> por CESCE (el trámite aún no se ha realizado), así que los envíos se cobran <strong>por adelantado</strong>. Puedes solicitar que CESCE clasifique tu empresa para trabajar a crédito.' },
+            // 🔴 Nulo: CESCE ha evaluado y autoriza importe 0 → pago por adelantado.
+            nulo:       { badge: 'cesce-b-none', label: 'Crédito nulo (CESCE autoriza 0)', clasif: 'Clasificado · límite 0', clasifCls: 'none',
+                    note: 'CESCE ha evaluado tu empresa y de momento <strong>no autoriza crédito</strong> (límite 0), así que los envíos se cobran <strong>por adelantado</strong>. Puedes contactar con CESCE para revisar tu clasificación.' }
+        }[st] || {};
+        // Botón "Reclamar clasificación" SOLO cuando está sin clasificar
+        // (el trámite todavía no se ha hecho). Muestra el CIF entre paréntesis.
+        var reclamarBlock = (st === 'sinclasif')
             ? '<button type="button" class="cesce-reclamar" onclick="cesceReclamarClasificacion()">' +
                 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>' +
                 'Reclamar clasificación <span class="cesce-cif">(CIF ' + CLIENTE_CIF + ')</span></button>'
             : '';
-        // Contacto CESCE: SOLO en estado rojo (sin clasificar aún o crédito 0).
-        // No aparece con crédito disponible ni con crédito agotado.
-        var contactBlock = (st === 'none')
+        // Contacto CESCE: solo cuando NO hay crédito por clasificación (sin
+        // clasificar) o por límite 0 (nulo). No en disponible ni en agotado.
+        var contactBlock = (st === 'sinclasif' || st === 'nulo')
             ? '<div class="cesce-contact">' +
                 '<div class="cesce-contact-t">¿No estás conforme con tu crédito? Contacta con CESCE</div>' +
                 '<a href="tel:' + CESCE_CONTACT.telHref + '"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.18z"/></svg>' + CESCE_CONTACT.tel + '</a>' +
@@ -5620,22 +5631,26 @@
     syncOnlineStatus();
     setInterval(syncOnlineStatus, 60000);
 
-    // === MOCKUP: ?cesce=ok|warn|none cambia el estado de la card CESCE ===
-    // Sin backend todavía; útil para previsualizar los 3 estados desde la URL.
-    // Cuando exista el endpoint de CESCE, este bloque se sustituye por la
-    // respuesta real del API.
+    // === MOCKUP: ?cesce=disponible|agotado|sinclasif|nulo cambia el estado ===
+    // 4 estados de crédito / 3 colores de punto. Alias antiguos: ok|warn|none.
+    // Sin backend todavía; útil para previsualizar. Cuando exista el endpoint
+    // de CESCE, este bloque se sustituye por la respuesta real del API.
     (function applyCesceFromQuery() {
         var s = new URLSearchParams(location.search).get('cesce');
+        var alias = { ok: 'disponible', warn: 'agotado', none: 'nulo' };
+        if (alias[s]) s = alias[s];
         var conf = {
-            ok:   { cls: 'cesce-status-ok',   txt: 'Con crédito disponible' },
-            warn: { cls: 'cesce-status-warn', txt: 'Crédito agotado' },
-            none: { cls: 'cesce-status-none', txt: 'Sin cobertura · pago previo a carga' }
+            disponible: { cls: 'cesce-status-ok',   txt: 'Con crédito disponible' },
+            agotado:    { cls: 'cesce-status-ok',   txt: 'Crédito agotado' },
+            sinclasif:  { cls: 'cesce-status-warn', txt: 'Sin clasificar' },
+            nulo:       { cls: 'cesce-status-none', txt: 'Crédito nulo (CESCE autoriza 0)' }
         }[s];
         if (!conf) return;
         var chip = document.querySelector('[data-cesce-chip]');
         if (!chip) return;
         chip.classList.remove('cesce-status-ok', 'cesce-status-warn', 'cesce-status-none');
         chip.classList.add(conf.cls);
+        chip.setAttribute('data-cesce-state', s);
         chip.title = 'Cobertura CESCE · ' + conf.txt;
     })();
 
@@ -9841,11 +9856,15 @@
             }
 
             // ¿El cliente tiene crédito CESCE disponible? (mockup: lo lee del
-            // chip de la topbar; con backend vendrá del API). ok = con crédito;
-            // warn (agotado) / none (sin cobertura, crédito 0) = pago previo.
+            // chip de la topbar; con backend vendrá del API). SOLO "disponible"
+            // paga a crédito; "agotado" (clasificado pero consumido, también
+            // verde), "sinclasif" y "nulo" → pago por adelantado.
             function creditoDisponible() {
                 var chip = document.querySelector('[data-cesce-chip]');
-                return !chip || chip.classList.contains('cesce-status-ok');
+                if (!chip) return true;
+                var st = chip.getAttribute('data-cesce-state');
+                if (st) return st === 'disponible';
+                return chip.classList.contains('cesce-status-ok');
             }
             // Cuenta bancaria de Dynamo (mock; el backend dará la real).
             var PAGO_BANCO = { titular: 'Dynamo Operador Logístico SL', cif: 'B01596360', iban: 'ES63 0049 1837 5928 1046 8445', banco: 'Banco Santander', bic: 'BSCHESMM' };
