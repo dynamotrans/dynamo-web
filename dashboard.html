@@ -2320,6 +2320,16 @@
             border: 1px solid rgba(239,68,68,0.35); border-radius: 9px;
             font-size: 0.8rem; line-height: 1.5; color: #b91c1c; font-weight: 600;
         }
+        /* Aviso anti-fraude (BEC / cambio de IBAN por email). Estilo seguridad
+           navy para diferenciarlo del aviso rojo de validación de pago. */
+        .ptar-pay-fraud {
+            margin-top: 0.7rem; padding: 0.6rem 0.75rem; background: rgba(51,0,204,0.06);
+            border: 1px solid rgba(51,0,204,0.28); border-radius: 9px;
+            font-size: 0.8rem; line-height: 1.5; color: var(--navy);
+            display: flex; gap: 0.55rem; align-items: flex-start;
+        }
+        .ptar-pay-fraud svg { flex: 0 0 auto; margin-top: 1px; color: var(--purple); }
+        .ptar-pay-fraud strong { color: var(--purple); }
         .ptar-pay-pdf-btn {
             display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.6rem;
             padding: 0.5rem 0.85rem; background: var(--purple); color: #fff; border: none;
@@ -9637,6 +9647,7 @@
                     '<div class="pay-bank-row"><span class="pay-bank-k">Banco</span><span class="pay-bank-v">' + PAGO_BANCO.banco + ' · ' + PAGO_BANCO.bic + '</span></div>' +
                     '<div class="pay-bank-row"><span class="pay-bank-k">Importe <span style="font-weight:600;color:var(--gray-500);">(IVA 21% incl.)</span></span><span class="pay-bank-v">' + eur + '</span></div>' +
                     '<div style="margin-top:0.5rem;">Indica como <strong>concepto</strong> tu referencia o el nº de envío que te enviaremos por email. Envíanos el justificante para agilizar la validación.</div>' +
+                    '<div class="ptar-pay-fraud"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span><strong>Seguridad:</strong> nuestro IBAN es siempre el que ves aquí (<strong>' + PAGO_BANCO.iban + '</strong>). <strong>Nunca cambiamos de cuenta por email.</strong> Si recibes un aviso de cambio de cuenta o un IBAN distinto, no pagues y llámanos al <strong>+34&nbsp;955&nbsp;225&nbsp;945</strong> para verificarlo.</span></div>' +
                     PAGO_NOTA_24H + '</div>';
             }
             // Pinta el bloque de forma de pago según el crédito del cliente.
