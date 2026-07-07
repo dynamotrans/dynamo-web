@@ -5252,18 +5252,40 @@
                     '<input data-almc-f="' + f + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '"></div>';
             }
             var sp = splitDirPorCP(s.dir || '');
+            // Cabecera plegable IDÉNTICA a las fichas del envío: nº + Entrega +
+            // empresa + fecha (día de salida) + horario + dirección + chevron.
+            var _dcorto = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+            var _mcorto = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+            var _sd = new Date(p.salida + 'T00:00:00');
+            var fechaCab = _dcorto[_sd.getDay()] + ' ' + _sd.getDate() + ' ' + _mcorto[_sd.getMonth()];
+            var dirHead = sp.resto || s.dir || '';
+            var chev = '<span class="ptar-sitio-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>';
+            var head =
+                '<button type="button" class="ptar-sitio-head" aria-expanded="false">' +
+                    '<span class="ptar-sitio-head-main">' +
+                        '<span class="ptar-route-num ent" style="vertical-align:-4px;margin-right:0.35rem;">1</span>' +
+                        '<span style="color:var(--green);">Entrega</span>' +
+                        (s.empresa ? ' · <span class="ptar-sitio-head-emp">' + escapeHtml(s.empresa) + '</span>' : '') +
+                        '<span class="ptar-sitio-head-fecha">' + escapeHtml(fechaCab) + '</span>' +
+                        (s.empresa && s.horario ? '<span class="ptar-sitio-head-hor">(' + escapeHtml(s.horario) + ')</span>' : '') +
+                        (dirHead ? '<span class="ptar-sitio-head-dir">' + escapeHtml(dirHead) + '</span>' : '') +
+                        '<span class="ptar-sitio-warn">⚠ Faltan datos obligatorios</span>' +
+                    '</span>' + chev +
+                '</button>';
             sitio =
                 '<h3 style="font-size:0.95rem;font-weight:800;color:var(--navy);margin:1.4rem 0 0.6rem;">Datos del sitio de entrega <span style="color:var(--gray-500);font-weight:600;font-size:0.82rem;">· revisa y completa</span></h3>' +
-                '<div class="ptar-sitio-card open"><div class="ptar-sitio-body"><div class="ptar-sitio-grid">' +
-                    req('Empresa', 'empresa', s.empresa, 'Ej. Talleres Vega e Hijos S.L.') +
-                    '<div><label>Dirección (calle y número)</label><input class="sitio-f-lock" value="' + escapeHtml(sp.calle || s.dir || '') + '" readonly tabindex="-1"></div>' +
-                    (sp.resto ? '<div><label>CP, localidad, provincia y país</label><input class="sitio-f-lock" value="' + escapeHtml(sp.resto) + '" readonly tabindex="-1"></div>' : '') +
-                    req('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
-                    req('Teléfono', 'tfno', s.tfno, 'Ej. +34 612 345 678') +
-                    opt('Contacto', 'contacto', s.contacto, 'Persona de contacto') +
-                    opt('Notas del sitio', 'notas', s.notas, 'Ej. referencia de entrega, pedir cita…', true) +
-                    opt('Enlace de Google Maps', 'maps', s.maps, 'https://maps.app.goo.gl/…') +
-                '</div></div></div>';
+                '<div class="ptar-sitio-card">' + head +
+                    '<div class="ptar-sitio-body"><div class="ptar-sitio-grid">' +
+                        req('Empresa', 'empresa', s.empresa, 'Ej. Talleres Vega e Hijos S.L.') +
+                        '<div><label>Dirección (calle y número)</label><input class="sitio-f-lock" value="' + escapeHtml(sp.calle || s.dir || '') + '" readonly tabindex="-1"></div>' +
+                        (sp.resto ? '<div><label>CP, localidad, provincia y país</label><input class="sitio-f-lock" value="' + escapeHtml(sp.resto) + '" readonly tabindex="-1"></div>' : '') +
+                        req('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
+                        req('Teléfono', 'tfno', s.tfno, 'Ej. +34 612 345 678') +
+                        opt('Contacto', 'contacto', s.contacto, 'Persona de contacto') +
+                        opt('Notas del sitio', 'notas', s.notas, 'Ej. referencia de entrega, pedir cita…', true) +
+                        opt('Enlace de Google Maps', 'maps', s.maps, 'https://maps.app.goo.gl/…') +
+                    '</div></div>' +
+                '</div>';
         }
         var precio = '<div class="alm-price" data-almc-pricebox style="margin-top:1.3rem;"></div>';
         box.innerHTML =
@@ -5311,6 +5333,38 @@
                 if (warn) warn.classList.remove('show');
             }
         });
+        // Acordeón de la ficha de entrega (misma UX que las fichas del envío):
+        // pulsar la cabecera despliega/pliega el cuerpo editable.
+        if (!box._almAccBound) {
+            box.addEventListener('click', function (e) {
+                var h = e.target.closest ? e.target.closest('.ptar-sitio-head') : null;
+                if (!h || !box.contains(h)) return;
+                var cardEl = h.closest('.ptar-sitio-card');
+                var open = cardEl.classList.toggle('open');
+                h.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
+            box._almAccBound = true;
+        }
+        // Aviso "⚠ Faltan datos obligatorios" en la cabecera: se oculta cuando
+        // empresa, horario y teléfono están rellenos (clase req-ok). Revalida
+        // en vivo al escribir (y limpia el rojo del campo).
+        function almcUpdReq() {
+            var cardEl = box.querySelector('.ptar-sitio-card'); if (!cardEl) return;
+            var ok = true;
+            ['empresa', 'horario', 'tfno'].forEach(function (f) {
+                var i = box.querySelector('[data-almc-f="' + f + '"]');
+                if (i && !i.value.trim()) ok = false;
+            });
+            cardEl.classList.toggle('req-ok', ok);
+        }
+        ['empresa', 'horario', 'tfno'].forEach(function (f) {
+            var i = box.querySelector('[data-almc-f="' + f + '"]');
+            if (i) i.addEventListener('input', function () {
+                if (i.value.trim()) { i.classList.remove('sitio-f-err'); var m = i.parentNode.querySelector('.sitio-req-msg'); if (m) m.classList.remove('show'); }
+                almcUpdReq();
+            });
+        });
+        almcUpdReq();
         document.getElementById('almFormPanel').hidden = true;
         box.hidden = false;
         box.scrollIntoView ? box.scrollIntoView({ block: 'start' }) : null;
@@ -5358,7 +5412,15 @@
                 if (i) { i.classList.toggle('sitio-f-err', !!vacio); var m = i.parentNode.querySelector('.sitio-req-msg'); if (m) m.classList.toggle('show', !!vacio); }
                 if (vacio && !bad) bad = i;
             });
-            if (bad) { if (err) { err.textContent = '⚠ Completa los datos obligatorios del sitio de entrega (empresa, horario y teléfono).'; err.classList.add('show'); } bad.focus(); return; }
+            if (bad) {
+                // Abre la ficha (por si está plegada) y hace scroll al campo.
+                var cardEl = box.querySelector('.ptar-sitio-card');
+                if (cardEl) { cardEl.classList.add('open'); var hh = cardEl.querySelector('.ptar-sitio-head'); if (hh) hh.setAttribute('aria-expanded', 'true'); }
+                if (err) { err.textContent = '⚠ Completa los datos obligatorios del sitio de entrega (empresa, horario y teléfono).'; err.classList.add('show'); }
+                if (bad.scrollIntoView) bad.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                bad.focus();
+                return;
+            }
             if (err) err.classList.remove('show');
             // Consolidar el sitio en la agenda (nuevo o actualizado).
             var s = p.repSite || {};
