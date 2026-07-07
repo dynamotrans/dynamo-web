@@ -1629,6 +1629,10 @@
         input.alm-f-err, .dash-modal input.alm-f-err {
             border-color: #dc2626 !important; box-shadow: 0 0 0 3px rgba(220,38,38,0.12) !important;
         }
+        /* El buscador de reparto va a todo el ancho; su desplegable de
+           sugerencias por encima de todo lo que haya debajo (precio, etc.). */
+        #almRepDest .alm-rep-wrap { width: 100%; }
+        #almRepDest .ptar-sug { z-index: 70; }
         /* Anti-zoom iOS en el buscador de reparto (mismo criterio que el
            tarifador, cuya regla está acotada a .ptar-card). */
         @media (pointer: coarse) {
@@ -4080,16 +4084,13 @@
                     <div class="alm-field" style="margin-top:0.9rem;margin-bottom:0.9rem;">
                         <label>Dirección de entrega del reparto</label>
                         <!-- MISMO buscador que recogida/entrega del Nuevo envío
-                             (recientes + agenda + Google + crear sitio, chip). -->
-                        <div class="ptar-route-row">
-                            <div class="ptar-input-wrap" data-alm-rep-wrap>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                <input type="text" data-alm-rep-input autocomplete="off" inputmode="search" placeholder="Entrega · CP o ciudad" aria-label="Dirección de entrega del reparto">
-                                <ul class="ptar-sug" data-alm-rep-sug hidden></ul>
-                            </div>
-                            <select class="ptar-select ptar-select-sm" data-alm-rep-tipo aria-label="Tipo de lugar">
-                                <option>Almacén / Nave</option><option>Obra</option><option>Zona urbana</option><option>Evento</option><option>Finca / Agrícola</option>
-                            </select>
+                             (recientes + agenda + Google + crear sitio, chip).
+                             A todo el ancho para que el desplegable no deje
+                             asomar campos al lado. -->
+                        <div class="ptar-input-wrap alm-rep-wrap" data-alm-rep-wrap>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <input type="text" data-alm-rep-input autocomplete="off" inputmode="search" placeholder="Entrega · empresa, CP o ciudad" aria-label="Dirección de entrega del reparto">
+                            <ul class="ptar-sug" data-alm-rep-sug hidden></ul>
                         </div>
                     </div>
                     <div class="alm-field" style="margin-bottom:0;">
@@ -5026,7 +5027,7 @@
         if (n > 0) {
             if (pick && pick.tipo === 'guardado') { var sg = siteDe(pick.key) || {}; repSite = { key: pick.key, dir: sg.dir || '', empresa: sg.empresa || '', horario: sg.horario || '', tfno: sg.tfno || '', contacto: sg.contacto || '', notas: sg.notas || '', maps: sg.maps || '', tipoLugar: sg.tipoLugar || '' }; }
             else if (pick && pick.tipo === 'google') { var g = pick.g || {}; repSite = { key: null, dir: g.dir || '', empresa: g.empresa || '', horario: g.horario || '', tfno: g.tfno || '', contacto: '', notas: '', maps: g.maps || '', tipoLugar: '' }; }
-            else { repSite = { key: null, dir: (repInput && repInput.value) || '', empresa: '', horario: '', tfno: '', contacto: '', notas: '', maps: '', tipoLugar: (document.querySelector('#almRepDest [data-alm-rep-tipo]') || {}).value || '' }; }
+            else { repSite = { key: null, dir: (repInput && repInput.value) || '', empresa: '', horario: '', tfno: '', contacto: '', notas: '', maps: '', tipoLugar: '' }; }
         }
         _almPending = {
             almIdx: _almSel, entrada: ent.value, salida: sal.value, dias: dias,
