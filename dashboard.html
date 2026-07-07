@@ -9724,7 +9724,13 @@
                                     '<div class="ptar-sitio-grid">' +
                                         inpReq('Empresa', 'empresa', '', 'Ej. Talleres Vega e Hijos S.L.') +
                                         tipoLock +
-                                        '<div class="full"><label>Dirección</label><input class="sitio-f-lock" value="' + escapeHtml(p.texto || '') + '" readonly tabindex="-1"></div>' +
+                                        (function () {
+                                            // Dirección suelta partida en 2 campos bloqueados (igual
+                                            // que las fichas de agenda): calle+número y CP/localidad/…
+                                            var sp = splitDirPorCP(p.texto || '');
+                                            return '<div><label>Dirección (calle y número)</label><input class="sitio-f-lock" value="' + escapeHtml(sp.calle || '') + '" readonly tabindex="-1"></div>' +
+                                                '<div><label>CP, localidad, provincia y país</label><input class="sitio-f-lock" value="' + escapeHtml(sp.resto || '') + '" readonly tabindex="-1"></div>';
+                                        })() +
                                         inpReq('Horario', 'horario', '', 'Ej. L-V 8:00-14:00') +
                                         inpReq('Teléfono', 'tfno', '', 'Ej. +34 612 345 678') +
                                         inp('Contacto', 'contacto', '', 'Persona de contacto') +
