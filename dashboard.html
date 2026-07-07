@@ -4949,6 +4949,8 @@
         if (x) x.hidden = false;
         if (list) list.hidden = true;
         if (addr) { addr.innerHTML = almAddrHTML(a); addr.hidden = false; }
+        // Al elegir almacén desaparece el aviso de "elige un almacén".
+        var err = document.getElementById('almErr'); if (err) err.classList.remove('show');
     }
     window.almPickAlmacen = almPickAlmacen;
     function almSelClear(focus) {
