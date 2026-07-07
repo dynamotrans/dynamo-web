@@ -6052,7 +6052,7 @@
             disponible: { badge: 'cesce-b-ok',   label: 'Con crédito disponible', clasif: 'Clasificado', clasifCls: 'ok',
                     note: 'CESCE es la compañía aseguradora de crédito que respalda esta cuenta: garantiza el cobro de los envíos, por eso puedes trabajar <strong>a crédito</strong> y pagar por transferencia o domiciliación.' },
             // 🟢 Agotado: clasificado pero crédito consumido → pago por adelantado.
-            agotado:    { badge: 'cesce-b-ok',   label: 'Crédito agotado', clasif: 'Clasificado', clasifCls: 'ok',
+            agotado:    { badge: 'cesce-b-warn', label: 'Crédito agotado', clasif: 'Clasificado', clasifCls: 'ok',
                     note: 'Estás <strong>clasificado</strong>, pero el crédito está <strong>consumido</strong>: mientras esté agotado, los nuevos envíos se cobran <strong>por adelantado</strong>. También puedes <strong>pagar facturas pendientes</strong> para liberar crédito y disponer de él en los siguientes envíos, así no tienes que pararte a hacer esos pagos justo cuando necesites transporte.' },
             // 🟠 Sin clasificar: trámite CESCE pendiente → pago por adelantado.
             sinclasif:  { badge: 'cesce-b-warn', label: 'Sin clasificar', clasif: 'Sin clasificar', clasifCls: 'none',
@@ -6623,7 +6623,7 @@
         if (alias[s]) s = alias[s];
         var conf = {
             disponible: { cls: 'cesce-status-ok',   txt: 'Con crédito disponible' },
-            agotado:    { cls: 'cesce-status-ok',   txt: 'Crédito agotado' },
+            agotado:    { cls: 'cesce-status-warn', txt: 'Crédito agotado' },
             sinclasif:  { cls: 'cesce-status-warn', txt: 'Sin clasificar' },
             nulo:       { cls: 'cesce-status-none', txt: 'Crédito nulo (CESCE autoriza 0)' }
         }[s];
