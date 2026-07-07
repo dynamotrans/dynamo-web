@@ -4411,7 +4411,7 @@
                 (function () {
                     var items = [
                         { label: 'Nº carga', value: d.ref },
-                        { label: 'Ref. cliente', value: d.refCli },
+                        { label: 'Ref. cliente', value: d.refCli || '—' },
                         { label: 'Estado', value: getEstadoVisual(src).label },
                         { label: 'Precio', value: pend(src.precio), html: true }
                     ];
@@ -5941,6 +5941,20 @@
         // las entradas antiguas escritas a mano que no lo traían.
         CARGAS_DATA.forEach(function (c, idx) {
             if (c.kind === 'entregada' && !c.precio) c.precio = precioPara(c.destino, idx);
+        });
+        // La referencia/nº de pedido del CLIENTE es OPCIONAL: la pone quien
+        // quiere para reconocer el envío por su propia numeración. Por eso la
+        // hacemos variada y con formatos distintos (no una secuencia PED-04xx),
+        // y dejamos ~40% en blanco (envíos que el cliente no referenció).
+        // Determinista por nº de envío → estable entre recargas.
+        CARGAS_DATA.forEach(function (c) {
+            var h = hashStr(c.ref + '·refcli');
+            if (h % 100 < 40) { c.refCli = ''; return; }
+            var fmt = h % 4;
+            if (fmt === 0)      c.refCli = 'PED-' + (1000 + (h % 9000));
+            else if (fmt === 1) c.refCli = 'OC 2026/' + (100 + ((h >>> 3) % 900));
+            else if (fmt === 2) c.refCli = 'REF-' + String.fromCharCode(65 + (h % 26)) + (100 + ((h >>> 5) % 900));
+            else                c.refCli = '2026-' + (1000 + ((h >>> 7) % 9000));
         });
     })();
 
