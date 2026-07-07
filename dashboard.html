@@ -2452,15 +2452,13 @@
         }
         .ptar-confirm-extra input:hover, .ptar-confirm-extra textarea:hover { border-color: var(--purple); }
         .ptar-confirm-extra input:focus, .ptar-confirm-extra textarea:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
-        /* Precio destacado junto al botón de confirmar */
+        /* Precio destacado junto al botón de confirmar — caja unificada
+           (Base / IVA / Total), mismo diseño que .alm-price */
         .ptar-confirm-price {
-            display: flex; align-items: baseline; justify-content: center; gap: 0.5rem;
-            margin: 0.4rem 0 1rem; padding: 0.7rem 1rem;
-            background: rgba(51,0,204,0.05); border: 1px solid rgba(51,0,204,0.18);
-            border-radius: 12px; text-align: center;
+            display: block; margin: 0.4rem 0 1rem; padding: 1rem 1.1rem;
+            background: white; border: 1px solid var(--gray-200); border-radius: 12px;
         }
-        .ptar-confirm-price .pcp-num { font-size: 1.5rem; font-weight: 900; color: var(--purple); letter-spacing: -0.5px; }
-        .ptar-confirm-price .pcp-iva { font-size: 0.78rem; font-weight: 600; color: var(--gray-500); }
+        .ptar-confirm-price[hidden] { display: none; }
         /* ===== Forma de pago (bajo el precio) ===== */
         .ptar-pay { margin: -0.4rem 0 1rem; }
         .ptar-pay[hidden] { display: none; }
@@ -2671,6 +2669,7 @@
         .ptar-eta-data .ptar-eta-carga { color: var(--orange); font-weight: 800; }
         .ptar-eta-data .ptar-eta-precio { color: var(--purple); font-weight: 900; font-size: 1.05rem; }
         .ptar-eta-data .ptar-eta-precio .ptar-iva { color: var(--gray-500); font-weight: 600; font-size: 0.72rem; white-space: nowrap; }
+        .ptar-eta-pricebox { margin: 0.9rem 0 0; }
         .ptar-eta-data .ptar-eta-stat { color: var(--gray-700); font-weight: 600; }
         .ptar-eta-data .ptar-eta-note { color: #c47a2c; font-weight: 600; font-size: 0.75rem; }
         .ptar-eta-data .ptar-eta-warn { color: #b45309; }
@@ -4828,6 +4827,55 @@
     ];
     var ALM_BASE = 240, ALM_REPARTO = 220;  // € + IVA (tráiler completo / camión 4 m)
     function almEur(n) { return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
+    // ===== Caja de precio UNIFICADA (Base imponible / IVA 21% / Total) =====
+    // Mismo diseño y efecto contador en TODAS las pantallas (crear/confirmar
+    // envío y almacenamiento). extraRows = filas de concepto opcionales que se
+    // muestran antes de la "Base imponible".
+    window.__priceBoxHtml = function (neto, extraRows) {
+        function eur(n) { return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
+        var iva = neto * 0.21, tot = neto * 1.21, h = '';
+        (extraRows || []).forEach(function (r) {
+            h += '<div class="alm-price-row"><span class="k">' + r.k + '</span><span class="v">' + eur(r.v) + '</span></div>';
+        });
+        h += '<div class="alm-price-row"><span class="k">Base imponible</span><span class="v"><span data-price-neto>' + eur(neto) + '</span></span></div>';
+        h += '<div class="alm-price-row"><span class="k">IVA (21%)</span><span class="v"><span data-price-iva>' + eur(iva) + '</span></span></div>';
+        h += '<div class="alm-price-row alm-price-total"><span class="k">Total (IVA incl.)</span><span class="v"><span data-price-tot>' + eur(tot) + '</span></span></div>';
+        return h;
+    };
+    // Anima un importe en € desde su valor previo (data-val) al nuevo.
+    window.__animateEur = function (el, to) {
+        if (!el) return;
+        function eur(n) { return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
+        var from = parseFloat(el.getAttribute('data-val') || '0') || 0;
+        el.setAttribute('data-val', String(to));
+        if (el.__raf) cancelAnimationFrame(el.__raf);
+        if (from === to) { el.textContent = eur(to); return; }
+        var dur = 480, t0 = null;
+        function step(ts) {
+            if (t0 === null) t0 = ts;
+            var t = Math.min(1, (ts - t0) / dur);
+            var ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
+            el.textContent = eur(from + (to - from) * ease);
+            if (t < 1) { el.__raf = requestAnimationFrame(step); }
+            else { el.textContent = eur(to); el.__raf = null; }
+        }
+        el.__raf = requestAnimationFrame(step);
+    };
+    // Pinta la caja de precio en `box` y anima los importes (encadena desde el
+    // valor anterior; prevNeto fuerza el punto de partida si la caja se recreó).
+    window.__renderPriceBox = function (box, neto, extraRows, prevNeto) {
+        if (!box) return;
+        var pe = box.querySelector('[data-price-neto]');
+        var prev = (typeof prevNeto === 'number') ? prevNeto
+                 : (pe ? (parseFloat(pe.getAttribute('data-val') || '0') || 0) : 0);
+        box.innerHTML = window.__priceBoxHtml(neto, extraRows);
+        var ne = box.querySelector('[data-price-neto]'),
+            ie = box.querySelector('[data-price-iva]'),
+            te = box.querySelector('[data-price-tot]');
+        if (ne) { ne.setAttribute('data-val', String(prev)); window.__animateEur(ne, neto); }
+        if (ie) { ie.setAttribute('data-val', String(prev * 0.21)); window.__animateEur(ie, neto * 0.21); }
+        if (te) { te.setAttribute('data-val', String(prev * 1.21)); window.__animateEur(te, neto * 1.21); }
+    };
     function almISO(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
     function almDireccionCompleta(a) { return a.dir + ', ' + a.cp + ' ' + a.ciudad + ' (' + a.prov + ')'; }
     // Coordenadas aproximadas de cada almacén (por provincia) — para poder
@@ -5080,12 +5128,15 @@
     function almRenderPrecio() {
         var box = document.getElementById('almPrice'); if (!box) return;
         var n = parseInt((document.getElementById('almReparto') || {}).value, 10) || 0;
-        var rep = n * ALM_REPARTO, sub = ALM_BASE + rep, iva = sub * 0.21, tot = sub * 1.21;
-        var html = '<div class="alm-price-row"><span class="k">Almacenamiento (tráiler completo)</span><span class="v">' + almEur(ALM_BASE) + '</span></div>';
-        if (n > 0) html += '<div class="alm-price-row"><span class="k">Reparto urbano · ' + n + ' ' + (n > 1 ? 'camiones' : 'camión') + ' × ' + almEur(ALM_REPARTO) + '</span><span class="v">' + almEur(rep) + '</span></div>';
-        html += '<div class="alm-price-row"><span class="k">IVA (21%)</span><span class="v">' + almEur(iva) + '</span></div>' +
-            '<div class="alm-price-row alm-price-total"><span class="k">Total (IVA incl.)</span><span class="v">' + almEur(tot) + '</span></div>';
-        box.innerHTML = html;
+        var rep = n * ALM_REPARTO, sub = ALM_BASE + rep;
+        // Filas de concepto solo cuando hay reparto (si no, la única línea
+        // coincidiría con la base imponible y sería redundante).
+        var rows = [];
+        if (n > 0) {
+            rows.push({ k: 'Almacenamiento (tráiler completo)', v: ALM_BASE });
+            rows.push({ k: 'Reparto urbano · ' + n + ' ' + (n > 1 ? 'camiones' : 'camión') + ' × ' + almEur(ALM_REPARTO), v: rep });
+        }
+        window.__renderPriceBox(box, sub, rows);
     }
     window.almRenderPrecio = almRenderPrecio;
     // Paso 1 → valida y pasa a la CONFIRMACIÓN (misma mecánica que el envío).
@@ -5149,7 +5200,7 @@
     function almShowConfirm() {
         var p = _almPending; if (!p) return;
         var a = DYNAMO_ALMACENES[p.almIdx] || {};
-        var base = ALM_BASE + p.reparto * ALM_REPARTO, iva = Math.round(base * 0.21 * 100) / 100, tot = base * 1.21;
+        var base = ALM_BASE + p.reparto * ALM_REPARTO;
         var box = document.getElementById('almConfirm');
         // Resumen (solo lectura).
         var resumen =
@@ -5189,13 +5240,7 @@
                     opt('Enlace de Google Maps', 'maps', s.maps, 'https://maps.app.goo.gl/…') +
                 '</div></div></div>';
         }
-        var precio =
-            '<div class="alm-price" style="margin-top:1.3rem;">' +
-                '<div class="alm-price-row"><span class="k">Almacenamiento (tráiler completo)</span><span class="v">' + almEur(ALM_BASE) + '</span></div>' +
-                (p.reparto > 0 ? '<div class="alm-price-row"><span class="k">Reparto urbano · ' + p.reparto + ' ' + (p.reparto > 1 ? 'camiones' : 'camión') + ' × ' + almEur(ALM_REPARTO) + '</span><span class="v">' + almEur(p.reparto * ALM_REPARTO) + '</span></div>' : '') +
-                '<div class="alm-price-row"><span class="k">IVA (21%)</span><span class="v">' + almEur(iva) + '</span></div>' +
-                '<div class="alm-price-row alm-price-total"><span class="k">Total (IVA incl.)</span><span class="v">' + almEur(tot) + '</span></div>' +
-            '</div>';
+        var precio = '<div class="alm-price" data-almc-pricebox style="margin-top:1.3rem;"></div>';
         box.innerHTML =
             '<div class="alm-intro" style="background:rgba(51,0,204,0.05);border-color:rgba(51,0,204,0.22);">Revisa tu solicitud de almacenamiento antes de confirmar. Estancia máx. <strong>7 días</strong>.</div>' +
             resumen + sitio + precio +
@@ -5203,6 +5248,13 @@
             '<p class="alm-err" id="almcErr"></p>' +
             '<button class="btn-primary" style="width:100%;height:56px;font-size:1rem;margin-top:0.4rem;" onclick="almCrear();return false;">Confirmar almacenamiento</button>' +
             '<button class="btn-ghost" style="width:100%;height:48px;margin-top:0.6rem;" onclick="almBackToForm();return false;">← Editar datos</button>';
+        // Caja de precio unificada (Base / IVA / Total) con efecto contador.
+        var precioRows = [];
+        if (p.reparto > 0) {
+            precioRows.push({ k: 'Almacenamiento (tráiler completo)', v: ALM_BASE });
+            precioRows.push({ k: 'Reparto urbano · ' + p.reparto + ' ' + (p.reparto > 1 ? 'camiones' : 'camión') + ' × ' + almEur(ALM_REPARTO), v: p.reparto * ALM_REPARTO });
+        }
+        window.__renderPriceBox(box.querySelector('[data-almc-pricebox]'), base, precioRows, 0);
         // Pago (idéntico al envío) vía el renderizador reutilizable del tarifador.
         _almPending.formaPago = window.__ptarRenderPagoInto
             ? window.__ptarRenderPagoInto(box.querySelector('[data-almc-pay]'), base, 'almacenamiento', almProforma)
@@ -10264,9 +10316,8 @@
                 precio = Math.round(precio / 10) * 10;
                 // Arranca en el número que se está mostrando AHORA (no en lastPrice)
                 // para que la animación encadene aunque renderEta se llame 2 veces.
-                var shownEl = etaBox.querySelector('[data-precio-num]');
-                var fromPrice = shownEl ? (parseInt(shownEl.textContent.replace(/[^\d]/g, ''), 10) || lastPrice) : lastPrice;
-                var precioHtml = '<dt>Precio</dt><dd class="ptar-eta-precio"><span data-precio-num>' + fromPrice.toLocaleString('es-ES') + '</span> € <span class="ptar-iva">(IVA 21% no incluido)</span></dd>';
+                var shownEl = etaBox.querySelector('[data-price-neto]');
+                var fromPrice = shownEl ? (parseFloat(shownEl.getAttribute('data-val')) || lastPrice) : lastPrice;
 
                 // Lectura de la fecha de carga (si la sección tiene día)
                 var loadStart = null;
@@ -10358,11 +10409,11 @@
                     '<dl class="ptar-eta-data">' +
                     cargaHtml +
                     (rangoHtml ? '<dt>Fecha entrega estimada</dt>' + rangoHtml : '') +
-                    precioHtml +
-                    '</dl>';
-                // Efecto contador: anima el número desde el precio anterior al nuevo.
-                var pnum = etaBox.querySelector('[data-precio-num]');
-                if (pnum) animatePrice(pnum, fromPrice, precio);
+                    '</dl>' +
+                    '<div class="alm-price ptar-eta-pricebox" data-eta-pricebox></div>';
+                // Caja de precio unificada (Base / IVA / Total) con efecto contador
+                // encadenado desde el precio anterior (fromPrice).
+                window.__renderPriceBox(etaBox.querySelector('[data-eta-pricebox]'), precio, [], fromPrice);
                 lastPrice = precio;
                 if (festBox) festBox.innerHTML = festHtml;  // aviso de festivo fuera de la caja, antes de referencia
             }
@@ -10685,9 +10736,9 @@
                     // Precio orientativo (MOCK) mostrado en la caja ETA en el
                     // momento de enviar — se hereda en el envío creado.
                     precioMock: (function () {
-                        var el = card.querySelector('[data-precio-num]');
+                        var el = card.querySelector('[data-price-neto]');
                         if (!el) return null;
-                        var n = parseInt(el.textContent.replace(/[^\d]/g, ''), 10);
+                        var n = Math.round(parseFloat(el.getAttribute('data-val') || '0'));
                         return n || null;
                     })(),
                     paradas: paradaRows().map(function (r) {
@@ -10897,7 +10948,10 @@
                 pendingData.precioMock = precio;
                 var eur = String(precio).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                 var box = confirmCard.querySelector('[data-ptar-conf-price]');
-                if (box) { box.hidden = !precio; box.innerHTML = '<span class="pcp-lbl">Precio</span> <span class="pcp-num">' + eur + ' €</span> <span class="pcp-iva">(IVA 21% no incluido)</span>'; }
+                if (box) {
+                    box.hidden = !precio;
+                    if (precio) window.__renderPriceBox(box, precio, []);
+                }
                 var sumP = summaryEl.querySelector('[data-sum-precio]');
                 if (sumP) sumP.textContent = eur + ' €';
             }
@@ -11517,10 +11571,11 @@
                     // recalcula (o pide origen/destino con coords).
                     if (src.precio && etaBox) {
                         var fromP = String(src.ref || '').indexOf('#P') === 0 ? 'presupuesto' : 'envío anterior';
-                        etaBox.innerHTML = '<dl class="ptar-eta-data">' +
-                            '<dt>Precio (del ' + fromP + ')</dt>' +
-                            '<dd class="ptar-eta-precio">' + escapeHtml(src.precio) + ' <span class="ptar-iva">(IVA 21% no incluido)</span></dd>' +
-                            '</dl>';
+                        var baseP = parseInt(String(src.precio).replace(/[^\d]/g, ''), 10) || 0;
+                        etaBox.innerHTML =
+                            '<div style="font-size:0.8rem;color:var(--gray-500);font-weight:600;margin-bottom:0.3rem;">Precio del ' + fromP + '</div>' +
+                            '<div class="alm-price ptar-eta-pricebox" data-eta-pricebox></div>';
+                        window.__renderPriceBox(etaBox.querySelector('[data-eta-pricebox]'), baseP, [], 0);
                     }
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 };
