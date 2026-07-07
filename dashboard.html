@@ -234,6 +234,16 @@
         }
         .cesce-contact a:hover { background: var(--gray-100); }
         .cesce-contact a svg { width: 16px; height: 16px; color: var(--purple); flex: none; }
+        /* Botón "Reclamar clasificación" (solo estado rojo sin clasificar). */
+        .cesce-reclamar {
+            display: flex; align-items: center; justify-content: center; gap: 0.45rem;
+            width: 100%; margin-top: 0.7rem; padding: 0.6rem 0.7rem;
+            background: var(--purple); color: #fff; border: none; border-radius: 10px;
+            font: inherit; font-size: 0.86rem; font-weight: 800; cursor: pointer;
+        }
+        .cesce-reclamar:hover { filter: brightness(1.08); }
+        .cesce-reclamar svg { width: 16px; height: 16px; flex: none; }
+        .cesce-reclamar .cesce-cif { font-weight: 600; opacity: 0.9; }
         /* Menú de la campana (notificaciones): incidencias + facturas vencidas. */
         .topbar-bell-wrap { position: relative; }
         .bell-menu {
@@ -4790,6 +4800,7 @@
        backend las traerá de la póliza real. Contacto CESCE inventado.
     ============================================ */
     var CESCE_CONTACT = { tel: '900 30 40 50', telHref: '+34900304050', email: 'clientes@cesce.es' };
+    var CLIENTE_CIF = 'B-91384726';   // CIF del cliente (mock; vendrá del perfil)
     function cesceState() {
         var chip = document.querySelector('[data-cesce-chip]');
         if (!chip) return 'ok';
@@ -4808,10 +4819,17 @@
             warn: { badge: 'cesce-b-warn', dot: '', label: 'Crédito agotado', clas: 'B · Riesgo medio',
                     limite: '30.000 €', disp: '850 €', dispCls: 'warn', cons: '29.150 €',
                     note: 'Apenas queda crédito asegurado. Mientras esté agotado, los nuevos envíos se cobran <strong>por adelantado</strong>. Si crees que tu línea debería ser mayor, contacta con CESCE para revisarla.' },
-            none: { badge: 'cesce-b-none', dot: '', label: 'Sin cobertura · crédito 0', clas: 'Sin clasificar',
+            none: { badge: 'cesce-b-none', dot: '', label: 'Crédito nulo o sin clasificar', clas: 'Sin clasificar',
                     limite: '0 €', disp: '0 €', dispCls: 'none', cons: '—',
-                    note: 'CESCE no tiene cobertura de crédito asignada a esta cuenta, así que los envíos se cobran <strong>por adelantado</strong>. Si no estás conforme, contacta con CESCE para solicitar o ampliar tu línea.' }
+                    note: 'Tu empresa está <strong>sin clasificar</strong> por CESCE (o con crédito nulo), así que los envíos se cobran <strong>por adelantado</strong>. Puedes solicitar que CESCE clasifique tu empresa para trabajar a crédito.' }
         }[st];
+        // Estado ROJO "sin clasificar": botón para reclamar la clasificación
+        // (muestra el CIF entre paréntesis).
+        var reclamarBlock = (st === 'none')
+            ? '<button type="button" class="cesce-reclamar" onclick="cesceReclamarClasificacion()">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>' +
+                'Reclamar clasificación <span class="cesce-cif">(CIF ' + CLIENTE_CIF + ')</span></button>'
+            : '';
         menu.innerHTML =
             '<div class="cesce-menu-head">' +
                 '<img class="cesce-menu-logo" src="/images/cesce-azul.webp" alt="CESCE">' +
@@ -4819,19 +4837,19 @@
                 '<div class="cesce-menu-head-s">Asegurada por CESCE</div></div>' +
             '</div>' +
             '<div class="cesce-menu-badge ' + cfg.badge + '"><span class="dot"></span>' + cfg.label + '</div>' +
-            '<div class="cesce-rows">' +
-                '<div class="cesce-row"><span class="k">Clasificación</span><span class="v">' + cfg.clas + '</span></div>' +
-                '<div class="cesce-row"><span class="k">Límite asignado</span><span class="v">' + cfg.limite + '</span></div>' +
-                '<div class="cesce-row"><span class="k">Crédito disponible</span><span class="v big ' + cfg.dispCls + '">' + cfg.disp + '</span></div>' +
-                '<div class="cesce-row"><span class="k">Consumido</span><span class="v">' + cfg.cons + '</span></div>' +
-            '</div>' +
             '<div class="cesce-note' + (st === 'ok' ? '' : ' warn') + '">' + cfg.note + '</div>' +
+            reclamarBlock +
             '<div class="cesce-contact">' +
                 '<div class="cesce-contact-t">¿No estás conforme con tu crédito? Contacta con CESCE</div>' +
                 '<a href="tel:' + CESCE_CONTACT.telHref + '"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.18z"/></svg>' + CESCE_CONTACT.tel + '</a>' +
                 '<a href="mailto:' + CESCE_CONTACT.email + '?subject=Consulta%20sobre%20mi%20l%C3%ADnea%20de%20cr%C3%A9dito"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>' + CESCE_CONTACT.email + '</a>' +
             '</div>';
     }
+    function cesceReclamarClasificacion() {
+        if (window.closeCesceMenu) window.closeCesceMenu();
+        showModalSuccess('Clasificación solicitada', 'Hemos pedido a CESCE que clasifique tu empresa (CIF ' + CLIENTE_CIF + '). En cuanto te asignen crédito te avisamos y podrás trabajar a crédito.');
+    }
+    window.cesceReclamarClasificacion = cesceReclamarClasificacion;
     function toggleCesceMenu(ev) {
         if (ev) ev.stopPropagation();
         if (window.closeTopbarContactMenu) window.closeTopbarContactMenu();
