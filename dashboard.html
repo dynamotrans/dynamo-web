@@ -9551,7 +9551,7 @@
                     '<div class="pay-bank-row"><span class="pay-bank-k">Titular</span><span class="pay-bank-v">' + PAGO_BANCO.titular + '</span></div>' +
                     '<div class="pay-bank-row"><span class="pay-bank-k">IBAN</span><span class="pay-bank-v">' + PAGO_BANCO.iban + '</span></div>' +
                     '<div class="pay-bank-row"><span class="pay-bank-k">Banco</span><span class="pay-bank-v">' + PAGO_BANCO.banco + ' · ' + PAGO_BANCO.bic + '</span></div>' +
-                    '<div class="pay-bank-row"><span class="pay-bank-k">Importe</span><span class="pay-bank-v">' + eur + '</span></div>' +
+                    '<div class="pay-bank-row"><span class="pay-bank-k">Importe <span style="font-weight:600;color:var(--gray-500);">(IVA 21% incl.)</span></span><span class="pay-bank-v">' + eur + '</span></div>' +
                     '<div style="margin-top:0.5rem;">Indica como <strong>concepto</strong> tu referencia o el nº de envío que te enviaremos por email. Envíanos el justificante para agilizar la validación.</div>' +
                     PAGO_NOTA_24H + '</div>';
             }
@@ -9570,12 +9570,14 @@
                     return;
                 }
                 // Sin crédito → pago por adelantado por transferencia bancaria.
+                // El importe a transferir es el TOTAL con IVA (21%).
                 if (pendingData) pendingData.formaPago = 'transferencia';
+                var eurIva = eurStr(Math.round((d && d.precioMock || 0) * 1.21));
                 payEl.innerHTML =
                     '<div class="ptar-pay-box pay-prepago">' +
                         '<div class="ptar-pay-title"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Pago por adelantado</div>' +
                         '<div class="ptar-pay-desc">No tienes crédito disponible, así que este envío requiere <strong>pago por adelantado</strong> mediante <strong>transferencia bancaria</strong>:</div>' +
-                        pagoDetalle('transferencia', eur) +
+                        pagoDetalle('transferencia', eurIva) +
                     '</div>';
                 payEl.hidden = false;
             }
