@@ -1547,15 +1547,25 @@
         .alm-field { margin-bottom: 1.1rem; }
         .alm-field > label { display: block; font-size: 0.84rem; font-weight: 700; color: var(--navy); margin-bottom: 0.4rem; }
         .alm-field .alm-opt { color: var(--gray-500); font-weight: 600; }
-        .alm-field select, .alm-field input[type=date], .alm-field input[type=text], .alm-field textarea {
-            width: 100%; padding: 0.7rem 0.85rem; border: 1px solid var(--gray-200);
-            border-radius: 10px; font-family: inherit; font-size: 0.9rem; color: var(--navy);
+        /* Controles del almacenamiento: MISMO estándar que el tarifador
+           (.ptar-select) → alto 44px, borde 1.5px, hover/focus morado. Así los
+           desplegables e inputs del almacén son idénticos a los del envío. */
+        .alm-field select, .alm-field input[type=date], .alm-field input[type=text] {
+            width: 100%; height: 44px; padding: 0 0.85rem;
+            border: 1.5px solid var(--gray-200); border-radius: 10px;
+            font-family: inherit; font-size: 0.9rem; color: var(--navy);
             background: white; outline: none; transition: border-color 0.15s, box-shadow 0.15s;
         }
-        .alm-field select:focus, .alm-field input:focus, .alm-field textarea:focus {
-            border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.10);
+        .alm-field textarea {
+            width: 100%; padding: 0.7rem 0.85rem; border: 1.5px solid var(--gray-200);
+            border-radius: 10px; font-family: inherit; font-size: 0.9rem; color: var(--navy);
+            background: white; outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+            resize: vertical; min-height: 70px;
         }
-        .alm-field textarea { resize: vertical; min-height: 70px; }
+        .alm-field select:hover, .alm-field input:hover, .alm-field textarea:hover { border-color: var(--purple); }
+        .alm-field select:focus, .alm-field input:focus, .alm-field textarea:focus {
+            border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08);
+        }
         /* Los buscadores tipo envío (.ptar-input-wrap) dentro de .alm-field NO
            deben heredar el borde/fondo de los inputs normales (si no, se ve una
            caja dentro de otra). El borde lo pone el .ptar-input-wrap. */
