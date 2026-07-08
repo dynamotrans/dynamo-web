@@ -150,6 +150,25 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-07-08 (cont.) — Claude Code web (nube)
+
+> **Continuación de la sesión del panel.** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `10b95c2` (2 commits: `553fd31` borrado suave + `10b95c2` Almacenes = Sitios + disponibilidad).
+
+**ALMACENES = SITIOS (tabla y ficha idénticas)**:
+- La sección **Almacenes** (catálogo interno admin) usa ahora las **mismas columnas que Sitios**: Empresa · Dirección · Horario · Contacto · Notas (`renderAlmacenesCatTable` sobre `almToSite(a)`). Son sitios de uso interno.
+- La ventana **Editar almacén** usa el MISMO formulario que Sitios (`sitioFormHTML`, ids `sitio-f-*`): Empresa, Tipo de lugar, Horario, Dirección (calle+número), CP/localidad/provincia/país, Teléfono, Contacto, Notas, enlace de Maps. `almacenCatGuardar` lee esos ids, escribe al objeto del almacén y re-deriva prov/ciudad/cp del CP line.
+- **Modelo de datos reconciliado**: el almacenamiento usa `dir`=calle + `almIdx`; los sitios usan `calle`+`dir`=línea CP. Se añadió `calle`/`dirCP` + campos de sitio al objeto almacén vía `enrichAlmacenes()` (una vez), con `almToSite(a)` como vista. **Borrado suave** (`_deleted`) para no descuadrar los `almIdx` de almacenamientos ya registrados (commit `553fd31`).
+- **Almacenes en el buscador de recogida/entrega del ENVÍO**: `renderLocales(q)` añade `almSitesBuscar(q)` con chip morado **«Almacén»** (`.sug-chip-dynamo`); al elegir uno se aplica como `siteKey` `dynamo-*` y **`siteDe` resuelve esas claves** (`almToSite`) para consolidar la ficha en el resumen. Por si hay que recoger/entregar en un almacén Dynamo.
+
+**CHECK DE DISPONIBILIDAD (Disponible / Completo)**:
+- Toggle **«Almacén disponible»** arriba de la ficha de edición del almacén (`almc-f-disp`), guarda `a.disponible`.
+- Al marcarlo **completo** (`disponible:false`): sigue apareciendo en los desplegables con **badge rojo «Completo»** (`.alm-combo-full`) tanto en la tabla del catálogo como en el combo de nuevo almacenamiento; al elegirlo en **nuevo almacenamiento** salta el aviso *«Este almacén está COMPLETO y no admite entradas»* y **`almSolicitar` bloquea** (no crea el registro).
+- En el **envío** (recogida/entrega) el almacén completo SÍ aparece y se puede elegir — «completo» solo bloquea **almacenar**, no recoger/entregar. (Si se quiere bloquear también en envío, es un cambio pequeño.)
+
+**Método**: verificado en Chromium headless (`?role=admin`): columnas de la tabla, ficha idéntica a Sitios, toggle guarda `disponible:false`, badge en tabla y combo, aviso + bloqueo al elegir completo en almacenamiento, almacenes visibles en el buscador del envío, `siteDe` resuelve `dynamo-*`, sin errores JS. Screenshots antes de commitear.
+
+---
+
 ### 2026-07-08 — Claude Code web (nube)
 
 > **Sesión muy larga en el PANEL (`dashboard.html`).** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `f1b4e36` (18 commits del día, todos pusheados a preview).
