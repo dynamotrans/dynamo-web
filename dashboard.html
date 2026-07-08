@@ -921,23 +921,6 @@
         .dash-modal-icon.icon-warn   { background: rgba(245,158,11,0.13); color: #b45309; }
         .dash-modal-icon.icon-danger { background: rgba(220,38,38,0.10); color: #b91c1c; }
         .dash-modal-icon.icon-success { background: rgba(16,185,129,0.13); color: #047857; }
-        /* Timeline del modal Seguimiento */
-        .timeline-item {
-            display: flex; gap: 0.7rem; padding: 0.6rem 0;
-            border-bottom: 1px solid var(--gray-200);
-        }
-        .timeline-item:last-child { border-bottom: none; }
-        .timeline-item strong { color: var(--navy); display: block; font-size: 0.88rem; }
-        .timeline-item .timeline-meta { font-size: 0.82rem; color: var(--gray-500); margin-top: 0.1rem; }
-        .timeline-icon {
-            width: 28px; height: 28px; border-radius: 8px;
-            background: var(--gray-100); color: var(--gray-500);
-            display: inline-flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-        }
-        .timeline-icon svg { width: 14px; height: 14px; }
-        .timeline-icon.timeline-done { background: rgba(16,185,129,0.13); color: #047857; }
-        .timeline-icon.timeline-now  { background: rgba(51,0,204,0.10); color: var(--purple); }
         /* Overlay de carga entre "confirmar" y la lista (transición suave) */
         .dash-loading {
             position: fixed; inset: 0; z-index: 1600;
@@ -5803,7 +5786,6 @@
                 btns.push(b('btn-primary', 'cancelar-carga', 'Cancelar envío', 'x', 'background:var(--red);'));
             }
         } else if (kind === 'en-ruta') {
-            btns.push(b('btn-secondary', 'seguimiento', 'Seguimiento', 'mapPin'));
             btns.push(b('btn-primary', 'reportar-incidencia', 'Reportar incidencia', 'alert'));
         } else if (kind === 'entregada') {
             // El albarán se gestiona en su propia sección "Albaranes"; aquí no
@@ -6006,22 +5988,6 @@
         showModalSuccess('Reclamación enviada', 'Hemos pedido el albarán de ' + ref + ' al transportista. Te lo enviaremos por email en cuanto lo tengamos.');
     }
     window.cargaReclamarAlbaranConfirm = cargaReclamarAlbaranConfirm;
-    function cargaSeguimiento(row) {
-        var d = cargaRowData(row);
-        openDashModal({
-            icon: 'mapPin',
-            title: 'Seguimiento de ' + d.ref,
-            sub: d.origen + ' → ' + d.destino + ' · ' + d.estado,
-            body:
-                '<ul style="list-style:none;padding:0;margin:0;">' +
-                '<li class="timeline-item"><span class="timeline-icon timeline-done">' + icon('eye') + '</span><div><strong>Recogida realizada</strong><div class="timeline-meta">14/06 · 09:14 · ' + escapeHtml(d.origen) + '</div></div></li>' +
-                '<li class="timeline-item"><span class="timeline-icon">' + icon('truck') + '</span><div><strong>En tránsito</strong><div class="timeline-meta">14/06 · 11:32 · A-66 km 142</div></div></li>' +
-                '<li class="timeline-item"><span class="timeline-icon timeline-now">' + icon('mapPin') + '</span><div><strong>Última posición</strong><div class="timeline-meta">Hace 12 min · AP-7 km 354 · ETA destino mañana 09:30</div></div></li>' +
-                '<li style="display:flex;gap:0.7rem;padding:0.6rem 0;color:var(--gray-500);"><span style="font-size:1.1rem;opacity:0.4;">⚪</span><div><strong>Entrega pendiente</strong><div style="font-size:0.78rem;">' + escapeHtml(d.destino) + '</div></div></li>' +
-                '</ul>',
-            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>'
-        });
-    }
     function cargaModificar(row) {
         cargaVerDetalle(row);
     }
@@ -6166,7 +6132,6 @@
         if (text.indexOf('reclamar alb') > -1) return 'reclamar-albaran';
         if (text.indexOf('procesándose') > -1 || text.indexOf('procesandose') > -1) return null; // boton informativo, no acciona
         if (text.indexOf('repetir') > -1) return 'repetir';
-        if (text.indexOf('seguimiento') > -1) return 'seguimiento';
         if (text.indexOf('modificar') > -1) return 'modificar';
         if (text.indexOf('cancelar carga') > -1) return 'cancelar-carga';
         if (text.indexOf('generar carga') > -1) return 'generar-carga';
@@ -6182,7 +6147,6 @@
             if (action === 'reportar-incidencia') return cargaReportarIncidencia(row);
             if (action === 'descargar-albaran') return cargaDescargarAlbaran(row);
             if (action === 'reclamar-albaran') return cargaReclamarAlbaran(row);
-            if (action === 'seguimiento') return cargaSeguimiento(row);
             if (action === 'modificar') return cargaModificar(row);
             if (action === 'cancelar-carga') return cargaCancelar(row);
         }
@@ -7639,7 +7603,7 @@
     function actionItemsCarga(c) {
         var kind = c.kind;
         if (kind === 'programada') return mi('eye', 'Ver detalle') + mi('edit', 'Modificar') + '<button class="row-menu-item danger"><span class="rm-icon">' + icon('x') + '</span>Cancelar envío</button>';
-        if (kind === 'en-ruta')    return mi('eye', 'Ver detalle') + mi('mapPin', 'Seguimiento') + mi('alert', 'Reportar incidencia');
+        if (kind === 'en-ruta')    return mi('eye', 'Ver detalle') + mi('alert', 'Reportar incidencia');
         if (kind === 'cancelada')  return mi('eye', 'Ver detalle');
         // entregada — el albarán ya vive en su propia sección "Albaranes",
         // así que aquí no se muestra ni el icono ni el botón de descarga.
