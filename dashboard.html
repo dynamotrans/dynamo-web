@@ -4325,7 +4325,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Empresa</th><th>Dirección</th><th>Horario</th><th>Contacto</th><th>Notas</th>
+                    <th>Empresa</th><th>Dirección</th><th>Horario</th><th>Almacenamiento<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">7 días / 1 semana</span></th><th>Reparto 4 m<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">por reparto</span></th><th>Contacto</th><th>Notas</th>
                 </tr></thead>
                 <tbody id="tbodyAlmacenesCat"></tbody>
             </table>
@@ -5103,7 +5103,7 @@
     // recarga. Se guardan solo los almacenes TOCADOS (_touched) o AÑADIDOS
     // (_custom), por su `key`. En la app real esto lo hará el backend.
     var ALM_STORE_KEY = 'dynamoAlmacenesOverrides';
-    var ALM_OV_FIELDS = ['empresa', 'tipoLugar', 'horario', 'tfno', 'contacto', 'notas', 'maps', 'calle', 'dir', 'dirCP', 'cp', 'ciudad', 'prov', 'disponible', '_deleted', '_custom'];
+    var ALM_OV_FIELDS = ['empresa', 'tipoLugar', 'horario', 'tfno', 'contacto', 'notas', 'maps', 'calle', 'dir', 'dirCP', 'cp', 'ciudad', 'prov', 'disponible', 'precioBase', 'precioReparto', '_deleted', '_custom'];
     function persistAlmacenes() {
         try {
             var map = {};
@@ -5149,7 +5149,11 @@
         });
         return out;
     }
-    var ALM_BASE = 240, ALM_REPARTO = 220;  // € + IVA (tráiler completo / camión 4 m)
+    var ALM_BASE = 240, ALM_REPARTO = 220;  // € (por defecto) — tráiler completo 7 días / reparto camión 4 m
+    // Precio por almacén: cada uno puede tener su tarifa (base de almacenamiento
+    // 7 días y reparto urbano por camión 4 m). Si no la tiene, usa la global.
+    function almPBase(a) { return (a && a.precioBase != null && a.precioBase !== '') ? Number(a.precioBase) : ALM_BASE; }
+    function almPReparto(a) { return (a && a.precioReparto != null && a.precioReparto !== '') ? Number(a.precioReparto) : ALM_REPARTO; }
     function almEur(n) { return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
     // ===== Caja de precio UNIFICADA (Base imponible / IVA 21% / Total) =====
     // Mismo diseño y efecto contador en TODAS las pantallas (crear/confirmar
@@ -5281,6 +5285,7 @@
             if (wrap) wrap.classList.add('ptar-error');
             if (err) { err.textContent = '⚠ Este almacén está COMPLETO y no admite entradas ahora mismo. Elige otro almacén Dynamo.'; err.classList.add('show'); }
         } else if (err) { err.classList.remove('show'); }
+        almRenderPrecio();   // refleja el precio propio del almacén elegido
     }
     window.almPickAlmacen = almPickAlmacen;
     function almSelClear(focus) {
@@ -5493,13 +5498,15 @@
     function almRenderPrecio() {
         var box = document.getElementById('almPrice'); if (!box) return;
         var n = parseInt((document.getElementById('almReparto') || {}).value, 10) || 0;
-        var rep = n * ALM_REPARTO, sub = ALM_BASE + rep;
+        var a = DYNAMO_ALMACENES[_almSel] || {};
+        var pb = almPBase(a), pr = almPReparto(a);
+        var rep = n * pr, sub = pb + rep;
         // Filas de concepto solo cuando hay reparto (si no, la única línea
         // coincidiría con la base imponible y sería redundante).
         var rows = [];
         if (n > 0) {
-            rows.push({ k: 'Almacenamiento (tráiler completo)', v: ALM_BASE });
-            rows.push({ k: 'Reparto urbano · ' + n + ' ' + (n > 1 ? 'camiones' : 'camión') + ' × ' + almEur(ALM_REPARTO), v: rep });
+            rows.push({ k: 'Almacenamiento (tráiler completo)', v: pb });
+            rows.push({ k: 'Reparto urbano · ' + n + ' ' + (n > 1 ? 'camiones' : 'camión') + ' × ' + almEur(pr), v: rep });
         }
         window.__renderPriceBox(box, sub, rows);
     }
@@ -5566,7 +5573,8 @@
     function almShowConfirm() {
         var p = _almPending; if (!p) return;
         var a = DYNAMO_ALMACENES[p.almIdx] || {};
-        var base = ALM_BASE + p.reparto * ALM_REPARTO;
+        var pb = almPBase(a), pr = almPReparto(a);
+        var base = pb + p.reparto * pr;
         var box = document.getElementById('almConfirm');
         // Resumen (solo lectura).
         var resumen =
@@ -5665,8 +5673,8 @@
         // Caja de precio unificada (Base / IVA / Total) con efecto contador.
         var precioRows = [];
         if (p.reparto > 0) {
-            precioRows.push({ k: 'Almacenamiento (tráiler completo)', v: ALM_BASE });
-            precioRows.push({ k: 'Reparto urbano · ' + p.reparto + ' ' + (p.reparto > 1 ? 'camiones' : 'camión') + ' × ' + almEur(ALM_REPARTO), v: p.reparto * ALM_REPARTO });
+            precioRows.push({ k: 'Almacenamiento (tráiler completo)', v: pb });
+            precioRows.push({ k: 'Reparto urbano · ' + p.reparto + ' ' + (p.reparto > 1 ? 'camiones' : 'camión') + ' × ' + almEur(pr), v: p.reparto * pr });
         }
         window.__renderPriceBox(box.querySelector('[data-almc-pricebox]'), base, precioRows, 0);
         // Pago (idéntico al envío) vía el renderizador reutilizable del tarifador.
@@ -5742,7 +5750,7 @@
     function almProforma() {
         var p = _almPending; if (!p) return;
         var a = DYNAMO_ALMACENES[p.almIdx] || {};
-        var base = ALM_BASE + p.reparto * ALM_REPARTO;
+        var base = almPBase(a) + p.reparto * almPReparto(a);
         function fmtISO(iso) { var d = new Date(iso + 'T00:00:00'); return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear(); }
         var camionesTxt = p.reparto + (p.reparto === 1 ? ' camión' : ' camiones');
         var diasTxt = p.dias === 0 ? 'mismo día' : p.dias + (p.dias === 1 ? ' día' : ' días');
@@ -5871,7 +5879,7 @@
     function almFinalizarReg(destino) {
         var p = _almPending; if (!p) return;
         var a = DYNAMO_ALMACENES[p.almIdx];
-        var tot = (ALM_BASE + p.reparto * ALM_REPARTO) * 1.21;
+        var tot = (almPBase(a) + p.reparto * almPReparto(a)) * 1.21;
         var reg = {
             ref: '#AX' + (ALM_SEQ++),
             almIdx: p.almIdx,
@@ -5917,7 +5925,7 @@
         if (r.entrada <= hoy) return { label: 'En almacén', color: 'cargando' };
         return { label: 'Programado', color: 'prog' };
     }
-    function almTotalDe(r) { return (ALM_BASE + r.reparto * ALM_REPARTO) * 1.21; }
+    function almTotalDe(r) { var a = DYNAMO_ALMACENES[r.almIdx] || {}; return (almPBase(a) + r.reparto * almPReparto(a)) * 1.21; }
     function almFmtFecha(iso) {
         var d = new Date(iso + 'T00:00:00');
         var dows = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -5950,7 +5958,7 @@
                     ? 'Sí · ' + r.reparto + ' ' + (r.reparto > 1 ? 'camiones' : 'camión') +
                         (r.destinoDir ? '<div class="meta">' + esc(String(r.destinoDir).slice(0, 34)) + '…</div>' : '')
                     : 'No') + '</td>' +
-                '<td><strong>' + almEur(ALM_BASE + r.reparto * ALM_REPARTO) + '</strong></td>' +
+                '<td><strong>' + almEur(almPBase(a) + r.reparto * almPReparto(a)) + '</strong></td>' +
                 '<td><span class="badge badge-' + est.color + '">' + est.label + '</span></td>' +
                 '</tr>';
         }).join('');
@@ -6006,9 +6014,11 @@
         var n = parseInt((document.getElementById('almDxRep') || {}).value, 10) || 0;
         var box = document.getElementById('almDxPrice');
         if (box) {
-            var rep = n * ALM_REPARTO, sub = ALM_BASE + rep, iva = sub * 0.21, tot = sub * 1.21;
-            var html = '<div class="alm-price-row"><span class="k">Almacenamiento (tráiler completo)</span><span class="v">' + almEur(ALM_BASE) + '</span></div>';
-            if (n > 0) html += '<div class="alm-price-row"><span class="k">Reparto urbano · ' + n + ' ' + (n > 1 ? 'camiones' : 'camión') + ' × ' + almEur(ALM_REPARTO) + '</span><span class="v">' + almEur(rep) + '</span></div>';
+            var _r = almFindByRef(ref), _a = _r ? (DYNAMO_ALMACENES[_r.almIdx] || {}) : {};
+            var pb = almPBase(_a), pr = almPReparto(_a);
+            var rep = n * pr, sub = pb + rep, iva = sub * 0.21, tot = sub * 1.21;
+            var html = '<div class="alm-price-row"><span class="k">Almacenamiento (tráiler completo)</span><span class="v">' + almEur(pb) + '</span></div>';
+            if (n > 0) html += '<div class="alm-price-row"><span class="k">Reparto urbano · ' + n + ' ' + (n > 1 ? 'camiones' : 'camión') + ' × ' + almEur(pr) + '</span><span class="v">' + almEur(rep) + '</span></div>';
             html += '<div class="alm-price-row"><span class="k">IVA (21%)</span><span class="v">' + almEur(iva) + '</span></div>' +
                 '<div class="alm-price-row alm-price-total"><span class="k">Total (IVA incl.)</span><span class="v">' + almEur(tot) + '</span></div>';
             box.innerHTML = html;
@@ -6087,7 +6097,7 @@
         var h2 = document.querySelector('#sec-almacenes-cat h2');
         if (h2) h2.textContent = 'Almacenes (' + rows.length + ')';
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin almacenes que coincidan</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin almacenes que coincidan</td></tr>';
             return;
         }
         // Mismas columnas que la agenda de Sitios: Empresa · Dirección · Horario ·
@@ -6103,6 +6113,8 @@
                     (s.maps ? '<div class="meta"><a href="' + esc(s.maps) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--purple);font-weight:600;text-decoration:none;">Ver en Maps</a></div>' : '') + '</td>' +
                 '<td>' + (s.calle ? esc(s.calle) + (s.dir ? '<div class="meta">' + esc(s.dir) + '</div>' : '') : esc(s.dir || '—')) + '</td>' +
                 '<td>' + esc(s.horario || '—') + '</td>' +
+                '<td><strong>' + almEur(almPBase(a)) + '</strong></td>' +
+                '<td><strong>' + almEur(almPReparto(a)) + '</strong></td>' +
                 '<td>' + esc(s.tfno || '—') + (s.contacto ? '<div class="meta">' + esc(s.contacto) + '</div>' : '') + '</td>' +
                 '<td>' + (s.notas ? '<span style="color:#b45309;">⚠ ' + esc(String(s.notas).slice(0, 60)) + (String(s.notas).length > 60 ? '…' : '') + '</span>' : '—') + '</td>' +
             '</tr>';
@@ -6125,7 +6137,20 @@
                         '<span style="display:block;font-size:0.8rem;color:var(--gray-500);font-weight:500;margin-top:1px;">Desmárcalo si el almacén está <strong>completo</strong>: seguirá apareciendo en los desplegables, pero al elegirlo avisará de que no admite entradas y no dejará continuar.</span></span>' +
                 '</label>' +
             '</div>';
-        return toggle + sitioFormHTML(s, false);
+        // Precios propios de este almacén (base € sin IVA). Si se dejan vacíos se
+        // usan los precios por defecto (almacenamiento ' + ALM_BASE + ' € · reparto ' + ALM_REPARTO + ' €).
+        var pb = a && a.precioBase != null && a.precioBase !== '' ? a.precioBase : ALM_BASE;
+        var pr = a && a.precioReparto != null && a.precioReparto !== '' ? a.precioReparto : ALM_REPARTO;
+        var precios =
+            '<div style="margin:0 0 0.9rem;padding:0.7rem 0.85rem;border:1.5px solid var(--gray-200);border-radius:10px;background:var(--gray-50);">' +
+                '<strong style="color:var(--navy);font-size:0.9rem;">Precios de este almacén</strong>' +
+                '<span style="display:block;font-size:0.8rem;color:var(--gray-500);font-weight:500;margin:1px 0 0.6rem;">Base sin IVA. Cada almacén puede tener su tarifa.</span>' +
+                '<div class="ptar-sitio-grid">' +
+                    '<div><label>Almacenamiento · 7 días / 1 semana (€)</label><input id="almc-f-pbase" type="number" min="0" step="10" value="' + escapeHtml(String(pb)) + '" placeholder="' + ALM_BASE + '"></div>' +
+                    '<div><label>Reparto urbano · camión 4 m (€ / reparto)</label><input id="almc-f-preparto" type="number" min="0" step="10" value="' + escapeHtml(String(pr)) + '" placeholder="' + ALM_REPARTO + '"></div>' +
+                '</div>' +
+            '</div>';
+        return toggle + precios + sitioFormHTML(s, false);
     }
     function openAlmacenCatModal(idx) {
         var esEdit = (idx != null && idx >= 0 && idx < DYNAMO_ALMACENES.length);
@@ -6163,6 +6188,10 @@
         a.calle = calle; a.dir = calle;   // calle/número (lo usa el flujo de almacenamiento)
         a.dirCP = dirCP;
         a.disponible = dispEl ? dispEl.checked : true;
+        // Precios propios (vacío → usa el precio por defecto).
+        var pbEl = document.getElementById('almc-f-pbase'), prEl = document.getElementById('almc-f-preparto');
+        a.precioBase = (pbEl && pbEl.value.trim() !== '') ? Number(pbEl.value) : null;
+        a.precioReparto = (prEl && prEl.value.trim() !== '') ? Number(prEl.value) : null;
         // Re-derivar prov/ciudad/cp del CP line (best effort) para la etiqueta y
         // la dirección completa del almacenamiento.
         var parts = dirCP.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
