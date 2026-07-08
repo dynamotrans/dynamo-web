@@ -4655,17 +4655,17 @@
             if (cur) lines.push(cur); return lines;
         }
         var PURPLE = [0.20, 0.00, 0.80], NAVY = [0.07, 0.09, 0.18], GRAY = [0.42, 0.45, 0.50], LIGHT = [0.95, 0.96, 0.98], GREEN = [0.13, 0.65, 0.35];
-        // Importes: base = precio orientativo; total con IVA 21%; IVA = total-base.
-        var base = parseInt(d.precioMock, 10) || 0;
-        var total = Math.round(base * 1.21), iva = total - base;
-        function eur(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
+        // Importes con 2 decimales (documento formal): base + IVA 21% + total.
+        var base = parseFloat(d.precioMock) || 0;
+        var iva = Math.round(base * 0.21 * 100) / 100, total = Math.round(base * 1.21 * 100) / 100;
+        function eur(n) { return (Number(n) || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
         var now = new Date();
         function dd(x) { return ('0' + x).slice(-2); }
         var fecha = dd(now.getDate()) + '/' + dd(now.getMonth() + 1) + '/' + now.getFullYear();
         var seed = (typeof hashStr === 'function') ? hashStr((d.origCorto || '') + (d.destCorto || '') + base + (d.refCli || '')) : 1234;
         var pno = 'PRO-' + now.getFullYear() + '-' + (1000 + (seed % 9000));
         var refCli = (d.refCli && d.refCli.indexOf('NUEVO') === -1) ? d.refCli : null;
-        var conceptoTransfer = refCli || 'Nº de envío (te lo enviamos por email)';
+        var conceptoTransfer = refCli || d.conceptoTransferPlaceholder || 'Nº de envío (te lo enviamos por email)';
 
         // ---- Cabecera ----
         fill(PURPLE[0], PURPLE[1], PURPLE[2]); rect(0, H - 74, W, 74);
@@ -4767,7 +4767,7 @@
 
         // ---- Condiciones ----
         var cy = sy + 78;
-        var cond = 'El transporte no se gestiona ni se asigna camión hasta validar el pago (la validación puede tardar hasta 24 h). El plazo de carga empieza a contar desde que validamos el pago.';
+        var cond = d.condPago || 'El transporte no se gestiona ni se asigna camión hasta validar el pago (la validación puede tardar hasta 24 h). El plazo de carga empieza a contar desde que validamos el pago.';
         var condLines = wrap(cond, 118);
         for (i = 0; i < condLines.length; i++) text(mL, cy + i * 11, condLines[i], 7.6, false, GRAY);
 
@@ -5423,19 +5423,24 @@
         var p = _almPending; if (!p) return;
         var a = DYNAMO_ALMACENES[p.almIdx] || {};
         var base = ALM_BASE + p.reparto * ALM_REPARTO;
+        function fmtISO(iso) { var d = new Date(iso + 'T00:00:00'); return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear(); }
+        var camionesTxt = p.reparto + (p.reparto === 1 ? ' camión' : ' camiones');
+        var diasTxt = p.dias === 0 ? 'mismo día' : p.dias + (p.dias === 1 ? ' día' : ' días');
         descargarProforma({
             precioMock: base,
             refCli: null,
+            conceptoTransferPlaceholder: 'Nº de almacenamiento (te lo enviamos por email)',
+            condPago: 'El almacenamiento no se gestiona ni se reserva espacio hasta validar el pago (la validación puede tardar hasta 24 h). El plazo de entrada empieza a contar desde que validamos el pago.',
             conceptoLinea: 'Almacenamiento de corta estancia · Dynamo ' + a.prov,
-            conceptoSub: 'Entrada ' + p.entrada + '  ·  salida ' + p.salida + '  ·  ' + p.dias + ' día(s)' + (p.reparto > 0 ? '  ·  reparto ' + p.reparto + ' camión(es)' : ''),
+            conceptoSub: 'Entrada ' + fmtISO(p.entrada) + '  ·  salida ' + fmtISO(p.salida) + '  ·  ' + diasTxt + (p.reparto > 0 ? '  ·  reparto en ' + camionesTxt : ''),
             detalleTitulo: 'DETALLES DEL ALMACENAMIENTO',
             detalleRows: [
                 ['Almacén', 'Dynamo · ' + a.prov],
                 ['Dirección', almDireccionCompleta(a)],
-                ['Entrada', p.entrada],
-                ['Salida', p.salida],
-                ['Estancia', (p.dias === 0 ? 'mismo día' : p.dias + ' días') + ' (máx. 7)'],
-                ['Reparto urbano', p.reparto > 0 ? p.reparto + ' camión(es) de 4 m' : 'No'],
+                ['Entrada', fmtISO(p.entrada)],
+                ['Salida', fmtISO(p.salida)],
+                ['Estancia', diasTxt + ' (máx. 7)'],
+                ['Reparto urbano', p.reparto > 0 ? camionesTxt + ' de 4 m' : 'No'],
                 ['Incluye', 'Descarga, almacenamiento y carga posterior']
             ]
         });
