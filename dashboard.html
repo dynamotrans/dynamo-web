@@ -5079,7 +5079,12 @@
     // mantienen prov/ciudad/cp/dir (dir = calle) que usa el flujo de
     // almacenamiento; se añaden empresa/horario/tfno/calle/dirCP/clave.
     (function enrichAlmacenes() {
+        // Estado de disponibilidad por defecto (demo): TODOS completos salvo
+        // Barcelona, Valencia y Sevilla. Se puede cambiar por almacén desde la
+        // ficha (y persiste en localStorage).
+        var ALM_DISPONIBLES = ['Barcelona', 'Valencia', 'Sevilla'];
         DYNAMO_ALMACENES.forEach(function (a) {
+            if (!('disponible' in a)) a.disponible = ALM_DISPONIBLES.indexOf(a.prov) > -1;
             a.key = a.key || ('dynamo-' + normTxt(a.prov).replace(/[^a-z0-9]+/g, '-'));
             a.empresa = a.empresa || ('Almacén Dynamo · ' + a.prov);
             a.tipoLugar = a.tipoLugar || 'Almacén / Nave';
