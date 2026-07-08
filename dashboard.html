@@ -5028,6 +5028,7 @@
         var q = normTxt(inp.value);
         var items = [];
         DYNAMO_ALMACENES.forEach(function (a, i) {
+            if (a._deleted) return;   // borrado del catálogo: no se ofrece
             if (q && normTxt(a.prov + ' ' + a.ciudad + ' ' + a.dir).indexOf(q) === -1) return;
             items.push('<li class="alm-combo-item" onmousedown="almPickAlmacen(' + i + ');event.preventDefault();">' +
                 '<span><strong>' + escapeHtml(a.prov) + '</strong> · ' + escapeHtml(a.ciudad) + '</span>' +
@@ -5817,6 +5818,7 @@
         var tbody = document.getElementById('tbodyAlmacenesCat'); if (!tbody) return;
         var nq = normTxt(q || '');
         var rows = DYNAMO_ALMACENES.map(function (a, i) { return { a: a, i: i }; }).filter(function (r) {
+            if (r.a._deleted) return false;   // borrado suave: oculto de la tabla
             if (!nq) return true;
             return normTxt([r.a.prov, r.a.ciudad, r.a.cp, r.a.dir].join(' ')).indexOf(nq) > -1;
         });
@@ -5898,7 +5900,12 @@
     }
     window.almacenCatEliminar = almacenCatEliminar;
     function almacenCatEliminarOk(idx) {
-        if (idx >= 0 && idx < DYNAMO_ALMACENES.length) DYNAMO_ALMACENES.splice(idx, 1);
+        // Borrado SUAVE: marca _deleted (no se hace splice) para no desplazar
+        // los índices del array. Así los almacenamientos ya registrados —que
+        // guardan almIdx— siguen resolviendo su almacén correctamente, igual
+        // que ocurre con los sitios de la agenda. Solo se oculta de la tabla
+        // y del desplegable de nuevo almacenamiento.
+        if (idx >= 0 && idx < DYNAMO_ALMACENES.length) DYNAMO_ALMACENES[idx]._deleted = true;
         closeDashModal();
         var si = document.getElementById('almacenesCatSearch');
         renderAlmacenesCatTable(si ? si.value : '');
