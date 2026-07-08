@@ -5341,7 +5341,7 @@
         // después de hoy (preparación del almacén). Estancia máx. 7 días.
         Object.keys(_almFp).forEach(function (k) { if (_almFp[k]) { _almFp[k].destroy(); _almFp[k] = null; } });
         var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida');
-        if (ent) almFillDaySel(ent, almRelISO(2), 7, 'Selecciona fecha de entrada');
+        if (ent) almFillDaySel(ent, almFirstEntradaIso(), 7, 'Selecciona fecha de entrada');
         if (sal) almPlaceholderSel(sal, 'Elige primero la entrada');
         almRenderPrecio();
         showSection('nuevo-almacen');
@@ -5349,9 +5349,24 @@
     window.openNuevoAlmacen = openNuevoAlmacen;
     // ---- Selector de fecha estilo envío (lista de días + "Otro día…") ----
     var _almFp = {};
-    function almNaturalDays(firstIso, count) {
+    // Solo días HÁBILES (misma lógica que el calendario del envío): fin de
+    // semana o festivo NACIONAL de España (FESTIVOS.get('es', …)) no cuentan.
+    function almNonBiz(d) { var w = d.getDay(); return w === 0 || w === 6 || !!getHolidayName(d); }
+    function almNextBizDate(d) { var x = new Date(d); while (almNonBiz(x)) x.setDate(x.getDate() + 1); return x; }
+    // Primera fecha de entrada: hoy + 2 días naturales, avanzada al siguiente
+    // día hábil si cae en finde/festivo.
+    function almFirstEntradaIso() { var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 2); return almISO(almNextBizDate(d)); }
+    // Lista de hasta `count` días hábiles desde firstIso; si se pasa maxIso, no
+    // se sobrepasa esa fecha (para acotar la estancia a 7 días).
+    function almBizDays(firstIso, count, maxIso) {
         var out = [], d = new Date(firstIso + 'T00:00:00');
-        for (var i = 0; i < count; i++) { out.push(new Date(d)); d.setDate(d.getDate() + 1); }
+        var max = maxIso ? new Date(maxIso + 'T00:00:00') : null;
+        var guard = 0;
+        while (out.length < count && guard++ < 400) {
+            if (max && d > max) break;
+            if (!almNonBiz(d)) out.push(new Date(d));
+            d.setDate(d.getDate() + 1);
+        }
         return out;
     }
     function almDayLabel(d) {
@@ -5367,11 +5382,11 @@
         var ph = document.createElement('option'); ph.value = ''; ph.textContent = phTxt; ph.disabled = true; ph.selected = true;
         sel.appendChild(ph); sel.value = '';
     }
-    function almFillDaySel(sel, firstIso, count, phTxt, selectIso) {
+    function almFillDaySel(sel, firstIso, count, phTxt, selectIso, maxIso) {
         sel.innerHTML = '';
         var ph = document.createElement('option'); ph.value = ''; ph.textContent = phTxt; ph.disabled = true; ph.selected = true;
         sel.appendChild(ph);
-        almNaturalDays(firstIso, count).forEach(function (d) {
+        almBizDays(firstIso, count, maxIso).forEach(function (d) {
             var o = document.createElement('option'); o.value = almISO(d); o.textContent = almDayLabel(d); sel.appendChild(o);
         });
         var otro = document.createElement('option'); otro.value = 'otro'; otro.textContent = 'Otro día…';
@@ -5392,6 +5407,7 @@
         _almFp[which] = window.flatpickr(fpInput, {
             locale: window.flatpickr.l10ns && window.flatpickr.l10ns.es ? 'es' : 'default',
             minDate: minIso, maxDate: maxIso, dateFormat: 'Y-m-d', disableMobile: true,
+            disable: [function (d) { return almNonBiz(d); }],   // solo días hábiles (findes/festivos bloqueados)
             onClose: function (selDates) {
                 if (selDates && selDates.length) {
                     var iso = almISO(selDates[0]);
@@ -5438,7 +5454,7 @@
     window.almDiaChange = almDiaChange;
     function almFpLimits(which) {
         var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida');
-        if (which === 'ent') return { min: almRelISO(2), max: almRelISO(30) };
+        if (which === 'ent') return { min: almFirstEntradaIso(), max: almRelISO(30) };
         if (which === 'sal') { var e = (ent && /^\d{4}-\d{2}-\d{2}$/.test(ent.value)) ? ent.value : almRelISO(2); var m = new Date(e + 'T00:00:00'); m.setDate(m.getDate() + 7); return { min: e, max: almISO(m) }; }
         var s = (sal && /^\d{4}-\d{2}-\d{2}$/.test(sal.value)) ? sal.value : almRelISO(2); var m2 = new Date(s + 'T00:00:00'); m2.setDate(m2.getDate() + 14); return { min: s, max: almISO(m2) };
     }
@@ -5446,9 +5462,13 @@
         var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida');
         var eIso = (ent && /^\d{4}-\d{2}-\d{2}$/.test(ent.value)) ? ent.value : '';
         if (which === 'ent' && eIso) {
-            // Rellena la salida: días entrada … entrada+7, por defecto entrada+7.
+            // Rellena la salida con los días HÁBILES entre entrada y entrada+7
+            // (estancia máx. 7 días). Por defecto, el último día hábil del rango.
             var e = new Date(eIso + 'T00:00:00'), maxSal = new Date(e); maxSal.setDate(maxSal.getDate() + 7);
-            almFillDaySel(sal, eIso, 8, 'Selecciona fecha de salida', almISO(maxSal));
+            var maxSalIso = almISO(maxSal);
+            var bizRange = almBizDays(eIso, 99, maxSalIso);
+            var defSal = bizRange.length ? almISO(bizRange[bizRange.length - 1]) : maxSalIso;
+            almFillDaySel(sal, eIso, 99, 'Selecciona fecha de salida', defSal, maxSalIso);
         }
         // La entrega del reparto es la propia fecha de salida (no hay campo aparte).
         almRenderPrecio();
