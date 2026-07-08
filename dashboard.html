@@ -11341,17 +11341,24 @@
             // Cuenta bancaria de Dynamo (mock; el backend dará la real).
             var PAGO_BANCO = { titular: 'Dynamo Operador Logístico SL', cif: 'B01596360', iban: 'ES63 0049 1837 5928 1046 8445', banco: 'Banco Santander', bic: 'BSCHESMM' };
             function eurStr(n) { return String(n || 0).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
-            // Aviso común de validación de pago (24 h · ventana 1-3 días).
-            var PAGO_NOTA_24H = '<div class="ptar-pay-note"><span class="pay-note-ico">⏱</span><span>El transporte <strong>no se gestiona ni se asigna camión hasta validar el pago</strong> (la validación puede tardar <strong>hasta 24&nbsp;h</strong>, no es instantánea). El <strong>plazo de carga empieza a contar desde que validamos el pago</strong>, no desde hoy: si se verifica antes de las 9:00 se puede cargar al día siguiente; si no, dentro de la ventana elegida desde ese momento. Cuanto antes pagues, antes se procesa.</span></div>';
+            // Aviso de validación de pago (24 h). El texto cambia según sea un
+            // envío (camión + ventana de carga) o un almacenamiento (espacio).
+            var _payNoun = 'envío';
+            function pagoNota() {
+                if (_payNoun === 'almacenamiento') {
+                    return '<div class="ptar-pay-note"><span class="pay-note-ico">⏱</span><span>El almacenamiento <strong>no se gestiona ni se asigna espacio hasta validar el pago</strong> (la validación puede tardar <strong>hasta 24&nbsp;h</strong>, no es instantánea). El <strong>plazo de carga empieza a contar desde que validamos el pago</strong>, no desde hoy: si se verifica antes de las 9:00 se puede almacenar al día siguiente. Cuanto antes pagues, antes se procesa.</span></div>';
+                }
+                return '<div class="ptar-pay-note"><span class="pay-note-ico">⏱</span><span>El transporte <strong>no se gestiona ni se asigna camión hasta validar el pago</strong> (la validación puede tardar <strong>hasta 24&nbsp;h</strong>, no es instantánea). El <strong>plazo de carga empieza a contar desde que validamos el pago</strong>, no desde hoy: si se verifica antes de las 9:00 se puede cargar al día siguiente; si no, dentro de la ventana elegida desde ese momento. Cuanto antes pagues, antes se procesa.</span></div>';
+            }
             // Detalle según el método de pago por adelantado elegido.
             function pagoDetalle(metodo, eur) {
                 if (metodo === 'tarjeta') {
-                    return '<div class="ptar-pay-detail">Al confirmar te llevaremos a la <strong>pasarela de pago seguro</strong> para abonar <strong>' + eur + '</strong> con tarjeta. El pago con tarjeta suele validarse antes.' + PAGO_NOTA_24H + '</div>';
+                    return '<div class="ptar-pay-detail">Al confirmar te llevaremos a la <strong>pasarela de pago seguro</strong> para abonar <strong>' + eur + '</strong> con tarjeta. El pago con tarjeta suele validarse antes.' + pagoNota() + '</div>';
                 }
                 if (metodo === 'plataforma') {
                     return '<div class="ptar-pay-detail">Genera el <strong>PDF de pago</strong> con los datos de la plataforma y el importe (<strong>' + eur + '</strong>). Realiza el pago desde la plataforma y guárdate el justificante.' +
                         '<button type="button" class="ptar-pay-pdf-btn" data-pay-pdf><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Descargar PDF de pago</button>' +
-                        PAGO_NOTA_24H + '</div>';
+                        pagoNota() + '</div>';
                 }
                 // transferencia (por defecto)
                 return '<div class="ptar-pay-detail">' +
@@ -11363,11 +11370,12 @@
                     '<div style="margin-top:0.5rem;">Indica como <strong>concepto</strong> tu referencia o el nº de envío que te enviaremos por email. Envíanos el justificante para agilizar la validación.</div>' +
                     '<button type="button" class="ptar-pay-pdf-btn" data-proforma-pdf><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Descargar proforma (PDF)</button>' +
                     '<div class="ptar-pay-fraud"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span><strong>Seguridad:</strong> al ordenar la transferencia, tu banco te mostrará el <strong>nombre del beneficiario</strong>: debe coincidir exactamente con <strong>Dynamo Operador Logístico SL</strong> (CIF <strong>' + PAGO_BANCO.cif + '</strong>). <strong>Si el titular no coincide, no firmes ni autorices el pago.</strong> Nuestro IBAN es siempre este (<strong>' + PAGO_BANCO.iban + '</strong>) y <strong>nunca cambiamos de cuenta por email</strong>. Ante cualquier duda o aviso de cambio de cuenta, llámanos al <strong>+34&nbsp;955&nbsp;225&nbsp;945</strong> antes de pagar.</span></div>' +
-                    PAGO_NOTA_24H + '</div>';
+                    pagoNota() + '</div>';
             }
             // Pinta el bloque de forma de pago según el crédito del cliente.
             function renderPago(d) {
                 if (!payEl) return;
+                _payNoun = 'envío';
                 var eur = eurStr(d && d.precioMock);
                 if (creditoDisponible()) {
                     if (pendingData) pendingData.formaPago = 'credito';
@@ -11423,6 +11431,7 @@
             window.__ptarRenderPagoInto = function (el, precioBase, noun, onProforma) {
                 if (!el) return 'credito';
                 noun = noun || 'servicio';
+                _payNoun = noun;
                 if (creditoDisponible()) {
                     el.innerHTML =
                         '<div class="ptar-pay-box pay-credit">' +
