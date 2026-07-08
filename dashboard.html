@@ -4084,7 +4084,7 @@
         <div class="table-wrap">
             <table class="data data-almacenes">
                 <thead>
-                    <tr><th>Almacenamiento</th><th>Almacén</th><th>Entrada</th><th>Salida</th><th>Reparto urbano</th><th>Total (IVA incl.)</th><th>Estado</th></tr>
+                    <tr><th>Almacenamiento</th><th>Almacén</th><th>Entrada</th><th>Salida</th><th>Reparto urbano</th><th>Total (sin IVA)</th><th>Estado</th></tr>
                 </thead>
                 <tbody id="tbodyAlmacenes"></tbody>
             </table>
@@ -5440,7 +5440,7 @@
         var a = DYNAMO_ALMACENES[p.almIdx];
         var tot = (ALM_BASE + p.reparto * ALM_REPARTO) * 1.21;
         var reg = {
-            ref: '#AL-' + (ALM_SEQ++),
+            ref: '#AX' + (ALM_SEQ++),
             almIdx: p.almIdx,
             entrada: p.entrada, salida: p.salida,
             reparto: p.reparto,
@@ -5468,15 +5468,15 @@
     }
 
     // ---- LISTADO de almacenamientos (sección del sidebar) ----
-    var ALM_SEQ = 1046;
+    var ALM_SEQ = 204837;  // #AX###### (6 dígitos, paralelo al #GX###### de envíos)
     function almIdxByProv(p) { for (var i = 0; i < DYNAMO_ALMACENES.length; i++) if (DYNAMO_ALMACENES[i].prov === p) return i; return 0; }
     function almRelISO(days) { var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + days); return almISO(d); }
     // Mock con fechas relativas a hoy para ver los 3 estados. En producción
     // vendrá del backend.
     var ALMACENES_DATA = [
-        { ref: '#AL-1042', almIdx: almIdxByProv('Sevilla'),   entrada: almRelISO(-2),  salida: almRelISO(3),   reparto: 0, entrega: null, destinoKey: null, destinoDir: null, notas: '26 palets de conservas · PED-0451', creado: almRelISO(-4) },
-        { ref: '#AL-1041', almIdx: almIdxByProv('Madrid'),    entrada: almRelISO(2),   salida: almRelISO(9),   reparto: 3, entrega: almRelISO(9), destinoKey: null, destinoDir: 'Mercamadrid — Ctra. Villaverde-Vallecas km 3,8, 28053 Madrid', notas: 'Tráiler completo textil · reparto en 3 camiones', creado: almRelISO(-1) },
-        { ref: '#AL-1038', almIdx: almIdxByProv('Barcelona'), entrada: almRelISO(-15), salida: almRelISO(-10), reparto: 1, entrega: almRelISO(-10), destinoKey: null, destinoDir: 'Mercabarna — C/ Major, 08040 Barcelona', notas: '', creado: almRelISO(-18) }
+        { ref: '#AX204829', almIdx: almIdxByProv('Sevilla'),   entrada: almRelISO(-2),  salida: almRelISO(3),   reparto: 0, entrega: null, destinoKey: null, destinoDir: null, notas: '26 palets de conservas · PED-0451', creado: almRelISO(-4) },
+        { ref: '#AX204822', almIdx: almIdxByProv('Madrid'),    entrada: almRelISO(2),   salida: almRelISO(9),   reparto: 3, entrega: almRelISO(9), destinoKey: null, destinoDir: 'Mercamadrid — Ctra. Villaverde-Vallecas km 3,8, 28053 Madrid', notas: 'Tráiler completo textil · reparto en 3 camiones', creado: almRelISO(-1) },
+        { ref: '#AX204815', almIdx: almIdxByProv('Barcelona'), entrada: almRelISO(-15), salida: almRelISO(-10), reparto: 1, entrega: almRelISO(-10), destinoKey: null, destinoDir: 'Mercabarna — C/ Major, 08040 Barcelona', notas: '', creado: almRelISO(-18) }
     ];
     function almEstadoDe(r) {
         var hoy = almISO(new Date());
@@ -5509,15 +5509,15 @@
             var est = almEstadoDe(r);
             var dias = almDiasDe(r);
             return '<tr onclick="almOpenDetail(\'' + r.ref + '\')">' +
-                '<td class="ref"><strong>' + esc(r.ref) + '</strong><div class="meta">' + (r.notas ? esc(r.notas) : 'Sin descripción') + '</div></td>' +
+                '<td class="ref"><strong>' + esc(r.ref) + '</strong></td>' +
                 '<td><strong>Dynamo · ' + esc(a.prov || '') + '</strong><div class="meta">' + esc(a.dir || '') + '</div></td>' +
                 '<td>' + almFmtFecha(r.entrada) + '</td>' +
                 '<td>' + almFmtFecha(r.salida) + '<div class="meta">' + (dias === 0 ? 'mismo día' : dias + ' día' + (dias > 1 ? 's' : '')) + '</div></td>' +
                 '<td>' + (r.reparto > 0
-                    ? r.reparto + ' ' + (r.reparto > 1 ? 'camiones' : 'camión') +
+                    ? 'Sí · ' + r.reparto + ' ' + (r.reparto > 1 ? 'camiones' : 'camión') +
                         (r.destinoDir ? '<div class="meta">' + esc(String(r.destinoDir).slice(0, 34)) + '…</div>' : '')
                     : 'No') + '</td>' +
-                '<td><strong>' + almEur(almTotalDe(r)) + '</strong></td>' +
+                '<td><strong>' + almEur(ALM_BASE + r.reparto * ALM_REPARTO) + '</strong></td>' +
                 '<td><span class="badge badge-' + est.color + '">' + est.label + '</span></td>' +
                 '</tr>';
         }).join('');
