@@ -5491,9 +5491,41 @@
             if (warnT) warnT.classList.add('show');
             return;
         }
+        // Pago por adelantado (sin crédito CESCE) → aviso IMPORTANTE antes de
+        // confirmar, adaptado del envío. Con crédito se confirma directo.
+        var esPrepago = p.formaPago && p.formaPago !== 'credito';
+        if (esPrepago) { almConfirmImportante(destino); return; }
         almFinalizarReg(destino);
     }
     window.almCrear = almCrear;
+    // Modal IMPORTANTE (mismo que el envío, adaptado a almacenamiento) que sale
+    // solo cuando el almacenamiento es de pago por adelantado (sin crédito).
+    function almConfirmImportante(destino) {
+        var p = _almPending; if (!p) return;
+        var metodoTxt = { transferencia: 'Transferencia bancaria', tarjeta: 'Tarjeta', plataforma: 'Plataforma de pago' }[p.formaPago] || 'Transferencia bancaria';
+        openDashModal({
+            icon: 'alert', iconVariant: 'warn',
+            title: 'IMPORTANTE: vas a confirmar un almacenamiento',
+            sub: 'Pago por adelantado',
+            body:
+                '<div style="margin-bottom:0.8rem;padding:0.6rem 0.75rem;background:rgba(245,158,11,0.14);border:1px solid rgba(245,158,11,0.45);border-radius:9px;font-size:0.85rem;line-height:1.55;color:#92400e;font-weight:600;">' +
+                '💳 <strong>Pago por adelantado — ' + metodoTxt + '.</strong> Este almacenamiento queda <strong>pendiente de pago</strong>: no se reserva plaza ni se procesa hasta validar el cobro (<strong>hasta 24&nbsp;h</strong>). Tienes los datos de pago en la pantalla anterior y te los reenviaremos por email.' +
+                '</div>' +
+                '<p style="font-size:0.88rem;line-height:1.55;color:var(--gray-700);">' +
+                'Si cancelas el almacenamiento <strong>una vez confirmado</strong>, <strong>Dynamo Operador Logístico, S.L.</strong> se reserva el derecho de <strong>facturar los costes ya incurridos</strong> (reserva de plaza y operativa programada de descarga y posterior carga) en concepto de indemnización.' +
+                '</p>' +
+                '<p style="font-size:0.85rem;line-height:1.55;color:var(--gray-700);margin-top:0.6rem;">' +
+                'Por parte de Dynamo, se hará lo posible para evitar o minimizar los costes derivados de la cancelación en favor del cliente.' +
+                '</p>',
+            footer:
+                '<button class="btn-ghost" onclick="closeDashModal()" style="flex:1;">Cancelar</button>' +
+                '<button class="btn-primary" id="almImpConfirm" style="flex:1;">Confirmar (pago pendiente)</button>'
+        });
+        setTimeout(function () {
+            var b = document.getElementById('almImpConfirm');
+            if (b) b.addEventListener('click', function () { closeDashModal(); almFinalizarReg(destino); });
+        }, 0);
+    }
     function almFinalizarReg(destino) {
         var p = _almPending; if (!p) return;
         var a = DYNAMO_ALMACENES[p.almIdx];
