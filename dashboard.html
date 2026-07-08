@@ -3842,6 +3842,8 @@
         </div>
         <div class="ptar-card" data-ptar-mode="carga">
 
+            <div class="form-2col">
+            <div class="form-2col-main">
             <div class="ptar-grid">
                 <div class="ptar-section-head">Ruta</div>
                 <div class="ptar-field ptar-field-full">
@@ -3974,12 +3976,6 @@
                     </div>
                 </div>
 
-                <div class="ptar-field ptar-field-full ptar-eta-field" data-ptar-eta-field>
-                    <div class="ptar-eta-box" data-ptar-eta-box>
-                        <span class="ptar-eta-placeholder">Indica origen, destino y fecha de carga para calcular la entrega estimada.</span>
-                    </div>
-                </div>
-
             </div>
 
             <div class="ptar-fest-out" data-ptar-fest-box></div>
@@ -4006,12 +4002,21 @@
                 </div>
             </div>
 
-            <div class="ptar-warning" data-ptar-warning role="alert">⚠ Introduce el origen y el destino antes de continuar.</div>
+            </div><!-- /form-2col-main -->
 
-            <div class="ptar-actions ptar-actions-main">
-                <button type="button" class="btn-primary" data-ptar-submit>Crear envío</button>
-                <button type="button" class="btn-ghost" onclick="showSection('dashboard');return false;">Cancelar</button>
-            </div>
+            <div class="form-2col-side">
+                <div class="ptar-field ptar-field-full ptar-eta-field" data-ptar-eta-field>
+                    <div class="ptar-eta-box" data-ptar-eta-box>
+                        <span class="ptar-eta-placeholder">Indica origen, destino y fecha de carga para calcular la entrega estimada.</span>
+                    </div>
+                </div>
+                <div class="ptar-warning" data-ptar-warning role="alert">⚠ Introduce el origen y el destino antes de continuar.</div>
+                <div class="ptar-actions ptar-actions-main">
+                    <button type="button" class="btn-primary" data-ptar-submit>Crear envío</button>
+                    <button type="button" class="btn-ghost" onclick="showSection('dashboard');return false;">Cancelar</button>
+                </div>
+            </div><!-- /form-2col-side -->
+            </div><!-- /form-2col -->
         </div>
 
         <!-- ====== PASO 2 — Confirmación con avisos legales + resumen ======
@@ -4029,6 +4034,8 @@
                 <strong>Precios dinámicos.</strong> La fecha de carga es a <strong>más de 7 días</strong>: el precio se <strong>auto-revisa cada 7 días</strong> a tarifa de mercado para seguir vigente hasta el momento de la carga.
             </div>
 
+            <div class="form-2col">
+            <div class="form-2col-main">
             <h4 class="ptar-confirm-sumtitle">Resumen del transporte</h4>
             <dl class="ptar-confirm-summary" data-ptar-summary></dl>
 
@@ -4040,34 +4047,26 @@
                 <p class="ptar-confirm-lead" style="margin-bottom:0.6rem;"><span style="color:#dc2626;font-weight:700;">Revisa</span> cada sitio para ver o editar sus datos antes de confirmar</p>
                 <div data-ptar-sitios-list></div>
             </div>
+            </div><!-- /form-2col-main -->
 
-            <!-- La referencia interna y las anotaciones NO se editan aquí: se
-                 muestran en el resumen de arriba (con lo puesto en el paso 1;
-                 si están en blanco, se omiten). -->
-
-            <!-- El aviso de "la recogida nunca está garantizada al 100%" vive
-                 dentro de las condiciones generales (apartado 14), enlazadas
-                 desde el checkbox — ya no se muestra aquí. -->
-
-            <label class="ptar-confirm-check">
-                <input type="checkbox" data-ptar-check-terms>
-                <span>He leído y acepto las <a href="#" data-ptar-show-terms>condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L.</span>
-            </label>
-            <div class="ptar-terms-warn" data-ptar-terms-warn>⚠ No has aceptado las condiciones generales de transporte. Marca la casilla para poder confirmar el envío.</div>
-
-            <!-- Precio, también aquí abajo (junto al botón de confirmar) -->
-            <div class="ptar-confirm-price" data-ptar-conf-price hidden></div>
-
-            <!-- Forma de pago según el crédito CESCE del cliente:
-                 con crédito → transferencia/domiciliación (confirma directo);
-                 sin crédito → pago por adelantado (transferencia/tarjeta/plataforma). -->
-            <div class="ptar-pay" data-ptar-pay hidden></div>
-
-            <!-- Confirmar (grande) justo bajo el precio; Editar datos debajo. -->
-            <div class="ptar-actions ptar-actions-confirm">
-                <button type="button" class="btn-primary btn-visual-disabled" data-ptar-final-confirm>Confirmar envío</button>
-                <button type="button" class="btn-ghost" data-ptar-back>← Editar datos</button>
-            </div>
+            <div class="form-2col-side">
+                <!-- Precio destacado (Base/IVA/Total) -->
+                <div class="ptar-confirm-price" data-ptar-conf-price hidden></div>
+                <!-- Forma de pago según el crédito CESCE del cliente:
+                     con crédito → transferencia/domiciliación (confirma directo);
+                     sin crédito → pago por adelantado. -->
+                <div class="ptar-pay" data-ptar-pay hidden></div>
+                <label class="ptar-confirm-check">
+                    <input type="checkbox" data-ptar-check-terms>
+                    <span>He leído y acepto las <a href="#" data-ptar-show-terms>condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L.</span>
+                </label>
+                <div class="ptar-terms-warn" data-ptar-terms-warn>⚠ No has aceptado las condiciones generales de transporte. Marca la casilla para poder confirmar el envío.</div>
+                <div class="ptar-actions ptar-actions-confirm">
+                    <button type="button" class="btn-primary btn-visual-disabled" data-ptar-final-confirm>Confirmar envío</button>
+                    <button type="button" class="btn-ghost" data-ptar-back>← Editar datos</button>
+                </div>
+            </div><!-- /form-2col-side -->
+            </div><!-- /form-2col -->
         </div>
     </section>
 
