@@ -1561,6 +1561,19 @@
         .dash-cta-green .dash-cta-text p { color: var(--gray-500); }
         /* ===== Formulario "Nuevo almacenamiento" ===== */
         .alm-form { max-width: 760px; }
+        /* ===== Formularios en 2 columnas (crear/confirmar envío y almacén) =====
+           En escritorio ancho: campos a la izquierda y resumen de precio/pago +
+           acciones a la derecha (columna sticky). En pantallas estrechas se
+           apila en 1 sola columna (el resumen/acciones queda al final). */
+        .form-2col-side { margin-top: 1.2rem; }
+        @media (min-width: 1200px) {
+            .form-2col { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 1.7rem; align-items: start; }
+            .form-2col-side { margin-top: 0; position: sticky; top: 0.8rem; }
+            .ptar-card, .ptar-confirm-card, .alm-form { max-width: 1080px; }
+        }
+        /* La caja de precio en la columna lateral no lleva el margen superior
+           grande (ya lo aporta la propia columna). */
+        .form-2col-side > .alm-price:first-child { margin-top: 0; }
         .alm-intro {
             background: rgba(34,165,90,0.07); border: 1px solid rgba(34,165,90,0.28);
             border-radius: 12px; padding: 0.9rem 1.1rem; font-size: 0.9rem; line-height: 1.5;
@@ -4191,6 +4204,8 @@
                 Almacenamiento de <strong>corta estancia</strong> (máximo <strong>7 días</strong>) en nuestros almacenes asociados. El precio es para <strong>tráiler completo</strong> (tarifa mínima actual; para menos carga no hay tarifa reducida). <strong>Incluye descarga, almacenamiento y posterior carga a otro camión</strong> para la salida de la mercancía.
             </div>
 
+            <div class="form-2col">
+            <div class="form-2col-main">
             <div class="alm-field">
                 <label>Almacén Dynamo</label>
                 <div class="ptar-input-wrap alm-rep-wrap" id="almCombo">
@@ -4242,12 +4257,15 @@
                 <label>Mercancía y referencia <span class="alm-opt">· opcional</span></label>
                 <textarea id="almNotas" placeholder="Ej. 22 palets de material eléctrico · tu referencia de pedido · pedir cita…"></textarea>
             </div>
+            </div><!-- /form-2col-main -->
 
-            <div class="alm-price" id="almPrice"></div>
-
-            <p class="alm-err" id="almErr"></p>
-            <button class="btn-primary" style="width:100%;height:56px;font-size:1rem;" onclick="almSolicitar();return false;">Crear almacenamiento</button>
-            <button type="button" class="btn-ghost" style="width:100%;height:48px;margin-top:0.6rem;" onclick="showSection('dashboard');return false;">Cancelar</button>
+            <div class="form-2col-side">
+                <div class="alm-price" id="almPrice"></div>
+                <p class="alm-err" id="almErr"></p>
+                <button class="btn-primary" style="width:100%;height:56px;font-size:1rem;" onclick="almSolicitar();return false;">Crear almacenamiento</button>
+                <button type="button" class="btn-ghost" style="width:100%;height:48px;margin-top:0.6rem;" onclick="showSection('dashboard');return false;">Cancelar</button>
+            </div><!-- /form-2col-side -->
+            </div><!-- /form-2col -->
         </div>
         <!-- Paso 2: confirmación (idéntica a la del envío: resumen + fichas de
              sitio editables + pago con CESCE + botón Crear almacenamiento). -->
@@ -5373,19 +5391,24 @@
                     '</div></div>' +
                 '</div>';
         }
-        var precio = '<div class="alm-price" data-almc-pricebox style="margin-top:1.3rem;"></div>';
+        var precio = '<div class="alm-price" data-almc-pricebox style="margin-top:0;"></div>';
         box.innerHTML =
             '<div class="alm-intro" style="background:rgba(51,0,204,0.05);border-color:rgba(51,0,204,0.22);">Revisa tu solicitud de almacenamiento antes de confirmar. Estancia máx. <strong>7 días</strong>.</div>' +
-            resumen + sitio + precio +
-            '<div data-almc-pay style="margin-top:1.3rem;"></div>' +
-            '<label class="ptar-confirm-check" id="almcCheckLbl">' +
-                '<input type="checkbox" id="almcCheckTerms">' +
-                '<span>He leído y acepto las <a href="#" id="almcTermsLink">condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L.</span>' +
-            '</label>' +
-            '<div class="ptar-terms-warn" id="almcTermsWarn">⚠ No has aceptado las condiciones generales de transporte. Marca la casilla para poder confirmar el almacenamiento.</div>' +
-            '<p class="alm-err" id="almcErr"></p>' +
-            '<button class="btn-primary" style="width:100%;height:56px;font-size:1rem;margin-top:0.4rem;" onclick="almCrear();return false;">Confirmar almacenamiento</button>' +
-            '<button class="btn-ghost" style="width:100%;height:48px;margin-top:0.6rem;" onclick="almBackToForm();return false;">← Editar datos</button>';
+            '<div class="form-2col">' +
+                '<div class="form-2col-main">' + resumen + sitio + '</div>' +
+                '<div class="form-2col-side">' +
+                    precio +
+                    '<div data-almc-pay style="margin-top:1.1rem;"></div>' +
+                    '<label class="ptar-confirm-check" id="almcCheckLbl">' +
+                        '<input type="checkbox" id="almcCheckTerms">' +
+                        '<span>He leído y acepto las <a href="#" id="almcTermsLink">condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L.</span>' +
+                    '</label>' +
+                    '<div class="ptar-terms-warn" id="almcTermsWarn">⚠ No has aceptado las condiciones generales de transporte. Marca la casilla para poder confirmar el almacenamiento.</div>' +
+                    '<p class="alm-err" id="almcErr"></p>' +
+                    '<button class="btn-primary" style="width:100%;height:56px;font-size:1rem;margin-top:0.4rem;" onclick="almCrear();return false;">Confirmar almacenamiento</button>' +
+                    '<button class="btn-ghost" style="width:100%;height:48px;margin-top:0.6rem;" onclick="almBackToForm();return false;">← Editar datos</button>' +
+                '</div>' +
+            '</div>';
         // Caja de precio unificada (Base / IVA / Total) con efecto contador.
         var precioRows = [];
         if (p.reparto > 0) {
