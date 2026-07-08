@@ -5351,7 +5351,7 @@
     var _almFp = {};
     // Solo días HÁBILES (misma lógica que el calendario del envío): fin de
     // semana o festivo NACIONAL de España (FESTIVOS.get('es', …)) no cuentan.
-    function almNonBiz(d) { var w = d.getDay(); return w === 0 || w === 6 || !!getHolidayName(d); }
+    function almNonBiz(d) { var w = d.getDay(); return w === 0 || w === 6 || !!getNationalHoliday(d); }
     function almNextBizDate(d) { var x = new Date(d); while (almNonBiz(x)) x.setDate(x.getDate() + 1); return x; }
     // Primera fecha de entrada: hoy + 2 días naturales, avanzada al siguiente
     // día hábil si cae en finde/festivo.
@@ -5454,7 +5454,7 @@
     window.almDiaChange = almDiaChange;
     function almFpLimits(which) {
         var ent = document.getElementById('almEntrada'), sal = document.getElementById('almSalida');
-        if (which === 'ent') return { min: almFirstEntradaIso(), max: almRelISO(30) };
+        if (which === 'ent') return { min: almFirstEntradaIso(), max: almRelISO(90) };   // hasta 3 meses, igual que el envío
         if (which === 'sal') { var e = (ent && /^\d{4}-\d{2}-\d{2}$/.test(ent.value)) ? ent.value : almRelISO(2); var m = new Date(e + 'T00:00:00'); m.setDate(m.getDate() + 7); return { min: e, max: almISO(m) }; }
         var s = (sal && /^\d{4}-\d{2}-\d{2}$/.test(sal.value)) ? sal.value : almRelISO(2); var m2 = new Date(s + 'T00:00:00'); m2.setDate(m2.getDate() + 14); return { min: s, max: almISO(m2) };
     }
@@ -7490,7 +7490,11 @@
     }
     function isShortSchedule(date) { return isSummer(date) || isXmas(date) || isFeria(date) || isHolyWeek(date); }
     function easterSunday(year) { return FESTIVOS.easterSunday(year); }
-    function getHolidayName(date) { return FESTIVOS.get('es', date); }
+    function getHolidayName(date) { return FESTIVOS.get('es', date); }        // nacional + regional (para avisos)
+    // SOLO festivos NACIONALES de España: es lo único que BLOQUEA la selección
+    // de fecha en los calendarios. Los regionales (que la API Nager.Date añade
+    // a FESTIVOS.get tras un ETA) NO deben bloquear — solo salen como aviso.
+    function getNationalHoliday(date) { return FESTIVOS.getLocal('es', date); }
     function isPhoneHoursNow() {
         var now = getNow();
         if (getHolidayName(now)) return false;
@@ -10492,8 +10496,9 @@
         function nowMadrid() {
             return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
         }
-        // No laborable = fin de semana O festivo (no cuentan para el cálculo).
-        function nonBiz(d) { return isWeekend(d) || !!getHolidayName(d); }
+        // No laborable = fin de semana O festivo NACIONAL (los regionales no
+        // bloquean; solo avisan en la caja ETA).
+        function nonBiz(d) { return isWeekend(d) || !!getNationalHoliday(d); }
         function nextBiz(d) { while (nonBiz(d)) d.setDate(d.getDate() + 1); return d; }
         function isoLocal(d) {
             return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
