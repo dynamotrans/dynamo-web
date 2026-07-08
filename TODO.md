@@ -4,7 +4,16 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## 🔥 Prioridad alta
 <!-- Cosas urgentes -->
-- _(nada urgente abierto)_
+- [ ] **Scaffold de ROLES en el panel (URGENTE — pedido 2026-07-08)**. Enfoque acordado: montar la plataforma **completa como admin** (lo ve TODO) y **restar por rol** (nunca un dashboard por rol → duplicación/drift). El panel actual ya es prácticamente el superconjunto admin.
+  - **Qué montar ahora en el mockup (solo visual, para validar UX barata)**:
+    - **Selector de rol de prueba** vía `?role=admin|cliente|transportista|proveedor` (y quizá un chip en la topbar para cambiarlo en caliente). Default en prod será `cliente`; `admin` lo ve todo.
+    - **Gating por sección/columna/acción**: marcar cada `.sidebar-link` (data-section), cada sección, cada columna de tabla y cada botón de acción con los roles que la pueden ver (p. ej. `data-roles="admin,cliente"`). Una función `applyRole(role)` oculta lo no permitido al cargar/cambiar de rol.
+    - **Matriz de permisos (rol × módulo × acción)** escrita aquí y/o en CLAUDE.md ANTES de cablear backend. Borrador inicial a validar:
+      - **Admin**: todo (todos los envíos/almacenes/facturas/penalizaciones/incidencias de todos los clientes, crear penalizaciones, asignar transportista, config de tarifas).
+      - **Cliente** (Marbex): SOLO sus envíos/almacenamientos/facturas/albaranes/incidencias; ve penalizaciones que le afectan (no las crea); crea envíos/almacenamientos/incidencias.
+      - **Transportista**: solo viajes asignados a él; ve penalizaciones que le afectan; no ve clientes ni tarifas; no crea envíos.
+      - **Proveedor**: por definir.
+  - **⚠️ Recordatorio de seguridad (no olvidar al migrar)**: ocultar en el frontend **NO es seguridad**. En la app real (Next.js + Supabase) la autorización se impone **server-side**: cada endpoint valida el rol + **row-level security** en Postgres filtra las filas por usuario. El gating del mockup es solo previsualización de UX. "Limitar" son **2 dimensiones**: (a) qué módulos/columnas/acciones y (b) qué **filas** (data scope por usuario) — ambas obligatorias en backend.
 
 ## 📋 Normal
 - [ ] **Aplicar a la web pública el fix del micro-brinco del carrusel de clientes** (`index.html` → `main`): el track usa `gap` de flex y `translateX(-50%)` no cae exacto (salta ~8px por vuelta). En el panel ya está arreglado (2026-07-05) con `margin-right` por tarjeta en vez de `gap` — son 3 líneas de CSS. Pendiente de OK del usuario (es cambio público → rama corta desde main, regla 8).
