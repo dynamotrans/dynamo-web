@@ -4288,6 +4288,16 @@
             <h2>Almacenamientos</h2>
             <button class="btn-primary" onclick="openNuevoAlmacen();return false;">+ Nuevo almacenamiento</button>
         </div>
+        <div class="tabs" data-alm-tabs>
+            <button class="tab active" data-alm-filter="todos">Todos (<span data-alm-count="todos">0</span>)</button>
+            <button class="tab" data-alm-filter="programado">Programados (<span data-alm-count="programado">0</span>)</button>
+            <button class="tab" data-alm-filter="almacen">En almacén (<span data-alm-count="almacen">0</span>)</button>
+            <button class="tab" data-alm-filter="finalizado">Finalizados (<span data-alm-count="finalizado">0</span>)</button>
+        </div>
+        <div class="filters">
+            <input type="search" placeholder="Buscar por nº, almacén, dirección, referencia…" data-alm-search oninput="almSearchInput(this.value)">
+            <select class="filter-mes" data-filter-mes></select>
+        </div>
         <div class="table-wrap">
             <table class="data data-almacenes">
                 <thead>
@@ -5981,17 +5991,40 @@
         return dows[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + String(d.getFullYear()).slice(-2);
     }
     function almDiasDe(r) { return Math.round((new Date(r.salida + 'T00:00:00') - new Date(r.entrada + 'T00:00:00')) / 86400000); }
+    var ALM_LIST = { filter: 'todos', q: '', mes: '' };
+    function almEstadoKey(r) { var l = almEstadoDe(r).label; return l === 'Finalizado' ? 'finalizado' : (l === 'En almacén' ? 'almacen' : 'programado'); }
+    window.almSearchInput = function (v) { ALM_LIST.q = v; renderAlmacenesTable(); };
     function renderAlmacenesTable() {
         var tbody = document.getElementById('tbodyAlmacenes');
         if (!tbody) return;
-        // Vivos primero (por entrada ASC), finalizados al final.
-        var arr = ALMACENES_DATA.slice().sort(function (a, b) {
+        // Contadores por estado + tab activo.
+        var counts = { programado: 0, almacen: 0, finalizado: 0, todos: ALMACENES_DATA.length };
+        ALMACENES_DATA.forEach(function (r) { counts[almEstadoKey(r)]++; });
+        Object.keys(counts).forEach(function (k) { var c = document.querySelector('[data-alm-count="' + k + '"]'); if (c) c.textContent = counts[k]; });
+        document.querySelectorAll('[data-alm-tabs] .tab').forEach(function (t) {
+            t.classList.toggle('active', t.getAttribute('data-alm-filter') === ALM_LIST.filter);
+        });
+        // Filtrado: estado (tab) + búsqueda por palabras + fecha (por entrada).
+        var nq = normTxt(ALM_LIST.q || '');
+        var arr = ALMACENES_DATA.filter(function (r) {
+            if (ALM_LIST.filter !== 'todos' && almEstadoKey(r) !== ALM_LIST.filter) return false;
+            if (ALM_LIST.mes && !fechaEnRango(new Date(r.entrada + 'T00:00:00'), ALM_LIST.mes)) return false;
+            if (nq) {
+                var a0 = DYNAMO_ALMACENES[r.almIdx] || {};
+                var hay = normTxt([r.ref, a0.prov, a0.ciudad, a0.dir, r.destinoDir, r.notas].join(' '));
+                if (!matchTokens(hay, nq)) return false;
+            }
+            return true;
+        }).sort(function (a, b) {
             var fa = almEstadoDe(a).label === 'Finalizado' ? 1 : 0, fb = almEstadoDe(b).label === 'Finalizado' ? 1 : 0;
             if (fa !== fb) return fa - fb;
             return a.entrada < b.entrada ? -1 : 1;
         });
         if (!arr.length) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-500);">Aún no tienes almacenamientos. Crea uno con "+ Nuevo almacenamiento".</td></tr>';
+            var vacio = ALMACENES_DATA.length === 0
+                ? 'Aún no tienes almacenamientos. Crea uno con "+ Nuevo almacenamiento".'
+                : 'Sin almacenamientos que coincidan con el filtro.';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-500);">' + vacio + '</td></tr>';
             return;
         }
         tbody.innerHTML = arr.map(function (r) {
@@ -9785,7 +9818,17 @@
             TABLE_STATE.cargas.fecha = sel.value;   // '' | hoy | manana | ayer | esta-semana | semana-pasada | YYYY-MM
             TABLE_STATE.cargas.page = 1;
             renderCargasTable();
+        } else if (sel.closest('#sec-almacenes')) {
+            ALM_LIST.mes = sel.value;
+            renderAlmacenesTable();
         }
+    });
+    // Tabs de Almacenamientos (por estado).
+    document.addEventListener('click', function (e) {
+        var t = e.target.closest ? e.target.closest('[data-alm-tabs] .tab') : null;
+        if (!t) return;
+        ALM_LIST.filter = t.getAttribute('data-alm-filter');
+        renderAlmacenesTable();
     });
     // Filtro por estado (envío + vehículo) de la tabla de Envíos.
     document.addEventListener('change', function (e) {
