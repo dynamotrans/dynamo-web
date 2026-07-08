@@ -1572,7 +1572,12 @@
                contenedor deja de estar acotado y ocupa el ancho del panel. */
             .form-2col { display: grid; grid-template-columns: 660px minmax(0, 1fr); gap: 1.8rem; align-items: start; }
             .form-2col-side { margin-top: 0; position: sticky; top: 0.8rem; }
-            .ptar-card, .ptar-confirm-card, .alm-form { max-width: none; }
+            /* Scope por sección para GANAR a las reglas base .ptar-card /
+               .ptar-confirm-card { max-width:760px } que van más abajo en el CSS
+               (misma especificidad → ganaría la última). */
+            #sec-nueva-carga .ptar-card,
+            #sec-nueva-carga .ptar-confirm-card,
+            #sec-nuevo-almacen .alm-form { max-width: none; }
         }
         /* La caja de precio en la columna lateral no lleva el margen superior
            grande (ya lo aporta la propia columna). */
