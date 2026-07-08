@@ -2771,11 +2771,18 @@
         .ptar-eta-data .ptar-eta-note { color: #c47a2c; font-weight: 600; font-size: 0.75rem; }
         .ptar-eta-data .ptar-eta-warn { color: #b45309; }
         .ptar-eta-festivo {
-            margin-top: 0.7rem; padding: 0.55rem 0.7rem;
-            background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.4);
-            border-radius: 9px; font-size: 0.78rem; line-height: 1.5; color: #92400e; font-weight: 600;
+            margin-top: 0.7rem; padding: 0.6rem 0.75rem;
+            background: rgba(214,45,45,0.09); border: 1px solid rgba(214,45,45,0.42);
+            border-radius: 9px; font-size: 0.78rem; line-height: 1.5; color: #a01414; font-weight: 600;
         }
-        .ptar-eta-festivo strong { color: #b45309; }
+        .ptar-eta-festivo strong { color: #c62d2d; }
+        .ptar-eta-festivo .fest-line { display: block; margin-top: 0.3rem; }
+        .ptar-eta-festivo .fest-line:first-of-type { margin-top: 0.45rem; }
+        .ptar-eta-festivo .fest-tipo {
+            display: inline-block; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.02em;
+            padding: 0.03rem 0.4rem; border-radius: 5px; margin-right: 0.35rem; vertical-align: 1px;
+            background: rgba(214,45,45,0.16); color: #a01414; text-transform: uppercase;
+        }
         /* Aviso "hoy para hoy" dentro de la caja ETA (no garantía + cancelación) */
         .ptar-eta-hoy {
             display: block; width: 100%; margin: 0 0 0.8rem; padding: 0.55rem 0.7rem;
@@ -11323,13 +11330,20 @@
                 var rangoHtml = '';
                 var cargaHtml = '';
                 var festHtml = '';
-                // Festivos NACIONALES en origen (ventana de carga) y destino (ETA).
+                // Festivos en un rango: nacional (bloquea) + autonómico (aviso,
+                // vía API). Devuelve tipo, fecha y nombre (motivo) de cada uno.
                 function holsInRange(cc, a, b) {
                     if (!window.FESTIVOS || !cc || !a || !b) return [];
                     var out = [], d = new Date(a.getFullYear(), a.getMonth(), a.getDate());
                     while (d.getTime() <= b.getTime() && out.length < 6) {
                         var n = FESTIVOS.get(cc, d);
-                        if (n) out.push({ d: new Date(d), name: n });
+                        if (n) {
+                            // Nacional si está en el registro local; si no, es
+                            // autonómico/regional (lo añadió la API Nager.Date).
+                            var esNac = !!(FESTIVOS.getLocal && FESTIVOS.getLocal(cc, d));
+                            var nombre = String(n).replace(/\s*\(regional\)\s*$/i, '');
+                            out.push({ d: new Date(d), name: nombre, tipo: esNac ? 'Nacional' : 'Autonómico' });
+                        }
                         d.setDate(d.getDate() + 1);
                     }
                     return out;
@@ -11352,17 +11366,23 @@
                     // re-pinta este aviso con lo que falte del local.
                     ensureRange(origWrap.dataset.cc, loadStart, loadEnd);
                     ensureRange(destWrap.dataset.cc, etaStart, etaEnd);
-                    // Avisos de festivo (nacional local + regional de la API) en
-                    // origen (carga) y destino (entrega).
+                    // Avisos de festivo (nacional + autonómico de la API) en el
+                    // ORIGEN (carga) y el DESTINO (entrega). Cada uno en su línea,
+                    // con tipo · fecha · motivo, para que se vea que el sitio a
+                    // cargar/entregar está de festivo.
                     var avisos = [];
-                    holsInRange(origWrap.dataset.cc, loadStart, loadEnd).forEach(function (h) {
-                        avisos.push('Origen (' + FESTIVOS.countryName(origWrap.dataset.cc) + '): ' + h.name + ' el ' + fmtEtaDate(h.d));
-                    });
-                    holsInRange(destWrap.dataset.cc, etaStart, etaEnd).forEach(function (h) {
-                        avisos.push('Destino (' + FESTIVOS.countryName(destWrap.dataset.cc) + '): ' + h.name + ' el ' + fmtEtaDate(h.d));
-                    });
+                    function pushAvisos(rol, cc, hols) {
+                        hols.forEach(function (h) {
+                            avisos.push('<span class="fest-line"><span class="fest-tipo">' + h.tipo + '</span>' +
+                                '<strong>' + rol + '</strong> (' + escapeHtml(FESTIVOS.countryName(cc)) + ') · ' +
+                                fmtEtaDate(h.d) + ' · ' + escapeHtml(h.name) + '</span>');
+                        });
+                    }
+                    pushAvisos('Recogida', origWrap.dataset.cc, holsInRange(origWrap.dataset.cc, loadStart, loadEnd));
+                    pushAvisos('Entrega', destWrap.dataset.cc, holsInRange(destWrap.dataset.cc, etaStart, etaEnd));
                     if (avisos.length) {
-                        festHtml = '<div class="ptar-eta-festivo">⚠ <strong>Festivo</strong> en la ventana — ' + avisos.join(' · ') + '. Posible cierre en carga/entrega.</div>';
+                        festHtml = '<div class="ptar-eta-festivo">⚠ <strong>El sitio está de festivo</strong> — posible cierre en carga/entrega:' +
+                            avisos.join('') + '</div>';
                     }
                     if (etaStart.getTime() === etaEnd.getTime()) {
                         rangoHtml = '<dd class="ptar-eta-range">' + fmtEtaDate(etaStart) + '</dd>';
