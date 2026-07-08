@@ -150,6 +150,37 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-07-08 — Claude Code web (nube)
+
+> **Sesión muy larga en el PANEL (`dashboard.html`).** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `f1b4e36` (18 commits del día, todos pusheados a preview).
+
+**SEGUIMIENTO DE ENVÍOS — ELIMINADO**: fuera el botón "Seguimiento" del detalle de envío y del menú de fila (en-ruta), la función `cargaSeguimiento` (modal timeline Recogida/En tránsito/Última posición/Entrega) y su CSS.
+
+**TABLA DE ALMACENAMIENTOS** (`renderAlmacenesTable`): col 1 solo el código (sin descripción); Reparto urbano "Sí · N camiones" + resumen de dirección; **Total (sin IVA)** (base imponible, no IVA incl.); el desglose con IVA se queda en el detalle/desplegable. **Códigos → `#AX######`** (AX + 6 dígitos, paralelo al `#GX######` de envíos; decisión del usuario vía "Other").
+
+**NUEVO APARTADO PENALIZACIONES** (sección `#sec-penalizaciones`): link en sidebar + buscador + filtro por tipo + tabla (código #PEN- · envío #GX · tipo · transportista+cliente · importe **sin IVA** · fecha). Mock `PENALIZACIONES_DATA`. Botón **Crear penalización** → modal con **Envío referenciado** autocompletado (últimos 4 #GX; filtra por GX/ref/ruta/transportista) + resumen del envío (cliente + transportista + ruta), tipo (cancelación/paralización/compensación/parada adicional/otro), descripción e importe sin IVA, con validación en rojo.
+
+**SPINNER DE CREACIÓN**: texto por acción ("Creando envío/almacenamiento/penalización/incidencia…"). **Fix del flash**: se navega al listado DENTRO del callback del overlay (mismo tick), no con setTimeout posterior → al desaparecer el spinner ya se ve el listado, no el formulario. Penalización e incidencia también muestran overlay.
+
+**ALMACENAMIENTO — paridad con envío**:
+- **Modal IMPORTANTE** de pago por adelantado (como el del envío, adaptado) cuando es prepago (sin crédito CESCE); con crédito confirma directo.
+- **Nota de pago** adaptada ("no se asigna **espacio**… se puede **almacenar** al día siguiente"), no el texto de camión/ventana del envío.
+- **Botón Cancelar** bajo "Crear almacenamiento" (paso 1).
+- **Ficha de entrega = acordeón** plegable idéntico al envío.
+- **Chip del almacén clicable**: pulsar el chip elegido reabre el desplegable (como el selector de sitios).
+
+**PROFORMA PDF revisada** (profesional/formal): importes con **2 decimales** (240,00 · 50,40 · 290,40 en vez de redondeados), **fechas DD/MM/YYYY**, concepto "Nº de almacenamiento", nota de condiciones adaptada a almacenamiento. Mejora también la de envío (decimales). *(El "recorte" que veía el usuario no era bug: la franja gris de nº/fecha/ref es intencional.)*
+
+**PRECIO UNIFICADO** (de la sesión anterior, consolidado): Base imponible / IVA (21%) / Total con contador **de 10 en 10** en las 4 pantallas. **Facturas**: columna "Nº" → "**Nº factura**".
+
+**NUEVA SECCIÓN ALMACENES** (catálogo interno, **SOLO ADMIN**): estilo Sitios, sobre `DYNAMO_ALMACENES` (1 por provincia). Link con badge "Admin" + `data-roles="admin"` (se ocultará al montar el gating). Buscador + tabla (Provincia·Ciudad·CP·Dirección) + alta/editar/borrar con modal. Los cambios se reflejan en el desplegable de nuevo almacenamiento.
+
+**FORMULARIOS A 2 COLUMNAS EN ESCRITORIO** (envío y almacenamiento, paso 1 y confirmación): campos/resumen a la izquierda (ancho **fijo 660px**) y precio (+ pago CESCE + condiciones en la confirmación) + botones a la derecha en **columna sticky que rellena** todo el ancho del panel. Clases `.form-2col/-main/-side`, media query ≥1200px; en móvil se apila. **Bug corregido**: la override `max-width:none` la pisaba la regla base `.ptar-card{max-width:760}` (posterior en el CSS, misma especificidad) → la 2ª col del envío salía de ~50px con el texto partido; resuelto con scope por sección (`#sec-nueva-carga`/`#sec-nuevo-almacen`).
+
+**PENDIENTE URGENTE anotado en TODO.md** (🔥): **scaffold de ROLES** (admin/cliente/transportista/proveedor) — superconjunto admin y restar por rol vía `?role=`, gating por sección/columna/acción, matriz de permisos, y recordatorio de que el frontend NO es seguridad (RBAC + row-level security en backend).
+
+**Método**: cada cambio verificado en Chromium headless (desktop 1500-1600px + estados) con screenshots antes de commitear. Proforma verificada generando el PDF real.
+
 ### 2026-07-07 — Claude Code web (nube)
 
 > **Sesión de pulido de ALMACENAMIENTO + unificación de precio/estilos + fixes de UI.** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `17a5912` (8 commits del día, todos pusheados a preview).
