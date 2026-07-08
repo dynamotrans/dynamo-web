@@ -1691,6 +1691,17 @@
             border-radius: 5px; font-size: 0.66rem; font-weight: 800; vertical-align: middle;
             background: rgba(214,45,45,0.12); color: #c62d2d; letter-spacing: 0.02em;
         }
+        .alm-combo-ok {
+            display: inline-block; margin-left: 0.4rem; padding: 0.05rem 0.4rem;
+            border-radius: 5px; font-size: 0.66rem; font-weight: 800; vertical-align: middle;
+            background: rgba(34,165,90,0.14); color: var(--green-dark); letter-spacing: 0.02em;
+        }
+        /* Filas del catálogo de almacenes teñidas por disponibilidad:
+           verde suave = disponible · rojo suave = completo. */
+        tr.alm-cat-row-ok   > td { background: rgba(34,165,90,0.06); }
+        tr.alm-cat-row-ok:hover   > td { background: rgba(34,165,90,0.12); }
+        tr.alm-cat-row-full > td { background: rgba(214,45,45,0.06); }
+        tr.alm-cat-row-full:hover > td { background: rgba(214,45,45,0.12); }
         .alm-combo-empty { padding: 0.7rem 0.85rem; color: var(--gray-500); font-size: 0.85rem; }
         /* Fechas: mismo ancho, sin desbordes (iOS date tiene ancho intrínseco)
            y texto-guía en el hueco cuando aún no hay fecha elegida. */
@@ -5080,6 +5091,43 @@
             a.dirCP = a.dirCP || (a.cp + ', ' + a.ciudad + ', ' + a.prov + ', España'); // CP/localidad/prov/país
         });
     })();
+    // --- Persistencia del catálogo de almacenes en localStorage ---------------
+    // El catálogo base va en el código, pero las EDICIONES del usuario (marcar
+    // completo, cambiar datos, borrar, dar de alta) deben sobrevivir a la
+    // recarga. Se guardan solo los almacenes TOCADOS (_touched) o AÑADIDOS
+    // (_custom), por su `key`. En la app real esto lo hará el backend.
+    var ALM_STORE_KEY = 'dynamoAlmacenesOverrides';
+    var ALM_OV_FIELDS = ['empresa', 'tipoLugar', 'horario', 'tfno', 'contacto', 'notas', 'maps', 'calle', 'dir', 'dirCP', 'cp', 'ciudad', 'prov', 'disponible', '_deleted', '_custom'];
+    function persistAlmacenes() {
+        try {
+            var map = {};
+            DYNAMO_ALMACENES.forEach(function (a) {
+                if (!a._touched && !a._custom) return;   // solo lo editado/añadido
+                var o = {};
+                ALM_OV_FIELDS.forEach(function (f) { if (f in a) o[f] = a[f]; });
+                map[a.key] = o;
+            });
+            localStorage.setItem(ALM_STORE_KEY, JSON.stringify(map));
+        } catch (e) {}
+    }
+    window.persistAlmacenes = persistAlmacenes;
+    function loadAlmacenesOverrides() {
+        try {
+            var raw = localStorage.getItem(ALM_STORE_KEY);
+            if (!raw) return;
+            var map = JSON.parse(raw) || {};
+            Object.keys(map).forEach(function (k) {
+                var ov = map[k], a = null;
+                for (var i = 0; i < DYNAMO_ALMACENES.length; i++) { if (DYNAMO_ALMACENES[i].key === k) { a = DYNAMO_ALMACENES[i]; break; } }
+                if (a) { ALM_OV_FIELDS.forEach(function (f) { if (f in ov) a[f] = ov[f]; }); a._touched = true; }
+                else if (ov._custom) {   // almacén dado de alta por el usuario (no está en el catálogo base)
+                    var nw = { key: k }; ALM_OV_FIELDS.forEach(function (f) { if (f in ov) nw[f] = ov[f]; }); nw._touched = true;
+                    DYNAMO_ALMACENES.push(nw);
+                }
+            });
+        } catch (e) {}
+    }
+    loadAlmacenesOverrides();   // aplica las ediciones guardadas al arrancar
     // Vista "sitio" de un almacén (para reutilizar la tabla y el modal de Sitios).
     function almToSite(a) {
         return { empresa: a.empresa, tipoLugar: a.tipoLugar, horario: a.horario, calle: a.calle, dir: a.dirCP, tfno: a.tfno, contacto: a.contacto, notas: a.notas, maps: a.maps, esAlmacen: true, key: a.key };
@@ -6041,9 +6089,11 @@
         tbody.innerHTML = rows.map(function (r) {
             var a = r.a, s = almToSite(a);
             var full = a.disponible === false;
-            return '<tr data-alm-cat="' + r.i + '">' +
+            // Fila teñida: rojo suave si está COMPLETO (no disponible), verde
+            // suave si está disponible.
+            return '<tr data-alm-cat="' + r.i + '" class="' + (full ? 'alm-cat-row-full' : 'alm-cat-row-ok') + '">' +
                 '<td><strong>' + esc(s.empresa || '—') + '</strong>' +
-                    (full ? ' <span class="alm-combo-full">Completo</span>' : '') +
+                    (full ? ' <span class="alm-combo-full">Completo</span>' : ' <span class="alm-combo-ok">Disponible</span>') +
                     (s.maps ? '<div class="meta"><a href="' + esc(s.maps) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--purple);font-weight:600;text-decoration:none;">Ver en Maps</a></div>' : '') + '</td>' +
                 '<td>' + (s.calle ? esc(s.calle) + (s.dir ? '<div class="meta">' + esc(s.dir) + '</div>' : '') : esc(s.dir || '—')) + '</td>' +
                 '<td>' + esc(s.horario || '—') + '</td>' +
@@ -6114,7 +6164,9 @@
         if (parts.length >= 2) a.ciudad = parts[1].replace(/^\d{4,5}\s*/, '') || a.ciudad;
         if (parts.length >= 3) a.prov = parts[2] || a.prov;
         if (!a.key) a.key = 'dynamo-' + normTxt(empresa).replace(/[^a-z0-9]+/g, '-').slice(0, 30);
-        if (!edit) DYNAMO_ALMACENES.push(a);
+        a._touched = true;                 // marca la edición para persistirla
+        if (!edit) { a._custom = true; DYNAMO_ALMACENES.push(a); }
+        persistAlmacenes();                // guarda en localStorage (sobrevive a la recarga)
         closeDashModal();
         var si = document.getElementById('almacenesCatSearch');
         renderAlmacenesCatTable(si ? si.value : '');
@@ -6140,7 +6192,11 @@
         // guardan almIdx— siguen resolviendo su almacén correctamente, igual
         // que ocurre con los sitios de la agenda. Solo se oculta de la tabla
         // y del desplegable de nuevo almacenamiento.
-        if (idx >= 0 && idx < DYNAMO_ALMACENES.length) DYNAMO_ALMACENES[idx]._deleted = true;
+        if (idx >= 0 && idx < DYNAMO_ALMACENES.length) {
+            DYNAMO_ALMACENES[idx]._deleted = true;
+            DYNAMO_ALMACENES[idx]._touched = true;
+            persistAlmacenes();            // el borrado también persiste
+        }
         closeDashModal();
         var si = document.getElementById('almacenesCatSearch');
         renderAlmacenesCatTable(si ? si.value : '');
