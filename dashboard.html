@@ -2430,6 +2430,10 @@
         .ptar-sug .sug-chip-addr   { background: var(--gray-100); color: var(--gray-500); }
         .ptar-sug .sug-chip-recent { background: rgba(51,0,204,0.08); color: var(--purple); }
         .ptar-sug .sug-chip-dynamo { background: rgba(51,0,204,0.12); color: var(--purple); }
+        /* Almacén COMPLETO en el buscador: badge rojo + fila deshabilitada (no clicable) */
+        .ptar-sug .sug-full { float: right; margin-left: 0.6rem; font-size: 0.66rem; font-weight: 800; padding: 0.05rem 0.4rem; border-radius: 5px; background: rgba(214,45,45,0.12); color: #c62d2d; letter-spacing: 0.02em; }
+        .ptar-sug li.sug-disabled { opacity: 0.6; cursor: not-allowed; }
+        .ptar-sug li.sug-disabled:hover { background: none; color: var(--gray-700); }
         /* Última opción del desplegable: alta de sitio nuevo */
         .ptar-sug .sug-crear { border-top: 1px solid var(--gray-200); }
         .ptar-sug .sug-crear .sug-crear-lbl { color: var(--purple); font-weight: 800; }
@@ -4976,7 +4980,7 @@
         DYNAMO_ALMACENES.forEach(function (a) {
             if (a._deleted) return;
             if (nq && normTxt([a.empresa, a.prov, a.ciudad, a.cp, a.dir].join(' ')).indexOf(nq) === -1) return;
-            out.push([a.key, almToSite(a)]);
+            out.push([a.key, almToSite(a), a.disponible === false]);
         });
         return out;
     }
@@ -5085,6 +5089,15 @@
     window.almFilter = almFilter;
     function almPickAlmacen(i) {
         var a = DYNAMO_ALMACENES[i]; if (!a) return;
+        // Almacén completo (disponible === false): NO se puede elegir. Muestra el
+        // aviso en rojo y deja el desplegable abierto para elegir otro; no lo
+        // selecciona (no se bloquea el chip ni se marca _almSel).
+        if (a.disponible === false) {
+            var wrap0 = document.getElementById('almCombo'), err0 = document.getElementById('almErr');
+            if (wrap0) wrap0.classList.add('ptar-error');
+            if (err0) { err0.textContent = '⚠ Este almacén está COMPLETO y no admite entradas ahora mismo. Elige otro almacén Dynamo.'; err0.classList.add('show'); }
+            return;
+        }
         _almSel = i;
         var inp = document.getElementById('almSearch'), list = document.getElementById('almComboList'),
             addr = document.getElementById('almAddr'), wrap = document.getElementById('almCombo'),
@@ -5435,19 +5448,35 @@
                         '<span class="ptar-sitio-warn">⚠ Faltan datos obligatorios</span>' +
                     '</span>' + chev +
                 '</button>';
+            // ¿Es un ALMACÉN Dynamo? Datos FIJOS del catálogo: aquí NO se editan
+            // (solo en la sección Almacenes). Todo bloqueado salvo la referencia.
+            var esAlmacenEnt = /^dynamo-/.test(s.key || '');
+            var cuerpo = esAlmacenEnt
+                ? '<div class="ptar-sitio-body-meta"><strong style="color:var(--purple);">Almacén Dynamo</strong> · datos fijos (se editan en la sección Almacenes)' + (s.maps ? ' · <a href="' + escapeHtml(s.maps) + '" target="_blank" rel="noopener" style="color:var(--purple);font-weight:700;text-decoration:none;">Ver en Maps</a>' : '') + '</div>' +
+                  '<div class="ptar-sitio-grid">' +
+                    '<div><label>Empresa</label><input class="sitio-f-lock" value="' + escapeHtml(s.empresa || '') + '" readonly tabindex="-1"></div>' +
+                    '<div><label>Tipo de lugar</label><input class="sitio-f-lock" value="' + escapeHtml(s.tipoLugar || 'Almacén / Nave') + '" readonly tabindex="-1"></div>' +
+                    '<div><label>Dirección (calle y número)</label><input class="sitio-f-lock" value="' + escapeHtml(sp.calle || s.dir || '') + '" readonly tabindex="-1"></div>' +
+                    (sp.resto ? '<div><label>CP, localidad, provincia y país</label><input class="sitio-f-lock" value="' + escapeHtml(sp.resto) + '" readonly tabindex="-1"></div>' : '') +
+                    '<div><label>Horario</label><input class="sitio-f-lock" value="' + escapeHtml(s.horario || '') + '" readonly tabindex="-1"></div>' +
+                    '<div><label>Teléfono</label><input class="sitio-f-lock" value="' + escapeHtml(s.tfno || '') + '" readonly tabindex="-1"></div>' +
+                    (s.contacto ? '<div><label>Contacto</label><input class="sitio-f-lock" value="' + escapeHtml(s.contacto) + '" readonly tabindex="-1"></div>' : '') +
+                    '<div class="full"><label style="color:var(--green);">Referencia de entrega <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-almc-f="notas" value="" placeholder="Ej. nº de pedido, pedir cita, muelle…"></div>' +
+                  '</div>'
+                : '<div class="ptar-sitio-grid">' +
+                    req('Empresa', 'empresa', s.empresa, 'Ej. Talleres Vega e Hijos S.L.') +
+                    '<div><label>Dirección (calle y número)</label><input class="sitio-f-lock" value="' + escapeHtml(sp.calle || s.dir || '') + '" readonly tabindex="-1"></div>' +
+                    (sp.resto ? '<div><label>CP, localidad, provincia y país</label><input class="sitio-f-lock" value="' + escapeHtml(sp.resto) + '" readonly tabindex="-1"></div>' : '') +
+                    req('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
+                    req('Teléfono', 'tfno', s.tfno, 'Ej. +34 612 345 678') +
+                    opt('Contacto', 'contacto', s.contacto, 'Persona de contacto') +
+                    opt('Notas del sitio', 'notas', s.notas, 'Ej. referencia de entrega, pedir cita…', true) +
+                    opt('Enlace de Google Maps', 'maps', s.maps, 'https://maps.app.goo.gl/…') +
+                  '</div>';
             sitio =
-                '<h3 style="font-size:0.95rem;font-weight:800;color:var(--navy);margin:1.4rem 0 0.6rem;">Datos del sitio de entrega <span style="color:var(--gray-500);font-weight:600;font-size:0.82rem;">· revisa y completa</span></h3>' +
-                '<div class="ptar-sitio-card">' + head +
-                    '<div class="ptar-sitio-body"><div class="ptar-sitio-grid">' +
-                        req('Empresa', 'empresa', s.empresa, 'Ej. Talleres Vega e Hijos S.L.') +
-                        '<div><label>Dirección (calle y número)</label><input class="sitio-f-lock" value="' + escapeHtml(sp.calle || s.dir || '') + '" readonly tabindex="-1"></div>' +
-                        (sp.resto ? '<div><label>CP, localidad, provincia y país</label><input class="sitio-f-lock" value="' + escapeHtml(sp.resto) + '" readonly tabindex="-1"></div>' : '') +
-                        req('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
-                        req('Teléfono', 'tfno', s.tfno, 'Ej. +34 612 345 678') +
-                        opt('Contacto', 'contacto', s.contacto, 'Persona de contacto') +
-                        opt('Notas del sitio', 'notas', s.notas, 'Ej. referencia de entrega, pedir cita…', true) +
-                        opt('Enlace de Google Maps', 'maps', s.maps, 'https://maps.app.goo.gl/…') +
-                    '</div></div>' +
+                '<h3 style="font-size:0.95rem;font-weight:800;color:var(--navy);margin:1.4rem 0 0.6rem;">Datos del sitio de entrega <span style="color:var(--gray-500);font-weight:600;font-size:0.82rem;">· ' + (esAlmacenEnt ? 'almacén Dynamo' : 'revisa y completa') + '</span></h3>' +
+                '<div class="ptar-sitio-card' + (esAlmacenEnt ? ' req-ok' : '') + '">' + head +
+                    '<div class="ptar-sitio-body">' + cuerpo + '</div>' +
                 '</div>';
         }
         var precio = '<div class="alm-price" data-almc-pricebox style="margin-top:0;"></div>';
@@ -5597,6 +5626,23 @@
             if (err) err.classList.remove('show');
             // Consolidar el sitio en la agenda (nuevo o actualizado).
             var s = p.repSite || {};
+            // Almacén Dynamo: ficha FIJA del catálogo. No se edita aquí ni se
+            // guarda (solo en la sección Almacenes). Se usa tal cual como destino.
+            if (/^dynamo-/.test(s.key || '')) {
+                var sA = siteDe(s.key) || {};
+                destino = { key: s.key, dir: sA.dir, empresa: sA.empresa };
+                var chkTA = document.getElementById('almcCheckTerms');
+                if (chkTA && !chkTA.checked) {
+                    var lblTA = document.getElementById('almcCheckLbl'), warnTA = document.getElementById('almcTermsWarn');
+                    if (lblTA) { lblTA.classList.add('check-error'); if (lblTA.scrollIntoView) lblTA.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                    if (warnTA) warnTA.classList.add('show');
+                    return;
+                }
+                var esPrepagoA = p.formaPago && p.formaPago !== 'credito';
+                if (esPrepagoA) { almConfirmImportante(destino); return; }
+                almFinalizarReg(destino);
+                return;
+            }
             var val = function (f) { var i = box.querySelector('[data-almc-f="' + f + '"]'); return i ? i.value.trim() : ''; };
             var site = {};
             if (s.key) { var s0 = siteDe(s.key) || {}; Object.keys(s0).forEach(function (k) { site[k] = s0[k]; }); }
@@ -10508,11 +10554,20 @@
                 });
                 // Almacenes Dynamo (uso interno): también sirven como punto de
                 // recogida o entrega del envío. Aparecen con chip morado "Almacén".
+                // Los COMPLETOS (no disponibles) aparecen deshabilitados: se ven
+                // con badge rojo "Completo" pero NO se pueden elegir.
                 if (window.almSitesBuscar) {
                     almSitesBuscar(q).slice(0, 3).forEach(function (kv) {
-                        var k = kv[0], s = kv[1];
-                        var el = li(chip('Almacén', 'sug-chip-dynamo') + '<strong>' + esc(s.empresa || '') + '</strong><span class="sug-dir">' + esc(s.calle || s.dir || '') + '</span>');
-                        bindPick(el, function () { aplicarGuardado(k, s); });
+                        var k = kv[0], s = kv[1], full = kv[2];
+                        var badge = full ? '<span class="sug-full">Completo</span>' : '';
+                        var el = li(chip('Almacén', 'sug-chip-dynamo') + '<strong>' + esc(s.empresa || '') + '</strong><span class="sug-dir">' + esc(s.calle || s.dir || '') + '</span>' + badge);
+                        if (full) {
+                            el.className += ' sug-disabled';
+                            el.setAttribute('aria-disabled', 'true');
+                            el.addEventListener('mousedown', function (e) { e.preventDefault(); });
+                        } else {
+                            bindPick(el, function () { aplicarGuardado(k, s); });
+                        }
                         sugList.appendChild(el);
                     });
                 }
@@ -11407,6 +11462,12 @@
                         saveCustomSite(k2, b2);
                         return { key: k2, site: b2 };
                     }
+                    // Almacén Dynamo: ficha FIJA del catálogo. No se edita desde el
+                    // envío ni se guarda aquí (solo en la sección Almacenes). Se
+                    // devuelve tal cual, sin volcar los campos de la confirmación.
+                    if (pick.tipo === 'guardado' && /^dynamo-/.test(pick.key)) {
+                        return { key: pick.key, site: siteDe(pick.key) || {} };
+                    }
                     var src0 = pick.tipo === 'guardado' ? (siteDe(pick.key) || {}) : {
                         empresa: pick.g.empresa, dir: pick.g.dir, horario: pick.g.horario,
                         tfno: pick.g.tfno, contacto: null, notas: null, maps: pick.g.maps, freq: 1
@@ -11906,6 +11967,30 @@
                         function inpLock(lbl, val, full) {
                             if (!val) return '';
                             return '<div' + (full ? ' class="full"' : '') + '><label>' + lbl + '</label><input class="sitio-f-lock" value="' + escapeHtml(val) + '" readonly tabindex="-1"></div>';
+                        }
+                        // ¿Es un ALMACÉN Dynamo? Sus datos son FIJOS del catálogo:
+                        // aquí NO se editan (solo en la sección Almacenes). Todos los
+                        // campos bloqueados salvo la referencia de carga/entrega.
+                        var esAlmacen = p.pick.tipo === 'guardado' && /^dynamo-/.test(p.pick.key);
+                        if (esAlmacen) {
+                            var calleA = calleCorta(s), dirA = s.dir || '';
+                            var mapsA = s.maps ? ' · <a href="' + escapeHtml(s.maps) + '" target="_blank" rel="noopener" style="color:var(--purple);font-weight:700;text-decoration:none;">Ver en Maps</a>' : '';
+                            return '<div class="ptar-sitio-card">' +
+                                cardHead(rolHtml, s.empresa, (s.dir || ''), warnHead, s.horario, fechaCab) +
+                                '<div class="ptar-sitio-body">' +
+                                    '<div class="ptar-sitio-body-meta"><strong style="color:var(--purple);">Almacén Dynamo</strong> · datos fijos (se editan en la sección Almacenes)' + mapsA + '</div>' +
+                                    '<div class="ptar-sitio-grid">' +
+                                        inpLock('Empresa', s.empresa, false) +
+                                        '<div><label>Tipo de lugar</label><input class="sitio-f-lock" value="' + escapeHtml(s.tipoLugar || 'Almacén / Nave') + '" readonly tabindex="-1"></div>' +
+                                        inpLock('Dirección (calle y número)', calleA, !dirA) +
+                                        inpLock('CP, localidad, provincia y país', dirA, !calleA) +
+                                        inpLock('Horario', s.horario, false) +
+                                        inpLock('Teléfono', s.tfno, false) +
+                                        inpLock('Contacto', s.contacto, false) +
+                                        '<div class="full"><label style="color:var(--green);">Referencia de carga/entrega <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="" placeholder="Ej. nº de pedido, pedir cita, muelle…"></div>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>';
                         }
                         // Ficha de Google: dirección completa en g.dir (una
                         // sola línea). Ficha de agenda: SOLO la calle (sin CP
