@@ -5516,13 +5516,13 @@
         document.getElementById('almFormPanel').hidden = false;
         function fmt(iso) { var d = new Date(iso + 'T00:00:00'); return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear(); }
         var prepago = reg.formaPago === 'transferencia';
-        showLoadingOverlay('Enviando tu solicitud…', 900, function () {
+        showLoadingOverlay('Creando almacenamiento…', 900, function () {
+            showSection('almacenes');
             showModalSuccess('Almacenamiento ' + reg.ref + ' solicitado',
                 'Almacén Dynamo · ' + a.prov + ' (' + a.ciudad + '). Entrada ' + fmt(reg.entrada) + ' · salida ' + fmt(reg.salida) + '. ' +
                 (reg.reparto > 0 ? 'Con ' + reg.reparto + ' ' + (reg.reparto > 1 ? 'camiones' : 'camión') + ' de reparto urbano. ' : '') +
                 (prepago ? 'Sin crédito CESCE: se procesa al validar el pago por adelantado (' + almEur(tot) + ', IVA incl.). ' : 'Se factura a crédito por transferencia/domiciliación. Total ' + almEur(tot) + ' (IVA incl.). ') +
                 'Lo verás en la sección Almacenamientos.');
-            setTimeout(function () { showSection('almacenes'); }, 1300);
         });
     }
 
@@ -6016,7 +6016,10 @@
         });
     }
     function cargaIncidenciaConfirm(ref) {
-        showModalSuccess('Incidencia enviada', 'Hemos recibido tu reporte para ' + ref + '. El equipo lo revisa y te avisamos en cuanto haya respuesta.');
+        closeDashModal();
+        showLoadingOverlay('Creando incidencia…', 900, function () {
+            showModalSuccess('Incidencia enviada', 'Hemos recibido tu reporte para ' + ref + '. El equipo lo revisa y te avisamos en cuanto haya respuesta.');
+        });
     }
     window.cargaIncidenciaConfirm = cargaIncidenciaConfirm;
     function cargaDescargarAlbaran(row) {
@@ -7739,13 +7742,18 @@
         if (!desc) return fail('Añade una descripción de la penalización.', document.getElementById('penDesc'));
         if (!(imp > 0)) return fail('Indica un importe válido (sin IVA).', document.getElementById('penImporte'));
         var c = penEnviosList().filter(function (x) { return x.ref === _penEnvioSel; })[0] || {};
+        var nuevoRef = '#PEN-' + (PEN_SEQ++);
         PENALIZACIONES_DATA.unshift({
-            ref: '#PEN-' + (PEN_SEQ++), envio: _penEnvioSel, tipo: tipo,
+            ref: nuevoRef, envio: _penEnvioSel, tipo: tipo,
             transportista: c.transportista || null, descripcion: desc, importe: imp, fecha: penHoyMas(0)
         });
         closeDashModal();
         renderPenalizacionesTable();
         showSection('penalizaciones');
+        showLoadingOverlay('Creando penalización…', 900, function () {
+            showModalSuccess('Penalización ' + nuevoRef + ' creada',
+                tipo + ' sobre el envío ' + _penEnvioSel + ' por ' + almEur(imp) + ' (sin IVA). La verás en el listado de Penalizaciones.');
+        });
     }
     window.crearPenalizacion = crearPenalizacion;
 
@@ -11109,7 +11117,7 @@
                     if (pick.tipo === 'google' || edito) saveCustomSite(key, base);
                     return { key: key, site: base };
                 }
-                showLoadingOverlay(saveMode === 'carga' ? 'Creando tu envío…' : 'Generando tu presupuesto…', 900, function () {
+                showLoadingOverlay(saveMode === 'carga' ? 'Creando envío…' : 'Generando presupuesto…', 900, function () {
                 if (saveMode === 'carga') {
                     var oS = consolidarSitio(d.origSitePick, 'orig', d.origTipo, d.orig);
                     var dS = consolidarSitio(d.destSitePick, 'dest', d.destTipo, d.dest);
@@ -11154,6 +11162,9 @@
                     TABLE_STATE.cargas.filter = isPrev ? 'prevision' : (esPrepago ? 'pendiente-pago' : 'programada-pendiente');
                     renderCargasTable();
                     if (typeof refreshStatCargasActivas === 'function') refreshStatCargasActivas();
+                    // Navegar al listado ANTES del modal de éxito (mismo tick en
+                    // que se oculta el overlay) para no ver el formulario un frame.
+                    showSection('cargas');
                     showModalSuccess(
                         isPrev ? 'Previsión ' + ref + ' guardada' : 'Envío ' + ref + ' creado',
                         isPrev
@@ -11162,7 +11173,6 @@
                                 ? 'Tu solicitud está creada en estado "Pendiente de pago". No se asigna camión ni avanza hasta que validemos el pago por adelantado. En cuanto lo confirmemos pasará a "Programado".'
                                 : 'Tu solicitud está creada. La verás en el listado de "Programadas" con el detalle completo.'
                     );
-                    setTimeout(function () { showSection('cargas'); }, 1200);
                 } else {
                     var base = (d.camion === 'tauliner' ? 950 : 720)
                         + (parseFloat(d.ml === '13.2' ? 13.2 : d.ml) * 70)
@@ -11180,11 +11190,11 @@
                     TABLE_STATE.presupuestos.page = 1;
                     TABLE_STATE.presupuestos.filter = 'activos';
                     renderPresupuestosTable();
+                    showSection('presupuestos');
                     showModalSuccess(
                         'Presupuesto ' + ref + ' generado',
                         'Precio orientativo: ' + precio.toLocaleString('es-ES') + ' € · Vigente 7 días. Si te encaja, conviértelo en carga con un solo clic desde el listado.'
                     );
-                    setTimeout(function () { showSection('presupuestos'); }, 1200);
                 }
                 });
             }
