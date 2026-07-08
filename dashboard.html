@@ -670,6 +670,7 @@
         .lang-pill:hover { background: rgba(51,0,204,0.06); color: var(--purple); }
         .lang-pill.active { background: rgba(51,0,204,0.10); border-color: rgba(51,0,204,0.25); color: var(--purple); }
         .lang-pill .flag { font-size: 1rem; line-height: 1; }
+        .lang-pill svg { flex: none; }
         .user-menu-item-danger { color: var(--red); }
         .user-menu-item-danger svg { color: var(--red); }
         .user-menu-item-danger:hover { background: rgba(220,38,38,0.07); color: var(--red); }
@@ -3481,9 +3482,9 @@
                         <svg class="user-menu-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
                     <div class="user-menu-submenu" id="roleSubmenu" role="menu" aria-hidden="true">
-                        <button type="button" class="lang-pill active" data-role="admin" onclick="pickRole(this)"><span class="flag">🛡️</span> Admin</button>
-                        <button type="button" class="lang-pill" data-role="cliente" onclick="pickRole(this)"><span class="flag">👤</span> Cliente</button>
-                        <button type="button" class="lang-pill" data-role="transportista" onclick="pickRole(this)"><span class="flag">🚚</span> Transportista</button>
+                        <button type="button" class="lang-pill active" data-role="admin" onclick="pickRole(this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V5l-8-3z"/><path d="M9 12l2 2 4-4"/></svg> Admin</button>
+                        <button type="button" class="lang-pill" data-role="cliente" onclick="pickRole(this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Cliente</button>
+                        <button type="button" class="lang-pill" data-role="transportista" onclick="pickRole(this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> Transportista</button>
                     </div>
                     <div class="user-menu-sep"></div>
                     <button type="button" class="user-menu-item" role="menuitem" onclick="goFromMenu('mi-cuenta')">
