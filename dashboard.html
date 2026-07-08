@@ -2477,7 +2477,8 @@
         .ptar-sug .sug-chip-recent { background: rgba(51,0,204,0.08); color: var(--purple); }
         .ptar-sug .sug-chip-dynamo { background: rgba(51,0,204,0.12); color: var(--purple); }
         /* Almacén COMPLETO en el buscador: badge rojo + fila deshabilitada (no clicable) */
-        .ptar-sug .sug-full { float: right; margin-left: 0.6rem; font-size: 0.66rem; font-weight: 800; padding: 0.05rem 0.4rem; border-radius: 5px; background: rgba(214,45,45,0.12); color: #c62d2d; letter-spacing: 0.02em; }
+        .ptar-sug .sug-full { display: inline-block; vertical-align: 1px; font-size: 0.66rem; font-weight: 800; padding: 0.05rem 0.4rem; border-radius: 5px; background: rgba(214,45,45,0.12); color: #c62d2d; letter-spacing: 0.02em; }
+        .ptar-sug .sug-ok { display: inline-block; vertical-align: 1px; font-size: 0.66rem; font-weight: 800; padding: 0.05rem 0.4rem; border-radius: 5px; background: rgba(34,165,90,0.14); color: var(--green-dark); letter-spacing: 0.02em; }
         .ptar-sug li.sug-disabled { opacity: 0.6; cursor: not-allowed; }
         .ptar-sug li.sug-disabled:hover { background: none; color: var(--gray-700); }
         /* Última opción del desplegable: alta de sitio nuevo */
@@ -5163,6 +5164,8 @@
             if (nq && !matchTokens(hay, expandVia(nq))) return;
             out.push([a.key, almToSite(a), a.disponible === false]);
         });
+        // DISPONIBLES primero, luego los COMPLETOS (orden estable dentro).
+        out.sort(function (x, y) { return (x[2] ? 1 : 0) - (y[2] ? 1 : 0); });
         return out;
     }
     var ALM_BASE = 240, ALM_REPARTO = 220;  // € (por defecto) — tráiler completo 7 días / reparto camión 4 m
@@ -5256,7 +5259,7 @@
         var inp = document.getElementById('almSearch'), list = document.getElementById('almComboList');
         if (!inp || !list || inp.readOnly) return;   // bloqueado (chip) → no abre
         var q = normTxt(inp.value);
-        var items = [];
+        var matches = [];
         DYNAMO_ALMACENES.forEach(function (a, i) {
             if (a._deleted) return;   // borrado del catálogo: no se ofrece
             // Búsqueda por PALABRAS (cualquier orden, trozos válidos) sobre
@@ -5264,13 +5267,19 @@
             // barcelona", "barna pol", "dyn barc"… listan bien.
             var hay = expandVia(normTxt([a.empresa, a.prov, a.ciudad, a.cp, a.dir].join(' ')));
             if (q && !matchTokens(hay, expandVia(q))) return;
-            // Almacén completo (disponible === false): sigue apareciendo pero con
-            // badge rojo "Completo"; al elegirlo avisa y no deja continuar.
-            var full = a.disponible === false;
-            var badge = full ? ' <span class="alm-combo-full">Completo</span>' : '';
-            items.push('<li class="alm-combo-item' + (full ? ' is-full' : '') + '" onmousedown="almPickAlmacen(' + i + ');event.preventDefault();">' +
+            matches.push({ a: a, i: i, full: a.disponible === false });
+        });
+        // DISPONIBLES primero (badge verde), luego los COMPLETOS (badge rojo,
+        // no seleccionables). Orden alfabético estable dentro de cada grupo.
+        matches.sort(function (x, y) { return (x.full ? 1 : 0) - (y.full ? 1 : 0); });
+        var items = matches.map(function (m) {
+            var a = m.a;
+            var badge = m.full
+                ? ' <span class="alm-combo-full">Completo</span>'
+                : ' <span class="alm-combo-ok">Disponible</span>';
+            return '<li class="alm-combo-item' + (m.full ? ' is-full' : '') + '" onmousedown="almPickAlmacen(' + m.i + ');event.preventDefault();">' +
                 '<span><strong>' + escapeHtml(a.prov) + '</strong> · ' + escapeHtml(a.ciudad) + badge + '</span>' +
-                '<span class="sub">' + escapeHtml(a.dir.split(',')[0]) + '</span></li>');
+                '<span class="sub">' + escapeHtml(a.dir.split(',')[0]) + '</span></li>';
         });
         list.innerHTML = items.length ? items.join('') : '<li class="alm-combo-empty">Sin resultados — prueba con la provincia o la ciudad</li>';
         list.hidden = false;
@@ -10900,10 +10909,15 @@
                 // Los COMPLETOS (no disponibles) aparecen deshabilitados: se ven
                 // con badge rojo "Completo" pero NO se pueden elegir.
                 if (window.almSitesBuscar) {
-                    almSitesBuscar(q).slice(0, 3).forEach(function (kv) {
+                    almSitesBuscar(q).slice(0, 6).forEach(function (kv) {
                         var k = kv[0], s = kv[1], full = kv[2];
-                        var badge = full ? '<span class="sug-full">Completo</span>' : '';
-                        var el = li(chip('Almacén', 'sug-chip-dynamo') + '<strong>' + esc(s.empresa || '') + '</strong><span class="sug-dir">' + esc(s.calle || s.dir || '') + '</span>' + badge);
+                        // Sin chip "Almacén" (el nombre ya dice "Almacén Dynamo · …").
+                        // Solo el badge de estado, PEGADO al nombre: verde Disponible
+                        // o rojo Completo — así se ve claramente y no se juntan.
+                        var badge = full
+                            ? ' <span class="sug-full">Completo</span>'
+                            : ' <span class="sug-ok">Disponible</span>';
+                        var el = li('<strong>' + esc(s.empresa || '') + '</strong>' + badge + '<span class="sug-dir">' + esc(s.calle || s.dir || '') + '</span>');
                         if (full) {
                             el.className += ' sug-disabled';
                             el.setAttribute('aria-disabled', 'true');
