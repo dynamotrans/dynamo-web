@@ -1683,9 +1683,16 @@
             padding: 0.6rem 0.85rem; font-size: 0.88rem; color: var(--navy); cursor: pointer;
             display: flex; justify-content: space-between; align-items: baseline; gap: 0.6rem;
         }
+        /* min-width:0 en los hijos flex: sin esto el ancho mínimo intrínseco
+           desborda y recorta el texto por la izquierda. La dirección (derecha)
+           trunca con puntos suspensivos; el nombre (izquierda) manda. */
+        .alm-combo-item > span:first-child { min-width: 0; flex: 0 1 auto; }
         .alm-combo-item:hover { background: var(--gray-100); }
         .alm-combo-item strong { font-weight: 800; }
-        .alm-combo-item .sub { color: var(--gray-500); font-size: 0.76rem; white-space: nowrap; }
+        .alm-combo-item .sub {
+            color: var(--gray-500); font-size: 0.76rem; white-space: nowrap;
+            min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; text-align: right;
+        }
         .alm-combo-item.is-full { opacity: 0.72; }
         .alm-combo-full {
             display: inline-block; margin-left: 0.4rem; padding: 0.05rem 0.4rem;
@@ -5151,7 +5158,9 @@
         var nq = normTxt(q || ''); var out = [];
         DYNAMO_ALMACENES.forEach(function (a) {
             if (a._deleted) return;
-            if (nq && normTxt([a.empresa, a.prov, a.ciudad, a.cp, a.dir].join(' ')).indexOf(nq) === -1) return;
+            // Búsqueda por palabras (cualquier orden) sobre empresa+prov+ciudad+CP+dir.
+            var hay = expandVia(normTxt([a.empresa, a.prov, a.ciudad, a.cp, a.dir].join(' ')));
+            if (nq && !matchTokens(hay, expandVia(nq))) return;
             out.push([a.key, almToSite(a), a.disponible === false]);
         });
         return out;
@@ -5250,7 +5259,11 @@
         var items = [];
         DYNAMO_ALMACENES.forEach(function (a, i) {
             if (a._deleted) return;   // borrado del catálogo: no se ofrece
-            if (q && normTxt(a.prov + ' ' + a.ciudad + ' ' + a.dir).indexOf(q) === -1) return;
+            // Búsqueda por PALABRAS (cualquier orden, trozos válidos) sobre
+            // empresa + provincia + ciudad + CP + dirección. Así "dynamo
+            // barcelona", "barna pol", "dyn barc"… listan bien.
+            var hay = expandVia(normTxt([a.empresa, a.prov, a.ciudad, a.cp, a.dir].join(' ')));
+            if (q && !matchTokens(hay, expandVia(q))) return;
             // Almacén completo (disponible === false): sigue apareciendo pero con
             // badge rojo "Completo"; al elegirlo avisa y no deja continuar.
             var full = a.disponible === false;
