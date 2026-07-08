@@ -1353,6 +1353,33 @@
         }
         .stat-card-link:active { transform: translateY(0); }
 
+        /* ---- Dashboard admin (vista interna) ---- */
+        .admin-note {
+            background: rgba(51,0,204,0.05); border: 1px solid rgba(51,0,204,0.22);
+            border-radius: 12px; padding: 0.85rem 1rem; margin-bottom: 1rem;
+            font-size: 0.86rem; line-height: 1.5; color: var(--gray-700);
+        }
+        .admin-note strong { color: var(--navy); }
+        .admin-quick {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.7rem;
+            margin-top: 0.2rem;
+        }
+        .admin-quick-btn {
+            font: inherit; cursor: pointer; appearance: none; text-align: left;
+            background: white; border: 1px solid var(--gray-200); border-radius: 12px;
+            padding: 0.9rem 0.95rem; color: var(--navy); font-weight: 700;
+            display: flex; align-items: center; gap: 0.6rem;
+            transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+        }
+        .admin-quick-btn svg { color: var(--purple); flex: none; }
+        .admin-quick-btn:hover {
+            transform: translateY(-2px); box-shadow: 0 10px 28px rgba(10,2,48,0.08);
+            border-color: rgba(51,0,204,0.25);
+        }
+        @media (max-width: 700px) {
+            .admin-quick { grid-template-columns: repeat(2, 1fr); }
+        }
+
         .cesce-card {
             background: #ffffff;
             color: var(--navy); border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.9rem 1.1rem;
@@ -3139,7 +3166,14 @@
     <nav class="sidebar-nav">
         <button class="sidebar-link active" data-section="dashboard">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/></svg>
-            Dashboard
+            Dashboard cliente
+        </button>
+        <!-- Dashboard ADMIN — vista interna (todos los clientes). Se irá
+             rellenando y, al montar el gating, quedará solo para rol admin. -->
+        <button class="sidebar-link" data-section="dashboard-admin" data-roles="admin">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V5l-8-3z"/><path d="M9 12l2 2 4-4"/></svg>
+            Dashboard admin
+            <span class="badge" style="background:rgba(51,0,204,0.12);color:var(--purple);">Admin</span>
         </button>
         <button class="sidebar-link" data-section="cargas">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
@@ -3426,6 +3460,21 @@
                         </div>
                     </div>
                     <div class="user-menu-sep"></div>
+                    <!-- Selector de ROL (pruebas del mockup). Cambia el rol activo
+                         para previsualizar qué verá cada tipo de usuario. En la app
+                         real el rol lo fija el backend al iniciar sesión. -->
+                    <button type="button" class="user-menu-item user-menu-item-expand" id="roleToggleBtn" role="menuitem" aria-expanded="false" onclick="toggleRoleSubmenu()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V5l-8-3z"/></svg>
+                        Rol <span style="color:var(--gray-500);font-weight:600;font-size:0.78rem;">· pruebas</span>
+                        <span class="user-menu-right" id="roleCurrentLabel">Admin</span>
+                        <svg class="user-menu-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="user-menu-submenu" id="roleSubmenu" role="menu" aria-hidden="true">
+                        <button type="button" class="lang-pill active" data-role="admin" onclick="pickRole(this)"><span class="flag">🛡️</span> Admin</button>
+                        <button type="button" class="lang-pill" data-role="cliente" onclick="pickRole(this)"><span class="flag">👤</span> Cliente</button>
+                        <button type="button" class="lang-pill" data-role="transportista" onclick="pickRole(this)"><span class="flag">🚚</span> Transportista</button>
+                    </div>
+                    <div class="user-menu-sep"></div>
                     <button type="button" class="user-menu-item" role="menuitem" onclick="goFromMenu('mi-cuenta')">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         Mi cuenta
@@ -3596,6 +3645,66 @@
             </div>
         </div>
 
+    </section>
+
+    <!-- ==================== DASHBOARD ADMIN ====================
+         Vista INTERNA (todos los clientes). Superconjunto que iremos
+         rellenando; al montar el gating de roles quedará solo para admin.
+         De momento visible para todos (aún sin filtros por rol). -->
+    <section class="section" id="sec-dashboard-admin" data-roles="admin">
+        <div class="sec-header">
+            <h2>Panel de administración</h2>
+        </div>
+        <div class="admin-note">
+            <strong>Vista interna · todos los clientes.</strong> Aquí verás el conjunto completo de la operativa (envíos, almacenamientos, penalizaciones, facturación de todos los clientes y transportistas). En construcción: iremos añadiendo secciones y, cuando el diseño esté cerrado, se limitará lo que ve cada rol.
+        </div>
+        <!-- Stats globales (todos los clientes) -->
+        <div class="stats-row stats-row-4">
+            <button class="stat-card stat-card-link" onclick="showSection('cargas')">
+                <span class="stat-card-label">Envíos (todos)</span>
+                <span class="stat-card-value" data-admin-stat="cargas">—</span>
+            </button>
+            <button class="stat-card stat-card-link" onclick="showSection('almacenes')">
+                <span class="stat-card-label">Almacenamientos</span>
+                <span class="stat-card-value" data-admin-stat="almacenes">—</span>
+            </button>
+            <button class="stat-card stat-card-link" onclick="showSection('penalizaciones')">
+                <span class="stat-card-label">Penalizaciones</span>
+                <span class="stat-card-value" data-admin-stat="penalizaciones">—</span>
+            </button>
+            <button class="stat-card stat-card-link" onclick="showSection('facturas')">
+                <span class="stat-card-label">Facturas</span>
+                <span class="stat-card-value" data-admin-stat="facturas">—</span>
+            </button>
+        </div>
+        <!-- Accesos rápidos de administración -->
+        <h4 class="dash-carousel-title" style="margin-top:0.4rem;">Accesos rápidos</h4>
+        <div class="admin-quick">
+            <button class="admin-quick-btn" onclick="showSection('cargas')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                <span>Envíos de todos</span>
+            </button>
+            <button class="admin-quick-btn" onclick="abrirCrearPenalizacion()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                <span>Crear penalización</span>
+            </button>
+            <button class="admin-quick-btn" onclick="showSection('almacenes-cat')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35"/><path d="M2 8.35 12 2l10 6.35"/><path d="M6 22V12h12v10"/></svg>
+                <span>Catálogo de almacenes</span>
+            </button>
+            <button class="admin-quick-btn" onclick="showSection('sitios')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span>Sitios</span>
+            </button>
+        </div>
+        <!-- Últimos envíos (todos los clientes) -->
+        <div class="mini-list-card" style="margin-top:1.2rem;">
+            <div class="mini-list-head">
+                <h4>Últimos envíos · todos los clientes</h4>
+                <a href="#" onclick="showSection('cargas');return false;">Ver todos →</a>
+            </div>
+            <ul class="mini-list" id="adminMiniEnvios"></ul>
+        </div>
     </section>
 
     <!-- ==================== CARGAS ==================== -->
@@ -4295,7 +4404,8 @@
 
 <script>
     var sectionTitles = {
-        'dashboard':         'Dashboard',
+        'dashboard':         'Dashboard cliente',
+        'dashboard-admin':   'Dashboard admin',
         'cargas':            'Envíos',
         'presupuestos':      'Presupuestos',
         'incidencias':       'Incidencias',
@@ -4318,6 +4428,7 @@
         document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); });
         var el = document.getElementById('sec-' + id);
         if (el) el.classList.add('active');
+        if (id === 'dashboard-admin' && typeof renderDashboardAdmin === 'function') renderDashboardAdmin();
         document.querySelectorAll('.sidebar-link').forEach(function (l) {
             l.classList.toggle('active', l.getAttribute('data-section') === id);
         });
@@ -6633,7 +6744,7 @@
         var open = menu.classList.toggle('open');
         btn.setAttribute('aria-expanded', open ? 'true' : 'false');
         menu.setAttribute('aria-hidden', open ? 'false' : 'true');
-        if (!open) closeLangSubmenu();
+        if (!open) { closeLangSubmenu(); if (window.closeRoleSubmenu) closeRoleSubmenu(); }
     }
     function closeUserMenu() {
         var btn = document.getElementById('userMenuBtn');
@@ -6643,6 +6754,7 @@
         btn.setAttribute('aria-expanded', 'false');
         menu.setAttribute('aria-hidden', 'true');
         closeLangSubmenu();
+        if (window.closeRoleSubmenu) closeRoleSubmenu();
     }
     document.addEventListener('click', function (e) {
         if (!e.target.closest('.topbar-user-wrap')) closeUserMenu();
@@ -6885,6 +6997,101 @@
         window.location.href = 'portal.html';
     }
 
+    /* ============================================
+       ROLES (andamiaje) — admin | cliente | transportista
+       De momento TODOS ven TODO: applyRole solo fija el rol activo y actualiza
+       las etiquetas del switcher. El gating real (ocultar secciones/columnas/
+       acciones según data-roles + filtrar filas por dueño) se cableará cuando
+       el diseño esté cerrado. En producción el rol lo fija el backend al
+       iniciar sesión y la seguridad se impone server-side (auth + RLS).
+       Previsualizable con ?role=admin|cliente|transportista.
+    ============================================ */
+    var DYN_ROLES = { admin: 'Admin', cliente: 'Cliente', transportista: 'Transportista' };
+    function getInitialRole() {
+        var q = new URLSearchParams(location.search).get('role');
+        if (q && DYN_ROLES[q]) return q;
+        try { var st = localStorage.getItem('dynamoRole'); if (st && DYN_ROLES[st]) return st; } catch (e) {}
+        return 'admin';
+    }
+    var __ROLE = getInitialRole();
+    window.getRole = function () { return __ROLE; };
+    function applyRole(role) {
+        if (!DYN_ROLES[role]) role = 'admin';
+        __ROLE = role; window.__role = role;
+        document.body.setAttribute('data-role', role);
+        try { localStorage.setItem('dynamoRole', role); } catch (e) {}
+        var lbl = DYN_ROLES[role];
+        var cur = document.getElementById('roleCurrentLabel'); if (cur) cur.textContent = lbl;
+        // Badges de rol (cabecera del menú de usuario y fila "Rol" de Mi cuenta).
+        document.querySelectorAll('.user-menu-role').forEach(function (b) { b.textContent = lbl; });
+        // Pill activo del selector de rol.
+        document.querySelectorAll('#roleSubmenu .lang-pill').forEach(function (p) {
+            p.classList.toggle('active', p.getAttribute('data-role') === role);
+        });
+        // --- GATING POR ROL (PENDIENTE) ------------------------------------
+        // Cuando el diseño esté cerrado, aquí se ocultarán los elementos
+        // [data-roles] cuyo listado NO incluya `role`, y se filtrarán las
+        // tablas por dueño. De momento NO se oculta nada: todos ven todo.
+        //   document.querySelectorAll('[data-roles]').forEach(function (el) {
+        //       var ok = el.getAttribute('data-roles').split(',').indexOf(role) > -1;
+        //       el.hidden = !ok;   // (o classList.toggle('role-hidden', !ok))
+        //   });
+        // -------------------------------------------------------------------
+    }
+    window.applyRole = applyRole;
+    function pickRole(btn) {
+        applyRole(btn.getAttribute('data-role'));
+        closeUserMenu();
+    }
+    window.pickRole = pickRole;
+    function toggleRoleSubmenu() {
+        var btn = document.getElementById('roleToggleBtn');
+        var sub = document.getElementById('roleSubmenu');
+        var open = sub.classList.toggle('open');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        sub.setAttribute('aria-hidden', open ? 'false' : 'true');
+    }
+    window.toggleRoleSubmenu = toggleRoleSubmenu;
+    function closeRoleSubmenu() {
+        var btn = document.getElementById('roleToggleBtn');
+        var sub = document.getElementById('roleSubmenu');
+        if (!sub) return;
+        sub.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+        sub.setAttribute('aria-hidden', 'true');
+    }
+    window.closeRoleSubmenu = closeRoleSubmenu;
+    // Aplica el rol inicial al cargar.
+    applyRole(__ROLE);
+
+    /* Dashboard admin (vista interna): rellena las stats globales (todos los
+       clientes) y la lista de últimos envíos. Se recalcula al entrar. */
+    function renderDashboardAdmin() {
+        function setStat(k, v) { var el = document.querySelector('[data-admin-stat="' + k + '"]'); if (el) el.textContent = v; }
+        setStat('cargas', (typeof CARGAS_DATA !== 'undefined' ? CARGAS_DATA.length : 0));
+        setStat('almacenes', (typeof ALMACENES_DATA !== 'undefined' ? ALMACENES_DATA.length : 0));
+        setStat('penalizaciones', (typeof PENALIZACIONES_DATA !== 'undefined' ? PENALIZACIONES_DATA.length : 0));
+        setStat('facturas', (typeof FACTURAS_DATA !== 'undefined' ? FACTURAS_DATA.length : 0));
+        var ul = document.getElementById('adminMiniEnvios');
+        if (!ul || typeof CARGAS_DATA === 'undefined') return;
+        var arr = CARGAS_DATA.slice().sort(function (a, b) { return (b.creadoEn || 0) - (a.creadoEn || 0); }).slice(0, 5);
+        ul.innerHTML = arr.map(function (c) {
+            var ev = getEstadoVisual(c);
+            return '<li>' +
+                '<div class="mini-list-left">' +
+                    '<span class="mini-list-date"><span class="ml-ref">' + esc(c.ref) + '</span>' + (c.refCli ? ' · ' + esc(c.refCli) : '') + '</span>' +
+                    '<span class="mini-list-route"><span class="ml-dot orig"></span>' + esc(ciudadDir(c.origen, c.origenDir)) + '</span>' +
+                    '<span class="mini-list-route"><span class="ml-dot dest"></span>' + esc(ciudadDir(c.destino, c.destinoDir)) + '</span>' +
+                '</div>' +
+                '<div class="mini-list-right">' +
+                    '<span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span>' +
+                    (c.precio ? '<span class="mini-list-amount">' + esc(c.precio) + '</span>' : '') +
+                '</div>' +
+            '</li>';
+        }).join('');
+    }
+    window.renderDashboardAdmin = renderDashboardAdmin;
+
     // Submenu idiomas
     function toggleLangSubmenu() {
         var btn = document.getElementById('langToggleBtn');
@@ -6932,7 +7139,7 @@
         return true;
     }
     function updateLangLabel(btn) {
-        document.querySelectorAll('.lang-pill').forEach(function (p) { p.classList.remove('active'); });
+        document.querySelectorAll('#langSubmenu .lang-pill').forEach(function (p) { p.classList.remove('active'); });
         if (btn) btn.classList.add('active');
         var cur = document.getElementById('langCurrentLabel');
         if (btn && cur) cur.textContent = btn.getAttribute('data-flag') + ' ' + btn.getAttribute('data-label');
