@@ -1658,6 +1658,12 @@
         .alm-combo-item:hover { background: var(--gray-100); }
         .alm-combo-item strong { font-weight: 800; }
         .alm-combo-item .sub { color: var(--gray-500); font-size: 0.76rem; white-space: nowrap; }
+        .alm-combo-item.is-full { opacity: 0.72; }
+        .alm-combo-full {
+            display: inline-block; margin-left: 0.4rem; padding: 0.05rem 0.4rem;
+            border-radius: 5px; font-size: 0.66rem; font-weight: 800; vertical-align: middle;
+            background: rgba(214,45,45,0.12); color: #c62d2d; letter-spacing: 0.02em;
+        }
         .alm-combo-empty { padding: 0.7rem 0.85rem; color: var(--gray-500); font-size: 0.85rem; }
         /* Fechas: mismo ancho, sin desbordes (iOS date tiene ancho intrínseco)
            y texto-guía en el hueco cuando aún no hay fecha elegida. */
@@ -2423,6 +2429,7 @@
         .ptar-sug .sug-chip-google { background: rgba(66,133,244,0.12); color: #1a73e8; }
         .ptar-sug .sug-chip-addr   { background: var(--gray-100); color: var(--gray-500); }
         .ptar-sug .sug-chip-recent { background: rgba(51,0,204,0.08); color: var(--purple); }
+        .ptar-sug .sug-chip-dynamo { background: rgba(51,0,204,0.12); color: var(--purple); }
         /* Última opción del desplegable: alta de sitio nuevo */
         .ptar-sug .sug-crear { border-top: 1px solid var(--gray-200); }
         .ptar-sug .sug-crear .sug-crear-lbl { color: var(--purple); font-weight: 800; }
@@ -4193,7 +4200,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Provincia</th><th>Ciudad</th><th>CP</th><th>Dirección</th>
+                    <th>Empresa</th><th>Dirección</th><th>Horario</th><th>Contacto</th><th>Notas</th>
                 </tr></thead>
                 <tbody id="tbodyAlmacenesCat"></tbody>
             </table>
@@ -4939,6 +4946,40 @@
         { prov: 'Zamora', ciudad: 'Zamora', cp: '49024', dir: 'Pol. Ind. Los Llanos, C/ Bélgica 7' },
         { prov: 'Zaragoza', ciudad: 'Zaragoza', cp: '50197', dir: 'Pol. Ind. Plaza, Av. Diagonal 14' }
     ];
+    // Los almacenes Dynamo SON sitios (de uso interno): se enriquecen con los
+    // mismos campos que la agenda de Sitios para poder editarlos igual y para
+    // que aparezcan en el buscador de recogida/entrega del Nuevo envío. Se
+    // mantienen prov/ciudad/cp/dir (dir = calle) que usa el flujo de
+    // almacenamiento; se añaden empresa/horario/tfno/calle/dirCP/clave.
+    (function enrichAlmacenes() {
+        DYNAMO_ALMACENES.forEach(function (a) {
+            a.key = a.key || ('dynamo-' + normTxt(a.prov).replace(/[^a-z0-9]+/g, '-'));
+            a.empresa = a.empresa || ('Almacén Dynamo · ' + a.prov);
+            a.tipoLugar = a.tipoLugar || 'Almacén / Nave';
+            a.horario = a.horario || 'L-V 8:00-18:00';
+            a.tfno = a.tfno || '+34 955 225 945';
+            if (!('contacto' in a)) a.contacto = null;
+            if (!('notas' in a)) a.notas = null;
+            if (!('maps' in a)) a.maps = null;
+            a.calle = a.calle || a.dir;                                   // calle y número
+            a.dirCP = a.dirCP || (a.cp + ', ' + a.ciudad + ', ' + a.prov + ', España'); // CP/localidad/prov/país
+        });
+    })();
+    // Vista "sitio" de un almacén (para reutilizar la tabla y el modal de Sitios).
+    function almToSite(a) {
+        return { empresa: a.empresa, tipoLugar: a.tipoLugar, horario: a.horario, calle: a.calle, dir: a.dirCP, tfno: a.tfno, contacto: a.contacto, notas: a.notas, maps: a.maps, esAlmacen: true, key: a.key };
+    }
+    // Almacenes (no borrados) que casan con la búsqueda → [key, siteObj] para el
+    // buscador del envío.
+    function almSitesBuscar(q) {
+        var nq = normTxt(q || ''); var out = [];
+        DYNAMO_ALMACENES.forEach(function (a) {
+            if (a._deleted) return;
+            if (nq && normTxt([a.empresa, a.prov, a.ciudad, a.cp, a.dir].join(' ')).indexOf(nq) === -1) return;
+            out.push([a.key, almToSite(a)]);
+        });
+        return out;
+    }
     var ALM_BASE = 240, ALM_REPARTO = 220;  // € + IVA (tráiler completo / camión 4 m)
     function almEur(n) { return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
     // ===== Caja de precio UNIFICADA (Base imponible / IVA 21% / Total) =====
@@ -5030,8 +5071,12 @@
         DYNAMO_ALMACENES.forEach(function (a, i) {
             if (a._deleted) return;   // borrado del catálogo: no se ofrece
             if (q && normTxt(a.prov + ' ' + a.ciudad + ' ' + a.dir).indexOf(q) === -1) return;
-            items.push('<li class="alm-combo-item" onmousedown="almPickAlmacen(' + i + ');event.preventDefault();">' +
-                '<span><strong>' + escapeHtml(a.prov) + '</strong> · ' + escapeHtml(a.ciudad) + '</span>' +
+            // Almacén completo (disponible === false): sigue apareciendo pero con
+            // badge rojo "Completo"; al elegirlo avisa y no deja continuar.
+            var full = a.disponible === false;
+            var badge = full ? ' <span class="alm-combo-full">Completo</span>' : '';
+            items.push('<li class="alm-combo-item' + (full ? ' is-full' : '') + '" onmousedown="almPickAlmacen(' + i + ');event.preventDefault();">' +
+                '<span><strong>' + escapeHtml(a.prov) + '</strong> · ' + escapeHtml(a.ciudad) + badge + '</span>' +
                 '<span class="sub">' + escapeHtml(a.dir.split(',')[0]) + '</span></li>');
         });
         list.innerHTML = items.length ? items.join('') : '<li class="alm-combo-empty">Sin resultados — prueba con la provincia o la ciudad</li>';
@@ -5051,8 +5096,13 @@
         if (x) x.hidden = false;
         if (list) list.hidden = true;
         if (addr) { addr.innerHTML = almAddrHTML(a); addr.hidden = false; }
-        // Al elegir almacén desaparece el aviso de "elige un almacén".
-        var err = document.getElementById('almErr'); if (err) err.classList.remove('show');
+        // Almacén completo (disponible === false): avisa en rojo y no dejará
+        // continuar (almSolicitar lo bloquea). Si está disponible, limpia el aviso.
+        var err = document.getElementById('almErr');
+        if (a.disponible === false) {
+            if (wrap) wrap.classList.add('ptar-error');
+            if (err) { err.textContent = '⚠ Este almacén está COMPLETO y no admite entradas ahora mismo. Elige otro almacén Dynamo.'; err.classList.add('show'); }
+        } else if (err) { err.classList.remove('show'); }
     }
     window.almPickAlmacen = almPickAlmacen;
     function almSelClear(focus) {
@@ -5298,6 +5348,7 @@
         }
         var a = DYNAMO_ALMACENES[_almSel];
         if (!a) return fail('Elige un almacén Dynamo (busca por provincia o ciudad).', combo, false);
+        if (a.disponible === false) return fail('Este almacén está COMPLETO y no admite entradas ahora mismo. Elige otro almacén Dynamo.', combo, false);
         if (!ent.value) return fail('Indica la fecha de entrada.', ent, true);
         if (!sal.value) return fail('Indica la fecha de salida.', sal, true);
         var e = new Date(ent.value + 'T00:00:00'), s = new Date(sal.value + 'T00:00:00');
@@ -5820,21 +5871,27 @@
         var rows = DYNAMO_ALMACENES.map(function (a, i) { return { a: a, i: i }; }).filter(function (r) {
             if (r.a._deleted) return false;   // borrado suave: oculto de la tabla
             if (!nq) return true;
-            return normTxt([r.a.prov, r.a.ciudad, r.a.cp, r.a.dir].join(' ')).indexOf(nq) > -1;
+            return normTxt([r.a.empresa, r.a.prov, r.a.ciudad, r.a.cp, r.a.dir, r.a.tfno, r.a.contacto, r.a.notas].join(' ')).indexOf(nq) > -1;
         });
         var h2 = document.querySelector('#sec-almacenes-cat h2');
         if (h2) h2.textContent = 'Almacenes (' + rows.length + ')';
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin almacenes que coincidan</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin almacenes que coincidan</td></tr>';
             return;
         }
+        // Mismas columnas que la agenda de Sitios: Empresa · Dirección · Horario ·
+        // Contacto · Notas.
         tbody.innerHTML = rows.map(function (r) {
-            var a = r.a;
+            var a = r.a, s = almToSite(a);
+            var full = a.disponible === false;
             return '<tr data-alm-cat="' + r.i + '">' +
-                '<td><strong>Dynamo · ' + esc(a.prov || '—') + '</strong>' + (a.notas ? '<div class="meta" style="color:#b45309;">⚠ ' + esc(String(a.notas).slice(0, 50)) + (String(a.notas).length > 50 ? '…' : '') + '</div>' : '') + '</td>' +
-                '<td>' + esc(a.ciudad || '—') + '</td>' +
-                '<td>' + esc(a.cp || '—') + '</td>' +
-                '<td>' + esc(a.dir || '—') + '</td>' +
+                '<td><strong>' + esc(s.empresa || '—') + '</strong>' +
+                    (full ? ' <span class="alm-combo-full">Completo</span>' : '') +
+                    (s.maps ? '<div class="meta"><a href="' + esc(s.maps) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--purple);font-weight:600;text-decoration:none;">Ver en Maps</a></div>' : '') + '</td>' +
+                '<td>' + (s.calle ? esc(s.calle) + (s.dir ? '<div class="meta">' + esc(s.dir) + '</div>' : '') : esc(s.dir || '—')) + '</td>' +
+                '<td>' + esc(s.horario || '—') + '</td>' +
+                '<td>' + esc(s.tfno || '—') + (s.contacto ? '<div class="meta">' + esc(s.contacto) + '</div>' : '') + '</td>' +
+                '<td>' + (s.notas ? '<span style="color:#b45309;">⚠ ' + esc(String(s.notas).slice(0, 60)) + (String(s.notas).length > 60 ? '…' : '') + '</span>' : '—') + '</td>' +
             '</tr>';
         }).join('');
         tbody.querySelectorAll('tr[data-alm-cat]').forEach(function (tr) {
@@ -5842,26 +5899,28 @@
         });
     }
     window.renderAlmacenesCatTable = renderAlmacenesCatTable;
+    // Formulario IDÉNTICO al de Sitios (mismos campos e ids sitio-f-*) + un
+    // toggle de disponibilidad propio de los almacenes.
     function almacenCatFormHTML(a) {
-        a = a || {};
-        function inp(lbl, id, val, ph, full) {
-            return '<div' + (full ? ' class="full"' : '') + '><label>' + lbl + '</label><input id="' + id + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '"></div>';
-        }
-        return '<div class="ptar-sitio-grid">' +
-            inp('Provincia', 'almc-f-prov', a.prov, 'Ej. Sevilla') +
-            inp('Ciudad', 'almc-f-ciudad', a.ciudad, 'Ej. Dos Hermanas') +
-            inp('CP', 'almc-f-cp', a.cp, 'Ej. 41700') +
-            inp('Dirección (polígono, calle y número)', 'almc-f-dir', a.dir, 'Ej. Pol. Ind. La Isla, C/ …', true) +
-            inp('<span style="color:var(--green);">Notas internas</span> <span style="color:var(--gray-500);font-weight:600;">· opcional</span>', 'almc-f-notas', a.notas, 'Ej. horario de muelle, contacto, capacidad…', true) +
-        '</div>';
+        var s = a ? almToSite(a) : {};
+        var disp = !a || a.disponible !== false;
+        var toggle =
+            '<div style="margin:0 0 0.9rem;padding:0.7rem 0.85rem;border:1.5px solid var(--gray-200);border-radius:10px;background:var(--gray-50);">' +
+                '<label style="display:flex;align-items:flex-start;gap:0.6rem;cursor:pointer;margin:0;">' +
+                    '<input type="checkbox" id="almc-f-disp"' + (disp ? ' checked' : '') + ' style="width:18px;height:18px;flex:none;margin-top:1px;">' +
+                    '<span><strong style="color:var(--navy);">Almacén disponible</strong>' +
+                        '<span style="display:block;font-size:0.8rem;color:var(--gray-500);font-weight:500;margin-top:1px;">Desmárcalo si el almacén está <strong>completo</strong>: seguirá apareciendo en los desplegables, pero al elegirlo avisará de que no admite entradas y no dejará continuar.</span></span>' +
+                '</label>' +
+            '</div>';
+        return toggle + sitioFormHTML(s, false);
     }
     function openAlmacenCatModal(idx) {
         var esEdit = (idx != null && idx >= 0 && idx < DYNAMO_ALMACENES.length);
         var a = esEdit ? DYNAMO_ALMACENES[idx] : null;
         openDashModal({
-            icon: 'file',
+            icon: 'mapPin',
             title: esEdit ? 'Editar almacén' : 'Nuevo almacén',
-            sub: esEdit ? ('Dynamo · ' + (a.prov || '')) : 'Alta de un almacén Dynamo en el catálogo interno',
+            sub: esEdit ? (a.empresa || ('Dynamo · ' + (a.prov || ''))) : 'Alta de un almacén Dynamo en el catálogo interno',
             body: almacenCatFormHTML(a),
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
                 (esEdit ? '<button class="btn-ghost" style="color:#dc2626;" onclick="almacenCatEliminar(' + idx + ')">Borrar</button>' : '') +
@@ -5872,19 +5931,38 @@
     window.openAlmacenCatModal = openAlmacenCatModal;
     function almacenCatGuardar(idx) {
         function v(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
-        var prov = v('almc-f-prov'), dir = v('almc-f-dir');
-        if (!prov || !dir) {
-            ['almc-f-prov', 'almc-f-dir'].forEach(function (id) { var el = document.getElementById(id); if (el && !el.value.trim()) el.style.borderColor = '#dc2626'; });
+        var empresa = v('sitio-f-empresa'), calle = v('sitio-f-calle'), dirCP = v('sitio-f-dir');
+        if (!empresa || !(calle || dirCP)) {
+            ['sitio-f-empresa', 'sitio-f-calle'].forEach(function (id) { var el = document.getElementById(id); if (el && !el.value.trim()) el.style.borderColor = '#dc2626'; });
             return;
         }
-        var obj = { prov: prov, ciudad: v('almc-f-ciudad'), cp: v('almc-f-cp'), dir: dir };
-        var notas = v('almc-f-notas'); if (notas) obj.notas = notas;
+        var tipoEl = document.getElementById('sitio-f-tipo');
+        var dispEl = document.getElementById('almc-f-disp');
         var edit = (idx != null && idx >= 0 && idx < DYNAMO_ALMACENES.length);
-        if (edit) DYNAMO_ALMACENES[idx] = obj; else DYNAMO_ALMACENES.push(obj);
+        var a = edit ? DYNAMO_ALMACENES[idx] : {};
+        a.empresa = empresa;
+        a.tipoLugar = tipoEl ? tipoEl.options[tipoEl.selectedIndex].text : 'Almacén / Nave';
+        a.horario = v('sitio-f-horario') || null;
+        a.tfno = v('sitio-f-tfno') || null;
+        a.contacto = v('sitio-f-contacto') || null;
+        a.notas = v('sitio-f-notas') || null;
+        a.maps = v('sitio-f-maps') || null;
+        a.calle = calle; a.dir = calle;   // calle/número (lo usa el flujo de almacenamiento)
+        a.dirCP = dirCP;
+        a.disponible = dispEl ? dispEl.checked : true;
+        // Re-derivar prov/ciudad/cp del CP line (best effort) para la etiqueta y
+        // la dirección completa del almacenamiento.
+        var parts = dirCP.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+        var cpM = dirCP.match(/\b\d{4,5}\b/); if (cpM) a.cp = cpM[0];
+        if (parts.length >= 2) a.ciudad = parts[1].replace(/^\d{4,5}\s*/, '') || a.ciudad;
+        if (parts.length >= 3) a.prov = parts[2] || a.prov;
+        if (!a.key) a.key = 'dynamo-' + normTxt(empresa).replace(/[^a-z0-9]+/g, '-').slice(0, 30);
+        if (!edit) DYNAMO_ALMACENES.push(a);
         closeDashModal();
         var si = document.getElementById('almacenesCatSearch');
         renderAlmacenesCatTable(si ? si.value : '');
-        showModalSuccess(edit ? 'Almacén actualizado' : 'Almacén añadido', 'Dynamo · ' + prov + '. Ya está disponible en el desplegable al crear un almacenamiento.');
+        showModalSuccess(edit ? 'Almacén actualizado' : 'Almacén añadido',
+            empresa + (a.disponible ? '. Disponible en los desplegables de sitios y almacenamiento.' : '. Marcado como COMPLETO: aparece en los desplegables pero no admite entradas y no deja continuar al elegirlo.'));
     }
     window.almacenCatGuardar = almacenCatGuardar;
     function almacenCatEliminar(idx) {
@@ -8568,7 +8646,16 @@
         // Guardar de nuevo un sitio borrado lo "revive" en la agenda.
         if (SITES_DELETED[key]) { delete SITES_DELETED[key]; saveDeletedSites(); }
     }
-    function siteDe(ref) { return typeof ref === 'string' ? (SITES_CUSTOM[ref] || SITES[ref]) : ref; }
+    function siteDe(ref) {
+        if (typeof ref !== 'string') return ref;
+        // Almacenes Dynamo (uso interno): clave dynamo-* → ficha del catálogo.
+        if (ref.indexOf('dynamo-') === 0) {
+            for (var i = 0; i < DYNAMO_ALMACENES.length; i++) {
+                if (DYNAMO_ALMACENES[i].key === ref) return almToSite(DYNAMO_ALMACENES[i]);
+            }
+        }
+        return SITES_CUSTOM[ref] || SITES[ref];
+    }
     function allSitesEntries() {
         var out = [];
         Object.keys(SITES).forEach(function (k) { if (!SITES_CUSTOM[k] && !SITES_DELETED[k]) out.push([k, SITES[k]]); });
@@ -10419,6 +10506,16 @@
                     bindPick(el, function () { aplicarGuardado(k, s); });
                     sugList.appendChild(el);
                 });
+                // Almacenes Dynamo (uso interno): también sirven como punto de
+                // recogida o entrega del envío. Aparecen con chip morado "Almacén".
+                if (window.almSitesBuscar) {
+                    almSitesBuscar(q).slice(0, 3).forEach(function (kv) {
+                        var k = kv[0], s = kv[1];
+                        var el = li(chip('Almacén', 'sug-chip-dynamo') + '<strong>' + esc(s.empresa || '') + '</strong><span class="sug-dir">' + esc(s.calle || s.dir || '') + '</span>');
+                        bindPick(el, function () { aplicarGuardado(k, s); });
+                        sugList.appendChild(el);
+                    });
+                }
                 buscarSitesGoogle(q).forEach(function (g) {
                     var el = li(chip('Google', 'sug-chip-google') + '<strong>' + esc(g.empresa) + '</strong><span class="sug-dir">' + esc(g.dir) + '</span>');
                     bindPick(el, function () { pickGoogle(g); });
