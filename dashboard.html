@@ -1079,6 +1079,33 @@
             display: block; font-size: 0.82rem; font-weight: 600; color: var(--gray-500);
             letter-spacing: 0; margin-bottom: 0.3rem;
         }
+        /* Autocompletado de "Envío referenciado" en Crear penalización */
+        .pen-ac { position: relative; }
+        .pen-ac-sug {
+            position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 60;
+            background: #fff; border: 1px solid var(--gray-200); border-radius: 10px;
+            box-shadow: 0 12px 30px rgba(15,23,42,0.14); max-height: 240px; overflow-y: auto;
+        }
+        .pen-ac-sug[hidden] { display: none; }
+        .pen-ac-item {
+            display: block; width: 100%; text-align: left; padding: 0.55rem 0.7rem;
+            background: none; border: none; border-bottom: 1px solid var(--gray-100);
+            cursor: pointer; font: inherit;
+        }
+        .pen-ac-item:last-child { border-bottom: none; }
+        .pen-ac-item:hover { background: rgba(51,0,204,0.06); }
+        .pen-ac-item strong { color: var(--navy); }
+        .pen-ac-cli { color: var(--gray-500); font-size: 0.8rem; }
+        .pen-ac-route { font-size: 0.78rem; color: var(--gray-500); margin-top: 1px; }
+        .pen-ac-empty { padding: 0.6rem 0.7rem; color: var(--gray-500); font-size: 0.85rem; }
+        .pen-envio-sum {
+            margin-top: 0.6rem; padding: 0.55rem 0.75rem;
+            background: rgba(51,0,204,0.05); border: 1px solid rgba(51,0,204,0.18); border-radius: 10px;
+        }
+        .pen-envio-sum[hidden] { display: none; }
+        .pen-sum-row { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.85rem; padding: 0.15rem 0; }
+        .pen-sum-row .k { color: var(--gray-500); font-weight: 600; }
+        .pen-sum-row .v { color: var(--navy); font-weight: 700; text-align: right; }
         /* Mismo estándar que el resto del panel (.ptar-select): borde 1.5px,
            radio 10px, alto 44px, hover/focus morado con anillo. */
         .modal-form-row input, .modal-form-row select {
@@ -3105,6 +3132,10 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
             Sitios
         </button>
+        <button class="sidebar-link" data-section="penalizaciones">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+            Penalizaciones
+        </button>
     </nav>
     <div class="sidebar-foot">
         <div class="sidebar-user">
@@ -4091,6 +4122,33 @@
         </div>
     </section>
 
+    <!-- ==================== PENALIZACIONES ==================== -->
+    <section class="section" id="sec-penalizaciones">
+        <div class="sec-header">
+            <h2>Penalizaciones</h2>
+            <button class="btn-primary" onclick="openNuevaPenalizacion();return false;">+ Crear penalización</button>
+        </div>
+        <div class="filters">
+            <input type="search" placeholder="Buscar por código, envío, tipo, transportista…" data-pen-search oninput="renderPenalizacionesTable()">
+            <select data-pen-filtro-tipo onchange="renderPenalizacionesTable()" aria-label="Filtrar por tipo">
+                <option value="">Tipo</option>
+                <option value="Cancelación">Cancelación</option>
+                <option value="Paralización">Paralización</option>
+                <option value="Compensación">Compensación</option>
+                <option value="Parada adicional">Parada adicional</option>
+                <option value="Otro">Otro</option>
+            </select>
+        </div>
+        <div class="table-wrap">
+            <table class="data data-penalizaciones">
+                <thead>
+                    <tr><th>Penalización</th><th>Envío</th><th>Tipo</th><th>Transportista</th><th>Importe (sin IVA)</th><th>Fecha</th></tr>
+                </thead>
+                <tbody id="tbodyPenalizaciones"></tbody>
+            </table>
+        </div>
+    </section>
+
     <!-- ==================== NUEVO ALMACENAMIENTO ==================== -->
     <section class="section" id="sec-nuevo-almacen">
         <div class="sec-header">
@@ -4179,6 +4237,7 @@
         'mi-cuenta':         'Mi cuenta',
         'almacenes':         'Almacenamientos',
         'nuevo-almacen':     'Nuevo almacenamiento',
+        'penalizaciones':    'Penalizaciones',
         'soporte':           'Soporte'
     };
     function showSection(id) {
@@ -7542,6 +7601,154 @@
     }
     // Cliente del portal (la cuenta logueada). Con backend saldrá del perfil.
     var CLIENTE_ACTUAL = 'Marbex Industrial S.L.';
+
+    // ==================== PENALIZACIONES ====================
+    var PEN_TIPOS = ['Cancelación', 'Paralización', 'Compensación', 'Parada adicional', 'Otro'];
+    var PEN_SEQ = 3051;
+    function penHoyMas(days) {
+        var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + days);
+        return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear();
+    }
+    // Mock (en producción vendrá del backend). El envío es el código #GX del viaje.
+    var PENALIZACIONES_DATA = [
+        { ref: '#PEN-3048', envio: '#GX684961', tipo: 'Paralización',     transportista: 'Trans Andalucía 24h',      descripcion: '3 h de espera en descarga en destino.',                 importe: 180, fecha: penHoyMas(-3) },
+        { ref: '#PEN-3045', envio: '#GX684926', tipo: 'Cancelación',      transportista: 'Transportes Beltrán S.L.',  descripcion: 'Anulación tras las 9:00 del día hábil anterior a la carga.', importe: 450, fecha: penHoyMas(-9) },
+        { ref: '#PEN-3041', envio: '#GX684898', tipo: 'Parada adicional', transportista: 'Dynamo (camión propio)',    descripcion: 'Segunda entrega no prevista en la ruta original.',        importe: 90,  fecha: penHoyMas(-16) }
+    ];
+    // Envíos disponibles para referenciar (de CARGAS_DATA), en orden (los más
+    // recientes primero).
+    function penEnviosList() {
+        var arr = (typeof CARGAS_DATA !== 'undefined') ? CARGAS_DATA : [];
+        return arr.map(function (c) {
+            return { ref: c.ref, refCli: c.refCli, origen: c.origen, destino: c.destino, transportista: c.transportistaNombre || null };
+        });
+    }
+    function renderPenalizacionesTable() {
+        var tbody = document.getElementById('tbodyPenalizaciones'); if (!tbody) return;
+        var q = (((document.querySelector('[data-pen-search]') || {}).value) || '').toLowerCase().trim();
+        var ft = ((document.querySelector('[data-pen-filtro-tipo]') || {}).value) || '';
+        var arr = PENALIZACIONES_DATA.filter(function (p) {
+            if (ft && p.tipo !== ft) return false;
+            if (q) {
+                var hay = (p.ref + ' ' + p.envio + ' ' + p.tipo + ' ' + (p.transportista || '') + ' ' + p.descripcion).toLowerCase();
+                if (hay.indexOf(q) < 0) return false;
+            }
+            return true;
+        });
+        if (!arr.length) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--gray-500);">' +
+                (PENALIZACIONES_DATA.length ? 'No hay penalizaciones que coincidan con el filtro.' : 'Aún no hay penalizaciones. Crea una con «+ Crear penalización».') + '</td></tr>';
+            return;
+        }
+        tbody.innerHTML = arr.map(function (p) {
+            return '<tr>' +
+                '<td class="ref"><strong>' + escapeHtml(p.ref) + '</strong><div class="meta">' + escapeHtml(String(p.descripcion || '').slice(0, 60)) + (String(p.descripcion || '').length > 60 ? '…' : '') + '</div></td>' +
+                '<td><strong>' + escapeHtml(p.envio) + '</strong></td>' +
+                '<td><span class="badge badge-prog">' + escapeHtml(p.tipo) + '</span></td>' +
+                '<td>' + escapeHtml(p.transportista || '—') + '<div class="meta">' + escapeHtml(CLIENTE_ACTUAL) + '</div></td>' +
+                '<td><strong>' + almEur(p.importe) + '</strong></td>' +
+                '<td>' + escapeHtml(p.fecha) + '</td>' +
+            '</tr>';
+        }).join('');
+    }
+    window.renderPenalizacionesTable = renderPenalizacionesTable;
+
+    // --- Crear penalización (modal con autocompletado de envío) ---
+    var _penEnvioSel = null;
+    function penAcRender(q) {
+        var sug = document.getElementById('penEnvioSug'); if (!sug) return;
+        var list = penEnviosList();
+        q = (q || '').toLowerCase().trim();
+        // Sin texto: los últimos 4 envíos (GX). Con texto: filtra por GX/ref/ruta/transportista.
+        var filtered = !q ? list.slice(0, 4)
+            : list.filter(function (c) {
+                return (c.ref + ' ' + (c.refCli || '') + ' ' + c.origen + ' ' + c.destino + ' ' + (c.transportista || '')).toLowerCase().indexOf(q) > -1;
+            }).slice(0, 8);
+        if (!filtered.length) { sug.innerHTML = '<div class="pen-ac-empty">Sin envíos que coincidan</div>'; sug.hidden = false; return; }
+        sug.innerHTML = filtered.map(function (c) {
+            return '<button type="button" class="pen-ac-item" data-ref="' + escapeHtml(c.ref) + '">' +
+                '<strong>' + escapeHtml(c.ref) + '</strong>' + (c.refCli ? ' <span class="pen-ac-cli">' + escapeHtml(c.refCli) + '</span>' : '') +
+                '<div class="pen-ac-route">' + escapeHtml(c.origen) + ' → ' + escapeHtml(c.destino) + (c.transportista ? ' · ' + escapeHtml(c.transportista) : ' · sin transportista') + '</div>' +
+            '</button>';
+        }).join('');
+        sug.hidden = false;
+    }
+    function penPickEnvio(ref) {
+        _penEnvioSel = ref;
+        var c = penEnviosList().filter(function (x) { return x.ref === ref; })[0] || {};
+        var inp = document.getElementById('penEnvioInput'); if (inp) inp.value = ref;
+        var sug = document.getElementById('penEnvioSug'); if (sug) sug.hidden = true;
+        var sum = document.getElementById('penEnvioSum');
+        if (sum) {
+            sum.innerHTML =
+                '<div class="pen-sum-row"><span class="k">Cliente</span><span class="v">' + escapeHtml(CLIENTE_ACTUAL) + '</span></div>' +
+                '<div class="pen-sum-row"><span class="k">Transportista</span><span class="v">' + escapeHtml(c.transportista || 'Sin asignar / pendiente') + '</span></div>' +
+                '<div class="pen-sum-row"><span class="k">Ruta</span><span class="v">' + escapeHtml((c.origen || '') + ' → ' + (c.destino || '')) + '</span></div>';
+            sum.hidden = false;
+        }
+        var err = document.getElementById('penErr'); if (err) err.classList.remove('show');
+    }
+    function openNuevaPenalizacion() {
+        _penEnvioSel = null;
+        var tipoOpts = '<option value="">Selecciona el tipo…</option>' + PEN_TIPOS.map(function (t) { return '<option>' + t + '</option>'; }).join('');
+        var body =
+            '<div class="modal-form-row"><label>Envío referenciado</label>' +
+                '<div class="pen-ac" id="penAc"><input type="text" id="penEnvioInput" autocomplete="off" placeholder="Busca por GX, referencia, origen o destino…">' +
+                '<div class="pen-ac-sug" id="penEnvioSug" hidden></div></div>' +
+                '<div class="pen-envio-sum" id="penEnvioSum" hidden></div></div>' +
+            '<div class="modal-form-row"><label>Tipo de penalización</label><select id="penTipo">' + tipoOpts + '</select></div>' +
+            '<div class="modal-form-row"><label>Descripción</label><textarea id="penDesc" placeholder="Describe el motivo de la penalización…"></textarea></div>' +
+            '<div class="modal-form-row"><label>Importe <span style="color:var(--gray-500);font-weight:600;">· sin IVA</span></label><input type="number" id="penImporte" min="0" step="10" inputmode="decimal" placeholder="0"></div>' +
+            '<p class="alm-err" id="penErr"></p>';
+        openDashModal({
+            icon: 'alert',
+            title: 'Crear penalización',
+            sub: 'Asóciala a un envío y su transportista',
+            body: body,
+            footer: '<button class="btn-ghost" onclick="closeDashModal();return false;" style="flex:1;">Cancelar</button>' +
+                    '<button class="btn-primary" onclick="crearPenalizacion();return false;" style="flex:1;">Crear penalización</button>',
+            afterOpen: function () {
+                var inp = document.getElementById('penEnvioInput');
+                var sug = document.getElementById('penEnvioSug');
+                var ac = document.getElementById('penAc');
+                if (inp) {
+                    inp.addEventListener('focus', function () { penAcRender(inp.value); });
+                    inp.addEventListener('input', function () { _penEnvioSel = null; var sum = document.getElementById('penEnvioSum'); if (sum) sum.hidden = true; penAcRender(inp.value); });
+                }
+                if (sug) sug.addEventListener('click', function (e) {
+                    var it = e.target.closest ? e.target.closest('.pen-ac-item') : null;
+                    if (it) penPickEnvio(it.getAttribute('data-ref'));
+                });
+                // Cerrar sugerencias al pulsar fuera del combo.
+                document.addEventListener('click', function _penDoc(e) {
+                    if (!document.getElementById('penAc')) { document.removeEventListener('click', _penDoc); return; }
+                    if (ac && !ac.contains(e.target)) { if (sug) sug.hidden = true; }
+                });
+            }
+        });
+    }
+    window.openNuevaPenalizacion = openNuevaPenalizacion;
+    function crearPenalizacion() {
+        var err = document.getElementById('penErr');
+        function fail(msg, el) { if (err) { err.textContent = '⚠ ' + msg; err.classList.add('show'); } if (el && el.focus) el.focus(); return false; }
+        var tipo = (document.getElementById('penTipo') || {}).value;
+        var desc = (((document.getElementById('penDesc') || {}).value) || '').trim();
+        var imp = parseFloat((((document.getElementById('penImporte') || {}).value) || '').replace(',', '.'));
+        if (!_penEnvioSel) return fail('Elige el envío referenciado de la lista.', document.getElementById('penEnvioInput'));
+        if (!tipo) return fail('Selecciona el tipo de penalización.', document.getElementById('penTipo'));
+        if (!desc) return fail('Añade una descripción de la penalización.', document.getElementById('penDesc'));
+        if (!(imp > 0)) return fail('Indica un importe válido (sin IVA).', document.getElementById('penImporte'));
+        var c = penEnviosList().filter(function (x) { return x.ref === _penEnvioSel; })[0] || {};
+        PENALIZACIONES_DATA.unshift({
+            ref: '#PEN-' + (PEN_SEQ++), envio: _penEnvioSel, tipo: tipo,
+            transportista: c.transportista || null, descripcion: desc, importe: imp, fecha: penHoyMas(0)
+        });
+        closeDashModal();
+        renderPenalizacionesTable();
+        showSection('penalizaciones');
+    }
+    window.crearPenalizacion = crearPenalizacion;
+
     // Estado de la factura por su tipo (badge de la tabla).
     function facturaEstado(kind) {
         if (kind === 'cobrada') return { label: 'Cobrada', color: 'green' };
@@ -9544,6 +9751,7 @@
     renderPresupuestosTable();
     renderFacturasTable();
     renderAlbaranesTable();
+    renderPenalizacionesTable();
     // Calendario unificado (Flatpickr) en los inputs de fecha estáticos
     // (p.ej. el rango Desde/Hasta de Facturas). Flatpickr carga con defer, así
     // que reintenta un momento si aún no está disponible.
