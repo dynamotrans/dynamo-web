@@ -2413,6 +2413,8 @@
            (se cambia solo con el botón ×, no editando el texto). */
         .ptar-input-wrap.ptar-picked { background: rgba(51,0,204,0.05); border-color: rgba(51,0,204,0.35); }
         .ptar-input-wrap.ptar-picked input { background: transparent; font-weight: 600; cursor: default; }
+        /* El chip del almacén elegido es clicable (reabre el desplegable). */
+        #almCombo.ptar-picked, #almCombo.ptar-picked input { cursor: pointer; }
         .ptar-sug .sug-dir { display: block; font-size: 0.78rem; color: var(--gray-500); }
         /* Botón × para borrar de golpe el campo de recogida/entrega */
         .ptar-clear {
@@ -5045,6 +5047,18 @@
         var list = document.getElementById('almComboList');
         if (list && !list.hidden && !(e.target.closest && e.target.closest('#almCombo'))) list.hidden = true;
     });
+    // Pulsar sobre el chip del almacén ya elegido (no la ×) lo cambia: limpia
+    // la selección y reabre el desplegable, igual que el selector de sitios
+    // del envío.
+    (function () {
+        var combo = document.getElementById('almCombo');
+        if (!combo) return;
+        combo.addEventListener('click', function (e) {
+            if (e.target.closest && e.target.closest('#almSelClearBtn')) return; // la × ya lo hace
+            var inp = document.getElementById('almSearch');
+            if (inp && inp.readOnly) { almSelClear(true); almFilter(); }
+        });
+    })();
     function almDatePh() {
         // Texto-guía visible solo mientras el campo no tiene fecha.
         ['almEntrada', 'almSalida', 'almEntrega'].forEach(function (id) {
