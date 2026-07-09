@@ -3620,17 +3620,21 @@ function openLegal(tab) {
         var h = now.getHours();
         return h >= 8 && h < 18;
     }
+    // Próximo momento ONLINE (email/WhatsApp): L-V 8:00-18:00, sin festivos.
+    // Alineado con isOnlineHoursNow para no dejar huecos (p.ej. 18-20h).
+    var ONLINE_OPEN = 8, ONLINE_CLOSE = 18;
     function nextOnlineMoment() {
         var current = new Date(getNow());
         for (var i = 0; i < 8; i++) {
             var day = current.getDay();
-            if (day !== 0 && !getHolidayName(current)) {
+            var laborable = (day !== 0 && day !== 6 && !getHolidayName(current));
+            if (laborable) {
                 if (i === 0) {
-                    var h = current.getHours();
-                    if (h >= 8 && h < 20) return null;
-                    if (h < 8) { var t = new Date(current); t.setHours(8, 0, 0, 0); return t; }
+                    var h = current.getHours() + current.getMinutes() / 60;
+                    if (h < ONLINE_OPEN) { var t = new Date(current); t.setHours(ONLINE_OPEN, 0, 0, 0); return t; }
+                    if (h < ONLINE_CLOSE) return null;   // ahora mismo online
                 } else {
-                    var t = new Date(current); t.setHours(8, 0, 0, 0); return t;
+                    var t2 = new Date(current); t2.setHours(ONLINE_OPEN, 0, 0, 0); return t2;
                 }
             }
             current.setDate(current.getDate() + 1);
@@ -3638,16 +3642,25 @@ function openLegal(tab) {
         }
         return null;
     }
+    // Mismo día -> "en X horas"; día siguiente -> "mañana a las 8:00"; más
+    // lejos -> "el <día> a las 8:00".
     function formatTimeUntilOnline() {
         var next = nextOnlineMoment();
         if (!next) return '';
-        var diffMs = next.getTime() - getNow().getTime();
-        var diffMin = Math.round(diffMs / 60000);
-        if (diffMin < 60) return 'en breve';
-        var diffH = Math.round(diffMs / 3600000);
-        if (diffH <= 18) return diffH === 1 ? 'en 1 hora' : 'en ' + diffH + ' horas';
-        var diffD = Math.ceil(diffH / 24);
-        return diffD === 1 ? 'mañana' : 'en ' + diffD + ' días';
+        var now = getNow();
+        var hoy = new Date(now); hoy.setHours(0, 0, 0, 0);
+        var d0 = new Date(next); d0.setHours(0, 0, 0, 0);
+        var dayDiff = Math.round((d0.getTime() - hoy.getTime()) / 86400000);
+        var hora = next.getHours() + ':' + (next.getMinutes() < 10 ? '0' : '') + next.getMinutes();
+        if (dayDiff <= 0) {
+            var diffMin = Math.round((next.getTime() - now.getTime()) / 60000);
+            if (diffMin < 60) return 'en breve';
+            var diffH = Math.round((next.getTime() - now.getTime()) / 3600000);
+            return diffH === 1 ? 'en 1 hora' : 'en ' + diffH + ' horas';
+        }
+        if (dayDiff === 1) return 'mañana a las ' + hora;
+        var dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+        return 'el ' + dias[next.getDay()] + ' a las ' + hora;
     }
     function syncOnlineStatus() {
         var online = isOnlineHoursNow();
