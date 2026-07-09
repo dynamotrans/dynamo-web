@@ -3207,6 +3207,10 @@
             Envíos
             <span class="badge">3</span>
         </button>
+        <button class="sidebar-link" data-section="almacenes">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-5 9 5v12"/><path d="M3 21h18"/><rect x="8" y="13" width="8" height="8"/></svg>
+            Almacenamientos
+        </button>
         <button class="sidebar-link" data-section="facturas">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg>
             Facturas
@@ -3226,10 +3230,6 @@
         <button class="sidebar-link" data-section="sitios">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
             Sitios
-        </button>
-        <button class="sidebar-link" data-section="almacenes">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-5 9 5v12"/><path d="M3 21h18"/><rect x="8" y="13" width="8" height="8"/></svg>
-            Almacenamientos
         </button>
         <!-- Catálogo INTERNO de almacenes Dynamo — SOLO ADMIN. Cuando se monte
              el gating de roles, esta sección se oculta para cliente/transportista. -->
@@ -4289,10 +4289,12 @@
             <button class="btn-primary" onclick="openNuevoAlmacen();return false;">+ Nuevo almacenamiento</button>
         </div>
         <div class="tabs" data-alm-tabs>
-            <button class="tab active" data-alm-filter="todos">Todos (<span data-alm-count="todos">0</span>)</button>
-            <button class="tab" data-alm-filter="programado">Programados (<span data-alm-count="programado">0</span>)</button>
+            <button class="tab active" data-alm-filter="programado">Programados (<span data-alm-count="programado">0</span>)</button>
+            <button class="tab" data-alm-filter="pendiente-pago">Pendiente de pago (<span data-alm-count="pendiente-pago">0</span>)</button>
             <button class="tab" data-alm-filter="almacen">En almacén (<span data-alm-count="almacen">0</span>)</button>
             <button class="tab" data-alm-filter="finalizado">Finalizados (<span data-alm-count="finalizado">0</span>)</button>
+            <button class="tab" data-alm-filter="cancelado">Cancelados (<span data-alm-count="cancelado">0</span>)</button>
+            <button class="tab" data-alm-filter="todos">Todos (<span data-alm-count="todos">0</span>)</button>
         </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por nº, almacén, dirección, referencia…" data-alm-search oninput="almSearchInput(this.value)">
@@ -5976,9 +5978,15 @@
     var ALMACENES_DATA = [
         { ref: '#AX204829', almIdx: almIdxByProv('Sevilla'),   entrada: almRelISO(-2),  salida: almRelISO(3),   reparto: 0, entrega: null, destinoKey: null, destinoDir: null, notas: '26 palets de conservas · PED-0451', creado: almRelISO(-4) },
         { ref: '#AX204822', almIdx: almIdxByProv('Madrid'),    entrada: almRelISO(2),   salida: almRelISO(9),   reparto: 3, entrega: almRelISO(9), destinoKey: null, destinoDir: 'Mercamadrid — Ctra. Villaverde-Vallecas km 3,8, 28053 Madrid', notas: 'Tráiler completo textil · reparto en 3 camiones', creado: almRelISO(-1) },
-        { ref: '#AX204815', almIdx: almIdxByProv('Barcelona'), entrada: almRelISO(-15), salida: almRelISO(-10), reparto: 1, entrega: almRelISO(-10), destinoKey: null, destinoDir: 'Mercabarna — C/ Major, 08040 Barcelona', notas: '', creado: almRelISO(-18) }
+        { ref: '#AX204815', almIdx: almIdxByProv('Barcelona'), entrada: almRelISO(-15), salida: almRelISO(-10), reparto: 1, entrega: almRelISO(-10), destinoKey: null, destinoDir: 'Mercabarna — C/ Major, 08040 Barcelona', notas: '', creado: almRelISO(-18) },
+        // Prepago sin validar → "Pendiente de pago" (no se procesa hasta cobrar).
+        { ref: '#AX204811', almIdx: almIdxByProv('Valencia'),  entrada: almRelISO(5),   salida: almRelISO(11),  reparto: 2, entrega: almRelISO(11), destinoKey: null, destinoDir: 'Mercavalència — Ctra. en Corts 231, 46013 Valencia', notas: '18 palets de cerámica · PED-1207', formaPago: 'transferencia', pendientePago: true, creado: almRelISO(-1) },
+        // Cancelado por el cliente.
+        { ref: '#AX204808', almIdx: almIdxByProv('Sevilla'),   entrada: almRelISO(-6),  salida: almRelISO(-1),  reparto: 0, entrega: null, destinoKey: null, destinoDir: null, notas: 'Anulado por cambio de ruta', cancelado: true, creado: almRelISO(-9) }
     ];
     function almEstadoDe(r) {
+        if (r.cancelado) return { label: 'Cancelado', color: 'gray' };
+        if (r.pendientePago) return { label: 'Pendiente de pago', color: 'pago' };
         var hoy = almISO(new Date());
         if (r.salida < hoy) return { label: 'Finalizado', color: 'entregado' };
         if (r.entrada <= hoy) return { label: 'En almacén', color: 'cargando' };
@@ -5991,14 +5999,16 @@
         return dows[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + String(d.getFullYear()).slice(-2);
     }
     function almDiasDe(r) { return Math.round((new Date(r.salida + 'T00:00:00') - new Date(r.entrada + 'T00:00:00')) / 86400000); }
-    var ALM_LIST = { filter: 'todos', q: '', mes: '' };
-    function almEstadoKey(r) { var l = almEstadoDe(r).label; return l === 'Finalizado' ? 'finalizado' : (l === 'En almacén' ? 'almacen' : 'programado'); }
+    var ALM_LIST = { filter: 'programado', q: '', mes: '' };
+    function almEstadoKey(r) {
+        return { 'Cancelado': 'cancelado', 'Pendiente de pago': 'pendiente-pago', 'Finalizado': 'finalizado', 'En almacén': 'almacen', 'Programado': 'programado' }[almEstadoDe(r).label];
+    }
     window.almSearchInput = function (v) { ALM_LIST.q = v; renderAlmacenesTable(); };
     function renderAlmacenesTable() {
         var tbody = document.getElementById('tbodyAlmacenes');
         if (!tbody) return;
         // Contadores por estado + tab activo.
-        var counts = { programado: 0, almacen: 0, finalizado: 0, todos: ALMACENES_DATA.length };
+        var counts = { programado: 0, 'pendiente-pago': 0, almacen: 0, finalizado: 0, cancelado: 0, todos: ALMACENES_DATA.length };
         ALMACENES_DATA.forEach(function (r) { counts[almEstadoKey(r)]++; });
         Object.keys(counts).forEach(function (k) { var c = document.querySelector('[data-alm-count="' + k + '"]'); if (c) c.textContent = counts[k]; });
         document.querySelectorAll('[data-alm-tabs] .tab').forEach(function (t) {
