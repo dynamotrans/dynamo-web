@@ -2270,13 +2270,14 @@
            sus paradas). */
         table.data td.route-full .rf-stops .rf-col { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
         table.data td.route-full .rf-stops .rf-stop { margin-top: 0; min-width: 0; }
-        /* Cada línea de la parada en UNA sola línea; dirección y empresa se
-           recortan con "…" al ancho de la columna (el resto, en Ver detalle). */
-        table.data td.route-full .rf-stops .rf-txt { flex: 1; min-width: 0; }
+        /* Fecha y dirección SIEMPRE enteras (una línea, sin recorte). La empresa
+           se recorta con "…" al ancho de la más larga de fecha/dir — el máx
+           lo fija por JS renderCargasTable (rf-site.style.maxWidth). */
+        table.data td.route-full .rf-stops .rf-txt { flex: 0 1 auto; min-width: 0; }
         table.data td.route-full .rf-stops .rf-fecha,
         table.data td.route-full .rf-stops .rf-dir,
         table.data td.route-full .rf-stops .rf-site {
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+            display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         @media (max-width: 1100px) {
             table.data td.route-full .rf-stops { grid-template-columns: 1fr; }
@@ -4735,6 +4736,9 @@
         var el = document.getElementById('sec-' + id);
         if (el) el.classList.add('active');
         if (id === 'dashboard-admin' && typeof renderDashboardAdmin === 'function') renderDashboardAdmin();
+        // La tabla de envíos pudo renderizarse oculta (scrollWidth 0): al
+        // mostrarla, recorta las empresas al ancho de fecha/dirección.
+        if (id === 'cargas' && typeof requestAnimationFrame === 'function') requestAnimationFrame(function () { if (window.capRouteSites) window.capRouteSites(); });
         document.querySelectorAll('.sidebar-link').forEach(function (l) {
             l.classList.toggle('active', l.getAttribute('data-section') === id);
         });
@@ -10512,6 +10516,24 @@
     populateMesFilters();
 
     // ---- RENDER ----
+    // Recorta cada empresa (.rf-site) al ancho de la más larga de su fecha/
+    // dirección (que van enteras). Se mide tras el layout; si la tabla está
+    // oculta (scrollWidth 0) no hace nada y se reintenta al mostrarla.
+    function capRouteSites() {
+        var tb = document.getElementById('tbodyCargas');
+        if (!tb) return;
+        tb.querySelectorAll('.rf-txt').forEach(function (txt) {
+            var f = txt.querySelector('.rf-fecha'), d = txt.querySelector('.rf-dir'), s = txt.querySelector('.rf-site');
+            if (!s) return;
+            // Oculta la empresa para que la caja mida SOLO fecha/dirección; así
+            // el máximo es el ancho real de la más larga de esas dos.
+            s.style.display = 'none';
+            var w = Math.max(f ? f.scrollWidth : 0, d ? d.scrollWidth : 0);
+            s.style.display = '';
+            s.style.maxWidth = w > 0 ? (w + 'px') : 'none';
+        });
+    }
+    window.capRouteSites = capRouteSites;
     function renderCargasTable() {
         var st = TABLE_STATE.cargas;
         var rows = filteredCargas();
@@ -10598,6 +10620,7 @@
                     '</tr>';
             }).join('');
             wrapRowMenus(tbody);
+            if (typeof requestAnimationFrame === 'function') requestAnimationFrame(capRouteSites); else capRouteSites();
         }
         var sho = document.getElementById('cargasShowing');
         if (sho) sho.textContent = rows.length ? 'Mostrando ' + (start+1) + '-' + Math.min(start+st.perPage, rows.length) + ' de ' + rows.length + ' cargas' : 'Sin cargas';
