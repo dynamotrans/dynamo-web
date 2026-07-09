@@ -7318,7 +7318,7 @@
             '<div class="hor-group">' +
                 '<div class="hor-group-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg> Teléfono</div>' +
                 '<div class="hor-row"><span class="hor-when">Horario habitual</span><span class="hor-time">L–J 9:00–14:00 y 15:00–17:00 · V 9:00–14:00</span></div>' +
-                '<div class="hor-row"><span class="hor-when">Jornada intensiva</span><span class="hor-time">9:00–14:00</span></div>' +
+                '<div class="hor-row"><span class="hor-when">Jornada intensiva</span><span class="hor-time">8:30–15:30</span></div>' +
                 '<ul class="hor-intensiva">' +
                     '<li>Verano<span class="hor-i-when">15 jun – 1 sep · L–V</span></li>' +
                     '<li>Navidad<span class="hor-i-when">22 dic – 6 ene · L–V</span></li>' +
@@ -7665,7 +7665,7 @@
             5: [[9,14]]
         },
         summer: {
-            1: [[9,14]], 2: [[9,14]], 3: [[9,14]], 4: [[9,14]], 5: [[9,14]]
+            1: [[8.5,15.5]], 2: [[8.5,15.5]], 3: [[8.5,15.5]], 4: [[8.5,15.5]], 5: [[8.5,15.5]]
         },
         august: {},
         telHref: 'tel:+34955225945',
@@ -7693,10 +7693,10 @@
     function schedLang(){ var m=document.cookie.match(/googtrans=\/[\w-]+\/([\w-]+)/); var l=m?m[1]:'es'; return SCHED_VOCAB[l]?l:'es'; }
     function buildLabels(lang){ var v=SCHED_VOCAB[lang]||SCHED_VOCAB.es; function rng(a,b){return v.to==='–'?(a+'–'+b):(a+' '+v.to+' '+b);}
         return { phone:{ labelLong:rng(v.mon,v.thu)+' 9:00-14:00 '+v.and+' 15:00-17:00 · '+v.fri+' 9:00-14:00', labelShort:rng(v.mon,v.thu)+' 9-14 '+v.and+' 15-17 · '+v.fri+' 9-14',
-            labelSummerLong:rng(v.mon,v.fri)+' 9:00-14:00 ('+v.summer+')', labelSummerShort:rng(v.mon,v.fri)+' 9-14 ('+v.summer+')',
-            labelXmasLong:rng(v.mon,v.fri)+' 9:00-14:00 ('+v.xmas+')', labelXmasShort:rng(v.mon,v.fri)+' 9-14 ('+v.xmas+')',
-            labelFeriaLong:rng(v.tue,v.fri)+' 9:00-14:00 ('+v.feria+')', labelFeriaShort:rng(v.tue,v.fri)+' 9-14 ('+v.feria+')',
-            labelHolyLong:rng(v.mon,v.wed)+' 9:00-14:00 ('+v.holy+')', labelHolyShort:rng(v.mon,v.wed)+' 9-14 ('+v.holy+')', labelAugLong:(v.reduced||'Cerrado · email y WhatsApp'), labelAugShort:(v.reduced||'Cerrado · email y WhatsApp') },
+            labelSummerLong:rng(v.mon,v.fri)+' 8:30-15:30 ('+v.summer+')', labelSummerShort:rng(v.mon,v.fri)+' 8:30-15:30 ('+v.summer+')',
+            labelXmasLong:rng(v.mon,v.fri)+' 8:30-15:30 ('+v.xmas+')', labelXmasShort:rng(v.mon,v.fri)+' 8:30-15:30 ('+v.xmas+')',
+            labelFeriaLong:rng(v.tue,v.fri)+' 8:30-15:30 ('+v.feria+')', labelFeriaShort:rng(v.tue,v.fri)+' 8:30-15:30 ('+v.feria+')',
+            labelHolyLong:rng(v.mon,v.wed)+' 8:30-15:30 ('+v.holy+')', labelHolyShort:rng(v.mon,v.wed)+' 8:30-15:30 ('+v.holy+')', labelAugLong:(v.reduced||'Cerrado · email y WhatsApp'), labelAugShort:(v.reduced||'Cerrado · email y WhatsApp') },
             online:{ labelLong:rng(v.mon,v.fri)+' 8:00-18:00', labelShort:rng(v.mon,v.fri)+' 8-18' } };
     }
     var LABELS = buildLabels(schedLang());

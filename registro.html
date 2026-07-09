@@ -1200,7 +1200,7 @@
     /* SCHEDULE - mismo motor que dashboard/index/portal */
     var SCHEDULE = {
         winter: { 1:[[9,14],[15,17]], 2:[[9,14],[15,17]], 3:[[9,14],[15,17]], 4:[[9,14],[15,17]], 5:[[9,14]] },
-        summer: { 1:[[9,14]], 2:[[9,14]], 3:[[9,14]], 4:[[9,14]], 5:[[9,14]] },
+        summer: { 1:[[8.5,15.5]], 2:[[8.5,15.5]], 3:[[8.5,15.5]], 4:[[8.5,15.5]], 5:[[8.5,15.5]] },
         august: {},
         telHref: 'tel:+34955225945'
     };
@@ -1224,10 +1224,10 @@
     function schedLang(){ var m=document.cookie.match(/googtrans=\/[\w-]+\/([\w-]+)/); var l=m?m[1]:'es'; return SCHED_VOCAB[l]?l:'es'; }
     function buildLabels(lang){ var v=SCHED_VOCAB[lang]||SCHED_VOCAB.es; function rng(a,b){return v.to==='–'?(a+'–'+b):(a+' '+v.to+' '+b);}
         return { phone:{ labelLong:rng(v.mon,v.thu)+' 9:00-14:00 '+v.and+' 15:00-17:00 · '+v.fri+' 9:00-14:00', labelShort:rng(v.mon,v.thu)+' 9-14 '+v.and+' 15-17 · '+v.fri+' 9-14',
-            labelSummerLong:rng(v.mon,v.fri)+' 9:00-14:00 ('+v.summer+')', labelSummerShort:rng(v.mon,v.fri)+' 9-14 ('+v.summer+')',
-            labelXmasLong:rng(v.mon,v.fri)+' 9:00-14:00 ('+v.xmas+')', labelXmasShort:rng(v.mon,v.fri)+' 9-14 ('+v.xmas+')',
-            labelFeriaLong:rng(v.tue,v.fri)+' 9:00-14:00 ('+v.feria+')', labelFeriaShort:rng(v.tue,v.fri)+' 9-14 ('+v.feria+')',
-            labelHolyLong:rng(v.mon,v.wed)+' 9:00-14:00 ('+v.holy+')', labelHolyShort:rng(v.mon,v.wed)+' 9-14 ('+v.holy+')', labelAugLong:(v.reduced||'Cerrado · email y WhatsApp'), labelAugShort:(v.reduced||'Cerrado · email y WhatsApp') },
+            labelSummerLong:rng(v.mon,v.fri)+' 8:30-15:30 ('+v.summer+')', labelSummerShort:rng(v.mon,v.fri)+' 8:30-15:30 ('+v.summer+')',
+            labelXmasLong:rng(v.mon,v.fri)+' 8:30-15:30 ('+v.xmas+')', labelXmasShort:rng(v.mon,v.fri)+' 8:30-15:30 ('+v.xmas+')',
+            labelFeriaLong:rng(v.tue,v.fri)+' 8:30-15:30 ('+v.feria+')', labelFeriaShort:rng(v.tue,v.fri)+' 8:30-15:30 ('+v.feria+')',
+            labelHolyLong:rng(v.mon,v.wed)+' 8:30-15:30 ('+v.holy+')', labelHolyShort:rng(v.mon,v.wed)+' 8:30-15:30 ('+v.holy+')', labelAugLong:(v.reduced||'Cerrado · email y WhatsApp'), labelAugShort:(v.reduced||'Cerrado · email y WhatsApp') },
             online:{ labelLong:rng(v.mon,v.sat)+' 8:00-20:00', labelShort:rng(v.mon,v.sat)+' 8-20' } };
     }
     var LABELS = buildLabels(schedLang());
