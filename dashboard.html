@@ -1381,6 +1381,26 @@
             .admin-quick { grid-template-columns: repeat(2, 1fr); }
         }
 
+        /* ---- Botón desplegable (menú de acciones) ---- */
+        .btn-dropdown { position: relative; display: inline-block; }
+        .btn-dropdown-toggle { display: inline-flex; align-items: center; gap: 0.4rem; }
+        .btn-dropdown-chev { transition: transform 0.18s; }
+        .btn-dropdown.open .btn-dropdown-chev { transform: rotate(180deg); }
+        .btn-dropdown-menu {
+            position: absolute; top: calc(100% + 6px); right: 0; z-index: 60; min-width: 232px;
+            background: #fff; border: 1px solid var(--gray-200); border-radius: 12px;
+            box-shadow: 0 14px 34px rgba(10,15,40,0.16); padding: 0.35rem; overflow: hidden;
+            animation: chatPop 0.14s ease;
+        }
+        .btn-dropdown-menu[hidden] { display: none; }
+        .btn-dropdown-menu button {
+            display: flex; align-items: center; gap: 0.6rem; width: 100%; text-align: left;
+            font: inherit; font-size: 0.9rem; font-weight: 600; color: var(--navy);
+            background: none; border: 0; border-radius: 8px; padding: 0.6rem 0.7rem; cursor: pointer;
+        }
+        .btn-dropdown-menu button svg { color: var(--purple); flex: none; }
+        .btn-dropdown-menu button:hover { background: rgba(51,0,204,0.07); color: var(--purple); }
+
         .cesce-card {
             background: #ffffff;
             color: var(--navy); border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.9rem 1.1rem;
@@ -3978,7 +3998,7 @@
         <div class="sec-header">
             <h2>Sitios</h2>
             <div class="sec-header-actions">
-                <button class="btn-primary" onclick="abrirNuevoSitio();return false;">+ Nuevo sitio</button>
+                <button class="btn-primary" onclick="abrirNuevoSitio();return false;">+ Crear sitio</button>
             </div>
         </div>
         <p style="color:var(--gray-500);font-size:0.82rem;margin:-0.4rem 0 0.9rem;">Tu agenda de lugares de recogida y entrega. Se usan en el buscador al crear envíos; los que eliges de Google o editas al confirmar un envío se guardan aquí solos.</p>
@@ -4298,7 +4318,19 @@
     <section class="section" id="sec-almacenes">
         <div class="sec-header">
             <h2>Almacenamientos</h2>
-            <button class="btn-primary" onclick="openNuevoAlmacen();return false;">+ Nuevo almacenamiento</button>
+            <div class="btn-dropdown" data-btn-dropdown>
+                <button type="button" class="btn-primary btn-dropdown-toggle" onclick="toggleBtnDropdown(this)" aria-haspopup="menu" aria-expanded="false">
+                    + Nuevo <svg class="btn-dropdown-chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="btn-dropdown-menu" role="menu" hidden>
+                    <button type="button" role="menuitem" onclick="closeBtnDropdowns();openNuevoAlmacen();">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-5 9 5v12"/><path d="M3 21h18"/><rect x="8" y="13" width="8" height="8"/></svg> Nuevo almacenamiento</button>
+                    <button type="button" role="menuitem" onclick="closeBtnDropdowns();abrirNuevoSitio();">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Crear sitio</button>
+                    <button type="button" role="menuitem" onclick="closeBtnDropdowns();abrirNuevaIncidencia();">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Reportar incidencia</button>
+                </div>
+            </div>
         </div>
         <div class="tabs" data-alm-tabs>
             <button class="tab active" data-alm-filter="programado">Programados (<span data-alm-count="programado">0</span>)</button>
@@ -6729,6 +6761,70 @@
         });
     }
     window.cargaIncidenciaConfirm = cargaIncidenciaConfirm;
+    // Reportar incidencia GENÉRICA (desde el botón desplegable, sin una carga
+    // concreta): se elige el envío en un desplegable + descripción + adjuntos.
+    function abrirNuevaIncidencia() {
+        var opts = (typeof CARGAS_DATA !== 'undefined' ? CARGAS_DATA.slice(0, 30) : []).map(function (c) {
+            return '<option value="' + escapeHtml(c.ref) + '">' + escapeHtml((c.origen || '') + ' → ' + (c.destino || '')) + '</option>';
+        }).join('');
+        openDashModal({
+            icon: 'alert', iconVariant: 'warn',
+            title: 'Reportar incidencia',
+            sub: 'Cuéntanos lo ocurrido para actuar rápido',
+            body:
+                '<div class="modal-form-row"><label>Envío relacionado <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label>' +
+                '<input id="incGenRef" list="incGenList" autocomplete="off" placeholder="Escribe el nº de envío (#GX…) o su ruta"><datalist id="incGenList">' + opts + '</datalist></div>' +
+                '<div class="modal-form-row"><label>Detalle de la incidencia *</label><textarea id="incGenTxt" required placeholder="Describe lo ocurrido: daños, retraso, mercancía incorrecta, falta de albarán firmado…"></textarea></div>' +
+                '<div class="modal-form-row"><label>Adjuntar fotos / documentos</label>' +
+                '<div class="modal-file-drop" onclick="document.getElementById(\'incidFiles\').click()">' +
+                '<div id="incidFilesLabel">📎 Selecciona archivos o arrástralos aquí</div>' +
+                '<div class="modal-file-drop-sub">JPG, PNG, PDF · máx 10 MB cada uno</div></div>' +
+                '<input type="file" id="incidFiles" multiple accept="image/*,.pdf" style="display:none"></div>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                    '<button class="btn-primary" onclick="incGenConfirm()">Enviar incidencia</button>',
+            afterOpen: function () {
+                var input = document.getElementById('incidFiles'), label = document.getElementById('incidFilesLabel');
+                if (input && label) input.addEventListener('change', function () {
+                    label.textContent = '📎 ' + input.files.length + ' archivo' + (input.files.length === 1 ? '' : 's') + ' seleccionado' + (input.files.length === 1 ? '' : 's');
+                });
+            }
+        });
+    }
+    window.abrirNuevaIncidencia = abrirNuevaIncidencia;
+    function incGenConfirm() {
+        var t = document.getElementById('incGenTxt');
+        if (!t || !t.value.trim()) { if (t) { t.style.borderColor = '#dc2626'; t.focus(); } return; }
+        var ref = ((document.getElementById('incGenRef') || {}).value || '').trim();
+        closeDashModal();
+        showLoadingOverlay('Creando incidencia…', 900, function () {
+            showModalSuccess('Incidencia enviada', 'Hemos recibido tu reporte' + (ref ? ' para ' + ref : '') + '. El equipo lo revisa y te avisamos en cuanto haya respuesta.');
+        });
+    }
+    window.incGenConfirm = incGenConfirm;
+    // ---- Botón desplegable (menú de acciones rápidas) ----
+    function closeBtnDropdowns() {
+        document.querySelectorAll('[data-btn-dropdown].open').forEach(function (d) {
+            d.classList.remove('open');
+            var t = d.querySelector('.btn-dropdown-toggle'); if (t) t.setAttribute('aria-expanded', 'false');
+            var m = d.querySelector('.btn-dropdown-menu'); if (m) m.hidden = true;
+        });
+    }
+    window.closeBtnDropdowns = closeBtnDropdowns;
+    function toggleBtnDropdown(btn) {
+        var wrap = btn.closest('[data-btn-dropdown]'); if (!wrap) return;
+        var willOpen = !wrap.classList.contains('open');
+        closeBtnDropdowns();
+        if (willOpen) {
+            wrap.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+            var m = wrap.querySelector('.btn-dropdown-menu'); if (m) m.hidden = false;
+        }
+    }
+    window.toggleBtnDropdown = toggleBtnDropdown;
+    document.addEventListener('click', function (e) {
+        if (!(e.target.closest && e.target.closest('[data-btn-dropdown]'))) closeBtnDropdowns();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeBtnDropdowns(); });
     function cargaDescargarAlbaran(row) {
         var d = cargaRowData(row);
         var name = 'Albaran-' + d.ref.replace(/[^A-Za-z0-9-]/g, '') + '.pdf';
