@@ -3458,13 +3458,9 @@
             Dashboard admin
             <span class="badge" style="background:rgba(51,0,204,0.12);color:var(--purple);">Admin</span>
         </button>
-        <!-- Catálogo INTERNO de almacenes Dynamo — SOLO ADMIN. Cuando se monte
-             el gating de roles, esta sección se oculta para cliente/transportista. -->
-        <button class="sidebar-link" data-section="almacenes-cat" data-roles="admin">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35"/><path d="M2 8.35 12 2l10 6.35"/><path d="M6 22V12h12v10"/></svg>
-            Almacenes
-            <span class="badge" style="background:rgba(51,0,204,0.12);color:var(--purple);">Admin</span>
-        </button>
+        <!-- El catálogo interno de Almacenes (sección almacenes-cat) ya no está
+             en el menú: se accede desde el botón "Catálogo de almacenes" del
+             Dashboard admin. La sección sigue existiendo. -->
     </nav>
     <div class="sidebar-foot">
         <div class="sidebar-user">
@@ -3927,9 +3923,6 @@
         <div class="sec-header">
             <h2>Panel de administración</h2>
         </div>
-        <div class="admin-note">
-            <strong>Vista interna · todos los clientes.</strong> Aquí verás el conjunto completo de la operativa (envíos, almacenamientos, penalizaciones, facturación de todos los clientes y transportistas). En construcción: iremos añadiendo secciones y, cuando el diseño esté cerrado, se limitará lo que ve cada rol.
-        </div>
         <!-- Stats globales (todos los clientes) -->
         <div class="stats-row stats-row-4">
             <button class="stat-card stat-card-link" onclick="showSection('cargas')">
@@ -3968,14 +3961,6 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 <span>Sitios</span>
             </button>
-        </div>
-        <!-- Últimos envíos (todos los clientes) -->
-        <div class="mini-list-card" style="margin-top:1.2rem;">
-            <div class="mini-list-head">
-                <h4>Últimos envíos · todos los clientes</h4>
-                <a href="#" onclick="showSection('cargas');return false;">Ver todos →</a>
-            </div>
-            <ul class="mini-list" id="adminMiniEnvios"></ul>
         </div>
     </section>
 
