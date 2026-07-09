@@ -2664,15 +2664,20 @@
             transition: border-color 0.25s;
         }
         .cmp-table .dup-inp:focus { outline: none; border-color: var(--purple); }
+        /* Celda de la otra ficha (Google/crear): valor a la izquierda, botón →
+           pegado al borde derecho (junto a la columna "Tu registro"). */
+        .cmp-table td.cmp-goog { display: flex; align-items: center; justify-content: space-between; gap: 0.45rem; }
         .cmp-table .dup-copy {
             display: inline-flex; align-items: center; justify-content: center;
-            width: 24px; height: 24px; margin-right: 0.45rem;
+            width: 24px; height: 24px; margin-left: 0.45rem;
             border: 1px solid var(--gray-200); border-radius: 8px;
             background: var(--gray-100); color: var(--purple);
             font-size: 0.85rem; font-weight: 800; line-height: 1;
-            cursor: pointer; vertical-align: middle; flex-shrink: 0;
+            cursor: pointer; vertical-align: middle; flex-shrink: 0; order: 2;
         }
         .cmp-table .dup-copy:hover { background: rgba(51,0,204,0.08); border-color: var(--purple); }
+        /* Footer del comparador: botones a los extremos (Google izq · Mi registro der). */
+        .dup-footer { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 0.6rem; }
         /* Fichas editables de los lugares en el paso de confirmación */
         .ptar-sitio-card { border: 1px solid var(--gray-200); border-radius: 10px; padding: 0.8rem 0.9rem; margin-bottom: 0.7rem; background: #fff; }
         .ptar-sitio-card h5 { font-size: 0.82rem; color: var(--navy); margin-bottom: 0.5rem; }
@@ -9724,15 +9729,17 @@
             }
             closeDashModal(); cb(cual);
         };
+        // Columna "otra ficha" (Google / datos a crear) a la IZQUIERDA con el
+        // botón → para copiar el dato a "Tu registro", que va a la DERECHA.
         function fila(c) {
             return '<tr><td class="cmp-l">' + escapeHtml(c.label) + '</td>' +
-                '<td><input class="dup-inp" id="dup-f-' + c.f + '" value="' + escapeHtml(c.mio || '') + '"></td>' +
-                '<td>' + (c.goog
-                    ? '<button type="button" class="dup-copy" onclick="_dupCopy(\'' + c.f + '\')" title="Copiar este dato a mi registro" aria-label="Copiar a mi registro">←</button>' + escapeHtml(c.goog)
-                    : '<span style="color:var(--gray-400);">—</span>') + '</td></tr>';
+                '<td class="cmp-goog">' + (c.goog
+                    ? escapeHtml(c.goog) + '<button type="button" class="dup-copy" onclick="_dupCopy(\'' + c.f + '\')" title="Copiar este dato a mi registro" aria-label="Copiar a mi registro">→</button>'
+                    : '<span style="color:var(--gray-400);">—</span>') + '</td>' +
+                '<td><input class="dup-inp" id="dup-f-' + c.f + '" value="' + escapeHtml(c.mio || '') + '"></td></tr>';
         }
         var colLabel = opts.colLabel || 'Ficha de Google';
-        var warnHtml = opts.warn || 'Si sigues con el de Google se <strong>duplicaría el registro</strong>. Tu sitio guardado puede tener <strong>anotaciones importantes</strong> o el <strong>teléfono correcto</strong> que la ficha de Google no trae. Compara ambos y decide: puedes <strong>editar tus campos</strong> o copiar un dato con el botón <strong>←</strong>.';
+        var warnHtml = opts.warn || 'Si sigues con el de Google se <strong>duplicaría el registro</strong>. Tu sitio guardado puede tener <strong>anotaciones importantes</strong> o el <strong>teléfono correcto</strong> que la ficha de Google no trae. Compara ambos y decide: puedes <strong>editar tus campos</strong> o copiar un dato con el botón <strong>→</strong>.';
         var footer = opts.footer || ('<button class="btn-ghost" onclick="_dupPick(\'google\')">Usar el de Google</button>' +
                     '<button class="btn-primary" onclick="_dupPick(\'guardado\')">Usar mi registro</button>');
         openDashModal({
@@ -9740,10 +9747,10 @@
             sub: opts.sub || 'El resultado de Google es muy similar a un sitio de tu agenda',
             body: '<div class="modal-warn-box">' + warnHtml + '</div>' +
                 '<div class="table-wrap"><table class="data cmp-table">' +
-                '<thead><tr><th></th><th>Tu registro</th><th>' + escapeHtml(colLabel) + '</th></tr></thead><tbody>' +
+                '<thead><tr><th></th><th>' + escapeHtml(colLabel) + '</th><th>Tu registro</th></tr></thead><tbody>' +
                 CAMPOS.map(fila).join('') +
                 '</tbody></table></div>',
-            footer: footer
+            footer: '<div class="dup-footer">' + footer + '</div>'
         });
     }
     // "(EMPRESA)" en la misma línea de la dirección, en texto plano y
