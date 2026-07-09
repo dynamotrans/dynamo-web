@@ -360,6 +360,20 @@
         }
         .user-menu-item.maint-on .user-menu-switch { background: var(--purple); }
         .user-menu-item.maint-on .user-menu-switch-dot { transform: translateX(14px); }
+        /* Control de modo mantenimiento en el Dashboard admin (kill-switch). */
+        .maint-control {
+            display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+            border: 1px solid #fde6b3; background: #fff9ee; border-radius: 14px; padding: 1rem 1.2rem;
+        }
+        .maint-control-info { display: flex; gap: 0.8rem; align-items: flex-start; min-width: 0; }
+        .maint-control-icon { color: #b45309; flex: none; margin-top: 0.1rem; }
+        .maint-control-txt { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+        .maint-control-txt strong { font-size: 0.95rem; color: var(--navy); font-weight: 800; }
+        .maint-control-txt span { font-size: 0.84rem; color: var(--gray-600); line-height: 1.45; }
+        .maint-control-toggle { background: none; border: 0; cursor: pointer; padding: 0.2rem; flex: none; }
+        .maint-control-toggle.maint-on .user-menu-switch { background: #dc2626; }
+        .maint-control-toggle.maint-on .user-menu-switch-dot { transform: translateX(14px); }
+        .maint-control:has(.maint-control-toggle.maint-on) { border-color: #fca5a5; background: #fef2f2; }
         @media (max-width: 480px) {
             .maint-card { padding: 1.7rem 1.2rem; }
             .maint-title { font-size: 1.28rem; }
@@ -3724,13 +3738,6 @@
                         <button type="button" class="lang-pill" data-role="cliente" onclick="pickRole(this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Cliente</button>
                         <button type="button" class="lang-pill" data-role="transportista" onclick="pickRole(this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> Transportista</button>
                     </div>
-                    <!-- Interruptor MANTENIMIENTO (pruebas del mockup). En la app real
-                         lo activaría el backend ante un incidente. -->
-                    <button type="button" class="user-menu-item" id="maintToggleBtn" role="menuitem" aria-pressed="false" onclick="toggleMaint()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-                        Mantenimiento <span style="color:var(--gray-500);font-weight:600;font-size:0.78rem;">· pruebas</span>
-                        <span class="user-menu-switch" id="maintSwitch"><span class="user-menu-switch-dot"></span></span>
-                    </button>
                     <div class="user-menu-sep"></div>
                     <button type="button" class="user-menu-item" role="menuitem" onclick="goFromMenu('mi-cuenta')">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -3960,6 +3967,24 @@
             <button class="admin-quick-btn" onclick="showSection('sitios')">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 <span>Sitios</span>
+            </button>
+        </div>
+        <!-- Control de MODO MANTENIMIENTO (admin). Apaga la plataforma: nadie
+             podrá acceder y, en la app real, se cerrará la sesión de quien esté
+             dentro. En el mockup es front (localStorage); en producción lo hará
+             el backend invalidando las sesiones activas. -->
+        <div class="maint-control" style="margin-top:1.2rem;">
+            <div class="maint-control-info">
+                <span class="maint-control-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                </span>
+                <div class="maint-control-txt">
+                    <strong>Modo mantenimiento</strong>
+                    <span>Apaga la plataforma para todos: nadie podrá acceder y se cerrará la sesión de quien esté dentro. Solo quedará el contacto (email, WhatsApp, teléfono).</span>
+                </div>
+            </div>
+            <button type="button" class="maint-control-toggle" id="maintToggleBtn" aria-pressed="false" onclick="toggleMaint()" aria-label="Activar o desactivar el modo mantenimiento">
+                <span class="user-menu-switch"><span class="user-menu-switch-dot"></span></span>
             </button>
         </div>
     </section>
@@ -10459,8 +10484,9 @@
                         '<div class="envio-estado envio-estado-top"><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span></div>' +
                         '<strong>' + esc(c.ref) + '</strong>' +
                         (c.refCli ? ' <span class="ref-cli-inline">(' + esc(c.refCli) + ')</span>' : '') +
-                        (c.creadoEn ? '<span class="ref-creado">(Creado: ' + fmtCreado(c.creadoEn) + ')</span>' : '') +
-                        (c.modificadoEn && c.modificadoEn - (c.creadoEn || 0) > 60000 ? '<span class="ref-creado">(Modificado: ' + fmtCreado(c.modificadoEn) + ')</span>' : '') +
+                        (c.modificadoEn && c.modificadoEn - (c.creadoEn || 0) > 60000
+                            ? '<span class="ref-creado">(Modificado: ' + fmtCreado(c.modificadoEn) + ')</span>'
+                            : (c.creadoEn ? '<span class="ref-creado">(Creado: ' + fmtCreado(c.creadoEn) + ')</span>' : '')) +
                     '</td>' +
                     '<td class="mercancia">' + esc(c.mercancia) +
                         (function () {
