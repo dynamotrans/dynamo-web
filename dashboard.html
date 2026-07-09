@@ -3327,7 +3327,7 @@
             </a>
         </div>
         <p class="maint-foot">Dynamo Transportes · <span data-sched="phone-long">—</span></p>
-        <button type="button" class="maint-admin-exit" id="maintAdminExit" onclick="toggleMaint()" hidden>Salir del modo mantenimiento · admin</button>
+        <button type="button" class="maint-admin-exit" id="maintAdminExit" onclick="toggleMaint()" hidden>Salir del modo mantenimiento</button>
     </div>
 </div>
 
@@ -7566,11 +7566,11 @@
         if (ov) ov.hidden = !on;
         var btn = document.getElementById('maintToggleBtn');
         if (btn) { btn.classList.toggle('maint-on', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
-        // Salida solo para admin: como el overlay tapa el menú, el admin puede
-        // desactivarlo desde la propia pantalla. El cliente no ve esta opción.
-        var role = document.body.getAttribute('data-role') || 'admin';
+        // Salida SIEMPRE disponible en el overlay (discreta, abajo): como el
+        // overlay tapa el menú, esta es la vía fiable para desactivarlo sin
+        // tener que tocar la URL. En la app real el on/off vendría del backend.
         var exit = document.getElementById('maintAdminExit');
-        if (exit) exit.hidden = !(on && role === 'admin');
+        if (exit) exit.hidden = !on;
         // Bloquea el scroll del fondo mientras está el overlay.
         document.body.style.overflow = on ? 'hidden' : '';
     }
