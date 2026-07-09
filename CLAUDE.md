@@ -16,6 +16,9 @@ El usuario trabaja desde 2 Macs diferentes usando GitHub Codespaces para mantene
 
 ## REGLAS IMPORTANTES
 
+### 0. Precios SIEMPRE con 2 decimales
+**Todo precio/importe en TODA la plataforma se muestra con 2 decimales, aunque sean ceros** (`450,00 €`, `544,50 €`, `1.020,00 €`). Formato es-ES (coma decimal, punto de miles). **Nunca redondear a euro entero** para mostrar. En JS: `n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })`. Aplica a tarifador, cajas de precio, pago por adelantado, proforma, tablas (envíos/almacenamientos/facturas/penalizaciones), detalles y mini-listas.
+
 ### 1. Nunca hacer push automático
 **SIEMPRE preguntar antes de hacer `git push`.** El usuario quiere revisar los cambios y dar el OK explícitamente antes de subir nada a GitHub.
 
