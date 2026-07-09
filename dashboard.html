@@ -2242,7 +2242,15 @@
             display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);
             gap: 0.5rem 1.6rem; align-items: start; white-space: normal;
         }
-        table.data td.route-full .rf-stops .rf-stop { margin-top: 0; }
+        table.data td.route-full .rf-stops .rf-stop { margin-top: 0; min-width: 0; }
+        /* Cada línea de la parada en UNA sola línea; dirección y empresa se
+           recortan con "…" al ancho de la columna (el resto, en Ver detalle). */
+        table.data td.route-full .rf-stops .rf-txt { flex: 1; min-width: 0; }
+        table.data td.route-full .rf-stops .rf-fecha,
+        table.data td.route-full .rf-stops .rf-dir,
+        table.data td.route-full .rf-stops .rf-site {
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+        }
         @media (max-width: 1100px) {
             table.data td.route-full .rf-stops { grid-template-columns: 1fr; }
         }
@@ -6896,6 +6904,9 @@
     }
     window.cargaEditar = cargaEditar;
     function cargaGuardar(ref) {
+        var c = CARGAS_DATA.filter(function (x) { return x.ref === ref; })[0];
+        if (c) c.modificadoEn = Date.now();   // marca la fecha de modificación
+        if (typeof renderCargasTable === 'function') renderCargasTable();
         showModalSuccess('Cambios guardados', 'Los datos de ' + ref + ' se han actualizado correctamente.');
     }
     window.cargaGuardar = cargaGuardar;
@@ -10118,7 +10129,7 @@
             // estimadas y el reloj en vivo se quitaron: cargaban mucho la vista.)
             var st = siteDe(s.site);
             var hor = (st && st.horario) || (i === 0 ? c.horarioOrigen : (i === stops.length - 1 ? c.horarioDestino : null));
-            return '<div class="rf-stop"><div class="rf-line"><span class="rf-dot ' + (s.t === 'recogida' ? 'orig' : 'dest') + blink + '"></span><span>' +
+            return '<div class="rf-stop"><div class="rf-line"><span class="rf-dot ' + (s.t === 'recogida' ? 'orig' : 'dest') + blink + '"></span><span class="rf-txt">' +
                 '<span class="rf-fecha"><strong>' + esc(fecha) + '</strong>' + (hor ? ' <span class="rf-hor">(' + esc(hor) + ')</span>' : '') + '</span>' +
                 '<span class="rf-dir">' + esc(s.dir) + '</span>' + rfSiteHTML(s.site) +
             '</span></div></div>';
@@ -10444,6 +10455,7 @@
                         '<strong>' + esc(c.ref) + '</strong>' +
                         (c.refCli ? ' <span class="ref-cli-inline">(' + esc(c.refCli) + ')</span>' : '') +
                         (c.creadoEn ? '<span class="ref-creado">(Creado: ' + fmtCreado(c.creadoEn) + ')</span>' : '') +
+                        (c.modificadoEn && c.modificadoEn - (c.creadoEn || 0) > 60000 ? '<span class="ref-creado">(Modificado: ' + fmtCreado(c.modificadoEn) + ')</span>' : '') +
                     '</td>' +
                     '<td class="mercancia">' + esc(c.mercancia) +
                         (function () {
