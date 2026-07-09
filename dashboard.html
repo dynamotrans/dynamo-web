@@ -2164,19 +2164,21 @@
             background: #fee2e2;
             box-shadow: inset 6px 0 0 0 #b91c1c;
         }
-        /* Hoy: ámbar claro */
+        /* Rampa ámbar que se aclara con la distancia (en días HÁBILES). */
+        /* Hoy: ámbar más marcado */
         table.data tr.row-today {
-            background: #fff7ea;
+            background: #ffe3b8;
             box-shadow: inset 4px 0 0 0 #f59e0b;
         }
-        /* Siguiente día hábil: amarillo claro */
+        /* Hoy + 1 día hábil: más claro */
         table.data tr.row-tomorrow {
-            background: #fefce8;
-            box-shadow: inset 4px 0 0 0 #eab308;
+            background: #ffefd0;
+            box-shadow: inset 4px 0 0 0 #f7ad3c;
         }
+        /* Hoy + 2 días hábiles: aún más claro */
         table.data tr.row-aftertomorrow {
-            background: #f0fdf4;
-            box-shadow: inset 4px 0 0 0 #10b981;
+            background: #fff8ea;
+            box-shadow: inset 4px 0 0 0 #fac974;
         }
         /* Carga lejana (> 7 días): se atenúa en gris claro para que se
            perciba como menos urgente / más lejana en el tiempo */
@@ -2186,9 +2188,10 @@
         table.data tr.row-far strong { color: var(--gray-500, #6b7280); font-weight: 600; }
         /* (Los chips .row-when-tag se eliminaron: el resaltado de urgencia
            ahora es únicamente el color de fondo de la fila.) */
-        body.theme-dark table.data tr.row-overdue      { background: rgba(185,28,28,0.18); }
-        body.theme-dark table.data tr.row-today        { background: rgba(239,68,68,0.12); }
-        body.theme-dark table.data tr.row-tomorrow     { background: rgba(245,158,11,0.12); }
+        body.theme-dark table.data tr.row-overdue        { background: rgba(185,28,28,0.18); }
+        body.theme-dark table.data tr.row-today          { background: rgba(245,158,11,0.16); }
+        body.theme-dark table.data tr.row-tomorrow       { background: rgba(245,158,11,0.10); }
+        body.theme-dark table.data tr.row-aftertomorrow  { background: rgba(245,158,11,0.05); }
         body.theme-dark table.data tr.row-aftertomorrow{ background: rgba(16,185,129,0.12); }
         body.theme-dark table.data tr.row-far          { background: rgba(255,255,255,0.02); }
         body.theme-dark table.data tr.row-far td,
@@ -9219,34 +9222,31 @@
             // Carga con fecha pasada todavía no recogida. Urgencia máxima.
             return { level: -1, label: 'RETRASADA' };
         }
-        var wd = d.getDay();
-        if (wd === 0 || wd === 6) return null;
-        // Anchor (hoy o próximo laborable si hoy es Sáb/Dom)
+        // Día NO hábil = sábado, domingo o FESTIVO nacional. Los colores de
+        // urgencia cuentan SOLO días hábiles: si hoy es viernes, el siguiente
+        // color cae en lunes (salta finde y festivos), no en sábado.
+        function nb(x) { return x.getDay() === 0 || x.getDay() === 6 || !!getNationalHoliday(x); }
+        // Si la propia fecha de carga cae en día no hábil, no se colorea.
+        if (nb(d)) return null;
+        // Anchor: hoy, o el próximo día hábil si hoy es finde/festivo.
         var anchor = new Date(today);
-        while (anchor.getDay() === 0 || anchor.getDay() === 6) {
-            anchor.setDate(anchor.getDate() + 1);
-        }
+        while (nb(anchor)) anchor.setDate(anchor.getDate() + 1);
         if (d < anchor) return null;
+        // Nivel = nº de días HÁBILES entre el anchor y la fecha de carga:
+        //   0 = hoy · 1 = +1 día hábil · 2 = +2 días hábiles.
         var level = 0, cursor = new Date(anchor);
-        while (cursor.getTime() < d.getTime() && level <= 3) {
+        while (cursor.getTime() < d.getTime() && level <= 4) {
             cursor.setDate(cursor.getDate() + 1);
-            var w = cursor.getDay();
-            if (w !== 0 && w !== 6) level++;
+            if (!nb(cursor)) level++;
         }
         if (level > 2) {
-            // Más allá de pasado mañana: si la fecha está a más de 7 días,
-            // se marca como "lejana" (fila atenuada, menos urgente). Entre
-            // 3 y 7 días queda como fila normal.
+            // Más allá de +2 hábiles: si está a más de 7 días naturales se
+            // marca "lejana" (atenuada); entre medias, fila normal sin color.
             var diffFar = Math.round((d.getTime() - today.getTime()) / 86400000);
             if (diffFar > 7) return { level: 9, label: null };
             return null;
         }
-        // Etiqueta: calendar match literal
-        var diff = Math.round((d.getTime() - today.getTime()) / 86400000);
-        var label = null;
-        if (diff === 0) label = 'HOY';
-        else if (diff === 1) label = 'MAÑANA';
-        else if (diff === 2) label = 'PASADO MAÑANA';
+        var label = level === 0 ? 'HOY' : level === 1 ? 'MAÑANA' : 'PASADO MAÑANA';
         return { level: level, label: label };
     }
     // Parser DD/MM → timestamp (año actual). "Sin fecha" → Infinity para
@@ -10371,14 +10371,14 @@
                 var hi = hiSrc ? highlightInfo(hiSrc) : null;
                 var rowCls = '';
                 if (hi) {
-                    // Solo 3 casos resaltan la fila: retrasada (rojo claro),
-                    // hoy (ámbar claro) y siguiente día hábil (amarillo claro).
-                    // El resto (pasado mañana, 3-7 días, >7 días) queda como
-                    // fila estándar sin color. Ya no se pintan chips
-                    // HOY/MAÑANA/RETRASADA: el color de la fila es la señal.
+                    // Resaltan: retrasada (rojo) + rampa ámbar de 3 pasos que
+                    // se aclara: hoy → +1 día hábil → +2 días hábiles (salta
+                    // findes y festivos). El resto (3-7 días, >7) sin color.
+                    // El color de la fila es la señal (no hay chips).
                     if (hi.level === -1)     rowCls = ' class="row-overdue"';
                     else if (hi.level === 0) rowCls = ' class="row-today"';
                     else if (hi.level === 1) rowCls = ' class="row-tomorrow"';
+                    else if (hi.level === 2) rowCls = ' class="row-aftertomorrow"';
                 }
                 // Estado de envío (fase): Programado / Hacia la carga / Cargando /
                 // En ruta / Entregado. Va en la 1ª columna junto al Nº de envío.
