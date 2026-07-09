@@ -871,7 +871,6 @@
         body.theme-dark .lang-pill { background: rgba(255,255,255,0.05); color: #d4d0e8; border-color: rgba(255,255,255,0.08); }
         body.theme-dark .topbar-user:hover,
         body.theme-dark .user-menu-item:hover,
-        body.theme-dark table.data tbody tr:hover { background: rgba(255,255,255,0.05); color: #f3eeff; }
         body.theme-dark .user-menu-item { color: #d4d0e8; }
         body.theme-dark .user-menu-item svg { color: #a8a3c0; }
         body.theme-dark .user-menu-sep,
@@ -2154,7 +2153,6 @@
            se sienta como un botón aparte y no como "más de lo mismo" */
         table.data tbody tr { cursor: pointer; }
         table.data tbody tr td.actions { cursor: default; }
-        table.data tbody tr:hover { background: var(--gray-50); }
         /* Resaltado por proximidad de fecha en la tabla "Programadas".
            Gradiente coral → ámbar → verde: cuanto más cercana la carga
            más cálido el color, para llamar atención sobre lo inminente.
@@ -2166,31 +2164,26 @@
             background: #fee2e2;
             box-shadow: inset 6px 0 0 0 #b91c1c;
         }
-        table.data tr.row-overdue:hover { background: #fecaca; }
         /* Hoy: ámbar claro */
         table.data tr.row-today {
             background: #fff7ea;
             box-shadow: inset 4px 0 0 0 #f59e0b;
         }
-        table.data tr.row-today:hover { background: #ffefd3; }
         /* Siguiente día hábil: amarillo claro */
         table.data tr.row-tomorrow {
             background: #fefce8;
             box-shadow: inset 4px 0 0 0 #eab308;
         }
-        table.data tr.row-tomorrow:hover { background: #fef9c3; }
         table.data tr.row-aftertomorrow {
             background: #f0fdf4;
             box-shadow: inset 4px 0 0 0 #10b981;
         }
-        table.data tr.row-aftertomorrow:hover { background: #dcfce7; }
         /* Carga lejana (> 7 días): se atenúa en gris claro para que se
            perciba como menos urgente / más lejana en el tiempo */
         table.data tr.row-far { background: #fafbfc; }
         table.data tr.row-far td { color: var(--gray-500, #6b7280); }
         table.data tr.row-far .ref,
         table.data tr.row-far strong { color: var(--gray-500, #6b7280); font-weight: 600; }
-        table.data tr.row-far:hover { background: #f3f4f6; }
         /* (Los chips .row-when-tag se eliminaron: el resaltado de urgencia
            ahora es únicamente el color de fondo de la fila.) */
         body.theme-dark table.data tr.row-overdue      { background: rgba(185,28,28,0.18); }
