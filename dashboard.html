@@ -3986,7 +3986,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Envío</th><th>Ruta y fechas</th><th>Mercancía</th><th>Vehículo</th><th class="th-amount">Importe<span class="th-sub">Impuestos no incl.</span></th>
+                    <th>Ruta y fechas</th><th>Envío</th><th>Mercancía</th><th>Vehículo</th><th class="th-amount">Importe<span class="th-sub">Impuestos no incl.</span></th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -10381,13 +10381,13 @@
                 // Estado (última columna): solo estado de asignación de transportista.
                 var asig = getAsignacionEstado(c);
                 return '<tr' + rowCls + '>' +
+                    rutaFechasCell(c, asigDate) +
                     '<td class="ref">' +
                         '<div class="envio-estado envio-estado-top"><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span></div>' +
                         '<strong>' + esc(c.ref) + '</strong>' +
                         (c.refCli ? ' <span class="ref-cli-inline">(' + esc(c.refCli) + ')</span>' : '') +
                         (c.creadoEn ? '<span class="ref-creado">(Creado: ' + fmtCreado(c.creadoEn) + ')</span>' : '') +
                     '</td>' +
-                    rutaFechasCell(c, asigDate) +
                     '<td class="mercancia">' + esc(c.mercancia) +
                         (function () {
                             var lbl = cargaCorta(c.tipoCarga) || cargaFromMedidas(c.medidas);
