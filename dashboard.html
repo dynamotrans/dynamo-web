@@ -6679,6 +6679,11 @@
         return (neg ? '-' : '') + f[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + f[1] + ' €';
     }
     window.eur2 = eur2;
+    // Plazo de pago del cliente (días desde la fecha de emisión de la factura).
+    // MOCK: por defecto 30 días para todos. En backend saldrá de la ficha de
+    // cada cliente (según su crédito y plazo CESCE); algunos se editan a mano.
+    function plazoPagoDias() { return (typeof CLIENTE_PLAZO_PAGO === 'number' ? CLIENTE_PLAZO_PAGO : 30); }
+    window.plazoPagoDias = plazoPagoDias;
     // Teléfono del conductor: por privacidad se OCULTA (primeros 2 dígitos +
     // asteriscos) hasta las 10:00 del día hábil anterior a la carga; a partir de
     // ahí se muestra completo y clicable. El corte se calcula en el FRONT.
@@ -12805,8 +12810,8 @@
                     if (pendingData) pendingData.formaPago = 'credito';
                     payEl.innerHTML =
                         '<div class="ptar-pay-box pay-credit">' +
-                            '<div class="ptar-pay-title"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Forma de pago: Transferencia / Domiciliación</div>' +
-                            '<div class="ptar-pay-desc">Tienes <strong>crédito disponible</strong>: este envío se factura y se cobra por <strong>transferencia o domiciliación bancaria</strong>. Puedes confirmar directamente y seguimos con la gestión.</div>' +
+                            '<div class="ptar-pay-title"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Forma de pago: A vencimiento ' + plazoPagoDias() + ' días fecha emisión de factura.</div>' +
+                            '<div class="ptar-pay-desc">Tienes <strong>crédito disponible</strong>: puedes confirmar directamente y seguimos con la gestión.</div>' +
                         '</div>';
                     payEl.hidden = false;
                     return;
@@ -12859,8 +12864,8 @@
                 if (creditoDisponible()) {
                     el.innerHTML =
                         '<div class="ptar-pay-box pay-credit">' +
-                            '<div class="ptar-pay-title"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Forma de pago: Transferencia / Domiciliación</div>' +
-                            '<div class="ptar-pay-desc">Tienes <strong>crédito disponible</strong>: este ' + noun + ' se factura y se cobra por <strong>transferencia o domiciliación bancaria</strong>. Puedes confirmar directamente y seguimos con la gestión.</div>' +
+                            '<div class="ptar-pay-title"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Forma de pago: A vencimiento ' + plazoPagoDias() + ' días fecha emisión de factura.</div>' +
+                            '<div class="ptar-pay-desc">Tienes <strong>crédito disponible</strong>: puedes confirmar directamente y seguimos con la gestión.</div>' +
                         '</div>';
                     el.hidden = false;
                     if (!el._almPayBound) { el._almPayBound = true; }
