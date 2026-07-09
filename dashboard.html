@@ -2235,6 +2235,16 @@
         /* Dirección (CP, localidad, provincia, país) en negrita; la empresa
            entre paréntesis se queda discreta. */
         table.data td.route-full .rf-dir { display: block; font-weight: 700; }
+        /* Recogida y entrega en 2 columnas (izquierda / derecha). En pantallas
+           estrechas se apilan. El texto puede envolver (se anula el nowrap). */
+        table.data td.route-full .rf-stops {
+            display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+            gap: 0.5rem 1.6rem; align-items: start; white-space: normal;
+        }
+        table.data td.route-full .rf-stops .rf-stop { margin-top: 0; }
+        @media (max-width: 1100px) {
+            table.data td.route-full .rf-stops { grid-template-columns: 1fr; }
+        }
         /* iOS "data detectors": aunque las direcciones son texto plano, Safari
            las convierte en enlaces al mapa. Las neutralizamos (texto normal, no
            clicable) para que al tocar la fila se abra el detalle del viaje. */
@@ -3972,7 +3982,7 @@
             <button class="tab" data-filter="todas">Todas (<span data-count="todas">0</span>)</button>
         </div>
         <div class="filters">
-            <input type="search" placeholder="Buscar por nº, referencia, origen, destino…">
+            <input type="search" placeholder="Buscar por cualquier dato: nº, empresa, dirección, teléfono, ruta, mercancía…">
             <select class="filter-mes" data-filter-mes>
                 <!-- Opciones pobladas por JS al cargar -->
             </select>
@@ -6941,9 +6951,24 @@
     window.cargaIncidenciaConfirm = cargaIncidenciaConfirm;
     // Reportar incidencia GENÉRICA (desde el botón desplegable, sin una carga
     // concreta): se elige el envío en un desplegable + descripción + adjuntos.
+    // Descriptor buscable de un envío para el desplegable de incidencia: nº +
+    // ruta + empresas de los sitios + ref cliente + matrícula + transportista,
+    // para localizarlo escribiendo cualquiera de esos datos.
+    function incEnvDescriptor(c) {
+        function emp(k) { var s = siteDe(k); return s && s.empresa ? s.empresa : ''; }
+        var parts = [c.ref];
+        var ruta = [(c.origen || ''), (c.destino || '')].filter(Boolean).join(' → ');
+        if (ruta) parts.push('· ' + ruta);
+        var empresas = [emp(c.origenSite), emp(c.destinoSite)].filter(Boolean).join(' → ');
+        if (empresas) parts.push('· ' + empresas);
+        if (c.refCli) parts.push('· ' + c.refCli);
+        if (c.matricula) parts.push('· ' + c.matricula);
+        if (c.transportistaNombre) parts.push('· ' + c.transportistaNombre);
+        return parts.join(' ');
+    }
     function abrirNuevaIncidencia() {
-        var opts = (typeof CARGAS_DATA !== 'undefined' ? CARGAS_DATA.slice(0, 30) : []).map(function (c) {
-            return '<option value="' + escapeHtml(c.ref) + '">' + escapeHtml((c.origen || '') + ' → ' + (c.destino || '')) + '</option>';
+        var opts = (typeof CARGAS_DATA !== 'undefined' ? CARGAS_DATA : []).map(function (c) {
+            return '<option value="' + escapeHtml(incEnvDescriptor(c)) + '"></option>';
         }).join('');
         openDashModal({
             icon: 'alert', iconVariant: 'warn',
@@ -6972,7 +6997,10 @@
     function incGenConfirm() {
         var t = document.getElementById('incGenTxt');
         if (!t || !t.value.trim()) { if (t) { t.style.borderColor = '#dc2626'; t.focus(); } return; }
-        var ref = ((document.getElementById('incGenRef') || {}).value || '').trim();
+        var raw = ((document.getElementById('incGenRef') || {}).value || '').trim();
+        // El descriptor empieza por el nº de envío (#GX…); lo extraemos.
+        var m = raw.match(/#\S+/);
+        var ref = m ? m[0] : raw.split(' ')[0];
         closeDashModal();
         showLoadingOverlay('Creando incidencia…', 900, function () {
             showModalSuccess('Incidencia enviada', 'Hemos recibido tu reporte' + (ref ? ' para ' + ref : '') + '. El equipo lo revisa y te avisamos en cuanto haya respuesta.');
@@ -9848,7 +9876,7 @@
                 inp('Dirección (calle y número)', 'sitio-f-calle', s.calle, '', true) +
                 inp('CP, localidad, provincia y país', 'sitio-f-dir', s.dir, 'Ej. 41001, Sevilla, España', true) +
                 inp('Teléfono', 'sitio-f-tfno', s.tfno, 'Ej. +34 612 345 678') +
-                inp('Contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','sitio-f-contacto', s.contacto, 'Persona de contacto') +
+                inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','sitio-f-contacto', s.contacto, 'Persona de contacto') +
                 inp('<span style="color:var(--green);">Notas del sitio</span> <span style="color:var(--gray-500);font-weight:600;">· opcional</span>', 'sitio-f-notas', s.notas, 'Ej. referencia de carga/entrega, pedir cita, báscula…', true) +
                 inp('Enlace de Google Maps', 'sitio-f-maps', s.maps, 'https://maps.app.goo.gl/…', true) +
             '</div>';
@@ -10094,7 +10122,7 @@
                 '<span class="rf-dir">' + esc(s.dir) + '</span>' + rfSiteHTML(s.site) +
             '</span></div></div>';
         }).join('');
-        return '<td class="route-full">' + html + '</td>';
+        return '<td class="route-full"><div class="rf-stops">' + html + '</div></td>';
     }
     // Fecha de carga efectiva de un envío (asignada si existe, si no la
     // solicitada) como Date. null si es "Sin fecha" (previsión).
@@ -10223,12 +10251,35 @@
     }
     // Texto buscable de cada fila: nº, referencia, ruta (ciudades y
     // direcciones completas), mercancía, matrícula, transportista, precio…
+    // Todos los valores escalares (string/number) de un objeto, concatenados.
+    function scalarBlob(o) {
+        if (!o) return '';
+        var out = [];
+        for (var k in o) {
+            if (!o.hasOwnProperty(k)) continue;
+            var v = o[k];
+            if (typeof v === 'string' || typeof v === 'number') out.push(v);
+        }
+        return out.join(' ');
+    }
+    // Blob de búsqueda EXHAUSTIVO: todos los campos del envío + los datos de
+    // los sitios de recogida/entrega/paradas (empresa, dirección, CP, horario,
+    // teléfono, contacto, notas) + estado + asignación + precio formateado.
+    // Así el buscador encuentra el viaje por CUALQUIER dato.
     function cargaSearchBlob(c) {
-        return normTxt([c.ref, c.refCli, c.origen, c.destino,
+        var parts = [
+            scalarBlob(c),
             ciudadDir(c.origen, c.origenDir), ciudadDir(c.destino, c.destinoDir),
-            c.direcciones, c.mercancia, c.mercanciaMeta, c.medidas, medidasTn(c.medidas),
-            c.matricula, c.transportistaNombre, c.conductor, c.tipoCamion,
-            c.precio, c.estado, getEstadoVisual(c).label].join(' '));
+            medidasTn(c.medidas),
+            scalarBlob(siteDe(c.origenSite)), scalarBlob(siteDe(c.destinoSite)),
+            getEstadoVisual(c).label,
+            (getAsignacionEstado(c) ? getAsignacionEstado(c).label : ''),
+            (window.eur2 ? window.eur2(c.precio) : '')
+        ];
+        (c.paradas || []).forEach(function (p) {
+            parts.push(scalarBlob(p), scalarBlob(siteDe(p.site)));
+        });
+        return normTxt(parts.join(' '));
     }
     function presupSearchBlob(p) {
         return normTxt([p.ref, p.refCli, p.origen, p.destino,
@@ -12853,7 +12904,7 @@
                                         })() +
                                         inpReq('Horario', 'horario', '', 'Ej. L-V 8:00-14:00') +
                                         inpReq('Teléfono', 'tfno', '', 'Ej. +34 612 345 678') +
-                                        inp('Contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','contacto', '', 'Persona de contacto') +
+                                        inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','contacto', '', 'Persona de contacto') +
                                         '<div class="full"><label style="color:var(--green);">Notas del sitio <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="" placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…"></div>' +
                                         '<div class="full"><label>Enlace de Google Maps <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="maps" data-sitio-id="' + p.id + '" value="" placeholder="https://maps.app.goo.gl/…"></div>' +
                                     '</div>' +
@@ -12913,7 +12964,7 @@
                                     inpLock('CP, localidad, provincia y país', dirVal, !calleVal) +
                                     inpReq('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
                                     inpReq('Teléfono', 'tfno', s.tfno) +
-                                    inp('Contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','contacto', s.contacto, 'Persona de contacto') +
+                                    inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','contacto', s.contacto, 'Persona de contacto') +
                                     '<div class="full"><label style="color:var(--green);">Notas del sitio <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="' + escapeHtml(s.notas || '') + '" placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…"></div>' +
                                     '<div class="full"><label>Enlace de Google Maps <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="maps" data-sitio-id="' + p.id + '" value="' + escapeHtml(s.maps || '') + '" placeholder="https://maps.app.goo.gl/…"></div>' +
                                 '</div>' +
