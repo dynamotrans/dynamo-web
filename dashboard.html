@@ -2229,7 +2229,7 @@
         table.data td.route-full .rf-dot.rf-dot-blink { animation: badgeDotBlink 1.3s ease-in-out infinite; }
         /* Empresa entre paréntesis en la misma línea de la dirección,
            enlazada a su Google Maps */
-        table.data td.route-full .rf-site { color: var(--gray-500); font-weight: 400; }
+        table.data td.route-full .rf-site { display: block; color: var(--gray-500); font-weight: 400; margin-top: 1px; }
         /* Columna unificada Ruta y fechas: bloque por parada — línea 1 fecha
            (+ horario del almacén + Est./reloj), línea 2 dirección (+ empresa) */
         table.data td.route-full .rf-stop + .rf-stop { margin-top: 0.5rem; }
@@ -10097,7 +10097,7 @@
             var hor = (st && st.horario) || (i === 0 ? c.horarioOrigen : (i === stops.length - 1 ? c.horarioDestino : null));
             return '<div class="rf-stop"><div class="rf-line"><span class="rf-dot ' + (s.t === 'recogida' ? 'orig' : 'dest') + blink + '"></span><span>' +
                 '<span class="rf-fecha"><strong>' + esc(fecha) + '</strong>' + (hor ? ' <span class="rf-hor">(' + esc(hor) + ')</span>' : '') + '</span>' +
-                '<span class="rf-dir">' + esc(s.dir) + rfSiteHTML(s.site) + '</span>' +
+                '<span class="rf-dir">' + esc(s.dir) + '</span>' + rfSiteHTML(s.site) +
             '</span></div></div>';
         }).join('');
         return '<td class="route-full">' + html + '</td>';
