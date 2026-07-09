@@ -3473,7 +3473,7 @@
                         </span>
                         <div class="topbar-contact-text">
                             <span class="t">Llamar +34 955 225 945</span>
-                            <span class="h" data-sched="phone-short">Lunes a Viernes 8:30-15:30</span>
+                            <span class="h" data-sched="phone-short">Lunes a Jueves 9-14 y 15-17 · Viernes 9-14</span>
                         </div>
                     </a>
                     <div class="topbar-contact-sep"></div>
@@ -4306,7 +4306,7 @@
             </div>
             <div class="account-card">
                 <h3 class="account-card-title">Horario de atención</h3>
-                <div class="account-row"><span class="account-row-label">Teléfono</span><span class="account-row-value" data-sched="phone-long">Lunes a Viernes 8:30-15:30</span></div>
+                <div class="account-row"><span class="account-row-label">Teléfono</span><span class="account-row-value" data-sched="phone-long">Lunes a Jueves 9:00-14:00 y 15:00-17:00 · Viernes 9:00-14:00</span></div>
                 <div class="account-row"><span class="account-row-label">WhatsApp / Email</span><span class="account-row-value" data-sched="online-long">Lunes a Viernes 8:00-18:00</span></div>
                 <a href="#" class="support-link" style="margin-top:0.6rem;" onclick="verHorariosModal();return false;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Ver todos los horarios del año</a>
                 <p class="account-card-desc" style="margin-top:0.7rem;">Temporadas (verano, Navidad, Semana Santa, agosto), festivos y jornada intensiva. Si tu envío está en curso y necesitas algo urgente, escríbenos por WhatsApp — lo verá un operador de guardia.</p>
@@ -7317,14 +7317,21 @@
             '</div>' +
             '<div class="hor-group">' +
                 '<div class="hor-group-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg> Teléfono</div>' +
-                '<div class="hor-row"><span class="hor-when">Jornada intensiva</span><span class="hor-time">Lunes a Viernes 8:30–15:30</span></div>' +
+                '<div class="hor-row"><span class="hor-when">Horario habitual</span><span class="hor-time">L–J 9:00–14:00 y 15:00–17:00 · V 9:00–14:00</span></div>' +
+                '<div class="hor-row"><span class="hor-when">Jornada intensiva</span><span class="hor-time">9:00–14:00</span></div>' +
+                '<ul class="hor-intensiva">' +
+                    '<li>Verano<span class="hor-i-when">15 jun – 1 sep · L–V</span></li>' +
+                    '<li>Navidad<span class="hor-i-when">22 dic – 6 ene · L–V</span></li>' +
+                    '<li>Semana Santa<span class="hor-i-when">Lun–Mié Santo</span></li>' +
+                    '<li>Semana festiva local<span class="hor-i-when">' + escapeHtml(feria) + '</span></li>' +
+                '</ul>' +
                 '<div class="hor-row closed"><span class="hor-when">Agosto (6–27)</span><span class="hor-time">Solo email y WhatsApp</span></div>' +
             '</div>' +
             '<div class="hor-group">' +
                 '<div class="hor-group-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5z"/></svg> Festivos (teléfono cerrado)</div>' +
                 '<p class="hor-note" style="margin-top:0">Año Nuevo (1 ene) · Reyes (6 ene) · Día del Trabajo (1 may) · Asunción (15 ago) · Fiesta Nacional (12 oct) · Todos los Santos (1 nov) · Constitución (6 dic) · Inmaculada (8 dic) · Navidad (25 dic) · Jueves y Viernes Santo.</p>' +
             '</div>' +
-            '<p class="hor-note">Horario peninsular (Europe/Madrid). Email y WhatsApp también cierran domingos y festivos.</p>';
+            '<p class="hor-note">Horario peninsular (Europe/Madrid), se ajusta solo en cada temporada. Email y WhatsApp también cierran domingos y festivos.</p>';
         openDashModal({
             icon: 'clock',
             title: 'Horarios de atención',
@@ -7652,13 +7659,13 @@
        el modal "fuera de horario" y el cartel de temporada.
     ============================================================ */
     var SCHEDULE = {
-        // Jornada intensiva L-V 8:30-15:30 todo el año (mismo horario en invierno
-        // y verano). Agosto (6-27) cerrado aparte; findes y festivos cerrado.
         winter: {
-            1: [[8.5,15.5]], 2: [[8.5,15.5]], 3: [[8.5,15.5]], 4: [[8.5,15.5]], 5: [[8.5,15.5]]
+            1: [[9,14],[15,17]], 2: [[9,14],[15,17]],
+            3: [[9,14],[15,17]], 4: [[9,14],[15,17]],
+            5: [[9,14]]
         },
         summer: {
-            1: [[8.5,15.5]], 2: [[8.5,15.5]], 3: [[8.5,15.5]], 4: [[8.5,15.5]], 5: [[8.5,15.5]]
+            1: [[9,14]], 2: [[9,14]], 3: [[9,14]], 4: [[9,14]], 5: [[9,14]]
         },
         august: {},
         telHref: 'tel:+34955225945',
@@ -7685,11 +7692,11 @@
     };
     function schedLang(){ var m=document.cookie.match(/googtrans=\/[\w-]+\/([\w-]+)/); var l=m?m[1]:'es'; return SCHED_VOCAB[l]?l:'es'; }
     function buildLabels(lang){ var v=SCHED_VOCAB[lang]||SCHED_VOCAB.es; function rng(a,b){return v.to==='–'?(a+'–'+b):(a+' '+v.to+' '+b);}
-        return { phone:{ labelLong:rng(v.mon,v.fri)+' 8:30-15:30', labelShort:rng(v.mon,v.fri)+' 8:30-15:30',
-            labelSummerLong:rng(v.mon,v.fri)+' 8:30-15:30', labelSummerShort:rng(v.mon,v.fri)+' 8:30-15:30',
-            labelXmasLong:rng(v.mon,v.fri)+' 8:30-15:30', labelXmasShort:rng(v.mon,v.fri)+' 8:30-15:30',
-            labelFeriaLong:rng(v.mon,v.fri)+' 8:30-15:30', labelFeriaShort:rng(v.mon,v.fri)+' 8:30-15:30',
-            labelHolyLong:rng(v.mon,v.fri)+' 8:30-15:30', labelHolyShort:rng(v.mon,v.fri)+' 8:30-15:30', labelAugLong:(v.reduced||'Cerrado · email y WhatsApp'), labelAugShort:(v.reduced||'Cerrado · email y WhatsApp') },
+        return { phone:{ labelLong:rng(v.mon,v.thu)+' 9:00-14:00 '+v.and+' 15:00-17:00 · '+v.fri+' 9:00-14:00', labelShort:rng(v.mon,v.thu)+' 9-14 '+v.and+' 15-17 · '+v.fri+' 9-14',
+            labelSummerLong:rng(v.mon,v.fri)+' 9:00-14:00 ('+v.summer+')', labelSummerShort:rng(v.mon,v.fri)+' 9-14 ('+v.summer+')',
+            labelXmasLong:rng(v.mon,v.fri)+' 9:00-14:00 ('+v.xmas+')', labelXmasShort:rng(v.mon,v.fri)+' 9-14 ('+v.xmas+')',
+            labelFeriaLong:rng(v.tue,v.fri)+' 9:00-14:00 ('+v.feria+')', labelFeriaShort:rng(v.tue,v.fri)+' 9-14 ('+v.feria+')',
+            labelHolyLong:rng(v.mon,v.wed)+' 9:00-14:00 ('+v.holy+')', labelHolyShort:rng(v.mon,v.wed)+' 9-14 ('+v.holy+')', labelAugLong:(v.reduced||'Cerrado · email y WhatsApp'), labelAugShort:(v.reduced||'Cerrado · email y WhatsApp') },
             online:{ labelLong:rng(v.mon,v.fri)+' 8:00-18:00', labelShort:rng(v.mon,v.fri)+' 8-18' } };
     }
     var LABELS = buildLabels(schedLang());
