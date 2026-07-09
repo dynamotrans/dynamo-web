@@ -360,20 +360,26 @@
         }
         .user-menu-item.maint-on .user-menu-switch { background: var(--purple); }
         .user-menu-item.maint-on .user-menu-switch-dot { transform: translateX(14px); }
-        /* Control de modo mantenimiento en el Dashboard admin (kill-switch). */
+        /* Control de modo mantenimiento en el Dashboard admin (kill-switch),
+           compacto: texto pequeño + botón claro que cambia (Activar/Desactivar). */
         .maint-control {
-            display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-            border: 1px solid #fde6b3; background: #fff9ee; border-radius: 14px; padding: 1rem 1.2rem;
+            display: flex; align-items: center; justify-content: space-between; gap: 0.9rem;
+            border: 1px solid #fde6b3; background: #fff9ee; border-radius: 12px;
+            padding: 0.7rem 0.9rem; max-width: 660px;
         }
-        .maint-control-info { display: flex; gap: 0.8rem; align-items: flex-start; min-width: 0; }
-        .maint-control-icon { color: #b45309; flex: none; margin-top: 0.1rem; }
-        .maint-control-txt { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
-        .maint-control-txt strong { font-size: 0.95rem; color: var(--navy); font-weight: 800; }
-        .maint-control-txt span { font-size: 0.84rem; color: var(--gray-600); line-height: 1.45; }
-        .maint-control-toggle { background: none; border: 0; cursor: pointer; padding: 0.2rem; flex: none; }
-        .maint-control-toggle.maint-on .user-menu-switch { background: #dc2626; }
-        .maint-control-toggle.maint-on .user-menu-switch-dot { transform: translateX(14px); }
-        .maint-control:has(.maint-control-toggle.maint-on) { border-color: #fca5a5; background: #fef2f2; }
+        .maint-control-info { display: flex; gap: 0.55rem; align-items: center; min-width: 0; }
+        .maint-control-icon { color: #b45309; flex: none; display: flex; }
+        .maint-control-txt { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+        .maint-control-txt strong { font-size: 0.85rem; color: var(--navy); font-weight: 800; }
+        .maint-control-txt span { font-size: 0.76rem; color: var(--gray-600); line-height: 1.35; }
+        .maint-control-btn {
+            flex: none; border: 0; cursor: pointer; border-radius: 9px;
+            padding: 0.5rem 1rem; font: inherit; font-size: 0.82rem; font-weight: 800;
+            background: var(--purple); color: #fff; transition: background 0.15s, filter 0.15s;
+        }
+        .maint-control-btn:hover { filter: brightness(1.06); }
+        .maint-control-btn.maint-on { background: #dc2626; }
+        .maint-control:has(.maint-control-btn.maint-on) { border-color: #fca5a5; background: #fef2f2; }
         @media (max-width: 480px) {
             .maint-card { padding: 1.7rem 1.2rem; }
             .maint-title { font-size: 1.28rem; }
@@ -2216,6 +2222,10 @@
         table.data .ref { font-weight: 500; color: var(--gray-700); }
         /* El nº de envío/presupuesto nunca se parte en dos líneas */
         table.data td.ref > strong { white-space: nowrap; font-weight: 600; }
+        /* Cada línea de Envío y Mercancía en una sola línea (nº+ref, medidas,
+           completo/grupaje…). Vehículo ya es nowrap más abajo. */
+        table.data td.ref { white-space: nowrap; }
+        table.data td.mercancia { white-space: nowrap; }
         table.data .ref-cli { color: var(--gray-500); }
         table.data .amount { font-weight: 700; }
         /* Cabecera de la columna Importe: subtítulo "impuestos no incluidos" */
@@ -2256,6 +2266,9 @@
             display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);
             gap: 0.5rem 1.6rem; align-items: start; white-space: normal;
         }
+        /* Columna izquierda = recogidas · derecha = entregas (cada una apila
+           sus paradas). */
+        table.data td.route-full .rf-stops .rf-col { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
         table.data td.route-full .rf-stops .rf-stop { margin-top: 0; min-width: 0; }
         /* Cada línea de la parada en UNA sola línea; dirección y empresa se
            recortan con "…" al ancho de la columna (el resto, en Ver detalle). */
@@ -3973,19 +3986,17 @@
              podrá acceder y, en la app real, se cerrará la sesión de quien esté
              dentro. En el mockup es front (localStorage); en producción lo hará
              el backend invalidando las sesiones activas. -->
-        <div class="maint-control" style="margin-top:1.2rem;">
+        <div class="maint-control" id="maintControl" style="margin-top:1.2rem;">
             <div class="maint-control-info">
                 <span class="maint-control-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
                 </span>
                 <div class="maint-control-txt">
                     <strong>Modo mantenimiento</strong>
-                    <span>Apaga la plataforma para todos: nadie podrá acceder y se cerrará la sesión de quien esté dentro. Solo quedará el contacto (email, WhatsApp, teléfono).</span>
+                    <span>Apaga la plataforma para todos: nadie podrá acceder y se cerrará la sesión de quien esté dentro.</span>
                 </div>
             </div>
-            <button type="button" class="maint-control-toggle" id="maintToggleBtn" aria-pressed="false" onclick="toggleMaint()" aria-label="Activar o desactivar el modo mantenimiento">
-                <span class="user-menu-switch"><span class="user-menu-switch-dot"></span></span>
-            </button>
+            <button type="button" class="maint-control-btn" id="maintToggleBtn" aria-pressed="false" onclick="toggleMaint()"><span class="maint-control-btn-label">Activar</span></button>
         </div>
     </section>
 
@@ -6994,16 +7005,26 @@
         return parts.join(' ');
     }
     function abrirNuevaIncidencia() {
-        var opts = (typeof CARGAS_DATA !== 'undefined' ? CARGAS_DATA : []).map(function (c) {
-            return '<option value="' + escapeHtml(incEnvDescriptor(c)) + '"></option>';
-        }).join('');
         openDashModal({
             icon: 'alert', iconVariant: 'warn',
             title: 'Reportar incidencia',
             sub: 'Cuéntanos lo ocurrido para actuar rápido',
             body:
                 '<div class="modal-form-row"><label>Envío relacionado <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label>' +
-                '<input id="incGenRef" list="incGenList" autocomplete="off" placeholder="Escribe el nº de envío (#GX…) o su ruta"><datalist id="incGenList">' + opts + '</datalist></div>' +
+                '<div class="ptar-input-wrap alm-rep-wrap" id="incEnvCombo">' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>' +
+                    '<input type="text" id="incEnvSearch" placeholder="Busca por nº, ruta, empresa…" autocomplete="off" inputmode="search" oninput="incEnvFilter()" onfocus="incEnvFilter()">' +
+                    '<button type="button" class="ptar-clear" id="incEnvClearBtn" hidden onclick="incEnvClear(true)" aria-label="Cambiar envío">✕</button>' +
+                    '<ul class="ptar-sug alm-combo-list" id="incEnvList" hidden></ul>' +
+                    '<input type="hidden" id="incGenRef">' +
+                '</div></div>' +
+                '<div class="modal-form-row"><label>Tipo de incidencia</label>' +
+                '<select id="incGenTipo">' +
+                    '<option value="albaran">Solicitud de albarán / Albarán incorrecto</option>' +
+                    '<option value="siniestro">Siniestro / rotura / pérdida de mercancía</option>' +
+                    '<option value="transportista">Incidencia con algún transportista/conductor</option>' +
+                    '<option value="otros">Otros</option>' +
+                '</select></div>' +
                 '<div class="modal-form-row"><label>Detalle de la incidencia *</label><textarea id="incGenTxt" required placeholder="Describe lo ocurrido: daños, retraso, mercancía incorrecta, falta de albarán firmado…"></textarea></div>' +
                 '<div class="modal-form-row"><label>Adjuntar fotos / documentos</label>' +
                 '<div class="modal-file-drop" onclick="document.getElementById(\'incidFiles\').click()">' +
@@ -7021,6 +7042,63 @@
         });
     }
     window.abrirNuevaIncidencia = abrirNuevaIncidencia;
+    // Buscador de envío de la incidencia — MISMO patrón que el selector de
+    // almacén en almacenamiento (chip readonly, ×, clic para reabrir, desplegable
+    // propio). Busca por CUALQUIER dato del envío (cargaSearchBlob).
+    function incEnvFilter() {
+        var inp = document.getElementById('incEnvSearch'), list = document.getElementById('incEnvList');
+        if (!inp || !list || inp.readOnly) return;
+        var q = normTxt(inp.value);
+        function emp(k) { var s = siteDe(k); return s && s.empresa ? s.empresa : ''; }
+        var items = [];
+        (typeof CARGAS_DATA !== 'undefined' ? CARGAS_DATA : []).forEach(function (c) {
+            if (q && !matchTokens(cargaSearchBlob(c), q)) return;
+            var ruta = [(c.origen || ''), (c.destino || '')].filter(Boolean).join(' → ');
+            var empresas = [emp(c.origenSite), emp(c.destinoSite)].filter(Boolean).join(' → ');
+            items.push('<li class="alm-combo-item" onmousedown="incEnvPick(\'' + escapeHtml(c.ref) + '\');event.preventDefault();">' +
+                '<span><strong>' + escapeHtml(c.ref) + '</strong>' + (ruta ? ' · ' + escapeHtml(ruta) : '') + '</span>' +
+                (empresas ? '<span class="sub">' + escapeHtml(empresas) + '</span>' : '') + '</li>');
+        });
+        list.innerHTML = items.length ? items.join('') : '<li class="alm-combo-empty">Sin resultados — prueba con el nº, la ruta o la empresa</li>';
+        list.hidden = false;
+    }
+    function incEnvPick(ref) {
+        var c = (typeof CARGAS_DATA !== 'undefined' ? CARGAS_DATA : []).filter(function (x) { return x.ref === ref; })[0];
+        var inp = document.getElementById('incEnvSearch'), list = document.getElementById('incEnvList'),
+            wrap = document.getElementById('incEnvCombo'), x = document.getElementById('incEnvClearBtn'),
+            hid = document.getElementById('incGenRef');
+        if (inp) { inp.value = incEnvDescriptor(c || { ref: ref }); inp.readOnly = true; }
+        if (wrap) wrap.classList.add('ptar-picked');
+        if (x) x.hidden = false;
+        if (list) list.hidden = true;
+        if (hid) hid.value = ref;
+    }
+    function incEnvClear(focus) {
+        var inp = document.getElementById('incEnvSearch'), list = document.getElementById('incEnvList'),
+            wrap = document.getElementById('incEnvCombo'), x = document.getElementById('incEnvClearBtn'),
+            hid = document.getElementById('incGenRef');
+        if (inp) { inp.readOnly = false; inp.value = ''; }
+        if (wrap) wrap.classList.remove('ptar-picked');
+        if (x) x.hidden = true;
+        if (list) list.hidden = true;
+        if (hid) hid.value = '';
+        if (focus && inp) inp.focus();
+    }
+    window.incEnvFilter = incEnvFilter;
+    window.incEnvPick = incEnvPick;
+    window.incEnvClear = incEnvClear;
+    // Cerrar la lista al pinchar fuera (null-safe si no hay modal abierto).
+    document.addEventListener('pointerdown', function (e) {
+        var list = document.getElementById('incEnvList');
+        if (list && !list.hidden && !(e.target.closest && e.target.closest('#incEnvCombo'))) list.hidden = true;
+    });
+    // Pulsar el chip del envío ya elegido (no la ×) lo cambia: limpia y reabre.
+    document.addEventListener('click', function (e) {
+        if (!(e.target.closest && e.target.closest('#incEnvCombo'))) return;
+        if (e.target.closest('#incEnvClearBtn')) return;
+        var inp = document.getElementById('incEnvSearch');
+        if (inp && inp.readOnly) { incEnvClear(true); incEnvFilter(); }
+    });
     function incGenConfirm() {
         var t = document.getElementById('incGenTxt');
         if (!t || !t.value.trim()) { if (t) { t.style.borderColor = '#dc2626'; t.focus(); } return; }
@@ -7674,7 +7752,12 @@
         var ov = document.getElementById('maintOverlay');
         if (ov) ov.hidden = !on;
         var btn = document.getElementById('maintToggleBtn');
-        if (btn) { btn.classList.toggle('maint-on', on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+        if (btn) {
+            btn.classList.toggle('maint-on', on);
+            btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            var lbl = btn.querySelector('.maint-control-btn-label');
+            if (lbl) lbl.textContent = on ? 'Desactivar' : 'Activar';
+        }
         // Salida SIEMPRE disponible en el overlay (discreta, abajo): como el
         // overlay tapa el menú, esta es la vía fiable para desactivarlo sin
         // tener que tocar la URL. En la app real el on/off vendría del backend.
@@ -10152,19 +10235,23 @@
         var act = null;
         if (ev.color === 'cargando')     act = (c.stopActivo != null) ? c.stopActivo : 0;
         else if (ev.color === 'entrega') act = (c.stopActivo != null) ? c.stopActivo : stops.length - 1;
-        var html = stops.map(function (s, i) {
+        // SIEMPRE: recogidas en la columna izquierda, entregas en la derecha
+        // (aunque haya varias de cada; antes fluían 2 por fila y se mezclaban).
+        var recHtml = '', entHtml = '';
+        stops.forEach(function (s, i) {
             var blink = (i === act) ? ' rf-dot-blink' : '';
             var fecha = s.t === 'recogida' ? fechaCarga : fechaEntrega;
             // Horario del almacén de ESTA parada, junto a la fecha. (Las horas
             // estimadas y el reloj en vivo se quitaron: cargaban mucho la vista.)
             var st = siteDe(s.site);
             var hor = (st && st.horario) || (i === 0 ? c.horarioOrigen : (i === stops.length - 1 ? c.horarioDestino : null));
-            return '<div class="rf-stop"><div class="rf-line"><span class="rf-dot ' + (s.t === 'recogida' ? 'orig' : 'dest') + blink + '"></span><span class="rf-txt">' +
+            var h = '<div class="rf-stop"><div class="rf-line"><span class="rf-dot ' + (s.t === 'recogida' ? 'orig' : 'dest') + blink + '"></span><span class="rf-txt">' +
                 '<span class="rf-fecha"><strong>' + esc(fecha) + '</strong>' + (hor ? ' <span class="rf-hor">(' + esc(hor) + ')</span>' : '') + '</span>' +
                 '<span class="rf-dir">' + esc(s.dir) + '</span>' + rfSiteHTML(s.site) +
             '</span></div></div>';
-        }).join('');
-        return '<td class="route-full"><div class="rf-stops">' + html + '</div></td>';
+            if (s.t === 'recogida') recHtml += h; else entHtml += h;
+        });
+        return '<td class="route-full"><div class="rf-stops"><div class="rf-col">' + recHtml + '</div><div class="rf-col">' + entHtml + '</div></div></td>';
     }
     // Fecha de carga efectiva de un envío (asignada si existe, si no la
     // solicitada) como Date. null si es "Sin fecha" (previsión).
