@@ -344,6 +344,7 @@
         .lang-option:hover { background: var(--gray-100); }
         .lang-option.active { background: rgba(51,0,204,0.07); color: var(--purple); }
         .lang-option .flag { font-size: 1.2rem; }
+        .flag-svg { display: inline-block; width: 18px; height: 12px; border-radius: 2px; vertical-align: middle; box-shadow: 0 0 0 1px rgba(0,0,0,0.10); }
 
         /* AVATAR FAB - mismo patron en toda la web del portal */
         .contact-fab-wrap { position:fixed; bottom:1.8rem; right:1.8rem; z-index:998; display:flex; flex-direction:column-reverse; align-items:center; gap:0.85rem; pointer-events:none; }
@@ -438,8 +439,8 @@
         </button>
         <div class="lang-dropdown" id="langDropdown">
             <button class="lang-option active" onclick="changeLang('es','🇪🇸','ES')"><span class="flag">🇪🇸</span> Español</button>
-            <button class="lang-option" onclick="changeLang('ca','🟡','CAT')"><span class="flag">🟡</span> Català</button>
-            <button class="lang-option" onclick="changeLang('eu','🟢','EUS')"><span class="flag">🟢</span> Euskara</button>
+            <button class="lang-option" onclick="changeLang('ca','🟡','CAT')"><span class="flag"><svg class="flag-svg" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#fcdd09"/><rect y="1.78" width="24" height="1.78" fill="#da121a"/><rect y="5.33" width="24" height="1.78" fill="#da121a"/><rect y="8.89" width="24" height="1.78" fill="#da121a"/><rect y="12.44" width="24" height="1.78" fill="#da121a"/></svg></span> Català</button>
+            <button class="lang-option" onclick="changeLang('eu','🟢','EUS')"><span class="flag"><svg class="flag-svg" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#d52b1e"/><path d="M0 0 24 16M24 0 0 16" stroke="#009b3a" stroke-width="4.2"/><rect x="10" width="4" height="16" fill="#fff"/><rect y="6" width="24" height="4" fill="#fff"/></svg></span> Euskara</button>
             <button class="lang-option" onclick="changeLang('pt','🇵🇹','PT')"><span class="flag">🇵🇹</span> Português</button>
             <button class="lang-option" onclick="changeLang('en','🇬🇧','EN')"><span class="flag">🇬🇧</span> English</button>
             <button class="lang-option" onclick="changeLang('fr','🇫🇷','FR')"><span class="flag">🇫🇷</span> Français</button>
@@ -815,8 +816,8 @@
     }
 
     var langMap = {
-        'ca': { flag: '🟡', code: 'CAT' },
-        'eu': { flag: '🟢', code: 'EUS' },
+        'ca': { flag: '<svg class="flag-svg" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#fcdd09"/><rect y="1.78" width="24" height="1.78" fill="#da121a"/><rect y="5.33" width="24" height="1.78" fill="#da121a"/><rect y="8.89" width="24" height="1.78" fill="#da121a"/><rect y="12.44" width="24" height="1.78" fill="#da121a"/></svg>', code: 'CAT' },
+        'eu': { flag: '<svg class="flag-svg" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#d52b1e"/><path d="M0 0 24 16M24 0 0 16" stroke="#009b3a" stroke-width="4.2"/><rect x="10" width="4" height="16" fill="#fff"/><rect y="6" width="24" height="4" fill="#fff"/></svg>', code: 'EUS' },
         'pt': { flag: '🇵🇹', code: 'PT' },
         'en': { flag: '🇬🇧', code: 'EN' },
         'fr': { flag: '🇫🇷', code: 'FR' },
@@ -896,7 +897,7 @@
 
     function changeLang(lang, flag, code) {
         var langBtn = document.getElementById('langBtn');
-        if (langBtn) langBtn.innerHTML = '<span class="flag">' + flag + '</span> ' + code + ' <span class="arrow">▼</span>';
+        if (langBtn) langBtn.innerHTML = '<span class="flag">' + ((langMap[lang] && langMap[lang].flag) || flag) + '</span> ' + code + ' <span class="arrow">▼</span>';
         document.querySelectorAll('.lang-option').forEach(function(o) { o.classList.remove('active'); });
         if (event && event.target) {
             var opt = event.target.closest('.lang-option');
