@@ -5197,7 +5197,7 @@
     // 7 días y reparto urbano por camión 4 m). Si no la tiene, usa la global.
     function almPBase(a) { return (a && a.precioBase != null && a.precioBase !== '') ? Number(a.precioBase) : ALM_BASE; }
     function almPReparto(a) { return (a && a.precioReparto != null && a.precioReparto !== '') ? Number(a.precioReparto) : ALM_REPARTO; }
-    function almEur(n) { return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
+    function almEur(n) { return eur2(Number(n) || 0); }   // 2 decimales + miles (formato es-ES unificado)
     // ===== Caja de precio UNIFICADA (Base imponible / IVA 21% / Total) =====
     // Mismo diseño y efecto contador en TODAS las pantallas (crear/confirmar
     // envío y almacenamiento). extraRows = filas de concepto opcionales que se
@@ -6402,6 +6402,28 @@
         if (v != null && v !== '') return escapeHtml(v);
         return '<span style="color:var(--gray-500);font-style:italic;font-weight:500;">Pendiente</span>';
     }
+    // Normaliza CUALQUIER importe a 2 decimales (es-ES). Acepta número o string
+    // ("780 €", "1.520 €", "544,5 €") → "780,00 €" / "1.520,00 €" / "544,50 €".
+    // Si no contiene dígitos (no es un precio), lo devuelve tal cual. Regla de
+    // plataforma: todos los precios con 2 decimales, siempre.
+    function eur2(v) {
+        if (v == null || v === '') return v;
+        var n;
+        if (typeof v === 'number') n = v;
+        else {
+            var s = String(v).replace(/[€\s]/g, '');
+            if (!/\d/.test(s)) return v;
+            s = s.replace(/\./g, '').replace(',', '.');   // es-ES: miles '.' · decimal ','
+            n = parseFloat(s);
+        }
+        if (isNaN(n)) return v;
+        // Formato es-ES manual (miles '.', decimal ',') — no depender de
+        // toLocaleString/ICU, que en algunos entornos no agrupa los miles.
+        var neg = n < 0; n = Math.abs(n);
+        var f = n.toFixed(2).split('.');
+        return (neg ? '-' : '') + f[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + f[1] + ' €';
+    }
+    window.eur2 = eur2;
     // Teléfono del conductor: por privacidad se OCULTA (primeros 2 dígitos +
     // asteriscos) hasta las 10:00 del día hábil anterior a la carga; a partir de
     // ahí se muestra completo y clicable. El corte se calcula en el FRONT.
@@ -6587,7 +6609,7 @@
                         { label: 'Nº carga', value: d.ref },
                         { label: 'Ref. cliente', value: d.refCli || '—' },
                         { label: 'Estado', value: getEstadoVisual(src).label },
-                        { label: 'Precio', value: pend(src.precio), html: true }
+                        { label: 'Precio', value: pend(eur2(src.precio)), html: true }
                     ];
                     // Si ya hay fecha asignada por el equipo, la "fecha
                     // solicitada + ventana" sobra: el rango pedido queda
@@ -7320,7 +7342,7 @@
                 '</div>' +
                 '<div class="mini-list-right">' +
                     '<span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span>' +
-                    (c.precio ? '<span class="mini-list-amount">' + esc(c.precio) + '</span>' : '') +
+                    (c.precio ? '<span class="mini-list-amount">' + esc(eur2(c.precio)) + '</span>' : '') +
                 '</div>' +
             '</li>';
         }).join('');
@@ -9982,7 +10004,7 @@
                         (c.matricula ? '<span class="meta-matricula">' + esc(c.matricula) + '</span>' : '<span class="meta meta-pend">Sin matrícula</span>') +
                         (c.tipoCamion ? '<div class="meta">' + esc(c.tipoCamion) + '</div>' : '') +
                     '</td>' +
-                    '<td class="amount">' + esc(c.precio || '—') + '</td>' +
+                    '<td class="amount">' + esc(c.precio ? eur2(c.precio) : '—') + '</td>' +
                     actionsCell(actionItemsCarga(c)) +
                     '</tr>';
             }).join('');
@@ -10040,7 +10062,7 @@
                         '<div class="rf-line"><span class="rf-dot dest"></span><span class="rf-dir">' + esc(ciudadDir(p.destino, p.destinoDir)) + rfSiteHTML(p.destinoSite) + '</span></div>' +
                     '</td>' +
                     '<td>' + esc(p.mercancia) + '<div class="meta">' + esc(medidasTn(p.medidas)) + '</div><div class="meta">' + esc(cargaFromMedidas(p.medidas)) + '</div></td>' +
-                    '<td class="amount">' + esc(p.precio) + '</td>' +
+                    '<td class="amount">' + esc(eur2(p.precio)) + '</td>' +
                     actionsCell(actionItemsPresupuesto(p.kind)) +
                     '</tr>';
             }).join('');
@@ -10081,12 +10103,12 @@
                     '<td class="fac-num">' + esc(f.ref) + '</td>' +
                     '<td>' + esc(f.vencimiento) + '</td>' +
                     '<td>' + esc(CLIENTE_ACTUAL) + '</td>' +
-                    '<td class="amount">' + esc(f.base) + '</td>' +
-                    '<td class="amount">' + esc(f.iva) + '</td>' +
+                    '<td class="amount">' + esc(eur2(f.base)) + '</td>' +
+                    '<td class="amount">' + esc(eur2(f.iva)) + '</td>' +
                     '<td class="amount">0,00 €</td>' +
-                    '<td class="amount"><strong>' + esc(f.total) + '</strong></td>' +
-                    '<td class="amount">' + esc(cobrado) + '</td>' +
-                    '<td class="amount fac-pend" style="color:' + (cobrada ? 'var(--green-dark)' : '#b45309') + ';">' + esc(pendiente) + '</td>' +
+                    '<td class="amount"><strong>' + esc(eur2(f.total)) + '</strong></td>' +
+                    '<td class="amount">' + esc(eur2(cobrado)) + '</td>' +
+                    '<td class="amount fac-pend" style="color:' + (cobrada ? 'var(--green-dark)' : '#b45309') + ';">' + esc(eur2(pendiente)) + '</td>' +
                     '<td><span class="badge badge-' + est.color + '">' + esc(est.label) + '</span></td>' +
                     '<td>' + esc(fechaCobro) + '</td>' +
                     '</tr>';
@@ -10379,7 +10401,7 @@
                 '</div>' +
                 '<div class="mini-list-right">' +
                     '<span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span>' +
-                    (c.precio ? '<span class="mini-list-amount">' + esc(c.precio) + '</span>' : '') +
+                    (c.precio ? '<span class="mini-list-amount">' + esc(eur2(c.precio)) + '</span>' : '') +
                     '<span class="mini-list-meta">' + esc(medidasTn(c.medidas)) + '</span>' +
                     '<span class="mini-list-meta">' + esc(c.mercancia) + '</span>' +
                 '</div>' +
@@ -10409,7 +10431,7 @@
                 '</div>' +
                 '<div class="mini-list-right">' +
                     badge +
-                    '<span class="mini-list-amount">' + esc(p.precio) + '</span>' +
+                    '<span class="mini-list-amount">' + esc(eur2(p.precio)) + '</span>' +
                     '<span class="mini-list-meta">' + esc(medidasTn(p.medidas)) + '</span>' +
                     '<span class="mini-list-meta">' + esc(p.mercancia) + '</span>' +
                 '</div>' +
@@ -12157,8 +12179,8 @@
             // Cuenta bancaria de Dynamo (mock; el backend dará la real).
             var PAGO_BANCO = { titular: 'Dynamo Operador Logístico SL', cif: 'B01596360', iban: 'ES63 0049 1837 5928 1046 8445', banco: 'Banco Santander', bic: 'BSCHESMM' };
             // Regla de plataforma: TODOS los precios con 2 decimales (aunque sean
-            // ceros). Nunca redondear a euro entero.
-            function eurStr(n) { return (Number(n) || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
+            // ceros). Nunca redondear a euro entero. Formato unificado vía eur2.
+            function eurStr(n) { return window.eur2 ? window.eur2(Number(n) || 0) : ((Number(n) || 0).toFixed(2).replace('.', ',') + ' €'); }
             // Aviso de validación de pago (24 h). El texto cambia según sea un
             // envío (camión + ventana de carga) o un almacenamiento (espacio).
             var _payNoun = 'envío';
