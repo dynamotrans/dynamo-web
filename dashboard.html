@@ -3990,10 +3990,10 @@
                 <option value="">Estado</option>
                 <optgroup label="Estado del envío">
                     <option value="env:prog">Programado</option>
-                    <option value="env:hacia">Llegando a la recogida</option>
+                    <option value="env:hacia">Llegando recogida</option>
                     <option value="env:cargando">Cargando</option>
                     <option value="env:enruta">En ruta</option>
-                    <option value="env:entrega">Llegando a la entrega</option>
+                    <option value="env:entrega">Llegando entrega</option>
                 </optgroup>
                 <optgroup label="Estado del vehículo">
                     <option value="veh:confirmado">Confirmado transportista</option>
@@ -9178,10 +9178,10 @@
         // Pago por adelantado sin verificar: el envío no avanza hasta que el
         // equipo confirme el pago. Manda sobre cualquier otra fase.
         if (c.pendientePago)        return { label: 'Pendiente de pago', color: 'pago' };
-        if (c._phaseSim === 'hacia')    return { label: 'Llegando a la recogida', color: 'hacia' };
+        if (c._phaseSim === 'hacia')    return { label: 'Llegando recogida', color: 'hacia' };
         if (c._phaseSim === 'cargando') return { label: 'Cargando',       color: 'cargando' };
         if (c._phaseSim === 'enruta')   return { label: 'En ruta',        color: 'enruta' };
-        if (c._phaseSim === 'entrega')  return { label: 'Llegando a la entrega', color: 'entrega' };
+        if (c._phaseSim === 'entrega')  return { label: 'Llegando entrega', color: 'entrega' };
         if (c._phaseSim === 'pre7')     return { label: 'Programado',     color: 'prog' };
         // En ruta: si la ETA de entrega es pasada → Retrasada (debería
         // haber llegado al destino). Si no, "En ruta" normal.
@@ -9205,7 +9205,7 @@
         if (isToday) {
             var h = now.getHours();
             if (h < 7)  return { label: 'Programado',     color: 'prog' };
-            if (h < 13) return { label: 'Llegando a la recogida', color: 'hacia' };
+            if (h < 13) return { label: 'Llegando recogida', color: 'hacia' };
             if (h < 16) return { label: 'Cargando',       color: 'cargando' };
             return { label: 'En ruta', color: 'enruta' };
         }
