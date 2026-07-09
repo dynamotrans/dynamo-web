@@ -639,6 +639,17 @@
         .topbar-leftbar .topbar-contact-menu {
             right: auto; left: 0; transform-origin: top left;
         }
+        /* Móvil: fijar la ventana de contacto al viewport (antes se anclaba al
+           botón, a media pantalla, y se salía por la derecha cortando los
+           teléfonos). Va DESPUÉS de las reglas base para ganar por orden. */
+        @media (max-width: 600px) {
+            .topbar-leftbar .topbar-contact-menu,
+            .topbar-contact-menu {
+                position: fixed; top: 60px; left: 8px; right: 8px;
+                width: auto; min-width: 0; max-width: none;
+                transform-origin: top center;
+            }
+        }
         /* Barra superior derecha UNIFICADA: un ÚNICO contenedor tipo píldora
            (campana, CESCE, Álvaro, JG) con los botones como segmentos
            separados por finas divisorias, en vez de píldoras sueltas. */
