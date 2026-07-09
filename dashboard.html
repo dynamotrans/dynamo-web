@@ -297,18 +297,26 @@
             max-width: 520px; width: 100%; padding: 2.2rem 2rem; text-align: center;
             margin: auto;
         }
-        .maint-lang {
-            position: absolute; top: 0.95rem; right: 0.95rem;
-            display: inline-flex; align-items: center; gap: 0.35rem;
+        .maint-lang { position: absolute; top: 0.95rem; right: 0.95rem; }
+        .maint-lang-toggle {
+            display: inline-flex; align-items: center; gap: 0.4rem;
             border: 1px solid var(--gray-200); border-radius: 10px;
-            padding: 0.25rem 0.4rem 0.25rem 0.55rem; background: #fff; color: var(--gray-500);
+            padding: 0.35rem 0.5rem; background: #fff; color: var(--gray-500);
+            font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer;
         }
-        .maint-lang select {
-            appearance: none; -webkit-appearance: none; border: 0; background: none;
-            font: inherit; font-size: 0.82rem; font-weight: 700; color: var(--navy);
-            cursor: pointer; padding-right: 0.2rem; max-width: 128px;
+        .maint-lang-cur { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--navy); }
+        .maint-lang-cur .flag { font-size: 1rem; line-height: 1; }
+        .maint-lang-chev { color: var(--gray-500); transition: transform 0.18s; }
+        .maint-lang-toggle[aria-expanded="true"] .maint-lang-chev { transform: rotate(180deg); }
+        .maint-lang-menu {
+            position: absolute; top: calc(100% + 6px); right: 0; z-index: 10;
+            background: #fff; border: 1px solid var(--gray-200); border-radius: 12px;
+            box-shadow: 0 14px 34px rgba(10,15,40,0.16); padding: 0.35rem;
+            display: grid; gap: 2px; min-width: 178px; max-height: 320px; overflow-y: auto;
+            text-align: left;
         }
-        .maint-lang select:focus { outline: none; }
+        .maint-lang-menu[hidden] { display: none; }
+        .maint-lang-menu .lang-pill .flag { font-size: 1rem; line-height: 1; }
         .maint-icon {
             width: 68px; height: 68px; border-radius: 18px; margin: 0 auto 1.1rem;
             display: flex; align-items: center; justify-content: center;
@@ -747,6 +755,8 @@
         .lang-pill:hover { background: rgba(51,0,204,0.06); color: var(--purple); }
         .lang-pill.active { background: rgba(51,0,204,0.10); border-color: rgba(51,0,204,0.25); color: var(--purple); }
         .lang-pill .flag { font-size: 1rem; line-height: 1; }
+        /* Banderas sin emoji oficial (Cataluña · País Vasco) como SVG. */
+        .flag-svg { display: inline-block; width: 18px; height: 12px; border-radius: 2px; vertical-align: middle; box-shadow: 0 0 0 1px rgba(0,0,0,0.10); }
         .lang-pill svg { flex: none; }
         .user-menu-item-danger { color: var(--red); }
         .user-menu-item-danger svg { color: var(--red); }
@@ -3300,23 +3310,27 @@
 <div class="maint-overlay" id="maintOverlay" hidden>
     <div class="maint-card">
         <div class="maint-lang notranslate" translate="no">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            <select id="maintLang" aria-label="Idioma / Language" onchange="pickLanguage(this.options[this.selectedIndex])">
-                <option data-lang="es" data-flag="🇪🇸" data-label="Español" value="es">🇪🇸 Español</option>
-                <option data-lang="ca" data-flag="🟡" data-label="Català" value="ca">🟡 Català</option>
-                <option data-lang="eu" data-flag="🟢" data-label="Euskara" value="eu">🟢 Euskara</option>
-                <option data-lang="pt" data-flag="🇵🇹" data-label="Português" value="pt">🇵🇹 Português</option>
-                <option data-lang="en" data-flag="🇬🇧" data-label="English" value="en">🇬🇧 English</option>
-                <option data-lang="fr" data-flag="🇫🇷" data-label="Français" value="fr">🇫🇷 Français</option>
-                <option data-lang="ar" data-flag="🇸🇦" data-label="العربية" value="ar">🇸🇦 العربية</option>
-                <option data-lang="de" data-flag="🇩🇪" data-label="Deutsch" value="de">🇩🇪 Deutsch</option>
-                <option data-lang="it" data-flag="🇮🇹" data-label="Italiano" value="it">🇮🇹 Italiano</option>
-                <option data-lang="nl" data-flag="🇳🇱" data-label="Nederlands" value="nl">🇳🇱 Nederlands</option>
-                <option data-lang="pl" data-flag="🇵🇱" data-label="Polski" value="pl">🇵🇱 Polski</option>
-                <option data-lang="ro" data-flag="🇷🇴" data-label="Română" value="ro">🇷🇴 Română</option>
-                <option data-lang="uk" data-flag="🇺🇦" data-label="Українська" value="uk">🇺🇦 Українська</option>
-                <option data-lang="zh-CN" data-flag="🇨🇳" data-label="中文" value="zh-CN">🇨🇳 中文</option>
-            </select>
+            <button type="button" class="maint-lang-toggle" id="maintLangToggle" onclick="toggleMaintLangMenu()" aria-haspopup="menu" aria-expanded="false">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <span class="maint-lang-cur" id="maintLangCur"><span class="flag">🇪🇸</span> Español</span>
+                <svg class="maint-lang-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="maint-lang-menu" id="maintLangMenu" role="menu" hidden>
+                <button type="button" class="lang-pill" data-lang="es" data-label="Español" onclick="pickMaintLang(this)"><span class="flag">🇪🇸</span> Español</button>
+                <button type="button" class="lang-pill" data-lang="ca" data-label="Català" onclick="pickMaintLang(this)"><span class="flag"><svg class="flag-svg" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#fcdd09"/><rect y="1.78" width="24" height="1.78" fill="#da121a"/><rect y="5.33" width="24" height="1.78" fill="#da121a"/><rect y="8.89" width="24" height="1.78" fill="#da121a"/><rect y="12.44" width="24" height="1.78" fill="#da121a"/></svg></span> Català</button>
+                <button type="button" class="lang-pill" data-lang="eu" data-label="Euskara" onclick="pickMaintLang(this)"><span class="flag"><svg class="flag-svg" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#d52b1e"/><path d="M0 0 24 16M24 0 0 16" stroke="#009b3a" stroke-width="4.2"/><rect x="10" width="4" height="16" fill="#fff"/><rect y="6" width="24" height="4" fill="#fff"/></svg></span> Euskara</button>
+                <button type="button" class="lang-pill" data-lang="pt" data-label="Português" onclick="pickMaintLang(this)"><span class="flag">🇵🇹</span> Português</button>
+                <button type="button" class="lang-pill" data-lang="en" data-label="English" onclick="pickMaintLang(this)"><span class="flag">🇬🇧</span> English</button>
+                <button type="button" class="lang-pill" data-lang="fr" data-label="Français" onclick="pickMaintLang(this)"><span class="flag">🇫🇷</span> Français</button>
+                <button type="button" class="lang-pill" data-lang="ar" data-label="العربية" onclick="pickMaintLang(this)"><span class="flag">🇸🇦</span> العربية</button>
+                <button type="button" class="lang-pill" data-lang="de" data-label="Deutsch" onclick="pickMaintLang(this)"><span class="flag">🇩🇪</span> Deutsch</button>
+                <button type="button" class="lang-pill" data-lang="it" data-label="Italiano" onclick="pickMaintLang(this)"><span class="flag">🇮🇹</span> Italiano</button>
+                <button type="button" class="lang-pill" data-lang="nl" data-label="Nederlands" onclick="pickMaintLang(this)"><span class="flag">🇳🇱</span> Nederlands</button>
+                <button type="button" class="lang-pill" data-lang="pl" data-label="Polski" onclick="pickMaintLang(this)"><span class="flag">🇵🇱</span> Polski</button>
+                <button type="button" class="lang-pill" data-lang="ro" data-label="Română" onclick="pickMaintLang(this)"><span class="flag">🇷🇴</span> Română</button>
+                <button type="button" class="lang-pill" data-lang="uk" data-label="Українська" onclick="pickMaintLang(this)"><span class="flag">🇺🇦</span> Українська</button>
+                <button type="button" class="lang-pill" data-lang="zh-CN" data-label="中文" onclick="pickMaintLang(this)"><span class="flag">🇨🇳</span> 中文</button>
+            </div>
         </div>
         <div class="maint-icon">
             <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
@@ -3708,8 +3722,8 @@
                     </button>
                     <div class="user-menu-submenu" id="langSubmenu" role="menu" aria-hidden="true">
                         <button type="button" class="lang-pill active" data-lang="es" data-flag="🇪🇸" data-label="Español" onclick="pickLanguage(this)"><span class="flag">🇪🇸</span> Español</button>
-                        <button type="button" class="lang-pill" data-lang="ca" data-flag="🟡" data-label="Català" onclick="pickLanguage(this)"><span class="flag">🟡</span> Català</button>
-                        <button type="button" class="lang-pill" data-lang="eu" data-flag="🟢" data-label="Euskara" onclick="pickLanguage(this)"><span class="flag">🟢</span> Euskara</button>
+                        <button type="button" class="lang-pill" data-lang="ca" data-flag="" data-label="Català" onclick="pickLanguage(this)"><span class="flag"><svg class="flag-svg" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#fcdd09"/><rect y="1.78" width="24" height="1.78" fill="#da121a"/><rect y="5.33" width="24" height="1.78" fill="#da121a"/><rect y="8.89" width="24" height="1.78" fill="#da121a"/><rect y="12.44" width="24" height="1.78" fill="#da121a"/></svg></span> Català</button>
+                        <button type="button" class="lang-pill" data-lang="eu" data-flag="" data-label="Euskara" onclick="pickLanguage(this)"><span class="flag"><svg class="flag-svg" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#d52b1e"/><path d="M0 0 24 16M24 0 0 16" stroke="#009b3a" stroke-width="4.2"/><rect x="10" width="4" height="16" fill="#fff"/><rect y="6" width="24" height="4" fill="#fff"/></svg></span> Euskara</button>
                         <button type="button" class="lang-pill" data-lang="pt" data-flag="🇵🇹" data-label="Português" onclick="pickLanguage(this)"><span class="flag">🇵🇹</span> Português</button>
                         <button type="button" class="lang-pill" data-lang="en" data-flag="🇬🇧" data-label="English" onclick="pickLanguage(this)"><span class="flag">🇬🇧</span> English</button>
                         <button type="button" class="lang-pill" data-lang="fr" data-flag="🇫🇷" data-label="Français" onclick="pickLanguage(this)"><span class="flag">🇫🇷</span> Français</button>
@@ -7614,13 +7628,48 @@
     window.toggleMaint = toggleMaint;
     window.applyMaintenance = applyMaintenance;
     applyMaintenance();
-    // El selector de idioma del overlay refleja el idioma activo (cookie googtrans).
+    // Selector de idioma del overlay (desplegable propio: el <select> nativo no
+    // muestra las banderas SVG de Cataluña/Euskadi). Reusa pickLanguage.
+    function maintLangBtn(lang) {
+        var menu = document.getElementById('maintLangMenu');
+        if (!menu) return null;
+        var btns = menu.querySelectorAll('.lang-pill');
+        for (var i = 0; i < btns.length; i++) if (btns[i].getAttribute('data-lang') === lang) return btns[i];
+        return null;
+    }
+    function toggleMaintLangMenu() {
+        var t = document.getElementById('maintLangToggle'), m = document.getElementById('maintLangMenu');
+        if (!t || !m) return;
+        var open = m.hidden;
+        m.hidden = !open;
+        t.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    function closeMaintLangMenu() {
+        var t = document.getElementById('maintLangToggle'), m = document.getElementById('maintLangMenu');
+        if (m) m.hidden = true;
+        if (t) t.setAttribute('aria-expanded', 'false');
+    }
+    function pickMaintLang(btn) {
+        var cur = document.getElementById('maintLangCur');
+        if (cur) cur.innerHTML = btn.innerHTML;   // conserva la bandera (emoji o SVG)
+        closeMaintLangMenu();
+        // Reusa el motor de traducción del panel. pickLanguage lee data-flag para
+        // la etiqueta del menú de usuario (oculto); se lo pasamos por compat.
+        btn.setAttribute('data-flag', '');
+        pickLanguage(btn);
+    }
+    window.toggleMaintLangMenu = toggleMaintLangMenu;
+    window.pickMaintLang = pickMaintLang;
+    document.addEventListener('click', function (e) {
+        if (!(e.target.closest && e.target.closest('.maint-lang'))) closeMaintLangMenu();
+    });
+    // Refleja el idioma activo (cookie googtrans) en el botón del selector.
     (function syncMaintLang() {
         try {
             var m = document.cookie.match(/googtrans=\/[\w-]+\/([\w-]+)/);
-            var lang = m ? m[1] : 'es';
-            var sel = document.getElementById('maintLang');
-            if (sel) for (var i = 0; i < sel.options.length; i++) { if (sel.options[i].value === lang) { sel.selectedIndex = i; break; } }
+            var b = maintLangBtn(m ? m[1] : 'es');
+            var cur = document.getElementById('maintLangCur');
+            if (b && cur) cur.innerHTML = b.innerHTML;
         } catch (e) {}
     })();
 
@@ -7702,7 +7751,12 @@
         document.querySelectorAll('#langSubmenu .lang-pill').forEach(function (p) { p.classList.remove('active'); });
         if (btn) btn.classList.add('active');
         var cur = document.getElementById('langCurrentLabel');
-        if (btn && cur) cur.textContent = btn.getAttribute('data-flag') + ' ' + btn.getAttribute('data-label');
+        if (btn && cur) {
+            // Toma la bandera del propio botón (emoji o SVG de Cataluña/Euskadi).
+            var fs = btn.querySelector('.flag');
+            var flagHtml = fs ? fs.innerHTML : (btn.getAttribute('data-flag') || '');
+            cur.innerHTML = flagHtml + ' ' + (btn.getAttribute('data-label') || '');
+        }
     }
     function pickLanguage(btn) {
         var lang = btn.getAttribute('data-lang');
