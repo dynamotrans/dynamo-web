@@ -3463,9 +3463,9 @@ function openLegal(tab) {
             5: [[9,14]]
         },
         // Horario VERANO (15 jun - 1 sep) y NAVIDAD (22 dic - 6 ene):
-        // jornada intensiva L-V 9-14 (mismo formato)
+        // jornada intensiva L-V 8:30-15:30 (mismo formato)
         summer: {
-            1: [[9,14]], 2: [[9,14]], 3: [[9,14]], 4: [[9,14]], 5: [[9,14]]
+            1: [[8.5,15.5]], 2: [[8.5,15.5]], 3: [[8.5,15.5]], 4: [[8.5,15.5]], 5: [[8.5,15.5]]
         },
         // Numeros para construir URLs en el modal
         telHref: 'tel:+34955225945',
@@ -3506,14 +3506,14 @@ function openLegal(tab) {
             phone: {
                 labelLong:        rng(v.mon, v.thu) + ' 9:00-14:00 ' + v.and + ' 15:00-17:00 · ' + v.fri + ' 9:00-14:00',
                 labelShort:       rng(v.mon, v.thu) + ' 9-14 ' + v.and + ' 15-17 · ' + v.fri + ' 9-14',
-                labelSummerLong:  rng(v.mon, v.fri) + ' 9:00-14:00 (' + v.summer + ')',
-                labelSummerShort: rng(v.mon, v.fri) + ' 9-14 (' + v.summer + ')',
-                labelXmasLong:    rng(v.mon, v.fri) + ' 9:00-14:00 (' + v.xmas + ')',
-                labelXmasShort:   rng(v.mon, v.fri) + ' 9-14 (' + v.xmas + ')',
-                labelFeriaLong:   rng(v.tue, v.fri) + ' 9:00-14:00 (' + v.feria + ')',
-                labelFeriaShort:  rng(v.tue, v.fri) + ' 9-14 (' + v.feria + ')',
-                labelHolyLong:    rng(v.mon, v.wed) + ' 9:00-14:00 (' + v.holy + ')',
-                labelHolyShort:   rng(v.mon, v.wed) + ' 9-14 (' + v.holy + ')',
+                labelSummerLong:  rng(v.mon, v.fri) + ' 8:30-15:30 (' + v.summer + ')',
+                labelSummerShort: rng(v.mon, v.fri) + ' 8:30-15:30 (' + v.summer + ')',
+                labelXmasLong:    rng(v.mon, v.fri) + ' 8:30-15:30 (' + v.xmas + ')',
+                labelXmasShort:   rng(v.mon, v.fri) + ' 8:30-15:30 (' + v.xmas + ')',
+                labelFeriaLong:   rng(v.tue, v.fri) + ' 8:30-15:30 (' + v.feria + ')',
+                labelFeriaShort:  rng(v.tue, v.fri) + ' 8:30-15:30 (' + v.feria + ')',
+                labelHolyLong:    rng(v.mon, v.wed) + ' 8:30-15:30 (' + v.holy + ')',
+                labelHolyShort:   rng(v.mon, v.wed) + ' 8:30-15:30 (' + v.holy + ')',
                 labelAugLong:     v.reduced,
                 labelAugShort:    v.reduced
             },
@@ -5379,7 +5379,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 Teléfono
             </div>
             <div class="hor-row"><span class="hor-when">Horario habitual</span><span class="hor-time">L–J 9:00–14:00 y 15:00–17:00 · V 9:00–14:00</span></div>
-            <div class="hor-row"><span class="hor-when">Jornada intensiva</span><span class="hor-time">9:00–14:00</span></div>
+            <div class="hor-row"><span class="hor-when">Jornada intensiva</span><span class="hor-time">8:30–15:30</span></div>
             <ul class="hor-intensiva">
                 <li>Verano<span class="hor-i-when">15 jun – 1 sep · L–V</span></li>
                 <li>Navidad<span class="hor-i-when">22 dic – 6 ene · L–V</span></li>
