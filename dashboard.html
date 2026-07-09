@@ -6404,9 +6404,11 @@
     }
     // Teléfono del conductor: por privacidad se OCULTA (primeros 2 dígitos +
     // asteriscos) hasta las 10:00 del día hábil anterior a la carga; a partir de
-    // ahí se muestra completo y clicable. En el mockup el corte se calcula en el
-    // front; en producción el número real NO debe salir del backend hasta esa
-    // hora (ocultar en el navegador no es seguridad).
+    // ahí se muestra completo y clicable. El corte se calcula en el FRONT.
+    // DECISIÓN (2026-07-08): se deja en front a propósito — NO es crítico (dato de
+    // baja sensibilidad). No hace falta llevarlo a backend. (Recordatorio general:
+    // para datos realmente sensibles, ocultar en el navegador no es seguridad; ahí
+    // sí lo impondría el backend. Aquí no aplica.)
     function maskTel(t) {
         var loc = String(t).replace(/\D/g, '').replace(/^0?034/, '').replace(/^34/, '');
         return (loc.slice(0, 2) || '••') + '******';
