@@ -11534,9 +11534,12 @@
             if (windowVal === 'dia') {
                 if (esHoy && minsNow < 12 * 60) return today;   // urgente abierta
                 if (esHoy) {                                    // pasado el corte
-                    var d = new Date(today), adv = 0;
-                    while (adv < 2) { d.setDate(d.getDate() + 1); if (!nonBiz(d)) adv++; }
-                    return d;                                   // hoy + 2 hábiles
+                    // Se pierden HOY y el día NATURAL siguiente; la 1ª fija es el
+                    // primer día hábil a partir de pasado mañana. Así, viernes tras
+                    // las 12:00 → lunes (el finde no cuenta como día perdido); lunes
+                    // tras las 12:00 → miércoles (se pierde el martes).
+                    var d = new Date(today); d.setDate(d.getDate() + 2); nextBiz(d);
+                    return d;
                 }
                 return firstBiz;                                // hoy no hábil → sig. hábil
             }
