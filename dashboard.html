@@ -12546,7 +12546,7 @@
                         while (advU < 2) { d3U.setDate(d3U.getDate() + 1); if (!nonBiz(d3U)) advU++; }
                         hoyHtml = '<div class="ptar-eta-hoy">⚠ <strong>Fecha fija urgente (poco preaviso):</strong> lleva un <strong>suplemento</strong>. ' + (esHoy ? 'Además es para HOY: no se garantiza cargar en el día; cancelar (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. ' : '') + 'Eligiendo una fecha algo más adelante (a partir de la 3.ª disponible, el <strong>' + fmtEtaDate(d3U) + '</strong>) pasa a <strong>tarifa de fecha fija estándar</strong>, o usa la <strong>ventana de 1 a 3 días</strong> (flexible), la más económica.</div>';
                     } else {
-                        hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija estándar</strong>. Con fecha fija, si ese día no hay vehículo habría que reprogramar; una <strong>ventana de 1 a 3 días</strong> aumenta la probabilidad de cargar a tiempo y es más económica.</div>';
+                        hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija estándar</strong>. Con fecha fija, <strong>si ese día no hay vehículo</strong> habría que reprogramar; una <strong>ventana de 1 a 3 días es más económica</strong> y aumenta la probabilidad de cargar.</div>';
                     }
                 }
                 etaBox.innerHTML =
