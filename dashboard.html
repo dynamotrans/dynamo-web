@@ -13664,10 +13664,10 @@
                 var nowConf = nowMadrid();
                 var trasCorte = !corte9 || nowConf.getTime() >= corte9.getTime();
                 var DIAS_LC = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-                var _totalHist = (typeof CARGAS_DATA !== 'undefined') ? CARGAS_DATA.length : 0;
-                var _cancHist = (typeof CARGAS_DATA !== 'undefined') ? CARGAS_DATA.filter(function (c) { return c.kind === 'cancelada'; }).length : 0;
-                var _ratioCanc = _totalHist ? Math.round(_cancHist / _totalHist * 100) : 0;
-                var suspBloque = '<p style="font-size:0.82rem;line-height:1.5;color:var(--gray-500);margin-top:0.7rem;">La <strong>cancelación reiterada de envíos</strong> puede conllevar la <strong>suspensión temporal o definitiva de la cuenta</strong> si se detecta un uso fraudulento, abusivo o irresponsable. <strong>Tus cancelaciones (últimos 12 meses): ' + _ratioCanc + '% de los envíos confirmados.</strong> Por encima de 15% de cancelaciones la cuenta puede ser suspendida.</p>';
+                // MOCK: nº de cancelaciones en los últimos 10 envíos confirmados
+                // (en el backend será el conteo real de la cuenta). Demo por debajo del umbral.
+                var _cancEn10 = 1;
+                var suspBloque = '<p style="font-size:0.82rem;line-height:1.5;color:var(--gray-500);margin-top:0.7rem;">La <strong>cancelación reiterada de envíos</strong> puede conllevar la <strong>suspensión temporal o definitiva de la cuenta</strong> si se detecta un uso fraudulento, abusivo o irresponsable. <strong>Tus cancelaciones (últimos 10 envíos confirmados): ' + _cancEn10 + '/10 de los envíos confirmados.</strong> Por encima de 3 cancelaciones en tus últimos 10 envíos confirmados la cuenta puede ser suspendida.</p>';
                 var cancelBody;
                 if (trasCorte) {
                     // Ya se ha pasado el corte: la cancelación puede tener coste completo.
