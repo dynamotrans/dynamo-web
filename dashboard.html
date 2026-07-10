@@ -4470,7 +4470,6 @@
                 </div>
                 <div class="ptar-field">
                     <select id="ptar-urgencia-carga" data-ptar-urgencia class="ptar-select" aria-label="Ventana de carga">
-                        <option value="fija-hoy">Fecha fija · mismo día posible (la más cara)</option>
                         <option value="dia">Fecha fija (un día concreto)</option>
                         <option value="estandar" selected>1 a 3 días (ventana, más económica)</option>
                     </select>
@@ -11491,33 +11490,27 @@
         //    tarde, pasado mañana (ya no se organiza para el día siguiente).
         //  · Ventana 1-2 / 1-4 días: se puede empezar HOY o mañana siempre.
         // Nº de días hábiles hacia atrás desde d (2 hábiles antes, etc.).
-        function prevBizN(d, n) {
-            var x = new Date(d);
-            for (var i = 0; i < n; i++) { x.setDate(x.getDate() - 1); while (nonBiz(x)) x.setDate(x.getDate() - 1); }
-            return x;
+        // Nº de días HÁBILES desde hoy hasta target (hoy = 0, siguiente hábil = 1…).
+        // Sirve para decidir el suplemento por preaviso de la fecha fija.
+        function bizDaysAhead(target) {
+            var now = nowMadrid();
+            var t = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            var d = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+            if (d.getTime() <= t.getTime()) return 0;
+            var n = 0, cur = new Date(t);
+            while (cur.getTime() < d.getTime()) { cur.setDate(cur.getDate() + 1); if (!nonBiz(cur)) n++; }
+            return n;
         }
         function firstLoadDate(windowVal) {
-            // Corte y antelación distintos por tipo (hora Madrid):
-            //  · fija-hoy → puede ser HOY si es hábil y antes de las 11:00.
-            //  · dia      → FIJA planificada, NUNCA hoy: 2 días hábiles de
-            //               antelación con corte 13:30 (del día hábil que está
-            //               2 hábiles antes de la carga).
-            //  · estandar → VENTANA 1 a 3 días: puede ser HOY si es hábil y antes
-            //               de las 15:00.
+            // Primera fecha ofertada. Corte (hora Madrid) según tipo:
+            //  · dia      → FECHA FIJA: puede ser HOY si es hábil y antes de las 12:00.
+            //  · estandar → VENTANA 1 a 3 días: HOY si es hábil y antes de las 15:00.
+            // (El precio de la fija urgente/estándar se decide luego por la fecha
+            //  elegida y su preaviso, no aquí.)
             var now = nowMadrid();
             var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             var minsNow = now.getHours() * 60 + now.getMinutes();
-            if (windowVal === 'dia') {
-                var d = new Date(today); d.setDate(d.getDate() + 1); nextBiz(d); // 1er hábil > hoy
-                for (var guard = 0; guard < 90; guard++) {
-                    var p = prevBizN(d, 2);
-                    var deadline = new Date(p.getFullYear(), p.getMonth(), p.getDate(), 13, 30, 0, 0);
-                    if (now.getTime() < deadline.getTime()) return d; // llega al corte 13:30
-                    d.setDate(d.getDate() + 1); nextBiz(d);
-                }
-                return d;
-            }
-            var cutMin = (windowVal === 'fija-hoy') ? (11 * 60) : (15 * 60);
+            var cutMin = (windowVal === 'dia') ? (12 * 60) : (15 * 60);
             var dd = new Date(today); nextBiz(dd);
             var esHoy = dd.getTime() === today.getTime();
             if (esHoy && minsNow >= cutMin) { dd.setDate(dd.getDate() + 1); nextBiz(dd); }
@@ -12123,7 +12116,7 @@
                 var prev = urgenciaSel.value;
                 urgenciaSel.innerHTML = '';
                 ventanaOptsAll.forEach(function (opt) {
-                    if ((opt.value === 'dia' || opt.value === 'fija-hoy') && !allowFija) return;
+                    if (opt.value === 'dia' && !allowFija) return;
                     opt.disabled = false; opt.hidden = false;
                     urgenciaSel.appendChild(opt);
                 });
@@ -12302,10 +12295,21 @@
                 var occFactor = ocupacion(occMl, occTn, Math.round(occMl * 2.5), occInfo).pct / 100;
                 var precio = 50 + dist * 0.85 * occFactor;
                 var uv = urgenciaSel ? urgenciaSel.value : 'estandar';
-                // Urgencia: fija mismo día +20% (y +50 € fijos), fija +15%,
-                // ventana 1 a 3 días base.
-                precio *= (uv === 'fija-hoy' ? 1.20 : uv === 'dia' ? 1.15 : 1.0);
-                if (uv === 'fija-hoy') precio += 50;
+                // FECHA FIJA: 2 suplementos independientes.
+                //  1) Por ser día concreto (fija) → +15% base.
+                //  2) Por PREAVISO corto (hoy o el siguiente día hábil) → urgente:
+                //     sube a +20% y +50 € fijos. Con 2+ días hábiles de preaviso
+                //     se queda en la fija estándar (+15%).
+                // El tramo se decide por la fecha ELEGIDA (o la 1ª disponible si aún
+                // no hay fecha). Ventana 1 a 3 días → base, sin suplemento.
+                var fijaUrgente = false;
+                if (uv === 'dia') {
+                    var selIso = (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) ? diaSel.value : null;
+                    var effDate = selIso ? new Date(selIso + 'T00:00:00') : firstLoadDate('dia');
+                    fijaUrgente = bizDaysAhead(effDate) <= 1;
+                    if (fijaUrgente) { precio *= 1.20; precio += 50; }
+                    else { precio *= 1.15; }
+                }
                 // Mercancía: no paletizada +10%. Tipo de carga: si implica techo +15%.
                 if (mercaSel && mercaSel.selectedIndex === 1) precio *= 1.1;
                 if (cargaTipoSel && /techo/i.test(cargaTipoSel.value)) precio *= 1.15;
@@ -12342,7 +12346,7 @@
                 if (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) {
                     loadStart = new Date(diaSel.value + 'T00:00:00');
                 }
-                var ventana = urgenciaSel.value === 'estandar' ? 3 : 1; // fija-hoy y dia = 1 día
+                var ventana = urgenciaSel.value === 'estandar' ? 3 : 1; // fija = 1 día
 
                 var rangoHtml = '';
                 var cargaHtml = '';
@@ -12417,20 +12421,19 @@
                 } else {
                     rangoHtml = '<dd class="ptar-eta-stat">' + driveTxt + ' tras la carga</dd>';
                 }
-                // Aviso "hoy para hoy": solo con "Fecha fija · mismo día posible"
-                // cuando la carga cae HOY. Con fija normal (futura) se recomienda
-                // la ventana; con ventana 1-3 no se muestra nada (hay margen).
+                // Mensaje de la FECHA FIJA según el preaviso de la fecha elegida:
+                //  · urgente (hoy o siguiente día hábil) → aviso de suplemento por
+                //    urgencia + no garantía de cargar en el día.
+                //  · estándar (2+ días hábiles) → nota informativa. Con ventana no sale nada.
                 var hoyHtml = '';
-                if (loadStart && (uv === 'fija-hoy' || uv === 'dia')) {
-                    var nM = nowMadrid();
-                    var esHoy = loadStart.getFullYear() === nM.getFullYear() &&
-                        loadStart.getMonth() === nM.getMonth() &&
-                        loadStart.getDate() === nM.getDate();
-                    if (esHoy) {
-                        hoyHtml = '<div class="ptar-eta-hoy">⚠ <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. Cancelar una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. <strong>Recomendación:</strong> usa una <strong>ventana de 1 a 3 días</strong>; así, si no se consigue hoy, podremos asignar camión para los días siguientes (esperar a última hora deja sin margen).</div>';
+                if (loadStart && uv === 'dia') {
+                    if (bizDaysAhead(loadStart) <= 1) {
+                        var nM = nowMadrid();
+                        var esHoy = loadStart.getFullYear() === nM.getFullYear() &&
+                            loadStart.getMonth() === nM.getMonth() && loadStart.getDate() === nM.getDate();
+                        hoyHtml = '<div class="ptar-eta-hoy">⚠ <strong>Fecha fija urgente (' + (esHoy ? 'hoy' : 'siguiente día hábil') + '):</strong> por el poco preaviso lleva un <strong>suplemento de urgencia</strong>. ' + (esHoy ? 'No se garantiza cargar en el día; cancelar (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. ' : '') + 'Con <strong>2 o más días hábiles</strong> de preaviso pasa a <strong>tarifa de fecha fija estándar</strong> (más económica), o usa la <strong>ventana de 1 a 3 días</strong>.</div>';
                     } else {
-                        // Fecha fija en un día futuro: recomendar la ventana.
-                        hoyHtml = '<div class="ptar-eta-fija"><strong>Has elegido fecha fija (un solo día).</strong> Una <strong>ventana de 1 a 3 días</strong> aumenta mucho la probabilidad de cargar a tiempo y suele salir más económica. Con fecha fija, si ese día no hay vehículo disponible habría que reprogramar la carga.</div>';
+                        hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija estándar</strong> (preaviso suficiente). Con fecha fija, si ese día no hay vehículo habría que reprogramar; una <strong>ventana de 1 a 3 días</strong> aumenta la probabilidad de cargar a tiempo y suele salir más económica.</div>';
                     }
                 }
                 etaBox.innerHTML =
@@ -12709,9 +12712,7 @@
                 var mercaTxt = [mercaPalShort, cargaTipoTxt].filter(Boolean).join(' · ');
                 var mercanciaShort = mercaTxt;
                 var urgenciaSel_label = urgenciaSel.options[urgenciaSel.selectedIndex].text;
-                var urgenciaTxt = urgenciaSel.value === 'fija-hoy' ? 'Fija · mismo día posible'
-                    : urgenciaSel.value === 'dia' ? 'Fija'
-                    : '1 a 3 días';
+                var urgenciaTxt = urgenciaSel.value === 'dia' ? 'Fecha fija' : '1 a 3 días';
                 var fechaTxt, fechaLarga;
                 // Si el modo es 'carga' el selector de fecha existe y NO puede
                 // quedarse en el placeholder ('') — hay que elegir una opción
