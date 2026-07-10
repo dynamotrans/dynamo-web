@@ -5588,7 +5588,12 @@
             var ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
             // Los pasos intermedios saltan de 10 en 10 (mismo efecto contador
             // en toda la plataforma); al terminar se muestra el valor exacto.
-            el.textContent = eur(Math.round((from + (to - from) * ease) / 10) * 10);
+            // Se redondea SIEMPRE hacia el objetivo (floor si sube, ceil si baja)
+            // para que el contador NO se pase (bug: 527 llegaba a 530 y saltaba
+            // atrás). Así avanza 500 → 510 → 520 y remata en el 527 exacto.
+            var raw = from + (to - from) * ease;
+            var stepped = (to >= from) ? Math.floor(raw / 10) * 10 : Math.ceil(raw / 10) * 10;
+            el.textContent = eur(stepped);
             if (t < 1) { el.__raf = requestAnimationFrame(step); }
             else { el.textContent = eur(to); el.__raf = null; }
         }
@@ -11951,8 +11956,8 @@
             // NIMA (residuos): no cambia el camión, solo suma al precio.
             var nimaChk = card.querySelector('[data-ptar-nima]');
             if (nimaChk) nimaChk.addEventListener('change', renderEta);
-            mlSel.addEventListener('change', function () { mlSel.classList.remove('ptar-select-error'); renderOcupacion(); syncGrupajeVentana(); });
-            pesoSel.addEventListener('change', function () { pesoSel.classList.remove('ptar-select-error'); renderOcupacion(); syncGrupajeVentana(); });
+            mlSel.addEventListener('change', function () { mlSel.classList.remove('ptar-select-error'); renderOcupacion(); syncGrupajeVentana(); renderEta(); });
+            pesoSel.addEventListener('change', function () { pesoSel.classList.remove('ptar-select-error'); renderOcupacion(); syncGrupajeVentana(); renderEta(); });
 
             // === Ocupación del camión (% carga) ===
             // El % visible es el coeficiente que MÁS limita la carga (no la
@@ -12173,9 +12178,21 @@
                 var driveTxt = driveDays === 1 ? '1 día' : driveDays + ' días';
 
                 // === Precio orientativo (MOCK, solo demo de usabilidad) ===
-                // Sin IVA. Varía con distancia, ventana, tipo de mercancía,
-                // trampilla y nº de paradas. Pendiente: tarifa real del cliente.
-                var precio = 50 + dist * 0.85;
+                // Sin IVA. Varía con distancia, OCUPACIÓN del camión (metros/peso),
+                // ventana, tipo de mercancía, trampilla y nº de paradas.
+                // Pendiente: tarifa real del cliente.
+                //
+                // OCUPACIÓN: el % que aplica es max(coef_ml, coef_tn, coef_palets)
+                // — el que MÁS ocupa manda; uno NO limita al otro. Ej.: 3 m pero
+                // 24 Tn → el peso va al tope → 100% → tarifa de carga completa
+                // (igual que 13,2 m). El componente por distancia se escala por
+                // ese % (25%..100%); los 50 € de base fija se mantienen como
+                // mínimo (una carga pequeña nunca baja de ahí).
+                var occInfo = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
+                var occMl = parseFloat(mlSel.value === '13.2' ? '13.2' : mlSel.value) || 0;
+                var occTn = parseFloat(pesoSel.value) || 0;
+                var occFactor = ocupacion(occMl, occTn, Math.round(occMl * 2.5), occInfo).pct / 100;
+                var precio = 50 + dist * 0.85 * occFactor;
                 var uv = urgenciaSel ? urgenciaSel.value : 'flexible';
                 precio *= (uv === 'dia' ? 1.15 : uv === 'estandar' ? 1.0 : 0.9);
                 // Mercancía: no paletizada +10%. Tipo de carga: si implica techo +15%.
