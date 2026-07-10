@@ -3540,7 +3540,7 @@
             </a>
         </div>
         <p class="maint-foot">Dynamo Transportes · <span data-sched="phone-long">—</span></p>
-        <button type="button" class="maint-admin-exit" id="maintAdminExit" onclick="toggleMaint()" hidden>Salir del modo mantenimiento</button>
+        <button type="button" class="maint-admin-exit" id="maintAdminExit" onclick="salirModoPruebas()" hidden>⚙ Salir (solo pruebas) · volver a admin y desactivar mantenimiento</button>
     </div>
 </div>
 
@@ -8013,13 +8013,23 @@
             var lbl = btn.querySelector('.maint-control-btn-label');
             if (lbl) lbl.textContent = on ? 'Desactivar' : 'Activar';
         }
-        // El overlay lo ve un no-admin: no puede desactivar el mantenimiento
-        // (solo el admin desde el panel). Sin enlace de salida.
+        // MOCKUP: escape de PRUEBAS visible mientras el overlay bloquea, para no
+        // quedarse atrapado al previsualizar con rol cliente/transportista. Vuelve
+        // a admin y apaga el mantenimiento. (En producción NO existirá: el rol y el
+        // mantenimiento los impone el backend; un cliente real no puede salir.)
         var exit = document.getElementById('maintAdminExit');
-        if (exit) exit.hidden = true;
+        if (exit) exit.hidden = !block;
         // Bloquea el scroll del fondo solo cuando el overlay está visible.
         document.body.style.overflow = block ? 'hidden' : '';
     }
+    // Escape de pruebas: rol admin + mantenimiento off (solo mockup).
+    function salirModoPruebas() {
+        try { localStorage.setItem('dynamoRole', 'admin'); } catch (e) {}
+        try { localStorage.setItem(MAINT_KEY, '0'); } catch (e) {}
+        if (typeof applyRole === 'function') applyRole('admin');
+        applyMaintenance();
+    }
+    window.salirModoPruebas = salirModoPruebas;
     function toggleMaint() {
         var on = localStorage.getItem(MAINT_KEY) === '1';
         try { localStorage.setItem(MAINT_KEY, on ? '0' : '1'); } catch (e) {}
