@@ -2274,10 +2274,16 @@
            se recorta con "…" al ancho de la más larga de fecha/dir — el máx lo
            fija por JS (capRouteSites → rf-site.style.maxWidth). */
         table.data td.route-full .rf-stops .rf-txt { min-width: 0; }
-        table.data td.route-full .rf-stops .rf-fecha,
+        /* Fecha (día/rango) ENTERA; el horario entre paréntesis se recorta con
+           "…" para que la columna no se ensanche por horarios larguísimos. */
+        table.data td.route-full .rf-stops .rf-fecha { display: flex; align-items: baseline; gap: 0.3rem; min-width: 0; }
+        table.data td.route-full .rf-stops .rf-fecha > strong { flex: none; white-space: nowrap; }
+        table.data td.route-full .rf-stops .rf-hor { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* Dirección ENTERA (no se recorta). */
         table.data td.route-full .rf-stops .rf-dir { display: block; white-space: nowrap; }
+        /* Empresa: se recorta con "…" al ancho de fecha/dirección. */
         table.data td.route-full .rf-stops .rf-site {
-            display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
         }
         /* iOS "data detectors": aunque las direcciones son texto plano, Safari
            las convierte en enlaces al mapa. Las neutralizamos (texto normal, no
@@ -10527,14 +10533,17 @@
         var tb = document.getElementById('tbodyCargas');
         if (!tb) return;
         tb.querySelectorAll('.rf-txt').forEach(function (txt) {
-            var f = txt.querySelector('.rf-fecha'), d = txt.querySelector('.rf-dir'), s = txt.querySelector('.rf-site');
-            if (!s) return;
-            // Oculta la empresa para que la caja mida SOLO fecha/dirección; así
-            // el máximo es el ancho real de la más larga de esas dos.
-            s.style.display = 'none';
-            var w = Math.max(f ? f.scrollWidth : 0, d ? d.scrollWidth : 0);
-            s.style.display = '';
-            s.style.maxWidth = w > 0 ? (w + 'px') : 'none';
+            var strong = txt.querySelector('.rf-fecha > strong'), hor = txt.querySelector('.rf-hor'),
+                d = txt.querySelector('.rf-dir'), s = txt.querySelector('.rf-site');
+            // Mide fecha (día) y dirección ocultando horario y empresa (que SÍ
+            // se recortan); así el ancho de la caja = la más larga de fecha/dir.
+            txt.style.maxWidth = 'none';
+            if (hor) hor.style.display = 'none';
+            if (s) s.style.display = 'none';
+            var w = Math.max(strong ? strong.scrollWidth : 0, d ? d.scrollWidth : 0);
+            if (hor) hor.style.display = '';
+            if (s) s.style.display = '';
+            txt.style.maxWidth = w > 0 ? (w + 'px') : 'none';
         });
     }
     window.capRouteSites = capRouteSites;
