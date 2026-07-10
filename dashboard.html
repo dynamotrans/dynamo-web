@@ -12307,10 +12307,10 @@
                 var precio = 50 + dist * 0.85 * occFactor;
                 var uv = urgenciaSel ? urgenciaSel.value : 'estandar';
                 // FECHA FIJA: 2 suplementos independientes.
-                //  1) Por ser día concreto (fija) → +15% base.
-                //  2) Por PREAVISO corto (hoy o el siguiente día hábil) → urgente:
-                //     sube a +20% y +50 € fijos. Con 2+ días hábiles de preaviso
-                //     se queda en la fija estándar (+15%).
+                //  1) Por ser día concreto (fija) → +15% SIEMPRE.
+                //  2) Por PREAVISO corto (hoy o el siguiente día hábil) → +100 €
+                //     fijos ADICIONALES. Con 2+ días hábiles de preaviso NO se aplica
+                //     (solo queda el +15% de fija).
                 // El tramo se decide por la fecha ELEGIDA (o la 1ª disponible si aún
                 // no hay fecha). Ventana 1 a 3 días → base, sin suplemento.
                 var fijaUrgente = false;
@@ -12318,8 +12318,9 @@
                     var selIso = (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) ? diaSel.value : null;
                     var effDate = selIso ? new Date(selIso + 'T00:00:00') : firstLoadDate('dia');
                     fijaUrgente = bizDaysAhead(effDate) <= 1;
-                    if (fijaUrgente) { precio *= 1.20; precio += 50; }
-                    else { precio *= 1.15; }
+                    precio *= 1.15;                 // suplemento de fecha fija (siempre)
+                    // El +100 € de preaviso corto es PLANO → se suma al final,
+                    // tras todos los multiplicadores (no lo escala techo/tipo/etc.).
                 }
                 // Mercancía: no paletizada +10%. Tipo de carga: si implica techo +15%.
                 if (mercaSel && mercaSel.selectedIndex === 1) precio *= 1.1;
@@ -12345,7 +12346,11 @@
                 // precio en la confirmación al cambiar el tipo allí).
                 card.dataset.precioBase = String(Math.round(precio / 10) * 10);
                 card.dataset.recargoTipo = String(recTipo);
+                // Suplemento plano de preaviso corto (se guarda aparte para que la
+                // confirmación lo vuelva a sumar tras el recargo por tipo).
+                card.dataset.fijaFlat = String((uv === 'dia' && fijaUrgente) ? 100 : 0);
                 precio *= (1 + recTipo);
+                if (uv === 'dia' && fijaUrgente) precio += 100; // preaviso corto (plano)
                 precio = Math.round(precio / 10) * 10;
                 // Arranca en el número que se está mostrando AHORA (no en lastPrice)
                 // para que la animación encadene aunque renderEta se llame 2 veces.
@@ -13002,7 +13007,8 @@
                 if (!base) { var r0 = parseFloat(card.dataset.recargoTipo || '0') || 0; base = Math.round((pendingData.precioMock || 0) / (1 + r0)); }
                 var rec = 0;
                 confirmCard.querySelectorAll('[data-sitio-tipo]').forEach(function (sel) { rec += (TIPO_RECARGO[sel.value] || 0); });
-                var precio = Math.round(base * (1 + rec) / 10) * 10;
+                var flat = parseInt(card.dataset.fijaFlat || '0', 10) || 0; // preaviso corto (plano)
+                var precio = Math.round((base * (1 + rec) + flat) / 10) * 10;
                 pendingData.precioMock = precio;
                 var eur = String(precio).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                 var box = confirmCard.querySelector('[data-ptar-conf-price]');
