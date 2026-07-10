@@ -12418,6 +12418,9 @@
                     renderEta();
                 });
                 syncAddBtns();
+                // Una parada extra suma al precio (nº de paradas × 40 €): recalcula
+                // y anima el importe al añadirla, no solo al elegir su ubicación.
+                renderEta();
                 row.querySelector('input').focus({ preventScroll: true });
             }
             // "+" al final de la fila de origen (añade recogida) y de destino (añade entrega).
@@ -12435,7 +12438,11 @@
             }
             origPlus = makePlus(origWrap, 'recogida');
             destPlus = makePlus(destWrap, 'entrega');
-            if (urgenciaSel) urgenciaSel.addEventListener('change', renderEta);
+            // La ventana recalcula el precio en el handler de abajo (que además
+            // refresca las fechas disponibles). Solo añadimos aquí el renderEta
+            // suelto si NO hay selector de fecha (sin ese handler); si hubiese
+            // los dos, el segundo recrearía la caja y mataría la animación.
+            if (urgenciaSel && !diaSel) urgenciaSel.addEventListener('change', renderEta);
             // Al cambiar la ventana, recalcula las fechas disponibles (el corte
             // de las 14:00 y "hoy/mañana" dependen de la ventana). Si la fecha ya
             // elegida deja de ser válida (típico: pasar a "fija" después de las
