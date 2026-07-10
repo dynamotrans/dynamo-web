@@ -2980,6 +2980,19 @@
         }
         .ptar-nofecha-warn strong { color: #5c4500; }
         .ptar-nofecha-warn a { color: #5c4500; font-weight: 700; }
+        /* Aviso tipo Amazon (cuenta atrás al corte del día). Verde info. */
+        .ptar-cutoff-note {
+            margin-top: 0.45rem;
+            padding: 0.55rem 0.7rem;
+            background: #eafaf0;
+            color: #0f6b3a;
+            border: 1px solid #b7ebcd;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            line-height: 1.4;
+        }
+        .ptar-cutoff-note strong { color: #094d29; }
+        .ptar-cutoff-note em { font-style: normal; font-weight: 700; color: #b25500; }
         /* Aviso de pago por adelantado (sin crédito) bajo Fecha de envío. */
         .ptar-prepago-warn {
             margin-top: 0.45rem;
@@ -4475,6 +4488,9 @@
                     </select>
                 </div>
                 </div>
+                <!-- Aviso tipo Amazon: cuenta atrás al corte del día para saber si
+                     HOY puede ser el primer día de carga. Se actualiza en vivo. -->
+                <div class="ptar-field-full"><div class="ptar-cutoff-note" data-ptar-cutoff-note hidden></div></div>
 
                 <!-- El aviso de pago por adelantado ya NO va en el formulario;
                      el detalle de la transferencia aparece en la confirmación. -->
@@ -12600,8 +12616,45 @@
                 }
                 syncNofechaWarn();
                 renderEta();
+                updateCutoffNote();
             });
             if (diaSel) diaSel.addEventListener('change', renderEta);
+
+            // Aviso tipo Amazon: cuenta atrás al corte del día. Dice si HOY puede
+            // ser el primer día de carga (corte 12:00 fija / 15:00 ventana) o, si
+            // ya pasó, cuál es el primer día posible. Se actualiza en vivo.
+            function updateCutoffNote() {
+                var el = card.querySelector('[data-ptar-cutoff-note]');
+                if (!el || !urgenciaSel) return;
+                var uv = urgenciaSel.value;
+                var now = nowMadrid();
+                var minsNow = now.getHours() * 60 + now.getMinutes();
+                var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                var todayBiz = !nonBiz(today);
+                var cut = (uv === 'dia') ? (12 * 60) : (15 * 60);
+                var cutLabel = (uv === 'dia') ? '12:00' : '15:00';
+                var first = firstLoadDate(uv);
+                var firstIsToday = first.getTime() === today.getTime();
+                var html;
+                if (todayBiz && minsNow < cut && firstIsToday) {
+                    var rem = cut - minsNow, h = Math.floor(rem / 60), m = rem % 60;
+                    var remTxt = (h > 0 ? h + ' h ' : '') + m + ' min';
+                    html = '⏱ <strong>Pide antes de las ' + cutLabel + '</strong> (quedan ' + remTxt +
+                        ') y <strong>hoy (' + fmtEtaDate(today) + ')</strong> puede ser el primer día de carga' +
+                        (uv === 'dia' ? ' <em>· tarifa urgente</em>' : '') + '.';
+                    if (uv === 'estandar') {
+                        html += ' Ventana: del ' + fmtEtaDate(first) + ' al ' + fmtEtaDate(addBusinessDays(first, 2)) + '.';
+                    }
+                } else {
+                    html = '⏱ El corte de las ' + cutLabel + ' ya ha pasado. Primer día de carga posible: <strong>' + fmtEtaDate(first) + '</strong>';
+                    if (uv === 'dia') html += ' <em>· tarifa fija</em>.';
+                    else html += ' (ventana del ' + fmtEtaDate(first) + ' al ' + fmtEtaDate(addBusinessDays(first, 2)) + ').';
+                }
+                el.innerHTML = html;
+                el.hidden = false;
+            }
+            updateCutoffNote();
+            if (!card._cutoffTimer) card._cutoffTimer = setInterval(updateCutoffNote, 30000);
 
             // Los campos de recogida/entrega arrancan VACÍOS (los defaults
             // de prueba Sevilla→Madrid se retiraron).
