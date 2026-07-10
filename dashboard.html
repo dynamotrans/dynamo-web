@@ -7755,8 +7755,13 @@
     }
     function applyMaintenance() {
         var on = maintActive();
+        // El mantenimiento SOLO bloquea a los roles que NO son admin. El admin
+        // sigue entrando y usando la plataforma (es quien lo activa/desactiva).
+        var role = document.body.getAttribute('data-role') || 'admin';
+        var block = on && role !== 'admin';
         var ov = document.getElementById('maintOverlay');
-        if (ov) ov.hidden = !on;
+        if (ov) ov.hidden = !block;
+        // El botón del panel refleja el estado global (on/off), lo vea el admin.
         var btn = document.getElementById('maintToggleBtn');
         if (btn) {
             btn.classList.toggle('maint-on', on);
@@ -7764,13 +7769,12 @@
             var lbl = btn.querySelector('.maint-control-btn-label');
             if (lbl) lbl.textContent = on ? 'Desactivar' : 'Activar';
         }
-        // Salida SIEMPRE disponible en el overlay (discreta, abajo): como el
-        // overlay tapa el menú, esta es la vía fiable para desactivarlo sin
-        // tener que tocar la URL. En la app real el on/off vendría del backend.
+        // El overlay lo ve un no-admin: no puede desactivar el mantenimiento
+        // (solo el admin desde el panel). Sin enlace de salida.
         var exit = document.getElementById('maintAdminExit');
-        if (exit) exit.hidden = !on;
-        // Bloquea el scroll del fondo mientras está el overlay.
-        document.body.style.overflow = on ? 'hidden' : '';
+        if (exit) exit.hidden = true;
+        // Bloquea el scroll del fondo solo cuando el overlay está visible.
+        document.body.style.overflow = block ? 'hidden' : '';
     }
     function toggleMaint() {
         var on = localStorage.getItem(MAINT_KEY) === '1';
@@ -10534,6 +10538,16 @@
         });
     }
     window.capRouteSites = capRouteSites;
+    // Tipo de mercancía simplificado para la columna: solo Paletizado / No
+    // paletizado (sin el detalle). 'No paletizada (maquinaria, perfiles…)' y
+    // 'Maquinaria', 'Material obra'… caen en No paletizado.
+    function mercPaletiz(c) {
+        var m = normTxt(c.mercancia || '');
+        if (/no\s*paletiz/.test(m)) return 'No paletizado';
+        if (/paletiz/.test(m)) return 'Paletizado';
+        return 'No paletizado';
+    }
+    window.mercPaletiz = mercPaletiz;
     function renderCargasTable() {
         var st = TABLE_STATE.cargas;
         var rows = filteredCargas();
@@ -10602,7 +10616,7 @@
                             ? '<span class="ref-creado">(Modificado: ' + fmtCreado(c.modificadoEn) + ')</span>'
                             : (c.creadoEn ? '<span class="ref-creado">(Creado: ' + fmtCreado(c.creadoEn) + ')</span>' : '')) +
                     '</td>' +
-                    '<td class="mercancia">' + esc(c.mercancia) +
+                    '<td class="mercancia">' + esc(mercPaletiz(c)) +
                         (function () {
                             var lbl = cargaCorta(c.tipoCarga) || cargaFromMedidas(c.medidas);
                             var cls = /completo/i.test(lbl) ? 'carga-completo' : 'carga-grupaje';
