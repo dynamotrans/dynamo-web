@@ -4037,7 +4037,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Ruta y fechas</th><th>Envío</th><th>Mercancía</th><th>Vehículo</th><th class="th-amount">Importe<span class="th-sub">Impuestos no incl.</span></th>
+                    <th>Recogida</th><th>Entrega</th><th>Envío</th><th>Mercancía</th><th>Vehículo</th><th class="th-amount">Importe<span class="th-sub">Impuestos no incl.</span></th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -10257,7 +10257,10 @@
             '</span></div></div>';
             if (s.t === 'recogida') recHtml += h; else entHtml += h;
         });
-        return '<td class="route-full"><div class="rf-stops"><div class="rf-col">' + recHtml + '</div><div class="rf-col">' + entHtml + '</div></div></td>';
+        // DOS columnas de tabla reales (Recogida | Entrega): así el navegador
+        // alinea la columna de entregas igual en todas las filas.
+        return '<td class="route-full route-rec"><div class="rf-stops"><div class="rf-col">' + recHtml + '</div></div></td>' +
+               '<td class="route-full route-ent"><div class="rf-stops"><div class="rf-col">' + entHtml + '</div></div></td>';
     }
     // Fecha de carga efectiva de un envío (asignada si existe, si no la
     // solicitada) como Date. null si es "Sin fecha" (previsión).
@@ -10541,7 +10544,7 @@
         var tbody = document.getElementById('tbodyCargas');
         if (!tbody) return;
         if (slice.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
         } else {
             tbody.innerHTML = slice.map(function (c) {
                 // Si la carga tiene fecha asignada por el equipo, la
