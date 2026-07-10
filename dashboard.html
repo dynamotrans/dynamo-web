@@ -2152,7 +2152,7 @@
         }
         table.data {
             width: 100%; border-collapse: collapse; font-size: 0.82rem;
-            --rl: 1.3rem; /* alto de cada renglón de la rejilla de líneas */
+            --rl: 1.05rem; /* alto de cada renglón de la rejilla de líneas */
             /* Min-width mas bajo (era 900px) -> menos scroll horizontal
                en iPad portrait/movil. En desktop sigue llenando el 100%
                del contenedor por width: 100% */
@@ -2166,7 +2166,7 @@
             white-space: nowrap;
         }
         table.data tbody td {
-            padding: 0.32rem 0.9rem; border-bottom: 1px solid var(--gray-200);
+            padding: 0.16rem 0.9rem; border-bottom: 1px solid var(--gray-200);
             color: var(--navy); vertical-align: top;
             /* Rejilla de líneas: cada "renglón" de cualquier columna mide lo
                mismo (--rl) y arranca a la misma altura (vertical-align:top +
@@ -2251,7 +2251,7 @@
         table.data td.route-full { color: var(--gray-700); min-width: 190px; white-space: nowrap; }
         table.data td.route-full .rf-line { display: flex; align-items: flex-start; gap: 0.4rem; line-height: 1.3; }
         table.data td.route-full .rf-line + .rf-line { margin-top: 0.28rem; }
-        table.data td.route-full .rf-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 0.42rem; }
+        table.data td.route-full .rf-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: calc((var(--rl) - 7px) / 2); }
         table.data td.route-full .rf-dot.orig { background: var(--orange); }
         table.data td.route-full .rf-dot.dest { background: var(--green); }
         /* Parada donde está el camión AHORA (cargando/entregando): parpadea */
@@ -2309,7 +2309,7 @@
         table.data td.ref .ref-cli-line { color: var(--gray-500); margin-top: 0.15rem; }
         table.data td.ref .ref-cli-inline { color: var(--gray-500); font-weight: 500; }
         /* Fecha/hora de creación: pequeñita y en UNA línea */
-        table.data td.ref .ref-creado { display: block; font-size: inherit; color: var(--gray-400); white-space: nowrap; margin-top: 2px; }
+        table.data td.ref .ref-creado { display: block; font-size: 0.72rem; color: var(--gray-400); white-space: nowrap; margin-top: 2px; }
         table.data .envio-estado { margin-top: 0.35rem; }
         /* Chip primero: el badge de fase arriba, con separación hacia el nº
            de envío que va debajo. */
