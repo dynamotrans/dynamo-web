@@ -12435,7 +12435,7 @@
                 card.dataset.fijaPct = String(uv === 'dia' ? 0.15 : 0);
                 card.dataset.fijaFlat = String((uv === 'dia' && fijaUrgente) ? 100 : 0);
                 // === Desglose de conceptos (para la caja de precio) ===
-                //  Importe de envío (con recargo por tipo) → Fecha fija (+15%) →
+                //  Importe de envío (con recargo por tipo) → Fecha fija →
                 //  Preaviso urgente (+100 €) → Base imponible = suma.
                 var envioNeto = Math.round(precio * (1 + recTipo) / 10) * 10; // importe de envío
                 var fijaExtra = (uv === 'dia') ? envioNeto * 0.15 : 0;        // suplemento fecha fija
@@ -12443,7 +12443,7 @@
                 var precioRows = [];
                 if (uv === 'dia') {
                     precioRows.push({ k: 'Importe de envío', v: envioNeto });
-                    precioRows.push({ k: 'Fecha fija (+15%)', v: fijaExtra });
+                    precioRows.push({ k: 'Fecha fija', v: fijaExtra });
                     if (preavisoExtra) precioRows.push({ k: 'Preaviso urgente', v: preavisoExtra });
                 }
                 precio = envioNeto + fijaExtra + preavisoExtra; // base imponible (neto)
@@ -13159,7 +13159,7 @@
                 var rows = [];
                 if (fijaPct > 0) {
                     rows.push({ k: 'Importe de envío', v: envioNeto });
-                    rows.push({ k: 'Fecha fija (+15%)', v: fijaExtra });
+                    rows.push({ k: 'Fecha fija', v: fijaExtra });
                     if (flat) rows.push({ k: 'Preaviso urgente', v: flat });
                 }
                 pendingData.precioMock = precio;
