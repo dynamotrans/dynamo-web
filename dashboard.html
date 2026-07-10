@@ -11502,19 +11502,30 @@
             return n;
         }
         function firstLoadDate(windowVal) {
-            // Primera fecha ofertada. Corte (hora Madrid) según tipo:
-            //  · dia      → FECHA FIJA: puede ser HOY si es hábil y antes de las 12:00.
-            //  · estandar → VENTANA 1 a 3 días: HOY si es hábil y antes de las 15:00.
-            // (El precio de la fija urgente/estándar se decide luego por la fecha
-            //  elegida y su preaviso, no aquí.)
+            // Primera fecha ofertada (hora Madrid).
+            //  · dia (FECHA FIJA), corte 12:00:
+            //      - antes de las 12:00 (día hábil) → HOY (ventana urgente abierta:
+            //        hoy y el siguiente día hábil salen a precio urgente).
+            //      - pasadas las 12:00 → se CIERRA la ventana urgente (hoy + mañana):
+            //        la 1ª fija salta a HOY + 2 días hábiles (precio estándar).
+            //  · estandar (VENTANA 1 a 3 días), corte 15:00: HOY si es hábil y antes
+            //    de las 15:00; si no, siguiente día hábil.
             var now = nowMadrid();
             var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             var minsNow = now.getHours() * 60 + now.getMinutes();
-            var cutMin = (windowVal === 'dia') ? (12 * 60) : (15 * 60);
-            var dd = new Date(today); nextBiz(dd);
-            var esHoy = dd.getTime() === today.getTime();
-            if (esHoy && minsNow >= cutMin) { dd.setDate(dd.getDate() + 1); nextBiz(dd); }
-            return dd;
+            var firstBiz = new Date(today); nextBiz(firstBiz);
+            var esHoy = firstBiz.getTime() === today.getTime();
+            if (windowVal === 'dia') {
+                if (esHoy && minsNow < 12 * 60) return today;   // urgente abierta
+                if (esHoy) {                                    // pasado el corte
+                    var d = new Date(today), adv = 0;
+                    while (adv < 2) { d.setDate(d.getDate() + 1); if (!nonBiz(d)) adv++; }
+                    return d;                                   // hoy + 2 hábiles
+                }
+                return firstBiz;                                // hoy no hábil → sig. hábil
+            }
+            if (esHoy && minsNow >= 15 * 60) { var e = new Date(firstBiz); e.setDate(e.getDate() + 1); nextBiz(e); return e; }
+            return firstBiz;
         }
         function loadDates(windowVal, count) {
             var d = firstLoadDate(windowVal), out = [];
