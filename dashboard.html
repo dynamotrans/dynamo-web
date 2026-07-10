@@ -12613,7 +12613,7 @@
                 renderEta();
                 updateCutoffNote();
             });
-            if (diaSel) diaSel.addEventListener('change', renderEta);
+            if (diaSel) diaSel.addEventListener('change', function () { renderEta(); updateCutoffNote(); });
 
             // Aviso tipo Amazon: cuenta atrás al corte del día. Dice si HOY puede
             // ser el primer día de carga (corte 12:00 fija / 15:00 ventana) o, si
@@ -12621,6 +12621,8 @@
             function updateCutoffNote() {
                 var el = card.querySelector('[data-ptar-cutoff-note]');
                 if (!el || !urgenciaSel) return;
+                // Con una fecha concreta ya elegida, el aviso del corte sobra: se oculta.
+                if (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) { el.hidden = true; return; }
                 var uv = urgenciaSel.value;
                 var now = nowMadrid();
                 var secNow = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
