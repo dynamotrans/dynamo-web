@@ -10638,21 +10638,49 @@
     function capRouteSites() {
         var tb = document.getElementById('tbodyCargas');
         if (!tb) return;
-        tb.querySelectorAll('.rf-txt').forEach(function (txt) {
-            var strong = txt.querySelector('.rf-fecha > strong'), hor = txt.querySelector('.rf-hor'),
-                d = txt.querySelector('.rf-dir'), s = txt.querySelector('.rf-site');
-            // Mide fecha (día) y dirección ocultando horario y empresa (que SÍ
-            // se recortan); así el ancho de la caja = la más larga de fecha/dir.
-            txt.style.maxWidth = 'none';
-            if (hor) hor.style.display = 'none';
-            if (s) s.style.display = 'none';
-            var w = Math.max(strong ? strong.scrollWidth : 0, d ? d.scrollWidth : 0);
-            if (hor) hor.style.display = '';
-            if (s) s.style.display = '';
-            txt.style.maxWidth = w > 0 ? (w + 'px') : 'none';
+        // El horario y la empresa se recortan con "…", pero el tope NO es el
+        // ancho de su propia celda, sino el de la COLUMNA entera: la columna de
+        // tabla es tan ancha como la fecha/dirección más larga de TODAS las
+        // filas. Así, si una fila tiene la dirección corta, su horario puede
+        // usar todo el ancho de la columna (que otra fila ensanchó) antes de
+        // recortar — no aparece "…" habiendo hueco libre. Se hace por columna:
+        // recogidas (.route-rec) y entregas (.route-ent) por separado.
+        ['.route-rec', '.route-ent'].forEach(function (colSel) {
+            var txts = Array.prototype.slice.call(tb.querySelectorAll('td' + colSel + ' .rf-txt'));
+            if (!txts.length) return;
+            // 1) Preparar medición: quitar tope y ocultar horario/empresa.
+            txts.forEach(function (txt) {
+                txt.style.maxWidth = 'none';
+                var hor = txt.querySelector('.rf-hor'), s = txt.querySelector('.rf-site');
+                if (hor) hor.style.display = 'none';
+                if (s) s.style.display = 'none';
+            });
+            // 2) Ancho de columna = fecha(día) o dirección más ancha de TODAS las filas.
+            var colMax = 0;
+            txts.forEach(function (txt) {
+                var strong = txt.querySelector('.rf-fecha > strong'), d = txt.querySelector('.rf-dir');
+                var w = Math.max(strong ? strong.scrollWidth : 0, d ? d.scrollWidth : 0);
+                if (w > colMax) colMax = w;
+            });
+            // 3) Restaurar horario/empresa y aplicar ese tope de columna a todas.
+            txts.forEach(function (txt) {
+                var hor = txt.querySelector('.rf-hor'), s = txt.querySelector('.rf-site');
+                if (hor) hor.style.display = '';
+                if (s) s.style.display = '';
+                txt.style.maxWidth = colMax > 0 ? (colMax + 'px') : 'none';
+            });
         });
     }
     window.capRouteSites = capRouteSites;
+    // Recalcular los topes al cambiar el tamaño de ventana (el ancho de columna
+    // depende del viewport). Debounce ligero para no recalcular en cada píxel.
+    (function () {
+        var t = null;
+        window.addEventListener('resize', function () {
+            if (t) clearTimeout(t);
+            t = setTimeout(function () { if (window.capRouteSites) window.capRouteSites(); }, 150);
+        });
+    })();
     // Tipo de mercancía simplificado para la columna: solo Paletizado / No
     // paletizado (sin el detalle). 'No paletizada (maquinaria, perfiles…)' y
     // 'Maquinaria', 'Material obra'… caen en No paletizado.
