@@ -13667,7 +13667,7 @@
                 var _totalHist = (typeof CARGAS_DATA !== 'undefined') ? CARGAS_DATA.length : 0;
                 var _cancHist = (typeof CARGAS_DATA !== 'undefined') ? CARGAS_DATA.filter(function (c) { return c.kind === 'cancelada'; }).length : 0;
                 var _ratioCanc = _totalHist ? Math.round(_cancHist / _totalHist * 100) : 0;
-                var suspBloque = '<p style="font-size:0.82rem;line-height:1.5;color:var(--gray-500);margin-top:0.7rem;">La <strong>cancelación reiterada de envíos</strong> puede conllevar la <strong>suspensión temporal o definitiva de la cuenta</strong> si se detecta un uso fraudulento, abusivo o irresponsable. <strong>Tus cancelaciones (últimos 12 meses): ' + _ratioCanc + '% de los envíos confirmados.</strong></p>';
+                var suspBloque = '<p style="font-size:0.82rem;line-height:1.5;color:var(--gray-500);margin-top:0.7rem;">La <strong>cancelación reiterada de envíos</strong> puede conllevar la <strong>suspensión temporal o definitiva de la cuenta</strong> si se detecta un uso fraudulento, abusivo o irresponsable. <strong>Tus cancelaciones (últimos 12 meses): ' + _ratioCanc + '% de los envíos confirmados.</strong> Por encima de 15% de cancelaciones la cuenta puede ser suspendida.</p>';
                 var cancelBody;
                 if (trasCorte) {
                     // Ya se ha pasado el corte: la cancelación puede tener coste completo.
