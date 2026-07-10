@@ -2165,7 +2165,7 @@
             white-space: nowrap;
         }
         table.data tbody td {
-            padding: 0.5rem 0.9rem; border-bottom: 1px solid var(--gray-200);
+            padding: 0.32rem 0.9rem; border-bottom: 1px solid var(--gray-200);
             color: var(--navy); vertical-align: top;
         }
         table.data tbody tr:last-child td { border-bottom: none; }
@@ -2327,8 +2327,19 @@
         table.data .carga-tag { font-weight: 700; }
         table.data .carga-completo { color: var(--navy); }
         table.data .carga-grupaje  { color: #dc2626; }
-        /* Chips dentro de tablas: mismo tamaño que el resto del texto */
-        table.data .badge, table.data .asig-line { font-size: inherit; }
+        /* Chips dentro de tablas: finos (alto de una línea de texto normal).
+           Casi sin relleno vertical y un pelín más pequeños para que la píldora
+           no engorde la fila; la jerarquía la sigue dando el color. */
+        table.data .badge, table.data .asig-line {
+            font-size: 0.68rem;
+            padding-top: 0.02rem; padding-bottom: 0.02rem;
+            line-height: 1.25;
+        }
+        table.data .badge-prog::before, table.data .badge-hacia::before,
+        table.data .badge-cargando::before, table.data .badge-enruta::before,
+        table.data .badge-entrega::before, table.data .badge-retrasada::before,
+        table.data .badge-pago::before,
+        table.data .asig-line .asig-dot { width: 6px; height: 6px; }
         /* Texto de tablas a tamaño ÚNICO (heredan el 0.82rem base), chips
            incluidos: la jerarquía la da el color, no el tamaño. */
         table.data .meta { color: var(--gray-500); }
