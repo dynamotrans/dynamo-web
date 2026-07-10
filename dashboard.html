@@ -4470,9 +4470,9 @@
                 </div>
                 <div class="ptar-field">
                     <select id="ptar-urgencia-carga" data-ptar-urgencia class="ptar-select" aria-label="Ventana de carga">
-                        <option value="dia">Fecha fija (un día concreto, más cara)</option>
-                        <option value="estandar">1 a 2 días (estándar)</option>
-                        <option value="flexible" selected>1 a 4 días (flexible, más económica)</option>
+                        <option value="fija-hoy">Fecha fija · mismo día posible (la más cara)</option>
+                        <option value="dia">Fecha fija (un día concreto)</option>
+                        <option value="estandar" selected>1 a 3 días (ventana, más económica)</option>
                     </select>
                 </div>
                 </div>
@@ -11490,31 +11490,37 @@
         //  · Fecha fija ('dia'): mañana si se solicita antes de 14:00; si es más
         //    tarde, pasado mañana (ya no se organiza para el día siguiente).
         //  · Ventana 1-2 / 1-4 días: se puede empezar HOY o mañana siempre.
+        // Nº de días hábiles hacia atrás desde d (2 hábiles antes, etc.).
+        function prevBizN(d, n) {
+            var x = new Date(d);
+            for (var i = 0; i < n; i++) { x.setDate(x.getDate() - 1); while (nonBiz(x)) x.setDate(x.getDate() - 1); }
+            return x;
+        }
         function firstLoadDate(windowVal) {
-            // Corte único a las 10:00 (hora Madrid).
+            // Corte y antelación distintos por tipo (hora Madrid):
+            //  · fija-hoy → puede ser HOY si es hábil y antes de las 11:00.
+            //  · dia      → FIJA planificada, NUNCA hoy: 2 días hábiles de
+            //               antelación con corte 13:30 (del día hábil que está
+            //               2 hábiles antes de la carga).
+            //  · estandar → VENTANA 1 a 3 días: puede ser HOY si es hábil y antes
+            //               de las 15:00.
             var now = nowMadrid();
-            var antesDe10 = now.getHours() < 10; // estrictamente antes de las 10:00
             var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            var minsNow = now.getHours() * 60 + now.getMinutes();
             if (windowVal === 'dia') {
-                // FECHA FIJA (un solo día): NUNCA hoy. Solo se puede reservar si
-                // se pide antes de las 10:00 del DÍA HÁBIL ANTERIOR a la carga.
-                //  · antes de las 10:00 (día hábil) → primera fija = sig. día hábil.
-                //  · pasadas las 10:00           → primera fija = 2º día hábil.
                 var d = new Date(today); d.setDate(d.getDate() + 1); nextBiz(d); // 1er hábil > hoy
-                for (var guard = 0; guard < 60; guard++) {
-                    var prev = new Date(d); prev.setDate(prev.getDate() - 1);
-                    while (nonBiz(prev)) prev.setDate(prev.getDate() - 1); // día hábil anterior a la carga
-                    var deadline = new Date(prev.getFullYear(), prev.getMonth(), prev.getDate(), 10, 0, 0, 0);
-                    if (now.getTime() <= deadline.getTime()) return d;   // llega al corte de ese día
-                    d.setDate(d.getDate() + 1); nextBiz(d);              // no llega → siguiente hábil
+                for (var guard = 0; guard < 90; guard++) {
+                    var p = prevBizN(d, 2);
+                    var deadline = new Date(p.getFullYear(), p.getMonth(), p.getDate(), 13, 30, 0, 0);
+                    if (now.getTime() < deadline.getTime()) return d; // llega al corte 13:30
+                    d.setDate(d.getDate() + 1); nextBiz(d);
                 }
                 return d;
             }
-            // VENTANA (1 a 2 / 1 a 4 días): cogen HOY + siguiente como mínimo. Hoy
-            // solo si es hábil y antes de las 10:00; pasado el corte, sig. día hábil.
+            var cutMin = (windowVal === 'fija-hoy') ? (11 * 60) : (15 * 60);
             var dd = new Date(today); nextBiz(dd);
             var esHoy = dd.getTime() === today.getTime();
-            if (esHoy && !antesDe10) { dd.setDate(dd.getDate() + 1); nextBiz(dd); }
+            if (esHoy && minsNow >= cutMin) { dd.setDate(dd.getDate() + 1); nextBiz(dd); }
             return dd;
         }
         function loadDates(windowVal, count) {
@@ -11596,7 +11602,7 @@
             ph.disabled = true;
             ph.selected = true;
             sel.appendChild(ph);
-            loadDates(windowVal || 'flexible', 7).forEach(function (d) {
+            loadDates(windowVal || 'estandar', 7).forEach(function (d) {
                 var opt = document.createElement('option');
                 opt.value = isoLocal(d);
                 opt.textContent = dayLabel(d);
@@ -12110,22 +12116,21 @@
                 var oc = (origWrap.dataset.cc || '').toLowerCase();
                 var dc = (destWrap.dataset.cc || '').toLowerCase();
                 var internacional = !!(oc && dc && oc !== dc);
-                // Grupaje → sin "Fecha fija". Grupaje INTERNACIONAL (origen y
-                // destino en países distintos) → solo "1 a 4 días".
-                var allowDia = !esGrupaje;
-                var allowEst = !(esGrupaje && internacional);
+                // Grupaje → sin "Fecha fija" (ni mismo día ni normal): no se puede
+                // garantizar un día concreto hasta completar camión. Queda la
+                // ventana 1 a 3 días.
+                var allowFija = !esGrupaje;
                 var prev = urgenciaSel.value;
                 urgenciaSel.innerHTML = '';
                 ventanaOptsAll.forEach(function (opt) {
-                    if (opt.value === 'dia' && !allowDia) return;
-                    if (opt.value === 'estandar' && !allowEst) return;
+                    if ((opt.value === 'dia' || opt.value === 'fija-hoy') && !allowFija) return;
                     opt.disabled = false; opt.hidden = false;
                     urgenciaSel.appendChild(opt);
                 });
                 if (urgenciaSel.querySelector('option[value="' + prev + '"]')) {
                     urgenciaSel.value = prev;
                 } else {
-                    urgenciaSel.value = 'flexible';
+                    urgenciaSel.value = 'estandar';
                     urgenciaSel.dispatchEvent(new Event('change'));
                 }
             }
@@ -12155,14 +12160,14 @@
                 if (fw && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) fw.hidden = true;
             });
             if (diaSel) {
-                fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'flexible');
+                fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'estandar');
                 function attachFlatpickr() {
                     if (!window.flatpickr || fp || !fechaInput) return;
                     fp = window.flatpickr(fechaInput, {
                         locale: window.flatpickr.l10ns && window.flatpickr.l10ns.es ? 'es' : 'default',
                         // La 1ª fecha elegible depende de la ventana (fija no
                         // admite hoy y exige el corte del día hábil anterior).
-                        minDate: isoLocal(firstLoadDate(urgenciaSel ? urgenciaSel.value : 'flexible')),
+                        minDate: isoLocal(firstLoadDate(urgenciaSel ? urgenciaSel.value : 'estandar')),
                         maxDate: new Date(Date.now() + 90 * 24 * 3600 * 1000),
                         disableMobile: true,
                         disable: [function (d) { return nonBiz(d); }],
@@ -12296,8 +12301,11 @@
                 var occTn = parseFloat(pesoSel.value) || 0;
                 var occFactor = ocupacion(occMl, occTn, Math.round(occMl * 2.5), occInfo).pct / 100;
                 var precio = 50 + dist * 0.85 * occFactor;
-                var uv = urgenciaSel ? urgenciaSel.value : 'flexible';
-                precio *= (uv === 'dia' ? 1.15 : uv === 'estandar' ? 1.0 : 0.9);
+                var uv = urgenciaSel ? urgenciaSel.value : 'estandar';
+                // Urgencia: fija mismo día +20% (y +50 € fijos), fija +15%,
+                // ventana 1 a 3 días base.
+                precio *= (uv === 'fija-hoy' ? 1.20 : uv === 'dia' ? 1.15 : 1.0);
+                if (uv === 'fija-hoy') precio += 50;
                 // Mercancía: no paletizada +10%. Tipo de carga: si implica techo +15%.
                 if (mercaSel && mercaSel.selectedIndex === 1) precio *= 1.1;
                 if (cargaTipoSel && /techo/i.test(cargaTipoSel.value)) precio *= 1.15;
@@ -12334,8 +12342,7 @@
                 if (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) {
                     loadStart = new Date(diaSel.value + 'T00:00:00');
                 }
-                var ventana = urgenciaSel.value === 'dia' ? 1
-                            : urgenciaSel.value === 'flexible' ? 4 : 2;
+                var ventana = urgenciaSel.value === 'estandar' ? 3 : 1; // fija-hoy y dia = 1 día
 
                 var rangoHtml = '';
                 var cargaHtml = '';
@@ -12410,21 +12417,20 @@
                 } else {
                     rangoHtml = '<dd class="ptar-eta-stat">' + driveTxt + ' tras la carga</dd>';
                 }
-                // Aviso "hoy para hoy": solo si la carga es HOY mismo Y con
-                // FECHA FIJA (1 día concreto). Con ventana 1-2 o 1-4 días no se
-                // muestra (hay margen). No se garantiza cargar hoy y la
-                // cancelación <24h con transportista asignado conlleva cargos.
+                // Aviso "hoy para hoy": solo con "Fecha fija · mismo día posible"
+                // cuando la carga cae HOY. Con fija normal (futura) se recomienda
+                // la ventana; con ventana 1-3 no se muestra nada (hay margen).
                 var hoyHtml = '';
-                if (loadStart && ventana === 1) {
+                if (loadStart && (uv === 'fija-hoy' || uv === 'dia')) {
                     var nM = nowMadrid();
                     var esHoy = loadStart.getFullYear() === nM.getFullYear() &&
                         loadStart.getMonth() === nM.getMonth() &&
                         loadStart.getDate() === nM.getDate();
                     if (esHoy) {
-                        hoyHtml = '<div class="ptar-eta-hoy">⚠ <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. Cancelar una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. <strong>Recomendación:</strong> amplía ya la ventana de carga; así, si no se consigue hoy, podremos asignar camión para los días siguientes (esperar a última hora deja sin margen).</div>';
+                        hoyHtml = '<div class="ptar-eta-hoy">⚠ <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. Cancelar una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. <strong>Recomendación:</strong> usa una <strong>ventana de 1 a 3 días</strong>; así, si no se consigue hoy, podremos asignar camión para los días siguientes (esperar a última hora deja sin margen).</div>';
                     } else {
-                        // Fecha fija en un día futuro: recomendar ventana de 2 días.
-                        hoyHtml = '<div class="ptar-eta-fija"><strong>Has elegido fecha fija (un solo día).</strong> Una <strong>ventana de 1 a 2 días</strong> aumenta mucho la probabilidad de cargar a tiempo y suele salir más económica. Con fecha fija, si ese día no hay vehículo disponible habría que reprogramar la carga.</div>';
+                        // Fecha fija en un día futuro: recomendar la ventana.
+                        hoyHtml = '<div class="ptar-eta-fija"><strong>Has elegido fecha fija (un solo día).</strong> Una <strong>ventana de 1 a 3 días</strong> aumenta mucho la probabilidad de cargar a tiempo y suele salir más económica. Con fecha fija, si ese día no hay vehículo disponible habría que reprogramar la carga.</div>';
                     }
                 }
                 etaBox.innerHTML =
@@ -12610,8 +12616,8 @@
                 var nima = card.querySelector('[data-ptar-nima]');
                 if (nima) nima.checked = false;
                 applyCamion();
-                if (diaSel) { fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'flexible'); syncNofechaWarn(); }
-                urgenciaSel.value = 'flexible';
+                if (diaSel) { fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'estandar'); syncNofechaWarn(); }
+                urgenciaSel.value = 'estandar';
                 refCliInput.value = '';
                 if (refCliBody) refCliBody.hidden = true;
                 if (refCliToggle) refCliToggle.setAttribute('aria-expanded', 'false');
@@ -12703,8 +12709,9 @@
                 var mercaTxt = [mercaPalShort, cargaTipoTxt].filter(Boolean).join(' · ');
                 var mercanciaShort = mercaTxt;
                 var urgenciaSel_label = urgenciaSel.options[urgenciaSel.selectedIndex].text;
-                var urgenciaTxt = urgenciaSel.value === 'dia' ? 'Fija'
-                    : urgenciaSel.value === 'flexible' ? '1 a 4 días' : '1 a 2 días';
+                var urgenciaTxt = urgenciaSel.value === 'fija-hoy' ? 'Fija · mismo día posible'
+                    : urgenciaSel.value === 'dia' ? 'Fija'
+                    : '1 a 3 días';
                 var fechaTxt, fechaLarga;
                 // Si el modo es 'carga' el selector de fecha existe y NO puede
                 // quedarse en el placeholder ('') — hay que elegir una opción
@@ -12757,7 +12764,7 @@
                     urgenciaTxt: urgenciaTxt, urgenciaLabel: urgenciaSel_label,
                     fechaTxt: fechaTxt, fechaLarga: fechaLarga,
                     fechaIso: (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) ? diaSel.value : null,
-                    ventanaDias: urgenciaSel.value === 'dia' ? 1 : urgenciaSel.value === 'flexible' ? 4 : 2,
+                    ventanaDias: urgenciaSel.value === 'estandar' ? 3 : 1,
                     refCli: refCliInput.value.trim() || (mode === 'carga' ? 'PED-NUEVO' : 'COT-NUEVO'),
                     notes: notesTxt.value.trim(),
                     origSitePick: sitePickDe(origWrap),
@@ -13658,10 +13665,9 @@
                             });
                         }
                     }
-                    // Ventana de carga.
+                    // Ventana de carga (esquema nuevo: fija / 1 a 3 días).
                     if (urgenciaSel) {
-                        urgenciaSel.value = /4/.test(src.ventana || '') ? 'flexible'
-                            : /fija/i.test(src.ventana || '') ? 'dia' : 'media';
+                        urgenciaSel.value = /fija/i.test(src.ventana || '') ? 'dia' : 'estandar';
                     }
                     if (notesTxt) notesTxt.value = '';
                     renderOcupacion();
