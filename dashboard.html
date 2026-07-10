@@ -1416,6 +1416,19 @@
             font-size: 1.15rem; line-height: 1; cursor: pointer; padding: 0 0.25rem; flex-shrink: 0;
         }
         .modal-file-item .mfi-del:hover { color: var(--red); }
+        /* Valoración del transportista (1-5 estrellas), solo en entregados */
+        .rate-widget { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
+        .rate-stars { display: inline-flex; gap: 0.15rem; }
+        .rate-star {
+            border: none; background: transparent; padding: 0; cursor: pointer;
+            color: #d1d5db; line-height: 0; transition: color 0.12s, transform 0.12s;
+        }
+        .rate-star svg { width: 30px; height: 30px; display: block; }
+        .rate-star.on { color: #f5b301; }
+        .rate-star:hover { transform: scale(1.15); }
+        .rate-label { font-size: 0.85rem; font-weight: 700; color: var(--gray-500); }
+        .rate-label.rated { color: #b8860b; }
+        .rate-done { font-size: 0.8rem; color: var(--green-dark); font-weight: 600; }
         .modal-success {
             text-align: center; padding: 1.2rem 0 0.6rem;
         }
@@ -6994,6 +7007,43 @@
     // Footer común para los modales Ver detalle: solo Cerrar
     var DETAIL_FOOTER = '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>';
 
+    // Widget de valoración 1-5 estrellas (una sola puntuación global).
+    var STAR_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 17.3l-5.4 3.2 1.4-6.1L3 10.1l6.2-.5L12 4l2.8 5.6 6.2.5-4.9 4.3 1.4 6.1z"/></svg>';
+    function ratingWidgetHtml(val) {
+        var stars = '';
+        for (var i = 1; i <= 5; i++) {
+            stars += '<button type="button" class="rate-star' + (i <= val ? ' on' : '') + '" data-star="' + i + '" aria-label="' + i + ' de 5 estrellas">' + STAR_SVG + '</button>';
+        }
+        return '<div class="rate-widget" data-rate-widget>' +
+            '<div class="rate-stars">' + stars + '</div>' +
+            '<span class="rate-label' + (val ? ' rated' : '') + '" data-rate-label>' + (val ? val + ' / 5' : 'Sin valorar') + '</span>' +
+            '</div>';
+    }
+    // Enlaza el widget de estrellas de un modal a la carga `src` (persiste en el objeto).
+    function bindRatingWidget(src) {
+        var w = document.querySelector('[data-rate-widget]');
+        if (!w || !src) return;
+        var label = w.querySelector('[data-rate-label]');
+        var stars = Array.prototype.slice.call(w.querySelectorAll('.rate-star'));
+        function paint(n, hover) {
+            stars.forEach(function (b) { b.classList.toggle('on', parseInt(b.getAttribute('data-star'), 10) <= n); });
+            if (label) {
+                label.textContent = n ? (n + ' / 5') : 'Sin valorar';
+                label.classList.toggle('rated', !!n && !hover);
+            }
+        }
+        stars.forEach(function (b) {
+            var n = parseInt(b.getAttribute('data-star'), 10);
+            b.addEventListener('mouseenter', function () { paint(n, true); });
+            b.addEventListener('click', function () {
+                src.valoracion = n; paint(n, false);
+                if (label) { label.textContent = n + ' / 5 · ¡Gracias!'; label.classList.add('rated'); }
+                if (typeof renderCargasTable === 'function') renderCargasTable();
+            });
+        });
+        w.querySelector('.rate-stars').addEventListener('mouseleave', function () { paint(src.valoracion || 0, false); });
+    }
+
     /* ---- ACCIONES CARGAS ---- */
     function cargaVerDetalle(row) {
         var d = cargaRowData(row);
@@ -7056,6 +7106,13 @@
                     items.push({ label: 'Medidas', value: d.medidas });
                     return infoGrid(items);
                 })() +
+                // Valoración del transportista: solo en envíos ENTREGADOS
+                // (el servicio ya se ha dado). Una única puntuación 1-5 estrellas.
+                (src.kind === 'entregada'
+                    ? sectionTitle('Valora el transporte') +
+                      '<p class="detail-doc-note">Puntúa de 1 a 5 estrellas el servicio del transportista en este envío. Solo puntuación, sin comentarios.</p>' +
+                      ratingWidgetHtml(src.valoracion || 0)
+                    : '') +
                 sectionTitle('Documentación de la operación') +
                 '<p class="detail-doc-note">Albaranes de recogida, CRM u otra documentación operativa para enseñar en el sitio de <strong>carga y/o entrega</strong>. No son los albaranes firmados de la entrega —esos aparecen en el listado de <strong>Albaranes</strong>—.</p>' +
                 '<div class="modal-file-drop" id="opDocsDrop"><div id="opDocsLabel">📎 Adjuntar documentación</div><div class="modal-file-drop-sub">JPG, PNG, PDF · hasta 5 archivos</div></div>' +
@@ -7065,6 +7122,7 @@
             footer: DETAIL_FOOTER,
             afterOpen: function () {
                 var src2 = findCargaDataByRef(d.ref) || src;
+                bindRatingWidget(src2); // valoración (solo aparece en entregados)
                 if (!src2._docsOp) src2._docsOp = [];
                 var drop = document.getElementById('opDocsDrop');
                 var input = document.getElementById('opDocsInput');
