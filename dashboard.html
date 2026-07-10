@@ -4489,7 +4489,7 @@
                         </span>
                     </div>
                     <div class="ptar-nofecha-warn" data-ptar-fecha-warn hidden>
-                        ⚠ Con <strong>fecha fija</strong> ya no es posible cargar el día elegido (solicitud después de las 14:00). <strong>Amplía la ventana de carga</strong> (1 a 2 o 1 a 4 días) o <strong>elige un día posterior</strong>.
+                        ⚠ Con <strong>fecha fija</strong> ese día ya no es posible: hay que pedirlo <strong>antes de las 10:00 del día hábil anterior</strong> a la carga (y nunca para hoy). <strong>Amplía la ventana de carga</strong> (1 a 2 o 1 a 4 días) o <strong>elige un día posterior</strong>.
                     </div>
                 </div>
 
@@ -11491,16 +11491,31 @@
         //    tarde, pasado mañana (ya no se organiza para el día siguiente).
         //  · Ventana 1-2 / 1-4 días: se puede empezar HOY o mañana siempre.
         function firstLoadDate(windowVal) {
-            // Primer día ofertado = HOY si es laborable Y aún no han pasado las
-            // 10:30 (hora Madrid). Pasado ese corte, no se admite carga para hoy
-            // → el primer día seleccionable es el siguiente día hábil.
+            // Corte único a las 10:00 (hora Madrid).
             var now = nowMadrid();
-            var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            nextBiz(d);
-            var esHoy = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
-            var pasadoCorte = now.getHours() > 10 || (now.getHours() === 10 && now.getMinutes() >= 30);
-            if (esHoy && pasadoCorte) { d.setDate(d.getDate() + 1); nextBiz(d); }
-            return d;
+            var antesDe10 = now.getHours() < 10; // estrictamente antes de las 10:00
+            var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            if (windowVal === 'dia') {
+                // FECHA FIJA (un solo día): NUNCA hoy. Solo se puede reservar si
+                // se pide antes de las 10:00 del DÍA HÁBIL ANTERIOR a la carga.
+                //  · antes de las 10:00 (día hábil) → primera fija = sig. día hábil.
+                //  · pasadas las 10:00           → primera fija = 2º día hábil.
+                var d = new Date(today); d.setDate(d.getDate() + 1); nextBiz(d); // 1er hábil > hoy
+                for (var guard = 0; guard < 60; guard++) {
+                    var prev = new Date(d); prev.setDate(prev.getDate() - 1);
+                    while (nonBiz(prev)) prev.setDate(prev.getDate() - 1); // día hábil anterior a la carga
+                    var deadline = new Date(prev.getFullYear(), prev.getMonth(), prev.getDate(), 10, 0, 0, 0);
+                    if (now.getTime() <= deadline.getTime()) return d;   // llega al corte de ese día
+                    d.setDate(d.getDate() + 1); nextBiz(d);              // no llega → siguiente hábil
+                }
+                return d;
+            }
+            // VENTANA (1 a 2 / 1 a 4 días): cogen HOY + siguiente como mínimo. Hoy
+            // solo si es hábil y antes de las 10:00; pasado el corte, sig. día hábil.
+            var dd = new Date(today); nextBiz(dd);
+            var esHoy = dd.getTime() === today.getTime();
+            if (esHoy && !antesDe10) { dd.setDate(dd.getDate() + 1); nextBiz(dd); }
+            return dd;
         }
         function loadDates(windowVal, count) {
             var d = firstLoadDate(windowVal), out = [];
@@ -12145,7 +12160,9 @@
                     if (!window.flatpickr || fp || !fechaInput) return;
                     fp = window.flatpickr(fechaInput, {
                         locale: window.flatpickr.l10ns && window.flatpickr.l10ns.es ? 'es' : 'default',
-                        minDate: 'today',
+                        // La 1ª fecha elegible depende de la ventana (fija no
+                        // admite hoy y exige el corte del día hábil anterior).
+                        minDate: isoLocal(firstLoadDate(urgenciaSel ? urgenciaSel.value : 'flexible')),
                         maxDate: new Date(Date.now() + 90 * 24 * 3600 * 1000),
                         disableMobile: true,
                         disable: [function (d) { return nonBiz(d); }],
@@ -12538,6 +12555,7 @@
                 var isRealDate = /^\d{4}-\d{2}-\d{2}$/.test(prev);
                 var nv = urgenciaSel.value;
                 var minIso = isoLocal(firstLoadDate(nv));
+                if (fp) fp.set('minDate', minIso); // el "Otro día…" respeta el nuevo mínimo
                 fillDiaSelect(diaSel, mode, nv);
                 var fw = card.querySelector('[data-ptar-fecha-warn]');
                 if (isRealDate && prev >= minIso) {
