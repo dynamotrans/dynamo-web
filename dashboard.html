@@ -2036,6 +2036,10 @@
         }
         .tab:hover { color: var(--navy); }
         .tab.active { color: var(--purple); border-bottom-color: var(--purple); }
+        /* Al pulsar con el ratón NO se muestra el recuadro de foco del navegador;
+           con teclado (Tab) sí se ve un anillo accesible. */
+        .tab:focus { outline: none; }
+        .tab:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; border-radius: 6px; }
 
         .filters {
             display: flex; gap: 0.5rem; margin-bottom: 1rem;
