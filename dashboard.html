@@ -2193,21 +2193,22 @@
             background: #fee2e2;
             box-shadow: inset 6px 0 0 0 #b91c1c;
         }
-        /* Rampa ámbar que se aclara con la distancia (en días HÁBILES). */
-        /* Hoy: ámbar más marcado */
+        /* Rampa AZUL serena que se aclara con la distancia (en días HÁBILES).
+           Más suave que el ámbar anterior: descansa la vista. */
+        /* Hoy: azul más marcado */
         table.data tr.row-today {
-            background: #ffe3b8;
-            box-shadow: inset 4px 0 0 0 #f59e0b;
+            background: #e8eefb;
+            box-shadow: inset 4px 0 0 0 #3b82f6;
         }
         /* Hoy + 1 día hábil: más claro */
         table.data tr.row-tomorrow {
-            background: #ffefd0;
-            box-shadow: inset 4px 0 0 0 #f7ad3c;
+            background: #eff3fd;
+            box-shadow: inset 4px 0 0 0 #7ea6f5;
         }
         /* Hoy + 2 días hábiles: aún más claro */
         table.data tr.row-aftertomorrow {
-            background: #fff8ea;
-            box-shadow: inset 4px 0 0 0 #fac974;
+            background: #f6f9fe;
+            box-shadow: inset 4px 0 0 0 #b8cef9;
         }
         /* Carga lejana (> 7 días): se atenúa en gris claro para que se
            perciba como menos urgente / más lejana en el tiempo */
@@ -2218,10 +2219,9 @@
         /* (Los chips .row-when-tag se eliminaron: el resaltado de urgencia
            ahora es únicamente el color de fondo de la fila.) */
         body.theme-dark table.data tr.row-overdue        { background: rgba(185,28,28,0.18); }
-        body.theme-dark table.data tr.row-today          { background: rgba(245,158,11,0.16); }
-        body.theme-dark table.data tr.row-tomorrow       { background: rgba(245,158,11,0.10); }
-        body.theme-dark table.data tr.row-aftertomorrow  { background: rgba(245,158,11,0.05); }
-        body.theme-dark table.data tr.row-aftertomorrow{ background: rgba(16,185,129,0.12); }
+        body.theme-dark table.data tr.row-today          { background: rgba(59,130,246,0.18); }
+        body.theme-dark table.data tr.row-tomorrow       { background: rgba(59,130,246,0.11); }
+        body.theme-dark table.data tr.row-aftertomorrow  { background: rgba(59,130,246,0.05); }
         body.theme-dark table.data tr.row-far          { background: rgba(255,255,255,0.02); }
         body.theme-dark table.data tr.row-far td,
         body.theme-dark table.data tr.row-far strong   { color: rgba(255,255,255,0.45); }
@@ -8590,7 +8590,10 @@
     var CARGAS_DATA = [
         // === PASADO: 2 cargas con fecha ya vencida y todavía SIN transportista →
         //     Pendiente Asignar (ayer y antes de ayer). Son las más urgentes. ===
-        makeCarga('#C-2026-1289','PED-0425B', mockPasado(1),'1 a 2 días','Sevilla','Logroño','Pol. Las Pajanosas → Pol. Cantabria','Maquinaria','Compresor industrial','8,4 m · 6.500 kg','programada', undefined, {
+        // La primera usa ventana FIJA en el pasado → su plazo de carga ya venció,
+        // así que SIEMPRE se pinta como RETRASADA (fila roja). Sirve de referencia
+        // visual permanente mientras diseñamos (cada día es 1 día hábil de retraso).
+        makeCarga('#C-2026-1289','PED-0425B', mockPasado(1),'Fija','Sevilla','Logroño','Pol. Las Pajanosas → Pol. Cantabria','Maquinaria','Compresor industrial','8,4 m · 6.500 kg','programada', undefined, {
             precio: '1.520 €', tipoCarga: 'Carga completa'
         }),
         makeCarga('#C-2026-1287','PED-0424B', mockPasado(2),'1 a 4 días','Sevilla','Oviedo','Centro logístico → Pol. Silvota','Material obra','Perfiles metálicos','10,0 m · 16.500 kg','programada'),
