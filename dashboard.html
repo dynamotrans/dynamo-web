@@ -12630,6 +12630,14 @@
                 var cutLabel = (uv === 'dia') ? '12:00' : '15:00';
                 var first = firstLoadDate(uv);
                 var firstIsToday = first.getTime() === today.getTime();
+                // Día corto "lunes 13" (sin mes) para nombrar el par urgente.
+                var DIAS_L = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+                function diaCorto(d) { return DIAS_L[d.getDay()] + ' ' + d.getDate(); }
+                // Las 2 primeras fechas fija = urgentes; la 3ª = fija más económica.
+                var d2 = new Date(first); d2.setDate(d2.getDate() + 1); nextBiz(d2);
+                var d3 = new Date(d2); d3.setDate(d3.getDate() + 1); nextBiz(d3);
+                var fijaGuia = ' (' + diaCorto(first) + ' y ' + diaCorto(d2) + '; +100 €). Elige ' + diaCorto(d3) +
+                    ' en adelante fecha fija más económica, o <strong>ventana de carga 1 a 3 días</strong> aún más económica.';
                 var html;
                 if (todayBiz && secNow < cutSec && firstIsToday) {
                     var rem = cutSec - secNow;
@@ -12637,13 +12645,11 @@
                     var remTxt = (h > 0 ? h + ' h ' : '') + m + ' min ' + (s < 10 ? '0' + s : s) + ' s';
                     html = '⏱ <strong>Pide antes de las ' + cutLabel + '</strong> (quedan ' + remTxt +
                         ') y <strong>hoy (' + fmtEtaDate(today) + ')</strong> puede ser el primer día de carga' +
-                        (uv === 'dia' ? ' <em>· tarifa urgente</em>' : '') + '.';
-                    if (uv === 'estandar') {
-                        html += ' Ventana: del ' + fmtEtaDate(first) + ' al ' + fmtEtaDate(addBusinessDays(first, 2)) + '.';
-                    }
+                        (uv === 'dia' ? ' <em>· tarifa urgente</em>' + fijaGuia
+                                      : '. Ventana: del ' + fmtEtaDate(first) + ' al ' + fmtEtaDate(addBusinessDays(first, 2)) + '.');
                 } else {
                     html = '⏱ El corte de las ' + cutLabel + ' ya ha pasado. Primer día de carga posible: <strong>' + fmtEtaDate(first) + '</strong>';
-                    if (uv === 'dia') html += ' <em>· tarifa urgente</em> (es de las 2 primeras fechas; +100 €).';
+                    if (uv === 'dia') html += ' <em>· tarifa urgente</em>' + fijaGuia;
                     else html += ' (ventana del ' + fmtEtaDate(first) + ' al ' + fmtEtaDate(addBusinessDays(first, 2)) + ').';
                 }
                 el.innerHTML = html;
