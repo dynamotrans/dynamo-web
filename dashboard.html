@@ -11505,25 +11505,24 @@
         //  · Fecha fija ('dia'): mañana si se solicita antes de 14:00; si es más
         //    tarde, pasado mañana (ya no se organiza para el día siguiente).
         //  · Ventana 1-2 / 1-4 días: se puede empezar HOY o mañana siempre.
-        // Nº de días hábiles hacia atrás desde d (2 hábiles antes, etc.).
-        // Nº de días HÁBILES desde hoy hasta target (hoy = 0, siguiente hábil = 1…).
-        // Sirve para decidir el suplemento por preaviso de la fecha fija.
-        function bizDaysAhead(target) {
-            var now = nowMadrid();
-            var t = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            var d = new Date(target.getFullYear(), target.getMonth(), target.getDate());
-            if (d.getTime() <= t.getTime()) return 0;
-            var n = 0, cur = new Date(t);
-            while (cur.getTime() < d.getTime()) { cur.setDate(cur.getDate() + 1); if (!nonBiz(cur)) n++; }
+        // Nº de días HÁBILES entre dos fechas (from = 0, siguiente hábil = 1…).
+        // Sirve para decidir el suplemento por preaviso de la fecha fija: se cuenta
+        // desde la 1ª fecha DISPONIBLE, no desde hoy (las 2 primeras = urgente).
+        function bizDaysFrom(from, to) {
+            var a = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+            var b = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+            if (b.getTime() <= a.getTime()) return 0;
+            var n = 0, cur = new Date(a);
+            while (cur.getTime() < b.getTime()) { cur.setDate(cur.getDate() + 1); if (!nonBiz(cur)) n++; }
             return n;
         }
         function firstLoadDate(windowVal) {
             // Primera fecha ofertada (hora Madrid).
             //  · dia (FECHA FIJA), corte 12:00:
-            //      - antes de las 12:00 (día hábil) → HOY (ventana urgente abierta:
-            //        hoy y el siguiente día hábil salen a precio urgente).
-            //      - pasadas las 12:00 → se CIERRA la ventana urgente (hoy + mañana):
-            //        la 1ª fija salta a HOY + 2 días hábiles (precio estándar).
+            //      - antes de las 12:00 (día hábil) → HOY.
+            //      - pasadas las 12:00 (o hoy no hábil) → el SIGUIENTE día hábil.
+            //    (El suplemento urgente lo decide la POSICIÓN de la fecha elegida:
+            //     las 2 primeras disponibles llevan +100 €; la 3ª en adelante no.)
             //  · estandar (VENTANA 1 a 3 días), corte 15:00: HOY si es hábil y antes
             //    de las 15:00; si no, siguiente día hábil.
             var now = nowMadrid();
@@ -11532,16 +11531,9 @@
             var firstBiz = new Date(today); nextBiz(firstBiz);
             var esHoy = firstBiz.getTime() === today.getTime();
             if (windowVal === 'dia') {
-                if (esHoy && minsNow < 12 * 60) return today;   // urgente abierta
-                if (esHoy) {                                    // pasado el corte
-                    // Se pierden HOY y el día NATURAL siguiente; la 1ª fija es el
-                    // primer día hábil a partir de pasado mañana. Así, viernes tras
-                    // las 12:00 → lunes (el finde no cuenta como día perdido); lunes
-                    // tras las 12:00 → miércoles (se pierde el martes).
-                    var d = new Date(today); d.setDate(d.getDate() + 2); nextBiz(d);
-                    return d;
-                }
-                return firstBiz;                                // hoy no hábil → sig. hábil
+                if (esHoy && minsNow < 12 * 60) return today;   // antes del corte → hoy
+                var d = new Date(today); d.setDate(d.getDate() + 1); nextBiz(d);
+                return d;                                       // tras corte / finde → sig. hábil
             }
             if (esHoy && minsNow >= 15 * 60) { var e = new Date(firstBiz); e.setDate(e.getDate() + 1); nextBiz(e); return e; }
             return firstBiz;
@@ -12336,7 +12328,8 @@
                 if (uv === 'dia') {
                     var selIso = (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) ? diaSel.value : null;
                     var effDate = selIso ? new Date(selIso + 'T00:00:00') : firstLoadDate('dia');
-                    fijaUrgente = bizDaysAhead(effDate) <= 1;
+                    // Urgente = una de las 2 primeras fechas disponibles (offset 0/1).
+                    fijaUrgente = bizDaysFrom(firstLoadDate('dia'), effDate) <= 1;
                     precio *= 1.15;                 // suplemento de fecha fija (siempre)
                     // El +100 € de preaviso corto es PLANO → se suma al final,
                     // tras todos los multiplicadores (no lo escala techo/tipo/etc.).
@@ -12456,17 +12449,16 @@
                 } else {
                     rangoHtml = '<dd class="ptar-eta-stat">' + driveTxt + ' tras la carga</dd>';
                 }
-                // Mensaje de la FECHA FIJA según el preaviso de la fecha elegida:
-                //  · urgente (hoy o siguiente día hábil) → aviso de suplemento por
-                //    urgencia + no garantía de cargar en el día.
-                //  · estándar (2+ días hábiles) → nota informativa. Con ventana no sale nada.
+                // Mensaje de la FECHA FIJA según la posición de la fecha elegida:
+                //  · urgente (una de las 2 primeras disponibles) → aviso de +100 €.
+                //  · estándar (3ª en adelante) → nota informativa. Con ventana no sale nada.
                 var hoyHtml = '';
                 if (loadStart && uv === 'dia') {
-                    if (bizDaysAhead(loadStart) <= 1) {
+                    if (bizDaysFrom(firstLoadDate('dia'), loadStart) <= 1) {
                         var nM = nowMadrid();
                         var esHoy = loadStart.getFullYear() === nM.getFullYear() &&
                             loadStart.getMonth() === nM.getMonth() && loadStart.getDate() === nM.getDate();
-                        hoyHtml = '<div class="ptar-eta-hoy">⚠ <strong>Fecha fija urgente (' + (esHoy ? 'hoy' : 'siguiente día hábil') + '):</strong> por el poco preaviso lleva un <strong>suplemento de urgencia</strong>. ' + (esHoy ? 'No se garantiza cargar en el día; cancelar (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. ' : '') + 'Con <strong>2 o más días hábiles</strong> de preaviso pasa a <strong>tarifa de fecha fija estándar</strong> (más económica), o usa la <strong>ventana de 1 a 3 días</strong>.</div>';
+                        hoyHtml = '<div class="ptar-eta-hoy">⚠ <strong>Fecha fija urgente (poco preaviso):</strong> lleva un <strong>suplemento de +100 €</strong>. ' + (esHoy ? 'Además es para HOY: no se garantiza cargar en el día; cancelar (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. ' : '') + 'Eligiendo una fecha algo más adelante (a partir de la 3.ª disponible) pasa a <strong>tarifa de fecha fija estándar</strong>, o usa la <strong>ventana de 1 a 3 días</strong>.</div>';
                     } else {
                         hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija estándar</strong> (preaviso suficiente). Con fecha fija, si ese día no hay vehículo habría que reprogramar; una <strong>ventana de 1 a 3 días</strong> aumenta la probabilidad de cargar a tiempo y suele salir más económica.</div>';
                     }
@@ -12651,7 +12643,7 @@
                     }
                 } else {
                     html = '⏱ El corte de las ' + cutLabel + ' ya ha pasado. Primer día de carga posible: <strong>' + fmtEtaDate(first) + '</strong>';
-                    if (uv === 'dia') html += ' <em>· tarifa fija</em>.';
+                    if (uv === 'dia') html += ' <em>· tarifa urgente</em> (es de las 2 primeras fechas; +100 €).';
                     else html += ' (ventana del ' + fmtEtaDate(first) + ' al ' + fmtEtaDate(addBusinessDays(first, 2)) + ').';
                 }
                 el.innerHTML = html;
