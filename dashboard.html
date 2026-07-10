@@ -4489,7 +4489,7 @@
                         </span>
                     </div>
                     <div class="ptar-nofecha-warn" data-ptar-fecha-warn hidden>
-                        ⚠ Con <strong>fecha fija</strong> ese día ya no es posible: hay que pedirlo <strong>antes de las 10:00 del día hábil anterior</strong> a la carga (y nunca para hoy). <strong>Amplía la ventana de carga</strong> (1 a 2 o 1 a 4 días) o <strong>elige un día posterior</strong>.
+                        ⚠ Con <strong>fecha fija</strong> ese día ya no es posible con la antelación necesaria. <strong>Amplía a la ventana de 1 a 3 días</strong> o <strong>elige un día posterior</strong>.
                     </div>
                 </div>
 
@@ -8715,7 +8715,7 @@
         makeCarga('#C-2026-1289','PED-0425B', mockPasado(1),'Fija','Sevilla','Logroño','Pol. Las Pajanosas → Pol. Cantabria','Maquinaria','Compresor industrial','8,4 m · 6.500 kg','programada', undefined, {
             precio: '1.520 €', tipoCarga: 'Carga completa'
         }),
-        makeCarga('#C-2026-1287','PED-0424B', mockPasado(2),'1 a 4 días','Sevilla','Oviedo','Centro logístico → Pol. Silvota','Material obra','Perfiles metálicos','10,0 m · 16.500 kg','programada'),
+        makeCarga('#C-2026-1287','PED-0424B', mockPasado(2),'1 a 3 días','Sevilla','Oviedo','Centro logístico → Pol. Silvota','Material obra','Perfiles metálicos','10,0 m · 16.500 kg','programada'),
         // === FUTURO: programadas aún por cargar. El estado de asignación varía
         //     (En espera / Asignándose / Confirmado) según transportista y días. ===
         makeCarga('#C-2026-1281','PED-0419', mockFuturo(3),'Fija','Sevilla','Barcelona','Centro logístico → Zona Franca','Maquinaria','2 piezas, sobredim.','8,4 m · 14.500 kg','programada', undefined, {
@@ -8726,14 +8726,14 @@
         makeCarga('#C-2026-1285','PED-0423', mockFuturo(4),'Fija','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Paletizado','Repuestos automoción','12,0 m · 20.000 kg','programada', undefined, {
             precio: '1.420 €', tipoCarga: 'Carga completa'
         }),
-        makeCarga('#C-2026-1290','PED-0426', mockFuturo(7),'1 a 2 días','Sevilla','Madrid','Pol. Industrial Carretera de la Isla → Mercamadrid','Paletizado','Productos químicos','13,2 m · 22.000 kg','programada', undefined, {
+        makeCarga('#C-2026-1290','PED-0426', mockFuturo(7),'1 a 3 días','Sevilla','Madrid','Pol. Industrial Carretera de la Isla → Mercamadrid','Paletizado','Productos químicos','13,2 m · 22.000 kg','programada', undefined, {
             precio: '880 €', fechaAsignada: mockFuturo(7) + ' 08:00', horaCargaEst: '08:00',
             horarioOrigen: 'L-V 7:00-15:00', horarioDestino: 'L-S 0:00-24:00',
             tipoCamion: 'Trailer Tauliner · 13,2 m', tipoCarga: 'Carga completa',
             transportistaAsignado: true, transportistaNombre: 'Transportes Beltrán S.L.',
             matricula: '4502 NDZ', conductor: 'Antonio Beltrán', tfnoConductor: '+34 644 778 332'
         }),
-        makeCarga('#C-2026-1294','PED-0430', mockFuturo(5),'1 a 2 días','Sevilla','Pamplona','Pol. Aeropuerto → Pol. Landaben','Paletizado','Componentes industriales','13,2 m · 23.500 kg','programada', undefined, {
+        makeCarga('#C-2026-1294','PED-0430', mockFuturo(5),'1 a 3 días','Sevilla','Pamplona','Pol. Aeropuerto → Pol. Landaben','Paletizado','Componentes industriales','13,2 m · 23.500 kg','programada', undefined, {
             precio: '1.340 €', tipoCarga: 'Carga completa'
         }),
         makeCarga('#C-2026-1293','PED-0429', mockFuturo(6),'Fija','Sevilla','Valencia','Pol. Pajanosas → Puerto Valencia','Paletizado','Material eléctrico','13,2 m · 22.500 kg','programada', undefined, {
@@ -8743,33 +8743,33 @@
             transportistaAsignado: true, transportistaNombre: 'Dynamo (camión propio)',
             matricula: '7204 LMR / R-9852', conductor: 'Pedro Rodríguez', tfnoConductor: '+34 661 902 411'
         }),
-        makeCarga('#C-2026-1292','PED-0428', mockFuturo(8),'1 a 4 días','Sevilla','Vigo','Polígono Industrial → Bouzas','Maquinaria','Pieza única','8,4 m · 11.000 kg','programada'),
+        makeCarga('#C-2026-1292','PED-0428', mockFuturo(8),'1 a 3 días','Sevilla','Vigo','Polígono Industrial → Bouzas','Maquinaria','Pieza única','8,4 m · 11.000 kg','programada'),
         makeCarga('#C-2026-1288','PED-0425', mockFuturo(2),'Fija','Sevilla','Barcelona','Polígono Carretera Amarilla → Mercabarna','Paletizado','Frutas y verduras','13,2 m · 24.000 kg','programada', undefined, {
             precio: '1.480 €', tipoCarga: 'Carga completa'
         }),
-        makeCarga('#C-2026-1286','PED-0424', mockFuturo(9),'1 a 4 días','Sevilla','Valencia','Almacén central → Puerto','Eventos / feria','Stand modular','6,0 m · 8.200 kg','programada'),
-        makeCarga('#C-2026-1284','PED-0421','15/06','1 a 2 días','Sevilla','Madrid','Pol. Carretera de la Isla → Mercamadrid','Paletizado','Aceite envasado','13,2 m · 24.000 kg','entregada', false),
+        makeCarga('#C-2026-1286','PED-0424', mockFuturo(9),'1 a 3 días','Sevilla','Valencia','Almacén central → Puerto','Eventos / feria','Stand modular','6,0 m · 8.200 kg','programada'),
+        makeCarga('#C-2026-1284','PED-0421','15/06','1 a 3 días','Sevilla','Madrid','Pol. Carretera de la Isla → Mercamadrid','Paletizado','Aceite envasado','13,2 m · 24.000 kg','entregada', false),
         makeCarga('#C-2026-1283','PED-0420','13/06','Fija','Madrid','Valencia','Vallecas → Puerto','Paletizado','Bebidas refrigeradas','13,2 m · 22.000 kg','entregada'),
-        makeCarga('#C-2026-1282','PED-0419B','12/06','1 a 2 días','Sevilla','Vigo','Polígono → Bouzas','Material obra','Cerámica','13,2 m · 20.000 kg','entregada'),
+        makeCarga('#C-2026-1282','PED-0419B','12/06','1 a 3 días','Sevilla','Vigo','Polígono → Bouzas','Material obra','Cerámica','13,2 m · 20.000 kg','entregada'),
         makeCarga('#C-2026-1278','PED-0417','11/06','Fija','Sevilla','A Coruña','Centro → Pol. Pocomaco','Paletizado','Cosméticos','10,0 m · 15.000 kg','entregada', false),
-        makeCarga('#C-2026-1276','PED-0416','11/06','1 a 2 días','Sevilla','Valencia','Almacén central → Puerto','Material','Tubos PVC','13,2 m · 22.500 kg','entregada'),
-        makeCarga('#C-2026-1275','PED-0414','10/06','1 a 2 días','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Mercancía paletizada','33 europalets','13,2 m · 22.500 kg','entregada'),
+        makeCarga('#C-2026-1276','PED-0416','11/06','1 a 3 días','Sevilla','Valencia','Almacén central → Puerto','Material','Tubos PVC','13,2 m · 22.500 kg','entregada'),
+        makeCarga('#C-2026-1275','PED-0414','10/06','1 a 3 días','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Mercancía paletizada','33 europalets','13,2 m · 22.500 kg','entregada'),
         makeCarga('#C-2026-1273','PED-0413','09/06','Fija','Sevilla','Pamplona','Centro → Pol. Landaben','Maquinaria','1 pieza compacta','8,4 m · 9.500 kg','entregada', false),
         makeCarga('#C-2026-1272','PED-0411','05/06','Fija','Sevilla','Lisboa (PT)','Centro → Quinta da Beloura','Material de obra','Perfiles metálicos','10,0 m · 18.000 kg','entregada'),
-        makeCarga('#C-2026-1270','PED-0410','03/06','1 a 2 días','Sevilla','Murcia','Centro → Pol. Cabezo Beaza','Eventos','Stand modular','6,0 m · 7.500 kg','entregada'),
-        makeCarga('#C-2026-1268','PED-0405','02/06','1 a 2 días','Sevilla','Zaragoza','Polígono → Plaza','Paletizado','Material eléctrico','13,2 m · 19.000 kg','entregada'),
+        makeCarga('#C-2026-1270','PED-0410','03/06','1 a 3 días','Sevilla','Murcia','Centro → Pol. Cabezo Beaza','Eventos','Stand modular','6,0 m · 7.500 kg','entregada'),
+        makeCarga('#C-2026-1268','PED-0405','02/06','1 a 3 días','Sevilla','Zaragoza','Polígono → Plaza','Paletizado','Material eléctrico','13,2 m · 19.000 kg','entregada'),
         makeCarga('#C-2026-1266','PED-0404','30/05','Fija','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Aceite oliva virgen','13,2 m · 23.500 kg','entregada'),
-        makeCarga('#C-2026-1264','PED-0403','28/05','1 a 4 días','Sevilla','Oviedo','Centro → Pol. Silvota','Maquinaria','Sobredimensionada','8,4 m · 12.000 kg','entregada'),
+        makeCarga('#C-2026-1264','PED-0403','28/05','1 a 3 días','Sevilla','Oviedo','Centro → Pol. Silvota','Maquinaria','Sobredimensionada','8,4 m · 12.000 kg','entregada'),
         makeCarga('#C-2026-1262','PED-0402','26/05','Fija','Sevilla','Granada','Centro → Pol. Asegra','Material obra','Áridos','10,0 m · 24.000 kg','entregada'),
-        makeCarga('#C-2026-1260','PED-0401','23/05','1 a 2 días','Sevilla','Málaga','Centro → Pol. Guadalhorce','Paletizado','Vino tinto','13,2 m · 21.000 kg','entregada', false),
+        makeCarga('#C-2026-1260','PED-0401','23/05','1 a 3 días','Sevilla','Málaga','Centro → Pol. Guadalhorce','Paletizado','Vino tinto','13,2 m · 21.000 kg','entregada', false),
         makeCarga('#C-2026-1258','PED-0400','20/05','Fija','Sevilla','Toulouse (FR)','Centro → Eurocentre','Paletizado','Aceite oliva','13,2 m · 22.500 kg','entregada'),
-        makeCarga('#C-2026-1256','PED-0399','17/05','1 a 2 días','Sevilla','Valladolid','Centro → Pol. Argales','Maquinaria','Pieza única','8,4 m · 13.000 kg','entregada'),
+        makeCarga('#C-2026-1256','PED-0399','17/05','1 a 3 días','Sevilla','Valladolid','Centro → Pol. Argales','Maquinaria','Pieza única','8,4 m · 13.000 kg','entregada'),
         makeCarga('#C-2026-1254','PED-0398','15/05','Fija','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Tabacos','13,2 m · 24.000 kg','entregada', false),
-        makeCarga('#C-2026-1252','PED-0397','13/05','1 a 4 días','Sevilla','París (FR)','Centro → Rungis','Eventos','Mobiliario feria','10,0 m · 9.500 kg','entregada'),
+        makeCarga('#C-2026-1252','PED-0397','13/05','1 a 3 días','Sevilla','París (FR)','Centro → Rungis','Eventos','Mobiliario feria','10,0 m · 9.500 kg','entregada'),
         makeCarga('#C-2026-1250','PED-0395','10/05','Fija','Sevilla','Lyon (FR)','Centro → Eurexpo','Paletizado','Aceite oliva','13,2 m · 23.500 kg','entregada'),
-        makeCarga('#C-2026-1248','PED-0393','07/05','1 a 2 días','Sevilla','Burgos','Centro → Villalonquejar','Material obra','Hormigón prefabricado','10,0 m · 22.000 kg','entregada'),
+        makeCarga('#C-2026-1248','PED-0393','07/05','1 a 3 días','Sevilla','Burgos','Centro → Villalonquejar','Material obra','Hormigón prefabricado','10,0 m · 22.000 kg','entregada'),
         makeCarga('#C-2026-1246','PED-0391','04/05','Fija','Sevilla','Algeciras','Centro → Puerto','Paletizado','Exportación textil','13,2 m · 18.000 kg','entregada'),
-        makeCarga('#C-2026-1244','PED-0389','02/05','1 a 2 días','Sevilla','Cádiz','Centro → Puerto','Maquinaria','Repuestos navales','8,4 m · 11.000 kg','entregada'),
+        makeCarga('#C-2026-1244','PED-0389','02/05','1 a 3 días','Sevilla','Cádiz','Centro → Puerto','Maquinaria','Repuestos navales','8,4 m · 11.000 kg','entregada'),
         makeCarga('#C-2026-1242','PED-0387','30/04','Fija','Sevilla','Cartagena','Centro → Pol. Cabezo Beaza','Paletizado','Productos químicos','13,2 m · 24.000 kg','entregada')
     ];
     // Anadir 2 entregas dinamicas (hoy + ayer) para que se vea el estado
@@ -8805,7 +8805,7 @@
         // Hoy: sin albaran -> "Albaran procesandose"
         CARGAS_DATA.unshift(makeCarga('#C-2026-1296','PED-0432', fechaDDMM(0), 'Fija','Sevilla','Córdoba','Centro → Pol. Las Quemadas','Paletizado','Repuestos automoción','10,0 m · 16.000 kg','entregada', false));
         // Ayer: sin albaran -> "Reclamar" (>1 dia? no, exactamente 1 -> reclamar)
-        CARGAS_DATA.unshift(makeCarga('#C-2026-1295','PED-0431', fechaDDMM(1), '1 a 2 días','Sevilla','Jaén','Centro → Pol. Olivar','Paletizado','Maquinaria agricola','12,0 m · 18.000 kg','entregada', false));
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1295','PED-0431', fechaDDMM(1), '1 a 3 días','Sevilla','Jaén','Centro → Pol. Olivar','Paletizado','Maquinaria agricola','12,0 m · 18.000 kg','entregada', false));
         // === SEMILLAS PARA VER EL RESALTADO de Programadas (HOY/MAÑANA/PASADO).
         //     Para producción se pueden borrar — basta con que las cargas reales
         //     del cliente caigan en los próximos 3 días laborables.
@@ -8856,11 +8856,11 @@
             matricula: '6217 PCF', conductor: 'David Núñez', tfnoConductor: '+34 678 442 113',
             _phaseSim: 'hacia'
         }));
-        CARGAS_DATA.unshift(makeCarga('#C-2026-1298','PED-0434', fechaFuturaLaborable(1), '1 a 2 días','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Conservas','13,2 m · 23.000 kg','programada'));
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1298','PED-0434', fechaFuturaLaborable(1), '1 a 3 días','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Conservas','13,2 m · 23.000 kg','programada'));
         CARGAS_DATA.unshift(makeCarga('#C-2026-1297','PED-0433', fechaFuturaLaborable(2), 'Fija','Sevilla','Valencia','Pol. Las Pajanosas → Puerto','Paletizado / Aceite','Aceite oliva virgen','13,2 m · 24.000 kg','programada'));
         // === SEMILLAS: envíos con pago por adelantado sin verificar todavía →
         //     estado "Pendiente de pago" (no avanzan hasta validar el pago).
-        CARGAS_DATA.unshift(makeCarga('#C-2026-1301','PED-0437', fechaFuturaLaborable(2), '1 a 2 días','Sevilla','Bilbao','Pol. Store → Pol. Erandio','Paletizado','Material eléctrico','13,2 m · 21.000 kg','programada', undefined, { precio: '980 €', pendientePago: true }));
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1301','PED-0437', fechaFuturaLaborable(2), '1 a 3 días','Sevilla','Bilbao','Pol. Store → Pol. Erandio','Paletizado','Material eléctrico','13,2 m · 21.000 kg','programada', undefined, { precio: '980 €', pendientePago: true }));
         CARGAS_DATA.unshift(makeCarga('#C-2026-1300','PED-0436', fechaFuturaLaborable(3), 'Fija','Sevilla','Barcelona','Centro → Mercabarna','Paletizado','Conservas vegetales','13,2 m · 22.000 kg','programada', undefined, { precio: '1.180 €', pendientePago: true }));
     })();
 
@@ -8901,7 +8901,7 @@
         var matriculas = ['1042 JKL','8830 HTR','2915 LFC','7448 MZS','5061 KPT','3389 NRD','6702 LWB','9127 MCV'];
         var transportistas = ['Dynamo (camión propio)','Transportes Beltrán S.L.','Trans Andalucía 24h','Logística Guadalquivir S.L.','TransIberia Cargo','Hnos. Molina Transportes'];
         var conductores = [['Manuel Reyes','+34 655 217 880'],['Rafael Vega','+34 690 334 221'],['Luis Martínez','+34 622 511 098'],['Andrés Gil','+34 611 220 447'],['Pedro Rodríguez','+34 661 902 411'],['David Núñez','+34 678 442 113']];
-        var ventanas = ['Fija','1 a 2 días','1 a 4 días'];
+        var ventanas = ['Fija','1 a 3 días'];
         var i, m, dest;
         // 12 programadas futuras (10-43 días laborables vista → caen en los
         // meses siguientes y se ven en el filtro de Fecha). Las pares van
@@ -9393,7 +9393,7 @@
         }
         return count;
     }
-    // "Fija" → 1 día laborable; "1 a 2 días" → 2; "1 a 4 días" → 4
+    // "Fija" → 1 día laborable; "1 a 3 días" → 3
     function parseVentanaDays(v) {
         if (!v) return 1;
         var m = String(v).match(/(\d+)\s*a\s*(\d+)/);
@@ -9610,8 +9610,8 @@
         return DOW_SHORT[d.getDay()] + ' ' + s;
     }
     // --- Ventana de carga como rango inicio–fin (días laborables) ---
-    // 'Fija' → un solo día. '1 a 2 días' → inicio + 1 laborable.
-    // '1 a 4 días' → inicio + 3 laborables. Sáb/Dom se saltan.
+    // 'Fija' → un solo día. '1 a 3 días' → inicio + 2 laborables (3 días).
+    // Sáb/Dom se saltan.
     function ventanaDiasN(v) {
         if (!v) return 1;
         if (/4/.test(v)) return 4;
@@ -12098,7 +12098,7 @@
             }
             // Grupaje (ml < máximo del camión): NO se puede garantizar fecha
             // fija (depende de completar camión) → se deshabilita "Fecha fija" en
-            // el selector de ventana y, si estaba elegida, pasa a "1 a 4 días".
+            // el selector de ventana y, si estaba elegida, pasa a "1 a 3 días".
             // Opciones originales del selector de ventana (guardadas una vez para
             // poder reconstruir el select mostrando solo las permitidas — así se
             // OMITEN por completo, no se dejan en gris).
