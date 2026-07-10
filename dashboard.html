@@ -2152,6 +2152,7 @@
         }
         table.data {
             width: 100%; border-collapse: collapse; font-size: 0.82rem;
+            --rl: 1.3rem; /* alto de cada renglón de la rejilla de líneas */
             /* Min-width mas bajo (era 900px) -> menos scroll horizontal
                en iPad portrait/movil. En desktop sigue llenando el 100%
                del contenedor por width: 100% */
@@ -2167,6 +2168,13 @@
         table.data tbody td {
             padding: 0.32rem 0.9rem; border-bottom: 1px solid var(--gray-200);
             color: var(--navy); vertical-align: top;
+            /* Rejilla de líneas: cada "renglón" de cualquier columna mide lo
+               mismo (--rl) y arranca a la misma altura (vertical-align:top +
+               mismo padding). Así la 1ª línea de Recogida/Entrega/Envío/
+               Mercancía/Vehículo/Importe coincide, la 2ª con la 2ª y la 3ª con
+               la 3ª; las columnas con menos datos (Vehículo=2, Importe=1)
+               dejan vacíos los renglones de abajo. */
+            line-height: var(--rl, 1.3rem);
         }
         table.data tbody tr:last-child td { border-bottom: none; }
         /* Cualquier fila es clicable (abre Ver detalle); las celdas de
@@ -2243,7 +2251,7 @@
         table.data td.route-full { color: var(--gray-700); min-width: 190px; white-space: nowrap; }
         table.data td.route-full .rf-line { display: flex; align-items: flex-start; gap: 0.4rem; line-height: 1.3; }
         table.data td.route-full .rf-line + .rf-line { margin-top: 0.28rem; }
-        table.data td.route-full .rf-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 0.32rem; }
+        table.data td.route-full .rf-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 0.42rem; }
         table.data td.route-full .rf-dot.orig { background: var(--orange); }
         table.data td.route-full .rf-dot.dest { background: var(--green); }
         /* Parada donde está el camión AHORA (cargando/entregando): parpadea */
@@ -2340,6 +2348,28 @@
         table.data .badge-entrega::before, table.data .badge-retrasada::before,
         table.data .badge-pago::before,
         table.data .asig-line .asig-dot { width: 6px; height: 6px; }
+
+        /* ---- Rejilla de renglones: cada línea de cada columna = --rl de alto,
+           sin márgenes verticales, para que 1ª/2ª/3ª coincidan entre columnas.
+           Los renglones que contienen una píldora (badge de fase, estado de
+           transportista) fijan su alto a --rl y centran la píldora dentro. ---- */
+        /* Envío */
+        table.data td.ref .envio-estado-top { margin: 0; height: var(--rl); display: flex; align-items: center; }
+        table.data td.ref > strong { line-height: var(--rl); }
+        table.data td.ref .ref-creado { margin-top: 0; line-height: var(--rl); }
+        /* Mercancía */
+        table.data td.mercancia { line-height: var(--rl); }
+        table.data td.mercancia .meta, table.data td.mercancia .meta-medidas { margin: 0; line-height: var(--rl); }
+        /* Vehículo */
+        table.data td.vehiculo .asig-line.asig-top { margin: 0; height: var(--rl); align-items: center; }
+        table.data td.vehiculo .meta-matricula, table.data td.vehiculo .meta-pend { line-height: var(--rl); }
+        table.data td.vehiculo .meta { margin: 0; line-height: var(--rl); }
+        /* Importe */
+        table.data td.amount { line-height: var(--rl); }
+        /* Recogida / Entrega: cada renglón (fecha / dirección / empresa) = --rl */
+        table.data td.route-full .rf-line { line-height: var(--rl); }
+        table.data td.route-full .rf-line + .rf-line { margin-top: 0; }
+        table.data td.route-full .rf-site { margin-top: 0; }
         /* Texto de tablas a tamaño ÚNICO (heredan el 0.82rem base), chips
            incluidos: la jerarquía la da el color, no el tamaño. */
         table.data .meta { color: var(--gray-500); }
