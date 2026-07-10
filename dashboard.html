@@ -2263,24 +2263,21 @@
         /* Recogida y entrega en 2 columnas (izquierda / derecha). En pantallas
            estrechas se apilan. El texto puede envolver (se anula el nowrap). */
         table.data td.route-full .rf-stops {
-            display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);
-            gap: 0.5rem 1.6rem; align-items: start; white-space: normal;
+            display: flex; gap: 0.5rem 1.6rem; align-items: flex-start; white-space: normal;
         }
         /* Columna izquierda = recogidas · derecha = entregas (cada una apila
-           sus paradas). */
-        table.data td.route-full .rf-stops .rf-col { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
-        table.data td.route-full .rf-stops .rf-stop { margin-top: 0; min-width: 0; }
-        /* Fecha y dirección SIEMPRE enteras (una línea, sin recorte). La empresa
-           se recorta con "…" al ancho de la más larga de fecha/dir — el máx
-           lo fija por JS renderCargasTable (rf-site.style.maxWidth). */
-        table.data td.route-full .rf-stops .rf-txt { flex: 0 1 auto; min-width: 0; }
+           sus paradas y mide lo que su contenido más ancho). */
+        table.data td.route-full .rf-stops .rf-col { display: flex; flex-direction: column; gap: 0.5rem; }
+        table.data td.route-full .rf-stops .rf-stop { margin-top: 0; }
+        /* Fecha y dirección SIEMPRE enteras (una línea, NUNCA se recortan; si
+           hace falta más ancho, la tabla hace scroll horizontal). La empresa
+           se recorta con "…" al ancho de la más larga de fecha/dir — el máx lo
+           fija por JS (capRouteSites → rf-site.style.maxWidth). */
+        table.data td.route-full .rf-stops .rf-txt { min-width: 0; }
         table.data td.route-full .rf-stops .rf-fecha,
-        table.data td.route-full .rf-stops .rf-dir,
+        table.data td.route-full .rf-stops .rf-dir { display: block; white-space: nowrap; }
         table.data td.route-full .rf-stops .rf-site {
             display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        @media (max-width: 1100px) {
-            table.data td.route-full .rf-stops { grid-template-columns: 1fr; }
         }
         /* iOS "data detectors": aunque las direcciones son texto plano, Safari
            las convierte en enlaces al mapa. Las neutralizamos (texto normal, no
