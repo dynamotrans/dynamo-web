@@ -12519,7 +12519,7 @@
                         // 3.ª fecha disponible (1ª estándar): firstLoadDate + 2 días hábiles.
                         var d3U = firstLoadDate('dia'); var advU = 0;
                         while (advU < 2) { d3U.setDate(d3U.getDate() + 1); if (!nonBiz(d3U)) advU++; }
-                        hoyHtml = '<div class="ptar-eta-hoy">⚠ <strong>Fecha fija urgente (poco preaviso):</strong> lleva un <strong>suplemento de +100 €</strong>. ' + (esHoy ? 'Además es para HOY: no se garantiza cargar en el día; cancelar (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. ' : '') + 'Eligiendo una fecha algo más adelante (a partir de la 3.ª disponible, el <strong>' + fmtEtaDate(d3U) + '</strong>) pasa a <strong>tarifa de fecha fija estándar</strong>, o usa la <strong>ventana de 1 a 3 días</strong> (flexible), la más económica.</div>';
+                        hoyHtml = '<div class="ptar-eta-hoy">⚠ <strong>Fecha fija urgente (poco preaviso):</strong> lleva un <strong>suplemento</strong>. ' + (esHoy ? 'Además es para HOY: no se garantiza cargar en el día; cancelar (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. ' : '') + 'Eligiendo una fecha algo más adelante (a partir de la 3.ª disponible, el <strong>' + fmtEtaDate(d3U) + '</strong>) pasa a <strong>tarifa de fecha fija estándar</strong>, o usa la <strong>ventana de 1 a 3 días</strong> (flexible), la más económica.</div>';
                     } else {
                         hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija estándar</strong> (preaviso suficiente). Con fecha fija, si ese día no hay vehículo habría que reprogramar; una <strong>ventana de 1 a 3 días</strong> aumenta la probabilidad de cargar a tiempo y suele salir más económica.</div>';
                     }
@@ -12699,7 +12699,7 @@
                 // Las 2 primeras fechas fija = urgentes; la 3ª = fija más económica.
                 var d2 = new Date(first); d2.setDate(d2.getDate() + 1); nextBiz(d2);
                 var d3 = new Date(d2); d3.setDate(d3.getDate() + 1); nextBiz(d3);
-                var fijaGuia = ' (' + diaCorto(first) + ' y ' + diaCorto(d2) + '; +100 €). Elige ' + diaCorto(d3) +
+                var fijaGuia = ' (' + diaCorto(first) + ' y ' + diaCorto(d2) + ', con suplemento). Elige ' + diaCorto(d3) +
                     ' en adelante fecha fija más económica, o <strong>ventana de carga 1 a 3 días</strong> aún más económica.';
                 var html;
                 if (todayBiz && secNow < cutSec && firstIsToday) {
