@@ -1399,6 +1399,23 @@
         }
         .modal-file-drop:hover { border-color: var(--purple); background: rgba(51,0,204,0.03); color: var(--purple); }
         .modal-file-drop-sub { font-size: 0.82rem; margin-top: 0.3rem; opacity: 0.8; }
+        .modal-file-drop.is-disabled { opacity: 0.55; cursor: not-allowed; }
+        .modal-file-drop.is-disabled:hover { border-color: var(--gray-200); background: transparent; color: var(--gray-500); }
+        /* Lista de documentos adjuntos (nombres uno debajo de otro) */
+        .detail-doc-note { font-size: 0.82rem; color: var(--gray-500); margin: 0.2rem 0 0.6rem; line-height: 1.4; }
+        .modal-file-list { list-style: none; margin: 0.55rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+        .modal-file-item {
+            display: flex; align-items: center; gap: 0.5rem;
+            background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 8px;
+            padding: 0.4rem 0.6rem; font-size: 0.85rem;
+        }
+        .modal-file-item .mfi-ico { flex-shrink: 0; }
+        .modal-file-item .mfi-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--navy); font-weight: 600; }
+        .modal-file-item .mfi-del {
+            border: none; background: transparent; color: var(--gray-500);
+            font-size: 1.15rem; line-height: 1; cursor: pointer; padding: 0 0.25rem; flex-shrink: 0;
+        }
+        .modal-file-item .mfi-del:hover { color: var(--red); }
         .modal-success {
             text-align: center; padding: 1.2rem 0 0.6rem;
         }
@@ -7023,9 +7040,50 @@
                     items.push({ label: 'Tipo de mercancía', value: d.mercancia + (d.mercanciaMeta ? ' · ' + d.mercanciaMeta : '') });
                     items.push({ label: 'Medidas', value: d.medidas });
                     return infoGrid(items);
-                })(),
+                })() +
+                sectionTitle('Documentación de la operación') +
+                '<p class="detail-doc-note">Albaranes de recogida, CRM u otra documentación operativa para enseñar en el sitio de <strong>carga y/o entrega</strong>. No son los albaranes firmados de la entrega —esos aparecen en el listado de <strong>Albaranes</strong>—.</p>' +
+                '<div class="modal-file-drop" id="opDocsDrop"><div id="opDocsLabel">📎 Adjuntar documentación</div><div class="modal-file-drop-sub">JPG, PNG, PDF · hasta 5 archivos</div></div>' +
+                '<input type="file" id="opDocsInput" multiple accept="image/*,.pdf" style="display:none">' +
+                '<ul class="modal-file-list" id="opDocsList"></ul>',
             actions: cargaDetailActions(d, row),
-            footer: DETAIL_FOOTER
+            footer: DETAIL_FOOTER,
+            afterOpen: function () {
+                var src2 = findCargaDataByRef(d.ref) || src;
+                if (!src2._docsOp) src2._docsOp = [];
+                var drop = document.getElementById('opDocsDrop');
+                var input = document.getElementById('opDocsInput');
+                var list = document.getElementById('opDocsList');
+                var label = document.getElementById('opDocsLabel');
+                var MAX = 5;
+                if (!drop || !input || !list) return;
+                function render() {
+                    list.innerHTML = src2._docsOp.map(function (name, i) {
+                        return '<li class="modal-file-item"><span class="mfi-ico">📄</span>' +
+                            '<span class="mfi-name">' + escapeHtml(name) + '</span>' +
+                            '<button type="button" class="mfi-del" data-i="' + i + '" aria-label="Quitar">×</button></li>';
+                    }).join('');
+                    var full = src2._docsOp.length >= MAX;
+                    label.textContent = full ? '📎 Máximo ' + MAX + ' archivos' : '📎 Adjuntar documentación';
+                    drop.classList.toggle('is-disabled', full);
+                    list.querySelectorAll('.mfi-del').forEach(function (btn) {
+                        btn.addEventListener('click', function (e) {
+                            e.stopPropagation();
+                            src2._docsOp.splice(parseInt(btn.getAttribute('data-i'), 10), 1);
+                            render();
+                        });
+                    });
+                }
+                drop.addEventListener('click', function () { if (src2._docsOp.length < MAX) input.click(); });
+                input.addEventListener('change', function () {
+                    Array.prototype.slice.call(input.files).forEach(function (f) {
+                        if (src2._docsOp.length < MAX) src2._docsOp.push(f.name);
+                    });
+                    input.value = '';
+                    render();
+                });
+                render();
+            }
         });
     }
     function cargaEditar(ref) {
