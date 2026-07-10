@@ -12628,17 +12628,18 @@
                 if (!el || !urgenciaSel) return;
                 var uv = urgenciaSel.value;
                 var now = nowMadrid();
-                var minsNow = now.getHours() * 60 + now.getMinutes();
+                var secNow = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
                 var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                 var todayBiz = !nonBiz(today);
-                var cut = (uv === 'dia') ? (12 * 60) : (15 * 60);
+                var cutSec = ((uv === 'dia') ? 12 : 15) * 3600;
                 var cutLabel = (uv === 'dia') ? '12:00' : '15:00';
                 var first = firstLoadDate(uv);
                 var firstIsToday = first.getTime() === today.getTime();
                 var html;
-                if (todayBiz && minsNow < cut && firstIsToday) {
-                    var rem = cut - minsNow, h = Math.floor(rem / 60), m = rem % 60;
-                    var remTxt = (h > 0 ? h + ' h ' : '') + m + ' min';
+                if (todayBiz && secNow < cutSec && firstIsToday) {
+                    var rem = cutSec - secNow;
+                    var h = Math.floor(rem / 3600), m = Math.floor((rem % 3600) / 60), s = rem % 60;
+                    var remTxt = (h > 0 ? h + ' h ' : '') + m + ' min ' + (s < 10 ? '0' + s : s) + ' s';
                     html = '⏱ <strong>Pide antes de las ' + cutLabel + '</strong> (quedan ' + remTxt +
                         ') y <strong>hoy (' + fmtEtaDate(today) + ')</strong> puede ser el primer día de carga' +
                         (uv === 'dia' ? ' <em>· tarifa urgente</em>' : '') + '.';
@@ -12654,7 +12655,7 @@
                 el.hidden = false;
             }
             updateCutoffNote();
-            if (!card._cutoffTimer) card._cutoffTimer = setInterval(updateCutoffNote, 30000);
+            if (!card._cutoffTimer) card._cutoffTimer = setInterval(updateCutoffNote, 1000);
 
             // Los campos de recogida/entrega arrancan VACÍOS (los defaults
             // de prueba Sevilla→Madrid se retiraron).
