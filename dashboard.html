@@ -7173,12 +7173,16 @@
             // El albarán se gestiona en su propia sección "Albaranes"; aquí no
             // se muestra el botón de descarga/reclamación.
             btns.push(b('btn-secondary', 'reportar-incidencia', 'Incidencia', 'alert'));
+        } else if (kind === 'cancelada') {
+            // Deshacer la cancelación: el envío vuelve a Programadas con
+            // todos sus datos tal y como estaban.
+            btns.push(b('btn-primary', 'deshacer-cancelacion', 'Deshacer cancelación', 'undo'));
         }
         // "Repetir envío" siempre disponible: cualquier envío (incluso
         // cancelado o entregado hace tiempo) puede usarse como plantilla
-        // para una carga nueva. Va al final salvo en entregada/cancelada
-        // donde es la acción más natural y por tanto va al principio.
-        if (kind === 'entregada' || kind === 'cancelada') {
+        // para una carga nueva. Va al final salvo en entregada donde es la
+        // acción más natural y por tanto va al principio.
+        if (kind === 'entregada') {
             btns.unshift(b('btn-secondary', 'repetir', 'Repetir envío', 'refresh'));
         } else {
             btns.push(b('btn-secondary', 'repetir', 'Repetir envío', 'refresh'));
@@ -7755,6 +7759,48 @@
         showModalSuccess('Envío cancelado', 'El envío ' + ref + ' se ha marcado como cancelado. El equipo recibirá el aviso.');
     }
     window.cargaCancelarConfirm = cargaCancelarConfirm;
+    // Deshacer una cancelación: el envío vuelve a Programadas con todos sus
+    // datos tal y como estaban. Si su fecha de carga ya pasó, se avisa de
+    // reprogramarla con "Modificar".
+    function cargaDeshacerCancelacion(row) {
+        var d = cargaRowData(row);
+        var src = findCargaDataByRef(d.ref);
+        if (!src || src.kind !== 'cancelada') return;
+        var pasada = false;
+        var m = String(src.fecha || '').match(/^(\d{1,2})\/(\d{1,2})$/);
+        if (m) {
+            var fd = new Date(new Date().getFullYear(), +m[2] - 1, +m[1], 23, 59);
+            pasada = fd.getTime() < Date.now();
+        }
+        openDashModal({
+            icon: 'refresh',
+            title: 'Deshacer cancelación',
+            sub: '¿Reactivar el envío ' + d.ref + '?',
+            body:
+                '<div style="margin-bottom:0.8rem;padding:0.7rem 0.8rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:9px;font-size:0.88rem;line-height:1.55;color:#0f6b3a;">' +
+                'El envío <strong>volverá a Programadas</strong> con todos sus datos tal y como estaban. El equipo recibirá el aviso y retomará la gestión (asignación de transportista incluida).' +
+                '</div>' +
+                (pasada ? '<div style="margin-bottom:0.8rem;padding:0.7rem 0.8rem;background:#fff8e6;border:1px solid #ffe08a;border-radius:9px;font-size:0.85rem;line-height:1.5;color:#7a5c00;">⚠ La <strong>fecha de carga (' + escapeHtml(src.fecha) + ') ya ha pasado</strong>: tras reactivarlo usa <strong>Modificar</strong> para asignarle una fecha nueva.</div>' : '') +
+                infoGrid([
+                    { label: 'Nº envío', value: d.ref },
+                    { label: 'Fecha', value: fechaConDia(d.fecha) },
+                    { label: 'Ruta', value: d.origen + ' → ' + d.destino, span: true }
+                ]),
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Volver</button>' +
+                    '<button class="btn-primary" onclick="cargaDeshacerCancelacionConfirm(\'' + escapeHtml(d.ref) + '\')">Sí, reactivar envío</button>'
+        });
+    }
+    function cargaDeshacerCancelacionConfirm(ref) {
+        var c = findCargaDataByRef(ref);
+        if (c && c.kind === 'cancelada') {
+            c.kind = 'programada';
+            c.estado = 'Programada';
+            c.estadoColor = 'orange';
+            if (typeof renderCargasTable === 'function') renderCargasTable();
+        }
+        showModalSuccess('Envío reactivado', 'El envío ' + ref + ' vuelve a estar en Programadas con todos sus datos. El equipo recibirá el aviso.');
+    }
+    window.cargaDeshacerCancelacionConfirm = cargaDeshacerCancelacionConfirm;
 
     /* ---- ACCIONES PRESUPUESTOS ---- */
     function presupuestoVerDetalle(row) {
@@ -7862,7 +7908,8 @@
         mail:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
         clock:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
         truck:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
-        file:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+        file:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+        undo:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>'
     };
     function icon(name) { return ICONS[name] || ''; }
 
@@ -7876,6 +7923,7 @@
         if (text.indexOf('repetir') > -1) return 'repetir';
         if (text.indexOf('modificar') > -1) return 'modificar';
         if (text.indexOf('cancelar carga') > -1) return 'cancelar-carga';
+        if (text.indexOf('deshacer cancel') > -1) return 'deshacer-cancelacion';
         if (text.indexOf('generar carga') > -1) return 'generar-carga';
         if (text.indexOf('descargar pdf') > -1) return 'descargar-pdf';
         if (text.indexOf('revisar precio') > -1) return 'revisar-precio';
@@ -7895,6 +7943,7 @@
                 return cargaModificarEnvio(refMod);
             }
             if (action === 'cancelar-carga') return cargaCancelar(row);
+            if (action === 'deshacer-cancelacion') return cargaDeshacerCancelacion(row);
         }
         if (sectionId === 'sec-presupuestos') {
             if (action === 'ver-detalle') return presupuestoVerDetalle(row);
@@ -9821,7 +9870,7 @@
         var kind = c.kind;
         if (kind === 'programada') return mi('eye', 'Ver detalle') + '<button class="row-menu-item danger"><span class="rm-icon">' + icon('x') + '</span>Cancelar envío</button>';
         if (kind === 'en-ruta')    return mi('eye', 'Ver detalle') + mi('alert', 'Reportar incidencia');
-        if (kind === 'cancelada')  return mi('eye', 'Ver detalle');
+        if (kind === 'cancelada')  return mi('eye', 'Ver detalle') + mi('undo', 'Deshacer cancelación');
         // entregada — el albarán ya vive en su propia sección "Albaranes",
         // así que aquí no se muestra ni el icono ni el botón de descarga.
         return mi('eye', 'Ver detalle') + mi('refresh', 'Repetir') + mi('alert', 'Reportar incidencia');
