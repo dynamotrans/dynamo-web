@@ -5057,7 +5057,7 @@
         if (!src) return;
         closeDashModal();
         openNuevaCarga('envio');
-        if (window.prefillTarifador) window.prefillTarifador(src);
+        if (window.prefillTarifador) window.prefillTarifador(src, { full: true });
         // Prefijar también la FECHA del envío (el prefill de "Repetir" no la
         // pone a propósito; al modificar debe venir todo tal cual está).
         var diaSel2 = document.querySelector('#sec-nueva-carga [data-ptar-dia]');
@@ -14531,8 +14531,30 @@
             // unificar el flujo: se rellena y el usuario decide Crear envío o
             // Guardar presupuesto en la misma pantalla.
             if (mode === 'carga') {
-                window.prefillTarifador = function (src) {
+                window.prefillTarifador = function (src, opts) {
                     if (!src) return;
+                    opts = opts || {};
+                    // Geocodifica un punto en 2º plano (la carga guardada no
+                    // trae lat/lon) y recalcula la caja de precio/ETA al llegar
+                    // — así el precio se CALCULA en vivo, igual que al crear.
+                    // Fetch propio: osmSearch comparte un AbortController (es de
+                    // autocomplete) y al geocodificar varios puntos A LA VEZ el
+                    // segundo abortaría al primero.
+                    function geoPrefill(wrap, dir) {
+                        if (!wrap || !dir) return;
+                        var url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&countrycodes=es,pt,fr,it,de,nl,be,lu,at,ch,pl,cz&accept-language=es&q=' + encodeURIComponent(String(dir));
+                        fetch(url, { headers: { 'Accept-Language': 'es' } })
+                            .then(function (r) { return r.json(); })
+                            .then(function (items) {
+                                if (!items || !items[0]) return;
+                                wrap.dataset.lat = items[0].lat; wrap.dataset.lon = items[0].lon;
+                                wrap.dataset.cc = (items[0].address && items[0].address.country_code) || '';
+                                var rg = stateToRegion(items[0].address);
+                                if (rg) wrap.dataset.region = rg; else delete wrap.dataset.region;
+                                renderEta();
+                            })
+                            .catch(function () {});
+                    }
                     // Volver al paso 1 por si el paso de confirmación estaba abierto.
                     if (confirmCard) { confirmCard.hidden = true; }
                     card.hidden = false;
@@ -14594,6 +14616,53 @@
                         urgenciaSel.value = /fija/i.test(src.ventana || '') ? 'dia' : 'estandar';
                     }
                     if (notesTxt) notesTxt.value = '';
+                    // MODO MODIFICAR (opts.full): el formulario debe quedar
+                    // IDÉNTICO a crear envío — tipo de lugar, referencia y
+                    // paradas restauradas, y precio calculado EN VIVO.
+                    if (opts.full) {
+                        // Tipo de lugar de origen/destino tal cual está en el envío.
+                        [['[data-ptar-tipoorig]', src.origTipo, origWrap], ['[data-ptar-tipodest]', src.destTipo, destWrap]].forEach(function (t) {
+                            var sel = card.querySelector(t[0]); if (!sel) return;
+                            sel.value = '';
+                            if (t[1]) Array.prototype.some.call(sel.options, function (o) {
+                                if (o.text === t[1]) { sel.value = o.value; return true; }
+                                return false;
+                            });
+                            syncTipoSitioIcon(t[2], sel.value);
+                        });
+                        // Referencia interna del cliente (se abre su desplegable).
+                        if (refCliInput && src.refCli && !/^(PED|COT)-NUEVO$/.test(src.refCli)) {
+                            refCliInput.value = src.refCli;
+                            if (refCliBody) refCliBody.hidden = false;
+                            if (refCliToggle) refCliToggle.setAttribute('aria-expanded', 'true');
+                        }
+                        // Paradas adicionales: misma fila que tiene el envío.
+                        paradaRows().forEach(function (r) { r.parentNode.removeChild(r); });
+                        renumberParadas();
+                        (src.paradas || []).slice(0, 1).forEach(function (p) {
+                            addParada(p.tipo === 'recogida' ? 'recogida' : 'entrega');
+                            var rows = paradaRows(); var row = rows[rows.length - 1]; if (!row) return;
+                            var w = row.querySelector('.ptar-input-wrap'), inp = row.querySelector('input');
+                            var st = (p.site && typeof siteDe === 'function') ? siteDe(p.site) : null;
+                            inp.value = (st && st.empresa ? st.empresa + ' — ' : '') + (p.dir || (st && (st.calle || st.dir)) || '');
+                            if (typeof p.site === 'string') w.dataset.siteKey = p.site;
+                            w.classList.add('ptar-picked'); inp.readOnly = true; inp.blur();
+                            var cb = w.querySelector('.ptar-clear'); if (cb) cb.hidden = false;
+                            var sel2 = row.querySelector('select');
+                            var tl = p.tipoLugar || (st && st.tipoLugar);
+                            if (sel2 && tl) Array.prototype.some.call(sel2.options, function (o) {
+                                if (o.text === tl) { sel2.value = o.value; return true; }
+                                return false;
+                            });
+                            if (sel2) syncTipoSitioIcon(w, sel2.value);
+                            geoPrefill(w, p.dir || inp.value);
+                        });
+                        // Coordenadas de origen/destino en 2º plano → cuando
+                        // llegan, renderEta pinta la caja de precio completa
+                        // (desglose + ETA) exactamente como en crear envío.
+                        geoPrefill(origWrap, src.origenDir || src.origen);
+                        geoPrefill(destWrap, src.destinoDir || src.destino);
+                    }
                     renderOcupacion();
                     renderEta();
                     // Precio heredado del presupuesto/carga origen. Como al
@@ -14601,12 +14670,20 @@
                     // lo mostramos aquí. Al modificar cualquier campo, renderEta
                     // recalcula (o pide origen/destino con coords).
                     if (src.precio && etaBox) {
-                        var fromP = String(src.ref || '').indexOf('#P') === 0 ? 'presupuesto' : 'envío anterior';
+                        var fromP = opts.full ? 'envío' : (String(src.ref || '').indexOf('#P') === 0 ? 'presupuesto' : 'envío anterior');
                         var baseP = parseInt(String(src.precio).replace(/[^\d]/g, ''), 10) || 0;
-                        etaBox.innerHTML =
-                            '<div style="font-size:0.8rem;color:var(--gray-500);font-weight:600;margin-bottom:0.3rem;">Precio del ' + fromP + '</div>' +
-                            '<div class="alm-price ptar-eta-pricebox" data-eta-pricebox></div>';
-                        window.__renderPriceBox(etaBox.querySelector('[data-eta-pricebox]'), baseP, [], 0);
+                        // Se pinta en un microtick: "Modificar envío" dispara un
+                        // change de fecha justo después del prefill que repintaría
+                        // la caja (y la dejaría en el placeholder). Y si la
+                        // geocodificación ya puso coordenadas, manda el precio
+                        // calculado en vivo — no se pisa.
+                        setTimeout(function () {
+                            if (origWrap.dataset.lat && destWrap.dataset.lat) return;
+                            etaBox.innerHTML =
+                                '<div style="font-size:0.8rem;color:var(--gray-500);font-weight:600;margin-bottom:0.3rem;">Precio del ' + fromP + '</div>' +
+                                '<div class="alm-price ptar-eta-pricebox" data-eta-pricebox></div>';
+                            window.__renderPriceBox(etaBox.querySelector('[data-eta-pricebox]'), baseP, [], 0);
+                        }, 0);
                     }
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 };
