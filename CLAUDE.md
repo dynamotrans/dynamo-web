@@ -153,6 +153,20 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-07-11 — Claude Code web (nube)
+
+> **Sesión centrada en el tarifador del panel (`dashboard.html`) + `festivos.js`.** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `5a2046a`.
+
+**FILTRADO DE AVISOS DE FESTIVO POR COMUNIDAD (arregla el sobre-aviso)**:
+- **Problema reportado**: en una ruta con recogida en **Murcia** y entrega en **Salamanca** salía un aviso de festivo **autonómico de la Comunidad Valenciana**. El aviso de la caja ETA era a nivel de **país** → avisaba de festivos de OTRAS comunidades.
+- **`js/festivos.js`** (aditivo, no cambia la web pública): la caché de la API (Nager) ahora guarda `{name, global, counties}` en vez de solo el nombre (clave subida a `festivos_api_v2_`); nuevo método **`FESTIVOS.regionsOf(cc, fecha)`** → `null` = nacional · `[]` = regional de comunidad desconocida · `['ES-VC'…]` = regional de esas comunidades ISO. `get()`/`getLocal()` intactos.
+- **`dashboard.html`**: nuevo helper **`stateToRegion(address)`** que mapea el `address.state` de Nominatim (con/sin acentos, lengua cooficial) → código ISO 3166-2 (`Comunidad Valenciana`→`ES-VC`, `Región de Murcia`→`ES-MC`, `Castilla y León`→`ES-CL`, las 17+2). Al elegir sitio se guarda su comunidad en **`wrap.dataset.region`** (se limpia al borrar, en los 4 puntos de reset). **`holsInRange(cc, region, a, b)`** ahora filtra: **nacional → siempre avisa**; **autonómico/local → solo si la comunidad del sitio coincide** con las del festivo; si no se conoce (sitio o festivo) → no avisa el autonómico (evita el sobre-aviso).
+- **Verificado** en Chromium headless (Nager mockeado porque el proxy del entorno lo bloquea con 403): Murcia+festivo de Valencia → NO sale ✓ · Valencia+festivo de Valencia → SÍ sale como "FESTIVO AUTONÓMICO" ✓ · comunidad desconocida → NO sale ✓ · festivo NACIONAL con cualquier región → SÍ sale ✓. Syntax-check JS OK.
+- ⚠️ **El filtro autonómico solo se activa de verdad en el preview REAL de Vercel** (donde la API de Nager responde). En este entorno el proxy la bloquea → solo se valida con datos mockeados; los festivos nacionales (registro local) sí funcionan siempre.
+- ⚠️ `festivos.js` es archivo **compartido** con producción, pero este cambio es **aditivo**: `index.html` no llama a `ensure`/`regionsOf` → no cambia nada en `dynamotrans.com`. Sync a `main` pendiente cuando el usuario quiera (no urge).
+
+**Pendiente** (ver TODO.md): verificar el filtro en el preview real de Vercel; el dataset completo de festivos (nacional+autonómico+local con datos oficiales) sigue siendo tarea de **backend**.
+
 ### 2026-07-08 (cont.) — Claude Code web (nube)
 
 > **Continuación de la sesión del panel.** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `10b95c2` (2 commits: `553fd31` borrado suave + `10b95c2` Almacenes = Sitios + disponibilidad).
