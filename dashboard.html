@@ -1636,16 +1636,20 @@
         }
         .mini-list-card {
             background: white; border-radius: 14px; padding: 1rem 1.1rem 0.4rem;
-            border: 1px solid var(--gray-200);
+            border: 1px solid var(--gray-200); overflow: hidden;
         }
+        /* Cabecera "Mis últimos envíos · Ver todos →": barra morada a lo ancho
+           de la tarjeta (rebasa el padding con márgenes negativos) y texto en
+           blanco. La tarjeta lleva overflow:hidden para que rellene la esquina. */
         .mini-list-head {
             display: flex; align-items: center; justify-content: space-between;
-            padding-bottom: 0.7rem; margin-bottom: 0.4rem;
-            border-bottom: 1px solid var(--gray-200);
+            background: var(--purple);
+            margin: -1rem -1.1rem 0.7rem; padding: 0.7rem 1.1rem;
+            border-bottom: none;
         }
-        .mini-list-head h4 { font-size: 0.85rem; font-weight: 800; color: var(--navy); }
-        .mini-list-head a { font-size: 0.72rem; color: var(--purple); text-decoration: none; font-weight: 700; }
-        .mini-list-head a:hover { text-decoration: underline; }
+        .mini-list-head h4 { font-size: 0.85rem; font-weight: 800; color: #fff; }
+        .mini-list-head a { font-size: 0.72rem; color: #fff; text-decoration: none; font-weight: 700; opacity: 0.92; }
+        .mini-list-head a:hover { text-decoration: underline; opacity: 1; }
         .mini-list ul { list-style: none; }
         .mini-list li {
             padding: 0.7rem 0;
