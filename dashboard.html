@@ -4176,7 +4176,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Recogida</th><th>Entrega</th><th>Envío</th><th>Mercancía</th><th>Vehículo</th><th class="th-amount">Importe<span class="th-sub">Impuestos no incl.</span></th>
+                    <th>Recogida</th><th>Entrega</th><th>Envío</th><th>Mercancía</th><th>Vehículo</th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -10961,7 +10961,6 @@
                         (c.matricula ? '<span class="meta-matricula">' + esc(c.matricula) + '</span>' : '<span class="meta meta-pend">Sin matrícula</span>') +
                         (c.tipoCamion ? '<div class="meta">' + esc(c.tipoCamion) + '</div>' : '') +
                     '</td>' +
-                    '<td class="amount">' + esc(c.precio ? eur2(c.precio) : '—') + '</td>' +
                     actionsCell(actionItemsCarga(c)) +
                     '</tr>';
             }).join('');
