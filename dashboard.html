@@ -1348,16 +1348,16 @@
            se arrastra con el ratón o se desliza con el dedo; el JS reengancha
            el scroll para que gire sin fin. */
         .dash-svc-carousel {
-            overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
-            scrollbar-width: none; cursor: grab;
+            overflow: hidden; cursor: grab; touch-action: pan-y;
+            -webkit-user-select: none; user-select: none;
             -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent 100%);
                     mask-image: linear-gradient(90deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent 100%);
         }
-        .dash-svc-carousel::-webkit-scrollbar { display: none; }
         .dash-svc-carousel.is-dragging { cursor: grabbing; }
         .dash-svc-carousel.is-dragging .dash-svc-card { pointer-events: none; }
-        .dash-svc-track { display: flex; gap: 0.9rem; width: max-content; padding: 2px; }
+        .dash-svc-track { display: flex; gap: 0.9rem; width: max-content; padding: 2px 0; will-change: transform; }
         .dash-svc-track .dash-svc-card { flex: 0 0 258px; }
+        .dash-svc-track .dash-svc-card img { pointer-events: none; -webkit-user-drag: none; }
         @media (max-width: 640px) {
             .dash-svc-track { gap: 0.6rem; }
             .dash-svc-track .dash-svc-card { flex: 0 0 210px; }
@@ -11429,40 +11429,59 @@
             rowS.innerHTML = oneSet + oneSet + oneSet;
             initSvcCarousel();
         }
-        // Carrusel manual (arrastre con ratón + deslizar dedo) con bucle infinito.
+        // Carrusel manual con bucle infinito basado en TRANSFORM (no en el
+        // scroll nativo, que en iOS se rompía y dejaba las tarjetas en blanco).
+        // Se arrastra con ratón o dedo; al soltar hay inercia; la posición se
+        // envuelve módulo el ancho de una copia (3 copias en el DOM) → gira sin
+        // fin. `p` = desplazamiento lógico; el track se traslada a translateX(-p).
         function initSvcCarousel() {
             var box = document.getElementById('dashServiciosCarousel');
             var track = document.getElementById('dashServiciosRow');
             if (!box || !track) return;
-            function copyW() { return track.scrollWidth / 3; }
-            function center() {
-                var w = copyW();
-                if (w > 0 && box.scrollLeft < 1) box.scrollLeft = w;
+            var copyW = 0, p = 0, raf = null;
+            function measure() { var w = track.scrollWidth / 3; if (w > 0) copyW = w; }
+            function wrap() {
+                if (!copyW) return;
+                while (p < copyW * 0.5) p += copyW;
+                while (p >= copyW * 1.5) p -= copyW;
             }
-            // Arranca centrado cuando ya hay ancho medible (imágenes/layout).
-            setTimeout(center, 60); setTimeout(center, 400);
-            var wrapping = false;
-            box.addEventListener('scroll', function () {
-                if (wrapping) return;
-                var w = copyW(); if (w <= 0) return;
-                if (box.scrollLeft < w * 0.5) { wrapping = true; box.scrollLeft += w; wrapping = false; }
-                else if (box.scrollLeft >= w * 1.5) { wrapping = true; box.scrollLeft -= w; wrapping = false; }
-            }, { passive: true });
-            // Arrastre con ratón (en táctil ya hace scroll nativo).
-            var down = false, sx = 0, sl = 0, moved = 0;
-            box.addEventListener('pointerdown', function (e) {
-                if (e.pointerType === 'touch') return;
-                down = true; moved = 0; sx = e.clientX; sl = box.scrollLeft;
+            function apply() { track.style.transform = 'translate3d(' + (-p) + 'px,0,0)'; }
+            function refresh() { measure(); wrap(); apply(); }
+            measure(); p = copyW; wrap(); apply();
+            // Re-medir cuando el layout/imágenes ya han asentado el ancho.
+            setTimeout(refresh, 250); setTimeout(refresh, 700);
+            window.addEventListener('resize', refresh);
+
+            var down = false, lastX = 0, lastT = 0, vx = 0;
+            function px(e) { return e.touches ? e.touches[0].clientX : e.clientX; }
+            function onDown(e) {
+                measure(); down = true; lastX = px(e); lastT = e.timeStamp || 0; vx = 0;
+                if (raf) { cancelAnimationFrame(raf); raf = null; }
                 box.classList.add('is-dragging');
-            });
-            window.addEventListener('pointermove', function (e) {
+            }
+            function onMove(e) {
                 if (!down) return;
-                var dx = e.clientX - sx; moved = Math.max(moved, Math.abs(dx));
-                box.scrollLeft = sl - dx;
-            });
-            window.addEventListener('pointerup', function () {
+                var x = px(e), dx = x - lastX, dt = (e.timeStamp || 0) - lastT;
+                if (dt > 0) vx = dx / dt;               // px por ms
+                lastX = x; lastT = e.timeStamp || 0;
+                p -= dx; wrap(); apply();
+            }
+            function onUp() {
                 if (!down) return; down = false; box.classList.remove('is-dragging');
-            });
+                var v = vx * 16;                        // ≈ px por frame (60fps)
+                function step() {
+                    v *= 0.94; p -= v; wrap(); apply();
+                    if (Math.abs(v) > 0.4) raf = requestAnimationFrame(step); else raf = null;
+                }
+                if (Math.abs(v) > 0.6) { if (raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(step); }
+            }
+            box.addEventListener('mousedown', onDown);
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+            box.addEventListener('touchstart', onDown, { passive: true });
+            box.addEventListener('touchmove', onMove, { passive: true });
+            box.addEventListener('touchend', onUp);
+            box.addEventListener('touchcancel', onUp);
         }
     })();
     (function () {
