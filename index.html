@@ -2439,12 +2439,28 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     <div class="ptar-field-full" data-ptar-entregas></div>
 
                     <div class="ptar-section-head">Carga</div>
-                    <div class="ptar-field ptar-field-full">
-                        <select data-ptar-merca class="ptar-select" aria-label="Tipo de mercancía">
-                            <option>Paletizado mercancía general (por lateral)</option>
-                            <option>No paletizada (maquinaria, perfiles, tubos, balas…) (por lateral)</option>
-                            <option>No paletizada (maquinaria, perfiles, tubos, balas…) (por TECHO)</option>
-                        </select>
+                    <div class="ptar-pair">
+                        <div class="ptar-field">
+                            <select data-ptar-merca class="ptar-select" aria-label="Tipo de mercancía">
+                                <optgroup label="Tipo de mercancía">
+                                    <option>Paletizada (mercancía general)</option>
+                                    <option>No paletizada (maquinaria, perfiles, tubos, balas…)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="ptar-field">
+                            <select data-ptar-cargatipo class="ptar-select" aria-label="Tipo de carga">
+                                <optgroup label="Tipo de carga">
+                                    <option>Lateral</option>
+                                    <option>Trasera</option>
+                                    <option>Techo</option>
+                                    <option>Lateral y trasera</option>
+                                    <option>Lateral y techo</option>
+                                    <option>Trasera y techo</option>
+                                    <option>Lateral, trasera y techo</option>
+                                </optgroup>
+                            </select>
+                        </div>
                         <input type="hidden" data-ptar-camion value="tauliner">
                     </div>
                     <div class="ptar-pair">
@@ -2493,15 +2509,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                         </div>
                         <div class="ptar-field">
                             <select data-ptar-urgencia class="ptar-select" aria-label="Ventana de carga">
-                                <option value="dia">Fecha fija (un día concreto, más cara)</option>
-                                <option value="estandar">1 a 2 días (estándar)</option>
-                                <option value="flexible" selected>1 a 4 días (flexible, más económica)</option>
+                                <option value="dia">Fecha fija (un día concreto)</option>
+                                <option value="estandar" selected>Carga de 1 a 3 días (más económica)</option>
                             </select>
                         </div>
                     </div>
                     <div class="ptar-ventana-note" data-ptar-ventana-note hidden></div>
                     <div class="ptar-hoy-warn" data-ptar-hoy-warn hidden>⚠ <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. Cancelar una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. <strong>Recomendación:</strong> amplía ya la ventana de carga; así, si no se consigue hoy, podremos asignar camión para los días siguientes (esperar a última hora deja sin margen).</div>
-                    <div class="ptar-fija-note" data-ptar-fija-note hidden><strong>Has elegido fecha fija (un solo día).</strong> Una <strong>ventana de 1 a 2 días</strong> aumenta mucho la probabilidad de cargar a tiempo y suele salir más económica. Con fecha fija, si ese día no hay vehículo disponible habría que reprogramar la carga.</div>
+                    <div class="ptar-fija-note" data-ptar-fija-note hidden><strong>Fecha fija estándar.</strong> Con fecha fija, <strong>si ese día no hay vehículo</strong> habría que reprogramar. Se recomienda usar una <strong>ventana de 1 a 3 días</strong>, el 80% veces cargamos en los 2 primeros días, <strong>es la más económica</strong> y aumenta la probabilidad de cargar al máximo.</div>
                 </div>
 
                 <div class="ptar-notes-wrap">
@@ -4847,7 +4862,7 @@ function updateAlmTotal() {
 
     // ---- Camión / ml / peso ----
     // Grupaje (ml < máximo del camión): no se puede garantizar fecha fija →
-    // se deshabilita "Fecha fija" y, si estaba elegida, pasa a "1 a 4 días".
+    // se deshabilita "Fecha fija" y, si estaba elegida, pasa a "1 a 3 días".
     // Opciones originales del selector de ventana (para reconstruirlo mostrando
     // solo las permitidas — se OMITEN por completo, no se dejan en gris).
     var ventanaOptsAll = urgSel ? Array.prototype.slice.call(urgSel.options) : [];
@@ -4860,25 +4875,20 @@ function updateAlmTotal() {
         // Grupaje solo si NI metros NI peso llegan al máximo. Si el peso va al
         // tope (aunque sean pocos metros) es tarifa de camión COMPLETO.
         var esGrupaje = !isNaN(mlv) && mlv < max && !(!isNaN(pesoV) && pesoV >= info.pesoMax);
-        var oc = (origWrap.dataset.cc || '').toLowerCase();
-        var dc = (destWrap.dataset.cc || '').toLowerCase();
-        var internacional = !!(oc && dc && oc !== dc);
-        // Grupaje → sin "Fecha fija". Grupaje INTERNACIONAL (origen y destino en
-        // países distintos) → solo "1 a 4 días".
+        // Grupaje → sin "Fecha fija" (no se puede garantizar un día concreto);
+        // queda "Carga de 1 a 3 días". Si no es grupaje, están las dos opciones.
         var allowDia = !esGrupaje;
-        var allowEst = !(esGrupaje && internacional);
         var prev = urgSel.value;
         urgSel.innerHTML = '';
         ventanaOptsAll.forEach(function (opt) {
             if (opt.value === 'dia' && !allowDia) return;
-            if (opt.value === 'estandar' && !allowEst) return;
             opt.disabled = false; opt.hidden = false;
             urgSel.appendChild(opt);
         });
         if (urgSel.querySelector('option[value="' + prev + '"]')) {
             urgSel.value = prev;
         } else {
-            urgSel.value = 'flexible';
+            urgSel.value = 'estandar';
             urgSel.dispatchEvent(new Event('change'));
         }
     }
@@ -4907,14 +4917,15 @@ function updateAlmTotal() {
         var el = card.querySelector('[data-ptar-ventana-note]');
         if (!el || !urgSel) return;
         var v = urgSel.value;
-        if (v === 'estandar') { el.textContent = 'El 80% de las ocasiones recogemos en el 1.º día.'; el.hidden = false; }
-        else if (v === 'flexible') { el.textContent = 'El 80% de las ocasiones recogemos en los 2 primeros días.'; el.hidden = false; }
-        else { el.hidden = true; }
+        if (v === 'estandar') {
+            el.innerHTML = '<strong>Carga de 1 a 3 días (flexible)</strong>, el 80% veces cargamos en los 2 primeros días, es la más económica y además aumenta la probabilidad de cargar al máximo.';
+            el.hidden = false;
+        } else { el.hidden = true; }
     }
     if (urgSel) urgSel.addEventListener('change', syncVentanaNote);
     // Avisos de fecha fija (ventana 1 día):
     //  · si la fecha es HOY → aviso fuerte "carga hoy para hoy" (ámbar).
-    //  · si es un día futuro → recomendación de ampliar a ventana de 1 a 2 días.
+    //  · si es un día futuro → recomendación de ampliar a ventana de 1 a 3 días.
     function syncHoyWarn() {
         var el = card.querySelector('[data-ptar-hoy-warn]');
         var fija = card.querySelector('[data-ptar-fija-note]');
@@ -5215,7 +5226,7 @@ function updateAlmTotal() {
             if (diaSel) fillDiaSelect(diaSel);
             if (fp) { try { fp.clear(); } catch (e) {} }
             if (fechaInput) fechaInput.value = '';
-            if (urgSel) urgSel.value = 'flexible';
+            if (urgSel) urgSel.value = 'estandar';
             // Anotaciones
             if (notesTxt) notesTxt.value = '';
             if (notesCount) { notesCount.textContent = '0'; notesCount.parentNode.classList.remove('warn'); }
@@ -5259,10 +5270,12 @@ function updateAlmTotal() {
         var pesoV = pesoSel.value;
         var camion = (CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner).label;
         var merca = mercaSel ? mercaSel.options[mercaSel.selectedIndex].text : '';
+        var cargatipoSel = card.querySelector('[data-ptar-cargatipo]');
+        var cargatipo = cargatipoSel ? cargatipoSel.options[cargatipoSel.selectedIndex].text : '';
         var trampV = (trampChk && trampChk.checked) ? 'Sí' : 'No';
         var nimaV = (nimaChk && nimaChk.checked) ? 'Sí' : 'No';
-        var urgV = urgSel ? urgSel.value : 'flexible';
-        var urgTxt = { dia: 'Fecha fija (un día concreto)', estandar: '1 a 2 días (estándar)', flexible: '1 a 4 días (flexible)' }[urgV] || '1 a 4 días (flexible)';
+        var urgV = urgSel ? urgSel.value : 'estandar';
+        var urgTxt = { dia: 'Fecha fija (un día concreto)', estandar: 'Carga de 1 a 3 días (más económica)' }[urgV] || 'Carga de 1 a 3 días (más económica)';
         // Fecha de carga
         var fechaTxt = 'Sin especificar';
         if (diaSel) {
@@ -5284,6 +5297,7 @@ function updateAlmTotal() {
         lines = lines.concat(entregaLines());
         lines = lines.concat([
             '• MERCANCÍA: ' + merca,
+            '• TIPO DE CARGA: ' + cargatipo,
             '• METROS LINEALES: ' + mlV + ' m',
             '• TONELADAS: ' + pesoV + ' Tn',
             '• TRAMPILLA ELEVADORA: ' + trampV,
