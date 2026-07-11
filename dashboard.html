@@ -12582,12 +12582,14 @@
                 var fijaUrgente = false;
                 if (uv === 'dia') {
                     var selIso = (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) ? diaSel.value : null;
-                    var effDate = selIso ? new Date(selIso + 'T00:00:00') : firstLoadDate('dia');
-                    // Urgente = una de las 2 primeras fechas disponibles (offset 0/1).
-                    fijaUrgente = bizDaysFrom(firstLoadDate('dia'), effDate) <= 1;
-                    // Los suplementos de fecha fija (+15%) y preaviso (+100 €) se
-                    // aplican AL FINAL como conceptos aparte, sobre el importe de
-                    // envío ya calculado, para poder desglosarlos en la caja.
+                    // El preaviso urgente (+100 €) SOLO se aplica si hay una fecha
+                    // ELEGIDA y es una de las 2 primeras disponibles (poco preaviso).
+                    // Sin fecha definida NO se cobra preaviso (no hay fecha que
+                    // evaluar). El +15% de fecha fija sí se muestra como referencia.
+                    if (selIso) {
+                        var effDate = new Date(selIso + 'T00:00:00');
+                        fijaUrgente = bizDaysFrom(firstLoadDate('dia'), effDate) <= 1;
+                    }
                 }
                 // Mercancía no paletizada +10% (va dentro del importe de envío).
                 if (mercaSel && mercaSel.selectedIndex === 1) precio *= 1.1;
