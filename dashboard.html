@@ -12466,15 +12466,27 @@
                 // vía API). Devuelve tipo, fecha y nombre (motivo) de cada uno.
                 function holsInRange(cc, a, b) {
                     if (!window.FESTIVOS || !cc || !a || !b) return [];
-                    var out = [], d = new Date(a.getFullYear(), a.getMonth(), a.getDate());
-                    while (d.getTime() <= b.getTime() && out.length < 6) {
+                    // Solo se avisan los festivos que afectan a un día hábil de carga/
+                    // entrega: los de DÍA HÁBIL (L-V) y los de DOMINGO (que se trasladan
+                    // al LUNES). Los de SÁBADO no se avisan (no es día de carga y no
+                    // se trasladan). Extendemos un día el barrido por si el domingo
+                    // final traslada a un lunes justo fuera del rango.
+                    var out = [], seen = {};
+                    var d = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+                    var fin = new Date(b.getFullYear(), b.getMonth(), b.getDate()); fin.setDate(fin.getDate() + 1);
+                    while (d.getTime() <= fin.getTime() && out.length < 6) {
                         var n = FESTIVOS.get(cc, d);
-                        if (n) {
-                            // Nacional si está en el registro local; si no, es
-                            // autonómico/regional (lo añadió la API Nager.Date).
+                        var dow = d.getDay();
+                        if (n && dow !== 6) { // ignora sábados
                             var esNac = !!(FESTIVOS.getLocal && FESTIVOS.getLocal(cc, d));
                             var nombre = String(n).replace(/\s*\(regional\)\s*$/i, '');
-                            out.push({ d: new Date(d), name: nombre, tipo: esNac ? 'Nacional' : 'Autonómico' });
+                            var shown = new Date(d), traslado = false;
+                            if (dow === 0) { shown.setDate(shown.getDate() + 1); traslado = true; } // domingo → lunes
+                            var key = shown.getFullYear() + '-' + shown.getMonth() + '-' + shown.getDate() + '|' + nombre;
+                            if (!seen[key]) {
+                                seen[key] = true;
+                                out.push({ d: shown, name: nombre + (traslado ? ' (trasladado del domingo)' : ''), tipo: esNac ? 'Nacional' : 'Autonómico' });
+                            }
                         }
                         d.setDate(d.getDate() + 1);
                     }
