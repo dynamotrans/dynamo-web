@@ -3971,7 +3971,7 @@
                     <a href="#" onclick="showSection('cargas');return false;">Ver todos →</a>
                 </div>
                 <ul class="mini-list" id="miniEnvios">
-                    <!-- Rellenado por renderMiniEnvios(): 1 fila de muestra -->
+                    <!-- Rellenado por renderMiniEnvios(): 2 filas de muestra -->
                 </ul>
             </div>
         </div>
@@ -11336,9 +11336,9 @@
     // scroll no altere el cálculo — en iOS el colapso de la barra de URL
     // dispara resize en pleno scroll y repintaba más filas.
     function miniFit(ul) {
-        // 1 fila de MUESTRA por lista (el resto vive en su sección); debajo
+        // 2 filas de MUESTRA por lista (el resto vive en su sección); debajo
         // van los carruseles de clientes y servicios.
-        return 1;
+        return 2;
     }
     function renderMiniEnvios() {
         var ul = document.getElementById('miniEnvios');
