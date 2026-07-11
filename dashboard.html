@@ -12252,7 +12252,7 @@
                         // La 1ª fecha elegible depende de la ventana (fija no
                         // admite hoy y exige el corte del día hábil anterior).
                         minDate: isoLocal(firstLoadDate(urgenciaSel ? urgenciaSel.value : 'estandar')),
-                        maxDate: new Date(Date.now() + 90 * 24 * 3600 * 1000),
+                        maxDate: (function () { var _m = new Date(); _m.setMonth(_m.getMonth() + 6); return _m; })(), // 6 meses
                         disableMobile: true,
                         disable: [function (d) { return nonBiz(d); }],
                         dateFormat: 'Y-m-d',
