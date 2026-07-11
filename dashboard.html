@@ -4340,11 +4340,11 @@
                 <button class="btn-primary" onclick="abrirNuevaIncidencia();return false;">+ Reportar incidencia</button>
             </div>
         </div>
-        <div class="tabs">
-            <button class="tab active">Abiertas (1)</button>
-            <button class="tab">En curso (0)</button>
-            <button class="tab">Resueltas (8)</button>
-            <button class="tab">Todas</button>
+        <div class="tabs" data-table="incidencias">
+            <button class="tab active" data-filter="abiertas">Abiertas (<span data-inc-count="abiertas">0</span>)</button>
+            <button class="tab" data-filter="en-curso">En curso (<span data-inc-count="en-curso">0</span>)</button>
+            <button class="tab" data-filter="resueltas">Resueltas (<span data-inc-count="resueltas">0</span>)</button>
+            <button class="tab" data-filter="todas">Todas</button>
         </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por descripción, nº carga…">
@@ -4357,29 +4357,22 @@
                 <thead><tr>
                     <th>F. registro</th><th>Descripción</th><th>Nº envío</th><th>Ref. cliente</th><th>F. carga · Ventana</th><th>Ruta</th><th>m · kg</th><th>Estado</th>
                 </tr></thead>
-                <tbody>
-                    <tr>
-                        <td>14/06/2026<div class="meta">11:42</div></td>
-                        <td>Mercancía con palet roto a la llegada<div class="meta">3 palets dañados de 33</div></td>
-                        <td class="ref">#GX684814</td>
-                        <td class="ref-cli">PED-0419</td>
-                        <td><strong>14/06</strong><div class="meta">Fija</div></td>
-                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Barcelona</strong></td>
-                        <td class="amount">8,4 m · 14.500 kg</td>
-                        <td><span class="badge badge-orange">En curso</span></td>
-                    </tr>
-                    <tr>
-                        <td>02/06/2026<div class="meta">16:08</div></td>
-                        <td>Retraso de 4h en la entrega<div class="meta">Resuelto: compensado en factura</div></td>
-                        <td class="ref">#GX684723</td>
-                        <td class="ref-cli">PED-0405</td>
-                        <td><strong>02/06</strong><div class="meta">Fija</div></td>
-                        <td class="route"><strong>Sevilla</strong><span class="arrow">→</span><strong>Zaragoza</strong></td>
-                        <td class="amount">13,2 m · 21.000 kg</td>
-                        <td><span class="badge badge-green">Resuelta</span></td>
-                    </tr>
-                </tbody>
+                <tbody id="tbodyIncidencias"></tbody>
             </table>
+        </div>
+        <div class="pagination">
+            <div class="pagination-left">
+                <label class="pagination-perpage-wrap">Mostrar
+                    <select class="pagination-perpage" data-table="incidencias">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+                <span id="incidenciasShowing"></span>
+            </div>
+            <div class="pagination-pages" id="incidenciasPagination"></div>
         </div>
     </section>
 
@@ -7894,12 +7887,70 @@
        Despliega las secciones con avisos: incidencias abiertas y facturas
        vencidas, con su contador. Cada una lleva a su listado.
     ============================================ */
-    function contarIncidenciasAbiertas() {
-        var n = 0;
-        document.querySelectorAll('#sec-incidencias tbody tr').forEach(function (tr) {
-            if (!tr.querySelector('.badge-green')) n++;
+    // ---- Incidencias: datos mock + tabla paginada (mismo sistema que el resto) ----
+    var INCIDENCIAS_DATA = [
+        { fr: '09/07/2026', hora: '11:42', tit: 'Mercancía con palet roto a la llegada', det: '3 palets dañados de 33', envio: '#GX684814', refCli: 'PED-0419', fcarga: '08/07', ventana: 'Fija', orig: 'Sevilla', dest: 'Barcelona', med: '8,4 m · 14.500 kg', estado: 'abierta' },
+        { fr: '02/07/2026', hora: '16:08', tit: 'Retraso de 4h en la entrega', det: 'En revisión con el transportista', envio: '#GX684723', refCli: 'PED-0405', fcarga: '01/07', ventana: 'Fija', orig: 'Sevilla', dest: 'Zaragoza', med: '13,2 m · 21.000 kg', estado: 'en-curso' },
+        { fr: '26/06/2026', hora: '09:15', tit: 'Falta albarán firmado', det: 'Resuelto: albarán subido al panel', envio: '#GX684691', refCli: 'PED-0398', fcarga: '24/06', ventana: '1 a 3 días', orig: 'Madrid', dest: 'Valencia', med: '13,2 m · 24.000 kg', estado: 'resuelta' },
+        { fr: '19/06/2026', hora: '13:40', tit: 'Entrega en dirección incorrecta', det: 'Resuelto: reentrega el mismo día', envio: '#GX684655', refCli: 'COT-311', fcarga: '18/06', ventana: 'Fija', orig: 'Sevilla', dest: 'Córdoba', med: '6,0 m · 8.200 kg', estado: 'resuelta' },
+        { fr: '12/06/2026', hora: '10:05', tit: 'Mercancía mojada en 2 palets', det: 'Resuelto: compensado en factura', envio: '#GX684612', refCli: 'PED-0384', fcarga: '10/06', ventana: '1 a 3 días', orig: 'Bilbao', dest: 'Sevilla', med: '10,0 m · 16.500 kg', estado: 'resuelta' },
+        { fr: '05/06/2026', hora: '17:22', tit: 'Retraso de 4h en la entrega', det: 'Resuelto: compensado en factura', envio: '#GX684580', refCli: 'PED-0377', fcarga: '04/06', ventana: 'Fija', orig: 'Sevilla', dest: 'Zaragoza', med: '13,2 m · 21.000 kg', estado: 'resuelta' },
+        { fr: '28/05/2026', hora: '08:50', tit: 'Camión llegó fuera de horario de almacén', det: 'Resuelto: nueva cita de descarga', envio: '#GX684521', refCli: 'PED-0361', fcarga: '27/05', ventana: '1 a 3 días', orig: 'Valencia', dest: 'Madrid', med: '13,2 m · 22.000 kg', estado: 'resuelta' },
+        { fr: '20/05/2026', hora: '12:31', tit: 'Diferencia de bultos en descarga', det: 'Resuelto: recuento correcto, error de conteo', envio: '#GX684478', refCli: 'COT-289', fcarga: '19/05', ventana: 'Fija', orig: 'Sevilla', dest: 'Murcia', med: '8,4 m · 12.000 kg', estado: 'resuelta' },
+        { fr: '13/05/2026', hora: '15:47', tit: 'Falta albarán firmado', det: 'Resuelto: reclamado al transportista', envio: '#GX684432', refCli: 'PED-0340', fcarga: '12/05', ventana: '1 a 3 días', orig: 'Barcelona', dest: 'Sevilla', med: '13,2 m · 23.500 kg', estado: 'resuelta' },
+        { fr: '06/05/2026', hora: '09:58', tit: 'Paralización de 3h en la carga', det: 'Resuelto: penalización al cargador', envio: '#GX684390', refCli: 'PED-0332', fcarga: '05/05', ventana: 'Fija', orig: 'Sevilla', dest: 'Alicante', med: '13,2 m · 24.000 kg', estado: 'resuelta' }
+    ];
+    var INC_ESTADO = {
+        'abierta': { label: 'Abierta', badge: 'badge-orange' },
+        'en-curso': { label: 'En curso', badge: 'badge-yellow' },
+        'resuelta': { label: 'Resuelta', badge: 'badge-green' }
+    };
+    function renderIncidenciasTable() {
+        var tbody = document.getElementById('tbodyIncidencias'); if (!tbody) return;
+        var st = (typeof TABLE_STATE !== 'undefined' && TABLE_STATE.incidencias) ? TABLE_STATE.incidencias : { filter: 'abiertas', q: '', mes: '' };
+        // Contadores de las pestañas (siempre sobre TODOS los datos).
+        var counts = { abiertas: 0, 'en-curso': 0, resueltas: 0 };
+        INCIDENCIAS_DATA.forEach(function (x) {
+            if (x.estado === 'abierta') counts.abiertas++;
+            else if (x.estado === 'en-curso') counts['en-curso']++;
+            else counts.resueltas++;
         });
-        return n;
+        Object.keys(counts).forEach(function (k) { var el = document.querySelector('[data-inc-count="' + k + '"]'); if (el) el.textContent = counts[k]; });
+        var nq = normTxt(st.q || '');
+        var arr = INCIDENCIAS_DATA.filter(function (x) {
+            if (st.filter === 'abiertas' && x.estado !== 'abierta') return false;
+            if (st.filter === 'en-curso' && x.estado !== 'en-curso') return false;
+            if (st.filter === 'resueltas' && x.estado !== 'resuelta') return false;
+            if (st.mes) {
+                var m = String(x.fr).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+                var d = m ? new Date(+m[3], +m[2] - 1, +m[1]) : null;
+                if (!d || !fechaEnRango(d, st.mes)) return false;
+            }
+            if (nq && !matchTokens(normTxt([x.fr, x.tit, x.det, x.envio, x.refCli, x.orig, x.dest, x.med, INC_ESTADO[x.estado].label].join(' ')), nq)) return false;
+            return true;
+        });
+        var slice = pageSlice('incidencias', arr, st.filter + '|' + nq + '|' + (st.mes || ''), 'incidenciasPagination', 'incidenciasShowing', 'Sin incidencias');
+        if (!arr.length) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin incidencias en este filtro</td></tr>';
+            return;
+        }
+        tbody.innerHTML = slice.map(function (x) {
+            var e = INC_ESTADO[x.estado] || INC_ESTADO.resuelta;
+            return '<tr>' +
+                '<td>' + esc(x.fr) + '<div class="meta">' + esc(x.hora) + '</div></td>' +
+                '<td>' + esc(x.tit) + '<div class="meta">' + esc(x.det) + '</div></td>' +
+                '<td class="ref">' + esc(x.envio) + '</td>' +
+                '<td class="ref-cli">' + esc(x.refCli) + '</td>' +
+                '<td><strong>' + esc(x.fcarga) + '</strong><div class="meta">' + esc(x.ventana) + '</div></td>' +
+                '<td class="route"><strong>' + esc(x.orig) + '</strong><span class="arrow">→</span><strong>' + esc(x.dest) + '</strong></td>' +
+                '<td class="amount">' + esc(x.med) + '</td>' +
+                '<td><span class="badge ' + e.badge + '">' + e.label + '</span></td>' +
+            '</tr>';
+        }).join('');
+    }
+    window.renderIncidenciasTable = renderIncidenciasTable;
+    function contarIncidenciasAbiertas() {
+        return INCIDENCIAS_DATA.filter(function (x) { return x.estado !== 'resuelta'; }).length;
     }
     function contarFacturasVencidas() {
         return (typeof FACTURAS_DATA !== 'undefined')
@@ -8788,7 +8839,8 @@
         penalizaciones: { page: 1, perPage: readPerPage('penalizaciones'), _k: '' },
         almacenes:      { page: 1, perPage: readPerPage('almacenes'), _k: '' },
         almacenesCat:   { page: 1, perPage: readPerPage('almacenesCat'), _k: '' },
-        sitios:         { page: 1, perPage: readPerPage('sitios'), _k: '' }
+        sitios:         { page: 1, perPage: readPerPage('sitios'), _k: '' },
+        incidencias:    { page: 1, filter: 'abiertas', perPage: readPerPage('incidencias'), q: '', mes: '', _k: '' }
     };
 
     // --- Horarios de almacén realistas para el mockup ---
@@ -10897,8 +10949,6 @@
     document.addEventListener('change', function (e) {
         var sel = e.target.closest('[data-filter-mes]');
         if (!sel) return;
-        // Solo la tabla de Envíos filtra de verdad por fecha. (Incidencias
-        // muestra el selector pero aún no filtra; Presupuestos ya no lo lleva.)
         if (sel.closest('#sec-cargas')) {
             TABLE_STATE.cargas.fecha = sel.value;   // '' | hoy | manana | ayer | esta-semana | semana-pasada | YYYY-MM
             TABLE_STATE.cargas.page = 1;
@@ -10906,6 +10956,10 @@
         } else if (sel.closest('#sec-almacenes')) {
             ALM_LIST.mes = sel.value;
             renderAlmacenesTable();
+        } else if (sel.closest('#sec-incidencias')) {
+            TABLE_STATE.incidencias.mes = sel.value;
+            TABLE_STATE.incidencias.page = 1;
+            renderIncidenciasTable();
         }
     });
     // Tabs de Almacenamientos (por estado).
@@ -11275,6 +11329,7 @@
         else if (table === 'almacenes') renderAlmacenesTable();
         else if (table === 'almacenesCat') renderAlmacenesCatTable((document.getElementById('almacenesCatSearch') || {}).value || '');
         else if (table === 'sitios') renderSitiosTable((document.getElementById('sitiosSearch') || {}).value || '');
+        else if (table === 'incidencias') renderIncidenciasTable();
     }
     // Paginación cliente reutilizable: resetea a pág. 1 si cambió el filtro
     // (clave `k`), recorta el array a la página actual, pinta los botones y el
@@ -11299,7 +11354,7 @@
     // Re-render diferido: las tablas con paginación cliente que se pintaron
     // durante la carga (antes de TABLE_STATE) se repintan ya paginadas.
     setTimeout(function () {
-        ['penalizaciones', 'almacenes', 'almacenesCat', 'sitios'].forEach(function (t) {
+        ['penalizaciones', 'almacenes', 'almacenesCat', 'sitios', 'incidencias'].forEach(function (t) {
             try { renderTable(t); } catch (e) {}
         });
     }, 0);
@@ -11439,10 +11494,7 @@
         var badge = document.querySelector('[data-stat-incidencias]');
         var wrap = document.querySelector('.topbar-ind-inc');
         if (!badge || !wrap) return;
-        var abiertas = 0;
-        document.querySelectorAll('#sec-incidencias tbody tr').forEach(function (tr) {
-            if (!tr.querySelector('.badge-green')) abiertas++;
-        });
+        var abiertas = contarIncidenciasAbiertas();
         // La campana agrupa incidencias abiertas + facturas vencidas.
         var vencidas = (typeof FACTURAS_DATA !== 'undefined')
             ? FACTURAS_DATA.filter(function (f) { return f.kind === 'vencida'; }).length : 0;
@@ -11661,10 +11713,7 @@
             } else if (sec.id === 'sec-albaranes') {
                 TABLE_STATE.albaranes.q = inp.value; TABLE_STATE.albaranes.page = 1; renderAlbaranesTable();
             } else if (sec.id === 'sec-incidencias') {
-                var q = normTxt(inp.value);
-                sec.querySelectorAll('tbody tr').forEach(function (tr) {
-                    tr.hidden = !!q && !matchTokens(normTxt(tr.textContent), q);
-                });
+                TABLE_STATE.incidencias.q = inp.value; TABLE_STATE.incidencias.page = 1; renderIncidenciasTable();
             }
         });
     });
