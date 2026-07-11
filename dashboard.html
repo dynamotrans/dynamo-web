@@ -1348,14 +1348,13 @@
            se arrastra con el ratón o se desliza con el dedo; el JS reengancha
            el scroll para que gire sin fin. */
         .dash-svc-carousel {
-            overflow: hidden; cursor: grab; touch-action: pan-y;
-            -webkit-user-select: none; user-select: none;
-            -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent 100%);
-                    mask-image: linear-gradient(90deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent 100%);
+            overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; cursor: grab;
         }
+        .dash-svc-carousel::-webkit-scrollbar { display: none; }
         .dash-svc-carousel.is-dragging { cursor: grabbing; }
         .dash-svc-carousel.is-dragging .dash-svc-card { pointer-events: none; }
-        .dash-svc-track { display: flex; gap: 0.9rem; width: max-content; padding: 2px 0; will-change: transform; }
+        .dash-svc-track { display: flex; gap: 0.9rem; width: max-content; padding: 2px 0; }
         .dash-svc-track .dash-svc-card { flex: 0 0 258px; }
         .dash-svc-track .dash-svc-card img { pointer-events: none; -webkit-user-drag: none; }
         @media (max-width: 640px) {
@@ -11429,59 +11428,42 @@
             rowS.innerHTML = oneSet + oneSet + oneSet;
             initSvcCarousel();
         }
-        // Carrusel manual con bucle infinito basado en TRANSFORM (no en el
-        // scroll nativo, que en iOS se rompía y dejaba las tarjetas en blanco).
-        // Se arrastra con ratón o dedo; al soltar hay inercia; la posición se
-        // envuelve módulo el ancho de una copia (3 copias en el DOM) → gira sin
-        // fin. `p` = desplazamiento lógico; el track se traslada a translateX(-p).
+        // Carrusel manual con bucle infinito usando SCROLL NATIVO (iOS lo tesela
+        // y lo renderiza siempre; nada de mask-image ni will-change/transform,
+        // que en iOS Safari dejaban la tira en blanco por límite de textura).
+        // 3 copias en el DOM; se arranca en la copia central y al cruzar el ancho
+        // de una copia se reengancha el scroll → gira sin fin. El dedo usa el
+        // scroll nativo; el ratón puede arrastrar además.
         function initSvcCarousel() {
             var box = document.getElementById('dashServiciosCarousel');
             var track = document.getElementById('dashServiciosRow');
             if (!box || !track) return;
-            var copyW = 0, p = 0, raf = null;
-            function measure() { var w = track.scrollWidth / 3; if (w > 0) copyW = w; }
-            function wrap() {
-                if (!copyW) return;
-                while (p < copyW * 0.5) p += copyW;
-                while (p >= copyW * 1.5) p -= copyW;
-            }
-            function apply() { track.style.transform = 'translate3d(' + (-p) + 'px,0,0)'; }
-            function refresh() { measure(); wrap(); apply(); }
-            measure(); p = copyW; wrap(); apply();
-            // Re-medir cuando el layout/imágenes ya han asentado el ancho.
-            setTimeout(refresh, 250); setTimeout(refresh, 700);
-            window.addEventListener('resize', refresh);
-
-            var down = false, lastX = 0, lastT = 0, vx = 0;
-            function px(e) { return e.touches ? e.touches[0].clientX : e.clientX; }
-            function onDown(e) {
-                measure(); down = true; lastX = px(e); lastT = e.timeStamp || 0; vx = 0;
-                if (raf) { cancelAnimationFrame(raf); raf = null; }
-                box.classList.add('is-dragging');
-            }
-            function onMove(e) {
-                if (!down) return;
-                var x = px(e), dx = x - lastX, dt = (e.timeStamp || 0) - lastT;
-                if (dt > 0) vx = dx / dt;               // px por ms
-                lastX = x; lastT = e.timeStamp || 0;
-                p -= dx; wrap(); apply();
-            }
-            function onUp() {
+            function copyW() { return track.scrollWidth / 3; }
+            function center() { var w = copyW(); if (w > 0 && box.scrollLeft < 1) box.scrollLeft = w; }
+            center(); setTimeout(center, 120); setTimeout(center, 500);
+            var wrapping = false, ticking = false;
+            box.addEventListener('scroll', function () {
+                if (wrapping || ticking) return;
+                ticking = true;
+                requestAnimationFrame(function () {
+                    ticking = false;
+                    var w = copyW(); if (w <= 0) return;
+                    if (box.scrollLeft < w * 0.5) { wrapping = true; box.scrollLeft += w; wrapping = false; }
+                    else if (box.scrollLeft >= w * 1.5) { wrapping = true; box.scrollLeft -= w; wrapping = false; }
+                });
+            }, { passive: true });
+            // Arrastre con RATÓN (el táctil ya hace scroll nativo, no se toca).
+            var down = false, sx = 0, sl = 0;
+            box.addEventListener('mousedown', function (e) {
+                down = true; sx = e.clientX; sl = box.scrollLeft; box.classList.add('is-dragging'); e.preventDefault();
+            });
+            window.addEventListener('mousemove', function (e) {
+                if (!down) return; box.scrollLeft = sl - (e.clientX - sx);
+            });
+            window.addEventListener('mouseup', function () {
                 if (!down) return; down = false; box.classList.remove('is-dragging');
-                var v = vx * 16;                        // ≈ px por frame (60fps)
-                function step() {
-                    v *= 0.94; p -= v; wrap(); apply();
-                    if (Math.abs(v) > 0.4) raf = requestAnimationFrame(step); else raf = null;
-                }
-                if (Math.abs(v) > 0.6) { if (raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(step); }
-            }
-            box.addEventListener('mousedown', onDown);
-            window.addEventListener('mousemove', onMove);
-            window.addEventListener('mouseup', onUp);
-            box.addEventListener('touchstart', onDown, { passive: true });
-            box.addEventListener('touchmove', onMove, { passive: true });
-            box.addEventListener('touchend', onUp);
-            box.addEventListener('touchcancel', onUp);
+            });
+            window.addEventListener('resize', function () { box.scrollLeft = copyW(); });
         }
     })();
     (function () {
