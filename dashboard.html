@@ -12258,7 +12258,10 @@
                         dateFormat: 'Y-m-d',
                         onClose: function (selDates) {
                             if (selDates && selDates.length) {
-                                var iso = selDates[0].toISOString().slice(0, 10);
+                                // isoLocal (fecha LOCAL) — no toISOString(): en España
+                                // toISOString convierte a UTC y guardaba un día menos
+                                // (elegías el 8 y quedaba el 7).
+                                var iso = isoLocal(selDates[0]);
                                 var existing = diaSel.querySelector('option[value="' + iso + '"]');
                                 if (!existing) {
                                     var opt = document.createElement('option');
@@ -12269,7 +12272,11 @@
                             } else {
                                 if (diaSel.value === 'otro') diaSel.value = '';
                             }
+                            // Recalcula el formulario al cerrar el calendario (fijar la
+                            // fecha vía flatpickr no dispara 'change' en el select).
                             syncNofechaWarn();
+                            renderEta();
+                            updateCutoffNote();
                         }
                     });
                 }
