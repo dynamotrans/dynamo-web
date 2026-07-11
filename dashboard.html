@@ -4478,7 +4478,8 @@
                             <ul class="ptar-sug" data-ptar-orig-sug hidden></ul>
                         </div>
                         <select id="ptar-tipoorig-carga" data-ptar-tipoorig class="ptar-select ptar-select-sm" aria-label="Tipo de origen">
-                            <option selected>Almacén / Nave</option>
+                            <option value="" selected>Tipo de lugar</option>
+                            <option>Almacén / Nave</option>
                             <option>Obra</option>
                             <option>Zona urbana</option>
                             <option>Evento</option>
@@ -4496,7 +4497,8 @@
                             <ul class="ptar-sug" data-ptar-dest-sug hidden></ul>
                         </div>
                         <select id="ptar-tipodest-carga" data-ptar-tipodest class="ptar-select ptar-select-sm" aria-label="Tipo de destino">
-                            <option selected>Almacén / Nave</option>
+                            <option value="" selected>Tipo de lugar</option>
+                            <option>Almacén / Nave</option>
                             <option>Obra</option>
                             <option>Zona urbana</option>
                             <option>Evento</option>
@@ -5034,12 +5036,55 @@
         // dinámicos). Se ignora cualquier modo 'presupuesto' heredado.
         var sec = document.getElementById('sec-nueva-carga');
         if (sec) { sec.dataset.entryMode = 'envio'; sec.dataset.step = 'form'; }
+        // Abrir en limpio SIEMPRE sale del modo edición (cargaModificarEnvio lo
+        // reactiva después si procede).
+        window._cargaEditRef = null;
         var h2 = document.querySelector('[data-nueva-carga-title]');
         if (h2) h2.textContent = 'Nuevo envío';
+        var sb = document.querySelector('#sec-nueva-carga [data-ptar-submit]');
+        if (sb) sb.textContent = 'Crear envío';
+        var fc0 = document.querySelector('#sec-nueva-carga [data-ptar-final-confirm]');
+        if (fc0) fc0.textContent = 'Confirmar envío';
         updatePrepagoWarn();
         showSection('nueva-carga');
     }
     window.openNuevaCarga = openNuevaCarga;
+    // Modificar envío: abre el MISMO formulario de crear envío con TODO
+    // prefijado y editable; el botón pasa a "Guardar cambios" y al guardar se
+    // ACTUALIZA el envío (mismo nº), no se crea otro. (Cuando se monten los
+    // roles se limitará quién puede modificar.)
+    function cargaModificarEnvio(ref) {
+        var src = (typeof findCargaDataByRef === 'function') ? findCargaDataByRef(ref) : null;
+        if (!src) return;
+        closeDashModal();
+        openNuevaCarga('envio');
+        if (window.prefillTarifador) window.prefillTarifador(src);
+        // Prefijar también la FECHA del envío (el prefill de "Repetir" no la
+        // pone a propósito; al modificar debe venir todo tal cual está).
+        var diaSel2 = document.querySelector('#sec-nueva-carga [data-ptar-dia]');
+        var fSrc = (src.fechaAsignada ? src.fechaAsignada.split(' ')[0] : src.fecha) || '';
+        var mF = String(fSrc).match(/^(\d{1,2})\/(\d{1,2})$/);
+        if (diaSel2 && mF) {
+            var dF = new Date(new Date().getFullYear(), +mF[2] - 1, +mF[1]);
+            function padF(n) { return ('0' + n).slice(-2); }
+            var isoF = dF.getFullYear() + '-' + padF(dF.getMonth() + 1) + '-' + padF(dF.getDate());
+            if (!diaSel2.querySelector('option[value="' + isoF + '"]')) {
+                var oF = document.createElement('option');
+                oF.value = isoF; oF.textContent = fSrc;
+                diaSel2.insertBefore(oF, diaSel2.querySelector('option[value="otro"]'));
+            }
+            diaSel2.value = isoF;
+            diaSel2.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        window._cargaEditRef = ref;
+        var h2 = document.querySelector('[data-nueva-carga-title]');
+        if (h2) h2.textContent = 'Modificar envío ' + ref;
+        var sb = document.querySelector('#sec-nueva-carga [data-ptar-submit]');
+        if (sb) sb.textContent = 'Guardar cambios';
+        var fc = document.querySelector('#sec-nueva-carga [data-ptar-final-confirm]');
+        if (fc) fc.textContent = 'Guardar cambios';
+    }
+    window.cargaModificarEnvio = cargaModificarEnvio;
     // Muestra el aviso de pago por adelantado del formulario solo si la
     // cuenta NO tiene crédito CESCE (chip de la topbar; lo dará el backend).
     function updatePrepagoWarn() {
@@ -7113,9 +7158,9 @@
                 // Camión en el muelle: ya no se puede modificar ni cancelar
                 btns.push(b('btn-primary', 'reportar-incidencia', 'Reportar incidencia', 'alert'));
             } else {
-                // Sin botón "Modificar": un envío confirmado no se edita. Si un
-                // dato (destino, entrega…) no es correcto, se CANCELA y se crea
-                // de nuevo — así no hay estados intermedios ambiguos.
+                // Modificar: abre el formulario de crear envío en modo edición
+                // ("Guardar cambios"). Con los roles se limitará quién puede.
+                btns.push(b('btn-secondary', 'modificar', 'Modificar', 'edit'));
                 if (isHacia) {
                     // Camión yendo a cargar: incidencia disponible, cancelar
                     // se mantiene pero ya con riesgo de cargos
@@ -7439,6 +7484,7 @@
                 '</div></div>' +
                 '<div class="modal-form-row"><label>Tipo de incidencia</label>' +
                 '<select id="incGenTipo">' +
+                    '<option value="" selected>Selecciona el tipo…</option>' +
                     '<option value="albaran">Solicitud de albarán / Albarán incorrecto</option>' +
                     '<option value="siniestro">Siniestro / rotura / pérdida de mercancía</option>' +
                     '<option value="transportista">Incidencia con algún transportista/conductor</option>' +
@@ -7519,6 +7565,8 @@
         if (inp && inp.readOnly) { incEnvClear(true); incEnvFilter(); }
     });
     function incGenConfirm() {
+        var tipoSel = document.getElementById('incGenTipo');
+        if (tipoSel && !tipoSel.value) { tipoSel.style.borderColor = '#dc2626'; tipoSel.focus(); return; }
         var t = document.getElementById('incGenTxt');
         if (!t || !t.value.trim()) { if (t) { t.style.borderColor = '#dc2626'; t.focus(); } return; }
         var raw = ((document.getElementById('incGenRef') || {}).value || '').trim();
@@ -7742,7 +7790,11 @@
             if (action === 'reportar-incidencia') return cargaReportarIncidencia(row);
             if (action === 'descargar-albaran') return cargaDescargarAlbaran(row);
             if (action === 'reclamar-albaran') return cargaReclamarAlbaran(row);
-            if (action === 'modificar') return cargaModificar(row);
+            if (action === 'modificar') {
+                // Modo edición: formulario de crear envío prefijado + "Guardar cambios".
+                var refMod = txt(row.querySelector('.ref strong')) || txt(row.querySelector('.ref'));
+                return cargaModificarEnvio(refMod);
+            }
             if (action === 'cancelar-carga') return cargaCancelar(row);
         }
         if (sectionId === 'sec-presupuestos') {
@@ -12517,9 +12569,11 @@
             'Evento': '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>',
             'Finca / Agrícola': '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>'
         };
+        // Sin tipo elegido → pin de ubicación genérico (no se asume Almacén).
+        var TIPO_SITIO_PIN = '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/>';
         function tipoSitioIconHtml(tipo) {
             return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-                (TIPO_SITIO_SVG[tipo] || TIPO_SITIO_SVG['Almacén / Nave']) + '</svg>';
+                (TIPO_SITIO_SVG[tipo] || TIPO_SITIO_PIN) + '</svg>';
         }
         function syncTipoSitioIcon(wrap, tipo) {
             if (!wrap) return;
@@ -13121,7 +13175,8 @@
                 row.className = 'ptar-field ptar-field-full ptar-parada-row';
                 row.setAttribute('data-ptar-parada', '');
                 row.setAttribute('data-kind', kind);
-                var opts = PARADA_TIPOS.map(function (o, i) { return '<option' + (i === 0 ? ' selected' : '') + '>' + o + '</option>'; }).join('');
+                var opts = '<option value="" selected>Tipo de lugar</option>' +
+                    PARADA_TIPOS.map(function (o) { return '<option>' + o + '</option>'; }).join('');
                 // El icono del campo es el TIPO DE SITIO (no recogida/entrega,
                 // que ya lo dice el circulito): arranca en Almacén/Nave.
                 var icon = tipoSitioIconHtml(PARADA_TIPOS[0]);
@@ -13307,6 +13362,14 @@
                     if (cr) cr.value = ''; if (cn) cn.value = '';
                 }
                 if (card) card.hidden = false;
+                // Salir/limpiar también abandona el modo edición (Modificar envío).
+                window._cargaEditRef = null;
+                var h2r = document.querySelector('[data-nueva-carga-title]');
+                if (h2r) h2r.textContent = 'Nuevo envío';
+                var sbr = document.querySelector('#sec-nueva-carga [data-ptar-submit]');
+                if (sbr) sbr.textContent = 'Crear envío';
+                var fcr = document.querySelector('#sec-nueva-carga [data-ptar-final-confirm]');
+                if (fcr) fcr.textContent = 'Confirmar envío';
                 renderEta();
             }
             reset.addEventListener('click', doReset);
@@ -13470,7 +13533,10 @@
             // común para presupuesto (directo) y carga (tras confirm + modal).
             function finalizeSave(d, saveMode) {
                 saveMode = saveMode || mode;
-                var ref = nextRef(saveMode);
+                // Modo EDICIÓN (Modificar envío): se conserva el nº y se
+                // actualiza el envío existente en vez de crear otro.
+                var editRef = (saveMode === 'carga' && window._cargaEditRef) ? window._cargaEditRef : null;
+                var ref = editRef || nextRef(saveMode);
                 // Consolida el sitio de un punto: aplica lo editado en su ficha
                 // del paso 2 y lo GUARDA en la agenda (los de Google pasan a
                 // ser sitios propios; los guardados actualizan sus datos).
@@ -13525,7 +13591,7 @@
                     if (pick.tipo === 'google' || edito) saveCustomSite(key, base);
                     return { key: key, site: base };
                 }
-                showLoadingOverlay(saveMode === 'carga' ? 'Creando envío…' : 'Generando presupuesto…', 900, function () {
+                showLoadingOverlay(saveMode === 'carga' ? (editRef ? 'Guardando cambios…' : 'Creando envío…') : 'Generando presupuesto…', 900, function () {
                 if (saveMode === 'carga') {
                     var oS = consolidarSitio(d.origSitePick, 'orig', d.origTipo, d.orig);
                     var dS = consolidarSitio(d.destSitePick, 'dest', d.destTipo, d.dest);
@@ -13536,11 +13602,15 @@
                         + (parseFloat(d.peso) * 35)) / 10) * 10);
                     // Separador de miles SIEMPRE (es-ES no lo pone en 4 cifras)
                     function fmtEur(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
-                    CARGAS_DATA.unshift(makeCarga(
+                    var prevIdx = -1, prevCarga = null;
+                    if (editRef) {
+                        for (var ei = 0; ei < CARGAS_DATA.length; ei++) if (CARGAS_DATA[ei].ref === editRef) { prevIdx = ei; prevCarga = CARGAS_DATA[ei]; break; }
+                    }
+                    var nuevaCarga = makeCarga(
                         ref, d.refCli, d.fechaTxt, d.urgenciaTxt,
                         d.origCorto, d.destCorto, d.origCorto + ' → ' + d.destCorto,
                         d.mercanciaShort, '', d.medidas, 'programada', undefined, {
-                            creadoEn: Date.now(),
+                            creadoEn: prevCarga ? (prevCarga.creadoEn || Date.now()) : Date.now(),
                             precio: fmtEur(precioNum) + ' €',
                             // Sin crédito → pago por adelantado: el envío nace
                             // "Pendiente de pago" y no avanza hasta validar el pago.
@@ -13556,7 +13626,16 @@
                                 return { tipo: p.kind, dir: ps ? ps.site.dir : p.texto, site: ps ? ps.key : null };
                             })
                         }
-                    ));
+                    );
+                    if (prevIdx > -1) {
+                        // Edición: mismo nº y misma posición; marca de modificado
+                        // (makeCarga no la contempla en su whitelist → se pone aquí).
+                        nuevaCarga.modificadoEn = Date.now();
+                        CARGAS_DATA[prevIdx] = nuevaCarga;
+                    } else {
+                        CARGAS_DATA.unshift(nuevaCarga);
+                    }
+                    window._cargaEditRef = null;
                     TABLE_STATE.cargas.page = 1;
                     // Si la carga es "Programado sin fecha definida" cae en
                     // la pestaña "Previsión sin fecha" (no está en agenda real); en
@@ -13574,12 +13653,14 @@
                     // que se oculta el overlay) para no ver el formulario un frame.
                     showSection('cargas');
                     showModalSuccess(
-                        isPrev ? 'Previsión ' + ref + ' guardada' : 'Envío ' + ref + ' creado',
-                        isPrev
-                            ? 'Queda anotada en "Previsión sin fecha" sin asignar camión. Cuando le pongas fecha pasará por el proceso de confirmación con avisos y condiciones, y se tramitará como pedido real.'
-                            : esPrepago
-                                ? 'Tu solicitud está creada en estado "Pendiente de pago". No se asigna camión ni avanza hasta que validemos el pago por adelantado. En cuanto lo confirmemos pasará a "Programado".'
-                                : 'Tu solicitud está creada. La verás en el listado de "Programadas" con el detalle completo.'
+                        editRef ? 'Cambios guardados en ' + ref
+                            : (isPrev ? 'Previsión ' + ref + ' guardada' : 'Envío ' + ref + ' creado'),
+                        editRef ? 'El envío ' + ref + ' se ha actualizado con los nuevos datos. Lo verás en el listado con la marca de modificado.'
+                            : isPrev
+                                ? 'Queda anotada en "Previsión sin fecha" sin asignar camión. Cuando le pongas fecha pasará por el proceso de confirmación con avisos y condiciones, y se tramitará como pedido real.'
+                                : esPrepago
+                                    ? 'Tu solicitud está creada en estado "Pendiente de pago". No se asigna camión ni avanza hasta que validemos el pago por adelantado. En cuanto lo confirmemos pasará a "Programado".'
+                                    : 'Tu solicitud está creada. La verás en el listado de "Programadas" con el detalle completo.'
                     );
                 } else {
                     var base = (d.camion === 'tauliner' ? 950 : 720)
