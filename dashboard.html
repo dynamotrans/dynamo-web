@@ -1863,6 +1863,25 @@
         .alm-price-total { border-top: 1px dashed var(--gray-200); margin-top: 0.4rem; padding-top: 0.55rem; }
         .alm-price-total .k { font-weight: 800; color: var(--navy); font-size: 0.98rem; }
         .alm-price-total .v { font-weight: 900; color: var(--purple); font-size: 1.15rem; }
+        /* Estado de CÁLCULO del precio: barra en marcha + importes como skeleton. */
+        .alm-price-calcbar {
+            position: relative; height: 3px; border-radius: 3px; overflow: hidden;
+            background: rgba(51,0,204,0.10); margin: 0.1rem 0 0.6rem;
+        }
+        .alm-price-calcbar span {
+            position: absolute; top: 0; left: 0; height: 100%; width: 40%; border-radius: 3px;
+            background: linear-gradient(90deg, transparent, var(--purple), transparent);
+            animation: priceCalcBar 1.05s ease-in-out infinite;
+        }
+        @keyframes priceCalcBar { 0% { transform: translateX(-110%); } 100% { transform: translateX(360%); } }
+        .price-skel {
+            display: inline-block; width: 66px; height: 0.85em; border-radius: 5px; vertical-align: middle;
+            background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 37%, var(--gray-100) 63%);
+            background-size: 400% 100%; animation: priceSkelShimmer 1.2s ease infinite;
+        }
+        .price-skel-total { width: 92px; height: 1em; }
+        @keyframes priceSkelShimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+        @media (prefers-reduced-motion: reduce) { .alm-price-calcbar span, .price-skel { animation: none; } }
         .alm-dates { grid-template-columns: 1fr 1fr; }
         .alm-note { font-size: 0.8rem; color: var(--gray-500); line-height: 1.45; margin-top: 0.6rem; }
         /* Aviso de campos que faltan: MISMA caja que el envío (.ptar-warning). */
@@ -5638,6 +5657,19 @@
         h += '<div class="alm-price-row"><span class="k">Base imponible</span><span class="v"><span data-price-neto>' + eur(neto) + '</span></span></div>';
         h += '<div class="alm-price-row"><span class="k">IVA (21%)</span><span class="v"><span data-price-iva>' + eur(iva) + '</span></span></div>';
         h += '<div class="alm-price-row alm-price-total"><span class="k">Total (IVA incl.)</span><span class="v"><span data-price-tot>' + eur(tot) + '</span></span></div>';
+        return h;
+    };
+    // Estado de CÁLCULO de la caja de precio: barra en marcha arriba + los
+    // importes como barras "skeleton" mientras se recalcula (mock de la latencia
+    // que en producción tendrá el backend al devolver el nuevo importe).
+    window.__priceSkeletonHtml = function (extraRows) {
+        var labels = (extraRows || []).map(function (r) { return r.k; });
+        labels.push('Base imponible', 'IVA (21%)');
+        var h = '<div class="alm-price-calcbar"><span></span></div>';
+        labels.forEach(function (k) {
+            h += '<div class="alm-price-row"><span class="k">' + k + '</span><span class="v"><span class="price-skel"></span></span></div>';
+        });
+        h += '<div class="alm-price-row alm-price-total"><span class="k">Total (IVA incl.)</span><span class="v"><span class="price-skel price-skel-total"></span></span></div>';
         return h;
     };
     // Anima un importe en € desde su valor previo (data-val) al nuevo.
@@ -12443,7 +12475,7 @@
             var etaBox = card.parentNode.querySelector('[data-ptar-eta-box]');
             var festBox = card.querySelector('[data-ptar-fest-box]');
             // --- Efecto contador del precio (rolling number) ---
-            var lastPrice = 0, priceRaf = null;
+            var lastPrice = 0, priceRaf = null, priceCalcTimer = null;
             function animatePrice(el, from, to) {
                 if (priceRaf) cancelAnimationFrame(priceRaf);
                 if (from === to) { el.textContent = to.toLocaleString('es-ES'); return; }
@@ -12720,9 +12752,19 @@
                     (rangoHtml ? '<dt>Fecha entrega estimada</dt>' + rangoHtml : '') +
                     '</dl>' +
                     '<div class="alm-price ptar-eta-pricebox" data-eta-pricebox></div>';
-                // Caja de precio unificada (Base / IVA / Total) con efecto contador
-                // encadenado desde el precio anterior (fromPrice).
-                window.__renderPriceBox(etaBox.querySelector('[data-eta-pricebox]'), precio, precioRows, fromPrice);
+                // Caja de precio: durante el "cálculo" (mock de latencia de
+                // backend, ~1,5 s) se muestra un SKELETON con barra en marcha;
+                // al terminar, se pinta el precio real con el efecto contador
+                // encadenado desde el anterior (fromPrice). Cada cambio reinicia
+                // el temporizador (debounce). En producción, el retardo será lo
+                // que tarde el backend en devolver el importe.
+                var pbox = etaBox.querySelector('[data-eta-pricebox]');
+                if (priceCalcTimer) clearTimeout(priceCalcTimer);
+                pbox.innerHTML = window.__priceSkeletonHtml(precioRows);
+                priceCalcTimer = setTimeout(function () {
+                    priceCalcTimer = null;
+                    window.__renderPriceBox(pbox, precio, precioRows, fromPrice);
+                }, 1500);
                 lastPrice = precio;
                 if (festBox) festBox.innerHTML = festHtml;  // aviso de festivo fuera de la caja, antes de referencia
             }
