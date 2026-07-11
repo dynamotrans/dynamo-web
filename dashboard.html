@@ -1344,20 +1344,28 @@
             padding: 0.9rem 1.3rem; background: white; border-radius: 12px; border: 1px solid var(--gray-200);
         }
         .veh-nota strong { color: var(--navy); }
-        /* Servicios como cuadros FIJOS: fila de 4 en escritorio, 2×2 en móvil. */
-        .dash-svc-grid {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.9rem;
+        /* Servicios como CARRUSEL manual de una sola fila con bucle infinito:
+           se arrastra con el ratón o se desliza con el dedo; el JS reengancha
+           el scroll para que gire sin fin. */
+        .dash-svc-carousel {
+            overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; cursor: grab;
+            -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent 100%);
+                    mask-image: linear-gradient(90deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent 100%);
         }
+        .dash-svc-carousel::-webkit-scrollbar { display: none; }
+        .dash-svc-carousel.is-dragging { cursor: grabbing; }
+        .dash-svc-carousel.is-dragging .dash-svc-card { pointer-events: none; }
+        .dash-svc-track { display: flex; gap: 0.9rem; width: max-content; padding: 2px; }
+        .dash-svc-track .dash-svc-card { flex: 0 0 258px; }
         @media (max-width: 640px) {
-            .dash-svc-grid { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
-            /* Cuadros más bajos en móvil para que el carrusel de abajo se vea
-               entero sin tener que hacer tanto scroll. Prefijo .dash-svc-grid
-               para ganar en especificidad a las reglas base .dash-svc-*. */
-            .dash-svc-grid .dash-svc-img { height: 58px; }
-            .dash-svc-grid .dash-svc-chip { font-size: 0.56rem; padding: 0.12rem 0.4rem; }
-            .dash-svc-grid .dash-svc-body { padding: 0.4rem 0.55rem 0.5rem; }
-            .dash-svc-grid .dash-svc-body strong { font-size: 0.78rem; }
-            .dash-svc-grid .dash-svc-body span { font-size: 0.66rem; -webkit-line-clamp: 2; }
+            .dash-svc-track { gap: 0.6rem; }
+            .dash-svc-track .dash-svc-card { flex: 0 0 210px; }
+            .dash-svc-track .dash-svc-img { height: 70px; }
+            .dash-svc-track .dash-svc-chip { font-size: 0.56rem; padding: 0.12rem 0.4rem; }
+            .dash-svc-track .dash-svc-body { padding: 0.45rem 0.6rem 0.55rem; }
+            .dash-svc-track .dash-svc-body strong { font-size: 0.8rem; }
+            .dash-svc-track .dash-svc-body span { font-size: 0.68rem; -webkit-line-clamp: 2; }
         }
         /* Tarjeta de servicio compacta (foto + chip + cuerpo morado, como la web) */
         .dash-svc-card {
@@ -3967,11 +3975,13 @@
             </div>
         </div>
 
-        <!-- ===== Servicios: las 4 tarjetas de la web pública como cuadros
-             FIJOS (fila en escritorio, 2×2 en móvil). ===== -->
+        <!-- ===== Servicios: las 4 tarjetas de la web pública en un CARRUSEL
+             manual de una fila, arrastrable, con bucle infinito. ===== -->
         <div class="dash-servicios">
             <h4 class="dash-carousel-title">Nuestros servicios</h4>
-            <div class="dash-svc-grid" id="dashServiciosRow"></div>
+            <div class="dash-svc-carousel" id="dashServiciosCarousel">
+                <div class="dash-svc-track" id="dashServiciosRow"></div>
+            </div>
         </div>
 
         <!-- ===== Muro de clientes: MISMO carrusel triple de la web pública
@@ -11408,12 +11418,51 @@
                 { t: 'Importación', chip: 'Toda Europa', img: '/images/AdobeStock_154376791.jpeg', pos: '', d: 'Hasta la puerta de tu empresa, desde cualquier punto de Europa, con plazos garantizados y máxima calidad.' },
                 { t: 'Exportación', chip: 'Import & Export', img: '/images/AdobeStock_260603287.jpeg', pos: '', d: 'Portugal, Francia, Alemania, Italia, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.' }
             ];
-            rowS.innerHTML = SVCS.map(function (s) {
+            var oneSet = SVCS.map(function (s) {
                 return '<div class="dash-svc-card">' +
                     '<div class="dash-svc-img"><img loading="lazy" src="' + s.img + '" alt="' + s.t + '"' + (s.pos ? ' style="object-position:' + s.pos + ';"' : '') + '><span class="dash-svc-chip">' + s.chip + '</span></div>' +
                     '<div class="dash-svc-body"><strong>' + s.t + '</strong><span>' + s.d + '</span></div>' +
                 '</div>';
             }).join('');
+            // 3 copias para el bucle: se empieza en la copia central y el scroll
+            // se reengancha al cruzar el ancho de una copia (giro sin fin).
+            rowS.innerHTML = oneSet + oneSet + oneSet;
+            initSvcCarousel();
+        }
+        // Carrusel manual (arrastre con ratón + deslizar dedo) con bucle infinito.
+        function initSvcCarousel() {
+            var box = document.getElementById('dashServiciosCarousel');
+            var track = document.getElementById('dashServiciosRow');
+            if (!box || !track) return;
+            function copyW() { return track.scrollWidth / 3; }
+            function center() {
+                var w = copyW();
+                if (w > 0 && box.scrollLeft < 1) box.scrollLeft = w;
+            }
+            // Arranca centrado cuando ya hay ancho medible (imágenes/layout).
+            setTimeout(center, 60); setTimeout(center, 400);
+            var wrapping = false;
+            box.addEventListener('scroll', function () {
+                if (wrapping) return;
+                var w = copyW(); if (w <= 0) return;
+                if (box.scrollLeft < w * 0.5) { wrapping = true; box.scrollLeft += w; wrapping = false; }
+                else if (box.scrollLeft >= w * 1.5) { wrapping = true; box.scrollLeft -= w; wrapping = false; }
+            }, { passive: true });
+            // Arrastre con ratón (en táctil ya hace scroll nativo).
+            var down = false, sx = 0, sl = 0, moved = 0;
+            box.addEventListener('pointerdown', function (e) {
+                if (e.pointerType === 'touch') return;
+                down = true; moved = 0; sx = e.clientX; sl = box.scrollLeft;
+                box.classList.add('is-dragging');
+            });
+            window.addEventListener('pointermove', function (e) {
+                if (!down) return;
+                var dx = e.clientX - sx; moved = Math.max(moved, Math.abs(dx));
+                box.scrollLeft = sl - dx;
+            });
+            window.addEventListener('pointerup', function () {
+                if (!down) return; down = false; box.classList.remove('is-dragging');
+            });
         }
     })();
     (function () {
