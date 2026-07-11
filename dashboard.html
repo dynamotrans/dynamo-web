@@ -1201,6 +1201,30 @@
             border-bottom: 1px solid var(--gray-200);
         }
         .modal-section-title:first-child { margin-top: 0; }
+        /* --- Detalle de envío: tarjeta compacta del transportista/vehículo --- */
+        .det-transp-card {
+            border: 1px solid var(--gray-200); border-radius: 12px;
+            padding: 0.7rem 0.85rem; margin-top: 0.6rem; background: var(--gray-50);
+        }
+        .det-transp-card .dtc-main {
+            display: flex; align-items: center; gap: 0.5rem;
+            font-size: 0.92rem; color: var(--navy); margin-bottom: 0.5rem;
+        }
+        .det-transp-card .dtc-main svg { width: 17px; height: 17px; color: var(--purple); flex-shrink: 0; }
+        .det-transp-card .dtc-row { display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; }
+        .dtc-item { display: flex; flex-direction: column; min-width: 0; }
+        .dtc-item label { font-size: 0.7rem; font-weight: 700; color: var(--gray-500); }
+        .dtc-item .dtc-v { font-size: 0.85rem; font-weight: 600; color: var(--navy); }
+        .dtc-mat {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            background: #fff; border: 1px solid var(--gray-200); border-radius: 6px; padding: 0 0.4rem;
+        }
+        /* --- Detalle de envío: puntos de ruta numerados (Recogida 1 / Entrega 1) --- */
+        .det-ruta { display: grid; gap: 0.6rem; margin-top: 0.5rem; }
+        .det-punto { border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.6rem 0.75rem; background: #fff; }
+        .det-punto-head { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem; }
+        .det-punto-label { font-size: 0.8rem; font-weight: 800; color: var(--navy); }
+        .det-punto-body { font-size: 0.85rem; color: var(--navy); line-height: 1.45; }
         .modal-info-grid > div { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
         /* Cuerpo de los modales a tamaño ÚNICO 0.82rem (igual que las
            tablas): etiquetas, valores, avisos y timeline. */
@@ -7074,7 +7098,9 @@
                 // Camión en el muelle: ya no se puede modificar ni cancelar
                 btns.push(b('btn-primary', 'reportar-incidencia', 'Reportar incidencia', 'alert'));
             } else {
-                btns.push(b('btn-secondary', 'modificar', 'Modificar', 'edit'));
+                // Sin botón "Modificar": un envío confirmado no se edita. Si un
+                // dato (destino, entrega…) no es correcto, se CANCELA y se crea
+                // de nuevo — así no hay estados intermedios ambiguos.
                 if (isHacia) {
                     // Camión yendo a cargar: incidencia disponible, cancelar
                     // se mantiene pero ya con riesgo de cargos
@@ -7188,40 +7214,54 @@
                     }
                     return infoGrid(items);
                 })() +
-                sectionTitle('Asignación') +
+                sectionTitle('Transporte') +
                 (function () {
                     var a = getAsignacionEstado(src);
                     var asigHtml = a
                         ? '<span class="asig-line asig-' + a.key + '" style="margin-top:0;"><span class="asig-dot"></span>' + escapeHtml(a.label) + '</span>'
                         : pend(null);
-                    return infoGrid([
+                    var h = infoGrid([
                         { label: 'Estado asignación transportista', value: asigHtml, html: true, span: true },
                         { label: 'Fecha asignada de carga', value: pend(src.fechaAsignada), html: true },
                         { label: 'Hora estimada de llegada', value: pend(src.horaCargaEst), html: true },
-                        { label: 'ETA entrega', value: pend(src.etaEntrega), html: true },
-                        { label: 'Tipo de carga', value: pend(src.tipoCarga), html: true },
-                        { label: 'Tipo de camión', value: pend(src.tipoCamion), html: true },
-                        { label: 'Transportista', value: pend(src.transportistaNombre), html: true, span: true },
-                        { label: 'Matrícula del camión', value: pend(src.matricula), html: true },
-                        { label: 'Conductor', value: pend(src.conductor), html: true },
-                        { label: 'Tfno. conductor', value: telConductorHTML(src), html: true }
+                        { label: 'ETA entrega', value: pend(src.etaEntrega), html: true }
                     ]);
+                    // Tarjeta COMPACTA del transportista y vehículo: todo junto en
+                    // una caja (transportista arriba; camión, matrícula, conductor
+                    // y teléfono en línea), en vez de 6 celdas sueltas del grid.
+                    h += '<div class="det-transp-card">' +
+                        '<div class="dtc-main">' + icon('truck') + '<strong>' + (src.transportistaNombre ? escapeHtml(src.transportistaNombre) : pend(null)) + '</strong></div>' +
+                        '<div class="dtc-row">' +
+                            '<span class="dtc-item"><label>Camión</label><span class="dtc-v">' + pend(src.tipoCamion) + '</span></span>' +
+                            '<span class="dtc-item"><label>Matrícula</label><span class="dtc-v">' + (src.matricula ? '<span class="dtc-mat">' + escapeHtml(src.matricula) + '</span>' : pend(null)) + '</span></span>' +
+                            '<span class="dtc-item"><label>Conductor</label><span class="dtc-v">' + pend(src.conductor) + '</span></span>' +
+                            '<span class="dtc-item"><label>Teléfono</label><span class="dtc-v">' + telConductorHTML(src) + '</span></span>' +
+                        '</div>' +
+                    '</div>';
+                    return h;
                 })() +
-                sectionTitle('Ruta y mercancía') +
+                sectionTitle('Ruta') +
                 (function () {
-                    // Cada punto con su empresa, dirección, horario, teléfono
-                    // clicable y notas operativas (del catálogo SITES).
-                    var items = [
-                        { label: 'Recogida', value: puntoDetalleHTML(src.origenSite, ciudadDir(src.origen, src.origenDir), src.horarioOrigen), html: true, span: true }
-                    ];
+                    // Puntos numerados por tipo (Recogida 1, 2… / Entrega 1, 2…)
+                    // con el circulito naranja/verde del tarifador y ficha con
+                    // empresa, dirección, horario, teléfono y notas del sitio.
+                    var recs = [{ site: src.origenSite, dir: ciudadDir(src.origen, src.origenDir), hor: src.horarioOrigen }];
+                    var ents = [];
                     (src.paradas || []).forEach(function (pr) {
-                        items.push({ label: pr.tipo === 'recogida' ? 'Recogida adicional' : 'Entrega adicional', value: puntoDetalleHTML(pr.site, pr.dir, null), html: true, span: true });
+                        (pr.tipo === 'recogida' ? recs : ents).push({ site: pr.site, dir: pr.dir, hor: null });
                     });
-                    items.push({ label: 'Entrega', value: puntoDetalleHTML(src.destinoSite, ciudadDir(src.destino, src.destinoDir), src.horarioDestino), html: true, span: true });
-                    items.push({ label: 'Tipo de mercancía', value: d.mercancia + (d.mercanciaMeta ? ' · ' + d.mercanciaMeta : '') });
-                    items.push({ label: 'Medidas', value: d.medidas });
-                    return infoGrid(items);
+                    ents.push({ site: src.destinoSite, dir: ciudadDir(src.destino, src.destinoDir), hor: src.horarioDestino });
+                    var h = '<div class="det-ruta">';
+                    recs.forEach(function (p, i) { h += detPuntoHTML('rec', i + 1, 'Recogida ' + (i + 1), p); });
+                    ents.forEach(function (p, i) { h += detPuntoHTML('ent', i + 1, 'Entrega ' + (i + 1), p); });
+                    return h + '</div>';
                 })() +
+                sectionTitle('Mercancía') +
+                infoGrid([
+                    { label: 'Tipo de mercancía', value: d.mercancia + (d.mercanciaMeta ? ' · ' + d.mercanciaMeta : '') },
+                    { label: 'Medidas', value: d.medidas },
+                    { label: 'Tipo de carga', value: pend(src.tipoCarga), html: true }
+                ]) +
                 // Valoración del transportista: solo en envíos ENTREGADOS
                 // (el servicio ya se ha dado). Una única puntuación 1-5 estrellas.
                 (src.kind === 'entregada'
@@ -9412,7 +9452,7 @@
             return;
         }
         tbody.innerHTML = slice.map(function (p) {
-            return '<tr>' +
+            return '<tr onclick="openNuevaPenalizacion(\'' + escapeHtml(p.ref) + '\')">' +
                 '<td class="ref"><strong>' + escapeHtml(p.ref) + '</strong><div class="meta">' + escapeHtml(String(p.descripcion || '').slice(0, 60)) + (String(p.descripcion || '').length > 60 ? '…' : '') + '</div></td>' +
                 '<td><strong>' + escapeHtml(p.envio) + '</strong></td>' +
                 '<td><span class="badge badge-prog">' + escapeHtml(p.tipo) + '</span></td>' +
@@ -9460,8 +9500,13 @@
         }
         var err = document.getElementById('penErr'); if (err) err.classList.remove('show');
     }
-    function openNuevaPenalizacion() {
-        _penEnvioSel = null;
+    // Crear (sin argumento) o EDITAR (con el ref de una penalización existente,
+    // al pulsar su fila): mismo modal, campos prefijados y "Guardar penalización".
+    var _penEditRef = null;
+    function openNuevaPenalizacion(editRef) {
+        var p = editRef ? (PENALIZACIONES_DATA.filter(function (x) { return x.ref === editRef; })[0] || null) : null;
+        _penEditRef = p ? p.ref : null;
+        _penEnvioSel = p ? p.envio : null;
         var tipoOpts = '<option value="">Selecciona el tipo…</option>' + PEN_TIPOS.map(function (t) { return '<option>' + t + '</option>'; }).join('');
         var body =
             '<div class="modal-form-row"><label>Envío referenciado</label>' +
@@ -9474,11 +9519,11 @@
             '<p class="alm-err" id="penErr"></p>';
         openDashModal({
             icon: 'alert',
-            title: 'Crear penalización',
-            sub: 'Asóciala a un envío y su transportista',
+            title: p ? 'Editar penalización ' + p.ref : 'Crear penalización',
+            sub: p ? 'Cambia lo que necesites y guarda' : 'Asóciala a un envío y su transportista',
             body: body,
             footer: '<button class="btn-ghost" onclick="closeDashModal();return false;" style="flex:1;">Cancelar</button>' +
-                    '<button class="btn-primary" onclick="crearPenalizacion();return false;" style="flex:1;">Crear penalización</button>',
+                    '<button class="btn-primary" onclick="crearPenalizacion();return false;" style="flex:1;">Guardar penalización</button>',
             afterOpen: function () {
                 var inp = document.getElementById('penEnvioInput');
                 var sug = document.getElementById('penEnvioSug');
@@ -9496,6 +9541,13 @@
                     if (!document.getElementById('penAc')) { document.removeEventListener('click', _penDoc); return; }
                     if (ac && !ac.contains(e.target)) { if (sug) sug.hidden = true; }
                 });
+                // Edición: prefijar todos los campos de la penalización.
+                if (p) {
+                    penPickEnvio(p.envio);
+                    var ts = document.getElementById('penTipo'); if (ts) ts.value = p.tipo;
+                    var ds = document.getElementById('penDesc'); if (ds) ds.value = p.descripcion || '';
+                    var im = document.getElementById('penImporte'); if (im) im.value = p.importe;
+                }
             }
         });
     }
@@ -9511,16 +9563,28 @@
         if (!desc) return fail('Añade una descripción de la penalización.', document.getElementById('penDesc'));
         if (!(imp > 0)) return fail('Indica un importe válido (sin IVA).', document.getElementById('penImporte'));
         var c = penEnviosList().filter(function (x) { return x.ref === _penEnvioSel; })[0] || {};
-        var nuevoRef = '#PEN-' + (PEN_SEQ++);
-        PENALIZACIONES_DATA.unshift({
-            ref: nuevoRef, envio: _penEnvioSel, tipo: tipo,
-            transportista: c.transportista || null, descripcion: desc, importe: imp, fecha: penHoyMas(0)
-        });
+        var esEdicion = !!_penEditRef, refFinal;
+        if (esEdicion) {
+            // EDICIÓN: se actualiza la penalización existente (mismo ref y fecha).
+            var p0 = PENALIZACIONES_DATA.filter(function (x) { return x.ref === _penEditRef; })[0];
+            if (p0) {
+                p0.envio = _penEnvioSel; p0.tipo = tipo; p0.descripcion = desc; p0.importe = imp;
+                p0.transportista = c.transportista || p0.transportista || null;
+            }
+            refFinal = _penEditRef;
+        } else {
+            refFinal = '#PEN-' + (PEN_SEQ++);
+            PENALIZACIONES_DATA.unshift({
+                ref: refFinal, envio: _penEnvioSel, tipo: tipo,
+                transportista: c.transportista || null, descripcion: desc, importe: imp, fecha: penHoyMas(0)
+            });
+        }
+        _penEditRef = null;
         closeDashModal();
         renderPenalizacionesTable();
         showSection('penalizaciones');
-        showLoadingOverlay('Creando penalización…', 900, function () {
-            showModalSuccess('Penalización ' + nuevoRef + ' creada',
+        showLoadingOverlay('Guardando penalización…', 900, function () {
+            showModalSuccess('Penalización ' + refFinal + ' guardada',
                 tipo + ' sobre el envío ' + _penEnvioSel + ' por ' + almEur(imp) + ' (sin IVA). La verás en el listado de Penalizaciones.');
         });
     }
@@ -9586,7 +9650,7 @@
     }
     function actionItemsCarga(c) {
         var kind = c.kind;
-        if (kind === 'programada') return mi('eye', 'Ver detalle') + mi('edit', 'Modificar') + '<button class="row-menu-item danger"><span class="rm-icon">' + icon('x') + '</span>Cancelar envío</button>';
+        if (kind === 'programada') return mi('eye', 'Ver detalle') + '<button class="row-menu-item danger"><span class="rm-icon">' + icon('x') + '</span>Cancelar envío</button>';
         if (kind === 'en-ruta')    return mi('eye', 'Ver detalle') + mi('alert', 'Reportar incidencia');
         if (kind === 'cancelada')  return mi('eye', 'Ver detalle');
         // entregada — el albarán ya vive en su propia sección "Albaranes",
@@ -10640,6 +10704,15 @@
     // Bloque de detalle de un punto de la ruta para el modal "Ver detalle":
     // empresa (enlace a Maps), dirección, horario, teléfono clicable con
     // persona de contacto y notas operativas (NIMA, básculas, avisos…).
+    // Punto de ruta del DETALLE de envío: cabecera con el circulito numerado
+    // (naranja recogida / verde entrega, mismo estilo que el tarifador) y
+    // cuerpo con la ficha del sitio.
+    function detPuntoHTML(cls, num, label, p) {
+        return '<div class="det-punto">' +
+            '<div class="det-punto-head"><span class="ptar-route-num ' + cls + '">' + num + '</span><span class="det-punto-label">' + escapeHtml(label) + '</span></div>' +
+            '<div class="det-punto-body">' + puntoDetalleHTML(p.site, p.dir, p.hor) + '</div>' +
+        '</div>';
+    }
     function puntoDetalleHTML(siteRef, dir, horario) {
         var s = siteDe(siteRef);
         var h = '';
