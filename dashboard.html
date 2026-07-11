@@ -1863,6 +1863,14 @@
         .alm-price-total { border-top: 1px dashed var(--gray-200); margin-top: 0.4rem; padding-top: 0.55rem; }
         .alm-price-total .k { font-weight: 800; color: var(--navy); font-size: 0.98rem; }
         .alm-price-total .v { font-weight: 900; color: var(--purple); font-size: 1.15rem; }
+        /* Base imponible DESTACADA (grande y morada) con separador arriba. */
+        .alm-price-base { border-top: 1px dashed var(--gray-200); margin-top: 0.4rem; padding-top: 0.55rem; }
+        .alm-price-base .k { font-weight: 800; color: var(--navy); font-size: 1rem; }
+        .alm-price-base .v { font-weight: 900; color: var(--purple); font-size: 1.35rem; }
+        /* IVA y Total con IVA: discretos debajo (gris claro y pequeño). */
+        .alm-price-sub { padding: 0.1rem 0; }
+        .alm-price-sub .k { color: var(--gray-500); font-weight: 600; font-size: 0.8rem; }
+        .alm-price-sub .v { color: var(--gray-500); font-weight: 600; font-size: 0.8rem; }
         /* Estado de CÁLCULO del precio: barra en marcha + importes como skeleton. */
         .alm-price-calcbar {
             position: relative; height: 3px; border-radius: 3px; overflow: hidden;
@@ -5654,22 +5662,25 @@
         (extraRows || []).forEach(function (r) {
             h += '<div class="alm-price-row"><span class="k">' + r.k + '</span><span class="v">' + eur(r.v) + '</span></div>';
         });
-        h += '<div class="alm-price-row"><span class="k">Base imponible</span><span class="v"><span data-price-neto>' + eur(neto) + '</span></span></div>';
-        h += '<div class="alm-price-row"><span class="k">IVA (21%)</span><span class="v"><span data-price-iva>' + eur(iva) + '</span></span></div>';
-        h += '<div class="alm-price-row alm-price-total"><span class="k">Total (IVA incl.)</span><span class="v"><span data-price-tot>' + eur(tot) + '</span></span></div>';
+        // Base imponible DESTACADA (grande y morada); IVA y Total con IVA
+        // debajo, discretos (gris claro y pequeño).
+        h += '<div class="alm-price-row alm-price-base"><span class="k">Base imponible</span><span class="v"><span data-price-neto>' + eur(neto) + '</span></span></div>';
+        h += '<div class="alm-price-row alm-price-sub"><span class="k">IVA (21%)</span><span class="v"><span data-price-iva>' + eur(iva) + '</span></span></div>';
+        h += '<div class="alm-price-row alm-price-sub"><span class="k">Total (IVA incl.)</span><span class="v"><span data-price-tot>' + eur(tot) + '</span></span></div>';
         return h;
     };
     // Estado de CÁLCULO de la caja de precio: barra en marcha arriba + los
     // importes como barras "skeleton" mientras se recalcula (mock de la latencia
     // que en producción tendrá el backend al devolver el nuevo importe).
     window.__priceSkeletonHtml = function (extraRows) {
-        var labels = (extraRows || []).map(function (r) { return r.k; });
-        labels.push('Base imponible', 'IVA (21%)');
+        var concepts = (extraRows || []).map(function (r) { return r.k; });
         var h = '<div class="alm-price-calcbar"><span></span></div>';
-        labels.forEach(function (k) {
+        concepts.forEach(function (k) {
             h += '<div class="alm-price-row"><span class="k">' + k + '</span><span class="v"><span class="price-skel"></span></span></div>';
         });
-        h += '<div class="alm-price-row alm-price-total"><span class="k">Total (IVA incl.)</span><span class="v"><span class="price-skel price-skel-total"></span></span></div>';
+        h += '<div class="alm-price-row alm-price-base"><span class="k">Base imponible</span><span class="v"><span class="price-skel price-skel-total"></span></span></div>';
+        h += '<div class="alm-price-row alm-price-sub"><span class="k">IVA (21%)</span><span class="v"><span class="price-skel"></span></span></div>';
+        h += '<div class="alm-price-row alm-price-sub"><span class="k">Total (IVA incl.)</span><span class="v"><span class="price-skel"></span></span></div>';
         return h;
     };
     // Anima un importe en € desde su valor previo (data-val) al nuevo.
