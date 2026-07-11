@@ -1344,9 +1344,14 @@
             padding: 0.9rem 1.3rem; background: white; border-radius: 12px; border: 1px solid var(--gray-200);
         }
         .veh-nota strong { color: var(--navy); }
-        /* Servicios en el MISMO marquee que los logos (.clientes-row-track):
-           tarjetas de ancho fijo, separadas por margen (no gap) para que el
-           empalme translateX(-50%) sea pixel-idéntico y no dé brinco. */
+        /* Servicios en el MISMO marquee que los logos (.clientes-row-track),
+           pero SIN animación automática: se mueve solo con el dedo/ratón
+           (transform por JS). Se mantiene el mismo elemento que renderiza bien
+           en iOS (overflow hidden + transform, nada de scroll con máscara). */
+        .dash-servicios .clientes-row { cursor: grab; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+        .dash-servicios .clientes-row.is-dragging { cursor: grabbing; }
+        .dash-servicios .clientes-row.is-dragging .dash-svc-card { pointer-events: none; }
+        .dash-servicios .clientes-row-track { animation: none; }
         .dash-servicios .clientes-row-track .dash-svc-card { width: 258px; flex-shrink: 0; }
         .dash-servicios .clientes-row-track .dash-svc-card img { pointer-events: none; -webkit-user-drag: none; }
         @media (max-width: 640px) {
@@ -11415,10 +11420,53 @@
                     '<div class="dash-svc-body"><strong>' + s.t + '</strong><span>' + s.d + '</span></div>' +
                 '</div>';
             }).join('');
-            // Duplicado ×2 (igual que el muro de logos): la animación
-            // translateX(0→-50%) recorre justo la 1.ª mitad y empalma con la 2.ª
-            // idéntica → bucle infinito sin costura y sin JS que reposicione.
+            // Duplicado ×2 (igual que el muro de logos): las dos mitades son
+            // idénticas → al envolver el arrastre módulo media anchura, el bucle
+            // es infinito y sin costura.
             rowS.innerHTML = oneSet + oneSet;
+            initSvcDrag();
+        }
+        // Arrastre SOLO con dedo/ratón (sin auto-scroll) sobre el mismo elemento
+        // del marquee (que en iOS renderiza bien): animación apagada por CSS y
+        // el track se traslada por JS. `p` = desplazamiento; se envuelve módulo
+        // media anchura (2 copias) → gira sin fin. Con inercia suave al soltar.
+        function initSvcDrag() {
+            var row = document.querySelector('.dash-servicios .clientes-row');
+            var track = document.getElementById('dashServiciosRow');
+            if (!row || !track) return;
+            var halfW = 0, p = 0, raf = null;
+            function measure() { var w = track.scrollWidth / 2; if (w > 0) halfW = w; }
+            function wrap() { if (!halfW) return; while (p < 0) p += halfW; while (p >= halfW) p -= halfW; }
+            function apply() { track.style.transform = 'translateX(' + (-p) + 'px)'; }
+            measure(); apply();
+            window.addEventListener('resize', function () { measure(); wrap(); apply(); });
+            var down = false, lastX = 0, lastT = 0, vx = 0;
+            function X(e) { return e.touches ? e.touches[0].clientX : e.clientX; }
+            function dn(e) {
+                measure(); down = true; lastX = X(e); lastT = e.timeStamp || 0; vx = 0;
+                if (raf) { cancelAnimationFrame(raf); raf = null; }
+                row.classList.add('is-dragging');
+            }
+            function mv(e) {
+                if (!down) return;
+                var x = X(e), dx = x - lastX, dt = (e.timeStamp || 0) - lastT;
+                if (dt > 0) vx = dx / dt;
+                lastX = x; lastT = e.timeStamp || 0;
+                p -= dx; wrap(); apply();
+            }
+            function up() {
+                if (!down) return; down = false; row.classList.remove('is-dragging');
+                var v = vx * 16;
+                function step() { v *= 0.93; p -= v; wrap(); apply(); if (Math.abs(v) > 0.4) raf = requestAnimationFrame(step); else raf = null; }
+                if (Math.abs(v) > 0.6) { if (raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(step); }
+            }
+            row.addEventListener('mousedown', function (e) { dn(e); e.preventDefault(); });
+            window.addEventListener('mousemove', mv);
+            window.addEventListener('mouseup', up);
+            row.addEventListener('touchstart', dn, { passive: true });
+            row.addEventListener('touchmove', mv, { passive: true });
+            row.addEventListener('touchend', up);
+            row.addEventListener('touchcancel', up);
         }
     })();
     (function () {
