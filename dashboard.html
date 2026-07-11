@@ -12471,6 +12471,30 @@
             return DAY_NAMES[d.getDay()] + ' ' + d.getDate() + ' ' + MONTH_NAMES[d.getMonth()];
         }
 
+        // --- Icono por TIPO DE SITIO en los puntos de la ruta ---
+        // El circulito naranja/verde numerado ya dice si es recogida o entrega;
+        // el icono del campo dice QUÉ tipo de lugar es (elegido en el select de
+        // al lado y sincronizado en vivo): fábrica = Almacén/Nave · cono = Obra ·
+        // skyline = Zona urbana · micrófono = Evento · hoja = Finca/Agrícola.
+        var TIPO_SITIO_SVG = {
+            'Almacén / Nave': '<path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/>',
+            'Obra': '<path d="M16.05 10.97a5 2.5 0 0 1-8.1 0"/><path d="m16.92 14.05 4.48 2.04a1 1 0 0 1 0 1.83l-8.57 3.9a2 2 0 0 1-1.66 0l-8.58-3.91a1 1 0 0 1 0-1.83l4.49-2.04"/><path d="M16.95 14.14a5 2.5 0 1 1-9.9 0L10.06 3.5a2 2 0 0 1 3.88 0z"/>',
+            'Zona urbana': '<rect x="3" y="8" width="7" height="13"/><rect x="14" y="3" width="7" height="18"/><path d="M6 12h1"/><path d="M6 16h1"/><path d="M17 7h1"/><path d="M17 11h1"/><path d="M17 15h1"/>',
+            'Evento': '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>',
+            'Finca / Agrícola': '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>'
+        };
+        function tipoSitioIconHtml(tipo) {
+            return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+                (TIPO_SITIO_SVG[tipo] || TIPO_SITIO_SVG['Almacén / Nave']) + '</svg>';
+        }
+        function syncTipoSitioIcon(wrap, tipo) {
+            if (!wrap) return;
+            var svg = wrap.querySelector(':scope > svg');
+            if (!svg) return;
+            var tmp = document.createElement('div');
+            tmp.innerHTML = tipoSitioIconHtml(tipo);
+            wrap.replaceChild(tmp.firstChild, svg);
+        }
         // --- Init para cada .ptar-card ---
         function initTarifador(card) {
             var mode = card.getAttribute('data-ptar-mode'); // 'carga' | 'presupuesto'
@@ -13004,10 +13028,13 @@
             // Autocomplete con callback para recalcular ETA al pickear
             bindAutocomplete(origWrap, origInput, origSug, function () { renderEta(); syncGrupajeVentana(); }, 'recogida');
             bindAutocomplete(destWrap, destInput, destSug, function () { renderEta(); syncGrupajeVentana(); }, 'entrega');
-            // Cambiar el TIPO de lugar (Almacén/Obra/…) mueve el precio.
-            ['[data-ptar-tipoorig]', '[data-ptar-tipodest]'].forEach(function (sel) {
-                var el = card.querySelector(sel);
-                if (el) el.addEventListener('change', renderEta);
+            // Cambiar el TIPO de lugar (Almacén/Obra/…) mueve el precio y
+            // actualiza el icono del campo (fábrica/cono/skyline/micro/hoja).
+            [['[data-ptar-tipoorig]', origWrap], ['[data-ptar-tipodest]', destWrap]].forEach(function (par) {
+                var el = card.querySelector(par[0]), wrap = par[1];
+                if (!el) return;
+                syncTipoSitioIcon(wrap, el.value);
+                el.addEventListener('change', function () { syncTipoSitioIcon(wrap, el.value); renderEta(); });
             });
 
             // --- Paradas adicionales: recogidas (origen adicional) o entregas
@@ -13058,9 +13085,9 @@
                 row.setAttribute('data-ptar-parada', '');
                 row.setAttribute('data-kind', kind);
                 var opts = PARADA_TIPOS.map(function (o, i) { return '<option' + (i === 0 ? ' selected' : '') + '>' + o + '</option>'; }).join('');
-                var icon = esRec
-                    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
-                    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>';
+                // El icono del campo es el TIPO DE SITIO (no recogida/entrega,
+                // que ya lo dice el circulito): arranca en Almacén/Nave.
+                var icon = tipoSitioIconHtml(PARADA_TIPOS[0]);
                 var ph = esRec ? 'Recogida · CP o ciudad' : 'Entrega · CP o ciudad';
                 var aria = esRec ? 'Recogida (origen adicional)' : 'Entrega (destino adicional)';
                 row.innerHTML =
@@ -13074,7 +13101,10 @@
                     '</div>';
                 box.appendChild(row);
                 bindAutocomplete(row.querySelector('.ptar-input-wrap'), row.querySelector('input'), row.querySelector('.ptar-sug'), renderEta, esRec ? 'recogida' : 'entrega');
-                row.querySelector('select').addEventListener('change', renderEta);
+                row.querySelector('select').addEventListener('change', function () {
+                    syncTipoSitioIcon(row.querySelector('.ptar-input-wrap'), row.querySelector('select').value);
+                    renderEta();
+                });
                 row.querySelector('.ptar-parada-del').addEventListener('click', function () {
                     box.removeChild(row);
                     syncAddBtns();
@@ -13208,6 +13238,8 @@
                 var tipoDest = card.querySelector('[data-ptar-tipodest]');
                 if (tipoOrig) tipoOrig.selectedIndex = 0;
                 if (tipoDest) tipoDest.selectedIndex = 0;
+                syncTipoSitioIcon(origWrap, tipoOrig ? tipoOrig.value : '');
+                syncTipoSitioIcon(destWrap, tipoDest ? tipoDest.value : '');
                 camionSel.value = 'tauliner';
                 if (mercaSel) mercaSel.selectedIndex = 0;
                 if (cargaTipoSel) cargaTipoSel.selectedIndex = 0;
