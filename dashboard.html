@@ -5699,10 +5699,14 @@
             // Los pasos intermedios saltan de 10 en 10 (mismo efecto contador
             // en toda la plataforma); al terminar se muestra el valor exacto.
             // Se redondea SIEMPRE hacia el objetivo (floor si sube, ceil si baja)
-            // para que el contador NO se pase (bug: 527 llegaba a 530 y saltaba
-            // atrás). Así avanza 500 → 510 → 520 y remata en el 527 exacto.
+            // para que el contador NO se pase. En la ÚLTIMA decena se muestra ya
+            // el valor EXACTO: si el objetivo no es múltiplo de 10 (p.ej. IVA 42
+            // o Total 242), el ceil/floor mostraba 50/250 un instante antes de
+            // asentar — ahora se salta ese fotograma.
             var raw = from + (to - from) * ease;
-            var stepped = (to >= from) ? Math.floor(raw / 10) * 10 : Math.ceil(raw / 10) * 10;
+            var stepped;
+            if (Math.abs(to - raw) < 10) stepped = to;
+            else stepped = (to >= from) ? Math.floor(raw / 10) * 10 : Math.ceil(raw / 10) * 10;
             el.textContent = eur(stepped);
             if (t < 1) { el.__raf = requestAnimationFrame(step); }
             else { el.textContent = eur(to); el.__raf = null; }
