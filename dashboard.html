@@ -5298,10 +5298,19 @@
             'trailer<</Size 5/Root 1 0 R>>\n%%EOF';
         var blob = new Blob([pdf], { type: 'application/pdf' });
         var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url; a.download = filename;
-        document.body.appendChild(a); a.click();
-        setTimeout(function () { URL.revokeObjectURL(url); document.body.removeChild(a); }, 100);
+        // Abrir el PDF EN EL NAVEGADOR (visor, pestaña aparte), no forzar la
+        // descarga: así se puede VER en móvil/escritorio y descargar desde el
+        // visor si se quiere. Si el navegador bloquea la ventana, respaldo
+        // con descarga directa.
+        var win = window.open(url, '_blank');
+        if (!win) {
+            var a = document.createElement('a');
+            a.href = url; a.download = filename;
+            document.body.appendChild(a); a.click();
+            setTimeout(function () { document.body.removeChild(a); }, 100);
+        }
+        // Liberar el objeto más tarde (el visor necesita la URL viva un rato).
+        setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
     }
     // Datos fiscales del emisor y del cliente para la proforma (mock; en
     // producción vendrán del backend / perfil de empresa).
