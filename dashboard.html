@@ -1344,27 +1344,18 @@
             padding: 0.9rem 1.3rem; background: white; border-radius: 12px; border: 1px solid var(--gray-200);
         }
         .veh-nota strong { color: var(--navy); }
-        /* Servicios como CARRUSEL manual de una sola fila con bucle infinito:
-           se arrastra con el ratón o se desliza con el dedo; el JS reengancha
-           el scroll para que gire sin fin. */
-        .dash-svc-carousel {
-            overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
-            scrollbar-width: none; cursor: grab;
-        }
-        .dash-svc-carousel::-webkit-scrollbar { display: none; }
-        .dash-svc-carousel.is-dragging { cursor: grabbing; }
-        .dash-svc-carousel.is-dragging .dash-svc-card { pointer-events: none; }
-        .dash-svc-track { display: flex; gap: 0.9rem; width: max-content; padding: 2px 0; }
-        .dash-svc-track .dash-svc-card { flex: 0 0 258px; }
-        .dash-svc-track .dash-svc-card img { pointer-events: none; -webkit-user-drag: none; }
+        /* Servicios en el MISMO marquee que los logos (.clientes-row-track):
+           tarjetas de ancho fijo, separadas por margen (no gap) para que el
+           empalme translateX(-50%) sea pixel-idéntico y no dé brinco. */
+        .dash-servicios .clientes-row-track .dash-svc-card { width: 258px; flex-shrink: 0; }
+        .dash-servicios .clientes-row-track .dash-svc-card img { pointer-events: none; -webkit-user-drag: none; }
         @media (max-width: 640px) {
-            .dash-svc-track { gap: 0.6rem; }
-            .dash-svc-track .dash-svc-card { flex: 0 0 210px; }
-            .dash-svc-track .dash-svc-img { height: 70px; }
-            .dash-svc-track .dash-svc-chip { font-size: 0.56rem; padding: 0.12rem 0.4rem; }
-            .dash-svc-track .dash-svc-body { padding: 0.45rem 0.6rem 0.55rem; }
-            .dash-svc-track .dash-svc-body strong { font-size: 0.8rem; }
-            .dash-svc-track .dash-svc-body span { font-size: 0.68rem; -webkit-line-clamp: 2; }
+            .dash-servicios .clientes-row-track .dash-svc-card { width: 210px; }
+            .dash-servicios .clientes-row-track .dash-svc-img { height: 70px; }
+            .dash-servicios .clientes-row-track .dash-svc-chip { font-size: 0.56rem; padding: 0.12rem 0.4rem; }
+            .dash-servicios .clientes-row-track .dash-svc-body { padding: 0.45rem 0.6rem 0.55rem; }
+            .dash-servicios .clientes-row-track .dash-svc-body strong { font-size: 0.8rem; }
+            .dash-servicios .clientes-row-track .dash-svc-body span { font-size: 0.68rem; -webkit-line-clamp: 2; }
         }
         /* Tarjeta de servicio compacta (foto + chip + cuerpo morado, como la web) */
         .dash-svc-card {
@@ -3974,12 +3965,13 @@
             </div>
         </div>
 
-        <!-- ===== Servicios: las 4 tarjetas de la web pública en un CARRUSEL
-             manual de una fila, arrastrable, con bucle infinito. ===== -->
+        <!-- ===== Servicios: MISMO carrusel automático que el muro de clientes
+             (marquee CSS, contenido duplicado ×2, translateX 0→-50%). Bucle
+             infinito, fiable en iOS (sin JS que reposicione). ===== -->
         <div class="dash-servicios">
             <h4 class="dash-carousel-title">Nuestros servicios</h4>
-            <div class="dash-svc-carousel" id="dashServiciosCarousel">
-                <div class="dash-svc-track" id="dashServiciosRow"></div>
+            <div class="clientes-row" data-dir="ltr" style="--dur: 26s;">
+                <div class="clientes-row-track" id="dashServiciosRow"></div>
             </div>
         </div>
 
@@ -11423,47 +11415,10 @@
                     '<div class="dash-svc-body"><strong>' + s.t + '</strong><span>' + s.d + '</span></div>' +
                 '</div>';
             }).join('');
-            // 3 copias para el bucle: se empieza en la copia central y el scroll
-            // se reengancha al cruzar el ancho de una copia (giro sin fin).
-            rowS.innerHTML = oneSet + oneSet + oneSet;
-            initSvcCarousel();
-        }
-        // Carrusel manual con bucle infinito usando SCROLL NATIVO (iOS lo tesela
-        // y lo renderiza siempre; nada de mask-image ni will-change/transform,
-        // que en iOS Safari dejaban la tira en blanco por límite de textura).
-        // 3 copias en el DOM; se arranca en la copia central y al cruzar el ancho
-        // de una copia se reengancha el scroll → gira sin fin. El dedo usa el
-        // scroll nativo; el ratón puede arrastrar además.
-        function initSvcCarousel() {
-            var box = document.getElementById('dashServiciosCarousel');
-            var track = document.getElementById('dashServiciosRow');
-            if (!box || !track) return;
-            function copyW() { return track.scrollWidth / 3; }
-            function center() { var w = copyW(); if (w > 0 && box.scrollLeft < 1) box.scrollLeft = w; }
-            center(); setTimeout(center, 120); setTimeout(center, 500);
-            var wrapping = false, ticking = false;
-            box.addEventListener('scroll', function () {
-                if (wrapping || ticking) return;
-                ticking = true;
-                requestAnimationFrame(function () {
-                    ticking = false;
-                    var w = copyW(); if (w <= 0) return;
-                    if (box.scrollLeft < w * 0.5) { wrapping = true; box.scrollLeft += w; wrapping = false; }
-                    else if (box.scrollLeft >= w * 1.5) { wrapping = true; box.scrollLeft -= w; wrapping = false; }
-                });
-            }, { passive: true });
-            // Arrastre con RATÓN (el táctil ya hace scroll nativo, no se toca).
-            var down = false, sx = 0, sl = 0;
-            box.addEventListener('mousedown', function (e) {
-                down = true; sx = e.clientX; sl = box.scrollLeft; box.classList.add('is-dragging'); e.preventDefault();
-            });
-            window.addEventListener('mousemove', function (e) {
-                if (!down) return; box.scrollLeft = sl - (e.clientX - sx);
-            });
-            window.addEventListener('mouseup', function () {
-                if (!down) return; down = false; box.classList.remove('is-dragging');
-            });
-            window.addEventListener('resize', function () { box.scrollLeft = copyW(); });
+            // Duplicado ×2 (igual que el muro de logos): la animación
+            // translateX(0→-50%) recorre justo la 1.ª mitad y empalma con la 2.ª
+            // idéntica → bucle infinito sin costura y sin JS que reposicione.
+            rowS.innerHTML = oneSet + oneSet;
         }
     })();
     (function () {
