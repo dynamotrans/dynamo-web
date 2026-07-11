@@ -2907,9 +2907,10 @@
         .ptar-sitio-grid label { display: block; font-size: 0.82rem; color: var(--gray-500); font-weight: 600; margin-bottom: 0.15rem; }
         /* Mismo estándar que el resto del panel: borde 1.5px, radio 10px,
            hover/focus morado con anillo. */
-        .ptar-sitio-grid input, .ptar-sitio-grid select { width: 100%; padding: 0.55rem 0.7rem; border: 1.5px solid var(--gray-200); border-radius: 10px; font: inherit; font-size: 0.85rem; color: var(--navy); background: #fff; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
-        .ptar-sitio-grid input:hover, .ptar-sitio-grid select:hover { border-color: var(--purple); }
-        .ptar-sitio-grid input:focus, .ptar-sitio-grid select:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
+        .ptar-sitio-grid input, .ptar-sitio-grid select, .ptar-sitio-grid textarea { width: 100%; padding: 0.55rem 0.7rem; border: 1.5px solid var(--gray-200); border-radius: 10px; font: inherit; font-size: 0.85rem; color: var(--navy); background: #fff; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+        .ptar-sitio-grid textarea { resize: vertical; min-height: 70px; }
+        .ptar-sitio-grid input:hover, .ptar-sitio-grid select:hover, .ptar-sitio-grid textarea:hover { border-color: var(--purple); }
+        .ptar-sitio-grid input:focus, .ptar-sitio-grid select:focus, .ptar-sitio-grid textarea:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
         .ptar-sitio-grid .full { grid-column: 1 / -1; }
         /* Referencia + anotaciones editables en el paso de confirmación */
         .ptar-confirm-extra { display: grid; gap: 0.7rem; margin: 1rem 0; }
@@ -4175,6 +4176,14 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35"/><path d="M2 8.35 12 2l10 6.35"/><path d="M6 22V12h12v10"/></svg>
                 <span>Almacenes</span>
             </button>
+            <button class="admin-quick-btn" onclick="showSection('clientes')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>Clientes</span>
+            </button>
+            <button class="admin-quick-btn" onclick="showSection('transportistas')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><circle cx="8" cy="11" r="2.5"/><path d="M4.5 17c.7-2 2-3 3.5-3s2.8 1 3.5 3"/><path d="M15 9h5"/><path d="M15 13h4"/></svg>
+                <span>Transportistas</span>
+            </button>
         </div>
         <!-- Control de MODO MANTENIMIENTO (admin). Apaga la plataforma: nadie
              podrá acceder y, en la app real, se cerrará la sesión de quien esté
@@ -4870,6 +4879,78 @@
                 <span id="almacenesCatShowing"></span>
             </div>
             <div class="pagination-pages" id="almacenesCatPagination"></div>
+        </div>
+    </section>
+
+    <!-- ==================== CLIENTES (SOLO ADMIN) ==================== -->
+    <section class="section" id="sec-clientes" data-roles="admin">
+        <div class="sec-header">
+            <h2>Clientes</h2>
+            <div class="sec-header-actions">
+                <button class="btn-primary" onclick="abrirNuevoCliente();return false;">+ Nuevo cliente</button>
+            </div>
+        </div>
+        <p style="color:var(--gray-500);font-size:0.82rem;margin:-0.4rem 0 0.9rem;"><span style="display:inline-block;background:rgba(51,0,204,0.10);color:var(--purple);font-weight:700;border-radius:6px;padding:1px 7px;font-size:0.72rem;margin-right:0.4rem;">SOLO ADMIN</span>Ficha de cada cliente: datos fiscales, contacto y condiciones de pago. Pulsa una fila para ver o editar la ficha.</p>
+        <div class="filters">
+            <input type="search" id="clientesSearch" placeholder="Buscar por empresa, CIF, email, teléfono, localidad…" oninput="renderClientesTable(this.value)">
+        </div>
+        <div class="table-wrap">
+            <table class="data">
+                <thead><tr>
+                    <th>Cliente</th><th>Contacto</th><th>Domicilio fiscal</th><th>Condiciones</th><th>Creado · Modificado</th>
+                </tr></thead>
+                <tbody id="tbodyClientes"></tbody>
+            </table>
+        </div>
+        <div class="pagination">
+            <div class="pagination-left">
+                <label class="pagination-perpage-wrap">Mostrar
+                    <select class="pagination-perpage" data-table="clientes">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+                <span id="clientesShowing"></span>
+            </div>
+            <div class="pagination-pages" id="clientesPagination"></div>
+        </div>
+    </section>
+
+    <!-- ==================== TRANSPORTISTAS (SOLO ADMIN) ==================== -->
+    <section class="section" id="sec-transportistas" data-roles="admin">
+        <div class="sec-header">
+            <h2>Transportistas</h2>
+            <div class="sec-header-actions">
+                <button class="btn-primary" onclick="abrirNuevoTransportista();return false;">+ Nuevo transportista</button>
+            </div>
+        </div>
+        <p style="color:var(--gray-500);font-size:0.82rem;margin:-0.4rem 0 0.9rem;"><span style="display:inline-block;background:rgba(51,0,204,0.10);color:var(--purple);font-weight:700;border-radius:6px;padding:1px 7px;font-size:0.72rem;margin-right:0.4rem;">SOLO ADMIN</span>Ficha de cada transportista: datos fiscales, contacto, código de bolsa de carga, flota y seguro. Pulsa una fila para ver o editar la ficha.</p>
+        <div class="filters">
+            <input type="search" id="transportistasSearch" placeholder="Buscar por empresa, CIF, código de bolsa, teléfono, matrícula…" oninput="renderTransportistasTable(this.value)">
+        </div>
+        <div class="table-wrap">
+            <table class="data">
+                <thead><tr>
+                    <th>Transportista</th><th>Contacto</th><th>Código bolsa de carga</th><th>Flota</th><th>Creado · Modificado</th>
+                </tr></thead>
+                <tbody id="tbodyTransportistas"></tbody>
+            </table>
+        </div>
+        <div class="pagination">
+            <div class="pagination-left">
+                <label class="pagination-perpage-wrap">Mostrar
+                    <select class="pagination-perpage" data-table="transportistas">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+                <span id="transportistasShowing"></span>
+            </div>
+            <div class="pagination-pages" id="transportistasPagination"></div>
         </div>
     </section>
 
@@ -6952,6 +7033,286 @@
     window.almacenCatEliminarOk = almacenCatEliminarOk;
     renderAlmacenesCatTable('');
 
+    // ==================== CLIENTES y TRANSPORTISTAS (fichas admin) ====================
+    // Catálogos internos SOLO ADMIN. Mock en memoria; en producción vendrán del
+    // backend. Cada ficha guarda fecha/hora de creación y de última modificación
+    // (se actualiza sola al guardar cambios).
+    function fmtFH(ms) {
+        if (!ms) return '—';
+        var d = new Date(ms);
+        function p(n) { return ('0' + n).slice(-2); }
+        return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' · ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    }
+    var __ctNow = Date.now();
+    function __ctTs(diasAtras, hora) { return __ctNow - diasAtras * 86400000 + ((hora || 10) - 10) * 3600000; }
+    var CLIENTES_DATA = [
+        { empresa: 'Marbex Industrial S.L.', cif: 'B41552214', dir: 'Pol. Ind. La Red, C/ Cobre 14', cp: '41500', ciudad: 'Alcalá de Guadaíra', prov: 'Sevilla', pais: 'España', tfno: '+34 954 210 334', email: 'compras@marbexindustrial.es', contacto: 'Julia Gómez', pago: 'Crédito 30 días', cesce: true, notas: '', creadoEn: __ctTs(214, 9), modificadoEn: __ctTs(12, 13) },
+        { empresa: 'GRUPAL ART, S.L.', cif: 'B46881309', dir: 'C/ Traginers 4', cp: '46940', ciudad: 'Manises', prov: 'Valencia', pais: 'España', tfno: '+34 961 523 887', email: 'logistica@grupalart.es', contacto: 'Vicente Ferrer', pago: 'Crédito 30 días', cesce: true, notas: '', creadoEn: __ctTs(388, 12), modificadoEn: __ctTs(41, 17) },
+        { empresa: 'TRUMA STORE, S.L.', cif: 'B98455120', dir: 'Av. de la Industria 22, nave 7', cp: '28108', ciudad: 'Alcobendas', prov: 'Madrid', pais: 'España', tfno: '+34 916 620 445', email: 'pedidos@trumastore.es', contacto: 'Marta Salas', pago: 'Crédito 60 días', cesce: true, notas: 'Solo recepciona de 8:00 a 13:00.', creadoEn: __ctTs(160, 11), modificadoEn: null },
+        { empresa: 'WELDINOX', cif: 'B29617754', dir: 'Pol. La Ermita, C/ Fragua 3', cp: '29600', ciudad: 'Marbella', prov: 'Málaga', pais: 'España', tfno: '+34 952 771 209', email: 'admin@weldinox.com', contacto: 'Sergio Luque', pago: 'Pago por adelantado (proforma)', cesce: false, notas: 'Sin crédito CESCE: siempre proforma antes de cargar.', creadoEn: __ctTs(96, 16), modificadoEn: __ctTs(5, 9) },
+        { empresa: 'CIRCULAR POLIMERI SL', cif: 'B12480336', dir: 'Ctra. N-340 km 972, nave 12', cp: '12200', ciudad: 'Onda', prov: 'Castellón', pais: 'España', tfno: '+34 964 771 655', email: 'trafico@circularpolimeri.es', contacto: 'Anna Traver', pago: 'Crédito 30 días', cesce: true, notas: '', creadoEn: __ctTs(300, 10), modificadoEn: __ctTs(88, 12) },
+        { empresa: 'Distribuciones Levante Sur S.A.', cif: 'A03998811', dir: 'C/ Alberola 18', cp: '03008', ciudad: 'Alicante', prov: 'Alicante', pais: 'España', tfno: '+34 965 108 442', email: 'operaciones@dlevantesur.es', contacto: 'Pedro Ivorra', pago: 'Crédito 30 días', cesce: false, notas: 'Crédito CESCE solicitado, pendiente de resolución.', creadoEn: __ctTs(45, 13), modificadoEn: null }
+    ];
+    var TRANSPORTISTAS_DATA = [
+        { empresa: 'Transportes Romero e Hijos S.L.', tipo: 'Empresa', cif: 'B90211458', dir: 'Pol. Store, C/ A nave 24', cp: '41008', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', tfno: '+34 954 367 210', email: 'trafico@transromero.es', contacto: 'Antonio Romero', bolsa: 'WTN-482113', camiones: 12, flota: 'Tauliner y rígido', iban: 'ES91 2100 0418 4502 0005 1332', seguro: 'AXA · Póliza CMR 88-456129', notas: '', creadoEn: __ctTs(420, 9), modificadoEn: __ctTs(30, 12) },
+        { empresa: 'Logística Vega del Guadalquivir S.L.U.', tipo: 'Empresa', cif: 'B41996732', dir: 'Ctra. Sevilla-Cazalla km 4', cp: '41300', ciudad: 'La Rinconada', prov: 'Sevilla', pais: 'España', tfno: '+34 955 790 118', email: 'operaciones@logivega.es', contacto: 'Carmen Domínguez', bolsa: 'WTN-509877', camiones: 8, flota: 'Tauliner', iban: 'ES76 0049 1500 0512 3456 7892', seguro: 'Mapfre · Póliza CMR 45-118203', notas: '', creadoEn: __ctTs(365, 10), modificadoEn: null },
+        { empresa: 'TransPenínsula Cargo S.L.', tipo: 'Empresa', cif: 'B86450127', dir: 'C/ Fundidores 9', cp: '28906', ciudad: 'Getafe', prov: 'Madrid', pais: 'España', tfno: '+34 916 954 302', email: 'bolsa@transpeninsula.es', contacto: 'Raúl Cifuentes', bolsa: 'TLR-771402', camiones: 21, flota: 'Tauliner y rígido', iban: 'ES10 0081 5232 8100 0123 4567', seguro: 'Generali · Póliza CMR 12-908455', notas: 'Muy fiables en Madrid-Andalucía. Aceptan carga por techo.', creadoEn: __ctTs(280, 15), modificadoEn: __ctTs(9, 11) },
+        { empresa: 'José Manuel Ortega Ruiz', tipo: 'Autónomo', cif: '27314582K', dir: 'C/ Almendro 6, 2ºB', cp: '14006', ciudad: 'Córdoba', prov: 'Córdoba', pais: 'España', tfno: '+34 638 220 471', email: 'jmortega.transportes@gmail.com', contacto: 'José Manuel Ortega', bolsa: 'WTN-633090', camiones: 1, flota: 'Rígido', iban: 'ES45 1465 0100 9212 3456 7890', seguro: 'Allianz · Póliza CMR 77-340216', notas: 'Rígido con trampilla. Ideal repartos urbanos.', creadoEn: __ctTs(190, 12), modificadoEn: __ctTs(60, 16) },
+        { empresa: 'Ibérica de Tracción S.L.', tipo: 'Empresa', cif: 'B97120448', dir: 'Pol. Fuente del Jarro, C/ Ciutat de Llíria 40', cp: '46988', ciudad: 'Paterna', prov: 'Valencia', pais: 'España', tfno: '+34 961 340 775', email: 'trafico@ibetraccion.es', contacto: 'Empar Soler', bolsa: 'TLR-802341', camiones: 15, flota: 'Tauliner', iban: 'ES62 2038 5778 9830 0076 0136', seguro: 'Zurich · Póliza CMR 31-662184', notas: '', creadoEn: __ctTs(140, 9), modificadoEn: null },
+        { empresa: 'Manuela Prieto Vidal', tipo: 'Autónomo', cif: '44982017L', dir: 'Av. de Portugal 12, 4ºA', cp: '06001', ciudad: 'Badajoz', prov: 'Badajoz', pais: 'España', tfno: '+34 620 884 913', email: 'mprietotransporte@hotmail.com', contacto: 'Manuela Prieto', bolsa: 'WTN-701255', camiones: 1, flota: 'Tauliner', iban: 'ES21 3183 0800 8200 1234 5678', seguro: 'Reale · Póliza CMR 09-115672', notas: 'Rutas España-Portugal.', creadoEn: __ctTs(75, 14), modificadoEn: __ctTs(2, 10) }
+    ];
+    function clienteBlob(c) {
+        return normTxt([c.empresa, c.cif, c.dir, c.cp, c.ciudad, c.prov, c.pais, c.tfno, c.email, c.contacto, c.pago, c.notas].join(' '));
+    }
+    function transportistaBlob(t) {
+        return normTxt([t.empresa, t.tipo, t.cif, t.dir, t.cp, t.ciudad, t.prov, t.pais, t.tfno, t.email, t.contacto, t.bolsa, t.flota, t.iban, t.seguro, t.notas].join(' '));
+    }
+    function renderClientesTable(q) {
+        var tbody = document.getElementById('tbodyClientes'); if (!tbody) return;
+        var nq = normTxt(q || '');
+        var rows = CLIENTES_DATA.map(function (c, i) { return { c: c, i: i }; }).filter(function (r) {
+            if (r.c._deleted) return false;
+            return !nq || clienteBlob(r.c).indexOf(nq) > -1;
+        });
+        var h2 = document.querySelector('#sec-clientes h2');
+        if (h2) h2.textContent = 'Clientes (' + rows.length + ')';
+        var slice = pageSlice('clientes', rows, nq, 'clientesPagination', 'clientesShowing', 'Sin clientes');
+        if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin clientes que coincidan</td></tr>';
+            return;
+        }
+        tbody.innerHTML = slice.map(function (r) {
+            var c = r.c;
+            return '<tr data-cli="' + r.i + '">' +
+                '<td><strong>' + esc(c.empresa) + '</strong><div class="meta">' + esc(c.cif || '—') + '</div></td>' +
+                '<td>' + esc(c.contacto || '—') + '<div class="meta">' + esc(c.tfno || '') + (c.email ? (c.tfno ? ' · ' : '') + esc(c.email) : '') + '</div></td>' +
+                '<td>' + esc(c.dir || '—') + '<div class="meta">' + esc([c.cp, c.ciudad, c.prov, c.pais].filter(Boolean).join(', ')) + '</div></td>' +
+                '<td>' + esc(c.pago || '—') + '<div class="meta">' + (c.cesce ? '<span style="color:#0f6b3a;font-weight:700;">Crédito CESCE</span>' : 'Sin crédito CESCE') + '</div></td>' +
+                '<td>' + fmtFH(c.creadoEn) + '<div class="meta">' + (c.modificadoEn ? 'Modif. ' + fmtFH(c.modificadoEn) : 'Sin modificaciones') + '</div></td>' +
+            '</tr>';
+        }).join('');
+        tbody.querySelectorAll('tr[data-cli]').forEach(function (tr) {
+            tr.addEventListener('click', function () { openClienteModal(parseInt(tr.getAttribute('data-cli'), 10)); });
+        });
+    }
+    window.renderClientesTable = renderClientesTable;
+    function renderTransportistasTable(q) {
+        var tbody = document.getElementById('tbodyTransportistas'); if (!tbody) return;
+        var nq = normTxt(q || '');
+        var rows = TRANSPORTISTAS_DATA.map(function (t, i) { return { t: t, i: i }; }).filter(function (r) {
+            if (r.t._deleted) return false;
+            return !nq || transportistaBlob(r.t).indexOf(nq) > -1;
+        });
+        var h2 = document.querySelector('#sec-transportistas h2');
+        if (h2) h2.textContent = 'Transportistas (' + rows.length + ')';
+        var slice = pageSlice('transportistas', rows, nq, 'transportistasPagination', 'transportistasShowing', 'Sin transportistas');
+        if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin transportistas que coincidan</td></tr>';
+            return;
+        }
+        tbody.innerHTML = slice.map(function (r) {
+            var t = r.t;
+            return '<tr data-tra="' + r.i + '">' +
+                '<td><strong>' + esc(t.empresa) + '</strong><div class="meta">' + esc(t.cif || '—') + ' · ' + esc(t.tipo || 'Empresa') + '</div></td>' +
+                '<td>' + esc(t.contacto || '—') + '<div class="meta">' + esc(t.tfno || '') + (t.email ? (t.tfno ? ' · ' : '') + esc(t.email) : '') + '</div></td>' +
+                '<td>' + (t.bolsa ? '<span class="dtc-mat">' + esc(t.bolsa) + '</span>' : '—') + '</td>' +
+                '<td>' + esc(t.flota || '—') + '<div class="meta">' + (t.camiones ? t.camiones + (t.camiones === 1 ? ' camión' : ' camiones') : '—') + '</div></td>' +
+                '<td>' + fmtFH(t.creadoEn) + '<div class="meta">' + (t.modificadoEn ? 'Modif. ' + fmtFH(t.modificadoEn) : 'Sin modificaciones') + '</div></td>' +
+            '</tr>';
+        }).join('');
+        tbody.querySelectorAll('tr[data-tra]').forEach(function (tr) {
+            tr.addEventListener('click', function () { openTransportistaModal(parseInt(tr.getAttribute('data-tra'), 10)); });
+        });
+    }
+    window.renderTransportistasTable = renderTransportistasTable;
+    // --- Formularios (mismo grid de 2 columnas que la ficha de Sitios) ---
+    function ctMetaHTML(o) {
+        if (!o || !o.creadoEn) return '';
+        return '<div style="margin:0 0 0.9rem;padding:0.55rem 0.85rem;border:1px solid var(--gray-200);border-radius:9px;background:var(--gray-50);font-size:0.78rem;color:var(--gray-500);font-weight:600;">' +
+            'Creado: ' + fmtFH(o.creadoEn) + ' &nbsp;·&nbsp; Última modificación: ' + (o.modificadoEn ? fmtFH(o.modificadoEn) : '—') + '</div>';
+    }
+    function ctField(id, label, val, ph, span, type) {
+        return '<div' + (span ? ' style="grid-column:1/-1"' : '') + '><label>' + escapeHtml(label) + '</label>' +
+            '<input id="' + id + '" type="' + (type || 'text') + '" value="' + escapeHtml(val == null ? '' : String(val)) + '"' + (ph ? ' placeholder="' + escapeHtml(ph) + '"' : '') + '></div>';
+    }
+    function ctSelect(id, label, opciones, val, span) {
+        return '<div' + (span ? ' style="grid-column:1/-1"' : '') + '><label>' + escapeHtml(label) + '</label>' +
+            '<select id="' + id + '">' + opciones.map(function (o) {
+                return '<option' + (o === val ? ' selected' : '') + '>' + escapeHtml(o) + '</option>';
+            }).join('') + '</select></div>';
+    }
+    function ctNotas(id, val) {
+        return '<div style="grid-column:1/-1"><label>Notas internas</label><textarea id="' + id + '" rows="3" placeholder="Solo visibles para el equipo Dynamo">' + escapeHtml(val || '') + '</textarea></div>';
+    }
+    function clienteFormHTML(c) {
+        c = c || {};
+        return ctMetaHTML(c) +
+            '<div class="ptar-sitio-grid">' +
+                ctField('cli-f-empresa', 'Empresa / Razón social *', c.empresa, 'Ej. Marbex Industrial S.L.', true) +
+                ctField('cli-f-cif', 'CIF / NIF *', c.cif, 'B12345678 / 12345678Z') +
+                ctSelect('cli-f-pago', 'Forma de pago', ['Crédito 30 días', 'Crédito 60 días', 'Pago por adelantado (proforma)'], c.pago || 'Crédito 30 días') +
+                ctField('cli-f-dir', 'Domicilio fiscal (calle y número)', c.dir, 'Calle y número', true) +
+                ctField('cli-f-cp', 'CP', c.cp, '41001') +
+                ctField('cli-f-ciudad', 'Localidad', c.ciudad, 'Sevilla') +
+                ctField('cli-f-prov', 'Provincia', c.prov, 'Sevilla') +
+                ctField('cli-f-pais', 'País', c.pais || 'España', 'España') +
+                ctField('cli-f-tfno', 'Teléfono', c.tfno, '+34 …') +
+                ctField('cli-f-email', 'Email', c.email, 'empresa@dominio.com', false, 'email') +
+                ctField('cli-f-contacto', 'Persona de contacto', c.contacto, 'Nombre y apellidos', true) +
+                '<div style="grid-column:1/-1"><label style="display:flex;align-items:center;gap:0.55rem;cursor:pointer;font-weight:600;color:var(--navy);"><input type="checkbox" id="cli-f-cesce"' + (c.cesce ? ' checked' : '') + ' style="width:17px;height:17px;flex:none;">Crédito CESCE aprobado</label></div>' +
+                ctNotas('cli-f-notas', c.notas) +
+            '</div>';
+    }
+    function transportistaFormHTML(t) {
+        t = t || {};
+        return ctMetaHTML(t) +
+            '<div class="ptar-sitio-grid">' +
+                ctField('tra-f-empresa', 'Empresa / Nombre *', t.empresa, 'Razón social o nombre del autónomo', true) +
+                ctSelect('tra-f-tipo', 'Tipo', ['Empresa', 'Autónomo'], t.tipo || 'Empresa') +
+                ctField('tra-f-cif', 'CIF / NIF *', t.cif, 'B12345678 / 12345678Z') +
+                ctField('tra-f-bolsa', 'Código bolsa de carga', t.bolsa, 'Ej. WTN-482113', true) +
+                ctField('tra-f-dir', 'Domicilio fiscal (calle y número)', t.dir, 'Calle y número', true) +
+                ctField('tra-f-cp', 'CP', t.cp, '41001') +
+                ctField('tra-f-ciudad', 'Localidad', t.ciudad, 'Sevilla') +
+                ctField('tra-f-prov', 'Provincia', t.prov, 'Sevilla') +
+                ctField('tra-f-pais', 'País', t.pais || 'España', 'España') +
+                ctField('tra-f-tfno', 'Teléfono', t.tfno, '+34 …') +
+                ctField('tra-f-email', 'Email', t.email, 'trafico@dominio.com', false, 'email') +
+                ctField('tra-f-contacto', 'Persona de contacto', t.contacto, 'Nombre y apellidos', true) +
+                ctField('tra-f-camiones', 'Nº de camiones', t.camiones, '1', false, 'number') +
+                ctSelect('tra-f-flota', 'Flota', ['Tauliner', 'Rígido', 'Tauliner y rígido'], t.flota || 'Tauliner') +
+                ctField('tra-f-iban', 'IBAN (pagos)', t.iban, 'ES00 0000 0000 0000 0000 0000', true) +
+                ctField('tra-f-seguro', 'Seguro de mercancías (aseguradora · póliza)', t.seguro, 'Ej. AXA · Póliza CMR 88-456129', true) +
+                ctNotas('tra-f-notas', t.notas) +
+            '</div>';
+    }
+    function openClienteModal(idx) {
+        var esEdit = (idx != null && idx >= 0 && idx < CLIENTES_DATA.length);
+        var c = esEdit ? CLIENTES_DATA[idx] : null;
+        openDashModal({
+            icon: 'user',
+            title: esEdit ? 'Editar cliente' : 'Nuevo cliente',
+            sub: esEdit ? (c.empresa || '') : 'Alta de un cliente en el catálogo interno',
+            body: clienteFormHTML(c),
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                (esEdit ? '<button class="btn-ghost" style="color:#dc2626;" onclick="clienteEliminar(' + idx + ')">Borrar</button>' : '') +
+                '<button class="btn-primary" onclick="clienteGuardar(' + (esEdit ? idx : -1) + ')">' + (esEdit ? 'Guardar cambios' : 'Crear cliente') + '</button>'
+        });
+    }
+    window.openClienteModal = openClienteModal;
+    window.abrirNuevoCliente = function () { openClienteModal(-1); };
+    function clienteGuardar(idx) {
+        function v(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+        var empresa = v('cli-f-empresa'), cif = v('cli-f-cif');
+        if (!empresa || !cif) {
+            ['cli-f-empresa', 'cli-f-cif'].forEach(function (id) { var el = document.getElementById(id); if (el && !el.value.trim()) el.style.borderColor = '#dc2626'; });
+            return;
+        }
+        var edit = (idx != null && idx >= 0 && idx < CLIENTES_DATA.length);
+        var c = edit ? CLIENTES_DATA[idx] : {};
+        c.empresa = empresa; c.cif = cif;
+        c.dir = v('cli-f-dir') || null; c.cp = v('cli-f-cp') || null;
+        c.ciudad = v('cli-f-ciudad') || null; c.prov = v('cli-f-prov') || null;
+        c.pais = v('cli-f-pais') || 'España';
+        c.tfno = v('cli-f-tfno') || null; c.email = v('cli-f-email') || null;
+        c.contacto = v('cli-f-contacto') || null;
+        var pagoEl = document.getElementById('cli-f-pago');
+        c.pago = pagoEl ? pagoEl.value : 'Crédito 30 días';
+        var cesceEl = document.getElementById('cli-f-cesce');
+        c.cesce = !!(cesceEl && cesceEl.checked);
+        c.notas = v('cli-f-notas') || null;
+        if (edit) { c.modificadoEn = Date.now(); }
+        else { c.creadoEn = Date.now(); c.modificadoEn = null; CLIENTES_DATA.push(c); }
+        closeDashModal();
+        renderClientesTable((document.getElementById('clientesSearch') || {}).value || '');
+        showModalSuccess(edit ? 'Cliente actualizado' : 'Cliente creado', empresa + (edit ? ': cambios guardados (queda registrada la fecha y hora de modificación).' : ' añadido al catálogo de clientes.'));
+    }
+    window.clienteGuardar = clienteGuardar;
+    function clienteEliminar(idx) {
+        var c = CLIENTES_DATA[idx]; if (!c) return;
+        openDashModal({
+            icon: 'alert', iconVariant: 'warn',
+            title: 'Borrar cliente',
+            sub: c.empresa || '',
+            body: '<p style="font-size:0.9rem;line-height:1.55;color:var(--gray-700);">¿Seguro que quieres borrar la ficha de <strong>' + esc(c.empresa || '') + '</strong>? Sus envíos y facturas ya registrados no se tocan; solo desaparece del catálogo de clientes.</p>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                '<button class="btn-primary" style="background:var(--red);" onclick="clienteEliminarOk(' + idx + ')">Sí, borrar</button>'
+        });
+    }
+    window.clienteEliminar = clienteEliminar;
+    function clienteEliminarOk(idx) {
+        if (idx >= 0 && idx < CLIENTES_DATA.length) CLIENTES_DATA[idx]._deleted = true;
+        closeDashModal();
+        renderClientesTable((document.getElementById('clientesSearch') || {}).value || '');
+    }
+    window.clienteEliminarOk = clienteEliminarOk;
+    function openTransportistaModal(idx) {
+        var esEdit = (idx != null && idx >= 0 && idx < TRANSPORTISTAS_DATA.length);
+        var t = esEdit ? TRANSPORTISTAS_DATA[idx] : null;
+        openDashModal({
+            icon: 'truck',
+            title: esEdit ? 'Editar transportista' : 'Nuevo transportista',
+            sub: esEdit ? (t.empresa || '') : 'Alta de un transportista en el catálogo interno',
+            body: transportistaFormHTML(t),
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                (esEdit ? '<button class="btn-ghost" style="color:#dc2626;" onclick="transportistaEliminar(' + idx + ')">Borrar</button>' : '') +
+                '<button class="btn-primary" onclick="transportistaGuardar(' + (esEdit ? idx : -1) + ')">' + (esEdit ? 'Guardar cambios' : 'Crear transportista') + '</button>'
+        });
+    }
+    window.openTransportistaModal = openTransportistaModal;
+    window.abrirNuevoTransportista = function () { openTransportistaModal(-1); };
+    function transportistaGuardar(idx) {
+        function v(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+        var empresa = v('tra-f-empresa'), cif = v('tra-f-cif');
+        if (!empresa || !cif) {
+            ['tra-f-empresa', 'tra-f-cif'].forEach(function (id) { var el = document.getElementById(id); if (el && !el.value.trim()) el.style.borderColor = '#dc2626'; });
+            return;
+        }
+        var edit = (idx != null && idx >= 0 && idx < TRANSPORTISTAS_DATA.length);
+        var t = edit ? TRANSPORTISTAS_DATA[idx] : {};
+        t.empresa = empresa; t.cif = cif;
+        var tipoEl = document.getElementById('tra-f-tipo');
+        t.tipo = tipoEl ? tipoEl.value : 'Empresa';
+        t.bolsa = v('tra-f-bolsa') || null;
+        t.dir = v('tra-f-dir') || null; t.cp = v('tra-f-cp') || null;
+        t.ciudad = v('tra-f-ciudad') || null; t.prov = v('tra-f-prov') || null;
+        t.pais = v('tra-f-pais') || 'España';
+        t.tfno = v('tra-f-tfno') || null; t.email = v('tra-f-email') || null;
+        t.contacto = v('tra-f-contacto') || null;
+        t.camiones = parseInt(v('tra-f-camiones'), 10) || null;
+        var flotaEl = document.getElementById('tra-f-flota');
+        t.flota = flotaEl ? flotaEl.value : 'Tauliner';
+        t.iban = v('tra-f-iban') || null;
+        t.seguro = v('tra-f-seguro') || null;
+        t.notas = v('tra-f-notas') || null;
+        if (edit) { t.modificadoEn = Date.now(); }
+        else { t.creadoEn = Date.now(); t.modificadoEn = null; TRANSPORTISTAS_DATA.push(t); }
+        closeDashModal();
+        renderTransportistasTable((document.getElementById('transportistasSearch') || {}).value || '');
+        showModalSuccess(edit ? 'Transportista actualizado' : 'Transportista creado', empresa + (edit ? ': cambios guardados (queda registrada la fecha y hora de modificación).' : ' añadido al catálogo de transportistas.'));
+    }
+    window.transportistaGuardar = transportistaGuardar;
+    function transportistaEliminar(idx) {
+        var t = TRANSPORTISTAS_DATA[idx]; if (!t) return;
+        openDashModal({
+            icon: 'alert', iconVariant: 'warn',
+            title: 'Borrar transportista',
+            sub: t.empresa || '',
+            body: '<p style="font-size:0.9rem;line-height:1.55;color:var(--gray-700);">¿Seguro que quieres borrar la ficha de <strong>' + esc(t.empresa || '') + '</strong>? Los envíos que ya tiene asignados no se tocan; solo desaparece del catálogo de transportistas.</p>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                '<button class="btn-primary" style="background:var(--red);" onclick="transportistaEliminarOk(' + idx + ')">Sí, borrar</button>'
+        });
+    }
+    window.transportistaEliminar = transportistaEliminar;
+    function transportistaEliminarOk(idx) {
+        if (idx >= 0 && idx < TRANSPORTISTAS_DATA.length) TRANSPORTISTAS_DATA[idx]._deleted = true;
+        closeDashModal();
+        renderTransportistasTable((document.getElementById('transportistasSearch') || {}).value || '');
+    }
+    window.transportistaEliminarOk = transportistaEliminarOk;
+    renderClientesTable('');
+    renderTransportistasTable('');
+
     /* ---- Extractores de datos por fila ---- */
     function txt(el) { return el ? el.textContent.trim().replace(/\s+/g, ' ') : ''; }
     // Copia superficial de un objeto (ES5).
@@ -7265,8 +7626,7 @@
                     var items = [
                         { label: 'Nº carga', value: d.ref },
                         { label: 'Ref. cliente', value: d.refCli || '—' },
-                        { label: 'Estado', value: getEstadoVisual(src).label },
-                        { label: 'Precio', value: pend(eur2(src.precio)), html: true }
+                        { label: 'Estado', value: getEstadoVisual(src).label }
                     ];
                     // Si ya hay fecha asignada por el equipo, la "fecha
                     // solicitada + ventana" sobra: el rango pedido queda
@@ -7325,6 +7685,26 @@
                     { label: 'Medidas', value: d.medidas },
                     { label: 'Tipo de carga', value: pend(src.tipoCarga), html: true }
                 ]) + '</div>' +
+                // Precio con desglose (base + IVA + total), como en el detalle
+                // de almacenamiento. Si aún no hay precio → "Pendiente".
+                sectionTitle('Precio') +
+                (function () {
+                    var pN = (function (v) {
+                        if (v == null || v === '') return null;
+                        var s = String(v).replace(/[€\s]/g, '').replace(/\./g, '').replace(',', '.');
+                        var n = parseFloat(s);
+                        return isNaN(n) ? null : n;
+                    })(src.precio);
+                    if (pN == null) {
+                        return '<div class="det-block">' + infoGrid([{ label: 'Precio', value: pend(null), html: true, span: true }]) + '</div>';
+                    }
+                    var iva = pN * 0.21, tot = pN * 1.21;
+                    return '<div class="det-block"><div class="alm-price" style="margin:0;">' +
+                        '<div class="alm-price-row"><span class="k">Importe de envío (base imponible)</span><span class="v">' + eur2(pN) + '</span></div>' +
+                        '<div class="alm-price-row"><span class="k">IVA (21%)</span><span class="v">' + eur2(iva) + '</span></div>' +
+                        '<div class="alm-price-row alm-price-total"><span class="k">Total (IVA incl.)</span><span class="v">' + eur2(tot) + '</span></div>' +
+                        '</div></div>';
+                })() +
                 // Valoración del transportista: solo en envíos ENTREGADOS
                 // (el servicio ya se ha dado). Una única puntuación 1-5 estrellas.
                 (src.kind === 'entregada'
@@ -7909,7 +8289,8 @@
         clock:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
         truck:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
         file:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
-        undo:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>'
+        undo:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>',
+        user:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
     };
     function icon(name) { return ICONS[name] || ''; }
 
@@ -9107,7 +9488,9 @@
         almacenes:      { page: 1, perPage: readPerPage('almacenes'), _k: '' },
         almacenesCat:   { page: 1, perPage: readPerPage('almacenesCat'), _k: '' },
         sitios:         { page: 1, perPage: readPerPage('sitios'), _k: '' },
-        incidencias:    { page: 1, filter: 'abiertas', perPage: readPerPage('incidencias'), q: '', mes: '', _k: '' }
+        incidencias:    { page: 1, filter: 'abiertas', perPage: readPerPage('incidencias'), q: '', mes: '', _k: '' },
+        clientes:       { page: 1, perPage: readPerPage('clientes'), _k: '' },
+        transportistas: { page: 1, perPage: readPerPage('transportistas'), _k: '' }
     };
 
     // --- Horarios de almacén realistas para el mockup ---
@@ -11646,6 +12029,8 @@
         else if (table === 'almacenesCat') renderAlmacenesCatTable((document.getElementById('almacenesCatSearch') || {}).value || '');
         else if (table === 'sitios') renderSitiosTable((document.getElementById('sitiosSearch') || {}).value || '');
         else if (table === 'incidencias') renderIncidenciasTable();
+        else if (table === 'clientes') renderClientesTable((document.getElementById('clientesSearch') || {}).value || '');
+        else if (table === 'transportistas') renderTransportistasTable((document.getElementById('transportistasSearch') || {}).value || '');
     }
     // Paginación cliente reutilizable: resetea a pág. 1 si cambió el filtro
     // (clave `k`), recorta el array a la página actual, pinta los botones y el
@@ -11672,7 +12057,7 @@
     setTimeout(function () {
         // 'cargas' también: su primer render ocurre antes de que exista el
         // helper del icono de tipo de sitio (definido en el scope del tarifador).
-        ['penalizaciones', 'almacenes', 'almacenesCat', 'sitios', 'incidencias', 'cargas'].forEach(function (t) {
+        ['penalizaciones', 'almacenes', 'almacenesCat', 'sitios', 'incidencias', 'cargas', 'clientes', 'transportistas'].forEach(function (t) {
             try { renderTable(t); } catch (e) {}
         });
     }, 0);
