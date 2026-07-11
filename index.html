@@ -2516,7 +2516,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     </div>
                     <div class="ptar-ventana-note" data-ptar-ventana-note hidden></div>
                     <div class="ptar-hoy-warn" data-ptar-hoy-warn hidden>⚠ <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. Cancelar una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. <strong>Recomendación:</strong> amplía ya la ventana de carga; así, si no se consigue hoy, podremos asignar camión para los días siguientes (esperar a última hora deja sin margen).</div>
-                    <div class="ptar-fija-note" data-ptar-fija-note hidden><strong>Fecha fija estándar.</strong> Con fecha fija, <strong>si ese día no hay vehículo</strong> habría que reprogramar. Se recomienda usar una <strong>ventana de 1 a 3 días</strong>, el 80% veces cargamos en los 2 primeros días, <strong>es la más económica</strong> y aumenta la probabilidad de cargar al máximo.</div>
+                    <div class="ptar-fija-note" data-ptar-fija-note hidden><strong>Fecha fija estándar.</strong> Con fecha fija, <strong>si ese día no hay vehículo</strong> habría que reprogramar.<br><br>Se recomienda usar una <strong>ventana de 1 a 3 días</strong>, el 80% veces cargamos en los 2 primeros días, <strong>es la más económica</strong> y aumenta la probabilidad de cargar al máximo.</div>
                 </div>
 
                 <div class="ptar-notes-wrap">
@@ -4935,8 +4935,10 @@ function updateAlmTotal() {
         var esFija = (urgSel.value === 'dia');
         var esHoy = esFija && diaSel.value === todayIso;
         if (el) el.hidden = !esHoy;
-        // Recomendación solo para fecha fija en día futuro (con fecha elegida).
-        if (fija) fija.hidden = !(esFija && !!diaSel.value && !esHoy);
+        // Aviso de fecha fija estándar: se muestra en cuanto se elige "Fecha
+        // fija" (con o sin fecha), salvo si es para HOY (entonces sale el aviso
+        // ámbar de arriba).
+        if (fija) fija.hidden = !(esFija && !esHoy);
     }
     if (urgSel) urgSel.addEventListener('change', syncHoyWarn);
     if (diaSel) diaSel.addEventListener('change', syncHoyWarn);
