@@ -1352,7 +1352,13 @@
         .dash-servicios .clientes-row.is-dragging { cursor: grabbing; }
         .dash-servicios .clientes-row.is-dragging .dash-svc-card { pointer-events: none; }
         .dash-servicios .clientes-row-track { animation: none; }
-        .dash-servicios .clientes-row-track .dash-svc-card { width: 258px; flex-shrink: 0; }
+        .dash-servicios .clientes-row-track .dash-svc-card { width: 258px; flex-shrink: 0; cursor: pointer; }
+        .dash-servicios .clientes-row-track .dash-svc-card:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
+        /* Ficha de servicio (modal): foto grande + chip + descripción completa. */
+        .svc-modal-img { position: relative; border-radius: 12px; overflow: hidden; height: 180px; background: var(--gray-200); }
+        .svc-modal-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .svc-modal-img .dash-svc-chip { position: absolute; left: 10px; bottom: 10px; }
+        .svc-modal-desc { margin: 0.9rem 0 0; font-size: 0.92rem; line-height: 1.6; color: var(--gray-600); }
         .dash-servicios .clientes-row-track .dash-svc-card img { pointer-events: none; -webkit-user-drag: none; }
         @media (max-width: 640px) {
             .dash-servicios .clientes-row-track .dash-svc-card { width: 210px; }
@@ -11414,8 +11420,8 @@
                 { t: 'Importación', chip: 'Toda Europa', img: '/images/AdobeStock_154376791.jpeg', pos: '', d: 'Hasta la puerta de tu empresa, desde cualquier punto de Europa, con plazos garantizados y máxima calidad.' },
                 { t: 'Exportación', chip: 'Import & Export', img: '/images/AdobeStock_260603287.jpeg', pos: '', d: 'Portugal, Francia, Alemania, Italia, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.' }
             ];
-            var oneSet = SVCS.map(function (s) {
-                return '<div class="dash-svc-card">' +
+            var oneSet = SVCS.map(function (s, i) {
+                return '<div class="dash-svc-card" data-svc-i="' + i + '" role="button" tabindex="0" aria-label="Ver ' + s.t + '">' +
                     '<div class="dash-svc-img"><img loading="lazy" src="' + s.img + '" alt="' + s.t + '"' + (s.pos ? ' style="object-position:' + s.pos + ';"' : '') + '><span class="dash-svc-chip">' + s.chip + '</span></div>' +
                     '<div class="dash-svc-body"><strong>' + s.t + '</strong><span>' + s.d + '</span></div>' +
                 '</div>';
@@ -11424,13 +11430,30 @@
             // idénticas → al envolver el arrastre módulo media anchura, el bucle
             // es infinito y sin costura.
             rowS.innerHTML = oneSet + oneSet;
-            initSvcDrag();
+            // Abrir ficha con la info COMPLETA al pulsar (sin el recorte "…").
+            function abrirSvc(card) {
+                var s = SVCS[+card.getAttribute('data-svc-i')]; if (!s) return;
+                openDashModal({
+                    icon: 'truck', title: s.t, sub: s.chip,
+                    body: '<div class="svc-modal">' +
+                        '<div class="svc-modal-img"><img src="' + s.img + '" alt="' + s.t + '"' + (s.pos ? ' style="object-position:' + s.pos + ';"' : '') + '><span class="dash-svc-chip">' + s.chip + '</span></div>' +
+                        '<p class="svc-modal-desc">' + s.d + '</p>' +
+                        '</div>'
+                });
+            }
+            // Teclado: Enter/Espacio sobre una tarjeta enfocada la abre.
+            rowS.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                var c = e.target.closest && e.target.closest('.dash-svc-card');
+                if (c) { e.preventDefault(); abrirSvc(c); }
+            });
+            initSvcDrag(abrirSvc);
         }
         // Arrastre SOLO con dedo/ratón (sin auto-scroll) sobre el mismo elemento
         // del marquee (que en iOS renderiza bien): animación apagada por CSS y
         // el track se traslada por JS. `p` = desplazamiento; se envuelve módulo
         // media anchura (2 copias) → gira sin fin. Con inercia suave al soltar.
-        function initSvcDrag() {
+        function initSvcDrag(onTap) {
             var row = document.querySelector('.dash-servicios .clientes-row');
             var track = document.getElementById('dashServiciosRow');
             if (!row || !track) return;
@@ -11440,22 +11463,27 @@
             function apply() { track.style.transform = 'translateX(' + (-p) + 'px)'; }
             measure(); apply();
             window.addEventListener('resize', function () { measure(); wrap(); apply(); });
-            var down = false, lastX = 0, lastT = 0, vx = 0;
+            var down = false, lastX = 0, lastT = 0, vx = 0, moved = 0, startCard = null;
             function X(e) { return e.touches ? e.touches[0].clientX : e.clientX; }
             function dn(e) {
-                measure(); down = true; lastX = X(e); lastT = e.timeStamp || 0; vx = 0;
+                measure(); down = true; lastX = X(e); lastT = e.timeStamp || 0; vx = 0; moved = 0;
+                startCard = e.target && e.target.closest ? e.target.closest('.dash-svc-card') : null;
                 if (raf) { cancelAnimationFrame(raf); raf = null; }
                 row.classList.add('is-dragging');
             }
             function mv(e) {
                 if (!down) return;
                 var x = X(e), dx = x - lastX, dt = (e.timeStamp || 0) - lastT;
+                moved += Math.abs(dx);
                 if (dt > 0) vx = dx / dt;
                 lastX = x; lastT = e.timeStamp || 0;
                 p -= dx; wrap(); apply();
             }
             function up() {
                 if (!down) return; down = false; row.classList.remove('is-dragging');
+                // Pulsación (no arrastre): abrir la ficha de la tarjeta.
+                if (moved < 6 && startCard && typeof onTap === 'function') { onTap(startCard); startCard = null; return; }
+                startCard = null;
                 var v = vx * 16;
                 function step() { v *= 0.93; p -= v; wrap(); apply(); if (Math.abs(v) > 0.4) raf = requestAnimationFrame(step); else raf = null; }
                 if (Math.abs(v) > 0.6) { if (raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(step); }
