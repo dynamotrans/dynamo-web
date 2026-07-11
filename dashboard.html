@@ -12672,9 +12672,23 @@
         };
         // Sin tipo elegido → pin de ubicación genérico (no se asume Almacén).
         var TIPO_SITIO_PIN = '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/>';
+        // Resolución por PALABRA CLAVE (no por texto exacto): así "Almacén",
+        // "Almacén / Nave", "nave", etc. — incluidas variantes guardadas en
+        // fichas antiguas de la agenda — caen todas en el icono correcto.
+        function tipoSitioKey(t) {
+            t = String(t || '').toLowerCase();
+            if (!t) return '';
+            if (t.indexOf('almac') > -1 || t.indexOf('nave') > -1) return 'Almacén / Nave';
+            if (t.indexOf('obra') > -1) return 'Obra';
+            if (t.indexOf('urban') > -1) return 'Zona urbana';
+            if (t.indexOf('evento') > -1) return 'Evento';
+            if (t.indexOf('finca') > -1 || t.indexOf('agr') > -1) return 'Finca / Agrícola';
+            return '';
+        }
         function tipoSitioIconHtml(tipo) {
+            var k = tipoSitioKey(tipo);
             return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-                (TIPO_SITIO_SVG[tipo] || TIPO_SITIO_PIN) + '</svg>';
+                (k ? TIPO_SITIO_SVG[k] : TIPO_SITIO_PIN) + '</svg>';
         }
         function syncTipoSitioIcon(wrap, tipo) {
             if (!wrap) return;
