@@ -14169,8 +14169,14 @@
                 } else {
                     // Aún dentro de la ventana de cancelación gratuita: cuenta atrás.
                     var remMs = corte9.getTime() - nowConf.getTime();
-                    var remH = Math.floor(remMs / 3600000), remMin = Math.floor((remMs % 3600000) / 60000);
-                    var remTxt = (remH > 0 ? remH + ' h ' : '') + remMin + ' min';
+                    // En días + horas (+ min si queda poco), no todo en horas
+                    // ("4 días 8 h", no "104 h 21 min").
+                    var remD = Math.floor(remMs / 86400000);
+                    var remH = Math.floor((remMs % 86400000) / 3600000);
+                    var remMin = Math.floor((remMs % 3600000) / 60000);
+                    var remTxt = remD > 0
+                        ? remD + (remD === 1 ? ' día ' : ' días ') + remH + ' h'
+                        : (remH > 0 ? remH + ' h ' : '') + remMin + ' min';
                     var corteTxt = DIAS_LC[corte9.getDay()] + ' ' + corte9.getDate() + ' a las 9:00';
                     cancelBody =
                         '<div style="margin-bottom:0.8rem;padding:0.7rem 0.8rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:9px;font-size:0.88rem;line-height:1.55;color:#0f6b3a;">' +
