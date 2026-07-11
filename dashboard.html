@@ -2232,6 +2232,11 @@
         table.data tbody td {
             padding: 0.16rem 0.9rem; border-bottom: 1px solid var(--gray-200);
             color: var(--navy); vertical-align: top;
+            /* Alto MÍNIMO de fila = 3 renglones (fecha+horario · dirección ·
+               empresa), como la muestra. En tablas, `height` actúa de mínimo:
+               si el contenido pide más (4+ líneas), la fila crece; nunca baja
+               de 3 renglones. */
+            height: calc(var(--rl, 1.05rem) * 3);
             /* Rejilla de líneas: cada "renglón" de cualquier columna mide lo
                mismo (--rl) y arranca a la misma altura (vertical-align:top +
                mismo padding). Así la 1ª línea de Recogida/Entrega/Envío/
