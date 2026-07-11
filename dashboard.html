@@ -12534,17 +12534,11 @@
                     // aplican AL FINAL como conceptos aparte, sobre el importe de
                     // envío ya calculado, para poder desglosarlos en la caja.
                 }
-                // Mercancía: no paletizada +10%. Tipo de carga: si implica techo +15%.
+                // Mercancía no paletizada +10% (va dentro del importe de envío).
                 if (mercaSel && mercaSel.selectedIndex === 1) precio *= 1.1;
-                if (cargaTipoSel && /techo/i.test(cargaTipoSel.value)) precio *= 1.15;
-                var trampOn = card.querySelector('[data-ptar-trampilla]');
-                if (trampOn && trampOn.checked) precio += 60;
-                var nimaOn = card.querySelector('[data-ptar-nima]');
-                if (nimaOn && nimaOn.checked) precio += 50;
-                precio += paradaRows().length * 40;
-                // Recargo por TIPO DE LUGAR de cada punto (Almacén 0 · Obra
-                // +5% · Evento +15% · Zona urbana +20% · Finca/Agrícola +25%).
-                // Se suman los recargos de origen, destino y paradas.
+                // Recargo por TIPO DE LUGAR de cada punto (Almacén 0 · Obra +5%
+                // · Evento +15% · Zona urbana +20% · Finca/Agrícola +25%): suma de
+                // origen + destino + paradas. Va dentro del importe de envío.
                 var recTipo = 0;
                 var selO = card.querySelector('[data-ptar-tipoorig]');
                 var selD = card.querySelector('[data-ptar-tipodest]');
@@ -12554,27 +12548,42 @@
                     var s2 = r.querySelector('select');
                     if (s2) recTipo += (TIPO_RECARGO[s2.value] || 0);
                 });
-                // Base ANTES del recargo por tipo (para poder recalcular el
-                // precio en la confirmación al cambiar el tipo allí).
+                var nParadas = paradaRows().length;
+                // Base del transporte ANTES del recargo por tipo (para recalcular
+                // en la confirmación si allí cambian el tipo de lugar).
                 card.dataset.precioBase = String(Math.round(precio / 10) * 10);
                 card.dataset.recargoTipo = String(recTipo);
-                // Guardamos los datos de la fija para reconstruir el desglose en la
-                // confirmación: % de fija (0.15) y suplemento plano de preaviso.
-                card.dataset.fijaPct = String(uv === 'dia' ? 0.15 : 0);
+                card.dataset.nParadas = String(nParadas);
+                // Importe de envío = base × (1 + recargo tipo) + paradas.
+                var envioNeto = Math.round(parseInt(card.dataset.precioBase, 10) * (1 + recTipo) / 10) * 10 + nParadas * 40;
+                // === Suplementos ITEMIZADOS (en euros, como filas del desglose) ===
+                //  Carga por techo (+15%) · Trampilla elevadora (+60 €) · NIMA (+50 €).
+                var trampOn = card.querySelector('[data-ptar-trampilla]');
+                var nimaOn  = card.querySelector('[data-ptar-nima]');
+                var techoOn = !!(cargaTipoSel && /techo/i.test(cargaTipoSel.value));
+                var techoExtra = techoOn ? Math.round(envioNeto * 0.15 / 10) * 10 : 0;
+                var trampExtra = (trampOn && trampOn.checked) ? 60 : 0;
+                var nimaExtra  = (nimaOn && nimaOn.checked) ? 50 : 0;
+                card.dataset.techoOn    = techoOn ? '1' : '0';
+                card.dataset.trampExtra = String(trampExtra);
+                card.dataset.nimaExtra  = String(nimaExtra);
+                // Fecha fija (+15%) sobre el subtotal (envío + suplementos) y
+                // preaviso urgente (+100 € plano). Se guardan para la confirmación.
+                card.dataset.fijaPct  = String(uv === 'dia' ? 0.15 : 0);
                 card.dataset.fijaFlat = String((uv === 'dia' && fijaUrgente) ? 100 : 0);
-                // === Desglose de conceptos (para la caja de precio) ===
-                //  Importe de envío (con recargo por tipo) → Fecha fija →
-                //  Preaviso urgente (+100 €) → Base imponible = suma.
-                var envioNeto = Math.round(precio * (1 + recTipo) / 10) * 10; // importe de envío
-                var fijaExtra = (uv === 'dia') ? envioNeto * 0.15 : 0;        // suplemento fecha fija
-                var preavisoExtra = (uv === 'dia' && fijaUrgente) ? 100 : 0;  // suplemento preaviso
-                var precioRows = [];
-                if (uv === 'dia') {
-                    precioRows.push({ k: 'Importe de envío', v: envioNeto });
-                    precioRows.push({ k: 'Fecha fija', v: fijaExtra });
-                    if (preavisoExtra) precioRows.push({ k: 'Preaviso urgente', v: preavisoExtra });
-                }
-                precio = envioNeto + fijaExtra + preavisoExtra; // base imponible (neto)
+                var subAntesFija = envioNeto + techoExtra + trampExtra + nimaExtra;
+                var fijaExtra = (uv === 'dia') ? Math.round(subAntesFija * 0.15 / 10) * 10 : 0;
+                var preavisoExtra = (uv === 'dia' && fijaUrgente) ? 100 : 0;
+                // Desglose: Importe de envío + cada suplemento que aplique. Si no
+                // hay ningún suplemento, no se desglosa (solo Base/IVA/Total).
+                var extras = [];
+                if (techoExtra) extras.push({ k: 'Carga por techo', v: techoExtra });
+                if (trampExtra) extras.push({ k: 'Trampilla elevadora', v: trampExtra });
+                if (nimaExtra)  extras.push({ k: 'NIMA', v: nimaExtra });
+                if (fijaExtra)  extras.push({ k: 'Fecha fija', v: fijaExtra });
+                if (preavisoExtra) extras.push({ k: 'Preaviso urgente', v: preavisoExtra });
+                var precioRows = extras.length ? [{ k: 'Importe de envío', v: envioNeto }].concat(extras) : [];
+                precio = envioNeto + techoExtra + trampExtra + nimaExtra + fijaExtra + preavisoExtra; // base imponible
                 // Arranca en el número que se está mostrando AHORA (no en lastPrice)
                 // para que la animación encadene aunque renderEta se llame 2 veces.
                 var shownEl = etaBox.querySelector('[data-price-neto]');
@@ -13305,18 +13314,26 @@
                 if (!base) { var r0 = parseFloat(card.dataset.recargoTipo || '0') || 0; base = Math.round((pendingData.precioMock || 0) / (1 + r0)); }
                 var rec = 0;
                 confirmCard.querySelectorAll('[data-sitio-tipo]').forEach(function (sel) { rec += (TIPO_RECARGO[sel.value] || 0); });
+                var nParadas = parseInt(card.dataset.nParadas || '0', 10) || 0;
                 var fijaPct = parseFloat(card.dataset.fijaPct || '0') || 0;   // 0.15 si es fija
                 var flat = parseInt(card.dataset.fijaFlat || '0', 10) || 0;   // preaviso corto (plano)
-                // Mismo desglose que en el paso 1: importe de envío → fecha fija → preaviso.
-                var envioNeto = Math.round(base * (1 + rec) / 10) * 10;
-                var fijaExtra = envioNeto * fijaPct;
-                var precio = envioNeto + fijaExtra + flat;
-                var rows = [];
-                if (fijaPct > 0) {
-                    rows.push({ k: 'Importe de envío', v: envioNeto });
-                    rows.push({ k: 'Fecha fija', v: fijaExtra });
-                    if (flat) rows.push({ k: 'Preaviso urgente', v: flat });
-                }
+                // Mismo desglose que en el paso 1: importe de envío → suplementos
+                // (techo/trampilla/NIMA) → fecha fija → preaviso.
+                var envioNeto = Math.round(base * (1 + rec) / 10) * 10 + nParadas * 40;
+                var techoOn = card.dataset.techoOn === '1';
+                var techoExtra = techoOn ? Math.round(envioNeto * 0.15 / 10) * 10 : 0;
+                var trampExtra = parseInt(card.dataset.trampExtra || '0', 10) || 0;
+                var nimaExtra  = parseInt(card.dataset.nimaExtra || '0', 10) || 0;
+                var subAntesFija = envioNeto + techoExtra + trampExtra + nimaExtra;
+                var fijaExtra = fijaPct > 0 ? Math.round(subAntesFija * fijaPct / 10) * 10 : 0;
+                var precio = envioNeto + techoExtra + trampExtra + nimaExtra + fijaExtra + flat;
+                var extras = [];
+                if (techoExtra) extras.push({ k: 'Carga por techo', v: techoExtra });
+                if (trampExtra) extras.push({ k: 'Trampilla elevadora', v: trampExtra });
+                if (nimaExtra)  extras.push({ k: 'NIMA', v: nimaExtra });
+                if (fijaExtra)  extras.push({ k: 'Fecha fija', v: fijaExtra });
+                if (flat)       extras.push({ k: 'Preaviso urgente', v: flat });
+                var rows = extras.length ? [{ k: 'Importe de envío', v: envioNeto }].concat(extras) : [];
                 pendingData.precioMock = precio;
                 var eur = String(precio).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                 var box = confirmCard.querySelector('[data-ptar-conf-price]');
