@@ -3653,7 +3653,7 @@
                 <button class="sidebar-link sidebar-sublink" data-section="almacenes-cat">
                     <span class="sidebar-subdot"></span> Catálogo de almacenes
                 </button>
-                <button class="sidebar-link sidebar-sublink" onclick="abrirCrearPenalizacion()">
+                <button class="sidebar-link sidebar-sublink" onclick="openNuevaPenalizacion()">
                     <span class="sidebar-subdot"></span> Crear penalización
                 </button>
             </div>
@@ -4145,7 +4145,7 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
                 <span>Envíos de todos</span>
             </button>
-            <button class="admin-quick-btn" onclick="abrirCrearPenalizacion()">
+            <button class="admin-quick-btn" onclick="openNuevaPenalizacion()">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
                 <span>Crear penalización</span>
             </button>
@@ -7336,7 +7336,7 @@
                 '<div class="modal-form-row"><label>Envío relacionado <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label>' +
                 '<div class="ptar-input-wrap alm-rep-wrap" id="incEnvCombo">' +
                     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>' +
-                    '<input type="text" id="incEnvSearch" placeholder="Busca por nº, ruta, empresa…" autocomplete="off" inputmode="search" oninput="incEnvFilter()" onfocus="incEnvFilter()">' +
+                    '<input type="text" id="incEnvSearch" placeholder="Busca por nº, pedido, ruta, matrícula, fecha…" autocomplete="off" inputmode="search" oninput="incEnvFilter()" onfocus="incEnvFilter()">' +
                     '<button type="button" class="ptar-clear" id="incEnvClearBtn" hidden onclick="incEnvClear(true)" aria-label="Cambiar envío">✕</button>' +
                     '<ul class="ptar-sug alm-combo-list" id="incEnvList" hidden></ul>' +
                     '<input type="hidden" id="incGenRef">' +
@@ -9323,18 +9323,19 @@
     var _penEnvioSel = null;
     function penAcRender(q) {
         var sug = document.getElementById('penEnvioSug'); if (!sug) return;
-        var list = penEnviosList();
-        q = (q || '').toLowerCase().trim();
-        // Sin texto: los últimos 4 envíos (GX). Con texto: filtra por GX/ref/ruta/transportista.
-        var filtered = !q ? list.slice(0, 4)
-            : list.filter(function (c) {
-                return (c.ref + ' ' + (c.refCli || '') + ' ' + c.origen + ' ' + c.destino + ' ' + (c.transportista || '')).toLowerCase().indexOf(q) > -1;
-            }).slice(0, 8);
+        var arr = (typeof CARGAS_DATA !== 'undefined') ? CARGAS_DATA : [];
+        var qn = normTxt(q || '');
+        // Sin texto: los últimos 4 envíos. Con texto: búsqueda EXHAUSTIVA por
+        // TODOS los datos del envío (nº, pedido cliente, fecha, matrícula,
+        // origen/destino, ciudades/CP, mercancía, transportista, estado, precio…).
+        var filtered = !qn ? arr.slice(0, 4)
+            : arr.filter(function (c) { return matchTokens(cargaSearchBlob(c), qn); }).slice(0, 8);
         if (!filtered.length) { sug.innerHTML = '<div class="pen-ac-empty">Sin envíos que coincidan</div>'; sug.hidden = false; return; }
         sug.innerHTML = filtered.map(function (c) {
+            var transp = c.transportistaNombre || null;
             return '<button type="button" class="pen-ac-item" data-ref="' + escapeHtml(c.ref) + '">' +
                 '<strong>' + escapeHtml(c.ref) + '</strong>' + (c.refCli ? ' <span class="pen-ac-cli">' + escapeHtml(c.refCli) + '</span>' : '') +
-                '<div class="pen-ac-route">' + escapeHtml(c.origen) + ' → ' + escapeHtml(c.destino) + (c.transportista ? ' · ' + escapeHtml(c.transportista) : ' · sin transportista') + '</div>' +
+                '<div class="pen-ac-route">' + escapeHtml(c.origen) + ' → ' + escapeHtml(c.destino) + (transp ? ' · ' + escapeHtml(transp) : ' · sin transportista') + '</div>' +
             '</button>';
         }).join('');
         sug.hidden = false;
@@ -9359,7 +9360,7 @@
         var tipoOpts = '<option value="">Selecciona el tipo…</option>' + PEN_TIPOS.map(function (t) { return '<option>' + t + '</option>'; }).join('');
         var body =
             '<div class="modal-form-row"><label>Envío referenciado</label>' +
-                '<div class="pen-ac" id="penAc"><input type="text" id="penEnvioInput" autocomplete="off" placeholder="Busca por GX, referencia, origen o destino…">' +
+                '<div class="pen-ac" id="penAc"><input type="text" id="penEnvioInput" autocomplete="off" placeholder="Busca por nº, pedido, ruta, matrícula, fecha…">' +
                 '<div class="pen-ac-sug" id="penEnvioSug" hidden></div></div>' +
                 '<div class="pen-envio-sum" id="penEnvioSum" hidden></div></div>' +
             '<div class="modal-form-row"><label>Tipo de penalización</label><select id="penTipo">' + tipoOpts + '</select></div>' +
