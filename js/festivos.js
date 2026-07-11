@@ -117,14 +117,20 @@ window.FESTIVOS = (function () {
        - Si la API falla / no hay red / CORS → se ignora y queda el local
          (degradación limpia: el aviso es informativo, no bloquea nada).
        ----------------------------------------------------------------- */
-    var apiCache = {}; // apiCache[cc][year] = { 'M-D': 'Nombre (regional)' }
+    // apiCache[cc][year] = { 'M-D': { name, global, counties } }
+    //   · global  = true  → NACIONAL (aplica en todo el país)
+    //   · global  = false → REGIONAL; counties = subdivisiones ISO (p.ej. ['ES-VC'])
+    //     a las que aplica. Se guardan para poder filtrar por comunidad del sitio.
+    var apiCache = {};
 
     function ensure(cc, year) {
         cc = (cc || '').toLowerCase();
         if (!cc || !year || !DATA[cc]) return Promise.resolve({});
         if (!apiCache[cc]) apiCache[cc] = {};
         if (apiCache[cc][year]) return Promise.resolve(apiCache[cc][year]);
-        var lsKey = 'festivos_api_' + cc + '_' + year;
+        // v2: el formato de caché ahora es objeto {name,global,counties}. La clave
+        // cambia para invalidar cachés viejas (que guardaban solo el nombre).
+        var lsKey = 'festivos_api_v2_' + cc + '_' + year;
         try {
             var raw = localStorage.getItem(lsKey);
             if (raw) {
@@ -145,9 +151,14 @@ window.FESTIVOS = (function () {
                     if (getLocal(cc, d)) return;          // ya está en el local → no duplicar
                     var k = key(d);
                     if (map[k]) return;                   // primera ocurrencia del día
+                    var esRegional = h.global === false;
                     var nm = h.localName || h.name || 'Festivo';
-                    if (h.global === false) nm += ' (regional)';
-                    map[k] = nm;
+                    if (esRegional) nm += ' (regional)';
+                    map[k] = {
+                        name: nm,
+                        global: !esRegional,
+                        counties: (esRegional && h.counties && h.counties.length) ? h.counties : null
+                    };
                 });
                 apiCache[cc][year] = map;
                 try { localStorage.setItem(lsKey, JSON.stringify({ exp: Date.now() + 2592000000, map: map })); } catch (e) {}
@@ -156,19 +167,40 @@ window.FESTIVOS = (function () {
             .catch(function () { apiCache[cc][year] = {}; return {}; });
     }
 
+    // Entrada cacheada (objeto) para cc+fecha, o null. Tolera formato legacy (string).
+    function apiEntry(cc, date) {
+        if (!date) return null;
+        var ext = apiCache[cc] && apiCache[cc][date.getFullYear()];
+        var v = ext && ext[key(date)];
+        if (!v) return null;
+        return (typeof v === 'string') ? { name: v, global: true, counties: null } : v;
+    }
+
     // Festivo del país `cc` en `date` → nombre o null.
     // Local (nacional) primero; si no, regional cacheado de la API.
     function get(cc, date) {
         cc = (cc || '').toLowerCase();
         var local = getLocal(cc, date);
         if (local) return local;
-        if (!date) return null;
-        var ext = apiCache[cc] && apiCache[cc][date.getFullYear()];
-        return (ext && ext[key(date)]) || null;
+        var e = apiEntry(cc, date);
+        return e ? e.name : null;
+    }
+
+    // Subdivisiones ISO a las que aplica el festivo de `date`:
+    //   · null  → NACIONAL (aplica en todo el país, sin restricción de región).
+    //   · []    → REGIONAL pero de comunidad desconocida (no se puede ubicar).
+    //   · [..]  → REGIONAL: solo esas comunidades (p.ej. ['ES-VC']).
+    function regionsOf(cc, date) {
+        cc = (cc || '').toLowerCase();
+        if (getLocal(cc, date)) return null;   // nacional del registro local
+        var e = apiEntry(cc, date);
+        if (!e) return null;
+        if (e.global) return null;             // nacional según la API
+        return e.counties || [];               // regional
     }
 
     function countryName(cc) { return COUNTRY_NAMES[(cc || '').toLowerCase()] || cc || ''; }
     function supported(cc) { return !!DATA[(cc || '').toLowerCase()]; }
 
-    return { get: get, getLocal: getLocal, ensure: ensure, countryName: countryName, supported: supported, easterSunday: easterSunday };
+    return { get: get, getLocal: getLocal, regionsOf: regionsOf, ensure: ensure, countryName: countryName, supported: supported, easterSunday: easterSunday };
 })();

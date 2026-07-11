@@ -5965,6 +5965,7 @@
         var wrap = almRepWrap(), input = almRepInputEl();
         if (wrap) {
             delete wrap.dataset.lat; delete wrap.dataset.lon; delete wrap.dataset.cc;
+            delete wrap.dataset.region;
             delete wrap.dataset.siteKey; delete wrap.dataset.gsite;
             wrap.classList.remove('ptar-picked', 'ptar-error');
         }
@@ -10634,6 +10635,36 @@
         try { s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) {}
         return s;
     }
+    // Nominatim address.state (nombre de la comunidad aut\u00f3noma, en espa\u00f1ol o
+    // lengua cooficial) \u2192 c\u00f3digo ISO 3166-2 de la subdivisi\u00f3n, para cotejar con
+    // los `counties` que devuelve la API de festivos (p.ej. ES-VC). Devuelve ''
+    // si no se reconoce: en ese caso los festivos AUTON\u00d3MICOS se omiten (no se
+    // puede confirmar que el sitio est\u00e9 en esa comunidad \u2192 evita sobre-avisar).
+    function stateToRegion(address) {
+        if (!address) return '';
+        var cc = (address.country_code || '').toLowerCase();
+        if (cc !== 'es') return '';   // por ahora solo mapeamos Espa\u00f1a
+        var s = normTxt(address.state || address.region || address.province || '');
+        if (!s) return '';
+        if (/valencia/.test(s)) return 'ES-VC';
+        if (/murcia/.test(s)) return 'ES-MC';
+        if (/mancha/.test(s)) return 'ES-CM';
+        if (/leon/.test(s) && /castilla/.test(s)) return 'ES-CL';
+        if (/andaluc/.test(s)) return 'ES-AN';
+        if (/catalu/.test(s)) return 'ES-CT';
+        if (/madrid/.test(s)) return 'ES-MD';
+        if (/vasco|euskadi/.test(s)) return 'ES-PV';
+        if (/balear/.test(s)) return 'ES-IB';
+        if (/canaria/.test(s)) return 'ES-CN';
+        if (/galicia/.test(s)) return 'ES-GA';
+        if (/aragon/.test(s)) return 'ES-AR';
+        if (/asturias/.test(s)) return 'ES-AS';
+        if (/cantabria/.test(s)) return 'ES-CB';
+        if (/extremadura/.test(s)) return 'ES-EX';
+        if (/rioja/.test(s)) return 'ES-RI';
+        if (/navarra|nafarroa/.test(s)) return 'ES-NC';
+        return '';
+    }
     // Coincidencia por PALABRAS: cada palabra tecleada debe aparecer en algún
     // punto del texto, sin importar el orden ni que vayan seguidas —
     // "tititos bar" encuentra "GRUPO TITITOS BCN … Barcelona".
@@ -11778,6 +11809,7 @@
             }
             function clearGeo() {
                 delete wrap.dataset.lat; delete wrap.dataset.lon; delete wrap.dataset.cc;
+                delete wrap.dataset.region;
                 delete wrap.dataset.siteKey; delete wrap.dataset.gsite;
                 setPicked(false);
                 if (onPick) onPick(null);
@@ -11801,6 +11833,8 @@
                     if (!items || !items[0]) return;
                     wrap.dataset.lat = items[0].lat; wrap.dataset.lon = items[0].lon;
                     wrap.dataset.cc = (items[0].address && items[0].address.country_code) || '';
+                    var _rg = stateToRegion(items[0].address);
+                    if (_rg) wrap.dataset.region = _rg; else delete wrap.dataset.region;
                     if (onPick) onPick({ lat: parseFloat(items[0].lat), lon: parseFloat(items[0].lon), label: input.value });
                 });
             }
@@ -12017,6 +12051,8 @@
                                 input.value = formatSugLabel(it);
                                 wrap.dataset.lat = it.lat; wrap.dataset.lon = it.lon;
                                 wrap.dataset.cc = (it.address && it.address.country_code) || '';
+                                var _rg = stateToRegion(it.address);
+                                if (_rg) wrap.dataset.region = _rg; else delete wrap.dataset.region;
                                 delete wrap.dataset.siteKey; delete wrap.dataset.gsite;
                                 sugList.hidden = true;
                                 setPicked(true);
@@ -12468,13 +12504,19 @@
                 var festHtml = '';
                 // Festivos en un rango: nacional (bloquea) + autonómico (aviso,
                 // vía API). Devuelve tipo, fecha y nombre (motivo) de cada uno.
-                function holsInRange(cc, a, b) {
+                function holsInRange(cc, region, a, b) {
                     if (!window.FESTIVOS || !cc || !a || !b) return [];
                     // Solo se avisan los festivos que afectan a un día hábil de carga/
                     // entrega: los de DÍA HÁBIL (L-V) y los de DOMINGO (que se trasladan
                     // al LUNES). Los de SÁBADO no se avisan (no es día de carga y no
                     // se trasladan). Extendemos un día el barrido por si el domingo
                     // final traslada a un lunes justo fuera del rango.
+                    //
+                    // FILTRO POR REGIÓN: los festivos NACIONALES se avisan siempre;
+                    // los AUTONÓMICOS/LOCALES solo si la comunidad del sitio (region,
+                    // p.ej. ES-VC) está entre las subdivisiones a las que aplica el
+                    // festivo. Si no conocemos la comunidad del festivo o la del sitio,
+                    // no se avisa el autonómico (evita sobre-avisar en otra comunidad).
                     var out = [], seen = {};
                     var d = new Date(a.getFullYear(), a.getMonth(), a.getDate());
                     var fin = new Date(b.getFullYear(), b.getMonth(), b.getDate()); fin.setDate(fin.getDate() + 1);
@@ -12482,14 +12524,21 @@
                         var n = FESTIVOS.get(cc, d);
                         var dow = d.getDay();
                         if (n && dow !== 6) { // ignora sábados
-                            var esNac = !!(FESTIVOS.getLocal && FESTIVOS.getLocal(cc, d));
-                            var nombre = String(n).replace(/\s*\(regional\)\s*$/i, '');
-                            var shown = new Date(d), traslado = false;
-                            if (dow === 0) { shown.setDate(shown.getDate() + 1); traslado = true; } // domingo → lunes
-                            var key = shown.getFullYear() + '-' + shown.getMonth() + '-' + shown.getDate() + '|' + nombre;
-                            if (!seen[key]) {
-                                seen[key] = true;
-                                out.push({ d: shown, name: nombre + (traslado ? ' (trasladado del domingo)' : ''), tipo: esNac ? 'Nacional' : 'Autonómico' });
+                            // regs: null = nacional; [] = regional (comunidad desconocida);
+                            //       [..] = regional de esas comunidades ISO.
+                            var regs = FESTIVOS.regionsOf ? FESTIVOS.regionsOf(cc, d) : null;
+                            var esNac = (regs === null);
+                            var mostrar = esNac ||
+                                (region && regs && regs.length && regs.indexOf(region) !== -1);
+                            if (mostrar) {
+                                var nombre = String(n).replace(/\s*\(regional\)\s*$/i, '');
+                                var shown = new Date(d), traslado = false;
+                                if (dow === 0) { shown.setDate(shown.getDate() + 1); traslado = true; } // domingo → lunes
+                                var key = shown.getFullYear() + '-' + shown.getMonth() + '-' + shown.getDate() + '|' + nombre;
+                                if (!seen[key]) {
+                                    seen[key] = true;
+                                    out.push({ d: shown, name: nombre + (traslado ? ' (trasladado del domingo)' : ''), tipo: esNac ? 'Nacional' : 'Autonómico' });
+                                }
                             }
                         }
                         d.setDate(d.getDate() + 1);
@@ -12527,8 +12576,8 @@
                                 fmtEtaDate(h.d) + ' · ' + escapeHtml(h.name) + '</div></div>');
                         });
                     }
-                    pushAvisos('Recogida', origWrap.dataset.cc, holsInRange(origWrap.dataset.cc, loadStart, loadEnd));
-                    pushAvisos('Entrega', destWrap.dataset.cc, holsInRange(destWrap.dataset.cc, etaStart, etaEnd));
+                    pushAvisos('Recogida', origWrap.dataset.cc, holsInRange(origWrap.dataset.cc, origWrap.dataset.region, loadStart, loadEnd));
+                    pushAvisos('Entrega', destWrap.dataset.cc, holsInRange(destWrap.dataset.cc, destWrap.dataset.region, etaStart, etaEnd));
                     if (avisos.length) {
                         festHtml = '<div class="ptar-eta-festivo">' + avisos.join('') + '</div>';
                     }
@@ -12778,8 +12827,8 @@
                 destInput.value = '';
                 origInput.dispatchEvent(new Event('input', { bubbles: true }));
                 destInput.dispatchEvent(new Event('input', { bubbles: true }));
-                delete origWrap.dataset.lat; delete origWrap.dataset.lon; delete origWrap.dataset.cc;
-                delete destWrap.dataset.lat; delete destWrap.dataset.lon; delete destWrap.dataset.cc;
+                delete origWrap.dataset.lat; delete origWrap.dataset.lon; delete origWrap.dataset.cc; delete origWrap.dataset.region;
+                delete destWrap.dataset.lat; delete destWrap.dataset.lon; delete destWrap.dataset.cc; delete destWrap.dataset.region;
                 delete origWrap.dataset.siteKey; delete origWrap.dataset.gsite;
                 delete destWrap.dataset.siteKey; delete destWrap.dataset.gsite;
                 origWrap.classList.remove('ptar-error');
