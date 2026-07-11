@@ -1219,6 +1219,15 @@
             font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
             background: #fff; border: 1px solid var(--gray-200); border-radius: 6px; padding: 0 0.4rem;
         }
+        /* --- Detalle de envío: cada sección de datos va ENCUADRADA en su
+           bloque (mismo estilo que las fichas de la ruta). --- */
+        .det-block {
+            border: 1px solid var(--gray-200); border-radius: 12px;
+            padding: 0.75rem 0.85rem; background: #fff; margin-top: 0.5rem;
+        }
+        .det-block > .modal-info-grid { margin-bottom: 0; }
+        .det-block .det-transp-card { background: var(--gray-50); }
+        .det-block .modal-file-drop { margin-top: 0.5rem; }
         /* --- Detalle de envío: puntos de ruta numerados (Recogida 1 / Entrega 1) --- */
         .det-ruta { display: grid; gap: 0.6rem; margin-top: 0.5rem; }
         .det-punto { border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.6rem 0.75rem; background: #fff; }
@@ -7212,7 +7221,7 @@
                     if (!src.fechaAsignada) {
                         items.push({ label: 'Fecha solicitada · Ventana', value: fechaConDia(d.fecha) + (d.ventana ? ' · ' + d.ventana : ''), span: true });
                     }
-                    return infoGrid(items);
+                    return '<div class="det-block">' + infoGrid(items) + '</div>';
                 })() +
                 sectionTitle('Transporte') +
                 (function () {
@@ -7220,7 +7229,7 @@
                     var asigHtml = a
                         ? '<span class="asig-line asig-' + a.key + '" style="margin-top:0;"><span class="asig-dot"></span>' + escapeHtml(a.label) + '</span>'
                         : pend(null);
-                    var h = infoGrid([
+                    var h = '<div class="det-block">' + infoGrid([
                         { label: 'Estado asignación transportista', value: asigHtml, html: true, span: true },
                         { label: 'Fecha asignada de carga', value: pend(src.fechaAsignada), html: true },
                         { label: 'Hora estimada de llegada', value: pend(src.horaCargaEst), html: true },
@@ -7237,7 +7246,7 @@
                             '<span class="dtc-item"><label>Conductor</label><span class="dtc-v">' + pend(src.conductor) + '</span></span>' +
                             '<span class="dtc-item"><label>Teléfono</label><span class="dtc-v">' + telConductorHTML(src) + '</span></span>' +
                         '</div>' +
-                    '</div>';
+                    '</div></div>';
                     return h;
                 })() +
                 sectionTitle('Ruta') +
@@ -7257,23 +7266,25 @@
                     return h + '</div>';
                 })() +
                 sectionTitle('Mercancía') +
-                infoGrid([
+                '<div class="det-block">' + infoGrid([
                     { label: 'Tipo de mercancía', value: d.mercancia + (d.mercanciaMeta ? ' · ' + d.mercanciaMeta : '') },
                     { label: 'Medidas', value: d.medidas },
                     { label: 'Tipo de carga', value: pend(src.tipoCarga), html: true }
-                ]) +
+                ]) + '</div>' +
                 // Valoración del transportista: solo en envíos ENTREGADOS
                 // (el servicio ya se ha dado). Una única puntuación 1-5 estrellas.
                 (src.kind === 'entregada'
                     ? sectionTitle('Valora el transporte') +
+                      '<div class="det-block">' +
                       '<p class="detail-doc-note">Puntúa de 1 a 5 estrellas el servicio del transportista en este envío. Solo puntuación, sin comentarios.</p>' +
-                      ratingWidgetHtml(src.valoracion || 0)
+                      ratingWidgetHtml(src.valoracion || 0) + '</div>'
                     : '') +
                 sectionTitle('Documentación de la operación') +
+                '<div class="det-block">' +
                 '<p class="detail-doc-note">Albaranes de recogida, CRM u otra documentación operativa para enseñar en el sitio de <strong>carga y/o entrega</strong>. No son los albaranes firmados de la entrega —esos aparecen en el listado de <strong>Albaranes</strong>—.</p>' +
                 '<div class="modal-file-drop" id="opDocsDrop"><div id="opDocsLabel">📎 Adjuntar documentación</div><div class="modal-file-drop-sub">JPG, PNG, PDF · hasta 5 archivos</div></div>' +
                 '<input type="file" id="opDocsInput" multiple accept="image/*,.pdf" style="display:none">' +
-                '<ul class="modal-file-list" id="opDocsList"></ul>',
+                '<ul class="modal-file-list" id="opDocsList"></ul></div>',
             actions: cargaDetailActions(d, row),
             footer: DETAIL_FOOTER,
             afterOpen: function () {
