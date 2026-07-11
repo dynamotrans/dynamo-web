@@ -3073,13 +3073,10 @@
             border-radius: 9px; font-size: 0.78rem; line-height: 1.5; color: #a01414; font-weight: 600;
         }
         .ptar-eta-festivo strong { color: #c62d2d; }
-        .ptar-eta-festivo .fest-line { display: block; margin-top: 0.3rem; }
-        .ptar-eta-festivo .fest-line:first-of-type { margin-top: 0.45rem; }
-        .ptar-eta-festivo .fest-tipo {
-            display: inline-block; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.02em;
-            padding: 0.03rem 0.4rem; border-radius: 5px; margin-right: 0.35rem; vertical-align: 1px;
-            background: rgba(214,45,45,0.16); color: #a01414; text-transform: uppercase;
-        }
+        .ptar-eta-festivo .fest-item { margin-top: 0.55rem; }
+        .ptar-eta-festivo .fest-item:first-child { margin-top: 0; }
+        .ptar-eta-festivo .fest-head { font-weight: 800; letter-spacing: 0.02em; color: #a01414; }
+        .ptar-eta-festivo .fest-body { font-weight: 600; margin-top: 0.15rem; }
         /* Aviso "hoy para hoy" dentro de la caja ETA (no garantía + cancelación) */
         .ptar-eta-hoy {
             display: block; width: 100%; margin: 0 0 0.8rem; padding: 0.55rem 0.7rem;
@@ -12517,16 +12514,16 @@
                     var avisos = [];
                     function pushAvisos(rol, cc, hols) {
                         hols.forEach(function (h) {
-                            avisos.push('<span class="fest-line"><span class="fest-tipo">' + h.tipo + '</span>' +
-                                '<strong>' + rol + '</strong> (' + escapeHtml(FESTIVOS.countryName(cc)) + ') · ' +
-                                fmtEtaDate(h.d) + ' · ' + escapeHtml(h.name) + '</span>');
+                            avisos.push('<div class="fest-item">' +
+                                '<div class="fest-head">⚠ FESTIVO ' + h.tipo.toUpperCase() + '</div>' +
+                                '<div class="fest-body">Posible cierre en: <strong>' + rol + '</strong> (' + escapeHtml(FESTIVOS.countryName(cc)) + ') · ' +
+                                fmtEtaDate(h.d) + ' · ' + escapeHtml(h.name) + '</div></div>');
                         });
                     }
                     pushAvisos('Recogida', origWrap.dataset.cc, holsInRange(origWrap.dataset.cc, loadStart, loadEnd));
                     pushAvisos('Entrega', destWrap.dataset.cc, holsInRange(destWrap.dataset.cc, etaStart, etaEnd));
                     if (avisos.length) {
-                        festHtml = '<div class="ptar-eta-festivo">⚠ <strong>El sitio está de festivo</strong> — posible cierre en carga/entrega:' +
-                            avisos.join('') + '</div>';
+                        festHtml = '<div class="ptar-eta-festivo">' + avisos.join('') + '</div>';
                     }
                     if (etaStart.getTime() === etaEnd.getTime()) {
                         rangoHtml = '<dd class="ptar-eta-range">' + fmtEtaDate(etaStart) + '</dd>';
