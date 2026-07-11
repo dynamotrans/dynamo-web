@@ -1846,6 +1846,13 @@
             border: none !important; background: transparent !important; padding: 0 !important;
             border-radius: 0 !important; box-shadow: none !important; width: auto; flex: 1;
         }
+        /* Igual dentro de los modales (p.ej. buscador de envío de "Reportar
+           incidencia"): el input NO lleva su propio borde, lo pone el wrap
+           (si no, se ve doble borde: caja dentro de caja). */
+        .modal-form-row .ptar-input-wrap input {
+            border: none !important; background: transparent !important; padding: 0 !important;
+            border-radius: 0 !important; box-shadow: none !important; width: auto; flex: 1; min-height: 0;
+        }
         .alm-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
         .alm-addr {
             margin-top: 0.7rem; padding: 0.8rem 0.95rem; background: var(--gray-100);
@@ -4351,7 +4358,7 @@
         <div class="sec-header">
             <h2>Incidencias</h2>
             <div class="sec-header-actions">
-                <button class="btn-primary">+ Reportar incidencia</button>
+                <button class="btn-primary" onclick="abrirNuevaIncidencia();return false;">+ Reportar incidencia</button>
             </div>
         </div>
         <div class="tabs">
