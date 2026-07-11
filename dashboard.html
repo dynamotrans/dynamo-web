@@ -4403,6 +4403,20 @@
                 <tbody id="tbodySitios"></tbody>
             </table>
         </div>
+        <div class="pagination">
+            <div class="pagination-left">
+                <label class="pagination-perpage-wrap">Mostrar
+                    <select class="pagination-perpage" data-table="sitios">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+                <span id="sitiosShowing"></span>
+            </div>
+            <div class="pagination-pages" id="sitiosPagination"></div>
+        </div>
     </section>
 
     <!-- ==================== NUEVA CARGA ==================== -->
@@ -4733,6 +4747,20 @@
                 <tbody id="tbodyAlmacenes"></tbody>
             </table>
         </div>
+        <div class="pagination">
+            <div class="pagination-left">
+                <label class="pagination-perpage-wrap">Mostrar
+                    <select class="pagination-perpage" data-table="almacenes">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+                <span id="almacenesShowing"></span>
+            </div>
+            <div class="pagination-pages" id="almacenesPagination"></div>
+        </div>
     </section>
 
     <!-- ==================== PENALIZACIONES ==================== -->
@@ -4760,6 +4788,20 @@
                 <tbody id="tbodyPenalizaciones"></tbody>
             </table>
         </div>
+        <div class="pagination">
+            <div class="pagination-left">
+                <label class="pagination-perpage-wrap">Mostrar
+                    <select class="pagination-perpage" data-table="penalizaciones">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+                <span id="penalizacionesShowing"></span>
+            </div>
+            <div class="pagination-pages" id="penalizacionesPagination"></div>
+        </div>
     </section>
 
     <!-- ==================== ALMACENES (catálogo interno · SOLO ADMIN) ==================== -->
@@ -4781,6 +4823,20 @@
                 </tr></thead>
                 <tbody id="tbodyAlmacenesCat"></tbody>
             </table>
+        </div>
+        <div class="pagination">
+            <div class="pagination-left">
+                <label class="pagination-perpage-wrap">Mostrar
+                    <select class="pagination-perpage" data-table="almacenesCat">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+                <span id="almacenesCatShowing"></span>
+            </div>
+            <div class="pagination-pages" id="almacenesCatPagination"></div>
         </div>
     </section>
 
@@ -6508,6 +6564,7 @@
             if (fa !== fb) return fa - fb;
             return a.entrada < b.entrada ? -1 : 1;
         });
+        var slice = pageSlice('almacenes', arr, ALM_LIST.filter + '|' + nq + '|' + (ALM_LIST.mes || ''), 'almacenesPagination', 'almacenesShowing', 'Sin almacenamientos');
         if (!arr.length) {
             var vacio = ALMACENES_DATA.length === 0
                 ? 'Aún no tienes almacenamientos. Crea uno con "+ Nuevo almacenamiento".'
@@ -6515,7 +6572,7 @@
             tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-500);">' + vacio + '</td></tr>';
             return;
         }
-        tbody.innerHTML = arr.map(function (r) {
+        tbody.innerHTML = slice.map(function (r) {
             var a = DYNAMO_ALMACENES[r.almIdx] || {};
             var est = almEstadoDe(r);
             var dias = almDiasDe(r);
@@ -6666,13 +6723,14 @@
         });
         var h2 = document.querySelector('#sec-almacenes-cat h2');
         if (h2) h2.textContent = 'Almacenes (' + rows.length + ')';
+        var slice = pageSlice('almacenesCat', rows, nq, 'almacenesCatPagination', 'almacenesCatShowing', 'Sin almacenes');
         if (!rows.length) {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin almacenes que coincidan</td></tr>';
             return;
         }
         // Mismas columnas que la agenda de Sitios: Empresa · Dirección · Horario ·
         // Contacto · Notas.
-        tbody.innerHTML = rows.map(function (r) {
+        tbody.innerHTML = slice.map(function (r) {
             var a = r.a, s = almToSite(a);
             var full = a.disponible === false;
             // Fila teñida: rojo suave si está COMPLETO (no disponible), verde
@@ -8724,7 +8782,13 @@
         cargas:       { page: 1, filter: 'programada-pendiente',  perPage: readPerPage('cargas'), estado: '', fecha: '', q: '' },
         presupuestos: { page: 1, filter: 'activos', perPage: readPerPage('presupuestos'), q: '' },
         facturas:     { page: 1, filter: 'todas',  perPage: readPerPage('facturas'), q: '', estado: '', from: '', to: '' },
-        albaranes:    { page: 1, filter: 'todas',  perPage: readPerPage('albaranes'), q: '', estado: '' }
+        albaranes:    { page: 1, filter: 'todas',  perPage: readPerPage('albaranes'), q: '', estado: '' },
+        // Tablas con paginación cliente (filtro/búsqueda propios; _k guarda la
+        // clave de filtro para volver a página 1 cuando cambia).
+        penalizaciones: { page: 1, perPage: readPerPage('penalizaciones'), _k: '' },
+        almacenes:      { page: 1, perPage: readPerPage('almacenes'), _k: '' },
+        almacenesCat:   { page: 1, perPage: readPerPage('almacenesCat'), _k: '' },
+        sitios:         { page: 1, perPage: readPerPage('sitios'), _k: '' }
     };
 
     // --- Horarios de almacén realistas para el mockup ---
@@ -9280,12 +9344,13 @@
             }
             return true;
         });
+        var slice = pageSlice('penalizaciones', arr, q + '|' + ft, 'penalizacionesPagination', 'penalizacionesShowing', 'Sin penalizaciones');
         if (!arr.length) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--gray-500);">' +
                 (PENALIZACIONES_DATA.length ? 'No hay penalizaciones que coincidan con el filtro.' : 'Aún no hay penalizaciones. Crea una con «+ Crear penalización».') + '</td></tr>';
             return;
         }
-        tbody.innerHTML = arr.map(function (p) {
+        tbody.innerHTML = slice.map(function (p) {
             return '<tr>' +
                 '<td class="ref"><strong>' + escapeHtml(p.ref) + '</strong><div class="meta">' + escapeHtml(String(p.descripcion || '').slice(0, 60)) + (String(p.descripcion || '').length > 60 ? '…' : '') + '</div></td>' +
                 '<td><strong>' + escapeHtml(p.envio) + '</strong></td>' +
@@ -10227,11 +10292,12 @@
         });
         var h2 = document.querySelector('#sec-sitios h2');
         if (h2) h2.textContent = 'Sitios (' + rows.length + ')';
+        var slice = pageSlice('sitios', rows, q, 'sitiosPagination', 'sitiosShowing', 'Sin sitios');
         if (!rows.length) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin sitios que coincidan</td></tr>';
             return;
         }
-        tbody.innerHTML = rows.map(function (kv) {
+        tbody.innerHTML = slice.map(function (kv) {
             var k = kv[0], s = kv[1];
             return '<tr data-sitio-key="' + esc(k) + '">' +
                 '<td><strong>' + esc(s.empresa || '—') + '</strong>' + (esSitioNuevo(k) ? ' <span class="badge badge-green">Nuevo</span>' : '') +
@@ -11205,7 +11271,38 @@
         else if (table === 'presupuestos') renderPresupuestosTable();
         else if (table === 'facturas') renderFacturasTable();
         else if (table === 'albaranes') renderAlbaranesTable();
+        else if (table === 'penalizaciones') renderPenalizacionesTable();
+        else if (table === 'almacenes') renderAlmacenesTable();
+        else if (table === 'almacenesCat') renderAlmacenesCatTable((document.getElementById('almacenesCatSearch') || {}).value || '');
+        else if (table === 'sitios') renderSitiosTable((document.getElementById('sitiosSearch') || {}).value || '');
     }
+    // Paginación cliente reutilizable: resetea a pág. 1 si cambió el filtro
+    // (clave `k`), recorta el array a la página actual, pinta los botones y el
+    // "Mostrando X-Y de Z". Devuelve el slice a renderizar.
+    function pageSlice(table, arr, k, containerId, showingId, emptyTxt) {
+        // El PRIMER render de estas tablas ocurre antes de que exista
+        // TABLE_STATE (orden de ejecución del script): sin estado aún, se
+        // devuelve todo sin paginar; el re-render diferido de abajo pagina.
+        if (typeof TABLE_STATE === 'undefined' || !TABLE_STATE || !TABLE_STATE[table]) return arr;
+        var st = TABLE_STATE[table];
+        if (st._k !== k) { st._k = k; st.page = 1; }
+        var totalPages = Math.max(1, Math.ceil(arr.length / st.perPage));
+        if (st.page > totalPages) st.page = totalPages;
+        var start = (st.page - 1) * st.perPage;
+        renderPagination(table, containerId, st.page, totalPages);
+        var sho = document.getElementById(showingId);
+        if (sho) sho.textContent = arr.length
+            ? 'Mostrando ' + (start + 1) + '-' + Math.min(start + st.perPage, arr.length) + ' de ' + arr.length
+            : (emptyTxt || 'Sin resultados');
+        return arr.slice(start, start + st.perPage);
+    }
+    // Re-render diferido: las tablas con paginación cliente que se pintaron
+    // durante la carga (antes de TABLE_STATE) se repintan ya paginadas.
+    setTimeout(function () {
+        ['penalizaciones', 'almacenes', 'almacenesCat', 'sitios'].forEach(function (t) {
+            try { renderTable(t); } catch (e) {}
+        });
+    }, 0);
 
     // ---- PAGINATION RENDERER ----
     function renderPagination(table, containerId, currentPage, totalPages) {
