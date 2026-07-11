@@ -4381,7 +4381,6 @@
         </div>
         <div class="tabs" data-table="incidencias">
             <button class="tab active" data-filter="abiertas">Abiertas (<span data-inc-count="abiertas">0</span>)</button>
-            <button class="tab" data-filter="en-curso">En curso (<span data-inc-count="en-curso">0</span>)</button>
             <button class="tab" data-filter="resueltas">Resueltas (<span data-inc-count="resueltas">0</span>)</button>
             <button class="tab" data-filter="todas">Todas</button>
         </div>
@@ -7499,7 +7498,6 @@
                 '<div class="modal-form-row"><label>Estado</label>' +
                 '<select id="incGenEstado">' +
                     '<option value="abierta" selected>Abierta</option>' +
-                    '<option value="en-curso">En curso</option>' +
                     '<option value="resuelta">Resuelta</option>' +
                 '</select></div>' +
                 '<div class="modal-form-row"><label>Detalle de la incidencia *</label><textarea id="incGenTxt" required placeholder="Describe lo ocurrido: daños, retraso, mercancía incorrecta, falta de albarán firmado…"></textarea></div>' +
@@ -8105,7 +8103,7 @@
     // ---- Incidencias: datos mock + tabla paginada (mismo sistema que el resto) ----
     var INCIDENCIAS_DATA = [
         { fr: '09/07/2026', hora: '11:42', tit: 'Mercancía con palet roto a la llegada', det: '3 palets dañados de 33', envio: '#GX684814', refCli: 'PED-0419', fcarga: '08/07', ventana: 'Fija', orig: 'Sevilla', dest: 'Barcelona', med: '8,4 m · 14.500 kg', estado: 'abierta' },
-        { fr: '02/07/2026', hora: '16:08', tit: 'Retraso de 4h en la entrega', det: 'En revisión con el transportista', envio: '#GX684723', refCli: 'PED-0405', fcarga: '01/07', ventana: 'Fija', orig: 'Sevilla', dest: 'Zaragoza', med: '13,2 m · 21.000 kg', estado: 'en-curso' },
+        { fr: '02/07/2026', hora: '16:08', tit: 'Retraso de 4h en la entrega', det: 'En revisión con el transportista', envio: '#GX684723', refCli: 'PED-0405', fcarga: '01/07', ventana: 'Fija', orig: 'Sevilla', dest: 'Zaragoza', med: '13,2 m · 21.000 kg', estado: 'abierta' },
         { fr: '26/06/2026', hora: '09:15', tit: 'Falta albarán firmado', det: 'Resuelto: albarán subido al panel', envio: '#GX684691', refCli: 'PED-0398', fcarga: '24/06', ventana: '1 a 3 días', orig: 'Madrid', dest: 'Valencia', med: '13,2 m · 24.000 kg', estado: 'resuelta' },
         { fr: '19/06/2026', hora: '13:40', tit: 'Entrega en dirección incorrecta', det: 'Resuelto: reentrega el mismo día', envio: '#GX684655', refCli: 'COT-311', fcarga: '18/06', ventana: 'Fija', orig: 'Sevilla', dest: 'Córdoba', med: '6,0 m · 8.200 kg', estado: 'resuelta' },
         { fr: '12/06/2026', hora: '10:05', tit: 'Mercancía mojada en 2 palets', det: 'Resuelto: compensado en factura', envio: '#GX684612', refCli: 'PED-0384', fcarga: '10/06', ventana: '1 a 3 días', orig: 'Bilbao', dest: 'Sevilla', med: '10,0 m · 16.500 kg', estado: 'resuelta' },
@@ -8118,26 +8116,24 @@
     // Id interno estable por incidencia (para poder EDITAR al pulsar la fila).
     var _incSeq = 0;
     INCIDENCIAS_DATA.forEach(function (x) { x.__id = ++_incSeq; });
+    // Una incidencia solo puede estar ABIERTA o RESUELTA (sin estados intermedios).
     var INC_ESTADO = {
         'abierta': { label: 'Abierta', badge: 'badge-orange' },
-        'en-curso': { label: 'En curso', badge: 'badge-yellow' },
         'resuelta': { label: 'Resuelta', badge: 'badge-green' }
     };
     function renderIncidenciasTable() {
         var tbody = document.getElementById('tbodyIncidencias'); if (!tbody) return;
         var st = (typeof TABLE_STATE !== 'undefined' && TABLE_STATE.incidencias) ? TABLE_STATE.incidencias : { filter: 'abiertas', q: '', mes: '' };
-        // Contadores de las pestañas (siempre sobre TODOS los datos).
-        var counts = { abiertas: 0, 'en-curso': 0, resueltas: 0 };
+        // Contadores de las pestañas (siempre sobre TODOS los datos). Todo lo
+        // que no está resuelto cuenta como ABIERTA.
+        var counts = { abiertas: 0, resueltas: 0 };
         INCIDENCIAS_DATA.forEach(function (x) {
-            if (x.estado === 'abierta') counts.abiertas++;
-            else if (x.estado === 'en-curso') counts['en-curso']++;
-            else counts.resueltas++;
+            if (x.estado === 'resuelta') counts.resueltas++; else counts.abiertas++;
         });
         Object.keys(counts).forEach(function (k) { var el = document.querySelector('[data-inc-count="' + k + '"]'); if (el) el.textContent = counts[k]; });
         var nq = normTxt(st.q || '');
         var arr = INCIDENCIAS_DATA.filter(function (x) {
-            if (st.filter === 'abiertas' && x.estado !== 'abierta') return false;
-            if (st.filter === 'en-curso' && x.estado !== 'en-curso') return false;
+            if (st.filter === 'abiertas' && x.estado === 'resuelta') return false;
             if (st.filter === 'resueltas' && x.estado !== 'resuelta') return false;
             if (st.mes) {
                 var m = String(x.fr).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
@@ -8153,7 +8149,7 @@
             return;
         }
         tbody.innerHTML = slice.map(function (x) {
-            var e = INC_ESTADO[x.estado] || INC_ESTADO.resuelta;
+            var e = INC_ESTADO[x.estado] || INC_ESTADO.abierta;
             return '<tr onclick="abrirNuevaIncidencia(' + x.__id + ')">' +
                 '<td>' + esc(x.fr) + '<div class="meta">' + esc(x.hora) + '</div></td>' +
                 '<td>' + esc(x.tit) + '<div class="meta">' + esc(x.det) + '</div></td>' +
