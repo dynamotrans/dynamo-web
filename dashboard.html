@@ -7054,10 +7054,10 @@
         { empresa: 'Distribuciones Levante Sur S.A.', cif: 'A03998811', dir: 'C/ Alberola 18', cp: '03008', ciudad: 'Alicante', prov: 'Alicante', pais: 'España', tfno: '+34 965 108 442', email: 'operaciones@dlevantesur.es', contacto: 'Pedro Ivorra', plazo: 30, cesce: false, cesceImporte: 0, dynamoImporte: 6000, notas: 'Crédito CESCE solicitado, pendiente de resolución.', creadoEn: __ctTs(45, 13), modificadoEn: null }
     ];
     var TRANSPORTISTAS_DATA = [
-        { empresa: 'Transportes Romero e Hijos S.L.', tipo: 'Empresa', cif: 'B90211458', dir: 'Pol. Store, C/ A nave 24', cp: '41008', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', tfno: '+34 954 367 210', email: 'trafico@transromero.es', contacto: 'Antonio Romero', bolsa: 'WTN-482113', camiones: 12, flota: 'Tauliner y rígido', seguro: 'AXA · Póliza CMR 88-456129', notas: '', creadoEn: __ctTs(420, 9), modificadoEn: __ctTs(30, 12) },
+        { empresa: 'Transportes Romero e Hijos S.L.', tipo: 'Empresa', cif: 'B90211458', dir: 'Pol. Store, C/ A nave 24', cp: '41008', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', tfno: '+34 954 367 210', email: 'trafico@transromero.es', contacto: 'Antonio Romero', bolsa: 'WTN-482113', camiones: 12, flota: 'Tauliner y rígido', seguro: 'AXA · Póliza CMR 88-456129', notas: '', docs: ['Seguro-CMR-AXA-2026.pdf', 'Tarjeta-transporte.pdf'], creadoEn: __ctTs(420, 9), modificadoEn: __ctTs(30, 12) },
         { empresa: 'Logística Vega del Guadalquivir S.L.U.', tipo: 'Empresa', cif: 'B41996732', dir: 'Ctra. Sevilla-Cazalla km 4', cp: '41300', ciudad: 'La Rinconada', prov: 'Sevilla', pais: 'España', tfno: '+34 955 790 118', email: 'operaciones@logivega.es', contacto: 'Carmen Domínguez', bolsa: 'WTN-509877', camiones: 8, flota: 'Tauliner', seguro: 'Mapfre · Póliza CMR 45-118203', notas: '', creadoEn: __ctTs(365, 10), modificadoEn: null },
         { empresa: 'TransPenínsula Cargo S.L.', tipo: 'Empresa', cif: 'B86450127', dir: 'C/ Fundidores 9', cp: '28906', ciudad: 'Getafe', prov: 'Madrid', pais: 'España', tfno: '+34 916 954 302', email: 'bolsa@transpeninsula.es', contacto: 'Raúl Cifuentes', bolsa: 'TLR-771402', camiones: 21, flota: 'Tauliner y rígido', seguro: 'Generali · Póliza CMR 12-908455', notas: 'Muy fiables en Madrid-Andalucía. Aceptan carga por techo.', creadoEn: __ctTs(280, 15), modificadoEn: __ctTs(9, 11) },
-        { empresa: 'José Manuel Ortega Ruiz', tipo: 'Autónomo', cif: '27314582K', dir: 'C/ Almendro 6, 2ºB', cp: '14006', ciudad: 'Córdoba', prov: 'Córdoba', pais: 'España', tfno: '+34 638 220 471', email: 'jmortega.transportes@gmail.com', contacto: 'José Manuel Ortega', bolsa: 'WTN-633090', camiones: 1, flota: 'Rígido', seguro: 'Allianz · Póliza CMR 77-340216', notas: 'Rígido con trampilla. Ideal repartos urbanos.', creadoEn: __ctTs(190, 12), modificadoEn: __ctTs(60, 16) },
+        { empresa: 'José Manuel Ortega Ruiz', tipo: 'Autónomo', cif: '27314582K', dir: 'C/ Almendro 6, 2ºB', cp: '14006', ciudad: 'Córdoba', prov: 'Córdoba', pais: 'España', tfno: '+34 638 220 471', email: 'jmortega.transportes@gmail.com', contacto: 'José Manuel Ortega', bolsa: 'WTN-633090', camiones: 1, flota: 'Rígido', seguro: 'Allianz · Póliza CMR 77-340216', notas: 'Rígido con trampilla. Ideal repartos urbanos.', docs: ['Seguro-CMR-Allianz.pdf'], creadoEn: __ctTs(190, 12), modificadoEn: __ctTs(60, 16) },
         { empresa: 'Ibérica de Tracción S.L.', tipo: 'Empresa', cif: 'B97120448', dir: 'Pol. Fuente del Jarro, C/ Ciutat de Llíria 40', cp: '46988', ciudad: 'Paterna', prov: 'Valencia', pais: 'España', tfno: '+34 961 340 775', email: 'trafico@ibetraccion.es', contacto: 'Empar Soler', bolsa: 'TLR-802341', camiones: 15, flota: 'Tauliner', seguro: 'Zurich · Póliza CMR 31-662184', notas: '', creadoEn: __ctTs(140, 9), modificadoEn: null },
         { empresa: 'Manuela Prieto Vidal', tipo: 'Autónomo', cif: '44982017L', dir: 'Av. de Portugal 12, 4ºA', cp: '06001', ciudad: 'Badajoz', prov: 'Badajoz', pais: 'España', tfno: '+34 620 884 913', email: 'mprietotransporte@hotmail.com', contacto: 'Manuela Prieto', bolsa: 'WTN-701255', camiones: 1, flota: 'Tauliner', seguro: 'Reale · Póliza CMR 09-115672', notas: 'Rutas España-Portugal.', creadoEn: __ctTs(75, 14), modificadoEn: __ctTs(2, 10) }
     ];
@@ -7071,7 +7071,7 @@
         return normTxt([c.empresa, c.cif, c.dir, c.cp, c.ciudad, c.prov, c.pais, c.tfno, c.email, c.contacto, clientePlazoTxt(c.plazo), c.notas].join(' '));
     }
     function transportistaBlob(t) {
-        return normTxt([t.empresa, t.tipo, t.cif, t.dir, t.cp, t.ciudad, t.prov, t.pais, t.tfno, t.email, t.contacto, t.bolsa, t.flota, t.seguro, t.notas].join(' '));
+        return normTxt([t.empresa, t.tipo, t.cif, t.dir, t.cp, t.ciudad, t.prov, t.pais, t.tfno, t.email, t.contacto, t.bolsa, t.flota, t.seguro, t.notas, (t.docs || []).join(' ')].join(' '));
     }
     function renderClientesTable(q) {
         var tbody = document.getElementById('tbodyClientes'); if (!tbody) return;
@@ -7197,6 +7197,12 @@
                 ctSelect('tra-f-flota', 'Flota', ['Tauliner', 'Rígido', 'Tauliner y rígido'], t.flota || 'Tauliner') +
                 ctField('tra-f-seguro', 'Seguro de mercancías (aseguradora · póliza)', t.seguro, 'Ej. AXA · Póliza CMR 88-456129', true) +
                 ctNotas('tra-f-notas', t.notas) +
+                '<div style="grid-column:1/-1"><label>Documentos del transportista</label>' +
+                    '<p class="detail-doc-note" style="margin:0.1rem 0 0.45rem;">Seguro CMR, tarjeta de transporte, certificados, acuerdos… útiles para la gestión de este transportista.</p>' +
+                    '<div class="modal-file-drop" id="traDocsDrop"><div id="traDocsLabel">📎 Adjuntar documento</div><div class="modal-file-drop-sub">JPG, PNG, PDF · máximo 5 documentos</div></div>' +
+                    '<input type="file" id="traDocsInput" multiple accept="image/*,.pdf" style="display:none">' +
+                    '<ul class="modal-file-list" id="traDocsList"></ul>' +
+                '</div>' +
             '</div>';
     }
     function openClienteModal(idx) {
@@ -7273,7 +7279,44 @@
             body: transportistaFormHTML(t),
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
                 (esEdit ? '<button class="btn-ghost" style="color:#dc2626;" onclick="transportistaEliminar(' + idx + ')">Borrar</button>' : '') +
-                '<button class="btn-primary" onclick="transportistaGuardar(' + (esEdit ? idx : -1) + ')">' + (esEdit ? 'Guardar cambios' : 'Crear transportista') + '</button>'
+                '<button class="btn-primary" onclick="transportistaGuardar(' + (esEdit ? idx : -1) + ')">' + (esEdit ? 'Guardar cambios' : 'Crear transportista') + '</button>',
+            afterOpen: function () {
+                // Documentos adjuntos (máx. 5). Se trabaja sobre una copia y solo
+                // se consolida en la ficha al pulsar Guardar (Cancelar no toca nada).
+                window._traDocsTmp = (t && t.docs ? t.docs.slice() : []);
+                var drop = document.getElementById('traDocsDrop');
+                var input = document.getElementById('traDocsInput');
+                var list = document.getElementById('traDocsList');
+                var label = document.getElementById('traDocsLabel');
+                var MAX = 5;
+                if (!drop || !input || !list) return;
+                function render() {
+                    list.innerHTML = window._traDocsTmp.map(function (name, i) {
+                        return '<li class="modal-file-item"><span class="mfi-ico">📄</span>' +
+                            '<span class="mfi-name">' + escapeHtml(name) + '</span>' +
+                            '<button type="button" class="mfi-del" data-i="' + i + '" aria-label="Quitar">×</button></li>';
+                    }).join('');
+                    var full = window._traDocsTmp.length >= MAX;
+                    label.textContent = full ? '📎 Máximo ' + MAX + ' documentos' : '📎 Adjuntar documento';
+                    drop.classList.toggle('is-disabled', full);
+                    list.querySelectorAll('.mfi-del').forEach(function (btn) {
+                        btn.addEventListener('click', function (e) {
+                            e.stopPropagation();
+                            window._traDocsTmp.splice(parseInt(btn.getAttribute('data-i'), 10), 1);
+                            render();
+                        });
+                    });
+                }
+                drop.addEventListener('click', function () { if (window._traDocsTmp.length < MAX) input.click(); });
+                input.addEventListener('change', function () {
+                    Array.prototype.slice.call(input.files).forEach(function (f) {
+                        if (window._traDocsTmp.length < MAX) window._traDocsTmp.push(f.name);
+                    });
+                    input.value = '';
+                    render();
+                });
+                render();
+            }
         });
     }
     window.openTransportistaModal = openTransportistaModal;
@@ -7301,6 +7344,7 @@
         t.flota = flotaEl ? flotaEl.value : 'Tauliner';
         t.seguro = v('tra-f-seguro') || null;
         t.notas = v('tra-f-notas') || null;
+        t.docs = (window._traDocsTmp || t.docs || []).slice(0, 5);
         if (edit) { t.modificadoEn = Date.now(); }
         else { t.creadoEn = Date.now(); t.modificadoEn = null; TRANSPORTISTAS_DATA.push(t); }
         closeDashModal();
