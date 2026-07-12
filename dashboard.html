@@ -7819,14 +7819,23 @@
         });
     }
     window.renderUsuariosTable = renderUsuariosTable;
-    function usuarioFormHTML(u) {
+    function usuarioFormHTML(u, idx) {
         u = u || {};
+        var esEdit = (idx != null && idx >= 0);
         var m = usuarioMetrics(u);
         function statRow(k, v) { return '<div class="pen-sum-row"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }
+        // El ROL solo se elige libremente en el ALTA. Al editar es una acción
+        // aparte ("Cambiar rol…") con su propia confirmación — cambiar el rol
+        // por error al corregir un teléfono es demasiado fácil y demasiado grave.
+        var tipoHtml = esEdit
+            ? '<div><label>Tipo de usuario</label>' +
+                '<div style="display:flex;align-items:center;gap:0.6rem;min-height:44px;">' + usuarioTipoChip(u.tipo) +
+                '<button type="button" class="btn-secondary" style="height:34px;padding:0 0.8rem;font-size:0.8rem;" onclick="openCambiarRol(' + idx + ')">Cambiar rol…</button></div></div>'
+            : ctSelect('usr-f-tipo', 'Tipo de usuario', USUARIO_TIPOS, u.tipo || 'Cliente');
         return ctMetaHTML(u) +
             '<div class="ptar-sitio-grid">' +
                 ctField('usr-f-email', 'Email (usuario de acceso) *', u.email, 'nombre@empresa.com', true, 'email') +
-                ctSelect('usr-f-tipo', 'Tipo de usuario', USUARIO_TIPOS, u.tipo || 'Cliente') +
+                tipoHtml +
                 ctSelect('usr-f-estado', 'Estado de la cuenta', ['Activa', 'Suspendida', 'Pendiente de verificación'], u.estadoCuenta || 'Activa') +
                 ctField('usr-f-nombre', 'Nombre y apellidos *', u.nombre, 'Nombre y apellidos', true) +
                 ctField('usr-f-dni', 'DNI', u.dni, '12345678Z') +
@@ -7861,13 +7870,93 @@
             icon: 'user',
             title: esEdit ? 'Editar usuario' : 'Nuevo usuario',
             sub: esEdit ? (u.email || '') : 'Alta de un email de acceso a la plataforma',
-            body: usuarioFormHTML(u),
+            body: usuarioFormHTML(u, esEdit ? idx : -1),
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
                 '<button class="btn-primary" onclick="usuarioGuardar(' + (esEdit ? idx : -1) + ')">' + (esEdit ? 'Guardar cambios' : 'Crear usuario') + '</button>'
         });
     }
     window.openUsuarioModal = openUsuarioModal;
     window.abrirNuevoUsuario = function () { openUsuarioModal(-1); };
+    // --- Cambiar el ROL de un usuario: acción deliberada con confirmación ---
+    // Qué puede hacer cada rol (se enseña ANTES de confirmar, para que quien
+    // cambia el rol sepa exactamente qué está concediendo).
+    var ROL_DESC = {
+        Admin: 'Acceso TOTAL a la plataforma: precios de compra y márgenes, todos los clientes y transportistas, penalizaciones, gestión de usuarios (incluidos los roles) y configuración.',
+        Empleado: 'Operativa interna del equipo Dynamo: envíos y almacenamientos de todos los clientes, incidencias, penalizaciones y catálogos. Sin gestión de usuarios ni configuración.',
+        Cliente: 'Solo SUS envíos, almacenamientos, facturas, albaranes e incidencias. No ve precios de compra, márgenes ni datos de otros clientes.',
+        Transportista: 'Solo los envíos que se le asignen y su documentación. No crea envíos ni ve datos de clientes.'
+    };
+    function openCambiarRol(idx) {
+        var u = USUARIOS_DATA[idx]; if (!u) return;
+        closeDashModal();
+        openDashModal({
+            icon: 'alert', iconVariant: 'warn',
+            title: 'Cambiar rol — ' + u.email,
+            sub: 'Rol actual: ' + (u.tipo || '—'),
+            body:
+                '<div class="modal-form-row"><label>Nuevo rol</label><select id="rolNuevo">' +
+                    USUARIO_TIPOS.map(function (t) { return '<option' + (t === u.tipo ? ' selected' : '') + '>' + t + '</option>'; }).join('') +
+                '</select></div>' +
+                '<div id="rolAviso" style="margin:0.2rem 0 0.8rem;padding:0.7rem 0.8rem;border-radius:9px;font-size:0.85rem;line-height:1.55;"></div>' +
+                '<div class="modal-form-row" id="rolConfirmWrap" hidden><label>Para conceder <strong>Admin</strong>, escribe el email del usuario</label>' +
+                    '<input type="text" id="rolConfirmEmail" autocomplete="off" placeholder="' + escapeHtml(u.email) + '"></div>' +
+                '<p class="alm-err" id="rolErr"></p>' +
+                '<p style="font-size:0.76rem;color:var(--gray-500);font-weight:600;margin:0.4rem 0 0;">En producción: solo un Admin puede conceder Admin (nunca uno mismo), el cambio avisa por email al usuario y a los administradores, y queda en el registro de auditoría.</p>',
+            footer: '<button class="btn-ghost" onclick="openUsuarioModal(' + idx + ');return false;">Cancelar</button>' +
+                '<button class="btn-primary" id="rolBtnOk" onclick="cambiarRolGuardar(' + idx + ')">Cambiar rol</button>',
+            afterOpen: function () {
+                var sel = document.getElementById('rolNuevo');
+                function upd() {
+                    var v = sel.value, aviso = document.getElementById('rolAviso'),
+                        wrap = document.getElementById('rolConfirmWrap'), btn = document.getElementById('rolBtnOk');
+                    var esAdmin = v === 'Admin';
+                    var igual = v === u.tipo;
+                    if (aviso) {
+                        aviso.style.background = esAdmin ? 'rgba(220,38,38,0.10)' : 'var(--gray-50)';
+                        aviso.style.border = esAdmin ? '1px solid rgba(220,38,38,0.45)' : '1px solid var(--gray-200)';
+                        aviso.style.color = esAdmin ? '#991b1b' : 'var(--gray-700)';
+                        aviso.innerHTML = igual
+                            ? 'Es el rol que ya tiene — no hay nada que cambiar.'
+                            : (esAdmin ? '⚠ <strong>Vas a conceder acceso de administrador.</strong> ' : '<strong>' + escapeHtml(v) + ':</strong> ') + escapeHtml(ROL_DESC[v] || '');
+                    }
+                    if (wrap) wrap.hidden = !(esAdmin && !igual);
+                    if (btn) {
+                        btn.style.background = esAdmin && !igual ? 'var(--red)' : '';
+                        btn.classList.toggle('btn-visual-disabled', igual);
+                    }
+                    var err = document.getElementById('rolErr'); if (err) err.classList.remove('show');
+                }
+                if (sel) { sel.addEventListener('change', upd); upd(); }
+            }
+        });
+    }
+    window.openCambiarRol = openCambiarRol;
+    function cambiarRolGuardar(idx) {
+        var u = USUARIOS_DATA[idx]; if (!u) return;
+        var err = document.getElementById('rolErr');
+        function fail(msg, el) { if (err) { err.textContent = '⚠ ' + msg; err.classList.add('show'); } if (el && el.focus) el.focus(); }
+        var nuevo = ((document.getElementById('rolNuevo') || {}).value) || u.tipo;
+        if (nuevo === u.tipo) { openUsuarioModal(idx); return; }
+        // Siempre debe quedar al menos UN Admin activo (regla dura; también
+        // se validará en backend).
+        if (u.tipo === 'Admin' && nuevo !== 'Admin') {
+            var otrosAdmin = USUARIOS_DATA.filter(function (x, i) { return i !== idx && !x._deleted && x.tipo === 'Admin' && x.estadoCuenta !== 'Suspendida'; }).length;
+            if (!otrosAdmin) return fail('No se puede quitar: es el ÚNICO Admin activo de la plataforma. Nombra antes otro Admin.');
+        }
+        // Conceder Admin exige teclear el email del usuario (fricción a
+        // propósito: que nadie llegue aquí sin querer).
+        if (nuevo === 'Admin') {
+            var em = ((document.getElementById('rolConfirmEmail') || {}).value || '').trim();
+            if (normTxt(em) !== normTxt(u.email)) return fail('El email no coincide. Escríbelo exactamente para confirmar que quieres conceder Admin.', document.getElementById('rolConfirmEmail'));
+        }
+        var antes = u.tipo;
+        u.tipo = nuevo;
+        u.modificadoEn = Date.now();
+        closeDashModal();
+        renderUsuariosTable();
+        showModalSuccess('Rol cambiado', u.email + ' pasa de ' + antes + ' a ' + nuevo + '. En producción este cambio avisaría por email al usuario y a los administradores, y quedaría en el registro de auditoría.');
+    }
+    window.cambiarRolGuardar = cambiarRolGuardar;
     function usuarioGuardar(idx) {
         function v(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
         var email = v('usr-f-email'), nombre = v('usr-f-nombre');
@@ -7880,8 +7969,11 @@
         var edit = (idx != null && idx >= 0 && idx < USUARIOS_DATA.length);
         var u = edit ? USUARIOS_DATA[idx] : { ultimaConexion: null, minDia: null, minSemana: null, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null };
         u.email = email; u.nombre = nombre;
+        // El select de tipo solo existe en el ALTA; al editar, el rol se
+        // cambia únicamente desde "Cambiar rol…" (confirmación aparte).
         var tipoEl = document.getElementById('usr-f-tipo');
-        u.tipo = tipoEl ? tipoEl.value : 'Cliente';
+        if (tipoEl) u.tipo = tipoEl.value;
+        else if (!u.tipo) u.tipo = 'Cliente';
         var estEl = document.getElementById('usr-f-estado');
         u.estadoCuenta = estEl ? estEl.value : 'Activa';
         u.dni = v('usr-f-dni') || null;
