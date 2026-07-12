@@ -1458,7 +1458,8 @@
             padding: 0.4rem 0.6rem; font-size: 0.85rem;
         }
         .modal-file-item .mfi-ico { flex-shrink: 0; }
-        .modal-file-item .mfi-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--navy); font-weight: 600; }
+        .modal-file-item .mfi-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--navy); font-weight: 600; cursor: pointer; }
+        .modal-file-item .mfi-name:hover, .modal-file-item .mfi-name:focus-visible { color: var(--purple); text-decoration: underline; }
         .modal-file-item .mfi-del {
             border: none; background: transparent; color: var(--gray-500);
             font-size: 1.15rem; line-height: 1; cursor: pointer; padding: 0 0.25rem; flex-shrink: 0;
@@ -5476,6 +5477,78 @@
         // Liberar el objeto más tarde (el visor necesita la URL viva un rato).
         setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
     }
+    // --- Documentos adjuntos: comportamiento COMÚN en toda la plataforma ---
+    // Pulsar un documento lo abre en el visor (pestaña nueva); pulsar su ×
+    // pide confirmación ANTES de borrarlo. Se usa en envíos, transportistas,
+    // incidencias y cualquier otra lista de adjuntos.
+    function docAbrir(name) { downloadFakePDF(String(name || 'Documento')); }
+    window.docAbrir = docAbrir;
+    // Mini-confirmación flotante propia: NO usa openDashModal porque los
+    // adjuntos viven DENTRO de un modal abierto y abrir otro machacaría el
+    // estado del formulario (valores a medio editar).
+    function docConfirmDelete(name, onOk) {
+        var old = document.getElementById('docDelConfirm');
+        if (old) old.parentNode.removeChild(old);
+        var ov = document.createElement('div');
+        ov.id = 'docDelConfirm';
+        ov.style.cssText = 'position:fixed;inset:0;z-index:12000;background:rgba(10,2,48,0.45);display:flex;align-items:center;justify-content:center;padding:1rem;';
+        ov.innerHTML =
+            '<div style="background:#fff;border-radius:14px;max-width:380px;width:100%;padding:1.15rem 1.25rem;box-shadow:0 18px 50px rgba(0,0,0,0.28);">' +
+                '<div style="font-weight:800;color:var(--navy);font-size:1.02rem;margin-bottom:0.35rem;">¿Borrar documento?</div>' +
+                '<div style="font-size:0.86rem;color:var(--gray-700);line-height:1.5;margin-bottom:0.95rem;word-break:break-word;">Se quitará <strong>' + escapeHtml(name) + '</strong> de los adjuntos. Esta acción no se puede deshacer.</div>' +
+                '<div style="display:flex;gap:0.6rem;justify-content:flex-end;flex-wrap:wrap;">' +
+                    '<button type="button" class="btn-ghost" data-doc-cancel>Cancelar</button>' +
+                    '<button type="button" class="btn-primary" data-doc-ok style="background:var(--red);border-color:var(--red);">Sí, borrar</button>' +
+                '</div>' +
+            '</div>';
+        document.body.appendChild(ov);
+        function cerrar() { if (ov.parentNode) ov.parentNode.removeChild(ov); }
+        ov.addEventListener('click', function (e) { if (e.target === ov) cerrar(); });
+        ov.querySelector('[data-doc-cancel]').addEventListener('click', cerrar);
+        ov.querySelector('[data-doc-ok]').addEventListener('click', function () { cerrar(); onOk(); });
+    }
+    window.docConfirmDelete = docConfirmDelete;
+    // Enlaza un área de adjuntos (drop + input + lista) sobre un array de
+    // nombres (se muta): pinta la lista, abre al pulsar, confirma al borrar
+    // y aplica el máximo si se indica.
+    function bindDocsArea(opts) {
+        var list = document.getElementById(opts.listId);
+        var label = opts.labelId ? document.getElementById(opts.labelId) : null;
+        var drop = opts.dropId ? document.getElementById(opts.dropId) : null;
+        var input = opts.inputId ? document.getElementById(opts.inputId) : null;
+        if (!list) return;
+        function render() {
+            list.innerHTML = opts.arr.map(function (name, i) {
+                return '<li class="modal-file-item"><span class="mfi-ico">📄</span>' +
+                    '<span class="mfi-name" role="button" tabindex="0" title="Ver documento">' + escapeHtml(name) + '</span>' +
+                    '<button type="button" class="mfi-del" data-i="' + i + '" aria-label="Borrar documento">×</button></li>';
+            }).join('');
+            var full = !!opts.max && opts.arr.length >= opts.max;
+            if (label) label.textContent = full ? (opts.labelFull || ('📎 Máximo ' + opts.max + ' documentos')) : (opts.labelDefault || '📎 Adjuntar documento');
+            if (drop) drop.classList.toggle('is-disabled', full);
+            list.querySelectorAll('.mfi-name').forEach(function (el) {
+                el.addEventListener('click', function () { docAbrir(el.textContent); });
+                el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); docAbrir(el.textContent); } });
+            });
+            list.querySelectorAll('.mfi-del').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    var i = parseInt(btn.getAttribute('data-i'), 10);
+                    docConfirmDelete(opts.arr[i], function () { opts.arr.splice(i, 1); render(); });
+                });
+            });
+        }
+        if (drop && input) drop.addEventListener('click', function () { if (!opts.max || opts.arr.length < opts.max) input.click(); });
+        if (input) input.addEventListener('change', function () {
+            Array.prototype.slice.call(input.files).forEach(function (f) {
+                if (!opts.max || opts.arr.length < opts.max) opts.arr.push(f.name);
+            });
+            input.value = '';
+            render();
+        });
+        render();
+    }
+    window.bindDocsArea = bindDocsArea;
     // Datos fiscales del emisor y del cliente para la proforma (mock; en
     // producción vendrán del backend / perfil de empresa).
     var PROFORMA_EMISOR = { nombre: 'Dynamo Operador Logístico SL', cif: 'B01596360', email: 'info@dynamotrans.com', tel: '+34 955 225 945', web: 'dynamotrans.com' };
@@ -5717,6 +5790,78 @@
         // Liberar el objeto más tarde (el visor necesita la URL viva un rato).
         setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
     }
+    // --- Documentos adjuntos: comportamiento COMÚN en toda la plataforma ---
+    // Pulsar un documento lo abre en el visor (pestaña nueva); pulsar su ×
+    // pide confirmación ANTES de borrarlo. Se usa en envíos, transportistas,
+    // incidencias y cualquier otra lista de adjuntos.
+    function docAbrir(name) { downloadFakePDF(String(name || 'Documento')); }
+    window.docAbrir = docAbrir;
+    // Mini-confirmación flotante propia: NO usa openDashModal porque los
+    // adjuntos viven DENTRO de un modal abierto y abrir otro machacaría el
+    // estado del formulario (valores a medio editar).
+    function docConfirmDelete(name, onOk) {
+        var old = document.getElementById('docDelConfirm');
+        if (old) old.parentNode.removeChild(old);
+        var ov = document.createElement('div');
+        ov.id = 'docDelConfirm';
+        ov.style.cssText = 'position:fixed;inset:0;z-index:12000;background:rgba(10,2,48,0.45);display:flex;align-items:center;justify-content:center;padding:1rem;';
+        ov.innerHTML =
+            '<div style="background:#fff;border-radius:14px;max-width:380px;width:100%;padding:1.15rem 1.25rem;box-shadow:0 18px 50px rgba(0,0,0,0.28);">' +
+                '<div style="font-weight:800;color:var(--navy);font-size:1.02rem;margin-bottom:0.35rem;">¿Borrar documento?</div>' +
+                '<div style="font-size:0.86rem;color:var(--gray-700);line-height:1.5;margin-bottom:0.95rem;word-break:break-word;">Se quitará <strong>' + escapeHtml(name) + '</strong> de los adjuntos. Esta acción no se puede deshacer.</div>' +
+                '<div style="display:flex;gap:0.6rem;justify-content:flex-end;flex-wrap:wrap;">' +
+                    '<button type="button" class="btn-ghost" data-doc-cancel>Cancelar</button>' +
+                    '<button type="button" class="btn-primary" data-doc-ok style="background:var(--red);border-color:var(--red);">Sí, borrar</button>' +
+                '</div>' +
+            '</div>';
+        document.body.appendChild(ov);
+        function cerrar() { if (ov.parentNode) ov.parentNode.removeChild(ov); }
+        ov.addEventListener('click', function (e) { if (e.target === ov) cerrar(); });
+        ov.querySelector('[data-doc-cancel]').addEventListener('click', cerrar);
+        ov.querySelector('[data-doc-ok]').addEventListener('click', function () { cerrar(); onOk(); });
+    }
+    window.docConfirmDelete = docConfirmDelete;
+    // Enlaza un área de adjuntos (drop + input + lista) sobre un array de
+    // nombres (se muta): pinta la lista, abre al pulsar, confirma al borrar
+    // y aplica el máximo si se indica.
+    function bindDocsArea(opts) {
+        var list = document.getElementById(opts.listId);
+        var label = opts.labelId ? document.getElementById(opts.labelId) : null;
+        var drop = opts.dropId ? document.getElementById(opts.dropId) : null;
+        var input = opts.inputId ? document.getElementById(opts.inputId) : null;
+        if (!list) return;
+        function render() {
+            list.innerHTML = opts.arr.map(function (name, i) {
+                return '<li class="modal-file-item"><span class="mfi-ico">📄</span>' +
+                    '<span class="mfi-name" role="button" tabindex="0" title="Ver documento">' + escapeHtml(name) + '</span>' +
+                    '<button type="button" class="mfi-del" data-i="' + i + '" aria-label="Borrar documento">×</button></li>';
+            }).join('');
+            var full = !!opts.max && opts.arr.length >= opts.max;
+            if (label) label.textContent = full ? (opts.labelFull || ('📎 Máximo ' + opts.max + ' documentos')) : (opts.labelDefault || '📎 Adjuntar documento');
+            if (drop) drop.classList.toggle('is-disabled', full);
+            list.querySelectorAll('.mfi-name').forEach(function (el) {
+                el.addEventListener('click', function () { docAbrir(el.textContent); });
+                el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); docAbrir(el.textContent); } });
+            });
+            list.querySelectorAll('.mfi-del').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    var i = parseInt(btn.getAttribute('data-i'), 10);
+                    docConfirmDelete(opts.arr[i], function () { opts.arr.splice(i, 1); render(); });
+                });
+            });
+        }
+        if (drop && input) drop.addEventListener('click', function () { if (!opts.max || opts.arr.length < opts.max) input.click(); });
+        if (input) input.addEventListener('change', function () {
+            Array.prototype.slice.call(input.files).forEach(function (f) {
+                if (!opts.max || opts.arr.length < opts.max) opts.arr.push(f.name);
+            });
+            input.value = '';
+            render();
+        });
+        render();
+    }
+    window.bindDocsArea = bindDocsArea;
     window.descargarProforma = descargarProforma;
 
     // ===================== NUEVO ALMACENAMIENTO =====================
@@ -7232,39 +7377,14 @@
             afterOpen: function () {
                 // Documentos adjuntos (máx. 5). Se trabaja sobre una copia y solo
                 // se consolida en la ficha al pulsar Guardar (Cancelar no toca nada).
+                // Comportamiento común: pulsar abre el visor, la × pide confirmación.
                 window._traDocsTmp = (t && t.docs ? t.docs.slice() : []);
-                var drop = document.getElementById('traDocsDrop');
-                var input = document.getElementById('traDocsInput');
-                var list = document.getElementById('traDocsList');
-                var label = document.getElementById('traDocsLabel');
-                var MAX = 5;
-                if (!drop || !input || !list) return;
-                function render() {
-                    list.innerHTML = window._traDocsTmp.map(function (name, i) {
-                        return '<li class="modal-file-item"><span class="mfi-ico">📄</span>' +
-                            '<span class="mfi-name">' + escapeHtml(name) + '</span>' +
-                            '<button type="button" class="mfi-del" data-i="' + i + '" aria-label="Quitar">×</button></li>';
-                    }).join('');
-                    var full = window._traDocsTmp.length >= MAX;
-                    label.textContent = full ? '📎 Máximo ' + MAX + ' documentos' : '📎 Adjuntar documento';
-                    drop.classList.toggle('is-disabled', full);
-                    list.querySelectorAll('.mfi-del').forEach(function (btn) {
-                        btn.addEventListener('click', function (e) {
-                            e.stopPropagation();
-                            window._traDocsTmp.splice(parseInt(btn.getAttribute('data-i'), 10), 1);
-                            render();
-                        });
-                    });
-                }
-                drop.addEventListener('click', function () { if (window._traDocsTmp.length < MAX) input.click(); });
-                input.addEventListener('change', function () {
-                    Array.prototype.slice.call(input.files).forEach(function (f) {
-                        if (window._traDocsTmp.length < MAX) window._traDocsTmp.push(f.name);
-                    });
-                    input.value = '';
-                    render();
+                bindDocsArea({
+                    arr: window._traDocsTmp,
+                    listId: 'traDocsList', labelId: 'traDocsLabel',
+                    dropId: 'traDocsDrop', inputId: 'traDocsInput',
+                    max: 5, labelDefault: '📎 Adjuntar documento'
                 });
-                render();
             }
         });
     }
@@ -7716,38 +7836,13 @@
                 var src2 = findCargaDataByRef(d.ref) || src;
                 bindRatingWidget(src2); // valoración (solo aparece en entregados)
                 if (!src2._docsOp) src2._docsOp = [];
-                var drop = document.getElementById('opDocsDrop');
-                var input = document.getElementById('opDocsInput');
-                var list = document.getElementById('opDocsList');
-                var label = document.getElementById('opDocsLabel');
-                var MAX = 5;
-                if (!drop || !input || !list) return;
-                function render() {
-                    list.innerHTML = src2._docsOp.map(function (name, i) {
-                        return '<li class="modal-file-item"><span class="mfi-ico">📄</span>' +
-                            '<span class="mfi-name">' + escapeHtml(name) + '</span>' +
-                            '<button type="button" class="mfi-del" data-i="' + i + '" aria-label="Quitar">×</button></li>';
-                    }).join('');
-                    var full = src2._docsOp.length >= MAX;
-                    label.textContent = full ? '📎 Máximo ' + MAX + ' archivos' : '📎 Adjuntar documentación';
-                    drop.classList.toggle('is-disabled', full);
-                    list.querySelectorAll('.mfi-del').forEach(function (btn) {
-                        btn.addEventListener('click', function (e) {
-                            e.stopPropagation();
-                            src2._docsOp.splice(parseInt(btn.getAttribute('data-i'), 10), 1);
-                            render();
-                        });
-                    });
-                }
-                drop.addEventListener('click', function () { if (src2._docsOp.length < MAX) input.click(); });
-                input.addEventListener('change', function () {
-                    Array.prototype.slice.call(input.files).forEach(function (f) {
-                        if (src2._docsOp.length < MAX) src2._docsOp.push(f.name);
-                    });
-                    input.value = '';
-                    render();
+                // Comportamiento común: pulsar abre el visor, la × pide confirmación.
+                bindDocsArea({
+                    arr: src2._docsOp,
+                    listId: 'opDocsList', labelId: 'opDocsLabel',
+                    dropId: 'opDocsDrop', inputId: 'opDocsInput',
+                    max: 5, labelDefault: '📎 Adjuntar documentación', labelFull: '📎 Máximo 5 archivos'
                 });
-                render();
             }
         });
     }
@@ -7804,17 +7899,14 @@
                 '<div class="modal-file-drop-sub">JPG, PNG, PDF · máx 10 MB cada uno</div>' +
                 '</div>' +
                 '<input type="file" id="incidFiles" multiple accept="image/*,.pdf" style="display:none">' +
+                '<ul class="modal-file-list" id="incidFilesList"></ul>' +
                 '</div>',
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
                     '<button class="btn-primary" onclick="cargaIncidenciaConfirm(\'' + escapeHtml(d.ref) + '\')">Enviar incidencia</button>',
             afterOpen: function () {
-                var input = document.getElementById('incidFiles');
-                var label = document.getElementById('incidFilesLabel');
-                if (input && label) {
-                    input.addEventListener('change', function () {
-                        label.textContent = '📎 ' + input.files.length + ' archivo' + (input.files.length === 1 ? '' : 's') + ' seleccionado' + (input.files.length === 1 ? '' : 's');
-                    });
-                }
+                // Lista de adjuntos con el comportamiento común (ver + confirmar borrado).
+                window._incFilesTmp = [];
+                bindDocsArea({ arr: window._incFilesTmp, listId: 'incidFilesList', inputId: 'incidFiles' });
             }
         });
     }
@@ -7880,14 +7972,14 @@
                 '<div class="modal-file-drop" onclick="document.getElementById(\'incidFiles\').click()">' +
                 '<div id="incidFilesLabel">📎 Selecciona archivos o arrástralos aquí</div>' +
                 '<div class="modal-file-drop-sub">JPG, PNG, PDF · máx 10 MB cada uno</div></div>' +
-                '<input type="file" id="incidFiles" multiple accept="image/*,.pdf" style="display:none"></div>',
+                '<input type="file" id="incidFiles" multiple accept="image/*,.pdf" style="display:none">' +
+                '<ul class="modal-file-list" id="incidFilesList"></ul></div>',
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
                     '<button class="btn-primary" onclick="incGenConfirm()">Guardar incidencia</button>',
             afterOpen: function () {
-                var input = document.getElementById('incidFiles'), label = document.getElementById('incidFilesLabel');
-                if (input && label) input.addEventListener('change', function () {
-                    label.textContent = '📎 ' + input.files.length + ' archivo' + (input.files.length === 1 ? '' : 's') + ' seleccionado' + (input.files.length === 1 ? '' : 's');
-                });
+                // Lista de adjuntos con el comportamiento común (ver + confirmar borrado).
+                window._incFilesTmp = (inc && inc.docs ? inc.docs.slice() : []);
+                bindDocsArea({ arr: window._incFilesTmp, listId: 'incidFilesList', inputId: 'incidFiles' });
                 // Edición: prefijar envío, tipo, estado y detalle.
                 if (inc) {
                     if (inc.envio && inc.envio !== '—') incEnvPick(inc.envio);
@@ -7983,6 +8075,7 @@
             if (inc0) {
                 inc0.cat = cat; inc0.tit = INC_TIPO_TIT[cat] || 'Incidencia';
                 inc0.det = detalle; inc0.estado = estado;
+                inc0.docs = (window._incFilesTmp || inc0.docs || []).slice();
                 if (ref) {
                     inc0.envio = ref;
                     if (c) { inc0.refCli = c.refCli || '—'; inc0.orig = c.origen || '—'; inc0.dest = c.destino || '—'; inc0.med = c.medidas || '—'; inc0.fcarga = (c.fechaAsignada ? c.fechaAsignada.split(' ')[0] : c.fecha) || '—'; inc0.ventana = c.ventana || '—'; }
@@ -8000,7 +8093,8 @@
                 fcarga: c ? ((c.fechaAsignada ? c.fechaAsignada.split(' ')[0] : c.fecha) || '—') : '—',
                 ventana: (c && c.ventana) || '—',
                 orig: (c && c.origen) || '—', dest: (c && c.destino) || '—',
-                med: (c && c.medidas) || '—', estado: estado
+                med: (c && c.medidas) || '—', estado: estado,
+                docs: (window._incFilesTmp || []).slice()
             });
         }
         if (typeof renderIncidenciasTable === 'function') renderIncidenciasTable();
