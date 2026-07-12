@@ -5114,22 +5114,25 @@
     </section>
 
     <!-- ==================== ALTAS PENDIENTES (SOLO ADMIN) ====================
-         Solicitudes de cuenta nuevas (del registro del portal) pendientes de
-         VERIFICAR: datos del formulario + documentos (hoja CIF, DNI…). Desde
-         la fila se confirma el alta (crea el usuario) o se SUSPENDE (el email
-         queda bloqueado y no puede volver a solicitar acceso). -->
+         Solicitudes de cuenta de CLIENTES (del registro del portal) pendientes
+         de VERIFICAR: datos del formulario + documentos (hoja CIF, DNI…).
+         Desde la fila se confirma el alta (crea el usuario) o se SUSPENDE (el
+         email queda bloqueado y no puede volver a solicitar acceso).
+         Los TRANSPORTISTAS no pasan por aquí: los da de alta el equipo
+         directamente (+ Nuevo transportista / + Nuevo usuario), porque vienen
+         verificados de la bolsa de carga Wtransnet. -->
     <section class="section" id="sec-altas" data-roles="admin">
         <div class="sec-header">
             <h2>Altas pendientes</h2>
         </div>
-        <p style="color:var(--gray-500);font-size:0.82rem;margin:-0.4rem 0 0.9rem;"><span style="display:inline-block;background:rgba(51,0,204,0.10);color:var(--purple);font-weight:700;border-radius:6px;padding:1px 7px;font-size:0.72rem;margin-right:0.4rem;">SOLO ADMIN</span>Solicitudes de cuenta pendientes de verificar. Pulsa una fila para revisar los datos y la documentación, y confirmar el alta o suspenderla (un email suspendido no puede volver a solicitar acceso).</p>
+        <p style="color:var(--gray-500);font-size:0.82rem;margin:-0.4rem 0 0.9rem;"><span style="display:inline-block;background:rgba(51,0,204,0.10);color:var(--purple);font-weight:700;border-radius:6px;padding:1px 7px;font-size:0.72rem;margin-right:0.4rem;">SOLO ADMIN</span>Solicitudes de alta de <strong>clientes</strong> pendientes de verificar. Pulsa una fila para revisar los datos y la documentación, y confirmar el alta o suspenderla (un email suspendido no puede volver a solicitar acceso). Los <strong>transportistas no pasan por aquí</strong>: los da de alta el equipo directamente, verificados por la bolsa de carga.</p>
         <div class="filters">
             <input type="search" id="altasSearch" placeholder="Buscar por email, empresa, CIF, nombre, teléfono…" oninput="renderAltasTable()">
         </div>
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Email · usuario</th><th>Tipo solicitado</th><th>Empresa · CIF</th><th>Nombre y apellidos</th><th>Teléfono</th><th>Documentos</th><th>Solicitada</th>
+                    <th>Email · usuario</th><th>Empresa · CIF</th><th>Nombre y apellidos</th><th>Teléfono</th><th>Documentos</th><th>Solicitada</th>
                 </tr></thead>
                 <tbody id="tbodyAltas"></tbody>
             </table>
@@ -8322,17 +8325,19 @@
     window.usuarioGuardar = usuarioGuardar;
 
     // ==================== ALTAS PENDIENTES (verificación de registros) ====================
-    // Solicitudes de cuenta del registro del portal, pendientes de verificar
-    // por admin. Mock determinista; en producción vendrán del backend con los
-    // documentos subidos en el formulario de registro (hoja CIF, DNI…).
+    // SOLO CLIENTES: las solicitudes del registro del portal, pendientes de
+    // verificar por admin. Los TRANSPORTISTAS nunca pasan por aquí — los da
+    // de alta el equipo directamente (vienen verificados de la bolsa de
+    // carga Wtransnet). Mock determinista; en producción vendrán del backend
+    // con los documentos subidos en el registro (hoja CIF, DNI…).
     var ALTAS_DATA = [
-        { email: 'logistica@aceroscastilla.es', tipo: 'Cliente', nombre: 'Roberto Peña Salvador', dni: '11902276B', tfno: '+34 983 441 208', empresa: 'Aceros y Perfiles Castilla S.L.', cif: 'B47120995', dirF: 'Pol. San Cristóbal, C/ Plata 41', cp: '47012', ciudad: 'Valladolid', prov: 'Valladolid', pais: 'España', docCif: ['Hoja-CIF-AcerosCastilla.pdf'], docDni: ['DNI-RobertoPena.pdf'], docsOtros: ['Escritura-constitucion.pdf'], solicitadoEn: __ctTs(1, 10) },
-        { email: 'transportes.hermanosvidal@gmail.com', tipo: 'Transportista', nombre: 'Andrés Vidal Soto', dni: '48771034Y', tfno: '+34 617 552 909', empresa: 'Transportes Hermanos Vidal C.B.', cif: 'E04881120', dirF: 'C/ Río Andarax 8', cp: '04006', ciudad: 'Almería', prov: 'Almería', pais: 'España', docCif: ['Hoja-CIF-HnosVidal.pdf'], docDni: ['DNI-AndresVidal.pdf'], docsOtros: ['Tarjeta-transporte.pdf', 'Seguro-CMR.pdf'], solicitadoEn: __ctTs(2, 13) },
-        { email: 'sonia.marquez@quimiplast.es', tipo: 'Cliente', nombre: 'Sonia Márquez Lillo', dni: '53220417X', tfno: '+34 965 682 114', empresa: 'Quimiplast Levante S.A.', cif: 'A03771205', dirF: 'Av. del Plástico 3', cp: '03440', ciudad: 'Ibi', prov: 'Alicante', pais: 'España', docCif: ['Hoja-CIF-Quimiplast.pdf'], docDni: [], docsOtros: [], solicitadoEn: __ctTs(3, 9) },
-        { email: 'ganga.envios.2026@hotmail.com', tipo: 'Cliente', nombre: 'J. J.', dni: '', tfno: '+34 600 000 001', empresa: 'Envíos Baratos Ya', cif: '', dirF: '', cp: '', ciudad: '', prov: '', pais: 'España', docCif: [], docDni: [], docsOtros: [], solicitadoEn: __ctTs(0, 8) }
+        { email: 'logistica@aceroscastilla.es', nombre: 'Roberto Peña Salvador', dni: '11902276B', tfno: '+34 983 441 208', empresa: 'Aceros y Perfiles Castilla S.L.', cif: 'B47120995', dirF: 'Pol. San Cristóbal, C/ Plata 41', cp: '47012', ciudad: 'Valladolid', prov: 'Valladolid', pais: 'España', docCif: ['Hoja-CIF-AcerosCastilla.pdf'], docDni: ['DNI-RobertoPena.pdf'], docsOtros: ['Escritura-constitucion.pdf'], solicitadoEn: __ctTs(1, 10) },
+        { email: 'compras@maderasvidal.es', nombre: 'Andrés Vidal Soto', dni: '48771034Y', tfno: '+34 617 552 909', empresa: 'Maderas y Tableros Vidal C.B.', cif: 'E04881120', dirF: 'C/ Río Andarax 8', cp: '04006', ciudad: 'Almería', prov: 'Almería', pais: 'España', docCif: ['Hoja-CIF-MaderasVidal.pdf'], docDni: ['DNI-AndresVidal.pdf'], docsOtros: ['Escritura-constitucion.pdf'], solicitadoEn: __ctTs(2, 13) },
+        { email: 'sonia.marquez@quimiplast.es', nombre: 'Sonia Márquez Lillo', dni: '53220417X', tfno: '+34 965 682 114', empresa: 'Quimiplast Levante S.A.', cif: 'A03771205', dirF: 'Av. del Plástico 3', cp: '03440', ciudad: 'Ibi', prov: 'Alicante', pais: 'España', docCif: ['Hoja-CIF-Quimiplast.pdf'], docDni: [], docsOtros: [], solicitadoEn: __ctTs(3, 9) },
+        { email: 'ganga.envios.2026@hotmail.com', nombre: 'J. J.', dni: '', tfno: '+34 600 000 001', empresa: 'Envíos Baratos Ya', cif: '', dirF: '', cp: '', ciudad: '', prov: '', pais: 'España', docCif: [], docDni: [], docsOtros: [], solicitadoEn: __ctTs(0, 8) }
     ];
     function altaBlob(a) {
-        return normTxt([a.email, a.tipo, a.nombre, a.dni, a.tfno, a.empresa, a.cif, a.ciudad, a.prov].join(' '));
+        return normTxt([a.email, a.nombre, a.dni, a.tfno, a.empresa, a.cif, a.ciudad, a.prov].join(' '));
     }
     function altaDocsCount(a) {
         return (a.docCif || []).length + (a.docDni || []).length + (a.docsOtros || []).length;
@@ -8347,7 +8352,7 @@
         if (h2) h2.textContent = 'Altas pendientes (' + rows.length + ')';
         var slice = pageSlice('altas', rows, nq, 'altasPagination', 'altasShowing', 'Sin altas pendientes');
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-500);">' + (ALTAS_DATA.length ? 'Sin altas que coincidan' : 'No hay altas pendientes de verificar. 🎉') + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--gray-500);">' + (ALTAS_DATA.length ? 'Sin altas que coincidan' : 'No hay altas pendientes de verificar. 🎉') + '</td></tr>';
             return;
         }
         tbody.innerHTML = slice.map(function (r) {
@@ -8356,8 +8361,7 @@
             if (!(a.docCif || []).length) falta.push('CIF');
             if (!(a.docDni || []).length) falta.push('DNI');
             return '<tr data-alta="' + r.i + '">' +
-                '<td><strong>' + esc(a.email) + '</strong></td>' +
-                '<td>' + usuarioTipoChip(a.tipo) + '</td>' +
+                '<td><strong>' + esc(a.email) + '</strong><div class="meta">' + usuarioTipoChip('Cliente') + '</div></td>' +
                 '<td>' + esc(a.empresa || '—') + '<div class="meta">' + esc(a.cif || 'Sin CIF') + '</div></td>' +
                 '<td>' + esc(a.nombre || '—') + (a.dni ? '<div class="meta">' + esc(a.dni) + '</div>' : '<div class="meta" style="color:#b45309;">Sin DNI</div>') + '</td>' +
                 '<td style="white-space:nowrap;">' + esc(a.tfno || '—') + '</td>' +
@@ -8382,13 +8386,13 @@
         }
         openDashModal({
             icon: 'user',
-            title: 'Verificar alta — ' + a.email,
+            title: 'Verificar alta de cliente — ' + a.email,
             sub: 'Solicitada el ' + fmtFH(a.solicitadoEn),
             body:
-                '<p style="font-size:0.85rem;line-height:1.55;color:var(--gray-700);margin-bottom:0.7rem;">Datos tal cual los envió en el <strong>formulario de registro</strong>. Revisa la documentación y <strong>confirma el alta</strong> (se crea el usuario y recibe el enlace de invitación) o <strong>suspéndela</strong> si es fraudulenta: el email queda bloqueado y no podrá volver a solicitar acceso.</p>' +
+                '<p style="font-size:0.85rem;line-height:1.55;color:var(--gray-700);margin-bottom:0.7rem;">Datos tal cual los envió en el <strong>formulario de registro</strong> (las altas del portal son siempre de <strong>clientes</strong>; los transportistas los da de alta el equipo, verificados por la bolsa de carga). Revisa la documentación y <strong>confirma el alta</strong> (se crea el usuario y recibe el enlace de invitación) o <strong>suspéndela</strong> si es fraudulenta: el email queda bloqueado y no podrá volver a solicitar acceso.</p>' +
                 '<div class="pen-envio-sum">' +
                     row('Email (usuario)', '<strong>' + escapeHtml(a.email) + '</strong>') +
-                    row('Tipo solicitado', usuarioTipoChip(a.tipo)) +
+                    row('Tipo de cuenta', usuarioTipoChip('Cliente')) +
                     row('Nombre y apellidos', escapeHtml(a.nombre || '')) +
                     row('DNI', escapeHtml(a.dni || '')) +
                     row('Teléfono', escapeHtml(a.tfno || '')) +
@@ -8410,7 +8414,7 @@
     // lista de pendientes. Devuelve el usuario creado.
     function altaAUsuario(a, estado) {
         var u = {
-            email: a.email, tipo: a.tipo || 'Cliente', nombre: a.nombre || null, dni: a.dni || null, tfno: a.tfno || null,
+            email: a.email, tipo: 'Cliente', nombre: a.nombre || null, dni: a.dni || null, tfno: a.tfno || null,
             empresa: a.empresa || null, cif: a.cif || null, dirF: a.dirF || null, cp: a.cp || null,
             ciudad: a.ciudad || null, prov: a.prov || null, pais: a.pais || 'España',
             estadoCuenta: estado,
@@ -8431,7 +8435,7 @@
         altaAUsuario(a, 'Activa');
         closeDashModal();
         showLoadingOverlay('Confirmando alta…', 900, function () {
-            showModalSuccess('Alta confirmada', a.email + ' ya es usuario (' + (a.tipo || 'Cliente') + '). Recibirá el enlace de invitación en su email para crear la contraseña y entrar al portal. Lo tienes en Usuarios.');
+            showModalSuccess('Alta confirmada', a.email + ' ya es usuario Cliente. Recibirá el enlace de invitación en su email para crear la contraseña y entrar al portal. Lo tienes en Usuarios.');
         });
     }
     window.altaConfirmar = altaConfirmar;
@@ -13716,7 +13720,6 @@
             ],
             altas: [
                 function (r) { return r.a.email; },
-                function (r) { return r.a.tipo; },
                 function (r) { return r.a.empresa; },
                 function (r) { return r.a.nombre; },
                 function (r) { return r.a.tfno; },
