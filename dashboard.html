@@ -13030,8 +13030,15 @@
         var head = tb.parentNode.querySelector('thead tr'); if (!head) return;
         var s = SORT_STATE[key];
         Array.prototype.forEach.call(head.children, function (th, i) {
-            th.classList.toggle('sort-asc', !!(s && s.col === i && s.dir === 'asc'));
-            th.classList.toggle('sort-desc', !!(s && s.col === i && s.dir === 'desc'));
+            var asc = !!(s && s.col === i && s.dir === 'asc');
+            var desc = !!(s && s.col === i && s.dir === 'desc');
+            th.classList.toggle('sort-asc', asc);
+            th.classList.toggle('sort-desc', desc);
+            // Tooltip con el SIGUIENTE paso del ciclo, para que el 3er clic
+            // (quitar el orden) no pille por sorpresa.
+            th.setAttribute('title', asc ? 'Orden ascendente — clic para orden descendente'
+                : desc ? 'Orden descendente — clic para QUITAR el orden (vuelve al orden por defecto de la tabla)'
+                : 'Ordenar por esta columna (ascendente: A-Z, de antigua a nueva, de menor a mayor)');
         });
     }
     Object.keys(SORT_TABLES).forEach(function (key) {
@@ -13039,7 +13046,7 @@
         var head = tb.parentNode.querySelector('thead tr'); if (!head) return;
         Array.prototype.forEach.call(head.children, function (th, i) {
             th.classList.add('th-sort');
-            th.setAttribute('title', 'Ordenar por esta columna');
+            th.setAttribute('title', 'Ordenar por esta columna (ascendente: A-Z, de antigua a nueva, de menor a mayor)');
             th.addEventListener('click', function () {
                 var s = SORT_STATE[key];
                 if (s && s.col === i) {
