@@ -19,15 +19,16 @@ El usuario trabaja desde 2 Macs diferentes usando GitHub Codespaces para mantene
 ### 0. Precios SIEMPRE con 2 decimales
 **Todo precio/importe en TODA la plataforma se muestra con 2 decimales, aunque sean ceros** (`450,00 €`, `544,50 €`, `1.020,00 €`). Formato es-ES (coma decimal, punto de miles). **Nunca redondear a euro entero** para mostrar. En JS: `n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })`. Aplica a tarifador, cajas de precio, pago por adelantado, proforma, tablas (envíos/almacenamientos/facturas/penalizaciones), detalles y mini-listas.
 
-### 1. Nunca hacer push automático
-**SIEMPRE preguntar antes de hacer `git push`.** El usuario quiere revisar los cambios y dar el OK explícitamente antes de subir nada a GitHub.
+### 1. Push: automático a PREVIEW, con confirmación a PRODUCCIÓN
+**(Actualizado 2026-07-12 a petición del usuario: "sube directo sin preguntarme".)**
 
-Flujo esperado:
-1. Hacer los cambios solicitados
-2. Mostrar un resumen de lo modificado
-3. Hacer `git add` y `git commit` localmente si procede
-4. **Preguntar al usuario**: "¿Subo los cambios a GitHub? (push)"
-5. Esperar confirmación explícita antes de `git push`
+- **Rama preview (`claude/sharp-dirac-E3UIO`)**: cuando el usuario pide un cambio, Claude hace commit y **push directo, sin pedir confirmación**. Siempre anunciando qué se subió y con qué hash.
+- **`main` (producción, `dynamotrans.com`)**: **SIEMPRE preguntar antes de push**. Nada llega a producción sin OK explícito del usuario (y el portal, además, nunca — regla 7).
+
+Flujo esperado para preview:
+1. Hacer los cambios solicitados y **verificarlos** (Chromium headless + syntax-check)
+2. `git add` + `git commit` + `git push` a preview directamente
+3. Informar: qué se cambió, hash del commit y que está subido
 
 ### 2. Antes de empezar a trabajar (catch-up automático)
 Al iniciar cualquier sesión nueva, **Claude DEBE automáticamente**:
