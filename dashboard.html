@@ -7898,7 +7898,7 @@
                     USUARIO_TIPOS.map(function (t) { return '<option' + (t === u.tipo ? ' selected' : '') + '>' + t + '</option>'; }).join('') +
                 '</select></div>' +
                 '<div id="rolAviso" style="margin:0.2rem 0 0.8rem;padding:0.7rem 0.8rem;border-radius:9px;font-size:0.85rem;line-height:1.55;"></div>' +
-                '<div class="modal-form-row" id="rolConfirmWrap" hidden><label>Para conceder <strong>Admin</strong>, escribe el email del usuario</label>' +
+                '<div class="modal-form-row" id="rolConfirmWrap" hidden><label>Cambiar el rol es delicado: para confirmar, <strong>escribe el email del usuario</strong></label>' +
                     '<input type="text" id="rolConfirmEmail" autocomplete="off" placeholder="' + escapeHtml(u.email) + '"></div>' +
                 '<p class="alm-err" id="rolErr"></p>' +
                 '<p style="font-size:0.76rem;color:var(--gray-500);font-weight:600;margin:0.4rem 0 0;">En producción: solo un Admin puede conceder Admin (nunca uno mismo), el cambio avisa por email al usuario y a los administradores, y queda en el registro de auditoría.</p>',
@@ -7919,7 +7919,9 @@
                             ? 'Es el rol que ya tiene — no hay nada que cambiar.'
                             : (esAdmin ? '⚠ <strong>Vas a conceder acceso de administrador.</strong> ' : '<strong>' + escapeHtml(v) + ':</strong> ') + escapeHtml(ROL_DESC[v] || '');
                     }
-                    if (wrap) wrap.hidden = !(esAdmin && !igual);
+                    // El email de confirmación se exige en CUALQUIER cambio de
+                    // rol (también cliente→transportista, empleado→cliente…).
+                    if (wrap) wrap.hidden = igual;
                     if (btn) {
                         btn.style.background = esAdmin && !igual ? 'var(--red)' : '';
                         btn.classList.toggle('btn-visual-disabled', igual);
@@ -7943,12 +7945,11 @@
             var otrosAdmin = USUARIOS_DATA.filter(function (x, i) { return i !== idx && !x._deleted && x.tipo === 'Admin' && x.estadoCuenta !== 'Suspendida'; }).length;
             if (!otrosAdmin) return fail('No se puede quitar: es el ÚNICO Admin activo de la plataforma. Nombra antes otro Admin.');
         }
-        // Conceder Admin exige teclear el email del usuario (fricción a
-        // propósito: que nadie llegue aquí sin querer).
-        if (nuevo === 'Admin') {
-            var em = ((document.getElementById('rolConfirmEmail') || {}).value || '').trim();
-            if (normTxt(em) !== normTxt(u.email)) return fail('El email no coincide. Escríbelo exactamente para confirmar que quieres conceder Admin.', document.getElementById('rolConfirmEmail'));
-        }
+        // CUALQUIER cambio de rol exige teclear el email del usuario
+        // (fricción a propósito: es delicado también de cliente a
+        // transportista o de empleado a cliente — cambia lo que ve y hace).
+        var em = ((document.getElementById('rolConfirmEmail') || {}).value || '').trim();
+        if (normTxt(em) !== normTxt(u.email)) return fail('El email no coincide. Escríbelo exactamente para confirmar el cambio de rol.', document.getElementById('rolConfirmEmail'));
         var antes = u.tipo;
         u.tipo = nuevo;
         u.modificadoEn = Date.now();
