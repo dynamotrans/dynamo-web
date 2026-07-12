@@ -1696,6 +1696,9 @@
             margin: -1rem -1.1rem 0.7rem; padding: 0.7rem 1.1rem;
             border-bottom: none;
         }
+        .mini-list-head { cursor: pointer; transition: background 0.15s; }
+        .mini-list-head:hover { background: #2a00a8; }
+        .mini-list-head:hover a { text-decoration: underline; opacity: 1; }
         .mini-list-head h4 { font-size: 0.85rem; font-weight: 800; color: #fff; }
         .mini-list-head a { font-size: 0.72rem; color: #fff; text-decoration: none; font-weight: 700; opacity: 0.92; }
         .mini-list-head a:hover { text-decoration: underline; opacity: 1; }
@@ -4067,7 +4070,8 @@
                 </div>
             </div>
             <div class="mini-list-card">
-                <div class="mini-list-head">
+                <div class="mini-list-head" role="button" tabindex="0" aria-label="Ver todos los envíos"
+                     onclick="showSection('cargas');" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showSection('cargas');}">
                     <h4>Mis últimos envíos (<span data-stat-cargas-activas>—</span>)</h4>
                     <a href="#" onclick="showSection('cargas');return false;">Ver todos →</a>
                 </div>
