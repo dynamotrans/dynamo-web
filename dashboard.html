@@ -9659,6 +9659,53 @@
     window.toggleMaint = toggleMaint;
     window.applyMaintenance = applyMaintenance;
     applyMaintenance();
+    // ==================== ESTADO DE CUENTA (suspendida / pendiente) ====================
+    // Qué ve un usuario al hacer login si su cuenta NO está activa. Vista de
+    // PRUEBA vía ?cuenta=suspendida | ?cuenta=pendiente (mockup). En
+    // producción lo impondrá el backend en el login — y bloqueará también los
+    // endpoints, no solo la interfaz.
+    (function () {
+        var q = ((new URLSearchParams(location.search).get('cuenta')) || '').toLowerCase();
+        if (q !== 'suspendida' && q !== 'pendiente') return;
+        var susp = q === 'suspendida';
+        var EM_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>';
+        var WA_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884"/></svg>';
+        var TE_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>';
+        var icono = susp
+            ? '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>'
+            : '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+        var iconCss = susp ? 'background:rgba(220,38,38,0.10);color:#dc2626;' : 'background:rgba(255,122,0,0.12);color:#b45309;';
+        var titulo = susp ? 'Cuenta suspendida' : 'Estamos verificando tu alta';
+        var sub = susp
+            ? 'Tu cuenta está <strong>suspendida</strong> y ahora mismo no puedes usar el portal. Suele deberse a un asunto administrativo pendiente o a un uso irregular del servicio (por ejemplo, cancelaciones reiteradas de envíos).'
+            : 'Tu cuenta ya está creada, pero los <strong>datos de alta</strong> (empresa, CIF, contacto) están <strong>pendientes de verificación</strong> por nuestro equipo. Te avisaremos por <strong>email</strong> en cuanto quede activada — normalmente en menos de 1 día laborable.';
+        var bloque = susp
+            ? '¿Crees que es un error o quieres reactivarla? Escríbenos y lo revisamos contigo:'
+            : '¿Lo necesitas urgente? Contáctanos y agilizamos la verificación:';
+        var wrap = document.createElement('div');
+        wrap.className = 'maint-overlay';
+        wrap.id = 'cuentaOverlay';
+        wrap.innerHTML =
+            '<div class="maint-card">' +
+                '<div class="maint-icon" style="' + iconCss + '">' + icono + '</div>' +
+                '<h1 class="maint-title">' + titulo + '</h1>' +
+                '<p class="maint-sub">' + sub + '</p>' +
+                '<div class="maint-block">' +
+                    '<div class="maint-block-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>' +
+                    '<div class="maint-block-body"><strong>' + bloque + '</strong><span>Atendemos por email, WhatsApp y teléfono:</span></div>' +
+                '</div>' +
+                '<div class="maint-contact">' +
+                    '<a class="maint-btn maint-btn-email" href="mailto:info@dynamotrans.com">' + EM_SVG + ' e-Mail</a>' +
+                    '<a class="maint-btn maint-btn-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener">' + WA_SVG + ' WhatsApp</a>' +
+                    '<a class="maint-btn maint-btn-tel" href="tel:+34955225945">' + TE_SVG + ' Llamar</a>' +
+                '</div>' +
+                '<p class="maint-foot">Dynamo Transportes · dynamotrans.com</p>' +
+                '<a class="maint-foot" href="portal.html" style="display:block;text-decoration:underline;cursor:pointer;">Cerrar sesión</a>' +
+                '<button type="button" class="maint-admin-exit" onclick="document.getElementById(\'cuentaOverlay\').remove();document.body.style.overflow=\'\';">⚙ Salir (solo pruebas) · seguir al panel</button>' +
+            '</div>';
+        document.body.appendChild(wrap);
+        document.body.style.overflow = 'hidden';
+    })();
     // Selector de idioma del overlay (desplegable propio: el <select> nativo no
     // muestra las banderas SVG de Cataluña/Euskadi). Reusa pickLanguage.
     function maintLangBtn(lang) {
@@ -10185,15 +10232,104 @@
         });
     })();
 
-    // Interceptor global de tel:
+    // ==================== Interceptor global de tel: ====================
+    // Dos casos MUY distintos:
+    //  - Teléfonos de DYNAMO → modal de horario de atención de Dynamo.
+    //  - Teléfonos de la OPERATIVA (sitios, transportistas, conductores…) →
+    //    ventana propia: llamar / WhatsApp (si es móvil) y aviso de cortesía
+    //    fuera de L-V 7:30-18:30, fines de semana y festivos nacionales.
+    var DYNAMO_TELS = ['955225945', '628995709'];
+    function telDigits(href) {
+        var d = String(href || '').replace(/[^\d]/g, '');
+        if (d.indexOf('00') === 0) d = d.slice(2);
+        return d;
+    }
+    function esTelDynamo(href) {
+        var d = telDigits(href);
+        return DYNAMO_TELS.some(function (t) { return d.slice(-9) === t; });
+    }
+    // Móvil español: 9 dígitos empezando por 6 o 7 (quitado el +34).
+    function esMovilES(href) {
+        var d = telDigits(href);
+        if (d.length === 11 && d.indexOf('34') === 0) d = d.slice(2);
+        return d.length === 9 && /^[67]/.test(d);
+    }
+    // Horario de cortesía para llamar a la operativa: L-V 7:30-18:30 todo el
+    // año (sin temporadas), descontando fines de semana y festivos nacionales.
+    // Devuelve null si es buena hora, o el MOTIVO si no lo es.
+    function motivoFueraCortesia() {
+        var now = getNow();
+        var holiday = (typeof getHolidayName === 'function') ? getHolidayName(now) : null;
+        if (holiday) return 'hoy es festivo nacional (' + holiday + ')';
+        var day = now.getDay();
+        if (day === 0 || day === 6) return 'es fin de semana';
+        var mins = now.getHours() * 60 + now.getMinutes();
+        if (mins < 450 || mins >= 1110) return 'estamos fuera de ese horario';
+        return null;
+    }
     document.addEventListener('click', function (e) {
         var a = e.target.closest && e.target.closest('a[href^="tel:"]');
         if (!a) return;
-        if (a.closest('#phoneModal')) return;
-        if (isPhoneHoursNow()) return;
+        if (a.closest('#phoneModal') || a.closest('#telOpModal')) return;
+        var href = a.getAttribute('href');
+        if (esTelDynamo(href)) {
+            if (isPhoneHoursNow()) return;
+            e.preventDefault();
+            showPhoneOutOfHoursModal(href);
+            return;
+        }
+        // Teléfono de la operativa (no es de Dynamo)
+        var movil = esMovilES(href);
+        var motivo = motivoFueraCortesia();
+        // Buena hora + fijo → llamar directo, sin ventana.
+        if (!motivo && !movil) return;
         e.preventDefault();
-        showPhoneOutOfHoursModal(a.getAttribute('href'));
+        showTelOperativoModal(href, movil, motivo);
     });
+    // Ventana para teléfonos de la operativa: reutiliza el estilo del modal
+    // de horario (.phone-modal). Se crea al vuelo y se destruye al cerrar.
+    function showTelOperativoModal(telHref, movil, motivo) {
+        closeTelOpModal();
+        var d = telDigits(telHref);
+        var num = d.length === 9 ? '+34 ' + d.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3')
+            : '+' + d.replace(/^(\d{2})(\d{3})(\d{3})(\d+)$/, '$1 $2 $3 $4');
+        var waHref = 'https://wa.me/' + (d.length === 9 ? '34' + d : d);
+        var TEL_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.18z"/></svg>';
+        var WA_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884"/></svg>';
+        var titulo, sub;
+        if (motivo) {
+            titulo = 'No son horas de llamar';
+            sub = 'Este teléfono es de la <strong>operativa</strong> (sitio, transportista o conductor), no de Dynamo. Su horario habitual de llamadas es <strong class="notranslate">L-V 7:30-18:30</strong> y ahora ' + escapeHtml(motivo) + '.' +
+                (movil ? ' Si no es urgente, mejor un <strong>WhatsApp</strong> y lo verán en su horario.' : ' Si no es urgente, mejor llamar en ese horario.');
+        } else {
+            titulo = 'Contactar con la operativa';
+            sub = 'El <strong class="notranslate">' + escapeHtml(num) + '</strong> es un móvil de la operativa (sitio, transportista o conductor). ¿Cómo quieres contactar?';
+        }
+        var wrap = document.createElement('div');
+        wrap.className = 'phone-modal open';
+        wrap.id = 'telOpModal';
+        wrap.setAttribute('role', 'dialog');
+        wrap.setAttribute('aria-modal', 'true');
+        wrap.innerHTML =
+            '<div class="phone-modal-backdrop" onclick="closeTelOpModal()"></div>' +
+            '<div class="phone-modal-card">' +
+                '<button type="button" class="phone-modal-close" onclick="closeTelOpModal()" aria-label="Cerrar">×</button>' +
+                '<div class="phone-modal-icon" aria-hidden="true"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>' +
+                '<h3>' + titulo + '</h3>' +
+                '<p class="phone-modal-sub">' + sub + '</p>' +
+                '<div class="phone-modal-options">' +
+                    (movil ? '<a class="phone-modal-opt phone-modal-wa" href="' + escapeHtml(waHref) + '" target="_blank" rel="noopener" onclick="closeTelOpModal()">' + WA_SVG + ' WhatsApp</a>' : '') +
+                    '<a class="phone-modal-opt phone-modal-email" href="' + escapeHtml(telHref) + '" onclick="closeTelOpModal()">' + TEL_SVG + ' ' + (motivo ? 'Llamar igualmente' : 'Llamar') + '</a>' +
+                '</div>' +
+                (motivo ? '<a class="phone-modal-anyway" href="#" onclick="closeTelOpModal();return false;">Mejor lo dejo para su horario <span>(L-V 7:30-18:30)</span></a>' : '') +
+            '</div>';
+        document.body.appendChild(wrap);
+    }
+    function closeTelOpModal() {
+        var m = document.getElementById('telOpModal');
+        if (m) m.remove();
+    }
+    window.closeTelOpModal = closeTelOpModal;
     function showPhoneOutOfHoursModal(telHref) {
         var modal = document.getElementById('phoneModal');
         if (!modal) return;
