@@ -5480,7 +5480,7 @@
     // producción vendrán del backend / perfil de empresa).
     var PROFORMA_EMISOR = { nombre: 'Dynamo Operador Logístico SL', cif: 'B01596360', email: 'info@dynamotrans.com', tel: '+34 955 225 945', web: 'dynamotrans.com' };
     var PROFORMA_CLIENTE = { nombre: 'Marbex Industrial S.L.', cif: 'B91234567', dir: 'C/ Industria 22, 41008 Sevilla', pais: 'España' };
-    var PROFORMA_BANCO = { titular: 'Dynamo Operador Logístico SL', cif: 'B01596360', iban: 'ES63 0049 1837 5928 1046 8445', banco: 'Banco Santander', bic: 'BSCHESMM' };
+    var PROFORMA_BANCO = { titular: 'Dynamo Operador Logístico SL', cif: 'B01596360', banco: 'Banco Santander', bic: 'BSCHESMM' };
     // Logo Dynamo para el PDF: se rasteriza /images/4.png (logo blanco) sobre
     // el morado exacto de la cabecera (#3300cc) vía canvas → JPEG (DCTDecode,
     // el único formato que un PDF admite tal cual sin descomprimir). Cacheado.
@@ -7054,12 +7054,12 @@
         { empresa: 'Distribuciones Levante Sur S.A.', cif: 'A03998811', dir: 'C/ Alberola 18', cp: '03008', ciudad: 'Alicante', prov: 'Alicante', pais: 'España', tfno: '+34 965 108 442', email: 'operaciones@dlevantesur.es', contacto: 'Pedro Ivorra', plazo: 30, cesce: false, cesceImporte: 0, dynamoImporte: 6000, notas: 'Crédito CESCE solicitado, pendiente de resolución.', creadoEn: __ctTs(45, 13), modificadoEn: null }
     ];
     var TRANSPORTISTAS_DATA = [
-        { empresa: 'Transportes Romero e Hijos S.L.', tipo: 'Empresa', cif: 'B90211458', dir: 'Pol. Store, C/ A nave 24', cp: '41008', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', tfno: '+34 954 367 210', email: 'trafico@transromero.es', contacto: 'Antonio Romero', bolsa: 'WTN-482113', camiones: 12, flota: 'Tauliner y rígido', iban: 'ES91 2100 0418 4502 0005 1332', seguro: 'AXA · Póliza CMR 88-456129', notas: '', creadoEn: __ctTs(420, 9), modificadoEn: __ctTs(30, 12) },
-        { empresa: 'Logística Vega del Guadalquivir S.L.U.', tipo: 'Empresa', cif: 'B41996732', dir: 'Ctra. Sevilla-Cazalla km 4', cp: '41300', ciudad: 'La Rinconada', prov: 'Sevilla', pais: 'España', tfno: '+34 955 790 118', email: 'operaciones@logivega.es', contacto: 'Carmen Domínguez', bolsa: 'WTN-509877', camiones: 8, flota: 'Tauliner', iban: 'ES76 0049 1500 0512 3456 7892', seguro: 'Mapfre · Póliza CMR 45-118203', notas: '', creadoEn: __ctTs(365, 10), modificadoEn: null },
-        { empresa: 'TransPenínsula Cargo S.L.', tipo: 'Empresa', cif: 'B86450127', dir: 'C/ Fundidores 9', cp: '28906', ciudad: 'Getafe', prov: 'Madrid', pais: 'España', tfno: '+34 916 954 302', email: 'bolsa@transpeninsula.es', contacto: 'Raúl Cifuentes', bolsa: 'TLR-771402', camiones: 21, flota: 'Tauliner y rígido', iban: 'ES10 0081 5232 8100 0123 4567', seguro: 'Generali · Póliza CMR 12-908455', notas: 'Muy fiables en Madrid-Andalucía. Aceptan carga por techo.', creadoEn: __ctTs(280, 15), modificadoEn: __ctTs(9, 11) },
-        { empresa: 'José Manuel Ortega Ruiz', tipo: 'Autónomo', cif: '27314582K', dir: 'C/ Almendro 6, 2ºB', cp: '14006', ciudad: 'Córdoba', prov: 'Córdoba', pais: 'España', tfno: '+34 638 220 471', email: 'jmortega.transportes@gmail.com', contacto: 'José Manuel Ortega', bolsa: 'WTN-633090', camiones: 1, flota: 'Rígido', iban: 'ES45 1465 0100 9212 3456 7890', seguro: 'Allianz · Póliza CMR 77-340216', notas: 'Rígido con trampilla. Ideal repartos urbanos.', creadoEn: __ctTs(190, 12), modificadoEn: __ctTs(60, 16) },
-        { empresa: 'Ibérica de Tracción S.L.', tipo: 'Empresa', cif: 'B97120448', dir: 'Pol. Fuente del Jarro, C/ Ciutat de Llíria 40', cp: '46988', ciudad: 'Paterna', prov: 'Valencia', pais: 'España', tfno: '+34 961 340 775', email: 'trafico@ibetraccion.es', contacto: 'Empar Soler', bolsa: 'TLR-802341', camiones: 15, flota: 'Tauliner', iban: 'ES62 2038 5778 9830 0076 0136', seguro: 'Zurich · Póliza CMR 31-662184', notas: '', creadoEn: __ctTs(140, 9), modificadoEn: null },
-        { empresa: 'Manuela Prieto Vidal', tipo: 'Autónomo', cif: '44982017L', dir: 'Av. de Portugal 12, 4ºA', cp: '06001', ciudad: 'Badajoz', prov: 'Badajoz', pais: 'España', tfno: '+34 620 884 913', email: 'mprietotransporte@hotmail.com', contacto: 'Manuela Prieto', bolsa: 'WTN-701255', camiones: 1, flota: 'Tauliner', iban: 'ES21 3183 0800 8200 1234 5678', seguro: 'Reale · Póliza CMR 09-115672', notas: 'Rutas España-Portugal.', creadoEn: __ctTs(75, 14), modificadoEn: __ctTs(2, 10) }
+        { empresa: 'Transportes Romero e Hijos S.L.', tipo: 'Empresa', cif: 'B90211458', dir: 'Pol. Store, C/ A nave 24', cp: '41008', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', tfno: '+34 954 367 210', email: 'trafico@transromero.es', contacto: 'Antonio Romero', bolsa: 'WTN-482113', camiones: 12, flota: 'Tauliner y rígido', seguro: 'AXA · Póliza CMR 88-456129', notas: '', creadoEn: __ctTs(420, 9), modificadoEn: __ctTs(30, 12) },
+        { empresa: 'Logística Vega del Guadalquivir S.L.U.', tipo: 'Empresa', cif: 'B41996732', dir: 'Ctra. Sevilla-Cazalla km 4', cp: '41300', ciudad: 'La Rinconada', prov: 'Sevilla', pais: 'España', tfno: '+34 955 790 118', email: 'operaciones@logivega.es', contacto: 'Carmen Domínguez', bolsa: 'WTN-509877', camiones: 8, flota: 'Tauliner', seguro: 'Mapfre · Póliza CMR 45-118203', notas: '', creadoEn: __ctTs(365, 10), modificadoEn: null },
+        { empresa: 'TransPenínsula Cargo S.L.', tipo: 'Empresa', cif: 'B86450127', dir: 'C/ Fundidores 9', cp: '28906', ciudad: 'Getafe', prov: 'Madrid', pais: 'España', tfno: '+34 916 954 302', email: 'bolsa@transpeninsula.es', contacto: 'Raúl Cifuentes', bolsa: 'TLR-771402', camiones: 21, flota: 'Tauliner y rígido', seguro: 'Generali · Póliza CMR 12-908455', notas: 'Muy fiables en Madrid-Andalucía. Aceptan carga por techo.', creadoEn: __ctTs(280, 15), modificadoEn: __ctTs(9, 11) },
+        { empresa: 'José Manuel Ortega Ruiz', tipo: 'Autónomo', cif: '27314582K', dir: 'C/ Almendro 6, 2ºB', cp: '14006', ciudad: 'Córdoba', prov: 'Córdoba', pais: 'España', tfno: '+34 638 220 471', email: 'jmortega.transportes@gmail.com', contacto: 'José Manuel Ortega', bolsa: 'WTN-633090', camiones: 1, flota: 'Rígido', seguro: 'Allianz · Póliza CMR 77-340216', notas: 'Rígido con trampilla. Ideal repartos urbanos.', creadoEn: __ctTs(190, 12), modificadoEn: __ctTs(60, 16) },
+        { empresa: 'Ibérica de Tracción S.L.', tipo: 'Empresa', cif: 'B97120448', dir: 'Pol. Fuente del Jarro, C/ Ciutat de Llíria 40', cp: '46988', ciudad: 'Paterna', prov: 'Valencia', pais: 'España', tfno: '+34 961 340 775', email: 'trafico@ibetraccion.es', contacto: 'Empar Soler', bolsa: 'TLR-802341', camiones: 15, flota: 'Tauliner', seguro: 'Zurich · Póliza CMR 31-662184', notas: '', creadoEn: __ctTs(140, 9), modificadoEn: null },
+        { empresa: 'Manuela Prieto Vidal', tipo: 'Autónomo', cif: '44982017L', dir: 'Av. de Portugal 12, 4ºA', cp: '06001', ciudad: 'Badajoz', prov: 'Badajoz', pais: 'España', tfno: '+34 620 884 913', email: 'mprietotransporte@hotmail.com', contacto: 'Manuela Prieto', bolsa: 'WTN-701255', camiones: 1, flota: 'Tauliner', seguro: 'Reale · Póliza CMR 09-115672', notas: 'Rutas España-Portugal.', creadoEn: __ctTs(75, 14), modificadoEn: __ctTs(2, 10) }
     ];
     // Etiqueta del plazo de pago (0 = pago inmediato / por adelantado).
     function clientePlazoTxt(p) {
@@ -7071,7 +7071,7 @@
         return normTxt([c.empresa, c.cif, c.dir, c.cp, c.ciudad, c.prov, c.pais, c.tfno, c.email, c.contacto, clientePlazoTxt(c.plazo), c.notas].join(' '));
     }
     function transportistaBlob(t) {
-        return normTxt([t.empresa, t.tipo, t.cif, t.dir, t.cp, t.ciudad, t.prov, t.pais, t.tfno, t.email, t.contacto, t.bolsa, t.flota, t.iban, t.seguro, t.notas].join(' '));
+        return normTxt([t.empresa, t.tipo, t.cif, t.dir, t.cp, t.ciudad, t.prov, t.pais, t.tfno, t.email, t.contacto, t.bolsa, t.flota, t.seguro, t.notas].join(' '));
     }
     function renderClientesTable(q) {
         var tbody = document.getElementById('tbodyClientes'); if (!tbody) return;
@@ -7195,7 +7195,6 @@
                 ctField('tra-f-contacto', 'Persona de contacto', t.contacto, 'Nombre y apellidos', true) +
                 ctField('tra-f-camiones', 'Nº de camiones', t.camiones, '1', false, 'number') +
                 ctSelect('tra-f-flota', 'Flota', ['Tauliner', 'Rígido', 'Tauliner y rígido'], t.flota || 'Tauliner') +
-                ctField('tra-f-iban', 'IBAN (pagos)', t.iban, 'ES00 0000 0000 0000 0000 0000', true) +
                 ctField('tra-f-seguro', 'Seguro de mercancías (aseguradora · póliza)', t.seguro, 'Ej. AXA · Póliza CMR 88-456129', true) +
                 ctNotas('tra-f-notas', t.notas) +
             '</div>';
@@ -7300,7 +7299,6 @@
         t.camiones = parseInt(v('tra-f-camiones'), 10) || null;
         var flotaEl = document.getElementById('tra-f-flota');
         t.flota = flotaEl ? flotaEl.value : 'Tauliner';
-        t.iban = v('tra-f-iban') || null;
         t.seguro = v('tra-f-seguro') || null;
         t.notas = v('tra-f-notas') || null;
         if (edit) { t.modificadoEn = Date.now(); }
@@ -14382,7 +14380,7 @@
                 return chip.classList.contains('cesce-status-ok');
             }
             // Cuenta bancaria de Dynamo (mock; el backend dará la real).
-            var PAGO_BANCO = { titular: 'Dynamo Operador Logístico SL', cif: 'B01596360', iban: 'ES63 0049 1837 5928 1046 8445', banco: 'Banco Santander', bic: 'BSCHESMM' };
+            var PAGO_BANCO = { titular: 'Dynamo Operador Logístico SL', cif: 'B01596360', banco: 'Banco Santander', bic: 'BSCHESMM' };
             // Regla de plataforma: TODOS los precios con 2 decimales (aunque sean
             // ceros). Nunca redondear a euro entero. Formato unificado vía eur2.
             function eurStr(n) { return window.eur2 ? window.eur2(Number(n) || 0) : ((Number(n) || 0).toFixed(2).replace('.', ',') + ' €'); }
