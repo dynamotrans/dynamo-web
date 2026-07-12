@@ -4237,7 +4237,7 @@
         </div>
         <!-- Control de MODO MANTENIMIENTO (admin). Apaga la plataforma: nadie
              podrá acceder y, en la app real, se cerrará la sesión de quien esté
-             dentro. En el mockup es front (localStorage); en producción lo hará
+             dentro. En el mockup es front (solo memoria); en producción lo hará
              el backend invalidando las sesiones activas. -->
         <div class="maint-control" id="maintControl" style="margin-top:1.2rem;">
             <div class="maint-control-info">
@@ -6040,43 +6040,14 @@
             a.dirCP = a.dirCP || (a.cp + ', ' + a.ciudad + ', ' + a.prov + ', España'); // CP/localidad/prov/país
         });
     })();
-    // --- Persistencia del catálogo de almacenes en localStorage ---------------
-    // El catálogo base va en el código, pero las EDICIONES del usuario (marcar
-    // completo, cambiar datos, borrar, dar de alta) deben sobrevivir a la
-    // recarga. Se guardan solo los almacenes TOCADOS (_touched) o AÑADIDOS
-    // (_custom), por su `key`. En la app real esto lo hará el backend.
-    var ALM_STORE_KEY = 'dynamoAlmacenesOverrides';
-    var ALM_OV_FIELDS = ['empresa', 'tipoLugar', 'horario', 'tfno', 'contacto', 'notas', 'maps', 'calle', 'dir', 'dirCP', 'cp', 'ciudad', 'prov', 'disponible', 'precioBase', 'precioReparto', '_deleted', '_custom'];
-    function persistAlmacenes() {
-        try {
-            var map = {};
-            DYNAMO_ALMACENES.forEach(function (a) {
-                if (!a._touched && !a._custom) return;   // solo lo editado/añadido
-                var o = {};
-                ALM_OV_FIELDS.forEach(function (f) { if (f in a) o[f] = a[f]; });
-                map[a.key] = o;
-            });
-            localStorage.setItem(ALM_STORE_KEY, JSON.stringify(map));
-        } catch (e) {}
-    }
+    // --- SIN persistencia local (decisión 2026-07-12) --------------------------
+    // El mockup es DETERMINISTA: el estado de prueba vive en el CÓDIGO (repo →
+    // Vercel) y es IDÉNTICO en cualquier dispositivo y navegador. Las ediciones
+    // hechas en el panel duran solo la sesión (hasta recargar) y NO se guardan
+    // en el navegador — así lo que se ve al probar es siempre lo del código.
+    // La persistencia real (multi-dispositivo) la hará el backend.
+    function persistAlmacenes() { /* sin persistencia local: solo memoria */ }
     window.persistAlmacenes = persistAlmacenes;
-    function loadAlmacenesOverrides() {
-        try {
-            var raw = localStorage.getItem(ALM_STORE_KEY);
-            if (!raw) return;
-            var map = JSON.parse(raw) || {};
-            Object.keys(map).forEach(function (k) {
-                var ov = map[k], a = null;
-                for (var i = 0; i < DYNAMO_ALMACENES.length; i++) { if (DYNAMO_ALMACENES[i].key === k) { a = DYNAMO_ALMACENES[i]; break; } }
-                if (a) { ALM_OV_FIELDS.forEach(function (f) { if (f in ov) a[f] = ov[f]; }); a._touched = true; }
-                else if (ov._custom) {   // almacén dado de alta por el usuario (no está en el catálogo base)
-                    var nw = { key: k }; ALM_OV_FIELDS.forEach(function (f) { if (f in ov) nw[f] = ov[f]; }); nw._touched = true;
-                    DYNAMO_ALMACENES.push(nw);
-                }
-            });
-        } catch (e) {}
-    }
-    loadAlmacenesOverrides();   // aplica las ediciones guardadas al arrancar
     // Vista "sitio" de un almacén (para reutilizar la tabla y el modal de Sitios).
     function almToSite(a) {
         return { empresa: a.empresa, tipoLugar: a.tipoLugar, horario: a.horario, calle: a.calle, dir: a.dirCP, tfno: a.tfno, contacto: a.contacto, notas: a.notas, maps: a.maps, esAlmacen: true, key: a.key };
@@ -8970,8 +8941,7 @@
     function getInitialRole() {
         var q = new URLSearchParams(location.search).get('role');
         if (q && DYN_ROLES[q]) return q;
-        try { var st = localStorage.getItem('dynamoRole'); if (st && DYN_ROLES[st]) return st; } catch (e) {}
-        return 'admin';
+        return 'admin';   // sin persistencia local: el rol se fija por URL (?role=)
     }
     var __ROLE = getInitialRole();
     window.getRole = function () { return __ROLE; };
@@ -8979,7 +8949,6 @@
         if (!DYN_ROLES[role]) role = 'admin';
         __ROLE = role; window.__role = role;
         document.body.setAttribute('data-role', role);
-        try { localStorage.setItem('dynamoRole', role); } catch (e) {}
         var lbl = DYN_ROLES[role];
         var cur = document.getElementById('roleCurrentLabel'); if (cur) cur.textContent = lbl;
         // Badges de rol (cabecera del menú de usuario y fila "Rol" de Mi cuenta).
@@ -9028,20 +8997,17 @@
 
     /* ===== Modo mantenimiento =====
        Bloqueo del portal ante un incidente. On/off por ?maint=1 / ?maint=0
-       (se recuerda en localStorage) o desde el interruptor del menú de usuario.
+       (solo memoria, no se guarda) o desde el interruptor del menú de usuario.
        En la app real lo activaría el backend; aquí es front (mockup). */
-    var MAINT_KEY = 'dynamoMaintenance';
-    // ?maint=1 / ?maint=0 solo INICIALIZA (una vez); luego manda localStorage
-    // para que el interruptor del menú pueda apagarlo sin que la URL lo repise.
+    // Estado SOLO en memoria (mockup determinista, sin datos en el navegador):
+    // se inicializa por URL (?maint=1|0) y el interruptor lo cambia en vivo.
+    // En producción el flag vivirá en el backend (global de verdad).
+    var __maintOn = false;
     (function () {
-        try {
-            var q = new URLSearchParams(location.search).get('maint');
-            if (q != null) localStorage.setItem(MAINT_KEY, /^(1|on|true|si|sí)$/i.test(q) ? '1' : '0');
-        } catch (e) {}
+        var q = new URLSearchParams(location.search).get('maint');
+        if (q != null) __maintOn = /^(1|on|true|si|sí)$/i.test(q);
     })();
-    function maintActive() {
-        try { return localStorage.getItem(MAINT_KEY) === '1'; } catch (e) { return false; }
-    }
+    function maintActive() { return __maintOn; }
     function applyMaintenance() {
         var on = maintActive();
         // El mantenimiento SOLO bloquea a los roles que NO son admin. El admin
@@ -9069,15 +9035,13 @@
     }
     // Escape de pruebas: rol admin + mantenimiento off (solo mockup).
     function salirModoPruebas() {
-        try { localStorage.setItem('dynamoRole', 'admin'); } catch (e) {}
-        try { localStorage.setItem(MAINT_KEY, '0'); } catch (e) {}
+        __maintOn = false;
         if (typeof applyRole === 'function') applyRole('admin');
         applyMaintenance();
     }
     window.salirModoPruebas = salirModoPruebas;
     function toggleMaint() {
-        var on = localStorage.getItem(MAINT_KEY) === '1';
-        try { localStorage.setItem(MAINT_KEY, on ? '0' : '1'); } catch (e) {}
+        __maintOn = !__maintOn;
         applyMaintenance();
     }
     window.toggleMaint = toggleMaint;
@@ -9704,15 +9668,12 @@
     var ROWS_PER_PAGE_MOBILE_CAP = 50;
     function isMobileViewport() { return window.matchMedia && window.matchMedia('(max-width: 600px)').matches; }
     function readPerPage(table) {
-        var saved;
-        try { saved = parseInt(localStorage.getItem('dashPerPage_' + table), 10); } catch (e) {}
-        var v = ROWS_PER_PAGE_OPTIONS.indexOf(saved) > -1 ? saved : ROWS_PER_PAGE_DEFAULT;
+        // Sin persistencia local: siempre el valor por defecto del código.
+        var v = ROWS_PER_PAGE_DEFAULT;
         if (isMobileViewport() && v > ROWS_PER_PAGE_MOBILE_CAP) v = ROWS_PER_PAGE_MOBILE_CAP;
         return v;
     }
-    function savePerPage(table, v) {
-        try { localStorage.setItem('dashPerPage_' + table, String(v)); } catch (e) {}
-    }
+    function savePerPage(table, v) { /* sin persistencia local: solo la sesión */ }
     var TABLE_STATE = {
         cargas:       { page: 1, filter: 'programada-pendiente',  perPage: readPerPage('cargas'), estado: '', fecha: '', q: '' },
         presupuestos: { page: 1, filter: 'activos', perPage: readPerPage('presupuestos'), q: '' },
@@ -10953,7 +10914,7 @@
         'coover-ibi-ibi': { empresa: 'COOVER IBI, S.L.', dir: '03440, Ibi, Alicante/Alacant, España', calle: 'C. Huelva, 2, 03440 Ibi, Alicante', horario: '8:00-13:00 · 15:00-19:00', tfno: '965553757', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/PFPq7gDiDxCMrq4t7', freq: 1 },
         'raimsa-terrassa': { empresa: 'Raimsa', dir: '08228, Terrassa, Barcelona, España', calle: 'Carrer d\'Apol·lo, 97, 08228 Terrassa, Barcelona', horario: '8:00-17:00', tfno: '937310418', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/2ng5dAhzhQcszTb67', freq: 2 },
         'artesania-y-terrazos-toyca-loja': { empresa: 'ARTESANIA Y TERRAZOS TOYCA SL', dir: '18300, Loja, Granada, España', calle: 'B18292193 -- Poligono Industrial el Frontil s/n, 18300 El Frontil, Granada', horario: '8:00-15:00', tfno: '653 94 16 53', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/Jnpt5pLNCXdVfEjd7', freq: 3 },
-        'weldinox-marbella': { empresa: 'WELDINOX', dir: '29600, Marbella, Málaga, España', calle: 'POLÍGONO INDUSTRIAL LA ERMITA - CALLE ALUMINIO,12 29603 - MARBELLA (MALAGA)', horario: '7:00-15:00', tfno: '652868142 -', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/yQE6whhAxwsVB2Mn6', freq: 1 },
+        'weldinox-marbella': { empresa: 'WELDINOX', tipoLugar: 'Finca / Agrícola', dir: '29600, Marbella, Málaga, España', calle: 'POLÍGONO INDUSTRIAL LA ERMITA - CALLE ALUMINIO,12 29603 - MARBELLA (MALAGA)', horario: '7:00-15:00', tfno: '652868142 -', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/yQE6whhAxwsVB2Mn6', freq: 1 },
         'almacen-malaga': { empresa: 'ALMACÉN', dir: '29006, Málaga, España', calle: 'C. Marea Bajà, 13, Cruz de Humilladero, 29006 Málaga', horario: '6:30-17:00', tfno: '34 630 78 77 20', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/23abPebdkxv8cpxg8', freq: 1 },
         'cliente-almacen-salteras': { empresa: 'CLIENTE ALMACÉN', dir: '41909, Salteras, Sevilla, España', calle: 'C/ Baleares, 280A (P.I. Los Llanos) 41909 Salteras (Sevilla)', horario: '8:00-14:00', tfno: '679129027', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/mHrdtveJFCPf4ob27', freq: 1 },
         'pretensados-arnal-batea': { empresa: 'PRETENSADOS ARNAL, S.A. -Ctra. de Maella, s/n', dir: '43786, Batea, Tarragona, España', calle: '43786 BATEA (Tarragona)', horario: '8:00-13:00 · 15:00-18:00', tfno: '686 05 95 09', contacto: null, notas: 'Santi Arnal Martí (686 05 95 09) / 977430181 **** SI LLEGA MAS TARDE AVISAR Y OS ESPERAN****', maps: 'https://maps.app.goo.gl/3Z6XiHRp74AZ4ZsX9', freq: 1 },
@@ -10997,28 +10958,26 @@
         'ravago-plasticos-vilallonga-del': { empresa: 'Ravago Plásticos', dir: '43141, Vilallonga del Camp, Tarragona, España', calle: 'Carrer d\'Alcover, S/N, 43141 Vilallonga del Camp, Tarragona', horario: 'L-V 8:00-14:00 · 14:30-16:00', tfno: '977840421', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/7HKceLN11oK34XKA9', freq: 1 },
         'el-pozo-food-alhama-de-murc': { empresa: 'EL POZO FOOD, SA', dir: '30840, Alhama de Murcia, Murcia, España', calle: 'AV. De Antonio Fuertes,1 -- 30840 Alhama de Murcia, España', horario: '8:00-18:00 · V 8:00-11:00', tfno: '968636800', contacto: null, notas: 'POSICIONA 12,00-14,00', maps: 'https://maps.app.goo.gl/QfBamLxZPqkd3WgL7', freq: 1 },
         'stalam-s-p-a-nove-vi': { empresa: 'STALAM S.p.A.', dir: '36055, NOVE VI, Italia', calle: null, horario: 'L-V 8:30-12:30 · 13:30-16:30', tfno: '+390424597400', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/bkQQwundPbhavvXU8', freq: 1 },
-        'produccion-tecnica-tjl-huercal-de-alm': { empresa: 'Producción Técnica TJL, S.L. (Almacén)', dir: '04230, Huércal de Almería, Almería, España', calle: 'C. San Rafael, 14, 04230 Huércal de Almería, Almería', horario: '13:00-16:00', tfno: '678 56 24 36', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/MZ9DeVMP2UCEXsmY8', freq: 1 }
+        'produccion-tecnica-tjl-huercal-de-alm': { empresa: 'Producción Técnica TJL, S.L. (Almacén)', tipoLugar: 'Obra', dir: '04230, Huércal de Almería, Almería, España', calle: 'C. San Rafael, 14, 04230 Huércal de Almería, Almería', horario: '13:00-16:00', tfno: '678 56 24 36', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/MZ9DeVMP2UCEXsmY8', freq: 1 }
     };
-    // Sitios guardados por el usuario (mock de la futura BBDD, persiste en
-    // el navegador): lugares elegidos de "Google" y editados al crear envío.
+    // Sitios guardados por el usuario (mock de la futura BBDD). SOLO memoria:
+    // duran la sesión y NO se guardan en el navegador (mockup determinista —
+    // el estado de prueba es siempre el del código, igual en todo dispositivo).
     var SITES_CUSTOM = {};
-    try { SITES_CUSTOM = JSON.parse(localStorage.getItem('dynamoSitesCustom') || '{}') || {}; } catch (e) {}
     // Sitios BORRADOS por el usuario (del catálogo o propios): se ocultan de
     // la agenda y del buscador, pero el sitio NO desaparece de los envíos y
     // presupuestos ya consolidados — siteDe() sigue resolviendo la clave para
     // que esas filas conserven empresa, horario, teléfono y notas.
     var SITES_DELETED = {};
-    try { (JSON.parse(localStorage.getItem('dynamoSitesDeleted') || '[]') || []).forEach(function (k) { SITES_DELETED[k] = 1; }); } catch (e) {}
-    function saveDeletedSites() { try { localStorage.setItem('dynamoSitesDeleted', JSON.stringify(Object.keys(SITES_DELETED))); } catch (e) {} }
+    function saveDeletedSites() { /* sin persistencia local: solo memoria */ }
     function saveCustomSite(key, site) {
         // Fecha de creación (se conserva en ediciones) y de última
         // modificación (se actualiza en cada guardado).
         site.creado = (SITES_CUSTOM[key] && SITES_CUSTOM[key].creado) || site.creado || Date.now();
         site.modificado = Date.now();
         SITES_CUSTOM[key] = site;
-        try { localStorage.setItem('dynamoSitesCustom', JSON.stringify(SITES_CUSTOM)); } catch (e) {}
         // Guardar de nuevo un sitio borrado lo "revive" en la agenda.
-        if (SITES_DELETED[key]) { delete SITES_DELETED[key]; saveDeletedSites(); }
+        if (SITES_DELETED[key]) { delete SITES_DELETED[key]; }
     }
     function siteDe(ref) {
         if (typeof ref !== 'string') return ref;
