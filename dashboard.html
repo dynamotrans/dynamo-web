@@ -7908,10 +7908,12 @@
                         return '<div class="det-block">' + infoGrid([{ label: 'Precio', value: pend(null), html: true, span: true }]) + '</div>';
                     }
                     var iva = pN * 0.21, tot = pN * 1.21;
+                    // Mismo estilo que la caja de precio de crear envío: la BASE
+                    // imponible grande en morado; IVA y total con IVA discretos.
                     return '<div class="det-block"><div class="alm-price" style="margin:0;">' +
-                        '<div class="alm-price-row"><span class="k">Importe de envío (base imponible)</span><span class="v">' + eur2(pN) + '</span></div>' +
-                        '<div class="alm-price-row"><span class="k">IVA (21%)</span><span class="v">' + eur2(iva) + '</span></div>' +
-                        '<div class="alm-price-row alm-price-total"><span class="k">Total (IVA incl.)</span><span class="v">' + eur2(tot) + '</span></div>' +
+                        '<div class="alm-price-row alm-price-base"><span class="k">Base imponible</span><span class="v">' + eur2(pN) + '</span></div>' +
+                        '<div class="alm-price-row alm-price-sub"><span class="k">IVA (21%)</span><span class="v">' + eur2(iva) + '</span></div>' +
+                        '<div class="alm-price-row alm-price-sub"><span class="k">Total (IVA incl.)</span><span class="v">' + eur2(tot) + '</span></div>' +
                         '</div></div>';
                 })() +
                 // Valoración del transportista: solo en envíos ENTREGADOS
