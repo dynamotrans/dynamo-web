@@ -3394,6 +3394,23 @@
         th.th-sort.sort-asc, th.th-sort.sort-desc { color: var(--purple); }
         th.th-sort.sort-asc::after { content: '▲'; opacity: 1; }
         th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
+        /* Bloque de PRECIOS INTERNOS del tarifador (solo admin con gating):
+           último precio de la ruta + precio manual que omite al tarifador. */
+        .ptar-admin-precio {
+            border: 1.5px dashed rgba(51,0,204,0.35); border-radius: 12px;
+            padding: 0.7rem 0.8rem; background: rgba(51,0,204,0.03);
+        }
+        .ptar-admin-precio-head { font-size: 0.78rem; font-weight: 800; color: var(--purple); margin-bottom: 0.4rem; }
+        .ptar-admin-precio-head span { font-weight: 600; color: var(--gray-500); }
+        .ptar-admin-precio-ult { font-size: 0.8rem; font-weight: 600; color: #6b7280; margin-bottom: 0.45rem; }
+        .ptar-admin-precio-lbl { font-size: 0.75rem; font-weight: 700; color: var(--gray-500); display: block; margin-bottom: 0.25rem; }
+        .ptar-admin-precio input {
+            width: 100%; height: 40px; padding: 0 0.75rem; box-sizing: border-box;
+            border: 1.5px solid var(--gray-200); border-radius: 10px;
+            font: inherit; font-size: 0.9rem; color: var(--navy); outline: none;
+        }
+        .ptar-admin-precio input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
+        .ptar-admin-precio-note { margin: 0.35rem 0 0; font-size: 0.72rem; font-weight: 600; color: var(--gray-500); line-height: 1.45; }
         .ptar-terms-box {
             border: 1.5px solid var(--gray-200); border-radius: 10px;
             padding: 0.7rem 0.8rem; background: var(--gray-50);
@@ -3788,6 +3805,13 @@
         <button class="sidebar-link" data-roles="admin" data-section="altas">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
             Altas pendientes
+        </button>
+        <!-- MODO MANTENIMIENTO — SIEMPRE la última opción del menú. Abre su
+             ventana con la explicación y el interruptor (kill-switch). -->
+        <button class="sidebar-link" data-roles="admin" onclick="openMaintModal()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            Modo mantenimiento
+            <span class="badge" id="maintMenuBadge" hidden style="background:rgba(220,38,38,0.14);color:#dc2626;">ON</span>
         </button>
     </nav>
     <div class="sidebar-foot">
@@ -4698,6 +4722,18 @@
                         <span class="ptar-eta-placeholder">Indica origen, destino y fecha de carga para calcular la entrega estimada.</span>
                     </div>
                 </div>
+                <!-- PRECIOS INTERNOS (con el gating de roles quedará SOLO para
+                     administración; de momento visible para todos): último
+                     precio de esta misma ruta para el cliente + hueco de
+                     PRECIO MANUAL. Si se fija un importe se OMITE el del
+                     tarifador; en blanco se aplica el del tarifador. -->
+                <div class="ptar-field ptar-field-full ptar-admin-precio" data-roles="admin">
+                    <div class="ptar-admin-precio-head">Precios internos <span>· solo administración</span></div>
+                    <div class="ptar-admin-precio-ult" data-ptar-ult-ruta hidden></div>
+                    <label class="ptar-admin-precio-lbl" for="ptar-precio-manual-carga">Precio manual (base sin IVA)</label>
+                    <input type="number" id="ptar-precio-manual-carga" data-ptar-precio-manual min="0" step="10" inputmode="decimal" placeholder="En blanco → se aplica el precio del tarifador">
+                    <p class="ptar-admin-precio-note">Si fijas un importe, se omite el del tarifador y el envío queda con precio «fijado a mano».</p>
+                </div>
                 <div class="ptar-warning" data-ptar-warning role="alert">⚠ Introduce el origen y el destino antes de continuar.</div>
                 <div class="ptar-actions ptar-actions-main">
                     <button type="button" class="btn-primary" data-ptar-submit>Crear envío</button>
@@ -5066,22 +5102,6 @@
                 <span id="usuariosShowing"></span>
             </div>
             <div class="pagination-pages" id="usuariosPagination"></div>
-        </div>
-        <!-- Control de MODO MANTENIMIENTO (admin). Apaga la plataforma: nadie
-             podrá acceder y, en la app real, se cerrará la sesión de quien esté
-             dentro. En el mockup es front (solo memoria); en producción lo hará
-             el backend invalidando las sesiones activas. -->
-        <div class="maint-control" id="maintControl" style="margin-top:1.2rem;">
-            <div class="maint-control-info">
-                <span class="maint-control-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-                </span>
-                <div class="maint-control-txt">
-                    <strong>Modo mantenimiento</strong>
-                    <span>Apaga la plataforma para todos: nadie podrá acceder y se cerrará la sesión de quien esté dentro.</span>
-                </div>
-            </div>
-            <button type="button" class="maint-control-btn" id="maintToggleBtn" aria-pressed="false" onclick="toggleMaint()"><span class="maint-control-btn-label">Activar</span></button>
         </div>
     </section>
 
@@ -10082,7 +10102,33 @@
         if (exit) exit.hidden = !block;
         // Bloquea el scroll del fondo solo cuando el overlay está visible.
         document.body.style.overflow = block ? 'hidden' : '';
+        // Badge "ON" del enlace del menú lateral (última opción, siempre).
+        var mb = document.getElementById('maintMenuBadge');
+        if (mb) mb.hidden = !on;
     }
+    // Ventana del modo mantenimiento (se abre desde la última opción del
+    // menú lateral): explicación + interruptor Activar/Desactivar.
+    function openMaintModal() {
+        openDashModal({
+            icon: 'alert', iconVariant: 'warn',
+            title: 'Modo mantenimiento',
+            sub: 'Kill-switch de la plataforma (solo admin)',
+            body:
+                '<div class="maint-control" id="maintControl">' +
+                    '<div class="maint-control-info">' +
+                        '<span class="maint-control-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>' +
+                        '<div class="maint-control-txt">' +
+                            '<strong>Modo mantenimiento</strong>' +
+                            '<span>Apaga la plataforma para todos: nadie podrá acceder y se cerrará la sesión de quien esté dentro. En producción lo impone el backend invalidando las sesiones activas.</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<button type="button" class="maint-control-btn" id="maintToggleBtn" aria-pressed="false" onclick="toggleMaint()"><span class="maint-control-btn-label">Activar</span></button>' +
+                '</div>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>',
+            afterOpen: function () { applyMaintenance(); }
+        });
+    }
+    window.openMaintModal = openMaintModal;
     // Escape de pruebas: rol admin + mantenimiento off (solo mockup).
     function salirModoPruebas() {
         __maintOn = false;
@@ -15630,8 +15676,41 @@
                 el.innerHTML = html;
                 el.hidden = false;
             }
+            // ÚLTIMO PRECIO de esta misma ruta para el cliente (referencia
+            // interna, junto al hueco de precio manual). Coincidencia por CP
+            // de origen y destino; en producción vendrá del histórico real.
+            function updateUltRuta() {
+                var el = card.querySelector('[data-ptar-ult-ruta]');
+                if (!el || mode !== 'carga') return;
+                function cpDe(wrap) {
+                    if (!wrap) return null;
+                    var k = wrap.dataset.siteKey;
+                    if (k) { var s = siteDe(k); var m = String((s && s.dir) || '').match(/\b\d{5}\b/); if (m) return m[0]; }
+                    var inp = wrap.querySelector('input');
+                    var m2 = String(inp ? inp.value : '').match(/\b\d{5}\b/);
+                    return m2 ? m2[0] : null;
+                }
+                var oCp = cpDe(origWrap), dCp = cpDe(destWrap);
+                if (!oCp || !dCp) { el.hidden = true; return; }
+                var best = null, bestF = -1;
+                CARGAS_DATA.forEach(function (x) {
+                    if (x.kind === 'cancelada') return;
+                    if (window._cargaEditRef && x.ref === window._cargaEditRef) return;
+                    var mo = String(x.origenDir || '').match(/\b\d{5}\b/), md = String(x.destinoDir || '').match(/\b\d{5}\b/);
+                    if (!mo || !md || mo[0] !== oCp || md[0] !== dCp) return;
+                    var fx = __sortFecha(x.fechaAsignada || x.fecha) || 0;
+                    if (fx > bestF) { bestF = fx; best = x; }
+                });
+                if (best) cargaPrecios(best);
+                if (!best || !best.precioCliente) { el.hidden = true; return; }
+                var f = best.fechaAsignada ? String(best.fechaAsignada).split(' ')[0] : best.fecha;
+                el.innerHTML = 'Último precio de esta ruta (mismo cliente): <strong>' + eur2(best.precioCliente) + '</strong>' +
+                    (f ? ' · ' + escapeHtml(fechaConDia(f)) : '') + ' <span style="font-weight:600;">(' + escapeHtml(best.ref) + ')</span>';
+                el.hidden = false;
+            }
             updateCutoffNote();
-            if (!card._cutoffTimer) card._cutoffTimer = setInterval(updateCutoffNote, 1000);
+            updateUltRuta();
+            if (!card._cutoffTimer) card._cutoffTimer = setInterval(function () { updateCutoffNote(); updateUltRuta(); }, 1000);
 
             // Los campos de recogida/entrega arrancan VACÍOS (los defaults
             // de prueba Sevilla→Madrid se retiraron).
@@ -15675,6 +15754,10 @@
                 notesTxt.value = '';
                 notesCount.textContent = '0';
                 notesCount.parentNode.classList.remove('warn');
+                var pmr = card.querySelector('[data-ptar-precio-manual]');
+                if (pmr) pmr.value = '';
+                var ultR = card.querySelector('[data-ptar-ult-ruta]');
+                if (ultR) { ultR.hidden = true; ultR.innerHTML = ''; }
                 notesBody.hidden = true;
                 notesToggle.setAttribute('aria-expanded', 'false');
                 warning.classList.remove('show');
@@ -15865,6 +15948,13 @@
                     ventanaDias: urgenciaSel.value === 'estandar' ? 3 : 1,
                     refCli: refCliInput.value.trim() || (mode === 'carga' ? 'PED-NUEVO' : 'COT-NUEVO'),
                     notes: notesTxt.value.trim(),
+                    // Precio MANUAL (hueco interno del formulario): si se fija
+                    // un importe, OMITE al del tarifador; en blanco → tarifador.
+                    precioManualVal: (function () {
+                        var el = card.querySelector('[data-ptar-precio-manual]');
+                        var v = el ? parseFloat(String(el.value).replace(',', '.')) : NaN;
+                        return (v > 0) ? Math.round(v * 100) / 100 : null;
+                    })(),
                     origSitePick: sitePickDe(origWrap),
                     destSitePick: sitePickDe(destWrap),
                     origTipo: (function () { var t = card.querySelector('[data-ptar-tipoorig]'); return t ? t.value : null; })(),
@@ -16021,6 +16111,10 @@
                     nuevaCarga._rowsCli = (d.precioRows || []).map(function (r) { return { k: r.k, v: r.v }; });
                     if (!nuevaCarga._rowsCli.length) nuevaCarga._rowsCli = [{ k: 'Importe de envío', v: precioNum }];
                     nuevaCarga.precioCliente = precioNum;
+                    // Precio fijado a MANO en el formulario: sustituye al del
+                    // tarifador y queda marcado (etiqueta en la tabla; Modificar
+                    // no lo recalcula mientras no cambie nada que afecte al precio).
+                    if (d.precioManualVal) nuevaCarga.precioManual = true;
                     if (prevIdx > -1) {
                         // Edición: mismo nº y misma posición; marca de modificado
                         // (makeCarga no la contempla en su whitelist → se pone aquí).
@@ -16031,6 +16125,7 @@
                         // tipos de lugar, ventana, fecha) NI en los tipos del
                         // paso de confirmación, se CONSERVA el precio manual.
                         var __sinCambiosPrecio = prevCarga && prevCarga.precioManual &&
+                            d.precioManualVal == null &&   // un manual NUEVO tecleado gana siempre
                             window._cargaEditSig0 && window.__formPriceSig &&
                             window.__formPriceSig() === window._cargaEditSig0 &&
                             window._cargaEditTipos0 != null &&
@@ -16165,6 +16260,18 @@
             // base (sin recargo, del paso 1) × (1 + suma de recargos por tipo).
             function recalcConfPrice() {
                 if (!pendingData) return;
+                // PRECIO MANUAL fijado en el formulario: manda él — se OMITE el
+                // cálculo del tarifador (recargos y suplementos incluidos).
+                if (pendingData.precioManualVal > 0) {
+                    var pm = pendingData.precioManualVal;
+                    pendingData.precioMock = pm;
+                    pendingData.precioRows = [{ k: 'Precio fijado a mano', v: pm }];
+                    var boxM = confirmCard.querySelector('[data-ptar-conf-price]');
+                    if (boxM) { boxM.hidden = false; window.__renderPriceBox(boxM, pm, pendingData.precioRows); }
+                    var sumPM = summaryEl.querySelector('[data-sum-precio]');
+                    if (sumPM) sumPM.textContent = String(pm).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €';
+                    return;
+                }
                 var base = parseInt(card.dataset.precioBase || '0', 10);
                 if (!base) { var r0 = parseFloat(card.dataset.recargoTipo || '0') || 0; base = Math.round((pendingData.precioMock || 0) / (1 + r0)); }
                 var rec = 0;
