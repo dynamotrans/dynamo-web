@@ -8014,20 +8014,28 @@
                         wrap = document.getElementById('rolConfirmWrap'), btn = document.getElementById('rolBtnOk');
                     var esAdmin = v === 'Admin';
                     var igual = v === u.tipo;
+                    // REGLA DURA: un email de Cliente o Transportista NUNCA
+                    // puede pasar a Empleado/Admin. Para hacerlo interno hay
+                    // que BORRAR el usuario (solo backend) y darlo de alta de
+                    // nuevo — normalmente con un email corporativo de Dynamo.
+                    var prohibido = rolCambioProhibido(u.tipo, v);
                     if (aviso) {
-                        aviso.style.background = esAdmin ? 'rgba(220,38,38,0.10)' : 'var(--gray-50)';
-                        aviso.style.border = esAdmin ? '1px solid rgba(220,38,38,0.45)' : '1px solid var(--gray-200)';
-                        aviso.style.color = esAdmin ? '#991b1b' : 'var(--gray-700)';
+                        var rojo = esAdmin || prohibido;
+                        aviso.style.background = rojo ? 'rgba(220,38,38,0.10)' : 'var(--gray-50)';
+                        aviso.style.border = rojo ? '1px solid rgba(220,38,38,0.45)' : '1px solid var(--gray-200)';
+                        aviso.style.color = rojo ? '#991b1b' : 'var(--gray-700)';
                         aviso.innerHTML = igual
                             ? 'Es el rol que ya tiene — no hay nada que cambiar.'
-                            : (esAdmin ? '⚠ <strong>Vas a conceder acceso de administrador.</strong> ' : '<strong>' + escapeHtml(v) + ':</strong> ') + escapeHtml(ROL_DESC[v] || '');
+                            : prohibido
+                                ? '⛔ <strong>No permitido:</strong> un email de <strong>' + escapeHtml(u.tipo) + '</strong> nunca puede pasar a <strong>' + escapeHtml(v) + '</strong>. Para convertirlo en personal interno hay que <strong>borrar el usuario de la base de datos</strong> (solo desde backend) y darlo de alta de nuevo, normalmente con un email corporativo.'
+                                : (esAdmin ? '⚠ <strong>Vas a conceder acceso de administrador.</strong> ' : '<strong>' + escapeHtml(v) + ':</strong> ') + escapeHtml(ROL_DESC[v] || '');
                     }
                     // El email de confirmación se exige en CUALQUIER cambio de
                     // rol (también cliente→transportista, empleado→cliente…).
-                    if (wrap) wrap.hidden = igual;
+                    if (wrap) wrap.hidden = igual || prohibido;
                     if (btn) {
-                        btn.style.background = esAdmin && !igual ? 'var(--red)' : '';
-                        btn.classList.toggle('btn-visual-disabled', igual);
+                        btn.style.background = esAdmin && !igual && !prohibido ? 'var(--red)' : '';
+                        btn.classList.toggle('btn-visual-disabled', igual || prohibido);
                     }
                     var err = document.getElementById('rolErr'); if (err) err.classList.remove('show');
                 }
@@ -8036,12 +8044,23 @@
         });
     }
     window.openCambiarRol = openCambiarRol;
+    // Cliente/Transportista → Empleado/Admin: PROHIBIDO siempre. El usuario
+    // externo se borra (solo backend) y se da de alta de nuevo como interno.
+    function rolCambioProhibido(actual, nuevo) {
+        return (actual === 'Cliente' || actual === 'Transportista') &&
+            (nuevo === 'Empleado' || nuevo === 'Admin');
+    }
     function cambiarRolGuardar(idx) {
         var u = USUARIOS_DATA[idx]; if (!u) return;
         var err = document.getElementById('rolErr');
         function fail(msg, el) { if (err) { err.textContent = '⚠ ' + msg; err.classList.add('show'); } if (el && el.focus) el.focus(); }
         var nuevo = ((document.getElementById('rolNuevo') || {}).value) || u.tipo;
         if (nuevo === u.tipo) { openUsuarioModal(idx); return; }
+        // REGLA DURA (también en backend): un email de cliente/transportista
+        // nunca pasa a interno — se borra y se da de alta de nuevo.
+        if (rolCambioProhibido(u.tipo, nuevo)) {
+            return fail('Un email de ' + u.tipo + ' no puede pasar a ' + nuevo + '. Hay que borrar el usuario (backend) y darlo de alta de nuevo.');
+        }
         // Siempre debe quedar al menos UN Admin activo (regla dura; también
         // se validará en backend).
         if (u.tipo === 'Admin' && nuevo !== 'Admin') {
