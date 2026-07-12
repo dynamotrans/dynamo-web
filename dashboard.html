@@ -14515,7 +14515,10 @@
             // El botón NO usa disabled real: así el clic con el check sin
             // marcar puede explicar el fallo (check y texto en rojo + aviso).
             var termsWarn = confirmCard ? confirmCard.querySelector('[data-ptar-terms-warn]') : null;
-            var checkLbl = confirmCard ? confirmCard.querySelector('.ptar-confirm-check') : null;
+            // OJO: el check de CONDICIONES (dentro de .ptar-terms-box), no el
+            // primero que pille — el de discreción comercial también es un
+            // .ptar-confirm-check y va antes en el DOM (se pintaba ÉL de rojo).
+            var checkLbl = confirmCard ? confirmCard.querySelector('.ptar-terms-box .ptar-confirm-check') : null;
             function refreshConfirmEnabled() {
                 if (!finalBtn) return;
                 var ok = (!chkTerms || chkTerms.checked);
