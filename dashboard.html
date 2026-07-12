@@ -173,6 +173,15 @@
         }
         .topbar-brand:hover { background: var(--gray-200); border-color: #d6d9de; }
         .topbar-brand img { height: 22px; width: auto; display: block; }
+        /* Claim "Logistics" junto al logo (siempre en inglés, no se traduce) */
+        .topbar-brand-claim {
+            font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em;
+            color: var(--purple); line-height: 1; white-space: nowrap;
+            border-left: 1px solid var(--gray-300); padding-left: 0.55rem;
+        }
+        @media (max-width: 600px) {
+            .topbar-brand-claim { font-size: 0.6rem; padding-left: 0.4rem; }
+        }
         .topbar-actions { display: flex; align-items: center; gap: 0.6rem; }
 
         /* Indicadores compactos de la topbar: Incidencias (campana) y CESCE */
@@ -3884,6 +3893,7 @@
             <div class="topbar-actions topbar-leftbar">
             <button type="button" class="topbar-brand" onclick="showSection('dashboard')" aria-label="Ir al Dashboard">
                 <img src="/images/2.png" alt="Dynamo">
+                <span class="topbar-brand-claim notranslate" translate="no">Logistics</span>
             </button>
             <!-- Boton de contacto con Alvaro (antes era un FAB flotante).
                  Pequeño en la topbar, al pulsar abre dropdown con canales. -->
