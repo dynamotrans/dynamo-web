@@ -10847,7 +10847,6 @@
             else                c.refCli = '2026-' + (1000 + ((h >>> 7) % 9000));
         });
     })();
-
     // ---- DATA: presupuestos (mock, ampliado a 70 más abajo) ----
     function makePresupuesto(ref, refCli, fecha, origen, destino, mercancia, medidas, precio, vigencia, vigenciaColor, kind) {
         return { ref: ref, refCli: refCli, fecha: fecha, origen: origen, destino: destino, mercancia: mercancia, medidas: medidas, precio: precio, vigencia: vigencia, vigenciaColor: vigenciaColor, kind: kind };
@@ -13479,6 +13478,23 @@
     }
     // Reparto de sitios reales sobre el mock (SITES ya definido arriba)
     asignarSitios();
+    // === MOCK: RUTAS REPETIDAS para ver el "último envío idéntico" ===
+    // DESPUÉS de asignarSitios() (antes las rutas aún no existían y se
+    // machacaban): varios envíos PROGRAMADOS heredan la ruta COMPLETA de
+    // una entregada anterior → sus celdas de precio muestran las 3 líneas
+    // (precio actual + Últ. envío + Tarifador). Determinista. En producción
+    // el "último envío idéntico" saldrá del histórico real del backend.
+    (function () {
+        var entregadas = CARGAS_DATA.filter(function (c) { return c.kind === 'entregada'; });
+        var programadas = CARGAS_DATA.filter(function (c) { return c.kind === 'programada' && c.fecha && c.fecha !== 'Sin fecha'; });
+        var KEYS = ['origen', 'destino', 'origenDir', 'destinoDir', 'origenSite', 'destinoSite', 'horarioOrigen', 'horarioDestino', 'direcciones'];
+        for (var i = 0; i < Math.min(10, programadas.length); i++) {
+            var src = entregadas[(i * 3 + 1) % entregadas.length];
+            var dst = programadas[i];
+            if (!src || !dst) break;
+            KEYS.forEach(function (k) { if (src[k] != null) dst[k] = src[k]; });
+        }
+    })();
     // Fecha/hora de creación de cada carga del mock: 2-6 días antes de su
     // fecha de carga, en horario laboral (determinista por referencia).
     (function rellenarCreadoEn() {
