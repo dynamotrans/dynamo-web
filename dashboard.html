@@ -13355,7 +13355,12 @@
         }
         function tipoSitioIconHtml(tipo) {
             var k = tipoSitioKey(tipo);
-            return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+            // Todo lo que NO es Almacén/Nave (obra, urbana, evento, finca) lleva
+            // recargo y condiciones especiales → su icono va RESALTADO en rojo
+            // allí donde aparezca (tarifador, detalle, tablas, Sitios).
+            var especial = k && k !== 'Almacén / Nave';
+            return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"' +
+                (especial ? ' style="color:#dc2626;"' : '') + '>' +
                 (k ? TIPO_SITIO_SVG[k] : TIPO_SITIO_PIN) + '</svg>';
         }
         function syncTipoSitioIcon(wrap, tipo) {
