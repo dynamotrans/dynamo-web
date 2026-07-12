@@ -153,6 +153,26 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-07-12 — Claude Code web (nube)
+
+> **Sesión maratoniana del panel** (`dashboard.html`), todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Push automático activado por el usuario ("sube directo sin preguntar"). Estado final: preview `33bdf2f` (~20 commits del día).
+
+**DECISIÓN GRANDE — mockup DETERMINISTA, sin datos en el navegador**: fuera TODA la persistencia en `localStorage` (sitios custom/borrados, overrides de almacenes, rol, mantenimiento, perPage). El estado de prueba vive en el CÓDIGO → idéntico en cualquier dispositivo; las ediciones duran solo la sesión (hasta recargar). Motivo: el usuario probaba en iPad/iPhone y cada aparato mostraba datos distintos. Solo quedan idioma (cookie googtrans/dashLang) y caches técnicos (Nager, geo IP). ⚠️ Contrapartida explicada: iOS recarga pestañas solo → las ediciones se pierden; la persistencia real llegará con el backend.
+
+**ICONOS DE TIPO DE SITIO**: Finca = **rama de trigo** (antes hoja); todo lo que NO es Almacén/Nave va **resaltado en ROJO** (obra/urbana/evento/finca) en todas las superficies; **los 64 sitios del catálogo llevan `tipoLugar` de serie** (Almacén/Nave salvo GRUPAL ART=Zona urbana, WELDINOX=Finca, TJL=Obra) → al elegir cualquier sitio en crear envío el icono del campo pasa del pin al de su ficha. **Fix**: editar un sitio ahora repinta también la tabla de envíos y la mini-lista (antes solo Sitios → icono viejo hasta recargar).
+
+**MODIFICAR ENVÍO = CREAR ENVÍO**: el prefill geocodifica origen/destino/paradas en 2º plano (fetch propio: el AbortController compartido de osmSearch abortaba la 1ª petición) → precio EN VIVO con desglose; restaura tipo de lugar, referencia, paradas y discreción. **BLOQUEO ANTI-PRECIO-0**: mientras el precio se calcula (skeleton), los botones guardar/confirmar quedan deshabilitados con **spinner**; guardia en validación ("Estamos calculando el precio…") y `beforeunload` avisa si se cierra con un guardado en curso. TODO: notas backend (POST antes del overlay, idempotencia, precio validado server-side).
+
+**CATÁLOGOS ADMIN NUEVOS — Clientes y Transportistas** (botones 7 y 8 del panel admin): tabla homogénea + ficha editable al pulsar fila, con **fecha/hora de creación y modificación**. Cliente: fiscales + plazo de pago (0/30/60) + **importes de crédito CESCE y Dynamo** (sin checkbox; lo determina el importe). Transportista: fiscales, Empresa/Autónomo, **código de bolsa de carga**, flota, seguro CMR y **documentos adjuntos (máx. 5)**. Sin IBAN. **Sin botón Borrar** en clientes/transportistas/almacenes (solo backend).
+
+**ADJUNTOS UNIFICADOS en toda la plataforma**: pulsar un documento lo abre en el **visor (pestaña nueva)**; la × pide **confirmación** antes de borrar (mini-diálogo propio que no pisa el modal). Incidencias pasan de contador a lista con nombres.
+
+**OTROS**: precio con desglose (base grande morada + IVA/Total discretos) en el **detalle de envío**; **deshacer cancelación** desde Canceladas (vuelve a Programadas, aviso si la fecha pasó); modal cancelar envío con **triángulo rojo** (no la X) y **botón Llamar** (+34 955 225 945, L-V 8:30-15:30 verano) sobre "Sí, cancelar"; textos de **discreción comercial** en confirmación (check + aviso; se guarda y se ve en el detalle); tarjeta **Recomiéndanos** en el dashboard con 2 botones en fila (Recomendar Dynamo → WhatsApp/email/copiar · ★ Puntúanos en Google → ficha de Maps, pendiente place ID para enlace directo de reseña); muro de clientes ENCIMA de Nuestros servicios; tarjeta "Mis últimos envíos" **clicable entera**; claim **"Logistics"** junto al logo de la topbar (notranslate).
+
+**Método**: cada cambio verificado en Chromium headless (Nominatim/Nager mockeados por el proxy) con screenshots antes de commitear. Sin errores JS en ningún commit.
+
+**Pendientes**: place ID de la ficha de Google (para el enlace directo de reseña) · decisión sobre tipos de sitio del catálogo (¿más obras/eventos fijos en el mock?) · verificar filtro de festivos autonómicos en el preview real · sync `festivos.js` a `main` cuando el usuario dé el OK.
+
 ### 2026-07-11 — Claude Code web (nube)
 
 > **Sesión centrada en el tarifador del panel (`dashboard.html`) + `festivos.js`.** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `5a2046a`.
