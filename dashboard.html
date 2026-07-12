@@ -3372,6 +3372,16 @@
         .td-precio .meta-manual { font-size: 0.66rem; font-weight: 700; color: var(--purple); }
         .marg-pos { color: #0f6b3a; font-weight: 800; }
         .marg-neg { color: #dc2626; font-weight: 800; }
+        /* Cabeceras ordenables: clic alterna ascendente → descendente → orden
+           original. La flecha ↕ aparece al pasar el ratón; ▲/▼ cuando la
+           columna está activa. */
+        th.th-sort { cursor: pointer; user-select: none; -webkit-user-select: none; }
+        th.th-sort::after { content: '↕'; margin-left: 0.3rem; font-size: 0.72rem; opacity: 0; transition: opacity 0.15s; }
+        th.th-sort:hover { color: var(--purple); }
+        th.th-sort:hover::after { opacity: 0.5; }
+        th.th-sort.sort-asc, th.th-sort.sort-desc { color: var(--purple); }
+        th.th-sort.sort-asc::after { content: '▲'; opacity: 1; }
+        th.th-sort.sort-desc::after { content: '▼'; opacity: 1; }
         .ptar-terms-box {
             border: 1.5px solid var(--gray-200); border-radius: 10px;
             padding: 0.7rem 0.8rem; background: var(--gray-50);
@@ -7042,6 +7052,7 @@
             if (fa !== fb) return fa - fb;
             return a.entrada < b.entrada ? -1 : 1;
         });
+        arr = ordenarRows('almacenes', arr);
         var slice = pageSlice('almacenes', arr, ALM_LIST.filter + '|' + nq + '|' + (ALM_LIST.mes || ''), 'almacenesPagination', 'almacenesShowing', 'Sin almacenamientos');
         if (!arr.length) {
             var vacio = ALMACENES_DATA.length === 0
@@ -7203,6 +7214,7 @@
         });
         var h2 = document.querySelector('#sec-almacenes-cat h2');
         if (h2) h2.textContent = 'Almacenes (' + rows.length + ')';
+        rows = ordenarRows('almacenesCat', rows);
         var slice = pageSlice('almacenesCat', rows, nq, 'almacenesCatPagination', 'almacenesCatShowing', 'Sin almacenes');
         if (!rows.length) {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin almacenes que coincidan</td></tr>';
@@ -7371,6 +7383,7 @@
         });
         var h2 = document.querySelector('#sec-clientes h2');
         if (h2) h2.textContent = 'Clientes (' + rows.length + ')';
+        rows = ordenarRows('clientes', rows);
         var slice = pageSlice('clientes', rows, nq, 'clientesPagination', 'clientesShowing', 'Sin clientes');
         if (!rows.length) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin clientes que coincidan</td></tr>';
@@ -7400,6 +7413,7 @@
         });
         var h2 = document.querySelector('#sec-transportistas h2');
         if (h2) h2.textContent = 'Transportistas (' + rows.length + ')';
+        rows = ordenarRows('transportistas', rows);
         var slice = pageSlice('transportistas', rows, nq, 'transportistasPagination', 'transportistasShowing', 'Sin transportistas');
         if (!rows.length) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin transportistas que coincidan</td></tr>';
@@ -7718,17 +7732,17 @@
         return d.getTime();
     }
     var USUARIOS_DATA = [
-        { email: 'alvaro@dynamotrans.com', tipo: 'Admin', nombre: 'Álvaro Blanco Ortega', dni: '28941006T', tfno: '+34 628 995 709', minDia: 176, minSemana: 934, consultas: 154, envios: 41, cancelaciones: 2, cancelUlt10: 0, creadoEn: __ctTs(430, 9), modificadoEn: __ctTs(22, 12) },
-        { email: 'trafico@dynamotrans.com', tipo: 'Empleado', nombre: 'Lucía Camacho Ríos', dni: '30277148Q', tfno: '+34 955 225 945', minDia: 208, minSemana: 1065, consultas: 232, envios: 87, cancelaciones: 5, cancelUlt10: 1, creadoEn: __ctTs(395, 10), modificadoEn: null },
-        { email: 'administracion@dynamotrans.com', tipo: 'Empleado', nombre: 'Pablo Serrano Gil', dni: '48120334M', tfno: '+34 955 225 945', minDia: 64, minSemana: 342, consultas: 18, envios: 6, cancelaciones: 0, cancelUlt10: 0, creadoEn: __ctTs(360, 11), modificadoEn: __ctTs(90, 16) },
-        { email: 'juan.garcia@marbexindustrial.es', tipo: 'Cliente', nombre: 'Juan García Molina', dni: '27556410S', tfno: '+34 954 210 334', minDia: 42, minSemana: 214, consultas: 96, envios: 28, cancelaciones: 3, cancelUlt10: 1, creadoEn: __ctTs(214, 9), modificadoEn: __ctTs(12, 13) },
-        { email: 'compras@marbexindustrial.es', tipo: 'Cliente', nombre: 'Julia Gómez Prada', dni: '28667109L', tfno: '+34 954 210 334', minDia: 17, minSemana: 88, consultas: 34, envios: 9, cancelaciones: 0, cancelUlt10: 0, creadoEn: __ctTs(190, 12), modificadoEn: null },
-        { email: 'logistica@grupalart.es', tipo: 'Cliente', nombre: 'Vicente Ferrer Ballester', dni: '24310877F', tfno: '+34 961 523 887', minDia: 25, minSemana: 131, consultas: 58, envios: 17, cancelaciones: 4, cancelUlt10: 2, creadoEn: __ctTs(388, 12), modificadoEn: __ctTs(41, 17) },
-        { email: 'pedidos@trumastore.es', tipo: 'Cliente', nombre: 'Marta Salas Nieto', dni: '05411290V', tfno: '+34 916 620 445', minDia: 11, minSemana: 47, consultas: 21, envios: 12, cancelaciones: 1, cancelUlt10: 1, creadoEn: __ctTs(160, 11), modificadoEn: null },
-        { email: 'admin@weldinox.com', tipo: 'Cliente', nombre: 'Sergio Luque Aranda', dni: '25998763H', tfno: '+34 952 771 209', minDia: 8, minSemana: 29, consultas: 44, envios: 5, cancelaciones: 2, cancelUlt10: 3, creadoEn: __ctTs(96, 16), modificadoEn: __ctTs(5, 9) },
-        { email: 'trafico@transromero.es', tipo: 'Transportista', nombre: 'Antonio Romero Cid', dni: '28450917J', tfno: '+34 954 367 210', minDia: 33, minSemana: 172, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null, creadoEn: __ctTs(420, 9), modificadoEn: __ctTs(30, 12) },
-        { email: 'operaciones@logivega.es', tipo: 'Transportista', nombre: 'Carmen Domínguez Lara', dni: '30122486W', tfno: '+34 955 790 118', minDia: 21, minSemana: 96, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null, creadoEn: __ctTs(365, 10), modificadoEn: null },
-        { email: 'jmortega.transportes@gmail.com', tipo: 'Transportista', nombre: 'José Manuel Ortega Ruiz', dni: '27314582K', tfno: '+34 638 220 471', minDia: 14, minSemana: 61, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null, creadoEn: __ctTs(190, 12), modificadoEn: __ctTs(60, 16) }
+        { email: 'alvaro@dynamotrans.com', tipo: 'Admin', nombre: 'Álvaro Blanco Ortega', dni: '28941006T', tfno: '+34 628 995 709', empresa: 'Dynamo Operador de Transportes S.L.', cif: 'B90448216', dirF: 'C/ Aviación 12, oficina 4', cp: '41007', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 176, minSemana: 934, consultas: 154, envios: 41, cancelaciones: 2, cancelUlt10: 0, creadoEn: __ctTs(430, 9), modificadoEn: __ctTs(22, 12) },
+        { email: 'trafico@dynamotrans.com', tipo: 'Empleado', nombre: 'Lucía Camacho Ríos', dni: '30277148Q', tfno: '+34 955 225 945', empresa: 'Dynamo Operador de Transportes S.L.', cif: 'B90448216', dirF: 'C/ Aviación 12, oficina 4', cp: '41007', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 208, minSemana: 1065, consultas: 232, envios: 87, cancelaciones: 5, cancelUlt10: 1, creadoEn: __ctTs(395, 10), modificadoEn: null },
+        { email: 'administracion@dynamotrans.com', tipo: 'Empleado', nombre: 'Pablo Serrano Gil', dni: '48120334M', tfno: '+34 955 225 945', empresa: 'Dynamo Operador de Transportes S.L.', cif: 'B90448216', dirF: 'C/ Aviación 12, oficina 4', cp: '41007', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 64, minSemana: 342, consultas: 18, envios: 6, cancelaciones: 0, cancelUlt10: 0, creadoEn: __ctTs(360, 11), modificadoEn: __ctTs(90, 16) },
+        { email: 'juan.garcia@marbexindustrial.es', tipo: 'Cliente', nombre: 'Juan García Molina', dni: '27556410S', tfno: '+34 954 210 334', empresa: 'Marbex Industrial S.L.', cif: 'B41552214', dirF: 'Pol. Ind. La Red, C/ Cobre 14', cp: '41500', ciudad: 'Alcalá de Guadaíra', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 42, minSemana: 214, consultas: 96, envios: 28, cancelaciones: 3, cancelUlt10: 1, creadoEn: __ctTs(214, 9), modificadoEn: __ctTs(12, 13) },
+        { email: 'compras@marbexindustrial.es', tipo: 'Cliente', nombre: 'Julia Gómez Prada', dni: '28667109L', tfno: '+34 954 210 334', empresa: 'Marbex Industrial S.L.', cif: 'B41552214', dirF: 'Pol. Ind. La Red, C/ Cobre 14', cp: '41500', ciudad: 'Alcalá de Guadaíra', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 17, minSemana: 88, consultas: 34, envios: 9, cancelaciones: 0, cancelUlt10: 0, creadoEn: __ctTs(190, 12), modificadoEn: null },
+        { email: 'logistica@grupalart.es', tipo: 'Cliente', nombre: 'Vicente Ferrer Ballester', dni: '24310877F', tfno: '+34 961 523 887', empresa: 'GRUPAL ART, S.L.', cif: 'B46881309', dirF: 'C/ Traginers 4', cp: '46940', ciudad: 'Manises', prov: 'Valencia', pais: 'España', estadoCuenta: 'Activa', minDia: 25, minSemana: 131, consultas: 58, envios: 17, cancelaciones: 4, cancelUlt10: 2, creadoEn: __ctTs(388, 12), modificadoEn: __ctTs(41, 17) },
+        { email: 'pedidos@trumastore.es', tipo: 'Cliente', nombre: 'Marta Salas Nieto', dni: '05411290V', tfno: '+34 916 620 445', empresa: 'TRUMA STORE, S.L.', cif: 'B98455120', dirF: 'Av. de la Industria 22, nave 7', cp: '28108', ciudad: 'Alcobendas', prov: 'Madrid', pais: 'España', estadoCuenta: 'Activa', minDia: 11, minSemana: 47, consultas: 21, envios: 12, cancelaciones: 1, cancelUlt10: 1, creadoEn: __ctTs(160, 11), modificadoEn: null },
+        { email: 'admin@weldinox.com', tipo: 'Cliente', nombre: 'Sergio Luque Aranda', dni: '25998763H', tfno: '+34 952 771 209', empresa: 'WELDINOX', cif: 'B29617754', dirF: 'Pol. La Ermita, C/ Fragua 3', cp: '29600', ciudad: 'Marbella', prov: 'Málaga', pais: 'España', estadoCuenta: 'Suspendida', minDia: 8, minSemana: 29, consultas: 44, envios: 5, cancelaciones: 2, cancelUlt10: 3, creadoEn: __ctTs(96, 16), modificadoEn: __ctTs(5, 9) },
+        { email: 'trafico@transromero.es', tipo: 'Transportista', nombre: 'Antonio Romero Cid', dni: '28450917J', tfno: '+34 954 367 210', empresa: 'Transportes Romero e Hijos S.L.', cif: 'B90211458', dirF: 'Pol. Store, C/ A nave 24', cp: '41008', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 33, minSemana: 172, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null, creadoEn: __ctTs(420, 9), modificadoEn: __ctTs(30, 12) },
+        { email: 'operaciones@logivega.es', tipo: 'Transportista', nombre: 'Carmen Domínguez Lara', dni: '30122486W', tfno: '+34 955 790 118', empresa: 'Logística Vega del Guadalquivir S.L.U.', cif: 'B41996732', dirF: 'Ctra. Sevilla-Cazalla km 4', cp: '41300', ciudad: 'La Rinconada', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 21, minSemana: 96, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null, creadoEn: __ctTs(365, 10), modificadoEn: null },
+        { email: 'jmortega.transportes@gmail.com', tipo: 'Transportista', nombre: 'José Manuel Ortega Ruiz', dni: '27314582K', tfno: '+34 638 220 471', empresa: 'José Manuel Ortega Ruiz (autónomo)', cif: '27314582K', dirF: 'C/ Almendro 6, 2ºB', cp: '14006', ciudad: 'Córdoba', prov: 'Córdoba', pais: 'España', estadoCuenta: 'Pendiente de verificación', minDia: 14, minSemana: 61, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null, creadoEn: __ctTs(190, 12), modificadoEn: __ctTs(60, 16) }
     ];
     USUARIOS_DATA.forEach(function (u) { if (u.ultimaConexion === undefined) u.ultimaConexion = __uxUltCon(u.email); });
     // Minutos → texto legible ('2 h 56 min' / '45 min').
@@ -7760,7 +7774,7 @@
         };
     }
     function usuarioBlob(u) {
-        return normTxt([u.email, u.tipo, u.nombre, u.dni, u.tfno].join(' '));
+        return normTxt([u.email, u.tipo, u.nombre, u.dni, u.tfno, u.empresa, u.cif, u.ciudad, u.prov, u.estadoCuenta].join(' '));
     }
     function renderUsuariosTable() {
         var tbody = document.getElementById('tbodyUsuarios'); if (!tbody) return;
@@ -7773,6 +7787,7 @@
         });
         var h2 = document.querySelector('#sec-usuarios h2');
         if (h2) h2.textContent = 'Usuarios (' + rows.length + ')';
+        rows = ordenarRows('usuarios', rows);
         var slice = pageSlice('usuarios', rows, nq + '|' + ft, 'usuariosPagination', 'usuariosShowing', 'Sin usuarios');
         if (!rows.length) {
             tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin usuarios que coincidan</td></tr>';
@@ -7781,8 +7796,10 @@
         tbody.innerHTML = slice.map(function (r) {
             var u = r.u, m = usuarioMetrics(u);
             return '<tr data-usr="' + r.i + '">' +
-                '<td><strong>' + esc(u.email) + '</strong></td>' +
-                '<td>' + usuarioTipoChip(u.tipo) + '</td>' +
+                '<td><strong>' + esc(u.email) + '</strong>' + (u.empresa ? '<div class="meta">' + esc(u.empresa) + '</div>' : '') + '</td>' +
+                '<td>' + usuarioTipoChip(u.tipo) +
+                    (u.estadoCuenta === 'Suspendida' ? '<div class="meta" style="color:#dc2626;font-weight:700;">Suspendida</div>'
+                        : (u.estadoCuenta === 'Pendiente de verificación' ? '<div class="meta" style="color:#b45309;font-weight:700;">Pendiente verif.</div>' : '')) + '</td>' +
                 '<td>' + esc(u.nombre || '—') + '</td>' +
                 '<td>' + esc(u.dni || '—') + '</td>' +
                 '<td style="white-space:nowrap;">' + esc(u.tfno || '—') + '</td>' +
@@ -7810,10 +7827,19 @@
             '<div class="ptar-sitio-grid">' +
                 ctField('usr-f-email', 'Email (usuario de acceso) *', u.email, 'nombre@empresa.com', true, 'email') +
                 ctSelect('usr-f-tipo', 'Tipo de usuario', USUARIO_TIPOS, u.tipo || 'Cliente') +
-                ctField('usr-f-dni', 'DNI', u.dni, '12345678Z') +
+                ctSelect('usr-f-estado', 'Estado de la cuenta', ['Activa', 'Suspendida', 'Pendiente de verificación'], u.estadoCuenta || 'Activa') +
                 ctField('usr-f-nombre', 'Nombre y apellidos *', u.nombre, 'Nombre y apellidos', true) +
-                ctField('usr-f-tfno', 'Teléfono', u.tfno, '+34 …', true) +
+                ctField('usr-f-dni', 'DNI', u.dni, '12345678Z') +
+                ctField('usr-f-tfno', 'Teléfono', u.tfno, '+34 …') +
+                ctField('usr-f-empresa', 'Empresa / Razón social', u.empresa, 'Ej. Marbex Industrial S.L.', true) +
+                ctField('usr-f-cif', 'CIF / NIF de la empresa', u.cif, 'B12345678 / 12345678Z') +
+                ctField('usr-f-pais', 'País', u.pais || 'España', 'España') +
+                ctField('usr-f-dirf', 'Dirección fiscal (calle y número)', u.dirF, 'Calle y número', true) +
+                ctField('usr-f-cp', 'CP', u.cp, '41001') +
+                ctField('usr-f-ciudad', 'Localidad', u.ciudad, 'Sevilla') +
+                ctField('usr-f-prov', 'Provincia', u.prov, 'Sevilla') +
             '</div>' +
+            '<p style="font-size:0.76rem;color:var(--gray-500);font-weight:600;margin:0.6rem 0 0;">La contraseña no se gestiona aquí: el usuario la crea con el enlace de invitación que recibe en su email (y puede cambiarla desde Mi cuenta).</p>' +
             (u.email ?
                 '<div style="margin-top:0.9rem;"><label style="font-size:0.78rem;font-weight:700;color:var(--gray-500);">Uso de la plataforma <span style="font-weight:600;">· solo lectura, lo calcula el sistema</span></label>' +
                 '<div class="pen-envio-sum" style="margin-top:0.35rem;">' +
@@ -7856,8 +7882,17 @@
         u.email = email; u.nombre = nombre;
         var tipoEl = document.getElementById('usr-f-tipo');
         u.tipo = tipoEl ? tipoEl.value : 'Cliente';
+        var estEl = document.getElementById('usr-f-estado');
+        u.estadoCuenta = estEl ? estEl.value : 'Activa';
         u.dni = v('usr-f-dni') || null;
         u.tfno = v('usr-f-tfno') || null;
+        u.empresa = v('usr-f-empresa') || null;
+        u.cif = v('usr-f-cif') || null;
+        u.dirF = v('usr-f-dirf') || null;
+        u.cp = v('usr-f-cp') || null;
+        u.ciudad = v('usr-f-ciudad') || null;
+        u.prov = v('usr-f-prov') || null;
+        u.pais = v('usr-f-pais') || 'España';
         if (edit) { u.modificadoEn = Date.now(); }
         else { u.creadoEn = Date.now(); u.modificadoEn = null; USUARIOS_DATA.push(u); }
         closeDashModal();
@@ -9268,6 +9303,7 @@
             if (nq && !matchTokens(normTxt([x.fr, x.tit, x.det, x.envio, x.refCli, x.orig, x.dest, x.med, INC_ESTADO[x.estado].label].join(' ')), nq)) return false;
             return true;
         });
+        arr = ordenarRows('incidencias', arr);
         var slice = pageSlice('incidencias', arr, st.filter + '|' + nq + '|' + (st.mes || ''), 'incidenciasPagination', 'incidenciasShowing', 'Sin incidencias');
         if (!arr.length) {
             tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin incidencias en este filtro</td></tr>';
@@ -10757,6 +10793,7 @@
             }
             return true;
         });
+        arr = ordenarRows('penalizaciones', arr);
         var slice = pageSlice('penalizaciones', arr, q + '|' + ft, 'penalizacionesPagination', 'penalizacionesShowing', 'Sin penalizaciones');
         if (!arr.length) {
             tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--gray-500);">' +
@@ -11791,6 +11828,7 @@
         });
         var h2 = document.querySelector('#sec-sitios h2');
         if (h2) h2.textContent = 'Sitios (' + rows.length + ')';
+        rows = ordenarRows('sitios', rows);
         var slice = pageSlice('sitios', rows, q, 'sitiosPagination', 'sitiosShowing', 'Sin sitios');
         if (!rows.length) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin sitios que coincidan</td></tr>';
@@ -12518,7 +12556,7 @@
     window.mercPaletiz = mercPaletiz;
     function renderCargasTable() {
         var st = TABLE_STATE.cargas;
-        var rows = filteredCargas();
+        var rows = ordenarRows('cargas', filteredCargas());
         var totalPages = Math.max(1, Math.ceil(rows.length / st.perPage));
         if (st.page > totalPages) st.page = totalPages;
         var start = (st.page - 1) * st.perPage;
@@ -12685,7 +12723,7 @@
     }
     function renderFacturasTable() {
         var st = TABLE_STATE.facturas;
-        var rows = filteredFacturas();
+        var rows = ordenarRows('facturas', filteredFacturas());
         var totalPages = Math.max(1, Math.ceil(rows.length / st.perPage));
         if (st.page > totalPages) st.page = totalPages;
         var start = (st.page - 1) * st.perPage;
@@ -12773,7 +12811,7 @@
     window.albReclamar = albReclamar;
     function renderAlbaranesTable() {
         var st = TABLE_STATE.albaranes;
-        var rows = filteredAlbaranes();
+        var rows = ordenarRows('albaranes', filteredAlbaranes());
         var totalPages = Math.max(1, Math.ceil(rows.length / st.perPage));
         if (st.page > totalPages) st.page = totalPages;
         var start = (st.page - 1) * st.perPage;
@@ -12821,6 +12859,201 @@
         else if (table === 'transportistas') renderTransportistasTable((document.getElementById('transportistasSearch') || {}).value || '');
         else if (table === 'usuarios') renderUsuariosTable();
     }
+
+    // ==================== ORDENACIÓN POR COLUMNAS (todas las tablas) ====================
+    // Clic en una cabecera: ascendente → descendente → orden original.
+    // Ordena el ARRAY COMPLETO antes de paginar (no solo la página visible).
+    // Texto A-Z con locale es; fechas de antigua a nueva; números de menor a
+    // mayor. Los valores vacíos van SIEMPRE al final. En producción, las
+    // tablas paginadas en servidor pasarán este mismo orden a la consulta.
+    var SORT_STATE = {};
+    // Fecha en texto ('DD/MM', 'DD/MM/YYYY', 'Vie 10/07/26', 'Hoy 15:00'…) → ms.
+    function __sortFecha(s) {
+        var m = String(s || '').match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+        if (!m) return null;
+        var y = m[3] ? +m[3] : new Date().getFullYear();
+        if (y < 100) y += 2000;
+        return new Date(y, +m[2] - 1, +m[1]).getTime();
+    }
+    // Importe en texto ('1.234,56 €') o número → número.
+    function __sortEur(v) {
+        if (v == null || v === '') return null;
+        if (typeof v === 'number') return v;
+        var n = parseFloat(String(v).replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.'));
+        return isNaN(n) ? null : n;
+    }
+    // Extractores de valor por columna (índice del <th>) y por tabla. La
+    // forma de la fila es la del array que cada render pasa a paginar.
+    function sortGettersDe(key) {
+        var G = {
+            cargas: [
+                function (c) { return __sortFecha(c.fechaAsignada || c.fecha); },
+                function (c) { return __sortFecha(c.etaEntrega); },
+                function (c) { return c.ref; },
+                function (c) { return c.mercancia; },
+                function (c) { return c.matricula; },
+                function (c) { cargaPrecios(c); return c.precioCliente; },
+                function (c) { cargaPrecios(c); return c.precioTransportista; },
+                function (c) { cargaPrecios(c); return (c.precioCliente != null && c.precioTransportista != null) ? c.precioCliente - c.precioTransportista : null; }
+            ],
+            facturas: [
+                function (f) { return __sortFecha(f.emision); },
+                function (f) { return f.ref; },
+                function (f) { return __sortFecha(f.vencimiento); },
+                function () { return CLIENTE_ACTUAL; },
+                function (f) { return __sortEur(f.base); },
+                function (f) { return __sortEur(f.iva); },
+                function () { return 0; },
+                function (f) { return __sortEur(f.total); },
+                function (f) { return f.kind === 'cobrada' ? __sortEur(f.total) : 0; },
+                function (f) { return f.kind === 'cobrada' ? 0 : __sortEur(f.total); },
+                function (f) { return facturaEstado(f.kind).label; },
+                function (f) { return f.kind === 'cobrada' ? __sortFecha(f.vencimiento) : null; }
+            ],
+            albaranes: [
+                function (a) { return __sortFecha(a.fecha); },
+                function (a) { return a.envio; },
+                function (a) { return a.refCli; },
+                function (a) { return (a.origen || '') + ' → ' + (a.destino || ''); },
+                function (a) { return albEstadoBadge(a.estado).label; },
+                function (a) { return albEstadoBadge(a.estado).label; }
+            ],
+            incidencias: [
+                function (x) { return __sortFecha(x.fr); },
+                function (x) { return x.tit; },
+                function (x) { return x.envio; },
+                function (x) { return x.refCli; },
+                function (x) { return __sortFecha(x.fcarga); },
+                function (x) { return (x.orig || '') + ' → ' + (x.dest || ''); },
+                function (x) { return x.med; },
+                function (x) { return (INC_ESTADO[x.estado] || {}).label; }
+            ],
+            sitios: [
+                function (kv) { return kv[1].empresa; },
+                function (kv) { return kv[1].calle || kv[1].dir; },
+                function (kv) { return kv[1].horario; },
+                function (kv) { return kv[1].tfno; },
+                function (kv) { return kv[1].notas; }
+            ],
+            almacenes: [
+                function (r) { return r.ref; },
+                function (r) { return (DYNAMO_ALMACENES[r.almIdx] || {}).prov; },
+                function (r) { return r.entrada; },
+                function (r) { return r.salida; },
+                function (r) { return r.reparto || 0; },
+                function (r) { var a = DYNAMO_ALMACENES[r.almIdx] || {}; return almPBase(a) + (r.reparto || 0) * almPReparto(a); },
+                function (r) { return almEstadoDe(r).label; }
+            ],
+            almacenesCat: [
+                function (r) { return r.a.empresa; },
+                function (r) { return r.a.calle || r.a.dir; },
+                function (r) { return r.a.horario; },
+                function (r) { return almPBase(r.a); },
+                function (r) { return almPReparto(r.a); },
+                function (r) { return r.a.tfno; },
+                function (r) { return r.a.notas; }
+            ],
+            penalizaciones: [
+                function (p) { return p.ref; },
+                function (p) { return p.envio; },
+                function (p) { return p.tipo; },
+                function (p) { return p.transportista; },
+                function (p) { return p.impCliente != null ? p.impCliente : p.importe; },
+                function (p) { return p.impTrans || 0; },
+                function (p) { return (p.impCliente != null ? p.impCliente : p.importe || 0) - (p.impTrans || 0); },
+                function (p) { return __sortFecha(p.fecha); }
+            ],
+            clientes: [
+                function (r) { return r.c.empresa; },
+                function (r) { return r.c.contacto; },
+                function (r) { return r.c.dir; },
+                function (r) { return r.c.plazo; },
+                function (r) { return r.c.creadoEn; }
+            ],
+            transportistas: [
+                function (r) { return r.t.empresa; },
+                function (r) { return r.t.contacto; },
+                function (r) { return r.t.bolsa; },
+                function (r) { return r.t.flota; },
+                function (r) { return r.t.creadoEn; }
+            ],
+            usuarios: [
+                function (r) { return r.u.email; },
+                function (r) { return r.u.tipo; },
+                function (r) { return r.u.nombre; },
+                function (r) { return r.u.dni; },
+                function (r) { return r.u.tfno; },
+                function (r) { return r.u.ultimaConexion; },
+                function (r) { return r.u.minDia; },
+                function (r) { return r.u.minSemana; },
+                function (r) { return r.u.consultas; },
+                function (r) { return r.u.envios; },
+                function (r) { return (r.u.envios > 0 && r.u.consultas != null) ? r.u.consultas / r.u.envios : null; },
+                function (r) { return r.u.cancelaciones; },
+                function (r) { return (r.u.envios > 0 && r.u.cancelaciones != null) ? r.u.cancelaciones / r.u.envios : null; },
+                function (r) { return r.u.cancelUlt10; }
+            ]
+        };
+        return G[key];
+    }
+    // Ordena el array completo de una tabla según SORT_STATE (estable; los
+    // vacíos al final sea cual sea la dirección). Sin orden activo → tal cual.
+    function ordenarRows(key, arr) {
+        var s = (typeof SORT_STATE !== 'undefined' && SORT_STATE) ? SORT_STATE[key] : null;
+        if (!s || s.col == null) return arr;
+        var getters = sortGettersDe(key);
+        var g = getters && getters[s.col];
+        if (!g) return arr;
+        var dir = s.dir === 'desc' ? -1 : 1;
+        var idx = arr.map(function (x, i) { return { x: x, i: i }; });
+        idx.sort(function (a, b) {
+            var va = g(a.x), vb = g(b.x);
+            var na = (va == null || va === '' || va === '—'), nb = (vb == null || vb === '' || vb === '—');
+            if (na && nb) return a.i - b.i;
+            if (na) return 1;
+            if (nb) return -1;
+            var c;
+            if (typeof va === 'number' && typeof vb === 'number') c = va - vb;
+            else c = String(va).localeCompare(String(vb), 'es', { sensitivity: 'base', numeric: true });
+            return c ? c * dir : a.i - b.i;
+        });
+        return idx.map(function (p) { return p.x; });
+    }
+    var SORT_TABLES = {
+        cargas: 'tbodyCargas', facturas: 'tbodyFacturas', albaranes: 'tbodyAlbaranes',
+        incidencias: 'tbodyIncidencias', sitios: 'tbodySitios', almacenes: 'tbodyAlmacenes',
+        almacenesCat: 'tbodyAlmacenesCat', penalizaciones: 'tbodyPenalizaciones',
+        clientes: 'tbodyClientes', transportistas: 'tbodyTransportistas', usuarios: 'tbodyUsuarios'
+    };
+    function paintSortArrows(key) {
+        var tb = document.getElementById(SORT_TABLES[key]); if (!tb) return;
+        var head = tb.parentNode.querySelector('thead tr'); if (!head) return;
+        var s = SORT_STATE[key];
+        Array.prototype.forEach.call(head.children, function (th, i) {
+            th.classList.toggle('sort-asc', !!(s && s.col === i && s.dir === 'asc'));
+            th.classList.toggle('sort-desc', !!(s && s.col === i && s.dir === 'desc'));
+        });
+    }
+    Object.keys(SORT_TABLES).forEach(function (key) {
+        var tb = document.getElementById(SORT_TABLES[key]); if (!tb) return;
+        var head = tb.parentNode.querySelector('thead tr'); if (!head) return;
+        Array.prototype.forEach.call(head.children, function (th, i) {
+            th.classList.add('th-sort');
+            th.setAttribute('title', 'Ordenar por esta columna');
+            th.addEventListener('click', function () {
+                var s = SORT_STATE[key];
+                if (s && s.col === i) {
+                    if (s.dir === 'asc') s.dir = 'desc';
+                    else SORT_STATE[key] = null;   // 3er clic: orden original
+                } else {
+                    SORT_STATE[key] = { col: i, dir: 'asc' };
+                }
+                if (TABLE_STATE[key]) TABLE_STATE[key].page = 1;
+                paintSortArrows(key);
+                renderTable(key);
+            });
+        });
+    });
     // Paginación cliente reutilizable: resetea a pág. 1 si cambió el filtro
     // (clave `k`), recorta el array a la página actual, pinta los botones y el
     // "Mostrando X-Y de Z". Devuelve el slice a renderizar.
