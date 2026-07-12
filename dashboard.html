@@ -14825,6 +14825,9 @@
                 // Base del transporte ANTES del recargo por tipo (para recalcular
                 // en la confirmación si allí cambian el tipo de lugar).
                 card.dataset.precioBase = String(Math.round(precio / 10) * 10);
+                // Momento del cálculo: el precio tiene una VALIDEZ de 60 min
+                // (pasado ese tiempo no se deja confirmar; hay que regenerar).
+                card.dataset.precioTs = String(Date.now());
                 card.dataset.recargoTipo = String(recTipo);
                 card.dataset.nParadas = String(nParadas);
                 // Importe de envío = base × (1 + recargo tipo) + paradas.
@@ -15274,6 +15277,35 @@
 
             // Lee y valida el formulario. Devuelve null si hay errores
             // (también marca los campos en rojo y muestra el warning).
+            // === VALIDEZ DEL PRECIO: 60 minutos desde su cálculo ===
+            // Si la pantalla se queda abierta y se pulsa Crear/Confirmar más
+            // de 60 min después de calcularse el precio, NO se crea el envío
+            // (el precio puede haber cambiado en ese intervalo): aviso de
+            // tiempo excedido y vuelta a la pantalla principal para generar
+            // el envío de nuevo. En producción el backend revalidará además
+            // el precio en el servidor (nunca se confía en el del front).
+            var PRECIO_VALIDEZ_MS = 60 * 60 * 1000;
+            function precioCaducado() {
+                if (mode !== 'carga') return false;
+                var ts = parseInt(card.dataset.precioTs || '0', 10);
+                var base = parseInt(card.dataset.precioBase || '0', 10);
+                return !!(base && ts && (Date.now() - ts) > PRECIO_VALIDEZ_MS);
+            }
+            function avisoPrecioCaducado() {
+                // Volver al inicio SIN crear nada + aviso encima.
+                if (window._ptarReset) window._ptarReset();
+                showSection('dashboard');
+                openDashModal({
+                    icon: 'alert', iconVariant: 'warn',
+                    title: 'Tiempo excedido — precio caducado',
+                    sub: 'Han pasado más de 60 minutos',
+                    body:
+                        '<p style="font-size:0.9rem;line-height:1.6;color:var(--gray-700);margin-bottom:0.7rem;">El precio de este envío se calculó hace <strong>más de 60 minutos</strong> y puede haber cambiado en ese intervalo (los precios son dinámicos). Por seguridad, <strong>no se ha creado el envío</strong>.</p>' +
+                        '<p style="font-size:0.9rem;line-height:1.6;color:var(--gray-700);">Vuelve a generar el envío para obtener el <strong>precio actualizado</strong> — con los mismos datos tardas menos de un minuto.</p>',
+                    footer: '<button class="btn-primary" style="flex:1;" onclick="closeDashModal();openNuevaCarga(\'envio\');return false;">Generar envío de nuevo</button>' +
+                        '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>'
+                });
+            }
             function readAndValidate(skipFecha) {
                 // Por si se pulsa Crear/Guardar sin salir antes del campo:
                 // limpia cualquier texto tecleado que no se haya elegido de la
@@ -15391,6 +15423,9 @@
                     warning.classList.add('show');
                     return null;
                 }
+                // Precio CADUCADO (pantalla abierta >60 min desde el cálculo):
+                // no se avanza — aviso y vuelta al inicio para regenerarlo.
+                if (mode === 'carga' && precioCaducado()) { avisoPrecioCaducado(); return null; }
                 return {
                     camion: camion, camionLabel: CAMION_INFO[camion] ? CAMION_INFO[camion].label : camion,
                     ml: ml, peso: peso, medidas: medidas,
@@ -16192,6 +16227,9 @@
             if (backBtn) backBtn.addEventListener('click', exitConfirmStep);
             if (finalBtn) finalBtn.addEventListener('click', function () {
                 if (!pendingData) return;
+                // Precio caducado (>60 min desde el cálculo): tiempo excedido →
+                // NO se crea el envío; aviso y vuelta a la pantalla principal.
+                if (precioCaducado()) { avisoPrecioCaducado(); return; }
                 // Direcciones sueltas con datos obligatorios sin rellenar →
                 // desplegar, pintar rojo y hacer scroll a la primera. Bloquea.
                 if (!validateLooseSites(true)) return;
