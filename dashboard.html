@@ -1949,6 +1949,8 @@
         .price-skel-total { width: 92px; height: 1em; }
         @keyframes priceSkelShimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
         @media (prefers-reduced-motion: reduce) { .alm-price-calcbar span, .price-skel { animation: none; } }
+        /* Botones bloqueados mientras el precio se calcula (evita guardar a 0 €) */
+        .btn-calc-wait { opacity: 0.55; cursor: wait !important; pointer-events: none; }
         .alm-dates { grid-template-columns: 1fr 1fr; }
         .alm-note { font-size: 0.8rem; color: var(--gray-500); line-height: 1.45; margin-top: 0.6rem; }
         /* Aviso de campos que faltan: MISMA caja que el envío (.ptar-warning). */
@@ -13543,6 +13545,21 @@
             var festBox = card.querySelector('[data-ptar-fest-box]');
             // --- Efecto contador del precio (rolling number) ---
             var lastPrice = 0, priceRaf = null, priceCalcTimer = null;
+            // Mientras el precio se está calculando (skeleton en marcha o
+            // pendiente de una consulta), los botones de guardar/confirmar
+            // quedan BLOQUEADOS: si no, se podría guardar un envío con precio
+            // 0 o desactualizado a mitad de cálculo. Se reactivan al pintarse
+            // el precio definitivo. En producción cubrirá la latencia real
+            // del backend (precio, datos, etc.).
+            function setPrecioCalculando(on) {
+                window.__precioCalculando = !!on;
+                ['[data-ptar-submit]', '[data-ptar-save-presupuesto]', '[data-ptar-final-confirm]'].forEach(function (selBtn) {
+                    var b = document.querySelector('#sec-nueva-carga ' + selBtn);
+                    if (!b) return;
+                    b.disabled = !!on;
+                    b.classList.toggle('btn-calc-wait', !!on);
+                });
+            }
             function animatePrice(el, from, to) {
                 if (priceRaf) cancelAnimationFrame(priceRaf);
                 if (from === to) { el.textContent = to.toLocaleString('es-ES'); return; }
@@ -13580,6 +13597,9 @@
                 var oLat = origWrap.dataset.lat, oLon = origWrap.dataset.lon;
                 var dLat = destWrap.dataset.lat, dLon = destWrap.dataset.lon;
                 if (!oLat || !dLat) {
+                    // Sin ruta completa no hay precio válido: se invalida el de
+                    // la ruta anterior (guardarlo sería un precio equivocado).
+                    delete card.dataset.precioBase;
                     etaBox.innerHTML = '<span class="ptar-eta-placeholder">' +
                         (mode === 'carga'
                             ? 'Indica origen, destino y fecha de carga para calcular la entrega estimada.'
@@ -13830,9 +13850,11 @@
                 var pbox = etaBox.querySelector('[data-eta-pricebox]');
                 if (priceCalcTimer) clearTimeout(priceCalcTimer);
                 pbox.innerHTML = window.__priceSkeletonHtml(precioRows);
+                setPrecioCalculando(true);
                 priceCalcTimer = setTimeout(function () {
                     priceCalcTimer = null;
                     window.__renderPriceBox(pbox, precio, precioRows, fromPrice);
+                    setPrecioCalculando(false);
                 }, 1500);
                 lastPrice = precio;
                 if (festBox) festBox.innerHTML = festHtml;  // aviso de festivo fuera de la caja, antes de referencia
@@ -14207,6 +14229,15 @@
                     fechaLarga = 'A confirmar';
                 }
                 if (diaSel) diaSel.classList.remove('ptar-select-error');
+                // NUNCA continuar con el precio a medio calcular (skeleton en
+                // marcha) o sin calcular (ruta sin geolocalizar todavía): se
+                // guardaría un envío con precio 0 o con el precio de la ruta
+                // anterior. Se reintenta en cuanto el cálculo termina.
+                if (mode === 'carga' && (window.__precioCalculando || !parseInt(card.dataset.precioBase || '0', 10))) {
+                    warning.textContent = '⚠ Estamos calculando el precio del envío. Espera un momento y vuelve a intentarlo.';
+                    warning.classList.add('show');
+                    return null;
+                }
                 return {
                     camion: camion, camionLabel: CAMION_INFO[camion] ? CAMION_INFO[camion].label : camion,
                     ml: ml, peso: peso, medidas: medidas,
@@ -15268,12 +15299,13 @@
                             if (sel2) syncTipoSitioIcon(w, sel2.value);
                             geoPrefill(w, p.dir || inp.value);
                         });
-                        // Coordenadas de origen/destino en 2º plano → cuando
-                        // llegan, renderEta pinta la caja de precio completa
-                        // (desglose + ETA) exactamente como en crear envío.
-                        geoPrefill(origWrap, src.origenDir || src.origen);
-                        geoPrefill(destWrap, src.destinoDir || src.destino);
                     }
+                    // Coordenadas de origen/destino en 2º plano → cuando llegan,
+                    // renderEta pinta la caja de precio completa (desglose + ETA)
+                    // exactamente como en crear envío. SIEMPRE (también Repetir):
+                    // sin coordenadas no hay precio calculado y no se puede guardar.
+                    geoPrefill(origWrap, src.origenDir || src.origen);
+                    geoPrefill(destWrap, src.destinoDir || src.destino);
                     renderOcupacion();
                     renderEta();
                     // Precio heredado del presupuesto/carga origen. Como al
