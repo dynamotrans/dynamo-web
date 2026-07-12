@@ -7046,12 +7046,12 @@
     var __ctNow = Date.now();
     function __ctTs(diasAtras, hora) { return __ctNow - diasAtras * 86400000 + ((hora || 10) - 10) * 3600000; }
     var CLIENTES_DATA = [
-        { empresa: 'Marbex Industrial S.L.', cif: 'B41552214', dir: 'Pol. Ind. La Red, C/ Cobre 14', cp: '41500', ciudad: 'Alcalá de Guadaíra', prov: 'Sevilla', pais: 'España', tfno: '+34 954 210 334', email: 'compras@marbexindustrial.es', contacto: 'Julia Gómez', pago: 'Crédito 30 días', cesce: true, notas: '', creadoEn: __ctTs(214, 9), modificadoEn: __ctTs(12, 13) },
-        { empresa: 'GRUPAL ART, S.L.', cif: 'B46881309', dir: 'C/ Traginers 4', cp: '46940', ciudad: 'Manises', prov: 'Valencia', pais: 'España', tfno: '+34 961 523 887', email: 'logistica@grupalart.es', contacto: 'Vicente Ferrer', pago: 'Crédito 30 días', cesce: true, notas: '', creadoEn: __ctTs(388, 12), modificadoEn: __ctTs(41, 17) },
-        { empresa: 'TRUMA STORE, S.L.', cif: 'B98455120', dir: 'Av. de la Industria 22, nave 7', cp: '28108', ciudad: 'Alcobendas', prov: 'Madrid', pais: 'España', tfno: '+34 916 620 445', email: 'pedidos@trumastore.es', contacto: 'Marta Salas', pago: 'Crédito 60 días', cesce: true, notas: 'Solo recepciona de 8:00 a 13:00.', creadoEn: __ctTs(160, 11), modificadoEn: null },
-        { empresa: 'WELDINOX', cif: 'B29617754', dir: 'Pol. La Ermita, C/ Fragua 3', cp: '29600', ciudad: 'Marbella', prov: 'Málaga', pais: 'España', tfno: '+34 952 771 209', email: 'admin@weldinox.com', contacto: 'Sergio Luque', pago: 'Pago por adelantado (proforma)', cesce: false, notas: 'Sin crédito CESCE: siempre proforma antes de cargar.', creadoEn: __ctTs(96, 16), modificadoEn: __ctTs(5, 9) },
-        { empresa: 'CIRCULAR POLIMERI SL', cif: 'B12480336', dir: 'Ctra. N-340 km 972, nave 12', cp: '12200', ciudad: 'Onda', prov: 'Castellón', pais: 'España', tfno: '+34 964 771 655', email: 'trafico@circularpolimeri.es', contacto: 'Anna Traver', pago: 'Crédito 30 días', cesce: true, notas: '', creadoEn: __ctTs(300, 10), modificadoEn: __ctTs(88, 12) },
-        { empresa: 'Distribuciones Levante Sur S.A.', cif: 'A03998811', dir: 'C/ Alberola 18', cp: '03008', ciudad: 'Alicante', prov: 'Alicante', pais: 'España', tfno: '+34 965 108 442', email: 'operaciones@dlevantesur.es', contacto: 'Pedro Ivorra', pago: 'Crédito 30 días', cesce: false, notas: 'Crédito CESCE solicitado, pendiente de resolución.', creadoEn: __ctTs(45, 13), modificadoEn: null }
+        { empresa: 'Marbex Industrial S.L.', cif: 'B41552214', dir: 'Pol. Ind. La Red, C/ Cobre 14', cp: '41500', ciudad: 'Alcalá de Guadaíra', prov: 'Sevilla', pais: 'España', tfno: '+34 954 210 334', email: 'compras@marbexindustrial.es', contacto: 'Julia Gómez', plazo: 30, cesce: true, cesceImporte: 60000, dynamoImporte: 15000, notas: '', creadoEn: __ctTs(214, 9), modificadoEn: __ctTs(12, 13) },
+        { empresa: 'GRUPAL ART, S.L.', cif: 'B46881309', dir: 'C/ Traginers 4', cp: '46940', ciudad: 'Manises', prov: 'Valencia', pais: 'España', tfno: '+34 961 523 887', email: 'logistica@grupalart.es', contacto: 'Vicente Ferrer', plazo: 30, cesce: true, cesceImporte: 40000, dynamoImporte: 10000, notas: '', creadoEn: __ctTs(388, 12), modificadoEn: __ctTs(41, 17) },
+        { empresa: 'TRUMA STORE, S.L.', cif: 'B98455120', dir: 'Av. de la Industria 22, nave 7', cp: '28108', ciudad: 'Alcobendas', prov: 'Madrid', pais: 'España', tfno: '+34 916 620 445', email: 'pedidos@trumastore.es', contacto: 'Marta Salas', plazo: 60, cesce: true, cesceImporte: 80000, dynamoImporte: 20000, notas: 'Solo recepciona de 8:00 a 13:00.', creadoEn: __ctTs(160, 11), modificadoEn: null },
+        { empresa: 'WELDINOX', cif: 'B29617754', dir: 'Pol. La Ermita, C/ Fragua 3', cp: '29600', ciudad: 'Marbella', prov: 'Málaga', pais: 'España', tfno: '+34 952 771 209', email: 'admin@weldinox.com', contacto: 'Sergio Luque', plazo: 0, cesce: false, cesceImporte: 0, dynamoImporte: 0, notas: 'Sin crédito CESCE: siempre proforma antes de cargar.', creadoEn: __ctTs(96, 16), modificadoEn: __ctTs(5, 9) },
+        { empresa: 'CIRCULAR POLIMERI SL', cif: 'B12480336', dir: 'Ctra. N-340 km 972, nave 12', cp: '12200', ciudad: 'Onda', prov: 'Castellón', pais: 'España', tfno: '+34 964 771 655', email: 'trafico@circularpolimeri.es', contacto: 'Anna Traver', plazo: 30, cesce: true, cesceImporte: 50000, dynamoImporte: 12000, notas: '', creadoEn: __ctTs(300, 10), modificadoEn: __ctTs(88, 12) },
+        { empresa: 'Distribuciones Levante Sur S.A.', cif: 'A03998811', dir: 'C/ Alberola 18', cp: '03008', ciudad: 'Alicante', prov: 'Alicante', pais: 'España', tfno: '+34 965 108 442', email: 'operaciones@dlevantesur.es', contacto: 'Pedro Ivorra', plazo: 30, cesce: false, cesceImporte: 0, dynamoImporte: 6000, notas: 'Crédito CESCE solicitado, pendiente de resolución.', creadoEn: __ctTs(45, 13), modificadoEn: null }
     ];
     var TRANSPORTISTAS_DATA = [
         { empresa: 'Transportes Romero e Hijos S.L.', tipo: 'Empresa', cif: 'B90211458', dir: 'Pol. Store, C/ A nave 24', cp: '41008', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', tfno: '+34 954 367 210', email: 'trafico@transromero.es', contacto: 'Antonio Romero', bolsa: 'WTN-482113', camiones: 12, flota: 'Tauliner y rígido', iban: 'ES91 2100 0418 4502 0005 1332', seguro: 'AXA · Póliza CMR 88-456129', notas: '', creadoEn: __ctTs(420, 9), modificadoEn: __ctTs(30, 12) },
@@ -7061,8 +7061,14 @@
         { empresa: 'Ibérica de Tracción S.L.', tipo: 'Empresa', cif: 'B97120448', dir: 'Pol. Fuente del Jarro, C/ Ciutat de Llíria 40', cp: '46988', ciudad: 'Paterna', prov: 'Valencia', pais: 'España', tfno: '+34 961 340 775', email: 'trafico@ibetraccion.es', contacto: 'Empar Soler', bolsa: 'TLR-802341', camiones: 15, flota: 'Tauliner', iban: 'ES62 2038 5778 9830 0076 0136', seguro: 'Zurich · Póliza CMR 31-662184', notas: '', creadoEn: __ctTs(140, 9), modificadoEn: null },
         { empresa: 'Manuela Prieto Vidal', tipo: 'Autónomo', cif: '44982017L', dir: 'Av. de Portugal 12, 4ºA', cp: '06001', ciudad: 'Badajoz', prov: 'Badajoz', pais: 'España', tfno: '+34 620 884 913', email: 'mprietotransporte@hotmail.com', contacto: 'Manuela Prieto', bolsa: 'WTN-701255', camiones: 1, flota: 'Tauliner', iban: 'ES21 3183 0800 8200 1234 5678', seguro: 'Reale · Póliza CMR 09-115672', notas: 'Rutas España-Portugal.', creadoEn: __ctTs(75, 14), modificadoEn: __ctTs(2, 10) }
     ];
+    // Etiqueta del plazo de pago (0 = pago inmediato / por adelantado).
+    function clientePlazoTxt(p) {
+        if (p === 0 || p === '0') return 'Pago inmediato (0 días)';
+        if (p == null || p === '') return '—';
+        return 'Crédito ' + p + ' días';
+    }
     function clienteBlob(c) {
-        return normTxt([c.empresa, c.cif, c.dir, c.cp, c.ciudad, c.prov, c.pais, c.tfno, c.email, c.contacto, c.pago, c.notas].join(' '));
+        return normTxt([c.empresa, c.cif, c.dir, c.cp, c.ciudad, c.prov, c.pais, c.tfno, c.email, c.contacto, clientePlazoTxt(c.plazo), c.notas].join(' '));
     }
     function transportistaBlob(t) {
         return normTxt([t.empresa, t.tipo, t.cif, t.dir, t.cp, t.ciudad, t.prov, t.pais, t.tfno, t.email, t.contacto, t.bolsa, t.flota, t.iban, t.seguro, t.notas].join(' '));
@@ -7087,7 +7093,7 @@
                 '<td><strong>' + esc(c.empresa) + '</strong><div class="meta">' + esc(c.cif || '—') + '</div></td>' +
                 '<td>' + esc(c.contacto || '—') + '<div class="meta">' + esc(c.tfno || '') + (c.email ? (c.tfno ? ' · ' : '') + esc(c.email) : '') + '</div></td>' +
                 '<td>' + esc(c.dir || '—') + '<div class="meta">' + esc([c.cp, c.ciudad, c.prov, c.pais].filter(Boolean).join(', ')) + '</div></td>' +
-                '<td>' + esc(c.pago || '—') + '<div class="meta">' + (c.cesce ? '<span style="color:#0f6b3a;font-weight:700;">Crédito CESCE</span>' : 'Sin crédito CESCE') + '</div></td>' +
+                '<td>' + esc(clientePlazoTxt(c.plazo)) + '<div class="meta">' + (c.cesce ? '<span style="color:#0f6b3a;font-weight:700;">CESCE ' + eur2(c.cesceImporte || 0) + '</span>' : 'Sin crédito CESCE') + ' · Dynamo ' + eur2(c.dynamoImporte || 0) + '</div></td>' +
                 '<td>' + fmtFH(c.creadoEn) + '<div class="meta">' + (c.modificadoEn ? 'Modif. ' + fmtFH(c.modificadoEn) : 'Sin modificaciones') + '</div></td>' +
             '</tr>';
         }).join('');
@@ -7150,7 +7156,15 @@
             '<div class="ptar-sitio-grid">' +
                 ctField('cli-f-empresa', 'Empresa / Razón social *', c.empresa, 'Ej. Marbex Industrial S.L.', true) +
                 ctField('cli-f-cif', 'CIF / NIF *', c.cif, 'B12345678 / 12345678Z') +
-                ctSelect('cli-f-pago', 'Forma de pago', ['Crédito 30 días', 'Crédito 60 días', 'Pago por adelantado (proforma)'], c.pago || 'Crédito 30 días') +
+                (function () {
+                    var pv = (c.plazo == null ? 30 : c.plazo);
+                    return '<div><label>Plazo de pago</label><select id="cli-f-plazo">' +
+                        [[0, 'Pago inmediato (0 días)'], [30, '30 días'], [60, '60 días']].map(function (o) {
+                            return '<option value="' + o[0] + '"' + (o[0] === pv ? ' selected' : '') + '>' + o[1] + '</option>';
+                        }).join('') + '</select></div>';
+                })() +
+                ctField('cli-f-cesceimp', 'Importe crédito CESCE (€)', (c.cesceImporte == null ? '' : c.cesceImporte), 'Ej. 40000', false, 'number') +
+                ctField('cli-f-dynamoimp', 'Importe crédito Dynamo (€)', (c.dynamoImporte == null ? '' : c.dynamoImporte), 'Ej. 10000', false, 'number') +
                 ctField('cli-f-dir', 'Domicilio fiscal (calle y número)', c.dir, 'Calle y número', true) +
                 ctField('cli-f-cp', 'CP', c.cp, '41001') +
                 ctField('cli-f-ciudad', 'Localidad', c.ciudad, 'Sevilla') +
@@ -7216,8 +7230,12 @@
         c.pais = v('cli-f-pais') || 'España';
         c.tfno = v('cli-f-tfno') || null; c.email = v('cli-f-email') || null;
         c.contacto = v('cli-f-contacto') || null;
-        var pagoEl = document.getElementById('cli-f-pago');
-        c.pago = pagoEl ? pagoEl.value : 'Crédito 30 días';
+        var plazoEl = document.getElementById('cli-f-plazo');
+        c.plazo = plazoEl ? parseInt(plazoEl.value, 10) : 30;
+        var cesceImpEl = document.getElementById('cli-f-cesceimp');
+        c.cesceImporte = (cesceImpEl && cesceImpEl.value.trim() !== '') ? Number(cesceImpEl.value) : 0;
+        var dynImpEl = document.getElementById('cli-f-dynamoimp');
+        c.dynamoImporte = (dynImpEl && dynImpEl.value.trim() !== '') ? Number(dynImpEl.value) : 0;
         var cesceEl = document.getElementById('cli-f-cesce');
         c.cesce = !!(cesceEl && cesceEl.checked);
         c.notas = v('cli-f-notas') || null;
