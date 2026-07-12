@@ -184,7 +184,9 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 
 **Método**: cada cambio verificado en Chromium headless (Nominatim/Nager mockeados por el proxy) con screenshots antes de commitear. Sin errores JS en ningún commit. Ojo aprendido: `page.clock` congela las animaciones CSS (los modales salen "fantasma" en screenshots con reloj simulado — no es un bug real).
 
-**Pendientes**: place ID de la ficha de Google (para el enlace directo de reseña) · confirmar hora definitiva del corte (17:10 puesta probando en vivo) · verificar filtro de festivos autonómicos en el preview real · sync `festivos.js` a `main` cuando el usuario dé el OK · al montar el gating de roles, **ocultar P. transportista y Margen al rol cliente** (info interna) · backend del cambio de rol y de la penalización automática (ver TODO).
+**Pendientes**: place ID de la ficha de Google (para el enlace directo de reseña) · verificar filtro de festivos autonómicos en el preview real · sync `festivos.js` a `main` cuando el usuario dé el OK · al montar el gating de roles, **ocultar P. transportista y Margen al rol cliente** (info interna) · backend del cambio de rol y de la penalización automática (ver TODO).
+
+**CORTES DEFINITIVOS del tarifador (fijados 2026-07-13)**: **fecha FIJA → 12:00** · **ventana 1-3 días → 14:00** (hora Madrid, corren todos los días; misma semántica: el corte es la hora límite para que hoy/el siguiente hábil pueda ser el primer día de carga). Sustituyen al 17:10 provisional.
 
 ### 2026-07-11 — Claude Code web (nube)
 
