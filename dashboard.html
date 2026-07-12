@@ -3363,6 +3363,21 @@
             margin-top: 0.75rem; cursor: pointer;
             font-size: 0.8rem; line-height: 1.5; color: var(--gray-700);
         }
+        /* Recuadro de aceptación de condiciones: TODO el recuadro marca/desmarca
+           el check (texto plano); el enlace a las condiciones va en su PROPIA
+           línea debajo, fuera del label, para que abrirlas no pelee con el check. */
+        .ptar-terms-box {
+            border: 1.5px solid var(--gray-200); border-radius: 10px;
+            padding: 0.7rem 0.8rem; background: var(--gray-50);
+            margin-top: 0.75rem;
+        }
+        .ptar-terms-box .ptar-confirm-check { margin: 0; }
+        .ptar-terms-link {
+            display: inline-block; margin: 0.5rem 0 0 1.75rem;
+            font-size: 0.78rem; font-weight: 700; color: var(--purple);
+            text-decoration: underline; min-height: 0;
+        }
+        .ptar-terms-link:hover { opacity: 0.85; }
         /* Check de condiciones sin marcar al intentar confirmar: en rojo */
         .ptar-confirm-check.check-error { color: #dc2626; }
         .ptar-confirm-check.check-error span { color: #dc2626; }
@@ -4756,10 +4771,13 @@
                         ℹ Al activar la discreción comercial, todo lo relativo a la discreción comercial debe tratarse <strong>directamente entre tú y el transportista</strong>, y evitar así malentendidos.
                     </div>
                 </div>
-                <label class="ptar-confirm-check">
-                    <input type="checkbox" data-ptar-check-terms>
-                    <span>He leído y acepto las <a href="#" data-ptar-show-terms>condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L.</span>
-                </label>
+                <div class="ptar-terms-box">
+                    <label class="ptar-confirm-check">
+                        <input type="checkbox" data-ptar-check-terms>
+                        <span>He leído y acepto las <strong>condiciones generales de transporte</strong> de Dynamo Operador Logístico, S.L.</span>
+                    </label>
+                    <a href="#" class="ptar-terms-link" data-ptar-show-terms>Ver condiciones generales de transporte →</a>
+                </div>
                 <div class="ptar-terms-warn" data-ptar-terms-warn>⚠ No has aceptado las condiciones generales de transporte. Marca la casilla para poder confirmar el envío.</div>
                 <div class="ptar-actions ptar-actions-confirm">
                     <button type="button" class="btn-primary btn-visual-disabled" data-ptar-final-confirm>Confirmar envío</button>
@@ -6637,10 +6655,13 @@
                 '<div class="form-2col-side">' +
                     precio +
                     '<div data-almc-pay style="margin-top:1.1rem;"></div>' +
-                    '<label class="ptar-confirm-check" id="almcCheckLbl">' +
-                        '<input type="checkbox" id="almcCheckTerms">' +
-                        '<span>He leído y acepto las <a href="#" id="almcTermsLink">condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L.</span>' +
-                    '</label>' +
+                    '<div class="ptar-terms-box">' +
+                        '<label class="ptar-confirm-check" id="almcCheckLbl">' +
+                            '<input type="checkbox" id="almcCheckTerms">' +
+                            '<span>He leído y acepto las <strong>condiciones generales de transporte</strong> de Dynamo Operador Logístico, S.L.</span>' +
+                        '</label>' +
+                        '<a href="#" class="ptar-terms-link" id="almcTermsLink">Ver condiciones generales de transporte →</a>' +
+                    '</div>' +
                     '<div class="ptar-terms-warn" id="almcTermsWarn">⚠ No has aceptado las condiciones generales de transporte. Marca la casilla para poder confirmar el almacenamiento.</div>' +
                     '<p class="alm-err" id="almcErr"></p>' +
                     '<button class="btn-primary" style="width:100%;height:56px;font-size:1rem;margin-top:0.4rem;" onclick="almCrear();return false;">Confirmar almacenamiento</button>' +
