@@ -3366,6 +3366,12 @@
         /* Recuadro de aceptación de condiciones: TODO el recuadro marca/desmarca
            el check (texto plano); el enlace a las condiciones va en su PROPIA
            línea debajo, fuera del label, para que abrirlas no pelee con el check. */
+        /* Columnas de precio (base sin IVA) + margen en tablas admin */
+        .td-precio { cursor: pointer; }
+        .td-precio:hover strong { color: var(--purple); text-decoration: underline; }
+        .td-precio .meta-manual { font-size: 0.66rem; font-weight: 700; color: var(--purple); }
+        .marg-pos { color: #0f6b3a; font-weight: 800; }
+        .marg-neg { color: #dc2626; font-weight: 800; }
         .ptar-terms-box {
             border: 1.5px solid var(--gray-200); border-radius: 10px;
             padding: 0.7rem 0.8rem; background: var(--gray-50);
@@ -4310,7 +4316,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Recogida</th><th>Entrega</th><th>Envío</th><th>Mercancía</th><th>Vehículo</th>
+                    <th>Recogida</th><th>Entrega</th><th>Envío</th><th>Mercancía</th><th>Vehículo</th><th>P. cliente<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th><th>P. transportista<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th><th>Margen<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -4907,7 +4913,7 @@
         <div class="table-wrap">
             <table class="data data-penalizaciones">
                 <thead>
-                    <tr><th>Penalización</th><th>Envío</th><th>Tipo</th><th>Transportista</th><th>Importe (sin IVA)</th><th>Fecha</th></tr>
+                    <tr><th>Penalización</th><th>Envío</th><th>Tipo</th><th>Transportista</th><th>P. cliente<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th><th>P. transportista<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th><th>Margen<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th><th>Fecha</th></tr>
                 </thead>
                 <tbody id="tbodyPenalizaciones"></tbody>
             </table>
@@ -5201,6 +5207,8 @@
         // Abrir en limpio SIEMPRE sale del modo edición (cargaModificarEnvio lo
         // reactiva después si procede).
         window._cargaEditRef = null;
+        window._cargaEditSig0 = null;
+        window._cargaEditTipos0 = null;
         var h2 = document.querySelector('[data-nueva-carga-title]');
         if (h2) h2.textContent = 'Nuevo envío';
         var sb = document.querySelector('#sec-nueva-carga [data-ptar-submit]');
@@ -5252,6 +5260,9 @@
             diaSel2.dispatchEvent(new Event('change', { bubbles: true }));
         }
         window._cargaEditRef = ref;
+        // Firma de precio del formulario TAL CUAL queda prefijado: si al
+        // guardar no ha cambiado, el precio fijado a mano se conserva.
+        window._cargaEditSig0 = window.__formPriceSig ? window.__formPriceSig() : null;
         // Discreción comercial tal cual está en el envío.
         var discM = document.querySelector('#sec-nueva-carga [data-ptar-discrecion]');
         if (discM) discM.checked = !!src.discrecion;
@@ -7374,6 +7385,102 @@
             'Creado: ' + (o.creadoTxt || fmtFH(o.creadoEn)) +
             (o.modificadoEn ? ' &nbsp;·&nbsp; Última modificación: ' + fmtFH(o.modificadoEn) : '') + '</div>';
     }
+    // --- Precios BASE (sin IVA) de un envío: cliente / transportista / margen ---
+    // El precio de la tabla es SIEMPRE el total base sin IVA (sin desglosar).
+    // El transportista del mock se deriva determinista del ref (~72-85% del
+    // cliente); en producción vendrá del dato real de compra.
+    function cargaPrecios(c) {
+        if (c.precioCliente == null) {
+            var n = parseInt(String(c.precio || '').replace(/[^\d]/g, ''), 10) || 0;
+            c.precioCliente = n || null;
+        }
+        if (c.precioTransportista == null && c.precioCliente) {
+            var h = hashStr(c.ref);
+            c.precioTransportista = Math.round(c.precioCliente * (0.72 + (h % 13) / 100) / 10) * 10;
+        }
+        return c;
+    }
+    // Firma de los campos que AFECTAN al precio: si al modificar un envío la
+    // firma no cambia y su precio está fijado a mano, NO se recalcula.
+    function cargaPriceSig(c) {
+        return [c.origen, c.destino, c.origenDir, c.destinoDir,
+            JSON.stringify((c.paradas || []).map(function (pr) { return [pr.dir, pr.tipo]; })),
+            c.medidas, c.mercancia, c.ventana, c.fecha, c.tipoCamion].join('|');
+    }
+    function margenHtml(pc, pt) {
+        if (!pc || pt == null) return '—';
+        var m = pc - pt;
+        return '<span class="' + (m > 0 ? 'marg-pos' : (m < 0 ? 'marg-neg' : '')) + '">' + eur2(m) + '</span>';
+    }
+    // Mini-editor de precio (cliente o transportista) de un envío: muestra el
+    // DESGLOSE que tenga (importe de envío, techo, urgencia…), cada concepto
+    // editable a mano, el total base se recalcula solo y Guardar lo fija
+    // manualmente (no se recalculará al modificar el envío si no cambia nada
+    // que afecte al precio).
+    function openPrecioEditor(ref, lado) {
+        var c = findCargaDataByRef(ref); if (!c) return;
+        cargaPrecios(c);
+        var esCli = lado === 'cliente';
+        if (esCli && (!c._rowsCli || !c._rowsCli.length)) c._rowsCli = [{ k: 'Importe de envío', v: c.precioCliente || 0 }];
+        if (!esCli && (!c._rowsTra || !c._rowsTra.length)) c._rowsTra = [{ k: 'Porte transportista', v: c.precioTransportista || 0 }];
+        var rows = esCli ? c._rowsCli : c._rowsTra;
+        var tot0 = rows.reduce(function (t, r) { return t + (parseFloat(r.v) || 0); }, 0);
+        var body =
+            '<p style="font-size:0.85rem;line-height:1.55;color:var(--gray-700);margin-bottom:0.8rem;">Importes <strong>BASE, sin IVA</strong>. Edita los conceptos y el total se recalcula solo. <strong>Guardar</strong> fija el precio a mano: al modificar el envío <strong>no se recalculará</strong> mientras no cambie nada que afecte al precio (origen, destino, medidas, techo, ventana…).</p>' +
+            rows.map(function (r, i) {
+                return '<div class="modal-form-row" style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.55rem;">' +
+                    '<label style="flex:1;margin:0;">' + escapeHtml(r.k) + '</label>' +
+                    '<input type="number" step="10" inputmode="decimal" data-pe-i="' + i + '" value="' + (parseFloat(r.v) || 0) + '" style="width:140px;text-align:right;">' +
+                '</div>';
+            }).join('') +
+            '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1.5px solid var(--gray-200);padding-top:0.7rem;margin-top:0.5rem;font-weight:800;color:var(--navy);">Total base (sin IVA)' +
+                '<span data-pe-total style="color:var(--purple);font-size:1.2rem;">' + eur2(tot0) + '</span></div>' +
+            (c.precioManual ? '<p style="font-size:0.76rem;color:var(--gray-500);font-weight:600;margin-top:0.5rem;">Este envío ya tiene precio fijado a mano.</p>' : '');
+        openDashModal({
+            icon: 'edit',
+            title: (esCli ? 'Precio cliente' : 'Precio transportista') + ' — ' + ref,
+            sub: 'Base sin IVA · edición manual',
+            body: body,
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                '<button class="btn-primary" onclick="precioEditorGuardar(\'' + escapeHtml(ref) + '\',\'' + lado + '\')">Guardar precio</button>',
+            afterOpen: function () {
+                document.querySelectorAll('[data-pe-i]').forEach(function (inp) {
+                    inp.addEventListener('input', function () {
+                        var tot = 0;
+                        document.querySelectorAll('[data-pe-i]').forEach(function (x) { tot += parseFloat(x.value) || 0; });
+                        var t = document.querySelector('[data-pe-total]'); if (t) t.textContent = eur2(tot);
+                    });
+                });
+            }
+        });
+    }
+    window.openPrecioEditor = openPrecioEditor;
+    function precioEditorGuardar(ref, lado) {
+        var c = findCargaDataByRef(ref); if (!c) return;
+        var esCli = lado === 'cliente';
+        var rows = esCli ? c._rowsCli : c._rowsTra;
+        var tot = 0;
+        document.querySelectorAll('[data-pe-i]').forEach(function (inp) {
+            var i = parseInt(inp.getAttribute('data-pe-i'), 10);
+            var v = parseFloat(inp.value) || 0;
+            if (rows && rows[i]) rows[i].v = v;
+            tot += v;
+        });
+        tot = Math.round(tot * 100) / 100;
+        if (esCli) {
+            c.precioCliente = tot;
+            c.precio = String(Math.round(tot)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €';
+        } else {
+            c.precioTransportista = tot;
+        }
+        c.precioManual = true;
+        c.modificadoEn = Date.now();
+        c._psig = cargaPriceSig(c);
+        closeDashModal();
+        if (typeof renderCargasTable === 'function') renderCargasTable();
+        showModalSuccess('Precio guardado', (esCli ? 'Precio cliente' : 'Precio transportista') + ' de ' + ref + ' fijado a mano en ' + eur2(tot) + ' (base sin IVA). No se recalculará al modificar el envío mientras no cambie nada que afecte al precio.');
+    }
+    window.precioEditorGuardar = precioEditorGuardar;
     function ctField(id, label, val, ph, span, type) {
         return '<div' + (span ? ' style="grid-column:1/-1"' : '') + '><label>' + escapeHtml(label) + '</label>' +
             '<input id="' + id + '" type="' + (type || 'text') + '" value="' + escapeHtml(val == null ? '' : String(val)) + '"' + (ph ? ' placeholder="' + escapeHtml(ph) + '"' : '') + '></div>';
@@ -10281,6 +10388,13 @@
     // Fecha/hora de creación determinista para el mock (la fecha ya existe;
     // la hora se deriva del ref para que sea estable en cualquier dispositivo).
     PENALIZACIONES_DATA.forEach(function (p) {
+        // Precio cliente (lo repercutido) y transportista (su parte), BASE sin
+        // IVA. Mock determinista; en producción vendrán del dato real.
+        if (p.impCliente == null) p.impCliente = p.importe;
+        if (p.impTrans == null) {
+            var ht = hashStr(p.ref + 'T');
+            p.impTrans = Math.round(p.impCliente * (0.7 + (ht % 20) / 100) / 5) * 5;
+        }
         if (p.creadoEn) return;
         var m = String(p.fecha).split('/');
         var d = new Date(+m[2], +m[1] - 1, +m[0]);
@@ -10310,7 +10424,7 @@
         });
         var slice = pageSlice('penalizaciones', arr, q + '|' + ft, 'penalizacionesPagination', 'penalizacionesShowing', 'Sin penalizaciones');
         if (!arr.length) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--gray-500);">' +
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--gray-500);">' +
                 (PENALIZACIONES_DATA.length ? 'No hay penalizaciones que coincidan con el filtro.' : 'Aún no hay penalizaciones. Crea una con «+ Crear penalización».') + '</td></tr>';
             return;
         }
@@ -10320,12 +10434,66 @@
                 '<td><strong>' + escapeHtml(p.envio) + '</strong></td>' +
                 '<td><span class="badge badge-prog">' + escapeHtml(p.tipo) + '</span></td>' +
                 '<td>' + escapeHtml(p.transportista || '—') + '<div class="meta">' + escapeHtml(CLIENTE_ACTUAL) + '</div></td>' +
-                '<td><strong>' + almEur(p.importe) + '</strong></td>' +
+                '<td class="amount td-precio" onclick="event.stopPropagation();openPenPrecioEditor(\'' + escapeHtml(p.ref) + '\')"><strong>' + eur2(p.impCliente != null ? p.impCliente : p.importe) + '</strong>' + (p.precioManual ? '<div class="meta-manual">fijado a mano</div>' : '') + '</td>' +
+                '<td class="amount td-precio" onclick="event.stopPropagation();openPenPrecioEditor(\'' + escapeHtml(p.ref) + '\')"><strong>' + eur2(p.impTrans || 0) + '</strong></td>' +
+                '<td class="amount">' + margenHtml(p.impCliente != null ? p.impCliente : p.importe, p.impTrans || 0) + '</td>' +
                 '<td>' + escapeHtml(fechaConDia(p.fecha)) + '</td>' +
             '</tr>';
         }).join('');
     }
     window.renderPenalizacionesTable = renderPenalizacionesTable;
+    // Mini-editor de precios de una penalización: cliente y transportista
+    // (BASE sin IVA) editables a mano, margen recalculado en vivo y Guardar
+    // fija ambos manualmente.
+    function openPenPrecioEditor(ref) {
+        var p = PENALIZACIONES_DATA.filter(function (x) { return x.ref === ref; })[0];
+        if (!p) return;
+        function row(lbl, id, v) {
+            return '<div class="modal-form-row" style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.55rem;">' +
+                '<label style="flex:1;margin:0;">' + lbl + '</label>' +
+                '<input type="number" step="5" inputmode="decimal" id="' + id + '" value="' + (parseFloat(v) || 0) + '" style="width:140px;text-align:right;"></div>';
+        }
+        openDashModal({
+            icon: 'edit',
+            title: 'Precios — ' + ref,
+            sub: 'Base sin IVA · edición manual',
+            body:
+                '<p style="font-size:0.85rem;line-height:1.55;color:var(--gray-700);margin-bottom:0.8rem;">Importes <strong>BASE, sin IVA</strong>: lo repercutido al <strong>cliente</strong> y la parte del <strong>transportista</strong>. El margen se recalcula solo. <strong>Guardar</strong> los fija a mano.</p>' +
+                row('Precio cliente', 'penPeCli', p.impCliente != null ? p.impCliente : p.importe) +
+                row('Precio transportista', 'penPeTra', p.impTrans || 0) +
+                '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1.5px solid var(--gray-200);padding-top:0.7rem;margin-top:0.5rem;font-weight:800;color:var(--navy);">Margen (base sin IVA)' +
+                    '<span id="penPeMarg" style="font-size:1.2rem;"></span></div>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                '<button class="btn-primary" onclick="penPrecioGuardar(\'' + escapeHtml(ref) + '\')">Guardar precios</button>',
+            afterOpen: function () {
+                function upd() {
+                    var cli = parseFloat((document.getElementById('penPeCli') || {}).value) || 0;
+                    var tra = parseFloat((document.getElementById('penPeTra') || {}).value) || 0;
+                    var el = document.getElementById('penPeMarg');
+                    if (el) el.innerHTML = margenHtml(cli, tra);
+                }
+                ['penPeCli', 'penPeTra'].forEach(function (id) {
+                    var el = document.getElementById(id);
+                    if (el) el.addEventListener('input', upd);
+                });
+                upd();
+            }
+        });
+    }
+    window.openPenPrecioEditor = openPenPrecioEditor;
+    function penPrecioGuardar(ref) {
+        var p = PENALIZACIONES_DATA.filter(function (x) { return x.ref === ref; })[0];
+        if (!p) return;
+        p.impCliente = parseFloat((document.getElementById('penPeCli') || {}).value) || 0;
+        p.impTrans = parseFloat((document.getElementById('penPeTra') || {}).value) || 0;
+        p.importe = p.impCliente;
+        p.precioManual = true;
+        p.modificadoEn = Date.now();
+        closeDashModal();
+        renderPenalizacionesTable();
+        showModalSuccess('Precios guardados', 'Precios de ' + ref + ' fijados a mano: cliente ' + eur2(p.impCliente) + ' · transportista ' + eur2(p.impTrans) + ' (base sin IVA).');
+    }
+    window.penPrecioGuardar = penPrecioGuardar;
 
     // --- Crear penalización (modal con autocompletado de envío) ---
     var _penEnvioSel = null;
@@ -10433,6 +10601,7 @@
             var p0 = PENALIZACIONES_DATA.filter(function (x) { return x.ref === _penEditRef; })[0];
             if (p0) {
                 p0.envio = _penEnvioSel; p0.tipo = tipo; p0.descripcion = desc; p0.importe = imp;
+                p0.impCliente = imp;   // el importe del formulario es el del cliente
                 p0.transportista = c.transportista || p0.transportista || null;
                 p0.modificadoEn = Date.now();
             }
@@ -10442,6 +10611,7 @@
             PENALIZACIONES_DATA.unshift({
                 ref: refFinal, envio: _penEnvioSel, tipo: tipo,
                 transportista: c.transportista || null, descripcion: desc, importe: imp, fecha: penHoyMas(0),
+                impCliente: imp, impTrans: 0,   // el del transportista se fija a mano
                 creadoEn: Date.now()
             });
         }
@@ -12022,7 +12192,7 @@
         var tbody = document.getElementById('tbodyCargas');
         if (!tbody) return;
         if (slice.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
         } else {
             tbody.innerHTML = slice.map(function (c) {
                 // Si la carga tiene fecha asignada por el equipo, la
@@ -12093,6 +12263,16 @@
                         (c.matricula ? '<span class="meta-matricula">' + esc(c.matricula) + '</span>' : '<span class="meta meta-pend">Sin matrícula</span>') +
                         (c.tipoCamion ? '<div class="meta">' + esc(c.tipoCamion) + '</div>' : '') +
                     '</td>' +
+                    (function () {
+                        // Precio cliente / transportista (BASE sin IVA, sin desglosar)
+                        // + margen. Clicables → mini-editor de precio manual.
+                        cargaPrecios(c);
+                        var pc = c.precioCliente, pt = c.precioTransportista;
+                        var man = c.precioManual ? '<div class="meta-manual">fijado a mano</div>' : '';
+                        return '<td class="amount td-precio" onclick="event.stopPropagation();openPrecioEditor(\'' + esc(c.ref) + '\',\'cliente\')"><strong>' + (pc ? eur2(pc) : '—') + '</strong>' + man + '</td>' +
+                            '<td class="amount td-precio" onclick="event.stopPropagation();openPrecioEditor(\'' + esc(c.ref) + '\',\'transportista\')"><strong>' + (pt ? eur2(pt) : '—') + '</strong>' + man + '</td>' +
+                            '<td class="amount">' + margenHtml(pc, pt) + '</td>';
+                    })() +
                     actionsCell(actionItemsCarga(c)) +
                     '</tr>';
             }).join('');
@@ -14367,6 +14547,24 @@
                     }).filter(function (p) { return p.texto; })
                 };
             }
+            // Firma de los CONTROLES del formulario que afectan al precio.
+            // Se captura al abrir "Modificar envío" y se compara al guardar:
+            // si es idéntica (y los tipos de la confirmación no cambiaron), un
+            // precio FIJADO A MANO se conserva en vez de recalcularse.
+            function formPriceSig() {
+                var pts = [origInput.value, destInput.value];
+                paradaRows().forEach(function (r) {
+                    pts.push(r.querySelector('input').value + '§' + r.querySelector('select').value);
+                });
+                var tO = card.querySelector('[data-ptar-tipoorig]'), tD = card.querySelector('[data-ptar-tipodest]');
+                var tr = card.querySelector('[data-ptar-trampilla]'), ni = card.querySelector('[data-ptar-nima]');
+                return [pts.join('|'), mlSel.value, pesoSel.value,
+                    mercaSel ? mercaSel.value : '', cargaTipoSel ? cargaTipoSel.value : '',
+                    camionSel.value, (tr && tr.checked) ? 1 : 0, (ni && ni.checked) ? 1 : 0,
+                    tO ? tO.value : '', tD ? tD.value : '',
+                    urgenciaSel ? urgenciaSel.value : '', diaSel ? diaSel.value : ''].join('~');
+            }
+            if (mode === 'carga') window.__formPriceSig = formPriceSig;
             // Qué sitio se eligió en el buscador de un punto: de la agenda
             // (siteKey) o de Google (ficha completa en JSON). null = dirección
             // a secas sin empresa asociada.
@@ -14484,15 +14682,43 @@
                     // la whitelist de makeCarga → se pone aquí).
                     var discChk = document.querySelector('#sec-nueva-carga [data-ptar-discrecion]');
                     nuevaCarga.discrecion = !!(discChk && discChk.checked);
+                    // Desglose del precio cliente (para el mini-editor de la tabla).
+                    nuevaCarga._rowsCli = (d.precioRows || []).map(function (r) { return { k: r.k, v: r.v }; });
+                    if (!nuevaCarga._rowsCli.length) nuevaCarga._rowsCli = [{ k: 'Importe de envío', v: precioNum }];
+                    nuevaCarga.precioCliente = precioNum;
                     if (prevIdx > -1) {
                         // Edición: mismo nº y misma posición; marca de modificado
                         // (makeCarga no la contempla en su whitelist → se pone aquí).
                         nuevaCarga.modificadoEn = Date.now();
+                        // PRECIO FIJADO A MANO: si NADA que afecte al precio ha
+                        // cambiado en el formulario (origen, destino, paradas,
+                        // medidas, mercancía/techo, camión, trampilla, NIMA,
+                        // tipos de lugar, ventana, fecha) NI en los tipos del
+                        // paso de confirmación, se CONSERVA el precio manual.
+                        var __sinCambiosPrecio = prevCarga && prevCarga.precioManual &&
+                            window._cargaEditSig0 && window.__formPriceSig &&
+                            window.__formPriceSig() === window._cargaEditSig0 &&
+                            window._cargaEditTipos0 != null &&
+                            confTiposSig() === window._cargaEditTipos0;
+                        if (__sinCambiosPrecio) {
+                            nuevaCarga.precio = prevCarga.precio;
+                            nuevaCarga.precioCliente = prevCarga.precioCliente;
+                            nuevaCarga._rowsCli = prevCarga._rowsCli;
+                            nuevaCarga.precioManual = true;
+                        }
+                        // El precio de compra (transportista) se conserva siempre:
+                        // no depende del formulario del cliente.
+                        if (prevCarga) {
+                            nuevaCarga.precioTransportista = prevCarga.precioTransportista != null ? prevCarga.precioTransportista : null;
+                            nuevaCarga._rowsTra = prevCarga._rowsTra || null;
+                        }
                         CARGAS_DATA[prevIdx] = nuevaCarga;
                     } else {
                         CARGAS_DATA.unshift(nuevaCarga);
                     }
                     window._cargaEditRef = null;
+                    window._cargaEditSig0 = null;
+                    window._cargaEditTipos0 = null;
                     TABLE_STATE.cargas.page = 1;
                     // Si la carga es "Programado sin fecha definida" cae en
                     // la pestaña "Previsión sin fecha" (no está en agenda real); en
@@ -14590,6 +14816,16 @@
                     else { var m = /^parada(\d+)$/.exec(id); if (m && pendingData.paradas && pendingData.paradas[+m[1]]) pendingData.paradas[+m[1]].tipo = val; }
                 });
             }
+            // Serializa los tipos de lugar del paso de confirmación (origen +
+            // paradas + destino). La "foto" tomada al abrir la confirmación de
+            // un Modificar envío se compara al guardar: si el usuario no los
+            // tocó, un precio fijado a mano se conserva.
+            function confTiposSig() {
+                if (!confirmCard) return '';
+                var vs = [];
+                confirmCard.querySelectorAll('[data-sitio-tipo]').forEach(function (sel) { vs.push(sel.value); });
+                return vs.join('~');
+            }
             // Recalcula el precio con los tipos de lugar de la confirmación:
             // base (sin recargo, del paso 1) × (1 + suma de recargos por tipo).
             function recalcConfPrice() {
@@ -14619,6 +14855,7 @@
                 if (flat)       extras.push({ k: 'Preaviso urgente', v: flat });
                 var rows = extras.length ? [{ k: 'Importe de envío', v: envioNeto }].concat(extras) : [];
                 pendingData.precioMock = precio;
+                pendingData.precioRows = rows.length ? rows : [{ k: 'Importe de envío', v: precio }];
                 var eur = String(precio).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                 var box = confirmCard.querySelector('[data-ptar-conf-price]');
                 if (box) {
@@ -15036,6 +15273,12 @@
                         sel.addEventListener('change', function () { syncConfTipos(); recalcConfPrice(); renderPago(pendingData); });
                     });
                     syncConfTipos();
+                    // Modificar envío: foto de los tipos tal cual se ABREN (los
+                    // selects autoseleccionan la ficha del sitio sin que el
+                    // usuario toque nada). Solo la 1ª vez por edición: si el
+                    // usuario cambia un tipo, vuelve a "Editar datos" y
+                    // re-confirma, la diferencia con la foto original se nota.
+                    if (window._cargaEditRef && window._cargaEditTipos0 == null) window._cargaEditTipos0 = confTiposSig();
                     // Campos obligatorios: revalidar en vivo mientras se escribe
                     // (limpia el rojo y el aviso de la cabecera).
                     confirmCard.querySelectorAll('input[data-sitio-req]').forEach(function (inp) {
