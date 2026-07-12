@@ -5227,7 +5227,7 @@
             var isoF = dF.getFullYear() + '-' + padF(dF.getMonth() + 1) + '-' + padF(dF.getDate());
             if (!diaSel2.querySelector('option[value="' + isoF + '"]')) {
                 var oF = document.createElement('option');
-                oF.value = isoF; oF.textContent = fSrc;
+                oF.value = isoF; oF.textContent = fechaConDia(fSrc);
                 diaSel2.insertBefore(oF, diaSel2.querySelector('option[value="otro"]'));
             }
             diaSel2.value = isoF;
@@ -10731,11 +10731,13 @@
         return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + String(d.getFullYear()).slice(-2) + ' · ' + p(d.getHours()) + ':' + p(d.getMinutes());
     }
     function fechaConDia(s) {
+        // Formato corto de fecha de TODA la plataforma: 'Vie 10/07/26'
+        // (día de la semana + DD/MM/YY, siempre con año).
         if (!s || s === 'Sin fecha') return s || '';
         var m = String(s).match(/^(\d{1,2})\/(\d{1,2})$/);
         if (!m) return s;
         var d = new Date(new Date().getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
-        return DOW_SHORT[d.getDay()] + ' ' + s;
+        return DOW_SHORT[d.getDay()] + ' ' + s + '/' + String(d.getFullYear()).slice(-2);
     }
     // --- Ventana de carga como rango inicio–fin (días laborables) ---
     // 'Fija' → un solo día. '1 a 3 días' → inicio + 2 laborables (3 días).
@@ -12758,8 +12760,9 @@
             return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
         }
         function fmtFull(d) {
+            // Mismo formato corto que fechaConDia: 'Vie 10/07/26' (con año).
             var dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-            return dias[d.getDay()] + ' ' + fmtDate(d);
+            return dias[d.getDay()] + ' ' + fmtDate(d) + '/' + String(d.getFullYear()).slice(-2);
         }
         function isWeekend(d) { var x = d.getDay(); return x === 0 || x === 6; }
         // Hora real de Sevilla (Europe/Madrid) para el corte de las 14:00.
