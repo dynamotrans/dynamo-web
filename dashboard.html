@@ -6888,7 +6888,8 @@
             destinoDir: destino ? (destino.empresa ? destino.empresa + ' — ' : '') + (destino.dir || '') : null,
             notas: p.notas,
             formaPago: p.formaPago || 'transferencia',
-            creado: almISO(new Date())
+            creado: almISO(new Date()),
+            creadoEn: Date.now()
         };
         ALMACENES_DATA.unshift(reg);
         renderAlmacenesTable();
@@ -6921,6 +6922,15 @@
         // Cancelado por el cliente.
         { ref: '#AX204808', almIdx: almIdxByProv('Sevilla'),   entrada: almRelISO(-6),  salida: almRelISO(-1),  reparto: 0, entrega: null, destinoKey: null, destinoDir: null, notas: 'Anulado por cambio de ruta', cancelado: true, creado: almRelISO(-9) }
     ];
+    // Fecha/hora de creación determinista para el mock (a partir de la fecha
+    // 'creado' ISO + hora derivada del ref, estable en cualquier dispositivo).
+    ALMACENES_DATA.forEach(function (r) {
+        if (r.creadoEn) return;
+        var d = new Date((r.creado || almISO(new Date())) + 'T00:00:00');
+        var h = hashStr(r.ref);
+        d.setHours(8 + (h % 10), h % 60, 0, 0);
+        r.creadoEn = d.getTime();
+    });
     function almEstadoDe(r) {
         if (r.cancelado) return { label: 'Cancelado', color: 'gray' };
         if (r.pendientePago) return { label: 'Pendiente de pago', color: 'pago' };
@@ -7001,6 +7011,7 @@
         var a = DYNAMO_ALMACENES[r.almIdx] || {};
         var est = almEstadoDe(r);
         var body =
+            ctMetaHTML(r) +
             '<div class="alm-lock-box">' + almAddrHTML(a) +
                 '<div class="lock-note">El almacén no se puede cambiar. Si necesitas otra ubicación, crea un nuevo almacenamiento.</div></div>' +
             '<div class="modal-form-row"><label>Fecha de entrada</label><input type="date" class="fp-date" id="almDxEnt" value="' + r.entrada + '" onchange="almDxRefresh(\'' + ref + '\')"></div>' +
@@ -7069,6 +7080,7 @@
         if (sal.value < ent.value) return fail('La fecha de salida no puede ser anterior a la de entrada.');
         var dias = Math.round((new Date(sal.value + 'T00:00:00') - new Date(ent.value + 'T00:00:00')) / 86400000);
         if (dias > 7) return fail('La estancia máxima es de 7 días.');
+        r.modificadoEn = Date.now();
         r.entrada = ent.value; r.salida = sal.value;
         r.reparto = parseInt(document.getElementById('almDxRep').value, 10) || 0;
         // La entrega del reparto es el propio día de salida.
@@ -7181,7 +7193,8 @@
                     '<div><label>Reparto urbano · camión 4 m (€ / reparto)</label><input id="almc-f-preparto" type="number" min="0" step="10" value="' + escapeHtml(String(pr)) + '" placeholder="' + ALM_REPARTO + '"></div>' +
                 '</div>' +
             '</div>';
-        return toggle + precios + sitioFormHTML(s, false);
+        var meta = a ? ctMetaHTML({ creadoEn: a.creadoEn || mockTsDe(a.key || a.empresa || a.prov || 'alm'), modificadoEn: a.modificadoEn }) : '';
+        return meta + toggle + precios + sitioFormHTML(s, false);
     }
     function openAlmacenCatModal(idx) {
         var esEdit = (idx != null && idx >= 0 && idx < DYNAMO_ALMACENES.length);
@@ -7229,6 +7242,9 @@
         if (parts.length >= 2) a.ciudad = parts[1].replace(/^\d{4,5}\s*/, '') || a.ciudad;
         if (parts.length >= 3) a.prov = parts[2] || a.prov;
         if (!a.key) a.key = 'dynamo-' + normTxt(empresa).replace(/[^a-z0-9]+/g, '-').slice(0, 30);
+        // Sellos de creación/modificación (visibles en la ficha).
+        if (edit) a.modificadoEn = Date.now();
+        else a.creadoEn = Date.now();
         a._touched = true;                 // marca la edición para persistirla
         if (!edit) { a._custom = true; DYNAMO_ALMACENES.push(a); }
         persistAlmacenes();                // guarda en localStorage (sobrevive a la recarga)
@@ -7302,7 +7318,7 @@
                 '<td>' + esc(c.contacto || '—') + '<div class="meta">' + esc(c.tfno || '') + (c.email ? (c.tfno ? ' · ' : '') + esc(c.email) : '') + '</div></td>' +
                 '<td>' + esc(c.dir || '—') + '<div class="meta">' + esc([c.cp, c.ciudad, c.prov, c.pais].filter(Boolean).join(', ')) + '</div></td>' +
                 '<td>' + esc(clientePlazoTxt(c.plazo)) + '<div class="meta">' + (c.cesce ? '<span style="color:#0f6b3a;font-weight:700;">CESCE ' + eur2(c.cesceImporte || 0) + '</span>' : 'Sin crédito CESCE') + ' · Dynamo ' + eur2(c.dynamoImporte || 0) + '</div></td>' +
-                '<td>' + fmtFH(c.creadoEn) + '<div class="meta">' + (c.modificadoEn ? 'Modif. ' + fmtFH(c.modificadoEn) : 'Sin modificaciones') + '</div></td>' +
+                '<td>' + fmtFH(c.creadoEn) + (c.modificadoEn ? '<div class="meta">Modif. ' + fmtFH(c.modificadoEn) + '</div>' : '') + '</td>' +
             '</tr>';
         }).join('');
         tbody.querySelectorAll('tr[data-cli]').forEach(function (tr) {
@@ -7331,7 +7347,7 @@
                 '<td>' + esc(t.contacto || '—') + '<div class="meta">' + esc(t.tfno || '') + (t.email ? (t.tfno ? ' · ' : '') + esc(t.email) : '') + '</div></td>' +
                 '<td>' + (t.bolsa ? '<span class="dtc-mat">' + esc(t.bolsa) + '</span>' : '—') + '</td>' +
                 '<td>' + esc(t.flota || '—') + '<div class="meta">' + (t.camiones ? t.camiones + (t.camiones === 1 ? ' camión' : ' camiones') : '—') + '</div></td>' +
-                '<td>' + fmtFH(t.creadoEn) + '<div class="meta">' + (t.modificadoEn ? 'Modif. ' + fmtFH(t.modificadoEn) : 'Sin modificaciones') + '</div></td>' +
+                '<td>' + fmtFH(t.creadoEn) + (t.modificadoEn ? '<div class="meta">Modif. ' + fmtFH(t.modificadoEn) + '</div>' : '') + '</td>' +
             '</tr>';
         }).join('');
         tbody.querySelectorAll('tr[data-tra]').forEach(function (tr) {
@@ -7340,10 +7356,23 @@
     }
     window.renderTransportistasTable = renderTransportistasTable;
     // --- Formularios (mismo grid de 2 columnas que la ficha de Sitios) ---
+    // Timestamp MOCK determinista a partir de un texto (mismo texto → misma
+    // fecha/hora en cualquier dispositivo): entre 20 y 380 días atrás, en
+    // horario laboral. Para registros del catálogo sin fecha de alta real.
+    function mockTsDe(str) {
+        var h = hashStr(String(str || 'x'));
+        var d = new Date(); d.setDate(d.getDate() - (20 + (h % 360)));
+        d.setHours(8 + (h % 10), h % 60, 0, 0);
+        return d.getTime();
+    }
+    // Línea "Creado … · Última modificación …" de la ficha de CUALQUIER
+    // registro. La modificación solo se muestra si existe (regla de la
+    // plataforma). Acepta creadoEn (ms) o creadoTxt (texto ya formateado).
     function ctMetaHTML(o) {
-        if (!o || !o.creadoEn) return '';
+        if (!o || (!o.creadoEn && !o.creadoTxt)) return '';
         return '<div style="margin:0 0 0.9rem;padding:0.55rem 0.85rem;border:1px solid var(--gray-200);border-radius:9px;background:var(--gray-50);font-size:0.78rem;color:var(--gray-500);font-weight:600;">' +
-            'Creado: ' + fmtFH(o.creadoEn) + ' &nbsp;·&nbsp; Última modificación: ' + (o.modificadoEn ? fmtFH(o.modificadoEn) : '—') + '</div>';
+            'Creado: ' + (o.creadoTxt || fmtFH(o.creadoEn)) +
+            (o.modificadoEn ? ' &nbsp;·&nbsp; Última modificación: ' + fmtFH(o.modificadoEn) : '') + '</div>';
     }
     function ctField(id, label, val, ph, span, type) {
         return '<div' + (span ? ' style="grid-column:1/-1"' : '') + '><label>' + escapeHtml(label) + '</label>' +
@@ -7828,6 +7857,9 @@
                         { label: 'Ref. cliente', value: d.refCli || '—' },
                         { label: 'Estado', value: getEstadoVisual(src).label }
                     ];
+                    // Fecha/hora de creación y de última modificación (si la hay).
+                    if (src.creadoEn) items.push({ label: 'Creado', value: fmtFH(src.creadoEn) });
+                    if (src.modificadoEn) items.push({ label: 'Última modificación', value: fmtFH(src.modificadoEn) });
                     if (src.discrecion) items.push({ label: 'Discreción comercial', value: '<span style="color:var(--purple);font-weight:700;">Activada</span> — el conductor no revela el destino en la carga ni el origen en la entrega', html: true, span: true });
                     // Si ya hay fecha asignada por el equipo, la "fecha
                     // solicitada + ventana" sobra: el rango pedido queda
@@ -8038,6 +8070,7 @@
             title: inc ? 'Editar incidencia' : 'Reportar incidencia',
             sub: inc ? 'Cambia lo que necesites y guarda' : 'Cuéntanos lo ocurrido para actuar rápido',
             body:
+                (inc ? ctMetaHTML({ creadoTxt: fechaConDia(inc.fr) + ' · ' + (inc.hora || ''), modificadoEn: inc.modificadoEn }) : '') +
                 '<div class="modal-form-row"><label>Envío relacionado <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label>' +
                 '<div class="ptar-input-wrap alm-rep-wrap" id="incEnvCombo">' +
                     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>' +
@@ -8167,6 +8200,7 @@
             if (inc0) {
                 inc0.cat = cat; inc0.tit = INC_TIPO_TIT[cat] || 'Incidencia';
                 inc0.det = detalle; inc0.estado = estado;
+                inc0.modificadoEn = Date.now();
                 inc0.docs = (window._incFilesTmp || inc0.docs || []).slice();
                 if (ref) {
                     inc0.envio = ref;
@@ -10244,6 +10278,16 @@
         { ref: '#PEN-3045', envio: '#GX684926', tipo: 'Cancelación',      transportista: 'Transportes Beltrán S.L.',  descripcion: 'Anulación tras las 9:00 del día hábil anterior a la carga.', importe: 450, fecha: penHoyMas(-9) },
         { ref: '#PEN-3041', envio: '#GX684898', tipo: 'Parada adicional', transportista: 'Dynamo (camión propio)',    descripcion: 'Segunda entrega no prevista en la ruta original.',        importe: 90,  fecha: penHoyMas(-16) }
     ];
+    // Fecha/hora de creación determinista para el mock (la fecha ya existe;
+    // la hora se deriva del ref para que sea estable en cualquier dispositivo).
+    PENALIZACIONES_DATA.forEach(function (p) {
+        if (p.creadoEn) return;
+        var m = String(p.fecha).split('/');
+        var d = new Date(+m[2], +m[1] - 1, +m[0]);
+        var h = hashStr(p.ref);
+        d.setHours(9 + (h % 9), h % 60, 0, 0);
+        p.creadoEn = d.getTime();
+    });
     // Envíos disponibles para referenciar (de CARGAS_DATA), en orden (los más
     // recientes primero).
     function penEnviosList() {
@@ -10328,6 +10372,7 @@
         _penEnvioSel = p ? p.envio : null;
         var tipoOpts = '<option value="">Selecciona el tipo…</option>' + PEN_TIPOS.map(function (t) { return '<option>' + t + '</option>'; }).join('');
         var body =
+            (p ? ctMetaHTML(p) : '') +
             '<div class="modal-form-row"><label>Envío referenciado</label>' +
                 '<div class="pen-ac" id="penAc"><input type="text" id="penEnvioInput" autocomplete="off" placeholder="Busca por nº, pedido, ruta, matrícula, fecha…">' +
                 '<div class="pen-ac-sug" id="penEnvioSug" hidden></div></div>' +
@@ -10389,13 +10434,15 @@
             if (p0) {
                 p0.envio = _penEnvioSel; p0.tipo = tipo; p0.descripcion = desc; p0.importe = imp;
                 p0.transportista = c.transportista || p0.transportista || null;
+                p0.modificadoEn = Date.now();
             }
             refFinal = _penEditRef;
         } else {
             refFinal = '#PEN-' + (PEN_SEQ++);
             PENALIZACIONES_DATA.unshift({
                 ref: refFinal, envio: _penEnvioSel, tipo: tipo,
-                transportista: c.transportista || null, descripcion: desc, importe: imp, fecha: penHoyMas(0)
+                transportista: c.transportista || null, descripcion: desc, importe: imp, fecha: penHoyMas(0),
+                creadoEn: Date.now()
             });
         }
         _penEditRef = null;
@@ -11316,11 +11363,12 @@
         var tipoOpts = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento', 'Finca / Agrícola'].map(function (t) {
             return '<option' + ((s.tipoLugar || 'Almacén / Nave') === t ? ' selected' : '') + '>' + t + '</option>';
         }).join('');
-        // Cabecera con fecha de creación y última modificación (solo sitios
-        // propios ya guardados; los del catálogo no las tienen).
-        var fechasHead = (!esNuevo && s.creado)
+        // Cabecera con fecha/hora de creación y última modificación. Los del
+        // catálogo (sin alta real) llevan un timestamp MOCK determinista.
+        var __cre = s.creado || ((!esNuevo && (s.empresa || s.dir)) ? mockTsDe((s.empresa || '') + (s.dir || '')) : null);
+        var fechasHead = (!esNuevo && __cre)
             ? '<div class="sitio-meta-fechas">' +
-                '<span><strong>Creado:</strong> ' + escapeHtml(fmtCreado(s.creado)) + '</span>' +
+                '<span><strong>Creado:</strong> ' + escapeHtml(fmtCreado(__cre)) + '</span>' +
                 (s.modificado ? '<span><strong>Última modificación:</strong> ' + escapeHtml(fmtCreado(s.modificado)) + '</span>' : '') +
               '</div>'
             : '';
