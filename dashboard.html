@@ -1949,8 +1949,17 @@
         .price-skel-total { width: 92px; height: 1em; }
         @keyframes priceSkelShimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
         @media (prefers-reduced-motion: reduce) { .alm-price-calcbar span, .price-skel { animation: none; } }
-        /* Botones bloqueados mientras el precio se calcula (evita guardar a 0 €) */
-        .btn-calc-wait { opacity: 0.55; cursor: wait !important; pointer-events: none; }
+        /* Botones bloqueados mientras el precio se calcula (evita guardar a 0 €):
+           atenuados, sin acción y con spinner delante del texto. */
+        .btn-calc-wait { opacity: 0.6; cursor: wait !important; pointer-events: none; }
+        .btn-calc-wait::before {
+            content: ''; width: 15px; height: 15px; flex: none;
+            border: 2.5px solid currentColor; border-top-color: transparent;
+            border-radius: 50%; display: inline-block; margin-right: 0.5rem;
+            animation: btnCalcSpin 0.8s linear infinite; vertical-align: -2px;
+        }
+        @keyframes btnCalcSpin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) { .btn-calc-wait::before { animation: none; border-top-color: currentColor; opacity: 0.5; } }
         .alm-dates { grid-template-columns: 1fr 1fr; }
         .alm-note { font-size: 0.8rem; color: var(--gray-500); line-height: 1.45; margin-top: 0.6rem; }
         /* Aviso de campos que faltan: MISMA caja que el envío (.ptar-warning). */
@@ -5394,11 +5403,30 @@
         }
         ov.querySelector('.dash-loading-text').textContent = text || 'Un momento…';
         ov.classList.add('show');
+        // Mientras el guardado está EN CURSO se marca la operación: si el
+        // usuario intenta cerrar la ventana/pestaña a mitad, el navegador
+        // le avisa (beforeunload de abajo). En producción, además, el POST
+        // al backend sale ANTES del overlay y con clave de idempotencia:
+        // si la petición ya llegó al servidor, la operación se completa
+        // aunque se cierre la ventana; si no llegó, no se guarda nada a
+        // medias (transacción completa o nada).
+        window.__opEnCurso = (window.__opEnCurso || 0) + 1;
         setTimeout(function () {
+            window.__opEnCurso = Math.max(0, (window.__opEnCurso || 1) - 1);
             ov.classList.remove('show');
             if (cb) cb();
         }, ms || 900);
     }
+    // Aviso del navegador al cerrar/recargar con un guardado EN CURSO. El
+    // diálogo es el genérico del navegador (el texto no es personalizable).
+    // Solo aplica al guardado, no al recálculo de precio mientras se edita.
+    window.addEventListener('beforeunload', function (e) {
+        if (window.__opEnCurso) {
+            e.preventDefault();
+            e.returnValue = '';
+            return '';
+        }
+    });
     function showModalSuccess(title, text) {
         // Usa openDashModal para ABRIR el modal si estaba cerrado (tras el
         // overlay de carga ya no hay ningún modal abierto debajo).
