@@ -6542,10 +6542,10 @@
     }
     window.almSolicitar = almSolicitar;
     function almFechaLarga(iso) {
+        // Formato corto unificado de la plataforma: 'Vie 10/07/26'.
         var d = new Date(iso + 'T00:00:00');
-        var dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-        var mes = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-        return dias[d.getDay()] + ' ' + d.getDate() + ' de ' + mes[d.getMonth()] + ' de ' + d.getFullYear();
+        var dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        return dias[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + String(d.getFullYear()).slice(-2);
     }
     function almShowConfirm() {
         var p = _almPending; if (!p) return;
@@ -8792,7 +8792,7 @@
         tbody.innerHTML = slice.map(function (x) {
             var e = INC_ESTADO[x.estado] || INC_ESTADO.abierta;
             return '<tr onclick="abrirNuevaIncidencia(' + x.__id + ')">' +
-                '<td>' + esc(x.fr) + '<div class="meta">' + esc(x.hora) + '</div></td>' +
+                '<td>' + esc(fechaConDia(x.fr)) + '<div class="meta">' + esc(x.hora) + '</div></td>' +
                 '<td>' + esc(x.tit) + '<div class="meta">' + esc(x.det) + '</div></td>' +
                 '<td class="ref">' + esc(x.envio) + '</td>' +
                 '<td class="ref-cli">' + esc(x.refCli) + '</td>' +
@@ -10256,7 +10256,7 @@
                 '<td><span class="badge badge-prog">' + escapeHtml(p.tipo) + '</span></td>' +
                 '<td>' + escapeHtml(p.transportista || '—') + '<div class="meta">' + escapeHtml(CLIENTE_ACTUAL) + '</div></td>' +
                 '<td><strong>' + almEur(p.importe) + '</strong></td>' +
-                '<td>' + escapeHtml(p.fecha) + '</td>' +
+                '<td>' + escapeHtml(fechaConDia(p.fecha)) + '</td>' +
             '</tr>';
         }).join('');
     }
@@ -10732,12 +10732,14 @@
     }
     function fechaConDia(s) {
         // Formato corto de fecha de TODA la plataforma: 'Vie 10/07/26'
-        // (día de la semana + DD/MM/YY, siempre con año).
+        // (día de la semana + DD/MM/YY, siempre con año). Acepta el dato en
+        // 'DD/MM' (año actual implícito) o 'DD/MM/YYYY'.
         if (!s || s === 'Sin fecha') return s || '';
-        var m = String(s).match(/^(\d{1,2})\/(\d{1,2})$/);
+        var m = String(s).match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?$/);
         if (!m) return s;
-        var d = new Date(new Date().getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
-        return DOW_SHORT[d.getDay()] + ' ' + s + '/' + String(d.getFullYear()).slice(-2);
+        var y = m[3] ? parseInt(m[3], 10) : new Date().getFullYear();
+        var d = new Date(y, parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+        return DOW_SHORT[d.getDay()] + ' ' + m[1] + '/' + m[2] + '/' + String(y).slice(-2);
     }
     // --- Ventana de carga como rango inicio–fin (días laborables) ---
     // 'Fija' → un solo día. '1 a 3 días' → inicio + 2 laborables (3 días).
@@ -12117,9 +12119,9 @@
                 var pendiente = cobrada ? '0,00 €' : f.total;
                 var fechaCobro = cobrada ? f.vencimiento : '—';
                 return '<tr>' +
-                    '<td>' + esc(f.emision) + '</td>' +
+                    '<td>' + esc(fechaConDia(f.emision)) + '</td>' +
                     '<td class="fac-num">' + esc(f.ref) + '</td>' +
-                    '<td>' + esc(f.vencimiento) + '</td>' +
+                    '<td>' + esc(fechaConDia(f.vencimiento)) + '</td>' +
                     '<td>' + esc(CLIENTE_ACTUAL) + '</td>' +
                     '<td class="amount">' + esc(eur2(f.base)) + '</td>' +
                     '<td class="amount">' + esc(eur2(f.iva)) + '</td>' +
@@ -12415,14 +12417,6 @@
     // Envíos: lo que se está cargando HOY + los próximos días, en orden
     // cronológico, tantos como quepan en pantalla. Presupuestos: los
     // VIGENTES de más nuevo a más antiguo. Se re-renderizan al redimensionar.
-    var DOW_LARGO = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    var MESES_LARGO = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-    function fechaLarga(ddmm) {
-        var m = String(ddmm || '').match(/^(\d{1,2})\/(\d{1,2})$/);
-        if (!m) return ddmm || '';
-        var d = new Date(new Date().getFullYear(), +m[2] - 1, +m[1]);
-        return DOW_LARGO[d.getDay()] + ' ' + d.getDate() + ' ' + MESES_LARGO[d.getMonth()] + ' ' + d.getFullYear();
-    }
     // Cuántas filas caben desde la posición de la lista hasta el borde
     // inferior del viewport (~92px por fila). Entre 4 y 12. OJO: se mide con
     // la posición ABSOLUTA en el documento (no la del viewport), para que el
@@ -12443,7 +12437,7 @@
         ul.innerHTML = arr.slice(0, miniFit(ul)).map(function (c) {
             var ev = getEstadoVisual(c);
             var asigDate = c.fechaAsignada ? c.fechaAsignada.split(' ')[0] : null;
-            var fecha = (asigDate || ventanaDiasN(c.ventana) <= 1) ? fechaLarga(asigDate || c.fecha) : ventanaRango(c.fecha, c.ventana);
+            var fecha = (asigDate || ventanaDiasN(c.ventana) <= 1) ? fechaConDia(asigDate || c.fecha) : ventanaRango(c.fecha, c.ventana);
             return '<li>' +
                 '<div class="mini-list-left">' +
                     '<span class="mini-list-date">' + esc(fecha) + ' <span class="ml-ref">' + esc(c.ref) + '</span></span>' +
@@ -12475,7 +12469,7 @@
                 : '<span class="badge badge-green">Vigente</span>';
             return '<li>' +
                 '<div class="mini-list-left">' +
-                    '<span class="mini-list-date">' + esc(fechaLarga(p.fecha)) + ' <span class="ml-ref">' + esc(p.ref) + '</span></span>' +
+                    '<span class="mini-list-date">' + esc(fechaConDia(p.fecha)) + ' <span class="ml-ref">' + esc(p.ref) + '</span></span>' +
                     '<span class="mini-list-route"><span class="ml-dot orig"></span>' + esc(ciudadDir(p.origen, p.origenDir)) + '</span>' +
                     '<span class="mini-list-route"><span class="ml-dot dest"></span>' + esc(ciudadDir(p.destino, p.destinoDir)) + '</span>' +
                 '</div>' +
@@ -13292,10 +13286,10 @@
             }
             return d;
         }
-        var DAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-        var MONTH_NAMES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        // Mismo formato corto que el resto de la plataforma: 'Vie 10/07/26'.
+        var ETA_DOW = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
         function fmtEtaDate(d) {
-            return DAY_NAMES[d.getDay()] + ' ' + d.getDate() + ' ' + MONTH_NAMES[d.getMonth()];
+            return ETA_DOW[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + String(d.getFullYear()).slice(-2);
         }
 
         // --- Icono por TIPO DE SITIO en los puntos de la ruta ---
