@@ -4181,7 +4181,7 @@
                 <span>Clientes</span>
             </button>
             <button class="admin-quick-btn" onclick="showSection('transportistas')">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><circle cx="8" cy="11" r="2.5"/><path d="M4.5 17c.7-2 2-3 3.5-3s2.8 1 3.5 3"/><path d="M15 9h5"/><path d="M15 13h4"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
                 <span>Transportistas</span>
             </button>
         </div>
@@ -6955,7 +6955,6 @@
             sub: esEdit ? (a.empresa || ('Dynamo · ' + (a.prov || ''))) : 'Alta de un almacén Dynamo en el catálogo interno',
             body: almacenCatFormHTML(a),
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
-                (esEdit ? '<button class="btn-ghost" style="color:#dc2626;" onclick="almacenCatEliminar(' + idx + ')">Borrar</button>' : '') +
                 '<button class="btn-primary" onclick="almacenCatGuardar(' + (esEdit ? idx : -1) + ')">Guardar</button>'
         });
     }
@@ -7003,34 +7002,6 @@
             empresa + (a.disponible ? '. Disponible en los desplegables de sitios y almacenamiento.' : '. Marcado como COMPLETO: aparece en los desplegables pero no admite entradas y no deja continuar al elegirlo.'));
     }
     window.almacenCatGuardar = almacenCatGuardar;
-    function almacenCatEliminar(idx) {
-        var a = DYNAMO_ALMACENES[idx]; if (!a) return;
-        openDashModal({
-            icon: 'alert', iconVariant: 'warn',
-            title: 'Borrar almacén',
-            sub: 'Dynamo · ' + (a.prov || ''),
-            body: '<p style="font-size:0.9rem;line-height:1.55;color:var(--gray-700);">¿Seguro que quieres borrar el almacén <strong>Dynamo · ' + esc(a.prov || '') + '</strong> (' + esc(a.ciudad || '') + ')? Dejará de estar disponible en el desplegable de nuevo almacenamiento.</p>',
-            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
-                '<button class="btn-primary" style="background:var(--red);" onclick="almacenCatEliminarOk(' + idx + ')">Sí, borrar</button>'
-        });
-    }
-    window.almacenCatEliminar = almacenCatEliminar;
-    function almacenCatEliminarOk(idx) {
-        // Borrado SUAVE: marca _deleted (no se hace splice) para no desplazar
-        // los índices del array. Así los almacenamientos ya registrados —que
-        // guardan almIdx— siguen resolviendo su almacén correctamente, igual
-        // que ocurre con los sitios de la agenda. Solo se oculta de la tabla
-        // y del desplegable de nuevo almacenamiento.
-        if (idx >= 0 && idx < DYNAMO_ALMACENES.length) {
-            DYNAMO_ALMACENES[idx]._deleted = true;
-            DYNAMO_ALMACENES[idx]._touched = true;
-            persistAlmacenes();            // el borrado también persiste
-        }
-        closeDashModal();
-        var si = document.getElementById('almacenesCatSearch');
-        renderAlmacenesCatTable(si ? si.value : '');
-    }
-    window.almacenCatEliminarOk = almacenCatEliminarOk;
     renderAlmacenesCatTable('');
 
     // ==================== CLIENTES y TRANSPORTISTAS (fichas admin) ====================
@@ -7173,7 +7144,6 @@
                 ctField('cli-f-tfno', 'Teléfono', c.tfno, '+34 …') +
                 ctField('cli-f-email', 'Email', c.email, 'empresa@dominio.com', false, 'email') +
                 ctField('cli-f-contacto', 'Persona de contacto', c.contacto, 'Nombre y apellidos', true) +
-                '<div style="grid-column:1/-1"><label style="display:flex;align-items:center;gap:0.55rem;cursor:pointer;font-weight:600;color:var(--navy);"><input type="checkbox" id="cli-f-cesce"' + (c.cesce ? ' checked' : '') + ' style="width:17px;height:17px;flex:none;">Crédito CESCE aprobado</label></div>' +
                 ctNotas('cli-f-notas', c.notas) +
             '</div>';
     }
@@ -7214,7 +7184,6 @@
             sub: esEdit ? (c.empresa || '') : 'Alta de un cliente en el catálogo interno',
             body: clienteFormHTML(c),
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
-                (esEdit ? '<button class="btn-ghost" style="color:#dc2626;" onclick="clienteEliminar(' + idx + ')">Borrar</button>' : '') +
                 '<button class="btn-primary" onclick="clienteGuardar(' + (esEdit ? idx : -1) + ')">' + (esEdit ? 'Guardar cambios' : 'Crear cliente') + '</button>'
         });
     }
@@ -7241,8 +7210,7 @@
         c.cesceImporte = (cesceImpEl && cesceImpEl.value.trim() !== '') ? Number(cesceImpEl.value) : 0;
         var dynImpEl = document.getElementById('cli-f-dynamoimp');
         c.dynamoImporte = (dynImpEl && dynImpEl.value.trim() !== '') ? Number(dynImpEl.value) : 0;
-        var cesceEl = document.getElementById('cli-f-cesce');
-        c.cesce = !!(cesceEl && cesceEl.checked);
+        c.cesce = c.cesceImporte > 0;   // el crédito CESCE lo determina su importe
         c.notas = v('cli-f-notas') || null;
         if (edit) { c.modificadoEn = Date.now(); }
         else { c.creadoEn = Date.now(); c.modificadoEn = null; CLIENTES_DATA.push(c); }
@@ -7251,24 +7219,6 @@
         showModalSuccess(edit ? 'Cliente actualizado' : 'Cliente creado', empresa + (edit ? ': cambios guardados (queda registrada la fecha y hora de modificación).' : ' añadido al catálogo de clientes.'));
     }
     window.clienteGuardar = clienteGuardar;
-    function clienteEliminar(idx) {
-        var c = CLIENTES_DATA[idx]; if (!c) return;
-        openDashModal({
-            icon: 'alert', iconVariant: 'warn',
-            title: 'Borrar cliente',
-            sub: c.empresa || '',
-            body: '<p style="font-size:0.9rem;line-height:1.55;color:var(--gray-700);">¿Seguro que quieres borrar la ficha de <strong>' + esc(c.empresa || '') + '</strong>? Sus envíos y facturas ya registrados no se tocan; solo desaparece del catálogo de clientes.</p>',
-            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
-                '<button class="btn-primary" style="background:var(--red);" onclick="clienteEliminarOk(' + idx + ')">Sí, borrar</button>'
-        });
-    }
-    window.clienteEliminar = clienteEliminar;
-    function clienteEliminarOk(idx) {
-        if (idx >= 0 && idx < CLIENTES_DATA.length) CLIENTES_DATA[idx]._deleted = true;
-        closeDashModal();
-        renderClientesTable((document.getElementById('clientesSearch') || {}).value || '');
-    }
-    window.clienteEliminarOk = clienteEliminarOk;
     function openTransportistaModal(idx) {
         var esEdit = (idx != null && idx >= 0 && idx < TRANSPORTISTAS_DATA.length);
         var t = esEdit ? TRANSPORTISTAS_DATA[idx] : null;
@@ -7278,7 +7228,6 @@
             sub: esEdit ? (t.empresa || '') : 'Alta de un transportista en el catálogo interno',
             body: transportistaFormHTML(t),
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
-                (esEdit ? '<button class="btn-ghost" style="color:#dc2626;" onclick="transportistaEliminar(' + idx + ')">Borrar</button>' : '') +
                 '<button class="btn-primary" onclick="transportistaGuardar(' + (esEdit ? idx : -1) + ')">' + (esEdit ? 'Guardar cambios' : 'Crear transportista') + '</button>',
             afterOpen: function () {
                 // Documentos adjuntos (máx. 5). Se trabaja sobre una copia y solo
@@ -7352,24 +7301,6 @@
         showModalSuccess(edit ? 'Transportista actualizado' : 'Transportista creado', empresa + (edit ? ': cambios guardados (queda registrada la fecha y hora de modificación).' : ' añadido al catálogo de transportistas.'));
     }
     window.transportistaGuardar = transportistaGuardar;
-    function transportistaEliminar(idx) {
-        var t = TRANSPORTISTAS_DATA[idx]; if (!t) return;
-        openDashModal({
-            icon: 'alert', iconVariant: 'warn',
-            title: 'Borrar transportista',
-            sub: t.empresa || '',
-            body: '<p style="font-size:0.9rem;line-height:1.55;color:var(--gray-700);">¿Seguro que quieres borrar la ficha de <strong>' + esc(t.empresa || '') + '</strong>? Los envíos que ya tiene asignados no se tocan; solo desaparece del catálogo de transportistas.</p>',
-            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
-                '<button class="btn-primary" style="background:var(--red);" onclick="transportistaEliminarOk(' + idx + ')">Sí, borrar</button>'
-        });
-    }
-    window.transportistaEliminar = transportistaEliminar;
-    function transportistaEliminarOk(idx) {
-        if (idx >= 0 && idx < TRANSPORTISTAS_DATA.length) TRANSPORTISTAS_DATA[idx]._deleted = true;
-        closeDashModal();
-        renderTransportistasTable((document.getElementById('transportistasSearch') || {}).value || '');
-    }
-    window.transportistaEliminarOk = transportistaEliminarOk;
     renderClientesTable('');
     renderTransportistasTable('');
 
