@@ -7514,25 +7514,62 @@
         }
         return c;
     }
-    // Precios del ÚLTIMO ENVÍO IDÉNTICO (misma ruta origen→destino) anterior
-    // a este: referencia rápida de a cuánto se hizo la última vez. En
-    // producción vendrá calculado del backend; el mock lo busca en la propia
-    // lista. Si no hay envío idéntico previo → en blanco.
+    // Precios de referencia del ÚLTIMO ENVÍO COINCIDENTE anterior a este —
+    // con su FECHA (se enseña en el tooltip). Dos criterios de coincidencia:
+    //  · CLIENTE: envío idéntico = misma ruta origen→destino (ciudad).
+    //  · TRANSPORTISTA: ruta coincidente por CP Y PAÍS de origen y destino
+    //    (el porte de compra depende del punto exacto, no del nombre de la
+    //    ciudad).
+    // En producción vendrán del histórico real del backend.
     function cargaUltPrecios(c) {
         var fc = __sortFecha(c.fechaAsignada || c.fecha);
-        var prev = null, prevF = null;
+        function cpDe(dir) { var m = String(dir || '').match(/\b\d{4,5}\b/); return m ? m[0] : null; }
+        function paisDe(dir) { var p = String(dir || '').split(','); return (p[p.length - 1] || '').trim(); }
+        var oCp = cpDe(c.origenDir), dCp = cpDe(c.destinoDir);
+        var oPais = paisDe(c.origenDir), dPais = paisDe(c.destinoDir);
+        var prevCli = null, prevCliF = null, prevTra = null, prevTraF = null;
         (typeof CARGAS_DATA !== 'undefined' ? CARGAS_DATA : []).forEach(function (x) {
             if (x === c || x.ref === c.ref) return;
             if (x.kind === 'cancelada') return;
-            if (x.origen !== c.origen || x.destino !== c.destino) return;
             var fx = __sortFecha(x.fechaAsignada || x.fecha);
             if (fx == null || (fc != null && fx >= fc)) return;   // solo ANTERIORES
-            if (prevF == null || fx > prevF) { prev = x; prevF = fx; }
+            if (x.origen === c.origen && x.destino === c.destino) {
+                if (prevCliF == null || fx > prevCliF) { prevCli = x; prevCliF = fx; }
+            }
+            if (oCp && dCp && cpDe(x.origenDir) === oCp && cpDe(x.destinoDir) === dCp &&
+                paisDe(x.origenDir) === oPais && paisDe(x.destinoDir) === dPais) {
+                if (prevTraF == null || fx > prevTraF) { prevTra = x; prevTraF = fx; }
+            }
         });
-        if (!prev) return { pcU: null, ptU: null };
-        cargaPrecios(prev);
-        return { pcU: prev.precioCliente || null, ptU: prev.precioTransportista || null };
+        function fDe(x) { return x ? (x.fechaAsignada ? String(x.fechaAsignada).split(' ')[0] : x.fecha) : null; }
+        var out = { pcU: null, pcUFecha: null, ptU: null, ptUFecha: null };
+        if (prevCli) { cargaPrecios(prevCli); out.pcU = prevCli.precioCliente || null; out.pcUFecha = fDe(prevCli); }
+        if (prevTra) { cargaPrecios(prevTra); out.ptU = prevTra.precioTransportista || null; out.ptUFecha = fDe(prevTra); }
+        return out;
     }
+    // Mini-tooltip al PULSAR (para móvil, donde no hay hover): globito oscuro
+    // junto al importe con la explicación y la fecha; se cierra al tocar
+    // fuera o solo a los 6 s.
+    function refTipShow(el) {
+        var old = document.getElementById('refTipPop'); if (old) old.remove();
+        var tip = el.getAttribute('data-tip'); if (!tip) return;
+        var r = el.getBoundingClientRect();
+        var d = document.createElement('div');
+        d.id = 'refTipPop';
+        d.textContent = tip;
+        d.style.cssText = 'position:fixed;z-index:120000;max-width:270px;background:var(--navy);color:#fff;font-size:0.74rem;font-weight:600;line-height:1.5;padding:0.55rem 0.7rem;border-radius:9px;box-shadow:0 12px 32px rgba(15,23,42,0.35);';
+        document.body.appendChild(d);
+        var top = r.top - d.offsetHeight - 8; if (top < 8) top = r.bottom + 8;
+        var left = Math.min(Math.max(8, r.left), window.innerWidth - d.offsetWidth - 8);
+        d.style.top = top + 'px'; d.style.left = left + 'px';
+        setTimeout(function () {
+            document.addEventListener('pointerdown', function h(e) {
+                if (!d.contains(e.target)) { d.remove(); document.removeEventListener('pointerdown', h); }
+            });
+        }, 0);
+        setTimeout(function () { if (d.parentNode) d.remove(); }, 6000);
+    }
+    window.refTipShow = refTipShow;
     // Precio SEGÚN TARIFADOR de un envío: lo que daría hoy el tarifador para
     // esa ruta/carga — referencia junto al precio real (a veces coinciden, a
     // veces no). En producción lo calculará el backend con la tarifa real;
@@ -7573,10 +7610,11 @@
         var tot0 = rows.reduce(function (t, r) { return t + (parseFloat(r.v) || 0); }, 0);
         var __ult = cargaUltPrecios(c), __tar = cargaPrecioTarifador(c);
         var __refU = esCli ? __ult.pcU : __ult.ptU, __refT = esCli ? __tar.pcT : __tar.ptT;
+        var __refUF = esCli ? __ult.pcUFecha : __ult.ptUFecha;
         var body =
             '<p style="font-size:0.85rem;line-height:1.55;color:var(--gray-700);margin-bottom:0.8rem;">Importes <strong>BASE, sin IVA</strong>. Edita los conceptos y el total se recalcula solo. <strong>Guardar</strong> fija el precio a mano: al modificar el envío <strong>no se recalculará</strong> mientras no cambie nada que afecte al precio (origen, destino, medidas, techo, ventana…).</p>' +
             ((__refU || __refT) ? '<p style="font-size:0.78rem;font-weight:600;color:var(--gray-500);margin:-0.3rem 0 0.8rem;">Referencias (no editables): ' +
-                (__refU ? 'último envío idéntico ' + eur2(__refU) : '') + (__refU && __refT ? ' · ' : '') +
+                (__refU ? 'último envío coincidente ' + eur2(__refU) + (__refUF ? ' (' + fechaConDia(__refUF) + ')' : '') : '') + (__refU && __refT ? ' · ' : '') +
                 (__refT ? 'según tarifador ' + eur2(__refT) : '') + '</p>' : '') +
             rows.map(function (r, i) {
                 return '<div class="modal-form-row" style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.55rem;">' +
@@ -13311,13 +13349,23 @@
                         var pc = c.precioCliente, pt = c.precioTransportista;
                         var man = c.precioManual ? '<div class="meta-manual">fijado a mano</div>' : '';
                         // Solo el importe, sin etiqueta (menos ruido): el color
-                        // distingue cada referencia y el tooltip explica cuál es.
-                        function refLines(u, t) {
-                            return (u ? '<div class="meta ref-ult" title="Último envío idéntico (misma ruta): a cuánto se hizo la última vez · base sin IVA">' + eur2(u) + '</div>' : '') +
-                                (t ? '<div class="meta ref-tar" title="Según tarifador: lo que daría hoy el tarifador para este envío · base sin IVA">' + eur2(t) + '</div>' : '');
+                        // distingue cada referencia. Tooltip con la explicación
+                        // y la FECHA del último envío al pasar el ratón, y el
+                        // iconito ⓘ se puede PULSAR en móvil (globito).
+                        var ICO_I = ' <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="vertical-align:-1px;opacity:0.7;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+                        function refLine(cls, val, tip, conIcono) {
+                            return '<div class="meta ' + cls + '" title="' + esc(tip) + '" data-tip="' + esc(tip) + '" onclick="event.stopPropagation();refTipShow(this)">' +
+                                eur2(val) + (conIcono ? ICO_I : '') + '</div>';
                         }
-                        return '<td class="amount td-precio" onclick="event.stopPropagation();openPrecioEditor(\'' + esc(c.ref) + '\',\'cliente\')"><strong>' + (pc ? eur2(pc) : '—') + '</strong>' + man + refLines(ult.pcU, tar.pcT) + '</td>' +
-                            '<td class="amount td-precio" onclick="event.stopPropagation();openPrecioEditor(\'' + esc(c.ref) + '\',\'transportista\')"><strong>' + (pt ? eur2(pt) : '—') + '</strong>' + man + refLines(ult.ptU, tar.ptT) + '</td>' +
+                        function refLines(u, uF, t, lado) {
+                            var tipU = lado === 'cliente'
+                                ? 'Último precio de un envío idéntico (misma ruta)' + (uF ? ' · cargado el ' + fechaConDia(uF) : '') + ' · base sin IVA'
+                                : 'Último precio de transportista en ruta coincidente (mismo CP y país de origen y destino)' + (uF ? ' · ' + fechaConDia(uF) : '') + ' · base sin IVA';
+                            return (u ? refLine('ref-ult', u, tipU, true) : '') +
+                                (t ? refLine('ref-tar', t, 'Según tarifador: lo que daría hoy el tarifador para este envío · base sin IVA', false) : '');
+                        }
+                        return '<td class="amount td-precio" onclick="event.stopPropagation();openPrecioEditor(\'' + esc(c.ref) + '\',\'cliente\')"><strong>' + (pc ? eur2(pc) : '—') + '</strong>' + man + refLines(ult.pcU, ult.pcUFecha, tar.pcT, 'cliente') + '</td>' +
+                            '<td class="amount td-precio" onclick="event.stopPropagation();openPrecioEditor(\'' + esc(c.ref) + '\',\'transportista\')"><strong>' + (pt ? eur2(pt) : '—') + '</strong>' + man + refLines(ult.ptU, ult.ptUFecha, tar.ptT, 'transportista') + '</td>' +
                             '<td class="amount">' + margenHtml(pc, pt) + '</td>';
                     })() +
                     actionsCell(actionItemsCarga(c)) +
