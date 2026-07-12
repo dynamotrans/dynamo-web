@@ -7797,9 +7797,173 @@
         else { t.creadoEn = Date.now(); t.modificadoEn = null; TRANSPORTISTAS_DATA.push(t); }
         closeDashModal();
         renderTransportistasTable((document.getElementById('transportistasSearch') || {}).value || '');
+        // Creado desde el selector de "Asignar transportista" → volver allí
+        // con el nuevo transportista ya elegido (mismo patrón que los sitios).
+        if (window._traOnSave) {
+            var cb = window._traOnSave; window._traOnSave = null;
+            cb(TRANSPORTISTAS_DATA.indexOf(t));
+            return;
+        }
         showModalSuccess(edit ? 'Transportista actualizado' : 'Transportista creado', empresa + (edit ? ': cambios guardados (queda registrada la fecha y hora de modificación).' : ' añadido al catálogo de transportistas.'));
     }
     window.transportistaGuardar = transportistaGuardar;
+
+    // ==================== ASIGNAR TRANSPORTISTA a un envío ====================
+    // Desde el detalle del envío: buscador sobre NUESTRA base de transportistas
+    // (mismo diseño/uso que el selector de sitios y almacenes: chip bloqueado,
+    // ×, desplegable con buscador y "+ Crear nuevo" si no está) + datos de la
+    // asignación (matrícula, conductor, teléfono, camión).
+    var _asigTraSel = null;   // índice en TRANSPORTISTAS_DATA
+    function asigTraFilter() {
+        var inp = document.getElementById('asigTraSearch'), list = document.getElementById('asigTraList');
+        if (!inp || !list || inp.readOnly) return;
+        var q = normTxt(inp.value);
+        var items = [];
+        TRANSPORTISTAS_DATA.forEach(function (t, i) {
+            if (t._deleted) return;
+            if (q && !matchTokens(transportistaBlob(t), q)) return;
+            items.push('<li class="alm-combo-item" onmousedown="asigTraPick(' + i + ');event.preventDefault();">' +
+                '<span><strong>' + esc(t.empresa) + '</strong>' + (t.bolsa ? ' · ' + esc(t.bolsa) : '') + '</span>' +
+                '<span class="sub">' + esc([t.ciudad, t.flota, (t.camiones ? t.camiones + (t.camiones === 1 ? ' camión' : ' camiones') : '')].filter(Boolean).join(' · ')) + '</span></li>');
+        });
+        // "+ Crear nuevo transportista" SIEMPRE como última opción (como en
+        // sitios): si no está en la base, se da de alta con la MISMA ficha
+        // del catálogo y se vuelve aquí con él ya elegido.
+        items.push('<li class="alm-combo-item" onmousedown="asigTraCrear();event.preventDefault();" style="color:var(--purple);"><span><strong>+ Crear nuevo transportista</strong></span>' +
+            (items.length ? '' : '<span class="sub">No hay coincidencias en la base de datos</span>') + '</li>');
+        list.innerHTML = items.join('');
+        list.hidden = false;
+    }
+    function asigTraPick(i) {
+        var t = TRANSPORTISTAS_DATA[i]; if (!t) return;
+        _asigTraSel = i;
+        var inp = document.getElementById('asigTraSearch'), list = document.getElementById('asigTraList'),
+            wrap = document.getElementById('asigTraCombo'), x = document.getElementById('asigTraClearBtn');
+        if (inp) { inp.value = t.empresa + (t.bolsa ? ' · ' + t.bolsa : ''); inp.readOnly = true; }
+        if (wrap) wrap.classList.add('ptar-picked');
+        if (x) x.hidden = false;
+        if (list) list.hidden = true;
+        // Ficha del transportista elegido (contexto para asignar con criterio).
+        var f = document.getElementById('asigTraFicha');
+        if (f) {
+            function row(k, v) { return v ? '<div class="pen-sum-row"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>' : ''; }
+            f.innerHTML =
+                row('Transportista', '<strong>' + esc(t.empresa) + '</strong>' + (t.tipo ? ' · ' + esc(t.tipo) : '')) +
+                row('CIF', esc(t.cif || '')) +
+                row('Código bolsa', t.bolsa ? '<span class="dtc-mat">' + esc(t.bolsa) + '</span>' : '') +
+                row('Contacto', esc([t.contacto, t.tfno].filter(Boolean).join(' · '))) +
+                row('Flota', esc([t.flota, (t.camiones ? t.camiones + (t.camiones === 1 ? ' camión' : ' camiones') : '')].filter(Boolean).join(' · '))) +
+                row('Seguro', esc(t.seguro || ''));
+            f.hidden = false;
+        }
+        var err = document.getElementById('asigTraErr'); if (err) err.classList.remove('show');
+    }
+    function asigTraClear(focus) {
+        _asigTraSel = null;
+        var inp = document.getElementById('asigTraSearch'), list = document.getElementById('asigTraList'),
+            wrap = document.getElementById('asigTraCombo'), x = document.getElementById('asigTraClearBtn'),
+            f = document.getElementById('asigTraFicha');
+        if (inp) { inp.readOnly = false; inp.value = ''; }
+        if (wrap) wrap.classList.remove('ptar-picked');
+        if (x) x.hidden = true;
+        if (list) list.hidden = true;
+        if (f) { f.hidden = true; f.innerHTML = ''; }
+        if (focus && inp) inp.focus();
+    }
+    window.asigTraFilter = asigTraFilter;
+    window.asigTraPick = asigTraPick;
+    window.asigTraClear = asigTraClear;
+    // Crear transportista desde el selector: abre la MISMA ficha del catálogo
+    // y al guardar vuelve a la asignación con el nuevo ya elegido.
+    function asigTraCrear() {
+        var ref = window._asigTraRef;
+        window._traOnSave = function (i) {
+            openAsignarTransportista(ref);
+            setTimeout(function () { asigTraPick(i); }, 60);
+        };
+        openTransportistaModal(-1);
+    }
+    window.asigTraCrear = asigTraCrear;
+    // Cerrar el desplegable al pinchar fuera (null-safe sin modal abierto).
+    document.addEventListener('pointerdown', function (e) {
+        var list = document.getElementById('asigTraList');
+        if (list && !list.hidden && !(e.target.closest && e.target.closest('#asigTraCombo'))) list.hidden = true;
+    });
+    // Pulsar el chip ya elegido (no la ×) lo cambia: limpia y reabre.
+    document.addEventListener('click', function (e) {
+        if (!(e.target.closest && e.target.closest('#asigTraCombo'))) return;
+        if (e.target.closest('#asigTraClearBtn')) return;
+        var inp = document.getElementById('asigTraSearch');
+        if (inp && inp.readOnly) { asigTraClear(true); asigTraFilter(); }
+    });
+    function openAsignarTransportista(ref) {
+        var c = findCargaDataByRef(ref); if (!c) return;
+        window._asigTraRef = ref;
+        _asigTraSel = null;
+        var yaTiene = !!(c.transportistaNombre || c.transportistaAsignado);
+        openDashModal({
+            icon: 'truck',
+            title: (yaTiene ? 'Cambiar' : 'Asignar') + ' transportista — ' + ref,
+            sub: yaTiene ? 'Asignado ahora: ' + (c.transportistaNombre || 'sin nombre') : 'Este envío aún no tiene transportista',
+            body:
+                '<div class="modal-form-row"><label>Transportista <span style="color:var(--gray-500);font-weight:600;">· busca en nuestra base de datos</span></label>' +
+                '<div class="ptar-input-wrap alm-rep-wrap" id="asigTraCombo">' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>' +
+                    '<input type="text" id="asigTraSearch" placeholder="Busca por empresa, CIF, bolsa, ciudad, flota…" autocomplete="off" inputmode="search" oninput="asigTraFilter()" onfocus="asigTraFilter()">' +
+                    '<button type="button" class="ptar-clear" id="asigTraClearBtn" hidden onclick="asigTraClear(true)" aria-label="Cambiar transportista">✕</button>' +
+                    '<ul class="ptar-sug alm-combo-list" id="asigTraList" hidden></ul>' +
+                '</div>' +
+                '<div class="pen-envio-sum" id="asigTraFicha" hidden style="margin-top:0.6rem;"></div></div>' +
+                '<div class="ptar-sitio-grid" style="margin-top:0.8rem;">' +
+                    ctField('asig-f-matricula', 'Matrícula del camión', c.matricula, 'Ej. 5829 MGT') +
+                    ctSelect('asig-f-camion', 'Tipo de camión', ['Trailer Tauliner · 13,2 m', 'Rígido 8 m con plataforma'], c.tipoCamion || 'Trailer Tauliner · 13,2 m') +
+                    ctField('asig-f-conductor', 'Conductor', c.conductor, 'Nombre del conductor') +
+                    ctField('asig-f-tfnocond', 'Teléfono del conductor', c.tfnoConductor, '+34 …') +
+                '</div>' +
+                '<p style="font-size:0.76rem;color:var(--gray-500);font-weight:600;margin:0.6rem 0 0;">La matrícula y el conductor pueden añadirse después si aún no están cerrados: el envío quedará como «Confirmado transportista» y la matrícula «por asignar».</p>' +
+                '<p class="alm-err" id="asigTraErr"></p>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                '<button class="btn-primary" onclick="asignarTransportistaGuardar(\'' + escapeHtml(ref) + '\')">' + (yaTiene ? 'Guardar cambios' : 'Asignar transportista') + '</button>',
+            afterOpen: function () {
+                // Si ya tiene transportista y está en la base, dejarlo elegido.
+                if (c.transportistaNombre) {
+                    for (var i = 0; i < TRANSPORTISTAS_DATA.length; i++) {
+                        if (!TRANSPORTISTAS_DATA[i]._deleted && TRANSPORTISTAS_DATA[i].empresa === c.transportistaNombre) { asigTraPick(i); break; }
+                    }
+                }
+            }
+        });
+    }
+    window.openAsignarTransportista = openAsignarTransportista;
+    function asignarTransportistaGuardar(ref) {
+        var c = findCargaDataByRef(ref); if (!c) return;
+        var err = document.getElementById('asigTraErr');
+        if (_asigTraSel == null) {
+            if (err) { err.textContent = '⚠ Elige el transportista de la lista (o créalo con «+ Crear nuevo transportista»).'; err.classList.add('show'); }
+            var inp = document.getElementById('asigTraSearch'); if (inp) inp.focus();
+            return;
+        }
+        function v(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+        var t = TRANSPORTISTAS_DATA[_asigTraSel];
+        c.transportistaNombre = t.empresa;
+        c.transportistaAsignado = true;
+        c.matricula = v('asig-f-matricula') || null;
+        var camEl = document.getElementById('asig-f-camion');
+        c.tipoCamion = camEl ? camEl.value : c.tipoCamion;
+        c.conductor = v('asig-f-conductor') || null;
+        c.tfnoConductor = v('asig-f-tfnocond') || null;
+        c.modificadoEn = Date.now();
+        closeDashModal();
+        if (typeof renderCargasTable === 'function') renderCargasTable();
+        if (typeof renderMiniEnvios === 'function') renderMiniEnvios();
+        showLoadingOverlay('Asignando transportista…', 900, function () {
+            showModalSuccess('Transportista asignado', c.transportistaNombre + ' queda asignado al envío ' + ref +
+                (c.matricula ? ' con la matrícula ' + c.matricula : ' (matrícula por asignar)') +
+                (c.conductor ? ' · conductor: ' + c.conductor : '') +
+                '. En producción se le notificará automáticamente con la orden de carga.');
+        });
+    }
+    window.asignarTransportistaGuardar = asignarTransportistaGuardar;
 
     // ==================== USUARIOS (catálogo interno, SOLO ADMIN) ====================
     // Un usuario = un EMAIL de acceso, asociado a un empleado, cliente,
@@ -8470,6 +8634,15 @@
         // cancelado): una incidencia puede surgir en cualquier momento.
         if (btns.join('').indexOf("'reportar-incidencia'") === -1) {
             btns.push(b('btn-secondary', 'reportar-incidencia', 'Reportar incidencia', 'alert'));
+        }
+        // ASIGNAR / CAMBIAR TRANSPORTISTA (uso interno/admin): buscador sobre
+        // nuestra base + datos de la asignación (matrícula, conductor…). En
+        // los envíos programados SIN transportista es LA acción del momento
+        // → va la primera.
+        if (kind === 'programada' || kind === 'en-ruta') {
+            var asigLbl = (src.transportistaAsignado || src.transportistaNombre) ? 'Cambiar transportista' : 'Asignar transportista';
+            var asigBtn = '<button class="' + (asigLbl === 'Asignar transportista' ? 'btn-primary' : 'btn-secondary') + '" onclick="closeDashModal();openAsignarTransportista(\'' + ref + '\')">' + icon('truck') + asigLbl + '</button>';
+            if (asigLbl === 'Asignar transportista') btns.unshift(asigBtn); else btns.push(asigBtn);
         }
         // CREAR PENALIZACIÓN (uso interno/admin; al montar el gating se
         // ocultará al cliente): abre el modal de penalización con este
