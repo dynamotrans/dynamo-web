@@ -7468,6 +7468,38 @@
         }
         return c;
     }
+    // Precios del ÚLTIMO ENVÍO IDÉNTICO (misma ruta origen→destino) anterior
+    // a este: referencia rápida de a cuánto se hizo la última vez. En
+    // producción vendrá calculado del backend; el mock lo busca en la propia
+    // lista. Si no hay envío idéntico previo → en blanco.
+    function cargaUltPrecios(c) {
+        var fc = __sortFecha(c.fechaAsignada || c.fecha);
+        var prev = null, prevF = null;
+        (typeof CARGAS_DATA !== 'undefined' ? CARGAS_DATA : []).forEach(function (x) {
+            if (x === c || x.ref === c.ref) return;
+            if (x.kind === 'cancelada') return;
+            if (x.origen !== c.origen || x.destino !== c.destino) return;
+            var fx = __sortFecha(x.fechaAsignada || x.fecha);
+            if (fx == null || (fc != null && fx >= fc)) return;   // solo ANTERIORES
+            if (prevF == null || fx > prevF) { prev = x; prevF = fx; }
+        });
+        if (!prev) return { pcU: null, ptU: null };
+        cargaPrecios(prev);
+        return { pcU: prev.precioCliente || null, ptU: prev.precioTransportista || null };
+    }
+    // Precio SEGÚN TARIFADOR de un envío: lo que daría hoy el tarifador para
+    // esa ruta/carga — referencia junto al precio real (a veces coinciden, a
+    // veces no). En producción lo calculará el backend con la tarifa real;
+    // el mock lo deriva determinista del precio (mismo ref → mismo valor).
+    function cargaPrecioTarifador(c) {
+        cargaPrecios(c);
+        if (!c.precioCliente) return { pcT: null, ptT: null };
+        var h = hashStr(c.ref + 'TF');
+        var delta = ((h % 7) - 3) * 20;   // -60..+60 en pasos de 20; a veces 0
+        var pcT = Math.max(60, c.precioCliente + delta);
+        var ptT = Math.round(pcT * (0.72 + (hashStr(c.ref) % 13) / 100) / 10) * 10;
+        return { pcT: pcT, ptT: ptT };
+    }
     // Firma de los campos que AFECTAN al precio: si al modificar un envío la
     // firma no cambia y su precio está fijado a mano, NO se recalcula.
     function cargaPriceSig(c) {
@@ -7493,8 +7525,13 @@
         if (!esCli && (!c._rowsTra || !c._rowsTra.length)) c._rowsTra = [{ k: 'Porte transportista', v: c.precioTransportista || 0 }];
         var rows = esCli ? c._rowsCli : c._rowsTra;
         var tot0 = rows.reduce(function (t, r) { return t + (parseFloat(r.v) || 0); }, 0);
+        var __ult = cargaUltPrecios(c), __tar = cargaPrecioTarifador(c);
+        var __refU = esCli ? __ult.pcU : __ult.ptU, __refT = esCli ? __tar.pcT : __tar.ptT;
         var body =
             '<p style="font-size:0.85rem;line-height:1.55;color:var(--gray-700);margin-bottom:0.8rem;">Importes <strong>BASE, sin IVA</strong>. Edita los conceptos y el total se recalcula solo. <strong>Guardar</strong> fija el precio a mano: al modificar el envío <strong>no se recalculará</strong> mientras no cambie nada que afecte al precio (origen, destino, medidas, techo, ventana…).</p>' +
+            ((__refU || __refT) ? '<p style="font-size:0.78rem;font-weight:600;color:var(--gray-500);margin:-0.3rem 0 0.8rem;">Referencias (no editables): ' +
+                (__refU ? 'último envío idéntico ' + eur2(__refU) : '') + (__refU && __refT ? ' · ' : '') +
+                (__refT ? 'según tarifador ' + eur2(__refT) : '') + '</p>' : '') +
             rows.map(function (r, i) {
                 return '<div class="modal-form-row" style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.55rem;">' +
                     '<label style="flex:1;margin:0;">' + escapeHtml(r.k) + '</label>' +
@@ -12865,13 +12902,23 @@
                         (c.tipoCamion ? '<div class="meta">' + esc(c.tipoCamion) + '</div>' : '') +
                     '</td>' +
                     (function () {
-                        // Precio cliente / transportista (BASE sin IVA, sin desglosar)
-                        // + margen. Clicables → mini-editor de precio manual.
+                        // Celdas de precio con 3 LÍNEAS de contexto (BASE sin IVA):
+                        //  1) precio ACTUAL del envío (editable → mini-editor)
+                        //  2) Últ. envío: el del último envío idéntico (misma
+                        //     ruta) — en blanco si no lo hay (backend real)
+                        //  3) Tarifador: lo que daría hoy el tarifador (a veces
+                        //     coincide, a veces no) — solo referencia
                         cargaPrecios(c);
+                        var ult = cargaUltPrecios(c);
+                        var tar = cargaPrecioTarifador(c);
                         var pc = c.precioCliente, pt = c.precioTransportista;
                         var man = c.precioManual ? '<div class="meta-manual">fijado a mano</div>' : '';
-                        return '<td class="amount td-precio" onclick="event.stopPropagation();openPrecioEditor(\'' + esc(c.ref) + '\',\'cliente\')"><strong>' + (pc ? eur2(pc) : '—') + '</strong>' + man + '</td>' +
-                            '<td class="amount td-precio" onclick="event.stopPropagation();openPrecioEditor(\'' + esc(c.ref) + '\',\'transportista\')"><strong>' + (pt ? eur2(pt) : '—') + '</strong>' + man + '</td>' +
+                        function refLines(u, t) {
+                            return (u ? '<div class="meta" style="white-space:nowrap;">Últ. envío: ' + eur2(u) + '</div>' : '') +
+                                (t ? '<div class="meta" style="white-space:nowrap;">Tarifador: ' + eur2(t) + '</div>' : '');
+                        }
+                        return '<td class="amount td-precio" onclick="event.stopPropagation();openPrecioEditor(\'' + esc(c.ref) + '\',\'cliente\')"><strong>' + (pc ? eur2(pc) : '—') + '</strong>' + man + refLines(ult.pcU, tar.pcT) + '</td>' +
+                            '<td class="amount td-precio" onclick="event.stopPropagation();openPrecioEditor(\'' + esc(c.ref) + '\',\'transportista\')"><strong>' + (pt ? eur2(pt) : '—') + '</strong>' + man + refLines(ult.ptU, tar.ptT) + '</td>' +
                             '<td class="amount">' + margenHtml(pc, pt) + '</td>';
                     })() +
                     actionsCell(actionItemsCarga(c)) +
