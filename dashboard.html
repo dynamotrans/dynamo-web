@@ -4276,6 +4276,10 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/><path d="M19 8h4M21 6v4"/></svg>
                 <span>Usuarios</span>
             </button>
+            <button class="admin-quick-btn" onclick="showSection('altas')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+                <span>Altas pendientes</span>
+            </button>
         </div>
         <!-- Control de MODO MANTENIMIENTO (admin). Apaga la plataforma: nadie
              podrá acceder y, en la app real, se cerrará la sesión de quien esté
@@ -5109,6 +5113,43 @@
         </div>
     </section>
 
+    <!-- ==================== ALTAS PENDIENTES (SOLO ADMIN) ====================
+         Solicitudes de cuenta nuevas (del registro del portal) pendientes de
+         VERIFICAR: datos del formulario + documentos (hoja CIF, DNI…). Desde
+         la fila se confirma el alta (crea el usuario) o se SUSPENDE (el email
+         queda bloqueado y no puede volver a solicitar acceso). -->
+    <section class="section" id="sec-altas" data-roles="admin">
+        <div class="sec-header">
+            <h2>Altas pendientes</h2>
+        </div>
+        <p style="color:var(--gray-500);font-size:0.82rem;margin:-0.4rem 0 0.9rem;"><span style="display:inline-block;background:rgba(51,0,204,0.10);color:var(--purple);font-weight:700;border-radius:6px;padding:1px 7px;font-size:0.72rem;margin-right:0.4rem;">SOLO ADMIN</span>Solicitudes de cuenta pendientes de verificar. Pulsa una fila para revisar los datos y la documentación, y confirmar el alta o suspenderla (un email suspendido no puede volver a solicitar acceso).</p>
+        <div class="filters">
+            <input type="search" id="altasSearch" placeholder="Buscar por email, empresa, CIF, nombre, teléfono…" oninput="renderAltasTable()">
+        </div>
+        <div class="table-wrap">
+            <table class="data">
+                <thead><tr>
+                    <th>Email · usuario</th><th>Tipo solicitado</th><th>Empresa · CIF</th><th>Nombre y apellidos</th><th>Teléfono</th><th>Documentos</th><th>Solicitada</th>
+                </tr></thead>
+                <tbody id="tbodyAltas"></tbody>
+            </table>
+        </div>
+        <div class="pagination">
+            <div class="pagination-left">
+                <label class="pagination-perpage-wrap">Mostrar
+                    <select class="pagination-perpage" data-table="altas">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+                <span id="altasShowing"></span>
+            </div>
+            <div class="pagination-pages" id="altasPagination"></div>
+        </div>
+    </section>
+
     <!-- ==================== NUEVO ALMACENAMIENTO ==================== -->
     <section class="section" id="sec-nuevo-almacen">
         <div class="sec-header">
@@ -5206,6 +5247,7 @@
         'penalizaciones':    'Penalizaciones',
         'almacenes-cat':     'Almacenes',
         'usuarios':          'Usuarios',
+        'altas':             'Altas pendientes',
         'soporte':           'Soporte'
     };
     function showSection(id) {
@@ -7889,6 +7931,16 @@
                 ctField('usr-f-ciudad', 'Localidad', u.ciudad, 'Sevilla') +
                 ctField('usr-f-prov', 'Provincia', u.prov, 'Sevilla') +
             '</div>' +
+            // Documentación del alta: hoja CIF y DNI en huecos propios (1 doc
+            // cada uno) + otros documentos (máx. 3). Ver + borrar con
+            // confirmación, como todos los adjuntos de la plataforma.
+            '<div style="margin-top:0.9rem;"><label style="font-size:0.78rem;font-weight:700;color:var(--gray-500);">Documentación del alta</label>' +
+                '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.35rem;">' +
+                    '<div><div class="modal-file-drop" id="usrDocCifDrop" style="padding:0.5rem 0.6rem;"><div id="usrDocCifLabel">📎 Subir hoja CIF</div><div class="modal-file-drop-sub">PDF o foto</div></div><input type="file" id="usrDocCifInput" accept="image/*,.pdf" style="display:none"><ul class="modal-file-list" id="usrDocCifList"></ul></div>' +
+                    '<div><div class="modal-file-drop" id="usrDocDniDrop" style="padding:0.5rem 0.6rem;"><div id="usrDocDniLabel">📎 Subir DNI</div><div class="modal-file-drop-sub">PDF o foto</div></div><input type="file" id="usrDocDniInput" accept="image/*,.pdf" style="display:none"><ul class="modal-file-list" id="usrDocDniList"></ul></div>' +
+                '</div>' +
+                '<div style="margin-top:0.6rem;"><div class="modal-file-drop" id="usrDocOtrosDrop" style="padding:0.5rem 0.6rem;"><div id="usrDocOtrosLabel">📎 Otros documentos</div><div class="modal-file-drop-sub">Escrituras, poderes, certificados… · máx. 3</div></div><input type="file" id="usrDocOtrosInput" multiple accept="image/*,.pdf" style="display:none"><ul class="modal-file-list" id="usrDocOtrosList"></ul></div>' +
+            '</div>' +
             '<p style="font-size:0.76rem;color:var(--gray-500);font-weight:600;margin:0.6rem 0 0;">La contraseña no se gestiona aquí: el usuario la crea con el enlace de invitación que recibe en su email (y puede cambiarla desde Mi cuenta).</p>' +
             (u.email ?
                 '<div style="margin-top:0.9rem;"><label style="font-size:0.78rem;font-weight:700;color:var(--gray-500);">Uso de la plataforma <span style="font-weight:600;">· solo lectura, lo calcula el sistema</span></label>' +
@@ -7913,7 +7965,17 @@
             sub: esEdit ? (u.email || '') : 'Alta de un email de acceso a la plataforma',
             body: usuarioFormHTML(u, esEdit ? idx : -1),
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
-                '<button class="btn-primary" onclick="usuarioGuardar(' + (esEdit ? idx : -1) + ')">' + (esEdit ? 'Guardar cambios' : 'Crear usuario') + '</button>'
+                '<button class="btn-primary" onclick="usuarioGuardar(' + (esEdit ? idx : -1) + ')">' + (esEdit ? 'Guardar cambios' : 'Crear usuario') + '</button>',
+            afterOpen: function () {
+                // Documentación del alta (copias de trabajo: solo se consolidan
+                // al Guardar; Cancelar no toca nada).
+                window._usrDocCif = (u && u.docCif ? u.docCif.slice() : []);
+                window._usrDocDni = (u && u.docDni ? u.docDni.slice() : []);
+                window._usrDocOtros = (u && u.docsOtros ? u.docsOtros.slice() : []);
+                bindDocsArea({ arr: window._usrDocCif, listId: 'usrDocCifList', labelId: 'usrDocCifLabel', dropId: 'usrDocCifDrop', inputId: 'usrDocCifInput', max: 1, labelDefault: '📎 Subir hoja CIF', labelFull: 'Hoja CIF adjunta' });
+                bindDocsArea({ arr: window._usrDocDni, listId: 'usrDocDniList', labelId: 'usrDocDniLabel', dropId: 'usrDocDniDrop', inputId: 'usrDocDniInput', max: 1, labelDefault: '📎 Subir DNI', labelFull: 'DNI adjunto' });
+                bindDocsArea({ arr: window._usrDocOtros, listId: 'usrDocOtrosList', labelId: 'usrDocOtrosLabel', dropId: 'usrDocOtrosDrop', inputId: 'usrDocOtrosInput', max: 3, labelDefault: '📎 Otros documentos', labelFull: 'Máximo 3 documentos' });
+            }
         });
     }
     window.openUsuarioModal = openUsuarioModal;
@@ -8027,6 +8089,9 @@
         u.ciudad = v('usr-f-ciudad') || null;
         u.prov = v('usr-f-prov') || null;
         u.pais = v('usr-f-pais') || 'España';
+        u.docCif = (window._usrDocCif || u.docCif || []).slice(0, 1);
+        u.docDni = (window._usrDocDni || u.docDni || []).slice(0, 1);
+        u.docsOtros = (window._usrDocOtros || u.docsOtros || []).slice(0, 3);
         if (edit) { u.modificadoEn = Date.now(); }
         else { u.creadoEn = Date.now(); u.modificadoEn = null; USUARIOS_DATA.push(u); }
         closeDashModal();
@@ -8035,9 +8100,134 @@
     }
     window.usuarioGuardar = usuarioGuardar;
 
+    // ==================== ALTAS PENDIENTES (verificación de registros) ====================
+    // Solicitudes de cuenta del registro del portal, pendientes de verificar
+    // por admin. Mock determinista; en producción vendrán del backend con los
+    // documentos subidos en el formulario de registro (hoja CIF, DNI…).
+    var ALTAS_DATA = [
+        { email: 'logistica@aceroscastilla.es', tipo: 'Cliente', nombre: 'Roberto Peña Salvador', dni: '11902276B', tfno: '+34 983 441 208', empresa: 'Aceros y Perfiles Castilla S.L.', cif: 'B47120995', dirF: 'Pol. San Cristóbal, C/ Plata 41', cp: '47012', ciudad: 'Valladolid', prov: 'Valladolid', pais: 'España', docCif: ['Hoja-CIF-AcerosCastilla.pdf'], docDni: ['DNI-RobertoPena.pdf'], docsOtros: ['Escritura-constitucion.pdf'], solicitadoEn: __ctTs(1, 10) },
+        { email: 'transportes.hermanosvidal@gmail.com', tipo: 'Transportista', nombre: 'Andrés Vidal Soto', dni: '48771034Y', tfno: '+34 617 552 909', empresa: 'Transportes Hermanos Vidal C.B.', cif: 'E04881120', dirF: 'C/ Río Andarax 8', cp: '04006', ciudad: 'Almería', prov: 'Almería', pais: 'España', docCif: ['Hoja-CIF-HnosVidal.pdf'], docDni: ['DNI-AndresVidal.pdf'], docsOtros: ['Tarjeta-transporte.pdf', 'Seguro-CMR.pdf'], solicitadoEn: __ctTs(2, 13) },
+        { email: 'sonia.marquez@quimiplast.es', tipo: 'Cliente', nombre: 'Sonia Márquez Lillo', dni: '53220417X', tfno: '+34 965 682 114', empresa: 'Quimiplast Levante S.A.', cif: 'A03771205', dirF: 'Av. del Plástico 3', cp: '03440', ciudad: 'Ibi', prov: 'Alicante', pais: 'España', docCif: ['Hoja-CIF-Quimiplast.pdf'], docDni: [], docsOtros: [], solicitadoEn: __ctTs(3, 9) },
+        { email: 'ganga.envios.2026@hotmail.com', tipo: 'Cliente', nombre: 'J. J.', dni: '', tfno: '+34 600 000 001', empresa: 'Envíos Baratos Ya', cif: '', dirF: '', cp: '', ciudad: '', prov: '', pais: 'España', docCif: [], docDni: [], docsOtros: [], solicitadoEn: __ctTs(0, 8) }
+    ];
+    function altaBlob(a) {
+        return normTxt([a.email, a.tipo, a.nombre, a.dni, a.tfno, a.empresa, a.cif, a.ciudad, a.prov].join(' '));
+    }
+    function altaDocsCount(a) {
+        return (a.docCif || []).length + (a.docDni || []).length + (a.docsOtros || []).length;
+    }
+    function renderAltasTable() {
+        var tbody = document.getElementById('tbodyAltas'); if (!tbody) return;
+        var nq = normTxt(((document.getElementById('altasSearch') || {}).value) || '');
+        var rows = ALTAS_DATA.map(function (a, i) { return { a: a, i: i }; }).filter(function (r) {
+            return !nq || altaBlob(r.a).indexOf(nq) > -1;
+        });
+        var h2 = document.querySelector('#sec-altas h2');
+        if (h2) h2.textContent = 'Altas pendientes (' + rows.length + ')';
+        var slice = pageSlice('altas', rows, nq, 'altasPagination', 'altasShowing', 'Sin altas pendientes');
+        if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-500);">' + (ALTAS_DATA.length ? 'Sin altas que coincidan' : 'No hay altas pendientes de verificar. 🎉') + '</td></tr>';
+            return;
+        }
+        tbody.innerHTML = slice.map(function (r) {
+            var a = r.a, nd = altaDocsCount(a);
+            var falta = [];
+            if (!(a.docCif || []).length) falta.push('CIF');
+            if (!(a.docDni || []).length) falta.push('DNI');
+            return '<tr data-alta="' + r.i + '">' +
+                '<td><strong>' + esc(a.email) + '</strong></td>' +
+                '<td>' + usuarioTipoChip(a.tipo) + '</td>' +
+                '<td>' + esc(a.empresa || '—') + '<div class="meta">' + esc(a.cif || 'Sin CIF') + '</div></td>' +
+                '<td>' + esc(a.nombre || '—') + (a.dni ? '<div class="meta">' + esc(a.dni) + '</div>' : '<div class="meta" style="color:#b45309;">Sin DNI</div>') + '</td>' +
+                '<td style="white-space:nowrap;">' + esc(a.tfno || '—') + '</td>' +
+                '<td>' + (nd ? nd + ' doc' + (nd === 1 ? '' : 's') : '<span style="color:#dc2626;font-weight:700;">Sin documentos</span>') +
+                    (falta.length && nd ? '<div class="meta" style="color:#b45309;">Falta ' + falta.join(' y ') + '</div>' : '') + '</td>' +
+                '<td style="white-space:nowrap;">' + fmtFH(a.solicitadoEn) + '</td>' +
+            '</tr>';
+        }).join('');
+        tbody.querySelectorAll('tr[data-alta]').forEach(function (tr) {
+            tr.addEventListener('click', function () { openAltaModal(parseInt(tr.getAttribute('data-alta'), 10)); });
+        });
+    }
+    window.renderAltasTable = renderAltasTable;
+    function openAltaModal(idx) {
+        var a = ALTAS_DATA[idx]; if (!a) return;
+        function row(k, v) { return '<div class="pen-sum-row"><span class="k">' + k + '</span><span class="v">' + (v || '—') + '</span></div>'; }
+        function docLink(name) {
+            return '<a href="#" onclick="docAbrir(\'' + escapeHtml(name) + '\');return false;" style="color:var(--purple);font-weight:700;text-decoration:none;">📄 ' + escapeHtml(name) + '</a>';
+        }
+        function docsRow(k, arr) {
+            return row(k, (arr && arr.length) ? arr.map(docLink).join('<br>') : '<span style="color:#dc2626;">No aportado</span>');
+        }
+        openDashModal({
+            icon: 'user',
+            title: 'Verificar alta — ' + a.email,
+            sub: 'Solicitada el ' + fmtFH(a.solicitadoEn),
+            body:
+                '<p style="font-size:0.85rem;line-height:1.55;color:var(--gray-700);margin-bottom:0.7rem;">Datos tal cual los envió en el <strong>formulario de registro</strong>. Revisa la documentación y <strong>confirma el alta</strong> (se crea el usuario y recibe el enlace de invitación) o <strong>suspéndela</strong> si es fraudulenta: el email queda bloqueado y no podrá volver a solicitar acceso.</p>' +
+                '<div class="pen-envio-sum">' +
+                    row('Email (usuario)', '<strong>' + escapeHtml(a.email) + '</strong>') +
+                    row('Tipo solicitado', usuarioTipoChip(a.tipo)) +
+                    row('Nombre y apellidos', escapeHtml(a.nombre || '')) +
+                    row('DNI', escapeHtml(a.dni || '')) +
+                    row('Teléfono', escapeHtml(a.tfno || '')) +
+                    row('Empresa / Razón social', escapeHtml(a.empresa || '')) +
+                    row('CIF', escapeHtml(a.cif || '')) +
+                    row('Dirección fiscal', escapeHtml([a.dirF, a.cp, a.ciudad, a.prov, a.pais].filter(Boolean).join(', '))) +
+                    docsRow('Hoja CIF', a.docCif) +
+                    docsRow('DNI (documento)', a.docDni) +
+                    ((a.docsOtros || []).length ? docsRow('Otros documentos', a.docsOtros) : '') +
+                '</div>' +
+                '<p class="alm-err" id="altaErr"></p>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>' +
+                '<button class="btn-primary" style="background:var(--red);" onclick="altaSuspender(' + idx + ')">Suspender</button>' +
+                '<button class="btn-primary" onclick="altaConfirmar(' + idx + ')">Confirmar alta</button>'
+        });
+    }
+    window.openAltaModal = openAltaModal;
+    // Pasa la solicitud a USUARIOS con el estado indicado y la saca de la
+    // lista de pendientes. Devuelve el usuario creado.
+    function altaAUsuario(a, estado) {
+        var u = {
+            email: a.email, tipo: a.tipo || 'Cliente', nombre: a.nombre || null, dni: a.dni || null, tfno: a.tfno || null,
+            empresa: a.empresa || null, cif: a.cif || null, dirF: a.dirF || null, cp: a.cp || null,
+            ciudad: a.ciudad || null, prov: a.prov || null, pais: a.pais || 'España',
+            estadoCuenta: estado,
+            docCif: (a.docCif || []).slice(), docDni: (a.docDni || []).slice(), docsOtros: (a.docsOtros || []).slice(),
+            ultimaConexion: null, minDia: null, minSemana: null,
+            consultas: null, envios: null, cancelaciones: null, cancelUlt10: null,
+            creadoEn: Date.now(), modificadoEn: null
+        };
+        USUARIOS_DATA.push(u);
+        var i = ALTAS_DATA.indexOf(a);
+        if (i > -1) ALTAS_DATA.splice(i, 1);
+        renderAltasTable();
+        renderUsuariosTable();
+        return u;
+    }
+    function altaConfirmar(idx) {
+        var a = ALTAS_DATA[idx]; if (!a) return;
+        altaAUsuario(a, 'Activa');
+        closeDashModal();
+        showLoadingOverlay('Confirmando alta…', 900, function () {
+            showModalSuccess('Alta confirmada', a.email + ' ya es usuario (' + (a.tipo || 'Cliente') + '). Recibirá el enlace de invitación en su email para crear la contraseña y entrar al portal. Lo tienes en Usuarios.');
+        });
+    }
+    window.altaConfirmar = altaConfirmar;
+    function altaSuspender(idx) {
+        var a = ALTAS_DATA[idx]; if (!a) return;
+        altaAUsuario(a, 'Suspendida');
+        closeDashModal();
+        showLoadingOverlay('Suspendiendo alta…', 900, function () {
+            showModalSuccess('Alta suspendida', 'El email ' + a.email + ' queda registrado como cuenta SUSPENDIDA: si intenta entrar verá la pantalla de cuenta suspendida y no podrá volver a solicitar el alta con ese email. Queda en Usuarios por si hay que revisarlo.');
+        });
+    }
+    window.altaSuspender = altaSuspender;
+
     renderClientesTable('');
     renderTransportistasTable('');
     renderUsuariosTable();
+    renderAltasTable();
 
     /* ---- Extractores de datos por fila ---- */
     function txt(el) { return el ? el.textContent.trim().replace(/\s+/g, ' ') : ''; }
@@ -8262,6 +8452,11 @@
         if (btns.join('').indexOf("'reportar-incidencia'") === -1) {
             btns.push(b('btn-secondary', 'reportar-incidencia', 'Reportar incidencia', 'alert'));
         }
+        // CREAR PENALIZACIÓN (uso interno/admin; al montar el gating se
+        // ocultará al cliente): abre el modal de penalización con este
+        // envío ya seleccionado y su ficha de contexto.
+        btns.push('<button class="btn-secondary" onclick="closeDashModal();openNuevaPenalizacion(null,\'' + ref + '\')">' +
+            '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:0.35rem;"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>Crear penalización</button>');
         // "Repetir envío" siempre disponible: cualquier envío (incluso
         // cancelado o entregado hace tiempo) puede usarse como plantilla
         // para una carga nueva. Va al final salvo en entregada donde es la
@@ -10478,7 +10673,8 @@
         incidencias:    { page: 1, filter: 'abiertas', perPage: readPerPage('incidencias'), q: '', mes: '', _k: '' },
         clientes:       { page: 1, perPage: readPerPage('clientes'), _k: '' },
         transportistas: { page: 1, perPage: readPerPage('transportistas'), _k: '' },
-        usuarios:       { page: 1, perPage: readPerPage('usuarios'), _k: '' }
+        usuarios:       { page: 1, perPage: readPerPage('usuarios'), _k: '' },
+        altas:          { page: 1, perPage: readPerPage('altas'), _k: '' }
     };
 
     // --- Horarios de almacén realistas para el mockup ---
@@ -11174,7 +11370,10 @@
     // Crear (sin argumento) o EDITAR (con el ref de una penalización existente,
     // al pulsar su fila): mismo modal, campos prefijados y "Guardar penalización".
     var _penEditRef = null;
-    function openNuevaPenalizacion(editRef) {
+    // openNuevaPenalizacion(editRef)            → crear (sin args) o editar.
+    // openNuevaPenalizacion(null, '#GX…')       → crear con el ENVÍO ya
+    //   seleccionado (botón "Crear penalización" del detalle del envío).
+    function openNuevaPenalizacion(editRef, envioPre) {
         var p = editRef ? (PENALIZACIONES_DATA.filter(function (x) { return x.ref === editRef; })[0] || null) : null;
         _penEditRef = p ? p.ref : null;
         _penEnvioSel = p ? p.envio : null;
@@ -11219,6 +11418,9 @@
                     var ts = document.getElementById('penTipo'); if (ts) ts.value = p.tipo;
                     var ds = document.getElementById('penDesc'); if (ds) ds.value = p.descripcion || '';
                     var im = document.getElementById('penImporte'); if (im) im.value = p.importe;
+                } else if (envioPre) {
+                    // Creación desde el detalle de un envío: envío preseleccionado.
+                    penPickEnvio(envioPre);
                 }
             }
         });
@@ -13139,6 +13341,7 @@
         else if (table === 'clientes') renderClientesTable((document.getElementById('clientesSearch') || {}).value || '');
         else if (table === 'transportistas') renderTransportistasTable((document.getElementById('transportistasSearch') || {}).value || '');
         else if (table === 'usuarios') renderUsuariosTable();
+        else if (table === 'altas') renderAltasTable();
     }
 
     // ==================== ORDENACIÓN POR COLUMNAS (todas las tablas) ====================
@@ -13273,6 +13476,15 @@
                 function (r) { return r.u.cancelaciones; },
                 function (r) { return (r.u.envios > 0 && r.u.cancelaciones != null) ? r.u.cancelaciones / r.u.envios : null; },
                 function (r) { return r.u.cancelUlt10; }
+            ],
+            altas: [
+                function (r) { return r.a.email; },
+                function (r) { return r.a.tipo; },
+                function (r) { return r.a.empresa; },
+                function (r) { return r.a.nombre; },
+                function (r) { return r.a.tfno; },
+                function (r) { return altaDocsCount(r.a); },
+                function (r) { return r.a.solicitadoEn; }
             ]
         };
         return G[key];
@@ -13304,7 +13516,8 @@
         cargas: 'tbodyCargas', facturas: 'tbodyFacturas', albaranes: 'tbodyAlbaranes',
         incidencias: 'tbodyIncidencias', sitios: 'tbodySitios', almacenes: 'tbodyAlmacenes',
         almacenesCat: 'tbodyAlmacenesCat', penalizaciones: 'tbodyPenalizaciones',
-        clientes: 'tbodyClientes', transportistas: 'tbodyTransportistas', usuarios: 'tbodyUsuarios'
+        clientes: 'tbodyClientes', transportistas: 'tbodyTransportistas', usuarios: 'tbodyUsuarios',
+        altas: 'tbodyAltas'
     };
     function paintSortArrows(key) {
         var tb = document.getElementById(SORT_TABLES[key]); if (!tb) return;

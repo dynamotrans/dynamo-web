@@ -131,6 +131,25 @@
         .reg-terms a { color: var(--purple); font-weight: 700; pointer-events: auto; }
         .reg-terms a:hover { text-decoration: underline; }
 
+        /* Documentación del alta (hoja CIF · DNI · otros) */
+        .reg-docs { margin-top: 1rem; }
+        .reg-docs-title { font-size: 0.82rem; font-weight: 800; color: var(--navy); margin-bottom: 0.45rem; }
+        .reg-docs-title span { font-weight: 600; color: var(--gray-500); }
+        .reg-docs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+        .reg-doc-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+            padding: 0.65rem 0.4rem; border-radius: 11px;
+            border: 1.5px dashed var(--gray-300); background: var(--gray-100);
+            color: var(--navy); font: inherit; font-size: 0.8rem; font-weight: 700;
+            cursor: pointer; transition: border-color 0.15s, background 0.15s;
+        }
+        .reg-doc-btn svg { width: 20px; height: 20px; color: var(--purple); }
+        .reg-doc-btn:hover { border-color: var(--purple); background: rgba(51,0,204,0.05); }
+        .reg-doc-btn.has-file { border-style: solid; border-color: #22a55a; background: #eafaf0; }
+        .reg-doc-btn.has-file svg { color: #22a55a; }
+        .reg-doc-file { font-size: 0.66rem; font-weight: 600; color: #0f6b3a; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .reg-docs-note { margin: 0.5rem 0 0; font-size: 0.74rem; font-weight: 600; color: var(--gray-500); line-height: 1.45; }
+
         /* Country combobox (searchable, with España preselected) */
         .reg-country { position: relative; }
         .reg-country-trigger {
@@ -540,6 +559,31 @@
                         </div>
                     </div>
 
+                </div>
+
+                <!-- Documentación del alta: se revisa en "Altas pendientes"
+                     (panel admin) antes de activar la cuenta. -->
+                <div class="reg-docs">
+                    <div class="reg-docs-title">Documentación <span>· agiliza la verificación de tu alta</span></div>
+                    <div class="reg-docs-grid">
+                        <button type="button" class="reg-doc-btn" data-doc="cif" onclick="regDocPick(this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            <span class="reg-doc-lbl">Hoja CIF</span>
+                            <span class="reg-doc-file" hidden></span>
+                        </button>
+                        <button type="button" class="reg-doc-btn" data-doc="dni" onclick="regDocPick(this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="8.5" cy="11" r="2.5"/><path d="M14 9h5M14 13h5M5.5 17c.5-1.6 1.6-2.5 3-2.5s2.5.9 3 2.5"/></svg>
+                            <span class="reg-doc-lbl">DNI</span>
+                            <span class="reg-doc-file" hidden></span>
+                        </button>
+                        <button type="button" class="reg-doc-btn" data-doc="otros" onclick="regDocPick(this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                            <span class="reg-doc-lbl">Otros docs</span>
+                            <span class="reg-doc-file" hidden></span>
+                        </button>
+                    </div>
+                    <input type="file" id="regDocInput" accept="image/*,.pdf" multiple style="display:none">
+                    <p class="reg-docs-note">Hoja del CIF y DNI del solicitante (PDF o foto). Sin ellos el alta puede tardar más en verificarse.</p>
                 </div>
 
                 <label class="reg-terms">
@@ -1170,6 +1214,28 @@
         wrap.querySelectorAll('.contact-fab-action').forEach(function (a) { a.addEventListener('click', closeFab); });
         document.addEventListener('click', function (e) { if (wrap.classList.contains('open') && !wrap.contains(e.target)) closeFab(); });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && wrap.classList.contains('open')) { closeFab(); btn.focus(); } });
+    })();
+    // Documentación del alta (hoja CIF / DNI / otros): un input de archivo
+    // compartido; el botón pulsado recibe el nombre y se marca en verde.
+    // (Mockup: los archivos no se suben a ningún sitio; en producción irán
+    // al backend junto al formulario para revisarse en "Altas pendientes".)
+    var _regDocBtn = null;
+    function regDocPick(btn) {
+        _regDocBtn = btn;
+        var inp = document.getElementById('regDocInput');
+        if (inp) { inp.multiple = btn.getAttribute('data-doc') === 'otros'; inp.click(); }
+    }
+    (function () {
+        var inp = document.getElementById('regDocInput');
+        if (!inp) return;
+        inp.addEventListener('change', function () {
+            if (!_regDocBtn || !inp.files.length) return;
+            var names = Array.prototype.slice.call(inp.files).map(function (f) { return f.name; });
+            var span = _regDocBtn.querySelector('.reg-doc-file');
+            if (span) { span.textContent = names.join(' · '); span.hidden = false; }
+            _regDocBtn.classList.add('has-file');
+            inp.value = '';
+        });
     })();
     </script>
 
