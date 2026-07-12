@@ -1785,8 +1785,15 @@
         .dash-recomienda-text { flex: 1; min-width: 0; }
         .dash-recomienda-text h4 { margin: 0; font-size: 0.95rem; color: var(--navy); }
         .dash-recomienda-text p { margin: 2px 0 0; font-size: 0.8rem; color: var(--gray-500); }
-        .dash-recomienda-btn { flex: none; }
-        @media (max-width: 700px) { .dash-recomienda { flex-wrap: wrap; } .dash-recomienda-btn { width: 100%; } }
+        .dash-recomienda-btns { flex: none; display: flex; gap: 0.6rem; }
+        .dash-recomienda-btns .btn-secondary { border: 1.5px solid var(--gray-300); }
+        @media (max-width: 900px) {
+            .dash-recomienda { flex-wrap: wrap; }
+            /* Los 2 botones comparten UNA fila (izquierda/derecha) para no
+               comerse alto de pantalla. */
+            .dash-recomienda-btns { width: 100%; }
+            .dash-recomienda-btns > button { flex: 1; min-width: 0; padding-left: 0.4rem; padding-right: 0.4rem; font-size: 0.8rem; }
+        }
         /* Discreción comercial (confirmación de envío) */
         .ptar-discrecion { border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 0.7rem 0.8rem; background: var(--gray-50); margin-bottom: 0.7rem; }
         .ptar-discrecion .ptar-confirm-check { margin: 0; }
@@ -4076,10 +4083,13 @@
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
             </div>
             <div class="dash-recomienda-text">
-                <h4>Recomiéndanos a tu proveedor o cliente</h4>
-                <p>Si ellos también necesitan transportes, preséntanos — estaremos muy agradecidos.</p>
+                <h4>Recomiéndanos</h4>
+                <p>A tu proveedor o cliente, o puntúanos en Google — nos ayuda muchísimo y estaremos muy agradecidos.</p>
             </div>
-            <button type="button" class="btn-primary dash-recomienda-btn" onclick="abrirRecomendar()">Recomendar Dynamo</button>
+            <div class="dash-recomienda-btns">
+                <button type="button" class="btn-primary" onclick="abrirRecomendar()">Recomendar Dynamo</button>
+                <button type="button" class="btn-secondary" onclick="abrirResenaGoogle()">★ Puntúanos en Google</button>
+            </div>
         </div>
 
         <!-- ===== Servicios: MISMO carrusel automático que el muro de clientes
@@ -8384,6 +8394,23 @@
         }
     }
     window.recomendarPor = recomendarPor;
+    // Puntuar en Google: agradecimiento + enlace a la ficha. Cuando tengamos
+    // el place ID de la ficha de Google Business, sustituir la URL por el
+    // enlace DIRECTO de reseña (https://g.page/r/<placeId>/review), que abre
+    // ya el cuadro de 5 estrellas.
+    var GOOGLE_FICHA_URL = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('Dynamo Operador de Transportes Sevilla');
+    function abrirResenaGoogle() {
+        openDashModal({
+            icon: 'user',
+            title: 'Puntúanos en Google',
+            sub: 'Tu reseña nos ayuda muchísimo',
+            body:
+                '<p style="font-size:0.9rem;line-height:1.6;color:var(--gray-700);margin-bottom:0.9rem;">Las reseñas en Google son la mejor carta de presentación que podemos tener: <strong>nos ayudan muchísimo</strong> a que otras empresas confíen en nosotros. Si estás contento con el servicio, te agradecemos de corazón que nos dediques <strong>un minuto para puntuarnos</strong> (y si algo no fue bien, cuéntanoslo primero a nosotros y lo arreglamos).</p>' +
+                '<a href="' + GOOGLE_FICHA_URL + '" target="_blank" rel="noopener" class="btn-primary" style="display:flex;align-items:center;justify-content:center;gap:0.5rem;width:100%;box-sizing:border-box;text-decoration:none;">★ Abrir nuestra ficha de Google y puntuar</a>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>'
+        });
+    }
+    window.abrirResenaGoogle = abrirResenaGoogle;
 
     /* ---- ACCIONES PRESUPUESTOS ---- */
     function presupuestoVerDetalle(row) {
