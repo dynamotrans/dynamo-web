@@ -8117,12 +8117,15 @@
             title: 'Reportar incidencia',
             sub: 'Cuéntanos lo ocurrido para actuar rápido',
             body:
+                // Ficha completa del envío (mismo contexto que al elegirlo en
+                // crear incidencia/penalización); si no está en datos, el grid corto.
+                ((envioContextHTML(d.ref) && '<div class="pen-envio-sum" style="margin-top:0;margin-bottom:0.4rem;">' + envioContextHTML(d.ref) + '</div>') ||
                 infoGrid([
                     { label: 'Nº carga', value: d.ref },
                     { label: 'Ruta', value: d.origen + ' → ' + d.destino },
                     { label: 'Mercancía', value: d.mercancia },
                     { label: 'Estado', value: d.estado }
-                ]) +
+                ])) +
                 '<div class="modal-form-row" style="margin-top:0.8rem;"><label>Detalle de la incidencia *</label><textarea required placeholder="Describe lo ocurrido: daños, retraso, mercancía incorrecta, falta de albarán firmado…"></textarea></div>' +
                 '<div class="modal-form-row"><label>Adjuntar fotos / documentos</label>' +
                 '<div class="modal-file-drop" onclick="document.getElementById(\'incidFiles\').click()">' +
@@ -8165,6 +8168,54 @@
         if (c.transportistaNombre) parts.push('· ' + c.transportistaNombre);
         return parts.join(' ');
     }
+    // Resumen COMPLETO de un envío para dar CONTEXTO al asociarlo a una
+    // penalización o incidencia: estado, fecha/ventana + fecha de carga real,
+    // camión/matrícula/conductor, mercancía, sitios de recogida y entrega
+    // (empresa + dirección + horario), paradas y precios cliente/transportista
+    // con margen (base sin IVA). Las filas sin dato se omiten.
+    function envioContextHTML(ref) {
+        var c = (typeof CARGAS_DATA !== 'undefined' ? CARGAS_DATA : []).filter(function (x) { return x.ref === ref; })[0];
+        if (!c) return '';
+        function row(k, v) { return v ? '<div class="pen-sum-row"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>' : ''; }
+        function sitioTxt(key, ciudad, dir, horario) {
+            var s = key ? siteDe(key) : null;
+            var parts = [];
+            if (s && s.empresa) parts.push('<strong>' + escapeHtml(s.empresa) + '</strong>');
+            var d = ciudadDir(ciudad, dir);
+            if (d) parts.push(escapeHtml(d));
+            var h = horario || (s && s.horario);
+            if (h) parts.push('<span style="color:var(--gray-500);font-weight:600;">' + escapeHtml(h) + '</span>');
+            return parts.join('<br>');
+        }
+        cargaPrecios(c);
+        var pc = c.precioCliente || 0, pt = c.precioTransportista || 0;
+        var fecha = (c.fecha === 'Sin fecha') ? 'Sin fecha definida' : ventanaRango(c.fecha, c.ventana);
+        var asig = null;
+        if (c.fechaAsignada) {
+            var pA = String(c.fechaAsignada).split(' ');
+            asig = fechaConDia(pA[0]) + (pA[1] ? ' · ' + pA.slice(1).join(' ') : '');
+        }
+        var mat = [c.matricula, c.conductor].filter(Boolean).join(' · ');
+        return row('Envío', '<strong>' + escapeHtml(c.ref) + '</strong>' + (c.refCli ? ' · ' + escapeHtml(c.refCli) : '')) +
+            row('Estado', escapeHtml(c.estado || '') + (c.pendientePago ? ' · Pendiente de pago' : '')) +
+            row('Cliente', escapeHtml(CLIENTE_ACTUAL)) +
+            row('Transportista', escapeHtml(c.transportistaNombre || 'Sin asignar / pendiente')) +
+            row('Matrícula', mat ? escapeHtml(mat) : null) +
+            row('Camión', c.tipoCamion ? escapeHtml(c.tipoCamion + (c.tipoCarga ? ' · ' + c.tipoCarga : '')) : null) +
+            row('Fecha / ventana', escapeHtml(fecha)) +
+            row('Fecha de carga real', asig ? escapeHtml(asig) : null) +
+            row('Entrega estimada', c.etaEntrega ? escapeHtml(fechaConDia(c.etaEntrega)) : null) +
+            row('Mercancía', escapeHtml([c.mercancia, c.medidas].filter(Boolean).join(' · '))) +
+            row('Recogida', sitioTxt(c.origenSite, c.origen, c.origenDir, c.horarioOrigen)) +
+            row('Entrega', sitioTxt(c.destinoSite, c.destino, c.destinoDir, c.horarioDestino)) +
+            ((c.paradas && c.paradas.length) ? row('Paradas (' + c.paradas.length + ')', c.paradas.map(function (p) {
+                return escapeHtml((p.tipo === 'recogida' ? 'Recogida' : 'Entrega') + (p.dir ? ': ' + p.dir : ''));
+            }).join('<br>')) : '') +
+            row('P. cliente <span style="font-weight:600;">· base sin IVA</span>', eur2(pc)) +
+            row('P. transportista <span style="font-weight:600;">· base sin IVA</span>', eur2(pt)) +
+            row('Margen <span style="font-weight:600;">· base sin IVA</span>', margenHtml(pc, pt));
+    }
+    window.envioContextHTML = envioContextHTML;
     // Crear (sin argumento) o EDITAR (con el __id de una incidencia, al pulsar
     // su fila): mismo modal, campos prefijados y "Guardar incidencia". El
     // estado (Abierta/En curso/Resuelta) se puede cambiar al editar.
@@ -8185,7 +8236,8 @@
                     '<button type="button" class="ptar-clear" id="incEnvClearBtn" hidden onclick="incEnvClear(true)" aria-label="Cambiar envío">✕</button>' +
                     '<ul class="ptar-sug alm-combo-list" id="incEnvList" hidden></ul>' +
                     '<input type="hidden" id="incGenRef">' +
-                '</div></div>' +
+                '</div>' +
+                '<div class="pen-envio-sum" id="incEnvSum" hidden></div></div>' +
                 '<div class="modal-form-row"><label>Tipo de incidencia</label>' +
                 '<select id="incGenTipo">' +
                     '<option value="" selected>Selecciona el tipo…</option>' +
@@ -8253,6 +8305,9 @@
         if (x) x.hidden = false;
         if (list) list.hidden = true;
         if (hid) hid.value = ref;
+        // Ficha completa del envío elegido (contexto para la incidencia).
+        var sum = document.getElementById('incEnvSum');
+        if (sum) { var h = envioContextHTML(ref); sum.innerHTML = h; sum.hidden = !h; }
     }
     function incEnvClear(focus) {
         var inp = document.getElementById('incEnvSearch'), list = document.getElementById('incEnvList'),
@@ -8263,6 +8318,8 @@
         if (x) x.hidden = true;
         if (list) list.hidden = true;
         if (hid) hid.value = '';
+        var sum = document.getElementById('incEnvSum');
+        if (sum) { sum.hidden = true; sum.innerHTML = ''; }
         if (focus && inp) inp.focus();
     }
     window.incEnvFilter = incEnvFilter;
@@ -10388,6 +10445,18 @@
     // Fecha/hora de creación determinista para el mock (la fecha ya existe;
     // la hora se deriva del ref para que sea estable en cualquier dispositivo).
     PENALIZACIONES_DATA.forEach(function (p) {
+        // El envío referenciado debe EXISTIR en CARGAS_DATA para que la ficha
+        // de contexto salga completa: si el mock apunta a un #GX inventado,
+        // se re-apunta (determinista) a un envío real con transportista.
+        if (typeof CARGAS_DATA !== 'undefined' && !CARGAS_DATA.some(function (c) { return c.ref === p.envio; })) {
+            var conTr = CARGAS_DATA.filter(function (c) { return c.transportistaNombre; });
+            var pool = conTr.length ? conTr : CARGAS_DATA;
+            if (pool.length) {
+                var cReal = pool[hashStr(p.ref) % pool.length];
+                p.envio = cReal.ref;
+                p.transportista = cReal.transportistaNombre || p.transportista;
+            }
+        }
         // Precio cliente (lo repercutido) y transportista (su parte), BASE sin
         // IVA. Mock determinista; en producción vendrán del dato real.
         if (p.impCliente == null) p.impCliente = p.importe;
@@ -10523,10 +10592,9 @@
         var sug = document.getElementById('penEnvioSug'); if (sug) sug.hidden = true;
         var sum = document.getElementById('penEnvioSum');
         if (sum) {
-            sum.innerHTML =
-                '<div class="pen-sum-row"><span class="k">Cliente</span><span class="v">' + escapeHtml(CLIENTE_ACTUAL) + '</span></div>' +
-                '<div class="pen-sum-row"><span class="k">Transportista</span><span class="v">' + escapeHtml(c.transportista || 'Sin asignar / pendiente') + '</span></div>' +
-                '<div class="pen-sum-row"><span class="k">Ruta</span><span class="v">' + escapeHtml((c.origen || '') + ' → ' + (c.destino || '')) + '</span></div>';
+            // Ficha completa del envío elegido (contexto para la penalización).
+            sum.innerHTML = envioContextHTML(ref) ||
+                '<div class="pen-sum-row"><span class="k">Transportista</span><span class="v">' + escapeHtml(c.transportista || 'Sin asignar / pendiente') + '</span></div>';
             sum.hidden = false;
         }
         var err = document.getElementById('penErr'); if (err) err.classList.remove('show');
