@@ -8648,24 +8648,21 @@
         var isHacia    = phase === 'hacia'    || phase.indexOf('hacia la carga') > -1;
         var btns = [];
 
-        if (kind === 'programada') {
-            if (isPrevision) {
-                btns.push(b('btn-primary', 'modificar', 'Asignar fecha y datos', 'calendar'));
-            } else if (isCargando) {
-                // Camión en el muelle: ya no se puede modificar ni cancelar
-                btns.push(b('btn-primary', 'reportar-incidencia', 'Reportar incidencia', 'alert'));
-            } else {
-                // Modificar: abre el formulario de crear envío en modo edición
-                // ("Guardar cambios"). Con los roles se limitará quién puede.
-                btns.push(b('btn-secondary', 'modificar', 'Modificar', 'edit'));
-                btns.push(b('btn-primary', 'cancelar-carga', 'Cancelar envío', 'x', 'background:var(--red);'));
-            }
-        } else if (kind === 'en-ruta') {
-            btns.push(b('btn-primary', 'reportar-incidencia', 'Reportar incidencia', 'alert'));
+        if (kind === 'programada' && isPrevision) {
+            btns.push(b('btn-primary', 'modificar', 'Asignar fecha y datos', 'calendar'));
+            btns.push(b('btn-primary', 'cancelar-carga', 'Cancelar envío', 'x', 'background:var(--red);'));
         } else if (kind === 'cancelada') {
             // Deshacer la cancelación: el envío vuelve a Programadas con
             // todos sus datos tal y como estaban.
             btns.push(b('btn-primary', 'deshacer-cancelacion', 'Deshacer cancelación', 'undo'));
+        } else {
+            // MODIFICAR y CANCELAR disponibles SIEMPRE, en CUALQUIER estado:
+            // con transportista confirmado, cargando, en ruta e incluso
+            // ENTREGADO (una devolución/anulación puede llegar en cualquier
+            // momento). El modal de cancelar ya avisa de los costes que
+            // apliquen según el momento. Con los roles se limitará quién puede.
+            btns.push(b('btn-secondary', 'modificar', 'Modificar', 'edit'));
+            btns.push(b('btn-primary', 'cancelar-carga', 'Cancelar envío', 'x', 'background:var(--red);'));
         }
         // REPORTAR INCIDENCIA disponible SIEMPRE, en cualquier estado del envío
         // (también sin transportista asignado, en previsión, entregado o
