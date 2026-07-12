@@ -10902,7 +10902,7 @@
         'modular-normalizada-fuenlabrada': { empresa: 'MODULAR NORMALIZADA SL', dir: '28940, Fuenlabrada, Madrid, España', calle: 'C. del Berilio, 3, 28946 Fuenlabrada, Madrid', horario: 'L-V 7:00-14:00', tfno: '916421761', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/wm2DhtjTyovfFkXe6', freq: 14 },
         'truma-store-manises': { empresa: 'TRUMA STORE, S.L.', dir: '46940, Manises, Valencia, España', calle: '46940 Manises, Valencia', horario: '9:00-16:00', tfno: '+34 623 58 83 15', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/wGs9DHyTTWCZgzbv6', freq: 1 },
         'puertas-metalicas-sanchez-penaranda-de-b': { empresa: 'Puertas Metálicas Sánchez', dir: '37300, Peñaranda de Bracamonte, Salamanca, España', calle: 'C. Carreteros, 22-2, 37300 Peñaranda de Bracamonte, Salamanca', horario: '8:00-14:00 · 15:30-18:00', tfno: '923 54 13 06', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/dMg4HSUKSkoaLYXq7', freq: 8 },
-        'grupal-art-llica-de-vall': { empresa: 'GRUPAL ART, S.L.', dir: '08185, Lliçà de Vall, Barcelona, España', calle: null, horario: 'L-V 7:45-13:00', tfno: '93 844 51 87', contacto: null, notas: null, maps: 'https://goo.gl/maps/q4ECJQVWoezFTaHA6', freq: 11 },
+        'grupal-art-llica-de-vall': { empresa: 'GRUPAL ART, S.L.', tipoLugar: 'Zona urbana', dir: '08185, Lliçà de Vall, Barcelona, España', calle: null, horario: 'L-V 7:45-13:00', tfno: '93 844 51 87', contacto: null, notas: null, maps: 'https://goo.gl/maps/q4ECJQVWoezFTaHA6', freq: 11 },
         'ainair-urduliz': { empresa: 'Ainair SL', dir: '48610, Urduliz, Bizkaia, España', calle: 'Pol. Ind. Igeltzera, Camino Barrikako, 4 Polígono Ind Geltzera, 48610 Landa, Biscay - 48610 - Urduliz - Bizkaia', horario: '8:00-17:00', tfno: '944804390', contacto: null, notas: null, maps: 'https://maps.app.goo.gl/VBVau3Ur1uEwatqw8', freq: 4 },
         'protecnos-sant-andreu-de': { empresa: 'PROTECNOS', dir: '08740, Sant Andreu de la Barca, Barcelona, España', calle: 'Carrer del Jurats, 19 25 - 08740 Sant Andreu de la Barca (Barcelona)', horario: '9:00-18:00', tfno: '689248272', contacto: 'Francisco Sintes', notas: null, maps: 'https://maps.app.goo.gl/7fXD7iDycPkboSA59', freq: 1 },
         'almacen-servigatrans-2010-santa-perpetua': { empresa: 'ALMACÉN SERVIGATRANS 2010 SL', dir: '08130, Santa Perpètua de Mogoda, Barcelona, España', calle: 'Carrer Roger de Flor, 2, Nave 7, 08130 Santa Perpètua de Mogoda, Barcelona', horario: '7:00-10:00', tfno: '936617165', contacto: null, notas: null, maps: 'https://g.page/Servigatrans?share', freq: 2 },
@@ -11472,6 +11472,12 @@
         closeDashModal();
         var si = document.getElementById('sitiosSearch');
         renderSitiosTable(si ? si.value : '');
+        // Los envíos pintan la ficha del sitio (empresa + icono del TIPO): al
+        // editar un sitio se repintan también la tabla de envíos y la
+        // mini-lista del dashboard, para que el cambio (p. ej. tipo de lugar
+        // → color/icono) se vea al instante sin recargar.
+        try { if (typeof renderCargasTable === 'function') renderCargasTable(); } catch (e) {}
+        try { if (typeof renderMiniEnvios === 'function') renderMiniEnvios(); } catch (e) {}
         var verbo = actualizado ? 'actualizado' : 'guardado';
         if (window._sitioOnSave) {
             var cb = window._sitioOnSave; window._sitioOnSave = null;
