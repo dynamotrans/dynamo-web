@@ -4258,6 +4258,10 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
                 <span>Transportistas</span>
             </button>
+            <button class="admin-quick-btn" onclick="showSection('usuarios')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/><path d="M19 8h4M21 6v4"/></svg>
+                <span>Usuarios</span>
+            </button>
         </div>
         <!-- Control de MODO MANTENIMIENTO (admin). Apaga la plataforma: nadie
              podrá acceder y, en la app real, se cerrará la sesión de quien esté
@@ -5042,6 +5046,55 @@
         </div>
     </section>
 
+    <!-- ==================== USUARIOS (SOLO ADMIN) ====================
+         Un usuario = un EMAIL de acceso a la plataforma, asociado después a
+         un empleado, cliente, transportista o admin. Incluye métricas de uso
+         (conexión y actividad de envíos); en producción vendrán del backend. -->
+    <section class="section" id="sec-usuarios" data-roles="admin">
+        <div class="sec-header">
+            <h2>Usuarios</h2>
+            <div class="sec-header-actions">
+                <button class="btn-primary" onclick="abrirNuevoUsuario();return false;">+ Nuevo usuario</button>
+            </div>
+        </div>
+        <p style="color:var(--gray-500);font-size:0.82rem;margin:-0.4rem 0 0.9rem;"><span style="display:inline-block;background:rgba(51,0,204,0.10);color:var(--purple);font-weight:700;border-radius:6px;padding:1px 7px;font-size:0.72rem;margin-right:0.4rem;">SOLO ADMIN</span>Cada usuario es un email de acceso asociado a un empleado, cliente, transportista o admin, con sus métricas de uso. Pulsa una fila para ver o editar la ficha.</p>
+        <div class="filters">
+            <input type="search" id="usuariosSearch" placeholder="Buscar por email, nombre, DNI, teléfono…" oninput="renderUsuariosTable()">
+            <select id="usuariosTipoFiltro" onchange="renderUsuariosTable()" aria-label="Filtrar por tipo de usuario">
+                <option value="">Tipo: todos</option>
+                <option>Admin</option>
+                <option>Empleado</option>
+                <option>Cliente</option>
+                <option>Transportista</option>
+            </select>
+        </div>
+        <div class="table-wrap">
+            <table class="data" id="tablaUsuarios">
+                <thead><tr>
+                    <th>Email · usuario</th><th>Tipo</th><th>Nombre y apellidos</th><th>DNI</th><th>Teléfono</th>
+                    <th>Última conexión</th><th>Conexión diaria</th><th>Conexión semanal</th>
+                    <th>Consultas de precio</th><th>Envíos creados</th><th>Consultas / envíos</th>
+                    <th>Cancelaciones</th><th>Cancel. / envíos</th><th>Cancelados en últ. 10</th>
+                </tr></thead>
+                <tbody id="tbodyUsuarios"></tbody>
+            </table>
+        </div>
+        <div class="pagination">
+            <div class="pagination-left">
+                <label class="pagination-perpage-wrap">Mostrar
+                    <select class="pagination-perpage" data-table="usuarios">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+                <span id="usuariosShowing"></span>
+            </div>
+            <div class="pagination-pages" id="usuariosPagination"></div>
+        </div>
+    </section>
+
     <!-- ==================== NUEVO ALMACENAMIENTO ==================== -->
     <section class="section" id="sec-nuevo-almacen">
         <div class="sec-header">
@@ -5138,6 +5191,7 @@
         'nuevo-almacen':     'Nuevo almacenamiento',
         'penalizaciones':    'Penalizaciones',
         'almacenes-cat':     'Almacenes',
+        'usuarios':          'Usuarios',
         'soporte':           'Soporte'
     };
     function showSection(id) {
@@ -7649,8 +7703,172 @@
         showModalSuccess(edit ? 'Transportista actualizado' : 'Transportista creado', empresa + (edit ? ': cambios guardados (queda registrada la fecha y hora de modificación).' : ' añadido al catálogo de transportistas.'));
     }
     window.transportistaGuardar = transportistaGuardar;
+
+    // ==================== USUARIOS (catálogo interno, SOLO ADMIN) ====================
+    // Un usuario = un EMAIL de acceso, asociado a un empleado, cliente,
+    // transportista o admin. Las métricas (conexión, consultas de precio,
+    // envíos, cancelaciones) son MOCK deterministas; en producción vendrán
+    // del backend. Un transportista no crea envíos → sus métricas de envíos
+    // van en blanco, con normalidad.
+    // Última conexión determinista y reciente (mismo email → misma fecha/hora).
+    function __uxUltCon(email) {
+        var h = hashStr(String(email));
+        var d = new Date(); d.setDate(d.getDate() - (h % 5));
+        d.setHours(8 + (h % 11), (h * 7) % 60, 0, 0);
+        return d.getTime();
+    }
+    var USUARIOS_DATA = [
+        { email: 'alvaro@dynamotrans.com', tipo: 'Admin', nombre: 'Álvaro Blanco Ortega', dni: '28941006T', tfno: '+34 628 995 709', minDia: 176, minSemana: 934, consultas: 154, envios: 41, cancelaciones: 2, cancelUlt10: 0, creadoEn: __ctTs(430, 9), modificadoEn: __ctTs(22, 12) },
+        { email: 'trafico@dynamotrans.com', tipo: 'Empleado', nombre: 'Lucía Camacho Ríos', dni: '30277148Q', tfno: '+34 955 225 945', minDia: 208, minSemana: 1065, consultas: 232, envios: 87, cancelaciones: 5, cancelUlt10: 1, creadoEn: __ctTs(395, 10), modificadoEn: null },
+        { email: 'administracion@dynamotrans.com', tipo: 'Empleado', nombre: 'Pablo Serrano Gil', dni: '48120334M', tfno: '+34 955 225 945', minDia: 64, minSemana: 342, consultas: 18, envios: 6, cancelaciones: 0, cancelUlt10: 0, creadoEn: __ctTs(360, 11), modificadoEn: __ctTs(90, 16) },
+        { email: 'juan.garcia@marbexindustrial.es', tipo: 'Cliente', nombre: 'Juan García Molina', dni: '27556410S', tfno: '+34 954 210 334', minDia: 42, minSemana: 214, consultas: 96, envios: 28, cancelaciones: 3, cancelUlt10: 1, creadoEn: __ctTs(214, 9), modificadoEn: __ctTs(12, 13) },
+        { email: 'compras@marbexindustrial.es', tipo: 'Cliente', nombre: 'Julia Gómez Prada', dni: '28667109L', tfno: '+34 954 210 334', minDia: 17, minSemana: 88, consultas: 34, envios: 9, cancelaciones: 0, cancelUlt10: 0, creadoEn: __ctTs(190, 12), modificadoEn: null },
+        { email: 'logistica@grupalart.es', tipo: 'Cliente', nombre: 'Vicente Ferrer Ballester', dni: '24310877F', tfno: '+34 961 523 887', minDia: 25, minSemana: 131, consultas: 58, envios: 17, cancelaciones: 4, cancelUlt10: 2, creadoEn: __ctTs(388, 12), modificadoEn: __ctTs(41, 17) },
+        { email: 'pedidos@trumastore.es', tipo: 'Cliente', nombre: 'Marta Salas Nieto', dni: '05411290V', tfno: '+34 916 620 445', minDia: 11, minSemana: 47, consultas: 21, envios: 12, cancelaciones: 1, cancelUlt10: 1, creadoEn: __ctTs(160, 11), modificadoEn: null },
+        { email: 'admin@weldinox.com', tipo: 'Cliente', nombre: 'Sergio Luque Aranda', dni: '25998763H', tfno: '+34 952 771 209', minDia: 8, minSemana: 29, consultas: 44, envios: 5, cancelaciones: 2, cancelUlt10: 3, creadoEn: __ctTs(96, 16), modificadoEn: __ctTs(5, 9) },
+        { email: 'trafico@transromero.es', tipo: 'Transportista', nombre: 'Antonio Romero Cid', dni: '28450917J', tfno: '+34 954 367 210', minDia: 33, minSemana: 172, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null, creadoEn: __ctTs(420, 9), modificadoEn: __ctTs(30, 12) },
+        { email: 'operaciones@logivega.es', tipo: 'Transportista', nombre: 'Carmen Domínguez Lara', dni: '30122486W', tfno: '+34 955 790 118', minDia: 21, minSemana: 96, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null, creadoEn: __ctTs(365, 10), modificadoEn: null },
+        { email: 'jmortega.transportes@gmail.com', tipo: 'Transportista', nombre: 'José Manuel Ortega Ruiz', dni: '27314582K', tfno: '+34 638 220 471', minDia: 14, minSemana: 61, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null, creadoEn: __ctTs(190, 12), modificadoEn: __ctTs(60, 16) }
+    ];
+    USUARIOS_DATA.forEach(function (u) { if (u.ultimaConexion === undefined) u.ultimaConexion = __uxUltCon(u.email); });
+    // Minutos → texto legible ('2 h 56 min' / '45 min').
+    function fmtMinTxt(min) {
+        if (min == null) return '—';
+        var h = Math.floor(min / 60), m = Math.round(min % 60);
+        if (!h) return m + ' min';
+        return h + ' h' + (m ? ' ' + m + ' min' : '');
+    }
+    // Chip de color del tipo de usuario.
+    var USUARIO_TIPOS = ['Admin', 'Empleado', 'Cliente', 'Transportista'];
+    function usuarioTipoChip(tipo) {
+        var col = { Admin: ['rgba(51,0,204,0.10)', 'var(--purple)'], Empleado: ['rgba(15,23,42,0.08)', 'var(--navy)'], Cliente: ['rgba(15,107,58,0.10)', '#0f6b3a'], Transportista: ['rgba(255,122,0,0.12)', '#b45309'] }[tipo] || ['rgba(15,23,42,0.08)', 'var(--navy)'];
+        return '<span style="display:inline-block;background:' + col[0] + ';color:' + col[1] + ';font-weight:700;border-radius:6px;padding:1px 8px;font-size:0.72rem;white-space:nowrap;">' + esc(tipo) + '</span>';
+    }
+    // Métricas derivadas (solo usuarios que crean envíos; el resto '—').
+    function usuarioMetrics(u) {
+        var sinEnvios = (u.envios == null);
+        var ratioCE = (!sinEnvios && u.envios > 0 && u.consultas != null) ? (u.consultas / u.envios) : null;
+        var ratioCanc = (!sinEnvios && u.envios > 0 && u.cancelaciones != null) ? Math.round(u.cancelaciones / u.envios * 100) : null;
+        return {
+            consultas: sinEnvios ? '—' : String(u.consultas != null ? u.consultas : '—'),
+            envios: sinEnvios ? '—' : String(u.envios),
+            ratioCE: ratioCE == null ? '—' : ratioCE.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+            cancelaciones: sinEnvios ? '—' : String(u.cancelaciones != null ? u.cancelaciones : '—'),
+            ratioCanc: ratioCanc == null ? '—' : (ratioCanc + ' %'),
+            ratioCancAlto: ratioCanc != null && ratioCanc >= 30,
+            ult10: (sinEnvios || u.cancelUlt10 == null) ? '—' : (u.cancelUlt10 + ' de 10')
+        };
+    }
+    function usuarioBlob(u) {
+        return normTxt([u.email, u.tipo, u.nombre, u.dni, u.tfno].join(' '));
+    }
+    function renderUsuariosTable() {
+        var tbody = document.getElementById('tbodyUsuarios'); if (!tbody) return;
+        var nq = normTxt(((document.getElementById('usuariosSearch') || {}).value) || '');
+        var ft = ((document.getElementById('usuariosTipoFiltro') || {}).value) || '';
+        var rows = USUARIOS_DATA.map(function (u, i) { return { u: u, i: i }; }).filter(function (r) {
+            if (r.u._deleted) return false;
+            if (ft && r.u.tipo !== ft) return false;
+            return !nq || usuarioBlob(r.u).indexOf(nq) > -1;
+        });
+        var h2 = document.querySelector('#sec-usuarios h2');
+        if (h2) h2.textContent = 'Usuarios (' + rows.length + ')';
+        var slice = pageSlice('usuarios', rows, nq + '|' + ft, 'usuariosPagination', 'usuariosShowing', 'Sin usuarios');
+        if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin usuarios que coincidan</td></tr>';
+            return;
+        }
+        tbody.innerHTML = slice.map(function (r) {
+            var u = r.u, m = usuarioMetrics(u);
+            return '<tr data-usr="' + r.i + '">' +
+                '<td><strong>' + esc(u.email) + '</strong></td>' +
+                '<td>' + usuarioTipoChip(u.tipo) + '</td>' +
+                '<td>' + esc(u.nombre || '—') + '</td>' +
+                '<td>' + esc(u.dni || '—') + '</td>' +
+                '<td style="white-space:nowrap;">' + esc(u.tfno || '—') + '</td>' +
+                '<td style="white-space:nowrap;">' + (u.ultimaConexion ? fmtFH(u.ultimaConexion) : 'Sin conexiones') + '</td>' +
+                '<td>' + fmtMinTxt(u.minDia) + '</td>' +
+                '<td>' + fmtMinTxt(u.minSemana) + '</td>' +
+                '<td class="amount">' + m.consultas + '</td>' +
+                '<td class="amount">' + m.envios + '</td>' +
+                '<td class="amount">' + m.ratioCE + '</td>' +
+                '<td class="amount">' + m.cancelaciones + '</td>' +
+                '<td class="amount"' + (m.ratioCancAlto ? ' style="color:#dc2626;font-weight:800;"' : '') + '>' + m.ratioCanc + '</td>' +
+                '<td class="amount">' + m.ult10 + '</td>' +
+            '</tr>';
+        }).join('');
+        tbody.querySelectorAll('tr[data-usr]').forEach(function (tr) {
+            tr.addEventListener('click', function () { openUsuarioModal(parseInt(tr.getAttribute('data-usr'), 10)); });
+        });
+    }
+    window.renderUsuariosTable = renderUsuariosTable;
+    function usuarioFormHTML(u) {
+        u = u || {};
+        var m = usuarioMetrics(u);
+        function statRow(k, v) { return '<div class="pen-sum-row"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }
+        return ctMetaHTML(u) +
+            '<div class="ptar-sitio-grid">' +
+                ctField('usr-f-email', 'Email (usuario de acceso) *', u.email, 'nombre@empresa.com', true, 'email') +
+                ctSelect('usr-f-tipo', 'Tipo de usuario', USUARIO_TIPOS, u.tipo || 'Cliente') +
+                ctField('usr-f-dni', 'DNI', u.dni, '12345678Z') +
+                ctField('usr-f-nombre', 'Nombre y apellidos *', u.nombre, 'Nombre y apellidos', true) +
+                ctField('usr-f-tfno', 'Teléfono', u.tfno, '+34 …', true) +
+            '</div>' +
+            (u.email ?
+                '<div style="margin-top:0.9rem;"><label style="font-size:0.78rem;font-weight:700;color:var(--gray-500);">Uso de la plataforma <span style="font-weight:600;">· solo lectura, lo calcula el sistema</span></label>' +
+                '<div class="pen-envio-sum" style="margin-top:0.35rem;">' +
+                    statRow('Última conexión', u.ultimaConexion ? fmtFH(u.ultimaConexion) : 'Sin conexiones') +
+                    statRow('Conexión diaria (media)', fmtMinTxt(u.minDia)) +
+                    statRow('Conexión semanal (media)', fmtMinTxt(u.minSemana)) +
+                    statRow('Consultas de precio', m.consultas) +
+                    statRow('Envíos creados', m.envios) +
+                    statRow('Consultas / envíos creados', m.ratioCE) +
+                    statRow('Cancelaciones de envíos', m.cancelaciones) +
+                    statRow('Cancelaciones / envíos creados', m.ratioCancAlto ? '<span style="color:#dc2626;">' + m.ratioCanc + '</span>' : m.ratioCanc) +
+                    statRow('Cancelados en los últimos 10 creados', m.ult10) +
+                '</div></div>' : '');
+    }
+    function openUsuarioModal(idx) {
+        var esEdit = (idx != null && idx >= 0 && idx < USUARIOS_DATA.length);
+        var u = esEdit ? USUARIOS_DATA[idx] : null;
+        openDashModal({
+            icon: 'user',
+            title: esEdit ? 'Editar usuario' : 'Nuevo usuario',
+            sub: esEdit ? (u.email || '') : 'Alta de un email de acceso a la plataforma',
+            body: usuarioFormHTML(u),
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                '<button class="btn-primary" onclick="usuarioGuardar(' + (esEdit ? idx : -1) + ')">' + (esEdit ? 'Guardar cambios' : 'Crear usuario') + '</button>'
+        });
+    }
+    window.openUsuarioModal = openUsuarioModal;
+    window.abrirNuevoUsuario = function () { openUsuarioModal(-1); };
+    function usuarioGuardar(idx) {
+        function v(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+        var email = v('usr-f-email'), nombre = v('usr-f-nombre');
+        var emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        if (!emailOk || !nombre) {
+            var e1 = document.getElementById('usr-f-email'); if (e1 && !emailOk) e1.style.borderColor = '#dc2626';
+            var e2 = document.getElementById('usr-f-nombre'); if (e2 && !nombre) e2.style.borderColor = '#dc2626';
+            return;
+        }
+        var edit = (idx != null && idx >= 0 && idx < USUARIOS_DATA.length);
+        var u = edit ? USUARIOS_DATA[idx] : { ultimaConexion: null, minDia: null, minSemana: null, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null };
+        u.email = email; u.nombre = nombre;
+        var tipoEl = document.getElementById('usr-f-tipo');
+        u.tipo = tipoEl ? tipoEl.value : 'Cliente';
+        u.dni = v('usr-f-dni') || null;
+        u.tfno = v('usr-f-tfno') || null;
+        if (edit) { u.modificadoEn = Date.now(); }
+        else { u.creadoEn = Date.now(); u.modificadoEn = null; USUARIOS_DATA.push(u); }
+        closeDashModal();
+        renderUsuariosTable();
+        showModalSuccess(edit ? 'Usuario actualizado' : 'Usuario creado', email + (edit ? ': cambios guardados (queda registrada la fecha y hora de modificación).' : ' añadido. Las métricas de uso se irán calculando con su actividad.'));
+    }
+    window.usuarioGuardar = usuarioGuardar;
+
     renderClientesTable('');
     renderTransportistasTable('');
+    renderUsuariosTable();
 
     /* ---- Extractores de datos por fila ---- */
     function txt(el) { return el ? el.textContent.trim().replace(/\s+/g, ' ') : ''; }
@@ -8511,7 +8729,39 @@
         });
     }
     function cargaCancelarConfirm(ref) {
-        showModalSuccess('Envío cancelado', 'El envío ' + ref + ' se ha marcado como cancelado. El equipo recibirá el aviso.');
+        var c = findCargaDataByRef(ref);
+        var conCoste = false;
+        if (c) {
+            var corte = corteCancelacionDe(c);
+            conCoste = !corte || Date.now() >= corte.getTime();
+            c.kind = 'cancelada';
+            c.estado = 'Cancelada';
+            c.estadoColor = 'gray';
+            c.modificadoEn = Date.now();
+            // CANCELACIÓN CON COSTE → se AUTOGENERA la penalización de
+            // cancelación por el COSTE COMPLETO del servicio (base sin IVA).
+            // Admin podrá después negociar/acordar otro importe (o dejarla a
+            // cero) editándola en Penalizaciones — pero siempre se genera.
+            if (conCoste && typeof PENALIZACIONES_DATA !== 'undefined') {
+                cargaPrecios(c);
+                var impFull = c.precioCliente || 0;
+                PENALIZACIONES_DATA.unshift({
+                    ref: '#PEN-' + (PEN_SEQ++), envio: c.ref, tipo: 'Cancelación',
+                    transportista: c.transportistaNombre || null,
+                    descripcion: 'Generada automáticamente: cancelación fuera de plazo (tras las 9:00 del día hábil anterior a la carga). Importe inicial = coste completo del servicio; pendiente de revisión por administración.',
+                    importe: impFull, impCliente: impFull, impTrans: 0,
+                    fecha: penHoyMas(0), auto: true, creadoEn: Date.now()
+                });
+                if (typeof renderPenalizacionesTable === 'function') renderPenalizacionesTable();
+            }
+            if (typeof renderCargasTable === 'function') renderCargasTable();
+            if (typeof renderMiniEnvios === 'function') renderMiniEnvios();
+        }
+        if (conCoste && c) {
+            showModalSuccess('Envío cancelado — con coste', 'El envío ' + ref + ' se ha cancelado FUERA de plazo: se ha generado automáticamente una penalización de cancelación por el coste completo del servicio (' + eur2(c.precioCliente || 0) + ' base sin IVA). Administración la revisará y podrá acordar otro importe.');
+        } else {
+            showModalSuccess('Envío cancelado', 'El envío ' + ref + ' se ha cancelado sin coste (dentro de plazo). El equipo recibirá el aviso.');
+        }
     }
     window.cargaCancelarConfirm = cargaCancelarConfirm;
     // Deshacer una cancelación: el envío vuelve a Programadas con todos sus
@@ -8547,13 +8797,28 @@
     }
     function cargaDeshacerCancelacionConfirm(ref) {
         var c = findCargaDataByRef(ref);
+        var penQuitada = false;
         if (c && c.kind === 'cancelada') {
             c.kind = 'programada';
             c.estado = 'Programada';
             c.estadoColor = 'orange';
+            c.modificadoEn = Date.now();
+            // Si la cancelación AUTOGENERÓ una penalización, al deshacer la
+            // cancelación deja de aplicar → se retira (las creadas o editadas
+            // a mano por admin no se tocan).
+            if (typeof PENALIZACIONES_DATA !== 'undefined') {
+                for (var pi = PENALIZACIONES_DATA.length - 1; pi >= 0; pi--) {
+                    var pp = PENALIZACIONES_DATA[pi];
+                    if (pp.auto && pp.envio === ref && pp.tipo === 'Cancelación' && !pp.modificadoEn) {
+                        PENALIZACIONES_DATA.splice(pi, 1);
+                        penQuitada = true;
+                    }
+                }
+                if (penQuitada && typeof renderPenalizacionesTable === 'function') renderPenalizacionesTable();
+            }
             if (typeof renderCargasTable === 'function') renderCargasTable();
         }
-        showModalSuccess('Envío reactivado', 'El envío ' + ref + ' vuelve a estar en Programadas con todos sus datos. El equipo recibirá el aviso.');
+        showModalSuccess('Envío reactivado', 'El envío ' + ref + ' vuelve a estar en Programadas con todos sus datos.' + (penQuitada ? ' La penalización de cancelación generada automáticamente se ha retirado.' : '') + ' El equipo recibirá el aviso.');
     }
     window.cargaDeshacerCancelacionConfirm = cargaDeshacerCancelacionConfirm;
     // --- Recomiéndanos (boca a boca): mensaje listo para compartir ---
@@ -9906,7 +10171,8 @@
         sitios:         { page: 1, perPage: readPerPage('sitios'), _k: '' },
         incidencias:    { page: 1, filter: 'abiertas', perPage: readPerPage('incidencias'), q: '', mes: '', _k: '' },
         clientes:       { page: 1, perPage: readPerPage('clientes'), _k: '' },
-        transportistas: { page: 1, perPage: readPerPage('transportistas'), _k: '' }
+        transportistas: { page: 1, perPage: readPerPage('transportistas'), _k: '' },
+        usuarios:       { page: 1, perPage: readPerPage('usuarios'), _k: '' }
     };
 
     // --- Horarios de almacén realistas para el mockup ---
@@ -10501,7 +10767,7 @@
             return '<tr onclick="openNuevaPenalizacion(\'' + escapeHtml(p.ref) + '\')">' +
                 '<td class="ref"><strong>' + escapeHtml(p.ref) + '</strong><div class="meta">' + escapeHtml(String(p.descripcion || '').slice(0, 60)) + (String(p.descripcion || '').length > 60 ? '…' : '') + '</div></td>' +
                 '<td><strong>' + escapeHtml(p.envio) + '</strong></td>' +
-                '<td><span class="badge badge-prog">' + escapeHtml(p.tipo) + '</span></td>' +
+                '<td><span class="badge badge-prog">' + escapeHtml(p.tipo) + '</span>' + (p.auto ? '<div class="meta" style="color:var(--purple);font-weight:700;">Generada automáticamente</div>' : '') + '</td>' +
                 '<td>' + escapeHtml(p.transportista || '—') + '<div class="meta">' + escapeHtml(CLIENTE_ACTUAL) + '</div></td>' +
                 '<td class="amount td-precio" onclick="event.stopPropagation();openPenPrecioEditor(\'' + escapeHtml(p.ref) + '\')"><strong>' + eur2(p.impCliente != null ? p.impCliente : p.importe) + '</strong>' + (p.precioManual ? '<div class="meta-manual">fijado a mano</div>' : '') + '</td>' +
                 '<td class="amount td-precio" onclick="event.stopPropagation();openPenPrecioEditor(\'' + escapeHtml(p.ref) + '\')"><strong>' + eur2(p.impTrans || 0) + '</strong></td>' +
@@ -12553,6 +12819,7 @@
         else if (table === 'incidencias') renderIncidenciasTable();
         else if (table === 'clientes') renderClientesTable((document.getElementById('clientesSearch') || {}).value || '');
         else if (table === 'transportistas') renderTransportistasTable((document.getElementById('transportistasSearch') || {}).value || '');
+        else if (table === 'usuarios') renderUsuariosTable();
     }
     // Paginación cliente reutilizable: resetea a pág. 1 si cambió el filtro
     // (clave `k`), recorta el array a la página actual, pinta los botones y el
