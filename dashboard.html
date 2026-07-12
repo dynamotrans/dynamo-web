@@ -3370,6 +3370,10 @@
         .td-precio { cursor: pointer; }
         .td-precio:hover strong { color: var(--purple); text-decoration: underline; }
         .td-precio .meta-manual { font-size: 0.66rem; font-weight: 700; color: var(--purple); }
+        /* Referencias de precio (no editables): solo el importe, con color
+           propio + tooltip. Últ. envío gris medio · tarifador morado claro. */
+        table.data .td-precio .ref-ult { color: #6b7280; white-space: nowrap; cursor: help; font-weight: 400; }
+        table.data .td-precio .ref-tar { color: #8578e6; white-space: nowrap; cursor: help; font-weight: 400; }
         .marg-pos { color: #0f6b3a; font-weight: 800; }
         .marg-neg { color: #dc2626; font-weight: 800; }
         /* Cabeceras ordenables: clic alterna ascendente → descendente → orden
@@ -12912,9 +12916,11 @@
                         var tar = cargaPrecioTarifador(c);
                         var pc = c.precioCliente, pt = c.precioTransportista;
                         var man = c.precioManual ? '<div class="meta-manual">fijado a mano</div>' : '';
+                        // Solo el importe, sin etiqueta (menos ruido): el color
+                        // distingue cada referencia y el tooltip explica cuál es.
                         function refLines(u, t) {
-                            return (u ? '<div class="meta" style="white-space:nowrap;">Últ. envío: ' + eur2(u) + '</div>' : '') +
-                                (t ? '<div class="meta" style="white-space:nowrap;">Tarifador: ' + eur2(t) + '</div>' : '');
+                            return (u ? '<div class="meta ref-ult" title="Último envío idéntico (misma ruta): a cuánto se hizo la última vez · base sin IVA">' + eur2(u) + '</div>' : '') +
+                                (t ? '<div class="meta ref-tar" title="Según tarifador: lo que daría hoy el tarifador para este envío · base sin IVA">' + eur2(t) + '</div>' : '');
                         }
                         return '<td class="amount td-precio" onclick="event.stopPropagation();openPrecioEditor(\'' + esc(c.ref) + '\',\'cliente\')"><strong>' + (pc ? eur2(pc) : '—') + '</strong>' + man + refLines(ult.pcU, tar.pcT) + '</td>' +
                             '<td class="amount td-precio" onclick="event.stopPropagation();openPrecioEditor(\'' + esc(c.ref) + '\',\'transportista\')"><strong>' + (pt ? eur2(pt) : '—') + '</strong>' + man + refLines(ult.ptU, tar.ptT) + '</td>' +
