@@ -7946,12 +7946,13 @@
                 '</div>' +
                 '<div class="pen-envio-sum" id="asigTraFicha" hidden style="margin-top:0.6rem;"></div></div>' +
                 '<div class="ptar-sitio-grid" style="margin-top:0.8rem;">' +
-                    ctField('asig-f-matricula', 'Matrícula del camión', c.matricula, 'Ej. 5829 MGT') +
-                    ctSelect('asig-f-camion', 'Tipo de camión', ['Trailer Tauliner · 13,2 m', 'Rígido 8 m con plataforma'], c.tipoCamion || 'Trailer Tauliner · 13,2 m') +
+                    ctSelect('asig-f-camion', 'Tipo de camión', ['Trailer Tauliner · 13,2 m', 'Rígido 8 m con plataforma'], c.tipoCamion || 'Trailer Tauliner · 13,2 m', true) +
+                    ctField('asig-f-matricula', 'Matrícula tractora', c.matricula, 'Ej. 5829MGT') +
+                    ctField('asig-f-remolque', 'Matrícula remolque', c.matriculaRemolque, 'Ej. R1234BCD') +
                     ctField('asig-f-conductor', 'Conductor', c.conductor, 'Nombre del conductor') +
                     ctField('asig-f-tfnocond', 'Teléfono del conductor', c.tfnoConductor, '+34 …') +
                 '</div>' +
-                '<p style="font-size:0.76rem;color:var(--gray-500);font-weight:600;margin:0.6rem 0 0;">La matrícula y el conductor pueden añadirse después si aún no están cerrados: el envío quedará como «Confirmado transportista» y la matrícula «por asignar».</p>' +
+                '<p style="font-size:0.76rem;color:var(--gray-500);font-weight:600;margin:0.6rem 0 0;">Las matrículas solo admiten letras y números (sin guiones ni otros caracteres). Con camión RÍGIDO solo se rellena la tractora. Matrículas y conductor pueden añadirse después si aún no están cerrados: el envío quedará como «Confirmado transportista» y la matrícula «por asignar».</p>' +
                 '<p class="alm-err" id="asigTraErr"></p>',
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
                 '<button class="btn-primary" onclick="asignarTransportistaGuardar(\'' + escapeHtml(ref) + '\')">' + (yaTiene ? 'Guardar cambios' : 'Asignar transportista') + '</button>',
@@ -7962,6 +7963,28 @@
                         if (!TRANSPORTISTAS_DATA[i]._deleted && TRANSPORTISTAS_DATA[i].empresa === c.transportistaNombre) { asigTraPick(i); break; }
                     }
                 }
+                // MATRÍCULAS: solo letras y números (se eliminan al teclear
+                // guiones, espacios y cualquier otro carácter) y en MAYÚSCULAS.
+                ['asig-f-matricula', 'asig-f-remolque'].forEach(function (id) {
+                    var el = document.getElementById(id);
+                    if (el) el.addEventListener('input', function () {
+                        var v = el.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+                        if (el.value !== v) el.value = v; else el.value = v;
+                    });
+                });
+                // Camión RÍGIDO → no lleva remolque: se deshabilita y limpia.
+                var camSel = document.getElementById('asig-f-camion');
+                function syncRemolque() {
+                    var rem = document.getElementById('asig-f-remolque');
+                    if (!rem || !camSel) return;
+                    var rigido = /rígido/i.test(camSel.value);
+                    rem.disabled = rigido;
+                    rem.placeholder = rigido ? 'Rígido: sin remolque' : 'Ej. R1234BCD';
+                    if (rigido) rem.value = '';
+                    rem.style.background = rigido ? 'var(--gray-100)' : '';
+                }
+                if (camSel) camSel.addEventListener('change', syncRemolque);
+                syncRemolque();
             }
         });
     }
@@ -7975,12 +7998,18 @@
             return;
         }
         function v(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+        // Matrículas saneadas: SOLO letras y números, en mayúsculas.
+        function matSan(x) { return String(x || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10); }
         var t = TRANSPORTISTAS_DATA[_asigTraSel];
         c.transportistaNombre = t.empresa;
         c.transportistaAsignado = true;
-        c.matricula = v('asig-f-matricula') || null;
         var camEl = document.getElementById('asig-f-camion');
         c.tipoCamion = camEl ? camEl.value : c.tipoCamion;
+        var esRigido = camEl && /rígido/i.test(camEl.value);
+        c.matricula = matSan(v('asig-f-matricula')) || null;
+        // El remolque solo aplica a tráiler (tractora + remolque); un rígido
+        // no lo lleva nunca.
+        c.matriculaRemolque = esRigido ? null : (matSan(v('asig-f-remolque')) || null);
         c.conductor = v('asig-f-conductor') || null;
         c.tfnoConductor = v('asig-f-tfnocond') || null;
         c.modificadoEn = Date.now();
@@ -7989,7 +8018,7 @@
         if (typeof renderMiniEnvios === 'function') renderMiniEnvios();
         showLoadingOverlay('Asignando transportista…', 900, function () {
             showModalSuccess('Transportista asignado', c.transportistaNombre + ' queda asignado al envío ' + ref +
-                (c.matricula ? ' con la matrícula ' + c.matricula : ' (matrícula por asignar)') +
+                (c.matricula ? ' con tractora ' + c.matricula + (c.matriculaRemolque ? ' y remolque ' + c.matriculaRemolque : '') : ' (matrícula por asignar)') +
                 (c.conductor ? ' · conductor: ' + c.conductor : '') +
                 '. En producción se le notificará automáticamente con la orden de carga.');
         });
@@ -8998,7 +9027,7 @@
             var pA = String(c.fechaAsignada).split(' ');
             asig = fechaConDia(pA[0]) + (pA[1] ? ' · ' + pA.slice(1).join(' ') : '');
         }
-        var mat = [c.matricula, c.conductor].filter(Boolean).join(' · ');
+        var mat = [c.matricula, c.matriculaRemolque ? 'R: ' + c.matriculaRemolque : null, c.conductor].filter(Boolean).join(' · ');
         return row('Envío', '<strong>' + escapeHtml(c.ref) + '</strong>' + (c.refCli ? ' · ' + escapeHtml(c.refCli) : '')) +
             row('Estado', escapeHtml(c.estado || '') + (c.pendientePago ? ' · Pendiente de pago' : '')) +
             row('Cliente', escapeHtml(CLIENTE_ACTUAL)) +
@@ -13351,6 +13380,7 @@
                     '<td class="vehiculo">' +
                         (asig ? '<div class="asig-line asig-top asig-' + asig.key + '"><span class="asig-dot"></span>' + esc(asig.label) + '</div>' : '') +
                         (c.matricula ? '<span class="meta-matricula">' + esc(c.matricula) + '</span>' : '<span class="meta meta-pend">Sin matrícula</span>') +
+                        (c.matriculaRemolque ? '<div class="meta">Remolque: <span class="meta-matricula" style="font-size:0.9em;">' + esc(c.matriculaRemolque) + '</span></div>' : '') +
                         (c.tipoCamion ? '<div class="meta">' + esc(c.tipoCamion) + '</div>' : '') +
                     '</td>' +
                     (function () {
@@ -15457,9 +15487,9 @@
                         // 3.ª fecha disponible (1ª estándar): firstLoadDate + 2 días hábiles.
                         var d3U = firstLoadDate('dia'); var advU = 0;
                         while (advU < 2) { d3U.setDate(d3U.getDate() + 1); if (!nonBiz(d3U)) advU++; }
-                        hoyHtml = '<div class="ptar-eta-hoy"><strong>⚠ Fecha fija urgente (poco preaviso): lleva un suplemento</strong>. ' + (esHoy ? 'Además es para HOY: no se garantiza cargar en el día; cancelar (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. ' : '') + 'Eligiendo una fecha <strong>a partir del ' + fmtEtaDate(d3U) + ' más económica</strong>, pasa a tarifa de fecha fija estándar, que cuenta con más preaviso. <strong>Si ese día no hay vehículo</strong> habría que reprogramar.<br><br>Se recomienda usar la <strong>ventana de carga de 1 a 3 días (flexible)</strong>, el 80% veces cargamos en los 2 primeros días, <strong>es la más económica</strong> y aumenta la probabilidad de cargar al máximo.</div>';
+                        hoyHtml = '<div class="ptar-eta-hoy"><strong>⚠ Fecha fija urgente (poco preaviso): lleva un suplemento</strong>. ' + (esHoy ? 'Además es para HOY: no se garantiza cargar en el día; cancelar (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. ' : '') + 'Eligiendo una fecha <strong>a partir del ' + fmtEtaDate(d3U) + ' más económica</strong>, pasa a tarifa de fecha fija estándar, que cuenta con más preaviso. <strong>Si ese día no hay vehículo</strong> habría que reprogramar.<br><br><span style="color:#0f6b3a;">Se recomienda usar la <strong>ventana de carga de 1 a 3 días (flexible)</strong>, el 80% veces cargamos en los 2 primeros días, <strong>es la más económica</strong> y aumenta la probabilidad de cargar al máximo.</span></div>';
                     } else {
-                        hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija estándar</strong>. Con fecha fija, <strong>si ese día no hay vehículo</strong> habría que reprogramar.<br><br>Se recomienda usar una <strong>ventana de 1 a 3 días</strong>, el 80% veces cargamos en los 2 primeros días, <strong>es la más económica</strong> y aumenta la probabilidad de cargar al máximo.</div>';
+                        hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija estándar</strong>. Con fecha fija, <strong>si ese día no hay vehículo</strong> habría que reprogramar.<br><br><span style="color:#0f6b3a;">Se recomienda usar una <strong>ventana de 1 a 3 días</strong>, el 80% veces cargamos en los 2 primeros días, <strong>es la más económica</strong> y aumenta la probabilidad de cargar al máximo.</span></div>';
                     }
                 }
                 etaBox.innerHTML =
