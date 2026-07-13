@@ -3415,6 +3415,7 @@
         .fiscal-fb { font-size: 0.72rem; font-weight: 700; margin-top: 0.25rem; min-height: 0.9rem; }
         .fiscal-fb.ok { color: #0f6b3a; }
         .fiscal-fb.bad { color: #dc2626; }
+        .fiscal-fb.soft { color: #b45309; }
         /* Teléfonos con prefijo de país: desplegable (+34 por defecto) + número */
         .tel-group { display: flex; gap: 0.4rem; }
         .tel-group .tel-pref { flex: 0 0 auto; width: 116px; min-width: 0; }
@@ -7789,7 +7790,71 @@
             for (var q = 0; q < 11; q++) { var dq = +it[q]; if (q % 2 === 1) { dq *= 2; if (dq > 9) dq -= 9; } ts += dq; }
             return { ok: ts % 10 === 0, tipo: 'Partita IVA italiana', msg: 'dígito de control incorrecto' };
         }
-        return { ok: false, tipo: null, msg: 'formato no reconocido (DNI, NIE, CIF, NIF PT, TVA FR o P. IVA IT)' };
+        // ===== RESTO DE EUROPA (nº de IVA con prefijo de país) =====
+        var BAD = { ok: false, msg: 'dígito de control incorrecto' };
+        function pesos(ds, ws) { var s2 = 0; for (var i2 = 0; i2 < ws.length; i2++) s2 += (+ds[i2]) * ws[i2]; return s2; }
+        function mod1110(ds) { // ISO 7064 MOD 11,10 (DE, HR)
+            var pr = 10;
+            for (var i3 = 0; i3 < ds.length; i3++) { var su = ((+ds[i3]) + pr) % 10; if (su === 0) su = 10; pr = (2 * su) % 11; }
+            return (11 - pr) % 10;
+        }
+        function luhnOk(ds) { var tt = 0; for (var i4 = 0; i4 < ds.length; i4++) { var dg = +ds[ds.length - 1 - i4]; if (i4 % 2 === 1) { dg *= 2; if (dg > 9) dg -= 9; } tt += dg; } return tt % 10 === 0; }
+        var m;
+        if ((m = v.match(/^DE(\d{9})$/))) return { ok: mod1110(m[1].slice(0, 8)) === +m[1][8], tipo: 'IVA alemán (USt-IdNr.)', msg: BAD.msg };
+        if ((m = v.match(/^ATU(\d{8})$/))) {
+            var sa = 0;
+            for (var ia = 0; ia < 7; ia++) { var da = +m[1][ia]; if (ia % 2 === 1) { da *= 2; if (da > 9) da -= 9; } sa += da; }
+            return { ok: (96 - sa) % 10 === +m[1][7], tipo: 'IVA austriaco (ATU)', msg: BAD.msg };
+        }
+        if ((m = v.match(/^BE([01]\d{9})$/))) return { ok: 97 - (+m[1].slice(0, 8) % 97) === +m[1].slice(8), tipo: 'IVA belga', msg: BAD.msg };
+        if ((m = v.match(/^NL(\d{9})B\d{2}$/))) {
+            var okNl = pesos(m[1], [9, 8, 7, 6, 5, 4, 3, 2]) % 11 === +m[1][8];
+            if (!okNl) { // variante mod-97 (autónomos desde 2020): letras → código-55
+                var big = v.replace(/[A-Z]/g, function (ch) { return String(ch.charCodeAt(0) - 55); }), r97 = 0;
+                for (var ib = 0; ib < big.length; ib++) r97 = (r97 * 10 + (+big[ib])) % 97;
+                okNl = r97 === 1;
+            }
+            return { ok: okNl, tipo: 'IVA neerlandés (BTW)', msg: BAD.msg };
+        }
+        if ((m = v.match(/^PL(\d{10})$/))) { var spl = pesos(m[1], [6, 5, 7, 2, 3, 4, 5, 6, 7]) % 11; return { ok: spl !== 10 && spl === +m[1][9], tipo: 'NIP polaco', msg: BAD.msg }; }
+        if ((m = v.match(/^LU(\d{8})$/))) return { ok: +m[1].slice(0, 6) % 89 === +m[1].slice(6), tipo: 'IVA luxemburgués', msg: BAD.msg };
+        if ((m = v.match(/^CHE(\d{9})(MWST|TVA|IVA)?$/))) { var cch = 11 - (pesos(m[1], [5, 4, 3, 2, 7, 6, 5, 4]) % 11); if (cch === 11) cch = 0; return { ok: cch !== 10 && cch === +m[1][8], tipo: 'UID suizo (CHE)', msg: BAD.msg }; }
+        if ((m = v.match(/^DK(\d{8})$/))) return { ok: pesos(m[1], [2, 7, 6, 5, 4, 3, 2, 1]) % 11 === 0, tipo: 'CVR danés', msg: BAD.msg };
+        if ((m = v.match(/^SE(\d{10})01$/))) return { ok: luhnOk(m[1]), tipo: 'IVA sueco (Momsnr.)', msg: BAD.msg };
+        if ((m = v.match(/^FI(\d{8})$/))) { var rfi = pesos(m[1], [7, 9, 10, 5, 8, 4, 2]) % 11; var cfi = rfi === 0 ? 0 : 11 - rfi; return { ok: rfi !== 1 && cfi === +m[1][7], tipo: 'ALV finlandés', msg: BAD.msg }; }
+        if ((m = v.match(/^SI(\d{8})$/))) { var csi = 11 - (pesos(m[1], [8, 7, 6, 5, 4, 3, 2]) % 11); if (csi === 11) csi = 0; return { ok: csi !== 10 && csi === +m[1][7], tipo: 'IVA esloveno', msg: BAD.msg }; }
+        if ((m = v.match(/^SK(\d{10})$/))) return { ok: +m[1] % 11 === 0, tipo: 'IČ DPH eslovaco', msg: BAD.msg };
+        if ((m = v.match(/^HR(\d{11})$/))) return { ok: mod1110(m[1].slice(0, 10)) === +m[1][10], tipo: 'OIB croata', msg: BAD.msg };
+        if ((m = v.match(/^HU(\d{8})$/))) return { ok: (10 - (pesos(m[1], [9, 7, 3, 1, 9, 7, 3]) % 10)) % 10 === +m[1][7], tipo: 'IVA húngaro', msg: BAD.msg };
+        if ((m = v.match(/^EE(\d{9})$/))) return { ok: (10 - (pesos(m[1], [3, 7, 1, 3, 7, 1, 3, 7]) % 10)) % 10 === +m[1][8], tipo: 'KMKR estonio', msg: BAD.msg };
+        if ((m = v.match(/^(?:EL|GR)(\d{9})$/))) { var sel = 0; for (var ie = 0; ie < 8; ie++) sel += (+m[1][ie]) * Math.pow(2, 8 - ie); return { ok: (sel % 11) % 10 === +m[1][8], tipo: 'AFM griego', msg: BAD.msg }; }
+        if ((m = v.match(/^RO(\d{2,10})$/))) {
+            var ro = ('0000000000' + m[1]).slice(-10);
+            var cro = (pesos(ro, [7, 5, 3, 2, 1, 7, 5, 3, 2]) * 10) % 11; if (cro === 10) cro = 0;
+            return { ok: cro === +ro[9], tipo: 'CIF rumano', msg: BAD.msg };
+        }
+        if ((m = v.match(/^GB(\d{9})$/))) { var tgb = pesos(m[1], [8, 7, 6, 5, 4, 3, 2]) + (+m[1].slice(7)); return { ok: tgb % 97 === 0 || (tgb + 55) % 97 === 0, tipo: 'VAT británico', msg: BAD.msg }; }
+        if ((m = v.match(/^BG(\d{9})$/))) {
+            var sbg = pesos(m[1], [1, 2, 3, 4, 5, 6, 7, 8]) % 11;
+            if (sbg === 10) { sbg = pesos(m[1], [3, 4, 5, 6, 7, 8, 9, 10]) % 11; if (sbg === 10) sbg = 0; }
+            return { ok: sbg === +m[1][8], tipo: 'IVA búlgaro', msg: BAD.msg };
+        }
+        if ((m = v.match(/^CZ(\d{8})$/))) return { ok: (11 - (pesos(m[1], [8, 7, 6, 5, 4, 3, 2]) % 11)) % 10 === +m[1][7], tipo: 'DIČ checo', msg: BAD.msg };
+        // Solo FORMATO (sin algoritmo público sencillo) → validación "suave":
+        // se acepta con aviso; la existencia real se comprobará contra VIES en backend.
+        var SOFT = [
+            [/^IE(\d{7}[A-W][A-IW]?|\d[A-Z+*]\d{5}[A-W])$/, 'VAT irlandés'],
+            [/^LV\d{11}$/, 'PVN letón'],
+            [/^LT(\d{9}|\d{12})$/, 'PVM lituano'],
+            [/^MT\d{8}$/, 'VAT maltés'],
+            [/^CY\d{8}[A-Z]$/, 'VAT chipriota'],
+            [/^BG\d{10}$/, 'IVA búlgaro (personal)'],
+            [/^CZ\d{9,10}$/, 'DIČ checo (personal)']
+        ];
+        for (var isf = 0; isf < SOFT.length; isf++) {
+            if (SOFT[isf][0].test(v)) return { ok: true, soft: true, tipo: SOFT[isf][1], msg: '' };
+        }
+        return { ok: false, tipo: null, msg: 'formato no reconocido — admite NIF/CIF/NIE españoles y nº de IVA europeo con prefijo de país (PT, FR, IT, DE, NL, BE, PL…)' };
     }
     window.validaIdFiscal = validaIdFiscal;
     // Feedback EN VIVO bajo el campo: verde si el control cuadra, rojo si no.
@@ -7803,7 +7868,10 @@
         function upd() {
             var r = validaIdFiscal(el.value);
             if (!r) { fb.textContent = ''; fb.className = 'fiscal-fb'; el.style.borderColor = ''; return; }
-            if (r.ok) {
+            if (r.soft) {
+                fb.textContent = '✓ ' + r.tipo + ' — formato correcto (se verificará contra el registro europeo)';
+                fb.className = 'fiscal-fb soft'; el.style.borderColor = '#d97706';
+            } else if (r.ok) {
                 fb.textContent = '✓ ' + r.tipo + ' válido';
                 fb.className = 'fiscal-fb ok'; el.style.borderColor = '#22a55a';
             } else {
@@ -7914,7 +7982,12 @@
         else { c.creadoEn = Date.now(); c.modificadoEn = null; CLIENTES_DATA.push(c); }
         closeDashModal();
         renderClientesTable((document.getElementById('clientesSearch') || {}).value || '');
-        showModalSuccess(edit ? 'Cliente actualizado' : 'Cliente creado', empresa + (edit ? ': cambios guardados (queda registrada la fecha y hora de modificación).' : ' añadido al catálogo de clientes.'));
+        // Aviso (NO bloquea): si el CIF/NIF no valida, admin puede guardar igual
+        // pero se avisa. El bloqueo real solo aplica al alta hecha por el cliente.
+        var vf = validaIdFiscal(cif);
+        var avisoCif = (vf && (vf.ok || vf.soft)) ? '' :
+            ' ⚠ El CIF/NIF introducido no supera la validación (' + (vf && vf.tipo ? vf.tipo + ' — ' + vf.msg : 'formato no reconocido') + '). Se ha guardado igualmente; revísalo antes de operar.';
+        showModalSuccess(edit ? 'Cliente actualizado' : 'Cliente creado', empresa + (edit ? ': cambios guardados (queda registrada la fecha y hora de modificación).' : ' añadido al catálogo de clientes.') + avisoCif);
     }
     window.clienteGuardar = clienteGuardar;
     function openTransportistaModal(idx) {
@@ -15890,8 +15963,12 @@
                     var m2 = String(inp ? inp.value : '').match(/\b\d{5}\b/);
                     return m2 ? m2[0] : null;
                 }
+                function ultVacio(msg) {
+                    el.innerHTML = 'Último precio de esta ruta (mismo cliente): <span style="font-weight:600;color:var(--gray-500);">' + msg + '</span>';
+                    el.hidden = false;
+                }
                 var oCp = cpDe(origWrap), dCp = cpDe(destWrap);
-                if (!oCp || !dCp) { el.hidden = true; return; }
+                if (!oCp || !dCp) { ultVacio('se mostrará al elegir origen y destino'); return; }
                 var best = null, bestF = -1;
                 CARGAS_DATA.forEach(function (x) {
                     if (x.kind === 'cancelada') return;
@@ -15902,7 +15979,7 @@
                     if (fx > bestF) { bestF = fx; best = x; }
                 });
                 if (best) cargaPrecios(best);
-                if (!best || !best.precioCliente) { el.hidden = true; return; }
+                if (!best || !best.precioCliente) { ultVacio('sin envíos previos con esta ruta'); return; }
                 var f = best.fechaAsignada ? String(best.fechaAsignada).split(' ')[0] : best.fecha;
                 el.innerHTML = 'Último precio de esta ruta (mismo cliente): <strong>' + eur2(best.precioCliente) + '</strong>' +
                     (f ? ' · ' + escapeHtml(fechaConDia(f)) : '') + ' <span style="font-weight:600;">(' + escapeHtml(best.ref) + ')</span>';
