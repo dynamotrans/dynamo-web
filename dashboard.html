@@ -5007,7 +5007,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Cliente</th><th>Contacto</th><th>Domicilio fiscal</th><th>Condiciones</th><th>Creado · Modificado</th>
+                    <th>Cliente</th><th>Contacto</th><th>Domicilio fiscal</th><th>Condiciones</th><th>Creado · Modificado</th><th>Estado</th>
                 </tr></thead>
                 <tbody id="tbodyClientes"></tbody>
             </table>
@@ -7409,6 +7409,18 @@
         { empresa: 'Ibérica de Tracción S.L.', tipo: 'Empresa', cif: 'B97120448', dir: 'Pol. Fuente del Jarro, C/ Ciutat de Llíria 40', cp: '46988', ciudad: 'Paterna', prov: 'Valencia', pais: 'España', tfno: '+34 961 340 775', email: 'trafico@ibetraccion.es', contacto: 'Empar Soler', bolsa: 'TLR-802341', camiones: 15, flota: 'Tauliner', seguro: 'Zurich · Póliza CMR 31-662184', notas: '', creadoEn: __ctTs(140, 9), modificadoEn: null },
         { empresa: 'Manuela Prieto Vidal', tipo: 'Autónomo', cif: '44982017C', dir: 'Av. de Portugal 12, 4ºA', cp: '06001', ciudad: 'Badajoz', prov: 'Badajoz', pais: 'España', tfno: '+34 620 884 913', email: 'mprietotransporte@hotmail.com', contacto: 'Manuela Prieto', bolsa: 'WTN-701255', camiones: 1, flota: 'Tauliner', seguro: 'Reale · Póliza CMR 09-115672', notas: 'Rutas España-Portugal.', creadoEn: __ctTs(75, 14), modificadoEn: __ctTs(2, 10) }
     ];
+    // Estado de VALIDACIÓN de cada cliente (columna Estado de la tabla):
+    // Validado (verde) · Pendiente (naranja) · Suspendido (rojo).
+    CLIENTES_DATA.forEach(function (c) {
+        if (c.estado) return;
+        if (/Levante Sur/.test(c.empresa)) c.estado = 'Pendiente';        // CESCE en trámite
+        else if (/WELDINOX/.test(c.empresa)) c.estado = 'Suspendido';     // ejemplo suspendido
+        else c.estado = 'Validado';
+    });
+    function clienteEstadoBadge(e) {
+        var color = e === 'Suspendido' ? 'red' : (e === 'Pendiente' ? 'orange' : 'green');
+        return '<span class="badge badge-' + color + '">' + escapeHtml(e || 'Validado') + '</span>';
+    }
     // Etiqueta del plazo de pago (0 = pago inmediato / por adelantado).
     function clientePlazoTxt(p) {
         if (p === 0 || p === '0') return 'Pago inmediato (0 días)';
@@ -7433,7 +7445,7 @@
         rows = ordenarRows('clientes', rows);
         var slice = pageSlice('clientes', rows, nq, 'clientesPagination', 'clientesShowing', 'Sin clientes');
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin clientes que coincidan</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin clientes que coincidan</td></tr>';
             return;
         }
         tbody.innerHTML = slice.map(function (r) {
@@ -7444,6 +7456,7 @@
                 '<td>' + esc(c.dir || '—') + '<div class="meta">' + esc([c.cp, c.ciudad, c.prov, c.pais].filter(Boolean).join(', ')) + '</div></td>' +
                 '<td>' + esc(clientePlazoTxt(c.plazo)) + '<div class="meta">' + (c.cesce ? '<span style="color:#0f6b3a;font-weight:700;">CESCE ' + eur2(c.cesceImporte || 0) + '</span>' : 'Sin crédito CESCE') + ' · Dynamo ' + eur2(c.dynamoImporte || 0) + '</div></td>' +
                 '<td>' + fmtFH(c.creadoEn) + (c.modificadoEn ? '<div class="meta">Modif. ' + fmtFH(c.modificadoEn) + '</div>' : '') + '</td>' +
+                '<td>' + clienteEstadoBadge(c.estado) + '</td>' +
             '</tr>';
         }).join('');
         tbody.querySelectorAll('tr[data-cli]').forEach(function (tr) {
@@ -7815,6 +7828,7 @@
                             return '<option value="' + o[0] + '"' + (o[0] === pv ? ' selected' : '') + '>' + o[1] + '</option>';
                         }).join('') + '</select></div>';
                 })() +
+                ctSelect('cli-f-estado', 'Estado', ['Validado', 'Pendiente', 'Suspendido'], c.estado || 'Validado') +
                 ctField('cli-f-cesceimp', 'Importe crédito CESCE (€)', (c.cesceImporte == null ? '' : c.cesceImporte), 'Ej. 40000', false, 'number') +
                 ctField('cli-f-dynamoimp', 'Importe crédito Dynamo (€)', (c.dynamoImporte == null ? '' : c.dynamoImporte), 'Ej. 10000', false, 'number') +
                 ctField('cli-f-dir', 'Domicilio fiscal (calle y número)', c.dir, 'Calle y número', true) +
@@ -7888,6 +7902,8 @@
         c.contacto = v('cli-f-contacto') || null;
         var plazoEl = document.getElementById('cli-f-plazo');
         c.plazo = plazoEl ? parseInt(plazoEl.value, 10) : 30;
+        var estadoEl = document.getElementById('cli-f-estado');
+        c.estado = estadoEl ? estadoEl.value : (c.estado || 'Validado');
         var cesceImpEl = document.getElementById('cli-f-cesceimp');
         c.cesceImporte = (cesceImpEl && cesceImpEl.value.trim() !== '') ? Number(cesceImpEl.value) : 0;
         var dynImpEl = document.getElementById('cli-f-dynamoimp');
@@ -13892,7 +13908,8 @@
                 function (r) { return r.c.contacto; },
                 function (r) { return r.c.dir; },
                 function (r) { return r.c.plazo; },
-                function (r) { return r.c.creadoEn; }
+                function (r) { return r.c.creadoEn; },
+                function (r) { return r.c.estado; }
             ],
             transportistas: [
                 function (r) { return r.t.empresa; },
