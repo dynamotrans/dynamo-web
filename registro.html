@@ -131,6 +131,15 @@
         .reg-terms a { color: var(--purple); font-weight: 700; pointer-events: auto; }
         .reg-terms a:hover { text-decoration: underline; }
 
+        /* Aviso antifraude (verificación de email y teléfono) */
+        .reg-fraude {
+            margin-top: 1rem; padding: 0.7rem 0.85rem;
+            background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.45);
+            border-radius: 11px; font-size: 0.78rem; font-weight: 500;
+            color: #7a5c00; line-height: 1.55; text-align: left;
+        }
+        .reg-fraude strong { color: #92400e; }
+
         /* Documentación del alta (hoja CIF · DNI · otros) */
         .reg-docs { margin-top: 1rem; }
         .reg-docs-title { font-size: 0.82rem; font-weight: 800; color: var(--navy); margin-bottom: 0.45rem; }
@@ -559,6 +568,12 @@
                         </div>
                     </div>
 
+                </div>
+
+                <!-- Aviso ANTIFRAUDE: el email y el teléfono se verifican con
+                     código; la suplantación de identidad tiene consecuencias. -->
+                <div class="reg-fraude">
+                    ⚠ <strong>Verificación de identidad.</strong> Al email y al teléfono indicados te enviaremos un <strong>código de verificación</strong> para comprobar que eres su titular. Cualquier <strong>suplantación de identidad o fraude</strong> será <strong>denunciado ante las autoridades</strong> y conllevará las consecuencias penales oportunas: ante una contratación fraudulenta a nombre de otra empresa o persona, se demandará al <strong>titular de la línea de teléfono registrada</strong> y/o al <strong>titular del dominio del email registrado</strong>, o a ambos.
                 </div>
 
                 <!-- Documentación del alta: se revisa en "Altas pendientes"

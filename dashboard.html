@@ -3411,6 +3411,10 @@
         }
         .ptar-admin-precio input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
         .ptar-admin-precio-note { margin: 0.35rem 0 0; font-size: 0.72rem; font-weight: 600; color: var(--gray-500); line-height: 1.45; }
+        /* Teléfonos con prefijo de país: desplegable (+34 por defecto) + número */
+        .tel-group { display: flex; gap: 0.4rem; }
+        .tel-group .tel-pref { flex: 0 0 auto; width: 116px; min-width: 0; }
+        .tel-group input { flex: 1 1 auto; min-width: 0; }
         .ptar-terms-box {
             border: 1.5px solid var(--gray-200); border-radius: 10px;
             padding: 0.7rem 0.8rem; background: var(--gray-50);
@@ -7340,7 +7344,7 @@
         a.empresa = empresa;
         a.tipoLugar = tipoEl ? tipoEl.options[tipoEl.selectedIndex].text : 'Almacén / Nave';
         a.horario = v('sitio-f-horario') || null;
-        a.tfno = v('sitio-f-tfno') || null;
+        a.tfno = telValue('sitio-f-tfno');
         a.contacto = v('sitio-f-contacto') || null;
         a.notas = v('sitio-f-notas') || null;
         a.maps = v('sitio-f-maps') || null;
@@ -7676,6 +7680,49 @@
     function ctNotas(id, val) {
         return '<div style="grid-column:1/-1"><label>Notas internas</label><textarea id="' + id + '" rows="3" placeholder="Solo visibles para el equipo Dynamo">' + escapeHtml(val || '') + '</textarea></div>';
     }
+    // ==================== CAMPOS DE TELÉFONO CON PREFIJO DE PAÍS ====================
+    // TODOS los teléfonos de los formularios (clientes, transportistas,
+    // usuarios, sitios, almacenes, conductor…) llevan desplegable de prefijo
+    // (España +34 por defecto) + hueco del número. telValue(id) devuelve el
+    // teléfono completo ('+34 612 345 678') o null si está vacío.
+    var TEL_PREFIJOS = [
+        ['+34', 'España'], ['+351', 'Portugal'], ['+33', 'Francia'], ['+49', 'Alemania'],
+        ['+39', 'Italia'], ['+44', 'R. Unido'], ['+31', 'P. Bajos'], ['+32', 'Bélgica'],
+        ['+352', 'Luxemburgo'], ['+43', 'Austria'], ['+48', 'Polonia'], ['+420', 'Chequia'],
+        ['+41', 'Suiza'], ['+40', 'Rumanía'], ['+212', 'Marruecos'], ['+380', 'Ucrania'],
+        ['+86', 'China'], ['+1', 'EE. UU.']
+    ];
+    // Separa un teléfono guardado ('+34 954 210 334') en prefijo + número.
+    function telSplit(v) {
+        v = String(v || '').trim();
+        var m = v.match(/^\+(\d{1,3})[\s.-]*(.*)$/);
+        if (m) {
+            for (var L = Math.min(3, m[1].length); L >= 1; L--) {
+                var p = '+' + m[1].slice(0, L);
+                var ok = TEL_PREFIJOS.some(function (x) { return x[0] === p; });
+                if (ok) return { pref: p, num: (m[1].slice(L) + (m[1].slice(L) && m[2] ? ' ' : '') + m[2]).trim() };
+            }
+            return { pref: '+34', num: v };
+        }
+        return { pref: '+34', num: v };
+    }
+    function telField(id, label, val, span) {
+        var s = telSplit(val);
+        return '<div' + (span ? ' style="grid-column:1/-1"' : '') + '><label>' + label + '</label>' +
+            '<div class="tel-group">' +
+            '<select id="' + id + '-pref" class="tel-pref" aria-label="Prefijo de país">' +
+                TEL_PREFIJOS.map(function (p) { return '<option value="' + p[0] + '"' + (p[0] === s.pref ? ' selected' : '') + '>' + p[0] + ' ' + p[1] + '</option>'; }).join('') +
+            '</select>' +
+            '<input id="' + id + '" type="tel" inputmode="tel" value="' + escapeHtml(s.num) + '" placeholder="600 000 000"></div></div>';
+    }
+    function telValue(id) {
+        var num = ((document.getElementById(id) || {}).value || '').trim();
+        if (!num) return null;
+        if (/^\+/.test(num)) return num;   // ya viene completo (prefill externo)
+        var pref = ((document.getElementById(id + '-pref') || {}).value) || '+34';
+        return pref + ' ' + num;
+    }
+    window.telValue = telValue;
     function clienteFormHTML(c) {
         c = c || {};
         return ctMetaHTML(c) +
@@ -7696,7 +7743,7 @@
                 ctField('cli-f-ciudad', 'Localidad', c.ciudad, 'Sevilla') +
                 ctField('cli-f-prov', 'Provincia', c.prov, 'Sevilla') +
                 ctField('cli-f-pais', 'País', c.pais || 'España', 'España') +
-                ctField('cli-f-tfno', 'Teléfono', c.tfno, '+34 …') +
+                telField('cli-f-tfno', 'Teléfono', c.tfno) +
                 ctField('cli-f-email', 'Email', c.email, 'empresa@dominio.com', false, 'email') +
                 ctField('cli-f-contacto', 'Persona de contacto', c.contacto, 'Nombre y apellidos', true) +
                 ctNotas('cli-f-notas', c.notas) +
@@ -7715,7 +7762,7 @@
                 ctField('tra-f-ciudad', 'Localidad', t.ciudad, 'Sevilla') +
                 ctField('tra-f-prov', 'Provincia', t.prov, 'Sevilla') +
                 ctField('tra-f-pais', 'País', t.pais || 'España', 'España') +
-                ctField('tra-f-tfno', 'Teléfono', t.tfno, '+34 …') +
+                telField('tra-f-tfno', 'Teléfono', t.tfno) +
                 ctField('tra-f-email', 'Email', t.email, 'trafico@dominio.com', false, 'email') +
                 ctField('tra-f-contacto', 'Persona de contacto', t.contacto, 'Nombre y apellidos', true) +
                 ctField('tra-f-camiones', 'Nº de camiones', t.camiones, '1', false, 'number') +
@@ -7757,7 +7804,7 @@
         c.dir = v('cli-f-dir') || null; c.cp = v('cli-f-cp') || null;
         c.ciudad = v('cli-f-ciudad') || null; c.prov = v('cli-f-prov') || null;
         c.pais = v('cli-f-pais') || 'España';
-        c.tfno = v('cli-f-tfno') || null; c.email = v('cli-f-email') || null;
+        c.tfno = telValue('cli-f-tfno'); c.email = v('cli-f-email') || null;
         c.contacto = v('cli-f-contacto') || null;
         var plazoEl = document.getElementById('cli-f-plazo');
         c.plazo = plazoEl ? parseInt(plazoEl.value, 10) : 30;
@@ -7816,7 +7863,7 @@
         t.dir = v('tra-f-dir') || null; t.cp = v('tra-f-cp') || null;
         t.ciudad = v('tra-f-ciudad') || null; t.prov = v('tra-f-prov') || null;
         t.pais = v('tra-f-pais') || 'España';
-        t.tfno = v('tra-f-tfno') || null; t.email = v('tra-f-email') || null;
+        t.tfno = telValue('tra-f-tfno'); t.email = v('tra-f-email') || null;
         t.contacto = v('tra-f-contacto') || null;
         t.camiones = parseInt(v('tra-f-camiones'), 10) || null;
         var flotaEl = document.getElementById('tra-f-flota');
@@ -7950,7 +7997,7 @@
                     ctField('asig-f-matricula', 'Matrícula tractora', c.matricula, 'Ej. 5829MGT') +
                     ctField('asig-f-remolque', 'Matrícula remolque', c.matriculaRemolque, 'Ej. R1234BCD') +
                     ctField('asig-f-conductor', 'Conductor', c.conductor, 'Nombre del conductor') +
-                    ctField('asig-f-tfnocond', 'Teléfono del conductor', c.tfnoConductor, '+34 …') +
+                    telField('asig-f-tfnocond', 'Teléfono del conductor', c.tfnoConductor) +
                 '</div>' +
                 '<p style="font-size:0.76rem;color:var(--gray-500);font-weight:600;margin:0.6rem 0 0;">Las matrículas solo admiten letras y números (sin guiones ni otros caracteres). Con camión RÍGIDO solo se rellena la tractora. Matrículas y conductor pueden añadirse después si aún no están cerrados: el envío quedará como «Confirmado transportista» y la matrícula «por asignar».</p>' +
                 '<p class="alm-err" id="asigTraErr"></p>',
@@ -8011,7 +8058,7 @@
         // no lo lleva nunca.
         c.matriculaRemolque = esRigido ? null : (matSan(v('asig-f-remolque')) || null);
         c.conductor = v('asig-f-conductor') || null;
-        c.tfnoConductor = v('asig-f-tfnocond') || null;
+        c.tfnoConductor = telValue('asig-f-tfnocond');
         c.modificadoEn = Date.now();
         closeDashModal();
         if (typeof renderCargasTable === 'function') renderCargasTable();
@@ -8146,7 +8193,7 @@
                 ctSelect('usr-f-estado', 'Estado de la cuenta', ['Activa', 'Suspendida', 'Pendiente de verificación'], u.estadoCuenta || 'Activa') +
                 ctField('usr-f-nombre', 'Nombre y apellidos *', u.nombre, 'Nombre y apellidos', true) +
                 ctField('usr-f-dni', 'DNI', u.dni, '12345678Z') +
-                ctField('usr-f-tfno', 'Teléfono', u.tfno, '+34 …') +
+                telField('usr-f-tfno', 'Teléfono', u.tfno) +
                 ctField('usr-f-empresa', 'Empresa / Razón social', u.empresa, 'Ej. Marbex Industrial S.L.', true) +
                 ctField('usr-f-cif', 'CIF / NIF de la empresa', u.cif, 'B12345678 / 12345678Z') +
                 ctField('usr-f-pais', 'País', u.pais || 'España', 'España') +
@@ -8324,7 +8371,7 @@
         var estEl = document.getElementById('usr-f-estado');
         u.estadoCuenta = estEl ? estEl.value : 'Activa';
         u.dni = v('usr-f-dni') || null;
-        u.tfno = v('usr-f-tfno') || null;
+        u.tfno = telValue('usr-f-tfno');
         u.empresa = v('usr-f-empresa') || null;
         u.cif = v('usr-f-cif') || null;
         u.dirF = v('usr-f-dirf') || null;
@@ -12675,7 +12722,7 @@
                 inp('Horario', 'sitio-f-horario', s.horario, 'Ej. L-V 8:00-14:00') +
                 inp('Dirección (calle y número)', 'sitio-f-calle', s.calle, '', true) +
                 inp('CP, localidad, provincia y país', 'sitio-f-dir', s.dir, 'Ej. 41001, Sevilla, España', true) +
-                inp('Teléfono', 'sitio-f-tfno', s.tfno, 'Ej. +34 612 345 678') +
+                telField('sitio-f-tfno', 'Teléfono', s.tfno) +
                 inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','sitio-f-contacto', s.contacto, 'Persona de contacto') +
                 inp('<span style="color:var(--green);">Notas del sitio</span> <span style="color:var(--gray-500);font-weight:600;">· opcional</span>', 'sitio-f-notas', s.notas, 'Ej. referencia de carga/entrega, pedir cita, báscula…', true) +
                 inp('Enlace de Google Maps', 'sitio-f-maps', s.maps, 'https://maps.app.goo.gl/…', true) +
@@ -12777,7 +12824,7 @@
         Object.keys(s0).forEach(function (k2) { base[k2] = s0[k2]; });
         base.empresa = v('sitio-f-empresa'); base.horario = v('sitio-f-horario');
         base.calle = v('sitio-f-calle'); base.dir = v('sitio-f-dir') || base.dir || v('sitio-f-calle');
-        base.tfno = v('sitio-f-tfno'); base.contacto = v('sitio-f-contacto');
+        base.tfno = telValue('sitio-f-tfno') || ''; base.contacto = v('sitio-f-contacto');
         base.notas = v('sitio-f-notas'); base.maps = v('sitio-f-maps');
         var tipoEl = document.getElementById('sitio-f-tipo');
         if (tipoEl) base.tipoLugar = tipoEl.options[tipoEl.selectedIndex].text;
