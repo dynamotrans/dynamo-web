@@ -4293,8 +4293,8 @@
         </div>
         <div class="tabs" data-table="cargas">
             <button class="tab active" data-filter="programada-pendiente">Sin asignar transportista (<span data-count="programada-pendiente">0</span>)</button>
-            <button class="tab" data-filter="programada">Programadas (<span data-count="programada">0</span>)</button>
             <button class="tab" data-filter="pendiente-pago">Pendiente de pago (<span data-count="pendiente-pago">0</span>)</button>
+            <button class="tab" data-filter="programada">Programadas (<span data-count="programada">0</span>)</button>
             <button class="tab" data-filter="entregada">Entregadas (<span data-count="entregada">0</span>)</button>
             <button class="tab" data-filter="cancelada">Canceladas (<span data-count="cancelada">0</span>)</button>
             <button class="tab" data-filter="todas">Todas (<span data-count="todas">0</span>)</button>
@@ -4322,7 +4322,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Recogida</th><th>Entrega</th><th>Envío</th><th>Mercancía</th><th>Vehículo</th><th>P. cliente<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th><th>P. transportista<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th><th>Margen<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th>
+                    <th>Cliente · CIF</th><th>Recogida</th><th>Entrega</th><th>Envío</th><th>Mercancía</th><th>Vehículo</th><th>P. cliente<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th><th>P. transportista<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th><th>Margen<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -13358,8 +13358,29 @@
         var tbody = document.getElementById('tbodyCargas');
         if (!tbody) return;
         if (slice.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
         } else {
+            // Columna CLIENTE · CIF (vista interna, 1ª): empresa + CIF +
+            // crédito Dynamo concedido + total contratado (IVA incluido) de
+            // los ÚLTIMOS 60 DÍAS. En el mock hay un solo cliente → se
+            // calcula una vez por render; en producción vendrá por cliente.
+            var __cliCell = (function () {
+                var cli = null;
+                for (var ci = 0; ci < CLIENTES_DATA.length; ci++) if (CLIENTES_DATA[ci].empresa === CLIENTE_ACTUAL) { cli = CLIENTES_DATA[ci]; break; }
+                var ahora = Date.now(), desde = ahora - 60 * 86400000, tot = 0;
+                CARGAS_DATA.forEach(function (x) {
+                    if (x.kind === 'cancelada') return;
+                    var f = __sortFecha(x.fechaAsignada || x.fecha);
+                    if (f == null || f < desde || f > ahora) return;
+                    cargaPrecios(x);
+                    if (x.precioCliente) tot += x.precioCliente * 1.21;
+                });
+                return '<td class="cliente-col"><strong>' + esc(CLIENTE_ACTUAL) + '</strong>' +
+                    '<div class="meta">' + esc((cli && cli.cif) || '—') + '</div>' +
+                    '<div class="meta" style="color:#0f6b3a;font-weight:700;white-space:nowrap;">Crédito Dynamo concedido: ' + eur2((cli && cli.dynamoImporte) || 0) + '</div>' +
+                    '<div class="meta" style="white-space:nowrap;">Últ. 60 días: <strong>' + eur2(Math.round(tot * 100) / 100) + '</strong> (IVA incl.)</div>' +
+                '</td>';
+            })();
             tbody.innerHTML = slice.map(function (c) {
                 // Si la carga tiene fecha asignada por el equipo, la
                 // tabla muestra la asignada como principal (con su chip
@@ -13407,6 +13428,7 @@
                 // Estado (última columna): solo estado de asignación de transportista.
                 var asig = getAsignacionEstado(c);
                 return '<tr' + rowCls + '>' +
+                    __cliCell +
                     rutaFechasCell(c, asigDate) +
                     '<td class="ref">' +
                         '<div class="envio-estado envio-estado-top"><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span></div>' +
@@ -13705,6 +13727,7 @@
     function sortGettersDe(key) {
         var G = {
             cargas: [
+                function () { return CLIENTE_ACTUAL; },
                 function (c) { return __sortFecha(c.fechaAsignada || c.fecha); },
                 function (c) { return __sortFecha(c.etaEntrega); },
                 function (c) { return c.ref; },
