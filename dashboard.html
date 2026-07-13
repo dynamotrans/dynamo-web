@@ -3411,6 +3411,10 @@
         }
         .ptar-admin-precio input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
         .ptar-admin-precio-note { margin: 0.35rem 0 0; font-size: 0.72rem; font-weight: 600; color: var(--gray-500); line-height: 1.45; }
+        /* Validación en vivo del CIF/DNI/NIE (y NIF PT, TVA FR, P.IVA IT) */
+        .fiscal-fb { font-size: 0.72rem; font-weight: 700; margin-top: 0.25rem; min-height: 0.9rem; }
+        .fiscal-fb.ok { color: #0f6b3a; }
+        .fiscal-fb.bad { color: #dc2626; }
         /* Teléfonos con prefijo de país: desplegable (+34 por defecto) + número */
         .tel-group { display: flex; gap: 0.4rem; }
         .tel-group .tel-pref { flex: 0 0 auto; width: 116px; min-width: 0; }
@@ -7390,20 +7394,20 @@
     var __ctNow = Date.now();
     function __ctTs(diasAtras, hora) { return __ctNow - diasAtras * 86400000 + ((hora || 10) - 10) * 3600000; }
     var CLIENTES_DATA = [
-        { empresa: 'Marbex Industrial S.L.', cif: 'B41552214', dir: 'Pol. Ind. La Red, C/ Cobre 14', cp: '41500', ciudad: 'Alcalá de Guadaíra', prov: 'Sevilla', pais: 'España', tfno: '+34 954 210 334', email: 'compras@marbexindustrial.es', contacto: 'Julia Gómez', plazo: 30, cesce: true, cesceImporte: 60000, dynamoImporte: 15000, notas: '', creadoEn: __ctTs(214, 9), modificadoEn: __ctTs(12, 13) },
-        { empresa: 'GRUPAL ART, S.L.', cif: 'B46881309', dir: 'C/ Traginers 4', cp: '46940', ciudad: 'Manises', prov: 'Valencia', pais: 'España', tfno: '+34 961 523 887', email: 'logistica@grupalart.es', contacto: 'Vicente Ferrer', plazo: 30, cesce: true, cesceImporte: 40000, dynamoImporte: 10000, notas: '', creadoEn: __ctTs(388, 12), modificadoEn: __ctTs(41, 17) },
-        { empresa: 'TRUMA STORE, S.L.', cif: 'B98455120', dir: 'Av. de la Industria 22, nave 7', cp: '28108', ciudad: 'Alcobendas', prov: 'Madrid', pais: 'España', tfno: '+34 916 620 445', email: 'pedidos@trumastore.es', contacto: 'Marta Salas', plazo: 60, cesce: true, cesceImporte: 80000, dynamoImporte: 20000, notas: 'Solo recepciona de 8:00 a 13:00.', creadoEn: __ctTs(160, 11), modificadoEn: null },
-        { empresa: 'WELDINOX', cif: 'B29617754', dir: 'Pol. La Ermita, C/ Fragua 3', cp: '29600', ciudad: 'Marbella', prov: 'Málaga', pais: 'España', tfno: '+34 952 771 209', email: 'admin@weldinox.com', contacto: 'Sergio Luque', plazo: 0, cesce: false, cesceImporte: 0, dynamoImporte: 0, notas: 'Sin crédito CESCE: siempre proforma antes de cargar.', creadoEn: __ctTs(96, 16), modificadoEn: __ctTs(5, 9) },
-        { empresa: 'CIRCULAR POLIMERI SL', cif: 'B12480336', dir: 'Ctra. N-340 km 972, nave 12', cp: '12200', ciudad: 'Onda', prov: 'Castellón', pais: 'España', tfno: '+34 964 771 655', email: 'trafico@circularpolimeri.es', contacto: 'Anna Traver', plazo: 30, cesce: true, cesceImporte: 50000, dynamoImporte: 12000, notas: '', creadoEn: __ctTs(300, 10), modificadoEn: __ctTs(88, 12) },
-        { empresa: 'Distribuciones Levante Sur S.A.', cif: 'A03998811', dir: 'C/ Alberola 18', cp: '03008', ciudad: 'Alicante', prov: 'Alicante', pais: 'España', tfno: '+34 965 108 442', email: 'operaciones@dlevantesur.es', contacto: 'Pedro Ivorra', plazo: 30, cesce: false, cesceImporte: 0, dynamoImporte: 6000, notas: 'Crédito CESCE solicitado, pendiente de resolución.', creadoEn: __ctTs(45, 13), modificadoEn: null }
+        { empresa: 'Marbex Industrial S.L.', cif: 'B41552217', dir: 'Pol. Ind. La Red, C/ Cobre 14', cp: '41500', ciudad: 'Alcalá de Guadaíra', prov: 'Sevilla', pais: 'España', tfno: '+34 954 210 334', email: 'compras@marbexindustrial.es', contacto: 'Julia Gómez', plazo: 30, cesce: true, cesceImporte: 60000, dynamoImporte: 15000, notas: '', creadoEn: __ctTs(214, 9), modificadoEn: __ctTs(12, 13) },
+        { empresa: 'GRUPAL ART, S.L.', cif: 'B46881306', dir: 'C/ Traginers 4', cp: '46940', ciudad: 'Manises', prov: 'Valencia', pais: 'España', tfno: '+34 961 523 887', email: 'logistica@grupalart.es', contacto: 'Vicente Ferrer', plazo: 30, cesce: true, cesceImporte: 40000, dynamoImporte: 10000, notas: '', creadoEn: __ctTs(388, 12), modificadoEn: __ctTs(41, 17) },
+        { empresa: 'TRUMA STORE, S.L.', cif: 'B98455124', dir: 'Av. de la Industria 22, nave 7', cp: '28108', ciudad: 'Alcobendas', prov: 'Madrid', pais: 'España', tfno: '+34 916 620 445', email: 'pedidos@trumastore.es', contacto: 'Marta Salas', plazo: 60, cesce: true, cesceImporte: 80000, dynamoImporte: 20000, notas: 'Solo recepciona de 8:00 a 13:00.', creadoEn: __ctTs(160, 11), modificadoEn: null },
+        { empresa: 'WELDINOX', cif: 'B29617750', dir: 'Pol. La Ermita, C/ Fragua 3', cp: '29600', ciudad: 'Marbella', prov: 'Málaga', pais: 'España', tfno: '+34 952 771 209', email: 'admin@weldinox.com', contacto: 'Sergio Luque', plazo: 0, cesce: false, cesceImporte: 0, dynamoImporte: 0, notas: 'Sin crédito CESCE: siempre proforma antes de cargar.', creadoEn: __ctTs(96, 16), modificadoEn: __ctTs(5, 9) },
+        { empresa: 'CIRCULAR POLIMERI SL', cif: 'B12480331', dir: 'Ctra. N-340 km 972, nave 12', cp: '12200', ciudad: 'Onda', prov: 'Castellón', pais: 'España', tfno: '+34 964 771 655', email: 'trafico@circularpolimeri.es', contacto: 'Anna Traver', plazo: 30, cesce: true, cesceImporte: 50000, dynamoImporte: 12000, notas: '', creadoEn: __ctTs(300, 10), modificadoEn: __ctTs(88, 12) },
+        { empresa: 'Distribuciones Levante Sur S.A.', cif: 'A03998812', dir: 'C/ Alberola 18', cp: '03008', ciudad: 'Alicante', prov: 'Alicante', pais: 'España', tfno: '+34 965 108 442', email: 'operaciones@dlevantesur.es', contacto: 'Pedro Ivorra', plazo: 30, cesce: false, cesceImporte: 0, dynamoImporte: 6000, notas: 'Crédito CESCE solicitado, pendiente de resolución.', creadoEn: __ctTs(45, 13), modificadoEn: null }
     ];
     var TRANSPORTISTAS_DATA = [
-        { empresa: 'Transportes Romero e Hijos S.L.', tipo: 'Empresa', cif: 'B90211458', dir: 'Pol. Store, C/ A nave 24', cp: '41008', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', tfno: '+34 954 367 210', email: 'trafico@transromero.es', contacto: 'Antonio Romero', bolsa: 'WTN-482113', camiones: 12, flota: 'Tauliner y rígido', seguro: 'AXA · Póliza CMR 88-456129', notas: '', docs: ['Seguro-CMR-AXA-2026.pdf', 'Tarjeta-transporte.pdf'], creadoEn: __ctTs(420, 9), modificadoEn: __ctTs(30, 12) },
-        { empresa: 'Logística Vega del Guadalquivir S.L.U.', tipo: 'Empresa', cif: 'B41996732', dir: 'Ctra. Sevilla-Cazalla km 4', cp: '41300', ciudad: 'La Rinconada', prov: 'Sevilla', pais: 'España', tfno: '+34 955 790 118', email: 'operaciones@logivega.es', contacto: 'Carmen Domínguez', bolsa: 'WTN-509877', camiones: 8, flota: 'Tauliner', seguro: 'Mapfre · Póliza CMR 45-118203', notas: '', creadoEn: __ctTs(365, 10), modificadoEn: null },
-        { empresa: 'TransPenínsula Cargo S.L.', tipo: 'Empresa', cif: 'B86450127', dir: 'C/ Fundidores 9', cp: '28906', ciudad: 'Getafe', prov: 'Madrid', pais: 'España', tfno: '+34 916 954 302', email: 'bolsa@transpeninsula.es', contacto: 'Raúl Cifuentes', bolsa: 'TLR-771402', camiones: 21, flota: 'Tauliner y rígido', seguro: 'Generali · Póliza CMR 12-908455', notas: 'Muy fiables en Madrid-Andalucía. Aceptan carga por techo.', creadoEn: __ctTs(280, 15), modificadoEn: __ctTs(9, 11) },
-        { empresa: 'José Manuel Ortega Ruiz', tipo: 'Autónomo', cif: '27314582K', dir: 'C/ Almendro 6, 2ºB', cp: '14006', ciudad: 'Córdoba', prov: 'Córdoba', pais: 'España', tfno: '+34 638 220 471', email: 'jmortega.transportes@gmail.com', contacto: 'José Manuel Ortega', bolsa: 'WTN-633090', camiones: 1, flota: 'Rígido', seguro: 'Allianz · Póliza CMR 77-340216', notas: 'Rígido con trampilla. Ideal repartos urbanos.', docs: ['Seguro-CMR-Allianz.pdf'], creadoEn: __ctTs(190, 12), modificadoEn: __ctTs(60, 16) },
+        { empresa: 'Transportes Romero e Hijos S.L.', tipo: 'Empresa', cif: 'B90211459', dir: 'Pol. Store, C/ A nave 24', cp: '41008', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', tfno: '+34 954 367 210', email: 'trafico@transromero.es', contacto: 'Antonio Romero', bolsa: 'WTN-482113', camiones: 12, flota: 'Tauliner y rígido', seguro: 'AXA · Póliza CMR 88-456129', notas: '', docs: ['Seguro-CMR-AXA-2026.pdf', 'Tarjeta-transporte.pdf'], creadoEn: __ctTs(420, 9), modificadoEn: __ctTs(30, 12) },
+        { empresa: 'Logística Vega del Guadalquivir S.L.U.', tipo: 'Empresa', cif: 'B41996737', dir: 'Ctra. Sevilla-Cazalla km 4', cp: '41300', ciudad: 'La Rinconada', prov: 'Sevilla', pais: 'España', tfno: '+34 955 790 118', email: 'operaciones@logivega.es', contacto: 'Carmen Domínguez', bolsa: 'WTN-509877', camiones: 8, flota: 'Tauliner', seguro: 'Mapfre · Póliza CMR 45-118203', notas: '', creadoEn: __ctTs(365, 10), modificadoEn: null },
+        { empresa: 'TransPenínsula Cargo S.L.', tipo: 'Empresa', cif: 'B86450129', dir: 'C/ Fundidores 9', cp: '28906', ciudad: 'Getafe', prov: 'Madrid', pais: 'España', tfno: '+34 916 954 302', email: 'bolsa@transpeninsula.es', contacto: 'Raúl Cifuentes', bolsa: 'TLR-771402', camiones: 21, flota: 'Tauliner y rígido', seguro: 'Generali · Póliza CMR 12-908455', notas: 'Muy fiables en Madrid-Andalucía. Aceptan carga por techo.', creadoEn: __ctTs(280, 15), modificadoEn: __ctTs(9, 11) },
+        { empresa: 'José Manuel Ortega Ruiz', tipo: 'Autónomo', cif: '27314582N', dir: 'C/ Almendro 6, 2ºB', cp: '14006', ciudad: 'Córdoba', prov: 'Córdoba', pais: 'España', tfno: '+34 638 220 471', email: 'jmortega.transportes@gmail.com', contacto: 'José Manuel Ortega', bolsa: 'WTN-633090', camiones: 1, flota: 'Rígido', seguro: 'Allianz · Póliza CMR 77-340216', notas: 'Rígido con trampilla. Ideal repartos urbanos.', docs: ['Seguro-CMR-Allianz.pdf'], creadoEn: __ctTs(190, 12), modificadoEn: __ctTs(60, 16) },
         { empresa: 'Ibérica de Tracción S.L.', tipo: 'Empresa', cif: 'B97120448', dir: 'Pol. Fuente del Jarro, C/ Ciutat de Llíria 40', cp: '46988', ciudad: 'Paterna', prov: 'Valencia', pais: 'España', tfno: '+34 961 340 775', email: 'trafico@ibetraccion.es', contacto: 'Empar Soler', bolsa: 'TLR-802341', camiones: 15, flota: 'Tauliner', seguro: 'Zurich · Póliza CMR 31-662184', notas: '', creadoEn: __ctTs(140, 9), modificadoEn: null },
-        { empresa: 'Manuela Prieto Vidal', tipo: 'Autónomo', cif: '44982017L', dir: 'Av. de Portugal 12, 4ºA', cp: '06001', ciudad: 'Badajoz', prov: 'Badajoz', pais: 'España', tfno: '+34 620 884 913', email: 'mprietotransporte@hotmail.com', contacto: 'Manuela Prieto', bolsa: 'WTN-701255', camiones: 1, flota: 'Tauliner', seguro: 'Reale · Póliza CMR 09-115672', notas: 'Rutas España-Portugal.', creadoEn: __ctTs(75, 14), modificadoEn: __ctTs(2, 10) }
+        { empresa: 'Manuela Prieto Vidal', tipo: 'Autónomo', cif: '44982017C', dir: 'Av. de Portugal 12, 4ºA', cp: '06001', ciudad: 'Badajoz', prov: 'Badajoz', pais: 'España', tfno: '+34 620 884 913', email: 'mprietotransporte@hotmail.com', contacto: 'Manuela Prieto', bolsa: 'WTN-701255', camiones: 1, flota: 'Tauliner', seguro: 'Reale · Póliza CMR 09-115672', notas: 'Rutas España-Portugal.', creadoEn: __ctTs(75, 14), modificadoEn: __ctTs(2, 10) }
     ];
     // Etiqueta del plazo de pago (0 = pago inmediato / por adelantado).
     function clientePlazoTxt(p) {
@@ -7723,6 +7727,81 @@
         return pref + ' ' + num;
     }
     window.telValue = telValue;
+    // ==================== VALIDADOR DINÁMICO de CIF / DNI / NIE ====================
+    // Un SOLO campo que detecta qué es y valida su dígito/letra de control:
+    // DNI español · NIE (extranjero residente) · CIF español · NIF portugués
+    // (9 dígitos o PT…) · TVA francés (FRxx + SIREN) · Partita IVA italiana
+    // (11 dígitos o IT…). Es validación de FORMATO/checksum en el navegador;
+    // la EXISTENCIA real se comprobará en backend contra VIES (UE) y AEAT.
+    function validaIdFiscal(raw) {
+        var v = String(raw || '').toUpperCase().replace(/[\s.\-]/g, '');
+        if (!v) return null;
+        var LET = 'TRWAGMYFPDXBNJZSQVHLCKE';
+        if (/^\d{8}[A-Z]$/.test(v)) {
+            var exp = LET[+v.slice(0, 8) % 23];
+            return { ok: exp === v[8], tipo: 'DNI español', msg: 'la letra de control sería ' + exp };
+        }
+        if (/^[XYZ]\d{7}[A-Z]$/.test(v)) {
+            var n = { X: '0', Y: '1', Z: '2' }[v[0]] + v.slice(1, 8);
+            var expN = LET[+n % 23];
+            return { ok: expN === v[8], tipo: 'NIE (extranjero residente)', msg: 'la letra de control sería ' + expN };
+        }
+        if (/^[ABCDEFGHJNPQRSUVW]\d{7}[0-9A-J]$/.test(v)) {
+            var suma = 0;
+            for (var i = 0; i < 7; i++) {
+                var d = +v[i + 1];
+                if (i % 2 === 0) { var x = d * 2; suma += Math.floor(x / 10) + (x % 10); }
+                else suma += d;
+            }
+            var ctl = (10 - (suma % 10)) % 10;
+            var expDig = String(ctl), expLet = 'JABCDEFGHI'[ctl];
+            var soloLetra = /[PQRSNW]/.test(v[0]);
+            var ok3 = soloLetra ? v[8] === expLet : (v[8] === expDig || v[8] === expLet);
+            return { ok: ok3, tipo: 'CIF español', msg: 'el control sería ' + (soloLetra ? expLet : expDig + ' (o ' + expLet + ')') };
+        }
+        if (/^(PT)?\d{9}$/.test(v)) {
+            var p = v.replace(/^PT/, ''), s = 0;
+            for (var j = 0; j < 8; j++) s += (+p[j]) * (9 - j);
+            var c = 11 - (s % 11); if (c >= 10) c = 0;
+            return { ok: c === +p[8], tipo: 'NIF portugués', msg: 'dígito de control incorrecto' };
+        }
+        if (/^FR[0-9A-Z]{2}\d{9}$/.test(v)) {
+            var siren = v.slice(4), t = 0;
+            for (var k = 0; k < 9; k++) { var dd = +siren[8 - k]; if (k % 2 === 1) { dd *= 2; if (dd > 9) dd -= 9; } t += dd; }
+            var okFr = (t % 10 === 0) && (!/^\d{2}$/.test(v.slice(2, 4)) || +v.slice(2, 4) === (12 + 3 * (+siren % 97)) % 97);
+            return { ok: okFr, tipo: 'Nº TVA francés', msg: 'clave o SIREN incorrectos' };
+        }
+        if (/^(IT)?\d{11}$/.test(v)) {
+            var it = v.replace(/^IT/, ''), ts = 0;
+            for (var q = 0; q < 11; q++) { var dq = +it[q]; if (q % 2 === 1) { dq *= 2; if (dq > 9) dq -= 9; } ts += dq; }
+            return { ok: ts % 10 === 0, tipo: 'Partita IVA italiana', msg: 'dígito de control incorrecto' };
+        }
+        return { ok: false, tipo: null, msg: 'formato no reconocido (DNI, NIE, CIF, NIF PT, TVA FR o P. IVA IT)' };
+    }
+    window.validaIdFiscal = validaIdFiscal;
+    // Feedback EN VIVO bajo el campo: verde si el control cuadra, rojo si no.
+    function bindFiscalValidation(id) {
+        var el = document.getElementById(id);
+        if (!el || el._fiscalBound) return;
+        el._fiscalBound = true;
+        var fb = document.createElement('div');
+        fb.className = 'fiscal-fb';
+        el.parentNode.appendChild(fb);
+        function upd() {
+            var r = validaIdFiscal(el.value);
+            if (!r) { fb.textContent = ''; fb.className = 'fiscal-fb'; el.style.borderColor = ''; return; }
+            if (r.ok) {
+                fb.textContent = '✓ ' + r.tipo + ' válido';
+                fb.className = 'fiscal-fb ok'; el.style.borderColor = '#22a55a';
+            } else {
+                fb.textContent = '✗ ' + (r.tipo ? r.tipo + ' — ' + r.msg : r.msg);
+                fb.className = 'fiscal-fb bad'; el.style.borderColor = '#dc2626';
+            }
+        }
+        el.addEventListener('input', upd);
+        upd();
+    }
+    window.bindFiscalValidation = bindFiscalValidation;
     function clienteFormHTML(c) {
         c = c || {};
         return ctMetaHTML(c) +
@@ -7786,7 +7865,8 @@
             sub: esEdit ? (c.empresa || '') : 'Alta de un cliente en el catálogo interno',
             body: clienteFormHTML(c),
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
-                '<button class="btn-primary" onclick="clienteGuardar(' + (esEdit ? idx : -1) + ')">' + (esEdit ? 'Guardar cambios' : 'Crear cliente') + '</button>'
+                '<button class="btn-primary" onclick="clienteGuardar(' + (esEdit ? idx : -1) + ')">' + (esEdit ? 'Guardar cambios' : 'Crear cliente') + '</button>',
+            afterOpen: function () { bindFiscalValidation('cli-f-cif'); }
         });
     }
     window.openClienteModal = openClienteModal;
@@ -7842,6 +7922,7 @@
                     dropId: 'traDocsDrop', inputId: 'traDocsInput',
                     max: 5, labelDefault: '📎 Adjuntar documento'
                 });
+                bindFiscalValidation('tra-f-cif');
             }
         });
     }
@@ -8086,17 +8167,17 @@
         return d.getTime();
     }
     var USUARIOS_DATA = [
-        { email: 'alvaro@dynamotrans.com', tipo: 'Admin', nombre: 'Álvaro Blanco Ortega', dni: '28941006T', tfno: '+34 628 995 709', empresa: 'Dynamo Operador de Transportes S.L.', cif: 'B90448216', dirF: 'C/ Aviación 12, oficina 4', cp: '41007', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 176, minSemana: 934, consultas: 154, envios: 41, cancelaciones: 2, cancelUlt10: 0, creadoEn: __ctTs(430, 9), modificadoEn: __ctTs(22, 12) },
-        { email: 'trafico@dynamotrans.com', tipo: 'Empleado', nombre: 'Lucía Camacho Ríos', dni: '30277148Q', tfno: '+34 955 225 945', empresa: 'Dynamo Operador de Transportes S.L.', cif: 'B90448216', dirF: 'C/ Aviación 12, oficina 4', cp: '41007', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 208, minSemana: 1065, consultas: 232, envios: 87, cancelaciones: 5, cancelUlt10: 1, creadoEn: __ctTs(395, 10), modificadoEn: null },
-        { email: 'administracion@dynamotrans.com', tipo: 'Empleado', nombre: 'Pablo Serrano Gil', dni: '48120334M', tfno: '+34 955 225 945', empresa: 'Dynamo Operador de Transportes S.L.', cif: 'B90448216', dirF: 'C/ Aviación 12, oficina 4', cp: '41007', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 64, minSemana: 342, consultas: 18, envios: 6, cancelaciones: 0, cancelUlt10: 0, creadoEn: __ctTs(360, 11), modificadoEn: __ctTs(90, 16) },
-        { email: 'juan.garcia@marbexindustrial.es', tipo: 'Cliente', nombre: 'Juan García Molina', dni: '27556410S', tfno: '+34 954 210 334', empresa: 'Marbex Industrial S.L.', cif: 'B41552214', dirF: 'Pol. Ind. La Red, C/ Cobre 14', cp: '41500', ciudad: 'Alcalá de Guadaíra', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 42, minSemana: 214, consultas: 96, envios: 28, cancelaciones: 3, cancelUlt10: 1, creadoEn: __ctTs(214, 9), modificadoEn: __ctTs(12, 13) },
-        { email: 'compras@marbexindustrial.es', tipo: 'Cliente', nombre: 'Julia Gómez Prada', dni: '28667109L', tfno: '+34 954 210 334', empresa: 'Marbex Industrial S.L.', cif: 'B41552214', dirF: 'Pol. Ind. La Red, C/ Cobre 14', cp: '41500', ciudad: 'Alcalá de Guadaíra', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 17, minSemana: 88, consultas: 34, envios: 9, cancelaciones: 0, cancelUlt10: 0, creadoEn: __ctTs(190, 12), modificadoEn: null },
-        { email: 'logistica@grupalart.es', tipo: 'Cliente', nombre: 'Vicente Ferrer Ballester', dni: '24310877F', tfno: '+34 961 523 887', empresa: 'GRUPAL ART, S.L.', cif: 'B46881309', dirF: 'C/ Traginers 4', cp: '46940', ciudad: 'Manises', prov: 'Valencia', pais: 'España', estadoCuenta: 'Activa', minDia: 25, minSemana: 131, consultas: 58, envios: 17, cancelaciones: 4, cancelUlt10: 2, creadoEn: __ctTs(388, 12), modificadoEn: __ctTs(41, 17) },
-        { email: 'pedidos@trumastore.es', tipo: 'Cliente', nombre: 'Marta Salas Nieto', dni: '05411290V', tfno: '+34 916 620 445', empresa: 'TRUMA STORE, S.L.', cif: 'B98455120', dirF: 'Av. de la Industria 22, nave 7', cp: '28108', ciudad: 'Alcobendas', prov: 'Madrid', pais: 'España', estadoCuenta: 'Activa', minDia: 11, minSemana: 47, consultas: 21, envios: 12, cancelaciones: 1, cancelUlt10: 1, creadoEn: __ctTs(160, 11), modificadoEn: null },
-        { email: 'admin@weldinox.com', tipo: 'Cliente', nombre: 'Sergio Luque Aranda', dni: '25998763H', tfno: '+34 952 771 209', empresa: 'WELDINOX', cif: 'B29617754', dirF: 'Pol. La Ermita, C/ Fragua 3', cp: '29600', ciudad: 'Marbella', prov: 'Málaga', pais: 'España', estadoCuenta: 'Suspendida', minDia: 8, minSemana: 29, consultas: 44, envios: 5, cancelaciones: 2, cancelUlt10: 3, creadoEn: __ctTs(96, 16), modificadoEn: __ctTs(5, 9) },
-        { email: 'trafico@transromero.es', tipo: 'Transportista', nombre: 'Antonio Romero Cid', dni: '28450917J', tfno: '+34 954 367 210', empresa: 'Transportes Romero e Hijos S.L.', cif: 'B90211458', dirF: 'Pol. Store, C/ A nave 24', cp: '41008', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 33, minSemana: 172, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null, creadoEn: __ctTs(420, 9), modificadoEn: __ctTs(30, 12) },
-        { email: 'operaciones@logivega.es', tipo: 'Transportista', nombre: 'Carmen Domínguez Lara', dni: '30122486W', tfno: '+34 955 790 118', empresa: 'Logística Vega del Guadalquivir S.L.U.', cif: 'B41996732', dirF: 'Ctra. Sevilla-Cazalla km 4', cp: '41300', ciudad: 'La Rinconada', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 21, minSemana: 96, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null, creadoEn: __ctTs(365, 10), modificadoEn: null },
-        { email: 'jmortega.transportes@gmail.com', tipo: 'Transportista', nombre: 'José Manuel Ortega Ruiz', dni: '27314582K', tfno: '+34 638 220 471', empresa: 'José Manuel Ortega Ruiz (autónomo)', cif: '27314582K', dirF: 'C/ Almendro 6, 2ºB', cp: '14006', ciudad: 'Córdoba', prov: 'Córdoba', pais: 'España', estadoCuenta: 'Pendiente de verificación', minDia: 14, minSemana: 61, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null, creadoEn: __ctTs(190, 12), modificadoEn: __ctTs(60, 16) }
+        { email: 'alvaro@dynamotrans.com', tipo: 'Admin', nombre: 'Álvaro Blanco Ortega', dni: '28941006Z', tfno: '+34 628 995 709', empresa: 'Dynamo Operador de Transportes S.L.', cif: 'B90448218', dirF: 'C/ Aviación 12, oficina 4', cp: '41007', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 176, minSemana: 934, consultas: 154, envios: 41, cancelaciones: 2, cancelUlt10: 0, creadoEn: __ctTs(430, 9), modificadoEn: __ctTs(22, 12) },
+        { email: 'trafico@dynamotrans.com', tipo: 'Empleado', nombre: 'Lucía Camacho Ríos', dni: '30277148V', tfno: '+34 955 225 945', empresa: 'Dynamo Operador de Transportes S.L.', cif: 'B90448218', dirF: 'C/ Aviación 12, oficina 4', cp: '41007', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 208, minSemana: 1065, consultas: 232, envios: 87, cancelaciones: 5, cancelUlt10: 1, creadoEn: __ctTs(395, 10), modificadoEn: null },
+        { email: 'administracion@dynamotrans.com', tipo: 'Empleado', nombre: 'Pablo Serrano Gil', dni: '48120334X', tfno: '+34 955 225 945', empresa: 'Dynamo Operador de Transportes S.L.', cif: 'B90448218', dirF: 'C/ Aviación 12, oficina 4', cp: '41007', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 64, minSemana: 342, consultas: 18, envios: 6, cancelaciones: 0, cancelUlt10: 0, creadoEn: __ctTs(360, 11), modificadoEn: __ctTs(90, 16) },
+        { email: 'juan.garcia@marbexindustrial.es', tipo: 'Cliente', nombre: 'Juan García Molina', dni: '27556410H', tfno: '+34 954 210 334', empresa: 'Marbex Industrial S.L.', cif: 'B41552217', dirF: 'Pol. Ind. La Red, C/ Cobre 14', cp: '41500', ciudad: 'Alcalá de Guadaíra', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 42, minSemana: 214, consultas: 96, envios: 28, cancelaciones: 3, cancelUlt10: 1, creadoEn: __ctTs(214, 9), modificadoEn: __ctTs(12, 13) },
+        { email: 'compras@marbexindustrial.es', tipo: 'Cliente', nombre: 'Julia Gómez Prada', dni: '28667109R', tfno: '+34 954 210 334', empresa: 'Marbex Industrial S.L.', cif: 'B41552217', dirF: 'Pol. Ind. La Red, C/ Cobre 14', cp: '41500', ciudad: 'Alcalá de Guadaíra', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 17, minSemana: 88, consultas: 34, envios: 9, cancelaciones: 0, cancelUlt10: 0, creadoEn: __ctTs(190, 12), modificadoEn: null },
+        { email: 'logistica@grupalart.es', tipo: 'Cliente', nombre: 'Vicente Ferrer Ballester', dni: '24310877S', tfno: '+34 961 523 887', empresa: 'GRUPAL ART, S.L.', cif: 'B46881306', dirF: 'C/ Traginers 4', cp: '46940', ciudad: 'Manises', prov: 'Valencia', pais: 'España', estadoCuenta: 'Activa', minDia: 25, minSemana: 131, consultas: 58, envios: 17, cancelaciones: 4, cancelUlt10: 2, creadoEn: __ctTs(388, 12), modificadoEn: __ctTs(41, 17) },
+        { email: 'pedidos@trumastore.es', tipo: 'Cliente', nombre: 'Marta Salas Nieto', dni: '05411290B', tfno: '+34 916 620 445', empresa: 'TRUMA STORE, S.L.', cif: 'B98455124', dirF: 'Av. de la Industria 22, nave 7', cp: '28108', ciudad: 'Alcobendas', prov: 'Madrid', pais: 'España', estadoCuenta: 'Activa', minDia: 11, minSemana: 47, consultas: 21, envios: 12, cancelaciones: 1, cancelUlt10: 1, creadoEn: __ctTs(160, 11), modificadoEn: null },
+        { email: 'admin@weldinox.com', tipo: 'Cliente', nombre: 'Sergio Luque Aranda', dni: '25998763T', tfno: '+34 952 771 209', empresa: 'WELDINOX', cif: 'B29617750', dirF: 'Pol. La Ermita, C/ Fragua 3', cp: '29600', ciudad: 'Marbella', prov: 'Málaga', pais: 'España', estadoCuenta: 'Suspendida', minDia: 8, minSemana: 29, consultas: 44, envios: 5, cancelaciones: 2, cancelUlt10: 3, creadoEn: __ctTs(96, 16), modificadoEn: __ctTs(5, 9) },
+        { email: 'trafico@transromero.es', tipo: 'Transportista', nombre: 'Antonio Romero Cid', dni: '28450917D', tfno: '+34 954 367 210', empresa: 'Transportes Romero e Hijos S.L.', cif: 'B90211459', dirF: 'Pol. Store, C/ A nave 24', cp: '41008', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 33, minSemana: 172, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null, creadoEn: __ctTs(420, 9), modificadoEn: __ctTs(30, 12) },
+        { email: 'operaciones@logivega.es', tipo: 'Transportista', nombre: 'Carmen Domínguez Lara', dni: '30122486F', tfno: '+34 955 790 118', empresa: 'Logística Vega del Guadalquivir S.L.U.', cif: 'B41996737', dirF: 'Ctra. Sevilla-Cazalla km 4', cp: '41300', ciudad: 'La Rinconada', prov: 'Sevilla', pais: 'España', estadoCuenta: 'Activa', minDia: 21, minSemana: 96, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null, creadoEn: __ctTs(365, 10), modificadoEn: null },
+        { email: 'jmortega.transportes@gmail.com', tipo: 'Transportista', nombre: 'José Manuel Ortega Ruiz', dni: '27314582N', tfno: '+34 638 220 471', empresa: 'José Manuel Ortega Ruiz (autónomo)', cif: '27314582N', dirF: 'C/ Almendro 6, 2ºB', cp: '14006', ciudad: 'Córdoba', prov: 'Córdoba', pais: 'España', estadoCuenta: 'Pendiente de verificación', minDia: 14, minSemana: 61, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null, creadoEn: __ctTs(190, 12), modificadoEn: __ctTs(60, 16) }
     ];
     USUARIOS_DATA.forEach(function (u) { if (u.ultimaConexion === undefined) u.ultimaConexion = __uxUltCon(u.email); });
     // Minutos → texto legible ('2 h 56 min' / '45 min').
@@ -8246,6 +8327,8 @@
                 bindDocsArea({ arr: window._usrDocCif, listId: 'usrDocCifList', labelId: 'usrDocCifLabel', dropId: 'usrDocCifDrop', inputId: 'usrDocCifInput', max: 1, labelDefault: '📎 Subir hoja CIF', labelFull: 'Hoja CIF adjunta' });
                 bindDocsArea({ arr: window._usrDocDni, listId: 'usrDocDniList', labelId: 'usrDocDniLabel', dropId: 'usrDocDniDrop', inputId: 'usrDocDniInput', max: 1, labelDefault: '📎 Subir DNI', labelFull: 'DNI adjunto' });
                 bindDocsArea({ arr: window._usrDocOtros, listId: 'usrDocOtrosList', labelId: 'usrDocOtrosLabel', dropId: 'usrDocOtrosDrop', inputId: 'usrDocOtrosInput', max: 3, labelDefault: '📎 Otros documentos', labelFull: 'Máximo 3 documentos' });
+                bindFiscalValidation('usr-f-dni');
+                bindFiscalValidation('usr-f-cif');
             }
         });
     }
@@ -8397,9 +8480,9 @@
     // carga Wtransnet). Mock determinista; en producción vendrán del backend
     // con los documentos subidos en el registro (hoja CIF, DNI…).
     var ALTAS_DATA = [
-        { email: 'logistica@aceroscastilla.es', nombre: 'Roberto Peña Salvador', dni: '11902276B', tfno: '+34 983 441 208', empresa: 'Aceros y Perfiles Castilla S.L.', cif: 'B47120995', dirF: 'Pol. San Cristóbal, C/ Plata 41', cp: '47012', ciudad: 'Valladolid', prov: 'Valladolid', pais: 'España', docCif: ['Hoja-CIF-AcerosCastilla.pdf'], docDni: ['DNI-RobertoPena.pdf'], docsOtros: ['Escritura-constitucion.pdf'], solicitadoEn: __ctTs(1, 10) },
-        { email: 'compras@maderasvidal.es', nombre: 'Andrés Vidal Soto', dni: '48771034Y', tfno: '+34 617 552 909', empresa: 'Maderas y Tableros Vidal C.B.', cif: 'E04881120', dirF: 'C/ Río Andarax 8', cp: '04006', ciudad: 'Almería', prov: 'Almería', pais: 'España', docCif: ['Hoja-CIF-MaderasVidal.pdf'], docDni: ['DNI-AndresVidal.pdf'], docsOtros: ['Escritura-constitucion.pdf'], solicitadoEn: __ctTs(2, 13) },
-        { email: 'sonia.marquez@quimiplast.es', nombre: 'Sonia Márquez Lillo', dni: '53220417X', tfno: '+34 965 682 114', empresa: 'Quimiplast Levante S.A.', cif: 'A03771205', dirF: 'Av. del Plástico 3', cp: '03440', ciudad: 'Ibi', prov: 'Alicante', pais: 'España', docCif: ['Hoja-CIF-Quimiplast.pdf'], docDni: [], docsOtros: [], solicitadoEn: __ctTs(3, 9) },
+        { email: 'logistica@aceroscastilla.es', nombre: 'Roberto Peña Salvador', dni: '11902276Y', tfno: '+34 983 441 208', empresa: 'Aceros y Perfiles Castilla S.L.', cif: 'B47120993', dirF: 'Pol. San Cristóbal, C/ Plata 41', cp: '47012', ciudad: 'Valladolid', prov: 'Valladolid', pais: 'España', docCif: ['Hoja-CIF-AcerosCastilla.pdf'], docDni: ['DNI-RobertoPena.pdf'], docsOtros: ['Escritura-constitucion.pdf'], solicitadoEn: __ctTs(1, 10) },
+        { email: 'compras@maderasvidal.es', nombre: 'Andrés Vidal Soto', dni: '48771034V', tfno: '+34 617 552 909', empresa: 'Maderas y Tableros Vidal C.B.', cif: 'E04881124', dirF: 'C/ Río Andarax 8', cp: '04006', ciudad: 'Almería', prov: 'Almería', pais: 'España', docCif: ['Hoja-CIF-MaderasVidal.pdf'], docDni: ['DNI-AndresVidal.pdf'], docsOtros: ['Escritura-constitucion.pdf'], solicitadoEn: __ctTs(2, 13) },
+        { email: 'sonia.marquez@quimiplast.es', nombre: 'Sonia Márquez Lillo', dni: '53220417G', tfno: '+34 965 682 114', empresa: 'Quimiplast Levante S.A.', cif: 'A03771201', dirF: 'Av. del Plástico 3', cp: '03440', ciudad: 'Ibi', prov: 'Alicante', pais: 'España', docCif: ['Hoja-CIF-Quimiplast.pdf'], docDni: [], docsOtros: [], solicitadoEn: __ctTs(3, 9) },
         { email: 'ganga.envios.2026@hotmail.com', nombre: 'J. J.', dni: '', tfno: '+34 600 000 001', empresa: 'Envíos Baratos Ya', cif: '', dirF: '', cp: '', ciudad: '', prov: '', pais: 'España', docCif: [], docDni: [], docsOtros: [], solicitadoEn: __ctTs(0, 8) }
     ];
     function altaBlob(a) {

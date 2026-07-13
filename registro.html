@@ -131,6 +131,11 @@
         .reg-terms a { color: var(--purple); font-weight: 700; pointer-events: auto; }
         .reg-terms a:hover { text-decoration: underline; }
 
+        /* Validación en vivo del CIF/DNI/NIE del alta */
+        .fiscal-fb { font-size: 0.74rem; font-weight: 700; margin-top: 0.3rem; text-align: left; min-height: 0.9rem; }
+        .fiscal-fb.ok { color: #0f6b3a; }
+        .fiscal-fb.bad { color: #dc2626; }
+
         /* Aviso antifraude (verificación de email y teléfono) */
         .reg-fraude {
             margin-top: 1rem; padding: 0.7rem 0.85rem;
@@ -1229,6 +1234,43 @@
         wrap.querySelectorAll('.contact-fab-action').forEach(function (a) { a.addEventListener('click', closeFab); });
         document.addEventListener('click', function (e) { if (wrap.classList.contains('open') && !wrap.contains(e.target)) closeFab(); });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && wrap.classList.contains('open')) { closeFab(); btn.focus(); } });
+    })();
+    // ==================== VALIDADOR del CIF / DNI / NIE (alta) ====================
+    // Un solo campo autodetecta y valida el dígito/letra de control: DNI,
+    // NIE, CIF español, NIF portugués, TVA francés y Partita IVA italiana.
+    // (Checksum en el navegador; la existencia real la comprobará el backend
+    // contra VIES/AEAT.)
+    function validaIdFiscal(raw) {
+        var v = String(raw || '').toUpperCase().replace(/[\s.\-]/g, '');
+        if (!v) return null;
+        var LET = 'TRWAGMYFPDXBNJZSQVHLCKE';
+        if (/^\d{8}[A-Z]$/.test(v)) { var e1 = LET[+v.slice(0, 8) % 23]; return { ok: e1 === v[8], tipo: 'DNI español', msg: 'la letra sería ' + e1 }; }
+        if (/^[XYZ]\d{7}[A-Z]$/.test(v)) { var n = { X: '0', Y: '1', Z: '2' }[v[0]] + v.slice(1, 8); var e2 = LET[+n % 23]; return { ok: e2 === v[8], tipo: 'NIE (extranjero residente)', msg: 'la letra sería ' + e2 }; }
+        if (/^[ABCDEFGHJNPQRSUVW]\d{7}[0-9A-J]$/.test(v)) {
+            var suma = 0;
+            for (var i = 0; i < 7; i++) { var d = +v[i + 1]; if (i % 2 === 0) { var x = d * 2; suma += Math.floor(x / 10) + (x % 10); } else suma += d; }
+            var ctl = (10 - (suma % 10)) % 10, eD = String(ctl), eL = 'JABCDEFGHI'[ctl];
+            var soloLetra = /[PQRSNW]/.test(v[0]);
+            var ok3 = soloLetra ? v[8] === eL : (v[8] === eD || v[8] === eL);
+            return { ok: ok3, tipo: 'CIF español', msg: 'el control sería ' + (soloLetra ? eL : eD + ' (o ' + eL + ')') };
+        }
+        if (/^(PT)?\d{9}$/.test(v)) { var p = v.replace(/^PT/, ''), s = 0; for (var j = 0; j < 8; j++) s += (+p[j]) * (9 - j); var c = 11 - (s % 11); if (c >= 10) c = 0; return { ok: c === +p[8], tipo: 'NIF portugués', msg: 'dígito de control incorrecto' }; }
+        if (/^FR[0-9A-Z]{2}\d{9}$/.test(v)) { var si = v.slice(4), t = 0; for (var k = 0; k < 9; k++) { var dd = +si[8 - k]; if (k % 2 === 1) { dd *= 2; if (dd > 9) dd -= 9; } t += dd; } var okF = (t % 10 === 0) && (!/^\d{2}$/.test(v.slice(2, 4)) || +v.slice(2, 4) === (12 + 3 * (+si % 97)) % 97); return { ok: okF, tipo: 'Nº TVA francés', msg: 'clave o SIREN incorrectos' }; }
+        if (/^(IT)?\d{11}$/.test(v)) { var it = v.replace(/^IT/, ''), ts = 0; for (var q = 0; q < 11; q++) { var dq = +it[q]; if (q % 2 === 1) { dq *= 2; if (dq > 9) dq -= 9; } ts += dq; } return { ok: ts % 10 === 0, tipo: 'Partita IVA italiana', msg: 'dígito de control incorrecto' }; }
+        return { ok: false, tipo: null, msg: 'formato no reconocido (DNI, NIE, CIF, NIF PT, TVA FR o P. IVA IT)' };
+    }
+    (function () {
+        var el = document.getElementById('reg-nif');
+        if (!el) return;
+        var fb = document.createElement('div');
+        fb.className = 'fiscal-fb';
+        el.parentNode.parentNode.appendChild(fb);
+        el.addEventListener('input', function () {
+            var r = validaIdFiscal(el.value);
+            if (!r) { fb.textContent = ''; fb.className = 'fiscal-fb'; el.style.borderColor = ''; return; }
+            if (r.ok) { fb.textContent = '✓ ' + r.tipo + ' válido'; fb.className = 'fiscal-fb ok'; el.style.borderColor = '#22a55a'; }
+            else { fb.textContent = '✗ ' + (r.tipo ? r.tipo + ' — ' + r.msg : r.msg); fb.className = 'fiscal-fb bad'; el.style.borderColor = '#dc2626'; }
+        });
     })();
     // Documentación del alta (hoja CIF / DNI / otros): un input de archivo
     // compartido; el botón pulsado recibe el nombre y se marca en verde.
