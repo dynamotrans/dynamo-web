@@ -15587,13 +15587,14 @@
                 // — el que MÁS ocupa manda; uno NO limita al otro. Ej.: 3 m pero
                 // 24 Tn → el peso va al tope → 100% → tarifa de carga completa
                 // (igual que 13,2 m). El componente por distancia se escala por
-                // ese % (25%..100%); los 50 € de base fija se mantienen como
-                // mínimo (una carga pequeña nunca baja de ahí).
+                // ese % (25%..100%); los 220 € de base fija se mantienen como
+                // mínimo (ninguna carga, ni un grupaje, baja de ahí).
                 var occInfo = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
                 var occMl = parseFloat(mlSel.value === '13.2' ? '13.2' : mlSel.value) || 0;
                 var occTn = parseFloat(pesoSel.value) || 0;
                 var occFactor = ocupacion(occMl, occTn, Math.round(occMl * 2.5), occInfo).pct / 100;
-                var precio = 50 + dist * 0.85 * occFactor;
+                // Base fija mínima 220 € (suelo) + 1,35 €/km de carretera × ocupación.
+                var precio = 220 + dist * 1.35 * occFactor;
                 var uv = urgenciaSel ? urgenciaSel.value : 'estandar';
                 // FECHA FIJA: 2 suplementos independientes.
                 //  1) Por ser día concreto (fija) → +15% SIEMPRE.
