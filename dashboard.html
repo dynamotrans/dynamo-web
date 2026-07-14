@@ -15643,18 +15643,20 @@
                 }
                 // Mercancía no paletizada +10% (va dentro del importe de envío).
                 if (mercaSel && mercaSel.selectedIndex === 1) precio *= 1.1;
-                // Recargo por TIPO DE LUGAR de cada punto (Almacén 0 · Obra +5%
-                // · Evento +15% · Zona urbana +20% · Finca/Agrícola +25%): suma de
-                // origen + destino + paradas. Va dentro del importe de envío.
-                var recTipo = 0;
+                // Recargo por TIPO DE LUGAR de CADA PUNTO (Almacén 0 · Obra +5%
+                // · Evento +15% · Zona urbana +20% · Finca/Agrícola +25%). Se
+                // aplica UNA VEZ POR PUNTO: si la recogida y la entrega son finca,
+                // la penalización va DOBLE (una por cada punto) y cada una se
+                // detalla como su propia línea en el desglose ("Recogida 1 · Finca…").
                 var selO = card.querySelector('[data-ptar-tipoorig]');
                 var selD = card.querySelector('[data-ptar-tipodest]');
-                if (selO) recTipo += (TIPO_RECARGO[selO.value] || 0);
-                if (selD) recTipo += (TIPO_RECARGO[selD.value] || 0);
-                paradaRows().forEach(function (r) {
-                    var s2 = r.querySelector('select');
-                    if (s2) recTipo += (TIPO_RECARGO[s2.value] || 0);
-                });
+                var puntosTipo = [];
+                if (selO) puntosTipo.push({ label: 'Recogida 1', tipo: selO.value });
+                recRows().forEach(function (r, i) { var s = r.querySelector('select'); if (s) puntosTipo.push({ label: 'Recogida ' + (i + 2), tipo: s.value }); });
+                if (selD) puntosTipo.push({ label: 'Entrega 1', tipo: selD.value });
+                entRows().forEach(function (r, i) { var s = r.querySelector('select'); if (s) puntosTipo.push({ label: 'Entrega ' + (i + 2), tipo: s.value }); });
+                var recTipo = 0;
+                puntosTipo.forEach(function (pt) { recTipo += (TIPO_RECARGO[pt.tipo] || 0); });
                 var nParadas = paradaRows().length;
                 // FACTOR DE PRECIO DEL CLIENTE (−20..+20 %): ajuste comercial de
                 // la ficha del cliente aplicado a la base del tarifador. Se aplica
@@ -15670,8 +15672,19 @@
                 card.dataset.precioTs = String(Date.now());
                 card.dataset.recargoTipo = String(recTipo);
                 card.dataset.nParadas = String(nParadas);
-                // Importe de envío = base × (1 + recargo tipo) + paradas.
-                var envioNeto = Math.round(parseInt(card.dataset.precioBase, 10) * (1 + recTipo) / 10) * 10 + nParadas * 40;
+                var precioBaseN = parseInt(card.dataset.precioBase, 10);
+                // Importe de envío = base transporte + parada adicional (SIN el
+                // recargo por tipo, que va detallado punto por punto más abajo).
+                var envioBase = precioBaseN + nParadas * 40;
+                // Una línea por CADA punto con recargo por tipo de sitio.
+                var tipoLines = [];
+                puntosTipo.forEach(function (pt) {
+                    var rr = TIPO_RECARGO[pt.tipo] || 0;
+                    if (rr > 0) tipoLines.push({ k: pt.label + ' · ' + pt.tipo + ' (+' + Math.round(rr * 100) + '%)', v: Math.round(precioBaseN * rr / 10) * 10 });
+                });
+                var tipoTotal = tipoLines.reduce(function (a, x) { return a + x.v; }, 0);
+                // Subtotal del transporte = importe de envío + recargos por tipo.
+                var envioNeto = envioBase + tipoTotal;
                 // === Suplementos ITEMIZADOS (en euros, como filas del desglose) ===
                 //  Carga por techo (+15%) · Trampilla elevadora (+60 €) · NIMA (+50 €).
                 var trampOn = card.querySelector('[data-ptar-trampilla]');
@@ -15690,15 +15703,17 @@
                 var subAntesFija = envioNeto + techoExtra + trampExtra + nimaExtra;
                 var fijaExtra = (uv === 'dia') ? Math.round(subAntesFija * 0.15 / 10) * 10 : 0;
                 var preavisoExtra = (uv === 'dia' && fijaUrgente) ? 100 : 0;
-                // Desglose: Importe de envío + cada suplemento que aplique. Si no
-                // hay ningún suplemento, no se desglosa (solo Base/IVA/Total).
+                // Desglose: Importe de envío + recargos por tipo de sitio (uno por
+                // punto) + cada suplemento que aplique. Se muestra si hay alguna
+                // línea (recargo por tipo o suplemento); si no, solo Base/IVA/Total.
                 var extras = [];
                 if (techoExtra) extras.push({ k: 'Carga por techo', v: techoExtra });
                 if (trampExtra) extras.push({ k: 'Trampilla elevadora', v: trampExtra });
                 if (nimaExtra)  extras.push({ k: 'NIMA', v: nimaExtra });
                 if (fijaExtra)  extras.push({ k: 'Fecha fija', v: fijaExtra });
                 if (preavisoExtra) extras.push({ k: 'Preaviso urgente', v: preavisoExtra });
-                var precioRows = extras.length ? [{ k: 'Importe de envío', v: envioNeto }].concat(extras) : [];
+                var detalle = tipoLines.concat(extras);
+                var precioRows = detalle.length ? [{ k: 'Importe de envío', v: envioBase }].concat(detalle) : [];
                 precio = envioNeto + techoExtra + trampExtra + nimaExtra + fijaExtra + preavisoExtra; // base imponible
                 // Arranca en el número que se está mostrando AHORA (no en lastPrice)
                 // para que la animación encadene aunque renderEta se llame 2 veces.
@@ -16645,14 +16660,23 @@
                 }
                 var base = parseInt(card.dataset.precioBase || '0', 10);
                 if (!base) { var r0 = parseFloat(card.dataset.recargoTipo || '0') || 0; base = Math.round((pendingData.precioMock || 0) / (1 + r0)); }
-                var rec = 0;
-                confirmCard.querySelectorAll('[data-sitio-tipo]').forEach(function (sel) { rec += (TIPO_RECARGO[sel.value] || 0); });
                 var nParadas = parseInt(card.dataset.nParadas || '0', 10) || 0;
                 var fijaPct = parseFloat(card.dataset.fijaPct || '0') || 0;   // 0.15 si es fija
                 var flat = parseInt(card.dataset.fijaFlat || '0', 10) || 0;   // preaviso corto (plano)
-                // Mismo desglose que en el paso 1: importe de envío → suplementos
-                // (techo/trampilla/NIMA) → fecha fija → preaviso.
-                var envioNeto = Math.round(base * (1 + rec) / 10) * 10 + nParadas * 40;
+                // Importe de envío = base transporte + parada adicional (sin tipo).
+                var envioBase = base + nParadas * 40;
+                // Una línea por CADA punto con recargo por tipo de sitio (con la
+                // tipología editable de la confirmación: "Recogida 1 · Finca…").
+                var tipoLines = [];
+                confirmCard.querySelectorAll('[data-sitio-tipo]').forEach(function (sel) {
+                    var rr = TIPO_RECARGO[sel.value] || 0;
+                    if (rr > 0) tipoLines.push({ k: (sel.getAttribute('data-sitio-rol') || 'Punto') + ' · ' + sel.value + ' (+' + Math.round(rr * 100) + '%)', v: Math.round(base * rr / 10) * 10 });
+                });
+                var tipoTotal = tipoLines.reduce(function (a, x) { return a + x.v; }, 0);
+                // Mismo desglose que en el paso 1: importe de envío → recargos por
+                // tipo (uno por punto) → suplementos (techo/trampilla/NIMA) →
+                // fecha fija → preaviso.
+                var envioNeto = envioBase + tipoTotal;
                 var techoOn = card.dataset.techoOn === '1';
                 var techoExtra = techoOn ? Math.round(envioNeto * 0.15 / 10) * 10 : 0;
                 var trampExtra = parseInt(card.dataset.trampExtra || '0', 10) || 0;
@@ -16666,7 +16690,8 @@
                 if (nimaExtra)  extras.push({ k: 'NIMA', v: nimaExtra });
                 if (fijaExtra)  extras.push({ k: 'Fecha fija', v: fijaExtra });
                 if (flat)       extras.push({ k: 'Preaviso urgente', v: flat });
-                var rows = extras.length ? [{ k: 'Importe de envío', v: envioNeto }].concat(extras) : [];
+                var detalle = tipoLines.concat(extras);
+                var rows = detalle.length ? [{ k: 'Importe de envío', v: envioBase }].concat(detalle) : [];
                 pendingData.precioMock = precio;
                 pendingData.precioRows = rows.length ? rows : [{ k: 'Importe de envío', v: precio }];
                 var eur = String(precio).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -16925,9 +16950,9 @@
                     // paso 1): al cambiarlo se recalcula el precio y se guarda
                     // en la ficha del sitio al confirmar.
                     var TIPOS_LUGAR = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento', 'Finca / Agrícola'];
-                    function tipoSelect(id, val) {
+                    function tipoSelect(id, val, rol) {
                         var opts = TIPOS_LUGAR.map(function (t) { return '<option' + ((val || 'Almacén / Nave') === t ? ' selected' : '') + '>' + t + '</option>'; }).join('');
-                        return '<div><label>Tipo de lugar</label><select class="sitio-f-tipo" data-sitio-tipo data-sitio-id="' + id + '">' + opts + '</select></div>';
+                        return '<div><label>Tipo de lugar</label><select class="sitio-f-tipo" data-sitio-tipo data-sitio-rol="' + escapeHtml(rol || '') + '" data-sitio-id="' + id + '">' + opts + '</select></div>';
                     }
                     // Cabecera PLEGADA: nº + Recogida/Entrega + empresa + línea
                     // gris con CP/localidad/provincia/país. La flechita despliega
@@ -16966,7 +16991,7 @@
                             (p.kind === 'recogida' ? 'Recogida' : 'Entrega') + '</span>';
                         // Fecha de la cabecera: recogida → fecha de carga; entrega → ETA.
                         var fechaCab = p.kind === 'recogida' ? cargaFechaCab : entregaFechaCab;
-                        var tipoLock = tipoSelect(p.id, p.tipoLugar);
+                        var tipoLock = tipoSelect(p.id, p.tipoLugar, (p.kind === 'recogida' ? 'Recogida' : 'Entrega') + ' ' + p.num);
                         function inp(lbl, f, val, ph) {
                             return '<div><label>' + lbl + '</label><input data-sitio-f="' + f + '" data-sitio-id="' + p.id + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '"></div>';
                         }
