@@ -7456,7 +7456,7 @@
     var __ctNow = Date.now();
     function __ctTs(diasAtras, hora) { return __ctNow - diasAtras * 86400000 + ((hora || 10) - 10) * 3600000; }
     var CLIENTES_DATA = [
-        { empresa: 'Marbex Industrial S.L.', cif: 'B41552217', dir: 'Pol. Ind. La Red, C/ Cobre 14', cp: '41500', ciudad: 'Alcalá de Guadaíra', prov: 'Sevilla', pais: 'España', tfno: '+34 954 210 334', email: 'compras@marbexindustrial.es', contacto: 'Julia Gómez', plazo: 30, cesce: true, cesceImporte: 60000, dynamoImporte: 15000, notas: '', creadoEn: __ctTs(214, 9), modificadoEn: __ctTs(12, 13) },
+        { empresa: 'Marbex Industrial S.L.', cif: 'B41552217', dir: 'Pol. Ind. La Red, C/ Cobre 14', cp: '41500', ciudad: 'Alcalá de Guadaíra', prov: 'Sevilla', pais: 'España', tfno: '+34 954 210 334', email: 'compras@marbexindustrial.es', contacto: 'Julia Gómez', plazo: 30, cesce: true, cesceImporte: 60000, dynamoImporte: 15000, factorPrecio: -3, notas: '', creadoEn: __ctTs(214, 9), modificadoEn: __ctTs(12, 13) },
         { empresa: 'GRUPAL ART, S.L.', cif: 'B46881306', dir: 'C/ Traginers 4', cp: '46940', ciudad: 'Manises', prov: 'Valencia', pais: 'España', tfno: '+34 961 523 887', email: 'logistica@grupalart.es', contacto: 'Vicente Ferrer', plazo: 30, cesce: true, cesceImporte: 40000, dynamoImporte: 10000, notas: '', creadoEn: __ctTs(388, 12), modificadoEn: __ctTs(41, 17) },
         { empresa: 'TRUMA STORE, S.L.', cif: 'B98455124', dir: 'Av. de la Industria 22, nave 7', cp: '28108', ciudad: 'Alcobendas', prov: 'Madrid', pais: 'España', tfno: '+34 916 620 445', email: 'pedidos@trumastore.es', contacto: 'Marta Salas', plazo: 60, cesce: true, cesceImporte: 80000, dynamoImporte: 20000, notas: 'Solo recepciona de 8:00 a 13:00.', creadoEn: __ctTs(160, 11), modificadoEn: null },
         { empresa: 'WELDINOX', cif: 'B29617750', dir: 'Pol. La Ermita, C/ Fragua 3', cp: '29600', ciudad: 'Marbella', prov: 'Málaga', pais: 'España', tfno: '+34 952 771 209', email: 'admin@weldinox.com', contacto: 'Sergio Luque', plazo: 0, cesce: false, cesceImporte: 0, dynamoImporte: 0, notas: 'Sin crédito CESCE: siempre proforma antes de cargar.', creadoEn: __ctTs(96, 16), modificadoEn: __ctTs(5, 9) },
@@ -7960,6 +7960,12 @@
                 ctSelect('cli-f-estado', 'Estado', ['Validado', 'Pendiente', 'Suspendido'], c.estado || 'Validado') +
                 ctField('cli-f-cesceimp', 'Importe crédito CESCE (€)', (c.cesceImporte == null ? '' : c.cesceImporte), 'Ej. 40000', false, 'number') +
                 ctField('cli-f-dynamoimp', 'Importe crédito Dynamo (€)', (c.dynamoImporte == null ? '' : c.dynamoImporte), 'Ej. 10000', false, 'number') +
+                (function () {
+                    var fp = (c.factorPrecio == null ? 0 : c.factorPrecio);
+                    return '<div style="grid-column:1/-1"><label>Factor de precio del cliente (%) <span style="font-weight:600;color:var(--gray-500);">· de −20 % a +20 %</span></label>' +
+                        '<input id="cli-f-factor" type="number" min="-20" max="20" step="1" value="' + escapeHtml(String(fp)) + '" placeholder="0">' +
+                        '<div style="font-size:0.72rem;color:var(--gray-500);margin-top:0.3rem;line-height:1.4;">Ajuste comercial sobre el precio del tarifador (base imponible, <strong>antes de IVA</strong>). <strong>Negativo</strong> = descuento (p. ej. cliente con mucho volumen); <strong>positivo</strong> = incremento (p. ej. mercancía muy valiosa). <strong>0</strong> = precio estándar. Se aplica de forma automática a todos sus envíos.</div></div>';
+                })() +
                 ctField('cli-f-dir', 'Domicilio fiscal (calle y número)', c.dir, 'Calle y número', true) +
                 ctField('cli-f-cp', 'CP', c.cp, '41001') +
                 ctField('cli-f-ciudad', 'Localidad', c.ciudad, 'Sevilla') +
@@ -8037,6 +8043,11 @@
         c.cesceImporte = (cesceImpEl && cesceImpEl.value.trim() !== '') ? Number(cesceImpEl.value) : 0;
         var dynImpEl = document.getElementById('cli-f-dynamoimp');
         c.dynamoImporte = (dynImpEl && dynImpEl.value.trim() !== '') ? Number(dynImpEl.value) : 0;
+        var factorEl = document.getElementById('cli-f-factor');
+        if (factorEl && factorEl.value.trim() !== '') {
+            var fpv = Math.round(Number(factorEl.value));
+            c.factorPrecio = isNaN(fpv) ? 0 : Math.max(-20, Math.min(20, fpv));  // acotado −20..+20
+        } else c.factorPrecio = 0;
         c.cesce = c.cesceImporte > 0;   // el crédito CESCE lo determina su importe
         c.notas = v('cli-f-notas') || null;
         if (edit) { c.modificadoEn = Date.now(); }
@@ -11751,6 +11762,19 @@
     }
     // Cliente del portal (la cuenta logueada). Con backend saldrá del perfil.
     var CLIENTE_ACTUAL = 'Marbex Industrial S.L.';
+    // Factor de precio del cliente activo (%): ajuste comercial −20..+20 que se
+    // aplica a la base imponible del tarifador (antes de IVA). En producción el
+    // cliente del envío vendrá del contexto; aquí usamos el cliente logueado.
+    function factorClienteActual() {
+        for (var i = 0; i < CLIENTES_DATA.length; i++) {
+            if (CLIENTES_DATA[i].empresa === CLIENTE_ACTUAL) {
+                var f = parseFloat(CLIENTES_DATA[i].factorPrecio);
+                return isNaN(f) ? 0 : Math.max(-20, Math.min(20, f));
+            }
+        }
+        return 0;
+    }
+    window.factorClienteActual = factorClienteActual;
 
     // ==================== PENALIZACIONES ====================
     var PEN_TIPOS = ['Cancelación', 'Paralización', 'Compensación', 'Parada adicional', 'Otro'];
@@ -15632,6 +15656,12 @@
                     if (s2) recTipo += (TIPO_RECARGO[s2.value] || 0);
                 });
                 var nParadas = paradaRows().length;
+                // FACTOR DE PRECIO DEL CLIENTE (−20..+20 %): ajuste comercial de
+                // la ficha del cliente aplicado a la base del tarifador. Se aplica
+                // a la base del transporte (se propaga a recargos y suplementos %
+                // y a la confirmación, que recalcula desde precioBase). Silencioso.
+                var fCli = factorClienteActual();
+                if (fCli) precio = precio * (1 + fCli / 100);
                 // Base del transporte ANTES del recargo por tipo (para recalcular
                 // en la confirmación si allí cambian el tipo de lugar).
                 card.dataset.precioBase = String(Math.round(precio / 10) * 10);
