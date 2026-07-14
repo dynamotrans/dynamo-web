@@ -14712,12 +14712,16 @@
         }
         // Hora de corte POR MODO (minutos desde medianoche, hora Madrid):
         // fecha FIJA a las 12:00 · ventana 1-3 días a las 14:00.
-        function corteDe(windowVal) { return windowVal === 'dia' ? 12 * 60 : 14 * 60; }
-        function corteLabelDe(windowVal) { return windowVal === 'dia' ? '12:00' : '14:00'; }
+        // Corte único a las 12:00 (mismo día) tanto para fecha fija como para
+        // la ventana de 1 a 3 días: pedir antes de las 12:00 para poder cargar
+        // ese mismo día (o abrir la ventana ese día).
+        function corteDe(windowVal) { return 12 * 60; }
+        function corteLabelDe(windowVal) { return '12:00'; }
         function firstLoadDate(windowVal) {
-            // Primera fecha ofertada (hora Madrid). El CORTE (12:00 fecha fija ·
-            // 14:00 ventana 1-3) es la HORA LÍMITE para pedir el SIGUIENTE día
-            // hábil, y corre TODOS los días (también findes y festivos): p. ej.
+            // Primera fecha ofertada (hora Madrid). El CORTE (12:00 tanto para
+            // fecha fija como para la ventana 1-3) es la HORA LÍMITE para pedir
+            // el SIGUIENTE día hábil, y corre TODOS los días (también findes y
+            // festivos): p. ej.
             // un domingo a las 15:19 el lunes YA NO se ofrece — igual que será
             // con backend real.
             //  · Antes del corte: el siguiente día hábil está disponible; y si
@@ -15981,7 +15985,7 @@
                 var secNow = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
                 var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                 var todayBiz = !nonBiz(today);
-                var cutSec = corteDe(uv) * 60;      // 12:00 fecha fija · 14:00 ventana 1-3
+                var cutSec = corteDe(uv) * 60;      // 12:00 (mismo día) fecha fija y ventana 1-3
                 var cutLabel = corteLabelDe(uv);
                 var first = firstLoadDate(uv);
                 var firstIsToday = first.getTime() === today.getTime();
