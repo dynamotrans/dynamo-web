@@ -1983,6 +1983,8 @@
         @media (prefers-reduced-motion: reduce) { .btn-calc-wait::before { animation: none; border-top-color: currentColor; opacity: 0.5; } }
         .alm-dates { grid-template-columns: 1fr 1fr; }
         .alm-note { font-size: 0.8rem; color: var(--gray-500); line-height: 1.45; margin-top: 0.6rem; }
+        .alm-rep-dist-bad { background: #fdecec; border: 1px solid #f5b5b5; color: #b42318; border-radius: 9px; padding: 0.55rem 0.7rem; font-weight: 600; }
+        .alm-rep-dist-ok { background: #eafaf0; border: 1px solid #b7ebcd; color: #0f6b3a; border-radius: 9px; padding: 0.55rem 0.7rem; font-weight: 600; }
         /* Aviso de campos que faltan: MISMA caja que el envío (.ptar-warning). */
         .alm-err {
             display: none; margin-top: 1rem; padding: 0.7rem 0.95rem;
@@ -5209,6 +5211,7 @@
                             <input type="text" data-alm-rep-input autocomplete="off" inputmode="search" placeholder="Entrega · empresa, CP o ciudad" aria-label="Dirección de entrega del reparto">
                             <ul class="ptar-sug" data-alm-rep-sug hidden></ul>
                         </div>
+                        <div id="almRepDistAviso" class="alm-note" hidden style="margin-top:0.5rem;"></div>
                     </div>
                     <div class="alm-note" style="margin-top:-0.2rem;">La entrega en destino se hará en la <strong>fecha de salida</strong> de la mercancía indicada arriba.</div>
                 </div>
@@ -6383,6 +6386,7 @@
             if (err) { err.textContent = '⚠ Este almacén está COMPLETO y no admite entradas ahora mismo. Elige otro almacén Dynamo.'; err.classList.add('show'); }
         } else if (err) { err.classList.remove('show'); }
         almRenderPrecio();   // refleja el precio propio del almacén elegido
+        almRepCheckDistancia();  // recalcula el radio si ya había reparto elegido
     }
     window.almPickAlmacen = almPickAlmacen;
     function almSelClear(focus) {
@@ -6591,18 +6595,70 @@
                 // Al elegir la dirección de reparto desaparece su aviso.
                 var err = document.getElementById('almErr'); if (err) err.classList.remove('show');
             }
+            // Comprueba la distancia al almacén (radio máx. de reparto).
+            almRepCheckDistancia();
         }, 'entrega');
         _almRepBound = true;
     }
+    // ===== RADIO DE REPARTO (máx. 20 km, línea recta) =====
+    // El reparto urbano debe caer dentro del área de acción del almacén.
+    // Geocodificamos el almacén (Nominatim, cacheado en a._lat/_lon) y lo
+    // comparamos con la dirección de reparto elegida (Haversine). Si la API
+    // no responde (sin red / proxy), no se puede comprobar → NO bloquea.
+    var ALM_REP_RADIO_KM = 20;
+    function __almHavKm(a, b) {
+        var R = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLon = (b.lon - a.lon) * Math.PI / 180;
+        var la1 = a.lat * Math.PI / 180, la2 = b.lat * Math.PI / 180;
+        var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(la1) * Math.cos(la2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+    }
+    function almGeocode(a, cb) {
+        if (!a) return cb(null);
+        if (a._lat != null && a._lon != null) return cb({ lat: a._lat, lon: a._lon });
+        var q = (a.dir ? a.dir + ', ' : '') + (a.cp ? a.cp + ' ' : '') + (a.ciudad || '') + ', España';
+        fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=es&accept-language=es&q=' + encodeURIComponent(q))
+            .then(function (r) { return r.json(); })
+            .then(function (items) {
+                if (items && items[0]) { a._lat = parseFloat(items[0].lat); a._lon = parseFloat(items[0].lon); cb({ lat: a._lat, lon: a._lon }); }
+                else cb(null);
+            })
+            .catch(function () { cb(null); });
+    }
+    function almRepCheckDistancia() {
+        var wrap = almRepWrap(); if (!wrap) return;
+        var box = document.getElementById('almRepDistAviso');
+        function hide() { if (box) { box.hidden = true; box.textContent = ''; box.className = 'alm-note'; } delete wrap.dataset.fuera; delete wrap.dataset.distkm; }
+        if (!wrap.dataset.lat || !wrap.classList.contains('ptar-picked')) return hide();
+        var a = DYNAMO_ALMACENES[_almSel]; if (!a) return hide();
+        var dest = { lat: parseFloat(wrap.dataset.lat), lon: parseFloat(wrap.dataset.lon) };
+        almGeocode(a, function (o) {
+            if (!o) return hide();  // sin coords del almacén → no se puede comprobar (no bloquea)
+            if (!wrap.dataset.lat || !wrap.classList.contains('ptar-picked')) return;  // se limpió mientras tanto
+            var km = __almHavKm(o, dest);
+            wrap.dataset.distkm = String(Math.round(km));
+            if (km > ALM_REP_RADIO_KM) {
+                wrap.dataset.fuera = '1';
+                if (box) { box.hidden = false; box.className = 'alm-note alm-rep-dist-bad';
+                    box.innerHTML = '⚠ La dirección de reparto está a <strong>~' + Math.round(km) + ' km</strong> del almacén (' + escapeHtml(a.ciudad || a.prov || '') + '), fuera del <strong>radio máximo de 20 km</strong>. Elige una entrega más cercana o pídelo como <strong>nuevo envío</strong> con origen en el almacén.'; }
+            } else {
+                delete wrap.dataset.fuera;
+                if (box) { box.hidden = false; box.className = 'alm-note alm-rep-dist-ok';
+                    box.innerHTML = '✓ Entrega a <strong>~' + Math.round(km) + ' km</strong> del almacén — dentro del radio de reparto.'; }
+            }
+        });
+    }
+    window.almRepCheckDistancia = almRepCheckDistancia;
     function almRepClear() {
         var wrap = almRepWrap(), input = almRepInputEl();
         if (wrap) {
             delete wrap.dataset.lat; delete wrap.dataset.lon; delete wrap.dataset.cc;
             delete wrap.dataset.region;
             delete wrap.dataset.siteKey; delete wrap.dataset.gsite;
+            delete wrap.dataset.fuera; delete wrap.dataset.distkm;
             wrap.classList.remove('ptar-picked', 'ptar-error');
         }
         if (input) { input.readOnly = false; input.value = ''; }
+        var box = document.getElementById('almRepDistAviso'); if (box) { box.hidden = true; box.textContent = ''; box.className = 'alm-note'; }
     }
     window.almRepClear = almRepClear;
     function almRepartoChange() {
@@ -6664,6 +6720,11 @@
         var elegido = repWrap && (repWrap.classList.contains('ptar-picked') || pick);
         if (n > 0) {
             if (!elegido) return fail('Elige la dirección de entrega del reparto de la lista (tu agenda, Google o «Crear nuevo sitio»).', repWrap, false);
+            // Radio de reparto: si la dirección elegida quedó fuera de los 20 km
+            // del almacén (comprobado al elegirla), no se puede tramitar aquí.
+            if (repWrap && repWrap.dataset.fuera === '1') {
+                return fail('La dirección de reparto está a ~' + (repWrap.dataset.distkm || '?') + ' km del almacén (máximo 20 km). Elige una entrega más cercana o pídelo como nuevo envío con origen en el almacén.', repWrap, false);
+            }
         }
         if (err) err.classList.remove('show');
         // Datos base del sitio de entrega (para la ficha editable del paso 2).
