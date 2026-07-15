@@ -3553,6 +3553,16 @@
         /* En el paso de confirmación no procede "Limpiar" (ya no se edita el
            formulario) → se oculta el botón mientras se revisan los datos. */
         #sec-nueva-carga[data-step="confirm"] [data-ptar-reset] { display: none; }
+        /* ===== ENVÍO MANUAL con OTRO OPERADOR: mismo formulario pero SIN
+           precio, SIN forma de pago y SIN condiciones Dynamo (no intervenimos).
+           En 'envio' y presupuesto el selector de operador queda oculto. ===== */
+        #sec-nueva-carga[data-entry-mode="manual"] .alm-price,
+        #sec-nueva-carga[data-entry-mode="manual"] .ptar-admin-precio,
+        #sec-nueva-carga[data-entry-mode="manual"] [data-ptar-conf-price],
+        #sec-nueva-carga[data-entry-mode="manual"] [data-ptar-pay],
+        #sec-nueva-carga[data-entry-mode="manual"] .ptar-terms-box,
+        #sec-nueva-carga[data-entry-mode="manual"] [data-ptar-terms-warn] { display: none !important; }
+        #sec-nueva-carga[data-entry-mode="manual"] [data-ptar-final-confirm] { opacity: 1; pointer-events: auto; }
 
         @media (max-width: 768px) {
             .ptar-card { padding: 0.9rem 0.9rem 1rem; }
@@ -3808,6 +3818,10 @@
         <button class="sidebar-link" data-section="sitios">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
             Sitios
+        </button>
+        <button class="sidebar-link" data-section="operadores">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            Operadores de transporte
         </button>
         <button class="sidebar-link" data-section="almacenes">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-5 9 5v12"/><path d="M3 21h18"/><rect x="8" y="13" width="8" height="8"/></svg>
@@ -4189,6 +4203,8 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Crear sitio</button>
                         <button type="button" role="menuitem" onclick="closeBtnDropdowns();openNuevoAlmacen();">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-5 9 5v12"/><path d="M3 21h18"/><rect x="8" y="13" width="8" height="8"/></svg> Nuevo almacenamiento</button>
+                        <button type="button" role="menuitem" onclick="closeBtnDropdowns();openNuevaCarga('manual');">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> Nuevo envío con otro operador</button>
                     </div>
                 </div>
             </div>
@@ -4333,6 +4349,10 @@
         </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por cualquier dato: nº, empresa, dirección, teléfono, ruta, mercancía…">
+            <select class="filter-estado" data-carga-operador aria-label="Filtrar por operador de transporte"
+                    onchange="TABLE_STATE.cargas.operador=this.value;TABLE_STATE.cargas.page=1;renderCargasTable();">
+                <option value="">Operador</option>
+            </select>
             <select class="filter-mes" data-filter-mes>
                 <!-- Opciones pobladas por JS al cargar -->
             </select>
@@ -4588,6 +4608,19 @@
             <div class="form-2col">
             <div class="form-2col-main">
             <div class="ptar-grid">
+                <!-- OPERADOR DE TRANSPORTE (solo envío MANUAL con otro operador):
+                     combo con autocompletado del catálogo privado del cliente.
+                     Mismo patrón chip que sitios: elegir bloquea, pulsar borra. -->
+                <div class="ptar-field ptar-field-full" data-ptar-operador-field hidden>
+                    <div class="ptar-section-head" style="margin-bottom:0.5rem;">Operador de transporte</div>
+                    <div class="ptar-input-wrap alm-rep-wrap" id="opCombo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                        <input type="text" id="opSearch" placeholder="Operador de transporte · busca en tu catálogo" autocomplete="off" inputmode="search" oninput="opFilter()" onfocus="opFilter()">
+                        <button type="button" class="ptar-clear" id="opClearBtn" hidden onclick="opClear(true)" aria-label="Cambiar operador">✕</button>
+                        <ul class="ptar-sug alm-combo-list" id="opList" hidden></ul>
+                    </div>
+                    <div class="alm-note" style="margin-top:0.45rem;">Envío gestionado con <strong>tu propio operador de transporte</strong> — Dynamo no interviene y <strong>no se muestra precio</strong>. Gestiona tu catálogo en la sección <strong>Operadores de transporte</strong>.</div>
+                </div>
                 <div class="ptar-section-head">Ruta</div>
                 <div class="ptar-field ptar-field-full">
                     <div class="ptar-route-row">
@@ -4945,6 +4978,24 @@
     </section>
 
     <!-- ==================== PENALIZACIONES ==================== -->
+    <!-- ==================== OPERADORES DE TRANSPORTE (catálogo PRIVADO del cliente) ==================== -->
+    <section class="section" id="sec-operadores">
+        <div class="sec-header">
+            <h2>Operadores de transporte</h2>
+            <button class="btn-primary" onclick="openOperadorModal(-1);return false;">+ Nuevo operador</button>
+        </div>
+        <p style="color:var(--gray-500);font-size:0.82rem;margin:-0.4rem 0 0.9rem;">Tu catálogo <strong>privado</strong> de otros operadores de transporte (aparte de Dynamo). Se usan al crear un <strong>envío con otro operador</strong> desde «Nueva gestión» — sin precio, solo para tu control. Pulsa una fila para ver o editar la ficha.</p>
+        <div class="filters">
+            <input type="search" id="operadoresSearch" placeholder="Buscar por nombre, CIF, contacto…" oninput="renderOperadoresTable(this.value)">
+        </div>
+        <div class="table-wrap">
+            <table class="data">
+                <thead><tr><th>Operador</th><th>Teléfono</th><th>Email</th><th>Contacto</th><th>Notas</th></tr></thead>
+                <tbody id="tbodyOperadores"></tbody>
+            </table>
+        </div>
+    </section>
+
     <section class="section" id="sec-penalizaciones">
         <div class="sec-header">
             <h2>Penalizaciones</h2>
@@ -5283,6 +5334,7 @@
         'almacenes':         'Almacenamientos',
         'nuevo-almacen':     'Nuevo almacenamiento',
         'penalizaciones':    'Penalizaciones',
+        'operadores':        'Operadores de transporte',
         'almacenes-cat':     'Almacenes Dynamo',
         'usuarios':          'Usuarios',
         'altas':             'Altas pendientes',
@@ -5348,16 +5400,22 @@
        aviso salta al pulsar cada acción. El formulario es el MISMO. */
     function openNuevaCarga(mode) {
         // El portal es solo de ENVÍOS (presupuestos eliminados: precios
-        // dinámicos). Se ignora cualquier modo 'presupuesto' heredado.
+        // dinámicos). Modo 'manual' = envío gestionado con OTRO operador de
+        // transporte del cliente: mismo formulario pero sin precio ni pago.
+        var esManual = mode === 'manual';
         var sec = document.getElementById('sec-nueva-carga');
-        if (sec) { sec.dataset.entryMode = 'envio'; sec.dataset.step = 'form'; }
+        if (sec) { sec.dataset.entryMode = esManual ? 'manual' : 'envio'; sec.dataset.step = 'form'; }
+        // Selector de operador: solo visible en modo manual, y siempre limpio.
+        var opField = document.querySelector('[data-ptar-operador-field]');
+        if (opField) opField.hidden = !esManual;
+        if (window.opClear) opClear(false);
         // Abrir en limpio SIEMPRE sale del modo edición (cargaModificarEnvio lo
         // reactiva después si procede).
         window._cargaEditRef = null;
         window._cargaEditSig0 = null;
         window._cargaEditTipos0 = null;
         var h2 = document.querySelector('[data-nueva-carga-title]');
-        if (h2) h2.textContent = 'Nuevo envío';
+        if (h2) h2.textContent = esManual ? 'Nuevo envío · otro operador' : 'Nuevo envío';
         var sb = document.querySelector('#sec-nueva-carga [data-ptar-submit]');
         if (sb) sb.textContent = 'Crear envío';
         var fc0 = document.querySelector('#sec-nueva-carga [data-ptar-final-confirm]');
@@ -7190,6 +7248,147 @@
         setBadge('alm-pago', hayA ? ALMACENES_DATA.filter(function (r) { return almEstadoKey(r) === 'pendiente-pago'; }).length : 0);     // rojo: pendiente de pago
     }
     window.updateSidebarBadges = updateSidebarBadges;
+    /* ==================== OPERADORES DE TRANSPORTE (catálogo PRIVADO del
+       cliente) ====================
+       Otros operadores que el cliente tiene contratados aparte de Dynamo. Se
+       usan en el envío MANUAL (sin precio) y en el filtro de la tabla de
+       envíos. Solo los ve el propio cliente (backend: por cuenta). */
+    var OPERADORES_DATA = [
+        { nombre: 'Transportes Iberia Express S.L.', cif: 'B58830217', tfno: '+34 916 402 118', email: 'trafico@iberiaexpress-trans.es', contacto: 'Rosa Cifuentes', web: 'www.iberiaexpress-trans.es', notas: 'Solo rutas Madrid–Levante.', creadoEn: Date.now() - 120 * 86400000, modificadoEn: null },
+        { nombre: 'LogiSur Cargo S.L.', cif: 'B72153042', tfno: '+34 954 771 530', email: 'operaciones@logisurcargo.com', contacto: 'Andrés Barrera', web: 'www.logisurcargo.com', notas: '', creadoEn: Date.now() - 64 * 86400000, modificadoEn: null }
+    ];
+    function renderOperadoresTable(q) {
+        var tbody = document.getElementById('tbodyOperadores'); if (!tbody) return;
+        var nq = normTxt(q || '');
+        var rows = [];
+        OPERADORES_DATA.forEach(function (o, i) {
+            if (nq && !matchTokens(normTxt([o.nombre, o.cif, o.tfno, o.email, o.contacto, o.web, o.notas].join(' ')), nq)) return;
+            rows.push('<tr onclick="openOperadorModal(' + i + ')">' +
+                '<td class="ref"><strong>' + esc(o.nombre) + '</strong><div class="meta">' + esc(o.cif || '—') + '</div></td>' +
+                '<td>' + esc(o.tfno || '—') + '</td>' +
+                '<td>' + esc(o.email || '—') + '</td>' +
+                '<td>' + esc(o.contacto || '—') + '</td>' +
+                '<td class="notas">' + esc(o.notas || '—') + '</td>' +
+            '</tr>');
+        });
+        var h2 = document.querySelector('#sec-operadores h2');
+        if (h2) h2.textContent = 'Operadores de transporte (' + OPERADORES_DATA.length + ')';
+        tbody.innerHTML = rows.length ? rows.join('')
+            : '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-500);">' +
+              (OPERADORES_DATA.length ? 'Sin operadores que coincidan con la búsqueda.' : 'Aún no tienes operadores. Crea uno con «+ Nuevo operador».') + '</td></tr>';
+    }
+    window.renderOperadoresTable = renderOperadoresTable;
+    function openOperadorModal(idx) {
+        var esEdit = (idx != null && idx >= 0 && idx < OPERADORES_DATA.length);
+        var o = esEdit ? OPERADORES_DATA[idx] : {};
+        openDashModal({
+            icon: 'truck',
+            title: esEdit ? 'Editar operador' : 'Nuevo operador de transporte',
+            sub: esEdit ? (o.nombre || '') : 'Tu catálogo privado de operadores (aparte de Dynamo)',
+            body: ctMetaHTML(o) +
+                '<div class="ptar-sitio-grid">' +
+                    ctField('op-f-nombre', 'Nombre / Razón social *', o.nombre, 'Ej. Transportes Iberia Express S.L.', true) +
+                    ctField('op-f-cif', 'CIF / NIF *', o.cif, 'B12345678') +
+                    telField('op-f-tfno', 'Teléfono', o.tfno) +
+                    ctField('op-f-email', 'Email', o.email, 'trafico@empresa.com', false, 'email') +
+                    ctField('op-f-contacto', 'Persona de contacto', o.contacto, 'Nombre y apellidos') +
+                    ctField('op-f-web', 'Web', o.web, 'www.empresa.com') +
+                    ctNotas('op-f-notas', o.notas) +
+                '</div>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                '<button class="btn-primary" onclick="operadorGuardar(' + (esEdit ? idx : -1) + ')">' + (esEdit ? 'Guardar cambios' : 'Crear operador') + '</button>',
+            afterOpen: function () { bindFiscalValidation('op-f-cif'); }
+        });
+    }
+    window.openOperadorModal = openOperadorModal;
+    function operadorGuardar(idx) {
+        function v(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+        var nombre = v('op-f-nombre'), cif = v('op-f-cif');
+        if (!nombre || !cif) {
+            ['op-f-nombre', 'op-f-cif'].forEach(function (id) { var el = document.getElementById(id); if (el && !el.value.trim()) el.style.borderColor = '#dc2626'; });
+            return;
+        }
+        var edit = (idx != null && idx >= 0 && idx < OPERADORES_DATA.length);
+        var o = edit ? OPERADORES_DATA[idx] : {};
+        o.nombre = nombre; o.cif = cif;
+        o.tfno = telValue('op-f-tfno'); o.email = v('op-f-email') || null;
+        o.contacto = v('op-f-contacto') || null; o.web = v('op-f-web') || null;
+        o.notas = v('op-f-notas') || null;
+        if (edit) { o.modificadoEn = Date.now(); }
+        else { o.creadoEn = Date.now(); o.modificadoEn = null; OPERADORES_DATA.push(o); }
+        closeDashModal();
+        renderOperadoresTable((document.getElementById('operadoresSearch') || {}).value || '');
+        renderOperadorSelects();
+        // Aviso (no bloquea): mismo criterio que la ficha de cliente.
+        var vf = validaIdFiscal(cif);
+        var avisoCif = (vf && (vf.ok || vf.soft)) ? '' :
+            ' ⚠ El CIF/NIF introducido no supera la validación (' + (vf && vf.tipo ? vf.tipo + ' — ' + vf.msg : 'formato no reconocido') + '). Se ha guardado igualmente; revísalo.';
+        showModalSuccess(edit ? 'Operador actualizado' : 'Operador creado', nombre + (edit ? ': cambios guardados.' : ' añadido a tu catálogo de operadores.') + avisoCif);
+    }
+    window.operadorGuardar = operadorGuardar;
+    // Rellena el desplegable de filtro por operador de la tabla de envíos.
+    function renderOperadorSelects() {
+        var sel = document.querySelector('[data-carga-operador]'); if (!sel) return;
+        var cur = sel.value;
+        sel.innerHTML = '<option value="">Operador</option><option>Dynamo</option>' +
+            OPERADORES_DATA.map(function (o) { return '<option>' + esc(o.nombre) + '</option>'; }).join('');
+        sel.value = cur; if (sel.value !== cur) sel.value = '';
+    }
+    window.renderOperadorSelects = renderOperadorSelects;
+    // ---- Combo de operador del envío MANUAL (patrón chip: elegir bloquea,
+    //      la × o pulsar el chip borran por completo) ----
+    window._opSel = null;
+    function opFilter() {
+        var inp = document.getElementById('opSearch'), list = document.getElementById('opList');
+        if (!inp || !list || inp.readOnly) return;
+        var q = normTxt(inp.value);
+        var items = [];
+        OPERADORES_DATA.forEach(function (o) {
+            if (q && !matchTokens(normTxt(o.nombre + ' ' + (o.cif || '') + ' ' + (o.contacto || '')), q)) return;
+            items.push('<li class="alm-combo-item" onmousedown="opPick(\'' + escapeHtml(o.nombre) + '\');event.preventDefault();">' +
+                '<span><strong>' + esc(o.nombre) + '</strong></span>' +
+                '<span class="sub">' + esc([o.cif, o.contacto].filter(Boolean).join(' · ')) + '</span></li>');
+        });
+        items.push('<li class="alm-combo-item" onmousedown="opNuevoDesdeCombo();event.preventDefault();"><span style="color:var(--purple);font-weight:700;">+ Crear nuevo operador</span></li>');
+        list.innerHTML = items.join('');
+        list.hidden = false;
+    }
+    window.opFilter = opFilter;
+    function opPick(nombre) {
+        var inp = document.getElementById('opSearch'), list = document.getElementById('opList'),
+            wrap = document.getElementById('opCombo'), x = document.getElementById('opClearBtn');
+        window._opSel = nombre;
+        if (inp) { inp.value = nombre; inp.readOnly = true; inp.onclick = function () { opClear(true); }; }
+        if (wrap) { wrap.classList.add('ptar-picked'); wrap.classList.remove('ptar-error'); }
+        if (x) x.hidden = false;
+        if (list) list.hidden = true;
+    }
+    window.opPick = opPick;
+    function opClear(focus) {
+        var inp = document.getElementById('opSearch'), list = document.getElementById('opList'),
+            wrap = document.getElementById('opCombo'), x = document.getElementById('opClearBtn');
+        window._opSel = null;
+        if (inp) { inp.readOnly = false; inp.value = ''; inp.onclick = null; if (focus) inp.focus(); }
+        if (wrap) wrap.classList.remove('ptar-picked', 'ptar-error');
+        if (x) x.hidden = true;
+        if (list) list.hidden = true;
+    }
+    window.opClear = opClear;
+    // "+ Crear nuevo operador" desde el combo: abre la ficha; al guardar,
+    // el nuevo operador queda seleccionado en el combo.
+    function opNuevoDesdeCombo() {
+        var n0 = OPERADORES_DATA.length;
+        openOperadorModal(-1);
+        var iv = setInterval(function () {
+            if (!document.getElementById('op-f-nombre') && OPERADORES_DATA.length > n0) {
+                clearInterval(iv);
+                opPick(OPERADORES_DATA[OPERADORES_DATA.length - 1].nombre);
+            } else if (!document.getElementById('op-f-nombre') && !document.getElementById('dashModalBody')) {
+                clearInterval(iv);
+            }
+        }, 400);
+    }
+    window.opNuevoDesdeCombo = opNuevoDesdeCombo;
     function renderAlmacenesTable() {
         var tbody = document.getElementById('tbodyAlmacenes');
         if (!tbody) return;
@@ -7525,6 +7724,8 @@
     }
     window.almacenCatGuardar = almacenCatGuardar;
     renderAlmacenesCatTable('');
+    renderOperadoresTable('');
+    renderOperadorSelects();
 
     // ==================== CLIENTES y TRANSPORTISTAS (fichas admin) ====================
     // Catálogos internos SOLO ADMIN. Mock en memoria; en producción vendrán del
@@ -11340,7 +11541,7 @@
     }
     function savePerPage(table, v) { /* sin persistencia local: solo la sesión */ }
     var TABLE_STATE = {
-        cargas:       { page: 1, filter: 'programada-pendiente',  perPage: readPerPage('cargas'), estado: '', fecha: '', q: '' },
+        cargas:       { page: 1, filter: 'programada-pendiente',  perPage: readPerPage('cargas'), estado: '', fecha: '', q: '', operador: '' },
         presupuestos: { page: 1, filter: 'activos', perPage: readPerPage('presupuestos'), q: '' },
         facturas:     { page: 1, filter: 'todas',  perPage: readPerPage('facturas'), q: '', estado: '', from: '', to: '' },
         albaranes:    { page: 1, filter: 'todas',  perPage: readPerPage('albaranes'), q: '', estado: '' },
@@ -13498,6 +13699,10 @@
                 return fechaEnRango(cargaFechaDate(c), fFecha);
             });
         }
+        // Filtro por OPERADOR DE TRANSPORTE: Dynamo (envíos nuestros, el valor
+        // por defecto) u otro operador del catálogo privado del cliente.
+        var fOp = TABLE_STATE.cargas.operador;
+        if (fOp) arr = arr.filter(function (c) { return (c.operador || 'Dynamo') === fOp; });
         // Búsqueda en vivo (se filtra al teclear, sin mayúsculas ni acentos)
         var q = normTxt(TABLE_STATE.cargas.q);
         if (q) arr = arr.filter(function (c) { return matchTokens(cargaSearchBlob(c), q); });
@@ -13871,6 +14076,7 @@
                         '<div class="envio-estado envio-estado-top"><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span></div>' +
                         '<strong>' + esc(c.ref) + '</strong>' +
                         (c.refCli ? ' <span class="ref-cli-inline">(' + esc(c.refCli) + ')</span>' : '') +
+                        (c.operador && c.operador !== 'Dynamo' ? '<div class="meta" style="color:#b45309;font-weight:700;white-space:nowrap;">Operador: ' + esc(c.operador) + '</div>' : '') +
                         (c.modificadoEn && c.modificadoEn - (c.creadoEn || 0) > 60000
                             ? '<span class="ref-creado">(Modificado: ' + fmtCreado(c.modificadoEn) + ')</span>'
                             : (c.creadoEn ? '<span class="ref-creado">(Creado: ' + fmtCreado(c.creadoEn) + ')</span>' : '')) +
@@ -13896,6 +14102,11 @@
                         //     ruta) — en blanco si no lo hay (backend real)
                         //  3) Tarifador: lo que daría hoy el tarifador (a veces
                         //     coincide, a veces no) — solo referencia
+                        // Envío MANUAL con OTRO operador: sin precio (Dynamo no
+                        // interviene) → celdas de precio y margen en blanco.
+                        if (c.manual) {
+                            return '<td class="amount">—</td><td class="amount">—</td><td class="amount">—</td>';
+                        }
                         cargaPrecios(c);
                         var ult = cargaUltPrecios(c);
                         var tar = cargaPrecioTarifador(c);
@@ -14507,6 +14718,21 @@
             var dst = programadas[i];
             if (!src || !dst) break;
             KEYS.forEach(function (k) { if (src[k] != null) dst[k] = src[k]; });
+        }
+    })();
+    // === MOCK: 2 envíos gestionados con OTRO OPERADOR de transporte ===
+    // Creados "a mano" desde Nueva gestión: sin precio (Dynamo no interviene)
+    // y fuera del flujo de asignación de transportista.
+    (function () {
+        var otros = ['Transportes Iberia Express S.L.', 'LogiSur Cargo S.L.'];
+        var n = 0;
+        for (var i = CARGAS_DATA.length - 1; i >= 0 && n < 2; i--) {
+            var c = CARGAS_DATA[i];
+            if (c.kind === 'programada' && c.fecha && c.fecha !== 'Sin fecha' && !c.pendientePago && !c.transportistaAsignado) {
+                c.operador = otros[n++]; c.manual = true;
+                c.transportistaAsignado = true;   // su transporte lo gestiona su operador
+                c.precio = null; c.precioCliente = null; c.precioManual = false;
+            }
         }
     })();
     // Fecha/hora de creación de cada carga del mock: 2-6 días antes de su
@@ -15479,6 +15705,10 @@
         // --- Init para cada .ptar-card ---
         function initTarifador(card) {
             var mode = card.getAttribute('data-ptar-mode'); // 'carga' | 'presupuesto'
+            // Modo de entrada de la SECCIÓN (envio | manual): el entryMode vive
+            // en #sec-nueva-carga, no en la card. 'manual' = otro operador.
+            var secEl = card.closest ? card.closest('section') : null;
+            function entryModeDe() { return (secEl && secEl.dataset.entryMode) || ''; }
             var origWrap = card.querySelector('[data-ptar-orig-wrap]');
             var destWrap = card.querySelector('[data-ptar-dest-wrap]');
             var origInput = card.querySelector('[data-ptar-orig]');
@@ -16384,6 +16614,15 @@
                 });
             }
             function readAndValidate(skipFecha) {
+                // Envío MANUAL: el operador de transporte es obligatorio y debe
+                // elegirse del catálogo (chip) — igual que los sitios.
+                if (entryModeDe() === 'manual' && !window._opSel) {
+                    var opW = document.getElementById('opCombo');
+                    if (opW) { opW.classList.add('ptar-error'); opW.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+                    warning.textContent = '⚠ Elige el operador de transporte de tu catálogo (o créalo desde el propio desplegable).';
+                    warning.classList.add('show');
+                    return null;
+                }
                 // Por si se pulsa Crear/Guardar sin salir antes del campo:
                 // limpia cualquier texto tecleado que no se haya elegido de la
                 // lista (queda vacío, como si no se hubiera escrito nada).
@@ -16495,14 +16734,14 @@
                 // marcha) o sin calcular (ruta sin geolocalizar todavía): se
                 // guardaría un envío con precio 0 o con el precio de la ruta
                 // anterior. Se reintenta en cuanto el cálculo termina.
-                if (mode === 'carga' && (window.__precioCalculando || !parseInt(card.dataset.precioBase || '0', 10))) {
+                if (mode === 'carga' && entryModeDe() !== 'manual' && (window.__precioCalculando || !parseInt(card.dataset.precioBase || '0', 10))) {
                     warning.textContent = '⚠ Estamos calculando el precio del envío. Espera un momento y vuelve a intentarlo.';
                     warning.classList.add('show');
                     return null;
                 }
                 // Precio CADUCADO (pantalla abierta >60 min desde el cálculo):
                 // no se avanza — aviso y vuelta al inicio para regenerarlo.
-                if (mode === 'carga' && precioCaducado()) { avisoPrecioCaducado(); return null; }
+                if (mode === 'carga' && entryModeDe() !== 'manual' && precioCaducado()) { avisoPrecioCaducado(); return null; }
                 return {
                     camion: camion, camionLabel: CAMION_INFO[camion] ? CAMION_INFO[camion].label : camion,
                     ml: ml, peso: peso, medidas: medidas,
@@ -16678,6 +16917,19 @@
                     nuevaCarga._rowsCli = (d.precioRows || []).map(function (r) { return { k: r.k, v: r.v }; });
                     if (!nuevaCarga._rowsCli.length) nuevaCarga._rowsCli = [{ k: 'Importe de envío', v: precioNum }];
                     nuevaCarga.precioCliente = precioNum;
+                    // ENVÍO MANUAL con OTRO OPERADOR: se guarda el operador y el
+                    // envío queda SIN precio (Dynamo no interviene) y fuera del
+                    // flujo de asignación de transportista.
+                    if (entryModeDe() === 'manual') {
+                        nuevaCarga.operador = window._opSel || 'Otro operador';
+                        nuevaCarga.manual = true;
+                        nuevaCarga.transportistaAsignado = true;
+                        nuevaCarga.pendientePago = false;
+                        nuevaCarga.precio = null;
+                        nuevaCarga.precioCliente = null;
+                        nuevaCarga.precioManual = false;
+                        nuevaCarga._rowsCli = [];
+                    }
                     // Precio fijado a MANO en el formulario: sustituye al del
                     // tarifador y queda marcado (etiqueta en la tabla; Modificar
                     // no lo recalcula mientras no cambie nada que afecte al precio).
@@ -16792,7 +17044,8 @@
             var checkLbl = confirmCard ? confirmCard.querySelector('.ptar-terms-box .ptar-confirm-check') : null;
             function refreshConfirmEnabled() {
                 if (!finalBtn) return;
-                var ok = (!chkTerms || chkTerms.checked);
+                // Envío MANUAL: sin condiciones Dynamo → el botón va siempre activo.
+                var ok = (!chkTerms || chkTerms.checked || entryModeDe() === 'manual');
                 finalBtn.classList.toggle('btn-visual-disabled', !ok);
                 finalBtn.setAttribute('aria-disabled', ok ? 'false' : 'true');
                 if (ok) {
@@ -17360,6 +17613,15 @@
             if (backBtn) backBtn.addEventListener('click', exitConfirmStep);
             if (finalBtn) finalBtn.addEventListener('click', function () {
                 if (!pendingData) return;
+                // ENVÍO MANUAL (otro operador): sin precio, pago ni condiciones
+                // Dynamo — se validan las fichas de sitios y se guarda directo.
+                if (entryModeDe() === 'manual') {
+                    if (!validateLooseSites(true)) return;
+                    var dataM = pendingData;
+                    exitConfirmStep();
+                    finalizeSave(dataM);
+                    return;
+                }
                 // Precio caducado (>60 min desde el cálculo): tiempo excedido →
                 // NO se crea el envío; aviso y vuelta a la pantalla principal.
                 if (precioCaducado()) { avisoPrecioCaducado(); return; }
