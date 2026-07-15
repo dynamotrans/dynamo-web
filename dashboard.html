@@ -3078,7 +3078,8 @@
         }
         .ptar-sitio-card.req-ok .ptar-sitio-warn { display: none; }
         .sitio-req { color: #dc2626; font-weight: 700; font-size: 0.72rem; }
-        .ptar-sitio-grid input.sitio-f-err {
+        .ptar-sitio-grid input.sitio-f-err,
+        .ptar-sitio-grid select.sitio-f-err {
             border-color: #dc2626 !important;
             background: rgba(220,38,38,0.05) !important;
         }
@@ -7408,7 +7409,7 @@
         var edit = (idx != null && idx >= 0 && idx < DYNAMO_ALMACENES.length);
         var a = edit ? DYNAMO_ALMACENES[idx] : {};
         a.empresa = empresa;
-        a.tipoLugar = tipoEl ? tipoEl.options[tipoEl.selectedIndex].text : 'Almacén / Nave';
+        a.tipoLugar = (tipoEl && tipoEl.value) ? tipoEl.value : 'Almacén / Nave';
         a.horario = v('sitio-f-horario') || null;
         a.tfno = telValue('sitio-f-tfno');
         a.contacto = v('sitio-f-contacto') || null;
@@ -12953,9 +12954,12 @@
         function inp(lbl, id, val, ph, full) {
             return '<div' + (full ? ' class="full"' : '') + '><label>' + lbl + '</label><input id="' + id + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '"></div>';
         }
-        var tipoOpts = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento', 'Finca / Agrícola'].map(function (t) {
-            return '<option' + ((s.tipoLugar || 'Almacén / Nave') === t ? ' selected' : '') + '>' + t + '</option>';
-        }).join('');
+        // Sin preselección por defecto: obliga a elegir el tipo (salvo que el
+        // sitio ya lo traiga, p. ej. al editar uno existente).
+        var __TL = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento', 'Finca / Agrícola'];
+        var tipoHas = __TL.indexOf(s.tipoLugar) !== -1;
+        var tipoOpts = '<option value="" disabled' + (tipoHas ? '' : ' selected') + '>Elige tipo de lugar…</option>' +
+            __TL.map(function (t) { return '<option' + (s.tipoLugar === t ? ' selected' : '') + '>' + t + '</option>'; }).join('');
         // Cabecera con fecha/hora de creación y última modificación. Los del
         // catálogo (sin alta real) llevan un timestamp MOCK determinista.
         var __cre = s.creado || ((!esNuevo && (s.empresa || s.dir)) ? mockTsDe((s.empresa || '') + (s.dir || '')) : null);
@@ -12975,7 +12979,7 @@
             : '') +
             '<div class="ptar-sitio-grid">' +
                 inp('Empresa', 'sitio-f-empresa', s.empresa, 'Ej. Talleres Vega e Hijos S.L.') +
-                '<div><label>Tipo de lugar</label><select id="sitio-f-tipo">' + tipoOpts + '</select></div>' +
+                '<div><label>Tipo de lugar' + (tipoHas ? '' : ' <span class="sitio-req">· obligatorio</span>') + '</label><select id="sitio-f-tipo">' + tipoOpts + '</select></div>' +
                 inp('Horario', 'sitio-f-horario', s.horario, 'Ej. L-V 8:00-14:00') +
                 inp('Dirección (calle y número)', 'sitio-f-calle', s.calle, '', true) +
                 inp('CP, localidad, provincia y país', 'sitio-f-dir', s.dir, 'Ej. 41001, Sevilla, España', true) +
@@ -13084,13 +13088,16 @@
         base.tfno = telValue('sitio-f-tfno') || ''; base.contacto = v('sitio-f-contacto');
         base.notas = v('sitio-f-notas'); base.maps = v('sitio-f-maps');
         var tipoEl = document.getElementById('sitio-f-tipo');
-        if (tipoEl) base.tipoLugar = tipoEl.options[tipoEl.selectedIndex].text;
+        // Tipo de lugar OBLIGATORIO: solo se guarda si se ha elegido uno real
+        // (el placeholder tiene value vacío).
+        if (tipoEl && tipoEl.value) base.tipoLugar = tipoEl.value;
         if (!base.freq) base.freq = 1;
-        if (!base.empresa || !(base.calle || base.dir)) {
+        if (!base.empresa || !(base.calle || base.dir) || !(tipoEl && tipoEl.value)) {
             ['sitio-f-empresa', 'sitio-f-calle'].forEach(function (id) {
                 var el = document.getElementById(id);
                 if (el && !el.value.trim()) el.style.borderColor = '#dc2626';
             });
+            if (tipoEl && !tipoEl.value) { tipoEl.style.borderColor = '#dc2626'; }
             return;
         }
         function mkKey() {
@@ -16724,6 +16731,13 @@
                         if (msg) msg.classList.toggle('show', bad);
                         if (bad) cardOk = false;
                     });
+                    // Tipo de lugar obligatorio: sin elegir (placeholder) → falta.
+                    var tipoSel = cardEl.querySelector('[data-sitio-tipo]');
+                    if (tipoSel) {
+                        var tipoBad = !tipoSel.value;
+                        tipoSel.classList.toggle('sitio-f-err', tipoBad);
+                        if (tipoBad) cardOk = false;
+                    }
                     cardEl.classList.toggle('req-ok', cardOk);
                     if (!cardOk && !firstBad) firstBad = cardEl;
                 });
@@ -16951,8 +16965,14 @@
                     // en la ficha del sitio al confirmar.
                     var TIPOS_LUGAR = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento', 'Finca / Agrícola'];
                     function tipoSelect(id, val, rol) {
-                        var opts = TIPOS_LUGAR.map(function (t) { return '<option' + ((val || 'Almacén / Nave') === t ? ' selected' : '') + '>' + t + '</option>'; }).join('');
-                        return '<div><label>Tipo de lugar</label><select class="sitio-f-tipo" data-sitio-tipo data-sitio-rol="' + escapeHtml(rol || '') + '" data-sitio-id="' + id + '">' + opts + '</select></div>';
+                        // Sin preselección por defecto: si el sitio NO trae tipo
+                        // (dirección nueva sin ficha), arranca en un placeholder que
+                        // OBLIGA a elegir; si viene de la agenda con su tipo, se
+                        // respeta.
+                        var has = TIPOS_LUGAR.indexOf(val) !== -1;
+                        var ph = '<option value="" disabled' + (has ? '' : ' selected') + '>Elige tipo de lugar…</option>';
+                        var opts = TIPOS_LUGAR.map(function (t) { return '<option' + (val === t ? ' selected' : '') + '>' + t + '</option>'; }).join('');
+                        return '<div><label>Tipo de lugar' + (has ? '' : ' · <span style="color:#dc2626;font-weight:700;">obligatorio</span>') + '</label><select class="sitio-f-tipo" data-sitio-tipo data-sitio-rol="' + escapeHtml(rol || '') + '" data-sitio-id="' + id + '">' + ph + opts + '</select></div>';
                     }
                     // Cabecera PLEGADA: nº + Recogida/Entrega + empresa + línea
                     // gris con CP/localidad/provincia/país. La flechita despliega
@@ -16991,7 +17011,16 @@
                             (p.kind === 'recogida' ? 'Recogida' : 'Entrega') + '</span>';
                         // Fecha de la cabecera: recogida → fecha de carga; entrega → ETA.
                         var fechaCab = p.kind === 'recogida' ? cargaFechaCab : entregaFechaCab;
-                        var tipoLock = tipoSelect(p.id, p.tipoLugar, (p.kind === 'recogida' ? 'Recogida' : 'Entrega') + ' ' + p.num);
+                        // Tipo efectivo: el elegido en el paso 1; si falta y el
+                        // punto es un sitio de la agenda, se toma el de su ficha
+                        // (así al MODIFICAR no se pierde). Solo las direcciones
+                        // nuevas sin ficha quedan sin tipo → obligan a elegir.
+                        var effTipo = p.tipoLugar;
+                        if ((!effTipo || TIPOS_LUGAR.indexOf(effTipo) === -1) && p.pick && p.pick.tipo === 'guardado') {
+                            var __sg = siteDe(p.pick.key);
+                            if (__sg && __sg.tipoLugar) effTipo = __sg.tipoLugar;
+                        }
+                        var tipoLock = tipoSelect(p.id, effTipo, (p.kind === 'recogida' ? 'Recogida' : 'Entrega') + ' ' + p.num);
                         function inp(lbl, f, val, ph) {
                             return '<div><label>' + lbl + '</label><input data-sitio-f="' + f + '" data-sitio-id="' + p.id + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '"></div>';
                         }
@@ -17108,7 +17137,7 @@
                     // Cambiar el tipo de lugar aquí → recalcula precio + lo
                     // vuelca en pendingData (para consolidarlo al confirmar).
                     confirmCard.querySelectorAll('[data-sitio-tipo]').forEach(function (sel) {
-                        sel.addEventListener('change', function () { syncConfTipos(); recalcConfPrice(); renderPago(pendingData); });
+                        sel.addEventListener('change', function () { syncConfTipos(); recalcConfPrice(); renderPago(pendingData); validateLooseSites(false); });
                     });
                     syncConfTipos();
                     // Modificar envío: foto de los tipos tal cual se ABREN (los
