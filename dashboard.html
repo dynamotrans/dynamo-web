@@ -7179,7 +7179,7 @@
         var hayC = typeof CARGAS_DATA !== 'undefined', hayA = typeof ALMACENES_DATA !== 'undefined';
         setBadge('cargas', hayC ? CARGAS_DATA.filter(isProgramadaPendiente).length : 0);       // naranja: sin transportista
         setBadge('cargas-pago', hayC ? CARGAS_DATA.filter(isPendientePago).length : 0);        // rojo: pendiente de pago
-        setBadge('incidencias', (typeof INCIDENCIAS_DATA !== 'undefined') ? INCIDENCIAS_DATA.filter(function (x) { return x.estado !== 'resuelta'; }).length : 0);
+        setBadge('incidencias', (typeof INCIDENCIAS_DATA !== 'undefined') ? INCIDENCIAS_DATA.filter(function (x) { return x.estado !== 'resuelta' && x.estado !== 'cancelada'; }).length : 0);
         setBadge('alm-sinconf', hayA ? ALMACENES_DATA.filter(function (r) { return almEstadoKey(r) === 'sin-confirmar'; }).length : 0);   // morado: pendiente confirmar almacén
         setBadge('alm-pago', hayA ? ALMACENES_DATA.filter(function (r) { return almEstadoKey(r) === 'pendiente-pago'; }).length : 0);     // rojo: pendiente de pago
     }
@@ -7275,11 +7275,38 @@
             sub: 'Dynamo · ' + (a.prov || '') + ' — ' + est.label,
             body: body,
             footer: '<button class="btn-ghost" onclick="closeDashModal();return false;">Cerrar</button>' +
+                (est.label !== 'Cancelado' && est.label !== 'Finalizado'
+                    ? '<button class="btn-primary" style="background:var(--red);" onclick="almCancelarAsk(\'' + ref + '\');return false;">Cancelar almacenamiento</button>'
+                    : '') +
                 '<button class="btn-primary" onclick="almGuardarDetalle(\'' + ref + '\');return false;">Guardar cambios</button>',
             afterOpen: function () { almDxRefresh(ref); }
         });
     }
     window.almOpenDetail = almOpenDetail;
+    // Cancelar almacenamiento: confirmación con el aviso de costes (una vez
+    // confirmado, Dynamo puede facturar los costes ya incurridos) → Cancelado.
+    function almCancelarAsk(ref) {
+        var r = almFindByRef(ref); if (!r) return;
+        openDashModal({
+            icon: 'alert', iconVariant: 'warn',
+            title: 'Cancelar almacenamiento ' + ref,
+            sub: 'Esta acción no se puede deshacer desde el panel',
+            body:
+                '<div class="modal-warn-box" style="display:block;">⚠ Si cancelas el almacenamiento <strong>una vez confirmado</strong>, <strong>Dynamo Operador Logístico, S.L.</strong> se reserva el derecho de <strong>facturar los costes ya incurridos</strong> (reserva de plaza y operativa programada de descarga y posterior carga) en concepto de indemnización.</div>' +
+                '<p style="font-size:0.9rem;color:var(--gray-700);margin-top:0.8rem;">¿Seguro que quieres cancelar este almacenamiento?</p>',
+            footer: '<button class="btn-ghost" onclick="almOpenDetail(\'' + ref + '\');return false;">No, volver</button>' +
+                '<button class="btn-primary" style="background:var(--red);" onclick="almCancelarConfirm(\'' + ref + '\');return false;">Sí, cancelar almacenamiento</button>'
+        });
+    }
+    window.almCancelarAsk = almCancelarAsk;
+    function almCancelarConfirm(ref) {
+        var r = almFindByRef(ref); if (!r) return;
+        r.cancelado = true; r.modificadoEn = Date.now();
+        closeDashModal();
+        renderAlmacenesTable();
+        showModalSuccess('Almacenamiento cancelado', ref + ' ha pasado a Cancelados. Si hay costes ya incurridos, el equipo te lo comunicará.');
+    }
+    window.almCancelarConfirm = almCancelarConfirm;
     function almDxRefresh(ref) {
         var ent = document.getElementById('almDxEnt'), sal = document.getElementById('almDxSal');
         if (ent && ent.value && sal) {
@@ -9423,6 +9450,7 @@
                 '<select id="incGenEstado">' +
                     '<option value="abierta" selected>Abierta</option>' +
                     '<option value="resuelta">Resuelta</option>' +
+                    '<option value="cancelada">Cancelada</option>' +
                 '</select></div>' +
                 '<div class="modal-form-row"><label>Detalle de la incidencia *</label><textarea id="incGenTxt" required placeholder="Describe lo ocurrido: daños, retraso, mercancía incorrecta, falta de albarán firmado…"></textarea></div>' +
                 '<div class="modal-form-row"><label>Adjuntar fotos / documentos</label>' +
@@ -9431,7 +9459,10 @@
                 '<div class="modal-file-drop-sub">JPG, PNG, PDF · máx 10 MB cada uno</div></div>' +
                 '<input type="file" id="incidFiles" multiple accept="image/*,.pdf" style="display:none">' +
                 '<ul class="modal-file-list" id="incidFilesList"></ul></div>',
-            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>' +
+                    (inc && inc.estado !== 'cancelada' && inc.estado !== 'resuelta'
+                        ? '<button class="btn-primary" style="background:var(--red);" onclick="incCancelarAsk(' + inc.__id + ');return false;">Cancelar incidencia</button>'
+                        : '') +
                     '<button class="btn-primary" onclick="incGenConfirm()">Guardar incidencia</button>',
             afterOpen: function () {
                 // Lista de adjuntos con el comportamiento común (ver + confirmar borrado).
@@ -9448,6 +9479,29 @@
         });
     }
     window.abrirNuevaIncidencia = abrirNuevaIncidencia;
+    // Cancelar (retirar) una incidencia: confirmación → estado Cancelada.
+    // Se conserva en el histórico (pestaña Resueltas, con badge gris).
+    function incCancelarAsk(id) {
+        openDashModal({
+            icon: 'alert', iconVariant: 'warn',
+            title: 'Cancelar incidencia',
+            sub: 'Quedará retirada (se conserva en el histórico)',
+            body: '<p style="font-size:0.9rem;color:var(--gray-700);">¿Seguro que quieres cancelar esta incidencia? El equipo dejará de gestionarla y quedará marcada como <strong>Cancelada</strong>.</p>',
+            footer: '<button class="btn-ghost" onclick="abrirNuevaIncidencia(' + id + ');return false;">No, volver</button>' +
+                '<button class="btn-primary" style="background:var(--red);" onclick="incCancelarConfirm(' + id + ');return false;">Sí, cancelar incidencia</button>'
+        });
+    }
+    window.incCancelarAsk = incCancelarAsk;
+    function incCancelarConfirm(id) {
+        var inc = INCIDENCIAS_DATA.filter(function (x) { return x.__id === id; })[0];
+        if (!inc) return;
+        inc.estado = 'cancelada'; inc.modificadoEn = Date.now();
+        _incEditId = null;
+        closeDashModal();
+        if (typeof renderIncidenciasTable === 'function') renderIncidenciasTable();
+        showModalSuccess('Incidencia cancelada', 'La incidencia queda retirada (visible en el histórico como Cancelada).');
+    }
+    window.incCancelarConfirm = incCancelarConfirm;
     // Buscador de envío de la incidencia — MISMO patrón que el selector de
     // almacén en almacenamiento (chip readonly, ×, clic para reabrir, desplegable
     // propio). Busca por CUALQUIER dato del envío (cargaSearchBlob).
@@ -10199,7 +10253,8 @@
     // Una incidencia solo puede estar ABIERTA o RESUELTA (sin estados intermedios).
     var INC_ESTADO = {
         'abierta': { label: 'Abierta', badge: 'badge-orange' },
-        'resuelta': { label: 'Resuelta', badge: 'badge-green' }
+        'resuelta': { label: 'Resuelta', badge: 'badge-green' },
+        'cancelada': { label: 'Cancelada', badge: 'badge-gray' }
     };
     function renderIncidenciasTable() {
         var tbody = document.getElementById('tbodyIncidencias'); if (!tbody) return;
@@ -10208,14 +10263,15 @@
         // que no está resuelto cuenta como ABIERTA.
         var counts = { abiertas: 0, resueltas: 0 };
         INCIDENCIAS_DATA.forEach(function (x) {
-            if (x.estado === 'resuelta') counts.resueltas++; else counts.abiertas++;
+            // Resueltas y canceladas comparten pestaña; el resto cuenta como abierta.
+            if (x.estado === 'resuelta' || x.estado === 'cancelada') counts.resueltas++; else counts.abiertas++;
         });
         Object.keys(counts).forEach(function (k) { var el = document.querySelector('[data-inc-count="' + k + '"]'); if (el) el.textContent = counts[k]; });
         if (window.updateSidebarBadges) updateSidebarBadges();
         var nq = normTxt(st.q || '');
         var arr = INCIDENCIAS_DATA.filter(function (x) {
-            if (st.filter === 'abiertas' && x.estado === 'resuelta') return false;
-            if (st.filter === 'resueltas' && x.estado !== 'resuelta') return false;
+            if (st.filter === 'abiertas' && (x.estado === 'resuelta' || x.estado === 'cancelada')) return false;
+            if (st.filter === 'resueltas' && x.estado !== 'resuelta' && x.estado !== 'cancelada') return false;
             if (st.mes) {
                 var m = String(x.fr).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
                 var d = m ? new Date(+m[3], +m[2] - 1, +m[1]) : null;
@@ -11900,7 +11956,7 @@
             return '<tr onclick="openNuevaPenalizacion(\'' + escapeHtml(p.ref) + '\')">' +
                 '<td class="ref"><strong>' + escapeHtml(p.ref) + '</strong><div class="meta">' + escapeHtml(String(p.descripcion || '').slice(0, 60)) + (String(p.descripcion || '').length > 60 ? '…' : '') + '</div></td>' +
                 '<td><strong>' + escapeHtml(p.envio) + '</strong></td>' +
-                '<td><span class="badge badge-prog">' + escapeHtml(p.tipo) + '</span>' + (p.auto ? '<div class="meta" style="color:var(--purple);font-weight:700;">Generada automáticamente</div>' : '') + '</td>' +
+                '<td><span class="badge badge-prog">' + escapeHtml(p.tipo) + '</span>' + (p.anulada ? ' <span class="badge badge-gray">Anulada</span>' : '') + (p.auto ? '<div class="meta" style="color:var(--purple);font-weight:700;">Generada automáticamente</div>' : '') + '</td>' +
                 '<td>' + escapeHtml(p.transportista || '—') + '<div class="meta">' + escapeHtml(CLIENTE_ACTUAL) + '</div></td>' +
                 '<td class="amount td-precio" onclick="event.stopPropagation();openPenPrecioEditor(\'' + escapeHtml(p.ref) + '\')"><strong>' + eur2(p.impCliente != null ? p.impCliente : p.importe) + '</strong>' + (p.precioManual ? '<div class="meta-manual">fijado a mano</div>' : '') + '</td>' +
                 '<td class="amount td-precio" onclick="event.stopPropagation();openPenPrecioEditor(\'' + escapeHtml(p.ref) + '\')"><strong>' + eur2(p.impTrans || 0) + '</strong></td>' +
@@ -12024,7 +12080,10 @@
             title: p ? 'Editar penalización ' + p.ref : 'Crear penalización',
             sub: p ? 'Cambia lo que necesites y guarda' : 'Asóciala a un envío y su transportista',
             body: body,
-            footer: '<button class="btn-ghost" onclick="closeDashModal();return false;" style="flex:1;">Cancelar</button>' +
+            footer: '<button class="btn-ghost" onclick="closeDashModal();return false;" style="flex:1;">Cerrar</button>' +
+                    (p && !p.anulada
+                        ? '<button class="btn-primary" style="flex:1;background:var(--red);" onclick="penCancelarAsk(\'' + escapeHtml(p.ref) + '\');return false;">Cancelar penalización</button>'
+                        : '') +
                     '<button class="btn-primary" onclick="crearPenalizacion();return false;" style="flex:1;">Guardar penalización</button>',
             afterOpen: function () {
                 var inp = document.getElementById('penEnvioInput');
@@ -12057,6 +12116,28 @@
         });
     }
     window.openNuevaPenalizacion = openNuevaPenalizacion;
+    // Cancelar (anular) una penalización: confirmación → queda marcada como
+    // Anulada (no se borra, para conservar el histórico).
+    function penCancelarAsk(ref) {
+        openDashModal({
+            icon: 'alert', iconVariant: 'warn',
+            title: 'Cancelar penalización ' + ref,
+            sub: 'Quedará anulada (se conserva en el histórico)',
+            body: '<p style="font-size:0.9rem;color:var(--gray-700);">¿Seguro que quieres anular esta penalización? Dejará de tener efecto, pero seguirá visible en el listado como <strong>Anulada</strong>.</p>',
+            footer: '<button class="btn-ghost" onclick="openNuevaPenalizacion(\'' + escapeHtml(ref) + '\');return false;">No, volver</button>' +
+                '<button class="btn-primary" style="background:var(--red);" onclick="penCancelarConfirm(\'' + escapeHtml(ref) + '\');return false;">Sí, anular penalización</button>'
+        });
+    }
+    window.penCancelarAsk = penCancelarAsk;
+    function penCancelarConfirm(ref) {
+        var p = PENALIZACIONES_DATA.filter(function (x) { return x.ref === ref; })[0];
+        if (!p) return;
+        p.anulada = true; p.modificadoEn = Date.now();
+        closeDashModal();
+        if (typeof renderPenalizacionesTable === 'function') renderPenalizacionesTable();
+        showModalSuccess('Penalización anulada', ref + ' queda anulada y sin efecto (visible en el histórico).');
+    }
+    window.penCancelarConfirm = penCancelarConfirm;
     function crearPenalizacion() {
         var err = document.getElementById('penErr');
         function fail(msg, el) { if (err) { err.textContent = '⚠ ' + msg; err.classList.add('show'); } if (el && el.focus) el.focus(); return false; }
