@@ -4329,7 +4329,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Cliente · CIF</th><th>Recogida</th><th>Entrega</th><th>Envío</th><th>Mercancía</th><th>Vehículo</th><th>P. cliente<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th><th>P. transportista<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th><th>Margen<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th>
+                    <th>Recogida</th><th>Entrega</th><th>Cliente · CIF</th><th>Envío</th><th>Mercancía</th><th>Vehículo</th><th>P. cliente<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th><th>P. transportista<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th><th>Margen<br><span style="font-weight:600;color:var(--gray-500);font-size:0.72rem;">base sin IVA</span></th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -13685,8 +13685,8 @@
                 // Estado (última columna): solo estado de asignación de transportista.
                 var asig = getAsignacionEstado(c);
                 return '<tr' + rowCls + '>' +
-                    __cliCell +
                     rutaFechasCell(c, asigDate) +
+                    __cliCell +
                     '<td class="ref">' +
                         '<div class="envio-estado envio-estado-top"><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span></div>' +
                         '<strong>' + esc(c.ref) + '</strong>' +
@@ -13984,9 +13984,9 @@
     function sortGettersDe(key) {
         var G = {
             cargas: [
-                function () { return CLIENTE_ACTUAL; },
                 function (c) { return __sortFecha(c.fechaAsignada || c.fecha); },
                 function (c) { return __sortFecha(c.etaEntrega); },
+                function () { return CLIENTE_ACTUAL; },
                 function (c) { return c.ref; },
                 function (c) { return c.mercancia; },
                 function (c) { return c.matricula; },
