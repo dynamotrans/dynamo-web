@@ -1763,16 +1763,18 @@
         .badge-entregado { background: #d1fae5; color: #065f46; }  /* Entregado: green */
         .badge-cancelada { background: #fee2e2; color: #991b1b; }  /* Cancelada: red */
         .badge-pago      { background: #ffe4b3; color: #92400e; box-shadow: inset 0 0 0 1px #f59e0b; }  /* Pendiente de pago: ámbar */
+        .badge-sinconf   { background: #ede9fe; color: #5b21b6; box-shadow: inset 0 0 0 1px #a78bfa; }  /* Pendiente confirmar almacén: morado */
         /* Punto parpadeante a la izquierda del texto en ciertos estados de envío.
            (Entregado y Cancelada se quedan sin punto.) */
-        .badge-prog, .badge-hacia, .badge-cargando, .badge-enruta, .badge-entrega, .badge-retrasada, .badge-pago {
+        .badge-prog, .badge-hacia, .badge-cargando, .badge-enruta, .badge-entrega, .badge-retrasada, .badge-pago, .badge-sinconf {
             display: inline-flex; align-items: center; gap: 0.42em;
         }
         .badge-prog::before, .badge-hacia::before, .badge-cargando::before,
-        .badge-enruta::before, .badge-entrega::before, .badge-retrasada::before, .badge-pago::before {
+        .badge-enruta::before, .badge-entrega::before, .badge-retrasada::before, .badge-pago::before, .badge-sinconf::before {
             content: ""; width: 7px; height: 7px; border-radius: 50%;
             flex-shrink: 0; animation: badgeDotBlink 1.3s ease-in-out infinite;
         }
+        .badge-sinconf::before   { background: #7c3aed; box-shadow: 0 0 5px #7c3aed; }    /* morado */
         .badge-prog::before      { background: #334155; }                                 /* gris oscuro */
         .badge-hacia::before     { background: #2563eb; box-shadow: 0 0 5px #2563eb; }    /* azul */
         .badge-cargando::before  { background: #ff6a00; box-shadow: 0 0 5px #ff6a00; }    /* naranja flúor */
@@ -4895,7 +4897,8 @@
             <button class="btn-primary" onclick="openNuevoAlmacen();return false;">+ Nuevo almacenamiento</button>
         </div>
         <div class="tabs" data-alm-tabs>
-            <button class="tab active" data-alm-filter="programado">Programados (<span data-alm-count="programado">0</span>)</button>
+            <button class="tab active" data-alm-filter="sin-confirmar">Pendiente confirmar almacén (<span data-alm-count="sin-confirmar">0</span>)</button>
+            <button class="tab" data-alm-filter="programado">Programados (<span data-alm-count="programado">0</span>)</button>
             <button class="tab" data-alm-filter="pendiente-pago">Pendiente de pago (<span data-alm-count="pendiente-pago">0</span>)</button>
             <button class="tab" data-alm-filter="almacen">En almacén (<span data-alm-count="almacen">0</span>)</button>
             <button class="tab" data-alm-filter="finalizado">Finalizados (<span data-alm-count="finalizado">0</span>)</button>
@@ -7110,6 +7113,10 @@
     // Mock con fechas relativas a hoy para ver los 3 estados. En producción
     // vendrá del backend.
     var ALMACENES_DATA = [
+        // Solicitados pero SIN confirmar aún el almacén (Dynamo debe confirmar
+        // que hay espacio) → primer estado del ciclo.
+        { ref: '#AX204836', almIdx: almIdxByProv('Sevilla'),   entrada: almRelISO(4),   salida: almRelISO(10),  reparto: 0, entrega: null, destinoKey: null, destinoDir: null, notas: '20 palets de material eléctrico · PED-0468', sinConfirmar: true, creado: almRelISO(0) },
+        { ref: '#AX204834', almIdx: almIdxByProv('Madrid'),    entrada: almRelISO(6),   salida: almRelISO(12),  reparto: 2, entrega: almRelISO(12), destinoKey: null, destinoDir: 'Mercamadrid — Ctra. Villaverde-Vallecas km 3,8, 28053 Madrid', notas: 'Tráiler completo · reparto en 2 camiones', sinConfirmar: true, creado: almRelISO(-1) },
         { ref: '#AX204829', almIdx: almIdxByProv('Sevilla'),   entrada: almRelISO(-2),  salida: almRelISO(3),   reparto: 0, entrega: null, destinoKey: null, destinoDir: null, notas: '26 palets de conservas · PED-0451', creado: almRelISO(-4) },
         { ref: '#AX204822', almIdx: almIdxByProv('Madrid'),    entrada: almRelISO(2),   salida: almRelISO(9),   reparto: 3, entrega: almRelISO(9), destinoKey: null, destinoDir: 'Mercamadrid — Ctra. Villaverde-Vallecas km 3,8, 28053 Madrid', notas: 'Tráiler completo textil · reparto en 3 camiones', creado: almRelISO(-1) },
         { ref: '#AX204815', almIdx: almIdxByProv('Barcelona'), entrada: almRelISO(-15), salida: almRelISO(-10), reparto: 1, entrega: almRelISO(-10), destinoKey: null, destinoDir: 'Mercabarna — C/ Major, 08040 Barcelona', notas: '', creado: almRelISO(-18) },
@@ -7129,6 +7136,9 @@
     });
     function almEstadoDe(r) {
         if (r.cancelado) return { label: 'Cancelado', color: 'gray' };
+        // Primer estado del ciclo: Dynamo aún no ha confirmado el almacén
+        // (hay espacio) para esa solicitud. Va antes que el pago.
+        if (r.sinConfirmar) return { label: 'Pendiente confirmar almacén', color: 'sinconf' };
         if (r.pendientePago) return { label: 'Pendiente de pago', color: 'pago' };
         var hoy = almISO(new Date());
         if (r.salida < hoy) return { label: 'Finalizado', color: 'entregado' };
@@ -7142,9 +7152,9 @@
         return dows[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + String(d.getFullYear()).slice(-2);
     }
     function almDiasDe(r) { return Math.round((new Date(r.salida + 'T00:00:00') - new Date(r.entrada + 'T00:00:00')) / 86400000); }
-    var ALM_LIST = { filter: 'programado', q: '', mes: '' };
+    var ALM_LIST = { filter: 'sin-confirmar', q: '', mes: '' };
     function almEstadoKey(r) {
-        return { 'Cancelado': 'cancelado', 'Pendiente de pago': 'pendiente-pago', 'Finalizado': 'finalizado', 'En almacén': 'almacen', 'Programado': 'programado' }[almEstadoDe(r).label];
+        return { 'Cancelado': 'cancelado', 'Pendiente confirmar almacén': 'sin-confirmar', 'Pendiente de pago': 'pendiente-pago', 'Finalizado': 'finalizado', 'En almacén': 'almacen', 'Programado': 'programado' }[almEstadoDe(r).label];
     }
     window.almSearchInput = function (v) { ALM_LIST.q = v; renderAlmacenesTable(); };
     // Badges del menú lateral: Envíos = sin transportista asignado ·
@@ -7168,7 +7178,7 @@
         var tbody = document.getElementById('tbodyAlmacenes');
         if (!tbody) return;
         // Contadores por estado + tab activo.
-        var counts = { programado: 0, 'pendiente-pago': 0, almacen: 0, finalizado: 0, cancelado: 0, todos: ALMACENES_DATA.length };
+        var counts = { 'sin-confirmar': 0, programado: 0, 'pendiente-pago': 0, almacen: 0, finalizado: 0, cancelado: 0, todos: ALMACENES_DATA.length };
         ALMACENES_DATA.forEach(function (r) { counts[almEstadoKey(r)]++; });
         Object.keys(counts).forEach(function (k) { var c = document.querySelector('[data-alm-count="' + k + '"]'); if (c) c.textContent = counts[k]; });
         if (window.updateSidebarBadges) updateSidebarBadges();
