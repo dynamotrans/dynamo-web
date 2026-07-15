@@ -603,7 +603,11 @@
                             <span class="reg-doc-file" hidden></span>
                         </button>
                     </div>
-                    <input type="file" id="regDocInput" accept="image/*,.pdf" multiple style="display:none">
+                    <!-- Dos inputs separados (uno simple, otro múltiple) para NO
+                         mutar el atributo multiple justo antes de .click(): en
+                         iOS Safari esa mutación se tragaba el primer toque. -->
+                    <input type="file" id="regDocInputSingle" accept="image/*,.pdf" style="display:none">
+                    <input type="file" id="regDocInputMulti" accept="image/*,.pdf" multiple style="display:none">
                     <p class="reg-docs-note">Hoja del CIF y DNI del solicitante (PDF o foto). Sin ellos el alta puede tardar más en verificarse.</p>
                 </div>
 
@@ -1331,19 +1335,24 @@
     var _regDocBtn = null;
     function regDocPick(btn) {
         _regDocBtn = btn;
-        var inp = document.getElementById('regDocInput');
-        if (inp) { inp.multiple = btn.getAttribute('data-doc') === 'otros'; inp.click(); }
+        // Sin mutar atributos: se elige el input ya preparado (múltiple para
+        // "Otros docs", simple para CIF/DNI). Así el diálogo abre al 1er toque.
+        var id = btn.getAttribute('data-doc') === 'otros' ? 'regDocInputMulti' : 'regDocInputSingle';
+        var inp = document.getElementById(id);
+        if (inp) inp.click();
     }
     (function () {
-        var inp = document.getElementById('regDocInput');
-        if (!inp) return;
-        inp.addEventListener('change', function () {
-            if (!_regDocBtn || !inp.files.length) return;
-            var names = Array.prototype.slice.call(inp.files).map(function (f) { return f.name; });
-            var span = _regDocBtn.querySelector('.reg-doc-file');
-            if (span) { span.textContent = names.join(' · '); span.hidden = false; }
-            _regDocBtn.classList.add('has-file');
-            inp.value = '';
+        ['regDocInputSingle', 'regDocInputMulti'].forEach(function (id) {
+            var inp = document.getElementById(id);
+            if (!inp) return;
+            inp.addEventListener('change', function () {
+                if (!_regDocBtn || !inp.files.length) return;
+                var names = Array.prototype.slice.call(inp.files).map(function (f) { return f.name; });
+                var span = _regDocBtn.querySelector('.reg-doc-file');
+                if (span) { span.textContent = names.join(' · '); span.hidden = false; }
+                _regDocBtn.classList.add('has-file');
+                inp.value = '';
+            });
         });
     })();
     </script>
