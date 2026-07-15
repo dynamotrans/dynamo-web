@@ -4107,6 +4107,7 @@
                     </button>
                     <div class="user-menu-submenu" id="roleSubmenu" role="menu" aria-hidden="true">
                         <button type="button" class="lang-pill active" data-role="admin" onclick="pickRole(this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V5l-8-3z"/><path d="M9 12l2 2 4-4"/></svg> Admin</button>
+                        <button type="button" class="lang-pill" data-role="empleado" onclick="pickRole(this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> Empleado</button>
                         <button type="button" class="lang-pill" data-role="cliente" onclick="pickRole(this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Cliente</button>
                         <button type="button" class="lang-pill" data-role="transportista" onclick="pickRole(this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> Transportista</button>
                     </div>
@@ -10377,7 +10378,7 @@
        iniciar sesión y la seguridad se impone server-side (auth + RLS).
        Previsualizable con ?role=admin|cliente|transportista.
     ============================================ */
-    var DYN_ROLES = { admin: 'Admin', cliente: 'Cliente', transportista: 'Transportista' };
+    var DYN_ROLES = { admin: 'Admin', empleado: 'Empleado', cliente: 'Cliente', transportista: 'Transportista' };
     function getInitialRole() {
         var q = new URLSearchParams(location.search).get('role');
         if (q && DYN_ROLES[q]) return q;
