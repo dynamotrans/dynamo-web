@@ -1807,6 +1807,10 @@
             align-items: stretch;
         }
         .dash-top-row > * { min-width: 0; height: 100%; }
+        /* Columna izquierda: mitad superior = 2 CTAs · mitad inferior = Recomiéndanos */
+        .dash-left-col { display: flex; flex-direction: column; gap: 0.7rem; height: 100%; }
+        .dash-left-col > .dash-cta-stack { flex: 1 1 50%; min-height: 0; }
+        .dash-left-col > .dash-recomienda { flex: 1 1 50%; margin-top: 0; }
         /* Recomiéndanos (dashboard): tarjeta fina con CTA */
         .dash-recomienda { display: flex; align-items: center; gap: 0.9rem; background: #fff; border: 1px solid var(--gray-200); border-radius: 14px; padding: 0.9rem 1.1rem; margin-top: 1rem; }
         .dash-recomienda-icon { width: 42px; height: 42px; border-radius: 11px; background: rgba(51,0,204,0.08); color: var(--purple); display: flex; align-items: center; justify-content: center; flex: none; }
@@ -4153,8 +4157,9 @@
 
     <!-- ==================== DASHBOARD ==================== -->
     <section class="section active" id="sec-dashboard">
-        <!-- Fila: (Nuevo envío + Nuevo almacenamiento) · Mis últimos envíos -->
+        <!-- Fila: [Nuevo envío + Nueva gestión (50%) · Recomiéndanos (50%)] · Mis últimos envíos -->
         <div class="dash-top-row dash-top-2">
+            <div class="dash-left-col">
             <div class="dash-cta-stack">
                 <a class="dash-cta dash-cta-purple" href="#" onclick="openNuevaCarga('envio');return false;">
                     <div class="dash-cta-icon">
@@ -4186,6 +4191,21 @@
                     </div>
                 </div>
             </div>
+            <!-- Recomiéndanos: boca a boca de clientes/proveedores (mitad inferior) -->
+            <div class="dash-recomienda">
+                <div class="dash-recomienda-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+                </div>
+                <div class="dash-recomienda-text">
+                    <h4>Recomiéndanos</h4>
+                    <p>Si te hemos ayudado,<br>Por favor recomiéndanos ¡Gracias!</p>
+                </div>
+                <div class="dash-recomienda-btns">
+                    <button type="button" class="btn-primary" onclick="abrirRecomendar()">Recomendar Dynamo</button>
+                    <button type="button" class="btn-secondary" onclick="abrirResenaGoogle()">★ Puntúanos en Google</button>
+                </div>
+            </div>
+            </div><!-- /dash-left-col -->
             <div class="mini-list-card" role="button" tabindex="0" aria-label="Ver todos los envíos"
                  onclick="showSection('cargas');" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showSection('cargas');}">
                 <div class="mini-list-head">
@@ -4195,21 +4215,6 @@
                 <ul class="mini-list" id="miniEnvios">
                     <!-- Rellenado por renderMiniEnvios(): 2 filas de muestra -->
                 </ul>
-            </div>
-        </div>
-
-        <!-- Recomiéndanos: boca a boca de clientes/proveedores -->
-        <div class="dash-recomienda">
-            <div class="dash-recomienda-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
-            </div>
-            <div class="dash-recomienda-text">
-                <h4>Recomiéndanos</h4>
-                <p>Si te ayudamos, recomiéndanos. ¡Gracias!</p>
-            </div>
-            <div class="dash-recomienda-btns">
-                <button type="button" class="btn-primary" onclick="abrirRecomendar()">Recomendar Dynamo</button>
-                <button type="button" class="btn-secondary" onclick="abrirResenaGoogle()">★ Puntúanos en Google</button>
             </div>
         </div>
 
@@ -9771,7 +9776,7 @@
     }
     window.cargaDeshacerCancelacionConfirm = cargaDeshacerCancelacionConfirm;
     // --- Recomiéndanos (boca a boca): mensaje listo para compartir ---
-    var RECOMIENDA_MSG = 'Hola, os recomiendo a Dynamo Operador de Transportes (https://dynamotrans.com). Trabajamos con ellos: grupajes y cargas completas por España y Europa, respuesta rápida y seguimiento del envío. Contacto: +34 955 225 945 · info@dynamotrans.com';
+    var RECOMIENDA_MSG = 'Hola,\n\nos envío contacto de Dynamo Operador de Transportes. (pregunta por Álvaro Blanco)\n\nTrabajamos con ellos. Realizan grupajes y cargas completas por España y Europa.\n\nPodéis consultar online precio de envíos y generar nuevos envíos online directamente (https://dynamotrans.com).\n\nO si prefieres, también por estas vías te atienden:\n+34 955 225 945\ninfo@dynamotrans.com';
     function abrirRecomendar() {
         openDashModal({
             icon: 'mail',
@@ -9779,7 +9784,7 @@
             sub: 'A tu proveedor o cliente — estaremos muy agradecidos',
             body:
                 '<p style="font-size:0.9rem;line-height:1.55;color:var(--gray-700);margin-bottom:0.7rem;">Si tu <strong>proveedor o cliente</strong> también necesita transportes, preséntanos con este mensaje (puedes editarlo antes de enviarlo):</p>' +
-                '<textarea id="recomiendaTxt" rows="5" style="width:100%;box-sizing:border-box;padding:0.7rem 0.8rem;border:1.5px solid var(--gray-200);border-radius:10px;font:inherit;font-size:0.85rem;color:var(--navy);resize:vertical;">' + escapeHtml(RECOMIENDA_MSG) + '</textarea>' +
+                '<textarea id="recomiendaTxt" rows="11" style="width:100%;box-sizing:border-box;padding:0.7rem 0.8rem;border:1.5px solid var(--gray-200);border-radius:10px;font:inherit;font-size:0.85rem;color:var(--navy);resize:vertical;">' + escapeHtml(RECOMIENDA_MSG) + '</textarea>' +
                 '<div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.8rem;">' +
                     '<button type="button" class="btn-primary" style="flex:1;min-width:180px;background:#25D366;border-color:#25D366;" onclick="recomendarPor(\'wa\')">Compartir por WhatsApp</button>' +
                     '<button type="button" class="btn-primary" style="flex:1;min-width:180px;" onclick="recomendarPor(\'email\')">Enviar por email</button>' +
