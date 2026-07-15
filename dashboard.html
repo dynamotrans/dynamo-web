@@ -4950,6 +4950,12 @@
             <h2>Penalizaciones</h2>
             <button class="btn-primary" onclick="openNuevaPenalizacion();return false;">+ Crear penalización</button>
         </div>
+        <div class="tabs" data-pen-tabs>
+            <button class="tab active" data-pen-filter="pendiente">Pendientes de confirmar (<span data-pen-count="pendiente">0</span>)</button>
+            <button class="tab" data-pen-filter="confirmada">Confirmadas (<span data-pen-count="confirmada">0</span>)</button>
+            <button class="tab" data-pen-filter="cancelada">Canceladas (<span data-pen-count="cancelada">0</span>)</button>
+            <button class="tab" data-pen-filter="todas">Todas (<span data-pen-count="todas">0</span>)</button>
+        </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por código, envío, tipo, transportista…" data-pen-search oninput="renderPenalizacionesTable()">
             <select data-pen-filtro-tipo onchange="renderPenalizacionesTable()" aria-label="Filtrar por tipo">
@@ -11893,9 +11899,17 @@
     // Mock (en producción vendrá del backend). El envío es el código #GX del viaje.
     var PENALIZACIONES_DATA = [
         { ref: '#PEN-3048', envio: '#GX684961', tipo: 'Paralización',     transportista: 'Trans Andalucía 24h',      descripcion: '3 h de espera en descarga en destino.',                 importe: 180, fecha: penHoyMas(-3) },
-        { ref: '#PEN-3045', envio: '#GX684926', tipo: 'Cancelación',      transportista: 'Transportes Beltrán S.L.',  descripcion: 'Anulación tras las 9:00 del día hábil anterior a la carga.', importe: 450, fecha: penHoyMas(-9) },
-        { ref: '#PEN-3041', envio: '#GX684898', tipo: 'Parada adicional', transportista: 'Dynamo (camión propio)',    descripcion: 'Segunda entrega no prevista en la ruta original.',        importe: 90,  fecha: penHoyMas(-16) }
+        { ref: '#PEN-3045', envio: '#GX684926', tipo: 'Cancelación',      transportista: 'Transportes Beltrán S.L.',  descripcion: 'Anulación tras las 9:00 del día hábil anterior a la carga.', importe: 450, fecha: penHoyMas(-9), confirmada: true },
+        { ref: '#PEN-3041', envio: '#GX684898', tipo: 'Parada adicional', transportista: 'Dynamo (camión propio)',    descripcion: 'Segunda entrega no prevista en la ruta original.',        importe: 90,  fecha: penHoyMas(-16), confirmada: true }
     ];
+    // Estado de la penalización: Pendiente de confirmar (recién creada o
+    // autogenerada, en negociación) → Confirmada (firme) · Cancelada (anulada).
+    function penEstadoDe(p) {
+        if (p.anulada) return { key: 'cancelada', label: 'Cancelada', badge: 'badge-gray' };
+        if (p.confirmada) return { key: 'confirmada', label: 'Confirmada', badge: 'badge-green' };
+        return { key: 'pendiente', label: 'Pendiente de confirmar', badge: 'badge-orange' };
+    }
+    var PEN_LIST = { filter: 'pendiente' };
     // Fecha/hora de creación determinista para el mock (la fecha ya existe;
     // la hora se deriva del ref para que sea estable en cualquier dispositivo).
     PENALIZACIONES_DATA.forEach(function (p) {
@@ -11937,7 +11951,15 @@
         var tbody = document.getElementById('tbodyPenalizaciones'); if (!tbody) return;
         var q = (((document.querySelector('[data-pen-search]') || {}).value) || '').toLowerCase().trim();
         var ft = ((document.querySelector('[data-pen-filtro-tipo]') || {}).value) || '';
+        // Contadores de las pestañas (sobre TODOS los datos) + tab activo.
+        var counts = { pendiente: 0, confirmada: 0, cancelada: 0, todas: PENALIZACIONES_DATA.length };
+        PENALIZACIONES_DATA.forEach(function (p) { counts[penEstadoDe(p).key]++; });
+        Object.keys(counts).forEach(function (k) { var el = document.querySelector('[data-pen-count="' + k + '"]'); if (el) el.textContent = counts[k]; });
+        document.querySelectorAll('[data-pen-tabs] .tab').forEach(function (t) {
+            t.classList.toggle('active', t.getAttribute('data-pen-filter') === PEN_LIST.filter);
+        });
         var arr = PENALIZACIONES_DATA.filter(function (p) {
+            if (PEN_LIST.filter !== 'todas' && penEstadoDe(p).key !== PEN_LIST.filter) return false;
             if (ft && p.tipo !== ft) return false;
             if (q) {
                 var hay = (p.ref + ' ' + p.envio + ' ' + p.tipo + ' ' + (p.transportista || '') + ' ' + p.descripcion).toLowerCase();
@@ -11946,7 +11968,7 @@
             return true;
         });
         arr = ordenarRows('penalizaciones', arr);
-        var slice = pageSlice('penalizaciones', arr, q + '|' + ft, 'penalizacionesPagination', 'penalizacionesShowing', 'Sin penalizaciones');
+        var slice = pageSlice('penalizaciones', arr, PEN_LIST.filter + '|' + q + '|' + ft, 'penalizacionesPagination', 'penalizacionesShowing', 'Sin penalizaciones');
         if (!arr.length) {
             tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--gray-500);">' +
                 (PENALIZACIONES_DATA.length ? 'No hay penalizaciones que coincidan con el filtro.' : 'Aún no hay penalizaciones. Crea una con «+ Crear penalización».') + '</td></tr>';
@@ -11956,7 +11978,7 @@
             return '<tr onclick="openNuevaPenalizacion(\'' + escapeHtml(p.ref) + '\')">' +
                 '<td class="ref"><strong>' + escapeHtml(p.ref) + '</strong><div class="meta">' + escapeHtml(String(p.descripcion || '').slice(0, 60)) + (String(p.descripcion || '').length > 60 ? '…' : '') + '</div></td>' +
                 '<td><strong>' + escapeHtml(p.envio) + '</strong></td>' +
-                '<td><span class="badge badge-prog">' + escapeHtml(p.tipo) + '</span>' + (p.anulada ? ' <span class="badge badge-gray">Anulada</span>' : '') + (p.auto ? '<div class="meta" style="color:var(--purple);font-weight:700;">Generada automáticamente</div>' : '') + '</td>' +
+                (function () { var pe = penEstadoDe(p); return '<td><span class="badge badge-prog">' + escapeHtml(p.tipo) + '</span> <span class="badge ' + pe.badge + '">' + pe.label + '</span>' + (p.auto ? '<div class="meta" style="color:var(--purple);font-weight:700;">Generada automáticamente</div>' : '') + '</td>'; })() +
                 '<td>' + escapeHtml(p.transportista || '—') + '<div class="meta">' + escapeHtml(CLIENTE_ACTUAL) + '</div></td>' +
                 '<td class="amount td-precio" onclick="event.stopPropagation();openPenPrecioEditor(\'' + escapeHtml(p.ref) + '\')"><strong>' + eur2(p.impCliente != null ? p.impCliente : p.importe) + '</strong>' + (p.precioManual ? '<div class="meta-manual">fijado a mano</div>' : '') + '</td>' +
                 '<td class="amount td-precio" onclick="event.stopPropagation();openPenPrecioEditor(\'' + escapeHtml(p.ref) + '\')"><strong>' + eur2(p.impTrans || 0) + '</strong></td>' +
@@ -12084,6 +12106,9 @@
                     (p && !p.anulada
                         ? '<button class="btn-primary" style="flex:1;background:var(--red);" onclick="penCancelarAsk(\'' + escapeHtml(p.ref) + '\');return false;">Cancelar penalización</button>'
                         : '') +
+                    (p && !p.anulada && !p.confirmada
+                        ? '<button class="btn-primary" style="flex:1;background:var(--green);" onclick="penConfirmar(\'' + escapeHtml(p.ref) + '\');return false;">Confirmar penalización</button>'
+                        : '') +
                     '<button class="btn-primary" onclick="crearPenalizacion();return false;" style="flex:1;">Guardar penalización</button>',
             afterOpen: function () {
                 var inp = document.getElementById('penEnvioInput');
@@ -12138,6 +12163,16 @@
         showModalSuccess('Penalización anulada', ref + ' queda anulada y sin efecto (visible en el histórico).');
     }
     window.penCancelarConfirm = penCancelarConfirm;
+    // Confirmar una penalización pendiente: pasa a Confirmada (firme).
+    function penConfirmar(ref) {
+        var p = PENALIZACIONES_DATA.filter(function (x) { return x.ref === ref; })[0];
+        if (!p) return;
+        p.confirmada = true; p.modificadoEn = Date.now();
+        closeDashModal();
+        if (typeof renderPenalizacionesTable === 'function') renderPenalizacionesTable();
+        showModalSuccess('Penalización confirmada', ref + ' queda confirmada (firme).');
+    }
+    window.penConfirmar = penConfirmar;
     function crearPenalizacion() {
         var err = document.getElementById('penErr');
         function fail(msg, el) { if (err) { err.textContent = '⚠ ' + msg; err.classList.add('show'); } if (el && el.focus) el.focus(); return false; }
@@ -13672,6 +13707,13 @@
         if (!t) return;
         ALM_LIST.filter = t.getAttribute('data-alm-filter');
         renderAlmacenesTable();
+    });
+    // Tabs de Penalizaciones (por estado).
+    document.addEventListener('click', function (e) {
+        var t = e.target.closest ? e.target.closest('[data-pen-tabs] .tab') : null;
+        if (!t) return;
+        PEN_LIST.filter = t.getAttribute('data-pen-filter');
+        renderPenalizacionesTable();
     });
     // Filtro por estado (envío + vehículo) de la tabla de Envíos.
     document.addEventListener('change', function (e) {
