@@ -57,6 +57,12 @@
     .sigcard { background: #fff; border-radius: 16px; padding: 1rem; width: 100%; max-width: 560px; }
     .sigcard h2 { font-size: 1.02rem; margin-bottom: 0.15rem; }
     .sigcard .hint { font-size: 0.78rem; color: var(--gray-500); margin-bottom: 0.6rem; }
+    .sig-lbl { display: block; font-size: 0.7rem; font-weight: 800; color: var(--gray-700); margin: 0.55rem 0 0.2rem; }
+    .sig-lbl .op { color: var(--gray-500); font-weight: 600; }
+    .sigcard input[type=text] { width: 100%; border: 1.5px solid var(--gray-300); border-radius: 9px; padding: 0.5rem 0.65rem; font: inherit; font-size: 16px; color: var(--navy); }
+    .sigcard input[type=text]:focus { outline: none; border-color: var(--purple); }
+    .sigcard input.err { border-color: var(--red); }
+    .sig-warn { margin-top: 0.5rem; background: #fdecec; border: 1px solid #f5b5b5; color: #b42318; border-radius: 9px; padding: 0.45rem 0.6rem; font-size: 0.78rem; font-weight: 700; }
     #sigCanvas { width: 100%; height: 220px; background: #fff; border: 2px dashed var(--gray-300); border-radius: 12px; touch-action: none; display: block; }
     .sigbtns { display: flex; gap: 0.55rem; margin-top: 0.7rem; }
     .sigbtns button { flex: 1; border-radius: 10px; padding: 0.75rem 0.5rem; font: inherit; font-weight: 800; font-size: 0.9rem; cursor: pointer; border: 1.5px solid var(--gray-300); background: #fff; color: var(--gray-700); }
@@ -92,7 +98,17 @@
     <div class="sigov" id="sigOverlay">
         <div class="sigcard">
             <h2 id="sigTitle">Firmar</h2>
-            <p class="hint">Firma con el dedo (o el ratón) dentro del recuadro.</p>
+            <!-- Identificación del firmante: DNI y nombre obligatorios, email
+                 opcional. Se AUTORRELLENA si el sitio está registrado en la
+                 agenda (contacto/email de su ficha). -->
+            <label class="sig-lbl" for="sigDni">DNI / NIE *</label>
+            <input type="text" id="sigDni" autocomplete="off" autocapitalize="characters" placeholder="12345678Z">
+            <label class="sig-lbl" for="sigNombre">Nombre y apellidos *</label>
+            <input type="text" id="sigNombre" autocomplete="off" placeholder="Nombre completo">
+            <label class="sig-lbl" for="sigEmail">Email <span class="op">· opcional</span></label>
+            <input type="text" id="sigEmail" autocomplete="off" inputmode="email" placeholder="nombre@empresa.com">
+            <div class="sig-warn" id="sigWarn" hidden>⚠ Indica el DNI y el nombre y apellidos del firmante.</div>
+            <p class="hint" style="margin-top:0.6rem;">Firma con el dedo (o el ratón) dentro del recuadro.</p>
             <canvas id="sigCanvas"></canvas>
             <div class="sigbtns">
                 <button type="button" onclick="sigCancelar()">Cancelar</button>
@@ -110,6 +126,7 @@
         return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : (def || '');
     }
     function txt(id, v) { var el = document.getElementById(id); if (el) el.textContent = v || '—'; }
+    function esc(s) { return String(s || '').replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
     // Sin marca (br=0): envíos gestionados con OTRO transportista — la página
     // no muestra el logo de Dynamo (documento entre el cliente y su porteador).
     if (q('br') === '0') document.getElementById('brandBox').hidden = true;
@@ -127,9 +144,12 @@
     var nRec = Math.max(1, Math.min(6, parseInt(q('rec', '1'), 10) || 1));
     var nEnt = Math.max(1, Math.min(6, parseInt(q('ent', '1'), 10) || 1));
     var FIRMAS = [];
-    for (var i = 1; i <= nRec; i++) FIRMAS.push({ id: 'rec' + i, titulo: 'Firmar recogida ' + i, casilla: 'Casilla 22 · firma y sello del remitente/cargador', firma: null, ts: null });
-    FIRMAS.push({ id: 'tra', titulo: 'Firmar transportista', casilla: 'Casilla 23 · firma y sello del porteador', firma: null, ts: null });
-    for (var j = 1; j <= nEnt; j++) FIRMAS.push({ id: 'ent' + j, titulo: 'Firmar entrega ' + j, casilla: 'Casilla 24 · recibí de la mercancía (destinatario)', firma: null, ts: null });
+    // pre = datos del firmante AUTORRELLENADOS desde la agenda de Sitios del
+    // envío (contacto/email de la ficha de cada punto; conductor u operador
+    // para el transportista). El DNI nunca viene prefijado: lo teclea quien firma.
+    for (var i = 1; i <= nRec; i++) FIRMAS.push({ id: 'rec' + i, titulo: 'Firmar recogida ' + i, casilla: 'Casilla 22 · firma y sello del remitente/cargador', firma: null, ts: null, firmante: null, pre: { nombre: q('r' + i + 'n'), email: q('r' + i + 'e') } });
+    FIRMAS.push({ id: 'tra', titulo: 'Firmar transportista', casilla: 'Casilla 23 · firma y sello del porteador', firma: null, ts: null, firmante: null, pre: { nombre: q('tn'), email: q('te') } });
+    for (var j = 1; j <= nEnt; j++) FIRMAS.push({ id: 'ent' + j, titulo: 'Firmar entrega ' + j, casilla: 'Casilla 24 · recibí de la mercancía (destinatario)', firma: null, ts: null, firmante: null, pre: { nombre: q('e' + j + 'n'), email: q('e' + j + 'e') } });
 
     function fmtTs(d) {
         function p(n) { return ('0' + n).slice(-2); }
@@ -142,9 +162,14 @@
                 '<span class="cas">' + f.casilla + '</span></div>' +
                 (f.firma ? '' : '<button type="button" class="firma-btn" onclick="abrirFirma(' + idx + ')">Firmar</button>') +
                 '</div>';
+            var quien = '';
+            if (f.firma && f.firmante) {
+                quien = ' por ' + esc(f.firmante.nombre) + ' · ' + esc(f.firmante.dni) +
+                    (f.firmante.email ? ' · ' + esc(f.firmante.email) : '');
+            }
             var cuerpo = f.firma
                 ? '<div class="firma-img"><img src="' + f.firma + '" alt="Firma"></div>' +
-                  '<div class="firma-estado">✓ Firmada el ' + f.ts + '</div>'
+                  '<div class="firma-estado">✓ Firmada el ' + f.ts + quien + '</div>'
                 : '<div class="firma-estado">Pendiente de firma</div>';
             return '<div class="firma' + (f.firma ? ' firmada' : '') + '">' + head + cuerpo + '</div>';
         }).join('');
@@ -196,20 +221,43 @@
         canvas.addEventListener(e, function () { trazando = false; if (ctx) ctx.beginPath(); });
     });
 
+    function sigInput(id) { return document.getElementById(id); }
     window.abrirFirma = function (idx) {
         sigIdx = idx;
-        document.getElementById('sigTitle').textContent = FIRMAS[idx].titulo;
+        var f = FIRMAS[idx];
+        document.getElementById('sigTitle').textContent = f.titulo;
+        // Autorrelleno: si el sitio está registrado en la agenda, su contacto y
+        // email vienen en la URL y se prefijan (editables). El DNI, siempre a mano.
+        sigInput('sigDni').value = '';
+        sigInput('sigNombre').value = (f.pre && f.pre.nombre) || '';
+        sigInput('sigEmail').value = (f.pre && f.pre.email) || '';
+        sigInput('sigDni').classList.remove('err');
+        sigInput('sigNombre').classList.remove('err');
+        document.getElementById('sigWarn').hidden = true;
         document.getElementById('sigOverlay').classList.add('show');
         // El canvas necesita estar visible para medirse.
         requestAnimationFrame(prepCanvas);
     };
     window.sigBorrar = function () { prepCanvas(); };
     window.sigCancelar = function () { document.getElementById('sigOverlay').classList.remove('show'); sigIdx = null; };
+    ['sigDni', 'sigNombre'].forEach(function (id) {
+        sigInput(id).addEventListener('input', function () {
+            this.classList.remove('err');
+            if (sigInput('sigDni').value.trim() && sigInput('sigNombre').value.trim()) document.getElementById('sigWarn').hidden = true;
+        });
+    });
     window.sigAceptar = function () {
         if (sigIdx == null || !dibujado) return;
-        // La firma se coloca en su casilla del CMR con fecha y hora.
+        // DNI y nombre del firmante son obligatorios antes de aceptar la firma.
+        var dni = sigInput('sigDni').value.trim();
+        var nombre = sigInput('sigNombre').value.trim();
+        sigInput('sigDni').classList.toggle('err', !dni);
+        sigInput('sigNombre').classList.toggle('err', !nombre);
+        if (!dni || !nombre) { document.getElementById('sigWarn').hidden = false; return; }
+        // La firma se coloca en su casilla del CMR con fecha, hora y firmante.
         FIRMAS[sigIdx].firma = canvas.toDataURL('image/png');
         FIRMAS[sigIdx].ts = fmtTs(new Date());
+        FIRMAS[sigIdx].firmante = { dni: dni.toUpperCase(), nombre: nombre, email: sigInput('sigEmail').value.trim() };
         document.getElementById('sigOverlay').classList.remove('show');
         sigIdx = null;
         render();
