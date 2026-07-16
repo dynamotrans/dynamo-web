@@ -5676,6 +5676,9 @@
         // opPick al elegir).
         var sec = document.getElementById('sec-nueva-carga');
         if (sec) { sec.dataset.entryMode = 'envio'; sec.dataset.step = 'form'; }
+        // Referencia de ahorro de una comparación anterior: fuera (cada
+        // formulario nuevo arranca sin comparación pendiente).
+        window.__ahorroRef = null;
         // Selector de operador: siempre visible, con Dynamo preseleccionado.
         var opField = document.querySelector('[data-ptar-operador-field]');
         if (opField) opField.hidden = false;
@@ -8119,6 +8122,7 @@
         var inp = document.getElementById('opSearch'), list = document.getElementById('opList'),
             wrap = document.getElementById('opCombo'), x = document.getElementById('opClearBtn');
         var esDynamo = nombre === 'Dynamo';
+        var prevOpSel = window._opSel;   // operador anterior (para la ref. de ahorro)
         window._opSel = nombre;
         if (inp) { inp.value = esDynamo ? 'Dynamo · Operador de Transportes' : nombre; inp.readOnly = true; inp.onclick = function () { opClear(true); }; }
         if (wrap) { wrap.classList.add('ptar-picked'); wrap.classList.remove('ptar-error'); wrap.classList.toggle('op-dynamo', esDynamo); }
@@ -8137,10 +8141,25 @@
         var nota = document.getElementById('opNotaManual');
         if (nota) nota.hidden = esDynamo;
         // Campo "precio acordado" (opcional): solo con OTRO operador. Al
-        // volver a Dynamo se limpia (no aplica a los envíos Dynamo).
+        // volver a Dynamo se limpia — pero ANTES se captura como REFERENCIA
+        // DE AHORRO: si el cliente tecleó el precio de su transportista y
+        // luego eligió Dynamo (CTA de la comparativa o combo), ese importe
+        // se guarda en el envío al crearse (precioTercero + ahorro) y
+        // alimentará el acumulado anual. Elegir OTRO operador la descarta.
         var pf = document.getElementById('opPrecioField');
         if (pf) pf.hidden = esDynamo;
-        if (esDynamo) { var pi = document.getElementById('opPrecioInput'); if (pi) pi.value = ''; }
+        if (esDynamo) {
+            var pi = document.getElementById('opPrecioInput');
+            if (pi && pi.value.trim() && sec && window._opSel === 'Dynamo') {
+                var sA = pi.value.trim().replace(/[€\s]/g, '');
+                if (/^\d+\.\d{1,2}$/.test(sA)) sA = sA.replace('.', ',');
+                var nA = parseFloat(sA.replace(/\./g, '').replace(',', '.'));
+                if (!isNaN(nA) && nA > 0) window.__ahorroRef = { importe: Math.round(nA * 100) / 100, operador: prevOpSel && prevOpSel !== 'Dynamo' ? prevOpSel : null, ts: Date.now() };
+            }
+            if (pi) pi.value = '';
+        } else {
+            window.__ahorroRef = null;   // vuelve a manual: la comparación se reinicia
+        }
         var h2 = document.querySelector('[data-nueva-carga-title]');
         if (h2 && !window._cargaEditRef) h2.textContent = esDynamo ? 'Nuevo envío' : 'Nuevo envío · otro operador / transportista';
     }
@@ -10656,13 +10675,19 @@
                         return '<div class="det-block">' + infoGrid([{ label: 'Precio', value: pend(null), html: true, span: true }]) + '</div>';
                     }
                     var iva = pN * 0.21, tot = pN * 1.21;
+                    // Ahorro vs el transportista tercero (si vino de la
+                    // comparativa): se enseña bajo el precio como refuerzo.
+                    var ahorroHtml = '';
+                    if (src.ahorro > 0) {
+                        ahorroHtml = '<p class="detail-doc-note" style="margin-top:0.5rem;color:#0f6b3a;font-weight:700;">Ahorraste ' + eur2(src.ahorro) + ' frente al precio de tu transportista (' + eur2(src.precioTercero) + (src.operadorComparado ? ' · ' + escapeHtml(src.operadorComparado) : '') + ').</p>';
+                    }
                     // Mismo estilo que la caja de precio de crear envío: la BASE
                     // imponible grande en morado; IVA y total con IVA discretos.
                     return '<div class="det-block"><div class="alm-price" style="margin:0;">' +
                         '<div class="alm-price-row alm-price-base"><span class="k">Base imponible</span><span class="v">' + eur2(pN) + '</span></div>' +
                         '<div class="alm-price-row alm-price-sub"><span class="k">IVA (21%)</span><span class="v">' + eur2(iva) + '</span></div>' +
                         '<div class="alm-price-row alm-price-sub"><span class="k">Total (IVA incl.)</span><span class="v">' + eur2(tot) + '</span></div>' +
-                        '</div></div>';
+                        '</div>' + ahorroHtml + '</div>';
                 })() +
                 // Valoración del transportista: solo en envíos ENTREGADOS
                 // (el servicio ya se ha dado). Una única puntuación 1-5 estrellas.
@@ -18387,6 +18412,18 @@
                             return (isNaN(n) || n <= 0) ? null : Math.round(n * 100) / 100;
                         })();
                     }
+                    // AHORRO vs transportista tercero: si el cliente tecleó el
+                    // precio de su transportista y pulsó "enviar con Dynamo"
+                    // (la referencia se capturó al cambiar de operador), se
+                    // guarda en el envío: alimenta el detalle y el ACUMULADO
+                    // anual (backend real). Caduca a los 30 min por si quedó
+                    // colgada de una comparación vieja.
+                    if (!nuevaCarga.manual && window.__ahorroRef && (Date.now() - window.__ahorroRef.ts) < 30 * 60000) {
+                        nuevaCarga.precioTercero = window.__ahorroRef.importe;
+                        nuevaCarga.operadorComparado = window.__ahorroRef.operador || null;
+                        nuevaCarga.ahorro = Math.round((window.__ahorroRef.importe - precioNum) * 100) / 100;
+                    }
+                    if (!nuevaCarga.manual) window.__ahorroRef = null;
                     // Precio fijado a MANO en el formulario: sustituye al del
                     // tarifador y queda marcado (etiqueta en la tabla; Modificar
                     // no lo recalcula mientras no cambie nada que afecte al precio).
