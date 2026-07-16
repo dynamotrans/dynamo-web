@@ -2408,6 +2408,9 @@
             background: #fee2e2;
             box-shadow: inset 6px 0 0 0 #b91c1c;
         }
+        /* Envío MANUAL con otro operador: franja MARRÓN a la izquierda, sin
+           colores de urgencia (registro en texto plano, sin seguimiento). */
+        table.data tr.row-manual { box-shadow: inset 6px 0 0 0 #8b5e34; }
         /* Rampa AZUL serena que se aclara con la distancia (en días HÁBILES).
            Más suave que el ámbar anterior: descansa la vista. */
         /* Hoy: ÁMBAR suave (destaca en cálido frente al azul de +1/+2). */
@@ -3798,6 +3801,10 @@
             <span class="badge" data-sidebar-badge="cargas" title="Envíos sin transportista asignado" hidden>0</span>
             <span class="badge sb-red" data-sidebar-badge="cargas-pago" title="Envíos pendientes de pago" hidden>0</span>
         </button>
+        <button class="sidebar-link" data-section="mapa">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+            Mapa
+        </button>
         <button class="sidebar-link" data-section="incidencias">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             <span class="sl-txt">Incidencias</span>
@@ -4204,7 +4211,7 @@
                         <button type="button" role="menuitem" onclick="closeBtnDropdowns();openNuevoAlmacen();">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-5 9 5v12"/><path d="M3 21h18"/><rect x="8" y="13" width="8" height="8"/></svg> Nuevo almacenamiento</button>
                         <button type="button" role="menuitem" onclick="closeBtnDropdowns();openNuevaCarga('manual');">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> Nuevo envío con otro operador</button>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> Nuevo envío con otro operador / transportista</button>
                     </div>
                 </div>
             </div>
@@ -4978,6 +4985,25 @@
     </section>
 
     <!-- ==================== PENALIZACIONES ==================== -->
+    <!-- ==================== MAPA de envíos EN CURSO (tiempo real, mock) ==================== -->
+    <section class="section" id="sec-mapa">
+        <div class="sec-header">
+            <h2>Mapa · envíos en curso</h2>
+        </div>
+        <p style="color:var(--gray-500);font-size:0.82rem;margin:-0.4rem 0 0.9rem;">Solo los envíos <strong>en curso en tiempo real</strong> (llegando a la recogida, cargando, en ruta, llegando a la entrega). Los programados sin salir, entregados, cancelados y los registros manuales de otros operadores no aparecen. <em>Posiciones aproximadas (demo).</em></p>
+        <div class="filters">
+            <select id="mapaEstadoSel" onchange="renderMapa()" aria-label="Filtrar por estado del envío" style="max-width:280px;">
+                <option value="">Todos los envíos en curso</option>
+                <option value="hacia">Llegando a la recogida</option>
+                <option value="cargando">Cargando</option>
+                <option value="enruta">En ruta</option>
+                <option value="entrega">Llegando a la entrega</option>
+            </select>
+        </div>
+        <div id="mapaWrap" style="background:#fff;border:1px solid var(--gray-200);border-radius:14px;padding:0.8rem;overflow:hidden;"></div>
+        <div id="mapaLista" style="margin-top:0.9rem;"></div>
+    </section>
+
     <!-- ==================== OPERADORES DE TRANSPORTE (catálogo PRIVADO del cliente) ==================== -->
     <section class="section" id="sec-operadores">
         <div class="sec-header">
@@ -5334,6 +5360,7 @@
         'almacenes':         'Almacenamientos',
         'nuevo-almacen':     'Nuevo almacenamiento',
         'penalizaciones':    'Penalizaciones',
+        'mapa':              'Mapa · envíos en curso',
         'operadores':        'Operadores de transporte',
         'almacenes-cat':     'Almacenes Dynamo',
         'usuarios':          'Usuarios',
@@ -5353,6 +5380,8 @@
         // La tabla de envíos pudo renderizarse oculta (scrollWidth 0): al
         // mostrarla, recorta las empresas al ancho de fecha/dirección.
         if (id === 'cargas' && typeof requestAnimationFrame === 'function') requestAnimationFrame(function () { if (window.capRouteSites) window.capRouteSites(); });
+        // Mapa de envíos en curso: se repinta al abrir la sección.
+        if (id === 'mapa' && window.renderMapa) renderMapa();
         document.querySelectorAll('.sidebar-link').forEach(function (l) {
             l.classList.toggle('active', l.getAttribute('data-section') === id);
         });
@@ -5415,7 +5444,7 @@
         window._cargaEditSig0 = null;
         window._cargaEditTipos0 = null;
         var h2 = document.querySelector('[data-nueva-carga-title]');
-        if (h2) h2.textContent = esManual ? 'Nuevo envío · otro operador' : 'Nuevo envío';
+        if (h2) h2.textContent = esManual ? 'Nuevo envío · otro operador / transportista' : 'Nuevo envío';
         var sb = document.querySelector('#sec-nueva-carga [data-ptar-submit]');
         if (sb) sb.textContent = 'Crear envío';
         var fc0 = document.querySelector('#sec-nueva-carga [data-ptar-final-confirm]');
@@ -7372,6 +7401,9 @@
         if (wrap) wrap.classList.remove('ptar-picked', 'ptar-error');
         if (x) x.hidden = true;
         if (list) list.hidden = true;
+        // Al borrar (× o pulsando el chip) se reabre el listado para elegir
+        // otro operador o buscarlo por texto — mismo gesto que los sitios.
+        if (focus) opFilter();
     }
     window.opClear = opClear;
     // "+ Crear nuevo operador" desde el combo: abre la ficha; al guardar,
@@ -7389,6 +7421,92 @@
         }, 400);
     }
     window.opNuevoDesdeCombo = opNuevoDesdeCombo;
+    /* ==================== MAPA de envíos EN CURSO (mock) ====================
+       Posiciona cada envío vivo sobre un contorno simplificado de la península
+       usando el CENTROIDE DE PROVINCIA (prefijo del CP de origen/destino) y la
+       fase del envío para estimar el punto de la ruta. En producción, la
+       posición vendrá del GPS/telemetría real del transportista. */
+    var PROV_COORDS = {
+        '01': [42.85, -2.67], '02': [38.99, -1.86], '03': [38.35, -0.48], '04': [36.84, -2.46],
+        '05': [40.66, -4.68], '06': [38.88, -6.97], '08': [41.39, 2.17], '09': [42.34, -3.70],
+        '10': [39.48, -6.37], '11': [36.53, -6.29], '12': [39.99, -0.04], '13': [38.99, -3.93],
+        '14': [37.89, -4.78], '15': [43.37, -8.40], '16': [40.07, -2.13], '17': [41.98, 2.82],
+        '18': [37.18, -3.60], '19': [40.63, -3.17], '20': [43.32, -1.98], '21': [37.26, -6.94],
+        '22': [42.14, -0.41], '23': [37.77, -3.79], '24': [42.60, -5.57], '25': [41.62, 0.62],
+        '26': [42.47, -2.45], '27': [43.01, -7.56], '28': [40.42, -3.70], '29': [36.72, -4.42],
+        '30': [37.98, -1.13], '31': [42.82, -1.64], '32': [42.34, -7.86], '33': [43.36, -5.85],
+        '34': [42.01, -4.53], '36': [42.43, -8.65], '37': [40.97, -5.66], '39': [43.46, -3.80],
+        '40': [40.95, -4.12], '41': [37.39, -5.98], '42': [41.77, -2.46], '43': [41.12, 1.25],
+        '44': [40.34, -1.11], '45': [39.86, -4.02], '46': [39.47, -0.38], '47': [41.65, -4.72],
+        '48': [43.26, -2.93], '49': [41.50, -5.74], '50': [41.65, -0.88]
+    };
+    function mapaXY(lat, lon) { return [Math.round((lon + 9.5) / 13 * 1000), Math.round((43.9 - lat) / 8 * 800)]; }
+    function mapaCoordDe(dir) {
+        var m = String(dir || '').match(/\b(\d{5})\b/);
+        var c = m ? PROV_COORDS[m[1].slice(0, 2)] : null;
+        return c ? mapaXY(c[0], c[1]) : null;
+    }
+    // Contorno simplificado de la península (aprox., solo decorativo).
+    var MAPA_ES = [[-8.9,43.7],[-7.3,43.7],[-5.7,43.55],[-4.5,43.4],[-3.0,43.45],[-1.8,43.4],[-1.4,43.25],[0.7,42.85],[3.2,42.4],[3.0,41.8],[2.2,41.4],[1.0,41.05],[0.2,40.5],[0.0,39.9],[-0.3,39.4],[0.2,38.8],[-0.5,38.3],[-0.75,37.85],[-1.3,37.55],[-2.1,36.75],[-3.5,36.7],[-4.4,36.7],[-5.35,36.05],[-6.0,36.2],[-6.4,36.8],[-7.4,37.2],[-7.0,38.0],[-7.3,38.4],[-6.9,39.0],[-7.5,39.7],[-6.9,40.2],[-6.8,41.0],[-6.2,41.6],[-6.6,42.0],[-7.2,42.0],[-8.2,42.1],[-8.65,42.1],[-8.85,42.6],[-9.3,42.95]]
+        .map(function (p) { return mapaXY(p[1], p[0]).join(','); }).join(' ');
+    // Fase del envío → fracción del recorrido origen→destino (aprox. demo).
+    var MAPA_FASE_PROG = { hacia: 0.06, cargando: 0.02, enruta: 0.55, entrega: 0.9 };
+    var MAPA_FASE_LBL = { hacia: 'Llegando a la recogida', cargando: 'Cargando', enruta: 'En ruta', entrega: 'Llegando a la entrega' };
+    function mapaEnviosVivos() {
+        return (typeof CARGAS_DATA !== 'undefined' ? CARGAS_DATA : []).filter(function (c) {
+            if (c.manual || c.kind === 'entregada' || c.kind === 'cancelada' || c.pendientePago) return false;
+            var col = getEstadoVisual(c).color;
+            return col === 'hacia' || col === 'cargando' || col === 'enruta' || col === 'entrega';
+        });
+    }
+    function renderMapa() {
+        var wrap = document.getElementById('mapaWrap'), lista = document.getElementById('mapaLista');
+        if (!wrap) return;
+        var filtro = (document.getElementById('mapaEstadoSel') || {}).value || '';
+        var vivos = mapaEnviosVivos().filter(function (c) { return !filtro || getEstadoVisual(c).color === filtro; });
+        var svg = '<svg viewBox="0 0 1000 800" style="width:100%;height:auto;display:block;" role="img" aria-label="Mapa de envíos en curso">' +
+            '<polygon points="' + MAPA_ES + '" fill="#eef1f6" stroke="#c9d2e0" stroke-width="3"/>';
+        var items = [];
+        vivos.forEach(function (c) {
+            var o = mapaCoordDe(c.origenDir), d = mapaCoordDe(c.destinoDir);
+            if (!o || !d) return;
+            var col = getEstadoVisual(c).color;
+            var f = MAPA_FASE_PROG[col] != null ? MAPA_FASE_PROG[col] : 0.5;
+            var tx = Math.round(o[0] + (d[0] - o[0]) * f), ty = Math.round(o[1] + (d[1] - o[1]) * f);
+            svg += '<line x1="' + o[0] + '" y1="' + o[1] + '" x2="' + d[0] + '" y2="' + d[1] + '" stroke="#8578e6" stroke-width="2.5" stroke-dasharray="7 6" opacity="0.55"/>' +
+                '<circle cx="' + o[0] + '" cy="' + o[1] + '" r="7" fill="#ff7a00"/>' +
+                '<circle cx="' + d[0] + '" cy="' + d[1] + '" r="7" fill="#22a55a"/>' +
+                '<g style="cursor:pointer;" onclick="mapaVerEnvio(\'' + escapeHtml(c.ref) + '\')">' +
+                    '<circle cx="' + tx + '" cy="' + ty + '" r="15" fill="#3300cc"/>' +
+                    '<text x="' + tx + '" y="' + (ty + 5) + '" text-anchor="middle" font-size="15" fill="#fff">🚚</text>' +
+                    '<text x="' + tx + '" y="' + (ty - 22) + '" text-anchor="middle" font-size="17" font-weight="800" fill="#0a0230">' + escapeHtml(c.ref) + '</text>' +
+                '</g>';
+            items.push(c);
+        });
+        svg += '</svg>';
+        wrap.innerHTML = vivos.length ? svg : '<div style="padding:2.2rem;text-align:center;color:var(--gray-500);">No hay envíos en curso ahora mismo' + (filtro ? ' con ese estado' : '') + '.</div>';
+        if (lista) {
+            lista.innerHTML = items.map(function (c) {
+                var ev = getEstadoVisual(c);
+                return '<div onclick="mapaVerEnvio(\'' + escapeHtml(c.ref) + '\')" style="display:flex;align-items:center;gap:0.7rem;background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:0.55rem 0.8rem;margin-bottom:0.45rem;cursor:pointer;">' +
+                    '<span class="badge badge-' + ev.color + '">' + esc(MAPA_FASE_LBL[ev.color] || ev.label) + '</span>' +
+                    '<strong>' + esc(c.ref) + '</strong>' +
+                    '<span style="color:var(--gray-500);font-size:0.82rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc((c.origen || '') + ' → ' + (c.destino || '')) + '</span>' +
+                '</div>';
+            }).join('') || '';
+        }
+    }
+    window.renderMapa = renderMapa;
+    // Pulsar un camión/fila del mapa → abre la sección Envíos filtrada por ese nº.
+    function mapaVerEnvio(ref) {
+        showSection('cargas');
+        TABLE_STATE.cargas.filter = 'todas';
+        TABLE_STATE.cargas.q = ref;
+        var inp = document.querySelector('#sec-cargas .filters input[type="search"]');
+        if (inp) inp.value = ref;
+        renderCargasTable();
+    }
+    window.mapaVerEnvio = mapaVerEnvio;
     function renderAlmacenesTable() {
         var tbody = document.getElementById('tbodyAlmacenes');
         if (!tbody) return;
@@ -7693,6 +7811,7 @@
         a.tipoLugar = (tipoEl && tipoEl.value) ? tipoEl.value : 'Almacén / Nave';
         a.horario = v('sitio-f-horario') || null;
         a.tfno = telValue('sitio-f-tfno');
+        a.email = v('sitio-f-email') || null;
         a.contacto = v('sitio-f-contacto') || null;
         a.notas = v('sitio-f-notas') || null;
         a.maps = v('sitio-f-maps') || null;
@@ -8257,6 +8376,7 @@
                 ctField('cli-f-pais', 'País', c.pais || 'España', 'España') +
                 telField('cli-f-tfno', 'Teléfono', c.tfno) +
                 ctField('cli-f-email', 'Email', c.email, 'empresa@dominio.com', false, 'email') +
+                '<div style="grid-column:1/-1;font-size:0.72rem;color:var(--gray-500);line-height:1.5;margin-top:-0.4rem;">📱 <strong>Mejor un móvil</strong>: además de llamar, permite <strong>WhatsApp con el estado del envío</strong>. 📩 El <strong>email</strong> se usa para los avisos de la operativa (recogidas, entregas, incidencias).</div>' +
                 ctField('cli-f-contacto', 'Persona de contacto', c.contacto, 'Nombre y apellidos', true) +
                 ctNotas('cli-f-notas', c.notas) +
             '</div>';
@@ -8276,6 +8396,7 @@
                 ctField('tra-f-pais', 'País', t.pais || 'España', 'España') +
                 telField('tra-f-tfno', 'Teléfono', t.tfno) +
                 ctField('tra-f-email', 'Email', t.email, 'trafico@dominio.com', false, 'email') +
+                '<div style="grid-column:1/-1;font-size:0.72rem;color:var(--gray-500);line-height:1.5;margin-top:-0.4rem;">📱 <strong>Mejor un móvil</strong>: además de llamar, permite <strong>WhatsApp con el estado del envío</strong>. 📩 El <strong>email</strong> se usa para los avisos de la operativa (recogidas, entregas, incidencias).</div>' +
                 ctField('tra-f-contacto', 'Persona de contacto', t.contacto, 'Nombre y apellidos', true) +
                 ctField('tra-f-camiones', 'Nº de camiones', t.camiones, '1', false, 'number') +
                 ctSelect('tra-f-flota', 'Flota', ['Tauliner', 'Rígido', 'Tauliner y rígido'], t.flota || 'Tauliner') +
@@ -12632,6 +12753,12 @@
             var todayD = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             return d.getTime() < todayD.getTime();
         }
+        // Envío MANUAL con otro operador: registro en texto plano, SIN
+        // conectividad ni fases en vivo — badge GRIS estático (sin punto).
+        if (c.manual) {
+            var lblM = c.kind === 'entregada' ? 'Entregado' : (c.kind === 'cancelada' ? 'Cancelada' : 'Programado');
+            return { label: lblM, color: 'gray' };
+        }
         if (c.kind === 'entregada') return { label: 'Entregado',  color: 'entregado' };
         if (c.kind === 'cancelada') return { label: 'Cancelada',  color: 'cancelada' };
         // Pago por adelantado sin verificar: el envío no avanza hasta que el
@@ -12678,6 +12805,9 @@
     }
 
     function getAsignacionEstado(c) {
+        // Manual (otro operador): su transporte no lo gestiona Dynamo →
+        // sin estado de asignación.
+        if (c.manual) return null;
         if (c.kind === 'entregada' || c.kind === 'cancelada') return null;
         // Mientras el pago no esté verificado no se asigna transportista.
         if (c.pendientePago) return { key: 'pendiente-pago', label: 'A la espera del pago' };
@@ -13351,7 +13481,12 @@
                 inp('Dirección (calle y número)', 'sitio-f-calle', s.calle, '', true) +
                 inp('CP, localidad, provincia y país', 'sitio-f-dir', s.dir, 'Ej. 41001, Sevilla, España', true) +
                 telField('sitio-f-tfno', 'Teléfono', s.tfno) +
+                '<div style="grid-column:1/-1;font-size:0.72rem;color:var(--gray-500);line-height:1.45;margin-top:-0.4rem;">📱 <strong>Mejor un móvil</strong>: además de poder llamar, permite enviar <strong>WhatsApp con el estado del envío</strong> para que el sitio se organice para la recogida o la entrega.</div>' +
                 inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','sitio-f-contacto', s.contacto, 'Persona de contacto') +
+                // EMAIL de avisos del sitio: opcional pero destacado (borde verde).
+                '<div style="grid-column:1/-1;"><label><span style="color:var(--green);">Email de avisos del sitio</span> <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label>' +
+                '<input id="sitio-f-email" type="email" value="' + escapeHtml(s.email || '') + '" placeholder="almacen@empresa.com" style="border:1.5px solid var(--green);">' +
+                '<div style="font-size:0.72rem;color:#0f6b3a;line-height:1.5;margin-top:0.3rem;">📩 <strong>Muy útil</strong>: lo usaremos para avisar a este sitio de las <strong>recogidas y entregas</strong> — previsión de hora, qué vamos a recoger o qué mercancía llega — para que estén informados en tiempo real. Pon el email de la <strong>persona de almacén o responsable de recepcionar la mercancía</strong> (alguien a quien le interese el tema de transportes en la empresa de recogida/destino).</div></div>' +
                 inp('<span style="color:var(--green);">Notas del sitio</span> <span style="color:var(--gray-500);font-weight:600;">· opcional</span>', 'sitio-f-notas', s.notas, 'Ej. referencia de carga/entrega, pedir cita, báscula…', true) +
                 inp('Enlace de Google Maps', 'sitio-f-maps', s.maps, 'https://maps.app.goo.gl/…', true) +
             '</div>';
@@ -13453,6 +13588,7 @@
         base.empresa = v('sitio-f-empresa'); base.horario = v('sitio-f-horario');
         base.calle = v('sitio-f-calle'); base.dir = v('sitio-f-dir') || base.dir || v('sitio-f-calle');
         base.tfno = telValue('sitio-f-tfno') || ''; base.contacto = v('sitio-f-contacto');
+        base.email = v('sitio-f-email');   // avisos de recogidas/entregas al sitio
         base.notas = v('sitio-f-notas'); base.maps = v('sitio-f-maps');
         var tipoEl = document.getElementById('sitio-f-tipo');
         // Tipo de lugar OBLIGATORIO: solo se guarda si se ha elegido uno real
@@ -14054,7 +14190,11 @@
                 else if (c.kind === 'en-ruta') hiSrc = extractDDMM(c.etaEntrega) || fechaPrincipal;
                 var hi = hiSrc ? highlightInfo(hiSrc) : null;
                 var rowCls = '';
-                if (hi) {
+                if (c.manual) {
+                    // Envío MANUAL (otro operador): franja marrón a la izquierda
+                    // y SIN colores de urgencia (no lo gestionamos nosotros).
+                    rowCls = ' class="row-manual"';
+                } else if (hi) {
                     // Resaltan: retrasada (rojo) + rampa ámbar de 3 pasos que
                     // se aclara: hoy → +1 día hábil → +2 días hábiles (salta
                     // findes y festivos). El resto (3-7 días, >7) sin color.
