@@ -7431,7 +7431,7 @@
                 '<span><strong>' + esc(o.nombre) + '</strong></span>' +
                 '<span class="sub">' + esc([o.cif, o.contacto].filter(Boolean).join(' · ')) + '</span></li>');
         });
-        items.push('<li class="alm-combo-item" onmousedown="opNuevoDesdeCombo();event.preventDefault();"><span style="color:var(--purple);font-weight:700;">+ Añade tu otro operador de transportes</span></li>');
+        items.push('<li class="alm-combo-item" onmousedown="opNuevoDesdeCombo();event.preventDefault();"><span style="color:var(--purple);font-weight:700;">+ Añade tu operador, empresa de transporte o transportista autónomo</span></li>');
         list.innerHTML = items.join('');
         list.hidden = false;
     }
