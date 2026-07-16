@@ -16122,16 +16122,19 @@
             while (cur.getTime() < b.getTime()) { cur.setDate(cur.getDate() + 1); if (!nonBiz(cur)) n++; }
             return n;
         }
-        // Suplemento de PREAVISO de la FECHA FIJA según la fecha elegida
-        // (contado desde HOY): cargar HOY → +150 € · los 2 días hábiles
-        // siguientes → +100 € · con más preaviso → sin suplemento (queda
-        // solo el +15% de fecha fija). La ventana 1-3 días nunca lo lleva.
+        // Suplemento de PREAVISO de la FECHA FIJA según la POSICIÓN de la
+        // fecha elegida respecto a la 1ª DISPONIBLE:
+        //  · La 1ª fecha disponible → +150 € (preaviso MUY urgente). Es HOY
+        //    si se pide antes de las 12:00, o el siguiente hábil si ya pasó
+        //    el corte — en ambos casos 150 €.
+        //  · Los 2 días hábiles siguientes → +100 € (preaviso urgente).
+        //  · Más allá → sin coste de preaviso (queda solo el +15% de fecha
+        //    fija, que aplica siempre). La ventana 1-3 días nunca lo lleva.
         function preavisoFija(d) {
-            var now = nowMadrid();
-            var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            var f = firstLoadDate('dia');
             var dd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-            if (dd.getTime() === today.getTime()) return 150;
-            var n = bizDaysFrom(today, dd);
+            if (dd.getTime() === f.getTime()) return 150;
+            var n = bizDaysFrom(f, dd);
             return (n >= 1 && n <= 2) ? 100 : 0;
         }
         // Hora de corte POR MODO (minutos desde medianoche, hora Madrid):
@@ -16156,8 +16159,8 @@
             //  · Pasado el corte: hoy ya no; el primero es el SIGUIENTE día
             //    hábil (p. ej. jueves a las 15:00 → viernes SÍ disponible).
             //    El corte solo limita el MISMO DÍA — el preaviso corto se
-            //    cobra por suplemento (fecha fija: hoy +150 € · los 2 días
-            //    hábiles siguientes +100 €), no bloqueando fechas.
+            //    cobra por suplemento (fecha fija: 1ª disponible +150 € ·
+            //    los 2 hábiles siguientes +100 €), no bloqueando fechas.
             var now = nowMadrid();
             var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             if (__esManualEntry()) return today;   // manual: HOY siempre, sin corte
@@ -17256,7 +17259,7 @@
                         // 1.ª fecha fija SIN suplemento de preaviso (tarifa estándar).
                         var d3U = new Date(nM.getFullYear(), nM.getMonth(), nM.getDate());
                         do { d3U.setDate(d3U.getDate() + 1); } while (nonBiz(d3U) || preavisoFija(d3U) > 0);
-                        hoyHtml = '<div class="ptar-eta-hoy"><strong>⚠ Fecha fija urgente (poco preaviso): lleva un suplemento de +' + supU + ' €</strong> (hoy +150 € · los 2 días hábiles siguientes +100 €). ' + (esHoy ? 'Además es para HOY: no se garantiza cargar en el día; cancelar (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. ' : '') + 'Eligiendo una fecha <strong>a partir del ' + fmtEtaDate(d3U) + ' más económica</strong>, pasa a tarifa de fecha fija estándar, que cuenta con más preaviso. <strong>Si ese día no hay vehículo</strong> habría que reprogramar.<br><br><span style="color:#0f6b3a;">Se recomienda usar la ventana de carga de 1 a 3 días (flexible), el 80% veces cargamos en los 2 primeros días, es la más económica y aumenta la probabilidad de cargar al máximo.</span></div>';
+                        hoyHtml = '<div class="ptar-eta-hoy"><strong>⚠ Fecha fija urgente (poco preaviso): lleva un suplemento de +' + supU + ' €</strong> (la 1ª fecha disponible +150 € · los 2 días hábiles siguientes +100 €). ' + (esHoy ? 'Además es para HOY: no se garantiza cargar en el día; cancelar (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. ' : '') + 'Eligiendo una fecha <strong>a partir del ' + fmtEtaDate(d3U) + ' más económica</strong>, pasa a tarifa de fecha fija estándar, que cuenta con más preaviso. <strong>Si ese día no hay vehículo</strong> habría que reprogramar.<br><br><span style="color:#0f6b3a;">Se recomienda usar la ventana de carga de 1 a 3 días (flexible), el 80% veces cargamos en los 2 primeros días, es la más económica y aumenta la probabilidad de cargar al máximo.</span></div>';
                     } else {
                         hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija estándar</strong>. Con fecha fija, <strong>si ese día no hay vehículo</strong> habría que reprogramar.<br><br><span style="color:#0f6b3a;">Se recomienda usar la ventana de carga de 1 a 3 días (flexible), el 80% veces cargamos en los 2 primeros días, es la más económica y aumenta la probabilidad de cargar al máximo.</span></div>';
                     }
