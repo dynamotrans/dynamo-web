@@ -2812,6 +2812,10 @@
             display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.9rem 1rem;
         }
         .ptar-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+        /* ⚠️ El display:flex de arriba PISA el [hidden] nativo: un .ptar-field
+           con hidden (precio acordado / comparativa al volver a Dynamo)
+           seguía viéndose. Esta regla lo restaura. */
+        .ptar-field[hidden] { display: none; }
         .ptar-field-full { grid-column: 1 / -1; min-width: 0; }
         /* Par de campos que se mantiene a 2 columnas SIEMPRE (también en móvil):
            Metros lineales + Peso, y Fecha de carga + Ventana. */
@@ -18446,9 +18450,20 @@
                     var _dd = Math.max(1, Math.ceil(_dist / KM_POR_DIA));
                     entregaFechaCab = _rangoCab(addBusinessDays(_ls, _dd), addBusinessDays(_le, _dd));
                 }
+                // ENVÍO MANUAL: el resumen abre con los datos del TRANSPORTISTA
+                // elegido (nombre, CIF, teléfono y email de su ficha del catálogo).
+                var opSumHtml = '';
+                if (entryModeDe() === 'manual' && window._opSel && window._opSel !== 'Dynamo') {
+                    var opS = null;
+                    for (var osi = 0; osi < OPERADORES_DATA.length; osi++) if (OPERADORES_DATA[osi].nombre === window._opSel) { opS = OPERADORES_DATA[osi]; break; }
+                    var opDet = opS ? [opS.cif ? 'CIF ' + opS.cif : null, opS.tfno || null, opS.email || null].filter(Boolean).join(' · ') : '';
+                    opSumHtml = '<dt>Transportista</dt><dd><strong style="color:#7a4f28;">' + escapeHtml(window._opSel) + '</strong>' +
+                        (opDet ? '<br><span style="font-size:0.85em;color:var(--gray-600);">' + escapeHtml(opDet) + '</span>' : '') + '</dd>';
+                }
                 // El resumen NO repite recogidas/entregas: van solo abajo, en
                 // las fichas numeradas de "Datos de los lugares".
                 summaryEl.innerHTML =
+                    opSumHtml +
                     '<dt>Tipo de camión</dt><dd>' + escapeHtml(d.camionLabel) + '</dd>' +
                     (d.mercaTxt ? '<dt>Mercancía</dt><dd>' + escapeHtml(d.mercaTxt) + '</dd>' : '') +
                     (d.nima ? '<dt>NIMA (residuos)</dt><dd>Sí</dd>' : '') +
