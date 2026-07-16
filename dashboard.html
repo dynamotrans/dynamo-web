@@ -6602,6 +6602,9 @@
         L.push('OCUPACION: ' + (c.medidas || '-'));
         if (c.precioAcordado != null) L.push('PRECIO ACORDADO (sin IVA): ' + c.precioAcordado.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' EUR');
         L.push('');
+        L.push('CMR DIGITAL (firmar recogidas, entregas y transportista desde el movil):');
+        L.push(cmrFirmaURL(c, true));
+        L.push('');
         L.push('Por favor, confirmadnos la recepcion de la orden y el vehiculo asignado.');
         L.push('');
         L.push('Un saludo,');
@@ -6822,6 +6825,35 @@
         if (c) buildCMRPDF(c, !!descargar);
     }
     window.cargaCMRPDF = cargaCMRPDF;
+    // ===== CMR DIGITAL FIRMABLE (firmar-cmr.html) =====
+    // URL que se manda al transportista junto a la orden de carga: abre el
+    // CMR como web en el móvil, con un bloque de firma por cada parte
+    // (recogidas 1..N, transportista, entregas 1..N) que se firma CON EL
+    // DEDO y queda con su fecha y hora. En envíos manuales va SIN marca
+    // Dynamo (br=0). Backend real: firmas selladas y persistidas (TODO).
+    function cmrFirmaURL(c, absoluta) {
+        var recs = 1 + (c.paradas || []).filter(function (p) { return p.tipo === 'recogida'; }).length;
+        var ents = 1 + (c.paradas || []).filter(function (p) { return p.tipo !== 'recogida'; }).length;
+        var esManual = !!(c.manual && c.operador && c.operador !== 'Dynamo');
+        var params = [
+            'envio=' + encodeURIComponent(c.ref || ''),
+            'o=' + encodeURIComponent((typeof ciudadDir === 'function' ? ciudadDir(c.origen, c.origenDir) : c.origen) || ''),
+            'd=' + encodeURIComponent((typeof ciudadDir === 'function' ? ciudadDir(c.destino, c.destinoDir) : c.destino) || ''),
+            'f=' + encodeURIComponent(((typeof fechaConDia === 'function' ? fechaConDia(c.fecha) : c.fecha) || '') + (c.ventana ? ' · ' + c.ventana : '')),
+            'm=' + encodeURIComponent(c.mercancia || ''),
+            'rem=' + encodeURIComponent(CLIENTE_ACTUAL),
+            'por=' + encodeURIComponent(esManual ? c.operador : 'Dynamo Operador de Transportes'),
+            'rec=' + recs, 'ent=' + ents
+        ];
+        if (esManual) params.push('br=0');
+        if (c.adr) params.push('adr=1');
+        var rel = 'firmar-cmr.html?' + params.join('&');
+        return absoluta ? (location.origin + '/' + rel) : rel;
+    }
+    window.cargaCMRFirmas = function (ref) {
+        var c = (typeof findCargaDataByRef === 'function') ? findCargaDataByRef(ref) : null;
+        if (c) window.open(cmrFirmaURL(c), '_blank');
+    };
     // --- Documentos adjuntos: comportamiento COMÚN en toda la plataforma ---
     // Pulsar un documento lo abre en el visor (pestaña nueva); pulsar su ×
     // pide confirmación ANTES de borrarlo. Se usa en envíos, transportistas,
@@ -10498,6 +10530,10 @@
         if (kind !== 'cancelada') {
             btns.push('<button class="btn-secondary" onclick="cargaCMRPDF(\'' + ref + '\')">' +
                 '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:0.35rem;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>CMR relleno (PDF)</button>');
+            // CMR DIGITAL: la web de firmas (recogidas/entregas/transportista,
+            // firma con el dedo). El mismo enlace va en el email de la orden.
+            btns.push('<button class="btn-secondary" onclick="cargaCMRFirmas(\'' + ref + '\')">' +
+                '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:0.35rem;"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>Firmar CMR online</button>');
         }
         // "Repetir envío" siempre disponible: cualquier envío (incluso
         // cancelado o entregado hace tiempo) puede usarse como plantilla
