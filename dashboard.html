@@ -18017,15 +18017,14 @@
                 // procede enseñar la comparativa, se esconde sin más.
                 var suyo = opcSuyo();
                 if (suyo == null || suyo <= nuestro) { box.hidden = true; opcShown = 0; return; }
-                var h = '<div class="opc-title">Comparativa con Dynamo</div>' +
-                    '<div class="opc-line">Esta carga con Dynamo: <strong class="opc-precio"></strong> <span style="color:var(--gray-500);">(base sin IVA)</span></div>';
+                var h = '<div class="opc-line">Precio con Dynamo: <strong class="opc-precio"></strong> <span style="color:var(--gray-500);">(base sin IVA)</span></div>';
                 var diffC = Math.round((suyo - nuestro) * 100) / 100;
-                h += '<div class="opc-line opc-ahorro">Con Dynamo ahorrarías <strong>' + eur2(diffC) + '</strong> respecto al precio de tu transportista.</div>';
+                h += '<div class="opc-line opc-ahorro">Ahorrarías <strong>' + eur2(diffC) + '</strong> respecto al precio de tu transportista.</div>';
                 // (El ahorro ACUMULADO del año solo se muestra en la tarjeta
                 // Recomiéndanos del dashboard, no aquí.)
                 // CTA: un clic selecciona Dynamo como operador (opPick
                 // repuebla fechas, quita el precio acordado y esta caja).
-                h += '<div class="opc-line"><button type="button" class="opc-cta" onclick="opPick(\'Dynamo\')">Para enviarla con Dynamo, pulsa aquí</button> <span style="color:var(--gray-500);font-size: var(--fs-s);">se selecciona Dynamo como operador</span></div>';
+                h += '<div class="opc-line"><button type="button" class="opc-cta" onclick="opPick(\'Dynamo\')">Para enviarla con Dynamo, pulsa aquí.</button></div>';
                 box.innerHTML = h;
                 box.hidden = false;
                 var elP = box.querySelector('.opc-precio');
@@ -18058,8 +18057,7 @@
                 // Si el precio no cambió (p. ej. teclea su precio), refresco
                 // instantáneo del diferencial, sin skeleton ni contador.
                 if (nuestro !== opcShown) {
-                    box.innerHTML = '<div class="opc-title">Comparativa con Dynamo</div>' +
-                        '<div class="opc-line">Esta carga con Dynamo: <span class="price-skel price-skel-total" style="display:inline-block;vertical-align:-2px;"></span></div>';
+                    box.innerHTML = '<div class="opc-line">Precio con Dynamo: <span class="price-skel price-skel-total" style="display:inline-block;vertical-align:-2px;"></span></div>';
                     box.hidden = false;
                     clearTimeout(opcTimer);
                     opcTimer = setTimeout(function () { renderOpComparaFinal(nuestro, false); }, 900);
