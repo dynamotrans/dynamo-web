@@ -125,6 +125,15 @@
         .sidebar-link .badge.sb-red    { background: #dc2626; }
         .sidebar-link .badge.sb-amber  { background: #d97706; }
         .sidebar-link .badge.sb-purple { background: #7c3aed; }
+        /* Comparativa con el precio Dynamo en el envío manual (otro operador) */
+        #opCompara {
+            background: rgba(51,0,204,0.05); border: 1px solid rgba(51,0,204,0.22);
+            border-radius: 10px; padding: 0.65rem 0.8rem; line-height: 1.5;
+        }
+        #opCompara .opc-title { font-size: 0.72rem; font-weight: 800; color: var(--purple); text-transform: none; margin-bottom: 0.25rem; }
+        #opCompara .opc-line { font-size: 0.82rem; color: var(--gray-700); margin-top: 0.15rem; }
+        #opCompara .opc-precio { color: var(--purple); font-size: 1rem; font-weight: 800; }
+        #opCompara .opc-ahorro { color: #0f6b3a; font-weight: 700; }
         /* Grupos desplegables "Otras gestiones" del sidebar (cliente y admin) */
         #sgOtrasBtn .sl-txt, #sgAdminBtn .sl-txt { flex: 1; white-space: nowrap; }
         #sgOtrasBtn .badge, #sgAdminBtn .badge { margin-left: 0.3rem; }
@@ -4962,6 +4971,11 @@
                     <input type="text" id="opPrecioInput" inputmode="decimal" autocomplete="off" placeholder="Ej. 540,00 € (base sin IVA)" style="width:100%;height:44px;border:1.5px solid var(--gray-300);border-radius:10px;padding:0 0.8rem;font-size:0.95rem;font-weight:600;color:var(--navy);background:#fff;">
                     <div style="margin-top:0.3rem;font-size:0.75rem;color:var(--gray-500);line-height:1.45;">Solo para tu control: se muestra en tu listado y en la orden de transporte. Dynamo no interviene en este precio.</div>
                 </div>
+                <!-- COMPARATIVA DYNAMO (solo envío manual): nuestro precio para
+                     esta MISMA carga (con todos los parámetros elegidos) y, si
+                     el cliente anotó el precio de su transportista, la
+                     diferencia. Con el campo en blanco, solo nuestro precio. -->
+                <div class="ptar-field ptar-field-full" id="opCompara" hidden></div>
                 <div class="ptar-warning" data-ptar-warning role="alert">⚠ Introduce el origen y el destino antes de continuar.</div>
                 <div class="ptar-actions ptar-actions-main">
                     <button type="button" class="btn-primary" data-ptar-submit>Crear envío</button>
@@ -16098,6 +16112,18 @@
             while (cur.getTime() < b.getTime()) { cur.setDate(cur.getDate() + 1); if (!nonBiz(cur)) n++; }
             return n;
         }
+        // Suplemento de PREAVISO de la FECHA FIJA según la fecha elegida
+        // (contado desde HOY): cargar HOY → +150 € · los 2 días hábiles
+        // siguientes → +100 € · con más preaviso → sin suplemento (queda
+        // solo el +15% de fecha fija). La ventana 1-3 días nunca lo lleva.
+        function preavisoFija(d) {
+            var now = nowMadrid();
+            var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            var dd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            if (dd.getTime() === today.getTime()) return 150;
+            var n = bizDaysFrom(today, dd);
+            return (n >= 1 && n <= 2) ? 100 : 0;
+        }
         // Hora de corte POR MODO (minutos desde medianoche, hora Madrid):
         // fecha FIJA a las 12:00 · ventana 1-3 días a las 14:00.
         // Corte: fecha fija → 12:00 · ventana 1 a 3 días → 14:00 (más margen).
@@ -17007,22 +17033,15 @@
                 var uv = urgenciaSel ? urgenciaSel.value : 'estandar';
                 // FECHA FIJA: 2 suplementos independientes.
                 //  1) Por ser día concreto (fija) → +15% SIEMPRE.
-                //  2) Por PREAVISO corto (hoy o el siguiente día hábil) → +100 €
-                //     fijos ADICIONALES. Con 2+ días hábiles de preaviso NO se aplica
+                //  2) Por PREAVISO corto, contado desde HOY: cargar HOY → +150 €
+                //     · los 2 días hábiles siguientes → +100 € · después → 0
                 //     (solo queda el +15% de fija).
-                // El tramo se decide por la fecha ELEGIDA (o la 1ª disponible si aún
-                // no hay fecha). Ventana 1 a 3 días → base, sin suplemento.
-                var fijaUrgente = false;
+                // El tramo se decide por la fecha ELEGIDA; sin fecha no se cobra
+                // preaviso (no hay fecha que evaluar). Ventana 1-3 días → base.
+                var preavisoFlat = 0;
                 if (uv === 'dia') {
                     var selIso = (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) ? diaSel.value : null;
-                    // El preaviso urgente (+100 €) SOLO se aplica si hay una fecha
-                    // ELEGIDA y es una de las 2 primeras disponibles (poco preaviso).
-                    // Sin fecha definida NO se cobra preaviso (no hay fecha que
-                    // evaluar). El +15% de fecha fija sí se muestra como referencia.
-                    if (selIso) {
-                        var effDate = new Date(selIso + 'T00:00:00');
-                        fijaUrgente = bizDaysFrom(firstLoadDate('dia'), effDate) <= 1;
-                    }
+                    if (selIso) preavisoFlat = preavisoFija(new Date(selIso + 'T00:00:00'));
                 }
                 // Mercancía no paletizada +10% (va dentro del importe de envío).
                 if (mercaSel && mercaSel.selectedIndex === 1) precio *= 1.1;
@@ -17080,12 +17099,13 @@
                 card.dataset.trampExtra = String(trampExtra);
                 card.dataset.nimaExtra  = String(nimaExtra);
                 // Fecha fija (+15%) sobre el subtotal (envío + suplementos) y
-                // preaviso urgente (+100 € plano). Se guardan para la confirmación.
+                // preaviso corto (plano: 150 € hoy · 100 € los 2 hábiles
+                // siguientes). Se guardan para la confirmación.
                 card.dataset.fijaPct  = String(uv === 'dia' ? 0.15 : 0);
-                card.dataset.fijaFlat = String((uv === 'dia' && fijaUrgente) ? 100 : 0);
+                card.dataset.fijaFlat = String(uv === 'dia' ? preavisoFlat : 0);
                 var subAntesFija = envioNeto + techoExtra + trampExtra + nimaExtra;
                 var fijaExtra = (uv === 'dia') ? Math.round(subAntesFija * 0.15 / 10) * 10 : 0;
-                var preavisoExtra = (uv === 'dia' && fijaUrgente) ? 100 : 0;
+                var preavisoExtra = (uv === 'dia') ? preavisoFlat : 0;
                 // Desglose: Importe de envío + recargos por tipo de sitio (uno por
                 // punto) + cada suplemento que aplique. Se muestra si hay alguna
                 // línea (recargo por tipo o suplemento); si no, solo Base/IVA/Total.
@@ -17215,14 +17235,15 @@
                         '<strong>Fecha de carga de 1 a 3 días (flexible)</strong>, el 80% veces cargamos en los 2 primeros días, es la más económica y además aumenta la probabilidad de cargar al máximo.' +
                         '</div>';
                 } else if (loadStart && uv === 'dia') {
-                    if (bizDaysFrom(firstLoadDate('dia'), loadStart) <= 1) {
+                    var supU = preavisoFija(loadStart);
+                    if (supU > 0) {
                         var nM = nowMadrid();
                         var esHoy = loadStart.getFullYear() === nM.getFullYear() &&
                             loadStart.getMonth() === nM.getMonth() && loadStart.getDate() === nM.getDate();
-                        // 3.ª fecha disponible (1ª estándar): firstLoadDate + 2 días hábiles.
-                        var d3U = firstLoadDate('dia'); var advU = 0;
-                        while (advU < 2) { d3U.setDate(d3U.getDate() + 1); if (!nonBiz(d3U)) advU++; }
-                        hoyHtml = '<div class="ptar-eta-hoy"><strong>⚠ Fecha fija urgente (poco preaviso): lleva un suplemento</strong>. ' + (esHoy ? 'Además es para HOY: no se garantiza cargar en el día; cancelar (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. ' : '') + 'Eligiendo una fecha <strong>a partir del ' + fmtEtaDate(d3U) + ' más económica</strong>, pasa a tarifa de fecha fija estándar, que cuenta con más preaviso. <strong>Si ese día no hay vehículo</strong> habría que reprogramar.<br><br><span style="color:#0f6b3a;">Se recomienda usar la ventana de carga de 1 a 3 días (flexible), el 80% veces cargamos en los 2 primeros días, es la más económica y aumenta la probabilidad de cargar al máximo.</span></div>';
+                        // 1.ª fecha fija SIN suplemento de preaviso (tarifa estándar).
+                        var d3U = new Date(nM.getFullYear(), nM.getMonth(), nM.getDate());
+                        do { d3U.setDate(d3U.getDate() + 1); } while (nonBiz(d3U) || preavisoFija(d3U) > 0);
+                        hoyHtml = '<div class="ptar-eta-hoy"><strong>⚠ Fecha fija urgente (poco preaviso): lleva un suplemento de +' + supU + ' €</strong> (hoy +150 € · los 2 días hábiles siguientes +100 €). ' + (esHoy ? 'Además es para HOY: no se garantiza cargar en el día; cancelar (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. ' : '') + 'Eligiendo una fecha <strong>a partir del ' + fmtEtaDate(d3U) + ' más económica</strong>, pasa a tarifa de fecha fija estándar, que cuenta con más preaviso. <strong>Si ese día no hay vehículo</strong> habría que reprogramar.<br><br><span style="color:#0f6b3a;">Se recomienda usar la ventana de carga de 1 a 3 días (flexible), el 80% veces cargamos en los 2 primeros días, es la más económica y aumenta la probabilidad de cargar al máximo.</span></div>';
                     } else {
                         hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija estándar</strong>. Con fecha fija, <strong>si ese día no hay vehículo</strong> habría que reprogramar.<br><br><span style="color:#0f6b3a;">Se recomienda usar la ventana de carga de 1 a 3 días (flexible), el 80% veces cargamos en los 2 primeros días, es la más económica y aumenta la probabilidad de cargar al máximo.</span></div>';
                     }
@@ -17421,10 +17442,19 @@
                 // Día corto "lunes 13" (sin mes) para nombrar el par urgente.
                 var DIAS_L = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
                 function diaCorto(d) { return DIAS_L[d.getDay()] + ' ' + d.getDate(); }
-                // Las 2 primeras fechas fija = urgentes; la 3ª = fija más económica.
-                var d2 = new Date(first); d2.setDate(d2.getDate() + 1); nextBiz(d2);
-                var d3 = new Date(d2); d3.setDate(d3.getDate() + 1); nextBiz(d3);
-                var fijaGuia = ' (' + diaCorto(first) + ' y ' + diaCorto(d2) + ', con suplemento). Elige ' + diaCorto(d3) +
+                // Fechas fija con suplemento de preaviso: HOY +150 € · los 2
+                // días hábiles siguientes +100 € · después tarifa estándar.
+                var dtsF = loadDates('dia', 8), g150 = [], g100 = [], gLibre = null;
+                dtsF.forEach(function (df) {
+                    var sf = preavisoFija(df);
+                    if (sf === 150) g150.push(diaCorto(df));
+                    else if (sf === 100) g100.push(diaCorto(df));
+                    else if (!gLibre) gLibre = diaCorto(df);
+                });
+                var partesF = [];
+                if (g150.length) partesF.push(g150.join(' y ') + ' +150 €');
+                if (g100.length) partesF.push(g100.join(' y ') + ' +100 €');
+                var fijaGuia = ' (' + partesF.join(' · ') + '). Elige ' + (gLibre || '—') +
                     ' en adelante fecha fija más económica, o <strong>ventana de carga 1 a 3 días</strong> aún más económica.';
                 var html;
                 if (secNow < cutSec) {
@@ -17444,13 +17474,63 @@
                 el.innerHTML = html;
                 el.hidden = false;
             }
+            // === COMPARATIVA DYNAMO (solo envío manual): nuestro precio para
+            // esta MISMA carga (recalculado desde los datasets del tarifador,
+            // igual que hace la confirmación) y, si el cliente anotó el precio
+            // de SU transportista, la diferencia. En blanco → solo el nuestro.
+            function precioDynamoActual() {
+                var base = parseInt(card.dataset.precioBase || '0', 10);
+                if (!base) return 0;
+                var nP = parseInt(card.dataset.nParadas || '0', 10) || 0;
+                var rec = parseFloat(card.dataset.recargoTipo || '0') || 0;
+                var envioNeto = base + nP * 40 + Math.round(base * rec / 10) * 10;
+                var techoExtra = card.dataset.techoOn === '1' ? Math.round(envioNeto * 0.15 / 10) * 10 : 0;
+                var trampExtra = parseInt(card.dataset.trampExtra || '0', 10) || 0;
+                var nimaExtra = parseInt(card.dataset.nimaExtra || '0', 10) || 0;
+                var fijaPct = parseFloat(card.dataset.fijaPct || '0') || 0;
+                var flat = parseInt(card.dataset.fijaFlat || '0', 10) || 0;
+                var sub = envioNeto + techoExtra + trampExtra + nimaExtra;
+                return sub + (fijaPct > 0 ? Math.round(sub * fijaPct / 10) * 10 : 0) + flat;
+            }
+            function updateOpCompara() {
+                var box = document.getElementById('opCompara');
+                if (!box) return;
+                if (mode !== 'carga' || entryModeDe() !== 'manual') { box.hidden = true; return; }
+                var nuestro = precioDynamoActual();
+                var inp = document.getElementById('opPrecioInput');
+                var s = inp ? inp.value.trim().replace(/[€\s]/g, '') : '';
+                if (/^\d+\.\d{1,2}$/.test(s)) s = s.replace('.', ',');
+                var suyo = s ? parseFloat(s.replace(/\./g, '').replace(',', '.')) : null;
+                if (suyo == null || isNaN(suyo) || suyo <= 0) suyo = null;
+                var h = '<div class="opc-title">Comparativa con Dynamo</div>';
+                if (!nuestro) {
+                    h += '<div class="opc-line" style="color:var(--gray-500);">Al indicar origen, destino y fecha te mostramos aquí el <strong>precio Dynamo</strong> de esta misma carga, para que compares.</div>';
+                } else {
+                    h += '<div class="opc-line">Esta carga con Dynamo: <strong class="opc-precio">' + eur2(nuestro) + '</strong> <span style="color:var(--gray-500);">(base sin IVA)</span></div>';
+                    if (suyo != null) {
+                        var diffC = Math.round((suyo - nuestro) * 100) / 100;
+                        if (diffC > 0) h += '<div class="opc-line opc-ahorro">Con Dynamo ahorrarías <strong>' + eur2(diffC) + '</strong> respecto al precio de tu transportista.</div>';
+                        else if (diffC < 0) h += '<div class="opc-line" style="color:var(--gray-600);">Tu transportista es <strong>' + eur2(-diffC) + '</strong> más económico en esta carga.</div>';
+                        else h += '<div class="opc-line" style="color:var(--gray-600);">Mismo precio que tu transportista.</div>';
+                    }
+                    h += '<div class="opc-line" style="color:var(--gray-500);font-size:0.75rem;">Para enviarla con Dynamo, cambia el operador de transporte arriba del formulario.</div>';
+                }
+                box.innerHTML = h;
+                box.hidden = false;
+            }
             // opPick (global) repuebla las fechas al cambiar de operador:
             // en manual entran HOY + findes/festivos y sin nota de corte.
             if (mode === 'carga') {
                 window.__ptarRefillDias = function () {
                     if (diaSel) fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'estandar');
                     updateCutoffNote();
+                    updateOpCompara();
                 };
+                var opInpC = document.getElementById('opPrecioInput');
+                if (opInpC) opInpC.addEventListener('input', updateOpCompara);
+                // Cada recálculo del tarifador (renderEta re-sella precioTs)
+                // refresca la comparativa con el precio Dynamo vigente.
+                new MutationObserver(updateOpCompara).observe(card, { attributes: true, attributeFilter: ['data-precio-ts'] });
             }
             // ÚLTIMO PRECIO de esta misma ruta para el cliente (referencia
             // interna, junto al hueco de precio manual). Coincidencia por CP
