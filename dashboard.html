@@ -6651,11 +6651,14 @@
        descargar o mandar al transportista junto a la orden de carga (que
        la imprima en cabina u oficina antes de ir a cargar). Remitente =
        cliente · porteador = Dynamo (envíos nuestros) o el operador del
-       cliente (envíos manuales, SIN mención a Dynamo). Demo simplificada
-       del formulario CMR oficial. */
-    function buildCMRPDF(c, forceDownload) {
+       cliente (envíos manuales, SIN mención a Dynamo). Reproduce el MODELO
+       OFICIAL (casillas 1-24) como juego de 4 ejemplares con los colores
+       del impreso real: remitente ROJO · destinatario AZUL · porteador
+       VERDE · usos administrativos NEGRO. Logo Dynamo en B/N arriba a la
+       izquierda (solo envíos Dynamo). */
+    function buildCMRPDF(c, forceDownload, logo) {
         c = c || {};
-        var W = 595.28, H = 841.89, mL = 40, mR = 555;
+        var W = 595.28, H = 841.89, mL = 30, mR = 565;
         var WIN = { 'á': '\\341', 'é': '\\351', 'í': '\\355', 'ó': '\\363', 'ú': '\\372', 'ü': '\\374', 'ñ': '\\361', 'Á': '\\301', 'É': '\\311', 'Í': '\\315', 'Ó': '\\323', 'Ú': '\\332', 'Ñ': '\\321', '·': '\\267', 'º': '\\272', 'ª': '\\252', '€': '\\200', '–': '\\226', '—': '\\227' };
         function enc(s) {
             s = String(s == null ? '' : s); var o = '';
@@ -6668,14 +6671,6 @@
             }
             return o;
         }
-        var ops = [];
-        function fill(r, g, b) { ops.push(r + ' ' + g + ' ' + b + ' rg'); }
-        function ty(t) { return (H - t).toFixed(1); }
-        function text(x, top, str, size, bold, col) {
-            col = col || [0, 0, 0]; fill(col[0], col[1], col[2]);
-            ops.push('BT /' + (bold ? 'F2' : 'F1') + ' ' + size + ' Tf ' + x.toFixed(1) + ' ' + ty(top) + ' Td (' + enc(str) + ') Tj ET');
-        }
-        function rectS(x, top, w, h) { ops.push('0.35 w 0.45 0.48 0.55 RG ' + x.toFixed(1) + ' ' + (H - top - h).toFixed(1) + ' ' + w.toFixed(1) + ' ' + h.toFixed(1) + ' re S'); }
         function wrap(str, max) {
             var words = String(str).split(' '), lines = [], cur = '';
             for (var i = 0; i < words.length; i++) {
@@ -6684,115 +6679,225 @@
             }
             if (cur) lines.push(cur); return lines;
         }
-        var NAVY = [0.07, 0.09, 0.18], GRAY = [0.42, 0.45, 0.50], RED = [0.72, 0.13, 0.13];
-        // Caja numerada estilo CMR: cabecera pequeña gris + contenido.
-        function caja(x, top, w, h, num, titulo, lineas, maxChars) {
-            rectS(x, top, w, h);
-            text(x + 5, top + 11, num + '. ' + titulo, 6.5, true, GRAY);
-            var yy = top + 23;
-            (lineas || []).forEach(function (l) {
-                if (!l) return;
-                wrap(l.t, maxChars || Math.floor(w / 4.6)).forEach(function (ln) {
-                    text(x + 5, yy, ln, l.s || 8.5, !!l.b, l.c || NAVY);
-                    yy += 11;
-                });
-            });
-        }
         var now = new Date();
         function dd(x) { return ('0' + x).slice(-2); }
         var fechaEm = dd(now.getDate()) + '/' + dd(now.getMonth() + 1) + '/' + now.getFullYear();
-        // Remitente = cliente del panel; destinatario = empresa de la entrega.
+        // Datos del envío: remitente = cliente · destinatario = entrega ·
+        // porteador = Dynamo (envíos nuestros) o el operador del cliente
+        // (envíos manuales, SIN mención a Dynamo ni logo).
         var cli = null;
         for (var ci = 0; ci < CLIENTES_DATA.length; ci++) if (CLIENTES_DATA[ci].empresa === CLIENTE_ACTUAL) { cli = CLIENTES_DATA[ci]; break; }
         cli = cli || { empresa: CLIENTE_ACTUAL };
         var sDest = (typeof siteDe === 'function' && c.destinoSite) ? (siteDe(c.destinoSite) || {}) : {};
-        var sOrig = (typeof siteDe === 'function' && c.origenSite) ? (siteDe(c.origenSite) || {}) : {};
         var dirEntrega = (typeof ciudadDir === 'function' ? ciudadDir(c.destino, c.destinoDir) : (c.destino || '')) || '';
         var dirRecogida = (typeof ciudadDir === 'function' ? ciudadDir(c.origen, c.origenDir) : (c.origen || '')) || '';
-        // Porteador: el operador del cliente (manual) o Dynamo (envío nuestro).
+        var esManual = !!(c.manual && c.operador && c.operador !== 'Dynamo');
         var porteador;
-        if (c.manual && c.operador && c.operador !== 'Dynamo') {
+        if (esManual) {
             var opC = null;
             for (var oi = 0; oi < OPERADORES_DATA.length; oi++) if (OPERADORES_DATA[oi].nombre === c.operador) { opC = OPERADORES_DATA[oi]; break; }
             porteador = { nombre: c.operador, cif: opC ? opC.cif : null, tfno: opC ? opC.tfno : null };
         } else {
             porteador = { nombre: 'Dynamo Operador de Transportes', cif: 'B01596360', tfno: '+34 955 225 945' };
         }
-        // ---- Cabecera ----
-        text(mL, 32, 'CARTA DE PORTE · CMR', 15, true, NAVY);
-        text(mL, 46, 'Cumplimentada con los datos del envío — lista para imprimir y firmar', 8, false, GRAY);
-        text(mR - 150, 32, 'Nº DE ENVÍO', 7, true, GRAY);
-        text(mR - 150, 44, c.ref || '—', 11, true, NAVY);
-        text(mR - 150, 56, 'Emitida: ' + fechaEm, 7.5, false, GRAY);
-        var colW = (mR - mL - 6) / 2, xR = mL + colW + 6;
-        // ---- Columna izquierda ----
-        caja(mL, 66, colW, 62, '1', 'REMITENTE (nombre, domicilio, país)', [
-            { t: cli.empresa, b: true }, { t: 'CIF ' + (cli.cif || '—'), s: 8 },
-            { t: [cli.dir, cli.cp, cli.ciudad, cli.pais].filter(Boolean).join(' · '), s: 8, c: GRAY }
-        ]);
-        caja(mL, 132, colW, 62, '2', 'DESTINATARIO (nombre, domicilio, país)', [
-            { t: sDest.empresa || '—', b: true },
-            { t: dirEntrega, s: 8, c: GRAY }
-        ]);
-        caja(mL, 198, colW, 48, '3', 'LUGAR PREVISTO DE ENTREGA', [
-            { t: dirEntrega, s: 8.5 },
-            { t: c.horarioDestino ? 'Horario: ' + c.horarioDestino : '', s: 8, c: GRAY }
-        ]);
-        caja(mL, 250, colW, 48, '4', 'LUGAR Y FECHA DE CARGA', [
-            { t: dirRecogida, s: 8.5 },
-            { t: (typeof fechaConDia === 'function' ? fechaConDia(c.fecha) : (c.fecha || '—')) + (c.horarioOrigen ? ' · ' + c.horarioOrigen : ''), s: 8, c: GRAY }
-        ]);
-        caja(mL, 302, colW, 34, '5', 'DOCUMENTOS ANEXOS', [{ t: c.refCli && c.refCli.indexOf('NUEVO') === -1 ? 'Ref. ' + c.refCli : '—', s: 8 }]);
-        // ---- Columna derecha ----
-        caja(xR, 66, colW, 62, '16', 'PORTEADOR (nombre, domicilio, país)', [
-            { t: porteador.nombre, b: true },
-            { t: porteador.cif ? 'CIF ' + porteador.cif : '', s: 8 },
-            { t: porteador.tfno || '', s: 8, c: GRAY }
-        ]);
-        caja(xR, 132, colW, 62, '17', 'PORTEADORES SUCESIVOS', [
-            { t: c.transportistaNombre || '—', b: !!c.transportistaNombre },
-            { t: c.matricula ? 'Matrícula: ' + c.matricula + (c.matriculaRemolque ? ' · ' + c.matriculaRemolque : '') : '', s: 8 },
-            { t: c.conductor ? 'Conductor: ' + c.conductor : '', s: 8, c: GRAY }
-        ]);
-        caja(xR, 198, colW, 100, '18', 'RESERVAS Y OBSERVACIONES DEL PORTEADOR', c.adr ? [
-            { t: 'MERCANCÍA ADR (peligrosa)', b: true, c: RED, s: 9 }
-        ] : []);
-        caja(xR, 302, colW, 34, '19', 'ESTIPULACIONES PARTICULARES', [{ t: c.discrecion ? 'Discreción comercial' : '—', s: 8 }]);
-        // ---- Mercancía (6-12, a lo ancho) ----
-        rectS(mL, 340, mR - mL, 64);
-        text(mL + 5, 351, '6-12. MARCAS · Nº BULTOS · CLASE DE EMBALAJE · NATURALEZA DE LA MERCANCÍA · PESO BRUTO', 6.5, true, GRAY);
-        text(mL + 5, 366, c.mercancia || '—', 9.5, true, NAVY);
-        text(mL + 5, 380, 'Ocupación: ' + (c.medidas || '—'), 8.5, false, NAVY);
-        if (c.adr) text(mL + 5, 394, 'MERCANCÍA ADR — transporte sujeto al Acuerdo ADR', 8.5, true, RED);
-        // ---- 13 Instrucciones ----
-        rectS(mL, 408, mR - mL, 50);
-        text(mL + 5, 419, '13. INSTRUCCIONES DEL REMITENTE', 6.5, true, GRAY);
-        var notasC = c.anotaciones || c.notas || '';
-        wrap(notasC || '—', 110).slice(0, 3).forEach(function (ln, i2) { text(mL + 5, 432 + i2 * 11, ln, 8.5, false, NAVY); });
-        // ---- 21 Formalización ----
-        rectS(mL, 462, mR - mL, 34);
-        text(mL + 5, 473, '21. FORMALIZADA EN', 6.5, true, GRAY);
-        text(mL + 5, 487, (cli.ciudad || '—') + ' · ' + fechaEm, 8.5, false, NAVY);
-        // ---- Firmas (22-24) ----
-        var fW = (mR - mL - 12) / 3;
-        [['22', 'FIRMA Y SELLO DEL REMITENTE'], ['23', 'FIRMA Y SELLO DEL PORTEADOR'], ['24', 'RECIBÍ (destinatario · fecha y firma)']].forEach(function (fx, i3) {
-            var x0 = mL + i3 * (fW + 6);
-            rectS(x0, 500, fW, 96);
-            text(x0 + 5, 511, fx[0] + '. ' + fx[1], 6.2, true, GRAY);
-        });
-        // ---- Pie ----
-        var pie = 'CMR cumplimentado a partir de los datos del envío ' + (c.ref || '') + ' · ' + fechaEm;
-        text(mL, 620, pie, 7.5, false, GRAY);
-        // ---- Ensamblado ----
-        var stream = ops.join('\n');
-        var objs = [
-            '<</Type/Catalog/Pages 2 0 R>>',
-            '<</Type/Pages/Count 1/Kids[3 0 R]>>',
-            '<</Type/Page/Parent 2 0 R/MediaBox[0 0 ' + W.toFixed(2) + ' ' + H.toFixed(2) + ']/Contents 4 0 R/Resources<</Font<</F1 5 0 R/F2 6 0 R>>>>>>',
-            '<</Length ' + stream.length + '>>\nstream\n' + stream + '\nendstream',
-            '<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>',
-            '<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold/Encoding/WinAnsiEncoding>>'
+        var pesoM = (String(c.medidas || '').match(/([\d.,]+)\s*kg/i) || [])[1] || null;
+        var mlM = (String(c.medidas || '').match(/([\d.,]+)\s*m\b/i) || [])[1] || null;
+        var TINTA = [0.08, 0.08, 0.38];   // datos cumplimentados (tinta azul)
+
+        // ===== Un EJEMPLAR del juego oficial (misma parrilla, color propio) =====
+        function drawEjemplar(CO, etiqueta) {
+            var ops = [];
+            function fill(r, g, b) { ops.push(r + ' ' + g + ' ' + b + ' rg'); }
+            function ty(t) { return (H - t).toFixed(1); }
+            function text(x, top, str, size, bold, col) {
+                col = col || CO; fill(col[0], col[1], col[2]);
+                ops.push('BT /' + (bold ? 'F2' : 'F1') + ' ' + size + ' Tf ' + x.toFixed(1) + ' ' + ty(top) + ' Td (' + enc(str) + ') Tj ET');
+            }
+            function rectC(x, top, w, h, grosor) { ops.push((grosor || 0.7) + ' w ' + CO[0] + ' ' + CO[1] + ' ' + CO[2] + ' RG ' + x.toFixed(1) + ' ' + (H - top - h).toFixed(1) + ' ' + w.toFixed(1) + ' ' + h.toFixed(1) + ' re S'); }
+            function lineC(x1, t1, x2, t2, grosor) { ops.push((grosor || 0.7) + ' w ' + CO[0] + ' ' + CO[1] + ' ' + CO[2] + ' RG ' + x1.toFixed(1) + ' ' + ty(t1) + ' m ' + x2.toFixed(1) + ' ' + ty(t2) + ' l S'); }
+            // Rótulo de casilla oficial: nº + texto ES / texto EN.
+            function rotulo(x, top, num, es, en, maxc) {
+                text(x + 3, top + 9, num, 7.5, true);
+                var lx = x + 3 + (String(num).length > 1 ? 13 : 8);
+                wrap(es, maxc || 60).forEach(function (ln, li) { text(li ? x + 3 : lx, top + 9 + li * 6.5, ln, 5.8, false); });
+                if (en) text(x + 3, top + 9 + wrap(es, maxc || 60).length * 6.5, en, 5.2, false);
+            }
+            function dato(x, top, lineas, maxc) {
+                var yy = top;
+                (lineas || []).forEach(function (l) {
+                    if (!l || !l.t) return;
+                    wrap(l.t, maxc || 52).forEach(function (ln) {
+                        text(x, yy, ln, l.s || 8.2, l.b !== false, l.c || TINTA);
+                        yy += 10;
+                    });
+                });
+            }
+            // ---- Logo Dynamo (B/N) arriba a la izquierda + etiqueta del ejemplar ----
+            var topLbl = 34;
+            if (logo && !esManual) {
+                var lh = 24, lw2 = lh * logo.w / logo.h;
+                ops.push('q ' + lw2.toFixed(1) + ' 0 0 ' + lh + ' ' + mL + ' ' + (H - 44).toFixed(1) + ' cm /Im1 Do Q');
+                text(mL + lw2 + 8, 38, 'Operador de Transportes', 6, false, [0.25, 0.25, 0.25]);
+            }
+            text(mR - etiqueta.length * 6.2 * 0.54, topLbl, etiqueta, 6.2, true, [0.15, 0.15, 0.15]);
+            // ---- Marco exterior ----
+            var T = 52, B = 798, XS = 274;
+            rectC(mL, T, mR - mL, B - T, 1.6);
+            lineC(XS, T, XS, 648);
+            // ================= COLUMNA IZQUIERDA (1-5) =================
+            lineC(mL, 122, XS, 122); lineC(mL, 186, XS, 186); lineC(mL, 238, XS, 238); lineC(mL, 288, XS, 288); lineC(mL, 340, mR, 340);
+            rotulo(mL, 52, '1', 'Remitente (nombre, dirección, país)', 'Sender (name, address, country)', 44);
+            dato(mL + 5, 82, [
+                { t: cli.empresa, s: 8.8 },
+                { t: 'CIF ' + (cli.cif || '—'), s: 7.6, b: false },
+                { t: [cli.dir, cli.cp, cli.ciudad, cli.pais].filter(Boolean).join(' · '), s: 7.6, b: false }
+            ], 50);
+            rotulo(mL, 122, '2', 'Destinatario (nombre, dirección, país)', 'Consignee (name, address, country)', 44);
+            dato(mL + 5, 152, [
+                { t: sDest.empresa || '—', s: 8.8 },
+                { t: dirEntrega, s: 7.6, b: false }
+            ], 50);
+            rotulo(mL, 186, '3', 'Lugar entrega de la mercancía / Place of delivery of the goods', null, 44);
+            dato(mL + 5, 208, [
+                { t: dirEntrega, s: 8 },
+                { t: c.horarioDestino ? 'Horario: ' + c.horarioDestino : '', s: 7.4, b: false }
+            ], 52);
+            rotulo(mL, 238, '4', 'Lugar y fecha de carga de la mercancía / Loading place and date', null, 44);
+            dato(mL + 5, 260, [
+                { t: dirRecogida, s: 8 },
+                { t: ((typeof fechaConDia === 'function' ? fechaConDia(c.fecha) : c.fecha) || '—') + (c.horarioOrigen ? ' · ' + c.horarioOrigen : ''), s: 7.4, b: false }
+            ], 52);
+            rotulo(mL, 288, '5', 'Documentos anexos / Documents attached', null, 44);
+            dato(mL + 5, 312, [{ t: (c.refCli && c.refCli.indexOf('NUEVO') === -1) ? 'Ref. ' + c.refCli : '—', s: 8, b: false }]);
+            // ================= CABECERA + COLUMNA DERECHA (16-18) =================
+            text(XS + 6, 64, 'CARTA DE PORTE INTERNACIONAL', 9, true);
+            text(XS + 6, 74, 'INTERNATIONAL CONSIGNMENT NOTE', 8, true);
+            // Óvalo CMR (aproximado con marco redondeado: doble rectángulo)
+            rectC(mR - 78, 56, 66, 24, 1.8);
+            text(mR - 66, 73, 'CMR', 15, true);
+            var legalES = 'Este transporte queda sometido, no obstante toda cláusula contraria, al Convenio sobre el Contrato de Transporte Internacional de Mercancías por Carretera (CMR).';
+            var legalEN = 'This carriage is subject, notwithstanding any clause to the contrary, to the Convention on the Contract for the International Carriage of Goods by Road (CMR).';
+            wrap(legalES, 74).forEach(function (ln, li) { text(XS + 6, 88 + li * 7, ln, 5.4, false); });
+            wrap(legalEN, 74).forEach(function (ln, li) { text(XS + 6, 112 + li * 7, ln, 5.0, false); });
+            text(XS + 6, 140, 'Nº', 7.5, true);
+            text(XS + 20, 140.5, c.ref || '—', 9.5, true, TINTA);
+            lineC(XS, 148, mR, 148);
+            lineC(XS, 214, mR, 214); lineC(XS, 268, mR, 268);
+            rotulo(XS, 148, '16', 'Porteador (nombre, dirección, país)', 'Carrier (name, address, country)', 54);
+            dato(XS + 5, 178, [
+                { t: porteador.nombre, s: 8.8 },
+                { t: [porteador.cif ? 'CIF ' + porteador.cif : null, porteador.tfno].filter(Boolean).join(' · '), s: 7.6, b: false }
+            ], 58);
+            rotulo(XS, 214, '17', 'Porteadores sucesivos / Successive Carriers', null, 54);
+            dato(XS + 5, 236, [
+                { t: c.transportistaNombre || '—', s: 8.2 },
+                { t: [c.matricula ? 'Matrícula ' + c.matricula : null, c.matriculaRemolque ? 'Remolque ' + c.matriculaRemolque : null, c.conductor || null].filter(Boolean).join(' · '), s: 7.4, b: false }
+            ], 58);
+            rotulo(XS, 268, '18', 'Reservas y observaciones del porteador / Carriers reservations and observations', null, 54);
+            if (c.adr) dato(XS + 5, 296, [{ t: 'MERCANCÍA ADR (peligrosa) — Acuerdo ADR', s: 8, c: [0.72, 0.13, 0.13] }], 58);
+            // ================= TABLA MERCANCÍA (6-12) =================
+            var tT = 340, tB = 455;
+            lineC(mL, tB, mR, tB);
+            var CXS = [mL, mL + 78, mL + 136, mL + 208, mL + 372, mL + 428, mL + 496, mR];
+            for (var cx = 1; cx < CXS.length - 1; cx++) lineC(CXS[cx], tT, CXS[cx], tB);
+            var cab = [
+                ['6', 'Marcas y números', 'Marks and numbers'],
+                ['7', 'Número de bultos', 'Number of packages'],
+                ['8', 'Modo de embalaje', 'Method of packing'],
+                ['9', 'Naturaleza de la mercancía', 'Nature of the goods'],
+                ['10', 'No. Stats.', 'Statist. No.'],
+                ['11', 'Peso bruto, kg', 'Gross weight, kg'],
+                ['12', 'Volumen m3', 'Volume in m3']
+            ];
+            cab.forEach(function (h2, i3) {
+                var cw = Math.floor((CXS[i3 + 1] - CXS[i3]) / 3.2);
+                text(CXS[i3] + 2.5, tT + 9, h2[0], 6.8, true);
+                wrap(h2[1], cw).forEach(function (ln, li) { text(CXS[i3] + (li ? 2.5 : 11), tT + 9 + li * 6, ln, 5.4, false); });
+                text(CXS[i3] + 2.5, tT + 9 + wrap(h2[1], cw).length * 6 + 5.5, h2[2], 4.8, false);
+            });
+            dato(CXS[0] + 3, tT + 42, [{ t: c.ref || '—', s: 7.5 }]);
+            dato(CXS[1] + 3, tT + 42, [{ t: '—', b: false }]);
+            dato(CXS[2] + 3, tT + 42, [{ t: /palet/i.test(c.mercancia || '') ? 'Palets' : '—', s: 7.5, b: false }]);
+            var natLineas = [{ t: c.mercancia || '—', s: 8.2 }];
+            if (mlM) natLineas.push({ t: 'Ocupación: ' + mlM + ' metros lineales', s: 7.2, b: false });
+            if (c.adr) natLineas.push({ t: 'MERCANCÍA ADR — Acuerdo ADR', s: 7.6, c: [0.72, 0.13, 0.13] });
+            dato(CXS[3] + 3, tT + 42, natLineas, 34);
+            dato(CXS[4] + 3, tT + 42, [{ t: '—', b: false }]);
+            dato(CXS[5] + 3, tT + 42, [{ t: pesoM || '—', s: 8.2 }]);
+            dato(CXS[6] + 3, tT + 42, [{ t: '—', b: false }]);
+            // ================= 13 · 14 · 21 (izquierda) =================
+            lineC(mL, 570, XS, 570); lineC(mL, 612, XS, 612); lineC(mL, 648, mR, 648);
+            rotulo(mL, 455, '13', 'Instrucciones del remitente / Senders instructions', null, 44);
+            dato(mL + 5, 478, [{ t: c.anotaciones || c.notas || '—', s: 7.8, b: false }], 52);
+            rotulo(mL, 570, '14', 'Forma de pago / Instruction as to payment for carriage', null, 44);
+            dato(mL + 5, 594, [{ t: 'Porte pagado / Franco', s: 8, b: false }]);
+            rotulo(mL, 612, '21', 'Formalizado en ..... a ..... / Established in ..... on .....', null, 44);
+            dato(mL + 5, 636, [{ t: (cli.ciudad || '—') + ' · ' + fechaEm, s: 8, b: false }]);
+            // ================= 19 · 20 · 15 (derecha) =================
+            lineC(XS, 494, mR, 494); lineC(XS, 612, mR, 612);
+            rotulo(XS, 455, '19', 'Estipulaciones particulares / Special agreements', null, 54);
+            dato(XS + 5, 478, [{ t: c.discrecion ? 'Discreción comercial' : '—', s: 7.8, b: false }], 58);
+            rotulo(XS, 494, '20', 'A pagar por / To be paid by', null, 54);
+            var C1 = XS + 128, C2 = XS + 210;
+            lineC(C1, 494, C1, 612); lineC(C2, 494, C2, 612);
+            text(C1 + 4, 503, 'Remitente / Sender', 5.4, false);
+            text(C2 + 4, 503, 'Destinatario / Consignee', 5.4, false);
+            lineC(XS, 507, mR, 507, 0.4);
+            ['Precio del transporte', 'Descuentos', 'Neto / Balance', 'Suplementos', 'Otros cargos', 'Seguro / Insurance', 'TOTAL'].forEach(function (fila, fi) {
+                text(XS + 4, 517 + fi * 14.5, fila, 5.8, fi === 6);
+                lineC(XS, 521.5 + fi * 14.5, mR, 521.5 + fi * 14.5, 0.4);
+            });
+            rotulo(XS, 612, '15', 'Reembolso a cobrar en destino / Cash on delivery', null, 54);
+            dato(XS + 5, 636, [{ t: '—', b: false }]);
+            // ================= FIRMAS 22 · 23 · 24 =================
+            var F1 = mL + 178, F2 = mL + 356;
+            lineC(F1, 648, F1, B); lineC(F2, 648, F2, B);
+            text(mL + 3, 657, '22', 7.5, true);
+            text(F1 + 3, 657, '23', 7.5, true);
+            text(F2 + 3, 657, '24', 7.5, true);
+            text(F2 + 14, 657, 'Mercancías recibidas / Goods received', 5.6, false);
+            text(F2 + 3, 672, 'Lugar', 5.6, false); text(F2 + 90, 672, 'a', 5.6, false);
+            text(F2 + 3, 682, 'Place', 5.2, false); text(F2 + 90, 682, 'on', 5.2, false);
+            lineC(F2 + 24, 674, F2 + 86, 674, 0.4); lineC(F2 + 98, 674, mR - 4, 674, 0.4);
+            text(mL + 3, B - 14, 'Firma y sello del remitente', 5.6, false);
+            text(mL + 3, B - 7, 'Signature and stamp of the sender', 5.0, false);
+            text(F1 + 3, B - 14, 'Firma y sello del porteador', 5.6, false);
+            text(F1 + 3, B - 7, 'Signature and stamp of the carrier', 5.0, false);
+            text(F2 + 3, B - 14, 'Firma y sello del destinatario', 5.6, false);
+            text(F2 + 3, B - 7, 'Signature and stamp of the consignee', 5.0, false);
+            return ops.join('\n');
+        }
+
+        // ===== Juego oficial de 4 ejemplares (colores del modelo real) =====
+        var EJEMPLARES = [
+            { col: [0.76, 0.16, 0.14], lbl: 'EJEMPLAR PARA EL REMITENTE / COPY FOR SENDER' },
+            { col: [0.16, 0.35, 0.72], lbl: 'EJEMPLAR PARA EL DESTINATARIO / COPY FOR CONSIGNEE' },
+            { col: [0.13, 0.52, 0.28], lbl: 'EJEMPLAR PARA EL PORTEADOR / COPY FOR CARRIER' },
+            { col: [0.15, 0.15, 0.15], lbl: 'EJEMPLAR PARA USOS ADMINISTRATIVOS / COPY FOR ADMINISTRATION' }
         ];
+        var streams = EJEMPLARES.map(function (e) { return drawEjemplar(e.col, e.lbl); });
+        // ---- Ensamblado multipágina: 1 Catalog · 2 Pages · 3..10 páginas y
+        //      contenidos · 11-12 fuentes · 13 logo (opcional) ----
+        var tieneLogo = !!(logo && !esManual);
+        var resources = '<</Font<</F1 11 0 R/F2 12 0 R>>' + (tieneLogo ? '/XObject<</Im1 13 0 R>>' : '') + '>>';
+        var kids = [];
+        var objs = [];
+        objs.push(null); // 1 catalog (luego)
+        objs.push(null); // 2 pages (luego)
+        streams.forEach(function (st, i2) {
+            var pageNum = 3 + i2 * 2, contNum = pageNum + 1;
+            kids.push(pageNum + ' 0 R');
+            objs.push('<</Type/Page/Parent 2 0 R/MediaBox[0 0 ' + W.toFixed(2) + ' ' + H.toFixed(2) + ']/Contents ' + contNum + ' 0 R/Resources' + resources + '>>');
+            objs.push('<</Length ' + st.length + '>>\nstream\n' + st + '\nendstream');
+        });
+        objs[0] = '<</Type/Catalog/Pages 2 0 R>>';
+        objs[1] = '<</Type/Pages/Count ' + streams.length + '/Kids[' + kids.join(' ') + ']>>';
+        objs.push('<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>');
+        objs.push('<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold/Encoding/WinAnsiEncoding>>');
+        if (tieneLogo) {
+            objs.push('<</Type/XObject/Subtype/Image/Width ' + logo.w + '/Height ' + logo.h +
+                '/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/DCTDecode/Length ' + logo.data.length + '>>\nstream\n' + logo.data + '\nendstream');
+        }
         var pdf = '%PDF-1.4\n', offsets = [], i4;
         for (i4 = 0; i4 < objs.length; i4++) { offsets.push(pdf.length); pdf += (i4 + 1) + ' 0 obj\n' + objs[i4] + '\nendobj\n'; }
         var xrefPos = pdf.length;
@@ -6820,9 +6925,33 @@
         }
         setTimeout(function () { URL.revokeObjectURL(urlC); }, 60000);
     }
+    // Logo Dynamo en BLANCO Y NEGRO para el CMR (arriba-izquierda): se carga
+    // una vez, se pasa a gris en un canvas y se cachea como JPEG.
+    function __cmrLogoGris(cb) {
+        if (window.__cmrLogoCache !== undefined) return cb(window.__cmrLogoCache);
+        var img = new Image();
+        img.onload = function () {
+            try {
+                var cv = document.createElement('canvas');
+                cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+                var cx = cv.getContext('2d');
+                cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
+                if ('filter' in cx) cx.filter = 'grayscale(1)';
+                cx.drawImage(img, 0, 0);
+                var b64 = cv.toDataURL('image/jpeg', 0.9).split(',')[1];
+                window.__cmrLogoCache = { data: atob(b64), w: cv.width, h: cv.height };
+            } catch (e) { window.__cmrLogoCache = null; }
+            cb(window.__cmrLogoCache);
+        };
+        img.onerror = function () { window.__cmrLogoCache = null; cb(null); };
+        img.src = 'images/2.png';
+    }
     function cargaCMRPDF(ref, descargar) {
         var c = (typeof findCargaDataByRef === 'function') ? findCargaDataByRef(ref) : null;
-        if (c) buildCMRPDF(c, !!descargar);
+        if (!c) return;
+        // El logo (B/N) solo va en envíos Dynamo; manuales sin marca.
+        if (c.manual && c.operador && c.operador !== 'Dynamo') return buildCMRPDF(c, !!descargar, null);
+        __cmrLogoGris(function (logo) { buildCMRPDF(c, !!descargar, logo); });
     }
     window.cargaCMRPDF = cargaCMRPDF;
     // ===== CMR DIGITAL FIRMABLE (firmar-cmr.html) =====
