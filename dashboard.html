@@ -9806,7 +9806,9 @@
     }
     function presupuestoRowData(row) {
         if (!row) return {};
-        var p = PRESUPUESTOS_DATA.filter(function (x) { return x.ref === rowRef(row); })[0];
+        // Acepta también la REF directa (string), como cargaRowData.
+        var refBuscaP = (typeof row === 'string') ? row : rowRef(row);
+        var p = PRESUPUESTOS_DATA.filter(function (x) { return x.ref === refBuscaP; })[0];
         if (!p) return {};
         var out = shallowCopy(p);
         out.estado = p.kind === 'caducados' ? 'Caducado' : 'Vigente';
@@ -9949,6 +9951,12 @@
     function actionByRef(sectionId) {
         return function (action, ref) {
             var row = findRowByRef(sectionId, ref);
+            // Si la fila NO está pintada en la tabla (otra pestaña o página
+            // del listado, o el detalle abierto desde el calendario, el mapa
+            // o las mini-listas), se pasa la REF directa: los handlers de
+            // cargas y presupuestos resuelven los datos del array por ref.
+            // (Antes: sin fila en el DOM los botones no hacían NADA.)
+            if (!row && (sectionId === 'sec-cargas' || sectionId === 'sec-presupuestos')) row = ref;
             if (row) dispatchRowAction(action, row, sectionId);
         };
     }
@@ -10448,7 +10456,7 @@
     // los datos de la carga existente. El usuario decide en esa pantalla si
     // Crear envío o Guardar presupuesto (flujo unificado).
     function cargaRepetir(row) {
-        var ref = txt(row.querySelector('.ref strong')) || txt(row.querySelector('.ref'));
+        var ref = (typeof row === 'string') ? row : (txt(row.querySelector('.ref strong')) || txt(row.querySelector('.ref')));
         var src = CARGAS_DATA.filter(function (c) { return c.ref === ref; })[0];
         closeDashModal();
         openNuevaCarga('envio');
@@ -11051,7 +11059,7 @@
     // Generar carga desde presupuesto: abre el MISMO formulario de crear envío
     // auto-rellenado con los datos del presupuesto (flujo unificado).
     function presupuestoGenerarCarga(row) {
-        var ref = txt(row.querySelector('.ref strong')) || txt(row.querySelector('.ref'));
+        var ref = (typeof row === 'string') ? row : (txt(row.querySelector('.ref strong')) || txt(row.querySelector('.ref')));
         var src = PRESUPUESTOS_DATA.filter(function (p) { return p.ref === ref; })[0];
         closeDashModal();
         openNuevaCarga('envio');
@@ -11164,7 +11172,7 @@
             if (action === 'reclamar-albaran') return cargaReclamarAlbaran(row);
             if (action === 'modificar') {
                 // Modo edición: formulario de crear envío prefijado + "Guardar cambios".
-                var refMod = txt(row.querySelector('.ref strong')) || txt(row.querySelector('.ref'));
+                var refMod = (typeof row === 'string') ? row : (txt(row.querySelector('.ref strong')) || txt(row.querySelector('.ref')));
                 return cargaModificarEnvio(refMod);
             }
             if (action === 'cancelar-carga') return cargaCancelar(row);
