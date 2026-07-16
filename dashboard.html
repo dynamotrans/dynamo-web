@@ -2540,6 +2540,40 @@
            (la columna Envío queda fuera de pantalla sin scroll horizontal). */
         .op-chip-mob-wrap { display: none; margin-bottom: 4px; }
         @media (max-width: 768px) { .op-chip-mob-wrap { display: block; } }
+        /* ===== Vista CALENDARIO de envíos (meses completos, ±3 meses) =====
+           En modo calendario se ocultan pestañas, tabla, paginación y los
+           filtros de mes/estado (el mes lo pone la navegación del calendario);
+           buscador y filtro de operador siguen aplicando. */
+        #sec-cargas[data-vista="calendario"] .tabs,
+        #sec-cargas[data-vista="calendario"] .table-wrap,
+        #sec-cargas[data-vista="calendario"] .pagination,
+        #sec-cargas[data-vista="calendario"] .filters .filter-mes,
+        #sec-cargas[data-vista="calendario"] .filters [data-filter-estado] { display: none; }
+        .cal-head { display: flex; align-items: center; gap: 0.6rem; margin: 0.2rem 0 0.7rem; }
+        .cal-title { font-weight: 800; color: var(--navy); font-size: 1.05rem; }
+        .cal-hoy-tag { font-size: 0.68rem; font-weight: 800; color: var(--purple); background: rgba(51,0,204,0.08); border-radius: 6px; padding: 1px 7px; vertical-align: 2px; }
+        .cal-nav { width: 36px; height: 36px; border: 1.5px solid var(--gray-300); border-radius: 9px; background: #fff; font-size: 1.15rem; font-weight: 700; color: var(--navy); cursor: pointer; display: flex; align-items: center; justify-content: center; flex: none; }
+        .cal-nav[disabled] { opacity: 0.35; cursor: default; }
+        .cal-nav-hoy { width: auto; padding: 0 0.8rem; font-size: 0.8rem; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+        .cal-dow { margin-bottom: 4px; }
+        .cal-dow div { text-align: center; font-size: 0.72rem; font-weight: 800; color: var(--gray-500); }
+        .cal-cell { background: #fff; border: 1px solid var(--gray-200); border-radius: 10px; min-height: 88px; padding: 4px; overflow: hidden; min-width: 0; }
+        .cal-off { background: transparent; border-color: transparent; }
+        .cal-finde { background: var(--gray-100, #f7f8fa); }
+        .cal-day { font-size: 0.72rem; font-weight: 800; color: var(--gray-600); margin: 1px 2px 3px; }
+        .cal-day-hoy { display: inline-block; background: var(--purple); color: #fff; border-radius: 7px; padding: 0 6px; }
+        .cal-envio { display: block; width: 100%; text-align: left; border: none; cursor: pointer; border-left: 3px solid var(--purple); border-radius: 5px; color: var(--navy); font-size: 0.66rem; font-weight: 700; line-height: 1.4; padding: 2px 4px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cal-envio:hover { filter: brightness(0.95); }
+        .cal-envio-extra { display: none; }
+        .cal-open .cal-envio-extra { display: block; }
+        .cal-more { display: block; width: 100%; border: none; background: none; color: var(--purple); font-size: 0.66rem; font-weight: 800; cursor: pointer; text-align: left; padding: 1px 4px; }
+        @media (max-width: 700px) {
+            .cal-grid { gap: 3px; }
+            .cal-cell { min-height: 66px; padding: 3px; border-radius: 8px; }
+            .cal-envio { font-size: 0.58rem; padding: 2px 3px; }
+            .cal-more { font-size: 0.6rem; }
+        }
         /* Fecha/hora de creación: pequeñita y en UNA línea */
         table.data td.ref .ref-creado { display: block; font-size: 0.72rem; color: var(--gray-400); white-space: nowrap; margin-top: 2px; }
         table.data .envio-estado { margin-top: 0.35rem; }
@@ -4385,6 +4419,13 @@
         <div class="sec-header">
             <h2>Envíos</h2>
             <div class="sec-header-actions">
+                <!-- Tipo de VISTA del listado: Lista (por defecto) o Calendario
+                     por meses completos (navegable ±3 meses). -->
+                <select id="cargasVista" onchange="cargasSetVista(this.value)" aria-label="Tipo de vista de envíos"
+                        style="height:44px;border:1.5px solid var(--gray-300);border-radius:10px;padding:0 0.7rem;font-size:0.85rem;font-weight:700;color:var(--navy);background:#fff;cursor:pointer;">
+                    <option value="lista">Vista: Lista</option>
+                    <option value="calendario">Vista: Calendario</option>
+                </select>
                 <button class="btn-primary" onclick="openNuevaCarga('envio');return false;">+ Nuevo envío</button>
             </div>
         </div>
@@ -4420,6 +4461,8 @@
                 </optgroup>
             </select>
         </div>
+        <!-- Vista CALENDARIO (meses completos): se pinta por JS. -->
+        <div id="cargasCal" hidden></div>
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
@@ -7860,6 +7903,114 @@
         renderCargasTable();
     }
     window.mapaVerEnvio = mapaVerEnvio;
+    /* ==================== VISTA CALENDARIO DE ENVÍOS ====================
+       Meses completos con navegación ±3 meses desde el actual. Cada día
+       muestra sus envíos como mini-píldoras (color por estado; marrón =
+       otro operador); con más de 3 se colapsa en "+N más". Pulsar una
+       píldora abre el detalle ESTÁNDAR del envío. */
+    var CAL_ENVIOS = { off: 0 };   // desplazamiento en meses (−3..+3)
+    function cargasSetVista(v) {
+        var sec = document.getElementById('sec-cargas');
+        if (sec) sec.dataset.vista = v;
+        var cal = document.getElementById('cargasCal');
+        if (cal) cal.hidden = (v !== 'calendario');
+        if (v === 'calendario') renderCargasCal();
+    }
+    window.cargasSetVista = cargasSetVista;
+    function calMes(delta) {
+        CAL_ENVIOS.off = Math.max(-3, Math.min(3, CAL_ENVIOS.off + delta));
+        renderCargasCal();
+    }
+    window.calMes = calMes;
+    function calHoy() { CAL_ENVIOS.off = 0; renderCargasCal(); }
+    window.calHoy = calHoy;
+    function calVerEnvio(ref) { cargaVerDetalle(ref); }
+    window.calVerEnvio = calVerEnvio;
+    function calMasDia(btn) {
+        var cell = btn.closest('.cal-cell');
+        if (cell) cell.classList.add('cal-open');
+        btn.parentNode.removeChild(btn);
+    }
+    window.calMasDia = calMasDia;
+    // Color de la píldora por estado (hex para poder tintar el fondo).
+    function calEnvioColor(c) {
+        if (c.manual) return '#8b5e34';                 // otro operador
+        if (c.kind === 'cancelada') return '#9aa0a6';   // gris
+        if (c.kind === 'entregada') return '#22a55a';   // verde
+        if (c.pendientePago) return '#d93025';          // rojo
+        if (c.kind === 'en-ruta') return '#1a73e8';     // azul
+        return '#3300cc';                               // programado (morado)
+    }
+    function renderCargasCal() {
+        var el = document.getElementById('cargasCal'); if (!el || el.hidden) return;
+        var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+        var y = new Date(hoy.getFullYear(), hoy.getMonth() + CAL_ENVIOS.off, 1).getFullYear();
+        var m = new Date(hoy.getFullYear(), hoy.getMonth() + CAL_ENVIOS.off, 1).getMonth();
+        var MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        // Envíos del mes por día (aplican el buscador y el filtro de operador
+        // de la barra; las pestañas de estado no — el calendario muestra todo).
+        var q = normTxt(TABLE_STATE.cargas.q || '');
+        var fOp = TABLE_STATE.cargas.operador;
+        var porDia = {};
+        CARGAS_DATA.forEach(function (c) {
+            var d = cargaFechaDate(c); if (!d) return;
+            if (d.getFullYear() !== y || d.getMonth() !== m) return;
+            if (fOp && (c.operador || 'Dynamo') !== fOp) return;
+            if (q && !matchTokens(cargaSearchBlob(c), q)) return;
+            (porDia[d.getDate()] = porDia[d.getDate()] || []).push(c);
+        });
+        var h = '<div class="cal-head">' +
+            '<button type="button" class="cal-nav" onclick="calMes(-1)"' + (CAL_ENVIOS.off <= -3 ? ' disabled' : '') + ' aria-label="Mes anterior">‹</button>' +
+            '<div class="cal-title">' + MESES[m] + ' ' + y + (CAL_ENVIOS.off === 0 ? ' <span class="cal-hoy-tag">mes actual</span>' : '') + '</div>' +
+            '<button type="button" class="cal-nav" onclick="calMes(1)"' + (CAL_ENVIOS.off >= 3 ? ' disabled' : '') + ' aria-label="Mes siguiente">›</button>' +
+            (CAL_ENVIOS.off !== 0 ? '<button type="button" class="cal-nav cal-nav-hoy" onclick="calHoy()">Mes actual</button>' : '') +
+            '</div>';
+        h += '<div class="cal-grid cal-dow"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div>';
+        var startIdx = (new Date(y, m, 1).getDay() + 6) % 7;   // 0 = lunes
+        var daysIn = new Date(y, m + 1, 0).getDate();
+        var cells = '';
+        for (var i = 0; i < startIdx; i++) cells += '<div class="cal-cell cal-off"></div>';
+        for (var d = 1; d <= daysIn; d++) {
+            var esHoy = (CAL_ENVIOS.off === 0 && d === hoy.getDate());
+            var finde = ((startIdx + d - 1) % 7) >= 5;
+            var evs = porDia[d] || [];
+            var inner = '<div class="cal-day' + (esHoy ? ' cal-day-hoy' : '') + '">' + d + '</div>';
+            var pills = '';
+            evs.forEach(function (c, i2) {
+                var col = calEnvioColor(c);
+                var extra = i2 >= 3 ? ' cal-envio-extra' : '';
+                var estado = (typeof getEstadoVisual === 'function') ? (getEstadoVisual(c).label || '') : '';
+                pills += '<button type="button" class="cal-envio' + extra + '" style="border-left-color:' + col + ';background:' + col + '14;" ' +
+                    'onclick="calVerEnvio(\'' + esc(c.ref) + '\')" ' +
+                    'title="' + esc(c.ref + ' · ' + c.origen + ' → ' + c.destino + ' · ' + estado + (c.operador && c.operador !== 'Dynamo' ? ' · ' + c.operador : '')) + '">' +
+                    esc(c.origen + '→' + c.destino) + '</button>';
+            });
+            // Con más de 3 envíos el día se colapsa: "+N más" los despliega.
+            if (evs.length > 3) {
+                var masBtn = '<button type="button" class="cal-more" onclick="calMasDia(this)">+' + (evs.length - 3) + ' más</button>';
+                pills = pills.replace('<button type="button" class="cal-envio cal-envio-extra"', masBtn + '<button type="button" class="cal-envio cal-envio-extra"');
+            }
+            cells += '<div class="cal-cell' + (finde ? ' cal-finde' : '') + '">' + inner + pills + '</div>';
+        }
+        h += '<div class="cal-grid cal-body">' + cells + '</div>';
+        h += '<div style="margin-top:0.7rem;font-size:0.74rem;color:var(--gray-500);display:flex;flex-wrap:wrap;gap:0.4rem 1rem;">' +
+            [['#3300cc', 'Programado'], ['#1a73e8', 'En ruta'], ['#22a55a', 'Entregado'], ['#d93025', 'Pendiente de pago'], ['#8b5e34', 'Otro operador'], ['#9aa0a6', 'Cancelada']].map(function (l) {
+                return '<span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:' + l[0] + ';vertical-align:-1px;margin-right:4px;"></span>' + l[1] + '</span>';
+            }).join('') + '</div>';
+        el.innerHTML = h;
+    }
+    window.renderCargasCal = renderCargasCal;
+    // Con la vista calendario activa, cualquier re-render del listado
+    // (buscador, filtro de operador, crear/editar/cancelar envío…) repinta
+    // también el mes — se envuelve renderCargasTable una sola vez.
+    (function () {
+        var rct0 = renderCargasTable;
+        renderCargasTable = function () {
+            rct0.apply(this, arguments);
+            var sec = document.getElementById('sec-cargas');
+            if (sec && sec.dataset.vista === 'calendario') renderCargasCal();
+        };
+    })();
     function renderAlmacenesTable() {
         var tbody = document.getElementById('tbodyAlmacenes');
         if (!tbody) return;
@@ -9532,7 +9683,10 @@
     // cambios de columnas de la tabla.
     function cargaRowData(row) {
         if (!row) return {};
-        var c = CARGAS_DATA.filter(function (x) { return x.ref === rowRef(row); })[0];
+        // Acepta también la REF directa (string): así el detalle estándar se
+        // puede abrir desde fuera de la tabla (calendario, mapa…).
+        var refBusca = (typeof row === 'string') ? row : rowRef(row);
+        var c = CARGAS_DATA.filter(function (x) { return x.ref === refBusca; })[0];
         if (!c) return {};
         var out = shallowCopy(c);
         var ev = (typeof getEstadoVisual === 'function') ? getEstadoVisual(c) : null;
