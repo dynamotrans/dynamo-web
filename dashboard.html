@@ -5059,7 +5059,7 @@
             <h2>Operadores de transporte</h2>
             <button class="btn-primary" onclick="openOperadorModal(-1);return false;">+ Nuevo operador</button>
         </div>
-        <p style="color:var(--gray-500);font-size:0.82rem;margin:-0.4rem 0 0.9rem;">Tu catálogo <strong>privado</strong> de otros operadores de transporte (aparte de Dynamo). Se usan al crear un <strong>envío con otro operador</strong> desde «Nueva gestión» — sin precio, solo para tu control. Pulsa una fila para ver o editar la ficha.</p>
+        <p style="color:var(--gray-500);font-size:0.82rem;margin:-0.4rem 0 0.9rem;">Tu catálogo <strong>privado</strong> de proveedores de transporte con los que sueles trabajar — vale para <strong>cualquier tipo: operadores de transporte, empresas de transporte o transportistas autónomos</strong> — para tener en un único espacio de trabajo <strong>todos tus envíos controlados</strong>.<br><strong>Dynamo no interviene en nada</strong> en los envíos con otros operadores (ni albaranes, ni precios, ni ningún aspecto relacionado con ellos): esto sirve solo para ver en <strong>Envíos</strong> todo unificado, independientemente de quién sea el proveedor de transporte. Pulsa una fila para ver o editar la ficha.</p>
         <div class="filters">
             <input type="search" id="operadoresSearch" placeholder="Buscar por nombre, CIF, contacto…" oninput="renderOperadoresTable(this.value)">
         </div>
@@ -7588,7 +7588,7 @@
             '<td>+34 955 225 945</td>' +
             '<td>info@dynamotrans.com</td>' +
             '<td>Álvaro Blanco</td>' +
-            '<td class="notas">Tarifa y gestión completa online en el momento. Ficha fija (no editable).</td>' +
+            '<td class="notas">Ficha fija (no editable).</td>' +
         '</tr>'];
         OPERADORES_DATA.forEach(function (o, i) {
             if (nq && !matchTokens(normTxt([o.nombre, o.cif, o.tfno, o.email, o.contacto, o.web, o.notas].join(' ')), nq)) return;
@@ -7601,7 +7601,8 @@
             '</tr>');
         });
         var h2 = document.querySelector('#sec-operadores h2');
-        if (h2) h2.textContent = 'Operadores de transporte (' + OPERADORES_DATA.length + ')';
+        // El contador incluye a Dynamo (fila fija): catálogo + 1.
+        if (h2) h2.textContent = 'Operadores de transporte (' + (OPERADORES_DATA.length + 1) + ')';
         tbody.innerHTML = rows.length ? rows.join('')
             : '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-500);">' +
               (OPERADORES_DATA.length ? 'Sin operadores que coincidan con la búsqueda.' : 'Aún no tienes operadores. Crea uno con «+ Nuevo operador».') + '</td></tr>';
