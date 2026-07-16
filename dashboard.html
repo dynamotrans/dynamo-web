@@ -1929,6 +1929,11 @@
            acciones a la derecha (columna sticky). En pantallas estrechas se
            apila en 1 sola columna (el resumen/acciones queda al final). */
         .form-2col-side { margin-top: 1.2rem; }
+        /* Separación uniforme entre los bloques de la columna lateral (caja
+           ETA, Precios internos, precio acordado, comparativa, aviso y
+           botones): iban PEGADOS — en móvil la caja del precio llegaba a
+           tocar el borde de "Precios internos". */
+        .form-2col-side > * + * { margin-top: 0.9rem; }
         @media (min-width: 1200px) {
             /* Izquierda: ancho fijo (el que tenía el formulario). Derecha:
                rellena todo el espacio libre hasta el borde del contenido. El
