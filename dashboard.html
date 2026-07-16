@@ -18022,10 +18022,8 @@
                     '<div class="opc-line">Esta carga con Dynamo: <strong class="opc-precio"></strong> <span style="color:var(--gray-500);">(base sin IVA)</span></div>';
                 var diffC = Math.round((suyo - nuestro) * 100) / 100;
                 h += '<div class="opc-line opc-ahorro">Con Dynamo ahorrarías <strong>' + eur2(diffC) + '</strong> respecto al precio de tu transportista.</div>';
-                // Ahorro ACUMULADO del año (mock): refuerzo comercial.
-                if (typeof AHORRO_DYNAMO_ANIO !== 'undefined' && AHORRO_DYNAMO_ANIO > 0) {
-                    h += '<div class="opc-line" style="color:#0f6b3a;font-size:0.76rem;">Este año llevas ahorrados <strong>' + eur2(AHORRO_DYNAMO_ANIO) + '</strong> enviando con Dynamo.</div>';
-                }
+                // (El ahorro ACUMULADO del año solo se muestra en la tarjeta
+                // Recomiéndanos del dashboard, no aquí.)
                 // CTA: un clic selecciona Dynamo como operador (opPick
                 // repuebla fechas, quita el precio acordado y esta caja).
                 h += '<div class="opc-line"><button type="button" class="opc-cta" onclick="opPick(\'Dynamo\')">Para enviarla con Dynamo, pulsa aquí</button> <span style="color:var(--gray-500);font-size:0.73rem;">se selecciona Dynamo como operador</span></div>';
