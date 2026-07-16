@@ -17510,38 +17510,79 @@
                 var sub = envioNeto + techoExtra + trampExtra + nimaExtra;
                 return sub + (fijaPct > 0 ? Math.round(sub * fijaPct / 10) * 10 : 0) + flat;
             }
+            // Efecto CONTADOR propio de la comparativa (raf independiente del
+            // de la caja de precio, para no pisarse las animaciones).
+            var opcShown = 0, opcTimer = null, opcRaf = null;
+            function opcAnimate(el, from, to) {
+                if (opcRaf) cancelAnimationFrame(opcRaf);
+                if (!el || from === to) { if (el) el.textContent = eur2(to); return; }
+                var dur = 480, t0 = null;
+                function step(ts) {
+                    if (!t0) t0 = ts;
+                    var k = Math.min(1, (ts - t0) / dur);
+                    k = 1 - Math.pow(1 - k, 3);   // easeOutCubic
+                    var v = from + (to - from) * k;
+                    el.textContent = eur2(k >= 1 ? to : Math.round(v / 10) * 10);
+                    if (k < 1) opcRaf = requestAnimationFrame(step);
+                }
+                opcRaf = requestAnimationFrame(step);
+            }
+            function renderOpComparaFinal(nuestro, instant) {
+                var box = document.getElementById('opCompara');
+                if (!box) return;
+                var inp = document.getElementById('opPrecioInput');
+                var s = inp ? inp.value.trim().replace(/[€\s]/g, '') : '';
+                if (/^\d+\.\d{1,2}$/.test(s)) s = s.replace('.', ',');
+                var suyo = s ? parseFloat(s.replace(/\./g, '').replace(',', '.')) : null;
+                if (suyo == null || isNaN(suyo) || suyo <= 0) suyo = null;
+                var h = '<div class="opc-title">Comparativa con Dynamo</div>' +
+                    '<div class="opc-line">Esta carga con Dynamo: <strong class="opc-precio"></strong> <span style="color:var(--gray-500);">(base sin IVA)</span></div>';
+                if (suyo != null) {
+                    var diffC = Math.round((suyo - nuestro) * 100) / 100;
+                    if (diffC > 0) h += '<div class="opc-line opc-ahorro">Con Dynamo ahorrarías <strong>' + eur2(diffC) + '</strong> respecto al precio de tu transportista.</div>';
+                    else if (diffC < 0) h += '<div class="opc-line" style="color:var(--gray-600);">Tu transportista es <strong>' + eur2(-diffC) + '</strong> más económico en esta carga.</div>';
+                    else h += '<div class="opc-line" style="color:var(--gray-600);">Mismo precio que tu transportista.</div>';
+                }
+                // CTA: un clic selecciona Dynamo como operador (opPick
+                // repuebla fechas, quita el precio acordado y esta caja).
+                h += '<div class="opc-line"><button type="button" class="opc-cta" onclick="opPick(\'Dynamo\')">Para enviarla con Dynamo, pulsa aquí</button> <span style="color:var(--gray-500);font-size:0.73rem;">se selecciona Dynamo como operador</span></div>';
+                box.innerHTML = h;
+                box.hidden = false;
+                var elP = box.querySelector('.opc-precio');
+                if (instant) elP.textContent = eur2(nuestro);
+                else opcAnimate(elP, opcShown, nuestro);   // contador desde lo mostrado
+                opcShown = nuestro;
+            }
             function updateOpCompara() {
                 var box = document.getElementById('opCompara');
                 if (!box) return;
-                if (mode !== 'carga' || entryModeDe() !== 'manual') { box.hidden = true; return; }
+                if (mode !== 'carga' || entryModeDe() !== 'manual') { box.hidden = true; opcShown = 0; clearTimeout(opcTimer); return; }
                 // Sin origen o destino elegidos NO hay precio que comparar:
                 // el dataset guarda el último cálculo y quedaría obsoleto
                 // (borrar un sitio dejaba la comparativa con el precio viejo).
                 var wO = card.querySelector('[data-ptar-orig-wrap]'), wD = card.querySelector('[data-ptar-dest-wrap]');
                 var rutaOk = !!(wO && wO.dataset.lat && wD && wD.dataset.lat);
                 var nuestro = rutaOk ? precioDynamoActual() : 0;
-                var inp = document.getElementById('opPrecioInput');
-                var s = inp ? inp.value.trim().replace(/[€\s]/g, '') : '';
-                if (/^\d+\.\d{1,2}$/.test(s)) s = s.replace('.', ',');
-                var suyo = s ? parseFloat(s.replace(/\./g, '').replace(',', '.')) : null;
-                if (suyo == null || isNaN(suyo) || suyo <= 0) suyo = null;
-                var h = '<div class="opc-title">Comparativa con Dynamo</div>';
                 if (!nuestro) {
-                    h += '<div class="opc-line" style="color:var(--gray-500);">Al indicar origen, destino y fecha te mostramos aquí el <strong>precio Dynamo</strong> de esta misma carga, para que compares.</div>';
-                } else {
-                    h += '<div class="opc-line">Esta carga con Dynamo: <strong class="opc-precio">' + eur2(nuestro) + '</strong> <span style="color:var(--gray-500);">(base sin IVA)</span></div>';
-                    if (suyo != null) {
-                        var diffC = Math.round((suyo - nuestro) * 100) / 100;
-                        if (diffC > 0) h += '<div class="opc-line opc-ahorro">Con Dynamo ahorrarías <strong>' + eur2(diffC) + '</strong> respecto al precio de tu transportista.</div>';
-                        else if (diffC < 0) h += '<div class="opc-line" style="color:var(--gray-600);">Tu transportista es <strong>' + eur2(-diffC) + '</strong> más económico en esta carga.</div>';
-                        else h += '<div class="opc-line" style="color:var(--gray-600);">Mismo precio que tu transportista.</div>';
-                    }
-                    // CTA: un clic selecciona Dynamo como operador (opPick
-                    // repuebla fechas, quita el precio acordado y esta caja).
-                    h += '<div class="opc-line"><button type="button" class="opc-cta" onclick="opPick(\'Dynamo\')">Para enviarla con Dynamo, pulsa aquí</button> <span style="color:var(--gray-500);font-size:0.73rem;">se selecciona Dynamo como operador</span></div>';
+                    clearTimeout(opcTimer); opcShown = 0;
+                    box.innerHTML = '<div class="opc-title">Comparativa con Dynamo</div>' +
+                        '<div class="opc-line" style="color:var(--gray-500);">Al indicar origen, destino y fecha te mostramos aquí el <strong>precio Dynamo</strong> de esta misma carga, para que compares.</div>';
+                    box.hidden = false;
+                    return;
                 }
-                box.innerHTML = h;
-                box.hidden = false;
+                // Precio NUEVO → efecto "calculando" (skeleton ~0,9 s) y después
+                // el importe con el CONTADOR encadenado desde el anterior.
+                // Si el precio no cambió (p. ej. teclea su precio), refresco
+                // instantáneo del diferencial, sin skeleton ni contador.
+                if (nuestro !== opcShown) {
+                    box.innerHTML = '<div class="opc-title">Comparativa con Dynamo</div>' +
+                        '<div class="opc-line">Esta carga con Dynamo: <span class="price-skel price-skel-total" style="display:inline-block;vertical-align:-2px;"></span></div>';
+                    box.hidden = false;
+                    clearTimeout(opcTimer);
+                    opcTimer = setTimeout(function () { renderOpComparaFinal(nuestro, false); }, 900);
+                    return;
+                }
+                renderOpComparaFinal(nuestro, true);
             }
             // opPick (global) repuebla las fechas al cambiar de operador:
             // en manual entran HOY + findes/festivos y sin nota de corte.
