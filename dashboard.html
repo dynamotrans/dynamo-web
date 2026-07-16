@@ -2526,6 +2526,16 @@
         table.data .fecha-linea strong { color: var(--navy); }
         table.data td.ref .ref-cli-line { color: var(--gray-500); margin-top: 0.15rem; }
         table.data td.ref .ref-cli-inline { color: var(--gray-500); font-weight: 500; }
+        /* Chip del OPERADOR en envíos con otro operador (mismo marrón que la
+           franja lateral .row-manual). Los de Dynamo no llevan chip: son la
+           norma, el chip señala la excepción. */
+        .op-chip {
+            display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+            background: rgba(139, 94, 52, 0.12); color: #7a4f28;
+            border: 1px solid rgba(139, 94, 52, 0.35); border-radius: 6px;
+            font-size: 0.66rem; font-weight: 800; line-height: 1.5;
+            padding: 1px 7px; white-space: nowrap; vertical-align: 1px;
+        }
         /* Fecha/hora de creación: pequeñita y en UNA línea */
         table.data td.ref .ref-creado { display: block; font-size: 0.72rem; color: var(--gray-400); white-space: nowrap; margin-top: 2px; }
         table.data .envio-estado { margin-top: 0.35rem; }
@@ -7578,6 +7588,13 @@
         { nombre: 'Transportes Iberia Express S.L.', cif: 'B58830217', tfno: '+34 916 402 118', email: 'trafico@iberiaexpress-trans.es', contacto: 'Rosa Cifuentes', web: 'www.iberiaexpress-trans.es', notas: 'Solo rutas Madrid–Levante.', creadoEn: Date.now() - 120 * 86400000, modificadoEn: null },
         { nombre: 'LogiSur Cargo S.L.', cif: 'B72153042', tfno: '+34 954 771 530', email: 'operaciones@logisurcargo.com', contacto: 'Andrés Barrera', web: 'www.logisurcargo.com', notas: '', creadoEn: Date.now() - 64 * 86400000, modificadoEn: null }
     ];
+    // Nombre corto del operador para el chip de la tabla de envíos: sin la
+    // forma jurídica ("Transportes Iberia Express S.L." → "Transportes
+    // Iberia Express"), que en un chip solo mete ruido.
+    function opChipNombre(n) {
+        return String(n || '').replace(/[,·]?\s*(S\.?\s?L\.?\s?U?\.?|S\.?\s?A\.?\s?U?\.?|S\.?\s?C\.?(\s?P\.?)?|S\.?\s?COOP\.?|C\.?\s?B\.?)\s*$/i, '').trim() || String(n || '');
+    }
+    window.opChipNombre = opChipNombre;
     function renderOperadoresTable(q) {
         var tbody = document.getElementById('tbodyOperadores'); if (!tbody) return;
         var nq = normTxt(q || '');
@@ -14746,7 +14763,7 @@
                         '<div class="envio-estado envio-estado-top"><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span></div>' +
                         '<strong>' + esc(c.ref) + '</strong>' +
                         (c.refCli ? ' <span class="ref-cli-inline">(' + esc(c.refCli) + ')</span>' : '') +
-                        (c.operador && c.operador !== 'Dynamo' ? '<div class="meta" style="color:#b45309;font-weight:700;white-space:nowrap;">Operador: ' + esc(c.operador) + '</div>' : '') +
+                        (c.operador && c.operador !== 'Dynamo' ? '<div class="meta" style="margin-top:2px;"><span class="op-chip" title="Envío gestionado con tu operador: ' + esc(c.operador) + '">' + esc(opChipNombre(c.operador)) + '</span></div>' : '') +
                         (c.modificadoEn && c.modificadoEn - (c.creadoEn || 0) > 60000
                             ? '<span class="ref-creado">(Modificado: ' + fmtCreado(c.modificadoEn) + ')</span>'
                             : (c.creadoEn ? '<span class="ref-creado">(Creado: ' + fmtCreado(c.creadoEn) + ')</span>' : '')) +
