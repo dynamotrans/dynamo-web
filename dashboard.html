@@ -134,6 +134,12 @@
         #opCompara .opc-line { font-size: 0.82rem; color: var(--gray-700); margin-top: 0.15rem; }
         #opCompara .opc-precio { color: var(--purple); font-size: 1rem; font-weight: 800; }
         #opCompara .opc-ahorro { color: #0f6b3a; font-weight: 700; }
+        #opCompara .opc-cta {
+            display: inline-block; margin-top: 0.35rem; border: none; cursor: pointer;
+            background: var(--purple); color: #fff; border-radius: 8px;
+            padding: 0.45rem 0.8rem; font-size: 0.78rem; font-weight: 800;
+        }
+        #opCompara .opc-cta:hover { filter: brightness(1.12); }
         /* Grupos desplegables "Otras gestiones" del sidebar (cliente y admin) */
         #sgOtrasBtn .sl-txt, #sgAdminBtn .sl-txt { flex: 1; white-space: nowrap; }
         #sgOtrasBtn .badge, #sgAdminBtn .badge { margin-left: 0.3rem; }
@@ -17521,7 +17527,9 @@
                         else if (diffC < 0) h += '<div class="opc-line" style="color:var(--gray-600);">Tu transportista es <strong>' + eur2(-diffC) + '</strong> más económico en esta carga.</div>';
                         else h += '<div class="opc-line" style="color:var(--gray-600);">Mismo precio que tu transportista.</div>';
                     }
-                    h += '<div class="opc-line" style="color:var(--gray-500);font-size:0.75rem;">Para enviarla con Dynamo, cambia el operador de transporte arriba del formulario.</div>';
+                    // CTA: un clic selecciona Dynamo como operador (opPick
+                    // repuebla fechas, quita el precio acordado y esta caja).
+                    h += '<div class="opc-line"><button type="button" class="opc-cta" onclick="opPick(\'Dynamo\')">Para enviarla con Dynamo, pulsa aquí</button> <span style="color:var(--gray-500);font-size:0.73rem;">se selecciona Dynamo como operador</span></div>';
                 }
                 box.innerHTML = h;
                 box.hidden = false;
