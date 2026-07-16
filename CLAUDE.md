@@ -154,6 +154,34 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-07-16 — Claude Code web (nube)
+
+> **Sesión multi-día (13–16 jul) del panel** (`dashboard.html` + `registro.html` + nueva `aceptar-carga.html`), todo en **preview** (`claude/sharp-dirac-E3UIO`) salvo UN cambio público a **main**: quitar **Finca/Agrícola** de los selectores del tarifador público (`index.html`, main `8740bd8`, con OK explícito; merge de vuelta a preview `f847560`). Estado final: preview `58d404e`.
+
+**VALIDADORES FISCALES UE** (`validaIdFiscal` + `bindFiscalValidation`, también en `registro.html`): checksum en vivo de DNI/NIE/CIF ES, PT, FR, IT, DE, AT, BE, NL, PL, LU, CH, DK, SE, FI, SI, SK, HR, HU, EE, EL, RO, GB, BG, CZ; países sin checksum público → aviso suave ámbar. **Registro público BLOQUEA** con ID inválido; **fichas admin (cliente/transportista/usuario) avisan pero NO bloquean**. Existencia real (VIES/AEAT) → backend (TODO).
+
+**PRECIOS / TARIFADOR**: mínimo **220 €** + **1,35 €/km** (mock) · **cortes DEFINITIVOS: fecha fija 12:00 · ventana 1-3 días 14:00** (corren a diario) · **factor de precio por cliente −20..+20%** sobre la base antes de IVA (ficha de cliente; Marbex −3 de demo; etiqueta ROJA "SOLO VISIBLE ADMIN — el cliente NUNCA ve este campo") · **desglose por punto del tipo de lugar** (Recogida 1 · Finca (+25%) — importe; finca→finca = partidas dobles/triples visibles) · almacenamiento: **reparto urbano radio máx. 20 km** del almacén (geocodifica, muestra distancia, bloquea si excede) · "Almacenes" (catálogo admin) → **"Almacenes Dynamo"**.
+
+**ENVÍOS**: columna **Cliente·CIF en 3º lugar** · pestaña nueva **"Pendiente confirmar almacén"** (1ª) en almacenamientos · **badges del sidebar** con contadores reales (naranja: sin asignar/abiertas/sin confirmar · rojo: pendientes de pago) · menú reordenado (**Envíos resaltado en verde suave**, Mapa tras Envíos, Operadores tras Sitios) · rol de prueba **Empleado** · fix **Cerrar sesión** del sidebar · **botones Cancelar** en almacenamiento, penalización e incidencia (con estado Cancelada/Anulada) · **pestañas en Penalizaciones** (Pendientes de confirmar/Confirmadas/Canceladas/Todas + confirmar/cancelar desde la ficha).
+
+**OPERADORES DE TRANSPORTE (catálogo privado del cliente)** — sección nueva (Dynamo = fila fija resaltada, no editable, "Ficha fija (no editable)."; el contador incluye a Dynamo). **Selector de operador DENTRO de Nuevo envío** con Dynamo por defecto (chip azul negativo); elegir otro operador cambia el flujo a **envío manual**: franja marrón + **chip marrón con el nombre del operador** en la tabla (en móvil también en la columna Recogida, la de Envío queda fuera de pantalla), badge gris estático, sin asignación/ofrecer/penalización Dynamo, filtro por operador. Textos: "vale para cualquier tipo: **operadores de transporte, empresas de transporte o transportistas autónomos**" + "**Dynamo no interviene en nada**…" (intro de la sección + modal de creación). Mock: 2 ejemplos con fechas cercanas (1ª página de Programadas).
+
+**ORDEN DE TRANSPORTE para envíos manuales (16 jul)** — servicio adicional gratuito: campo **"Precio acordado con tu transportista (sin IVA) · opcional"** (tabla "acordado", detalle con desglose, restaurado al Modificar) · **`buildOrdenPDF`**: orden de transporte en PDF **SIN NINGUNA mención a Dynamo** (ordenante=cliente, transportista=operador, ruta+horarios+paradas, fecha, mercancía, precio, indicaciones) · tras guardar → **ventana con 2 opciones**: *Enviar orden por email* (descarga el PDF para adjuntar + abre el correo al operador con el porte redactado; mailto no adjunta — el email con adjunto real es backend, en TODO) y *Guardar orden en PDF* (visor); mismos botones en el **detalle** del envío manual · crear manual abre la pestaña **Programadas** (donde SÍ está) · **BUG cazado**: el bloqueo anti-precio-0 (`btn-calc-wait`) dejaba "Crear envío" con spinner infinito en modo manual — arreglado (nunca se activa en manual).
+
+**ACEPTAR-CARGA.HTML** (nueva, solo preview, noindex): página del transportista para aceptar una carga ofrecida — datos del viaje por URL, **PAGO CONTADO**, formulario (empresa/CIF/matrículas/chófer/tfno/indicaciones) y check de **pronto pago a 48 h con −3% (mín. 15 €)**; `pp=0` la desactiva. Acción **"Ofrecer carga"** en el detalle (programadas sin transportista) genera el email/WhatsApp con el enlace.
+
+**DASHBOARD ADMIN**: widget de **línea de PRONTO PAGO** — barra de progreso concedido/total, **línea editable**, botón **encender/apagar manual**, lista de anticipos de los últimos 60 días; sin disponible (o apagado) las ofertas salen sin pronto pago (`pp=0`).
+
+**MAPA** (sección nueva): envíos EN CURSO sobre contorno de la península por **centroide de provincia (CP)** + fase del envío (manuales/entregados/cancelados no salen); clic → listado filtrado.
+
+**UI GLOBAL (16 jul)**: **✕ genérica para borrar de golpe** cualquier campo de texto libre (buscadores de todas las tablas, campos de fichas/modales, textareas) — solo visible con contenido, excluye combos con desplegable y calendarios; quitada la ✕ nativa de WebKit (doble cruz) · **VISTA CALENDARIO de envíos**: desplegable "Vista: Lista/Calendario" junto a +Nuevo envío; mes completo Lun-Dom con navegación **±3 meses** (botón "Mes actual"), mini-píldoras Origen→Destino coloreadas por estado (marrón=otro operador) con **"+N más"** al pasar de 3/día, clic → **detalle estándar** (`cargaRowData` acepta ref directa); buscador y filtro de operador siguen aplicando en el calendario.
+
+**OTROS**: sitios con **email de avisos** (borde verde, opcional, con explicación de para qué se usa) + nota de móvil/WhatsApp · fix doble-tap iOS en botones de subir documento del registro · dashboard cliente 50/50 con tarjeta **Recomiéndanos** (texto corto + 2 botones) · "Mis últimos envíos" con 3 filas.
+
+**Método**: todo verificado en Chromium headless (Nominatim/Nager mockeados por el proxy) con screenshots antes de cada commit; sin errores JS. **PR #1** (preview→main) vigilada: CI verde, **NUNCA mergearla** (regla 7).
+
+**Pendientes** (en TODO.md): backend de la orden por email con PDF adjunto de verdad (remitente del cliente, nunca dominio Dynamo visible) · VIES/AEAT · gating de roles (cliente NUNCA ve factor de precio, P. transportista, Margen, Cliente·CIF ni secciones admin) · esquema Holded 1:1 (MUY IMPORTANTE) · más contenido del Dashboard admin ("luego te digo todo" del usuario).
+
 ### 2026-07-12 — Claude Code web (nube)
 
 > **Sesión maratoniana del panel** (`dashboard.html`), todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Push automático activado por el usuario ("sube directo sin preguntar"). Estado final: preview `33bdf2f` (~20 commits del día).
