@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Aceptar carga · Dynamo Operador de Transportes</title>
+<link rel="icon" type="image/png" href="images/DYNAMO-NEW-LOGO.png">
+<link rel="apple-touch-icon" href="images/DYNAMO-NEW-LOGO.png">
+<style>
+    :root {
+        --purple: #3300cc; --purple-light: #5b2be0; --navy: #0a0230;
+        --green: #22a55a; --green-dark: #157a3f; --orange: #ff7a00;
+        --gray-100: #f7f8fa; --gray-200: #e8eaed; --gray-300: #d5d9e0;
+        --gray-500: #7a8194; --gray-700: #3f4759; --red: #dc2626;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; min-width: 0; }
+    html { overflow-x: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: var(--gray-100); color: var(--navy);
+        min-height: 100svh; padding: 1.2rem 1rem calc(2rem + env(safe-area-inset-bottom));
+        display: flex; flex-direction: column; align-items: center;
+    }
+    .card { background: #fff; border: 1px solid var(--gray-200); border-radius: 16px; padding: 1.3rem 1.2rem; width: 100%; max-width: 640px; box-shadow: 0 10px 34px rgba(10,2,48,0.07); }
+    .brand { display: flex; align-items: center; gap: 0.6rem; justify-content: center; margin-bottom: 0.9rem; }
+    .brand img { height: 40px; }
+    h1 { font-size: 1.25rem; text-align: center; margin-bottom: 0.2rem; }
+    .sub { text-align: center; color: var(--gray-500); font-size: 0.85rem; margin-bottom: 1rem; }
+    .viaje { background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.9rem 1rem; margin-bottom: 1rem; }
+    .viaje dt { font-size: 0.68rem; font-weight: 800; color: var(--gray-500); margin-top: 0.55rem; }
+    .viaje dt:first-child { margin-top: 0; }
+    .viaje dd { font-size: 0.92rem; font-weight: 700; }
+    .pago-contado { margin-top: 0.7rem; background: rgba(34,165,90,0.1); border: 1.5px solid var(--green); border-radius: 10px; padding: 0.6rem 0.75rem; font-size: 0.9rem; font-weight: 800; color: var(--green-dark); }
+    .pago-contado .imp { font-size: 1.25rem; }
+    label { display: block; font-size: 0.72rem; font-weight: 800; color: var(--gray-700); margin: 0.75rem 0 0.25rem; }
+    label .op { color: var(--gray-500); font-weight: 600; }
+    input[type=text], input[type=tel], textarea, select {
+        width: 100%; border: 1.5px solid var(--gray-300); border-radius: 10px;
+        padding: 0.65rem 0.75rem; font: inherit; font-size: 16px; color: var(--navy); background: #fff;
+    }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--purple); }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+    .telrow { display: flex; gap: 0.5rem; }
+    .telrow select { width: 108px; flex: none; }
+    textarea { min-height: 84px; resize: vertical; }
+    .err { border-color: var(--red) !important; }
+    .pronto { margin-top: 1rem; background: rgba(34,165,90,0.08); border: 1.5px solid var(--green); border-radius: 12px; padding: 0.8rem 0.9rem; }
+    .pronto label.chk { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.86rem; font-weight: 600; color: var(--navy); margin: 0; text-transform: none; }
+    .pronto input { width: 19px; height: 19px; flex: none; margin-top: 2px; accent-color: var(--green); }
+    .btn { width: 100%; margin-top: 1.1rem; background: var(--purple); color: #fff; border: none; border-radius: 12px; padding: 0.95rem; font: inherit; font-weight: 800; font-size: 1.02rem; cursor: pointer; }
+    .btn:hover { background: var(--purple-light); }
+    .aviso { font-size: 0.72rem; color: var(--gray-500); line-height: 1.5; margin-top: 0.7rem; text-align: center; }
+    .warn { display: none; margin-top: 0.7rem; background: #fdecec; border: 1px solid #f5b5b5; color: #b42318; border-radius: 10px; padding: 0.6rem 0.75rem; font-size: 0.82rem; font-weight: 700; }
+    .warn.show { display: block; }
+    .ok-screen { display: none; text-align: center; padding: 1.6rem 0.6rem; }
+    .ok-screen.show { display: block; }
+    .ok-ico { width: 74px; height: 74px; border-radius: 50%; background: rgba(34,165,90,0.14); color: var(--green); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.9rem; }
+    .foot { margin-top: 1rem; font-size: 0.75rem; color: var(--gray-500); text-align: center; }
+    .foot a { color: var(--purple); font-weight: 700; text-decoration: none; }
+</style>
+</head>
+<body>
+    <div class="card">
+        <div class="brand"><img src="images/2.png" alt="Dynamo"></div>
+        <div id="formScreen">
+            <h1>Aceptar carga</h1>
+            <p class="sub">Oferta de <strong>Dynamo Operador de Transportes</strong> · <strong style="color:var(--green-dark);">PAGO CONTADO</strong></p>
+
+            <dl class="viaje" id="viajeBox">
+                <dt>Envío</dt><dd id="v-ref">—</dd>
+                <dt>Recogida</dt><dd id="v-orig">—</dd>
+                <dt>Entrega</dt><dd id="v-dest">—</dd>
+                <dt>Fecha de carga</dt><dd id="v-fecha">—</dd>
+                <dt>Mercancía</dt><dd id="v-merc">—</dd>
+                <div class="pago-contado" id="v-pago" hidden>💶 <span class="imp" id="v-imp"></span> · PAGO CONTADO</div>
+            </dl>
+
+            <label for="f-empresa">Empresa transportista *</label>
+            <input type="text" id="f-empresa" placeholder="Razón social">
+            <label for="f-cif">CIF / NIF *</label>
+            <input type="text" id="f-cif" placeholder="B12345678">
+            <div class="row2">
+                <div>
+                    <label for="f-tractora">Matrícula tractora *</label>
+                    <input type="text" id="f-tractora" placeholder="1234ABC" autocapitalize="characters">
+                </div>
+                <div>
+                    <label for="f-remolque">Matrícula remolque <span class="op">· si aplica</span></label>
+                    <input type="text" id="f-remolque" placeholder="R5678DEF" autocapitalize="characters">
+                </div>
+            </div>
+            <label for="f-chofer">Nombre del chófer *</label>
+            <input type="text" id="f-chofer" placeholder="Nombre y apellidos">
+            <label for="f-tfno">Teléfono del chófer *</label>
+            <div class="telrow">
+                <select id="f-pref">
+                    <option value="+34" selected>🇪🇸 +34</option>
+                    <option value="+351">🇵🇹 +351</option>
+                    <option value="+33">🇫🇷 +33</option>
+                    <option value="+49">🇩🇪 +49</option>
+                    <option value="+39">🇮🇹 +39</option>
+                    <option value="+40">🇷🇴 +40</option>
+                    <option value="+48">🇵🇱 +48</option>
+                    <option value="+31">🇳🇱 +31</option>
+                    <option value="+32">🇧🇪 +32</option>
+                </select>
+                <input type="tel" id="f-tfno" placeholder="600 000 000" inputmode="tel">
+            </div>
+            <label for="f-notas">Indicaciones <span class="op">· opcional</span></label>
+            <textarea id="f-notas" placeholder="Ej. disponibilidad, restricciones, observaciones del vehículo…"></textarea>
+
+            <div class="pronto">
+                <label class="chk">
+                    <input type="checkbox" id="f-pronto">
+                    <span><strong>Quiero PRONTO PAGO:</strong> cobro a <strong>48&nbsp;h tras finalizar el servicio</strong> con un <strong>descuento del 3%</strong> (mínimo 15&nbsp;€).</span>
+                </label>
+            </div>
+
+            <div class="warn" id="fWarn">⚠ Revisa los campos marcados: son obligatorios.</div>
+            <button type="button" class="btn" onclick="aceptar()">Aceptar carga</button>
+            <p class="aviso">Al aceptar, el equipo de Dynamo verificará los datos y te confirmará la asignación por teléfono o WhatsApp. La carga no queda adjudicada hasta esa confirmación.</p>
+        </div>
+
+        <div class="ok-screen" id="okScreen">
+            <div class="ok-ico"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+            <h1>¡Carga aceptada!</h1>
+            <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br>El equipo de Dynamo te confirmará la asignación en breve.<br><span id="ok-pronto" hidden>✅ Has elegido <strong>pronto pago 48&nbsp;h (−3%, mín. 15&nbsp;€)</strong>.</span></p>
+            <p class="foot">¿Dudas? <a href="tel:+34955225945">+34 955 225 945</a> · <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a></p>
+        </div>
+    </div>
+    <p class="foot"><a href="https://dynamotrans.com">dynamotrans.com</a></p>
+
+<script>
+    // Datos del viaje desde la URL (los pone el enlace de la oferta). Si no
+    // vienen, se muestran valores de demostración.
+    (function () {
+        function q(k, def) { var v = new URLSearchParams(location.search).get(k); return v || def; }
+        document.getElementById('v-ref').textContent   = q('envio', '#GX000000 (demo)');
+        document.getElementById('v-orig').textContent  = q('o', 'Sevilla');
+        document.getElementById('v-dest').textContent  = q('d', 'Madrid');
+        document.getElementById('v-fecha').textContent = q('f', 'Por confirmar');
+        document.getElementById('v-merc').textContent  = q('m', 'Paletizado');
+        var p = q('p', '');
+        if (p) {
+            document.getElementById('v-imp').textContent = p;
+            document.getElementById('v-pago').hidden = false;
+        }
+    })();
+    // Matrículas: solo letras y números, en mayúsculas.
+    ['f-tractora', 'f-remolque'].forEach(function (id) {
+        var el = document.getElementById(id);
+        el.addEventListener('input', function () {
+            el.value = el.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+        });
+    });
+    function aceptar() {
+        var req = ['f-empresa', 'f-cif', 'f-tractora', 'f-chofer', 'f-tfno'];
+        var ok = true;
+        req.forEach(function (id) {
+            var el = document.getElementById(id);
+            var bad = !el.value.trim();
+            el.classList.toggle('err', bad);
+            if (bad) ok = false;
+        });
+        var warn = document.getElementById('fWarn');
+        warn.classList.toggle('show', !ok);
+        if (!ok) { document.querySelector('.err').scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+        // MOCKUP: aquí el backend registrará la aceptación (envío, datos del
+        // transportista, matrículas, chófer y pronto pago) y avisará al equipo.
+        document.getElementById('ok-ref').textContent = document.getElementById('v-ref').textContent;
+        document.getElementById('ok-pronto').hidden = !document.getElementById('f-pronto').checked;
+        document.getElementById('formScreen').style.display = 'none';
+        document.getElementById('okScreen').classList.add('show');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+</body>
+</html>

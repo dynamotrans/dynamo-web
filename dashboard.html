@@ -9379,6 +9379,73 @@
     // dentro de cada estado pone primero las acciones más relevantes para
     // ese momento del envío. "Repetir envío" aparece siempre porque
     // cualquier carga puede repetirse (independientemente del estado).
+    // ==================== OFERTA DE CARGA A TRANSPORTISTAS ====================
+    // Mensaje listo para email/WhatsApp: PAGO CONTADO + enlace a la página de
+    // aceptación (aceptar-carga.html) donde el transportista rellena sus datos
+    // (empresa, matrículas, chófer y teléfono) y puede marcar PRONTO PAGO
+    // (cobro a 48 h tras finalizar con −3%, mín. 15 €).
+    function openOfrecerCarga(ref) {
+        var c = (typeof findCargaDataByRef === 'function') ? findCargaDataByRef(ref) : null;
+        if (!c) return;
+        cargaPrecios(c);
+        var pt = c.precioTransportista;
+        var f = c.fechaAsignada ? c.fechaAsignada.split(' ')[0] : c.fecha;
+        var fTxt = (f && f !== 'Sin fecha') ? fechaConDia(f) + (c.ventana && !c.fechaAsignada && !/fija/i.test(c.ventana) ? ' · ventana ' + c.ventana : '') : 'por confirmar';
+        var oTxt = ciudadDir(c.origen, c.origenDir), dTxt = ciudadDir(c.destino, c.destinoDir);
+        var mTxt = (c.mercancia ? c.mercancia + ' · ' : '') + medidasTn(c.medidas);
+        var link = location.origin + location.pathname.replace(/[^\/]*$/, '') + 'aceptar-carga.html' +
+            '?envio=' + encodeURIComponent(c.ref) +
+            '&o=' + encodeURIComponent(oTxt) +
+            '&d=' + encodeURIComponent(dTxt) +
+            '&f=' + encodeURIComponent(fTxt) +
+            '&m=' + encodeURIComponent(mTxt) +
+            (pt ? '&p=' + encodeURIComponent(eur2(pt)) : '');
+        var msg = 'DYNAMO — OFERTA DE CARGA (PAGO CONTADO)\n\n' +
+            'Envío ' + c.ref + '\n' +
+            'Recogida: ' + oTxt + '\n' +
+            'Entrega: ' + dTxt + '\n' +
+            'Fecha de carga: ' + fTxt + '\n' +
+            'Mercancía: ' + mTxt + '\n' +
+            (pt ? 'Importe: ' + eur2(pt) + ' — PAGO CONTADO\n' : '') +
+            '\n¿Te interesa? ACEPTA LA CARGA y rellena tus datos (empresa, matrículas y chófer) aquí:\n' + link + '\n\n' +
+            'PRONTO PAGO opcional: cobro a 48 h tras finalizar el servicio con un 3% de descuento (mínimo 15 €).\n\n' +
+            'Dynamo Operador de Transportes · +34 955 225 945 · info@dynamotrans.com';
+        openDashModal({
+            icon: 'truck',
+            title: 'Ofrecer carga ' + c.ref,
+            sub: 'Mensaje para transportistas — pago contado',
+            body:
+                '<p style="font-size:0.88rem;line-height:1.5;color:var(--gray-700);margin-bottom:0.7rem;">Envía esta oferta por <strong>WhatsApp o email</strong> (puedes editarla antes). El enlace abre la página de <strong>aceptación</strong> donde el transportista rellena empresa, matrículas, chófer y teléfono, y puede marcar <strong>pronto pago 48&nbsp;h (−3%, mín. 15&nbsp;€)</strong>.</p>' +
+                '<textarea id="ofertaTxt" rows="13" style="width:100%;box-sizing:border-box;padding:0.7rem 0.8rem;border:1.5px solid var(--gray-200);border-radius:10px;font:inherit;font-size:0.83rem;color:var(--navy);resize:vertical;">' + escapeHtml(msg) + '</textarea>' +
+                '<div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.8rem;">' +
+                    '<button type="button" class="btn-primary" style="flex:1;min-width:180px;background:#25D366;border-color:#25D366;" onclick="ofrecerPor(\'wa\')">Enviar por WhatsApp</button>' +
+                    '<button type="button" class="btn-primary" style="flex:1;min-width:180px;" onclick="ofrecerPor(\'email\')">Enviar por email</button>' +
+                '</div>' +
+                '<div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.6rem;">' +
+                    '<button type="button" class="btn-secondary" style="flex:1;min-width:180px;" onclick="ofrecerPor(\'copiar\')" id="ofertaCopyBtn">Copiar el mensaje</button>' +
+                    '<a class="btn-secondary" style="flex:1;min-width:180px;text-align:center;text-decoration:none;" href="' + escapeHtml(link) + '" target="_blank" rel="noopener">Ver página de aceptación →</a>' +
+                '</div>',
+            footer: '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>'
+        });
+        window._ofertaRef = c.ref;
+    }
+    window.openOfrecerCarga = openOfrecerCarga;
+    function ofrecerPor(via) {
+        var t = document.getElementById('ofertaTxt');
+        var msg = (t && t.value.trim()) || '';
+        if (!msg) return;
+        if (via === 'wa') {
+            window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+        } else if (via === 'email') {
+            window.location.href = 'mailto:?subject=' + encodeURIComponent('Oferta de carga Dynamo (pago contado) — ' + (window._ofertaRef || '')) + '&body=' + encodeURIComponent(msg.replace(/\n/g, '\r\n'));
+        } else {
+            var btn = document.getElementById('ofertaCopyBtn');
+            function done() { if (btn) { btn.textContent = '✓ Copiado'; setTimeout(function () { btn.textContent = 'Copiar el mensaje'; }, 1800); } }
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(msg).then(done, done);
+            else { if (t) { t.select(); try { document.execCommand('copy'); } catch (e) {} } done(); }
+        }
+    }
+    window.ofrecerPor = ofrecerPor;
     function cargaDetailActions(d, row) {
         var ref = escapeHtml(d.ref);
         function b(cls, action, label, iconName, extraStyle) {
@@ -9427,6 +9494,13 @@
             var asigLbl = (src.transportistaAsignado || src.transportistaNombre) ? 'Cambiar transportista' : 'Asignar transportista';
             var asigBtn = '<button class="' + (asigLbl === 'Asignar transportista' ? 'btn-primary' : 'btn-secondary') + '" onclick="closeDashModal();openAsignarTransportista(\'' + ref + '\')">' + icon('truck') + asigLbl + '</button>';
             if (asigLbl === 'Asignar transportista') btns.unshift(asigBtn); else btns.push(asigBtn);
+        }
+        // OFRECER CARGA a transportistas (uso interno/admin): genera el
+        // mensaje de email/WhatsApp con PAGO CONTADO y el enlace a la página
+        // de aceptación. Solo en programadas SIN transportista asignado.
+        if (kind === 'programada' && !isPrevision && !src.manual && !(src.transportistaAsignado || src.transportistaNombre)) {
+            btns.push('<button class="btn-secondary" onclick="closeDashModal();openOfrecerCarga(\'' + ref + '\')">' +
+                '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:0.35rem;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Ofrecer carga (transportistas)</button>');
         }
         // CREAR PENALIZACIÓN (uso interno/admin; al montar el gating se
         // ocultará al cliente): abre el modal de penalización con este
