@@ -3618,10 +3618,14 @@
         /* Modo envío (por defecto): SOLO "Crear envío" (a lo ancho). El botón
            "Guardar presupuesto" se oculta en este flujo. */
         #sec-nueva-carga[data-entry-mode="envio"] .ptar-actions-main [data-ptar-save-presupuesto],
+        #sec-nueva-carga[data-entry-mode="manual"] .ptar-actions-main [data-ptar-save-presupuesto],
         #sec-nueva-carga:not([data-entry-mode]) .ptar-actions-main [data-ptar-save-presupuesto] {
             display: none;
         }
+        /* "Crear envío" a lo ancho también en modo MANUAL (sin esto quedaba
+           pequeño y a la izquierda, en media columna del grid). */
         #sec-nueva-carga[data-entry-mode="envio"] .ptar-actions-main [data-ptar-submit],
+        #sec-nueva-carga[data-entry-mode="manual"] .ptar-actions-main [data-ptar-submit],
         #sec-nueva-carga:not([data-entry-mode]) .ptar-actions-main [data-ptar-submit] {
             grid-column: 1 / -1;
         }
@@ -4766,14 +4770,6 @@
                         <ul class="ptar-sug alm-combo-list" id="opList" hidden></ul>
                     </div>
                     <div class="alm-note" id="opNotaManual" hidden style="margin-top:0.45rem;">Envío gestionado con <strong>tu propio operador de transporte</strong> — Dynamo no interviene. Al guardar podrás generar la <strong>orden de transporte</strong> (PDF o email) para tu transportista, sin ninguna mención a Dynamo. Gestiona tu catálogo en la sección <strong>Operadores de transporte</strong>.</div>
-                    <!-- Precio acordado con SU transportista (solo modo manual):
-                         opcional, para que el cliente tenga todo a mano y salga
-                         en la orden de transporte. Dynamo no lo usa para nada. -->
-                    <div id="opPrecioField" hidden style="margin-top:0.6rem;">
-                        <label for="opPrecioInput" style="display:block;font-size:0.8rem;font-weight:700;color:var(--gray-600);margin-bottom:0.3rem;">Precio acordado con tu transportista (sin IVA) · <span style="font-weight:600;color:var(--gray-500);">opcional</span></label>
-                        <input type="text" id="opPrecioInput" inputmode="decimal" autocomplete="off" placeholder="Ej. 540,00 € (base sin IVA)" style="width:100%;height:44px;border:1.5px solid var(--gray-300);border-radius:10px;padding:0 0.8rem;font-size:0.95rem;font-weight:600;color:var(--navy);background:#fff;">
-                        <div style="margin-top:0.3rem;font-size:0.75rem;color:var(--gray-500);line-height:1.45;">Solo para tu control: se muestra en tu listado y en la orden de transporte. Dynamo no interviene en este precio.</div>
-                    </div>
                 </div>
                 <div class="ptar-section-head">Ruta</div>
                 <div class="ptar-field ptar-field-full">
@@ -4956,6 +4952,15 @@
                     <label class="ptar-admin-precio-lbl" for="ptar-precio-manual-carga">Precio manual (base sin IVA)</label>
                     <input type="number" id="ptar-precio-manual-carga" data-ptar-precio-manual min="0" step="10" inputmode="decimal" placeholder="En blanco → se aplica el precio del tarifador">
                     <p class="ptar-admin-precio-note">Si fijas un importe, se omite el del tarifador y el envío queda con precio «fijado a mano».</p>
+                </div>
+                <!-- Precio acordado con SU transportista (solo modo manual):
+                     opcional, para que el cliente tenga todo a mano y salga
+                     en la orden de transporte. Va AL FINAL, justo antes del
+                     botón Crear envío. Dynamo no lo usa para nada. -->
+                <div class="ptar-field ptar-field-full" id="opPrecioField" hidden>
+                    <label for="opPrecioInput" style="display:block;font-size:0.8rem;font-weight:700;color:var(--gray-600);margin-bottom:0.3rem;">Precio acordado con tu transportista (sin IVA) · <span style="font-weight:600;color:var(--gray-500);">opcional</span></label>
+                    <input type="text" id="opPrecioInput" inputmode="decimal" autocomplete="off" placeholder="Ej. 540,00 € (base sin IVA)" style="width:100%;height:44px;border:1.5px solid var(--gray-300);border-radius:10px;padding:0 0.8rem;font-size:0.95rem;font-weight:600;color:var(--navy);background:#fff;">
+                    <div style="margin-top:0.3rem;font-size:0.75rem;color:var(--gray-500);line-height:1.45;">Solo para tu control: se muestra en tu listado y en la orden de transporte. Dynamo no interviene en este precio.</div>
                 </div>
                 <div class="ptar-warning" data-ptar-warning role="alert">⚠ Introduce el origen y el destino antes de continuar.</div>
                 <div class="ptar-actions ptar-actions-main">
@@ -7844,6 +7849,9 @@
         // A modo manual: liberar el bloqueo "calculando precio" si estaba
         // activo (con otro operador no hay precio Dynamo que esperar).
         if (!esDynamo && window.__ptarSetCalcWait) window.__ptarSetCalcWait(false);
+        // Repoblar el desplegable de fechas según el modo: en manual no hay
+        // cortes (hoy siempre disponible) y entran también findes/festivos.
+        if (window.__ptarRefillDias) __ptarRefillDias();
         var nota = document.getElementById('opNotaManual');
         if (nota) nota.hidden = esDynamo;
         // Campo "precio acordado" (opcional): solo con OTRO operador. Al
@@ -16096,6 +16104,13 @@
         // Es la hora límite para que HOY pueda ser el primer día de carga.
         function corteDe(windowVal) { return windowVal === 'dia' ? 12 * 60 : 14 * 60; }
         function corteLabelDe(windowVal) { return windowVal === 'dia' ? '12:00' : '14:00'; }
+        // Envío MANUAL (otro operador): los cortes NO aplican — el transporte
+        // lo pone SU transportista con sus propias reglas. Fecha libre desde
+        // el día presente en adelante (también findes y festivos).
+        function __esManualEntry() {
+            var s = document.getElementById('sec-nueva-carga');
+            return !!(s && s.dataset.entryMode === 'manual');
+        }
         function firstLoadDate(windowVal) {
             // Primera fecha ofertada (hora Madrid). El CORTE (12:00 fecha fija ·
             // 14:00 ventana 1-3) es la HORA LÍMITE para pedir el SIGUIENTE día
@@ -16111,6 +16126,7 @@
             //     la fecha elegida: las 2 primeras disponibles llevan +100 €.)
             var now = nowMadrid();
             var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            if (__esManualEntry()) return today;   // manual: HOY siempre, sin corte
             var minsNow = now.getHours() * 60 + now.getMinutes();
             var cutMin = corteDe(windowVal);
             var antesDelCorte = minsNow < cutMin;
@@ -16122,8 +16138,9 @@
         }
         function loadDates(windowVal, count) {
             var d = firstLoadDate(windowVal), out = [];
+            var manual = __esManualEntry();   // manual: también findes/festivos
             while (out.length < count) {
-                if (!nonBiz(d)) out.push(new Date(d));
+                if (manual || !nonBiz(d)) out.push(new Date(d));
                 d.setDate(d.getDate() + 1);
             }
             return out;
@@ -17387,6 +17404,9 @@
             function updateCutoffNote() {
                 var el = card.querySelector('[data-ptar-cutoff-note]');
                 if (!el || !urgenciaSel) return;
+                // Envío MANUAL (otro operador): los cortes no aplican — su
+                // transportista pone sus reglas. Sin nota.
+                if (entryModeDe() === 'manual') { el.hidden = true; return; }
                 // Con una fecha concreta ya elegida, el aviso del corte sobra: se oculta.
                 if (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) { el.hidden = true; return; }
                 var uv = urgenciaSel.value;
@@ -17423,6 +17443,14 @@
                 }
                 el.innerHTML = html;
                 el.hidden = false;
+            }
+            // opPick (global) repuebla las fechas al cambiar de operador:
+            // en manual entran HOY + findes/festivos y sin nota de corte.
+            if (mode === 'carga') {
+                window.__ptarRefillDias = function () {
+                    if (diaSel) fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'estandar');
+                    updateCutoffNote();
+                };
             }
             // ÚLTIMO PRECIO de esta misma ruta para el cliente (referencia
             // interna, junto al hueco de precio manual). Coincidencia por CP
