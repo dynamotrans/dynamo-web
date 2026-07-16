@@ -9412,32 +9412,90 @@
     // (48 h tras finalizar, −3%, mín. 15 €). Si el disponible se agota, la
     // opción deja de ofrecerse en las nuevas ofertas de carga ("no disponible
     // temporalmente"). Mock en memoria; en producción vendrá de tesorería.
-    var PRONTO_PAGO = { total: 50000, usado: 18400 };
-    function prontoPagoDisponible() { return Math.max(0, PRONTO_PAGO.total - PRONTO_PAGO.usado); }
-    function prontoPagoActivo() { return prontoPagoDisponible() >= 15; }   // mínimo operativo (15 €)
+    var PRONTO_PAGO = { total: 50000, manualOff: false };
+    // Anticipos CON pronto pago marcado (mock): importe del servicio,
+    // descuento aplicado (3%, mín. 15 €) y lo realmente anticipado. Solo
+    // computan (y se muestran) los de los ÚLTIMOS 60 DÍAS.
+    var PP_ANTICIPOS = [
+        { dias: 4,  envio: '#GX684871', transportista: 'Trans Andalucía 24h',       importe: 640 },
+        { dias: 11, envio: '#GX684853', transportista: 'Transportes Beltrán S.L.',  importe: 980 },
+        { dias: 19, envio: '#GX684812', transportista: 'Frío Levante Express',      importe: 415 },
+        { dias: 27, envio: '#GX684790', transportista: 'Trans Andalucía 24h',       importe: 1240 },
+        { dias: 38, envio: '#GX684741', transportista: 'Cargas del Norte S.L.',     importe: 760 },
+        { dias: 52, envio: '#GX684702', transportista: 'Transportes Beltrán S.L.',  importe: 15365 },
+        { dias: 74, envio: '#GX684655', transportista: 'Frío Levante Express',      importe: 890 }   // > 60 días → NO computa
+    ];
+    function ppDto(importe) { return Math.max(Math.round(importe * 0.03 * 100) / 100, 15); }
+    function ppAnticipos60() { return PP_ANTICIPOS.filter(function (a) { return a.dias <= 60; }); }
+    function prontoPagoUsado() { return ppAnticipos60().reduce(function (s, a) { return s + (a.importe - ppDto(a.importe)); }, 0); }
+    function prontoPagoDisponible() { return Math.max(0, PRONTO_PAGO.total - prontoPagoUsado()); }
+    function prontoPagoActivo() { return !PRONTO_PAGO.manualOff && prontoPagoDisponible() >= 15; }   // mínimo operativo (15 €)
+    function ppToggle() { PRONTO_PAGO.manualOff = !PRONTO_PAGO.manualOff; renderProntoPago(); }
+    window.ppToggle = ppToggle;
+    function ppEditarLinea() {
+        var box = document.getElementById('ppLineaEdit'); if (box) box.hidden = !box.hidden;
+        var inp = document.getElementById('ppLineaInput'); if (inp && !box.hidden) { inp.value = PRONTO_PAGO.total; inp.focus(); }
+    }
+    window.ppEditarLinea = ppEditarLinea;
+    function ppGuardarLinea() {
+        var inp = document.getElementById('ppLineaInput');
+        var v = inp ? Number(inp.value) : NaN;
+        if (!isNaN(v) && v >= 0) PRONTO_PAGO.total = Math.round(v);
+        renderProntoPago();
+    }
+    window.ppGuardarLinea = ppGuardarLinea;
     function renderProntoPago() {
         var box = document.getElementById('ppWidget'); if (!box) return;
-        var disp = prontoPagoDisponible();
-        var pct = PRONTO_PAGO.total > 0 ? Math.min(100, Math.round(PRONTO_PAGO.usado / PRONTO_PAGO.total * 100)) : 100;
+        var usado = prontoPagoUsado(), disp = prontoPagoDisponible();
+        var pct = PRONTO_PAGO.total > 0 ? Math.min(100, Math.round(usado / PRONTO_PAGO.total * 100)) : 100;
         var col = pct < 70 ? 'var(--green)' : (pct < 90 ? '#d97706' : 'var(--red)');
         var activo = prontoPagoActivo();
+        var ant = ppAnticipos60();
+        var estado;
+        if (PRONTO_PAGO.manualOff) {
+            estado = '<div style="margin-top:0.8rem;padding:0.6rem 0.75rem;background:#fdecec;border:1px solid #f5b5b5;border-radius:9px;font-size:0.84rem;font-weight:700;color:#b42318;">⏸ PRONTO PAGO APAGADO MANUALMENTE — las nuevas ofertas de carga salen SIN la opción hasta volver a encenderlo.</div>';
+        } else if (!activo) {
+            estado = '<div style="margin-top:0.8rem;padding:0.6rem 0.75rem;background:#fdecec;border:1px solid #f5b5b5;border-radius:9px;font-size:0.84rem;font-weight:700;color:#b42318;">⛔ NO DISPONIBLE TEMPORALMENTE — línea agotada: las nuevas ofertas de carga saldrán SIN la opción de pronto pago hasta liberar saldo.</div>';
+        } else {
+            estado = '<div style="margin-top:0.8rem;padding:0.6rem 0.75rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:9px;font-size:0.84rem;font-weight:700;color:#0f6b3a;">✅ PRONTO PAGO ACTIVO — se ofrece a los transportistas en las ofertas de carga (48 h tras finalizar · −3% · mín. 15 €).</div>';
+        }
         box.innerHTML =
-            '<div style="display:flex;gap:0.8rem;flex-wrap:wrap;margin-bottom:0.8rem;">' +
-                '<div style="flex:1;min-width:150px;"><label style="font-size:0.7rem;font-weight:800;color:var(--gray-500);">Línea total (€)</label>' +
-                    '<input type="number" min="0" step="1000" value="' + PRONTO_PAGO.total + '" onchange="PRONTO_PAGO.total=Math.max(0,Number(this.value)||0);renderProntoPago();"></div>' +
-                '<div style="flex:1;min-width:150px;"><label style="font-size:0.7rem;font-weight:800;color:var(--gray-500);">Concedido en curso (€)</label>' +
-                    '<input type="number" min="0" step="100" value="' + PRONTO_PAGO.usado + '" onchange="PRONTO_PAGO.usado=Math.max(0,Number(this.value)||0);renderProntoPago();"></div>' +
+            // Interruptor manual + línea total con botón Editar
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:0.8rem;flex-wrap:wrap;margin-bottom:0.8rem;">' +
+                '<button type="button" class="btn-primary" style="' + (PRONTO_PAGO.manualOff
+                    ? 'background:var(--green);border:1.5px solid var(--green);color:#fff;'
+                    : 'background:#fff;border:1.5px solid #f5b5b5;color:#b42318;') + '" onclick="ppToggle()">' +
+                    (PRONTO_PAGO.manualOff ? '▶ Encender pronto pago' : '⏸ Apagar pronto pago') + '</button>' +
+                '<div style="font-size:0.86rem;color:var(--gray-700);">Línea total: <strong>' + eur2(PRONTO_PAGO.total) + '</strong> ' +
+                    '<button type="button" class="btn-ghost" style="padding:0.2rem 0.6rem;font-size:0.78rem;" onclick="ppEditarLinea()">✎ Editar línea</button></div>' +
+            '</div>' +
+            '<div id="ppLineaEdit" hidden style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.8rem;">' +
+                '<input type="number" id="ppLineaInput" min="0" step="1000" style="max-width:180px;" value="' + PRONTO_PAGO.total + '">' +
+                '<button type="button" class="btn-primary" style="padding:0.45rem 0.9rem;" onclick="ppGuardarLinea()">Guardar</button>' +
+                '<span style="font-size:0.72rem;color:var(--gray-500);">Amplía o minora la línea según tesorería.</span>' +
             '</div>' +
             '<div style="height:14px;border-radius:999px;background:var(--gray-200);overflow:hidden;">' +
                 '<div style="height:100%;width:' + pct + '%;background:' + col + ';border-radius:999px;transition:width 0.4s;"></div>' +
             '</div>' +
             '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.4rem;margin-top:0.45rem;font-size:0.8rem;color:var(--gray-700);">' +
-                '<span>Concedido: <strong>' + eur2(PRONTO_PAGO.usado) + '</strong> (' + pct + '%)</span>' +
-                '<span>Disponible: <strong style="color:' + (activo ? 'var(--green-dark)' : 'var(--red)') + ';">' + eur2(disp) + '</strong> de ' + eur2(PRONTO_PAGO.total) + '</span>' +
+                '<span>Anticipado (últ. 60 días): <strong>' + eur2(usado) + '</strong> (' + pct + '%)</span>' +
+                '<span>Disponible: <strong style="color:' + (disp >= 15 ? 'var(--green-dark)' : 'var(--red)') + ';">' + eur2(disp) + '</strong> de ' + eur2(PRONTO_PAGO.total) + '</span>' +
             '</div>' +
-            (activo
-                ? '<div style="margin-top:0.8rem;padding:0.6rem 0.75rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:9px;font-size:0.84rem;font-weight:700;color:#0f6b3a;">✅ PRONTO PAGO ACTIVO — se ofrece a los transportistas en las ofertas de carga (48 h tras finalizar · −3% · mín. 15 €).</div>'
-                : '<div style="margin-top:0.8rem;padding:0.6rem 0.75rem;background:#fdecec;border:1px solid #f5b5b5;border-radius:9px;font-size:0.84rem;font-weight:700;color:#b42318;">⛔ NO DISPONIBLE TEMPORALMENTE — línea agotada: las nuevas ofertas de carga saldrán SIN la opción de pronto pago hasta liberar saldo.</div>');
+            estado +
+            // Anticipos de los últimos 60 días (los que marcaron pronto pago)
+            '<h4 style="margin:1.1rem 0 0.4rem;font-size:0.86rem;">Anticipos con pronto pago · últimos 60 días (' + ant.length + ')</h4>' +
+            ant.map(function (a) {
+                var dto = ppDto(a.importe), neto = a.importe - dto;
+                var d = new Date(); d.setDate(d.getDate() - a.dias);
+                return '<div style="display:flex;align-items:center;gap:0.7rem;flex-wrap:wrap;border:1px solid var(--gray-200);border-radius:9px;padding:0.45rem 0.7rem;margin-bottom:0.35rem;font-size:0.8rem;">' +
+                    '<span style="color:var(--gray-500);min-width:86px;">' + esc(fechaConDia(('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + String(d.getFullYear()).slice(-2))) + '</span>' +
+                    '<strong>' + esc(a.envio) + '</strong>' +
+                    '<span style="flex:1;min-width:120px;color:var(--gray-700);">' + esc(a.transportista) + '</span>' +
+                    '<span>Servicio: <strong>' + eur2(a.importe) + '</strong></span>' +
+                    '<span style="color:#b42318;">Dto: −' + eur2(dto) + '</span>' +
+                    '<span style="color:var(--green-dark);">Anticipado: <strong>' + eur2(neto) + '</strong></span>' +
+                '</div>';
+            }).join('');
     }
     window.renderProntoPago = renderProntoPago;
     // ==================== OFERTA DE CARGA A TRANSPORTISTAS ====================
@@ -9481,7 +9539,7 @@
             sub: 'Mensaje para transportistas — pago contado',
             body:
                 '<p style="font-size:0.88rem;line-height:1.5;color:var(--gray-700);margin-bottom:0.7rem;">Envía esta oferta por <strong>WhatsApp o email</strong> (puedes editarla antes). El enlace abre la página de <strong>aceptación</strong> donde el transportista rellena empresa, matrículas, chófer y teléfono' + (ppOn ? ', y puede marcar <strong>pronto pago 48&nbsp;h (−3%, mín. 15&nbsp;€)</strong>.' : '.') + '</p>' +
-                (ppOn ? '' : '<div style="margin-bottom:0.7rem;padding:0.55rem 0.7rem;background:#fdecec;border:1px solid #f5b5b5;border-radius:9px;font-size:0.8rem;font-weight:700;color:#b42318;">⛔ PRONTO PAGO no disponible temporalmente (línea agotada): esta oferta sale SIN esa opción. Revísalo en Dashboard admin.</div>') +
+                (ppOn ? '' : '<div style="margin-bottom:0.7rem;padding:0.55rem 0.7rem;background:#fdecec;border:1px solid #f5b5b5;border-radius:9px;font-size:0.8rem;font-weight:700;color:#b42318;">⛔ PRONTO PAGO no disponible (línea agotada o apagado manualmente): esta oferta sale SIN esa opción. Revísalo en Dashboard admin.</div>') +
                 '<textarea id="ofertaTxt" rows="13" style="width:100%;box-sizing:border-box;padding:0.7rem 0.8rem;border:1.5px solid var(--gray-200);border-radius:10px;font:inherit;font-size:0.83rem;color:var(--navy);resize:vertical;">' + escapeHtml(msg) + '</textarea>' +
                 '<div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.8rem;">' +
                     '<button type="button" class="btn-primary" style="flex:1;min-width:180px;background:#25D366;border-color:#25D366;" onclick="ofrecerPor(\'wa\')">Enviar por WhatsApp</button>' +
