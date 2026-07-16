@@ -17563,11 +17563,12 @@
                 var wO = card.querySelector('[data-ptar-orig-wrap]'), wD = card.querySelector('[data-ptar-dest-wrap]');
                 var rutaOk = !!(wO && wO.dataset.lat && wD && wD.dataset.lat);
                 var nuestro = rutaOk ? precioDynamoActual() : 0;
+                // Sin los datos estrictamente necesarios para calcular un
+                // precio, la caja NO aparece (nada de textos guía): solo se
+                // muestra cuando hay precio que enseñar.
                 if (!nuestro) {
                     clearTimeout(opcTimer); opcShown = 0;
-                    box.innerHTML = '<div class="opc-title">Comparativa con Dynamo</div>' +
-                        '<div class="opc-line" style="color:var(--gray-500);">Al indicar origen, destino y fecha te mostramos aquí el <strong>precio Dynamo</strong> de esta misma carga, para que compares.</div>';
-                    box.hidden = false;
+                    box.hidden = true;
                     return;
                 }
                 // Precio NUEVO → efecto "calculando" (skeleton ~0,9 s) y después
