@@ -1837,6 +1837,23 @@
         .dash-left-col { display: flex; flex-direction: column; gap: 0.7rem; height: 100%; }
         .dash-left-col > .dash-cta-stack { flex: 1 1 50%; min-height: 0; }
         .dash-left-col > .dash-recomienda { flex: 1 1 50%; margin-top: 0; }
+        /* Onboarding de cuenta nueva (dashboard): pasos guiados */
+        .onb-steps { display: flex; flex-direction: column; gap: 0.5rem; }
+        .onb-step {
+            display: flex; gap: 0.7rem; align-items: flex-start; text-align: left;
+            background: var(--gray-100); border: 1px solid var(--gray-200);
+            border-radius: 11px; padding: 0.65rem 0.8rem; cursor: pointer; width: 100%;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .onb-step:hover { background: rgba(51,0,204,0.06); border-color: rgba(51,0,204,0.3); }
+        .onb-num {
+            flex: none; width: 26px; height: 26px; border-radius: 50%;
+            background: var(--purple); color: #fff; font-weight: 800; font-size: 0.85rem;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .onb-txt { font-size: 0.82rem; color: var(--gray-700); line-height: 1.45; }
+        .onb-step.onb-done { opacity: 0.78; }
+        .onb-step.onb-done .onb-num { background: var(--green, #22a55a); }
         /* Recomiéndanos (dashboard): tarjeta fina con CTA */
         .dash-recomienda { display: flex; align-items: center; gap: 0.9rem; background: #fff; border: 1px solid var(--gray-200); border-radius: 14px; padding: 0.9rem 1.1rem; margin-top: 1rem; }
         .dash-recomienda-icon { width: 42px; height: 42px; border-radius: 11px; background: rgba(51,0,204,0.08); color: var(--purple); display: flex; align-items: center; justify-content: center; flex: none; }
@@ -4307,6 +4324,27 @@
 
     <!-- ==================== DASHBOARD ==================== -->
     <section class="section active" id="sec-dashboard">
+        <!-- ONBOARDING de cuenta nueva: guía de primeros pasos. Solo aparece
+             cuando la cuenta NO tiene envíos (recién dada de alta). Se puede
+             previsualizar con ?fresh=1 (vacía los datos del mock). -->
+        <div id="dashOnboarding" hidden style="background:#fff;border:1.5px solid rgba(51,0,204,0.25);border-radius:14px;padding:1rem 1.1rem;margin-bottom:1rem;">
+            <div style="font-weight:800;color:var(--navy);font-size:1.02rem;">👋 Bienvenido a tu portal Dynamo</div>
+            <p style="margin:0.25rem 0 0.7rem;font-size:0.84rem;color:var(--gray-600);">Tres pasos y tienes tu primer transporte en marcha:</p>
+            <div class="onb-steps">
+                <button type="button" class="onb-step" data-onb="sitio" onclick="showSection('sitios')">
+                    <span class="onb-num" data-n="1">1</span>
+                    <span class="onb-txt"><strong>Crea tu primer sitio</strong><br>Tu agenda de recogidas y entregas: empresa, dirección, horario y teléfono. Lo eliges con un clic en cada envío.</span>
+                </button>
+                <button type="button" class="onb-step" data-onb="envio" onclick="openNuevaCarga('envio')">
+                    <span class="onb-num" data-n="2">2</span>
+                    <span class="onb-txt"><strong>Calcula el precio y crea tu primer envío</strong><br>Origen, destino y fecha: precio al momento, sin llamadas ni esperas.</span>
+                </button>
+                <button type="button" class="onb-step" data-onb="transportista" onclick="showSection('operadores')">
+                    <span class="onb-num" data-n="3">3</span>
+                    <span class="onb-txt"><strong>Añade tus transportistas (opcional)</strong><br>Registra también los envíos que hagas con otros transportistas y tenlo todo unificado.</span>
+                </button>
+            </div>
+        </div>
         <!-- Fila: [Nuevo envío + Nueva gestión (50%) · Recomiéndanos (50%)] · Mis últimos envíos -->
         <div class="dash-top-row dash-top-2">
             <div class="dash-left-col">
@@ -4349,6 +4387,8 @@
                 <div class="dash-recomienda-text">
                     <h4>Recomiéndanos</h4>
                     <p>Si te hemos ayudado,<br>Por favor recomiéndanos ¡Gracias!</p>
+                    <!-- Ahorro acumulado del año (mock; backend real) -->
+                    <p class="dash-ahorro-anio" style="margin-top:0.35rem;font-size:0.82rem;font-weight:700;color:#0f6b3a;">Este año has ahorrado <span data-ahorro-anio>—</span> enviando con Dynamo.</p>
                 </div>
                 <div class="dash-recomienda-btns">
                     <button type="button" class="btn-primary" onclick="abrirRecomendar()">Recomendar Dynamo</button>
@@ -4885,6 +4925,21 @@
                     </label>
                     <label class="ptar-tramp-box">
                         <input type="checkbox" data-ptar-nima class="ptar-switch-input">
+                        <span class="ptar-switch" aria-hidden="true"></span>
+                        <span class="ptar-tramp-state" aria-hidden="true"><span class="tramp-off">No (más económico)</span><span class="tramp-on">Sí (más caro)</span></span>
+                    </label>
+                </div>
+                </div>
+
+                <div class="ptar-pair">
+                <div class="ptar-field">
+                    <label class="ptar-label ptar-has-tip" tabindex="0">
+                        Mercancía ADR
+                        <svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
+                        <span class="ptar-tip-pop" role="tooltip">ADR: mercancías peligrosas (inflamables, corrosivos, aerosoles…). Requiere vehículo y conductor certificados. <strong>Supone un sobrecoste (+40%).</strong></span>
+                    </label>
+                    <label class="ptar-tramp-box">
+                        <input type="checkbox" data-ptar-adr class="ptar-switch-input">
                         <span class="ptar-switch" aria-hidden="true"></span>
                         <span class="ptar-tramp-state" aria-hidden="true"><span class="tramp-off">No (más económico)</span><span class="tramp-on">Sí (más caro)</span></span>
                     </label>
@@ -6574,11 +6629,191 @@
                 '<div style="font-size:0.76rem;color:var(--gray-500);line-height:1.5;margin-bottom:0.3rem;">Al enviar por email se descarga también el PDF de la orden para que lo adjuntes al mensaje. Podrás volver a generar la orden cuando quieras desde el detalle del envío.</div>',
             actions:
                 '<button class="btn-primary" onclick="cargaOrdenEmail(\'' + escapeHtml(ref) + '\')">' + SVG_ORDEN_MAIL + 'Enviar orden por email</button>' +
-                '<button class="btn-secondary" onclick="cargaOrdenPDF(\'' + escapeHtml(ref) + '\')">' + SVG_ORDEN_PDF + 'Guardar orden en PDF</button>',
+                '<button class="btn-secondary" onclick="cargaOrdenPDF(\'' + escapeHtml(ref) + '\')">' + SVG_ORDEN_PDF + 'Guardar orden en PDF</button>' +
+                '<button class="btn-secondary" onclick="cargaCMRPDF(\'' + escapeHtml(ref) + '\', true)">' + SVG_ORDEN_PDF + 'Descargar CMR relleno</button>',
             footer: '<button class="btn-secondary" onclick="closeDashModal()" style="flex:1;">Cerrar</button>'
         });
     }
     window.openOrdenGuardadaModal = openOrdenGuardadaModal;
+    /* ===== CMR RELLENO (PDF) =====
+       Carta de porte con los datos del envío ya cumplimentados, para
+       descargar o mandar al transportista junto a la orden de carga (que
+       la imprima en cabina u oficina antes de ir a cargar). Remitente =
+       cliente · porteador = Dynamo (envíos nuestros) o el operador del
+       cliente (envíos manuales, SIN mención a Dynamo). Demo simplificada
+       del formulario CMR oficial. */
+    function buildCMRPDF(c, forceDownload) {
+        c = c || {};
+        var W = 595.28, H = 841.89, mL = 40, mR = 555;
+        var WIN = { 'á': '\\341', 'é': '\\351', 'í': '\\355', 'ó': '\\363', 'ú': '\\372', 'ü': '\\374', 'ñ': '\\361', 'Á': '\\301', 'É': '\\311', 'Í': '\\315', 'Ó': '\\323', 'Ú': '\\332', 'Ñ': '\\321', '·': '\\267', 'º': '\\272', 'ª': '\\252', '€': '\\200', '–': '\\226', '—': '\\227' };
+        function enc(s) {
+            s = String(s == null ? '' : s); var o = '';
+            for (var i = 0; i < s.length; i++) {
+                var ch = s.charAt(i), code = s.charCodeAt(i);
+                if (ch === '(' || ch === ')' || ch === '\\') o += '\\' + ch;
+                else if (WIN[ch]) o += WIN[ch];
+                else if (code >= 32 && code < 127) o += ch;
+                else o += '?';
+            }
+            return o;
+        }
+        var ops = [];
+        function fill(r, g, b) { ops.push(r + ' ' + g + ' ' + b + ' rg'); }
+        function ty(t) { return (H - t).toFixed(1); }
+        function text(x, top, str, size, bold, col) {
+            col = col || [0, 0, 0]; fill(col[0], col[1], col[2]);
+            ops.push('BT /' + (bold ? 'F2' : 'F1') + ' ' + size + ' Tf ' + x.toFixed(1) + ' ' + ty(top) + ' Td (' + enc(str) + ') Tj ET');
+        }
+        function rectS(x, top, w, h) { ops.push('0.35 w 0.45 0.48 0.55 RG ' + x.toFixed(1) + ' ' + (H - top - h).toFixed(1) + ' ' + w.toFixed(1) + ' ' + h.toFixed(1) + ' re S'); }
+        function wrap(str, max) {
+            var words = String(str).split(' '), lines = [], cur = '';
+            for (var i = 0; i < words.length; i++) {
+                var t = cur ? cur + ' ' + words[i] : words[i];
+                if (t.length > max && cur) { lines.push(cur); cur = words[i]; } else cur = t;
+            }
+            if (cur) lines.push(cur); return lines;
+        }
+        var NAVY = [0.07, 0.09, 0.18], GRAY = [0.42, 0.45, 0.50], RED = [0.72, 0.13, 0.13];
+        // Caja numerada estilo CMR: cabecera pequeña gris + contenido.
+        function caja(x, top, w, h, num, titulo, lineas, maxChars) {
+            rectS(x, top, w, h);
+            text(x + 5, top + 11, num + '. ' + titulo, 6.5, true, GRAY);
+            var yy = top + 23;
+            (lineas || []).forEach(function (l) {
+                if (!l) return;
+                wrap(l.t, maxChars || Math.floor(w / 4.6)).forEach(function (ln) {
+                    text(x + 5, yy, ln, l.s || 8.5, !!l.b, l.c || NAVY);
+                    yy += 11;
+                });
+            });
+        }
+        var now = new Date();
+        function dd(x) { return ('0' + x).slice(-2); }
+        var fechaEm = dd(now.getDate()) + '/' + dd(now.getMonth() + 1) + '/' + now.getFullYear();
+        // Remitente = cliente del panel; destinatario = empresa de la entrega.
+        var cli = null;
+        for (var ci = 0; ci < CLIENTES_DATA.length; ci++) if (CLIENTES_DATA[ci].empresa === CLIENTE_ACTUAL) { cli = CLIENTES_DATA[ci]; break; }
+        cli = cli || { empresa: CLIENTE_ACTUAL };
+        var sDest = (typeof siteDe === 'function' && c.destinoSite) ? (siteDe(c.destinoSite) || {}) : {};
+        var sOrig = (typeof siteDe === 'function' && c.origenSite) ? (siteDe(c.origenSite) || {}) : {};
+        var dirEntrega = (typeof ciudadDir === 'function' ? ciudadDir(c.destino, c.destinoDir) : (c.destino || '')) || '';
+        var dirRecogida = (typeof ciudadDir === 'function' ? ciudadDir(c.origen, c.origenDir) : (c.origen || '')) || '';
+        // Porteador: el operador del cliente (manual) o Dynamo (envío nuestro).
+        var porteador;
+        if (c.manual && c.operador && c.operador !== 'Dynamo') {
+            var opC = null;
+            for (var oi = 0; oi < OPERADORES_DATA.length; oi++) if (OPERADORES_DATA[oi].nombre === c.operador) { opC = OPERADORES_DATA[oi]; break; }
+            porteador = { nombre: c.operador, cif: opC ? opC.cif : null, tfno: opC ? opC.tfno : null };
+        } else {
+            porteador = { nombre: 'Dynamo Operador de Transportes', cif: 'B01596360', tfno: '+34 955 225 945' };
+        }
+        // ---- Cabecera ----
+        text(mL, 32, 'CARTA DE PORTE · CMR', 15, true, NAVY);
+        text(mL, 46, 'Cumplimentada con los datos del envío — lista para imprimir y firmar', 8, false, GRAY);
+        text(mR - 150, 32, 'Nº DE ENVÍO', 7, true, GRAY);
+        text(mR - 150, 44, c.ref || '—', 11, true, NAVY);
+        text(mR - 150, 56, 'Emitida: ' + fechaEm, 7.5, false, GRAY);
+        var colW = (mR - mL - 6) / 2, xR = mL + colW + 6;
+        // ---- Columna izquierda ----
+        caja(mL, 66, colW, 62, '1', 'REMITENTE (nombre, domicilio, país)', [
+            { t: cli.empresa, b: true }, { t: 'CIF ' + (cli.cif || '—'), s: 8 },
+            { t: [cli.dir, cli.cp, cli.ciudad, cli.pais].filter(Boolean).join(' · '), s: 8, c: GRAY }
+        ]);
+        caja(mL, 132, colW, 62, '2', 'DESTINATARIO (nombre, domicilio, país)', [
+            { t: sDest.empresa || '—', b: true },
+            { t: dirEntrega, s: 8, c: GRAY }
+        ]);
+        caja(mL, 198, colW, 48, '3', 'LUGAR PREVISTO DE ENTREGA', [
+            { t: dirEntrega, s: 8.5 },
+            { t: c.horarioDestino ? 'Horario: ' + c.horarioDestino : '', s: 8, c: GRAY }
+        ]);
+        caja(mL, 250, colW, 48, '4', 'LUGAR Y FECHA DE CARGA', [
+            { t: dirRecogida, s: 8.5 },
+            { t: (typeof fechaConDia === 'function' ? fechaConDia(c.fecha) : (c.fecha || '—')) + (c.horarioOrigen ? ' · ' + c.horarioOrigen : ''), s: 8, c: GRAY }
+        ]);
+        caja(mL, 302, colW, 34, '5', 'DOCUMENTOS ANEXOS', [{ t: c.refCli && c.refCli.indexOf('NUEVO') === -1 ? 'Ref. ' + c.refCli : '—', s: 8 }]);
+        // ---- Columna derecha ----
+        caja(xR, 66, colW, 62, '16', 'PORTEADOR (nombre, domicilio, país)', [
+            { t: porteador.nombre, b: true },
+            { t: porteador.cif ? 'CIF ' + porteador.cif : '', s: 8 },
+            { t: porteador.tfno || '', s: 8, c: GRAY }
+        ]);
+        caja(xR, 132, colW, 62, '17', 'PORTEADORES SUCESIVOS', [
+            { t: c.transportistaNombre || '—', b: !!c.transportistaNombre },
+            { t: c.matricula ? 'Matrícula: ' + c.matricula + (c.matriculaRemolque ? ' · ' + c.matriculaRemolque : '') : '', s: 8 },
+            { t: c.conductor ? 'Conductor: ' + c.conductor : '', s: 8, c: GRAY }
+        ]);
+        caja(xR, 198, colW, 100, '18', 'RESERVAS Y OBSERVACIONES DEL PORTEADOR', c.adr ? [
+            { t: 'MERCANCÍA ADR (peligrosa)', b: true, c: RED, s: 9 }
+        ] : []);
+        caja(xR, 302, colW, 34, '19', 'ESTIPULACIONES PARTICULARES', [{ t: c.discrecion ? 'Discreción comercial' : '—', s: 8 }]);
+        // ---- Mercancía (6-12, a lo ancho) ----
+        rectS(mL, 340, mR - mL, 64);
+        text(mL + 5, 351, '6-12. MARCAS · Nº BULTOS · CLASE DE EMBALAJE · NATURALEZA DE LA MERCANCÍA · PESO BRUTO', 6.5, true, GRAY);
+        text(mL + 5, 366, c.mercancia || '—', 9.5, true, NAVY);
+        text(mL + 5, 380, 'Ocupación: ' + (c.medidas || '—'), 8.5, false, NAVY);
+        if (c.adr) text(mL + 5, 394, 'MERCANCÍA ADR — transporte sujeto al Acuerdo ADR', 8.5, true, RED);
+        // ---- 13 Instrucciones ----
+        rectS(mL, 408, mR - mL, 50);
+        text(mL + 5, 419, '13. INSTRUCCIONES DEL REMITENTE', 6.5, true, GRAY);
+        var notasC = c.anotaciones || c.notas || '';
+        wrap(notasC || '—', 110).slice(0, 3).forEach(function (ln, i2) { text(mL + 5, 432 + i2 * 11, ln, 8.5, false, NAVY); });
+        // ---- 21 Formalización ----
+        rectS(mL, 462, mR - mL, 34);
+        text(mL + 5, 473, '21. FORMALIZADA EN', 6.5, true, GRAY);
+        text(mL + 5, 487, (cli.ciudad || '—') + ' · ' + fechaEm, 8.5, false, NAVY);
+        // ---- Firmas (22-24) ----
+        var fW = (mR - mL - 12) / 3;
+        [['22', 'FIRMA Y SELLO DEL REMITENTE'], ['23', 'FIRMA Y SELLO DEL PORTEADOR'], ['24', 'RECIBÍ (destinatario · fecha y firma)']].forEach(function (fx, i3) {
+            var x0 = mL + i3 * (fW + 6);
+            rectS(x0, 500, fW, 96);
+            text(x0 + 5, 511, fx[0] + '. ' + fx[1], 6.2, true, GRAY);
+        });
+        // ---- Pie ----
+        var pie = 'CMR cumplimentado a partir de los datos del envío ' + (c.ref || '') + ' · ' + fechaEm;
+        text(mL, 620, pie, 7.5, false, GRAY);
+        // ---- Ensamblado ----
+        var stream = ops.join('\n');
+        var objs = [
+            '<</Type/Catalog/Pages 2 0 R>>',
+            '<</Type/Pages/Count 1/Kids[3 0 R]>>',
+            '<</Type/Page/Parent 2 0 R/MediaBox[0 0 ' + W.toFixed(2) + ' ' + H.toFixed(2) + ']/Contents 4 0 R/Resources<</Font<</F1 5 0 R/F2 6 0 R>>>>>>',
+            '<</Length ' + stream.length + '>>\nstream\n' + stream + '\nendstream',
+            '<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>',
+            '<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold/Encoding/WinAnsiEncoding>>'
+        ];
+        var pdf = '%PDF-1.4\n', offsets = [], i4;
+        for (i4 = 0; i4 < objs.length; i4++) { offsets.push(pdf.length); pdf += (i4 + 1) + ' 0 obj\n' + objs[i4] + '\nendobj\n'; }
+        var xrefPos = pdf.length;
+        pdf += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n';
+        for (i4 = 0; i4 < offsets.length; i4++) pdf += ('0000000000' + offsets[i4]).slice(-10) + ' 00000 n \n';
+        pdf += 'trailer<</Size ' + (objs.length + 1) + '/Root 1 0 R>>\nstartxref\n' + xrefPos + '\n%%EOF';
+        var bytes = new Uint8Array(pdf.length);
+        for (i4 = 0; i4 < pdf.length; i4++) bytes[i4] = pdf.charCodeAt(i4) & 0xFF;
+        var blob = new Blob([bytes], { type: 'application/pdf' });
+        var urlC = URL.createObjectURL(blob);
+        var fnameC = 'CMR-' + String(c.ref || 'envio').replace(/[^A-Za-z0-9-]/g, '') + '.pdf';
+        if (forceDownload) {
+            var aC = document.createElement('a');
+            aC.href = urlC; aC.download = fnameC;
+            document.body.appendChild(aC); aC.click();
+            setTimeout(function () { document.body.removeChild(aC); }, 100);
+        } else {
+            var winC = window.open(urlC, '_blank');
+            if (!winC) {
+                var aC2 = document.createElement('a');
+                aC2.href = urlC; aC2.download = fnameC;
+                document.body.appendChild(aC2); aC2.click();
+                setTimeout(function () { document.body.removeChild(aC2); }, 100);
+            }
+        }
+        setTimeout(function () { URL.revokeObjectURL(urlC); }, 60000);
+    }
+    function cargaCMRPDF(ref, descargar) {
+        var c = (typeof findCargaDataByRef === 'function') ? findCargaDataByRef(ref) : null;
+        if (c) buildCMRPDF(c, !!descargar);
+    }
+    window.cargaCMRPDF = cargaCMRPDF;
     // --- Documentos adjuntos: comportamiento COMÚN en toda la plataforma ---
     // Pulsar un documento lo abre en el visor (pestaña nueva); pulsar su ×
     // pide confirmación ANTES de borrarlo. Se usa en envíos, transportistas,
@@ -7707,7 +7942,30 @@
         // Agregados del grupo "Otras gestiones" (visibles con el grupo cerrado)
         setBadge('otras', nInc + nSinconf);
         setBadge('otras-pago', nAlmPago);
+        // El onboarding de cuenta nueva se re-evalúa con cada cambio de datos.
+        if (window.renderOnboarding) renderOnboarding();
     }
+    // ===== ONBOARDING de cuenta nueva (dashboard): visible solo sin envíos
+    // (o en modo ?fresh=1). Cada paso se marca ✓ al completarse. =====
+    function renderOnboarding() {
+        var box = document.getElementById('dashOnboarding');
+        if (!box) return;
+        var sinEnvios = (typeof CARGAS_DATA === 'undefined') || CARGAS_DATA.length === 0;
+        var mostrar = !!window.__freshMode || sinEnvios;
+        box.hidden = !mostrar;
+        if (!mostrar) return;
+        function marca(key, done) {
+            var el = box.querySelector('[data-onb="' + key + '"]');
+            if (!el) return;
+            el.classList.toggle('onb-done', !!done);
+            var n = el.querySelector('.onb-num');
+            if (n) n.textContent = done ? '✓' : (n.getAttribute('data-n') || '');
+        }
+        marca('sitio', typeof SITES_CUSTOM !== 'undefined' && Object.keys(SITES_CUSTOM).length > 0);
+        marca('envio', typeof CARGAS_DATA !== 'undefined' && CARGAS_DATA.length > 0);
+        marca('transportista', typeof OPERADORES_DATA !== 'undefined' && OPERADORES_DATA.length > 0);
+    }
+    window.renderOnboarding = renderOnboarding;
     // Desplegables "Otras gestiones" del sidebar (uno en el área cliente y
     // otro en Gestión interna · Admin). force=true abre; sin arg, alterna.
     function __toggleSidebarGrupo(btnId, subId, force) {
@@ -10210,6 +10468,13 @@
         // envíos manuales (Dynamo no interviene en esos transportes).
         if (!src.manual) btns.push('<button class="btn-secondary" onclick="closeDashModal();openNuevaPenalizacion(null,\'' + ref + '\')">' +
             '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:0.35rem;"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>Crear penalización</button>');
+        // CMR RELLENO (PDF): carta de porte con los datos del envío ya
+        // cumplimentados, para imprimir/firmar o mandarla al transportista
+        // junto a la orden de carga. Disponible en cualquier envío vivo.
+        if (kind !== 'cancelada') {
+            btns.push('<button class="btn-secondary" onclick="cargaCMRPDF(\'' + ref + '\')">' +
+                '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:0.35rem;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>CMR relleno (PDF)</button>');
+        }
         // "Repetir envío" siempre disponible: cualquier envío (incluso
         // cancelado o entregado hace tiempo) puede usarse como plantilla
         // para una carga nueva. Va al final salvo en entregada donde es la
@@ -13021,6 +13286,14 @@
     }
     // Cliente del portal (la cuenta logueada). Con backend saldrá del perfil.
     var CLIENTE_ACTUAL = 'Marbex Industrial S.L.';
+    // AHORRO ACUMULADO del año enviando con Dynamo (mock, en € base sin IVA):
+    // en producción lo calculará el backend comparando el precio Dynamo con
+    // las referencias de mercado / los precios acordados con terceros.
+    var AHORRO_DYNAMO_ANIO = 4320;
+    (function () {
+        var elA = document.querySelector('[data-ahorro-anio]');
+        if (elA) elA.textContent = eur2(AHORRO_DYNAMO_ANIO);
+    })();
     // Factor de precio del cliente activo (%): ajuste comercial −20..+20 que se
     // aplica a la base imponible del tarifador (antes de IVA). En producción el
     // cliente del envío vendrá del contexto; aquí usamos el cliente logueado.
@@ -15737,6 +16010,19 @@
             c.creadoEn = d.getTime();
         });
     })();
+    // ===== MODO CUENTA NUEVA (?fresh=1): simula un cliente recién dado de
+    // alta, SIN datos, para previsualizar el ONBOARDING guiado del
+    // dashboard ("crea tu primer sitio → tu primer envío"). Solo demo:
+    // con backend, el onboarding saldrá solo para cuentas sin actividad. =====
+    window.__freshMode = /[?&]fresh=1/.test(location.search);
+    if (window.__freshMode) {
+        CARGAS_DATA.length = 0;
+        if (typeof ALMACENES_DATA !== 'undefined') ALMACENES_DATA.length = 0;
+        if (typeof INCIDENCIAS_DATA !== 'undefined') INCIDENCIAS_DATA.length = 0;
+        if (typeof PENALIZACIONES_DATA !== 'undefined') PENALIZACIONES_DATA.length = 0;
+        if (typeof FACTURAS_DATA !== 'undefined') FACTURAS_DATA.length = 0;
+        if (typeof OPERADORES_DATA !== 'undefined') OPERADORES_DATA.length = 0;
+    }
     refreshStatCargasActivas();
 
     // Contador de incidencias ABIERTAS en la campana de la topbar. Una
@@ -16776,6 +17062,9 @@
             // NIMA (residuos): no cambia el camión, solo suma al precio.
             var nimaChk = card.querySelector('[data-ptar-nima]');
             if (nimaChk) nimaChk.addEventListener('change', renderEta);
+            // ADR (mercancías peligrosas): +40% sobre el subtotal (demo).
+            var adrChk = card.querySelector('[data-ptar-adr]');
+            if (adrChk) adrChk.addEventListener('change', renderEta);
             mlSel.addEventListener('change', function () { mlSel.classList.remove('ptar-select-error'); renderOcupacion(); syncGrupajeVentana(); renderEta(); });
             pesoSel.addEventListener('change', function () { pesoSel.classList.remove('ptar-select-error'); renderOcupacion(); syncGrupajeVentana(); renderEta(); });
 
@@ -17111,19 +17400,23 @@
                 //  Carga por techo (+15%) · Trampilla elevadora (+60 €) · NIMA (+50 €).
                 var trampOn = card.querySelector('[data-ptar-trampilla]');
                 var nimaOn  = card.querySelector('[data-ptar-nima]');
+                var adrOn   = card.querySelector('[data-ptar-adr]');
                 var techoOn = !!(cargaTipoSel && /techo/i.test(cargaTipoSel.value));
                 var techoExtra = techoOn ? Math.round(envioNeto * 0.15 / 10) * 10 : 0;
                 var trampExtra = (trampOn && trampOn.checked) ? 60 : 0;
                 var nimaExtra  = (nimaOn && nimaOn.checked) ? 50 : 0;
+                // ADR (mercancías peligrosas): +40% sobre el subtotal (demo).
+                var adrExtra   = (adrOn && adrOn.checked) ? Math.round(envioNeto * 0.40 / 10) * 10 : 0;
                 card.dataset.techoOn    = techoOn ? '1' : '0';
                 card.dataset.trampExtra = String(trampExtra);
                 card.dataset.nimaExtra  = String(nimaExtra);
+                card.dataset.adrExtra   = String(adrExtra);
                 // Fecha fija (+15%) sobre el subtotal (envío + suplementos) y
                 // preaviso corto (plano: 150 € hoy · 100 € los 2 hábiles
                 // siguientes). Se guardan para la confirmación.
                 card.dataset.fijaPct  = String(uv === 'dia' ? 0.15 : 0);
                 card.dataset.fijaFlat = String(uv === 'dia' ? preavisoFlat : 0);
-                var subAntesFija = envioNeto + techoExtra + trampExtra + nimaExtra;
+                var subAntesFija = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra;
                 var fijaExtra = (uv === 'dia') ? Math.round(subAntesFija * 0.15 / 10) * 10 : 0;
                 var preavisoExtra = (uv === 'dia') ? preavisoFlat : 0;
                 // Desglose: Importe de envío + recargos por tipo de sitio (uno por
@@ -17133,11 +17426,12 @@
                 if (techoExtra) extras.push({ k: 'Carga por techo', v: techoExtra });
                 if (trampExtra) extras.push({ k: 'Trampilla elevadora', v: trampExtra });
                 if (nimaExtra)  extras.push({ k: 'NIMA', v: nimaExtra });
+                if (adrExtra)   extras.push({ k: 'Mercancía ADR (+40%)', v: adrExtra });
                 if (fijaExtra)  extras.push({ k: 'Fecha fija', v: fijaExtra });
                 if (preavisoExtra) extras.push({ k: 'Preaviso urgente', v: preavisoExtra });
                 var detalle = tipoLines.concat(extras);
                 var precioRows = detalle.length ? [{ k: 'Importe de envío', v: envioBase }].concat(detalle) : [];
-                precio = envioNeto + techoExtra + trampExtra + nimaExtra + fijaExtra + preavisoExtra; // base imponible
+                precio = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra + fijaExtra + preavisoExtra; // base imponible
                 // Arranca en el número que se está mostrando AHORA (no en lastPrice)
                 // para que la animación encadene aunque renderEta se llame 2 veces.
                 var shownEl = etaBox.querySelector('[data-price-neto]');
@@ -17511,9 +17805,10 @@
                 var techoExtra = card.dataset.techoOn === '1' ? Math.round(envioNeto * 0.15 / 10) * 10 : 0;
                 var trampExtra = parseInt(card.dataset.trampExtra || '0', 10) || 0;
                 var nimaExtra = parseInt(card.dataset.nimaExtra || '0', 10) || 0;
+                var adrExtraC = parseInt(card.dataset.adrExtra || '0', 10) || 0;
                 var fijaPct = parseFloat(card.dataset.fijaPct || '0') || 0;
                 var flat = parseInt(card.dataset.fijaFlat || '0', 10) || 0;
-                var sub = envioNeto + techoExtra + trampExtra + nimaExtra;
+                var sub = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtraC;
                 return sub + (fijaPct > 0 ? Math.round(sub * fijaPct / 10) * 10 : 0) + flat;
             }
             // Efecto CONTADOR propio de la comparativa (raf independiente del
@@ -17548,6 +17843,10 @@
                     if (diffC > 0) h += '<div class="opc-line opc-ahorro">Con Dynamo ahorrarías <strong>' + eur2(diffC) + '</strong> respecto al precio de tu transportista.</div>';
                     else if (diffC < 0) h += '<div class="opc-line" style="color:var(--gray-600);">Tu transportista es <strong>' + eur2(-diffC) + '</strong> más económico en esta carga.</div>';
                     else h += '<div class="opc-line" style="color:var(--gray-600);">Mismo precio que tu transportista.</div>';
+                }
+                // Ahorro ACUMULADO del año (mock): refuerzo comercial.
+                if (typeof AHORRO_DYNAMO_ANIO !== 'undefined' && AHORRO_DYNAMO_ANIO > 0) {
+                    h += '<div class="opc-line" style="color:#0f6b3a;font-size:0.76rem;">Este año llevas ahorrados <strong>' + eur2(AHORRO_DYNAMO_ANIO) + '</strong> enviando con Dynamo.</div>';
                 }
                 // CTA: un clic selecciona Dynamo como operador (opPick
                 // repuebla fechas, quita el precio acordado y esta caja).
@@ -17681,6 +17980,8 @@
                 if (tramp) tramp.checked = false;
                 var nima = card.querySelector('[data-ptar-nima]');
                 if (nima) nima.checked = false;
+                var adrR = card.querySelector('[data-ptar-adr]');
+                if (adrR) adrR.checked = false;
                 applyCamion();
                 if (diaSel) { fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'estandar'); syncNofechaWarn(); }
                 urgenciaSel.value = 'estandar';
@@ -17889,6 +18190,7 @@
                     orig: orig, dest: dest, origCorto: origCorto, destCorto: destCorto,
                     mercaTxt: mercaTxt, mercanciaShort: mercanciaShort,
                     nima: !!(nimaChk && nimaChk.checked),
+                    adr: !!(adrChk && adrChk.checked),
                     urgenciaTxt: urgenciaTxt, urgenciaLabel: urgenciaSel_label,
                     fechaTxt: fechaTxt, fechaLarga: fechaLarga,
                     fechaIso: (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) ? diaSel.value : null,
@@ -17930,9 +18232,10 @@
                 });
                 var tO = card.querySelector('[data-ptar-tipoorig]'), tD = card.querySelector('[data-ptar-tipodest]');
                 var tr = card.querySelector('[data-ptar-trampilla]'), ni = card.querySelector('[data-ptar-nima]');
+                var adrS = card.querySelector('[data-ptar-adr]');
                 return [pts.join('|'), mlSel.value, pesoSel.value,
                     mercaSel ? mercaSel.value : '', cargaTipoSel ? cargaTipoSel.value : '',
-                    camionSel.value, (tr && tr.checked) ? 1 : 0, (ni && ni.checked) ? 1 : 0,
+                    camionSel.value, (tr && tr.checked) ? 1 : 0, (ni && ni.checked) ? 1 : 0, (adrS && adrS.checked) ? 1 : 0,
                     tO ? tO.value : '', tD ? tD.value : '',
                     urgenciaSel ? urgenciaSel.value : '', diaSel ? diaSel.value : ''].join('~');
             }
@@ -18054,6 +18357,8 @@
                     // la whitelist de makeCarga → se pone aquí).
                     var discChk = document.querySelector('#sec-nueva-carga [data-ptar-discrecion]');
                     nuevaCarga.discrecion = !!(discChk && discChk.checked);
+                    // ADR (mercancía peligrosa): se guarda en el envío (detalle y CMR).
+                    nuevaCarga.adr = !!d.adr;
                     // Desglose del precio cliente (para el mini-editor de la tabla).
                     nuevaCarga._rowsCli = (d.precioRows || []).map(function (r) { return { k: r.k, v: r.v }; });
                     if (!nuevaCarga._rowsCli.length) nuevaCarga._rowsCli = [{ k: 'Importe de envío', v: precioNum }];
@@ -18276,13 +18581,15 @@
                 var techoExtra = techoOn ? Math.round(envioNeto * 0.15 / 10) * 10 : 0;
                 var trampExtra = parseInt(card.dataset.trampExtra || '0', 10) || 0;
                 var nimaExtra  = parseInt(card.dataset.nimaExtra || '0', 10) || 0;
-                var subAntesFija = envioNeto + techoExtra + trampExtra + nimaExtra;
+                var adrExtra   = parseInt(card.dataset.adrExtra || '0', 10) || 0;
+                var subAntesFija = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra;
                 var fijaExtra = fijaPct > 0 ? Math.round(subAntesFija * fijaPct / 10) * 10 : 0;
-                var precio = envioNeto + techoExtra + trampExtra + nimaExtra + fijaExtra + flat;
+                var precio = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra + fijaExtra + flat;
                 var extras = [];
                 if (techoExtra) extras.push({ k: 'Carga por techo', v: techoExtra });
                 if (trampExtra) extras.push({ k: 'Trampilla elevadora', v: trampExtra });
                 if (nimaExtra)  extras.push({ k: 'NIMA', v: nimaExtra });
+                if (adrExtra)   extras.push({ k: 'Mercancía ADR (+40%)', v: adrExtra });
                 if (fijaExtra)  extras.push({ k: 'Fecha fija', v: fijaExtra });
                 if (flat)       extras.push({ k: 'Preaviso urgente', v: flat });
                 var detalle = tipoLines.concat(extras);
@@ -18532,6 +18839,7 @@
                     '<dt>Tipo de camión</dt><dd>' + escapeHtml(d.camionLabel) + '</dd>' +
                     (d.mercaTxt ? '<dt>Mercancía</dt><dd>' + escapeHtml(d.mercaTxt) + '</dd>' : '') +
                     (d.nima ? '<dt>NIMA (residuos)</dt><dd>Sí</dd>' : '') +
+                    (d.adr ? '<dt>Mercancía ADR</dt><dd>Sí (mercancía peligrosa)</dd>' : '') +
                     '<dt>Carga</dt><dd>' + escapeHtml(d.medidas) + '</dd>' +
                     '<dt>Ventana</dt><dd>' + escapeHtml(d.urgenciaLabel) + '</dd>' +
                     // Solo "Fecha de envío" (la de carga era redundante). Si hay
