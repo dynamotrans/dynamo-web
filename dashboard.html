@@ -2404,30 +2404,25 @@
         /* Carga retrasada: fecha pasada y todavía sin recoger. Más
            llamativo que HOY (que ya es rojo claro): rojo más saturado,
            borde grueso, y la etiqueta pulsa para llamar la atención. */
-        table.data tr.row-overdue {
-            background: #fee2e2;
-            box-shadow: inset 6px 0 0 0 #b91c1c;
-        }
+        /* ⚠️ Las FRANJAS laterales van en el PRIMER TD, no en el TR: Safari
+           (iPhone/iPad) NO pinta box-shadow sobre <tr> — en iOS las filas
+           salían sin franja aunque en Chrome de escritorio se viera bien. */
+        table.data tr.row-overdue { background: #fee2e2; }
+        table.data tr.row-overdue > td:first-child { box-shadow: inset 6px 0 0 0 #b91c1c; }
         /* Envío MANUAL con otro operador: franja MARRÓN a la izquierda, sin
            colores de urgencia (registro en texto plano, sin seguimiento). */
-        table.data tr.row-manual { box-shadow: inset 6px 0 0 0 #8b5e34; }
+        table.data tr.row-manual > td:first-child { box-shadow: inset 6px 0 0 0 #8b5e34; }
         /* Rampa AZUL serena que se aclara con la distancia (en días HÁBILES).
            Más suave que el ámbar anterior: descansa la vista. */
         /* Hoy: ÁMBAR suave (destaca en cálido frente al azul de +1/+2). */
-        table.data tr.row-today {
-            background: #fdefd0;
-            box-shadow: inset 4px 0 0 0 #f0a72e;
-        }
+        table.data tr.row-today { background: #fdefd0; }
+        table.data tr.row-today > td:first-child { box-shadow: inset 4px 0 0 0 #f0a72e; }
         /* Hoy + 1 día hábil: más claro */
-        table.data tr.row-tomorrow {
-            background: #eff3fd;
-            box-shadow: inset 4px 0 0 0 #7ea6f5;
-        }
+        table.data tr.row-tomorrow { background: #eff3fd; }
+        table.data tr.row-tomorrow > td:first-child { box-shadow: inset 4px 0 0 0 #7ea6f5; }
         /* Hoy + 2 días hábiles: aún más claro */
-        table.data tr.row-aftertomorrow {
-            background: #f6f9fe;
-            box-shadow: inset 4px 0 0 0 #b8cef9;
-        }
+        table.data tr.row-aftertomorrow { background: #f6f9fe; }
+        table.data tr.row-aftertomorrow > td:first-child { box-shadow: inset 4px 0 0 0 #b8cef9; }
         /* Carga lejana (> 7 días): se atenúa en gris claro para que se
            perciba como menos urgente / más lejana en el tiempo */
         table.data tr.row-far { background: #fafbfc; }
@@ -2536,10 +2531,10 @@
             font-size: 0.66rem; font-weight: 800; line-height: 1.5;
             padding: 1px 7px; white-space: nowrap; vertical-align: 1px;
         }
-        /* En móvil el chip del operador se duplica en la columna Recogida
-           (la columna Envío queda fuera de pantalla sin scroll horizontal). */
-        .op-chip-mob-wrap { display: none; margin-bottom: 4px; }
-        @media (max-width: 768px) { .op-chip-mob-wrap { display: block; } }
+        /* El chip del operador va SIEMPRE en la columna Recogida (la 1ª),
+           igual en escritorio y en móvil (homogéneo en ambas versiones;
+           antes en escritorio iba en la columna Envío y en móvil aquí). */
+        .op-chip-wrap { display: block; margin-bottom: 4px; }
         /* ===== Vista CALENDARIO de envíos (meses completos, ±3 meses) =====
            En modo calendario se ocultan pestañas, tabla, paginación y los
            filtros de mes/estado (el mes lo pone la navegación del calendario);
@@ -14472,13 +14467,12 @@
         });
         // DOS columnas de tabla reales (Recogida | Entrega): así el navegador
         // alinea la columna de entregas igual en todas las filas.
-        // Envío con OTRO operador: en MÓVIL el chip del operador se muestra
-        // también aquí (1ª columna visible) — la columna Envío, donde va el
-        // chip de escritorio, queda fuera de pantalla sin scroll horizontal.
-        var chipMob = (c.manual && c.operador && c.operador !== 'Dynamo')
-            ? '<div class="op-chip-mob-wrap"><span class="op-chip" title="Envío gestionado con tu operador: ' + esc(c.operador) + '">' + esc(opChipNombre(c.operador)) + '</span></div>'
+        // Envío con OTRO operador: el chip del operador va aquí (1ª columna),
+        // IGUAL en escritorio y en móvil (homogéneo entre versiones).
+        var chipOp = (c.manual && c.operador && c.operador !== 'Dynamo')
+            ? '<div class="op-chip-wrap"><span class="op-chip" title="Envío gestionado con tu operador: ' + esc(c.operador) + '">' + esc(opChipNombre(c.operador)) + '</span></div>'
             : '';
-        return '<td class="route-full route-rec">' + chipMob + '<div class="rf-stops"><div class="rf-col">' + recHtml + '</div></div></td>' +
+        return '<td class="route-full route-rec">' + chipOp + '<div class="rf-stops"><div class="rf-col">' + recHtml + '</div></div></td>' +
                '<td class="route-full route-ent"><div class="rf-stops"><div class="rf-col">' + entHtml + '</div></div></td>';
     }
     // Fecha de carga efectiva de un envío (asignada si existe, si no la
@@ -14864,10 +14858,15 @@
                     cargaPrecios(x);
                     if (x.precioCliente) tot += x.precioCliente * 1.21;
                 });
-                return '<td class="cliente-col"><strong>' + esc(CLIENTE_ACTUAL) + '</strong>' +
-                    '<div class="meta">' + esc((cli && cli.cif) || '—') + '</div>' +
-                    '<div class="meta" style="color:#0f6b3a;font-weight:700;white-space:nowrap;">Crédito Dynamo concedido: ' + eur2((cli && cli.dynamoImporte) || 0) + '</div>' +
-                    '<div class="meta" style="white-space:nowrap;">Últ. 60 días: <strong>' + eur2(Math.round(tot * 100) / 100) + '</strong> (IVA incl.)</div>' +
+                // Compacto en 2 líneas (máx. 3, como el resto de columnas):
+                //   1) Empresa · CIF   2) CESCE + contratado últ. 60 días.
+                // La línea 2 va VERDE si el crédito CESCE cubre lo contratado
+                // en los últimos 60 días, y ROJA si se queda corto.
+                var cesceImp = (cli && cli.cesceImporte) || 0;
+                var totR = Math.round(tot * 100) / 100;
+                var colCred = cesceImp >= totR ? '#0f6b3a' : '#b42318';
+                return '<td class="cliente-col"><strong>' + esc(CLIENTE_ACTUAL) + '</strong> <span style="color:var(--gray-500);font-weight:600;">· ' + esc((cli && cli.cif) || '—') + '</span>' +
+                    '<div class="meta" style="color:' + colCred + ';font-weight:700;white-space:nowrap;">CESCE: ' + eur2(cesceImp) + ' · Últ. 60 días: ' + eur2(totR) + ' (IVA incl.)</div>' +
                 '</td>';
             })();
             tbody.innerHTML = slice.map(function (c) {
@@ -14927,7 +14926,6 @@
                         '<div class="envio-estado envio-estado-top"><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span></div>' +
                         '<strong>' + esc(c.ref) + '</strong>' +
                         (c.refCli ? ' <span class="ref-cli-inline">(' + esc(c.refCli) + ')</span>' : '') +
-                        (c.operador && c.operador !== 'Dynamo' ? '<div class="meta" style="margin-top:2px;"><span class="op-chip" title="Envío gestionado con tu operador: ' + esc(c.operador) + '">' + esc(opChipNombre(c.operador)) + '</span></div>' : '') +
                         (c.modificadoEn && c.modificadoEn - (c.creadoEn || 0) > 60000
                             ? '<span class="ref-creado">(Modificado: ' + fmtCreado(c.modificadoEn) + ')</span>'
                             : (c.creadoEn ? '<span class="ref-creado">(Creado: ' + fmtCreado(c.creadoEn) + ')</span>' : '')) +
