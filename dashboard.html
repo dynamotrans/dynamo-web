@@ -3566,6 +3566,11 @@
         #sec-nueva-carga[data-entry-mode="manual"] .ptar-terms-box,
         #sec-nueva-carga[data-entry-mode="manual"] [data-ptar-terms-warn] { display: none !important; }
         #sec-nueva-carga[data-entry-mode="manual"] [data-ptar-final-confirm] { opacity: 1; pointer-events: auto; }
+        /* Chip del operador cuando es DYNAMO (por defecto): azul en negativo. */
+        #opCombo.op-dynamo { background: var(--purple); border-color: var(--purple); }
+        #opCombo.op-dynamo input { background: transparent; color: #fff; font-weight: 800; }
+        #opCombo.op-dynamo svg { color: #fff; }
+        #opCombo.op-dynamo .ptar-clear { color: rgba(255,255,255,0.9); }
 
         @media (max-width: 768px) {
             .ptar-card { padding: 0.9rem 0.9rem 1rem; }
@@ -4210,8 +4215,6 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Crear sitio</button>
                         <button type="button" role="menuitem" onclick="closeBtnDropdowns();openNuevoAlmacen();">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-5 9 5v12"/><path d="M3 21h18"/><rect x="8" y="13" width="8" height="8"/></svg> Nuevo almacenamiento</button>
-                        <button type="button" role="menuitem" onclick="closeBtnDropdowns();openNuevaCarga('manual');">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> Nuevo envío con otro operador / transportista</button>
                     </div>
                 </div>
             </div>
@@ -4626,7 +4629,7 @@
                         <button type="button" class="ptar-clear" id="opClearBtn" hidden onclick="opClear(true)" aria-label="Cambiar operador">✕</button>
                         <ul class="ptar-sug alm-combo-list" id="opList" hidden></ul>
                     </div>
-                    <div class="alm-note" style="margin-top:0.45rem;">Envío gestionado con <strong>tu propio operador de transporte</strong> — Dynamo no interviene y <strong>no se muestra precio</strong>. Gestiona tu catálogo en la sección <strong>Operadores de transporte</strong>.</div>
+                    <div class="alm-note" id="opNotaManual" hidden style="margin-top:0.45rem;">Envío gestionado con <strong>tu propio operador de transporte</strong> — Dynamo no interviene y <strong>no se muestra precio</strong>. Gestiona tu catálogo en la sección <strong>Operadores de transporte</strong>.</div>
                 </div>
                 <div class="ptar-section-head">Ruta</div>
                 <div class="ptar-field ptar-field-full">
@@ -5429,22 +5432,23 @@
        aviso salta al pulsar cada acción. El formulario es el MISMO. */
     function openNuevaCarga(mode) {
         // El portal es solo de ENVÍOS (presupuestos eliminados: precios
-        // dinámicos). Modo 'manual' = envío gestionado con OTRO operador de
-        // transporte del cliente: mismo formulario pero sin precio ni pago.
-        var esManual = mode === 'manual';
+        // dinámicos). El OPERADOR elegido decide el flujo: Dynamo (por
+        // defecto) → flujo normal con precio; otro operador del catálogo →
+        // registro manual SIN precio ni pago (entryMode 'manual', lo fija
+        // opPick al elegir).
         var sec = document.getElementById('sec-nueva-carga');
-        if (sec) { sec.dataset.entryMode = esManual ? 'manual' : 'envio'; sec.dataset.step = 'form'; }
-        // Selector de operador: solo visible en modo manual, y siempre limpio.
+        if (sec) { sec.dataset.entryMode = 'envio'; sec.dataset.step = 'form'; }
+        // Selector de operador: siempre visible, con Dynamo preseleccionado.
         var opField = document.querySelector('[data-ptar-operador-field]');
-        if (opField) opField.hidden = !esManual;
-        if (window.opClear) opClear(false);
+        if (opField) opField.hidden = false;
+        if (window.opPick) opPick('Dynamo');
         // Abrir en limpio SIEMPRE sale del modo edición (cargaModificarEnvio lo
         // reactiva después si procede).
         window._cargaEditRef = null;
         window._cargaEditSig0 = null;
         window._cargaEditTipos0 = null;
         var h2 = document.querySelector('[data-nueva-carga-title]');
-        if (h2) h2.textContent = esManual ? 'Nuevo envío · otro operador / transportista' : 'Nuevo envío';
+        if (h2) h2.textContent = 'Nuevo envío';
         var sb = document.querySelector('#sec-nueva-carga [data-ptar-submit]');
         if (sb) sb.textContent = 'Crear envío';
         var fc0 = document.querySelector('#sec-nueva-carga [data-ptar-final-confirm]');
@@ -5475,6 +5479,9 @@
         if (!src) return;
         closeDashModal();
         openNuevaCarga('envio');
+        // Restaurar el OPERADOR del envío (Dynamo por defecto): si era de otro
+        // operador, el formulario vuelve a modo manual (sin precio).
+        if (window.opPick) opPick(src.operador && src.operador !== 'Dynamo' ? src.operador : 'Dynamo');
         if (window.prefillTarifador) window.prefillTarifador(src, { full: true });
         // Prefijar también la FECHA del envío (el prefill de "Repetir" no la
         // pone a propósito; al modificar debe venir todo tal cual está).
@@ -7289,7 +7296,15 @@
     function renderOperadoresTable(q) {
         var tbody = document.getElementById('tbodyOperadores'); if (!tbody) return;
         var nq = normTxt(q || '');
-        var rows = [];
+        // DYNAMO siempre primero, fila fija resaltada y NO editable: también
+        // somos un operador que el cliente puede usar (el de siempre).
+        var rows = ['<tr style="background:rgba(51,0,204,0.06);cursor:default;">' +
+            '<td class="ref"><strong style="color:var(--purple);">Dynamo Operador de Transportes</strong> <span style="font-size:0.66rem;font-weight:800;background:var(--purple);color:#fff;border-radius:6px;padding:1px 6px;vertical-align:1px;">Operador Dynamo</span><div class="meta">B01596360</div></td>' +
+            '<td>+34 955 225 945</td>' +
+            '<td>info@dynamotrans.com</td>' +
+            '<td>Álvaro Blanco</td>' +
+            '<td class="notas">Tarifa y gestión completa online en el momento. Ficha fija (no editable).</td>' +
+        '</tr>'];
         OPERADORES_DATA.forEach(function (o, i) {
             if (nq && !matchTokens(normTxt([o.nombre, o.cif, o.tfno, o.email, o.contacto, o.web, o.notas].join(' ')), nq)) return;
             rows.push('<tr onclick="openOperadorModal(' + i + ')">' +
@@ -7372,6 +7387,12 @@
         if (!inp || !list || inp.readOnly) return;
         var q = normTxt(inp.value);
         var items = [];
+        // Dynamo SIEMPRE la primera opción (nuestro flujo normal, con precio).
+        if (!q || matchTokens(normTxt('dynamo operador logístico'), q)) {
+            items.push('<li class="alm-combo-item" onmousedown="opPick(\'Dynamo\');event.preventDefault();">' +
+                '<span><strong style="color:var(--purple);">Dynamo</strong> <span class="sug-chip-dynamo" style="font-size:0.66rem;font-weight:800;background:rgba(51,0,204,0.1);color:var(--purple);border-radius:6px;padding:1px 6px;">Operador Dynamo</span></span>' +
+                '<span class="sub">Tarifa y gestión completa en el momento</span></li>');
+        }
         OPERADORES_DATA.forEach(function (o) {
             if (q && !matchTokens(normTxt(o.nombre + ' ' + (o.cif || '') + ' ' + (o.contacto || '')), q)) return;
             items.push('<li class="alm-combo-item" onmousedown="opPick(\'' + escapeHtml(o.nombre) + '\');event.preventDefault();">' +
@@ -7386,11 +7407,20 @@
     function opPick(nombre) {
         var inp = document.getElementById('opSearch'), list = document.getElementById('opList'),
             wrap = document.getElementById('opCombo'), x = document.getElementById('opClearBtn');
+        var esDynamo = nombre === 'Dynamo';
         window._opSel = nombre;
-        if (inp) { inp.value = nombre; inp.readOnly = true; inp.onclick = function () { opClear(true); }; }
-        if (wrap) { wrap.classList.add('ptar-picked'); wrap.classList.remove('ptar-error'); }
+        if (inp) { inp.value = esDynamo ? 'Dynamo · Operador de Transportes' : nombre; inp.readOnly = true; inp.onclick = function () { opClear(true); }; }
+        if (wrap) { wrap.classList.add('ptar-picked'); wrap.classList.remove('ptar-error'); wrap.classList.toggle('op-dynamo', esDynamo); }
         if (x) x.hidden = false;
         if (list) list.hidden = true;
+        // El operador decide el flujo: Dynamo → normal con precio; otro →
+        // registro manual SIN precio ni pago (reusa el modo 'manual').
+        var sec = document.getElementById('sec-nueva-carga');
+        if (sec) sec.dataset.entryMode = esDynamo ? 'envio' : 'manual';
+        var nota = document.getElementById('opNotaManual');
+        if (nota) nota.hidden = esDynamo;
+        var h2 = document.querySelector('[data-nueva-carga-title]');
+        if (h2 && !window._cargaEditRef) h2.textContent = esDynamo ? 'Nuevo envío' : 'Nuevo envío · otro operador / transportista';
     }
     window.opPick = opPick;
     function opClear(focus) {
@@ -16695,6 +16725,8 @@
                 if (pmr) pmr.value = '';
                 var ultR = card.querySelector('[data-ptar-ult-ruta]');
                 if (ultR) { ultR.hidden = true; ultR.innerHTML = ''; }
+                // Operador: vuelve a Dynamo (flujo normal con precio).
+                if (window.opPick) opPick('Dynamo');
                 notesBody.hidden = true;
                 notesToggle.setAttribute('aria-expanded', 'false');
                 warning.classList.remove('show');
@@ -16754,12 +16786,12 @@
                 });
             }
             function readAndValidate(skipFecha) {
-                // Envío MANUAL: el operador de transporte es obligatorio y debe
-                // elegirse del catálogo (chip) — igual que los sitios.
-                if (entryModeDe() === 'manual' && !window._opSel) {
+                // El OPERADOR de transporte es obligatorio (Dynamo viene por
+                // defecto): debe elegirse del desplegable (chip), como los sitios.
+                if (mode === 'carga' && !window._opSel) {
                     var opW = document.getElementById('opCombo');
                     if (opW) { opW.classList.add('ptar-error'); opW.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
-                    warning.textContent = '⚠ Elige el operador de transporte de tu catálogo (o créalo desde el propio desplegable).';
+                    warning.textContent = '⚠ Elige el operador de transporte (Dynamo o uno de tu catálogo).';
                     warning.classList.add('show');
                     return null;
                 }
