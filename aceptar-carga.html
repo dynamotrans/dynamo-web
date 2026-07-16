@@ -146,6 +146,16 @@
             document.getElementById('v-imp').textContent = p;
             document.getElementById('v-pago').hidden = false;
         }
+        // pp=0 → PRONTO PAGO no disponible temporalmente (línea agotada):
+        // la caja se muestra desactivada para que sepa que la opción existe.
+        if (q('pp', '') === '0') {
+            var pr = document.querySelector('.pronto');
+            pr.style.background = 'var(--gray-100)';
+            pr.style.borderColor = 'var(--gray-300)';
+            pr.innerHTML = '<label class="chk" style="color:var(--gray-500);cursor:not-allowed;">' +
+                '<input type="checkbox" disabled>' +
+                '<span><strong>PRONTO PAGO no disponible temporalmente.</strong> En esta carga no se puede ofrecer el cobro anticipado a 48&nbsp;h; el pago es CONTADO en las condiciones habituales.</span></label>';
+        }
     })();
     // Matrículas: solo letras y números, en mayúsculas.
     ['f-tractora', 'f-remolque'].forEach(function (id) {

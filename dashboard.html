@@ -3566,11 +3566,17 @@
         #sec-nueva-carga[data-entry-mode="manual"] .ptar-terms-box,
         #sec-nueva-carga[data-entry-mode="manual"] [data-ptar-terms-warn] { display: none !important; }
         #sec-nueva-carga[data-entry-mode="manual"] [data-ptar-final-confirm] { opacity: 1; pointer-events: auto; }
+        /* Con OTRO operador el formulario es IGUAL que con Dynamo: los
+           desplegables de tipo de sitio tampoco salen (se configuran en el
+           propio sitio). */
+        #sec-nueva-carga[data-entry-mode="manual"] .ptar-route-row .ptar-select-sm { display: none; }
         /* Chip del operador cuando es DYNAMO (por defecto): azul en negativo. */
         #opCombo.op-dynamo { background: var(--purple); border-color: var(--purple); }
         #opCombo.op-dynamo input { background: transparent; color: #fff; font-weight: 800; }
         #opCombo.op-dynamo svg { color: #fff; }
-        #opCombo.op-dynamo .ptar-clear { color: rgba(255,255,255,0.9); }
+        /* La × sobre el chip azul: círculo blanco translúcido + aspa blanca
+           (antes quedaba gris sobre azul y no se veía). */
+        #opCombo.op-dynamo .ptar-clear { color: #fff; background: rgba(255,255,255,0.28); border-radius: 50%; }
 
         @media (max-width: 768px) {
             .ptar-card { padding: 0.9rem 0.9rem 1rem; }
@@ -3846,6 +3852,10 @@
              sección se limitarán además los botones de editar/borrar por rol).
              Sin panel de administración aparte: todo listado en el menú. -->
         <div class="sidebar-sep" data-roles="admin"><span>Gestión interna · Admin</span></div>
+        <button class="sidebar-link" data-roles="admin" data-section="dashboard-admin">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/></svg>
+            Dashboard admin
+        </button>
         <button class="sidebar-link" data-roles="admin" data-section="almacenes-cat">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35"/><path d="M2 8.35 12 2l10 6.35"/><path d="M6 22V12h12v10"/></svg>
             Almacenes Dynamo
@@ -4988,6 +4998,19 @@
     </section>
 
     <!-- ==================== PENALIZACIONES ==================== -->
+    <!-- ==================== DASHBOARD ADMIN (gestión interna) ==================== -->
+    <section class="section" id="sec-dashboard-admin">
+        <div class="sec-header">
+            <h2>Dashboard admin</h2>
+        </div>
+        <p style="color:var(--gray-500);font-size:0.82rem;margin:-0.4rem 0 0.9rem;"><span style="display:inline-block;background:rgba(51,0,204,0.10);color:var(--purple);font-weight:700;border-radius:6px;padding:1px 7px;font-size:0.72rem;margin-right:0.4rem;">SOLO ADMIN</span>Indicadores internos de gestión. De momento: la línea de <strong>pronto pago a transportistas</strong>.</p>
+        <div style="background:#fff;border:1px solid var(--gray-200);border-radius:14px;padding:1.1rem 1.2rem;max-width:720px;">
+            <h4 style="margin:0 0 0.2rem;">Línea de PRONTO PAGO a transportistas</h4>
+            <p style="font-size:0.78rem;color:var(--gray-500);margin:0 0 0.8rem;">Crédito propio para adelantar el cobro a 48&nbsp;h tras finalizar el servicio (−3%, mín. 15&nbsp;€). Si el disponible se agota, la opción deja de ofrecerse en las nuevas ofertas de carga.</p>
+            <div id="ppWidget"></div>
+        </div>
+    </section>
+
     <!-- ==================== MAPA de envíos EN CURSO (tiempo real, mock) ==================== -->
     <section class="section" id="sec-mapa">
         <div class="sec-header">
@@ -5364,6 +5387,7 @@
         'nuevo-almacen':     'Nuevo almacenamiento',
         'penalizaciones':    'Penalizaciones',
         'mapa':              'Mapa · envíos en curso',
+        'dashboard-admin':   'Dashboard admin',
         'operadores':        'Operadores de transporte',
         'almacenes-cat':     'Almacenes Dynamo',
         'usuarios':          'Usuarios',
@@ -5385,6 +5409,8 @@
         if (id === 'cargas' && typeof requestAnimationFrame === 'function') requestAnimationFrame(function () { if (window.capRouteSites) window.capRouteSites(); });
         // Mapa de envíos en curso: se repinta al abrir la sección.
         if (id === 'mapa' && window.renderMapa) renderMapa();
+        // Dashboard admin: widget de la línea de pronto pago.
+        if (id === 'dashboard-admin' && window.renderProntoPago) renderProntoPago();
         document.querySelectorAll('.sidebar-link').forEach(function (l) {
             l.classList.toggle('active', l.getAttribute('data-section') === id);
         });
@@ -7428,7 +7454,9 @@
             wrap = document.getElementById('opCombo'), x = document.getElementById('opClearBtn');
         window._opSel = null;
         if (inp) { inp.readOnly = false; inp.value = ''; inp.onclick = null; if (focus) inp.focus(); }
-        if (wrap) wrap.classList.remove('ptar-picked', 'ptar-error');
+        // Al borrar, el campo vuelve al aspecto estándar (blanco), sin el
+        // azul del chip Dynamo.
+        if (wrap) wrap.classList.remove('ptar-picked', 'ptar-error', 'op-dynamo');
         if (x) x.hidden = true;
         if (list) list.hidden = true;
         // Al borrar (× o pulsando el chip) se reabre el listado para elegir
@@ -9379,6 +9407,39 @@
     // dentro de cada estado pone primero las acciones más relevantes para
     // ese momento del envío. "Repetir envío" aparece siempre porque
     // cualquier carga puede repetirse (independientemente del estado).
+    // ==================== LÍNEA DE PRONTO PAGO (Dashboard admin) ====================
+    // Línea de crédito propia para adelantar el PRONTO PAGO a transportistas
+    // (48 h tras finalizar, −3%, mín. 15 €). Si el disponible se agota, la
+    // opción deja de ofrecerse en las nuevas ofertas de carga ("no disponible
+    // temporalmente"). Mock en memoria; en producción vendrá de tesorería.
+    var PRONTO_PAGO = { total: 50000, usado: 18400 };
+    function prontoPagoDisponible() { return Math.max(0, PRONTO_PAGO.total - PRONTO_PAGO.usado); }
+    function prontoPagoActivo() { return prontoPagoDisponible() >= 15; }   // mínimo operativo (15 €)
+    function renderProntoPago() {
+        var box = document.getElementById('ppWidget'); if (!box) return;
+        var disp = prontoPagoDisponible();
+        var pct = PRONTO_PAGO.total > 0 ? Math.min(100, Math.round(PRONTO_PAGO.usado / PRONTO_PAGO.total * 100)) : 100;
+        var col = pct < 70 ? 'var(--green)' : (pct < 90 ? '#d97706' : 'var(--red)');
+        var activo = prontoPagoActivo();
+        box.innerHTML =
+            '<div style="display:flex;gap:0.8rem;flex-wrap:wrap;margin-bottom:0.8rem;">' +
+                '<div style="flex:1;min-width:150px;"><label style="font-size:0.7rem;font-weight:800;color:var(--gray-500);">Línea total (€)</label>' +
+                    '<input type="number" min="0" step="1000" value="' + PRONTO_PAGO.total + '" onchange="PRONTO_PAGO.total=Math.max(0,Number(this.value)||0);renderProntoPago();"></div>' +
+                '<div style="flex:1;min-width:150px;"><label style="font-size:0.7rem;font-weight:800;color:var(--gray-500);">Concedido en curso (€)</label>' +
+                    '<input type="number" min="0" step="100" value="' + PRONTO_PAGO.usado + '" onchange="PRONTO_PAGO.usado=Math.max(0,Number(this.value)||0);renderProntoPago();"></div>' +
+            '</div>' +
+            '<div style="height:14px;border-radius:999px;background:var(--gray-200);overflow:hidden;">' +
+                '<div style="height:100%;width:' + pct + '%;background:' + col + ';border-radius:999px;transition:width 0.4s;"></div>' +
+            '</div>' +
+            '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.4rem;margin-top:0.45rem;font-size:0.8rem;color:var(--gray-700);">' +
+                '<span>Concedido: <strong>' + eur2(PRONTO_PAGO.usado) + '</strong> (' + pct + '%)</span>' +
+                '<span>Disponible: <strong style="color:' + (activo ? 'var(--green-dark)' : 'var(--red)') + ';">' + eur2(disp) + '</strong> de ' + eur2(PRONTO_PAGO.total) + '</span>' +
+            '</div>' +
+            (activo
+                ? '<div style="margin-top:0.8rem;padding:0.6rem 0.75rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:9px;font-size:0.84rem;font-weight:700;color:#0f6b3a;">✅ PRONTO PAGO ACTIVO — se ofrece a los transportistas en las ofertas de carga (48 h tras finalizar · −3% · mín. 15 €).</div>'
+                : '<div style="margin-top:0.8rem;padding:0.6rem 0.75rem;background:#fdecec;border:1px solid #f5b5b5;border-radius:9px;font-size:0.84rem;font-weight:700;color:#b42318;">⛔ NO DISPONIBLE TEMPORALMENTE — línea agotada: las nuevas ofertas de carga saldrán SIN la opción de pronto pago hasta liberar saldo.</div>');
+    }
+    window.renderProntoPago = renderProntoPago;
     // ==================== OFERTA DE CARGA A TRANSPORTISTAS ====================
     // Mensaje listo para email/WhatsApp: PAGO CONTADO + enlace a la página de
     // aceptación (aceptar-carga.html) donde el transportista rellena sus datos
@@ -9393,13 +9454,17 @@
         var fTxt = (f && f !== 'Sin fecha') ? fechaConDia(f) + (c.ventana && !c.fechaAsignada && !/fija/i.test(c.ventana) ? ' · ventana ' + c.ventana : '') : 'por confirmar';
         var oTxt = ciudadDir(c.origen, c.origenDir), dTxt = ciudadDir(c.destino, c.destinoDir);
         var mTxt = (c.mercancia ? c.mercancia + ' · ' : '') + medidasTn(c.medidas);
+        // ¿Hay saldo en la línea de PRONTO PAGO? Si no, la oferta sale SIN esa
+        // opción (y la página de aceptación la muestra como no disponible).
+        var ppOn = (typeof prontoPagoActivo !== 'function') || prontoPagoActivo();
         var link = location.origin + location.pathname.replace(/[^\/]*$/, '') + 'aceptar-carga.html' +
             '?envio=' + encodeURIComponent(c.ref) +
             '&o=' + encodeURIComponent(oTxt) +
             '&d=' + encodeURIComponent(dTxt) +
             '&f=' + encodeURIComponent(fTxt) +
             '&m=' + encodeURIComponent(mTxt) +
-            (pt ? '&p=' + encodeURIComponent(eur2(pt)) : '');
+            (pt ? '&p=' + encodeURIComponent(eur2(pt)) : '') +
+            (ppOn ? '' : '&pp=0');
         var msg = 'DYNAMO — OFERTA DE CARGA (PAGO CONTADO)\n\n' +
             'Envío ' + c.ref + '\n' +
             'Recogida: ' + oTxt + '\n' +
@@ -9408,14 +9473,15 @@
             'Mercancía: ' + mTxt + '\n' +
             (pt ? 'Importe: ' + eur2(pt) + ' — PAGO CONTADO\n' : '') +
             '\n¿Te interesa? ACEPTA LA CARGA y rellena tus datos (empresa, matrículas y chófer) aquí:\n' + link + '\n\n' +
-            'PRONTO PAGO opcional: cobro a 48 h tras finalizar el servicio con un 3% de descuento (mínimo 15 €).\n\n' +
+            (ppOn ? 'PRONTO PAGO opcional: cobro a 48 h tras finalizar el servicio con un 3% de descuento (mínimo 15 €).\n\n' : '') +
             'Dynamo Operador de Transportes · +34 955 225 945 · info@dynamotrans.com';
         openDashModal({
             icon: 'truck',
             title: 'Ofrecer carga ' + c.ref,
             sub: 'Mensaje para transportistas — pago contado',
             body:
-                '<p style="font-size:0.88rem;line-height:1.5;color:var(--gray-700);margin-bottom:0.7rem;">Envía esta oferta por <strong>WhatsApp o email</strong> (puedes editarla antes). El enlace abre la página de <strong>aceptación</strong> donde el transportista rellena empresa, matrículas, chófer y teléfono, y puede marcar <strong>pronto pago 48&nbsp;h (−3%, mín. 15&nbsp;€)</strong>.</p>' +
+                '<p style="font-size:0.88rem;line-height:1.5;color:var(--gray-700);margin-bottom:0.7rem;">Envía esta oferta por <strong>WhatsApp o email</strong> (puedes editarla antes). El enlace abre la página de <strong>aceptación</strong> donde el transportista rellena empresa, matrículas, chófer y teléfono' + (ppOn ? ', y puede marcar <strong>pronto pago 48&nbsp;h (−3%, mín. 15&nbsp;€)</strong>.' : '.') + '</p>' +
+                (ppOn ? '' : '<div style="margin-bottom:0.7rem;padding:0.55rem 0.7rem;background:#fdecec;border:1px solid #f5b5b5;border-radius:9px;font-size:0.8rem;font-weight:700;color:#b42318;">⛔ PRONTO PAGO no disponible temporalmente (línea agotada): esta oferta sale SIN esa opción. Revísalo en Dashboard admin.</div>') +
                 '<textarea id="ofertaTxt" rows="13" style="width:100%;box-sizing:border-box;padding:0.7rem 0.8rem;border:1.5px solid var(--gray-200);border-radius:10px;font:inherit;font-size:0.83rem;color:var(--navy);resize:vertical;">' + escapeHtml(msg) + '</textarea>' +
                 '<div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.8rem;">' +
                     '<button type="button" class="btn-primary" style="flex:1;min-width:180px;background:#25D366;border-color:#25D366;" onclick="ofrecerPor(\'wa\')">Enviar por WhatsApp</button>' +
