@@ -125,6 +125,17 @@
         .sidebar-link .badge.sb-red    { background: #dc2626; }
         .sidebar-link .badge.sb-amber  { background: #d97706; }
         .sidebar-link .badge.sb-purple { background: #7c3aed; }
+        /* Grupos desplegables "Otras gestiones" del sidebar (cliente y admin) */
+        #sgOtrasBtn .sl-txt, #sgAdminBtn .sl-txt { flex: 1; white-space: nowrap; }
+        #sgOtrasBtn .badge, #sgAdminBtn .badge { margin-left: 0.3rem; }
+        .sg-chev { flex: none; color: var(--gray-500); transition: transform 0.18s; }
+        #sgOtrasBtn.sg-open .sg-chev, #sgAdminBtn.sg-open .sg-chev { transform: rotate(180deg); }
+        /* Con el grupo abierto los badges se ven en sus opciones (no se
+           duplican en el padre). */
+        #sgOtrasBtn.sg-open .badge { display: none; }
+        .sidebar-sub { border-left: 2px solid var(--gray-200); margin: 0.1rem 0 0.25rem 1.1rem; padding-left: 0.35rem; }
+        .sidebar-sub[hidden] { display: none; }
+        .sidebar-sub .sidebar-link { padding: 0.55rem 0.7rem; font-size: 0.87rem; }
         /* Separador de bloque del sidebar (Gestión interna · Admin) */
         .sidebar-sep {
             margin: 0.9rem 0 0.3rem; padding: 0 0.9rem;
@@ -3876,37 +3887,47 @@
             <span class="badge" data-sidebar-badge="cargas" title="Envíos sin transportista asignado" hidden>0</span>
             <span class="badge sb-red" data-sidebar-badge="cargas-pago" title="Envíos pendientes de pago" hidden>0</span>
         </button>
-        <button class="sidebar-link" data-section="incidencias">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            <span class="sl-txt">Incidencias</span>
-            <span class="badge" data-sidebar-badge="incidencias" title="Incidencias abiertas" hidden>0</span>
-        </button>
         <button class="sidebar-link" data-section="penalizaciones">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
             Penalizaciones
         </button>
+        <!-- ADMINISTRACIÓN agrupa Facturas + Albaranes (antes 2 entradas de
+             menú): dentro, 2 pestañas alternan entre las dos tablas. -->
         <button class="sidebar-link" data-section="facturas">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg>
-            Facturas
+            Administración
         </button>
-        <button class="sidebar-link" data-section="albaranes">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v0a2 2 0 0 1 2-2z"/><path d="M7 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><path d="M9 12l2 2 4-4"/></svg>
-            Albaranes
+        <!-- OTRAS GESTIONES: grupo desplegable con Incidencias, Sitios,
+             Transportistas y Almacenamientos — cada opción va a su tabla.
+             Con el grupo cerrado, el padre muestra los badges agregados. -->
+        <button class="sidebar-link" id="sgOtrasBtn" aria-expanded="false" onclick="toggleSidebarOtras()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            <span class="sl-txt">Otras gestiones</span>
+            <span class="badge" data-sidebar-badge="otras" title="Incidencias abiertas + almacenamientos por confirmar" hidden>0</span>
+            <span class="badge sb-red" data-sidebar-badge="otras-pago" title="Almacenamientos pendientes de pago" hidden>0</span>
+            <svg class="sg-chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
-        <button class="sidebar-link" data-section="sitios">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            Sitios
-        </button>
-        <button class="sidebar-link" data-section="operadores">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-            Transportistas
-        </button>
-        <button class="sidebar-link" data-section="almacenes">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-5 9 5v12"/><path d="M3 21h18"/><rect x="8" y="13" width="8" height="8"/></svg>
-            <span class="sl-txt">Almacenamientos</span>
-            <span class="badge" data-sidebar-badge="alm-sinconf" title="Pendiente confirmar almacén" hidden>0</span>
-            <span class="badge sb-red" data-sidebar-badge="alm-pago" title="Almacenamientos pendientes de pago" hidden>0</span>
-        </button>
+        <div class="sidebar-sub" id="sgOtras" hidden>
+            <button class="sidebar-link" data-section="incidencias">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span class="sl-txt">Incidencias</span>
+                <span class="badge" data-sidebar-badge="incidencias" title="Incidencias abiertas" hidden>0</span>
+            </button>
+            <button class="sidebar-link" data-section="sitios">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Sitios
+            </button>
+            <button class="sidebar-link" data-section="operadores">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                Transportistas
+            </button>
+            <button class="sidebar-link" data-section="almacenes">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-5 9 5v12"/><path d="M3 21h18"/><rect x="8" y="13" width="8" height="8"/></svg>
+                <span class="sl-txt">Almacenamientos</span>
+                <span class="badge" data-sidebar-badge="alm-sinconf" title="Pendiente confirmar almacén" hidden>0</span>
+                <span class="badge sb-red" data-sidebar-badge="alm-pago" title="Almacenamientos pendientes de pago" hidden>0</span>
+            </button>
+        </div>
         <!-- GESTIÓN INTERNA (solo admin/empleado cuando se monte el gating de
              roles: estos enlaces se OCULTARÁN al resto, y dentro de cada
              sección se limitarán además los botones de editar/borrar por rol).
@@ -3916,6 +3937,14 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/></svg>
             Dashboard admin
         </button>
+        <!-- OTRAS GESTIONES (admin): grupo desplegable con el resto de
+             catálogos internos — cada opción va a su tabla. -->
+        <button class="sidebar-link" data-roles="admin" id="sgAdminBtn" aria-expanded="false" onclick="toggleSidebarAdmin()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            <span class="sl-txt">Otras gestiones</span>
+            <svg class="sg-chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="sidebar-sub" id="sgAdmin" data-roles="admin" hidden>
         <button class="sidebar-link" data-roles="admin" data-section="almacenes-cat">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35"/><path d="M2 8.35 12 2l10 6.35"/><path d="M6 22V12h12v10"/></svg>
             Almacenes Dynamo
@@ -3943,6 +3972,7 @@
             Modo mantenimiento
             <span class="badge" id="maintMenuBadge" hidden style="background:rgba(220,38,38,0.14);color:#dc2626;">ON</span>
         </button>
+        </div>
     </nav>
     <div class="sidebar-foot">
         <div class="sidebar-user">
@@ -4511,7 +4541,12 @@
          mes actual, trimestre, año…). -->
     <section class="section" id="sec-facturas">
         <div class="sec-header">
-            <h2>Facturas</h2>
+            <h2>Administración</h2>
+        </div>
+        <!-- Conmutador Facturas / Albaranes (una sola entrada de menú) -->
+        <div class="tabs" style="margin-bottom:0.8rem;">
+            <button class="tab active">Facturas</button>
+            <button class="tab" onclick="showSection('albaranes')">Albaranes</button>
         </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por nº, cliente, importe…">
@@ -4584,7 +4619,12 @@
          backend; aquí se derivan de los envíos entregados. -->
     <section class="section" id="sec-albaranes">
         <div class="sec-header">
-            <h2>Albaranes</h2>
+            <h2>Administración</h2>
+        </div>
+        <!-- Conmutador Facturas / Albaranes (una sola entrada de menú) -->
+        <div class="tabs" style="margin-bottom:0.8rem;">
+            <button class="tab" onclick="showSection('facturas')">Facturas</button>
+            <button class="tab active">Albaranes</button>
         </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por nº de albarán, envío, ruta…">
@@ -5462,6 +5502,8 @@
         'almacenes':         'Almacenamientos',
         'nuevo-almacen':     'Nuevo almacenamiento',
         'penalizaciones':    'Penalizaciones',
+        'facturas':          'Administración · Facturas',
+        'albaranes':         'Administración · Albaranes',
         'dashboard-admin':   'Dashboard admin',
         'operadores':        'Transportistas',
         'almacenes-cat':     'Almacenes Dynamo',
@@ -5485,9 +5527,21 @@
         // Mapa de envíos en curso: se repinta al abrir la sección.
         // Dashboard admin: widget de la línea de pronto pago.
         if (id === 'dashboard-admin' && window.renderProntoPago) renderProntoPago();
+        // Administración agrupa facturas + albaranes bajo UNA entrada de
+        // menú (data-section="facturas"): con albaranes abierto también
+        // debe verse activa.
+        var idNav = (id === 'albaranes') ? 'facturas' : id;
         document.querySelectorAll('.sidebar-link').forEach(function (l) {
-            l.classList.toggle('active', l.getAttribute('data-section') === id);
+            l.classList.toggle('active', l.getAttribute('data-section') === idNav);
         });
+        // Si la sección vive dentro de un grupo "Otras gestiones" (cliente o
+        // admin), desplegar ese grupo para que su enlace activo se vea.
+        if (['incidencias', 'sitios', 'operadores', 'almacenes'].indexOf(id) > -1 && window.toggleSidebarOtras) {
+            toggleSidebarOtras(true);
+        }
+        if (['almacenes-cat', 'clientes', 'transportistas', 'usuarios', 'altas'].indexOf(id) > -1 && window.toggleSidebarAdmin) {
+            toggleSidebarAdmin(true);
+        }
         // El nombre de seccion vive en el <h2> dentro de cada pagina (la
         // topbar morada solo lleva logo). Actualizamos el title de la
         // pestana del navegador para que la pagina sea identificable
@@ -7615,10 +7669,30 @@
         var hayC = typeof CARGAS_DATA !== 'undefined', hayA = typeof ALMACENES_DATA !== 'undefined';
         setBadge('cargas', hayC ? CARGAS_DATA.filter(isProgramadaPendiente).length : 0);       // naranja: sin transportista
         setBadge('cargas-pago', hayC ? CARGAS_DATA.filter(isPendientePago).length : 0);        // rojo: pendiente de pago
-        setBadge('incidencias', (typeof INCIDENCIAS_DATA !== 'undefined') ? INCIDENCIAS_DATA.filter(function (x) { return x.estado !== 'resuelta' && x.estado !== 'cancelada'; }).length : 0);
-        setBadge('alm-sinconf', hayA ? ALMACENES_DATA.filter(function (r) { return almEstadoKey(r) === 'sin-confirmar'; }).length : 0);   // morado: pendiente confirmar almacén
-        setBadge('alm-pago', hayA ? ALMACENES_DATA.filter(function (r) { return almEstadoKey(r) === 'pendiente-pago'; }).length : 0);     // rojo: pendiente de pago
+        var nInc = (typeof INCIDENCIAS_DATA !== 'undefined') ? INCIDENCIAS_DATA.filter(function (x) { return x.estado !== 'resuelta' && x.estado !== 'cancelada'; }).length : 0;
+        var nSinconf = hayA ? ALMACENES_DATA.filter(function (r) { return almEstadoKey(r) === 'sin-confirmar'; }).length : 0;
+        var nAlmPago = hayA ? ALMACENES_DATA.filter(function (r) { return almEstadoKey(r) === 'pendiente-pago'; }).length : 0;
+        setBadge('incidencias', nInc);
+        setBadge('alm-sinconf', nSinconf);   // naranja: pendiente confirmar almacén
+        setBadge('alm-pago', nAlmPago);      // rojo: pendiente de pago
+        // Agregados del grupo "Otras gestiones" (visibles con el grupo cerrado)
+        setBadge('otras', nInc + nSinconf);
+        setBadge('otras-pago', nAlmPago);
     }
+    // Desplegables "Otras gestiones" del sidebar (uno en el área cliente y
+    // otro en Gestión interna · Admin). force=true abre; sin arg, alterna.
+    function __toggleSidebarGrupo(btnId, subId, force) {
+        var btn = document.getElementById(btnId), sub = document.getElementById(subId);
+        if (!btn || !sub) return;
+        var open = (force != null) ? !!force : sub.hidden;
+        sub.hidden = !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        btn.classList.toggle('sg-open', open);
+    }
+    function toggleSidebarOtras(force) { __toggleSidebarGrupo('sgOtrasBtn', 'sgOtras', force); }
+    window.toggleSidebarOtras = toggleSidebarOtras;
+    function toggleSidebarAdmin(force) { __toggleSidebarGrupo('sgAdminBtn', 'sgAdmin', force); }
+    window.toggleSidebarAdmin = toggleSidebarAdmin;
     window.updateSidebarBadges = updateSidebarBadges;
     /* ==================== OPERADORES DE TRANSPORTE (catálogo PRIVADO del
        cliente) ====================
