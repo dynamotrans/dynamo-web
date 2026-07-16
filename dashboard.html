@@ -2544,6 +2544,12 @@
         #sec-cargas[data-vista="calendario"] .pagination,
         #sec-cargas[data-vista="calendario"] .filters .filter-mes,
         #sec-cargas[data-vista="calendario"] .filters [data-filter-estado] { display: none; }
+        /* Vista MAPA (3ª vista de Envíos): fuera pestañas, tabla, paginación
+           y la barra de filtros general (el mapa trae su propio filtro). */
+        #sec-cargas[data-vista="mapa"] .tabs,
+        #sec-cargas[data-vista="mapa"] .table-wrap,
+        #sec-cargas[data-vista="mapa"] .pagination,
+        #sec-cargas[data-vista="mapa"] > .filters { display: none; }
         .cal-head { display: flex; align-items: center; gap: 0.6rem; margin: 0.2rem 0 0.7rem; }
         .cal-title { font-weight: 800; color: var(--navy); font-size: 1.05rem; }
         .cal-hoy-tag { font-size: 0.68rem; font-weight: 800; color: var(--purple); background: rgba(51,0,204,0.08); border-radius: 6px; padding: 1px 7px; vertical-align: 2px; }
@@ -3870,10 +3876,6 @@
             <span class="badge" data-sidebar-badge="cargas" title="Envíos sin transportista asignado" hidden>0</span>
             <span class="badge sb-red" data-sidebar-badge="cargas-pago" title="Envíos pendientes de pago" hidden>0</span>
         </button>
-        <button class="sidebar-link" data-section="mapa">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-            Mapa
-        </button>
         <button class="sidebar-link" data-section="incidencias">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             <span class="sl-txt">Incidencias</span>
@@ -3897,7 +3899,7 @@
         </button>
         <button class="sidebar-link" data-section="operadores">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-            Operadores de transporte
+            Transportistas
         </button>
         <button class="sidebar-link" data-section="almacenes">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-5 9 5v12"/><path d="M3 21h18"/><rect x="8" y="13" width="8" height="8"/></svg>
@@ -4271,8 +4273,8 @@
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                         </div>
                         <div class="dash-cta-text">
-                            <h4>Nueva gestión</h4>
-                            <p>Almacenamiento, sitio o incidencia</p>
+                            <h4>Otras gestiones</h4>
+                            <p>Crear almacenamiento, sitio, incidencia, nuevo transportista…</p>
                         </div>
                         <svg class="btn-dropdown-chev dash-cta-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                     </a>
@@ -4420,6 +4422,7 @@
                         style="height:44px;border:1.5px solid var(--gray-300);border-radius:10px;padding:0 0.7rem;font-size:0.85rem;font-weight:700;color:var(--navy);background:#fff;cursor:pointer;">
                     <option value="lista">Vista: Lista</option>
                     <option value="calendario">Vista: Calendario</option>
+                    <option value="mapa">Vista: Mapa</option>
                 </select>
                 <button class="btn-primary" onclick="openNuevaCarga('envio');return false;">+ Nuevo envío</button>
             </div>
@@ -4458,6 +4461,22 @@
         </div>
         <!-- Vista CALENDARIO (meses completos): se pinta por JS. -->
         <div id="cargasCal" hidden></div>
+        <!-- Vista MAPA (antes sección propia del menú; ahora 3ª vista de
+             Envíos): envíos EN CURSO sobre el contorno de la península. -->
+        <div id="cargasMapa" hidden>
+            <p style="color:var(--gray-500);font-size:0.82rem;margin:0 0 0.9rem;">Solo los envíos <strong>en curso en tiempo real</strong> (llegando a la recogida, cargando, en ruta, llegando a la entrega). Los programados sin salir, entregados, cancelados y los registros manuales de otros operadores no aparecen. <em>Posiciones aproximadas (demo).</em></p>
+            <div class="filters">
+                <select id="mapaEstadoSel" onchange="renderMapa()" aria-label="Filtrar por estado del envío" style="max-width:280px;">
+                    <option value="">Todos los envíos en curso</option>
+                    <option value="hacia">Llegando a la recogida</option>
+                    <option value="cargando">Cargando</option>
+                    <option value="enruta">En ruta</option>
+                    <option value="entrega">Llegando a la entrega</option>
+                </select>
+            </div>
+            <div id="mapaWrap" style="background:#fff;border:1px solid var(--gray-200);border-radius:14px;padding:0.8rem;overflow:hidden;"></div>
+            <div id="mapaLista" style="margin-top:0.9rem;"></div>
+        </div>
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
@@ -5087,29 +5106,11 @@
     </section>
 
     <!-- ==================== MAPA de envíos EN CURSO (tiempo real, mock) ==================== -->
-    <section class="section" id="sec-mapa">
-        <div class="sec-header">
-            <h2>Mapa · envíos en curso</h2>
-        </div>
-        <p style="color:var(--gray-500);font-size:0.82rem;margin:-0.4rem 0 0.9rem;">Solo los envíos <strong>en curso en tiempo real</strong> (llegando a la recogida, cargando, en ruta, llegando a la entrega). Los programados sin salir, entregados, cancelados y los registros manuales de otros operadores no aparecen. <em>Posiciones aproximadas (demo).</em></p>
-        <div class="filters">
-            <select id="mapaEstadoSel" onchange="renderMapa()" aria-label="Filtrar por estado del envío" style="max-width:280px;">
-                <option value="">Todos los envíos en curso</option>
-                <option value="hacia">Llegando a la recogida</option>
-                <option value="cargando">Cargando</option>
-                <option value="enruta">En ruta</option>
-                <option value="entrega">Llegando a la entrega</option>
-            </select>
-        </div>
-        <div id="mapaWrap" style="background:#fff;border:1px solid var(--gray-200);border-radius:14px;padding:0.8rem;overflow:hidden;"></div>
-        <div id="mapaLista" style="margin-top:0.9rem;"></div>
-    </section>
-
     <!-- ==================== OPERADORES DE TRANSPORTE (catálogo PRIVADO del cliente) ==================== -->
     <section class="section" id="sec-operadores">
         <div class="sec-header">
-            <h2>Operadores de transporte</h2>
-            <button class="btn-primary" onclick="openOperadorModal(-1);return false;">+ Nuevo operador</button>
+            <h2>Transportistas</h2>
+            <button class="btn-primary" onclick="openOperadorModal(-1);return false;">+ Nuevo transportista</button>
         </div>
         <p style="color:var(--gray-500);font-size:0.82rem;margin:-0.4rem 0 0.9rem;">Tu catálogo <strong>privado</strong> de proveedores de transporte con los que sueles trabajar — vale para <strong>cualquier tipo: operadores de transporte, empresas de transporte o transportistas autónomos</strong> — para tener en un único espacio de trabajo <strong>todos tus envíos controlados</strong>.<br><strong>Dynamo no interviene en nada</strong> en los envíos con otros operadores (ni albaranes, ni precios, ni ningún aspecto relacionado con ellos): esto sirve solo para ver en <strong>Envíos</strong> todo unificado, independientemente de quién sea el proveedor de transporte. Pulsa una fila para ver o editar la ficha.</p>
         <div class="filters">
@@ -5461,9 +5462,8 @@
         'almacenes':         'Almacenamientos',
         'nuevo-almacen':     'Nuevo almacenamiento',
         'penalizaciones':    'Penalizaciones',
-        'mapa':              'Mapa · envíos en curso',
         'dashboard-admin':   'Dashboard admin',
-        'operadores':        'Operadores de transporte',
+        'operadores':        'Transportistas',
         'almacenes-cat':     'Almacenes Dynamo',
         'usuarios':          'Usuarios',
         'altas':             'Altas pendientes',
@@ -5483,7 +5483,6 @@
         // mostrarla, recorta las empresas al ancho de fecha/dirección.
         if (id === 'cargas' && typeof requestAnimationFrame === 'function') requestAnimationFrame(function () { if (window.capRouteSites) window.capRouteSites(); });
         // Mapa de envíos en curso: se repinta al abrir la sección.
-        if (id === 'mapa' && window.renderMapa) renderMapa();
         // Dashboard admin: widget de la línea de pronto pago.
         if (id === 'dashboard-admin' && window.renderProntoPago) renderProntoPago();
         document.querySelectorAll('.sidebar-link').forEach(function (l) {
@@ -7661,10 +7660,10 @@
         });
         var h2 = document.querySelector('#sec-operadores h2');
         // El contador incluye a Dynamo (fila fija): catálogo + 1.
-        if (h2) h2.textContent = 'Operadores de transporte (' + (OPERADORES_DATA.length + 1) + ')';
+        if (h2) h2.textContent = 'Transportistas (' + (OPERADORES_DATA.length + 1) + ')';
         tbody.innerHTML = rows.length ? rows.join('')
             : '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-500);">' +
-              (OPERADORES_DATA.length ? 'Sin operadores que coincidan con la búsqueda.' : 'Aún no tienes operadores. Crea uno con «+ Nuevo operador».') + '</td></tr>';
+              (OPERADORES_DATA.length ? 'Sin transportistas que coincidan con la búsqueda.' : 'Aún no tienes transportistas. Crea uno con «+ Nuevo transportista».') + '</td></tr>';
     }
     window.renderOperadoresTable = renderOperadoresTable;
     function openOperadorModal(idx) {
@@ -7891,6 +7890,9 @@
     // Pulsar un camión/fila del mapa → abre la sección Envíos filtrada por ese nº.
     function mapaVerEnvio(ref) {
         showSection('cargas');
+        // El mapa es ahora una VISTA de Envíos: al pulsar un envío se vuelve
+        // a la vista Lista con ese envío filtrado.
+        if (window.cargasSetVista) cargasSetVista('lista');
         TABLE_STATE.cargas.filter = 'todas';
         TABLE_STATE.cargas.q = ref;
         var inp = document.querySelector('#sec-cargas .filters input[type="search"]');
@@ -7909,7 +7911,14 @@
         if (sec) sec.dataset.vista = v;
         var cal = document.getElementById('cargasCal');
         if (cal) cal.hidden = (v !== 'calendario');
+        var mapa = document.getElementById('cargasMapa');
+        if (mapa) mapa.hidden = (v !== 'mapa');
+        // Sincronizar el desplegable cuando se cambia por código
+        // (p. ej. al pulsar un envío del mapa se vuelve a la lista).
+        var sel = document.getElementById('cargasVista');
+        if (sel && sel.value !== v) sel.value = v;
         if (v === 'calendario') renderCargasCal();
+        if (v === 'mapa' && window.renderMapa) renderMapa();
     }
     window.cargasSetVista = cargasSetVista;
     function calMes(delta) {
@@ -8004,6 +8013,7 @@
             rct0.apply(this, arguments);
             var sec = document.getElementById('sec-cargas');
             if (sec && sec.dataset.vista === 'calendario') renderCargasCal();
+            if (sec && sec.dataset.vista === 'mapa' && window.renderMapa) renderMapa();
         };
     })();
     function renderAlmacenesTable() {
