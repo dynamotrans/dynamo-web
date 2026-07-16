@@ -2536,6 +2536,10 @@
             font-size: 0.66rem; font-weight: 800; line-height: 1.5;
             padding: 1px 7px; white-space: nowrap; vertical-align: 1px;
         }
+        /* En móvil el chip del operador se duplica en la columna Recogida
+           (la columna Envío queda fuera de pantalla sin scroll horizontal). */
+        .op-chip-mob-wrap { display: none; margin-bottom: 4px; }
+        @media (max-width: 768px) { .op-chip-mob-wrap { display: block; } }
         /* Fecha/hora de creación: pequeñita y en UNA línea */
         table.data td.ref .ref-creado { display: block; font-size: 0.72rem; color: var(--gray-400); white-space: nowrap; margin-top: 2px; }
         table.data .envio-estado { margin-top: 0.35rem; }
@@ -14314,7 +14318,13 @@
         });
         // DOS columnas de tabla reales (Recogida | Entrega): así el navegador
         // alinea la columna de entregas igual en todas las filas.
-        return '<td class="route-full route-rec"><div class="rf-stops"><div class="rf-col">' + recHtml + '</div></div></td>' +
+        // Envío con OTRO operador: en MÓVIL el chip del operador se muestra
+        // también aquí (1ª columna visible) — la columna Envío, donde va el
+        // chip de escritorio, queda fuera de pantalla sin scroll horizontal.
+        var chipMob = (c.manual && c.operador && c.operador !== 'Dynamo')
+            ? '<div class="op-chip-mob-wrap"><span class="op-chip" title="Envío gestionado con tu operador: ' + esc(c.operador) + '">' + esc(opChipNombre(c.operador)) + '</span></div>'
+            : '';
+        return '<td class="route-full route-rec">' + chipMob + '<div class="rf-stops"><div class="rf-col">' + recHtml + '</div></div></td>' +
                '<td class="route-full route-ent"><div class="rf-stops"><div class="rf-col">' + entHtml + '</div></div></td>';
     }
     // Fecha de carga efectiva de un envío (asignada si existe, si no la
@@ -15417,18 +15427,26 @@
     // y fuera del flujo de asignación de transportista.
     (function () {
         var otros = ['Transportes Iberia Express S.L.', 'LogiSur Cargo S.L.'];
-        var n = 0;
-        for (var i = CARGAS_DATA.length - 1; i >= 0 && n < 2; i--) {
-            var c = CARGAS_DATA[i];
-            if (c.kind === 'programada' && c.fecha && c.fecha !== 'Sin fecha' && !c.pendientePago && !c.transportistaAsignado) {
-                c.operador = otros[n]; c.manual = true;
-                c.transportistaAsignado = true;   // su transporte lo gestiona su operador
-                c.precio = null; c.precioCliente = null; c.precioManual = false;
-                // Uno CON precio acordado anotado y otro SIN él (los 2 estados).
-                c.precioAcordado = n === 0 ? 480 : null;
-                n++;
-            }
-        }
+        // Candidatas: programadas normales con fecha. Se eligen la 2ª y la 4ª
+        // más CERCANAS en fecha para que los 2 ejemplos salgan en la PRIMERA
+        // página del listado (antes cogía las últimas del mock → fechas muy
+        // lejanas y los ejemplos quedaban escondidos en la página 3-4).
+        var cand = CARGAS_DATA.filter(function (c) {
+            return c.kind === 'programada' && c.fecha && c.fecha !== 'Sin fecha' &&
+                !c.pendientePago && !c.transportistaAsignado && !c._phaseSim;
+        });
+        cand.sort(function (a, b) {
+            var da = parseDDMM(a.fecha), db = parseDDMM(b.fecha);
+            return (da ? da.getTime() : 9e15) - (db ? db.getTime() : 9e15);
+        });
+        [cand[1], cand[3]].forEach(function (c, i) {
+            if (!c) return;
+            c.operador = otros[i]; c.manual = true;
+            c.transportistaAsignado = true;   // su transporte lo gestiona su operador
+            c.precio = null; c.precioCliente = null; c.precioManual = false;
+            // Uno CON precio acordado anotado y otro SIN él (los 2 estados).
+            c.precioAcordado = i === 0 ? 480 : null;
+        });
     })();
     // Fecha/hora de creación de cada carga del mock: 2-6 días antes de su
     // fecha de carga, en horario laboral (determinista por referencia).
@@ -17692,7 +17710,10 @@
                     // → cae en "Programadas pendientes". Si es sin fecha va a
                     // "Previsión sin fecha". Si es pago por adelantado sin
                     // verificar, va a "Pendiente de pago".
-                    TABLE_STATE.cargas.filter = isPrev ? 'prevision' : (esPrepago ? 'pendiente-pago' : 'programada-pendiente');
+                    // Manual (otro operador): SU transportista ya lo gestiona →
+                    // no cae en "Sin asignar"; se abre la pestaña Programadas
+                    // (donde SÍ está) para que el envío recién creado se vea.
+                    TABLE_STATE.cargas.filter = isPrev ? 'prevision' : (esPrepago ? 'pendiente-pago' : (nuevaCarga.manual ? 'programada' : 'programada-pendiente'));
                     renderCargasTable();
                     if (typeof refreshStatCargasActivas === 'function') refreshStatCargasActivas();
                     // Navegar al listado ANTES del modal de éxito (mismo tick en
