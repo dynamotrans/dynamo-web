@@ -8869,7 +8869,7 @@
                 ctField('cli-f-dynamoimp', 'Importe crédito Dynamo (€)', (c.dynamoImporte == null ? '' : c.dynamoImporte), 'Ej. 10000', false, 'number') +
                 (function () {
                     var fp = (c.factorPrecio == null ? 0 : c.factorPrecio);
-                    return '<div style="grid-column:1/-1"><label>Factor de precio del cliente (%) <span style="font-weight:600;color:var(--gray-500);">· de −20 % a +20 %</span></label>' +
+                    return '<div style="grid-column:1/-1"><label>Factor de precio del cliente (%) <span style="font-weight:600;color:var(--gray-500);">· de −20 % a +20 %</span> <span style="font-weight:800;color:var(--red,#d93025);">· SOLO VISIBLE ADMIN — el cliente NUNCA ve este campo</span></label>' +
                         '<input id="cli-f-factor" type="number" min="-20" max="20" step="1" value="' + escapeHtml(String(fp)) + '" placeholder="0">' +
                         '<div style="font-size:0.72rem;color:var(--gray-500);margin-top:0.3rem;line-height:1.4;">Ajuste comercial sobre el precio del tarifador (base imponible, <strong>antes de IVA</strong>). <strong>Negativo</strong> = descuento (p. ej. cliente con mucho volumen); <strong>positivo</strong> = incremento (p. ej. mercancía muy valiosa). <strong>0</strong> = precio estándar. Se aplica de forma automática a todos sus envíos.</div></div>';
                 })() +
