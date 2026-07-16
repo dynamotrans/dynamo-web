@@ -16996,6 +16996,10 @@
                 if (b.getFullYear() !== a.getFullYear()) ensureFests(cc, b.getFullYear());
             }
             function renderEta() {
+                // La comparativa Dynamo del envío manual se refresca SIEMPRE
+                // tras cada repintado de la ETA (también al borrar sitios,
+                // donde renderEta sale pronto sin re-sellar precioTs).
+                if (mode === 'carga') setTimeout(updateOpCompara, 0);
                 if (!etaBox) return;
                 if (festBox) festBox.innerHTML = '';  // aviso de festivo va fuera de la caja ETA
                 var oLat = origWrap.dataset.lat, oLon = origWrap.dataset.lon;
@@ -17510,7 +17514,12 @@
                 var box = document.getElementById('opCompara');
                 if (!box) return;
                 if (mode !== 'carga' || entryModeDe() !== 'manual') { box.hidden = true; return; }
-                var nuestro = precioDynamoActual();
+                // Sin origen o destino elegidos NO hay precio que comparar:
+                // el dataset guarda el último cálculo y quedaría obsoleto
+                // (borrar un sitio dejaba la comparativa con el precio viejo).
+                var wO = card.querySelector('[data-ptar-orig-wrap]'), wD = card.querySelector('[data-ptar-dest-wrap]');
+                var rutaOk = !!(wO && wO.dataset.lat && wD && wD.dataset.lat);
+                var nuestro = rutaOk ? precioDynamoActual() : 0;
                 var inp = document.getElementById('opPrecioInput');
                 var s = inp ? inp.value.trim().replace(/[€\s]/g, '') : '';
                 if (/^\d+\.\d{1,2}$/.test(s)) s = s.replace('.', ',');
