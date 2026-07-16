@@ -16149,27 +16149,22 @@
         }
         function firstLoadDate(windowVal) {
             // Primera fecha ofertada (hora Madrid). El CORTE (12:00 fecha fija ·
-            // 14:00 ventana 1-3) es la HORA LÍMITE para pedir el SIGUIENTE día
-            // hábil, y corre TODOS los días (también findes y festivos): p. ej.
-            // un domingo a las 15:19 el lunes YA NO se ofrece — igual que será
-            // con backend real.
-            //  · Antes del corte: el siguiente día hábil está disponible; y si
-            //    HOY es hábil, hoy también puede ser el primer día (hoy-para-hoy,
-            //    con sus avisos de no garantizado).
-            //  · Pasado el corte: ni hoy ni el siguiente hábil → el primero es
-            //    el hábil POSTERIOR.
-            //    (El suplemento urgente de la fecha fija lo decide la POSICIÓN de
-            //     la fecha elegida: las 2 primeras disponibles llevan +100 €.)
+            // 14:00 ventana 1-3) es la HORA LÍMITE para pedir para EL MISMO DÍA
+            // (hoy-para-hoy):
+            //  · Antes del corte: si HOY es hábil, hoy puede ser el primer día
+            //    (con sus avisos de no garantizado).
+            //  · Pasado el corte: hoy ya no; el primero es el SIGUIENTE día
+            //    hábil (p. ej. jueves a las 15:00 → viernes SÍ disponible).
+            //    El corte solo limita el MISMO DÍA — el preaviso corto se
+            //    cobra por suplemento (fecha fija: hoy +150 € · los 2 días
+            //    hábiles siguientes +100 €), no bloqueando fechas.
             var now = nowMadrid();
             var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             if (__esManualEntry()) return today;   // manual: HOY siempre, sin corte
             var minsNow = now.getHours() * 60 + now.getMinutes();
-            var cutMin = corteDe(windowVal);
-            var antesDelCorte = minsNow < cutMin;
-            var todayBiz = !nonBiz(today);
-            if (todayBiz && antesDelCorte) return new Date(today);  // hoy puede ser 1º día
+            var antesDelCorte = minsNow < corteDe(windowVal);
+            if (!nonBiz(today) && antesDelCorte) return new Date(today);  // hoy puede ser 1º día
             var d = new Date(today); d.setDate(d.getDate() + 1); nextBiz(d);
-            if (!antesDelCorte) { d.setDate(d.getDate() + 1); nextBiz(d); }
             return d;
         }
         function loadDates(windowVal, count) {
