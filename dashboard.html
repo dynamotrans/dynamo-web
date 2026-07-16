@@ -7354,8 +7354,13 @@
         openDashModal({
             icon: 'truck',
             title: esEdit ? 'Editar operador' : 'Nuevo operador de transporte',
-            sub: esEdit ? (o.nombre || '') : 'Tu catálogo privado de operadores (aparte de Dynamo)',
-            body: ctMetaHTML(o) +
+            sub: esEdit ? (o.nombre || '') : 'Se añade a tu catálogo privado de operadores',
+            body: (esEdit ? '' :
+                '<div style="margin-bottom:0.8rem;padding:0.65rem 0.8rem;background:rgba(51,0,204,0.06);border:1px solid rgba(51,0,204,0.2);border-radius:10px;font-size:0.82rem;line-height:1.55;color:var(--gray-700);">' +
+                'Se añade a <strong>tu catálogo privado</strong> de operadores de transporte con los que sueles trabajar, para tener en un único espacio de trabajo <strong>todos tus envíos controlados</strong>.<br>' +
+                '<strong>Dynamo no interviene en nada</strong> en los envíos con otros operadores (ni albaranes, ni precios, ni ningún aspecto relacionado con ellos): esto sirve solo para ver en <strong>Envíos</strong> todo unificado, independientemente de quién sea el proveedor de transporte.' +
+                '</div>') +
+                ctMetaHTML(o) +
                 '<div class="ptar-sitio-grid">' +
                     ctField('op-f-nombre', 'Nombre / Razón social *', o.nombre, 'Ej. Transportes Iberia Express S.L.', true) +
                     ctField('op-f-cif', 'CIF / NIF *', o.cif, 'B12345678') +
