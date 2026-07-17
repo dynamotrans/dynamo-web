@@ -9310,10 +9310,14 @@
         var mismo = traNombre ? '<span style="font-weight:600;">' + escapeHtml(traNombre) + '</span>' : 'Mismo transportista';
         var descTipo = r.tipo === 'Completo' ? 'completa' : 'grupaje' + (r.ml != null ? ' ' + String(r.ml).replace('.', ',') + ' m' : '');
         var descVent = r.vent === 'fija' ? 'fija' : (r.vent === 'g-corta' ? '1-2 d' : (r.vent === 'g-larga' ? '1-4 d' : '1-3 d'));
+        // Precio de compra que da el TARIFADOR para esta ruta (calculado; se
+        // puede usar o no como referencia de partida).
+        var tarPt = (typeof cargaPrecioTarifador === 'function') ? (cargaPrecioTarifador(c).ptT || 0) : 0;
         return '<div class="pen-envio-sum" style="margin-top:0.8rem;font-size: var(--fs-s);">' +
             '<div style="font-weight:800;color:var(--navy);font-size: var(--fs-m);">Precios de compra comparables</div>' +
             '<div style="color:var(--gray-500);font-weight:600;margin:0.1rem 0 0.2rem;">Mismo tipo (' + descTipo + ' · ' + descVent + '). Base sin IVA.</div>' +
             '<table style="width:100%;border-collapse:collapse;">' +
+                fila('Según tarifador', tarPt) +
                 sub('Mismos CP (' + escapeHtml((r.o.cp || '—') + '→' + (r.d.cp || '—')) + ')') +
                 fila(mismo, traNombre ? compra(r.cp, traNombre) : 0) +
                 fila('Cualquier transportista', compra(r.cp, null)) +
