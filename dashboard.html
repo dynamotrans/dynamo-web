@@ -18253,7 +18253,7 @@
                     hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija</strong>. ' +
                         (esHoy ? '<strong>Es para HOY</strong>: no podemos garantizar cargar en el día, y cancelar tendría coste. ' : '') +
                         'Si ese día no hay vehículo, habría que reprogramar a otra fecha.<br><br><span style="color:#0f6b3a;">💡 <strong>Lo más barato y seguro: la ventana de 1 a 3 días</strong> — el 80% de las veces cargamos en los 2 primeros días.</span>' +
-                        '<button type="button" class="btn-secondary" style="width:100%;margin-top:0.55rem;min-height:44px;" onclick="if (window.__ptarUsarVentana) __ptarUsarVentana();">Seleccionar fecha de carga de 1 a 3 días</button>' + '</div>';
+                        '<button type="button" class="btn-secondary" style="width:100%;margin-top:0.55rem;min-height:44px;" onclick="if (window.__ptarUsarVentana) __ptarUsarVentana();">Seleccionar fecha de carga de 1 a 3 días' + (subAntesFija > 0 ? ' a ' + eur2(subAntesFija) : '') + '</button>' + '</div>';
                 }
                 etaBox.innerHTML =
                     hoyHtml +
