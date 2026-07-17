@@ -9285,38 +9285,42 @@
         return { o: o, d: d, tipo: tipo, ml: ml, vent: vent, cp: top3(cp), prov: top3(prov) };
     }
     // Bloque HTML de históricos comparables para la ventana de asignación.
-    function rutaHistHtml(c) {
+    function rutaHistHtml(c, traNombre) {
         var r = rutaComparables(c);
-        function eur0(n) { return Math.round(Number(n) || 0).toLocaleString('es-ES') + ' €'; }
-        // Filas de una mini-tabla (Venta | Compra) por cada envío comparable.
-        function filas(list, conRuta) {
-            if (!list.length) return '<tr><td colspan="2" style="padding:0.25rem 0;color:var(--gray-500);font-weight:600;">—</td></tr>';
-            return list.map(function (it) {
+        function eur0(n) { return n ? Math.round(Number(n)).toLocaleString('es-ES') + ' €' : '—'; }
+        // Precio de COMPRA (transportista) del envío comparable MÁS RECIENTE
+        // de una lista; opcionalmente solo de un transportista concreto.
+        function compra(list, soloTra) {
+            var best = null, bf = -1;
+            list.forEach(function (it) {
                 var x = it.c;
-                var f = x.fechaAsignada ? String(x.fechaAsignada).split(' ')[0] : x.fecha;
-                var meta = escapeHtml(fechaConDia(f)) + ' · ' + escapeHtml(x.ref) +
-                    (conRuta ? ' · ' + escapeHtml(((it.o.cp || '') + '→' + (it.d.cp || '')).trim()) : '');
-                return '<tr>' +
-                    '<td style="padding:0.2rem 0.35rem 0.2rem 0;border-bottom:1px solid var(--gray-200);vertical-align:top;"><strong>' + eur0(x.precioCliente) + '</strong>' +
-                        '<div style="color:var(--gray-500);font-weight:600;">' + meta + '</div></td>' +
-                    '<td style="padding:0.2rem 0;border-bottom:1px solid var(--gray-200);vertical-align:top;"><strong>' + eur0(x.precioTransportista || 0) + '</strong></td>' +
-                '</tr>';
-            }).join('');
+                if (!x.precioTransportista) return;
+                if (soloTra && x.transportistaNombre !== soloTra) return;
+                if (it.f > bf) { bf = it.f; best = x; }
+            });
+            return best ? best.precioTransportista : 0;
         }
-        function bloque(titulo, list, conRuta) {
-            return '<div style="font-weight:700;color:var(--gray-600);margin-top:0.45rem;">' + titulo + '</div>' +
-                '<table style="width:100%;border-collapse:collapse;">' +
-                '<tr><td style="padding:0 0.35rem 0.15rem 0;font-weight:800;color:var(--purple);">Venta</td>' +
-                    '<td style="padding:0 0 0.15rem;font-weight:800;color:var(--navy);">Compra</td></tr>' +
-                filas(list, conRuta) + '</table>';
+        function fila(lbl, val) {
+            return '<tr><td style="padding:0.2rem 0.35rem 0.2rem 0;border-bottom:1px solid var(--gray-200);color:var(--gray-700);">' + lbl + '</td>' +
+                '<td style="padding:0.2rem 0;border-bottom:1px solid var(--gray-200);text-align:right;white-space:nowrap;"><strong>' + eur0(val) + '</strong></td></tr>';
         }
+        function sub(txt) {
+            return '<tr><td colspan="2" style="padding:0.4rem 0 0.1rem;font-weight:800;color:var(--navy);">' + txt + '</td></tr>';
+        }
+        var mismo = traNombre ? '<span style="font-weight:600;">' + escapeHtml(traNombre) + '</span>' : 'Mismo transportista';
         var descTipo = r.tipo === 'Completo' ? 'completa' : 'grupaje' + (r.ml != null ? ' ' + String(r.ml).replace('.', ',') + ' m' : '');
         var descVent = r.vent === 'fija' ? 'fija' : (r.vent === 'g-corta' ? '1-2 d' : (r.vent === 'g-larga' ? '1-4 d' : '1-3 d'));
         return '<div class="pen-envio-sum" style="margin-top:0.8rem;font-size: var(--fs-s);">' +
-            '<div style="font-weight:800;color:var(--navy);font-size: var(--fs-m);">Históricos comparables</div>' +
+            '<div style="font-weight:800;color:var(--navy);font-size: var(--fs-m);">Precios de compra comparables</div>' +
             '<div style="color:var(--gray-500);font-weight:600;margin:0.1rem 0 0.2rem;">Mismo tipo (' + descTipo + ' · ' + descVent + '). Base sin IVA.</div>' +
-            bloque('Mismos CP (' + escapeHtml((r.o.cp || '—') + '→' + (r.d.cp || '—')) + ')', r.cp, false) +
-            bloque('Mismas provincias (' + escapeHtml((r.o.prov || '—') + '→' + (r.d.prov || '—')) + ')', r.prov, true) +
+            '<table style="width:100%;border-collapse:collapse;">' +
+                sub('Mismos CP (' + escapeHtml((r.o.cp || '—') + '→' + (r.d.cp || '—')) + ')') +
+                fila(mismo, traNombre ? compra(r.cp, traNombre) : 0) +
+                fila('Cualquier transportista', compra(r.cp, null)) +
+                sub('Mismas provincias (' + escapeHtml((r.o.prov || '—') + '→' + (r.d.prov || '—')) + ')') +
+                fila(mismo, traNombre ? compra(r.prov, traNombre) : 0) +
+                fila('Cualquier transportista', compra(r.prov, null)) +
+            '</table>' +
         '</div>';
     }
     // Mini-tooltip al PULSAR (para móvil, donde no hay hover): globito oscuro
@@ -9891,6 +9895,13 @@
                 row('Seguro', esc(t.seguro || ''));
             f.hidden = false;
         }
+        // Recalcular la tabla de precios de compra: la fila "mismo
+        // transportista" pasa a ser la del elegido.
+        var hist = document.getElementById('asigHist');
+        if (hist && window._asigTraRef) {
+            var cc = findCargaDataByRef(window._asigTraRef);
+            if (cc) hist.innerHTML = rutaHistHtml(cc, t.empresa);
+        }
         var err = document.getElementById('asigTraErr'); if (err) err.classList.remove('show');
     }
     function asigTraClear(focus) {
@@ -9903,6 +9914,11 @@
         if (x) x.hidden = true;
         if (list) list.hidden = true;
         if (f) { f.hidden = true; f.innerHTML = ''; }
+        var hist = document.getElementById('asigHist');
+        if (hist && window._asigTraRef) {
+            var cc = findCargaDataByRef(window._asigTraRef);
+            if (cc) hist.innerHTML = rutaHistHtml(cc, null);
+        }
         if (focus && inp) inp.focus();
     }
     window.asigTraFilter = asigTraFilter;
@@ -9953,7 +9969,7 @@
                 '<div class="modal-form-row" style="margin-top:0.8rem;"><label for="asig-f-precompra">Precio compra al transportista (base sin IVA)</label>' +
                     '<input type="number" id="asig-f-precompra" min="0" step="10" inputmode="decimal" value="' + (c.precioTransportista != null ? c.precioTransportista : '') + '" placeholder="Ej. 540">' +
                     '<p style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;margin:0.3rem 0 0;">Se guarda como P. transportista del envío (fijado a mano) y es el que usan las tablas y el margen.</p></div>' +
-                rutaHistHtml(c) +
+                '<div id="asigHist">' + rutaHistHtml(c, null) + '</div>' +
                 '<div class="ptar-sitio-grid" style="margin-top:0.8rem;">' +
                     ctSelect('asig-f-camion', 'Tipo de camión', ['Trailer Tauliner · 13,2 m', 'Rígido 8 m con plataforma'], c.tipoCamion || 'Trailer Tauliner · 13,2 m', true) +
                     ctField('asig-f-matricula', 'Matrícula tractora', c.matricula, 'Ej. 5829MGT') +
