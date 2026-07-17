@@ -16710,6 +16710,58 @@
             KEYS.forEach(function (k) { if (src[k] != null) dst[k] = src[k]; });
         }
     })();
+    // === SEED de PRECIOS DE COMPRA COMPARABLES (demo) ===
+    // AQUÍ, con TODAS las rutas ya definitivas (asignarSitios + rutas
+    // repetidas). Para cada programada SIN transportista crea 2 entregadas
+    // anteriores en su MISMA ruta, tipo y ventana, con precio de compra y
+    // transportista, para que la tabla "Precios de compra comparables" del
+    // asignador tenga ejemplos (mismos CP / mismas provincias · mismo o
+    // cualquier transportista). En producción vendrá del histórico backend.
+    (function seedComparables() {
+        var traCat = ['Transportes Beltrán S.L.', 'Trans Andalucía 24h', 'Logística Guadalquivir S.L.', 'TransIberia Cargo', 'Hnos. Molina Transportes'];
+        var conds = [['Manuel Reyes', '+34 655 217 880'], ['Rafael Vega', '+34 690 334 221'], ['Luis Martínez', '+34 622 511 098'], ['Andrés Gil', '+34 611 220 447'], ['Pedro Rodríguez', '+34 661 902 411'], ['David Núñez', '+34 678 442 113']];
+        var mats = ['1042 JKL', '8830 HTR', '2915 LFC', '7448 MZS', '5061 KPT', '3389 NRD', '6702 LWB', '9127 MCV'];
+        var objetivo = CARGAS_DATA.filter(function (c) {
+            return c.kind === 'programada' && !c.transportistaAsignado && !(c.manual && c.operador && c.operador !== 'Dynamo');
+        });
+        // Cambia los 3 últimos dígitos de un CP (mantiene provincia = 2
+        // primeros) para que un seed caiga en "misma provincia" y NO en
+        // "mismos CP", así se rellenan también esas filas.
+        function otroCP(dir) {
+            return String(dir || '').replace(/\b(\d{2})(\d{3})\b/, function (_, prov, rest) {
+                var n = (parseInt(rest, 10) + 137) % 1000;
+                return prov + ('00' + n).slice(-3);
+            });
+        }
+        var seedN = 0;
+        objetivo.forEach(function (base) {
+            var pcBase = parseInt(String(base.precio || '').replace(/[^\d]/g, ''), 10) || (700 + (hashStr(base.ref) % 900));
+            for (var k = 0; k < 2; k++) {
+                // k=0 → MISMOS CP exactos · k=1 → misma provincia, distinto CP.
+                var tra = traCat[(seedN + k) % traCat.length];
+                var cond = conds[seedN % conds.length];
+                var pc = pcBase + ((hashStr(base.ref + k) % 7) - 3) * 20;
+                var pt = Math.round(pc * (0.70 + (hashStr(tra + base.ref) % 15) / 100) / 10) * 10;
+                var c = makeCarga('#C-2026-' + (880 - seedN), 'PED-H' + (100 + seedN),
+                    mockPasado(12 + seedN * 2 + k), base.ventana, base.origen, base.destino,
+                    base.direcciones, base.mercancia, base.mercanciaMeta, base.medidas,
+                    'entregada', undefined, {
+                        precio: pc + ' €', tipoCamion: base.tipoCamion || 'Trailer Tauliner · 13,2 m', tipoCarga: base.tipoCarga,
+                        transportistaAsignado: true, transportistaNombre: tra,
+                        matricula: mats[seedN % mats.length], conductor: cond[0], tfnoConductor: cond[1]
+                    });
+                c.origenSite = base.origenSite; c.destinoSite = base.destinoSite;
+                c.origenDir = (k === 0) ? base.origenDir : otroCP(base.origenDir);
+                c.destinoDir = (k === 0) ? base.destinoDir : otroCP(base.destinoDir);
+                c.horarioOrigen = base.horarioOrigen; c.horarioDestino = base.horarioDestino;
+                c.precioCliente = pc; c.precioTransportista = pt;
+                c._rowsTra = [{ k: 'Porte transportista', v: pt }];
+                c.creadoPor = ENVIO_USUARIOS[hashStr(c.ref) % ENVIO_USUARIOS.length];
+                CARGAS_DATA.push(c);
+                seedN++;
+            }
+        });
+    })();
     // === MOCK: 2 envíos gestionados con OTRO OPERADOR de transporte ===
     // Creados "a mano" desde Nueva gestión: sin precio (Dynamo no interviene)
     // y fuera del flujo de asignación de transportista.
