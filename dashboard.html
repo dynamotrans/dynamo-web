@@ -4426,7 +4426,7 @@
                     <!-- Ahorro acumulado del año (mock; backend real). Sin frase
                          de cortesía: los botones ya dicen para qué es la tarjeta. -->
                     <p class="dash-ahorro-anio" style="font-size: var(--fs-m);font-weight:700;color:#0f6b3a;">Este año has ahorrado <span data-ahorro-anio>—</span> enviando con Dynamo.
-                        <span style="display:block;margin-top:0.2rem;color:var(--gray-700);font-weight:600;">Podrías haber ahorrado <strong data-ahorro-extra>—</strong> más si los hubieras hecho con Dynamo en lugar de otros transportistas.</span>
+                        <span style="display:block;margin-top:0.2rem;color:var(--gray-700);font-weight:600;">Podrías haber ahorrado <strong data-ahorro-extra>—</strong> más contratando todo con nosotros.</span>
                         <a href="#" onclick="openAhorrosModal(); return false;" style="display:inline-block;margin-top:0.25rem;color:var(--purple);font-weight:800;">Ver detalle →</a>
                     </p>
                 </div>
@@ -4580,6 +4580,10 @@
                     onchange="TABLE_STATE.cargas.operador=this.value;TABLE_STATE.cargas.page=1;renderCargasTable();">
                 <option value="">Operador</option>
             </select>
+            <select class="filter-estado" data-carga-creador aria-label="Filtrar por usuario que creó el envío"
+                    onchange="TABLE_STATE.cargas.creador=this.value;TABLE_STATE.cargas.page=1;renderCargasTable();">
+                <option value="">Creado por</option>
+            </select>
             <select class="filter-mes" data-filter-mes>
                 <!-- Opciones pobladas por JS al cargar -->
             </select>
@@ -4619,7 +4623,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Recogida</th><th>Entrega</th><th>Cliente · CIF</th><th>Envío</th><th>Mercancía</th><th>Vehículo</th><th>P. cliente<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>P. transportista<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>Margen<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th>
+                    <th>Recogida</th><th>Entrega</th><th>Cliente · CIF</th><th>Envío</th><th>Mercancía</th><th>Vehículo</th><th>P. cliente<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>P. transportista<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>Margen<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>Creado por</th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -8318,6 +8322,18 @@
         sel.innerHTML = '<option value="">Operador</option><option>Dynamo</option>' +
             OPERADORES_DATA.map(function (o) { return '<option>' + esc(o.nombre) + '</option>'; }).join('');
         sel.value = cur; if (sel.value !== cur) sel.value = '';
+        // Filtro "Creado por": los usuarios que aparecen en los envíos.
+        var selC = document.querySelector('[data-carga-creador]');
+        if (selC) {
+            var curC = selC.value, vistos = {};
+            var opts = '<option value="">Creado por</option>';
+            (typeof CARGAS_DATA !== 'undefined' ? CARGAS_DATA : []).forEach(function (c) {
+                var u = c.creadoPor; if (!u || vistos[u]) return; vistos[u] = 1;
+                opts += '<option>' + esc(u) + '</option>';
+            });
+            selC.innerHTML = opts;
+            selC.value = curC; if (selC.value !== curC) selC.value = '';
+        }
     }
     window.renderOperadorSelects = renderOperadorSelects;
     // ---- Combo de operador del envío MANUAL (patrón chip: elegir bloquea,
@@ -8571,6 +8587,7 @@
             var d = cargaFechaDate(c); if (!d) return;
             if (d.getFullYear() !== y || d.getMonth() !== m) return;
             if (fOp && (c.operador || 'Dynamo') !== fOp) return;
+            if (TABLE_STATE.cargas.creador && (c.creadoPor || ENVIO_USUARIOS[0]) !== TABLE_STATE.cargas.creador) return;
             if (q && !matchTokens(cargaSearchBlob(c), q)) return;
             (porDia[d.getDate()] = porDia[d.getDate()] || []).push(c);
         });
@@ -9247,7 +9264,7 @@
     function cargaPriceSig(c) {
         return [c.origen, c.destino, c.origenDir, c.destinoDir,
             JSON.stringify((c.paradas || []).map(function (pr) { return [pr.dir, pr.tipo]; })),
-            c.medidas, c.mercancia, c.ventana, c.fecha, c.tipoCamion].join('|');
+            c.medidas, c.mercancia, c.ventana, c.fecha, c.tipoCamion, c.creadoPor].join('|');
     }
     function margenHtml(pc, pt) {
         if (!pc || pt == null) return '—';
@@ -10037,6 +10054,8 @@
                 ctField('usr-f-copias', 'Enviar copia a · opcional (si hay varios, sepáralos por comas)', u.copias, 'logistica@empresa.com, almacen@empresa.com', true) +
                 '<div class="sitio-email-err" id="usrCopiasErr" hidden style="grid-column:1/-1;margin-top:-0.5rem;font-size: var(--fs-s);color:#b42318;font-weight:700;"></div>' +
                 '<div style="grid-column:1/-1;margin-top:-0.5rem;font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;">Estos emails reciben COPIA de los avisos de envíos de este usuario (máximo 10).</div>' +
+                ctSelect('usr-f-visenv', 'Mis envíos: visibles para otros usuarios de mi empresa', ['Sí — visibles para mi empresa', 'No — solo yo (y administración)'], u.enviosVisibles === false ? 'No — solo yo (y administración)' : 'Sí — visibles para mi empresa') +
+                '<div style="grid-column:1/-1;margin-top:-0.5rem;font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;">Al OCULTARLOS, los envíos creados por este usuario dejan de verse en el listado del resto de usuarios de su empresa (la administración de Dynamo siempre los ve). En producción lo impone el servidor (RLS).</div>' +
                 tipoHtml +
                 ctSelect('usr-f-estado', 'Estado de la cuenta', ['Activa', 'Suspendida', 'Pendiente de verificación'], u.estadoCuenta || 'Activa') +
                 ctField('usr-f-nombre', 'Nombre y apellidos *', u.nombre, 'Nombre y apellidos', true) +
@@ -10237,6 +10256,8 @@
         else if (!u.tipo) u.tipo = 'Cliente';
         var estEl = document.getElementById('usr-f-estado');
         u.estadoCuenta = estEl ? estEl.value : 'Activa';
+        var visEl = document.getElementById('usr-f-visenv');
+        if (visEl) u.enviosVisibles = /^Sí/.test(visEl.value);
         u.dni = v('usr-f-dni') || null;
         u.tfno = telValue('usr-f-tfno');
         u.empresa = v('usr-f-empresa') || null;
@@ -13106,7 +13127,7 @@
     }
     function savePerPage(table, v) { /* sin persistencia local: solo la sesión */ }
     var TABLE_STATE = {
-        cargas:       { page: 1, filter: 'programada-pendiente',  perPage: readPerPage('cargas'), estado: '', fecha: '', q: '', operador: '' },
+        cargas:       { page: 1, filter: 'programada-pendiente',  perPage: readPerPage('cargas'), estado: '', fecha: '', q: '', operador: '', creador: '' },
         presupuestos: { page: 1, filter: 'activos', perPage: readPerPage('presupuestos'), q: '' },
         facturas:     { page: 1, filter: 'todas',  perPage: readPerPage('facturas'), q: '', estado: '', from: '', to: '' },
         albaranes:    { page: 1, filter: 'todas',  perPage: readPerPage('albaranes'), q: '', estado: '' },
@@ -13640,6 +13661,14 @@
     function makeFactura(ref, emision, vencimiento, concepto, conceptoMeta, base, iva, total, estado, color, kind) {
         return { ref: ref, emision: emision, vencimiento: vencimiento, concepto: concepto, conceptoMeta: conceptoMeta, base: base, iva: iva, total: total, estado: estado, estadoColor: color, kind: kind };
     }
+    // CREADO POR: email del usuario que gestionó cada envío — una empresa
+    // puede tener varios usuarios y así se ve quién gestiona cada uno.
+    // Mock determinista; con backend será el usuario autenticado al crear.
+    var ENVIO_USUARIOS = ['juan.garcia@marbex.es', 'laura.romero@marbex.es', 'p.canales@marbex.es'];
+    CARGAS_DATA.forEach(function (c) {
+        if (!c.creadoPor) c.creadoPor = ENVIO_USUARIOS[hashStr(c.ref) % ENVIO_USUARIOS.length];
+    });
+    if (typeof renderOperadorSelects === 'function') renderOperadorSelects();
     // Cliente del portal (la cuenta logueada). Con backend saldrá del perfil.
     var CLIENTE_ACTUAL = 'Marbex Industrial S.L.';
     // AHORROS DEL AÑO (mock, en € base sin IVA): comparativas registradas al
@@ -15481,6 +15510,9 @@
         // por defecto) u otro operador del catálogo privado del cliente.
         var fOp = TABLE_STATE.cargas.operador;
         if (fOp) arr = arr.filter(function (c) { return (c.operador || 'Dynamo') === fOp; });
+        // Filtro por USUARIO que creó/gestiona el envío ("Creado por").
+        var fCre = TABLE_STATE.cargas.creador;
+        if (fCre) arr = arr.filter(function (c) { return (c.creadoPor || ENVIO_USUARIOS[0]) === fCre; });
         // Búsqueda en vivo (se filtra al teclear, sin mayúsculas ni acentos)
         var q = normTxt(TABLE_STATE.cargas.q);
         if (q) arr = arr.filter(function (c) { return matchTokens(cargaSearchBlob(c), q); });
@@ -15924,6 +15956,7 @@
                             '<td class="amount td-precio" onclick="event.stopPropagation();openPrecioEditor(\'' + esc(c.ref) + '\',\'transportista\')"><strong>' + (pt ? eur2(pt) : '—') + '</strong>' + man + refLines(ult.ptU, ult.ptUFecha, tar.ptT, 'transportista') + '</td>' +
                             '<td class="amount">' + margenHtml(pc, pt) + '</td>';
                     })() +
+                    '<td class="creadopor" style="white-space:nowrap;font-size: var(--fs-s);color:var(--gray-700);font-weight:600;">' + esc(c.creadoPor || ENVIO_USUARIOS[0]) + '</td>' +
                     actionsCell(actionItemsCarga(c)) +
                     '</tr>';
             }).join('');
@@ -16177,7 +16210,8 @@
                 function (c) { return c.matricula; },
                 function (c) { cargaPrecios(c); return c.precioCliente; },
                 function (c) { cargaPrecios(c); return c.precioTransportista; },
-                function (c) { cargaPrecios(c); return (c.precioCliente != null && c.precioTransportista != null) ? c.precioCliente - c.precioTransportista : null; }
+                function (c) { cargaPrecios(c); return (c.precioCliente != null && c.precioTransportista != null) ? c.precioCliente - c.precioTransportista : null; },
+                function (c) { return c.creadoPor; }
             ],
             facturas: [
                 function (f) { return __sortFecha(f.emision); },
