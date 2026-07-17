@@ -9500,7 +9500,7 @@
                 ctField('cli-f-prov', 'Provincia', c.prov, 'Sevilla') +
                 ctField('cli-f-pais', 'País', c.pais || 'España', 'España') +
                 telField('cli-f-tfno', 'Teléfono', c.tfno) +
-                ctField('cli-f-email', 'Email', c.email, 'empresa@dominio.com', false, 'email') +
+                ctField('cli-f-email', 'Email (contabilidad y gerencia)', c.email, 'administracion@dominio.com', false, 'email') +
                 '<div style="grid-column:1/-1;font-size: var(--fs-s);color:var(--gray-500);line-height:1.5;margin-top:-0.4rem;">📱 <strong>Mejor un móvil</strong>: además de llamar, permite <strong>WhatsApp con el estado del envío</strong>. 📩 El <strong>email</strong> se usa para los avisos de la operativa (recogidas, entregas, incidencias).</div>' +
                 ctField('cli-f-contacto', 'Persona de contacto', c.contacto, 'Nombre y apellidos', true) +
                 ctNotas('cli-f-notas', c.notas) +
@@ -9520,7 +9520,7 @@
                 ctField('tra-f-prov', 'Provincia', t.prov, 'Sevilla') +
                 ctField('tra-f-pais', 'País', t.pais || 'España', 'España') +
                 telField('tra-f-tfno', 'Teléfono', t.tfno) +
-                ctField('tra-f-email', 'Email', t.email, 'trafico@dominio.com', false, 'email') +
+                ctField('tra-f-email', 'Email (contabilidad y gerencia)', t.email, 'administracion@dominio.com', false, 'email') +
                 '<div style="grid-column:1/-1;font-size: var(--fs-s);color:var(--gray-500);line-height:1.5;margin-top:-0.4rem;">📱 <strong>Mejor un móvil</strong>: además de llamar, permite <strong>WhatsApp con el estado del envío</strong>. 📩 El <strong>email</strong> se usa para los avisos de la operativa (recogidas, entregas, incidencias).</div>' +
                 ctField('tra-f-contacto', 'Persona de contacto', t.contacto, 'Nombre y apellidos', true) +
                 ctField('tra-f-camiones', 'Nº de camiones', t.camiones, '1', false, 'number') +
@@ -9964,6 +9964,10 @@
         return ctMetaHTML(u) +
             '<div class="ptar-sitio-grid">' +
                 ctField('usr-f-email', 'Email (usuario de acceso) *', u.email, 'nombre@empresa.com', true, 'email') +
+                '<div style="grid-column:1/-1;margin-top:-0.5rem;font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;">Los avisos de logística (envíos, incidencias…) llegan a este email de usuario. El email de la ficha de empresa queda para contabilidad y gerencia.</div>' +
+                ctField('usr-f-copias', 'Enviar copia a <span style="color:var(--gray-500);font-weight:600;">· opcional · si hay varios, sepáralos por comas</span>', u.copias, 'logistica@empresa.com, almacen@empresa.com', true) +
+                '<div class="sitio-email-err" id="usrCopiasErr" hidden style="grid-column:1/-1;margin-top:-0.5rem;font-size: var(--fs-s);color:#b42318;font-weight:700;"></div>' +
+                '<div style="grid-column:1/-1;margin-top:-0.5rem;font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;">Estos emails reciben COPIA de los avisos de envíos de este usuario (máximo 10).</div>' +
                 tipoHtml +
                 ctSelect('usr-f-estado', 'Estado de la cuenta', ['Activa', 'Suspendida', 'Pendiente de verificación'], u.estadoCuenta || 'Activa') +
                 ctField('usr-f-nombre', 'Nombre y apellidos *', u.nombre, 'Nombre y apellidos', true) +
@@ -10137,9 +10141,25 @@
             var e2 = document.getElementById('usr-f-nombre'); if (e2 && !nombre) e2.style.borderColor = '#dc2626';
             return;
         }
+        // "Enviar copia a": lista opcional de emails (comas, máx. 10, todos
+        // válidos). En Supabase será text[] igual que los avisos de sitios.
+        var copiasRaw = v('usr-f-copias');
+        var copias = copiasRaw.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+        var copErr = document.getElementById('usrCopiasErr'), copEl = document.getElementById('usr-f-copias');
+        function copFail(msg) {
+            if (copEl) copEl.style.borderColor = '#dc2626';
+            if (copErr) { copErr.textContent = '⚠ ' + msg; copErr.hidden = false; }
+            return true;
+        }
+        if (copias.length > 10 && copFail('Máximo 10 emails de copia (has puesto ' + copias.length + ').')) return;
+        for (var ci = 0; ci < copias.length; ci++) {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(copias[ci]) && copFail('«' + copias[ci] + '» no es un email válido.')) return;
+        }
+        if (copErr) copErr.hidden = true;
         var edit = (idx != null && idx >= 0 && idx < USUARIOS_DATA.length);
         var u = edit ? USUARIOS_DATA[idx] : { ultimaConexion: null, minDia: null, minSemana: null, consultas: null, envios: null, cancelaciones: null, cancelUlt10: null };
         u.email = email; u.nombre = nombre;
+        u.copias = copias.length ? copias.join(', ') : null;
         // El select de tipo solo existe en el ALTA; al editar, el rol se
         // cambia únicamente desde "Cambiar rol…" (confirmación aparte).
         var tipoEl = document.getElementById('usr-f-tipo');
