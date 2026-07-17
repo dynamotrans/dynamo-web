@@ -154,6 +154,26 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-07-17 — Claude Code web (nube)
+
+> **Sesión nocturna (16-17 jul): CMR oficial + firma digital con validación europea + pulido de la comparativa + escala de texto + upgrade a Vercel Pro.** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `4e00e06`.
+
+**CMR CALCADO DEL MODELO OFICIAL** (`buildCMRPDF`): el usuario subió el PDF oficial UITA → rasterizado con pymupdf a 4 JPEGs (`images/cmr-fondo-1..4.jpg`, uno por ejemplar con sus colores rojo/azul/verde/negro) que van de **fondo a página completa**; la capa de datos se escribe en **tinta azul** en las coordenadas reales de cada casilla (extraídas del original). Logo Dynamo **B/N arriba-izquierda SOLO en envíos Dynamo**; manuales sin logo ni mención. Fixes: **Nº de envío** a la franja blanca superior (pisaba el texto legal) · porteador casilla 16 con CIF·tel en una línea pequeña (invadía la 17) · **`enc()` de los 3 PDFs ampliada a Latin-1 completo** (ç/à/è/ï… — "Lliçà" salía "Lli??").
+
+**FIRMA DIGITAL DEL CMR (`firmar-cmr.html`)**: cada bloque de firma pide **DNI/NIE + nombre y apellidos (obligatorios) y email (opcional)**, con **autorrelleno desde la ficha de Sitios** (contacto/email del punto viajan en la URL: `r{i}n/e{i}e/tn/te`; conductor u operador para el transportista; el DNI siempre a mano). **Validación europea del documento por país** (selector con los 12 países + RO + Otro): checksum ESTRICTO donde hay algoritmo público — DNI/NIE ES · NIF y Cartão de Cidadão PT · Codice Fiscale IT · registro nacional BE · BSN NL · PESEL PL · CNP RO · rodné číslo CZ · Personalausweis DE con dígito — un control inválido BLOQUEA la firma; FR/AT/CH/LU/Otro → aviso ámbar que deja firmar. Algoritmos verificados contra ejemplos oficiales. El registro queda "✓ Firmada el [fecha] por Nombre · DNI (ES) · email". Emails de demo en los 2 almacenes del catálogo (Huétor/Málaga) para VER el autorrelleno. **Legalidad hablada**: firma con dedo = firma electrónica simple eIDAS (válida, admisible); el valor probatorio real lo dará el backend (token un solo uso + OTP SMS + hash + sello de tiempo + auditoría, en TODO). El usuario decidió NO montar aún la pantalla OTP de demo ("dejamos de momento así").
+
+**COMPARATIVA DEL ENVÍO MANUAL — comportamiento final**: por defecto NO se muestra el precio Dynamo; la caja SOLO aparece si el cliente teclea el precio de su transportista Y es **MÁS CARO** que Dynamo (igual/más barato o vacío → no se dice nada). Textos finales: "**Precio con Dynamo: X € (base sin IVA)**" + "**Ahorrarías Y € respecto al precio de tu transportista.**" + botón "**Para enviarla con Dynamo, pulsa aquí.**" (sin título ni coletilla). Fuera el ahorro acumulado anual de la pantalla de envío (solo queda en Recomiéndanos).
+
+**ADR ELIMINADO**: fuera el toggle "Mercancía ADR" del formulario (Dynamo no transporta ADR); código dependiente inerte con guards; **se conserva la cláusula 3 de las condiciones** (el cliente declara que su mercancía NO es ADR).
+
+**ESCALA DE TEXTO ÚNICA (3 niveles)**: de **39 tamaños de fuente distintos (~550 declaraciones) a 3 variables** en `:root` — `--fs-s` 0,72rem (metadatos/th/badges) · `--fs-m` 0,82rem (tablas/labels/chips) · `--fs-l` 0,9rem (párrafos/avisos). 411 declaraciones convertidas por cluster. Fuera de escala solo display (títulos/precios ≥1rem) y los 16px de inputs móviles (anti-zoom iOS). Regla comentada en el CSS: NO inventar tamaños nuevos.
+
+**VERCEL PRO + CAÍDA DE GITHUB**: el preview dejó de actualizarse (tope de deploys del plan Hobby tras la sesión maratoniana) → el usuario **contrató Vercel Pro ($20/mes; se le quitó del carrito el add-on Speed Insights de $10 que Vercel colaba preseleccionado en `montesblanco-web`)**. Después coincidió una **caída real de GitHub** (incidente oficial: ~35% de la API fallando) que bloqueó webhooks y "Create Deployment" toda la madrugada; se dejó un bucle de reintentos automáticos (push vacío cada 30 min) y por la mañana el preview quedó al día y verificado por el usuario. Lección: con el tope del Hobby los pushes se DESCARTAN (no se encolan); con Pro no hay tope.
+
+**DECISIÓN SUPABASE (en TODO.md)**: **tabla ÚNICA `envios`** para Dynamo y manuales (operador_id FK con Dynamo como fila fija, nullables por tipo, CHECK constraints, RLS por cliente, índices parciales) — NUNCA dos tablas (UNION + FKs polimórficas). Transportistas siguen siendo 2 tablas (catálogo cliente vs interno). Pendiente de negocio: si el admin Dynamo ve los envíos manuales de clientes.
+
+**Pendientes**: buscador global (lupa + Ctrl+K, propuesto — sin decidir) · backend de firmas CMR selladas + OTP · resto en TODO.md.
+
 ### 2026-07-16 — Claude Code web (nube)
 
 > **Sesión multi-día (13–16 jul) del panel** (`dashboard.html` + `registro.html` + nueva `aceptar-carga.html`), todo en **preview** (`claude/sharp-dirac-E3UIO`) salvo UN cambio público a **main**: quitar **Finca/Agrícola** de los selectores del tarifador público (`index.html`, main `8740bd8`, con OK explícito; merge de vuelta a preview `f847560`). Estado final: preview `58d404e`.
