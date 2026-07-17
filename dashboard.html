@@ -15896,9 +15896,6 @@
                         '<div class="envio-estado envio-estado-top"><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span></div>' +
                         '<strong>' + esc(c.ref) + '</strong>' +
                         (c.refCli ? ' <span class="ref-cli-inline">(' + esc(c.refCli) + ')</span>' : '') +
-                        (c.modificadoEn && c.modificadoEn - (c.creadoEn || 0) > 60000
-                            ? '<span class="ref-creado">(Modificado: ' + fmtCreado(c.modificadoEn) + ')</span>'
-                            : (c.creadoEn ? '<span class="ref-creado">(Creado: ' + fmtCreado(c.creadoEn) + ')</span>' : '')) +
                     '</td>' +
                     '<td class="mercancia">' + esc(mercPaletiz(c)) +
                         (function () {
@@ -15956,7 +15953,11 @@
                             '<td class="amount td-precio" onclick="event.stopPropagation();openPrecioEditor(\'' + esc(c.ref) + '\',\'transportista\')"><strong>' + (pt ? eur2(pt) : '—') + '</strong>' + man + refLines(ult.ptU, ult.ptUFecha, tar.ptT, 'transportista') + '</td>' +
                             '<td class="amount">' + margenHtml(pc, pt) + '</td>';
                     })() +
-                    '<td class="creadopor" style="white-space:nowrap;font-size: var(--fs-s);color:var(--gray-700);font-weight:600;">' + esc(c.creadoPor || ENVIO_USUARIOS[0]) + '</td>' +
+                    '<td class="creadopor" style="white-space:nowrap;font-size: var(--fs-s);color:var(--gray-700);">' +
+                        '<strong>' + esc(c.creadoPor || ENVIO_USUARIOS[0]) + '</strong>' +
+                        (c.creadoEn ? '<div class="meta" style="white-space:nowrap;">Creación: ' + fmtCreado(c.creadoEn) + '</div>' : '') +
+                        (c.modificadoEn && c.modificadoEn - (c.creadoEn || 0) > 60000 ? '<div class="meta" style="white-space:nowrap;">Modificación: ' + fmtCreado(c.modificadoEn) + '</div>' : '') +
+                    '</td>' +
                     actionsCell(actionItemsCarga(c)) +
                     '</tr>';
             }).join('');
