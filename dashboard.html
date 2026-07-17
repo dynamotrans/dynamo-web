@@ -18467,8 +18467,12 @@
                 var partesF = [];
                 if (g150.length) partesF.push(g150.join(' y ') + ' +150 €');
                 if (g100.length) partesF.push(g100.join(' y ') + ' +100 €');
-                var fijaGuia = ' (' + partesF.join(' · ') + '). Elige ' + (gLibre || '—') +
-                    ' en adelante fecha fija más económica, o <strong>ventana de carga 1 a 3 días</strong> aún más económica.';
+                // Guía de la fecha fija en LÍNEAS (un dato por línea, sin caos):
+                // qué días llevan suplemento, desde cuándo es gratis, y la
+                // alternativa barata.
+                var fijaGuia = '<br>· Con suplemento de urgencia: ' + partesF.join(' · ') + '.' +
+                    '<br>· <strong>Sin suplemento: desde el ' + (gLibre || '—') + '</strong>.' +
+                    '<br>💡 Lo más barato: la <strong>ventana de carga de 1 a 3 días</strong>.';
                 var html;
                 if (secNow < cutSec) {
                     var rem = cutSec - secNow;
@@ -18477,12 +18481,15 @@
                     html = '⏱ <strong>Pide antes de las ' + cutLabel + '</strong> (quedan ' + remTxt + ') y ' +
                         (firstIsToday ? '<strong>hoy (' + fmtEtaDate(today) + ')</strong>' : 'el <strong>' + fmtEtaDate(first) + '</strong>') +
                         ' puede ser el primer día de carga' +
-                        (uv === 'dia' ? ' <em>· tarifa urgente</em>' + fijaGuia
+                        (uv === 'dia' ? '.' + fijaGuia
                                       : '. Ventana: del ' + fmtEtaDate(first) + ' al ' + fmtEtaDate(addBusinessDays(first, ventanaLen() - 1)) + '.');
                 } else {
-                    html = '⏱ El corte de las ' + cutLabel + ' ya ha pasado. Primer día de carga posible: <strong>' + fmtEtaDate(first) + '</strong>';
-                    if (uv === 'dia') html += ' <em>· tarifa urgente</em>' + fijaGuia;
-                    else html += ' (ventana del ' + fmtEtaDate(first) + ' al ' + fmtEtaDate(addBusinessDays(first, ventanaLen() - 1)) + ').';
+                    if (uv === 'dia') {
+                        html = '⏱ El corte de las ' + cutLabel + ' ya ha pasado: el primer día posible con fecha fija es el <strong>' + fmtEtaDate(first) + '</strong>.' + fijaGuia;
+                    } else {
+                        html = '⏱ El corte de las ' + cutLabel + ' ya ha pasado. Primer día de carga posible: <strong>' + fmtEtaDate(first) + '</strong>' +
+                            ' (ventana del ' + fmtEtaDate(first) + ' al ' + fmtEtaDate(addBusinessDays(first, ventanaLen() - 1)) + ').';
+                    }
                 }
                 el.innerHTML = html;
                 el.hidden = false;
