@@ -18008,14 +18008,16 @@
                 // — el que MÁS ocupa manda; uno NO limita al otro. Ej.: 3 m pero
                 // 24 Tn → el peso va al tope → 100% → tarifa de carga completa
                 // (igual que 13,2 m). El componente por distancia se escala por
-                // ese % (25%..100%); los 220 € de base fija se mantienen como
-                // mínimo (ninguna carga, ni un grupaje, baja de ahí).
+                // ese % (25%..100%), con un PRECIO MÍNIMO por tipo de envío:
+                // GRUPAJE 190 € · carga COMPLETA 320 € (ningún envío baja de ahí).
                 var occInfo = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
                 var occMl = parseFloat(mlSel.value === '13.2' ? '13.2' : mlSel.value) || 0;
                 var occTn = parseFloat(pesoSel.value) || 0;
                 var occFactor = ocupacion(occMl, occTn, Math.round(occMl * 2.5), occInfo).pct / 100;
-                // Base fija mínima 220 € (suelo) + 1,35 €/km de carretera × ocupación.
-                var precio = 220 + dist * 1.35 * occFactor;
+                // 1,35 €/km de carretera × ocupación. El suelo por tipo se
+                // aplica al FINAL (tras mercancía y factor de cliente): es un
+                // mínimo duro, nada lo baja de ahí.
+                var precio = dist * 1.35 * occFactor;
                 var uv = urgenciaSel ? urgenciaSel.value : 'estandar';
                 // FECHA FIJA: 2 suplementos independientes.
                 //  1) Por ser día concreto (fija) → +15% SIEMPRE.
@@ -18052,14 +18054,18 @@
                 // y a la confirmación, que recalcula desde precioBase). Silencioso.
                 var fCli = factorClienteActual();
                 if (fCli) precio = precio * (1 + fCli / 100);
+                // PRECIO MÍNIMO por tipo de envío (suelo duro, después de todos
+                // los ajustes): GRUPAJE 190 € · carga COMPLETA 320 €.
+                precio = Math.max(esGrupajeSel() ? 190 : 320, precio);
                 // Base del transporte ANTES del recargo por tipo (para recalcular
                 // en la confirmación si allí cambian el tipo de lugar).
                 card.dataset.precioBase = String(Math.round(precio / 10) * 10);
                 // Base de ESTA ruta a ocupación 100% (camión completo): para el
                 // botón "Pasar a camión completo" del aviso de grupaje.
-                var precioFull = 220 + dist * 1.35;
+                var precioFull = dist * 1.35;
                 if (mercaSel && mercaSel.selectedIndex === 1) precioFull *= 1.1;
                 if (fCli) precioFull = precioFull * (1 + fCli / 100);
+                precioFull = Math.max(320, precioFull); // mínimo carga completa
                 card.dataset.precioBaseFull = String(Math.round(precioFull / 10) * 10);
                 // Momento del cálculo: el precio tiene una VALIDEZ de 60 min
                 // (pasado ese tiempo no se deja confirmar; hay que regenerar).
