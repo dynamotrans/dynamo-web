@@ -5520,7 +5520,7 @@
                 <thead><tr>
                     <th>Email · usuario</th><th>Tipo</th><th>Nombre y apellidos</th><th>DNI</th><th>Teléfono</th>
                     <th>Última conexión</th><th>Conexión diaria</th><th>Conexión semanal</th>
-                    <th>Consultas de precio</th><th>Envíos creados</th><th>Consultas / envíos</th>
+                    <th>Consultas de precio</th><th>Envíos creados</th><th>Envíos / consultas</th>
                     <th>Cancelaciones</th><th>Cancel. / envíos</th><th>Cancelados en últ. 10</th>
                 </tr></thead>
                 <tbody id="tbodyUsuarios"></tbody>
@@ -9976,12 +9976,14 @@
     // Métricas derivadas (solo usuarios que crean envíos; el resto '—').
     function usuarioMetrics(u) {
         var sinEnvios = (u.envios == null);
-        var ratioCE = (!sinEnvios && u.envios > 0 && u.consultas != null) ? (u.consultas / u.envios) : null;
+        // Envíos / consultas en %: qué parte de las consultas de precio
+        // termina convirtiéndose en envío (tasa de conversión del usuario).
+        var ratioCE = (!sinEnvios && u.consultas > 0 && u.envios != null) ? Math.round(u.envios / u.consultas * 100) : null;
         var ratioCanc = (!sinEnvios && u.envios > 0 && u.cancelaciones != null) ? Math.round(u.cancelaciones / u.envios * 100) : null;
         return {
             consultas: sinEnvios ? '—' : String(u.consultas != null ? u.consultas : '—'),
             envios: sinEnvios ? '—' : String(u.envios),
-            ratioCE: ratioCE == null ? '—' : ratioCE.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+            ratioCE: ratioCE == null ? '—' : (ratioCE + ' %'),
             cancelaciones: sinEnvios ? '—' : String(u.cancelaciones != null ? u.cancelaciones : '—'),
             ratioCanc: ratioCanc == null ? '—' : (ratioCanc + ' %'),
             ratioCancAlto: ratioCanc != null && ratioCanc >= 30,
@@ -10089,7 +10091,7 @@
                     statRow('Conexión semanal (media)', fmtMinTxt(u.minSemana)) +
                     statRow('Consultas de precio', m.consultas) +
                     statRow('Envíos creados', m.envios) +
-                    statRow('Consultas / envíos creados', m.ratioCE) +
+                    statRow('Envíos / consultas (conversión)', m.ratioCE) +
                     statRow('Cancelaciones de envíos', m.cancelaciones) +
                     statRow('Cancelaciones / envíos creados', m.ratioCancAlto ? '<span style="color:#dc2626;">' + m.ratioCanc + '</span>' : m.ratioCanc) +
                     statRow('Cancelados en los últimos 10 creados', m.ult10) +
