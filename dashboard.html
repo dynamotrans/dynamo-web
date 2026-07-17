@@ -18242,9 +18242,13 @@
                         // 1.ª fecha fija SIN suplemento de preaviso (tarifa estándar).
                         var d3U = new Date(nM.getFullYear(), nM.getMonth(), nM.getDate());
                         do { d3U.setDate(d3U.getDate() + 1); } while (nonBiz(d3U) || preavisoFija(d3U) > 0);
-                        hoyHtml = '<div class="ptar-eta-hoy"><strong>⚠ Fecha fija urgente (poco preaviso): lleva un suplemento de +' + supU + ' €</strong> (la 1ª fecha disponible +150 € · los 2 días hábiles siguientes +100 €). ' + (esHoy ? 'Además es para HOY: no se garantiza cargar en el día; cancelar (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. ' : '') + 'Eligiendo una fecha <strong>a partir del ' + fmtEtaDate(d3U) + ' más económica</strong>, pasa a tarifa de fecha fija estándar, que cuenta con más preaviso. <strong>Si ese día no hay vehículo</strong> habría que reprogramar.<br><br><span style="color:#0f6b3a;">Se recomienda usar la ventana de carga de 1 a 3 días (flexible), el 80% veces cargamos en los 2 primeros días, es la más económica y aumenta la probabilidad de cargar al máximo.</span></div>';
+                        hoyHtml = '<div class="ptar-eta-hoy"><strong>⚠ Esta fecha lleva +' + supU + ' € de suplemento por urgencia.</strong><br>' +
+                            '· Fechas sin suplemento: <strong>a partir del ' + fmtEtaDate(d3U) + '</strong>.<br>' +
+                            (esHoy ? '· Es para HOY: no podemos garantizar cargar en el día, y cancelar tendría coste.<br>' : '') +
+                            '· Con fecha fija, si ese día no hay vehículo, habría que reprogramar.' +
+                            '<br><br><span style="color:#0f6b3a;">💡 <strong>Lo más barato: la ventana de 1 a 3 días</strong> — sin suplemento, y el 80% de las veces cargamos en los 2 primeros días.</span></div>';
                     } else {
-                        hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija estándar</strong>. Con fecha fija, <strong>si ese día no hay vehículo</strong> habría que reprogramar.<br><br><span style="color:#0f6b3a;">Se recomienda usar la ventana de carga de 1 a 3 días (flexible), el 80% veces cargamos en los 2 primeros días, es la más económica y aumenta la probabilidad de cargar al máximo.</span></div>';
+                        hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija estándar</strong> (sin suplemento de urgencia). Si ese día no hay vehículo, habría que reprogramar.<br><br><span style="color:#0f6b3a;">💡 <strong>Lo más barato: la ventana de 1 a 3 días</strong> — el 80% de las veces cargamos en los 2 primeros días.</span></div>';
                     }
                 }
                 etaBox.innerHTML =
