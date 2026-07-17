@@ -5468,7 +5468,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Transportista</th><th>Contacto</th><th>Código bolsa de carga</th><th>Flota</th><th>Creado · Modificado</th>
+                    <th>Transportista</th><th>Contacto</th><th>Código bolsa de carga</th><th>Puntuación</th><th>Flota (operativa)</th><th>Creado · Modificado</th>
                 </tr></thead>
                 <tbody id="tbodyTransportistas"></tbody>
             </table>
@@ -8994,8 +8994,32 @@
         { empresa: 'TransPenínsula Cargo S.L.', tipo: 'Empresa', cif: 'B86450129', dir: 'C/ Fundidores 9', cp: '28906', ciudad: 'Getafe', prov: 'Madrid', pais: 'España', tfno: '+34 916 954 302', email: 'bolsa@transpeninsula.es', contacto: 'Raúl Cifuentes', bolsa: 'TLR-771402', camiones: 21, flota: 'Tauliner y rígido', adr: true, seguro: 'Generali · Póliza CMR 12-908455', notas: 'Muy fiables en Madrid-Andalucía. Aceptan carga por techo.', creadoEn: __ctTs(280, 15), modificadoEn: __ctTs(9, 11) },
         { empresa: 'José Manuel Ortega Ruiz', tipo: 'Autónomo', cif: '27314582N', dir: 'C/ Almendro 6, 2ºB', cp: '14006', ciudad: 'Córdoba', prov: 'Córdoba', pais: 'España', tfno: '+34 638 220 471', email: 'jmortega.transportes@gmail.com', contacto: 'José Manuel Ortega', bolsa: 'WTN-633090', camiones: 1, flota: 'Rígido', seguro: 'Allianz · Póliza CMR 77-340216', notas: 'Rígido con trampilla. Ideal repartos urbanos.', docs: ['Seguro-CMR-Allianz.pdf'], creadoEn: __ctTs(190, 12), modificadoEn: __ctTs(60, 16) },
         { empresa: 'Ibérica de Tracción S.L.', tipo: 'Empresa', cif: 'B97120448', dir: 'Pol. Fuente del Jarro, C/ Ciutat de Llíria 40', cp: '46988', ciudad: 'Paterna', prov: 'Valencia', pais: 'España', tfno: '+34 961 340 775', email: 'trafico@ibetraccion.es', contacto: 'Empar Soler', bolsa: 'TLR-802341', camiones: 15, flota: 'Tauliner', adr: true, seguro: 'Zurich · Póliza CMR 31-662184', notas: '', creadoEn: __ctTs(140, 9), modificadoEn: null },
+        { empresa: 'Transportes Beltrán S.L.', tipo: 'Empresa', cif: 'B41708215', dir: 'Pol. El Pino, C/ Pino Central 12', cp: '41016', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', tfno: '+34 954 512 998', email: 'trafico@transbeltran.es', contacto: 'Luis Beltrán', bolsa: 'WTN-455102', seguro: 'AXA · Póliza CMR 74-201553', notas: '', creadoEn: __ctTs(400, 11), modificadoEn: null },
+        { empresa: 'Trans Andalucía 24h', tipo: 'Empresa', cif: 'B90455318', dir: 'Ctra. Amarilla, C/ Tecnología 41', cp: '41007', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', tfno: '+34 955 620 114', email: 'operaciones@transandalucia24h.es', contacto: 'Rocío Camacho', bolsa: 'TLR-660219', seguro: 'Mapfre · Póliza CMR 22-884736', notas: '', creadoEn: __ctTs(330, 10), modificadoEn: null },
+        { empresa: 'Logística Guadalquivir S.L.', tipo: 'Empresa', cif: 'B41339406', dir: 'Pol. La Isla, C/ Río Viejo 8', cp: '41703', ciudad: 'Dos Hermanas', prov: 'Sevilla', pais: 'España', tfno: '+34 955 442 073', email: 'trafico@logiguadalquivir.es', contacto: 'Fernando Rey', bolsa: 'WTN-518764', seguro: 'Generali · Póliza CMR 63-100295', notas: '', creadoEn: __ctTs(300, 13), modificadoEn: null },
+        { empresa: 'TransIberia Cargo', tipo: 'Empresa', cif: 'B87220410', dir: 'Pol. Villa Rosa, nave 27', cp: '29004', ciudad: 'Málaga', prov: 'Málaga', pais: 'España', tfno: '+34 952 178 350', email: 'bolsa@transiberiacargo.es', contacto: 'Nuria Gallardo', bolsa: 'TLR-745580', seguro: 'Zurich · Póliza CMR 55-320148', notas: '', creadoEn: __ctTs(230, 9), modificadoEn: null },
+        { empresa: 'Hnos. Molina Transportes', tipo: 'Empresa', cif: 'B18449034', dir: 'C/ Almazara 3', cp: '18220', ciudad: 'Albolote', prov: 'Granada', pais: 'España', tfno: '+34 958 460 227', email: 'hnosmolina@hmolinatransportes.es', contacto: 'Paco Molina', bolsa: 'WTN-590331', seguro: 'Reale · Póliza CMR 18-664902', notas: '', creadoEn: __ctTs(160, 14), modificadoEn: null },
         { empresa: 'Manuela Prieto Vidal', tipo: 'Autónomo', cif: '44982017C', dir: 'Av. de Portugal 12, 4ºA', cp: '06001', ciudad: 'Badajoz', prov: 'Badajoz', pais: 'España', tfno: '+34 620 884 913', email: 'mprietotransporte@hotmail.com', contacto: 'Manuela Prieto', bolsa: 'WTN-701255', camiones: 1, flota: 'Tauliner', seguro: 'Reale · Póliza CMR 09-115672', notas: 'Rutas España-Portugal.', creadoEn: __ctTs(75, 14), modificadoEn: __ctTs(2, 10) }
     ];
+    // PUNTUACIONES del transportista (mock determinista; backend real):
+    // · puntCli = media de las valoraciones de los CLIENTES tras sus entregas.
+    // · puntDyn = valoración INTERNA de Dynamo (criterios propios, p. ej.
+    //   puntualidad con nosotros, trato, documentación) — SOLO ADMIN.
+    // Son escalas SEPARADAS: el cliente solo verá la suya cuando se monte el
+    // gating de roles; la interna nunca sale del panel de administración.
+    TRANSPORTISTAS_DATA.forEach(function (t) {
+        if (t.puntCli != null) return;
+        var h = hashStr(t.empresa);
+        t.puntCli = (34 + (h % 16)) / 10;          // 3,4 – 4,9
+        t.puntCliN = 4 + (h % 37);                 // nº de valoraciones
+        t.puntDyn = (30 + ((h >> 3) % 20)) / 10;   // 3,0 – 4,9
+        t.puntDynN = 6 + ((h >> 5) % 48);
+    });
+    function puntHTML(v, n) {
+        if (v == null) return '<span style="color:var(--gray-500);">Sin valoraciones</span>';
+        return '<span style="color:#f5a623;">★</span> <strong>' + v.toFixed(1).replace('.', ',') + '</strong>' +
+            (n ? ' <span style="color:var(--gray-500);font-weight:600;">(' + n + ')</span>' : '');
+    }
     // Estado de VALIDACIÓN de cada cliente (columna Estado de la tabla):
     // Validado (verde) · Pendiente (naranja) · Suspendido (rojo).
     CLIENTES_DATA.forEach(function (c) {
@@ -9017,8 +9041,32 @@
     function clienteBlob(c) {
         return normTxt([c.empresa, c.cif, c.dir, c.cp, c.ciudad, c.prov, c.pais, c.tfno, c.email, c.contacto, clientePlazoTxt(c.plazo), c.notas].join(' '));
     }
+    // FLOTA CALCULADA DE LA OPERATIVA (no editable): se alimenta sola de los
+    // envíos — cada MATRÍCULA distinta vista en sus envíos cuenta como un
+    // camión, y el tipo sale del vehículo usado (rígido con plataforma si el
+    // envío fue con trampilla; si no, trailer lona estándar).
+    function traFlotaStats(t) {
+        var mats = {}, envios = 0;
+        (typeof CARGAS_DATA !== 'undefined' ? CARGAS_DATA : []).forEach(function (c) {
+            if (c.kind === 'cancelada') return;
+            if ((c.transportistaNombre || '') !== t.empresa) return;
+            envios++;
+            var m = String(c.matricula || '').trim();
+            if (!m) return;
+            var rig = /r[íi]gido|trampilla/i.test(c.tipoCamion || '');
+            mats[m] = mats[m] || rig;
+        });
+        var lona = 0, rigidos = 0;
+        Object.keys(mats).forEach(function (k) { if (mats[k]) rigidos++; else lona++; });
+        return { envios: envios, camiones: Object.keys(mats).length, lona: lona, rigidos: rigidos };
+    }
+    function traFlotaTxt(st) {
+        if (!st.envios) return 'Sin envíos aún';
+        return st.camiones + (st.camiones === 1 ? ' camión' : ' camiones') +
+            ' · ' + st.lona + ' lona · ' + st.rigidos + ' rígido' + (st.rigidos === 1 ? '' : 's');
+    }
     function transportistaBlob(t) {
-        return normTxt([t.empresa, t.tipo, t.cif, t.dir, t.cp, t.ciudad, t.prov, t.pais, t.tfno, t.email, t.contacto, t.bolsa, t.flota, t.seguro, t.notas, (t.adr ? 'adr' : ''), (t.docs || []).join(' ')].join(' '));
+        return normTxt([t.empresa, t.tipo, t.cif, t.dir, t.cp, t.ciudad, t.prov, t.pais, t.tfno, t.email, t.contacto, t.bolsa, t.seguro, t.notas, (t.adr ? 'adr' : ''), (t.docs || []).join(' ')].join(' '));
     }
     function renderClientesTable(q) {
         var tbody = document.getElementById('tbodyClientes'); if (!tbody) return;
@@ -9075,7 +9123,14 @@
                 '<td><strong>' + esc(t.empresa) + '</strong><div class="meta">' + esc(t.cif || '—') + ' · ' + esc(t.tipo || 'Empresa') + '</div></td>' +
                 '<td>' + esc(t.contacto || '—') + '<div class="meta">' + esc(t.tfno || '') + (t.email ? (t.tfno ? ' · ' : '') + esc(t.email) : '') + '</div></td>' +
                 '<td>' + (t.bolsa ? '<span class="dtc-mat">' + esc(t.bolsa) + '</span>' : '—') + '</td>' +
-                '<td>' + esc(t.flota || '—') + (t.adr ? ' <span class="badge" style="background:#fdecec;color:#b42318;border:1px solid #f5b5b5;">ADR</span>' : '') + '<div class="meta">' + (t.camiones ? t.camiones + (t.camiones === 1 ? ' camión' : ' camiones') : '—') + '</div></td>' +
+                '<td style="white-space:nowrap;">Clientes: ' + puntHTML(t.puntCli, t.puntCliN) +
+                    '<div class="meta" style="white-space:nowrap;">Dynamo: ' + puntHTML(t.puntDyn, t.puntDynN) + '</div></td>' +
+                (function () {
+                    var st = traFlotaStats(t);
+                    return '<td>' + (st.envios ? '<strong>' + st.camiones + (st.camiones === 1 ? ' camión' : ' camiones') + '</strong>' : '—') +
+                        (t.adr ? ' <span class="badge" style="background:#fdecec;color:#b42318;border:1px solid #f5b5b5;">ADR</span>' : '') +
+                        '<div class="meta">' + (st.envios ? st.envios + ' envíos · ' + st.lona + ' lona · ' + st.rigidos + ' rígido' + (st.rigidos === 1 ? '' : 's') : 'sin envíos aún') + '</div></td>';
+                })() +
                 '<td>' + fmtFH(t.creadoEn) + (t.modificadoEn ? '<div class="meta">Modif. ' + fmtFH(t.modificadoEn) + '</div>' : '') + '</td>' +
             '</tr>';
         }).join('');
@@ -9522,8 +9577,24 @@
                 ctField('tra-f-email', 'Email (tráfico)', t.email, 'trafico@dominio.com', false, 'email') +
                 '<div style="grid-column:1/-1;font-size: var(--fs-s);color:var(--gray-500);line-height:1.5;margin-top:-0.4rem;">📱 <strong>Mejor un móvil</strong>: además de llamar, permite <strong>WhatsApp con incidencias o avisos</strong>. 📩 El <strong>email</strong> se usa para los avisos de la operativa (recogidas, entregas, incidencias).</div>' +
                 ctField('tra-f-contacto', 'Persona de contacto', t.contacto, 'Nombre y apellidos', true) +
-                ctField('tra-f-camiones', 'Nº de camiones', t.camiones, '1', false, 'number') +
-                ctSelect('tra-f-flota', 'Flota', ['Tauliner', 'Rígido', 'Tauliner y rígido'], t.flota || 'Tauliner') +
+
+                (function () {
+                    var st = traFlotaStats(t);
+                    return '<div style="grid-column:1/-1;"><label>Flota (calculada de la operativa)</label>' +
+                        '<div style="border:1.5px solid var(--gray-200);border-radius:10px;padding:0.6rem 0.8rem;background:var(--gray-50);font-size: var(--fs-m);font-weight:700;color:var(--navy);">' +
+                        (st.envios
+                            ? st.envios + ' envíos realizados · <strong>' + st.camiones + (st.camiones === 1 ? ' camión detectado' : ' camiones detectados') + '</strong> (matrículas distintas): ' + st.lona + ' trailer lona · ' + st.rigidos + ' rígido con plataforma'
+                            : 'Aún sin envíos registrados con este transportista.') +
+                        '</div>' +
+                        '<div style="font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;margin-top:0.3rem;">No se edita: se alimenta sola de los envíos. Cada matrícula nueva suma un camión y el tipo sale del vehículo usado en cada envío (con trampilla = rígido con plataforma · sin trampilla = trailer lona).</div></div>';
+                })() +
+                '<div style="grid-column:1/-1;"><label>Puntuaciones (de los envíos entregados)</label>' +
+                    '<div style="border:1.5px solid var(--gray-200);border-radius:10px;padding:0.6rem 0.8rem;background:var(--gray-50);font-size: var(--fs-m);color:var(--navy);">' +
+                        'Clientes: ' + puntHTML(t.puntCli, t.puntCliN) +
+                        ' &nbsp;·&nbsp; Dynamo (interna): ' + puntHTML(t.puntDyn, t.puntDynN) +
+                        ' <span style="color:#b42318;font-weight:800;font-size: var(--fs-s);">— SOLO ADMIN</span>' +
+                    '</div>' +
+                    '<div style="font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;margin-top:0.3rem;">Dos escalas SEPARADAS con criterios distintos: la de <strong>clientes</strong> (sus valoraciones tras cada entrega) y la <strong>interna de Dynamo</strong>. El cliente solo verá la suya; la interna nunca sale de administración. No se editan: se alimentan de las valoraciones de los envíos.</div></div>' +
                 ctSelect('tra-f-adr', 'ADR — mercancías peligrosas', ['No', 'Sí'], t.adr ? 'Sí' : 'No') +
                 ctField('tra-f-seguro', 'Seguro de mercancías (aseguradora · póliza)', t.seguro, 'Ej. AXA · Póliza CMR 88-456129', true) +
                 ctNotas('tra-f-notas', t.notas) +
@@ -9637,9 +9708,6 @@
         t.pais = v('tra-f-pais') || 'España';
         t.tfno = telValue('tra-f-tfno'); t.email = v('tra-f-email') || null;
         t.contacto = v('tra-f-contacto') || null;
-        t.camiones = parseInt(v('tra-f-camiones'), 10) || null;
-        var flotaEl = document.getElementById('tra-f-flota');
-        t.flota = flotaEl ? flotaEl.value : 'Tauliner';
         var adrEl = document.getElementById('tra-f-adr');
         t.adr = adrEl ? adrEl.value === 'Sí' : !!t.adr;
         t.seguro = v('tra-f-seguro') || null;
@@ -9704,7 +9772,9 @@
                 row('CIF', esc(t.cif || '')) +
                 row('Código bolsa', t.bolsa ? '<span class="dtc-mat">' + esc(t.bolsa) + '</span>' : '') +
                 row('Contacto', esc([t.contacto, t.tfno].filter(Boolean).join(' · '))) +
-                row('Flota', esc([t.flota, (t.camiones ? t.camiones + (t.camiones === 1 ? ' camión' : ' camiones') : '')].filter(Boolean).join(' · ')) + (t.adr ? ' <span class="badge" style="background:#fdecec;color:#b42318;border:1px solid #f5b5b5;">ADR</span>' : '')) +
+                row('Flota (operativa)', esc(traFlotaTxt(traFlotaStats(t))) + (t.adr ? ' <span class="badge" style="background:#fdecec;color:#b42318;border:1px solid #f5b5b5;">ADR</span>' : '')) +
+                row('Punt. clientes', puntHTML(t.puntCli, t.puntCliN)) +
+                row('Punt. Dynamo', puntHTML(t.puntDyn, t.puntDynN) + ' <span style="color:#b42318;font-weight:800;font-size: var(--fs-s);">interna</span>') +
                 row('Seguro', esc(t.seguro || ''));
             f.hidden = false;
         }
@@ -16197,7 +16267,8 @@
                 function (r) { return r.t.empresa; },
                 function (r) { return r.t.contacto; },
                 function (r) { return r.t.bolsa; },
-                function (r) { return r.t.flota; },
+                function (r) { return r.t.puntCli; },
+                function (r) { return traFlotaStats(r.t).camiones; },
                 function (r) { return r.t.creadoEn; }
             ],
             usuarios: [
