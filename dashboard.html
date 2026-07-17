@@ -5104,6 +5104,10 @@
 
             <div class="ptar-confirm-note ptar-confirm-note-info" data-ptar-grupaje-warn hidden>
                 <strong>Si este envío es un GRUPAJE</strong>, no se puede garantizar al 100% la fecha de recogida y entrega. Dependen de completar camión y también se ven influidos por demoras en otras recogidas/entregas. Si es <strong>grupaje urgente</strong>, valora la opción de <strong>camión completo</strong>.
+                <!-- Precio de ESTA MISMA ruta en camión completo + botón de un
+                     clic (pone metros y peso al máximo y vuelve al formulario
+                     con el precio recalculado y la fecha fija disponible). -->
+                <div data-grupaje-full hidden style="margin-top:0.6rem;"></div>
             </div>
 
             <div class="ptar-confirm-note ptar-confirm-note-info" data-ptar-dyn-note hidden>
@@ -18050,6 +18054,12 @@
                 // Base del transporte ANTES del recargo por tipo (para recalcular
                 // en la confirmación si allí cambian el tipo de lugar).
                 card.dataset.precioBase = String(Math.round(precio / 10) * 10);
+                // Base de ESTA ruta a ocupación 100% (camión completo): para el
+                // botón "Pasar a camión completo" del aviso de grupaje.
+                var precioFull = 220 + dist * 1.35;
+                if (mercaSel && mercaSel.selectedIndex === 1) precioFull *= 1.1;
+                if (fCli) precioFull = precioFull * (1 + fCli / 100);
+                card.dataset.precioBaseFull = String(Math.round(precioFull / 10) * 10);
                 // Momento del cálculo: el precio tiene una VALIDEZ de 60 min
                 // (pasado ese tiempo no se deja confirmar; hay que regenerar).
                 card.dataset.precioTs = String(Date.now());
@@ -18585,6 +18595,18 @@
             // opPick (global) repuebla las fechas al cambiar de operador:
             // en manual entran HOY + findes/festivos y sin nota de corte.
             if (mode === 'carga') {
+                // "Pasar a camión completo": pone metros y peso al MÁXIMO del
+                // camión actual y vuelve al formulario (precio recalculado y
+                // fecha fija disponible al dejar de ser grupaje).
+                window.__ptarGrupajeCompleto = function () {
+                    var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
+                    mlSel.value = info.mlReal === 13.2 ? '13.2' : String(info.mlMax);
+                    pesoSel.value = String(info.pesoMax);
+                    mlSel.dispatchEvent(new Event('change'));
+                    pesoSel.dispatchEvent(new Event('change'));
+                    var back = card.querySelector('[data-ptar-back]');
+                    if (back) back.click();
+                };
                 window.__ptarRefillDias = function () {
                     if (diaSel) fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'estandar');
                     updateCutoffNote();
@@ -19585,6 +19607,22 @@
                     var mlNum = parseFloat(d.ml === '13.2' ? '13.2' : d.ml);
                     var esGrupaje = mlNum < camionMax;
                     grupajeWarn.hidden = !esGrupaje;
+                    // Precio de la misma ruta en CAMIÓN COMPLETO (ocupación 100%,
+                    // ventana estándar, sin suplementos de grupaje) + botón.
+                    var boxFull = grupajeWarn.querySelector('[data-grupaje-full]');
+                    if (boxFull) {
+                        var bFull = parseInt(card.dataset.precioBaseFull || '0', 10);
+                        if (esGrupaje && bFull) {
+                            var nPF = parseInt(card.dataset.nParadas || '0', 10) || 0;
+                            var recF = parseFloat(card.dataset.recargoTipo || '0') || 0;
+                            var netoF = bFull + nPF * 40 + Math.round(bFull * recF / 10) * 10;
+                            var techoF = card.dataset.techoOn === '1' ? Math.round(netoF * 0.15 / 10) * 10 : 0;
+                            var totalFull = netoF + techoF + (parseInt(card.dataset.trampExtra || '0', 10) || 0) + (parseInt(card.dataset.nimaExtra || '0', 10) || 0);
+                            boxFull.innerHTML = 'Este mismo envío en <strong>camión completo</strong> (con fecha fija disponible): <strong>' + eur2(totalFull) + '</strong> <span style="color:var(--gray-500);">(base sin IVA · ventana 1 a 3 días)</span>' +
+                                '<br><button type="button" class="btn-primary" style="width:100%;margin-top:0.5rem;min-height:44px;" onclick="if (window.__ptarGrupajeCompleto) __ptarGrupajeCompleto();">Pasar a camión completo — ' + eur2(totalFull) + '</button>';
+                            boxFull.hidden = false;
+                        } else boxFull.hidden = true;
+                    }
                 }
                 var dynNote = confirmCard.querySelector('[data-ptar-dyn-note]');
                 if (dynNote) dynNote.hidden = !loadDateIsFar();
