@@ -18014,10 +18014,10 @@
                 var occMl = parseFloat(mlSel.value === '13.2' ? '13.2' : mlSel.value) || 0;
                 var occTn = parseFloat(pesoSel.value) || 0;
                 var occFactor = ocupacion(occMl, occTn, Math.round(occMl * 2.5), occInfo).pct / 100;
-                // 1,35 €/km de carretera × ocupación. El suelo por tipo se
-                // aplica al FINAL (tras mercancía y factor de cliente): es un
-                // mínimo duro, nada lo baja de ahí.
-                var precio = dist * 1.35 * occFactor;
+                // Base fija 220 € + 1,35 €/km de carretera × ocupación. Además,
+                // suelo por tipo aplicado al FINAL (tras mercancía y factor de
+                // cliente): mínimo interno de cálculo, nada lo baja de ahí.
+                var precio = 220 + dist * 1.35 * occFactor;
                 var uv = urgenciaSel ? urgenciaSel.value : 'estandar';
                 // FECHA FIJA: 2 suplementos independientes.
                 //  1) Por ser día concreto (fija) → +15% SIEMPRE.
@@ -18062,7 +18062,7 @@
                 card.dataset.precioBase = String(Math.round(precio / 10) * 10);
                 // Base de ESTA ruta a ocupación 100% (camión completo): para el
                 // botón "Pasar a camión completo" del aviso de grupaje.
-                var precioFull = dist * 1.35;
+                var precioFull = 220 + dist * 1.35;
                 if (mercaSel && mercaSel.selectedIndex === 1) precioFull *= 1.1;
                 if (fCli) precioFull = precioFull * (1 + fCli / 100);
                 precioFull = Math.max(320, precioFull); // mínimo carga completa
