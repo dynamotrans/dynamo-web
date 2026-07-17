@@ -3988,6 +3988,10 @@
                 <span class="badge" data-sidebar-badge="alm-sinconf" title="Pendiente confirmar almacén" hidden>0</span>
                 <span class="badge sb-red" data-sidebar-badge="alm-pago" title="Almacenamientos pendientes de pago" hidden>0</span>
             </button>
+            <button class="sidebar-link" data-section="ahorros">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                Comparativas y ahorros
+            </button>
         </div>
         <!-- GESTIÓN INTERNA (solo admin/empleado cuando se monte el gating de
              roles: estos enlaces se OCULTARÁN al resto, y dentro de cada
@@ -5313,6 +5317,52 @@
         </div>
     </section>
 
+    <!-- ==================== COMPARATIVAS Y AHORROS ==================== -->
+    <!-- Historial completo de comparativas (el modal del dashboard solo enseña
+         las más recientes y enlaza aquí). Tabla estándar: buscador, pestañas,
+         orden por columnas y paginación — preparada para cientos de filas. -->
+    <section class="section" id="sec-ahorros">
+        <div class="sec-header">
+            <h2>Comparativas y ahorros</h2>
+        </div>
+        <p style="font-size: var(--fs-l);color:var(--gray-700);margin:-0.4rem 0 0.9rem;">Cada vez que creas un envío con otro transportista indicando su precio, guardamos la comparativa con el precio Dynamo de esa ruta. Importes base sin IVA.</p>
+        <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-bottom:0.9rem;">
+            <div style="flex:1;min-width:190px;padding:0.7rem 0.85rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:10px;font-weight:800;color:#0f6b3a;">Ahorrado con Dynamo<br><span style="font-size:1.2rem;" data-ah-tot-ok>—</span></div>
+            <div style="flex:1;min-width:190px;padding:0.7rem 0.85rem;background:#fdecec;border:1px solid #f5b5b5;border-radius:10px;font-weight:800;color:#b42318;">Dejado de ahorrar<br><span style="font-size:1.2rem;" data-ah-tot-ko>—</span></div>
+            <div style="flex:1;min-width:190px;padding:0.7rem 0.85rem;background:var(--gray-100);border:1px solid var(--gray-200);border-radius:10px;font-weight:800;color:var(--navy);">Ahorro posible del año<br><span style="font-size:1.2rem;" data-ah-tot-max>—</span></div>
+        </div>
+        <div class="tabs" data-ah-tabs>
+            <button class="tab active" data-ah-filter="todas">Todas (<span data-ah-count="todas">0</span>)</button>
+            <button class="tab" data-ah-filter="dynamo">Enviadas con Dynamo (<span data-ah-count="dynamo">0</span>)</button>
+            <button class="tab" data-ah-filter="otros">Con otro transportista (<span data-ah-count="otros">0</span>)</button>
+        </div>
+        <div class="filters">
+            <input type="search" placeholder="Buscar por ruta, envío, transportista…" data-ah-search oninput="renderAhorrosTable()">
+        </div>
+        <div class="table-wrap">
+            <table class="data">
+                <thead>
+                    <tr><th>Fecha</th><th>Envío</th><th>Ruta</th><th>Tu transportista<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>Dynamo<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>Resultado</th></tr>
+                </thead>
+                <tbody id="tbodyAhorros"></tbody>
+            </table>
+        </div>
+        <div class="pagination">
+            <div class="pagination-left">
+                <label class="pagination-perpage-wrap">Mostrar
+                    <select class="pagination-perpage" data-table="ahorros">
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+                <span id="ahorrosShowing"></span>
+            </div>
+            <div class="pagination-pages" id="ahorrosPagination"></div>
+        </div>
+    </section>
+
     <!-- ==================== ALMACENES (catálogo interno · SOLO ADMIN) ==================== -->
     <section class="section" id="sec-almacenes-cat" data-roles="admin">
         <div class="sec-header">
@@ -5600,6 +5650,7 @@
         'presupuestos':      'Presupuestos',
         'incidencias':       'Incidencias',
         'sitios':            'Sitios',
+        'ahorros':           'Comparativas y ahorros',
         'nueva-carga':       'Nueva carga',
         'mi-cuenta':         'Mi cuenta',
         'almacenes':         'Almacenamientos',
@@ -5639,7 +5690,7 @@
         });
         // Si la sección vive dentro de un grupo "Otras gestiones" (cliente o
         // admin), desplegar ese grupo para que su enlace activo se vea.
-        if (['incidencias', 'sitios', 'operadores', 'almacenes'].indexOf(id) > -1 && window.toggleSidebarOtras) {
+        if (['incidencias', 'sitios', 'operadores', 'almacenes', 'ahorros'].indexOf(id) > -1 && window.toggleSidebarOtras) {
             toggleSidebarOtras(true);
         }
         if (['almacenes-cat', 'clientes', 'transportistas', 'usuarios', 'altas'].indexOf(id) > -1 && window.toggleSidebarAdmin) {
@@ -12946,6 +12997,7 @@
         // Tablas con paginación cliente (filtro/búsqueda propios; _k guarda la
         // clave de filtro para volver a página 1 cuando cambia).
         penalizaciones: { page: 1, perPage: readPerPage('penalizaciones'), _k: '' },
+        ahorros:        { page: 1, perPage: readPerPage('ahorros'), _k: '' },
         almacenes:      { page: 1, perPage: readPerPage('almacenes'), _k: '' },
         almacenesCat:   { page: 1, perPage: readPerPage('almacenesCat'), _k: '' },
         sitios:         { page: 1, perPage: readPerPage('sitios'), _k: '' },
@@ -13504,9 +13556,9 @@
         var elE = document.querySelector('[data-ahorro-extra]');
         if (elE) elE.textContent = eur2(AHORRO_PERDIDO_ANIO);
     })();
-    // Ventana con el DETALLE de los ahorros: cada comparativa del año, con el
-    // precio del transportista del cliente, el de Dynamo, y el resultado
-    // (ahorrado en verde · dejado de ahorrar en rojo).
+    // Ventana con el RESUMEN de los ahorros: solo las comparativas más
+    // recientes (el historial completo, buscable y paginado — pueden ser
+    // cientos — vive en la sección "Comparativas y ahorros").
     window.openAhorrosModal = function () {
         function fila(a) {
             var d = a.tercero - a.dynamo;
@@ -13519,10 +13571,13 @@
                 '<div style="flex:none;text-align:right;">' + res + '</div>' +
             '</div>';
         }
-        var body = '<div style="font-size: var(--fs-m);">' + AHORROS_DATA.map(fila).join('') + '</div>' +
+        var recientes = AHORROS_DATA.slice().sort(function (x, y) { return ahFechaSort(y.fecha) - ahFechaSort(x.fecha); }).slice(0, 6);
+        var body = '<div style="font-size: var(--fs-m);">' + recientes.map(fila).join('') + '</div>' +
+            (AHORROS_DATA.length > recientes.length ? '<p style="margin-top:0.45rem;font-size: var(--fs-s);color:var(--gray-500);">Mostrando las ' + recientes.length + ' más recientes de ' + AHORROS_DATA.length + '.</p>' : '') +
             '<div style="margin-top:0.8rem;padding:0.7rem 0.8rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:10px;font-weight:800;color:#0f6b3a;">Ahorrado este año con Dynamo: ' + eur2(AHORRO_DYNAMO_ANIO) + '</div>' +
             '<div style="margin-top:0.45rem;padding:0.7rem 0.8rem;background:#fdecec;border:1px solid #f5b5b5;border-radius:10px;font-weight:800;color:#b42318;">Dejado de ahorrar (envíos con otros transportistas): ' + eur2(AHORRO_PERDIDO_ANIO) + '</div>' +
             '<div style="margin-top:0.45rem;font-weight:800;">Podrías haber ahorrado hasta ' + eur2(AHORRO_DYNAMO_ANIO + AHORRO_PERDIDO_ANIO) + ' este año.</div>' +
+            '<button type="button" class="btn-primary" style="width:100%;margin-top:0.8rem;" onclick="closeDashModal(); showSection(\'ahorros\');">Ver todas las comparativas (' + AHORROS_DATA.length + ') →</button>' +
             '<p style="margin-top:0.6rem;font-size: var(--fs-s);color:var(--gray-500);">Comparativas registradas al crear envíos indicando el precio de tu transportista. Importes base sin IVA.</p>';
         openDashModal({
             icon: 'file',
@@ -13644,6 +13699,71 @@
         }).join('');
     }
     window.renderPenalizacionesTable = renderPenalizacionesTable;
+    // ===== COMPARATIVAS Y AHORROS (sección) =====
+    // Tabla estándar sobre AHORROS_DATA: pestañas por resultado, buscador,
+    // orden por columnas y paginación. El modal del dashboard solo enseña
+    // las más recientes y trae aquí con "Ver todas".
+    var AH_LIST = { filter: 'todas' };
+    function ahFechaSort(f) {
+        var m = String(f || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+        if (!m) return 0;
+        var y = +m[3]; if (y < 100) y += 2000;
+        return new Date(y, +m[2] - 1, +m[1]).getTime();
+    }
+    function renderAhorrosTable() {
+        var tbody = document.getElementById('tbodyAhorros'); if (!tbody) return;
+        var q = normTxt(((document.querySelector('[data-ah-search]') || {}).value) || '');
+        var counts = { todas: AHORROS_DATA.length, dynamo: 0, otros: 0 }, totOk = 0, totKo = 0;
+        AHORROS_DATA.forEach(function (a) {
+            var d = a.tercero - a.dynamo;
+            if (a.conDynamo) { counts.dynamo++; totOk += d; } else { counts.otros++; totKo += d; }
+        });
+        var e;
+        if ((e = document.querySelector('[data-ah-tot-ok]'))) e.textContent = eur2(totOk);
+        if ((e = document.querySelector('[data-ah-tot-ko]'))) e.textContent = eur2(totKo);
+        if ((e = document.querySelector('[data-ah-tot-max]'))) e.textContent = eur2(totOk + totKo);
+        Object.keys(counts).forEach(function (k) { var el = document.querySelector('[data-ah-count="' + k + '"]'); if (el) el.textContent = counts[k]; });
+        document.querySelectorAll('[data-ah-tabs] .tab').forEach(function (t) {
+            t.classList.toggle('active', t.getAttribute('data-ah-filter') === AH_LIST.filter);
+        });
+        var arr = AHORROS_DATA.filter(function (a) {
+            if (AH_LIST.filter === 'dynamo' && !a.conDynamo) return false;
+            if (AH_LIST.filter === 'otros' && a.conDynamo) return false;
+            if (q && normTxt([a.ruta, a.ref, a.fecha, a.conDynamo ? 'Dynamo' : (a.operador || '')].join(' ')).indexOf(q) < 0) return false;
+            return true;
+        });
+        // Por defecto, la comparativa más RECIENTE arriba.
+        arr = arr.slice().sort(function (x, y) { return ahFechaSort(y.fecha) - ahFechaSort(x.fecha); });
+        arr = ordenarRows('ahorros', arr);
+        var slice = pageSlice('ahorros', arr, AH_LIST.filter + '|' + q, 'ahorrosPagination', 'ahorrosShowing', 'Sin comparativas');
+        if (!arr.length) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--gray-500);">' +
+                (AHORROS_DATA.length ? 'No hay comparativas que coincidan con el filtro.' : 'Aún no hay comparativas: se registran al crear envíos con otro transportista indicando su precio.') + '</td></tr>';
+            return;
+        }
+        tbody.innerHTML = slice.map(function (a) {
+            var d = a.tercero - a.dynamo;
+            var res = a.conDynamo
+                ? '<strong style="color:#0f6b3a;">Ahorraste ' + eur2(d) + '</strong><div class="meta">Enviado con Dynamo</div>'
+                : '<strong style="color:#b42318;">Dejaste de ahorrar ' + eur2(d) + '</strong><div class="meta">Enviado con ' + escapeHtml(a.operador || 'otro transportista') + '</div>';
+            return '<tr>' +
+                '<td>' + escapeHtml(a.fecha) + '</td>' +
+                '<td><strong>' + escapeHtml(a.ref) + '</strong></td>' +
+                '<td><strong>' + escapeHtml(a.ruta) + '</strong></td>' +
+                '<td class="amount">' + eur2(a.tercero) + '</td>' +
+                '<td class="amount">' + eur2(a.dynamo) + '</td>' +
+                '<td>' + res + '</td>' +
+            '</tr>';
+        }).join('');
+    }
+    window.renderAhorrosTable = renderAhorrosTable;
+    document.querySelectorAll('[data-ah-tabs] .tab').forEach(function (t) {
+        t.addEventListener('click', function () {
+            AH_LIST.filter = t.getAttribute('data-ah-filter');
+            TABLE_STATE.ahorros.page = 1;
+            renderAhorrosTable();
+        });
+    });
     // Mini-editor de precios de una penalización: cliente y transportista
     // (BASE sin IVA) editables a mano, margen recalculado en vivo y Guardar
     // fija ambos manualmente.
@@ -15829,6 +15949,7 @@
         else if (table === 'facturas') renderFacturasTable();
         else if (table === 'albaranes') renderAlbaranesTable();
         else if (table === 'penalizaciones') renderPenalizacionesTable();
+        else if (table === 'ahorros') renderAhorrosTable();
         else if (table === 'almacenes') renderAlmacenesTable();
         else if (table === 'almacenesCat') renderAlmacenesCatTable((document.getElementById('almacenesCatSearch') || {}).value || '');
         else if (table === 'sitios') renderSitiosTable((document.getElementById('sitiosSearch') || {}).value || '');
@@ -15943,6 +16064,15 @@
                 function (p) { return (p.impCliente != null ? p.impCliente : p.importe || 0) - (p.impTrans || 0); },
                 function (p) { return __sortFecha(p.fecha); }
             ],
+            ahorros: [
+                function (a) { return ahFechaSort(a.fecha); },
+                function (a) { return a.ref; },
+                function (a) { return a.ruta; },
+                function (a) { return a.tercero; },
+                function (a) { return a.dynamo; },
+                // Resultado: ahorros positivos, "dejado de ahorrar" negativos.
+                function (a) { return (a.conDynamo ? 1 : -1) * (a.tercero - a.dynamo); }
+            ],
             clientes: [
                 function (r) { return r.c.empresa; },
                 function (r) { return r.c.contacto; },
@@ -16011,7 +16141,7 @@
     var SORT_TABLES = {
         cargas: 'tbodyCargas', facturas: 'tbodyFacturas', albaranes: 'tbodyAlbaranes',
         incidencias: 'tbodyIncidencias', sitios: 'tbodySitios', almacenes: 'tbodyAlmacenes',
-        almacenesCat: 'tbodyAlmacenesCat', penalizaciones: 'tbodyPenalizaciones',
+        almacenesCat: 'tbodyAlmacenesCat', penalizaciones: 'tbodyPenalizaciones', ahorros: 'tbodyAhorros',
         clientes: 'tbodyClientes', transportistas: 'tbodyTransportistas', usuarios: 'tbodyUsuarios',
         altas: 'tbodyAltas'
     };
@@ -16566,6 +16696,7 @@
     renderFacturasTable();
     renderAlbaranesTable();
     renderPenalizacionesTable();
+    renderAhorrosTable();
     // Calendario unificado (Flatpickr) en los inputs de fecha estáticos
     // (p.ej. el rango Desde/Hasta de Facturas). Flatpickr carga con defer, así
     // que reintenta un momento si aún no está disponible.
