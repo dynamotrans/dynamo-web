@@ -18254,11 +18254,13 @@
                         do { d3U.setDate(d3U.getDate() + 1); } while (nonBiz(d3U) || preavisoFija(d3U) > 0);
                         hoyHtml = '<div class="ptar-eta-hoy"><strong>⚠ Esta fecha lleva +' + supU + ' € de suplemento por urgencia.</strong>' +
                             (esHoy ? '<br>Es para HOY: no podemos garantizar cargar en el día, y cancelar tendría coste.' : '') +
-                            '<br><br>Fecha fija sin suplemento de urgencia: <strong>a partir del ' + fmtEtaDate(d3U) + '</strong>.' +
-                            '<br><br><span style="color:#0f6b3a;">💡 <strong>Lo más barato es:</strong><br>La <strong>ventana de 1 a 3 días</strong> — sin suplemento de urgencia ni de fecha fija, y el 80% de las veces cargamos en los 2 primeros días.</span>' +
-                            '<br><br>Además con fecha fija, si ese día no hay vehículo, habría que reprogramar a otra fecha.</div>';
+                            '<br><br>· Fecha fija sin suplemento de urgencia: <strong>a partir del ' + fmtEtaDate(d3U) + '</strong>.' +
+                            '<br><br><span style="color:#0f6b3a;">💡 <strong>Lo más barato y seguro es:</strong><br>La <strong>ventana de 1 a 3 días</strong> — sin suplemento de urgencia ni de fecha fija, y el 80% de las veces cargamos en los 2 primeros días.</span>' +
+                            '<button type="button" class="btn-secondary" style="width:100%;margin-top:0.55rem;min-height:44px;" onclick="if (window.__ptarUsarVentana) __ptarUsarVentana();">Seleccionar fecha de carga de 1 a 3 días</button>' +
+                            '<div style="margin-top:0.55rem;">Además con fecha fija, si ese día no hay vehículo, habría que reprogramar a otra fecha.</div></div>';
                     } else {
-                        hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija estándar</strong> (sin suplemento de urgencia). Si ese día no hay vehículo, habría que reprogramar.<br><br><span style="color:#0f6b3a;">💡 <strong>Lo más barato: la ventana de 1 a 3 días</strong> — el 80% de las veces cargamos en los 2 primeros días.</span></div>';
+                        hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija estándar</strong> (sin suplemento de urgencia). Si ese día no hay vehículo, habría que reprogramar.<br><br><span style="color:#0f6b3a;">💡 <strong>Lo más barato y seguro: la ventana de 1 a 3 días</strong> — el 80% de las veces cargamos en los 2 primeros días.</span>' +
+                            '<button type="button" class="btn-secondary" style="width:100%;margin-top:0.55rem;min-height:44px;" onclick="if (window.__ptarUsarVentana) __ptarUsarVentana();">Seleccionar fecha de carga de 1 a 3 días</button>' + '</div>';
                     }
                 }
                 etaBox.innerHTML =
@@ -18605,6 +18607,14 @@
                 // "Pasar a camión completo": pone metros y peso al MÁXIMO del
                 // camión actual y vuelve al formulario (precio recalculado y
                 // fecha fija disponible al dejar de ser grupaje).
+                // "Seleccionar fecha de carga de 1 a 3 días": cambia el
+                // desplegable de ventana a la estándar — el propio change
+                // actualiza el selector de fechas y recalcula el precio.
+                window.__ptarUsarVentana = function () {
+                    if (!urgenciaSel) return;
+                    urgenciaSel.value = 'estandar';
+                    urgenciaSel.dispatchEvent(new Event('change'));
+                };
                 window.__ptarGrupajeCompleto = function (modo) {
                     var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
                     mlSel.value = info.mlReal === 13.2 ? '13.2' : String(info.mlMax);
