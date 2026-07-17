@@ -9979,14 +9979,17 @@
         // Envíos / consultas en %: qué parte de las consultas de precio
         // termina convirtiéndose en envío (tasa de conversión del usuario).
         var ratioCE = (!sinEnvios && u.consultas > 0 && u.envios != null) ? Math.round(u.envios / u.consultas * 100) : null;
-        var ratioCanc = (!sinEnvios && u.envios > 0 && u.cancelaciones != null) ? Math.round(u.cancelaciones / u.envios * 100) : null;
+        // Cancelaciones sobre envíos: ROJO si supera el 29 % (sobre el valor
+        // real, sin redondear: un 29,4 % ya va en rojo).
+        var rawCanc = (!sinEnvios && u.envios > 0 && u.cancelaciones != null) ? (u.cancelaciones / u.envios * 100) : null;
+        var ratioCanc = rawCanc == null ? null : Math.round(rawCanc);
         return {
             consultas: sinEnvios ? '—' : String(u.consultas != null ? u.consultas : '—'),
             envios: sinEnvios ? '—' : String(u.envios),
             ratioCE: ratioCE == null ? '—' : (ratioCE + ' %'),
             cancelaciones: sinEnvios ? '—' : String(u.cancelaciones != null ? u.cancelaciones : '—'),
             ratioCanc: ratioCanc == null ? '—' : (ratioCanc + ' %'),
-            ratioCancAlto: ratioCanc != null && ratioCanc >= 30,
+            ratioCancAlto: rawCanc != null && rawCanc > 29,
             ult10: (sinEnvios || u.cancelUlt10 == null) ? '—' : (u.cancelUlt10 + ' de 10')
         };
     }
