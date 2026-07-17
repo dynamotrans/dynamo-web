@@ -18605,13 +18605,21 @@
                 // "Pasar a camión completo": pone metros y peso al MÁXIMO del
                 // camión actual y vuelve al formulario (precio recalculado y
                 // fecha fija disponible al dejar de ser grupaje).
-                window.__ptarGrupajeCompleto = function () {
+                window.__ptarGrupajeCompleto = function (modo) {
                     var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
                     mlSel.value = info.mlReal === 13.2 ? '13.2' : String(info.mlMax);
                     pesoSel.value = String(info.pesoMax);
                     mlSel.dispatchEvent(new Event('change'));
                     pesoSel.dispatchEvent(new Event('change'));
-                    var back = card.querySelector('[data-ptar-back]');
+                    // Preseleccionar la ventana elegida (fecha fija o 1 a 3 días):
+                    // al ser ya completo, la opción de fecha fija existe.
+                    if (urgenciaSel && modo && urgenciaSel.querySelector('option[value="' + modo + '"]')) {
+                        urgenciaSel.value = modo;
+                        urgenciaSel.dispatchEvent(new Event('change'));
+                    }
+                    // El botón "← Editar datos" vive en la tarjeta de
+                    // CONFIRMACIÓN (hermana de card, no hija).
+                    var back = card.parentNode ? card.parentNode.querySelector('[data-ptar-back]') : null;
                     if (back) back.click();
                 };
                 window.__ptarRefillDias = function () {
@@ -19625,8 +19633,13 @@
                             var netoF = bFull + nPF * 40 + Math.round(bFull * recF / 10) * 10;
                             var techoF = card.dataset.techoOn === '1' ? Math.round(netoF * 0.15 / 10) * 10 : 0;
                             var totalFull = netoF + techoF + (parseInt(card.dataset.trampExtra || '0', 10) || 0) + (parseInt(card.dataset.nimaExtra || '0', 10) || 0);
-                            boxFull.innerHTML = 'Este mismo envío en <strong>camión completo</strong> (con fecha fija disponible): <strong>' + eur2(totalFull) + '</strong> <span style="color:var(--gray-500);">(base sin IVA · ventana 1 a 3 días)</span>' +
-                                '<br><button type="button" class="btn-primary" style="width:100%;margin-top:0.5rem;min-height:44px;" onclick="if (window.__ptarGrupajeCompleto) __ptarGrupajeCompleto();">Pasar a camión completo — ' + eur2(totalFull) + '</button>';
+                            // Fecha fija = +15% sobre el completo (sin contar el
+                            // posible suplemento de urgencia, que depende del día).
+                            var totalFullFija = totalFull + Math.round(totalFull * 0.15 / 10) * 10;
+                            boxFull.innerHTML = 'Este mismo envío en <strong>camión completo</strong> (importes base sin IVA):' +
+                                '<button type="button" class="btn-primary" style="width:100%;margin-top:0.5rem;min-height:44px;" onclick="if (window.__ptarGrupajeCompleto) __ptarGrupajeCompleto(\'dia\');">Pasar a camión completo con FECHA FIJA — ' + eur2(totalFullFija) + '</button>' +
+                                '<button type="button" class="btn-secondary" style="width:100%;margin-top:0.5rem;min-height:44px;" onclick="if (window.__ptarGrupajeCompleto) __ptarGrupajeCompleto(\'estandar\');">Pasar a camión completo, ventana 1 a 3 días — ' + eur2(totalFull) + '</button>' +
+                                '<div style="margin-top:0.35rem;font-size: var(--fs-s);color:var(--gray-500);">La fecha fija puede llevar además suplemento de urgencia según el día que elijas. Al pulsar vuelves al formulario con todo preseleccionado, para darle de nuevo a «Crear envío».</div>';
                             boxFull.hidden = false;
                         } else boxFull.hidden = true;
                     }
