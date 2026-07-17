@@ -9298,11 +9298,24 @@
                 if (soloTra && x.transportistaNombre !== soloTra) return;
                 if (it.f > bf) { bf = it.f; best = x; }
             });
-            return best ? best.precioTransportista : 0;
+            return best;
         }
+        // Fila de precio simple (tarifador): solo importe.
         function fila(lbl, val) {
             return '<tr><td style="padding:0.2rem 0.35rem 0.2rem 0;border-bottom:1px solid var(--gray-200);color:var(--gray-700);">' + lbl + '</td>' +
                 '<td style="padding:0.2rem 0;border-bottom:1px solid var(--gray-200);text-align:right;white-space:nowrap;"><strong>' + eur0(val) + '</strong></td></tr>';
+        }
+        // Fila de un envío comparable: importe + (fecha · #GX clicable) debajo.
+        function filaEnvio(lbl, x) {
+            var val = '<strong>—</strong>';
+            if (x && x.precioTransportista) {
+                var f = x.fechaAsignada ? String(x.fechaAsignada).split(' ')[0] : x.fecha;
+                val = '<strong>' + eur0(x.precioTransportista) + '</strong>' +
+                    '<div style="color:var(--gray-500);font-weight:600;">' + escapeHtml(fechaConDia(f)) +
+                    ' · <a href="#" onclick="cargaVerDetalle(\'' + escapeHtml(x.ref) + '\'); return false;" style="color:var(--purple);font-weight:700;text-decoration:underline;">' + escapeHtml(x.ref) + '</a></div>';
+            }
+            return '<tr><td style="padding:0.2rem 0.35rem 0.2rem 0;border-bottom:1px solid var(--gray-200);color:var(--gray-700);vertical-align:top;">' + lbl + '</td>' +
+                '<td style="padding:0.2rem 0;border-bottom:1px solid var(--gray-200);text-align:right;white-space:nowrap;vertical-align:top;">' + val + '</td></tr>';
         }
         function sub(txt) {
             return '<tr><td colspan="2" style="padding:0.4rem 0 0.1rem;font-weight:800;color:var(--navy);">' + txt + '</td></tr>';
@@ -9319,11 +9332,11 @@
             '<table style="width:100%;border-collapse:collapse;">' +
                 fila('Según tarifador', tarPt) +
                 sub('Mismos CP (' + escapeHtml((r.o.cp || '—') + '→' + (r.d.cp || '—')) + ')') +
-                fila(mismo, traNombre ? compra(r.cp, traNombre) : 0) +
-                fila('Cualquier transportista', compra(r.cp, null)) +
+                filaEnvio(mismo, traNombre ? compra(r.cp, traNombre) : null) +
+                filaEnvio('Cualquier transportista', compra(r.cp, null)) +
                 sub('Mismas provincias (' + escapeHtml((r.o.prov || '—') + '→' + (r.d.prov || '—')) + ')') +
-                fila(mismo, traNombre ? compra(r.prov, traNombre) : 0) +
-                fila('Cualquier transportista', compra(r.prov, null)) +
+                filaEnvio(mismo, traNombre ? compra(r.prov, traNombre) : null) +
+                filaEnvio('Cualquier transportista', compra(r.prov, null)) +
             '</table>' +
         '</div>';
     }
