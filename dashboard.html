@@ -9990,7 +9990,9 @@
             cancelaciones: sinEnvios ? '—' : String(u.cancelaciones != null ? u.cancelaciones : '—'),
             ratioCanc: ratioCanc == null ? '—' : (ratioCanc + ' %'),
             ratioCancAlto: rawCanc != null && rawCanc > 29,
-            ult10: (sinEnvios || u.cancelUlt10 == null) ? '—' : (u.cancelUlt10 + ' de 10')
+            ult10: (sinEnvios || u.cancelUlt10 == null) ? '—' : (u.cancelUlt10 + ' de 10'),
+            // Cancelados en los últimos 10: VERDE si 2 o menos · ROJO si 3 o más.
+            ult10Color: (sinEnvios || u.cancelUlt10 == null) ? null : (u.cancelUlt10 >= 3 ? '#dc2626' : '#0f6b3a')
         };
     }
     function usuarioBlob(u) {
@@ -10031,7 +10033,7 @@
                 '<td class="amount">' + m.ratioCE + '</td>' +
                 '<td class="amount">' + m.cancelaciones + '</td>' +
                 '<td class="amount"' + (m.ratioCancAlto ? ' style="color:#dc2626;font-weight:800;"' : '') + '>' + m.ratioCanc + '</td>' +
-                '<td class="amount">' + m.ult10 + '</td>' +
+                '<td class="amount"' + (m.ult10Color ? ' style="color:' + m.ult10Color + ';font-weight:800;"' : '') + '>' + m.ult10 + '</td>' +
             '</tr>';
         }).join('');
         tbody.querySelectorAll('tr[data-usr]').forEach(function (tr) {
