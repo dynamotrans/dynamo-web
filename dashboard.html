@@ -15428,15 +15428,16 @@
                     cargaPrecios(x);
                     if (x.precioCliente) tot += x.precioCliente * 1.21;
                 });
-                // Compacto en 2 líneas (máx. 3, como el resto de columnas):
-                //   1) Empresa · CIF   2) CESCE + contratado últ. 60 días.
-                // La línea 2 va VERDE si el crédito CESCE cubre lo contratado
-                // en los últimos 60 días, y ROJA si se queda corto.
+                // 3 líneas (máx. 3, como el resto de columnas):
+                //   1) Empresa · CIF   2) CESCE   3) contratado últ. 60 días.
+                // Las líneas 2-3 van VERDES si el crédito CESCE cubre lo
+                // contratado en los últimos 60 días, y ROJAS si se queda corto.
                 var cesceImp = (cli && cli.cesceImporte) || 0;
                 var totR = Math.round(tot * 100) / 100;
                 var colCred = cesceImp >= totR ? '#0f6b3a' : '#b42318';
                 return '<td class="cliente-col"><strong>' + esc(CLIENTE_ACTUAL) + '</strong> <span style="color:var(--gray-500);font-weight:600;">· ' + esc((cli && cli.cif) || '—') + '</span>' +
-                    '<div class="meta" style="color:' + colCred + ';font-weight:700;white-space:nowrap;">CESCE: ' + eur2(cesceImp) + ' · Últ. 60 días: ' + eur2(totR) + ' (IVA incl.)</div>' +
+                    '<div class="meta" style="color:' + colCred + ';font-weight:700;white-space:nowrap;">CESCE: ' + eur2(cesceImp) + '</div>' +
+                    '<div class="meta" style="color:' + colCred + ';font-weight:700;white-space:nowrap;">Últ. 60 días: ' + eur2(totR) + ' (IVA incl.)</div>' +
                 '</td>';
             })();
             tbody.innerHTML = slice.map(function (c) {
@@ -17278,22 +17279,25 @@
             // poder reconstruir el select mostrando solo las permitidas — así se
             // OMITEN por completo, no se dejan en gris).
             var ventanaOptsAll = urgenciaSel ? Array.prototype.slice.call(urgenciaSel.options) : [];
-            function syncGrupajeVentana() {
-                if (!urgenciaSel) return;
+            // Es grupaje solo si NI los metros NI el peso llegan al máximo del
+            // camión. Si el peso va al tope (aunque sean pocos metros) ocupa la
+            // capacidad completa → tarifa de camión COMPLETO, no grupaje.
+            function esGrupajeSel() {
                 var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
                 var max = info.mlReal || info.mlMax;
                 var mlv = mlSel.value === '13.2' ? 13.2 : parseFloat(mlSel.value);
                 var pesoV = parseFloat(pesoSel.value);
-                // Es grupaje solo si NI los metros NI el peso llegan al máximo del
-                // camión. Si el peso va al tope (aunque sean pocos metros) ocupa la
-                // capacidad completa → tarifa de camión COMPLETO, no grupaje.
-                var esGrupaje = !isNaN(mlv) && mlv < max && !(!isNaN(pesoV) && pesoV >= info.pesoMax);
-                var oc = (origWrap.dataset.cc || '').toLowerCase();
-                var dc = (destWrap.dataset.cc || '').toLowerCase();
-                var internacional = !!(oc && dc && oc !== dc);
+                return !isNaN(mlv) && mlv < max && !(!isNaN(pesoV) && pesoV >= info.pesoMax);
+            }
+            // Días de la ventana estándar: GRUPAJE 1 a 4 (más margen para
+            // completar el camión) · carga COMPLETA 1 a 3.
+            function ventanaLen() { return esGrupajeSel() ? 4 : 3; }
+            function syncGrupajeVentana() {
+                if (!urgenciaSel) return;
+                var esGrupaje = esGrupajeSel();
                 // Grupaje → sin "Fecha fija" (ni mismo día ni normal): no se puede
                 // garantizar un día concreto hasta completar camión. Queda la
-                // ventana 1 a 3 días.
+                // ventana estándar (1 a 4 en grupaje, 1 a 3 en completo).
                 var allowFija = !esGrupaje;
                 var prev = urgenciaSel.value;
                 urgenciaSel.innerHTML = '';
@@ -17302,6 +17306,8 @@
                     opt.disabled = false; opt.hidden = false;
                     urgenciaSel.appendChild(opt);
                 });
+                var optE = urgenciaSel.querySelector('option[value="estandar"]');
+                if (optE) optE.textContent = 'Carga de 1 a ' + ventanaLen() + ' días (más económica)';
                 if (urgenciaSel.querySelector('option[value="' + prev + '"]')) {
                     urgenciaSel.value = prev;
                 } else {
@@ -17615,7 +17621,7 @@
                 if (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) {
                     loadStart = new Date(diaSel.value + 'T00:00:00');
                 }
-                var ventana = urgenciaSel.value === 'estandar' ? 3 : 1; // fija = 1 día
+                var ventana = urgenciaSel.value === 'estandar' ? ventanaLen() : 1; // fija = 1 día
 
                 var rangoHtml = '';
                 var cargaHtml = '';
@@ -17721,9 +17727,9 @@
                     // recomendada, fecha fija urgente, cortes, reprogramación)
                     // NO aplican — su transportista pone sus reglas. Sin aviso.
                 } else if (uv === 'estandar') {
-                    // Ventana 1 a 3 días: mensaje verde (caja clara, texto oscuro).
+                    // Ventana estándar (grupaje 1-4 · completo 1-3): mensaje verde.
                     hoyHtml = '<div style="margin-bottom:0.8rem;padding:0.6rem 0.75rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#0f6b3a;">' +
-                        '<strong>Fecha de carga de 1 a 3 días (flexible)</strong>, el 80% veces cargamos en los 2 primeros días, es la más económica y además aumenta la probabilidad de cargar al máximo.' +
+                        '<strong>Fecha de carga de 1 a ' + ventanaLen() + ' días (flexible)</strong>, el 80% veces cargamos en los 2 primeros días, es la más económica y además aumenta la probabilidad de cargar al máximo.' +
                         '</div>';
                 } else if (loadStart && uv === 'dia') {
                     var supU = preavisoFija(loadStart);
@@ -17956,11 +17962,11 @@
                         (firstIsToday ? '<strong>hoy (' + fmtEtaDate(today) + ')</strong>' : 'el <strong>' + fmtEtaDate(first) + '</strong>') +
                         ' puede ser el primer día de carga' +
                         (uv === 'dia' ? ' <em>· tarifa urgente</em>' + fijaGuia
-                                      : '. Ventana: del ' + fmtEtaDate(first) + ' al ' + fmtEtaDate(addBusinessDays(first, 2)) + '.');
+                                      : '. Ventana: del ' + fmtEtaDate(first) + ' al ' + fmtEtaDate(addBusinessDays(first, ventanaLen() - 1)) + '.');
                 } else {
                     html = '⏱ El corte de las ' + cutLabel + ' ya ha pasado. Primer día de carga posible: <strong>' + fmtEtaDate(first) + '</strong>';
                     if (uv === 'dia') html += ' <em>· tarifa urgente</em>' + fijaGuia;
-                    else html += ' (ventana del ' + fmtEtaDate(first) + ' al ' + fmtEtaDate(addBusinessDays(first, 2)) + ').';
+                    else html += ' (ventana del ' + fmtEtaDate(first) + ' al ' + fmtEtaDate(addBusinessDays(first, ventanaLen() - 1)) + ').';
                 }
                 el.innerHTML = html;
                 el.hidden = false;
@@ -18303,7 +18309,7 @@
                 var mercaTxt = [mercaPalShort, cargaTipoTxt].filter(Boolean).join(' · ');
                 var mercanciaShort = mercaTxt;
                 var urgenciaSel_label = urgenciaSel.options[urgenciaSel.selectedIndex].text;
-                var urgenciaTxt = urgenciaSel.value === 'dia' ? 'Fecha fija' : '1 a 3 días';
+                var urgenciaTxt = urgenciaSel.value === 'dia' ? 'Fecha fija' : '1 a ' + ventanaLen() + ' días';
                 var fechaTxt, fechaLarga;
                 // Si el modo es 'carga' el selector de fecha existe y NO puede
                 // quedarse en el placeholder ('') — hay que elegir una opción
@@ -18369,7 +18375,7 @@
                     urgenciaTxt: urgenciaTxt, urgenciaLabel: urgenciaSel_label,
                     fechaTxt: fechaTxt, fechaLarga: fechaLarga,
                     fechaIso: (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) ? diaSel.value : null,
-                    ventanaDias: urgenciaSel.value === 'estandar' ? 3 : 1,
+                    ventanaDias: urgenciaSel.value === 'estandar' ? ventanaLen() : 1,
                     refCli: refCliInput.value.trim() || (mode === 'carga' ? 'PED-NUEVO' : 'COT-NUEVO'),
                     notes: notesTxt.value.trim(),
                     // Precio MANUAL (hueco interno del formulario): si se fija
@@ -19345,7 +19351,7 @@
                     // Ya se ha pasado el corte: la cancelación puede tener coste completo.
                     cancelBody =
                         '<div style="margin-bottom:0.8rem;padding:0.7rem 0.8rem;background:rgba(220,38,38,0.10);border:1px solid rgba(220,38,38,0.45);border-radius:9px;font-size: var(--fs-l);line-height:1.55;color:#991b1b;">' +
-                        '⚠ <strong>Cancelación con coste.</strong> Estás confirmando <strong>después de las 9:00 del día hábil anterior a la carga</strong>. Si cancelas a partir de ahora, puede conllevar un <strong>coste de hasta ' + eur2c(precioTotalConf) + '</strong> (el importe del servicio completo, IVA incl.). Si <strong>no tienes seguridad</strong> de que la carga está confirmada, <strong>no continúes</strong>: pulsa <strong>Cancelar</strong> ahora y programa para otro momento.' +
+                        '⚠ <strong>Cancelación con coste.</strong> Estás confirmando <strong>después de las 9:00 del primer día hábil anterior a la carga</strong>. Si cancelas a partir de ahora, puede conllevar un <strong>coste de hasta ' + eur2c(precioTotalConf) + '</strong> (el importe del servicio completo, IVA incl.). Si <strong>no tienes seguridad</strong> de que la carga está confirmada, <strong>no continúes</strong>: pulsa <strong>Cancelar</strong> ahora y programa para otro momento.' +
                         '</div>' +
                         '<p style="font-size: var(--fs-m);line-height:1.55;color:var(--gray-700);">Por parte de Dynamo, se hará lo posible para evitar o minimizar los costes en favor del cliente, <strong>pero la legislación es muy clara y, si el transportista decide aplicar los gastos estando en su derecho, deben ser asumidos por el cliente.</strong></p>' +
                         suspBloque;
