@@ -17084,11 +17084,11 @@
         //  · Más allá → sin coste de preaviso (queda solo el +15% de fecha
         //    fija, que aplica siempre). La ventana 1-3 días nunca lo lleva.
         function preavisoFija(d) {
-            var f = firstLoadDate('dia');
-            var dd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-            if (dd.getTime() === f.getTime()) return 150;
-            var n = bizDaysFrom(f, dd);
-            return (n >= 1 && n <= 2) ? 100 : 0;
+            // Suplemento de URGENCIA de la fecha fija ELIMINADO (2026-07-17):
+            // la fecha fija lleva SOLO su +15%, sea el día que sea. La hora de
+            // corte de las 12:00 se mantiene. (Función conservada a 0 por si
+            // se reactiva; todo el código que la lee queda inerte.)
+            return 0;
         }
         // Hora de corte POR MODO (minutos desde medianoche, hora Madrid):
         // fecha FIJA a las 12:00 · ventana 1-3 días a las 14:00.
@@ -18244,24 +18244,15 @@
                         '<strong>Fecha de carga de 1 a ' + ventanaLen() + ' días (flexible)</strong>, el 80% veces cargamos en los 2 primeros días, es la más económica y además aumenta la probabilidad de cargar al máximo.' +
                         '</div>';
                 } else if (loadStart && uv === 'dia') {
-                    var supU = preavisoFija(loadStart);
-                    if (supU > 0) {
-                        var nM = nowMadrid();
-                        var esHoy = loadStart.getFullYear() === nM.getFullYear() &&
-                            loadStart.getMonth() === nM.getMonth() && loadStart.getDate() === nM.getDate();
-                        // 1.ª fecha fija SIN suplemento de preaviso (tarifa estándar).
-                        var d3U = new Date(nM.getFullYear(), nM.getMonth(), nM.getDate());
-                        do { d3U.setDate(d3U.getDate() + 1); } while (nonBiz(d3U) || preavisoFija(d3U) > 0);
-                        hoyHtml = '<div class="ptar-eta-hoy"><strong>⚠ Esta fecha lleva +' + supU + ' € de suplemento por urgencia.</strong>' +
-                            (esHoy ? '<br>Es para HOY: no podemos garantizar cargar en el día, y cancelar tendría coste.' : '') +
-                            '<br><br>· Fecha fija sin suplemento de urgencia: <strong>a partir del ' + fmtEtaDate(d3U) + '</strong>.' +
-                            '<br><br><span style="color:#0f6b3a;">💡 <strong>Lo más barato y seguro es:</strong><br>La <strong>ventana de 1 a 3 días</strong> — sin suplemento de urgencia ni de fecha fija, y el 80% de las veces cargamos en los 2 primeros días.</span>' +
-                            '<button type="button" class="btn-secondary" style="width:100%;margin-top:0.55rem;min-height:44px;" onclick="if (window.__ptarUsarVentana) __ptarUsarVentana();">Seleccionar fecha de carga de 1 a 3 días</button>' +
-                            '<div style="margin-top:0.55rem;">Además con fecha fija, si ese día no hay vehículo, habría que reprogramar a otra fecha.</div></div>';
-                    } else {
-                        hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija estándar</strong> (sin suplemento de urgencia). Si ese día no hay vehículo, habría que reprogramar.<br><br><span style="color:#0f6b3a;">💡 <strong>Lo más barato y seguro: la ventana de 1 a 3 días</strong> — el 80% de las veces cargamos en los 2 primeros días.</span>' +
-                            '<button type="button" class="btn-secondary" style="width:100%;margin-top:0.55rem;min-height:44px;" onclick="if (window.__ptarUsarVentana) __ptarUsarVentana();">Seleccionar fecha de carga de 1 a 3 días</button>' + '</div>';
-                    }
+                    // FECHA FIJA (sin suplemento de urgencia — solo el +15% de
+                    // fija, sea el día que sea; el corte de las 12:00 sigue).
+                    var nM = nowMadrid();
+                    var esHoy = loadStart.getFullYear() === nM.getFullYear() &&
+                        loadStart.getMonth() === nM.getMonth() && loadStart.getDate() === nM.getDate();
+                    hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija</strong>. ' +
+                        (esHoy ? '<strong>Es para HOY</strong>: no podemos garantizar cargar en el día, y cancelar tendría coste. ' : '') +
+                        'Si ese día no hay vehículo, habría que reprogramar a otra fecha.<br><br><span style="color:#0f6b3a;">💡 <strong>Lo más barato y seguro: la ventana de 1 a 3 días</strong> — el 80% de las veces cargamos en los 2 primeros días.</span>' +
+                        '<button type="button" class="btn-secondary" style="width:100%;margin-top:0.55rem;min-height:44px;" onclick="if (window.__ptarUsarVentana) __ptarUsarVentana();">Seleccionar fecha de carga de 1 a 3 días</button>' + '</div>';
                 }
                 etaBox.innerHTML =
                     hoyHtml +
@@ -18469,12 +18460,9 @@
                 var partesF = [];
                 if (g150.length) partesF.push(g150.join(' y ') + ' +150 €');
                 if (g100.length) partesF.push(g100.join(' y ') + ' +100 €');
-                // Guía de la fecha fija en LÍNEAS (un dato por línea, sin caos):
-                // qué días llevan suplemento, desde cuándo es gratis, y la
+                // Sin suplemento de urgencia (eliminado): la guía queda en la
                 // alternativa barata.
-                var fijaGuia = '<br>· Con suplemento de urgencia: ' + partesF.join(' · ') + '.' +
-                    '<br>· <strong>Sin suplemento: desde el ' + (gLibre || '—') + '</strong>.' +
-                    '<br>💡 Lo más barato: la <strong>ventana de carga de 1 a 3 días</strong>.';
+                var fijaGuia = '<br>💡 Lo más barato y seguro: la <strong>ventana de carga de 1 a 3 días</strong>.';
                 var html;
                 if (secNow < cutSec) {
                     var rem = cutSec - secNow;
@@ -19649,7 +19637,7 @@
                             boxFull.innerHTML = 'Este mismo envío en <strong>camión completo</strong> (importes base sin IVA):' +
                                 '<button type="button" class="btn-primary" style="width:100%;margin-top:0.5rem;min-height:44px;" onclick="if (window.__ptarGrupajeCompleto) __ptarGrupajeCompleto(\'dia\');">Pasar a camión completo con FECHA FIJA — ' + eur2(totalFullFija) + '</button>' +
                                 '<button type="button" class="btn-secondary" style="width:100%;margin-top:0.5rem;min-height:44px;" onclick="if (window.__ptarGrupajeCompleto) __ptarGrupajeCompleto(\'estandar\');">Pasar a camión completo, ventana 1 a 3 días — ' + eur2(totalFull) + '</button>' +
-                                '<div style="margin-top:0.35rem;font-size: var(--fs-s);color:var(--gray-500);">La fecha fija puede llevar además suplemento de urgencia según el día que elijas. Al pulsar vuelves al formulario con todo preseleccionado, para darle de nuevo a «Crear envío».</div>';
+                                '<div style="margin-top:0.35rem;font-size: var(--fs-s);color:var(--gray-500);">Al pulsar vuelves al formulario con todo preseleccionado, para darle de nuevo a «Crear envío».</div>';
                             boxFull.hidden = false;
                         } else boxFull.hidden = true;
                     }
