@@ -18252,11 +18252,11 @@
                         // 1.ª fecha fija SIN suplemento de preaviso (tarifa estándar).
                         var d3U = new Date(nM.getFullYear(), nM.getMonth(), nM.getDate());
                         do { d3U.setDate(d3U.getDate() + 1); } while (nonBiz(d3U) || preavisoFija(d3U) > 0);
-                        hoyHtml = '<div class="ptar-eta-hoy"><strong>⚠ Esta fecha lleva +' + supU + ' € de suplemento por urgencia.</strong><br>' +
-                            '· Fechas sin suplemento: <strong>a partir del ' + fmtEtaDate(d3U) + '</strong>.<br>' +
-                            (esHoy ? '· Es para HOY: no podemos garantizar cargar en el día, y cancelar tendría coste.<br>' : '') +
-                            '· Con fecha fija, si ese día no hay vehículo, habría que reprogramar.' +
-                            '<br><br><span style="color:#0f6b3a;">💡 <strong>Lo más barato: la ventana de 1 a 3 días</strong> — sin suplemento, y el 80% de las veces cargamos en los 2 primeros días.</span></div>';
+                        hoyHtml = '<div class="ptar-eta-hoy"><strong>⚠ Esta fecha lleva +' + supU + ' € de suplemento por urgencia.</strong>' +
+                            (esHoy ? '<br>Es para HOY: no podemos garantizar cargar en el día, y cancelar tendría coste.' : '') +
+                            '<br><br>Fecha fija sin suplemento de urgencia: <strong>a partir del ' + fmtEtaDate(d3U) + '</strong>.' +
+                            '<br><br><span style="color:#0f6b3a;">💡 <strong>Lo más barato es:</strong><br>La <strong>ventana de 1 a 3 días</strong> — sin suplemento de urgencia ni de fecha fija, y el 80% de las veces cargamos en los 2 primeros días.</span>' +
+                            '<br><br>Además con fecha fija, si ese día no hay vehículo, habría que reprogramar a otra fecha.</div>';
                     } else {
                         hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija estándar</strong> (sin suplemento de urgencia). Si ese día no hay vehículo, habría que reprogramar.<br><br><span style="color:#0f6b3a;">💡 <strong>Lo más barato: la ventana de 1 a 3 días</strong> — el 80% de las veces cargamos en los 2 primeros días.</span></div>';
                     }
