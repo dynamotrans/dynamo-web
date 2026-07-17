@@ -18114,14 +18114,33 @@
                     if (window._cargaEditRef && x.ref === window._cargaEditRef) return;
                     var mo = String(x.origenDir || '').match(/\b\d{5}\b/), md = String(x.destinoDir || '').match(/\b\d{5}\b/);
                     if (!mo || !md || mo[0] !== oCp || md[0] !== dCp) return;
+                    // El "último precio" es el más reciente CON precio conocido:
+                    // si el más nuevo aún no tiene precio, vale el anterior.
+                    cargaPrecios(x);
+                    if (!x.precioCliente) return;
                     var fx = __sortFecha(x.fechaAsignada || x.fecha) || 0;
                     if (fx > bestF) { bestF = fx; best = x; }
                 });
-                if (best) cargaPrecios(best);
-                if (!best || !best.precioCliente) { ultVacio('sin envíos previos con esta ruta'); return; }
+                if (!best) { ultVacio('sin envíos previos con esta ruta'); return; }
                 var f = best.fechaAsignada ? String(best.fechaAsignada).split(' ')[0] : best.fecha;
-                el.innerHTML = 'Último precio de esta ruta (mismo cliente): <strong>' + eur2(best.precioCliente) + '</strong>' +
-                    (f ? ' · ' + escapeHtml(fechaConDia(f)) : '') + ' <span style="font-weight:600;">(' + escapeHtml(best.ref) + ')</span>';
+                // 3 líneas: último precio · precio del tarifador HOY · diferencial
+                // (verde si hoy sale más barato, rojo si sale más caro).
+                var h = '<div><strong>' + eur2(best.precioCliente) + '</strong>' +
+                    (f ? ' · ' + escapeHtml(fechaConDia(f)) : '') +
+                    ' <span style="font-weight:600;">(' + escapeHtml(best.ref) + ')</span>' +
+                    ' · Último precio de esta ruta (mismo cliente)</div>';
+                var hoyP = (typeof precioDynamoActual === 'function') ? precioDynamoActual() : 0;
+                if (hoyP > 0) {
+                    h += '<div style="margin-top:0.15rem;"><strong>' + eur2(hoyP) + '</strong> · Hoy tarifador, precio de esta ruta</div>';
+                    var difU = Math.round((best.precioCliente - hoyP) * 100) / 100;
+                    if (difU !== 0) {
+                        var masBarato = difU > 0;   // hoy cuesta menos que el último
+                        h += '<div style="margin-top:0.15rem;color:' + (masBarato ? '#0f6b3a' : '#b42318') + ';"><strong>' + eur2(Math.abs(difU)) + '</strong> · Hoy más ' + (masBarato ? 'barato' : 'caro') + ' (diferencial precio de esta ruta)</div>';
+                    } else {
+                        h += '<div style="margin-top:0.15rem;color:var(--gray-500);">Hoy mismo precio que el último de esta ruta</div>';
+                    }
+                }
+                el.innerHTML = h;
                 el.hidden = false;
             }
             updateCutoffNote();
