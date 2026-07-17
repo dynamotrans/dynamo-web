@@ -18777,16 +18777,6 @@
                     }
                 });
                 function fDe(x) { return x ? (x.fechaAsignada ? String(x.fechaAsignada).split(' ')[0] : x.fecha) : null; }
-                function fila(lbl, imp, fechaStr, refStr, vacioTxt) {
-                    var val = imp
-                        ? '<strong>' + eur2(imp) + '</strong>' + (fechaStr ? ' (' + escapeHtml(fechaConDia(fechaStr)) + (refStr ? ' · ' + escapeHtml(refStr) : '') + ')' : '')
-                        : '<span style="font-weight:600;color:var(--gray-500);">' + (vacioTxt || 'sin envíos') + '</span>';
-                    return '<div style="margin-top:0.15rem;">' + lbl + ': ' + val + '</div>';
-                }
-                function margenFila(lbl, m) {
-                    var col = m > 0 ? '#0f6b3a' : (m < 0 ? '#b42318' : 'var(--gray-500)');
-                    return '<div style="margin-top:0.15rem;">' + lbl + ': <strong style="color:' + col + ';">' + eur2(m) + '</strong></div>';
-                }
                 var tarVenta = (typeof precioDynamoActual === 'function') ? precioDynamoActual() : 0;
                 // MOCK "todos los clientes/transportistas": el panel solo tiene
                 // los envíos de este cliente; el histórico GLOBAL vendrá del
@@ -18810,17 +18800,46 @@
                 // Tarifador COMPRA (mock determinista ~72-85% de la venta; en
                 // producción, tarifa real de compra del backend).
                 var tarCompra = tarVenta > 0 ? Math.round(tarVenta * (0.72 + (hh % 13) / 100) / 10) * 10 : 0;
-                var hHtml =
-                    fila('Última venta (mismo cliente)', venta ? venta.precioCliente : 0, fDe(venta), venta ? venta.ref : null) +
-                    fila('Última venta (todos los clientes)', vtImp, vtF, vtRef) +
-                    '<div style="margin-top:0.45rem;"></div>' +
-                    fila('Última compra (mismo transportista)', compraTra ? compraTra.precioTransportista : 0, fDe(compraTra), compraTra ? compraTra.ref : null,
-                        traNombre ? 'sin envíos' : 'sin transportista asignado') +
-                    fila('Última compra (todos los transportistas)', ctImp, ctF, ctRef);
-                if (tarVenta > 0) {
-                    hHtml += '<div style="margin-top:0.45rem;"></div>';
-                    if (ctImp) hHtml += margenFila('Margen (tarifador venta ' + eur2(tarVenta) + ' VS última compra)', tarVenta - ctImp);
-                    if (tarCompra) hHtml += margenFila('Margen (tarifador venta VS tarifador compra ' + eur2(tarCompra) + ')', tarVenta - tarCompra);
+                // TABLA: columna izquierda VENTA (precio cliente) · derecha
+                // COMPRA (precio transportista); filas Tarifador hoy / Último
+                // (mismo cliente · mismo transportista) / Último (todos).
+                function celda(imp, fechaStr, refStr, vacioTxt) {
+                    var td = '<td style="padding:0.3rem 0.35rem;border-bottom:1px solid var(--gray-200);vertical-align:top;">';
+                    if (!imp) return td + '<span style="color:var(--gray-500);font-weight:600;">' + (vacioTxt || 'sin envíos') + '</span></td>';
+                    return td + '<strong>' + eur2(imp) + '</strong>' +
+                        (fechaStr ? '<div style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;">' + escapeHtml(fechaConDia(fechaStr)) + (refStr ? ' · ' + escapeHtml(refStr) : '') + '</div>' : '') + '</td>';
+                }
+                function filaT(lbl, cVenta, cCompra) {
+                    return '<tr><td style="padding:0.3rem 0.35rem 0.3rem 0;border-bottom:1px solid var(--gray-200);font-size: var(--fs-s);font-weight:700;color:var(--gray-600);vertical-align:top;">' + lbl + '</td>' + cVenta + cCompra + '</tr>';
+                }
+                var hHtml = '<table style="width:100%;border-collapse:collapse;font-size: var(--fs-m);">' +
+                    '<tr><td></td>' +
+                        '<td style="padding:0 0.35rem 0.25rem;font-size: var(--fs-s);font-weight:800;color:var(--purple);">Venta<br>(cliente)</td>' +
+                        '<td style="padding:0 0.35rem 0.25rem;font-size: var(--fs-s);font-weight:800;color:var(--navy);">Compra<br>(transportista)</td></tr>' +
+                    filaT('Tarifador hoy',
+                        celda(tarVenta, null, null, '—'),
+                        celda(tarCompra, null, null, '—')) +
+                    filaT('Último (mismo cliente · mismo transportista)',
+                        celda(venta ? venta.precioCliente : 0, fDe(venta), venta ? venta.ref : null),
+                        celda(compraTra ? compraTra.precioTransportista : 0, fDe(compraTra), compraTra ? compraTra.ref : null, traNombre ? 'sin envíos' : 'sin transportista')) +
+                    filaT('Último (todos)',
+                        celda(vtImp, vtF, vtRef),
+                        celda(ctImp, ctF, ctRef)) +
+                '</table>';
+                // MARGEN de peor a mejor caso: cualquier venta de la tabla
+                // menos cualquier compra (mín = peor venta − mayor compra ·
+                // máx = mejor venta − menor compra).
+                var ventasArr = [tarVenta, venta ? venta.precioCliente : 0, vtImp].filter(function (v) { return v > 0; });
+                var comprasArr = [tarCompra, compraTra ? compraTra.precioTransportista : 0, ctImp].filter(function (v) { return v > 0; });
+                if (ventasArr.length && comprasArr.length) {
+                    var mMin = Math.min.apply(null, ventasArr) - Math.max.apply(null, comprasArr);
+                    var mMax = Math.max.apply(null, ventasArr) - Math.min.apply(null, comprasArr);
+                    var mCol = function (m) { return m > 0 ? '#0f6b3a' : (m < 0 ? '#b42318' : 'var(--gray-500)'); };
+                    hHtml += '<div style="margin-top:0.4rem;">Margen: ' +
+                        (mMin === mMax
+                            ? '<strong style="color:' + mCol(mMin) + ';">' + eur2(mMin) + '</strong>'
+                            : 'de <strong style="color:' + mCol(mMin) + ';">' + eur2(mMin) + '</strong> a <strong style="color:' + mCol(mMax) + ';">' + eur2(mMax) + '</strong>') +
+                        '<div style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;">Peor y mejor caso combinando las ventas y compras de la tabla.</div></div>';
                 }
                 el.innerHTML = hHtml;
                 el.hidden = false;
