@@ -18391,6 +18391,10 @@
                 var wO = card.querySelector('[data-ptar-orig-wrap]'), wD = card.querySelector('[data-ptar-dest-wrap]');
                 var rutaOk = !!(wO && wO.dataset.lat && wD && wD.dataset.lat);
                 var nuestro = rutaOk ? precioDynamoActual() : 0;
+                // El placeholder del precio acordado usa como EJEMPLO el precio
+                // calculado de ESTA ruta (sin decir que es el de Dynamo).
+                var opInp = document.getElementById('opPrecioInput');
+                if (opInp) opInp.placeholder = nuestro > 0 ? 'Ej. ' + eur2(nuestro) + ' (base sin IVA)' : 'Ej. 540,00 € (base sin IVA)';
                 // La comparativa SOLO aparece si el cliente ha tecleado el
                 // precio de su transportista Y es MÁS CARO que Dynamo. Sin
                 // precio tecleado, o con su transportista igual o más barato,
