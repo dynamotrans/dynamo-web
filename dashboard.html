@@ -15704,14 +15704,15 @@
                     cargaPrecios(x);
                     if (x.precioCliente) tot += x.precioCliente * 1.21;
                 });
-                // 2 líneas: 1) Empresa · CIF   2) Disponible = crédito CESCE −
+                // 3 líneas: 1) Empresa  2) CIF  3) Disponible = crédito CESCE −
                 // contratado últ. 60 días (IVA incl.), en VERDE si queda
                 // crédito y en ROJO si está en negativo.
                 var cesceImp = (cli && cli.cesceImporte) || 0;
                 var totR = Math.round(tot * 100) / 100;
                 var disp = Math.round((cesceImp - totR) * 100) / 100;
                 var colDisp = disp >= 0 ? '#0f6b3a' : '#b42318';
-                return '<td class="cliente-col"><strong>' + esc(CLIENTE_ACTUAL) + '</strong> <span style="color:var(--gray-500);font-weight:600;">· ' + esc((cli && cli.cif) || '—') + '</span>' +
+                return '<td class="cliente-col"><strong>' + esc(CLIENTE_ACTUAL) + '</strong>' +
+                    '<div class="meta" style="white-space:nowrap;">' + esc((cli && cli.cif) || '—') + '</div>' +
                     '<div class="meta" style="color:' + colDisp + ';font-weight:700;white-space:nowrap;">Disponible: ' + eur2(disp) + '</div>' +
                 '</td>';
             })();
