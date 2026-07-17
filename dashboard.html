@@ -17043,8 +17043,10 @@
         // fecha FIJA a las 12:00 · ventana 1-3 días a las 14:00.
         // Corte: fecha fija → 12:00 · ventana 1 a 3 días → 14:00 (más margen).
         // Es la hora límite para que HOY pueda ser el primer día de carga.
-        function corteDe(windowVal) { return windowVal === 'dia' ? 12 * 60 : 14 * 60; }
-        function corteLabelDe(windowVal) { return windowVal === 'dia' ? '12:00' : '14:00'; }
+        // Cortes para pedir HOY como primer día: fecha fija y ventana CORTA de
+        // grupaje (1-2 días) → 12:00 · ventana estándar (1-3 / 1-4) → 14:00.
+        function corteDe(windowVal) { return (windowVal === 'dia' || windowVal === 'corta') ? 12 * 60 : 14 * 60; }
+        function corteLabelDe(windowVal) { return (windowVal === 'dia' || windowVal === 'corta') ? '12:00' : '14:00'; }
         // Envío MANUAL (otro operador): los cortes NO aplican — el transporte
         // lo pone SU transportista con sus propias reglas. Fecha libre desde
         // el día presente en adelante (también findes y festivos).
