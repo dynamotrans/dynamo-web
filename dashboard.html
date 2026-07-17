@@ -5446,6 +5446,11 @@
         <p style="color:var(--gray-500);font-size: var(--fs-m);margin:-0.4rem 0 0.9rem;"><span style="display:inline-block;background:rgba(51,0,204,0.10);color:var(--purple);font-weight:700;border-radius:6px;padding:1px 7px;font-size: var(--fs-s);margin-right:0.4rem;">SOLO ADMIN</span>Ficha de cada transportista: datos fiscales, contacto, código de bolsa de carga, flota y seguro. Pulsa una fila para ver o editar la ficha.</p>
         <div class="filters">
             <input type="search" id="transportistasSearch" placeholder="Buscar por empresa, CIF, código de bolsa, teléfono, matrícula…" oninput="renderTransportistasTable(this.value)">
+            <select id="transportistasAdrFiltro" aria-label="Filtrar por ADR" onchange="renderTransportistasTable((document.getElementById('transportistasSearch')||{}).value||'')">
+                <option value="">ADR (todos)</option>
+                <option value="si">Con ADR</option>
+                <option value="no">Sin ADR</option>
+            </select>
         </div>
         <div class="table-wrap">
             <table class="data">
@@ -8913,7 +8918,9 @@
         a.tipoLugar = (tipoEl && tipoEl.value) ? tipoEl.value : 'Almacén / Nave';
         a.horario = v('sitio-f-horario') || null;
         a.tfno = telValue('sitio-f-tfno');
-        a.email = v('sitio-f-email') || null;
+        var emailChk = sitioEmailCheck(a.email);
+        if (!emailChk.ok) return;
+        a.email = emailChk.val;
         a.contacto = v('sitio-f-contacto') || null;
         a.notas = v('sitio-f-notas') || null;
         a.maps = v('sitio-f-maps') || null;
@@ -8971,9 +8978,9 @@
     var TRANSPORTISTAS_DATA = [
         { empresa: 'Transportes Romero e Hijos S.L.', tipo: 'Empresa', cif: 'B90211459', dir: 'Pol. Store, C/ A nave 24', cp: '41008', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', tfno: '+34 954 367 210', email: 'trafico@transromero.es', contacto: 'Antonio Romero', bolsa: 'WTN-482113', camiones: 12, flota: 'Tauliner y rígido', seguro: 'AXA · Póliza CMR 88-456129', notas: '', docs: ['Seguro-CMR-AXA-2026.pdf', 'Tarjeta-transporte.pdf'], creadoEn: __ctTs(420, 9), modificadoEn: __ctTs(30, 12) },
         { empresa: 'Logística Vega del Guadalquivir S.L.U.', tipo: 'Empresa', cif: 'B41996737', dir: 'Ctra. Sevilla-Cazalla km 4', cp: '41300', ciudad: 'La Rinconada', prov: 'Sevilla', pais: 'España', tfno: '+34 955 790 118', email: 'operaciones@logivega.es', contacto: 'Carmen Domínguez', bolsa: 'WTN-509877', camiones: 8, flota: 'Tauliner', seguro: 'Mapfre · Póliza CMR 45-118203', notas: '', creadoEn: __ctTs(365, 10), modificadoEn: null },
-        { empresa: 'TransPenínsula Cargo S.L.', tipo: 'Empresa', cif: 'B86450129', dir: 'C/ Fundidores 9', cp: '28906', ciudad: 'Getafe', prov: 'Madrid', pais: 'España', tfno: '+34 916 954 302', email: 'bolsa@transpeninsula.es', contacto: 'Raúl Cifuentes', bolsa: 'TLR-771402', camiones: 21, flota: 'Tauliner y rígido', seguro: 'Generali · Póliza CMR 12-908455', notas: 'Muy fiables en Madrid-Andalucía. Aceptan carga por techo.', creadoEn: __ctTs(280, 15), modificadoEn: __ctTs(9, 11) },
+        { empresa: 'TransPenínsula Cargo S.L.', tipo: 'Empresa', cif: 'B86450129', dir: 'C/ Fundidores 9', cp: '28906', ciudad: 'Getafe', prov: 'Madrid', pais: 'España', tfno: '+34 916 954 302', email: 'bolsa@transpeninsula.es', contacto: 'Raúl Cifuentes', bolsa: 'TLR-771402', camiones: 21, flota: 'Tauliner y rígido', adr: true, seguro: 'Generali · Póliza CMR 12-908455', notas: 'Muy fiables en Madrid-Andalucía. Aceptan carga por techo.', creadoEn: __ctTs(280, 15), modificadoEn: __ctTs(9, 11) },
         { empresa: 'José Manuel Ortega Ruiz', tipo: 'Autónomo', cif: '27314582N', dir: 'C/ Almendro 6, 2ºB', cp: '14006', ciudad: 'Córdoba', prov: 'Córdoba', pais: 'España', tfno: '+34 638 220 471', email: 'jmortega.transportes@gmail.com', contacto: 'José Manuel Ortega', bolsa: 'WTN-633090', camiones: 1, flota: 'Rígido', seguro: 'Allianz · Póliza CMR 77-340216', notas: 'Rígido con trampilla. Ideal repartos urbanos.', docs: ['Seguro-CMR-Allianz.pdf'], creadoEn: __ctTs(190, 12), modificadoEn: __ctTs(60, 16) },
-        { empresa: 'Ibérica de Tracción S.L.', tipo: 'Empresa', cif: 'B97120448', dir: 'Pol. Fuente del Jarro, C/ Ciutat de Llíria 40', cp: '46988', ciudad: 'Paterna', prov: 'Valencia', pais: 'España', tfno: '+34 961 340 775', email: 'trafico@ibetraccion.es', contacto: 'Empar Soler', bolsa: 'TLR-802341', camiones: 15, flota: 'Tauliner', seguro: 'Zurich · Póliza CMR 31-662184', notas: '', creadoEn: __ctTs(140, 9), modificadoEn: null },
+        { empresa: 'Ibérica de Tracción S.L.', tipo: 'Empresa', cif: 'B97120448', dir: 'Pol. Fuente del Jarro, C/ Ciutat de Llíria 40', cp: '46988', ciudad: 'Paterna', prov: 'Valencia', pais: 'España', tfno: '+34 961 340 775', email: 'trafico@ibetraccion.es', contacto: 'Empar Soler', bolsa: 'TLR-802341', camiones: 15, flota: 'Tauliner', adr: true, seguro: 'Zurich · Póliza CMR 31-662184', notas: '', creadoEn: __ctTs(140, 9), modificadoEn: null },
         { empresa: 'Manuela Prieto Vidal', tipo: 'Autónomo', cif: '44982017C', dir: 'Av. de Portugal 12, 4ºA', cp: '06001', ciudad: 'Badajoz', prov: 'Badajoz', pais: 'España', tfno: '+34 620 884 913', email: 'mprietotransporte@hotmail.com', contacto: 'Manuela Prieto', bolsa: 'WTN-701255', camiones: 1, flota: 'Tauliner', seguro: 'Reale · Póliza CMR 09-115672', notas: 'Rutas España-Portugal.', creadoEn: __ctTs(75, 14), modificadoEn: __ctTs(2, 10) }
     ];
     // Estado de VALIDACIÓN de cada cliente (columna Estado de la tabla):
@@ -8998,7 +9005,7 @@
         return normTxt([c.empresa, c.cif, c.dir, c.cp, c.ciudad, c.prov, c.pais, c.tfno, c.email, c.contacto, clientePlazoTxt(c.plazo), c.notas].join(' '));
     }
     function transportistaBlob(t) {
-        return normTxt([t.empresa, t.tipo, t.cif, t.dir, t.cp, t.ciudad, t.prov, t.pais, t.tfno, t.email, t.contacto, t.bolsa, t.flota, t.seguro, t.notas, (t.docs || []).join(' ')].join(' '));
+        return normTxt([t.empresa, t.tipo, t.cif, t.dir, t.cp, t.ciudad, t.prov, t.pais, t.tfno, t.email, t.contacto, t.bolsa, t.flota, t.seguro, t.notas, (t.adr ? 'adr' : ''), (t.docs || []).join(' ')].join(' '));
     }
     function renderClientesTable(q) {
         var tbody = document.getElementById('tbodyClientes'); if (!tbody) return;
@@ -9034,8 +9041,11 @@
     function renderTransportistasTable(q) {
         var tbody = document.getElementById('tbodyTransportistas'); if (!tbody) return;
         var nq = normTxt(q || '');
+        var fAdr = ((document.getElementById('transportistasAdrFiltro') || {}).value) || '';
         var rows = TRANSPORTISTAS_DATA.map(function (t, i) { return { t: t, i: i }; }).filter(function (r) {
             if (r.t._deleted) return false;
+            if (fAdr === 'si' && !r.t.adr) return false;
+            if (fAdr === 'no' && r.t.adr) return false;
             return !nq || transportistaBlob(r.t).indexOf(nq) > -1;
         });
         var h2 = document.querySelector('#sec-transportistas h2');
@@ -9052,7 +9062,7 @@
                 '<td><strong>' + esc(t.empresa) + '</strong><div class="meta">' + esc(t.cif || '—') + ' · ' + esc(t.tipo || 'Empresa') + '</div></td>' +
                 '<td>' + esc(t.contacto || '—') + '<div class="meta">' + esc(t.tfno || '') + (t.email ? (t.tfno ? ' · ' : '') + esc(t.email) : '') + '</div></td>' +
                 '<td>' + (t.bolsa ? '<span class="dtc-mat">' + esc(t.bolsa) + '</span>' : '—') + '</td>' +
-                '<td>' + esc(t.flota || '—') + '<div class="meta">' + (t.camiones ? t.camiones + (t.camiones === 1 ? ' camión' : ' camiones') : '—') + '</div></td>' +
+                '<td>' + esc(t.flota || '—') + (t.adr ? ' <span class="badge" style="background:#fdecec;color:#b42318;border:1px solid #f5b5b5;">ADR</span>' : '') + '<div class="meta">' + (t.camiones ? t.camiones + (t.camiones === 1 ? ' camión' : ' camiones') : '—') + '</div></td>' +
                 '<td>' + fmtFH(t.creadoEn) + (t.modificadoEn ? '<div class="meta">Modif. ' + fmtFH(t.modificadoEn) + '</div>' : '') + '</td>' +
             '</tr>';
         }).join('');
@@ -9502,6 +9512,7 @@
                 ctField('tra-f-contacto', 'Persona de contacto', t.contacto, 'Nombre y apellidos', true) +
                 ctField('tra-f-camiones', 'Nº de camiones', t.camiones, '1', false, 'number') +
                 ctSelect('tra-f-flota', 'Flota', ['Tauliner', 'Rígido', 'Tauliner y rígido'], t.flota || 'Tauliner') +
+                ctSelect('tra-f-adr', 'ADR — mercancías peligrosas', ['No', 'Sí'], t.adr ? 'Sí' : 'No') +
                 ctField('tra-f-seguro', 'Seguro de mercancías (aseguradora · póliza)', t.seguro, 'Ej. AXA · Póliza CMR 88-456129', true) +
                 ctNotas('tra-f-notas', t.notas) +
                 '<div style="grid-column:1/-1"><label>Documentos del transportista</label>' +
@@ -9617,6 +9628,8 @@
         t.camiones = parseInt(v('tra-f-camiones'), 10) || null;
         var flotaEl = document.getElementById('tra-f-flota');
         t.flota = flotaEl ? flotaEl.value : 'Tauliner';
+        var adrEl = document.getElementById('tra-f-adr');
+        t.adr = adrEl ? adrEl.value === 'Sí' : !!t.adr;
         t.seguro = v('tra-f-seguro') || null;
         t.notas = v('tra-f-notas') || null;
         t.docs = (window._traDocsTmp || t.docs || []).slice(0, 5);
@@ -9679,7 +9692,7 @@
                 row('CIF', esc(t.cif || '')) +
                 row('Código bolsa', t.bolsa ? '<span class="dtc-mat">' + esc(t.bolsa) + '</span>' : '') +
                 row('Contacto', esc([t.contacto, t.tfno].filter(Boolean).join(' · '))) +
-                row('Flota', esc([t.flota, (t.camiones ? t.camiones + (t.camiones === 1 ? ' camión' : ' camiones') : '')].filter(Boolean).join(' · '))) +
+                row('Flota', esc([t.flota, (t.camiones ? t.camiones + (t.camiones === 1 ? ' camión' : ' camiones') : '')].filter(Boolean).join(' · ')) + (t.adr ? ' <span class="badge" style="background:#fdecec;color:#b42318;border:1px solid #f5b5b5;">ADR</span>' : '')) +
                 row('Seguro', esc(t.seguro || ''));
             f.hidden = false;
         }
@@ -14938,9 +14951,11 @@
                 '<div style="grid-column:1/-1;font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;margin-top:-0.4rem;">📱 <strong>Mejor un móvil</strong>: además de poder llamar, permite enviar <strong>WhatsApp con el estado del envío</strong> para que el sitio se organice para la recogida o la entrega.</div>' +
                 inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','sitio-f-contacto', s.contacto, 'Persona de contacto') +
                 // EMAIL de avisos del sitio: opcional pero destacado (borde verde).
-                '<div style="grid-column:1/-1;"><label><span style="color:var(--green);">Email de avisos del sitio</span> <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label>' +
-                '<input id="sitio-f-email" type="email" value="' + escapeHtml(s.email || '') + '" placeholder="almacen@empresa.com" style="border:1.5px solid var(--green);">' +
-                '<div style="font-size: var(--fs-s);color:#0f6b3a;line-height:1.5;margin-top:0.3rem;">📩 <strong>Muy útil</strong>: lo usaremos para avisar a este sitio de las <strong>recogidas y entregas</strong> — previsión de hora, qué vamos a recoger o qué mercancía llega — para que estén informados en tiempo real. Pon el email de la <strong>persona de almacén o responsable de recepcionar la mercancía</strong> (alguien a quien le interese el tema de transportes en la empresa de recogida/destino).</div></div>' +
+                '<div style="grid-column:1/-1;"><label><span style="color:var(--green);">Email de avisos del sitio</span> <span style="color:var(--gray-500);font-weight:600;">· opcional · si hay varios, sepáralos por comas</span></label>' +
+                '<input id="sitio-f-email" type="text" inputmode="email" value="' + escapeHtml(s.email || '') + '" placeholder="almacen@empresa.com, recepcion@empresa.com" style="border:1.5px solid var(--green);">' +
+                '<div class="sitio-email-err" id="sitioEmailErr" hidden style="font-size: var(--fs-s);color:#b42318;font-weight:700;margin-top:0.3rem;"></div>' +
+                '<div style="font-size: var(--fs-s);color:#0f6b3a;line-height:1.5;margin-top:0.3rem;">📩 <strong>Muy útil</strong>: lo usaremos para avisar a este sitio de las <strong>recogidas y entregas</strong> — previsión de hora, qué vamos a recoger o qué mercancía llega — para que estén informados en tiempo real. Pon el email de la <strong>persona de almacén o responsable de recepcionar la mercancía</strong>.</div>' +
+                '<div style="font-size: var(--fs-s);color:var(--gray-700);line-height:1.5;margin-top:0.3rem;">🔒 <strong>Discreción total</strong>: el sitio <strong>nunca ve el origen ni el destino</strong> de la mercancía, ni tus precios, ni datos de terceros — solo lo necesario para recepcionar o preparar. <a href="#" onclick="openEjemploAvisoSitio(); return false;" style="color:var(--purple);font-weight:800;">Ver ejemplo del aviso que recibiría →</a></div></div>' +
                 inp('<span style="color:var(--green);">Notas del sitio</span> <span style="color:var(--gray-500);font-weight:600;">· opcional</span>', 'sitio-f-notas', s.notas, 'Ej. referencia de carga/entrega, pedir cita, báscula…', true) +
                 inp('Enlace de Google Maps', 'sitio-f-maps', s.maps, 'https://maps.app.goo.gl/…', true) +
             '</div>';
@@ -15033,16 +15048,73 @@
             }, 350);
         });
     }
+    // ===== Email(es) de avisos del sitio =====
+    // · Admite VARIOS separados por comas (cada uno se valida). En Supabase
+    //   se guardarán como text[] (split por coma) — el string es compatible.
+    // · Una vez registrado un email NO se puede borrar del todo: solo puede
+    //   SUSTITUIRSE por otro válido (los avisos de recogidas/entregas
+    //   dependen de él y borrarlo dejaría al sitio sin información).
+    function sitioEmailCheck(prevEmail) {
+        var el = document.getElementById('sitio-f-email');
+        var err = document.getElementById('sitioEmailErr');
+        function fail(msg) {
+            if (el) el.style.borderColor = '#dc2626';
+            if (err) { err.textContent = '⚠ ' + msg; err.hidden = false; }
+            if (el) el.focus();
+            return { ok: false };
+        }
+        var raw = el ? el.value.trim() : '';
+        var parts = raw.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+        for (var i = 0; i < parts.length; i++) {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(parts[i])) return fail('«' + parts[i] + '» no es un email válido. Si pones varios, sepáralos por comas.');
+        }
+        if (prevEmail && !parts.length) return fail('El email de avisos no se puede borrar: solo puede sustituirse por otro válido.');
+        if (el) el.style.borderColor = '';
+        if (err) err.hidden = true;
+        return { ok: true, val: parts.length ? parts.join(', ') : null };
+    }
+    // Ejemplo del aviso que recibiría el sitio (para que el cliente vea la
+    // DISCRECIÓN COMERCIAL: sin origen/destino, sin precios, sin terceros).
+    window.openEjemploAvisoSitio = function () {
+        var body =
+            '<div style="border:1px solid var(--gray-200);border-radius:10px;overflow:hidden;">' +
+                '<div style="background:var(--gray-100);padding:0.6rem 0.8rem;font-size: var(--fs-s);color:var(--gray-700);">' +
+                    '<div><strong>De:</strong> avisos@dynamotrans.com</div>' +
+                    '<div><strong>Para:</strong> almacen@empresa.com</div>' +
+                    '<div><strong>Asunto:</strong> Aviso de recogida · Vie 18/07 · previsión 10:30-12:00 (pedido PED-0424)</div>' +
+                '</div>' +
+                '<div style="padding:0.8rem;font-size: var(--fs-m);line-height:1.6;color:var(--gray-700);">' +
+                    'Buenos días,<br><br>' +
+                    '<strong>Marbex Industrial S.L.</strong> ha gestionado un transporte para <strong>recoger mercancía en vuestras instalaciones</strong>.<br><br>' +
+                    '· <strong>Día</strong>: viernes 18/07 · previsión de llegada <strong>10:30-12:00</strong> (vuestro horario: 8:00-16:00)<br>' +
+                    '· <strong>Mercancía</strong>: paletizada · 6 palets · 4.800 kg<br>' +
+                    '· <strong>Nº de pedido</strong>: PED-0424<br>' +
+                    '· <strong>Camión</strong>: matrícula 4512-MKL · conductor Andrés G.<br><br>' +
+                    'Por favor, tened la mercancía preparada para la carga. Os avisaremos si la previsión de hora cambia.' +
+                '</div>' +
+            '</div>' +
+            '<div style="margin-top:0.8rem;padding:0.7rem 0.8rem;background:rgba(51,0,204,0.06);border:1px solid rgba(51,0,204,0.18);border-radius:10px;font-size: var(--fs-m);line-height:1.55;color:var(--gray-700);">' +
+                '🔒 <strong>Fíjate en lo que NO lleva el aviso</strong>: ni el origen ni el destino de la mercancía, ni precios, ni quién es el remitente o destinatario final. El sitio solo sabe que <strong>tú has gestionado un transporte</strong> para recoger o entregar allí, con lo imprescindible para preparar la carga o la recepción. <strong>Discreción comercial garantizada.</strong>' +
+            '</div>';
+        openDashModal({
+            icon: 'file',
+            title: 'Ejemplo de aviso al sitio',
+            sub: 'Lo que recibiría el email de avisos (recogida; las entregas, igual)',
+            body: body
+        });
+    };
     window.sitioGuardar = function (key) {
         function v(id) { var el = document.getElementById(id); return el ? (el.value.trim() || null) : null; }
         var wasEdit = !!key;
         var s0 = key ? (siteDe(key) || {}) : {};
         var base = {};
         Object.keys(s0).forEach(function (k2) { base[k2] = s0[k2]; });
+        var emailChk = sitioEmailCheck(s0.email);
+        if (!emailChk.ok) return;
         base.empresa = v('sitio-f-empresa'); base.horario = v('sitio-f-horario');
         base.calle = v('sitio-f-calle'); base.dir = v('sitio-f-dir') || base.dir || v('sitio-f-calle');
         base.tfno = telValue('sitio-f-tfno') || ''; base.contacto = v('sitio-f-contacto');
-        base.email = v('sitio-f-email');   // avisos de recogidas/entregas al sitio
+        base.email = emailChk.val;   // avisos de recogidas/entregas al sitio
         base.notas = v('sitio-f-notas'); base.maps = v('sitio-f-maps');
         var tipoEl = document.getElementById('sitio-f-tipo');
         // Tipo de lugar OBLIGATORIO: solo se guarda si se ha elegido uno real
