@@ -9233,6 +9233,81 @@
         if (prevTra) { cargaPrecios(prevTra); out.ptU = prevTra.precioTransportista || null; out.ptUFecha = fDe(prevTra); }
         return out;
     }
+    // === HISTÓRICO COMPARABLE DE UNA RUTA (solo administración) ===
+    // "Comparable" = mismo tipo (completo/grupaje), mismos metros lineales
+    // ocupados (si son grupajes; los completos comparan entre sí) y misma
+    // ventana (fecha fija o ventana en completos · 1-2 o 1-4 en grupajes).
+    // Se usa al asignar transportista para negociar el porte con datos de
+    // la propia operativa. En producción vendrá del histórico del backend.
+    function envioDirParts(c, lado) {
+        var dir = (lado === 'origen' ? (c.origenDir || ciudadDir(c.origen)) : (c.destinoDir || ciudadDir(c.destino))) || '';
+        var parts = String(dir).split(',').map(function (t) { return t.trim(); });
+        var mcp = String(parts[0] || '').match(/\d{4,5}/);
+        return { cp: mcp ? mcp[0] : null, loc: parts[1] || '', prov: parts[2] || parts[1] || '' };
+    }
+    function envioTipoCompleto(c) {
+        if (c.tipoCarga) return /completa/i.test(c.tipoCarga) ? 'Completo' : 'Grupaje';
+        return cargaFromMedidas(c.medidas);
+    }
+    function envioMl(c) {
+        var m = String(c.medidas || '').match(/([\d,]+)\s*m/);
+        return m ? parseFloat(m[1].replace(',', '.')) : null;
+    }
+    function envioVentClase(c) {
+        var v = String(c.ventana || '');
+        if (/fija/i.test(v)) return 'fija';
+        if (envioTipoCompleto(c) === 'Grupaje') return /1 a 2/.test(v) ? 'g-corta' : 'g-larga';
+        return 'ventana';
+    }
+    function rutaComparables(c) {
+        var o = envioDirParts(c, 'origen'), d = envioDirParts(c, 'destino');
+        var tipo = envioTipoCompleto(c), ml = envioMl(c), vent = envioVentClase(c);
+        var cp = [], prov = [];
+        CARGAS_DATA.forEach(function (x) {
+            if (x === c || x.ref === c.ref || x.kind === 'cancelada') return;
+            // Envíos de otros operadores: sin precios Dynamo, no comparan.
+            if (x.manual && x.operador && x.operador !== 'Dynamo') return;
+            if (envioTipoCompleto(x) !== tipo) return;
+            if (tipo === 'Grupaje' && ml != null && envioMl(x) !== ml) return;
+            if (envioVentClase(x) !== vent) return;
+            cargaPrecios(x);
+            if (!x.precioCliente) return;
+            var f = __sortFecha(x.fechaAsignada || x.fecha); if (f == null) return;
+            var xo = envioDirParts(x, 'origen'), xd = envioDirParts(x, 'destino');
+            var it = { c: x, f: f, o: xo, d: xd };
+            if (o.cp && d.cp && xo.cp === o.cp && xd.cp === d.cp) cp.push(it);
+            else if (o.prov && d.prov && xo.prov === o.prov && xd.prov === d.prov) prov.push(it);
+        });
+        function top3(a) { return a.sort(function (x, y) { return y.f - x.f; }).slice(0, 3); }
+        return { o: o, d: d, tipo: tipo, ml: ml, vent: vent, cp: top3(cp), prov: top3(prov) };
+    }
+    // Bloque HTML de históricos comparables para la ventana de asignación.
+    function rutaHistHtml(c) {
+        var r = rutaComparables(c);
+        function linea(it, conRuta) {
+            var x = it.c;
+            var f = x.fechaAsignada ? String(x.fechaAsignada).split(' ')[0] : x.fecha;
+            return '<div style="margin-top:0.3rem;font-size: var(--fs-m);color:var(--gray-700);">' +
+                'Compra <strong>' + eur2(x.precioTransportista || 0) + '</strong> · Venta ' + eur2(x.precioCliente) +
+                ' · ' + escapeHtml(fechaConDia(f)) + ' · <span style="font-weight:600;">' + escapeHtml(x.ref) + '</span>' +
+                (x.transportistaNombre ? ' · ' + escapeHtml(x.transportistaNombre) : '') +
+                (conRuta ? '<div style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;">' +
+                    escapeHtml(((it.o.cp || '') + ' ' + it.o.loc).trim()) + ' → ' + escapeHtml(((it.d.cp || '') + ' ' + it.d.loc).trim()) + '</div>' : '') +
+            '</div>';
+        }
+        var vacio = '<div style="margin-top:0.25rem;font-size: var(--fs-m);font-weight:600;color:var(--gray-500);">Sin envíos comparables.</div>';
+        var descVent = r.vent === 'fija' ? 'fecha fija' : (r.vent === 'g-corta' ? 'ventana de 1 a 2 días' : (r.vent === 'g-larga' ? 'ventana de grupaje (1 a 4)' : 'ventana de 1 a 3 días'));
+        return '<div class="pen-envio-sum" style="margin-top:0.8rem;">' +
+            '<div style="font-weight:800;color:var(--navy);">Históricos de esta ruta · comparables</div>' +
+            '<div style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;margin:0.2rem 0 0.4rem;">Solo envíos comparables con este: ' +
+                (r.tipo === 'Completo' ? 'carga completa' : 'grupaje de ' + (r.ml != null ? String(r.ml).replace('.', ',') + ' m' : 'los mismos metros')) +
+                ' · ' + descVent + '. Importes BASE sin IVA.</div>' +
+            '<div style="font-weight:700;color:var(--gray-600);">Últimos 3 entre los mismos CP (' + escapeHtml((r.o.cp || '—') + ' → ' + (r.d.cp || '—')) + ')</div>' +
+            (r.cp.length ? r.cp.map(function (it) { return linea(it, false); }).join('') : vacio) +
+            '<div style="font-weight:700;color:var(--gray-600);margin-top:0.55rem;">Últimos 3 entre las mismas provincias (' + escapeHtml((r.o.prov || '—') + ' → ' + (r.d.prov || '—')) + ')</div>' +
+            (r.prov.length ? r.prov.map(function (it) { return linea(it, true); }).join('') : vacio) +
+        '</div>';
+    }
     // Mini-tooltip al PULSAR (para móvil, donde no hay hover): globito oscuro
     // junto al importe con la explicación y la fecha; se cierra al tocar
     // fuera o solo a los 6 s.
@@ -9847,6 +9922,7 @@
     });
     function openAsignarTransportista(ref) {
         var c = findCargaDataByRef(ref); if (!c) return;
+        cargaPrecios(c);
         window._asigTraRef = ref;
         _asigTraSel = null;
         var yaTiene = !!(c.transportistaNombre || c.transportistaAsignado);
@@ -9863,6 +9939,10 @@
                     '<ul class="ptar-sug alm-combo-list" id="asigTraList" hidden></ul>' +
                 '</div>' +
                 '<div class="pen-envio-sum" id="asigTraFicha" hidden style="margin-top:0.6rem;"></div></div>' +
+                '<div class="modal-form-row" style="margin-top:0.8rem;"><label for="asig-f-precompra">Precio compra al transportista (base sin IVA)</label>' +
+                    '<input type="number" id="asig-f-precompra" min="0" step="10" inputmode="decimal" value="' + (c.precioTransportista != null ? c.precioTransportista : '') + '" placeholder="Ej. 540">' +
+                    '<p style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;margin:0.3rem 0 0;">Se guarda como P. transportista del envío (fijado a mano) y es el que usan las tablas y el margen.</p></div>' +
+                rutaHistHtml(c) +
                 '<div class="ptar-sitio-grid" style="margin-top:0.8rem;">' +
                     ctSelect('asig-f-camion', 'Tipo de camión', ['Trailer Tauliner · 13,2 m', 'Rígido 8 m con plataforma'], c.tipoCamion || 'Trailer Tauliner · 13,2 m', true) +
                     ctField('asig-f-matricula', 'Matrícula tractora', c.matricula, 'Ej. 5829MGT') +
@@ -9930,6 +10010,17 @@
         c.matriculaRemolque = esRigido ? null : (matSan(v('asig-f-remolque')) || null);
         c.conductor = v('asig-f-conductor') || null;
         c.tfnoConductor = telValue('asig-f-tfnocond');
+        // Precio de COMPRA al transportista: si se teclea, queda fijado a
+        // mano (manda sobre el mock y no se recalcula al modificar).
+        var pcEl = document.getElementById('asig-f-precompra');
+        var pcV = pcEl ? parseFloat(pcEl.value) : NaN;
+        if (!isNaN(pcV) && pcV > 0) {
+            pcV = Math.round(pcV * 100) / 100;
+            if (pcV !== c.precioTransportista) {
+                c.precioTransportista = pcV;
+                c._rowsTra = [{ k: 'Porte transportista', v: pcV }];
+            }
+        }
         c.modificadoEn = Date.now();
         closeDashModal();
         if (typeof renderCargasTable === 'function') renderCargasTable();
@@ -18650,50 +18741,88 @@
                 function cpDe(wrap) {
                     if (!wrap) return null;
                     var k = wrap.dataset.siteKey;
-                    if (k) { var s = siteDe(k); var m = String((s && s.dir) || '').match(/\b\d{5}\b/); if (m) return m[0]; }
+                    if (k) { var st = siteDe(k); var m = String((st && st.dir) || '').match(/\b\d{5}\b/); if (m) return m[0]; }
                     var inp = wrap.querySelector('input');
                     var m2 = String(inp ? inp.value : '').match(/\b\d{5}\b/);
                     return m2 ? m2[0] : null;
                 }
-                function ultVacio(msg) {
-                    el.innerHTML = 'Último precio de esta ruta (mismo cliente): <span style="font-weight:600;color:var(--gray-500);">' + msg + '</span>';
-                    el.hidden = false;
-                }
                 var oCp = cpDe(origWrap), dCp = cpDe(destWrap);
-                if (!oCp || !dCp) { ultVacio('se mostrará al elegir origen y destino'); return; }
-                var best = null, bestF = -1;
+                if (!oCp || !dCp) {
+                    el.innerHTML = 'Ventas, compras y márgenes de esta ruta: <span style="font-weight:600;color:var(--gray-500);">se mostrarán al elegir origen y destino</span>';
+                    el.hidden = false; return;
+                }
+                // Si estamos MODIFICANDO un envío con transportista, su nombre
+                // sirve para la línea "misma compra (mismo transportista)".
+                var editC = window._cargaEditRef ? findCargaDataByRef(window._cargaEditRef) : null;
+                var traNombre = editC ? (editC.transportistaNombre || null) : null;
+                // Últimos de ESTA RUTA (CP origen → CP destino) con precio:
+                //  · venta (precio cliente) — el panel solo tiene los envíos de
+                //    ESTE cliente, así que "mismo cliente" sale de aquí.
+                //  · compra (precio transportista) — todos, y filtrada por el
+                //    transportista del envío en edición si lo hay.
+                var venta = null, ventaF = -1, compra = null, compraF = -1, compraTra = null, compraTraF = -1;
                 CARGAS_DATA.forEach(function (x) {
                     if (x.kind === 'cancelada') return;
                     if (window._cargaEditRef && x.ref === window._cargaEditRef) return;
-                    var mo = String(x.origenDir || '').match(/\b\d{5}\b/), md = String(x.destinoDir || '').match(/\b\d{5}\b/);
+                    if (x.manual && x.operador && x.operador !== 'Dynamo') return;
+                    var mo = String(x.origenDir || ciudadDir(x.origen) || '').match(/\b\d{5}\b/);
+                    var md = String(x.destinoDir || ciudadDir(x.destino) || '').match(/\b\d{5}\b/);
                     if (!mo || !md || mo[0] !== oCp || md[0] !== dCp) return;
-                    // El "último precio" es el más reciente CON precio conocido:
-                    // si el más nuevo aún no tiene precio, vale el anterior.
                     cargaPrecios(x);
-                    if (!x.precioCliente) return;
-                    var fx = __sortFecha(x.fechaAsignada || x.fecha) || 0;
-                    if (fx > bestF) { bestF = fx; best = x; }
-                });
-                if (!best) { ultVacio('sin envíos previos con esta ruta'); return; }
-                var f = best.fechaAsignada ? String(best.fechaAsignada).split(' ')[0] : best.fecha;
-                // 3 líneas: último precio · precio del tarifador HOY · diferencial
-                // (verde si hoy sale más barato, rojo si sale más caro).
-                var h = '<div><strong>' + eur2(best.precioCliente) + '</strong>' +
-                    (f ? ' · ' + escapeHtml(fechaConDia(f)) : '') +
-                    ' <span style="font-weight:600;">(' + escapeHtml(best.ref) + ')</span>' +
-                    ' · Último precio de esta ruta (mismo cliente)</div>';
-                var hoyP = (typeof precioDynamoActual === 'function') ? precioDynamoActual() : 0;
-                if (hoyP > 0) {
-                    h += '<div style="margin-top:0.15rem;"><strong>' + eur2(hoyP) + '</strong> · Hoy tarifador, precio de esta ruta</div>';
-                    var difU = Math.round((best.precioCliente - hoyP) * 100) / 100;
-                    if (difU !== 0) {
-                        var masBarato = difU > 0;   // hoy cuesta menos que el último
-                        h += '<div style="margin-top:0.15rem;color:' + (masBarato ? '#0f6b3a' : '#b42318') + ';"><strong>' + eur2(Math.abs(difU)) + '</strong> · Hoy más ' + (masBarato ? 'barato' : 'caro') + ' (diferencial precio de esta ruta)</div>';
-                    } else {
-                        h += '<div style="margin-top:0.15rem;color:var(--gray-500);">Hoy mismo precio que el último de esta ruta</div>';
+                    var fx = __sortFecha(x.fechaAsignada || x.fecha); if (fx == null) return;
+                    if (x.precioCliente && fx > ventaF) { ventaF = fx; venta = x; }
+                    if (x.precioTransportista) {
+                        if (fx > compraF) { compraF = fx; compra = x; }
+                        if (traNombre && x.transportistaNombre === traNombre && fx > compraTraF) { compraTraF = fx; compraTra = x; }
                     }
+                });
+                function fDe(x) { return x ? (x.fechaAsignada ? String(x.fechaAsignada).split(' ')[0] : x.fecha) : null; }
+                function fila(lbl, imp, fechaStr, refStr, vacioTxt) {
+                    var val = imp
+                        ? '<strong>' + eur2(imp) + '</strong>' + (fechaStr ? ' (' + escapeHtml(fechaConDia(fechaStr)) + (refStr ? ' · ' + escapeHtml(refStr) : '') + ')' : '')
+                        : '<span style="font-weight:600;color:var(--gray-500);">' + (vacioTxt || 'sin envíos') + '</span>';
+                    return '<div style="margin-top:0.15rem;">' + lbl + ': ' + val + '</div>';
                 }
-                el.innerHTML = h;
+                function margenFila(lbl, m) {
+                    var col = m > 0 ? '#0f6b3a' : (m < 0 ? '#b42318' : 'var(--gray-500)');
+                    return '<div style="margin-top:0.15rem;">' + lbl + ': <strong style="color:' + col + ';">' + eur2(m) + '</strong></div>';
+                }
+                var tarVenta = (typeof precioDynamoActual === 'function') ? precioDynamoActual() : 0;
+                // MOCK "todos los clientes/transportistas": el panel solo tiene
+                // los envíos de este cliente; el histórico GLOBAL vendrá del
+                // backend. Para la demo se deriva determinista de la ruta.
+                var hh = hashStr(oCp + '>' + dCp);
+                var mockMs = Date.now() - (5 + (hh % 40)) * 86400000;
+                var mockD = new Date(mockMs);
+                var mockFStr = ('0' + mockD.getDate()).slice(-2) + '/' + ('0' + (mockD.getMonth() + 1)).slice(-2) + '/' + mockD.getFullYear();
+                var mockVt = tarVenta > 0 ? Math.round(tarVenta * (0.9 + (hh % 21) / 100) / 10) * 10 : 0;
+                var mockCt = mockVt ? Math.round(mockVt * (0.72 + (hh % 13) / 100) / 10) * 10 : 0;
+                // Venta (todos): la real del cliente o el mock global si es más reciente.
+                var vtImp = 0, vtF = null, vtRef = null;
+                if (venta && (ventaF >= mockMs || !mockVt)) { vtImp = venta.precioCliente; vtF = fDe(venta); vtRef = venta.ref; }
+                else if (mockVt) { vtImp = mockVt; vtF = mockFStr; }
+                else if (venta) { vtImp = venta.precioCliente; vtF = fDe(venta); vtRef = venta.ref; }
+                // Compra (todos): la real de la ruta o el mock global si es más reciente.
+                var ctImp = 0, ctF = null, ctRef = null;
+                if (compra && (compraF >= mockMs || !mockCt)) { ctImp = compra.precioTransportista; ctF = fDe(compra); ctRef = compra.ref; }
+                else if (mockCt) { ctImp = mockCt; ctF = mockFStr; }
+                else if (compra) { ctImp = compra.precioTransportista; ctF = fDe(compra); ctRef = compra.ref; }
+                // Tarifador COMPRA (mock determinista ~72-85% de la venta; en
+                // producción, tarifa real de compra del backend).
+                var tarCompra = tarVenta > 0 ? Math.round(tarVenta * (0.72 + (hh % 13) / 100) / 10) * 10 : 0;
+                var hHtml =
+                    fila('Última venta (mismo cliente)', venta ? venta.precioCliente : 0, fDe(venta), venta ? venta.ref : null) +
+                    fila('Última venta (todos los clientes)', vtImp, vtF, vtRef) +
+                    '<div style="margin-top:0.45rem;"></div>' +
+                    fila('Última compra (mismo transportista)', compraTra ? compraTra.precioTransportista : 0, fDe(compraTra), compraTra ? compraTra.ref : null,
+                        traNombre ? 'sin envíos' : 'sin transportista asignado') +
+                    fila('Última compra (todos los transportistas)', ctImp, ctF, ctRef);
+                if (tarVenta > 0) {
+                    hHtml += '<div style="margin-top:0.45rem;"></div>';
+                    if (ctImp) hHtml += margenFila('Margen (tarifador venta ' + eur2(tarVenta) + ' VS última compra)', tarVenta - ctImp);
+                    if (tarCompra) hHtml += margenFila('Margen (tarifador venta VS tarifador compra ' + eur2(tarCompra) + ')', tarVenta - tarCompra);
+                }
+                el.innerHTML = hHtml;
                 el.hidden = false;
             }
             updateCutoffNote();
