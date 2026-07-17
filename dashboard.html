@@ -15078,6 +15078,7 @@
         }
         var raw = el ? el.value.trim() : '';
         var parts = raw.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+        if (parts.length > 10) return fail('Máximo 10 emails por sitio (has puesto ' + parts.length + ').');
         for (var i = 0; i < parts.length; i++) {
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(parts[i])) return fail('«' + parts[i] + '» no es un email válido. Si pones varios, sepáralos por comas.');
         }
