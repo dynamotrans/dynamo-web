@@ -9501,8 +9501,7 @@
                 ctField('cli-f-pais', 'País', c.pais || 'España', 'España') +
                 telField('cli-f-tfno', 'Teléfono', c.tfno) +
                 ctField('cli-f-email', 'Email (contabilidad y gerencia)', c.email, 'administracion@dominio.com', false, 'email') +
-                '<div style="grid-column:1/-1;font-size: var(--fs-s);color:var(--gray-500);line-height:1.5;margin-top:-0.4rem;">📱 <strong>Mejor un móvil</strong>: además de llamar, permite <strong>WhatsApp con el estado del envío</strong>. 📩 El <strong>email</strong> se usa para los avisos de la operativa (recogidas, entregas, incidencias).</div>' +
-                ctField('cli-f-contacto', 'Persona de contacto', c.contacto, 'Nombre y apellidos', true) +
+                                ctField('cli-f-contacto', 'Persona de contacto', c.contacto, 'Nombre y apellidos', true) +
                 ctNotas('cli-f-notas', c.notas) +
             '</div>';
     }
@@ -9520,8 +9519,8 @@
                 ctField('tra-f-prov', 'Provincia', t.prov, 'Sevilla') +
                 ctField('tra-f-pais', 'País', t.pais || 'España', 'España') +
                 telField('tra-f-tfno', 'Teléfono', t.tfno) +
-                ctField('tra-f-email', 'Email (contabilidad y gerencia)', t.email, 'administracion@dominio.com', false, 'email') +
-                '<div style="grid-column:1/-1;font-size: var(--fs-s);color:var(--gray-500);line-height:1.5;margin-top:-0.4rem;">📱 <strong>Mejor un móvil</strong>: además de llamar, permite <strong>WhatsApp con el estado del envío</strong>. 📩 El <strong>email</strong> se usa para los avisos de la operativa (recogidas, entregas, incidencias).</div>' +
+                ctField('tra-f-email', 'Email (tráfico)', t.email, 'trafico@dominio.com', false, 'email') +
+                '<div style="grid-column:1/-1;font-size: var(--fs-s);color:var(--gray-500);line-height:1.5;margin-top:-0.4rem;">📱 <strong>Mejor un móvil</strong>: además de llamar, permite <strong>WhatsApp con incidencias o avisos</strong>. 📩 El <strong>email</strong> se usa para los avisos de la operativa (recogidas, entregas, incidencias).</div>' +
                 ctField('tra-f-contacto', 'Persona de contacto', t.contacto, 'Nombre y apellidos', true) +
                 ctField('tra-f-camiones', 'Nº de camiones', t.camiones, '1', false, 'number') +
                 ctSelect('tra-f-flota', 'Flota', ['Tauliner', 'Rígido', 'Tauliner y rígido'], t.flota || 'Tauliner') +
@@ -9965,7 +9964,7 @@
             '<div class="ptar-sitio-grid">' +
                 ctField('usr-f-email', 'Email (usuario de acceso) *', u.email, 'nombre@empresa.com', true, 'email') +
                 '<div style="grid-column:1/-1;margin-top:-0.5rem;font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;">Los avisos de logística (envíos, incidencias…) llegan a este email de usuario. El email de la ficha de empresa queda para contabilidad y gerencia.</div>' +
-                ctField('usr-f-copias', 'Enviar copia a <span style="color:var(--gray-500);font-weight:600;">· opcional · si hay varios, sepáralos por comas</span>', u.copias, 'logistica@empresa.com, almacen@empresa.com', true) +
+                ctField('usr-f-copias', 'Enviar copia a · opcional (si hay varios, sepáralos por comas)', u.copias, 'logistica@empresa.com, almacen@empresa.com', true) +
                 '<div class="sitio-email-err" id="usrCopiasErr" hidden style="grid-column:1/-1;margin-top:-0.5rem;font-size: var(--fs-s);color:#b42318;font-weight:700;"></div>' +
                 '<div style="grid-column:1/-1;margin-top:-0.5rem;font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;">Estos emails reciben COPIA de los avisos de envíos de este usuario (máximo 10).</div>' +
                 tipoHtml +
@@ -9973,6 +9972,7 @@
                 ctField('usr-f-nombre', 'Nombre y apellidos *', u.nombre, 'Nombre y apellidos', true) +
                 ctField('usr-f-dni', 'DNI', u.dni, '12345678Z') +
                 telField('usr-f-tfno', 'Teléfono', u.tfno) +
+                '<div style="grid-column:1/-1;font-size: var(--fs-s);color:var(--gray-500);line-height:1.5;margin-top:-0.5rem;">📱 <strong>Mejor un móvil</strong>: además de llamar, permite <strong>WhatsApp con el estado del envío</strong>. 📩 El <strong>email de usuario</strong> recibe los avisos de la operativa (recogidas, entregas, incidencias).</div>' +
                 ctField('usr-f-empresa', 'Empresa / Razón social', u.empresa, 'Ej. Marbex Industrial S.L.', true) +
                 ctField('usr-f-cif', 'CIF / NIF de la empresa', u.cif, 'B12345678 / 12345678Z') +
                 ctField('usr-f-pais', 'País', u.pais || 'España', 'España') +
@@ -17654,7 +17654,10 @@
             }
             // Días de la ventana estándar: GRUPAJE 1 a 4 (más margen para
             // completar el camión) · carga COMPLETA 1 a 3.
-            function ventanaLen() { return esGrupajeSel() ? 4 : 3; }
+            function ventanaLen() {
+                if (urgenciaSel && urgenciaSel.value === 'corta') return 2;   // grupaje corta
+                return esGrupajeSel() ? 4 : 3;
+            }
             function syncGrupajeVentana() {
                 if (!urgenciaSel) return;
                 var esGrupaje = esGrupajeSel();
@@ -17670,7 +17673,14 @@
                     urgenciaSel.appendChild(opt);
                 });
                 var optE = urgenciaSel.querySelector('option[value="estandar"]');
-                if (optE) optE.textContent = 'Carga de 1 a ' + ventanaLen() + ' días (más económica)';
+                if (optE) optE.textContent = 'Carga de 1 a ' + (esGrupaje ? 4 : 3) + ' días (más económica)';
+                // GRUPAJE: ventana CORTA opcional de 1 a 2 días — más cara
+                // (+10% sobre el subtotal con MÍNIMO de 80 €, el mayor de los dos).
+                if (esGrupaje) {
+                    var oc = document.createElement('option');
+                    oc.value = 'corta'; oc.textContent = 'Carga de 1 a 2 días (más cara)';
+                    urgenciaSel.appendChild(oc);
+                }
                 if (urgenciaSel.querySelector('option[value="' + prev + '"]')) {
                     urgenciaSel.value = prev;
                 } else {
@@ -17961,6 +17971,9 @@
                 var subAntesFija = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra;
                 var fijaExtra = (uv === 'dia') ? Math.round(subAntesFija * 0.15 / 10) * 10 : 0;
                 var preavisoExtra = (uv === 'dia') ? preavisoFlat : 0;
+                // Ventana corta de GRUPAJE (1-2 días): +10% o 80 €, el MAYOR.
+                var cortaExtra = (uv === 'corta') ? Math.max(Math.round(subAntesFija * 0.10 / 10) * 10, 80) : 0;
+                card.dataset.cortaExtra = String(cortaExtra);
                 // Desglose: Importe de envío + recargos por tipo de sitio (uno por
                 // punto) + cada suplemento que aplique. Se muestra si hay alguna
                 // línea (recargo por tipo o suplemento); si no, solo Base/IVA/Total.
@@ -17971,9 +17984,10 @@
                 if (adrExtra)   extras.push({ k: 'Mercancía ADR (+40%)', v: adrExtra });
                 if (fijaExtra)  extras.push({ k: 'Fecha fija', v: fijaExtra });
                 if (preavisoExtra) extras.push({ k: 'Preaviso urgente', v: preavisoExtra });
+                if (cortaExtra) extras.push({ k: 'Ventana 1-2 días (+10%, mín. 80 €)', v: cortaExtra });
                 var detalle = tipoLines.concat(extras);
                 var precioRows = detalle.length ? [{ k: 'Importe de envío', v: envioBase }].concat(detalle) : [];
-                precio = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra + fijaExtra + preavisoExtra; // base imponible
+                precio = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra + fijaExtra + preavisoExtra + cortaExtra; // base imponible
                 // Arranca en el número que se está mostrando AHORA (no en lastPrice)
                 // para que la animación encadene aunque renderEta se llame 2 veces.
                 var shownEl = etaBox.querySelector('[data-price-neto]');
@@ -17984,7 +17998,7 @@
                 if (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) {
                     loadStart = new Date(diaSel.value + 'T00:00:00');
                 }
-                var ventana = urgenciaSel.value === 'estandar' ? ventanaLen() : 1; // fija = 1 día
+                var ventana = urgenciaSel.value === 'dia' ? 1 : ventanaLen(); // fija = 1 día
 
                 var rangoHtml = '';
                 var cargaHtml = '';
@@ -18089,6 +18103,11 @@
                     // Transportista TERCERO: los avisos de Dynamo (ventana
                     // recomendada, fecha fija urgente, cortes, reprogramación)
                     // NO aplican — su transportista pone sus reglas. Sin aviso.
+                } else if (uv === 'corta') {
+                    // Ventana corta de grupaje: aviso del suplemento.
+                    hoyHtml = '<div style="margin-bottom:0.8rem;padding:0.6rem 0.75rem;background:#fff7e6;border:1px solid #ffd591;border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#8a5a00;">' +
+                        '<strong>Ventana corta de 1 a 2 días</strong>: lleva un suplemento del <strong>10% (mínimo 80 €)</strong>. Si no te corre prisa, la de 1 a 4 días es la más económica.' +
+                        '</div>';
                 } else if (uv === 'estandar') {
                     // Ventana estándar (grupaje 1-4 · completo 1-3): mensaje verde.
                     hoyHtml = '<div style="margin-bottom:0.8rem;padding:0.6rem 0.75rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#0f6b3a;">' +
@@ -18351,7 +18370,8 @@
                 var fijaPct = parseFloat(card.dataset.fijaPct || '0') || 0;
                 var flat = parseInt(card.dataset.fijaFlat || '0', 10) || 0;
                 var sub = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtraC;
-                return sub + (fijaPct > 0 ? Math.round(sub * fijaPct / 10) * 10 : 0) + flat;
+                var cortaC = parseInt(card.dataset.cortaExtra || '0', 10) || 0;
+                return sub + (fijaPct > 0 ? Math.round(sub * fijaPct / 10) * 10 : 0) + flat + cortaC;
             }
             // Efecto CONTADOR propio de la comparativa (raf independiente del
             // de la caja de precio, para no pisarse las animaciones).
@@ -18761,7 +18781,7 @@
                     urgenciaTxt: urgenciaTxt, urgenciaLabel: urgenciaSel_label,
                     fechaTxt: fechaTxt, fechaLarga: fechaLarga,
                     fechaIso: (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) ? diaSel.value : null,
-                    ventanaDias: urgenciaSel.value === 'estandar' ? ventanaLen() : 1,
+                    ventanaDias: urgenciaSel.value === 'dia' ? 1 : ventanaLen(),
                     refCli: refCliInput.value.trim() || (mode === 'carga' ? 'PED-NUEVO' : 'COT-NUEVO'),
                     notes: notesTxt.value.trim(),
                     // Precio MANUAL (hueco interno del formulario): si se fija
@@ -19163,7 +19183,8 @@
                 var adrExtra   = parseInt(card.dataset.adrExtra || '0', 10) || 0;
                 var subAntesFija = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra;
                 var fijaExtra = fijaPct > 0 ? Math.round(subAntesFija * fijaPct / 10) * 10 : 0;
-                var precio = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra + fijaExtra + flat;
+                var cortaExtra = parseInt(card.dataset.cortaExtra || '0', 10) || 0;
+                var precio = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra + fijaExtra + flat + cortaExtra;
                 var extras = [];
                 if (techoExtra) extras.push({ k: 'Carga por techo', v: techoExtra });
                 if (trampExtra) extras.push({ k: 'Trampilla elevadora', v: trampExtra });
@@ -19171,6 +19192,7 @@
                 if (adrExtra)   extras.push({ k: 'Mercancía ADR (+40%)', v: adrExtra });
                 if (fijaExtra)  extras.push({ k: 'Fecha fija', v: fijaExtra });
                 if (flat)       extras.push({ k: 'Preaviso urgente', v: flat });
+                if (cortaExtra) extras.push({ k: 'Ventana 1-2 días (+10%, mín. 80 €)', v: cortaExtra });
                 var detalle = tipoLines.concat(extras);
                 var rows = detalle.length ? [{ k: 'Importe de envío', v: envioBase }].concat(detalle) : [];
                 pendingData.precioMock = precio;
