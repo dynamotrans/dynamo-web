@@ -2201,10 +2201,13 @@
            y luego la tabla. Los headers de formulario (Volver/Limpiar, btn-ghost)
            NO llevan btn-primary → no les afecta. */
         .sec-header:has(.btn-primary) { flex-direction: column; align-items: stretch; }
+        /* ALTURA ÚNICA de la banda de controles (44px): buscadores y selects
+           de .filters, selector de vista y botones de cabecera/acción — todo
+           a la misma altura para que las filas queden alineadas. */
         .sec-header > .btn-primary,
-        .sec-header-actions .btn-primary { flex: 1; width: 100%; min-height: 50px; }
+        .sec-header-actions .btn-primary { flex: 1; width: 100%; min-height: 44px; }
         .btn-primary, .btn-secondary, .btn-ghost {
-            padding: 0.55rem 1rem; border-radius: 10px; min-height: 50px;
+            padding: 0.55rem 1rem; border-radius: 10px; min-height: 44px;
             font-size: var(--fs-m); font-weight: 700;
             border: none; cursor: pointer; text-decoration: none;
             display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
@@ -2286,6 +2289,15 @@
         .filters input:hover, .filters select:hover { border-color: var(--purple); }
         .filters input:focus, .filters select:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); background: white; }
         .filters input[type="search"] { flex: 1 1 240px; min-width: 180px; }
+        /* Botón Exportar (a la derecha de los filtros, misma altura 44px) */
+        .filters .btn-export {
+            flex: none; height: 44px; padding: 0 0.9rem; border-radius: 10px;
+            border: 1.5px solid var(--gray-200); background: #fff; color: var(--navy);
+            font-family: inherit; font-size: var(--fs-m); font-weight: 700; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            transition: border-color 0.15s, color 0.15s;
+        }
+        .filters .btn-export:hover { border-color: var(--purple); color: var(--purple); }
         /* Filtro por mes ("Fecha") — corto; el input "Otro mes / año…" solo
            aparece al elegir esa opción. */
         .filters .filter-mes { flex: 0 0 auto; min-width: 96px; max-width: 150px; }
@@ -4548,7 +4560,8 @@
                         style="height:44px;border:1.5px solid var(--gray-300);border-radius:10px;padding:0 0.7rem;font-size: var(--fs-m);font-weight:700;color:var(--navy);background:#fff;cursor:pointer;">
                     <option value="lista">Vista: Lista</option>
                     <option value="calendario">Vista: Calendario</option>
-                    <option value="mapa">Vista: Mapa</option>
+                    <!-- Vista MAPA: OCULTA (2ª fase — falta afinarla; el código
+                         de cargasSetVista('mapa') queda inerte hasta entonces) -->
                 </select>
                 <button class="btn-primary" onclick="openNuevaCarga('envio');return false;">+ Nuevo envío</button>
             </div>
@@ -15086,7 +15099,14 @@
                 '<div style="padding:0.8rem;font-size: var(--fs-m);line-height:1.6;color:var(--gray-700);">' +
                     'Buenos días,<br><br>' +
                     '<strong>Marbex Industrial S.L.</strong> ha gestionado un transporte para <strong>recoger mercancía en vuestras instalaciones</strong>.<br><br>' +
-                    '· <strong>Día</strong>: viernes 18/07 · previsión de llegada <strong>10:30-12:00</strong> (vuestro horario: 8:00-16:00)<br>' +
+                    '<strong style="color:var(--navy);">Lugar de recogida (vuestras instalaciones)</strong><br>' +
+                    '· <strong>Empresa</strong>: Almacenes del Genil S.L. · Almacén / Nave<br>' +
+                    '· <strong>Dirección</strong>: C. Francia, 78 · 18360 Huétor Tájar, Granada<br>' +
+                    '· <strong>Horario</strong>: 8:00-16:00 · <strong>Tel.</strong> +34 645 89 87 95<br>' +
+                    '· <strong>Contacto</strong>: Marina Robles · almacen@empresa.com<br>' +
+                    '· <strong>Cómo llegar</strong>: <span style="color:var(--purple);">maps.app.goo.gl/PASmcX8p…</span><br><br>' +
+                    '<strong style="color:var(--navy);">El transporte</strong><br>' +
+                    '· <strong>Día</strong>: viernes 18/07 · previsión de llegada <strong>10:30-12:00</strong><br>' +
                     '· <strong>Mercancía</strong>: paletizada · 6 palets · 4.800 kg<br>' +
                     '· <strong>Nº de pedido</strong>: PED-0424<br>' +
                     '· <strong>Camión</strong>: matrícula 4512-MKL · conductor Andrés G.<br><br>' +
@@ -16769,6 +16789,61 @@
     renderAlbaranesTable();
     renderPenalizacionesTable();
     renderAhorrosTable();
+    // ===== EXPORTAR A EXCEL (CSV) — datos VISIBLES de la tabla =====
+    // Exporta lo que muestra la tabla con los filtros/búsqueda aplicados,
+    // TODAS las páginas (se re-renderiza con perPage infinito y se restaura).
+    // CSV con BOM y ';' → se abre directo en Excel es-ES. En producción la
+    // exportación grande la generará el backend con el mismo filtro.
+    var EXPORT_TABLAS = [
+        { sec: 'sec-cargas', key: 'cargas', tbody: 'tbodyCargas', nombre: 'Envios' },
+        { sec: 'sec-facturas', key: 'facturas', tbody: 'tbodyFacturas', nombre: 'Facturas' },
+        { sec: 'sec-albaranes', key: 'albaranes', tbody: 'tbodyAlbaranes', nombre: 'Albaranes' },
+        { sec: 'sec-penalizaciones', key: 'penalizaciones', tbody: 'tbodyPenalizaciones', nombre: 'Penalizaciones' },
+        { sec: 'sec-incidencias', key: 'incidencias', tbody: 'tbodyIncidencias', nombre: 'Incidencias' },
+        { sec: 'sec-almacenes', key: 'almacenes', tbody: 'tbodyAlmacenes', nombre: 'Almacenamientos' }
+    ];
+    function exportTablaExcel(cfg) {
+        var st = TABLE_STATE[cfg.key];
+        var prevPer = st ? st.perPage : null, prevPage = st ? st.page : null;
+        if (st) { st.perPage = 1000000; st.page = 1; renderTable(cfg.key); }
+        var tb = document.getElementById(cfg.tbody);
+        var table = tb ? tb.closest('table') : null;
+        var filas = [];
+        if (table) {
+            var head = [];
+            table.querySelectorAll('thead th').forEach(function (th) { head.push(th.innerText.replace(/\s+/g, ' ').trim()); });
+            filas.push(head);
+            tb.querySelectorAll('tr').forEach(function (tr) {
+                var cs = tr.querySelectorAll('td');
+                if (cs.length < 2) return;   // fila de "sin datos"
+                var f = [];
+                cs.forEach(function (td) { f.push(td.innerText.replace(/\s*\n\s*/g, ' · ').replace(/\s+/g, ' ').trim()); });
+                filas.push(f);
+            });
+        }
+        if (st) { st.perPage = prevPer; st.page = prevPage; renderTable(cfg.key); }
+        var csv = '\ufeff' + filas.map(function (f) {
+            return f.map(function (c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(';');
+        }).join('\r\n');
+        var hoy = new Date(), p2 = function (n) { return ('0' + n).slice(-2); };
+        var fn = cfg.nombre + '-' + hoy.getFullYear() + '-' + p2(hoy.getMonth() + 1) + '-' + p2(hoy.getDate()) + '.csv';
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = fn;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 30000);
+    }
+    window.exportTablaExcel = exportTablaExcel;
+    EXPORT_TABLAS.forEach(function (cfg) {
+        var f = document.querySelector('#' + cfg.sec + ' .filters');
+        if (!f) return;
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'btn-export';
+        b.title = 'Exportar a Excel lo que muestra la tabla (con los filtros aplicados, todas las páginas)';
+        b.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Exportar';
+        b.addEventListener('click', function () { exportTablaExcel(cfg); });
+        f.appendChild(b);
+    });
     // Calendario unificado (Flatpickr) en los inputs de fecha estáticos
     // (p.ej. el rango Desde/Hasta de Facturas). Flatpickr carga con defer, así
     // que reintenta un momento si aún no está disponible.
