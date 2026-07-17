@@ -1359,6 +1359,13 @@
         .dash-carousel-title { font-size: var(--fs-m); font-weight: 700; color: var(--navy); margin: 0 0 0.2rem; }
         .dash-clientes { margin-top: 1.6rem; }
         .dash-servicios { margin-top: 1.2rem; padding-bottom: 0.4rem; }
+        /* En ESCRITORIO los servicios van ANTES que el muro de clientes;
+           en móvil se respeta el orden del DOM (clientes → servicios). */
+        .dash-carousels { display: flex; flex-direction: column; }
+        @media (min-width: 1024px) {
+            .dash-carousels .dash-servicios { order: 1; margin-top: 1.6rem; }
+            .dash-carousels .dash-clientes { order: 2; margin-top: 1.2rem; }
+        }
         /* Mismo difuminado lateral que el muro de clientes (sin corte seco). */
         .dash-servicios .clientes-row {
             -webkit-mask-image: linear-gradient(90deg, transparent 0, black 7%, black 93%, transparent 100%);
@@ -4402,7 +4409,10 @@
                     <h4>Recomiéndanos</h4>
                     <p>Si te hemos ayudado,<br>Por favor recomiéndanos ¡Gracias!</p>
                     <!-- Ahorro acumulado del año (mock; backend real) -->
-                    <p class="dash-ahorro-anio" style="margin-top:0.35rem;font-size: var(--fs-m);font-weight:700;color:#0f6b3a;">Este año has ahorrado <span data-ahorro-anio>—</span> enviando con Dynamo.</p>
+                    <p class="dash-ahorro-anio" style="margin-top:0.35rem;font-size: var(--fs-m);font-weight:700;color:#0f6b3a;">Este año has ahorrado <span data-ahorro-anio>—</span> enviando con Dynamo.
+                        <span style="display:block;margin-top:0.2rem;color:var(--gray-700);font-weight:600;">Podrías haber ahorrado hasta <strong style="color:#0f6b3a;" data-ahorro-max>—</strong>: <strong data-ahorro-extra>—</strong> más si los envíos que fueron con tus otros transportistas los hubieras hecho con nosotros.</span>
+                        <a href="#" onclick="openAhorrosModal(); return false;" style="display:inline-block;margin-top:0.25rem;color:var(--purple);font-weight:800;">Ver el detalle de tus ahorros →</a>
+                    </p>
                 </div>
                 <div class="dash-recomienda-btns">
                     <button type="button" class="btn-primary" onclick="abrirRecomendar()">Recomendar Dynamo</button>
@@ -4413,7 +4423,7 @@
             <div class="mini-list-card" role="button" tabindex="0" aria-label="Ver todos los envíos"
                  onclick="showSection('cargas');" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showSection('cargas');}">
                 <div class="mini-list-head">
-                    <h4>Mis últimos envíos (<span data-stat-cargas-activas>—</span>)</h4>
+                    <h4>Mis envíos (<span data-stat-cargas-activas>—</span>)</h4>
                     <a href="#" onclick="showSection('cargas');return false;">Ver todos →</a>
                 </div>
                 <ul class="mini-list" id="miniEnvios">
@@ -4422,6 +4432,10 @@
             </div>
         </div>
 
+        <!-- ===== Carruseles: en ESCRITORIO "Nuestros servicios" va primero y
+             el muro de clientes después (order por CSS); en MÓVIL se mantiene
+             el orden del DOM (clientes → servicios). ===== -->
+        <div class="dash-carousels">
         <!-- ===== Muro de clientes: MISMO carrusel triple de la web pública
              (logos extraídos de index.html; el JS los reparte en 3 filas y
              duplica cada fila para el bucle infinito). ===== -->
@@ -4477,6 +4491,7 @@
                 <div class="clientes-row-track" id="dashServiciosRow"></div>
             </div>
         </div>
+        </div><!-- /dash-carousels -->
 
         <!-- ===== Nuestra flota: sección de la web pública (tipos de vehículo) ===== -->
         <div class="dash-flota">
@@ -13459,14 +13474,63 @@
     }
     // Cliente del portal (la cuenta logueada). Con backend saldrá del perfil.
     var CLIENTE_ACTUAL = 'Marbex Industrial S.L.';
-    // AHORRO ACUMULADO del año enviando con Dynamo (mock, en € base sin IVA):
-    // en producción lo calculará el backend comparando el precio Dynamo con
-    // las referencias de mercado / los precios acordados con terceros.
-    var AHORRO_DYNAMO_ANIO = 4320;
+    // AHORROS DEL AÑO (mock, en € base sin IVA): comparativas registradas al
+    // crear envíos con otro operador tecleando su precio. Dos resultados:
+    //  · conDynamo:true  → eligió Dynamo y AHORRÓ la diferencia.
+    //  · conDynamo:false → lo envió con su transportista PESE a ser Dynamo
+    //    más barato → dinero que DEJÓ de ahorrar.
+    // En producción saldrán del histórico real (campo ahorro de cada envío).
+    var AHORROS_DATA = [
+        { fecha: '22/01/26', ref: '#GX683871', ruta: 'Sevilla → Barcelona', tercero: 2130, dynamo: 1520, conDynamo: true },
+        { fecha: '09/02/26', ref: '#GX683994', ruta: 'Málaga → Madrid', tercero: 1660, dynamo: 1180, conDynamo: true },
+        { fecha: '27/02/26', ref: '#GX684103', ruta: 'Parets del Vallès → Peñaranda de Bracamonte', tercero: 2020, dynamo: 1240, conDynamo: false, operador: 'LogiSur Cargo S.L.' },
+        { fecha: '18/03/26', ref: '#GX684209', ruta: 'Sevilla → Bilbao', tercero: 2440, dynamo: 1600, conDynamo: true },
+        { fecha: '14/04/26', ref: '#GX684366', ruta: 'Huelva → Valencia', tercero: 1475, dynamo: 950, conDynamo: true },
+        { fecha: '08/05/26', ref: '#GX684478', ruta: 'Zaragoza → Sevilla', tercero: 1940, dynamo: 1280, conDynamo: false, operador: 'Transportes Iberia Express S.L.' },
+        { fecha: '26/05/26', ref: '#GX684550', ruta: 'Granada → Zaragoza', tercero: 2180, dynamo: 1420, conDynamo: true },
+        { fecha: '11/06/26', ref: '#GX684633', ruta: 'Córdoba → Vigo', tercero: 3005, dynamo: 1900, conDynamo: true },
+        { fecha: '02/07/26', ref: '#GX684871', ruta: 'Fuenlabrada → Lliçà de Vall', tercero: 1740, dynamo: 1180, conDynamo: false, operador: 'LogiSur Cargo S.L.' }
+    ];
+    var AHORRO_DYNAMO_ANIO = 0, AHORRO_PERDIDO_ANIO = 0;
+    AHORROS_DATA.forEach(function (a) {
+        var d = a.tercero - a.dynamo;
+        if (a.conDynamo) AHORRO_DYNAMO_ANIO += d; else AHORRO_PERDIDO_ANIO += d;
+    });
     (function () {
         var elA = document.querySelector('[data-ahorro-anio]');
         if (elA) elA.textContent = eur2(AHORRO_DYNAMO_ANIO);
+        var elM = document.querySelector('[data-ahorro-max]');
+        if (elM) elM.textContent = eur2(AHORRO_DYNAMO_ANIO + AHORRO_PERDIDO_ANIO);
+        var elE = document.querySelector('[data-ahorro-extra]');
+        if (elE) elE.textContent = eur2(AHORRO_PERDIDO_ANIO);
     })();
+    // Ventana con el DETALLE de los ahorros: cada comparativa del año, con el
+    // precio del transportista del cliente, el de Dynamo, y el resultado
+    // (ahorrado en verde · dejado de ahorrar en rojo).
+    window.openAhorrosModal = function () {
+        function fila(a) {
+            var d = a.tercero - a.dynamo;
+            var res = a.conDynamo
+                ? '<span style="color:#0f6b3a;font-weight:800;">Ahorraste ' + eur2(d) + '</span><span style="display:block;font-size: var(--fs-s);color:var(--gray-500);">Enviado con Dynamo</span>'
+                : '<span style="color:#b42318;font-weight:800;">Dejaste de ahorrar ' + eur2(d) + '</span><span style="display:block;font-size: var(--fs-s);color:var(--gray-500);">Enviado con ' + escapeHtml(a.operador || 'otro transportista') + '</span>';
+            return '<div style="display:flex;justify-content:space-between;gap:0.8rem;align-items:center;padding:0.55rem 0;border-bottom:1px solid var(--gray-200);">' +
+                '<div style="min-width:0;"><div style="font-weight:800;">' + escapeHtml(a.ruta) + '</div>' +
+                '<div style="font-size: var(--fs-s);color:var(--gray-500);">' + a.fecha + ' · ' + a.ref + ' · Tu transportista: ' + eur2(a.tercero) + ' · Dynamo: ' + eur2(a.dynamo) + '</div></div>' +
+                '<div style="flex:none;text-align:right;">' + res + '</div>' +
+            '</div>';
+        }
+        var body = '<div style="font-size: var(--fs-m);">' + AHORROS_DATA.map(fila).join('') + '</div>' +
+            '<div style="margin-top:0.8rem;padding:0.7rem 0.8rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:10px;font-weight:800;color:#0f6b3a;">Ahorrado este año con Dynamo: ' + eur2(AHORRO_DYNAMO_ANIO) + '</div>' +
+            '<div style="margin-top:0.45rem;padding:0.7rem 0.8rem;background:#fdecec;border:1px solid #f5b5b5;border-radius:10px;font-weight:800;color:#b42318;">Dejado de ahorrar (envíos con otros transportistas): ' + eur2(AHORRO_PERDIDO_ANIO) + '</div>' +
+            '<div style="margin-top:0.45rem;font-weight:800;">Podrías haber ahorrado hasta ' + eur2(AHORRO_DYNAMO_ANIO + AHORRO_PERDIDO_ANIO) + ' este año.</div>' +
+            '<p style="margin-top:0.6rem;font-size: var(--fs-s);color:var(--gray-500);">Comparativas registradas al crear envíos indicando el precio de tu transportista. Importes base sin IVA.</p>';
+        openDashModal({
+            icon: 'file',
+            title: 'Tus ahorros con Dynamo',
+            sub: 'Detalle de las comparativas de este año',
+            body: body
+        });
+    };
     // Factor de precio del cliente activo (%): ajuste comercial −20..+20 que se
     // aplica a la base imponible del tarifador (antes de IVA). En producción el
     // cliente del envío vendrá del contexto; aquí usamos el cliente logueado.
@@ -15429,15 +15493,16 @@
                     if (x.precioCliente) tot += x.precioCliente * 1.21;
                 });
                 // 3 líneas (máx. 3, como el resto de columnas):
-                //   1) Empresa · CIF   2) CESCE   3) contratado últ. 60 días.
-                // Las líneas 2-3 van VERDES si el crédito CESCE cubre lo
-                // contratado en los últimos 60 días, y ROJAS si se queda corto.
+                //   1) Empresa · CIF   2) CESCE (color de texto normal)
+                //   3) Disponible = CESCE − contratado últ. 60 días (IVA incl.),
+                //      en VERDE si queda crédito y en ROJO si está en negativo.
                 var cesceImp = (cli && cli.cesceImporte) || 0;
                 var totR = Math.round(tot * 100) / 100;
-                var colCred = cesceImp >= totR ? '#0f6b3a' : '#b42318';
+                var disp = Math.round((cesceImp - totR) * 100) / 100;
+                var colDisp = disp >= 0 ? '#0f6b3a' : '#b42318';
                 return '<td class="cliente-col"><strong>' + esc(CLIENTE_ACTUAL) + '</strong> <span style="color:var(--gray-500);font-weight:600;">· ' + esc((cli && cli.cif) || '—') + '</span>' +
-                    '<div class="meta" style="color:' + colCred + ';font-weight:700;white-space:nowrap;">CESCE: ' + eur2(cesceImp) + '</div>' +
-                    '<div class="meta" style="color:' + colCred + ';font-weight:700;white-space:nowrap;">Últ. 60 días: ' + eur2(totR) + ' (IVA incl.)</div>' +
+                    '<div class="meta" style="font-weight:700;white-space:nowrap;">CESCE: ' + eur2(cesceImp) + '</div>' +
+                    '<div class="meta" style="color:' + colDisp + ';font-weight:700;white-space:nowrap;">Disponible: ' + eur2(disp) + '</div>' +
                 '</td>';
             })();
             tbody.innerHTML = slice.map(function (c) {
