@@ -9287,28 +9287,36 @@
     // Bloque HTML de históricos comparables para la ventana de asignación.
     function rutaHistHtml(c) {
         var r = rutaComparables(c);
-        function linea(it, conRuta) {
-            var x = it.c;
-            var f = x.fechaAsignada ? String(x.fechaAsignada).split(' ')[0] : x.fecha;
-            return '<div style="margin-top:0.3rem;font-size: var(--fs-m);color:var(--gray-700);">' +
-                'Compra <strong>' + eur2(x.precioTransportista || 0) + '</strong> · Venta ' + eur2(x.precioCliente) +
-                ' · ' + escapeHtml(fechaConDia(f)) + ' · <span style="font-weight:600;">' + escapeHtml(x.ref) + '</span>' +
-                (x.transportistaNombre ? ' · ' + escapeHtml(x.transportistaNombre) : '') +
-                (conRuta ? '<div style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;">' +
-                    escapeHtml(((it.o.cp || '') + ' ' + it.o.loc).trim()) + ' → ' + escapeHtml(((it.d.cp || '') + ' ' + it.d.loc).trim()) + '</div>' : '') +
-            '</div>';
+        function eur0(n) { return Math.round(Number(n) || 0).toLocaleString('es-ES') + ' €'; }
+        // Filas de una mini-tabla (Venta | Compra) por cada envío comparable.
+        function filas(list, conRuta) {
+            if (!list.length) return '<tr><td colspan="2" style="padding:0.25rem 0;color:var(--gray-500);font-weight:600;">—</td></tr>';
+            return list.map(function (it) {
+                var x = it.c;
+                var f = x.fechaAsignada ? String(x.fechaAsignada).split(' ')[0] : x.fecha;
+                var meta = escapeHtml(fechaConDia(f)) + ' · ' + escapeHtml(x.ref) +
+                    (conRuta ? ' · ' + escapeHtml(((it.o.cp || '') + '→' + (it.d.cp || '')).trim()) : '');
+                return '<tr>' +
+                    '<td style="padding:0.2rem 0.35rem 0.2rem 0;border-bottom:1px solid var(--gray-200);vertical-align:top;"><strong>' + eur0(x.precioCliente) + '</strong>' +
+                        '<div style="color:var(--gray-500);font-weight:600;">' + meta + '</div></td>' +
+                    '<td style="padding:0.2rem 0;border-bottom:1px solid var(--gray-200);vertical-align:top;"><strong>' + eur0(x.precioTransportista || 0) + '</strong></td>' +
+                '</tr>';
+            }).join('');
         }
-        var vacio = '<div style="margin-top:0.25rem;font-size: var(--fs-m);font-weight:600;color:var(--gray-500);">Sin envíos comparables.</div>';
-        var descVent = r.vent === 'fija' ? 'fecha fija' : (r.vent === 'g-corta' ? 'ventana de 1 a 2 días' : (r.vent === 'g-larga' ? 'ventana de grupaje (1 a 4)' : 'ventana de 1 a 3 días'));
-        return '<div class="pen-envio-sum" style="margin-top:0.8rem;">' +
-            '<div style="font-weight:800;color:var(--navy);">Históricos de esta ruta · comparables</div>' +
-            '<div style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;margin:0.2rem 0 0.4rem;">Solo envíos comparables con este: ' +
-                (r.tipo === 'Completo' ? 'carga completa' : 'grupaje de ' + (r.ml != null ? String(r.ml).replace('.', ',') + ' m' : 'los mismos metros')) +
-                ' · ' + descVent + '. Importes BASE sin IVA.</div>' +
-            '<div style="font-weight:700;color:var(--gray-600);">Últimos 3 entre los mismos CP (' + escapeHtml((r.o.cp || '—') + ' → ' + (r.d.cp || '—')) + ')</div>' +
-            (r.cp.length ? r.cp.map(function (it) { return linea(it, false); }).join('') : vacio) +
-            '<div style="font-weight:700;color:var(--gray-600);margin-top:0.55rem;">Últimos 3 entre las mismas provincias (' + escapeHtml((r.o.prov || '—') + ' → ' + (r.d.prov || '—')) + ')</div>' +
-            (r.prov.length ? r.prov.map(function (it) { return linea(it, true); }).join('') : vacio) +
+        function bloque(titulo, list, conRuta) {
+            return '<div style="font-weight:700;color:var(--gray-600);margin-top:0.45rem;">' + titulo + '</div>' +
+                '<table style="width:100%;border-collapse:collapse;">' +
+                '<tr><td style="padding:0 0.35rem 0.15rem 0;font-weight:800;color:var(--purple);">Venta</td>' +
+                    '<td style="padding:0 0 0.15rem;font-weight:800;color:var(--navy);">Compra</td></tr>' +
+                filas(list, conRuta) + '</table>';
+        }
+        var descTipo = r.tipo === 'Completo' ? 'completa' : 'grupaje' + (r.ml != null ? ' ' + String(r.ml).replace('.', ',') + ' m' : '');
+        var descVent = r.vent === 'fija' ? 'fija' : (r.vent === 'g-corta' ? '1-2 d' : (r.vent === 'g-larga' ? '1-4 d' : '1-3 d'));
+        return '<div class="pen-envio-sum" style="margin-top:0.8rem;font-size: var(--fs-s);">' +
+            '<div style="font-weight:800;color:var(--navy);font-size: var(--fs-m);">Históricos comparables</div>' +
+            '<div style="color:var(--gray-500);font-weight:600;margin:0.1rem 0 0.2rem;">Mismo tipo (' + descTipo + ' · ' + descVent + '). Base sin IVA.</div>' +
+            bloque('Mismos CP (' + escapeHtml((r.o.cp || '—') + '→' + (r.d.cp || '—')) + ')', r.cp, false) +
+            bloque('Mismas provincias (' + escapeHtml((r.o.prov || '—') + '→' + (r.d.prov || '—')) + ')', r.prov, true) +
         '</div>';
     }
     // Mini-tooltip al PULSAR (para móvil, donde no hay hover): globito oscuro
