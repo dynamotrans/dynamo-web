@@ -18806,10 +18806,12 @@
                 // TABLA: columna izquierda VENTA (precio cliente) · derecha
                 // COMPRA (precio transportista); filas Tarifador hoy / Último
                 // (mismo cliente · mismo transportista) / Último (todos).
-                function celda(imp, fechaStr, refStr, vacioTxt) {
+                // Formato SIN decimales para este resumen (solo enteros de €).
+                function eur0(n) { return Math.round(Number(n) || 0).toLocaleString('es-ES') + ' €'; }
+                function celda(imp, fechaStr, refStr) {
                     var td = '<td style="padding:0.3rem 0.35rem;border-bottom:1px solid var(--gray-200);vertical-align:top;">';
-                    if (!imp) return td + '<span style="color:var(--gray-500);font-weight:600;">' + (vacioTxt || 'sin envíos') + '</span></td>';
-                    return td + '<strong>' + eur2(imp) + '</strong>' +
+                    if (!imp) return td + '<span style="color:var(--gray-500);font-weight:600;">—</span></td>';
+                    return td + '<strong>' + eur0(imp) + '</strong>' +
                         (fechaStr ? '<div style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;">' + escapeHtml(fechaConDia(fechaStr)) + (refStr ? ' · ' + escapeHtml(refStr) : '') + '</div>' : '') + '</td>';
                 }
                 function filaT(lbl, cVenta, cCompra) {
@@ -18820,11 +18822,11 @@
                         '<td style="padding:0 0.35rem 0.25rem;font-size: var(--fs-s);font-weight:800;color:var(--purple);">Venta<br>(cliente)</td>' +
                         '<td style="padding:0 0.35rem 0.25rem;font-size: var(--fs-s);font-weight:800;color:var(--navy);">Compra<br>(transportista)</td></tr>' +
                     filaT('Tarifador hoy',
-                        celda(tarVenta, null, null, '—'),
-                        celda(tarCompra, null, null, '—')) +
-                    filaT('Último (mismo cliente · mismo transportista)',
+                        celda(tarVenta, null, null),
+                        celda(tarCompra, null, null)) +
+                    filaT('Último (mismo)',
                         celda(venta ? venta.precioCliente : 0, fDe(venta), venta ? venta.ref : null),
-                        celda(compraTra ? compraTra.precioTransportista : 0, fDe(compraTra), compraTra ? compraTra.ref : null, traNombre ? 'sin envíos' : 'sin transportista')) +
+                        celda(compraTra ? compraTra.precioTransportista : 0, fDe(compraTra), compraTra ? compraTra.ref : null)) +
                     filaT('Último (todos)',
                         celda(vtImp, vtF, vtRef),
                         celda(ctImp, ctF, ctRef)) +
@@ -18840,8 +18842,8 @@
                     var mCol = function (m) { return m > 0 ? '#0f6b3a' : (m < 0 ? '#b42318' : 'var(--gray-500)'); };
                     hHtml += '<div style="margin-top:0.4rem;">Margen: ' +
                         (mMin === mMax
-                            ? '<strong style="color:' + mCol(mMin) + ';">' + eur2(mMin) + '</strong>'
-                            : 'de <strong style="color:' + mCol(mMin) + ';">' + eur2(mMin) + '</strong> a <strong style="color:' + mCol(mMax) + ';">' + eur2(mMax) + '</strong>') +
+                            ? '<strong style="color:' + mCol(mMin) + ';">' + eur0(mMin) + '</strong>'
+                            : 'de <strong style="color:' + mCol(mMin) + ';">' + eur0(mMin) + '</strong> a <strong style="color:' + mCol(mMax) + ';">' + eur0(mMax) + '</strong>') +
                         '<div style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;">Peor y mejor caso combinando las ventas y compras de la tabla.</div></div>';
                 }
                 el.innerHTML = hHtml;
