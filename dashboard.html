@@ -5071,6 +5071,9 @@
                     <label class="ptar-admin-precio-lbl" for="ptar-precio-manual-carga">Precio manual (base sin IVA)</label>
                     <input type="number" id="ptar-precio-manual-carga" data-ptar-precio-manual min="0" step="10" inputmode="decimal" placeholder="En blanco → se aplica el precio del tarifador">
                     <p class="ptar-admin-precio-note">Si fijas un importe, se omite el del tarifador y el envío queda con precio «fijado a mano».</p>
+                    <label class="ptar-admin-precio-lbl" for="ptar-precio-transp-carga" style="margin-top:0.6rem;">Precio transportista (base sin IVA)</label>
+                    <input type="number" id="ptar-precio-transp-carga" data-ptar-precio-transp min="0" step="10" inputmode="decimal" placeholder="Se autorrellena con la compra más baja">
+                    <p class="ptar-admin-precio-note">Se autorrellena con la compra <strong>más baja</strong> de la tabla (tarifador o último envío más barato de esta ruta, sea del transportista que sea) y es editable. Al guardar queda como <strong>P. transportista provisional</strong> del envío — de ahí sale el margen provisional — y se ajusta después al cerrar la negociación (Asignar transportista o el editor de precios).</p>
                 </div>
                 <!-- Precio acordado con SU transportista (solo modo manual):
                      opcional, para que el cliente tenga todo a mano y salga
@@ -18843,6 +18846,25 @@
                 }
                 el.innerHTML = hHtml;
                 el.hidden = false;
+                // PRECIO TRANSPORTISTA (campo manual): se AUTORRELLENA con la
+                // compra más baja de la tabla y es editable. Solo se pisa si
+                // sigue en blanco o con el último valor autorrellenado (lo
+                // tecleado a mano se respeta). Al MODIFICAR un envío que ya
+                // tiene P. transportista, se precarga ese y no se toca.
+                var traInp = card.querySelector('[data-ptar-precio-transp]');
+                if (traInp) {
+                    if (editC && editC.precioTransportista != null && !traInp.dataset.pref) {
+                        traInp.dataset.pref = '1';
+                        traInp.value = editC.precioTransportista;
+                        traInp.dataset.auto = '';
+                    } else if (comprasArr.length && !traInp.dataset.pref) {
+                        var minC = Math.min.apply(null, comprasArr);
+                        if (traInp.value === '' || traInp.value === traInp.dataset.auto) {
+                            traInp.value = String(minC);
+                            traInp.dataset.auto = String(minC);
+                        }
+                    }
+                }
             }
             updateCutoffNote();
             updateUltRuta();
@@ -18894,6 +18916,8 @@
                 notesCount.parentNode.classList.remove('warn');
                 var pmr = card.querySelector('[data-ptar-precio-manual]');
                 if (pmr) pmr.value = '';
+                var ptr = card.querySelector('[data-ptar-precio-transp]');
+                if (ptr) { ptr.value = ''; delete ptr.dataset.auto; delete ptr.dataset.pref; }
                 var ultR = card.querySelector('[data-ptar-ult-ruta]');
                 if (ultR) { ultR.hidden = true; ultR.innerHTML = ''; }
                 // Operador: vuelve a Dynamo (flujo normal con precio).
@@ -19102,6 +19126,14 @@
                     // un importe, OMITE al del tarifador; en blanco → tarifador.
                     precioManualVal: (function () {
                         var el = card.querySelector('[data-ptar-precio-manual]');
+                        var v = el ? parseFloat(String(el.value).replace(',', '.')) : NaN;
+                        return (v > 0) ? Math.round(v * 100) / 100 : null;
+                    })(),
+                    // Precio TRANSPORTISTA provisional (autorrellenado con la
+                    // compra más baja de la ruta; editable). Fija el P.
+                    // transportista del envío → margen provisional.
+                    precioTraVal: (function () {
+                        var el = card.querySelector('[data-ptar-precio-transp]');
                         var v = el ? parseFloat(String(el.value).replace(',', '.')) : NaN;
                         return (v > 0) ? Math.round(v * 100) / 100 : null;
                     })(),
@@ -19325,14 +19357,25 @@
                             nuevaCarga._rowsCli = prevCarga._rowsCli;
                             nuevaCarga.precioManual = true;
                         }
-                        // El precio de compra (transportista) se conserva siempre:
-                        // no depende del formulario del cliente.
+                        // Precio de compra (transportista): el del campo del
+                        // formulario si se tocó; si no, se conserva el previo.
                         if (prevCarga) {
-                            nuevaCarga.precioTransportista = prevCarga.precioTransportista != null ? prevCarga.precioTransportista : null;
-                            nuevaCarga._rowsTra = prevCarga._rowsTra || null;
+                            if (d.precioTraVal != null && d.precioTraVal !== prevCarga.precioTransportista) {
+                                nuevaCarga.precioTransportista = d.precioTraVal;
+                                nuevaCarga._rowsTra = [{ k: 'Porte transportista', v: d.precioTraVal }];
+                            } else {
+                                nuevaCarga.precioTransportista = prevCarga.precioTransportista != null ? prevCarga.precioTransportista : null;
+                                nuevaCarga._rowsTra = prevCarga._rowsTra || null;
+                            }
                         }
                         CARGAS_DATA[prevIdx] = nuevaCarga;
                     } else {
+                        // Envío NUEVO: el P. transportista provisional del campo
+                        // (autorrellenado o editado) queda fijado desde el alta.
+                        if (d.precioTraVal != null && !nuevaCarga.manual) {
+                            nuevaCarga.precioTransportista = d.precioTraVal;
+                            nuevaCarga._rowsTra = [{ k: 'Porte transportista', v: d.precioTraVal }];
+                        }
                         CARGAS_DATA.unshift(nuevaCarga);
                     }
                     window._cargaEditRef = null;
