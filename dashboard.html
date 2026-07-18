@@ -20312,7 +20312,13 @@
                             '<div class="ptar-sitio-body">' +
                                 '<div class="ptar-sitio-body-meta">' + escapeHtml(fuente) + mapsLink + '</div>' +
                                 '<div class="ptar-sitio-grid">' +
-                                    inpReq('Empresa', 'empresa', s.empresa) +
+                                    // Empresa: si el sitio YA tiene nombre (sitio
+                                    // existente), se BLOQUEA aquí — el nombre solo
+                                    // se cambia en la sección Sitios. Solo un sitio
+                                    // nuevo SIN nombre queda editable.
+                                    (s.empresa
+                                        ? '<div><label>Empresa</label><input class="sitio-f-lock" value="' + escapeHtml(s.empresa) + '" readonly tabindex="-1"><div style="font-size: var(--fs-s);color:var(--gray-500);line-height:1.4;margin-top:0.2rem;">El nombre se cambia en la sección <strong>Sitios</strong>.</div></div>'
+                                        : inpReq('Empresa', 'empresa', '', 'Ej. Talleres Vega e Hijos S.L.')) +
                                     tipoLock +
                                     inpLock('Dirección (calle y número)', calleVal, !dirVal) +
                                     inpLock('CP, localidad, provincia y país', dirVal, !calleVal) +
