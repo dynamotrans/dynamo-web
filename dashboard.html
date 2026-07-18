@@ -9342,7 +9342,7 @@
             if (x && x.precioTransportista) {
                 var f = x.fechaAsignada ? String(x.fechaAsignada).split(' ')[0] : x.fecha;
                 val = '<strong>' + eur0(x.precioTransportista) + '</strong>' +
-                    '<div style="color:var(--gray-500);font-weight:600;">' + escapeHtml(fechaConDia(f)) +
+                    '<div style="color:var(--gray-500);font-weight:600;">' + escapeHtml(fechaConDia(f) + haceDiasTxt(f)) +
                     ' · <a href="#" onclick="cargaVerDetalle(\'' + escapeHtml(x.ref) + '\'); return false;" style="color:var(--purple);font-weight:700;text-decoration:underline;">' + escapeHtml(x.ref) + '</a></div>';
             }
             return '<tr><td style="padding:0.2rem 0.35rem 0.2rem 0;border-bottom:1px solid var(--gray-200);color:var(--gray-700);vertical-align:top;">' + lbl + '</td>' +
@@ -14743,6 +14743,17 @@
         var m = String(s || '').match(/^(\d{1,2})\/(\d{1,2})$/);
         if (!m) return null;
         return new Date(new Date().getFullYear(), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+    }
+    // "(hace N días)" a partir de una fecha DD/MM o DD/MM/YYYY (o '' si futura).
+    function haceDiasTxt(fechaStr) {
+        var m = String(fechaStr || '').match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+        if (!m) return '';
+        var anio = m[3] ? (m[3].length === 2 ? 2000 + parseInt(m[3], 10) : parseInt(m[3], 10)) : new Date().getFullYear();
+        var d = new Date(anio, parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+        var hoy = new Date(); hoy.setHours(0, 0, 0, 0); d.setHours(0, 0, 0, 0);
+        var n = Math.round((hoy.getTime() - d.getTime()) / 86400000);
+        if (n < 0) return '';
+        return ' (' + (n === 0 ? 'hoy' : n === 1 ? 'hace 1 día' : 'hace ' + n + ' días') + ')';
     }
     // Interpreta la ETA de entrega guardada ("Hoy 15:00", "Mañana 09:00",
     // "12/07 10:00") → { date, hora }.
