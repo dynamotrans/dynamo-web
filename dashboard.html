@@ -9339,9 +9339,10 @@
             var val = '<strong>—</strong>';
             if (x && x.precioTransportista) {
                 var f = x.fechaAsignada ? String(x.fechaAsignada).split(' ')[0] : x.fecha;
+                var dc = diasDe(f), fuera = (dc != null && dc > 15) ? '<div style="color:#b45309;font-weight:700;">no entra en la media (+15 días)</div>' : '';
                 val = '<strong>' + eur0(x.precioTransportista) + '</strong>' +
                     '<div style="color:var(--gray-500);font-weight:600;">' + escapeHtml(fechaConDia(f) + haceDiasTxt(f)) +
-                    ' · <a href="#" onclick="cargaVerDetalle(\'' + escapeHtml(x.ref) + '\'); return false;" style="color:var(--purple);font-weight:700;text-decoration:underline;">' + escapeHtml(x.ref) + '</a></div>';
+                    ' · <a href="#" onclick="cargaVerDetalle(\'' + escapeHtml(x.ref) + '\'); return false;" style="color:var(--purple);font-weight:700;text-decoration:underline;">' + escapeHtml(x.ref) + '</a></div>' + fuera;
             }
             return '<tr><td style="padding:0.2rem 0.35rem 0.2rem 0;border-bottom:1px solid var(--gray-200);color:var(--gray-700);vertical-align:top;">' + lbl + '</td>' +
                 '<td style="padding:0.2rem 0;border-bottom:1px solid var(--gray-200);text-align:right;white-space:nowrap;vertical-align:top;">' + val + '</td></tr>';
@@ -19022,8 +19023,12 @@
                 function celda(imp, fechaStr, refStr) {
                     var td = '<td style="padding:0.3rem 0.35rem;border-bottom:1px solid var(--gray-200);vertical-align:top;">';
                     if (!imp) return td + '<span style="color:var(--gray-500);font-weight:600;">—</span></td>';
+                    // Si el envío tiene MÁS de 15 días, se marca que NO entra en
+                    // la media (aunque se muestre como referencia).
+                    var fuera = '';
+                    if (fechaStr) { var dc = diasDesde(fechaStr); if (dc != null && dc > 15) fuera = '<div style="font-size: var(--fs-s);color:#b45309;font-weight:700;">no entra en la media (+15 días)</div>'; }
                     return td + '<strong>' + eur0(imp) + '</strong>' +
-                        (fechaStr ? '<div style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;">' + escapeHtml(fechaConDia(fechaStr) + haceTxt(fechaStr)) + (refStr ? ' · ' + escapeHtml(refStr) : '') + '</div>' : '') + '</td>';
+                        (fechaStr ? '<div style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;">' + escapeHtml(fechaConDia(fechaStr) + haceTxt(fechaStr)) + (refStr ? ' · ' + escapeHtml(refStr) : '') + '</div>' : '') + fuera + '</td>';
                 }
                 function filaT(lbl, cVenta, cCompra) {
                     return '<tr><td style="padding:0.3rem 0.35rem 0.3rem 0;border-bottom:1px solid var(--gray-200);font-size: var(--fs-s);font-weight:700;color:var(--gray-600);vertical-align:top;">' + lbl + '</td>' + cVenta + cCompra + '</tr>';
