@@ -9571,14 +9571,19 @@
         }
         return { pref: '+34', num: v };
     }
-    function telField(id, label, val, span) {
+    // Nota ESTÁNDAR del móvil: acompaña SIEMPRE a cualquier campo de teléfono
+    // de la plataforma (recomendar móvil para avisos/WhatsApp del estado del
+    // envío). Pasa noNota=true solo si un caso muy concreto no la quiere.
+    var TEL_NOTA_HTML = '<div style="grid-column:1/-1;font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;margin-top:-0.4rem;">📱 <strong>Mejor un móvil</strong>: además de llamar, permite enviar <strong>WhatsApp con avisos o notificaciones del estado del envío</strong>.</div>';
+    function telField(id, label, val, span, noNota) {
         var s = telSplit(val);
         return '<div' + (span ? ' style="grid-column:1/-1"' : '') + '><label>' + label + '</label>' +
             '<div class="tel-group">' +
             '<select id="' + id + '-pref" class="tel-pref" aria-label="Prefijo de país">' +
                 TEL_PREFIJOS.map(function (p) { return '<option value="' + p[0] + '"' + (p[0] === s.pref ? ' selected' : '') + '>' + p[0] + ' ' + p[1] + '</option>'; }).join('') +
             '</select>' +
-            '<input id="' + id + '" type="tel" inputmode="tel" value="' + escapeHtml(s.num) + '" placeholder="600 000 000"></div></div>';
+            '<input id="' + id + '" type="tel" inputmode="tel" value="' + escapeHtml(s.num) + '" placeholder="600 000 000"></div></div>' +
+            (noNota ? '' : TEL_NOTA_HTML);
     }
     function telValue(id) {
         var num = ((document.getElementById(id) || {}).value || '').trim();
@@ -9801,7 +9806,7 @@
                 ctField('tra-f-pais', 'País', t.pais || 'España', 'España') +
                 telField('tra-f-tfno', 'Teléfono', t.tfno) +
                 ctField('tra-f-email', 'Email (tráfico)', t.email, 'trafico@dominio.com', false, 'email') +
-                '<div style="grid-column:1/-1;font-size: var(--fs-s);color:var(--gray-500);line-height:1.5;margin-top:-0.4rem;">📱 <strong>Mejor un móvil</strong>: además de llamar, permite <strong>WhatsApp con incidencias o avisos</strong>. 📩 El <strong>email</strong> se usa para los avisos de la operativa (recogidas, entregas, incidencias).</div>' +
+                '<div style="grid-column:1/-1;font-size: var(--fs-s);color:var(--gray-500);line-height:1.5;margin-top:-0.4rem;">📩 El <strong>email</strong> se usa para los avisos de la operativa (recogidas, entregas, incidencias).</div>' +
                 ctField('tra-f-contacto', 'Persona de contacto', t.contacto, 'Nombre y apellidos', true) +
 
                 (function () {
@@ -10310,7 +10315,6 @@
                 ctField('usr-f-nombre', 'Nombre y apellidos *', u.nombre, 'Nombre y apellidos', true) +
                 ctField('usr-f-dni', 'DNI', u.dni, '12345678Z') +
                 telField('usr-f-tfno', 'Teléfono', u.tfno) +
-                '<div style="grid-column:1/-1;font-size: var(--fs-s);color:var(--gray-500);line-height:1.5;margin-top:-0.5rem;">📱 <strong>Mejor un móvil</strong>: además de llamar, permite <strong>WhatsApp con el estado del envío</strong>.</div>' +
                 ctField('usr-f-empresa', 'Empresa / Razón social', u.empresa, 'Ej. Marbex Industrial S.L.', true) +
                 ctField('usr-f-cif', 'CIF / NIF de la empresa', u.cif, 'B12345678 / 12345678Z') +
                 ctField('usr-f-pais', 'País', u.pais || 'España', 'España') +
@@ -15340,7 +15344,6 @@
                 inp('Dirección (calle y número)', 'sitio-f-calle', s.calle, '', true) +
                 inp('CP, localidad, provincia y país', 'sitio-f-dir', s.dir, 'Ej. 41001, Sevilla, España', true) +
                 telField('sitio-f-tfno', 'Teléfono', s.tfno) +
-                '<div style="grid-column:1/-1;font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;margin-top:-0.4rem;">📱 <strong>Mejor un móvil</strong>: además de poder llamar, permite enviar <strong>WhatsApp con el estado del envío</strong> para que el sitio se organice para la recogida o la entrega.</div>' +
                 inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','sitio-f-contacto', s.contacto, 'Persona de contacto') +
                 // EMAIL de avisos del sitio: opcional pero destacado (borde verde).
                 '<div style="grid-column:1/-1;"><label><span style="color:var(--green);">Email de avisos del sitio</span> <span style="color:var(--gray-500);font-weight:600;">· opcional · si hay varios, sepáralos por comas</span></label>' +
@@ -20238,6 +20241,7 @@
                                         })() +
                                         inpReq('Horario', 'horario', '', 'Ej. L-V 8:00-14:00') +
                                         inpReq('Teléfono', 'tfno', '', 'Ej. +34 612 345 678') +
+                                        TEL_NOTA_HTML +
                                         inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','contacto', '', 'Persona de contacto') +
                                         emailField('') +
                                         '<div class="full"><label style="color:var(--green);">Notas del sitio <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="" placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…"></div>' +
@@ -20299,6 +20303,7 @@
                                     inpLock('CP, localidad, provincia y país', dirVal, !calleVal) +
                                     inpReq('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
                                     inpReq('Teléfono', 'tfno', s.tfno) +
+                                    TEL_NOTA_HTML +
                                     inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','contacto', s.contacto, 'Persona de contacto') +
                                     emailField(s.email) +
                                     '<div class="full"><label style="color:var(--green);">Notas del sitio <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="' + escapeHtml(s.notas || '') + '" placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…"></div>' +
