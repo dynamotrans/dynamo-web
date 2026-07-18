@@ -3239,19 +3239,20 @@
         }
         .ptar-sitio-head:hover .ptar-sitio-chev { background: rgba(51,0,204,0.08); }
         .ptar-sitio-card.open .ptar-sitio-chev { transform: rotate(180deg); }
-        /* Chevron PLEGADO: pulso llamativo (morado) para invitar a pulsarlo y
-           ver/editar todos los campos del sitio. Al abrir la ficha, el pulso
-           se detiene (la regla .open de arriba toma el control). */
+        /* Chevron PLEGADO: anillo morado que se expande y se DESVANECE (patrón
+           radar) — fluido, sin rebote ni cambios bruscos de fondo. Invita a
+           pulsar para ver/editar los campos. Al abrir, el pulso se detiene. */
         @keyframes chevPulse {
-            0%, 100% { transform: translateY(0); box-shadow: 0 0 0 0 rgba(51,0,204,0.45); background: #ece7ff; }
-            50%      { transform: translateY(2px); box-shadow: 0 0 0 6px rgba(51,0,204,0); background: #d9cfff; }
+            0%   { box-shadow: 0 0 0 0 rgba(51,0,204,0.40); }
+            70%  { box-shadow: 0 0 0 9px rgba(51,0,204,0); }
+            100% { box-shadow: 0 0 0 0 rgba(51,0,204,0); }
         }
         .ptar-sitio-card:not(.open) .ptar-sitio-chev {
-            animation: chevPulse 1.5s ease-in-out infinite;
-            border-color: var(--purple);
+            background: #ece7ff; border-color: var(--purple);
+            animation: chevPulse 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
         }
         @media (prefers-reduced-motion: reduce) {
-            .ptar-sitio-card:not(.open) .ptar-sitio-chev { animation: none; background: #ece7ff; border-color: var(--purple); }
+            .ptar-sitio-card:not(.open) .ptar-sitio-chev { animation: none; }
         }
         .ptar-sitio-body { display: none; margin-top: 0.8rem; }
         .ptar-sitio-card.open .ptar-sitio-body { display: block; }
