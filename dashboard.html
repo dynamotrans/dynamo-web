@@ -3214,9 +3214,11 @@
         .ptar-sitio-grid select.sitio-f-tipo { background: #fff; }
         /* Campo bloqueado (solo lectura) en las fichas de lugares: la
            dirección define la ruta y no se edita aquí. */
-        .ptar-sitio-grid input.sitio-f-lock {
+        .ptar-sitio-grid input.sitio-f-lock,
+        .ptar-sitio-grid select.sitio-f-lock[disabled] {
             background: var(--gray-100); color: var(--gray-600);
-            border-color: var(--gray-200); cursor: help;
+            border-color: var(--gray-200); cursor: help; opacity: 1;
+            -webkit-text-fill-color: var(--gray-600);   /* iOS: no aclarar el texto del disabled */
         }
         /* Icono ℹ junto a los campos bloqueados: al pasar el ratón o pulsar,
            explica que se editan en la sección Sitios. */
@@ -20184,14 +20186,20 @@
                     // paso 1): al cambiarlo se recalcula el precio y se guarda
                     // en la ficha del sitio al confirmar.
                     var TIPOS_LUGAR = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento', 'Finca / Agrícola'];
-                    function tipoSelect(id, val, rol) {
+                    function tipoSelect(id, val, rol, locked) {
                         // Sin preselección por defecto: si el sitio NO trae tipo
                         // (dirección nueva sin ficha), arranca en un placeholder que
                         // OBLIGA a elegir; si viene de la agenda con su tipo, se
                         // respeta.
                         var has = TIPOS_LUGAR.indexOf(val) !== -1;
-                        var ph = '<option value="" disabled' + (has ? '' : ' selected') + '>Elige tipo de lugar…</option>';
                         var opts = TIPOS_LUGAR.map(function (t) { return '<option' + (val === t ? ' selected' : '') + '>' + t + '</option>'; }).join('');
+                        // Sitio EXISTENTE con tipo: se BLOQUEA (select disabled +
+                        // ℹ) — se cambia en la sección Sitios. El select disabled
+                        // conserva su value para el cálculo del precio.
+                        if (locked && has) {
+                            return '<div><label>Tipo de lugar' + lockInfoIcon() + '</label><select class="sitio-f-tipo sitio-f-lock" data-sitio-tipo data-sitio-rol="' + escapeHtml(rol || '') + '" data-sitio-id="' + id + '" disabled>' + opts + '</select></div>';
+                        }
+                        var ph = '<option value="" disabled' + (has ? '' : ' selected') + '>Elige tipo de lugar…</option>';
                         return '<div><label>Tipo de lugar' + (has ? '' : ' · <span style="color:#dc2626;font-weight:700;">obligatorio</span>') + '</label><select class="sitio-f-tipo" data-sitio-tipo data-sitio-rol="' + escapeHtml(rol || '') + '" data-sitio-id="' + id + '">' + ph + opts + '</select></div>';
                     }
                     // Cabecera PLEGADA: nº + Recogida/Entrega + empresa + línea
@@ -20240,7 +20248,10 @@
                             var __sg = siteDe(p.pick.key);
                             if (__sg && __sg.tipoLugar) effTipo = __sg.tipoLugar;
                         }
-                        var tipoLock = tipoSelect(p.id, effTipo, (p.kind === 'recogida' ? 'Recogida' : 'Entrega') + ' ' + p.num);
+                        // Bloqueado solo si el sitio YA EXISTE (p.pick) y trae un
+                        // tipo válido; un sitio nuevo (dirección suelta) lo deja
+                        // editable para poder elegirlo.
+                        var tipoLock = tipoSelect(p.id, effTipo, (p.kind === 'recogida' ? 'Recogida' : 'Entrega') + ' ' + p.num, !!p.pick && TIPOS_LUGAR.indexOf(effTipo) !== -1);
                         function inp(lbl, f, val, ph) {
                             return '<div><label>' + lbl + '</label><input data-sitio-f="' + f + '" data-sitio-id="' + p.id + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '"></div>';
                         }
