@@ -6743,7 +6743,7 @@
             actions:
                 '<button class="btn-primary" onclick="cargaOrdenEmail(\'' + escapeHtml(ref) + '\')">' + SVG_ORDEN_MAIL + 'Enviar orden por email</button>' +
                 '<button class="btn-secondary" onclick="cargaOrdenPDF(\'' + escapeHtml(ref) + '\')">' + SVG_ORDEN_PDF + 'Guardar orden en PDF</button>' +
-                '<button class="btn-secondary" onclick="cargaCMRPDF(\'' + escapeHtml(ref) + '\', true)">' + SVG_ORDEN_PDF + 'Descargar CMR relleno</button>',
+                '<button class="btn-secondary" onclick="cargaCMRPDF(\'' + escapeHtml(ref) + '\', true)">' + SVG_ORDEN_PDF + 'Ver CMR relleno</button>',
             footer: '<button class="btn-secondary" onclick="closeDashModal()" style="flex:1;">Cerrar</button>'
         });
     }
@@ -6947,19 +6947,17 @@
         var blob = new Blob([bytes], { type: 'application/pdf' });
         var urlC = URL.createObjectURL(blob);
         var fnameC = 'CMR-' + String(c.ref || 'envio').replace(/[^A-Za-z0-9-]/g, '') + '.pdf';
-        if (forceDownload) {
-            var aC = document.createElement('a');
-            aC.href = urlC; aC.download = fnameC;
-            document.body.appendChild(aC); aC.click();
-            setTimeout(function () { document.body.removeChild(aC); }, 100);
-        } else {
-            var winC = window.open(urlC, '_blank');
-            if (!winC) {
-                var aC2 = document.createElement('a');
-                aC2.href = urlC; aC2.download = fnameC;
-                document.body.appendChild(aC2); aC2.click();
-                setTimeout(function () { document.body.removeChild(aC2); }, 100);
-            }
+        // REGLA de la plataforma: TODO PDF se ABRE en el visor (pestaña nueva),
+        // nunca se fuerza la descarga (en móvil, la descarga directa no deja
+        // verlo). Desde el visor el usuario descarga si quiere. `forceDownload`
+        // se conserva por firma pero ya no descarga: solo respaldo si el
+        // navegador bloquea la ventana emergente.
+        var winC = window.open(urlC, '_blank');
+        if (!winC) {
+            var aC2 = document.createElement('a');
+            aC2.href = urlC; aC2.download = fnameC;
+            document.body.appendChild(aC2); aC2.click();
+            setTimeout(function () { document.body.removeChild(aC2); }, 100);
         }
         setTimeout(function () { URL.revokeObjectURL(urlC); }, 60000);
     }

@@ -19,6 +19,9 @@ El usuario trabaja desde 2 Macs diferentes usando GitHub Codespaces para mantene
 ### 0. Precios SIEMPRE con 2 decimales
 **Todo precio/importe en TODA la plataforma se muestra con 2 decimales, aunque sean ceros** (`450,00 €`, `544,50 €`, `1.020,00 €`). Formato es-ES (coma decimal, punto de miles). **Nunca redondear a euro entero** para mostrar. En JS: `n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })`. Aplica a tarifador, cajas de precio, pago por adelantado, proforma, tablas (envíos/almacenamientos/facturas/penalizaciones), detalles y mini-listas.
 
+### 0-bis. TODO PDF se ABRE en el visor (ventana nueva), nunca descarga forzada
+**Cualquier PDF del proyecto (CMR, orden de transporte, proforma, albarán, factura, presupuesto, documentos adjuntos, PDF de pago…) se ABRE en el visor del navegador (`window.open(url, '_blank')`), NUNCA se fuerza la descarga con `a.download`.** Motivo: en móvil la descarga directa no deja verlo cómodamente; desde el visor el usuario ya puede descargarlo si quiere. Patrón: `var w = window.open(url,'_blank'); if(!w){ /* respaldo a.download solo si el navegador bloquea la ventana */ }`. La única excepción es la **exportación a Excel/CSV** (no es un PDF, ahí sí se descarga el archivo). El helper `downloadFakePDF` ya sigue esta regla; úsalo o replica el patrón para cualquier PDF nuevo.
+
 ### 1. Push: automático a PREVIEW, con confirmación a PRODUCCIÓN
 **(Actualizado 2026-07-12 a petición del usuario: "sube directo sin preguntarme".)**
 
