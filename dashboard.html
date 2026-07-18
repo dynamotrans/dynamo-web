@@ -5069,8 +5069,8 @@
                     <div class="ptar-admin-precio-head">Precios internos <span>· solo administración</span></div>
                     <div class="ptar-admin-precio-ult" data-ptar-ult-ruta hidden></div>
                     <label class="ptar-admin-precio-lbl" for="ptar-precio-manual-carga">Cliente manual (base sin IVA)</label>
-                    <input type="number" id="ptar-precio-manual-carga" data-ptar-precio-manual min="0" step="10" inputmode="decimal" placeholder="En blanco → se aplica el precio del tarifador">
-                    <p class="ptar-admin-precio-note">Si fijas un importe, se omite el del tarifador y el envío queda con precio «fijado a mano».</p>
+                    <input type="number" id="ptar-precio-manual-carga" data-ptar-precio-manual min="0" step="10" inputmode="decimal" placeholder="Se autorrellena con el precio Aplicado">
+                    <p class="ptar-admin-precio-note">Se autorrellena con el precio <strong>Aplicado</strong> (media auto de la venta) y es editable. Si tecleas otro, manda ese; si no lo tocas, el envío usa el Aplicado. Queda como precio <strong>«fijado a mano»</strong>.</p>
                     <label class="ptar-admin-precio-lbl" for="ptar-precio-transp-carga" style="margin-top:0.6rem;">Transportista manual (base sin IVA)</label>
                     <input type="number" id="ptar-precio-transp-carga" data-ptar-precio-transp min="0" step="10" inputmode="decimal" placeholder="Se autorrellena con la compra más baja">
                     <p class="ptar-admin-precio-note">Se autorrellena con la compra <strong>más baja</strong> de la tabla (tarifador o último envío más barato de esta ruta, sea del transportista que sea) y es editable. Al guardar queda como <strong>P. transportista provisional</strong> del envío — de ahí sale el margen provisional — y se ajusta después al cerrar la negociación (Asignar transportista o el editor de precios).</p>
@@ -19118,6 +19118,25 @@
                         }
                     }
                 }
+                // CLIENTE MANUAL: se AUTORRELLENA con el precio APLICADO (media
+                // auto de la venta). Es editable: si se teclea otro, ese manda;
+                // si no se toca, el envío usa el aplicado. Mismo patrón que el
+                // transportista (solo se pisa si sigue en blanco o con el último
+                // valor autorrellenado). Al MODIFICAR un envío con precio
+                // fijado a mano, se precarga ese y no se toca.
+                var cliInp = card.querySelector('[data-ptar-precio-manual]');
+                if (cliInp) {
+                    if (editC && editC.precioManual && editC.precioCliente != null && !cliInp.dataset.pref) {
+                        cliInp.dataset.pref = '1';
+                        cliInp.value = editC.precioCliente;
+                        cliInp.dataset.auto = '';
+                    } else if (vApl > 0 && !cliInp.dataset.pref) {
+                        if (cliInp.value === '' || cliInp.value === cliInp.dataset.auto) {
+                            cliInp.value = String(vApl);
+                            cliInp.dataset.auto = String(vApl);
+                        }
+                    }
+                }
             }
             updateCutoffNote();
             updateUltRuta();
@@ -19168,7 +19187,7 @@
                 notesCount.textContent = '0';
                 notesCount.parentNode.classList.remove('warn');
                 var pmr = card.querySelector('[data-ptar-precio-manual]');
-                if (pmr) pmr.value = '';
+                if (pmr) { pmr.value = ''; delete pmr.dataset.auto; delete pmr.dataset.pref; }
                 var ptr = card.querySelector('[data-ptar-precio-transp]');
                 if (ptr) { ptr.value = ''; delete ptr.dataset.auto; delete ptr.dataset.pref; }
                 var ultR = card.querySelector('[data-ptar-ult-ruta]');
