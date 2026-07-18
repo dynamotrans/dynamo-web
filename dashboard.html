@@ -20364,7 +20364,12 @@
                                     inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','contacto', s.contacto, 'Persona de contacto') +
                                     emailField(s.email) +
                                     '<div class="full"><label style="color:var(--green);">Notas del sitio <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="' + escapeHtml(s.notas || '') + '" placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…"></div>' +
-                                    '<div class="full"><label>Enlace de Google Maps <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="maps" data-sitio-id="' + p.id + '" value="' + escapeHtml(s.maps || '') + '" placeholder="https://maps.app.goo.gl/…"></div>' +
+                                    // Enlace de Google Maps: si el sitio YA tiene
+                                    // uno, se BLOQUEA (se cambia en Sitios); si está
+                                    // en blanco, editable para añadirlo.
+                                    (s.maps
+                                        ? '<div class="full"><label>Enlace de Google Maps' + lockInfoIcon() + '</label><input class="sitio-f-lock" value="' + escapeHtml(s.maps) + '" readonly tabindex="-1"></div>'
+                                        : '<div class="full"><label>Enlace de Google Maps <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="maps" data-sitio-id="' + p.id + '" value="" placeholder="https://maps.app.goo.gl/…"></div>') +
                                 '</div>' +
                             '</div>' +
                         '</div>';
