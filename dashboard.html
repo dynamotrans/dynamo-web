@@ -9009,7 +9009,7 @@
     var __ctNow = Date.now();
     function __ctTs(diasAtras, hora) { return __ctNow - diasAtras * 86400000 + ((hora || 10) - 10) * 3600000; }
     var CLIENTES_DATA = [
-        { empresa: 'Marbex Industrial S.L.', cif: 'B41552217', dir: 'Pol. Ind. La Red, C/ Cobre 14', cp: '41500', ciudad: 'Alcalá de Guadaíra', prov: 'Sevilla', pais: 'España', tfno: '+34 954 210 334', email: 'compras@marbexindustrial.es', contacto: 'Julia Gómez', plazo: 30, cesce: true, cesceImporte: 60000, dynamoImporte: 15000, factorPrecio: -3, notas: '', creadoEn: __ctTs(214, 9), modificadoEn: __ctTs(12, 13) },
+        { empresa: 'Marbex Industrial S.L.', cif: 'B41552217', dir: 'Pol. Ind. La Red, C/ Cobre 14', cp: '41500', ciudad: 'Alcalá de Guadaíra', prov: 'Sevilla', pais: 'España', tfno: '+34 954 210 334', email: 'compras@marbexindustrial.es', contacto: 'Julia Gómez', plazo: 30, cesce: true, cesceImporte: 60000, dynamoImporte: 15000, factorPrecio: -3, altaPor: 'Lucía Camacho Ríos', notas: '', creadoEn: __ctTs(214, 9), modificadoEn: __ctTs(12, 13) },
         { empresa: 'GRUPAL ART, S.L.', cif: 'B46881306', dir: 'C/ Traginers 4', cp: '46940', ciudad: 'Manises', prov: 'Valencia', pais: 'España', tfno: '+34 961 523 887', email: 'logistica@grupalart.es', contacto: 'Vicente Ferrer', plazo: 30, cesce: true, cesceImporte: 40000, dynamoImporte: 10000, notas: '', creadoEn: __ctTs(388, 12), modificadoEn: __ctTs(41, 17) },
         { empresa: 'TRUMA STORE, S.L.', cif: 'B98455124', dir: 'Av. de la Industria 22, nave 7', cp: '28108', ciudad: 'Alcobendas', prov: 'Madrid', pais: 'España', tfno: '+34 916 620 445', email: 'pedidos@trumastore.es', contacto: 'Marta Salas', plazo: 60, cesce: true, cesceImporte: 80000, dynamoImporte: 20000, notas: 'Solo recepciona de 8:00 a 13:00.', creadoEn: __ctTs(160, 11), modificadoEn: null },
         { empresa: 'WELDINOX', cif: 'B29617750', dir: 'Pol. La Ermita, C/ Fragua 3', cp: '29600', ciudad: 'Marbella', prov: 'Málaga', pais: 'España', tfno: '+34 952 771 209', email: 'admin@weldinox.com', contacto: 'Sergio Luque', plazo: 0, cesce: false, cesceImporte: 0, dynamoImporte: 0, notas: 'Sin crédito CESCE: siempre proforma antes de cargar.', creadoEn: __ctTs(96, 16), modificadoEn: __ctTs(5, 9) },
@@ -9704,6 +9704,22 @@
                         }).join('') + '</select></div>';
                 })() +
                 ctSelect('cli-f-estado', 'Estado', ['Validado', 'Pendiente', 'Suspendido'], c.estado || 'Validado') +
+                (function () {
+                    // Empleado que dio de alta al cliente (para el control de
+                    // COMISIONES). Si el cliente se registró por la web, queda
+                    // "Alta online" (sin empleado). Solo admin/empleados.
+                    var emps = (typeof USUARIOS_DATA !== 'undefined' ? USUARIOS_DATA : []).filter(function (u) {
+                        return u.tipo === 'Admin' || u.tipo === 'Empleado';
+                    });
+                    var val = c.altaPor || 'Alta online';
+                    var opts = ['<option' + (val === 'Alta online' ? ' selected' : '') + '>Alta online</option>'];
+                    emps.forEach(function (u) {
+                        opts.push('<option' + (val === u.nombre ? ' selected' : '') + '>' + escapeHtml(u.nombre) + '</option>');
+                    });
+                    return '<div><label>Alta dada por <span style="font-weight:600;color:var(--gray-500);">· comisiones</span></label>' +
+                        '<select id="cli-f-altapor">' + opts.join('') + '</select>' +
+                        '<div style="font-size: var(--fs-s);color:var(--gray-500);margin-top:0.3rem;line-height:1.4;">Empleado que captó/dio de alta al cliente, para el control de comisiones. Si se registró por la web queda <strong>Alta online</strong> (sin comisión de empleado).</div></div>';
+                })() +
                 ctField('cli-f-cesceimp', 'Importe crédito CESCE (€)', (c.cesceImporte == null ? '' : c.cesceImporte), 'Ej. 40000', false, 'number') +
                 ctField('cli-f-dynamoimp', 'Importe crédito Dynamo (€)', (c.dynamoImporte == null ? '' : c.dynamoImporte), 'Ej. 10000', false, 'number') +
                 (function () {
@@ -9810,6 +9826,8 @@
         c.plazo = plazoEl ? parseInt(plazoEl.value, 10) : 30;
         var estadoEl = document.getElementById('cli-f-estado');
         c.estado = estadoEl ? estadoEl.value : (c.estado || 'Validado');
+        var altaEl = document.getElementById('cli-f-altapor');
+        if (altaEl) c.altaPor = altaEl.value;
         var cesceImpEl = document.getElementById('cli-f-cesceimp');
         c.cesceImporte = (cesceImpEl && cesceImpEl.value.trim() !== '') ? Number(cesceImpEl.value) : 0;
         var dynImpEl = document.getElementById('cli-f-dynamoimp');
