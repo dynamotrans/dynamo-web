@@ -18973,6 +18973,20 @@
                 function filaT(lbl, cVenta, cCompra) {
                     return '<tr><td style="padding:0.3rem 0.35rem 0.3rem 0;border-bottom:1px solid var(--gray-200);font-size: var(--fs-s);font-weight:700;color:var(--gray-600);vertical-align:top;">' + lbl + '</td>' + cVenta + cCompra + '</tr>';
                 }
+                // Arrays de venta/compra (sin ceros/blancos) para la media y el margen.
+                var ventasArr = [tarVenta, venta ? venta.precioCliente : 0, vtImp].filter(function (v) { return v > 0; });
+                var comprasArr = [tarCompra, compraTra ? compraTra.precioTransportista : 0, ctImp].filter(function (v) { return v > 0; });
+                // PRECIO APLICADO (selección automática): media de los precios
+                // que hay (ignora 0/blanco). Venta → redondeo a 10 SUPERIOR ·
+                // Compra → redondeo a 10 INFERIOR. Es una propuesta editable.
+                function media(a) { return a.length ? a.reduce(function (x, y) { return x + y; }, 0) / a.length : 0; }
+                var vApl = ventasArr.length ? Math.ceil(media(ventasArr) / 10) * 10 : 0;
+                var cApl = comprasArr.length ? Math.floor(media(comprasArr) / 10) * 10 : 0;
+                function celdaApl(imp, col) {
+                    var td = '<td style="padding:0.35rem;border-top:2px solid var(--purple);background:#f3f0ff;vertical-align:top;">';
+                    if (!imp) return td + '<span style="color:var(--gray-500);font-weight:700;">—</span></td>';
+                    return td + '<strong style="color:' + col + ';font-size: var(--fs-l);">' + eur0(imp) + '</strong></td>';
+                }
                 var hHtml = '<table style="width:100%;border-collapse:collapse;font-size: var(--fs-m);">' +
                     '<tr><td></td>' +
                         '<td style="padding:0 0.35rem 0.25rem;font-size: var(--fs-s);font-weight:800;color:var(--purple);">Venta<br>(cliente)</td>' +
@@ -18986,12 +19000,12 @@
                     filaT('Último (todos)',
                         celda(vtImp, vtF, vtRef),
                         celda(ctImp, ctF, ctRef)) +
+                    '<tr><td style="padding:0.35rem 0.35rem 0.35rem 0;border-top:2px solid var(--purple);background:#f3f0ff;font-weight:800;color:var(--navy);vertical-align:top;">Aplicado<div style="font-size: var(--fs-s);font-weight:600;color:var(--gray-500);">media auto</div></td>' +
+                        celdaApl(vApl, 'var(--purple)') + celdaApl(cApl, 'var(--navy)') + '</tr>' +
                 '</table>';
                 // MARGEN de peor a mejor caso: cualquier venta de la tabla
                 // menos cualquier compra (mín = peor venta − mayor compra ·
                 // máx = mejor venta − menor compra).
-                var ventasArr = [tarVenta, venta ? venta.precioCliente : 0, vtImp].filter(function (v) { return v > 0; });
-                var comprasArr = [tarCompra, compraTra ? compraTra.precioTransportista : 0, ctImp].filter(function (v) { return v > 0; });
                 if (ventasArr.length && comprasArr.length) {
                     var mMin = Math.min.apply(null, ventasArr) - Math.max.apply(null, comprasArr);
                     var mMax = Math.max.apply(null, ventasArr) - Math.min.apply(null, comprasArr);
