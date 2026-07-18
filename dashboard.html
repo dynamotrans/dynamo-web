@@ -18992,12 +18992,32 @@
                 // Arrays de venta/compra (sin ceros/blancos) para la media y el margen.
                 var ventasArr = [tarVenta, venta ? venta.precioCliente : 0, vtImp].filter(function (v) { return v > 0; });
                 var comprasArr = [tarCompra, compraTra ? compraTra.precioTransportista : 0, ctImp].filter(function (v) { return v > 0; });
-                // PRECIO APLICADO (selección automática): media de los precios
-                // que hay (ignora 0/blanco). Venta → redondeo a 10 SUPERIOR ·
-                // Compra → redondeo a 10 INFERIOR. Es una propuesta editable.
+                // Días transcurridos desde una fecha DD/MM(/YYYY) hasta hoy.
+                function diasDesde(fechaStr) {
+                    var m = String(fechaStr || '').match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+                    if (!m) return null;
+                    var anio = m[3] ? (m[3].length === 2 ? 2000 + parseInt(m[3], 10) : parseInt(m[3], 10)) : new Date().getFullYear();
+                    var d = new Date(anio, parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+                    var hoy = new Date(); hoy.setHours(0, 0, 0, 0); d.setHours(0, 0, 0, 0);
+                    return Math.round((hoy.getTime() - d.getTime()) / 86400000);
+                }
+                // PRECIO APLICADO (selección automática): media de los precios.
+                // El de "Tarifador hoy" SIEMPRE cuenta (es de hoy). Los de
+                // "Último (mismo)" y "Último (todos)" solo entran si su envío
+                // tiene como MÁXIMO 15 días de antigüedad respecto a la consulta;
+                // más antiguos NO se usan para la media. Venta → redondeo a 10
+                // SUPERIOR · Compra → redondeo a 10 INFERIOR. Propuesta editable.
+                var MAX_DIAS_MEDIA = 15;
+                function vig(imp, fechaStr) {
+                    if (!imp) return 0;
+                    var d = diasDesde(fechaStr);
+                    return (d != null && d <= MAX_DIAS_MEDIA) ? imp : 0;
+                }
                 function media(a) { return a.length ? a.reduce(function (x, y) { return x + y; }, 0) / a.length : 0; }
-                var vApl = ventasArr.length ? Math.ceil(media(ventasArr) / 10) * 10 : 0;
-                var cApl = comprasArr.length ? Math.floor(media(comprasArr) / 10) * 10 : 0;
+                var ventasApl = [tarVenta, vig(venta ? venta.precioCliente : 0, fDe(venta)), vig(vtImp, vtF)].filter(function (v) { return v > 0; });
+                var comprasApl = [tarCompra, vig(compraTra ? compraTra.precioTransportista : 0, fDe(compraTra)), vig(ctImp, ctF)].filter(function (v) { return v > 0; });
+                var vApl = ventasApl.length ? Math.ceil(media(ventasApl) / 10) * 10 : 0;
+                var cApl = comprasApl.length ? Math.floor(media(comprasApl) / 10) * 10 : 0;
                 function celdaApl(imp, col) {
                     var td = '<td style="padding:0.35rem;border-top:2px solid var(--purple);background:#f3f0ff;vertical-align:top;">';
                     if (!imp) return td + '<span style="color:var(--gray-500);font-weight:700;">—</span></td>';
@@ -19018,7 +19038,8 @@
                         celda(ctImp, ctF, ctRef)) +
                     '<tr><td style="padding:0.35rem 0.35rem 0.35rem 0;border-top:2px solid var(--purple);background:#f3f0ff;font-weight:800;color:var(--navy);vertical-align:top;">Aplicado<div style="font-size: var(--fs-s);font-weight:600;color:var(--gray-500);">media auto</div></td>' +
                         celdaApl(vApl, 'var(--purple)') + celdaApl(cApl, 'var(--navy)') + '</tr>' +
-                '</table>';
+                '</table>' +
+                '<div style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;margin-top:0.25rem;">La media solo usa los «Último» con <strong>≤ 15 días</strong>; los más antiguos no cuentan (el tarifador de hoy siempre cuenta).</div>';
                 // MARGEN de peor a mejor caso: cualquier venta de la tabla
                 // menos cualquier compra (mín = peor venta − mayor compra ·
                 // máx = mejor venta − menor compra).
