@@ -19530,6 +19530,9 @@
                         var f = el.getAttribute('data-sitio-f');
                         if (!f) return;   // ignora el select de tipo (sin data-sitio-f)
                         var v = el.value.trim() || null;
+                        // Email ya registrado: no se puede BORRAR del todo (regla
+                        // del sitio) — solo sustituir por otro. Vacío → se conserva.
+                        if (f === 'email' && !v && base.email) return;
                         if (base[f] !== v) edito = true;
                         base[f] = v;
                     });
@@ -20198,6 +20201,14 @@
                         function inp(lbl, f, val, ph) {
                             return '<div><label>' + lbl + '</label><input data-sitio-f="' + f + '" data-sitio-id="' + p.id + '" value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '"></div>';
                         }
+                        // Email de avisos del sitio (mismo campo y textos que la
+                        // ficha de Sitios): se consolida vía data-sitio-f="email".
+                        function emailField(val) {
+                            return '<div class="full"><label><span style="color:var(--green);">Email de avisos del sitio</span> <span style="color:var(--gray-500);font-weight:600;">· opcional · si hay varios, sepáralos por comas</span></label>' +
+                                '<input data-sitio-f="email" data-sitio-id="' + p.id + '" type="text" inputmode="email" value="' + escapeHtml(val || '') + '" placeholder="almacen@empresa.com, recepcion@empresa.com" style="border:1.5px solid var(--green);">' +
+                                '<div style="font-size: var(--fs-s);color:#0f6b3a;line-height:1.5;margin-top:0.3rem;">📩 <strong>Muy útil</strong>: lo usaremos para avisar a este sitio de las <strong>recogidas y entregas</strong> — previsión de hora, qué recogemos o qué mercancía llega. Pon el email de la <strong>persona de almacén o responsable de recepcionar</strong>.</div>' +
+                                '<div style="font-size: var(--fs-s);color:var(--gray-700);line-height:1.5;margin-top:0.3rem;">🔒 <strong>Discreción total</strong>: el sitio <strong>nunca ve el origen ni el destino</strong> de la mercancía, ni tus precios, ni datos de terceros. <a href="#" onclick="openEjemploAvisoSitio(); return false;" style="color:var(--purple);font-weight:800;">Ver ejemplo del aviso →</a></div></div>';
+                        }
                         // Campo OBLIGATORIO (empresa, horario, teléfono): marca
                         // "· obligatorio" + mensaje. Se pinta rojo si queda vacío
                         // y bloquea la confirmación. Contacto y Notas son opcionales.
@@ -20228,6 +20239,7 @@
                                         inpReq('Horario', 'horario', '', 'Ej. L-V 8:00-14:00') +
                                         inpReq('Teléfono', 'tfno', '', 'Ej. +34 612 345 678') +
                                         inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','contacto', '', 'Persona de contacto') +
+                                        emailField('') +
                                         '<div class="full"><label style="color:var(--green);">Notas del sitio <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="" placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…"></div>' +
                                         '<div class="full"><label>Enlace de Google Maps <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="maps" data-sitio-id="' + p.id + '" value="" placeholder="https://maps.app.goo.gl/…"></div>' +
                                     '</div>' +
@@ -20288,6 +20300,7 @@
                                     inpReq('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
                                     inpReq('Teléfono', 'tfno', s.tfno) +
                                     inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','contacto', s.contacto, 'Persona de contacto') +
+                                    emailField(s.email) +
                                     '<div class="full"><label style="color:var(--green);">Notas del sitio <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="' + escapeHtml(s.notas || '') + '" placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…"></div>' +
                                     '<div class="full"><label>Enlace de Google Maps <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="maps" data-sitio-id="' + p.id + '" value="' + escapeHtml(s.maps || '') + '" placeholder="https://maps.app.goo.gl/…"></div>' +
                                 '</div>' +
