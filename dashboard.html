@@ -19141,6 +19141,19 @@
             updateCutoffNote();
             updateUltRuta();
             if (!card._cutoffTimer) card._cutoffTimer = setInterval(function () { updateCutoffNote(); updateUltRuta(); }, 1000);
+            // Los campos internos (Cliente/Transportista manual) NUNCA se
+            // quedan en blanco: si se borran del todo, al salir del campo se
+            // reautorrellenan al instante con su valor automático (además del
+            // repintado del timer). Solo se enlaza una vez por campo.
+            ['[data-ptar-precio-manual]', '[data-ptar-precio-transp]'].forEach(function (sel) {
+                var inp = card.querySelector(sel);
+                if (inp && !inp.dataset.blurBound) {
+                    inp.dataset.blurBound = '1';
+                    inp.addEventListener('blur', function () {
+                        if (String(inp.value).trim() === '') { inp.dataset.auto = ''; updateUltRuta(); }
+                    });
+                }
+            });
 
             // Los campos de recogida/entrega arrancan VACÍOS (los defaults
             // de prueba Sevilla→Madrid se retiraron).
