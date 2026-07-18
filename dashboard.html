@@ -19110,7 +19110,9 @@
                         traInp.dataset.pref = '1';
                         traInp.value = editC.precioTransportista;
                         traInp.dataset.auto = '';
-                    } else if (comprasArr.length && !traInp.dataset.pref) {
+                    } else if (comprasArr.length && !traInp.dataset.pref && document.activeElement !== traInp) {
+                        // Mientras el campo está ENFOCADO no se toca (deja
+                        // borrar y teclear con calma); se rerellena al salir.
                         var minC = Math.min.apply(null, comprasArr);
                         if (traInp.value === '' || traInp.value === traInp.dataset.auto) {
                             traInp.value = String(minC);
@@ -19130,7 +19132,8 @@
                         cliInp.dataset.pref = '1';
                         cliInp.value = editC.precioCliente;
                         cliInp.dataset.auto = '';
-                    } else if (vApl > 0 && !cliInp.dataset.pref) {
+                    } else if (vApl > 0 && !cliInp.dataset.pref && document.activeElement !== cliInp) {
+                        // Enfocado → no se toca; se rerellena al salir vacío.
                         if (cliInp.value === '' || cliInp.value === cliInp.dataset.auto) {
                             cliInp.value = String(vApl);
                             cliInp.dataset.auto = String(vApl);
