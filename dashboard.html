@@ -18942,11 +18942,22 @@
                 // (mismo cliente · mismo transportista) / Último (todos).
                 // Formato SIN decimales para este resumen (solo enteros de €).
                 function eur0(n) { return Math.round(Number(n) || 0).toLocaleString('es-ES') + ' €'; }
+                // "(hace N días)" a partir de una fecha DD/MM o DD/MM/YYYY.
+                function haceTxt(fechaStr) {
+                    var m = String(fechaStr || '').match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+                    if (!m) return '';
+                    var anio = m[3] ? (m[3].length === 2 ? 2000 + parseInt(m[3], 10) : parseInt(m[3], 10)) : new Date().getFullYear();
+                    var d = new Date(anio, parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+                    var hoy = new Date(); hoy.setHours(0, 0, 0, 0); d.setHours(0, 0, 0, 0);
+                    var n = Math.round((hoy.getTime() - d.getTime()) / 86400000);
+                    if (n < 0) return '';
+                    return ' (' + (n === 0 ? 'hoy' : n === 1 ? 'hace 1 día' : 'hace ' + n + ' días') + ')';
+                }
                 function celda(imp, fechaStr, refStr) {
                     var td = '<td style="padding:0.3rem 0.35rem;border-bottom:1px solid var(--gray-200);vertical-align:top;">';
                     if (!imp) return td + '<span style="color:var(--gray-500);font-weight:600;">—</span></td>';
                     return td + '<strong>' + eur0(imp) + '</strong>' +
-                        (fechaStr ? '<div style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;">' + escapeHtml(fechaConDia(fechaStr)) + (refStr ? ' · ' + escapeHtml(refStr) : '') + '</div>' : '') + '</td>';
+                        (fechaStr ? '<div style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;">' + escapeHtml(fechaConDia(fechaStr) + haceTxt(fechaStr)) + (refStr ? ' · ' + escapeHtml(refStr) : '') + '</div>' : '') + '</td>';
                 }
                 function filaT(lbl, cVenta, cCompra) {
                     return '<tr><td style="padding:0.3rem 0.35rem 0.3rem 0;border-bottom:1px solid var(--gray-200);font-size: var(--fs-s);font-weight:700;color:var(--gray-600);vertical-align:top;">' + lbl + '</td>' + cVenta + cCompra + '</tr>';
