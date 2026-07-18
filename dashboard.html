@@ -3239,6 +3239,20 @@
         }
         .ptar-sitio-head:hover .ptar-sitio-chev { background: rgba(51,0,204,0.08); }
         .ptar-sitio-card.open .ptar-sitio-chev { transform: rotate(180deg); }
+        /* Chevron PLEGADO: pulso llamativo (morado) para invitar a pulsarlo y
+           ver/editar todos los campos del sitio. Al abrir la ficha, el pulso
+           se detiene (la regla .open de arriba toma el control). */
+        @keyframes chevPulse {
+            0%, 100% { transform: translateY(0); box-shadow: 0 0 0 0 rgba(51,0,204,0.45); background: #ece7ff; }
+            50%      { transform: translateY(2px); box-shadow: 0 0 0 6px rgba(51,0,204,0); background: #d9cfff; }
+        }
+        .ptar-sitio-card:not(.open) .ptar-sitio-chev {
+            animation: chevPulse 1.5s ease-in-out infinite;
+            border-color: var(--purple);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .ptar-sitio-card:not(.open) .ptar-sitio-chev { animation: none; background: #ece7ff; border-color: var(--purple); }
+        }
         .ptar-sitio-body { display: none; margin-top: 0.8rem; }
         .ptar-sitio-card.open .ptar-sitio-body { display: block; }
         .ptar-sitio-body-meta { font-size: var(--fs-m); color: var(--gray-500); font-weight: 600; margin-bottom: 0.6rem; }
@@ -5119,7 +5133,7 @@
                  en la agenda de sitios al confirmar el envío. -->
             <div data-ptar-sitios hidden>
                 <h4 class="ptar-confirm-sumtitle">Datos de los sitios (<span style="color:var(--orange);">editables</span>)</h4>
-                <p class="ptar-confirm-lead" style="margin-bottom:0.6rem;"><span style="color:#dc2626;font-weight:700;">Revisa</span> cada sitio para ver o editar sus datos antes de confirmar</p>
+                <p class="ptar-confirm-lead" style="margin-bottom:0.6rem;color:#0f6b3a;"><strong>Revisa</strong> cada sitio para ver o editar sus datos antes de confirmar</p>
                 <div data-ptar-sitios-list></div>
             </div>
             </div><!-- /form-2col-main -->
