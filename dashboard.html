@@ -9129,6 +9129,29 @@
         });
     }
     window.renderClientesTable = renderClientesTable;
+    // Demo: un par de transportistas con estado distinto para ver los badges.
+    (function () {
+        if (typeof TRANSPORTISTAS_DATA === 'undefined') return;
+        if (TRANSPORTISTAS_DATA[2] && !TRANSPORTISTAS_DATA[2].estadoOp) TRANSPORTISTAS_DATA[2].estadoOp = 'Activo · no ofertar, sí cargar';
+        if (TRANSPORTISTAS_DATA[4] && !TRANSPORTISTAS_DATA[4].estadoOp) TRANSPORTISTAS_DATA[4].estadoOp = 'Suspendido · no ofertar ni cargar';
+    })();
+    // ESTADO OPERATIVO del transportista (para el flujo de asignación/ofertas):
+    //  · Activo · ofertar y cargar     → verde  (se le ofrecen cargas y puede cargar)
+    //  · Activo · no ofertar, sí cargar → ámbar (no entra en ofertas pero se puede
+    //                                     asignar a mano)
+    //  · Suspendido · no ofertar ni cargar → rojo (fuera de juego)
+    // El uso concreto de cada estado lo definirá el usuario más adelante.
+    var TRA_ESTADOS = ['Activo · ofertar y cargar', 'Activo · no ofertar, sí cargar', 'Suspendido · no ofertar ni cargar'];
+    function traEstadoInfo(t) {
+        var e = (t && t.estadoOp) || TRA_ESTADOS[0];
+        if (/^suspendido/i.test(e)) return { label: e, corto: 'Suspendido', bg: '#fdecec', fg: '#b42318', bd: '#f5b5b5' };
+        if (/no ofertar/i.test(e))  return { label: e, corto: 'No ofertar', bg: '#fff7e6', fg: '#8a5a00', bd: '#ffd591' };
+        return { label: e, corto: 'Ofertar', bg: '#eafaf0', fg: '#0f6b3a', bd: '#b7ebcd' };
+    }
+    function traEstadoBadge(t) {
+        var e = traEstadoInfo(t);
+        return '<span class="badge" title="' + escapeHtml(e.label) + '" style="background:' + e.bg + ';color:' + e.fg + ';border:1px solid ' + e.bd + ';">' + escapeHtml(e.corto) + '</span>';
+    }
     function renderTransportistasTable(q) {
         var tbody = document.getElementById('tbodyTransportistas'); if (!tbody) return;
         var nq = normTxt(q || '');
@@ -9150,7 +9173,7 @@
         tbody.innerHTML = slice.map(function (r) {
             var t = r.t;
             return '<tr data-tra="' + r.i + '">' +
-                '<td><strong>' + esc(t.empresa) + '</strong><div class="meta">' + esc(t.cif || '—') + ' · ' + esc(t.tipo || 'Empresa') + '</div></td>' +
+                '<td><strong>' + esc(t.empresa) + '</strong> ' + traEstadoBadge(t) + '<div class="meta">' + esc(t.cif || '—') + ' · ' + esc(t.tipo || 'Empresa') + '</div></td>' +
                 '<td>' + esc(t.contacto || '—') + '<div class="meta">' + esc(t.tfno || '') + (t.email ? (t.tfno ? ' · ' : '') + esc(t.email) : '') + '</div></td>' +
                 '<td>' + (t.bolsa ? '<span class="dtc-mat">' + esc(t.bolsa) + '</span>' : '—') + '</td>' +
                 '<td style="white-space:nowrap;">Clientes: ' + puntHTML(t.puntCli, t.puntCliN) +
@@ -9700,6 +9723,7 @@
             '<div class="ptar-sitio-grid">' +
                 ctField('tra-f-empresa', 'Empresa / Nombre *', t.empresa, 'Razón social o nombre del autónomo', true) +
                 ctSelect('tra-f-tipo', 'Tipo', ['Empresa', 'Autónomo'], t.tipo || 'Empresa') +
+                ctSelect('tra-f-estado', 'Estado operativo', TRA_ESTADOS, t.estadoOp || TRA_ESTADOS[0], true) +
                 ctField('tra-f-cif', 'CIF / NIF *', t.cif, 'B12345678 / 12345678Z') +
                 ctField('tra-f-bolsa', 'Código bolsa de carga', t.bolsa, 'Ej. WTN-482113', true) +
                 ctField('tra-f-dir', 'Domicilio fiscal (calle y número)', t.dir, 'Calle y número', true) +
@@ -9836,6 +9860,8 @@
         t.empresa = empresa; t.cif = cif;
         var tipoEl = document.getElementById('tra-f-tipo');
         t.tipo = tipoEl ? tipoEl.value : 'Empresa';
+        var estEl = document.getElementById('tra-f-estado');
+        if (estEl) t.estadoOp = estEl.value;
         t.bolsa = v('tra-f-bolsa') || null;
         t.dir = v('tra-f-dir') || null; t.cp = v('tra-f-cp') || null;
         t.ciudad = v('tra-f-ciudad') || null; t.prov = v('tra-f-prov') || null;
@@ -9906,6 +9932,7 @@
                 row('CIF', esc(t.cif || '')) +
                 row('Código bolsa', t.bolsa ? '<span class="dtc-mat">' + esc(t.bolsa) + '</span>' : '') +
                 row('Contacto', esc([t.contacto, t.tfno].filter(Boolean).join(' · '))) +
+                row('Estado', traEstadoBadge(t)) +
                 row('Flota (operativa)', esc(traFlotaTxt(traFlotaStats(t))) + (t.adr ? ' <span class="badge" style="background:#fdecec;color:#b42318;border:1px solid #f5b5b5;">ADR</span>' : '')) +
                 row('Punt. clientes', puntHTML(t.puntCli, t.puntCliN)) +
                 row('Punt. Dynamo', puntHTML(t.puntDyn, t.puntDynN) + ' <span style="color:#b42318;font-weight:800;font-size: var(--fs-s);">interna</span>') +
