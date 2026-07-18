@@ -3216,8 +3216,18 @@
            dirección define la ruta y no se edita aquí. */
         .ptar-sitio-grid input.sitio-f-lock {
             background: var(--gray-100); color: var(--gray-600);
-            border-color: var(--gray-200); cursor: default; pointer-events: none;
+            border-color: var(--gray-200); cursor: help;
         }
+        /* Icono ℹ junto a los campos bloqueados: al pasar el ratón o pulsar,
+           explica que se editan en la sección Sitios. */
+        .lock-info {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 15px; height: 15px; border-radius: 50%; margin-left: 0.3rem;
+            background: var(--purple); color: #fff; font-size: 10px; font-weight: 800;
+            font-style: italic; font-family: Georgia, 'Times New Roman', serif;
+            cursor: help; vertical-align: -1px; user-select: none;
+        }
+        .lock-info:hover { filter: brightness(1.15); }
         @media (max-width: 600px) { .ptar-sitio-grid { grid-template-columns: 1fr; } }
         /* Ficha de sitio PLEGABLE en la confirmación: por defecto solo la
            cabecera (nº + Recogida/Entrega + empresa + CP/localidad…). Se
@@ -9447,6 +9457,21 @@
         setTimeout(function () { if (d.parentNode) d.remove(); }, 6000);
     }
     window.refTipShow = refTipShow;
+    // Campos BLOQUEADOS: icono ℹ + tooltip explicando que aquí no se editan y
+    // que se cambian en la sección Sitios. Al pasar el ratón o pulsar (dedo o
+    // ratón) sale el mensaje. Reutiliza refTipShow (globito oscuro, cierra al
+    // tocar fuera o a los 6 s).
+    var LOCK_TIP_MSG = 'Este dato no se puede editar aquí. Para cambiar cualquier dato del sitio (nombre, dirección…), edítalo en la sección Sitios: abre el sitio en la tabla y ahí puedes modificar todo.';
+    function lockInfoIcon() {
+        return ' <span class="lock-info" tabindex="0" role="button" aria-label="Por qué está bloqueado" data-tip="' + escapeHtml(LOCK_TIP_MSG) + '" onclick="refTipShow(this)" onmouseenter="refTipShow(this)">i</span>';
+    }
+    window.lockInfoIcon = lockInfoIcon;
+    // Delegado GLOBAL: pulsar/tocar cualquier campo bloqueado (.sitio-f-lock)
+    // muestra el mismo tooltip (aunque el input no acepte foco).
+    document.addEventListener('click', function (e) {
+        var lk = e.target.closest ? e.target.closest('.sitio-f-lock') : null;
+        if (lk) { lk.setAttribute('data-tip', LOCK_TIP_MSG); refTipShow(lk); }
+    });
     // Precio SEGÚN TARIFADOR de un envío: lo que daría hoy el tarifador para
     // esa ruta/carga — referencia junto al precio real (a veces coinciden, a
     // veces no). En producción lo calculará el backend con la tarifa real;
@@ -20251,8 +20276,8 @@
                                             // Dirección suelta partida en 2 campos bloqueados (igual
                                             // que las fichas de agenda): calle+número y CP/localidad/…
                                             var sp = splitDirPorCP(p.texto || '');
-                                            return '<div><label>Dirección (calle y número)</label><input class="sitio-f-lock" value="' + escapeHtml(sp.calle || '') + '" readonly tabindex="-1"></div>' +
-                                                '<div><label>CP, localidad, provincia y país</label><input class="sitio-f-lock" value="' + escapeHtml(sp.resto || '') + '" readonly tabindex="-1"></div>';
+                                            return '<div><label>Dirección (calle y número)' + lockInfoIcon() + '</label><input class="sitio-f-lock" value="' + escapeHtml(sp.calle || '') + '" readonly tabindex="-1"></div>' +
+                                                '<div><label>CP, localidad, provincia y país' + lockInfoIcon() + '</label><input class="sitio-f-lock" value="' + escapeHtml(sp.resto || '') + '" readonly tabindex="-1"></div>';
                                         })() +
                                         inpReq('Horario', 'horario', '', 'Ej. L-V 8:00-14:00') +
                                         inpReq('Teléfono', 'tfno', '', 'Ej. +34 612 345 678') +
@@ -20272,7 +20297,7 @@
                         // volver al paso 1 y elegir otro sitio.
                         function inpLock(lbl, val, full) {
                             if (!val) return '';
-                            return '<div' + (full ? ' class="full"' : '') + '><label>' + lbl + '</label><input class="sitio-f-lock" value="' + escapeHtml(val) + '" readonly tabindex="-1"></div>';
+                            return '<div' + (full ? ' class="full"' : '') + '><label>' + lbl + lockInfoIcon() + '</label><input class="sitio-f-lock" value="' + escapeHtml(val) + '" readonly tabindex="-1"></div>';
                         }
                         // ¿Es un ALMACÉN Dynamo? Sus datos son FIJOS del catálogo:
                         // aquí NO se editan (solo en la sección Almacenes). Todos los
@@ -20317,7 +20342,7 @@
                                     // se cambia en la sección Sitios. Solo un sitio
                                     // nuevo SIN nombre queda editable.
                                     (s.empresa
-                                        ? '<div><label>Empresa</label><input class="sitio-f-lock" value="' + escapeHtml(s.empresa) + '" readonly tabindex="-1"><div style="font-size: var(--fs-s);color:var(--gray-500);line-height:1.4;margin-top:0.2rem;">El nombre se cambia en la sección <strong>Sitios</strong>.</div></div>'
+                                        ? '<div><label>Empresa' + lockInfoIcon() + '</label><input class="sitio-f-lock" value="' + escapeHtml(s.empresa) + '" readonly tabindex="-1"><div style="font-size: var(--fs-s);color:var(--gray-500);line-height:1.4;margin-top:0.2rem;">El nombre se cambia en la sección <strong>Sitios</strong>.</div></div>'
                                         : inpReq('Empresa', 'empresa', '', 'Ej. Talleres Vega e Hijos S.L.')) +
                                     tipoLock +
                                     inpLock('Dirección (calle y número)', calleVal, !dirVal) +
