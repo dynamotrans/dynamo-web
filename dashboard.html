@@ -9148,6 +9148,14 @@
         if (/no ofertar/i.test(e))  return { label: e, corto: 'No ofertar', bg: '#fff7e6', fg: '#8a5a00', bd: '#ffd591' };
         return { label: e, corto: 'Ofertar', bg: '#eafaf0', fg: '#0f6b3a', bd: '#b7ebcd' };
     }
+    function traEstadoBadgeSync() {
+        var sel = document.getElementById('tra-f-estado'), b = document.getElementById('tra-estado-badge');
+        if (!sel || !b) return;
+        var e = traEstadoInfo({ estadoOp: sel.value });
+        b.textContent = e.corto;
+        b.style.background = e.bg; b.style.color = e.fg; b.style.border = '1px solid ' + e.bd;
+    }
+    window.traEstadoBadgeSync = traEstadoBadgeSync;
     function traEstadoBadge(t) {
         var e = traEstadoInfo(t);
         return '<span class="badge" title="' + escapeHtml(e.label) + '" style="background:' + e.bg + ';color:' + e.fg + ';border:1px solid ' + e.bd + ';">' + escapeHtml(e.corto) + '</span>';
@@ -9723,7 +9731,13 @@
             '<div class="ptar-sitio-grid">' +
                 ctField('tra-f-empresa', 'Empresa / Nombre *', t.empresa, 'Razón social o nombre del autónomo', true) +
                 ctSelect('tra-f-tipo', 'Tipo', ['Empresa', 'Autónomo'], t.tipo || 'Empresa') +
-                ctSelect('tra-f-estado', 'Estado operativo', TRA_ESTADOS, t.estadoOp || TRA_ESTADOS[0], true) +
+                (function () {
+                    var b = traEstadoInfo(t);
+                    return '<div style="grid-column:1/-1"><label>Estado operativo <span id="tra-estado-badge" class="badge" style="background:' + b.bg + ';color:' + b.fg + ';border:1px solid ' + b.bd + ';margin-left:0.35rem;">' + escapeHtml(b.corto) + '</span></label>' +
+                        '<select id="tra-f-estado" onchange="traEstadoBadgeSync()">' + TRA_ESTADOS.map(function (o) {
+                            return '<option' + (o === (t.estadoOp || TRA_ESTADOS[0]) ? ' selected' : '') + '>' + escapeHtml(o) + '</option>';
+                        }).join('') + '</select></div>';
+                })() +
                 ctField('tra-f-cif', 'CIF / NIF *', t.cif, 'B12345678 / 12345678Z') +
                 ctField('tra-f-bolsa', 'Código bolsa de carga', t.bolsa, 'Ej. WTN-482113', true) +
                 ctField('tra-f-dir', 'Domicilio fiscal (calle y número)', t.dir, 'Calle y número', true) +
