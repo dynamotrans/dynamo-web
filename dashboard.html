@@ -9355,6 +9355,43 @@
         // Precio de compra que da el TARIFADOR para esta ruta (calculado; se
         // puede usar o no como referencia de partida).
         var tarPt = (typeof cargaPrecioTarifador === 'function') ? (cargaPrecioTarifador(c).ptT || 0) : 0;
+        // Días desde una fecha DD/MM(/YYYY) hasta hoy (para la regla de 15 días).
+        function diasDe(fechaStr) {
+            var m = String(fechaStr || '').match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+            if (!m) return null;
+            var anio = m[3] ? (m[3].length === 2 ? 2000 + parseInt(m[3], 10) : parseInt(m[3], 10)) : new Date().getFullYear();
+            var dd = new Date(anio, parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+            var hoy = new Date(); hoy.setHours(0, 0, 0, 0); dd.setHours(0, 0, 0, 0);
+            return Math.round((hoy.getTime() - dd.getTime()) / 86400000);
+        }
+        function fechaDe(x) { return x ? (x.fechaAsignada ? String(x.fechaAsignada).split(' ')[0] : x.fecha) : null; }
+        // Envío de compra MÁS RECIENTE de un transportista (o cualquiera) entre
+        // CP y provincia (el que tenga fecha más nueva).
+        function masNuevo(soloTra) {
+            var best = null, bf = -1;
+            r.cp.concat(r.prov).forEach(function (it) {
+                var x = it.c;
+                if (!x.precioTransportista) return;
+                if (soloTra && x.transportistaNombre !== soloTra) return;
+                if (it.f > bf) { bf = it.f; best = x; }
+            });
+            return best;
+        }
+        // PRECIO APLICADO (media auto de compra): tarifador (siempre) + último
+        // del mismo transportista + último de cualquiera, PERO los "último"
+        // solo si tienen ≤ 15 días. Redondeo a 10 INFERIOR (es compra).
+        var MAX_DIAS = 15;
+        function vigCompra(x) {
+            if (!x || !x.precioTransportista) return 0;
+            var d = diasDe(fechaDe(x));
+            return (d != null && d <= MAX_DIAS) ? x.precioTransportista : 0;
+        }
+        var eMismo = traNombre ? masNuevo(traNombre) : null;
+        var eTodos = masNuevo(null);
+        var aplArr = [tarPt, vigCompra(eMismo), vigCompra(eTodos)].filter(function (v) { return v > 0; });
+        var cApl = aplArr.length ? Math.floor(aplArr.reduce(function (a, b) { return a + b; }, 0) / aplArr.length / 10) * 10 : 0;
+        var filaApl = '<tr><td style="padding:0.4rem 0.35rem 0.4rem 0;border-top:2px solid var(--purple);background:#f3f0ff;font-weight:800;color:var(--navy);">Aplicado (compra)<div style="font-size: var(--fs-s);font-weight:600;color:var(--gray-500);">media auto</div></td>' +
+            '<td style="padding:0.4rem;border-top:2px solid var(--purple);background:#f3f0ff;text-align:right;"><strong style="color:var(--navy);font-size: var(--fs-l);">' + (cApl ? eur0(cApl) : '—') + '</strong></td></tr>';
         return '<div class="pen-envio-sum" style="margin-top:0.8rem;font-size: var(--fs-s);">' +
             '<div style="font-weight:800;color:var(--navy);font-size: var(--fs-m);">Precios de compra comparables</div>' +
             '<div style="color:var(--gray-500);font-weight:600;margin:0.1rem 0 0.2rem;">Mismo tipo (' + descTipo + ' · ' + descVent + '). Base sin IVA.</div>' +
@@ -9366,7 +9403,9 @@
                 sub('Mismas provincias (' + escapeHtml((r.o.prov || '—') + '→' + (r.d.prov || '—')) + ')') +
                 filaEnvio(mismo, traNombre ? compra(r.prov, traNombre) : null) +
                 filaEnvio('Cualquier transportista', compra(r.prov, null)) +
+                filaApl +
             '</table>' +
+            '<div style="color:var(--gray-500);font-weight:600;margin-top:0.25rem;">La media solo usa los «último» con <strong>≤ 15 días</strong>; el tarifador siempre cuenta.</div>' +
         '</div>';
     }
     // Mini-tooltip al PULSAR (para móvil, donde no hay hover): globito oscuro
