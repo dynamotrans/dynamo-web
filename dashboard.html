@@ -2770,17 +2770,30 @@
         .asig-asignandose .asig-dot { background: #f59e0b; animation: asigPulse 1.4s ease infinite; }
         .asig-confirmado  { background: #ecfdf5; color: #047857; border-color: #b7ebcd; }
         .asig-confirmado  .asig-dot { background: #10b981; }
-        /* A la espera del pago: chip ROJO llamativo (bloquea la asignación). */
-        .asig-pendiente-pago { background: #fee2e2; color: #b91c1c; border-color: #f5a3a3; font-weight: 800; }
-        .asig-pendiente-pago .asig-dot { background: #dc2626; animation: asigPulseRojo 1.4s ease infinite; }
+        /* A la espera del pago: chip ROJO llamativo con TEXTO BLANCO (bloquea
+           la asignación). Fondo rojo sólido, letras blancas, punto blanco. */
+        .asig-pendiente-pago { background: #dc2626; color: #fff; border-color: #dc2626; font-weight: 800; }
+        .asig-pendiente-pago .asig-dot { background: #fff; animation: asigPulseRojo 1.4s ease infinite; }
         @keyframes asigPulse {
             0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); }
             50%      { box-shadow: 0 0 0 6px rgba(245,158,11,0.0); }
         }
         @keyframes asigPulseRojo {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.5); }
-            50%      { box-shadow: 0 0 0 6px rgba(220,38,38,0.0); }
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.65); }
+            50%      { box-shadow: 0 0 0 5px rgba(255,255,255,0.0); }
         }
+        /* Selector Recogida/Entrega del ejemplo de aviso al sitio. */
+        .aviso-tipo-toggle {
+            display: inline-flex; gap: 0; background: var(--gray-100);
+            border: 1px solid var(--gray-200); border-radius: 999px; padding: 3px; margin-bottom: 0.8rem;
+        }
+        .aviso-tipo-btn {
+            border: none; background: transparent; padding: 0.35rem 1rem; border-radius: 999px;
+            font-size: var(--fs-m); font-weight: 700; color: var(--gray-500); cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        .aviso-tipo-btn.active { background: #fff; color: var(--purple); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+        body.theme-dark .aviso-tipo-btn.active { background: #1b2438; color: #b9b3ff; }
         table.data td.actions { text-align: right; white-space: nowrap; }
 
         /* Dropdown de acciones */
@@ -15710,18 +15723,26 @@
     }
     // Ejemplo del aviso que recibiría el sitio (para que el cliente vea la
     // DISCRECIÓN COMERCIAL: sin origen/destino, sin precios, sin terceros).
-    window.openEjemploAvisoSitio = function () {
-        var body =
-            '<div style="border:1px solid var(--gray-200);border-radius:10px;overflow:hidden;">' +
+    // Se puede ver el ejemplo de RECOGIDA o el de ENTREGA con el selector de
+    // arriba (por defecto, recogida).
+    function ejemploAvisoBody(tipo) {
+        var esRec = tipo !== 'entrega';
+        var asunto = esRec ? 'Aviso de recogida' : 'Aviso de entrega';
+        var accionFrase = esRec ? 'recoger mercancía en vuestras instalaciones' : 'entregar mercancía en vuestras instalaciones';
+        var lugar = esRec ? 'Lugar de recogida (vuestras instalaciones)' : 'Lugar de entrega (vuestras instalaciones)';
+        var cierre = esRec
+            ? 'Por favor, tened la mercancía preparada para la carga. Os avisaremos si la previsión de hora cambia.'
+            : 'Por favor, tened preparada la recepción de la mercancía. Os avisaremos si la previsión de hora cambia.';
+        return '<div style="border:1px solid var(--gray-200);border-radius:10px;overflow:hidden;">' +
                 '<div style="background:var(--gray-100);padding:0.6rem 0.8rem;font-size: var(--fs-s);color:var(--gray-700);">' +
                     '<div><strong>De:</strong> avisos@dynamotrans.com</div>' +
                     '<div><strong>Para:</strong> almacen@empresa.com</div>' +
-                    '<div><strong>Asunto:</strong> Aviso de recogida · Vie 18/07 · previsión 10:30-12:00 (pedido PED-0424)</div>' +
+                    '<div><strong>Asunto:</strong> ' + asunto + ' · Vie 18/07 · previsión 10:30-12:00 (pedido PED-0424)</div>' +
                 '</div>' +
                 '<div style="padding:0.8rem;font-size: var(--fs-m);line-height:1.6;color:var(--gray-700);">' +
                     'Buenos días,<br><br>' +
-                    '<strong>Marbex Industrial S.L.</strong> ha gestionado un transporte para <strong>recoger mercancía en vuestras instalaciones</strong>.<br><br>' +
-                    '<strong style="color:var(--navy);">Lugar de recogida (vuestras instalaciones)</strong><br>' +
+                    '<strong>Marbex Industrial S.L.</strong> ha gestionado un transporte para <strong>' + accionFrase + '</strong>.<br><br>' +
+                    '<strong style="color:var(--navy);">' + lugar + '</strong><br>' +
                     '· <strong>Empresa</strong>: Almacenes del Genil S.L. · Almacén / Nave<br>' +
                     '· <strong>Dirección</strong>: C. Francia, 78 · 18360 Huétor Tájar, Granada<br>' +
                     '· <strong>Horario</strong>: 8:00-16:00 · <strong>Tel.</strong> +34 645 89 87 95<br>' +
@@ -15732,17 +15753,30 @@
                     '· <strong>Mercancía</strong>: paletizada · 6 palets · 4.800 kg<br>' +
                     '· <strong>Nº de pedido</strong>: PED-0424<br>' +
                     '· <strong>Camión</strong>: matrícula 4512-MKL · conductor Andrés G.<br><br>' +
-                    'Por favor, tened la mercancía preparada para la carga. Os avisaremos si la previsión de hora cambia.' +
+                    cierre +
                 '</div>' +
             '</div>' +
             '<div style="margin-top:0.8rem;padding:0.7rem 0.8rem;background:rgba(51,0,204,0.06);border:1px solid rgba(51,0,204,0.18);border-radius:10px;font-size: var(--fs-m);line-height:1.55;color:var(--gray-700);">' +
                 '🔒 <strong>Fíjate en lo que NO lleva el aviso</strong>: ni el origen ni el destino de la mercancía, ni precios, ni quién es el remitente o destinatario final. El sitio solo sabe que <strong>tú has gestionado un transporte</strong> para recoger o entregar allí, con lo imprescindible para preparar la carga o la recepción. <strong>Discreción comercial garantizada.</strong>' +
             '</div>';
+    }
+    window.__ejemploAvisoTipo = function (tipo) {
+        var cont = document.querySelector('[data-aviso-cont]');
+        if (cont) cont.innerHTML = ejemploAvisoBody(tipo);
+        document.querySelectorAll('.aviso-tipo-btn').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-aviso-tipo') === tipo);
+        });
+    };
+    window.openEjemploAvisoSitio = function () {
+        var toggle = '<div class="aviso-tipo-toggle">' +
+            '<button type="button" class="aviso-tipo-btn active" data-aviso-tipo="recogida" onclick="__ejemploAvisoTipo(\'recogida\')">Recogida</button>' +
+            '<button type="button" class="aviso-tipo-btn" data-aviso-tipo="entrega" onclick="__ejemploAvisoTipo(\'entrega\')">Entrega</button>' +
+        '</div>';
         openDashModal({
             icon: 'file',
             title: 'Ejemplo de aviso al sitio',
-            sub: 'Lo que recibiría el email de avisos (recogida; las entregas, igual)',
-            body: body
+            sub: 'Lo que recibiría el email de avisos. Cambia entre recogida y entrega para ver ambos.',
+            body: toggle + '<div data-aviso-cont>' + ejemploAvisoBody('recogida') + '</div>'
         });
     };
     window.sitioGuardar = function (key) {
