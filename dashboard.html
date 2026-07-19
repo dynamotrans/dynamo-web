@@ -19442,6 +19442,25 @@
                 // Precio CADUCADO (pantalla abierta >60 min desde el cálculo):
                 // no se avanza — aviso y vuelta al inicio para regenerarlo.
                 if (mode === 'carga' && entryModeDe() !== 'manual' && precioCaducado()) { avisoPrecioCaducado(); return null; }
+                // PRECIO MANUAL (cliente) demasiado bajo: si se fija a mano un
+                // importe MENOR del 50% de la tarifa del tarifador, NO se deja
+                // registrar (evita cerrar un envío por debajo de coste por error).
+                if (mode === 'carga' && entryModeDe() !== 'manual') {
+                    var __pmEl = card.querySelector('[data-ptar-precio-manual]');
+                    var __pm = __pmEl ? parseFloat(String(__pmEl.value).replace(',', '.')) : NaN;
+                    // Tarifa = precio TOTAL del tarifador (con recargos), de la
+                    // caja ETA; de reserva, la base.
+                    var __neto = card.querySelector('[data-price-neto]');
+                    var __tar = __neto ? Math.round(parseFloat(__neto.getAttribute('data-val') || '0')) : 0;
+                    if (!__tar) __tar = parseInt(card.dataset.precioBase || '0', 10) || 0;
+                    if (__pm > 0 && __tar > 0 && __pm < __tar * 0.5) {
+                        if (__pmEl) { __pmEl.style.borderColor = '#dc2626'; try { __pmEl.focus(); } catch (e) {} }
+                        warning.textContent = '⚠ El precio manual del cliente (' + eur2(__pm) + ') es inferior al 50% de la tarifa (' + eur2(__tar) + '). No se puede registrar por debajo de ese mínimo: sube el precio o déjalo en blanco para aplicar la tarifa.';
+                        warning.classList.add('show');
+                        return null;
+                    }
+                    if (__pmEl) __pmEl.style.borderColor = '';
+                }
                 return {
                     camion: camion, camionLabel: CAMION_INFO[camion] ? CAMION_INFO[camion].label : camion,
                     ml: ml, peso: peso, medidas: medidas,
