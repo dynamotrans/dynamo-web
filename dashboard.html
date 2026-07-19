@@ -1773,12 +1773,7 @@
             display: flex; justify-content: space-between; align-items: flex-start; gap: 0.9rem;
         }
         .mini-list li:last-child { border-bottom: none; }
-        /* Mis envíos del dashboard: en MÓVIL solo 2 filas de muestra (en
-           escritorio se quedan las 3). */
-        @media (max-width: 768px) {
-            #miniEnvios li:nth-child(3) { display: none; }
-            #miniEnvios li:nth-child(2) { border-bottom: none; }
-        }
+        /* Mis envíos del dashboard: 3 filas de muestra en escritorio Y móvil. */
         .mini-list-left { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; flex: 1; }
         .mini-list-date { font-weight: 700; color: var(--navy); font-size: var(--fs-s); }
         .mini-list-date .ml-ref { color: var(--gray-500); font-weight: 600; margin-left: 0.35rem; }
