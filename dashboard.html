@@ -5145,7 +5145,7 @@
                  Google): prerellenadas y EDITABLES. Lo corregido se guarda
                  en la agenda de sitios al confirmar el envío. -->
             <div data-ptar-sitios hidden>
-                <h4 class="ptar-confirm-sumtitle">Datos de los sitios (<span style="color:var(--purple);">editables</span>)</h4>
+                <h4 class="ptar-confirm-sumtitle">Datos de los sitios (<a href="#" onclick="__ptarAbrirTodosSitios(); return false;" style="color:var(--purple);font-weight:800;text-decoration:underline;">editar</a>)</h4>
                 <p class="ptar-confirm-lead" style="margin-bottom:0.6rem;color:#0f6b3a;"><strong>Revisa</strong> cada sitio para ver o editar sus datos antes de confirmar</p>
                 <div data-ptar-sitios-list></div>
             </div>
@@ -9468,6 +9468,14 @@
         return ' <span class="lock-info" tabindex="0" role="button" aria-label="Por qué está bloqueado" data-tip="' + escapeHtml(LOCK_TIP_MSG) + '" onclick="refTipShow(this)" onmouseenter="refTipShow(this)">i</span>';
     }
     window.lockInfoIcon = lockInfoIcon;
+    // Abre (despliega) TODAS las fichas de sitio de la confirmación de golpe.
+    window.__ptarAbrirTodosSitios = function () {
+        document.querySelectorAll('[data-ptar-sitios-list] .ptar-sitio-card').forEach(function (c) {
+            c.classList.add('open');
+            var h = c.querySelector('.ptar-sitio-head');
+            if (h) h.setAttribute('aria-expanded', 'true');
+        });
+    };
     // Delegado GLOBAL: pulsar/tocar cualquier campo bloqueado (.sitio-f-lock)
     // muestra el mismo tooltip (aunque el input no acepte foco).
     document.addEventListener('click', function (e) {
