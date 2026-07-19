@@ -8374,8 +8374,11 @@
             if (logo) { cls = 'op-avatar op-avatar-logo'; inner = '<img src="' + esc(logo) + '" alt="' + esc(nombre) + '">'; }
             else { cls = 'op-avatar op-avatar-truck'; inner = OP_TRUCK_SVG; }
         }
-        return '<td class="op-av-cell"><span class="' + cls + '" tabindex="0" role="button" ' +
-            'data-tip="' + esc(nombre) + '" onclick="refTipShow(this)" onmouseenter="refTipShow(this)" ' +
+        // El clic en el avatar SOLO muestra el tooltip con el nombre — NO abre
+        // el detalle del envío (stopPropagation corta la burbuja al <tr>). El
+        // resto de la fila sigue abriendo el detalle.
+        return '<td class="op-av-cell" onclick="event.stopPropagation();"><span class="' + cls + '" tabindex="0" role="button" ' +
+            'data-tip="' + esc(nombre) + '" onclick="event.stopPropagation();refTipShow(this);" onmouseenter="refTipShow(this)" ' +
             'aria-label="Operador: ' + esc(nombre) + '">' + inner + '</span></td>';
     }
     window.opAvatarCell = opAvatarCell;
