@@ -4506,22 +4506,6 @@
                     </div>
                 </div>
             </div>
-            <!-- Recomiéndanos: boca a boca de clientes/proveedores (mitad inferior) -->
-            <div class="dash-recomienda">
-                <div class="dash-recomienda-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
-                </div>
-                <div class="dash-recomienda-text">
-                    <!-- Mensaje de recomendación ESTÁNDAR. El importe de ahorro
-                         del año se quitó del dashboard (queda en su sección de
-                         Ahorros para quien quiera verlo). -->
-                    <p style="font-size: var(--fs-m);font-weight:700;color:var(--navy);margin:0;">¿Te estamos ayudando en tu negocio? Ayúdanos valorando nuestro trabajo. Gracias.</p>
-                </div>
-                <div class="dash-recomienda-btns">
-                    <button type="button" class="btn-primary" onclick="abrirRecomendar()">Recomendar Dynamo</button>
-                    <button type="button" class="btn-secondary" onclick="abrirResenaGoogle()">★ Puntúanos en Google</button>
-                </div>
-            </div>
             </div><!-- /dash-left-col -->
             <div class="mini-list-card" role="button" tabindex="0" aria-label="Ver todos los envíos"
                  onclick="showSection('cargas');" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showSection('cargas');}">
@@ -4532,6 +4516,21 @@
                 <ul class="mini-list" id="miniEnvios">
                     <!-- Rellenado por renderMiniEnvios(): 2 filas de muestra -->
                 </ul>
+            </div>
+        </div>
+
+        <!-- Recomiéndanos: boca a boca de clientes/proveedores. Va DEBAJO de
+             "Mis envíos" (a lo ancho), no dentro de la columna de los botones. -->
+        <div class="dash-recomienda dash-recomienda-full">
+            <div class="dash-recomienda-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+            </div>
+            <div class="dash-recomienda-text">
+                <p style="font-size: var(--fs-m);font-weight:700;color:var(--navy);margin:0;">¿Te estamos ayudando en tu negocio? Ayúdanos valorando nuestro trabajo. Gracias.</p>
+            </div>
+            <div class="dash-recomienda-btns">
+                <button type="button" class="btn-primary" onclick="abrirRecomendar()">Recomendar Dynamo</button>
+                <button type="button" class="btn-secondary" onclick="abrirResenaGoogle()">★ Puntúanos en Google</button>
             </div>
         </div>
 
@@ -14854,11 +14853,14 @@
             var todayD = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             return d.getTime() < todayD.getTime();
         }
-        // Envío MANUAL con otro operador: registro en texto plano, SIN
-        // conectividad ni fases en vivo — badge GRIS estático (sin punto).
+        // Envío MANUAL con otro operador: registro en texto plano, sin fases en
+        // vivo. Mismos badges que los Dynamo por estado (con su punto) para que
+        // TODAS las etiquetas lleven punto igual; el operador ya se distingue
+        // por su chip.
         if (c.manual) {
-            var lblM = c.kind === 'entregada' ? 'Entregado' : (c.kind === 'cancelada' ? 'Cancelada' : 'Programado');
-            return { label: lblM, color: 'gray' };
+            if (c.kind === 'entregada') return { label: 'Entregado', color: 'entregado' };
+            if (c.kind === 'cancelada') return { label: 'Cancelada', color: 'cancelada' };
+            return { label: 'Programado', color: 'prog' };
         }
         if (c.kind === 'entregada') return { label: 'Entregado',  color: 'entregado' };
         if (c.kind === 'cancelada') return { label: 'Cancelada',  color: 'cancelada' };
