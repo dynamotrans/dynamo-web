@@ -16270,15 +16270,14 @@
                 else if (c.kind === 'en-ruta') hiSrc = extractDDMM(c.etaEntrega) || fechaPrincipal;
                 var hi = hiSrc ? highlightInfo(hiSrc) : null;
                 var rowCls = '';
-                if (c.manual) {
-                    // Envío MANUAL (otro operador): franja marrón a la izquierda
-                    // y SIN colores de urgencia (no lo gestionamos nosotros).
-                    rowCls = ' class="row-manual"';
-                } else if (hi) {
-                    // Resaltan: retrasada (rojo) + rampa ámbar de 3 pasos que
-                    // se aclara: hoy → +1 día hábil → +2 días hábiles (salta
-                    // findes y festivos). El resto (3-7 días, >7) sin color.
-                    // El color de la fila es la señal (no hay chips).
+                // Rampa de urgencia por FECHA: retrasada (rojo) + hoy → +1 día
+                // hábil → +2 días hábiles (ámbar que se aclara; salta findes y
+                // festivos). El resto (3-7 días, >7) sin color. El color de la
+                // fila es la señal. Se aplica IGUAL a envíos Dynamo y MANUALES
+                // (otro operador): la señal de fecha se conserva en ambos; lo
+                // único que el manual NO lleva es la antigua franja marrón
+                // (retirada) — se distingue por el chip del operador.
+                if (hi) {
                     if (hi.level === -1)     rowCls = ' class="row-overdue"';
                     else if (hi.level === 0) rowCls = ' class="row-today"';
                     else if (hi.level === 1) rowCls = ' class="row-tomorrow"';
