@@ -17441,20 +17441,23 @@
             while (cur.getTime() < b.getTime()) { cur.setDate(cur.getDate() + 1); if (!nonBiz(cur)) n++; }
             return n;
         }
-        // Suplemento de PREAVISO de la FECHA FIJA según la POSICIÓN de la
-        // fecha elegida respecto a la 1ª DISPONIBLE:
-        //  · La 1ª fecha disponible → +150 € (preaviso MUY urgente). Es HOY
-        //    si se pide antes de las 12:00, o el siguiente hábil si ya pasó
-        //    el corte — en ambos casos 150 €.
-        //  · Los 2 días hábiles siguientes → +100 € (preaviso urgente).
-        //  · Más allá → sin coste de preaviso (queda solo el +15% de fecha
-        //    fija, que aplica siempre). La ventana 1-3 días nunca lo lleva.
+        // Suplemento PLANO de la FECHA FIJA según la POSICIÓN de la fecha
+        // elegida respecto a la 1ª DISPONIBLE:
+        //  · La 1ª fecha disponible → +100 € (FECHA FIJA URGENTE). Es HOY si
+        //    se pide antes de las 12:00, o el siguiente hábil si ya pasó el corte.
+        //  · Cualquier fecha fija POSTERIOR → +50 €.
+        //  · La ventana 1-3 días nunca lleva suplemento.
         function preavisoFija(d) {
-            // Suplemento de URGENCIA de la fecha fija ELIMINADO (2026-07-17):
-            // la fecha fija lleva SOLO su +15%, sea el día que sea. La hora de
-            // corte de las 12:00 se mantiene. (Función conservada a 0 por si
-            // se reactiva; todo el código que la lee queda inerte.)
-            return 0;
+            // Suplemento PLANO de fecha fija (2026-07-19, sustituye al +15%):
+            //  · PRIMER día disponible con fecha fija → +100 € (FECHA FIJA
+            //    URGENTE: si ese día no hay vehículo hay que reprogramar).
+            //  · Cualquier fecha fija POSTERIOR → +50 €.
+            // La ventana 1-3 días nunca lleva suplemento. Importe plano (no %).
+            if (!d) return 50;
+            var first = firstLoadDate('dia');
+            var esPrimero = d.getFullYear() === first.getFullYear() &&
+                d.getMonth() === first.getMonth() && d.getDate() === first.getDate();
+            return esPrimero ? 100 : 50;
         }
         // Hora de corte POR MODO (minutos desde medianoche, hora Madrid):
         // fecha FIJA a las 12:00 · ventana 1-3 días a las 14:00.
@@ -18384,13 +18387,11 @@
                 // cliente): mínimo interno de cálculo, nada lo baja de ahí.
                 var precio = 220 + dist * 1.35 * occFactor;
                 var uv = urgenciaSel ? urgenciaSel.value : 'estandar';
-                // FECHA FIJA: 2 suplementos independientes.
-                //  1) Por ser día concreto (fija) → +15% SIEMPRE.
-                //  2) Por PREAVISO corto, contado desde HOY: cargar HOY → +150 €
-                //     · los 2 días hábiles siguientes → +100 € · después → 0
-                //     (solo queda el +15% de fija).
-                // El tramo se decide por la fecha ELEGIDA; sin fecha no se cobra
-                // preaviso (no hay fecha que evaluar). Ventana 1-3 días → base.
+                // FECHA FIJA: suplemento PLANO (sustituye al +15%).
+                //  · 1ª fecha disponible → +100 € (FECHA FIJA URGENTE).
+                //  · Cualquier fecha fija posterior → +50 €.
+                // El importe se decide por la fecha ELEGIDA; sin fecha no se
+                // cobra (no hay fecha que evaluar). Ventana 1-3 días → base.
                 var preavisoFlat = 0;
                 if (uv === 'dia') {
                     var selIso = (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) ? diaSel.value : null;
@@ -18465,14 +18466,16 @@
                 card.dataset.trampExtra = String(trampExtra);
                 card.dataset.nimaExtra  = String(nimaExtra);
                 card.dataset.adrExtra   = String(adrExtra);
-                // Fecha fija (+15%) sobre el subtotal (envío + suplementos) y
-                // preaviso corto (plano: 150 € hoy · 100 € los 2 hábiles
-                // siguientes). Se guardan para la confirmación.
-                card.dataset.fijaPct  = String(uv === 'dia' ? 0.15 : 0);
+                // Fecha fija: suplemento PLANO (2026-07-19, sustituye al +15%).
+                //  · Primer día disponible → +100 € (FECHA FIJA URGENTE).
+                //  · Cualquier fecha fija posterior → +50 €.
+                // Se guarda como fijaFlat; fijaPct queda a 0 (el % se retiró).
+                card.dataset.fijaPct  = '0';
                 card.dataset.fijaFlat = String(uv === 'dia' ? preavisoFlat : 0);
                 var subAntesFija = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra;
-                var fijaExtra = (uv === 'dia') ? Math.round(subAntesFija * 0.15 / 10) * 10 : 0;
+                var fijaExtra = 0;
                 var preavisoExtra = (uv === 'dia') ? preavisoFlat : 0;
+                var fijaUrgente = (uv === 'dia' && preavisoFlat >= 100);
                 // Ventana corta de GRUPAJE (1-2 días): +10% o 80 €, el MAYOR.
                 var cortaExtra = (uv === 'corta') ? Math.max(Math.round(subAntesFija * 0.10 / 10) * 10, 80) : 0;
                 card.dataset.cortaExtra = String(cortaExtra);
@@ -18484,8 +18487,7 @@
                 if (trampExtra) extras.push({ k: 'Trampilla elevadora', v: trampExtra });
                 if (nimaExtra)  extras.push({ k: 'NIMA', v: nimaExtra });
                 if (adrExtra)   extras.push({ k: 'Mercancía ADR (+40%)', v: adrExtra });
-                if (fijaExtra)  extras.push({ k: 'Suplemento Fecha fija', v: fijaExtra });
-                if (preavisoExtra) extras.push({ k: 'Preaviso urgente', v: preavisoExtra });
+                if (preavisoExtra) extras.push({ k: fijaUrgente ? 'Suplemento Fecha fija urgente' : 'Suplemento Fecha fija', v: preavisoExtra });
                 if (cortaExtra) extras.push({ k: 'Ventana 1-2 días (+10%, mín. 80 €)', v: cortaExtra });
                 var detalle = tipoLines.concat(extras);
                 var precioRows = detalle.length ? [{ k: 'Importe de envío', v: envioBase }].concat(detalle) : [];
@@ -18616,15 +18618,33 @@
                         '<strong>Fecha de carga de 1 a ' + ventanaLen() + ' días (flexible)</strong>, el 80% veces cargamos en los 2 primeros días, es la más económica y además aumenta la probabilidad de cargar al máximo.' +
                         '</div>';
                 } else if (loadStart && uv === 'dia') {
-                    // FECHA FIJA (sin suplemento de urgencia — solo el +15% de
-                    // fija, sea el día que sea; el corte de las 12:00 sigue).
+                    // FECHA FIJA con suplemento PLANO: el 1er día disponible es
+                    // FECHA FIJA URGENTE (+100 €); una fecha fija posterior son
+                    // +50 €. El corte de las 12:00 sigue vigente.
                     var nM = nowMadrid();
                     var esHoy = loadStart.getFullYear() === nM.getFullYear() &&
                         loadStart.getMonth() === nM.getMonth() && loadStart.getDate() === nM.getDate();
-                    hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija</strong>. ' +
-                        (esHoy ? '<strong>Es para HOY</strong>: no podemos garantizar cargar en el día, y cancelar tendría coste. ' : '') +
-                        'Si ese día no hay vehículo, habría que reprogramar a otra fecha.<br><br><span style="color:#0f6b3a;">💡 <strong>Lo más barato y seguro: la ventana de 1 a 3 días</strong> — el 80% de las veces cargamos en los 2 primeros días.</span>' +
-                        '<button type="button" class="btn-secondary" style="width:100%;margin-top:0.55rem;min-height:44px;" onclick="if (window.__ptarUsarVentana) __ptarUsarVentana();">Seleccionar fecha de carga de 1 a 3 días' + (subAntesFija > 0 ? ' a ' + eur2(subAntesFija) : '') + '</button>' + '</div>';
+                    // ¿Es el 1er día disponible? → urgente (+100). Si no → +50.
+                    var esUrgente = false;
+                    if (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) {
+                        esUrgente = preavisoFija(new Date(diaSel.value + 'T00:00:00')) >= 100;
+                    }
+                    // Precio de la MISMA carga con una fecha fija posterior (+50) y
+                    // con la ventana 1-3 días (sin suplemento), para los botones.
+                    var totalFijaPost = subAntesFija + 50;
+                    if (esUrgente) {
+                        hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija urgente</strong>. ' +
+                            (esHoy ? '<strong>Es para HOY</strong>: no podemos garantizar cargar en el día, y cancelar tendría coste. ' : '') +
+                            'Si ese día no hay vehículo, habría que reprogramar a otra fecha.' +
+                            '<br><br><span style="color:#0f6b3a;">💡 <strong>Una fecha fija posterior es algo más económica</strong>: selecciona el segundo día disponible para ahorrar.</span>' +
+                            '<button type="button" class="btn-secondary" style="width:100%;margin-top:0.55rem;min-height:44px;" onclick="if (window.__ptarUsarFijaPosterior) __ptarUsarFijaPosterior();">Seleccionar fecha de carga fija' + (totalFijaPost > 0 ? ' a ' + eur2(totalFijaPost) : '') + '</button>' +
+                            '<br><span style="color:#0f6b3a;">💡 <strong>Lo más barato y seguro: la ventana de 1 a 3 días</strong> — el 80% de las veces cargamos en los 2 primeros días.</span>' +
+                            '<button type="button" class="btn-secondary" style="width:100%;margin-top:0.55rem;min-height:44px;" onclick="if (window.__ptarUsarVentana) __ptarUsarVentana();">Seleccionar fecha de carga de 1 a 3 días' + (subAntesFija > 0 ? ' a ' + eur2(subAntesFija) : '') + '</button>' + '</div>';
+                    } else {
+                        hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija</strong>. ' +
+                            'Si ese día no hay vehículo, habría que reprogramar a otra fecha.<br><br><span style="color:#0f6b3a;">💡 <strong>Lo más barato y seguro: la ventana de 1 a 3 días</strong> — el 80% de las veces cargamos en los 2 primeros días.</span>' +
+                            '<button type="button" class="btn-secondary" style="width:100%;margin-top:0.55rem;min-height:44px;" onclick="if (window.__ptarUsarVentana) __ptarUsarVentana();">Seleccionar fecha de carga de 1 a 3 días' + (subAntesFija > 0 ? ' a ' + eur2(subAntesFija) : '') + '</button>' + '</div>';
+                    }
                 }
                 etaBox.innerHTML =
                     hoyHtml +
@@ -18817,23 +18837,8 @@
                 var cutLabel = corteLabelDe(uv);
                 var first = firstLoadDate(uv);
                 var firstIsToday = first.getTime() === today.getTime();
-                // Día corto "lunes 13" (sin mes) para nombrar el par urgente.
-                var DIAS_L = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-                function diaCorto(d) { return DIAS_L[d.getDay()] + ' ' + d.getDate(); }
-                // Fechas fija con suplemento de preaviso: HOY +150 € · los 2
-                // días hábiles siguientes +100 € · después tarifa estándar.
-                var dtsF = loadDates('dia', 8), g150 = [], g100 = [], gLibre = null;
-                dtsF.forEach(function (df) {
-                    var sf = preavisoFija(df);
-                    if (sf === 150) g150.push(diaCorto(df));
-                    else if (sf === 100) g100.push(diaCorto(df));
-                    else if (!gLibre) gLibre = diaCorto(df);
-                });
-                var partesF = [];
-                if (g150.length) partesF.push(g150.join(' y ') + ' +150 €');
-                if (g100.length) partesF.push(g100.join(' y ') + ' +100 €');
-                // Sin suplemento de urgencia (eliminado): la guía queda en la
-                // alternativa barata.
+                // Fecha fija con suplemento PLANO: 1er día disponible +100 €
+                // (urgente) · fechas fija posteriores +50 €.
                 var fijaGuia = '<br>💡 Lo más barato y seguro: la <strong>ventana de carga de 1 a 3 días</strong>.';
                 var html;
                 if (secNow < cutSec) {
@@ -18974,6 +18979,25 @@
                     if (!urgenciaSel) return;
                     urgenciaSel.value = 'estandar';
                     urgenciaSel.dispatchEvent(new Event('change'));
+                };
+                // Elegir una fecha fija POSTERIOR (segundo día disponible): pasa
+                // de urgente (+100 €) a fecha fija normal (+50 €). Deja la
+                // urgencia en 'dia' y selecciona la 2ª fecha real del desplegable.
+                window.__ptarUsarFijaPosterior = function () {
+                    if (!urgenciaSel || !diaSel) return;
+                    if (urgenciaSel.value !== 'dia') {
+                        urgenciaSel.value = 'dia';
+                        urgenciaSel.dispatchEvent(new Event('change'));
+                    }
+                    // Opciones: [0]=placeholder, [1]=1ª fecha (urgente), [2]=2ª…
+                    var reales = Array.prototype.filter.call(diaSel.options, function (o) {
+                        return o.value && o.value !== 'otro';
+                    });
+                    var segundo = reales[1] || reales[0];
+                    if (segundo) {
+                        diaSel.value = segundo.value;
+                        diaSel.dispatchEvent(new Event('change'));
+                    }
                 };
                 // "Poner el mínimo": fija el precio manual del cliente en el
                 // mínimo permitido (50% de la tarifa) y quita el aviso.
@@ -19940,7 +19964,7 @@
                 if (nimaExtra)  extras.push({ k: 'NIMA', v: nimaExtra });
                 if (adrExtra)   extras.push({ k: 'Mercancía ADR (+40%)', v: adrExtra });
                 if (fijaExtra)  extras.push({ k: 'Suplemento Fecha fija', v: fijaExtra });
-                if (flat)       extras.push({ k: 'Preaviso urgente', v: flat });
+                if (flat)       extras.push({ k: flat >= 100 ? 'Suplemento Fecha fija urgente' : 'Suplemento Fecha fija', v: flat });
                 if (cortaExtra) extras.push({ k: 'Ventana 1-2 días (+10%, mín. 80 €)', v: cortaExtra });
                 var detalle = tipoLines.concat(extras);
                 var rows = detalle.length ? [{ k: 'Importe de envío', v: envioBase }].concat(detalle) : [];
