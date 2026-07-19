@@ -5853,6 +5853,21 @@
     function cargaModificarEnvio(ref) {
         var src = (typeof findCargaDataByRef === 'function') ? findCargaDataByRef(ref) : null;
         if (!src) return;
+        // BLOQUEO DE MODIFICACIÓN FUERA DE PLAZO (2026-07-19): si quien lo pide
+        // NO es admin (cliente, empleado o cualquiera sin permisos) y el corte
+        // de modificación —las 9:00 del día HÁBIL anterior a la carga, el mismo
+        // de la cancelación— ya ha pasado, NO se permite NINGÚN cambio online:
+        // ni fecha, ni horario, ni direcciones, ni nada. Debe contactar con
+        // Dynamo por teléfono, email o WhatsApp. (No aplica a envíos manuales de
+        // otro operador: ahí Dynamo no interviene.) El backend lo impondrá de
+        // verdad; esto es la barrera de UX en el front.
+        if (typeof getRole === 'function' && getRole() !== 'admin' && !src.manual) {
+            var corteM = (typeof corteCancelacionDe === 'function') ? corteCancelacionDe(src) : null;
+            if (corteM && Date.now() >= corteM.getTime()) {
+                cargaModificarFueraPlazo(ref, src, corteM);
+                return;
+            }
+        }
         closeDashModal();
         openNuevaCarga('envio');
         // Restaurar el OPERADOR del envío (Dynamo por defecto): si era de otro
@@ -5896,6 +5911,43 @@
         if (fc) fc.textContent = 'Guardar cambios';
     }
     window.cargaModificarEnvio = cargaModificarEnvio;
+    // Aviso BLOQUEANTE al intentar modificar un envío fuera de plazo (sin ser
+    // admin). No abre el formulario: solo informa y ofrece los canales de
+    // contacto. Ningún cambio online es posible pasado el corte.
+    function cargaModificarFueraPlazo(ref, src, corte) {
+        var DIAS_C = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+        var corteTxt = corte ? DIAS_C[corte.getDay()] + ' ' + corte.getDate() + ' a las 9:00' : 'las 9:00 del día hábil anterior a la carga';
+        var fechaTxt = fechaConDia((src.fechaAsignada ? src.fechaAsignada.split(' ')[0] : src.fecha) || src.fecha || '');
+        var contactoBtns =
+            '<a href="tel:+34955225945" style="display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;box-sizing:border-box;padding:0.65rem 0.9rem;background:white;border:1px solid var(--gray-300);border-radius:9px;text-decoration:none;margin-bottom:0.5rem;">' +
+                '<span style="display:inline-flex;align-items:center;gap:0.45rem;font-weight:700;font-size: var(--fs-l);color:var(--purple);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex:0 0 auto;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar +34 955 225 945</span>' +
+                '<span style="font-size: var(--fs-s);font-weight:600;color:var(--gray-500);">Lunes a Viernes 8:30-15:30 (verano)</span>' +
+            '</a>' +
+            '<a href="https://wa.me/34628995709?text=' + encodeURIComponent('Hola, necesito modificar el envío ' + ref + '. El plazo online ya ha pasado; ¿me ayudáis con el cambio?') + '" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:0.45rem;width:100%;box-sizing:border-box;padding:0.7rem 0.9rem;background:white;border:1px solid var(--gray-300);border-radius:9px;text-decoration:none;font-weight:700;font-size: var(--fs-l);color:#128c4b;margin-bottom:0.5rem;">' +
+                '<svg viewBox="0 0 24 24" fill="currentColor" style="width:17px;height:17px;flex:0 0 auto;"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm0 1.8c2.17 0 4.2.84 5.74 2.38a8.06 8.06 0 0 1 2.37 5.73c0 4.47-3.64 8.11-8.12 8.11a8.1 8.1 0 0 1-4.13-1.13l-.3-.18-3.12.82.83-3.04-.19-.31a8.06 8.06 0 0 1-1.24-4.32c0-4.47 3.64-8.11 8.12-8.11zm4.64 10.19c-.25-.13-1.5-.74-1.73-.82-.23-.09-.4-.13-.56.13-.17.25-.65.82-.79.98-.15.17-.29.19-.54.06-.25-.13-1.07-.4-2.04-1.26-.75-.67-1.26-1.5-1.41-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.38-.44.12-.15.16-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43l-.48-.01c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.43 1.03 2.6.13.17 1.77 2.71 4.3 3.8.6.26 1.07.41 1.43.53.6.19 1.15.16 1.58.1.48-.07 1.5-.61 1.71-1.2.21-.59.21-1.1.15-1.2-.06-.11-.23-.17-.48-.29z"/></svg>WhatsApp' +
+            '</a>' +
+            '<a href="mailto:info@dynamotrans.com?subject=' + encodeURIComponent('Cambio en el envío ' + ref) + '&body=' + encodeURIComponent('Hola, necesito modificar el envío ' + ref + ' (' + (src.origen || '') + ' → ' + (src.destino || '') + '). El plazo para cambiarlo online ya ha pasado. El cambio que necesito es:\n\n') + '" style="display:flex;align-items:center;justify-content:center;gap:0.45rem;width:100%;box-sizing:border-box;padding:0.7rem 0.9rem;background:white;border:1px solid var(--gray-300);border-radius:9px;text-decoration:none;font-weight:700;font-size: var(--fs-l);color:var(--purple);">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex:0 0 auto;"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>info@dynamotrans.com' +
+            '</a>';
+        openDashModal({
+            icon: 'alert', iconVariant: 'danger',
+            title: 'No se puede modificar online',
+            sub: 'El plazo para modificar este envío ya ha pasado',
+            body:
+                '<div style="margin-bottom:0.9rem;padding:0.75rem 0.85rem;background:rgba(220,38,38,0.10);border:1px solid rgba(220,38,38,0.45);border-radius:9px;font-size: var(--fs-l);line-height:1.55;color:#991b1b;">' +
+                    'El plazo para modificar este envío por tu cuenta terminó el <strong>' + corteTxt + '</strong> (día hábil anterior a la carga). A partir de ese momento <strong>no se puede cambiar nada online</strong>: ni la fecha, ni el horario, ni las direcciones, ni ningún otro dato.' +
+                    '<br><br>Para cualquier cambio, <strong>contacta con nosotros</strong> por teléfono, WhatsApp o email y te lo gestionamos.' +
+                '</div>' +
+                infoGrid([
+                    { label: 'Nº envío', value: ref },
+                    { label: 'Fecha de carga', value: fechaTxt },
+                    { label: 'Ruta', value: (src.origen || '') + ' → ' + (src.destino || ''), span: true }
+                ]) +
+                '<div style="margin-top:0.9rem;">' + contactoBtns + '</div>',
+            footer: '<button class="btn-primary" onclick="closeDashModal()">Entendido</button>'
+        });
+    }
+    window.cargaModificarFueraPlazo = cargaModificarFueraPlazo;
     // Muestra el aviso de pago por adelantado del formulario solo si la
     // cuenta NO tiene crédito CESCE (chip de la topbar; lo dará el backend).
     function updatePrepagoWarn() {
@@ -14001,6 +14053,24 @@
     });
     // Previsualizar el estado SIN ahorros: ?ahorro0=1 pone ambos a 0.
     if (/[?&]ahorro0=1/.test(location.search)) { AHORRO_DYNAMO_ANIO = 0; AHORRO_PERDIDO_ANIO = 0; }
+    // DEMO (solo para verlo): ?demoModPlazo=1 abre directamente el aviso de
+    // "modificación fuera de plazo" sobre un envío real con el corte ya pasado,
+    // sin tener que buscarlo y pulsar Modificar. Es solo una ayuda de vista.
+    if (/[?&]demoModPlazo=1/.test(location.search)) {
+        setTimeout(function () {
+            try {
+                var arr = (typeof CARGAS_DATA !== 'undefined') ? CARGAS_DATA : [];
+                var pick = null;
+                for (var i = 0; i < arr.length; i++) {
+                    var c = arr[i];
+                    if (c.manual || c.kind === 'cancelada' || c.kind === 'entregado') continue;
+                    var ct = corteCancelacionDe(c);
+                    if (ct && Date.now() >= ct.getTime()) { pick = c; break; }
+                }
+                if (pick) cargaModificarFueraPlazo(pick.ref, pick, corteCancelacionDe(pick));
+            } catch (e) {}
+        }, 900);
+    }
     (function () {
         var elA = document.querySelector('[data-ahorro-anio]');
         if (elA) elA.textContent = eur2(AHORRO_DYNAMO_ANIO);
