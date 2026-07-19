@@ -2491,9 +2491,9 @@
            salían sin franja aunque en Chrome de escritorio se viera bien. */
         table.data tr.row-overdue { background: #fee2e2; }
         table.data tr.row-overdue > td:first-child { box-shadow: inset 6px 0 0 0 #b91c1c; }
-        /* Envío MANUAL con otro operador: franja MARRÓN a la izquierda, sin
-           colores de urgencia (registro en texto plano, sin seguimiento). */
-        table.data tr.row-manual > td:first-child { box-shadow: inset 6px 0 0 0 #8b5e34; }
+        /* Envío MANUAL con otro operador: sin colores de urgencia (registro en
+           texto plano, sin seguimiento). Se distingue SOLO por el chip del
+           operador; la franja marrón lateral se retiró (2026-07-19). */
         /* Rampa AZUL serena que se aclara con la distancia (en días HÁBILES).
            Más suave que el ámbar anterior: descansa la vista. */
         /* Hoy: ÁMBAR suave (destaca en cálido frente al azul de +1/+2). */
@@ -2603,9 +2603,9 @@
         table.data .fecha-linea strong { color: var(--navy); }
         table.data td.ref .ref-cli-line { color: var(--gray-500); margin-top: 0.15rem; }
         table.data td.ref .ref-cli-inline { color: var(--gray-500); font-weight: 500; }
-        /* Chip del OPERADOR en envíos con otro operador (mismo marrón que la
-           franja lateral .row-manual). Los de Dynamo no llevan chip: son la
-           norma, el chip señala la excepción. */
+        /* Chip del OPERADOR en envíos con otro operador (marrón). Es la ÚNICA
+           marca del envío manual en la tabla (la franja lateral se retiró).
+           Los de Dynamo no llevan chip: son la norma, el chip señala la excepción. */
         .op-chip {
             display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
             background: rgba(139, 94, 52, 0.12); color: #7a4f28;
