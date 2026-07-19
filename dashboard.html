@@ -1761,11 +1761,20 @@
         .mini-list-card { cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
         .mini-list-card:hover { border-color: var(--purple); box-shadow: 0 6px 20px rgba(51,0,204,0.10); }
         .mini-list-card:hover .mini-list-head { background: #2a00a8; }
-        .mini-list-card:hover .mini-list-head a { text-decoration: underline; opacity: 1; }
         .mini-list-head { transition: background 0.15s; }
         .mini-list-head h4 { font-size: var(--fs-m); font-weight: 800; color: #fff; }
-        .mini-list-head a { font-size: var(--fs-s); color: #fff; text-decoration: none; font-weight: 700; opacity: 0.92; }
-        .mini-list-head a:hover { text-decoration: underline; opacity: 1; }
+        /* "Ver todos →" como CHIP pulsable (píldora blanca translúcida). */
+        .mini-list-head a {
+            font-size: var(--fs-s); color: #fff; text-decoration: none; font-weight: 800;
+            background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 999px; padding: 0.3rem 0.75rem; white-space: nowrap; flex: none;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .mini-list-head a:hover,
+        .mini-list-card:hover .mini-list-head a {
+            background: rgba(255,255,255,0.28); border-color: rgba(255,255,255,0.7);
+            text-decoration: none; opacity: 1;
+        }
         .mini-list ul { list-style: none; }
         .mini-list li {
             padding: 0.7rem 0;
