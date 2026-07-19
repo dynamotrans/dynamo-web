@@ -2603,20 +2603,38 @@
         table.data .fecha-linea strong { color: var(--navy); }
         table.data td.ref .ref-cli-line { color: var(--gray-500); margin-top: 0.15rem; }
         table.data td.ref .ref-cli-inline { color: var(--gray-500); font-weight: 500; }
-        /* Chip del OPERADOR en envíos con otro operador (marrón). Es la ÚNICA
-           marca del envío manual en la tabla (la franja lateral se retiró).
-           Los de Dynamo no llevan chip: son la norma, el chip señala la excepción. */
-        .op-chip {
-            display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
-            background: rgba(139, 94, 52, 0.12); color: #7a4f28;
-            border: 1px solid rgba(139, 94, 52, 0.35); border-radius: 6px;
-            font-size: var(--fs-s); font-weight: 800; line-height: 1.5;
-            padding: 1px 7px; white-space: nowrap; vertical-align: 1px;
+        /* ===== AVATAR del OPERADOR (1ª columna de la tabla de envíos) =====
+           Cuadrado 1:1 con esquinas redondeadas. Dynamo → su logo · otro
+           operador → su logo de marca (si lo subió a su ficha) o un camión
+           lineal. Sustituye al antiguo chip con el nombre; el nombre sale en
+           tooltip al pasar el ratón o pulsar. */
+        td.op-av-cell { width: 60px; text-align: center; vertical-align: middle; padding: 6px 4px 6px 10px; }
+        .op-avatar {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 46px; height: 46px; border-radius: 10px; box-sizing: border-box;
+            background: #fff; border: 1px solid var(--gray-200); overflow: hidden;
+            cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s;
         }
-        /* El chip del operador va SIEMPRE en la columna Recogida (la 1ª),
-           igual en escritorio y en móvil (homogéneo en ambas versiones;
-           antes en escritorio iba en la columna Envío y en móvil aquí). */
-        .op-chip-wrap { display: block; margin-bottom: 4px; }
+        .op-avatar:hover, .op-avatar:focus-visible {
+            border-color: var(--purple); box-shadow: 0 2px 8px rgba(51,0,204,0.16); outline: none;
+        }
+        .op-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .op-avatar-logo { padding: 3px; }
+        .op-avatar-logo img { object-fit: contain; }
+        .op-avatar-dynamo { border-color: rgba(51,0,204,0.22); }
+        .op-avatar-truck { background: var(--gray-100); color: var(--gray-500); border-style: dashed; }
+        .op-avatar-truck svg { width: 26px; height: 26px; }
+        body.theme-dark .op-avatar { background: #10182b; border-color: rgba(255,255,255,0.12); }
+        body.theme-dark .op-avatar-truck { background: rgba(255,255,255,0.04); color: #9aa0a6; }
+        /* Vista previa del logo en la ficha del operador (subida de marca). */
+        .op-logo-field { grid-column: 1/-1; display: flex; align-items: center; gap: 0.8rem; }
+        .op-logo-preview {
+            width: 58px; height: 58px; border-radius: 12px; flex: 0 0 auto;
+            display: flex; align-items: center; justify-content: center;
+            background: #fff; border: 1px dashed var(--gray-300); overflow: hidden; color: var(--gray-500);
+        }
+        .op-logo-preview img { width: 100%; height: 100%; object-fit: contain; padding: 4px; box-sizing: border-box; }
+        .op-logo-preview svg { width: 30px; height: 30px; }
         /* ===== Vista CALENDARIO de envíos (meses completos, ±3 meses) =====
            En modo calendario se ocultan pestañas, tabla, paginación y los
            filtros de mes/estado (el mes lo pone la navegación del calendario);
@@ -4658,7 +4676,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Recogida</th><th>Entrega</th><th>Cliente · CIF</th><th>Envío</th><th>Mercancía</th><th>Vehículo</th><th>P. cliente<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>P. transportista<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>Margen<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>Creado por</th>
+                    <th>Operador</th><th>Recogida</th><th>Entrega</th><th>Cliente · CIF</th><th>Envío</th><th>Mercancía</th><th>Vehículo</th><th>P. cliente<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>P. transportista<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>Margen<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>Creado por</th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -8325,6 +8343,79 @@
         return String(n || '').replace(/[,·]?\s*(S\.?\s?L\.?\s?U?\.?|S\.?\s?A\.?\s?U?\.?|S\.?\s?C\.?(\s?P\.?)?|S\.?\s?COOP\.?|C\.?\s?B\.?)\s*$/i, '').trim() || String(n || '');
     }
     window.opChipNombre = opChipNombre;
+    // Logo de marca subido a la ficha del operador (data URI) o null. Se busca
+    // por nombre en el catálogo del cliente. Dynamo no lo usa (tiene su logo).
+    function opLogoDe(nombre) {
+        if (!nombre) return null;
+        for (var i = 0; i < OPERADORES_DATA.length; i++) {
+            if (OPERADORES_DATA[i].nombre === nombre) return OPERADORES_DATA[i].logo || null;
+        }
+        return null;
+    }
+    window.opLogoDe = opLogoDe;
+    // Icono de camión LINEAL (no emoji) para operadores sin logo subido.
+    var OP_TRUCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.5h10.5v9H3z"/><path d="M13.5 9.5h3.6l2.9 3v3h-6.5z"/><circle cx="7" cy="17.5" r="1.7"/><circle cx="17" cy="17.5" r="1.7"/></svg>';
+    // Nombre legal de Dynamo como operador (tooltip del avatar en envíos Dynamo).
+    var DYNAMO_OPERADOR_NOMBRE = 'Dynamo Operador Logístico S.L.';
+    // 1ª columna de la tabla de envíos: AVATAR cuadrado del operador de
+    // transporte. Dynamo → logo Dynamo. Otro operador → su logo de marca si lo
+    // subió a su ficha; si no, un camión lineal. Al pasar el ratón o pulsar,
+    // tooltip con el nombre de la empresa de transporte. Sustituye al antiguo
+    // chip con el nombre.
+    function opAvatarCell(c) {
+        var esManual = !!(c.manual && c.operador && c.operador !== 'Dynamo');
+        var nombre = esManual ? c.operador : DYNAMO_OPERADOR_NOMBRE;
+        var cls, inner;
+        if (!esManual) {
+            cls = 'op-avatar op-avatar-dynamo';
+            inner = '<img src="/images/DYNAMO-NEW-LOGO.png" alt="Dynamo">';
+        } else {
+            var logo = opLogoDe(c.operador);
+            if (logo) { cls = 'op-avatar op-avatar-logo'; inner = '<img src="' + esc(logo) + '" alt="' + esc(nombre) + '">'; }
+            else { cls = 'op-avatar op-avatar-truck'; inner = OP_TRUCK_SVG; }
+        }
+        return '<td class="op-av-cell"><span class="' + cls + '" tabindex="0" role="button" ' +
+            'data-tip="' + esc(nombre) + '" onclick="refTipShow(this)" onmouseenter="refTipShow(this)" ' +
+            'aria-label="Operador: ' + esc(nombre) + '">' + inner + '</span></td>';
+    }
+    window.opAvatarCell = opAvatarCell;
+    // Campo de SUBIDA del logo de marca en la ficha del operador: vista previa
+    // + selector de archivo + "quitar". Guarda el logo como data URI en el
+    // input oculto op-f-logo (lo lee operadorGuardar). Si no hay logo, la vista
+    // previa muestra el camión (lo que se verá en la tabla).
+    function opLogoField(o) {
+        var logo = o && o.logo ? o.logo : null;
+        var preview = logo ? '<img src="' + esc(logo) + '" alt="Logo">' : OP_TRUCK_SVG;
+        return '<div class="op-logo-field">' +
+            '<div class="op-logo-preview" data-op-logo-preview>' + preview + '</div>' +
+            '<div style="flex:1;min-width:0;">' +
+                '<label style="display:block;">Logo de la empresa (opcional)</label>' +
+                '<input type="hidden" id="op-f-logo" value="' + esc(logo || '') + '">' +
+                '<input type="file" accept="image/*" onchange="__opLogoPick(this)" style="font-size:var(--fs-m);max-width:100%;">' +
+                '<div style="font-size:var(--fs-s);color:var(--gray-500);line-height:1.45;margin-top:3px;">Se mostrará como <strong>avatar</strong> en la tabla de envíos. Si no subes ninguno, se usa un icono de camión.' +
+                    '<span data-op-logo-quitar>' + (logo ? ' · <a href="#" onclick="__opLogoClear(this);return false;" style="color:var(--red);font-weight:700;">Quitar logo</a>' : '') + '</span>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+    }
+    window.__opLogoPick = function (input) {
+        var f = input.files && input.files[0]; if (!f) return;
+        var rd = new FileReader();
+        rd.onload = function () {
+            var hid = document.getElementById('op-f-logo'); if (hid) hid.value = rd.result;
+            var pv = document.querySelector('[data-op-logo-preview]'); if (pv) pv.innerHTML = '<img src="' + rd.result + '" alt="Logo">';
+            var q = document.querySelector('[data-op-logo-quitar]');
+            if (q && !q.querySelector('a')) q.innerHTML = ' · <a href="#" onclick="__opLogoClear(this);return false;" style="color:var(--red);font-weight:700;">Quitar logo</a>';
+        };
+        rd.readAsDataURL(f);
+    };
+    window.__opLogoClear = function (a) {
+        var hid = document.getElementById('op-f-logo'); if (hid) hid.value = '';
+        var pv = document.querySelector('[data-op-logo-preview]'); if (pv) pv.innerHTML = OP_TRUCK_SVG;
+        var field = a && a.closest ? a.closest('.op-logo-field') : null;
+        var file = field ? field.querySelector('input[type=file]') : null; if (file) file.value = '';
+        var q = document.querySelector('[data-op-logo-quitar]'); if (q) q.innerHTML = '';
+    };
     function renderOperadoresTable(q) {
         var tbody = document.getElementById('tbodyOperadores'); if (!tbody) return;
         var nq = normTxt(q || '');
@@ -8375,6 +8466,7 @@
                     ctField('op-f-email', 'Email', o.email, 'trafico@empresa.com', false, 'email') +
                     ctField('op-f-contacto', 'Persona de contacto', o.contacto, 'Nombre y apellidos') +
                     ctField('op-f-web', 'Web', o.web, 'www.empresa.com') +
+                    opLogoField(o) +
                     ctNotas('op-f-notas', o.notas) +
                 '</div>',
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
@@ -8396,6 +8488,8 @@
         o.tfno = telValue('op-f-tfno'); o.email = v('op-f-email') || null;
         o.contacto = v('op-f-contacto') || null; o.web = v('op-f-web') || null;
         o.notas = v('op-f-notas') || null;
+        var logoEl = document.getElementById('op-f-logo');
+        o.logo = (logoEl && logoEl.value) ? logoEl.value : null;
         if (edit) { o.modificadoEn = Date.now(); }
         else { o.creadoEn = Date.now(); o.modificadoEn = null; OPERADORES_DATA.push(o); }
         closeDashModal();
@@ -15832,13 +15926,10 @@
             if (s.t === 'recogida') recHtml += h; else entHtml += h;
         });
         // DOS columnas de tabla reales (Recogida | Entrega): así el navegador
-        // alinea la columna de entregas igual en todas las filas.
-        // Envío con OTRO operador: el chip del operador va aquí (1ª columna),
-        // IGUAL en escritorio y en móvil (homogéneo entre versiones).
-        var chipOp = (c.manual && c.operador && c.operador !== 'Dynamo')
-            ? '<div class="op-chip-wrap"><span class="op-chip" title="Envío gestionado con tu operador: ' + esc(c.operador) + '">' + esc(opChipNombre(c.operador)) + '</span></div>'
-            : '';
-        return '<td class="route-full route-rec">' + chipOp + '<div class="rf-stops"><div class="rf-col">' + recHtml + '</div></div></td>' +
+        // alinea la columna de entregas igual en todas las filas. El operador
+        // (Dynamo u otro) ya NO va aquí como chip: vive en la 1ª columna
+        // (avatar con logo/camión), ver opAvatarCell().
+        return '<td class="route-full route-rec"><div class="rf-stops"><div class="rf-col">' + recHtml + '</div></div></td>' +
                '<td class="route-full route-ent"><div class="rf-stops"><div class="rf-col">' + entHtml + '</div></div></td>';
     }
     // Fecha de carga efectiva de un envío (asignada si existe, si no la
@@ -16210,7 +16301,7 @@
         var tbody = document.getElementById('tbodyCargas');
         if (!tbody) return;
         if (slice.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
         } else {
             // Columna CLIENTE · CIF (vista interna, 1ª): empresa + CIF +
             // crédito Dynamo concedido + total contratado (IVA incluido) de
@@ -16289,6 +16380,7 @@
                 // Estado (última columna): solo estado de asignación de transportista.
                 var asig = getAsignacionEstado(c);
                 return '<tr' + rowCls + '>' +
+                    opAvatarCell(c) +
                     rutaFechasCell(c, asigDate) +
                     __cliCell +
                     '<td class="ref">' +
@@ -16602,6 +16694,7 @@
     function sortGettersDe(key) {
         var G = {
             cargas: [
+                function (c) { return (c.manual && c.operador && c.operador !== 'Dynamo') ? c.operador : 'Dynamo'; },
                 function (c) { return __sortFecha(c.fechaAsignada || c.fecha); },
                 function (c) { return __sortFecha(c.etaEntrega); },
                 function () { return CLIENTE_ACTUAL; },
