@@ -18950,6 +18950,15 @@
                     urgenciaSel.value = 'estandar';
                     urgenciaSel.dispatchEvent(new Event('change'));
                 };
+                // "Poner el mínimo": fija el precio manual del cliente en el
+                // mínimo permitido (50% de la tarifa) y quita el aviso.
+                window.__ptarPonerMinimo = function (min) {
+                    var el = card.querySelector('[data-ptar-precio-manual]');
+                    if (!el || !(min > 0)) return;
+                    el.value = String(min); el.dataset.pref = '1'; el.style.borderColor = '';
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    if (typeof warning !== 'undefined' && warning) warning.classList.remove('show');
+                };
                 window.__ptarGrupajeCompleto = function (modo) {
                     var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
                     mlSel.value = info.mlReal === 13.2 ? '13.2' : String(info.mlMax);
@@ -19455,7 +19464,10 @@
                     if (!__tar) __tar = parseInt(card.dataset.precioBase || '0', 10) || 0;
                     if (__pm > 0 && __tar > 0 && __pm < __tar * 0.5) {
                         if (__pmEl) { __pmEl.style.borderColor = '#dc2626'; try { __pmEl.focus(); } catch (e) {} }
-                        warning.textContent = '⚠ El precio manual del cliente (' + eur2(__pm) + ') es inferior al 50% de la tarifa (' + eur2(__tar) + '). No se puede registrar por debajo de ese mínimo: sube el precio o déjalo en blanco para aplicar la tarifa.';
+                        // Mínimo = 50% de la tarifa, redondeado a 10 superior.
+                        var __min = Math.ceil(__tar * 0.5 / 10) * 10;
+                        warning.innerHTML = '⚠ El precio manual del cliente (' + eur2(__pm) + ') es inferior al 50% de la tarifa (' + eur2(__tar) + '). No se puede registrar por debajo de ese mínimo: sube el precio o déjalo en blanco para aplicar la tarifa.' +
+                            ' <button type="button" class="btn-secondary" style="min-height:36px;padding:0 0.7rem;margin-top:0.4rem;" onclick="if(window.__ptarPonerMinimo)window.__ptarPonerMinimo(' + __min + ')">Poner el mínimo (' + eur2(__min) + ')</button>';
                         warning.classList.add('show');
                         return null;
                     }
