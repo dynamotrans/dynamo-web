@@ -8368,7 +8368,7 @@
         var cls, inner;
         if (!esManual) {
             cls = 'op-avatar op-avatar-dynamo';
-            inner = '<img src="/images/DYNAMO-NEW-LOGO.png" alt="Dynamo">';
+            inner = '<img src="/images/dynamo-logo-sq.png" alt="Dynamo">';
         } else {
             var logo = opLogoDe(c.operador);
             if (logo) { cls = 'op-avatar op-avatar-logo'; inner = '<img src="' + esc(logo) + '" alt="' + esc(nombre) + '">'; }
@@ -18372,14 +18372,32 @@
                 fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'estandar');
                 function attachFlatpickr() {
                     if (!window.flatpickr || fp || !fechaInput) return;
-                    fp = window.flatpickr(fechaInput, {
-                        locale: window.flatpickr.l10ns && window.flatpickr.l10ns.es ? 'es' : 'default',
+                    // ADMIN: libertad TOTAL de fecha — pasado (hasta 1 año atrás),
+                    // futuro (hasta 1 año) y CUALQUIER día de la semana (L-D).
+                    // Sirve para registrar A POSTERIORI envíos ya cargados (p. ej.
+                    // un pedido telefónico del viernes que se apunta el lunes) o
+                    // programar con mucha antelación. El CLIENTE mantiene el
+                    // límite normal (1ª fecha elegible + solo días hábiles + 6
+                    // meses). En backend esta libertad será un permiso por rol.
+                    var esAdmin = (typeof getRole === 'function' && getRole() === 'admin');
+                    var minD, maxD, disableArr;
+                    if (esAdmin) {
+                        minD = (function () { var d = new Date(); d.setFullYear(d.getFullYear() - 1); return d; })();
+                        maxD = (function () { var d = new Date(); d.setFullYear(d.getFullYear() + 1); return d; })();
+                        disableArr = [];
+                    } else {
                         // La 1ª fecha elegible depende de la ventana (fija no
                         // admite hoy y exige el corte del día hábil anterior).
-                        minDate: isoLocal(firstLoadDate(urgenciaSel ? urgenciaSel.value : 'estandar')),
-                        maxDate: (function () { var _m = new Date(); _m.setMonth(_m.getMonth() + 6); return _m; })(), // 6 meses
+                        minD = isoLocal(firstLoadDate(urgenciaSel ? urgenciaSel.value : 'estandar'));
+                        maxD = (function () { var _m = new Date(); _m.setMonth(_m.getMonth() + 6); return _m; })(); // 6 meses
+                        disableArr = [function (d) { return nonBiz(d); }];
+                    }
+                    fp = window.flatpickr(fechaInput, {
+                        locale: window.flatpickr.l10ns && window.flatpickr.l10ns.es ? 'es' : 'default',
+                        minDate: minD,
+                        maxDate: maxD,
                         disableMobile: true,
-                        disable: [function (d) { return nonBiz(d); }],
+                        disable: disableArr,
                         dateFormat: 'Y-m-d',
                         onClose: function (selDates) {
                             if (selDates && selDates.length) {
@@ -18554,10 +18572,19 @@
                 //  · Cualquier fecha fija posterior → +50 €.
                 // El importe se decide por la fecha ELEGIDA; sin fecha no se
                 // cobra (no hay fecha que evaluar). Ventana 1-3 días → base.
+                // Registro A POSTERIORI (admin): si la fecha elegida es ANTERIOR
+                // a hoy, el envío ya se cargó → sin suplemento de fecha fija ni
+                // avisos de urgencia/reprogramación (no tienen sentido).
+                var fechaEsPasada = false;
                 var preavisoFlat = 0;
                 if (uv === 'dia') {
                     var selIso = (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) ? diaSel.value : null;
-                    if (selIso) preavisoFlat = preavisoFija(new Date(selIso + 'T00:00:00'));
+                    if (selIso) {
+                        var _selD = new Date(selIso + 'T00:00:00');
+                        var _nowD = nowMadrid();
+                        fechaEsPasada = _selD < new Date(_nowD.getFullYear(), _nowD.getMonth(), _nowD.getDate());
+                        preavisoFlat = fechaEsPasada ? 0 : preavisoFija(_selD);
+                    }
                 }
                 // Mercancía no paletizada +10% (va dentro del importe de envío).
                 if (mercaSel && mercaSel.selectedIndex === 1) precio *= 1.1;
@@ -18778,6 +18805,14 @@
                     // Ventana estándar (grupaje 1-4 · completo 1-3): mensaje verde.
                     hoyHtml = '<div style="margin-bottom:0.8rem;padding:0.6rem 0.75rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#0f6b3a;">' +
                         '<strong>Fecha de carga de 1 a ' + ventanaLen() + ' días (flexible)</strong>, el 80% veces cargamos en los 2 primeros días, es la más económica y además aumenta la probabilidad de cargar al máximo.' +
+                        '</div>';
+                } else if (fechaEsPasada && uv === 'dia') {
+                    // Registro A POSTERIORI (admin): la fecha ya pasó → el envío
+                    // se cargó ese día. Sin avisos de urgencia/reprogramación ni
+                    // suplemento; solo una nota neutra de que es un registro
+                    // retroactivo.
+                    hoyHtml = '<div style="margin-bottom:0.8rem;padding:0.6rem 0.75rem;background:rgba(51,0,204,0.06);border:1px solid rgba(51,0,204,0.2);border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:var(--gray-700);">' +
+                        '<strong>Registro a posteriori</strong>: estás dando de alta un envío con <strong>fecha ya pasada</strong> (' + (function () { var mm = String(diaSel.value).split('-'); return esc(fechaConDia(mm[2] + '/' + mm[1] + '/' + mm[0])); })() + '). Se registra tal cual, sin suplementos de fecha fija ni avisos de plazo.' +
                         '</div>';
                 } else if (loadStart && uv === 'dia') {
                     // FECHA FIJA con suplemento PLANO: el 1er día disponible es
