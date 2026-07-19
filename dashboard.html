@@ -2603,29 +2603,29 @@
         table.data .fecha-linea strong { color: var(--navy); }
         table.data td.ref .ref-cli-line { color: var(--gray-500); margin-top: 0.15rem; }
         table.data td.ref .ref-cli-inline { color: var(--gray-500); font-weight: 500; }
-        /* ===== AVATAR del OPERADOR (1ª columna de la tabla de envíos) =====
-           Cuadrado 1:1 con esquinas redondeadas. Dynamo → su logo · otro
-           operador → su logo de marca (si lo subió a su ficha) o un camión
-           lineal. Sustituye al antiguo chip con el nombre; el nombre sale en
-           tooltip al pasar el ratón o pulsar. */
-        td.op-av-cell { width: 60px; text-align: center; vertical-align: middle; padding: 6px 4px 6px 10px; }
-        .op-avatar {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 46px; height: 46px; border-radius: 10px; box-sizing: border-box;
-            background: #fff; border: 1px solid var(--gray-200); overflow: hidden;
-            cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s;
+        /* ===== CHIP del OPERADOR (3ª línea de la columna Envío) =====
+           Píldora con logo/camión + nombre corto del operador. Dynamo → logo
+           Dynamo + "Dynamo" · otro operador → su logo de marca (si lo subió a
+           su ficha) o un camión lineal + su nombre. El nombre completo va en el
+           title. Aparece bajo el estado y el nº #GX. */
+        .op-chip2-wrap { margin-top: 4px; }
+        .op-chip2 {
+            display: inline-flex; align-items: center; gap: 4px; max-width: 100%;
+            border: 1px solid; border-radius: 999px; padding: 1px 8px 1px 3px;
+            font-size: var(--fs-s); font-weight: 800; line-height: 1.6; box-sizing: border-box;
         }
-        .op-avatar:hover, .op-avatar:focus-visible {
-            border-color: var(--purple); box-shadow: 0 2px 8px rgba(51,0,204,0.16); outline: none;
+        .op-chip2-ic {
+            width: 18px; height: 18px; border-radius: 50%; flex: 0 0 auto; overflow: hidden;
+            display: inline-flex; align-items: center; justify-content: center; background: #fff;
         }
-        .op-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .op-avatar-logo { padding: 3px; }
-        .op-avatar-logo img { object-fit: contain; }
-        .op-avatar-dynamo { border-color: rgba(51,0,204,0.22); }
-        .op-avatar-truck { background: var(--gray-100); color: var(--gray-500); border-style: dashed; }
-        .op-avatar-truck svg { width: 26px; height: 26px; }
-        body.theme-dark .op-avatar { background: #10182b; border-color: rgba(255,255,255,0.12); }
-        body.theme-dark .op-avatar-truck { background: rgba(255,255,255,0.04); color: #9aa0a6; }
+        .op-chip2-ic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .op-chip2-ic-truck svg { width: 12px; height: 12px; }
+        .op-chip2-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .op-chip2-dynamo { background: rgba(51,0,204,0.08); color: var(--purple); border-color: rgba(51,0,204,0.28); }
+        .op-chip2-otro { background: rgba(139,94,52,0.12); color: #7a4f28; border-color: rgba(139,94,52,0.35); }
+        .op-chip2-otro .op-chip2-ic { background: rgba(139,94,52,0.10); color: #7a4f28; }
+        body.theme-dark .op-chip2-dynamo { background: rgba(120,120,255,0.14); color: #b9b3ff; border-color: rgba(120,120,255,0.3); }
+        body.theme-dark .op-chip2-otro { background: rgba(190,140,90,0.15); color: #d8b48c; border-color: rgba(190,140,90,0.35); }
         /* Vista previa del logo en la ficha del operador (subida de marca). */
         .op-logo-field { grid-column: 1/-1; display: flex; align-items: center; gap: 0.8rem; }
         .op-logo-preview {
@@ -4676,7 +4676,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Operador</th><th>Recogida</th><th>Entrega</th><th>Cliente · CIF</th><th>Envío</th><th>Mercancía</th><th>Vehículo</th><th>P. cliente<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>P. transportista<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>Margen<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>Creado por</th>
+                    <th>Recogida</th><th>Entrega</th><th>Cliente · CIF</th><th>Envío</th><th>Mercancía</th><th>Vehículo</th><th>P. cliente<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>P. transportista<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>Margen<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>Creado por</th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -8355,33 +8355,31 @@
     window.opLogoDe = opLogoDe;
     // Icono de camión LINEAL (no emoji) para operadores sin logo subido.
     var OP_TRUCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.5h10.5v9H3z"/><path d="M13.5 9.5h3.6l2.9 3v3h-6.5z"/><circle cx="7" cy="17.5" r="1.7"/><circle cx="17" cy="17.5" r="1.7"/></svg>';
-    // Nombre legal de Dynamo como operador (tooltip del avatar en envíos Dynamo).
+    // Nombre legal de Dynamo como operador (título del chip en envíos Dynamo).
     var DYNAMO_OPERADOR_NOMBRE = 'Dynamo Operador Logístico S.L.';
-    // 1ª columna de la tabla de envíos: AVATAR cuadrado del operador de
-    // transporte. Dynamo → logo Dynamo. Otro operador → su logo de marca si lo
-    // subió a su ficha; si no, un camión lineal. Al pasar el ratón o pulsar,
-    // tooltip con el nombre de la empresa de transporte. Sustituye al antiguo
-    // chip con el nombre.
-    function opAvatarCell(c) {
+    // CHIP del operador/transportista: va como 3ª línea de la columna Envío
+    // (bajo el estado y el nº #GX). Dynamo → logo Dynamo + "Dynamo". Otro
+    // operador → su logo de marca (si lo subió a su ficha) o un camión lineal,
+    // + el nombre corto. El nombre completo va en el title (hover). El clic
+    // sigue abriendo el detalle del envío (es parte de la fila).
+    function opChip2Html(c) {
         var esManual = !!(c.manual && c.operador && c.operador !== 'Dynamo');
-        var nombre = esManual ? c.operador : DYNAMO_OPERADOR_NOMBRE;
-        var cls, inner;
+        var nombreCompleto = esManual ? c.operador : DYNAMO_OPERADOR_NOMBRE;
+        var corto, cls, ic;
         if (!esManual) {
-            cls = 'op-avatar op-avatar-dynamo';
-            inner = '<img src="/images/dynamo-logo-sq.png" alt="Dynamo">';
+            corto = 'Dynamo'; cls = 'op-chip2 op-chip2-dynamo';
+            ic = '<span class="op-chip2-ic"><img src="/images/dynamo-logo-sq.png" alt=""></span>';
         } else {
+            corto = opChipNombre(c.operador); cls = 'op-chip2 op-chip2-otro';
             var logo = opLogoDe(c.operador);
-            if (logo) { cls = 'op-avatar op-avatar-logo'; inner = '<img src="' + esc(logo) + '" alt="' + esc(nombre) + '">'; }
-            else { cls = 'op-avatar op-avatar-truck'; inner = OP_TRUCK_SVG; }
+            ic = logo
+                ? '<span class="op-chip2-ic"><img src="' + esc(logo) + '" alt=""></span>'
+                : '<span class="op-chip2-ic op-chip2-ic-truck">' + OP_TRUCK_SVG + '</span>';
         }
-        // El clic en el avatar SOLO muestra el tooltip con el nombre — NO abre
-        // el detalle del envío (stopPropagation corta la burbuja al <tr>). El
-        // resto de la fila sigue abriendo el detalle.
-        return '<td class="op-av-cell" onclick="event.stopPropagation();"><span class="' + cls + '" tabindex="0" role="button" ' +
-            'data-tip="' + esc(nombre) + '" onclick="event.stopPropagation();refTipShow(this);" onmouseenter="refTipShow(this)" ' +
-            'aria-label="Operador: ' + esc(nombre) + '">' + inner + '</span></td>';
+        return '<div class="op-chip2-wrap"><span class="' + cls + '" title="' + esc(nombreCompleto) + '">' +
+            ic + '<span class="op-chip2-name">' + esc(corto) + '</span></span></div>';
     }
-    window.opAvatarCell = opAvatarCell;
+    window.opChip2Html = opChip2Html;
     // Campo de SUBIDA del logo de marca en la ficha del operador: vista previa
     // + selector de archivo + "quitar". Guarda el logo como data URI en el
     // input oculto op-f-logo (lo lee operadorGuardar). Si no hay logo, la vista
@@ -15930,8 +15928,8 @@
         });
         // DOS columnas de tabla reales (Recogida | Entrega): así el navegador
         // alinea la columna de entregas igual en todas las filas. El operador
-        // (Dynamo u otro) ya NO va aquí como chip: vive en la 1ª columna
-        // (avatar con logo/camión), ver opAvatarCell().
+        // (Dynamo u otro) va como chip en la 3ª línea de la columna Envío, ver
+        // opChip2Html().
         return '<td class="route-full route-rec"><div class="rf-stops"><div class="rf-col">' + recHtml + '</div></div></td>' +
                '<td class="route-full route-ent"><div class="rf-stops"><div class="rf-col">' + entHtml + '</div></div></td>';
     }
@@ -16304,7 +16302,7 @@
         var tbody = document.getElementById('tbodyCargas');
         if (!tbody) return;
         if (slice.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin envíos en este filtro</td></tr>';
         } else {
             // Columna CLIENTE · CIF (vista interna, 1ª): empresa + CIF +
             // crédito Dynamo concedido + total contratado (IVA incluido) de
@@ -16383,13 +16381,13 @@
                 // Estado (última columna): solo estado de asignación de transportista.
                 var asig = getAsignacionEstado(c);
                 return '<tr' + rowCls + '>' +
-                    opAvatarCell(c) +
                     rutaFechasCell(c, asigDate) +
                     __cliCell +
                     '<td class="ref">' +
                         '<div class="envio-estado envio-estado-top"><span class="badge badge-' + ev.color + '">' + esc(ev.label) + '</span></div>' +
                         '<strong>' + esc(c.ref) + '</strong>' +
                         (c.refCli ? ' <span class="ref-cli-inline">(' + esc(c.refCli) + ')</span>' : '') +
+                        opChip2Html(c) +
                     '</td>' +
                     '<td class="mercancia">' + esc(mercPaletiz(c)) +
                         (function () {
@@ -16697,7 +16695,6 @@
     function sortGettersDe(key) {
         var G = {
             cargas: [
-                function (c) { return (c.manual && c.operador && c.operador !== 'Dynamo') ? c.operador : 'Dynamo'; },
                 function (c) { return __sortFecha(c.fechaAsignada || c.fecha); },
                 function (c) { return __sortFecha(c.etaEntrega); },
                 function () { return CLIENTE_ACTUAL; },
