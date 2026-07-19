@@ -4493,15 +4493,10 @@
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
                 </div>
                 <div class="dash-recomienda-text">
-                    <!-- Sin título ni frase de cortesía: la tarjeta habla por el
-                         ahorro; los botones ya dicen para qué sirve. -->
-                    <p class="dash-ahorro-anio" style="font-size: var(--fs-m);font-weight:700;color:#0f6b3a;"><span data-ahorro-msg1>Este año has ahorrado <span data-ahorro-anio>—</span> enviando con Dynamo.</span>
-                        <span data-ahorro-msg2 style="color:var(--gray-700);font-weight:600;">Podrías haber ahorrado <strong data-ahorro-extra>—</strong> más contratando todo con nosotros.</span>
-                        <a href="#" data-ahorro-detalle onclick="openAhorrosModal(); return false;" style="display:block;margin-top:0.25rem;color:var(--purple);font-weight:800;">Ver detalle →</a>
-                    </p>
-                    <!-- Cuando no hay ningún ahorro este año, la tarjeta solo
-                         invita a recomendar (sin mensaje de importe). -->
-                    <p data-ahorro-cero hidden style="font-size: var(--fs-m);font-weight:700;color:var(--navy);margin:0;">¿Te estamos ayudando en tu negocio? Ayúdanos valorando nuestro trabajo. Gracias.</p>
+                    <!-- Mensaje de recomendación ESTÁNDAR. El importe de ahorro
+                         del año se quitó del dashboard (queda en su sección de
+                         Ahorros para quien quiera verlo). -->
+                    <p style="font-size: var(--fs-m);font-weight:700;color:var(--navy);margin:0;">¿Te estamos ayudando en tu negocio? Ayúdanos valorando nuestro trabajo. Gracias.</p>
                 </div>
                 <div class="dash-recomienda-btns">
                     <button type="button" class="btn-primary" onclick="abrirRecomendar()">Recomendar Dynamo</button>
@@ -14186,26 +14181,9 @@
             } catch (e) {}
         }, 900);
     }
-    (function () {
-        var elA = document.querySelector('[data-ahorro-anio]');
-        if (elA) elA.textContent = eur2(AHORRO_DYNAMO_ANIO);
-        var elM = document.querySelector('[data-ahorro-max]');
-        if (elM) elM.textContent = eur2(AHORRO_DYNAMO_ANIO + AHORRO_PERDIDO_ANIO);
-        var elE = document.querySelector('[data-ahorro-extra]');
-        if (elE) elE.textContent = eur2(AHORRO_PERDIDO_ANIO);
-        // Ocultar cada frase cuyo importe sea 0. Sin ahorros → mensaje neutro.
-        var m1 = document.querySelector('[data-ahorro-msg1]');
-        var m2 = document.querySelector('[data-ahorro-msg2]');
-        var det = document.querySelector('[data-ahorro-detalle]');
-        var cero = document.querySelector('[data-ahorro-cero]');
-        var pAnio = document.querySelector('.dash-ahorro-anio');
-        if (m1) m1.hidden = !(AHORRO_DYNAMO_ANIO > 0);
-        if (m2) m2.hidden = !(AHORRO_PERDIDO_ANIO > 0);
-        if (det) det.hidden = !(AHORRO_DYNAMO_ANIO > 0 || AHORRO_PERDIDO_ANIO > 0);
-        var sinAhorro = !(AHORRO_DYNAMO_ANIO > 0 || AHORRO_PERDIDO_ANIO > 0);
-        if (pAnio) pAnio.hidden = sinAhorro;   // frase verde entera fuera si 0
-        if (cero) cero.hidden = !sinAhorro;    // mensaje neutro en su lugar
-    })();
+    // (El importe de ahorro del año se quitó de la tarjeta Recomiéndanos del
+    // dashboard — ahora solo lleva el mensaje estándar de recomendación. El
+    // acumulado sigue disponible en la sección/modal de Ahorros.)
     // Ventana con el RESUMEN de los ahorros: solo las comparativas más
     // recientes (el historial completo, buscable y paginado — pueden ser
     // cientos — vive en la sección "Comparativas y ahorros").
