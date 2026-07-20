@@ -242,7 +242,7 @@
                     </div>
                 </div>
                 <p class="id-hint" id="fechaHint"></p>
-                <p class="id-hint">La <strong>hora NO es cita</strong>, solo para saber aprox. la hora de carga.</p>
+                <p class="id-hint">La <strong>fecha / hora de recogida</strong> la estima Dynamo automáticamente; puedes cambiarla. La <strong>hora NO es cita</strong>, solo para saber aprox. la hora de recogida.</p>
 
                 <div class="sec-title">Entrega <span class="op" style="font-weight:600;color:var(--gray-500);">· estimada</span></div>
                 <div class="row2">
@@ -525,9 +525,7 @@
         var feSel = document.getElementById('f-fechacarga');
         feSel.innerHTML = lista.map(function (d) { return '<option>' + d + '</option>'; }).join('') || '<option>Por confirmar</option>';
         feSel.disabled = esFija;
-        document.getElementById('fechaHint').textContent = esFija
-            ? 'Fecha fija ofertada: no se puede cambiar.'
-            : 'Elige uno de los días de la ventana ofertada.';
+        document.getElementById('fechaHint').textContent = 'Elige uno de los días de carga de la ventana de días ofertados. A veces sólo puede elegirse un día si lleva fecha fija de carga.';
         // Horas de carga y de entrega (mismas franjas), con valor por defecto:
         // carga 11:00-13:00 · entrega 07:00-09:00.
         document.getElementById('f-horacarga').innerHTML = FRANJAS.map(function (f) { return '<option' + (f === '11:00 - 13:00' ? ' selected' : '') + '>' + f + '</option>'; }).join('');
