@@ -11341,6 +11341,9 @@
         var fTxt = (f && f !== 'Sin fecha') ? fechaConDia(f) + (c.ventana && !c.fechaAsignada && !/fija/i.test(c.ventana) ? ' · ventana ' + c.ventana : '') : 'por confirmar';
         var oTxt = ciudadDir(c.origen, c.origenDir), dTxt = ciudadDir(c.destino, c.destinoDir);
         var mTxt = (c.mercancia ? c.mercancia + ' · ' : '') + medidasTn(c.medidas);
+        // Anotación de MERCANCÍA / detalle del envío que escribió el cliente al
+        // crear el envío → se pasa al transportista en la oferta (param dm).
+        var dmTxt = c.anotaciones || c.notas || '';
         // ¿Hay saldo en la línea de PRONTO PAGO? Si no, la oferta sale SIN esa
         // opción (y la página de aceptación la muestra como no disponible).
         var ppOn = (typeof prontoPagoActivo !== 'function') || prontoPagoActivo();
@@ -11350,6 +11353,7 @@
             '&d=' + encodeURIComponent(dTxt) +
             '&f=' + encodeURIComponent(fTxt) +
             '&m=' + encodeURIComponent(mTxt) +
+            (dmTxt ? '&dm=' + encodeURIComponent(dmTxt) : '') +
             (pt ? '&p=' + encodeURIComponent(eur2(pt)) : '') +
             (ppOn ? '' : '&pp=0');
         var msg = 'DYNAMO — OFERTA DE CARGA (PAGO CONTADO)\n\n' +
@@ -11358,6 +11362,7 @@
             'Entrega: ' + dTxt + '\n' +
             'Fecha de carga: ' + fTxt + '\n' +
             'Mercancía: ' + mTxt + '\n' +
+            (dmTxt ? 'Anotaciones de la mercancía: ' + dmTxt + '\n' : '') +
             (pt ? 'Importe: ' + eur2(pt) + ' — PAGO CONTADO\n' : '') +
             '\n¿Te interesa? ACEPTA LA CARGA y rellena tus datos (empresa, matrículas y chófer) aquí:\n' + link + '\n\n' +
             (ppOn ? 'PRONTO PAGO opcional: cobro a 48 h tras finalizar el servicio con un 3% de descuento (mínimo 15 €).\n\n' : '') +
