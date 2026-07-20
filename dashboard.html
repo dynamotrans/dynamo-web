@@ -9986,6 +9986,19 @@
         });
     }
     window.bindCpAutofill = bindCpAutofill;
+    // Código de bolsa: obligatorio salvo si la bolsa es "Ninguna" (transportista
+    // libre) → el código se bloquea, se pone en gris y muestra "Ninguna".
+    function bindBolsaSync(tipoId, codId) {
+        var t = document.getElementById(tipoId), c = document.getElementById(codId);
+        if (!t || !c) return;
+        function sync() {
+            if (t.value === 'Ninguna') { c.value = 'Ninguna'; c.disabled = true; c.style.borderColor = ''; }
+            else { if (c.value === 'Ninguna') c.value = ''; c.disabled = false; }
+        }
+        t.addEventListener('change', sync);
+        sync();
+    }
+    window.bindBolsaSync = bindBolsaSync;
     function bindFiscalValidation(id) {
         var el = document.getElementById(id);
         if (!el || el._fiscalBound) return;
@@ -10075,7 +10088,7 @@
                 })() +
                 ctField('tra-f-cif', 'CIF / NIF *', t.cif, 'B12345678 / 12345678Z') +
                 ctSelect('tra-f-bolsatipo', 'Bolsa de carga', ['Wtransnet', 'Teleroute', 'Bursa', 'Ninguna'], t.bolsaTipo || 'Wtransnet') +
-                ctField('tra-f-bolsa', 'Código bolsa de carga', t.bolsa, 'Ej. 482113') +
+                ctField('tra-f-bolsa', 'Código bolsa de carga *', t.bolsa, 'Ej. 482113') +
                 ctField('tra-f-dir', 'Domicilio fiscal (calle y número)', t.dir, 'Calle y número', true) +
                 ctField('tra-f-cp', 'CP', t.cp, '41001') +
                 ctField('tra-f-ciudad', 'Localidad', t.ciudad, 'Sevilla') +
@@ -10196,6 +10209,7 @@
                 });
                 bindFiscalValidation('tra-f-cif');
                 bindCpAutofill('tra-f-cp', 'tra-f-prov', 'tra-f-pais');
+                bindBolsaSync('tra-f-bolsatipo', 'tra-f-bolsa');
             }
         });
     }
@@ -10204,8 +10218,12 @@
     function transportistaGuardar(idx) {
         function v(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
         var empresa = v('tra-f-empresa'), cif = v('tra-f-cif');
-        if (!empresa || !cif) {
+        // Código de bolsa obligatorio salvo si la bolsa es "Ninguna".
+        var btTipo = (document.getElementById('tra-f-bolsatipo') || {}).value || 'Wtransnet';
+        var bolsaFalta = btTipo !== 'Ninguna' && !v('tra-f-bolsa');
+        if (!empresa || !cif || bolsaFalta) {
             ['tra-f-empresa', 'tra-f-cif'].forEach(function (id) { var el = document.getElementById(id); if (el && !el.value.trim()) el.style.borderColor = '#dc2626'; });
+            if (bolsaFalta) { var bc = document.getElementById('tra-f-bolsa'); if (bc) bc.style.borderColor = '#dc2626'; }
             return;
         }
         var edit = (idx != null && idx >= 0 && idx < TRANSPORTISTAS_DATA.length);
@@ -10217,7 +10235,7 @@
         if (estEl) t.estadoOp = estEl.value;
         var btEl = document.getElementById('tra-f-bolsatipo');
         t.bolsaTipo = btEl ? btEl.value : (t.bolsaTipo || 'Wtransnet');
-        t.bolsa = v('tra-f-bolsa') || null;
+        t.bolsa = (t.bolsaTipo === 'Ninguna') ? null : (v('tra-f-bolsa') || null);
         t.dir = v('tra-f-dir') || null; t.cp = v('tra-f-cp') || null;
         t.ciudad = v('tra-f-ciudad') || null; t.prov = v('tra-f-prov') || null;
         t.pais = v('tra-f-pais') || 'España';

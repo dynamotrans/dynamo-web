@@ -33,6 +33,7 @@
     .viaje dd { font-size: 0.92rem; font-weight: 700; }
     .pago-contado { margin-top: 0.7rem; background: rgba(34,165,90,0.1); border: 1.5px solid var(--green); border-radius: 10px; padding: 0.6rem 0.75rem; font-size: 0.9rem; font-weight: 800; color: var(--green-dark); }
     .pago-contado .imp { font-size: 1.25rem; }
+    .pago-contado .base-nota { font-size: 0.78rem; font-weight: 600; opacity: 0.85; }
     label { display: block; font-size: 0.72rem; font-weight: 800; color: var(--gray-700); margin: 0.75rem 0 0.25rem; }
     label .op { color: var(--gray-500); font-weight: 600; }
     input[type=text], input[type=tel], input[type=date], textarea, select {
@@ -118,7 +119,7 @@
                 <dt>Entrega</dt><dd id="v-dest">—</dd>
                 <dt>Fecha de carga ofertada</dt><dd id="v-fecha">—</dd>
                 <dt>Mercancía</dt><dd id="v-merc">—</dd>
-                <div class="pago-contado" id="v-pago" hidden>💶 <span class="imp" id="v-imp"></span> · PAGO CONTADO</div>
+                <div class="pago-contado" id="v-pago" hidden><span class="imp" id="v-imp"></span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>
             </dl>
 
             <!-- 1) IDENTIFICACIÓN: escribe tu CIF/DNI y pulsa Buscar -->
@@ -136,12 +137,6 @@
             <div class="empresa-resumen" id="empresaResumen">
                 <div class="er-nombre" id="er-nombre">—</div>
                 <div class="er-cif" id="er-cif">—</div>
-                <div class="er-grid">
-                    <div><div class="er-k">Población</div><div class="er-v" id="er-ciudad">—</div></div>
-                    <div><div class="er-k">Flota</div><div class="er-v" id="er-flota">—</div></div>
-                    <div><div class="er-k">Seguro</div><div class="er-v" id="er-seguro">—</div></div>
-                    <div><div class="er-k">Bolsa de cargas</div><div class="er-v" id="er-bolsa">—</div></div>
-                </div>
                 <button type="button" class="er-cambiar" onclick="cambiarEmpresa()">No soy yo / cambiar</button>
             </div>
 
@@ -167,22 +162,22 @@
                     <div class="row2">
                         <div>
                             <label for="alta-bolsa-tipo">Bolsa de carga</label>
-                            <select id="alta-bolsa-tipo"><option>Wtransnet</option><option>Teleroute</option><option>Bursa</option><option>Ninguna</option></select>
+                            <select id="alta-bolsa-tipo" onchange="altaBolsaSync()"><option>Wtransnet</option><option>Teleroute</option><option>Bursa</option><option>Ninguna</option></select>
                         </div>
                         <div>
-                            <label for="alta-bolsa">Código bolsa de carga <span class="op">· opcional</span></label>
+                            <label for="alta-bolsa">Código bolsa de carga *</label>
                             <input type="text" id="alta-bolsa" placeholder="Ej. 482113">
                         </div>
                     </div>
-                    <label for="alta-dir">Domicilio fiscal (calle y número)</label>
+                    <label for="alta-dir">Domicilio fiscal (calle y número) <span class="op">· opcional</span></label>
                     <input type="text" id="alta-dir" placeholder="Calle y número">
                     <div class="row2">
-                        <div><label for="alta-cp">CP</label><input type="text" id="alta-cp" placeholder="41001" inputmode="numeric"></div>
-                        <div><label for="alta-loc">Localidad</label><input type="text" id="alta-loc" placeholder="Sevilla"></div>
+                        <div><label for="alta-cp">CP <span class="op">· opcional</span></label><input type="text" id="alta-cp" placeholder="41001" inputmode="numeric"></div>
+                        <div><label for="alta-loc">Localidad <span class="op">· opcional</span></label><input type="text" id="alta-loc" placeholder="Sevilla"></div>
                     </div>
                     <div class="row2">
-                        <div><label for="alta-prov">Provincia</label><input type="text" id="alta-prov" placeholder="Sevilla"></div>
-                        <div><label for="alta-pais">País</label><input type="text" id="alta-pais" value="España"></div>
+                        <div><label for="alta-prov">Provincia <span class="op">· opcional</span></label><input type="text" id="alta-prov" placeholder="Sevilla"></div>
+                        <div><label for="alta-pais">País <span class="op">· opcional</span></label><input type="text" id="alta-pais" value="España"></div>
                     </div>
                     <label for="alta-tfno">Teléfono *</label>
                     <div class="telrow">
@@ -201,7 +196,7 @@
                     </div>
                     <label for="alta-email">Email (tráfico) *</label>
                     <input type="text" id="alta-email" placeholder="trafico@dominio.com" inputmode="email">
-                    <label for="alta-contacto">Persona de contacto</label>
+                    <label for="alta-contacto">Persona de contacto <span class="op">· opcional</span></label>
                     <input type="text" id="alta-contacto" placeholder="Nombre y apellidos">
                     <div class="row2">
                         <div>
@@ -209,7 +204,7 @@
                             <select id="alta-adr"><option>No</option><option>Sí</option></select>
                         </div>
                         <div>
-                            <label for="alta-seguro">Seguro de mercancías</label>
+                            <label for="alta-seguro">Seguro de mercancías <span class="op">· opcional</span></label>
                             <input type="text" id="alta-seguro" placeholder="AXA · Póliza CMR 88-456129">
                         </div>
                     </div>
@@ -344,6 +339,14 @@
         '46': 'Valencia', '47': 'Valladolid', '48': 'Bizkaia', '49': 'Zamora', '50': 'Zaragoza',
         '51': 'Ceuta', '52': 'Melilla'
     };
+    // Código de bolsa: obligatorio salvo si la bolsa es "Ninguna" (transportista
+    // libre, no está en ninguna bolsa) → el código se bloquea y pone "Ninguna".
+    function altaBolsaSync() {
+        var t = document.getElementById('alta-bolsa-tipo'), c = document.getElementById('alta-bolsa');
+        if (!t || !c) return;
+        if (t.value === 'Ninguna') { c.value = 'Ninguna'; c.disabled = true; c.classList.remove('err'); }
+        else { if (c.value === 'Ninguna') c.value = ''; c.disabled = false; }
+    }
     (function () {
         var cp = document.getElementById('alta-cp'); if (!cp) return;
         cp.addEventListener('input', function () {
@@ -427,6 +430,7 @@
             if (altaCif && !altaCif.value.trim()) altaCif.value = document.getElementById('f-buscar-id').value.trim();
             document.getElementById('altaForm').style.display = 'block';
             window._altaMode = true; window._empresaSel = null;
+            altaBolsaSync();
             montarDesplegables();
             document.getElementById('restForm').classList.add('show');
             document.getElementById('altaForm').scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -438,10 +442,6 @@
         // Rellenar el resumen de la empresa.
         document.getElementById('er-nombre').textContent = hit.empresa;
         document.getElementById('er-cif').textContent = 'CIF/DNI: ' + hit.cif;
-        document.getElementById('er-ciudad').textContent = hit.ciudad || '—';
-        document.getElementById('er-flota').textContent = hit.flota || '—';
-        document.getElementById('er-seguro').textContent = hit.seguro || '—';
-        document.getElementById('er-bolsa').textContent = hit.bolsa || '—';
         window._empresaSel = hit;
         document.getElementById('empresaResumen').classList.add('show');
         // Revelar el resto del formulario y montar los desplegables.
@@ -556,7 +556,12 @@
         var rigido = /rígido/i.test(document.getElementById('f-camion').value);
         if (!rigido) req.push('f-remolque');
         // En modo ALTA (empresa nueva), también son obligatorios sus datos base.
-        if (window._altaMode) req = ['alta-empresa', 'alta-cif', 'alta-tfno', 'alta-email'].concat(req);
+        // El código de bolsa es obligatorio salvo si la bolsa es "Ninguna".
+        if (window._altaMode) {
+            var altaReq = ['alta-empresa', 'alta-cif', 'alta-tfno', 'alta-email'];
+            if (document.getElementById('alta-bolsa-tipo').value !== 'Ninguna') altaReq.push('alta-bolsa');
+            req = altaReq.concat(req);
+        }
         var ok = true;
         req.forEach(function (id) {
             var el = document.getElementById(id);
