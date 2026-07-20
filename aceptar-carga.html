@@ -143,7 +143,7 @@
     .stop-ico { width: 74px; height: 74px; border-radius: 50%; background: rgba(220,53,53,0.12); color: var(--red); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.9rem; font-size: 2rem; font-weight: 900; }
     .stop-ico.amber { background: rgba(245,166,35,0.15); color: #b8860b; }
     .stop-screen dl.viaje { text-align: left; max-width: 420px; margin: 1rem auto 0; }
-    /* Banner de reserva temporal (contador de 2 min) */
+    /* Banner de reserva temporal (contador de 4 min) */
     .reserva-banner { margin: 0 0 1rem; background: rgba(51,0,204,0.06); border: 1.5px solid rgba(51,0,204,0.28); border-radius: 12px; padding: 0.7rem 0.85rem; font-size: 0.84rem; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 0.5rem; line-height: 1.4; }
     .reserva-banner .rb-timer { font-size: 1.05rem; font-weight: 900; color: var(--purple); font-variant-numeric: tabular-nums; }
     .reserva-banner.urgent { background: #fdecec; border-color: #f5b5b5; color: #b42318; }
@@ -178,12 +178,12 @@
             <p class="foot">¿Dudas? <a href="tel:+34955225945">+34 955 225 945</a> · <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a></p>
         </div>
 
-        <!-- 0-ter) TIEMPO AGOTADO: pasaron los 2 min de reserva y la carga se
+        <!-- 0-ter) TIEMPO AGOTADO: pasaron los 4 min de reserva y la carga se
              ha liberado; hay que volver a comprobar disponibilidad. -->
         <div class="stop-screen" id="expiredScreen">
             <div class="stop-ico amber">⏳</div>
             <h1>Se ha agotado el tiempo de reserva</h1>
-            <p class="sub">No se completó la aceptación en <strong>2 minutos</strong>, así que la carga ha vuelto a quedar libre. Vuelve a comprobar si sigue disponible.</p>
+            <p class="sub">No se completó la aceptación en <strong>4 minutos</strong>, así que la carga ha vuelto a quedar libre. Vuelve a comprobar si sigue disponible.</p>
             <button type="button" class="btn" onclick="location.reload()">Volver a comprobar disponibilidad</button>
         </div>
 
@@ -191,9 +191,9 @@
             <h1>Aceptar carga</h1>
             <p class="sub">Oferta de <strong>Dynamo Operador de Transportes</strong> · <strong style="color:var(--green-dark);">PAGO CONTADO</strong></p>
 
-            <!-- Reserva temporal: contador de 2 min mientras rellena los datos. -->
+            <!-- Reserva temporal: contador de 4 min mientras rellena los datos. -->
             <div class="reserva-banner" id="reservaBanner">
-                <span>⏳ Reserva temporal: te quedan <span class="rb-timer" id="reservaTimer">2:00</span> para completar y aceptar antes de que la carga se libere.</span>
+                <span>⏳ Reserva temporal: te quedan <span class="rb-timer" id="reservaTimer">4:00</span> para completar y aceptar antes de que la carga se libere.</span>
             </div>
 
             <dl class="viaje" id="viajeBox"></dl>
@@ -967,7 +967,7 @@
     });
 
     function aceptar() {
-        // Si ya venció la reserva de 2 min, la carga se liberó: no se registra.
+        // Si ya venció la reserva de 4 min, la carga se liberó: no se registra.
         if (window._reservaExpirada) { expirarReserva(); return; }
         if (!window._empresaSel && !window._altaMode) { document.getElementById('f-buscar-id').classList.add('err'); document.getElementById('f-buscar-id').scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
         // Empresa YA existente: confirmar identidad con los 3 últimos dígitos
@@ -1045,7 +1045,7 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // ================= DISPONIBILIDAD + RESERVA (2 min) =================
+    // ================= DISPONIBILIDAD + RESERVA (4 min) =================
     // Al abrir el enlace: pantalla "comprobando disponibilidad" ~1,8 s. Luego:
     //  · estado=tomada  → pantalla "ya no disponible" con datos enmascarados.
     //  · disponible     → formulario + contador de reserva (por defecto 120 s).
@@ -1101,7 +1101,7 @@
         setTimeout(function () {
             if (q('estado', 'libre') === 'tomada') { mostrarTomada(); return; }
             mostrarPantalla('formScreen');
-            var seg = parseInt(q('t', '120'), 10); if (isNaN(seg) || seg < 5) seg = 120;
+            var seg = parseInt(q('t', '240'), 10); if (isNaN(seg) || seg < 5) seg = 240;
             iniciarReserva(seg);
         }, 1800);
     })();
