@@ -240,7 +240,7 @@
         <div class="stop-screen" id="takenScreen">
             <div class="stop-ico">✕</div>
             <h1 style="color:var(--red);">Esta carga ya no está disponible</h1>
-            <p class="sub">La aceptó otro transportista antes que tú.</p>
+            <p class="sub" id="tk-sub">La aceptó otro transportista antes que tú.</p>
             <div class="taken-data">
                 <div class="tk-row"><span class="tk-k">Aceptada el</span><span class="tk-v" id="tk-fecha">—</span></div>
                 <div class="tk-row"><span class="tk-k">Aceptada por</span><span class="tk-v" id="tk-nom">—</span></div>
@@ -1344,7 +1344,16 @@
             partes.slice(0, -1).join(', ') + ' y ' + partes[partes.length - 1];
         return 'hace ' + txt;
     }
-    function mostrarTomada() {
+    function mostrarTomada(enTramite) {
+        // EN TRÁMITE: otro transportista la tiene RESERVADA (dentro de su tiempo)
+        // pero aún no la ha aceptado → no hay datos que mostrar todavía.
+        if (enTramite) {
+            document.getElementById('tk-sub').textContent = 'Otro transportista llegó antes que tú y la está tramitando ahora.';
+            ['tk-fecha', 'tk-nom', 'tk-cif'].forEach(function (id) { document.getElementById(id).textContent = 'Ahora en trámite'; });
+            mostrarPantalla('takenScreen');
+            return;
+        }
+        document.getElementById('tk-sub').textContent = 'La aceptó otro transportista antes que tú.';
         var nom = q('tnom', 'Transportes Iberia Express S.L.');
         var cif = q('tcif', 'B58830217');
         // Minutos transcurridos desde la aceptación (demo: 1592 = 1 día 2 h 32 min).
@@ -1379,7 +1388,10 @@
         document.getElementById('chk-count').textContent = dur;
         // Consulta al backend (mock). estado=tomada fuerza "no disponible".
         comprobarDisponibilidad(dur, function () {
-            if (q('estado', 'libre') === 'tomada') { mostrarTomada(); return; }
+            var est = q('estado', 'libre');
+            if (est === 'tomada') { mostrarTomada(false); return; }
+            // Reservada por otro transportista dentro de su tiempo (aún sin aceptar).
+            if (est === 'tramite' || est === 'reservada') { mostrarTomada(true); return; }
             mostrarPantalla('formScreen');
             // DEMO: total 30 s (15 s tranquilo + 15 s último tramo). En producción
             // será t=180 (3 min) y u=60 (último minuto). Ajustables por URL.
