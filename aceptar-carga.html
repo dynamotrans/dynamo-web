@@ -70,14 +70,22 @@
     .empresa-resumen .er-k { font-size: 0.66rem; font-weight: 800; color: var(--gray-500); }
     .empresa-resumen .er-v { font-size: 0.85rem; font-weight: 700; }
     .empresa-resumen .er-cambiar { margin-top: 0.6rem; font-size: 0.76rem; font-weight: 800; color: var(--purple); background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; }
-    /* Subida de documentos por TIPO en el alta (ya clasificados). */
-    .doc-up { margin-top: 0.8rem; }
-    .doc-up-btn { display: inline-flex; align-items: center; gap: 0.45rem; background: #fff; border: 1.5px dashed var(--gray-300); border-radius: 10px; padding: 0.55rem 0.9rem; font-weight: 800; font-size: 0.85rem; color: var(--purple); cursor: pointer; }
-    .doc-up-btn:hover { border-color: var(--purple); background: rgba(51,0,204,0.04); }
-    .doc-up-hint { font-size: 0.72rem; color: var(--gray-500); margin-top: 0.25rem; }
-    .doc-up-files { margin-top: 0.35rem; }
-    .doc-up-files .df { display: flex; align-items: center; gap: 0.45rem; font-size: 0.82rem; font-weight: 700; color: var(--gray-700); padding: 0.2rem 0; }
-    .doc-up-files .df button { background: none; border: none; color: var(--red); font-weight: 900; font-size: 0.95rem; cursor: pointer; line-height: 1; padding: 0 0.2rem; }
+    /* Subida de documentos por TIPO en el alta (cajas grandes tipo drop). */
+    .doc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+    .doc-drop {
+        display: block; border: 2px dashed var(--gray-300); border-radius: 11px;
+        padding: 0.95rem 0.6rem; text-align: center; color: var(--gray-500);
+        font-size: 0.86rem; font-weight: 800; cursor: pointer;
+        transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    .doc-drop:hover { border-color: var(--purple); background: rgba(51,0,204,0.04); color: var(--purple); }
+    .doc-drop .dd-sub { font-size: 0.72rem; font-weight: 600; margin-top: 0.25rem; opacity: 0.85; }
+    .doc-drop.has-file { border-style: solid; border-color: var(--green); background: rgba(34,165,90,0.08); color: var(--green-dark); }
+    .doc-list { list-style: none; margin: 0.4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+    .doc-list li { display: flex; align-items: center; gap: 0.45rem; background: #fff; border: 1px solid var(--gray-200); border-radius: 8px; padding: 0.35rem 0.55rem; font-size: 0.8rem; font-weight: 700; color: var(--navy); }
+    .doc-list li .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .doc-list li button { border: none; background: none; color: var(--gray-500); font-size: 1.05rem; line-height: 1; cursor: pointer; padding: 0 0.2rem; }
+    .doc-list li button:hover { color: var(--red); }
     /* Resto del formulario, oculto hasta identificar la empresa */
     #restForm { display: none; }
     #restForm.show { display: block; }
@@ -197,21 +205,20 @@
                             <input type="text" id="alta-seguro" placeholder="AXA · Póliza CMR 88-456129">
                         </div>
                     </div>
-                    <label style="margin-bottom:0.1rem;">Documentación del alta</label>
-                    <div class="doc-up">
-                        <label class="doc-up-btn">📎 Subir hoja CIF<input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="docUp(this,'cif',1)"></label>
-                        <div class="doc-up-hint">PDF o foto</div>
-                        <div class="doc-up-files" id="doc-cif"></div>
+                    <label style="margin-bottom:0.35rem;">Documentación del alta</label>
+                    <div class="doc-grid">
+                        <div>
+                            <label class="doc-drop" data-doc="cif">📎 Subir hoja CIF<div class="dd-sub">PDF o foto</div><input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="docUp(this,'cif',1)"></label>
+                            <ul class="doc-list" id="doc-cif"></ul>
+                        </div>
+                        <div>
+                            <label class="doc-drop" data-doc="dni">📎 Subir DNI<div class="dd-sub">PDF o foto</div><input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="docUp(this,'dni',1)"></label>
+                            <ul class="doc-list" id="doc-dni"></ul>
+                        </div>
                     </div>
-                    <div class="doc-up">
-                        <label class="doc-up-btn">📎 Subir DNI<input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="docUp(this,'dni',1)"></label>
-                        <div class="doc-up-hint">PDF o foto</div>
-                        <div class="doc-up-files" id="doc-dni"></div>
-                    </div>
-                    <div class="doc-up">
-                        <label class="doc-up-btn">📎 Otros documentos<input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple hidden onchange="docUp(this,'otros',3)"></label>
-                        <div class="doc-up-hint">Escrituras, poderes, certificados, seguro CMR… · máx. 3</div>
-                        <div class="doc-up-files" id="doc-otros"></div>
+                    <div style="margin-top:0.6rem;">
+                        <label class="doc-drop" data-doc="otros">📎 Otros documentos<div class="dd-sub">Escrituras, poderes, certificados, seguro CMR… · máx. 3</div><input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple hidden onchange="docUp(this,'otros',3)"></label>
+                        <ul class="doc-list" id="doc-otros"></ul>
                     </div>
                 </div>
             </div>
@@ -430,8 +437,10 @@
     function renderDoc(cat) {
         var el = document.getElementById('doc-' + cat); if (!el) return;
         el.innerHTML = _altaDocs[cat].map(function (n, i) {
-            return '<div class="df">📄 ' + escH(n) + ' <button type="button" onclick="docDel(\'' + cat + '\',' + i + ')" aria-label="Quitar">✕</button></div>';
+            return '<li>📄<span class="name">' + escH(n) + '</span><button type="button" onclick="docDel(\'' + cat + '\',' + i + ')" aria-label="Quitar">✕</button></li>';
         }).join('');
+        var drop = document.querySelector('.doc-drop[data-doc="' + cat + '"]');
+        if (drop) drop.classList.toggle('has-file', _altaDocs[cat].length > 0);
     }
     function docDel(cat, i) { _altaDocs[cat].splice(i, 1); renderDoc(cat); }
     document.getElementById('f-buscar-id').addEventListener('keydown', function (e) {
