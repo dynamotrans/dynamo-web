@@ -138,6 +138,11 @@
     .check-screen { display: none; text-align: center; padding: 2.4rem 0.6rem; }
     .check-screen.show { display: block; }
     .spin-lg { width: 48px; height: 48px; border-width: 4px; margin: 0 auto 1.1rem; }
+    /* Barra de progreso + contador de la comprobación de disponibilidad */
+    .chk-bar-wrap { max-width: 320px; height: 10px; margin: 1.3rem auto 0.5rem; background: var(--gray-200); border-radius: 999px; overflow: hidden; }
+    .chk-bar { height: 100%; width: 0; background: linear-gradient(90deg, var(--purple), var(--green)); border-radius: 999px; transition: width 0.08s linear; }
+    .chk-row { max-width: 320px; margin: 0 auto; display: flex; justify-content: space-between; align-items: baseline; font-size: 0.82rem; font-weight: 700; color: var(--gray-500); }
+    .chk-row .chk-cd strong { color: var(--purple); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
     /* Pantallas "ya no disponible" / "tiempo agotado" */
     .stop-screen { display: none; text-align: center; padding: 1.6rem 0.6rem; }
     .stop-screen.show { display: block; }
@@ -145,12 +150,24 @@
     .stop-ico.amber { background: rgba(245,166,35,0.15); color: #b8860b; }
     .stop-screen dl.viaje { text-align: left; max-width: 420px; margin: 1rem auto 0; }
     /* Banner de reserva temporal (contador de 4 min) */
-    .reserva-banner { margin: 0 0 1rem; background: rgba(51,0,204,0.06); border: 1.5px solid rgba(51,0,204,0.28); border-radius: 12px; padding: 0.7rem 0.85rem; font-size: 0.84rem; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 0.5rem; line-height: 1.4; }
+    /* Banner de reserva: fijo arriba (sticky) para verlo siempre al hacer scroll. */
+    .reserva-banner { position: sticky; top: 0; z-index: 30; margin: 0 0 1rem; background: #ece8fb; border: 1.5px solid rgba(51,0,204,0.35); border-radius: 12px; padding: 0.7rem 0.85rem; font-size: 0.84rem; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 0.5rem; line-height: 1.4; box-shadow: 0 2px 10px rgba(20,10,60,0.1); }
     .reserva-banner .rb-timer { font-size: 1.05rem; font-weight: 900; color: var(--purple); font-variant-numeric: tabular-nums; }
-    .reserva-banner.urgent { background: #fdecec; border-color: #f5b5b5; color: #b42318; }
+    .reserva-banner.urgent { background: #fde3e3; border-color: #f0a5a5; color: #b42318; }
     .reserva-banner.urgent .rb-timer { color: var(--red); }
     .foot { margin-top: 1rem; font-size: 0.75rem; color: var(--gray-500); text-align: center; }
     .foot a { color: var(--purple); font-weight: 700; text-decoration: none; }
+    /* Botones de contacto (Llamar / WhatsApp / Email) */
+    .dudas-lbl { margin-top: 1.2rem; font-size: 0.8rem; font-weight: 700; color: var(--gray-600); text-align: center; }
+    .contact-btns { display: flex; gap: 0.5rem; margin-top: 0.55rem; flex-wrap: wrap; justify-content: center; }
+    .cbtn { flex: 1; min-width: 96px; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; text-decoration: none; font-weight: 800; font-size: 0.86rem; padding: 0.65rem 0.6rem; border-radius: 11px; border: 1.5px solid; }
+    .cbtn svg { width: 16px; height: 16px; }
+    .cbtn-call { color: var(--purple); border-color: rgba(51,0,204,0.3); background: rgba(51,0,204,0.05); }
+    .cbtn-call:hover { background: rgba(51,0,204,0.1); }
+    .cbtn-wa { color: #fff; background: #25D366; border-color: #25D366; }
+    .cbtn-wa:hover { background: #1eb457; }
+    .cbtn-mail { color: var(--purple); border-color: rgba(51,0,204,0.3); background: rgba(51,0,204,0.05); }
+    .cbtn-mail:hover { background: rgba(51,0,204,0.1); }
 </style>
 </head>
 <body>
@@ -163,6 +180,8 @@
             <div class="spin spin-lg"></div>
             <h1>Comprobando disponibilidad…</h1>
             <p class="sub">Estamos verificando si la carga <strong id="chk-ref">—</strong> sigue disponible.</p>
+            <div class="chk-bar-wrap"><div class="chk-bar" id="chk-bar"></div></div>
+            <div class="chk-row"><span class="chk-pct" id="chk-pct">0%</span><span class="chk-cd"><strong id="chk-count">5</strong> s</span></div>
         </div>
 
         <!-- 0-bis) YA NO DISPONIBLE: la aceptó otro transportista. Datos del que
@@ -176,7 +195,12 @@
                 <dt>CIF / DNI</dt><dd id="tk-cif">—</dd>
                 <dt>Teléfono</dt><dd id="tk-tel">—</dd>
             </dl>
-            <p class="foot">¿Dudas? <a href="tel:+34955225945">+34 955 225 945</a> · <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a></p>
+            <div class="dudas-lbl">¿Dudas?</div>
+            <div class="contact-btns">
+                <a class="cbtn cbtn-call" href="tel:+34955225945"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar</a>
+                <a class="cbtn cbtn-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</a>
+                <a class="cbtn cbtn-mail" href="mailto:info@dynamotrans.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>Email</a>
+            </div>
         </div>
 
         <!-- 0-ter) TIEMPO AGOTADO: pasaron los 4 min de reserva y la carga se
@@ -418,7 +442,12 @@
             <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br>El equipo de Dynamo te confirmará la asignación en breve.<br><span id="ok-alta" hidden>🆕 Te damos de <strong>alta como transportista de Dynamo</strong> (pendiente de validación).</span></p>
             <dl class="viaje" id="ok-resumen" style="text-align:left;"></dl>
             <div class="pago-contado" id="ok-orden" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;">📧 En unos minutos recibirás la <strong>orden de carga</strong> por email en <strong id="ok-email" style="color:var(--purple);">—</strong>.</div>
-            <p class="foot">¿Dudas? <a href="tel:+34955225945">+34 955 225 945</a> · <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a></p>
+            <div class="dudas-lbl">¿Dudas?</div>
+            <div class="contact-btns">
+                <a class="cbtn cbtn-call" href="tel:+34955225945"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar</a>
+                <a class="cbtn cbtn-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</a>
+                <a class="cbtn cbtn-mail" href="mailto:info@dynamotrans.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>Email</a>
+            </div>
         </div>
     </div>
     <p class="foot"><a href="https://dynamotrans.com">dynamotrans.com</a></p>
@@ -1033,20 +1062,44 @@
             Array.prototype.forEach.call(dd.childNodes, function (n) { if (n.nodeType === 3) loc += n.textContent; });
             return { loc: loc.trim(), hor: hor.trim() };
         }
-        function puntoHtml(pi, fh) {
-            return escH(pi.loc) +
-                (pi.hor ? '<span class="v-sub">Horario almacén: ' + escH(pi.hor) + '</span>' : '') +
-                (fh ? '<span class="v-sub">Fecha y hora estimada: ' + escH(fh) + '</span>' : '');
+        // dd con línea principal + sub-líneas pequeñas (omite las vacías).
+        function ddSub(main, subs) {
+            return escH(main) + (subs || []).filter(Boolean).map(function (s) {
+                return '<span class="v-sub">' + escH(s) + '</span>';
+            }).join('');
+        }
+        // Punto (recogida/entrega): dirección + fecha (real en recogida) + horario
+        // del almacén + horario estimado de la operación.
+        function puntoHtml(pi, fechaLbl, fecha, horaLbl, hora) {
+            return ddSub(pi.loc, [
+                fecha ? fechaLbl + ' ' + fecha : '',
+                pi.hor ? 'Horario almacén: ' + pi.hor : '',
+                hora ? horaLbl + ' ' + hora : ''
+            ]);
+        }
+        // Detalle de mercancía de la oferta (metros, palets, peso, tipo de carga…).
+        function detallesMerc() {
+            var box = document.querySelector('#viajeBox .v-details'), out = [];
+            if (box) Array.prototype.forEach.call(box.querySelectorAll('.vd'), function (vd) {
+                var k = vd.querySelector('.vd-k'), v = vd.querySelector('.vd-v');
+                if (k && v) out.push(k.textContent + ': ' + v.textContent);
+            });
+            return out;
         }
         var rec = puntoInfo('v-orig'), ent = puntoInfo('v-dest');
-        var recFH = okVal('f-fechacarga') + (okVal('f-horacarga') ? ' · ' + okVal('f-horacarga') : '');
         var entFecha = okVal('f-fechaentrega'), entHora = okVal('f-horaentrega');
-        var entFH = entFecha ? (entFecha + (entHora ? ' · ' + entHora : '')) : '';
+        // Datos del transportista (ficha existente o alta), vehículo y conductor.
+        var empNom = window._empresaSel ? window._empresaSel.empresa : (okVal('alta-empresa') || '—');
+        var empCif = window._empresaSel ? window._empresaSel.cif : (okVal('alta-cif') || '—');
+        var mercDet = detallesMerc();
         var rows = [
             ['Envío', escH(okTxt('v-ref'))],
-            ['Recogida', puntoHtml(rec, recFH)],
-            ['Entrega', puntoHtml(ent, entFH)],
-            ['Mercancía', escH(okTxt('v-merc'))]
+            ['Recogida', puntoHtml(rec, 'Fecha de carga:', okVal('f-fechacarga'), 'Horario estimado de recogida:', okVal('f-horacarga'))],
+            ['Entrega', puntoHtml(ent, 'Fecha estimada de entrega:', entFecha, 'Horario estimado de entrega:', entHora)],
+            ['Mercancía', ddSub(okTxt('v-merc'), mercDet.length ? [mercDet.join(' · ')] : [])],
+            ['Transportista', ddSub(empNom, ['CIF / DNI: ' + empCif])],
+            ['Vehículo', ddSub(okVal('f-camion'), ['Matrícula tractora: ' + okVal('f-tractora') + (okVal('f-remolque') ? ' · Remolque: ' + okVal('f-remolque') : '')])],
+            ['Conductor', ddSub(okVal('f-chofer'), ['DNI / NIE: ' + okVal('f-dnichofer') + ' · Tel: ' + okVal('f-pref') + ' ' + okVal('f-tfno')])]
         ];
         var imp = okTxt('v-imp');
         var pronto = document.getElementById('f-pronto') && document.getElementById('f-pronto').checked;
@@ -1119,16 +1172,32 @@
         document.getElementById('tk-tel').textContent = maskTel(tel);
         mostrarPantalla('takenScreen');
     }
+    // Animación de "comprobando" con barra de progreso (0→100 %) y contador de
+    // segundos (5,4,3,2,1,0), luego resuelve. dur en segundos (cd por URL).
+    function comprobarDisponibilidad(dur, done) {
+        var bar = document.getElementById('chk-bar'), pct = document.getElementById('chk-pct'), cd = document.getElementById('chk-count');
+        var t0 = new Date().getTime();
+        var iv = setInterval(function () {
+            var el = (new Date().getTime() - t0) / 1000;
+            var p = Math.min(100, Math.round(el / dur * 100));
+            if (bar) bar.style.width = p + '%';
+            if (pct) pct.textContent = p + '%';
+            if (cd) cd.textContent = Math.max(0, Math.ceil(dur - el));
+            if (el >= dur) { clearInterval(iv); if (bar) bar.style.width = '100%'; if (pct) pct.textContent = '100%'; if (cd) cd.textContent = '0'; done(); }
+        }, 80);
+    }
     (function initDisponibilidad() {
         document.getElementById('chk-ref').textContent = q('envio', '#GX684870 (demo)');
         mostrarPantalla('checkScreen');
-        // Consulta al backend (mock ~1,8 s). estado=tomada fuerza "no disponible".
-        setTimeout(function () {
+        var dur = parseInt(q('cd', '5'), 10); if (isNaN(dur) || dur < 1) dur = 5;
+        document.getElementById('chk-count').textContent = dur;
+        // Consulta al backend (mock). estado=tomada fuerza "no disponible".
+        comprobarDisponibilidad(dur, function () {
             if (q('estado', 'libre') === 'tomada') { mostrarTomada(); return; }
             mostrarPantalla('formScreen');
             var seg = parseInt(q('t', '240'), 10); if (isNaN(seg) || seg < 5) seg = 240;
             iniciarReserva(seg);
-        }, 1800);
+        });
     })();
 </script>
 </body>
