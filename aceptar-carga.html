@@ -772,11 +772,11 @@
     document.getElementById('f-buscar-id').addEventListener('keydown', function (e) {
         if (e.key === 'Enter') { e.preventDefault(); document.getElementById('ac-buscar').classList.remove('show'); buscarEmpresa(); }
     });
-    // ---- Autocompletado del buscador: desde 5 caracteres, sugerencias de la
+    // ---- Autocompletado del buscador: desde 4 caracteres, sugerencias de la
     // base de transportistas por CIF/NIF o nombre (empresa/autónomo). ----
     function buscarSugerencias(val) {
         var raw = String(val || '').trim();
-        if (raw.replace(/[^A-Za-z0-9]/g, '').length < 5) return [];
+        if (raw.replace(/[^A-Za-z0-9]/g, '').length < 4) return [];
         var qId = normId(raw), qName = raw.toLowerCase();
         return TRANS_DEMO.filter(function (t) {
             return normId(t.cif).indexOf(qId) >= 0 || String(t.empresa).toLowerCase().indexOf(qName) >= 0;
