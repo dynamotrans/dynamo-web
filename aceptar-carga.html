@@ -486,7 +486,7 @@
             </div>
         </div>
     </div>
-    <button type="button" class="scroll-hint" id="scrollHint" hidden onclick="window.scrollBy({ top: Math.round(window.innerHeight * 0.7), behavior: 'smooth' });">Desliza para ver todo <span class="sh-arrow" aria-hidden="true">↓</span></button>
+    <button type="button" class="scroll-hint" id="scrollHint" hidden onclick="window.scrollBy({ top: Math.round(window.innerHeight * 0.7), behavior: 'smooth' });"><span id="sh-text">Desliza para ACEPTAR</span> <span class="sh-arrow" aria-hidden="true">↓</span></button>
     <p class="foot"><a href="https://dynamotrans.com">dynamotrans.com</a></p>
 
 <script>
@@ -1234,12 +1234,15 @@
         if (!hint) return;
         // Visible tanto en el formulario como en la pantalla de "carga aceptada"
         // (ambas tienen contenido por debajo del pliegue).
-        var active = document.getElementById('formScreen').classList.contains('show') ||
-            document.getElementById('okScreen').classList.contains('show');
+        var formOn = document.getElementById('formScreen').classList.contains('show');
+        var okOn = document.getElementById('okScreen').classList.contains('show');
         var doc = document.documentElement;
         var nearBottom = (window.innerHeight + window.scrollY) >= (doc.scrollHeight - 90);
         var scrollable = doc.scrollHeight > window.innerHeight + 60;
-        hint.hidden = !(active && scrollable && !nearBottom);
+        hint.hidden = !((formOn || okOn) && scrollable && !nearBottom);
+        // En el formulario invita a ACEPTAR; en el aceptado, solo a ver el resumen.
+        var t = document.getElementById('sh-text');
+        if (t) t.textContent = okOn ? 'Desliza para ver todo' : 'Desliza para ACEPTAR';
     }
     window.addEventListener('scroll', updateScrollHint, { passive: true });
     window.addEventListener('resize', updateScrollHint);
