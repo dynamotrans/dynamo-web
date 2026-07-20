@@ -11361,6 +11361,19 @@
         }
         var hoTxt = horDe(c.origenSite), hdTxt = horDe(c.destinoSite);
         var oeTxt = empDe(c.origenSite), deTxt = empDe(c.destinoSite);
+        // Días REALES de carga para la página de aceptación (param dias, formato
+        // 'Mié 22/07'): fecha asignada o fija → 1 día; ventana → cada laborable.
+        var diasList = [];
+        var mF = String(f || '').match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+        if (mF) {
+            var yF = mF[3] ? (mF[3].length === 2 ? 2000 + parseInt(mF[3], 10) : parseInt(mF[3], 10)) : new Date().getFullYear();
+            var dCur = new Date(yF, parseInt(mF[2], 10) - 1, parseInt(mF[1], 10));
+            var nDias = c.fechaAsignada ? 1 : ventanaDiasN(c.ventana);
+            for (var kD = 0; kD < nDias; kD++) {
+                if (kD > 0) dCur = addBizDays(dCur, 1);
+                diasList.push(DOW_SHORT[dCur.getDay()] + ' ' + toDDMM(dCur));
+            }
+        }
         // ¿Hay saldo en la línea de PRONTO PAGO? Si no, la oferta sale SIN esa
         // opción (y la página de aceptación la muestra como no disponible).
         var ppOn = (typeof prontoPagoActivo !== 'function') || prontoPagoActivo();
@@ -11374,7 +11387,7 @@
             (hdTxt ? '&hd=' + encodeURIComponent(hdTxt) : '') +
             (deTxt ? '&de=' + encodeURIComponent(deTxt) : '') +
             ptParams(pEnt, 'd', 'hd', 'de') +
-            '&f=' + encodeURIComponent(fTxt) +
+            (diasList.length ? '&dias=' + encodeURIComponent(diasList.join(',')) : '') +
             '&m=' + encodeURIComponent(mTxt) +
             (dmTxt ? '&dm=' + encodeURIComponent(dmTxt) : '') +
             (pt ? '&p=' + encodeURIComponent(eur2(pt)) : '') +
