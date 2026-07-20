@@ -1825,7 +1825,7 @@
         .badge-entrega   { background: #fff; color: #047857; box-shadow: inset 0 0 0 1px #b7ebcd; } /* Llegando a la entrega: blanco, punto verde */
         .badge-entregado { background: #d1fae5; color: #065f46; }  /* Entregado: green */
         .badge-cancelada { background: #fee2e2; color: #991b1b; }  /* Cancelada: red */
-        .badge-pago      { background: #ffe4b3; color: #92400e; box-shadow: inset 0 0 0 1px #f59e0b; }  /* Pendiente de pago: ámbar */
+        .badge-pago      { background: #dc2626; color: #fff; box-shadow: inset 0 0 0 1px #dc2626; }  /* Pendiente de pago: ROJO texto blanco */
         .badge-sinconf   { background: #ede9fe; color: #5b21b6; box-shadow: inset 0 0 0 1px #a78bfa; }  /* Pendiente confirmar almacén: morado */
         /* Punto parpadeante a la izquierda del texto en ciertos estados de envío.
            (Entregado y Cancelada se quedan sin punto.) */
@@ -1844,7 +1844,7 @@
         .badge-enruta::before    { background: #00e676; box-shadow: 0 0 5px #00e676; }    /* verde flúor */
         .badge-entrega::before   { background: #00e676; box-shadow: 0 0 5px #00e676; }    /* verde flúor */
         .badge-retrasada::before { background: #ef4444; box-shadow: 0 0 4px #ef4444; }    /* rojo */
-        .badge-pago::before      { background: #f59e0b; box-shadow: 0 0 5px #f59e0b; }    /* ámbar */
+        .badge-pago::before      { background: #fff; box-shadow: 0 0 5px rgba(255,255,255,0.9); }    /* punto blanco sobre rojo */
         @keyframes badgeDotBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
         @media (prefers-reduced-motion: reduce) {
             .badge-prog::before, .badge-hacia::before, .badge-cargando::before,
@@ -3507,6 +3507,32 @@
             border-radius: 9px; font-size: var(--fs-m); line-height: 1.5; color: #2a1a7a; font-weight: 600;
         }
         .ptar-eta-fija strong { color: var(--purple); }
+        /* Aviso de la fecha elegida (cabecera de la caja de opciones de fecha). */
+        .eta-fija-head { font-size: var(--fs-m); line-height: 1.5; color: #2a1a7a; font-weight: 600; }
+        .eta-fija-head strong { color: var(--purple); }
+        /* Opciones de fecha (fecha fija día concreto / ventana 1-3 días), en
+           tarjetas claras con título, descripción, precio y botón. */
+        .eta-opts { margin-top: 0.7rem; display: flex; flex-direction: column; gap: 0.55rem; }
+        .eta-opt {
+            display: flex; align-items: center; gap: 0.7rem; width: 100%;
+            background: #fff; border: 1.5px solid var(--gray-300); border-radius: 12px;
+            padding: 0.7rem 0.8rem; text-align: left; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+        }
+        .eta-opt:hover { border-color: var(--purple); box-shadow: 0 3px 12px rgba(51,0,204,0.1); }
+        .eta-opt-rec { border-color: var(--green); background: rgba(34,165,90,0.05); }
+        .eta-opt-rec:hover { border-color: var(--green-dark); box-shadow: 0 3px 12px rgba(34,165,90,0.15); }
+        .eta-opt-ico { flex: none; width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: rgba(51,0,204,0.1); color: var(--purple); }
+        .eta-opt-rec .eta-opt-ico { background: rgba(34,165,90,0.15); color: var(--green-dark); }
+        .eta-opt-ico svg { width: 17px; height: 17px; }
+        .eta-opt-body { flex: 1; min-width: 0; }
+        .eta-opt-tit { font-size: var(--fs-m); font-weight: 800; color: var(--navy); display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+        .eta-opt-sub { font-size: var(--fs-s); font-weight: 600; color: var(--gray-500); line-height: 1.4; margin-top: 0.1rem; }
+        .eta-opt-price { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+        .eta-opt-eur { font-size: 1.02rem; font-weight: 900; color: var(--navy); white-space: nowrap; }
+        .eta-opt-rec .eta-opt-eur { color: var(--green-dark); }
+        .eta-opt-go { font-size: var(--fs-s); font-weight: 800; color: var(--purple); }
+        .eta-opt-rec .eta-opt-go { color: var(--green-dark); }
+        .eta-badge { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: #fff; background: var(--green); border-radius: 999px; padding: 0.1rem 0.45rem; }
 
         /* Label con tooltip (ℹ): el texto de ayuda sale al pasar por encima,
            sin ocupar layout. Reutilizable en cualquier .ptar-label. */
@@ -18985,18 +19011,37 @@
                     // Precio de la MISMA carga con una fecha fija posterior (+50) y
                     // con la ventana 1-3 días (sin suplemento), para los botones.
                     var totalFijaPost = subAntesFija + 50;
+                    // Iconos (calendario día concreto / calendario con rango).
+                    var icoFija = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="12" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg>';
+                    var icoVent = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M7 15h10"/></svg>';
+                    // Tarjeta de opción de fecha (título, descripción, precio, botón).
+                    function etaOpt(cls, ico, tit, badge, sub, eur, fn) {
+                        return '<button type="button" class="eta-opt' + (cls ? ' ' + cls : '') + '" onclick="if (window.' + fn + ') ' + fn + '();">' +
+                            '<span class="eta-opt-ico">' + ico + '</span>' +
+                            '<span class="eta-opt-body">' +
+                                '<span class="eta-opt-tit">' + tit + (badge ? ' <span class="eta-badge">' + badge + '</span>' : '') + '</span>' +
+                                '<span class="eta-opt-sub">' + sub + '</span>' +
+                            '</span>' +
+                            '<span class="eta-opt-price"><span class="eta-opt-eur">' + eur + '</span><span class="eta-opt-go">Elegir ›</span></span>' +
+                        '</button>';
+                    }
+                    var optVentana = etaOpt('eta-opt-rec', icoVent, 'Ventana de 1 a 3 días', 'Recomendada',
+                        'Lo más barato y seguro: el 80% de las veces cargamos en los 2 primeros días.', eur2(subAntesFija), '__ptarUsarVentana');
                     if (esUrgente) {
-                        hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija urgente</strong>. ' +
-                            (esHoy ? '<strong>Es para HOY</strong>: no podemos garantizar cargar en el día, y cancelar tendría coste. ' : '') +
-                            'Si ese día no hay vehículo, habría que reprogramar a otra fecha.' +
-                            '<br><br><span style="color:#0f6b3a;">💡 <strong>Una fecha fija posterior es algo más económica</strong>: selecciona el segundo día disponible para ahorrar.</span>' +
-                            '<button type="button" class="btn-secondary" style="width:100%;margin-top:0.55rem;min-height:44px;" onclick="if (window.__ptarUsarFijaPosterior) __ptarUsarFijaPosterior();">Seleccionar fecha de carga fija' + (totalFijaPost > 0 ? ' a ' + eur2(totalFijaPost) : '') + '</button>' +
-                            '<br><span style="color:#0f6b3a;">💡 <strong>Lo más barato y seguro: la ventana de 1 a 3 días</strong> — el 80% de las veces cargamos en los 2 primeros días.</span>' +
-                            '<button type="button" class="btn-secondary" style="width:100%;margin-top:0.55rem;min-height:44px;" onclick="if (window.__ptarUsarVentana) __ptarUsarVentana();">Seleccionar fecha de carga de 1 a 3 días' + (subAntesFija > 0 ? ' a ' + eur2(subAntesFija) : '') + '</button>' + '</div>';
+                        hoyHtml = '<div class="ptar-eta-fija">' +
+                            '<div class="eta-fija-head"><strong>Has elegido fecha fija urgente</strong> (el primer día disponible). ' +
+                            (esHoy ? '<strong>Es para HOY</strong>: no podemos garantizar cargar en el día y cancelar tendría coste. ' : '') +
+                            'Si ese día no hay vehículo, habría que reprogramar a otra fecha. Puedes cambiar a:</div>' +
+                            '<div class="eta-opts">' +
+                                etaOpt('', icoFija, 'Fecha fija · día siguiente disponible', '',
+                                    'Un día concreto, algo más económico que cargar hoy.', eur2(totalFijaPost), '__ptarUsarFijaPosterior') +
+                                optVentana +
+                            '</div></div>';
                     } else {
-                        hoyHtml = '<div class="ptar-eta-fija"><strong>Fecha fija</strong>. ' +
-                            'Si ese día no hay vehículo, habría que reprogramar a otra fecha.<br><br><span style="color:#0f6b3a;">💡 <strong>Lo más barato y seguro: la ventana de 1 a 3 días</strong> — el 80% de las veces cargamos en los 2 primeros días.</span>' +
-                            '<button type="button" class="btn-secondary" style="width:100%;margin-top:0.55rem;min-height:44px;" onclick="if (window.__ptarUsarVentana) __ptarUsarVentana();">Seleccionar fecha de carga de 1 a 3 días' + (subAntesFija > 0 ? ' a ' + eur2(subAntesFija) : '') + '</button>' + '</div>';
+                        hoyHtml = '<div class="ptar-eta-fija">' +
+                            '<div class="eta-fija-head"><strong>Has elegido fecha fija</strong> (un día concreto). ' +
+                            'Si ese día no hay vehículo, habría que reprogramar a otra fecha. También puedes cambiar a:</div>' +
+                            '<div class="eta-opts">' + optVentana + '</div></div>';
                     }
                 }
                 etaBox.innerHTML =
