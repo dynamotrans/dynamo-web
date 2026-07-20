@@ -638,8 +638,8 @@
             ['Envío', okTxt('v-ref')],
             ['Recogida', okTxt('v-orig')],
             ['Entrega', okTxt('v-dest')],
-            ['Fecha y hora de carga', okVal('f-fechacarga') + (okVal('f-horacarga') ? ' · ' + okVal('f-horacarga') : '')],
-            ['Entrega estimada', entregaFecha ? (entregaFecha + (entregaHora ? ' · ' + entregaHora : '')) : '—'],
+            ['Fecha recogida (y la hora de carga estimada)', okVal('f-fechacarga') + (okVal('f-horacarga') ? ' · ' + okVal('f-horacarga') : '')],
+            ['Fecha entrega (y la hora de entrega estimada por transportista)', entregaFecha ? (entregaFecha + (entregaHora ? ' · ' + entregaHora : '')) : '—'],
             ['Mercancía', okTxt('v-merc')]
         ];
         var imp = okTxt('v-imp');
