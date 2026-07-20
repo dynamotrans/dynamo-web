@@ -51,6 +51,8 @@
     .telrow select { width: 108px; flex: none; }
     textarea { min-height: 84px; resize: vertical; }
     .err { border-color: var(--red) !important; }
+    /* Campo que estaba en rojo y ya se ha rellenado correctamente → verde. */
+    .valid { border-color: var(--green) !important; box-shadow: 0 0 0 2px rgba(34,165,90,0.12); }
     /* Autocompletado (matrícula tractora/remolque y conductor) desde el historial */
     .ac-wrap { position: relative; }
     .ac-list { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 3px); background: #fff; border: 1.5px solid var(--gray-300); border-radius: 10px; box-shadow: 0 8px 22px rgba(20,10,60,0.14); max-height: 240px; overflow-y: auto; padding: 0.25rem; display: none; }
@@ -111,14 +113,15 @@
     .pronto { margin-top: 1rem; background: rgba(34,165,90,0.08); border: 1.5px solid var(--green); border-radius: 12px; padding: 0.8rem 0.9rem; }
     .pronto label.chk { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.86rem; font-weight: 600; color: var(--navy); margin: 0; text-transform: none; }
     .pronto input { width: 19px; height: 19px; flex: none; margin-top: 2px; accent-color: var(--green); }
-    .pronto-calc { margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px dashed rgba(34,165,90,0.4); }
-    .pronto-calc .pc-main { font-size: 0.9rem; font-weight: 700; color: var(--navy); }
-    .pronto-calc .pc-main strong { color: var(--green); font-weight: 900; font-size: 1.02rem; }
-    .pronto-calc .pc-sub { font-weight: 600; color: var(--gray-500); font-size: 0.76rem; }
-    .pronto-calc .pc-alt { font-size: 0.78rem; font-weight: 600; color: var(--gray-500); margin-top: 0.25rem; }
+    .pronto-calc { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed rgba(34,165,90,0.45); }
+    .pronto-calc .pc-line { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
+    .pronto-calc .pc-lbl { font-size: 0.82rem; font-weight: 700; color: var(--navy); }
+    .pronto-calc .pc-amount { font-size: 1.18rem; font-weight: 900; color: var(--green-dark); white-space: nowrap; }
+    .pronto-calc .pc-sub { font-size: 0.72rem; font-weight: 600; color: var(--gray-500); margin-top: 0.15rem; }
+    .pronto-calc .pc-alt { font-size: 0.76rem; font-weight: 600; color: var(--gray-500); margin-top: 0.45rem; line-height: 1.5; }
     .pronto-calc .pc-red { color: var(--red); font-weight: 800; }
-    .pronto-calc.off { opacity: 0.6; }
-    .pronto-calc.off .pc-main strong { color: var(--gray-700); }
+    .pronto-calc.off { opacity: 0.62; }
+    .pronto-calc.off .pc-amount { color: var(--gray-700); }
     .btn { width: 100%; margin-top: 1.1rem; background: var(--purple); color: #fff; border: none; border-radius: 12px; padding: 0.95rem; font: inherit; font-weight: 800; font-size: 1.02rem; cursor: pointer; }
     .btn:hover { background: var(--purple-light); }
     .aviso { font-size: 0.72rem; color: var(--gray-500); line-height: 1.5; margin-top: 0.7rem; text-align: center; }
@@ -336,7 +339,8 @@
                         <span><strong>Quiero PRONTO PAGO:</strong> cobro en <strong>5 días tras recibir factura</strong> después de finalizar el servicio, con un <strong>descuento del 3,5%</strong> (mínimo 25&nbsp;€).</span>
                     </label>
                     <div class="pronto-calc" id="prontoCalc" hidden>
-                        <div class="pc-main">Precio total con pronto pago aplicado: <strong id="pc-total">—</strong> <span class="pc-sub">· base imponible (impuestos no incluidos)</span></div>
+                        <div class="pc-line"><span class="pc-lbl">Precio total con pronto pago</span><span class="pc-amount" id="pc-total">—</span></div>
+                        <div class="pc-sub">base imponible (impuestos no incluidos)</div>
                         <div class="pc-alt" id="pc-alt"></div>
                     </div>
                 </div>
@@ -723,6 +727,25 @@
         if (rigido) rem.value = '';
     }
 
+    // ---- Rojo → verde: un campo marcado en rojo (obligatorio vacío) pasa a
+    // verde en cuanto se rellena correctamente. Solo actúa sobre campos ya
+    // validados (que tienen .err o .valid); el resto queda neutro. El buscador
+    // de CIF y la confirmación de 3 dígitos solo quitan el rojo (no ponen verde,
+    // porque "relleno" no es "correcto" hasta buscar/coincidir).
+    function refreshFieldState(el) {
+        if (!el || !el.classList) return;
+        if (el.id === 'f-buscar-id' || el.id === 'er-tel3') { if ((el.value || '').trim()) el.classList.remove('err'); return; }
+        if (!el.classList.contains('err') && !el.classList.contains('valid')) return;
+        var v = (el.value || '').trim();
+        el.classList.toggle('err', !v);
+        el.classList.toggle('valid', !!v);
+    }
+    (function () {
+        var fs = document.getElementById('formScreen');
+        fs.addEventListener('input', function (e) { refreshFieldState(e.target); });
+        fs.addEventListener('change', function (e) { refreshFieldState(e.target); });
+    })();
+
     // DNI del conductor: solo letras y números, en mayúsculas.
     document.getElementById('f-dnichofer').addEventListener('input', function () {
         this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
@@ -789,14 +812,15 @@
         source: function () { var e = selEmpresa(); return e ? e.matriculas : []; },
         label: function (m) { return m; },
         pick: function (m) {
-            document.getElementById('f-tractora').value = m;
+            var tr = document.getElementById('f-tractora');
+            tr.value = m; refreshFieldState(tr);
             // 99% de las veces la tractora arrastra el MISMO remolque del último
             // envío: lo autorrellenamos (editable/borrable por si hoy lleva otro).
             var e = selEmpresa(), rem = document.getElementById('f-remolque');
             if (e && e.pares && !rem.disabled) {
                 var par = e.pares[m];
                 if (par) {
-                    rem.value = par;
+                    rem.value = par; refreshFieldState(rem);
                     document.getElementById('new-remolque').classList.remove('show');
                     rem.classList.add('ac-flash');
                     setTimeout(function () { rem.classList.remove('ac-flash'); }, 900);
@@ -816,8 +840,8 @@
         label: function (c) { return c.nombre; },
         sub: function (c) { return c.dni + ' · ' + c.tel; },
         pick: function (c) {
-            document.getElementById('f-chofer').value = c.nombre;
-            document.getElementById('f-dnichofer').value = c.dni;
+            var ch = document.getElementById('f-chofer'), dn = document.getElementById('f-dnichofer');
+            ch.value = c.nombre; dn.value = c.dni;
             // Teléfono: separar prefijo (+34…) del número para rellenar ambos.
             var pref = document.getElementById('f-pref'), tf = document.getElementById('f-tfno');
             var m = String(c.tel || '').match(/^(\+\d{1,3})\s*(.*)$/);
@@ -826,6 +850,7 @@
                 if (opt) pref.value = m[1];
                 tf.value = m[2];
             } else { tf.value = c.tel || ''; }
+            refreshFieldState(ch); refreshFieldState(dn); refreshFieldState(tf);
         }
     });
 
