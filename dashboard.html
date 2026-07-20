@@ -3357,6 +3357,9 @@
         .ptar-camion-tip.show { display: block; }
         /* Anotaciones libres colapsable */
         .ptar-notes-wrap { margin-top: 1rem; grid-column: 1 / -1; }
+        /* Dentro del grid del formulario, el row-gap ya separa: sin margen extra
+           (si no, quedaba muy despegado de metros/peso). */
+        .ptar-grid > .ptar-notes-wrap { margin-top: 0; }
         .ptar-notes-toggle {
             display: inline-flex; align-items: center; gap: 0.4rem;
             font-size: var(--fs-m); color: var(--purple); font-weight: 700;
@@ -5052,7 +5055,7 @@
                 <div class="ptar-notes-wrap">
                     <button type="button" class="ptar-notes-toggle" data-ptar-notes-toggle aria-expanded="false">
                         <span class="pnt-icon" aria-hidden="true">+</span>
-                        Añadir anotaciones de envío o detalle de mercancía (opcional)
+                        Añadir detalle de mercancía o anotaciones de envío (opcional)
                     </button>
                     <div class="ptar-notes-body" data-ptar-notes-body hidden>
                         <textarea data-ptar-notes maxlength="1000" rows="3"
@@ -9398,7 +9401,7 @@
         tbody.innerHTML = slice.map(function (r) {
             var t = r.t;
             return '<tr data-tra="' + r.i + '">' +
-                '<td><strong>' + esc(t.empresa) + '</strong> ' + traEstadoBadge(t) + '<div class="meta">' + esc(t.cif || '—') + ' · ' + esc(t.tipo || 'Empresa') + '</div></td>' +
+                '<td><strong>' + esc(t.empresa) + '</strong> ' + traEstadoBadge(t) + '<div class="meta">' + esc(t.cif || '—') + '</div></td>' +
                 '<td>' + esc(t.contacto || '—') + '<div class="meta">' + esc(t.tfno || '') + (t.email ? (t.tfno ? ' · ' : '') + esc(t.email) : '') + '</div></td>' +
                 '<td>' + (t.bolsa ? '<span class="dtc-mat">' + esc(t.bolsa) + '</span>' : '—') + '</td>' +
                 '<td style="white-space:nowrap;">Clientes: ' + puntHTML(t.puntCli, t.puntCliN) +
@@ -10078,7 +10081,6 @@
         return ctMetaHTML(t) +
             '<div class="ptar-sitio-grid">' +
                 ctField('tra-f-empresa', 'Empresa / Nombre *', t.empresa, 'Razón social o nombre del autónomo', true) +
-                ctSelect('tra-f-tipo', 'Tipo', ['Empresa', 'Autónomo'], t.tipo || 'Empresa') +
                 (function () {
                     var b = traEstadoInfo(t);
                     return '<div style="grid-column:1/-1"><label>Estado operativo <span id="tra-estado-badge" class="badge" style="background:' + b.bg + ';color:' + b.fg + ';border:1px solid ' + b.bd + ';margin-left:0.35rem;">' + escapeHtml(b.corto) + '</span></label>' +
@@ -10232,8 +10234,6 @@
         var edit = (idx != null && idx >= 0 && idx < TRANSPORTISTAS_DATA.length);
         var t = edit ? TRANSPORTISTAS_DATA[idx] : {};
         t.empresa = empresa; t.cif = cif;
-        var tipoEl = document.getElementById('tra-f-tipo');
-        t.tipo = tipoEl ? tipoEl.value : 'Empresa';
         var estEl = document.getElementById('tra-f-estado');
         if (estEl) t.estadoOp = estEl.value;
         var btEl = document.getElementById('tra-f-bolsatipo');
