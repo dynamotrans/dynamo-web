@@ -10303,6 +10303,37 @@
         var inp = document.getElementById('asigTraSearch');
         if (inp && inp.readOnly) { asigTraClear(true); asigTraFilter(); }
     });
+    // Franjas horarias de recogida (formato 24 h) para la asignación.
+    var FRANJAS_CARGA = ['07:00 - 09:00', '09:00 - 11:00', '11:00 - 13:00', '13:00 - 15:00', '15:00 - 17:00', '17:00 - 19:00'];
+    // Selector de FECHA DE CARGA en la asignación, según la ventana del envío:
+    //  · fecha FIJA (ventana de 1 día) → una sola opción, BLOQUEADA (no se
+    //    puede elegir otra).
+    //  · ventana 1 a N días → los días laborables de esa ventana, elegibles.
+    function asigFechaCargaField(c) {
+        var n = ventanaDiasN(c.ventana) || 1;
+        var ini = parseDDMM(c.fecha);
+        var asig = c.fechaAsignada ? c.fechaAsignada.split(' ')[0] : null;
+        var esFija = n <= 1;
+        var opts = '';
+        if (ini) {
+            for (var i = 0; i < n; i++) {
+                var d = i === 0 ? new Date(ini) : addBizDays(ini, i);
+                var dd = toDDMM(d);
+                var sel = (asig ? asig === dd : i === 0) ? ' selected' : '';
+                opts += '<option value="' + dd + '"' + sel + '>' + esc(fechaConDia(dd)) + '</option>';
+            }
+        }
+        if (!opts) opts = '<option value="">Sin fecha definida</option>';
+        var hint = esFija ? 'fecha fija (no se puede cambiar)' : 'elige un día de la ventana (' + esc(c.ventana || '') + ')';
+        return '<div><label>Fecha de carga <span style="color:var(--gray-500);font-weight:600;">· ' + hint + '</span></label>' +
+            '<select id="asig-f-fechacarga"' + (esFija ? ' disabled' : '') + '>' + opts + '</select></div>';
+    }
+    function asigHoraCargaField(c) {
+        var cur = c.franjaCarga || '';
+        var opts = '<option value=""' + (!cur ? ' selected' : '') + '>Sin definir</option>';
+        FRANJAS_CARGA.forEach(function (f) { opts += '<option' + (f === cur ? ' selected' : '') + '>' + f + '</option>'; });
+        return '<div><label>Hora estimada de recogida</label><select id="asig-f-horacarga">' + opts + '</select></div>';
+    }
     function openAsignarTransportista(ref) {
         var c = findCargaDataByRef(ref); if (!c) return;
         cargaPrecios(c);
@@ -10325,6 +10356,10 @@
                 '<div class="modal-form-row" style="margin-top:0.8rem;"><label for="asig-f-precompra">Precio compra al transportista (base sin IVA)</label>' +
                     '<input type="number" id="asig-f-precompra" min="0" step="10" inputmode="decimal" value="' + (c.precioTransportista != null ? c.precioTransportista : '') + '" placeholder="Ej. 540">' +
                     '<p style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;margin:0.3rem 0 0;">Se guarda como P. transportista del envío (fijado a mano) y es el que usan las tablas y el margen.</p></div>' +
+                '<div class="ptar-sitio-grid" style="margin-top:0.8rem;">' +
+                    asigFechaCargaField(c) +
+                    asigHoraCargaField(c) +
+                '</div>' +
                 '<div id="asigHist">' + rutaHistHtml(c, null) + '</div>' +
                 '<div class="ptar-sitio-grid" style="margin-top:0.8rem;">' +
                     ctSelect('asig-f-camion', 'Tipo de camión', ['Trailer Tauliner · 13,2 m', 'Rígido 8 m con plataforma'], c.tipoCamion || 'Trailer Tauliner · 13,2 m', true) +
@@ -10393,6 +10428,12 @@
         c.matriculaRemolque = esRigido ? null : (matSan(v('asig-f-remolque')) || null);
         c.conductor = v('asig-f-conductor') || null;
         c.tfnoConductor = telValue('asig-f-tfnocond');
+        // Fecha de carga elegida en la ventana (o la fecha fija) + franja
+        // horaria estimada de recogida.
+        var feEl = document.getElementById('asig-f-fechacarga');
+        if (feEl && feEl.value) c.fechaAsignada = feEl.value;
+        var hoEl = document.getElementById('asig-f-horacarga');
+        c.franjaCarga = (hoEl && hoEl.value) ? hoEl.value : null;
         // Precio de COMPRA al transportista: si se teclea, queda fijado a
         // mano (manda sobre el mock y no se recalcula al modificar).
         var pcEl = document.getElementById('asig-f-precompra');
@@ -10410,6 +10451,7 @@
         if (typeof renderMiniEnvios === 'function') renderMiniEnvios();
         showLoadingOverlay('Asignando transportista…', 900, function () {
             showModalSuccess('Transportista asignado', c.transportistaNombre + ' queda asignado al envío ' + ref +
+                (c.fechaAsignada ? ' para el ' + fechaConDia(c.fechaAsignada.split(' ')[0]) + (c.franjaCarga ? ' (recogida ' + c.franjaCarga + ')' : '') : '') +
                 (c.matricula ? ' con tractora ' + c.matricula + (c.matriculaRemolque ? ' y remolque ' + c.matriculaRemolque : '') : ' (matrícula por asignar)') +
                 (c.conductor ? ' · conductor: ' + c.conductor : '') +
                 '. En producción se le notificará automáticamente con la orden de carga.');
