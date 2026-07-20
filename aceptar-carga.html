@@ -243,12 +243,12 @@
         </div>
 
         <div id="formScreen">
-            <h1>Aceptar carga</h1>
+            <h1>Pulsa el botón de abajo para Aceptar carga</h1>
             <p class="sub">Oferta de <strong>Dynamo Operador de Transportes</strong></p>
 
             <!-- Reserva temporal: contador de 2 min mientras rellena los datos. -->
             <div class="reserva-banner" id="reservaBanner">
-                <span>⏳ Reserva temporal: te quedan <span class="rb-timer" id="reservaTimer">2:00</span> para completar y aceptar antes de que la carga se libere.</span>
+                <span>⏳ <strong>Reserva temporal.</strong> Tómate tu tiempo para completar y aceptar la carga; te avisaremos cuando quede poco antes de que se libere.</span>
             </div>
 
             <dl class="viaje" id="viajeBox"></dl>
@@ -1250,12 +1250,19 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     function iniciarReserva(segundos) {
-        var el = document.getElementById('reservaTimer'), banner = document.getElementById('reservaBanner');
+        var banner = document.getElementById('reservaBanner');
         var quedan = segundos;
         function pinta() {
-            var mm = Math.floor(quedan / 60), ss = quedan % 60;
-            el.textContent = mm + ':' + ('0' + ss).slice(-2);
-            banner.classList.toggle('urgent', quedan <= 30);
+            // El contador SOLO se muestra en el último minuto (para no poner
+            // nervioso al chófer). Antes, un mensaje tranquilo sin número.
+            if (quedan > 60) {
+                banner.classList.remove('urgent');
+                banner.innerHTML = '<span>⏳ <strong>Reserva temporal.</strong> Tómate tu tiempo para completar y aceptar la carga; te avisaremos cuando quede poco antes de que se libere.</span>';
+            } else {
+                var mm = Math.floor(quedan / 60), ss = quedan % 60;
+                banner.classList.add('urgent');
+                banner.innerHTML = '<span>⏳ <strong>¡Queda poco!</strong> Te quedan <span class="rb-timer">' + mm + ':' + ('0' + ss).slice(-2) + '</span> para completar y aceptar antes de que la carga se libere.</span>';
+            }
             if (quedan <= 0) { clearInterval(window._reservaTimer); expirarReserva(); return; }
             quedan--;
         }
