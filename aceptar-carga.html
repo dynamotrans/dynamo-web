@@ -1302,7 +1302,8 @@
         var email = (window._empresaSel && window._empresaSel.email) || okVal('alta-email') || 'tu email';
         document.getElementById('ok-email').textContent = email;
         document.getElementById('ok-email-top').textContent = email;
-        if (window._reservaTimer) clearInterval(window._reservaTimer); // aceptada: parar contador
+        window._reservaCerrada = true; // aceptada: la reserva ya no aplica
+        if (window._reservaTimer) clearInterval(window._reservaTimer); // parar contador
         var fs = document.getElementById('formScreen');
         fs.classList.remove('show'); fs.style.display = 'none';
         document.getElementById('okScreen').classList.add('show');
@@ -1344,6 +1345,9 @@
     window.addEventListener('scroll', updateScrollHint, { passive: true });
     window.addEventListener('resize', updateScrollHint);
     function expirarReserva() {
+        // Si ya se aceptó la carga, la reserva NO puede caducar (evita que salga
+        // "tiempo agotado" encima de "carga aceptada").
+        if (window._reservaCerrada) return;
         window._reservaExpirada = true;
         if (window._reservaTimer) clearInterval(window._reservaTimer);
         mostrarPantalla('expiredScreen');
@@ -1361,7 +1365,7 @@
         var fin = new Date().getTime() + segundos * 1000;
         function fmt(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
         function pinta() {
-            if (window._reservaExpirada) return;
+            if (window._reservaExpirada || window._reservaCerrada) return;
             var quedan = Math.ceil((fin - new Date().getTime()) / 1000);
             if (quedan < 0) quedan = 0;
             // Cada tramo se construye UNA sola vez (para no reiniciar la animación
@@ -1394,10 +1398,10 @@
     // Al volver a la pestaña (móvil restaurado), recalcular de inmediato: si la
     // reserva ya venció mientras estaba en segundo plano, se libera al momento.
     document.addEventListener('visibilitychange', function () {
-        if (!document.hidden && window._reservaPinta && !window._reservaExpirada) window._reservaPinta();
+        if (!document.hidden && window._reservaPinta && !window._reservaExpirada && !window._reservaCerrada) window._reservaPinta();
     });
     window.addEventListener('focus', function () {
-        if (window._reservaPinta && !window._reservaExpirada) window._reservaPinta();
+        if (window._reservaPinta && !window._reservaExpirada && !window._reservaCerrada) window._reservaPinta();
     });
     // "hace X" a partir de unos minutos transcurridos (días, horas y minutos,
     // omitiendo las partes a cero; con singular/plural).
