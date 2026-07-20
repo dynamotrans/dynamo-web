@@ -53,19 +53,20 @@
     .of-envio > span:last-child { font-size: 1rem; font-weight: 900; color: var(--navy); }
     .of-route { display: grid; gap: 0.6rem; margin-bottom: 0.7rem; }
     @media (min-width: 520px) { .of-route { grid-template-columns: 1fr 1fr; } }
-    .of-pt { background: #fff; border: 1px solid var(--gray-200); border-left: 4px solid var(--gray-300); border-radius: 12px; padding: 0.72rem 0.85rem 0.78rem; }
-    .of-pt-rec { border-left-color: var(--orange); }
-    .of-pt-ent { border-left-color: var(--green); }
-    .of-pt-badge { display: inline-block; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #fff; padding: 0.14rem 0.55rem; border-radius: 20px; }
-    .of-pt-rec .of-pt-badge { background: var(--orange); }
-    .of-pt-ent .of-pt-badge { background: var(--green); }
-    .of-pt-loc { font-size: 1rem; font-weight: 800; color: var(--navy); margin-top: 0.45rem; line-height: 1.3; }
-    .of-pt-hor { font-size: 0.78rem; font-weight: 600; color: var(--gray-500); margin-top: 0.3rem; }
-    .of-pt-hor b { color: var(--gray-700); font-weight: 800; }
-    .of-fecha { display: flex; align-items: center; gap: 0.7rem; background: rgba(51,0,204,0.055); border: 1px solid rgba(51,0,204,0.18); border-radius: 12px; padding: 0.68rem 0.9rem; margin-bottom: 0.7rem; }
-    .of-fecha .of-fecha-ico { font-size: 1.3rem; flex: none; line-height: 1; }
-    .of-fecha-lbl { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--purple); }
-    .of-fecha-val { font-size: 1.02rem; font-weight: 900; color: var(--navy); margin-top: 1px; line-height: 1.25; }
+    .of-pt { background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.72rem 0.85rem 0.78rem; }
+    /* Cabecera del punto: circulito numerado (naranja recogida / verde entrega,
+       mismo estilo que el panel) + etiqueta coloreada + empresa en negrita. */
+    .of-pt-head { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+    .of-pt-num { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; color: #fff; font-size: 0.78rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+    .of-pt-rec .of-pt-num { background: var(--orange); }
+    .of-pt-ent .of-pt-num { background: var(--green); }
+    .of-pt-tag { font-size: 0.95rem; font-weight: 700; }
+    .of-pt-rec .of-pt-tag { color: var(--orange); }
+    .of-pt-ent .of-pt-tag { color: var(--green); }
+    .of-pt-emp { font-size: 1rem; font-weight: 900; color: var(--navy); }
+    .of-pt-fecha { font-size: 0.98rem; font-weight: 800; color: var(--navy); margin-top: 0.4rem; line-height: 1.3; }
+    .of-pt-hor { font-size: 0.88rem; font-weight: 600; color: var(--gray-500); margin-top: 0.15rem; }
+    .of-pt-loc { font-size: 0.88rem; font-weight: 600; color: var(--gray-500); margin-top: 0.15rem; line-height: 1.35; }
     .of-merc { background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.8rem 0.9rem; }
     .of-merc-head { display: flex; align-items: center; gap: 0.6rem; }
     .of-merc-ico { font-size: 1.35rem; flex: none; line-height: 1; }
@@ -690,15 +691,17 @@
         // Horarios de almacén: en un enlace real solo salen si vienen en la URL
         // (ho/hd); los de demo únicamente en la URL pelada.
         var ho    = q('ho', demo ? 'L-V 8:00–14:00' : ''), hd = q('hd', demo ? 'L-V 9:00–14:00 y 16:00–18:00' : '');
+        // Empresa de cada punto (de la ficha de Sitios del cliente): oe/de.
+        var oe    = q('oe', demo ? 'Marbex Industrial S.L.' : ''), de = q('de', demo ? 'Distribuciones Centro S.A.' : '');
         // Paradas del envío (como en crear envío: hasta 2 extra en cualquier
         // mezcla). o2/o3 = recogidas ADICIONALES tras el origen; d2/d3 = entregas
         // INTERMEDIAS antes del destino final (el destino es la ÚLTIMA entrega).
-        // Sus horarios: ho2/ho3 y hd2/hd3.
-        var recogidas = [{ loc: orig, hor: ho }];
-        ['2', '3'].forEach(function (n) { var v = q('o' + n, ''); if (v) recogidas.push({ loc: v, hor: q('ho' + n, '') }); });
+        // Sus horarios: ho2/ho3 y hd2/hd3. Sus empresas: oe2/oe3 y de2/de3.
+        var recogidas = [{ loc: orig, hor: ho, emp: oe }];
+        ['2', '3'].forEach(function (n) { var v = q('o' + n, ''); if (v) recogidas.push({ loc: v, hor: q('ho' + n, ''), emp: q('oe' + n, '') }); });
         var entregas = [];
-        ['2', '3'].forEach(function (n) { var v = q('d' + n, ''); if (v) entregas.push({ loc: v, hor: q('hd' + n, '') }); });
-        entregas.push({ loc: dest, hor: hd });
+        ['2', '3'].forEach(function (n) { var v = q('d' + n, ''); if (v) entregas.push({ loc: v, hor: q('hd' + n, ''), emp: q('de' + n, '') }); });
+        entregas.push({ loc: dest, hor: hd, emp: de });
         var merc  = q('m', 'Paletizado');
         var ml    = q('ml', '6 m'), pal = q('pal', '6 europalets'), peso = q('peso', '8.000 kg');
         var tc    = q('tc', 'Lateral y techo');
@@ -732,32 +735,36 @@
             envio: envio, recogidas: recogidas, entregas: entregas,
             merc: merc, detalles: vd, dm: dm, fecha: fecha, precio: p
         };
-        function ofPunto(cls, badge, pt) {
+        // Tarjeta de un punto de la ruta, calcada del panel: circulito numerado
+        // (naranja recogida / verde entrega) + etiqueta + empresa en negrita,
+        // fecha en negrita, horario entre paréntesis y dirección en gris.
+        function ofPunto(cls, num, tag, pt, fechaTxt) {
             return '<div class="of-pt ' + cls + '">' +
-                '<span class="of-pt-badge">' + badge + '</span>' +
+                '<div class="of-pt-head"><span class="of-pt-num">' + num + '</span>' +
+                    '<span class="of-pt-tag">' + tag + '</span>' +
+                    (pt.emp ? '<span style="color:var(--gray-400,#b6bcc9);">·</span><span class="of-pt-emp">' + escH(pt.emp) + '</span>' : '') +
+                '</div>' +
+                (fechaTxt ? '<div class="of-pt-fecha"' + (fechaTxt === fecha ? ' id="v-fecha"' : '') + '>' + escH(fechaTxt) + '</div>' : '') +
+                (pt.hor ? '<div class="of-pt-hor">(' + escH(pt.hor) + ')</div>' : '') +
                 '<div class="of-pt-loc">' + escH(pt.loc) + '</div>' +
-                (pt.hor ? '<div class="of-pt-hor"><b>Horario almacén:</b> ' + escH(pt.hor) + '</div>' : '') +
                 '</div>';
         }
         var chips = vd.map(function (r) {
             return '<span class="of-chip"><span class="of-chip-k">' + escH(r[0]) + '</span><span class="of-chip-v">' + escH(r[1]) + '</span></span>';
         }).join('');
-        // Tarjetas de la ruta en orden: recogidas (naranja) y entregas (verde),
-        // numeradas solo si hay más de una de su tipo.
+        // Ruta en orden: recogidas y entregas, cada tipo con su numeración (1..).
+        // La fecha ofertada (fija o ventana) va en negrita en las recogidas.
         var routeHtml =
             recogidas.map(function (r, i) {
-                return ofPunto('of-pt-rec', 'Recogida' + (recogidas.length > 1 ? ' ' + (i + 1) : ''), r);
+                return ofPunto('of-pt-rec', i + 1, 'Recogida', r, fecha);
             }).join('') +
             entregas.map(function (e, i) {
-                return ofPunto('of-pt-ent', 'Entrega' + (entregas.length > 1 ? ' ' + (i + 1) : ''), e);
+                return ofPunto('of-pt-ent', i + 1, 'Entrega', e, '');
             }).join('');
         // id="v-ref" y id="v-imp" se conservan (la pantalla de aceptado los lee).
         var html =
             '<div class="of-envio"><span class="of-envio-lbl">Envío</span><span id="v-ref">' + escH(envio) + '</span></div>' +
             '<div class="of-route">' + routeHtml + '</div>' +
-            '<div class="of-fecha"><span class="of-fecha-ico">📅</span><div>' +
-                '<div class="of-fecha-lbl">Fecha de carga ofertada</div>' +
-                '<div class="of-fecha-val" id="v-fecha">' + escH(fecha) + '</div></div></div>' +
             '<div class="of-merc">' +
                 '<div class="of-merc-head"><span class="of-merc-ico">📦</span><div>' +
                     '<div class="of-merc-lbl">Mercancía</div>' +
@@ -1328,7 +1335,8 @@
         // última entrega (el destino final).
         var recs = O.recogidas || [], ents = O.entregas || [];
         recs.forEach(function (r, i) {
-            rows.push(['Recogida' + (recs.length > 1 ? ' ' + (i + 1) : ''), ddSub(r.loc, [
+            rows.push(['Recogida' + (recs.length > 1 ? ' ' + (i + 1) : ''), ddSub(r.emp || r.loc, [
+                r.emp ? r.loc : '',
                 i === 0 && okVal('f-fechacarga') ? 'Fecha de carga: ' + okVal('f-fechacarga') : '',
                 r.hor ? 'Horario almacén: ' + r.hor : '',
                 i === 0 && okVal('f-horacarga') ? 'Horario estimado de recogida: ' + okVal('f-horacarga') : ''
@@ -1336,7 +1344,8 @@
         });
         ents.forEach(function (e, i) {
             var ult = i === ents.length - 1;
-            rows.push(['Entrega' + (ents.length > 1 ? ' ' + (i + 1) : ''), ddSub(e.loc, [
+            rows.push(['Entrega' + (ents.length > 1 ? ' ' + (i + 1) : ''), ddSub(e.emp || e.loc, [
+                e.emp ? e.loc : '',
                 ult && entFecha ? 'Fecha estimada de entrega: ' + entFecha : '',
                 e.hor ? 'Horario almacén: ' + e.hor : '',
                 ult && entHora ? 'Horario estimado de entrega: ' + entHora : ''

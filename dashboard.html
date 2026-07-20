@@ -11350,13 +11350,17 @@
         var pRec = (c.paradas || []).filter(function (p) { return p.tipo === 'recogida'; });
         var pEnt = (c.paradas || []).filter(function (p) { return p.tipo !== 'recogida'; });
         function horDe(key) { var s = (typeof siteDe === 'function' && key) ? siteDe(key) : null; return (s && s.horario) || ''; }
-        function ptParams(arr, pfx, hfx) {
+        function empDe(key) { var s = (typeof siteDe === 'function' && key) ? siteDe(key) : null; return (s && s.empresa) || ''; }
+        function ptParams(arr, pfx, hfx, efx) {
             return arr.map(function (p, i) {
-                var n = i + 2, h = horDe(p.site);
-                return '&' + pfx + n + '=' + encodeURIComponent(p.dir) + (h ? '&' + hfx + n + '=' + encodeURIComponent(h) : '');
+                var n = i + 2, h = horDe(p.site), e = empDe(p.site);
+                return '&' + pfx + n + '=' + encodeURIComponent(p.dir) +
+                    (h ? '&' + hfx + n + '=' + encodeURIComponent(h) : '') +
+                    (e ? '&' + efx + n + '=' + encodeURIComponent(e) : '');
             }).join('');
         }
         var hoTxt = horDe(c.origenSite), hdTxt = horDe(c.destinoSite);
+        var oeTxt = empDe(c.origenSite), deTxt = empDe(c.destinoSite);
         // ¿Hay saldo en la línea de PRONTO PAGO? Si no, la oferta sale SIN esa
         // opción (y la página de aceptación la muestra como no disponible).
         var ppOn = (typeof prontoPagoActivo !== 'function') || prontoPagoActivo();
@@ -11364,10 +11368,12 @@
             '?envio=' + encodeURIComponent(c.ref) +
             '&o=' + encodeURIComponent(oTxt) +
             (hoTxt ? '&ho=' + encodeURIComponent(hoTxt) : '') +
-            ptParams(pRec, 'o', 'ho') +
+            (oeTxt ? '&oe=' + encodeURIComponent(oeTxt) : '') +
+            ptParams(pRec, 'o', 'ho', 'oe') +
             '&d=' + encodeURIComponent(dTxt) +
             (hdTxt ? '&hd=' + encodeURIComponent(hdTxt) : '') +
-            ptParams(pEnt, 'd', 'hd') +
+            (deTxt ? '&de=' + encodeURIComponent(deTxt) : '') +
+            ptParams(pEnt, 'd', 'hd', 'de') +
             '&f=' + encodeURIComponent(fTxt) +
             '&m=' + encodeURIComponent(mTxt) +
             (dmTxt ? '&dm=' + encodeURIComponent(dmTxt) : '') +
