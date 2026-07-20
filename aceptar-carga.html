@@ -188,6 +188,9 @@
         position: relative; animation: rbDrain linear forwards;
     }
     .rb-spin::before { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: #ece8fb; }
+    /* Variante ROJA para el último minuto (se vacía en 1 min). */
+    .rb-spin.rb-spin-red { background: conic-gradient(var(--red) 0deg var(--rb-progress), rgba(220,38,38,0.16) var(--rb-progress) 360deg); }
+    .rb-spin.rb-spin-red::before { background: #fde3e3; }
     @keyframes rbDrain { from { --rb-progress: 360deg; } to { --rb-progress: 0deg; } }
     @media (prefers-reduced-motion: reduce) { .rb-spin { animation: none; --rb-progress: 180deg; } }
     .foot { margin-top: 1rem; font-size: 0.75rem; color: var(--gray-500); text-align: center; }
@@ -1282,23 +1285,29 @@
         var banner = document.getElementById('reservaBanner');
         var quedan = segundos;
         var calmDur = Math.max(1, segundos - 60); // duración del tramo "tranquilo" (spinner)
-        var calmBuilt = false;
+        var calmBuilt = false, urgentBuilt = false;
+        function fmt(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
         function pinta() {
-            // El contador SOLO se muestra en el último minuto (para no poner
-            // nervioso al chófer). Antes, un mensaje tranquilo con SPINNER que se
-            // vacía a lo largo de esos 2 minutos (se construye una sola vez para
-            // no reiniciar la animación cada segundo).
+            // Cada tramo se construye UNA sola vez (para no reiniciar la animación
+            // del spinner) y luego solo se actualiza el número.
             if (quedan > 60) {
                 if (!calmBuilt) {
                     calmBuilt = true;
                     banner.classList.remove('urgent');
+                    // Tramo tranquilo: spinner morado que se vacía en 2 minutos.
                     banner.innerHTML = '<span class="rb-spin" style="animation-duration:' + calmDur + 's"></span>' +
                         '<span><strong>Reserva temporal.</strong> Tómate tu tiempo para completar y aceptar la carga; te avisaremos cuando quede poco antes de que se libere.</span>';
                 }
             } else {
-                var mm = Math.floor(quedan / 60), ss = quedan % 60;
-                banner.classList.add('urgent');
-                banner.innerHTML = '<span>⏳ <strong>¡Queda poco!</strong> Te quedan <span class="rb-timer">' + mm + ':' + ('0' + ss).slice(-2) + '</span> para completar y aceptar antes de que la carga se libere.</span>';
+                if (!urgentBuilt) {
+                    urgentBuilt = true;
+                    banner.classList.add('urgent');
+                    // Último minuto: spinner ROJO que se vacía en 1 minuto + contador.
+                    banner.innerHTML = '<span class="rb-spin rb-spin-red" style="animation-duration:' + Math.max(1, quedan) + 's"></span>' +
+                        '<span><strong>¡Queda poco!</strong> Te quedan <span class="rb-timer" id="reservaTimer">' + fmt(quedan) + '</span> para completar y aceptar antes de que la carga se libere.</span>';
+                } else {
+                    var t = document.getElementById('reservaTimer'); if (t) t.textContent = fmt(quedan);
+                }
             }
             if (quedan <= 0) { clearInterval(window._reservaTimer); expirarReserva(); return; }
             quedan--;
