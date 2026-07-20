@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
 <meta name="robots" content="noindex,nofollow">
 <title>Aceptar carga · Dynamo Operador de Transportes</title>
-<link rel="icon" type="image/png" href="images/DYNAMO-NEW-LOGO.png">
-<link rel="apple-touch-icon" href="images/DYNAMO-NEW-LOGO.png">
+<link rel="icon" type="image/png" href="images/dynamo-logo-sq.png">
+<link rel="apple-touch-icon" href="images/dynamo-logo-sq.png">
 <style>
     :root {
         --purple: #3300cc; --purple-light: #5b2be0; --navy: #0a0230;
@@ -35,16 +35,38 @@
     .pago-contado .imp { font-size: 1.25rem; }
     label { display: block; font-size: 0.72rem; font-weight: 800; color: var(--gray-700); margin: 0.75rem 0 0.25rem; }
     label .op { color: var(--gray-500); font-weight: 600; }
-    input[type=text], input[type=tel], textarea, select {
+    input[type=text], input[type=tel], input[type=date], textarea, select {
         width: 100%; border: 1.5px solid var(--gray-300); border-radius: 10px;
         padding: 0.65rem 0.75rem; font: inherit; font-size: 16px; color: var(--navy); background: #fff;
     }
     input:focus, textarea:focus, select:focus { outline: none; border-color: var(--purple); }
+    select:disabled, input:disabled { background: var(--gray-100); color: var(--gray-500); }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
     .telrow { display: flex; gap: 0.5rem; }
     .telrow select { width: 108px; flex: none; }
     textarea { min-height: 84px; resize: vertical; }
     .err { border-color: var(--red) !important; }
+    /* Buscador de identificación (CIF/DNI + Buscar) */
+    .idrow { display: flex; gap: 0.5rem; align-items: stretch; }
+    .idrow input { flex: 1; }
+    .btn-buscar { flex: none; background: var(--purple); color: #fff; border: none; border-radius: 10px; padding: 0 1.1rem; font: inherit; font-weight: 800; font-size: 0.95rem; cursor: pointer; }
+    .btn-buscar:hover { background: var(--purple-light); }
+    .id-hint { font-size: 0.72rem; color: var(--gray-500); margin-top: 0.3rem; line-height: 1.45; }
+    .id-nofound { display: none; margin-top: 0.5rem; background: #fff7e6; border: 1px solid #ffd591; color: #8a5a00; border-radius: 10px; padding: 0.55rem 0.7rem; font-size: 0.8rem; font-weight: 700; }
+    .id-nofound.show { display: block; }
+    /* Resumen de la empresa encontrada */
+    .empresa-resumen { display: none; margin-top: 0.7rem; background: rgba(51,0,204,0.05); border: 1.5px solid rgba(51,0,204,0.28); border-radius: 12px; padding: 0.8rem 0.9rem; }
+    .empresa-resumen.show { display: block; }
+    .empresa-resumen .er-nombre { font-size: 1rem; font-weight: 900; color: var(--purple); }
+    .empresa-resumen .er-cif { font-size: 0.8rem; font-weight: 700; color: var(--gray-700); margin-top: 1px; }
+    .empresa-resumen .er-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem 0.9rem; margin-top: 0.6rem; }
+    .empresa-resumen .er-k { font-size: 0.66rem; font-weight: 800; color: var(--gray-500); }
+    .empresa-resumen .er-v { font-size: 0.85rem; font-weight: 700; }
+    .empresa-resumen .er-cambiar { margin-top: 0.6rem; font-size: 0.76rem; font-weight: 800; color: var(--purple); background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; }
+    /* Resto del formulario, oculto hasta identificar la empresa */
+    #restForm { display: none; }
+    #restForm.show { display: block; }
+    .sec-title { font-size: 0.78rem; font-weight: 900; color: var(--navy); margin: 1.2rem 0 0.1rem; padding-top: 0.9rem; border-top: 1px solid var(--gray-200); }
     .pronto { margin-top: 1rem; background: rgba(34,165,90,0.08); border: 1.5px solid var(--green); border-radius: 12px; padding: 0.8rem 0.9rem; }
     .pronto label.chk { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.86rem; font-weight: 600; color: var(--navy); margin: 0; text-transform: none; }
     .pronto input { width: 19px; height: 19px; flex: none; margin-top: 2px; accent-color: var(--green); }
@@ -71,55 +93,107 @@
                 <dt>Envío</dt><dd id="v-ref">—</dd>
                 <dt>Recogida</dt><dd id="v-orig">—</dd>
                 <dt>Entrega</dt><dd id="v-dest">—</dd>
-                <dt>Fecha de carga</dt><dd id="v-fecha">—</dd>
+                <dt>Fecha de carga ofertada</dt><dd id="v-fecha">—</dd>
                 <dt>Mercancía</dt><dd id="v-merc">—</dd>
                 <div class="pago-contado" id="v-pago" hidden>💶 <span class="imp" id="v-imp"></span> · PAGO CONTADO</div>
             </dl>
 
-            <label for="f-empresa">Empresa transportista *</label>
-            <input type="text" id="f-empresa" placeholder="Razón social">
-            <label for="f-cif">CIF / NIF *</label>
-            <input type="text" id="f-cif" placeholder="B12345678">
-            <div class="row2">
-                <div>
-                    <label for="f-tractora">Matrícula tractora *</label>
-                    <input type="text" id="f-tractora" placeholder="1234ABC" autocapitalize="characters">
-                </div>
-                <div>
-                    <label for="f-remolque">Matrícula remolque <span class="op">· si aplica</span></label>
-                    <input type="text" id="f-remolque" placeholder="R5678DEF" autocapitalize="characters">
-                </div>
+            <!-- 1) IDENTIFICACIÓN: escribe tu CIF/DNI y pulsa Buscar -->
+            <div class="sec-title" style="border-top:none;padding-top:0;margin-top:0;">Identifícate</div>
+            <label for="f-buscar-id">Tu CIF o DNI *</label>
+            <div class="idrow">
+                <input type="text" id="f-buscar-id" placeholder="B12345678 o 29876543P" autocapitalize="characters" autocomplete="off">
+                <button type="button" class="btn-buscar" onclick="buscarEmpresa()">Buscar</button>
             </div>
-            <label for="f-chofer">Nombre del chófer *</label>
-            <input type="text" id="f-chofer" placeholder="Nombre y apellidos">
-            <label for="f-tfno">Teléfono del chófer *</label>
-            <div class="telrow">
-                <select id="f-pref">
-                    <option value="+34" selected>🇪🇸 +34</option>
-                    <option value="+351">🇵🇹 +351</option>
-                    <option value="+33">🇫🇷 +33</option>
-                    <option value="+49">🇩🇪 +49</option>
-                    <option value="+39">🇮🇹 +39</option>
-                    <option value="+40">🇷🇴 +40</option>
-                    <option value="+48">🇵🇱 +48</option>
-                    <option value="+31">🇳🇱 +31</option>
-                    <option value="+32">🇧🇪 +32</option>
+            <p class="id-hint">Escribe tu <strong>CIF</strong> (empresa) o <strong>DNI/NIE</strong> (autónomo) y pulsa <strong>Buscar</strong>: aparecerán tus datos para que no tengas que escribirlos.<br><span style="color:var(--gray-500);">Demo: prueba <strong>B58830217</strong>, <strong>B72153042</strong> o <strong>29876543P</strong>.</span></p>
+            <div class="id-nofound" id="idNoFound">No encontramos ese CIF/DNI en nuestra base. Revísalo, o contacta con Dynamo para darte de alta.</div>
+
+            <!-- Resumen de la empresa encontrada -->
+            <div class="empresa-resumen" id="empresaResumen">
+                <div class="er-nombre" id="er-nombre">—</div>
+                <div class="er-cif" id="er-cif">—</div>
+                <div class="er-grid">
+                    <div><div class="er-k">Población</div><div class="er-v" id="er-ciudad">—</div></div>
+                    <div><div class="er-k">Flota</div><div class="er-v" id="er-flota">—</div></div>
+                    <div><div class="er-k">Seguro</div><div class="er-v" id="er-seguro">—</div></div>
+                    <div><div class="er-k">Bolsa de cargas</div><div class="er-v" id="er-bolsa">—</div></div>
+                </div>
+                <button type="button" class="er-cambiar" onclick="cambiarEmpresa()">No soy yo / cambiar</button>
+            </div>
+
+            <!-- 2) Resto del formulario (aparece tras identificarse) -->
+            <div id="restForm">
+                <div class="sec-title">Carga</div>
+                <label for="f-fechacarga">Fecha disponible para cargar *</label>
+                <select id="f-fechacarga"></select>
+                <p class="id-hint" id="fechaHint"></p>
+                <label for="f-horacarga">Hora estimada de carga *</label>
+                <select id="f-horacarga"></select>
+
+                <div class="sec-title">Entrega <span class="op" style="font-weight:600;color:var(--gray-500);">· estimada, opcional</span></div>
+                <div class="row2">
+                    <div>
+                        <label for="f-fechaentrega">Fecha estimada de entrega <span class="op">· opcional</span></label>
+                        <input type="date" id="f-fechaentrega">
+                    </div>
+                    <div>
+                        <label for="f-horaentrega">Hora estimada de entrega <span class="op">· opcional</span></label>
+                        <select id="f-horaentrega"></select>
+                    </div>
+                </div>
+
+                <div class="sec-title">Vehículo</div>
+                <label for="f-camion">Tipo de camión *</label>
+                <select id="f-camion" onchange="syncRemolque()">
+                    <option value="Trailer Tauliner · lona 13,2 m">Trailer Tauliner · lona corredera 13,2 m</option>
+                    <option value="Rígido con plataforma · 8 m">Rígido con plataforma · 8 m</option>
                 </select>
-                <input type="tel" id="f-tfno" placeholder="600 000 000" inputmode="tel">
-            </div>
-            <label for="f-notas">Indicaciones <span class="op">· opcional</span></label>
-            <textarea id="f-notas" placeholder="Ej. disponibilidad, restricciones, observaciones del vehículo…"></textarea>
+                <div class="row2">
+                    <div>
+                        <label for="f-tractora">Matrícula tractora *</label>
+                        <input type="text" id="f-tractora" placeholder="1234ABC" autocapitalize="characters">
+                    </div>
+                    <div>
+                        <label for="f-remolque">Matrícula remolque <span class="op">· solo tráiler</span></label>
+                        <input type="text" id="f-remolque" placeholder="R5678DEF" autocapitalize="characters">
+                    </div>
+                </div>
 
-            <div class="pronto">
-                <label class="chk">
-                    <input type="checkbox" id="f-pronto">
-                    <span><strong>Quiero PRONTO PAGO:</strong> cobro a <strong>48&nbsp;h tras finalizar el servicio</strong> con un <strong>descuento del 3%</strong> (mínimo 15&nbsp;€).</span>
-                </label>
-            </div>
+                <div class="sec-title">Conductor</div>
+                <label for="f-chofer">Nombre y apellidos del conductor *</label>
+                <input type="text" id="f-chofer" placeholder="Nombre y apellidos">
+                <label for="f-dnichofer">DNI / NIE del conductor *</label>
+                <input type="text" id="f-dnichofer" placeholder="29876543P" autocapitalize="characters">
+                <label for="f-tfno">Teléfono del conductor *</label>
+                <div class="telrow">
+                    <select id="f-pref">
+                        <option value="+34" selected>🇪🇸 +34</option>
+                        <option value="+351">🇵🇹 +351</option>
+                        <option value="+33">🇫🇷 +33</option>
+                        <option value="+49">🇩🇪 +49</option>
+                        <option value="+39">🇮🇹 +39</option>
+                        <option value="+40">🇷🇴 +40</option>
+                        <option value="+48">🇵🇱 +48</option>
+                        <option value="+31">🇳🇱 +31</option>
+                        <option value="+32">🇧🇪 +32</option>
+                    </select>
+                    <input type="tel" id="f-tfno" placeholder="600 000 000" inputmode="tel">
+                </div>
 
-            <div class="warn" id="fWarn">⚠ Revisa los campos marcados: son obligatorios.</div>
-            <button type="button" class="btn" onclick="aceptar()">Aceptar carga</button>
-            <p class="aviso">Al aceptar, el equipo de Dynamo verificará los datos y te confirmará la asignación por teléfono o WhatsApp. La carga no queda adjudicada hasta esa confirmación.</p>
+                <label for="f-notas">Indicaciones <span class="op">· opcional</span></label>
+                <textarea id="f-notas" placeholder="Ej. disponibilidad, restricciones, observaciones del vehículo…"></textarea>
+
+                <div class="pronto">
+                    <label class="chk">
+                        <input type="checkbox" id="f-pronto">
+                        <span><strong>Quiero PRONTO PAGO:</strong> cobro a <strong>48&nbsp;h tras finalizar el servicio</strong> con un <strong>descuento del 3%</strong> (mínimo 15&nbsp;€).</span>
+                    </label>
+                </div>
+
+                <div class="warn" id="fWarn">⚠ Revisa los campos marcados: son obligatorios.</div>
+                <button type="button" class="btn" onclick="aceptar()">Aceptar carga</button>
+                <p class="aviso">Al aceptar, el equipo de Dynamo verificará los datos y te confirmará la asignación por teléfono o WhatsApp. La carga no queda adjudicada hasta esa confirmación.</p>
+            </div>
         </div>
 
         <div class="ok-screen" id="okScreen">
@@ -132,22 +206,38 @@
     <p class="foot"><a href="https://dynamotrans.com">dynamotrans.com</a></p>
 
 <script>
-    // Datos del viaje desde la URL (los pone el enlace de la oferta). Si no
-    // vienen, se muestran valores de demostración.
+    function q(k, def) { var v = new URLSearchParams(location.search).get(k); return v || def; }
+    // Franjas horarias (formato 24 h).
+    var FRANJAS = ['07:00 - 09:00', '09:00 - 11:00', '11:00 - 13:00', '13:00 - 15:00', '15:00 - 17:00', '17:00 - 19:00'];
+    // Base de transportistas DEMO para el buscador por CIF/DNI (en producción,
+    // el backend busca en la base real y solo devuelve TU empresa).
+    var TRANS_DEMO = [
+        { cif: 'B58830217', empresa: 'Transportes Iberia Express S.L.', ciudad: 'Madrid', flota: '8 camiones', seguro: 'CMR 150.000 €', bolsa: 'Wtransnet' },
+        { cif: 'B72153042', empresa: 'LogiSur Cargo S.L.', ciudad: 'Sevilla', flota: '12 camiones', seguro: 'CMR 200.000 €', bolsa: 'Timocom' },
+        { cif: 'B91234567', empresa: 'Transportes Andévalo S.L.', ciudad: 'Huelva', flota: '5 camiones', seguro: 'CMR 100.000 €', bolsa: '—' },
+        { cif: '29876543P', empresa: 'José Martín Ruiz · autónomo', ciudad: 'Córdoba', flota: '1 camión', seguro: 'CMR 60.000 €', bolsa: '—' }
+    ];
+    function normId(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+
+    // ---- Datos del viaje desde la URL (los pone el enlace de la oferta) ----
     (function () {
-        function q(k, def) { var v = new URLSearchParams(location.search).get(k); return v || def; }
         document.getElementById('v-ref').textContent   = q('envio', '#GX000000 (demo)');
         document.getElementById('v-orig').textContent  = q('o', 'Sevilla');
         document.getElementById('v-dest').textContent  = q('d', 'Madrid');
-        document.getElementById('v-fecha').textContent = q('f', 'Por confirmar');
         document.getElementById('v-merc').textContent  = q('m', 'Paletizado');
         var p = q('p', '');
-        if (p) {
-            document.getElementById('v-imp').textContent = p;
-            document.getElementById('v-pago').hidden = false;
-        }
-        // pp=0 → PRONTO PAGO no disponible temporalmente (línea agotada):
-        // la caja se muestra desactivada para que sepa que la opción existe.
+        if (p) { document.getElementById('v-imp').textContent = p; document.getElementById('v-pago').hidden = false; }
+        // Días disponibles para cargar: 'dias' = lista separada por comas.
+        //   1 día  → FECHA FIJA (no se puede cambiar).
+        //   varios → VENTANA (se elige uno).
+        // Si no vienen, demo con 3 días.
+        var dias = q('dias', '');
+        var lista = dias ? dias.split(',').map(function (x) { return x.trim(); }).filter(Boolean)
+                         : ['Mié 22/07', 'Jue 23/07', 'Vie 24/07'];
+        document.getElementById('v-fecha').textContent = lista.length > 1
+            ? 'Ventana: ' + lista.join(' · ') : (lista[0] || 'Por confirmar');
+        window._diasCarga = lista;
+        // pp=0 → PRONTO PAGO no disponible.
         if (q('pp', '') === '0') {
             var pr = document.querySelector('.pronto');
             pr.style.background = 'var(--gray-100)';
@@ -157,15 +247,85 @@
                 '<span><strong>PRONTO PAGO no disponible temporalmente.</strong> En esta carga no se puede ofrecer el cobro anticipado a 48&nbsp;h; el pago es CONTADO en las condiciones habituales.</span></label>';
         }
     })();
-    // Matrículas: solo letras y números, en mayúsculas.
-    ['f-tractora', 'f-remolque'].forEach(function (id) {
-        var el = document.getElementById(id);
-        el.addEventListener('input', function () {
-            el.value = el.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+
+    // ---- Buscar la empresa por CIF/DNI ----
+    function buscarEmpresa() {
+        var val = normId(document.getElementById('f-buscar-id').value);
+        var noFound = document.getElementById('idNoFound');
+        if (!val) { document.getElementById('f-buscar-id').classList.add('err'); return; }
+        document.getElementById('f-buscar-id').classList.remove('err');
+        var hit = null;
+        for (var i = 0; i < TRANS_DEMO.length; i++) {
+            if (normId(TRANS_DEMO[i].cif) === val) { hit = TRANS_DEMO[i]; break; }
+        }
+        if (!hit) { noFound.classList.add('show'); document.getElementById('empresaResumen').classList.remove('show'); document.getElementById('restForm').classList.remove('show'); return; }
+        noFound.classList.remove('show');
+        // Rellenar el resumen de la empresa.
+        document.getElementById('er-nombre').textContent = hit.empresa;
+        document.getElementById('er-cif').textContent = 'CIF/DNI: ' + hit.cif;
+        document.getElementById('er-ciudad').textContent = hit.ciudad || '—';
+        document.getElementById('er-flota').textContent = hit.flota || '—';
+        document.getElementById('er-seguro').textContent = hit.seguro || '—';
+        document.getElementById('er-bolsa').textContent = hit.bolsa || '—';
+        window._empresaSel = hit;
+        document.getElementById('empresaResumen').classList.add('show');
+        // Revelar el resto del formulario y montar los desplegables.
+        montarDesplegables();
+        var rest = document.getElementById('restForm');
+        rest.classList.add('show');
+        rest.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+    function cambiarEmpresa() {
+        window._empresaSel = null;
+        document.getElementById('empresaResumen').classList.remove('show');
+        document.getElementById('restForm').classList.remove('show');
+        var inp = document.getElementById('f-buscar-id');
+        inp.value = ''; inp.focus();
+    }
+    document.getElementById('f-buscar-id').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); buscarEmpresa(); }
+    });
+
+    // ---- Montar los desplegables de fecha/hora (una vez identificado) ----
+    function montarDesplegables() {
+        var lista = window._diasCarga || [];
+        var esFija = lista.length <= 1;
+        var feSel = document.getElementById('f-fechacarga');
+        feSel.innerHTML = lista.map(function (d) { return '<option>' + d + '</option>'; }).join('') || '<option>Por confirmar</option>';
+        feSel.disabled = esFija;
+        document.getElementById('fechaHint').textContent = esFija
+            ? 'Fecha fija ofertada: no se puede cambiar.'
+            : 'Elige uno de los días de la ventana ofertada.';
+        // Horas de carga y de entrega (mismas franjas).
+        var horaOpts = '<option value="">Selecciona…</option>' + FRANJAS.map(function (f) { return '<option>' + f + '</option>'; }).join('');
+        document.getElementById('f-horacarga').innerHTML = horaOpts;
+        document.getElementById('f-horaentrega').innerHTML = '<option value="">Sin definir</option>' + FRANJAS.map(function (f) { return '<option>' + f + '</option>'; }).join('');
+        syncRemolque();
+    }
+
+    // Camión RÍGIDO → no lleva remolque: se deshabilita y limpia.
+    function syncRemolque() {
+        var cam = document.getElementById('f-camion');
+        var rem = document.getElementById('f-remolque');
+        if (!cam || !rem) return;
+        var rigido = /rígido/i.test(cam.value);
+        rem.disabled = rigido;
+        rem.placeholder = rigido ? 'Rígido: sin remolque' : 'R5678DEF';
+        if (rigido) rem.value = '';
+    }
+
+    // Matrículas y DNI: solo letras y números, en mayúsculas.
+    ['f-tractora', 'f-remolque', 'f-dnichofer'].forEach(function (id) {
+        document.getElementById(id).addEventListener('input', function () {
+            this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, id === 'f-dnichofer' ? 12 : 10);
         });
     });
+
     function aceptar() {
-        var req = ['f-empresa', 'f-cif', 'f-tractora', 'f-chofer', 'f-tfno'];
+        if (!window._empresaSel) { document.getElementById('f-buscar-id').classList.add('err'); document.getElementById('f-buscar-id').scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+        var req = ['f-fechacarga', 'f-horacarga', 'f-tractora', 'f-chofer', 'f-dnichofer', 'f-tfno'];
+        var rigido = /rígido/i.test(document.getElementById('f-camion').value);
+        if (!rigido) req.push('f-remolque');
         var ok = true;
         req.forEach(function (id) {
             var el = document.getElementById(id);
@@ -175,9 +335,10 @@
         });
         var warn = document.getElementById('fWarn');
         warn.classList.toggle('show', !ok);
-        if (!ok) { document.querySelector('.err').scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
-        // MOCKUP: aquí el backend registrará la aceptación (envío, datos del
-        // transportista, matrículas, chófer y pronto pago) y avisará al equipo.
+        if (!ok) { document.querySelector('#restForm .err').scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+        // MOCKUP: aquí el backend registra la aceptación (envío, empresa, fecha
+        // y hora de carga y entrega, camión, matrículas, conductor con su DNI y
+        // pronto pago) y avisa al equipo de Dynamo.
         document.getElementById('ok-ref').textContent = document.getElementById('v-ref').textContent;
         document.getElementById('ok-pronto').hidden = !document.getElementById('f-pronto').checked;
         document.getElementById('formScreen').style.display = 'none';
