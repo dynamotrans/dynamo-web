@@ -173,7 +173,7 @@
     .taken-data .tk-k { font-size: 0.75rem; font-weight: 700; color: var(--gray-500); flex: none; }
     .taken-data .tk-v { font-size: 1rem; font-weight: 800; color: var(--navy); letter-spacing: 0.03em; text-align: right; word-break: break-word; }
     .taken-data .tk-rel { display: block; font-size: 0.8rem; font-weight: 600; color: var(--gray-500); margin-top: 2px; letter-spacing: 0; }
-    /* Banner de reserva temporal (contador de 2 min) */
+    /* Banner de reserva temporal (contador de 3 min) */
     /* Banner de reserva: fijo arriba (sticky) para verlo siempre al hacer scroll. */
     .reserva-banner { position: sticky; top: 0; z-index: 30; margin: 0 0 1rem; background: #ece8fb; border: 1.5px solid rgba(51,0,204,0.35); border-radius: 12px; padding: 0.7rem 0.85rem; font-size: 0.84rem; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 0.5rem; line-height: 1.4; box-shadow: 0 2px 10px rgba(20,10,60,0.1); }
     .reserva-banner .rb-timer { font-size: 1.05rem; font-weight: 900; color: var(--purple); font-variant-numeric: tabular-nums; }
@@ -245,7 +245,7 @@
         <div class="stop-screen" id="expiredScreen">
             <div class="stop-ico amber">⏳</div>
             <h1>Se ha agotado el tiempo de reserva</h1>
-            <p class="sub">No se completó la aceptación en <strong>2 minutos</strong>, así que la carga ha vuelto a quedar libre. Vuelve a comprobar si sigue disponible.</p>
+            <p class="sub">No se completó la aceptación en <strong>3 minutos</strong>, así que la carga ha vuelto a quedar libre. Vuelve a comprobar si sigue disponible.</p>
             <button type="button" class="btn" onclick="location.reload()">Volver a comprobar disponibilidad</button>
         </div>
 
@@ -253,7 +253,7 @@
             <h1>Pulsa el botón de abajo para Aceptar carga</h1>
             <p class="sub">Oferta de <strong>Dynamo Operador de Transportes</strong></p>
 
-            <!-- Reserva temporal: contador de 2 min mientras rellena los datos. -->
+            <!-- Reserva temporal: contador de 3 min mientras rellena los datos. -->
             <div class="reserva-banner" id="reservaBanner">
                 <span>⏳ <strong>Reserva temporal.</strong> Tómate tu tiempo para completar y aceptar la carga; te avisaremos cuando quede poco antes de que se libere.</span>
             </div>
@@ -1108,7 +1108,7 @@
     });
 
     function aceptar() {
-        // Si ya venció la reserva de 2 min, la carga se liberó: no se registra.
+        // Si ya venció la reserva de 3 min, la carga se liberó: no se registra.
         if (window._reservaExpirada) { expirarReserva(); return; }
         if (!window._empresaSel && !window._altaMode) { document.getElementById('f-buscar-id').classList.add('err'); document.getElementById('f-buscar-id').scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
         // Empresa YA existente: confirmar identidad con los 3 últimos dígitos
@@ -1228,7 +1228,7 @@
         setTimeout(updateScrollHint, 500); // la pista se recalcula para el resumen de aceptado
     }
 
-    // ================= DISPONIBILIDAD + RESERVA (2 min) =================
+    // ================= DISPONIBILIDAD + RESERVA (3 min) =================
     // Al abrir el enlace: pantalla "comprobando disponibilidad" ~1,8 s. Luego:
     //  · estado=tomada  → pantalla "ya no disponible" con datos enmascarados.
     //  · disponible     → formulario + contador de reserva (por defecto 120 s).
@@ -1337,7 +1337,7 @@
         comprobarDisponibilidad(dur, function () {
             if (q('estado', 'libre') === 'tomada') { mostrarTomada(); return; }
             mostrarPantalla('formScreen');
-            var seg = parseInt(q('t', '120'), 10); if (isNaN(seg) || seg < 5) seg = 120;
+            var seg = parseInt(q('t', '180'), 10); if (isNaN(seg) || seg < 5) seg = 180;
             iniciarReserva(seg);
         });
     })();
