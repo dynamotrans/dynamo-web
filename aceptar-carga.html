@@ -67,7 +67,7 @@
     .of-pt-loc { font-size: 0.88rem; font-weight: 600; color: var(--gray-500); margin-top: 0.15rem; line-height: 1.35; }
     .of-merc { background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.8rem 0.9rem; }
     .of-merc-head { display: flex; align-items: center; gap: 0.6rem; }
-    .of-merc-ico { font-size: 1.35rem; flex: none; line-height: 1; }
+    .of-merc-ico { flex: none; line-height: 0; color: var(--purple); }
     .of-merc-lbl { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--purple); }
     .of-merc-tipo { font-size: 1rem; font-weight: 900; color: var(--navy); }
     .of-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.7rem; }
@@ -336,7 +336,7 @@
         <!-- 0-ter) TIEMPO AGOTADO: pasaron los 4 min de reserva y la carga se
              ha liberado; hay que volver a comprobar disponibilidad. -->
         <div class="stop-screen" id="expiredScreen">
-            <div class="stop-ico amber">⏳</div>
+            <div class="stop-ico amber"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 7.828V2"/></svg></div>
             <h1>Se ha agotado el tiempo de reserva</h1>
             <p class="sub">No se completó la aceptación en <strong>3 minutos</strong>, así que la carga ha vuelto a quedar libre. Vuelve a comprobar si sigue disponible.</p>
             <button type="button" class="btn" onclick="location.reload()">Volver a comprobar disponibilidad</button>
@@ -348,7 +348,7 @@
 
             <!-- Reserva temporal: contador de 3 min mientras rellena los datos. -->
             <div class="reserva-banner" id="reservaBanner">
-                <span>⏳ <strong>Reserva temporal.</strong> Tómate tu tiempo para completar y aceptar la carga; te avisaremos cuando quede poco antes de que se libere.</span>
+                <span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;color:var(--purple);"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 7.828V2"/></svg> <strong>Reserva temporal.</strong> Tómate tu tiempo para completar y aceptar la carga; te avisaremos cuando quede poco antes de que se libere.</span>
             </div>
 
             <dl class="viaje" id="viajeBox"></dl>
@@ -448,16 +448,16 @@
                     <label style="margin-bottom:0.35rem;">Documentación del alta</label>
                     <div class="doc-grid">
                         <div>
-                            <label class="doc-drop" data-doc="cif">📎 Subir hoja CIF<div class="dd-sub">PDF o foto</div><input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="docUp(this,'cif',1)"></label>
+                            <label class="doc-drop" data-doc="cif"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> Subir hoja CIF<div class="dd-sub">PDF o foto</div><input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="docUp(this,'cif',1)"></label>
                             <ul class="doc-list" id="doc-cif"></ul>
                         </div>
                         <div>
-                            <label class="doc-drop" data-doc="dni">📎 Subir DNI<div class="dd-sub">PDF o foto</div><input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="docUp(this,'dni',1)"></label>
+                            <label class="doc-drop" data-doc="dni"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> Subir DNI<div class="dd-sub">PDF o foto</div><input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="docUp(this,'dni',1)"></label>
                             <ul class="doc-list" id="doc-dni"></ul>
                         </div>
                     </div>
                     <div style="margin-top:0.6rem;">
-                        <label class="doc-drop" data-doc="otros">📎 Otros documentos<div class="dd-sub">Escrituras, poderes, certificados, seguro CMR… · máx. 3</div><input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple hidden onchange="docUp(this,'otros',3)"></label>
+                        <label class="doc-drop" data-doc="otros"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> Otros documentos<div class="dd-sub">Escrituras, poderes, certificados, seguro CMR… · máx. 3</div><input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple hidden onchange="docUp(this,'otros',3)"></label>
                         <ul class="doc-list" id="doc-otros"></ul>
                     </div>
                 </div>
@@ -575,10 +575,10 @@
         <div class="ok-screen" id="okScreen">
             <div class="ok-ico"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
             <h1>¡Carga aceptada!</h1>
-            <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br>El equipo de Dynamo te confirmará la asignación en breve.<br><span id="ok-alta" hidden>🆕 Te damos de <strong>alta como transportista de Dynamo</strong> (pendiente de validación).</span></p>
-            <div class="pago-contado" id="ok-orden-top" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;">📧 En unos minutos recibirás la <strong>orden de carga</strong> por email en <strong id="ok-email-top" style="color:var(--purple);">—</strong>.</div>
+            <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br>El equipo de Dynamo te confirmará la asignación en breve.<br><span id="ok-alta" hidden><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;color:var(--green-dark);"><path d="M2 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="8" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg> Te damos de <strong>alta como transportista de Dynamo</strong> (pendiente de validación).</span></p>
+            <div class="pago-contado" id="ok-orden-top" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-4px;color:var(--purple);"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg> En unos minutos recibirás la <strong>orden de carga</strong> por email en <strong id="ok-email-top" style="color:var(--purple);">—</strong>.</div>
             <div id="ok-resumen"></div>
-            <div class="pago-contado" id="ok-orden" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;">📧 En unos minutos recibirás la <strong>orden de carga</strong> por email en <strong id="ok-email" style="color:var(--purple);">—</strong>.</div>
+            <div class="pago-contado" id="ok-orden" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-4px;color:var(--purple);"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg> En unos minutos recibirás la <strong>orden de carga</strong> por email en <strong id="ok-email" style="color:var(--purple);">—</strong>.</div>
             <button type="button" class="dudas-toggle" aria-expanded="false" onclick="toggleDudas(this)">¿Dudas? <span class="dt-chev" aria-hidden="true">▾</span></button>
             <div class="contact-btns" hidden>
                 <a class="cbtn cbtn-call" href="tel:+34955225945"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar</a>
@@ -592,6 +592,18 @@
 
 <script>
     function q(k, def) { var v = new URLSearchParams(location.search).get(k); return v || def; }
+    // Iconos SVG de línea (REGLA del proyecto: nada de emoticonos en la UI;
+    // solo banderas del selector de idioma y glifos ✕/⚠/★).
+    function svgIco(paths, size) {
+        return '<svg viewBox="0 0 24 24" width="' + (size || 18) + '" height="' + (size || 18) + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + '</svg>';
+    }
+    var ICO = {
+        box:   svgIco('<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>', 22),
+        truck: svgIco('<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>', 22),
+        emp:   svgIco('<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/>', 22),
+        user:  svgIco('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', 22),
+        file:  svgIco('<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>', 14)
+    };
     // Franjas horarias (formato 24 h).
     var FRANJAS = ['07:00 - 09:00', '09:00 - 11:00', '11:00 - 13:00', '13:00 - 15:00', '15:00 - 17:00', '17:00 - 19:00'];
     // Base de transportistas DEMO para el buscador por CIF/DNI (en producción,
@@ -766,7 +778,7 @@
             '<div class="of-envio"><span class="of-envio-lbl">Envío</span><span id="v-ref">' + escH(envio) + '</span></div>' +
             '<div class="of-route">' + routeHtml + '</div>' +
             '<div class="of-merc">' +
-                '<div class="of-merc-head"><span class="of-merc-ico">📦</span><div>' +
+                '<div class="of-merc-head"><span class="of-merc-ico">' + ICO.box + '</span><div>' +
                     '<div class="of-merc-lbl">Mercancía</div>' +
                     '<div class="of-merc-tipo" id="v-merc">' + escH(merc) + '</div></div></div>' +
                 (chips ? '<div class="of-chips">' + chips + '</div>' : '') +
@@ -956,7 +968,7 @@
     function renderDoc(cat) {
         var el = document.getElementById('doc-' + cat); if (!el) return;
         el.innerHTML = _altaDocs[cat].map(function (n, i) {
-            return '<li>📄<span class="name">' + escH(n) + '</span><button type="button" onclick="docDel(\'' + cat + '\',' + i + ')" aria-label="Quitar">✕</button></li>';
+            return '<li>' + ICO.file + '<span class="name">' + escH(n) + '</span><button type="button" onclick="docDel(\'' + cat + '\',' + i + ')" aria-label="Quitar">✕</button></li>';
         }).join('');
         var drop = document.querySelector('.doc-drop[data-doc="' + cat + '"]');
         if (drop) drop.classList.toggle('has-file', _altaDocs[cat].length > 0);
@@ -1367,13 +1379,13 @@
         '</div>';
         // Mercancía: tipo + chips del detalle + anotaciones (igual que la oferta).
         var mercChips = (O.detalles || []).map(function (r) { return chip(r[0], r[1]); }).join('');
-        html += cardSec('📦', 'Mercancía', O.merc, mercChips,
+        html += cardSec(ICO.box, 'Mercancía', O.merc, mercChips,
             O.dm ? '<div class="of-dm"><b>Anotaciones de la mercancía</b>' + escH(O.dm) + '</div>' : '');
         // Transportista, vehículo y conductor.
-        html += cardSec('🚚', 'Transportista', empNom, chip('CIF / DNI', empCif));
-        html += cardSec('🚛', 'Vehículo', okVal('f-camion'),
+        html += cardSec(ICO.emp, 'Transportista', empNom, chip('CIF / DNI', empCif));
+        html += cardSec(ICO.truck, 'Vehículo', okVal('f-camion'),
             chip('Matrícula tractora', okVal('f-tractora')) + chip('Remolque', okVal('f-remolque')));
-        html += cardSec('👤', 'Conductor', okVal('f-chofer'),
+        html += cardSec(ICO.user, 'Conductor', okVal('f-chofer'),
             chip('DNI / NIE', okVal('f-dnichofer')) + chip('Teléfono', okVal('f-pref') + ' ' + okVal('f-tfno')));
         // Precio: caja verde como la de la oferta, con el pronto pago si aplica.
         var imp = O.precio || okTxt('v-imp');
