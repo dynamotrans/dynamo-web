@@ -182,7 +182,13 @@
     .foot a { color: var(--purple); font-weight: 700; text-decoration: none; }
     /* Botones de contacto (Llamar / WhatsApp / Email) */
     .dudas-lbl { margin-top: 1.2rem; font-size: 0.8rem; font-weight: 700; color: var(--gray-600); text-align: center; }
-    .contact-btns { display: flex; gap: 0.5rem; margin-top: 0.55rem; flex-wrap: wrap; justify-content: center; }
+    /* Botón "¿Dudas?" que despliega los contactos. */
+    .dudas-toggle { display: inline-flex; align-items: center; gap: 0.45rem; margin-top: 1.2rem; background: rgba(51,0,204,0.06); color: var(--purple); border: 1.5px solid rgba(51,0,204,0.3); border-radius: 999px; padding: 0.6rem 1.3rem; font: inherit; font-size: 0.9rem; font-weight: 800; cursor: pointer; }
+    .dudas-toggle:hover { background: rgba(51,0,204,0.1); }
+    .dudas-toggle .dt-chev { font-size: 0.75rem; transition: transform 0.2s; }
+    .dudas-toggle[aria-expanded="true"] .dt-chev { transform: rotate(180deg); }
+    .contact-btns { display: flex; gap: 0.5rem; margin-top: 0.6rem; flex-wrap: wrap; justify-content: center; }
+    .contact-btns[hidden] { display: none; }
     .cbtn { flex: 1; min-width: 96px; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; text-decoration: none; font-weight: 800; font-size: 0.86rem; padding: 0.65rem 0.6rem; border-radius: 11px; border: 1.5px solid; }
     .cbtn svg { width: 16px; height: 16px; }
     .cbtn-call { color: var(--purple); border-color: rgba(51,0,204,0.3); background: rgba(51,0,204,0.05); }
@@ -225,8 +231,8 @@
                 <div class="tk-row"><span class="tk-k">Aceptada por</span><span class="tk-v" id="tk-nom">—</span></div>
                 <div class="tk-row"><span class="tk-k">CIF / DNI</span><span class="tk-v" id="tk-cif">—</span></div>
             </div>
-            <div class="dudas-lbl">¿Dudas?</div>
-            <div class="contact-btns">
+            <button type="button" class="dudas-toggle" aria-expanded="false" onclick="toggleDudas(this)">¿Dudas? <span class="dt-chev" aria-hidden="true">▾</span></button>
+            <div class="contact-btns" hidden>
                 <a class="cbtn cbtn-call" href="tel:+34955225945"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar</a>
                 <a class="cbtn cbtn-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</a>
                 <a class="cbtn cbtn-mail" href="mailto:info@dynamotrans.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>Email</a>
@@ -478,8 +484,8 @@
             <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br>El equipo de Dynamo te confirmará la asignación en breve.<br><span id="ok-alta" hidden>🆕 Te damos de <strong>alta como transportista de Dynamo</strong> (pendiente de validación).</span></p>
             <dl class="viaje" id="ok-resumen" style="text-align:left;"></dl>
             <div class="pago-contado" id="ok-orden" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;">📧 En unos minutos recibirás la <strong>orden de carga</strong> por email en <strong id="ok-email" style="color:var(--purple);">—</strong>.</div>
-            <div class="dudas-lbl">¿Dudas?</div>
-            <div class="contact-btns">
+            <button type="button" class="dudas-toggle" aria-expanded="false" onclick="toggleDudas(this)">¿Dudas? <span class="dt-chev" aria-hidden="true">▾</span></button>
+            <div class="contact-btns" hidden>
                 <a class="cbtn cbtn-call" href="tel:+34955225945"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar</a>
                 <a class="cbtn cbtn-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</a>
                 <a class="cbtn cbtn-mail" href="mailto:info@dynamotrans.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>Email</a>
@@ -1037,6 +1043,14 @@
         }
         // Conductor: el de la tractora prellenada; si no, el más reciente.
         fillConductor((tr.value && choferDeTractora(hit, tr.value)) || (hit.conductores && hit.conductores[0]) || null);
+    }
+    // "¿Dudas?": despliega/oculta los botones de contacto.
+    function toggleDudas(btn) {
+        var box = btn.nextElementSibling;
+        var open = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+        if (box) box.hidden = open;
+        setTimeout(updateScrollHint, 60);
     }
     // Indicaciones plegables: abrir/cerrar el textarea al pulsar el texto azul.
     function toggleNotas() {
