@@ -5049,6 +5049,18 @@
                     </div>
                 </div>
 
+                <div class="ptar-notes-wrap">
+                    <button type="button" class="ptar-notes-toggle" data-ptar-notes-toggle aria-expanded="false">
+                        <span class="pnt-icon" aria-hidden="true">+</span>
+                        Añadir anotaciones de envío o detalle de mercancía (opcional)
+                    </button>
+                    <div class="ptar-notes-body" data-ptar-notes-body hidden>
+                        <textarea data-ptar-notes maxlength="1000" rows="3"
+                            placeholder="Detalles que debamos saber (tipo de mercancía, acceso, dimensiones especiales, instrucciones de entrega…)"></textarea>
+                        <div class="ptar-notes-counter"><span data-ptar-notes-count>0</span> / 1000</div>
+                    </div>
+                </div>
+
                 <div class="ptar-pair">
                 <div class="ptar-field">
                     <label class="ptar-label ptar-has-tip" tabindex="0">
@@ -5127,18 +5139,6 @@
                 </button>
                 <div class="ptar-notes-body" data-ptar-refcli-body hidden>
                     <input type="text" id="ptar-refcli-carga" data-ptar-refcli class="ptar-select" placeholder="Ej. PED-0426 / ALB-1234">
-                </div>
-            </div>
-
-            <div class="ptar-notes-wrap">
-                <button type="button" class="ptar-notes-toggle" data-ptar-notes-toggle aria-expanded="false">
-                    <span class="pnt-icon" aria-hidden="true">+</span>
-                    Añadir anotaciones (opcional)
-                </button>
-                <div class="ptar-notes-body" data-ptar-notes-body hidden>
-                    <textarea data-ptar-notes maxlength="1000" rows="3"
-                        placeholder="Detalles que debamos saber (acceso, dimensiones especiales, ADR, instrucciones de entrega…)"></textarea>
-                    <div class="ptar-notes-counter"><span data-ptar-notes-count>0</span> / 1000</div>
                 </div>
             </div>
 
