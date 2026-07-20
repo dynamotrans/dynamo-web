@@ -10040,7 +10040,8 @@
                         }).join('') + '</select></div>';
                 })() +
                 ctField('tra-f-cif', 'CIF / NIF *', t.cif, 'B12345678 / 12345678Z') +
-                ctField('tra-f-bolsa', 'Código bolsa de carga', t.bolsa, 'Ej. 482113', true) +
+                ctSelect('tra-f-bolsatipo', 'Bolsa de carga', ['Wtransnet', 'Teleroute', 'Bursa'], t.bolsaTipo || 'Wtransnet') +
+                ctField('tra-f-bolsa', 'Código bolsa de carga', t.bolsa, 'Ej. 482113') +
                 ctField('tra-f-dir', 'Domicilio fiscal (calle y número)', t.dir, 'Calle y número', true) +
                 ctField('tra-f-cp', 'CP', t.cp, '41001') +
                 ctField('tra-f-ciudad', 'Localidad', t.ciudad, 'Sevilla') +
@@ -10179,6 +10180,8 @@
         t.tipo = tipoEl ? tipoEl.value : 'Empresa';
         var estEl = document.getElementById('tra-f-estado');
         if (estEl) t.estadoOp = estEl.value;
+        var btEl = document.getElementById('tra-f-bolsatipo');
+        t.bolsaTipo = btEl ? btEl.value : (t.bolsaTipo || 'Wtransnet');
         t.bolsa = v('tra-f-bolsa') || null;
         t.dir = v('tra-f-dir') || null; t.cp = v('tra-f-cp') || null;
         t.ciudad = v('tra-f-ciudad') || null; t.prov = v('tra-f-prov') || null;

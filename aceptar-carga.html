@@ -164,8 +164,16 @@
                             <input type="text" id="alta-cif" placeholder="B12345678 / 12345678Z" autocapitalize="characters">
                         </div>
                     </div>
-                    <label for="alta-bolsa">Código bolsa de carga <span class="op">· opcional</span></label>
-                    <input type="text" id="alta-bolsa" placeholder="Ej. 482113">
+                    <div class="row2">
+                        <div>
+                            <label for="alta-bolsa-tipo">Bolsa de carga</label>
+                            <select id="alta-bolsa-tipo"><option>Wtransnet</option><option>Teleroute</option><option>Bursa</option></select>
+                        </div>
+                        <div>
+                            <label for="alta-bolsa">Código bolsa de carga <span class="op">· opcional</span></label>
+                            <input type="text" id="alta-bolsa" placeholder="Ej. 482113">
+                        </div>
+                    </div>
                     <label for="alta-dir">Domicilio fiscal (calle y número)</label>
                     <input type="text" id="alta-dir" placeholder="Calle y número">
                     <div class="row2">
