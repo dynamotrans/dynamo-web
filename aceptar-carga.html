@@ -190,23 +190,24 @@
             <!-- 2) Resto del formulario (aparece tras identificarse) -->
             <div id="restForm">
                 <div class="sec-title">Carga</div>
-                <label for="f-fechacarga">Fecha disponible para cargar *</label>
-                <select id="f-fechacarga"></select>
+                <label for="f-fechacarga">Fecha de carga de tu camión *</label>
+                <select id="f-fechacarga" onchange="montarEntregaFecha()"></select>
                 <p class="id-hint" id="fechaHint"></p>
-                <label for="f-horacarga">Hora estimada de carga *</label>
+                <label for="f-horacarga">Hora estimada de carga <span class="op">(NO es cita, solo para saber aprox. la hora de carga)</span> *</label>
                 <select id="f-horacarga"></select>
 
-                <div class="sec-title">Entrega <span class="op" style="font-weight:600;color:var(--gray-500);">· estimada, opcional</span></div>
+                <div class="sec-title">Entrega <span class="op" style="font-weight:600;color:var(--gray-500);">· estimada</span></div>
                 <div class="row2">
                     <div>
-                        <label for="f-fechaentrega">Fecha estimada de entrega <span class="op">· opcional</span></label>
-                        <input type="date" id="f-fechaentrega">
+                        <label for="f-fechaentrega">Fecha estimada de entrega</label>
+                        <select id="f-fechaentrega"></select>
                     </div>
                     <div>
                         <label for="f-horaentrega">Hora estimada de entrega <span class="op">· opcional</span></label>
                         <select id="f-horaentrega"></select>
                     </div>
                 </div>
+                <p class="id-hint">La fecha de entrega la estima Dynamo automáticamente; puedes cambiarla (desde el día de carga hasta 7 días después, incluidos sábados y domingos).</p>
 
                 <div class="sec-title">Vehículo</div>
                 <label for="f-camion">Tipo de camión *</label>
@@ -388,7 +389,41 @@
         var horaOpts = '<option value="">Selecciona…</option>' + FRANJAS.map(function (f) { return '<option>' + f + '</option>'; }).join('');
         document.getElementById('f-horacarga').innerHTML = horaOpts;
         document.getElementById('f-horaentrega').innerHTML = '<option value="">Sin definir</option>' + FRANJAS.map(function (f) { return '<option>' + f + '</option>'; }).join('');
+        montarEntregaFecha();
         syncRemolque();
+    }
+    // Fecha estimada de ENTREGA: desplegable desde el día de carga hasta 7 días
+    // después (INCLUIDOS sábados y domingos). La estima Dynamo (aquí, mock: día
+    // de carga + 1); se puede cambiar. En producción la calcula el backend.
+    var DOW = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    function fmtDMlabel(d) { return DOW[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2); }
+    function parseLabelFecha(s) {
+        var m = String(s || '').match(/(\d{1,2})\/(\d{1,2})/);
+        if (!m) return null;
+        return new Date((new Date()).getFullYear(), +m[2] - 1, +m[1]);
+    }
+    function montarEntregaFecha() {
+        var feCarga = document.getElementById('f-fechacarga');
+        var sel = document.getElementById('f-fechaentrega');
+        if (!sel) return;
+        var base = parseLabelFecha(feCarga && feCarga.value ? feCarga.value : (window._diasCarga && window._diasCarga[0]));
+        if (!base) { sel.innerHTML = '<option value="">Sin definir</option>'; return; }
+        var prev = sel.value;
+        var opts = '';
+        for (var i = 0; i <= 7; i++) {
+            var d = new Date(base); d.setDate(d.getDate() + i);
+            var lbl = fmtDMlabel(d);
+            opts += '<option>' + lbl + '</option>';
+        }
+        sel.innerHTML = opts;
+        // Si la selección previa sigue existiendo se conserva; si no, valor por
+        // defecto del "algoritmo": día de carga + 1 (mock).
+        if (prev && sel.querySelector('option')) {
+            var keep = Array.prototype.some.call(sel.options, function (o) { return o.value === prev; });
+            if (keep) { sel.value = prev; return; }
+        }
+        var def = new Date(base); def.setDate(def.getDate() + 1);
+        sel.value = fmtDMlabel(def);
     }
 
     // Camión RÍGIDO → no lleva remolque: se deshabilita y limpia.
