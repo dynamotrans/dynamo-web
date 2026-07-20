@@ -224,7 +224,6 @@
                 <div class="tk-row"><span class="tk-k">Aceptada el</span><span class="tk-v" id="tk-fecha">—</span></div>
                 <div class="tk-row"><span class="tk-k">Aceptada por</span><span class="tk-v" id="tk-nom">—</span></div>
                 <div class="tk-row"><span class="tk-k">CIF / DNI</span><span class="tk-v" id="tk-cif">—</span></div>
-                <div class="tk-row"><span class="tk-k">Teléfono</span><span class="tk-v" id="tk-tel">—</span></div>
             </div>
             <div class="dudas-lbl">¿Dudas?</div>
             <div class="contact-btns">
@@ -1266,7 +1265,6 @@
     function mostrarTomada() {
         var nom = q('tnom', 'Transportes Iberia Express S.L.');
         var cif = q('tcif', 'B58830217');
-        var tel = q('ttel', '+34 916 402 118');
         var fecha = q('tfecha', '');
         if (!fecha) {
             var d = new Date(); d.setMinutes(d.getMinutes() - 7);
@@ -1277,7 +1275,6 @@
         document.getElementById('tk-fecha').textContent = fecha;
         document.getElementById('tk-nom').textContent = maskNombre(nom);
         document.getElementById('tk-cif').textContent = maskCifFront(cif);
-        document.getElementById('tk-tel').textContent = maskTel(tel);
         mostrarPantalla('takenScreen');
     }
     // Animación de "comprobando" con barra de progreso (0→100 %) y contador de
