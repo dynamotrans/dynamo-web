@@ -11349,18 +11349,18 @@
         // Horario de almacén de cada punto desde su ficha de sitio (si la hay).
         var pRec = (c.paradas || []).filter(function (p) { return p.tipo === 'recogida'; });
         var pEnt = (c.paradas || []).filter(function (p) { return p.tipo !== 'recogida'; });
+        // DISCRECIÓN: el enlace de la oferta lleva SOLO direcciones (CP,
+        // localidad, provincia, país) y horarios de almacén — NUNCA el nombre
+        // de la empresa de los puntos (ese va solo en la orden de carga).
         function horDe(key) { var s = (typeof siteDe === 'function' && key) ? siteDe(key) : null; return (s && s.horario) || ''; }
-        function empDe(key) { var s = (typeof siteDe === 'function' && key) ? siteDe(key) : null; return (s && s.empresa) || ''; }
-        function ptParams(arr, pfx, hfx, efx) {
+        function ptParams(arr, pfx, hfx) {
             return arr.map(function (p, i) {
-                var n = i + 2, h = horDe(p.site), e = empDe(p.site);
+                var n = i + 2, h = horDe(p.site);
                 return '&' + pfx + n + '=' + encodeURIComponent(p.dir) +
-                    (h ? '&' + hfx + n + '=' + encodeURIComponent(h) : '') +
-                    (e ? '&' + efx + n + '=' + encodeURIComponent(e) : '');
+                    (h ? '&' + hfx + n + '=' + encodeURIComponent(h) : '');
             }).join('');
         }
         var hoTxt = horDe(c.origenSite), hdTxt = horDe(c.destinoSite);
-        var oeTxt = empDe(c.origenSite), deTxt = empDe(c.destinoSite);
         // Días REALES de carga para la página de aceptación (param dias, formato
         // 'Mié 22/07'): fecha asignada o fija → 1 día; ventana → cada laborable.
         var diasList = [];
@@ -11381,12 +11381,10 @@
             '?envio=' + encodeURIComponent(c.ref) +
             '&o=' + encodeURIComponent(oTxt) +
             (hoTxt ? '&ho=' + encodeURIComponent(hoTxt) : '') +
-            (oeTxt ? '&oe=' + encodeURIComponent(oeTxt) : '') +
-            ptParams(pRec, 'o', 'ho', 'oe') +
+            ptParams(pRec, 'o', 'ho') +
             '&d=' + encodeURIComponent(dTxt) +
             (hdTxt ? '&hd=' + encodeURIComponent(hdTxt) : '') +
-            (deTxt ? '&de=' + encodeURIComponent(deTxt) : '') +
-            ptParams(pEnt, 'd', 'hd', 'de') +
+            ptParams(pEnt, 'd', 'hd') +
             (diasList.length ? '&dias=' + encodeURIComponent(diasList.join(',')) : '') +
             '&m=' + encodeURIComponent(mTxt) +
             (dmTxt ? '&dm=' + encodeURIComponent(dmTxt) : '') +
