@@ -70,6 +70,14 @@
     .empresa-resumen .er-k { font-size: 0.66rem; font-weight: 800; color: var(--gray-500); }
     .empresa-resumen .er-v { font-size: 0.85rem; font-weight: 700; }
     .empresa-resumen .er-cambiar { margin-top: 0.6rem; font-size: 0.76rem; font-weight: 800; color: var(--purple); background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; }
+    /* Subida de documentos por TIPO en el alta (ya clasificados). */
+    .doc-up { margin-top: 0.8rem; }
+    .doc-up-btn { display: inline-flex; align-items: center; gap: 0.45rem; background: #fff; border: 1.5px dashed var(--gray-300); border-radius: 10px; padding: 0.55rem 0.9rem; font-weight: 800; font-size: 0.85rem; color: var(--purple); cursor: pointer; }
+    .doc-up-btn:hover { border-color: var(--purple); background: rgba(51,0,204,0.04); }
+    .doc-up-hint { font-size: 0.72rem; color: var(--gray-500); margin-top: 0.25rem; }
+    .doc-up-files { margin-top: 0.35rem; }
+    .doc-up-files .df { display: flex; align-items: center; gap: 0.45rem; font-size: 0.82rem; font-weight: 700; color: var(--gray-700); padding: 0.2rem 0; }
+    .doc-up-files .df button { background: none; border: none; color: var(--red); font-weight: 900; font-size: 0.95rem; cursor: pointer; line-height: 1; padding: 0 0.2rem; }
     /* Resto del formulario, oculto hasta identificar la empresa */
     #restForm { display: none; }
     #restForm.show { display: block; }
@@ -189,9 +197,22 @@
                             <input type="text" id="alta-seguro" placeholder="AXA · Póliza CMR 88-456129">
                         </div>
                     </div>
-                    <label>Documentos del transportista <span class="op">· seguro CMR, tarjeta de transporte… opcional, máx. 5</span></label>
-                    <input type="file" id="alta-docs" accept=".jpg,.jpeg,.png,.pdf" multiple onchange="altaDocsChange()" style="font-size:0.85rem;">
-                    <div id="altaDocsList" style="font-size:0.78rem;color:var(--gray-700);font-weight:700;margin-top:0.3rem;"></div>
+                    <label style="margin-bottom:0.1rem;">Documentación del alta</label>
+                    <div class="doc-up">
+                        <label class="doc-up-btn">📎 Subir hoja CIF<input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="docUp(this,'cif',1)"></label>
+                        <div class="doc-up-hint">PDF o foto</div>
+                        <div class="doc-up-files" id="doc-cif"></div>
+                    </div>
+                    <div class="doc-up">
+                        <label class="doc-up-btn">📎 Subir DNI<input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="docUp(this,'dni',1)"></label>
+                        <div class="doc-up-hint">PDF o foto</div>
+                        <div class="doc-up-files" id="doc-dni"></div>
+                    </div>
+                    <div class="doc-up">
+                        <label class="doc-up-btn">📎 Otros documentos<input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple hidden onchange="docUp(this,'otros',3)"></label>
+                        <div class="doc-up-hint">Escrituras, poderes, certificados, seguro CMR… · máx. 3</div>
+                        <div class="doc-up-files" id="doc-otros"></div>
+                    </div>
                 </div>
             </div>
 
@@ -396,12 +417,23 @@
         var inp = document.getElementById('f-buscar-id');
         inp.value = ''; inp.focus();
     }
-    function altaDocsChange() {
-        var inp = document.getElementById('alta-docs');
-        var list = document.getElementById('altaDocsList');
-        var files = Array.prototype.slice.call(inp.files || [], 0, 5);
-        list.textContent = files.length ? '📎 ' + files.map(function (f) { return f.name; }).join(' · ') : '';
+    // Documentos del alta, ya CLASIFICADOS por tipo (hoja CIF, DNI, otros).
+    var _altaDocs = { cif: [], dni: [], otros: [] };
+    function escH(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+    function docUp(input, cat, max) {
+        var files = Array.prototype.slice.call(input.files || []).map(function (f) { return f.name; });
+        if (max === 1) { _altaDocs[cat] = files.slice(0, 1); }
+        else { _altaDocs[cat] = _altaDocs[cat].concat(files).slice(0, max); }
+        renderDoc(cat);
+        input.value = '';
     }
+    function renderDoc(cat) {
+        var el = document.getElementById('doc-' + cat); if (!el) return;
+        el.innerHTML = _altaDocs[cat].map(function (n, i) {
+            return '<div class="df">📄 ' + escH(n) + ' <button type="button" onclick="docDel(\'' + cat + '\',' + i + ')" aria-label="Quitar">✕</button></div>';
+        }).join('');
+    }
+    function docDel(cat, i) { _altaDocs[cat].splice(i, 1); renderDoc(cat); }
     document.getElementById('f-buscar-id').addEventListener('keydown', function (e) {
         if (e.key === 'Enter') { e.preventDefault(); buscarEmpresa(); }
     });
