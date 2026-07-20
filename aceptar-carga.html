@@ -318,6 +318,8 @@
             <div class="ok-ico"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
             <h1>¡Carga aceptada!</h1>
             <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br>El equipo de Dynamo te confirmará la asignación en breve.<br><span id="ok-alta" hidden>🆕 Te damos de <strong>alta como transportista de Dynamo</strong> (pendiente de validación).<br></span><span id="ok-pronto" hidden>✅ Has elegido <strong>pronto pago a 5 días tras factura (−3%, mín. 20&nbsp;€)</strong>.</span></p>
+            <dl class="viaje" id="ok-resumen" style="text-align:left;"></dl>
+            <div class="pago-contado" id="ok-orden" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;">📧 En unos minutos recibirás la <strong>orden de carga</strong> por email en <strong id="ok-email" style="color:var(--purple);">—</strong>.</div>
             <p class="foot">¿Dudas? <a href="tel:+34955225945">+34 955 225 945</a> · <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a></p>
         </div>
     </div>
@@ -330,10 +332,10 @@
     // Base de transportistas DEMO para el buscador por CIF/DNI (en producción,
     // el backend busca en la base real y solo devuelve TU empresa).
     var TRANS_DEMO = [
-        { cif: 'B58830217', empresa: 'Transportes Iberia Express S.L.', ciudad: 'Madrid', flota: '8 camiones', seguro: 'CMR 150.000 €', bolsa: 'Wtransnet', tel: '+34 916 402 118' },
-        { cif: 'B72153042', empresa: 'LogiSur Cargo S.L.', ciudad: 'Sevilla', flota: '12 camiones', seguro: 'CMR 200.000 €', bolsa: 'Timocom', tel: '+34 954 771 530' },
-        { cif: 'B91234567', empresa: 'Transportes Andévalo S.L.', ciudad: 'Huelva', flota: '5 camiones', seguro: 'CMR 100.000 €', bolsa: '—', tel: '+34 959 240 087' },
-        { cif: '29876543P', empresa: 'José Martín Ruiz · autónomo', ciudad: 'Córdoba', flota: '1 camión', seguro: 'CMR 60.000 €', bolsa: '—', tel: '+34 638 220 471' }
+        { cif: 'B58830217', empresa: 'Transportes Iberia Express S.L.', ciudad: 'Madrid', flota: '8 camiones', seguro: 'CMR 150.000 €', bolsa: 'Wtransnet', tel: '+34 916 402 118', email: 'trafico@iberiaexpress-trans.es' },
+        { cif: 'B72153042', empresa: 'LogiSur Cargo S.L.', ciudad: 'Sevilla', flota: '12 camiones', seguro: 'CMR 200.000 €', bolsa: 'Timocom', tel: '+34 954 771 530', email: 'operaciones@logisurcargo.com' },
+        { cif: 'B91234567', empresa: 'Transportes Andévalo S.L.', ciudad: 'Huelva', flota: '5 camiones', seguro: 'CMR 100.000 €', bolsa: '—', tel: '+34 959 240 087', email: 'trafico@andevalotrans.es' },
+        { cif: '29876543P', empresa: 'José Martín Ruiz · autónomo', ciudad: 'Córdoba', flota: '1 camión', seguro: 'CMR 60.000 €', bolsa: '—', tel: '+34 638 220 471', email: 'jmartin.transportes@gmail.com' }
     ];
     function normId(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
     // Enmascara los 3 ÚLTIMOS dígitos de un teléfono con *** (deja el resto).
@@ -626,6 +628,27 @@
         document.getElementById('ok-ref').textContent = document.getElementById('v-ref').textContent;
         document.getElementById('ok-alta').hidden = !window._altaMode;
         document.getElementById('ok-pronto').hidden = !document.getElementById('f-pronto').checked;
+        // Resumen de la carga aceptada.
+        function okTxt(id) { return (document.getElementById(id) || {}).textContent || ''; }
+        function okVal(id) { var e = document.getElementById(id); return e ? e.value : ''; }
+        var entregaFecha = okVal('f-fechaentrega'), entregaHora = okVal('f-horaentrega');
+        var rows = [
+            ['Envío', okTxt('v-ref')],
+            ['Recogida', okTxt('v-orig')],
+            ['Entrega', okTxt('v-dest')],
+            ['Fecha y hora de carga', okVal('f-fechacarga') + (okVal('f-horacarga') ? ' · ' + okVal('f-horacarga') : '')],
+            ['Entrega estimada', entregaFecha ? (entregaFecha + (entregaHora ? ' · ' + entregaHora : '')) : '—'],
+            ['Mercancía', okTxt('v-merc')]
+        ];
+        var imp = okTxt('v-imp');
+        if (imp) rows.push(['Precio', imp + ' · base imponible (impuestos no incluidos)']);
+        document.getElementById('ok-resumen').innerHTML = rows.map(function (r) {
+            return '<dt>' + escH(r[0]) + '</dt><dd>' + escH(r[1]) + '</dd>';
+        }).join('');
+        // Email donde se enviará la orden de carga: el de su ficha (existente) o
+        // el que tecleó en el alta.
+        var email = (window._empresaSel && window._empresaSel.email) || okVal('alta-email') || 'tu email';
+        document.getElementById('ok-email').textContent = email;
         document.getElementById('formScreen').style.display = 'none';
         document.getElementById('okScreen').classList.add('show');
         window.scrollTo({ top: 0, behavior: 'smooth' });
