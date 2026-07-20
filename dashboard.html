@@ -1130,6 +1130,15 @@
         .dash-modal-title { font-size: 1.1rem; font-weight: 900; color: var(--navy); line-height: 1.25; }
         .dash-modal-sub { font-size: var(--fs-m); color: var(--gray-500); margin-top: 0.2rem; }
         .dash-modal-body { margin-bottom: 1.1rem; }
+        /* Aviso de suspensión: línea roja + "Ampliar para ver más" (details). */
+        .susp-details { margin-top: 0.8rem; border: 1px solid rgba(220,38,38,0.35); border-radius: 9px; background: rgba(220,38,38,0.05); padding: 0.6rem 0.8rem; }
+        .susp-details > summary { cursor: pointer; list-style: none; font-size: var(--fs-l); font-weight: 800; color: #dc2626; line-height: 1.5; display: block; }
+        .susp-details > summary::-webkit-details-marker { display: none; }
+        .susp-details > summary .susp-more { display: inline-block; margin-top: 0.25rem; font-size: var(--fs-m); font-weight: 700; color: var(--purple); text-decoration: underline; }
+        .susp-details[open] > summary .susp-more { color: var(--gray-500); }
+        .susp-details .susp-cuerpo { margin-top: 0.6rem; font-size: var(--fs-m); line-height: 1.55; color: var(--gray-700); }
+        .susp-details .susp-cuerpo p { margin: 0; }
+        .susp-details .susp-cuerpo p + p { margin-top: 0.6rem; }
         .dash-modal-actions {
             display: flex; gap: 0.5rem; flex-wrap: wrap;
             margin: -0.4rem 0 1.1rem;
@@ -20977,7 +20986,16 @@
                 // MOCK: nº de cancelaciones en los últimos 10 envíos confirmados
                 // (en el backend será el conteo real de la cuenta). Demo por debajo del umbral.
                 var _cancEn10 = 1;
-                var suspBloque = '<p style="font-size: var(--fs-m);line-height:1.5;color:var(--gray-500);margin-top:0.7rem;">La <strong>cancelación reiterada de envíos</strong> puede conllevar la <strong>suspensión temporal o definitiva de la cuenta</strong> si se detecta un uso fraudulento, abusivo o irresponsable. Por encima de <strong>3 cancelaciones</strong> en tus últimos 10 envíos confirmados la cuenta puede ser suspendida. (Tienes ' + _cancEn10 + ' cancelación' + (_cancEn10 === 1 ? '' : 'es') + ' en tus últimos 10 envíos confirmados).</p>';
+                // Línea roja (siempre visible) + resto del texto legal plegado tras
+                // "Ampliar para ver más".
+                var suspBloque =
+                    '<details class="susp-details">' +
+                        '<summary>La cancelación reiterada de envíos puede conllevar la suspensión temporal o definitiva de la cuenta.<span class="susp-more">Ampliar para ver más</span></summary>' +
+                        '<div class="susp-cuerpo">' +
+                            '<p>Por parte de Dynamo, se hará lo posible para evitar o minimizar los costes en favor del cliente, <strong>pero la legislación es muy clara y, si el transportista decide aplicar los gastos estando en su derecho, deben ser asumidos por el cliente.</strong></p>' +
+                            '<p>La cancelación reiterada de envíos puede conllevar la suspensión temporal o definitiva de la cuenta <strong>si se detecta un uso fraudulento, abusivo o irresponsable</strong>. Por encima de <strong>3 cancelaciones</strong> en tus últimos 10 envíos confirmados la cuenta puede ser suspendida. (Tienes ' + _cancEn10 + ' cancelación' + (_cancEn10 === 1 ? '' : 'es') + ' en tus últimos 10 envíos confirmados).</p>' +
+                        '</div>' +
+                    '</details>';
                 var cancelBody;
                 if (trasCorte) {
                     // Ya se ha pasado el corte: la cancelación puede tener coste completo.
@@ -20985,7 +21003,6 @@
                         '<div style="margin-bottom:0.8rem;padding:0.7rem 0.8rem;background:rgba(220,38,38,0.10);border:1px solid rgba(220,38,38,0.45);border-radius:9px;font-size: var(--fs-l);line-height:1.55;color:#991b1b;">' +
                         '⚠ <strong>Cancelación con coste.</strong> Estás confirmando <strong>después de las 9:00 del primer día hábil anterior a la carga</strong>. Si cancelas a partir de ahora, puede conllevar un <strong>coste de hasta ' + eur2c(precioTotalConf) + '</strong> (el importe del servicio completo, IVA incl.). Si <strong>no tienes seguridad</strong> de que la carga está confirmada, <strong>no continúes</strong>: pulsa <strong>Cancelar</strong> ahora y programa para otro momento.' +
                         '</div>' +
-                        '<p style="font-size: var(--fs-m);line-height:1.55;color:var(--gray-700);">Por parte de Dynamo, se hará lo posible para evitar o minimizar los costes en favor del cliente, <strong>pero la legislación es muy clara y, si el transportista decide aplicar los gastos estando en su derecho, deben ser asumidos por el cliente.</strong></p>' +
                         suspBloque;
                 } else {
                     // Aún dentro de la ventana de cancelación gratuita: cuenta atrás.
@@ -21004,7 +21021,6 @@
                         '✅ <strong>Cancelación gratuita hasta el ' + corteTxt + '</strong> (quedan <strong>' + remTxt + '</strong>). Dentro de esa ventana puedes cancelar sin coste.' +
                         '</div>' +
                         '<p style="font-size: var(--fs-l);line-height:1.55;color:var(--gray-700);">Si el cliente cancela el servicio <strong>después de las 9:00 AM del día hábil anterior</strong> a la carga, <strong>Dynamo Operador Logístico, S.L.</strong> se reserva el derecho de <strong>facturar el servicio completo</strong> en concepto de indemnización.</p>' +
-                        '<p style="font-size: var(--fs-m);line-height:1.55;color:var(--gray-700);margin-top:0.6rem;">Por parte de Dynamo, se hará lo posible para evitar o minimizar los costes en favor del cliente, <strong>pero la legislación es muy clara y, si el transportista decide aplicar los gastos estando en su derecho, deben ser asumidos por el cliente.</strong></p>' +
                         suspBloque;
                 }
                 openDashModal({
