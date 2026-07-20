@@ -47,6 +47,17 @@
     .telrow select { width: 108px; flex: none; }
     textarea { min-height: 84px; resize: vertical; }
     .err { border-color: var(--red) !important; }
+    /* Autocompletado (matrícula tractora/remolque y conductor) desde el historial */
+    .ac-wrap { position: relative; }
+    .ac-list { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 3px); background: #fff; border: 1.5px solid var(--gray-300); border-radius: 10px; box-shadow: 0 8px 22px rgba(20,10,60,0.14); max-height: 240px; overflow-y: auto; padding: 0.25rem; display: none; }
+    .ac-list.show { display: block; }
+    .ac-list li { list-style: none; padding: 0.5rem 0.6rem; border-radius: 8px; cursor: pointer; font-size: 0.9rem; color: var(--navy); display: flex; flex-direction: column; gap: 1px; }
+    .ac-list li:hover, .ac-list li.ac-active { background: rgba(51,0,204,0.08); }
+    .ac-list li .ac-sub { font-size: 0.74rem; color: var(--gray-500); font-weight: 600; }
+    .ac-list li.ac-tip { cursor: default; color: var(--gray-500); font-size: 0.76rem; font-weight: 700; font-style: italic; }
+    .ac-list li.ac-tip:hover { background: transparent; }
+    .ac-newnote { font-size: 0.72rem; color: var(--gray-500); margin-top: 0.25rem; display: none; }
+    .ac-newnote.show { display: block; }
     /* Buscador de identificación (CIF/DNI + Buscar) */
     .idrow { display: flex; gap: 0.5rem; align-items: stretch; }
     .idrow input { flex: 1; }
@@ -241,8 +252,7 @@
                         <select id="f-horacarga"></select>
                     </div>
                 </div>
-                <p class="id-hint" id="fechaHint"></p>
-                <p class="id-hint">La <strong>fecha / hora de recogida</strong> la estima Dynamo automáticamente; puedes cambiarla. La <strong>hora NO es cita</strong>, solo para saber aprox. la hora de recogida.</p>
+                <p class="id-hint"><strong>Elige uno de los días de carga de la ventana de días ofertados.</strong> A veces sólo puede elegirse un día si lleva fecha fija de carga. La <strong>fecha / hora de recogida</strong> la estima Dynamo automáticamente; puedes cambiarla. La <strong>hora NO es cita</strong>, solo para saber aprox. la hora de recogida.</p>
 
                 <div class="sec-title">Entrega <span class="op" style="font-weight:600;color:var(--gray-500);">· estimada</span></div>
                 <div class="row2">
@@ -266,17 +276,29 @@
                 <div class="row2">
                     <div>
                         <label for="f-tractora">Matrícula tractora *</label>
-                        <input type="text" id="f-tractora" placeholder="1234ABC" autocapitalize="characters">
+                        <div class="ac-wrap">
+                            <input type="text" id="f-tractora" placeholder="1234ABC" autocapitalize="characters" autocomplete="off">
+                            <ul class="ac-list" id="ac-tractora"></ul>
+                        </div>
+                        <div class="ac-newnote" id="new-tractora">Se registrará como matrícula nueva.</div>
                     </div>
                     <div>
                         <label for="f-remolque">Matrícula remolque <span class="op">· solo tráiler</span></label>
-                        <input type="text" id="f-remolque" placeholder="R5678DEF" autocapitalize="characters">
+                        <div class="ac-wrap">
+                            <input type="text" id="f-remolque" placeholder="R5678DEF" autocapitalize="characters" autocomplete="off">
+                            <ul class="ac-list" id="ac-remolque"></ul>
+                        </div>
+                        <div class="ac-newnote" id="new-remolque">Se registrará como matrícula nueva.</div>
                     </div>
                 </div>
 
                 <div class="sec-title">Conductor</div>
                 <label for="f-chofer">Nombre y apellidos del conductor *</label>
-                <input type="text" id="f-chofer" placeholder="Nombre y apellidos">
+                <div class="ac-wrap">
+                    <input type="text" id="f-chofer" placeholder="Nombre y apellidos" autocomplete="off">
+                    <ul class="ac-list" id="ac-chofer"></ul>
+                </div>
+                <div class="ac-newnote" id="new-chofer">Conductor nuevo: rellena DNI y teléfono a mano.</div>
                 <label for="f-dnichofer">DNI / NIE del conductor *</label>
                 <input type="text" id="f-dnichofer" placeholder="29876543P" autocapitalize="characters">
                 <label for="f-tfno">Teléfono del conductor *</label>
@@ -334,10 +356,33 @@
     // Base de transportistas DEMO para el buscador por CIF/DNI (en producción,
     // el backend busca en la base real y solo devuelve TU empresa).
     var TRANS_DEMO = [
-        { cif: 'B58830217', empresa: 'Transportes Iberia Express S.L.', ciudad: 'Madrid', flota: '8 camiones', seguro: 'CMR 150.000 €', bolsa: 'Wtransnet', tel: '+34 916 402 118', email: 'trafico@iberiaexpress-trans.es' },
-        { cif: 'B72153042', empresa: 'LogiSur Cargo S.L.', ciudad: 'Sevilla', flota: '12 camiones', seguro: 'CMR 200.000 €', bolsa: 'Timocom', tel: '+34 954 771 530', email: 'operaciones@logisurcargo.com' },
-        { cif: 'B91234567', empresa: 'Transportes Andévalo S.L.', ciudad: 'Huelva', flota: '5 camiones', seguro: 'CMR 100.000 €', bolsa: '—', tel: '+34 959 240 087', email: 'trafico@andevalotrans.es' },
-        { cif: '29876543P', empresa: 'José Martín Ruiz · autónomo', ciudad: 'Córdoba', flota: '1 camión', seguro: 'CMR 60.000 €', bolsa: '—', tel: '+34 638 220 471', email: 'jmartin.transportes@gmail.com' }
+        {
+            cif: 'B58830217', empresa: 'Transportes Iberia Express S.L.', ciudad: 'Madrid', flota: '8 camiones', seguro: 'CMR 150.000 €', bolsa: 'Wtransnet', tel: '+34 916 402 118', email: 'trafico@iberiaexpress-trans.es',
+            matriculas: ['4521 JKL', '7890 MNP', '1234 ABC'], remolques: ['R2345 DEF', 'R6677 GHJ'],
+            conductores: [
+                { nombre: 'Antonio Gómez', dni: '50123456A', tel: '+34 611 223 344' },
+                { nombre: 'Manuel Ortega', dni: '51987654B', tel: '+34 622 334 455' }
+            ]
+        },
+        {
+            cif: 'B72153042', empresa: 'LogiSur Cargo S.L.', ciudad: 'Sevilla', flota: '12 camiones', seguro: 'CMR 200.000 €', bolsa: 'Timocom', tel: '+34 954 771 530', email: 'operaciones@logisurcargo.com',
+            matriculas: ['3344 SUR', '5566 CDZ'], remolques: ['R8899 SEV'],
+            conductores: [
+                { nombre: 'Francisco Rus', dni: '28765432C', tel: '+34 633 445 566' }
+            ]
+        },
+        {
+            cif: 'B91234567', empresa: 'Transportes Andévalo S.L.', ciudad: 'Huelva', flota: '5 camiones', seguro: 'CMR 100.000 €', bolsa: '—', tel: '+34 959 240 087', email: 'trafico@andevalotrans.es',
+            matriculas: ['1122 HUE'], remolques: [],
+            conductores: []
+        },
+        {
+            cif: '29876543P', empresa: 'José Martín Ruiz · autónomo', ciudad: 'Córdoba', flota: '1 camión', seguro: 'CMR 60.000 €', bolsa: '—', tel: '+34 638 220 471', email: 'jmartin.transportes@gmail.com',
+            matriculas: ['9080 COR'], remolques: ['R4040 COR'],
+            conductores: [
+                { nombre: 'José Martín Ruiz', dni: '29876543P', tel: '+34 638 220 471' }
+            ]
+        }
     ];
     function normId(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
     // Enmascara los 3 ÚLTIMOS dígitos de un teléfono con *** (deja el resto).
@@ -525,7 +570,6 @@
         var feSel = document.getElementById('f-fechacarga');
         feSel.innerHTML = lista.map(function (d) { return '<option>' + d + '</option>'; }).join('') || '<option>Por confirmar</option>';
         feSel.disabled = esFija;
-        document.getElementById('fechaHint').textContent = 'Elige uno de los días de carga de la ventana de días ofertados. A veces sólo puede elegirse un día si lleva fecha fija de carga.';
         // Horas de carga y de entrega (mismas franjas), con valor por defecto:
         // carga 11:00-13:00 · entrega 07:00-09:00.
         document.getElementById('f-horacarga').innerHTML = FRANJAS.map(function (f) { return '<option' + (f === '11:00 - 13:00' ? ' selected' : '') + '>' + f + '</option>'; }).join('');
@@ -578,11 +622,93 @@
         if (rigido) rem.value = '';
     }
 
-    // Matrículas y DNI: solo letras y números, en mayúsculas.
-    ['f-tractora', 'f-remolque', 'f-dnichofer'].forEach(function (id) {
+    // DNI del conductor: solo letras y números, en mayúsculas.
+    document.getElementById('f-dnichofer').addEventListener('input', function () {
+        this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+    });
+    // Matrículas: mayúsculas (se conservan espacios para casar con el historial).
+    ['f-tractora', 'f-remolque'].forEach(function (id) {
         document.getElementById(id).addEventListener('input', function () {
-            this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, id === 'f-dnichofer' ? 12 : 10);
+            var p = this.selectionStart; this.value = this.value.toUpperCase(); this.selectionStart = this.selectionEnd = p;
         });
+    });
+
+    // ---- Autocompletado de matrículas y conductor desde el historial ----
+    // Al enfocar/teclear en Matrícula tractora/remolque o Conductor salen hasta
+    // 4 coincidencias del historial de la empresa identificada + una pista final
+    // "Escribe para filtrar…". Si no localiza ninguna, lo que se teclee a mano se
+    // registra como nuevo (aviso). El backend guardará las nuevas de verdad.
+    function acNorm(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+    function acClose(listEl) { if (listEl) { listEl.classList.remove('show'); listEl.innerHTML = ''; } }
+    // cfg: { inp, list, note, source(): [str|{...}], label(item), sub(item), pick(item) }
+    function acBind(cfg) {
+        var inp = document.getElementById(cfg.inp);
+        var list = document.getElementById(cfg.list);
+        var note = cfg.note ? document.getElementById(cfg.note) : null;
+        if (!inp || !list) return;
+        function items() { return (cfg.source() || []); }
+        function refresh() {
+            var q = acNorm(inp.value);
+            var all = items();
+            if (!all.length) { acClose(list); if (note) note.classList.remove('show'); return; }
+            var match = all.filter(function (it) { return acNorm(cfg.label(it)).indexOf(q) >= 0; });
+            var shown = match.slice(0, 4);
+            var html = shown.map(function (it, i) {
+                var sub = cfg.sub ? cfg.sub(it) : '';
+                return '<li data-i="' + all.indexOf(it) + '">' + escH(cfg.label(it)) +
+                    (sub ? '<span class="ac-sub">' + escH(sub) + '</span>' : '') + '</li>';
+            }).join('');
+            html += '<li class="ac-tip">Escribe para filtrar…</li>';
+            list.innerHTML = html;
+            list.classList.add('show');
+            // Aviso "se registrará como nueva/nuevo" si hay texto sin coincidencia exacta.
+            if (note) {
+                var exact = all.some(function (it) { return acNorm(cfg.label(it)) === q && q; });
+                note.classList.toggle('show', !!q && !exact);
+            }
+            Array.prototype.forEach.call(list.querySelectorAll('li[data-i]'), function (li) {
+                li.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    cfg.pick(all[+li.getAttribute('data-i')]);
+                    acClose(list);
+                    if (note) note.classList.remove('show');
+                });
+            });
+        }
+        inp.addEventListener('focus', refresh);
+        inp.addEventListener('input', refresh);
+        inp.addEventListener('blur', function () { setTimeout(function () { acClose(list); }, 150); });
+    }
+    function selEmpresa() { return window._empresaSel || null; }
+    acBind({
+        inp: 'f-tractora', list: 'ac-tractora', note: 'new-tractora',
+        source: function () { var e = selEmpresa(); return e ? e.matriculas : []; },
+        label: function (m) { return m; },
+        pick: function (m) { document.getElementById('f-tractora').value = m; }
+    });
+    acBind({
+        inp: 'f-remolque', list: 'ac-remolque', note: 'new-remolque',
+        source: function () { var e = selEmpresa(); return (e && !document.getElementById('f-remolque').disabled) ? e.remolques : []; },
+        label: function (m) { return m; },
+        pick: function (m) { document.getElementById('f-remolque').value = m; }
+    });
+    acBind({
+        inp: 'f-chofer', list: 'ac-chofer', note: 'new-chofer',
+        source: function () { var e = selEmpresa(); return e ? e.conductores : []; },
+        label: function (c) { return c.nombre; },
+        sub: function (c) { return c.dni + ' · ' + c.tel; },
+        pick: function (c) {
+            document.getElementById('f-chofer').value = c.nombre;
+            document.getElementById('f-dnichofer').value = c.dni;
+            // Teléfono: separar prefijo (+34…) del número para rellenar ambos.
+            var pref = document.getElementById('f-pref'), tf = document.getElementById('f-tfno');
+            var m = String(c.tel || '').match(/^(\+\d{1,3})\s*(.*)$/);
+            if (m && pref) {
+                var opt = Array.prototype.some.call(pref.options, function (o) { return o.value === m[1]; });
+                if (opt) pref.value = m[1];
+                tf.value = m[2];
+            } else { tf.value = c.tel || ''; }
+        }
     });
 
     function aceptar() {
