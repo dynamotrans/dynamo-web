@@ -51,6 +51,12 @@
     .telrow select { width: 108px; flex: none; }
     textarea { min-height: 84px; resize: vertical; }
     .err { border-color: var(--red) !important; }
+    /* Toggle "Añadir indicaciones": texto azul plegable/expansible. */
+    .notes-toggle { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.2rem; background: none; border: none; padding: 0.25rem 0; font: inherit; font-size: 0.9rem; font-weight: 700; color: var(--purple); cursor: pointer; }
+    .notes-toggle .nt-plus { width: 18px; height: 18px; border-radius: 50%; background: rgba(51,0,204,0.1); display: inline-flex; align-items: center; justify-content: center; font-weight: 900; transition: transform 0.2s; }
+    .notes-toggle[aria-expanded="true"] .nt-plus { transform: rotate(45deg); }
+    #notasBody[hidden] { display: none; }
+    #notasBody { margin-top: 0.5rem; }
     /* Campo que estaba en rojo y ya se ha rellenado correctamente → verde. */
     .valid { border-color: var(--green) !important; box-shadow: 0 0 0 2px rgba(34,165,90,0.12); }
     /* Autocompletado (matrícula tractora/remolque y conductor) desde el historial */
@@ -429,8 +435,10 @@
                 </div>
                 <p class="id-hint">El teléfono del conductor es <strong>solo para coordinar la recogida y la entrega</strong> con el cargador y el destinatario. <strong>Solo lo facilitamos a quien lo pide y únicamente el mismo día de carga por la mañana</strong>, para que no le llamen días antes ni le molesten: así se organizan entre ellos directamente y no estamos 4 por medio (tráfico, agencia, chófer, cargador…).</p>
 
-                <label for="f-notas">Indicaciones <span class="op">· opcional</span></label>
-                <textarea id="f-notas" placeholder="Ej. disponibilidad, restricciones, observaciones del vehículo…"></textarea>
+                <button type="button" class="notes-toggle" id="notasToggle" aria-expanded="false" onclick="toggleNotas()"><span class="nt-plus" aria-hidden="true">+</span> Añadir indicaciones <span class="op">· opcional</span></button>
+                <div id="notasBody" hidden>
+                    <textarea id="f-notas" placeholder="Ej. disponibilidad, restricciones, observaciones del vehículo…"></textarea>
+                </div>
 
                 <div class="pronto">
                     <label class="chk">
@@ -1020,6 +1028,15 @@
         }
         // Conductor: el de la tractora prellenada; si no, el más reciente.
         fillConductor((tr.value && choferDeTractora(hit, tr.value)) || (hit.conductores && hit.conductores[0]) || null);
+    }
+    // Indicaciones plegables: abrir/cerrar el textarea al pulsar el texto azul.
+    function toggleNotas() {
+        var btn = document.getElementById('notasToggle'), body = document.getElementById('notasBody');
+        var open = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+        body.hidden = open;
+        if (!open) { var ta = document.getElementById('f-notas'); if (ta) ta.focus(); setTimeout(updateScrollHint, 60); }
+        else setTimeout(updateScrollHint, 60);
     }
     function selEmpresa() { return window._empresaSel || null; }
     acBind({
