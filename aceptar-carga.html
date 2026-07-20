@@ -58,6 +58,8 @@
     .ac-list li.ac-tip:hover { background: transparent; }
     .ac-newnote { font-size: 0.72rem; color: var(--gray-500); margin-top: 0.25rem; display: none; }
     .ac-newnote.show { display: block; }
+    .ac-flash { animation: acFlash 0.9s ease; }
+    @keyframes acFlash { 0%, 40% { background: rgba(34,165,90,0.18); border-color: var(--green); } 100% { background: #fff; } }
     /* Buscador de identificación (CIF/DNI + Buscar) */
     .idrow { display: flex; gap: 0.5rem; align-items: stretch; }
     .idrow input { flex: 1; }
@@ -105,6 +107,13 @@
     .pronto { margin-top: 1rem; background: rgba(34,165,90,0.08); border: 1.5px solid var(--green); border-radius: 12px; padding: 0.8rem 0.9rem; }
     .pronto label.chk { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.86rem; font-weight: 600; color: var(--navy); margin: 0; text-transform: none; }
     .pronto input { width: 19px; height: 19px; flex: none; margin-top: 2px; accent-color: var(--green); }
+    .pronto-calc { margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px dashed rgba(34,165,90,0.4); }
+    .pronto-calc .pc-main { font-size: 0.9rem; font-weight: 700; color: var(--navy); }
+    .pronto-calc .pc-main strong { color: var(--green); font-weight: 900; font-size: 1.02rem; }
+    .pronto-calc .pc-sub { font-weight: 600; color: var(--gray-500); font-size: 0.76rem; }
+    .pronto-calc .pc-alt { font-size: 0.78rem; font-weight: 600; color: var(--gray-500); margin-top: 0.25rem; }
+    .pronto-calc.off { opacity: 0.6; }
+    .pronto-calc.off .pc-main strong { color: var(--gray-700); }
     .btn { width: 100%; margin-top: 1.1rem; background: var(--purple); color: #fff; border: none; border-radius: 12px; padding: 0.95rem; font: inherit; font-weight: 800; font-size: 1.02rem; cursor: pointer; }
     .btn:hover { background: var(--purple-light); }
     .aviso { font-size: 0.72rem; color: var(--gray-500); line-height: 1.5; margin-top: 0.7rem; text-align: center; }
@@ -291,8 +300,10 @@
                         <div class="ac-newnote" id="new-remolque">Se registrará como matrícula nueva.</div>
                     </div>
                 </div>
+                <p class="id-hint">Al elegir una tractora de tu historial se <strong>autorrellena el remolque</strong> que llevaba enganchado la última vez. Cámbialo si hoy llevas otro.</p>
 
                 <div class="sec-title">Conductor</div>
+                <p class="id-hint">Con estos datos el <strong>cargador agiliza la documentación</strong>: prepara los papeles de salida rellenos con el <strong>nombre del conductor y el de tu empresa</strong> antes de que llegues, y así <strong>ahorramos tiempos de espera</strong> arreglando los papeles tras cargar.</p>
                 <label for="f-chofer">Nombre y apellidos del conductor *</label>
                 <div class="ac-wrap">
                     <input type="text" id="f-chofer" placeholder="Nombre y apellidos" autocomplete="off">
@@ -316,15 +327,20 @@
                     </select>
                     <input type="tel" id="f-tfno" placeholder="600 000 000" inputmode="tel">
                 </div>
+                <p class="id-hint">El teléfono del conductor es <strong>solo para coordinar la recogida y la entrega</strong> con el cargador y el destinatario. <strong>Solo lo facilitamos a quien lo pide y únicamente el mismo día de carga por la mañana</strong>, para que no le llamen días antes ni le molesten: así se organizan entre ellos directamente y no estamos 4 por medio (tráfico, agencia, chófer, cargador…).</p>
 
                 <label for="f-notas">Indicaciones <span class="op">· opcional</span></label>
                 <textarea id="f-notas" placeholder="Ej. disponibilidad, restricciones, observaciones del vehículo…"></textarea>
 
                 <div class="pronto">
                     <label class="chk">
-                        <input type="checkbox" id="f-pronto">
+                        <input type="checkbox" id="f-pronto" onchange="renderProntoCalc()">
                         <span><strong>Quiero PRONTO PAGO:</strong> cobro en <strong>5 días tras recibir factura</strong> después de finalizar el servicio, con un <strong>descuento del 3%</strong> (mínimo 20&nbsp;€).</span>
                     </label>
+                    <div class="pronto-calc" id="prontoCalc" hidden>
+                        <div class="pc-main">Precio total con pronto pago aplicado: <strong id="pc-total">—</strong> <span class="pc-sub">· base imponible (impuestos no incluidos)</span></div>
+                        <div class="pc-alt">Sin pronto pago: <span id="pc-base">—</span> a 60 días.</div>
+                    </div>
                 </div>
 
                 <!-- Confirmación de identidad (empresa ya existente): teléfono
@@ -359,6 +375,7 @@
         {
             cif: 'B58830217', empresa: 'Transportes Iberia Express S.L.', ciudad: 'Madrid', flota: '8 camiones', seguro: 'CMR 150.000 €', bolsa: 'Wtransnet', tel: '+34 916 402 118', email: 'trafico@iberiaexpress-trans.es',
             matriculas: ['4521 JKL', '7890 MNP', '1234 ABC'], remolques: ['R2345 DEF', 'R6677 GHJ'],
+            pares: { '4521 JKL': 'R2345 DEF', '7890 MNP': 'R6677 GHJ', '1234 ABC': 'R2345 DEF' },
             conductores: [
                 { nombre: 'Antonio Gómez', dni: '50123456A', tel: '+34 611 223 344' },
                 { nombre: 'Manuel Ortega', dni: '51987654B', tel: '+34 622 334 455' }
@@ -367,18 +384,19 @@
         {
             cif: 'B72153042', empresa: 'LogiSur Cargo S.L.', ciudad: 'Sevilla', flota: '12 camiones', seguro: 'CMR 200.000 €', bolsa: 'Timocom', tel: '+34 954 771 530', email: 'operaciones@logisurcargo.com',
             matriculas: ['3344 SUR', '5566 CDZ'], remolques: ['R8899 SEV'],
+            pares: { '3344 SUR': 'R8899 SEV', '5566 CDZ': '' },
             conductores: [
                 { nombre: 'Francisco Rus', dni: '28765432C', tel: '+34 633 445 566' }
             ]
         },
         {
             cif: 'B91234567', empresa: 'Transportes Andévalo S.L.', ciudad: 'Huelva', flota: '5 camiones', seguro: 'CMR 100.000 €', bolsa: '—', tel: '+34 959 240 087', email: 'trafico@andevalotrans.es',
-            matriculas: ['1122 HUE'], remolques: [],
+            matriculas: ['1122 HUE'], remolques: [], pares: { '1122 HUE': '' },
             conductores: []
         },
         {
             cif: '29876543P', empresa: 'José Martín Ruiz · autónomo', ciudad: 'Córdoba', flota: '1 camión', seguro: 'CMR 60.000 €', bolsa: '—', tel: '+34 638 220 471', email: 'jmartin.transportes@gmail.com',
-            matriculas: ['9080 COR'], remolques: ['R4040 COR'],
+            matriculas: ['9080 COR'], remolques: ['R4040 COR'], pares: { '9080 COR': 'R4040 COR' },
             conductores: [
                 { nombre: 'José Martín Ruiz', dni: '29876543P', tel: '+34 638 220 471' }
             ]
@@ -435,7 +453,7 @@
         document.getElementById('v-dest').textContent  = q('d', 'Madrid');
         document.getElementById('v-merc').textContent  = q('m', 'Paletizado');
         var p = q('p', '');
-        if (p) { document.getElementById('v-imp').textContent = p; document.getElementById('v-pago').hidden = false; }
+        if (p) { document.getElementById('v-imp').textContent = p; document.getElementById('v-pago').hidden = false; window._basePrecio = parseEur(p); }
         // Días disponibles para cargar: 'dias' = lista separada por comas.
         //   1 día  → FECHA FIJA (no se puede cambiar).
         //   varios → VENTANA (se elige uno).
@@ -455,7 +473,38 @@
                 '<input type="checkbox" disabled>' +
                 '<span><strong>PRONTO PAGO no disponible temporalmente.</strong> En esta carga no se puede ofrecer el cobro anticipado a 5&nbsp;días tras factura; el pago es CONTADO en las condiciones habituales.</span></label>';
         }
+        renderProntoCalc();
     })();
+
+    // ---- Precio: parseo/formato es-ES (2 decimales) y cálculo de pronto pago ----
+    function parseEur(s) {
+        var m = String(s || '').replace(/[^\d.,]/g, '');
+        if (!m) return NaN;
+        m = m.replace(/\./g, '').replace(',', '.'); // es-ES: quita miles, coma→punto
+        var n = parseFloat(m);
+        return isNaN(n) ? NaN : n;
+    }
+    function fmtEur(n) { return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    // Descuento pronto pago: 3% con mínimo 20 €. Total = base − descuento.
+    function prontoPagoInfo() {
+        var base = window._basePrecio;
+        if (isNaN(base) || base <= 0) return null;
+        var desc = Math.max(base * 0.03, 20);
+        if (desc > base) desc = base;
+        return { base: base, desc: desc, total: base - desc };
+    }
+    // Pinta la línea de precio con pronto pago bajo el check (si hay precio).
+    function renderProntoCalc() {
+        var box = document.getElementById('prontoCalc');
+        var chk = document.getElementById('f-pronto');
+        if (!box) return; // pp=0 → la caja se sustituyó, no hay calc
+        var info = prontoPagoInfo();
+        if (!info) { box.hidden = true; return; }
+        box.hidden = false;
+        document.getElementById('pc-total').textContent = fmtEur(info.total) + ' €';
+        document.getElementById('pc-base').textContent = fmtEur(info.base) + ' €';
+        box.classList.toggle('off', !(chk && chk.checked));
+    }
 
     // ---- Buscar la empresa por CIF/DNI ----
     // Al pulsar Buscar se muestra un spinner y se BLOQUEA el campo + botón
@@ -684,7 +733,21 @@
         inp: 'f-tractora', list: 'ac-tractora', note: 'new-tractora',
         source: function () { var e = selEmpresa(); return e ? e.matriculas : []; },
         label: function (m) { return m; },
-        pick: function (m) { document.getElementById('f-tractora').value = m; }
+        pick: function (m) {
+            document.getElementById('f-tractora').value = m;
+            // 99% de las veces la tractora arrastra el MISMO remolque del último
+            // envío: lo autorrellenamos (editable/borrable por si hoy lleva otro).
+            var e = selEmpresa(), rem = document.getElementById('f-remolque');
+            if (e && e.pares && !rem.disabled) {
+                var par = e.pares[m];
+                if (par) {
+                    rem.value = par;
+                    document.getElementById('new-remolque').classList.remove('show');
+                    rem.classList.add('ac-flash');
+                    setTimeout(function () { rem.classList.remove('ac-flash'); }, 900);
+                }
+            }
+        }
     });
     acBind({
         inp: 'f-remolque', list: 'ac-remolque', note: 'new-remolque',
@@ -767,7 +830,14 @@
             ['Mercancía', okTxt('v-merc')]
         ];
         var imp = okTxt('v-imp');
-        if (imp) rows.push(['Precio', imp + ' · base imponible (impuestos no incluidos)']);
+        var pronto = document.getElementById('f-pronto') && document.getElementById('f-pronto').checked;
+        var info = prontoPagoInfo();
+        if (pronto && info) {
+            // Importe final con pronto pago aplicado (así irá también en la factura).
+            rows.push(['Precio', fmtEur(info.total) + ' € · base imponible (impuestos no incluidos) · PRONTO PAGO aplicado (−' + fmtEur(info.desc) + ' €, cobro a 5 días)']);
+        } else if (imp) {
+            rows.push(['Precio', imp + ' · base imponible (impuestos no incluidos)' + (info ? ' · a 60 días' : '')]);
+        }
         document.getElementById('ok-resumen').innerHTML = rows.map(function (r) {
             return '<dt>' + escH(r[0]) + '</dt><dd>' + escH(r[1]) + '</dd>';
         }).join('');
