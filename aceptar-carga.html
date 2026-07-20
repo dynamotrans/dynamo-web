@@ -173,6 +173,11 @@
     .taken-data .tk-k { font-size: 0.75rem; font-weight: 700; color: var(--gray-500); flex: none; }
     .taken-data .tk-v { font-size: 1rem; font-weight: 800; color: var(--navy); letter-spacing: 0.03em; text-align: right; word-break: break-word; }
     .taken-data .tk-rel { display: block; font-size: 0.8rem; font-weight: 600; color: var(--gray-500); margin-top: 2px; letter-spacing: 0; }
+    /* Estado "en trámite": un solo mensaje grande y limpio, con spinner. */
+    .tramite-box { display: flex; align-items: center; justify-content: center; gap: 0.65rem; padding: 1.4rem 1rem; }
+    .tramite-box .tramite-spin { width: 22px; height: 22px; flex: none; border: 3px solid rgba(51,0,204,0.2); border-top-color: var(--purple); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .tramite-box .tramite-txt { font-size: 1.35rem; font-weight: 900; color: var(--purple); letter-spacing: 0.01em; }
+    @media (prefers-reduced-motion: reduce) { .tramite-box .tramite-spin { animation: none; } }
     /* Banner de reserva temporal (contador de 3 min) */
     /* Banner de reserva: fijo arriba (sticky) para verlo siempre al hacer scroll. */
     .reserva-banner { position: sticky; top: 0; z-index: 30; margin: 0 0 1rem; background: #ece8fb; border: 1.5px solid rgba(51,0,204,0.35); border-radius: 12px; padding: 0.7rem 0.85rem; font-size: 0.84rem; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 0.5rem; line-height: 1.4; box-shadow: 0 2px 10px rgba(20,10,60,0.1); }
@@ -1363,7 +1368,8 @@
         // pero aún no la ha aceptado → no hay datos que mostrar todavía.
         if (enTramite) {
             document.getElementById('tk-sub').textContent = 'Otro transportista llegó antes que tú y la está tramitando ahora.';
-            ['tk-fecha', 'tk-nom', 'tk-cif'].forEach(function (id) { document.getElementById(id).textContent = 'Ahora en trámite'; });
+            document.querySelector('#takenScreen .taken-data').innerHTML =
+                '<div class="tramite-box"><span class="tramite-spin" aria-hidden="true"></span><span class="tramite-txt">Ahora en trámite</span></div>';
             mostrarPantalla('takenScreen');
             return;
         }
