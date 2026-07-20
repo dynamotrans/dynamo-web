@@ -545,6 +545,7 @@
             <div class="ok-ico"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
             <h1>¡Carga aceptada!</h1>
             <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br>El equipo de Dynamo te confirmará la asignación en breve.<br><span id="ok-alta" hidden>🆕 Te damos de <strong>alta como transportista de Dynamo</strong> (pendiente de validación).</span></p>
+            <div class="pago-contado" id="ok-orden-top" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;">📧 En unos minutos recibirás la <strong>orden de carga</strong> por email en <strong id="ok-email-top" style="color:var(--purple);">—</strong>.</div>
             <dl class="viaje" id="ok-resumen" style="text-align:left;"></dl>
             <div class="pago-contado" id="ok-orden" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;">📧 En unos minutos recibirás la <strong>orden de carga</strong> por email en <strong id="ok-email" style="color:var(--purple);">—</strong>.</div>
             <button type="button" class="dudas-toggle" aria-expanded="false" onclick="toggleDudas(this)">¿Dudas? <span class="dt-chev" aria-hidden="true">▾</span></button>
@@ -1300,6 +1301,7 @@
         // el que tecleó en el alta.
         var email = (window._empresaSel && window._empresaSel.email) || okVal('alta-email') || 'tu email';
         document.getElementById('ok-email').textContent = email;
+        document.getElementById('ok-email-top').textContent = email;
         if (window._reservaTimer) clearInterval(window._reservaTimer); // aceptada: parar contador
         var fs = document.getElementById('formScreen');
         fs.classList.remove('show'); fs.style.display = 'none';
