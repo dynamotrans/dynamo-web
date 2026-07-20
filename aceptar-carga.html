@@ -137,7 +137,6 @@
             <div class="empresa-resumen" id="empresaResumen">
                 <div class="er-nombre" id="er-nombre">—</div>
                 <div class="er-cif" id="er-cif">—</div>
-                <div id="er-confirm"></div>
                 <button type="button" class="er-cambiar" onclick="cambiarEmpresa()">No soy yo / cambiar</button>
             </div>
 
@@ -230,11 +229,18 @@
             <!-- 2) Resto del formulario (aparece tras identificarse) -->
             <div id="restForm">
                 <div class="sec-title">Carga</div>
-                <label for="f-fechacarga">Fecha de carga de tu camión *</label>
-                <select id="f-fechacarga" onchange="montarEntregaFecha()"></select>
+                <div class="row2">
+                    <div>
+                        <label for="f-fechacarga">Fecha de carga de tu camión *</label>
+                        <select id="f-fechacarga" onchange="montarEntregaFecha()"></select>
+                    </div>
+                    <div>
+                        <label for="f-horacarga">Hora estimada de carga *</label>
+                        <select id="f-horacarga"></select>
+                    </div>
+                </div>
                 <p class="id-hint" id="fechaHint"></p>
-                <label for="f-horacarga">Hora estimada de carga <span class="op">(NO es cita, solo para saber aprox. la hora de carga)</span> *</label>
-                <select id="f-horacarga"></select>
+                <p class="id-hint">La <strong>hora NO es cita</strong>, solo para saber aprox. la hora de carga.</p>
 
                 <div class="sec-title">Entrega <span class="op" style="font-weight:600;color:var(--gray-500);">· estimada</span></div>
                 <div class="row2">
@@ -243,7 +249,7 @@
                         <select id="f-fechaentrega"></select>
                     </div>
                     <div>
-                        <label for="f-horaentrega">Hora estimada de entrega <span class="op">· opcional</span></label>
+                        <label for="f-horaentrega">Hora estimada de entrega <span class="op">· opcional (NO es cita, solo para saber aprox. la hora de entrega)</span></label>
                         <select id="f-horaentrega"></select>
                     </div>
                 </div>
@@ -296,6 +302,11 @@
                         <span><strong>Quiero PRONTO PAGO:</strong> cobro en <strong>5 días tras recibir factura</strong> después de finalizar el servicio, con un <strong>descuento del 3%</strong> (mínimo 20&nbsp;€).</span>
                     </label>
                 </div>
+
+                <!-- Confirmación de identidad (empresa ya existente): teléfono
+                     de ficha enmascarado + 3 últimos dígitos. Se rellena en
+                     resolverBuscar; en modo alta queda vacío. -->
+                <div id="er-confirm"></div>
 
                 <div class="warn" id="fWarn">⚠ Revisa los campos marcados: son obligatorios.</div>
                 <button type="button" class="btn" onclick="aceptar()">Aceptar carga</button>
@@ -438,6 +449,7 @@
             var altaCif = document.getElementById('alta-cif');
             if (altaCif && !altaCif.value.trim()) altaCif.value = document.getElementById('f-buscar-id').value.trim();
             document.getElementById('altaForm').style.display = 'block';
+            document.getElementById('er-confirm').innerHTML = '';
             window._altaMode = true; window._empresaSel = null;
             altaBolsaSync();
             montarDesplegables();
@@ -456,10 +468,12 @@
         var tel = hit.tel || '';
         window._telConfirm = (tel.match(/\d/g) || []).join('').slice(-3);
         document.getElementById('er-confirm').innerHTML =
-            '<div style="margin-top:0.7rem;font-size:0.82rem;font-weight:700;color:var(--gray-700);">Teléfono de tu ficha: <span style="color:var(--navy);">' + escH(maskTel(tel)) + '</span></div>' +
-            '<label for="er-tel3" style="display:block;font-size:0.72rem;font-weight:800;color:var(--gray-700);margin:0.5rem 0 0.25rem;">Escribe los <strong>3 últimos dígitos</strong> de tu teléfono para confirmar *</label>' +
-            '<input type="tel" id="er-tel3" inputmode="numeric" maxlength="3" placeholder="•••" style="max-width:130px;letter-spacing:0.2em;text-align:center;font-weight:800;">' +
-            '<div id="er-tel-err" style="display:none;color:var(--red);font-size:0.76rem;font-weight:800;margin-top:0.3rem;">Los 3 dígitos no coinciden con el teléfono de tu ficha.</div>';
+            '<div style="margin-top:1rem;padding:0.8rem 0.9rem;background:rgba(51,0,204,0.05);border:1.5px solid rgba(51,0,204,0.25);border-radius:12px;">' +
+                '<div style="font-size:0.82rem;font-weight:700;color:var(--gray-700);">Teléfono de tu ficha: <span style="color:var(--navy);">' + escH(maskTel(tel)) + '</span></div>' +
+                '<label for="er-tel3" style="display:block;font-size:0.72rem;font-weight:800;color:var(--gray-700);margin:0.5rem 0 0.25rem;">Escribe los <strong>3 últimos dígitos</strong> de tu teléfono para confirmar *</label>' +
+                '<input type="tel" id="er-tel3" inputmode="numeric" maxlength="3" placeholder="•••" style="max-width:130px;letter-spacing:0.2em;text-align:center;font-weight:800;">' +
+                '<div id="er-tel-err" style="display:none;color:var(--red);font-size:0.76rem;font-weight:800;margin-top:0.3rem;">Los 3 dígitos no coinciden con el teléfono de tu ficha.</div>' +
+            '</div>';
         window._empresaSel = hit;
         document.getElementById('empresaResumen').classList.add('show');
         // Revelar el resto del formulario y montar los desplegables.
@@ -472,6 +486,7 @@
         window._empresaSel = null; window._altaMode = false;
         document.getElementById('empresaResumen').classList.remove('show');
         document.getElementById('altaForm').style.display = 'none';
+        document.getElementById('er-confirm').innerHTML = '';
         document.getElementById('restForm').classList.remove('show');
         var inp = document.getElementById('f-buscar-id');
         inp.value = ''; inp.focus();
