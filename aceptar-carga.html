@@ -251,7 +251,7 @@
                         <select id="f-fechaentrega"></select>
                     </div>
                     <div>
-                        <label for="f-horaentrega">Hora estimada de entrega <span class="op">· opcional</span></label>
+                        <label for="f-horaentrega">Hora estimada de entrega *</label>
                         <select id="f-horaentrega"></select>
                     </div>
                 </div>
@@ -531,7 +531,7 @@
         // Horas de carga y de entrega (mismas franjas), con valor por defecto:
         // carga 11:00-13:00 · entrega 07:00-09:00.
         document.getElementById('f-horacarga').innerHTML = FRANJAS.map(function (f) { return '<option' + (f === '11:00 - 13:00' ? ' selected' : '') + '>' + f + '</option>'; }).join('');
-        document.getElementById('f-horaentrega').innerHTML = '<option value="">Sin definir</option>' + FRANJAS.map(function (f) { return '<option' + (f === '07:00 - 09:00' ? ' selected' : '') + '>' + f + '</option>'; }).join('');
+        document.getElementById('f-horaentrega').innerHTML = FRANJAS.map(function (f) { return '<option' + (f === '07:00 - 09:00' ? ' selected' : '') + '>' + f + '</option>'; }).join('');
         montarEntregaFecha();
         syncRemolque();
     }
@@ -604,7 +604,7 @@
             if (t3) t3.classList.remove('err');
             if (errBox) errBox.style.display = 'none';
         }
-        var req = ['f-fechacarga', 'f-horacarga', 'f-tractora', 'f-chofer', 'f-dnichofer', 'f-tfno'];
+        var req = ['f-fechacarga', 'f-horacarga', 'f-fechaentrega', 'f-horaentrega', 'f-tractora', 'f-chofer', 'f-dnichofer', 'f-tfno'];
         var rigido = /rígido/i.test(document.getElementById('f-camion').value);
         if (!rigido) req.push('f-remolque');
         // En modo ALTA (empresa nueva), también son obligatorios sus datos base.
