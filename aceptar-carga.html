@@ -1283,27 +1283,34 @@
     }
     function iniciarReserva(segundos, urgentWin) {
         var banner = document.getElementById('reservaBanner');
-        var quedan = segundos;
         urgentWin = urgentWin || 60;                       // segundos del último tramo (contador rojo)
         var calmDur = Math.max(1, segundos - urgentWin);   // duración del tramo "tranquilo" (spinner)
         var calmBuilt = false, urgentBuilt = false;
+        // Instante REAL de expiración: el tiempo restante se calcula con el reloj,
+        // no decrementando. Así, si la pestaña queda en segundo plano (móvil
+        // minimizado) y el navegador congela el setInterval, al volver se recupera
+        // el tiempo transcurrido de verdad y expira cuando toca.
+        var fin = new Date().getTime() + segundos * 1000;
         function fmt(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
         function pinta() {
+            if (window._reservaExpirada) return;
+            var quedan = Math.ceil((fin - new Date().getTime()) / 1000);
+            if (quedan < 0) quedan = 0;
             // Cada tramo se construye UNA sola vez (para no reiniciar la animación
             // del spinner) y luego solo se actualiza el número.
             if (quedan > urgentWin) {
                 if (!calmBuilt) {
                     calmBuilt = true;
                     banner.classList.remove('urgent');
-                    // Tramo tranquilo: spinner morado que se vacía en 2 minutos.
                     banner.innerHTML = '<span class="rb-spin" style="animation-duration:' + calmDur + 's"></span>' +
                         '<span><strong>Reserva temporal.</strong> Tómate tu tiempo para completar y aceptar la carga; te avisaremos cuando quede poco antes de que se libere.</span>';
                 }
-            } else {
+            } else if (quedan > 0) {
                 if (!urgentBuilt) {
                     urgentBuilt = true;
                     banner.classList.add('urgent');
-                    // Último minuto: spinner ROJO que se vacía en 1 minuto + contador.
+                    // Último tramo: spinner ROJO que se vacía + contador. La duración
+                    // se ajusta a lo que quede (por si se vuelve ya empezado).
                     banner.innerHTML = '<span class="rb-spin rb-spin-red" style="animation-duration:' + Math.max(1, quedan) + 's"></span>' +
                         '<span><strong>¡Queda poco!</strong> Te quedan <span class="rb-timer" id="reservaTimer">' + fmt(quedan) + '</span> para completar y aceptar antes de que la carga se libere.</span>';
                 } else {
@@ -1311,11 +1318,19 @@
                 }
             }
             if (quedan <= 0) { clearInterval(window._reservaTimer); expirarReserva(); return; }
-            quedan--;
         }
+        window._reservaPinta = pinta;
         pinta();
         window._reservaTimer = setInterval(pinta, 1000);
     }
+    // Al volver a la pestaña (móvil restaurado), recalcular de inmediato: si la
+    // reserva ya venció mientras estaba en segundo plano, se libera al momento.
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden && window._reservaPinta && !window._reservaExpirada) window._reservaPinta();
+    });
+    window.addEventListener('focus', function () {
+        if (window._reservaPinta && !window._reservaExpirada) window._reservaPinta();
+    });
     // "hace X" a partir de unos minutos transcurridos (días, horas y minutos,
     // omitiendo las partes a cero; con singular/plural).
     function haceTexto(mins) {
