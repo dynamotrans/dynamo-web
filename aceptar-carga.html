@@ -1199,9 +1199,9 @@
         if (window._reservaTimer) clearInterval(window._reservaTimer); // aceptada: parar contador
         var fs = document.getElementById('formScreen');
         fs.classList.remove('show'); fs.style.display = 'none';
-        var sh = document.getElementById('scrollHint'); if (sh) sh.hidden = true; // fuera la pista al aceptar
         document.getElementById('okScreen').classList.add('show');
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(updateScrollHint, 500); // la pista se recalcula para el resumen de aceptado
     }
 
     // ================= DISPONIBILIDAD + RESERVA (4 min) =================
@@ -1223,11 +1223,14 @@
     function updateScrollHint() {
         var hint = document.getElementById('scrollHint');
         if (!hint) return;
-        var formOn = document.getElementById('formScreen').classList.contains('show');
+        // Visible tanto en el formulario como en la pantalla de "carga aceptada"
+        // (ambas tienen contenido por debajo del pliegue).
+        var active = document.getElementById('formScreen').classList.contains('show') ||
+            document.getElementById('okScreen').classList.contains('show');
         var doc = document.documentElement;
         var nearBottom = (window.innerHeight + window.scrollY) >= (doc.scrollHeight - 90);
         var scrollable = doc.scrollHeight > window.innerHeight + 60;
-        hint.hidden = !(formOn && scrollable && !nearBottom);
+        hint.hidden = !(active && scrollable && !nearBottom);
     }
     window.addEventListener('scroll', updateScrollHint, { passive: true });
     window.addEventListener('resize', updateScrollHint);
