@@ -117,6 +117,7 @@
     .pronto-calc .pc-line { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
     .pronto-calc .pc-lbl { font-size: 0.82rem; font-weight: 700; color: var(--navy); }
     .pronto-calc .pc-amount { font-size: 1.18rem; font-weight: 900; color: var(--green-dark); white-space: nowrap; }
+    .pronto-calc .pc-when { color: var(--green-dark); font-weight: 800; font-size: 0.76rem; white-space: nowrap; }
     .pronto-calc .pc-sub { font-size: 0.72rem; font-weight: 600; color: var(--gray-500); margin-top: 0.15rem; }
     .pronto-calc .pc-alt { font-size: 0.76rem; font-weight: 600; color: var(--gray-500); margin-top: 0.45rem; line-height: 1.5; }
     .pronto-calc .pc-red { color: var(--red); font-weight: 800; }
@@ -394,7 +395,7 @@
                         <span><strong>Quiero PRONTO PAGO:</strong> cobro en <strong>5 días tras recibir factura</strong> después de finalizar el servicio, con un <strong>descuento del 3,5%</strong> (mínimo 25&nbsp;€).</span>
                     </label>
                     <div class="pronto-calc" id="prontoCalc" hidden>
-                        <div class="pc-line"><span class="pc-lbl">Precio total con pronto pago</span><span class="pc-amount" id="pc-total">—</span></div>
+                        <div class="pc-line"><span class="pc-lbl">Precio total con pronto pago <span class="pc-when" id="pc-when"></span></span><span class="pc-amount" id="pc-total">—</span></div>
                         <div class="pc-sub">base imponible (impuestos no incluidos)</div>
                         <div class="pc-alt" id="pc-alt"></div>
                     </div>
@@ -414,7 +415,7 @@
         <div class="ok-screen" id="okScreen">
             <div class="ok-ico"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
             <h1>¡Carga aceptada!</h1>
-            <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br>El equipo de Dynamo te confirmará la asignación en breve.<br><span id="ok-alta" hidden>🆕 Te damos de <strong>alta como transportista de Dynamo</strong> (pendiente de validación).<br></span><span id="ok-pronto" hidden>✅ Has elegido <strong>pronto pago a 5 días tras factura (−3,5%, mín. 25&nbsp;€)</strong>.</span></p>
+            <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br>El equipo de Dynamo te confirmará la asignación en breve.<br><span id="ok-alta" hidden>🆕 Te damos de <strong>alta como transportista de Dynamo</strong> (pendiente de validación).</span></p>
             <dl class="viaje" id="ok-resumen" style="text-align:left;"></dl>
             <div class="pago-contado" id="ok-orden" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;">📧 En unos minutos recibirás la <strong>orden de carga</strong> por email en <strong id="ok-email" style="color:var(--purple);">—</strong>.</div>
             <p class="foot">¿Dudas? <a href="tel:+34955225945">+34 955 225 945</a> · <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a></p>
@@ -583,15 +584,15 @@
         if (desc > base) desc = base;
         return { base: base, desc: desc, total: base - desc };
     }
-    // Fecha aproximada de cobro a 60 días desde la fecha de envío (día de carga
-    // elegido, o el primero de la ventana), asumiendo que la factura coincide con
-    // la fecha de envío. Formato con año, siempre.
-    function fechaPago60() {
+    // Fecha de cobro a N días desde la fecha de envío (día de carga elegido, o el
+    // primero de la ventana), asumiendo que la factura coincide con la fecha de
+    // envío. Formato con año, siempre.
+    function fechaPagoDias(n) {
         var fc = document.getElementById('f-fechacarga');
         var base = (fc && fc.value) ? parseLabelFecha(fc.value) : null;
         if (!base && window._diasCarga && window._diasCarga.length) base = parseLabelFecha(window._diasCarga[0]);
         if (!base) return '';
-        var d = new Date(base); d.setDate(d.getDate() + 60);
+        var d = new Date(base); d.setDate(d.getDate() + n);
         var dd = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
         return dd[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear();
     }
@@ -604,9 +605,11 @@
         if (!info) { box.hidden = true; return; }
         box.hidden = false;
         document.getElementById('pc-total').textContent = fmtEur(info.total) + ' €';
-        var pd = fechaPago60();
+        // Pronto pago: cobro a 5 días (verde negrita) · Sin pronto pago: 60 días (rojo).
+        var p5 = fechaPagoDias(5), p60 = fechaPagoDias(60);
+        document.getElementById('pc-when').innerHTML = p5 ? '(pago el ' + escH(p5) + ', en 5 días)' : '';
         document.getElementById('pc-alt').innerHTML = 'Sin pronto pago: <span class="pc-red">' + escH(fmtEur(info.base)) + ' € a 60 días</span>' +
-            (pd ? ' (se pagaría el <span class="pc-red">' + escH(pd) + '</span>, si la factura coincide con la fecha de envío)' : '') + '.';
+            (p60 ? ' (se pagaría el <span class="pc-red">' + escH(p60) + '</span>, si la factura coincide con la fecha de envío)' : '') + '.';
         box.classList.toggle('off', !(chk && chk.checked));
     }
 
@@ -799,12 +802,18 @@
     // de CIF y la confirmación de 3 dígitos solo quitan el rojo (no ponen verde,
     // porque "relleno" no es "correcto" hasta buscar/coincidir).
     function refreshFieldState(el) {
-        if (!el || !el.classList) return;
-        if (el.id === 'f-buscar-id' || el.id === 'er-tel3') { if ((el.value || '').trim()) el.classList.remove('err'); return; }
-        if (!el.classList.contains('err') && !el.classList.contains('valid')) return;
-        var v = (el.value || '').trim();
-        el.classList.toggle('err', !v);
-        el.classList.toggle('valid', !!v);
+        if (el && el.classList) {
+            if (el.id === 'f-buscar-id' || el.id === 'er-tel3') {
+                if ((el.value || '').trim()) el.classList.remove('err');
+            } else if (el.classList.contains('err') || el.classList.contains('valid')) {
+                var v = (el.value || '').trim();
+                el.classList.toggle('err', !v);
+                el.classList.toggle('valid', !!v);
+            }
+        }
+        // Si ya no queda ningún campo en rojo, ocultar el aviso global.
+        var warn = document.getElementById('fWarn');
+        if (warn && !document.querySelector('#formScreen .err')) warn.classList.remove('show');
     }
     (function () {
         var fs = document.getElementById('formScreen');
@@ -1010,30 +1019,46 @@
         // pronto pago) y avisa al equipo de Dynamo.
         document.getElementById('ok-ref').textContent = document.getElementById('v-ref').textContent;
         document.getElementById('ok-alta').hidden = !window._altaMode;
-        document.getElementById('ok-pronto').hidden = !document.getElementById('f-pronto').checked;
-        // Resumen de la carga aceptada.
+        // Resumen de la carga aceptada. Recogida y Entrega van UNIFICADAS: cada
+        // una agrupa su dirección + horario del almacén + fecha y hora estimada.
         function okTxt(id) { return (document.getElementById(id) || {}).textContent || ''; }
         function okVal(id) { var e = document.getElementById(id); return e ? e.value : ''; }
-        var entregaFecha = okVal('f-fechaentrega'), entregaHora = okVal('f-horaentrega');
+        // Separa la dirección del horario dentro del dd del resumen de oferta.
+        function puntoInfo(id) {
+            var dd = document.getElementById(id);
+            if (!dd) return { loc: '', hor: '' };
+            var sub = dd.querySelector('.v-sub');
+            var hor = sub ? sub.textContent.replace(/^\s*Horario almacén:\s*/, '') : '';
+            var loc = '';
+            Array.prototype.forEach.call(dd.childNodes, function (n) { if (n.nodeType === 3) loc += n.textContent; });
+            return { loc: loc.trim(), hor: hor.trim() };
+        }
+        function puntoHtml(pi, fh) {
+            return escH(pi.loc) +
+                (pi.hor ? '<span class="v-sub">Horario almacén: ' + escH(pi.hor) + '</span>' : '') +
+                (fh ? '<span class="v-sub">Fecha y hora estimada: ' + escH(fh) + '</span>' : '');
+        }
+        var rec = puntoInfo('v-orig'), ent = puntoInfo('v-dest');
+        var recFH = okVal('f-fechacarga') + (okVal('f-horacarga') ? ' · ' + okVal('f-horacarga') : '');
+        var entFecha = okVal('f-fechaentrega'), entHora = okVal('f-horaentrega');
+        var entFH = entFecha ? (entFecha + (entHora ? ' · ' + entHora : '')) : '';
         var rows = [
-            ['Envío', okTxt('v-ref')],
-            ['Recogida', okTxt('v-orig')],
-            ['Entrega', okTxt('v-dest')],
-            ['Fecha recogida (y la hora de carga estimada)', okVal('f-fechacarga') + (okVal('f-horacarga') ? ' · ' + okVal('f-horacarga') : '')],
-            ['Fecha entrega (y la hora de entrega estimada por transportista)', entregaFecha ? (entregaFecha + (entregaHora ? ' · ' + entregaHora : '')) : '—'],
-            ['Mercancía', okTxt('v-merc')]
+            ['Envío', escH(okTxt('v-ref'))],
+            ['Recogida', puntoHtml(rec, recFH)],
+            ['Entrega', puntoHtml(ent, entFH)],
+            ['Mercancía', escH(okTxt('v-merc'))]
         ];
         var imp = okTxt('v-imp');
         var pronto = document.getElementById('f-pronto') && document.getElementById('f-pronto').checked;
         var info = prontoPagoInfo();
         if (pronto && info) {
             // Importe final con pronto pago aplicado (así irá también en la factura).
-            rows.push(['Precio', fmtEur(info.total) + ' € · base imponible (impuestos no incluidos) · PRONTO PAGO aplicado (−' + fmtEur(info.desc) + ' €, cobro a 5 días)']);
+            rows.push(['Precio', escH(fmtEur(info.total) + ' € · base imponible (impuestos no incluidos) · PRONTO PAGO aplicado (−' + fmtEur(info.desc) + ' €, cobro a 5 días)')]);
         } else if (imp) {
-            rows.push(['Precio', imp + ' · base imponible (impuestos no incluidos)' + (info ? ' · a 60 días' : '')]);
+            rows.push(['Precio', escH(imp + ' · base imponible (impuestos no incluidos)' + (info ? ' · a 60 días' : ''))]);
         }
         document.getElementById('ok-resumen').innerHTML = rows.map(function (r) {
-            return '<dt>' + escH(r[0]) + '</dt><dd>' + escH(r[1]) + '</dd>';
+            return '<dt>' + escH(r[0]) + '</dt><dd>' + r[1] + '</dd>';
         }).join('');
         // Email donde se enviará la orden de carga: el de su ficha (existente) o
         // el que tecleó en el alta.
