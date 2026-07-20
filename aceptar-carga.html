@@ -666,7 +666,7 @@
         var dias = q('dias', '');
         var lista = (dias ? dias.split(',').map(function (x) { return x.trim(); }).filter(Boolean)
                           : ['Mié 22/07', 'Jue 23/07', 'Vie 24/07']).map(labelConAnio);
-        var fecha = lista.length > 1 ? 'Ventana: de ' + lista[0] + ' a ' + lista[lista.length - 1] : (lista[0] || 'Por confirmar');
+        var fecha = lista.length > 1 ? 'De ' + lista[0] + ' a ' + lista[lista.length - 1] : (lista[0] || 'Por confirmar');
         window._diasCarga = lista;
         // Construir el resumen. Los ids v-ref/v-orig/v-dest/v-merc/v-imp se
         // conservan porque la pantalla de "carga aceptada" los lee.
