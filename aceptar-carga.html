@@ -67,7 +67,7 @@
     .ac-flash { animation: acFlash 0.9s ease; }
     @keyframes acFlash { 0%, 40% { background: rgba(34,165,90,0.18); border-color: var(--green); } 100% { background: #fff; } }
     /* Buscador de identificación (CIF/DNI + Buscar) */
-    .idrow { display: flex; gap: 0.5rem; align-items: stretch; }
+    .idrow { display: flex; gap: 0.5rem; align-items: stretch; position: relative; }
     .idrow input { flex: 1; }
     .btn-buscar { flex: none; background: var(--purple); color: #fff; border: none; border-radius: 10px; padding: 0 1.1rem; font: inherit; font-weight: 800; font-size: 0.95rem; cursor: pointer; }
     .btn-buscar:hover { background: var(--purple-light); }
@@ -168,6 +168,13 @@
     .cbtn-wa:hover { background: #1eb457; }
     .cbtn-mail { color: var(--purple); border-color: rgba(51,0,204,0.3); background: rgba(51,0,204,0.05); }
     .cbtn-mail:hover { background: rgba(51,0,204,0.1); }
+    /* Pista "hay más abajo": píldora fija que invita a seguir bajando y leerlo
+       todo antes del botón Aceptar. Se oculta al llegar al final. */
+    .scroll-hint { position: fixed; left: 50%; transform: translateX(-50%); bottom: 16px; z-index: 50; background: var(--purple); color: #fff; font: inherit; font-size: 0.8rem; font-weight: 800; padding: 0.6rem 1rem; border: none; border-radius: 999px; box-shadow: 0 6px 20px rgba(51,0,204,0.35); display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer; }
+    .scroll-hint[hidden] { display: none; }
+    .scroll-hint .sh-arrow { display: inline-block; font-size: 0.95rem; animation: shBounce 1.1s ease infinite; }
+    @keyframes shBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+    @media (prefers-reduced-motion: reduce) { .scroll-hint .sh-arrow { animation: none; } }
 </style>
 </head>
 <body>
@@ -223,16 +230,20 @@
 
             <dl class="viaje" id="viajeBox"></dl>
 
-            <!-- 1) IDENTIFICACIÓN: escribe tu CIF/DNI y pulsa Buscar -->
-            <div class="sec-title" style="border-top:none;padding-top:0;margin-top:0;">Identifícate</div>
-            <label for="f-buscar-id">Tu CIF o DNI *</label>
-            <div class="idrow">
-                <input type="text" id="f-buscar-id" placeholder="B12345678 o 29876543P" autocapitalize="characters" autocomplete="off">
-                <button type="button" class="btn-buscar" onclick="buscarEmpresa()">Buscar</button>
+            <!-- 1) IDENTIFICACIÓN: escribe tu CIF/DNI y pulsa Buscar. Se oculta al
+                 identificarse (queda "No soy yo / cambiar" en el resumen). -->
+            <div id="identBlock">
+                <div class="sec-title" style="border-top:none;padding-top:0;margin-top:0;">Identifícate</div>
+                <label for="f-buscar-id">Tu CIF o DNI *</label>
+                <div class="idrow">
+                    <input type="text" id="f-buscar-id" placeholder="B12345678 o 29876543P" autocapitalize="characters" autocomplete="off">
+                    <button type="button" class="btn-buscar" onclick="buscarEmpresa()">Buscar</button>
+                    <ul class="ac-list" id="ac-buscar"></ul>
+                </div>
+                <p class="id-hint">Escribe tu <strong>CIF</strong> (empresa) o <strong>DNI/NIE</strong> (autónomo) y pulsa <strong>Buscar</strong>: aparecerán tus datos para que no tengas que escribirlos.<br><span style="color:var(--gray-500);">Demo: prueba <strong>B58830217</strong>, <strong>B72153042</strong> o <strong>29876543P</strong>.</span></p>
+                <div class="buscando" id="buscandoMsg"><span class="spin"></span>Consultando la base de Dynamo…</div>
+                <div class="id-nofound" id="idNoFound">No encontramos ese CIF/DNI en nuestra base. Revísalo, o contacta con Dynamo para darte de alta.</div>
             </div>
-            <p class="id-hint">Escribe tu <strong>CIF</strong> (empresa) o <strong>DNI/NIE</strong> (autónomo) y pulsa <strong>Buscar</strong>: aparecerán tus datos para que no tengas que escribirlos.<br><span style="color:var(--gray-500);">Demo: prueba <strong>B58830217</strong>, <strong>B72153042</strong> o <strong>29876543P</strong>.</span></p>
-            <div class="buscando" id="buscandoMsg"><span class="spin"></span>Consultando la base de Dynamo…</div>
-            <div class="id-nofound" id="idNoFound">No encontramos ese CIF/DNI en nuestra base. Revísalo, o contacta con Dynamo para darte de alta.</div>
 
             <!-- Resumen de la empresa encontrada -->
             <div class="empresa-resumen" id="empresaResumen">
@@ -450,6 +461,7 @@
             </div>
         </div>
     </div>
+    <button type="button" class="scroll-hint" id="scrollHint" hidden onclick="window.scrollBy({ top: Math.round(window.innerHeight * 0.7), behavior: 'smooth' });">Desliza para ver todo y aceptar <span class="sh-arrow" aria-hidden="true">↓</span></button>
     <p class="foot"><a href="https://dynamotrans.com">dynamotrans.com</a></p>
 
 <script>
@@ -688,7 +700,9 @@
             altaBolsaSync();
             montarDesplegables();
             document.getElementById('restForm').classList.add('show');
-            document.getElementById('altaForm').scrollIntoView({ block: 'start', behavior: 'smooth' });
+            document.getElementById('identBlock').hidden = true; // ya identificado (alta)
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(updateScrollHint, 400);
             return;
         }
         noFound.classList.remove('show');
@@ -716,9 +730,12 @@
         // tractora + remolque enganchado y conductor con su DNI y teléfono). Si
         // no hay historial, se quedan en blanco. Editable siempre.
         prefillHistorial(hit);
-        var rest = document.getElementById('restForm');
-        rest.classList.add('show');
-        rest.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        document.getElementById('restForm').classList.add('show');
+        // Identificado: ocultar el buscador (queda "No soy yo / cambiar" en el
+        // resumen) y volver ARRIBA para leer desde el principio y bajar viendo TODO.
+        document.getElementById('identBlock').hidden = true;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(updateScrollHint, 400);
     }
     function cambiarEmpresa() {
         window._empresaSel = null; window._altaMode = false;
@@ -726,8 +743,12 @@
         document.getElementById('altaForm').style.display = 'none';
         document.getElementById('er-confirm').innerHTML = '';
         document.getElementById('restForm').classList.remove('show');
+        document.getElementById('identBlock').hidden = false; // volver a mostrar el buscador
+        limpiarVehiculoConductor();
+        updateScrollHint();
         var inp = document.getElementById('f-buscar-id');
         inp.value = ''; inp.focus();
+        document.getElementById('identBlock').scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
     // Documentos del alta, ya CLASIFICADOS por tipo (hoja CIF, DNI, otros).
     var _altaDocs = { cif: [], dni: [], otros: [] };
@@ -749,8 +770,41 @@
     }
     function docDel(cat, i) { _altaDocs[cat].splice(i, 1); renderDoc(cat); }
     document.getElementById('f-buscar-id').addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') { e.preventDefault(); buscarEmpresa(); }
+        if (e.key === 'Enter') { e.preventDefault(); document.getElementById('ac-buscar').classList.remove('show'); buscarEmpresa(); }
     });
+    // ---- Autocompletado del buscador: desde 5 caracteres, sugerencias de la
+    // base de transportistas por CIF/NIF o nombre (empresa/autónomo). ----
+    function buscarSugerencias(val) {
+        var raw = String(val || '').trim();
+        if (raw.replace(/[^A-Za-z0-9]/g, '').length < 5) return [];
+        var qId = normId(raw), qName = raw.toLowerCase();
+        return TRANS_DEMO.filter(function (t) {
+            return normId(t.cif).indexOf(qId) >= 0 || String(t.empresa).toLowerCase().indexOf(qName) >= 0;
+        }).slice(0, 6);
+    }
+    function renderBuscarAC() {
+        var inp = document.getElementById('f-buscar-id'), list = document.getElementById('ac-buscar');
+        var sug = buscarSugerencias(inp.value);
+        if (!sug.length) { list.classList.remove('show'); list.innerHTML = ''; return; }
+        list.innerHTML = sug.map(function (t) {
+            return '<li data-cif="' + escH(t.cif) + '">' + escH(t.cif) + '<span class="ac-sub">' + escH(t.empresa) + '</span></li>';
+        }).join('');
+        list.classList.add('show');
+        Array.prototype.forEach.call(list.querySelectorAll('li'), function (li) {
+            li.addEventListener('mousedown', function (e) {
+                e.preventDefault();
+                inp.value = li.getAttribute('data-cif');
+                list.classList.remove('show');
+                buscarEmpresa();
+            });
+        });
+    }
+    (function () {
+        var inp = document.getElementById('f-buscar-id');
+        inp.addEventListener('input', renderBuscarAC);
+        inp.addEventListener('focus', renderBuscarAC);
+        inp.addEventListener('blur', function () { setTimeout(function () { var l = document.getElementById('ac-buscar'); if (l) l.classList.remove('show'); }, 150); });
+    })();
 
     // ---- Montar los desplegables de fecha/hora (una vez identificado) ----
     function montarDesplegables() {
@@ -1135,7 +1189,21 @@
         var fs = document.getElementById('formScreen');
         fs.classList.toggle('show', id === 'formScreen');
         if (id === 'formScreen') fs.style.display = '';
+        setTimeout(updateScrollHint, 60);
     }
+    // Pista "hay más abajo": visible mientras el formulario esté activo, la
+    // página se pueda desplazar y no se haya llegado al final.
+    function updateScrollHint() {
+        var hint = document.getElementById('scrollHint');
+        if (!hint) return;
+        var formOn = document.getElementById('formScreen').classList.contains('show');
+        var doc = document.documentElement;
+        var nearBottom = (window.innerHeight + window.scrollY) >= (doc.scrollHeight - 90);
+        var scrollable = doc.scrollHeight > window.innerHeight + 60;
+        hint.hidden = !(formOn && scrollable && !nearBottom);
+    }
+    window.addEventListener('scroll', updateScrollHint, { passive: true });
+    window.addEventListener('resize', updateScrollHint);
     function expirarReserva() {
         window._reservaExpirada = true;
         if (window._reservaTimer) clearInterval(window._reservaTimer);
