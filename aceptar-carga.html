@@ -137,6 +137,7 @@
             <div class="empresa-resumen" id="empresaResumen">
                 <div class="er-nombre" id="er-nombre">—</div>
                 <div class="er-cif" id="er-cif">—</div>
+                <div id="er-confirm"></div>
                 <button type="button" class="er-cambiar" onclick="cambiarEmpresa()">No soy yo / cambiar</button>
             </div>
 
@@ -318,12 +319,20 @@
     // Base de transportistas DEMO para el buscador por CIF/DNI (en producción,
     // el backend busca en la base real y solo devuelve TU empresa).
     var TRANS_DEMO = [
-        { cif: 'B58830217', empresa: 'Transportes Iberia Express S.L.', ciudad: 'Madrid', flota: '8 camiones', seguro: 'CMR 150.000 €', bolsa: 'Wtransnet' },
-        { cif: 'B72153042', empresa: 'LogiSur Cargo S.L.', ciudad: 'Sevilla', flota: '12 camiones', seguro: 'CMR 200.000 €', bolsa: 'Timocom' },
-        { cif: 'B91234567', empresa: 'Transportes Andévalo S.L.', ciudad: 'Huelva', flota: '5 camiones', seguro: 'CMR 100.000 €', bolsa: '—' },
-        { cif: '29876543P', empresa: 'José Martín Ruiz · autónomo', ciudad: 'Córdoba', flota: '1 camión', seguro: 'CMR 60.000 €', bolsa: '—' }
+        { cif: 'B58830217', empresa: 'Transportes Iberia Express S.L.', ciudad: 'Madrid', flota: '8 camiones', seguro: 'CMR 150.000 €', bolsa: 'Wtransnet', tel: '+34 916 402 118' },
+        { cif: 'B72153042', empresa: 'LogiSur Cargo S.L.', ciudad: 'Sevilla', flota: '12 camiones', seguro: 'CMR 200.000 €', bolsa: 'Timocom', tel: '+34 954 771 530' },
+        { cif: 'B91234567', empresa: 'Transportes Andévalo S.L.', ciudad: 'Huelva', flota: '5 camiones', seguro: 'CMR 100.000 €', bolsa: '—', tel: '+34 959 240 087' },
+        { cif: '29876543P', empresa: 'José Martín Ruiz · autónomo', ciudad: 'Córdoba', flota: '1 camión', seguro: 'CMR 60.000 €', bolsa: '—', tel: '+34 638 220 471' }
     ];
     function normId(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+    // Enmascara los 3 ÚLTIMOS dígitos de un teléfono con *** (deja el resto).
+    function maskTel(t) {
+        var total = (String(t).match(/\d/g) || []).length, di = 0, corte = total - 3;
+        return String(t).split('').map(function (ch) {
+            if (/\d/.test(ch)) { di++; if (di > corte) return '*'; }
+            return ch;
+        }).join('');
+    }
     // CP español (2 primeros dígitos) → provincia, para autorrellenar Provincia
     // y País al teclear el CP en el alta.
     var CP_PROV_ES = {
@@ -442,6 +451,15 @@
         // Rellenar el resumen de la empresa.
         document.getElementById('er-nombre').textContent = hit.empresa;
         document.getElementById('er-cif').textContent = 'CIF/DNI: ' + hit.cif;
+        // Confirmación de identidad: teléfono de su ficha con los 3 últimos
+        // dígitos ocultos; debe teclearlos para poder aceptar la carga.
+        var tel = hit.tel || '';
+        window._telConfirm = (tel.match(/\d/g) || []).join('').slice(-3);
+        document.getElementById('er-confirm').innerHTML =
+            '<div style="margin-top:0.7rem;font-size:0.82rem;font-weight:700;color:var(--gray-700);">Teléfono de tu ficha: <span style="color:var(--navy);">' + escH(maskTel(tel)) + '</span></div>' +
+            '<label for="er-tel3" style="display:block;font-size:0.72rem;font-weight:800;color:var(--gray-700);margin:0.5rem 0 0.25rem;">Escribe los <strong>3 últimos dígitos</strong> de tu teléfono para confirmar *</label>' +
+            '<input type="tel" id="er-tel3" inputmode="numeric" maxlength="3" placeholder="•••" style="max-width:130px;letter-spacing:0.2em;text-align:center;font-weight:800;">' +
+            '<div id="er-tel-err" style="display:none;color:var(--red);font-size:0.76rem;font-weight:800;margin-top:0.3rem;">Los 3 dígitos no coinciden con el teléfono de tu ficha.</div>';
         window._empresaSel = hit;
         document.getElementById('empresaResumen').classList.add('show');
         // Revelar el resto del formulario y montar los desplegables.
@@ -552,6 +570,21 @@
 
     function aceptar() {
         if (!window._empresaSel && !window._altaMode) { document.getElementById('f-buscar-id').classList.add('err'); document.getElementById('f-buscar-id').scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+        // Empresa YA existente: confirmar identidad con los 3 últimos dígitos
+        // del teléfono de su ficha.
+        if (window._empresaSel && !window._altaMode) {
+            var t3 = document.getElementById('er-tel3');
+            var val = t3 ? (t3.value.match(/\d/g) || []).join('') : '';
+            var errBox = document.getElementById('er-tel-err');
+            if (val !== window._telConfirm) {
+                if (t3) { t3.classList.add('err'); t3.focus(); }
+                if (errBox) errBox.style.display = 'block';
+                if (t3) t3.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                return;
+            }
+            if (t3) t3.classList.remove('err');
+            if (errBox) errBox.style.display = 'none';
+        }
         var req = ['f-fechacarga', 'f-horacarga', 'f-tractora', 'f-chofer', 'f-dnichofer', 'f-tfno'];
         var rigido = /rígido/i.test(document.getElementById('f-camion').value);
         if (!rigido) req.push('f-remolque');
