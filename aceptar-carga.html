@@ -54,6 +54,13 @@
     .id-hint { font-size: 0.72rem; color: var(--gray-500); margin-top: 0.3rem; line-height: 1.45; }
     .id-nofound { display: none; margin-top: 0.5rem; background: #fff7e6; border: 1px solid #ffd591; color: #8a5a00; border-radius: 10px; padding: 0.55rem 0.7rem; font-size: 0.8rem; font-weight: 700; }
     .id-nofound.show { display: block; }
+    /* Estado "consultando al backend" al pulsar Buscar. */
+    .buscando { display: none; margin-top: 0.6rem; align-items: center; gap: 0.55rem; font-size: 0.84rem; font-weight: 700; color: var(--purple); }
+    .buscando.show { display: flex; }
+    .spin { width: 18px; height: 18px; flex: none; border: 2.5px solid rgba(51,0,204,0.22); border-top-color: var(--purple); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .btn-buscar[disabled] { opacity: 0.55; cursor: default; }
+    input:disabled { opacity: 0.7; }
     /* Resumen de la empresa encontrada */
     .empresa-resumen { display: none; margin-top: 0.7rem; background: rgba(51,0,204,0.05); border: 1.5px solid rgba(51,0,204,0.28); border-radius: 12px; padding: 0.8rem 0.9rem; }
     .empresa-resumen.show { display: block; }
@@ -106,6 +113,7 @@
                 <button type="button" class="btn-buscar" onclick="buscarEmpresa()">Buscar</button>
             </div>
             <p class="id-hint">Escribe tu <strong>CIF</strong> (empresa) o <strong>DNI/NIE</strong> (autónomo) y pulsa <strong>Buscar</strong>: aparecerán tus datos para que no tengas que escribirlos.<br><span style="color:var(--gray-500);">Demo: prueba <strong>B58830217</strong>, <strong>B72153042</strong> o <strong>29876543P</strong>.</span></p>
+            <div class="buscando" id="buscandoMsg"><span class="spin"></span>Consultando la base de Dynamo…</div>
             <div class="id-nofound" id="idNoFound">No encontramos ese CIF/DNI en nuestra base. Revísalo, o contacta con Dynamo para darte de alta.</div>
 
             <!-- Resumen de la empresa encontrada -->
@@ -316,11 +324,34 @@
     })();
 
     // ---- Buscar la empresa por CIF/DNI ----
+    // Al pulsar Buscar se muestra un spinner y se BLOQUEA el campo + botón
+    // mientras se "consulta al backend" (mock ~0,9 s). Luego sale el dato o el
+    // alta. En producción es la latencia real de la consulta al servidor.
     function buscarEmpresa() {
-        var val = normId(document.getElementById('f-buscar-id').value);
+        var idInput = document.getElementById('f-buscar-id');
+        var btn = document.querySelector('.btn-buscar');
+        var busc = document.getElementById('buscandoMsg');
+        var val = normId(idInput.value);
+        if (!val) { idInput.classList.add('err'); return; }
+        idInput.classList.remove('err');
+        if (window._buscando) return;
+        window._buscando = true;
+        // Limpiar resultados previos y bloquear la pantalla.
+        document.getElementById('idNoFound').classList.remove('show');
+        document.getElementById('empresaResumen').classList.remove('show');
+        document.getElementById('altaForm').style.display = 'none';
+        document.getElementById('restForm').classList.remove('show');
+        busc.classList.add('show');
+        idInput.disabled = true; btn.disabled = true; btn.textContent = 'Buscando…';
+        setTimeout(function () {
+            busc.classList.remove('show');
+            idInput.disabled = false; btn.disabled = false; btn.textContent = 'Buscar';
+            window._buscando = false;
+            resolverBuscar(val);
+        }, 900);
+    }
+    function resolverBuscar(val) {
         var noFound = document.getElementById('idNoFound');
-        if (!val) { document.getElementById('f-buscar-id').classList.add('err'); return; }
-        document.getElementById('f-buscar-id').classList.remove('err');
         var hit = null;
         for (var i = 0; i < TRANS_DEMO.length; i++) {
             if (normId(TRANS_DEMO[i].cif) === val) { hit = TRANS_DEMO[i]; break; }
