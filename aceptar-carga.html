@@ -121,6 +121,72 @@
                 <button type="button" class="er-cambiar" onclick="cambiarEmpresa()">No soy yo / cambiar</button>
             </div>
 
+            <!-- 1-bis) ALTA: si el CIF/DNI NO está en la base, se abren aquí los
+                 datos para darse de alta como transportista de Dynamo (catálogo
+                 interno de Dynamo, no la tabla del cliente). -->
+            <div class="empresa-resumen" id="altaForm" style="display:none;background:#fff7e6;border-color:#ffd591;">
+                <div class="er-nombre" style="color:#8a5a00;">Date de alta como transportista de Dynamo</div>
+                <div class="er-cif" style="color:#8a5a00;font-weight:600;">No estás aún en nuestra base. Rellena tus datos y con esta aceptación te damos de alta. Dynamo validará el alta.</div>
+                <div style="margin-top:0.7rem;">
+                    <label for="alta-empresa">Empresa / Nombre *</label>
+                    <input type="text" id="alta-empresa" placeholder="Razón social o nombre del autónomo">
+                    <div class="row2">
+                        <div>
+                            <label for="alta-tipo">Tipo</label>
+                            <select id="alta-tipo"><option>Empresa</option><option>Autónomo</option></select>
+                        </div>
+                        <div>
+                            <label for="alta-cif">CIF / NIF *</label>
+                            <input type="text" id="alta-cif" placeholder="B12345678 / 12345678Z" autocapitalize="characters">
+                        </div>
+                    </div>
+                    <label for="alta-bolsa">Código bolsa de carga <span class="op">· opcional</span></label>
+                    <input type="text" id="alta-bolsa" placeholder="Ej. WTN-482113">
+                    <label for="alta-dir">Domicilio fiscal (calle y número)</label>
+                    <input type="text" id="alta-dir" placeholder="Calle y número">
+                    <div class="row2">
+                        <div><label for="alta-cp">CP</label><input type="text" id="alta-cp" placeholder="41001" inputmode="numeric"></div>
+                        <div><label for="alta-loc">Localidad</label><input type="text" id="alta-loc" placeholder="Sevilla"></div>
+                    </div>
+                    <div class="row2">
+                        <div><label for="alta-prov">Provincia</label><input type="text" id="alta-prov" placeholder="Sevilla"></div>
+                        <div><label for="alta-pais">País</label><input type="text" id="alta-pais" value="España"></div>
+                    </div>
+                    <label for="alta-tfno">Teléfono *</label>
+                    <div class="telrow">
+                        <select id="alta-pref">
+                            <option value="+34" selected>🇪🇸 +34</option>
+                            <option value="+351">🇵🇹 +351</option>
+                            <option value="+33">🇫🇷 +33</option>
+                            <option value="+49">🇩🇪 +49</option>
+                            <option value="+39">🇮🇹 +39</option>
+                            <option value="+40">🇷🇴 +40</option>
+                            <option value="+48">🇵🇱 +48</option>
+                            <option value="+31">🇳🇱 +31</option>
+                            <option value="+32">🇧🇪 +32</option>
+                        </select>
+                        <input type="tel" id="alta-tfno" placeholder="600 000 000" inputmode="tel">
+                    </div>
+                    <label for="alta-email">Email (tráfico) *</label>
+                    <input type="text" id="alta-email" placeholder="trafico@dominio.com" inputmode="email">
+                    <label for="alta-contacto">Persona de contacto</label>
+                    <input type="text" id="alta-contacto" placeholder="Nombre y apellidos">
+                    <div class="row2">
+                        <div>
+                            <label for="alta-adr">ADR — mercancías peligrosas</label>
+                            <select id="alta-adr"><option>No</option><option>Sí</option></select>
+                        </div>
+                        <div>
+                            <label for="alta-seguro">Seguro de mercancías</label>
+                            <input type="text" id="alta-seguro" placeholder="AXA · Póliza CMR 88-456129">
+                        </div>
+                    </div>
+                    <label>Documentos del transportista <span class="op">· seguro CMR, tarjeta de transporte… opcional, máx. 5</span></label>
+                    <input type="file" id="alta-docs" accept=".jpg,.jpeg,.png,.pdf" multiple onchange="altaDocsChange()" style="font-size:0.85rem;">
+                    <div id="altaDocsList" style="font-size:0.78rem;color:var(--gray-700);font-weight:700;margin-top:0.3rem;"></div>
+                </div>
+            </div>
+
             <!-- 2) Resto del formulario (aparece tras identificarse) -->
             <div id="restForm">
                 <div class="sec-title">Carga</div>
@@ -199,7 +265,7 @@
         <div class="ok-screen" id="okScreen">
             <div class="ok-ico"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
             <h1>¡Carga aceptada!</h1>
-            <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br>El equipo de Dynamo te confirmará la asignación en breve.<br><span id="ok-pronto" hidden>✅ Has elegido <strong>pronto pago 48&nbsp;h (−3%, mín. 15&nbsp;€)</strong>.</span></p>
+            <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br>El equipo de Dynamo te confirmará la asignación en breve.<br><span id="ok-alta" hidden>🆕 Te damos de <strong>alta como transportista de Dynamo</strong> (pendiente de validación).<br></span><span id="ok-pronto" hidden>✅ Has elegido <strong>pronto pago 48&nbsp;h (−3%, mín. 15&nbsp;€)</strong>.</span></p>
             <p class="foot">¿Dudas? <a href="tel:+34955225945">+34 955 225 945</a> · <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a></p>
         </div>
     </div>
@@ -235,7 +301,7 @@
         var lista = dias ? dias.split(',').map(function (x) { return x.trim(); }).filter(Boolean)
                          : ['Mié 22/07', 'Jue 23/07', 'Vie 24/07'];
         document.getElementById('v-fecha').textContent = lista.length > 1
-            ? 'Ventana: ' + lista.join(' · ') : (lista[0] || 'Por confirmar');
+            ? 'Ventana: de ' + lista[0] + ' a ' + lista[lista.length - 1] : (lista[0] || 'Por confirmar');
         window._diasCarga = lista;
         // pp=0 → PRONTO PAGO no disponible.
         if (q('pp', '') === '0') {
@@ -258,8 +324,23 @@
         for (var i = 0; i < TRANS_DEMO.length; i++) {
             if (normId(TRANS_DEMO[i].cif) === val) { hit = TRANS_DEMO[i]; break; }
         }
-        if (!hit) { noFound.classList.add('show'); document.getElementById('empresaResumen').classList.remove('show'); document.getElementById('restForm').classList.remove('show'); return; }
+        if (!hit) {
+            // NO está en la base → abrir el ALTA como transportista de Dynamo
+            // (catálogo interno de Dynamo, no la tabla del cliente).
+            noFound.classList.remove('show');
+            document.getElementById('empresaResumen').classList.remove('show');
+            var altaCif = document.getElementById('alta-cif');
+            if (altaCif && !altaCif.value.trim()) altaCif.value = document.getElementById('f-buscar-id').value.trim();
+            document.getElementById('altaForm').style.display = 'block';
+            window._altaMode = true; window._empresaSel = null;
+            montarDesplegables();
+            document.getElementById('restForm').classList.add('show');
+            document.getElementById('altaForm').scrollIntoView({ block: 'start', behavior: 'smooth' });
+            return;
+        }
         noFound.classList.remove('show');
+        document.getElementById('altaForm').style.display = 'none';
+        window._altaMode = false;
         // Rellenar el resumen de la empresa.
         document.getElementById('er-nombre').textContent = hit.empresa;
         document.getElementById('er-cif').textContent = 'CIF/DNI: ' + hit.cif;
@@ -276,11 +357,18 @@
         rest.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }
     function cambiarEmpresa() {
-        window._empresaSel = null;
+        window._empresaSel = null; window._altaMode = false;
         document.getElementById('empresaResumen').classList.remove('show');
+        document.getElementById('altaForm').style.display = 'none';
         document.getElementById('restForm').classList.remove('show');
         var inp = document.getElementById('f-buscar-id');
         inp.value = ''; inp.focus();
+    }
+    function altaDocsChange() {
+        var inp = document.getElementById('alta-docs');
+        var list = document.getElementById('altaDocsList');
+        var files = Array.prototype.slice.call(inp.files || [], 0, 5);
+        list.textContent = files.length ? '📎 ' + files.map(function (f) { return f.name; }).join(' · ') : '';
     }
     document.getElementById('f-buscar-id').addEventListener('keydown', function (e) {
         if (e.key === 'Enter') { e.preventDefault(); buscarEmpresa(); }
@@ -322,10 +410,12 @@
     });
 
     function aceptar() {
-        if (!window._empresaSel) { document.getElementById('f-buscar-id').classList.add('err'); document.getElementById('f-buscar-id').scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+        if (!window._empresaSel && !window._altaMode) { document.getElementById('f-buscar-id').classList.add('err'); document.getElementById('f-buscar-id').scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
         var req = ['f-fechacarga', 'f-horacarga', 'f-tractora', 'f-chofer', 'f-dnichofer', 'f-tfno'];
         var rigido = /rígido/i.test(document.getElementById('f-camion').value);
         if (!rigido) req.push('f-remolque');
+        // En modo ALTA (empresa nueva), también son obligatorios sus datos base.
+        if (window._altaMode) req = ['alta-empresa', 'alta-cif', 'alta-tfno', 'alta-email'].concat(req);
         var ok = true;
         req.forEach(function (id) {
             var el = document.getElementById(id);
@@ -335,11 +425,12 @@
         });
         var warn = document.getElementById('fWarn');
         warn.classList.toggle('show', !ok);
-        if (!ok) { document.querySelector('#restForm .err').scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+        if (!ok) { document.querySelector('.err').scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
         // MOCKUP: aquí el backend registra la aceptación (envío, empresa, fecha
         // y hora de carga y entrega, camión, matrículas, conductor con su DNI y
         // pronto pago) y avisa al equipo de Dynamo.
         document.getElementById('ok-ref').textContent = document.getElementById('v-ref').textContent;
+        document.getElementById('ok-alta').hidden = !window._altaMode;
         document.getElementById('ok-pronto').hidden = !document.getElementById('f-pronto').checked;
         document.getElementById('formScreen').style.display = 'none';
         document.getElementById('okScreen').classList.add('show');
