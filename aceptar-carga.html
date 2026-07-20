@@ -31,6 +31,10 @@
     .viaje dt { font-size: 0.68rem; font-weight: 800; color: var(--gray-500); margin-top: 0.55rem; }
     .viaje dt:first-child { margin-top: 0; }
     .viaje dd { font-size: 0.92rem; font-weight: 700; }
+    .viaje .v-sub { display: block; font-size: 0.74rem; font-weight: 600; color: var(--gray-500); margin-top: 2px; }
+    .v-details { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem 1rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--gray-300); }
+    .v-details .vd-k { font-size: 0.68rem; font-weight: 800; color: var(--gray-500); }
+    .v-details .vd-v { font-size: 0.9rem; font-weight: 700; color: var(--navy); }
     .pago-contado { margin-top: 0.7rem; background: rgba(34,165,90,0.1); border: 1.5px solid var(--green); border-radius: 10px; padding: 0.6rem 0.75rem; font-size: 0.9rem; font-weight: 800; color: var(--green-dark); }
     .pago-contado .imp { font-size: 1.25rem; }
     .pago-contado .base-nota { font-size: 0.78rem; font-weight: 600; opacity: 0.85; }
@@ -112,6 +116,7 @@
     .pronto-calc .pc-main strong { color: var(--green); font-weight: 900; font-size: 1.02rem; }
     .pronto-calc .pc-sub { font-weight: 600; color: var(--gray-500); font-size: 0.76rem; }
     .pronto-calc .pc-alt { font-size: 0.78rem; font-weight: 600; color: var(--gray-500); margin-top: 0.25rem; }
+    .pronto-calc .pc-red { color: var(--red); font-weight: 800; }
     .pronto-calc.off { opacity: 0.6; }
     .pronto-calc.off .pc-main strong { color: var(--gray-700); }
     .btn { width: 100%; margin-top: 1.1rem; background: var(--purple); color: #fff; border: none; border-radius: 12px; padding: 0.95rem; font: inherit; font-weight: 800; font-size: 1.02rem; cursor: pointer; }
@@ -133,14 +138,7 @@
             <h1>Aceptar carga</h1>
             <p class="sub">Oferta de <strong>Dynamo Operador de Transportes</strong> · <strong style="color:var(--green-dark);">PAGO CONTADO</strong></p>
 
-            <dl class="viaje" id="viajeBox">
-                <dt>Envío</dt><dd id="v-ref">—</dd>
-                <dt>Recogida</dt><dd id="v-orig">—</dd>
-                <dt>Entrega</dt><dd id="v-dest">—</dd>
-                <dt>Fecha de carga ofertada</dt><dd id="v-fecha">—</dd>
-                <dt>Mercancía</dt><dd id="v-merc">—</dd>
-                <div class="pago-contado" id="v-pago" hidden><span class="imp" id="v-imp"></span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>
-            </dl>
+            <dl class="viaje" id="viajeBox"></dl>
 
             <!-- 1) IDENTIFICACIÓN: escribe tu CIF/DNI y pulsa Buscar -->
             <div class="sec-title" style="border-top:none;padding-top:0;margin-top:0;">Identifícate</div>
@@ -335,11 +333,11 @@
                 <div class="pronto">
                     <label class="chk">
                         <input type="checkbox" id="f-pronto" onchange="renderProntoCalc()">
-                        <span><strong>Quiero PRONTO PAGO:</strong> cobro en <strong>5 días tras recibir factura</strong> después de finalizar el servicio, con un <strong>descuento del 3%</strong> (mínimo 20&nbsp;€).</span>
+                        <span><strong>Quiero PRONTO PAGO:</strong> cobro en <strong>5 días tras recibir factura</strong> después de finalizar el servicio, con un <strong>descuento del 3,5%</strong> (mínimo 25&nbsp;€).</span>
                     </label>
                     <div class="pronto-calc" id="prontoCalc" hidden>
                         <div class="pc-main">Precio total con pronto pago aplicado: <strong id="pc-total">—</strong> <span class="pc-sub">· base imponible (impuestos no incluidos)</span></div>
-                        <div class="pc-alt">Sin pronto pago: <span id="pc-base">—</span> a 60 días.</div>
+                        <div class="pc-alt" id="pc-alt"></div>
                     </div>
                 </div>
 
@@ -447,23 +445,49 @@
     })();
 
     // ---- Datos del viaje desde la URL (los pone el enlace de la oferta) ----
+    // El resumen debe dar SUFICIENTE detalle para que el transportista decida si
+    // le interesa: mercancía, metros lineales, palets/maquinaria, peso, tipo de
+    // carga (lateral/techo/ambas), trampilla, NIMA y horarios de los almacenes.
     (function () {
-        document.getElementById('v-ref').textContent   = q('envio', '#GX000000 (demo)');
-        document.getElementById('v-orig').textContent  = q('o', 'Sevilla');
-        document.getElementById('v-dest').textContent  = q('d', 'Madrid');
-        document.getElementById('v-merc').textContent  = q('m', 'Paletizado');
-        var p = q('p', '');
-        if (p) { document.getElementById('v-imp').textContent = p; document.getElementById('v-pago').hidden = false; window._basePrecio = parseEur(p); }
+        var envio = q('envio', '#GX684870 (demo)');
+        var orig  = q('o', 'Sevilla 41001'), dest = q('d', 'Madrid 28001');
+        var ho    = q('ho', 'L-V 8:00–14:00'), hd = q('hd', 'L-V 9:00–14:00 y 16:00–18:00');
+        var merc  = q('m', 'Paletizado');
+        var ml    = q('ml', '6 m'), pal = q('pal', '6 europalets'), peso = q('peso', '8.000 kg');
+        var tc    = q('tc', 'Lateral y techo');
+        var tram  = q('tram', '0') === '1' ? 'Sí' : 'No';
+        var nima  = q('nima', '0') === '1' ? 'Sí' : 'No';
+        var p     = q('p', '');
         // Días disponibles para cargar: 'dias' = lista separada por comas.
         //   1 día  → FECHA FIJA (no se puede cambiar).
-        //   varios → VENTANA (se elige uno).
-        // Si no vienen, demo con 3 días.
+        //   varios → VENTANA (se elige uno).  Si no vienen, demo con 3 días.
         var dias = q('dias', '');
-        var lista = dias ? dias.split(',').map(function (x) { return x.trim(); }).filter(Boolean)
-                         : ['Mié 22/07', 'Jue 23/07', 'Vie 24/07'];
-        document.getElementById('v-fecha').textContent = lista.length > 1
-            ? 'Ventana: de ' + lista[0] + ' a ' + lista[lista.length - 1] : (lista[0] || 'Por confirmar');
+        var lista = (dias ? dias.split(',').map(function (x) { return x.trim(); }).filter(Boolean)
+                          : ['Mié 22/07', 'Jue 23/07', 'Vie 24/07']).map(labelConAnio);
+        var fecha = lista.length > 1 ? 'Ventana: de ' + lista[0] + ' a ' + lista[lista.length - 1] : (lista[0] || 'Por confirmar');
         window._diasCarga = lista;
+        // Construir el resumen. Los ids v-ref/v-orig/v-dest/v-merc/v-imp se
+        // conservan porque la pantalla de "carga aceptada" los lee.
+        function subHor(h) { return h ? '<span class="v-sub">Horario almacén: ' + escH(h) + '</span>' : ''; }
+        var vd = [];
+        if (ml)   vd.push(['Metros lineales', ml]);
+        if (pal)  vd.push(['Palets / bultos', pal]);
+        if (peso) vd.push(['Peso', peso]);
+        if (tc)   vd.push(['Tipo de carga', tc]);
+        vd.push(['Trampilla elevadora', tram]);
+        vd.push(['Requiere NIMA', nima]);
+        var html =
+            '<dt>Envío</dt><dd id="v-ref">' + escH(envio) + '</dd>' +
+            '<dt>Recogida</dt><dd id="v-orig">' + escH(orig) + subHor(ho) + '</dd>' +
+            '<dt>Entrega</dt><dd id="v-dest">' + escH(dest) + subHor(hd) + '</dd>' +
+            '<dt>Fecha de carga ofertada</dt><dd id="v-fecha">' + escH(fecha) + '</dd>' +
+            '<dt>Mercancía</dt><dd id="v-merc">' + escH(merc) + '</dd>' +
+            '<div class="v-details">' + vd.map(function (r) {
+                return '<div class="vd"><div class="vd-k">' + escH(r[0]) + '</div><div class="vd-v">' + escH(r[1]) + '</div></div>';
+            }).join('') + '</div>' +
+            '<div class="pago-contado" id="v-pago"' + (p ? '' : ' hidden') + '><span class="imp" id="v-imp">' + escH(p) + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>';
+        document.getElementById('viajeBox').innerHTML = html;
+        if (p) window._basePrecio = parseEur(p);
         // pp=0 → PRONTO PAGO no disponible.
         if (q('pp', '') === '0') {
             var pr = document.querySelector('.pronto');
@@ -485,13 +509,25 @@
         return isNaN(n) ? NaN : n;
     }
     function fmtEur(n) { return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-    // Descuento pronto pago: 3% con mínimo 20 €. Total = base − descuento.
+    // Descuento pronto pago: 3,5% con mínimo 25 €. Total = base − descuento.
     function prontoPagoInfo() {
         var base = window._basePrecio;
         if (isNaN(base) || base <= 0) return null;
-        var desc = Math.max(base * 0.03, 20);
+        var desc = Math.max(base * 0.035, 25);
         if (desc > base) desc = base;
         return { base: base, desc: desc, total: base - desc };
+    }
+    // Fecha aproximada de cobro a 60 días desde la fecha de envío (día de carga
+    // elegido, o el primero de la ventana), asumiendo que la factura coincide con
+    // la fecha de envío. Formato con año, siempre.
+    function fechaPago60() {
+        var fc = document.getElementById('f-fechacarga');
+        var base = (fc && fc.value) ? parseLabelFecha(fc.value) : null;
+        if (!base && window._diasCarga && window._diasCarga.length) base = parseLabelFecha(window._diasCarga[0]);
+        if (!base) return '';
+        var d = new Date(base); d.setDate(d.getDate() + 60);
+        var dd = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+        return dd[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear();
     }
     // Pinta la línea de precio con pronto pago bajo el check (si hay precio).
     function renderProntoCalc() {
@@ -502,7 +538,9 @@
         if (!info) { box.hidden = true; return; }
         box.hidden = false;
         document.getElementById('pc-total').textContent = fmtEur(info.total) + ' €';
-        document.getElementById('pc-base').textContent = fmtEur(info.base) + ' €';
+        var pd = fechaPago60();
+        document.getElementById('pc-alt').innerHTML = 'Sin pronto pago: ' + escH(fmtEur(info.base)) + ' € <span class="pc-red">a 60 días</span>' +
+            (pd ? ' (se pagaría el <strong>' + escH(pd) + '</strong>, si la factura coincide con la fecha de envío)' : '') + '.';
         box.classList.toggle('off', !(chk && chk.checked));
     }
 
@@ -630,11 +668,25 @@
     // después (INCLUIDOS sábados y domingos). La estima Dynamo (aquí, mock: día
     // de carga + 1); se puede cambiar. En producción la calcula el backend.
     var DOW = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-    function fmtDMlabel(d) { return DOW[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2); }
+    // Fechas SIEMPRE con año (dd/mm/yyyy). fmtDMlabel lo incluye.
+    function fmtDMlabel(d) { return DOW[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear(); }
     function parseLabelFecha(s) {
-        var m = String(s || '').match(/(\d{1,2})\/(\d{1,2})/);
+        var m = String(s || '').match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
         if (!m) return null;
-        return new Date((new Date()).getFullYear(), +m[2] - 1, +m[1]);
+        var y = m[3] ? (m[3].length === 2 ? 2000 + (+m[3]) : +m[3]) : (new Date()).getFullYear();
+        return new Date(y, +m[2] - 1, +m[1]);
+    }
+    // Añade el año a una etiqueta "Dow dd/mm" si no lo trae. El año se elige de
+    // forma que la fecha no quede muy en el pasado (si ya pasó, año siguiente).
+    function labelConAnio(label) {
+        var m = String(label).match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+        if (!m) return label;
+        if (m[3]) return label; // ya tiene año
+        var now = new Date(), y = now.getFullYear();
+        var cand = new Date(y, +m[2] - 1, +m[1]);
+        var hace30 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+        if (cand < hace30) y++;
+        return label + '/' + y;
     }
     function montarEntregaFecha() {
         var feCarga = document.getElementById('f-fechacarga');
@@ -696,8 +748,10 @@
         var note = cfg.note ? document.getElementById(cfg.note) : null;
         if (!inp || !list) return;
         function items() { return (cfg.source() || []); }
-        function refresh() {
-            var q = acNorm(inp.value);
+        // showAll=true (al enfocar/pulsar) muestra TODAS las opciones aunque el
+        // campo ya tenga una elegida, para poder cambiarla. Al teclear filtra.
+        function refresh(showAll) {
+            var q = showAll ? '' : acNorm(inp.value);
             var all = items();
             if (!all.length) { acClose(list); if (note) note.classList.remove('show'); return; }
             var match = all.filter(function (it) { return acNorm(cfg.label(it)).indexOf(q) >= 0; });
@@ -712,8 +766,9 @@
             list.classList.add('show');
             // Aviso "se registrará como nueva/nuevo" si hay texto sin coincidencia exacta.
             if (note) {
-                var exact = all.some(function (it) { return acNorm(cfg.label(it)) === q && q; });
-                note.classList.toggle('show', !!q && !exact);
+                var cur = acNorm(inp.value);
+                var exact = all.some(function (it) { return acNorm(cfg.label(it)) === cur && cur; });
+                note.classList.toggle('show', !showAll && !!cur && !exact);
             }
             Array.prototype.forEach.call(list.querySelectorAll('li[data-i]'), function (li) {
                 li.addEventListener('mousedown', function (e) {
@@ -724,8 +779,8 @@
                 });
             });
         }
-        inp.addEventListener('focus', refresh);
-        inp.addEventListener('input', refresh);
+        inp.addEventListener('focus', function () { refresh(true); });
+        inp.addEventListener('input', function () { refresh(false); });
         inp.addEventListener('blur', function () { setTimeout(function () { acClose(list); }, 150); });
     }
     function selEmpresa() { return window._empresaSel || null; }
