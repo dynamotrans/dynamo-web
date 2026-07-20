@@ -10096,7 +10096,8 @@
                 ctField('tra-f-pais', 'País', t.pais || 'España', 'España') +
                 telField('tra-f-tfno', 'Teléfono', t.tfno) +
                 ctField('tra-f-email', 'Email (tráfico)', t.email, 'trafico@dominio.com', false, 'email') +
-                '<div style="grid-column:1/-1;font-size: var(--fs-s);color:var(--gray-500);line-height:1.5;margin-top:-0.4rem;">📩 El <strong>email</strong> se usa para los avisos de la operativa (recogidas, entregas, incidencias).</div>' +
+                ctField('tra-f-email-conta', 'Email (contabilidad)', t.emailConta, 'contabilidad@dominio.com', false, 'email') +
+                '<div style="grid-column:1/-1;font-size: var(--fs-s);color:var(--gray-500);line-height:1.5;margin-top:-0.4rem;">📩 El de <strong>tráfico</strong> se usa para los avisos de la operativa (recogidas, entregas, incidencias). El de <strong>contabilidad</strong> es <strong>SOLO ADMIN</strong> (facturas): no se muestra al transportista ni se usa para la operativa de cargas.</div>' +
                 ctField('tra-f-contacto', 'Persona de contacto', t.contacto, 'Nombre y apellidos', true) +
 
                 (function () {
@@ -10242,6 +10243,7 @@
         t.ciudad = v('tra-f-ciudad') || null; t.prov = v('tra-f-prov') || null;
         t.pais = v('tra-f-pais') || 'España';
         t.tfno = telValue('tra-f-tfno'); t.email = v('tra-f-email') || null;
+        t.emailConta = v('tra-f-email-conta') || null;
         t.contacto = v('tra-f-contacto') || null;
         var adrEl = document.getElementById('tra-f-adr');
         t.adr = adrEl ? adrEl.value === 'Sí' : !!t.adr;
