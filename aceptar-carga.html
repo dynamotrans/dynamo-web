@@ -253,7 +253,7 @@
                 <div class="pronto">
                     <label class="chk">
                         <input type="checkbox" id="f-pronto">
-                        <span><strong>Quiero PRONTO PAGO:</strong> cobro a <strong>48&nbsp;h tras finalizar el servicio</strong> con un <strong>descuento del 3%</strong> (mínimo 15&nbsp;€).</span>
+                        <span><strong>Quiero PRONTO PAGO:</strong> cobro en <strong>5 días tras recibir factura</strong> después de finalizar el servicio, con un <strong>descuento del 3%</strong> (mínimo 20&nbsp;€).</span>
                     </label>
                 </div>
 
@@ -266,7 +266,7 @@
         <div class="ok-screen" id="okScreen">
             <div class="ok-ico"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
             <h1>¡Carga aceptada!</h1>
-            <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br>El equipo de Dynamo te confirmará la asignación en breve.<br><span id="ok-alta" hidden>🆕 Te damos de <strong>alta como transportista de Dynamo</strong> (pendiente de validación).<br></span><span id="ok-pronto" hidden>✅ Has elegido <strong>pronto pago 48&nbsp;h (−3%, mín. 15&nbsp;€)</strong>.</span></p>
+            <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br>El equipo de Dynamo te confirmará la asignación en breve.<br><span id="ok-alta" hidden>🆕 Te damos de <strong>alta como transportista de Dynamo</strong> (pendiente de validación).<br></span><span id="ok-pronto" hidden>✅ Has elegido <strong>pronto pago a 5 días tras factura (−3%, mín. 20&nbsp;€)</strong>.</span></p>
             <p class="foot">¿Dudas? <a href="tel:+34955225945">+34 955 225 945</a> · <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a></p>
         </div>
     </div>
@@ -311,7 +311,7 @@
             pr.style.borderColor = 'var(--gray-300)';
             pr.innerHTML = '<label class="chk" style="color:var(--gray-500);cursor:not-allowed;">' +
                 '<input type="checkbox" disabled>' +
-                '<span><strong>PRONTO PAGO no disponible temporalmente.</strong> En esta carga no se puede ofrecer el cobro anticipado a 48&nbsp;h; el pago es CONTADO en las condiciones habituales.</span></label>';
+                '<span><strong>PRONTO PAGO no disponible temporalmente.</strong> En esta carga no se puede ofrecer el cobro anticipado a 5&nbsp;días tras factura; el pago es CONTADO en las condiciones habituales.</span></label>';
         }
     })();
 
