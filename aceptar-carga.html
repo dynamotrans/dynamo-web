@@ -604,6 +604,10 @@
         user:  svgIco('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', 22),
         file:  svgIco('<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>', 14)
     };
+    // Dirección de un punto, SIEMPRE como 'CP - localidad, provincia, país'
+    // (los enlaces llegan como 'CP, localidad, provincia, país': la primera
+    // coma tras el CP se convierte en guion).
+    function fmtDir(s) { return String(s || '').replace(/^(\d{4,5})\s*,\s*/, '$1 - '); }
     // Franjas horarias (formato 24 h).
     var FRANJAS = ['07:00 - 09:00', '09:00 - 11:00', '11:00 - 13:00', '13:00 - 15:00', '15:00 - 17:00', '17:00 - 19:00'];
     // Base de transportistas DEMO para el buscador por CIF/DNI (en producción,
@@ -697,7 +701,7 @@
     (function () {
         var demo  = !q('envio', ''); // URL "pelada" (sin envio=) → datos de demo
         var envio = q('envio', '#GX684870 (demo)');
-        var orig  = q('o', 'Sevilla 41001'), dest = q('d', 'Madrid 28001');
+        var orig  = q('o', '41701, Dos Hermanas, Sevilla, España'), dest = q('d', '28001, Madrid, Madrid, España');
         // Horarios de almacén: en un enlace real solo salen si vienen en la URL
         // (ho/hd); los de demo únicamente en la URL pelada.
         var ho    = q('ho', demo ? 'L-V 8:00–14:00' : ''), hd = q('hd', demo ? 'L-V 9:00–14:00 y 16:00–18:00' : '');
@@ -756,7 +760,7 @@
                 '</div>' +
                 (fechaTxt ? '<div class="of-pt-fecha"' + (fechaTxt === fecha ? ' id="v-fecha"' : '') + '>' + escH(fechaTxt) + '</div>' : '') +
                 (pt.hor ? '<div class="of-pt-hor">(' + escH(pt.hor) + ')</div>' : '') +
-                '<div class="of-pt-loc">' + escH(pt.loc) + '</div>' +
+                '<div class="of-pt-loc">' + escH(fmtDir(pt.loc)) + '</div>' +
                 '</div>';
         }
         var chips = vd.map(function (r) {
@@ -1361,7 +1365,7 @@
                 '</div>' +
                 (fechaLn ? '<div class="of-pt-fecha">' + escH(fechaLn) + '</div>' : '') +
                 (pt.hor ? '<div class="of-pt-hor">(' + escH(pt.hor) + ')</div>' : '') +
-                '<div class="of-pt-loc">' + escH(pt.loc) + '</div>' +
+                '<div class="of-pt-loc">' + escH(fmtDir(pt.loc)) + '</div>' +
                 (estLn || '') + '</div>';
         }
         html += '<div class="of-route">' +
