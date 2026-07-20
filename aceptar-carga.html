@@ -211,7 +211,7 @@
             <h1>Comprobando disponibilidad…</h1>
             <p class="sub">Estamos verificando si la carga <strong id="chk-ref">—</strong> sigue disponible.</p>
             <div class="chk-bar-wrap"><div class="chk-bar" id="chk-bar"></div></div>
-            <div class="chk-row"><span class="chk-pct" id="chk-pct">0%</span><span class="chk-cd"><strong id="chk-count">5</strong> s</span></div>
+            <div class="chk-row"><span class="chk-pct" id="chk-pct">0%</span><span class="chk-cd"><strong id="chk-count">3</strong> s</span></div>
         </div>
 
         <!-- 0-bis) YA NO DISPONIBLE: la aceptó otro transportista. Datos del que
@@ -1294,7 +1294,7 @@
     (function initDisponibilidad() {
         document.getElementById('chk-ref').textContent = q('envio', '#GX684870 (demo)');
         mostrarPantalla('checkScreen');
-        var dur = parseInt(q('cd', '5'), 10); if (isNaN(dur) || dur < 1) dur = 5;
+        var dur = parseInt(q('cd', '3'), 10); if (isNaN(dur) || dur < 1) dur = 3;
         document.getElementById('chk-count').textContent = dur;
         // Consulta al backend (mock). estado=tomada fuerza "no disponible".
         comprobarDisponibilidad(dur, function () {
