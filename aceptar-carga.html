@@ -659,6 +659,9 @@
         var tc    = q('tc', 'Lateral y techo');
         var tram  = q('tram', '0') === '1' ? 'Sí' : 'No';
         var nima  = q('nima', '0') === '1' ? 'Sí' : 'No';
+        // Anotación de MERCANCÍA / detalle del envío que escribió el cliente en el
+        // formulario. Llega en el enlace (dm=). Demo por defecto.
+        var dm    = q('dm', 'Palets de madera tratada. Material frágil en las 2 cajas superiores; recoger por muelle 3.');
         var p     = q('p', '820,00 €'); // demo por defecto; el enlace real trae &p=
         // Días disponibles para cargar: 'dias' = lista separada por comas.
         //   1 día  → FECHA FIJA (no se puede cambiar).
@@ -687,6 +690,7 @@
             '<div class="v-details">' + vd.map(function (r) {
                 return '<div class="vd"><div class="vd-k">' + escH(r[0]) + '</div><div class="vd-v">' + escH(r[1]) + '</div></div>';
             }).join('') + '</div>' +
+            (dm ? '<dt>Anotaciones de la mercancía</dt><dd id="v-dm">' + escH(dm) + '</dd>' : '') +
             '<div class="pago-contado" id="v-pago"' + (p ? '' : ' hidden') + '><span class="imp" id="v-imp">' + escH(p) + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>';
         document.getElementById('viajeBox').innerHTML = html;
         if (p) window._basePrecio = parseEur(p);
