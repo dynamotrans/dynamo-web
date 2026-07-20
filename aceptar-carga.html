@@ -249,11 +249,11 @@
                         <select id="f-fechaentrega"></select>
                     </div>
                     <div>
-                        <label for="f-horaentrega">Hora estimada de entrega <span class="op">· opcional (NO es cita, solo para saber aprox. la hora de entrega)</span></label>
+                        <label for="f-horaentrega">Hora estimada de entrega <span class="op">· opcional</span></label>
                         <select id="f-horaentrega"></select>
                     </div>
                 </div>
-                <p class="id-hint">La fecha de entrega la estima Dynamo automáticamente; puedes cambiarla (desde el día de carga hasta 7 días después, incluidos sábados y domingos).</p>
+                <p class="id-hint">La <strong>fecha / hora de entrega</strong> la estima Dynamo automáticamente; puedes cambiarla (desde el día de carga hasta 7 días después, incluidos sábados y domingos). La <strong>hora NO es cita</strong>, solo para saber aprox. la hora de entrega.</p>
 
                 <div class="sec-title">Vehículo</div>
                 <label for="f-camion">Tipo de camión *</label>
@@ -524,10 +524,10 @@
         document.getElementById('fechaHint').textContent = esFija
             ? 'Fecha fija ofertada: no se puede cambiar.'
             : 'Elige uno de los días de la ventana ofertada.';
-        // Horas de carga y de entrega (mismas franjas).
-        var horaOpts = '<option value="">Selecciona…</option>' + FRANJAS.map(function (f) { return '<option>' + f + '</option>'; }).join('');
-        document.getElementById('f-horacarga').innerHTML = horaOpts;
-        document.getElementById('f-horaentrega').innerHTML = '<option value="">Sin definir</option>' + FRANJAS.map(function (f) { return '<option>' + f + '</option>'; }).join('');
+        // Horas de carga y de entrega (mismas franjas), con valor por defecto:
+        // carga 11:00-13:00 · entrega 07:00-09:00.
+        document.getElementById('f-horacarga').innerHTML = FRANJAS.map(function (f) { return '<option' + (f === '11:00 - 13:00' ? ' selected' : '') + '>' + f + '</option>'; }).join('');
+        document.getElementById('f-horaentrega').innerHTML = '<option value="">Sin definir</option>' + FRANJAS.map(function (f) { return '<option' + (f === '07:00 - 09:00' ? ' selected' : '') + '>' + f + '</option>'; }).join('');
         montarEntregaFecha();
         syncRemolque();
     }
