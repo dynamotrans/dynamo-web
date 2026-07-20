@@ -157,6 +157,27 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-07-20 — Claude Code web (nube)
+
+> **Sesión centrada en `aceptar-carga.html` (página del transportista que acepta una oferta) + retoques en `dashboard.html`.** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Push directo a preview en cada cambio.
+
+**`aceptar-carga.html` — reescritura grande de la experiencia del transportista**:
+- **Autocompletado desde el historial**: matrícula tractora/remolque y conductor (nombre·DNI·tel) se autocompletan del transportista identificado; al **enfocar/pulsar salen TODAS** las opciones (para poder cambiar la elegida), solo filtra al teclear. Al elegir una **tractora** se autorrellena el **remolque** que llevaba enganchado la última vez **y el conductor** que la condujo (pares + paresChofer en `TRANS_DEMO`). Al identificarse se **prefill** la última tractora/remolque/conductor; sin historial, en blanco.
+- **Buscador de CIF/NIF con autocompletado** desde 4 caracteres (por CIF o por nombre); al elegir sugerencia autobusca e identifica. Tras identificar, el bloque "Identifícate" **se oculta** (queda "No soy yo / cambiar") y la página **vuelve arriba** (no salta al final) para leer todo. **Pista fija** "Desliza para ACEPTAR / ver todo ↓" que se oculta al llegar al fondo.
+- **Rojo→verde**: los campos obligatorios en rojo pasan a **verde** al rellenarse (a mano o por autocompletado); el aviso global se oculta cuando no queda ninguno en rojo.
+- **Resumen "carga aceptada" completo y legible** (lo lee el chófer en el móvil): Recogida (fecha de carga REAL + horario almacén + horario estimado recogida), Entrega, Mercancía con todo el detalle, Transportista, Vehículo, Conductor, Precio; bloques separados por líneas con etiqueta morada en mayúsculas.
+- **Pronto pago 3,5% (mín. 25 €)**: caja limpia con fecha de cobro a 5 días en **verde** y comparativa a 60 días en **rojo** (con fecha de pago). Se aplica en el resumen del aceptado.
+- **Flujo de disponibilidad/RESERVA (mockup)**: pantalla "Comprobando disponibilidad" con **barra + contador** (3 s), luego oferta con **banner de reserva** (demo 30 s = 15+15; en prod 3 min: 2 min mensaje tranquilo con **spinner morado** que se vacía + último minuto **spinner rojo** + contador). Contador **robusto a segundo plano** (reloj real + visibilitychange). Estados por URL: `estado=tomada` ("ya no disponible", datos enmascarados 5+*/3+*/tel sin 3 últimos + "hace X"), `estado=tramite` ("Ahora está otro transportista reservando en línea"), "tiempo agotado" al caducar. Botones de contacto **"¿Dudas?"** desplegables (Llamar/WhatsApp/Email). **Selector de idiomas** (Google Translate, 12 idiomas) en todas las pantallas.
+- Otros: **Rígido** desaparece del tipo de camión si la carga supera 8 m o 14 Tn; título "Pulsa el botón de abajo para Aceptar carga"; "en trámite" simplificado a un solo mensaje grande con spinner; Indicaciones plegadas como texto azul; "Matrícula remolque" sin "· solo tráiler".
+
+**`dashboard.html`**:
+- Ficha de **transportista sin el campo "Tipo" (Empresa/Autónomo)** (ni en tabla ni en ficha).
+- **Nuevo envío**: "Añadir detalle de MERCANCÍA o anotaciones de envío" a ancho completo, pegado a metros/peso. Caja de opciones de fecha (ETA fija) **rediseñada** en tarjetas claras (fecha fija día siguiente vs ventana 1-3 días, recomendada en verde). Badge **"Pendiente de pago"** de la columna Envío en **rojo texto blanco**. Aviso de **suspensión por cancelaciones** en el modal de confirmar: **línea roja + "Ampliar para ver más"** (details) con el texto legal completo.
+
+**DECISIÓN de diseño (en TODO.md) — RESERVA de carga**: modelo simple elegido por el usuario → **una sola URL por envío sin tokens** (`?e=GX...`), bloqueo **al abrir el enlace** (el servidor registra hora de entrada + caducidad 3 min), **anónimo hasta el CIF** (asocia al aceptar, con revalidación atómica), se **libera sola** si no acepta. Backend = dueño del bloqueo/tiempo; contador del front solo estético. Contrapartida aceptada: URL adivinable (ampliable con token si hiciera falta).
+
+**Pendientes**: backend de la reserva (2-3 llamadas: reservar al abrir / estado / aceptar); resto en TODO.md.
+
 ### 2026-07-17 — Claude Code web (nube)
 
 > **Sesión nocturna (16-17 jul): CMR oficial + firma digital con validación europea + pulido de la comparativa + escala de texto + upgrade a Vercel Pro.** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `4e00e06`.
