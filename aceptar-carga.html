@@ -130,6 +130,24 @@
     .ok-screen { display: none; text-align: center; padding: 1.6rem 0.6rem; }
     .ok-screen.show { display: block; }
     .ok-ico { width: 74px; height: 74px; border-radius: 50%; background: rgba(34,165,90,0.14); color: var(--green); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.9rem; }
+    /* Formulario oculto hasta confirmar disponibilidad */
+    #formScreen { display: none; }
+    #formScreen.show { display: block; }
+    /* Pantalla "comprobando disponibilidad" (spinner grande) */
+    .check-screen { display: none; text-align: center; padding: 2.4rem 0.6rem; }
+    .check-screen.show { display: block; }
+    .spin-lg { width: 48px; height: 48px; border-width: 4px; margin: 0 auto 1.1rem; }
+    /* Pantallas "ya no disponible" / "tiempo agotado" */
+    .stop-screen { display: none; text-align: center; padding: 1.6rem 0.6rem; }
+    .stop-screen.show { display: block; }
+    .stop-ico { width: 74px; height: 74px; border-radius: 50%; background: rgba(220,53,53,0.12); color: var(--red); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.9rem; font-size: 2rem; font-weight: 900; }
+    .stop-ico.amber { background: rgba(245,166,35,0.15); color: #b8860b; }
+    .stop-screen dl.viaje { text-align: left; max-width: 420px; margin: 1rem auto 0; }
+    /* Banner de reserva temporal (contador de 2 min) */
+    .reserva-banner { margin: 0 0 1rem; background: rgba(51,0,204,0.06); border: 1.5px solid rgba(51,0,204,0.28); border-radius: 12px; padding: 0.7rem 0.85rem; font-size: 0.84rem; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 0.5rem; line-height: 1.4; }
+    .reserva-banner .rb-timer { font-size: 1.05rem; font-weight: 900; color: var(--purple); font-variant-numeric: tabular-nums; }
+    .reserva-banner.urgent { background: #fdecec; border-color: #f5b5b5; color: #b42318; }
+    .reserva-banner.urgent .rb-timer { color: var(--red); }
     .foot { margin-top: 1rem; font-size: 0.75rem; color: var(--gray-500); text-align: center; }
     .foot a { color: var(--purple); font-weight: 700; text-decoration: none; }
 </style>
@@ -137,9 +155,46 @@
 <body>
     <div class="card">
         <div class="brand"><img src="images/2.png" alt="Dynamo"></div>
+
+        <!-- 0) COMPROBANDO DISPONIBILIDAD: al abrir el enlace se consulta al
+             backend si la carga sigue libre (mock ~1,8 s). -->
+        <div class="check-screen" id="checkScreen">
+            <div class="spin spin-lg"></div>
+            <h1>Comprobando disponibilidad…</h1>
+            <p class="sub">Estamos verificando si la carga <strong id="chk-ref">—</strong> sigue disponible.</p>
+        </div>
+
+        <!-- 0-bis) YA NO DISPONIBLE: la aceptó otro transportista. Datos del que
+             la cogió ENMASCARADOS (CIF 5+*, tel sin últimos 3, nombre 3+*). -->
+        <div class="stop-screen" id="takenScreen">
+            <div class="stop-ico">✕</div>
+            <h1>Esta carga ya no está disponible</h1>
+            <p class="sub">La aceptó otro transportista el <strong id="tk-fecha">—</strong>.<br>Si te interesan cargas como esta, avísanos y te tenemos en cuenta para las próximas.</p>
+            <dl class="viaje">
+                <dt>Aceptada por</dt><dd id="tk-nom">—</dd>
+                <dt>CIF / DNI</dt><dd id="tk-cif">—</dd>
+                <dt>Teléfono</dt><dd id="tk-tel">—</dd>
+            </dl>
+            <p class="foot">¿Dudas? <a href="tel:+34955225945">+34 955 225 945</a> · <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a></p>
+        </div>
+
+        <!-- 0-ter) TIEMPO AGOTADO: pasaron los 2 min de reserva y la carga se
+             ha liberado; hay que volver a comprobar disponibilidad. -->
+        <div class="stop-screen" id="expiredScreen">
+            <div class="stop-ico amber">⏳</div>
+            <h1>Se ha agotado el tiempo de reserva</h1>
+            <p class="sub">No se completó la aceptación en <strong>2 minutos</strong>, así que la carga ha vuelto a quedar libre. Vuelve a comprobar si sigue disponible.</p>
+            <button type="button" class="btn" onclick="location.reload()">Volver a comprobar disponibilidad</button>
+        </div>
+
         <div id="formScreen">
             <h1>Aceptar carga</h1>
             <p class="sub">Oferta de <strong>Dynamo Operador de Transportes</strong> · <strong style="color:var(--green-dark);">PAGO CONTADO</strong></p>
+
+            <!-- Reserva temporal: contador de 2 min mientras rellena los datos. -->
+            <div class="reserva-banner" id="reservaBanner">
+                <span>⏳ Reserva temporal: te quedan <span class="rb-timer" id="reservaTimer">2:00</span> para completar y aceptar antes de que la carga se libere.</span>
+            </div>
 
             <dl class="viaje" id="viajeBox"></dl>
 
@@ -359,7 +414,7 @@
         <div class="ok-screen" id="okScreen">
             <div class="ok-ico"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
             <h1>¡Carga aceptada!</h1>
-            <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br>El equipo de Dynamo te confirmará la asignación en breve.<br><span id="ok-alta" hidden>🆕 Te damos de <strong>alta como transportista de Dynamo</strong> (pendiente de validación).<br></span><span id="ok-pronto" hidden>✅ Has elegido <strong>pronto pago a 5 días tras factura (−3%, mín. 20&nbsp;€)</strong>.</span></p>
+            <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br>El equipo de Dynamo te confirmará la asignación en breve.<br><span id="ok-alta" hidden>🆕 Te damos de <strong>alta como transportista de Dynamo</strong> (pendiente de validación).<br></span><span id="ok-pronto" hidden>✅ Has elegido <strong>pronto pago a 5 días tras factura (−3,5%, mín. 25&nbsp;€)</strong>.</span></p>
             <dl class="viaje" id="ok-resumen" style="text-align:left;"></dl>
             <div class="pago-contado" id="ok-orden" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;">📧 En unos minutos recibirás la <strong>orden de carga</strong> por email en <strong id="ok-email" style="color:var(--purple);">—</strong>.</div>
             <p class="foot">¿Dudas? <a href="tel:+34955225945">+34 955 225 945</a> · <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a></p>
@@ -378,6 +433,7 @@
             cif: 'B58830217', empresa: 'Transportes Iberia Express S.L.', ciudad: 'Madrid', flota: '8 camiones', seguro: 'CMR 150.000 €', bolsa: 'Wtransnet', tel: '+34 916 402 118', email: 'trafico@iberiaexpress-trans.es',
             matriculas: ['4521 JKL', '7890 MNP', '1234 ABC'], remolques: ['R2345 DEF', 'R6677 GHJ'],
             pares: { '4521 JKL': 'R2345 DEF', '7890 MNP': 'R6677 GHJ', '1234 ABC': 'R2345 DEF' },
+            paresChofer: { '4521 JKL': 0, '7890 MNP': 1, '1234 ABC': 0 },
             conductores: [
                 { nombre: 'Antonio Gómez', dni: '50123456A', tel: '+34 611 223 344' },
                 { nombre: 'Manuel Ortega', dni: '51987654B', tel: '+34 622 334 455' }
@@ -387,6 +443,7 @@
             cif: 'B72153042', empresa: 'LogiSur Cargo S.L.', ciudad: 'Sevilla', flota: '12 camiones', seguro: 'CMR 200.000 €', bolsa: 'Timocom', tel: '+34 954 771 530', email: 'operaciones@logisurcargo.com',
             matriculas: ['3344 SUR', '5566 CDZ'], remolques: ['R8899 SEV'],
             pares: { '3344 SUR': 'R8899 SEV', '5566 CDZ': '' },
+            paresChofer: { '3344 SUR': 0, '5566 CDZ': 0 },
             conductores: [
                 { nombre: 'Francisco Rus', dni: '28765432C', tel: '+34 633 445 566' }
             ]
@@ -399,6 +456,7 @@
         {
             cif: '29876543P', empresa: 'José Martín Ruiz · autónomo', ciudad: 'Córdoba', flota: '1 camión', seguro: 'CMR 60.000 €', bolsa: '—', tel: '+34 638 220 471', email: 'jmartin.transportes@gmail.com',
             matriculas: ['9080 COR'], remolques: ['R4040 COR'], pares: { '9080 COR': 'R4040 COR' },
+            paresChofer: { '9080 COR': 0 },
             conductores: [
                 { nombre: 'José Martín Ruiz', dni: '29876543P', tel: '+34 638 220 471' }
             ]
@@ -413,6 +471,10 @@
             return ch;
         }).join('');
     }
+    // Enmascara datos del transportista que ya cogió la carga (pantalla "ya no
+    // disponible"): CIF = 5 primeros + *****; Nombre = 3 primeros + *****.
+    function maskCifFront(c) { c = String(c || ''); return c ? c.slice(0, 5) + '*****' : '—'; }
+    function maskNombre(n) { n = String(n || ''); return n ? n.slice(0, 3) + '*****' : '—'; }
     // CP español (2 primeros dígitos) → provincia, para autorrellenar Provincia
     // y País al teclear el CP en el alta.
     var CP_PROV_ES = {
@@ -543,8 +605,8 @@
         box.hidden = false;
         document.getElementById('pc-total').textContent = fmtEur(info.total) + ' €';
         var pd = fechaPago60();
-        document.getElementById('pc-alt').innerHTML = 'Sin pronto pago: ' + escH(fmtEur(info.base)) + ' € <span class="pc-red">a 60 días</span>' +
-            (pd ? ' (se pagaría el <strong>' + escH(pd) + '</strong>, si la factura coincide con la fecha de envío)' : '') + '.';
+        document.getElementById('pc-alt').innerHTML = 'Sin pronto pago: <span class="pc-red">' + escH(fmtEur(info.base)) + ' € a 60 días</span>' +
+            (pd ? ' (se pagaría el <span class="pc-red">' + escH(pd) + '</span>, si la factura coincide con la fecha de envío)' : '') + '.';
         box.classList.toggle('off', !(chk && chk.checked));
     }
 
@@ -618,6 +680,10 @@
         document.getElementById('empresaResumen').classList.add('show');
         // Revelar el resto del formulario y montar los desplegables.
         montarDesplegables();
+        // Prefill con lo ÚLTIMO registrado de este transportista (matrícula
+        // tractora + remolque enganchado y conductor con su DNI y teléfono). Si
+        // no hay historial, se quedan en blanco. Editable siempre.
+        prefillHistorial(hit);
         var rest = document.getElementById('restForm');
         rest.classList.add('show');
         rest.scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -806,6 +872,55 @@
         inp.addEventListener('input', function () { refresh(false); });
         inp.addEventListener('blur', function () { setTimeout(function () { acClose(list); }, 150); });
     }
+    // Vacía los campos de vehículo y conductor (al cambiar de transportista o
+    // en un alta nueva) y limpia sus estados rojo/verde.
+    function limpiarVehiculoConductor() {
+        ['f-tractora', 'f-remolque', 'f-chofer', 'f-dnichofer', 'f-tfno'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) { el.value = ''; el.classList.remove('err', 'valid'); }
+        });
+        var pref = document.getElementById('f-pref'); if (pref) pref.value = '+34';
+        ['new-tractora', 'new-remolque', 'new-chofer'].forEach(function (id) {
+            var n = document.getElementById(id); if (n) n.classList.remove('show');
+        });
+    }
+    // Rellena los campos del conductor con un objeto {nombre, dni, tel},
+    // separando el prefijo del teléfono. Reutilizado por el prefill, el
+    // autocompletado de conductor y el autorrelleno al elegir tractora.
+    function fillConductor(c) {
+        if (!c) return;
+        var ch = document.getElementById('f-chofer'), dn = document.getElementById('f-dnichofer');
+        ch.value = c.nombre || ''; dn.value = c.dni || '';
+        var pref = document.getElementById('f-pref'), tf = document.getElementById('f-tfno');
+        var m = String(c.tel || '').match(/^(\+\d{1,3})\s*(.*)$/);
+        if (m && pref) {
+            if (Array.prototype.some.call(pref.options, function (o) { return o.value === m[1]; })) pref.value = m[1];
+            tf.value = m[2];
+        } else { tf.value = c.tel || ''; }
+        var nn = document.getElementById('new-chofer'); if (nn) nn.classList.remove('show');
+        refreshFieldState(ch); refreshFieldState(dn); refreshFieldState(tf);
+    }
+    // Conductor asociado a una tractora del historial (último que la condujo).
+    function choferDeTractora(hit, matricula) {
+        if (!hit || !hit.paresChofer || !hit.conductores) return null;
+        var i = hit.paresChofer[matricula];
+        return (i != null && hit.conductores[i]) ? hit.conductores[i] : null;
+    }
+    // Prefill con la última tractora/remolque y el último conductor del
+    // transportista (índice 0 = lo más reciente). Sin historial → en blanco.
+    function prefillHistorial(hit) {
+        limpiarVehiculoConductor();
+        if (!hit) return;
+        var tr = document.getElementById('f-tractora'), rem = document.getElementById('f-remolque');
+        if (hit.matriculas && hit.matriculas.length) {
+            var mat = hit.matriculas[0];
+            tr.value = mat;
+            var par = (hit.pares && hit.pares[mat]) || (hit.remolques && hit.remolques[0]) || '';
+            if (par && !rem.disabled) rem.value = par;
+        }
+        // Conductor: el de la tractora prellenada; si no, el más reciente.
+        fillConductor((tr.value && choferDeTractora(hit, tr.value)) || (hit.conductores && hit.conductores[0]) || null);
+    }
     function selEmpresa() { return window._empresaSel || null; }
     acBind({
         inp: 'f-tractora', list: 'ac-tractora', note: 'new-tractora',
@@ -814,9 +929,9 @@
         pick: function (m) {
             var tr = document.getElementById('f-tractora');
             tr.value = m; refreshFieldState(tr);
+            var e = selEmpresa(), rem = document.getElementById('f-remolque');
             // 99% de las veces la tractora arrastra el MISMO remolque del último
             // envío: lo autorrellenamos (editable/borrable por si hoy lleva otro).
-            var e = selEmpresa(), rem = document.getElementById('f-remolque');
             if (e && e.pares && !rem.disabled) {
                 var par = e.pares[m];
                 if (par) {
@@ -825,6 +940,15 @@
                     rem.classList.add('ac-flash');
                     setTimeout(function () { rem.classList.remove('ac-flash'); }, 900);
                 }
+            }
+            // Igual con el conductor: el último que llevó esa tractora (editable).
+            var c = choferDeTractora(e, m);
+            if (c) {
+                fillConductor(c);
+                ['f-chofer', 'f-dnichofer', 'f-tfno'].forEach(function (id) {
+                    var el = document.getElementById(id); if (!el) return;
+                    el.classList.add('ac-flash'); setTimeout(function () { el.classList.remove('ac-flash'); }, 900);
+                });
             }
         }
     });
@@ -839,22 +963,12 @@
         source: function () { var e = selEmpresa(); return e ? e.conductores : []; },
         label: function (c) { return c.nombre; },
         sub: function (c) { return c.dni + ' · ' + c.tel; },
-        pick: function (c) {
-            var ch = document.getElementById('f-chofer'), dn = document.getElementById('f-dnichofer');
-            ch.value = c.nombre; dn.value = c.dni;
-            // Teléfono: separar prefijo (+34…) del número para rellenar ambos.
-            var pref = document.getElementById('f-pref'), tf = document.getElementById('f-tfno');
-            var m = String(c.tel || '').match(/^(\+\d{1,3})\s*(.*)$/);
-            if (m && pref) {
-                var opt = Array.prototype.some.call(pref.options, function (o) { return o.value === m[1]; });
-                if (opt) pref.value = m[1];
-                tf.value = m[2];
-            } else { tf.value = c.tel || ''; }
-            refreshFieldState(ch); refreshFieldState(dn); refreshFieldState(tf);
-        }
+        pick: function (c) { fillConductor(c); }
     });
 
     function aceptar() {
+        // Si ya venció la reserva de 2 min, la carga se liberó: no se registra.
+        if (window._reservaExpirada) { expirarReserva(); return; }
         if (!window._empresaSel && !window._altaMode) { document.getElementById('f-buscar-id').classList.add('err'); document.getElementById('f-buscar-id').scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
         // Empresa YA existente: confirmar identidad con los 3 últimos dígitos
         // del teléfono de su ficha.
@@ -925,10 +1039,72 @@
         // el que tecleó en el alta.
         var email = (window._empresaSel && window._empresaSel.email) || okVal('alta-email') || 'tu email';
         document.getElementById('ok-email').textContent = email;
+        if (window._reservaTimer) clearInterval(window._reservaTimer); // aceptada: parar contador
         document.getElementById('formScreen').style.display = 'none';
         document.getElementById('okScreen').classList.add('show');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+    // ================= DISPONIBILIDAD + RESERVA (2 min) =================
+    // Al abrir el enlace: pantalla "comprobando disponibilidad" ~1,8 s. Luego:
+    //  · estado=tomada  → pantalla "ya no disponible" con datos enmascarados.
+    //  · disponible     → formulario + contador de reserva (por defecto 120 s).
+    // Si el contador llega a 0 sin aceptar, la carga se libera (hay que recargar).
+    function mostrarPantalla(id) {
+        ['checkScreen', 'takenScreen', 'expiredScreen'].forEach(function (s) {
+            var el = document.getElementById(s); if (el) el.classList.toggle('show', s === id);
+        });
+        var fs = document.getElementById('formScreen');
+        fs.classList.toggle('show', id === 'formScreen');
+        if (id === 'formScreen') fs.style.display = '';
+    }
+    function expirarReserva() {
+        window._reservaExpirada = true;
+        if (window._reservaTimer) clearInterval(window._reservaTimer);
+        mostrarPantalla('expiredScreen');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function iniciarReserva(segundos) {
+        var el = document.getElementById('reservaTimer'), banner = document.getElementById('reservaBanner');
+        var quedan = segundos;
+        function pinta() {
+            var mm = Math.floor(quedan / 60), ss = quedan % 60;
+            el.textContent = mm + ':' + ('0' + ss).slice(-2);
+            banner.classList.toggle('urgent', quedan <= 30);
+            if (quedan <= 0) { clearInterval(window._reservaTimer); expirarReserva(); return; }
+            quedan--;
+        }
+        pinta();
+        window._reservaTimer = setInterval(pinta, 1000);
+    }
+    function mostrarTomada() {
+        var nom = q('tnom', 'Transportes Iberia Express S.L.');
+        var cif = q('tcif', 'B58830217');
+        var tel = q('ttel', '+34 916 402 118');
+        var fecha = q('tfecha', '');
+        if (!fecha) {
+            var d = new Date(); d.setMinutes(d.getMinutes() - 7);
+            var dd = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+            fecha = dd[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear() +
+                ' a las ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+        }
+        document.getElementById('tk-fecha').textContent = fecha;
+        document.getElementById('tk-nom').textContent = maskNombre(nom);
+        document.getElementById('tk-cif').textContent = maskCifFront(cif);
+        document.getElementById('tk-tel').textContent = maskTel(tel);
+        mostrarPantalla('takenScreen');
+    }
+    (function initDisponibilidad() {
+        document.getElementById('chk-ref').textContent = q('envio', '#GX684870 (demo)');
+        mostrarPantalla('checkScreen');
+        // Consulta al backend (mock ~1,8 s). estado=tomada fuerza "no disponible".
+        setTimeout(function () {
+            if (q('estado', 'libre') === 'tomada') { mostrarTomada(); return; }
+            mostrarPantalla('formScreen');
+            var seg = parseInt(q('t', '120'), 10); if (isNaN(seg) || seg < 5) seg = 120;
+            iniciarReserva(seg);
+        }, 1800);
+    })();
 </script>
 </body>
 </html>
