@@ -32,12 +32,16 @@
     .viaje dt:first-child { margin-top: 0; }
     .viaje dd { font-size: 0.92rem; font-weight: 700; }
     .viaje .v-sub { display: block; font-size: 0.74rem; font-weight: 600; color: var(--gray-500); margin-top: 2px; }
-    /* Resumen de "carga aceptada": texto MÁS GRANDE y legible (lo lee el chófer
-       en el móvil durante la operativa). */
-    #ok-resumen { padding: 1rem 1.1rem; }
-    #ok-resumen dt { font-size: 0.82rem; margin-top: 0.85rem; color: var(--gray-600); }
-    #ok-resumen dd { font-size: 1.08rem; font-weight: 800; color: var(--navy); }
-    #ok-resumen .v-sub { font-size: 0.92rem; font-weight: 600; color: var(--gray-600); margin-top: 3px; line-height: 1.4; }
+    /* Resumen de "carga aceptada": legible en el móvil del chófer. Cada bloque
+       separado por una línea, etiqueta morada en minúsculas y valor destacado. */
+    #ok-resumen { padding: 0.2rem 1.1rem 0.7rem; background: #fff; }
+    #ok-resumen dt {
+        font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+        color: var(--purple); margin-top: 0; padding-top: 0.95rem; border-top: 1px solid var(--gray-200);
+    }
+    #ok-resumen dt:first-child { border-top: none; padding-top: 0.55rem; }
+    #ok-resumen dd { font-size: 1.05rem; font-weight: 800; color: var(--navy); margin: 0.22rem 0 0.15rem; line-height: 1.3; }
+    #ok-resumen .v-sub { display: block; font-size: 0.9rem; font-weight: 600; color: var(--gray-600); margin-top: 4px; line-height: 1.45; }
     .v-details { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem 1rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--gray-300); }
     .v-details .vd-k { font-size: 0.68rem; font-weight: 800; color: var(--gray-500); }
     .v-details .vd-v { font-size: 0.9rem; font-weight: 700; color: var(--navy); }
