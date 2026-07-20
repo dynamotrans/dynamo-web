@@ -61,6 +61,8 @@
     .of-pt-tag { font-size: 0.95rem; font-weight: 700; }
     .of-pt-rec .of-pt-tag { color: var(--orange); }
     .of-pt-ent .of-pt-tag { color: var(--green); }
+    /* Tipo de lugar del punto (Almacén, Obra, Zona urbana…) entre paréntesis. */
+    .of-pt-tipo { font-size: 0.88rem; font-weight: 600; color: var(--gray-500); }
     .of-pt-fecha { font-size: 0.98rem; font-weight: 800; color: var(--navy); margin-top: 0.4rem; line-height: 1.3; }
     .of-pt-hor { font-size: 0.88rem; font-weight: 600; color: var(--gray-500); margin-top: 0.15rem; }
     /* Dirección = CP, localidad, provincia y país (sin empresa: discreción). */
@@ -608,6 +610,8 @@
     // (los enlaces llegan como 'CP, localidad, provincia, país': la primera
     // coma tras el CP se convierte en guion).
     function fmtDir(s) { return String(s || '').replace(/^(\d{4,5})\s*,\s*/, '$1 - '); }
+    // Tipo de lugar compacto: 'Almacén / Nave' → 'Almacén' · 'Finca / Agrícola' → 'Finca'.
+    function fmtTipoLugar(s) { return String(s || '').split('/')[0].trim(); }
     // Franjas horarias (formato 24 h).
     var FRANJAS = ['07:00 - 09:00', '09:00 - 11:00', '11:00 - 13:00', '13:00 - 15:00', '15:00 - 17:00', '17:00 - 19:00'];
     // Base de transportistas DEMO para el buscador por CIF/DNI (en producción,
@@ -712,11 +716,14 @@
         // mezcla). o2/o3 = recogidas ADICIONALES tras el origen; d2/d3 = entregas
         // INTERMEDIAS antes del destino final (el destino es la ÚLTIMA entrega).
         // Sus horarios: ho2/ho3 y hd2/hd3.
-        var recogidas = [{ loc: orig, hor: ho }];
-        ['2', '3'].forEach(function (n) { var v = q('o' + n, ''); if (v) recogidas.push({ loc: v, hor: q('ho' + n, '') }); });
+        // Tipo de lugar de cada punto (Almacén, Obra, Zona urbana, Evento,
+        // Finca): ot/dt (y ot2/ot3, dt2/dt3 para las paradas). Se muestra entre
+        // paréntesis junto a Recogida/Entrega — al transportista le importa.
+        var recogidas = [{ loc: orig, hor: ho, tipo: q('ot', demo ? 'Almacén' : '') }];
+        ['2', '3'].forEach(function (n) { var v = q('o' + n, ''); if (v) recogidas.push({ loc: v, hor: q('ho' + n, ''), tipo: q('ot' + n, '') }); });
         var entregas = [];
-        ['2', '3'].forEach(function (n) { var v = q('d' + n, ''); if (v) entregas.push({ loc: v, hor: q('hd' + n, '') }); });
-        entregas.push({ loc: dest, hor: hd });
+        ['2', '3'].forEach(function (n) { var v = q('d' + n, ''); if (v) entregas.push({ loc: v, hor: q('hd' + n, ''), tipo: q('dt' + n, '') }); });
+        entregas.push({ loc: dest, hor: hd, tipo: q('dt', demo ? 'Obra' : '') });
         var merc  = q('m', 'Paletizado');
         var ml    = q('ml', '6 m'), pal = q('pal', '6 europalets'), peso = q('peso', '8.000 kg');
         var tc    = q('tc', 'Lateral y techo');
@@ -757,6 +764,7 @@
             return '<div class="of-pt ' + cls + '">' +
                 '<div class="of-pt-head"><span class="of-pt-num">' + num + '</span>' +
                     '<span class="of-pt-tag">' + tag + '</span>' +
+                    (pt.tipo ? '<span class="of-pt-tipo">(' + escH(fmtTipoLugar(pt.tipo)) + ')</span>' : '') +
                 '</div>' +
                 (fechaTxt ? '<div class="of-pt-fecha"' + (fechaTxt === fecha ? ' id="v-fecha"' : '') + '>' + escH(fechaTxt) + '</div>' : '') +
                 (pt.hor ? '<div class="of-pt-hor">(' + escH(pt.hor) + ')</div>' : '') +
@@ -1362,6 +1370,7 @@
             return '<div class="of-pt ' + cls + '">' +
                 '<div class="of-pt-head"><span class="of-pt-num">' + nOrd + '</span>' +
                     '<span class="of-pt-tag">' + tag + '</span>' +
+                    (pt.tipo ? '<span class="of-pt-tipo">(' + escH(fmtTipoLugar(pt.tipo)) + ')</span>' : '') +
                 '</div>' +
                 (fechaLn ? '<div class="of-pt-fecha">' + escH(fechaLn) + '</div>' : '') +
                 (pt.hor ? '<div class="of-pt-hor">(' + escH(pt.hor) + ')</div>' : '') +

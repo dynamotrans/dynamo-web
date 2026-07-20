@@ -11353,14 +11353,19 @@
         // localidad, provincia, país) y horarios de almacén — NUNCA el nombre
         // de la empresa de los puntos (ese va solo en la orden de carga).
         function horDe(key) { var s = (typeof siteDe === 'function' && key) ? siteDe(key) : null; return (s && s.horario) || ''; }
-        function ptParams(arr, pfx, hfx) {
+        // Tipo de lugar del punto (Almacén, Obra, Zona urbana…): el de la ficha
+        // del sitio o el elegido al crear el envío. Al transportista le importa.
+        function tipoDe(key, fb) { var s = (typeof siteDe === 'function' && key) ? siteDe(key) : null; return (s && s.tipoLugar) || fb || ''; }
+        function ptParams(arr, pfx, hfx, tfx) {
             return arr.map(function (p, i) {
-                var n = i + 2, h = horDe(p.site);
+                var n = i + 2, h = horDe(p.site), t = tipoDe(p.site, p.tipoLugar);
                 return '&' + pfx + n + '=' + encodeURIComponent(p.dir) +
-                    (h ? '&' + hfx + n + '=' + encodeURIComponent(h) : '');
+                    (h ? '&' + hfx + n + '=' + encodeURIComponent(h) : '') +
+                    (t ? '&' + tfx + n + '=' + encodeURIComponent(t) : '');
             }).join('');
         }
         var hoTxt = horDe(c.origenSite), hdTxt = horDe(c.destinoSite);
+        var otTxt = tipoDe(c.origenSite, c.origTipo), dtTxt = tipoDe(c.destinoSite, c.destTipo);
         // Días REALES de carga para la página de aceptación (param dias, formato
         // 'Mié 22/07'): fecha asignada o fija → 1 día; ventana → cada laborable.
         var diasList = [];
@@ -11381,10 +11386,12 @@
             '?envio=' + encodeURIComponent(c.ref) +
             '&o=' + encodeURIComponent(oTxt) +
             (hoTxt ? '&ho=' + encodeURIComponent(hoTxt) : '') +
-            ptParams(pRec, 'o', 'ho') +
+            (otTxt ? '&ot=' + encodeURIComponent(otTxt) : '') +
+            ptParams(pRec, 'o', 'ho', 'ot') +
             '&d=' + encodeURIComponent(dTxt) +
             (hdTxt ? '&hd=' + encodeURIComponent(hdTxt) : '') +
-            ptParams(pEnt, 'd', 'hd') +
+            (dtTxt ? '&dt=' + encodeURIComponent(dtTxt) : '') +
+            ptParams(pEnt, 'd', 'hd', 'dt') +
             (diasList.length ? '&dias=' + encodeURIComponent(diasList.join(',')) : '') +
             '&m=' + encodeURIComponent(mTxt) +
             (dmTxt ? '&dm=' + encodeURIComponent(dmTxt) : '') +
@@ -11395,11 +11402,12 @@
         // intermedias van antes del destino final.
         var nRec = 1 + pRec.length, multiPts = pRec.length + pEnt.length > 0;
         function nOrd(n) { return multiPts ? ' ' + n : ''; }
+        function tipoTag(t) { return t ? ' (' + String(t).split('/')[0].trim() + ')' : ''; }
         var rutaMsg =
-            'Recogida' + nOrd(1) + ': ' + oTxt + '\n' +
-            pRec.map(function (p, i) { return 'Recogida' + nOrd(i + 2) + ': ' + p.dir + '\n'; }).join('') +
-            pEnt.map(function (p, i) { return 'Entrega' + nOrd(nRec + i + 1) + ': ' + p.dir + '\n'; }).join('') +
-            'Entrega' + nOrd(nRec + pEnt.length + 1) + ': ' + dTxt + '\n';
+            'Recogida' + nOrd(1) + tipoTag(otTxt) + ': ' + oTxt + '\n' +
+            pRec.map(function (p, i) { return 'Recogida' + nOrd(i + 2) + tipoTag(tipoDe(p.site, p.tipoLugar)) + ': ' + p.dir + '\n'; }).join('') +
+            pEnt.map(function (p, i) { return 'Entrega' + nOrd(nRec + i + 1) + tipoTag(tipoDe(p.site, p.tipoLugar)) + ': ' + p.dir + '\n'; }).join('') +
+            'Entrega' + nOrd(nRec + pEnt.length + 1) + tipoTag(dtTxt) + ': ' + dTxt + '\n';
         var msg = 'DYNAMO — OFERTA DE CARGA (PAGO CONTADO)\n\n' +
             'Envío ' + c.ref + '\n' +
             rutaMsg +
