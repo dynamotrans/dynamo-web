@@ -32,16 +32,14 @@
     .viaje dt:first-child { margin-top: 0; }
     .viaje dd { font-size: 0.92rem; font-weight: 700; }
     .viaje .v-sub { display: block; font-size: 0.74rem; font-weight: 600; color: var(--gray-500); margin-top: 2px; }
-    /* Resumen de "carga aceptada": legible en el móvil del chófer. Cada bloque
-       separado por una línea, etiqueta morada en minúsculas y valor destacado. */
-    #ok-resumen { padding: 0.2rem 1.1rem 0.7rem; background: #fff; }
-    #ok-resumen dt {
-        font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
-        color: var(--purple); margin-top: 0; padding-top: 0.95rem; border-top: 1px solid var(--gray-200);
-    }
-    #ok-resumen dt:first-child { border-top: none; padding-top: 0.55rem; }
-    #ok-resumen dd { font-size: 1.05rem; font-weight: 800; color: var(--navy); margin: 0.22rem 0 0.15rem; line-height: 1.3; }
-    #ok-resumen .v-sub { display: block; font-size: 0.9rem; font-weight: 600; color: var(--gray-600); margin-top: 4px; line-height: 1.45; }
+    /* Resumen de "carga aceptada": MISMAS tarjetas que la oferta (píldora de
+       envío, ruta con circulito numerado, mercancía con chips…) para que toda
+       la página sea homogénea y legible en el móvil del chófer. */
+    #ok-resumen { text-align: left; margin-top: 0.3rem; }
+    #ok-resumen .of-merc { margin-top: 0.7rem; }
+    /* Línea de horario/fecha ESTIMADOS que eligió el transportista. */
+    .of-pt-est { font-size: 0.88rem; font-weight: 700; color: var(--navy); margin-top: 0.35rem; }
+    .of-pt-est b { font-weight: 900; }
     .v-details { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem 1rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--gray-300); }
     .v-details .vd-k { font-size: 0.68rem; font-weight: 800; color: var(--gray-500); }
     .v-details .vd-v { font-size: 0.9rem; font-weight: 700; color: var(--navy); }
@@ -579,7 +577,7 @@
             <h1>¡Carga aceptada!</h1>
             <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br>El equipo de Dynamo te confirmará la asignación en breve.<br><span id="ok-alta" hidden>🆕 Te damos de <strong>alta como transportista de Dynamo</strong> (pendiente de validación).</span></p>
             <div class="pago-contado" id="ok-orden-top" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;">📧 En unos minutos recibirás la <strong>orden de carga</strong> por email en <strong id="ok-email-top" style="color:var(--purple);">—</strong>.</div>
-            <dl class="viaje" id="ok-resumen" style="text-align:left;"></dl>
+            <div id="ok-resumen"></div>
             <div class="pago-contado" id="ok-orden" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;">📧 En unos minutos recibirás la <strong>orden de carga</strong> por email en <strong id="ok-email" style="color:var(--purple);">—</strong>.</div>
             <button type="button" class="dudas-toggle" aria-expanded="false" onclick="toggleDudas(this)">¿Dudas? <span class="dt-chev" aria-hidden="true">▾</span></button>
             <div class="contact-btns" hidden>
@@ -1318,65 +1316,77 @@
         // una agrupa su dirección + horario del almacén + fecha y hora estimada.
         function okTxt(id) { return (document.getElementById(id) || {}).textContent || ''; }
         function okVal(id) { var e = document.getElementById(id); return e ? e.value : ''; }
-        // dd con línea principal + sub-líneas pequeñas (omite las vacías).
-        function ddSub(main, subs) {
-            return escH(main) + (subs || []).filter(Boolean).map(function (s) {
-                return '<span class="v-sub">' + escH(s) + '</span>';
-            }).join('');
-        }
         // Datos de la oferta (objeto único; no se relee el DOM de las tarjetas).
         var O = window._oferta || {};
         var entFecha = okVal('f-fechaentrega'), entHora = okVal('f-horaentrega');
         // Datos del transportista (ficha existente o alta), vehículo y conductor.
         var empNom = window._empresaSel ? window._empresaSel.empresa : (okVal('alta-empresa') || '—');
         var empCif = window._empresaSel ? window._empresaSel.cif : (okVal('alta-cif') || '—');
-        var mercDet = (O.detalles || []).map(function (r) { return r[0] + ': ' + r[1]; });
-        var rows = [['Envío', escH(O.envio || okTxt('v-ref'))]];
-        // Ruta completa: cada recogida y entrega con su horario de almacén. La
-        // fecha/hora de carga van en la 1ª recogida; la entrega estimada, en la
-        // última entrega (el destino final).
+        // ---- Resumen con las MISMAS tarjetas que la oferta (homogéneo) ----
+        function chip(k, v) {
+            return v ? '<span class="of-chip"><span class="of-chip-k">' + escH(k) + '</span><span class="of-chip-v">' + escH(v) + '</span></span>' : '';
+        }
+        // Tarjeta genérica con icono + etiqueta + valor principal + chips.
+        function cardSec(ico, lbl, main, chipsHtml, extra) {
+            return '<div class="of-merc">' +
+                '<div class="of-merc-head"><span class="of-merc-ico">' + ico + '</span><div>' +
+                    '<div class="of-merc-lbl">' + escH(lbl) + '</div>' +
+                    '<div class="of-merc-tipo">' + escH(main || '—') + '</div></div></div>' +
+                (chipsHtml ? '<div class="of-chips">' + chipsHtml + '</div>' : '') +
+                (extra || '') + '</div>';
+        }
         var recs = O.recogidas || [], ents = O.entregas || [];
-        // Con paradas (más de 2 puntos), las etiquetas llevan el número de orden
-        // del recorrido (Recogida 1, Recogida 2, Entrega 3…), como las tarjetas.
-        var multiPts = recs.length + ents.length > 2;
-        recs.forEach(function (r, i) {
-            rows.push(['Recogida' + (multiPts ? ' ' + (i + 1) : ''), ddSub(r.emp || r.loc, [
-                r.emp ? r.loc : '',
-                i === 0 && okVal('f-fechacarga') ? 'Fecha de carga: ' + okVal('f-fechacarga') : '',
-                r.hor ? 'Horario almacén: ' + r.hor : '',
-                i === 0 && okVal('f-horacarga') ? 'Horario estimado de recogida: ' + okVal('f-horacarga') : ''
-            ])]);
-        });
-        ents.forEach(function (e, i) {
-            var ult = i === ents.length - 1;
-            rows.push(['Entrega' + (multiPts ? ' ' + (recs.length + i + 1) : ''), ddSub(e.emp || e.loc, [
-                e.emp ? e.loc : '',
-                ult && entFecha ? 'Fecha estimada de entrega: ' + entFecha : '',
-                e.hor ? 'Horario almacén: ' + e.hor : '',
-                ult && entHora ? 'Horario estimado de entrega: ' + entHora : ''
-            ])]);
-        });
-        rows.push(
-            ['Mercancía', ddSub(O.merc || '', [
-                mercDet.length ? mercDet.join(' · ') : '',
-                O.dm ? 'Anotaciones: ' + O.dm : ''
-            ])],
-            ['Transportista', ddSub(empNom, ['CIF / DNI: ' + empCif])],
-            ['Vehículo', ddSub(okVal('f-camion'), ['Matrícula tractora: ' + okVal('f-tractora') + (okVal('f-remolque') ? ' · Remolque: ' + okVal('f-remolque') : '')])],
-            ['Conductor', ddSub(okVal('f-chofer'), ['DNI / NIE: ' + okVal('f-dnichofer') + ' · Tel: ' + okVal('f-pref') + ' ' + okVal('f-tfno')])]
-        );
+        var html = '<div class="of-envio"><span class="of-envio-lbl">Envío</span><span>' + escH(O.envio || okTxt('v-ref')) + '</span></div>';
+        // Ruta: tarjeta por punto con circulito numerado en orden de recorrido.
+        // Fecha/hora de carga elegidas → 1ª recogida; entrega estimada → última.
+        var nOrd = 0;
+        function ptCard(cls, tag, pt, fechaLn, estLn) {
+            nOrd++;
+            return '<div class="of-pt ' + cls + '">' +
+                '<div class="of-pt-head"><span class="of-pt-num">' + nOrd + '</span>' +
+                    '<span class="of-pt-tag">' + tag + '</span>' +
+                    (pt.emp ? '<span style="color:var(--gray-400,#b6bcc9);">·</span><span class="of-pt-emp">' + escH(pt.emp) + '</span>' : '') +
+                '</div>' +
+                (fechaLn ? '<div class="of-pt-fecha">' + escH(fechaLn) + '</div>' : '') +
+                (pt.hor ? '<div class="of-pt-hor">(' + escH(pt.hor) + ')</div>' : '') +
+                '<div class="of-pt-loc">' + escH(pt.loc) + '</div>' +
+                (estLn || '') + '</div>';
+        }
+        html += '<div class="of-route">' +
+            recs.map(function (r, i) {
+                return ptCard('of-pt-rec', 'Recogida', r,
+                    i === 0 && okVal('f-fechacarga') ? 'Fecha de carga: ' + okVal('f-fechacarga') : '',
+                    i === 0 && okVal('f-horacarga') ? '<div class="of-pt-est">Horario estimado de recogida: <b>' + escH(okVal('f-horacarga')) + '</b></div>' : '');
+            }).join('') +
+            ents.map(function (e, i) {
+                var ult = i === ents.length - 1;
+                return ptCard('of-pt-ent', 'Entrega', e,
+                    ult && entFecha ? 'Fecha estimada de entrega: ' + entFecha : '',
+                    ult && entHora ? '<div class="of-pt-est">Horario estimado de entrega: <b>' + escH(entHora) + '</b></div>' : '');
+            }).join('') +
+        '</div>';
+        // Mercancía: tipo + chips del detalle + anotaciones (igual que la oferta).
+        var mercChips = (O.detalles || []).map(function (r) { return chip(r[0], r[1]); }).join('');
+        html += cardSec('📦', 'Mercancía', O.merc, mercChips,
+            O.dm ? '<div class="of-dm"><b>Anotaciones de la mercancía</b>' + escH(O.dm) + '</div>' : '');
+        // Transportista, vehículo y conductor.
+        html += cardSec('🚚', 'Transportista', empNom, chip('CIF / DNI', empCif));
+        html += cardSec('🚛', 'Vehículo', okVal('f-camion'),
+            chip('Matrícula tractora', okVal('f-tractora')) + chip('Remolque', okVal('f-remolque')));
+        html += cardSec('👤', 'Conductor', okVal('f-chofer'),
+            chip('DNI / NIE', okVal('f-dnichofer')) + chip('Teléfono', okVal('f-pref') + ' ' + okVal('f-tfno')));
+        // Precio: caja verde como la de la oferta, con el pronto pago si aplica.
         var imp = O.precio || okTxt('v-imp');
         var pronto = document.getElementById('f-pronto') && document.getElementById('f-pronto').checked;
         var info = prontoPagoInfo();
         if (pronto && info) {
             // Importe final con pronto pago aplicado (así irá también en la factura).
-            rows.push(['Precio', escH(fmtEur(info.total) + ' € · base imponible (impuestos no incluidos) · PRONTO PAGO aplicado (−' + fmtEur(info.desc) + ' €, cobro a 5 días)')]);
+            html += '<div class="pago-contado"><span class="imp">' + escH(fmtEur(info.total) + ' €') + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span>' +
+                '<div style="font-size:0.82rem;font-weight:700;margin-top:0.25rem;">PRONTO PAGO aplicado: −' + escH(fmtEur(info.desc)) + ' € · cobro a 5 días' + (fechaPagoDias(5) ? ' (pago el ' + escH(fechaPagoDias(5)) + ')' : '') + '</div></div>';
         } else if (imp) {
-            rows.push(['Precio', escH(imp + ' · base imponible (impuestos no incluidos)' + (info ? ' · a 60 días' : ''))]);
+            html += '<div class="pago-contado"><span class="imp">' + escH(imp) + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)' + (info ? ' · a 60 días' : '') + '</span></div>';
         }
-        document.getElementById('ok-resumen').innerHTML = rows.map(function (r) {
-            return '<dt>' + escH(r[0]) + '</dt><dd>' + r[1] + '</dd>';
-        }).join('');
+        document.getElementById('ok-resumen').innerHTML = html;
         // Email donde se enviará la orden de carga: el de su ficha (existente) o
         // el que tecleó en el alta.
         var email = (window._empresaSel && window._empresaSel.email) || okVal('alta-email') || 'tu email';
