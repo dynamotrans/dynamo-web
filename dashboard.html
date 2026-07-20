@@ -9952,6 +9952,40 @@
     }
     window.validaIdFiscal = validaIdFiscal;
     // Feedback EN VIVO bajo el campo: verde si el control cuadra, rojo si no.
+    // CP español (2 primeros dígitos) → provincia. Sirve para autorrellenar
+    // Provincia y País al teclear el CP en las fichas (clientes, transportistas,
+    // usuarios, alta). En SITIOS no aplica: allí va por Google Maps.
+    var CP_PROV = {
+        '01': 'Álava', '02': 'Albacete', '03': 'Alicante', '04': 'Almería', '05': 'Ávila',
+        '06': 'Badajoz', '07': 'Illes Balears', '08': 'Barcelona', '09': 'Burgos', '10': 'Cáceres',
+        '11': 'Cádiz', '12': 'Castellón', '13': 'Ciudad Real', '14': 'Córdoba', '15': 'A Coruña',
+        '16': 'Cuenca', '17': 'Girona', '18': 'Granada', '19': 'Guadalajara', '20': 'Gipuzkoa',
+        '21': 'Huelva', '22': 'Huesca', '23': 'Jaén', '24': 'León', '25': 'Lleida',
+        '26': 'La Rioja', '27': 'Lugo', '28': 'Madrid', '29': 'Málaga', '30': 'Murcia',
+        '31': 'Navarra', '32': 'Ourense', '33': 'Asturias', '34': 'Palencia', '35': 'Las Palmas',
+        '36': 'Pontevedra', '37': 'Salamanca', '38': 'Santa Cruz de Tenerife', '39': 'Cantabria', '40': 'Segovia',
+        '41': 'Sevilla', '42': 'Soria', '43': 'Tarragona', '44': 'Teruel', '45': 'Toledo',
+        '46': 'Valencia', '47': 'Valladolid', '48': 'Bizkaia', '49': 'Zamora', '50': 'Zaragoza',
+        '51': 'Ceuta', '52': 'Melilla'
+    };
+    // Al teclear el CP (5 dígitos ES) autorrellena Provincia y País. La
+    // Localidad exacta necesita el dataset de CPs del backend (no se rellena
+    // sola en el mockup). Sanea el CP a solo dígitos (máx. 5).
+    function bindCpAutofill(cpId, provId, paisId) {
+        var cp = document.getElementById(cpId);
+        if (!cp || cp._cpBound) return;
+        cp.setAttribute('inputmode', 'numeric');
+        cp._cpBound = true;
+        cp.addEventListener('input', function () {
+            var d = (cp.value.match(/\d/g) || []).join('').slice(0, 5);
+            if (cp.value !== d) cp.value = d;
+            if (d.length >= 2 && CP_PROV[d.slice(0, 2)]) {
+                var pv = document.getElementById(provId); if (pv) pv.value = CP_PROV[d.slice(0, 2)];
+                var pa = document.getElementById(paisId); if (pa) pa.value = 'España';
+            }
+        });
+    }
+    window.bindCpAutofill = bindCpAutofill;
     function bindFiscalValidation(id) {
         var el = document.getElementById(id);
         if (!el || el._fiscalBound) return;
@@ -10040,7 +10074,7 @@
                         }).join('') + '</select></div>';
                 })() +
                 ctField('tra-f-cif', 'CIF / NIF *', t.cif, 'B12345678 / 12345678Z') +
-                ctSelect('tra-f-bolsatipo', 'Bolsa de carga', ['Wtransnet', 'Teleroute', 'Bursa'], t.bolsaTipo || 'Wtransnet') +
+                ctSelect('tra-f-bolsatipo', 'Bolsa de carga', ['Wtransnet', 'Teleroute', 'Bursa', 'Ninguna'], t.bolsaTipo || 'Wtransnet') +
                 ctField('tra-f-bolsa', 'Código bolsa de carga', t.bolsa, 'Ej. 482113') +
                 ctField('tra-f-dir', 'Domicilio fiscal (calle y número)', t.dir, 'Calle y número', true) +
                 ctField('tra-f-cp', 'CP', t.cp, '41001') +
@@ -10090,7 +10124,7 @@
             body: clienteFormHTML(c),
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
                 '<button class="btn-primary" onclick="clienteGuardar(' + (esEdit ? idx : -1) + ')">' + (esEdit ? 'Guardar cambios' : 'Crear cliente') + '</button>',
-            afterOpen: function () { bindFiscalValidation('cli-f-cif'); }
+            afterOpen: function () { bindFiscalValidation('cli-f-cif'); bindCpAutofill('cli-f-cp', 'cli-f-prov', 'cli-f-pais'); }
         });
     }
     window.openClienteModal = openClienteModal;
@@ -10161,6 +10195,7 @@
                     max: 5, labelDefault: '📎 Adjuntar documento'
                 });
                 bindFiscalValidation('tra-f-cif');
+                bindCpAutofill('tra-f-cp', 'tra-f-prov', 'tra-f-pais');
             }
         });
     }
@@ -10656,6 +10691,7 @@
                 bindDocsArea({ arr: window._usrDocOtros, listId: 'usrDocOtrosList', labelId: 'usrDocOtrosLabel', dropId: 'usrDocOtrosDrop', inputId: 'usrDocOtrosInput', max: 3, labelDefault: '📎 Otros documentos', labelFull: 'Máximo 3 documentos' });
                 bindFiscalValidation('usr-f-dni');
                 bindFiscalValidation('usr-f-cif');
+                bindCpAutofill('usr-f-cp', 'usr-f-prov', 'usr-f-pais');
             }
         });
     }

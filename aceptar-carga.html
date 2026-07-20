@@ -167,7 +167,7 @@
                     <div class="row2">
                         <div>
                             <label for="alta-bolsa-tipo">Bolsa de carga</label>
-                            <select id="alta-bolsa-tipo"><option>Wtransnet</option><option>Teleroute</option><option>Bursa</option></select>
+                            <select id="alta-bolsa-tipo"><option>Wtransnet</option><option>Teleroute</option><option>Bursa</option><option>Ninguna</option></select>
                         </div>
                         <div>
                             <label for="alta-bolsa">Código bolsa de carga <span class="op">· opcional</span></label>
@@ -329,6 +329,32 @@
         { cif: '29876543P', empresa: 'José Martín Ruiz · autónomo', ciudad: 'Córdoba', flota: '1 camión', seguro: 'CMR 60.000 €', bolsa: '—' }
     ];
     function normId(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+    // CP español (2 primeros dígitos) → provincia, para autorrellenar Provincia
+    // y País al teclear el CP en el alta.
+    var CP_PROV_ES = {
+        '01': 'Álava', '02': 'Albacete', '03': 'Alicante', '04': 'Almería', '05': 'Ávila',
+        '06': 'Badajoz', '07': 'Illes Balears', '08': 'Barcelona', '09': 'Burgos', '10': 'Cáceres',
+        '11': 'Cádiz', '12': 'Castellón', '13': 'Ciudad Real', '14': 'Córdoba', '15': 'A Coruña',
+        '16': 'Cuenca', '17': 'Girona', '18': 'Granada', '19': 'Guadalajara', '20': 'Gipuzkoa',
+        '21': 'Huelva', '22': 'Huesca', '23': 'Jaén', '24': 'León', '25': 'Lleida',
+        '26': 'La Rioja', '27': 'Lugo', '28': 'Madrid', '29': 'Málaga', '30': 'Murcia',
+        '31': 'Navarra', '32': 'Ourense', '33': 'Asturias', '34': 'Palencia', '35': 'Las Palmas',
+        '36': 'Pontevedra', '37': 'Salamanca', '38': 'Santa Cruz de Tenerife', '39': 'Cantabria', '40': 'Segovia',
+        '41': 'Sevilla', '42': 'Soria', '43': 'Tarragona', '44': 'Teruel', '45': 'Toledo',
+        '46': 'Valencia', '47': 'Valladolid', '48': 'Bizkaia', '49': 'Zamora', '50': 'Zaragoza',
+        '51': 'Ceuta', '52': 'Melilla'
+    };
+    (function () {
+        var cp = document.getElementById('alta-cp'); if (!cp) return;
+        cp.addEventListener('input', function () {
+            var d = (cp.value.match(/\d/g) || []).join('').slice(0, 5);
+            if (cp.value !== d) cp.value = d;
+            if (d.length >= 2 && CP_PROV_ES[d.slice(0, 2)]) {
+                var pv = document.getElementById('alta-prov'); if (pv) pv.value = CP_PROV_ES[d.slice(0, 2)];
+                var pa = document.getElementById('alta-pais'); if (pa) pa.value = 'España';
+            }
+        });
+    })();
 
     // ---- Datos del viaje desde la URL (los pone el enlace de la oferta) ----
     (function () {
