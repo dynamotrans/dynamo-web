@@ -45,6 +45,38 @@
     .v-details { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem 1rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--gray-300); }
     .v-details .vd-k { font-size: 0.68rem; font-weight: 800; color: var(--gray-500); }
     .v-details .vd-v { font-size: 0.9rem; font-weight: 700; color: var(--navy); }
+    /* ---- Oferta en TARJETAS (pantalla del formulario): recogida/entrega, fecha
+       destacada y mercancía con chips. Legible en el móvil del transportista. ---- */
+    #viajeBox { background: transparent; border: none; padding: 0; margin-bottom: 1rem; }
+    .of-envio { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; background: #ece8fb; border: 1px solid rgba(51,0,204,0.22); border-radius: 11px; padding: 0.55rem 0.85rem; margin-bottom: 0.7rem; }
+    .of-envio .of-envio-lbl { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--purple); }
+    .of-envio > span:last-child { font-size: 1rem; font-weight: 900; color: var(--navy); }
+    .of-route { display: grid; gap: 0.6rem; margin-bottom: 0.7rem; }
+    @media (min-width: 520px) { .of-route { grid-template-columns: 1fr 1fr; } }
+    .of-pt { background: #fff; border: 1px solid var(--gray-200); border-left: 4px solid var(--gray-300); border-radius: 12px; padding: 0.72rem 0.85rem 0.78rem; }
+    .of-pt-rec { border-left-color: var(--orange); }
+    .of-pt-ent { border-left-color: var(--green); }
+    .of-pt-badge { display: inline-block; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #fff; padding: 0.14rem 0.55rem; border-radius: 20px; }
+    .of-pt-rec .of-pt-badge { background: var(--orange); }
+    .of-pt-ent .of-pt-badge { background: var(--green); }
+    .of-pt-loc { font-size: 1rem; font-weight: 800; color: var(--navy); margin-top: 0.45rem; line-height: 1.3; }
+    .of-pt-hor { font-size: 0.78rem; font-weight: 600; color: var(--gray-500); margin-top: 0.3rem; }
+    .of-pt-hor b { color: var(--gray-700); font-weight: 800; }
+    .of-fecha { display: flex; align-items: center; gap: 0.7rem; background: rgba(51,0,204,0.055); border: 1px solid rgba(51,0,204,0.18); border-radius: 12px; padding: 0.68rem 0.9rem; margin-bottom: 0.7rem; }
+    .of-fecha .of-fecha-ico { font-size: 1.3rem; flex: none; line-height: 1; }
+    .of-fecha-lbl { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--purple); }
+    .of-fecha-val { font-size: 1.02rem; font-weight: 900; color: var(--navy); margin-top: 1px; line-height: 1.25; }
+    .of-merc { background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.8rem 0.9rem; }
+    .of-merc-head { display: flex; align-items: center; gap: 0.6rem; }
+    .of-merc-ico { font-size: 1.35rem; flex: none; line-height: 1; }
+    .of-merc-lbl { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--purple); }
+    .of-merc-tipo { font-size: 1rem; font-weight: 900; color: var(--navy); }
+    .of-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.7rem; }
+    .of-chip { display: inline-flex; flex-direction: column; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 9px; padding: 0.34rem 0.6rem; }
+    .of-chip .of-chip-k { font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: var(--gray-500); }
+    .of-chip .of-chip-v { font-size: 0.88rem; font-weight: 800; color: var(--navy); }
+    .of-dm { margin-top: 0.75rem; padding-top: 0.7rem; border-top: 1px dashed var(--gray-300); font-size: 0.86rem; font-weight: 600; color: var(--gray-700); line-height: 1.45; }
+    .of-dm b { display: block; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gray-500); margin-bottom: 0.22rem; }
     .pago-contado { margin-top: 0.7rem; background: rgba(34,165,90,0.1); border: 1.5px solid var(--green); border-radius: 10px; padding: 0.6rem 0.75rem; font-size: 0.9rem; font-weight: 800; color: var(--green-dark); }
     .pago-contado .imp { font-size: 1.25rem; }
     .pago-contado .base-nota { font-size: 0.78rem; font-weight: 600; opacity: 0.85; }
@@ -674,9 +706,7 @@
                           : ['Mié 22/07', 'Jue 23/07', 'Vie 24/07']).map(labelConAnio);
         var fecha = lista.length > 1 ? 'De ' + lista[0] + ' a ' + lista[lista.length - 1] : (lista[0] || 'Por confirmar');
         window._diasCarga = lista;
-        // Construir el resumen. Los ids v-ref/v-orig/v-dest/v-merc/v-imp se
-        // conservan porque la pantalla de "carga aceptada" los lee.
-        function subHor(h) { return h ? '<span class="v-sub">Horario almacén: ' + escH(h) + '</span>' : ''; }
+        // Detalle de la mercancía → chips en la tarjeta y línea del resumen aceptado.
         var vd = [];
         if (ml)   vd.push(['Metros lineales', ml]);
         if (pal)  vd.push(['Palets / bultos', pal]);
@@ -684,16 +714,39 @@
         if (tc)   vd.push(['Tipo de carga', tc]);
         vd.push(['Trampilla elevadora', tram]);
         vd.push(['Requiere NIMA', nima]);
+        // Objeto ÚNICO con los datos de la oferta. De aquí se pinta la tarjeta y,
+        // al aceptar, el resumen de "carga aceptada" (sin releer el DOM → robusto).
+        window._oferta = {
+            envio: envio, orig: orig, dest: dest, ho: ho, hd: hd,
+            merc: merc, detalles: vd, dm: dm, fecha: fecha, precio: p
+        };
+        function ofPunto(cls, badge, loc, hor) {
+            return '<div class="of-pt ' + cls + '">' +
+                '<span class="of-pt-badge">' + badge + '</span>' +
+                '<div class="of-pt-loc">' + escH(loc) + '</div>' +
+                (hor ? '<div class="of-pt-hor"><b>Horario almacén:</b> ' + escH(hor) + '</div>' : '') +
+                '</div>';
+        }
+        var chips = vd.map(function (r) {
+            return '<span class="of-chip"><span class="of-chip-k">' + escH(r[0]) + '</span><span class="of-chip-v">' + escH(r[1]) + '</span></span>';
+        }).join('');
+        // id="v-ref" y id="v-imp" se conservan (la pantalla de aceptado los lee).
         var html =
-            '<dt>Envío</dt><dd id="v-ref">' + escH(envio) + '</dd>' +
-            '<dt>Recogida</dt><dd id="v-orig">' + escH(orig) + subHor(ho) + '</dd>' +
-            '<dt>Entrega</dt><dd id="v-dest">' + escH(dest) + subHor(hd) + '</dd>' +
-            '<dt>Fecha de carga ofertada</dt><dd id="v-fecha">' + escH(fecha) + '</dd>' +
-            '<dt>Mercancía</dt><dd id="v-merc">' + escH(merc) + '</dd>' +
-            '<div class="v-details">' + vd.map(function (r) {
-                return '<div class="vd"><div class="vd-k">' + escH(r[0]) + '</div><div class="vd-v">' + escH(r[1]) + '</div></div>';
-            }).join('') + '</div>' +
-            (dm ? '<dt>Anotaciones de la mercancía</dt><dd id="v-dm">' + escH(dm) + '</dd>' : '') +
+            '<div class="of-envio"><span class="of-envio-lbl">Envío</span><span id="v-ref">' + escH(envio) + '</span></div>' +
+            '<div class="of-route">' +
+                ofPunto('of-pt-rec', 'Recogida', orig, ho) +
+                ofPunto('of-pt-ent', 'Entrega', dest, hd) +
+            '</div>' +
+            '<div class="of-fecha"><span class="of-fecha-ico">📅</span><div>' +
+                '<div class="of-fecha-lbl">Fecha de carga ofertada</div>' +
+                '<div class="of-fecha-val" id="v-fecha">' + escH(fecha) + '</div></div></div>' +
+            '<div class="of-merc">' +
+                '<div class="of-merc-head"><span class="of-merc-ico">📦</span><div>' +
+                    '<div class="of-merc-lbl">Mercancía</div>' +
+                    '<div class="of-merc-tipo" id="v-merc">' + escH(merc) + '</div></div></div>' +
+                (chips ? '<div class="of-chips">' + chips + '</div>' : '') +
+                (dm ? '<div class="of-dm"><b>Anotaciones de la mercancía</b>' + escH(dm) + '</div>' : '') +
+            '</div>' +
             '<div class="pago-contado" id="v-pago"' + (p ? '' : ' hidden') + '><span class="imp" id="v-imp">' + escH(p) + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>';
         document.getElementById('viajeBox').innerHTML = html;
         if (p) window._basePrecio = parseEur(p);
@@ -1238,56 +1291,40 @@
         // una agrupa su dirección + horario del almacén + fecha y hora estimada.
         function okTxt(id) { return (document.getElementById(id) || {}).textContent || ''; }
         function okVal(id) { var e = document.getElementById(id); return e ? e.value : ''; }
-        // Separa la dirección del horario dentro del dd del resumen de oferta.
-        function puntoInfo(id) {
-            var dd = document.getElementById(id);
-            if (!dd) return { loc: '', hor: '' };
-            var sub = dd.querySelector('.v-sub');
-            var hor = sub ? sub.textContent.replace(/^\s*Horario almacén:\s*/, '') : '';
-            var loc = '';
-            Array.prototype.forEach.call(dd.childNodes, function (n) { if (n.nodeType === 3) loc += n.textContent; });
-            return { loc: loc.trim(), hor: hor.trim() };
-        }
         // dd con línea principal + sub-líneas pequeñas (omite las vacías).
         function ddSub(main, subs) {
             return escH(main) + (subs || []).filter(Boolean).map(function (s) {
                 return '<span class="v-sub">' + escH(s) + '</span>';
             }).join('');
         }
-        // Punto (recogida/entrega): dirección + fecha (real en recogida) + horario
-        // del almacén + horario estimado de la operación.
-        function puntoHtml(pi, fechaLbl, fecha, horaLbl, hora) {
-            return ddSub(pi.loc, [
-                fecha ? fechaLbl + ' ' + fecha : '',
-                pi.hor ? 'Horario almacén: ' + pi.hor : '',
-                hora ? horaLbl + ' ' + hora : ''
-            ]);
-        }
-        // Detalle de mercancía de la oferta (metros, palets, peso, tipo de carga…).
-        function detallesMerc() {
-            var box = document.querySelector('#viajeBox .v-details'), out = [];
-            if (box) Array.prototype.forEach.call(box.querySelectorAll('.vd'), function (vd) {
-                var k = vd.querySelector('.vd-k'), v = vd.querySelector('.vd-v');
-                if (k && v) out.push(k.textContent + ': ' + v.textContent);
-            });
-            return out;
-        }
-        var rec = puntoInfo('v-orig'), ent = puntoInfo('v-dest');
+        // Datos de la oferta (objeto único; no se relee el DOM de las tarjetas).
+        var O = window._oferta || {};
         var entFecha = okVal('f-fechaentrega'), entHora = okVal('f-horaentrega');
         // Datos del transportista (ficha existente o alta), vehículo y conductor.
         var empNom = window._empresaSel ? window._empresaSel.empresa : (okVal('alta-empresa') || '—');
         var empCif = window._empresaSel ? window._empresaSel.cif : (okVal('alta-cif') || '—');
-        var mercDet = detallesMerc();
+        var mercDet = (O.detalles || []).map(function (r) { return r[0] + ': ' + r[1]; });
         var rows = [
-            ['Envío', escH(okTxt('v-ref'))],
-            ['Recogida', puntoHtml(rec, 'Fecha de carga:', okVal('f-fechacarga'), 'Horario estimado de recogida:', okVal('f-horacarga'))],
-            ['Entrega', puntoHtml(ent, 'Fecha estimada de entrega:', entFecha, 'Horario estimado de entrega:', entHora)],
-            ['Mercancía', ddSub(okTxt('v-merc'), mercDet.length ? [mercDet.join(' · ')] : [])],
+            ['Envío', escH(O.envio || okTxt('v-ref'))],
+            ['Recogida', ddSub(O.orig || '', [
+                okVal('f-fechacarga') ? 'Fecha de carga: ' + okVal('f-fechacarga') : '',
+                O.ho ? 'Horario almacén: ' + O.ho : '',
+                okVal('f-horacarga') ? 'Horario estimado de recogida: ' + okVal('f-horacarga') : ''
+            ])],
+            ['Entrega', ddSub(O.dest || '', [
+                entFecha ? 'Fecha estimada de entrega: ' + entFecha : '',
+                O.hd ? 'Horario almacén: ' + O.hd : '',
+                entHora ? 'Horario estimado de entrega: ' + entHora : ''
+            ])],
+            ['Mercancía', ddSub(O.merc || '', [
+                mercDet.length ? mercDet.join(' · ') : '',
+                O.dm ? 'Anotaciones: ' + O.dm : ''
+            ])],
             ['Transportista', ddSub(empNom, ['CIF / DNI: ' + empCif])],
             ['Vehículo', ddSub(okVal('f-camion'), ['Matrícula tractora: ' + okVal('f-tractora') + (okVal('f-remolque') ? ' · Remolque: ' + okVal('f-remolque') : '')])],
             ['Conductor', ddSub(okVal('f-chofer'), ['DNI / NIE: ' + okVal('f-dnichofer') + ' · Tel: ' + okVal('f-pref') + ' ' + okVal('f-tfno')])]
         ];
-        var imp = okTxt('v-imp');
+        var imp = O.precio || okTxt('v-imp');
         var pronto = document.getElementById('f-pronto') && document.getElementById('f-pronto').checked;
         var info = prontoPagoInfo();
         if (pronto && info) {
