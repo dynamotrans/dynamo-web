@@ -11392,13 +11392,16 @@
             (dmTxt ? '&dm=' + encodeURIComponent(dmTxt) : '') +
             (pt ? '&p=' + encodeURIComponent(eur2(pt)) : '') +
             (ppOn ? '' : '&pp=0');
-        // Líneas de ruta del mensaje: numeradas solo si hay más de un punto de
-        // su tipo (las entregas intermedias van antes del destino final).
+        // Líneas de ruta del mensaje con el número de ORDEN del recorrido
+        // (1 origen → … → último destino), solo si hay paradas; las entregas
+        // intermedias van antes del destino final.
+        var nRec = 1 + pRec.length, multiPts = pRec.length + pEnt.length > 0;
+        function nOrd(n) { return multiPts ? ' ' + n : ''; }
         var rutaMsg =
-            'Recogida' + (pRec.length ? ' 1' : '') + ': ' + oTxt + '\n' +
-            pRec.map(function (p, i) { return 'Recogida ' + (i + 2) + ': ' + p.dir + '\n'; }).join('') +
-            pEnt.map(function (p, i) { return 'Entrega ' + (i + 1) + ': ' + p.dir + '\n'; }).join('') +
-            'Entrega' + (pEnt.length ? ' ' + (pEnt.length + 1) : '') + ': ' + dTxt + '\n';
+            'Recogida' + nOrd(1) + ': ' + oTxt + '\n' +
+            pRec.map(function (p, i) { return 'Recogida' + nOrd(i + 2) + ': ' + p.dir + '\n'; }).join('') +
+            pEnt.map(function (p, i) { return 'Entrega' + nOrd(nRec + i + 1) + ': ' + p.dir + '\n'; }).join('') +
+            'Entrega' + nOrd(nRec + pEnt.length + 1) + ': ' + dTxt + '\n';
         var msg = 'DYNAMO — OFERTA DE CARGA (PAGO CONTADO)\n\n' +
             'Envío ' + c.ref + '\n' +
             rutaMsg +

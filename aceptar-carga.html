@@ -752,14 +752,16 @@
         var chips = vd.map(function (r) {
             return '<span class="of-chip"><span class="of-chip-k">' + escH(r[0]) + '</span><span class="of-chip-v">' + escH(r[1]) + '</span></span>';
         }).join('');
-        // Ruta en orden: recogidas y entregas, cada tipo con su numeración (1..).
-        // La fecha ofertada (fija o ventana) va en negrita en las recogidas.
+        // Ruta con numeración CONTINUA en orden de recorrido (1 origen → … →
+        // último destino), como en crear envío; el color dice el tipo. La fecha
+        // ofertada (fija o ventana) va en negrita en las recogidas.
+        var nOrden = 0;
         var routeHtml =
-            recogidas.map(function (r, i) {
-                return ofPunto('of-pt-rec', i + 1, 'Recogida', r, fecha);
+            recogidas.map(function (r) {
+                nOrden++; return ofPunto('of-pt-rec', nOrden, 'Recogida', r, fecha);
             }).join('') +
-            entregas.map(function (e, i) {
-                return ofPunto('of-pt-ent', i + 1, 'Entrega', e, '');
+            entregas.map(function (e) {
+                nOrden++; return ofPunto('of-pt-ent', nOrden, 'Entrega', e, '');
             }).join('');
         // id="v-ref" y id="v-imp" se conservan (la pantalla de aceptado los lee).
         var html =
@@ -1334,8 +1336,11 @@
         // fecha/hora de carga van en la 1ª recogida; la entrega estimada, en la
         // última entrega (el destino final).
         var recs = O.recogidas || [], ents = O.entregas || [];
+        // Con paradas (más de 2 puntos), las etiquetas llevan el número de orden
+        // del recorrido (Recogida 1, Recogida 2, Entrega 3…), como las tarjetas.
+        var multiPts = recs.length + ents.length > 2;
         recs.forEach(function (r, i) {
-            rows.push(['Recogida' + (recs.length > 1 ? ' ' + (i + 1) : ''), ddSub(r.emp || r.loc, [
+            rows.push(['Recogida' + (multiPts ? ' ' + (i + 1) : ''), ddSub(r.emp || r.loc, [
                 r.emp ? r.loc : '',
                 i === 0 && okVal('f-fechacarga') ? 'Fecha de carga: ' + okVal('f-fechacarga') : '',
                 r.hor ? 'Horario almacén: ' + r.hor : '',
@@ -1344,7 +1349,7 @@
         });
         ents.forEach(function (e, i) {
             var ult = i === ents.length - 1;
-            rows.push(['Entrega' + (ents.length > 1 ? ' ' + (i + 1) : ''), ddSub(e.emp || e.loc, [
+            rows.push(['Entrega' + (multiPts ? ' ' + (recs.length + i + 1) : ''), ddSub(e.emp || e.loc, [
                 e.emp ? e.loc : '',
                 ult && entFecha ? 'Fecha estimada de entrega: ' + entFecha : '',
                 e.hor ? 'Horario almacén: ' + e.hor : '',
