@@ -684,9 +684,21 @@
     // le interesa: mercancía, metros lineales, palets/maquinaria, peso, tipo de
     // carga (lateral/techo/ambas), trampilla, NIMA y horarios de los almacenes.
     (function () {
+        var demo  = !q('envio', ''); // URL "pelada" (sin envio=) → datos de demo
         var envio = q('envio', '#GX684870 (demo)');
         var orig  = q('o', 'Sevilla 41001'), dest = q('d', 'Madrid 28001');
-        var ho    = q('ho', 'L-V 8:00–14:00'), hd = q('hd', 'L-V 9:00–14:00 y 16:00–18:00');
+        // Horarios de almacén: en un enlace real solo salen si vienen en la URL
+        // (ho/hd); los de demo únicamente en la URL pelada.
+        var ho    = q('ho', demo ? 'L-V 8:00–14:00' : ''), hd = q('hd', demo ? 'L-V 9:00–14:00 y 16:00–18:00' : '');
+        // Paradas del envío (como en crear envío: hasta 2 extra en cualquier
+        // mezcla). o2/o3 = recogidas ADICIONALES tras el origen; d2/d3 = entregas
+        // INTERMEDIAS antes del destino final (el destino es la ÚLTIMA entrega).
+        // Sus horarios: ho2/ho3 y hd2/hd3.
+        var recogidas = [{ loc: orig, hor: ho }];
+        ['2', '3'].forEach(function (n) { var v = q('o' + n, ''); if (v) recogidas.push({ loc: v, hor: q('ho' + n, '') }); });
+        var entregas = [];
+        ['2', '3'].forEach(function (n) { var v = q('d' + n, ''); if (v) entregas.push({ loc: v, hor: q('hd' + n, '') }); });
+        entregas.push({ loc: dest, hor: hd });
         var merc  = q('m', 'Paletizado');
         var ml    = q('ml', '6 m'), pal = q('pal', '6 europalets'), peso = q('peso', '8.000 kg');
         var tc    = q('tc', 'Lateral y techo');
@@ -717,26 +729,32 @@
         // Objeto ÚNICO con los datos de la oferta. De aquí se pinta la tarjeta y,
         // al aceptar, el resumen de "carga aceptada" (sin releer el DOM → robusto).
         window._oferta = {
-            envio: envio, orig: orig, dest: dest, ho: ho, hd: hd,
+            envio: envio, recogidas: recogidas, entregas: entregas,
             merc: merc, detalles: vd, dm: dm, fecha: fecha, precio: p
         };
-        function ofPunto(cls, badge, loc, hor) {
+        function ofPunto(cls, badge, pt) {
             return '<div class="of-pt ' + cls + '">' +
                 '<span class="of-pt-badge">' + badge + '</span>' +
-                '<div class="of-pt-loc">' + escH(loc) + '</div>' +
-                (hor ? '<div class="of-pt-hor"><b>Horario almacén:</b> ' + escH(hor) + '</div>' : '') +
+                '<div class="of-pt-loc">' + escH(pt.loc) + '</div>' +
+                (pt.hor ? '<div class="of-pt-hor"><b>Horario almacén:</b> ' + escH(pt.hor) + '</div>' : '') +
                 '</div>';
         }
         var chips = vd.map(function (r) {
             return '<span class="of-chip"><span class="of-chip-k">' + escH(r[0]) + '</span><span class="of-chip-v">' + escH(r[1]) + '</span></span>';
         }).join('');
+        // Tarjetas de la ruta en orden: recogidas (naranja) y entregas (verde),
+        // numeradas solo si hay más de una de su tipo.
+        var routeHtml =
+            recogidas.map(function (r, i) {
+                return ofPunto('of-pt-rec', 'Recogida' + (recogidas.length > 1 ? ' ' + (i + 1) : ''), r);
+            }).join('') +
+            entregas.map(function (e, i) {
+                return ofPunto('of-pt-ent', 'Entrega' + (entregas.length > 1 ? ' ' + (i + 1) : ''), e);
+            }).join('');
         // id="v-ref" y id="v-imp" se conservan (la pantalla de aceptado los lee).
         var html =
             '<div class="of-envio"><span class="of-envio-lbl">Envío</span><span id="v-ref">' + escH(envio) + '</span></div>' +
-            '<div class="of-route">' +
-                ofPunto('of-pt-rec', 'Recogida', orig, ho) +
-                ofPunto('of-pt-ent', 'Entrega', dest, hd) +
-            '</div>' +
+            '<div class="of-route">' + routeHtml + '</div>' +
             '<div class="of-fecha"><span class="of-fecha-ico">📅</span><div>' +
                 '<div class="of-fecha-lbl">Fecha de carga ofertada</div>' +
                 '<div class="of-fecha-val" id="v-fecha">' + escH(fecha) + '</div></div></div>' +
@@ -1304,18 +1322,27 @@
         var empNom = window._empresaSel ? window._empresaSel.empresa : (okVal('alta-empresa') || '—');
         var empCif = window._empresaSel ? window._empresaSel.cif : (okVal('alta-cif') || '—');
         var mercDet = (O.detalles || []).map(function (r) { return r[0] + ': ' + r[1]; });
-        var rows = [
-            ['Envío', escH(O.envio || okTxt('v-ref'))],
-            ['Recogida', ddSub(O.orig || '', [
-                okVal('f-fechacarga') ? 'Fecha de carga: ' + okVal('f-fechacarga') : '',
-                O.ho ? 'Horario almacén: ' + O.ho : '',
-                okVal('f-horacarga') ? 'Horario estimado de recogida: ' + okVal('f-horacarga') : ''
-            ])],
-            ['Entrega', ddSub(O.dest || '', [
-                entFecha ? 'Fecha estimada de entrega: ' + entFecha : '',
-                O.hd ? 'Horario almacén: ' + O.hd : '',
-                entHora ? 'Horario estimado de entrega: ' + entHora : ''
-            ])],
+        var rows = [['Envío', escH(O.envio || okTxt('v-ref'))]];
+        // Ruta completa: cada recogida y entrega con su horario de almacén. La
+        // fecha/hora de carga van en la 1ª recogida; la entrega estimada, en la
+        // última entrega (el destino final).
+        var recs = O.recogidas || [], ents = O.entregas || [];
+        recs.forEach(function (r, i) {
+            rows.push(['Recogida' + (recs.length > 1 ? ' ' + (i + 1) : ''), ddSub(r.loc, [
+                i === 0 && okVal('f-fechacarga') ? 'Fecha de carga: ' + okVal('f-fechacarga') : '',
+                r.hor ? 'Horario almacén: ' + r.hor : '',
+                i === 0 && okVal('f-horacarga') ? 'Horario estimado de recogida: ' + okVal('f-horacarga') : ''
+            ])]);
+        });
+        ents.forEach(function (e, i) {
+            var ult = i === ents.length - 1;
+            rows.push(['Entrega' + (ents.length > 1 ? ' ' + (i + 1) : ''), ddSub(e.loc, [
+                ult && entFecha ? 'Fecha estimada de entrega: ' + entFecha : '',
+                e.hor ? 'Horario almacén: ' + e.hor : '',
+                ult && entHora ? 'Horario estimado de entrega: ' + entHora : ''
+            ])]);
+        });
+        rows.push(
             ['Mercancía', ddSub(O.merc || '', [
                 mercDet.length ? mercDet.join(' · ') : '',
                 O.dm ? 'Anotaciones: ' + O.dm : ''
@@ -1323,7 +1350,7 @@
             ['Transportista', ddSub(empNom, ['CIF / DNI: ' + empCif])],
             ['Vehículo', ddSub(okVal('f-camion'), ['Matrícula tractora: ' + okVal('f-tractora') + (okVal('f-remolque') ? ' · Remolque: ' + okVal('f-remolque') : '')])],
             ['Conductor', ddSub(okVal('f-chofer'), ['DNI / NIE: ' + okVal('f-dnichofer') + ' · Tel: ' + okVal('f-pref') + ' ' + okVal('f-tfno')])]
-        ];
+        );
         var imp = O.precio || okTxt('v-imp');
         var pronto = document.getElementById('f-pronto') && document.getElementById('f-pronto').checked;
         var info = prontoPagoInfo();

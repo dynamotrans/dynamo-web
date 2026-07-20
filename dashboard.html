@@ -11344,22 +11344,45 @@
         // Anotación de MERCANCÍA / detalle del envío que escribió el cliente al
         // crear el envío → se pasa al transportista en la oferta (param dm).
         var dmTxt = c.anotaciones || c.notas || '';
+        // Paradas del envío → puntos extra de la oferta: o2/o3 = recogidas
+        // adicionales, d2/d3 = entregas intermedias (el destino es la última).
+        // Horario de almacén de cada punto desde su ficha de sitio (si la hay).
+        var pRec = (c.paradas || []).filter(function (p) { return p.tipo === 'recogida'; });
+        var pEnt = (c.paradas || []).filter(function (p) { return p.tipo !== 'recogida'; });
+        function horDe(key) { var s = (typeof siteDe === 'function' && key) ? siteDe(key) : null; return (s && s.horario) || ''; }
+        function ptParams(arr, pfx, hfx) {
+            return arr.map(function (p, i) {
+                var n = i + 2, h = horDe(p.site);
+                return '&' + pfx + n + '=' + encodeURIComponent(p.dir) + (h ? '&' + hfx + n + '=' + encodeURIComponent(h) : '');
+            }).join('');
+        }
+        var hoTxt = horDe(c.origenSite), hdTxt = horDe(c.destinoSite);
         // ¿Hay saldo en la línea de PRONTO PAGO? Si no, la oferta sale SIN esa
         // opción (y la página de aceptación la muestra como no disponible).
         var ppOn = (typeof prontoPagoActivo !== 'function') || prontoPagoActivo();
         var link = location.origin + location.pathname.replace(/[^\/]*$/, '') + 'aceptar-carga.html' +
             '?envio=' + encodeURIComponent(c.ref) +
             '&o=' + encodeURIComponent(oTxt) +
+            (hoTxt ? '&ho=' + encodeURIComponent(hoTxt) : '') +
+            ptParams(pRec, 'o', 'ho') +
             '&d=' + encodeURIComponent(dTxt) +
+            (hdTxt ? '&hd=' + encodeURIComponent(hdTxt) : '') +
+            ptParams(pEnt, 'd', 'hd') +
             '&f=' + encodeURIComponent(fTxt) +
             '&m=' + encodeURIComponent(mTxt) +
             (dmTxt ? '&dm=' + encodeURIComponent(dmTxt) : '') +
             (pt ? '&p=' + encodeURIComponent(eur2(pt)) : '') +
             (ppOn ? '' : '&pp=0');
+        // Líneas de ruta del mensaje: numeradas solo si hay más de un punto de
+        // su tipo (las entregas intermedias van antes del destino final).
+        var rutaMsg =
+            'Recogida' + (pRec.length ? ' 1' : '') + ': ' + oTxt + '\n' +
+            pRec.map(function (p, i) { return 'Recogida ' + (i + 2) + ': ' + p.dir + '\n'; }).join('') +
+            pEnt.map(function (p, i) { return 'Entrega ' + (i + 1) + ': ' + p.dir + '\n'; }).join('') +
+            'Entrega' + (pEnt.length ? ' ' + (pEnt.length + 1) : '') + ': ' + dTxt + '\n';
         var msg = 'DYNAMO — OFERTA DE CARGA (PAGO CONTADO)\n\n' +
             'Envío ' + c.ref + '\n' +
-            'Recogida: ' + oTxt + '\n' +
-            'Entrega: ' + dTxt + '\n' +
+            rutaMsg +
             'Fecha de carga: ' + fTxt + '\n' +
             'Mercancía: ' + mTxt + '\n' +
             (dmTxt ? 'Anotaciones de la mercancía: ' + dmTxt + '\n' : '') +
