@@ -461,7 +461,7 @@
             </div>
         </div>
     </div>
-    <button type="button" class="scroll-hint" id="scrollHint" hidden onclick="window.scrollBy({ top: Math.round(window.innerHeight * 0.7), behavior: 'smooth' });">Desliza para ver todo y aceptar <span class="sh-arrow" aria-hidden="true">↓</span></button>
+    <button type="button" class="scroll-hint" id="scrollHint" hidden onclick="window.scrollBy({ top: Math.round(window.innerHeight * 0.7), behavior: 'smooth' });">Desliza para ver todo <span class="sh-arrow" aria-hidden="true">↓</span></button>
     <p class="foot"><a href="https://dynamotrans.com">dynamotrans.com</a></p>
 
 <script>
@@ -1172,7 +1172,9 @@
         var email = (window._empresaSel && window._empresaSel.email) || okVal('alta-email') || 'tu email';
         document.getElementById('ok-email').textContent = email;
         if (window._reservaTimer) clearInterval(window._reservaTimer); // aceptada: parar contador
-        document.getElementById('formScreen').style.display = 'none';
+        var fs = document.getElementById('formScreen');
+        fs.classList.remove('show'); fs.style.display = 'none';
+        var sh = document.getElementById('scrollHint'); if (sh) sh.hidden = true; // fuera la pista al aceptar
         document.getElementById('okScreen').classList.add('show');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
