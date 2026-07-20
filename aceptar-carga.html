@@ -642,6 +642,20 @@
             '<div class="pago-contado" id="v-pago"' + (p ? '' : ' hidden') + '><span class="imp" id="v-imp">' + escH(p) + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>';
         document.getElementById('viajeBox').innerHTML = html;
         if (p) window._basePrecio = parseEur(p);
+        // Tipo de camión: el RÍGIDO (máx 8 m / 14 Tn) no se ofrece si la carga
+        // excede esos límites (no cabe). Se quita del desplegable.
+        (function () {
+            var mlN = parseFloat(String(ml).replace(',', '.').replace(/[^\d.]/g, '')) || 0;
+            var pesoRaw = String(peso).toLowerCase();
+            var pesoN = parseFloat(pesoRaw.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '')) || 0;
+            var pesoKg = (/kg/.test(pesoRaw) || pesoN > 100) ? pesoN : pesoN * 1000; // tn → kg
+            if (mlN > 8 || pesoKg > 14000) {
+                var camSel = document.getElementById('f-camion');
+                if (camSel) Array.prototype.slice.call(camSel.options).forEach(function (o) {
+                    if (/rígido/i.test(o.value)) camSel.removeChild(o);
+                });
+            }
+        })();
         // pp=0 → PRONTO PAGO no disponible.
         if (q('pp', '') === '0') {
             var pr = document.querySelector('.pronto');
