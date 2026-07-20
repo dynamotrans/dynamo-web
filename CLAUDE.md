@@ -22,6 +22,9 @@ El usuario trabaja desde 2 Macs diferentes usando GitHub Codespaces para mantene
 ### 0-bis. TODO PDF se ABRE en el visor (ventana nueva), nunca descarga forzada
 **Cualquier PDF del proyecto (CMR, orden de transporte, proforma, albarán, factura, presupuesto, documentos adjuntos, PDF de pago…) se ABRE en el visor del navegador (`window.open(url, '_blank')`), NUNCA se fuerza la descarga con `a.download`.** Motivo: en móvil la descarga directa no deja verlo cómodamente; desde el visor el usuario ya puede descargarlo si quiere. Patrón: `var w = window.open(url,'_blank'); if(!w){ /* respaldo a.download solo si el navegador bloquea la ventana */ }`. La única excepción es la **exportación a Excel/CSV** (no es un PDF, ahí sí se descarga el archivo). El helper `downloadFakePDF` ya sigue esta regla; úsalo o replica el patrón para cualquier PDF nuevo.
 
+### 0-ter. NADA de emoticonos en la UI: siempre iconos SVG profesionales
+**(Regla del usuario, 2026-07-20.)** En TODO el proyecto, cualquier icono visible se hace con **SVG de línea** (estilo feather: `viewBox="0 0 24 24"`, `fill="none"`, `stroke="currentColor"`, `stroke-width="2"`, linecap/linejoin round), nunca con emoticonos. **Excepciones permitidas**: las banderas del selector de idioma/prefijos telefónicos y los glifos tipográficos ✕ / ⚠ / ★. Los emojis en comentarios de código no importan (no son UI). `aceptar-carga.html` tiene un helper `svgIco()` + set `ICO` reutilizable.
+
 ### 1. Push: automático a PREVIEW, con confirmación a PRODUCCIÓN
 **(Actualizado 2026-07-12 a petición del usuario: "sube directo sin preguntarme".)**
 
