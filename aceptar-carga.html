@@ -179,6 +179,17 @@
     .reserva-banner .rb-timer { font-size: 1.05rem; font-weight: 900; color: var(--purple); font-variant-numeric: tabular-nums; }
     .reserva-banner.urgent { background: #fde3e3; border-color: #f0a5a5; color: #b42318; }
     .reserva-banner.urgent .rb-timer { color: var(--red); }
+    /* Spinner que se VACÍA durante los 2 primeros minutos (como el de la web
+       pública). @property permite animar el ángulo del conic-gradient. */
+    @property --rb-progress { syntax: '<angle>'; initial-value: 360deg; inherits: false; }
+    .rb-spin {
+        width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; --rb-progress: 360deg;
+        background: conic-gradient(var(--purple) 0deg var(--rb-progress), rgba(51,0,204,0.16) var(--rb-progress) 360deg);
+        position: relative; animation: rbDrain linear forwards;
+    }
+    .rb-spin::before { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: #ece8fb; }
+    @keyframes rbDrain { from { --rb-progress: 360deg; } to { --rb-progress: 0deg; } }
+    @media (prefers-reduced-motion: reduce) { .rb-spin { animation: none; --rb-progress: 180deg; } }
     .foot { margin-top: 1rem; font-size: 0.75rem; color: var(--gray-500); text-align: center; }
     .foot a { color: var(--purple); font-weight: 700; text-decoration: none; }
     /* Botones de contacto (Llamar / WhatsApp / Email) */
@@ -1270,12 +1281,20 @@
     function iniciarReserva(segundos) {
         var banner = document.getElementById('reservaBanner');
         var quedan = segundos;
+        var calmDur = Math.max(1, segundos - 60); // duración del tramo "tranquilo" (spinner)
+        var calmBuilt = false;
         function pinta() {
             // El contador SOLO se muestra en el último minuto (para no poner
-            // nervioso al chófer). Antes, un mensaje tranquilo sin número.
+            // nervioso al chófer). Antes, un mensaje tranquilo con SPINNER que se
+            // vacía a lo largo de esos 2 minutos (se construye una sola vez para
+            // no reiniciar la animación cada segundo).
             if (quedan > 60) {
-                banner.classList.remove('urgent');
-                banner.innerHTML = '<span>⏳ <strong>Reserva temporal.</strong> Tómate tu tiempo para completar y aceptar la carga; te avisaremos cuando quede poco antes de que se libere.</span>';
+                if (!calmBuilt) {
+                    calmBuilt = true;
+                    banner.classList.remove('urgent');
+                    banner.innerHTML = '<span class="rb-spin" style="animation-duration:' + calmDur + 's"></span>' +
+                        '<span><strong>Reserva temporal.</strong> Tómate tu tiempo para completar y aceptar la carga; te avisaremos cuando quede poco antes de que se libere.</span>';
+                }
             } else {
                 var mm = Math.floor(quedan / 60), ss = quedan % 60;
                 banner.classList.add('urgent');
