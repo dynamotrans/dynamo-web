@@ -10343,6 +10343,18 @@
     }
     function asigTraPick(i) {
         var t = TRANSPORTISTAS_DATA[i]; if (!t) return;
+        // Al elegir OTRO transportista distinto del asignado, se LIMPIAN los
+        // datos del vehículo/conductor (matrículas, conductor, teléfono): eran
+        // del anterior y no valen para el nuevo. Si se re-elige el mismo, se
+        // conservan. (La preselección de afterOpen elige el asignado → no limpia.)
+        (function () {
+            var c = window._asigTraRef ? findCargaDataByRef(window._asigTraRef) : null;
+            if (!c || t.empresa === c.transportistaNombre) return;
+            ['asig-f-matricula', 'asig-f-remolque', 'asig-f-conductor'].forEach(function (id) {
+                var el = document.getElementById(id); if (el) el.value = '';
+            });
+            var tf = document.getElementById('asig-f-tfnocond'); if (tf) tf.value = '';
+        })();
         _asigTraSel = i;
         var inp = document.getElementById('asigTraSearch'), list = document.getElementById('asigTraList'),
             wrap = document.getElementById('asigTraCombo'), x = document.getElementById('asigTraClearBtn');
@@ -10485,6 +10497,9 @@
                 '<p style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;margin:0.6rem 0 0;">Las matrículas solo admiten letras y números (sin guiones ni otros caracteres). Con camión RÍGIDO solo se rellena la tractora. Matrículas y conductor pueden añadirse después si aún no están cerrados: el envío quedará como «Confirmado transportista» y la matrícula «por asignar».</p>' +
                 '<p class="alm-err" id="asigTraErr"></p>',
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
+                // Con transportista asignado: opción de QUITARLO sin poner otro
+                // (canceló y aún no hay sustituto) → vuelve a Pendiente de asignar.
+                (yaTiene ? '<button class="btn-secondary" style="color:#b42318;border-color:#f5b5b5;" onclick="quitarTransportistaEnvio(\'' + escapeHtml(ref) + '\')">Quitar transportista · dejar pendiente de asignar</button>' : '') +
                 '<button class="btn-primary" onclick="asignarTransportistaGuardar(\'' + escapeHtml(ref) + '\')">' + (yaTiene ? 'Guardar cambios' : 'Asignar transportista') + '</button>',
             afterOpen: function () {
                 // Si ya tiene transportista y está en la base, dejarlo elegido.
@@ -10572,6 +10587,31 @@
         });
     }
     window.asignarTransportistaGuardar = asignarTransportistaGuardar;
+    // QUITAR el transportista sin asignar otro (p. ej. canceló y aún no hay
+    // sustituto): el envío vuelve a PENDIENTE DE ASIGNAR y se limpian los
+    // datos que eran suyos (matrículas, conductor, teléfono, fecha y franja).
+    function quitarTransportistaEnvio(ref) {
+        var c = findCargaDataByRef(ref); if (!c) return;
+        var quien = c.transportistaNombre || 'el transportista';
+        c.transportistaNombre = null;
+        c.transportistaAsignado = false;
+        c.matricula = null;
+        c.matriculaRemolque = null;
+        c.conductor = null;
+        c.tfnoConductor = null;
+        c.fechaAsignada = null;
+        c.franjaCarga = null;
+        c.horaCargaEst = null;
+        c.modificadoEn = Date.now();
+        closeDashModal();
+        if (typeof renderCargasTable === 'function') renderCargasTable();
+        if (typeof renderMiniEnvios === 'function') renderMiniEnvios();
+        showLoadingOverlay('Quitando transportista…', 900, function () {
+            showModalSuccess('Envío pendiente de asignar', 'Se ha quitado a ' + quien + ' del envío ' + ref +
+                '. El envío vuelve a quedar PENDIENTE DE ASIGNAR (sin matrículas, conductor ni fecha de carga asignada) hasta que asignes otro transportista.');
+        });
+    }
+    window.quitarTransportistaEnvio = quitarTransportistaEnvio;
 
     // ==================== USUARIOS (catálogo interno, SOLO ADMIN) ====================
     // Un usuario = un EMAIL de acceso, asociado a un empleado, cliente,
