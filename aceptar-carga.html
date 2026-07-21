@@ -371,6 +371,22 @@
             </div>
         </div>
 
+        <!-- 0-quater) FALLO DE SERVIDOR / MANTENIMIENTO: la comprobación de
+             disponibilidad no obtiene respuesta del backend (timeout/error).
+             Mock: estado=mantenimiento en la URL. -->
+        <div class="stop-screen" id="errorScreen">
+            <div class="stop-ico amber"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
+            <h1>Estamos haciendo labores de mantenimiento</h1>
+            <p class="sub" style="font-size:1.02rem;font-weight:700;color:var(--navy);">En este momento no podemos comprobar la disponibilidad de la carga.<br>Por favor, <strong>vuelve a intentarlo más tarde</strong> o contáctanos:</p>
+            <button type="button" class="dudas-toggle" style="margin-top:0.8rem;" aria-expanded="false" onclick="toggleDudas(this)">Contáctanos <span class="dt-chev" aria-hidden="true">▾</span></button>
+            <div class="contact-btns" hidden>
+                <a class="cbtn cbtn-call" href="tel:+34955225945"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar</a>
+                <a class="cbtn cbtn-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</a>
+                <a class="cbtn cbtn-mail" href="mailto:info@dynamotrans.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>Email</a>
+            </div>
+            <button type="button" class="btn" style="max-width:340px;margin:1.1rem auto 0;display:block;" onclick="location.reload()">Volver a intentarlo</button>
+        </div>
+
         <!-- 0-ter) TIEMPO AGOTADO: pasaron los 4 min de reserva y la carga se
              ha liberado; hay que volver a comprobar disponibilidad. -->
         <div class="stop-screen" id="expiredScreen">
@@ -1714,7 +1730,7 @@
     //  · disponible     → formulario + contador de reserva (por defecto 120 s).
     // Si el contador llega a 0 sin aceptar, la carga se libera (hay que recargar).
     function mostrarPantalla(id) {
-        ['checkScreen', 'takenScreen', 'expiredScreen'].forEach(function (s) {
+        ['checkScreen', 'takenScreen', 'expiredScreen', 'errorScreen'].forEach(function (s) {
             var el = document.getElementById(s); if (el) el.classList.toggle('show', s === id);
         });
         var fs = document.getElementById('formScreen');
@@ -1892,6 +1908,10 @@
         // Consulta al backend (mock). estado=tomada fuerza "no disponible".
         comprobarDisponibilidad(dur, function () {
             var est = q('estado', 'libre');
+            // FALLO de servidor / mantenimiento: la consulta no responde
+            // (en producción: timeout o error del backend) → pantalla de
+            // mantenimiento con contacto. Mock: estado=mantenimiento.
+            if (est === 'mantenimiento' || est === 'error') { mostrarPantalla('errorScreen'); return; }
             if (est === 'tomada') { mostrarTomada(false); return; }
             // Reservada por otro transportista dentro de su tiempo (aún sin aceptar).
             if (est === 'tramite' || est === 'reservada') { mostrarTomada(true); return; }
