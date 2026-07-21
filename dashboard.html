@@ -18084,10 +18084,18 @@
             var ph = document.createElement('option');
             ph.value = ''; ph.disabled = true; ph.selected = true; ph.textContent = 'Toneladas';
             sel.appendChild(ph);
-            for (var i = 1; i <= pesoMax; i++) {
+            // Tramos en KILOS por debajo de 1 tonelada (cargas pequeñas): el
+            // value es el tope del tramo en toneladas (0,2 · 0,4 · 0,6 · 0,8 · 1).
+            [[0.2, 'De 0 a 200 kg'], [0.4, 'De 200 a 400 kg'], [0.6, 'De 400 a 600 kg'],
+             [0.8, 'De 600 a 800 kg'], [1, 'De 800 kg a 1 tonelada']].forEach(function (t) {
+                var o = document.createElement('option');
+                o.value = String(t[0]); o.textContent = t[1];
+                sel.appendChild(o);
+            });
+            for (var i = 2; i <= pesoMax; i++) {
                 var opt = document.createElement('option');
                 opt.value = i;
-                opt.textContent = i + (i === 1 ? ' tonelada' : ' toneladas') + (i === pesoMax ? ' (máximo)' : '');
+                opt.textContent = i + ' toneladas' + (i === pesoMax ? ' (máximo)' : '');
                 sel.appendChild(opt);
             }
             // Por defecto: peso máximo (24 Tn en Tauliner; 14 en rígido).
@@ -19056,20 +19064,21 @@
                 // (Regla del usuario 2026-07-21, también anotada en TODO para el
                 // backend.) Solo con TAULINER a carga completa (13,2 m): si va
                 // lleno de metros pero el peso es bajo, escala de descuento sobre
-                // la base imponible, redondeado a la DECENA SUPERIOR:
-                //   0-6 Tn → −4% · 6-12 Tn → −3% · 12-18 Tn → −2% · 18-24 → íntegro.
+                // el IMPORTE DE ENVÍO (no sobre la base total tras sumar recargos
+                // y suplementos), redondeado a la DECENA SUPERIOR:
+                //   0-6 Tn → −3,5% · 6-12 Tn → −2,5% · 12-18 Tn → −1,5% · 18-24 → íntegro.
                 var descPeso = 0, descPesoLbl = '';
                 (function () {
                     var mlSelV = mlSel ? (mlSel.value === '13.2' ? 13.2 : parseFloat(mlSel.value)) : 0;
                     var tnV = pesoSel ? (parseFloat(pesoSel.value) || 0) : 0;
                     var esRigido = trampOn && trampOn.checked; // trampilla → rígido
                     if (esRigido || mlSelV < 13.2 || !tnV || tnV > 18) return;
-                    var pct, tramo;
-                    if (tnV <= 6) { pct = 0.04; tramo = '0 a 6'; }
-                    else if (tnV <= 12) { pct = 0.03; tramo = '6 a 12'; }
-                    else { pct = 0.02; tramo = '12 a 18'; }
-                    descPeso = Math.ceil(precio * pct / 10) * 10; // decena SUPERIOR
-                    descPesoLbl = 'Descuento peso entre ' + tramo + ' Tn (−' + Math.round(pct * 100) + '%)';
+                    var pct, pctLbl, tramo;
+                    if (tnV <= 6) { pct = 0.035; pctLbl = '3,5'; tramo = '0 a 6'; }
+                    else if (tnV <= 12) { pct = 0.025; pctLbl = '2,5'; tramo = '6 a 12'; }
+                    else { pct = 0.015; pctLbl = '1,5'; tramo = '12 a 18'; }
+                    descPeso = Math.ceil(envioBase * pct / 10) * 10; // sobre el Importe de envío, decena SUPERIOR
+                    descPesoLbl = 'Descuento peso entre ' + tramo + ' Tn (−' + pctLbl + '% del importe de envío)';
                     precio -= descPeso;
                 })();
                 if (descPeso) detalle.push({ k: descPesoLbl, v: -descPeso });
