@@ -244,6 +244,8 @@
     .reserva-banner .rb-timer { font-size: 1.05rem; font-weight: 900; color: var(--purple); font-variant-numeric: tabular-nums; }
     .reserva-banner.urgent { background: #fde3e3; border-color: #f0a5a5; color: #b42318; }
     .reserva-banner.urgent .rb-timer { color: var(--red); }
+    /* Reserva EN PAUSA (mientras se analiza la contraoferta): verde claro de la casa. */
+    .reserva-banner.paused { background: rgba(34,165,90,0.1); border-color: var(--green); color: var(--green-dark); }
     /* Spinner que se VACÍA durante los 2 primeros minutos (como el de la web
        pública). @property permite animar el ángulo del conic-gradient. */
     @property --rb-progress { syntax: '<angle>'; initial-value: 360deg; inherits: false; }
@@ -1744,12 +1746,14 @@
             restantePausa = Math.max(0, fin - new Date().getTime());
             if (window._reservaTimer) clearInterval(window._reservaTimer);
             banner.classList.remove('urgent');
-            banner.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;color:var(--purple);"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>' +
+            banner.classList.add('paused');
+            banner.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;color:var(--green-dark);"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>' +
                 '<span><strong>Reserva EN PAUSA</strong> mientras analizamos tu precio: este tiempo no te corre. Se reanuda en cuanto tengas respuesta.</span>';
         };
         window._reservaReanudar = function () {
             if (!window._reservaPausada || window._reservaExpirada || window._reservaCerrada) return;
             window._reservaPausada = false;
+            banner.classList.remove('paused');
             fin = new Date().getTime() + restantePausa;
             // Reconstruir el tramo que toque con la duración RESTANTE (el
             // spinner tranquilo vuelve a vaciarse con lo que quede).

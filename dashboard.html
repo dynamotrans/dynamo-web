@@ -5202,6 +5202,15 @@
                     <label class="ptar-admin-precio-lbl" for="ptar-precio-transp-carga" style="margin-top:0.6rem;">Transportista manual (base sin IVA)</label>
                     <input type="number" id="ptar-precio-transp-carga" data-ptar-precio-transp min="0" step="10" inputmode="decimal" placeholder="Se autorrellena con la compra más baja">
                     <p class="ptar-admin-precio-note">Se autorrellena con la compra <strong>más baja</strong> de la tabla (tarifador o último envío más barato de esta ruta, sea del transportista que sea) y es editable. Al guardar queda como <strong>P. transportista provisional</strong> del envío — de ahí sale el margen provisional — y se ajusta después al cerrar la negociación (Asignar transportista o el editor de precios).</p>
+                    <!-- NEGOCIABLE: variable POR ENVÍO. Con la marca, la oferta al
+                         transportista deja proponer otro precio (±10 % SIEMPRE
+                         sobre este P. transportista de salida); sin ella, precio
+                         cerrado. El modal "Ofrecer carga" la lee como valor
+                         inicial (y puede cambiarla en el momento). -->
+                    <label style="display:flex;gap:0.5rem;align-items:flex-start;margin-top:0.6rem;padding:0.5rem 0.65rem;background:rgba(51,0,204,0.05);border:1px solid rgba(51,0,204,0.2);border-radius:9px;font-size: var(--fs-m);font-weight:700;color:var(--navy);cursor:pointer;">
+                        <input type="checkbox" id="ptar-precio-neg" data-ptar-precio-neg checked style="margin-top:2px;">
+                        <span>Precio <strong>NEGOCIABLE</strong> para el transportista: al ofrecer la carga podrá proponer otro precio (<strong>±10&nbsp;%</strong> sobre este precio de salida). Desmárcalo para ofertar a <strong>precio cerrado</strong>.</span>
+                    </label>
                 </div>
                 <!-- Precio acordado con SU transportista (solo modo manual):
                      opcional, para que el cliente tenga todo a mano y salga
@@ -11424,7 +11433,10 @@
                 'Dynamo Operador de Transportes · +34 955 225 945 · info@dynamotrans.com';
         }
         window._ofertaNegData = { linkOn: link + '&neg=1', linkOff: link, msgOn: buildMsg(true), msgOff: buildMsg(false) };
-        var msg = buildMsg(true); // por defecto la oferta sale negociable
+        // Valor inicial: la marca NEGOCIABLE del envío (checkbox del bloque de
+        // precios internos de crear envío); aquí se puede cambiar al vuelo.
+        var negIni = c.precioNegociable !== false;
+        var msg = buildMsg(negIni);
         openDashModal({
             icon: 'truck',
             title: 'Ofrecer carga ' + c.ref,
@@ -11433,7 +11445,7 @@
                 '<p style="font-size: var(--fs-l);line-height:1.5;color:var(--gray-700);margin-bottom:0.7rem;">Envía esta oferta por <strong>WhatsApp o email</strong> (puedes editarla antes). El enlace abre la página de <strong>aceptación</strong> donde el transportista rellena empresa, matrículas, chófer y teléfono' + (ppOn ? ', y puede marcar <strong>pronto pago 48&nbsp;h (−3%, mín. 15&nbsp;€)</strong>.' : '.') + '</p>' +
                 (ppOn ? '' : '<div style="margin-bottom:0.7rem;padding:0.55rem 0.7rem;background:#fdecec;border:1px solid #f5b5b5;border-radius:9px;font-size: var(--fs-m);font-weight:700;color:#b42318;">⛔ PRONTO PAGO no disponible (línea agotada o apagado manualmente): esta oferta sale SIN esa opción. Revísalo en Dashboard admin.</div>') +
                 (pt ? '<label style="display:flex;gap:0.55rem;align-items:flex-start;margin-bottom:0.7rem;padding:0.55rem 0.7rem;background:rgba(51,0,204,0.05);border:1px solid rgba(51,0,204,0.2);border-radius:9px;font-size: var(--fs-m);font-weight:700;color:var(--navy);cursor:pointer;">' +
-                    '<input type="checkbox" id="ofertaNeg" checked onchange="ofertaNegSync()" style="margin-top:2px;">' +
+                    '<input type="checkbox" id="ofertaNeg"' + (negIni ? ' checked' : '') + ' onchange="ofertaNegSync()" style="margin-top:2px;">' +
                     '<span>Precio <strong>NEGOCIABLE</strong>: el transportista puede proponer otro precio (barra <strong>±10&nbsp;%</strong>) y lo aprobamos o rechazamos nosotros. Desmárcalo para ofertar a <strong>precio cerrado</strong> (sin opción de proponer).</span></label>' : '') +
                 '<textarea id="ofertaTxt" rows="13" style="width:100%;box-sizing:border-box;padding:0.7rem 0.8rem;border:1.5px solid var(--gray-200);border-radius:10px;font:inherit;font-size: var(--fs-m);color:var(--navy);resize:vertical;">' + escapeHtml(msg) + '</textarea>' +
                 '<div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.8rem;">' +
@@ -11442,7 +11454,7 @@
                 '</div>' +
                 '<div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.6rem;">' +
                     '<button type="button" class="btn-secondary" style="flex:1;min-width:180px;" onclick="ofrecerPor(\'copiar\')" id="ofertaCopyBtn">Copiar el mensaje</button>' +
-                    '<a class="btn-secondary" id="ofertaVerLink" style="flex:1;min-width:180px;text-align:center;text-decoration:none;" href="' + escapeHtml(pt ? link + '&neg=1' : link) + '" target="_blank" rel="noopener">Ver página de aceptación →</a>' +
+                    '<a class="btn-secondary" id="ofertaVerLink" style="flex:1;min-width:180px;text-align:center;text-decoration:none;" href="' + escapeHtml(pt && negIni ? link + '&neg=1' : link) + '" target="_blank" rel="noopener">Ver página de aceptación →</a>' +
                 '</div>',
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>'
         });
@@ -11459,6 +11471,9 @@
         if (ta) ta.value = on ? d.msgOn : d.msgOff;
         var a = document.getElementById('ofertaVerLink');
         if (a) a.href = on ? d.linkOn : d.linkOff;
+        // El cambio se guarda en el ENVÍO (es su variable precioNegociable).
+        var c = (typeof findCargaDataByRef === 'function' && window._ofertaRef) ? findCargaDataByRef(window._ofertaRef) : null;
+        if (c) c.precioNegociable = on;
     }
     window.ofertaNegSync = ofertaNegSync;
     function ofrecerPor(via) {
@@ -20035,6 +20050,11 @@
                         var v = el ? parseFloat(String(el.value).replace(',', '.')) : NaN;
                         return (v > 0) ? Math.round(v * 100) / 100 : null;
                     })(),
+                    // ¿Precio NEGOCIABLE para el transportista? (variable por envío)
+                    precioNegociable: (function () {
+                        var el = card.querySelector('[data-ptar-precio-neg]');
+                        return el ? !!el.checked : true;
+                    })(),
                     origSitePick: sitePickDe(origWrap),
                     destSitePick: sitePickDe(destWrap),
                     origTipo: (function () { var t = card.querySelector('[data-ptar-tipoorig]'); return t ? t.value : null; })(),
@@ -20258,6 +20278,7 @@
                             nuevaCarga._rowsCli = prevCarga._rowsCli;
                             nuevaCarga.precioManual = true;
                         }
+                        nuevaCarga.precioNegociable = d.precioNegociable !== false;
                         // Precio de compra (transportista): el del campo del
                         // formulario si se tocó; si no, se conserva el previo.
                         if (prevCarga) {
@@ -20273,6 +20294,7 @@
                     } else {
                         // Envío NUEVO: el P. transportista provisional del campo
                         // (autorrellenado o editado) queda fijado desde el alta.
+                        nuevaCarga.precioNegociable = d.precioNegociable !== false;
                         if (d.precioTraVal != null && !nuevaCarga.manual) {
                             nuevaCarga.precioTransportista = d.precioTraVal;
                             nuevaCarga._rowsTra = [{ k: 'Porte transportista', v: d.precioTraVal }];
