@@ -673,9 +673,13 @@
                      resolverBuscar; en modo alta queda vacío. -->
                 <div id="er-confirm"></div>
 
-                <div class="warn" id="fWarn">⚠ Revisa los campos marcados: son obligatorios.</div>
-                <button type="button" class="btn" onclick="aceptar()">Aceptar carga</button>
             </div>
+
+            <!-- Botón SIEMPRE visible al final, también sin identificarse:
+                 al pulsarlo, la validación resalta lo que falte (empezando
+                 por la identificación). -->
+            <div class="warn" id="fWarn">⚠ Revisa los campos marcados: son obligatorios.</div>
+            <button type="button" class="btn" onclick="aceptar()">Aceptar carga</button>
         </div>
 
         <div class="ok-screen" id="okScreen">
@@ -1063,6 +1067,9 @@
         var val = normId(idInput.value);
         if (!val) { idInput.classList.add('err'); return; }
         idInput.classList.remove('err');
+        // Si el aviso rojo era por falta de identificación, se oculta al buscar.
+        var fw = document.getElementById('fWarn');
+        if (fw) fw.classList.remove('show');
         if (window._buscando) return;
         window._buscando = true;
         // Limpiar resultados previos y bloquear la pantalla.
@@ -1649,7 +1656,16 @@
     // Validación completa del formulario (identidad + campos obligatorios).
     // La comparte "Aceptar carga" con "Aceptar al NUEVO precio" (contraoferta).
     function validarAceptar() {
-        if (!window._empresaSel && !window._altaMode) { document.getElementById('f-buscar-id').classList.add('err'); document.getElementById('f-buscar-id').scrollIntoView({ block: 'center', behavior: 'smooth' }); return false; }
+        var warn = document.getElementById('fWarn');
+        // Sin identificarse aún: el botón está siempre visible, así que se
+        // resalta la caja de identificación y se avisa de lo que falta.
+        if (!window._empresaSel && !window._altaMode) {
+            document.getElementById('f-buscar-id').classList.add('err');
+            if (warn) { warn.textContent = '⚠ Identifícate arriba (CIF/DNI, código de bolsa, móvil o nombre de empresa) para poder aceptar la carga.'; warn.classList.add('show'); }
+            document.getElementById('f-buscar-id').scrollIntoView({ block: 'center', behavior: 'smooth' });
+            return false;
+        }
+        if (warn) warn.textContent = '⚠ Revisa los campos marcados: son obligatorios.';
         // Empresa YA existente: confirmar identidad con los 3 últimos dígitos
         // del teléfono de su ficha.
         if (window._empresaSel && !window._altaMode) {
@@ -1682,7 +1698,6 @@
             el.classList.toggle('err', bad);
             if (bad) ok = false;
         });
-        var warn = document.getElementById('fWarn');
         warn.classList.toggle('show', !ok);
         if (!ok) { document.querySelector('.err').scrollIntoView({ block: 'center', behavior: 'smooth' }); return false; }
         return true;
