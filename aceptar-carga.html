@@ -887,12 +887,7 @@
             if (!tg || isNaN(base) || base <= 0) return;
             if (q('neg', demo ? '1' : '0') !== '1') return; // precio cerrado
             tg.hidden = false;
-            var amp = Math.max(10, Math.round(base * 0.10 / 10) * 10);
-            var r = document.getElementById('contraRange');
-            r.min = Math.max(0, base - amp); r.max = base + amp; r.step = 10; r.value = base;
-            document.getElementById('contraMin').textContent = fmtEur(Math.max(0, base - amp)) + ' €';
-            document.getElementById('contraMax').textContent = fmtEur(base + amp) + ' €';
-            contraPinta();
+            contraInitRange();
         })();
         // Tipo de camión: el RÍGIDO (máx 8 m / 14 Tn) no se ofrece si la carga
         // excede esos límites (no cabe). Se quita del desplegable.
@@ -1394,8 +1389,30 @@
         finalizarAceptacion();
     }
     // ---- CONTRAOFERTA: proponer otro precio (barra ±10 %, pasos de 10 €) ----
+    // Monta la barra sobre el precio VIGENTE (±10 % redondeado a 10 €, pasos
+    // de 10 €). Se re-llama tras cada decisión: si Dynamo aceptó un precio, la
+    // siguiente propuesta parte del precio acordado.
+    function contraInitRange() {
+        var base = window._basePrecio;
+        var r = document.getElementById('contraRange');
+        if (!r || isNaN(base) || base <= 0) return;
+        var amp = Math.max(10, Math.round(base * 0.10 / 10) * 10);
+        r.min = Math.max(0, base - amp); r.max = base + amp; r.step = 10; r.value = base;
+        document.getElementById('contraMin').textContent = fmtEur(Math.max(0, base - amp)) + ' €';
+        document.getElementById('contraMax').textContent = fmtEur(base + amp) + ' €';
+        contraPinta();
+    }
     function toggleContra() {
         var b = document.getElementById('contraBox'), t = document.getElementById('contraToggle');
+        var abriendo = b.hidden;
+        // Al REABRIR tras una decisión (aceptada o rechazada) vuelve el
+        // selector, recalculado sobre el precio vigente, por si quiere
+        // proponer otro. Mientras se analiza (pendiente) se respeta el estado.
+        if (abriendo && !window._contraPendiente) {
+            document.getElementById('contraFormPane').hidden = false;
+            document.getElementById('contraStatusPane').hidden = true;
+            contraInitRange();
+        }
         b.hidden = !b.hidden;
         t.classList.toggle('open', !b.hidden);
         setTimeout(updateScrollHint, 60);
@@ -1433,13 +1450,15 @@
             '<div class="cs-box">' + boxTxt + '</div></div>';
         document.getElementById('contraFormPane').hidden = true;
         pane.hidden = false;
+        window._contraPendiente = true; // analizando: no resetear el panel
         var cpd = q('cpd', 'ok'), cpt = parseInt(q('cpt', '6'), 10); if (isNaN(cpt) || cpt < 1) cpt = 6;
         setTimeout(function () {
+            window._contraPendiente = false; // decidido: al reabrir, selector de nuevo
             if (cpd === 'no') {
                 pane.innerHTML = '<div class="contra-status">' +
                     '<div class="cs-no" aria-hidden="true">✕</div>' +
                     '<div class="cs-title" style="color:var(--red);">No podemos aceptar tu precio</div>' +
-                    '<div class="cs-sub">Tu propuesta de <strong>' + escH(fmtEur(np) + ' €') + '</strong> no se ha aceptado.<br>Sigue en pie la oferta original de <strong>' + escH(fmtEur(base) + ' €') + '</strong>: identifícate abajo y acepta la carga.</div></div>';
+                    '<div class="cs-sub">Tu propuesta de <strong>' + escH(fmtEur(np) + ' €') + '</strong> no se ha aceptado.<br>Sigue en pie la oferta original de <strong>' + escH(fmtEur(base) + ' €') + '</strong>: identifícate abajo y acepta la carga, o vuelve a abrir «Puedo aceptarla, pero a OTRO precio» para proponer otro.</div></div>';
             } else {
                 aplicarNuevoPrecio(np);
             }
@@ -1457,10 +1476,11 @@
         if (pago && !document.getElementById('v-acordado')) {
             pago.insertAdjacentHTML('beforeend', '<div id="v-acordado" style="font-size:0.8rem;font-weight:800;margin-top:0.25rem;">Precio ACORDADO tras tu propuesta (aceptada por Dynamo). Identifícate abajo para aceptar la carga.</div>');
         }
-        // Con el precio ya pactado no se puede volver a proponer otro.
+        // El panel se PLIEGA (no se elimina): se puede reabrir para proponer
+        // otro precio — la barra se recalcula sobre el precio acordado.
         var tg = document.getElementById('contraToggle'), bx = document.getElementById('contraBox');
-        if (tg) tg.hidden = true;
         if (bx) bx.hidden = true;
+        if (tg) tg.classList.remove('open');
         renderProntoCalc(); // el pronto pago recalcula sobre el precio acordado
         if (pago) pago.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
