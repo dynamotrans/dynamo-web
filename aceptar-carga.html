@@ -405,40 +405,24 @@
                 <span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;color:var(--purple);"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 7.828V2"/></svg> <strong>Reserva temporal.</strong> Tómate tu tiempo para completar y aceptar la carga; te avisaremos cuando quede poco antes de que se libere.</span>
             </div>
 
-            <dl class="viaje" id="viajeBox"></dl>
+            <!-- Nº de envío + IDENTIFICACIÓN, lo primero: el transportista se
+                 identifica (CIF/DNI o código de bolsa) nada más entrar; la oferta
+                 (ruta, mercancía, precio) va debajo. -->
+            <div class="of-envio"><span class="of-envio-lbl">Envío</span><span id="v-ref">—</span></div>
 
-            <!-- CONTRAOFERTA: proponer OTRO precio (barra ±10 %, pasos de 10 €). Se envía a
-                 Dynamo y se confirma en esta pantalla (y por email). MOCKUP:
-                 la decisión se simula (cpd=ok|no, cpt=segundos). -->
-            <button type="button" class="contra-toggle" id="contraToggle" hidden onclick="toggleContra()">Puedo aceptarla, pero a OTRO precio <span class="ct-chev" aria-hidden="true">▾</span></button>
-            <div class="contra-box" id="contraBox" hidden>
-                <!-- Capa 1: proponer. Capa 2 (contraStatusPane): "analizando tu
-                     precio" / rechazo, EN EL MISMO HUECO, sin cambiar de pantalla. -->
-                <div id="contraFormPane">
-                    <label for="contraRange" style="margin-top:0;">Propón tu precio · hasta un ±10 % sobre la oferta</label>
-                    <input type="range" id="contraRange" min="0" max="100" step="5" value="50" oninput="contraPinta()">
-                    <div class="contra-minmax"><span id="contraMin">—</span><span id="contraMax">—</span></div>
-                    <div class="contra-precio"><span id="contraPrecio">—</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>
-                    <div class="contra-delta" id="contraDelta">Igual que la oferta</div>
-                    <button type="button" class="btn btn-contra" onclick="aceptarContra()">Proponer este NUEVO precio</button>
-                    <p class="contra-nota">No hace falta identificarte para proponerlo. <strong>En unos instantes te confirmamos en esta misma pantalla</strong> si aceptamos tu precio: si lo aceptamos, volverás a la oferta con el <strong>nuevo precio ya aplicado</strong> para identificarte, revisar los detalles y aceptar la carga; si no, te lo diremos aquí mismo.</p>
-                </div>
-                <div id="contraStatusPane" hidden></div>
-            </div>
-
-            <!-- 1) IDENTIFICACIÓN: escribe tu CIF/DNI y pulsa Buscar. Se oculta al
-                 identificarse (queda "No soy yo / cambiar" en el resumen). -->
+            <!-- 1) IDENTIFICACIÓN: escribe tu CIF/DNI o código de bolsa y pulsa
+                 Buscar. Se oculta al identificarse (queda "No soy yo / cambiar"). -->
             <div id="identBlock">
                 <div class="sec-title" style="border-top:none;padding-top:0;margin-top:0;">Identifícate</div>
-                <label for="f-buscar-id">Tu CIF o DNI *</label>
+                <label for="f-buscar-id">Tu CIF, DNI o código de bolsa de carga *</label>
                 <div class="idrow">
-                    <input type="text" id="f-buscar-id" placeholder="B12345678 o 29876543P" autocapitalize="characters" autocomplete="off">
+                    <input type="text" id="f-buscar-id" placeholder="B12345678, 29876543P o 482113" autocapitalize="characters" autocomplete="off">
                     <button type="button" class="btn-buscar" onclick="buscarEmpresa()">Buscar</button>
                     <ul class="ac-list" id="ac-buscar"></ul>
                 </div>
-                <p class="id-hint">Escribe tu <strong>CIF</strong> (empresa) o <strong>DNI/NIE</strong> (autónomo) y pulsa <strong>Buscar</strong>: aparecerán tus datos para que no tengas que escribirlos.<br><span style="color:var(--gray-500);">Demo: prueba <strong>B58830217</strong>, <strong>B72153042</strong> o <strong>29876543P</strong>.</span></p>
+                <p class="id-hint">Escribe tu <strong>CIF</strong> (empresa), <strong>DNI/NIE</strong> (autónomo) o tu <strong>código de bolsa de carga</strong> y pulsa <strong>Buscar</strong>: aparecerán tus datos para que no tengas que escribirlos.<br><span style="color:var(--gray-500);">Demo: prueba <strong>B58830217</strong>, <strong>29876543P</strong> o el código de bolsa <strong>482113</strong>.</span></p>
                 <div class="buscando" id="buscandoMsg"><span class="spin"></span>Consultando la base de Dynamo…</div>
-                <div class="id-nofound" id="idNoFound">No encontramos ese CIF/DNI en nuestra base. Revísalo, o contacta con Dynamo para darte de alta.</div>
+                <div class="id-nofound" id="idNoFound">No encontramos ese CIF/DNI ni ese código de bolsa en nuestra base. Revísalo, o contacta con Dynamo para darte de alta.</div>
             </div>
 
             <!-- Resumen de la empresa encontrada -->
@@ -538,6 +522,29 @@
                 </div>
             </div>
 
+            <dl class="viaje" id="viajeBox"></dl>
+
+            <!-- CONTRAOFERTA: proponer OTRO precio (barra ±10 %, pasos de 10 €). Se envía a
+                 Dynamo y se confirma en esta pantalla (y por email). MOCKUP:
+                 la decisión se simula (cpd=ok|no, cpt=segundos). -->
+            <button type="button" class="contra-toggle" id="contraToggle" hidden onclick="toggleContra()">Puedo aceptarla, pero a OTRO precio <span class="ct-chev" aria-hidden="true">▾</span></button>
+            <div class="contra-box" id="contraBox" hidden>
+                <!-- Capa 1: proponer. Capa 2 (contraStatusPane): "analizando tu
+                     precio" / rechazo, EN EL MISMO HUECO, sin cambiar de pantalla. -->
+                <div id="contraFormPane">
+                    <label for="contraRange" style="margin-top:0;">Propón tu precio · hasta un ±10 % sobre la oferta</label>
+                    <input type="range" id="contraRange" min="0" max="100" step="5" value="50" oninput="contraPinta()">
+                    <div class="contra-minmax"><span id="contraMin">—</span><span id="contraMax">—</span></div>
+                    <div class="contra-precio"><span id="contraPrecio">—</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>
+                    <div class="contra-delta" id="contraDelta">Igual que la oferta</div>
+                    <button type="button" class="btn btn-contra" onclick="aceptarContra()">Proponer este NUEVO precio</button>
+                    <p class="contra-nota">No hace falta identificarte para proponerlo. <strong>En unos instantes te confirmamos en esta misma pantalla</strong> si aceptamos tu precio: si lo aceptamos, volverás a la oferta con el <strong>nuevo precio ya aplicado</strong> para identificarte, revisar los detalles y aceptar la carga; si no, te lo diremos aquí mismo.</p>
+                </div>
+                <div id="contraStatusPane" hidden></div>
+            </div>
+
+            
+            
             <!-- 2) Resto del formulario (aparece tras identificarse) -->
             <div id="restForm">
                 <div class="sec-title">Carga</div>
@@ -726,7 +733,7 @@
     // el backend busca en la base real y solo devuelve TU empresa).
     var TRANS_DEMO = [
         {
-            cif: 'B58830217', empresa: 'Transportes Iberia Express S.L.', ciudad: 'Madrid', flota: '8 camiones', bolsa: 'Wtransnet', tel: '+34 916 402 118', email: 'trafico@iberiaexpress-trans.es',
+            cif: 'B58830217', empresa: 'Transportes Iberia Express S.L.', ciudad: 'Madrid', flota: '8 camiones', bolsa: 'Wtransnet', bolsaCod: '482113', tel: '+34 916 402 118', email: 'trafico@iberiaexpress-trans.es',
             matriculas: ['4521 JKL', '7890 MNP', '1234 ABC'], remolques: ['R2345 DEF', 'R6677 GHJ'],
             pares: { '4521 JKL': 'R2345 DEF', '7890 MNP': 'R6677 GHJ', '1234 ABC': 'R2345 DEF' },
             paresChofer: { '4521 JKL': 0, '7890 MNP': 1, '1234 ABC': 0 },
@@ -736,7 +743,7 @@
             ]
         },
         {
-            cif: 'B72153042', empresa: 'LogiSur Cargo S.L.', ciudad: 'Sevilla', flota: '12 camiones', bolsa: 'Timocom', tel: '+34 954 771 530', email: 'operaciones@logisurcargo.com',
+            cif: 'B72153042', empresa: 'LogiSur Cargo S.L.', ciudad: 'Sevilla', flota: '12 camiones', bolsa: 'Timocom', bolsaCod: '917426', tel: '+34 954 771 530', email: 'operaciones@logisurcargo.com',
             matriculas: ['3344 SUR', '5566 CDZ'], remolques: ['R8899 SEV'],
             pares: { '3344 SUR': 'R8899 SEV', '5566 CDZ': '' },
             paresChofer: { '3344 SUR': 0, '5566 CDZ': 0 },
@@ -843,7 +850,7 @@
         ['2', '3'].forEach(function (n) { var v = q('d' + n, ''); if (v) entregas.push({ loc: v, hor: q('hd' + n, ''), tipo: q('dt' + n, '') }); });
         entregas.push({ loc: dest, hor: hd, tipo: q('dt', demo ? 'Obra' : '') });
         var merc  = q('m', 'Paletizado');
-        var ml    = q('ml', '6 m'), pal = q('pal', '6 europalets'), peso = q('peso', '8.000 kg');
+        var ml    = q('ml', '6 m'), peso = q('peso', '8.000 kg');
         var tc    = q('tc', 'Lateral y techo');
         var tram  = q('tram', '0') === '1' ? 'Sí' : 'No';
         var nima  = q('nima', '0') === '1' ? 'Sí' : 'No';
@@ -862,11 +869,11 @@
         var fecha = lista.length > 1 ? 'De ' + lista[0] + ' a ' + lista[lista.length - 1] : (lista[0] || 'Por confirmar');
         window._diasCarga = lista;
         // Detalle de la mercancía → chips en la tarjeta y línea del resumen
-        // aceptado. Orden en PAREJAS por fila: metros+palets · peso+tipo de
-        // carga · trampilla+NIMA. Los metros con la palabra completa ("6 metros").
+        // aceptado. Orden en PAREJAS por fila: metros+peso · tipo de carga+
+        // trampilla · NIMA. Los metros con la palabra completa ("6 metros").
+        // (Palets/bultos NO se muestra: el detalle de palets va en la orden de carga.)
         var vd = [];
         if (ml)   vd.push(['Metros lineales', String(ml).replace(/\s*m$/, ' metros')]);
-        if (pal)  vd.push(['Palets / bultos', pal]);
         if (peso) vd.push(['Peso', peso]);
         if (tc)   vd.push(['Tipo de carga', tc]);
         vd.push(['Trampilla elevadora', tram]);
@@ -905,9 +912,11 @@
             entregas.map(function (e) {
                 nOrden++; return ofPunto('of-pt-ent', nOrden, 'Entrega', e, '');
             }).join('');
-        // id="v-ref" y id="v-imp" se conservan (la pantalla de aceptado los lee).
+        // El nº de envío va en la píldora ESTÁTICA de arriba (sobre la
+        // identificación); aquí solo se rellena. id="v-imp" se conserva
+        // (la pantalla de aceptado lo lee).
+        document.getElementById('v-ref').textContent = envio;
         var html =
-            '<div class="of-envio"><span class="of-envio-lbl">Envío</span><span id="v-ref">' + escH(envio) + '</span></div>' +
             '<div class="of-route">' + routeHtml + '</div>' +
             '<div class="of-merc">' +
                 '<div class="of-merc-head"><span class="of-merc-ico">' + ICO.box + '</span><div>' +
@@ -1048,9 +1057,13 @@
     }
     function resolverBuscar(val) {
         var noFound = document.getElementById('idNoFound');
+        // La identificación acepta CIF/NIF **o** código de bolsa de carga: se
+        // busca en AMBAS columnas y con que case una, vale. (Backend: mismo
+        // criterio — buscar en la columna cif Y en la de código de bolsa.)
         var hit = null;
         for (var i = 0; i < TRANS_DEMO.length; i++) {
-            if (normId(TRANS_DEMO[i].cif) === val) { hit = TRANS_DEMO[i]; break; }
+            var t = TRANS_DEMO[i];
+            if (normId(t.cif) === val || (t.bolsaCod && normId(t.bolsaCod) === val)) { hit = t; break; }
         }
         if (!hit) {
             // NO está en la base → abrir el ALTA como transportista de Dynamo
@@ -1138,13 +1151,15 @@
         if (e.key === 'Enter') { e.preventDefault(); document.getElementById('ac-buscar').classList.remove('show'); buscarEmpresa(); }
     });
     // ---- Autocompletado del buscador: desde 4 caracteres, sugerencias de la
-    // base de transportistas por CIF/NIF o nombre (empresa/autónomo). ----
+    // base de transportistas por CIF/NIF, código de bolsa o nombre. ----
     function buscarSugerencias(val) {
         var raw = String(val || '').trim();
         if (raw.replace(/[^A-Za-z0-9]/g, '').length < 4) return [];
         var qId = normId(raw), qName = raw.toLowerCase();
         return TRANS_DEMO.filter(function (t) {
-            return normId(t.cif).indexOf(qId) >= 0 || String(t.empresa).toLowerCase().indexOf(qName) >= 0;
+            return normId(t.cif).indexOf(qId) >= 0 ||
+                (t.bolsaCod && normId(t.bolsaCod).indexOf(qId) >= 0) ||
+                String(t.empresa).toLowerCase().indexOf(qName) >= 0;
         }).slice(0, 6);
     }
     function renderBuscarAC() {
