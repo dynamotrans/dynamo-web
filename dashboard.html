@@ -5206,11 +5206,15 @@
                          transportista deja proponer otro precio (±10 % SIEMPRE
                          sobre este P. transportista de salida); sin ella, precio
                          cerrado. El modal "Ofrecer carga" la lee como valor
-                         inicial (y puede cambiarla en el momento). -->
-                    <label style="display:flex;gap:0.5rem;align-items:flex-start;margin-top:0.6rem;padding:0.5rem 0.65rem;background:rgba(51,0,204,0.05);border:1px solid rgba(51,0,204,0.2);border-radius:9px;font-size: var(--fs-m);font-weight:700;color:var(--navy);cursor:pointer;">
-                        <input type="checkbox" id="ptar-precio-neg" data-ptar-precio-neg checked style="margin-top:2px;">
-                        <span>Precio <strong>NEGOCIABLE</strong> para el transportista: al ofrecer la carga podrá proponer otro precio (<strong>±10&nbsp;%</strong> sobre este precio de salida). Desmárcalo para ofertar a <strong>precio cerrado</strong>.</span>
+                         inicial (y puede cambiarla en el momento). Mismo toggle
+                         que Trampilla/NIMA (nada de checkbox nativo). -->
+                    <label class="ptar-admin-precio-lbl" style="margin-top:0.6rem;">Precio para el transportista</label>
+                    <label class="ptar-tramp-box">
+                        <input type="checkbox" id="ptar-precio-neg" data-ptar-precio-neg class="ptar-switch-input" checked>
+                        <span class="ptar-switch" aria-hidden="true"></span>
+                        <span class="ptar-tramp-state" aria-hidden="true"><span class="tramp-off">Precio cerrado</span><span class="tramp-on">NEGOCIABLE · ±10&nbsp;%</span></span>
                     </label>
+                    <p class="ptar-admin-precio-note">Con <strong>NEGOCIABLE</strong>, el transportista puede proponer otro precio (<strong>±10&nbsp;%</strong> siempre sobre este precio de salida) al recibir la oferta y lo aprueba o rechaza el sistema; con <strong>precio cerrado</strong> no verá esa opción.</p>
                 </div>
                 <!-- Precio acordado con SU transportista (solo modo manual):
                      opcional, para que el cliente tenga todo a mano y salga
