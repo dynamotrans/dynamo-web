@@ -1531,14 +1531,14 @@
         html += '<div class="of-route">' +
             recs.map(function (r, i) {
                 return ptCard('of-pt-rec', 'Recogida', r,
-                    i === 0 && okVal('f-fechacarga') ? 'Fecha de carga: ' + okVal('f-fechacarga') : '',
-                    i === 0 && okVal('f-horacarga') ? '<div class="of-pt-est">Horario estimado de recogida: <b>' + escH(okVal('f-horacarga')) + '</b></div>' : '');
+                    i === 0 ? okVal('f-fechacarga') : '',
+                    i === 0 && okVal('f-horacarga') ? '<div class="of-pt-est">Horario estimado: <b>' + escH(okVal('f-horacarga')) + '</b></div>' : '');
             }).join('') +
             ents.map(function (e, i) {
                 var ult = i === ents.length - 1;
                 return ptCard('of-pt-ent', 'Entrega', e,
-                    ult && entFecha ? 'Fecha estimada de entrega: ' + entFecha : '',
-                    ult && entHora ? '<div class="of-pt-est">Horario estimado de entrega: <b>' + escH(entHora) + '</b></div>' : '');
+                    ult && entFecha ? 'Estimada: ' + entFecha : '',
+                    ult && entHora ? '<div class="of-pt-est">Horario estimado: <b>' + escH(entHora) + '</b></div>' : '');
             }).join('') +
         '</div>';
         // Mercancía: tipo + chips del detalle + anotaciones (igual que la oferta).
