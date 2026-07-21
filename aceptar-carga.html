@@ -195,6 +195,7 @@
     .contra-status { text-align: center; padding: 0.3rem 0 0.2rem; }
     .contra-status .contra-spin { width: 42px; height: 42px; border-width: 4px; margin: 0.2rem auto 0.7rem; }
     .cs-title { font-size: 1.05rem; font-weight: 900; color: var(--navy); }
+    .cs-agente { font-size: 0.88rem; font-weight: 700; color: var(--purple); margin-top: 0.2rem; }
     .cs-sub { font-size: 0.92rem; font-weight: 700; color: var(--navy); margin-top: 0.3rem; line-height: 1.45; }
     .cs-box { margin-top: 0.7rem; background: rgba(51,0,204,0.06); border: 1.5px solid rgba(51,0,204,0.28); border-radius: 10px; padding: 0.6rem 0.75rem; font-size: 0.86rem; font-weight: 700; color: var(--navy); text-align: left; line-height: 1.5; }
     .cs-no { width: 46px; height: 46px; border-radius: 50%; background: rgba(220,38,38,0.12); color: var(--red); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.6rem; font-size: 1.3rem; font-weight: 900; }
@@ -1446,6 +1447,7 @@
         pane.innerHTML = '<div class="contra-status">' +
             '<div class="contra-spin" aria-hidden="true"></div>' +
             '<div class="cs-title">Estamos analizando tu precio…</div>' +
+            '<div class="cs-agente">Danos 2 minutos. Está un agente revisándolo.</div>' +
             '<div class="cs-sub">Has propuesto <strong style="color:var(--purple);">' + escH(fmtEur(np) + ' €') + '</strong> (la oferta era ' + escH(fmtEur(base) + ' €') + ').</div>' +
             '<div class="cs-box">' + boxTxt + '</div></div>';
         document.getElementById('contraFormPane').hidden = true;
