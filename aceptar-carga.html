@@ -1433,11 +1433,10 @@
         // se acepta, se aplica a la oferta para identificarse y aceptar.
         var base = window._basePrecio, np = parseFloat(document.getElementById('contraRange').value);
         if (np === base) { toggleContra(); return; } // sin cambio → nada que proponer
-        // MOCKUP: el backend registra la propuesta (envío + precio), pausa la
-        // liberación de la reserva mientras Dynamo decide, y responde. Se simula
-        // con cpd=ok|no y cpt=segundos en la URL (demo: ok a los 6 s).
-        window._reservaCerrada = true;
-        if (window._reservaTimer) clearInterval(window._reservaTimer);
+        // MOCKUP: el backend registra la propuesta (envío + precio), PAUSA la
+        // caducidad de la reserva mientras Dynamo decide (ese tiempo no corre
+        // para el transportista) y responde. Simulado: cpd=ok|no, cpt=segundos.
+        if (window._reservaPausar) window._reservaPausar();
         // Email solo si YA se identificó (lo normal es que aún no: anónimo).
         var email = (window._empresaSel && window._empresaSel.email) || (window._altaMode && (document.getElementById('alta-email') || {}).value) || '';
         var boxTxt = email
@@ -1456,6 +1455,8 @@
         var cpd = q('cpd', 'ok'), cpt = parseInt(q('cpt', '6'), 10); if (isNaN(cpt) || cpt < 1) cpt = 6;
         setTimeout(function () {
             window._contraPendiente = false; // decidido: al reabrir, selector de nuevo
+            // Con la respuesta (sea cual sea), la reserva vuelve a correr.
+            if (window._reservaReanudar) window._reservaReanudar();
             if (cpd === 'no') {
                 pane.innerHTML = '<div class="contra-status">' +
                     '<div class="cs-no" aria-hidden="true">✕</div>' +
@@ -1679,7 +1680,7 @@
         var fin = new Date().getTime() + segundos * 1000;
         function fmt(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
         function pinta() {
-            if (window._reservaExpirada || window._reservaCerrada) return;
+            if (window._reservaExpirada || window._reservaCerrada || window._reservaPausada) return;
             var quedan = Math.ceil((fin - new Date().getTime()) / 1000);
             if (quedan < 0) quedan = 0;
             // Cada tramo se construye UNA sola vez (para no reiniciar la animación
@@ -1708,6 +1709,32 @@
         window._reservaPinta = pinta;
         pinta();
         window._reservaTimer = setInterval(pinta, 1000);
+        // ---- PAUSA durante el análisis de la contraoferta ----
+        // Mientras Dynamo analiza el precio propuesto, el tiempo de reserva NO
+        // corre (la espera depende de nosotros, no del transportista). Al
+        // decidirse (acepte o no), se reanuda con el tiempo que le quedaba y
+        // en el tramo que toque (tranquilo o último minuto).
+        var restantePausa = 0;
+        window._reservaPausar = function () {
+            if (window._reservaExpirada || window._reservaCerrada || window._reservaPausada) return;
+            window._reservaPausada = true;
+            restantePausa = Math.max(0, fin - new Date().getTime());
+            if (window._reservaTimer) clearInterval(window._reservaTimer);
+            banner.classList.remove('urgent');
+            banner.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;color:var(--purple);"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>' +
+                '<span><strong>Reserva EN PAUSA</strong> mientras analizamos tu precio: este tiempo no te corre. Se reanuda en cuanto tengas respuesta.</span>';
+        };
+        window._reservaReanudar = function () {
+            if (!window._reservaPausada || window._reservaExpirada || window._reservaCerrada) return;
+            window._reservaPausada = false;
+            fin = new Date().getTime() + restantePausa;
+            // Reconstruir el tramo que toque con la duración RESTANTE (el
+            // spinner tranquilo vuelve a vaciarse con lo que quede).
+            calmBuilt = urgentBuilt = false;
+            calmDur = Math.max(1, Math.ceil(restantePausa / 1000) - urgentWin);
+            pinta();
+            window._reservaTimer = setInterval(pinta, 1000);
+        };
     }
     // Al volver a la pestaña (móvil restaurado), recalcular de inmediato: si la
     // reserva ya venció mientras estaba en segundo plano, se libera al momento.
