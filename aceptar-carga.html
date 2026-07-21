@@ -887,10 +887,13 @@
         document.getElementById('viajeBox').innerHTML = html;
         if (p) window._basePrecio = parseEur(p);
         // Contraoferta (barra ±10 % del precio, redondeado a 10 €, pasos de
-        // 10 €): solo si la oferta trae precio.
+        // 10 €): solo si la oferta trae precio Y viene marcada como NEGOCIABLE
+        // (neg=1, lo decide el admin al ofrecer). La demo pelada es negociable
+        // salvo que se fuerce neg=0.
         (function () {
             var base = window._basePrecio, tg = document.getElementById('contraToggle');
             if (!tg || isNaN(base) || base <= 0) return;
+            if (q('neg', demo ? '1' : '0') !== '1') return; // precio cerrado
             tg.hidden = false;
             var amp = Math.max(10, Math.round(base * 0.10 / 10) * 10);
             var r = document.getElementById('contraRange');

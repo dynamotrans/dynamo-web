@@ -11408,16 +11408,26 @@
             pRec.map(function (p, i) { return 'Recogida' + nOrd(i + 2) + tipoTag(tipoDe(p.site, p.tipoLugar)) + ': ' + p.dir + '\n'; }).join('') +
             pEnt.map(function (p, i) { return 'Entrega' + nOrd(nRec + i + 1) + tipoTag(tipoDe(p.site, p.tipoLugar)) + ': ' + p.dir + '\n'; }).join('') +
             'Entrega' + nOrd(nRec + pEnt.length + 1) + tipoTag(dtTxt) + ': ' + dTxt + '\n';
-        var msg = 'DYNAMO — OFERTA DE CARGA (PAGO CONTADO)\n\n' +
-            'Envío ' + c.ref + '\n' +
-            rutaMsg +
-            'Fecha de carga: ' + fTxt + '\n' +
-            'Mercancía: ' + mTxt + '\n' +
-            (dmTxt ? 'Anotaciones de la mercancía: ' + dmTxt + '\n' : '') +
-            (pt ? 'Importe: ' + eur2(pt) + ' — PAGO CONTADO\n' : '') +
-            '\n¿Te interesa? ACEPTA LA CARGA y rellena tus datos (empresa, matrículas y chófer) aquí:\n' + link + '\n\n' +
-            (ppOn ? 'PRONTO PAGO opcional: cobro a 48 h tras finalizar el servicio con un 3% de descuento (mínimo 15 €).\n\n' : '') +
-            'Dynamo Operador de Transportes · +34 955 225 945 · info@dynamotrans.com';
+        // PRECIO NEGOCIABLE (lo marca el admin en este modal): con la marca, el
+        // enlace lleva &neg=1 y la página de aceptación deja proponer otro
+        // precio (barra ±10 %); sin ella, esa opción NO aparece. Se generan las
+        // 2 variantes de mensaje/enlace y el checkbox las alterna.
+        function buildMsg(negOn) {
+            return 'DYNAMO — OFERTA DE CARGA (PAGO CONTADO)\n\n' +
+                'Envío ' + c.ref + '\n' +
+                rutaMsg +
+                'Fecha de carga: ' + fTxt + '\n' +
+                'Mercancía: ' + mTxt + '\n' +
+                (dmTxt ? 'Anotaciones de la mercancía: ' + dmTxt + '\n' : '') +
+                (pt ? 'Importe: ' + eur2(pt) + ' — PAGO CONTADO\n' : '') +
+                (negOn && pt ? 'PRECIO NEGOCIABLE: desde el enlace puedes proponer otro precio (±10 %).\n' : '') +
+                '\n¿Te interesa? ACEPTA LA CARGA y rellena tus datos (empresa, matrículas y chófer) aquí:\n' +
+                (negOn ? link + '&neg=1' : link) + '\n\n' +
+                (ppOn ? 'PRONTO PAGO opcional: cobro a 48 h tras finalizar el servicio con un 3% de descuento (mínimo 15 €).\n\n' : '') +
+                'Dynamo Operador de Transportes · +34 955 225 945 · info@dynamotrans.com';
+        }
+        window._ofertaNegData = { linkOn: link + '&neg=1', linkOff: link, msgOn: buildMsg(true), msgOff: buildMsg(false) };
+        var msg = buildMsg(true); // por defecto la oferta sale negociable
         openDashModal({
             icon: 'truck',
             title: 'Ofrecer carga ' + c.ref,
@@ -11425,6 +11435,9 @@
             body:
                 '<p style="font-size: var(--fs-l);line-height:1.5;color:var(--gray-700);margin-bottom:0.7rem;">Envía esta oferta por <strong>WhatsApp o email</strong> (puedes editarla antes). El enlace abre la página de <strong>aceptación</strong> donde el transportista rellena empresa, matrículas, chófer y teléfono' + (ppOn ? ', y puede marcar <strong>pronto pago 48&nbsp;h (−3%, mín. 15&nbsp;€)</strong>.' : '.') + '</p>' +
                 (ppOn ? '' : '<div style="margin-bottom:0.7rem;padding:0.55rem 0.7rem;background:#fdecec;border:1px solid #f5b5b5;border-radius:9px;font-size: var(--fs-m);font-weight:700;color:#b42318;">⛔ PRONTO PAGO no disponible (línea agotada o apagado manualmente): esta oferta sale SIN esa opción. Revísalo en Dashboard admin.</div>') +
+                (pt ? '<label style="display:flex;gap:0.55rem;align-items:flex-start;margin-bottom:0.7rem;padding:0.55rem 0.7rem;background:rgba(51,0,204,0.05);border:1px solid rgba(51,0,204,0.2);border-radius:9px;font-size: var(--fs-m);font-weight:700;color:var(--navy);cursor:pointer;">' +
+                    '<input type="checkbox" id="ofertaNeg" checked onchange="ofertaNegSync()" style="margin-top:2px;">' +
+                    '<span>Precio <strong>NEGOCIABLE</strong>: el transportista puede proponer otro precio (barra <strong>±10&nbsp;%</strong>) y lo aprobamos o rechazamos nosotros. Desmárcalo para ofertar a <strong>precio cerrado</strong> (sin opción de proponer).</span></label>' : '') +
                 '<textarea id="ofertaTxt" rows="13" style="width:100%;box-sizing:border-box;padding:0.7rem 0.8rem;border:1.5px solid var(--gray-200);border-radius:10px;font:inherit;font-size: var(--fs-m);color:var(--navy);resize:vertical;">' + escapeHtml(msg) + '</textarea>' +
                 '<div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.8rem;">' +
                     '<button type="button" class="btn-primary" style="flex:1;min-width:180px;background:#25D366;border-color:#25D366;" onclick="ofrecerPor(\'wa\')">Enviar por WhatsApp</button>' +
@@ -11432,13 +11445,25 @@
                 '</div>' +
                 '<div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.6rem;">' +
                     '<button type="button" class="btn-secondary" style="flex:1;min-width:180px;" onclick="ofrecerPor(\'copiar\')" id="ofertaCopyBtn">Copiar el mensaje</button>' +
-                    '<a class="btn-secondary" style="flex:1;min-width:180px;text-align:center;text-decoration:none;" href="' + escapeHtml(link) + '" target="_blank" rel="noopener">Ver página de aceptación →</a>' +
+                    '<a class="btn-secondary" id="ofertaVerLink" style="flex:1;min-width:180px;text-align:center;text-decoration:none;" href="' + escapeHtml(pt ? link + '&neg=1' : link) + '" target="_blank" rel="noopener">Ver página de aceptación →</a>' +
                 '</div>',
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>'
         });
         window._ofertaRef = c.ref;
     }
     window.openOfrecerCarga = openOfrecerCarga;
+    // Alterna la oferta entre NEGOCIABLE (±10 %) y precio cerrado: regenera el
+    // mensaje del textarea y el enlace de la página de aceptación. Ojo: si el
+    // admin había editado el texto a mano, al alternar se regenera.
+    function ofertaNegSync() {
+        var d = window._ofertaNegData; if (!d) return;
+        var on = !!(document.getElementById('ofertaNeg') || {}).checked;
+        var ta = document.getElementById('ofertaTxt');
+        if (ta) ta.value = on ? d.msgOn : d.msgOff;
+        var a = document.getElementById('ofertaVerLink');
+        if (a) a.href = on ? d.linkOn : d.linkOff;
+    }
+    window.ofertaNegSync = ofertaNegSync;
     function ofrecerPor(via) {
         var t = document.getElementById('ofertaTxt');
         var msg = (t && t.value.trim()) || '';
