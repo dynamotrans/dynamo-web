@@ -406,23 +406,25 @@
             </div>
 
             <!-- Nº de envío + IDENTIFICACIÓN, lo primero: el transportista se
-                 identifica (CIF/DNI o código de bolsa) nada más entrar; la oferta
-                 (ruta, mercancía, precio) va debajo. -->
+                 identifica (CIF/DNI, código de bolsa, móvil o nombre de empresa)
+                 nada más entrar; la oferta (ruta, mercancía, precio) va debajo. -->
             <div class="of-envio"><span class="of-envio-lbl">Envío</span><span id="v-ref">—</span></div>
 
-            <!-- 1) IDENTIFICACIÓN: escribe tu CIF/DNI o código de bolsa y pulsa
-                 Buscar. Se oculta al identificarse (queda "No soy yo / cambiar"). -->
+            <!-- 1) IDENTIFICACIÓN: CIF/DNI, código de bolsa, teléfono móvil de la
+                 ficha o nombre de la empresa (sugerencias desde 2 letras, casa
+                 cualquier palabra del nombre en cualquier orden). Se oculta al
+                 identificarse (queda "No soy yo / cambiar"). -->
             <div id="identBlock">
                 <div class="sec-title" style="border-top:none;padding-top:0;margin-top:0;">Identifícate</div>
-                <label for="f-buscar-id">Tu CIF, DNI o código de bolsa de carga *</label>
+                <label for="f-buscar-id">Tu CIF, DNI, código de bolsa, móvil o nombre de empresa *</label>
                 <div class="idrow">
-                    <input type="text" id="f-buscar-id" placeholder="B12345678, 29876543P o 482113" autocapitalize="characters" autocomplete="off">
+                    <input type="text" id="f-buscar-id" placeholder="B12345678, 482113, 638220471 o tu empresa" autocapitalize="characters" autocomplete="off">
                     <button type="button" class="btn-buscar" onclick="buscarEmpresa()">Buscar</button>
                     <ul class="ac-list" id="ac-buscar"></ul>
                 </div>
-                <p class="id-hint">Escribe tu <strong>CIF</strong> (empresa), <strong>DNI/NIE</strong> (autónomo) o tu <strong>código de bolsa de carga</strong> y pulsa <strong>Buscar</strong>: aparecerán tus datos para que no tengas que escribirlos.<br><span style="color:var(--gray-500);">Demo: prueba <strong>B58830217</strong>, <strong>29876543P</strong> o el código de bolsa <strong>482113</strong>.</span></p>
+                <p class="id-hint">Escribe tu <strong>CIF</strong> (empresa), <strong>DNI/NIE</strong> (autónomo), tu <strong>código de bolsa de carga</strong>, tu <strong>teléfono móvil</strong> o el <strong>nombre de tu empresa</strong> (con 2 letras ya salen sugerencias; vale cualquier palabra del nombre) y pulsa <strong>Buscar</strong>: aparecerán tus datos para que no tengas que escribirlos.<br><span style="color:var(--gray-500);">Demo: prueba <strong>B58830217</strong>, el código de bolsa <strong>482113</strong>, el móvil <strong>638220471</strong> o escribe <strong>iberia</strong>.</span></p>
                 <div class="buscando" id="buscandoMsg"><span class="spin"></span>Consultando la base de Dynamo…</div>
-                <div class="id-nofound" id="idNoFound">No encontramos ese CIF/DNI ni ese código de bolsa en nuestra base. Revísalo, o contacta con Dynamo para darte de alta.</div>
+                <div class="id-nofound" id="idNoFound">No encontramos ningún transportista con ese dato (CIF/DNI, código de bolsa, teléfono o nombre). Revísalo, o contacta con Dynamo para darte de alta.</div>
             </div>
 
             <!-- Resumen de la empresa encontrada -->
@@ -1057,13 +1059,22 @@
     }
     function resolverBuscar(val) {
         var noFound = document.getElementById('idNoFound');
-        // La identificación acepta CIF/NIF **o** código de bolsa de carga: se
-        // busca en AMBAS columnas y con que case una, vale. (Backend: mismo
-        // criterio — buscar en la columna cif Y en la de código de bolsa.)
-        var hit = null;
+        // La identificación acepta CIF/NIF, código de bolsa de carga, TELÉFONO
+        // MÓVIL de la ficha o NOMBRE de la empresa: se busca en TODAS esas
+        // columnas y con que case una, vale. (Backend: mismo criterio.)
+        var hit = null, dig = String(val).replace(/\D/g, '');
         for (var i = 0; i < TRANS_DEMO.length; i++) {
             var t = TRANS_DEMO[i];
-            if (normId(t.cif) === val || (t.bolsaCod && normId(t.bolsaCod) === val)) { hit = t; break; }
+            var tel = String(t.tel || '').replace(/\D/g, '');
+            if (normId(t.cif) === val ||
+                (t.bolsaCod && normId(t.bolsaCod) === val) ||
+                (dig.length >= 9 && tel && tel.slice(-9) === dig.slice(-9))) { hit = t; break; }
+        }
+        // Por NOMBRE (lo tecleado no es un ID): si el filtro por palabras deja
+        // UN solo transportista, es él. Con varios, que elija en las sugerencias.
+        if (!hit) {
+            var sug = buscarSugerencias(document.getElementById('f-buscar-id').value);
+            if (sug.length === 1) hit = sug[0];
         }
         if (!hit) {
             // NO está en la base → abrir el ALTA como transportista de Dynamo
@@ -1071,7 +1082,8 @@
             noFound.classList.remove('show');
             document.getElementById('empresaResumen').classList.remove('show');
             var altaCif = document.getElementById('alta-cif');
-            if (altaCif && !altaCif.value.trim()) altaCif.value = document.getElementById('f-buscar-id').value.trim();
+            var typed = document.getElementById('f-buscar-id').value.trim();
+            if (altaCif && !altaCif.value.trim() && /\d/.test(typed)) altaCif.value = typed;
             document.getElementById('altaForm').style.display = 'block';
             document.getElementById('er-confirm').innerHTML = '';
             window._altaMode = true; window._empresaSel = null;
@@ -1150,16 +1162,28 @@
     document.getElementById('f-buscar-id').addEventListener('keydown', function (e) {
         if (e.key === 'Enter') { e.preventDefault(); document.getElementById('ac-buscar').classList.remove('show'); buscarEmpresa(); }
     });
-    // ---- Autocompletado del buscador: desde 4 caracteres, sugerencias de la
-    // base de transportistas por CIF/NIF, código de bolsa o nombre. ----
+    // Normaliza texto para buscar por nombre: minúsculas y sin acentos.
+    function normTxt(s) {
+        s = String(s || '').toLowerCase();
+        return s.normalize ? s.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : s;
+    }
+    // ---- Autocompletado del buscador: sugerencias de la base de transportistas
+    // por CIF/NIF, código de bolsa, teléfono o NOMBRE de empresa. El nombre
+    // funciona desde 2 letras y por PALABRAS en cualquier orden ("ib exp",
+    // "cargo logi"…): todas las palabras tecleadas deben aparecer en el nombre.
+    // CIF/bolsa desde 4 caracteres y teléfono desde 4 dígitos (menos = ruido). ----
     function buscarSugerencias(val) {
         var raw = String(val || '').trim();
-        if (raw.replace(/[^A-Za-z0-9]/g, '').length < 4) return [];
-        var qId = normId(raw), qName = raw.toLowerCase();
+        if (raw.replace(/[^A-Za-z0-9]/g, '').length < 2) return [];
+        var qId = normId(raw), qDig = raw.replace(/\D/g, '');
+        var idOk = qId.length >= 4;
+        var toks = normTxt(raw).split(/\s+/).filter(Boolean);
         return TRANS_DEMO.filter(function (t) {
-            return normId(t.cif).indexOf(qId) >= 0 ||
-                (t.bolsaCod && normId(t.bolsaCod).indexOf(qId) >= 0) ||
-                String(t.empresa).toLowerCase().indexOf(qName) >= 0;
+            if (idOk && (normId(t.cif).indexOf(qId) >= 0 ||
+                (t.bolsaCod && normId(t.bolsaCod).indexOf(qId) >= 0))) return true;
+            if (qDig.length >= 4 && String(t.tel || '').replace(/\D/g, '').indexOf(qDig) >= 0) return true;
+            var nom = normTxt(t.empresa);
+            return toks.length > 0 && toks.every(function (w) { return nom.indexOf(w) >= 0; });
         }).slice(0, 6);
     }
     function renderBuscarAC() {
@@ -1167,7 +1191,7 @@
         var sug = buscarSugerencias(inp.value);
         if (!sug.length) { list.classList.remove('show'); list.innerHTML = ''; return; }
         list.innerHTML = sug.map(function (t) {
-            return '<li data-cif="' + escH(t.cif) + '">' + escH(t.cif) + '<span class="ac-sub">' + escH(t.empresa) + '</span></li>';
+            return '<li data-cif="' + escH(t.cif) + '">' + escH(t.empresa) + '<span class="ac-sub">' + escH(t.cif) + ' · ' + escH(t.ciudad || '') + '</span></li>';
         }).join('');
         list.classList.add('show');
         Array.prototype.forEach.call(list.querySelectorAll('li'), function (li) {
