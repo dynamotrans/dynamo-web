@@ -176,6 +176,21 @@
     .pronto-calc.off .pc-amount { color: var(--gray-700); }
     .btn { width: 100%; margin-top: 1.1rem; background: var(--purple); color: #fff; border: none; border-radius: 12px; padding: 0.95rem; font: inherit; font-weight: 800; font-size: 1.02rem; cursor: pointer; }
     .btn:hover { background: var(--purple-light); }
+    /* ---- CONTRAOFERTA: proponer otro precio (barra ±50 €) ---- */
+    .contra-toggle { display: block; width: 100%; margin: -0.3rem 0 1rem; background: none; border: none; color: var(--purple); font: inherit; font-size: 0.9rem; font-weight: 800; cursor: pointer; padding: 0.2rem 0; text-align: center; }
+    .contra-toggle .ct-chev { display: inline-block; transition: transform 0.2s; }
+    .contra-toggle.open .ct-chev { transform: rotate(180deg); }
+    .contra-box { background: #fff; border: 1.5px dashed rgba(51,0,204,0.4); border-radius: 12px; padding: 0.9rem 1rem 1rem; margin: -0.4rem 0 1rem; }
+    .contra-box input[type=range] { width: 100%; accent-color: var(--purple); height: 34px; margin-top: 0.4rem; }
+    .contra-minmax { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; color: var(--gray-500); }
+    .contra-precio { margin-top: 0.5rem; font-size: 1.4rem; font-weight: 900; color: var(--purple); }
+    .contra-precio .base-nota { font-size: 0.78rem; font-weight: 600; color: var(--gray-500); }
+    .contra-delta { font-size: 0.85rem; font-weight: 700; color: var(--gray-500); margin-top: 2px; }
+    .btn-contra { margin-top: 0.9rem; background: var(--navy); }
+    .btn-contra:hover { background: #1a0f52; }
+    .contra-nota { font-size: 0.8rem; color: var(--gray-700); line-height: 1.5; margin-top: 0.65rem; }
+    .contra-spin { width: 56px; height: 56px; border-radius: 50%; border: 5px solid rgba(51,0,204,0.15); border-top-color: var(--purple); animation: spin 0.9s linear infinite; margin: 0 auto 1rem; }
+    @media (prefers-reduced-motion: reduce) { .contra-spin { animation: none; } }
     .aviso { font-size: 0.72rem; color: var(--gray-500); line-height: 1.5; margin-top: 0.7rem; text-align: center; }
     .warn { display: none; margin-top: 0.7rem; background: #fdecec; border: 1px solid #f5b5b5; color: #b42318; border-radius: 10px; padding: 0.6rem 0.75rem; font-size: 0.82rem; font-weight: 700; }
     .warn.show { display: block; }
@@ -339,6 +354,23 @@
             </div>
         </div>
 
+        <!-- 0-quater) CONTRAOFERTA EN REVISIÓN: propuesta de precio enviada,
+             Dynamo decide. Se confirma aquí y por email (mock: cpd/cpt). -->
+        <div class="stop-screen" id="contraWait">
+            <div class="contra-spin" aria-hidden="true"></div>
+            <h1>Revisando tu propuesta…</h1>
+            <p class="sub" style="font-size:1.02rem;font-weight:700;color:var(--navy);">Has propuesto <strong id="cw-precio" style="color:var(--purple);">—</strong> (la oferta era <span id="cw-orig">—</span>).</p>
+            <div class="pago-contado" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;max-width:440px;margin:0.9rem auto 0;font-size:0.9rem;">En unos instantes te confirmamos <strong>en esta misma pantalla</strong>. Y por si la cierras, te avisaremos <strong>también por email</strong> a <strong id="cw-email" style="color:var(--purple);">—</strong>: si aceptamos tu precio te llegará directamente la <strong>orden de carga</strong>; si no, un email avisando de que no se acepta.</div>
+        </div>
+
+        <!-- 0-quinquies) CONTRAOFERTA RECHAZADA. -->
+        <div class="stop-screen" id="contraNo">
+            <div class="stop-ico">✕</div>
+            <h1 style="color:var(--red);">No podemos aceptar tu precio</h1>
+            <p class="sub" style="font-size:1.05rem;font-weight:700;color:var(--navy);">Tu propuesta de <strong id="cn-precio">—</strong> no se ha aceptado.<br>Te hemos enviado un email confirmándolo.</p>
+            <button type="button" class="btn" onclick="contraVolver()">Aceptar al precio original de la oferta</button>
+        </div>
+
         <!-- 0-ter) TIEMPO AGOTADO: pasaron los 4 min de reserva y la carga se
              ha liberado; hay que volver a comprobar disponibilidad. -->
         <div class="stop-screen" id="expiredScreen">
@@ -358,6 +390,20 @@
             </div>
 
             <dl class="viaje" id="viajeBox"></dl>
+
+            <!-- CONTRAOFERTA: proponer OTRO precio (±50 € con barra). Se envía a
+                 Dynamo y se confirma en esta pantalla (y por email). MOCKUP:
+                 la decisión se simula (cpd=ok|no, cpt=segundos). -->
+            <button type="button" class="contra-toggle" id="contraToggle" hidden onclick="toggleContra()">Puedo aceptarla, pero a OTRO precio <span class="ct-chev" aria-hidden="true">▾</span></button>
+            <div class="contra-box" id="contraBox" hidden>
+                <label for="contraRange" style="margin-top:0;">Propón tu precio · hasta ±50 € sobre la oferta</label>
+                <input type="range" id="contraRange" min="0" max="100" step="5" value="50" oninput="contraPinta()">
+                <div class="contra-minmax"><span id="contraMin">—</span><span id="contraMax">—</span></div>
+                <div class="contra-precio"><span id="contraPrecio">—</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>
+                <div class="contra-delta" id="contraDelta">Igual que la oferta</div>
+                <button type="button" class="btn btn-contra" onclick="aceptarContra()">Aceptar carga al NUEVO precio</button>
+                <p class="contra-nota">Rellena antes tus datos de abajo (identifícate, matrículas y conductor). <strong>En unos instantes te confirmamos en esta misma pantalla</strong> si aceptamos tu precio. Y por si cierras la pantalla, <strong>te avisaremos también por email</strong>: si la aceptamos, te llegará directamente la <strong>orden de carga</strong>; si no, un email avisando de que no se acepta.</p>
+            </div>
 
             <!-- 1) IDENTIFICACIÓN: escribe tu CIF/DNI y pulsa Buscar. Se oculta al
                  identificarse (queda "No soy yo / cambiar" en el resumen). -->
@@ -832,6 +878,17 @@
             '<div class="pago-contado" id="v-pago"' + (p ? '' : ' hidden') + '><span class="imp" id="v-imp">' + escH(p) + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>';
         document.getElementById('viajeBox').innerHTML = html;
         if (p) window._basePrecio = parseEur(p);
+        // Contraoferta (±50 € con barra): solo si la oferta trae precio.
+        (function () {
+            var base = window._basePrecio, tg = document.getElementById('contraToggle');
+            if (!tg || isNaN(base) || base <= 0) return;
+            tg.hidden = false;
+            var r = document.getElementById('contraRange');
+            r.min = Math.max(0, base - 50); r.max = base + 50; r.step = 5; r.value = base;
+            document.getElementById('contraMin').textContent = fmtEur(Math.max(0, base - 50)) + ' €';
+            document.getElementById('contraMax').textContent = fmtEur(base + 50) + ' €';
+            contraPinta();
+        })();
         // Tipo de camión: el RÍGIDO (máx 8 m / 14 Tn) no se ofrece si la carga
         // excede esos límites (no cabe). Se quita del desplegable.
         (function () {
@@ -1328,7 +1385,65 @@
     function aceptar() {
         // Si ya venció la reserva de 3 min, la carga se liberó: no se registra.
         if (window._reservaExpirada) { expirarReserva(); return; }
-        if (!window._empresaSel && !window._altaMode) { document.getElementById('f-buscar-id').classList.add('err'); document.getElementById('f-buscar-id').scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+        if (!validarAceptar()) return;
+        finalizarAceptacion();
+    }
+    // ---- CONTRAOFERTA: proponer otro precio (barra ±50 €) ----
+    function toggleContra() {
+        var b = document.getElementById('contraBox'), t = document.getElementById('contraToggle');
+        b.hidden = !b.hidden;
+        t.classList.toggle('open', !b.hidden);
+        setTimeout(updateScrollHint, 60);
+    }
+    function contraPinta() {
+        var r = document.getElementById('contraRange');
+        var base = window._basePrecio, np = parseFloat(r.value);
+        document.getElementById('contraPrecio').textContent = fmtEur(np) + ' €';
+        var d = np - base;
+        document.getElementById('contraDelta').textContent =
+            d === 0 ? 'Igual que la oferta' : (d > 0 ? '+' : '−') + fmtEur(Math.abs(d)) + ' € respecto a la oferta';
+    }
+    function aceptarContra() {
+        if (window._reservaExpirada) { expirarReserva(); return; }
+        if (!validarAceptar()) return;
+        var base = window._basePrecio, np = parseFloat(document.getElementById('contraRange').value);
+        if (np === base) { finalizarAceptacion(); return; } // sin cambio → aceptación normal
+        // MOCKUP: el backend registra la CONTRAOFERTA (mismos datos que la
+        // aceptación + precio propuesto), pausa la liberación de la reserva
+        // mientras Dynamo decide, y avisa por email en ambos sentidos (orden de
+        // carga si se acepta / aviso de no aceptada si no). Aquí se simula con
+        // cpd=ok|no y cpt=segundos en la URL (demo: ok a los 6 s).
+        window._reservaCerrada = true;
+        if (window._reservaTimer) clearInterval(window._reservaTimer);
+        document.getElementById('cw-precio').textContent = fmtEur(np) + ' €';
+        document.getElementById('cw-orig').textContent = fmtEur(base) + ' €';
+        var email = (window._empresaSel && window._empresaSel.email) || (document.getElementById('alta-email') || {}).value || 'tu email';
+        document.getElementById('cw-email').textContent = email;
+        mostrarPantalla('contraWait');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        var cpd = q('cpd', 'ok'), cpt = parseInt(q('cpt', '6'), 10); if (isNaN(cpt) || cpt < 1) cpt = 6;
+        setTimeout(function () {
+            if (cpd === 'no') {
+                document.getElementById('cn-precio').textContent = fmtEur(np) + ' €';
+                mostrarPantalla('contraNo');
+            } else {
+                window._basePrecio = np;
+                if (window._oferta) window._oferta.precio = fmtEur(np) + ' €';
+                window._contraAceptada = true;
+                finalizarAceptacion();
+            }
+        }, cpt * 1000);
+    }
+    // Propuesta rechazada → volver a la oferta para aceptar al precio original.
+    function contraVolver() {
+        mostrarPantalla('formScreen');
+        var btn = document.querySelector('button[onclick="aceptar()"]');
+        if (btn) btn.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    // Validación completa del formulario (identidad + campos obligatorios).
+    // La comparte "Aceptar carga" con "Aceptar al NUEVO precio" (contraoferta).
+    function validarAceptar() {
+        if (!window._empresaSel && !window._altaMode) { document.getElementById('f-buscar-id').classList.add('err'); document.getElementById('f-buscar-id').scrollIntoView({ block: 'center', behavior: 'smooth' }); return false; }
         // Empresa YA existente: confirmar identidad con los 3 últimos dígitos
         // del teléfono de su ficha.
         if (window._empresaSel && !window._altaMode) {
@@ -1339,7 +1454,7 @@
                 if (t3) { t3.classList.add('err'); t3.focus(); }
                 if (errBox) errBox.style.display = 'block';
                 if (t3) t3.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                return;
+                return false;
             }
             if (t3) t3.classList.remove('err');
             if (errBox) errBox.style.display = 'none';
@@ -1363,7 +1478,10 @@
         });
         var warn = document.getElementById('fWarn');
         warn.classList.toggle('show', !ok);
-        if (!ok) { document.querySelector('.err').scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+        if (!ok) { document.querySelector('.err').scrollIntoView({ block: 'center', behavior: 'smooth' }); return false; }
+        return true;
+    }
+    function finalizarAceptacion() {
         // MOCKUP: aquí el backend registra la aceptación (envío, empresa, fecha
         // y hora de carga y entrega, camión, matrículas, conductor con su DNI y
         // pronto pago) y avisa al equipo de Dynamo.
@@ -1437,12 +1555,14 @@
         var imp = O.precio || okTxt('v-imp');
         var pronto = document.getElementById('f-pronto') && document.getElementById('f-pronto').checked;
         var info = prontoPagoInfo();
+        // Si el precio salió de una CONTRAOFERTA aceptada, se deja dicho.
+        var contraNota = window._contraAceptada ? '<div style="font-size:0.82rem;font-weight:700;margin-top:0.25rem;">Precio ACORDADO tras tu propuesta (aceptada por Dynamo).</div>' : '';
         if (pronto && info) {
             // Importe final con pronto pago aplicado (así irá también en la factura).
             html += '<div class="pago-contado"><span class="imp">' + escH(fmtEur(info.total) + ' €') + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span>' +
-                '<div style="font-size:0.82rem;font-weight:700;margin-top:0.25rem;">PRONTO PAGO aplicado: −' + escH(fmtEur(info.desc)) + ' € · cobro a 5 días' + (fechaPagoDias(5) ? ' (pago el ' + escH(fechaPagoDias(5)) + ')' : '') + '</div></div>';
+                '<div style="font-size:0.82rem;font-weight:700;margin-top:0.25rem;">PRONTO PAGO aplicado: −' + escH(fmtEur(info.desc)) + ' € · cobro a 5 días' + (fechaPagoDias(5) ? ' (pago el ' + escH(fechaPagoDias(5)) + ')' : '') + '</div>' + contraNota + '</div>';
         } else if (imp) {
-            html += '<div class="pago-contado"><span class="imp">' + escH(imp) + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)' + (info ? ' · a 60 días' : '') + '</span></div>';
+            html += '<div class="pago-contado"><span class="imp">' + escH(imp) + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)' + (info ? ' · a 60 días' : '') + '</span>' + contraNota + '</div>';
         }
         document.getElementById('ok-resumen').innerHTML = html;
         // Email donde se enviará la orden de carga: el de su ficha (existente) o
@@ -1454,6 +1574,8 @@
         if (window._reservaTimer) clearInterval(window._reservaTimer); // parar contador
         var fs = document.getElementById('formScreen');
         fs.classList.remove('show'); fs.style.display = 'none';
+        // Si se llega desde la contraoferta, su pantalla de espera se cierra.
+        ['contraWait', 'contraNo'].forEach(function (s) { var el = document.getElementById(s); if (el) el.classList.remove('show'); });
         document.getElementById('okScreen').classList.add('show');
         window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(updateScrollHint, 500); // la pista se recalcula para el resumen de aceptado
@@ -1465,7 +1587,7 @@
     //  · disponible     → formulario + contador de reserva (por defecto 120 s).
     // Si el contador llega a 0 sin aceptar, la carga se libera (hay que recargar).
     function mostrarPantalla(id) {
-        ['checkScreen', 'takenScreen', 'expiredScreen'].forEach(function (s) {
+        ['checkScreen', 'takenScreen', 'expiredScreen', 'contraWait', 'contraNo'].forEach(function (s) {
             var el = document.getElementById(s); if (el) el.classList.toggle('show', s === id);
         });
         var fs = document.getElementById('formScreen');
