@@ -1424,7 +1424,7 @@
         var email = (window._empresaSel && window._empresaSel.email) || (window._altaMode && (document.getElementById('alta-email') || {}).value) || '';
         var boxTxt = email
             ? 'En unos instantes te confirmamos <strong>en esta misma pantalla</strong>. Y por si la cierras, te avisaremos <strong>también por email</strong> a <strong style="color:var(--purple);">' + escH(email) + '</strong>: si aceptamos tu precio, volverás a la oferta con el nuevo precio ya aplicado para aceptar la carga.'
-            : 'En unos instantes te confirmamos <strong>en esta misma pantalla</strong>. Si aceptamos tu precio, volverás a la oferta con el <strong>nuevo precio ya aplicado</strong> para identificarte y aceptar la carga. <strong>No cierres esta pantalla</strong>: aún no te has identificado y no podríamos avisarte por email.';
+            : 'En unos instantes te confirmamos en esta misma pantalla. Si aceptamos tu precio, volverás a la oferta con el nuevo precio ya aplicado para identificarte y aceptar la carga. <strong>No cierres esta pantalla: aún no te has identificado y no podríamos confirmar la carga ni avisarte por email con la orden de carga.</strong>';
         var pane = document.getElementById('contraStatusPane');
         pane.innerHTML = '<div class="contra-status">' +
             '<div class="contra-spin" aria-hidden="true"></div>' +
