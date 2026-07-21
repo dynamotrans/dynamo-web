@@ -336,15 +336,16 @@
         </div>
 
         <!-- 0-bis) YA NO DISPONIBLE: la aceptó otro transportista. Datos del que
-             la cogió ENMASCARADOS (CIF 5+*, tel sin últimos 3, nombre 3+*). -->
+             la cogió ENMASCARADOS (sin nombre; CIF 5 primeros + *; teléfono 4
+             primeros dígitos + *). -->
         <div class="stop-screen" id="takenScreen">
             <div class="stop-ico">✕</div>
             <h1 style="color:var(--red);">Esta carga ya no está disponible</h1>
             <p class="sub" id="tk-sub">La aceptó otro transportista antes que tú.</p>
             <div class="taken-data">
                 <div class="tk-row"><span class="tk-k">Aceptada el</span><span class="tk-v" id="tk-fecha">—</span></div>
-                <div class="tk-row"><span class="tk-k">Aceptada por</span><span class="tk-v" id="tk-nom">—</span></div>
-                <div class="tk-row"><span class="tk-k">CIF / DNI</span><span class="tk-v" id="tk-cif">—</span></div>
+                <div class="tk-row"><span class="tk-k">Aceptada por CIF / DNI</span><span class="tk-v" id="tk-cif">—</span></div>
+                <div class="tk-row"><span class="tk-k">Teléfono</span><span class="tk-v" id="tk-tel">—</span></div>
             </div>
             <button type="button" class="dudas-toggle" aria-expanded="false" onclick="toggleDudas(this)">¿Dudas? <span class="dt-chev" aria-hidden="true">▾</span></button>
             <div class="contact-btns" hidden>
@@ -740,9 +741,13 @@
         }).join('');
     }
     // Enmascara datos del transportista que ya cogió la carga (pantalla "ya no
-    // disponible"): CIF = 5 primeros + *****; Nombre = 3 primeros + *****.
+    // disponible"): CIF = 5 primeros + *****; teléfono = 4 primeros dígitos del
+    // número nacional (sin prefijo) + *****. El nombre NO se muestra.
     function maskCifFront(c) { c = String(c || ''); return c ? c.slice(0, 5) + '*****' : '—'; }
-    function maskNombre(n) { n = String(n || ''); return n ? n.slice(0, 3) + '*****' : '—'; }
+    function maskTelFront(t) {
+        var d = (String(t || '').match(/\d/g) || []).join('').replace(/^34/, '');
+        return d ? d.slice(0, 4) + '*****' : '—';
+    }
     // CP español (2 primeros dígitos) → provincia, para autorrellenar Provincia
     // y País al teclear el CP en el alta.
     var CP_PROV_ES = {
@@ -1704,8 +1709,8 @@
             return;
         }
         document.getElementById('tk-sub').textContent = 'La aceptó otro transportista antes que tú.';
-        var nom = q('tnom', 'Transportes Iberia Express S.L.');
         var cif = q('tcif', 'B58830217');
+        var tel = q('ttel', '+34 685 441 187');
         // Minutos transcurridos desde la aceptación (demo: 1592 = 1 día 2 h 32 min).
         var mins = parseInt(q('tmin', '1592'), 10); if (isNaN(mins) || mins < 0) mins = 1592;
         var d = new Date(); d.setMinutes(d.getMinutes() - mins);
@@ -1713,8 +1718,8 @@
         var abs = q('tfecha', '') || (dd[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear() +
             ' a las ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2));
         document.getElementById('tk-fecha').innerHTML = escH(abs) + '<span class="tk-rel">(' + escH(haceTexto(mins)) + ')</span>';
-        document.getElementById('tk-nom').textContent = maskNombre(nom);
         document.getElementById('tk-cif').textContent = maskCifFront(cif);
+        document.getElementById('tk-tel').textContent = maskTelFront(tel);
         mostrarPantalla('takenScreen');
     }
     // Animación de "comprobando" con barra de progreso (0→100 %) y contador de
