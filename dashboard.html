@@ -10084,7 +10084,7 @@
                 (function () {
                     var pv = (c.plazo == null ? 30 : c.plazo);
                     return '<div><label>Plazo de pago</label><select id="cli-f-plazo">' +
-                        [[0, 'Pago inmediato (0 días)'], [30, '30 días'], [60, '60 días']].map(function (o) {
+                        [[0, 'Contado inmediato (0 días)'], [15, '15 días'], [30, '30 días'], [45, '45 días'], [60, '60 días'], [75, '75 días'], [90, '90 días']].map(function (o) {
                             return '<option value="' + o[0] + '"' + (o[0] === pv ? ' selected' : '') + '>' + o[1] + '</option>';
                         }).join('') + '</select></div>';
                 })() +
