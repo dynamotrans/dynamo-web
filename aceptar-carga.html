@@ -846,12 +846,12 @@
         var fecha = lista.length > 1 ? 'De ' + lista[0] + ' a ' + lista[lista.length - 1] : (lista[0] || 'Por confirmar');
         window._diasCarga = lista;
         // Detalle de la mercancía → chips en la tarjeta y línea del resumen
-        // aceptado. Orden en PAREJAS por fila: metros+peso · palets+tipo de
-        // carga · trampilla+NIMA.
+        // aceptado. Orden en PAREJAS por fila: metros+palets · peso+tipo de
+        // carga · trampilla+NIMA. Los metros con la palabra completa ("6 metros").
         var vd = [];
-        if (ml)   vd.push(['Metros lineales', ml]);
-        if (peso) vd.push(['Peso', peso]);
+        if (ml)   vd.push(['Metros lineales', String(ml).replace(/\s*m$/, ' metros')]);
         if (pal)  vd.push(['Palets / bultos', pal]);
+        if (peso) vd.push(['Peso', peso]);
         if (tc)   vd.push(['Tipo de carga', tc]);
         vd.push(['Trampilla elevadora', tram]);
         vd.push(['Requiere NIMA', nima]);
