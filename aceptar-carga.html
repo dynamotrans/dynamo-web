@@ -1433,6 +1433,8 @@
         }
         b.hidden = !b.hidden;
         t.classList.toggle('open', !b.hidden);
+        // Al abrir, centrar el panel en pantalla (si no, queda escondido abajo).
+        if (!b.hidden) setTimeout(function () { b.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 60);
         setTimeout(updateScrollHint, 60);
     }
     function contraPinta() {
