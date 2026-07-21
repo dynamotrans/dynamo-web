@@ -81,6 +81,8 @@
     /* Chips del detalle en rejilla de 2 columnas: cada fila es una pareja
        (metros+peso · palets+tipo de carga · trampilla+NIMA). */
     .of-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.7rem; }
+    /* Chip a fila completa (Tipo de carga va solo en su fila). */
+    .of-chip.of-chip-full { grid-column: 1 / -1; }
     .of-chip { display: flex; flex-direction: column; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 9px; padding: 0.34rem 0.6rem; }
     .of-chip .of-chip-k { font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: var(--gray-500); }
     .of-chip .of-chip-v { font-size: 0.88rem; font-weight: 800; color: var(--navy); }
@@ -903,7 +905,7 @@
                 '</div>';
         }
         var chips = vd.map(function (r) {
-            return '<span class="of-chip"><span class="of-chip-k">' + escH(r[0]) + '</span><span class="of-chip-v">' + escH(r[1]) + '</span></span>';
+            return '<span class="of-chip' + (r[0] === 'Tipo de carga' ? ' of-chip-full' : '') + '"><span class="of-chip-k">' + escH(r[0]) + '</span><span class="of-chip-v">' + escH(r[1]) + '</span></span>';
         }).join('');
         // Ruta con numeración CONTINUA en orden de recorrido (1 origen → … →
         // último destino), como en crear envío; el color dice el tipo. La fecha
@@ -1685,7 +1687,7 @@
         var empCif = window._empresaSel ? window._empresaSel.cif : (okVal('alta-cif') || '—');
         // ---- Resumen con las MISMAS tarjetas que la oferta (homogéneo) ----
         function chip(k, v) {
-            return v ? '<span class="of-chip"><span class="of-chip-k">' + escH(k) + '</span><span class="of-chip-v">' + escH(v) + '</span></span>' : '';
+            return v ? '<span class="of-chip' + (k === 'Tipo de carga' ? ' of-chip-full' : '') + '"><span class="of-chip-k">' + escH(k) + '</span><span class="of-chip-v">' + escH(v) + '</span></span>' : '';
         }
         // Tarjeta genérica con icono + etiqueta + valor principal + chips.
         function cardSec(ico, lbl, main, chipsHtml, extra) {
