@@ -494,7 +494,12 @@
                             <input type="text" id="alta-seguro" placeholder="AXA · Póliza CMR 88-456129">
                         </div>
                     </div>
+                    <!-- Documentación SOLO si la bolsa de carga es "Ninguna": las
+                         bolsas ya verifican a sus transportistas; sin bolsa no hay
+                         verificación previa y hay que pedir los documentos. -->
+                    <div id="altaDocs" hidden>
                     <label style="margin-bottom:0.35rem;">Documentación del alta</label>
+                    <p style="font-size:0.78rem;color:var(--gray-500);font-weight:600;line-height:1.45;margin:0 0 0.5rem;">Como no estás en ninguna <strong>bolsa de carga</strong> (que ya verifica a sus transportistas), necesitamos esta documentación para validar tu alta.</p>
                     <div class="doc-grid">
                         <div>
                             <label class="doc-drop" data-doc="cif"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> Subir hoja CIF<div class="dd-sub">PDF o foto</div><input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="docUp(this,'cif',1)"></label>
@@ -509,6 +514,7 @@
                         <label class="doc-drop" data-doc="otros"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> Otros documentos<div class="dd-sub">Escrituras, poderes, certificados, seguro CMR… · máx. 3</div><input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple hidden onchange="docUp(this,'otros',3)"></label>
                         <ul class="doc-list" id="doc-otros"></ul>
                     </div>
+                    </div><!-- /altaDocs -->
                 </div>
             </div>
 
@@ -760,11 +766,17 @@
     };
     // Código de bolsa: obligatorio salvo si la bolsa es "Ninguna" (transportista
     // libre, no está en ninguna bolsa) → el código se bloquea y pone "Ninguna".
+    // DOCUMENTACIÓN del alta: SOLO se pide sin bolsa ("Ninguna"). Las bolsas de
+    // carga ya verifican a sus transportistas → con bolsa no se piden adjuntos
+    // (ni hoja CIF, ni DNI, ni escrituras).
     function altaBolsaSync() {
         var t = document.getElementById('alta-bolsa-tipo'), c = document.getElementById('alta-bolsa');
         if (!t || !c) return;
         if (t.value === 'Ninguna') { c.value = 'Ninguna'; c.disabled = true; c.classList.remove('err'); }
         else { if (c.value === 'Ninguna') c.value = ''; c.disabled = false; }
+        var docs = document.getElementById('altaDocs');
+        if (docs) docs.hidden = t.value !== 'Ninguna';
+        setTimeout(updateScrollHint, 60);
     }
     (function () {
         var cp = document.getElementById('alta-cp'); if (!cp) return;
