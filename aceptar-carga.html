@@ -887,6 +887,11 @@
             '<div class="pago-contado" id="v-pago"' + (p ? '' : ' hidden') + '><span class="imp" id="v-imp">' + escH(p) + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>';
         document.getElementById('viajeBox').innerHTML = html;
         if (p) window._basePrecio = parseEur(p);
+        // ANCLA de la negociación: el precio de SALIDA de Dynamo. El rango
+        // ±10 % se calcula SIEMPRE sobre este, nunca sobre un precio ya
+        // renegociado (si no, encadenando propuestas aceptadas se escalaría
+        // el precio indefinidamente).
+        window._precioOferta = window._basePrecio;
         // Contraoferta (barra ±10 % del precio, redondeado a 10 €, pasos de
         // 10 €): solo si la oferta trae precio Y viene marcada como NEGOCIABLE
         // (neg=1, lo decide el admin al ofrecer). La demo pelada es negociable
@@ -1398,17 +1403,21 @@
         finalizarAceptacion();
     }
     // ---- CONTRAOFERTA: proponer otro precio (barra ±10 %, pasos de 10 €) ----
-    // Monta la barra sobre el precio VIGENTE (±10 % redondeado a 10 €, pasos
-    // de 10 €). Se re-llama tras cada decisión: si Dynamo aceptó un precio, la
-    // siguiente propuesta parte del precio acordado.
+    // Monta la barra: rango = precio de SALIDA de Dynamo ±10 % (redondeado a
+    // 10 €, pasos de 10 €). El ancla es SIEMPRE window._precioOferta (el
+    // precio original de la oferta): aunque se haya acordado otro precio, los
+    // topes NO se mueven — así no se puede escalar encadenando propuestas.
+    // El cursor arranca en el precio VIGENTE (el acordado, si lo hay).
     function contraInitRange() {
-        var base = window._basePrecio;
+        var orig = window._precioOferta;
         var r = document.getElementById('contraRange');
-        if (!r || isNaN(base) || base <= 0) return;
-        var amp = Math.max(10, Math.round(base * 0.10 / 10) * 10);
-        r.min = Math.max(0, base - amp); r.max = base + amp; r.step = 10; r.value = base;
-        document.getElementById('contraMin').textContent = fmtEur(Math.max(0, base - amp)) + ' €';
-        document.getElementById('contraMax').textContent = fmtEur(base + amp) + ' €';
+        if (!r || isNaN(orig) || orig <= 0) return;
+        var amp = Math.max(10, Math.round(orig * 0.10 / 10) * 10);
+        r.min = Math.max(0, orig - amp); r.max = orig + amp; r.step = 10;
+        var cur = isNaN(window._basePrecio) ? orig : window._basePrecio;
+        r.value = Math.min(parseFloat(r.max), Math.max(parseFloat(r.min), cur));
+        document.getElementById('contraMin').textContent = fmtEur(Math.max(0, orig - amp)) + ' €';
+        document.getElementById('contraMax').textContent = fmtEur(orig + amp) + ' €';
         contraPinta();
     }
     function toggleContra() {
