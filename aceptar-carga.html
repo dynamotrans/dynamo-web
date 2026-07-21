@@ -169,6 +169,23 @@
     #restForm { display: none; }
     #restForm.show { display: block; }
     .sec-title { font-size: 0.78rem; font-weight: 900; color: var(--navy); margin: 1.2rem 0 0.1rem; padding-top: 0.9rem; border-top: 1px solid var(--gray-200); }
+    /* Caja destacada de IDENTIFICACIÓN: en morado de marca, para que se vea
+       de un vistazo que hay que rellenar el dato y Buscar para identificarse. */
+    #identBlock {
+        background: rgba(51,0,204,0.06);
+        border: 1.5px solid rgba(51,0,204,0.35);
+        border-radius: 14px;
+        padding: 0.95rem 1rem 0.85rem;
+        margin-top: 1.1rem;
+    }
+    #identBlock .sec-title {
+        color: var(--purple);
+        font-size: 0.92rem;
+        display: flex; align-items: center; gap: 0.45rem;
+    }
+    #identBlock .sec-title svg { width: 17px; height: 17px; flex: none; }
+    #identBlock label { color: var(--navy); }
+    #identBlock input#f-buscar-id { background: #fff; border-color: rgba(51,0,204,0.4); }
     .pronto { margin-top: 1rem; background: rgba(34,165,90,0.08); border: 1.5px solid var(--green); border-radius: 12px; padding: 0.8rem 0.9rem; }
     .pronto label.chk { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.86rem; font-weight: 600; color: var(--navy); margin: 0; text-transform: none; }
     .pronto input { width: 19px; height: 19px; flex: none; margin-top: 2px; accent-color: var(--green); }
@@ -443,7 +460,7 @@
                  cualquier palabra del nombre en cualquier orden). Se oculta al
                  identificarse (queda "No soy yo / cambiar"). -->
             <div id="identBlock">
-                <div class="sec-title" style="border-top:none;padding-top:0;margin-top:0;">Identifícate</div>
+                <div class="sec-title" style="border-top:none;padding-top:0;margin-top:0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Identifícate</div>
                 <label for="f-buscar-id">Tu CIF, DNI, código de bolsa, móvil o nombre de empresa *</label>
                 <div class="idrow">
                     <input type="text" id="f-buscar-id" placeholder="B12345678, 482113, 638220471 o tu empresa" autocapitalize="characters" autocomplete="off">
