@@ -191,6 +191,13 @@
     .contra-nota { font-size: 0.8rem; color: var(--gray-700); line-height: 1.5; margin-top: 0.65rem; }
     .contra-spin { width: 56px; height: 56px; border-radius: 50%; border: 5px solid rgba(51,0,204,0.15); border-top-color: var(--purple); animation: spin 0.9s linear infinite; margin: 0 auto 1rem; }
     @media (prefers-reduced-motion: reduce) { .contra-spin { animation: none; } }
+    /* Estado de la propuesta EN EL PROPIO PANEL (analizando / rechazada). */
+    .contra-status { text-align: center; padding: 0.3rem 0 0.2rem; }
+    .contra-status .contra-spin { width: 42px; height: 42px; border-width: 4px; margin: 0.2rem auto 0.7rem; }
+    .cs-title { font-size: 1.05rem; font-weight: 900; color: var(--navy); }
+    .cs-sub { font-size: 0.92rem; font-weight: 700; color: var(--navy); margin-top: 0.3rem; line-height: 1.45; }
+    .cs-box { margin-top: 0.7rem; background: rgba(51,0,204,0.06); border: 1.5px solid rgba(51,0,204,0.28); border-radius: 10px; padding: 0.6rem 0.75rem; font-size: 0.86rem; font-weight: 700; color: var(--navy); text-align: left; line-height: 1.5; }
+    .cs-no { width: 46px; height: 46px; border-radius: 50%; background: rgba(220,38,38,0.12); color: var(--red); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.6rem; font-size: 1.3rem; font-weight: 900; }
     .aviso { font-size: 0.72rem; color: var(--gray-500); line-height: 1.5; margin-top: 0.7rem; text-align: center; }
     .warn { display: none; margin-top: 0.7rem; background: #fdecec; border: 1px solid #f5b5b5; color: #b42318; border-radius: 10px; padding: 0.6rem 0.75rem; font-size: 0.82rem; font-weight: 700; }
     .warn.show { display: block; }
@@ -355,26 +362,6 @@
             </div>
         </div>
 
-        <!-- 0-quater) CONTRAOFERTA EN REVISIÓN: propuesta de precio enviada,
-             Dynamo decide. Se confirma aquí y por email (mock: cpd/cpt). -->
-        <div class="stop-screen" id="contraWait">
-            <div class="contra-spin" aria-hidden="true"></div>
-            <h1>Estamos analizando tu precio…</h1>
-            <p class="sub" style="font-size:1.02rem;font-weight:700;color:var(--navy);">Has propuesto <strong id="cw-precio" style="color:var(--purple);">—</strong> (la oferta era <span id="cw-orig">—</span>).</p>
-            <!-- Si YA está identificado, se le promete también el aviso por email;
-                 si aún es anónimo (lo normal: propone antes del CIF), solo pantalla. -->
-            <div class="pago-contado" id="cw-box-email" hidden style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;max-width:440px;margin:0.9rem auto 0;font-size:0.9rem;">En unos instantes te confirmamos <strong>en esta misma pantalla</strong>. Y por si la cierras, te avisaremos <strong>también por email</strong> a <strong id="cw-email" style="color:var(--purple);">—</strong>: si aceptamos tu precio, volverás a la oferta con el nuevo precio aplicado para aceptar la carga.</div>
-            <div class="pago-contado" id="cw-box-anon" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;max-width:440px;margin:0.9rem auto 0;font-size:0.9rem;">En unos instantes te confirmamos <strong>en esta misma pantalla</strong>. Si aceptamos tu precio, volverás a la oferta con el <strong>nuevo precio ya aplicado</strong> para identificarte y aceptar la carga. <strong>No cierres esta pantalla</strong>: aún no te has identificado y no podríamos avisarte por email.</div>
-        </div>
-
-        <!-- 0-quinquies) CONTRAOFERTA RECHAZADA. -->
-        <div class="stop-screen" id="contraNo">
-            <div class="stop-ico">✕</div>
-            <h1 style="color:var(--red);">No podemos aceptar tu precio</h1>
-            <p class="sub" style="font-size:1.05rem;font-weight:700;color:var(--navy);">Tu propuesta de <strong id="cn-precio">—</strong> no se ha aceptado.<br>Te hemos enviado un email confirmándolo.</p>
-            <button type="button" class="btn" onclick="contraVolver()">Aceptar al precio original de la oferta</button>
-        </div>
-
         <!-- 0-ter) TIEMPO AGOTADO: pasaron los 4 min de reserva y la carga se
              ha liberado; hay que volver a comprobar disponibilidad. -->
         <div class="stop-screen" id="expiredScreen">
@@ -400,13 +387,18 @@
                  la decisión se simula (cpd=ok|no, cpt=segundos). -->
             <button type="button" class="contra-toggle" id="contraToggle" hidden onclick="toggleContra()">Puedo aceptarla, pero a OTRO precio <span class="ct-chev" aria-hidden="true">▾</span></button>
             <div class="contra-box" id="contraBox" hidden>
-                <label for="contraRange" style="margin-top:0;">Propón tu precio · hasta un ±10 % sobre la oferta</label>
-                <input type="range" id="contraRange" min="0" max="100" step="5" value="50" oninput="contraPinta()">
-                <div class="contra-minmax"><span id="contraMin">—</span><span id="contraMax">—</span></div>
-                <div class="contra-precio"><span id="contraPrecio">—</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>
-                <div class="contra-delta" id="contraDelta">Igual que la oferta</div>
-                <button type="button" class="btn btn-contra" onclick="aceptarContra()">Proponer este NUEVO precio</button>
-                <p class="contra-nota">No hace falta identificarte para proponerlo. <strong>En unos instantes te confirmamos en esta misma pantalla</strong> si aceptamos tu precio: si lo aceptamos, volverás a la oferta con el <strong>nuevo precio ya aplicado</strong> para identificarte, revisar los detalles y aceptar la carga; si no, te lo diremos aquí mismo.</p>
+                <!-- Capa 1: proponer. Capa 2 (contraStatusPane): "analizando tu
+                     precio" / rechazo, EN EL MISMO HUECO, sin cambiar de pantalla. -->
+                <div id="contraFormPane">
+                    <label for="contraRange" style="margin-top:0;">Propón tu precio · hasta un ±10 % sobre la oferta</label>
+                    <input type="range" id="contraRange" min="0" max="100" step="5" value="50" oninput="contraPinta()">
+                    <div class="contra-minmax"><span id="contraMin">—</span><span id="contraMax">—</span></div>
+                    <div class="contra-precio"><span id="contraPrecio">—</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>
+                    <div class="contra-delta" id="contraDelta">Igual que la oferta</div>
+                    <button type="button" class="btn btn-contra" onclick="aceptarContra()">Proponer este NUEVO precio</button>
+                    <p class="contra-nota">No hace falta identificarte para proponerlo. <strong>En unos instantes te confirmamos en esta misma pantalla</strong> si aceptamos tu precio: si lo aceptamos, volverás a la oferta con el <strong>nuevo precio ya aplicado</strong> para identificarte, revisar los detalles y aceptar la carga; si no, te lo diremos aquí mismo.</p>
+                </div>
+                <div id="contraStatusPane" hidden></div>
             </div>
 
             <!-- 1) IDENTIFICACIÓN: escribe tu CIF/DNI y pulsa Buscar. Se oculta al
@@ -1419,8 +1411,8 @@
     function aceptarContra() {
         if (window._reservaExpirada) { expirarReserva(); return; }
         // La propuesta va ANTES de identificarse (no exige CIF ni datos): se
-        // analiza el precio y, si se acepta, se vuelve a la oferta con el nuevo
-        // precio aplicado para identificarse y aceptar la carga normalmente.
+        // analiza el precio EN EL MISMO PANEL (sin cambiar de pantalla) y, si
+        // se acepta, se aplica a la oferta para identificarse y aceptar.
         var base = window._basePrecio, np = parseFloat(document.getElementById('contraRange').value);
         if (np === base) { toggleContra(); return; } // sin cambio → nada que proponer
         // MOCKUP: el backend registra la propuesta (envío + precio), pausa la
@@ -1428,27 +1420,33 @@
         // con cpd=ok|no y cpt=segundos en la URL (demo: ok a los 6 s).
         window._reservaCerrada = true;
         if (window._reservaTimer) clearInterval(window._reservaTimer);
-        document.getElementById('cw-precio').textContent = fmtEur(np) + ' €';
-        document.getElementById('cw-orig').textContent = fmtEur(base) + ' €';
         // Email solo si YA se identificó (lo normal es que aún no: anónimo).
         var email = (window._empresaSel && window._empresaSel.email) || (window._altaMode && (document.getElementById('alta-email') || {}).value) || '';
-        document.getElementById('cw-box-email').hidden = !email;
-        document.getElementById('cw-box-anon').hidden = !!email;
-        if (email) document.getElementById('cw-email').textContent = email;
-        mostrarPantalla('contraWait');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        var boxTxt = email
+            ? 'En unos instantes te confirmamos <strong>en esta misma pantalla</strong>. Y por si la cierras, te avisaremos <strong>también por email</strong> a <strong style="color:var(--purple);">' + escH(email) + '</strong>: si aceptamos tu precio, volverás a la oferta con el nuevo precio ya aplicado para aceptar la carga.'
+            : 'En unos instantes te confirmamos <strong>en esta misma pantalla</strong>. Si aceptamos tu precio, volverás a la oferta con el <strong>nuevo precio ya aplicado</strong> para identificarte y aceptar la carga. <strong>No cierres esta pantalla</strong>: aún no te has identificado y no podríamos avisarte por email.';
+        var pane = document.getElementById('contraStatusPane');
+        pane.innerHTML = '<div class="contra-status">' +
+            '<div class="contra-spin" aria-hidden="true"></div>' +
+            '<div class="cs-title">Estamos analizando tu precio…</div>' +
+            '<div class="cs-sub">Has propuesto <strong style="color:var(--purple);">' + escH(fmtEur(np) + ' €') + '</strong> (la oferta era ' + escH(fmtEur(base) + ' €') + ').</div>' +
+            '<div class="cs-box">' + boxTxt + '</div></div>';
+        document.getElementById('contraFormPane').hidden = true;
+        pane.hidden = false;
         var cpd = q('cpd', 'ok'), cpt = parseInt(q('cpt', '6'), 10); if (isNaN(cpt) || cpt < 1) cpt = 6;
         setTimeout(function () {
             if (cpd === 'no') {
-                document.getElementById('cn-precio').textContent = fmtEur(np) + ' €';
-                mostrarPantalla('contraNo');
+                pane.innerHTML = '<div class="contra-status">' +
+                    '<div class="cs-no" aria-hidden="true">✕</div>' +
+                    '<div class="cs-title" style="color:var(--red);">No podemos aceptar tu precio</div>' +
+                    '<div class="cs-sub">Tu propuesta de <strong>' + escH(fmtEur(np) + ' €') + '</strong> no se ha aceptado.<br>Sigue en pie la oferta original de <strong>' + escH(fmtEur(base) + ' €') + '</strong>: identifícate abajo y acepta la carga.</div></div>';
             } else {
                 aplicarNuevoPrecio(np);
             }
         }, cpt * 1000);
     }
-    // Precio ACEPTADO por Dynamo → se aplica a la oferta y se vuelve al
-    // formulario para identificarse, revisar los detalles y aceptar la carga.
+    // Precio ACEPTADO por Dynamo → se aplica a la oferta (caja verde con la
+    // nota de ACORDADO) para identificarse, revisar los detalles y aceptar.
     function aplicarNuevoPrecio(np) {
         window._basePrecio = np;
         if (window._oferta) window._oferta.precio = fmtEur(np) + ' €';
@@ -1464,14 +1462,7 @@
         if (tg) tg.hidden = true;
         if (bx) bx.hidden = true;
         renderProntoCalc(); // el pronto pago recalcula sobre el precio acordado
-        mostrarPantalla('formScreen');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-    // Propuesta rechazada → volver a la oferta para aceptar al precio original.
-    function contraVolver() {
-        mostrarPantalla('formScreen');
-        var btn = document.querySelector('button[onclick="aceptar()"]');
-        if (btn) btn.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        if (pago) pago.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
     // Validación completa del formulario (identidad + campos obligatorios).
     // La comparte "Aceptar carga" con "Aceptar al NUEVO precio" (contraoferta).
@@ -1607,8 +1598,6 @@
         if (window._reservaTimer) clearInterval(window._reservaTimer); // parar contador
         var fs = document.getElementById('formScreen');
         fs.classList.remove('show'); fs.style.display = 'none';
-        // Si se llega desde la contraoferta, su pantalla de espera se cierra.
-        ['contraWait', 'contraNo'].forEach(function (s) { var el = document.getElementById(s); if (el) el.classList.remove('show'); });
         document.getElementById('okScreen').classList.add('show');
         window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(updateScrollHint, 500); // la pista se recalcula para el resumen de aceptado
@@ -1620,7 +1609,7 @@
     //  · disponible     → formulario + contador de reserva (por defecto 120 s).
     // Si el contador llega a 0 sin aceptar, la carga se libera (hay que recargar).
     function mostrarPantalla(id) {
-        ['checkScreen', 'takenScreen', 'expiredScreen', 'contraWait', 'contraNo'].forEach(function (s) {
+        ['checkScreen', 'takenScreen', 'expiredScreen'].forEach(function (s) {
             var el = document.getElementById(s); if (el) el.classList.toggle('show', s === id);
         });
         var fs = document.getElementById('formScreen');
