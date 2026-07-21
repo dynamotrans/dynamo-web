@@ -401,11 +401,41 @@
             <p class="sub">Oferta de <strong>Dynamo Operador de Transportes</strong></p>
 
 
-            <!-- Nº de envío + IDENTIFICACIÓN, lo primero: el transportista se
-                 identifica (CIF/DNI, código de bolsa, móvil o nombre de empresa)
-                 nada más entrar; la oferta (ruta, mercancía, precio) va debajo. -->
+            <!-- Reserva temporal: contador de 3 min mientras rellena los datos. -->
+            <div class="reserva-banner" id="reservaBanner">
+                <span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;color:var(--purple);"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 7.828V2"/></svg> <strong>Reserva temporal.</strong> Tómate tu tiempo para completar y aceptar la carga; te avisaremos cuando quede poco antes de que se libere.</span>
+            </div>
+
+            <!-- Nº de envío, lo primero; debajo va la oferta (ruta, mercancía,
+                 precio) y, tras ella, la IDENTIFICACIÓN (CIF/DNI, código de bolsa,
+                 móvil o nombre de empresa). -->
             <div class="of-envio"><span class="of-envio-lbl">Envío</span><span id="v-ref">—</span></div>
 
+
+
+            <dl class="viaje" id="viajeBox"></dl>
+
+            <!-- CONTRAOFERTA: proponer OTRO precio (barra ±10 %, pasos de 10 €). Se envía a
+                 Dynamo y se confirma en esta pantalla (y por email). MOCKUP:
+                 la decisión se simula (cpd=ok|no, cpt=segundos). -->
+            <button type="button" class="contra-toggle" id="contraToggle" hidden onclick="toggleContra()">Puedo aceptarla, pero a OTRO precio <span class="ct-chev" aria-hidden="true">▾</span></button>
+            <div class="contra-box" id="contraBox" hidden>
+                <!-- Capa 1: proponer. Capa 2 (contraStatusPane): "analizando tu
+                     precio" / rechazo, EN EL MISMO HUECO, sin cambiar de pantalla. -->
+                <div id="contraFormPane">
+                    <label for="contraRange" style="margin-top:0;">Propón tu precio · hasta un ±10 % sobre la oferta</label>
+                    <input type="range" id="contraRange" min="0" max="100" step="5" value="50" oninput="contraPinta()">
+                    <div class="contra-minmax"><span id="contraMin">—</span><span id="contraMax">—</span></div>
+                    <div class="contra-precio"><span id="contraPrecio">—</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>
+                    <div class="contra-delta" id="contraDelta">Igual que la oferta</div>
+                    <button type="button" class="btn btn-contra" onclick="aceptarContra()">Proponer este NUEVO precio</button>
+                    <p class="contra-nota">No hace falta identificarte para proponerlo. <strong>En unos instantes te confirmamos en esta misma pantalla</strong> si aceptamos tu precio: si lo aceptamos, volverás a la oferta con el <strong>nuevo precio ya aplicado</strong> para identificarte, revisar los detalles y aceptar la carga; si no, te lo diremos aquí mismo.</p>
+                </div>
+                <div id="contraStatusPane" hidden></div>
+            </div>
+
+            
+            
             <!-- 1) IDENTIFICACIÓN: CIF/DNI, código de bolsa, teléfono móvil de la
                  ficha o nombre de la empresa (sugerencias desde 2 letras, casa
                  cualquier palabra del nombre en cualquier orden). Se oculta al
@@ -520,34 +550,6 @@
                 </div>
             </div>
 
-            <!-- Reserva temporal: contador de 3 min mientras rellena los datos. -->
-            <div class="reserva-banner" id="reservaBanner">
-                <span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;color:var(--purple);"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 7.828V2"/></svg> <strong>Reserva temporal.</strong> Tómate tu tiempo para completar y aceptar la carga; te avisaremos cuando quede poco antes de que se libere.</span>
-            </div>
-
-            <dl class="viaje" id="viajeBox"></dl>
-
-            <!-- CONTRAOFERTA: proponer OTRO precio (barra ±10 %, pasos de 10 €). Se envía a
-                 Dynamo y se confirma en esta pantalla (y por email). MOCKUP:
-                 la decisión se simula (cpd=ok|no, cpt=segundos). -->
-            <button type="button" class="contra-toggle" id="contraToggle" hidden onclick="toggleContra()">Puedo aceptarla, pero a OTRO precio <span class="ct-chev" aria-hidden="true">▾</span></button>
-            <div class="contra-box" id="contraBox" hidden>
-                <!-- Capa 1: proponer. Capa 2 (contraStatusPane): "analizando tu
-                     precio" / rechazo, EN EL MISMO HUECO, sin cambiar de pantalla. -->
-                <div id="contraFormPane">
-                    <label for="contraRange" style="margin-top:0;">Propón tu precio · hasta un ±10 % sobre la oferta</label>
-                    <input type="range" id="contraRange" min="0" max="100" step="5" value="50" oninput="contraPinta()">
-                    <div class="contra-minmax"><span id="contraMin">—</span><span id="contraMax">—</span></div>
-                    <div class="contra-precio"><span id="contraPrecio">—</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>
-                    <div class="contra-delta" id="contraDelta">Igual que la oferta</div>
-                    <button type="button" class="btn btn-contra" onclick="aceptarContra()">Proponer este NUEVO precio</button>
-                    <p class="contra-nota">No hace falta identificarte para proponerlo. <strong>En unos instantes te confirmamos en esta misma pantalla</strong> si aceptamos tu precio: si lo aceptamos, volverás a la oferta con el <strong>nuevo precio ya aplicado</strong> para identificarte, revisar los detalles y aceptar la carga; si no, te lo diremos aquí mismo.</p>
-                </div>
-                <div id="contraStatusPane" hidden></div>
-            </div>
-
-            
-            
             <!-- 2) Resto del formulario (aparece tras identificarse) -->
             <div id="restForm">
                 <div class="sec-title">Carga</div>
