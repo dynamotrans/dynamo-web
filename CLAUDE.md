@@ -25,6 +25,14 @@ El usuario trabaja desde 2 Macs diferentes usando GitHub Codespaces para mantene
 ### 0-ter. NADA de emoticonos en la UI: siempre iconos SVG profesionales
 **(Regla del usuario, 2026-07-20.)** En TODO el proyecto, cualquier icono visible se hace con **SVG de línea** (estilo feather: `viewBox="0 0 24 24"`, `fill="none"`, `stroke="currentColor"`, `stroke-width="2"`, linecap/linejoin round), nunca con emoticonos. **Excepciones permitidas**: las banderas del selector de idioma/prefijos telefónicos y los glifos tipográficos ✕ / ⚠ / ★. Los emojis en comentarios de código no importan (no son UI). `aceptar-carga.html` tiene un helper `svgIco()` + set `ICO` reutilizable.
 
+### 0-quater. TODO control de UI se hace con los COMPONENTES del diseño actual
+**(Regla del usuario, 2026-07-21.)** Cualquier control nuevo (botón, check, desplegable, input, caja, aviso) se construye **reutilizando las clases/componentes que ya existen en la web**, nunca controles nativos sin estilar ni estilos inline inventados:
+- **Desplegables** → `.ptar-select` (44px, borde 1.5px, radio 10, hover/focus morado).
+- **Interruptores Sí/No** → el switch de Trampilla/NIMA (`.ptar-switch-input` + `.ptar-switch` + `.ptar-tramp-state`), nunca `<input type="checkbox">` a pelo.
+- **Botones** → `.btn-primary` / `.btn-secondary` / `.btn-ghost` (panel) o `.btn` (páginas del transportista).
+- **Cajas de aviso/nota** → los patrones existentes (`.warn`, `.pago-contado`, `.ptar-admin-precio-note`, etc.).
+Antes de crear un control, buscar cómo está hecho el equivalente más parecido en la página y copiar su patrón. Si de verdad no existe un componente equivalente, crearlo siguiendo la escala de texto y los colores de `:root` y dejarlo como clase reutilizable (no inline).
+
 ### 1. Push: automático a PREVIEW, con confirmación a PRODUCCIÓN
 **(Actualizado 2026-07-12 a petición del usuario: "sube directo sin preguntarme".)**
 

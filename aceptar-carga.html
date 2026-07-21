@@ -74,8 +74,10 @@
     .of-merc-ico { flex: none; line-height: 0; color: var(--purple); }
     .of-merc-lbl { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--purple); }
     .of-merc-tipo { font-size: 1rem; font-weight: 900; color: var(--navy); }
-    .of-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.7rem; }
-    .of-chip { display: inline-flex; flex-direction: column; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 9px; padding: 0.34rem 0.6rem; }
+    /* Chips del detalle en rejilla de 2 columnas: cada fila es una pareja
+       (metros+peso · palets+tipo de carga · trampilla+NIMA). */
+    .of-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.7rem; }
+    .of-chip { display: flex; flex-direction: column; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 9px; padding: 0.34rem 0.6rem; }
     .of-chip .of-chip-k { font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: var(--gray-500); }
     .of-chip .of-chip-v { font-size: 0.88rem; font-weight: 800; color: var(--navy); }
     .of-dm { margin-top: 0.75rem; padding-top: 0.7rem; border-top: 1px dashed var(--gray-300); font-size: 0.86rem; font-weight: 600; color: var(--gray-700); line-height: 1.45; }
@@ -839,11 +841,13 @@
                           : ['Mié 22/07', 'Jue 23/07', 'Vie 24/07']).map(labelConAnio);
         var fecha = lista.length > 1 ? 'De ' + lista[0] + ' a ' + lista[lista.length - 1] : (lista[0] || 'Por confirmar');
         window._diasCarga = lista;
-        // Detalle de la mercancía → chips en la tarjeta y línea del resumen aceptado.
+        // Detalle de la mercancía → chips en la tarjeta y línea del resumen
+        // aceptado. Orden en PAREJAS por fila: metros+peso · palets+tipo de
+        // carga · trampilla+NIMA.
         var vd = [];
         if (ml)   vd.push(['Metros lineales', ml]);
-        if (pal)  vd.push(['Palets / bultos', pal]);
         if (peso) vd.push(['Peso', peso]);
+        if (pal)  vd.push(['Palets / bultos', pal]);
         if (tc)   vd.push(['Tipo de carga', tc]);
         vd.push(['Trampilla elevadora', tram]);
         vd.push(['Requiere NIMA', nima]);

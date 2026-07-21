@@ -5208,7 +5208,7 @@
                          (máx. 2 min). El modal "Ofrecer carga" lo lee como valor
                          inicial y desde el detalle del envío se puede alternar. -->
                     <label class="ptar-admin-precio-lbl" for="ptar-precio-neg" style="margin-top:0.6rem;">Negociación del precio (transportista)</label>
-                    <select id="ptar-precio-neg" data-ptar-precio-neg>
+                    <select id="ptar-precio-neg" data-ptar-precio-neg class="ptar-select">
                         <option value="0" selected>NO negociable · precio fijo</option>
                         <option value="30">Negociable ±30 € · lo decide el sistema</option>
                         <option value="60">Negociable ±60 € · lo decide el sistema</option>
@@ -11450,7 +11450,7 @@
                 (ppOn ? '' : '<div style="margin-bottom:0.7rem;padding:0.55rem 0.7rem;background:#fdecec;border:1px solid #f5b5b5;border-radius:9px;font-size: var(--fs-m);font-weight:700;color:#b42318;">⛔ PRONTO PAGO no disponible (línea agotada o apagado manualmente): esta oferta sale SIN esa opción. Revísalo en Dashboard admin.</div>') +
                 (pt ? '<div style="margin-bottom:0.7rem;padding:0.55rem 0.7rem;background:rgba(51,0,204,0.05);border:1px solid rgba(51,0,204,0.2);border-radius:9px;">' +
                     '<label for="ofertaNeg" style="display:block;font-size: var(--fs-s);font-weight:800;color:var(--purple);margin-bottom:0.3rem;">Negociación del precio</label>' +
-                    '<select id="ofertaNeg" onchange="ofertaNegSync()" style="width:100%;height:40px;border:1.5px solid var(--gray-300);border-radius:9px;padding:0 0.6rem;font:inherit;font-size: var(--fs-m);font-weight:700;color:var(--navy);background:#fff;">' +
+                    '<select id="ofertaNeg" class="ptar-select" onchange="ofertaNegSync()">' +
                         '<option value="0"' + (negIni === 0 ? ' selected' : '') + '>NO negociable · precio fijo</option>' +
                         '<option value="30"' + (negIni === 30 ? ' selected' : '') + '>Negociable ±30 € · lo decide el sistema</option>' +
                         '<option value="60"' + (negIni === 60 ? ' selected' : '') + '>Negociable ±60 € · lo decide el sistema</option>' +
@@ -11795,7 +11795,7 @@
                     function opt(v, txt) { return '<option value="' + v + '"' + (m === v ? ' selected' : '') + '>' + txt + '</option>'; }
                     return '<div class="det-block" data-roles="admin" style="margin-top:0.6rem;padding:0.6rem 0.75rem;background:rgba(51,0,204,0.05);border:1px solid rgba(51,0,204,0.2);border-radius:10px;">' +
                         '<div style="font-size: var(--fs-s);font-weight:800;color:var(--purple);margin-bottom:0.35rem;">Negociación del precio (transportista) <span style="display:inline-block;background:rgba(51,0,204,0.10);border-radius:6px;padding:1px 7px;margin-left:0.3rem;">SOLO ADMIN</span></div>' +
-                        '<select onchange="cambiarNegociacion(\'' + escapeHtml(src.ref || '') + '\', this.value)" style="width:100%;height:40px;border:1.5px solid var(--gray-300);border-radius:9px;padding:0 0.6rem;font:inherit;font-size: var(--fs-m);font-weight:700;color:var(--navy);background:#fff;">' +
+                        '<select class="ptar-select" onchange="cambiarNegociacion(\'' + escapeHtml(src.ref || '') + '\', this.value)">' +
                             opt(0, 'NO negociable · precio fijo') +
                             opt(30, 'Negociable ±30 € · lo decide el sistema') +
                             opt(60, 'Negociable ±60 € · lo decide el sistema') +
