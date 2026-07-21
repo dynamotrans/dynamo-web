@@ -1454,18 +1454,22 @@
         var boxTxt = email
             ? 'En unos instantes te confirmamos <strong>en esta misma pantalla</strong>. Y por si la cierras, te avisaremos <strong>también por email</strong> a <strong style="color:var(--purple);">' + escH(email) + '</strong>: si aceptamos tu precio, volverás a la oferta con el nuevo precio ya aplicado para aceptar la carga.'
             : 'En unos instantes te confirmamos en esta misma pantalla. Si aceptamos tu precio, volverás a la oferta con el nuevo precio ya aplicado para identificarte y aceptar la carga. <strong>No cierres esta pantalla: aún no te has identificado y no podríamos confirmar la carga ni avisarte por email con la orden de carga.</strong>';
+        var cpd = q('cpd', 'ok'), cpt = parseInt(q('cpt', '6'), 10); if (isNaN(cpt) || cpt < 1) cpt = 6;
+        // Mismo estilo que "Comprobando disponibilidad": spinner + barra de
+        // progreso con porcentaje y contador de segundos.
         var pane = document.getElementById('contraStatusPane');
         pane.innerHTML = '<div class="contra-status">' +
             '<div class="contra-spin" aria-hidden="true"></div>' +
             '<div class="cs-title">Estamos analizando tu precio…</div>' +
             '<div class="cs-agente">Danos unos segundos.</div>' +
             '<div class="cs-sub">Has propuesto <strong style="color:var(--purple);">' + escH(fmtEur(np) + ' €') + '</strong> (la oferta era ' + escH(fmtEur(base) + ' €') + ').</div>' +
+            '<div class="chk-bar-wrap"><div class="chk-bar" id="ct-bar"></div></div>' +
+            '<div class="chk-row"><span class="chk-pct" id="ct-pct">0%</span><span class="chk-cd"><strong id="ct-count">' + cpt + '</strong> s</span></div>' +
             '<div class="cs-box">' + boxTxt + '</div></div>';
         document.getElementById('contraFormPane').hidden = true;
         pane.hidden = false;
         window._contraPendiente = true; // analizando: no resetear el panel
-        var cpd = q('cpd', 'ok'), cpt = parseInt(q('cpt', '6'), 10); if (isNaN(cpt) || cpt < 1) cpt = 6;
-        setTimeout(function () {
+        animarBarra(cpt, 'ct-bar', 'ct-pct', 'ct-count', function () {
             window._contraPendiente = false; // decidido: al reabrir, selector de nuevo
             // Con la respuesta (sea cual sea), la reserva vuelve a correr.
             if (window._reservaReanudar) window._reservaReanudar();
@@ -1477,7 +1481,7 @@
             } else {
                 aplicarNuevoPrecio(np);
             }
-        }, cpt * 1000);
+        });
     }
     // Precio ACEPTADO por Dynamo → se aplica a la oferta (caja verde con la
     // nota de ACORDADO) para identificarse, revisar los detalles y aceptar.
@@ -1795,8 +1799,10 @@
     }
     // Animación de "comprobando" con barra de progreso (0→100 %) y contador de
     // segundos (5,4,3,2,1,0), luego resuelve. dur en segundos (cd por URL).
-    function comprobarDisponibilidad(dur, done) {
-        var bar = document.getElementById('chk-bar'), pct = document.getElementById('chk-pct'), cd = document.getElementById('chk-count');
+    // Barra de progreso genérica (0→100 % + contador de segundos): la usan la
+    // comprobación de disponibilidad y el análisis de la contraoferta.
+    function animarBarra(dur, barId, pctId, cdId, done) {
+        var bar = document.getElementById(barId), pct = document.getElementById(pctId), cd = document.getElementById(cdId);
         var t0 = new Date().getTime();
         var iv = setInterval(function () {
             var el = (new Date().getTime() - t0) / 1000;
@@ -1806,6 +1812,9 @@
             if (cd) cd.textContent = Math.max(0, Math.ceil(dur - el));
             if (el >= dur) { clearInterval(iv); if (bar) bar.style.width = '100%'; if (pct) pct.textContent = '100%'; if (cd) cd.textContent = '0'; done(); }
         }, 80);
+    }
+    function comprobarDisponibilidad(dur, done) {
+        animarBarra(dur, 'chk-bar', 'chk-pct', 'chk-count', done);
     }
     (function initDisponibilidad() {
         document.getElementById('chk-ref').textContent = q('envio', '#GX684870 (demo)');
