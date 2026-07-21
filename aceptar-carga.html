@@ -659,7 +659,11 @@
                     <textarea id="f-notas" placeholder="Ej. disponibilidad, restricciones, observaciones del vehículo…"></textarea>
                 </div>
 
-                <div class="pronto">
+                <!-- PRONTO PAGO OCULTO de momento (decisión del usuario 2026-07-22:
+                     "ya vemos en otro momento"). El código queda intacto: para
+                     reactivarlo en una demo, añadir ?pp=1 a la URL; para volver
+                     a mostrarlo de serie, quitar el atributo hidden. -->
+                <div class="pronto" hidden>
                     <label class="chk">
                         <input type="checkbox" id="f-pronto" onchange="renderProntoCalc()">
                         <span><strong>Quiero PRONTO PAGO:</strong> cobro en <strong>5 días tras recibir factura</strong> después de finalizar el servicio, con un <strong>descuento del 3,5%</strong> (mínimo 25&nbsp;€).</span>
@@ -1002,6 +1006,12 @@
                 });
             }
         })();
+        // PRONTO PAGO oculto por defecto (se retomará más adelante).
+        // pp=1 lo vuelve a mostrar para demos.
+        if (q('pp', '') === '1') {
+            var prShow = document.querySelector('.pronto');
+            if (prShow) prShow.hidden = false;
+        }
         // pp=0 → PRONTO PAGO no disponible.
         if (q('pp', '') === '0') {
             var pr = document.querySelector('.pronto');
