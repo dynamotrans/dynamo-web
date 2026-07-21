@@ -10469,7 +10469,9 @@
         openDashModal({
             icon: 'truck',
             title: (yaTiene ? 'Cambiar' : 'Asignar') + ' transportista — ' + ref,
-            sub: yaTiene ? 'Asignado ahora: ' + (c.transportistaNombre || 'sin nombre') : 'Este envío aún no tiene transportista',
+            sub: yaTiene
+                ? 'Asignado ahora: ' + (c.transportistaNombre || 'sin nombre') + (asignadoElTxt(c) ? ' · asignado el ' + asignadoElTxt(c) : '')
+                : 'Este envío aún no tiene transportista',
             body:
                 // Con transportista asignado: QUITARLO sin poner otro (canceló y
                 // aún no hay sustituto) → vuelve a Pendiente de asignar. Arriba
@@ -10547,6 +10549,10 @@
         // Matrículas saneadas: SOLO letras y números, en mayúsculas.
         function matSan(x) { return String(x || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10); }
         var t = TRANSPORTISTAS_DATA[_asigTraSel];
+        // HORA DE ASIGNACIÓN (registro de tiempos): se fija al asignar por
+        // primera vez o al CAMBIAR de transportista; editar los detalles del
+        // mismo transportista no la mueve. En producción: evento del backend.
+        if (!c.transportistaAsignado || c.transportistaNombre !== t.empresa) c.asignadoEl = Date.now();
         c.transportistaNombre = t.empresa;
         c.transportistaAsignado = true;
         var camEl = document.getElementById('asig-f-camion');
@@ -10617,6 +10623,7 @@
         c.fechaAsignada = null;
         c.franjaCarga = null;
         c.horaCargaEst = null;
+        c.asignadoEl = null; // sin transportista no hay hora de asignación
         c.modificadoEn = Date.now();
         closeDashModal();
         if (typeof renderCargasTable === 'function') renderCargasTable();
@@ -11754,11 +11761,13 @@
                 sectionTitle('Transporte') +
                 (function () {
                     var a = getAsignacionEstado(src);
+                    var asigEl = asignadoElTxt(src); // fecha y hora de la asignación (24 h)
                     var asigHtml = a
-                        ? '<span class="asig-line asig-' + a.key + '" style="margin-top:0;"><span class="asig-dot"></span>' + escapeHtml(a.label) + '</span>'
+                        ? '<span class="asig-line asig-' + a.key + '" style="margin-top:0;"' + (asigEl && a.key === 'confirmado' ? ' title="Asignado el ' + escapeHtml(asigEl) + '"' : '') + '><span class="asig-dot"></span>' + escapeHtml(a.label) + '</span>'
                         : pend(null);
                     var h = '<div class="det-block">' + infoGrid([
                         { label: 'Estado asignación transportista', value: asigHtml, html: true, span: true },
+                        { label: 'Transportista asignado el', value: pend(asigEl), html: true },
                         { label: 'Fecha asignada de carga', value: pend(src.fechaAsignada), html: true },
                         { label: 'Hora estimada de llegada', value: pend(src.horaCargaEst), html: true },
                         { label: 'ETA entrega', value: pend(src.etaEntrega), html: true }
@@ -15262,6 +15271,34 @@
         return { key: 'asignandose', label: 'Asignándose transportista' };
     }
 
+    // --- Fecha y HORA de ASIGNACIÓN del transportista (registro de tiempos) ---
+    // Momento en que se ASIGNÓ el transportista al envío (no confundir con la
+    // fecha de carga). En producción lo registra el backend con la hora del
+    // SERVIDOR (tabla envio_eventos, ver TODO.md). En el mock: si el admin
+    // asigna desde el modal se guarda la hora real (c.asignadoEl); para los
+    // envíos de ejemplo se deriva una hora ESTABLE por referencia (la víspera
+    // laborable de la fecha de carga, entre las 13:00 y las 17:59).
+    // Formato de toda la plataforma: 'Vie 21/07/2026 - 13:43' (24 h).
+    function fmtFechaHora(d) {
+        return DOW_SHORT[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear() +
+            ' - ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+    }
+    function asignadoElTxt(c) {
+        if (!c || c.manual) return null; // manual: su transporte no lo asigna Dynamo
+        var tiene = c.transportistaAsignado || c.transportistaNombre || c.kind === 'en-ruta';
+        if (!tiene) return null;
+        if (c.asignadoEl) return fmtFechaHora(new Date(c.asignadoEl));
+        var base = __sortFecha(c.fechaAsignada || c.fecha);
+        if (base == null) return null;
+        var d = new Date(base);
+        d.setDate(d.getDate() - 1); // víspera de la carga…
+        while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() - 1); // …laborable
+        var h = 0, s = String(c.ref || '');
+        for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 997;
+        d.setHours(13 + (h % 5), (h * 7) % 60, 0, 0);
+        return fmtFechaHora(d);
+    }
+
     function highlightInfo(dateStr) {
         if (!dateStr || dateStr === 'Sin fecha') return null;
         var m = String(dateStr).match(/^(\d{1,2})\/(\d{1,2})$/);
@@ -16770,7 +16807,13 @@
                         })() +
                     '</td>' +
                     '<td class="vehiculo">' +
-                        (asig ? '<div class="asig-line asig-top asig-' + asig.key + '"><span class="asig-dot"></span>' + esc(asig.label) + '</div>' : '') +
+                        (function () {
+                            // Chip de asignación: al pasar el ratón por encima
+                            // muestra la fecha y HORA de la asignación (24 h).
+                            if (!asig) return '';
+                            var ael = asig.key === 'confirmado' ? asignadoElTxt(c) : null;
+                            return '<div class="asig-line asig-top asig-' + asig.key + '"' + (ael ? ' title="Asignado el ' + esc(ael) + '"' : '') + '><span class="asig-dot"></span>' + esc(asig.label) + '</div>';
+                        })() +
                         (c.matricula ? '<span class="meta-matricula">' + esc(c.matricula) + '</span>' : '<span class="meta meta-pend">Sin matrícula</span>') +
                         (c.matriculaRemolque ? '<div class="meta">Remolque: <span class="meta-matricula" style="font-size:var(--fs-s);">' + esc(c.matriculaRemolque) + '</span></div>' : '') +
                         (c.tipoCamion ? '<div class="meta">' + esc(c.tipoCamion) + '</div>' : '') +
