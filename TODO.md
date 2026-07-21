@@ -99,11 +99,13 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] **Roles de usuario en el portal**: el `registro.html` actual envía siempre `tipo_usuario=cliente` (hidden input). Cuando se habilite el alta de transportistas/proveedores, convertir ese hidden en un selector visible (radio Cliente / Transportista / Proveedor) y persistir el rol en backend para diferenciar permisos, vistas del dashboard y notificaciones. Migración futura: usuarios ya creados como `cliente` mantienen el rol; no se permite cambiar rol via UI (solo admin)
 - [ ] **Factura del transportista con PRONTO PAGO aplicado** (2026-07-20): cuando el transportista acepta la carga con pronto pago (`aceptar-carga.html`), la **factura debe reflejar el importe FINAL con el descuento del 3% (mín. 20 €) ya aplicado y una mención expresa "PRONTO PAGO aplicado (−X €, cobro a 5 días)"**. El mockup ya lo muestra en el resumen de "carga aceptada"; en producción lo genera el backend/Holded al emitir la factura (descuento como línea o como base ya rebajada, con la nota). Sin pronto pago: importe normal a 60 días.
 - [ ] **TARIFADOR (backend) — DESCUENTO por peso bajo con camión LLENO en metros (regla del usuario 2026-07-21, YA en el mock del panel)**: cuando el camión va **lleno en metros (tauliner a carga completa, 13,2 m)** pero el peso es bajo, se aplica un descuento escalado sobre el **IMPORTE DE ENVÍO** (el porte base, NO sobre la base imponible total tras sumar recargos/suplementos), con el importe del descuento **redondeado a la DECENA SUPERIOR**:
-  - **0 a 6 Tn → −3,5%** del importe de envío
-  - **6 a 12 Tn → −2,5%**
-  - **12 a 18 Tn → −1,5%**
-  - **18 a 24 Tn → precio ÍNTEGRO** (sin descuento)
-  - **Ejemplo**: importe de envío 850 € con 8 Tn y 13,2 m → −2,5% = 21,25 € → redondeado a decena superior = **−30 €**; los recargos/suplementos (tipo de sitio, techo, trampilla, fecha fija…) se suman aparte SIN descuento.
+  - **0 a 4 Tn → −3,5%** del importe de envío
+  - **4 a 8 Tn → −3%**
+  - **8 a 12 Tn → −2,5%**
+  - **12 a 16 Tn → −2%**
+  - **16 a 20 Tn → −1%**
+  - **20 a 24 Tn → precio ÍNTEGRO** (sin descuento)
+  - **Ejemplo**: importe de envío 850 € con 8 Tn y 13,2 m → −3% = 25,50 € → redondeado a decena superior = **−30 €**; los recargos/suplementos (tipo de sitio, techo, trampilla, fecha fija…) se suman aparte SIN descuento.
   - En el **desglose del precio** el descuento aparece como línea propia ANTES de la Base imponible, con la palabra "Descuento": `Descuento peso entre 12 a 18 Tn (−2%)`. No aplica a rígido ni a cargas que no llenan los metros.
 - [ ] **RESERVA de carga al aceptar (`aceptar-carga.html`) — control server-side (decisión del usuario 2026-07-20)**. El mockup ya tiene TODAS las pantallas (comprobando disponibilidad · formulario con contador · "en trámite / reservando otro" · "ya no disponible / tomada" · "tiempo agotado"); los estados hoy se simulan por parámetros de URL (`estado=tomada|tramite`, `t`, `u`, `cd`). **Modelo elegido (el más simple, versión del usuario)**:
   - **UNA sola URL por envío, SIN tokens**: `.../aceptar-carga?e=GX684870` (la misma para quien sea; se manda por email/WhatsApp). No se genera nada por cada envío ni por cada envío-mandado.
