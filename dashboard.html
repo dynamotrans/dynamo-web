@@ -18092,11 +18092,17 @@
                 o.value = String(t[0]); o.textContent = t[1];
                 sel.appendChild(o);
             });
-            for (var i = 2; i <= pesoMax; i++) {
+            // A partir de 1 Tn, TRAMOS de 4 en 4 (el value es el tope del
+            // tramo): 1-4 · 4-8 · 8-12 · … hasta el máximo del camión.
+            var lo = 1;
+            for (var hi = 4; lo < pesoMax; hi += 4) {
+                if (hi > pesoMax) hi = pesoMax;
                 var opt = document.createElement('option');
-                opt.value = i;
-                opt.textContent = i + ' toneladas' + (i === pesoMax ? ' (máximo)' : '');
+                opt.value = hi;
+                opt.textContent = 'De ' + lo + ' a ' + hi + ' toneladas' + (hi === pesoMax ? ' (máximo)' : '');
                 sel.appendChild(opt);
+                if (hi === pesoMax) break;
+                lo = hi;
             }
             // Por defecto: peso máximo (24 Tn en Tauliner; 14 en rígido).
             sel.value = String(pesoMax);
@@ -21432,8 +21438,13 @@
                     var kM = String(src.medidas || '').match(/([\d.]+)\s*kg/i);
                     if (kM) {
                         var tn = Math.round(parseInt(kM[1].replace(/\./g, ''), 10) / 1000);
-                        var pv = String(Math.max(1, Math.min(tn, info.pesoMax)));
-                        if (pesoSel.querySelector('option[value="' + pv + '"]')) pesoSel.value = pv;
+                        var tnC = Math.max(1, Math.min(tn, info.pesoMax));
+                        // Encajar en el TRAMO del desplegable: la primera opción
+                        // cuyo tope cubre el peso restaurado.
+                        var opts = Array.prototype.map.call(pesoSel.options, function (o) { return parseFloat(o.value); }).filter(function (n) { return !isNaN(n); });
+                        var pv = null;
+                        for (var oi = 0; oi < opts.length; oi++) { if (opts[oi] >= tnC) { pv = String(opts[oi]); break; } }
+                        if (pv && pesoSel.querySelector('option[value="' + pv + '"]')) pesoSel.value = pv;
                     }
                     // Mercancía (match por texto). El origen puede venir como
                     // "Paletizada · Lateral y techo" (dos partes separadas por ·).
