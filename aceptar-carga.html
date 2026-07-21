@@ -402,6 +402,7 @@
                 <div class="contra-precio"><span id="contraPrecio">—</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>
                 <div class="contra-delta" id="contraDelta">Igual que la oferta</div>
                 <button type="button" class="btn btn-contra" onclick="aceptarContra()">Aceptar carga al NUEVO precio</button>
+                <div class="warn" id="contraWarn">⚠ Te falta completar los datos de abajo (identifícate, matrícula y conductor). <strong>Tu precio propuesto se guarda</strong>: complétalos y vuelve a pulsar «Aceptar carga al NUEVO precio».</div>
                 <p class="contra-nota">Rellena antes tus datos de abajo (identifícate, matrículas y conductor). <strong>En unos instantes te confirmamos en esta misma pantalla</strong> si aceptamos tu precio. Y por si cierras la pantalla, <strong>te avisaremos también por email</strong>: si la aceptamos, te llegará directamente la <strong>orden de carga</strong>; si no, un email avisando de que no se acepta.</p>
             </div>
 
@@ -1407,7 +1408,11 @@
     }
     function aceptarContra() {
         if (window._reservaExpirada) { expirarReserva(); return; }
-        if (!validarAceptar()) return;
+        // Si faltan datos, la validación marca en rojo y hace scroll al campo;
+        // el aviso del panel deja claro que el precio propuesto NO se pierde.
+        var cw = document.getElementById('contraWarn');
+        if (!validarAceptar()) { if (cw) cw.classList.add('show'); return; }
+        if (cw) cw.classList.remove('show');
         var base = window._basePrecio, np = parseFloat(document.getElementById('contraRange').value);
         if (np === base) { finalizarAceptacion(); return; } // sin cambio → aceptación normal
         // MOCKUP: el backend registra la CONTRAOFERTA (mismos datos que la
