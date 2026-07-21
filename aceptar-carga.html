@@ -1896,10 +1896,10 @@
             // Reservada por otro transportista dentro de su tiempo (aún sin aceptar).
             if (est === 'tramite' || est === 'reservada') { mostrarTomada(true); return; }
             mostrarPantalla('formScreen');
-            // DEMO: total 30 s (15 s tranquilo + 15 s último tramo). En producción
+            // DEMO: total 40 s (15 s tranquilo + 25 s último tramo). En producción
             // será t=180 (3 min) y u=60 (último minuto). Ajustables por URL.
-            var seg = parseInt(q('t', '30'), 10); if (isNaN(seg) || seg < 2) seg = 30;
-            var uwin = parseInt(q('u', '15'), 10); if (isNaN(uwin) || uwin < 1) uwin = 15;
+            var seg = parseInt(q('t', '40'), 10); if (isNaN(seg) || seg < 2) seg = 40;
+            var uwin = parseInt(q('u', '25'), 10); if (isNaN(uwin) || uwin < 1) uwin = 25;
             iniciarReserva(seg, uwin);
         });
     })();
