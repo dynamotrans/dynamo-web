@@ -629,9 +629,15 @@
             <div class="ok-ico"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
             <h1>¡Carga aceptada!</h1>
             <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br><span id="ok-alta" hidden><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;color:var(--green-dark);"><path d="M2 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="8" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg> Te damos de <strong>alta como transportista de Dynamo</strong> (pendiente de validación).</span></p>
-            <div class="pago-contado" id="ok-orden-top" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-4px;color:var(--purple);"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg> En unos minutos recibirás la <strong>orden de carga</strong> por email en <strong id="ok-email-top" style="color:var(--purple);">—</strong>.</div>
+            <button type="button" class="dudas-toggle" id="okDudasTop" style="margin:0.5rem auto 0.6rem;" aria-expanded="false" onclick="toggleDudas(this)">¿Dudas? <span class="dt-chev" aria-hidden="true">▾</span></button>
+            <div class="contact-btns" hidden>
+                <a class="cbtn cbtn-call" href="tel:+34955225945"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar</a>
+                <a class="cbtn cbtn-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</a>
+                <a class="cbtn cbtn-mail" href="mailto:info@dynamotrans.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>Email</a>
+            </div>
+            <div class="pago-contado" id="ok-orden-top" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-4px;color:var(--purple);"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg> En unos minutos recibirás la <strong>orden de carga</strong> por email en: <strong id="ok-email-top" style="color:var(--purple);">—</strong>, con todos los detalles de los sitios de recogida y entrega, teléfonos de contacto, horarios, ubicaciones de Google Maps, etc.</div>
             <div id="ok-resumen"></div>
-            <div class="pago-contado" id="ok-orden" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-4px;color:var(--purple);"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg> En unos minutos recibirás la <strong>orden de carga</strong> por email en <strong id="ok-email" style="color:var(--purple);">—</strong>.</div>
+            <div class="pago-contado" id="ok-orden" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-4px;color:var(--purple);"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg> En unos minutos recibirás la <strong>orden de carga</strong> por email en: <strong id="ok-email" style="color:var(--purple);">—</strong>, con todos los detalles de los sitios de recogida y entrega, teléfonos de contacto, horarios, ubicaciones de Google Maps, etc.</div>
             <button type="button" class="dudas-toggle" aria-expanded="false" onclick="toggleDudas(this)">¿Dudas? <span class="dt-chev" aria-hidden="true">▾</span></button>
             <div class="contact-btns" hidden>
                 <a class="cbtn cbtn-call" href="tel:+34955225945"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar</a>
@@ -894,15 +900,27 @@
         // renegociado (si no, encadenando propuestas aceptadas se escalaría
         // el precio indefinidamente).
         window._precioOferta = window._basePrecio;
-        // Contraoferta (barra ±10 % del precio, redondeado a 10 €, pasos de
-        // 10 €): solo si la oferta trae precio Y viene marcada como NEGOCIABLE
-        // (neg=1, lo decide el admin al ofrecer). La demo pelada es negociable
-        // salvo que se fuerce neg=0.
+        // Contraoferta: 4 estados de NEGOCIACIÓN por envío (los fija el admin):
+        //   neg=0 (o ausente) → precio FIJO, no se puede proponer.
+        //   neg=30 / neg=60  → negociable ±30/±60 €, decide el SISTEMA al momento.
+        //   neg=500          → negociable ±500 €, lo revisa un AGENTE (máx. 2 min).
+        // (compat: neg=1 → 30). La demo pelada sale ±60 salvo que se fuerce.
         (function () {
             var base = window._basePrecio, tg = document.getElementById('contraToggle');
             if (!tg || isNaN(base) || base <= 0) return;
-            if (q('neg', demo ? '1' : '0') !== '1') return; // precio cerrado
+            var v = q('neg', demo ? '60' : '0');
+            if (v === '1') v = '30';
+            window._negAmp = ({ '30': 30, '60': 60, '500': 500 })[v] || 0;
+            if (!window._negAmp) return; // precio cerrado
             tg.hidden = false;
+            var lbl = document.querySelector('label[for="contraRange"]');
+            if (lbl) lbl.textContent = 'Propón tu precio · hasta ±' + window._negAmp + ' € sobre la oferta';
+            // Las propuestas grandes (±500) las revisa una persona: se avisa ya
+            // en el panel para que no espere una respuesta instantánea.
+            if (window._negAmp >= 500) {
+                var nota = document.querySelector('.contra-nota');
+                if (nota) nota.innerHTML = 'No hace falta identificarte para proponerlo. Las propuestas de este envío las revisa un <strong>agente</strong> (puede tardar <strong>hasta 2 minutos</strong>): te confirmamos en esta misma pantalla y, si aceptamos tu precio, volverás a la oferta con el <strong>nuevo precio ya aplicado</strong> para identificarte y aceptar la carga.';
+            }
             contraInitRange();
         })();
         // Tipo de camión: el RÍGIDO (máx 8 m / 14 Tn) no se ofrece si la carga
@@ -1405,16 +1423,16 @@
         finalizarAceptacion();
     }
     // ---- CONTRAOFERTA: proponer otro precio (barra ±10 %, pasos de 10 €) ----
-    // Monta la barra: rango = precio de SALIDA de Dynamo ±10 % (redondeado a
-    // 10 €, pasos de 10 €). El ancla es SIEMPRE window._precioOferta (el
-    // precio original de la oferta): aunque se haya acordado otro precio, los
-    // topes NO se mueven — así no se puede escalar encadenando propuestas.
-    // El cursor arranca en el precio VIGENTE (el acordado, si lo hay).
+    // Monta la barra: rango = precio de SALIDA de Dynamo ± el límite del modo
+    // de negociación del envío (±30/±60/±500 €), pasos de 10 €. El ancla es
+    // SIEMPRE window._precioOferta (el precio original de la oferta): aunque
+    // se haya acordado otro precio, los topes NO se mueven — así no se puede
+    // escalar encadenando propuestas. El cursor arranca en el precio VIGENTE.
     function contraInitRange() {
         var orig = window._precioOferta;
         var r = document.getElementById('contraRange');
         if (!r || isNaN(orig) || orig <= 0) return;
-        var amp = Math.max(10, Math.round(orig * 0.10 / 10) * 10);
+        var amp = window._negAmp || 30;
         r.min = Math.max(0, orig - amp); r.max = orig + amp; r.step = 10;
         var cur = isNaN(window._basePrecio) ? orig : window._basePrecio;
         r.value = Math.min(parseFloat(r.max), Math.max(parseFloat(r.min), cur));
@@ -1463,14 +1481,20 @@
         var boxTxt = email
             ? 'En unos instantes te confirmamos <strong>en esta misma pantalla</strong>. Y por si la cierras, te avisaremos <strong>también por email</strong> a <strong style="color:var(--purple);">' + escH(email) + '</strong>: si aceptamos tu precio, volverás a la oferta con el nuevo precio ya aplicado para aceptar la carga.'
             : 'En unos instantes te confirmamos en esta misma pantalla. Si aceptamos tu precio, volverás a la oferta con el nuevo precio ya aplicado para identificarte y aceptar la carga. <strong>No cierres esta pantalla: aún no te has identificado y no podríamos confirmar la carga ni avisarte por email con la orden de carga.</strong>';
-        var cpd = q('cpd', 'ok'), cpt = parseInt(q('cpt', '6'), 10); if (isNaN(cpt) || cpt < 1) cpt = 6;
+        // ±30/±60: decide el SISTEMA en segundos. ±500: lo revisa un AGENTE
+        // humano — máx. 2 minutos de espera (barra a 2 min), con desenlaces
+        // extra: contraoferta de Dynamo (nuestra oferta máxima) o "no ha dado
+        // tiempo" (queda registrada + botón Contáctanos).
+        var agente = (window._negAmp || 0) >= 500;
+        var cpd = q('cpd', 'ok');
+        var cpt = parseInt(q('cpt', agente ? '120' : '6'), 10); if (isNaN(cpt) || cpt < 1) cpt = agente ? 120 : 6;
         // Mismo estilo que "Comprobando disponibilidad": spinner + barra de
         // progreso con porcentaje y contador de segundos.
         var pane = document.getElementById('contraStatusPane');
         pane.innerHTML = '<div class="contra-status">' +
             '<div class="contra-spin" aria-hidden="true"></div>' +
             '<div class="cs-title">Estamos analizando tu precio…</div>' +
-            '<div class="cs-agente">Danos unos segundos.</div>' +
+            '<div class="cs-agente">' + (agente ? 'Lo está revisando un AGENTE. Puede tardar hasta 2 minutos.' : 'Danos unos segundos.') + '</div>' +
             '<div class="cs-sub">Has propuesto <strong style="color:var(--purple);">' + escH(fmtEur(np) + ' €') + '</strong> (la oferta era ' + escH(fmtEur(base) + ' €') + ').</div>' +
             '<div class="chk-bar-wrap"><div class="chk-bar" id="ct-bar"></div></div>' +
             '<div class="chk-row"><span class="chk-pct" id="ct-pct">0%</span><span class="chk-cd"><strong id="ct-count">' + cpt + '</strong> s</span></div>' +
@@ -1487,11 +1511,35 @@
                     '<div class="cs-no" aria-hidden="true">✕</div>' +
                     '<div class="cs-title" style="color:var(--red);">No podemos aceptar tu precio</div>' +
                     '<div class="cs-sub">Tu propuesta de <strong>' + escH(fmtEur(np) + ' €') + '</strong> no se ha aceptado.<br>Sigue en pie la oferta original de <strong>' + escH(fmtEur(base) + ' €') + '</strong>: identifícate abajo y acepta la carga, o vuelve a abrir «Puedo aceptarla, pero a OTRO precio» para proponer otro.</div></div>';
+            } else if (agente && cpd === 'timeout') {
+                // El agente NO ha contestado dentro de los 2 min: la propuesta
+                // queda registrada y se le avisará; botón Contáctanos.
+                pane.innerHTML = '<div class="contra-status">' +
+                    '<div class="cs-no" style="background:rgba(245,166,35,0.15);color:#b8860b;" aria-hidden="true">⚠</div>' +
+                    '<div class="cs-title">El agente no ha podido revisarlo a tiempo</div>' +
+                    '<div class="cs-sub">Tu contraoferta de <strong>' + escH(fmtEur(np) + ' €') + '</strong> queda <strong>REGISTRADA</strong>. En cuanto la revisemos te avisaremos para ver si aún tienes camión disponible. O contáctanos ahora:</div>' +
+                    '<button type="button" class="dudas-toggle" style="margin-top:0.7rem;" aria-expanded="false" onclick="toggleDudas(this)">Contáctanos <span class="dt-chev" aria-hidden="true">▾</span></button>' +
+                    '<div class="contact-btns" hidden>' +
+                        '<a class="cbtn cbtn-call" href="tel:+34955225945"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar</a>' +
+                        '<a class="cbtn cbtn-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</a>' +
+                        '<a class="cbtn cbtn-mail" href="mailto:info@dynamotrans.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>Email</a>' +
+                    '</div></div>';
+            } else if (agente && cpd === 'max') {
+                // El agente contesta con NUESTRA OFERTA MÁXIMA (no llega a lo
+                // propuesto, pero mejora la oferta): botón para aplicarla.
+                var cpmax = parseFloat(q('cpmax', '')) || Math.round(((base + np) / 2) / 10) * 10;
+                pane.innerHTML = '<div class="contra-status">' +
+                    '<div class="cs-title">Respuesta del agente</div>' +
+                    '<div class="cs-sub">No podemos llegar a <strong>' + escH(fmtEur(np) + ' €') + '</strong>. Nuestra oferta <strong>MÁXIMA</strong>: <strong style="color:var(--purple);font-size:1.2rem;">' + escH(fmtEur(cpmax) + ' €') + '</strong>.</div>' +
+                    '<button type="button" class="btn" style="margin-top:0.8rem;" onclick="aceptarOfertaMax(' + cpmax + ')">Aplicar ' + escH(fmtEur(cpmax) + ' €') + ' a la oferta</button>' +
+                    '<div class="cs-sub" style="font-size:0.82rem;color:var(--gray-500);margin-top:0.5rem;">O identifícate abajo y acepta al precio original de ' + escH(fmtEur(base) + ' €') + '.</div></div>';
             } else {
                 aplicarNuevoPrecio(np);
             }
         });
     }
+    // El transportista acepta la OFERTA MÁXIMA del agente → se aplica.
+    function aceptarOfertaMax(v) { aplicarNuevoPrecio(v); }
     // Precio ACEPTADO por Dynamo → se aplica a la oferta (caja verde con la
     // nota de ACORDADO) para identificarse, revisar los detalles y aceptar.
     function aplicarNuevoPrecio(np) {
