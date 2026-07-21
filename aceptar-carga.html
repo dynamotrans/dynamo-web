@@ -489,10 +489,6 @@
                             <label for="alta-adr">ADR — mercancías peligrosas</label>
                             <select id="alta-adr"><option>No</option><option>Sí</option></select>
                         </div>
-                        <div>
-                            <label for="alta-seguro">Seguro de mercancías <span class="op">· opcional</span></label>
-                            <input type="text" id="alta-seguro" placeholder="AXA · Póliza CMR 88-456129">
-                        </div>
                     </div>
                     <!-- Documentación SOLO si la bolsa de carga es "Ninguna": las
                          bolsas ya verifican a sus transportistas; sin bolsa no hay
@@ -511,7 +507,7 @@
                         </div>
                     </div>
                     <div style="margin-top:0.6rem;">
-                        <label class="doc-drop" data-doc="otros"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> Otros documentos<div class="dd-sub">Escrituras, poderes, certificados, seguro CMR… · máx. 3</div><input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple hidden onchange="docUp(this,'otros',3)"></label>
+                        <label class="doc-drop" data-doc="otros"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> Otros documentos<div class="dd-sub">Escrituras, poderes, certificados… · máx. 3</div><input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple hidden onchange="docUp(this,'otros',3)"></label>
                         <ul class="doc-list" id="doc-otros"></ul>
                     </div>
                     </div><!-- /altaDocs -->
@@ -700,7 +696,7 @@
     // el backend busca en la base real y solo devuelve TU empresa).
     var TRANS_DEMO = [
         {
-            cif: 'B58830217', empresa: 'Transportes Iberia Express S.L.', ciudad: 'Madrid', flota: '8 camiones', seguro: 'CMR 150.000 €', bolsa: 'Wtransnet', tel: '+34 916 402 118', email: 'trafico@iberiaexpress-trans.es',
+            cif: 'B58830217', empresa: 'Transportes Iberia Express S.L.', ciudad: 'Madrid', flota: '8 camiones', bolsa: 'Wtransnet', tel: '+34 916 402 118', email: 'trafico@iberiaexpress-trans.es',
             matriculas: ['4521 JKL', '7890 MNP', '1234 ABC'], remolques: ['R2345 DEF', 'R6677 GHJ'],
             pares: { '4521 JKL': 'R2345 DEF', '7890 MNP': 'R6677 GHJ', '1234 ABC': 'R2345 DEF' },
             paresChofer: { '4521 JKL': 0, '7890 MNP': 1, '1234 ABC': 0 },
@@ -710,7 +706,7 @@
             ]
         },
         {
-            cif: 'B72153042', empresa: 'LogiSur Cargo S.L.', ciudad: 'Sevilla', flota: '12 camiones', seguro: 'CMR 200.000 €', bolsa: 'Timocom', tel: '+34 954 771 530', email: 'operaciones@logisurcargo.com',
+            cif: 'B72153042', empresa: 'LogiSur Cargo S.L.', ciudad: 'Sevilla', flota: '12 camiones', bolsa: 'Timocom', tel: '+34 954 771 530', email: 'operaciones@logisurcargo.com',
             matriculas: ['3344 SUR', '5566 CDZ'], remolques: ['R8899 SEV'],
             pares: { '3344 SUR': 'R8899 SEV', '5566 CDZ': '' },
             paresChofer: { '3344 SUR': 0, '5566 CDZ': 0 },
@@ -719,12 +715,12 @@
             ]
         },
         {
-            cif: 'B91234567', empresa: 'Transportes Andévalo S.L.', ciudad: 'Huelva', flota: '5 camiones', seguro: 'CMR 100.000 €', bolsa: '—', tel: '+34 959 240 087', email: 'trafico@andevalotrans.es',
+            cif: 'B91234567', empresa: 'Transportes Andévalo S.L.', ciudad: 'Huelva', flota: '5 camiones', bolsa: '—', tel: '+34 959 240 087', email: 'trafico@andevalotrans.es',
             matriculas: ['1122 HUE'], remolques: [], pares: { '1122 HUE': '' },
             conductores: []
         },
         {
-            cif: '29876543P', empresa: 'José Martín Ruiz · autónomo', ciudad: 'Córdoba', flota: '1 camión', seguro: 'CMR 60.000 €', bolsa: '—', tel: '+34 638 220 471', email: 'jmartin.transportes@gmail.com',
+            cif: '29876543P', empresa: 'José Martín Ruiz · autónomo', ciudad: 'Córdoba', flota: '1 camión', bolsa: '—', tel: '+34 638 220 471', email: 'jmartin.transportes@gmail.com',
             matriculas: ['9080 COR'], remolques: ['R4040 COR'], pares: { '9080 COR': 'R4040 COR' },
             paresChofer: { '9080 COR': 0 },
             conductores: [
