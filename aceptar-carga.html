@@ -267,6 +267,9 @@
     /* Banner de reserva: fijo arriba (sticky) para verlo siempre al hacer scroll. */
     .reserva-banner { position: sticky; top: 0; z-index: 30; margin: 0 0 1rem; background: #ece8fb; border: 1.5px solid rgba(51,0,204,0.35); border-radius: 12px; padding: 0.7rem 0.85rem; font-size: 0.84rem; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 0.5rem; line-height: 1.4; box-shadow: 0 2px 10px rgba(20,10,60,0.1); }
     .reserva-banner .rb-timer { font-size: 1.05rem; font-weight: 900; color: var(--purple); font-variant-numeric: tabular-nums; }
+    /* El banner de reserva es sticky: cualquier scrollIntoView debe dejar
+       hueco para que el destino no quede escondido debajo. */
+    #empresaResumen, #altaForm, #identBlock, #sec-carga { scroll-margin-top: 108px; }
     .reserva-banner.urgent { background: #fde3e3; border-color: #f0a5a5; color: #b42318; }
     .reserva-banner.urgent .rb-timer { color: var(--red); }
     /* Reserva EN PAUSA (mientras se analiza la contraoferta): verde claro de la casa. */
@@ -565,7 +568,14 @@
 
             <!-- 2) Resto del formulario (aparece tras identificarse) -->
             <div id="restForm">
-                <div class="sec-title">Carga</div>
+            <!-- Resumen de la empresa encontrada -->
+                <div class="empresa-resumen" id="empresaResumen">
+                    <div class="er-nombre" id="er-nombre">—</div>
+                    <div class="er-cif" id="er-cif">—</div>
+                    <button type="button" class="er-cambiar" onclick="cambiarEmpresa()">No soy yo / cambiar</button>
+                </div>
+
+                <div class="sec-title" id="sec-carga">Carga</div>
                 <div class="row2">
                     <div>
                         <label for="f-fechacarga">Fecha de carga de tu camión *</label>
@@ -661,12 +671,6 @@
                     </div>
                 </div>
 
-            <!-- Resumen de la empresa encontrada -->
-                <div class="empresa-resumen" id="empresaResumen">
-                    <div class="er-nombre" id="er-nombre">—</div>
-                    <div class="er-cif" id="er-cif">—</div>
-                    <button type="button" class="er-cambiar" onclick="cambiarEmpresa()">No soy yo / cambiar</button>
-                </div>
 
                 <!-- Confirmación de identidad (empresa ya existente): teléfono
                      de ficha enmascarado + 3 últimos dígitos. Se rellena en
@@ -1120,7 +1124,11 @@
             montarDesplegables();
             document.getElementById('restForm').classList.add('show');
             document.getElementById('identBlock').hidden = true; // ya identificado (alta)
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Scroll al FORMULARIO DE ALTA (es lo primero que hay que rellenar;
+            // debajo le siguen Carga, fecha y hora).
+            setTimeout(function () {
+                document.getElementById('altaForm').scrollIntoView({ block: 'start', behavior: 'smooth' });
+            }, 60);
             setTimeout(updateScrollHint, 400);
             return;
         }
@@ -1151,9 +1159,12 @@
         prefillHistorial(hit);
         document.getElementById('restForm').classList.add('show');
         // Identificado: ocultar el buscador (queda "No soy yo / cambiar" en el
-        // resumen) y volver ARRIBA para leer desde el principio y bajar viendo TODO.
+        // resumen) y hacer scroll al RESUMEN DEL TRANSPORTISTA, que va justo
+        // encima de la sección Carga (fecha y hora de carga).
         document.getElementById('identBlock').hidden = true;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(function () {
+            document.getElementById('empresaResumen').scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }, 60);
         setTimeout(updateScrollHint, 400);
     }
     function cambiarEmpresa() {
