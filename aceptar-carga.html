@@ -455,12 +455,6 @@
                 <div class="id-nofound" id="idNoFound">No encontramos ningún transportista con ese dato (CIF/DNI, código de bolsa, teléfono o nombre). Revísalo, o contacta con Dynamo para darte de alta.</div>
             </div>
 
-            <!-- Resumen de la empresa encontrada -->
-            <div class="empresa-resumen" id="empresaResumen">
-                <div class="er-nombre" id="er-nombre">—</div>
-                <div class="er-cif" id="er-cif">—</div>
-                <button type="button" class="er-cambiar" onclick="cambiarEmpresa()">No soy yo / cambiar</button>
-            </div>
 
             <!-- 1-bis) ALTA: si el CIF/DNI NO está en la base, se abren aquí los
                  datos para darse de alta como transportista de Dynamo (catálogo
@@ -648,6 +642,13 @@
                         <div class="pc-sub">base imponible (impuestos no incluidos)</div>
                         <div class="pc-alt" id="pc-alt"></div>
                     </div>
+                </div>
+
+            <!-- Resumen de la empresa encontrada -->
+                <div class="empresa-resumen" id="empresaResumen">
+                    <div class="er-nombre" id="er-nombre">—</div>
+                    <div class="er-cif" id="er-cif">—</div>
+                    <button type="button" class="er-cambiar" onclick="cambiarEmpresa()">No soy yo / cambiar</button>
                 </div>
 
                 <!-- Confirmación de identidad (empresa ya existente): teléfono
