@@ -10471,6 +10471,10 @@
             title: (yaTiene ? 'Cambiar' : 'Asignar') + ' transportista — ' + ref,
             sub: yaTiene ? 'Asignado ahora: ' + (c.transportistaNombre || 'sin nombre') : 'Este envío aún no tiene transportista',
             body:
+                // Con transportista asignado: QUITARLO sin poner otro (canceló y
+                // aún no hay sustituto) → vuelve a Pendiente de asignar. Arriba
+                // del todo, antes del buscador.
+                (yaTiene ? '<button type="button" class="btn-secondary" style="width:100%;margin-bottom:0.8rem;color:#b42318;border-color:#f5b5b5;" onclick="quitarTransportistaEnvio(\'' + escapeHtml(ref) + '\')">Quitar transportista · dejar pendiente de asignar</button>' : '') +
                 '<div class="modal-form-row"><label>Transportista <span style="color:var(--gray-500);font-weight:600;">· busca en nuestra base de datos</span></label>' +
                 '<div class="ptar-input-wrap alm-rep-wrap" id="asigTraCombo">' +
                     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>' +
@@ -10497,9 +10501,6 @@
                 '<p style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;margin:0.6rem 0 0;">Las matrículas solo admiten letras y números (sin guiones ni otros caracteres). Con camión RÍGIDO solo se rellena la tractora. Matrículas y conductor pueden añadirse después si aún no están cerrados: el envío quedará como «Confirmado transportista» y la matrícula «por asignar».</p>' +
                 '<p class="alm-err" id="asigTraErr"></p>',
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
-                // Con transportista asignado: opción de QUITARLO sin poner otro
-                // (canceló y aún no hay sustituto) → vuelve a Pendiente de asignar.
-                (yaTiene ? '<button class="btn-secondary" style="color:#b42318;border-color:#f5b5b5;" onclick="quitarTransportistaEnvio(\'' + escapeHtml(ref) + '\')">Quitar transportista · dejar pendiente de asignar</button>' : '') +
                 '<button class="btn-primary" onclick="asignarTransportistaGuardar(\'' + escapeHtml(ref) + '\')">' + (yaTiene ? 'Guardar cambios' : 'Asignar transportista') + '</button>',
             afterOpen: function () {
                 // Si ya tiene transportista y está en la base, dejarlo elegido.
