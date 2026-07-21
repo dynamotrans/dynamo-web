@@ -104,6 +104,19 @@
     .telrow select { width: 108px; flex: none; }
     textarea { min-height: 84px; resize: vertical; }
     .err { border-color: var(--red) !important; }
+    /* Ventana de confirmación de identidad (3 últimos dígitos del teléfono) */
+    .tel-modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .tel-modal-backdrop { position: absolute; inset: 0; background: rgba(10,2,48,0.55); backdrop-filter: blur(3px); }
+    .tel-modal-card { position: relative; background: #fff; border-radius: 18px; padding: 1.35rem 1.15rem 1.15rem; max-width: 390px; width: 100%; box-shadow: 0 18px 50px rgba(20,10,60,0.35); text-align: center; }
+    .tel-modal-card h2 { font-size: 1.05rem; font-weight: 900; color: var(--navy); margin: 0 0 0.85rem; }
+    .tel-modal-card .tm-box { text-align: left; padding: 0.8rem 0.9rem; background: rgba(51,0,204,0.05); border: 1.5px solid rgba(51,0,204,0.25); border-radius: 12px; margin-bottom: 1rem; }
+    .tel-modal-card .tm-linea { font-size: 0.82rem; font-weight: 700; color: var(--gray-700); }
+    .tel-modal-card .tm-linea span { color: var(--navy); }
+    .tel-modal-card .tm-box label { display: block; font-size: 0.72rem; font-weight: 800; color: var(--gray-700); margin: 0.5rem 0 0.25rem; text-transform: none; }
+    .tel-modal-card #tm-tel3 { max-width: 130px; letter-spacing: 0.2em; text-align: center; font-weight: 800; }
+    .tel-modal-card .tm-err { color: var(--red); font-size: 0.76rem; font-weight: 800; margin-top: 0.3rem; }
+    .tel-modal-card .btn { margin-top: 0; }
+    .tel-modal-card .tm-volver { background: none; border: none; margin-top: 0.75rem; font-size: 0.8rem; font-weight: 800; color: var(--gray-500); text-decoration: underline; cursor: pointer; }
     /* Toggle "Añadir indicaciones": texto azul plegable/expansible. */
     .notes-toggle { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.2rem; background: none; border: none; padding: 0.25rem 0; font: inherit; font-size: 0.9rem; font-weight: 700; color: var(--purple); cursor: pointer; }
     .notes-toggle .nt-plus { width: 18px; height: 18px; border-radius: 50%; background: rgba(51,0,204,0.1); display: inline-flex; align-items: center; justify-content: center; font-weight: 900; transition: transform 0.2s; }
@@ -676,10 +689,6 @@
                 </div>
 
 
-                <!-- Confirmación de identidad (empresa ya existente): teléfono
-                     de ficha enmascarado + 3 últimos dígitos. Se rellena en
-                     resolverBuscar; en modo alta queda vacío. -->
-                <div id="er-confirm"></div>
 
             </div>
 
@@ -688,6 +697,24 @@
                  por la identificación). -->
             <div class="warn" id="fWarn">⚠ Revisa los campos marcados: son obligatorios.</div>
             <button type="button" class="btn" onclick="aceptar()">Aceptar carga</button>
+        </div>
+
+        <!-- VENTANA de confirmación de identidad: se abre al pulsar "Aceptar
+             carga" (empresa ya en la base). Solo pide los 3 últimos dígitos
+             del teléfono de la ficha; al confirmar → mensaje de aceptada. -->
+        <div class="tel-modal" id="telModal" hidden>
+            <div class="tel-modal-backdrop" onclick="cerrarTelConfirm()"></div>
+            <div class="tel-modal-card" role="dialog" aria-modal="true" aria-labelledby="tm-title">
+                <h2 id="tm-title">Confirma que eres tú</h2>
+                <div class="tm-box">
+                    <div class="tm-linea">Teléfono de tu ficha: <span id="tm-tel">—</span></div>
+                    <label for="tm-tel3">Escribe los <strong>3 últimos dígitos</strong> de tu teléfono para confirmar *</label>
+                    <input type="tel" id="tm-tel3" inputmode="numeric" maxlength="3" placeholder="•••" autocomplete="off">
+                    <div class="tm-err" id="tm-err" style="display:none;">Los 3 dígitos no coinciden con el teléfono de tu ficha.</div>
+                </div>
+                <button type="button" class="btn" onclick="telConfirmar()">Confirmar y ACEPTAR carga</button>
+                <button type="button" class="tm-volver" onclick="cerrarTelConfirm()">Volver</button>
+            </div>
         </div>
 
         <div class="ok-screen" id="okScreen">
@@ -1128,7 +1155,7 @@
             var typed = document.getElementById('f-buscar-id').value.trim();
             if (altaCif && !altaCif.value.trim() && /\d/.test(typed)) altaCif.value = typed;
             document.getElementById('altaForm').style.display = 'block';
-            document.getElementById('er-confirm').innerHTML = '';
+            window._telFicha = ''; window._telConfirm = '';
             window._altaMode = true; window._empresaSel = null;
             altaBolsaSync();
             montarDesplegables();
@@ -1148,17 +1175,11 @@
         // Rellenar el resumen de la empresa.
         document.getElementById('er-nombre').textContent = hit.empresa;
         document.getElementById('er-cif').textContent = 'CIF/DNI: ' + hit.cif;
-        // Confirmación de identidad: teléfono de su ficha con los 3 últimos
-        // dígitos ocultos; debe teclearlos para poder aceptar la carga.
+        // Confirmación de identidad: los 3 últimos dígitos del teléfono de su
+        // ficha se piden en una VENTANA al pulsar "Aceptar carga" (no inline).
         var tel = hit.tel || '';
+        window._telFicha = tel;
         window._telConfirm = (tel.match(/\d/g) || []).join('').slice(-3);
-        document.getElementById('er-confirm').innerHTML =
-            '<div style="margin-top:1rem;padding:0.8rem 0.9rem;background:rgba(51,0,204,0.05);border:1.5px solid rgba(51,0,204,0.25);border-radius:12px;">' +
-                '<div style="font-size:0.82rem;font-weight:700;color:var(--gray-700);">Teléfono de tu ficha: <span style="color:var(--navy);">' + escH(maskTel(tel)) + '</span></div>' +
-                '<label for="er-tel3" style="display:block;font-size:0.72rem;font-weight:800;color:var(--gray-700);margin:0.5rem 0 0.25rem;">Escribe los <strong>3 últimos dígitos</strong> de tu teléfono para confirmar *</label>' +
-                '<input type="tel" id="er-tel3" inputmode="numeric" maxlength="3" placeholder="•••" style="max-width:130px;letter-spacing:0.2em;text-align:center;font-weight:800;">' +
-                '<div id="er-tel-err" style="display:none;color:var(--red);font-size:0.76rem;font-weight:800;margin-top:0.3rem;">Los 3 dígitos no coinciden con el teléfono de tu ficha.</div>' +
-            '</div>';
         window._empresaSel = hit;
         document.getElementById('empresaResumen').classList.add('show');
         // Revelar el resto del formulario y montar los desplegables.
@@ -1181,7 +1202,7 @@
         window._empresaSel = null; window._altaMode = false;
         document.getElementById('empresaResumen').classList.remove('show');
         document.getElementById('altaForm').style.display = 'none';
-        document.getElementById('er-confirm').innerHTML = '';
+        window._telFicha = ''; window._telConfirm = '';
         document.getElementById('restForm').classList.remove('show');
         document.getElementById('identBlock').hidden = false; // volver a mostrar el buscador
         limpiarVehiculoConductor();
@@ -1340,7 +1361,7 @@
     // porque "relleno" no es "correcto" hasta buscar/coincidir).
     function refreshFieldState(el) {
         if (el && el.classList) {
-            if (el.id === 'f-buscar-id' || el.id === 'er-tel3') {
+            if (el.id === 'f-buscar-id' || el.id === 'tm-tel3') {
                 if ((el.value || '').trim()) el.classList.remove('err');
             } else if (el.classList.contains('err') || el.classList.contains('valid')) {
                 var v = (el.value || '').trim();
@@ -1533,8 +1554,44 @@
         // Si ya venció la reserva de 3 min, la carga se liberó: no se registra.
         if (window._reservaExpirada) { expirarReserva(); return; }
         if (!validarAceptar()) return;
+        // Empresa de la base: VENTANA de confirmación de identidad (3 últimos
+        // dígitos del teléfono de la ficha); al confirmar → carga aceptada.
+        // En modo ALTA no hay ficha con teléfono → acepta directamente.
+        if (window._altaMode) { finalizarAceptacion(); return; }
+        abrirTelConfirm();
+    }
+    // --- Ventana de confirmación de identidad (3 últimos dígitos) ---
+    function abrirTelConfirm() {
+        document.getElementById('tm-tel').textContent = maskTel(window._telFicha || '');
+        var inp = document.getElementById('tm-tel3');
+        inp.value = ''; inp.classList.remove('err');
+        document.getElementById('tm-err').style.display = 'none';
+        document.getElementById('telModal').hidden = false;
+        setTimeout(function () { inp.focus(); }, 80);
+    }
+    function cerrarTelConfirm() { document.getElementById('telModal').hidden = true; }
+    function telConfirmar() {
+        if (window._reservaExpirada) { cerrarTelConfirm(); expirarReserva(); return; }
+        var inp = document.getElementById('tm-tel3');
+        var val = (inp.value.match(/\d/g) || []).join('');
+        if (!val || val !== window._telConfirm) {
+            inp.classList.add('err');
+            document.getElementById('tm-err').style.display = 'block';
+            inp.focus();
+            return;
+        }
+        cerrarTelConfirm();
         finalizarAceptacion();
     }
+    window.abrirTelConfirm = abrirTelConfirm;
+    window.cerrarTelConfirm = cerrarTelConfirm;
+    window.telConfirmar = telConfirmar;
+    (function () {
+        var inp = document.getElementById('tm-tel3');
+        if (inp) inp.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); telConfirmar(); }
+        });
+    })();
     // ---- CONTRAOFERTA: proponer otro precio (barra ±10 %, pasos de 10 €) ----
     // Monta la barra: rango = precio de SALIDA de Dynamo ± el límite del modo
     // de negociación del envío (±30/±60/±500 €), pasos de 10 €. El ancla es
@@ -1687,21 +1744,8 @@
             return false;
         }
         if (warn) warn.textContent = '⚠ Revisa los campos marcados: son obligatorios.';
-        // Empresa YA existente: confirmar identidad con los 3 últimos dígitos
-        // del teléfono de su ficha.
-        if (window._empresaSel && !window._altaMode) {
-            var t3 = document.getElementById('er-tel3');
-            var val = t3 ? (t3.value.match(/\d/g) || []).join('') : '';
-            var errBox = document.getElementById('er-tel-err');
-            if (val !== window._telConfirm) {
-                if (t3) { t3.classList.add('err'); t3.focus(); }
-                if (errBox) errBox.style.display = 'block';
-                if (t3) t3.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                return false;
-            }
-            if (t3) t3.classList.remove('err');
-            if (errBox) errBox.style.display = 'none';
-        }
+        // (La confirmación de identidad — 3 últimos dígitos del teléfono de la
+        // ficha — se pide en una VENTANA tras pulsar Aceptar, ya no es inline.)
         var req = ['f-fechacarga', 'f-horacarga', 'f-fechaentrega', 'f-horaentrega', 'f-tractora', 'f-chofer', 'f-dnichofer', 'f-tfno'];
         var rigido = /rígido/i.test(document.getElementById('f-camion').value);
         if (!rigido) req.push('f-remolque');
