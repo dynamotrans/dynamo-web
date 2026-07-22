@@ -2199,14 +2199,17 @@
             h1.style.color = 'var(--purple)';
             h1.textContent = 'Hay otro transportista viéndola ahora mismo';
             document.getElementById('tk-sub').innerHTML = 'Llegó antes que tú y la tiene <strong>reservada unos minutos</strong> mientras completa sus datos. <strong>Aún NO la ha aceptado</strong>: si no la confirma, la carga quedará <strong>libre otra vez</strong> en unos minutos.';
-            document.querySelector('#takenScreen .taken-data').innerHTML =
+            var td = document.querySelector('#takenScreen .taken-data');
+            td.innerHTML =
                 '<div class="tramite-box"><span class="tramite-spin" aria-hidden="true"></span><span class="tramite-txt">Ahora está otro transportista reservando en línea</span></div>';
-            // Poder re-comprobar sin pelearse con la URL.
+            // Botón de re-comprobar FUERA de la caja del spinner (separado),
+            // como el de la pantalla de tiempo agotado.
             var btn = document.createElement('button');
             btn.type = 'button'; btn.className = 'btn';
+            btn.style.marginTop = '1.1rem';
             btn.textContent = 'Volver a comprobar disponibilidad';
             btn.onclick = function () { location.reload(); };
-            document.querySelector('#takenScreen .taken-data').appendChild(btn);
+            td.parentNode.insertBefore(btn, td.nextSibling);
             mostrarPantalla('takenScreen');
             return;
         }
