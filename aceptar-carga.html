@@ -104,6 +104,20 @@
     .telrow select { width: 108px; flex: none; }
     textarea { min-height: 84px; resize: vertical; }
     .err { border-color: var(--red) !important; }
+    /* Cajas suaves por sección del formulario (Carga naranja = recogida,
+       Entrega verde, Vehículo morado, Conductor neutro), para leerlo claro. */
+    .fsec { border: 1.5px solid; border-radius: 14px; padding: 0.9rem 0.95rem; margin-top: 1rem; }
+    .fsec .sec-title { border-top: none; padding-top: 0; margin-top: 0; }
+    .fsec input, .fsec select, .fsec textarea { background: #fff; }
+    .fsec-carga { background: rgba(255,122,0,0.06); border-color: rgba(255,122,0,0.35); }
+    .fsec-carga .sec-title { color: #c2410c; }
+    .fsec-entrega { background: rgba(34,165,90,0.06); border-color: rgba(34,165,90,0.4); }
+    .fsec-entrega .sec-title { color: var(--green-dark); }
+    .fsec-vehiculo { background: rgba(51,0,204,0.04); border-color: rgba(51,0,204,0.25); }
+    .fsec-vehiculo .sec-title { color: var(--purple); }
+    .fsec-conductor { background: rgba(10,2,48,0.03); border-color: var(--gray-300); }
+    .fsec-conductor .sec-title { color: var(--navy); }
+    .fsec-notas { background: var(--gray-100); border-color: var(--gray-200); padding: 0.55rem 0.95rem; }
     /* Ventana de confirmación de identidad (3 últimos dígitos del teléfono) */
     .tel-modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; }
     .tel-modal-backdrop { position: absolute; inset: 0; background: rgba(10,2,48,0.55); backdrop-filter: blur(3px); }
@@ -588,6 +602,7 @@
                     <button type="button" class="er-cambiar" onclick="cambiarEmpresa()">No soy yo / cambiar</button>
                 </div>
 
+                <div class="fsec fsec-carga">
                 <div class="sec-title" id="sec-carga">Carga</div>
                 <div class="row2">
                     <div>
@@ -600,7 +615,9 @@
                     </div>
                 </div>
                 <p class="id-hint"><strong>Elige uno de los días de carga de la ventana de días ofertados.</strong> A veces sólo puede elegirse un día si lleva fecha fija de carga. La <strong>fecha / hora de recogida</strong> la estima Dynamo automáticamente; puedes cambiarla. La <strong>hora NO es cita</strong>, solo para saber aprox. la hora de recogida.</p>
+                </div>
 
+                <div class="fsec fsec-entrega">
                 <div class="sec-title">Entrega <span class="op" style="font-weight:600;color:var(--gray-500);">· estimada</span></div>
                 <div class="row2">
                     <div>
@@ -613,7 +630,9 @@
                     </div>
                 </div>
                 <p class="id-hint">La <strong>fecha / hora de entrega</strong> la estima Dynamo automáticamente; puedes cambiarla. La <strong>hora NO es cita</strong>, solo para saber aprox. la hora de entrega.</p>
+                </div>
 
+                <div class="fsec fsec-vehiculo">
                 <div class="sec-title">Vehículo</div>
                 <label for="f-camion">Tipo de camión *</label>
                 <select id="f-camion" onchange="syncRemolque()">
@@ -639,7 +658,9 @@
                     </div>
                 </div>
                 <p class="id-hint">Al elegir una tractora de tu historial se <strong>autorrellena el remolque</strong> que llevaba enganchado la última vez. Cámbialo si hoy llevas otro.</p>
+                </div>
 
+                <div class="fsec fsec-conductor">
                 <div class="sec-title">Conductor</div>
                 <p class="id-hint">Con estos datos el <strong>cargador agiliza la documentación</strong>: prepara los papeles de salida rellenos con el <strong>nombre del conductor y el de tu empresa</strong> antes de que llegues, y así <strong>ahorramos tiempos de espera</strong> arreglando los papeles tras cargar.</p>
                 <label for="f-chofer">Nombre y apellidos del conductor *</label>
@@ -666,10 +687,13 @@
                     <input type="tel" id="f-tfno" placeholder="600 000 000" inputmode="tel">
                 </div>
                 <p class="id-hint">El teléfono del conductor es <strong>solo para coordinar la recogida y la entrega</strong> con el cargador y el destinatario. <strong>Solo lo facilitamos a quien lo pide y únicamente el mismo día de carga por la mañana</strong>, para que no le llamen días antes ni le molesten: así se organizan entre ellos directamente y no estamos 4 por medio (tráfico, agencia, chófer, cargador…).</p>
+                </div>
 
+                <div class="fsec fsec-notas">
                 <button type="button" class="notes-toggle" id="notasToggle" aria-expanded="false" onclick="toggleNotas()"><span class="nt-plus" aria-hidden="true">+</span> Añadir indicaciones <span class="op">· opcional</span></button>
                 <div id="notasBody" hidden>
                     <textarea id="f-notas" placeholder="Ej. disponibilidad, restricciones, observaciones del vehículo…"></textarea>
+                </div>
                 </div>
 
                 <!-- PRONTO PAGO OCULTO de momento (decisión del usuario 2026-07-22:
