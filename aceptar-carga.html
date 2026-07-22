@@ -2213,14 +2213,8 @@
                 '<div class="tramite-box"><span class="tramite-spin" aria-hidden="true"></span><span class="tramite-txt">Ahora está otro transportista reservando en línea</span></div>' +
                 '<div class="chk-bar-wrap" style="margin-top:0.5rem;"><div class="chk-bar" id="tw-bar"></div></div>' +
                 '<div class="chk-row"><span class="chk-pct" id="tw-pct">0%</span><span class="chk-cd">Esperando al otro transportista · <strong>auto revisión en 45 segundos</strong></span></div>';
-            // Botón de re-comprobar FUERA de la caja del spinner (separado),
-            // como el de la pantalla de tiempo agotado.
-            var btn = document.createElement('button');
-            btn.type = 'button'; btn.className = 'btn';
-            btn.style.marginTop = '1.1rem';
-            btn.textContent = 'Volver a comprobar disponibilidad';
-            btn.onclick = function () { location.reload(); };
-            td.parentNode.insertBefore(btn, td.nextSibling);
+            // Sin botón de re-comprobar: la disponibilidad se comprueba SOLA
+            // al terminar la barra de espera.
             mostrarPantalla('takenScreen');
             // Al agotarse la reserva del otro → auto-comprobación.
             animarBarra(espera, 'tw-bar', 'tw-pct', 'tw-count', function () {
