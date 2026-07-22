@@ -630,7 +630,7 @@
                         <select id="f-horacarga"></select>
                     </div>
                 </div>
-                <p class="id-hint"><strong>Elige uno de los días de carga de la ventana de días ofertados.</strong> A veces sólo puede elegirse un día si lleva fecha fija de carga. La <strong>fecha / hora de recogida</strong> la estima Dynamo automáticamente; puedes cambiarla. La <strong>hora NO es cita</strong>, solo para saber aprox. la hora de recogida.</p>
+                <p class="id-hint"><strong>Elige uno de los días de carga ofertados.</strong> A veces sólo puede elegirse un día si lleva fecha fija de carga. La <strong>fecha / hora de recogida</strong> la estima Dynamo automáticamente; puedes cambiarla. La <strong>hora NO es cita</strong>, solo para saber aprox. la hora de recogida.</p>
                 </div>
 
                 <div class="fsec fsec-entrega">
@@ -1689,9 +1689,9 @@
                         return '<div class="vc-row"><span class="vc-k">' + p[1] + '</span><span class="vc-v vc-falta">Falta</span></div>';
                     }).join('') +
                 '</div>' +
-                '<p class="vc-nota">No pasa nada: puedes <strong>aceptar la carga igualmente</strong> y mandárnoslos en cuanto los tengas — te los pediremos por <strong>email o WhatsApp</strong> antes de la carga.</p>' +
-                '<button type="button" class="btn" onclick="vcMasAdelante()">ACEPTAR carga · los mando más adelante</button>' +
-                '<button type="button" class="btn-sec" onclick="vcRellenar()">Rellenar ahora</button>';
+                '<p class="vc-nota">Si los tienes, <strong>rellénalos ahora</strong> (es un momento y agiliza tu carga). Si aún no los sabes, puedes aceptar igualmente y mandárnoslos en cuanto los tengas — te los pediremos por <strong>email o WhatsApp</strong> antes de la carga.</p>' +
+                '<button type="button" class="btn" onclick="vcRellenar()">Rellenar ahora</button>' +
+                '<button type="button" class="tm-volver" onclick="vcMasAdelante()">Aceptar carga sin ellos · los mandaré más adelante</button>';
         }
         card.innerHTML = html;
         document.getElementById('vcModal').hidden = false;

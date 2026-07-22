@@ -4932,7 +4932,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>F. registro</th><th>Descripción</th><th>Nº envío</th><th>Ref. cliente</th><th>F. carga · Ventana</th><th>Ruta</th><th>m · kg</th><th>Estado</th>
+                    <th>F. registro</th><th>Descripción</th><th>Nº envío</th><th>Ref. cliente</th><th>F. carga · Días de carga</th><th>Ruta</th><th>m · kg</th><th>Estado</th>
                 </tr></thead>
                 <tbody id="tbodyIncidencias"></tbody>
             </table>
@@ -5146,7 +5146,7 @@
                     </div>
                 </div>
                 <div class="ptar-field">
-                    <select id="ptar-urgencia-carga" data-ptar-urgencia class="ptar-select" aria-label="Ventana de carga">
+                    <select id="ptar-urgencia-carga" data-ptar-urgencia class="ptar-select" aria-label="Días de carga">
                         <option value="dia">Fecha fija (un día concreto)</option>
                         <option value="estandar" selected>Carga de 1 a 3 días (más económica)</option>
                     </select>
@@ -5168,7 +5168,7 @@
                         </span>
                     </div>
                     <div class="ptar-nofecha-warn" data-ptar-fecha-warn hidden>
-                        ⚠ Con <strong>fecha fija</strong> ese día ya no es posible con la antelación necesaria. <strong>Amplía a la ventana de 1 a 3 días</strong> o <strong>elige un día posterior</strong>.
+                        ⚠ Con <strong>fecha fija</strong> ese día ya no es posible con la antelación necesaria. <strong>Amplía a la carga de 1 a 3 días</strong> o <strong>elige un día posterior</strong>.
                     </div>
                 </div>
 
@@ -6636,7 +6636,7 @@
             ['Ocupación', d.medidas || '—'],
             ['Camión', d.camionLabel || '—'],
             ['Fecha de recogida 1', d.fechaLarga || '—'],
-            ['Ventana', d.urgenciaLabel || '—']
+            ['Días de carga', d.urgenciaLabel || '—']
         ];
         var yy = 400;
         for (var i = 0; i < rows.length; i++) {
@@ -6921,7 +6921,7 @@
             L.push((p.tipo === 'recogida' ? 'RECOGIDA ADICIONAL: ' : 'ENTREGA ADICIONAL: ') + (p.dir || ''));
         });
         L.push('ENTREGA: ' + ((typeof ciudadDir === 'function' ? ciudadDir(c.destino, c.destinoDir) : c.destino) || '') + (c.horarioDestino ? ' (horario ' + c.horarioDestino + ')' : ''));
-        L.push('FECHA DE CARGA: ' + ((typeof fechaConDia === 'function' ? fechaConDia(c.fecha) : c.fecha) || '') + (c.ventana ? ' - ventana ' + c.ventana : ''));
+        L.push('FECHA DE CARGA: ' + ((typeof fechaConDia === 'function' ? fechaConDia(c.fecha) : c.fecha) || '') + (c.ventana ? ' - carga ' + c.ventana : ''));
         L.push('MERCANCIA: ' + (c.mercancia || '-'));
         L.push('OCUPACION: ' + (c.medidas || '-'));
         if (c.precioAcordado != null) L.push('PRECIO ACORDADO (sin IVA): ' + c.precioAcordado.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' EUR');
@@ -9796,7 +9796,7 @@
         var __refU = esCli ? __ult.pcU : __ult.ptU, __refT = esCli ? __tar.pcT : __tar.ptT;
         var __refUF = esCli ? __ult.pcUFecha : __ult.ptUFecha;
         var body =
-            '<p style="font-size: var(--fs-m);line-height:1.55;color:var(--gray-700);margin-bottom:0.8rem;">Importes <strong>BASE, sin IVA</strong>. Edita los conceptos y el total se recalcula solo. <strong>Guardar</strong> fija el precio a mano: al modificar el envío <strong>no se recalculará</strong> mientras no cambie nada que afecte al precio (origen, destino, medidas, techo, ventana…).</p>' +
+            '<p style="font-size: var(--fs-m);line-height:1.55;color:var(--gray-700);margin-bottom:0.8rem;">Importes <strong>BASE, sin IVA</strong>. Edita los conceptos y el total se recalcula solo. <strong>Guardar</strong> fija el precio a mano: al modificar el envío <strong>no se recalculará</strong> mientras no cambie nada que afecte al precio (origen, destino, medidas, techo, días de carga…).</p>' +
             ((__refU || __refT) ? '<p style="font-size: var(--fs-m);font-weight:600;color:var(--gray-500);margin:-0.3rem 0 0.8rem;">Referencias (no editables): ' +
                 (__refU ? 'último envío coincidente ' + eur2(__refU) + (__refUF ? ' (' + fechaConDia(__refUF) + ')' : '') : '') + (__refU && __refT ? ' · ' : '') +
                 (__refT ? 'según tarifador ' + eur2(__refT) : '') + '</p>' : '') +
@@ -10479,7 +10479,7 @@
             }
         }
         if (!opts) opts = '<option value="">Sin fecha definida</option>';
-        var hint = esFija ? 'fecha fija (no se puede cambiar)' : 'elige un día de la ventana (' + esc(c.ventana || '') + ')';
+        var hint = esFija ? 'fecha fija (no se puede cambiar)' : 'elige un día del rango de carga (' + esc(c.ventana || '') + ')';
         return '<div><label>Fecha de carga <span style="color:var(--gray-500);font-weight:600;">· ' + hint + '</span></label>' +
             '<select id="asig-f-fechacarga"' + (esFija ? ' disabled' : '') + '>' + opts + '</select></div>';
     }
@@ -11439,7 +11439,7 @@
         cargaPrecios(c);
         var pt = c.precioTransportista;
         var f = c.fechaAsignada ? c.fechaAsignada.split(' ')[0] : c.fecha;
-        var fTxt = (f && f !== 'Sin fecha') ? fechaConDia(f) + (c.ventana && !c.fechaAsignada && !/fija/i.test(c.ventana) ? ' · ventana ' + c.ventana : '') : 'por confirmar';
+        var fTxt = (f && f !== 'Sin fecha') ? fechaConDia(f) + (c.ventana && !c.fechaAsignada && !/fija/i.test(c.ventana) ? ' · carga ' + c.ventana : '') : 'por confirmar';
         var oTxt = ciudadDir(c.origen, c.origenDir), dTxt = ciudadDir(c.destino, c.destinoDir);
         var mTxt = (c.mercancia ? c.mercancia + ' · ' : '') + medidasTn(c.medidas);
         // Anotación de MERCANCÍA / detalle del envío que escribió el cliente al
@@ -11783,7 +11783,7 @@
                     // superado por la fecha real. Solo se muestra cuando
                     // la carga sigue sin confirmar día concreto.
                     if (!src.fechaAsignada) {
-                        items.push({ label: 'Fecha solicitada · Ventana', value: fechaConDia(d.fecha) + (d.ventana ? ' · ' + d.ventana : ''), span: true });
+                        items.push({ label: 'Fecha solicitada · Días de carga', value: fechaConDia(d.fecha) + (d.ventana ? ' · ' + d.ventana : ''), span: true });
                     }
                     return '<div class="det-block">' + infoGrid(items) + '</div>';
                 })() +
@@ -12051,7 +12051,7 @@
             row('Transportista', escapeHtml(c.transportistaNombre || 'Sin asignar / pendiente')) +
             row('Matrícula', mat ? escapeHtml(mat) : null) +
             row('Camión', c.tipoCamion ? escapeHtml(c.tipoCamion + (c.tipoCarga ? ' · ' + c.tipoCarga : '')) : null) +
-            row('Fecha / ventana', escapeHtml(fecha)) +
+            row('Fecha / días de carga', escapeHtml(fecha)) +
             row('Fecha de carga real', asig ? escapeHtml(asig) : null) +
             row('Entrega estimada', c.etaEntrega ? escapeHtml(fechaConDia(c.etaEntrega)) : null) +
             row('Mercancía', escapeHtml([c.mercancia, c.medidas].filter(Boolean).join(' · '))) +
@@ -19136,7 +19136,7 @@
                 if (nimaExtra)  extras.push({ k: 'NIMA', v: nimaExtra });
                 if (adrExtra)   extras.push({ k: 'Mercancía ADR (+40%)', v: adrExtra });
                 if (preavisoExtra) extras.push({ k: fijaUrgente ? 'Suplemento Fecha fija urgente' : 'Suplemento Fecha fija', v: preavisoExtra });
-                if (cortaExtra) extras.push({ k: 'Ventana 1-2 días (+10%, mín. 80 €)', v: cortaExtra });
+                if (cortaExtra) extras.push({ k: 'Carga 1-2 días (+10%, mín. 80 €)', v: cortaExtra });
                 var detalle = tipoLines.concat(extras);
                 precio = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra + fijaExtra + preavisoExtra + cortaExtra; // base imponible
                 // === DESCUENTO POR PESO BAJO con camión LLENO en metros ===
@@ -19301,11 +19301,11 @@
                     // la ventana 1-4 RECOMENDADA (misma tarjeta que en carga
                     // completa, adaptada a grupaje) con su precio sin suplemento.
                     hoyHtml = '<div style="margin-bottom:0.8rem;padding:0.6rem 0.75rem;background:#fff7e6;border:1px solid #ffd591;border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#8a5a00;">' +
-                        '<strong>Ventana corta de 1 a 2 días</strong>: lleva un suplemento del <strong>10% (mínimo 80 €)</strong>. Si no te corre prisa, la de 1 a 4 días es la más económica.' +
+                        '<strong>Carga corta de 1 a 2 días</strong>: lleva un suplemento del <strong>10% (mínimo 80 €)</strong>. Si no te corre prisa, la de 1 a 4 días es la más económica.' +
                         '</div>' +
                         '<div class="eta-opts" style="margin:0 0 0.8rem;">' +
-                            etaOpt('eta-opt-rec', icoVent, 'Ventana de 1 a 4 días', 'Recomendada',
-                                'Lo más barato y seguro en grupaje: el 80% de las veces cargamos en los 2 primeros días, y sin el suplemento de ventana corta.',
+                            etaOpt('eta-opt-rec', icoVent, 'Carga de 1 a 4 días', 'Recomendada',
+                                'Lo más barato y seguro en grupaje: el 80% de las veces cargamos en los 2 primeros días, y sin el suplemento de carga corta.',
                                 eur2(precio - cortaExtra), '__ptarUsarVentana') +
                         '</div>';
                 } else if (uv === 'estandar') {
@@ -19336,7 +19336,7 @@
                     // Precio de la MISMA carga con una fecha fija posterior (+50) y
                     // con la ventana 1-3 días (sin suplemento), para los botones.
                     var totalFijaPost = subAntesFija + 50;
-                    var optVentana = etaOpt('eta-opt-rec', icoVent, 'Ventana de 1 a 3 días', 'Recomendada',
+                    var optVentana = etaOpt('eta-opt-rec', icoVent, 'Carga de 1 a 3 días', 'Recomendada',
                         'Lo más barato y seguro: el 80% de las veces cargamos en los 2 primeros días.', eur2(subAntesFija), '__ptarUsarVentana');
                     if (esUrgente) {
                         hoyHtml = '<div class="ptar-eta-fija">' +
@@ -19548,7 +19548,7 @@
                 var firstIsToday = first.getTime() === today.getTime();
                 // Fecha fija con suplemento PLANO: 1er día disponible +100 €
                 // (urgente) · fechas fija posteriores +50 €.
-                var fijaGuia = '<br><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="M15 14c.2-1 .7-1.7 1.5-2.5A7 7 0 1 0 5 9c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg> Lo más barato y seguro: la <strong>ventana de carga de 1 a 3 días</strong>.';
+                var fijaGuia = '<br><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="M15 14c.2-1 .7-1.7 1.5-2.5A7 7 0 1 0 5 9c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg> Lo más barato y seguro: la <strong>carga de 1 a 3 días</strong>.';
                 var html;
                 if (secNow < cutSec) {
                     var rem = cutSec - secNow;
@@ -20682,7 +20682,7 @@
                 if (adrExtra)   extras.push({ k: 'Mercancía ADR (+40%)', v: adrExtra });
                 if (fijaExtra)  extras.push({ k: 'Suplemento Fecha fija', v: fijaExtra });
                 if (flat)       extras.push({ k: flat >= 100 ? 'Suplemento Fecha fija urgente' : 'Suplemento Fecha fija', v: flat });
-                if (cortaExtra) extras.push({ k: 'Ventana 1-2 días (+10%, mín. 80 €)', v: cortaExtra });
+                if (cortaExtra) extras.push({ k: 'Carga 1-2 días (+10%, mín. 80 €)', v: cortaExtra });
                 var detalle = tipoLines.concat(extras);
                 var rows = detalle.length ? [{ k: 'Importe de envío', v: envioBase }].concat(detalle) : [];
                 pendingData.precioMock = precio;
@@ -20761,7 +20761,7 @@
                 if (_payNoun === 'almacenamiento') {
                     return '<div class="ptar-pay-note"><span class="pay-note-ico">⏱</span><span>El almacenamiento <strong>no se gestiona ni se asigna espacio hasta validar el pago</strong> (la validación puede tardar <strong>hasta 24&nbsp;h</strong>, no es instantánea). El <strong>plazo de carga empieza a contar desde que validamos el pago</strong>, no desde hoy: si se verifica antes de las 9:00 se puede almacenar al día siguiente. Cuanto antes pagues, antes se procesa.</span></div>';
                 }
-                return '<div class="ptar-pay-note"><span class="pay-note-ico">⏱</span><span>El transporte <strong>no se gestiona ni se asigna camión hasta validar el pago</strong> (la validación puede tardar <strong>hasta 24&nbsp;h</strong>, no es instantánea). El <strong>plazo de carga empieza a contar desde que validamos el pago</strong>, no desde hoy: si se verifica antes de las 9:00 se puede cargar al día siguiente; si no, dentro de la ventana elegida desde ese momento. Cuanto antes pagues, antes se procesa.</span></div>';
+                return '<div class="ptar-pay-note"><span class="pay-note-ico">⏱</span><span>El transporte <strong>no se gestiona ni se asigna camión hasta validar el pago</strong> (la validación puede tardar <strong>hasta 24&nbsp;h</strong>, no es instantánea). El <strong>plazo de carga empieza a contar desde que validamos el pago</strong>, no desde hoy: si se verifica antes de las 9:00 se puede cargar al día siguiente; si no, dentro de los días de carga elegidos desde ese momento. Cuanto antes pagues, antes se procesa.</span></div>';
             }
             // Detalle según el método de pago por adelantado elegido.
             function pagoDetalle(metodo, eur) {
@@ -20932,7 +20932,7 @@
                     (d.nima ? '<dt>NIMA (residuos)</dt><dd>Sí</dd>' : '') +
                     (d.adr ? '<dt>Mercancía ADR</dt><dd>Sí (mercancía peligrosa)</dd>' : '') +
                     '<dt>Carga</dt><dd>' + escapeHtml(d.medidas) + '</dd>' +
-                    '<dt>Ventana</dt><dd>' + escapeHtml(d.urgenciaLabel) + '</dd>' +
+                    '<dt>Días de carga</dt><dd>' + escapeHtml(d.urgenciaLabel) + '</dd>' +
                     // Solo "Fecha de envío" (la de carga era redundante). Si hay
                     // rango se usa ese; si no (previsión/a confirmar), el literal.
                     (cargaRangoHtml || '<dt class="sum-fecha-dt">Fecha de recogida 1</dt><dd class="sum-fecha-dd"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' + escapeHtml(d.fechaLarga) + '</dd>') +
