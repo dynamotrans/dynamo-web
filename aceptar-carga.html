@@ -282,6 +282,10 @@
     .chk-bar-wrap { max-width: 320px; height: 10px; margin: 1.3rem auto 0.5rem; background: var(--gray-200); border-radius: 999px; overflow: hidden; }
     .chk-bar { height: 100%; width: 0; background: linear-gradient(90deg, var(--purple), var(--green)); border-radius: 999px; transition: width 0.08s linear; }
     .chk-row { max-width: 320px; margin: 0 auto; display: flex; justify-content: space-between; align-items: baseline; font-size: 0.82rem; font-weight: 700; color: var(--gray-500); }
+    /* Etiqueta de la espera de trámite: una sola línea centrada bajo la barra
+       (sin % — se montaba con el texto largo). */
+    .tw-lbl { margin-top: 0.45rem; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--gray-500); line-height: 1.45; }
+    .tw-lbl strong { color: var(--purple); }
     .chk-row .chk-cd strong { color: var(--purple); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
     /* Pantallas "ya no disponible" / "tiempo agotado" */
     .stop-screen { display: none; text-align: center; padding: 1.6rem 0.6rem; }
@@ -2212,7 +2216,7 @@
             td.innerHTML =
                 '<div class="tramite-box"><span class="tramite-spin" aria-hidden="true"></span><span class="tramite-txt">Ahora está otro transportista reservando en línea</span></div>' +
                 '<div class="chk-bar-wrap" style="margin-top:0.5rem;"><div class="chk-bar" id="tw-bar"></div></div>' +
-                '<div class="chk-row"><span class="chk-pct" id="tw-pct">0%</span><span class="chk-cd">Esperando al otro transportista · <strong>auto revisión en 45 segundos</strong></span></div>';
+                '<div class="tw-lbl">Esperando al otro transportista · <strong>auto revisión en 45 segundos</strong></div>';
             // Sin botón de re-comprobar: la disponibilidad se comprueba SOLA
             // al terminar la barra de espera.
             mostrarPantalla('takenScreen');
