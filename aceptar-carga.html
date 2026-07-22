@@ -1009,6 +1009,9 @@
         if (ml)   vd.push(['Metros lineales', String(ml).replace(/\s*m$/, ' metros')]);
         if (peso) vd.push(['Peso', peso]);
         if (tc)   vd.push(['Tipo de carga', tc]);
+        // Tipo (Paletizado / No paletizado…, lo elegido en crear envío) como
+        // chip a ancho completo, ya no como valor grande de la cabecera.
+        if (merc) vd.push(['Tipo', merc]);
         vd.push(['Trampilla elevadora', tram]);
         vd.push(['Requiere NIMA', nima]);
         // Objeto ÚNICO con los datos de la oferta. De aquí se pinta la tarjeta y,
@@ -1032,7 +1035,7 @@
                 '</div>';
         }
         var chips = vd.map(function (r) {
-            return '<span class="of-chip' + (r[0] === 'Tipo de carga' ? ' of-chip-full' : '') + '"><span class="of-chip-k">' + escH(r[0]) + '</span><span class="of-chip-v">' + escH(r[1]) + '</span></span>';
+            return '<span class="of-chip' + (r[0] === 'Tipo de carga' || r[0] === 'Tipo' ? ' of-chip-full' : '') + '"><span class="of-chip-k">' + escH(r[0]) + '</span><span class="of-chip-v">' + escH(r[1]) + '</span></span>';
         }).join('');
         // Ruta con numeración CONTINUA en orden de recorrido (1 origen → … →
         // último destino), como en crear envío; el color dice el tipo. La fecha
@@ -1053,8 +1056,7 @@
             '<div class="of-route">' + routeHtml + '</div>' +
             '<div class="of-merc">' +
                 '<div class="of-merc-head"><span class="of-merc-ico">' + ICO.box + '</span><div>' +
-                    '<div class="of-merc-lbl">Mercancía</div>' +
-                    '<div class="of-merc-tipo" id="v-merc">' + escH(merc) + '</div></div></div>' +
+                    '<div class="of-merc-lbl">Mercancía</div></div></div>' +
                 (chips ? '<div class="of-chips">' + chips + '</div>' : '') +
                 (dm ? '<div class="of-dm"><b>Anotaciones de la mercancía</b>' + escH(dm) + '</div>' : '') +
             '</div>' +
@@ -1961,14 +1963,14 @@
         var empCif = window._empresaSel ? window._empresaSel.cif : (okVal('alta-cif') || '—');
         // ---- Resumen con las MISMAS tarjetas que la oferta (homogéneo) ----
         function chip(k, v) {
-            return v ? '<span class="of-chip' + (k === 'Tipo de carga' ? ' of-chip-full' : '') + '"><span class="of-chip-k">' + escH(k) + '</span><span class="of-chip-v">' + escH(v) + '</span></span>' : '';
+            return v ? '<span class="of-chip' + (k === 'Tipo de carga' || k === 'Tipo' ? ' of-chip-full' : '') + '"><span class="of-chip-k">' + escH(k) + '</span><span class="of-chip-v">' + escH(v) + '</span></span>' : '';
         }
         // Tarjeta genérica con icono + etiqueta + valor principal + chips.
         function cardSec(ico, lbl, main, chipsHtml, extra) {
             return '<div class="of-merc">' +
                 '<div class="of-merc-head"><span class="of-merc-ico">' + ico + '</span><div>' +
                     '<div class="of-merc-lbl">' + escH(lbl) + '</div>' +
-                    '<div class="of-merc-tipo">' + escH(main || '—') + '</div></div></div>' +
+                    (main ? '<div class="of-merc-tipo">' + escH(main) + '</div>' : '') + '</div></div>' +
                 (chipsHtml ? '<div class="of-chips">' + chipsHtml + '</div>' : '') +
                 (extra || '') + '</div>';
         }
@@ -2013,7 +2015,7 @@
         '</div>';
         // Mercancía: tipo + chips del detalle + anotaciones (igual que la oferta).
         var mercChips = (O.detalles || []).map(function (r) { return chip(r[0], r[1]); }).join('');
-        html += cardSec(ICO.box, 'Mercancía', O.merc, mercChips,
+        html += cardSec(ICO.box, 'Mercancía', '', mercChips,
             O.dm ? '<div class="of-dm"><b>Anotaciones de la mercancía</b>' + escH(O.dm) + '</div>' : '');
         // Transportista, vehículo y conductor.
         html += cardSec(ICO.emp, 'Transportista', empNom, chip('CIF / DNI', empCif));
