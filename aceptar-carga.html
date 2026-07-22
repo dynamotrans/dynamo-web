@@ -1695,10 +1695,17 @@
                 '<button type="button" class="btn" onclick="vcOk()">Sí, son correctos</button>' +
                 '<button type="button" class="btn-sec" onclick="vcNoSonEsos()">No son esos datos</button>';
         } else {
+            // Se muestran TODOS los datos: los que faltan en rojo ("Falta") y
+            // los ya rellenos con su valor, para verificarlos antes de decidir.
+            var rigidoF = /rígido/i.test(document.getElementById('f-camion').value);
             html = '<h2>Nos faltan los datos del camión / conductor</h2>' +
                 '<div class="tm-box vc-box">' +
-                    faltan.map(function (p) {
-                        return '<div class="vc-row"><span class="vc-k">' + p[1] + '</span><span class="vc-v vc-falta">Falta</span></div>';
+                    DATOS_VEHIC.map(function (p) {
+                        if (p[0] === 'f-remolque' && rigidoF) return '';
+                        var val = p[0] === 'f-tfno' ? telValueAc() : v(p[0]);
+                        return '<div class="vc-row"><span class="vc-k">' + p[1] + '</span>' +
+                            (val ? '<span class="vc-v">' + escH(val) + '</span>'
+                                 : '<span class="vc-v vc-falta">Falta</span>') + '</div>';
                     }).join('') +
                 '</div>' +
                 '<p class="vc-nota">Si los tienes, <strong>rellénalos ahora</strong> (es un momento y agiliza tu carga). Si aún no los sabes, puedes aceptar igualmente y mandárnoslos en cuanto los tengas — te los pediremos por <strong>email o WhatsApp</strong> antes de la carga.</p>' +
