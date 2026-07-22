@@ -5022,10 +5022,6 @@
     <section class="section" id="sec-nueva-carga">
         <div class="sec-header">
             <h2 data-nueva-carga-title>Nuevo envío</h2>
-            <!-- V2 EN PRUEBAS: el MISMO formulario repartido en 3 pasos (Ruta →
-                 Mercancía → Revisión y precio). Conmutable; la versión clásica
-                 sigue intacta. Se trabaja con las dos en paralelo. -->
-            <button type="button" class="btn-ghost" id="wizToggleBtn" onclick="envioWizardToggle()" title="Probar el formulario en 3 pasos">3 pasos · beta</button>
             <button type="button" class="btn-ghost ptar-reset-btn" data-ptar-reset title="Limpiar formulario">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <polyline points="23 4 23 10 17 10"/>
@@ -21839,15 +21835,28 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
         var n = parseInt(st.getAttribute('data-wiz-step'), 10);
         if (n < cur) { cur = n; paint(); }
     });
-    window.envioWizardToggle = function () {
-        var on = !sec.classList.contains('wiz-v2');
+    function setWizard(on) {
+        if (on === sec.classList.contains('wiz-v2')) return;
         sec.classList.toggle('wiz-v2', on);
-        var b = document.getElementById('wizToggleBtn');
-        if (b) b.textContent = on ? 'Versión clásica' : '3 pasos · beta';
         cur = 1;
         if (on) paint();
         else sec.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
-    };
+    }
+    window.envioWizardToggle = function () { setWizard(!sec.classList.contains('wiz-v2')); };
+    // DECISIÓN (2026-07-22): en MÓVIL el formulario va SIEMPRE por pasos; en
+    // ESCRITORIO queda la versión clásica. Cambia en vivo al girar/redimensionar.
+    // Para pruebas: ?wiz=1 fuerza los pasos y ?wiz=0 fuerza la clásica.
+    var mq = window.matchMedia('(max-width: 768px)');
+    function aplicarModo() {
+        var forzado = null;
+        try { forzado = new URLSearchParams(location.search).get('wiz'); } catch (e) {}
+        if (forzado === '1') { setWizard(true); return; }
+        if (forzado === '0') { setWizard(false); return; }
+        setWizard(mq.matches);
+    }
+    if (mq.addEventListener) mq.addEventListener('change', aplicarModo);
+    else if (mq.addListener) mq.addListener(aplicarModo);
+    aplicarModo();
 })();
 </script>
 </body>
