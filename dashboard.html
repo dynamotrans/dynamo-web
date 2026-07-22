@@ -3463,6 +3463,10 @@
         }
         .ptar-select.ptar-select-error { border-color: var(--red); background: #fef2f2; }
         .ptar-select.ptar-select-error:focus { box-shadow: 0 0 0 3px rgba(220,38,38,0.10); }
+        /* Aviso NARANJA: fecha de recogida aún sin seleccionar (no es error,
+           es "te falta elegirla"); se quita solo al elegir una fecha. */
+        .ptar-select.ptar-select-warn { border-color: var(--orange); background: rgba(255,122,0,0.05); }
+        .ptar-select.ptar-select-warn:focus { box-shadow: 0 0 0 3px rgba(255,122,0,0.12); }
         .ptar-field-hint {
             font-size: var(--fs-s); color: var(--gray-500);
             line-height: 1.4; margin-top: 0.3rem;
@@ -21859,6 +21863,29 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
     if (mq.addEventListener) mq.addEventListener('change', aplicarModo);
     else if (mq.addListener) mq.addListener(aplicarModo);
     aplicarModo();
+})();
+
+// FECHA DE RECOGIDA sin seleccionar → el desplegable se marca en NARANJA
+// (aviso, no error) hasta que se elige una fecha. Cubre el rellenado inicial,
+// los cambios de ventana (que reconstruyen las opciones) y el botón Limpiar.
+(function () {
+    var sec = document.getElementById('sec-nueva-carga');
+    if (!sec) return;
+    var dia = sec.querySelector('[data-ptar-dia]');
+    if (!dia) return;
+    function syncWarn() {
+        var ok = /^\d{4}-\d{2}-\d{2}$/.test(dia.value) || dia.value === 'prevision';
+        dia.classList.toggle('ptar-select-warn', !ok);
+    }
+    dia.addEventListener('change', syncWarn);
+    var urg = sec.querySelector('[data-ptar-urgencia]');
+    if (urg) urg.addEventListener('change', function () { setTimeout(syncWarn, 50); });
+    var resetBtn = document.querySelector('#sec-nueva-carga [data-ptar-reset]');
+    if (resetBtn) resetBtn.addEventListener('click', function () { setTimeout(syncWarn, 100); });
+    // Si el select se reconstruye por código (fillDiaSelect), re-evaluar.
+    new MutationObserver(function () { setTimeout(syncWarn, 0); })
+        .observe(dia, { childList: true });
+    syncWarn();
 })();
 </script>
 </body>
