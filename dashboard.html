@@ -5137,7 +5137,7 @@
                      CMR) queda inerte con guards por null. La declaración de
                      NO-ADR del cliente sigue en las condiciones (apartado 3). -->
 
-                <div class="ptar-section-head">Fecha de recogida 1</div>
+                <div class="ptar-section-head">Fecha de recogida</div>
                 <div class="ptar-pair">
                 <div class="ptar-field">
                     <div class="ptar-fecha-wrap">
@@ -6635,7 +6635,7 @@
             ['Mercancía', d.mercaTxt || '—'],
             ['Ocupación', d.medidas || '—'],
             ['Camión', d.camionLabel || '—'],
-            ['Fecha de recogida 1', d.fechaLarga || '—'],
+            ['Fecha de recogida', d.fechaLarga || '—'],
             ['Días de carga', d.urgenciaLabel || '—']
         ];
         var yy = 400;
@@ -19232,7 +19232,7 @@
                         : 'del ' + fmtEtaDate(loadStart) + ' al ' + fmtEtaDate(loadEnd);
                     // Sin nota de "80% de las ocasiones…" aquí: ya se muestra en el
                     // aviso verde al elegir la ventana de carga (evita redundancia).
-                    cargaHtml = '<dt>Fecha de recogida 1</dt><dd class="ptar-eta-carga">' + cargaTxt + '</dd>';
+                    cargaHtml = '<dt>Fecha de recogida</dt><dd class="ptar-eta-carga">' + cargaTxt + '</dd>';
                     var etaStart = addBusinessDays(loadStart, driveDays);
                     var etaEnd   = addBusinessDays(loadEnd, driveDays);
                     // Enriquecer con festivos regionales (API, front). Al llegar
@@ -20887,7 +20887,7 @@
                     var cargaRangoTxt = (ls.getTime() === le.getTime())
                         ? fmtEtaDate(ls)
                         : 'del ' + fmtEtaDate(ls) + ' al ' + fmtEtaDate(le) + ' · cualquier día laborable';
-                    cargaRangoHtml = '<dt class="sum-fecha-dt">Fecha de recogida 1</dt><dd class="sum-fecha-dd"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' + escapeHtml(cargaRangoTxt) + '</dd>';
+                    cargaRangoHtml = '<dt class="sum-fecha-dt">Fecha de recogida</dt><dd class="sum-fecha-dd"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' + escapeHtml(cargaRangoTxt) + '</dd>';
                 }
                 // Fecha de RECOGIDA (carga) y de ENTREGA (ETA) para las cabeceras
                 // de cada ficha de sitio. Mismo formato que la caja ETA / resumen
@@ -20935,7 +20935,7 @@
                     '<dt>Días de carga</dt><dd>' + escapeHtml(d.urgenciaLabel) + '</dd>' +
                     // Solo "Fecha de envío" (la de carga era redundante). Si hay
                     // rango se usa ese; si no (previsión/a confirmar), el literal.
-                    (cargaRangoHtml || '<dt class="sum-fecha-dt">Fecha de recogida 1</dt><dd class="sum-fecha-dd"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' + escapeHtml(d.fechaLarga) + '</dd>') +
+                    (cargaRangoHtml || '<dt class="sum-fecha-dt">Fecha de recogida</dt><dd class="sum-fecha-dd"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' + escapeHtml(d.fechaLarga) + '</dd>') +
                     (d.refCli && d.refCli.indexOf('NUEVO') === -1 ? '<dt>Tu referencia</dt><dd>' + escapeHtml(d.refCli) + '</dd>' : '') +
                     (d.notes ? '<dt class="full">Anotaciones</dt><dd class="full">' + escapeHtml(d.notes) + '</dd>' : '');
                 // El PRECIO no va en el resumen: sale destacado justo antes del
