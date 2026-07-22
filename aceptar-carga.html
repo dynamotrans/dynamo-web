@@ -895,7 +895,7 @@
         var d = (String(t || '').match(/\d/g) || []).join('').replace(/^34/, '');
         return d ? d.slice(0, 4) + '*****' : '—';
     }
-    // Tel y email de la FICHA en el resumen del identificado: solo los 5
+    // Tel y email de la FICHA en el resumen del identificado: solo los 6
     // primeros (dígitos del nacional / caracteres del email) + ****.
     function maskTelFront5(t) {
         var s = String(t || '').trim();
@@ -903,11 +903,11 @@
         var m = s.match(/^(\+\d+)\s*/);
         var pref = m ? m[1] + ' ' : '';
         var d = s.replace(/^\+\d+\s*/, '').replace(/\D/g, '');
-        return pref + d.slice(0, 5) + '****';
+        return pref + d.slice(0, 6) + '****';
     }
     function maskFront5(s) {
         s = String(s || '').trim();
-        return s ? s.slice(0, 5) + '****' : '';
+        return s ? s.slice(0, 6) + '****' : '';
     }
     // CP español (2 primeros dígitos) → provincia, para autorrellenar Provincia
     // y País al teclear el CP en el alta.
