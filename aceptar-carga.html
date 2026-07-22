@@ -1035,7 +1035,7 @@
                 '</div>';
         }
         var chips = vd.map(function (r) {
-            return '<span class="of-chip' + (r[0] === 'Tipo de carga' || r[0] === 'Tipo' ? ' of-chip-full' : '') + '"><span class="of-chip-k">' + escH(r[0]) + '</span><span class="of-chip-v">' + escH(r[1]) + '</span></span>';
+            return '<span class="of-chip"><span class="of-chip-k">' + escH(r[0]) + '</span><span class="of-chip-v">' + escH(r[1]) + '</span></span>';
         }).join('');
         // Ruta con numeración CONTINUA en orden de recorrido (1 origen → … →
         // último destino), como en crear envío; el color dice el tipo. La fecha
@@ -1963,7 +1963,7 @@
         var empCif = window._empresaSel ? window._empresaSel.cif : (okVal('alta-cif') || '—');
         // ---- Resumen con las MISMAS tarjetas que la oferta (homogéneo) ----
         function chip(k, v) {
-            return v ? '<span class="of-chip' + (k === 'Tipo de carga' || k === 'Tipo' ? ' of-chip-full' : '') + '"><span class="of-chip-k">' + escH(k) + '</span><span class="of-chip-v">' + escH(v) + '</span></span>' : '';
+            return v ? '<span class="of-chip"><span class="of-chip-k">' + escH(k) + '</span><span class="of-chip-v">' + escH(v) + '</span></span>' : '';
         }
         // Tarjeta genérica con icono + etiqueta + valor principal + chips.
         function cardSec(ico, lbl, main, chipsHtml, extra) {
@@ -2207,11 +2207,12 @@
             // Mock: tw= segundos de espera (demo 30 s); al acabar se recarga sin
             // estado= (simula que el otro NO aceptó y la carga quedó libre). En
             // producción el backend devuelve el tiempo restante y el estado real.
-            var espera = parseInt(q('tw', '30'), 10); if (isNaN(espera) || espera < 3) espera = 30;
+            // Pruebas: 5 s reales; el TEXTO dice 45 s (lo que será en producción).
+            var espera = parseInt(q('tw', '5'), 10); if (isNaN(espera) || espera < 3) espera = 5;
             td.innerHTML =
                 '<div class="tramite-box"><span class="tramite-spin" aria-hidden="true"></span><span class="tramite-txt">Ahora está otro transportista reservando en línea</span></div>' +
                 '<div class="chk-bar-wrap" style="margin-top:0.5rem;"><div class="chk-bar" id="tw-bar"></div></div>' +
-                '<div class="chk-row"><span class="chk-pct" id="tw-pct">0%</span><span class="chk-cd">Esperando al otro transportista · <strong id="tw-count">' + espera + '</strong> s</span></div>';
+                '<div class="chk-row"><span class="chk-pct" id="tw-pct">0%</span><span class="chk-cd">Esperando al otro transportista · <strong>auto revisión en 45 segundos</strong></span></div>';
             // Botón de re-comprobar FUERA de la caja del spinner (separado),
             // como el de la pantalla de tiempo agotado.
             var btn = document.createElement('button');
