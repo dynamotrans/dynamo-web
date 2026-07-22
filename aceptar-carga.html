@@ -2087,6 +2087,11 @@
         if (window._reservaCerrada) return;
         window._reservaExpirada = true;
         if (window._reservaTimer) clearInterval(window._reservaTimer);
+        // Cerrar cualquier VENTANA abierta (datos del camión/conductor, 3
+        // dígitos del teléfono): si no, se quedaba flotando por encima de la
+        // pantalla de "tiempo agotado".
+        var vc = document.getElementById('vcModal'); if (vc) vc.hidden = true;
+        var tm = document.getElementById('telModal'); if (tm) tm.hidden = true;
         mostrarPantalla('expiredScreen');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
