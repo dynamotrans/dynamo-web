@@ -1708,6 +1708,12 @@
     function vcRellenar() {
         cerrarVcModal();
         var faltan = datosPendientes();
+        // Marcar EN ROJO los campos que faltan, para que vea cuáles son
+        // (se ponen verdes solos al rellenarlos — regla rojo→verde).
+        faltan.forEach(function (p) {
+            var el = document.getElementById(p[0]);
+            if (el) el.classList.add('err');
+        });
         var first = faltan.length ? document.getElementById(faltan[0][0]) : null;
         if (first) {
             first.scrollIntoView({ block: 'center', behavior: 'smooth' });
