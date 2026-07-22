@@ -19355,12 +19355,14 @@
                             '<div class="eta-opts">' + optVentana + '</div></div>';
                     }
                 }
+                // Las FECHAS van ARRIBA; debajo, el aviso/las tarjetas de
+                // alternativas (fecha fija urgente, recomendada…) y el precio.
                 etaBox.innerHTML =
-                    hoyHtml +
-                    '<dl class="ptar-eta-data">' +
+                    '<dl class="ptar-eta-data" style="margin-bottom:0.8rem;">' +
                     cargaHtml +
                     (rangoHtml ? '<dt>Fecha entrega estimada</dt>' + rangoHtml : '') +
                     '</dl>' +
+                    hoyHtml +
                     '<div class="alm-price ptar-eta-pricebox" data-eta-pricebox></div>';
                 // Caja de precio: durante el "cálculo" (mock de latencia de
                 // backend, ~1,5 s) se muestra un SKELETON con barra en marcha;
