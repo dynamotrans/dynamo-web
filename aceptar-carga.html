@@ -122,15 +122,16 @@
     .tel-modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; }
     .tel-modal-backdrop { position: absolute; inset: 0; background: rgba(10,2,48,0.55); backdrop-filter: blur(3px); }
     .tel-modal-card { position: relative; background: #fff; border-radius: 18px; padding: 1.35rem 1.15rem 1.15rem; max-width: 390px; width: 100%; box-shadow: 0 18px 50px rgba(20,10,60,0.35); text-align: center; }
-    .tel-modal-card h2 { font-size: 1.05rem; font-weight: 900; color: var(--navy); margin: 0 0 0.85rem; }
-    .tel-modal-card .tm-box { text-align: left; padding: 0.8rem 0.9rem; background: rgba(51,0,204,0.05); border: 1.5px solid rgba(51,0,204,0.25); border-radius: 12px; margin-bottom: 1rem; }
-    .tel-modal-card .tm-linea { font-size: 0.82rem; font-weight: 700; color: var(--gray-700); }
-    .tel-modal-card .tm-linea span { color: var(--navy); }
-    .tel-modal-card .tm-box label { display: block; font-size: 0.72rem; font-weight: 800; color: var(--gray-700); margin: 0.5rem 0 0.25rem; text-transform: none; }
-    .tel-modal-card #tm-tel3 { max-width: 130px; letter-spacing: 0.2em; text-align: center; font-weight: 800; }
-    .tel-modal-card .tm-err { color: var(--red); font-size: 0.76rem; font-weight: 800; margin-top: 0.3rem; }
+    /* Texto GRANDE: quien confirma es un chófer con el móvil. */
+    .tel-modal-card h2 { font-size: 1.3rem; font-weight: 900; color: var(--navy); margin: 0 0 0.9rem; }
+    .tel-modal-card .tm-box { text-align: center; padding: 1rem 0.9rem; background: rgba(51,0,204,0.05); border: 1.5px solid rgba(51,0,204,0.25); border-radius: 12px; margin-bottom: 1rem; }
+    .tel-modal-card .tm-linea { font-size: 1rem; font-weight: 700; color: var(--gray-700); line-height: 1.45; }
+    .tel-modal-card .tm-linea span { display: block; color: var(--navy); font-size: 1.35rem; font-weight: 900; letter-spacing: 0.04em; margin-top: 0.15rem; }
+    .tel-modal-card .tm-box label { display: block; font-size: 1rem; font-weight: 700; color: var(--navy); margin: 0.8rem 0 0.45rem; text-transform: none; line-height: 1.4; }
+    .tel-modal-card #tm-tel3 { max-width: 170px; margin: 0 auto; display: block; font-size: 1.7rem; padding: 0.45rem 0.5rem; letter-spacing: 0.35em; text-align: center; font-weight: 900; }
+    .tel-modal-card .tm-err { color: var(--red); font-size: 0.95rem; font-weight: 800; margin-top: 0.5rem; }
     .tel-modal-card .btn { margin-top: 0; }
-    .tel-modal-card .tm-volver { background: none; border: none; margin-top: 0.75rem; font-size: 0.8rem; font-weight: 800; color: var(--gray-500); text-decoration: underline; cursor: pointer; }
+    .tel-modal-card .tm-volver { background: none; border: none; margin-top: 0.85rem; padding: 0.5rem 1rem; font-size: 0.95rem; font-weight: 800; color: var(--gray-500); text-decoration: underline; cursor: pointer; }
     /* Toggle "Añadir indicaciones": texto azul plegable/expansible. */
     .notes-toggle { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.2rem; background: none; border: none; padding: 0.25rem 0; font: inherit; font-size: 0.9rem; font-weight: 700; color: var(--purple); cursor: pointer; }
     .notes-toggle .nt-plus { width: 18px; height: 18px; border-radius: 50%; background: rgba(51,0,204,0.1); display: inline-flex; align-items: center; justify-content: center; font-weight: 900; transition: transform 0.2s; }
