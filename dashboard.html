@@ -3471,6 +3471,35 @@
            Aparece debajo de Ventana de carga. Lee lat/lon del autocomplete
            OSM y calcula días de tracción (~600 km/día). Si falta algo,
            muestra placeholder con instrucciones. */
+        /* ===== ASISTENTE "3 PASOS" del crear envío (v2 conmutable): el MISMO
+           formulario, repartido en Ruta → Mercancía → Revisión y precio. La
+           versión clásica no se toca (solo aplica con la clase .wiz-v2). ===== */
+        .wiz-bar { display: none; }
+        .wiz-v2 .wiz-bar { display: flex; align-items: stretch; gap: 0.5rem; margin: 0 0 1rem; }
+        .wiz-bar .wiz-step { flex: 1; display: flex; align-items: center; gap: 0.45rem; padding: 0.55rem 0.7rem; border: 1.5px solid var(--gray-200); border-radius: 10px; background: var(--gray-100); font-size: var(--fs-m); font-weight: 700; color: var(--gray-500); cursor: default; }
+        .wiz-bar .wiz-step .wiz-n { width: 22px; height: 22px; border-radius: 50%; background: var(--gray-300); color: #fff; display: flex; align-items: center; justify-content: center; font-size: var(--fs-s); font-weight: 800; flex: none; }
+        .wiz-bar .wiz-step.act { background: rgba(51,0,204,0.06); border-color: rgba(51,0,204,0.35); color: var(--purple); }
+        .wiz-bar .wiz-step.act .wiz-n { background: var(--purple); }
+        .wiz-bar .wiz-step.done { color: var(--green-dark); border-color: rgba(34,165,90,0.4); background: rgba(34,165,90,0.07); cursor: pointer; }
+        .wiz-bar .wiz-step.done .wiz-n { background: var(--green); }
+        @media (max-width: 640px) { .wiz-bar .wiz-step { flex-direction: column; gap: 0.25rem; text-align: center; font-size: var(--fs-s); padding: 0.45rem 0.3rem; } }
+        .wiz-nav { display: none; }
+        .wiz-v2 .wiz-nav { display: flex; gap: 0.6rem; margin-top: 1.1rem; }
+        .wiz-nav .btn-primary, .wiz-nav .btn-ghost { flex: 1; justify-content: center; padding: 0.9rem; font-size: var(--fs-l); border-radius: 10px; }
+        .wiz-warn { display: none; margin-top: 0.6rem; padding: 0.6rem 0.75rem; background: #fde8e8; border: 1px solid #f5b5b5; border-radius: 9px; color: #b42318; font-size: var(--fs-m); font-weight: 700; }
+        .wiz-warn.show { display: block; }
+        /* Visibilidad por paso (solo con el asistente activo) */
+        #sec-nueva-carga.wiz-v2.wiz-s1 .ptar-grid > [data-wstep]:not([data-wstep="1"]),
+        #sec-nueva-carga.wiz-v2.wiz-s2 .ptar-grid > [data-wstep]:not([data-wstep="2"]),
+        #sec-nueva-carga.wiz-v2.wiz-s3 .ptar-grid > [data-wstep]:not([data-wstep="3"]),
+        #sec-nueva-carga.wiz-v2.wiz-s1 .form-2col-main > [data-wstep]:not([data-wstep="1"]),
+        #sec-nueva-carga.wiz-v2.wiz-s2 .form-2col-main > [data-wstep]:not([data-wstep="2"]),
+        #sec-nueva-carga.wiz-v2.wiz-s3 .form-2col-main > [data-wstep]:not([data-wstep="3"]) { display: none !important; }
+        /* La columna de ETA/precio/botones solo se ve en el paso 3 */
+        #sec-nueva-carga.wiz-v2.wiz-s1 .form-2col-side,
+        #sec-nueva-carga.wiz-v2.wiz-s2 .form-2col-side { display: none !important; }
+        #sec-nueva-carga.wiz-v2.wiz-s1 .form-2col,
+        #sec-nueva-carga.wiz-v2.wiz-s2 .form-2col { display: block !important; }
         .ptar-eta-box {
             padding: 0.75rem 0.9rem;
             background: var(--gray-50);
@@ -4993,6 +5022,10 @@
     <section class="section" id="sec-nueva-carga">
         <div class="sec-header">
             <h2 data-nueva-carga-title>Nuevo envío</h2>
+            <!-- V2 EN PRUEBAS: el MISMO formulario repartido en 3 pasos (Ruta →
+                 Mercancía → Revisión y precio). Conmutable; la versión clásica
+                 sigue intacta. Se trabaja con las dos en paralelo. -->
+            <button type="button" class="btn-ghost" id="wizToggleBtn" onclick="envioWizardToggle()" title="Probar el formulario en 3 pasos">3 pasos · beta</button>
             <button type="button" class="btn-ghost ptar-reset-btn" data-ptar-reset title="Limpiar formulario">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <polyline points="23 4 23 10 17 10"/>
@@ -21724,5 +21757,98 @@ body { top: 0 !important; position: static !important; }
 .goog-te-gadget-icon, .goog-te-gadget-simple { display: none !important; }
 iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
 </style>
+
+<script>
+// ==================== ASISTENTE "3 PASOS" del crear envío (v2, beta) ====================
+// El MISMO formulario de Nuevo envío, repartido en 3 pasos: 1 Ruta · 2 Mercancía ·
+// 3 Revisión y precio (fecha, referencia, ETA, precio y Crear envío). Conmutable
+// con el botón "3 pasos · beta" — la versión clásica queda intacta.
+(function () {
+    var sec = document.getElementById('sec-nueva-carga');
+    if (!sec) return;
+    var grid = sec.querySelector('.form-2col-main .ptar-grid');
+    var card = sec.querySelector('.ptar-card[data-ptar-mode]');
+    if (!grid || !card) return;
+    // Clasificar los bloques existentes por paso según su cabecera de sección.
+    var step = 1;
+    Array.prototype.forEach.call(grid.children, function (ch) {
+        if (ch.classList && ch.classList.contains('ptar-section-head')) {
+            var t = (ch.textContent || '').trim();
+            if (t.indexOf('Mercancía') === 0) step = 2;
+            else if (t.indexOf('Fecha de recogida') === 0) step = 3;
+        }
+        if (ch.dataset) ch.dataset.wstep = String(step);
+    });
+    // Lo que va DESPUÉS del grid en la columna (aviso de festivos, nº de
+    // albarán/pedido) pertenece a la revisión final → paso 3.
+    (function () {
+        var tras = false;
+        Array.prototype.forEach.call(grid.parentNode.children, function (ch) {
+            if (ch === grid) { tras = true; return; }
+            if (tras && ch.dataset) ch.dataset.wstep = '3';
+        });
+    })();
+    // Barra de pasos (arriba de la tarjeta) + navegación (bajo los campos).
+    var bar = document.createElement('div');
+    bar.className = 'wiz-bar';
+    bar.innerHTML = ['Ruta', 'Mercancía', 'Revisión y precio'].map(function (lbl, i) {
+        return '<div class="wiz-step" data-wiz-step="' + (i + 1) + '"><span class="wiz-n">' + (i + 1) + '</span><span>' + lbl + '</span></div>';
+    }).join('');
+    var col2 = card.querySelector('.form-2col');
+    col2.parentNode.insertBefore(bar, col2);
+    var navWrap = document.createElement('div');
+    navWrap.innerHTML =
+        '<div class="wiz-nav">' +
+            '<button type="button" class="btn-ghost" data-wiz-prev>← Atrás</button>' +
+            '<button type="button" class="btn-primary" data-wiz-next>Siguiente →</button>' +
+        '</div>' +
+        '<div class="wiz-warn" data-wiz-warn>⚠ Elige el origen y el destino (de la lista) para continuar.</div>';
+    grid.parentNode.appendChild(navWrap);
+    var cur = 1;
+    function paint() {
+        sec.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
+        sec.classList.add('wiz-s' + cur);
+        Array.prototype.forEach.call(bar.querySelectorAll('.wiz-step'), function (el) {
+            var n = parseInt(el.getAttribute('data-wiz-step'), 10);
+            el.classList.toggle('act', n === cur);
+            el.classList.toggle('done', n < cur);
+        });
+        navWrap.querySelector('[data-wiz-prev]').style.visibility = cur === 1 ? 'hidden' : '';
+        navWrap.querySelector('[data-wiz-next]').style.display = cur === 3 ? 'none' : '';
+        navWrap.querySelector('[data-wiz-warn]').classList.remove('show');
+        sec.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+    function origenDestinoOk() {
+        function ok(selr) { var w = sec.querySelector(selr); return !!(w && (w.classList.contains('ptar-picked') || w.dataset.lat)); }
+        return ok('[data-ptar-orig-wrap]') && ok('[data-ptar-dest-wrap]');
+    }
+    navWrap.querySelector('[data-wiz-next]').addEventListener('click', function () {
+        if (cur === 1 && !origenDestinoOk()) {
+            navWrap.querySelector('[data-wiz-warn]').classList.add('show');
+            return;
+        }
+        cur = Math.min(3, cur + 1); paint();
+    });
+    navWrap.querySelector('[data-wiz-prev]').addEventListener('click', function () {
+        cur = Math.max(1, cur - 1); paint();
+    });
+    // Pulsar un paso YA COMPLETADO en la barra vuelve a él.
+    bar.addEventListener('click', function (e) {
+        var st = e.target.closest ? e.target.closest('.wiz-step') : null;
+        if (!st) return;
+        var n = parseInt(st.getAttribute('data-wiz-step'), 10);
+        if (n < cur) { cur = n; paint(); }
+    });
+    window.envioWizardToggle = function () {
+        var on = !sec.classList.contains('wiz-v2');
+        sec.classList.toggle('wiz-v2', on);
+        var b = document.getElementById('wizToggleBtn');
+        if (b) b.textContent = on ? 'Versión clásica' : '3 pasos · beta';
+        cur = 1;
+        if (on) paint();
+        else sec.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
+    };
+})();
+</script>
 </body>
 </html>
