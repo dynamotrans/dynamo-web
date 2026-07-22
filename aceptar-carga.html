@@ -141,6 +141,8 @@
     .tel-modal-card .vc-falta { color: var(--red); font-size: 0.92rem; }
     .tel-modal-card .vc-nota { font-size: 0.95rem; font-weight: 600; color: var(--gray-700); line-height: 1.5; margin: 0 0 0.4rem; text-align: left; }
     .btn-sec { display: block; width: 100%; margin-top: 0.7rem; background: #fff; color: var(--purple); border: 1.5px solid var(--purple); border-radius: 12px; padding: 0.85rem; font: inherit; font-weight: 800; font-size: 0.98rem; cursor: pointer; }
+    /* Variante DISCRETA: recuadro blanco con borde gris (acción secundaria). */
+    .btn-sec.vc-later { color: var(--gray-700); border-color: var(--gray-300); font-weight: 700; font-size: 0.92rem; }
     /* Aviso ámbar en el resumen aceptado: datos del camión/conductor pendientes */
     .ok-pend { margin: 0 0 0.8rem; background: #fff7e6; border: 1.5px solid #ffd591; border-radius: 12px; padding: 0.75rem 0.85rem; font-size: 0.92rem; font-weight: 600; color: #8a5a00; line-height: 1.5; text-align: left; }
     /* Toggle "Añadir indicaciones": texto azul plegable/expansible. */
@@ -895,15 +897,18 @@
         var d = (String(t || '').match(/\d/g) || []).join('').replace(/^34/, '');
         return d ? d.slice(0, 4) + '*****' : '—';
     }
-    // Tel y email de la FICHA en el resumen del identificado: solo los 6
-    // primeros (dígitos del nacional / caracteres del email) + ****.
+    // Tel y email de la FICHA en el resumen del identificado.
+    // Teléfono: se ocultan SIEMPRE los 3 últimos dígitos (los que se usan
+    // para verificar la identidad) y las estrellas son exactamente las que
+    // faltan para completar el número (+34 916402***).
     function maskTelFront5(t) {
         var s = String(t || '').trim();
         if (!s) return '';
         var m = s.match(/^(\+\d+)\s*/);
         var pref = m ? m[1] + ' ' : '';
         var d = s.replace(/^\+\d+\s*/, '').replace(/\D/g, '');
-        return pref + d.slice(0, 6) + '****';
+        if (d.length <= 3) return pref + '***';
+        return pref + d.slice(0, d.length - 3) + '***';
     }
     function maskFront5(s) {
         s = String(s || '').trim();
@@ -1691,7 +1696,7 @@
                 '</div>' +
                 '<p class="vc-nota">Si los tienes, <strong>rellénalos ahora</strong> (es un momento y agiliza tu carga). Si aún no los sabes, puedes aceptar igualmente y mandárnoslos en cuanto los tengas — te los pediremos por <strong>email o WhatsApp</strong> antes de la carga.</p>' +
                 '<button type="button" class="btn" onclick="vcRellenar()">Rellenar ahora</button>' +
-                '<button type="button" class="tm-volver" onclick="vcMasAdelante()">Aceptar carga sin ellos · los mandaré más adelante</button>';
+                '<button type="button" class="btn-sec vc-later" onclick="vcMasAdelante()">Aceptar carga sin ellos · los mandaré más adelante</button>';
         }
         card.innerHTML = html;
         document.getElementById('vcModal').hidden = false;
