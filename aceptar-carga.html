@@ -290,6 +290,7 @@
     #takenScreen .sub { font-size: 1.08rem; font-weight: 700; color: var(--navy); line-height: 1.45; }
     .stop-ico { width: 74px; height: 74px; border-radius: 50%; background: rgba(220,53,53,0.12); color: var(--red); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.9rem; font-size: 2rem; font-weight: 900; }
     .stop-ico.amber { background: rgba(245,166,35,0.15); color: #b8860b; }
+    .stop-ico.viendo { background: rgba(51,0,204,0.1); color: var(--purple); }
     .stop-screen dl.viaje { text-align: left; max-width: 420px; margin: 1rem auto 0; }
     /* Datos (enmascarados) del transportista que cogió la carga: filas claras
        con etiqueta a la izquierda y valor grande a la derecha. */
@@ -2188,11 +2189,24 @@
     }
     function mostrarTomada(enTramite) {
         // EN TRÁMITE: otro transportista la tiene RESERVADA (dentro de su tiempo)
-        // pero aún no la ha aceptado → no hay datos que mostrar todavía.
+        // pero AÚN NO la ha aceptado → no decir "no disponible": decir que hay
+        // alguien viéndola ahora y que puede quedar libre en unos minutos.
         if (enTramite) {
-            document.getElementById('tk-sub').textContent = 'Otro transportista llegó antes que tú y la está tramitando ahora.';
+            var ico = document.querySelector('#takenScreen .stop-ico');
+            ico.classList.add('viendo');
+            ico.innerHTML = '<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+            var h1 = document.querySelector('#takenScreen h1');
+            h1.style.color = 'var(--purple)';
+            h1.textContent = 'Hay otro transportista viéndola ahora mismo';
+            document.getElementById('tk-sub').innerHTML = 'Llegó antes que tú y la tiene <strong>reservada unos minutos</strong> mientras completa sus datos. <strong>Aún NO la ha aceptado</strong>: si no la confirma, la carga quedará <strong>libre otra vez</strong> en unos minutos.';
             document.querySelector('#takenScreen .taken-data').innerHTML =
                 '<div class="tramite-box"><span class="tramite-spin" aria-hidden="true"></span><span class="tramite-txt">Ahora está otro transportista reservando en línea</span></div>';
+            // Poder re-comprobar sin pelearse con la URL.
+            var btn = document.createElement('button');
+            btn.type = 'button'; btn.className = 'btn';
+            btn.textContent = 'Volver a comprobar disponibilidad';
+            btn.onclick = function () { location.reload(); };
+            document.querySelector('#takenScreen .taken-data').appendChild(btn);
             mostrarPantalla('takenScreen');
             return;
         }
