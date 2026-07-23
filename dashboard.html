@@ -3711,6 +3711,11 @@
         .ptar-occ-meta strong { color: var(--navy); font-weight: 800; }
         .ptar-occ-meta .driver { color: var(--purple); font-weight: 700; }
 
+        /* Avisos legales dentro de la tarjeta de revisión (una sola pantalla). */
+        .ptar-legal-box { margin: 0.4rem 0 0.9rem; }
+        .ptar-legal-box[hidden] { display: none; }
+        .ptar-legal-head { font-size: var(--fs-l); font-weight: 800; color: var(--navy); margin: 0 0 0.55rem; display: flex; align-items: center; gap: 0.4rem; }
+        .ptar-legal-head svg { color: #b45309; flex: none; }
         /* === Confirm card (paso 2 de Nueva carga) === */
         .ptar-confirm-card {
             background: white; border-radius: 14px;
@@ -5447,6 +5452,11 @@
                         ℹ Al activar la discreción comercial, todo lo relativo a la discreción comercial debe tratarse <strong>directamente entre tú y el transportista</strong>, y evitar así malentendidos. Te mandaremos el <strong>teléfono del conductor</strong> por email con la confirmación del envío, o podrás verlo en la sección de <strong>Envíos</strong> cuando se asigne transportista al envío.
                     </div>
                 </div>
+                <!-- AVISOS LEGALES (cancelación, suspensión, hoy-para-hoy, pago
+                     adelantado): antes salían en un modal aparte al pulsar
+                     Confirmar; ahora van EN ESTA MISMA pantalla para no tener un
+                     paso extra. Se rellena en showConfirmStep/recalcConfPrice. -->
+                <div class="ptar-legal-box" data-ptar-legal hidden></div>
                 <div class="ptar-terms-box">
                     <label class="ptar-confirm-check">
                         <input type="checkbox" data-ptar-check-terms>
@@ -21448,6 +21458,8 @@
                 }
                 var sumP = summaryEl.querySelector('[data-sum-precio]');
                 if (sumP) sumP.textContent = eur + ' €';
+                // El aviso de cancelación usa el precio → repintarlo al recalcular.
+                if (window.__ptarRenderLegal) window.__ptarRenderLegal();
             }
 
             // Valida los campos obligatorios de TODAS las fichas de sitio de la
@@ -21966,6 +21978,8 @@
                 recalcConfPrice();
                 // Forma de pago según el crédito CESCE (después de fijar el precio).
                 renderPago(pendingData);
+                // Avisos legales en la MISMA pantalla (una sola pantalla).
+                renderLegal();
                 // Reiniciar el check obligatorio cada vez que se entra al paso
                 // de confirmación (por si se editó y se volvió a entrar).
                 if (chkTerms) chkTerms.checked = false;
@@ -21987,52 +22001,25 @@
                 pendingData = null;
             }
             if (backBtn) backBtn.addEventListener('click', exitConfirmStep);
-            if (finalBtn) finalBtn.addEventListener('click', function () {
-                if (!pendingData) return;
-                // ENVÍO MANUAL (otro operador): sin precio, pago ni condiciones
-                // Dynamo — se validan las fichas de sitios y se guarda directo.
-                if (entryModeDe() === 'manual') {
-                    if (!validateLooseSites(true)) return;
-                    var dataM = pendingData;
-                    exitConfirmStep();
-                    finalizeSave(dataM);
-                    return;
-                }
-                // Precio caducado (>60 min desde el cálculo): tiempo excedido →
-                // NO se crea el envío; aviso y vuelta a la pantalla principal.
-                if (precioCaducado()) { avisoPrecioCaducado(); return; }
-                // Direcciones sueltas con datos obligatorios sin rellenar →
-                // desplegar, pintar rojo y hacer scroll a la primera. Bloquea.
-                if (!validateLooseSites(true)) return;
-                // Referencia y anotaciones vienen del paso 1 (ya en pendingData).
-                // Check de condiciones sin marcar → señalar dónde está el fallo
-                if (chkTerms && !chkTerms.checked) {
-                    if (checkLbl) {
-                        checkLbl.classList.add('check-error');
-                        checkLbl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                    if (termsWarn) termsWarn.classList.add('show');
-                    return;
-                }
-                // Aviso extra "hoy para hoy" si la carga empieza hoy mismo.
+            // Construye el BLOQUE LEGAL (hoy-para-hoy + pago adelantado + aviso de
+            // cancelación según el corte + suspensión por cancelaciones). Antes
+            // salía en un MODAL al pulsar Confirmar; ahora se muestra EN LA MISMA
+            // pantalla de revisión (una sola pantalla, sin paso extra).
+            function buildLegalBloque() {
+                if (!pendingData) return { html: '', esPrepago: false };
+                function eur2c(n) { return (n || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
                 var hoyBloque = (pendingData.fechaIso && pendingData.ventanaDias === 1 && pendingData.fechaIso === isoLocal(nowMadrid()))
                     ? '<div style="margin-bottom:0.8rem;padding:0.6rem 0.75rem;background:rgba(245,158,11,0.14);border:1px solid rgba(245,158,11,0.45);border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#92400e;font-weight:600;">' +
                       '⚠ <strong>Carga hoy para hoy:</strong> no se garantiza poder cargar en el día. Nos ponemos a ello y te avisamos en breve. La cancelación de una carga para hoy (menos de 24&nbsp;h) conlleva cargos una vez asignado el transportista. <strong>Recomendación:</strong> amplía ya la ventana de carga; así, si no se consigue hoy, podremos asignar camión para los días siguientes (esperar a última hora deja sin margen).' +
                       '</div>'
                     : '';
-                // Pago por adelantado (sin crédito): el envío queda pendiente de
-                // pago hasta validar el cobro (hasta 24 h).
                 var esPrepago = pendingData.formaPago && pendingData.formaPago !== 'credito';
                 var metodoTxt = { transferencia: 'Transferencia bancaria', tarjeta: 'Tarjeta', plataforma: 'Plataforma de pago' }[pendingData.formaPago] || '';
                 var pagoBloque = esPrepago
                     ? '<div style="margin-bottom:0.8rem;padding:0.6rem 0.75rem;background:rgba(245,158,11,0.14);border:1px solid rgba(245,158,11,0.45);border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#92400e;font-weight:600;">' +
-                      '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg> <strong>Pago por adelantado — ' + metodoTxt + '.</strong> Este envío queda <strong>pendiente de pago</strong>: no se gestiona ni se asigna camión hasta validar el cobro (<strong>hasta 24&nbsp;h</strong>). Tienes los datos de pago en la pantalla anterior y te los reenviaremos por email.' +
+                      '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg> <strong>Pago por adelantado — ' + metodoTxt + '.</strong> Este envío queda <strong>pendiente de pago</strong>: no se gestiona ni se asigna camión hasta validar el cobro (<strong>hasta 24&nbsp;h</strong>). Tienes los datos de pago arriba y te los reenviaremos por email.' +
                       '</div>'
                     : '';
-                // === Aviso de cancelación según el MOMENTO de la confirmación ===
-                // Corte = 9:00 del día hábil anterior a la carga. Antes → cancelación
-                // gratuita con cuenta atrás; después → aviso directo de coste.
-                function eur2c(n) { return (n || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
                 var precioTotalConf = Math.round((pendingData.precioMock || 0) * 1.21);
                 var corte9 = null;
                 if (pendingData.fechaIso && /^\d{4}-\d{2}-\d{2}$/.test(pendingData.fechaIso)) {
@@ -22045,11 +22032,7 @@
                 var nowConf = nowMadrid();
                 var trasCorte = !corte9 || nowConf.getTime() >= corte9.getTime();
                 var DIAS_LC = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-                // MOCK: nº de cancelaciones en los últimos 10 envíos confirmados
-                // (en el backend será el conteo real de la cuenta). Demo por debajo del umbral.
-                var _cancEn10 = 1;
-                // Línea roja (siempre visible) + resto del texto legal plegado tras
-                // "Ampliar para ver más".
+                var _cancEn10 = 1; // MOCK; en backend, conteo real de la cuenta.
                 var suspBloque =
                     '<div class="susp-caja">La cancelación reiterada de envíos puede conllevar la suspensión temporal o definitiva de la cuenta.</div>' +
                     '<details class="susp-details">' +
@@ -22061,17 +22044,13 @@
                     '</details>';
                 var cancelBody;
                 if (trasCorte) {
-                    // Ya se ha pasado el corte: la cancelación puede tener coste completo.
                     cancelBody =
                         '<div style="margin-bottom:0.8rem;padding:0.7rem 0.8rem;background:rgba(220,38,38,0.10);border:1px solid rgba(220,38,38,0.45);border-radius:9px;font-size: var(--fs-l);line-height:1.55;color:#991b1b;">' +
-                        '⚠ <strong>Cancelación con coste.</strong> Estás confirmando <strong>después de las 9:00 del primer día hábil anterior a la carga</strong>. Si cancelas a partir de ahora, puede conllevar un <strong>coste de hasta ' + eur2c(precioTotalConf) + '</strong> (el importe del servicio completo, IVA incl.). Si <strong>no tienes seguridad</strong> de que la carga está confirmada, <strong>no continúes</strong>: pulsa <strong>Cancelar</strong> ahora y programa para otro momento.' +
+                        '⚠ <strong>Cancelación con coste.</strong> Estás confirmando <strong>después de las 9:00 del primer día hábil anterior a la carga</strong>. Si cancelas a partir de ahora, puede conllevar un <strong>coste de hasta ' + eur2c(precioTotalConf) + '</strong> (el importe del servicio completo, IVA incl.). Si <strong>no tienes seguridad</strong> de que la carga está confirmada, <strong>no continúes</strong>: pulsa <strong>Editar datos</strong> y programa para otro momento.' +
                         '</div>' +
                         suspBloque;
                 } else {
-                    // Aún dentro de la ventana de cancelación gratuita: cuenta atrás.
                     var remMs = corte9.getTime() - nowConf.getTime();
-                    // En días + horas (+ min si queda poco), no todo en horas
-                    // ("4 días 8 h", no "104 h 21 min").
                     var remD = Math.floor(remMs / 86400000);
                     var remH = Math.floor((remMs % 86400000) / 3600000);
                     var remMin = Math.floor((remMs % 3600000) / 60000);
@@ -22086,25 +22065,54 @@
                         '<p style="font-size: var(--fs-l);line-height:1.55;color:var(--gray-700);">Si el cliente cancela el servicio <strong>después</strong>, <strong>Dynamo Operador Logístico, S.L.</strong> se reserva el derecho de <strong>facturar el servicio completo</strong> en concepto de indemnización.</p>' +
                         suspBloque;
                 }
-                openDashModal({
-                    icon: 'alert', iconVariant: 'warn',
-                    title: 'IMPORTANTE: vas a confirmar un pedido de transporte',
-                    sub: 'Aviso sobre cancelaciones',
-                    body: hoyBloque + pagoBloque + cancelBody,
-                    footer:
-                        '<button class="btn-ghost" onclick="closeDashModal()" style="flex:1;">Cancelar</button>' +
-                        '<button class="btn-primary" data-ptar-modal-confirm style="flex:1;">' + (esPrepago ? 'Confirmar (pago pendiente)' : 'Confirmar envío') + '</button>'
-                });
-                // El botón "Confirmar carga" del modal se cablea cada vez que se abre
-                setTimeout(function () {
-                    var b = document.querySelector('[data-ptar-modal-confirm]');
-                    if (b) b.addEventListener('click', function () {
-                        var data = pendingData; // capturado antes de salir
-                        closeDashModal();
-                        exitConfirmStep();
-                        if (data) finalizeSave(data);
-                    });
-                }, 0);
+                var titulo = '<div class="ptar-legal-head"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> IMPORTANTE: vas a confirmar un pedido de transporte</div>';
+                return { html: titulo + hoyBloque + pagoBloque + cancelBody, esPrepago: esPrepago };
+            }
+            // Pinta el bloque legal en la propia tarjeta de revisión y ajusta el
+            // texto del botón (pago pendiente si es prepago). En envío MANUAL no
+            // hay avisos Dynamo → se oculta.
+            function renderLegal() {
+                var box = confirmCard ? confirmCard.querySelector('[data-ptar-legal]') : null;
+                if (!box) return;
+                if (!pendingData || entryModeDe() === 'manual') { box.hidden = true; box.innerHTML = ''; if (finalBtn) finalBtn.textContent = 'Confirmar envío'; return; }
+                var r = buildLegalBloque();
+                box.innerHTML = r.html;
+                box.hidden = !r.html;
+                if (finalBtn) finalBtn.textContent = r.esPrepago ? 'Confirmar (pago pendiente)' : 'Confirmar envío';
+            }
+            window.__ptarRenderLegal = renderLegal;
+            // "Confirmar envío": los avisos legales YA están en pantalla, así que
+            // al pulsar (con las condiciones marcadas) se CREA directamente el
+            // envío — sin el modal intermedio que había antes.
+            if (finalBtn) finalBtn.addEventListener('click', function () {
+                if (!pendingData) return;
+                // ENVÍO MANUAL (otro operador): sin precio, pago ni condiciones
+                // Dynamo — se validan las fichas de sitios y se guarda directo.
+                if (entryModeDe() === 'manual') {
+                    if (!validateLooseSites(true)) return;
+                    var dataM = pendingData;
+                    exitConfirmStep();
+                    finalizeSave(dataM);
+                    return;
+                }
+                // Precio caducado (>60 min desde el cálculo) → no se crea.
+                if (precioCaducado()) { avisoPrecioCaducado(); return; }
+                // Direcciones sueltas con datos obligatorios sin rellenar → bloquea.
+                if (!validateLooseSites(true)) return;
+                // Condiciones sin marcar → señalar el fallo y no continuar.
+                if (chkTerms && !chkTerms.checked) {
+                    if (checkLbl) {
+                        checkLbl.classList.add('check-error');
+                        checkLbl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    if (termsWarn) termsWarn.classList.add('show');
+                    return;
+                }
+                // Todo OK → crear el envío directamente (los avisos legales ya
+                // estaban visibles en esta misma pantalla).
+                var data = pendingData;
+                exitConfirmStep();
+                finalizeSave(data);
             });
             if (termsLink) termsLink.addEventListener('click', function (e) {
                 e.preventDefault();
@@ -22548,6 +22556,19 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
         }
         cur = Math.min(3, cur + 1); paint();
     });
+    // El aviso rojo "elige origen y destino" se QUITA en cuanto ambos sitios
+    // están elegidos (antes se quedaba puesto y confundía, como si aún
+    // faltaran). Se re-evalúa en cualquier interacción del paso 1.
+    (function () {
+        function limpiaAviso() {
+            if (cur !== 1) return;
+            var w = sec.querySelector('[data-wiz-warn]');
+            if (w && w.classList.contains('show') && origenDestinoOk()) w.classList.remove('show');
+        }
+        ['click', 'input', 'change'].forEach(function (ev) {
+            sec.addEventListener(ev, function () { setTimeout(limpiaAviso, 0); }, true);
+        });
+    })();
     navWrap.querySelector('[data-wiz-prev]').addEventListener('click', function () {
         cur = Math.max(1, cur - 1); paint();
     });
