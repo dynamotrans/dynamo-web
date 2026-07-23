@@ -5240,6 +5240,25 @@
                         <span class="ptar-eta-placeholder">Indica origen, destino y fecha de carga para calcular la entrega estimada.</span>
                     </div>
                 </div>
+                <!-- Precio acordado con SU transportista (solo modo manual):
+                     opcional, para que el cliente tenga todo a mano y salga
+                     en la orden de transporte. Va AL FINAL, justo antes del
+                     botón Crear envío. Dynamo no lo usa para nada. -->
+                <div class="ptar-field ptar-field-full" id="opPrecioField" hidden>
+                    <label for="opPrecioInput" style="display:block;font-size: var(--fs-m);font-weight:700;color:var(--gray-600);margin-bottom:0.15rem;">Precio acordado con tu transportista (sin IVA) · <span style="font-weight:600;color:var(--gray-500);">opcional</span></label>
+                    <div style="margin-bottom:0.35rem;font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;">Solo para tu control: se muestra en tu listado y en la orden de transporte. Dynamo no interviene en este precio.</div>
+                    <input type="text" id="opPrecioInput" inputmode="decimal" autocomplete="off" placeholder="Ej. 540,00 € (base sin IVA)" style="width:100%;height:44px;border:1.5px solid var(--gray-300);border-radius:10px;padding:0 0.8rem;font-size: var(--fs-l);font-weight:600;color:var(--navy);background:#fff;">
+                </div>
+                <!-- COMPARATIVA DYNAMO (solo envío manual): nuestro precio para
+                     esta MISMA carga (con todos los parámetros elegidos) y, si
+                     el cliente anotó el precio de su transportista, la
+                     diferencia. Con el campo en blanco, solo nuestro precio. -->
+                <div class="ptar-field ptar-field-full" id="opCompara" hidden></div>
+                <div class="ptar-warning" data-ptar-warning role="alert">⚠ Introduce el origen y el destino antes de continuar.</div>
+                <div class="ptar-actions ptar-actions-main">
+                    <button type="button" class="btn-primary" data-ptar-submit>Crear envío</button>
+                    <button type="button" class="btn-ghost" onclick="showSection('dashboard');return false;">Cancelar</button>
+                </div>
                 <!-- PRECIOS INTERNOS (con el gating de roles quedará SOLO para
                      administración; de momento visible para todos): último
                      precio de esta misma ruta para el cliente + hueco de
@@ -5267,25 +5286,6 @@
                         <option value="500">Negociable ±500 € · lo revisa un agente (máx. 2 min)</option>
                     </select>
                     <p class="ptar-admin-precio-note">Los límites son <strong>siempre sobre este precio de salida</strong>. ±30/±60 los aprueba o rechaza el <strong>sistema</strong> al instante; ±500 lo revisa un <strong>agente</strong> (máx. 2 min). Con «NO negociable» el transportista no ve la opción de proponer.</p>
-                </div>
-                <!-- Precio acordado con SU transportista (solo modo manual):
-                     opcional, para que el cliente tenga todo a mano y salga
-                     en la orden de transporte. Va AL FINAL, justo antes del
-                     botón Crear envío. Dynamo no lo usa para nada. -->
-                <div class="ptar-field ptar-field-full" id="opPrecioField" hidden>
-                    <label for="opPrecioInput" style="display:block;font-size: var(--fs-m);font-weight:700;color:var(--gray-600);margin-bottom:0.15rem;">Precio acordado con tu transportista (sin IVA) · <span style="font-weight:600;color:var(--gray-500);">opcional</span></label>
-                    <div style="margin-bottom:0.35rem;font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;">Solo para tu control: se muestra en tu listado y en la orden de transporte. Dynamo no interviene en este precio.</div>
-                    <input type="text" id="opPrecioInput" inputmode="decimal" autocomplete="off" placeholder="Ej. 540,00 € (base sin IVA)" style="width:100%;height:44px;border:1.5px solid var(--gray-300);border-radius:10px;padding:0 0.8rem;font-size: var(--fs-l);font-weight:600;color:var(--navy);background:#fff;">
-                </div>
-                <!-- COMPARATIVA DYNAMO (solo envío manual): nuestro precio para
-                     esta MISMA carga (con todos los parámetros elegidos) y, si
-                     el cliente anotó el precio de su transportista, la
-                     diferencia. Con el campo en blanco, solo nuestro precio. -->
-                <div class="ptar-field ptar-field-full" id="opCompara" hidden></div>
-                <div class="ptar-warning" data-ptar-warning role="alert">⚠ Introduce el origen y el destino antes de continuar.</div>
-                <div class="ptar-actions ptar-actions-main">
-                    <button type="button" class="btn-primary" data-ptar-submit>Crear envío</button>
-                    <button type="button" class="btn-ghost" onclick="showSection('dashboard');return false;">Cancelar</button>
                 </div>
             </div><!-- /form-2col-side -->
             </div><!-- /form-2col -->
@@ -19415,7 +19415,7 @@
                     } else {
                         postHtml = '<div class="ptar-eta-fija" style="margin-top:0.8rem;">' +
                             '<div class="eta-fija-head"><strong>Has elegido fecha fija</strong> (un día concreto). ' +
-                            'Si ese día no hay vehículo, habría que reprogramar a otra fecha. También puedes cambiar a:</div>' +
+                            'Si ese día no hay vehículo, habría que reprogramar a otra fecha.<br><strong>¿No te corre prisa?</strong> Puedes cambiar a:</div>' +
                             '<div class="eta-opts">' + optVentana + '</div></div>';
                     }
                 }
