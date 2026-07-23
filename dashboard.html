@@ -21031,7 +21031,6 @@
                             var totalFullFija = totalFull + Math.round(totalFull * 0.15 / 10) * 10;
                             boxFull.innerHTML = 'Este mismo envío en <strong>camión completo</strong> (importes base sin IVA):' +
                                 '<button type="button" class="btn-primary" style="width:100%;margin-top:0.5rem;min-height:44px;" onclick="if (window.__ptarGrupajeCompleto) __ptarGrupajeCompleto(\'dia\');">Pasar a camión completo con FECHA FIJA — ' + eur2(totalFullFija) + '</button>' +
-                                '<button type="button" class="btn-secondary" style="width:100%;margin-top:0.5rem;min-height:44px;" onclick="if (window.__ptarGrupajeCompleto) __ptarGrupajeCompleto(\'estandar\');">Pasar a camión completo, ventana 1 a 3 días — ' + eur2(totalFull) + '</button>' +
                                 '<div style="margin-top:0.35rem;font-size: var(--fs-s);color:var(--gray-500);">Al pulsar vuelves al formulario con todo preseleccionado, para darle de nuevo a «Crear envío».</div>';
                             boxFull.hidden = false;
                         } else boxFull.hidden = true;
