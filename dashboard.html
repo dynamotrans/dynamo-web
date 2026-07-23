@@ -149,6 +149,54 @@
             padding: 0.45rem 0.8rem; font-size: var(--fs-m); font-weight: 800;
         }
         #opCompara .opc-cta:hover { filter: brightness(1.12); }
+        /* RECURSOS — tarjetas de documentos/herramientas */
+        .rec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.9rem; }
+        .rec-card {
+            border: 1px solid var(--gray-200); border-radius: 14px; background: #fff;
+            padding: 1.1rem; display: flex; flex-direction: column; gap: 0.4rem;
+            box-shadow: 0 1px 2px rgba(10,2,48,0.04);
+        }
+        .rec-ico {
+            width: 42px; height: 42px; border-radius: 11px; display: flex;
+            align-items: center; justify-content: center; margin-bottom: 0.2rem;
+            background: rgba(51,0,204,0.08); color: var(--purple);
+        }
+        .rec-ico svg { width: 22px; height: 22px; }
+        .rec-card h3 { font-size: 1rem; font-weight: 800; color: var(--navy); margin: 0; }
+        .rec-card p { font-size: var(--fs-m); color: var(--gray-600); margin: 0 0 0.5rem; line-height: 1.45; flex: 1; }
+        .rec-card .btn-secondary { align-self: flex-start; }
+        .rec-cubicaje { margin-top: 1.1rem; }
+        .rec-cub-tables { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        @media (max-width: 720px) { .rec-cub-tables { grid-template-columns: 1fr; } }
+        .rec-cub-t h4 { font-size: var(--fs-l); font-weight: 800; color: var(--navy); margin: 0 0 0.4rem; }
+        .rec-cub-t table.data td:first-child { color: var(--gray-600); }
+        .rec-cub-t table.data td:last-child { text-align: right; color: var(--navy); }
+        /* CUBICADOR */
+        .cub-textarea {
+            width: 100%; min-height: 200px; resize: vertical; font-family: inherit;
+            font-size: var(--fs-l); line-height: 1.5; color: var(--navy);
+            border: 1.5px solid var(--gray-300); border-radius: 10px; padding: 0.7rem 0.85rem;
+            background: #fff;
+        }
+        .cub-textarea:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.12); }
+        .cub-result {
+            border: 1.5px solid var(--purple); border-radius: 12px; padding: 1rem 1.05rem;
+            background: rgba(51,0,204,0.04); margin-bottom: 0.9rem;
+        }
+        .cub-result .cub-r-big { font-size: 1.6rem; font-weight: 900; color: var(--purple); line-height: 1.1; }
+        .cub-result .cub-r-lbl { font-size: var(--fs-s); color: var(--gray-500); font-weight: 700; text-transform: none; }
+        .cub-result .cub-r-row { display: flex; justify-content: space-between; align-items: baseline; padding: 0.35rem 0; border-top: 1px solid rgba(51,0,204,0.12); }
+        .cub-result .cub-r-row:first-of-type { border-top: none; }
+        .cub-result .cub-r-row .v { font-weight: 800; color: var(--navy); }
+        .cub-bar { height: 10px; border-radius: 6px; background: var(--gray-200); overflow: hidden; margin-top: 0.5rem; }
+        .cub-bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--purple), #6a4bff); }
+        .cub-help { border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.85rem 1rem; background: var(--gray-100); }
+        .cub-help strong { display: block; color: var(--navy); margin-bottom: 0.35rem; font-size: var(--fs-l); }
+        .cub-help ul { margin: 0; padding-left: 1.1rem; }
+        .cub-help li { font-size: var(--fs-m); color: var(--gray-600); line-height: 1.5; }
+        .cub-detalle { margin-top: 1rem; }
+        .cub-detalle table.data td:last-child, .cub-detalle table.data th:last-child { text-align: right; }
+        .cub-detalle .cub-warn { color: #b45309; font-weight: 700; }
         /* Grupos desplegables "Otras gestiones" del sidebar (cliente y admin) */
         #sgOtrasBtn .sl-txt, #sgAdminBtn .sl-txt { flex: 1; white-space: nowrap; }
         #sgOtrasBtn .badge, #sgAdminBtn .badge { margin-left: 0.3rem; }
@@ -4150,15 +4198,16 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
             Penalizaciones
         </button>
-        <!-- ADMINISTRACIÓN agrupa Facturas + Albaranes (antes 2 entradas de
-             menú): dentro, 2 pestañas alternan entre las dos tablas. -->
-        <button class="sidebar-link" data-section="facturas">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg>
-            Administración
+        <!-- CUBICADOR: herramienta independiente (pega el texto de la mercancía
+             y calcula bultos, volumen, peso y metros lineales de camión). -->
+        <button class="sidebar-link" data-section="cubicador">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            Cubicador
         </button>
-        <!-- OTRAS GESTIONES: grupo desplegable con Incidencias, Sitios,
-             Transportistas y Almacenamientos — cada opción va a su tabla.
-             Con el grupo cerrado, el padre muestra los badges agregados. -->
+        <!-- OTRAS GESTIONES: grupo desplegable con Administración (facturas +
+             albaranes), Incidencias, Transportistas, Almacenamientos y Recursos
+             — cada opción va a su tabla/sección. Con el grupo cerrado, el padre
+             muestra los badges agregados. -->
         <button class="sidebar-link" id="sgOtrasBtn" aria-expanded="false" onclick="toggleSidebarOtras()">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
             <span class="sl-txt">Otras gestiones</span>
@@ -4167,6 +4216,11 @@
             <svg class="sg-chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="sidebar-sub" id="sgOtras" hidden>
+            <!-- Administración (Facturas + Albaranes): movida aquí dentro. -->
+            <button class="sidebar-link" data-section="facturas">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg>
+                Administración
+            </button>
             <button class="sidebar-link" data-section="incidencias">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                 <span class="sl-txt">Incidencias</span>
@@ -4182,7 +4236,17 @@
                 <span class="badge" data-sidebar-badge="alm-sinconf" title="Pendiente confirmar almacén" hidden>0</span>
                 <span class="badge sb-red" data-sidebar-badge="alm-pago" title="Almacenamientos pendientes de pago" hidden>0</span>
             </button>
-            <button class="sidebar-link" data-section="ahorros">
+            <!-- RECURSOS: documentos y herramientas de apoyo (CMR/carta de
+                 porte para imprimir, mapa de Europa, tablas de cubicaje…). -->
+            <button class="sidebar-link" data-section="recursos">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                Recursos
+            </button>
+            <!-- COMPARATIVAS Y AHORROS: OCULTO de momento (se deja para el
+                 futuro; el código y la sección #sec-ahorros siguen en el DOM).
+                 display:none inline porque .sidebar-link (display:flex) pisa el
+                 atributo hidden. -->
+            <button class="sidebar-link" data-section="ahorros" hidden style="display:none;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                 Comparativas y ahorros
             </button>
@@ -5594,6 +5658,106 @@
         </div>
     </section>
 
+    <!-- ==================== RECURSOS ==================== -->
+    <!-- Documentos y herramientas de apoyo: modelos de CMR / carta de porte
+         para imprimir y rellenar a mano, mapa de Europa y tablas de cubicaje.
+         El cubicador online va en su propia sección (independiente). -->
+    <section class="section" id="sec-recursos">
+        <div class="sec-header"><h2>Recursos</h2></div>
+        <p style="font-size: var(--fs-l);color:var(--gray-700);margin:-0.4rem 0 1rem;">Documentos y herramientas de apoyo para tus envíos. Todos los PDF se abren en el visor: desde ahí puedes imprimirlos o descargarlos.</p>
+        <div class="rec-grid">
+            <div class="rec-card">
+                <div class="rec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                <h3>Modelo CMR estándar</h3>
+                <p>Carta de porte internacional (CMR) oficial en blanco, para imprimir y rellenar a mano.</p>
+                <button type="button" class="btn-secondary" onclick="cmrModeloVacioPDF()">Ver / descargar (PDF)</button>
+            </div>
+            <div class="rec-card">
+                <div class="rec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></div>
+                <h3>Carta de porte nacional</h3>
+                <p>Modelo de carta de porte para transporte nacional, en blanco para rellenar.</p>
+                <button type="button" class="btn-secondary" onclick="cartaPorteVaciaPDF()">Ver / descargar (PDF)</button>
+            </div>
+            <div class="rec-card">
+                <div class="rec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></div>
+                <h3>Mapa de Europa · cobertura</h3>
+                <p>Mapa de los países que cubre Dynamo (España y Europa) para consultar o descargar.</p>
+                <button type="button" class="btn-secondary" onclick="window.open('/images/europa-map.svg','_blank')">Ver / descargar (SVG)</button>
+            </div>
+            <div class="rec-card">
+                <div class="rec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
+                <h3>Tablas de cubicaje</h3>
+                <p>Medidas y capacidades de cada tipo de camión (metros, palets y peso máximo).</p>
+                <button type="button" class="btn-secondary" data-rec-cubicaje-toggle onclick="recToggleCubicaje(this)">Ver tablas</button>
+            </div>
+        </div>
+        <!-- Tablas de cubicaje (plegadas): datos de la flota (mismos que la
+             sección "Tipos de vehículo"). -->
+        <div class="rec-cubicaje" data-rec-cubicaje hidden>
+            <div class="rec-cub-tables">
+                <div class="rec-cub-t">
+                    <h4>Trailer Tauliner — Lona corredera</h4>
+                    <table class="data"><tbody>
+                        <tr><td>Largo útil</td><td><strong>13,2 m</strong></td></tr>
+                        <tr><td>Ancho interior</td><td><strong>2,40 m</strong></td></tr>
+                        <tr><td>Altura</td><td><strong>2,70 m</strong></td></tr>
+                        <tr><td>Volumen aprox.</td><td><strong>85 m³</strong></td></tr>
+                        <tr><td>Carga máx.</td><td><strong>24 Tn</strong></td></tr>
+                        <tr><td>Palés europeos (120×80)</td><td><strong>33 uds.</strong></td></tr>
+                        <tr><td>Palés americanos (120×100)</td><td><strong>26 uds.</strong></td></tr>
+                    </tbody></table>
+                </div>
+                <div class="rec-cub-t">
+                    <h4>Rígido con plataforma</h4>
+                    <table class="data"><tbody>
+                        <tr><td>Largo útil</td><td><strong>8 m</strong></td></tr>
+                        <tr><td>Ancho interior</td><td><strong>2,40 m</strong></td></tr>
+                        <tr><td>Altura</td><td><strong>2,70 m</strong></td></tr>
+                        <tr><td>Volumen aprox.</td><td><strong>51 m³</strong></td></tr>
+                        <tr><td>Carga máx.</td><td><strong>14 Tn</strong></td></tr>
+                        <tr><td>Palés europeos (120×80)</td><td><strong>20 uds.</strong></td></tr>
+                        <tr><td>Palés americanos (120×100)</td><td><strong>16 uds.</strong></td></tr>
+                    </tbody></table>
+                </div>
+            </div>
+            <p style="font-size: var(--fs-s);color:var(--gray-500);margin-top:0.5rem;">Equivalencias orientativas: 1 metro lineal ≈ 2,5 palés europeos. Para calcular tu carga usa el <a href="#" onclick="showSection('cubicador');return false;" style="color:var(--purple);font-weight:800;">Cubicador</a>.</p>
+        </div>
+    </section>
+
+    <!-- ==================== CUBICADOR ==================== -->
+    <!-- Herramienta independiente: se pega el texto de la mercancía (una línea
+         por bulto, con cantidad, medidas y peso) y calcula bultos, volumen,
+         peso, metros lineales estimados de camión y % ocupado. MOCK/estimación
+         (parser heurístico); el backend puede afinar el algoritmo. -->
+    <section class="section" id="sec-cubicador">
+        <div class="sec-header"><h2>Cubicador</h2></div>
+        <p style="font-size: var(--fs-l);color:var(--gray-700);margin:-0.4rem 0 1rem;">Pega el listado de tu mercancía (una línea por bulto) con la <strong>cantidad</strong>, las <strong>medidas</strong> (largo×ancho×alto) y el <strong>peso</strong>. Calculamos volumen, metros lineales de camión y ocupación. Es una <strong>estimación orientativa</strong>.</p>
+        <div class="form-2col">
+            <div class="form-2col-main">
+                <label class="ptar-admin-precio-lbl" for="cubInput" style="display:block;margin-bottom:0.35rem;">Tu mercancía</label>
+                <textarea id="cubInput" rows="9" class="cub-textarea" placeholder="Ejemplos (una línea por bulto):&#10;10 palets europeos 120x80x120  350kg&#10;4 cajas 60x40x40  18 kg&#10;2 bobinas 100x100x120  1,2 t&#10;3 palets americanos 120x100x150 500 kg"></textarea>
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.6rem;">
+                    <button type="button" class="btn-primary" onclick="cubicar()">Cubicar</button>
+                    <button type="button" class="btn-ghost" onclick="cubLimpiar()">Limpiar</button>
+                </div>
+                <div class="cub-detalle" id="cubDetalle" hidden></div>
+            </div>
+            <div class="form-2col-side">
+                <div class="cub-result" id="cubResult" hidden></div>
+                <div class="cub-help">
+                    <strong>Cómo escribirlo</strong>
+                    <ul>
+                        <li>Una línea por tipo de bulto.</li>
+                        <li>Cantidad al principio: <em>10 palets…</em></li>
+                        <li>Medidas en cm (o en m): <em>120x80x120</em> · <em>1,2x0,8x1,2</em></li>
+                        <li>Peso por unidad: <em>350 kg</em> · <em>1,2 t</em></li>
+                        <li>Si pones "palet europeo/americano" sin medidas, usamos su base estándar.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- ==================== ALMACENES (catálogo interno · SOLO ADMIN) ==================== -->
     <section class="section" id="sec-almacenes-cat" data-roles="admin">
         <div class="sec-header">
@@ -5880,6 +6044,11 @@
 </div><!-- /main -->
 
 <script>
+    // COMPARATIVAS Y AHORROS: función OCULTA de momento (se deja para el
+    // futuro). Con el flag en false no se muestra la caja de comparativa del
+    // envío manual ni la línea de ahorro en el detalle. Poner en true para
+    // reactivarla junto con el enlace del sidebar (data-section="ahorros").
+    window.COMPARATIVAS_ON = false;
     var sectionTitles = {
         'dashboard':         'Dashboard cliente',
         'cargas':            'Envíos',
@@ -5887,6 +6056,8 @@
         'incidencias':       'Incidencias',
         'sitios':            'Sitios',
         'ahorros':           'Comparativas y ahorros',
+        'recursos':          'Recursos',
+        'cubicador':         'Cubicador',
         'nueva-carga':       'Nueva carga',
         'mi-cuenta':         'Mi cuenta',
         'almacenes':         'Almacenamientos',
@@ -5926,7 +6097,7 @@
         });
         // Si la sección vive dentro de un grupo "Otras gestiones" (cliente o
         // admin), desplegar ese grupo para que su enlace activo se vea.
-        if (['incidencias', 'operadores', 'almacenes', 'ahorros'].indexOf(id) > -1 && window.toggleSidebarOtras) {
+        if (['facturas', 'albaranes', 'incidencias', 'operadores', 'almacenes', 'ahorros', 'recursos'].indexOf(id) > -1 && window.toggleSidebarOtras) {
             toggleSidebarOtras(true);
         }
         if (['almacenes-cat', 'clientes', 'transportistas', 'usuarios', 'altas'].indexOf(id) > -1 && window.toggleSidebarAdmin) {
@@ -7240,6 +7411,172 @@
         }
         setTimeout(function () { URL.revokeObjectURL(urlC); }, 60000);
     }
+    // ===== RECURSOS: carta de porte NACIONAL en blanco (PDF) =====
+    // Modelo simple de carta de porte para imprimir y rellenar a mano. Se abre
+    // en el visor (regla 0-bis). Solo rótulos + casillas vacías.
+    function cartaPorteVaciaPDF() {
+        var W = 595.28, H = 841.89;
+        var WIN = { 'á':'\\341','é':'\\351','í':'\\355','ó':'\\363','ú':'\\372','ñ':'\\361','Á':'\\301','É':'\\311','Í':'\\315','Ó':'\\323','Ú':'\\332','Ñ':'\\321','·':'\\267','º':'\\272','€':'\\200' };
+        function enc(s){ s=String(s==null?'':s); var o=''; for(var i=0;i<s.length;i++){ var ch=s.charAt(i),c=s.charCodeAt(i); if(ch==='('||ch===')'||ch==='\\')o+='\\'+ch; else if(WIN[ch])o+=WIN[ch]; else if(c>=32&&c<127)o+=ch; else if(c>=160&&c<=255)o+='\\'+c.toString(8); else o+='?'; } return o; }
+        var ops = [];
+        function ty(t){ return (H - t).toFixed(1); }
+        function txt(x, top, s, size, bold){ ops.push('0.08 0.08 0.28 rg BT /'+(bold?'F2':'F1')+' '+size+' Tf '+x.toFixed(1)+' '+ty(top)+' Td ('+enc(s)+') Tj ET'); }
+        function box(x, top, w, h){ ops.push('0.6 0.6 0.65 RG '+x.toFixed(1)+' '+ty(top+h).toString()+' '+w.toFixed(1)+' '+h.toFixed(1)+' re S'); }
+        // Cabecera
+        txt(42, 60, 'CARTA DE PORTE', 20, true);
+        txt(42, 78, 'Transporte nacional de mercancías por carretera', 9, false);
+        txt(430, 60, 'Nº __________', 10, true);
+        txt(430, 76, 'Fecha ___ / ___ / ______', 9, false);
+        // Campo con rótulo + casilla
+        function campo(x, top, w, h, label){ txt(x, top, label, 8, true); box(x, top+4, w, h); }
+        var L = 42, R = 305, colW = 248;
+        campo(L, 100, colW, 58, '1. Remitente (nombre, dirección, CIF)');
+        campo(R, 100, colW, 58, '2. Destinatario (nombre, dirección, CIF)');
+        campo(L, 176, colW, 44, '3. Lugar y fecha de carga');
+        campo(R, 176, colW, 44, '4. Lugar de entrega');
+        campo(L, 236, 511, 96, '5. Mercancía (naturaleza, embalaje, marcas)');
+        campo(L, 348, 160, 40, '6. Nº de bultos');
+        campo(214, 348, 160, 40, '7. Peso bruto (kg)');
+        campo(388, 348, 165, 40, '8. Volumen (m³)');
+        campo(L, 404, 511, 60, '9. Instrucciones / observaciones');
+        campo(L, 480, 160, 40, '10. Matrícula');
+        campo(214, 480, 160, 40, '11. Conductor');
+        campo(388, 480, 165, 40, '12. Portes');
+        // Firmas
+        campo(L, 560, 160, 70, 'Firma y sello del REMITENTE');
+        campo(214, 560, 160, 70, 'Firma y sello del TRANSPORTISTA');
+        campo(388, 560, 165, 70, 'Firma y sello del DESTINATARIO');
+        txt(42, 660, 'Documento orientativo. Cumplimenta a mano los datos, fecha, firmas y sellos según proceda.', 8, false);
+        var content = ops.join('\n');
+        var objs = [];
+        objs.push('<</Type/Catalog/Pages 2 0 R>>');
+        objs.push('<</Type/Pages/Count 1/Kids[3 0 R]>>');
+        objs.push('<</Type/Page/Parent 2 0 R/MediaBox[0 0 '+W.toFixed(2)+' '+H.toFixed(2)+']/Contents 4 0 R/Resources<</Font<</F1 5 0 R/F2 6 0 R>>>>>>');
+        objs.push('<</Length '+content.length+'>>\nstream\n'+content+'\nendstream');
+        objs.push('<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>');
+        objs.push('<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold/Encoding/WinAnsiEncoding>>');
+        var pdf = '%PDF-1.4\n', offs = [], i;
+        for (i = 0; i < objs.length; i++) { offs.push(pdf.length); pdf += (i+1)+' 0 obj\n'+objs[i]+'\nendobj\n'; }
+        var xref = pdf.length;
+        pdf += 'xref\n0 '+(objs.length+1)+'\n0000000000 65535 f \n';
+        for (i = 0; i < offs.length; i++) pdf += ('0000000000'+offs[i]).slice(-10)+' 00000 n \n';
+        pdf += 'trailer<</Size '+(objs.length+1)+'/Root 1 0 R>>\nstartxref\n'+xref+'\n%%EOF';
+        var bytes = new Uint8Array(pdf.length);
+        for (i = 0; i < pdf.length; i++) bytes[i] = pdf.charCodeAt(i) & 0xFF;
+        var url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+        var w = window.open(url, '_blank');
+        if (!w) { var a = document.createElement('a'); a.href = url; a.download = 'carta-de-porte-nacional.pdf'; document.body.appendChild(a); a.click(); setTimeout(function(){ document.body.removeChild(a); }, 100); }
+        setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    }
+    window.cartaPorteVaciaPDF = cartaPorteVaciaPDF;
+    // ===== RECURSOS: desplegar/plegar las tablas de cubicaje =====
+    function recToggleCubicaje(btn) {
+        var box = document.querySelector('[data-rec-cubicaje]');
+        if (!box) return;
+        box.hidden = !box.hidden;
+        if (btn) btn.textContent = box.hidden ? 'Ver tablas' : 'Ocultar tablas';
+    }
+    window.recToggleCubicaje = recToggleCubicaje;
+    // ===== CUBICADOR =====
+    // Parser heurístico: por cada línea, cantidad + medidas (LxAxH, cm o m) +
+    // peso (kg/t) + palet europeo/americano si no hay medidas. Calcula bultos,
+    // volumen, peso, superficie de suelo y metros lineales estimados de camión.
+    function cubNum(s) { return parseFloat(String(s).replace(',', '.')); }
+    function cubFmt(n, dec) { return n.toLocaleString('es-ES', { minimumFractionDigits: dec, maximumFractionDigits: dec }); }
+    function cubParseLinea(raw) {
+        var s = raw.trim();
+        if (!s) return null;
+        var out = { raw: s, qty: 1, L: null, A: null, H: null, base: null, pesoU: 0, ok: false };
+        // Cantidad al principio (número + espacio + algo que NO empiece por 'x')
+        var mQ = s.match(/^(\d+)\s+(.*)$/);
+        if (mQ && !/^[x×]/i.test(mQ[2])) { out.qty = parseInt(mQ[1], 10); }
+        // Medidas LxAxH (acepta 120x80x120 o 1,2 x 0,8 x 1,2)
+        var mD = s.match(/(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)/i);
+        if (mD) {
+            var a = cubNum(mD[1]), b = cubNum(mD[2]), c = cubNum(mD[3]);
+            // cm si algún valor ≥ 10; si no, metros
+            var f = (Math.max(a, b, c) >= 10) ? 0.01 : 1;
+            out.L = a * f; out.A = b * f; out.H = c * f; out.ok = true;
+        } else {
+            // Medidas de solo base LxA (sin altura)
+            var mD2 = s.match(/(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)/i);
+            if (mD2) {
+                var a2 = cubNum(mD2[1]), b2 = cubNum(mD2[2]);
+                var f2 = (Math.max(a2, b2) >= 10) ? 0.01 : 1;
+                out.L = a2 * f2; out.A = b2 * f2; out.ok = true;
+            }
+        }
+        // Palet estándar si no hay medidas de base
+        if (out.L == null) {
+            if (/american|isopal/i.test(s)) { out.L = 1.2; out.A = 1.0; out.base = 'Palet americano (120×100)'; out.ok = true; }
+            else if (/euro|pal[eé]|pallet/i.test(s)) { out.L = 1.2; out.A = 0.8; out.base = 'Palet europeo (120×80)'; out.ok = true; }
+        }
+        // Peso por unidad (kg o toneladas)
+        var mP = s.match(/(\d+(?:[.,]\d+)?)\s*(kg|kgs|kilos?|tn|toneladas?|t)\b/i);
+        if (mP) { out.pesoU = cubNum(mP[1]) * (/^(t|tn|tonelada)/i.test(mP[2]) ? 1000 : 1); }
+        return out;
+    }
+    function cubicar() {
+        var ta = document.getElementById('cubInput');
+        var resBox = document.getElementById('cubResult');
+        var det = document.getElementById('cubDetalle');
+        if (!ta) return;
+        var lineas = ta.value.split('\n');
+        var filas = [], bultos = 0, vol = 0, suelo = 0, peso = 0, sinMedida = 0, sinAltura = 0;
+        lineas.forEach(function (ln) {
+            var p = cubParseLinea(ln);
+            if (!p) return;
+            filas.push(p);
+            if (!p.ok) { sinMedida += 1; return; }
+            bultos += p.qty;
+            var area = (p.L && p.A) ? p.L * p.A : 0;
+            suelo += area * p.qty;
+            if (p.H) vol += p.L * p.A * p.H * p.qty; else sinAltura += 1;
+            peso += p.pesoU * p.qty;
+        });
+        var ANCHO = 2.4, LARGO_COMPLETO = 13.2;
+        var metrosLin = suelo / ANCHO;              // suelo ocupado en 1 altura
+        var pct = Math.min(100, Math.round(metrosLin / LARGO_COMPLETO * 100));
+        // Resumen
+        var rh = '';
+        rh += '<div class="cub-r-big">' + cubFmt(metrosLin, 2) + ' m</div>';
+        rh += '<div class="cub-r-lbl">Metros lineales estimados de camión (en 1 altura)</div>';
+        rh += '<div class="cub-bar"><span style="width:' + pct + '%"></span></div>';
+        rh += '<div class="cub-r-lbl" style="margin-top:0.3rem;">Ocupa el ' + pct + '% de un tráiler completo (13,2 m)</div>';
+        rh += '<div style="height:0.6rem"></div>';
+        rh += '<div class="cub-r-row"><span>Bultos</span><span class="v">' + bultos + '</span></div>';
+        rh += '<div class="cub-r-row"><span>Volumen</span><span class="v">' + cubFmt(vol, 2) + ' m³</span></div>';
+        rh += '<div class="cub-r-row"><span>Superficie de suelo</span><span class="v">' + cubFmt(suelo, 2) + ' m²</span></div>';
+        rh += '<div class="cub-r-row"><span>Peso total</span><span class="v">' + (peso >= 1000 ? cubFmt(peso / 1000, 2) + ' Tn' : cubFmt(peso, 0) + ' kg') + '</span></div>';
+        rh += '<div class="cub-r-row"><span>Palés europeos equiv.</span><span class="v">' + Math.ceil(suelo / (1.2 * 0.8)) + '</span></div>';
+        resBox.innerHTML = rh;
+        resBox.hidden = false;
+        // Detalle línea a línea
+        var dh = '<div class="table-wrap"><table class="data"><thead><tr><th>Descripción</th><th>Cant.</th><th>Medidas</th><th>Vol.</th><th>Peso</th></tr></thead><tbody>';
+        filas.forEach(function (p) {
+            if (!p.ok) { dh += '<tr><td colspan="5" class="cub-warn">No reconocido: ' + escapeHtml(p.raw) + '</td></tr>'; return; }
+            var med = p.base ? p.base : (p.L && p.A ? cubFmt(p.L, 2) + '×' + cubFmt(p.A, 2) + (p.H ? '×' + cubFmt(p.H, 2) : '×?') + ' m' : '—');
+            var v = p.H ? cubFmt(p.L * p.A * p.H * p.qty, 2) + ' m³' : '—';
+            var w = p.pesoU ? (p.pesoU * p.qty >= 1000 ? cubFmt(p.pesoU * p.qty / 1000, 2) + ' Tn' : cubFmt(p.pesoU * p.qty, 0) + ' kg') : '—';
+            dh += '<tr><td>' + escapeHtml(p.raw) + '</td><td>' + p.qty + '</td><td>' + med + '</td><td>' + v + '</td><td>' + w + '</td></tr>';
+        });
+        dh += '</tbody></table></div>';
+        var avisos = [];
+        if (sinAltura) avisos.push(sinAltura + ' línea(s) sin altura: no cuentan para el volumen (sí para metros lineales).');
+        if (sinMedida) avisos.push(sinMedida + ' línea(s) sin medidas reconocibles: no se han cubicado.');
+        if (avisos.length) dh += '<p class="cub-warn" style="margin-top:0.5rem;">⚠ ' + avisos.join(' ') + '</p>';
+        dh += '<p style="font-size: var(--fs-s);color:var(--gray-500);margin-top:0.5rem;">Estimación orientativa (una altura de carga, sin apilar). El volumen y los metros reales dependen de la apilabilidad y la colocación.</p>';
+        det.innerHTML = dh;
+        det.hidden = false;
+    }
+    window.cubicar = cubicar;
+    function cubLimpiar() {
+        var ta = document.getElementById('cubInput'); if (ta) ta.value = '';
+        var r = document.getElementById('cubResult'); if (r) { r.hidden = true; r.innerHTML = ''; }
+        var d = document.getElementById('cubDetalle'); if (d) { d.hidden = true; d.innerHTML = ''; }
+        if (ta) ta.focus();
+    }
+    window.cubLimpiar = cubLimpiar;
     // Fondos del impreso OFICIAL (los 4 ejemplares rasterizados del modelo
     // real, en /images/cmr-fondo-1..4.jpg): se descargan una vez y se cachean.
     function __cmrFondos(cb) {
@@ -11970,7 +12307,7 @@
                     // Ahorro vs el transportista tercero (si vino de la
                     // comparativa): se enseña bajo el precio como refuerzo.
                     var ahorroHtml = '';
-                    if (src.ahorro > 0) {
+                    if (window.COMPARATIVAS_ON && src.ahorro > 0) {
                         ahorroHtml = '<p class="detail-doc-note" style="margin-top:0.5rem;color:#0f6b3a;font-weight:700;">Ahorraste ' + eur2(src.ahorro) + ' frente al precio de tu transportista (' + eur2(src.precioTercero) + (src.operadorComparado ? ' · ' + escapeHtml(src.operadorComparado) : '') + ').</p>';
                     }
                     // Mismo estilo que la caja de precio de crear envío: la BASE
@@ -19764,6 +20101,8 @@
             function updateOpCompara() {
                 var box = document.getElementById('opCompara');
                 if (!box) return;
+                // Comparativa/ahorro ocultos de momento (COMPARATIVAS_ON).
+                if (!window.COMPARATIVAS_ON) { box.hidden = true; opcShown = 0; clearTimeout(opcTimer); return; }
                 if (mode !== 'carga' || entryModeDe() !== 'manual') { box.hidden = true; opcShown = 0; clearTimeout(opcTimer); return; }
                 // Sin origen o destino elegidos NO hay precio que comparar:
                 // el dataset guarda el último cálculo y quedaría obsoleto

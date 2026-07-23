@@ -177,6 +177,12 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 - Esfuerzo estimado: 1-2 semanas para alguien que ya maneja JS (el cliente lo maneja). La lógica se reaprovecha en un 95%, solo cambia el plumbing de I/O (SpreadsheetApp.getRange → supabase.from().select()).
 - Triggers temporales de AppScript (`onEdit`, `onChange`, `time-based`) → Postgres triggers o `pg_cron`.
 
+### RECURSOS y CUBICADOR (mockup hecho 2026-07-23)
+- **Sección Recursos** (dentro de "Otras gestiones"): tarjetas con **modelo CMR estándar** (PDF oficial en blanco, `cmrModeloVacioPDF`), **carta de porte nacional** en blanco (PDF generado, `cartaPorteVaciaPDF`), **mapa de Europa** (abre `/images/europa-map.svg`) y **tablas de cubicaje** de los camiones (plegables). Pendiente backend/negocio: sustituir el SVG por un **mapa de Europa con la marca Dynamo y la cobertura** real (asset a diseñar); ¿más plantillas (etiquetas de bulto, packing list, instrucciones ADR-NO)?
+- **Cubicador** (sección independiente): se pega el listado de mercancía (una línea por bulto) y un **parser heurístico** calcula bultos, volumen (m³), peso, superficie de suelo, **metros lineales estimados de camión** y % de tráiler completo. MOCK del lado cliente. Pendiente: (1) afinar el parser (más formatos, idiomas, unidades imperiales); (2) opción de **apilabilidad** (altura máx. y si el bulto es apilable) para el cálculo real de metros; (3) exportar el cubicaje a PDF/Excel; (4) enlazar el resultado con el tarifador (precargar metros/peso en "Nuevo envío").
+- **Comparativas y ahorros OCULTO** (flag `window.COMPARATIVAS_ON=false` en `dashboard.html`): se deja para el futuro. Con el flag en true reaparece la caja de comparativa del envío manual, la línea de ahorro del detalle y el enlace del sidebar (`data-section="ahorros"`, ahora `display:none`). La sección `#sec-ahorros` sigue en el DOM.
+- **Administración** (Facturas + Albaranes) movida DENTRO del grupo desplegable "Otras gestiones" del cliente.
+
 ### REGISTRO DE TIEMPOS de todas las acciones + PRECIO DINÁMICO por escasez (decisión del usuario 2026-07-21)
 **Objetivo**: registrar la hora exacta de TODAS las acciones principales de la plataforma para poder aplicar reglas de negocio dependientes del tiempo (sobre todo de precio) y sacar analítica de la operativa.
 
