@@ -855,8 +855,9 @@
         .wiz-v2.wiz-s2 #tarifador-card > [data-wstep]:not([data-wstep="2"]),
         .wiz-v2.wiz-s3 #tarifador-card > [data-wstep]:not([data-wstep="3"]) { display: none !important; }
         .wiz-v2.wiz-s1 #tar-cta-wrap, .wiz-v2.wiz-s2 #tar-cta-wrap { display: none !important; }
-        /* Altura IGUALADA entre pasos (a la del más alto) + botones abajo */
-        .wiz-v2 #tarifador-card { display: flex; flex-direction: column; }
+        /* Tamaño FIJO entre pasos: ancho constante (solo lo limita la
+           pantalla) y altura igualada a la del paso más alto + botones abajo */
+        .wiz-v2 #tarifador-card { display: flex; flex-direction: column; width: min(680px, calc(100vw - 24px)); margin-left: auto; margin-right: auto; }
         .wiz-v2 #tarifador-card .wiz-navwrap { margin-top: auto; }
         .ptar-grid {
             display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.4rem 0.85rem;
@@ -5620,21 +5621,17 @@ document.addEventListener('DOMContentLoaded', function () {
     function igualarAltura() {
         if (midiendo) return;
         midiendo = true;
-        card.style.minHeight = ''; card.style.minWidth = '';
+        card.style.minHeight = '';
         if (!card.offsetHeight) { midiendo = false; return; } // aún oculto (móvil)
-        var actual = cur, maxH = 0, maxW = 0;
+        var actual = cur, maxH = 0;
         [1, 2, 3].forEach(function (n) {
             cont.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
             cont.classList.add('wiz-s' + n);
             maxH = Math.max(maxH, card.offsetHeight);
-            maxW = Math.max(maxW, card.offsetWidth);
         });
         cont.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
         cont.classList.add('wiz-s' + actual);
         if (maxH) card.style.minHeight = maxH + 'px';
-        // El ANCHO también se fija al del paso más ancho (sin pasarse del
-        // contenedor: en pantallas pequeñas manda el 100%).
-        if (maxW) card.style.minWidth = Math.min(maxW, (document.documentElement.clientWidth || maxW) - 24) + 'px';
         midiendo = false;
     }
     igualarAltura();
