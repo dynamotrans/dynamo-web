@@ -1710,7 +1710,9 @@
             html = '<h2>¿Son correctos estos datos?</h2>' +
                 '<div class="tm-box vc-box">' +
                     filas.map(function (f) {
-                        return '<div class="vc-row"><span class="vc-k">' + f[0] + '</span><span class="vc-v">' + escH(f[1] || '—') + '</span></div>';
+                        return '<div class="vc-row"><span class="vc-k">' + f[0] + '</span>' +
+                            (f[1] ? '<span class="vc-v">' + escH(f[1]) + '</span>'
+                                  : '<span class="vc-v vc-falta">Falta</span>') + '</div>';
                     }).join('') +
                 '</div>' +
                 '<p class="vc-nota">Pueden venir rellenos de tu <strong>último envío</strong>: revisa que sean los de <strong>HOY</strong>.</p>' +
@@ -1739,7 +1741,23 @@
     }
     function cerrarVcModal() { document.getElementById('vcModal').hidden = true; }
     function vcOk() { cerrarVcModal(); continuarAceptar(); }
-    function vcMasAdelante() { cerrarVcModal(); continuarAceptar(); }
+    // "ACEPTAR CARGA · mandaré datos más adelante": antes de seguir se enseña
+    // el RESUMEN "¿Son correctos estos datos?" con lo que SÍ está relleno
+    // (suele venir del último envío) para verificar que son los de HOY; lo
+    // que falte sale como "Falta". Si no hay NADA relleno, no hay nada que
+    // verificar y se sigue directo a la confirmación de identidad.
+    function vcMasAdelante() {
+        cerrarVcModal();
+        var rigidoM = /rígido/i.test(document.getElementById('f-camion').value);
+        var algoRelleno = DATOS_VEHIC.some(function (p) {
+            if (p[0] === 'f-remolque' && rigidoM) return false;
+            if (p[0] === 'f-tfno') return !!telValueAc();
+            var el = document.getElementById(p[0]);
+            return !!(el && el.value.trim());
+        });
+        if (algoRelleno) { abrirVcModal('resumen'); return; }
+        continuarAceptar();
+    }
     // "No son esos datos" → se VACÍAN los prerrellenados y se ofrece rellenar
     // ahora o mandarlos más adelante (misma ventana, sin bloquear).
     function vcNoSonEsos() {
