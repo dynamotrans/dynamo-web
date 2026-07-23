@@ -3392,9 +3392,14 @@
         }
         .ptar-sitio-head-main { flex: 1; min-width: 0; font-size: var(--fs-l); }
         .ptar-sitio-head-emp { font-weight: 800; color: var(--navy); }
-        .ptar-sitio-head-hor { display: block; font-size: var(--fs-m); color: var(--gray-500); font-weight: 500; margin-top: 1px; }
-        .ptar-sitio-head-fecha { display: block; font-size: var(--fs-m); color: var(--navy); font-weight: 700; margin-top: 2px; }
-        .ptar-sitio-head-dir { display: block; font-size: var(--fs-m); color: var(--gray-500); font-weight: 500; margin-top: 1px; }
+        /* 1ª línea: nº + Recogida/Entrega + tipo de lugar con icono */
+        .ptar-sitio-head-l1 { display: flex; align-items: center; flex-wrap: wrap; gap: 0.1rem 0.45rem; font-weight: 800; }
+        .ptar-sitio-head-tipo { display: inline-flex; align-items: center; gap: 0.28rem; font-size: var(--fs-m); font-weight: 600; color: var(--gray-500); }
+        .ptar-sitio-head-tipo.esp { color: #dc2626; font-weight: 700; }
+        .ptar-sitio-head-tipo svg { width: 16px; height: 16px; flex: none; }
+        .ptar-sitio-head-hor { display: block; font-size: var(--fs-m); color: var(--gray-500); font-weight: 500; margin-top: 2px; }
+        .ptar-sitio-head-fecha { display: block; font-size: var(--fs-l); color: var(--navy); font-weight: 800; margin-top: 4px; }
+        .ptar-sitio-head-dir { display: block; font-size: var(--fs-m); color: var(--gray-700); font-weight: 700; margin-top: 2px; }
         .ptar-sitio-chev {
             flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%;
             background: var(--gray-100); border: 1px solid var(--gray-200);
@@ -21826,11 +21831,23 @@
                     // gris con CP/localidad/provincia/país. La flechita despliega
                     // los campos editables.
                     var CHEV = '<span class="ptar-sitio-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>';
-                    function cardHead(rolHtml, empresa, dirLine, warnHtml, horario, fecha) {
+                    // Cabecera LIMPIA (diseño de aceptar-carga): 1ª línea =
+                    // nº + Recogida/Entrega + tipo de lugar con icono entre
+                    // paréntesis; luego fecha (destacada), horario y dirección.
+                    // La empresa y el resto de datos se ven/editan al desplegar.
+                    function cardHead(rolHtml, tipo, dirLine, warnHtml, horario, fecha) {
+                        var tipoHtml = '';
+                        if (tipo && TIPOS_LUGAR.indexOf(tipo) !== -1) {
+                            var esp = tipo !== 'Almacén / Nave';
+                            tipoHtml = '<span class="ptar-sitio-head-tipo' + (esp ? ' esp' : '') + '">' +
+                                (window.__tipoSitioIcon ? window.__tipoSitioIcon(tipo) : '') +
+                                '<span>(' + escapeHtml(tipo) + ')</span></span>';
+                        }
                         return '<button type="button" class="ptar-sitio-head" aria-expanded="false">' +
-                            '<span class="ptar-sitio-head-main">' + rolHtml + (empresa ? ' · <span class="ptar-sitio-head-emp">' + escapeHtml(empresa) + '</span>' : '') +
+                            '<span class="ptar-sitio-head-main">' +
+                            '<span class="ptar-sitio-head-l1">' + rolHtml + tipoHtml + '</span>' +
                             (fecha ? '<span class="ptar-sitio-head-fecha">' + escapeHtml(fecha) + '</span>' : '') +
-                            (empresa && horario ? '<span class="ptar-sitio-head-hor">(' + escapeHtml(horario) + ')</span>' : '') +
+                            (horario ? '<span class="ptar-sitio-head-hor">(' + escapeHtml(horario) + ')</span>' : '') +
                             (dirLine ? '<span class="ptar-sitio-head-dir">' + escapeHtml(dirLine) + '</span>' : '') +
                             (warnHtml || '') +
                             '</span>' + CHEV + '</button>';
@@ -21897,7 +21914,7 @@
                         // solo la dirección queda bloqueada. Al confirmar se guarda.
                         if (!p.pick) {
                             return '<div class="ptar-sitio-card" data-sitio-loose>' +
-                                cardHead(rolHtml, '', p.texto || '', warnHead, null, fechaCab) +
+                                cardHead(rolHtml, effTipo, p.texto || '', warnHead, null, fechaCab) +
                                 '<div class="ptar-sitio-body">' +
                                     '<div class="ptar-sitio-body-meta">Dirección sin ficha — completa los datos obligatorios (empresa, horario y teléfono) y se guardará como sitio en tu agenda.</div>' +
                                     '<div class="ptar-sitio-grid">' +
@@ -21938,7 +21955,7 @@
                             var calleA = calleCorta(s), dirA = s.dir || '';
                             var mapsA = s.maps ? ' · <a href="' + escapeHtml(s.maps) + '" target="_blank" rel="noopener" style="color:var(--purple);font-weight:700;text-decoration:none;">Ver en Maps</a>' : '';
                             return '<div class="ptar-sitio-card">' +
-                                cardHead(rolHtml, s.empresa, (s.dir || ''), warnHead, s.horario, fechaCab) +
+                                cardHead(rolHtml, (effTipo || 'Almacén / Nave'), (s.dir || ''), warnHead, s.horario, fechaCab) +
                                 '<div class="ptar-sitio-body">' +
                                     '<div class="ptar-sitio-body-meta"><strong style="color:var(--purple);">Almacén Dynamo</strong> · datos fijos (se editan en la sección Almacenes)' + mapsA + '</div>' +
                                     '<div class="ptar-sitio-grid">' +
@@ -21964,7 +21981,7 @@
                         // Google, la parte tras el CP; para agenda, s.dir).
                         var dirHead = p.pick.tipo === 'guardado' ? (s.dir || '') : (splitDirPorCP(s.dir || '').resto || s.dir || '');
                         return '<div class="ptar-sitio-card">' +
-                            cardHead(rolHtml, s.empresa, dirHead, warnHead, s.horario, fechaCab) +
+                            cardHead(rolHtml, effTipo, dirHead, warnHead, s.horario, fechaCab) +
                             '<div class="ptar-sitio-body">' +
                                 '<div class="ptar-sitio-body-meta">' + escapeHtml(fuente) + mapsLink + '</div>' +
                                 '<div class="ptar-sitio-grid">' +
