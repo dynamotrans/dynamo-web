@@ -21629,10 +21629,11 @@
                 var eur = eurStr(d && d.precioMock);
                 if (creditoDisponible()) {
                     if (pendingData) pendingData.formaPago = 'credito';
+                    // Solo la forma de pago: si hay vencimiento a N días, se
+                    // entiende que tiene crédito (no hace falta la línea extra).
                     payEl.innerHTML =
                         '<div class="ptar-pay-box pay-credit">' +
                             '<div class="ptar-pay-title"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Forma de pago: A vencimiento ' + plazoPagoDias() + ' días fecha emisión de factura.</div>' +
-                            '<div class="ptar-pay-desc">Tienes <strong>crédito disponible</strong>: puedes confirmar directamente.</div>' +
                         '</div>';
                     payEl.hidden = false;
                     return;
@@ -21803,7 +21804,8 @@
                         (d.notes ? '<div class="sum2-dm"><b>Anotaciones de la mercancía</b>' + escapeHtml(d.notes) + '</div>' : '') +
                     '</div>' +
                     (d.refCli && d.refCli.indexOf('NUEVO') === -1 ? sumCell('Tu referencia', d.refCli, true) : '') +
-                    sumCell('Días de recogida', d.urgenciaLabel, true) +
+                    // "Días de recogida" se omite: la propia "Fecha de recogida"
+                    // (rango · cualquier día laborable) ya lo dice.
                     '<div class="sum2-fecha-cell"><div class="sum2-k">Fecha de recogida</div><div class="sum2-fecha">' + calSvg + escapeHtml(fechaTxtClean) + '</div></div>';
                 // El PRECIO no va en el resumen: sale destacado justo antes del
                 // botón de confirmar (data-ptar-conf-price).
@@ -22259,8 +22261,19 @@
                     title: 'Condiciones generales de transporte',
                     sub: 'Dynamo Operador Logístico, S.L. — B01596360',
                     body: tpl ? tpl.innerHTML : '<p>Texto no disponible.</p>',
-                    footer: '<button class="btn-primary" onclick="closeDashModal()" style="flex:1;">He leído y entiendo</button>'
+                    footer: '<button class="btn-primary" data-ptar-terms-accept style="flex:1;">He leído y acepto</button>'
                 });
+                // "He leído y acepto" → marca la casilla y cierra la ventana.
+                setTimeout(function () {
+                    var acc = document.querySelector('[data-ptar-terms-accept]');
+                    if (acc) acc.addEventListener('click', function () {
+                        if (chkTerms) chkTerms.checked = true;
+                        if (checkLbl) checkLbl.classList.remove('check-error');
+                        if (termsWarn) termsWarn.classList.remove('show');
+                        refreshConfirmEnabled();
+                        closeDashModal();
+                    });
+                }, 0);
             });
 
             // Submit del formulario → valida y bifurca según modo:
