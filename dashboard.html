@@ -3558,15 +3558,34 @@
         /* ===== ASISTENTE "3 PASOS" del crear envío (v2 conmutable): el MISMO
            formulario, repartido en Ruta → Mercancía → Revisión y precio. La
            versión clásica no se toca (solo aplica con la clase .wiz-v2). ===== */
+        /* Indicador de progreso SUTIL (tipo stepper): puntos numerados unidos por
+           una línea fina, con la etiqueta debajo. Sin recuadros ni fondos: no
+           parecen botones, solo informan del paso en el que estás. */
         .wiz-bar { display: none; }
-        .wiz-v2 .wiz-bar { display: flex; align-items: stretch; gap: 0.5rem; margin: 0 0 1rem; }
-        .wiz-bar .wiz-step { flex: 1; display: flex; align-items: center; gap: 0.45rem; padding: 0.55rem 0.7rem; border: 1.5px solid var(--gray-200); border-radius: 10px; background: var(--gray-100); font-size: var(--fs-m); font-weight: 700; color: var(--gray-500); cursor: default; }
-        .wiz-bar .wiz-step .wiz-n { width: 22px; height: 22px; border-radius: 50%; background: var(--gray-300); color: #fff; display: flex; align-items: center; justify-content: center; font-size: var(--fs-s); font-weight: 800; flex: none; }
-        .wiz-bar .wiz-step.act { background: rgba(51,0,204,0.06); border-color: rgba(51,0,204,0.35); color: var(--purple); }
-        .wiz-bar .wiz-step.act .wiz-n { background: var(--purple); }
-        .wiz-bar .wiz-step.done { color: var(--green-dark); border-color: rgba(34,165,90,0.4); background: rgba(34,165,90,0.07); cursor: pointer; }
-        .wiz-bar .wiz-step.done .wiz-n { background: var(--green); }
-        @media (max-width: 640px) { .wiz-bar .wiz-step { flex-direction: column; gap: 0.25rem; text-align: center; font-size: var(--fs-s); padding: 0.45rem 0.3rem; } }
+        .wiz-v2 .wiz-bar { display: flex; align-items: flex-start; gap: 0; margin: 0.1rem 0 1.1rem; }
+        .wiz-bar .wiz-step {
+            flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+            position: relative; padding: 0; border: none; background: none;
+            font-size: var(--fs-s); font-weight: 600; color: var(--gray-400); cursor: default;
+            text-align: center; line-height: 1.2;
+        }
+        /* Línea conectora que llega desde el punto anterior (mitad del círculo). */
+        .wiz-bar .wiz-step::before {
+            content: ''; position: absolute; top: 11px; right: 50%; width: 100%; height: 2px;
+            background: var(--gray-200); z-index: 0;
+        }
+        .wiz-bar .wiz-step:first-child::before { display: none; }
+        .wiz-bar .wiz-n {
+            position: relative; z-index: 1; width: 24px; height: 24px; border-radius: 50%;
+            background: #fff; border: 2px solid var(--gray-300); color: var(--gray-400);
+            display: flex; align-items: center; justify-content: center; font-size: var(--fs-s); font-weight: 800;
+        }
+        .wiz-bar .wiz-step.act { color: var(--purple); font-weight: 800; }
+        .wiz-bar .wiz-step.act .wiz-n { border-color: var(--purple); background: var(--purple); color: #fff; }
+        .wiz-bar .wiz-step.done { color: var(--gray-600); cursor: pointer; }
+        .wiz-bar .wiz-step.done .wiz-n { border-color: var(--green); background: var(--green); color: #fff; }
+        /* Tramo de línea ya recorrido (pasos alcanzados) en verde. */
+        .wiz-bar .wiz-step.act::before, .wiz-bar .wiz-step.done::before { background: var(--green); }
         .wiz-nav { display: none; }
         .wiz-v2 .wiz-nav { display: flex; gap: 0.6rem; margin-top: 1.1rem; }
         .wiz-nav .btn-primary, .wiz-nav .btn-ghost { flex: 1; justify-content: center; padding: 0.9rem; font-size: var(--fs-l); border-radius: 10px; }
