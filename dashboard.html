@@ -21881,15 +21881,18 @@
                     // con su dirección.
                     var picks = [];
                     var paradasArr = d.paradas || [];
-                    var numRec = 1, numEnt = 1;
-                    picks.push({ kind: 'recogida', num: numRec++, pick: d.origSitePick, texto: d.orig, tipoLugar: d.origTipo, id: 'orig' });
+                    picks.push({ kind: 'recogida', pick: d.origSitePick, texto: d.orig, tipoLugar: d.origTipo, id: 'orig' });
                     paradasArr.forEach(function (p, i) {
-                        if (p.kind === 'recogida') picks.push({ kind: 'recogida', num: numRec++, pick: p.sitePick, texto: p.texto, tipoLugar: p.tipo, id: 'parada' + i });
+                        if (p.kind === 'recogida') picks.push({ kind: 'recogida', pick: p.sitePick, texto: p.texto, tipoLugar: p.tipo, id: 'parada' + i });
                     });
                     paradasArr.forEach(function (p, i) {
-                        if (p.kind !== 'recogida') picks.push({ kind: 'entrega', num: numEnt++, pick: p.sitePick, texto: p.texto, tipoLugar: p.tipo, id: 'parada' + i });
+                        if (p.kind !== 'recogida') picks.push({ kind: 'entrega', pick: p.sitePick, texto: p.texto, tipoLugar: p.tipo, id: 'parada' + i });
                     });
-                    picks.push({ kind: 'entrega', num: numEnt++, pick: d.destSitePick, texto: d.dest, tipoLugar: d.destTipo, id: 'dest' });
+                    picks.push({ kind: 'entrega', pick: d.destSitePick, texto: d.dest, tipoLugar: d.destTipo, id: 'dest' });
+                    // Numeración SECUENCIAL por orden de ruta (1, 2, 3, 4…), sea
+                    // recogida o entrega — igual que el paso 1 (Ruta). El color del
+                    // círculo sigue marcando el rol (naranja recogida / verde entrega).
+                    picks.forEach(function (p, i) { p.num = i + 1; });
                     sitiosList.innerHTML = picks.map(function (p) {
                         // Circulito numerado naranja/verde — el mismo de la
                         // ruta del formulario (.ptar-route-num).
