@@ -832,6 +832,26 @@
         .tar-sub { font-size: 0.78rem; color: var(--gray-500); margin: 0; font-weight: 600; }
 
         /* ===== .ptar-* (mismo diseño que el tarifador del panel) ===== */
+        /* ===== TARIFADOR POR PASOS (igual que el panel): 1 Ruta · 2 Mercancía ·
+           3 Fecha y solicitar. Mismo formulario, solo se reparte en pasos. ===== */
+        .wiz-bar { display: flex; align-items: stretch; gap: 0.45rem; margin: 0 0 0.8rem; }
+        .wiz-bar .wiz-step { flex: 1; display: flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.6rem; border: 1.5px solid var(--gray-200, #e8eaed); border-radius: 10px; background: #f7f8fa; font-size: 0.78rem; font-weight: 700; color: #7a7f8a; cursor: default; }
+        .wiz-bar .wiz-step .wiz-n { width: 20px; height: 20px; border-radius: 50%; background: #c9cdd4; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; flex: none; }
+        .wiz-bar .wiz-step.act { background: rgba(51,0,204,0.06); border-color: rgba(51,0,204,0.35); color: var(--purple); }
+        .wiz-bar .wiz-step.act .wiz-n { background: var(--purple); }
+        .wiz-bar .wiz-step.done { color: var(--green-dark); border-color: rgba(34,165,90,0.4); background: rgba(34,165,90,0.07); cursor: pointer; }
+        .wiz-bar .wiz-step.done .wiz-n { background: var(--green); }
+        @media (max-width: 640px) { .wiz-bar .wiz-step { flex-direction: column; gap: 0.2rem; text-align: center; font-size: 0.68rem; padding: 0.4rem 0.25rem; } }
+        .wiz-nav { display: flex; gap: 0.55rem; margin-top: 0.9rem; }
+        .wiz-nav button { flex: 1; padding: 0.75rem; border-radius: 10px; font: inherit; font-weight: 800; font-size: 0.92rem; cursor: pointer; }
+        .wiz-nav .wiz-prev { background: #f7f8fa; color: #3a3f4a; border: 1.5px solid #e8eaed; }
+        .wiz-nav .wiz-next { background: var(--purple); color: #fff; border: none; }
+        .wiz-warn2 { display: none; margin-top: 0.55rem; padding: 0.55rem 0.7rem; background: #fde8e8; border: 1px solid #f5b5b5; border-radius: 9px; color: #b42318; font-size: 0.82rem; font-weight: 700; }
+        .wiz-warn2.show { display: block; }
+        .wiz-v2.wiz-s1 #tarifador-card .ptar-grid > [data-wstep]:not([data-wstep="1"]),
+        .wiz-v2.wiz-s2 #tarifador-card .ptar-grid > [data-wstep]:not([data-wstep="2"]),
+        .wiz-v2.wiz-s3 #tarifador-card .ptar-grid > [data-wstep]:not([data-wstep="3"]) { display: none !important; }
+        .wiz-v2.wiz-s1 #tar-cta-wrap, .wiz-v2.wiz-s2 #tar-cta-wrap { display: none !important; }
         .ptar-grid {
             display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.4rem 0.85rem;
         }
@@ -2434,7 +2454,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     </div>
                     <div class="ptar-field-full" data-ptar-entregas></div>
 
-                    <div class="ptar-section-head">Carga</div>
+                    <div class="ptar-section-head">Mercancía</div>
                     <div class="ptar-pair">
                         <div class="ptar-field">
                             <select data-ptar-merca class="ptar-select" aria-label="Tipo de mercancía">
@@ -5493,6 +5513,79 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         el.textContent = txt;
     })();
+</script>
+
+<script>
+// ==================== TARIFADOR POR PASOS (igual que el panel) ====================
+// 1 Ruta · 2 Mercancía · 3 Fecha y solicitar. Mismo formulario: solo se
+// muestra/oculta por pasos. "Siguiente" del paso 1 exige origen y destino.
+(function () {
+    var card = document.getElementById('tarifador-card');
+    if (!card) return;
+    var grid = card.querySelector('.ptar-grid');
+    if (!grid) return;
+    var cont = card.parentNode;
+    var step = 1;
+    Array.prototype.forEach.call(grid.children, function (ch) {
+        if (ch.classList && ch.classList.contains('ptar-section-head')) {
+            var t = (ch.textContent || '').trim();
+            if (t.indexOf('Mercancía') === 0) step = 2;
+            else if (t.indexOf('Fecha') === 0) step = 3;
+        }
+        if (ch.dataset) ch.dataset.wstep = String(step);
+    });
+    var bar = document.createElement('div');
+    bar.className = 'wiz-bar';
+    bar.innerHTML = ['Ruta', 'Mercancía', 'Fecha y solicitar'].map(function (lbl, i) {
+        return '<div class="wiz-step" data-wiz-step="' + (i + 1) + '"><span class="wiz-n">' + (i + 1) + '</span><span>' + lbl + '</span></div>';
+    }).join('');
+    card.insertBefore(bar, grid);
+    var navWrap = document.createElement('div');
+    navWrap.innerHTML =
+        '<div class="wiz-nav">' +
+            '<button type="button" class="wiz-prev" data-wiz-prev>← Atrás</button>' +
+            '<button type="button" class="wiz-next" data-wiz-next>Siguiente →</button>' +
+        '</div>' +
+        '<div class="wiz-warn2" data-wiz-warn>⚠ Indica el origen y el destino para continuar.</div>';
+    card.appendChild(navWrap);
+    var cur = 1, inicial = true;
+    function paint() {
+        cont.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
+        cont.classList.add('wiz-s' + cur);
+        Array.prototype.forEach.call(bar.querySelectorAll('.wiz-step'), function (el) {
+            var n = parseInt(el.getAttribute('data-wiz-step'), 10);
+            el.classList.toggle('act', n === cur);
+            el.classList.toggle('done', n < cur);
+        });
+        navWrap.querySelector('[data-wiz-prev]').style.visibility = cur === 1 ? 'hidden' : '';
+        navWrap.querySelector('[data-wiz-next]').style.display = cur === 3 ? 'none' : '';
+        navWrap.querySelector('[data-wiz-warn]').classList.remove('show');
+        if (!inicial) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        inicial = false;
+    }
+    function rutaOk() {
+        var oi = card.querySelector('[data-ptar-orig]'), di = card.querySelector('[data-ptar-dest]');
+        return !!(oi && di && oi.value.trim() && di.value.trim());
+    }
+    navWrap.querySelector('[data-wiz-next]').addEventListener('click', function () {
+        if (cur === 1 && !rutaOk()) {
+            navWrap.querySelector('[data-wiz-warn]').classList.add('show');
+            return;
+        }
+        cur = Math.min(3, cur + 1); paint();
+    });
+    navWrap.querySelector('[data-wiz-prev]').addEventListener('click', function () {
+        cur = Math.max(1, cur - 1); paint();
+    });
+    bar.addEventListener('click', function (e) {
+        var st = e.target.closest ? e.target.closest('.wiz-step') : null;
+        if (!st) return;
+        var n = parseInt(st.getAttribute('data-wiz-step'), 10);
+        if (n < cur) { cur = n; paint(); }
+    });
+    cont.classList.add('wiz-v2');
+    paint();
+})();
 </script>
 </body>
 </html>
