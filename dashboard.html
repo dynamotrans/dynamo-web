@@ -5140,6 +5140,15 @@
                     </div>
                 </div>
 
+                <!-- Trampilla + NIMA PLEGADOS tras "Añadir más opciones" (decisión del
+                     usuario 2026-07-22): opciones minoritarias, fuera de la vista por
+                     defecto. Se abre solo si alguna está activa (p. ej. al Repetir). -->
+                <div class="ptar-notes-wrap">
+                    <button type="button" class="ptar-notes-toggle" data-ptar-opciones-toggle aria-expanded="false">
+                        <span class="pnt-icon" aria-hidden="true">+</span>
+                        Añadir más opciones (trampilla elevadora / NIMA) · opcional
+                    </button>
+                    <div class="ptar-notes-body" data-ptar-opciones-body hidden>
                 <div class="ptar-pair">
                 <div class="ptar-field">
                     <label class="ptar-label ptar-has-tip" tabindex="0">
@@ -5165,6 +5174,8 @@
                         <span class="ptar-tramp-state" aria-hidden="true"><span class="tramp-off">No (más económico)</span><span class="tramp-on">Sí (más caro)</span></span>
                     </label>
                 </div>
+                </div>
+                    </div>
                 </div>
 
                 <!-- Mercancía ADR: toggle ELIMINADO (Dynamo no transporta ADR).
@@ -20041,6 +20052,7 @@
                 if (tramp) tramp.checked = false;
                 var nima = card.querySelector('[data-ptar-nima]');
                 if (nima) nima.checked = false;
+                if (window.__opcionesReset) window.__opcionesReset();
                 var adrR = card.querySelector('[data-ptar-adr]');
                 if (adrR) adrR.checked = false;
                 applyCamion();
@@ -21544,6 +21556,7 @@
                     // Camión / trampilla a partir del tipo de camión (si lo hay).
                     var esRigido = /r[íi]gido/i.test(src.tipoCamion || '');
                     if (trampillaChk) trampillaChk.checked = esRigido;
+                    if (window.__opcionesSync) window.__opcionesSync();
                     camionSel.value = esRigido ? 'rigido' : 'tauliner';
                     applyCamion(); // rellena ml/peso al máximo del camión elegido
                     var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
@@ -21884,6 +21897,28 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
     new MutationObserver(function () { setTimeout(syncWarn, 0); })
         .observe(dia, { childList: true });
     syncWarn();
+})();
+
+// TRAMPILLA/NIMA plegados tras "Añadir más opciones": se abren al pulsar el
+// texto o solos si alguna opción está activa (Repetir envío); Limpiar los pliega.
+(function () {
+    var sec = document.getElementById('sec-nueva-carga');
+    if (!sec) return;
+    var btn = sec.querySelector('[data-ptar-opciones-toggle]');
+    var body = sec.querySelector('[data-ptar-opciones-body]');
+    if (!btn || !body) return;
+    function setOpen(open) {
+        body.hidden = !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    btn.addEventListener('click', function () { setOpen(body.hidden); });
+    function sync() {
+        var tr = sec.querySelector('[data-ptar-trampilla]'), ni = sec.querySelector('[data-ptar-nima]');
+        if ((tr && tr.checked) || (ni && ni.checked)) setOpen(true);
+    }
+    window.__opcionesSync = function () { setTimeout(sync, 0); };
+    window.__opcionesReset = function () { setOpen(false); };
+    sync();
 })();
 </script>
 </body>
