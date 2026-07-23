@@ -21850,20 +21850,17 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
         else sec.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
     }
     window.envioWizardToggle = function () { setWizard(!sec.classList.contains('wiz-v2')); };
-    // DECISIÓN (2026-07-22): en MÓVIL el formulario va SIEMPRE por pasos; en
-    // ESCRITORIO queda la versión clásica. Cambia en vivo al girar/redimensionar.
-    // Para pruebas: ?wiz=1 fuerza los pasos y ?wiz=0 fuerza la clásica.
-    var mq = window.matchMedia('(max-width: 768px)');
-    function aplicarModo() {
+    // DECISIÓN (2026-07-22, sustituye a la de móvil-solo del mismo día): el
+    // formulario por PASOS (v2) es el modo por defecto en TODOS los
+    // dispositivos, escritorio y móvil. La versión clásica (v1) queda GUARDADA
+    // en el proyecto por si acaso: se abre con ?wiz=0 en la URL (o con
+    // envioWizardToggle() desde consola). A partir de ahora se trabaja sobre
+    // la v2 — que al ser el mismo formulario, hereda cualquier cambio.
+    (function () {
         var forzado = null;
         try { forzado = new URLSearchParams(location.search).get('wiz'); } catch (e) {}
-        if (forzado === '1') { setWizard(true); return; }
-        if (forzado === '0') { setWizard(false); return; }
-        setWizard(mq.matches);
-    }
-    if (mq.addEventListener) mq.addEventListener('change', aplicarModo);
-    else if (mq.addListener) mq.addListener(aplicarModo);
-    aplicarModo();
+        setWizard(forzado !== '0');
+    })();
 })();
 
 // FECHA DE RECOGIDA sin seleccionar → el desplegable se marca en NARANJA
