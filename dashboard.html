@@ -3609,6 +3609,10 @@
            Carga (ventana) = naranja, Entrega estimada = verde. */
         .ptar-eta-data .ptar-eta-range { color: var(--green); font-weight: 800; }
         .ptar-eta-data .ptar-eta-carga { color: var(--orange); font-weight: 800; }
+        /* Desplegable de fecha de recogida: su texto va en NARANJA (la fecha/rango
+           de recogida), para leerlo de un vistazo. Solo cuando hay fecha elegida. */
+        select.ptar-dia-naranja { color: var(--orange); font-weight: 800; }
+        select.ptar-dia-naranja.ptar-select-warn { color: var(--gray-500); font-weight: 600; }
         .ptar-eta-data .ptar-eta-precio { color: var(--purple); font-weight: 900; font-size: 1.05rem; }
         .ptar-eta-data .ptar-eta-precio .ptar-iva { color: var(--gray-500); font-weight: 600; font-size: var(--fs-s); white-space: nowrap; }
         .ptar-eta-pricebox { margin: 0.9rem 0 0; }
@@ -5321,19 +5325,20 @@
                      NO-ADR del cliente sigue en las condiciones (apartado 3). -->
 
                 <div class="ptar-section-head">Fecha de recogida</div>
-                <div class="ptar-pair">
-                <div class="ptar-field">
-                    <div class="ptar-fecha-wrap">
-                        <select id="ptar-dia-carga" data-ptar-dia class="ptar-select" aria-label="Fecha de carga (L-V)"></select>
-                        <input type="date" data-ptar-fecha class="ptar-date" aria-label="Elegir fecha en calendario">
-                    </div>
-                </div>
-                <div class="ptar-field">
+                <!-- 2 desplegables APILADOS (uno debajo de otro): 1) tipo de
+                     recogida (fecha fija / ventana 1 a N días) · 2) la fecha, que
+                     con ventana muestra el RANGO "del … al …" en naranja. -->
+                <div class="ptar-field-full">
                     <select id="ptar-urgencia-carga" data-ptar-urgencia class="ptar-select" aria-label="Días de recogida">
                         <option value="dia">Fecha fija (un día concreto)</option>
                         <option value="estandar" selected>Recogida de 1 a 3 días (más económica)</option>
                     </select>
                 </div>
+                <div class="ptar-field-full">
+                    <div class="ptar-fecha-wrap">
+                        <select id="ptar-dia-carga" data-ptar-dia class="ptar-select ptar-dia-naranja" aria-label="Fecha de recogida"></select>
+                        <input type="date" data-ptar-fecha class="ptar-date" aria-label="Elegir fecha en calendario">
+                    </div>
                 </div>
                 <!-- Aviso tipo Amazon: cuenta atrás al corte del día para saber si
                      HOY puede ser el primer día de carga. Se actualiza en vivo. -->
@@ -18899,6 +18904,13 @@
             var base = fmtFull(d);
             return diff === 0 ? base + ' · hoy' : diff === 1 ? base + ' · mañana' : base;
         }
+        // Etiqueta del desplegable de fecha de recogida: con FECHA FIJA (winDays<=1)
+        // muestra el día suelto; con VENTANA (1 a N días) muestra el RANGO
+        // "del Vie 24/07/26 al Mar 28/07/26" (fin = inicio + N-1 días laborables).
+        function dayOrRangeLabel(d, winDays) {
+            if (!winDays || winDays <= 1) return dayLabel(d);
+            return 'del ' + fmtEtaDate(d) + ' al ' + fmtEtaDate(addBusinessDays(d, winDays - 1));
+        }
         function nextRef(mode) {
             refCounter[mode]++;
             if (mode === 'carga') return envioRef('#C-2026-' + refCounter.carga);
@@ -18968,18 +18980,18 @@
         // el submit si se queda en el placeholder). En carga, además de
         // las fechas, hay opción "Previsión" con tooltip explicativo en
         // hover (en lugar del cartel grande de antes que ocupaba demasiado).
-        function fillDiaSelect(sel, mode, windowVal) {
+        function fillDiaSelect(sel, mode, windowVal, winDays) {
             sel.innerHTML = '';
             var ph = document.createElement('option');
             ph.value = '';
-            ph.textContent = 'Selecciona una fecha';
+            ph.textContent = (winDays && winDays > 1) ? 'Selecciona la ventana de recogida' : 'Selecciona una fecha';
             ph.disabled = true;
             ph.selected = true;
             sel.appendChild(ph);
             loadDates(windowVal || 'estandar', 7).forEach(function (d) {
                 var opt = document.createElement('option');
                 opt.value = isoLocal(d);
-                opt.textContent = dayLabel(d);
+                opt.textContent = dayOrRangeLabel(d, winDays);
                 sel.appendChild(opt);
             });
             var otro = document.createElement('option');
@@ -19608,8 +19620,10 @@
                 var fw = card.querySelector('[data-ptar-fecha-warn]');
                 if (fw && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) fw.hidden = true;
             });
+            // Nº de días laborables de la ventana según el modo (fija = 1 día).
+            function winDaysDe(uv) { return uv === 'dia' ? 1 : ventanaLen(); }
             if (diaSel) {
-                fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'estandar');
+                fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'estandar', winDaysDe(urgenciaSel ? urgenciaSel.value : 'estandar'));
                 function attachFlatpickr() {
                     if (!window.flatpickr || fp || !fechaInput) return;
                     // ADMIN: libertad TOTAL de fecha — pasado (hasta 1 año atrás),
@@ -19648,7 +19662,7 @@
                                 var existing = diaSel.querySelector('option[value="' + iso + '"]');
                                 if (!existing) {
                                     var opt = document.createElement('option');
-                                    opt.value = iso; opt.textContent = fmtFull(selDates[0]);
+                                    opt.value = iso; opt.textContent = dayOrRangeLabel(selDates[0], winDaysDe(urgenciaSel ? urgenciaSel.value : 'estandar'));
                                     diaSel.insertBefore(opt, diaSel.querySelector('option[value="otro"]'));
                                 }
                                 diaSel.value = iso;
@@ -20156,11 +20170,10 @@
                 }
                 // Las FECHAS van ARRIBA; debajo, el aviso/las tarjetas de
                 // alternativas (fecha fija urgente, recomendada…) y el precio.
+                // La FECHA DE RECOGIDA ya la muestra el propio desplegable (con el
+                // rango en ventana); aquí solo va la "Fecha entrega estimada".
                 etaBox.innerHTML =
-                    '<dl class="ptar-eta-data" style="margin-bottom:0.8rem;">' +
-                    cargaHtml +
-                    (rangoHtml ? '<dt>Fecha entrega estimada</dt>' + rangoHtml : '') +
-                    '</dl>' +
+                    (rangoHtml ? '<dl class="ptar-eta-data" style="margin-bottom:0.8rem;"><dt>Fecha entrega estimada</dt>' + rangoHtml + '</dl>' : '') +
                     hoyHtml +
                     '<div class="alm-price ptar-eta-pricebox" data-eta-pricebox></div>' +
                     postHtml;
@@ -20305,12 +20318,12 @@
                 var nv = urgenciaSel.value;
                 var minIso = isoLocal(firstLoadDate(nv));
                 if (fp) fp.set('minDate', minIso); // el "Otro día…" respeta el nuevo mínimo
-                fillDiaSelect(diaSel, mode, nv);
+                fillDiaSelect(diaSel, mode, nv, winDaysDe(nv));
                 var fw = card.querySelector('[data-ptar-fecha-warn]');
                 if (isRealDate && prev >= minIso) {
                     if (!diaSel.querySelector('option[value="' + prev + '"]')) {
                         var opt = document.createElement('option');
-                        opt.value = prev; opt.textContent = dayLabel(new Date(prev + 'T00:00:00'));
+                        opt.value = prev; opt.textContent = dayOrRangeLabel(new Date(prev + 'T00:00:00'), winDaysDe(nv));
                         diaSel.insertBefore(opt, diaSel.querySelector('option[value="otro"]'));
                     }
                     diaSel.value = prev;
@@ -20539,7 +20552,7 @@
                     if (back) back.click();
                 };
                 window.__ptarRefillDias = function () {
-                    if (diaSel) fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'estandar');
+                    if (diaSel) fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'estandar', winDaysDe(urgenciaSel ? urgenciaSel.value : 'estandar'));
                     updateCutoffNote();
                     updateOpCompara();
                     // Repintar la caja ETA: al cambiar de operador entran o
@@ -20811,8 +20824,8 @@
                 var adrR = card.querySelector('[data-ptar-adr]');
                 if (adrR) adrR.checked = false;
                 applyCamion();
-                if (diaSel) { fillDiaSelect(diaSel, mode, urgenciaSel ? urgenciaSel.value : 'estandar'); syncNofechaWarn(); }
-                urgenciaSel.value = 'estandar';
+                if (urgenciaSel) urgenciaSel.value = 'estandar';
+                if (diaSel) { fillDiaSelect(diaSel, mode, 'estandar', winDaysDe('estandar')); syncNofechaWarn(); }
                 refCliInput.value = '';
                 if (refCliBody) refCliBody.hidden = true;
                 if (refCliToggle) refCliToggle.setAttribute('aria-expanded', 'false');
