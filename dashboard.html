@@ -5150,15 +5150,28 @@
                 <!-- OPERADOR DE TRANSPORTE (solo envío MANUAL con otro operador):
                      combo con autocompletado del catálogo privado del cliente.
                      Mismo patrón chip que sitios: elegir bloquea, pulsar borra. -->
+                <!-- OPERADOR minimizado (2026-07-24): por defecto es Dynamo, así que
+                     el selector se oculta tras un texto azul discreto. Solo se
+                     despliega si el cliente quiere enviar con OTRO operador /
+                     transportista (pasa a modo manual). Se auto-abre al editar un
+                     envío de otro operador; Limpiar/abrir en nuevo lo pliega. -->
                 <div class="ptar-field ptar-field-full" data-ptar-operador-field hidden>
-                    <div class="ptar-section-head" style="margin-bottom:0.5rem;">Operador</div>
-                    <div class="ptar-input-wrap alm-rep-wrap" id="opCombo">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                        <input type="text" id="opSearch" placeholder="Operador de transporte · busca en tu catálogo" autocomplete="off" inputmode="search" oninput="opFilter()" onfocus="opFilter()">
-                        <button type="button" class="ptar-clear" id="opClearBtn" hidden onclick="opClear(true)" aria-label="Cambiar operador">✕</button>
-                        <ul class="ptar-sug alm-combo-list" id="opList" hidden></ul>
+                    <div class="ptar-notes-wrap" style="margin-bottom:0;">
+                        <button type="button" class="ptar-notes-toggle" data-ptar-operador-toggle aria-expanded="false">
+                            <span class="pnt-icon" aria-hidden="true">+</span>
+                            Enviar con otro operador / transportista (por defecto, Dynamo)
+                        </button>
+                        <div class="ptar-notes-body" data-ptar-operador-body hidden>
+                            <div class="ptar-section-head" style="margin-bottom:0.5rem;">Operador</div>
+                            <div class="ptar-input-wrap alm-rep-wrap" id="opCombo">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                                <input type="text" id="opSearch" placeholder="Operador de transporte · busca en tu catálogo" autocomplete="off" inputmode="search" oninput="opFilter()" onfocus="opFilter()">
+                                <button type="button" class="ptar-clear" id="opClearBtn" hidden onclick="opClear(true)" aria-label="Cambiar operador">✕</button>
+                                <ul class="ptar-sug alm-combo-list" id="opList" hidden></ul>
+                            </div>
+                            <div class="alm-note" id="opNotaManual" hidden style="margin-top:0.45rem;">Envío gestionado con <strong>tu propio transportista</strong> (otro operador de transportes, empresa de transportes o transportista autónomo) — Dynamo no interviene. Al guardar podrás generar la <strong>orden de transporte</strong> (PDF o email) para tu transportista, sin ninguna mención a Dynamo. Gestiona tu catálogo en la sección <strong>Transportistas</strong>.</div>
+                        </div>
                     </div>
-                    <div class="alm-note" id="opNotaManual" hidden style="margin-top:0.45rem;">Envío gestionado con <strong>tu propio transportista</strong> (otro operador de transportes, empresa de transportes o transportista autónomo) — Dynamo no interviene. Al guardar podrás generar la <strong>orden de transporte</strong> (PDF o email) para tu transportista, sin ninguna mención a Dynamo. Gestiona tu catálogo en la sección <strong>Transportistas</strong>.</div>
                 </div>
                 <div class="ptar-section-head">Ruta</div>
                 <div class="ptar-field ptar-field-full">
@@ -5234,53 +5247,45 @@
                     </div>
                 </div>
 
+                <!-- UN SOLO texto plegable (2026-07-24): detalle de mercancía /
+                     anotaciones + trampilla + NIMA en un mismo desplegable, oculto
+                     por defecto. Se abre al pulsar el texto o solo si algo está
+                     activo (p. ej. al Repetir). -->
                 <div class="ptar-notes-wrap">
                     <button type="button" class="ptar-notes-toggle" data-ptar-notes-toggle aria-expanded="false">
                         <span class="pnt-icon" aria-hidden="true">+</span>
-                        Añadir detalle de MERCANCÍA o anotaciones de envío (opcional)
+                        Añadir detalle de mercancía, trampilla elevadora o NIMA (opcional)
                     </button>
                     <div class="ptar-notes-body" data-ptar-notes-body hidden>
                         <textarea data-ptar-notes maxlength="1000" rows="3"
                             placeholder="Detalles que debamos saber (tipo de mercancía, acceso, dimensiones especiales, instrucciones de entrega…)"></textarea>
                         <div class="ptar-notes-counter"><span data-ptar-notes-count>0</span> / 1000</div>
-                    </div>
-                </div>
-
-                <!-- Trampilla + NIMA PLEGADOS tras "Añadir más opciones" (decisión del
-                     usuario 2026-07-22): opciones minoritarias, fuera de la vista por
-                     defecto. Se abre solo si alguna está activa (p. ej. al Repetir). -->
-                <div class="ptar-notes-wrap">
-                    <button type="button" class="ptar-notes-toggle" data-ptar-opciones-toggle aria-expanded="false">
-                        <span class="pnt-icon" aria-hidden="true">+</span>
-                        Añadir más opciones (trampilla elevadora / NIMA) · opcional
-                    </button>
-                    <div class="ptar-notes-body" data-ptar-opciones-body hidden>
-                <div class="ptar-pair">
-                <div class="ptar-field">
-                    <label class="ptar-label ptar-has-tip" tabindex="0">
-                        Trampilla elevadora
-                        <svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
-                        <span class="ptar-tip-pop" role="tooltip">Trampilla elevadora. Para carga/descarga sin muelle o carretilla elevadora. <strong>Supone un sobrecoste.</strong></span>
-                    </label>
-                    <label class="ptar-tramp-box">
-                        <input type="checkbox" data-ptar-trampilla class="ptar-switch-input">
-                        <span class="ptar-switch" aria-hidden="true"></span>
-                        <span class="ptar-tramp-state" aria-hidden="true"><span class="tramp-off">No (más económico)</span><span class="tramp-on">Sí (más caro)</span></span>
-                    </label>
-                </div>
-                <div class="ptar-field">
-                    <label class="ptar-label ptar-has-tip" tabindex="0">
-                        Requiere NIMA
-                        <svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
-                        <span class="ptar-tip-pop" role="tooltip">NIMA: Número de Identificación Medioambiental. Necesario para transportar residuos. <strong>Supone un sobrecoste.</strong></span>
-                    </label>
-                    <label class="ptar-tramp-box">
-                        <input type="checkbox" data-ptar-nima class="ptar-switch-input">
-                        <span class="ptar-switch" aria-hidden="true"></span>
-                        <span class="ptar-tramp-state" aria-hidden="true"><span class="tramp-off">No (más económico)</span><span class="tramp-on">Sí (más caro)</span></span>
-                    </label>
-                </div>
-                </div>
+                        <div class="ptar-pair" style="margin-top:0.9rem;">
+                        <div class="ptar-field">
+                            <label class="ptar-label ptar-has-tip" tabindex="0">
+                                Trampilla elevadora
+                                <svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
+                                <span class="ptar-tip-pop" role="tooltip">Trampilla elevadora. Para carga/descarga sin muelle o carretilla elevadora. <strong>Supone un sobrecoste.</strong></span>
+                            </label>
+                            <label class="ptar-tramp-box">
+                                <input type="checkbox" data-ptar-trampilla class="ptar-switch-input">
+                                <span class="ptar-switch" aria-hidden="true"></span>
+                                <span class="ptar-tramp-state" aria-hidden="true"><span class="tramp-off">No (más económico)</span><span class="tramp-on">Sí (más caro)</span></span>
+                            </label>
+                        </div>
+                        <div class="ptar-field">
+                            <label class="ptar-label ptar-has-tip" tabindex="0">
+                                Requiere NIMA
+                                <svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
+                                <span class="ptar-tip-pop" role="tooltip">NIMA: Número de Identificación Medioambiental. Necesario para transportar residuos. <strong>Supone un sobrecoste.</strong></span>
+                            </label>
+                            <label class="ptar-tramp-box">
+                                <input type="checkbox" data-ptar-nima class="ptar-switch-input">
+                                <span class="ptar-switch" aria-hidden="true"></span>
+                                <span class="ptar-tramp-state" aria-hidden="true"><span class="tramp-off">No (más económico)</span><span class="tramp-on">Sí (más caro)</span></span>
+                            </label>
+                        </div>
+                        </div>
                     </div>
                 </div>
 
@@ -6204,6 +6209,8 @@
         var opField = document.querySelector('[data-ptar-operador-field]');
         if (opField) opField.hidden = false;
         if (window.opPick) opPick('Dynamo');
+        // El selector de operador arranca PLEGADO (Dynamo por defecto).
+        if (window.__operadorReset) window.__operadorReset();
         // Abrir en limpio SIEMPRE sale del modo edición (cargaModificarEnvio lo
         // reactiva después si procede).
         window._cargaEditRef = null;
@@ -9386,6 +9393,9 @@
         }
         var h2 = document.querySelector('[data-nueva-carga-title]');
         if (h2 && !window._cargaEditRef) h2.textContent = esDynamo ? 'Nuevo envío' : 'Nuevo envío · otro operador / transportista';
+        // Elegir OTRO operador despliega el selector (para verlo); con Dynamo
+        // (por defecto) se queda plegado tras el texto azul.
+        if (!esDynamo && window.__operadorExpand) window.__operadorExpand();
     }
     window.opPick = opPick;
     function opClear(focus) {
@@ -20794,8 +20804,9 @@
                 if (ptr) { ptr.value = ''; delete ptr.dataset.auto; delete ptr.dataset.pref; }
                 var ultR = card.querySelector('[data-ptar-ult-ruta]');
                 if (ultR) { ultR.hidden = true; ultR.innerHTML = ''; }
-                // Operador: vuelve a Dynamo (flujo normal con precio).
+                // Operador: vuelve a Dynamo (flujo normal con precio) y se pliega.
                 if (window.opPick) opPick('Dynamo');
+                if (window.__operadorReset) window.__operadorReset();
                 notesBody.hidden = true;
                 notesToggle.setAttribute('aria-expanded', 'false');
                 warning.classList.remove('show');
@@ -20858,6 +20869,7 @@
                 // El OPERADOR de transporte es obligatorio (Dynamo viene por
                 // defecto): debe elegirse del desplegable (chip), como los sitios.
                 if (mode === 'carga' && !window._opSel) {
+                    if (window.__operadorExpand) window.__operadorExpand();
                     var opW = document.getElementById('opCombo');
                     if (opW) { opW.classList.add('ptar-error'); opW.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
                     warning.textContent = '⚠ Elige el operador de transporte (Dynamo o uno de tu catálogo).';
@@ -22684,26 +22696,46 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
     syncWarn();
 })();
 
-// TRAMPILLA/NIMA plegados tras "Añadir más opciones": se abren al pulsar el
-// texto o solos si alguna opción está activa (Repetir envío); Limpiar los pliega.
+// Desplegable ÚNICO "Añadir detalle de mercancía, trampilla o NIMA": el click
+// lo maneja el toggle del formulario (data-ptar-notes-toggle). Aquí solo se
+// AUTO-ABRE si algo está activo (trampilla/NIMA marcado o notas con texto, p.
+// ej. al Repetir envío) y se PLIEGA al Limpiar.
 (function () {
     var sec = document.getElementById('sec-nueva-carga');
     if (!sec) return;
-    var btn = sec.querySelector('[data-ptar-opciones-toggle]');
-    var body = sec.querySelector('[data-ptar-opciones-body]');
+    var btn = sec.querySelector('[data-ptar-notes-toggle]');
+    var body = sec.querySelector('[data-ptar-notes-body]');
     if (!btn || !body) return;
     function setOpen(open) {
         body.hidden = !open;
         btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
-    btn.addEventListener('click', function () { setOpen(body.hidden); });
     function sync() {
         var tr = sec.querySelector('[data-ptar-trampilla]'), ni = sec.querySelector('[data-ptar-nima]');
-        if ((tr && tr.checked) || (ni && ni.checked)) setOpen(true);
+        var tx = sec.querySelector('[data-ptar-notes]');
+        if ((tr && tr.checked) || (ni && ni.checked) || (tx && tx.value.trim())) setOpen(true);
     }
     window.__opcionesSync = function () { setTimeout(sync, 0); };
     window.__opcionesReset = function () { setOpen(false); };
     sync();
+})();
+
+// OPERADOR minimizado: el texto azul despliega el selector. Por defecto Dynamo
+// (plegado); se auto-abre al elegir otro operador o al editar un envío manual.
+(function () {
+    var sec = document.getElementById('sec-nueva-carga');
+    if (!sec) return;
+    var btn = sec.querySelector('[data-ptar-operador-toggle]');
+    var body = sec.querySelector('[data-ptar-operador-body]');
+    if (!btn || !body) return;
+    function setOpen(open) {
+        body.hidden = !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) setTimeout(function () { var i = document.getElementById('opSearch'); if (i && !i.readOnly) i.focus(); }, 50);
+    }
+    btn.addEventListener('click', function () { setOpen(body.hidden); });
+    window.__operadorExpand = function () { setOpen(true); };
+    window.__operadorReset = function () { setOpen(false); };
 })();
 </script>
 </body>
