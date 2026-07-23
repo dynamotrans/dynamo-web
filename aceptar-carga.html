@@ -560,8 +560,8 @@
                     </div>
                     <div class="row2">
                         <div>
-                            <label for="alta-bolsa-tipo">Bolsa de carga</label>
-                            <select id="alta-bolsa-tipo" onchange="altaBolsaSync()"><option>Wtransnet</option><option>Teleroute</option><option>Bursa</option><option>Ninguna</option></select>
+                            <label for="alta-bolsa-tipo">Bolsa de carga *</label>
+                            <select id="alta-bolsa-tipo" onchange="altaBolsaSync()"><option value="" selected disabled>Selecciona tu bolsa de carga…</option><option value="Wtransnet">Wtransnet</option><option value="Teleroute">Teleroute</option><option value="Bursa">Bursa</option><option value="Ninguna">No tengo bolsa de carga</option></select>
                         </div>
                         <div>
                             <label for="alta-bolsa">Código bolsa de carga *</label>
@@ -961,8 +961,11 @@
     function altaBolsaSync() {
         var t = document.getElementById('alta-bolsa-tipo'), c = document.getElementById('alta-bolsa');
         if (!t || !c) return;
-        if (t.value === 'Ninguna') { c.value = 'Ninguna'; c.disabled = true; c.classList.remove('err'); }
-        else { if (c.value === 'Ninguna') c.value = ''; c.disabled = false; }
+        // Sin elegir (placeholder) o "No tengo bolsa" → el código no aplica: se
+        // vacía y se deshabilita. Con una bolsa real → se pide el código.
+        if (t.value === 'Ninguna' || t.value === '') { c.value = t.value === 'Ninguna' ? 'Ninguna' : ''; c.disabled = true; c.classList.remove('err'); }
+        else { if (c.value === 'Ninguna' || c.value === '') c.value = ''; c.disabled = false; }
+        if (t.value) t.classList.remove('err');   // rojo→verde al elegir
         // La documentación del alta se pide SIEMPRE (antes solo sin bolsa).
         setTimeout(updateScrollHint, 60);
     }
@@ -2005,8 +2008,12 @@
         // El código de bolsa es obligatorio salvo si la bolsa es "Ninguna".
         if (window._altaMode) {
             var altaReq = ['alta-empresa', 'alta-cif', 'alta-dir', 'alta-cp', 'alta-loc',
-                'alta-prov', 'alta-pais', 'alta-tfno', 'alta-email', 'alta-email-conta', 'alta-contacto'];
-            if (document.getElementById('alta-bolsa-tipo').value !== 'Ninguna') altaReq.push('alta-bolsa');
+                'alta-prov', 'alta-pais', 'alta-tfno', 'alta-email', 'alta-email-conta', 'alta-contacto',
+                'alta-bolsa-tipo'];   // hay que ELEGIR bolsa (o "No tengo bolsa")
+            // El código solo es obligatorio si eligió una bolsa REAL (no vacío
+            // ni "No tengo bolsa").
+            var bt = document.getElementById('alta-bolsa-tipo').value;
+            if (bt && bt !== 'Ninguna') altaReq.push('alta-bolsa');
             req = altaReq.concat(req);
         }
         var ok = true;
