@@ -530,10 +530,9 @@
                 <label for="f-buscar-id">Tu CIF, DNI, código de bolsa, móvil o nombre de empresa *</label>
                 <div class="idrow">
                     <input type="text" id="f-buscar-id" placeholder="B12345678, 482113, 638220471 o tu empresa" autocapitalize="characters" autocomplete="off">
-                    <button type="button" class="btn-buscar" onclick="buscarEmpresa()">Buscar</button>
                     <ul class="ac-list" id="ac-buscar"></ul>
                 </div>
-                <p class="id-hint">Escribe tu <strong>CIF</strong> (empresa), <strong>DNI/NIE</strong> (autónomo), tu <strong>código de bolsa de carga</strong>, tu <strong>teléfono móvil</strong> o el <strong>nombre de tu empresa</strong> (con 2 letras ya salen sugerencias; vale cualquier palabra del nombre) y pulsa <strong>Buscar</strong>: aparecerán tus datos para que no tengas que escribirlos.<br><span style="color:var(--gray-500);">Demo: prueba <strong>B58830217</strong>, el código de bolsa <strong>482113</strong>, el móvil <strong>638220471</strong> o escribe <strong>iberia</strong>.</span></p>
+                <p class="id-hint">Escribe tu <strong>CIF</strong> (empresa), <strong>DNI/NIE</strong> (autónomo), tu <strong>código de bolsa de carga</strong>, tu <strong>teléfono móvil</strong> o el <strong>nombre de tu empresa</strong> (con 2 letras ya salen sugerencias; vale cualquier palabra del nombre) y <strong>elige tu empresa</strong> de la lista: aparecerán tus datos para que no tengas que escribirlos. Si no sale ninguna, al pulsar <strong>Aceptar carga</strong> te damos de alta.<br><span style="color:var(--gray-500);">Demo: prueba <strong>B58830217</strong>, el código de bolsa <strong>482113</strong>, el móvil <strong>638220471</strong> o escribe <strong>iberia</strong>.</span></p>
                 <div class="buscando" id="buscandoMsg"><span class="spin"></span>Consultando la base de Dynamo…</div>
                 <div class="id-nofound" id="idNoFound">No encontramos ningún transportista con ese dato (CIF/DNI, código de bolsa, teléfono o nombre). Revísalo, o contacta con Dynamo para darte de alta.</div>
             </div>
@@ -1265,7 +1264,7 @@
                 document.getElementById('altaForm').scrollIntoView({ block: 'start', behavior: 'smooth' });
             }, 60);
             setTimeout(updateScrollHint, 400);
-            return;
+            return false;   // no identificado → se abrió el ALTA
         }
         noFound.classList.remove('show');
         document.getElementById('altaForm').style.display = 'none';
@@ -1306,6 +1305,7 @@
             document.getElementById('empresaResumen').scrollIntoView({ block: 'start', behavior: 'smooth' });
         }, 60);
         setTimeout(updateScrollHint, 400);
+        return true;   // identificado con una empresa de la base
     }
     function cambiarEmpresa() {
         window._empresaSel = null; window._altaMode = false;
@@ -1345,7 +1345,13 @@
     }
     function docDel(cat, i) { _altaDocs[cat].splice(i, 1); renderDoc(cat); }
     document.getElementById('f-buscar-id').addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') { e.preventDefault(); document.getElementById('ac-buscar').classList.remove('show'); buscarEmpresa(); }
+        // Enter = resolver lo tecleado (identifica o abre el alta). Sin botón Buscar.
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('ac-buscar').classList.remove('show');
+            var v = normId(document.getElementById('f-buscar-id').value);
+            if (v) resolverBuscar(v);
+        }
     });
     // Normaliza texto para buscar por nombre: minúsculas y sin acentos.
     function normTxt(s) {
@@ -1989,13 +1995,25 @@
     // La comparte "Aceptar carga" con "Aceptar al NUEVO precio" (contraoferta).
     function validarAceptar() {
         var warn = document.getElementById('fWarn');
-        // Sin identificarse aún: el botón está siempre visible, así que se
-        // resalta la caja de identificación y se avisa de lo que falta.
+        // Sin identificarse aún (no se eligió empresa de la lista): al pulsar
+        // Aceptar se RESUELVE lo tecleado. Si casa con una empresa → queda
+        // identificada; si no casa → se abre el ALTA de transportista. En ambos
+        // casos NO se acepta en este clic: se revela el dato/formulario y el
+        // transportista pulsa Aceptar de nuevo (ya identificado / con el alta).
         if (!window._empresaSel && !window._altaMode) {
-            document.getElementById('f-buscar-id').classList.add('err');
-            if (warn) { warn.textContent = '⚠ Identifícate arriba (CIF/DNI, código de bolsa, móvil o nombre de empresa) para poder aceptar la carga.'; warn.classList.add('show'); }
-            document.getElementById('f-buscar-id').scrollIntoView({ block: 'center', behavior: 'smooth' });
-            return false;
+            var idInput = document.getElementById('f-buscar-id');
+            var val = normId(idInput.value);
+            if (!val) {
+                idInput.classList.add('err');
+                if (warn) { warn.textContent = '⚠ Escribe tu CIF/DNI, código de bolsa, móvil o nombre de empresa para poder aceptar la carga.'; warn.classList.add('show'); }
+                idInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                return false;
+            }
+            idInput.classList.remove('err');
+            document.getElementById('ac-buscar').classList.remove('show');
+            if (warn) warn.classList.remove('show');
+            resolverBuscar(val);   // identifica o abre el alta
+            return false;          // en este clic solo se revela; se acepta al siguiente
         }
         if (warn) warn.textContent = '⚠ Revisa los campos marcados: son obligatorios.';
         // (La confirmación de identidad — código de 3 dígitos enviado al email

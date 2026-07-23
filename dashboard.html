@@ -21294,11 +21294,11 @@
                     // demás detalles manuscritos.
                     var cmrExtra = (!editRef && !isPrev && !esPrepago)
                         ? '<div style="margin-top:0.9rem;padding-top:0.9rem;border-top:1px solid var(--gray-200);">' +
-                            '<p class="modal-success-text" style="margin-bottom:0.6rem;">Puedes descargar aquí el <strong>CMR en PDF relleno con tus datos</strong> (solo faltará poner a mano la fecha cuando cargue, las firmas y sellos, y cualquier otro detalle manuscrito que estimes oportuno), o el <strong>modelo vacío</strong> para rellenarlo a tu gusto.</p>' +
+                            '<p class="modal-success-text" style="margin-bottom:0.6rem;">Puedes descargar aquí el <strong>CMR en PDF relleno con tus datos</strong> (solo faltará poner a mano la fecha cuando cargue, las firmas y sellos, y cualquier otro detalle manuscrito que estimes oportuno).</p>' +
                             '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:center;">' +
                                 '<button class="btn-secondary" onclick="cargaCMRPDF(\'' + escapeHtml(ref) + '\', true)">' + SVG_ORDEN_PDF + 'Ver CMR relleno (PDF)</button>' +
-                                '<button class="btn-secondary" onclick="cmrModeloVacioPDF()">' + SVG_ORDEN_PDF + 'Modelo CMR sin datos (PDF)</button>' +
                             '</div>' +
+                            '<p class="modal-success-text" style="margin-top:0.7rem;font-size: var(--fs-s);color:var(--gray-500);">Este CMR relleno lo tendrás <strong>siempre disponible</strong>: entra en <strong>Envíos</strong>, pulsa este envío y, en sus opciones, ahí estará el <strong>CMR relleno</strong> por si quieres imprimirlo o usarlo más adelante. El <strong>CMR en blanco</strong> para rellenar a mano lo tienes en la sección <strong>Recursos</strong>.</p>' +
                           '</div>'
                         : '';
                     showModalSuccess(
