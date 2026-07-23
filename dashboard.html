@@ -21459,9 +21459,12 @@
                 if (pendingData.precioManualVal > 0) {
                     var pm = pendingData.precioManualVal;
                     pendingData.precioMock = pm;
-                    pendingData.precioRows = [{ k: 'Precio fijado a mano', v: pm }];
+                    // Precio manual = importe cerrado, sin desglose: se muestra
+                    // DIRECTO (Base imponible / IVA / Total), sin la línea "Precio
+                    // fijado a mano" (eso es jerga interna, no un concepto).
+                    pendingData.precioRows = [];
                     var boxM = confirmCard.querySelector('[data-ptar-conf-price]');
-                    if (boxM) { boxM.hidden = false; window.__renderPriceBox(boxM, pm, pendingData.precioRows); }
+                    if (boxM) { boxM.hidden = false; window.__renderPriceBox(boxM, pm, []); }
                     var sumPM = summaryEl.querySelector('[data-sum-precio]');
                     if (sumPM) sumPM.textContent = String(pm).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €';
                     return;
