@@ -1376,12 +1376,14 @@
         .dash-carousel-title { font-size: var(--fs-m); font-weight: 700; color: var(--navy); margin: 0 0 0.2rem; }
         .dash-clientes { margin-top: 1.6rem; }
         .dash-servicios { margin-top: 1.2rem; padding-bottom: 0.4rem; }
-        /* En ESCRITORIO los servicios van ANTES que el muro de clientes;
-           en móvil se respeta el orden del DOM (clientes → servicios). */
+        /* En ESCRITORIO el orden es: Nuestra flota → Nuestros servicios →
+           muro de clientes (decisión 2026-07-23). En MÓVIL se respeta el
+           orden del DOM (clientes → servicios → flota). */
         .dash-carousels { display: flex; flex-direction: column; }
         @media (min-width: 1024px) {
-            .dash-carousels .dash-servicios { order: 1; margin-top: 1.6rem; }
-            .dash-carousels .dash-clientes { order: 2; margin-top: 1.2rem; }
+            .dash-carousels .dash-flota { order: 1; }
+            .dash-carousels .dash-servicios { order: 2; margin-top: 1.6rem; }
+            .dash-carousels .dash-clientes { order: 3; margin-top: 1.2rem; }
         }
         /* Mismo difuminado lateral que el muro de clientes (sin corte seco). */
         .dash-servicios .clientes-row {
@@ -4683,9 +4685,7 @@
                 <div class="clientes-row-track" id="dashServiciosRow"></div>
             </div>
         </div>
-        </div><!-- /dash-carousels -->
-
-        <!-- ===== Nuestra flota: sección de la web pública (tipos de vehículo) ===== -->
+                <!-- ===== Nuestra flota: sección de la web pública (tipos de vehículo) ===== -->
         <div class="dash-flota">
             <p class="dash-flota-eyebrow">Nuestra flota</p>
             <h4 class="dash-flota-title">Tipos de Vehículo</h4>
@@ -4722,6 +4722,8 @@
                 </div>
             </div>
         </div>
+        </div><!-- /dash-carousels -->
+
 
     </section>
 
