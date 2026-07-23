@@ -5398,7 +5398,7 @@
              vuelve atrás a editar o pulsa "Confirmar carga" (modal IMPORTANTE). -->
         <div class="ptar-confirm-card" data-ptar-confirm hidden>
             <h3 class="ptar-confirm-heading">Revisión y precio</h3>
-            <p class="ptar-confirm-lead" style="margin:-0.4rem 0 1rem;color:var(--gray-600);">Revisa el resumen, el precio y las condiciones. Al pulsar <strong>Crear envío</strong> se crea directamente.</p>
+            <p class="ptar-confirm-lead" style="margin:-0.4rem 0 1rem;color:var(--gray-600);">Revisa el resumen, el precio y las condiciones. Al pulsar <strong>Crear envío</strong> confirmarás el pedido de transporte.</p>
 
             <div class="ptar-confirm-note ptar-confirm-note-info" data-ptar-dyn-note hidden>
                 <strong>Precios dinámicos.</strong> La fecha de carga es a <strong>más de 7 días</strong>: el precio se <strong>auto-revisa cada 7 días</strong> a tarifa de mercado para seguir vigente hasta el momento de la carga.
@@ -22086,26 +22086,28 @@
                         suspBloque;
                 }
                 var titulo = '<div class="ptar-legal-head"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> IMPORTANTE: vas a confirmar un pedido de transporte</div>';
-                return { html: titulo + hoyBloque + pagoBloque + cancelBody, esPrepago: esPrepago };
+                // bodyNoTitle: mismo contenido SIN la cabecera "IMPORTANTE" (el modal
+                // de confirmación ya la pone como título propio).
+                return { html: titulo + hoyBloque + pagoBloque + cancelBody, bodyNoTitle: hoyBloque + pagoBloque + cancelBody, esPrepago: esPrepago };
             }
-            // Pinta el bloque legal en la propia tarjeta de revisión y ajusta el
-            // texto del botón (pago pendiente si es prepago). En envío MANUAL no
-            // hay avisos Dynamo → se oculta.
+            // Los avisos legales YA NO van inline en la tarjeta de revisión: se
+            // muestran en un MODAL al pulsar "Crear envío" (con botón "Confirmar
+            // carga"). Aquí solo se OCULTA la caja inline y se ajusta el texto del
+            // botón (pago pendiente si es prepago; "Guardar cambios" al editar).
             function renderLegal() {
                 var box = confirmCard ? confirmCard.querySelector('[data-ptar-legal]') : null;
-                if (!box) return;
-                // En edición ("Modificar envío") el botón es "Guardar cambios".
+                if (box) { box.hidden = true; box.innerHTML = ''; }
+                if (!finalBtn) return;
                 var editar = !!window._cargaEditRef;
-                if (!pendingData || entryModeDe() === 'manual') { box.hidden = true; box.innerHTML = ''; if (finalBtn) finalBtn.textContent = editar ? 'Guardar cambios' : 'Crear envío'; return; }
+                if (!pendingData || entryModeDe() === 'manual') { finalBtn.textContent = editar ? 'Guardar cambios' : 'Crear envío'; return; }
                 var r = buildLegalBloque();
-                box.innerHTML = r.html;
-                box.hidden = !r.html;
-                if (finalBtn) finalBtn.textContent = editar ? 'Guardar cambios' : (r.esPrepago ? 'Crear (pago pendiente)' : 'Crear envío');
+                finalBtn.textContent = editar ? 'Guardar cambios' : (r.esPrepago ? 'Crear (pago pendiente)' : 'Crear envío');
             }
             window.__ptarRenderLegal = renderLegal;
-            // "Confirmar envío": los avisos legales YA están en pantalla, así que
-            // al pulsar (con las condiciones marcadas) se CREA directamente el
-            // envío — sin el modal intermedio que había antes.
+            // "Crear envío": tras validar (condiciones marcadas, fichas de sitios,
+            // precio vigente) se abre un MODAL con los avisos legales (cancelación
+            // según el corte, pago adelantado, suspensión por cancelaciones). El
+            // envío NO se crea hasta pulsar "Confirmar carga" en ese modal.
             if (finalBtn) finalBtn.addEventListener('click', function () {
                 if (!pendingData) return;
                 // ENVÍO MANUAL (otro operador): sin precio, pago ni condiciones
@@ -22130,11 +22132,27 @@
                     if (termsWarn) termsWarn.classList.add('show');
                     return;
                 }
-                // Todo OK → crear el envío directamente (los avisos legales ya
-                // estaban visibles en esta misma pantalla).
+                // Todo OK → MODAL de confirmación con los avisos legales. Solo al
+                // pulsar "Confirmar carga" se crea el envío.
                 var data = pendingData;
-                exitConfirmStep();
-                finalizeSave(data);
+                var legal = buildLegalBloque();
+                openDashModal({
+                    icon: 'alert', iconVariant: 'warn',
+                    title: 'IMPORTANTE: vas a confirmar un pedido de transporte',
+                    sub: '',
+                    body: legal.bodyNoTitle,
+                    footer:
+                        '<button class="btn-ghost" onclick="closeDashModal()" style="flex:1;">Cancelar</button>' +
+                        '<button class="btn-primary" data-ptar-modal-confirm style="flex:1;">' + (legal.esPrepago ? 'Confirmar (pago pendiente)' : 'Confirmar carga') + '</button>'
+                });
+                setTimeout(function () {
+                    var cb = document.querySelector('[data-ptar-modal-confirm]');
+                    if (cb) cb.addEventListener('click', function () {
+                        closeDashModal();
+                        exitConfirmStep();
+                        finalizeSave(data);
+                    });
+                }, 0);
             });
             if (termsLink) termsLink.addEventListener('click', function (e) {
                 e.preventDefault();
