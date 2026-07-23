@@ -852,6 +852,9 @@
         .wiz-v2.wiz-s2 #tarifador-card .ptar-grid > [data-wstep]:not([data-wstep="2"]),
         .wiz-v2.wiz-s3 #tarifador-card .ptar-grid > [data-wstep]:not([data-wstep="3"]) { display: none !important; }
         .wiz-v2.wiz-s1 #tar-cta-wrap, .wiz-v2.wiz-s2 #tar-cta-wrap { display: none !important; }
+        /* Altura IGUALADA entre pasos (a la del más alto) + botones abajo */
+        .wiz-v2 #tarifador-card { display: flex; flex-direction: column; }
+        .wiz-v2 #tarifador-card .wiz-navwrap { margin-top: auto; }
         .ptar-grid {
             display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.4rem 0.85rem;
         }
@@ -1025,8 +1028,10 @@
             font-size: 0.78rem; color: var(--purple); font-weight: 700;
             background: none; border: none; cursor: pointer;
             padding: 0.25rem 0; font-family: inherit;
+            text-align: left; justify-content: flex-start;
         }
         .ptar-notes-toggle .pnt-icon {
+            flex: none;
             width: 18px; height: 18px; border-radius: 50%;
             background: rgba(51,0,204,0.1); display: inline-flex;
             align-items: center; justify-content: center; font-weight: 900;
@@ -5551,6 +5556,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }).join('');
     card.insertBefore(bar, grid);
     var navWrap = document.createElement('div');
+    navWrap.className = 'wiz-navwrap';
     navWrap.innerHTML =
         '<div class="wiz-nav">' +
             '<button type="button" class="wiz-prev" data-wiz-prev>← Atrás</button>' +
@@ -5595,6 +5601,29 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     cont.classList.add('wiz-v2');
     paint();
+    // Igualar la ALTURA de los 3 pasos a la del más alto (normalmente el 3º):
+    // la tarjeta no salta al cambiar de paso y los botones no bailan.
+    function igualarAltura() {
+        card.style.minHeight = '';
+        if (!card.offsetHeight) return; // tarifador aún oculto (móvil)
+        var actual = cur, max = 0;
+        [1, 2, 3].forEach(function (n) {
+            cont.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
+            cont.classList.add('wiz-s' + n);
+            max = Math.max(max, card.offsetHeight);
+        });
+        cont.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
+        cont.classList.add('wiz-s' + actual);
+        if (max) card.style.minHeight = max + 'px';
+    }
+    igualarAltura();
+    window.addEventListener('resize', function () {
+        clearTimeout(window.__wizEqT);
+        window.__wizEqT = setTimeout(igualarAltura, 200);
+    });
+    // En móvil el tarifador está oculto hasta pulsar "Precios": igualar al abrirse.
+    var opBtnEq = document.getElementById('hero-cta-precios');
+    if (opBtnEq) opBtnEq.addEventListener('click', function () { setTimeout(igualarAltura, 550); });
 })();
 </script>
 
