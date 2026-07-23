@@ -1987,7 +1987,7 @@
             .dash-recomienda-btns > button { flex: 1; min-width: 0; padding-left: 0.4rem; padding-right: 0.4rem; font-size: var(--fs-m); }
         }
         /* Discreción comercial (confirmación de envío) */
-        .ptar-discrecion { border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 0.7rem 0.8rem; background: var(--gray-50); margin-bottom: 0.7rem; }
+        .ptar-discrecion { border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 0.7rem 0.8rem; background: var(--gray-50); margin-bottom: 0; }
         .ptar-discrecion .ptar-confirm-check { margin: 0; }
         .ptar-discrecion-aviso { margin-top: 0.6rem; padding: 0.7rem 0.8rem; border-radius: 8px; background: rgba(51,0,204,0.07); border: 1px solid rgba(51,0,204,0.28); color: var(--purple); font-size: var(--fs-m); line-height: 1.5; font-weight: 600; }
         /* Enlace en línea dentro del texto de un check (Ver más / condiciones):
@@ -2067,12 +2067,11 @@
            En escritorio ancho: campos a la izquierda y resumen de precio/pago +
            acciones a la derecha (columna sticky). En pantallas estrechas se
            apila en 1 sola columna (el resumen/acciones queda al final). */
-        .form-2col-side { margin-top: 1.2rem; }
-        /* Separación uniforme entre los bloques de la columna lateral (caja
-           ETA, Precios internos, precio acordado, comparativa, aviso y
-           botones): iban PEGADOS — en móvil la caja del precio llegaba a
-           tocar el borde de "Precios internos". */
-        .form-2col-side > * + * { margin-top: 0.9rem; }
+        .form-2col-side { margin-top: 0.55rem; }
+        /* Separación UNIFORME y compacta entre los bloques de la columna lateral
+           (precio, forma de pago, discreción, condiciones, botones): mismo hueco
+           en todo el proceso, sin distancias grandes ni desiguales. */
+        .form-2col-side > * + * { margin-top: 0.55rem; }
         @media (min-width: 1200px) {
             /* Izquierda: ancho fijo (el que tenía el formulario). Derecha:
                rellena todo el espacio libre hasta el borde del contenido. El
@@ -3274,7 +3273,7 @@
         /* Footer del comparador: botones a los extremos (Google izq · Mi registro der). */
         .dup-footer { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 0.6rem; }
         /* Fichas editables de los lugares en el paso de confirmación */
-        .ptar-sitio-card { border: 1px solid var(--gray-200); border-radius: 10px; padding: 0.8rem 0.9rem; margin-bottom: 0.7rem; background: #fff; }
+        .ptar-sitio-card { border: 1px solid var(--gray-200); border-radius: 10px; padding: 0.7rem 0.8rem; margin-bottom: 0.55rem; background: #fff; }
         .ptar-sitio-card h5 { font-size: var(--fs-m); color: var(--navy); margin-bottom: 0.5rem; }
         .ptar-sitio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 0.8rem; }
         .ptar-sitio-grid label { display: block; font-size: var(--fs-m); color: var(--gray-500); font-weight: 600; margin-bottom: 0.15rem; }
@@ -3800,7 +3799,9 @@
         }
         /* ===== RESUMEN en TARJETAS (diseño limpio, igual que aceptar-carga):
            celdas etiqueta+valor y una tarjeta "Mercancía" con rejilla. ===== */
-        .sum2 { display: flex; flex-direction: column; gap: 0.45rem; }
+        .sum2 { display: flex; flex-direction: column; gap: 0.55rem; }
+        /* Hueco uniforme entre el resumen y las fichas de sitios (columna izq). */
+        .ptar-confirm-card .form-2col-main > * + * { margin-top: 0.55rem; }
         .sum2-cell { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 10px; padding: 0.5rem 0.7rem; }
         .sum2-k { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: var(--gray-500); margin-bottom: 0.1rem; }
         .sum2-v { font-size: var(--fs-l); font-weight: 800; color: var(--navy); line-height: 1.3; }
@@ -3881,7 +3882,7 @@
         .ptar-terms-box {
             border: 1.5px solid var(--gray-200); border-radius: 10px;
             padding: 0.7rem 0.8rem; background: var(--gray-50);
-            margin-top: 0.75rem;
+            margin-top: 0;
         }
         .ptar-terms-box .ptar-confirm-check { margin: 0; }
         .ptar-terms-link {
@@ -3905,7 +3906,7 @@
             accent-color: var(--purple); cursor: pointer;
         }
         .ptar-confirm-check a { color: var(--purple); font-weight: 700; text-decoration: underline; }
-        .ptar-confirm-card .ptar-actions { padding-top: 1.2rem; }
+        .ptar-confirm-card .ptar-actions { padding-top: 0.4rem; }
         .ptar-confirm-card .btn-primary.btn-visual-disabled,
         .ptar-confirm-card .btn-primary:disabled {
             opacity: 0.45; cursor: not-allowed;
