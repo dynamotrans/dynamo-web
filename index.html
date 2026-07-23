@@ -2488,6 +2488,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                         </div>
                     </div>
 
+                    <!-- Trampilla + NIMA PLEGADOS tras "Añadir más opciones" (igual que el
+                         panel, decisión 2026-07-22). -->
+                    <div class="ptar-notes-wrap">
+                        <button type="button" class="ptar-notes-toggle" data-ptar-opciones-toggle aria-expanded="false">
+                            <span class="pnt-icon" aria-hidden="true">+</span>
+                            Añadir más opciones (trampilla elevadora / NIMA) · opcional
+                        </button>
+                        <div class="ptar-notes-body" data-ptar-opciones-body hidden>
                     <div class="ptar-pair">
                         <div class="ptar-field">
                             <label class="ptar-label ptar-has-tip" tabindex="0">
@@ -2512,6 +2520,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                 <span class="ptar-switch" aria-hidden="true"></span>
                                 <span class="ptar-tramp-state" aria-hidden="true"><span class="tramp-off">No (más económico)</span><span class="tramp-on">Sí (más caro)</span></span>
                             </label>
+                        </div>
+                    </div>
                         </div>
                     </div>
 
@@ -5585,6 +5595,34 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     cont.classList.add('wiz-v2');
     paint();
+})();
+</script>
+
+<script>
+// TRAMPILLA/NIMA plegados tras "Añadir más opciones" (igual que el panel):
+// se abren al pulsar, o solos si alguna está activa; el reinicio los pliega.
+(function () {
+    var card = document.getElementById('tarifador-card');
+    if (!card) return;
+    var btn = card.querySelector('[data-ptar-opciones-toggle]');
+    var body = card.querySelector('[data-ptar-opciones-body]');
+    if (!btn || !body) return;
+    function setOpen(open) {
+        body.hidden = !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    btn.addEventListener('click', function () { setOpen(body.hidden); });
+    function sync() {
+        var tr = card.querySelector('[data-ptar-trampilla]'), ni = card.querySelector('[data-ptar-nima]');
+        if ((tr && tr.checked) || (ni && ni.checked)) setOpen(true);
+    }
+    ['[data-ptar-trampilla]', '[data-ptar-nima]'].forEach(function (q) {
+        var el = card.querySelector(q);
+        if (el) el.addEventListener('change', sync);
+    });
+    var reset = document.querySelector('[data-ptar-reset], #tar-reset');
+    if (reset) reset.addEventListener('click', function () { setTimeout(function () { setOpen(false); }, 100); });
+    sync();
 })();
 </script>
 </body>
