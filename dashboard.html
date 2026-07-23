@@ -13697,22 +13697,31 @@
         return (typeof FACTURAS_DATA !== 'undefined')
             ? FACTURAS_DATA.filter(function (f) { return f.kind === 'vencida'; }).length : 0;
     }
+    function contarPenalizacionesPendientes() {
+        return (typeof PENALIZACIONES_DATA !== 'undefined' && typeof penEstadoDe === 'function')
+            ? PENALIZACIONES_DATA.filter(function (p) { return penEstadoDe(p).key === 'pendiente'; }).length : 0;
+    }
     function renderBellMenu() {
         var menu = document.getElementById('bellMenu');
         if (!menu) return;
         var inc = contarIncidenciasAbiertas();
         var venc = contarFacturasVencidas();
+        var pen = contarPenalizacionesPendientes();
         var items = '';
         items += '<button type="button" class="bell-item" role="menuitem" onclick="bellGo(\'incidencias\')">' +
             '<span class="bell-item-ico inc"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>' +
             '<span class="bell-item-body"><span class="bell-item-t">Incidencias abiertas</span><span class="bell-item-s">' + (inc ? 'Pendientes de resolver' : 'Sin incidencias abiertas') + '</span></span>' +
             '<span class="bell-item-count ' + (inc ? 'inc' : 'zero') + '">' + inc + '</span></button>';
+        items += '<button type="button" class="bell-item" role="menuitem" onclick="bellGo(\'penalizaciones\')">' +
+            '<span class="bell-item-ico inc"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>' +
+            '<span class="bell-item-body"><span class="bell-item-t">Penalizaciones abiertas</span><span class="bell-item-s">' + (pen ? 'Pendientes de confirmar' : 'Ninguna pendiente') + '</span></span>' +
+            '<span class="bell-item-count ' + (pen ? 'inc' : 'zero') + '">' + pen + '</span></button>';
         items += '<button type="button" class="bell-item" role="menuitem" onclick="bellGo(\'facturas\')">' +
             '<span class="bell-item-ico fac"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></span>' +
             '<span class="bell-item-body"><span class="bell-item-t">Facturas vencidas</span><span class="bell-item-s">' + (venc ? 'Pendientes de pago' : 'Ninguna vencida') + '</span></span>' +
             '<span class="bell-item-count ' + (venc ? 'fac' : 'zero') + '">' + venc + '</span></button>';
         menu.innerHTML = '<div class="bell-menu-title">Notificaciones</div>' + items +
-            (inc + venc === 0 ? '<div class="bell-empty">Todo al día ' + '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;color:var(--green);"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>' + '</div>' : '');
+            (inc + venc + pen === 0 ? '<div class="bell-empty">Todo al día ' + '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;color:var(--green);"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>' + '</div>' : '');
     }
     function toggleBellMenu(ev) {
         if (ev) ev.stopPropagation();
@@ -13746,6 +13755,11 @@
             var sel = document.querySelector('#sec-facturas [data-fact-estado]');
             if (sel) sel.value = 'vencida';
             if (typeof renderFacturasTable === 'function') renderFacturasTable();
+        }
+        if (section === 'penalizaciones' && typeof PEN_LIST !== 'undefined') {
+            // Al venir de "penalizaciones abiertas", abrir en Pendientes de confirmar.
+            PEN_LIST.filter = 'pendiente';
+            if (typeof renderPenalizacionesTable === 'function') renderPenalizacionesTable();
         }
         showSection(section);
     }
@@ -18405,10 +18419,12 @@
         var wrap = document.querySelector('.topbar-ind-inc');
         if (!badge || !wrap) return;
         var abiertas = contarIncidenciasAbiertas();
-        // La campana agrupa incidencias abiertas + facturas vencidas.
+        // La campana agrupa incidencias abiertas + penalizaciones pendientes +
+        // facturas vencidas.
         var vencidas = (typeof FACTURAS_DATA !== 'undefined')
             ? FACTURAS_DATA.filter(function (f) { return f.kind === 'vencida'; }).length : 0;
-        var total = abiertas + vencidas;
+        var penPend = (typeof contarPenalizacionesPendientes === 'function') ? contarPenalizacionesPendientes() : 0;
+        var total = abiertas + vencidas + penPend;
         badge.textContent = total;
         wrap.classList.toggle('has-open', total > 0);
         wrap.classList.toggle('no-open', total === 0);
