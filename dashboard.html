@@ -7515,6 +7515,26 @@
             if (/american|isopal/i.test(s)) { out.L = 1.2; out.A = 1.0; out.base = 'Palet americano (120×100)'; out.ok = true; }
             else if (/euro|pal[eé]|pallet/i.test(s)) { out.L = 1.2; out.A = 0.8; out.base = 'Palet europeo (120×80)'; out.ok = true; }
         }
+        // Medidas escritas CON PALABRAS, en cualquier orden y con o sin
+        // espacios: "3 metros largo", "largo 3m", "altura 200cm",
+        // "200cmaltura", "1 m alto", "ancho de 2 m"… Completan lo que falte
+        // (p. ej. palet con base estándar + "1 m altura").
+        function dimVal(num, unit) {
+            var v = cubNum(num);
+            if (unit && /^c/i.test(unit)) return v / 100;   // cm
+            if (unit) return v;                             // m
+            return v >= 10 ? v / 100 : v;                   // sin unidad: ≥10 → cm
+        }
+        var lab = {}, mm;
+        var reNumLab = /(\d+(?:[.,]\d+)?)\s*(cent[ií]metros?|metros?|mts?|cm|m)?\s*(?:de\s+)?(largo|larga|ancho|ancha|alto|altura|fondo)/gi;
+        while ((mm = reNumLab.exec(s))) lab[mm[3].toLowerCase().replace(/a$/, 'o')] = dimVal(mm[1], mm[2]);
+        var reLabNum = /(largo|ancho|alto|altura|fondo)\s*(?:de\s+)?[:\-]?\s*(\d+(?:[.,]\d+)?)\s*(cent[ií]metros?|metros?|mts?|cm|m)?\b/gi;
+        while ((mm = reLabNum.exec(s))) { var k = mm[1].toLowerCase().replace(/a$/, 'o'); if (lab[k] == null) lab[k] = dimVal(mm[2], mm[3]); }
+        if (lab.alturo != null && lab.alto == null) lab.alto = lab.alturo; // "altura"→normalizado
+        if (out.L == null && lab.largo != null) out.L = lab.largo;
+        if (out.A == null && (lab.ancho != null || lab.fondo != null)) out.A = lab.ancho != null ? lab.ancho : lab.fondo;
+        if (out.H == null && lab.alto != null) out.H = lab.alto;
+        out.ok = !!(out.L && out.A);
         // Peso por unidad (kg o toneladas)
         var mP = s.match(/(\d+(?:[.,]\d+)?)\s*(kg|kgs|kilos?|tn|toneladas?|t)\b/i);
         if (mP) { out.pesoU = cubNum(mP[1]) * (/^(t|tn|tonelada)/i.test(mP[2]) ? 1000 : 1); }
