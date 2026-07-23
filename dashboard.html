@@ -20096,20 +20096,11 @@
                     hoyHtml = '<div style="margin-bottom:0.45rem;padding:0.6rem 0.75rem;background:#fff7e6;border:1px solid #ffd591;border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#8a5a00;">' +
                         '<strong>Recogida corta de 1 a 2 días</strong>: lleva un suplemento. Si no te corre prisa, la de 1 a 4 días es la más económica.' +
                         '</div>';
-                    // Caja envolvente con texto introductorio + tarjeta, igual
-                    // que el bloque de fecha fija (pedido del usuario 2026-07-23).
-                    postHtml = '<div class="ptar-eta-fija" style="margin-top:0.8rem;">' +
-                        '<div class="eta-fija-head"><strong>¿No te corre prisa?</strong> Puedes cambiar a:</div>' +
-                        '<div class="eta-opts">' +
-                            etaOpt('eta-opt-rec', icoVent, 'Recogida de 1 a 4 días', 'Recomendada',
-                                'Lo más barato y seguro en grupaje: el 80% de las veces cargamos en los 2 primeros días, y sin el suplemento de recogida corta.',
-                                eur2(precio - cortaExtra), '__ptarUsarVentana') +
-                        '</div></div>';
+                    // La caja clicable para cambiar precio/ventana solo se muestra
+                    // en fecha fija (petición del usuario): aquí solo el aviso.
                 } else if (uv === 'estandar') {
-                    // Ventana estándar (grupaje 1-4 · completo 1-3): mensaje verde.
-                    hoyHtml = '<div style="margin-bottom:0.45rem;padding:0.6rem 0.75rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#0f6b3a;">' +
-                        '<strong>Recogida de 1 a ' + ventanaLen() + ' días (flexible)</strong>, el 80% veces cargamos en los 2 primeros días, es la más económica y además aumenta la probabilidad de cargar al máximo.' +
-                        '</div>';
+                    // Ventana estándar (1-3 / 1-4): sin aviso ni tarjeta (la caja
+                    // clicable para cambiar precio/ventana solo sale en fecha fija).
                 } else if (fechaEsPasada && uv === 'dia') {
                     // Registro A POSTERIORI (admin): la fecha ya pasó → el envío
                     // se cargó ese día. Sin avisos de urgencia/reprogramación ni
