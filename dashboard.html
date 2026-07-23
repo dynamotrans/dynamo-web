@@ -5698,11 +5698,11 @@
                 <div class="rec-cub-t">
                     <h4>Trailer Tauliner — Lona corredera</h4>
                     <table class="data"><tbody>
-                        <tr><td>Largo útil</td><td><strong>13,2 m</strong></td></tr>
-                        <tr><td>Ancho interior</td><td><strong>2,40 m</strong></td></tr>
-                        <tr><td>Altura</td><td><strong>2,70 m</strong></td></tr>
-                        <tr><td>Volumen aprox.</td><td><strong>85 m³</strong></td></tr>
-                        <tr><td>Carga máx.</td><td><strong>24 Tn</strong></td></tr>
+                        <tr><td>Largo interior</td><td><strong>13,5 m</strong></td></tr>
+                        <tr><td>Ancho interior</td><td><strong>2,42 m</strong></td></tr>
+                        <tr><td>Altura interior</td><td><strong>2,70 m</strong></td></tr>
+                        <tr><td>Volumen aprox.</td><td><strong>88 m³</strong></td></tr>
+                        <tr><td>Carga máx. mercancía</td><td><strong>24.000 kg</strong></td></tr>
                         <tr><td>Palés europeos (120×80)</td><td><strong>33 uds.</strong></td></tr>
                         <tr><td>Palés americanos (120×100)</td><td><strong>26 uds.</strong></td></tr>
                     </tbody></table>
@@ -7534,20 +7534,31 @@
             if (p.H) vol += p.L * p.A * p.H * p.qty; else sinAltura += 1;
             peso += p.pesoU * p.qty;
         });
-        var ANCHO = 2.4, LARGO_COMPLETO = 13.2;
+        // Medidas INTERIORES reales del tráiler Dynamo (dato del usuario 2026-07-23).
+        var LARGO = 13.5, ANCHO = 2.42, ALTO = 2.7, PESO_MAX = 24000;
+        var VOL_TRAILER = LARGO * ANCHO * ALTO;     // ≈ 88,2 m³
         var metrosLin = suelo / ANCHO;              // suelo ocupado en 1 altura
-        var pct = Math.min(100, Math.round(metrosLin / LARGO_COMPLETO * 100));
+        // El % del tráiler lo marca la restricción que ANTES se agota: suelo
+        // (metros lineales en 1 altura), peso o volumen.
+        var pctSuelo = metrosLin / LARGO * 100;
+        var pctPeso = peso / PESO_MAX * 100;
+        var pctVol = vol / VOL_TRAILER * 100;
+        var pctReal = Math.max(pctSuelo, pctPeso, pctVol);
+        var pct = Math.min(100, Math.round(pctReal));
+        var limita = (pctPeso >= pctSuelo && pctPeso >= pctVol) ? 'el peso'
+                   : (pctVol > pctSuelo ? 'el volumen' : 'la superficie de suelo');
         // Resumen
         var rh = '';
         rh += '<div class="cub-r-big">' + cubFmt(metrosLin, 2) + ' m</div>';
-        rh += '<div class="cub-r-lbl">Metros lineales estimados de camión (en 1 altura)</div>';
+        rh += '<div class="cub-r-lbl">Metros lineales estimados de camión (en 1 altura, sin apilar)</div>';
         rh += '<div class="cub-bar"><span style="width:' + pct + '%"></span></div>';
-        rh += '<div class="cub-r-lbl" style="margin-top:0.3rem;">Ocupa el ' + pct + '% de un tráiler completo (13,2 m)</div>';
+        rh += '<div class="cub-r-lbl" style="margin-top:0.3rem;">Ocupa el <strong>' + pct + '%</strong> de un tráiler completo (13,5 m) · lo limita ' + limita + '</div>';
+        if (peso > PESO_MAX) rh += '<div class="cub-warn" style="margin-top:0.4rem;">⚠ Supera el peso máximo del tráiler (24.000 kg): habría que repartir en más de un camión.</div>';
         rh += '<div style="height:0.6rem"></div>';
         rh += '<div class="cub-r-row"><span>Bultos</span><span class="v">' + bultos + '</span></div>';
-        rh += '<div class="cub-r-row"><span>Volumen</span><span class="v">' + cubFmt(vol, 2) + ' m³</span></div>';
+        rh += '<div class="cub-r-row"><span>Volumen</span><span class="v">' + cubFmt(vol, 2) + ' m³ <span style="color:var(--gray-500);font-weight:600;">(' + Math.round(pctVol) + '%)</span></span></div>';
         rh += '<div class="cub-r-row"><span>Superficie de suelo</span><span class="v">' + cubFmt(suelo, 2) + ' m²</span></div>';
-        rh += '<div class="cub-r-row"><span>Peso total</span><span class="v">' + (peso >= 1000 ? cubFmt(peso / 1000, 2) + ' Tn' : cubFmt(peso, 0) + ' kg') + '</span></div>';
+        rh += '<div class="cub-r-row"><span>Peso total</span><span class="v">' + (peso >= 1000 ? cubFmt(peso / 1000, 2) + ' Tn' : cubFmt(peso, 0) + ' kg') + ' <span style="color:var(--gray-500);font-weight:600;">(' + Math.round(pctPeso) + '%)</span></span></div>';
         rh += '<div class="cub-r-row"><span>Palés europeos equiv.</span><span class="v">' + Math.ceil(suelo / (1.2 * 0.8)) + '</span></div>';
         resBox.innerHTML = rh;
         resBox.hidden = false;
