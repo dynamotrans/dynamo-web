@@ -5443,8 +5443,7 @@
                  Google): prerellenadas y EDITABLES. Lo corregido se guarda
                  en la agenda de sitios al confirmar el envío. -->
             <div data-ptar-sitios hidden>
-                <h4 class="ptar-confirm-sumtitle">Datos de los sitios (<a href="#" onclick="__ptarAbrirTodosSitios(); return false;" style="color:var(--purple);font-weight:800;text-decoration:underline;">editar</a>)</h4>
-                <p class="ptar-confirm-lead" style="margin-bottom:0.6rem;color:#0f6b3a;"><strong>Revisa</strong> cada sitio para ver o editar sus datos antes de confirmar</p>
+                <p class="ptar-confirm-lead" style="margin-bottom:0.6rem;color:#0f6b3a;"><strong>Revisa</strong> cada sitio para ver o editar sus datos antes de confirmar (<a href="#" onclick="__ptarAbrirTodosSitios(); return false;" style="color:var(--purple);font-weight:800;text-decoration:underline;">editar</a>)</p>
                 <div data-ptar-sitios-list></div>
             </div>
             </div><!-- /form-2col-main -->
@@ -21629,13 +21628,11 @@
                 var eur = eurStr(d && d.precioMock);
                 if (creditoDisponible()) {
                     if (pendingData) pendingData.formaPago = 'credito';
-                    // Solo la forma de pago: si hay vencimiento a N días, se
-                    // entiende que tiene crédito (no hace falta la línea extra).
-                    payEl.innerHTML =
-                        '<div class="ptar-pay-box pay-credit">' +
-                            '<div class="ptar-pay-title"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Forma de pago: A vencimiento ' + plazoPagoDias() + ' días fecha emisión de factura.</div>' +
-                        '</div>';
-                    payEl.hidden = false;
+                    // CON crédito: no se dice nada de la forma de pago (se factura
+                    // a vencimiento, es lo normal). La caja de pago solo aparece
+                    // SIN crédito, para explicar el pago por adelantado/proforma.
+                    payEl.innerHTML = '';
+                    payEl.hidden = true;
                     return;
                 }
                 // Sin crédito → pago por adelantado por transferencia bancaria.
