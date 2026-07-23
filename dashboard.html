@@ -5358,7 +5358,7 @@
                 <div class="ptar-warning" data-ptar-warning role="alert">⚠ Introduce el origen y el destino antes de continuar.</div>
                 <div class="ptar-actions ptar-actions-main">
                     <button type="button" class="btn-primary" data-ptar-submit>Ver resumen y precio →</button>
-                    <button type="button" class="btn-ghost" onclick="showSection('dashboard');return false;">Cancelar</button>
+                    <button type="button" class="btn-ghost" data-ptar-atras onclick="if(window.__envioWizPrev){__envioWizPrev();}else{showSection('dashboard');}return false;">← Atrás</button>
                 </div>
                 <!-- PRECIOS INTERNOS (con el gating de roles quedará SOLO para
                      administración; de momento visible para todos): último
@@ -22574,7 +22574,6 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
     var navWrap = document.createElement('div');
     navWrap.innerHTML =
         '<div class="wiz-nav">' +
-            '<button type="button" class="btn-ghost" data-wiz-prev>← Atrás</button>' +
             '<button type="button" class="btn-primary" data-wiz-next>Siguiente →</button>' +
         '</div>' +
         '<div class="wiz-warn" data-wiz-warn>⚠ Elige el origen y el destino (de la lista) para continuar.</div>';
@@ -22597,7 +22596,6 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
         sec.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
         sec.classList.add('wiz-s' + cur);
         markBar(cur);
-        navWrap.querySelector('[data-wiz-prev]').style.visibility = cur === 1 ? 'hidden' : '';
         navWrap.querySelector('[data-wiz-next]').style.display = cur === 2 ? 'none' : '';
         navWrap.querySelector('[data-wiz-warn]').classList.remove('show');
         sec.scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -22626,9 +22624,12 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
             sec.addEventListener(ev, function () { setTimeout(limpiaAviso, 0); }, true);
         });
     })();
-    navWrap.querySelector('[data-wiz-prev]').addEventListener('click', function () {
-        cur = Math.max(1, cur - 1); paint();
-    });
+    // "← Atrás" del paso 2 (bajo "Ver resumen y precio", en la columna del
+    // precio): vuelve al paso 1. En classic (?wiz=0) o paso 1 → al dashboard.
+    window.__envioWizPrev = function () {
+        if (sec.classList.contains('wiz-v2') && cur > 1) { cur = Math.max(1, cur - 1); paint(); }
+        else if (window.showSection) showSection('dashboard');
+    };
     // Pulsar un paso YA COMPLETADO en la barra vuelve a él. Si la tarjeta de
     // revisión (paso 3) está abierta, primero se cierra (vuelve al formulario).
     bar.addEventListener('click', function (e) {
