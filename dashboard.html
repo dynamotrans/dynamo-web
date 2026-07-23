@@ -7281,6 +7281,51 @@
         });
     }
     window.cargaCMRPDF = cargaCMRPDF;
+    // MODELO CMR VACÍO: solo el impreso oficial (los 4 ejemplares), SIN capa
+    // de datos ni logo, para que el cliente lo imprima y lo rellene a mano a
+    // su gusto. Se abre en el visor (regla 0-bis).
+    function cmrModeloVacioPDF() {
+        __cmrFondos(function (fondos) {
+            if (!fondos) return; // sin el impreso no hay nada que enseñar
+            var W = 595.28, H = 841.89, nPag = fondos.length;
+            var objs = [], kids = [];
+            objs.push('CAT'); objs.push('PAGES');
+            for (var pi = 0; pi < nPag; pi++) {
+                kids.push((3 + pi * 2) + ' 0 R');
+                objs.push('PAGE' + pi);
+                var contenido = 'q ' + W.toFixed(2) + ' 0 0 ' + H.toFixed(2) + ' 0 0 cm /Bg Do Q';
+                objs.push('<</Length ' + contenido.length + '>>\nstream\n' + contenido + '\nendstream');
+            }
+            var bgBase = 3 + nPag * 2;
+            for (var bi = 0; bi < nPag; bi++) {
+                objs.push('<</Type/XObject/Subtype/Image/Width 1310/Height 1853/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/DCTDecode/Length ' + fondos[bi].length + '>>\nstream\n' + fondos[bi] + '\nendstream');
+            }
+            for (var pj = 0; pj < nPag; pj++) {
+                objs[2 + pj * 2] = '<</Type/Page/Parent 2 0 R/MediaBox[0 0 ' + W.toFixed(2) + ' ' + H.toFixed(2) + ']/Contents ' + (4 + pj * 2) + ' 0 R/Resources<</XObject<</Bg ' + (bgBase + pj) + ' 0 R>>>>>>';
+            }
+            objs[0] = '<</Type/Catalog/Pages 2 0 R>>';
+            objs[1] = '<</Type/Pages/Count ' + nPag + '/Kids[' + kids.join(' ') + ']>>';
+            var pdf = '%PDF-1.4\n', offsets = [], i4;
+            for (i4 = 0; i4 < objs.length; i4++) { offsets.push(pdf.length); pdf += (i4 + 1) + ' 0 obj\n' + objs[i4] + '\nendobj\n'; }
+            var xrefPos = pdf.length;
+            pdf += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n';
+            for (i4 = 0; i4 < offsets.length; i4++) pdf += ('0000000000' + offsets[i4]).slice(-10) + ' 00000 n \n';
+            pdf += 'trailer<</Size ' + (objs.length + 1) + '/Root 1 0 R>>\nstartxref\n' + xrefPos + '\n%%EOF';
+            var bytes = new Uint8Array(pdf.length);
+            for (i4 = 0; i4 < pdf.length; i4++) bytes[i4] = pdf.charCodeAt(i4) & 0xFF;
+            var blob = new Blob([bytes], { type: 'application/pdf' });
+            var urlV = URL.createObjectURL(blob);
+            var winV = window.open(urlV, '_blank');
+            if (!winV) {
+                var aV = document.createElement('a');
+                aV.href = urlV; aV.download = 'CMR-modelo-vacio.pdf';
+                document.body.appendChild(aV); aV.click();
+                setTimeout(function () { document.body.removeChild(aV); }, 100);
+            }
+            setTimeout(function () { URL.revokeObjectURL(urlV); }, 60000);
+        });
+    }
+    window.cmrModeloVacioPDF = cmrModeloVacioPDF;
     // ===== CMR DIGITAL FIRMABLE (firmar-cmr.html) =====
     // URL que se manda al transportista junto a la orden de carga: abre el
     // CMR como web en el móvil, con un bloque de firma por cada parte
@@ -20618,8 +20663,11 @@
                     // demás detalles manuscritos.
                     var cmrExtra = (!editRef && !isPrev && !esPrepago)
                         ? '<div style="margin-top:0.9rem;padding-top:0.9rem;border-top:1px solid var(--gray-200);">' +
-                            '<p class="modal-success-text" style="margin-bottom:0.6rem;">Puedes descargar aquí el <strong>CMR en PDF relleno con tus datos</strong>: solo faltará poner a mano la fecha cuando cargue, las firmas y sellos, y cualquier otro detalle manuscrito que estimes oportuno.</p>' +
-                            '<button class="btn-secondary" onclick="cargaCMRPDF(\'' + escapeHtml(ref) + '\', true)">' + SVG_ORDEN_PDF + 'Ver CMR relleno (PDF)</button>' +
+                            '<p class="modal-success-text" style="margin-bottom:0.6rem;">Puedes descargar aquí el <strong>CMR en PDF relleno con tus datos</strong> (solo faltará poner a mano la fecha cuando cargue, las firmas y sellos, y cualquier otro detalle manuscrito que estimes oportuno), o el <strong>modelo vacío</strong> para rellenarlo a tu gusto.</p>' +
+                            '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:center;">' +
+                                '<button class="btn-secondary" onclick="cargaCMRPDF(\'' + escapeHtml(ref) + '\', true)">' + SVG_ORDEN_PDF + 'Ver CMR relleno (PDF)</button>' +
+                                '<button class="btn-secondary" onclick="cmrModeloVacioPDF()">' + SVG_ORDEN_PDF + 'Modelo CMR sin datos (PDF)</button>' +
+                            '</div>' +
                           '</div>'
                         : '';
                     showModalSuccess(
