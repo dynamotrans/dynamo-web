@@ -118,7 +118,7 @@
     .fsec-conductor { background: rgba(10,2,48,0.03); border-color: var(--gray-300); }
     .fsec-conductor .sec-title { color: var(--navy); }
     .fsec-notas { background: var(--gray-100); border-color: var(--gray-200); padding: 0.55rem 0.95rem; }
-    /* Ventana de confirmación de identidad (3 últimos dígitos del teléfono) */
+    /* Ventana de confirmación de identidad (código de 3 dígitos por email) */
     .tel-modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; }
     .tel-modal-backdrop { position: absolute; inset: 0; background: rgba(10,2,48,0.55); backdrop-filter: blur(3px); }
     .tel-modal-card { position: relative; background: #fff; border-radius: 18px; padding: 1.35rem 1.15rem 1.15rem; max-width: 390px; width: 100%; box-shadow: 0 18px 50px rgba(20,10,60,0.35); text-align: center; }
@@ -464,6 +464,22 @@
             <button type="button" class="btn" onclick="location.reload()">Volver a comprobar disponibilidad</button>
         </div>
 
+        <!-- 0-quater) BLOQUEADO: 3 intentos fallidos del código de confirmación
+             por email. Por seguridad la aceptación se anula y la carga queda
+             LIBERADA para otros transportistas. Sin botón de reintentar. -->
+        <div class="stop-screen" id="blockedScreen">
+            <div class="stop-ico amber"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+            <h1>No hemos podido confirmar que eres tú</h1>
+            <p class="sub">Has agotado los <strong>3 intentos</strong> del código de confirmación.<br>Por seguridad la aceptación <strong>no se ha completado</strong> y la carga <strong>ha quedado liberada</strong> para otros transportistas.</p>
+            <p class="sub" style="font-size:0.92rem;">Si crees que es un error, contáctanos:</p>
+            <button type="button" class="dudas-toggle" style="margin-top:0.4rem;" aria-expanded="false" onclick="toggleDudas(this)">Contáctanos <span class="dt-chev" aria-hidden="true">▾</span></button>
+            <div class="contact-btns" hidden>
+                <a class="cbtn cbtn-call" href="tel:+34955225945"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar</a>
+                <a class="cbtn cbtn-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</a>
+                <a class="cbtn cbtn-mail" href="mailto:info@dynamotrans.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>Email</a>
+            </div>
+        </div>
+
         <div id="formScreen">
             <h1>Pulsa el botón de abajo para Aceptar carga</h1>
             <p class="sub">Oferta de <strong>Dynamo Operador de Transportes</strong></p>
@@ -757,17 +773,20 @@
         </div>
 
         <!-- VENTANA de confirmación de identidad: se abre al pulsar "Aceptar
-             carga" (empresa ya en la base). Solo pide los 3 últimos dígitos
-             del teléfono de la ficha; al confirmar → mensaje de aceptada. -->
+             carga" (empresa ya en la base). Pide el código de 3 dígitos que
+             se le envía al EMAIL de su ficha; al confirmar → mensaje de
+             aceptada. 3 intentos: al 3º fallido se bloquea y la carga se
+             LIBERA (pantalla de aviso). MOCK: el backend generará y enviará
+             el código real; en la demo el código válido son los 3 últimos
+             dígitos del teléfono de la ficha del transportista. -->
         <div class="tel-modal" id="telModal" hidden>
             <div class="tel-modal-backdrop" onclick="cerrarTelConfirm()"></div>
             <div class="tel-modal-card" role="dialog" aria-modal="true" aria-labelledby="tm-title">
                 <h2 id="tm-title">Confirma que eres tú</h2>
                 <div class="tm-box">
-                    <div class="tm-linea">Teléfono de tu ficha: <span id="tm-tel">—</span></div>
-                    <label for="tm-tel3">Escribe los <strong>3 últimos dígitos</strong> de tu teléfono para confirmar *</label>
+                    <label for="tm-tel3">Escribe los <strong>3 dígitos</strong> que te hemos enviado a tu <strong>email</strong> para confirmar *</label>
                     <input type="tel" id="tm-tel3" inputmode="numeric" maxlength="3" placeholder="•••" autocomplete="off">
-                    <div class="tm-err" id="tm-err" style="display:none;">Los 3 dígitos no coinciden con el teléfono de tu ficha.</div>
+                    <div class="tm-err" id="tm-err" style="display:none;">El código no es correcto.</div>
                 </div>
                 <button type="button" class="btn" onclick="telConfirmar()">Confirmar y ACEPTAR carga</button>
                 <button type="button" class="tm-volver" onclick="cerrarTelConfirm()">Volver</button>
@@ -903,9 +922,8 @@
         return d ? d.slice(0, 4) + '*****' : '—';
     }
     // Tel y email de la FICHA en el resumen del identificado.
-    // Teléfono: se ocultan SIEMPRE los 3 últimos dígitos (los que se usan
-    // para verificar la identidad) y las estrellas son exactamente las que
-    // faltan para completar el número (+34 916402***).
+    // Teléfono: se ocultan SIEMPRE los 3 últimos dígitos y las estrellas son
+    // exactamente las que faltan para completar el número (+34 916402***).
     function maskTelFront5(t) {
         var s = String(t || '').trim();
         if (!s) return '';
@@ -1231,7 +1249,7 @@
             var typed = document.getElementById('f-buscar-id').value.trim();
             if (altaCif && !altaCif.value.trim() && /\d/.test(typed)) altaCif.value = typed;
             document.getElementById('altaForm').style.display = 'block';
-            window._telFicha = ''; window._telConfirm = '';
+            window._telFicha = ''; window._telConfirm = ''; window._codIntentos = 3;
             window._altaMode = true; window._empresaSel = null;
             altaBolsaSync();
             montarDesplegables();
@@ -1258,11 +1276,15 @@
         var emLn = document.getElementById('er-email-linea');
         emLn.hidden = !hit.email;
         if (hit.email) emLn.textContent = 'Email: ' + maskFront5(hit.email);
-        // Confirmación de identidad: los 3 últimos dígitos del teléfono de su
-        // ficha se piden en una VENTANA al pulsar "Aceptar carga" (no inline).
+        // Confirmación de identidad: código de 3 dígitos ENVIADO AL EMAIL de
+        // su ficha, pedido en una VENTANA al pulsar "Aceptar carga". 3 intentos;
+        // al 3º fallido se bloquea y la carga se libera. MOCK: en la demo el
+        // código válido son los 3 últimos dígitos del teléfono de la ficha
+        // (el backend generará y enviará el código real por email).
         var tel = hit.tel || '';
         window._telFicha = tel;
         window._telConfirm = (tel.match(/\d/g) || []).join('').slice(-3);
+        window._codIntentos = 3;
         window._empresaSel = hit;
         document.getElementById('empresaResumen').classList.add('show');
         // Revelar el resto del formulario y montar los desplegables.
@@ -1285,7 +1307,7 @@
         window._empresaSel = null; window._altaMode = false;
         document.getElementById('empresaResumen').classList.remove('show');
         document.getElementById('altaForm').style.display = 'none';
-        window._telFicha = ''; window._telConfirm = '';
+        window._telFicha = ''; window._telConfirm = ''; window._codIntentos = 3;
         document.getElementById('er-tel-linea').hidden = true;
         document.getElementById('er-email-linea').hidden = true;
         document.getElementById('restForm').classList.remove('show');
@@ -1666,7 +1688,7 @@
         // y el conductor son los de HOY (pueden venir del último envío).
         abrirVcModal('resumen');
     }
-    // Tras las ventanas de datos: identidad (3 dígitos) o aceptar directo (alta).
+    // Tras las ventanas de datos: identidad (código email) o aceptar directo (alta).
     function continuarAceptar() {
         if (window._altaMode) { finalizarAceptacion(); return; }
         abrirTelConfirm();
@@ -1749,9 +1771,10 @@
     window.abrirVcModal = abrirVcModal; window.cerrarVcModal = cerrarVcModal;
     window.vcOk = vcOk; window.vcMasAdelante = vcMasAdelante;
     window.vcNoSonEsos = vcNoSonEsos; window.vcRellenar = vcRellenar;
-    // --- Ventana de confirmación de identidad (3 últimos dígitos) ---
+    // --- Ventana de confirmación de identidad (código de 3 dígitos por email) ---
+    // 3 intentos en total (NO se reinician al cerrar y reabrir la ventana): al
+    // 3º fallido se bloquea, la carga se LIBERA y sale la pantalla de aviso.
     function abrirTelConfirm() {
-        document.getElementById('tm-tel').textContent = maskTel(window._telFicha || '');
         var inp = document.getElementById('tm-tel3');
         inp.value = ''; inp.classList.remove('err');
         document.getElementById('tm-err').style.display = 'none';
@@ -1764,13 +1787,30 @@
         var inp = document.getElementById('tm-tel3');
         var val = (inp.value.match(/\d/g) || []).join('');
         if (!val || val !== window._telConfirm) {
+            if (typeof window._codIntentos !== 'number') window._codIntentos = 3;
+            window._codIntentos--;
+            if (window._codIntentos <= 0) { bloquearPorIntentos(); return; }
             inp.classList.add('err');
-            document.getElementById('tm-err').style.display = 'block';
+            var err = document.getElementById('tm-err');
+            err.textContent = 'El código no es correcto. Te queda' +
+                (window._codIntentos === 1 ? ' 1 intento.' : 'n ' + window._codIntentos + ' intentos.');
+            err.style.display = 'block';
+            inp.value = '';
             inp.focus();
             return;
         }
         cerrarTelConfirm();
         finalizarAceptacion();
+    }
+    // 3º intento fallido: por seguridad NO se acepta y la carga queda liberada.
+    // (Backend: invalidar el código, liberar la reserva y registrar el bloqueo.)
+    function bloquearPorIntentos() {
+        cerrarTelConfirm();
+        window._reservaExpirada = true;
+        if (window._reservaTimer) clearInterval(window._reservaTimer);
+        var vc = document.getElementById('vcModal'); if (vc) vc.hidden = true;
+        mostrarPantalla('blockedScreen');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     window.abrirTelConfirm = abrirTelConfirm;
     window.cerrarTelConfirm = cerrarTelConfirm;
@@ -1933,8 +1973,8 @@
             return false;
         }
         if (warn) warn.textContent = '⚠ Revisa los campos marcados: son obligatorios.';
-        // (La confirmación de identidad — 3 últimos dígitos del teléfono de la
-        // ficha — se pide en una VENTANA tras pulsar Aceptar, ya no es inline.)
+        // (La confirmación de identidad — código de 3 dígitos enviado al email
+        // de la ficha — se pide en una VENTANA tras pulsar Aceptar, no inline.)
         // Los datos del CAMIÓN/CONDUCTOR ya NO bloquean: si faltan, al pulsar
         // Aceptar sale una ventana para mandarlos más adelante (datosPendientes).
         var req = ['f-fechacarga', 'f-horacarga', 'f-fechaentrega', 'f-horaentrega'];
@@ -2068,7 +2108,7 @@
     //  · disponible     → formulario + contador de reserva (por defecto 120 s).
     // Si el contador llega a 0 sin aceptar, la carga se libera (hay que recargar).
     function mostrarPantalla(id) {
-        ['checkScreen', 'takenScreen', 'expiredScreen', 'errorScreen'].forEach(function (s) {
+        ['checkScreen', 'takenScreen', 'expiredScreen', 'errorScreen', 'blockedScreen'].forEach(function (s) {
             var el = document.getElementById(s); if (el) el.classList.toggle('show', s === id);
         });
         var fs = document.getElementById('formScreen');
