@@ -5568,6 +5568,10 @@ document.addEventListener('DOMContentLoaded', function () {
         return '<div class="wiz-step" data-wiz-step="' + (i + 1) + '"><span class="wiz-n">' + (i + 1) + '</span><span>' + lbl + '</span></div>';
     }).join('');
     card.insertBefore(bar, grid);
+    // El CTA de "Solicitar tarifa" entra DENTRO de la tarjeta: así el paso 3
+    // no añade altura por fuera y la caja total es idéntica en los 3 pasos.
+    var ctaWrap = document.getElementById('tar-cta-wrap');
+    if (ctaWrap) card.appendChild(ctaWrap);
     var navWrap = document.createElement('div');
     navWrap.className = 'wiz-navwrap';
     navWrap.innerHTML =
@@ -5622,7 +5626,21 @@ document.addEventListener('DOMContentLoaded', function () {
         if (midiendo) return;
         midiendo = true;
         card.style.minHeight = '';
-        if (!card.offsetHeight) { midiendo = false; return; } // aún oculto (móvil)
+        // Si el tarifador está oculto (aún no se pulsó "Precios"), se fuerza
+        // visible FUERA DE PANTALLA para poder medir: así, al abrirse, la caja
+        // ya sale con su tamaño definitivo, sin salto visible.
+        var oculto = !card.offsetHeight, prevCss = '';
+        if (oculto) {
+            prevCss = cont.getAttribute('style') || '';
+            cont.style.display = 'block';
+            cont.style.position = 'absolute';
+            cont.style.left = '-9999px';
+            cont.style.visibility = 'hidden';
+        }
+        if (!card.offsetHeight) {
+            if (oculto) { if (prevCss) cont.setAttribute('style', prevCss); else cont.removeAttribute('style'); }
+            midiendo = false; return;
+        }
         var actual = cur, maxH = 0;
         [1, 2, 3].forEach(function (n) {
             cont.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
@@ -5632,6 +5650,7 @@ document.addEventListener('DOMContentLoaded', function () {
         cont.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
         cont.classList.add('wiz-s' + actual);
         if (maxH) card.style.minHeight = maxH + 'px';
+        if (oculto) { if (prevCss) cont.setAttribute('style', prevCss); else cont.removeAttribute('style'); }
         midiendo = false;
     }
     igualarAltura();
@@ -5649,7 +5668,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     // En móvil el tarifador está oculto hasta pulsar "Precios": igualar al abrirse.
     var opBtnEq = document.getElementById('hero-cta-precios');
-    if (opBtnEq) opBtnEq.addEventListener('click', function () { setTimeout(igualarAltura, 550); });
+    if (opBtnEq) opBtnEq.addEventListener('click', function () { setTimeout(igualarAltura, 0); setTimeout(igualarAltura, 550); });
 })();
 </script>
 
