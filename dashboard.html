@@ -5428,8 +5428,12 @@
              Reemplaza visualmente al formulario hasta que el cliente o bien
              vuelve atrás a editar o pulsa "Confirmar carga" (modal IMPORTANTE). -->
         <div class="ptar-confirm-card" data-ptar-confirm hidden>
-            <h3 class="ptar-confirm-heading">Revisión y precio</h3>
-            <p class="ptar-confirm-lead" style="margin:-0.4rem 0 1rem;color:var(--gray-600);">Revisa el resumen, el precio y las condiciones. Al pulsar <strong>Crear envío</strong> confirmarás el pedido de transporte.</p>
+            <h3 class="ptar-confirm-heading">Revisión y precio
+                <span class="ptar-has-tip" tabindex="0" role="button" aria-label="Más información" style="margin-left:0.35rem;">
+                    <svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
+                    <span class="ptar-tip-pop" role="tooltip">Revisa el resumen, el precio y las condiciones. Al pulsar <strong>Crear envío</strong> confirmarás el pedido de transporte.</span>
+                </span>
+            </h3>
 
             <div class="ptar-confirm-note ptar-confirm-note-info" data-ptar-dyn-note hidden>
                 <strong>Precios dinámicos.</strong> La fecha de carga es a <strong>más de 7 días</strong>: el precio se <strong>auto-revisa cada 7 días</strong> a tarifa de mercado para seguir vigente hasta el momento de la carga.
