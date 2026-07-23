@@ -201,6 +201,7 @@
     .doc-drop:hover { border-color: var(--purple); background: rgba(51,0,204,0.04); color: var(--purple); }
     .doc-drop .dd-sub { font-size: 0.72rem; font-weight: 600; margin-top: 0.25rem; opacity: 0.85; }
     .doc-drop.has-file { border-style: solid; border-color: var(--green); background: rgba(34,165,90,0.08); color: var(--green-dark); }
+    .doc-drop.err { border-color: #e02020; background: rgba(224,32,32,0.05); color: #b42318; }
     .doc-list { list-style: none; margin: 0.4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
     .doc-list li { display: flex; align-items: center; gap: 0.45rem; background: #fff; border: 1px solid var(--gray-200); border-radius: 8px; padding: 0.35rem 0.55rem; font-size: 0.8rem; font-weight: 700; color: var(--navy); }
     .doc-list li .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -567,15 +568,15 @@
                             <input type="text" id="alta-bolsa" placeholder="Ej. 482113">
                         </div>
                     </div>
-                    <label for="alta-dir">Domicilio fiscal (calle y número) <span class="op">· opcional</span></label>
+                    <label for="alta-dir">Domicilio fiscal (calle y número) *</label>
                     <input type="text" id="alta-dir" placeholder="Calle y número">
                     <div class="row2">
-                        <div><label for="alta-cp">CP <span class="op">· opcional</span></label><input type="text" id="alta-cp" placeholder="41001" inputmode="numeric"></div>
-                        <div><label for="alta-loc">Localidad <span class="op">· opcional</span></label><input type="text" id="alta-loc" placeholder="Sevilla"></div>
+                        <div><label for="alta-cp">CP *</label><input type="text" id="alta-cp" placeholder="41001" inputmode="numeric"></div>
+                        <div><label for="alta-loc">Localidad *</label><input type="text" id="alta-loc" placeholder="Sevilla"></div>
                     </div>
                     <div class="row2">
-                        <div><label for="alta-prov">Provincia <span class="op">· opcional</span></label><input type="text" id="alta-prov" placeholder="Sevilla"></div>
-                        <div><label for="alta-pais">País <span class="op">· opcional</span></label><input type="text" id="alta-pais" value="España"></div>
+                        <div><label for="alta-prov">Provincia *</label><input type="text" id="alta-prov" placeholder="Sevilla"></div>
+                        <div><label for="alta-pais">País *</label><input type="text" id="alta-pais" value="España"></div>
                     </div>
                     <label for="alta-tfno">Teléfono *</label>
                     <div class="telrow">
@@ -594,9 +595,9 @@
                     </div>
                     <label for="alta-email">Email (tráfico) *</label>
                     <input type="text" id="alta-email" placeholder="trafico@dominio.com" inputmode="email">
-                    <label for="alta-email-conta">Email (contabilidad) <span class="op">· opcional</span></label>
+                    <label for="alta-email-conta">Email (contabilidad) *</label>
                     <input type="text" id="alta-email-conta" placeholder="contabilidad@dominio.com" inputmode="email">
-                    <label for="alta-contacto">Persona de contacto <span class="op">· opcional</span></label>
+                    <label for="alta-contacto">Persona de contacto *</label>
                     <input type="text" id="alta-contacto" placeholder="Nombre y apellidos">
                     <div class="row2">
                         <div>
@@ -604,12 +605,12 @@
                             <select id="alta-adr"><option>No</option><option>Sí</option></select>
                         </div>
                     </div>
-                    <!-- Documentación SOLO si la bolsa de carga es "Ninguna": las
-                         bolsas ya verifican a sus transportistas; sin bolsa no hay
-                         verificación previa y hay que pedir los documentos. -->
-                    <div id="altaDocs" hidden>
-                    <label style="margin-bottom:0.35rem;">Documentación del alta</label>
-                    <p style="font-size:0.78rem;color:var(--gray-500);font-weight:600;line-height:1.45;margin:0 0 0.5rem;">Como no estás en ninguna <strong>bolsa de carga</strong> (que ya verifica a sus transportistas), necesitamos esta documentación para validar tu alta.</p>
+                    <!-- Documentación del alta: SIEMPRE visible y con hoja CIF y
+                         DNI OBLIGATORIOS (decisión 2026-07-23; antes solo se
+                         pedía sin bolsa de carga). -->
+                    <div id="altaDocs">
+                    <label style="margin-bottom:0.35rem;">Documentación del alta *</label>
+                    <p style="font-size:0.78rem;color:var(--gray-500);font-weight:600;line-height:1.45;margin:0 0 0.5rem;">Sube la <strong>hoja del CIF</strong> y el <strong>DNI</strong> (PDF o foto) para que podamos validar tu alta.</p>
                     <div class="doc-grid">
                         <div>
                             <label class="doc-drop" data-doc="cif"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> Subir hoja CIF<div class="dd-sub">PDF o foto</div><input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="docUp(this,'cif',1)"></label>
@@ -962,8 +963,7 @@
         if (!t || !c) return;
         if (t.value === 'Ninguna') { c.value = 'Ninguna'; c.disabled = true; c.classList.remove('err'); }
         else { if (c.value === 'Ninguna') c.value = ''; c.disabled = false; }
-        var docs = document.getElementById('altaDocs');
-        if (docs) docs.hidden = t.value !== 'Ninguna';
+        // La documentación del alta se pide SIEMPRE (antes solo sin bolsa).
         setTimeout(updateScrollHint, 60);
     }
     (function () {
@@ -1251,6 +1251,7 @@
             document.getElementById('altaForm').style.display = 'block';
             window._telFicha = ''; window._telConfirm = ''; window._codIntentos = 3;
             window._altaMode = true; window._empresaSel = null;
+            ampliarReservaAlta(); // alta nueva → la reserva se amplía a 6 min
             altaBolsaSync();
             montarDesplegables();
             document.getElementById('restForm').classList.add('show');
@@ -1334,7 +1335,10 @@
             return '<li>' + ICO.file + '<span class="name">' + escH(n) + '</span><button type="button" onclick="docDel(\'' + cat + '\',' + i + ')" aria-label="Quitar">✕</button></li>';
         }).join('');
         var drop = document.querySelector('.doc-drop[data-doc="' + cat + '"]');
-        if (drop) drop.classList.toggle('has-file', _altaDocs[cat].length > 0);
+        if (drop) {
+            drop.classList.toggle('has-file', _altaDocs[cat].length > 0);
+            if (_altaDocs[cat].length) drop.classList.remove('err'); // rojo→verde
+        }
     }
     function docDel(cat, i) { _altaDocs[cat].splice(i, 1); renderDoc(cat); }
     document.getElementById('f-buscar-id').addEventListener('keydown', function (e) {
@@ -1996,10 +2000,12 @@
         // Los datos del CAMIÓN/CONDUCTOR ya NO bloquean: si faltan, al pulsar
         // Aceptar sale una ventana para mandarlos más adelante (datosPendientes).
         var req = ['f-fechacarga', 'f-horacarga', 'f-fechaentrega', 'f-horaentrega'];
-        // En modo ALTA (empresa nueva), también son obligatorios sus datos base.
+        // En modo ALTA (empresa nueva), TODOS sus campos son obligatorios
+        // (decisión 2026-07-23), incluida la documentación (hoja CIF + DNI).
         // El código de bolsa es obligatorio salvo si la bolsa es "Ninguna".
         if (window._altaMode) {
-            var altaReq = ['alta-empresa', 'alta-cif', 'alta-tfno', 'alta-email'];
+            var altaReq = ['alta-empresa', 'alta-cif', 'alta-dir', 'alta-cp', 'alta-loc',
+                'alta-prov', 'alta-pais', 'alta-tfno', 'alta-email', 'alta-email-conta', 'alta-contacto'];
             if (document.getElementById('alta-bolsa-tipo').value !== 'Ninguna') altaReq.push('alta-bolsa');
             req = altaReq.concat(req);
         }
@@ -2010,6 +2016,15 @@
             el.classList.toggle('err', bad);
             if (bad) ok = false;
         });
+        // Documentos del alta obligatorios: hoja CIF y DNI (subida de PDF/foto).
+        if (window._altaMode) {
+            ['cif', 'dni'].forEach(function (cat) {
+                var drop = document.querySelector('.doc-drop[data-doc="' + cat + '"]');
+                var bad = !_altaDocs[cat].length;
+                if (drop) drop.classList.toggle('err', bad);
+                if (bad) ok = false;
+            });
+        }
         warn.classList.toggle('show', !ok);
         if (!ok) { document.querySelector('.err').scrollIntoView({ block: 'center', behavior: 'smooth' }); return false; }
         return true;
@@ -2166,6 +2181,20 @@
         var tm = document.getElementById('telModal'); if (tm) tm.hidden = true;
         mostrarPantalla('expiredScreen');
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    // ALTA de transportista nueva: al abrirse el formulario de alta el
+    // contador de reserva se AMPLÍA a 6 MINUTOS (rellenar el alta completa
+    // con documentación lleva más tiempo que aceptar con empresa ya en la
+    // base). Solo se amplía la PRIMERA vez que entra en el alta. Demo:
+    // ajustable por URL con ta= (segundos; por defecto 360 = 6 min).
+    function ampliarReservaAlta() {
+        if (window._altaReservaAmpliada || window._reservaExpirada || window._reservaCerrada) return;
+        window._altaReservaAmpliada = true;
+        if (window._reservaTimer) clearInterval(window._reservaTimer);
+        window._reservaPausada = false;
+        var seg = parseInt(q('ta', '360'), 10); if (isNaN(seg) || seg < 2) seg = 360;
+        var uwin = parseInt(q('u', '60'), 10); if (isNaN(uwin) || uwin < 1) uwin = 60;
+        iniciarReserva(seg, uwin);
     }
     function iniciarReserva(segundos, urgentWin) {
         var banner = document.getElementById('reservaBanner');
