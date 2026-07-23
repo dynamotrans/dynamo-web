@@ -155,6 +155,16 @@ claude/sharp-dirac-E3UIO    → preview (portal + web pública validada, URL pre
 
 **Drift**: como `preview = main + portal`, tras cada cambio público hay que `git merge main` en preview para que no se acumule drift entre las dos copias de la web pública.
 
+### 10. Altas SIN duplicados (unicidad obligatoria) — regla de negocio (2026-07-23)
+
+Al **crear un cliente, un transportista o un usuario** hay que comprobar SIEMPRE que no exista ya uno con su clave identificadora, **cada uno en su ámbito**:
+
+- **Usuario** → **email único** entre usuarios (no se crea si ese email ya existe).
+- **Cliente** → **CIF/NIF único** entre clientes.
+- **Transportista** → **CIF/NIF único** entre transportistas (aplica también al alta desde `aceptar-carga.html`).
+
+Un mismo CIF **puede** ser cliente Y transportista (roles/tablas distintos), pero **NUNCA** dos veces cliente, ni dos veces transportista, ni un email dos veces como usuario. Motivo: evitar cuentas duplicadas de la misma empresa (facturación partida, líos contables) y usuarios repetidos. En backend: `UNIQUE` + validación con mensaje claro; normalizar CIF/email antes de comparar. En el mockup, avisar igual al crear. (Detalle en `TODO.md`.)
+
 ---
 
 ## Bitácora
