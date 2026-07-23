@@ -3572,11 +3572,11 @@
         #sec-nueva-carga.wiz-v2.wiz-s1 .form-2col-main > [data-wstep]:not([data-wstep="1"]),
         #sec-nueva-carga.wiz-v2.wiz-s2 .form-2col-main > [data-wstep]:not([data-wstep="2"]),
         #sec-nueva-carga.wiz-v2.wiz-s3 .form-2col-main > [data-wstep]:not([data-wstep="3"]) { display: none !important; }
-        /* La columna de ETA/precio/botones solo se ve en el paso 3 */
-        #sec-nueva-carga.wiz-v2.wiz-s1 .form-2col-side,
-        #sec-nueva-carga.wiz-v2.wiz-s2 .form-2col-side { display: none !important; }
-        #sec-nueva-carga.wiz-v2.wiz-s1 .form-2col,
-        #sec-nueva-carga.wiz-v2.wiz-s2 .form-2col { display: block !important; }
+        /* Paso 1 (Ruta) a una sola columna: la caja de ETA/precio aparece a
+           partir del paso 2 (Mercancía y fecha), donde ya se ve el precio en
+           vivo mientras se elige. El paso 3 = tarjeta de revisión (confirm). */
+        #sec-nueva-carga.wiz-v2.wiz-s1 .ptar-card[data-ptar-mode] .form-2col-side { display: none !important; }
+        #sec-nueva-carga.wiz-v2.wiz-s1 .ptar-card[data-ptar-mode] .form-2col { display: block !important; }
         .ptar-eta-box {
             padding: 0.75rem 0.9rem;
             background: var(--gray-50);
@@ -5362,7 +5362,7 @@
                 <div class="ptar-field ptar-field-full" id="opCompara" hidden></div>
                 <div class="ptar-warning" data-ptar-warning role="alert">⚠ Introduce el origen y el destino antes de continuar.</div>
                 <div class="ptar-actions ptar-actions-main">
-                    <button type="button" class="btn-primary" data-ptar-submit>Crear envío</button>
+                    <button type="button" class="btn-primary" data-ptar-submit>Ver resumen y precio →</button>
                     <button type="button" class="btn-ghost" onclick="showSection('dashboard');return false;">Cancelar</button>
                 </div>
                 <!-- PRECIOS INTERNOS (con el gating de roles quedará SOLO para
@@ -5402,7 +5402,8 @@
              Reemplaza visualmente al formulario hasta que el cliente o bien
              vuelve atrás a editar o pulsa "Confirmar carga" (modal IMPORTANTE). -->
         <div class="ptar-confirm-card" data-ptar-confirm hidden>
-            <h3 class="ptar-confirm-heading">Revisa los datos antes de confirmar</h3>
+            <h3 class="ptar-confirm-heading">Revisión y precio</h3>
+            <p class="ptar-confirm-lead" style="margin:-0.4rem 0 1rem;color:var(--gray-600);">Revisa el resumen, el precio y las condiciones. Al pulsar <strong>Crear envío</strong> se crea directamente.</p>
 
             <div class="ptar-confirm-note ptar-confirm-note-info" data-ptar-dyn-note hidden>
                 <strong>Precios dinámicos.</strong> La fecha de carga es a <strong>más de 7 días</strong>: el precio se <strong>auto-revisa cada 7 días</strong> a tarifa de mercado para seguir vigente hasta el momento de la carga.
@@ -5464,7 +5465,7 @@
                 </div>
                 <div class="ptar-terms-warn" data-ptar-terms-warn>⚠ No has aceptado las condiciones generales de transporte. Marca la casilla para poder confirmar el envío.</div>
                 <div class="ptar-actions ptar-actions-confirm">
-                    <button type="button" class="btn-primary btn-visual-disabled" data-ptar-final-confirm>Confirmar envío</button>
+                    <button type="button" class="btn-primary btn-visual-disabled" data-ptar-final-confirm>Crear envío</button>
                     <button type="button" class="btn-ghost" data-ptar-back>← Editar datos</button>
                 </div>
             </div><!-- /form-2col-side -->
@@ -6211,9 +6212,9 @@
         var h2 = document.querySelector('[data-nueva-carga-title]');
         if (h2) h2.textContent = 'Nuevo envío';
         var sb = document.querySelector('#sec-nueva-carga [data-ptar-submit]');
-        if (sb) sb.textContent = 'Crear envío';
+        if (sb) sb.textContent = 'Ver resumen y precio →';
         var fc0 = document.querySelector('#sec-nueva-carga [data-ptar-final-confirm]');
-        if (fc0) fc0.textContent = 'Confirmar envío';
+        if (fc0) fc0.textContent = 'Crear envío';
         updatePrepagoWarn();
         // Discreción comercial: abrir en limpio la desmarca (Modificar la
         // repone después desde el dato del envío).
@@ -6222,6 +6223,8 @@
         var discAviso0 = document.querySelector('#sec-nueva-carga [data-ptar-discrecion-aviso]');
         if (discAviso0) discAviso0.hidden = true;
         showSection('nueva-carga');
+        // Asistente por pasos: arrancar siempre en el paso 1 (Ruta).
+        if (window.__envioWizReset) window.__envioWizReset();
     }
     window.openNuevaCarga = openNuevaCarga;
     // Al activar la discreción comercial se muestra el aviso: el teléfono del
@@ -14206,10 +14209,10 @@
             var conf = sec.querySelector('[data-ptar-confirm]');
             if (conf && !conf.hidden && conf.offsetParent) {
                 var fb = sec.querySelector('[data-ptar-final-confirm]');
-                if (fb && fb.offsetParent) return { btn: fb, txt: 'Desliza para confirmar el envío' };
+                if (fb && fb.offsetParent) return { btn: fb, txt: 'Desliza para crear el envío' };
             }
             var sb = sec.querySelector('[data-ptar-submit]');
-            if (sb && sb.offsetParent) return { btn: sb, txt: 'Desliza para crear el envío' };
+            if (sb && sb.offsetParent) return { btn: sb, txt: 'Desliza para revisar el envío' };
             return null;
         }
         function update() {
@@ -20812,9 +20815,9 @@
                 var h2r = document.querySelector('[data-nueva-carga-title]');
                 if (h2r) h2r.textContent = 'Nuevo envío';
                 var sbr = document.querySelector('#sec-nueva-carga [data-ptar-submit]');
-                if (sbr) sbr.textContent = 'Crear envío';
+                if (sbr) sbr.textContent = 'Ver resumen y precio →';
                 var fcr = document.querySelector('#sec-nueva-carga [data-ptar-final-confirm]');
-                if (fcr) fcr.textContent = 'Confirmar envío';
+                if (fcr) fcr.textContent = 'Crear envío';
                 renderEta();
             }
             if (reset) reset.addEventListener('click', doReset);   // botón "Limpiar" quitado; guarda por si vuelve
@@ -22096,11 +22099,13 @@
             function renderLegal() {
                 var box = confirmCard ? confirmCard.querySelector('[data-ptar-legal]') : null;
                 if (!box) return;
-                if (!pendingData || entryModeDe() === 'manual') { box.hidden = true; box.innerHTML = ''; if (finalBtn) finalBtn.textContent = 'Confirmar envío'; return; }
+                // En edición ("Modificar envío") el botón es "Guardar cambios".
+                var editar = !!window._cargaEditRef;
+                if (!pendingData || entryModeDe() === 'manual') { box.hidden = true; box.innerHTML = ''; if (finalBtn) finalBtn.textContent = editar ? 'Guardar cambios' : 'Crear envío'; return; }
                 var r = buildLegalBloque();
                 box.innerHTML = r.html;
                 box.hidden = !r.html;
-                if (finalBtn) finalBtn.textContent = r.esPrepago ? 'Confirmar (pago pendiente)' : 'Confirmar envío';
+                if (finalBtn) finalBtn.textContent = editar ? 'Guardar cambios' : (r.esPrepago ? 'Crear (pago pendiente)' : 'Crear envío');
             }
             window.__ptarRenderLegal = renderLegal;
             // "Confirmar envío": los avisos legales YA están en pantalla, así que
@@ -22401,6 +22406,9 @@
                         }, 0);
                     }
                     window.scrollTo({ top: 0, behavior: 'smooth' });
+                    // Al pre-rellenar (Repetir / Modificar) el asistente arranca
+                    // en el paso 1 (Ruta), no en la revisión.
+                    if (window.__envioWizReset) window.__envioWizReset();
                 };
             }
         }
@@ -22509,42 +22517,47 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
 
 <script>
 // ==================== ASISTENTE "3 PASOS" del crear envío (v2, beta) ====================
-// El MISMO formulario de Nuevo envío, repartido en 3 pasos: 1 Ruta · 2 Mercancía ·
-// 3 Revisión y precio (fecha, referencia, ETA, precio y Crear envío). Conmutable
-// con el botón "3 pasos · beta" — la versión clásica queda intacta.
+// El MISMO formulario de Nuevo envío, repartido en 3 pasos: 1 Ruta ·
+// 2 Mercancía y fecha (con el precio en vivo) · 3 Revisión y precio. El PASO 3
+// ES la tarjeta de revisión/confirmación (resumen + precio + avisos legales +
+// condiciones): al pulsar "Crear envío" se crea directamente, SIN una pantalla
+// de confirmación adicional. Conmutable con ?wiz=0 (versión clásica intacta).
 (function () {
     var sec = document.getElementById('sec-nueva-carga');
     if (!sec) return;
     var grid = sec.querySelector('.form-2col-main .ptar-grid');
     var card = sec.querySelector('.ptar-card[data-ptar-mode]');
+    var confirmCard = sec.querySelector('[data-ptar-confirm]');
     if (!grid || !card) return;
     // Clasificar los bloques existentes por paso según su cabecera de sección.
+    // La FECHA de recogida se une a Mercancía (paso 2) para que el paso 3 sea
+    // directamente la revisión final (una sola pantalla, sin paso extra).
     var step = 1;
     Array.prototype.forEach.call(grid.children, function (ch) {
         if (ch.classList && ch.classList.contains('ptar-section-head')) {
             var t = (ch.textContent || '').trim();
             if (t.indexOf('Mercancía') === 0) step = 2;
-            else if (t.indexOf('Fecha de recogida') === 0) step = 3;
+            else if (t.indexOf('Fecha de recogida') === 0) step = 2;
         }
         if (ch.dataset) ch.dataset.wstep = String(step);
     });
     // Lo que va DESPUÉS del grid en la columna (aviso de festivos, nº de
-    // albarán/pedido) pertenece a la revisión final → paso 3.
+    // albarán/pedido) va también con Mercancía y fecha → paso 2.
     (function () {
         var tras = false;
         Array.prototype.forEach.call(grid.parentNode.children, function (ch) {
             if (ch === grid) { tras = true; return; }
-            if (tras && ch.dataset) ch.dataset.wstep = '3';
+            if (tras && ch.dataset) ch.dataset.wstep = '2';
         });
     })();
-    // Barra de pasos (arriba de la tarjeta) + navegación (bajo los campos).
+    // Barra de pasos a NIVEL DE SECCIÓN (antes de la tarjeta del formulario),
+    // para que siga visible cuando se muestra la tarjeta de revisión (paso 3).
     var bar = document.createElement('div');
     bar.className = 'wiz-bar';
-    bar.innerHTML = ['Ruta', 'Mercancía', 'Revisión y precio'].map(function (lbl, i) {
+    bar.innerHTML = ['Ruta', 'Mercancía y fecha', 'Revisión y precio'].map(function (lbl, i) {
         return '<div class="wiz-step" data-wiz-step="' + (i + 1) + '"><span class="wiz-n">' + (i + 1) + '</span><span>' + lbl + '</span></div>';
     }).join('');
-    var col2 = card.querySelector('.form-2col');
-    col2.parentNode.insertBefore(bar, col2);
+    card.parentNode.insertBefore(bar, card);
     var navWrap = document.createElement('div');
     navWrap.innerHTML =
         '<div class="wiz-nav">' +
@@ -22554,16 +22567,25 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
         '<div class="wiz-warn" data-wiz-warn>⚠ Elige el origen y el destino (de la lista) para continuar.</div>';
     grid.parentNode.appendChild(navWrap);
     var cur = 1;
+    // ¿La tarjeta de revisión (paso 3) está a la vista?
+    function confirmVisible() { return !!(confirmCard && !confirmCard.hidden); }
+    // Pinta SOLO la barra de pasos (activo/completado) para el paso n.
+    function markBar(n) {
+        Array.prototype.forEach.call(bar.querySelectorAll('.wiz-step'), function (el) {
+            var s = parseInt(el.getAttribute('data-wiz-step'), 10);
+            el.classList.toggle('act', s === n);
+            el.classList.toggle('done', s < n);
+        });
+    }
     function paint() {
+        // Paso 1-2 = formulario (pasos wiz-s1/wiz-s2). El "paso 3" no tiene
+        // estado de formulario: es la tarjeta de revisión, que se muestra al
+        // pulsar "Revisar y crear".
         sec.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
         sec.classList.add('wiz-s' + cur);
-        Array.prototype.forEach.call(bar.querySelectorAll('.wiz-step'), function (el) {
-            var n = parseInt(el.getAttribute('data-wiz-step'), 10);
-            el.classList.toggle('act', n === cur);
-            el.classList.toggle('done', n < cur);
-        });
+        markBar(cur);
         navWrap.querySelector('[data-wiz-prev]').style.visibility = cur === 1 ? 'hidden' : '';
-        navWrap.querySelector('[data-wiz-next]').style.display = cur === 3 ? 'none' : '';
+        navWrap.querySelector('[data-wiz-next]').style.display = cur === 2 ? 'none' : '';
         navWrap.querySelector('[data-wiz-warn]').classList.remove('show');
         sec.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }
@@ -22576,7 +22598,7 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
             navWrap.querySelector('[data-wiz-warn]').classList.add('show');
             return;
         }
-        cur = Math.min(3, cur + 1); paint();
+        cur = Math.min(2, cur + 1); paint();
     });
     // El aviso rojo "elige origen y destino" se QUITA en cuanto ambos sitios
     // están elegidos (antes se quedaba puesto y confundía, como si aún
@@ -22594,13 +22616,28 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
     navWrap.querySelector('[data-wiz-prev]').addEventListener('click', function () {
         cur = Math.max(1, cur - 1); paint();
     });
-    // Pulsar un paso YA COMPLETADO en la barra vuelve a él.
+    // Pulsar un paso YA COMPLETADO en la barra vuelve a él. Si la tarjeta de
+    // revisión (paso 3) está abierta, primero se cierra (vuelve al formulario).
     bar.addEventListener('click', function (e) {
         var st = e.target.closest ? e.target.closest('.wiz-step') : null;
         if (!st) return;
         var n = parseInt(st.getAttribute('data-wiz-step'), 10);
+        if (n >= 3) return;
+        if (confirmVisible()) { var b = sec.querySelector('[data-ptar-back]'); if (b) b.click(); }
         if (n < cur) { cur = n; paint(); }
     });
+    // Sincronía con la tarjeta de revisión (paso 3): cuando se muestra, la barra
+    // marca el paso 3 (sin tocar el formulario, ya oculto); al cerrarse (Editar
+    // datos / reset), la barra vuelve al paso 2 y se re-pinta el formulario.
+    if (confirmCard) {
+        try {
+            new MutationObserver(function () {
+                if (!sec.classList.contains('wiz-v2')) return;
+                if (confirmVisible()) { cur = 3; markBar(3); }
+                else if (cur === 3) { cur = 2; paint(); }
+            }).observe(confirmCard, { attributes: true, attributeFilter: ['hidden'] });
+        } catch (e) {}
+    }
     function setWizard(on) {
         if (on === sec.classList.contains('wiz-v2')) return;
         sec.classList.toggle('wiz-v2', on);
@@ -22609,6 +22646,8 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
         else sec.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
     }
     window.envioWizardToggle = function () { setWizard(!sec.classList.contains('wiz-v2')); };
+    // Volver al paso 1 al abrir "Nuevo envío" en limpio (lo llama openNuevaCarga).
+    window.__envioWizReset = function () { if (sec.classList.contains('wiz-v2')) { cur = 1; paint(); } };
     // DECISIÓN (2026-07-22, sustituye a la de móvil-solo del mismo día): el
     // formulario por PASOS (v2) es el modo por defecto en TODOS los
     // dispositivos, escritorio y móvil. La versión clásica (v1) queda GUARDADA
