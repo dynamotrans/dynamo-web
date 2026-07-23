@@ -1989,7 +1989,10 @@
         /* Discreción comercial (confirmación de envío) */
         .ptar-discrecion { border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 0.7rem 0.8rem; background: var(--gray-50); margin-bottom: 0.7rem; }
         .ptar-discrecion .ptar-confirm-check { margin: 0; }
-        .ptar-discrecion-aviso { margin-top: 0.6rem; padding: 0.6rem 0.7rem; border-radius: 8px; background: rgba(51,0,204,0.07); border: 1px solid rgba(51,0,204,0.28); color: var(--purple); font-size: var(--fs-m); line-height: 1.5; font-weight: 600; }
+        .ptar-discrecion-aviso { margin-top: 0.6rem; padding: 0.7rem 0.8rem; border-radius: 8px; background: rgba(51,0,204,0.07); border: 1px solid rgba(51,0,204,0.28); color: var(--purple); font-size: var(--fs-m); line-height: 1.5; font-weight: 600; }
+        /* Enlace en línea dentro del texto de un check (Ver más / condiciones):
+           abre su ventana SIN marcar la casilla. */
+        .ptar-inline-link { color: var(--purple); font-weight: 800; text-decoration: underline; cursor: pointer; }
         /* Nuevo envío · Nuevo presupuesto en una fila de 2 botones. CESCE baja
            a la fila de stats (fila de 4). */
         /* CESCE integrado como 4ª tarjeta de la fila de stats: sin margen
@@ -5463,10 +5466,11 @@
                 <div class="ptar-discrecion">
                     <label class="ptar-confirm-check">
                         <input type="checkbox" data-ptar-discrecion>
-                        <span><strong>Discreción comercial</strong> (opcional). El conductor tendrá instrucciones de <strong>no decir en el lugar de carga a qué destinatario va</strong> la mercancía, ni <strong>en la entrega de qué origen viene</strong>. Si en alguno de los dos sitios le preguntan, responderá que el transporte va con <strong>discreción comercial</strong> y que no está autorizado a dar esa información.</span>
+                        <span><strong>Discreción comercial</strong> (opcional). <a href="#" class="ptar-inline-link" data-ptar-discrecion-more>Ver más →</a></span>
                     </label>
                     <div class="ptar-discrecion-aviso" data-ptar-discrecion-aviso hidden>
-                        ℹ Al activar la discreción comercial, todo lo relativo a la discreción comercial debe tratarse <strong>directamente entre tú y el transportista</strong>, y evitar así malentendidos. Te mandaremos el <strong>teléfono del conductor</strong> por email con la confirmación del envío, o podrás verlo en la sección de <strong>Envíos</strong> cuando se asigne transportista al envío.
+                        <p style="margin:0 0 0.55rem;">El conductor tendrá instrucciones de <strong>no decir en el lugar de carga a qué destinatario va</strong> la mercancía, ni <strong>en la entrega de qué origen viene</strong>. Si en alguno de los dos sitios le preguntan, responderá que el transporte va con <strong>discreción comercial</strong> y que no está autorizado a dar esa información.</p>
+                        <p style="margin:0;">ℹ Al activar la discreción comercial, todo lo relativo a la discreción comercial debe tratarse <strong>directamente entre tú y el transportista</strong>, y evitar así malentendidos. Te mandaremos el <strong>teléfono del conductor</strong> por email con la confirmación del envío, o podrás verlo en la sección de <strong>Envíos</strong> cuando se asigne transportista al envío.</p>
                     </div>
                 </div>
                 <!-- AVISOS LEGALES (cancelación, suspensión, hoy-para-hoy, pago
@@ -5477,9 +5481,8 @@
                 <div class="ptar-terms-box">
                     <label class="ptar-confirm-check">
                         <input type="checkbox" data-ptar-check-terms>
-                        <span><strong>Condiciones generales de transporte</strong> (obligatorio). He leído y acepto las condiciones generales de transporte de Dynamo Operador Logístico, S.L.</span>
+                        <span><strong>Condiciones generales de transporte</strong> (obligatorio). <a href="#" class="ptar-inline-link" data-ptar-show-terms>He leído y acepto las condiciones generales de transporte de Dynamo Operador Logístico, S.L.</a></span>
                     </label>
-                    <a href="#" class="ptar-terms-link" data-ptar-show-terms>Ver condiciones generales de transporte →</a>
                 </div>
                 <div class="ptar-terms-warn" data-ptar-terms-warn>⚠ No has aceptado las condiciones generales de transporte. Marca la casilla para poder confirmar el envío.</div>
                 <div class="ptar-actions ptar-actions-confirm">
@@ -6240,17 +6243,24 @@
         if (disc0) disc0.checked = false;
         var discAviso0 = document.querySelector('#sec-nueva-carga [data-ptar-discrecion-aviso]');
         if (discAviso0) discAviso0.hidden = true;
+        var discMore0 = document.querySelector('#sec-nueva-carga [data-ptar-discrecion-more]');
+        if (discMore0) discMore0.textContent = 'Ver más →';
         showSection('nueva-carga');
         // Asistente por pasos: arrancar siempre en el paso 1 (Ruta).
         if (window.__envioWizReset) window.__envioWizReset();
     }
     window.openNuevaCarga = openNuevaCarga;
-    // Al activar la discreción comercial se muestra el aviso: el teléfono del
-    // cliente se le dará al transportista para tratar el tema directamente.
+    // Discreción comercial COMPACTA: el check solo muestra el título; el detalle
+    // (instrucciones al conductor + aviso del teléfono) se despliega con "Ver
+    // más" — NO hace falta abrir para marcar el check.
     (function () {
-        var chk = document.querySelector('#sec-nueva-carga [data-ptar-discrecion]');
-        var aviso = document.querySelector('#sec-nueva-carga [data-ptar-discrecion-aviso]');
-        if (chk && aviso) chk.addEventListener('change', function () { aviso.hidden = !chk.checked; });
+        var more = document.querySelector('#sec-nueva-carga [data-ptar-discrecion-more]');
+        var det = document.querySelector('#sec-nueva-carga [data-ptar-discrecion-aviso]');
+        if (more && det) more.addEventListener('click', function (e) {
+            e.preventDefault();   // no togglea el check (default de la etiqueta)
+            det.hidden = !det.hidden;
+            more.textContent = det.hidden ? 'Ver más →' : 'Ver menos ↑';
+        });
     })();
     // Modificar envío: abre el MISMO formulario de crear envío con TODO
     // prefijado y editable; el botón pasa a "Guardar cambios" y al guardar se
@@ -6304,11 +6314,14 @@
         // Firma de precio del formulario TAL CUAL queda prefijado: si al
         // guardar no ha cambiado, el precio fijado a mano se conserva.
         window._cargaEditSig0 = window.__formPriceSig ? window.__formPriceSig() : null;
-        // Discreción comercial tal cual está en el envío.
+        // Discreción comercial tal cual está en el envío (solo el check; el
+        // detalle queda plegado tras "Ver más").
         var discM = document.querySelector('#sec-nueva-carga [data-ptar-discrecion]');
         if (discM) discM.checked = !!src.discrecion;
         var discAvisoM = document.querySelector('#sec-nueva-carga [data-ptar-discrecion-aviso]');
-        if (discAvisoM) discAvisoM.hidden = !src.discrecion;
+        if (discAvisoM) discAvisoM.hidden = true;
+        var discMoreM = document.querySelector('#sec-nueva-carga [data-ptar-discrecion-more]');
+        if (discMoreM) discMoreM.textContent = 'Ver más →';
         var h2 = document.querySelector('[data-nueva-carga-title]');
         if (h2) h2.textContent = 'Modificar envío ' + ref;
         var sb = document.querySelector('#sec-nueva-carga [data-ptar-submit]');
