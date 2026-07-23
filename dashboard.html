@@ -3611,11 +3611,14 @@
         #sec-nueva-carga.wiz-v2.wiz-s1 .form-2col-main > [data-wstep]:not([data-wstep="1"]),
         #sec-nueva-carga.wiz-v2.wiz-s2 .form-2col-main > [data-wstep]:not([data-wstep="2"]),
         #sec-nueva-carga.wiz-v2.wiz-s3 .form-2col-main > [data-wstep]:not([data-wstep="3"]) { display: none !important; }
-        /* Paso 1 (Ruta) a una sola columna: la caja de ETA/precio aparece a
-           partir del paso 2 (Mercancía y fecha), donde ya se ve el precio en
-           vivo mientras se elige. El paso 3 = tarjeta de revisión (confirm). */
-        #sec-nueva-carga.wiz-v2.wiz-s1 .ptar-card[data-ptar-mode] .form-2col-side { display: none !important; }
-        #sec-nueva-carga.wiz-v2.wiz-s1 .ptar-card[data-ptar-mode] .form-2col { display: block !important; }
+        /* Pasos 1 (Ruta) y 2 (Mercancía) a una sola columna: la caja de
+           ETA/precio de la columna lateral aparece SOLO en el paso 3
+           (Fecha y precio), donde la fecha ya mueve el precio y la entrega
+           estimada. El paso 4 = tarjeta de revisión (confirm). */
+        #sec-nueva-carga.wiz-v2.wiz-s1 .ptar-card[data-ptar-mode] .form-2col-side,
+        #sec-nueva-carga.wiz-v2.wiz-s2 .ptar-card[data-ptar-mode] .form-2col-side { display: none !important; }
+        #sec-nueva-carga.wiz-v2.wiz-s1 .ptar-card[data-ptar-mode] .form-2col,
+        #sec-nueva-carga.wiz-v2.wiz-s2 .ptar-card[data-ptar-mode] .form-2col { display: block !important; }
         /* Sin hueco muerto: los contenedores de aviso vacíos (corte de fecha,
            avisos de fecha) no ocupan fila de la rejilla cuando su contenido está
            oculto. Así no queda un gran espacio entre la fecha y la caja de precio. */
@@ -5280,37 +5283,36 @@
                 <div class="ptar-field-full" data-ptar-entregas></div>
 
                 <div class="ptar-section-head ptar-sh-merca">Mercancía</div>
-                <div class="ptar-pair">
-                    <div class="ptar-field">
-                        <select id="ptar-merca-carga" data-ptar-merca class="ptar-select" aria-label="Tipo de mercancía">
-                            <optgroup label="Tipo de mercancía">
-                                <option>Paletizada (mercancía general)</option>
-                                <option>No paletizada (maquinaria, perfiles, tubos, balas…)</option>
-                            </optgroup>
-                        </select>
-                    </div>
-                    <div class="ptar-field">
-                        <select id="ptar-cargatipo-carga" data-ptar-cargatipo class="ptar-select" aria-label="Tipo de carga">
-                            <optgroup label="Tipo de carga">
-                                <option>Lateral</option>
-                                <option>Trasera</option>
-                                <option>Techo</option>
-                                <option>Lateral y trasera</option>
-                                <option>Lateral y techo</option>
-                                <option>Trasera y techo</option>
-                                <option>Lateral, trasera y techo</option>
-                            </optgroup>
-                        </select>
-                    </div>
+                <!-- Cada desplegable en su propia fila (full-width) para que
+                     quede más amplio y legible; la mercancía es ya el ÚNICO
+                     contenido del paso 2 (la fecha pasó al paso 3, con el precio). -->
+                <div class="ptar-field-full">
+                    <select id="ptar-merca-carga" data-ptar-merca class="ptar-select" aria-label="Tipo de mercancía">
+                        <optgroup label="Tipo de mercancía">
+                            <option>Paletizada (mercancía general)</option>
+                            <option>No paletizada (maquinaria, perfiles, tubos, balas…)</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="ptar-field-full">
+                    <select id="ptar-cargatipo-carga" data-ptar-cargatipo class="ptar-select" aria-label="Tipo de carga">
+                        <optgroup label="Tipo de carga">
+                            <option>Lateral</option>
+                            <option>Trasera</option>
+                            <option>Techo</option>
+                            <option>Lateral y trasera</option>
+                            <option>Lateral y techo</option>
+                            <option>Trasera y techo</option>
+                            <option>Lateral, trasera y techo</option>
+                        </optgroup>
+                    </select>
                     <input type="hidden" data-ptar-camion value="tauliner">
                 </div>
-                <div class="ptar-pair">
-                    <div class="ptar-field">
-                        <select id="ptar-ml-carga" data-ptar-ml class="ptar-select" aria-label="Metros lineales"></select>
-                    </div>
-                    <div class="ptar-field">
-                        <select id="ptar-peso-carga" data-ptar-peso class="ptar-select" aria-label="Peso (toneladas)"></select>
-                    </div>
+                <div class="ptar-field-full">
+                    <select id="ptar-ml-carga" data-ptar-ml class="ptar-select" aria-label="Metros lineales"></select>
+                </div>
+                <div class="ptar-field-full">
+                    <select id="ptar-peso-carga" data-ptar-peso class="ptar-select" aria-label="Peso (toneladas)"></select>
                 </div>
 
                 <!-- UN SOLO texto plegable (2026-07-24): detalle de mercancía /
@@ -22702,41 +22704,48 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
     var confirmCard = sec.querySelector('[data-ptar-confirm]');
     if (!grid || !card) return;
     // Clasificar los bloques existentes por paso según su cabecera de sección.
-    // La FECHA de recogida se une a Mercancía (paso 2) para que el paso 3 sea
-    // directamente la revisión final (una sola pantalla, sin paso extra).
+    // 4 pasos: 1 Ruta · 2 Mercancía (sola) · 3 Fecha y precio · 4 Revisión.
+    // La FECHA de recogida va SOLA con el precio en el paso 3 (la caja de
+    // ETA/precio de la columna lateral se muestra ahí); el paso 4 es la
+    // tarjeta de revisión/confirmación.
     var step = 1;
     Array.prototype.forEach.call(grid.children, function (ch) {
         if (ch.classList && ch.classList.contains('ptar-section-head')) {
             var t = (ch.textContent || '').trim();
             if (t.indexOf('Mercancía') === 0) step = 2;
-            else if (t.indexOf('Fecha de recogida') === 0) step = 2;
+            else if (t.indexOf('Fecha de recogida') === 0) step = 3;
         }
         if (ch.dataset) ch.dataset.wstep = String(step);
     });
-    // Lo que va DESPUÉS del grid en la columna (aviso de festivos, nº de
-    // albarán/pedido) va también con Mercancía y fecha → paso 2.
+    // Lo que va DESPUÉS del grid en la columna (aviso de festivos) va con la
+    // fecha → paso 3.
     (function () {
         var tras = false;
         Array.prototype.forEach.call(grid.parentNode.children, function (ch) {
             if (ch === grid) { tras = true; return; }
-            if (tras && ch.dataset) ch.dataset.wstep = '2';
+            if (tras && ch.dataset) ch.dataset.wstep = '3';
         });
     })();
     // Barra de pasos a NIVEL DE SECCIÓN (antes de la tarjeta del formulario),
-    // para que siga visible cuando se muestra la tarjeta de revisión (paso 3).
+    // para que siga visible cuando se muestra la tarjeta de revisión (paso 4).
     var bar = document.createElement('div');
     bar.className = 'wiz-bar';
-    bar.innerHTML = ['Ruta', 'Mercancía y fecha', 'Revisión y precio'].map(function (lbl, i) {
+    bar.innerHTML = ['Ruta', 'Mercancía', 'Fecha y precio', 'Revisión'].map(function (lbl, i) {
         return '<div class="wiz-step" data-wiz-step="' + (i + 1) + '"><span class="wiz-n">' + (i + 1) + '</span><span>' + lbl + '</span></div>';
     }).join('');
     card.parentNode.insertBefore(bar, card);
     var navWrap = document.createElement('div');
     navWrap.innerHTML =
         '<div class="wiz-nav">' +
+            '<button type="button" class="btn-ghost" data-wiz-prev>← Atrás</button>' +
             '<button type="button" class="btn-primary" data-wiz-next>Siguiente →</button>' +
         '</div>' +
         '<div class="wiz-warn" data-wiz-warn>⚠ Elige el origen y el destino (de la lista) para continuar.</div>';
     grid.parentNode.appendChild(navWrap);
+    // "← Atrás" de los pasos 1-2: paso 1 → dashboard, paso 2 → paso 1.
+    navWrap.querySelector('[data-wiz-prev]').addEventListener('click', function () {
+        if (window.__envioWizPrev) window.__envioWizPrev(); else if (window.showSection) showSection('dashboard');
+    });
     var cur = 1;
     // ¿La tarjeta de revisión (paso 3) está a la vista?
     function confirmVisible() { return !!(confirmCard && !confirmCard.hidden); }
@@ -22749,17 +22758,17 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
         });
     }
     function paint() {
-        // Paso 1-2 = formulario (pasos wiz-s1/wiz-s2). El "paso 3" no tiene
+        // Pasos 1-3 = formulario (wiz-s1/wiz-s2/wiz-s3). El "paso 4" no tiene
         // estado de formulario: es la tarjeta de revisión, que se muestra al
-        // pulsar "Revisar y crear".
+        // pulsar "Ver resumen y precio".
         sec.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
         sec.classList.add('wiz-s' + cur);
         markBar(cur);
-        navWrap.querySelector('[data-wiz-next]').style.display = cur === 2 ? 'none' : '';
-        // En el paso 2 la navegación (Siguiente/aviso) sobra: las acciones están
-        // en la columna del precio (Ver resumen · Atrás). Se oculta para no dejar
-        // un hueco vacío entre la fecha y la caja de precio.
-        navWrap.style.display = cur === 1 ? '' : 'none';
+        // "Siguiente →" avanza en los pasos 1 y 2. En el paso 3 (Fecha y precio)
+        // las acciones están en la columna del precio (Ver resumen · Atrás), así
+        // que la navegación de abajo sobra y se oculta.
+        navWrap.querySelector('[data-wiz-next]').style.display = cur === 3 ? 'none' : '';
+        navWrap.style.display = cur === 3 ? 'none' : '';
         navWrap.querySelector('[data-wiz-warn]').classList.remove('show');
         sec.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }
@@ -22772,7 +22781,7 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
             navWrap.querySelector('[data-wiz-warn]').classList.add('show');
             return;
         }
-        cur = Math.min(2, cur + 1); paint();
+        cur = Math.min(3, cur + 1); paint();
     });
     // El aviso rojo "elige origen y destino" se QUITA en cuanto ambos sitios
     // están elegidos (antes se quedaba puesto y confundía, como si aún
@@ -22799,7 +22808,7 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
         var st = e.target.closest ? e.target.closest('.wiz-step') : null;
         if (!st) return;
         var n = parseInt(st.getAttribute('data-wiz-step'), 10);
-        if (n >= 3) return;
+        if (n >= 4) return;
         if (confirmVisible()) { var b = sec.querySelector('[data-ptar-back]'); if (b) b.click(); }
         if (n < cur) { cur = n; paint(); }
     });
@@ -22810,8 +22819,8 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
         try {
             new MutationObserver(function () {
                 if (!sec.classList.contains('wiz-v2')) return;
-                if (confirmVisible()) { cur = 3; markBar(3); }
-                else if (cur === 3) { cur = 2; paint(); }
+                if (confirmVisible()) { cur = 4; markBar(4); }
+                else if (cur === 4) { cur = 3; paint(); }
             }).observe(confirmCard, { attributes: true, attributeFilter: ['hidden'] });
         } catch (e) {}
     }
