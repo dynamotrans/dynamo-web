@@ -4772,6 +4772,11 @@ function updateAlmTotal() {
         var ph = document.createElement('option');
         ph.value = ''; ph.textContent = 'Selecciona una fecha'; ph.disabled = true; ph.selected = true;
         sel.appendChild(ph);
+        // 1ª opción elegible: sin fecha decidida (la tarifa se puede pedir
+        // igualmente y la fecha se concreta después).
+        var nose = document.createElement('option');
+        nose.value = 'nose'; nose.textContent = 'Aún no sé la fecha';
+        sel.appendChild(nose);
         loadDates(7).forEach(function (d) {
             var opt = document.createElement('option');
             opt.value = isoLocal(d); opt.textContent = dayLabel(d);
@@ -5331,7 +5336,8 @@ function updateAlmTotal() {
         var fechaTxt = 'Sin especificar';
         if (diaSel) {
             var v = diaSel.value;
-            if (/^\d{4}-\d{2}-\d{2}$/.test(v)) fechaTxt = fmtLarga(new Date(v + 'T00:00:00'));
+            if (v === 'nose') fechaTxt = 'Aún no la sé (por concretar)';
+            else if (/^\d{4}-\d{2}-\d{2}$/.test(v)) fechaTxt = fmtLarga(new Date(v + 'T00:00:00'));
             else if (v === 'otro' && fechaInput && fechaInput.value) fechaTxt = fmtLarga(new Date(fechaInput.value + 'T00:00:00'));
         }
         var lines = [
