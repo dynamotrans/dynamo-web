@@ -4191,10 +4191,14 @@ function openLegal(tab) {
     }, { threshold: 0.5 });
     document.querySelectorAll('.counter').forEach(el => cObs.observe(el));
 
-    // Smooth scroll
+    // Smooth scroll. OJO: el href se relee al hacer clic y puede haber
+    // cambiado desde la carga (los botones Email/WhatsApp del tarifador
+    // nacen con "#" y luego llevan mailto:/wa.me) — si ya no es un ancla,
+    // no hacer nada (querySelector('mailto:…') lanzaba un SyntaxError).
     document.querySelectorAll('a[href^="#"]').forEach(a => {
         a.addEventListener('click', e => {
-            const id = a.getAttribute('href'); if (id === '#') return;
+            const id = a.getAttribute('href');
+            if (!id || id.charAt(0) !== '#' || id === '#') return;
             const t = document.querySelector(id);
             if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
         });
@@ -4912,21 +4916,24 @@ function updateAlmTotal() {
         // tope (aunque sean pocos metros) es tarifa de camión COMPLETO.
         var esGrupaje = !isNaN(mlv) && mlv < max && !(!isNaN(pesoV) && pesoV >= info.pesoMax);
         // Grupaje → sin "Fecha fija" (no se puede garantizar un día concreto);
-        // queda "Carga de 1 a 3 días". Si no es grupaje, están las dos opciones.
-        var allowDia = !esGrupaje;
+        // se ofrecen las DOS ventanas de recogida (decisión 2026-07-23):
+        // corta de 1 a 2 días (más cara) y de 1 a 4 días (la económica, por
+        // defecto). Camión completo → Fecha fija + Recogida de 1 a 3 días.
         var prev = urgSel.value;
         urgSel.innerHTML = '';
-        ventanaOptsAll.forEach(function (opt) {
-            if (opt.value === 'dia' && !allowDia) return;
-            opt.disabled = false; opt.hidden = false;
-            urgSel.appendChild(opt);
-        });
-        if (urgSel.querySelector('option[value="' + prev + '"]')) {
-            urgSel.value = prev;
+        function mkOpt(v, txt) { var o = document.createElement('option'); o.value = v; o.textContent = txt; return o; }
+        if (esGrupaje) {
+            urgSel.appendChild(mkOpt('corta', 'Recogida de 1 a 2 días (más cara)'));
+            urgSel.appendChild(mkOpt('larga', 'Recogida de 1 a 4 días (la económica)'));
+            urgSel.value = (prev === 'corta') ? 'corta' : 'larga';
         } else {
-            urgSel.value = 'estandar';
-            urgSel.dispatchEvent(new Event('change'));
+            ventanaOptsAll.forEach(function (opt) {
+                opt.disabled = false; opt.hidden = false;
+                urgSel.appendChild(opt);
+            });
+            urgSel.value = (prev === 'dia') ? 'dia' : 'estandar';
         }
+        if (urgSel.value !== prev) urgSel.dispatchEvent(new Event('change'));
     }
     function applyCamion() {
         var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
@@ -4955,6 +4962,12 @@ function updateAlmTotal() {
         var v = urgSel.value;
         if (v === 'estandar') {
             el.innerHTML = '<strong>Recogida de 1 a 3 días (flexible)</strong>, el 80% veces cargamos en los 2 primeros días, es la más económica y además aumenta la probabilidad de cargar al máximo.';
+            el.hidden = false;
+        } else if (v === 'larga') {
+            el.innerHTML = '<strong>Recogida de 1 a 4 días (flexible)</strong>, el 80% de las veces cargamos en los 2 primeros días, es la más económica y además aumenta la probabilidad de cargar al máximo.';
+            el.hidden = false;
+        } else if (v === 'corta') {
+            el.innerHTML = '<strong>Recogida corta de 1 a 2 días</strong>: es la más cara. Si no te corre prisa, la de <strong>1 a 4 días</strong> es la económica.';
             el.hidden = false;
         } else { el.hidden = true; }
     }
@@ -5313,7 +5326,7 @@ function updateAlmTotal() {
         var trampV = (trampChk && trampChk.checked) ? 'Sí' : 'No';
         var nimaV = (nimaChk && nimaChk.checked) ? 'Sí' : 'No';
         var urgV = urgSel ? urgSel.value : 'estandar';
-        var urgTxt = { dia: 'Fecha fija (un día concreto)', estandar: 'Recogida de 1 a 3 días (más económica)' }[urgV] || 'Recogida de 1 a 3 días (más económica)';
+        var urgTxt = { dia: 'Fecha fija (un día concreto)', estandar: 'Recogida de 1 a 3 días (más económica)', corta: 'Recogida de 1 a 2 días (más cara)', larga: 'Recogida de 1 a 4 días (la económica)' }[urgV] || 'Recogida de 1 a 3 días (más económica)';
         // Fecha de carga
         var fechaTxt = 'Sin especificar';
         if (diaSel) {
@@ -5572,6 +5585,18 @@ document.addEventListener('DOMContentLoaded', function () {
     // no añade altura por fuera y la caja total es idéntica en los 3 pasos.
     var ctaWrap = document.getElementById('tar-cta-wrap');
     if (ctaWrap) card.appendChild(ctaWrap);
+    // La medición de tamaños oculta/muestra el paso 3 y eso REINICIA la
+    // animación de entrada de los botones Email/WhatsApp (se veían
+    // "parpadear" al pulsar o pasar el ratón por encima). Tras su primera
+    // animación se congela (animation:none en línea); al cerrarse (botón
+    // Reiniciar) se limpia para que la próxima apertura vuelva a animar.
+    var ctaOpts = ctaWrap ? ctaWrap.querySelector('.tar-cta-options') : null;
+    if (ctaOpts) {
+        ctaOpts.addEventListener('animationend', function () { ctaOpts.style.animation = 'none'; });
+        new MutationObserver(function () {
+            if (!ctaWrap.classList.contains('open')) ctaOpts.style.animation = '';
+        }).observe(ctaWrap, { attributes: true, attributeFilter: ['class'] });
+    }
     var navWrap = document.createElement('div');
     navWrap.className = 'wiz-navwrap';
     navWrap.innerHTML =
@@ -5666,6 +5691,10 @@ document.addEventListener('DOMContentLoaded', function () {
     ['change', 'click'].forEach(function (ev) {
         card.addEventListener(ev, function (e) {
             if (ev === 'click' && e.target && e.target.closest && e.target.closest('select')) return;
+            // Al pulsar "Solicitar tarifa" se mide YA (timeout 0): si se midiera
+            // a los 120 ms, el ocultar/mostrar del paso REINICIARÍA a mitad la
+            // animación de entrada de los botones Email/WhatsApp (parpadeo).
+            var delay = (ev === 'click' && e.target.closest && e.target.closest('.tar-cta')) ? 0 : 120;
             clearTimeout(window.__wizEqT2);
             window.__wizEqT2 = setTimeout(function eqSafe() {
                 var ae = document.activeElement;
@@ -5674,7 +5703,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     return;
                 }
                 igualarAltura();
-            }, 120);
+            }, delay);
         });
     });
     // En móvil el tarifador está oculto hasta pulsar "Precios": igualar al abrirse.
