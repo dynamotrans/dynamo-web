@@ -3582,6 +3582,10 @@
            vivo mientras se elige. El paso 3 = tarjeta de revisión (confirm). */
         #sec-nueva-carga.wiz-v2.wiz-s1 .ptar-card[data-ptar-mode] .form-2col-side { display: none !important; }
         #sec-nueva-carga.wiz-v2.wiz-s1 .ptar-card[data-ptar-mode] .form-2col { display: block !important; }
+        /* Sin hueco muerto: los contenedores de aviso vacíos (corte de fecha,
+           avisos de fecha) no ocupan fila de la rejilla cuando su contenido está
+           oculto. Así no queda un gran espacio entre la fecha y la caja de precio. */
+        #sec-nueva-carga .ptar-grid > .ptar-field-full:not(:has(> *:not([hidden]))) { display: none; }
         .ptar-eta-box {
             padding: 0.75rem 0.9rem;
             background: var(--gray-50);
@@ -3789,20 +3793,24 @@
         }
         /* ===== RESUMEN en TARJETAS (diseño limpio, igual que aceptar-carga):
            celdas etiqueta+valor y una tarjeta "Mercancía" con rejilla. ===== */
-        .sum2 { display: flex; flex-direction: column; gap: 0.6rem; }
-        .sum2-cell { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.6rem 0.8rem; }
-        .sum2-k { font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gray-500); margin-bottom: 0.15rem; }
-        .sum2-v { font-size: 1rem; font-weight: 800; color: var(--navy); line-height: 1.3; }
-        .sum2-merc { background: #fff; border: 1px solid var(--gray-200); border-radius: 14px; padding: 0.85rem 0.95rem; }
-        .sum2-merc-head { display: flex; align-items: center; gap: 0.5rem; color: var(--purple); margin-bottom: 0.7rem; }
-        .sum2-merc-head span { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
-        .sum2-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-        .sum2-dm { margin-top: 0.75rem; padding-top: 0.7rem; border-top: 1px dashed var(--gray-300); font-size: var(--fs-m); font-weight: 600; color: var(--gray-700); line-height: 1.45; }
-        .sum2-dm b { display: block; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gray-500); margin-bottom: 0.25rem; }
-        .sum2-fecha-cell { background: rgba(34,165,90,0.1); border: 1px solid rgba(34,165,90,0.45); border-radius: 12px; padding: 0.6rem 0.8rem; }
+        .sum2 { display: flex; flex-direction: column; gap: 0.45rem; }
+        .sum2-cell { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 10px; padding: 0.5rem 0.7rem; }
+        .sum2-k { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: var(--gray-500); margin-bottom: 0.1rem; }
+        .sum2-v { font-size: var(--fs-l); font-weight: 800; color: var(--navy); line-height: 1.3; }
+        .sum2-merc { background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.7rem 0.8rem; }
+        .sum2-merc-head { display: flex; align-items: center; gap: 0.45rem; color: var(--purple); margin-bottom: 0.55rem; }
+        .sum2-merc-head span { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+        .sum2-merc-head svg { width: 17px; height: 17px; }
+        /* Rejilla de mercancía: 2 columnas SIEMPRE, celdas pequeñas y compactas. */
+        .sum2-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
+        .sum2-grid .sum2-cell { padding: 0.38rem 0.55rem; border-radius: 9px; }
+        .sum2-grid .sum2-k { font-size: 0.56rem; margin-bottom: 0.05rem; }
+        .sum2-grid .sum2-v { font-size: var(--fs-m); font-weight: 800; }
+        .sum2-dm { margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px dashed var(--gray-300); font-size: var(--fs-m); font-weight: 600; color: var(--gray-700); line-height: 1.4; }
+        .sum2-dm b { display: block; font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gray-500); margin-bottom: 0.2rem; }
+        .sum2-fecha-cell { background: rgba(34,165,90,0.1); border: 1px solid rgba(34,165,90,0.45); border-radius: 10px; padding: 0.5rem 0.7rem; }
         .sum2-fecha-cell .sum2-k { color: #0f5132; }
         .sum2-fecha { font-size: var(--fs-l); font-weight: 800; color: #0f5132; display: flex; align-items: center; gap: 0.4rem; line-height: 1.3; }
-        @media (max-width: 480px) { .sum2-grid { grid-template-columns: 1fr; } }
         .ptar-confirm-legal-link {
             margin-top: 0.9rem; font-size: var(--fs-m); color: var(--gray-500);
         }
@@ -21759,8 +21767,9 @@
                             sumCell('Peso', pesoKg) +
                             sumCell('Tipo de carga', cargaTipoV) +
                             sumCell('Tipo', mercaV) +
-                            sumCell('Trampilla elevadora', trampV) +
-                            sumCell('Requiere NIMA', nimaV) +
+                            // Trampilla y NIMA solo se muestran si están en "Sí".
+                            (trampV === 'Sí' ? sumCell('Trampilla elevadora', 'Sí') : '') +
+                            (nimaV === 'Sí' ? sumCell('Requiere NIMA', 'Sí') : '') +
                         '</div>' +
                         (d.notes ? '<div class="sum2-dm"><b>Anotaciones de la mercancía</b>' + escapeHtml(d.notes) + '</div>' : '') +
                     '</div>' +
@@ -22653,6 +22662,10 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
         sec.classList.add('wiz-s' + cur);
         markBar(cur);
         navWrap.querySelector('[data-wiz-next]').style.display = cur === 2 ? 'none' : '';
+        // En el paso 2 la navegación (Siguiente/aviso) sobra: las acciones están
+        // en la columna del precio (Ver resumen · Atrás). Se oculta para no dejar
+        // un hueco vacío entre la fecha y la caja de precio.
+        navWrap.style.display = cur === 1 ? '' : 'none';
         navWrap.querySelector('[data-wiz-warn]').classList.remove('show');
         sec.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }
