@@ -5752,6 +5752,9 @@
                         <li>Medidas en cm (o en m): <em>120x80x120</em> · <em>1,2x0,8x1,2</em></li>
                         <li>Peso por unidad: <em>350 kg</em> · <em>1,2 t</em></li>
                         <li>Si pones "palet europeo/americano" sin medidas, usamos su base estándar.</li>
+                        <li>Añade <em>apilable</em> (o <em>remontable</em>) en la línea si se puede remontar: calculamos también esa opción.</li>
+                        <li>Los bultos <strong>no se tumban</strong> (el alto siempre vertical): solo giran en el suelo para encajar a lo ancho.</li>
+                        <li>Solo los <strong>rígidos</strong> llevan plataforma elevadora; los tráilers no.</li>
                     </ul>
                 </div>
             </div>
@@ -7516,67 +7519,191 @@
         if (mP) { out.pesoU = cubNum(mP[1]) * (/^(t|tn|tonelada)/i.test(mP[2]) ? 1000 : 1); }
         return out;
     }
+    // ===== MOTOR DE CUBICAJE (lógica del GEM "CUBICAJE V10.5" del usuario) =====
+    // Reglas: (1) dos configuraciones (tráiler tauliner y rígido 3 ejes con
+    // plataforma); (2) NO apilable por defecto — solo si la línea dice
+    // "apilable" o "remontable"; (3) PROHIBIDO tumbar bultos (el alto siempre
+    // vertical), solo giro horizontal en el suelo (intercambiar largo/ancho);
+    // (4) sin holguras (medidas exactas); (5) LDM estricto por filas:
+    // LDM = nº de filas en profundidad × dimensión longitudinal del bulto —
+    // toda fila EMPEZADA consume el 100% de su profundidad.
+    // Medidas del TRÁILER = interiores reales del usuario (2026-07-23).
+    var CUB_VEHICULOS = [
+        { id: 'trailer', nombre: 'Tráiler Tauliner', plataforma: false, L: 13.5, A: 2.42, H: 2.7, kg: 24000 },
+        { id: 'rigido', nombre: 'Rígido 3 ejes', plataforma: true, L: 8.0, A: 2.4, H: 2.7, kg: 14000 }
+    ];
+    // Coloca UN tipo de bulto: elige la orientación en el suelo (giro
+    // horizontal) que MENOS metros lineales consuma. Devuelve null si el
+    // bulto no entra a lo ancho ni girado, o supera la altura del vehículo.
+    function cubColocaTipo(veh, p, conApilado) {
+        var H = p.H || 0;
+        if (H > veh.H + 1e-9) return { noCabe: 'supera la altura (' + cubFmt(H, 2) + ' m > ' + cubFmt(veh.H, 2) + ' m)' };
+        var niveles = 1;
+        if (conApilado && p.apilable && H > 0) niveles = Math.max(1, Math.floor((veh.H + 1e-9) / H));
+        var qtySuelo = Math.ceil(p.qty / niveles);
+        var best = null;
+        [[p.L, p.A], [p.A, p.L]].forEach(function (o) {
+            var long = o[0], wide = o[1];
+            if (wide > veh.A + 1e-9) return;
+            var n = Math.floor((veh.A + 1e-9) / wide);
+            if (n < 1) return;
+            var rows = Math.ceil(qtySuelo / n);
+            var l = rows * long;
+            if (!best || l < best.ldm - 1e-9) best = { long: long, wide: wide, n: n, rows: rows, qtySuelo: qtySuelo, niveles: niveles, ldm: l };
+        });
+        if (!best) return { noCabe: 'no entra a lo ancho (' + cubFmt(Math.min(p.L, p.A), 2) + ' m > ' + cubFmt(veh.A, 2) + ' m)' };
+        return best;
+    }
+    // Diagnóstico de UN vehículo con TODOS los tipos (LDM = suma de los LDM
+    // de cada tipo, cada uno con sus filas completas — regla 5 estricta).
+    function cubDiagnostico(veh, items, conApilado, pesoTotal) {
+        var ldm = 0, layout = [], alturaMax = 0, noCabe = null;
+        items.forEach(function (p, idx) {
+            if (!p.ok) return;
+            var r = cubColocaTipo(veh, p, conApilado);
+            if (r.noCabe) { if (!noCabe) noCabe = '"' + (p.raw.length > 30 ? p.raw.slice(0, 30) + '…' : p.raw) + '" ' + r.noCabe; return; }
+            r.item = p; r.idx = idx;
+            layout.push(r);
+            ldm += r.ldm;
+            var hCarga = (p.H || 0) * (conApilado && p.apilable ? Math.min(r.niveles, p.qty) : 1);
+            if (hCarga > alturaMax) alturaMax = hCarga;
+        });
+        var sobraLdm = veh.L - ldm;
+        return {
+            veh: veh, layout: layout, ldm: ldm, alturaMax: alturaMax,
+            noCabe: noCabe,
+            pesoOk: pesoTotal <= veh.kg,
+            cabeLargo: sobraLdm > -1e-9,
+            libre: Math.max(0, sobraLdm),
+            estado: noCabe ? '¡NO CABE! (' + noCabe + ')'
+                : (pesoTotal > veh.kg ? '¡NO CABE! Supera el peso máximo'
+                : (sobraLdm < -1e-9 ? '¡NO CABE! Faltan ' + cubFmt(-sobraLdm, 2) + ' LDM'
+                : cubFmt(sobraLdm, 2) + ' LDM libres'))
+        };
+    }
+    // Mapa de distribución EN PLANTA (vista superior) en SVG: cada tipo de
+    // bulto con su color, filas en profundidad y huecos a lo ancho.
+    var CUB_COLORES = ['#3300cc', '#22a55a', '#e08700', '#0ea5e9', '#d946ef', '#b45309', '#64748b'];
+    function cubMapaSVG(diag) {
+        var veh = diag.veh;
+        var W = 760, escala = W / veh.L, Hpx = Math.max(56, veh.A * escala);
+        var svg = '<svg viewBox="0 0 ' + (W + 60) + ' ' + (Hpx + 40) + '" style="width:100%;height:auto;display:block;" xmlns="http://www.w3.org/2000/svg">';
+        svg += '<text x="0" y="12" font-size="11" font-weight="700" fill="#5b6270">[CABINA]</text>';
+        svg += '<rect x="0" y="18" width="' + W + '" height="' + Hpx + '" fill="#f4f5f8" stroke="#c7cbd4" stroke-width="1.5" rx="4"/>';
+        var x = 0;
+        diag.layout.forEach(function (r, i) {
+            var col = CUB_COLORES[r.idx % CUB_COLORES.length];
+            var resto = r.qtySuelo;
+            for (var f = 0; f < r.rows; f++) {
+                var enFila = Math.min(r.n, resto); resto -= enFila;
+                for (var c = 0; c < enFila; c++) {
+                    var bw = r.long * escala, bh = (r.wide / veh.A) * Hpx;
+                    svg += '<rect x="' + (x + f * r.long * escala + 1) + '" y="' + (18 + c * bh + 1) + '" width="' + Math.max(1, bw - 2) + '" height="' + Math.max(1, bh - 2) + '" fill="' + col + '" fill-opacity="0.72" stroke="#fff" stroke-width="1" rx="2"/>';
+                }
+            }
+            x += r.ldm * escala;
+        });
+        if (x < W - 1) svg += '<text x="' + Math.min(W - 34, x + 6) + '" y="' + (18 + Hpx / 2 + 4) + '" font-size="11" font-weight="700" fill="#8b90a0">VACÍO</text>';
+        svg += '<line x1="' + x + '" y1="16" x2="' + x + '" y2="' + (Hpx + 20) + '" stroke="#3300cc" stroke-width="1.5" stroke-dasharray="4 3"/>';
+        svg += '<text x="0" y="' + (Hpx + 34) + '" font-size="11" font-weight="700" fill="#2a1a7a">LDM ocupados: ' + cubFmt(diag.ldm, 2) + ' m de ' + cubFmt(veh.L, 2) + ' m · ancho ' + cubFmt(veh.A, 2) + ' m</text>';
+        svg += '</svg>';
+        return svg;
+    }
     function cubicar() {
         var ta = document.getElementById('cubInput');
         var resBox = document.getElementById('cubResult');
         var det = document.getElementById('cubDetalle');
         if (!ta) return;
         var lineas = ta.value.split('\n');
-        var filas = [], bultos = 0, vol = 0, suelo = 0, peso = 0, sinMedida = 0, sinAltura = 0;
+        var items = [], bultos = 0, vol = 0, peso = 0, sinMedida = 0, sinAltura = 0, hayApilable = false;
         lineas.forEach(function (ln) {
             var p = cubParseLinea(ln);
             if (!p) return;
-            filas.push(p);
+            // Apilable SOLO si la línea lo dice explícitamente (regla 2 del GEM).
+            p.apilable = /apilable|remontable/i.test(p.raw);
+            if (p.apilable) hayApilable = true;
+            items.push(p);
             if (!p.ok) { sinMedida += 1; return; }
             bultos += p.qty;
-            var area = (p.L && p.A) ? p.L * p.A : 0;
-            suelo += area * p.qty;
             if (p.H) vol += p.L * p.A * p.H * p.qty; else sinAltura += 1;
             peso += p.pesoU * p.qty;
         });
-        // Medidas INTERIORES reales del tráiler Dynamo (dato del usuario 2026-07-23).
-        var LARGO = 13.5, ANCHO = 2.42, ALTO = 2.7, PESO_MAX = 24000;
-        var VOL_TRAILER = LARGO * ANCHO * ALTO;     // ≈ 88,2 m³
-        var metrosLin = suelo / ANCHO;              // suelo ocupado en 1 altura
-        // El % del tráiler lo marca la restricción que ANTES se agota: suelo
-        // (metros lineales en 1 altura), peso o volumen.
-        var pctSuelo = metrosLin / LARGO * 100;
-        var pctPeso = peso / PESO_MAX * 100;
-        var pctVol = vol / VOL_TRAILER * 100;
-        var pctReal = Math.max(pctSuelo, pctPeso, pctVol);
-        var pct = Math.min(100, Math.round(pctReal));
-        var limita = (pctPeso >= pctSuelo && pctPeso >= pctVol) ? 'el peso'
-                   : (pctVol > pctSuelo ? 'el volumen' : 'la superficie de suelo');
-        // Resumen
+        var okItems = items.filter(function (p) { return p.ok; });
+        if (!okItems.length) {
+            resBox.innerHTML = '<div class="cub-r-lbl">No se ha reconocido ninguna línea con medidas. Revisa el formato (ej.: 10 palets 120x80x120 350kg).</div>';
+            resBox.hidden = false; det.hidden = true;
+            return;
+        }
+        // ---- 1. DIAGNÓSTICO por vehículo (no apilable siempre; apilable solo
+        //         si alguna línea lo pide — regla 2) ----
+        var diags = [];
+        CUB_VEHICULOS.forEach(function (veh) {
+            diags.push({ ap: false, d: cubDiagnostico(veh, okItems, false, peso) });
+            if (hayApilable) diags.push({ ap: true, d: cubDiagnostico(veh, okItems, true, peso) });
+        });
+        var th = '<div class="table-wrap"><table class="data"><thead><tr>' +
+            '<th>Vehículo</th><th>¿Soporta peso?</th><th>LDM ocupados</th><th>Altura máx. carga</th><th>Capacidad libre / Estado</th></tr></thead><tbody>';
+        diags.forEach(function (x) {
+            var d = x.d, veh = d.veh;
+            var mal = /NO CABE/.test(d.estado);
+            th += '<tr>' +
+                '<td><strong>' + veh.nombre + '</strong> <span style="color:var(--gray-500);">(' + (x.ap ? 'Apilable' : 'No apilable') + ')</span><div style="font-size: var(--fs-s);color:var(--gray-500);">' + (veh.plataforma ? 'Con plataforma elevadora' : 'Sin plataforma') + ' · ' + cubFmt(veh.L, 2) + '×' + cubFmt(veh.A, 2) + '×' + cubFmt(veh.H, 2) + ' m</div></td>' +
+                '<td>' + (d.pesoOk ? 'Sí' : '<span class="cub-warn">No</span>') + ' (' + (peso >= 1000 ? cubFmt(peso / 1000, 2) + ' Tn' : cubFmt(peso, 0) + ' kg') + ' / ' + veh.kg.toLocaleString('es-ES') + ' kg)</td>' +
+                '<td><strong>' + cubFmt(d.ldm, 2) + ' LDM</strong></td>' +
+                '<td>' + (d.alturaMax ? cubFmt(d.alturaMax, 2) + ' m' : '—') + '</td>' +
+                '<td>' + (mal ? '<span class="cub-warn">' + escapeHtml(d.estado) + '</span>' : escapeHtml(d.estado)) + '</td>' +
+                '</tr>';
+        });
+        th += '</tbody></table></div>';
+        th += '<p style="font-size: var(--fs-s);color:var(--gray-500);margin-top:0.4rem;">Solo los <strong>rígidos</strong> llevan plataforma elevadora (descarga sin muelle); los tráilers no. Los bultos <strong>no se tumban</strong>: solo giran en el suelo. Fila empezada = fila completa en LDM.' + (hayApilable ? '' : ' Escribe <strong>apilable</strong> o <strong>remontable</strong> en una línea para calcular también con remonte.') + '</p>';
+        // ---- Resumen lateral: totales ----
+        var dTrailer = diags[0].d;
         var rh = '';
-        rh += '<div class="cub-r-big">' + cubFmt(metrosLin, 2) + ' m</div>';
-        rh += '<div class="cub-r-lbl">Metros lineales estimados de camión (en 1 altura, sin apilar)</div>';
-        rh += '<div class="cub-bar"><span style="width:' + pct + '%"></span></div>';
-        rh += '<div class="cub-r-lbl" style="margin-top:0.3rem;">Ocupa el <strong>' + pct + '%</strong> de un tráiler completo (13,5 m) · lo limita ' + limita + '</div>';
-        if (peso > PESO_MAX) rh += '<div class="cub-warn" style="margin-top:0.4rem;">⚠ Supera el peso máximo del tráiler (24.000 kg): habría que repartir en más de un camión.</div>';
+        rh += '<div class="cub-r-big">' + cubFmt(dTrailer.ldm, 2) + ' LDM</div>';
+        rh += '<div class="cub-r-lbl">Metros lineales en tráiler (no apilable)</div>';
+        var pctL = Math.min(100, Math.round(dTrailer.ldm / dTrailer.veh.L * 100));
+        rh += '<div class="cub-bar"><span style="width:' + pctL + '%"></span></div>';
+        rh += '<div class="cub-r-lbl" style="margin-top:0.3rem;">' + pctL + '% del tráiler (' + cubFmt(dTrailer.veh.L, 2) + ' m)</div>';
         rh += '<div style="height:0.6rem"></div>';
         rh += '<div class="cub-r-row"><span>Bultos</span><span class="v">' + bultos + '</span></div>';
-        rh += '<div class="cub-r-row"><span>Volumen</span><span class="v">' + cubFmt(vol, 2) + ' m³ <span style="color:var(--gray-500);font-weight:600;">(' + Math.round(pctVol) + '%)</span></span></div>';
-        rh += '<div class="cub-r-row"><span>Superficie de suelo</span><span class="v">' + cubFmt(suelo, 2) + ' m²</span></div>';
-        rh += '<div class="cub-r-row"><span>Peso total</span><span class="v">' + (peso >= 1000 ? cubFmt(peso / 1000, 2) + ' Tn' : cubFmt(peso, 0) + ' kg') + ' <span style="color:var(--gray-500);font-weight:600;">(' + Math.round(pctPeso) + '%)</span></span></div>';
-        rh += '<div class="cub-r-row"><span>Palés europeos equiv.</span><span class="v">' + Math.ceil(suelo / (1.2 * 0.8)) + '</span></div>';
+        rh += '<div class="cub-r-row"><span>Volumen</span><span class="v">' + cubFmt(vol, 2) + ' m³</span></div>';
+        rh += '<div class="cub-r-row"><span>Peso total</span><span class="v">' + (peso >= 1000 ? cubFmt(peso / 1000, 2) + ' Tn' : cubFmt(peso, 0) + ' kg') + '</span></div>';
         resBox.innerHTML = rh;
         resBox.hidden = false;
-        // Detalle línea a línea
-        var dh = '<div class="table-wrap"><table class="data"><thead><tr><th>Descripción</th><th>Cant.</th><th>Medidas</th><th>Vol.</th><th>Peso</th></tr></thead><tbody>';
-        filas.forEach(function (p) {
-            if (!p.ok) { dh += '<tr><td colspan="5" class="cub-warn">No reconocido: ' + escapeHtml(p.raw) + '</td></tr>'; return; }
-            var med = p.base ? p.base : (p.L && p.A ? cubFmt(p.L, 2) + '×' + cubFmt(p.A, 2) + (p.H ? '×' + cubFmt(p.H, 2) : '×?') + ' m' : '—');
-            var v = p.H ? cubFmt(p.L * p.A * p.H * p.qty, 2) + ' m³' : '—';
+        // ---- 2. MAPA DE DISTRIBUCIÓN EN PLANTA (vista superior) ----
+        var dh = '<h4 style="font-size: var(--fs-l);font-weight:800;color:var(--navy);margin:0 0 0.4rem;">1. Diagnóstico de cubicaje óptimo</h4>' + th;
+        dh += '<h4 style="font-size: var(--fs-l);font-weight:800;color:var(--navy);margin:1rem 0 0.4rem;">2. Mapa de distribución en planta (vista superior)</h4>';
+        diags.filter(function (x) { return !x.ap; }).forEach(function (x) {
+            var d = x.d;
+            if (/NO CABE/.test(d.estado)) { dh += '<p class="cub-warn" style="margin:0.3rem 0;">' + d.veh.nombre + ': ' + escapeHtml(d.estado) + '</p>'; return; }
+            dh += '<p style="font-size: var(--fs-m);font-weight:800;color:var(--navy);margin:0.6rem 0 0.2rem;">' + d.veh.nombre + (d.veh.plataforma ? ' (con plataforma)' : '') + '</p>';
+            dh += cubMapaSVG(d);
+        });
+        // Leyenda de colores por línea
+        dh += '<div style="display:flex;gap:0.8rem;flex-wrap:wrap;margin-top:0.5rem;">';
+        okItems.forEach(function (p, i) {
+            dh += '<span style="font-size: var(--fs-s);color:var(--gray-600);font-weight:700;"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:' + CUB_COLORES[i % CUB_COLORES.length] + ';opacity:0.75;vertical-align:-1px;margin-right:4px;"></span>' + escapeHtml(p.raw.length > 42 ? p.raw.slice(0, 42) + '…' : p.raw) + '</span>';
+        });
+        dh += '</div>';
+        // ---- Detalle línea a línea (orientación elegida en el tráiler) ----
+        dh += '<h4 style="font-size: var(--fs-l);font-weight:800;color:var(--navy);margin:1rem 0 0.4rem;">Detalle por línea</h4>';
+        dh += '<div class="table-wrap"><table class="data"><thead><tr><th>Descripción</th><th>Cant.</th><th>Medidas</th><th>Orientación en viaje (suelo)</th><th>Filas × fondo</th><th>Peso</th></tr></thead><tbody>';
+        items.forEach(function (p) {
+            if (!p.ok) { dh += '<tr><td colspan="6" class="cub-warn">No reconocido: ' + escapeHtml(p.raw) + '</td></tr>'; return; }
+            var r = cubColocaTipo(CUB_VEHICULOS[0], p, false);
+            var med = p.base ? p.base : cubFmt(p.L, 2) + '×' + cubFmt(p.A, 2) + (p.H ? '×' + cubFmt(p.H, 2) : '×?') + ' m';
+            var ori = r.noCabe ? '<span class="cub-warn">' + escapeHtml(r.noCabe) + '</span>'
+                : cubFmt(r.long, 2) + ' × ' + cubFmt(r.wide, 2) + ' m · ' + r.n + ' de ancho';
+            var filasTxt = r.noCabe ? '—' : r.rows + ' × ' + cubFmt(r.long, 2) + ' m = <strong>' + cubFmt(r.ldm, 2) + ' LDM</strong>';
             var w = p.pesoU ? (p.pesoU * p.qty >= 1000 ? cubFmt(p.pesoU * p.qty / 1000, 2) + ' Tn' : cubFmt(p.pesoU * p.qty, 0) + ' kg') : '—';
-            dh += '<tr><td>' + escapeHtml(p.raw) + '</td><td>' + p.qty + '</td><td>' + med + '</td><td>' + v + '</td><td>' + w + '</td></tr>';
+            dh += '<tr><td>' + escapeHtml(p.raw) + (p.apilable ? ' <span style="color:#0f6b3a;font-weight:800;">· apilable</span>' : '') + '</td><td>' + p.qty + '</td><td>' + med + '</td><td>' + ori + '</td><td>' + filasTxt + '</td><td>' + w + '</td></tr>';
         });
         dh += '</tbody></table></div>';
         var avisos = [];
-        if (sinAltura) avisos.push(sinAltura + ' línea(s) sin altura: no cuentan para el volumen (sí para metros lineales).');
+        if (sinAltura) avisos.push(sinAltura + ' línea(s) sin altura: no validan altura ni cuentan para el volumen.');
         if (sinMedida) avisos.push(sinMedida + ' línea(s) sin medidas reconocibles: no se han cubicado.');
         if (avisos.length) dh += '<p class="cub-warn" style="margin-top:0.5rem;">⚠ ' + avisos.join(' ') + '</p>';
-        dh += '<p style="font-size: var(--fs-s);color:var(--gray-500);margin-top:0.5rem;">Estimación orientativa (una altura de carga, sin apilar). El volumen y los metros reales dependen de la apilabilidad y la colocación.</p>';
+        dh += '<p style="font-size: var(--fs-s);color:var(--gray-500);margin-top:0.5rem;">Cálculo por tipos de bulto (las filas no mezclan tipos distintos). Medidas exactas, sin holguras de embalaje.</p>';
         det.innerHTML = dh;
         det.hidden = false;
     }
