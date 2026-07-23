@@ -857,7 +857,7 @@
         .wiz-v2.wiz-s1 #tar-cta-wrap, .wiz-v2.wiz-s2 #tar-cta-wrap { display: none !important; }
         /* Tamaño FIJO entre pasos: ancho constante (solo lo limita la
            pantalla) y altura igualada a la del paso más alto + botones abajo */
-        .wiz-v2 #tarifador-card { display: flex; flex-direction: column; width: min(680px, calc(100vw - 24px)); margin-left: auto; margin-right: auto; }
+        .wiz-v2 #tarifador-card { display: flex; flex-direction: column; width: min(680px, calc(100vw - 24px)); max-width: 100%; margin-left: auto; margin-right: auto; }
         .wiz-v2 #tarifador-card .wiz-navwrap { margin-top: auto; }
         .ptar-grid {
             display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.4rem 0.85rem;
@@ -1025,8 +1025,8 @@
         .ptar-sug li:hover, .ptar-sug li.active {
             background: rgba(51,0,204,0.06); color: var(--purple);
         }
-        /* Anotaciones libres colapsable */
-        .ptar-notes-wrap { margin-top: 0.5rem; }
+        /* Anotaciones libres colapsable (ancho completo en el grid de 2 columnas) */
+        .ptar-notes-wrap { margin-top: 0.5rem; grid-column: 1 / -1; min-width: 0; }
         .ptar-notes-toggle {
             display: inline-flex; align-items: center; gap: 0.4rem;
             font-size: 0.78rem; color: var(--purple); font-weight: 700;
@@ -5659,11 +5659,22 @@ document.addEventListener('DOMContentLoaded', function () {
         window.__wizEqT = setTimeout(igualarAltura, 200);
     });
     // El contenido cambia al elegir opciones (notas verdes, avisos, plegables):
-    // re-igualar en cada cambio dentro de la tarjeta.
+    // re-igualar en cada cambio dentro de la tarjeta. OJO: medir alterna las
+    // clases de paso (oculta/muestra campos) y eso CIERRA la lista de un
+    // <select> abierto — nunca medir en el clic sobre un select ni mientras
+    // uno tenga el foco (podría estar desplegado); se mide tras el cambio.
     ['change', 'click'].forEach(function (ev) {
-        card.addEventListener(ev, function () {
+        card.addEventListener(ev, function (e) {
+            if (ev === 'click' && e.target && e.target.closest && e.target.closest('select')) return;
             clearTimeout(window.__wizEqT2);
-            window.__wizEqT2 = setTimeout(igualarAltura, 120);
+            window.__wizEqT2 = setTimeout(function eqSafe() {
+                var ae = document.activeElement;
+                if (ev === 'click' && ae && ae.tagName === 'SELECT' && card.contains(ae)) {
+                    window.__wizEqT2 = setTimeout(eqSafe, 400);
+                    return;
+                }
+                igualarAltura();
+            }, 120);
         });
     });
     // En móvil el tarifador está oculto hasta pulsar "Precios": igualar al abrirse.
