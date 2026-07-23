@@ -5751,7 +5751,8 @@
                         <li>Cantidad al principio: <em>10 palets…</em></li>
                         <li>Medidas en cm (o en m): <em>120x80x120</em> · <em>1,2x0,8x1,2</em></li>
                         <li>Peso por unidad: <em>350 kg</em> · <em>1,2 t</em></li>
-                        <li>Si pones "palet europeo/americano" sin medidas, usamos su base estándar.</li>
+                        <li>Si pones "palet europeo/americano" sin medidas, usamos su base estándar (añade igualmente la <strong>altura</strong> y el <strong>peso</strong>).</li>
+                        <li>Cada línea necesita <strong>largo × ancho × alto</strong> y <strong>peso</strong>: si falta algo, te lo pedimos antes de calcular.</li>
                         <li>Añade <em>apilable</em> (o <em>remontable</em>) en la línea si se puede remontar: calculamos también esa opción.</li>
                         <li>Los bultos <strong>no se tumban</strong> (el alto siempre vertical): solo giran en el suelo para encajar a lo ancho.</li>
                         <li>Solo los <strong>rígidos</strong> llevan plataforma elevadora; los tráilers no.</li>
@@ -7586,8 +7587,14 @@
     var CUB_COLORES = ['#3300cc', '#22a55a', '#e08700', '#0ea5e9', '#d946ef', '#b45309', '#64748b'];
     function cubMapaSVG(diag) {
         var veh = diag.veh;
-        var W = 760, escala = W / veh.L, Hpx = Math.max(56, veh.A * escala);
-        var svg = '<svg viewBox="0 0 ' + (W + 60) + ' ' + (Hpx + 40) + '" style="width:100%;height:auto;display:block;" xmlns="http://www.w3.org/2000/svg">';
+        // ESCALA REAL COMPARTIDA entre todos los vehículos: se fija con el
+        // más largo del catálogo (el tráiler) → el rígido se dibuja más corto
+        // en proporción real, y los bultos a su tamaño exacto.
+        var maxL = 0;
+        CUB_VEHICULOS.forEach(function (v) { if (v.L > maxL) maxL = v.L; });
+        var escala = 760 / maxL;
+        var W = veh.L * escala, Hpx = veh.A * escala;
+        var svg = '<svg viewBox="0 0 ' + (760 + 60) + ' ' + (Hpx + 40) + '" style="width:100%;height:auto;display:block;" xmlns="http://www.w3.org/2000/svg">';
         svg += '<text x="0" y="12" font-size="11" font-weight="700" fill="#5b6270">[CABINA]</text>';
         svg += '<rect x="0" y="18" width="' + W + '" height="' + Hpx + '" fill="#f4f5f8" stroke="#c7cbd4" stroke-width="1.5" rx="4"/>';
         var x = 0;
@@ -7631,6 +7638,30 @@
         var okItems = items.filter(function (p) { return p.ok; });
         if (!okItems.length) {
             resBox.innerHTML = '<div class="cub-r-lbl">No se ha reconocido ninguna línea con medidas. Revisa el formato (ej.: 10 palets 120x80x120 350kg).</div>';
+            resBox.hidden = false; det.hidden = true;
+            return;
+        }
+        // ---- 0. DATOS COMPLETOS ANTES DE CALCULAR: cada línea necesita
+        //         largo×ancho, ALTURA y PESO. Si falta algo, se pide y NO se
+        //         cubica (con datos a medias el diagnóstico engaña). ----
+        var faltantes = [];
+        items.forEach(function (p, i) {
+            var f = [];
+            if (!p.ok) f.push('medidas (largo×ancho×alto)');
+            else {
+                if (!p.H) f.push('la altura');
+                if (!p.pesoU) f.push('el peso');
+            }
+            if (f.length) faltantes.push({ n: i + 1, raw: p.raw, que: f });
+        });
+        if (faltantes.length) {
+            var fh = '<div class="cub-r-lbl" style="color:#b45309;font-weight:800;font-size: var(--fs-l);">⚠ Faltan datos antes de calcular</div>' +
+                '<p style="font-size: var(--fs-m);color:var(--gray-700);margin:0.4rem 0 0.6rem;">Cada línea necesita <strong>largo × ancho × alto</strong> y el <strong>peso</strong>. Completa esto:</p><ul style="margin:0;padding-left:1.1rem;">';
+            faltantes.forEach(function (x) {
+                fh += '<li style="font-size: var(--fs-m);color:var(--gray-700);line-height:1.5;"><strong>Línea ' + x.n + '</strong> («' + escapeHtml(x.raw.length > 38 ? x.raw.slice(0, 38) + '…' : x.raw) + '»): falta ' + x.que.join(' y ') + '.</li>';
+            });
+            fh += '</ul><p style="font-size: var(--fs-s);color:var(--gray-500);margin-top:0.5rem;">Ej.: <em>4 palets 120x80x144 100 kg</em></p>';
+            resBox.innerHTML = fh;
             resBox.hidden = false; det.hidden = true;
             return;
         }
