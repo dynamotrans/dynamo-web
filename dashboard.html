@@ -1049,6 +1049,23 @@
                 width: 44px; height: 44px;
             }
         }
+        /* Pista "desliza para crear/confirmar el envío" (píldora flotante,
+           mismo patrón que el "Desliza para ACEPTAR" de aceptar-carga). */
+        .nc-scroll-hint {
+            position: fixed; left: 50%; transform: translateX(-50%);
+            bottom: calc(1.1rem + env(safe-area-inset-bottom)); z-index: 95;
+            background: var(--purple); color: #fff; font: inherit;
+            font-size: 0.8rem; font-weight: 800; letter-spacing: 0.2px;
+            padding: 0.6rem 1.05rem; border: none; border-radius: 999px;
+            box-shadow: 0 8px 24px rgba(51,0,204,0.4), 0 3px 10px rgba(10,2,48,0.2);
+            display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer;
+            max-width: calc(100vw - 5.5rem); white-space: nowrap;
+        }
+        .nc-scroll-hint[hidden] { display: none; }
+        .nc-scroll-hint:hover { background: var(--purple-light); }
+        .nc-scroll-hint .nsh-arrow { display: inline-block; font-size: 0.95rem; animation: nshBounce 1.1s ease infinite; }
+        @keyframes nshBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+        @media (prefers-reduced-motion: reduce) { .nc-scroll-hint .nsh-arrow { animation: none; } }
 
         /* ============================================
            MODAL "Fuera de horario telefonico" + CARTEL TEMPORADA
@@ -4321,6 +4338,15 @@
 <!-- Volver arriba -->
 <button type="button" class="back-top" id="backTop" aria-label="Volver arriba" onclick="scrollToTop()">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
+
+<!-- Pista "desliza para crear/confirmar el envío": píldora flotante que
+     aparece cuando el botón de acción de Crear envío queda por debajo del
+     pliegue (sobre todo en móvil), igual que el "Desliza para ACEPTAR" de
+     aceptar-carga. Al pulsarla lleva al botón. -->
+<button type="button" class="nc-scroll-hint" id="ncScrollHint" hidden aria-label="Ir al botón de crear envío">
+    <span class="nsh-text">Desliza para crear el envío</span>
+    <span class="nsh-arrow" aria-hidden="true">↓</span>
 </button>
 
 <!-- TEMPLATE: condiciones generales de transporte (texto consolidado del cliente).
@@ -14132,6 +14158,62 @@
         document.addEventListener('scroll', onScroll, { passive: true, capture: true });
         if (document.body) document.body.addEventListener('scroll', onScroll, { passive: true });
         update();
+    })();
+
+    // Pista "Desliza para crear/confirmar el envío": aparece en la pantalla de
+    // crear envío cuando el botón de acción queda por debajo del pliegue (móvil
+    // sobre todo). Al pulsarla lleva al botón. Mismo patrón que el "Desliza para
+    // ACEPTAR" de aceptar-carga.
+    (function ncScrollHint() {
+        var hint = document.getElementById('ncScrollHint');
+        var sec = document.getElementById('sec-nueva-carga');
+        if (!hint || !sec) return;
+        // Botón de acción vigente: en el paso de confirmación, "Confirmar
+        // envío"; si no, "Crear envío" del formulario.
+        function accion() {
+            var conf = sec.querySelector('[data-ptar-confirm]');
+            if (conf && !conf.hidden && conf.offsetParent) {
+                var fb = sec.querySelector('[data-ptar-final-confirm]');
+                if (fb && fb.offsetParent) return { btn: fb, txt: 'Desliza para confirmar el envío' };
+            }
+            var sb = sec.querySelector('[data-ptar-submit]');
+            if (sb && sb.offsetParent) return { btn: sb, txt: 'Desliza para crear el envío' };
+            return null;
+        }
+        function update() {
+            var a = sec.classList.contains('active') ? accion() : null;
+            if (!a) { hint.hidden = true; return; }
+            var r = a.btn.getBoundingClientRect();
+            var vh = window.innerHeight || document.documentElement.clientHeight;
+            var doc = document.documentElement;
+            var scrollable = Math.max(doc.scrollHeight, document.body.scrollHeight) > vh + 40;
+            // Visible = el botón se ve (aunque sea parcialmente) en el viewport.
+            var visible = r.top < vh - 24 && r.bottom > 0;
+            hint.querySelector('.nsh-text').textContent = a.txt;
+            hint.hidden = !(scrollable && !visible);
+        }
+        hint.addEventListener('click', function () {
+            var a = accion(); if (a) a.btn.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        });
+        var raf = false;
+        function onScroll() { if (!raf) { requestAnimationFrame(function () { raf = false; update(); }); raf = true; } }
+        window.addEventListener('scroll', onScroll, { passive: true });
+        document.addEventListener('scroll', onScroll, { passive: true, capture: true });
+        if (document.body) document.body.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', update);
+        // Cambios de sección, de paso del wizard o al mostrar la confirmación:
+        // re-evaluar (debounce corto). Solo atributos de la sección + del
+        // formulario (no todo el subtree, para no penalizar).
+        var deb;
+        function reeval() { clearTimeout(deb); deb = setTimeout(update, 60); }
+        sec.addEventListener('click', reeval);
+        try {
+            new MutationObserver(reeval).observe(sec, { attributes: true, attributeFilter: ['class', 'data-step', 'data-entry-mode'] });
+            var conf = sec.querySelector('[data-ptar-confirm]');
+            if (conf) new MutationObserver(reeval).observe(conf, { attributes: true, attributeFilter: ['hidden'] });
+        } catch (e) {}
+        window.__ncScrollHintUpdate = update;
+        setTimeout(update, 300);
     })();
 
     // Email del usuario en el menu (lo guardo en portal.html al hacer login demo)
