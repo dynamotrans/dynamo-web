@@ -5138,13 +5138,9 @@
     <section class="section" id="sec-nueva-carga">
         <div class="sec-header">
             <h2 data-nueva-carga-title>Nuevo envío</h2>
-            <button type="button" class="btn-ghost ptar-reset-btn" data-ptar-reset title="Limpiar formulario">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="23 4 23 10 17 10"/>
-                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-                </svg>
-                Limpiar
-            </button>
+            <!-- Botón "Limpiar" quitado (2026-07-23): el formulario se limpia
+                 solo al salir de la sección; los querySelector('[data-ptar-reset]')
+                 siguen con guardas if(...) y no fallan al no existir. -->
         </div>
         <div class="ptar-card" data-ptar-mode="carga">
 
@@ -20821,7 +20817,7 @@
                 if (fcr) fcr.textContent = 'Confirmar envío';
                 renderEta();
             }
-            reset.addEventListener('click', doReset);
+            if (reset) reset.addEventListener('click', doReset);   // botón "Limpiar" quitado; guarda por si vuelve
             window._ptarReset = doReset;   // limpiar al salir de la sección
 
             // Lee y valida el formulario. Devuelve null si hay errores
