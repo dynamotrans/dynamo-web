@@ -16,6 +16,8 @@
     <!-- Registro único de festivos (nacionales 12 países). Sin defer: debe estar
          disponible (window.FESTIVOS) antes del script del tarifador. -->
     <script src="/js/festivos.js"></script>
+    <!-- Selector de prefijos telefónicos mundial, buscable y localizado -->
+    <script src="/js/prefijos.js"></script>
     <style>
         :root {
             /* ESCALA DE TEXTO ÚNICA (3 niveles). NO inventar tamaños nuevos:
@@ -10584,6 +10586,30 @@
         return pref + ' ' + num;
     }
     window.telValue = telValue;
+    // Montar el selector de prefijo MUNDIAL (js/prefijos.js) sobre cualquier
+    // <select class="tel-pref"> que aparezca (las fichas se generan en modales,
+    // por eso se observa el DOM). El <select> se sustituye por un input oculto
+    // con el MISMO id ({id}-pref), así telValue sigue leyendo su .value.
+    (function montarTelPref() {
+        if (!window.Prefijos) return;
+        function montaTodos(root) {
+            (root || document).querySelectorAll('select.tel-pref').forEach(function (s) {
+                if (s.tagName === 'SELECT') Prefijos.montar(s);
+            });
+        }
+        montaTodos(document);
+        try {
+            new MutationObserver(function (muts) {
+                muts.forEach(function (m) {
+                    Array.prototype.forEach.call(m.addedNodes, function (n) {
+                        if (n.nodeType !== 1) return;
+                        if (n.matches && n.matches('select.tel-pref')) Prefijos.montar(n);
+                        else montaTodos(n);
+                    });
+                });
+            }).observe(document.body, { childList: true, subtree: true });
+        } catch (e) {}
+    })();
     // ==================== VALIDADOR DINÁMICO de CIF / DNI / NIE ====================
     // Un SOLO campo que detecta qué es y valida su dígito/letra de control:
     // DNI español · NIE (extranjero residente) · CIF español · NIF portugués
