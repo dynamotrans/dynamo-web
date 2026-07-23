@@ -5260,12 +5260,16 @@
                 <div class="ptar-notes-wrap">
                     <button type="button" class="ptar-notes-toggle" data-ptar-notes-toggle aria-expanded="false">
                         <span class="pnt-icon" aria-hidden="true">+</span>
-                        Añadir detalle de mercancía, trampilla elevadora o NIMA (opcional)
+                        Añadir detalle de mercancía, tu nº de albarán/pedido, trampilla elevadora o NIMA (opcional)
                     </button>
                     <div class="ptar-notes-body" data-ptar-notes-body hidden>
                         <textarea data-ptar-notes maxlength="1000" rows="3"
                             placeholder="Detalles que debamos saber (tipo de mercancía, acceso, dimensiones especiales, instrucciones de entrega…)"></textarea>
                         <div class="ptar-notes-counter"><span data-ptar-notes-count>0</span> / 1000</div>
+                        <div class="ptar-field" style="margin-top:0.9rem;">
+                            <label class="ptar-label" for="ptar-refcli-carga">Tu nº de albarán/pedido</label>
+                            <input type="text" id="ptar-refcli-carga" data-ptar-refcli class="ptar-select" placeholder="Ej. PED-0426 / ALB-1234">
+                        </div>
                         <div class="ptar-pair" style="margin-top:0.9rem;">
                         <div class="ptar-field">
                             <label class="ptar-label ptar-has-tip" tabindex="0">
@@ -5338,16 +5342,6 @@
             </div>
 
             <div class="ptar-fest-out" data-ptar-fest-box></div>
-
-            <div class="ptar-notes-wrap">
-                <button type="button" class="ptar-notes-toggle" data-ptar-refcli-toggle aria-expanded="false">
-                    <span class="pnt-icon" aria-hidden="true">+</span>
-                    Añadir tu nº de albarán/pedido (opcional)
-                </button>
-                <div class="ptar-notes-body" data-ptar-refcli-body hidden>
-                    <input type="text" id="ptar-refcli-carga" data-ptar-refcli class="ptar-select" placeholder="Ej. PED-0426 / ALB-1234">
-                </div>
-            </div>
 
             </div><!-- /form-2col-main -->
 
@@ -22760,7 +22754,8 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
     function sync() {
         var tr = sec.querySelector('[data-ptar-trampilla]'), ni = sec.querySelector('[data-ptar-nima]');
         var tx = sec.querySelector('[data-ptar-notes]');
-        if ((tr && tr.checked) || (ni && ni.checked) || (tx && tx.value.trim())) setOpen(true);
+        var rc = sec.querySelector('[data-ptar-refcli]');
+        if ((tr && tr.checked) || (ni && ni.checked) || (tx && tx.value.trim()) || (rc && rc.value.trim())) setOpen(true);
     }
     window.__opcionesSync = function () { setTimeout(sync, 0); };
     window.__opcionesReset = function () { setOpen(false); };
