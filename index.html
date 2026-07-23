@@ -133,7 +133,7 @@
                 "addressCountry": "ES"
             }
         ],
-        "areaServed": ["Espana", "Portugal", "Francia", "Alemania", "Italia", "Paises Bajos", "Belgica", "Luxemburgo", "Austria", "Polonia", "Republica Checa"],
+        "areaServed": ["Espana", "Portugal", "Francia", "Alemania", "Italia", "Paises Bajos", "Belgica", "Luxemburgo", "Austria", "Polonia", "Republica Checa", "Irlanda"],
         "priceRange": "$$",
         "openingHoursSpecification": [
             {
@@ -2832,7 +2832,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 </div>
                 <div class="svc-card-body">
                     <h3><span class="svc-title-hl">Exportación</span></h3>
-                    <p>Portugal, Francia, Alemania, Italia, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.</p>
+                    <p>Portugal, Francia, Alemania, Italia, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia, República Checa e Irlanda (Norte y Sur).</p>
                 </div>
             </div>
         </div>
@@ -2844,7 +2844,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="container">
         <p class="section-eyebrow reveal">Nuestra cobertura</p>
         <h2 class="section-title reveal">España y <span>Europa</span></h2>
-        <p class="section-desc reveal">Cubrimos España, Portugal, Francia, Alemania, Italia, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.</p>
+        <p class="section-desc reveal">Cubrimos España, Portugal, Francia, Alemania, Italia, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia, República Checa e Irlanda (Norte y Sur).</p>
     </div>
     <div class="cobertura-wrap reveal">
         <div class="cobertura-map-box" id="cobertura-map-box">
@@ -3116,7 +3116,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                         <div class="why-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></div>
                         <div class="why-text">
                             <h4>Cobertura Nacional e Internacional</h4>
-                            <p>Toda España + Import/Export: Portugal, Francia, Alemania, Italia, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.</p>
+                            <p>Toda España + Import/Export: Portugal, Francia, Alemania, Italia, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia, República Checa e Irlanda (Norte y Sur).</p>
                         </div>
                     </div>
                 </div>
@@ -3941,8 +3941,13 @@ function openLegal(tab) {
         var COVERED = {
             es:'España', pt:'Portugal', fr:'Francia', de:'Alemania',
             pl:'Polonia', it:'Italia', nl:'Países Bajos',
-            be:'Bélgica', at:'Austria', cz:'República Checa', lu:'Luxemburgo'
+            be:'Bélgica', at:'Austria', cz:'República Checa', lu:'Luxemburgo',
+            ie:'Irlanda (Norte y Sur)'
         };
+        // Irlanda del Norte es un path aparte (gb-nir, dentro del grupo gb del
+        // SVG): se resalta como cubierta junto a la República (ie) para que se
+        // vea la ISLA ENTERA, sin listarla como país separado en los textos.
+        var COVERED_PATHS_EXTRA = { 'gb-nir': 'Irlanda del Norte' };
         // Footer "Cobertura": generar lista a partir de COVERED para que
         // SIEMPRE este sincronizada con el mapa
         var footerList = document.getElementById('footer-cobertura');
@@ -3960,7 +3965,8 @@ function openLegal(tab) {
         }
         // Todos los paises europeos: tambien identificables al hover/tap
         // (no resaltados como cubiertos pero saber cual es cada uno)
-        var COUNTRY_NAMES = Object.assign({}, COVERED, {
+        var COUNTRY_NAMES = Object.assign({}, COVERED, COVERED_PATHS_EXTRA, {
+            'gb-gbn':'Reino Unido',
             ad:'Andorra', al:'Albania', ba:'Bosnia y Herzegovina', by:'Bielorrusia',
             bg:'Bulgaria', cy:'Chipre', dk:'Dinamarca', dz:'Argelia',
             ee:'Estonia', fi:'Finlandia', fo:'Islas Feroe', gb:'Reino Unido',
@@ -4058,7 +4064,7 @@ function openLegal(tab) {
                     var code = p.id.toLowerCase();
                     var name = COUNTRY_NAMES[code];
                     if (!name) return;
-                    if (COVERED[code]) {
+                    if (COVERED[code] || COVERED_PATHS_EXTRA[code]) {
                         p.classList.add('covered');
                         covered.push(p);
                     }
