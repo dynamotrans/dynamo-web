@@ -817,6 +817,8 @@
     <button type="button" class="scroll-hint" id="scrollHint" hidden onclick="window.scrollBy({ top: Math.round(window.innerHeight * 0.7), behavior: 'smooth' });"><span id="sh-text">Desliza para ACEPTAR</span> <span class="sh-arrow" aria-hidden="true">↓</span></button>
     <p class="foot"><a href="https://dynamotrans.com">dynamotrans.com</a></p>
 
+<!-- Selector de prefijos telefónicos mundial, buscable y localizado -->
+<script src="/js/prefijos.js"></script>
 <script>
     function q(k, def) { var v = new URLSearchParams(location.search).get(k); return v || def; }
     // Iconos SVG de línea (REGLA del proyecto: nada de emoticonos en la UI;
@@ -1566,7 +1568,7 @@
             var el = document.getElementById(id);
             if (el) { el.value = ''; el.classList.remove('err', 'valid'); }
         });
-        var pref = document.getElementById('f-pref'); if (pref) pref.value = '+34';
+        if (window.Prefijos) Prefijos.set('f-pref', '+34'); else { var pref = document.getElementById('f-pref'); if (pref) pref.value = '+34'; }
         ['new-tractora', 'new-remolque', 'new-chofer'].forEach(function (id) {
             var n = document.getElementById(id); if (n) n.classList.remove('show');
         });
@@ -1578,10 +1580,10 @@
         if (!c) return;
         var ch = document.getElementById('f-chofer'), dn = document.getElementById('f-dnichofer');
         ch.value = c.nombre || ''; dn.value = c.dni || '';
-        var pref = document.getElementById('f-pref'), tf = document.getElementById('f-tfno');
+        var tf = document.getElementById('f-tfno');
         var m = String(c.tel || '').match(/^(\+\d{1,3})\s*(.*)$/);
-        if (m && pref) {
-            if (Array.prototype.some.call(pref.options, function (o) { return o.value === m[1]; })) pref.value = m[1];
+        if (m) {
+            if (window.Prefijos) Prefijos.set('f-pref', m[1]);
             tf.value = m[2];
         } else { tf.value = c.tel || ''; }
         var nn = document.getElementById('new-chofer'); if (nn) nn.classList.remove('show');
@@ -2401,6 +2403,16 @@
             var seg = parseInt(q('t', '60'), 10); if (isNaN(seg) || seg < 2) seg = 60;
             var uwin = parseInt(q('u', '30'), 10); if (isNaN(uwin) || uwin < 1) uwin = 30;
             iniciarReserva(seg, uwin);
+        });
+    })();
+    // Selector de prefijo telefónico MUNDIAL, buscable y localizado, en el
+    // teléfono de la EMPRESA (alta) y del CONDUCTOR. Sustituye los <select>
+    // cortos por el desplegable con todos los prefijos (js/prefijos.js).
+    (function montarPrefijos() {
+        if (!window.Prefijos) return;
+        ['alta-pref', 'f-pref'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el && el.tagName === 'SELECT') Prefijos.montar(el);
         });
     })();
 </script>
