@@ -1199,7 +1199,8 @@
         .dash-modal-body { margin-bottom: 1.1rem; }
         /* Aviso de suspensión: CAJA roja con la línea + "Ampliar para ver más"
            FUERA de la caja, aparte (details debajo con el texto legal). */
-        .susp-caja { margin-top: 0.8rem; border: 1px solid rgba(220,38,38,0.35); border-radius: 9px; background: rgba(220,38,38,0.05); padding: 0.6rem 0.8rem; font-size: var(--fs-l); font-weight: 800; color: #dc2626; line-height: 1.5; }
+        .susp-caja { margin-top: 0.8rem; font-size: var(--fs-m); font-weight: 500; color: var(--gray-700); line-height: 1.55; }
+        .susp-caja strong { font-weight: 800; color: var(--navy); }
         .susp-details { margin-top: 0.35rem; }
         .susp-details > summary { cursor: pointer; list-style: none; display: block; }
         .susp-details > summary::-webkit-details-marker { display: none; }
@@ -22189,7 +22190,7 @@
                 var DIAS_LC = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
                 var _cancEn10 = 1; // MOCK; en backend, conteo real de la cuenta.
                 var suspBloque =
-                    '<div class="susp-caja">La cancelación reiterada de envíos puede conllevar la suspensión temporal o definitiva de la cuenta.</div>' +
+                    '<div class="susp-caja">La <strong>cancelación reiterada</strong> de envíos puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta.</div>' +
                     '<details class="susp-details">' +
                         '<summary><span class="susp-more">Ampliar para ver más</span></summary>' +
                         '<div class="susp-cuerpo">' +
