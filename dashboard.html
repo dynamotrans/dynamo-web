@@ -22201,7 +22201,7 @@
                 var cancelBody;
                 if (trasCorte) {
                     cancelBody =
-                        '<div style="margin-bottom:0.8rem;padding:0.7rem 0.8rem;background:rgba(220,38,38,0.10);border:1px solid rgba(220,38,38,0.45);border-radius:9px;font-size: var(--fs-l);line-height:1.55;color:#991b1b;">' +
+                        '<div style="margin-bottom:0.8rem;padding:0.7rem 0.8rem;background:rgba(220,38,38,0.10);border:1px solid rgba(220,38,38,0.45);border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#991b1b;">' +
                         '⚠ <strong>Cancelación con coste.</strong> Estás confirmando <strong>después de las 9:00 del primer día hábil anterior a la carga</strong>. Si cancelas a partir de ahora, puede conllevar un <strong>coste de hasta ' + eur2c(precioTotalConf) + '</strong> (el importe del servicio completo, IVA incl.). Si <strong>no tienes seguridad</strong> de que la carga está confirmada, <strong>no continúes</strong>: pulsa <strong>Editar datos</strong> y programa para otro momento.' +
                         '</div>' +
                         suspBloque;
@@ -22215,10 +22215,10 @@
                         : (remH > 0 ? remH + ' h ' : '') + remMin + ' min';
                     var corteTxt = DIAS_LC[corte9.getDay()] + ' ' + corte9.getDate() + ' a las 9:00';
                     cancelBody =
-                        '<div style="margin-bottom:0.8rem;padding:0.7rem 0.8rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:9px;font-size: var(--fs-l);line-height:1.55;color:#0f6b3a;">' +
+                        '<div style="margin-bottom:0.8rem;padding:0.7rem 0.8rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#0f6b3a;">' +
                         '✅ <strong>Cancelación gratuita hasta el ' + corteTxt + '</strong> (quedan <strong>' + remTxt + '</strong>). Dentro de esa ventana puedes cancelar sin coste.' +
                         '</div>' +
-                        '<p style="font-size: var(--fs-l);line-height:1.55;color:var(--gray-700);">Si el cliente cancela el servicio <strong>después</strong>, <strong>Dynamo Operador Logístico, S.L.</strong> se reserva el derecho de <strong>facturar el servicio completo</strong> en concepto de indemnización.</p>' +
+                        '<p style="font-size: var(--fs-m);line-height:1.55;color:var(--gray-700);margin:0;">Si el cliente cancela el servicio <strong>después</strong>, <strong>Dynamo Operador Logístico, S.L.</strong> se reserva el derecho de <strong>facturar el servicio completo</strong> en concepto de indemnización.</p>' +
                         suspBloque;
                 }
                 var titulo = '<div class="ptar-legal-head"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> IMPORTANTE: vas a confirmar un pedido de transporte</div>';
