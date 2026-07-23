@@ -4714,7 +4714,7 @@ function updateAlmTotal() {
         return out;
     }
     var DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-    function fmtDate(d) { return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); }
+    function fmtDate(d) { return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); }
     function fmtFull(d) { return DIAS[d.getDay()] + ' ' + fmtDate(d); }
     function dayLabel(d) {
         var now = new Date();
