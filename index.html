@@ -850,7 +850,10 @@
         .wiz-warn2.show { display: block; }
         .wiz-v2.wiz-s1 #tarifador-card .ptar-grid > [data-wstep]:not([data-wstep="1"]),
         .wiz-v2.wiz-s2 #tarifador-card .ptar-grid > [data-wstep]:not([data-wstep="2"]),
-        .wiz-v2.wiz-s3 #tarifador-card .ptar-grid > [data-wstep]:not([data-wstep="3"]) { display: none !important; }
+        .wiz-v2.wiz-s3 #tarifador-card .ptar-grid > [data-wstep]:not([data-wstep="3"]),
+        .wiz-v2.wiz-s1 #tarifador-card > [data-wstep]:not([data-wstep="1"]),
+        .wiz-v2.wiz-s2 #tarifador-card > [data-wstep]:not([data-wstep="2"]),
+        .wiz-v2.wiz-s3 #tarifador-card > [data-wstep]:not([data-wstep="3"]) { display: none !important; }
         .wiz-v2.wiz-s1 #tar-cta-wrap, .wiz-v2.wiz-s2 #tar-cta-wrap { display: none !important; }
         /* Altura IGUALADA entre pasos (a la del más alto) + botones abajo */
         .wiz-v2 #tarifador-card { display: flex; flex-direction: column; }
@@ -5549,6 +5552,15 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (ch.dataset) ch.dataset.wstep = String(step);
     });
+    // Lo que va DESPUÉS del grid dentro de la tarjeta (anotaciones, aviso de
+    // origen/destino) pertenece al paso 3 (el campo de anotaciones vive ahí).
+    (function () {
+        var tras = false;
+        Array.prototype.forEach.call(card.children, function (ch) {
+            if (ch === grid) { tras = true; return; }
+            if (tras && ch.dataset) ch.dataset.wstep = '3';
+        });
+    })();
     var bar = document.createElement('div');
     bar.className = 'wiz-bar';
     bar.innerHTML = ['Ruta', 'Mercancía', 'Fecha y solicitar'].map(function (lbl, i) {
@@ -5564,10 +5576,11 @@ document.addEventListener('DOMContentLoaded', function () {
         '</div>' +
         '<div class="wiz-warn2" data-wiz-warn>⚠ Indica el origen y el destino para continuar.</div>';
     card.appendChild(navWrap);
-    var cur = 1, inicial = true;
+    var cur = 1, inicial = true, midiendo = false;
     function paint() {
         cont.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
         cont.classList.add('wiz-s' + cur);
+        if (!midiendo) igualarAltura();
         Array.prototype.forEach.call(bar.querySelectorAll('.wiz-step'), function (el) {
             var n = parseInt(el.getAttribute('data-wiz-step'), 10);
             el.classList.toggle('act', n === cur);
@@ -5601,25 +5614,41 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     cont.classList.add('wiz-v2');
     paint();
-    // Igualar la ALTURA de los 3 pasos a la del más alto (normalmente el 3º):
-    // la tarjeta no salta al cambiar de paso y los botones no bailan.
+    // Igualar el TAMAÑO de los 3 pasos al del más alto: se mide en cada
+    // cambio de paso y de contenido (notas/avisos dinámicos), así los 3
+    // pasos son IDÉNTICOS en alto (el ancho ya es fijo) y nada salta.
     function igualarAltura() {
-        card.style.minHeight = '';
-        if (!card.offsetHeight) return; // tarifador aún oculto (móvil)
-        var actual = cur, max = 0;
+        if (midiendo) return;
+        midiendo = true;
+        card.style.minHeight = ''; card.style.minWidth = '';
+        if (!card.offsetHeight) { midiendo = false; return; } // aún oculto (móvil)
+        var actual = cur, maxH = 0, maxW = 0;
         [1, 2, 3].forEach(function (n) {
             cont.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
             cont.classList.add('wiz-s' + n);
-            max = Math.max(max, card.offsetHeight);
+            maxH = Math.max(maxH, card.offsetHeight);
+            maxW = Math.max(maxW, card.offsetWidth);
         });
         cont.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
         cont.classList.add('wiz-s' + actual);
-        if (max) card.style.minHeight = max + 'px';
+        if (maxH) card.style.minHeight = maxH + 'px';
+        // El ANCHO también se fija al del paso más ancho (sin pasarse del
+        // contenedor: en pantallas pequeñas manda el 100%).
+        if (maxW) card.style.minWidth = Math.min(maxW, (document.documentElement.clientWidth || maxW) - 24) + 'px';
+        midiendo = false;
     }
     igualarAltura();
     window.addEventListener('resize', function () {
         clearTimeout(window.__wizEqT);
         window.__wizEqT = setTimeout(igualarAltura, 200);
+    });
+    // El contenido cambia al elegir opciones (notas verdes, avisos, plegables):
+    // re-igualar en cada cambio dentro de la tarjeta.
+    ['change', 'click'].forEach(function (ev) {
+        card.addEventListener(ev, function () {
+            clearTimeout(window.__wizEqT2);
+            window.__wizEqT2 = setTimeout(igualarAltura, 120);
+        });
     });
     // En móvil el tarifador está oculto hasta pulsar "Precios": igualar al abrirse.
     var opBtnEq = document.getElementById('hero-cta-precios');
