@@ -3782,6 +3782,22 @@
             border-radius: 9px; padding: 0.55rem 0.75rem; margin-bottom: 0.15rem;
             display: flex; align-items: center; gap: 0.4rem;
         }
+        /* ===== RESUMEN en TARJETAS (diseño limpio, igual que aceptar-carga):
+           celdas etiqueta+valor y una tarjeta "Mercancía" con rejilla. ===== */
+        .sum2 { display: flex; flex-direction: column; gap: 0.6rem; }
+        .sum2-cell { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.6rem 0.8rem; }
+        .sum2-k { font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gray-500); margin-bottom: 0.15rem; }
+        .sum2-v { font-size: 1rem; font-weight: 800; color: var(--navy); line-height: 1.3; }
+        .sum2-merc { background: #fff; border: 1px solid var(--gray-200); border-radius: 14px; padding: 0.85rem 0.95rem; }
+        .sum2-merc-head { display: flex; align-items: center; gap: 0.5rem; color: var(--purple); margin-bottom: 0.7rem; }
+        .sum2-merc-head span { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+        .sum2-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+        .sum2-dm { margin-top: 0.75rem; padding-top: 0.7rem; border-top: 1px dashed var(--gray-300); font-size: var(--fs-m); font-weight: 600; color: var(--gray-700); line-height: 1.45; }
+        .sum2-dm b { display: block; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gray-500); margin-bottom: 0.25rem; }
+        .sum2-fecha-cell { background: rgba(34,165,90,0.1); border: 1px solid rgba(34,165,90,0.45); border-radius: 12px; padding: 0.6rem 0.8rem; }
+        .sum2-fecha-cell .sum2-k { color: #0f5132; }
+        .sum2-fecha { font-size: var(--fs-l); font-weight: 800; color: #0f5132; display: flex; align-items: center; gap: 0.4rem; line-height: 1.3; }
+        @media (max-width: 480px) { .sum2-grid { grid-template-columns: 1fr; } }
         .ptar-confirm-legal-link {
             margin-top: 0.9rem; font-size: var(--fs-m); color: var(--gray-500);
         }
@@ -5407,7 +5423,7 @@
             <div class="form-2col">
             <div class="form-2col-main">
             <h4 class="ptar-confirm-sumtitle">Resumen del transporte</h4>
-            <dl class="ptar-confirm-summary" data-ptar-summary></dl>
+            <div class="sum2" data-ptar-summary></div>
 
             <!-- Fichas de los lugares elegidos en el buscador (agenda o
                  Google): prerellenadas y EDITABLES. Lo corregido se guarda
@@ -21700,29 +21716,58 @@
                 }
                 // ENVÍO MANUAL: el resumen abre con los datos del TRANSPORTISTA
                 // elegido (nombre, CIF, teléfono y email de su ficha del catálogo).
-                var opSumHtml = '';
+                // ===== RESUMEN en TARJETAS (mismo diseño limpio que la página del
+                //  transportista aceptar-carga): celdas con etiqueta + valor y una
+                //  tarjeta "MERCANCÍA" con la rejilla de detalles + anotaciones. =====
+                function sumCell(k, v, full) {
+                    return '<div class="sum2-cell' + (full ? ' sum2-full' : '') + '"><div class="sum2-k">' + k + '</div><div class="sum2-v">' + escapeHtml(v) + '</div></div>';
+                }
+                // Operador (solo envío MANUAL con otro transportista).
+                var opCellHtml = '';
                 if (entryModeDe() === 'manual' && window._opSel && window._opSel !== 'Dynamo') {
                     var opS = null;
                     for (var osi = 0; osi < OPERADORES_DATA.length; osi++) if (OPERADORES_DATA[osi].nombre === window._opSel) { opS = OPERADORES_DATA[osi]; break; }
                     var opDet = opS ? [opS.cif ? 'CIF ' + opS.cif : null, opS.tfno || null, opS.email || null].filter(Boolean).join(' · ') : '';
-                    opSumHtml = '<dt>Transportista</dt><dd><strong style="color:#7a4f28;">' + escapeHtml(window._opSel) + '</strong>' +
-                        (opDet ? '<br><span style="font-size:var(--fs-s);color:var(--gray-600);">' + escapeHtml(opDet) + '</span>' : '') + '</dd>';
+                    opCellHtml = '<div class="sum2-cell sum2-full"><div class="sum2-k">Transportista</div>' +
+                        '<div class="sum2-v" style="color:#7a4f28;">' + escapeHtml(window._opSel) + '</div>' +
+                        (opDet ? '<div style="font-size:var(--fs-s);color:var(--gray-600);margin-top:0.15rem;">' + escapeHtml(opDet) + '</div>' : '') + '</div>';
                 }
+                // Detalle de la mercancía a partir de los campos elegidos.
+                var mlTxt = (d.ml === '13.2' ? '13,2' : d.ml) + ' metros';
+                var pesoKg = (Math.round(parseFloat(d.peso) * 1000)).toLocaleString('es-ES') + ' kg';
+                var cargaTipoV = cargaTipoSel ? cargaTipoSel.options[cargaTipoSel.selectedIndex].text : '';
+                var mercaV = mercaSel ? mercaSel.options[mercaSel.selectedIndex].text.split(/[—(]/)[0].trim() : '';
+                var trampV = (trampillaChk && trampillaChk.checked) ? 'Sí' : 'No';
+                var nimaV = d.nima ? 'Sí' : 'No';
+                // Texto de la fecha de recogida (rango de ventana o literal).
+                var fechaTxtClean = d.fechaLarga;
+                if (d.fechaIso) {
+                    var _ls2 = new Date(d.fechaIso + 'T00:00:00');
+                    var _le2 = d.ventanaDias <= 1 ? _ls2 : addBusinessDays(_ls2, d.ventanaDias - 1);
+                    fechaTxtClean = (_ls2.getTime() === _le2.getTime()) ? fmtEtaDate(_ls2) : 'del ' + fmtEtaDate(_ls2) + ' al ' + fmtEtaDate(_le2) + ' · cualquier día laborable';
+                }
+                var calSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+                var hexSvg = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>';
                 // El resumen NO repite recogidas/entregas: van solo abajo, en
                 // las fichas numeradas de "Datos de los lugares".
                 summaryEl.innerHTML =
-                    opSumHtml +
-                    '<dt>Tipo de camión</dt><dd>' + escapeHtml(d.camionLabel) + '</dd>' +
-                    (d.mercaTxt ? '<dt>Mercancía</dt><dd>' + escapeHtml(d.mercaTxt) + '</dd>' : '') +
-                    (d.nima ? '<dt>NIMA (residuos)</dt><dd>Sí</dd>' : '') +
-                    (d.adr ? '<dt>Mercancía ADR</dt><dd>Sí (mercancía peligrosa)</dd>' : '') +
-                    '<dt>Mercancía</dt><dd>' + escapeHtml(d.medidas) + '</dd>' +
-                    '<dt>Días de recogida</dt><dd>' + escapeHtml(d.urgenciaLabel) + '</dd>' +
-                    // Solo "Fecha de envío" (la de carga era redundante). Si hay
-                    // rango se usa ese; si no (previsión/a confirmar), el literal.
-                    (cargaRangoHtml || '<dt class="sum-fecha-dt">Fecha de recogida</dt><dd class="sum-fecha-dd"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' + escapeHtml(d.fechaLarga) + '</dd>') +
-                    (d.refCli && d.refCli.indexOf('NUEVO') === -1 ? '<dt>Tu referencia</dt><dd>' + escapeHtml(d.refCli) + '</dd>' : '') +
-                    (d.notes ? '<dt class="full">Anotaciones</dt><dd class="full">' + escapeHtml(d.notes) + '</dd>' : '');
+                    opCellHtml +
+                    sumCell('Tipo de camión', d.camionLabel, true) +
+                    '<div class="sum2-merc">' +
+                        '<div class="sum2-merc-head">' + hexSvg + '<span>Mercancía</span></div>' +
+                        '<div class="sum2-grid">' +
+                            sumCell('Metros lineales', mlTxt) +
+                            sumCell('Peso', pesoKg) +
+                            sumCell('Tipo de carga', cargaTipoV) +
+                            sumCell('Tipo', mercaV) +
+                            sumCell('Trampilla elevadora', trampV) +
+                            sumCell('Requiere NIMA', nimaV) +
+                        '</div>' +
+                        (d.notes ? '<div class="sum2-dm"><b>Anotaciones de la mercancía</b>' + escapeHtml(d.notes) + '</div>' : '') +
+                    '</div>' +
+                    (d.refCli && d.refCli.indexOf('NUEVO') === -1 ? sumCell('Tu referencia', d.refCli, true) : '') +
+                    sumCell('Días de recogida', d.urgenciaLabel, true) +
+                    '<div class="sum2-fecha-cell"><div class="sum2-k">Fecha de recogida</div><div class="sum2-fecha">' + calSvg + escapeHtml(fechaTxtClean) + '</div></div>';
                 // El PRECIO no va en el resumen: sale destacado justo antes del
                 // botón de confirmar (data-ptar-conf-price).
                 // Referencia y anotaciones se muestran en el RESUMEN (solo
