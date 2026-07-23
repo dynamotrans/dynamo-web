@@ -19382,20 +19382,34 @@
                     // Precio de la MISMA carga con una fecha fija posterior (+50) y
                     // con la ventana 1-3 días (sin suplemento), para los botones.
                     var totalFijaPost = subAntesFija + 50;
+                    // Fecha CONCRETA del "día siguiente disponible" (la 2ª opción
+                    // real del desplegable — la misma que aplica el botón), para
+                    // mostrarla en el título de la tarjeta.
+                    var sigTxt = '';
+                    if (diaSel) {
+                        var realesSig = Array.prototype.filter.call(diaSel.options, function (o) { return /^\d{4}-\d{2}-\d{2}$/.test(o.value); });
+                        var segundoSig = realesSig[1] || realesSig[0];
+                        if (segundoSig) {
+                            var pSig = segundoSig.value.split('-');
+                            sigTxt = ' · ' + fechaConDia(pSig[2] + '/' + pSig[1] + '/' + pSig[0]);
+                        }
+                    }
                     var optVentana = etaOpt('eta-opt-rec', icoVent, 'Recogida de 1 a 3 días', 'Recomendada',
                         'Lo más barato y seguro: el 80% de las veces cargamos en los 2 primeros días.', eur2(subAntesFija), '__ptarUsarVentana');
+                    // El aviso y las tarjetas de alternativas van DESPUÉS de la
+                    // caja de precio (orden pedido por el usuario 2026-07-22).
                     if (esUrgente) {
-                        hoyHtml = '<div class="ptar-eta-fija">' +
+                        postHtml = '<div class="ptar-eta-fija" style="margin-top:0.8rem;">' +
                             '<div class="eta-fija-head"><strong>Has elegido fecha fija urgente</strong> (el primer día disponible). ' +
                             (esHoy ? '<strong>Es para HOY</strong>: no podemos garantizar cargar en el día y cancelar tendría coste. ' : '') +
                             'Si ese día no hay vehículo, habría que reprogramar a otra fecha. Puedes cambiar a:</div>' +
                             '<div class="eta-opts">' +
-                                etaOpt('', icoFija, 'Fecha fija · día siguiente disponible', '',
+                                etaOpt('', icoFija, 'Fecha fija · día siguiente disponible' + sigTxt, '',
                                     'Un día concreto, algo más económico que cargar hoy.', eur2(totalFijaPost), '__ptarUsarFijaPosterior') +
                                 optVentana +
                             '</div></div>';
                     } else {
-                        hoyHtml = '<div class="ptar-eta-fija">' +
+                        postHtml = '<div class="ptar-eta-fija" style="margin-top:0.8rem;">' +
                             '<div class="eta-fija-head"><strong>Has elegido fecha fija</strong> (un día concreto). ' +
                             'Si ese día no hay vehículo, habría que reprogramar a otra fecha. También puedes cambiar a:</div>' +
                             '<div class="eta-opts">' + optVentana + '</div></div>';
