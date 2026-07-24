@@ -1137,8 +1137,14 @@
         @media (max-width: 600px) {
             .tarifador {
                 padding: 0.6rem 0.7rem 0.7rem; border-radius: 14px;
+                /* Margen lateral en móvil: la tarjeta deja ~0,9rem a cada lado
+                   (antes pegaba a los bordes). El ancho se fija al viewport menos
+                   ese margen y la tarjeta interna pasa a 100% (antes usaba
+                   calc(100vw - 24px), que la empujaba a todo el ancho). */
+                width: calc(100vw - 1.8rem); max-width: calc(100vw - 1.8rem);
                 margin: 0 auto 0.4rem;
             }
+            #tarifador-card, .wiz-v2 #tarifador-card { width: 100%; max-width: 100%; }
             .tar-title { font-size: 1.15rem; line-height: 1.15; letter-spacing: -0.3px; }
             .tar-sub { font-size: 0.85rem; }
             .tar-head { margin-bottom: 0.4rem; }
