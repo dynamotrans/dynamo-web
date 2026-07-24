@@ -3733,6 +3733,8 @@
         .eta-opt-body { flex: 1; min-width: 0; }
         .eta-opt-tit { font-size: var(--fs-m); font-weight: 800; color: var(--navy); display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
         .eta-opt-sub { font-size: var(--fs-s); font-weight: 600; color: var(--gray-500); line-height: 1.4; margin-top: 0.1rem; }
+        /* Ahorro respecto a la fecha elegida (más cara): verde y en negrita. */
+        .eta-opt-ahorro { display: block; font-size: var(--fs-m); font-weight: 800; color: var(--green-dark); margin-top: 0.2rem; }
         .eta-opt-price { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
         .eta-opt-eur { font-size: 1.02rem; font-weight: 900; color: var(--navy); white-space: nowrap; }
         .eta-opt-rec .eta-opt-eur { color: var(--green-dark); }
@@ -20178,12 +20180,13 @@
                 // corta de grupaje.
                 var icoFija = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="12" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg>';
                 var icoVent = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M7 15h10"/></svg>';
-                function etaOpt(cls, ico, tit, badge, sub, eur, fn) {
+                function etaOpt(cls, ico, tit, badge, sub, eur, fn, ahorro) {
                     return '<button type="button" class="eta-opt' + (cls ? ' ' + cls : '') + '" onclick="if (window.' + fn + ') ' + fn + '();">' +
                         '<span class="eta-opt-ico">' + ico + '</span>' +
                         '<span class="eta-opt-body">' +
                             '<span class="eta-opt-tit">' + tit + (badge ? ' <span class="eta-badge">' + badge + '</span>' : '') + '</span>' +
                             '<span class="eta-opt-sub">' + sub + '</span>' +
+                            (ahorro > 0 ? '<span class="eta-opt-ahorro">Ahorras ' + eur2(ahorro) + '</span>' : '') +
                         '</span>' +
                         '<span class="eta-opt-price"><span class="eta-opt-eur">' + eur + '</span><span class="eta-opt-go">Elegir ›</span></span>' +
                     '</button>';
@@ -20239,8 +20242,11 @@
                             sigTxt = ' · ' + fechaConDia(pSig[2] + '/' + pSig[1] + '/' + pSig[0]);
                         }
                     }
+                    // Precio ACTUAL (la fecha elegida, con su suplemento de fecha
+                    // fija) para calcular cuánto se AHORRA en cada alternativa.
+                    var refActual = subAntesFija + preavisoExtra;
                     var optVentana = etaOpt('eta-opt-rec', icoVent, 'Recogida de 1 a 3 días', 'Recomendada',
-                        'Lo más barato y seguro: el 80% de las veces cargamos en los 2 primeros días.', eur2(subAntesFija), '__ptarUsarVentana');
+                        'Lo más barato y seguro: el 80% de las veces cargamos en los 2 primeros días.', eur2(subAntesFija), '__ptarUsarVentana', refActual - subAntesFija);
                     // El aviso y las tarjetas de alternativas van DESPUÉS de la
                     // caja de precio (orden pedido por el usuario 2026-07-22).
                     if (esUrgente) {
@@ -20248,7 +20254,7 @@
                             '<div class="eta-fija-head">Has seleccionado <strong>FECHA FIJA URGENTE</strong>, si ese día no hay vehículo, habría que reprogramar a otra fecha.<br><strong>¿No te corre prisa?</strong> Puedes cambiar a:</div>' +
                             '<div class="eta-opts">' +
                                 etaOpt('', icoFija, 'Fecha fija · día siguiente disponible' + sigTxt, '',
-                                    'Un día concreto, algo más económico que cargar hoy.', eur2(totalFijaPost), '__ptarUsarFijaPosterior') +
+                                    'Un día concreto, algo más económico que cargar hoy.', eur2(totalFijaPost), '__ptarUsarFijaPosterior', refActual - totalFijaPost) +
                                 optVentana +
                             '</div></div>';
                     } else {
