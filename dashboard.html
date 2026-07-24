@@ -91,6 +91,8 @@
            OCULTA a cualquier rol que no sea admin. En producción el rol y la
            seguridad los impone el backend (auth + row-level security). */
         body:not([data-role="admin"]) [data-roles="admin"] { display: none !important; }
+        /* La columna "Estado" de Incidencias la gestiona Dynamo: oculta al cliente. */
+        body:not([data-role="admin"]) .inc-col-estado { display: none !important; }
 
         /* =========================================
            SIDEBAR
@@ -5235,7 +5237,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>F. registro</th><th>Descripción</th><th>Nº envío</th><th>Ref. cliente</th><th>F. carga · Días de recogida</th><th>Ruta</th><th>m · kg</th><th>Estado</th>
+                    <th>F. registro</th><th>Descripción</th><th>Nº envío</th><th>Ref. cliente</th><th>F. carga · Días de recogida</th><th>Ruta</th><th>m · kg</th><th class="inc-col-estado">Estado</th>
                 </tr></thead>
                 <tbody id="tbodyIncidencias"></tbody>
             </table>
@@ -12930,10 +12932,15 @@
     function abrirNuevaIncidencia(editId) {
         var inc = editId ? (INCIDENCIAS_DATA.filter(function (x) { return x.__id === editId; })[0] || null) : null;
         _incEditId = inc ? inc.__id : null;
+        // Rol: el CLIENTE puede CREAR incidencias, pero NO modificarlas ni
+        // cancelarlas, y NO ve/gestiona el Estado (lo lleva Dynamo). Abrir una
+        // existente siendo cliente = solo lectura.
+        var esAdminInc = (window.getRole ? window.getRole() : 'admin') === 'admin';
+        var incSoloLectura = !!inc && !esAdminInc;
         openDashModal({
             icon: 'alert', iconVariant: 'warn',
-            title: inc ? 'Editar incidencia' : 'Reportar incidencia',
-            sub: inc ? 'Cambia lo que necesites y guarda' : 'Cuéntanos lo ocurrido para actuar rápido',
+            title: inc ? (esAdminInc ? 'Editar incidencia' : 'Detalle de incidencia') : 'Reportar incidencia',
+            sub: inc ? (esAdminInc ? 'Cambia lo que necesites y guarda' : 'Detalle de la incidencia') : 'Cuéntanos lo ocurrido para actuar rápido',
             body:
                 (inc ? ctMetaHTML({ creadoTxt: fechaConDia(inc.fr) + ' · ' + (inc.hora || ''), modificadoEn: inc.modificadoEn }) : '') +
                 '<div class="modal-form-row"><label>Envío relacionado <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label>' +
@@ -12953,12 +12960,13 @@
                     '<option value="transportista">Incidencia con algún transportista/conductor</option>' +
                     '<option value="otros">Otros</option>' +
                 '</select></div>' +
+                (esAdminInc ?
                 '<div class="modal-form-row"><label>Estado</label>' +
                 '<select id="incGenEstado">' +
                     '<option value="abierta" selected>Abierta</option>' +
                     '<option value="resuelta">Resuelta</option>' +
                     '<option value="cancelada">Cancelada</option>' +
-                '</select></div>' +
+                '</select></div>' : '') +
                 '<div class="modal-form-row"><label>Detalle de la incidencia *</label><textarea id="incGenTxt" required placeholder="Describe lo ocurrido: daños, retraso, mercancía incorrecta, falta de albarán firmado…"></textarea></div>' +
                 '<div class="modal-form-row"><label>Adjuntar fotos / documentos</label>' +
                 '<div class="modal-file-drop" onclick="document.getElementById(\'incidFiles\').click()">' +
@@ -12967,10 +12975,10 @@
                 '<input type="file" id="incidFiles" multiple accept="image/*,.pdf" style="display:none">' +
                 '<ul class="modal-file-list" id="incidFilesList"></ul></div>',
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cerrar</button>' +
-                    (inc && inc.estado !== 'cancelada' && inc.estado !== 'resuelta'
+                    (esAdminInc && inc && inc.estado !== 'cancelada' && inc.estado !== 'resuelta'
                         ? '<button class="btn-primary" style="background:var(--red);" onclick="incCancelarAsk(' + inc.__id + ');return false;">Cancelar incidencia</button>'
                         : '') +
-                    '<button class="btn-primary" onclick="incGenConfirm()">Guardar incidencia</button>',
+                    ((!inc || esAdminInc) ? '<button class="btn-primary" onclick="incGenConfirm()">Guardar incidencia</button>' : ''),
             afterOpen: function () {
                 // Lista de adjuntos con el comportamiento común (ver + confirmar borrado).
                 window._incFilesTmp = (inc && inc.docs ? inc.docs.slice() : []);
@@ -12981,6 +12989,16 @@
                     var ts = document.getElementById('incGenTipo'); if (ts && inc.cat) ts.value = inc.cat;
                     var es = document.getElementById('incGenEstado'); if (es) es.value = inc.estado || 'abierta';
                     var tx = document.getElementById('incGenTxt'); if (tx) tx.value = inc.det || inc.tit || '';
+                }
+                // CLIENTE viendo una incidencia existente: solo lectura. Se
+                // bloquean los campos y se oculta la subida de adjuntos (la lista
+                // de los ya subidos sí se ve).
+                if (incSoloLectura) {
+                    ['incEnvSearch', 'incGenTipo', 'incGenTxt'].forEach(function (id) {
+                        var el = document.getElementById(id); if (el) { el.disabled = true; el.readOnly = true; }
+                    });
+                    var clr = document.getElementById('incEnvClearBtn'); if (clr) clr.style.display = 'none';
+                    var drop = document.querySelector('#dashModal .modal-file-drop'); if (drop) drop.style.display = 'none';
                 }
             }
         });
@@ -13804,7 +13822,7 @@
                 '<td><strong>' + esc(x.fcarga) + '</strong><div class="meta">' + esc(x.ventana) + '</div></td>' +
                 '<td class="route"><strong>' + esc(x.orig) + '</strong><span class="arrow">→</span><strong>' + esc(x.dest) + '</strong></td>' +
                 '<td class="amount">' + esc(x.med) + '</td>' +
-                '<td><span class="badge ' + e.badge + '">' + e.label + '</span></td>' +
+                '<td class="inc-col-estado"><span class="badge ' + e.badge + '">' + e.label + '</span></td>' +
             '</tr>';
         }).join('');
     }
