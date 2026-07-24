@@ -3415,6 +3415,8 @@
         .ptar-sitio-head-hor { display: block; font-size: var(--fs-m); color: var(--gray-500); font-weight: 500; margin-top: 2px; }
         .ptar-sitio-head-fecha { display: block; font-size: var(--fs-l); color: var(--navy); font-weight: 800; margin-top: 4px; }
         .ptar-sitio-head-dir { display: block; font-size: var(--fs-m); color: var(--gray-700); font-weight: 700; margin-top: 2px; }
+        /* Nombre de empresa en la cabecera del sitio: SIN negrita (peso normal). */
+        .ptar-sitio-head-empn { display: block; font-size: var(--fs-m); color: var(--gray-700); font-weight: 500; margin-top: 2px; }
         .ptar-sitio-chev {
             flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%;
             background: var(--gray-100); border: 1px solid var(--gray-200);
@@ -3636,8 +3638,10 @@
            abajo. En 1 columna (móvil) la .form-2col es block y la botonera, al
            ser el último hijo, queda al fondo del todo (tras el precio). */
         @media (min-width: 1200px) {
+            /* Pasos 3 y 4: columnas 60% (izquierda) / 40% (derecha). */
+            #sec-nueva-carga.wiz-v2 .ptar-card[data-ptar-mode] .form-2col,
+            #sec-nueva-carga .ptar-confirm-card .form-2col { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
             #sec-nueva-carga.wiz-v2 .ptar-card[data-ptar-mode] .form-2col {
-                grid-template-columns: 660px minmax(0, 1fr);
                 grid-template-rows: auto 1fr;
                 grid-template-areas: "main side" "nav side";
             }
@@ -20229,9 +20233,7 @@
                     // caja de precio (orden pedido por el usuario 2026-07-22).
                     if (esUrgente) {
                         postHtml = '<div class="ptar-eta-fija" style="margin-top:0.8rem;">' +
-                            '<div class="eta-fija-head"><strong>Has elegido fecha fija urgente</strong> (el primer día disponible). ' +
-                            (esHoy ? '<strong>Es para HOY</strong>: no podemos garantizar cargar en el día y cancelar tendría coste. ' : '') +
-                            'Si ese día no hay vehículo, habría que reprogramar a otra fecha.<br><strong>¿No te corre prisa?</strong> Puedes cambiar a:</div>' +
+                            '<div class="eta-fija-head">Si ese día no hay vehículo, habría que reprogramar a otra fecha.<br><strong>¿No te corre prisa?</strong> Puedes cambiar a:</div>' +
                             '<div class="eta-opts">' +
                                 etaOpt('', icoFija, 'Fecha fija · día siguiente disponible' + sigTxt, '',
                                     'Un día concreto, algo más económico que cargar hoy.', eur2(totalFijaPost), '__ptarUsarFijaPosterior') +
@@ -21952,7 +21954,7 @@
                     // nº + Recogida/Entrega + tipo de lugar con icono entre
                     // paréntesis; luego fecha (destacada), horario y dirección.
                     // La empresa y el resto de datos se ven/editan al desplegar.
-                    function cardHead(rolHtml, tipo, dirLine, warnHtml, horario, fecha) {
+                    function cardHead(rolHtml, tipo, dirLine, warnHtml, horario, fecha, empresa) {
                         var tipoHtml = '';
                         if (tipo && TIPOS_LUGAR.indexOf(tipo) !== -1) {
                             var esp = tipo !== 'Almacén / Nave';
@@ -21966,6 +21968,7 @@
                             (fecha ? '<span class="ptar-sitio-head-fecha">' + escapeHtml(fecha) + '</span>' : '') +
                             (horario ? '<span class="ptar-sitio-head-hor">(' + escapeHtml(horario) + ')</span>' : '') +
                             (dirLine ? '<span class="ptar-sitio-head-dir">' + escapeHtml(dirLine) + '</span>' : '') +
+                            (empresa ? '<span class="ptar-sitio-head-empn">' + escapeHtml(empresa) + '</span>' : '') +
                             (warnHtml || '') +
                             '</span>' + CHEV + '</button>';
                     }
@@ -22075,7 +22078,7 @@
                             var calleA = calleCorta(s), dirA = s.dir || '';
                             var mapsA = s.maps ? ' · <a href="' + escapeHtml(s.maps) + '" target="_blank" rel="noopener" style="color:var(--purple);font-weight:700;text-decoration:none;">Ver en Maps</a>' : '';
                             return '<div class="ptar-sitio-card">' +
-                                cardHead(rolHtml, (effTipo || 'Almacén / Nave'), (s.dir || ''), warnHead, s.horario, fechaCab) +
+                                cardHead(rolHtml, (effTipo || 'Almacén / Nave'), (s.dir || ''), warnHead, s.horario, fechaCab, s.empresa) +
                                 '<div class="ptar-sitio-body">' +
                                     '<div class="ptar-sitio-body-meta"><strong style="color:var(--purple);">Almacén Dynamo</strong> · datos fijos (se editan en la sección Almacenes)' + mapsA + '</div>' +
                                     '<div class="ptar-sitio-grid">' +
@@ -22101,7 +22104,7 @@
                         // Google, la parte tras el CP; para agenda, s.dir).
                         var dirHead = p.pick.tipo === 'guardado' ? (s.dir || '') : (splitDirPorCP(s.dir || '').resto || s.dir || '');
                         return '<div class="ptar-sitio-card">' +
-                            cardHead(rolHtml, effTipo, dirHead, warnHead, s.horario, fechaCab) +
+                            cardHead(rolHtml, effTipo, dirHead, warnHead, s.horario, fechaCab, s.empresa) +
                             '<div class="ptar-sitio-body">' +
                                 '<div class="ptar-sitio-body-meta">' + escapeHtml(fuente) + mapsLink + '</div>' +
                                 '<div class="ptar-sitio-grid">' +
