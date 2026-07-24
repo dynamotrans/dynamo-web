@@ -3619,6 +3619,17 @@
         #sec-nueva-carga.wiz-v2.wiz-s2 .ptar-card[data-ptar-mode] .form-2col-side { display: none !important; }
         #sec-nueva-carga.wiz-v2.wiz-s1 .ptar-card[data-ptar-mode] .form-2col,
         #sec-nueva-carga.wiz-v2.wiz-s2 .ptar-card[data-ptar-mode] .form-2col { display: block !important; }
+        /* Con el asistente, la navegación (← Atrás · Siguiente →) es la ÚNICA
+           botonera y vive SIEMPRE al fondo de la tarjeta (la .wiz-navwrap, tras
+           la columna del precio). Se ocultan los botones antiguos de la columna
+           lateral (Ver resumen y precio / Atrás) para no duplicarlos; el submit
+           sigue en el DOM y se dispara desde "Siguiente" del paso 3. */
+        #sec-nueva-carga.wiz-v2 .ptar-actions-main { display: none !important; }
+        .wiz-navwrap { display: none; }
+        .wiz-v2 .wiz-navwrap { display: block; }
+        @media (min-width: 1200px) {
+            #sec-nueva-carga.wiz-v2 .form-2col > .wiz-navwrap { grid-column: 1 / -1; }
+        }
         /* Sin hueco muerto: los contenedores de aviso vacíos (corte de fecha,
            avisos de fecha) no ocupan fila de la rejilla cuando su contenido está
            oculto. Así no queda un gran espacio entre la fecha y la caja de precio. */
@@ -22735,14 +22746,17 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
     }).join('');
     card.parentNode.insertBefore(bar, card);
     var navWrap = document.createElement('div');
+    navWrap.className = 'wiz-navwrap';
     navWrap.innerHTML =
         '<div class="wiz-nav">' +
             '<button type="button" class="btn-ghost" data-wiz-prev>← Atrás</button>' +
             '<button type="button" class="btn-primary" data-wiz-next>Siguiente →</button>' +
         '</div>' +
         '<div class="wiz-warn" data-wiz-warn>⚠ Elige el origen y el destino (de la lista) para continuar.</div>';
-    grid.parentNode.appendChild(navWrap);
-    // "← Atrás" de los pasos 1-2: paso 1 → dashboard, paso 2 → paso 1.
+    // La botonera va al FINAL de la tarjeta (después de la columna del precio),
+    // para que en TODOS los pasos quede siempre abajo del todo.
+    (grid.parentNode.parentNode || grid.parentNode).appendChild(navWrap);
+    // "← Atrás": paso 2 → paso 1, paso 3 → paso 2 (en el paso 1 se oculta).
     navWrap.querySelector('[data-wiz-prev]').addEventListener('click', function () {
         if (window.__envioWizPrev) window.__envioWizPrev(); else if (window.showSection) showSection('dashboard');
     });
@@ -22764,11 +22778,11 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
         sec.classList.remove('wiz-s1', 'wiz-s2', 'wiz-s3');
         sec.classList.add('wiz-s' + cur);
         markBar(cur);
-        // "Siguiente →" avanza en los pasos 1 y 2. En el paso 3 (Fecha y precio)
-        // las acciones están en la columna del precio (Ver resumen · Atrás), así
-        // que la navegación de abajo sobra y se oculta.
-        navWrap.querySelector('[data-wiz-next]').style.display = cur === 3 ? 'none' : '';
-        navWrap.style.display = cur === 3 ? 'none' : '';
+        // Botonera SIEMPRE visible al fondo. "← Atrás" no se muestra en el paso 1.
+        // "Siguiente →" avanza (pasos 1-2) o abre la revisión (paso 3).
+        navWrap.style.display = '';
+        navWrap.querySelector('[data-wiz-next]').style.display = '';
+        navWrap.querySelector('[data-wiz-prev]').style.display = cur === 1 ? 'none' : '';
         navWrap.querySelector('[data-wiz-warn]').classList.remove('show');
         sec.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }
@@ -22779,6 +22793,14 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
     navWrap.querySelector('[data-wiz-next]').addEventListener('click', function () {
         if (cur === 1 && !origenDestinoOk()) {
             navWrap.querySelector('[data-wiz-warn]').classList.add('show');
+            return;
+        }
+        // Paso 3 (Fecha y precio): "Siguiente" abre la revisión/confirmación
+        // (equivale al antiguo "Ver resumen y precio", que sigue oculto en la
+        // columna del precio y hace la validación de los sitios).
+        if (cur === 3) {
+            var sb = sec.querySelector('[data-ptar-submit]');
+            if (sb) sb.click();
             return;
         }
         cur = Math.min(3, cur + 1); paint();
