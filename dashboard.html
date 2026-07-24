@@ -3649,6 +3649,10 @@
             #sec-nueva-carga.wiz-v2 .ptar-card[data-ptar-mode] .form-2col {
                 grid-template-rows: auto 1fr;
                 grid-template-areas: "main side" "nav side";
+                /* Sin hueco de fila entre los campos (fila 1) y la botonera
+                   (fila 2): así los botones quedan pegados bajo los desplegables
+                   (el column-gap entre columnas se mantiene). */
+                row-gap: 0;
             }
             #sec-nueva-carga.wiz-v2 .ptar-card[data-ptar-mode] .form-2col > .form-2col-main { grid-area: main; }
             #sec-nueva-carga.wiz-v2 .ptar-card[data-ptar-mode] .form-2col > .form-2col-side { grid-area: side; align-self: start; }
@@ -3682,6 +3686,9 @@
            de recogida), para leerlo de un vistazo. Solo cuando hay fecha elegida. */
         select.ptar-dia-naranja { color: var(--orange); font-weight: 800; }
         select.ptar-dia-naranja.ptar-select-warn { color: var(--gray-500); font-weight: 600; }
+        /* Desplegable de urgencia: ROJO en Fecha fija · VERDE en 1 a 3 días. */
+        select.ptar-urg-rojo { color: #dc2626; font-weight: 800; }
+        select.ptar-urg-verde { color: var(--green-dark); font-weight: 800; }
         .ptar-eta-data .ptar-eta-precio { color: var(--purple); font-weight: 900; font-size: 1.05rem; }
         .ptar-eta-data .ptar-eta-precio .ptar-iva { color: var(--gray-500); font-weight: 600; font-size: var(--fs-s); white-space: nowrap; }
         .ptar-eta-pricebox { margin: 0.35rem 0 0; }
@@ -5571,7 +5578,7 @@
                 <div class="ptar-terms-box">
                     <label class="ptar-confirm-check">
                         <input type="checkbox" data-ptar-check-terms>
-                        <span><strong>Condiciones generales de transporte</strong> (obligatorio). He leído y acepto las <a href="#" class="ptar-inline-link" data-ptar-show-terms>condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L.</span>
+                        <span>He leído y acepto las <a href="#" class="ptar-inline-link" data-ptar-show-terms>condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L. (obligatorio).</span>
                     </label>
                 </div>
                 <div class="ptar-terms-warn" data-ptar-terms-warn>⚠ No has aceptado las condiciones generales de transporte. Marca la casilla para poder confirmar el envío.</div>
@@ -8881,7 +8888,7 @@
                     '<div class="ptar-terms-box">' +
                         '<label class="ptar-confirm-check" id="almcCheckLbl">' +
                             '<input type="checkbox" id="almcCheckTerms">' +
-                            '<span><strong>Condiciones generales de transporte</strong> (obligatorio). He leído y acepto las condiciones generales de transporte de Dynamo Operador Logístico, S.L.</span>' +
+                            '<span>He leído y acepto las condiciones generales de transporte de Dynamo Operador Logístico, S.L. (obligatorio).</span>' +
                         '</label>' +
                         '<a href="#" class="ptar-terms-link" id="almcTermsLink">Ver condiciones generales de transporte →</a>' +
                     '</div>' +
@@ -22927,9 +22934,18 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
     }
     dia.addEventListener('change', syncWarn);
     var urg = sec.querySelector('[data-ptar-urgencia]');
-    if (urg) urg.addEventListener('change', function () { setTimeout(syncWarn, 50); });
+    // Color del desplegable de urgencia: ROJO en Fecha fija · VERDE en ventana
+    // (1 a 3 días / grupaje 1-2). Se re-aplica al cambiar y al Limpiar.
+    function syncUrgColor() {
+        if (!urg) return;
+        var esFija = urg.value === 'dia';
+        urg.classList.toggle('ptar-urg-rojo', esFija);
+        urg.classList.toggle('ptar-urg-verde', !esFija);
+    }
+    if (urg) urg.addEventListener('change', function () { syncUrgColor(); setTimeout(syncWarn, 50); });
     var resetBtn = document.querySelector('#sec-nueva-carga [data-ptar-reset]');
-    if (resetBtn) resetBtn.addEventListener('click', function () { setTimeout(syncWarn, 100); });
+    if (resetBtn) resetBtn.addEventListener('click', function () { setTimeout(function () { syncWarn(); syncUrgColor(); }, 100); });
+    syncUrgColor();
     // Si el select se reconstruye por código (fillDiaSelect), re-evaluar.
     new MutationObserver(function () { setTimeout(syncWarn, 0); })
         .observe(dia, { childList: true });
