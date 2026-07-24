@@ -12513,21 +12513,21 @@
         // gestiona su operador, no Dynamo.)
         if (!src.manual && (kind === 'programada' || kind === 'en-ruta')) {
             var asigLbl = (src.transportistaAsignado || src.transportistaNombre) ? 'Cambiar transportista' : 'Asignar transportista';
-            var asigBtn = '<button class="' + (asigLbl === 'Asignar transportista' ? 'btn-primary' : 'btn-secondary') + '" onclick="closeDashModal();openAsignarTransportista(\'' + ref + '\')">' + icon('truck') + asigLbl + '</button>';
+            var asigBtn = '<button data-roles="admin" class="' + (asigLbl === 'Asignar transportista' ? 'btn-primary' : 'btn-secondary') + '" onclick="closeDashModal();openAsignarTransportista(\'' + ref + '\')">' + icon('truck') + asigLbl + '</button>';
             if (asigLbl === 'Asignar transportista') btns.unshift(asigBtn); else btns.push(asigBtn);
         }
         // OFRECER CARGA a transportistas (uso interno/admin): genera el
         // mensaje de email/WhatsApp con PAGO CONTADO y el enlace a la página
         // de aceptación. Solo en programadas SIN transportista asignado.
         if (kind === 'programada' && !isPrevision && !src.manual && !(src.transportistaAsignado || src.transportistaNombre)) {
-            btns.push('<button class="btn-secondary" onclick="closeDashModal();openOfrecerCarga(\'' + ref + '\')">' +
+            btns.push('<button data-roles="admin" class="btn-secondary" onclick="closeDashModal();openOfrecerCarga(\'' + ref + '\')">' +
                 '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:0.35rem;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Ofrecer carga (transportistas)</button>');
         }
         // CREAR PENALIZACIÓN (uso interno/admin; al montar el gating se
         // ocultará al cliente): abre el modal de penalización con este
         // envío ya seleccionado y su ficha de contexto. No aplica a los
         // envíos manuales (Dynamo no interviene en esos transportes).
-        if (!src.manual) btns.push('<button class="btn-secondary" onclick="closeDashModal();openNuevaPenalizacion(null,\'' + ref + '\')">' +
+        if (!src.manual) btns.push('<button data-roles="admin" class="btn-secondary" onclick="closeDashModal();openNuevaPenalizacion(null,\'' + ref + '\')">' +
             '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:0.35rem;"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>Crear penalización</button>');
         // CMR RELLENO (PDF): carta de porte con los datos del envío ya
         // cumplimentados, para imprimir/firmar o mandarla al transportista
