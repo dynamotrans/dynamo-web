@@ -5761,7 +5761,7 @@
     <section class="section" id="sec-penalizaciones">
         <div class="sec-header">
             <h2>Penalizaciones</h2>
-            <button class="btn-primary" onclick="openNuevaPenalizacion();return false;">+ Crear penalización</button>
+            <button class="btn-primary" data-roles="admin" onclick="openNuevaPenalizacion();return false;">+ Crear penalización</button>
         </div>
         <div class="tabs" data-pen-tabs>
             <button class="tab active" data-pen-filter="pendiente">Pendientes de confirmar (<span data-pen-count="pendiente">0</span>)</button>
@@ -15825,19 +15825,22 @@
             '<div class="modal-form-row"><label>Descripción</label><textarea id="penDesc" placeholder="Describe el motivo de la penalización…"></textarea></div>' +
             '<div class="modal-form-row"><label>Importe <span style="color:var(--gray-500);font-weight:600;">· sin IVA</span></label><input type="number" id="penImporte" min="0" step="10" inputmode="decimal" placeholder="0"></div>' +
             '<p class="alm-err" id="penErr"></p>';
+        // Rol: el CLIENTE solo VE las penalizaciones (no crea, edita, confirma
+        // ni cancela). Para no-admin el modal es de solo lectura.
+        var esAdminPen = (window.getRole ? window.getRole() : 'admin') === 'admin';
         openDashModal({
             icon: 'alert',
-            title: p ? 'Editar penalización ' + p.ref : 'Crear penalización',
-            sub: p ? 'Cambia lo que necesites y guarda' : 'Asóciala a un envío y su transportista',
+            title: p ? ((esAdminPen ? 'Editar' : 'Detalle de') + ' penalización ' + p.ref) : 'Crear penalización',
+            sub: p ? (esAdminPen ? 'Cambia lo que necesites y guarda' : 'Detalle de la penalización') : 'Asóciala a un envío y su transportista',
             body: body,
             footer: '<button class="btn-ghost" onclick="closeDashModal();return false;" style="flex:1;">Cerrar</button>' +
-                    (p && !p.anulada
+                    (esAdminPen && p && !p.anulada
                         ? '<button class="btn-primary" style="flex:1;background:var(--red);" onclick="penCancelarAsk(\'' + escapeHtml(p.ref) + '\');return false;">Cancelar penalización</button>'
                         : '') +
-                    (p && !p.anulada && !p.confirmada
+                    (esAdminPen && p && !p.anulada && !p.confirmada
                         ? '<button class="btn-primary" style="flex:1;background:var(--green);" onclick="penConfirmar(\'' + escapeHtml(p.ref) + '\');return false;">Confirmar penalización</button>'
                         : '') +
-                    '<button class="btn-primary" onclick="crearPenalizacion();return false;" style="flex:1;">Guardar penalización</button>',
+                    (esAdminPen ? '<button class="btn-primary" onclick="crearPenalizacion();return false;" style="flex:1;">Guardar penalización</button>' : ''),
             afterOpen: function () {
                 var inp = document.getElementById('penEnvioInput');
                 var sug = document.getElementById('penEnvioSug');
@@ -15864,6 +15867,12 @@
                 } else if (envioPre) {
                     // Creación desde el detalle de un envío: envío preseleccionado.
                     penPickEnvio(envioPre);
+                }
+                // CLIENTE (no admin): solo lectura — se bloquean todos los campos.
+                if (!esAdminPen) {
+                    ['penEnvioInput', 'penTipo', 'penDesc', 'penImporte'].forEach(function (id) {
+                        var el = document.getElementById(id); if (el) { el.disabled = true; el.readOnly = true; }
+                    });
                 }
             }
         });
