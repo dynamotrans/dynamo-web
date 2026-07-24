@@ -1217,10 +1217,13 @@
         document.getElementById('altaForm').style.display = 'none';
         document.getElementById('restForm').classList.remove('show');
         busc.classList.add('show');
-        idInput.disabled = true; btn.disabled = true; btn.textContent = 'Buscando…';
+        // El botón "Buscar" se eliminó (identificación por autocompletado); las
+        // guardas evitan el crash que dejaba el spinner "Consultando…" colgado
+        // sin avanzar a la siguiente pantalla.
+        idInput.disabled = true; if (btn) { btn.disabled = true; btn.textContent = 'Buscando…'; }
         setTimeout(function () {
             busc.classList.remove('show');
-            idInput.disabled = false; btn.disabled = false; btn.textContent = 'Buscar';
+            idInput.disabled = false; if (btn) { btn.disabled = false; btn.textContent = 'Buscar'; }
             window._buscando = false;
             resolverBuscar(val);
         }, 900);
@@ -2014,7 +2017,9 @@
             idInput.classList.remove('err');
             document.getElementById('ac-buscar').classList.remove('show');
             if (warn) warn.classList.remove('show');
-            resolverBuscar(val);   // identifica o abre el alta
+            // "Consultando la base de Dynamo…" y luego identifica o abre el alta
+            // (mismo spinner que al elegir una sugerencia).
+            buscarEmpresa();
             return false;          // en este clic solo se revela; se acepta al siguiente
         }
         if (warn) warn.textContent = '⚠ Revisa los campos marcados: son obligatorios.';
