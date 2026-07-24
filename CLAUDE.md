@@ -16,15 +16,33 @@ El usuario trabaja desde 2 Macs diferentes usando GitHub Codespaces para mantene
 
 ## REGLAS IMPORTANTES
 
-### 1. Nunca hacer push automático
-**SIEMPRE preguntar antes de hacer `git push`.** El usuario quiere revisar los cambios y dar el OK explícitamente antes de subir nada a GitHub.
+### 0. Precios SIEMPRE con 2 decimales
+**Todo precio/importe en TODA la plataforma se muestra con 2 decimales, aunque sean ceros** (`450,00 €`, `544,50 €`, `1.020,00 €`). Formato es-ES (coma decimal, punto de miles). **Nunca redondear a euro entero** para mostrar. En JS: `n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })`. Aplica a tarifador, cajas de precio, pago por adelantado, proforma, tablas (envíos/almacenamientos/facturas/penalizaciones), detalles y mini-listas.
 
-Flujo esperado:
-1. Hacer los cambios solicitados
-2. Mostrar un resumen de lo modificado
-3. Hacer `git add` y `git commit` localmente si procede
-4. **Preguntar al usuario**: "¿Subo los cambios a GitHub? (push)"
-5. Esperar confirmación explícita antes de `git push`
+### 0-bis. TODO PDF se ABRE en el visor (ventana nueva), nunca descarga forzada
+**Cualquier PDF del proyecto (CMR, orden de transporte, proforma, albarán, factura, presupuesto, documentos adjuntos, PDF de pago…) se ABRE en el visor del navegador (`window.open(url, '_blank')`), NUNCA se fuerza la descarga con `a.download`.** Motivo: en móvil la descarga directa no deja verlo cómodamente; desde el visor el usuario ya puede descargarlo si quiere. Patrón: `var w = window.open(url,'_blank'); if(!w){ /* respaldo a.download solo si el navegador bloquea la ventana */ }`. La única excepción es la **exportación a Excel/CSV** (no es un PDF, ahí sí se descarga el archivo). El helper `downloadFakePDF` ya sigue esta regla; úsalo o replica el patrón para cualquier PDF nuevo.
+
+### 0-ter. NADA de emoticonos en la UI: siempre iconos SVG profesionales
+**(Regla del usuario, 2026-07-20.)** En TODO el proyecto, cualquier icono visible se hace con **SVG de línea** (estilo feather: `viewBox="0 0 24 24"`, `fill="none"`, `stroke="currentColor"`, `stroke-width="2"`, linecap/linejoin round), nunca con emoticonos. **Excepciones permitidas**: las banderas del selector de idioma/prefijos telefónicos y los glifos tipográficos ✕ / ⚠ / ★. Los emojis en comentarios de código no importan (no son UI). `aceptar-carga.html` tiene un helper `svgIco()` + set `ICO` reutilizable.
+
+### 0-quater. TODO control de UI se hace con los COMPONENTES del diseño actual
+**(Regla del usuario, 2026-07-21.)** Cualquier control nuevo (botón, check, desplegable, input, caja, aviso) se construye **reutilizando las clases/componentes que ya existen en la web**, nunca controles nativos sin estilar ni estilos inline inventados:
+- **Desplegables** → `.ptar-select` (44px, borde 1.5px, radio 10, hover/focus morado).
+- **Interruptores Sí/No** → el switch de Trampilla/NIMA (`.ptar-switch-input` + `.ptar-switch` + `.ptar-tramp-state`), nunca `<input type="checkbox">` a pelo.
+- **Botones** → `.btn-primary` / `.btn-secondary` / `.btn-ghost` (panel) o `.btn` (páginas del transportista).
+- **Cajas de aviso/nota** → los patrones existentes (`.warn`, `.pago-contado`, `.ptar-admin-precio-note`, etc.).
+Antes de crear un control, buscar cómo está hecho el equivalente más parecido en la página y copiar su patrón. Si de verdad no existe un componente equivalente, crearlo siguiendo la escala de texto y los colores de `:root` y dejarlo como clase reutilizable (no inline).
+
+### 1. Push: automático a PREVIEW, con confirmación a PRODUCCIÓN
+**(Actualizado 2026-07-12 a petición del usuario: "sube directo sin preguntarme".)**
+
+- **Rama preview (`claude/sharp-dirac-E3UIO`)**: cuando el usuario pide un cambio, Claude hace commit y **push directo, sin pedir confirmación**. Siempre anunciando qué se subió y con qué hash.
+- **`main` (producción, `dynamotrans.com`)**: **SIEMPRE preguntar antes de push**. Nada llega a producción sin OK explícito del usuario (y el portal, además, nunca — regla 7).
+
+Flujo esperado para preview:
+1. Hacer los cambios solicitados y **verificarlos** (Chromium headless + syntax-check)
+2. `git add` + `git commit` + `git push` a preview directamente
+3. Informar: qué se cambió, hash del commit y que está subido
 
 ### 2. Antes de empezar a trabajar (catch-up automático)
 Al iniciar cualquier sesión nueva, **Claude DEBE automáticamente**:
@@ -137,6 +155,16 @@ claude/sharp-dirac-E3UIO    → preview (portal + web pública validada, URL pre
 
 **Drift**: como `preview = main + portal`, tras cada cambio público hay que `git merge main` en preview para que no se acumule drift entre las dos copias de la web pública.
 
+### 10. Altas SIN duplicados (unicidad obligatoria) — regla de negocio (2026-07-23)
+
+Al **crear un cliente, un transportista o un usuario** hay que comprobar SIEMPRE que no exista ya uno con su clave identificadora, **cada uno en su ámbito**:
+
+- **Usuario** → **email único** entre usuarios (no se crea si ese email ya existe).
+- **Cliente** → **CIF/NIF único** entre clientes.
+- **Transportista** → **CIF/NIF único** entre transportistas (aplica también al alta desde `aceptar-carga.html`).
+
+Un mismo CIF **puede** ser cliente Y transportista (roles/tablas distintos), pero **NUNCA** dos veces cliente, ni dos veces transportista, ni un email dos veces como usuario. Motivo: evitar cuentas duplicadas de la misma empresa (facturación partida, líos contables) y usuarios repetidos. En backend: `UNIQUE` + validación con mensaje claro; normalizar CIF/email antes de comparar. En el mockup, avisar igual al crear. (Detalle en `TODO.md`.)
+
 ---
 
 ## Bitácora
@@ -149,6 +177,257 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - Otro bullet
 - **Pendiente**: lo que quedó a medias
 -->
+
+### 2026-07-20 — Claude Code web (nube)
+
+> **Sesión centrada en `aceptar-carga.html` (página del transportista que acepta una oferta) + retoques en `dashboard.html`.** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Push directo a preview en cada cambio.
+
+**`aceptar-carga.html` — reescritura grande de la experiencia del transportista**:
+- **Autocompletado desde el historial**: matrícula tractora/remolque y conductor (nombre·DNI·tel) se autocompletan del transportista identificado; al **enfocar/pulsar salen TODAS** las opciones (para poder cambiar la elegida), solo filtra al teclear. Al elegir una **tractora** se autorrellena el **remolque** que llevaba enganchado la última vez **y el conductor** que la condujo (pares + paresChofer en `TRANS_DEMO`). Al identificarse se **prefill** la última tractora/remolque/conductor; sin historial, en blanco.
+- **Buscador de CIF/NIF con autocompletado** desde 4 caracteres (por CIF o por nombre); al elegir sugerencia autobusca e identifica. Tras identificar, el bloque "Identifícate" **se oculta** (queda "No soy yo / cambiar") y la página **vuelve arriba** (no salta al final) para leer todo. **Pista fija** "Desliza para ACEPTAR / ver todo ↓" que se oculta al llegar al fondo.
+- **Rojo→verde**: los campos obligatorios en rojo pasan a **verde** al rellenarse (a mano o por autocompletado); el aviso global se oculta cuando no queda ninguno en rojo.
+- **Resumen "carga aceptada" completo y legible** (lo lee el chófer en el móvil): Recogida (fecha de carga REAL + horario almacén + horario estimado recogida), Entrega, Mercancía con todo el detalle, Transportista, Vehículo, Conductor, Precio; bloques separados por líneas con etiqueta morada en mayúsculas.
+- **Pronto pago 3,5% (mín. 25 €)**: caja limpia con fecha de cobro a 5 días en **verde** y comparativa a 60 días en **rojo** (con fecha de pago). Se aplica en el resumen del aceptado.
+- **Flujo de disponibilidad/RESERVA (mockup)**: pantalla "Comprobando disponibilidad" con **barra + contador** (3 s), luego oferta con **banner de reserva** (demo 30 s = 15+15; en prod 3 min: 2 min mensaje tranquilo con **spinner morado** que se vacía + último minuto **spinner rojo** + contador). Contador **robusto a segundo plano** (reloj real + visibilitychange). Estados por URL: `estado=tomada` ("ya no disponible", datos enmascarados 5+*/3+*/tel sin 3 últimos + "hace X"), `estado=tramite` ("Ahora está otro transportista reservando en línea"), "tiempo agotado" al caducar. Botones de contacto **"¿Dudas?"** desplegables (Llamar/WhatsApp/Email). **Selector de idiomas** (Google Translate, 12 idiomas) en todas las pantallas.
+- Otros: **Rígido** desaparece del tipo de camión si la carga supera 8 m o 14 Tn; título "Pulsa el botón de abajo para Aceptar carga"; "en trámite" simplificado a un solo mensaje grande con spinner; Indicaciones plegadas como texto azul; "Matrícula remolque" sin "· solo tráiler".
+
+**`dashboard.html`**:
+- Ficha de **transportista sin el campo "Tipo" (Empresa/Autónomo)** (ni en tabla ni en ficha).
+- **Nuevo envío**: "Añadir detalle de MERCANCÍA o anotaciones de envío" a ancho completo, pegado a metros/peso. Caja de opciones de fecha (ETA fija) **rediseñada** en tarjetas claras (fecha fija día siguiente vs ventana 1-3 días, recomendada en verde). Badge **"Pendiente de pago"** de la columna Envío en **rojo texto blanco**. Aviso de **suspensión por cancelaciones** en el modal de confirmar: **línea roja + "Ampliar para ver más"** (details) con el texto legal completo.
+
+**DECISIÓN de diseño (en TODO.md) — RESERVA de carga**: modelo simple elegido por el usuario → **una sola URL por envío sin tokens** (`?e=GX...`), bloqueo **al abrir el enlace** (el servidor registra hora de entrada + caducidad 3 min), **anónimo hasta el CIF** (asocia al aceptar, con revalidación atómica), se **libera sola** si no acepta. Backend = dueño del bloqueo/tiempo; contador del front solo estético. Contrapartida aceptada: URL adivinable (ampliable con token si hiciera falta).
+
+**Pendientes**: backend de la reserva (2-3 llamadas: reservar al abrir / estado / aceptar); resto en TODO.md.
+
+### 2026-07-17 — Claude Code web (nube)
+
+> **Sesión nocturna (16-17 jul): CMR oficial + firma digital con validación europea + pulido de la comparativa + escala de texto + upgrade a Vercel Pro.** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `4e00e06`.
+
+**CMR CALCADO DEL MODELO OFICIAL** (`buildCMRPDF`): el usuario subió el PDF oficial UITA → rasterizado con pymupdf a 4 JPEGs (`images/cmr-fondo-1..4.jpg`, uno por ejemplar con sus colores rojo/azul/verde/negro) que van de **fondo a página completa**; la capa de datos se escribe en **tinta azul** en las coordenadas reales de cada casilla (extraídas del original). Logo Dynamo **B/N arriba-izquierda SOLO en envíos Dynamo**; manuales sin logo ni mención. Fixes: **Nº de envío** a la franja blanca superior (pisaba el texto legal) · porteador casilla 16 con CIF·tel en una línea pequeña (invadía la 17) · **`enc()` de los 3 PDFs ampliada a Latin-1 completo** (ç/à/è/ï… — "Lliçà" salía "Lli??").
+
+**FIRMA DIGITAL DEL CMR (`firmar-cmr.html`)**: cada bloque de firma pide **DNI/NIE + nombre y apellidos (obligatorios) y email (opcional)**, con **autorrelleno desde la ficha de Sitios** (contacto/email del punto viajan en la URL: `r{i}n/e{i}e/tn/te`; conductor u operador para el transportista; el DNI siempre a mano). **Validación europea del documento por país** (selector con los 12 países + RO + Otro): checksum ESTRICTO donde hay algoritmo público — DNI/NIE ES · NIF y Cartão de Cidadão PT · Codice Fiscale IT · registro nacional BE · BSN NL · PESEL PL · CNP RO · rodné číslo CZ · Personalausweis DE con dígito — un control inválido BLOQUEA la firma; FR/AT/CH/LU/Otro → aviso ámbar que deja firmar. Algoritmos verificados contra ejemplos oficiales. El registro queda "✓ Firmada el [fecha] por Nombre · DNI (ES) · email". Emails de demo en los 2 almacenes del catálogo (Huétor/Málaga) para VER el autorrelleno. **Legalidad hablada**: firma con dedo = firma electrónica simple eIDAS (válida, admisible); el valor probatorio real lo dará el backend (token un solo uso + OTP SMS + hash + sello de tiempo + auditoría, en TODO). El usuario decidió NO montar aún la pantalla OTP de demo ("dejamos de momento así").
+
+**COMPARATIVA DEL ENVÍO MANUAL — comportamiento final**: por defecto NO se muestra el precio Dynamo; la caja SOLO aparece si el cliente teclea el precio de su transportista Y es **MÁS CARO** que Dynamo (igual/más barato o vacío → no se dice nada). Textos finales: "**Precio con Dynamo: X € (base sin IVA)**" + "**Ahorrarías Y € respecto al precio de tu transportista.**" + botón "**Para enviarla con Dynamo, pulsa aquí.**" (sin título ni coletilla). Fuera el ahorro acumulado anual de la pantalla de envío (solo queda en Recomiéndanos).
+
+**ADR ELIMINADO**: fuera el toggle "Mercancía ADR" del formulario (Dynamo no transporta ADR); código dependiente inerte con guards; **se conserva la cláusula 3 de las condiciones** (el cliente declara que su mercancía NO es ADR).
+
+**ESCALA DE TEXTO ÚNICA (3 niveles)**: de **39 tamaños de fuente distintos (~550 declaraciones) a 3 variables** en `:root` — `--fs-s` 0,72rem (metadatos/th/badges) · `--fs-m` 0,82rem (tablas/labels/chips) · `--fs-l` 0,9rem (párrafos/avisos). 411 declaraciones convertidas por cluster. Fuera de escala solo display (títulos/precios ≥1rem) y los 16px de inputs móviles (anti-zoom iOS). Regla comentada en el CSS: NO inventar tamaños nuevos.
+
+**VERCEL PRO + CAÍDA DE GITHUB**: el preview dejó de actualizarse (tope de deploys del plan Hobby tras la sesión maratoniana) → el usuario **contrató Vercel Pro ($20/mes; se le quitó del carrito el add-on Speed Insights de $10 que Vercel colaba preseleccionado en `montesblanco-web`)**. Después coincidió una **caída real de GitHub** (incidente oficial: ~35% de la API fallando) que bloqueó webhooks y "Create Deployment" toda la madrugada; se dejó un bucle de reintentos automáticos (push vacío cada 30 min) y por la mañana el preview quedó al día y verificado por el usuario. Lección: con el tope del Hobby los pushes se DESCARTAN (no se encolan); con Pro no hay tope.
+
+**DECISIÓN SUPABASE (en TODO.md)**: **tabla ÚNICA `envios`** para Dynamo y manuales (operador_id FK con Dynamo como fila fija, nullables por tipo, CHECK constraints, RLS por cliente, índices parciales) — NUNCA dos tablas (UNION + FKs polimórficas). Transportistas siguen siendo 2 tablas (catálogo cliente vs interno). Pendiente de negocio: si el admin Dynamo ve los envíos manuales de clientes.
+
+**Pendientes**: buscador global (lupa + Ctrl+K, propuesto — sin decidir) · backend de firmas CMR selladas + OTP · resto en TODO.md.
+
+### 2026-07-16 — Claude Code web (nube)
+
+> **Sesión multi-día (13–16 jul) del panel** (`dashboard.html` + `registro.html` + nueva `aceptar-carga.html`), todo en **preview** (`claude/sharp-dirac-E3UIO`) salvo UN cambio público a **main**: quitar **Finca/Agrícola** de los selectores del tarifador público (`index.html`, main `8740bd8`, con OK explícito; merge de vuelta a preview `f847560`). Estado final: preview `58d404e`.
+
+**VALIDADORES FISCALES UE** (`validaIdFiscal` + `bindFiscalValidation`, también en `registro.html`): checksum en vivo de DNI/NIE/CIF ES, PT, FR, IT, DE, AT, BE, NL, PL, LU, CH, DK, SE, FI, SI, SK, HR, HU, EE, EL, RO, GB, BG, CZ; países sin checksum público → aviso suave ámbar. **Registro público BLOQUEA** con ID inválido; **fichas admin (cliente/transportista/usuario) avisan pero NO bloquean**. Existencia real (VIES/AEAT) → backend (TODO).
+
+**PRECIOS / TARIFADOR**: mínimo **220 €** + **1,35 €/km** (mock) · **cortes DEFINITIVOS: fecha fija 12:00 · ventana 1-3 días 14:00** (corren a diario) · **factor de precio por cliente −20..+20%** sobre la base antes de IVA (ficha de cliente; Marbex −3 de demo; etiqueta ROJA "SOLO VISIBLE ADMIN — el cliente NUNCA ve este campo") · **desglose por punto del tipo de lugar** (Recogida 1 · Finca (+25%) — importe; finca→finca = partidas dobles/triples visibles) · almacenamiento: **reparto urbano radio máx. 20 km** del almacén (geocodifica, muestra distancia, bloquea si excede) · "Almacenes" (catálogo admin) → **"Almacenes Dynamo"**.
+
+**ENVÍOS**: columna **Cliente·CIF en 3º lugar** · pestaña nueva **"Pendiente confirmar almacén"** (1ª) en almacenamientos · **badges del sidebar** con contadores reales (naranja: sin asignar/abiertas/sin confirmar · rojo: pendientes de pago) · menú reordenado (**Envíos resaltado en verde suave**, Mapa tras Envíos, Operadores tras Sitios) · rol de prueba **Empleado** · fix **Cerrar sesión** del sidebar · **botones Cancelar** en almacenamiento, penalización e incidencia (con estado Cancelada/Anulada) · **pestañas en Penalizaciones** (Pendientes de confirmar/Confirmadas/Canceladas/Todas + confirmar/cancelar desde la ficha).
+
+**OPERADORES DE TRANSPORTE (catálogo privado del cliente)** — sección nueva (Dynamo = fila fija resaltada, no editable, "Ficha fija (no editable)."; el contador incluye a Dynamo). **Selector de operador DENTRO de Nuevo envío** con Dynamo por defecto (chip azul negativo); elegir otro operador cambia el flujo a **envío manual**: franja marrón + **chip marrón con el nombre del operador** en la tabla (en móvil también en la columna Recogida, la de Envío queda fuera de pantalla), badge gris estático, sin asignación/ofrecer/penalización Dynamo, filtro por operador. Textos: "vale para cualquier tipo: **operadores de transporte, empresas de transporte o transportistas autónomos**" + "**Dynamo no interviene en nada**…" (intro de la sección + modal de creación). Mock: 2 ejemplos con fechas cercanas (1ª página de Programadas).
+
+**ORDEN DE TRANSPORTE para envíos manuales (16 jul)** — servicio adicional gratuito: campo **"Precio acordado con tu transportista (sin IVA) · opcional"** (tabla "acordado", detalle con desglose, restaurado al Modificar) · **`buildOrdenPDF`**: orden de transporte en PDF **SIN NINGUNA mención a Dynamo** (ordenante=cliente, transportista=operador, ruta+horarios+paradas, fecha, mercancía, precio, indicaciones) · tras guardar → **ventana con 2 opciones**: *Enviar orden por email* (descarga el PDF para adjuntar + abre el correo al operador con el porte redactado; mailto no adjunta — el email con adjunto real es backend, en TODO) y *Guardar orden en PDF* (visor); mismos botones en el **detalle** del envío manual · crear manual abre la pestaña **Programadas** (donde SÍ está) · **BUG cazado**: el bloqueo anti-precio-0 (`btn-calc-wait`) dejaba "Crear envío" con spinner infinito en modo manual — arreglado (nunca se activa en manual).
+
+**ACEPTAR-CARGA.HTML** (nueva, solo preview, noindex): página del transportista para aceptar una carga ofrecida — datos del viaje por URL, **PAGO CONTADO**, formulario (empresa/CIF/matrículas/chófer/tfno/indicaciones) y check de **pronto pago a 48 h con −3% (mín. 15 €)**; `pp=0` la desactiva. Acción **"Ofrecer carga"** en el detalle (programadas sin transportista) genera el email/WhatsApp con el enlace.
+
+**DASHBOARD ADMIN**: widget de **línea de PRONTO PAGO** — barra de progreso concedido/total, **línea editable**, botón **encender/apagar manual**, lista de anticipos de los últimos 60 días; sin disponible (o apagado) las ofertas salen sin pronto pago (`pp=0`).
+
+**MAPA** (sección nueva): envíos EN CURSO sobre contorno de la península por **centroide de provincia (CP)** + fase del envío (manuales/entregados/cancelados no salen); clic → listado filtrado.
+
+**UI GLOBAL (16 jul)**: **✕ genérica para borrar de golpe** cualquier campo de texto libre (buscadores de todas las tablas, campos de fichas/modales, textareas) — solo visible con contenido, excluye combos con desplegable y calendarios; quitada la ✕ nativa de WebKit (doble cruz) · **VISTA CALENDARIO de envíos**: desplegable "Vista: Lista/Calendario" junto a +Nuevo envío; mes completo Lun-Dom con navegación **±3 meses** (botón "Mes actual"), mini-píldoras Origen→Destino coloreadas por estado (marrón=otro operador) con **"+N más"** al pasar de 3/día, clic → **detalle estándar** (`cargaRowData` acepta ref directa); buscador y filtro de operador siguen aplicando en el calendario.
+
+**OTROS**: sitios con **email de avisos** (borde verde, opcional, con explicación de para qué se usa) + nota de móvil/WhatsApp · fix doble-tap iOS en botones de subir documento del registro · dashboard cliente 50/50 con tarjeta **Recomiéndanos** (texto corto + 2 botones) · "Mis últimos envíos" con 3 filas.
+
+**Método**: todo verificado en Chromium headless (Nominatim/Nager mockeados por el proxy) con screenshots antes de cada commit; sin errores JS. **PR #1** (preview→main) vigilada: CI verde, **NUNCA mergearla** (regla 7).
+
+**Pendientes** (en TODO.md): backend de la orden por email con PDF adjunto de verdad (remitente del cliente, nunca dominio Dynamo visible) · VIES/AEAT · gating de roles (cliente NUNCA ve factor de precio, P. transportista, Margen, Cliente·CIF ni secciones admin) · esquema Holded 1:1 (MUY IMPORTANTE) · más contenido del Dashboard admin ("luego te digo todo" del usuario).
+
+### 2026-07-12 — Claude Code web (nube)
+
+> **Sesión maratoniana del panel** (`dashboard.html`), todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Push automático activado por el usuario ("sube directo sin preguntar"). Estado final: preview `33bdf2f` (~20 commits del día).
+
+**DECISIÓN GRANDE — mockup DETERMINISTA, sin datos en el navegador**: fuera TODA la persistencia en `localStorage` (sitios custom/borrados, overrides de almacenes, rol, mantenimiento, perPage). El estado de prueba vive en el CÓDIGO → idéntico en cualquier dispositivo; las ediciones duran solo la sesión (hasta recargar). Motivo: el usuario probaba en iPad/iPhone y cada aparato mostraba datos distintos. Solo quedan idioma (cookie googtrans/dashLang) y caches técnicos (Nager, geo IP). ⚠️ Contrapartida explicada: iOS recarga pestañas solo → las ediciones se pierden; la persistencia real llegará con el backend.
+
+**ICONOS DE TIPO DE SITIO**: Finca = **rama de trigo** (antes hoja); todo lo que NO es Almacén/Nave va **resaltado en ROJO** (obra/urbana/evento/finca) en todas las superficies; **los 64 sitios del catálogo llevan `tipoLugar` de serie** (Almacén/Nave salvo GRUPAL ART=Zona urbana, WELDINOX=Finca, TJL=Obra) → al elegir cualquier sitio en crear envío el icono del campo pasa del pin al de su ficha. **Fix**: editar un sitio ahora repinta también la tabla de envíos y la mini-lista (antes solo Sitios → icono viejo hasta recargar).
+
+**MODIFICAR ENVÍO = CREAR ENVÍO**: el prefill geocodifica origen/destino/paradas en 2º plano (fetch propio: el AbortController compartido de osmSearch abortaba la 1ª petición) → precio EN VIVO con desglose; restaura tipo de lugar, referencia, paradas y discreción. **BLOQUEO ANTI-PRECIO-0**: mientras el precio se calcula (skeleton), los botones guardar/confirmar quedan deshabilitados con **spinner**; guardia en validación ("Estamos calculando el precio…") y `beforeunload` avisa si se cierra con un guardado en curso. TODO: notas backend (POST antes del overlay, idempotencia, precio validado server-side).
+
+**CATÁLOGOS ADMIN NUEVOS — Clientes y Transportistas** (botones 7 y 8 del panel admin): tabla homogénea + ficha editable al pulsar fila, con **fecha/hora de creación y modificación**. Cliente: fiscales + plazo de pago (0/30/60) + **importes de crédito CESCE y Dynamo** (sin checkbox; lo determina el importe). Transportista: fiscales, Empresa/Autónomo, **código de bolsa de carga**, flota, seguro CMR y **documentos adjuntos (máx. 5)**. Sin IBAN. **Sin botón Borrar** en clientes/transportistas/almacenes (solo backend).
+
+**ADJUNTOS UNIFICADOS en toda la plataforma**: pulsar un documento lo abre en el **visor (pestaña nueva)**; la × pide **confirmación** antes de borrar (mini-diálogo propio que no pisa el modal). Incidencias pasan de contador a lista con nombres.
+
+**OTROS**: precio con desglose (base grande morada + IVA/Total discretos) en el **detalle de envío**; **deshacer cancelación** desde Canceladas (vuelve a Programadas, aviso si la fecha pasó); modal cancelar envío con **triángulo rojo** (no la X) y **botón Llamar** (+34 955 225 945, L-V 8:30-15:30 verano) sobre "Sí, cancelar"; textos de **discreción comercial** en confirmación (check + aviso; se guarda y se ve en el detalle); tarjeta **Recomiéndanos** en el dashboard con 2 botones en fila (Recomendar Dynamo → WhatsApp/email/copiar · ★ Puntúanos en Google → ficha de Maps, pendiente place ID para enlace directo de reseña); muro de clientes ENCIMA de Nuestros servicios; tarjeta "Mis últimos envíos" **clicable entera**; claim **"Logistics"** junto al logo de la topbar (notranslate).
+
+**TARDE (2ª tanda, hasta `162d372`)**: **regla 1 de CLAUDE.md reescrita** (push automático a preview, confirmación solo para `main`) · **CORTE DE FECHAS REAL**: el corte es la hora límite para pedir el SIGUIENTE día hábil y corre TODOS los días (antes se saltaba en findes: un domingo a las 15:19 seguía ofreciendo el lunes); probado con reloj simulado (page.clock) en 5 escenarios; hora final del corte: **17:10 ambos modos** (iteró 11:00→12:00→17:10, el usuario probaba en vivo) · **Reportar incidencia en CUALQUIER estado** del envío (también sin transportista, previsión o cancelado) · **"Logistics" movido de la topbar al sidebar** (logo + Logistics / Portal · Cliente) · **FORMATO DE FECHA ÚNICO `Vie 10/07/26`** en toda la plataforma (desplegable, tablas, mini-listas, caja ETA, nota del corte, almacenamiento, incidencias/facturas/penalizaciones; fuera el formateador largo "Viernes 10 julio 2026"; `fechaConDia` acepta DD/MM y DD/MM/YYYY; quedan aparte timestamps de fichas, proforma y textos de horarios) · explicado el criterio del detector de sitios duplicados (1ª palabra fuerte del nombre o mismo CP + nombre contenido; en backend: puntuación con nombre difuso, CP, calle, coordenadas y teléfono).
+
+**NOCHE (3ª tanda, hasta `aa1fd7b`)**:
+- **PRECIOS EN TABLAS (envíos + penalizaciones)**: columnas **P. cliente · P. transportista · Margen** (todo BASE sin IVA, nunca el desglose en la celda; margen verde/rojo). Celdas clicables → **mini-editor** con los conceptos del precio editables a mano, total en vivo y **Guardar que FIJA el precio** (etiqueta "fijado a mano"). **Modificar envío NO recalcula un precio fijado a mano** si no cambia nada que afecte al precio (firma del formulario capturada al abrir + "foto" de los tipos de lugar del paso de confirmación — los selects se autoseleccionan de la ficha del sitio y eso contaba como cambio: bug cazado y arreglado). P. transportista mock determinista (~72-85% del cliente).
+- **FICHA DE CONTEXTO DEL ENVÍO** (`envioContextHTML`) al elegir el #GX en **penalización e incidencia** (crear y editar) y en "Reportar incidencia" desde un envío: estado, cliente, transportista, matrícula+conductor, camión, fecha/ventana, **fecha de carga real**, ETA, mercancía, recogida/entrega (empresa+dirección+horario), paradas y precios con margen. Penalizaciones mock re-apuntadas a envíos reales.
+- **CATÁLOGO USUARIOS** (solo admin, botón 9): email asociado a Admin/Empleado/Cliente/Transportista. Tabla con métricas: última conexión, conexión diaria/semanal, consultas de precio, envíos creados, ratios consultas/envíos y cancelaciones/envíos (rojo ≥30%), cancelados en últ. 10. Transportistas con métricas de envíos en blanco. Filtro por tipo + buscador. **Ficha = "Mi cuenta"**: personales (nombre, DNI, tfno) + fiscales (razón social, CIF, dirección fiscal…) + **estado de cuenta** (Activa/Suspendida/Pendiente de verificación). La contraseña NO se gestiona desde admin (enlace de invitación).
+- **CAMBIO DE ROL PROTEGIDO**: el rol ya no es un campo editable de la ficha — acción aparte "Cambiar rol…" con modal que describe qué puede hacer cada rol. **CUALQUIER cambio de rol exige teclear el email del usuario** (también cliente→transportista o empleado→cliente — pedido explícito del usuario); conceder Admin además va en aviso ROJO; **no se puede degradar al ÚNICO Admin activo**. Reglas backend anotadas en TODO (solo admin concede admin, nunca a sí mismo, re-auth, auditoría + email).
+- **PENALIZACIÓN AUTOMÁTICA al cancelar fuera de plazo**: cancelar tras las 9:00 del día hábil anterior genera sola la penalización de Cancelación por el **coste completo** (base sin IVA), marcada "Generada automáticamente"; admin la puede renegociar. Dentro de plazo: gratis, sin penalización. **Deshacer la cancelación la retira** (si admin no la editó). Cancelar ahora sí marca el envío como Cancelada de verdad.
+- **ORDENACIÓN POR COLUMNAS en las 11 tablas**: clic en cabecera = ascendente → descendente → orden original, flechas ▲/▼, ordena el conjunto COMPLETO antes de paginar, vacíos al final, locale es. Tooltips con el siguiente paso del ciclo (el 3er clic descolocaba al usuario). En producción el orden se pasará a la consulta del servidor.
+- **TELÉFONOS DE LA OPERATIVA** (sitios/transportistas/conductores — NO Dynamo): ventana propia al pulsarlos. Móvil en horario → elegir Llamar/WhatsApp; fijo en horario → llama directo; fuera de **L-V 7:30-18:30**, findes y festivos nacionales → aviso "No son horas de llamar" con motivo + WhatsApp/Llamar igualmente. Los números de Dynamo conservan su modal de horario.
+- **ESTADOS DE CUENTA en login** (vista de prueba): `?cuenta=suspendida` (pantalla roja con contacto para reactivar) y `?cuenta=pendiente` ("Estamos verificando tu alta", ámbar). Mismo estilo que el overlay de mantenimiento; en producción lo impondrá el backend.
+
+**Método**: cada cambio verificado en Chromium headless (Nominatim/Nager mockeados por el proxy) con screenshots antes de commitear. Sin errores JS en ningún commit. Ojo aprendido: `page.clock` congela las animaciones CSS (los modales salen "fantasma" en screenshots con reloj simulado — no es un bug real).
+
+**Pendientes**: place ID de la ficha de Google (para el enlace directo de reseña) · verificar filtro de festivos autonómicos en el preview real · sync `festivos.js` a `main` cuando el usuario dé el OK · al montar el gating de roles, **ocultar P. transportista y Margen al rol cliente** (info interna) · backend del cambio de rol y de la penalización automática (ver TODO).
+
+**CORTES DEFINITIVOS del tarifador (fijados 2026-07-13)**: **fecha FIJA → 12:00** · **ventana 1-3 días → 14:00** (hora Madrid, corren todos los días; misma semántica: el corte es la hora límite para que hoy/el siguiente hábil pueda ser el primer día de carga). Sustituyen al 17:10 provisional.
+
+### 2026-07-11 — Claude Code web (nube)
+
+> **Sesión centrada en el tarifador del panel (`dashboard.html`) + `festivos.js`.** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `5a2046a`.
+
+**FILTRADO DE AVISOS DE FESTIVO POR COMUNIDAD (arregla el sobre-aviso)**:
+- **Problema reportado**: en una ruta con recogida en **Murcia** y entrega en **Salamanca** salía un aviso de festivo **autonómico de la Comunidad Valenciana**. El aviso de la caja ETA era a nivel de **país** → avisaba de festivos de OTRAS comunidades.
+- **`js/festivos.js`** (aditivo, no cambia la web pública): la caché de la API (Nager) ahora guarda `{name, global, counties}` en vez de solo el nombre (clave subida a `festivos_api_v2_`); nuevo método **`FESTIVOS.regionsOf(cc, fecha)`** → `null` = nacional · `[]` = regional de comunidad desconocida · `['ES-VC'…]` = regional de esas comunidades ISO. `get()`/`getLocal()` intactos.
+- **`dashboard.html`**: nuevo helper **`stateToRegion(address)`** que mapea el `address.state` de Nominatim (con/sin acentos, lengua cooficial) → código ISO 3166-2 (`Comunidad Valenciana`→`ES-VC`, `Región de Murcia`→`ES-MC`, `Castilla y León`→`ES-CL`, las 17+2). Al elegir sitio se guarda su comunidad en **`wrap.dataset.region`** (se limpia al borrar, en los 4 puntos de reset). **`holsInRange(cc, region, a, b)`** ahora filtra: **nacional → siempre avisa**; **autonómico/local → solo si la comunidad del sitio coincide** con las del festivo; si no se conoce (sitio o festivo) → no avisa el autonómico (evita el sobre-aviso).
+- **Verificado** en Chromium headless (Nager mockeado porque el proxy del entorno lo bloquea con 403): Murcia+festivo de Valencia → NO sale ✓ · Valencia+festivo de Valencia → SÍ sale como "FESTIVO AUTONÓMICO" ✓ · comunidad desconocida → NO sale ✓ · festivo NACIONAL con cualquier región → SÍ sale ✓. Syntax-check JS OK.
+- ⚠️ **El filtro autonómico solo se activa de verdad en el preview REAL de Vercel** (donde la API de Nager responde). En este entorno el proxy la bloquea → solo se valida con datos mockeados; los festivos nacionales (registro local) sí funcionan siempre.
+- ⚠️ `festivos.js` es archivo **compartido** con producción, pero este cambio es **aditivo**: `index.html` no llama a `ensure`/`regionsOf` → no cambia nada en `dynamotrans.com`. Sync a `main` pendiente cuando el usuario quiera (no urge).
+
+**Pendiente** (ver TODO.md): verificar el filtro en el preview real de Vercel; el dataset completo de festivos (nacional+autonómico+local con datos oficiales) sigue siendo tarea de **backend**.
+
+### 2026-07-08 (cont.) — Claude Code web (nube)
+
+> **Continuación de la sesión del panel.** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `10b95c2` (2 commits: `553fd31` borrado suave + `10b95c2` Almacenes = Sitios + disponibilidad).
+
+**ALMACENES = SITIOS (tabla y ficha idénticas)**:
+- La sección **Almacenes** (catálogo interno admin) usa ahora las **mismas columnas que Sitios**: Empresa · Dirección · Horario · Contacto · Notas (`renderAlmacenesCatTable` sobre `almToSite(a)`). Son sitios de uso interno.
+- La ventana **Editar almacén** usa el MISMO formulario que Sitios (`sitioFormHTML`, ids `sitio-f-*`): Empresa, Tipo de lugar, Horario, Dirección (calle+número), CP/localidad/provincia/país, Teléfono, Contacto, Notas, enlace de Maps. `almacenCatGuardar` lee esos ids, escribe al objeto del almacén y re-deriva prov/ciudad/cp del CP line.
+- **Modelo de datos reconciliado**: el almacenamiento usa `dir`=calle + `almIdx`; los sitios usan `calle`+`dir`=línea CP. Se añadió `calle`/`dirCP` + campos de sitio al objeto almacén vía `enrichAlmacenes()` (una vez), con `almToSite(a)` como vista. **Borrado suave** (`_deleted`) para no descuadrar los `almIdx` de almacenamientos ya registrados (commit `553fd31`).
+- **Almacenes en el buscador de recogida/entrega del ENVÍO**: `renderLocales(q)` añade `almSitesBuscar(q)` con chip morado **«Almacén»** (`.sug-chip-dynamo`); al elegir uno se aplica como `siteKey` `dynamo-*` y **`siteDe` resuelve esas claves** (`almToSite`) para consolidar la ficha en el resumen. Por si hay que recoger/entregar en un almacén Dynamo.
+
+**CHECK DE DISPONIBILIDAD (Disponible / Completo)**:
+- Toggle **«Almacén disponible»** arriba de la ficha de edición del almacén (`almc-f-disp`), guarda `a.disponible`.
+- Al marcarlo **completo** (`disponible:false`): sigue apareciendo en los desplegables con **badge rojo «Completo»** (`.alm-combo-full`) tanto en la tabla del catálogo como en el combo de nuevo almacenamiento; al elegirlo en **nuevo almacenamiento** salta el aviso *«Este almacén está COMPLETO y no admite entradas»* y **`almSolicitar` bloquea** (no crea el registro).
+- En el **envío** (recogida/entrega) el almacén completo SÍ aparece y se puede elegir — «completo» solo bloquea **almacenar**, no recoger/entregar. (Si se quiere bloquear también en envío, es un cambio pequeño.)
+
+**Método**: verificado en Chromium headless (`?role=admin`): columnas de la tabla, ficha idéntica a Sitios, toggle guarda `disponible:false`, badge en tabla y combo, aviso + bloqueo al elegir completo en almacenamiento, almacenes visibles en el buscador del envío, `siteDe` resuelve `dynamo-*`, sin errores JS. Screenshots antes de commitear.
+
+---
+
+### 2026-07-08 — Claude Code web (nube)
+
+> **Sesión muy larga en el PANEL (`dashboard.html`).** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `f1b4e36` (18 commits del día, todos pusheados a preview).
+
+**SEGUIMIENTO DE ENVÍOS — ELIMINADO**: fuera el botón "Seguimiento" del detalle de envío y del menú de fila (en-ruta), la función `cargaSeguimiento` (modal timeline Recogida/En tránsito/Última posición/Entrega) y su CSS.
+
+**TABLA DE ALMACENAMIENTOS** (`renderAlmacenesTable`): col 1 solo el código (sin descripción); Reparto urbano "Sí · N camiones" + resumen de dirección; **Total (sin IVA)** (base imponible, no IVA incl.); el desglose con IVA se queda en el detalle/desplegable. **Códigos → `#AX######`** (AX + 6 dígitos, paralelo al `#GX######` de envíos; decisión del usuario vía "Other").
+
+**NUEVO APARTADO PENALIZACIONES** (sección `#sec-penalizaciones`): link en sidebar + buscador + filtro por tipo + tabla (código #PEN- · envío #GX · tipo · transportista+cliente · importe **sin IVA** · fecha). Mock `PENALIZACIONES_DATA`. Botón **Crear penalización** → modal con **Envío referenciado** autocompletado (últimos 4 #GX; filtra por GX/ref/ruta/transportista) + resumen del envío (cliente + transportista + ruta), tipo (cancelación/paralización/compensación/parada adicional/otro), descripción e importe sin IVA, con validación en rojo.
+
+**SPINNER DE CREACIÓN**: texto por acción ("Creando envío/almacenamiento/penalización/incidencia…"). **Fix del flash**: se navega al listado DENTRO del callback del overlay (mismo tick), no con setTimeout posterior → al desaparecer el spinner ya se ve el listado, no el formulario. Penalización e incidencia también muestran overlay.
+
+**ALMACENAMIENTO — paridad con envío**:
+- **Modal IMPORTANTE** de pago por adelantado (como el del envío, adaptado) cuando es prepago (sin crédito CESCE); con crédito confirma directo.
+- **Nota de pago** adaptada ("no se asigna **espacio**… se puede **almacenar** al día siguiente"), no el texto de camión/ventana del envío.
+- **Botón Cancelar** bajo "Crear almacenamiento" (paso 1).
+- **Ficha de entrega = acordeón** plegable idéntico al envío.
+- **Chip del almacén clicable**: pulsar el chip elegido reabre el desplegable (como el selector de sitios).
+
+**PROFORMA PDF revisada** (profesional/formal): importes con **2 decimales** (240,00 · 50,40 · 290,40 en vez de redondeados), **fechas DD/MM/YYYY**, concepto "Nº de almacenamiento", nota de condiciones adaptada a almacenamiento. Mejora también la de envío (decimales). *(El "recorte" que veía el usuario no era bug: la franja gris de nº/fecha/ref es intencional.)*
+
+**PRECIO UNIFICADO** (de la sesión anterior, consolidado): Base imponible / IVA (21%) / Total con contador **de 10 en 10** en las 4 pantallas. **Facturas**: columna "Nº" → "**Nº factura**".
+
+**NUEVA SECCIÓN ALMACENES** (catálogo interno, **SOLO ADMIN**): estilo Sitios, sobre `DYNAMO_ALMACENES` (1 por provincia). Link con badge "Admin" + `data-roles="admin"` (se ocultará al montar el gating). Buscador + tabla (Provincia·Ciudad·CP·Dirección) + alta/editar/borrar con modal. Los cambios se reflejan en el desplegable de nuevo almacenamiento.
+
+**FORMULARIOS A 2 COLUMNAS EN ESCRITORIO** (envío y almacenamiento, paso 1 y confirmación): campos/resumen a la izquierda (ancho **fijo 660px**) y precio (+ pago CESCE + condiciones en la confirmación) + botones a la derecha en **columna sticky que rellena** todo el ancho del panel. Clases `.form-2col/-main/-side`, media query ≥1200px; en móvil se apila. **Bug corregido**: la override `max-width:none` la pisaba la regla base `.ptar-card{max-width:760}` (posterior en el CSS, misma especificidad) → la 2ª col del envío salía de ~50px con el texto partido; resuelto con scope por sección (`#sec-nueva-carga`/`#sec-nuevo-almacen`).
+
+**PENDIENTE URGENTE anotado en TODO.md** (🔥): **scaffold de ROLES** (admin/cliente/transportista/proveedor) — superconjunto admin y restar por rol vía `?role=`, gating por sección/columna/acción, matriz de permisos, y recordatorio de que el frontend NO es seguridad (RBAC + row-level security en backend).
+
+**Método**: cada cambio verificado en Chromium headless (desktop 1500-1600px + estados) con screenshots antes de commitear. Proforma verificada generando el PDF real.
+
+### 2026-07-07 — Claude Code web (nube)
+
+> **Sesión de pulido de ALMACENAMIENTO + unificación de precio/estilos + fixes de UI.** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `17a5912` (8 commits del día, todos pusheados a preview).
+
+**PRECIO UNIFICADO en las 4 pantallas** (crear/confirmar envío + nuevo/confirmar almacenamiento):
+- Nuevo componente global `__priceBoxHtml` / `__animateEur` / `__renderPriceBox` que pinta **Base imponible + IVA (21%) desglosado + Total (IVA incl.)** con el mismo diseño (`.alm-price`) en todas. Antes envío mostraba solo "500 € IVA no incluido" y almacenamiento un desglose distinto.
+- **Efecto contador** (rolling) ahora también en almacenamiento, en las 4 pantallas. **Salta de 10 en 10** (los pasos intermedios redondean a decena; el valor final es exacto) — antes con los decimales iba de 1 en 1.
+- Almacenamiento sin reparto muestra solo Base/IVA/Total (no duplica la línea "Almacenamiento" con la base); con reparto salen las filas de concepto.
+
+**ALMACENAMIENTO — confirmar = igual que confirmar envío**:
+- **Checkbox de condiciones generales** ("He leído y acepto…") con enlace al mismo texto legal y el mismo bloqueo/aviso rojo: no se confirma hasta marcarlo.
+- **Ficha del sitio de entrega → acordeón plegable** idéntico a las fichas del envío: cabecera (① Entrega + empresa + fecha de salida + horario + dirección + "⚠ Faltan datos obligatorios") con chevron que despliega el cuerpo editable. Aviso que se oculta al completar empresa/horario/teléfono (`req-ok`); al confirmar sin completar, abre la ficha y hace scroll al campo.
+- **Botón Cancelar** bajo "Crear almacenamiento" (paso 1), como en crear envío.
+- **Proforma** se abre en el **visor del navegador** (`window.open`) en vez de descargarse.
+
+**FECHAS en las fichas de recogida/entrega (confirmar envío)**: cada ficha muestra su fecha en línea propia sobre el horario, con el MISMO formato que la caja ETA/resumen (fija → `viernes 10 jul`; ventana → `del viernes 10 jul al miércoles 15 jul`). Recogida = fecha de carga; entrega = ETA recalculada por tramos.
+
+**FIXES de UI**:
+- **Sangría unificada de las cajas de aviso de pago** (Seguridad morada + validación roja): mismo gutter de icono de ancho fijo → el texto arranca en la misma X en ambas.
+- **Popovers de filtro ya no se cortan por abajo**: `.content` usaba `overflow-x:hidden` (que obliga al eje Y a `auto` y recortaba); cambiado a `overflow-x:clip` (patrón de html/body). Afecta a TODOS los popovers de filtro del panel (p. ej. el rango de fechas de Facturas).
+- **Avisos que se ocultan al elegir**: "⚠ Elige un almacén Dynamo" (al elegir almacén) y "⚠ Elige la dirección de entrega del reparto" (al elegir dirección) — antes solo se quitaba el borde rojo, la caja del mensaje se quedaba.
+
+**Método**: cada cambio verificado en Chromium headless (desktop + móvil) con screenshots antes de commitear. Sin nuevos pendientes (todo cerrado). TODO.md sin cambios.
+
+### 2026-07-05 (cont.) — Claude Code web (nube)
+
+> **Continuación de la sesión del panel (tarde/noche).** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `d8210d1`.
+
+**BUSCADOR DE SITIOS — más pulido**:
+- **Solo ubicaciones elegidas de la lista** (agenda/Google/dirección): teclear texto suelto ya no cuela. Si sales del campo sin elegir, **el texto se borra solo** (vuelve a vacío) — el aviso de "texto a mano" casi nunca aparece. Al pulsar Crear también limpia lo no elegido.
+- **Pista** no clicable bajo los recientes ("✎ Escribe para buscar en toda tu agenda o en Google Maps…"); al pulsarla, enfoca el campo.
+- **Pulsar un chip ya elegido** lo borra y reabre los recientes (como la ×).
+- **"Crear nuevo sitio"** solo con 3+ caracteres.
+- **Formulario Nuevo sitio**: al elegir dirección de Google/Nominatim, "Dirección (calle y número)" recibe SOLO calle+número; el CP/localidad/provincia/país va en su campo (sin duplicar; dedupe ciudad=provincia en ciudades-estado).
+
+**AL SALIR DE CREAR ENVÍO** → el formulario se resetea (campos, paradas, tipo, camión, fecha, ref, notas, vuelve al paso 1).
+
+**CONFIRMACIÓN DE ENVÍO — rehecha**:
+- **Tipo de lugar EDITABLE aquí** (en envío se quitó del paso 1; los sitios ya lo traen): select por punto, autoseleccionado; al cambiarlo **recalcula el precio en vivo** y se consolida en la ficha al confirmar. En **presupuesto** seguía en el paso 1 (irrelevante ya, ver abajo).
+- **Fichas de lugares PLEGADAS por defecto** (acordeón): cabecera = nº + Recogida/Entrega + empresa + CP/localidad/provincia/país + flecha circular; se despliega para editar.
+- **Referencia y anotaciones** pasan al **resumen** (solo lectura, con lo del paso 1; en blanco se omiten) — ya no se editan en confirmación.
+- **Precio** solo en la **caja destacada** justo antes del botón (fuera del resumen). Fuera "Fecha de carga" (redundante con "Fecha de envío"); "Medidas" → "Ocupación".
+- **Botones apilados**: caja de precio → **Confirmar envío** grande (64px, a lo ancho) → **← Editar datos** debajo. Texto del checkbox de condiciones acortado.
+
+**PRESUPUESTOS ELIMINADOS del portal** (decisión del usuario: precios dinámicos → no tiene sentido guardar presupuestos): fuera el enlace del sidebar, la sección `#sec-presupuestos` entera, el CTA verde "Nuevo presupuesto" del dashboard (fila a 2: Nuevo envío + Mis últimos envíos), el botón "Guardar presupuesto" del formulario y el modo de entrada `presupuesto` (`openNuevaCarga` fuerza envío). El código de datos/render de presupuestos queda **inerte** (guards por null); sin errores JS. Usuario demo de Marbex Industrial.
+
+### 2026-07-05 — Claude Code web (nube)
+
+> **Sesión maratoniana del PANEL: buscador de sitios completo + agenda + confirmación de envío + dashboard rediseñado.** TODO en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Estado final: preview `3efd0d3` + 2 commits de cierre pendientes de push (≈25 commits del día).
+
+**BUSCADOR DE RECOGIDAS/ENTREGAS — completado el plan de 3 niveles** (`dashboard.html`):
+- **Recientes**: al pulsar un campo VACÍO de recogida/entrega salen los **últimos 5 sitios usados en ese rol** (chip morado "Reciente", calculados de los envíos por fecha de creación). Al escribir toma el relevo el buscador normal; al vaciar (tecla o ×) vuelven.
+- **Chip bloqueado**: al elegir sitio/dirección el campo queda `readonly` con estilo chip (fondo morado suave). **Arregla el bug** de que editar a trozos el texto rompía la selección y el resumen perdía la ficha. Se cambia solo con la ×.
+- **"+ Crear nuevo sitio"** como última opción del desplegable — SOLO tras escribir **3+ caracteres** (junto a los recientes invitaba a crear duplicados sin buscar). Abre el MISMO formulario de la sección Sitios (unificación pedida por el usuario) con el texto prefijado; al guardar, el sitio nuevo rellena el campo (`_sitioOnSave`).
+- **Duplicados en UN solo modal**: aviso ("se duplicaría el registro…") + tabla comparativa + decisión, sin paso intermedio. Los campos de "Tu registro" son **editables** y cada dato de Google lleva botón **←** que lo copia al propio (destello verde). "Usar mi registro" guarda las ediciones en la agenda.
+- Fix: la lista de recientes ya no se cierra sola tras pulsar × (el blur-timeout respeta el foco devuelto al input).
+- **Solo ubicaciones elegidas de la lista** (no texto a mano): origen/destino/paradas deben seleccionarse del desplegable (chip bloqueado `ptar-picked`); teclear "SDAa" y darle a Crear ya no cuela como dirección suelta — avisa y no avanza. Prefill (Repetir/Generar) marca los campos como elegidos. Bajo los recientes, **pista** no clicable "✎ Escribe para buscar en toda tu agenda o en Google Maps…" (que no parezca que solo hay 5).
+
+**SITIOS (agenda)**:
+- **Borrar** cualquier sitio (catálogo o propio) desde su detalle, con confirmación. El borrado solo lo quita de agenda+buscador (`localStorage dynamoSitesDeleted`); **los envíos/presupuestos consolidados conservan todos sus datos** (siteDe sigue resolviendo la clave). Re-guardar el sitio lo revive.
+- **Tipo de lugar** (`tipoLugar`) en la ficha: desplegable en el formulario (Almacén/Nave · Obra · Zona urbana · Evento · Finca/Agrícola). Al elegir un sitio en el tarifador se **autoselecciona** su tipo; si el usuario lo cambia, al confirmar **se consolida en la ficha**.
+- **Recargos de precio por tipo** (mock, pendiente validar): Almacén 0 · **Obra +5% · Evento +15% · Zona urbana +20% · Finca/Agrícola +25%**, sumando origen + destino + paradas; cambiar un tipo recalcula el precio en vivo.
+
+**CONFIRMACIÓN DE ENVÍO** (paso 2):
+- Resumen SIN origen/destino/paradas (no duplica las fichas). Añadida fila **Precio … € (IVA 21% no incluido)**.
+- Fichas de lugares **numeradas en orden de ruta** con el circulito naranja/verde del formulario (① Recogida / ① Entrega; el destino es la última entrega). Los puntos sin ficha (dirección suelta) también salen.
+- Cada ficha con TODOS los datos: dirección (solo calle) y CP/localidad/provincia/país en **campos grises bloqueados**, "Ver en Maps", **Tipo de lugar** no editable, y editables empresa/horario/tfno/contacto/notas.
+- **Referencia interna y anotaciones editables ahí mismo** (sincronizadas con el paso 1 y el pedido).
+- **Cancelar envío**: aviso legal completo (después de las **9:00 del día hábil anterior** puede conllevar el **coste del servicio completo**, es por ley, arbitrajes fallan a favor del transportista, no pedir transportes sin seguridad).
+
+**PRESUPUESTOS**: caducados con **retención de 30 días** tras caducar (después se borran; purga simulada al cargar + mock re-escalonado 2-28 días) + aviso en la pestaña Caducados. Fuera el desplegable de fecha (no filtraba); queda solo el buscador.
+
+**TABLAS**: Ruta y fechas a **línea completa sin saltos** (nowrap, scroll horizontal interno) con **dirección en negrita** (envíos y presupuestos). **(Creado: dd/mm/yy · hh:mm)** en la 1ª columna de envíos. Fix **font boosting de Safari iOS** (`text-size-adjust:100%` — inflaba texto de unas filas sí y otras no).
+
+**DASHBOARD rediseñado**:
+- Fila única: **Nuevo envío · Mis últimos envíos (1 fila de muestra) · Nuevo presupuesto** (móvil: botones arriba, muestra debajo). Eliminada la tarjeta Últimos presupuestos.
+- **Muro de clientes** (carrusel TRIPLE de la web pública, 32 logos de `index.html`) + **carrusel de servicios** (las 4 tarjetas de la web) — con fade lateral y **bucle sin brincos** (margen por tarjeta en vez de `gap`: con gap, translateX(-50%) no cae exacto y saltaba ~8px/vuelta; la web pública AÚN tiene ese gap → TODO con OK pendiente).
+- Sección **NUESTRA FLOTA / Tipos de Vehículo** al final, portada de la web (2 veh-cards con specs + nota de flota exclusiva).
+- Chips de la topbar **unificados** (logo, campana, CESCE, Álvaro, JG: 40px escritorio / 36px móvil, píldora, mismo borde/fondo).
+
+**OTROS**: usuario demo → **Marbex Industrial S.L.** (inventada, fuera Talsa). "Ver todos" en Mis últimos envíos. Etiqueta "CP, localidad, provincia y país". Revertido `overscroll-behavior-y:none` (bloqueaba pull-to-refresh y amortiguación en iOS; el "espacio fantasma" era caché). **Preview compartible**: para que externos prueben el mockup sin cuenta, desactivar **Vercel Authentication** en Settings → Deployment Protection del proyecto `dynamo-web` y compartir el enlace del preview (los previews no se indexan).
+
+**Pendientes** (en TODO.md): aplicar el fix del micro-brinco al muro de clientes de la web pública (`main`, con OK); validar recargos por tipo de lugar y tarifa real con el cliente.
 
 ### 2026-07-04 — Claude Code web (nube)
 
@@ -166,6 +445,8 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 
 **SIMPLIFICACIÓN DEL MODELO DE RAMAS (decisión del usuario)**:
 - **Eliminada la rama permanente `lab`** (contenido idéntico a preview; solo generaba cascadas de 3 pasos y conflictos de merge). Ahora **2 ramas vivas**: `main` (producción) + `preview` (portal). Experimentos → ramas cortas `lab/<algo>` desde preview, previsualizadas por Vercel y borradas/mergeadas a demanda. **Regla 9 reescrita** a este modelo.
+- **Limpieza de ~20 ramas muertas** en GitHub (las borró el usuario; el entorno da 403 al borrar remotas): todas las `fix/*` y `chore/*` ya mergeadas a main, las `claude/*` de sesiones antiguas, `lab`, y dos ajenas a la web (`claude/email-template-web-style-gyb3js` = plantilla de email Brevo; `staging/montesblanco-export` = otro proyecto). **Repo final: solo `main` + `claude/sharp-dirac-E3UIO`.** `main` sigue sin proteger (si se activa "Protect this branch": solo bloquear force-push/borrado, NO exigir PR — rompería el push directo a main).
+- Repaso de calidad del código (a petición): sólido y pragmático para un mockup estático, pero con deuda técnica real — sobre todo **duplicación** (tarifador copiado en `index.html` y `dashboard.html` → causó el conflicto de merge del día; chrome del portal repetido en 6 páginas). **Pendiente propuesto**: extraer el tarifador a `js/tarifador.js` compartido (Paso A), como ya se hizo con `festivos.js`. No iniciado.
 
 ### 2026-07-02 — Claude Code web (nube)
 

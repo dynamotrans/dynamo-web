@@ -1,0 +1,2501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Aceptar carga · Dynamo Operador de Transportes</title>
+<link rel="icon" type="image/png" href="images/dynamo-logo-sq.png">
+<link rel="apple-touch-icon" href="images/dynamo-logo-sq.png">
+<style>
+    :root {
+        --purple: #3300cc; --purple-light: #5b2be0; --navy: #0a0230;
+        --green: #22a55a; --green-dark: #157a3f; --orange: #ff7a00;
+        --gray-100: #f7f8fa; --gray-200: #e8eaed; --gray-300: #d5d9e0;
+        --gray-500: #7a8194; --gray-700: #3f4759; --red: #dc2626;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; min-width: 0; }
+    /* El atributo hidden SIEMPRE gana: sin esto, cualquier regla propia con
+       display (p. ej. .contra-toggle { display:block }) lo pisa y el elemento
+       "oculto" se sigue viendo (bug cazado con neg=0). */
+    [hidden] { display: none !important; }
+    html { overflow-x: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: var(--gray-100); color: var(--navy);
+        min-height: 100svh; padding: 1.2rem 1rem calc(2rem + env(safe-area-inset-bottom));
+        display: flex; flex-direction: column; align-items: center;
+    }
+    .card { background: #fff; border: 1px solid var(--gray-200); border-radius: 16px; padding: 1.3rem 1.2rem; width: 100%; max-width: 640px; box-shadow: 0 10px 34px rgba(10,2,48,0.07); }
+    .brand { display: flex; align-items: center; gap: 0.6rem; justify-content: center; margin-bottom: 0.9rem; }
+    .brand img { height: 40px; }
+    h1 { font-size: 1.25rem; text-align: center; margin-bottom: 0.2rem; }
+    .sub { text-align: center; color: var(--gray-500); font-size: 0.85rem; margin-bottom: 1rem; }
+    .viaje { background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.9rem 1rem; margin-bottom: 1rem; }
+    .viaje dt { font-size: 0.68rem; font-weight: 800; color: var(--gray-500); margin-top: 0.55rem; }
+    .viaje dt:first-child { margin-top: 0; }
+    .viaje dd { font-size: 0.92rem; font-weight: 700; }
+    .viaje .v-sub { display: block; font-size: 0.74rem; font-weight: 600; color: var(--gray-500); margin-top: 2px; }
+    /* Resumen de "carga aceptada": MISMAS tarjetas que la oferta (píldora de
+       envío, ruta con circulito numerado, mercancía con chips…) para que toda
+       la página sea homogénea y legible en el móvil del chófer. */
+    #ok-resumen { text-align: left; margin-top: 0.3rem; }
+    #ok-resumen .of-merc { margin-top: 0.7rem; }
+    /* Línea de horario/fecha ESTIMADOS que eligió el transportista. */
+    .of-pt-est { font-size: 0.88rem; font-weight: 700; color: var(--navy); margin-top: 0.35rem; }
+    .of-pt-est b { font-weight: 900; }
+    .v-details { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem 1rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--gray-300); }
+    .v-details .vd-k { font-size: 0.68rem; font-weight: 800; color: var(--gray-500); }
+    .v-details .vd-v { font-size: 0.9rem; font-weight: 700; color: var(--navy); }
+    /* ---- Oferta en TARJETAS (pantalla del formulario): recogida/entrega, fecha
+       destacada y mercancía con chips. Legible en el móvil del transportista. ---- */
+    #viajeBox { background: transparent; border: none; padding: 0; margin-bottom: 1rem; }
+    .of-envio { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; background: #ece8fb; border: 1px solid rgba(51,0,204,0.22); border-radius: 11px; padding: 0.55rem 0.85rem; margin-bottom: 0.7rem; }
+    .of-envio .of-envio-lbl { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--purple); }
+    .of-envio > span:last-child { font-size: 1rem; font-weight: 900; color: var(--navy); }
+    .of-route { display: grid; gap: 0.6rem; margin-bottom: 0.7rem; }
+    @media (min-width: 520px) { .of-route { grid-template-columns: 1fr 1fr; } }
+    .of-pt { background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.72rem 0.85rem 0.78rem; }
+    /* Cabecera del punto: circulito numerado (naranja recogida / verde entrega,
+       mismo estilo que el panel) + etiqueta coloreada + empresa en negrita. */
+    .of-pt-head { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+    .of-pt-num { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; color: #fff; font-size: 0.78rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+    .of-pt-rec .of-pt-num { background: var(--orange); }
+    .of-pt-ent .of-pt-num { background: var(--green); }
+    .of-pt-tag { font-size: 0.95rem; font-weight: 700; }
+    .of-pt-rec .of-pt-tag { color: var(--orange); }
+    .of-pt-ent .of-pt-tag { color: var(--green); }
+    /* Tipo de lugar del punto (Almacén, Obra, Zona urbana…) entre paréntesis. */
+    .of-pt-tipo { display: inline-flex; align-items: center; gap: 0.28rem; font-size: 0.88rem; font-weight: 600; color: var(--gray-500); }
+    /* Tipo especial (obra, urbana, evento, finca) → resaltado en rojo. */
+    .of-pt-tipo.esp { color: var(--red); font-weight: 700; }
+    .of-pt-fecha { font-size: 0.98rem; font-weight: 800; color: var(--navy); margin-top: 0.4rem; line-height: 1.3; }
+    .of-pt-hor { font-size: 0.88rem; font-weight: 600; color: var(--gray-500); margin-top: 0.15rem; }
+    /* Dirección = CP, localidad, provincia y país (sin empresa: discreción). */
+    .of-pt-loc { font-size: 0.92rem; font-weight: 700; color: var(--gray-700); margin-top: 0.15rem; line-height: 1.35; }
+    .of-merc { background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.8rem 0.9rem; }
+    .of-merc-head { display: flex; align-items: center; gap: 0.6rem; }
+    .of-merc-ico { flex: none; line-height: 0; color: var(--purple); }
+    .of-merc-lbl { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--purple); }
+    .of-merc-tipo { font-size: 1rem; font-weight: 900; color: var(--navy); }
+    /* Chips del detalle en rejilla de 2 columnas: cada fila es una pareja
+       (metros+peso · palets+tipo de carga · trampilla+NIMA). */
+    .of-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.7rem; }
+    /* Chip a fila completa (Tipo de carga va solo en su fila). */
+    .of-chip.of-chip-full { grid-column: 1 / -1; }
+    .of-chip { display: flex; flex-direction: column; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 9px; padding: 0.34rem 0.6rem; }
+    .of-chip .of-chip-k { font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: var(--gray-500); }
+    .of-chip .of-chip-v { font-size: 0.88rem; font-weight: 800; color: var(--navy); }
+    .of-dm { margin-top: 0.75rem; padding-top: 0.7rem; border-top: 1px dashed var(--gray-300); font-size: 0.86rem; font-weight: 600; color: var(--gray-700); line-height: 1.45; }
+    .of-dm b { display: block; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gray-500); margin-bottom: 0.22rem; }
+    .pago-contado { margin-top: 0.7rem; background: rgba(34,165,90,0.1); border: 1.5px solid var(--green); border-radius: 10px; padding: 0.6rem 0.75rem; font-size: 0.9rem; font-weight: 800; color: var(--green-dark); }
+    .pago-contado .imp { font-size: 1.25rem; }
+    .pago-contado .base-nota { font-size: 0.78rem; font-weight: 600; opacity: 0.85; }
+    label { display: block; font-size: 0.72rem; font-weight: 800; color: var(--gray-700); margin: 0.75rem 0 0.25rem; }
+    label .op { color: var(--gray-500); font-weight: 600; }
+    input[type=text], input[type=tel], input[type=date], textarea, select {
+        width: 100%; border: 1.5px solid var(--gray-300); border-radius: 10px;
+        padding: 0.65rem 0.75rem; font: inherit; font-size: 16px; color: var(--navy); background: #fff;
+    }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--purple); }
+    select:disabled, input:disabled { background: var(--gray-100); color: var(--gray-500); }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+    .telrow { display: flex; gap: 0.5rem; }
+    .telrow select { width: 108px; flex: none; }
+    textarea { min-height: 84px; resize: vertical; }
+    .err { border-color: var(--red) !important; }
+    /* Cajas suaves por sección del formulario (Carga naranja = recogida,
+       Entrega verde, Vehículo morado, Conductor neutro), para leerlo claro. */
+    .fsec { border: 1.5px solid; border-radius: 14px; padding: 0.9rem 0.95rem; margin-top: 1rem; }
+    .fsec .sec-title { border-top: none; padding-top: 0; margin-top: 0; }
+    .fsec input, .fsec select, .fsec textarea { background: #fff; }
+    .fsec-carga { background: rgba(255,122,0,0.06); border-color: rgba(255,122,0,0.35); }
+    .fsec-carga .sec-title { color: #c2410c; }
+    .fsec-entrega { background: rgba(34,165,90,0.06); border-color: rgba(34,165,90,0.4); }
+    .fsec-entrega .sec-title { color: var(--green-dark); }
+    .fsec-vehiculo { background: rgba(51,0,204,0.04); border-color: rgba(51,0,204,0.25); }
+    .fsec-vehiculo .sec-title { color: var(--purple); }
+    .fsec-conductor { background: rgba(10,2,48,0.03); border-color: var(--gray-300); }
+    .fsec-conductor .sec-title { color: var(--navy); }
+    .fsec-notas { background: var(--gray-100); border-color: var(--gray-200); padding: 0.55rem 0.95rem; }
+    /* Ventana de confirmación de identidad (código de 3 dígitos por email) */
+    .tel-modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .tel-modal-backdrop { position: absolute; inset: 0; background: rgba(10,2,48,0.55); backdrop-filter: blur(3px); }
+    .tel-modal-card { position: relative; background: #fff; border-radius: 18px; padding: 1.35rem 1.15rem 1.15rem; max-width: 390px; width: 100%; box-shadow: 0 18px 50px rgba(20,10,60,0.35); text-align: center; }
+    /* Texto GRANDE: quien confirma es un chófer con el móvil. */
+    .tel-modal-card h2 { font-size: 1.3rem; font-weight: 900; color: var(--navy); margin: 0 0 0.9rem; }
+    .tel-modal-card .tm-box { text-align: center; padding: 1rem 0.9rem; background: rgba(51,0,204,0.05); border: 1.5px solid rgba(51,0,204,0.25); border-radius: 12px; margin-bottom: 1rem; }
+    .tel-modal-card .tm-linea { font-size: 1rem; font-weight: 700; color: var(--gray-700); line-height: 1.45; }
+    .tel-modal-card .tm-linea span { display: block; color: var(--navy); font-size: 1.35rem; font-weight: 900; letter-spacing: 0.04em; margin-top: 0.15rem; }
+    .tel-modal-card .tm-box label { display: block; font-size: 1rem; font-weight: 700; color: var(--navy); margin: 0.8rem 0 0.45rem; text-transform: none; line-height: 1.4; }
+    .tel-modal-card #tm-tel3 { max-width: 170px; margin: 0 auto; display: block; font-size: 1.7rem; padding: 0.45rem 0.5rem; letter-spacing: 0.35em; text-align: center; font-weight: 900; }
+    .tel-modal-card .tm-err { color: var(--red); font-size: 0.95rem; font-weight: 800; margin-top: 0.5rem; }
+    .tel-modal-card .btn { margin-top: 0; }
+    .tel-modal-card .tm-volver { background: none; border: none; margin-top: 0.85rem; padding: 0.5rem 1rem; font-size: 0.95rem; font-weight: 800; color: var(--gray-500); text-decoration: underline; cursor: pointer; }
+    /* Ventana de datos del camión/conductor (resumen "¿correctos?" / faltan) */
+    .tel-modal-card .vc-box { text-align: left; padding: 0.4rem 0.9rem; }
+    .tel-modal-card .vc-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.8rem; padding: 0.5rem 0; border-bottom: 1px dashed rgba(51,0,204,0.18); }
+    .tel-modal-card .vc-row:last-child { border-bottom: none; }
+    .tel-modal-card .vc-k { font-size: 0.88rem; font-weight: 700; color: var(--gray-700); }
+    .tel-modal-card .vc-v { font-size: 1.05rem; font-weight: 900; color: var(--navy); text-align: right; }
+    .tel-modal-card .vc-falta { color: var(--red); font-size: 0.92rem; }
+    .tel-modal-card .vc-nota { font-size: 0.95rem; font-weight: 600; color: var(--gray-700); line-height: 1.5; margin: 0 0 0.4rem; text-align: left; }
+    .btn-sec { display: block; width: 100%; margin-top: 0.7rem; background: #fff; color: var(--purple); border: 1.5px solid var(--purple); border-radius: 12px; padding: 0.85rem; font: inherit; font-weight: 800; font-size: 0.98rem; cursor: pointer; }
+    /* Variante DISCRETA: recuadro blanco con borde gris (acción secundaria). */
+    .btn-sec.vc-later { color: var(--gray-700); border-color: var(--gray-300); font-weight: 700; font-size: 0.92rem; }
+    /* Aviso ámbar en el resumen aceptado: datos del camión/conductor pendientes */
+    .ok-pend { margin: 0 0 0.8rem; background: #fff7e6; border: 1.5px solid #ffd591; border-radius: 12px; padding: 0.75rem 0.85rem; font-size: 0.92rem; font-weight: 600; color: #8a5a00; line-height: 1.5; text-align: left; }
+    /* Toggle "Añadir indicaciones": texto azul plegable/expansible. */
+    .notes-toggle { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.2rem; background: none; border: none; padding: 0.25rem 0; font: inherit; font-size: 0.9rem; font-weight: 700; color: var(--purple); cursor: pointer; }
+    .notes-toggle .nt-plus { width: 18px; height: 18px; border-radius: 50%; background: rgba(51,0,204,0.1); display: inline-flex; align-items: center; justify-content: center; font-weight: 900; transition: transform 0.2s; }
+    .notes-toggle[aria-expanded="true"] .nt-plus { transform: rotate(45deg); }
+    #notasBody[hidden] { display: none; }
+    #notasBody { margin-top: 0.5rem; }
+    /* Campo que estaba en rojo y ya se ha rellenado correctamente → verde. */
+    .valid { border-color: var(--green) !important; box-shadow: 0 0 0 2px rgba(34,165,90,0.12); }
+    /* Autocompletado (matrícula tractora/remolque y conductor) desde el historial */
+    .ac-wrap { position: relative; }
+    .ac-list { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 3px); background: #fff; border: 1.5px solid var(--gray-300); border-radius: 10px; box-shadow: 0 8px 22px rgba(20,10,60,0.14); max-height: 240px; overflow-y: auto; padding: 0.25rem; display: none; }
+    .ac-list.show { display: block; }
+    .ac-list li { list-style: none; padding: 0.5rem 0.6rem; border-radius: 8px; cursor: pointer; font-size: 0.9rem; color: var(--navy); display: flex; flex-direction: column; gap: 1px; }
+    .ac-list li:hover, .ac-list li.ac-active { background: rgba(51,0,204,0.08); }
+    .ac-list li .ac-sub { font-size: 0.74rem; color: var(--gray-500); font-weight: 600; }
+    .ac-list li.ac-tip { cursor: default; color: var(--gray-500); font-size: 0.76rem; font-weight: 700; font-style: italic; }
+    .ac-list li.ac-tip:hover { background: transparent; }
+    .ac-newnote { font-size: 0.72rem; color: var(--gray-500); margin-top: 0.25rem; display: none; }
+    .ac-newnote.show { display: block; }
+    .ac-flash { animation: acFlash 0.9s ease; }
+    @keyframes acFlash { 0%, 40% { background: rgba(34,165,90,0.18); border-color: var(--green); } 100% { background: #fff; } }
+    /* Buscador de identificación (CIF/DNI + Buscar) */
+    .idrow { display: flex; gap: 0.5rem; align-items: stretch; position: relative; }
+    .idrow input { flex: 1; }
+    .btn-buscar { flex: none; background: var(--purple); color: #fff; border: none; border-radius: 10px; padding: 0 1.1rem; font: inherit; font-weight: 800; font-size: 0.95rem; cursor: pointer; }
+    .btn-buscar:hover { background: var(--purple-light); }
+    .id-hint { font-size: 0.72rem; color: var(--gray-500); margin-top: 0.3rem; line-height: 1.45; }
+    .id-nofound { display: none; margin-top: 0.5rem; background: #fff7e6; border: 1px solid #ffd591; color: #8a5a00; border-radius: 10px; padding: 0.55rem 0.7rem; font-size: 0.8rem; font-weight: 700; }
+    .id-nofound.show { display: block; }
+    /* Estado "consultando al backend" al pulsar Buscar. */
+    .buscando { display: none; margin-top: 0.6rem; align-items: center; gap: 0.55rem; font-size: 0.84rem; font-weight: 700; color: var(--purple); }
+    .buscando.show { display: flex; }
+    .spin { width: 18px; height: 18px; flex: none; border: 2.5px solid rgba(51,0,204,0.22); border-top-color: var(--purple); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .btn-buscar[disabled] { opacity: 0.55; cursor: default; }
+    input:disabled { opacity: 0.7; }
+    /* Resumen de la empresa encontrada */
+    .empresa-resumen { display: none; margin-top: 0.7rem; background: rgba(51,0,204,0.05); border: 1.5px solid rgba(51,0,204,0.28); border-radius: 12px; padding: 0.8rem 0.9rem; }
+    .empresa-resumen.show { display: block; }
+    .empresa-resumen .er-nombre { font-size: 1rem; font-weight: 900; color: var(--purple); }
+    .empresa-resumen .er-cif { font-size: 0.8rem; font-weight: 700; color: var(--gray-700); margin-top: 1px; }
+    .empresa-resumen .er-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem 0.9rem; margin-top: 0.6rem; }
+    .empresa-resumen .er-k { font-size: 0.66rem; font-weight: 800; color: var(--gray-500); }
+    .empresa-resumen .er-v { font-size: 0.85rem; font-weight: 700; }
+    .empresa-resumen .er-cambiar { margin-top: 0.6rem; font-size: 0.76rem; font-weight: 800; color: var(--purple); background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; }
+    /* Subida de documentos por TIPO en el alta (cajas grandes tipo drop). */
+    .doc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+    .doc-drop {
+        display: block; border: 2px dashed var(--gray-300); border-radius: 11px;
+        padding: 0.95rem 0.6rem; text-align: center; color: var(--gray-500);
+        font-size: 0.86rem; font-weight: 800; cursor: pointer;
+        transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    .doc-drop:hover { border-color: var(--purple); background: rgba(51,0,204,0.04); color: var(--purple); }
+    .doc-drop .dd-sub { font-size: 0.72rem; font-weight: 600; margin-top: 0.25rem; opacity: 0.85; }
+    .doc-drop.has-file { border-style: solid; border-color: var(--green); background: rgba(34,165,90,0.08); color: var(--green-dark); }
+    .doc-drop.err { border-color: #e02020; background: rgba(224,32,32,0.05); color: #b42318; }
+    .doc-list { list-style: none; margin: 0.4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+    .doc-list li { display: flex; align-items: center; gap: 0.45rem; background: #fff; border: 1px solid var(--gray-200); border-radius: 8px; padding: 0.35rem 0.55rem; font-size: 0.8rem; font-weight: 700; color: var(--navy); }
+    .doc-list li .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .doc-list li button { border: none; background: none; color: var(--gray-500); font-size: 1.05rem; line-height: 1; cursor: pointer; padding: 0 0.2rem; }
+    .doc-list li button:hover { color: var(--red); }
+    /* Resto del formulario, oculto hasta identificar la empresa */
+    #restForm { display: none; }
+    #restForm.show { display: block; }
+    .sec-title { font-size: 0.78rem; font-weight: 900; color: var(--navy); margin: 1.2rem 0 0.1rem; padding-top: 0.9rem; border-top: 1px solid var(--gray-200); }
+    /* Caja destacada de IDENTIFICACIÓN: en morado de marca, para que se vea
+       de un vistazo que hay que rellenar el dato y Buscar para identificarse. */
+    #identBlock {
+        background: rgba(51,0,204,0.06);
+        border: 1.5px solid rgba(51,0,204,0.35);
+        border-radius: 14px;
+        padding: 0.95rem 1rem 0.85rem;
+        margin-top: 1.1rem;
+    }
+    #identBlock .sec-title {
+        color: var(--purple);
+        font-size: 0.92rem;
+        display: flex; align-items: center; gap: 0.45rem;
+    }
+    #identBlock .sec-title svg { width: 17px; height: 17px; flex: none; }
+    #identBlock label { color: var(--navy); }
+    #identBlock input#f-buscar-id { background: #fff; border-color: rgba(51,0,204,0.4); }
+    .pronto { margin-top: 1rem; background: rgba(34,165,90,0.08); border: 1.5px solid var(--green); border-radius: 12px; padding: 0.8rem 0.9rem; }
+    .pronto label.chk { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.86rem; font-weight: 600; color: var(--navy); margin: 0; text-transform: none; }
+    .pronto input { width: 19px; height: 19px; flex: none; margin-top: 2px; accent-color: var(--green); }
+    .pronto-calc { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed rgba(34,165,90,0.45); }
+    .pronto-calc .pc-line { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
+    .pronto-calc .pc-lbl { font-size: 0.82rem; font-weight: 700; color: var(--navy); }
+    .pronto-calc .pc-amount { font-size: 1.18rem; font-weight: 900; color: var(--green-dark); white-space: nowrap; }
+    .pronto-calc .pc-when { color: var(--green-dark); font-weight: 800; font-size: 0.76rem; white-space: nowrap; }
+    .pronto-calc .pc-sub { font-size: 0.72rem; font-weight: 600; color: var(--gray-500); margin-top: 0.15rem; }
+    .pronto-calc .pc-alt { font-size: 0.76rem; font-weight: 600; color: var(--gray-500); margin-top: 0.45rem; line-height: 1.5; }
+    .pronto-calc .pc-red { color: var(--red); font-weight: 800; }
+    .pronto-calc.off { opacity: 0.62; }
+    .pronto-calc.off .pc-amount { color: var(--gray-700); }
+    .btn { width: 100%; margin-top: 1.1rem; background: var(--purple); color: #fff; border: none; border-radius: 12px; padding: 0.95rem; font: inherit; font-weight: 800; font-size: 1.02rem; cursor: pointer; }
+    .btn:hover { background: var(--purple-light); }
+    /* ---- CONTRAOFERTA: proponer otro precio (barra ±10 %, pasos de 10 €) ---- */
+    .contra-toggle { display: block; width: 100%; margin: -0.3rem 0 1rem; background: none; border: none; color: var(--purple); font: inherit; font-size: 0.9rem; font-weight: 800; cursor: pointer; padding: 0.2rem 0; text-align: center; }
+    .contra-toggle .ct-chev { display: inline-block; transition: transform 0.2s; }
+    .contra-toggle.open .ct-chev { transform: rotate(180deg); }
+    .contra-box { background: #fff; border: 1.5px dashed rgba(51,0,204,0.4); border-radius: 12px; padding: 0.9rem 1rem 1rem; margin: -0.4rem 0 1rem; }
+    .contra-box input[type=range] { width: 100%; accent-color: var(--purple); height: 34px; margin-top: 0.4rem; }
+    .contra-minmax { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; color: var(--gray-500); }
+    .contra-precio { margin-top: 0.5rem; font-size: 1.4rem; font-weight: 900; color: var(--purple); }
+    .contra-precio .base-nota { font-size: 0.78rem; font-weight: 600; color: var(--gray-500); }
+    .contra-delta { font-size: 0.85rem; font-weight: 700; color: var(--gray-500); margin-top: 2px; }
+    .btn-contra { margin-top: 0.9rem; background: var(--navy); }
+    .btn-contra:hover { background: #1a0f52; }
+    .contra-nota { font-size: 0.8rem; color: var(--gray-700); line-height: 1.5; margin-top: 0.65rem; }
+    .contra-spin { width: 56px; height: 56px; border-radius: 50%; border: 5px solid rgba(51,0,204,0.15); border-top-color: var(--purple); animation: spin 0.9s linear infinite; margin: 0 auto 1rem; }
+    @media (prefers-reduced-motion: reduce) { .contra-spin { animation: none; } }
+    /* Estado de la propuesta EN EL PROPIO PANEL (analizando / rechazada). */
+    .contra-status { text-align: center; padding: 0.3rem 0 0.2rem; }
+    .contra-status .contra-spin { width: 42px; height: 42px; border-width: 4px; margin: 0.2rem auto 0.7rem; }
+    .cs-title { font-size: 1.05rem; font-weight: 900; color: var(--navy); }
+    .cs-agente { font-size: 0.88rem; font-weight: 700; color: var(--purple); margin-top: 0.2rem; }
+    .cs-sub { font-size: 0.92rem; font-weight: 700; color: var(--navy); margin-top: 0.3rem; line-height: 1.45; }
+    .cs-box { margin-top: 0.7rem; background: rgba(51,0,204,0.06); border: 1.5px solid rgba(51,0,204,0.28); border-radius: 10px; padding: 0.6rem 0.75rem; font-size: 0.86rem; font-weight: 700; color: var(--navy); text-align: left; line-height: 1.5; }
+    .cs-no { width: 46px; height: 46px; border-radius: 50%; background: rgba(220,38,38,0.12); color: var(--red); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.6rem; font-size: 1.3rem; font-weight: 900; }
+    .aviso { font-size: 0.72rem; color: var(--gray-500); line-height: 1.5; margin-top: 0.7rem; text-align: center; }
+    .warn { display: none; margin-top: 0.7rem; background: #fdecec; border: 1px solid #f5b5b5; color: #b42318; border-radius: 10px; padding: 0.6rem 0.75rem; font-size: 0.82rem; font-weight: 700; }
+    .warn.show { display: block; }
+    .ok-screen { display: none; text-align: center; padding: 1.6rem 0.6rem; }
+    .ok-screen.show { display: block; }
+    .ok-ico { width: 74px; height: 74px; border-radius: 50%; background: rgba(34,165,90,0.14); color: var(--green); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.9rem; }
+    /* Formulario oculto hasta confirmar disponibilidad */
+    #formScreen { display: none; }
+    #formScreen.show { display: block; }
+    /* Pantalla "comprobando disponibilidad" (spinner grande) */
+    .check-screen { display: none; text-align: center; padding: 2.4rem 0.6rem; }
+    .check-screen.show { display: block; }
+    .spin-lg { width: 48px; height: 48px; border-width: 4px; margin: 0 auto 1.1rem; }
+    /* Barra de progreso + contador de la comprobación de disponibilidad */
+    .chk-bar-wrap { max-width: 320px; height: 10px; margin: 1.3rem auto 0.5rem; background: var(--gray-200); border-radius: 999px; overflow: hidden; }
+    .chk-bar { height: 100%; width: 0; background: linear-gradient(90deg, var(--purple), var(--green)); border-radius: 999px; transition: width 0.08s linear; }
+    .chk-row { max-width: 320px; margin: 0 auto; display: flex; justify-content: space-between; align-items: baseline; font-size: 0.82rem; font-weight: 700; color: var(--gray-500); }
+    /* Etiqueta de la espera de trámite: una sola línea centrada bajo la barra
+       (sin % — se montaba con el texto largo). */
+    .tw-lbl { margin-top: 0.45rem; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--gray-500); line-height: 1.45; }
+    .tw-lbl strong { color: var(--purple); }
+    .chk-row .chk-cd strong { color: var(--purple); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+    /* Pantallas "ya no disponible" / "tiempo agotado" */
+    .stop-screen { display: none; text-align: center; padding: 1.6rem 0.6rem; }
+    .stop-screen.show { display: block; }
+    /* Subtítulo de "ya no disponible": grande y legible (lo lee en el móvil). */
+    #takenScreen .sub { font-size: 1.08rem; font-weight: 700; color: var(--navy); line-height: 1.45; }
+    .stop-ico { width: 74px; height: 74px; border-radius: 50%; background: rgba(220,53,53,0.12); color: var(--red); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.9rem; font-size: 2rem; font-weight: 900; }
+    .stop-ico.amber { background: rgba(245,166,35,0.15); color: #b8860b; }
+    .stop-ico.viendo { background: rgba(51,0,204,0.1); color: var(--purple); }
+    .stop-screen dl.viaje { text-align: left; max-width: 420px; margin: 1rem auto 0; }
+    /* Datos (enmascarados) del transportista que cogió la carga: filas claras
+       con etiqueta a la izquierda y valor grande a la derecha. */
+    .taken-data { max-width: 400px; margin: 1.2rem auto 0; text-align: left; border: 1px solid var(--gray-200); border-radius: 14px; overflow: hidden; background: #fff; }
+    .taken-data .tk-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.72rem 0.95rem; }
+    .taken-data .tk-row + .tk-row { border-top: 1px solid var(--gray-200); }
+    .taken-data .tk-k { font-size: 0.75rem; font-weight: 700; color: var(--gray-500); flex: none; }
+    .taken-data .tk-v { font-size: 1rem; font-weight: 800; color: var(--navy); letter-spacing: 0.03em; text-align: right; word-break: break-word; }
+    .taken-data .tk-rel { display: block; font-size: 0.8rem; font-weight: 600; color: var(--gray-500); margin-top: 2px; letter-spacing: 0; }
+    /* Estado "en trámite": un solo mensaje grande y limpio, con spinner. */
+    .tramite-box { display: flex; align-items: center; justify-content: center; gap: 0.65rem; padding: 1.3rem 1rem; }
+    .tramite-box .tramite-spin { width: 22px; height: 22px; flex: none; border: 3px solid rgba(51,0,204,0.2); border-top-color: var(--purple); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .tramite-box .tramite-txt { font-size: 1.12rem; font-weight: 900; color: var(--purple); line-height: 1.35; }
+    @media (prefers-reduced-motion: reduce) { .tramite-box .tramite-spin { animation: none; } }
+    /* Banner de reserva temporal (contador de 3 min) */
+    /* Banner de reserva: fijo arriba (sticky) para verlo siempre al hacer scroll. */
+    .reserva-banner { position: sticky; top: 0; z-index: 30; margin: 0 0 1rem; background: #ece8fb; border: 1.5px solid rgba(51,0,204,0.35); border-radius: 12px; padding: 0.7rem 0.85rem; font-size: 0.84rem; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 0.5rem; line-height: 1.4; box-shadow: 0 2px 10px rgba(20,10,60,0.1); }
+    .reserva-banner .rb-timer { font-size: 1.05rem; font-weight: 900; color: var(--purple); font-variant-numeric: tabular-nums; }
+    /* El banner de reserva es sticky: cualquier scrollIntoView debe dejar
+       hueco para que el destino no quede escondido debajo. */
+    #empresaResumen, #altaForm, #identBlock, #sec-carga { scroll-margin-top: 108px; }
+    .reserva-banner.urgent { background: #fde3e3; border-color: #f0a5a5; color: #b42318; }
+    .reserva-banner.urgent .rb-timer { color: var(--red); }
+    /* Reserva EN PAUSA (mientras se analiza la contraoferta): verde claro de la casa. */
+    .reserva-banner.paused { background: rgba(34,165,90,0.1); border-color: var(--green); color: var(--green-dark); }
+    /* Spinner que se VACÍA durante los 2 primeros minutos (como el de la web
+       pública). @property permite animar el ángulo del conic-gradient. */
+    @property --rb-progress { syntax: '<angle>'; initial-value: 360deg; inherits: false; }
+    .rb-spin {
+        width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; --rb-progress: 360deg;
+        background: conic-gradient(var(--purple) 0deg var(--rb-progress), rgba(51,0,204,0.16) var(--rb-progress) 360deg);
+        position: relative; animation: rbDrain linear forwards;
+    }
+    .rb-spin::before { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: #ece8fb; }
+    /* Variante ROJA para el último minuto (se vacía en 1 min). */
+    .rb-spin.rb-spin-red { background: conic-gradient(var(--red) 0deg var(--rb-progress), rgba(220,38,38,0.16) var(--rb-progress) 360deg); }
+    .rb-spin.rb-spin-red::before { background: #fde3e3; }
+    @keyframes rbDrain { from { --rb-progress: 360deg; } to { --rb-progress: 0deg; } }
+    @media (prefers-reduced-motion: reduce) { .rb-spin { animation: none; --rb-progress: 180deg; } }
+    .foot { margin-top: 1rem; font-size: 0.75rem; color: var(--gray-500); text-align: center; }
+    .foot a { color: var(--purple); font-weight: 700; text-decoration: none; }
+    /* Botones de contacto (Llamar / WhatsApp / Email) */
+    .dudas-lbl { margin-top: 1.2rem; font-size: 0.8rem; font-weight: 700; color: var(--gray-600); text-align: center; }
+    /* Botón "¿Dudas?" que despliega los contactos. */
+    .dudas-toggle { display: inline-flex; align-items: center; gap: 0.45rem; margin-top: 1.2rem; background: rgba(51,0,204,0.06); color: var(--purple); border: 1.5px solid rgba(51,0,204,0.3); border-radius: 999px; padding: 0.6rem 1.3rem; font: inherit; font-size: 0.9rem; font-weight: 800; cursor: pointer; }
+    .dudas-toggle:hover { background: rgba(51,0,204,0.1); }
+    .dudas-toggle .dt-chev { font-size: 0.75rem; transition: transform 0.2s; }
+    .dudas-toggle[aria-expanded="true"] .dt-chev { transform: rotate(180deg); }
+    .contact-btns { display: flex; gap: 0.5rem; margin-top: 0.6rem; flex-wrap: wrap; justify-content: center; }
+    .contact-btns[hidden] { display: none; }
+    .cbtn { flex: 1; min-width: 96px; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; text-decoration: none; font-weight: 800; font-size: 0.86rem; padding: 0.65rem 0.6rem; border-radius: 11px; border: 1.5px solid; }
+    .cbtn svg { width: 16px; height: 16px; }
+    .cbtn-call { color: var(--purple); border-color: rgba(51,0,204,0.3); background: rgba(51,0,204,0.05); }
+    .cbtn-call:hover { background: rgba(51,0,204,0.1); }
+    .cbtn-wa { color: #fff; background: #25D366; border-color: #25D366; }
+    .cbtn-wa:hover { background: #1eb457; }
+    .cbtn-mail { color: var(--purple); border-color: rgba(51,0,204,0.3); background: rgba(51,0,204,0.05); }
+    .cbtn-mail:hover { background: rgba(51,0,204,0.1); }
+    /* Pista "hay más abajo": píldora fija que invita a seguir bajando y leerlo
+       todo antes del botón Aceptar. Se oculta al llegar al final. */
+    .scroll-hint { position: fixed; left: 50%; transform: translateX(-50%); bottom: 16px; z-index: 50; background: var(--purple); color: #fff; font: inherit; font-size: 0.8rem; font-weight: 800; padding: 0.6rem 1rem; border: none; border-radius: 999px; box-shadow: 0 6px 20px rgba(51,0,204,0.35); display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer; }
+    .scroll-hint[hidden] { display: none; }
+    .scroll-hint .sh-arrow { display: inline-block; font-size: 0.95rem; animation: shBounce 1.1s ease infinite; }
+    @keyframes shBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+    @media (prefers-reduced-motion: reduce) { .scroll-hint .sh-arrow { animation: none; } }
+    /* Selector de idiomas (fijo arriba a la derecha) — puede entrar cualquier
+       transportista de cualquier país. Motor Google Translate (cookie googtrans). */
+    .lang-selector { position: fixed; top: 0.8rem; right: 0.8rem; z-index: 10000; }
+    .lang-btn { display: flex; align-items: center; gap: 0.3rem; cursor: pointer; background: #fff; border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 0.3rem 0.7rem 0.3rem 0.45rem; font: inherit; font-size: 0.78rem; font-weight: 700; color: var(--gray-700); transition: all 0.2s; box-shadow: 0 4px 14px rgba(10,2,48,0.08); }
+    .lang-btn:hover { border-color: var(--purple); }
+    .lang-btn .flag { font-size: 1.1rem; line-height: 1; }
+    .lang-btn .arrow { font-size: 0.6rem; margin-left: 0.15rem; transition: transform 0.2s; }
+    .lang-btn.open .arrow { transform: rotate(180deg); }
+    .lang-dropdown { position: absolute; top: calc(100% + 6px); right: 0; z-index: 10001; background: #fff; border-radius: 14px; border: 1.5px solid var(--gray-200); box-shadow: 0 12px 40px rgba(0,0,0,0.12); padding: 0.5rem; display: none; min-width: 170px; max-height: 350px; overflow-y: auto; }
+    .lang-dropdown.open { display: block; animation: langPop 0.2s ease; }
+    @keyframes langPop { 0% { opacity: 0; transform: translateY(-6px) scale(0.97); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+    .lang-option { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.7rem; border-radius: 8px; cursor: pointer; transition: background 0.15s; font: inherit; font-size: 0.82rem; font-weight: 600; color: var(--gray-700); border: none; background: none; width: 100%; text-align: left; }
+    .lang-option:hover { background: var(--gray-100); }
+    .lang-option.active { background: rgba(51,0,204,0.07); color: var(--purple); }
+    .lang-option .flag { font-size: 1.2rem; }
+    .flag-svg { display: inline-block; width: 18px; height: 12px; border-radius: 2px; vertical-align: middle; box-shadow: 0 0 0 1px rgba(0,0,0,0.10); }
+    /* Ocultar por completo la UI de Google Translate */
+    .goog-te-banner-frame, #goog-gt-tt, .goog-te-balloon-frame, .goog-te-gadget { display: none !important; }
+    body { top: 0 !important; position: static !important; }
+    .skiptranslate { display: none !important; height: 0 !important; overflow: hidden !important; }
+    .goog-text-highlight { background: none !important; box-shadow: none !important; }
+    #google_translate_element { position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none; }
+    .goog-te-spinner-pos, .goog-te-spinner-pos *, img.goog-te-spinner, .goog-te-gadget-icon, .goog-te-gadget-simple { display: none !important; }
+    iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
+</style>
+</head>
+<body>
+    <!-- Selector de idiomas (Google Translate; comparte cookie googtrans) -->
+    <div class="lang-selector notranslate" translate="no">
+        <button class="lang-btn" onclick="toggleLangDropdown()" id="langBtn"><span class="flag">🇪🇸</span> ES <span class="arrow">▼</span></button>
+        <div class="lang-dropdown" id="langDropdown">
+            <button class="lang-option active" onclick="changeLang('es','🇪🇸','ES')"><span class="flag">🇪🇸</span> Español</button>
+            <button class="lang-option" onclick="changeLang('pt','🇵🇹','PT')"><span class="flag">🇵🇹</span> Português</button>
+            <button class="lang-option" onclick="changeLang('en','🇬🇧','EN')"><span class="flag">🇬🇧</span> English</button>
+            <button class="lang-option" onclick="changeLang('fr','🇫🇷','FR')"><span class="flag">🇫🇷</span> Français</button>
+            <button class="lang-option" onclick="changeLang('ar','🇸🇦','AR')"><span class="flag">🇸🇦</span> العربية</button>
+            <button class="lang-option" onclick="changeLang('de','🇩🇪','DE')"><span class="flag">🇩🇪</span> Deutsch</button>
+            <button class="lang-option" onclick="changeLang('it','🇮🇹','IT')"><span class="flag">🇮🇹</span> Italiano</button>
+            <button class="lang-option" onclick="changeLang('nl','🇳🇱','NL')"><span class="flag">🇳🇱</span> Nederlands</button>
+            <button class="lang-option" onclick="changeLang('pl','🇵🇱','PL')"><span class="flag">🇵🇱</span> Polski</button>
+            <button class="lang-option" onclick="changeLang('ro','🇷🇴','RO')"><span class="flag">🇷🇴</span> Română</button>
+            <button class="lang-option" onclick="changeLang('uk','🇺🇦','UK')"><span class="flag">🇺🇦</span> Українська</button>
+            <button class="lang-option" onclick="changeLang('zh-CN','🇨🇳','ZH')"><span class="flag">🇨🇳</span> 中文</button>
+        </div>
+    </div>
+    <div id="google_translate_element" style="display:none;"></div>
+    <div class="card">
+        <div class="brand"><img src="images/2.png" alt="Dynamo"></div>
+
+        <!-- 0) COMPROBANDO DISPONIBILIDAD: al abrir el enlace se consulta al
+             backend si la carga sigue libre (mock ~1,8 s). -->
+        <div class="check-screen" id="checkScreen">
+            <div class="spin spin-lg"></div>
+            <h1>Comprobando disponibilidad…</h1>
+            <p class="sub">Estamos verificando si la carga <strong id="chk-ref">—</strong> sigue disponible.</p>
+            <div class="chk-bar-wrap"><div class="chk-bar" id="chk-bar"></div></div>
+            <div class="chk-row"><span class="chk-pct" id="chk-pct">0%</span><span class="chk-cd"><strong id="chk-count">3</strong> s</span></div>
+        </div>
+
+        <!-- 0-bis) YA NO DISPONIBLE: la aceptó otro transportista. Datos del que
+             la cogió ENMASCARADOS (sin nombre; CIF 5 primeros + *; teléfono 4
+             primeros dígitos + *). -->
+        <div class="stop-screen" id="takenScreen">
+            <div class="stop-ico">✕</div>
+            <h1 style="color:var(--red);">Esta carga ya no está disponible</h1>
+            <p class="sub" id="tk-sub">La aceptó otro transportista antes que tú.</p>
+            <div class="taken-data">
+                <div class="tk-row"><span class="tk-k">Aceptada el</span><span class="tk-v" id="tk-fecha">—</span></div>
+                <div class="tk-row"><span class="tk-k">Aceptada por CIF / DNI</span><span class="tk-v" id="tk-cif">—</span></div>
+                <div class="tk-row"><span class="tk-k">Teléfono</span><span class="tk-v" id="tk-tel">—</span></div>
+            </div>
+            <button type="button" class="dudas-toggle" aria-expanded="false" onclick="toggleDudas(this)">¿Dudas? <span class="dt-chev" aria-hidden="true">▾</span></button>
+            <div class="contact-btns" hidden>
+                <a class="cbtn cbtn-call" href="tel:+34955225945"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar</a>
+                <a class="cbtn cbtn-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</a>
+                <a class="cbtn cbtn-mail" href="mailto:info@dynamotrans.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>Email</a>
+            </div>
+        </div>
+
+        <!-- 0-quater) FALLO DE SERVIDOR / MANTENIMIENTO: la comprobación de
+             disponibilidad no obtiene respuesta del backend (timeout/error).
+             Mock: estado=mantenimiento en la URL. -->
+        <div class="stop-screen" id="errorScreen">
+            <div class="stop-ico amber"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
+            <h1>Estamos haciendo labores de mantenimiento</h1>
+            <p class="sub" style="font-size:1.02rem;font-weight:700;color:var(--navy);">En este momento no podemos comprobar la disponibilidad de la carga.<br>Por favor, <strong>vuelve a intentarlo más tarde</strong> o contáctanos:</p>
+            <button type="button" class="dudas-toggle" style="margin-top:0.8rem;" aria-expanded="false" onclick="toggleDudas(this)">Contáctanos <span class="dt-chev" aria-hidden="true">▾</span></button>
+            <div class="contact-btns" hidden>
+                <a class="cbtn cbtn-call" href="tel:+34955225945"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar</a>
+                <a class="cbtn cbtn-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</a>
+                <a class="cbtn cbtn-mail" href="mailto:info@dynamotrans.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>Email</a>
+            </div>
+            <button type="button" class="btn" style="max-width:340px;margin:1.1rem auto 0;display:block;" onclick="location.reload()">Volver a intentarlo</button>
+        </div>
+
+        <!-- 0-ter) TIEMPO AGOTADO: pasaron los 4 min de reserva y la carga se
+             ha liberado; hay que volver a comprobar disponibilidad. -->
+        <div class="stop-screen" id="expiredScreen">
+            <div class="stop-ico amber"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 7.828V2"/></svg></div>
+            <h1>Se ha agotado el tiempo de reserva</h1>
+            <p class="sub">No se completó la aceptación en <strong>3 minutos</strong>, así que la carga ha vuelto a quedar libre. Vuelve a comprobar si sigue disponible.</p>
+            <button type="button" class="btn" onclick="location.reload()">Volver a comprobar disponibilidad</button>
+        </div>
+
+        <!-- 0-quater) BLOQUEADO: 3 intentos fallidos del código de confirmación
+             por email. Por seguridad la aceptación se anula y la carga queda
+             LIBERADA para otros transportistas. Sin botón de reintentar. -->
+        <div class="stop-screen" id="blockedScreen">
+            <div class="stop-ico amber"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+            <h1>No hemos podido confirmar que eres tú</h1>
+            <p class="sub">Has agotado los <strong>3 intentos</strong> del código de confirmación.<br>Por seguridad la aceptación <strong>no se ha completado</strong> y la carga <strong>ha quedado liberada</strong> para otros transportistas.</p>
+            <p class="sub" style="font-size:0.92rem;">Si crees que es un error, contáctanos:</p>
+            <button type="button" class="dudas-toggle" style="margin-top:0.4rem;" aria-expanded="false" onclick="toggleDudas(this)">Contáctanos <span class="dt-chev" aria-hidden="true">▾</span></button>
+            <div class="contact-btns" hidden>
+                <a class="cbtn cbtn-call" href="tel:+34955225945"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar</a>
+                <a class="cbtn cbtn-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</a>
+                <a class="cbtn cbtn-mail" href="mailto:info@dynamotrans.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>Email</a>
+            </div>
+        </div>
+
+        <div id="formScreen">
+            <h1>Pulsa el botón de abajo para Aceptar carga</h1>
+            <p class="sub">Oferta de <strong>Dynamo Operador de Transportes</strong></p>
+
+
+            <!-- Reserva temporal: contador de 3 min mientras rellena los datos. -->
+            <div class="reserva-banner" id="reservaBanner">
+                <span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;color:var(--purple);"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 7.828V2"/></svg> <strong>Reserva temporal.</strong> Tómate tu tiempo para completar y aceptar la carga; te avisaremos cuando quede poco antes de que se libere.</span>
+            </div>
+
+            <!-- Nº de envío, lo primero; debajo va la oferta (ruta, mercancía,
+                 precio) y, tras ella, la IDENTIFICACIÓN (CIF/DNI, código de bolsa,
+                 móvil o nombre de empresa). -->
+            <div class="of-envio"><span class="of-envio-lbl">Envío</span><span id="v-ref">—</span></div>
+
+
+
+            <dl class="viaje" id="viajeBox"></dl>
+
+            <!-- CONTRAOFERTA: proponer OTRO precio (barra ±10 %, pasos de 10 €). Se envía a
+                 Dynamo y se confirma en esta pantalla (y por email). MOCKUP:
+                 la decisión se simula (cpd=ok|no, cpt=segundos). -->
+            <button type="button" class="contra-toggle" id="contraToggle" hidden onclick="toggleContra()">Puedo aceptarla, pero a OTRO precio <span class="ct-chev" aria-hidden="true">▾</span></button>
+            <div class="contra-box" id="contraBox" hidden>
+                <!-- Capa 1: proponer. Capa 2 (contraStatusPane): "analizando tu
+                     precio" / rechazo, EN EL MISMO HUECO, sin cambiar de pantalla. -->
+                <div id="contraFormPane">
+                    <label for="contraRange" style="margin-top:0;">Propón tu precio · hasta un ±10 % sobre la oferta</label>
+                    <input type="range" id="contraRange" min="0" max="100" step="5" value="50" oninput="contraPinta()">
+                    <div class="contra-minmax"><span id="contraMin">—</span><span id="contraMax">—</span></div>
+                    <div class="contra-precio"><span id="contraPrecio">—</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>
+                    <div class="contra-delta" id="contraDelta">Igual que la oferta</div>
+                    <button type="button" class="btn btn-contra" onclick="aceptarContra()">Proponer este NUEVO precio</button>
+                    <p class="contra-nota">No hace falta identificarte para proponerlo. <strong>En unos instantes te confirmamos en esta misma pantalla</strong> si aceptamos tu precio: si lo aceptamos, volverás a la oferta con el <strong>nuevo precio ya aplicado</strong> para identificarte, revisar los detalles y aceptar la carga; si no, te lo diremos aquí mismo.</p>
+                </div>
+                <div id="contraStatusPane" hidden></div>
+            </div>
+
+            
+            
+            <!-- 1) IDENTIFICACIÓN: CIF/DNI, código de bolsa, teléfono móvil de la
+                 ficha o nombre de la empresa (sugerencias desde 2 letras, casa
+                 cualquier palabra del nombre en cualquier orden). Se oculta al
+                 identificarse (queda "No soy yo / cambiar"). -->
+            <div id="identBlock">
+                <div class="sec-title" style="border-top:none;padding-top:0;margin-top:0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Identifícate</div>
+                <label for="f-buscar-id">Tu CIF, DNI, código de bolsa, móvil o nombre de empresa *</label>
+                <div class="idrow">
+                    <input type="text" id="f-buscar-id" placeholder="B12345678, 482113, 638220471 o tu empresa" autocapitalize="characters" autocomplete="off">
+                    <ul class="ac-list" id="ac-buscar"></ul>
+                </div>
+                <p class="id-hint">Escribe tu <strong>CIF</strong> (empresa), <strong>DNI/NIE</strong> (autónomo), tu <strong>código de bolsa de carga</strong>, tu <strong>teléfono móvil</strong> o el <strong>nombre de tu empresa</strong> (con 2 letras ya salen sugerencias; vale cualquier palabra del nombre) y <strong>elige tu empresa</strong> de la lista: aparecerán tus datos para que no tengas que escribirlos. Si no sale ninguna, al pulsar <strong>Aceptar carga</strong> te damos de alta.<br><span style="color:var(--gray-500);">Demo: prueba <strong>B58830217</strong>, el código de bolsa <strong>482113</strong>, el móvil <strong>638220471</strong> o escribe <strong>iberia</strong>.</span></p>
+                <div class="buscando" id="buscandoMsg"><span class="spin"></span>Consultando la base de Dynamo…</div>
+                <div class="id-nofound" id="idNoFound">No encontramos ningún transportista con ese dato (CIF/DNI, código de bolsa, teléfono o nombre). Revísalo, o contacta con Dynamo para darte de alta.</div>
+            </div>
+
+
+            <!-- 1-bis) ALTA: si el CIF/DNI NO está en la base, se abren aquí los
+                 datos para darse de alta como transportista de Dynamo (catálogo
+                 interno de Dynamo, no la tabla del cliente). -->
+            <div class="empresa-resumen" id="altaForm" style="display:none;background:#fff7e6;border-color:#ffd591;">
+                <div class="er-nombre" style="color:#8a5a00;">Date de alta como transportista de Dynamo</div>
+                <div class="er-cif" style="color:#8a5a00;font-weight:600;">No estás aún en nuestra base. Rellena tus datos y con esta aceptación te damos de alta. Dynamo validará el alta.</div>
+                <div style="margin-top:0.7rem;">
+                    <label for="alta-empresa">Empresa / Nombre *</label>
+                    <input type="text" id="alta-empresa" placeholder="Razón social o nombre del autónomo">
+                    <div class="row2">
+                        <div>
+                            <label for="alta-tipo">Tipo</label>
+                            <select id="alta-tipo"><option>Empresa</option><option>Autónomo</option></select>
+                        </div>
+                        <div>
+                            <label for="alta-cif">CIF / NIF *</label>
+                            <input type="text" id="alta-cif" placeholder="B12345678 / 12345678Z" autocapitalize="characters">
+                        </div>
+                    </div>
+                    <div class="row2">
+                        <div>
+                            <label for="alta-bolsa-tipo">Bolsa de carga *</label>
+                            <select id="alta-bolsa-tipo" onchange="altaBolsaSync()"><option value="" selected disabled>Selecciona tu bolsa de carga…</option><option value="Wtransnet">Wtransnet</option><option value="Teleroute">Teleroute</option><option value="Bursa">Bursa</option><option value="Ninguna">No tengo bolsa de carga</option></select>
+                        </div>
+                        <div>
+                            <label for="alta-bolsa">Código bolsa de carga *</label>
+                            <input type="text" id="alta-bolsa" placeholder="Ej. 482113">
+                        </div>
+                    </div>
+                    <label for="alta-dir">Domicilio fiscal (calle y número) *</label>
+                    <input type="text" id="alta-dir" placeholder="Calle y número">
+                    <div class="row2">
+                        <div><label for="alta-cp">CP *</label><input type="text" id="alta-cp" placeholder="41001" inputmode="numeric"></div>
+                        <div><label for="alta-loc">Localidad *</label><input type="text" id="alta-loc" placeholder="Sevilla"></div>
+                    </div>
+                    <div class="row2">
+                        <div><label for="alta-prov">Provincia *</label><input type="text" id="alta-prov" placeholder="Sevilla"></div>
+                        <div><label for="alta-pais">País *</label><input type="text" id="alta-pais" value="España"></div>
+                    </div>
+                    <label for="alta-tfno">Teléfono *</label>
+                    <div class="telrow">
+                        <select id="alta-pref">
+                            <option value="+34" selected>🇪🇸 +34</option>
+                            <option value="+351">🇵🇹 +351</option>
+                            <option value="+33">🇫🇷 +33</option>
+                            <option value="+49">🇩🇪 +49</option>
+                            <option value="+39">🇮🇹 +39</option>
+                            <option value="+40">🇷🇴 +40</option>
+                            <option value="+48">🇵🇱 +48</option>
+                            <option value="+31">🇳🇱 +31</option>
+                            <option value="+32">🇧🇪 +32</option>
+                        </select>
+                        <input type="tel" id="alta-tfno" placeholder="600 000 000" inputmode="tel">
+                    </div>
+                    <label for="alta-email">Email (tráfico) *</label>
+                    <input type="text" id="alta-email" placeholder="trafico@dominio.com" inputmode="email">
+                    <label for="alta-email-conta">Email (contabilidad) *</label>
+                    <input type="text" id="alta-email-conta" placeholder="contabilidad@dominio.com" inputmode="email">
+                    <label for="alta-contacto">Persona de contacto *</label>
+                    <input type="text" id="alta-contacto" placeholder="Nombre y apellidos">
+                    <div class="row2">
+                        <div>
+                            <label for="alta-adr">ADR — mercancías peligrosas</label>
+                            <select id="alta-adr"><option>No</option><option>Sí</option></select>
+                        </div>
+                    </div>
+                    <!-- Documentación del alta: SIEMPRE visible y con hoja CIF y
+                         DNI OBLIGATORIOS (decisión 2026-07-23; antes solo se
+                         pedía sin bolsa de carga). -->
+                    <div id="altaDocs">
+                    <label style="margin-bottom:0.35rem;">Documentación del alta *</label>
+                    <p style="font-size:0.78rem;color:var(--gray-500);font-weight:600;line-height:1.45;margin:0 0 0.5rem;">Sube la <strong>hoja del CIF</strong> y el <strong>DNI</strong> (PDF o foto) para que podamos validar tu alta.</p>
+                    <div class="doc-grid">
+                        <div>
+                            <label class="doc-drop" data-doc="cif"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> Subir hoja CIF<div class="dd-sub">PDF o foto</div><input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="docUp(this,'cif',1)"></label>
+                            <ul class="doc-list" id="doc-cif"></ul>
+                        </div>
+                        <div>
+                            <label class="doc-drop" data-doc="dni"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> Subir DNI<div class="dd-sub">PDF o foto</div><input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="docUp(this,'dni',1)"></label>
+                            <ul class="doc-list" id="doc-dni"></ul>
+                        </div>
+                    </div>
+                    <div style="margin-top:0.6rem;">
+                        <label class="doc-drop" data-doc="otros"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> Otros documentos<div class="dd-sub">Escrituras, poderes, certificados… · máx. 3</div><input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple hidden onchange="docUp(this,'otros',3)"></label>
+                        <ul class="doc-list" id="doc-otros"></ul>
+                    </div>
+                    </div><!-- /altaDocs -->
+                </div>
+            </div>
+
+            <!-- 2) Resto del formulario (aparece tras identificarse) -->
+            <div id="restForm">
+            <!-- Resumen de la empresa encontrada -->
+                <div class="empresa-resumen" id="empresaResumen">
+                    <div class="er-nombre" id="er-nombre">—</div>
+                    <div class="er-cif" id="er-cif">—</div>
+                    <!-- Teléfono y email de la ficha ENMASCARADOS (solo los 5
+                         primeros): confirman que es su ficha sin exponer el dato. -->
+                    <div class="er-cif" id="er-tel-linea" hidden></div>
+                    <div class="er-cif" id="er-email-linea" hidden></div>
+                    <button type="button" class="er-cambiar" onclick="cambiarEmpresa()">No soy yo / cambiar</button>
+                </div>
+
+                <div class="fsec fsec-carga">
+                <div class="sec-title" id="sec-carga">Carga</div>
+                <div class="row2">
+                    <div>
+                        <label for="f-fechacarga">Fecha de recogida *</label>
+                        <select id="f-fechacarga" onchange="montarEntregaFecha()"></select>
+                    </div>
+                    <div>
+                        <label for="f-horacarga">Hora estimada recogida *</label>
+                        <select id="f-horacarga"></select>
+                    </div>
+                </div>
+                <p class="id-hint"><strong>Elige uno de los días de recogida ofertados.</strong> A veces sólo puede elegirse un día si lleva fecha fija de carga. La <strong>fecha / hora de recogida</strong> la estima Dynamo automáticamente; puedes cambiarla. La <strong>hora NO es cita</strong>, solo para saber aprox. la hora de recogida.</p>
+                </div>
+
+                <div class="fsec fsec-entrega">
+                <div class="sec-title">Entrega <span class="op" style="font-weight:600;color:var(--gray-500);">· estimada</span></div>
+                <div class="row2">
+                    <div>
+                        <label for="f-fechaentrega">Fecha estimada de entrega</label>
+                        <select id="f-fechaentrega"></select>
+                    </div>
+                    <div>
+                        <label for="f-horaentrega">Hora estimada de entrega *</label>
+                        <select id="f-horaentrega"></select>
+                    </div>
+                </div>
+                <p class="id-hint">La <strong>fecha / hora de entrega</strong> la estima Dynamo automáticamente; puedes cambiarla. La <strong>hora NO es cita</strong>, solo para saber aprox. la hora de entrega.</p>
+                </div>
+
+                <div class="fsec fsec-vehiculo">
+                <div class="sec-title">Vehículo</div>
+                <label for="f-camion">Tipo de camión *</label>
+                <select id="f-camion" onchange="syncRemolque()">
+                    <option value="Trailer Tauliner · lona 13,2 m">Trailer Tauliner · lona corredera 13,2 m</option>
+                    <option value="Rígido con plataforma · 8 m">Rígido con plataforma · 8 m</option>
+                </select>
+                <div class="row2">
+                    <div>
+                        <label for="f-tractora">Matrícula tractora *</label>
+                        <div class="ac-wrap">
+                            <input type="text" id="f-tractora" placeholder="1234ABC" autocapitalize="characters" autocomplete="off">
+                            <ul class="ac-list" id="ac-tractora"></ul>
+                        </div>
+                        <div class="ac-newnote" id="new-tractora">Se registrará como matrícula nueva.</div>
+                    </div>
+                    <div>
+                        <label for="f-remolque">Matrícula remolque</label>
+                        <div class="ac-wrap">
+                            <input type="text" id="f-remolque" placeholder="R5678DEF" autocapitalize="characters" autocomplete="off">
+                            <ul class="ac-list" id="ac-remolque"></ul>
+                        </div>
+                        <div class="ac-newnote" id="new-remolque">Se registrará como matrícula nueva.</div>
+                    </div>
+                </div>
+                <p class="id-hint">Al elegir una tractora de tu historial se <strong>autorrellena el remolque</strong> que llevaba enganchado la última vez. Cámbialo si hoy llevas otro.</p>
+                </div>
+
+                <div class="fsec fsec-conductor">
+                <div class="sec-title">Conductor</div>
+                <p class="id-hint">Con estos datos el <strong>cargador agiliza la documentación</strong>: prepara los papeles de salida rellenos con el <strong>nombre del conductor y el de tu empresa</strong> antes de que llegues, y así <strong>ahorramos tiempos de espera</strong> arreglando los papeles tras cargar.</p>
+                <label for="f-chofer">Nombre y apellidos del conductor *</label>
+                <div class="ac-wrap">
+                    <input type="text" id="f-chofer" placeholder="Nombre y apellidos" autocomplete="off">
+                    <ul class="ac-list" id="ac-chofer"></ul>
+                </div>
+                <div class="ac-newnote" id="new-chofer">Conductor nuevo: rellena DNI y teléfono a mano.</div>
+                <label for="f-dnichofer">DNI / NIE del conductor *</label>
+                <input type="text" id="f-dnichofer" placeholder="29876543P" autocapitalize="characters">
+                <label for="f-tfno">Teléfono del conductor *</label>
+                <div class="telrow">
+                    <select id="f-pref">
+                        <option value="+34" selected>🇪🇸 +34</option>
+                        <option value="+351">🇵🇹 +351</option>
+                        <option value="+33">🇫🇷 +33</option>
+                        <option value="+49">🇩🇪 +49</option>
+                        <option value="+39">🇮🇹 +39</option>
+                        <option value="+40">🇷🇴 +40</option>
+                        <option value="+48">🇵🇱 +48</option>
+                        <option value="+31">🇳🇱 +31</option>
+                        <option value="+32">🇧🇪 +32</option>
+                    </select>
+                    <input type="tel" id="f-tfno" placeholder="600 000 000" inputmode="tel">
+                </div>
+                <p class="id-hint">El teléfono del conductor es <strong>solo para coordinar la recogida y la entrega</strong> con el cargador y el destinatario. <strong>Solo lo facilitamos a quien lo pide y únicamente el mismo día de carga por la mañana</strong>, para que no le llamen días antes ni le molesten: así se organizan entre ellos directamente y no estamos 4 por medio (tráfico, agencia, chófer, cargador…).</p>
+                </div>
+
+                <div class="fsec fsec-notas">
+                <button type="button" class="notes-toggle" id="notasToggle" aria-expanded="false" onclick="toggleNotas()"><span class="nt-plus" aria-hidden="true">+</span> Añadir indicaciones <span class="op">· opcional</span></button>
+                <div id="notasBody" hidden>
+                    <textarea id="f-notas" placeholder="Ej. disponibilidad, restricciones, observaciones del vehículo…"></textarea>
+                </div>
+                </div>
+
+                <!-- PRONTO PAGO OCULTO de momento (decisión del usuario 2026-07-22:
+                     "ya vemos en otro momento"). El código queda intacto: para
+                     reactivarlo en una demo, añadir ?pp=1 a la URL; para volver
+                     a mostrarlo de serie, quitar el atributo hidden. -->
+                <div class="pronto" hidden>
+                    <label class="chk">
+                        <input type="checkbox" id="f-pronto" onchange="renderProntoCalc()">
+                        <span><strong>Quiero PRONTO PAGO:</strong> cobro en <strong>5 días tras recibir factura</strong> después de finalizar el servicio, con un <strong>descuento del 3,5%</strong> (mínimo 25&nbsp;€).</span>
+                    </label>
+                    <div class="pronto-calc" id="prontoCalc" hidden>
+                        <div class="pc-line"><span class="pc-lbl">Precio total con pronto pago <span class="pc-when" id="pc-when"></span></span><span class="pc-amount" id="pc-total">—</span></div>
+                        <div class="pc-sub">base imponible (impuestos no incluidos)</div>
+                        <div class="pc-alt" id="pc-alt"></div>
+                    </div>
+                </div>
+
+
+
+            </div>
+
+            <!-- Botón SIEMPRE visible al final, también sin identificarse:
+                 al pulsarlo, la validación resalta lo que falte (empezando
+                 por la identificación). -->
+            <div class="warn" id="fWarn">⚠ Revisa los campos marcados: son obligatorios.</div>
+            <button type="button" class="btn" onclick="aceptar()">Aceptar carga</button>
+        </div>
+
+        <!-- VENTANA de datos del camión/conductor al pulsar Aceptar:
+             · todo relleno → resumen "¿Son correctos?" (pueden venir del último
+               envío); "No son esos datos" los VACÍA y pasa al modo faltan.
+             · faltan datos → lista + "los mando más adelante" (NO bloquea) o
+               "Rellenar ahora". El contenido lo pinta abrirVcModal(). -->
+        <div class="tel-modal" id="vcModal" hidden>
+            <div class="tel-modal-backdrop" onclick="cerrarVcModal()"></div>
+            <div class="tel-modal-card" id="vcCard" role="dialog" aria-modal="true"></div>
+        </div>
+
+        <!-- VENTANA de confirmación de identidad: se abre al pulsar "Aceptar
+             carga" (empresa ya en la base). Pide el código de 3 dígitos que
+             se le envía al EMAIL de su ficha; al confirmar → mensaje de
+             aceptada. 3 intentos: al 3º fallido se bloquea y la carga se
+             LIBERA (pantalla de aviso). MOCK: el backend generará y enviará
+             el código real; en la demo el código válido son los 3 últimos
+             dígitos del teléfono de la ficha del transportista. -->
+        <div class="tel-modal" id="telModal" hidden>
+            <div class="tel-modal-backdrop" onclick="cerrarTelConfirm()"></div>
+            <div class="tel-modal-card" role="dialog" aria-modal="true" aria-labelledby="tm-title">
+                <h2 id="tm-title">Confirma que eres tú</h2>
+                <div class="tm-box">
+                    <label for="tm-tel3">Escribe los <strong>3 dígitos</strong> que te hemos enviado a tu <strong>email</strong> para confirmar *</label>
+                    <input type="tel" id="tm-tel3" inputmode="numeric" maxlength="3" placeholder="•••" autocomplete="off">
+                    <div class="tm-err" id="tm-err" style="display:none;">El código no es correcto.</div>
+                </div>
+                <button type="button" class="btn" onclick="telConfirmar()">Confirmar y ACEPTAR carga</button>
+                <button type="button" class="tm-volver" onclick="cerrarTelConfirm()">Volver</button>
+            </div>
+        </div>
+
+        <div class="ok-screen" id="okScreen">
+            <div class="ok-ico"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+            <h1>¡Carga aceptada!</h1>
+            <p class="sub" style="margin-top:0.4rem;">Hemos recibido tus datos para el envío <strong id="ok-ref">—</strong>.<br><span id="ok-alta" hidden><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;color:var(--green-dark);"><path d="M2 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="8" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg> Te damos de <strong>alta como transportista de Dynamo</strong> (pendiente de validación).</span></p>
+            <button type="button" class="dudas-toggle" id="okDudasTop" style="margin:0.5rem auto 0.6rem;" aria-expanded="false" onclick="toggleDudas(this)">¿Dudas? <span class="dt-chev" aria-hidden="true">▾</span></button>
+            <div class="contact-btns" hidden>
+                <a class="cbtn cbtn-call" href="tel:+34955225945"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar</a>
+                <a class="cbtn cbtn-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</a>
+                <a class="cbtn cbtn-mail" href="mailto:info@dynamotrans.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>Email</a>
+            </div>
+            <div class="pago-contado" id="ok-orden-top" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-4px;color:var(--purple);"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg> En unos minutos recibirás la <strong>orden de carga</strong> por email en: <strong id="ok-email-top" style="color:var(--purple);">—</strong>, con todos los detalles de los sitios de recogida y entrega, teléfonos de contacto, horarios, ubicaciones de Google Maps, etc.</div>
+            <div id="ok-resumen"></div>
+            <div class="pago-contado" id="ok-orden" style="background:rgba(51,0,204,0.06);border-color:rgba(51,0,204,0.28);color:var(--navy);font-weight:700;text-align:left;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-4px;color:var(--purple);"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg> En unos minutos recibirás la <strong>orden de carga</strong> por email en: <strong id="ok-email" style="color:var(--purple);">—</strong>, con todos los detalles de los sitios de recogida y entrega, teléfonos de contacto, horarios, ubicaciones de Google Maps, etc.</div>
+            <button type="button" class="dudas-toggle" aria-expanded="false" onclick="toggleDudas(this)">¿Dudas? <span class="dt-chev" aria-hidden="true">▾</span></button>
+            <div class="contact-btns" hidden>
+                <a class="cbtn cbtn-call" href="tel:+34955225945"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar</a>
+                <a class="cbtn cbtn-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</a>
+                <a class="cbtn cbtn-mail" href="mailto:info@dynamotrans.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>Email</a>
+            </div>
+        </div>
+    </div>
+    <button type="button" class="scroll-hint" id="scrollHint" hidden onclick="window.scrollBy({ top: Math.round(window.innerHeight * 0.7), behavior: 'smooth' });"><span id="sh-text">Desliza para ACEPTAR</span> <span class="sh-arrow" aria-hidden="true">↓</span></button>
+    <p class="foot"><a href="https://dynamotrans.com">dynamotrans.com</a></p>
+
+<!-- Selector de prefijos telefónicos mundial, buscable y localizado -->
+<script src="/js/prefijos.js"></script>
+<script>
+    function q(k, def) { var v = new URLSearchParams(location.search).get(k); return v || def; }
+    // Iconos SVG de línea (REGLA del proyecto: nada de emoticonos en la UI;
+    // solo banderas del selector de idioma y glifos ✕/⚠/★).
+    function svgIco(paths, size) {
+        return '<svg viewBox="0 0 24 24" width="' + (size || 18) + '" height="' + (size || 18) + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + '</svg>';
+    }
+    var ICO = {
+        box:   svgIco('<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>', 22),
+        truck: svgIco('<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>', 22),
+        emp:   svgIco('<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/>', 22),
+        user:  svgIco('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', 22),
+        file:  svgIco('<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>', 14)
+    };
+    // Dirección de un punto, SIEMPRE como 'CP - localidad, provincia, país'
+    // (los enlaces llegan como 'CP, localidad, provincia, país': la primera
+    // coma tras el CP se convierte en guion).
+    function fmtDir(s) { return String(s || '').replace(/^(\d{4,5})\s*,\s*/, '$1 - '); }
+    // Tipo de lugar compacto: 'Almacén / Nave' → 'Almacén' · 'Finca / Agrícola' → 'Finca'.
+    function fmtTipoLugar(s) { return String(s || '').split('/')[0].trim(); }
+    // Iconos del TIPO DE SITIO (los mismos de la plataforma). Criterio global:
+    // lo que NO es Almacén/Nave (obra, urbana, evento, finca) va en ROJO.
+    var TIPO_SITIO_SVG = {
+        'Almacén / Nave': '<path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/>',
+        'Obra': '<path d="M16.05 10.97a5 2.5 0 0 1-8.1 0"/><path d="m16.92 14.05 4.48 2.04a1 1 0 0 1 0 1.83l-8.57 3.9a2 2 0 0 1-1.66 0l-8.58-3.91a1 1 0 0 1 0-1.83l4.49-2.04"/><path d="M16.95 14.14a5 2.5 0 1 1-9.9 0L10.06 3.5a2 2 0 0 1 3.88 0z"/>',
+        'Zona urbana': '<rect x="3" y="8" width="7" height="13"/><rect x="14" y="3" width="7" height="18"/><path d="M6 12h1"/><path d="M6 16h1"/><path d="M17 7h1"/><path d="M17 11h1"/><path d="M17 15h1"/>',
+        'Evento': '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>',
+        'Finca / Agrícola': '<path d="M2 22 16 8"/><path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L5 19l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M7.47 8.53 9 7l1.53 1.53a3.5 3.5 0 0 1 0 4.94L9 15l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M11.47 4.53 13 3l1.53 1.53a3.5 3.5 0 0 1 0 4.94L13 11l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M20 2h2v2a4 4 0 0 1-4 4h-2V6a4 4 0 0 1 4-4Z"/><path d="M11.47 17.47 13 19l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L5 19l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M15.47 13.47 17 15l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M19.47 9.47 21 11l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L13 11l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/>'
+    };
+    // Palabra clave → icono (acepta 'Almacén', 'nave', 'Obra', variantes…).
+    function tipoSitioKey(t) {
+        t = String(t || '').toLowerCase();
+        if (!t) return '';
+        if (t.indexOf('almac') > -1 || t.indexOf('nave') > -1) return 'Almacén / Nave';
+        if (t.indexOf('obra') > -1) return 'Obra';
+        if (t.indexOf('urban') > -1) return 'Zona urbana';
+        if (t.indexOf('evento') > -1) return 'Evento';
+        if (t.indexOf('finca') > -1 || t.indexOf('agr') > -1) return 'Finca / Agrícola';
+        return '';
+    }
+    // '(icono + nombre)' del tipo de sitio, en rojo si no es Almacén/Nave.
+    function tipoLugarHtml(t) {
+        var label = fmtTipoLugar(t);
+        if (!label) return '';
+        var k = tipoSitioKey(t);
+        var esp = k && k !== 'Almacén / Nave';
+        var svg = k ? '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + TIPO_SITIO_SVG[k] + '</svg>' : '';
+        return '<span class="of-pt-tipo' + (esp ? ' esp' : '') + '">' + svg + '<span>(' + escH(label) + ')</span></span>';
+    }
+    // Franjas horarias (formato 24 h).
+    var FRANJAS = ['07:00 - 09:00', '09:00 - 11:00', '11:00 - 13:00', '13:00 - 15:00', '15:00 - 17:00', '17:00 - 19:00'];
+    // Base de transportistas DEMO para el buscador por CIF/DNI (en producción,
+    // el backend busca en la base real y solo devuelve TU empresa).
+    var TRANS_DEMO = [
+        {
+            cif: 'B58830217', empresa: 'Transportes Iberia Express S.L.', ciudad: 'Madrid', flota: '8 camiones', bolsa: 'Wtransnet', bolsaCod: '482113', tel: '+34 916 402 118', email: 'trafico@iberiaexpress-trans.es',
+            matriculas: ['4521 JKL', '7890 MNP', '1234 ABC'], remolques: ['R2345 DEF', 'R6677 GHJ'],
+            pares: { '4521 JKL': 'R2345 DEF', '7890 MNP': 'R6677 GHJ', '1234 ABC': 'R2345 DEF' },
+            paresChofer: { '4521 JKL': 0, '7890 MNP': 1, '1234 ABC': 0 },
+            conductores: [
+                { nombre: 'Antonio Gómez', dni: '50123456A', tel: '+34 611 223 344' },
+                { nombre: 'Manuel Ortega', dni: '51987654B', tel: '+34 622 334 455' }
+            ]
+        },
+        {
+            cif: 'B72153042', empresa: 'LogiSur Cargo S.L.', ciudad: 'Sevilla', flota: '12 camiones', bolsa: 'Timocom', bolsaCod: '917426', tel: '+34 954 771 530', email: 'operaciones@logisurcargo.com',
+            matriculas: ['3344 SUR', '5566 CDZ'], remolques: ['R8899 SEV'],
+            pares: { '3344 SUR': 'R8899 SEV', '5566 CDZ': '' },
+            paresChofer: { '3344 SUR': 0, '5566 CDZ': 0 },
+            conductores: [
+                { nombre: 'Francisco Rus', dni: '28765432C', tel: '+34 633 445 566' }
+            ]
+        },
+        {
+            cif: 'B91234567', empresa: 'Transportes Andévalo S.L.', ciudad: 'Huelva', flota: '5 camiones', bolsa: '—', tel: '+34 959 240 087', email: 'trafico@andevalotrans.es',
+            matriculas: ['1122 HUE'], remolques: [], pares: { '1122 HUE': '' },
+            conductores: []
+        },
+        {
+            cif: '29876543P', empresa: 'José Martín Ruiz · autónomo', ciudad: 'Córdoba', flota: '1 camión', bolsa: '—', tel: '+34 638 220 471', email: 'jmartin.transportes@gmail.com',
+            matriculas: ['9080 COR'], remolques: ['R4040 COR'], pares: { '9080 COR': 'R4040 COR' },
+            paresChofer: { '9080 COR': 0 },
+            conductores: [
+                { nombre: 'José Martín Ruiz', dni: '29876543P', tel: '+34 638 220 471' }
+            ]
+        }
+    ];
+    function normId(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+    // Enmascara los 3 ÚLTIMOS dígitos de un teléfono con *** (deja el resto).
+    function maskTel(t) {
+        var total = (String(t).match(/\d/g) || []).length, di = 0, corte = total - 3;
+        return String(t).split('').map(function (ch) {
+            if (/\d/.test(ch)) { di++; if (di > corte) return '*'; }
+            return ch;
+        }).join('');
+    }
+    // Enmascara datos del transportista que ya cogió la carga (pantalla "ya no
+    // disponible"): CIF = 5 primeros + *****; teléfono = 4 primeros dígitos del
+    // número nacional (sin prefijo) + *****. El nombre NO se muestra.
+    function maskCifFront(c) { c = String(c || ''); return c ? c.slice(0, 5) + '*****' : '—'; }
+    function maskTelFront(t) {
+        var d = (String(t || '').match(/\d/g) || []).join('').replace(/^34/, '');
+        return d ? d.slice(0, 4) + '*****' : '—';
+    }
+    // Tel y email de la FICHA en el resumen del identificado.
+    // Teléfono: se ocultan SIEMPRE los 3 últimos dígitos y las estrellas son
+    // exactamente las que faltan para completar el número (+34 916402***).
+    function maskTelFront5(t) {
+        var s = String(t || '').trim();
+        if (!s) return '';
+        var m = s.match(/^(\+\d+)\s*/);
+        var pref = m ? m[1] + ' ' : '';
+        var d = s.replace(/^\+\d+\s*/, '').replace(/\D/g, '');
+        if (d.length <= 3) return pref + '***';
+        return pref + d.slice(0, d.length - 3) + '***';
+    }
+    function maskFront5(s) {
+        s = String(s || '').trim();
+        return s ? s.slice(0, 6) + '****' : '';
+    }
+    // CP español (2 primeros dígitos) → provincia, para autorrellenar Provincia
+    // y País al teclear el CP en el alta.
+    var CP_PROV_ES = {
+        '01': 'Álava', '02': 'Albacete', '03': 'Alicante', '04': 'Almería', '05': 'Ávila',
+        '06': 'Badajoz', '07': 'Illes Balears', '08': 'Barcelona', '09': 'Burgos', '10': 'Cáceres',
+        '11': 'Cádiz', '12': 'Castellón', '13': 'Ciudad Real', '14': 'Córdoba', '15': 'A Coruña',
+        '16': 'Cuenca', '17': 'Girona', '18': 'Granada', '19': 'Guadalajara', '20': 'Gipuzkoa',
+        '21': 'Huelva', '22': 'Huesca', '23': 'Jaén', '24': 'León', '25': 'Lleida',
+        '26': 'La Rioja', '27': 'Lugo', '28': 'Madrid', '29': 'Málaga', '30': 'Murcia',
+        '31': 'Navarra', '32': 'Ourense', '33': 'Asturias', '34': 'Palencia', '35': 'Las Palmas',
+        '36': 'Pontevedra', '37': 'Salamanca', '38': 'Santa Cruz de Tenerife', '39': 'Cantabria', '40': 'Segovia',
+        '41': 'Sevilla', '42': 'Soria', '43': 'Tarragona', '44': 'Teruel', '45': 'Toledo',
+        '46': 'Valencia', '47': 'Valladolid', '48': 'Bizkaia', '49': 'Zamora', '50': 'Zaragoza',
+        '51': 'Ceuta', '52': 'Melilla'
+    };
+    // Código de bolsa: obligatorio salvo si la bolsa es "Ninguna" (transportista
+    // libre, no está en ninguna bolsa) → el código se bloquea y pone "Ninguna".
+    // DOCUMENTACIÓN del alta: SOLO se pide sin bolsa ("Ninguna"). Las bolsas de
+    // carga ya verifican a sus transportistas → con bolsa no se piden adjuntos
+    // (ni hoja CIF, ni DNI, ni escrituras).
+    function altaBolsaSync() {
+        var t = document.getElementById('alta-bolsa-tipo'), c = document.getElementById('alta-bolsa');
+        if (!t || !c) return;
+        // Sin elegir (placeholder) o "No tengo bolsa" → el código no aplica: se
+        // vacía y se deshabilita. Con una bolsa real → se pide el código.
+        if (t.value === 'Ninguna' || t.value === '') { c.value = t.value === 'Ninguna' ? 'Ninguna' : ''; c.disabled = true; c.classList.remove('err'); }
+        else { if (c.value === 'Ninguna' || c.value === '') c.value = ''; c.disabled = false; }
+        if (t.value) t.classList.remove('err');   // rojo→verde al elegir
+        // La documentación del alta se pide SIEMPRE (antes solo sin bolsa).
+        setTimeout(updateScrollHint, 60);
+    }
+    (function () {
+        var cp = document.getElementById('alta-cp'); if (!cp) return;
+        cp.addEventListener('input', function () {
+            var d = (cp.value.match(/\d/g) || []).join('').slice(0, 5);
+            if (cp.value !== d) cp.value = d;
+            if (d.length >= 2 && CP_PROV_ES[d.slice(0, 2)]) {
+                var pv = document.getElementById('alta-prov'); if (pv) pv.value = CP_PROV_ES[d.slice(0, 2)];
+                var pa = document.getElementById('alta-pais'); if (pa) pa.value = 'España';
+            }
+        });
+    })();
+
+    // ---- Datos del viaje desde la URL (los pone el enlace de la oferta) ----
+    // El resumen debe dar SUFICIENTE detalle para que el transportista decida si
+    // le interesa: mercancía, metros lineales, palets/maquinaria, peso, tipo de
+    // carga (lateral/techo/ambas), trampilla, NIMA y horarios de los almacenes.
+    (function () {
+        var demo  = !q('envio', ''); // URL "pelada" (sin envio=) → datos de demo
+        var envio = q('envio', '#GX684870 (demo)');
+        var orig  = q('o', '41701, Dos Hermanas, Sevilla, España'), dest = q('d', '28001, Madrid, Madrid, España');
+        // Horarios de almacén: en un enlace real solo salen si vienen en la URL
+        // (ho/hd); los de demo únicamente en la URL pelada.
+        var ho    = q('ho', demo ? 'L-V 8:00–14:00' : ''), hd = q('hd', demo ? 'L-V 9:00–14:00 y 16:00–18:00' : '');
+        // DISCRECIÓN: en el detalle del envío NUNCA se muestra el nombre de la
+        // empresa de los puntos — solo CP, localidad, provincia y país. La
+        // empresa va únicamente en la ORDEN DE CARGA que se envía tras aceptar.
+        // Paradas del envío (como en crear envío: hasta 2 extra en cualquier
+        // mezcla). o2/o3 = recogidas ADICIONALES tras el origen; d2/d3 = entregas
+        // INTERMEDIAS antes del destino final (el destino es la ÚLTIMA entrega).
+        // Sus horarios: ho2/ho3 y hd2/hd3.
+        // Tipo de lugar de cada punto (Almacén, Obra, Zona urbana, Evento,
+        // Finca): ot/dt (y ot2/ot3, dt2/dt3 para las paradas). Se muestra entre
+        // paréntesis junto a Recogida/Entrega — al transportista le importa.
+        var recogidas = [{ loc: orig, hor: ho, tipo: q('ot', demo ? 'Almacén' : '') }];
+        ['2', '3'].forEach(function (n) { var v = q('o' + n, ''); if (v) recogidas.push({ loc: v, hor: q('ho' + n, ''), tipo: q('ot' + n, '') }); });
+        var entregas = [];
+        ['2', '3'].forEach(function (n) { var v = q('d' + n, ''); if (v) entregas.push({ loc: v, hor: q('hd' + n, ''), tipo: q('dt' + n, '') }); });
+        entregas.push({ loc: dest, hor: hd, tipo: q('dt', demo ? 'Obra' : '') });
+        var merc  = q('m', 'Paletizado');
+        var ml    = q('ml', '6 m'), peso = q('peso', '8.000 kg');
+        var tc    = q('tc', 'Lateral y techo');
+        var tram  = q('tram', '0') === '1' ? 'Sí' : 'No';
+        var nima  = q('nima', '0') === '1' ? 'Sí' : 'No';
+        // Anotación de MERCANCÍA / detalle del envío que escribió el cliente en el
+        // formulario. Llega en el enlace (dm=). En un enlace real (con envio=), si
+        // no hay anotación no se muestra nada; el texto de demo solo sale en la URL
+        // "pelada" (sin envio=).
+        var dm    = q('dm', q('envio', '') ? '' : 'Palets de madera tratada. Material frágil en las 2 cajas superiores; recoger por muelle 3.');
+        var p     = q('p', '820,00 €'); // demo por defecto; el enlace real trae &p=
+        // Días disponibles para cargar: 'dias' = lista separada por comas.
+        //   1 día  → FECHA FIJA (no se puede cambiar).
+        //   varios → VENTANA (se elige uno).  Si no vienen, demo con 3 días.
+        var dias = q('dias', '');
+        var lista = (dias ? dias.split(',').map(function (x) { return x.trim(); }).filter(Boolean)
+                          : ['Mié 22/07', 'Jue 23/07', 'Vie 24/07']).map(labelConAnio);
+        var fecha = lista.length > 1 ? 'De ' + lista[0] + ' a ' + lista[lista.length - 1] : (lista[0] || 'Por confirmar');
+        window._diasCarga = lista;
+        // Detalle de la mercancía → chips en la tarjeta y línea del resumen
+        // aceptado. Orden en PAREJAS por fila: metros+peso · tipo de carga+
+        // trampilla · NIMA. Los metros con la palabra completa ("6 metros").
+        // (Palets/bultos NO se muestra: el detalle de palets va en la orden de carga.)
+        var vd = [];
+        if (ml)   vd.push(['Metros lineales', String(ml).replace(/\s*m$/, ' metros')]);
+        if (peso) vd.push(['Peso', peso]);
+        if (tc)   vd.push(['Tipo de carga', tc]);
+        // Tipo (Paletizado / No paletizado…, lo elegido en crear envío) como
+        // chip a ancho completo, ya no como valor grande de la cabecera.
+        if (merc) vd.push(['Tipo', merc]);
+        vd.push(['Trampilla elevadora', tram]);
+        vd.push(['Requiere NIMA', nima]);
+        // Objeto ÚNICO con los datos de la oferta. De aquí se pinta la tarjeta y,
+        // al aceptar, el resumen de "carga aceptada" (sin releer el DOM → robusto).
+        window._oferta = {
+            envio: envio, recogidas: recogidas, entregas: entregas,
+            merc: merc, detalles: vd, dm: dm, fecha: fecha, precio: p
+        };
+        // Tarjeta de un punto de la ruta, calcada del panel: circulito numerado
+        // (naranja recogida / verde entrega) + etiqueta, fecha en negrita,
+        // horario entre paréntesis y dirección (CP, localidad, provincia, país).
+        function ofPunto(cls, num, tag, pt, fechaTxt) {
+            return '<div class="of-pt ' + cls + '">' +
+                '<div class="of-pt-head"><span class="of-pt-num">' + num + '</span>' +
+                    '<span class="of-pt-tag">' + tag + '</span>' +
+                    (pt.tipo ? tipoLugarHtml(pt.tipo) : '') +
+                '</div>' +
+                (fechaTxt ? '<div class="of-pt-fecha"' + (fechaTxt === fecha ? ' id="v-fecha"' : '') + '>' + escH(fechaTxt) + '</div>' : '') +
+                (pt.hor ? '<div class="of-pt-hor">(' + escH(pt.hor) + ')</div>' : '') +
+                '<div class="of-pt-loc">' + escH(fmtDir(pt.loc)) + '</div>' +
+                '</div>';
+        }
+        var chips = vd.map(function (r) {
+            return '<span class="of-chip"><span class="of-chip-k">' + escH(r[0]) + '</span><span class="of-chip-v">' + escH(r[1]) + '</span></span>';
+        }).join('');
+        // Ruta con numeración CONTINUA en orden de recorrido (1 origen → … →
+        // último destino), como en crear envío; el color dice el tipo. La fecha
+        // ofertada (fija o ventana) va en negrita en las recogidas.
+        var nOrden = 0;
+        var routeHtml =
+            recogidas.map(function (r) {
+                nOrden++; return ofPunto('of-pt-rec', nOrden, 'Recogida', r, fecha);
+            }).join('') +
+            entregas.map(function (e) {
+                nOrden++; return ofPunto('of-pt-ent', nOrden, 'Entrega', e, '');
+            }).join('');
+        // El nº de envío va en la píldora ESTÁTICA de arriba (sobre la
+        // identificación); aquí solo se rellena. id="v-imp" se conserva
+        // (la pantalla de aceptado lo lee).
+        document.getElementById('v-ref').textContent = envio;
+        var html =
+            '<div class="of-route">' + routeHtml + '</div>' +
+            '<div class="of-merc">' +
+                '<div class="of-merc-head"><span class="of-merc-ico">' + ICO.box + '</span><div>' +
+                    '<div class="of-merc-lbl">Mercancía</div></div></div>' +
+                (chips ? '<div class="of-chips">' + chips + '</div>' : '') +
+                (dm ? '<div class="of-dm"><b>Anotaciones de la mercancía</b>' + escH(dm) + '</div>' : '') +
+            '</div>' +
+            '<div class="pago-contado" id="v-pago"' + (p ? '' : ' hidden') + '><span class="imp" id="v-imp">' + escH(p) + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>';
+        document.getElementById('viajeBox').innerHTML = html;
+        if (p) window._basePrecio = parseEur(p);
+        // ANCLA de la negociación: el precio de SALIDA de Dynamo. El rango
+        // ±10 % se calcula SIEMPRE sobre este, nunca sobre un precio ya
+        // renegociado (si no, encadenando propuestas aceptadas se escalaría
+        // el precio indefinidamente).
+        window._precioOferta = window._basePrecio;
+        // Contraoferta: 4 estados de NEGOCIACIÓN por envío (los fija el admin):
+        //   neg=0 (o ausente) → precio FIJO, no se puede proponer.
+        //   neg=30 / neg=60  → negociable ±30/±60 €, decide el SISTEMA al momento.
+        //   neg=500          → negociable ±500 €, lo revisa un AGENTE (máx. 2 min).
+        // (compat: neg=1 → 30). La demo pelada sale ±60 salvo que se fuerce.
+        (function () {
+            var base = window._basePrecio, tg = document.getElementById('contraToggle');
+            if (!tg || isNaN(base) || base <= 0) return;
+            var v = q('neg', demo ? '60' : '0');
+            if (v === '1') v = '30';
+            window._negAmp = ({ '30': 30, '60': 60, '500': 500 })[v] || 0;
+            if (!window._negAmp) return; // precio cerrado
+            tg.hidden = false;
+            var lbl = document.querySelector('label[for="contraRange"]');
+            if (lbl) lbl.textContent = 'Propón tu precio · hasta ±' + window._negAmp + ' € sobre la oferta';
+            // Las propuestas grandes (±500) las revisa una persona: se avisa ya
+            // en el panel para que no espere una respuesta instantánea.
+            if (window._negAmp >= 500) {
+                var nota = document.querySelector('.contra-nota');
+                if (nota) nota.innerHTML = 'No hace falta identificarte para proponerlo. Las propuestas de este envío las revisa un <strong>agente</strong> (puede tardar <strong>hasta 2 minutos</strong>): te confirmamos en esta misma pantalla y, si aceptamos tu precio, volverás a la oferta con el <strong>nuevo precio ya aplicado</strong> para identificarte y aceptar la carga.';
+            }
+            contraInitRange();
+        })();
+        // Tipo de camión: el RÍGIDO (máx 8 m / 14 Tn) no se ofrece si la carga
+        // excede esos límites (no cabe). Se quita del desplegable.
+        (function () {
+            var mlN = parseFloat(String(ml).replace(',', '.').replace(/[^\d.]/g, '')) || 0;
+            var pesoRaw = String(peso).toLowerCase();
+            var pesoN = parseFloat(pesoRaw.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '')) || 0;
+            var pesoKg = (/kg/.test(pesoRaw) || pesoN > 100) ? pesoN : pesoN * 1000; // tn → kg
+            if (mlN > 8 || pesoKg > 14000) {
+                var camSel = document.getElementById('f-camion');
+                if (camSel) Array.prototype.slice.call(camSel.options).forEach(function (o) {
+                    if (/rígido/i.test(o.value)) camSel.removeChild(o);
+                });
+            }
+        })();
+        // PRONTO PAGO oculto por defecto (se retomará más adelante).
+        // pp=1 lo vuelve a mostrar para demos.
+        if (q('pp', '') === '1') {
+            var prShow = document.querySelector('.pronto');
+            if (prShow) prShow.hidden = false;
+        }
+        // pp=0 → PRONTO PAGO no disponible.
+        if (q('pp', '') === '0') {
+            var pr = document.querySelector('.pronto');
+            pr.style.background = 'var(--gray-100)';
+            pr.style.borderColor = 'var(--gray-300)';
+            pr.innerHTML = '<label class="chk" style="color:var(--gray-500);cursor:not-allowed;">' +
+                '<input type="checkbox" disabled>' +
+                '<span><strong>PRONTO PAGO no disponible temporalmente.</strong> En esta carga no se puede ofrecer el cobro anticipado a 5&nbsp;días tras factura; el pago es CONTADO en las condiciones habituales.</span></label>';
+        }
+        renderProntoCalc();
+    })();
+
+    // ---- Precio: parseo/formato es-ES (2 decimales) y cálculo de pronto pago ----
+    function parseEur(s) {
+        var m = String(s || '').replace(/[^\d.,]/g, '');
+        if (!m) return NaN;
+        m = m.replace(/\./g, '').replace(',', '.'); // es-ES: quita miles, coma→punto
+        var n = parseFloat(m);
+        return isNaN(n) ? NaN : n;
+    }
+    function fmtEur(n) { return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    // Descuento pronto pago: 3,5% con mínimo 25 €. Total = base − descuento.
+    function prontoPagoInfo() {
+        var base = window._basePrecio;
+        if (isNaN(base) || base <= 0) return null;
+        var desc = Math.max(base * 0.035, 25);
+        if (desc > base) desc = base;
+        return { base: base, desc: desc, total: base - desc };
+    }
+    // Fecha de cobro a N días desde la fecha de envío (día de carga elegido, o el
+    // primero de la ventana), asumiendo que la factura coincide con la fecha de
+    // envío. Formato con año, siempre.
+    function fechaPagoDias(n) {
+        var fc = document.getElementById('f-fechacarga');
+        var base = (fc && fc.value) ? parseLabelFecha(fc.value) : null;
+        if (!base && window._diasCarga && window._diasCarga.length) base = parseLabelFecha(window._diasCarga[0]);
+        if (!base) return '';
+        var d = new Date(base); d.setDate(d.getDate() + n);
+        var dd = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+        return dd[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear();
+    }
+    // Pinta la línea de precio con pronto pago bajo el check (si hay precio).
+    function renderProntoCalc() {
+        var box = document.getElementById('prontoCalc');
+        var chk = document.getElementById('f-pronto');
+        if (!box) return; // pp=0 → la caja se sustituyó, no hay calc
+        var info = prontoPagoInfo();
+        if (!info) { box.hidden = true; return; }
+        box.hidden = false;
+        document.getElementById('pc-total').textContent = fmtEur(info.total) + ' €';
+        // Pronto pago: cobro a 5 días (verde negrita) · Sin pronto pago: 60 días (rojo).
+        var p5 = fechaPagoDias(5), p60 = fechaPagoDias(60);
+        document.getElementById('pc-when').innerHTML = p5 ? '(pago el ' + escH(p5) + ', en 5 días)' : '';
+        document.getElementById('pc-alt').innerHTML = 'Sin pronto pago: <span class="pc-red">' + escH(fmtEur(info.base)) + ' € a 60 días</span>' +
+            (p60 ? ' (se pagaría el <span class="pc-red">' + escH(p60) + '</span>, si la factura coincide con la fecha de envío)' : '') + '.';
+        box.classList.toggle('off', !(chk && chk.checked));
+    }
+
+    // ---- Buscar la empresa por CIF/DNI ----
+    // Al pulsar Buscar se muestra un spinner y se BLOQUEA el campo + botón
+    // mientras se "consulta al backend" (mock ~0,9 s). Luego sale el dato o el
+    // alta. En producción es la latencia real de la consulta al servidor.
+    function buscarEmpresa() {
+        var idInput = document.getElementById('f-buscar-id');
+        var btn = document.querySelector('.btn-buscar');
+        var busc = document.getElementById('buscandoMsg');
+        var val = normId(idInput.value);
+        if (!val) { idInput.classList.add('err'); return; }
+        idInput.classList.remove('err');
+        // Si el aviso rojo era por falta de identificación, se oculta al buscar.
+        var fw = document.getElementById('fWarn');
+        if (fw) fw.classList.remove('show');
+        if (window._buscando) return;
+        window._buscando = true;
+        // Limpiar resultados previos y bloquear la pantalla.
+        document.getElementById('idNoFound').classList.remove('show');
+        document.getElementById('empresaResumen').classList.remove('show');
+        document.getElementById('altaForm').style.display = 'none';
+        document.getElementById('restForm').classList.remove('show');
+        busc.classList.add('show');
+        // El botón "Buscar" se eliminó (identificación por autocompletado); las
+        // guardas evitan el crash que dejaba el spinner "Consultando…" colgado
+        // sin avanzar a la siguiente pantalla.
+        idInput.disabled = true; if (btn) { btn.disabled = true; btn.textContent = 'Buscando…'; }
+        setTimeout(function () {
+            busc.classList.remove('show');
+            idInput.disabled = false; if (btn) { btn.disabled = false; btn.textContent = 'Buscar'; }
+            window._buscando = false;
+            resolverBuscar(val);
+        }, 900);
+    }
+    function resolverBuscar(val) {
+        var noFound = document.getElementById('idNoFound');
+        // La identificación acepta CIF/NIF, código de bolsa de carga, TELÉFONO
+        // MÓVIL de la ficha o NOMBRE de la empresa: se busca en TODAS esas
+        // columnas y con que case una, vale. (Backend: mismo criterio.)
+        var hit = null, dig = String(val).replace(/\D/g, '');
+        for (var i = 0; i < TRANS_DEMO.length; i++) {
+            var t = TRANS_DEMO[i];
+            var tel = String(t.tel || '').replace(/\D/g, '');
+            if (normId(t.cif) === val ||
+                (t.bolsaCod && normId(t.bolsaCod) === val) ||
+                (dig.length >= 9 && tel && tel.slice(-9) === dig.slice(-9))) { hit = t; break; }
+        }
+        // Por NOMBRE (lo tecleado no es un ID): si el filtro por palabras deja
+        // UN solo transportista, es él. Con varios, que elija en las sugerencias.
+        if (!hit) {
+            var sug = buscarSugerencias(document.getElementById('f-buscar-id').value);
+            if (sug.length === 1) hit = sug[0];
+        }
+        if (!hit) {
+            // NO está en la base → abrir el ALTA como transportista de Dynamo
+            // (catálogo interno de Dynamo, no la tabla del cliente).
+            noFound.classList.remove('show');
+            document.getElementById('empresaResumen').classList.remove('show');
+            var altaCif = document.getElementById('alta-cif');
+            var typed = document.getElementById('f-buscar-id').value.trim();
+            if (altaCif && !altaCif.value.trim() && /\d/.test(typed)) altaCif.value = typed;
+            document.getElementById('altaForm').style.display = 'block';
+            window._telFicha = ''; window._telConfirm = ''; window._codIntentos = 3;
+            window._altaMode = true; window._empresaSel = null;
+            ampliarReservaAlta(); // alta nueva → la reserva se amplía a 6 min
+            altaBolsaSync();
+            montarDesplegables();
+            document.getElementById('restForm').classList.add('show');
+            document.getElementById('identBlock').hidden = true; // ya identificado (alta)
+            // Scroll al FORMULARIO DE ALTA (es lo primero que hay que rellenar;
+            // debajo le siguen Carga, fecha y hora).
+            setTimeout(function () {
+                document.getElementById('altaForm').scrollIntoView({ block: 'start', behavior: 'smooth' });
+            }, 60);
+            setTimeout(updateScrollHint, 400);
+            return false;   // no identificado → se abrió el ALTA
+        }
+        noFound.classList.remove('show');
+        document.getElementById('altaForm').style.display = 'none';
+        window._altaMode = false;
+        // Rellenar el resumen de la empresa (tel y email de la ficha
+        // enmascarados: solo los 5 primeros caracteres/dígitos).
+        document.getElementById('er-nombre').textContent = hit.empresa;
+        document.getElementById('er-cif').textContent = 'CIF/DNI: ' + hit.cif;
+        var telLn = document.getElementById('er-tel-linea');
+        telLn.hidden = !hit.tel;
+        if (hit.tel) telLn.textContent = 'Teléfono: ' + maskTelFront5(hit.tel);
+        var emLn = document.getElementById('er-email-linea');
+        emLn.hidden = !hit.email;
+        if (hit.email) emLn.textContent = 'Email: ' + maskFront5(hit.email);
+        // Confirmación de identidad: código de 3 dígitos ENVIADO AL EMAIL de
+        // su ficha, pedido en una VENTANA al pulsar "Aceptar carga". 3 intentos;
+        // al 3º fallido se bloquea y la carga se libera. MOCK: en la demo el
+        // código válido son los 3 últimos dígitos del teléfono de la ficha
+        // (el backend generará y enviará el código real por email).
+        var tel = hit.tel || '';
+        window._telFicha = tel;
+        window._telConfirm = (tel.match(/\d/g) || []).join('').slice(-3);
+        window._codIntentos = 3;
+        window._empresaSel = hit;
+        document.getElementById('empresaResumen').classList.add('show');
+        // Revelar el resto del formulario y montar los desplegables.
+        montarDesplegables();
+        // Prefill con lo ÚLTIMO registrado de este transportista (matrícula
+        // tractora + remolque enganchado y conductor con su DNI y teléfono). Si
+        // no hay historial, se quedan en blanco. Editable siempre.
+        prefillHistorial(hit);
+        document.getElementById('restForm').classList.add('show');
+        // Identificado: ocultar el buscador (queda "No soy yo / cambiar" en el
+        // resumen) y hacer scroll al RESUMEN DEL TRANSPORTISTA, que va justo
+        // encima de la sección Carga (fecha y hora de carga).
+        document.getElementById('identBlock').hidden = true;
+        setTimeout(function () {
+            document.getElementById('empresaResumen').scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }, 60);
+        setTimeout(updateScrollHint, 400);
+        return true;   // identificado con una empresa de la base
+    }
+    function cambiarEmpresa() {
+        window._empresaSel = null; window._altaMode = false;
+        document.getElementById('empresaResumen').classList.remove('show');
+        document.getElementById('altaForm').style.display = 'none';
+        window._telFicha = ''; window._telConfirm = ''; window._codIntentos = 3;
+        document.getElementById('er-tel-linea').hidden = true;
+        document.getElementById('er-email-linea').hidden = true;
+        document.getElementById('restForm').classList.remove('show');
+        document.getElementById('identBlock').hidden = false; // volver a mostrar el buscador
+        limpiarVehiculoConductor();
+        updateScrollHint();
+        var inp = document.getElementById('f-buscar-id');
+        inp.value = ''; inp.focus();
+        document.getElementById('identBlock').scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    // Documentos del alta, ya CLASIFICADOS por tipo (hoja CIF, DNI, otros).
+    var _altaDocs = { cif: [], dni: [], otros: [] };
+    function escH(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+    function docUp(input, cat, max) {
+        var files = Array.prototype.slice.call(input.files || []).map(function (f) { return f.name; });
+        if (max === 1) { _altaDocs[cat] = files.slice(0, 1); }
+        else { _altaDocs[cat] = _altaDocs[cat].concat(files).slice(0, max); }
+        renderDoc(cat);
+        input.value = '';
+    }
+    function renderDoc(cat) {
+        var el = document.getElementById('doc-' + cat); if (!el) return;
+        el.innerHTML = _altaDocs[cat].map(function (n, i) {
+            return '<li>' + ICO.file + '<span class="name">' + escH(n) + '</span><button type="button" onclick="docDel(\'' + cat + '\',' + i + ')" aria-label="Quitar">✕</button></li>';
+        }).join('');
+        var drop = document.querySelector('.doc-drop[data-doc="' + cat + '"]');
+        if (drop) {
+            drop.classList.toggle('has-file', _altaDocs[cat].length > 0);
+            if (_altaDocs[cat].length) drop.classList.remove('err'); // rojo→verde
+        }
+    }
+    function docDel(cat, i) { _altaDocs[cat].splice(i, 1); renderDoc(cat); }
+    document.getElementById('f-buscar-id').addEventListener('keydown', function (e) {
+        // Enter = resolver lo tecleado (identifica o abre el alta). Sin botón Buscar.
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('ac-buscar').classList.remove('show');
+            var v = normId(document.getElementById('f-buscar-id').value);
+            if (v) resolverBuscar(v);
+        }
+    });
+    // Normaliza texto para buscar por nombre: minúsculas y sin acentos.
+    function normTxt(s) {
+        s = String(s || '').toLowerCase();
+        return s.normalize ? s.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : s;
+    }
+    // ---- Autocompletado del buscador: sugerencias de la base de transportistas
+    // por CIF/NIF, código de bolsa, teléfono o NOMBRE de empresa. El nombre
+    // funciona desde 2 letras y por PALABRAS en cualquier orden ("ib exp",
+    // "cargo logi"…): todas las palabras tecleadas deben aparecer en el nombre.
+    // CIF/bolsa desde 4 caracteres y teléfono desde 4 dígitos (menos = ruido). ----
+    function buscarSugerencias(val) {
+        var raw = String(val || '').trim();
+        if (raw.replace(/[^A-Za-z0-9]/g, '').length < 2) return [];
+        var qId = normId(raw), qDig = raw.replace(/\D/g, '');
+        var idOk = qId.length >= 4;
+        var toks = normTxt(raw).split(/\s+/).filter(Boolean);
+        return TRANS_DEMO.filter(function (t) {
+            if (idOk && (normId(t.cif).indexOf(qId) >= 0 ||
+                (t.bolsaCod && normId(t.bolsaCod).indexOf(qId) >= 0))) return true;
+            if (qDig.length >= 4 && String(t.tel || '').replace(/\D/g, '').indexOf(qDig) >= 0) return true;
+            var nom = normTxt(t.empresa);
+            return toks.length > 0 && toks.every(function (w) { return nom.indexOf(w) >= 0; });
+        }).slice(0, 6);
+    }
+    function renderBuscarAC() {
+        var inp = document.getElementById('f-buscar-id'), list = document.getElementById('ac-buscar');
+        var sug = buscarSugerencias(inp.value);
+        if (!sug.length) { list.classList.remove('show'); list.innerHTML = ''; return; }
+        list.innerHTML = sug.map(function (t) {
+            return '<li data-cif="' + escH(t.cif) + '">' + escH(t.empresa) + '<span class="ac-sub">' + escH(t.cif) + ' · ' + escH(t.ciudad || '') + '</span></li>';
+        }).join('');
+        list.classList.add('show');
+        Array.prototype.forEach.call(list.querySelectorAll('li'), function (li) {
+            li.addEventListener('mousedown', function (e) {
+                e.preventDefault();
+                inp.value = li.getAttribute('data-cif');
+                list.classList.remove('show');
+                buscarEmpresa();
+            });
+        });
+    }
+    (function () {
+        var inp = document.getElementById('f-buscar-id');
+        inp.addEventListener('input', renderBuscarAC);
+        inp.addEventListener('focus', renderBuscarAC);
+        inp.addEventListener('blur', function () { setTimeout(function () { var l = document.getElementById('ac-buscar'); if (l) l.classList.remove('show'); }, 150); });
+    })();
+
+    // ---- Montar los desplegables de fecha/hora (una vez identificado) ----
+    function montarDesplegables() {
+        var lista = window._diasCarga || [];
+        var esFija = lista.length <= 1;
+        var feSel = document.getElementById('f-fechacarga');
+        feSel.innerHTML = lista.map(function (d) { return '<option>' + d + '</option>'; }).join('') || '<option>Por confirmar</option>';
+        feSel.disabled = esFija;
+        // Horas de carga y de entrega (mismas franjas), con valor por defecto:
+        // carga 11:00-13:00 · entrega 07:00-09:00.
+        document.getElementById('f-horacarga').innerHTML = FRANJAS.map(function (f) { return '<option' + (f === '11:00 - 13:00' ? ' selected' : '') + '>' + f + '</option>'; }).join('');
+        document.getElementById('f-horaentrega').innerHTML = FRANJAS.map(function (f) { return '<option' + (f === '07:00 - 09:00' ? ' selected' : '') + '>' + f + '</option>'; }).join('');
+        montarEntregaFecha();
+        syncRemolque();
+    }
+    // Fecha estimada de ENTREGA: desplegable desde el día de carga hasta 7 días
+    // después (INCLUIDOS sábados y domingos). La estima Dynamo (aquí, mock: día
+    // de carga + 1); se puede cambiar. En producción la calcula el backend.
+    var DOW = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    // Fechas SIEMPRE con año (dd/mm/yyyy). fmtDMlabel lo incluye.
+    function fmtDMlabel(d) { return DOW[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear(); }
+    function parseLabelFecha(s) {
+        var m = String(s || '').match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+        if (!m) return null;
+        var y = m[3] ? (m[3].length === 2 ? 2000 + (+m[3]) : +m[3]) : (new Date()).getFullYear();
+        return new Date(y, +m[2] - 1, +m[1]);
+    }
+    // Añade el año a una etiqueta "Dow dd/mm" si no lo trae. El año se elige de
+    // forma que la fecha no quede muy en el pasado (si ya pasó, año siguiente).
+    function labelConAnio(label) {
+        var m = String(label).match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+        if (!m) return label;
+        if (m[3]) return label; // ya tiene año
+        var now = new Date(), y = now.getFullYear();
+        var cand = new Date(y, +m[2] - 1, +m[1]);
+        var hace30 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+        if (cand < hace30) y++;
+        return label + '/' + y;
+    }
+    function montarEntregaFecha() {
+        var feCarga = document.getElementById('f-fechacarga');
+        var sel = document.getElementById('f-fechaentrega');
+        if (!sel) return;
+        var base = parseLabelFecha(feCarga && feCarga.value ? feCarga.value : (window._diasCarga && window._diasCarga[0]));
+        if (!base) { sel.innerHTML = '<option value="">Sin definir</option>'; return; }
+        var prev = sel.value;
+        var opts = '';
+        for (var i = 0; i <= 7; i++) {
+            var d = new Date(base); d.setDate(d.getDate() + i);
+            var lbl = fmtDMlabel(d);
+            opts += '<option>' + lbl + '</option>';
+        }
+        sel.innerHTML = opts;
+        // Si la selección previa sigue existiendo se conserva; si no, valor por
+        // defecto del "algoritmo": día de carga + 1 (mock).
+        if (prev && sel.querySelector('option')) {
+            var keep = Array.prototype.some.call(sel.options, function (o) { return o.value === prev; });
+            if (keep) { sel.value = prev; return; }
+        }
+        var def = new Date(base); def.setDate(def.getDate() + 1);
+        sel.value = fmtDMlabel(def);
+    }
+
+    // Camión RÍGIDO → no lleva remolque: se deshabilita y limpia.
+    function syncRemolque() {
+        var cam = document.getElementById('f-camion');
+        var rem = document.getElementById('f-remolque');
+        if (!cam || !rem) return;
+        var rigido = /rígido/i.test(cam.value);
+        rem.disabled = rigido;
+        rem.placeholder = rigido ? 'Rígido: sin remolque' : 'R5678DEF';
+        if (rigido) rem.value = '';
+    }
+
+    // ---- Rojo → verde: un campo marcado en rojo (obligatorio vacío) pasa a
+    // verde en cuanto se rellena correctamente. Solo actúa sobre campos ya
+    // validados (que tienen .err o .valid); el resto queda neutro. El buscador
+    // de CIF y la confirmación de 3 dígitos solo quitan el rojo (no ponen verde,
+    // porque "relleno" no es "correcto" hasta buscar/coincidir).
+    function refreshFieldState(el) {
+        if (el && el.classList) {
+            if (el.id === 'f-buscar-id' || el.id === 'tm-tel3') {
+                if ((el.value || '').trim()) el.classList.remove('err');
+            } else if (el.classList.contains('err') || el.classList.contains('valid')) {
+                var v = (el.value || '').trim();
+                el.classList.toggle('err', !v);
+                el.classList.toggle('valid', !!v);
+            }
+        }
+        // Si ya no queda ningún campo en rojo, ocultar el aviso global.
+        var warn = document.getElementById('fWarn');
+        if (warn && !document.querySelector('#formScreen .err')) warn.classList.remove('show');
+    }
+    (function () {
+        var fs = document.getElementById('formScreen');
+        fs.addEventListener('input', function (e) { refreshFieldState(e.target); });
+        fs.addEventListener('change', function (e) { refreshFieldState(e.target); });
+    })();
+
+    // DNI del conductor: solo letras y números, en mayúsculas.
+    document.getElementById('f-dnichofer').addEventListener('input', function () {
+        this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+    });
+    // Matrículas: mayúsculas (se conservan espacios para casar con el historial).
+    ['f-tractora', 'f-remolque'].forEach(function (id) {
+        document.getElementById(id).addEventListener('input', function () {
+            var p = this.selectionStart; this.value = this.value.toUpperCase(); this.selectionStart = this.selectionEnd = p;
+        });
+    });
+
+    // ---- Autocompletado de matrículas y conductor desde el historial ----
+    // Al enfocar/teclear en Matrícula tractora/remolque o Conductor salen hasta
+    // 4 coincidencias del historial de la empresa identificada + una pista final
+    // "Escribe para filtrar…". Si no localiza ninguna, lo que se teclee a mano se
+    // registra como nuevo (aviso). El backend guardará las nuevas de verdad.
+    function acNorm(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+    function acClose(listEl) { if (listEl) { listEl.classList.remove('show'); listEl.innerHTML = ''; } }
+    // cfg: { inp, list, note, source(): [str|{...}], label(item), sub(item), pick(item) }
+    function acBind(cfg) {
+        var inp = document.getElementById(cfg.inp);
+        var list = document.getElementById(cfg.list);
+        var note = cfg.note ? document.getElementById(cfg.note) : null;
+        if (!inp || !list) return;
+        function items() { return (cfg.source() || []); }
+        // showAll=true (al enfocar/pulsar) muestra TODAS las opciones aunque el
+        // campo ya tenga una elegida, para poder cambiarla. Al teclear filtra.
+        function refresh(showAll) {
+            var q = showAll ? '' : acNorm(inp.value);
+            var all = items();
+            if (!all.length) { acClose(list); if (note) note.classList.remove('show'); return; }
+            var match = all.filter(function (it) { return acNorm(cfg.label(it)).indexOf(q) >= 0; });
+            var shown = match.slice(0, 4);
+            var html = shown.map(function (it, i) {
+                var sub = cfg.sub ? cfg.sub(it) : '';
+                return '<li data-i="' + all.indexOf(it) + '">' + escH(cfg.label(it)) +
+                    (sub ? '<span class="ac-sub">' + escH(sub) + '</span>' : '') + '</li>';
+            }).join('');
+            html += '<li class="ac-tip">Escribe para filtrar…</li>';
+            list.innerHTML = html;
+            list.classList.add('show');
+            // Aviso "se registrará como nueva/nuevo" si hay texto sin coincidencia exacta.
+            if (note) {
+                var cur = acNorm(inp.value);
+                var exact = all.some(function (it) { return acNorm(cfg.label(it)) === cur && cur; });
+                note.classList.toggle('show', !showAll && !!cur && !exact);
+            }
+            Array.prototype.forEach.call(list.querySelectorAll('li[data-i]'), function (li) {
+                li.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    cfg.pick(all[+li.getAttribute('data-i')]);
+                    acClose(list);
+                    if (note) note.classList.remove('show');
+                });
+            });
+        }
+        inp.addEventListener('focus', function () { refresh(true); });
+        inp.addEventListener('input', function () { refresh(false); });
+        inp.addEventListener('blur', function () { setTimeout(function () { acClose(list); }, 150); });
+    }
+    // Vacía los campos de vehículo y conductor (al cambiar de transportista o
+    // en un alta nueva) y limpia sus estados rojo/verde.
+    function limpiarVehiculoConductor() {
+        ['f-tractora', 'f-remolque', 'f-chofer', 'f-dnichofer', 'f-tfno'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) { el.value = ''; el.classList.remove('err', 'valid'); }
+        });
+        if (window.Prefijos) Prefijos.set('f-pref', '+34'); else { var pref = document.getElementById('f-pref'); if (pref) pref.value = '+34'; }
+        ['new-tractora', 'new-remolque', 'new-chofer'].forEach(function (id) {
+            var n = document.getElementById(id); if (n) n.classList.remove('show');
+        });
+    }
+    // Rellena los campos del conductor con un objeto {nombre, dni, tel},
+    // separando el prefijo del teléfono. Reutilizado por el prefill, el
+    // autocompletado de conductor y el autorrelleno al elegir tractora.
+    function fillConductor(c) {
+        if (!c) return;
+        var ch = document.getElementById('f-chofer'), dn = document.getElementById('f-dnichofer');
+        ch.value = c.nombre || ''; dn.value = c.dni || '';
+        var tf = document.getElementById('f-tfno');
+        var m = String(c.tel || '').match(/^(\+\d{1,3})\s*(.*)$/);
+        if (m) {
+            if (window.Prefijos) Prefijos.set('f-pref', m[1]);
+            tf.value = m[2];
+        } else { tf.value = c.tel || ''; }
+        var nn = document.getElementById('new-chofer'); if (nn) nn.classList.remove('show');
+        refreshFieldState(ch); refreshFieldState(dn); refreshFieldState(tf);
+    }
+    // Conductor asociado a una tractora del historial (último que la condujo).
+    function choferDeTractora(hit, matricula) {
+        if (!hit || !hit.paresChofer || !hit.conductores) return null;
+        var i = hit.paresChofer[matricula];
+        return (i != null && hit.conductores[i]) ? hit.conductores[i] : null;
+    }
+    // Prefill con la última tractora/remolque y el último conductor del
+    // transportista (índice 0 = lo más reciente). Sin historial → en blanco.
+    function prefillHistorial(hit) {
+        limpiarVehiculoConductor();
+        if (!hit) return;
+        var tr = document.getElementById('f-tractora'), rem = document.getElementById('f-remolque');
+        if (hit.matriculas && hit.matriculas.length) {
+            var mat = hit.matriculas[0];
+            tr.value = mat;
+            var par = (hit.pares && hit.pares[mat]) || (hit.remolques && hit.remolques[0]) || '';
+            if (par && !rem.disabled) rem.value = par;
+        }
+        // Conductor: el de la tractora prellenada; si no, el más reciente.
+        fillConductor((tr.value && choferDeTractora(hit, tr.value)) || (hit.conductores && hit.conductores[0]) || null);
+    }
+    // "¿Dudas?": despliega/oculta los botones de contacto.
+    function toggleDudas(btn) {
+        var box = btn.nextElementSibling;
+        var open = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+        if (box) box.hidden = open;
+        setTimeout(updateScrollHint, 60);
+    }
+    // Indicaciones plegables: abrir/cerrar el textarea al pulsar el texto azul.
+    function toggleNotas() {
+        var btn = document.getElementById('notasToggle'), body = document.getElementById('notasBody');
+        var open = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+        body.hidden = open;
+        if (!open) { var ta = document.getElementById('f-notas'); if (ta) ta.focus(); setTimeout(updateScrollHint, 60); }
+        else setTimeout(updateScrollHint, 60);
+    }
+    function selEmpresa() { return window._empresaSel || null; }
+    acBind({
+        inp: 'f-tractora', list: 'ac-tractora', note: 'new-tractora',
+        source: function () { var e = selEmpresa(); return e ? e.matriculas : []; },
+        label: function (m) { return m; },
+        pick: function (m) {
+            var tr = document.getElementById('f-tractora');
+            tr.value = m; refreshFieldState(tr);
+            var e = selEmpresa(), rem = document.getElementById('f-remolque');
+            // 99% de las veces la tractora arrastra el MISMO remolque del último
+            // envío: lo autorrellenamos (editable/borrable por si hoy lleva otro).
+            if (e && e.pares && !rem.disabled) {
+                var par = e.pares[m];
+                if (par) {
+                    rem.value = par; refreshFieldState(rem);
+                    document.getElementById('new-remolque').classList.remove('show');
+                    rem.classList.add('ac-flash');
+                    setTimeout(function () { rem.classList.remove('ac-flash'); }, 900);
+                }
+            }
+            // Igual con el conductor: el último que llevó esa tractora (editable).
+            var c = choferDeTractora(e, m);
+            if (c) {
+                fillConductor(c);
+                ['f-chofer', 'f-dnichofer', 'f-tfno'].forEach(function (id) {
+                    var el = document.getElementById(id); if (!el) return;
+                    el.classList.add('ac-flash'); setTimeout(function () { el.classList.remove('ac-flash'); }, 900);
+                });
+            }
+        }
+    });
+    acBind({
+        inp: 'f-remolque', list: 'ac-remolque', note: 'new-remolque',
+        source: function () { var e = selEmpresa(); return (e && !document.getElementById('f-remolque').disabled) ? e.remolques : []; },
+        label: function (m) { return m; },
+        pick: function (m) { document.getElementById('f-remolque').value = m; }
+    });
+    acBind({
+        inp: 'f-chofer', list: 'ac-chofer', note: 'new-chofer',
+        source: function () { var e = selEmpresa(); return e ? e.conductores : []; },
+        label: function (c) { return c.nombre; },
+        sub: function (c) { return c.dni + ' · ' + c.tel; },
+        pick: function (c) { fillConductor(c); }
+    });
+
+    // Datos del CAMIÓN/CONDUCTOR: deseables pero NO bloquean la aceptación
+    // (el transportista puede no saber aún qué camión o chófer irá).
+    var DATOS_VEHIC = [
+        ['f-tractora', 'Matrícula tractora'],
+        ['f-remolque', 'Matrícula remolque'],
+        ['f-chofer', 'Nombre del conductor'],
+        ['f-dnichofer', 'DNI / NIE del conductor'],
+        ['f-tfno', 'Teléfono del conductor']
+    ];
+    function datosPendientes() {
+        var rigido = /rígido/i.test(document.getElementById('f-camion').value);
+        var out = [];
+        DATOS_VEHIC.forEach(function (p) {
+            if (p[0] === 'f-remolque' && rigido) return; // el rígido no lleva remolque
+            var el = document.getElementById(p[0]);
+            if (el && !el.value.trim()) out.push(p);
+        });
+        return out;
+    }
+    function aceptar() {
+        // Si ya venció la reserva de 3 min, la carga se liberó: no se registra.
+        if (window._reservaExpirada) { expirarReserva(); return; }
+        if (!validarAceptar()) return;
+        var faltan = datosPendientes();
+        // Faltan datos del camión/conductor → ventana: puede mandarlos MÁS
+        // ADELANTE (no bloquea) o rellenarlos ahora.
+        if (faltan.length) { abrirVcModal('faltan', faltan); return; }
+        // Todo relleno → ventana de RESUMEN para confirmar que las matrículas
+        // y el conductor son los de HOY (pueden venir del último envío).
+        abrirVcModal('resumen');
+    }
+    // Tras las ventanas de datos: identidad (código email) o aceptar directo (alta).
+    function continuarAceptar() {
+        if (window._altaMode) { finalizarAceptacion(); return; }
+        abrirTelConfirm();
+    }
+    // --- Ventana de datos del camión/conductor (resumen o faltan datos) ---
+    function abrirVcModal(modo, faltan) {
+        var card = document.getElementById('vcCard');
+        function v(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+        var html;
+        if (modo === 'resumen') {
+            var rigido = /rígido/i.test(document.getElementById('f-camion').value);
+            var filas = [
+                ['Tractora', v('f-tractora')],
+                rigido ? null : ['Remolque', v('f-remolque')],
+                ['Conductor', v('f-chofer')],
+                ['DNI / NIE', v('f-dnichofer')],
+                ['Teléfono', telValueAc()]
+            ].filter(Boolean);
+            html = '<h2>¿Son correctos estos datos?</h2>' +
+                '<div class="tm-box vc-box">' +
+                    filas.map(function (f) {
+                        return '<div class="vc-row"><span class="vc-k">' + f[0] + '</span>' +
+                            (f[1] ? '<span class="vc-v">' + escH(f[1]) + '</span>'
+                                  : '<span class="vc-v vc-falta">Falta</span>') + '</div>';
+                    }).join('') +
+                '</div>' +
+                '<p class="vc-nota">Pueden venir rellenos de tu <strong>último envío</strong>: revisa que sean los de <strong>ESTA CARGA</strong>.</p>' +
+                '<button type="button" class="btn" onclick="vcOk()">Sí, son correctos</button>' +
+                '<button type="button" class="btn-sec" onclick="vcNoSonEsos()">No son esos datos</button>';
+        } else {
+            // Se muestran TODOS los datos: los que faltan en rojo ("Falta") y
+            // los ya rellenos con su valor, para verificarlos antes de decidir.
+            var rigidoF = /rígido/i.test(document.getElementById('f-camion').value);
+            html = '<h2>Nos faltan los datos del camión / conductor</h2>' +
+                '<div class="tm-box vc-box">' +
+                    DATOS_VEHIC.map(function (p) {
+                        if (p[0] === 'f-remolque' && rigidoF) return '';
+                        var val = p[0] === 'f-tfno' ? telValueAc() : v(p[0]);
+                        return '<div class="vc-row"><span class="vc-k">' + p[1] + '</span>' +
+                            (val ? '<span class="vc-v">' + escH(val) + '</span>'
+                                 : '<span class="vc-v vc-falta">Falta</span>') + '</div>';
+                    }).join('') +
+                '</div>' +
+                '<p class="vc-nota">Si los tienes, <strong>rellénalos ahora</strong> (es un momento y agiliza tu carga). Si aún no los sabes, puedes aceptar igualmente y mandárnoslos en cuanto los tengas — te los pediremos por <strong>email o WhatsApp</strong> antes de la carga.</p>' +
+                '<button type="button" class="btn" onclick="vcRellenar()">Rellenar ahora</button>' +
+                '<button type="button" class="btn-sec vc-later" onclick="vcMasAdelante()">ACEPTAR CARGA · mandaré datos más adelante</button>';
+        }
+        card.innerHTML = html;
+        document.getElementById('vcModal').hidden = false;
+    }
+    function cerrarVcModal() { document.getElementById('vcModal').hidden = true; }
+    function vcOk() { cerrarVcModal(); continuarAceptar(); }
+    // "ACEPTAR CARGA · mandaré datos más adelante": antes de seguir se enseña
+    // el RESUMEN "¿Son correctos estos datos?" con lo que SÍ está relleno
+    // (suele venir del último envío) para verificar que son los de HOY; lo
+    // que falte sale como "Falta". Si no hay NADA relleno, no hay nada que
+    // verificar y se sigue directo a la confirmación de identidad.
+    function vcMasAdelante() {
+        cerrarVcModal();
+        var rigidoM = /rígido/i.test(document.getElementById('f-camion').value);
+        var algoRelleno = DATOS_VEHIC.some(function (p) {
+            if (p[0] === 'f-remolque' && rigidoM) return false;
+            if (p[0] === 'f-tfno') return !!telValueAc();
+            var el = document.getElementById(p[0]);
+            return !!(el && el.value.trim());
+        });
+        if (algoRelleno) { abrirVcModal('resumen'); return; }
+        continuarAceptar();
+    }
+    // "No son esos datos" → se VACÍAN los prerrellenados y se ofrece rellenar
+    // ahora o mandarlos más adelante (misma ventana, sin bloquear).
+    function vcNoSonEsos() {
+        limpiarVehiculoConductor();
+        abrirVcModal('faltan', datosPendientes());
+    }
+    function vcRellenar() {
+        cerrarVcModal();
+        var faltan = datosPendientes();
+        // Marcar EN ROJO los campos que faltan, para que vea cuáles son
+        // (se ponen verdes solos al rellenarlos — regla rojo→verde).
+        faltan.forEach(function (p) {
+            var el = document.getElementById(p[0]);
+            if (el) el.classList.add('err');
+        });
+        var first = faltan.length ? document.getElementById(faltan[0][0]) : null;
+        if (first) {
+            first.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            setTimeout(function () { first.focus(); }, 350);
+        }
+    }
+    // Teléfono del conductor con su prefijo (para el resumen de la ventana).
+    function telValueAc() {
+        var t = (document.getElementById('f-tfno') || {}).value || '';
+        if (!t.trim()) return '';
+        var p = (document.getElementById('f-pref') || {}).value || '';
+        return (p ? p + ' ' : '') + t.trim();
+    }
+    window.abrirVcModal = abrirVcModal; window.cerrarVcModal = cerrarVcModal;
+    window.vcOk = vcOk; window.vcMasAdelante = vcMasAdelante;
+    window.vcNoSonEsos = vcNoSonEsos; window.vcRellenar = vcRellenar;
+    // --- Ventana de confirmación de identidad (código de 3 dígitos por email) ---
+    // 3 intentos en total (NO se reinician al cerrar y reabrir la ventana): al
+    // 3º fallido se bloquea, la carga se LIBERA y sale la pantalla de aviso.
+    function abrirTelConfirm() {
+        var inp = document.getElementById('tm-tel3');
+        inp.value = ''; inp.classList.remove('err');
+        document.getElementById('tm-err').style.display = 'none';
+        document.getElementById('telModal').hidden = false;
+        setTimeout(function () { inp.focus(); }, 80);
+    }
+    function cerrarTelConfirm() { document.getElementById('telModal').hidden = true; }
+    function telConfirmar() {
+        if (window._reservaExpirada) { cerrarTelConfirm(); expirarReserva(); return; }
+        var inp = document.getElementById('tm-tel3');
+        var val = (inp.value.match(/\d/g) || []).join('');
+        if (!val || val !== window._telConfirm) {
+            if (typeof window._codIntentos !== 'number') window._codIntentos = 3;
+            window._codIntentos--;
+            if (window._codIntentos <= 0) { bloquearPorIntentos(); return; }
+            inp.classList.add('err');
+            var err = document.getElementById('tm-err');
+            err.textContent = 'El código no es correcto. Te queda' +
+                (window._codIntentos === 1 ? ' 1 intento.' : 'n ' + window._codIntentos + ' intentos.');
+            err.style.display = 'block';
+            inp.value = '';
+            inp.focus();
+            return;
+        }
+        cerrarTelConfirm();
+        finalizarAceptacion();
+    }
+    // 3º intento fallido: por seguridad NO se acepta y la carga queda liberada.
+    // (Backend: invalidar el código, liberar la reserva y registrar el bloqueo.)
+    function bloquearPorIntentos() {
+        cerrarTelConfirm();
+        window._reservaExpirada = true;
+        if (window._reservaTimer) clearInterval(window._reservaTimer);
+        var vc = document.getElementById('vcModal'); if (vc) vc.hidden = true;
+        mostrarPantalla('blockedScreen');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    window.abrirTelConfirm = abrirTelConfirm;
+    window.cerrarTelConfirm = cerrarTelConfirm;
+    window.telConfirmar = telConfirmar;
+    (function () {
+        var inp = document.getElementById('tm-tel3');
+        if (inp) inp.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); telConfirmar(); }
+        });
+    })();
+    // ---- CONTRAOFERTA: proponer otro precio (barra ±10 %, pasos de 10 €) ----
+    // Monta la barra: rango = precio de SALIDA de Dynamo ± el límite del modo
+    // de negociación del envío (±30/±60/±500 €), pasos de 10 €. El ancla es
+    // SIEMPRE window._precioOferta (el precio original de la oferta): aunque
+    // se haya acordado otro precio, los topes NO se mueven — así no se puede
+    // escalar encadenando propuestas. El cursor arranca en el precio VIGENTE.
+    function contraInitRange() {
+        var orig = window._precioOferta;
+        var r = document.getElementById('contraRange');
+        if (!r || isNaN(orig) || orig <= 0) return;
+        var amp = window._negAmp || 30;
+        r.min = Math.max(0, orig - amp); r.max = orig + amp; r.step = 10;
+        var cur = isNaN(window._basePrecio) ? orig : window._basePrecio;
+        r.value = Math.min(parseFloat(r.max), Math.max(parseFloat(r.min), cur));
+        document.getElementById('contraMin').textContent = fmtEur(Math.max(0, orig - amp)) + ' €';
+        document.getElementById('contraMax').textContent = fmtEur(orig + amp) + ' €';
+        contraPinta();
+    }
+    function toggleContra() {
+        var b = document.getElementById('contraBox'), t = document.getElementById('contraToggle');
+        var abriendo = b.hidden;
+        // Al REABRIR tras una decisión (aceptada o rechazada) vuelve el
+        // selector, recalculado sobre el precio vigente, por si quiere
+        // proponer otro. Mientras se analiza (pendiente) se respeta el estado.
+        if (abriendo && !window._contraPendiente) {
+            document.getElementById('contraFormPane').hidden = false;
+            document.getElementById('contraStatusPane').hidden = true;
+            contraInitRange();
+        }
+        b.hidden = !b.hidden;
+        t.classList.toggle('open', !b.hidden);
+        // Al abrir, centrar el panel en pantalla (si no, queda escondido abajo).
+        if (!b.hidden) setTimeout(function () { b.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 60);
+        setTimeout(updateScrollHint, 60);
+    }
+    function contraPinta() {
+        var r = document.getElementById('contraRange');
+        var base = window._basePrecio, np = parseFloat(r.value);
+        document.getElementById('contraPrecio').textContent = fmtEur(np) + ' €';
+        var d = np - base;
+        document.getElementById('contraDelta').textContent =
+            d === 0 ? 'Igual que la oferta' : (d > 0 ? '+' : '−') + fmtEur(Math.abs(d)) + ' € respecto a la oferta';
+    }
+    function aceptarContra() {
+        if (window._reservaExpirada) { expirarReserva(); return; }
+        // La propuesta va ANTES de identificarse (no exige CIF ni datos): se
+        // analiza el precio EN EL MISMO PANEL (sin cambiar de pantalla) y, si
+        // se acepta, se aplica a la oferta para identificarse y aceptar.
+        var base = window._basePrecio, np = parseFloat(document.getElementById('contraRange').value);
+        if (np === base) { toggleContra(); return; } // sin cambio → nada que proponer
+        // MOCKUP: el backend registra la propuesta (envío + precio), PAUSA la
+        // caducidad de la reserva mientras Dynamo decide (ese tiempo no corre
+        // para el transportista) y responde. Simulado: cpd=ok|no, cpt=segundos.
+        if (window._reservaPausar) window._reservaPausar();
+        // Email solo si YA se identificó (lo normal es que aún no: anónimo).
+        var email = (window._empresaSel && window._empresaSel.email) || (window._altaMode && (document.getElementById('alta-email') || {}).value) || '';
+        var boxTxt = email
+            ? 'En unos instantes te confirmamos <strong>en esta misma pantalla</strong>. Y por si la cierras, te avisaremos <strong>también por email</strong> a <strong style="color:var(--purple);">' + escH(email) + '</strong>: si aceptamos tu precio, volverás a la oferta con el nuevo precio ya aplicado para aceptar la carga.'
+            : 'En unos instantes te confirmamos en esta misma pantalla. Si aceptamos tu precio, volverás a la oferta con el nuevo precio ya aplicado para identificarte y aceptar la carga. <strong>No cierres esta pantalla: aún no te has identificado y no podríamos confirmar la carga ni avisarte por email con la orden de carga.</strong>';
+        // ±30/±60: decide el SISTEMA en segundos. ±500: lo revisa un AGENTE
+        // humano — máx. 2 minutos de espera (barra a 2 min), con desenlaces
+        // extra: contraoferta de Dynamo (nuestra oferta máxima) o "no ha dado
+        // tiempo" (queda registrada + botón Contáctanos).
+        var agente = (window._negAmp || 0) >= 500;
+        var cpd = q('cpd', 'ok');
+        var cpt = parseInt(q('cpt', agente ? '120' : '6'), 10); if (isNaN(cpt) || cpt < 1) cpt = agente ? 120 : 6;
+        // Mismo estilo que "Comprobando disponibilidad": spinner + barra de
+        // progreso con porcentaje y contador de segundos.
+        var pane = document.getElementById('contraStatusPane');
+        pane.innerHTML = '<div class="contra-status">' +
+            '<div class="contra-spin" aria-hidden="true"></div>' +
+            '<div class="cs-title">Estamos analizando tu precio…</div>' +
+            '<div class="cs-agente">' + (agente ? 'Lo está revisando un AGENTE. Puede tardar hasta 2 minutos.' : 'Danos unos segundos.') + '</div>' +
+            '<div class="cs-sub">Has propuesto <strong style="color:var(--purple);">' + escH(fmtEur(np) + ' €') + '</strong> (la oferta era ' + escH(fmtEur(base) + ' €') + ').</div>' +
+            '<div class="chk-bar-wrap"><div class="chk-bar" id="ct-bar"></div></div>' +
+            '<div class="chk-row"><span class="chk-pct" id="ct-pct">0%</span><span class="chk-cd"><strong id="ct-count">' + cpt + '</strong> s</span></div>' +
+            '<div class="cs-box">' + boxTxt + '</div></div>';
+        document.getElementById('contraFormPane').hidden = true;
+        pane.hidden = false;
+        window._contraPendiente = true; // analizando: no resetear el panel
+        animarBarra(cpt, 'ct-bar', 'ct-pct', 'ct-count', function () {
+            window._contraPendiente = false; // decidido: al reabrir, selector de nuevo
+            // Con la respuesta (sea cual sea), la reserva vuelve a correr.
+            if (window._reservaReanudar) window._reservaReanudar();
+            if (cpd === 'no') {
+                pane.innerHTML = '<div class="contra-status">' +
+                    '<div class="cs-no" aria-hidden="true">✕</div>' +
+                    '<div class="cs-title" style="color:var(--red);">No podemos aceptar tu precio</div>' +
+                    '<div class="cs-sub">Tu propuesta de <strong>' + escH(fmtEur(np) + ' €') + '</strong> no se ha aceptado.<br>Sigue en pie la oferta original de <strong>' + escH(fmtEur(base) + ' €') + '</strong>: identifícate abajo y acepta la carga, o vuelve a abrir «Puedo aceptarla, pero a OTRO precio» para proponer otro.</div></div>';
+            } else if (agente && cpd === 'timeout') {
+                // El agente NO ha contestado dentro de los 2 min: la propuesta
+                // queda registrada y se le avisará; botón Contáctanos.
+                pane.innerHTML = '<div class="contra-status">' +
+                    '<div class="cs-no" style="background:rgba(245,166,35,0.15);color:#b8860b;" aria-hidden="true">⚠</div>' +
+                    '<div class="cs-title">El agente no ha podido revisarlo a tiempo</div>' +
+                    '<div class="cs-sub">Tu contraoferta de <strong>' + escH(fmtEur(np) + ' €') + '</strong> queda <strong>REGISTRADA</strong>. En cuanto la revisemos te avisaremos para ver si aún tienes camión disponible.</div>' +
+                    '<div class="cs-sub" style="margin-top:0.8rem;">O contáctanos ahora:</div>' +
+                    '<button type="button" class="dudas-toggle" style="margin-top:0.45rem;" aria-expanded="false" onclick="toggleDudas(this)">Contáctanos <span class="dt-chev" aria-hidden="true">▾</span></button>' +
+                    '<div class="contact-btns" hidden>' +
+                        '<a class="cbtn cbtn-call" href="tel:+34955225945"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar</a>' +
+                        '<a class="cbtn cbtn-wa" href="https://wa.me/34628995709" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</a>' +
+                        '<a class="cbtn cbtn-mail" href="mailto:info@dynamotrans.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>Email</a>' +
+                    '</div></div>';
+            } else if (agente && cpd === 'max') {
+                // El agente contesta con NUESTRA OFERTA MÁXIMA (no llega a lo
+                // propuesto, pero mejora la oferta): botón para aplicarla.
+                var cpmax = parseFloat(q('cpmax', '')) || Math.round(((base + np) / 2) / 10) * 10;
+                pane.innerHTML = '<div class="contra-status">' +
+                    '<div class="cs-title">Respuesta del agente</div>' +
+                    '<div class="cs-sub">No podemos llegar a <strong>' + escH(fmtEur(np) + ' €') + '</strong>. Nuestra oferta <strong>MÁXIMA</strong>: <strong style="color:var(--purple);font-size:1.2rem;">' + escH(fmtEur(cpmax) + ' €') + '</strong>.</div>' +
+                    '<button type="button" class="btn" style="margin-top:0.8rem;" onclick="aceptarOfertaMax(' + cpmax + ')">Aplicar ' + escH(fmtEur(cpmax) + ' €') + ' a la oferta</button>' +
+                    '<div class="cs-sub" style="font-size:0.82rem;color:var(--gray-500);margin-top:0.5rem;">O identifícate abajo y acepta al precio original de ' + escH(fmtEur(base) + ' €') + '.</div></div>';
+            } else {
+                aplicarNuevoPrecio(np);
+            }
+        });
+    }
+    // El transportista acepta la OFERTA MÁXIMA del agente → se aplica.
+    function aceptarOfertaMax(v) { aplicarNuevoPrecio(v); }
+    // Precio ACEPTADO por Dynamo → se aplica a la oferta (caja verde con la
+    // nota de ACORDADO) para identificarse, revisar los detalles y aceptar.
+    function aplicarNuevoPrecio(np) {
+        window._basePrecio = np;
+        if (window._oferta) window._oferta.precio = fmtEur(np) + ' €';
+        window._contraAceptada = true;
+        var imp = document.getElementById('v-imp');
+        if (imp) imp.textContent = fmtEur(np) + ' €';
+        var pago = document.getElementById('v-pago');
+        if (pago && !document.getElementById('v-acordado')) {
+            pago.insertAdjacentHTML('beforeend', '<div id="v-acordado" style="font-size:0.8rem;font-weight:800;margin-top:0.25rem;">Precio ACORDADO tras tu propuesta (aceptada por Dynamo). Identifícate abajo para aceptar la carga.</div>');
+        }
+        // El panel se PLIEGA (no se elimina): se puede reabrir para proponer
+        // otro precio — la barra se recalcula sobre el precio acordado.
+        var tg = document.getElementById('contraToggle'), bx = document.getElementById('contraBox');
+        if (bx) bx.hidden = true;
+        if (tg) tg.classList.remove('open');
+        renderProntoCalc(); // el pronto pago recalcula sobre el precio acordado
+        if (pago) pago.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    // Validación completa del formulario (identidad + campos obligatorios).
+    // La comparte "Aceptar carga" con "Aceptar al NUEVO precio" (contraoferta).
+    function validarAceptar() {
+        var warn = document.getElementById('fWarn');
+        // Sin identificarse aún (no se eligió empresa de la lista): al pulsar
+        // Aceptar se RESUELVE lo tecleado. Si casa con una empresa → queda
+        // identificada; si no casa → se abre el ALTA de transportista. En ambos
+        // casos NO se acepta en este clic: se revela el dato/formulario y el
+        // transportista pulsa Aceptar de nuevo (ya identificado / con el alta).
+        if (!window._empresaSel && !window._altaMode) {
+            var idInput = document.getElementById('f-buscar-id');
+            var val = normId(idInput.value);
+            if (!val) {
+                idInput.classList.add('err');
+                if (warn) { warn.textContent = '⚠ Escribe tu CIF/DNI, código de bolsa, móvil o nombre de empresa para poder aceptar la carga.'; warn.classList.add('show'); }
+                idInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                return false;
+            }
+            idInput.classList.remove('err');
+            document.getElementById('ac-buscar').classList.remove('show');
+            if (warn) warn.classList.remove('show');
+            // "Consultando la base de Dynamo…" y luego identifica o abre el alta
+            // (mismo spinner que al elegir una sugerencia).
+            buscarEmpresa();
+            return false;          // en este clic solo se revela; se acepta al siguiente
+        }
+        if (warn) warn.textContent = '⚠ Revisa los campos marcados: son obligatorios.';
+        // (La confirmación de identidad — código de 3 dígitos enviado al email
+        // de la ficha — se pide en una VENTANA tras pulsar Aceptar, no inline.)
+        // Los datos del CAMIÓN/CONDUCTOR ya NO bloquean: si faltan, al pulsar
+        // Aceptar sale una ventana para mandarlos más adelante (datosPendientes).
+        var req = ['f-fechacarga', 'f-horacarga', 'f-fechaentrega', 'f-horaentrega'];
+        // En modo ALTA (empresa nueva), TODOS sus campos son obligatorios
+        // (decisión 2026-07-23), incluida la documentación (hoja CIF + DNI).
+        // El código de bolsa es obligatorio salvo si la bolsa es "Ninguna".
+        if (window._altaMode) {
+            var altaReq = ['alta-empresa', 'alta-cif', 'alta-dir', 'alta-cp', 'alta-loc',
+                'alta-prov', 'alta-pais', 'alta-tfno', 'alta-email', 'alta-email-conta', 'alta-contacto',
+                'alta-bolsa-tipo'];   // hay que ELEGIR bolsa (o "No tengo bolsa")
+            // El código solo es obligatorio si eligió una bolsa REAL (no vacío
+            // ni "No tengo bolsa").
+            var bt = document.getElementById('alta-bolsa-tipo').value;
+            if (bt && bt !== 'Ninguna') altaReq.push('alta-bolsa');
+            req = altaReq.concat(req);
+        }
+        var ok = true;
+        req.forEach(function (id) {
+            var el = document.getElementById(id);
+            var bad = !el.value.trim();
+            el.classList.toggle('err', bad);
+            if (bad) ok = false;
+        });
+        // Documentos del alta obligatorios: hoja CIF y DNI (subida de PDF/foto).
+        if (window._altaMode) {
+            ['cif', 'dni'].forEach(function (cat) {
+                var drop = document.querySelector('.doc-drop[data-doc="' + cat + '"]');
+                var bad = !_altaDocs[cat].length;
+                if (drop) drop.classList.toggle('err', bad);
+                if (bad) ok = false;
+            });
+            // CIF/NIF nuevo (tecleado a mano, no elegido del desplegable): debe
+            // tener entre 9 y 11 caracteres alfanuméricos. Cubre ES/PT/FR/NL (9),
+            // PL (10) y DE/IT (11). Si se elige del desplegable, ya es válido y
+            // este alta ni se abre.
+            var cifEl = document.getElementById('alta-cif');
+            if (cifEl && cifEl.value.trim()) {
+                var cifLen = cifEl.value.replace(/[^A-Za-z0-9]/g, '').length;
+                if (cifLen < 9 || cifLen > 11) {
+                    cifEl.classList.add('err'); ok = false;
+                    if (warn) warn.textContent = '⚠ El CIF/NIF debe tener entre 9 y 11 caracteres (déjalo tal cual figura en tu documentación).';
+                }
+            }
+        }
+        warn.classList.toggle('show', !ok);
+        if (!ok) { document.querySelector('.err').scrollIntoView({ block: 'center', behavior: 'smooth' }); return false; }
+        return true;
+    }
+    function finalizarAceptacion() {
+        // MOCKUP: aquí el backend registra la aceptación (envío, empresa, fecha
+        // y hora de carga y entrega, camión, matrículas, conductor con su DNI y
+        // pronto pago) y avisa al equipo de Dynamo.
+        document.getElementById('ok-ref').textContent = document.getElementById('v-ref').textContent;
+        document.getElementById('ok-alta').hidden = !window._altaMode;
+        // Resumen de la carga aceptada. Recogida y Entrega van UNIFICADAS: cada
+        // una agrupa su dirección + horario del almacén + fecha y hora estimada.
+        function okTxt(id) { return (document.getElementById(id) || {}).textContent || ''; }
+        function okVal(id) { var e = document.getElementById(id); return e ? e.value : ''; }
+        // Datos de la oferta (objeto único; no se relee el DOM de las tarjetas).
+        var O = window._oferta || {};
+        var entFecha = okVal('f-fechaentrega'), entHora = okVal('f-horaentrega');
+        // Datos del transportista (ficha existente o alta), vehículo y conductor.
+        var empNom = window._empresaSel ? window._empresaSel.empresa : (okVal('alta-empresa') || '—');
+        var empCif = window._empresaSel ? window._empresaSel.cif : (okVal('alta-cif') || '—');
+        // ---- Resumen con las MISMAS tarjetas que la oferta (homogéneo) ----
+        function chip(k, v) {
+            return v ? '<span class="of-chip"><span class="of-chip-k">' + escH(k) + '</span><span class="of-chip-v">' + escH(v) + '</span></span>' : '';
+        }
+        // Tarjeta genérica con icono + etiqueta + valor principal + chips.
+        function cardSec(ico, lbl, main, chipsHtml, extra) {
+            return '<div class="of-merc">' +
+                '<div class="of-merc-head"><span class="of-merc-ico">' + ico + '</span><div>' +
+                    '<div class="of-merc-lbl">' + escH(lbl) + '</div>' +
+                    (main ? '<div class="of-merc-tipo">' + escH(main) + '</div>' : '') + '</div></div>' +
+                (chipsHtml ? '<div class="of-chips">' + chipsHtml + '</div>' : '') +
+                (extra || '') + '</div>';
+        }
+        var recs = O.recogidas || [], ents = O.entregas || [];
+        var html = '<div class="of-envio"><span class="of-envio-lbl">Envío</span><span>' + escH(O.envio || okTxt('v-ref')) + '</span></div>';
+        // Datos del camión/conductor que quedaron PENDIENTES (aceptó sin
+        // ellos): aviso ámbar con lo que falta por mandarnos.
+        var pendVc = datosPendientes();
+        if (pendVc.length) {
+            html += '<div class="ok-pend">⚠ <strong>Pendiente de enviarnos:</strong> ' +
+                pendVc.map(function (p) { return p[1].toLowerCase(); }).join(', ') +
+                '. Mándanoslos en cuanto los tengas: te los pediremos por <strong>email o WhatsApp</strong> antes de la carga.</div>';
+        }
+        // Ruta: tarjeta por punto con circulito numerado en orden de recorrido.
+        // Sin nombre de empresa (discreción: va solo en la orden de carga).
+        // Fecha/hora de carga elegidas → 1ª recogida; entrega estimada → última.
+        var nOrd = 0;
+        function ptCard(cls, tag, pt, fechaLn, estLn) {
+            nOrd++;
+            return '<div class="of-pt ' + cls + '">' +
+                '<div class="of-pt-head"><span class="of-pt-num">' + nOrd + '</span>' +
+                    '<span class="of-pt-tag">' + tag + '</span>' +
+                    (pt.tipo ? tipoLugarHtml(pt.tipo) : '') +
+                '</div>' +
+                (fechaLn ? '<div class="of-pt-fecha">' + escH(fechaLn) + '</div>' : '') +
+                (pt.hor ? '<div class="of-pt-hor">(' + escH(pt.hor) + ')</div>' : '') +
+                '<div class="of-pt-loc">' + escH(fmtDir(pt.loc)) + '</div>' +
+                (estLn || '') + '</div>';
+        }
+        html += '<div class="of-route">' +
+            recs.map(function (r, i) {
+                return ptCard('of-pt-rec', 'Recogida', r,
+                    i === 0 ? okVal('f-fechacarga') : '',
+                    i === 0 && okVal('f-horacarga') ? '<div class="of-pt-est">Recogida estimada: <b>' + escH(okVal('f-horacarga')) + '</b></div>' : '');
+            }).join('') +
+            ents.map(function (e, i) {
+                var ult = i === ents.length - 1;
+                return ptCard('of-pt-ent', 'Entrega', e,
+                    ult && entFecha ? 'Estimada: ' + entFecha : '',
+                    ult && entHora ? '<div class="of-pt-est">Entrega estimada: <b>' + escH(entHora) + '</b></div>' : '');
+            }).join('') +
+        '</div>';
+        // Mercancía: tipo + chips del detalle + anotaciones (igual que la oferta).
+        var mercChips = (O.detalles || []).map(function (r) { return chip(r[0], r[1]); }).join('');
+        html += cardSec(ICO.box, 'Mercancía', '', mercChips,
+            O.dm ? '<div class="of-dm"><b>Anotaciones de la mercancía</b>' + escH(O.dm) + '</div>' : '');
+        // Transportista, vehículo y conductor.
+        html += cardSec(ICO.emp, 'Transportista', empNom, chip('CIF / DNI', empCif));
+        html += cardSec(ICO.truck, 'Vehículo', okVal('f-camion'),
+            chip('Matrícula tractora', okVal('f-tractora')) + chip('Remolque', okVal('f-remolque')));
+        html += cardSec(ICO.user, 'Conductor', okVal('f-chofer'),
+            chip('DNI / NIE', okVal('f-dnichofer')) + chip('Teléfono', okVal('f-pref') + ' ' + okVal('f-tfno')));
+        // Precio: caja verde como la de la oferta, con el pronto pago si aplica.
+        var imp = O.precio || okTxt('v-imp');
+        var pronto = document.getElementById('f-pronto') && document.getElementById('f-pronto').checked;
+        var info = prontoPagoInfo();
+        // Si el precio salió de una CONTRAOFERTA aceptada, se deja dicho.
+        var contraNota = window._contraAceptada ? '<div style="font-size:0.82rem;font-weight:700;margin-top:0.25rem;">Precio ACORDADO tras tu propuesta (aceptada por Dynamo).</div>' : '';
+        if (pronto && info) {
+            // Importe final con pronto pago aplicado (así irá también en la factura).
+            html += '<div class="pago-contado"><span class="imp">' + escH(fmtEur(info.total) + ' €') + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span>' +
+                '<div style="font-size:0.82rem;font-weight:700;margin-top:0.25rem;">PRONTO PAGO aplicado: −' + escH(fmtEur(info.desc)) + ' € · cobro a 5 días' + (fechaPagoDias(5) ? ' (pago el ' + escH(fechaPagoDias(5)) + ')' : '') + '</div>' + contraNota + '</div>';
+        } else if (imp) {
+            html += '<div class="pago-contado"><span class="imp">' + escH(imp) + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)' + (info ? ' · a 60 días' : '') + '</span>' + contraNota + '</div>';
+        }
+        document.getElementById('ok-resumen').innerHTML = html;
+        // Email donde se enviará la orden de carga: el de su ficha (existente) o
+        // el que tecleó en el alta.
+        var email = (window._empresaSel && window._empresaSel.email) || okVal('alta-email') || 'tu email';
+        document.getElementById('ok-email').textContent = email;
+        document.getElementById('ok-email-top').textContent = email;
+        window._reservaCerrada = true; // aceptada: la reserva ya no aplica
+        if (window._reservaTimer) clearInterval(window._reservaTimer); // parar contador
+        var fs = document.getElementById('formScreen');
+        fs.classList.remove('show'); fs.style.display = 'none';
+        document.getElementById('okScreen').classList.add('show');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(updateScrollHint, 500); // la pista se recalcula para el resumen de aceptado
+    }
+
+    // ================= DISPONIBILIDAD + RESERVA (3 min) =================
+    // Al abrir el enlace: pantalla "comprobando disponibilidad" ~1,8 s. Luego:
+    //  · estado=tomada  → pantalla "ya no disponible" con datos enmascarados.
+    //  · disponible     → formulario + contador de reserva (por defecto 120 s).
+    // Si el contador llega a 0 sin aceptar, la carga se libera (hay que recargar).
+    function mostrarPantalla(id) {
+        ['checkScreen', 'takenScreen', 'expiredScreen', 'errorScreen', 'blockedScreen'].forEach(function (s) {
+            var el = document.getElementById(s); if (el) el.classList.toggle('show', s === id);
+        });
+        var fs = document.getElementById('formScreen');
+        fs.classList.toggle('show', id === 'formScreen');
+        if (id === 'formScreen') fs.style.display = '';
+        setTimeout(updateScrollHint, 60);
+    }
+    // Pista "hay más abajo": visible mientras el formulario esté activo, la
+    // página se pueda desplazar y no se haya llegado al final.
+    function updateScrollHint() {
+        var hint = document.getElementById('scrollHint');
+        if (!hint) return;
+        // Visible tanto en el formulario como en la pantalla de "carga aceptada"
+        // (ambas tienen contenido por debajo del pliegue).
+        var formOn = document.getElementById('formScreen').classList.contains('show');
+        var okOn = document.getElementById('okScreen').classList.contains('show');
+        var doc = document.documentElement;
+        var nearBottom = (window.innerHeight + window.scrollY) >= (doc.scrollHeight - 90);
+        var scrollable = doc.scrollHeight > window.innerHeight + 60;
+        hint.hidden = !((formOn || okOn) && scrollable && !nearBottom);
+        // En el formulario invita a ACEPTAR; en el aceptado, solo a ver el resumen.
+        var t = document.getElementById('sh-text');
+        if (t) t.textContent = okOn ? 'Desliza para ver todo' : 'Desliza para ACEPTAR';
+    }
+    window.addEventListener('scroll', updateScrollHint, { passive: true });
+    window.addEventListener('resize', updateScrollHint);
+    function expirarReserva() {
+        // Si ya se aceptó la carga, la reserva NO puede caducar (evita que salga
+        // "tiempo agotado" encima de "carga aceptada").
+        if (window._reservaCerrada) return;
+        window._reservaExpirada = true;
+        if (window._reservaTimer) clearInterval(window._reservaTimer);
+        // Cerrar cualquier VENTANA abierta (datos del camión/conductor, 3
+        // dígitos del teléfono): si no, se quedaba flotando por encima de la
+        // pantalla de "tiempo agotado".
+        var vc = document.getElementById('vcModal'); if (vc) vc.hidden = true;
+        var tm = document.getElementById('telModal'); if (tm) tm.hidden = true;
+        mostrarPantalla('expiredScreen');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    // ALTA de transportista nueva: al abrirse el formulario de alta el
+    // contador de reserva se AMPLÍA a 6 MINUTOS (rellenar el alta completa
+    // con documentación lleva más tiempo que aceptar con empresa ya en la
+    // base). Solo se amplía la PRIMERA vez que entra en el alta. Demo:
+    // ajustable por URL con ta= (segundos; por defecto 360 = 6 min).
+    function ampliarReservaAlta() {
+        if (window._altaReservaAmpliada || window._reservaExpirada || window._reservaCerrada) return;
+        window._altaReservaAmpliada = true;
+        if (window._reservaTimer) clearInterval(window._reservaTimer);
+        window._reservaPausada = false;
+        var seg = parseInt(q('ta', '360'), 10); if (isNaN(seg) || seg < 2) seg = 360;
+        var uwin = parseInt(q('u', '60'), 10); if (isNaN(uwin) || uwin < 1) uwin = 60;
+        iniciarReserva(seg, uwin);
+    }
+    function iniciarReserva(segundos, urgentWin) {
+        var banner = document.getElementById('reservaBanner');
+        urgentWin = urgentWin || 60;                       // segundos del último tramo (contador rojo)
+        var calmDur = Math.max(1, segundos - urgentWin);   // duración del tramo "tranquilo" (spinner)
+        var calmBuilt = false, urgentBuilt = false;
+        // Instante REAL de expiración: el tiempo restante se calcula con el reloj,
+        // no decrementando. Así, si la pestaña queda en segundo plano (móvil
+        // minimizado) y el navegador congela el setInterval, al volver se recupera
+        // el tiempo transcurrido de verdad y expira cuando toca.
+        var fin = new Date().getTime() + segundos * 1000;
+        function fmt(s) { return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+        function pinta() {
+            if (window._reservaExpirada || window._reservaCerrada || window._reservaPausada) return;
+            var quedan = Math.ceil((fin - new Date().getTime()) / 1000);
+            if (quedan < 0) quedan = 0;
+            // Cada tramo se construye UNA sola vez (para no reiniciar la animación
+            // del spinner) y luego solo se actualiza el número.
+            if (quedan > urgentWin) {
+                if (!calmBuilt) {
+                    calmBuilt = true;
+                    banner.classList.remove('urgent');
+                    banner.innerHTML = '<span class="rb-spin" style="animation-duration:' + calmDur + 's"></span>' +
+                        '<span><strong>Reserva temporal.</strong> Tómate tu tiempo para completar y aceptar la carga; te avisaremos cuando quede poco antes de que se libere.</span>';
+                }
+            } else if (quedan > 0) {
+                if (!urgentBuilt) {
+                    urgentBuilt = true;
+                    banner.classList.add('urgent');
+                    // Último tramo: spinner ROJO que se vacía + contador. La duración
+                    // se ajusta a lo que quede (por si se vuelve ya empezado).
+                    banner.innerHTML = '<span class="rb-spin rb-spin-red" style="animation-duration:' + Math.max(1, quedan) + 's"></span>' +
+                        '<span><strong>¡Queda poco!</strong> Te quedan <span class="rb-timer" id="reservaTimer">' + fmt(quedan) + '</span> para completar y aceptar antes de que la carga se libere.</span>';
+                } else {
+                    var t = document.getElementById('reservaTimer'); if (t) t.textContent = fmt(quedan);
+                }
+            }
+            if (quedan <= 0) { clearInterval(window._reservaTimer); expirarReserva(); return; }
+        }
+        window._reservaPinta = pinta;
+        pinta();
+        window._reservaTimer = setInterval(pinta, 1000);
+        // ---- PAUSA durante el análisis de la contraoferta ----
+        // Mientras Dynamo analiza el precio propuesto, el tiempo de reserva NO
+        // corre (la espera depende de nosotros, no del transportista). Al
+        // decidirse (acepte o no), se reanuda con el tiempo que le quedaba y
+        // en el tramo que toque (tranquilo o último minuto).
+        var restantePausa = 0;
+        window._reservaPausar = function () {
+            if (window._reservaExpirada || window._reservaCerrada || window._reservaPausada) return;
+            window._reservaPausada = true;
+            restantePausa = Math.max(0, fin - new Date().getTime());
+            if (window._reservaTimer) clearInterval(window._reservaTimer);
+            banner.classList.remove('urgent');
+            banner.classList.add('paused');
+            banner.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;color:var(--green-dark);"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>' +
+                '<span><strong>Reserva EN PAUSA</strong> mientras analizamos tu precio: este tiempo no te corre. Se reanuda en cuanto tengas respuesta.</span>';
+        };
+        window._reservaReanudar = function () {
+            if (!window._reservaPausada || window._reservaExpirada || window._reservaCerrada) return;
+            window._reservaPausada = false;
+            banner.classList.remove('paused');
+            fin = new Date().getTime() + restantePausa;
+            // Reconstruir el tramo que toque con la duración RESTANTE (el
+            // spinner tranquilo vuelve a vaciarse con lo que quede).
+            calmBuilt = urgentBuilt = false;
+            calmDur = Math.max(1, Math.ceil(restantePausa / 1000) - urgentWin);
+            pinta();
+            window._reservaTimer = setInterval(pinta, 1000);
+        };
+    }
+    // Al volver a la pestaña (móvil restaurado), recalcular de inmediato: si la
+    // reserva ya venció mientras estaba en segundo plano, se libera al momento.
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden && window._reservaPinta && !window._reservaExpirada && !window._reservaCerrada) window._reservaPinta();
+    });
+    window.addEventListener('focus', function () {
+        if (window._reservaPinta && !window._reservaExpirada && !window._reservaCerrada) window._reservaPinta();
+    });
+    // "hace X" a partir de unos minutos transcurridos (días, horas y minutos,
+    // omitiendo las partes a cero; con singular/plural).
+    function haceTexto(mins) {
+        mins = Math.max(0, Math.round(mins));
+        var dias = Math.floor(mins / 1440), horas = Math.floor((mins % 1440) / 60), m = mins % 60;
+        var partes = [];
+        if (dias) partes.push(dias + (dias === 1 ? ' día' : ' días'));
+        if (horas) partes.push(horas + (horas === 1 ? ' hora' : ' horas'));
+        if (m || !partes.length) partes.push(m + (m === 1 ? ' minuto' : ' minutos'));
+        var txt = partes.length === 1 ? partes[0] :
+            partes.slice(0, -1).join(', ') + ' y ' + partes[partes.length - 1];
+        return 'hace ' + txt;
+    }
+    function mostrarTomada(enTramite) {
+        // EN TRÁMITE: otro transportista la tiene RESERVADA (dentro de su tiempo)
+        // pero AÚN NO la ha aceptado → no decir "no disponible": decir que hay
+        // alguien viéndola ahora y que puede quedar libre en unos minutos.
+        if (enTramite) {
+            var ico = document.querySelector('#takenScreen .stop-ico');
+            ico.classList.add('viendo');
+            ico.innerHTML = '<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+            var h1 = document.querySelector('#takenScreen h1');
+            h1.style.color = 'var(--purple)';
+            h1.textContent = 'Hay otro transportista viéndola ahora mismo';
+            document.getElementById('tk-sub').innerHTML = 'Llegó antes que tú y la tiene <strong>reservada unos minutos</strong> mientras completa sus datos. <strong>Aún NO la ha aceptado</strong>: si no la confirma, la carga quedará <strong>libre otra vez</strong> en unos minutos.';
+            var td = document.querySelector('#takenScreen .taken-data');
+            // Barra de ESPERA: cuenta el tiempo de reserva que le queda al otro
+            // transportista y, al terminar, se COMPRUEBA SOLA la disponibilidad.
+            // Mock: tw= segundos de espera (demo 30 s); al acabar se recarga sin
+            // estado= (simula que el otro NO aceptó y la carga quedó libre). En
+            // producción el backend devuelve el tiempo restante y el estado real.
+            // Pruebas: 5 s reales; el TEXTO dice 45 s (lo que será en producción).
+            var espera = parseInt(q('tw', '5'), 10); if (isNaN(espera) || espera < 3) espera = 5;
+            td.innerHTML =
+                '<div class="tramite-box"><span class="tramite-spin" aria-hidden="true"></span><span class="tramite-txt">Ahora está otro transportista reservando en línea</span></div>' +
+                '<div class="chk-bar-wrap" style="margin-top:0.5rem;"><div class="chk-bar" id="tw-bar"></div></div>' +
+                '<div class="tw-lbl">Esperando al otro transportista · <strong>auto revisión en 45 segundos</strong></div>';
+            // Sin botón de re-comprobar: la disponibilidad se comprueba SOLA
+            // al terminar la barra de espera.
+            mostrarPantalla('takenScreen');
+            // Al agotarse la reserva del otro → auto-comprobación.
+            animarBarra(espera, 'tw-bar', 'tw-pct', 'tw-count', function () {
+                var u = location.href.replace(/([?&])estado=[^&]*&?/, '$1').replace(/[?&]$/, '');
+                if (u !== location.href) location.href = u; else location.reload();
+            });
+            return;
+        }
+        document.getElementById('tk-sub').textContent = 'La aceptó otro transportista antes que tú.';
+        var cif = q('tcif', 'B58830217');
+        var tel = q('ttel', '+34 685 441 187');
+        // Minutos transcurridos desde la aceptación (demo: 1592 = 1 día 2 h 32 min).
+        var mins = parseInt(q('tmin', '1592'), 10); if (isNaN(mins) || mins < 0) mins = 1592;
+        var d = new Date(); d.setMinutes(d.getMinutes() - mins);
+        var dd = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+        var abs = q('tfecha', '') || (dd[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear() +
+            ' a las ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2));
+        document.getElementById('tk-fecha').innerHTML = escH(abs) + '<span class="tk-rel">(' + escH(haceTexto(mins)) + ')</span>';
+        document.getElementById('tk-cif').textContent = maskCifFront(cif);
+        document.getElementById('tk-tel').textContent = maskTelFront(tel);
+        mostrarPantalla('takenScreen');
+    }
+    // Animación de "comprobando" con barra de progreso (0→100 %) y contador de
+    // segundos (5,4,3,2,1,0), luego resuelve. dur en segundos (cd por URL).
+    // Barra de progreso genérica (0→100 % + contador de segundos): la usan la
+    // comprobación de disponibilidad y el análisis de la contraoferta.
+    function animarBarra(dur, barId, pctId, cdId, done) {
+        var bar = document.getElementById(barId), pct = document.getElementById(pctId), cd = document.getElementById(cdId);
+        var t0 = new Date().getTime();
+        var iv = setInterval(function () {
+            var el = (new Date().getTime() - t0) / 1000;
+            var p = Math.min(100, Math.round(el / dur * 100));
+            if (bar) bar.style.width = p + '%';
+            if (pct) pct.textContent = p + '%';
+            if (cd) cd.textContent = Math.max(0, Math.ceil(dur - el));
+            if (el >= dur) { clearInterval(iv); if (bar) bar.style.width = '100%'; if (pct) pct.textContent = '100%'; if (cd) cd.textContent = '0'; done(); }
+        }, 80);
+    }
+    function comprobarDisponibilidad(dur, done) {
+        animarBarra(dur, 'chk-bar', 'chk-pct', 'chk-count', done);
+    }
+    (function initDisponibilidad() {
+        document.getElementById('chk-ref').textContent = q('envio', '#GX684870 (demo)');
+        mostrarPantalla('checkScreen');
+        var dur = parseInt(q('cd', '3'), 10); if (isNaN(dur) || dur < 1) dur = 3;
+        document.getElementById('chk-count').textContent = dur;
+        // Consulta al backend (mock). estado=tomada fuerza "no disponible".
+        comprobarDisponibilidad(dur, function () {
+            var est = q('estado', 'libre');
+            // FALLO de servidor / mantenimiento: la consulta no responde
+            // (en producción: timeout o error del backend) → pantalla de
+            // mantenimiento con contacto. Mock: estado=mantenimiento.
+            if (est === 'mantenimiento' || est === 'error') { mostrarPantalla('errorScreen'); return; }
+            if (est === 'tomada') { mostrarTomada(false); return; }
+            // Reservada por otro transportista dentro de su tiempo (aún sin aceptar).
+            if (est === 'tramite' || est === 'reservada') { mostrarTomada(true); return; }
+            mostrarPantalla('formScreen');
+            // DEMO: total 60 s repartido a medias (30 s tranquilo + 30 s último
+            // tramo). En producción será t=180 (3 min) y u=60 (último minuto).
+            // Ajustables por URL.
+            var seg = parseInt(q('t', '60'), 10); if (isNaN(seg) || seg < 2) seg = 60;
+            var uwin = parseInt(q('u', '30'), 10); if (isNaN(uwin) || uwin < 1) uwin = 30;
+            iniciarReserva(seg, uwin);
+        });
+    })();
+    // Selector de prefijo telefónico MUNDIAL, buscable y localizado, en el
+    // teléfono de la EMPRESA (alta) y del CONDUCTOR. Sustituye los <select>
+    // cortos por el desplegable con todos los prefijos (js/prefijos.js).
+    (function montarPrefijos() {
+        if (!window.Prefijos) return;
+        ['alta-pref', 'f-pref'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el && el.tagName === 'SELECT') Prefijos.montar(el);
+        });
+    })();
+</script>
+
+<!-- Google Translate (mismo motor que index/portal; comparte cookie googtrans) -->
+<script>
+    var gtLoaded = false, gtReady = false, gtInitTimeout = null;
+    function loadGoogleTranslate() {
+        if (gtLoaded) return; gtLoaded = true;
+        var s = document.createElement('script');
+        s.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+        s.onerror = function () { gtLoaded = false; };
+        document.body.appendChild(s);
+    }
+    function googleTranslateElementInit() {
+        new google.translate.TranslateElement({ pageLanguage: 'es', autoDisplay: false, includedLanguages: 'pt,en,fr,de,it,nl,pl,ro,uk,zh-CN,ar' }, 'google_translate_element');
+        var checkReady = setInterval(function () { if (document.querySelector('.goog-te-combo')) { gtReady = true; clearInterval(checkReady); } }, 200);
+        setTimeout(function () { clearInterval(checkReady); }, 10000);
+    }
+    var langMap = { 'pt': { flag: '🇵🇹', code: 'PT' }, 'en': { flag: '🇬🇧', code: 'EN' }, 'fr': { flag: '🇫🇷', code: 'FR' }, 'de': { flag: '🇩🇪', code: 'DE' }, 'it': { flag: '🇮🇹', code: 'IT' }, 'nl': { flag: '🇳🇱', code: 'NL' }, 'pl': { flag: '🇵🇱', code: 'PL' }, 'ro': { flag: '🇷🇴', code: 'RO' }, 'uk': { flag: '🇺🇦', code: 'UK' }, 'zh-CN': { flag: '🇨🇳', code: 'ZH' }, 'ar': { flag: '🇸🇦', code: 'AR' } };
+    document.addEventListener('DOMContentLoaded', function () {
+        if (location.search.indexOf('lang=es') > -1) {
+            var host = location.hostname, parts = host.split('.'), domains = ['', host, '.' + host];
+            if (parts.length > 2) { var bare = parts.slice(1).join('.'); domains.push(bare, '.' + bare); }
+            domains.forEach(function (d) { var c = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'; if (d) c += '; domain=' + d; document.cookie = c; });
+            if (history.replaceState) history.replaceState(null, '', location.pathname + location.search.replace(/[?&]lang=es[^&]*/, '').replace(/^&/, '?'));
+            return;
+        }
+        var match = document.cookie.match(/googtrans=\/es\/([\w-]+)/);
+        if (match && match[1] && langMap[match[1]]) {
+            var lang = match[1], info = langMap[lang], langBtn = document.getElementById('langBtn');
+            if (langBtn) langBtn.innerHTML = '<span class="flag">' + info.flag + '</span> ' + info.code + ' <span class="arrow">▼</span>';
+            setTimeout(loadGoogleTranslate, 300);
+            var wd = 0, watchdog = setInterval(function () { wd++; var ok = document.documentElement.classList.contains('translated-ltr') || document.documentElement.classList.contains('translated-rtl'); if (ok || wd > 20) { clearInterval(watchdog); return; } doTranslate(lang); }, 600);
+            return;
+        }
+        setTimeout(loadGoogleTranslate, 800);
+    });
+    function toggleLangDropdown() { document.getElementById('langDropdown').classList.toggle('open'); document.getElementById('langBtn').classList.toggle('open'); }
+    document.addEventListener('click', function (e) { if (!e.target.closest('.lang-selector')) { var dd = document.getElementById('langDropdown'), btn = document.getElementById('langBtn'); if (dd) dd.classList.remove('open'); if (btn) btn.classList.remove('open'); } });
+    function doTranslate(lang) { var sel = document.querySelector('.goog-te-combo'); if (sel) { sel.value = lang; sel.dispatchEvent(new Event('change')); return true; } return false; }
+    function changeLang(lang, flag, code) {
+        var langBtn = document.getElementById('langBtn');
+        if (langBtn) langBtn.innerHTML = '<span class="flag">' + ((langMap[lang] && langMap[lang].flag) || flag) + '</span> ' + code + ' <span class="arrow">▼</span>';
+        document.querySelectorAll('.lang-option').forEach(function (o) { o.classList.remove('active'); });
+        if (typeof event !== 'undefined' && event && event.target) { var opt = event.target.closest('.lang-option'); if (opt) opt.classList.add('active'); }
+        var dd = document.getElementById('langDropdown'); if (dd) dd.classList.remove('open'); if (langBtn) langBtn.classList.remove('open');
+        if (lang === 'es') {
+            var host = location.hostname, parts = host.split('.'), domains = ['', host, '.' + host];
+            if (parts.length > 2) { var bare = parts.slice(1).join('.'); domains.push(bare, '.' + bare); }
+            domains.forEach(function (d) { var c = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'; if (d) c += '; domain=' + d; document.cookie = c; });
+            document.cookie = 'googtrans=/es/es; path=/';
+            try { var sel = document.querySelector('.goog-te-combo'); if (sel) { sel.value = 'es'; sel.dispatchEvent(new Event('change')); } } catch (e) { }
+            setTimeout(function () { domains.forEach(function (d) { var c = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'; if (d) c += '; domain=' + d; document.cookie = c; }); window.location.href = location.pathname + '?lang=es&t=' + Date.now(); }, 100);
+            return;
+        }
+        var cookieVal = '/es/' + lang;
+        document.cookie = 'googtrans=' + cookieVal + '; path=/';
+        document.cookie = 'googtrans=' + cookieVal + '; path=/; domain=' + location.hostname;
+        document.cookie = 'googtrans=' + cookieVal + '; path=/; domain=.' + location.hostname;
+        loadGoogleTranslate();
+        if (gtReady && doTranslate(lang)) return;
+        var attempts = 0, maxAttempts = 16;
+        if (gtInitTimeout) clearInterval(gtInitTimeout);
+        gtInitTimeout = setInterval(function () { attempts++; if (doTranslate(lang)) { clearInterval(gtInitTimeout); gtInitTimeout = null; } else if (attempts >= maxAttempts) { clearInterval(gtInitTimeout); gtInitTimeout = null; location.reload(); } }, 250);
+    }
+</script>
+</body>
+</html>
