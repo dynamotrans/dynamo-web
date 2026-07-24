@@ -3643,9 +3643,9 @@
            abajo. En 1 columna (móvil) la .form-2col es block y la botonera, al
            ser el último hijo, queda al fondo del todo (tras el precio). */
         @media (min-width: 1200px) {
-            /* Pasos 3 y 4: columnas 60% (izquierda) / 40% (derecha). */
+            /* Pasos 3 y 4: columnas al 50% (anchos iguales). */
             #sec-nueva-carga.wiz-v2 .ptar-card[data-ptar-mode] .form-2col,
-            #sec-nueva-carga .ptar-confirm-card .form-2col { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+            #sec-nueva-carga .ptar-confirm-card .form-2col { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
             #sec-nueva-carga.wiz-v2 .ptar-card[data-ptar-mode] .form-2col {
                 grid-template-rows: auto 1fr;
                 grid-template-areas: "main side" "nav side";
