@@ -20245,13 +20245,20 @@
                     // Precio ACTUAL (la fecha elegida, con su suplemento de fecha
                     // fija) para calcular cuánto se AHORRA en cada alternativa.
                     var refActual = subAntesFija + preavisoExtra;
+                    // Etiqueta de la fecha elegida para el encabezado: "Vie (24/07/26)".
+                    var fFijaLbl = '';
+                    if (diaSel && /^\d{4}-\d{2}-\d{2}$/.test(diaSel.value)) {
+                        var _pf = diaSel.value.split('-');
+                        var _cd = fechaConDia(_pf[2] + '/' + _pf[1] + '/' + _pf[0]).split(' ');
+                        fFijaLbl = ' ' + _cd[0] + ' (' + _cd.slice(1).join(' ') + ')';
+                    }
                     var optVentana = etaOpt('eta-opt-rec', icoVent, 'Recogida de 1 a 3 días', 'Recomendada',
                         'Lo más barato y seguro: el 80% de las veces cargamos en los 2 primeros días.', eur2(subAntesFija), '__ptarUsarVentana', refActual - subAntesFija);
                     // El aviso y las tarjetas de alternativas van DESPUÉS de la
                     // caja de precio (orden pedido por el usuario 2026-07-22).
                     if (esUrgente) {
                         postHtml = '<div class="ptar-eta-fija" style="margin-top:0.8rem;">' +
-                            '<div class="eta-fija-head">Has seleccionado <strong>FECHA FIJA URGENTE</strong>, si ese día no hay vehículo, habría que reprogramar a otra fecha.<br><strong>¿No te corre prisa?</strong> Puedes cambiar a:</div>' +
+                            '<div class="eta-fija-head">Has seleccionado <strong>FECHA FIJA URGENTE' + fFijaLbl + '</strong>, si ese día no hay vehículo, habría que reprogramar a otra fecha.<br><strong>¿No te corre prisa?</strong> Puedes cambiar a:</div>' +
                             '<div class="eta-opts">' +
                                 etaOpt('', icoFija, 'Fecha fija · día siguiente disponible' + sigTxt, '',
                                     'Un día concreto, algo más económico que cargar hoy.', eur2(totalFijaPost), '__ptarUsarFijaPosterior', refActual - totalFijaPost) +
@@ -20259,7 +20266,7 @@
                             '</div></div>';
                     } else {
                         postHtml = '<div class="ptar-eta-fija" style="margin-top:0.8rem;">' +
-                            '<div class="eta-fija-head">Has seleccionado <strong>FECHA FIJA</strong>, si ese día no hay vehículo, habría que reprogramar a otra fecha.<br><strong>¿No te corre prisa?</strong> Puedes cambiar a:</div>' +
+                            '<div class="eta-fija-head">Has seleccionado <strong>FECHA FIJA' + fFijaLbl + '</strong>, si ese día no hay vehículo, habría que reprogramar a otra fecha.<br><strong>¿No te corre prisa?</strong> Puedes cambiar a:</div>' +
                             '<div class="eta-opts">' + optVentana + '</div></div>';
                     }
                 }
