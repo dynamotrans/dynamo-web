@@ -4100,13 +4100,13 @@
            desplegables de tipo de sitio tampoco salen (se configuran en el
            propio sitio). */
         #sec-nueva-carga[data-entry-mode="manual"] .ptar-route-row .ptar-select-sm { display: none; }
-        /* Chip del operador cuando es DYNAMO (por defecto): azul en negativo. */
-        #opCombo.op-dynamo { background: var(--purple); border-color: var(--purple); }
-        #opCombo.op-dynamo input { background: transparent; color: #fff; font-weight: 800; }
-        #opCombo.op-dynamo svg { color: #fff; }
-        /* La × sobre el chip azul: círculo blanco translúcido + aspa blanca
-           (antes quedaba gris sobre azul y no se veía). */
-        #opCombo.op-dynamo .ptar-clear { color: #fff; background: rgba(255,255,255,0.28); border-radius: 50%; }
+        /* Chip del operador cuando es DYNAMO (por defecto): CLARO (lavanda
+           suave), igual que las cajas de origen/destino elegidas — sin el
+           bloque morado sólido, que "cargaba" mucho el paso 1. */
+        #opCombo.op-dynamo { background: rgba(51,0,204,0.05); border-color: rgba(51,0,204,0.35); }
+        #opCombo.op-dynamo input { background: transparent; color: var(--purple); font-weight: 700; }
+        #opCombo.op-dynamo svg { color: var(--purple); }
+        #opCombo.op-dynamo .ptar-clear { color: var(--purple); background: rgba(51,0,204,0.12); border-radius: 50%; }
 
         @media (max-width: 768px) {
             .ptar-card { padding: 0.9rem 0.9rem 1rem; }
