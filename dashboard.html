@@ -3600,8 +3600,10 @@
         /* Tramo de línea ya recorrido (pasos alcanzados) en verde. */
         .wiz-bar .wiz-step.act::before, .wiz-bar .wiz-step.done::before { background: var(--green); }
         .wiz-nav { display: none; }
-        .wiz-v2 .wiz-nav { display: flex; gap: 0.6rem; margin-top: 1.1rem; }
-        .wiz-nav .btn-primary, .wiz-nav .btn-ghost { flex: 1; justify-content: center; padding: 0.9rem; font-size: var(--fs-l); border-radius: 10px; }
+        /* Botonera compacta y SIEMPRE pegada a la izquierda (una o dos columnas):
+           mismo alto, pero ancho al contenido (no estiran a todo el ancho). */
+        .wiz-v2 .wiz-nav { display: flex; gap: 0.6rem; margin-top: 1.1rem; justify-content: flex-start; flex-wrap: wrap; }
+        .wiz-nav .btn-primary, .wiz-nav .btn-ghost { flex: 0 0 auto; justify-content: center; padding: 0.9rem 1.6rem; font-size: var(--fs-l); border-radius: 10px; }
         .wiz-warn { display: none; margin-top: 0.6rem; padding: 0.6rem 0.75rem; background: #fde8e8; border: 1px solid #f5b5b5; border-radius: 9px; color: #b42318; font-size: var(--fs-m); font-weight: 700; }
         .wiz-warn.show { display: block; }
         /* Visibilidad por paso (solo con el asistente activo) */
@@ -3627,8 +3629,21 @@
         #sec-nueva-carga.wiz-v2 .ptar-actions-main { display: none !important; }
         .wiz-navwrap { display: none; }
         .wiz-v2 .wiz-navwrap { display: block; }
+        /* En 2 columnas (escritorio, paso 3): rejilla por ÁREAS. La botonera
+           (nav) va en la columna izquierda, fila 2, justo bajo los campos; la
+           columna del precio (side) abarca las dos filas y la fila 2 es 1fr, de
+           modo que su largo se "come" ese hueco y NO empuja los botones hacia
+           abajo. En 1 columna (móvil) la .form-2col es block y la botonera, al
+           ser el último hijo, queda al fondo del todo (tras el precio). */
         @media (min-width: 1200px) {
-            #sec-nueva-carga.wiz-v2 .form-2col > .wiz-navwrap { grid-column: 1 / -1; }
+            #sec-nueva-carga.wiz-v2 .ptar-card[data-ptar-mode] .form-2col {
+                grid-template-columns: 660px minmax(0, 1fr);
+                grid-template-rows: auto 1fr;
+                grid-template-areas: "main side" "nav side";
+            }
+            #sec-nueva-carga.wiz-v2 .ptar-card[data-ptar-mode] .form-2col > .form-2col-main { grid-area: main; }
+            #sec-nueva-carga.wiz-v2 .ptar-card[data-ptar-mode] .form-2col > .form-2col-side { grid-area: side; align-self: start; }
+            #sec-nueva-carga.wiz-v2 .ptar-card[data-ptar-mode] .form-2col > .wiz-navwrap { grid-area: nav; align-self: start; }
         }
         /* Sin hueco muerto: los contenedores de aviso vacíos (corte de fecha,
            avisos de fecha) no ocupan fila de la rejilla cuando su contenido está
@@ -22753,8 +22768,11 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
             '<button type="button" class="btn-primary" data-wiz-next>Siguiente →</button>' +
         '</div>' +
         '<div class="wiz-warn" data-wiz-warn>⚠ Elige el origen y el destino (de la lista) para continuar.</div>';
-    // La botonera va al FINAL de la tarjeta (después de la columna del precio),
-    // para que en TODOS los pasos quede siempre abajo del todo.
+    // La botonera es el ÚLTIMO hijo de .form-2col (tras la columna del precio).
+    // En 1 columna (móvil) → queda al fondo del todo. En 2 columnas (escritorio)
+    // la rejilla por áreas la coloca en la columna izquierda, fila 2 (bajo los
+    // campos), con la fila 2 en 1fr para que el largo de la columna del precio
+    // NO empuje los botones hacia abajo.
     (grid.parentNode.parentNode || grid.parentNode).appendChild(navWrap);
     // "← Atrás": paso 2 → paso 1, paso 3 → paso 2 (en el paso 1 se oculta).
     navWrap.querySelector('[data-wiz-prev]').addEventListener('click', function () {
