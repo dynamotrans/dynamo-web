@@ -22730,7 +22730,7 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
     // para que siga visible cuando se muestra la tarjeta de revisión (paso 4).
     var bar = document.createElement('div');
     bar.className = 'wiz-bar';
-    bar.innerHTML = ['Ruta', 'Mercancía', 'Fecha y precio', 'Revisión'].map(function (lbl, i) {
+    bar.innerHTML = ['Ruta', 'Mercancía', 'Fecha y precio', 'Confirmar'].map(function (lbl, i) {
         return '<div class="wiz-step" data-wiz-step="' + (i + 1) + '"><span class="wiz-n">' + (i + 1) + '</span><span>' + lbl + '</span></div>';
     }).join('');
     card.parentNode.insertBefore(bar, card);
