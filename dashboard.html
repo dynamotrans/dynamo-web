@@ -83,6 +83,15 @@
             overscroll-behavior-x: none;
         }
 
+        /* ===== GATING POR ROL (mockup) =====
+           El rol se fija con ?role=admin|empleado|cliente|transportista (o el
+           selector del menú de usuario) y queda en body[data-role]. Todo lo
+           marcado data-roles="admin" (secciones y catálogos internos, "Precios
+           internos" del tarifador, Dashboard admin, Modo mantenimiento…) se
+           OCULTA a cualquier rol que no sea admin. En producción el rol y la
+           seguridad los impone el backend (auth + row-level security). */
+        body:not([data-role="admin"]) [data-roles="admin"] { display: none !important; }
+
         /* =========================================
            SIDEBAR
         ========================================= */
