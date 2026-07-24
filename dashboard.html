@@ -12685,10 +12685,12 @@
                         { label: 'Hora estimada de llegada', value: pend(src.horaCargaEst), html: true },
                         { label: 'ETA entrega', value: pend(src.etaEntrega), html: true }
                     ];
-                    // SOLO ADMIN + envíos Dynamo (los manuales no tienen oferta):
-                    // repercusión de la oferta = conexiones (histórico) a la URL
-                    // de aceptación + transportistas distintos que la abrieron.
-                    if (!src.manual && (window.getRole ? window.getRole() : 'admin') === 'admin') {
+                    // SOLO ADMIN: repercusión de la oferta = conexiones (histórico)
+                    // a la URL de aceptación + transportistas distintos que la
+                    // abrieron. Se muestra en TODOS los envíos (mock determinista
+                    // por nº de envío, para verlo siempre). En manuales no hay
+                    // oferta Dynamo real → el backend dejará 0 o lo ocultará.
+                    if ((window.getRole ? window.getRole() : 'admin') === 'admin') {
                         var __ov = ofertaVistasMock(d.ref);
                         __trItems.push({ label: 'Conexiones a la oferta · histórico (solo admin)', value: '<strong style="color:var(--purple);">' + __ov.total + '</strong> aperturas de la URL de aceptación · <strong>' + __ov.distintos + '</strong> transportistas distintos', html: true, span: true });
                     }
