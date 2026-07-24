@@ -3103,6 +3103,11 @@
             font-size: var(--fs-m); font-weight: 600;
             color: var(--gray-500); letter-spacing: 0;
         }
+        /* Título FINO y sutil sobre cada desplegable de mercancía. */
+        .ptar-mlabel {
+            display: block; font-size: var(--fs-s); font-weight: 500;
+            color: var(--gray-500); letter-spacing: 0.01em; margin: 0 0 0.2rem 0.15rem;
+        }
         .ptar-input-wrap {
             position: relative;
             display: flex; align-items: center; gap: 0.55rem;
@@ -5336,6 +5341,7 @@
                      quede más amplio y legible; la mercancía es ya el ÚNICO
                      contenido del paso 2 (la fecha pasó al paso 3, con el precio). -->
                 <div class="ptar-field-full">
+                    <label class="ptar-mlabel" for="ptar-merca-carga">Tipo de mercancía</label>
                     <select id="ptar-merca-carga" data-ptar-merca class="ptar-select" aria-label="Tipo de mercancía">
                         <optgroup label="Tipo de mercancía">
                             <option>Paletizada (mercancía general)</option>
@@ -5344,6 +5350,7 @@
                     </select>
                 </div>
                 <div class="ptar-field-full">
+                    <label class="ptar-mlabel" for="ptar-cargatipo-carga">Tipo de carga</label>
                     <select id="ptar-cargatipo-carga" data-ptar-cargatipo class="ptar-select" aria-label="Tipo de carga">
                         <optgroup label="Tipo de carga">
                             <option>Lateral</option>
@@ -5358,9 +5365,11 @@
                     <input type="hidden" data-ptar-camion value="tauliner">
                 </div>
                 <div class="ptar-field-full">
+                    <label class="ptar-mlabel" for="ptar-ml-carga">Metros lineales</label>
                     <select id="ptar-ml-carga" data-ptar-ml class="ptar-select" aria-label="Metros lineales"></select>
                 </div>
                 <div class="ptar-field-full">
+                    <label class="ptar-mlabel" for="ptar-peso-carga">Peso</label>
                     <select id="ptar-peso-carga" data-ptar-peso class="ptar-select" aria-label="Peso (toneladas)"></select>
                 </div>
 
@@ -14355,6 +14364,13 @@
                 var fb = sec.querySelector('[data-ptar-final-confirm]');
                 if (fb && fb.offsetParent) return { btn: fb, txt: 'Desliza para crear el envío' };
             }
+            // Asistente por pasos: en el paso 3 (Fecha y precio) la acción es
+            // "Siguiente →" (data-wiz-next), que abre la revisión. Misma pista
+            // "Desliza para crear el envío".
+            if (sec.classList.contains('wiz-s3')) {
+                var wn = sec.querySelector('[data-wiz-next]');
+                if (wn && wn.offsetParent) return { btn: wn, txt: 'Desliza para crear el envío' };
+            }
             var sb = sec.querySelector('[data-ptar-submit]');
             if (sb && sb.offsetParent) return { btn: sb, txt: 'Desliza para revisar el envío' };
             return null;
@@ -22351,7 +22367,7 @@
                     sub: '',
                     body: legal.bodyNoTitle,
                     footer:
-                        '<button class="btn-ghost" onclick="closeDashModal()" style="flex:1;">Cancelar</button>' +
+                        '<button class="btn-ghost" onclick="closeDashModal(); var b=document.querySelector(\'#sec-nueva-carga [data-ptar-confirm] [data-ptar-back]\'); if(b) b.click();" style="flex:1;">Editar datos</button>' +
                         '<button class="btn-primary" data-ptar-modal-confirm style="flex:1;">' + (legal.esPrepago ? 'Confirmar (pago pendiente)' : 'Confirmar carga') + '</button>'
                 });
                 setTimeout(function () {
