@@ -91,7 +91,12 @@
             background: #ffffff; color: var(--navy);
             border-right: 1px solid var(--gray-200);
             display: flex; flex-direction: column;
-            position: sticky; top: 0; height: 100vh;
+            /* FIJO al viewport (no sticky): así el pie (usuario + cerrar sesión)
+               queda SIEMPRE pegado al borde inferior y no se mueve al hacer
+               scroll, sin depender de que un ancestro con overflow rompa el
+               sticky (bug en Safari). En escritorio, .main lleva margin-left
+               para dejarle sitio; en móvil la barra se oculta con left:-266px. */
+            position: fixed; top: 0; left: 0; height: 100vh;
             /* Altura del viewport REAL (dvh): en iOS 100vh incluye la zona
                tapada por las barras de Safari y el pie (usuario + cerrar
                sesión) quedaba cortado por abajo. */
@@ -4140,6 +4145,9 @@
         @media (min-width: 769px) {
             .sidebar-brand { height: 72px; padding-top: 0; padding-bottom: 0; box-sizing: border-box; }
             .topbar { height: 72px; box-sizing: border-box; }
+            /* El sidebar es position:fixed → deja su hueco con un margen a la
+               izquierda del contenido (mismo ancho que la barra: 266px). */
+            .main { margin-left: 266px; }
         }
         @media (max-width: 768px) {
             .sidebar {
@@ -4327,10 +4335,6 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
             Sitios
         </button>
-        <button class="sidebar-link" data-section="penalizaciones">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-            Penalizaciones
-        </button>
         <!-- CUBICADOR: herramienta independiente (pega el texto de la mercancía
              y calcula bultos, volumen, peso y metros lineales de camión).
              OCULTO de momento — FASE 2 (decisión del usuario 2026-07-23): el
@@ -4363,6 +4367,12 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                 <span class="sl-txt">Incidencias</span>
                 <span class="badge" data-sidebar-badge="incidencias" title="Incidencias abiertas" hidden>0</span>
+            </button>
+            <!-- Penalizaciones: movida aquí dentro de Otras gestiones. -->
+            <button class="sidebar-link" data-section="penalizaciones">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                <span class="sl-txt">Penalizaciones</span>
+                <span class="badge" data-sidebar-badge="penalizaciones" title="Penalizaciones pendientes de confirmar" hidden>0</span>
             </button>
             <button class="sidebar-link" data-section="operadores">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
@@ -6240,7 +6250,7 @@
         });
         // Si la sección vive dentro de un grupo "Otras gestiones" (cliente o
         // admin), desplegar ese grupo para que su enlace activo se vea.
-        if (['facturas', 'albaranes', 'incidencias', 'operadores', 'almacenes', 'ahorros', 'recursos'].indexOf(id) > -1 && window.toggleSidebarOtras) {
+        if (['facturas', 'albaranes', 'incidencias', 'penalizaciones', 'operadores', 'almacenes', 'ahorros', 'recursos'].indexOf(id) > -1 && window.toggleSidebarOtras) {
             toggleSidebarOtras(true);
         }
         if (['almacenes-cat', 'clientes', 'transportistas', 'usuarios', 'altas'].indexOf(id) > -1 && window.toggleSidebarAdmin) {
@@ -9183,11 +9193,13 @@
         var nInc = (typeof INCIDENCIAS_DATA !== 'undefined') ? INCIDENCIAS_DATA.filter(function (x) { return x.estado !== 'resuelta' && x.estado !== 'cancelada'; }).length : 0;
         var nSinconf = hayA ? ALMACENES_DATA.filter(function (r) { return almEstadoKey(r) === 'sin-confirmar'; }).length : 0;
         var nAlmPago = hayA ? ALMACENES_DATA.filter(function (r) { return almEstadoKey(r) === 'pendiente-pago'; }).length : 0;
+        var nPen = (typeof contarPenalizacionesPendientes === 'function') ? contarPenalizacionesPendientes() : 0;
         setBadge('incidencias', nInc);
+        setBadge('penalizaciones', nPen);    // naranja: penalizaciones pendientes de confirmar
         setBadge('alm-sinconf', nSinconf);   // naranja: pendiente confirmar almacén
         setBadge('alm-pago', nAlmPago);      // rojo: pendiente de pago
         // Agregados del grupo "Otras gestiones" (visibles con el grupo cerrado)
-        setBadge('otras', nInc + nSinconf);
+        setBadge('otras', nInc + nSinconf + nPen);
         setBadge('otras-pago', nAlmPago);
         // El onboarding de cuenta nueva se re-evalúa con cada cambio de datos.
         if (window.renderOnboarding) renderOnboarding();
