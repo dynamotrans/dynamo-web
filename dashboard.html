@@ -12933,9 +12933,14 @@
             ((c.paradas && c.paradas.length) ? row('Paradas (' + c.paradas.length + ')', c.paradas.map(function (p) {
                 return escapeHtml((p.tipo === 'recogida' ? 'Recogida' : 'Entrega') + (p.dir ? ': ' + p.dir : ''));
             }).join('<br>')) : '') +
-            row('P. cliente <span style="font-weight:600;">· base sin IVA</span>', eur2(pc)) +
-            row('P. transportista <span style="font-weight:600;">· base sin IVA</span>', eur2(pt)) +
-            row('Margen <span style="font-weight:600;">· base sin IVA</span>', margenHtml(pc, pt));
+            // Precios (cliente/transportista/margen) SOLO admin: el cliente no
+            // ve estos importes internos en el contexto del envío (incidencias,
+            // penalizaciones…). El modal se regenera al abrir → reacciona al rol.
+            ((window.getRole ? window.getRole() : 'admin') === 'admin'
+                ? row('P. cliente <span style="font-weight:600;">· base sin IVA</span>', eur2(pc)) +
+                  row('P. transportista <span style="font-weight:600;">· base sin IVA</span>', eur2(pt)) +
+                  row('Margen <span style="font-weight:600;">· base sin IVA</span>', margenHtml(pc, pt))
+                : '');
     }
     window.envioContextHTML = envioContextHTML;
     // Crear (sin argumento) o EDITAR (con el __id de una incidencia, al pulsar
