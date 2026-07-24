@@ -12627,6 +12627,17 @@
     }
 
     /* ---- ACCIONES CARGAS ---- */
+    // MOCK determinista de las CONEXIONES (histórico) a la URL de aceptación de
+    // una carga (aceptar-carga.html?e=…): total de aperturas del enlace y nº de
+    // transportistas distintos que lo abrieron. Sirve para ver el ALCANCE de la
+    // oferta (la vieron 3 o 10 personas, antes o después de aceptar). En
+    // producción lo dará el backend (contador real de visitas por URL/token).
+    function ofertaVistasMock(ref) {
+        var hh = (typeof hashStr === 'function') ? hashStr(String(ref)) : 7;
+        var total = 3 + (hh % 22);            // 3–24 aperturas
+        var distintos = Math.max(1, Math.min(total, Math.round(total * (0.45 + (hh % 4) / 10))));
+        return { total: total, distintos: distintos };
+    }
     function cargaVerDetalle(row) {
         var d = cargaRowData(row);
         // Datos detallados: vienen de CARGAS_DATA por ref (el DOM solo
@@ -12667,13 +12678,21 @@
                     var asigHtml = a
                         ? '<span class="asig-line asig-' + a.key + '" style="margin-top:0;"' + (asigEl && a.key === 'confirmado' ? ' title="Asignado el ' + escapeHtml(asigEl) + '"' : '') + '><span class="asig-dot"></span>' + escapeHtml(a.label) + '</span>'
                         : pend(null);
-                    var h = '<div class="det-block">' + infoGrid([
+                    var __trItems = [
                         { label: 'Estado asignación transportista', value: asigHtml, html: true, span: true },
                         { label: 'Transportista asignado el', value: pend(asigEl), html: true },
                         { label: 'Fecha asignada de carga', value: pend(src.fechaAsignada), html: true },
                         { label: 'Hora estimada de llegada', value: pend(src.horaCargaEst), html: true },
                         { label: 'ETA entrega', value: pend(src.etaEntrega), html: true }
-                    ]);
+                    ];
+                    // SOLO ADMIN + envíos Dynamo (los manuales no tienen oferta):
+                    // repercusión de la oferta = conexiones (histórico) a la URL
+                    // de aceptación + transportistas distintos que la abrieron.
+                    if (!src.manual && (window.getRole ? window.getRole() : 'admin') === 'admin') {
+                        var __ov = ofertaVistasMock(d.ref);
+                        __trItems.push({ label: 'Conexiones a la oferta · histórico (solo admin)', value: '<strong style="color:var(--purple);">' + __ov.total + '</strong> aperturas de la URL de aceptación · <strong>' + __ov.distintos + '</strong> transportistas distintos', html: true, span: true });
+                    }
+                    var h = '<div class="det-block">' + infoGrid(__trItems);
                     // Tarjeta COMPACTA del transportista y vehículo: todo junto en
                     // una caja (transportista arriba; camión, matrícula, conductor
                     // y teléfono en línea), en vez de 6 celdas sueltas del grid.
