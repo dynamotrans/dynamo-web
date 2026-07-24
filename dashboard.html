@@ -93,6 +93,17 @@
         body:not([data-role="admin"]) [data-roles="admin"] { display: none !important; }
         /* La columna "Estado" de Incidencias la gestiona Dynamo: oculta al cliente. */
         body:not([data-role="admin"]) .inc-col-estado { display: none !important; }
+        /* Envíos: columnas internas ocultas al cliente (Cliente·CIF, P.
+           transportista, Margen). En la columna "P. cliente" el cliente solo ve
+           el precio REAL fijado (del tarifador o manual por admin): se ocultan
+           las líneas de referencia "último precio" y "tarifador", y la celda deja
+           de ser un editor. */
+        body:not([data-role="admin"]) .cliente-col,
+        body:not([data-role="admin"]) .col-ptransp,
+        body:not([data-role="admin"]) .col-margen { display: none !important; }
+        body:not([data-role="admin"]) .td-precio .ref-ult,
+        body:not([data-role="admin"]) .td-precio .ref-tar { display: none !important; }
+        body:not([data-role="admin"]) .td-precio { cursor: default; }
 
         /* =========================================
            SIDEBAR
@@ -5067,7 +5078,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Envío</th><th>Recogida</th><th>Entrega</th><th>Cliente · CIF</th><th>Mercancía</th><th>Vehículo</th><th>P. cliente<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>P. transportista<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>Margen<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>Creado por</th>
+                    <th>Envío</th><th>Recogida</th><th>Entrega</th><th class="cliente-col">Cliente · CIF</th><th>Mercancía</th><th>Vehículo</th><th>P. cliente<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th class="col-ptransp">P. transportista<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th class="col-margen">Margen<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">base sin IVA</span></th><th>Creado por</th>
                 </tr></thead>
                 <tbody id="tbodyCargas"></tbody>
             </table>
@@ -10621,6 +10632,8 @@
     // manualmente (no se recalculará al modificar el envío si no cambia nada
     // que afecte al precio).
     function openPrecioEditor(ref, lado) {
+        // Editor de precios: SOLO admin. El cliente ve el precio pero no lo edita.
+        if ((window.getRole ? window.getRole() : 'admin') !== 'admin') return;
         var c = findCargaDataByRef(ref); if (!c) return;
         cargaPrecios(c);
         var esCli = lado === 'cliente';
@@ -17825,7 +17838,7 @@
                             var paCell = (c.precioAcordado != null)
                                 ? '<span style="font-weight:800;color:var(--navy);">' + eur2(c.precioAcordado) + '</span><div class="meta">acordado</div>'
                                 : '—';
-                            return '<td class="amount">' + paCell + '</td><td class="amount">—</td><td class="amount">—</td>';
+                            return '<td class="amount">' + paCell + '</td><td class="amount col-ptransp">—</td><td class="amount col-margen">—</td>';
                         }
                         cargaPrecios(c);
                         var ult = cargaUltPrecios(c);
@@ -17849,8 +17862,8 @@
                                 (t ? refLine('ref-tar', t, 'Según tarifador: lo que daría hoy el tarifador para este envío · base sin IVA', false) : '');
                         }
                         return '<td class="amount td-precio" onclick="event.stopPropagation();openPrecioEditor(\'' + esc(c.ref) + '\',\'cliente\')"><strong>' + (pc ? eur2(pc) : '—') + '</strong>' + man + refLines(ult.pcU, ult.pcUFecha, tar.pcT, 'cliente') + '</td>' +
-                            '<td class="amount td-precio" onclick="event.stopPropagation();openPrecioEditor(\'' + esc(c.ref) + '\',\'transportista\')"><strong>' + (pt ? eur2(pt) : '—') + '</strong>' + man + refLines(ult.ptU, ult.ptUFecha, tar.ptT, 'transportista') + '</td>' +
-                            '<td class="amount">' + margenHtml(pc, pt) + '</td>';
+                            '<td class="amount td-precio col-ptransp" onclick="event.stopPropagation();openPrecioEditor(\'' + esc(c.ref) + '\',\'transportista\')"><strong>' + (pt ? eur2(pt) : '—') + '</strong>' + man + refLines(ult.ptU, ult.ptUFecha, tar.ptT, 'transportista') + '</td>' +
+                            '<td class="amount col-margen">' + margenHtml(pc, pt) + '</td>';
                     })() +
                     '<td class="creadopor" style="white-space:nowrap;font-size: var(--fs-s);color:var(--gray-700);">' +
                         '<strong>' + esc(c.creadoPor || ENVIO_USUARIOS[0]) + '</strong>' +
