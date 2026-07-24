@@ -2056,6 +2056,18 @@
                 if (drop) drop.classList.toggle('err', bad);
                 if (bad) ok = false;
             });
+            // CIF/NIF nuevo (tecleado a mano, no elegido del desplegable): debe
+            // tener entre 9 y 11 caracteres alfanuméricos. Cubre ES/PT/FR/NL (9),
+            // PL (10) y DE/IT (11). Si se elige del desplegable, ya es válido y
+            // este alta ni se abre.
+            var cifEl = document.getElementById('alta-cif');
+            if (cifEl && cifEl.value.trim()) {
+                var cifLen = cifEl.value.replace(/[^A-Za-z0-9]/g, '').length;
+                if (cifLen < 9 || cifLen > 11) {
+                    cifEl.classList.add('err'); ok = false;
+                    if (warn) warn.textContent = '⚠ El CIF/NIF debe tener entre 9 y 11 caracteres (déjalo tal cual figura en tu documentación).';
+                }
+            }
         }
         warn.classList.toggle('show', !ok);
         if (!ok) { document.querySelector('.err').scrollIntoView({ block: 'center', behavior: 'smooth' }); return false; }
