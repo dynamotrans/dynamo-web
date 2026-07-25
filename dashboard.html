@@ -2457,6 +2457,32 @@
            aparece al elegir esa opción. */
         .filters .filter-mes { flex: 0 0 auto; min-width: 96px; max-width: 150px; }
         .filters .filter-estado { flex: 0 1 auto; min-width: 110px; max-width: 190px; }
+        /* --- Filtros PLEGABLES en móvil (buscador + botón "Filtros") ---
+           En escritorio se ven todos los controles como siempre y el botón
+           toggle queda oculto. En móvil (≤768px) los desplegables se ocultan
+           tras el botón "Filtros" para no ocupar tanto espacio. El botón se
+           inyecta por JS solo en las barras que tienen algo más que el buscador. */
+        .filters-toggle {
+            display: none; flex: 0 0 auto; height: 44px; padding: 0 0.85rem;
+            border-radius: 10px; border: 1.5px solid var(--gray-200);
+            background: #fff; color: var(--navy); font-family: inherit;
+            font-size: var(--fs-m); font-weight: 700; cursor: pointer;
+            align-items: center; gap: 0.4rem; transition: border-color .15s, color .15s;
+        }
+        .filters-toggle:hover { border-color: var(--purple); color: var(--purple); }
+        .filters-toggle .filters-toggle-count {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+            background: var(--purple); color: #fff; font-size: var(--fs-s); font-weight: 700;
+        }
+        .filters-toggle .filters-toggle-count[hidden] { display: none; }
+        .filters-toggle .filters-toggle-chev { transition: transform .18s; }
+        .filters-open .filters-toggle .filters-toggle-chev { transform: rotate(180deg); }
+        @media (max-width: 768px) {
+            .filters-collapsible .filters-toggle { display: inline-flex; }
+            .filters-collapsible input[type="search"] { flex: 1 1 auto !important; min-width: 120px; }
+            .filters-collapsible:not(.filters-open) > *:not(input[type="search"]):not(.filters-toggle) { display: none !important; }
+        }
         /* Selector de rango de fechas (tipo Holded) para Facturas. */
         .fact-range { position: relative; flex: 0 0 auto; }
         .fact-range-btn {
@@ -9279,6 +9305,59 @@
     window.almSearchInput = function (v) { ALM_LIST.q = v; renderAlmacenesTable(); };
     // Badges del menú lateral: Envíos = sin transportista asignado ·
     // Incidencias = abiertas · Almacenamientos = programados. Se ocultan si 0.
+    // ===== Filtros plegables en móvil =====
+    // En cada barra .filters que tenga controles ADEMÁS del buscador, se
+    // inyecta un botón "Filtros" (a la derecha del buscador) que muestra/oculta
+    // los desplegables. En escritorio el botón queda oculto por CSS y se ven
+    // todos los filtros como siempre. Solo afecta al layout móvil.
+    (function setupCollapsibleFilters() {
+        function initBar(bar) {
+            if (bar._filtCollapsInit) return;
+            var search = bar.querySelector('input[type="search"]');
+            if (!search) return;                       // sin buscador → no aplicamos
+            var others = [];
+            for (var i = 0; i < bar.children.length; i++) {
+                if (bar.children[i] !== search) others.push(bar.children[i]);
+            }
+            if (!others.length) return;                // solo buscador → nada que plegar
+            bar.classList.add('filters-collapsible');
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'filters-toggle';
+            btn.setAttribute('aria-expanded', 'false');
+            btn.setAttribute('aria-label', 'Mostrar u ocultar filtros');
+            btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Filtros<span class="filters-toggle-count" hidden></span><svg class="filters-toggle-chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
+            if (search.nextSibling) bar.insertBefore(btn, search.nextSibling); else bar.appendChild(btn);
+            btn.addEventListener('click', function () {
+                var open = bar.classList.toggle('filters-open');
+                btn.setAttribute('aria-expanded', String(open));
+            });
+            // Badge con el nº de filtros ACTIVOS (desplegables con valor + el
+            // buscador con texto), para verlo aunque estén plegados. Se recalcula
+            // en cada cambio de la barra.
+            var badge = btn.querySelector('.filters-toggle-count');
+            function updateCount() {
+                var n = 0;
+                for (var j = 0; j < others.length; j++) {
+                    var c = others[j];
+                    if (c.tagName === 'SELECT' && c.value) n++;
+                }
+                if (search.value && search.value.trim()) n++;
+                if (n > 0) { badge.textContent = n; badge.hidden = false; } else { badge.hidden = true; }
+            }
+            bar.addEventListener('change', updateCount);
+            bar.addEventListener('input', updateCount);
+            updateCount();
+            bar._filtCollapsInit = true;
+        }
+        function initAll() {
+            var bars = document.querySelectorAll('.filters');
+            for (var i = 0; i < bars.length; i++) initBar(bars[i]);
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAll);
+        else initAll();
+    })();
+
     function updateSidebarBadges() {
         function setBadge(key, n) {
             var el = document.querySelector('[data-sidebar-badge="' + key + '"]');
