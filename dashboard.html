@@ -2018,6 +2018,12 @@
         .ptar-presu-box { margin-bottom: 0.75rem; }
         .ptar-presu-note { margin: 0 0 0.5rem; font-size: var(--fs-s); color: var(--gray-500); line-height: 1.45; }
         .ptar-presu-btn { display: inline-flex; align-items: center; gap: 0.4rem; font-size: var(--fs-s); padding: 0.4rem 0.7rem; }
+        .ptar-presu-share { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.55rem; }
+        .ptar-presu-act { display: inline-flex; align-items: center; gap: 0.4rem; font-size: var(--fs-s); font-weight: 600; padding: 0.45rem 0.75rem; border-radius: 9px; border: 1.5px solid var(--gray-200); background: #fff; color: var(--navy); cursor: pointer; transition: border-color .15s, background .15s; }
+        .ptar-presu-act:hover { border-color: var(--purple); background: rgba(51,0,204,0.04); }
+        .ptar-presu-act.ptar-presu-wa { color: #128c47; }
+        .ptar-presu-act.ptar-presu-wa:hover { border-color: #25D366; background: rgba(37,211,102,0.08); }
+        .ptar-presu-act.ptar-presu-mail:hover { border-color: var(--purple); }
         .ptar-discrecion { border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 0.7rem 0.8rem; background: var(--gray-50); margin-bottom: 0; }
         .ptar-discrecion .ptar-confirm-check { margin: 0; }
         .ptar-discrecion-aviso { margin-top: 0.6rem; padding: 0.7rem 0.8rem; border-radius: 8px; background: rgba(51,0,204,0.07); border: 1px solid rgba(51,0,204,0.28); color: var(--purple); font-size: var(--fs-m); line-height: 1.5; font-weight: 600; }
@@ -5619,11 +5625,25 @@
                      que solo está viendo tarifa y aún no va a crear el envío.
                      Abre un PDF en ventana nueva, con validez de 7 días. -->
                 <div class="ptar-presu-box">
-                    <p class="ptar-presu-note">¿Aún no vas a crear el envío y solo estás viendo la tarifa? Puedes generar un <strong>presupuesto/proforma en PDF</strong> (válido 7 días).</p>
-                    <button type="button" class="btn-ghost ptar-presu-btn" data-ptar-presu-pdf>
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-                        Ver presupuesto / proforma (PDF)
+                    <p class="ptar-presu-note">¿Aún no vas a crear el envío y solo estás viendo la tarifa? Comparte este precio con quien quieras. Es <strong>orientativo</strong>: no fija precio ni vincula; el importe definitivo se calcula al confirmar el envío.</p>
+                    <button type="button" class="btn-ghost ptar-presu-btn" data-ptar-presu-toggle aria-expanded="false">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                        Comparte este precio
                     </button>
+                    <div class="ptar-presu-share" data-ptar-presu-share hidden>
+                        <button type="button" class="ptar-presu-act" data-ptar-presu-pdf>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                            Ver / guardar PDF
+                        </button>
+                        <button type="button" class="ptar-presu-act ptar-presu-wa" data-ptar-presu-wa>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm0 1.67c2.2 0 4.27.86 5.82 2.41a8.2 8.2 0 0 1 2.42 5.83c0 4.54-3.7 8.24-8.25 8.24a8.2 8.2 0 0 1-4.2-1.15l-.3-.18-3.11.82.83-3.04-.2-.31a8.18 8.18 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24zm4.52 10.35c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.14.16-.29.18-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.43.13-.14.17-.25.25-.41.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.42-.14 0-.31-.02-.47-.02-.16 0-.43.06-.66.31-.22.24-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.16 1.75 2.67 4.25 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.17-.47-.29z"/></svg>
+                            WhatsApp
+                        </button>
+                        <button type="button" class="ptar-presu-act ptar-presu-mail" data-ptar-presu-mail>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+                            Email
+                        </button>
+                    </div>
                 </div>
                 <!-- Discreción comercial (opcional): el conductor no revela el
                      destino en la carga ni el origen en la entrega. -->
@@ -7040,9 +7060,6 @@
         var fecha = dd(now.getDate()) + '/' + dd(now.getMonth() + 1) + '/' + now.getFullYear();
         var seed = (typeof hashStr === 'function') ? hashStr((d.origCorto || '') + (d.destCorto || '') + base + (d.refCli || '')) : 1234;
         var pno = (d.presupuesto ? 'PRE-' : 'PRO-') + now.getFullYear() + '-' + (1000 + (seed % 9000));
-        // Presupuesto/proforma orientativo: validez 7 días naturales.
-        var _vHasta = new Date(now.getTime() + 7 * 86400000);
-        var vHasta = dd(_vHasta.getDate()) + '/' + dd(_vHasta.getMonth() + 1) + '/' + _vHasta.getFullYear();
         var refCli = (d.refCli && d.refCli.indexOf('NUEVO') === -1) ? d.refCli : null;
         var conceptoTransfer = refCli || d.conceptoTransferPlaceholder || 'Nº de envío (te lo enviamos por email)';
 
@@ -7058,7 +7075,7 @@
             text(mL, 52, 'Operador Logístico', 9.5, false, [0.85, 0.85, 1]);
         }
         textR(mR, 33, d.presupuesto ? 'PRESUPUESTO' : 'FACTURA PROFORMA', 14, true, [1, 1, 1]);
-        textR(mR, 50, d.presupuesto ? 'Presupuesto orientativo · válido 7 días' : 'Documento no contable · pago por adelantado', 8, false, [0.85, 0.85, 1]);
+        textR(mR, 50, d.presupuesto ? 'Precio orientativo · no vinculante' : 'Documento no contable · pago por adelantado', 8, false, [0.85, 0.85, 1]);
 
         // ---- Emisor / Cliente ----
         text(mL, 104, 'EMISOR', 8, true, GRAY);
@@ -7119,14 +7136,14 @@
 
         var cy;
         if (d.presupuesto) {
-            // ---- Validez del presupuesto (en vez de datos de pago) ----
+            // ---- Aviso de presupuesto orientativo (en vez de datos de pago) ----
             var vy = yy + 14;
-            fill(0.96, 0.96, 1); rect(mL, H - (vy + 46), mR - mL, 46);
-            text(mL + 10, vy + 13, 'VALIDEZ DEL PRESUPUESTO', 8, true, PURPLE);
-            var vTxt = 'Precio orientativo válido hasta el ' + vHasta + ' (7 días naturales). Pasada esa fecha, y en cualquier envío a más de 7 días, la tarifa se revisa a precio de mercado. Este documento NO crea ningún envío ni reserva flota: para contratar, crea el envío desde el panel.';
+            fill(0.96, 0.96, 1); rect(mL, H - (vy + 68), mR - mL, 68);
+            text(mL + 10, vy + 13, 'PRESUPUESTO ESTIMATIVO · NO VINCULANTE', 8, true, PURPLE);
+            var vTxt = 'Este presupuesto es orientativo y estimativo: puede variar en cualquier momento y NO fija precio ni vincula a ninguna de las partes. En circunstancias normales de mercado la variación no suele ser significativa. El precio definitivo se calcula en el momento de confirmar el envío, y será el que resulte en ese instante. Este documento no crea ningún envío ni reserva flota: para contratar, crea el envío desde el panel.';
             var vLines = wrap(vTxt, 108);
             for (i = 0; i < vLines.length; i++) text(mL + 10, vy + 26 + i * 11, vLines[i], 7.8, false, NAVY);
-            cy = vy + 62;
+            cy = vy + 84;
         } else {
             // ---- Datos para la transferencia ----
             var by = yy + 12;
@@ -7168,7 +7185,7 @@
         lw(0.6); strokeC(0.85, 0.87, 0.90); line(mL, 806, mR, 806);
         var pie1 = PROFORMA_EMISOR.nombre + ' · CIF ' + PROFORMA_EMISOR.cif + ' · ' + PROFORMA_EMISOR.email + ' · ' + PROFORMA_EMISOR.tel + ' · ' + PROFORMA_EMISOR.web;
         text((W - tw(pie1, 7.5, false)) / 2, 818, pie1, 7.5, false, GRAY);
-        var pie2 = d.presupuesto ? 'Presupuesto orientativo, sin valor contractual. Sujeto a disponibilidad de flota. Válido 7 días naturales.' : 'Documento proforma sin valor contable. Se emitirá factura al validar el pago.';
+        var pie2 = d.presupuesto ? 'Presupuesto orientativo y estimativo, sin valor contractual ni vinculante. El precio se calcula al confirmar el envío.' : 'Documento proforma sin valor contable. Se emitirá factura al validar el pago.';
         text((W - tw(pie2, 7.5, false)) / 2, 829, pie2, 7.5, false, GRAY);
 
         // ---- Ensamblado del PDF con xref correcto ----
@@ -21989,20 +22006,60 @@
                 return 'transferencia';
             };
 
-            // Botón "Ver presupuesto / proforma (PDF)" del paso 4: genera el
-            // mismo documento pero en modo PRESUPUESTO (validez 7 días, sin
-            // datos de pago) y lo abre en ventana nueva. No crea el envío.
+            // "Comparte este precio" (paso 4): genera el PDF en modo PRESUPUESTO
+            // (orientativo, no vinculante, sin datos de pago) y permite enviarlo
+            // por WhatsApp o email con el mensaje ya redactado. No crea el envío.
             if (confirmCard && !confirmCard._presuBound) {
+                function presuMsgLines() {
+                    var pd = pendingData || {};
+                    var base = parseFloat(pd.precioMock) || 0;
+                    var iva = Math.round(base * 0.21 * 100) / 100, total = Math.round(base * 1.21 * 100) / 100;
+                    function e(n) { return (Number(n) || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
+                    var ruta = (pd.origCorto || pd.orig || '—') + ' -> ' + (pd.destCorto || pd.dest || '—');
+                    var merca = [pd.mercaTxt, pd.medidas, pd.camionLabel].filter(Boolean).join(' · ');
+                    return [
+                        'Presupuesto orientativo — Dynamo',
+                        'Ruta: ' + ruta,
+                        merca ? 'Mercancía: ' + merca : '',
+                        '',
+                        'Precio estimado: ' + e(base) + ' (base sin IVA)',
+                        'IVA 21%: ' + e(iva),
+                        'Total estimado: ' + e(total),
+                        '',
+                        'Precio ORIENTATIVO: no fija precio ni vincula. El importe definitivo se calcula al confirmar el envío. En circunstancias normales de mercado la variación no suele ser significativa.',
+                        '',
+                        'Dynamo Operador Logístico · dynamotrans.com'
+                    ].filter(function (l) { return l !== ''; }).concat(['']).slice(0, -1);
+                }
+                function presuShare(kind) {
+                    var lines = presuMsgLines();
+                    if (kind === 'wa') {
+                        var wa = lines.map(function (l, i) { return (i === 0) ? ('*' + l + '*') : l; }).join('\n');
+                        window.open('https://wa.me/?text=' + encodeURIComponent(wa), '_blank');
+                    } else if (kind === 'mail') {
+                        window.location.href = 'mailto:?subject=' + encodeURIComponent('Presupuesto orientativo de transporte — Dynamo') +
+                            '&body=' + encodeURIComponent(lines.join('\r\n'));
+                    }
+                }
+                function presuPDF() {
+                    var pd = pendingData || {};
+                    var dd2 = {};
+                    for (var k in pd) if (pd.hasOwnProperty(k)) dd2[k] = pd[k];
+                    dd2.presupuesto = true;
+                    if (typeof descargarProforma === 'function') descargarProforma(dd2);
+                }
                 confirmCard.addEventListener('click', function (e) {
                     if (!e.target.closest) return;
-                    if (e.target.closest('[data-ptar-presu-pdf]')) {
+                    var tg = e.target.closest('[data-ptar-presu-toggle]');
+                    if (tg) {
                         e.preventDefault();
-                        var pd = pendingData || {};
-                        var dd2 = {};
-                        for (var k in pd) if (pd.hasOwnProperty(k)) dd2[k] = pd[k];
-                        dd2.presupuesto = true;
-                        if (typeof descargarProforma === 'function') descargarProforma(dd2);
+                        var sh = confirmCard.querySelector('[data-ptar-presu-share]');
+                        if (sh) { var willOpen = sh.hidden; sh.hidden = !willOpen; tg.setAttribute('aria-expanded', String(willOpen)); }
+                        return;
                     }
+                    if (e.target.closest('[data-ptar-presu-pdf]')) { e.preventDefault(); presuPDF(); return; }
+                    if (e.target.closest('[data-ptar-presu-wa]')) { e.preventDefault(); presuShare('wa'); return; }
+                    if (e.target.closest('[data-ptar-presu-mail]')) { e.preventDefault(); presuShare('mail'); return; }
                 });
                 confirmCard._presuBound = true;
             }
