@@ -5025,7 +5025,7 @@
             </div>
         </div>
         <div class="tabs" data-table="cargas">
-            <button class="tab active" data-filter="programada-pendiente">Sin asignar transportista (<span data-count="programada-pendiente">0</span>)</button>
+            <button class="tab active" data-roles="admin" data-filter="programada-pendiente">Sin asignar transportista (<span data-count="programada-pendiente">0</span>)</button>
             <button class="tab" data-filter="pendiente-pago">Pendiente de pago (<span data-count="pendiente-pago">0</span>)</button>
             <button class="tab" data-filter="programada">Programadas (<span data-count="programada">0</span>)</button>
             <button class="tab" data-filter="entregada">Entregadas (<span data-count="entregada">0</span>)</button>
@@ -17746,6 +17746,14 @@
     window.mercPaletiz = mercPaletiz;
     function renderCargasTable() {
         var st = TABLE_STATE.cargas;
+        // Pestañas ocultas según rol/estado → si el filtro activo apunta a una
+        // de ellas, pasar a "Programadas": (a) "Sin asignar transportista" es
+        // admin-only (concepto interno); (b) "Pendiente de pago" solo existe si
+        // hay alguno (contador > 0).
+        var __esAdminC = (window.getRole ? window.getRole() : 'admin') === 'admin';
+        var __nPago = (typeof CARGAS_DATA !== 'undefined') ? CARGAS_DATA.filter(isPendientePago).length : 0;
+        if (st.filter === 'programada-pendiente' && !__esAdminC) st.filter = 'programada';
+        if (st.filter === 'pendiente-pago' && __nPago === 0) st.filter = 'programada';
         var rows = ordenarRows('cargas', filteredCargas());
         var totalPages = Math.max(1, Math.ceil(rows.length / st.perPage));
         if (st.page > totalPages) st.page = totalPages;
@@ -17928,6 +17936,13 @@
             setText(tabs.querySelector('[data-count="cancelada"]'),             CARGAS_DATA.filter(function(c){return c.kind==='cancelada';}).length);
             setText(tabs.querySelector('[data-count="prevision"]'),             CARGAS_DATA.filter(isPrevision).length);
             setText(tabs.querySelector('[data-count="todas"]'),                 CARGAS_DATA.length);
+            // "Pendiente de pago" solo se muestra si hay alguno (contador > 0).
+            var __tabPago = tabs.querySelector('.tab[data-filter="pendiente-pago"]');
+            if (__tabPago) __tabPago.style.display = __nPago > 0 ? '' : 'none';
+            // La pestaña activa refleja el filtro vigente (por si se corrigió arriba).
+            Array.prototype.forEach.call(tabs.querySelectorAll('.tab'), function (t) {
+                t.classList.toggle('active', t.getAttribute('data-filter') === st.filter);
+            });
         }
         if (window.updateSidebarBadges) updateSidebarBadges();
     }
