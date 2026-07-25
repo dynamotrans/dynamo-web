@@ -7003,10 +7003,10 @@
     }
     // Genera y descarga el PDF proforma. Carga el logo (1ª vez) y delega en
     // buildProforma; si el logo falla, sale con el wordmark en texto.
-    function descargarProforma(d) {
-        proformaLogoLoad(function (logo) { buildProforma(d, logo); });
+    function descargarProforma(d, deliver) {
+        proformaLogoLoad(function (logo) { buildProforma(d, logo, deliver); });
     }
-    function buildProforma(d, logo) {
+    function buildProforma(d, logo, deliver) {
         d = d || {};
         var W = 595.28, H = 841.89, mL = 48, mR = 547;
         // Codificación WinAnsi con escapes octales (mantiene el stream ASCII →
@@ -7216,6 +7216,10 @@
         var bytes = new Uint8Array(pdf.length);
         for (i = 0; i < pdf.length; i++) bytes[i] = pdf.charCodeAt(i) & 0xFF;
         var blob = new Blob([bytes], { type: 'application/pdf' });
+        var fileName = (d.presupuesto ? 'Presupuesto-Dynamo-' : 'Proforma-Dynamo-') + (refCli ? String(refCli).replace(/[^A-Za-z0-9-]/g, '') : pno) + '.pdf';
+        // Si nos pasan un callback "deliver", devolvemos el archivo (para
+        // compartir con adjunto vía Web Share API) en vez de abrir el visor.
+        if (typeof deliver === 'function') { deliver(blob, fileName); return; }
         var url = URL.createObjectURL(blob);
         // Abrir el PDF EN EL NAVEGADOR (visor), no forzar descarga. Si el
         // navegador bloquea la ventana (poco común desde un click), como
@@ -7223,7 +7227,7 @@
         var win = window.open(url, '_blank');
         if (!win) {
             var a = document.createElement('a');
-            a.href = url; a.download = 'Proforma-Dynamo-' + (refCli ? String(refCli).replace(/[^A-Za-z0-9-]/g, '') : pno) + '.pdf';
+            a.href = url; a.download = fileName;
             document.body.appendChild(a); a.click();
             setTimeout(function () { document.body.removeChild(a); }, 100);
         }
@@ -22022,7 +22026,10 @@
                         'Dynamo Operador Logístico · dynamotrans.com');
                     return lines;
                 }
-                function presuShare(kind) {
+                // Envío por texto (sin adjunto): respaldo de escritorio o
+                // navegadores sin Web Share API con archivos. Abre además el PDF
+                // para que el usuario lo pueda adjuntar a mano.
+                function presuShareText(kind) {
                     var lines = presuMsgLines();
                     if (kind === 'wa') {
                         var wa = lines.map(function (l, i) { return (i === 0) ? ('*' + l + '*') : l; }).join('\n');
@@ -22030,6 +22037,33 @@
                     } else if (kind === 'mail') {
                         window.location.href = 'mailto:?subject=' + encodeURIComponent('Presupuesto orientativo de transporte — Dynamo') +
                             '&body=' + encodeURIComponent(lines.join('\r\n'));
+                    }
+                    presuPDF();   // abrir el PDF para poder adjuntarlo manualmente
+                }
+                function presuShare(kind) {
+                    var pd = pendingData || {};
+                    var dd2 = {};
+                    for (var k in pd) if (pd.hasOwnProperty(k)) dd2[k] = pd[k];
+                    dd2.presupuesto = true;
+                    // Web Share API con archivo (móvil): la hoja de compartir del
+                    // sistema lleva el PDF ADJUNTO; el usuario elige WhatsApp/Mail.
+                    var canFiles = (typeof navigator !== 'undefined' && navigator.canShare);
+                    if (canFiles && typeof descargarProforma === 'function') {
+                        descargarProforma(dd2, function (blob, fileName) {
+                            var file;
+                            try { file = new File([blob], fileName, { type: 'application/pdf' }); } catch (err) { file = null; }
+                            if (file && navigator.canShare({ files: [file] })) {
+                                navigator.share({
+                                    files: [file],
+                                    title: 'Presupuesto orientativo — Dynamo',
+                                    text: presuMsgLines().join('\n')
+                                }).catch(function () { /* cancelado por el usuario */ });
+                            } else {
+                                presuShareText(kind);
+                            }
+                        });
+                    } else {
+                        presuShareText(kind);
                     }
                 }
                 function presuPDF() {
