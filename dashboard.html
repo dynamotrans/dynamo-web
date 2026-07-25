@@ -4148,6 +4148,8 @@
         #opCombo.op-dynamo input { background: transparent; color: var(--purple); font-weight: 700; }
         #opCombo.op-dynamo svg { color: var(--purple); }
         #opCombo.op-dynamo .ptar-clear { color: var(--purple); background: rgba(51,0,204,0.12); border-radius: 50%; }
+        /* Operador FIJO (rol cliente): no es un control interactivo, no hay ✕. */
+        #opCombo.op-fija, #opCombo.op-fija input { cursor: default; }
 
         @media (max-width: 768px) {
             .ptar-card { padding: 0.9rem 0.9rem 1rem; }
@@ -9531,9 +9533,13 @@
         var esDynamo = nombre === 'Dynamo';
         var prevOpSel = window._opSel;   // operador anterior (para la ref. de ahorro)
         window._opSel = nombre;
-        if (inp) { inp.value = esDynamo ? 'Dynamo Operador Logístico, S.L.' : nombre; inp.readOnly = true; inp.onclick = function () { opClear(true); }; }
-        if (wrap) { wrap.classList.add('ptar-picked'); wrap.classList.remove('ptar-error'); wrap.classList.toggle('op-dynamo', esDynamo); }
-        if (x) x.hidden = false;
+        // Rol cliente: el operador queda FIJO en Dynamo (no puede elegir otro
+        // operador / envío manual). El selector sigue visible pero bloqueado:
+        // sin ✕ para cambiar y sin reabrir el desplegable al pulsarlo.
+        var __soloDynamo = (window.getRole ? window.getRole() : 'admin') !== 'admin';
+        if (inp) { inp.value = esDynamo ? 'Dynamo Operador Logístico, S.L.' : nombre; inp.readOnly = true; inp.onclick = __soloDynamo ? null : function () { opClear(true); }; }
+        if (wrap) { wrap.classList.add('ptar-picked'); wrap.classList.remove('ptar-error'); wrap.classList.toggle('op-dynamo', esDynamo); wrap.classList.toggle('op-fija', __soloDynamo); }
+        if (x) x.hidden = __soloDynamo || false;
         if (list) list.hidden = true;
         // El operador decide el flujo: Dynamo → normal con precio; otro →
         // registro manual SIN precio ni pago (reusa el modo 'manual').
