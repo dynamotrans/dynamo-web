@@ -14911,6 +14911,14 @@
             document.querySelectorAll('.ptar-has-tip.tip-open').forEach(function (h) { h.classList.remove('tip-open'); });
             if (willOpen) { placeTip(t); t.classList.add('tip-open'); }
         }, { passive: true });
+        // El ℹ suele ir dentro de un <label for=...>: al pulsarlo, el label
+        // reenvía el clic al control (abre el desplegable y tapa el tooltip).
+        // Cancelamos esa acción por defecto cuando el clic cae en el ℹ.
+        document.addEventListener('click', function (e) {
+            if (e.target.closest && e.target.closest('.ptar-has-tip')) {
+                e.preventDefault(); e.stopPropagation();
+            }
+        }, true);
         // Cierra los tooltips al tocar/clicar fuera (móvil y desktop).
         ['touchstart', 'pointerdown'].forEach(function (ev) {
             document.addEventListener(ev, function (e) {
