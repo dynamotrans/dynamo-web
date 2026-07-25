@@ -2015,6 +2015,9 @@
             .dash-recomienda-btns > button { flex: 1; min-width: 0; padding-left: 0.4rem; padding-right: 0.4rem; font-size: var(--fs-m); }
         }
         /* Discreción comercial (confirmación de envío) */
+        .ptar-presu-box { margin-bottom: 0.75rem; }
+        .ptar-presu-note { margin: 0 0 0.5rem; font-size: var(--fs-s); color: var(--gray-500); line-height: 1.45; }
+        .ptar-presu-btn { display: inline-flex; align-items: center; gap: 0.4rem; font-size: var(--fs-s); padding: 0.4rem 0.7rem; }
         .ptar-discrecion { border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 0.7rem 0.8rem; background: var(--gray-50); margin-bottom: 0; }
         .ptar-discrecion .ptar-confirm-check { margin: 0; }
         .ptar-discrecion-aviso { margin-top: 0.6rem; padding: 0.7rem 0.8rem; border-radius: 8px; background: rgba(51,0,204,0.07); border: 1px solid rgba(51,0,204,0.28); color: var(--purple); font-size: var(--fs-m); line-height: 1.5; font-weight: 600; }
@@ -5612,6 +5615,16 @@
                          con el precio recalculado y la fecha fija disponible). -->
                     <div data-grupaje-full hidden style="margin-top:0.6rem;"></div>
                 </div>
+                <!-- Presupuesto/proforma orientativo (opcional): para el cliente
+                     que solo está viendo tarifa y aún no va a crear el envío.
+                     Abre un PDF en ventana nueva, con validez de 7 días. -->
+                <div class="ptar-presu-box">
+                    <p class="ptar-presu-note">¿Aún no vas a crear el envío y solo estás viendo la tarifa? Puedes generar un <strong>presupuesto/proforma en PDF</strong> (válido 7 días).</p>
+                    <button type="button" class="btn-ghost ptar-presu-btn" data-ptar-presu-pdf>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                        Ver presupuesto / proforma (PDF)
+                    </button>
+                </div>
                 <!-- Discreción comercial (opcional): el conductor no revela el
                      destino en la carga ni el origen en la entrega. -->
                 <div class="ptar-discrecion">
@@ -7026,7 +7039,10 @@
         function dd(x) { return ('0' + x).slice(-2); }
         var fecha = dd(now.getDate()) + '/' + dd(now.getMonth() + 1) + '/' + now.getFullYear();
         var seed = (typeof hashStr === 'function') ? hashStr((d.origCorto || '') + (d.destCorto || '') + base + (d.refCli || '')) : 1234;
-        var pno = 'PRO-' + now.getFullYear() + '-' + (1000 + (seed % 9000));
+        var pno = (d.presupuesto ? 'PRE-' : 'PRO-') + now.getFullYear() + '-' + (1000 + (seed % 9000));
+        // Presupuesto/proforma orientativo: validez 7 días naturales.
+        var _vHasta = new Date(now.getTime() + 7 * 86400000);
+        var vHasta = dd(_vHasta.getDate()) + '/' + dd(_vHasta.getMonth() + 1) + '/' + _vHasta.getFullYear();
         var refCli = (d.refCli && d.refCli.indexOf('NUEVO') === -1) ? d.refCli : null;
         var conceptoTransfer = refCli || d.conceptoTransferPlaceholder || 'Nº de envío (te lo enviamos por email)';
 
@@ -7041,8 +7057,8 @@
             text(mL, 34, 'dynamo', 23, true, [1, 1, 1]);
             text(mL, 52, 'Operador Logístico', 9.5, false, [0.85, 0.85, 1]);
         }
-        textR(mR, 33, 'FACTURA PROFORMA', 14, true, [1, 1, 1]);
-        textR(mR, 50, 'Documento no contable · pago por adelantado', 8, false, [0.85, 0.85, 1]);
+        textR(mR, 33, d.presupuesto ? 'PRESUPUESTO' : 'FACTURA PROFORMA', 14, true, [1, 1, 1]);
+        textR(mR, 50, d.presupuesto ? 'Presupuesto orientativo · válido 7 días' : 'Documento no contable · pago por adelantado', 8, false, [0.85, 0.85, 1]);
 
         // ---- Emisor / Cliente ----
         text(mL, 104, 'EMISOR', 8, true, GRAY);
@@ -7058,7 +7074,7 @@
 
         // ---- Meta (nº proforma / fecha / envío) ----
         fill(LIGHT[0], LIGHT[1], LIGHT[2]); rect(mL, H - 200, mR - mL, 26);
-        text(mL + 10, 190, 'Nº PROFORMA', 7.5, true, GRAY);
+        text(mL + 10, 190, d.presupuesto ? 'Nº PRESUPUESTO' : 'Nº PROFORMA', 7.5, true, GRAY);
         text(mL + 10, 202, pno, 10, true, NAVY);
         text(240, 190, 'FECHA', 7.5, true, GRAY);
         text(240, 202, fecha, 10, true, NAVY);
@@ -7080,7 +7096,7 @@
         text(360, 304, 'Base imponible', 9.5, false, GRAY); textR(mR - 10, 304, eur(base), 9.5, false, NAVY);
         text(360, 320, 'IVA (21%)', 9.5, false, GRAY); textR(mR - 10, 320, eur(iva), 9.5, false, NAVY);
         fill(PURPLE[0], PURPLE[1], PURPLE[2]); rect(348, H - 356, mR - 348, 26);
-        text(360, 348, 'TOTAL A PAGAR', 10.5, true, [1, 1, 1]); textR(mR - 10, 348, eur(total), 12, true, [1, 1, 1]);
+        text(360, 348, d.presupuesto ? 'TOTAL ESTIMADO' : 'TOTAL A PAGAR', 10.5, true, [1, 1, 1]); textR(mR - 10, 348, eur(total), 12, true, [1, 1, 1]);
 
         // ---- Detalles ----
         text(mL, 378, d.detalleTitulo || 'DETALLES DEL ENVÍO', 9, true, PURPLE);
@@ -7101,36 +7117,50 @@
             yy += 15;
         }
 
-        // ---- Datos para la transferencia ----
-        var by = yy + 12;
-        text(mL, by, 'DATOS PARA LA TRANSFERENCIA', 9, true, PURPLE);
-        lw(0.6); strokeC(0.85, 0.87, 0.90); line(mL, by + 6, mR, by + 6);
-        var brows = [
-            ['Titular', PROFORMA_BANCO.titular],
-            ['CIF', PROFORMA_BANCO.cif],
-            ['IBAN', PROFORMA_BANCO.iban],
-            ['Banco', PROFORMA_BANCO.banco + ' · ' + PROFORMA_BANCO.bic],
-            ['Importe (IVA 21% incl.)', eur(total)],
-            ['Concepto', conceptoTransfer]
-        ];
-        yy = by + 22;
-        for (i = 0; i < brows.length; i++) {
-            text(mL, yy, brows[i][0], 9, true, GRAY);
-            text(230, yy, brows[i][1], 9, (i === 2 || i === 4), NAVY);
-            yy += 15;
+        var cy;
+        if (d.presupuesto) {
+            // ---- Validez del presupuesto (en vez de datos de pago) ----
+            var vy = yy + 14;
+            fill(0.96, 0.96, 1); rect(mL, H - (vy + 46), mR - mL, 46);
+            text(mL + 10, vy + 13, 'VALIDEZ DEL PRESUPUESTO', 8, true, PURPLE);
+            var vTxt = 'Precio orientativo válido hasta el ' + vHasta + ' (7 días naturales). Pasada esa fecha, y en cualquier envío a más de 7 días, la tarifa se revisa a precio de mercado. Este documento NO crea ningún envío ni reserva flota: para contratar, crea el envío desde el panel.';
+            var vLines = wrap(vTxt, 108);
+            for (i = 0; i < vLines.length; i++) text(mL + 10, vy + 26 + i * 11, vLines[i], 7.8, false, NAVY);
+            cy = vy + 62;
+        } else {
+            // ---- Datos para la transferencia ----
+            var by = yy + 12;
+            text(mL, by, 'DATOS PARA LA TRANSFERENCIA', 9, true, PURPLE);
+            lw(0.6); strokeC(0.85, 0.87, 0.90); line(mL, by + 6, mR, by + 6);
+            var brows = [
+                ['Titular', PROFORMA_BANCO.titular],
+                ['CIF', PROFORMA_BANCO.cif],
+                ['IBAN', PROFORMA_BANCO.iban],
+                ['Banco', PROFORMA_BANCO.banco + ' · ' + PROFORMA_BANCO.bic],
+                ['Importe (IVA 21% incl.)', eur(total)],
+                ['Concepto', conceptoTransfer]
+            ];
+            yy = by + 22;
+            for (i = 0; i < brows.length; i++) {
+                text(mL, yy, brows[i][0], 9, true, GRAY);
+                text(230, yy, brows[i][1], 9, (i === 2 || i === 4), NAVY);
+                yy += 15;
+            }
+
+            // ---- Nota de seguridad ----
+            var sy = yy + 14;
+            fill(0.96, 0.96, 1); rect(mL, H - (sy + 62), mR - mL, 62);
+            text(mL + 10, sy + 12, 'SEGURIDAD DEL PAGO', 8, true, PURPLE);
+            var seg = 'Al ordenar la transferencia, tu banco mostrará el nombre del beneficiario: debe coincidir exactamente con ' + PROFORMA_BANCO.titular + ' (CIF ' + PROFORMA_BANCO.cif + '). Si el titular no coincide, no autorices el pago. Nuestro IBAN es siempre este y nunca cambiamos de cuenta por email; ante cualquier duda llama al ' + PROFORMA_EMISOR.tel + ' antes de pagar.';
+            var segLines = wrap(seg, 108);
+            for (i = 0; i < segLines.length; i++) text(mL + 10, sy + 26 + i * 11, segLines[i], 7.8, false, NAVY);
+            cy = sy + 78;
         }
 
-        // ---- Nota de seguridad ----
-        var sy = yy + 14;
-        fill(0.96, 0.96, 1); rect(mL, H - (sy + 62), mR - mL, 62);
-        text(mL + 10, sy + 12, 'SEGURIDAD DEL PAGO', 8, true, PURPLE);
-        var seg = 'Al ordenar la transferencia, tu banco mostrará el nombre del beneficiario: debe coincidir exactamente con ' + PROFORMA_BANCO.titular + ' (CIF ' + PROFORMA_BANCO.cif + '). Si el titular no coincide, no autorices el pago. Nuestro IBAN es siempre este y nunca cambiamos de cuenta por email; ante cualquier duda llama al ' + PROFORMA_EMISOR.tel + ' antes de pagar.';
-        var segLines = wrap(seg, 108);
-        for (i = 0; i < segLines.length; i++) text(mL + 10, sy + 26 + i * 11, segLines[i], 7.8, false, NAVY);
-
         // ---- Condiciones ----
-        var cy = sy + 78;
-        var cond = d.condPago || 'El transporte no se gestiona ni se asigna camión hasta validar el pago (la validación puede tardar hasta 24 h). El plazo de carga empieza a contar desde que validamos el pago.';
+        var cond = d.presupuesto
+            ? 'La disponibilidad real de flota en la zona y fechas se confirma al crear el envío. En caso de falta de vehículos o cambios de mercado, la tarifa podría variar; cualquier variación se comunicaría para tu validación previa.'
+            : (d.condPago || 'El transporte no se gestiona ni se asigna camión hasta validar el pago (la validación puede tardar hasta 24 h). El plazo de carga empieza a contar desde que validamos el pago.');
         var condLines = wrap(cond, 118);
         for (i = 0; i < condLines.length; i++) text(mL, cy + i * 11, condLines[i], 7.6, false, GRAY);
 
@@ -7138,7 +7168,7 @@
         lw(0.6); strokeC(0.85, 0.87, 0.90); line(mL, 806, mR, 806);
         var pie1 = PROFORMA_EMISOR.nombre + ' · CIF ' + PROFORMA_EMISOR.cif + ' · ' + PROFORMA_EMISOR.email + ' · ' + PROFORMA_EMISOR.tel + ' · ' + PROFORMA_EMISOR.web;
         text((W - tw(pie1, 7.5, false)) / 2, 818, pie1, 7.5, false, GRAY);
-        var pie2 = 'Documento proforma sin valor contable. Se emitirá factura al validar el pago.';
+        var pie2 = d.presupuesto ? 'Presupuesto orientativo, sin valor contractual. Sujeto a disponibilidad de flota. Válido 7 días naturales.' : 'Documento proforma sin valor contable. Se emitirá factura al validar el pago.';
         text((W - tw(pie2, 7.5, false)) / 2, 829, pie2, 7.5, false, GRAY);
 
         // ---- Ensamblado del PDF con xref correcto ----
@@ -21958,6 +21988,24 @@
                 }
                 return 'transferencia';
             };
+
+            // Botón "Ver presupuesto / proforma (PDF)" del paso 4: genera el
+            // mismo documento pero en modo PRESUPUESTO (validez 7 días, sin
+            // datos de pago) y lo abre en ventana nueva. No crea el envío.
+            if (confirmCard && !confirmCard._presuBound) {
+                confirmCard.addEventListener('click', function (e) {
+                    if (!e.target.closest) return;
+                    if (e.target.closest('[data-ptar-presu-pdf]')) {
+                        e.preventDefault();
+                        var pd = pendingData || {};
+                        var dd2 = {};
+                        for (var k in pd) if (pd.hasOwnProperty(k)) dd2[k] = pd[k];
+                        dd2.presupuesto = true;
+                        if (typeof descargarProforma === 'function') descargarProforma(dd2);
+                    }
+                });
+                confirmCard._presuBound = true;
+            }
 
             function showConfirmStep(d) {
                 if (!confirmCard || !summaryEl) return;
