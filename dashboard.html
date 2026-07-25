@@ -19300,10 +19300,11 @@
 
         // --- ML / Peso selectores reactivos al camión ---
         // Equivalencia de metros lineales en palets (factores del cliente):
-        // 2,5 europalets/ml (13,2 m = 33 europalets = trailer completo). Solo europalets.
+        // 2,5 europalets/ml y 2 americanos/ml (13,2 m = 33 europalets = 26
+        // americanos = trailer completo). Palets enteros (se redondea hacia
+        // abajo: no cabe medio palet).
         function paletsEquiv(ml) {
-            // Palets enteros: se redondea hacia abajo (no cabe medio palet).
-            return Math.floor(ml * 2.5) + ' europalets';
+            return 'equivale a ' + Math.floor(ml * 2.5) + ' europalets o ' + Math.floor(ml * 2) + ' americanos';
         }
         function fillMlSelect(sel, mlMax) {
             sel.innerHTML = '';
