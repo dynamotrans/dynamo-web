@@ -3450,6 +3450,9 @@
         .ptar-sitio-head-tipo svg { width: 16px; height: 16px; flex: none; }
         .ptar-sitio-head-hor { display: block; font-size: var(--fs-m); color: var(--gray-500); font-weight: 500; margin-top: 2px; }
         .ptar-sitio-head-fecha { display: block; font-size: var(--fs-l); color: var(--navy); font-weight: 800; margin-top: 4px; }
+        /* Fecha de la tarjeta coloreada por rol: naranja recogida · verde entrega. */
+        .ptar-sitio-head-fecha.shf-rec { color: var(--orange); }
+        .ptar-sitio-head-fecha.shf-ent { color: var(--green-dark); }
         .ptar-sitio-head-dir { display: block; font-size: var(--fs-m); color: var(--gray-700); font-weight: 700; margin-top: 2px; }
         /* Nombre de empresa en la cabecera del sitio: SIN negrita (peso normal). */
         .ptar-sitio-head-empn { display: block; font-size: var(--fs-m); color: var(--gray-700); font-weight: 500; margin-top: 2px; }
@@ -22023,9 +22026,10 @@
                         (d.notes ? '<div class="sum2-cell sum2-full"><div class="sum2-k">Anotaciones de la mercancía</div><div style="font-size:var(--fs-m);font-weight:600;color:var(--gray-700);line-height:1.4;">' + escapeHtml(d.notes) + '</div></div>' : '') +
                     '</div>' +
                     (d.refCli && d.refCli.indexOf('NUEVO') === -1 ? sumCell('Tu referencia', d.refCli, true) : '') +
-                    // "Días de recogida" se omite: la propia "Fecha de recogida"
-                    // (rango · cualquier día laborable) ya lo dice.
-                    '<div class="sum2-fecha-cell"><div class="sum2-k">Fecha de recogida</div><div class="sum2-fecha">' + calSvg + escapeHtml(fechaTxtClean) + '</div></div>';
+                    // La banda verde "Fecha de recogida" se ELIMINA (2026-07-24):
+                    // cada tarjeta de Recogida/Entrega ya muestra su fecha, no
+                    // tiene sentido repetirla aquí.
+                    '';
                 // El PRECIO no va en el resumen: sale destacado justo antes del
                 // botón de confirmar (data-ptar-conf-price).
                 // Referencia y anotaciones se muestran en el RESUMEN (solo
@@ -22102,10 +22106,14 @@
                                 (window.__tipoSitioIcon ? window.__tipoSitioIcon(tipo) : '') +
                                 '<span>(' + escapeHtml(tipo) + ')</span></span>';
                         }
+                        // Color de la fecha según el rol del punto (el rolHtml ya
+                        // trae la clase route-num rec/ent): naranja recogida ·
+                        // verde entrega.
+                        var fClase = /ptar-route-num rec/.test(rolHtml) ? ' shf-rec' : ' shf-ent';
                         return '<button type="button" class="ptar-sitio-head" aria-expanded="false">' +
                             '<span class="ptar-sitio-head-main">' +
                             '<span class="ptar-sitio-head-l1">' + rolHtml + tipoHtml + '</span>' +
-                            (fecha ? '<span class="ptar-sitio-head-fecha">' + escapeHtml(fecha) + '</span>' : '') +
+                            (fecha ? '<span class="ptar-sitio-head-fecha' + fClase + '">' + escapeHtml(fecha) + '</span>' : '') +
                             (horario ? '<span class="ptar-sitio-head-hor">(' + escapeHtml(horario) + ')</span>' : '') +
                             (dirLine ? '<span class="ptar-sitio-head-dir">' + escapeHtml(dirLine) + '</span>' : '') +
                             (empresa ? '<span class="ptar-sitio-head-empn">' + escapeHtml(empresa) + '</span>' : '') +
