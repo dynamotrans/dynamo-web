@@ -3299,6 +3299,16 @@
         .ptar-sug .sug-hint .sug-hint-txt { color: var(--gray-500); font-size: var(--fs-m); font-weight: 600; }
         /* Sitio/dirección seleccionado: el campo queda como chip bloqueado
            (se cambia solo con el botón ×, no editando el texto). */
+        /* Botón invertir recogida ⇄ entrega (Cabify/Uber). */
+        .ptar-swap-wrap { grid-column: 1 / -1; display: flex; justify-content: flex-end; margin: -0.15rem 0 0.05rem; }
+        .ptar-swap-btn {
+            display: inline-flex; align-items: center; gap: 0.35rem;
+            padding: 0.3rem 0.6rem; border-radius: 999px;
+            border: 1.5px solid var(--gray-200); background: #fff; color: var(--purple);
+            font-family: inherit; font-size: var(--fs-s); font-weight: 700; cursor: pointer;
+            transition: border-color .15s, background .15s;
+        }
+        .ptar-swap-btn:hover { border-color: var(--purple); background: rgba(51,0,204,0.05); }
         .ptar-input-wrap.ptar-picked { background: rgba(51,0,204,0.05); border-color: rgba(51,0,204,0.35); }
         .ptar-input-wrap.ptar-picked input { background: transparent; font-weight: 600; cursor: default; }
         /* El chip del almacén elegido es clicable (reabre el desplegable). */
@@ -5374,6 +5384,14 @@
                             <option>Finca / Agrícola</option>
                         </select>
                     </div>
+                </div>
+                <!-- Invertir recogida ⇄ entrega (estilo Cabify/Uber): el origen
+                     pasa a ser destino y viceversa. -->
+                <div class="ptar-swap-wrap">
+                    <button type="button" class="ptar-swap-btn" onclick="if(window.__ptarSwapRuta)window.__ptarSwapRuta()" aria-label="Invertir recogida y entrega" title="Invertir recogida y entrega">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                        Invertir
+                    </button>
                 </div>
                 <div class="ptar-field-full" data-ptar-recogidas></div>
                 <div class="ptar-field ptar-field-full">
@@ -20570,6 +20588,32 @@
             // Autocomplete con callback para recalcular ETA al pickear
             bindAutocomplete(origWrap, origInput, origSug, function () { renderEta(); syncGrupajeVentana(); }, 'recogida');
             bindAutocomplete(destWrap, destInput, destSug, function () { renderEta(); syncGrupajeVentana(); }, 'entrega');
+            // Invertir recogida ⇄ entrega (Cabify/Uber): intercambia valor, estado
+            // "elegido", datos de geo/sitio y tipo de lugar entre origen y destino.
+            window.__ptarSwapRuta = function () {
+                var oTipo = card.querySelector('[data-ptar-tipoorig]'), dTipo = card.querySelector('[data-ptar-tipodest]');
+                // Valor + readonly (chip bloqueado)
+                var vO = origInput.value, roO = origInput.readOnly;
+                origInput.value = destInput.value; origInput.readOnly = destInput.readOnly;
+                destInput.value = vO; destInput.readOnly = roO;
+                // Clases de estado
+                ['ptar-picked', 'ptar-error'].forEach(function (c) {
+                    var a = origWrap.classList.contains(c), b = destWrap.classList.contains(c);
+                    origWrap.classList.toggle(c, b); destWrap.classList.toggle(c, a);
+                });
+                // Datos (coordenadas + sitio de la agenda / Google)
+                ['lat', 'lon', 'cc', 'region', 'siteKey', 'gsite'].forEach(function (k) {
+                    var a = origWrap.dataset[k], b = destWrap.dataset[k];
+                    if (b === undefined) delete origWrap.dataset[k]; else origWrap.dataset[k] = b;
+                    if (a === undefined) delete destWrap.dataset[k]; else destWrap.dataset[k] = a;
+                });
+                // Tipo de lugar + icono
+                if (oTipo && dTipo) {
+                    var t = oTipo.value; oTipo.value = dTipo.value; dTipo.value = t;
+                    if (typeof syncTipoSitioIcon === 'function') { syncTipoSitioIcon(origWrap, oTipo.value); syncTipoSitioIcon(destWrap, dTipo.value); }
+                }
+                renderEta(); syncGrupajeVentana();
+            };
             // Cambiar el TIPO de lugar (Almacén/Obra/…) mueve el precio y
             // actualiza el icono del campo (fábrica/cono/skyline/micro/hoja).
             [['[data-ptar-tipoorig]', origWrap], ['[data-ptar-tipodest]', destWrap]].forEach(function (par) {
