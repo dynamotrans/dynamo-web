@@ -178,6 +178,24 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-07-25 — Claude Code web (nube)
+
+> **Sesión de gating de rol CLIENTE en Nuevo envío + botón de presupuesto orientativo en el paso 4.** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Push directo a preview en cada cambio. Estado final: preview `465f1b1`.
+
+**ROL CLIENTE (`?role=cliente`) — más gating**:
+- **Dashboard → "Otras gestiones"**: la opción **"Nuevo almacenamiento"** ahora es `data-roles="admin"` (el cliente solo ve *Reportar incidencia* y *Crear sitio*). Subtítulo del botón ajustado a "Reportar incidencia, crear sitio y más…". (`b5466e9`)
+- **Nuevo envío → selector de OPERADOR**: primero se bloqueó a Dynamo (chip fijo, sin ✕, sin reabrir el desplegable; `opPick` con `__soloDynamo`/clase `op-fija`) y luego, a petición, se **ocultó del todo** para el cliente (`data-ptar-operador-field` con `data-roles="admin"`). El envío del cliente es siempre Dynamo por defecto; cuando se habilite elegir otros transportistas, basta quitar la marca `admin` de ese campo para reactivarlo. Admin sigue con el flujo manual completo. (`3098677`, `4541cd5`)
+
+**PASO 4 DEL WIZARD (Nuevo envío)**:
+- Título **"Revisión y precio"** convertido de `<h3 ptar-confirm-heading>` grande a la **misma banda** que Ruta/Mercancía/Fecha (`.ptar-section-head.ptar-sh-conf`: borde morado izq. + fondo lavanda + `--fs-m`), con su icono ℹ. (`686a86d`)
+- **PRESUPUESTO ORIENTATIVO en PDF** (entre precio y discreción): botón discreto **"Ver / guardar PDF"**. Añadido un **modo `presupuesto`** a `buildProforma`/`descargarProforma` (título "PRESUPUESTO" · nº `PRE-…` · "TOTAL ESTIMADO" · bloque **"PRESUPUESTO ESTIMATIVO · NO VINCULANTE"** con el aviso de que es orientativo, puede variar, NO fija precio ni vincula, se calcula al confirmar el envío; **sin datos bancarios ni seguridad de pago**; pie adaptado). Abre en **visor del navegador** (ventana nueva), regla 0-bis. NO crea el envío. (`c1b926b`)
+- **Iteración del botón** (el usuario fue afinando): se probó "Comparte este precio" con desplegable WhatsApp/Email (`a059c92`) → se quitó (`7037c6f`) → se puso una fila de 3 botones a todo el ancho *Ver/guardar PDF · WhatsApp · Email* con la frase "**Comparte este precio con quien quieras.**" en negrita (`96fa16a`, texto dinámico `9ad80f4`) → **compartir con PDF ADJUNTO vía Web Share API** en móvil (WhatsApp/Email abren la hoja del sistema con el `.pdf` adjunto; respaldo texto+PDF en escritorio) (`2041746`) → **DECISIÓN FINAL del usuario: dejar SOLO "Ver / guardar PDF"** y quitar WhatsApp/Email. El PDF se abre en el visor y desde ahí el navegador ofrece imprimir/descargar (no se puede inyectar un botón propio en el visor nativo). (`465f1b1`)
+- Nota final bajo el botón: *"¿Aún no vas a crear el envío y solo estás viendo la tarifa? Puedes ver o guardar el **presupuesto en PDF**. Es orientativo: si confirmas el envío en otro momento, puede variar (precios dinámicos)."*
+
+**Método**: cada cambio verificado en Chromium headless (`?role=cliente` y `?role=admin`, geo Nominatim mockeado, PDF abierto en blob) con syntax-check JS 0 errores y screenshots antes de commitear.
+
+**Pendientes** (en TODO.md): **email con PDF adjunto REAL** (proforma/presupuesto/orden) desde backend — mailto/wa.me no adjuntan; en móvil el Web Share API sí adjunta, pero el envío automático desde nuestro dominio es backend. Resto en TODO.md.
+
 ### 2026-07-20 — Claude Code web (nube)
 
 > **Sesión centrada en `aceptar-carga.html` (página del transportista que acepta una oferta) + retoques en `dashboard.html`.** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Push directo a preview en cada cambio.
