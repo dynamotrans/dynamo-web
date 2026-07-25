@@ -1923,6 +1923,13 @@
         }
         .badge[hidden] { display: none; }
         .badge-green   { background: rgba(34,165,90,0.12);  color: var(--green-dark); }
+        .badge-principal { background: rgba(245,179,1,0.16); color: #8a6300; }
+        /* Estrella "sitio principal" en la tabla de Sitios. */
+        .sitio-star { background: none; border: none; padding: 2px; margin-right: 4px; cursor: pointer; color: var(--gray-300); vertical-align: middle; line-height: 0; }
+        .sitio-star svg { width: 18px; height: 18px; }
+        .sitio-star:hover { color: #f5b301; }
+        .sitio-star.on { color: #f5b301; }
+        .sitio-star.on svg { fill: currentColor; }
         .badge-yellow  { background: rgba(255,212,0,0.18);  color: #8b6d00; }
         .badge-orange  { background: rgba(255,122,0,0.13);  color: #b25500; }
         .badge-red     { background: rgba(220,38,38,0.12);  color: var(--red); }
@@ -6453,6 +6460,10 @@
         showSection('nueva-carga');
         // Asistente por pasos: arrancar siempre en el paso 1 (Ruta).
         if (window.__envioWizReset) window.__envioWizReset();
+        // Sitio PRINCIPAL: si hay uno marcado en la agenda, viene ya puesto
+        // como ORIGEN (recogida) por defecto. Modificar/Repetir lo sobrescriben
+        // después con su propio origen (el geocode del principal se auto-cancela).
+        if (window.__sitioPrincipal && window.__ptarSetOrigenSitio) window.__ptarSetOrigenSitio(window.__sitioPrincipal);
     }
     window.openNuevaCarga = openNuevaCarga;
     // Discreción comercial COMPACTA: el check solo muestra el título; el detalle
@@ -17039,6 +17050,11 @@
             var s = kv[1];
             return matchTokens(expandVia(normTxt([s.empresa, s.dir, s.calle, s.tfno, s.contacto, s.notas].join(' '))), q);
         }).sort(function (a, b) {
+            // El sitio PRINCIPAL (almacén de la empresa) va SIEMPRE anclado
+            // arriba del todo.
+            var ap = (a[0] === window.__sitioPrincipal), bp = (b[0] === window.__sitioPrincipal);
+            if (ap && !bp) return -1;
+            if (bp && !ap) return 1;
             // Los sitios nuevos (creados hace <48 h) se fijan arriba, del más
             // reciente al más antiguo; el resto, orden alfabético por empresa.
             var an = esSitioNuevo(a[0]), bn = esSitioNuevo(b[0]);
@@ -17061,8 +17077,10 @@
             // la empresa — mismo set que el tarifador, la tabla y el detalle.
             var tipoK = s.tipoLugar || 'Almacén / Nave';
             var icK = window.__tipoSitioIcon ? '<span class="rf-tipo-ico" title="' + esc(tipoK) + '">' + window.__tipoSitioIcon(tipoK) + '</span>' : '';
+            var esPrin = (k === window.__sitioPrincipal);
+            var star = '<button type="button" class="sitio-star' + (esPrin ? ' on' : '') + '" data-star-key="' + esc(k) + '" aria-pressed="' + (esPrin ? 'true' : 'false') + '" title="' + (esPrin ? 'Sitio principal · origen por defecto (pulsa para quitar)' : 'Marcar como sitio principal (origen por defecto en Nuevo envío)') + '" aria-label="Sitio principal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>';
             return '<tr data-sitio-key="' + esc(k) + '">' +
-                '<td>' + icK + '<strong>' + esc(s.empresa || '—') + '</strong>' + (esSitioNuevo(k) ? ' <span class="badge badge-green">Nuevo</span>' : '') +
+                '<td>' + star + icK + '<strong>' + esc(s.empresa || '—') + '</strong>' + (esPrin ? ' <span class="badge badge-principal">Principal</span>' : '') + (esSitioNuevo(k) ? ' <span class="badge badge-green">Nuevo</span>' : '') +
                     (s.maps ? '<div class="meta"><a href="' + esc(s.maps) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--purple);font-weight:600;text-decoration:none;">Ver en Maps</a></div>' : '') +
                     (s.creado ? '<div class="meta sitio-fechas">Creado: ' + esc(fmtCreado(s.creado)) + (s.modificado && s.modificado - s.creado > 60000 ? ' · Modificado: ' + esc(fmtCreado(s.modificado)) : '') + '</div>' : '') +
                 '</td>' +
@@ -17078,7 +17096,22 @@
         tbody.querySelectorAll('tr[data-sitio-key]').forEach(function (tr) {
             tr.addEventListener('click', function () { openSitioModal(tr.getAttribute('data-sitio-key')); });
         });
+        tbody.querySelectorAll('.sitio-star').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                window.__toggleSitioPrincipal(btn.getAttribute('data-star-key'));
+            });
+        });
     }
+    // Sitio PRINCIPAL (almacén de la empresa): se marca con la estrella de la
+    // tabla de Sitios. Queda anclado arriba y se pone como ORIGEN por defecto al
+    // crear un envío. Estado de sesión (mockup determinista, sin localStorage).
+    window.__sitioPrincipal = window.__sitioPrincipal || null;
+    window.__toggleSitioPrincipal = function (key) {
+        window.__sitioPrincipal = (window.__sitioPrincipal === key) ? null : key;
+        var si = document.getElementById('sitiosSearch');
+        renderSitiosTable(si ? si.value : '');
+    };
     // Nominatim mínimo para el buscador del formulario de sitio
     var _sitioAb = null;
     function osmSearchLite(query, cb) {
@@ -20613,6 +20646,39 @@
                     if (typeof syncTipoSitioIcon === 'function') { syncTipoSitioIcon(origWrap, oTipo.value); syncTipoSitioIcon(destWrap, dTipo.value); }
                 }
                 renderEta(); syncGrupajeVentana();
+            };
+            // Pone un SITIO de la agenda como ORIGEN (recogida). Lo usa el
+            // "sitio principal": al abrir Nuevo envío, el origen viene puesto.
+            // El geocodificado es asíncrono y se auto-cancela si el origen
+            // cambia mientras tanto (p. ej. Modificar/Repetir lo sobrescribe).
+            window.__ptarSetOrigenSitio = function (key) {
+                var s = (typeof siteDe === 'function') ? siteDe(key) : null;
+                if (!s) return;
+                origInput.value = (s.empresa ? s.empresa + ' — ' : '') + (s.calle || s.dir || '');
+                origWrap.dataset.siteKey = key; delete origWrap.dataset.gsite;
+                origWrap.classList.add('ptar-picked'); origWrap.classList.remove('ptar-error');
+                origInput.readOnly = true;
+                var oTipo = card.querySelector('[data-ptar-tipoorig]');
+                if (oTipo && s.tipoLugar) {
+                    for (var oi = 0; oi < oTipo.options.length; oi++) {
+                        if (oTipo.options[oi].text === s.tipoLugar) { oTipo.selectedIndex = oi; break; }
+                    }
+                    if (typeof syncTipoSitioIcon === 'function') syncTipoSitioIcon(origWrap, oTipo.value);
+                }
+                var dir = s.dir || s.calle || origInput.value;
+                var url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&countrycodes=es,pt,fr,it,de,nl,be,lu,at,ch,pl,cz&accept-language=es&q=' + encodeURIComponent(String(dir));
+                fetch(url, { headers: { 'Accept-Language': 'es' } })
+                    .then(function (r) { return r.json(); })
+                    .then(function (items) {
+                        if (origWrap.dataset.siteKey !== key) return;   // el origen cambió → no pisar
+                        if (!items || !items[0]) return;
+                        origWrap.dataset.lat = items[0].lat; origWrap.dataset.lon = items[0].lon;
+                        origWrap.dataset.cc = (items[0].address && items[0].address.country_code) || '';
+                        var rg = stateToRegion(items[0].address);
+                        if (rg) origWrap.dataset.region = rg; else delete origWrap.dataset.region;
+                        renderEta();
+                    })
+                    .catch(function () {});
             };
             // Cambiar el TIPO de lugar (Almacén/Obra/…) mueve el precio y
             // actualiza el icono del campo (fábrica/cono/skyline/micro/hoja).
