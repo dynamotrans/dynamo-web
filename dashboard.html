@@ -2481,7 +2481,7 @@
         @media (max-width: 768px) {
             .filters-collapsible .filters-toggle { display: inline-flex; }
             .filters-collapsible input[type="search"] { flex: 1 1 auto !important; min-width: 120px; }
-            .filters-collapsible:not(.filters-open) > *:not(input[type="search"]):not(.filters-toggle) { display: none !important; }
+            .filters-collapsible:not(.filters-open) > *:not(input[type="search"]):not(.filters-toggle):not(.fld-clr) { display: none !important; }
         }
         /* Selector de rango de fechas (tipo Holded) para Facturas. */
         .fact-range { position: relative; flex: 0 0 auto; }
@@ -9317,7 +9317,12 @@
             if (!search) return;                       // sin buscador → no aplicamos
             var others = [];
             for (var i = 0; i < bar.children.length; i++) {
-                if (bar.children[i] !== search) others.push(bar.children[i]);
+                var c = bar.children[i];
+                // El buscador, su botón ✕ de vaciar (.fld-clr) y el propio toggle
+                // NO cuentan como "filtros": solo desplegables/rangos/exportar.
+                if (c === search) continue;
+                if (c.classList && (c.classList.contains('fld-clr') || c.classList.contains('filters-toggle'))) continue;
+                others.push(c);
             }
             if (!others.length) return;                // solo buscador → nada que plegar
             bar.classList.add('filters-collapsible');
