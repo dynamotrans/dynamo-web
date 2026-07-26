@@ -3306,16 +3306,16 @@
         .ptar-sug .sug-hint .sug-hint-txt { color: var(--gray-500); font-size: var(--fs-m); font-weight: 600; }
         /* Sitio/dirección seleccionado: el campo queda como chip bloqueado
            (se cambia solo con el botón ×, no editando el texto). */
-        /* Botón invertir recogida ⇄ entrega (Cabify/Uber). */
-        .ptar-swap-wrap { grid-column: 1 / -1; display: flex; justify-content: flex-end; margin: -0.15rem 0 0.05rem; }
-        .ptar-swap-btn {
-            display: inline-flex; align-items: center; gap: 0.35rem;
-            padding: 0.3rem 0.6rem; border-radius: 999px;
+        /* Controles ▲▼ para reordenar puntos de la ruta (recogida/entrega). */
+        .ptar-reorder { display: inline-flex; flex-direction: column; gap: 2px; flex: 0 0 auto; margin-left: 2px; }
+        .ptar-reorder button {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 26px; height: 20px; padding: 0; border-radius: 6px;
             border: 1.5px solid var(--gray-200); background: #fff; color: var(--purple);
-            font-family: inherit; font-size: var(--fs-s); font-weight: 700; cursor: pointer;
-            transition: border-color .15s, background .15s;
+            cursor: pointer; transition: border-color .15s, background .15s, opacity .15s;
         }
-        .ptar-swap-btn:hover { border-color: var(--purple); background: rgba(51,0,204,0.05); }
+        .ptar-reorder button:hover:not(:disabled) { border-color: var(--purple); background: rgba(51,0,204,0.05); }
+        .ptar-reorder button:disabled { opacity: 0.3; cursor: default; }
         .ptar-input-wrap.ptar-picked { background: rgba(51,0,204,0.05); border-color: rgba(51,0,204,0.35); }
         .ptar-input-wrap.ptar-picked input { background: transparent; font-weight: 600; cursor: default; }
         /* El chip del almacén elegido es clicable (reabre el desplegable). */
@@ -5391,14 +5391,6 @@
                             <option>Finca / Agrícola</option>
                         </select>
                     </div>
-                </div>
-                <!-- Invertir recogida ⇄ entrega (estilo Cabify/Uber): el origen
-                     pasa a ser destino y viceversa. -->
-                <div class="ptar-swap-wrap">
-                    <button type="button" class="ptar-swap-btn" onclick="if(window.__ptarSwapRuta)window.__ptarSwapRuta()" aria-label="Invertir recogida y entrega" title="Invertir recogida y entrega">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-                        Invertir
-                    </button>
                 </div>
                 <div class="ptar-field-full" data-ptar-recogidas></div>
                 <div class="ptar-field ptar-field-full">
@@ -20621,32 +20613,67 @@
             // Autocomplete con callback para recalcular ETA al pickear
             bindAutocomplete(origWrap, origInput, origSug, function () { renderEta(); syncGrupajeVentana(); }, 'recogida');
             bindAutocomplete(destWrap, destInput, destSug, function () { renderEta(); syncGrupajeVentana(); }, 'entrega');
-            // Invertir recogida ⇄ entrega (Cabify/Uber): intercambia valor, estado
-            // "elegido", datos de geo/sitio y tipo de lugar entre origen y destino.
-            window.__ptarSwapRuta = function () {
-                var oTipo = card.querySelector('[data-ptar-tipoorig]'), dTipo = card.querySelector('[data-ptar-tipodest]');
-                // Valor + readonly (chip bloqueado)
-                var vO = origInput.value, roO = origInput.readOnly;
-                origInput.value = destInput.value; origInput.readOnly = destInput.readOnly;
-                destInput.value = vO; destInput.readOnly = roO;
-                // Clases de estado
+            // --- Reordenar puntos de la ruta con ▲▼ ---
+            // Orden del recorrido: origen → recogidas → destino → entregas. Cada
+            // punto lleva ▲▼ para intercambiar su contenido con el anterior /
+            // siguiente (la posición decide si es recogida o entrega).
+            function routeSlots() {
+                var slots = [{ wrap: origWrap, input: origInput, tipo: card.querySelector('[data-ptar-tipoorig]') }];
+                if (recBox) Array.prototype.forEach.call(recBox.querySelectorAll('[data-ptar-parada]'), function (r) {
+                    slots.push({ wrap: r.querySelector('.ptar-input-wrap'), input: r.querySelector('input'), tipo: r.querySelector('select') });
+                });
+                slots.push({ wrap: destWrap, input: destInput, tipo: card.querySelector('[data-ptar-tipodest]') });
+                if (entBox) Array.prototype.forEach.call(entBox.querySelectorAll('[data-ptar-parada]'), function (r) {
+                    slots.push({ wrap: r.querySelector('.ptar-input-wrap'), input: r.querySelector('input'), tipo: r.querySelector('select') });
+                });
+                return slots;
+            }
+            function swapSlot(a, b) {
+                if (!a || !b || !a.wrap || !b.wrap) return;
+                var vA = a.input.value, roA = a.input.readOnly;
+                a.input.value = b.input.value; a.input.readOnly = b.input.readOnly;
+                b.input.value = vA; b.input.readOnly = roA;
                 ['ptar-picked', 'ptar-error'].forEach(function (c) {
-                    var a = origWrap.classList.contains(c), b = destWrap.classList.contains(c);
-                    origWrap.classList.toggle(c, b); destWrap.classList.toggle(c, a);
+                    var x = a.wrap.classList.contains(c), y = b.wrap.classList.contains(c);
+                    a.wrap.classList.toggle(c, y); b.wrap.classList.toggle(c, x);
                 });
-                // Datos (coordenadas + sitio de la agenda / Google)
                 ['lat', 'lon', 'cc', 'region', 'siteKey', 'gsite'].forEach(function (k) {
-                    var a = origWrap.dataset[k], b = destWrap.dataset[k];
-                    if (b === undefined) delete origWrap.dataset[k]; else origWrap.dataset[k] = b;
-                    if (a === undefined) delete destWrap.dataset[k]; else destWrap.dataset[k] = a;
+                    var x = a.wrap.dataset[k], y = b.wrap.dataset[k];
+                    if (y === undefined) delete a.wrap.dataset[k]; else a.wrap.dataset[k] = y;
+                    if (x === undefined) delete b.wrap.dataset[k]; else b.wrap.dataset[k] = x;
                 });
-                // Tipo de lugar + icono
-                if (oTipo && dTipo) {
-                    var t = oTipo.value; oTipo.value = dTipo.value; dTipo.value = t;
-                    if (typeof syncTipoSitioIcon === 'function') { syncTipoSitioIcon(origWrap, oTipo.value); syncTipoSitioIcon(destWrap, dTipo.value); }
+                if (a.tipo && b.tipo) {
+                    var t = a.tipo.value; a.tipo.value = b.tipo.value; b.tipo.value = t;
+                    if (typeof syncTipoSitioIcon === 'function') { syncTipoSitioIcon(a.wrap, a.tipo.value); syncTipoSitioIcon(b.wrap, b.tipo.value); }
                 }
-                renderEta(); syncGrupajeVentana();
-            };
+                renderEta(); if (typeof syncGrupajeVentana === 'function') syncGrupajeVentana();
+            }
+            function renderReorder() {
+                var slots = routeSlots();
+                // Limpiar controles previos.
+                slots.forEach(function (sl) {
+                    var row = sl.wrap && sl.wrap.closest ? sl.wrap.closest('.ptar-route-row') : null;
+                    sl.row = row;
+                    var old = row && row.querySelector('.ptar-reorder');
+                    if (old) old.parentNode.removeChild(old);
+                });
+                if (slots.length < 2) return;   // con un solo punto no hay nada que reordenar
+                var upSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>';
+                var dnSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
+                slots.forEach(function (sl, i) {
+                    if (!sl.row) return;
+                    var ctrl = document.createElement('span');
+                    ctrl.className = 'ptar-reorder';
+                    ctrl.innerHTML = '<button type="button" aria-label="Mover arriba">' + upSvg + '</button><button type="button" aria-label="Mover abajo">' + dnSvg + '</button>';
+                    var upB = ctrl.children[0], dnB = ctrl.children[1];
+                    if (i === 0) upB.disabled = true;
+                    if (i === slots.length - 1) dnB.disabled = true;
+                    upB.addEventListener('click', function () { swapSlot(slots[i], slots[i - 1]); });
+                    dnB.addEventListener('click', function () { swapSlot(slots[i], slots[i + 1]); });
+                    sl.row.appendChild(ctrl);
+                });
+            }
+            window.__ptarRenderReorder = renderReorder;
             // Pone un SITIO de la agenda como ORIGEN (recogida). Lo usa el
             // "sitio principal": al abrir Nuevo envío, el origen viene puesto.
             // El geocodificado es asíncrono y se auto-cancela si el origen
@@ -20761,9 +20788,11 @@
                 row.querySelector('.ptar-parada-del').addEventListener('click', function () {
                     box.removeChild(row);
                     syncAddBtns();
+                    renderReorder();
                     renderEta();
                 });
                 syncAddBtns();
+                renderReorder();
                 // Una parada extra suma al precio (nº de paradas × 40 €): recalcula
                 // y anima el importe al añadirla, no solo al elegir su ubicación.
                 renderEta();
@@ -20784,6 +20813,7 @@
             }
             origPlus = makePlus(origWrap, 'recogida');
             destPlus = makePlus(destWrap, 'entrega');
+            renderReorder();   // ▲▼ iniciales en origen y destino
             // La ventana recalcula el precio en el handler de abajo (que además
             // refresca las fechas disponibles). Solo añadimos aquí el renderEta
             // suelto si NO hay selector de fecha (sin ese handler); si hubiese
@@ -21288,6 +21318,7 @@
                 if (recBox) recBox.innerHTML = '';
                 if (entBox) entBox.innerHTML = '';
                 renumberParadas();
+                renderReorder();
                 var tipoOrig = card.querySelector('[data-ptar-tipoorig]');
                 var tipoDest = card.querySelector('[data-ptar-tipodest]');
                 if (tipoOrig) tipoOrig.selectedIndex = 0;
@@ -22987,6 +23018,7 @@
                         // Paradas adicionales: misma fila que tiene el envío.
                         paradaRows().forEach(function (r) { r.parentNode.removeChild(r); });
                         renumberParadas();
+                        if (typeof renderReorder === 'function') renderReorder();
                         (src.paradas || []).slice(0, 1).forEach(function (p) {
                             addParada(p.tipo === 'recogida' ? 'recogida' : 'entrega');
                             var rows = paradaRows(); var row = rows[rows.length - 1]; if (!row) return;
