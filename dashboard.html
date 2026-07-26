@@ -20255,6 +20255,18 @@
                         '</span>';
                     return;
                 }
+                // El PRECIO no se calcula hasta que se elige la FECHA de recogida.
+                // El desplegable de fecha arranca SIN selección a propósito, para
+                // forzar la elección según la necesidad del cliente; además la
+                // fecha mueve el precio (fija urgente +100 · fija posterior +50 ·
+                // ventana = base), así que enseñar un precio antes de la fecha
+                // sería un importe que luego cambia. Con origen+destino puestos,
+                // pero sin fecha ('' o 'Otro día…' sin elegir), se pide la fecha.
+                if (mode === 'carga' && diaSel && (diaSel.value === '' || diaSel.value === 'otro')) {
+                    delete card.dataset.precioBase;
+                    etaBox.innerHTML = '<span class="ptar-eta-placeholder">Selecciona la <strong>fecha de recogida</strong> para calcular el precio y la entrega estimada.</span>';
+                    return;
+                }
                 // Distancia por tramos en orden de recorrido:
                 // origen → recogidas → destino → entregas (solo puntos con coords).
                 var pts = [];
