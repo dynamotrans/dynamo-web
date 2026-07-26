@@ -2297,7 +2297,7 @@
             var ivaSel2 = document.getElementById('af-iva'), retSel2 = document.getElementById('af-ret');
             var ivaP = ivaSel2 ? ivaSel2.value : '21', retP = retSel2 ? retSel2.value : '1';
             html += '<div class="pago-contado" style="background:rgba(51,0,204,0.05);border-color:rgba(51,0,204,0.28);color:var(--navy);font-size:0.82rem;font-weight:700;text-align:left;">' +
-                'AUTOFACTURA solicitada · Dynamo emitirá tu factura de este viaje al finalizar el servicio (ej. <span style="font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--purple);">Dynamo-' + escH(afc) + '-' + (new Date()).getFullYear() + '-1</span>) · IVA ' + escH(ivaP) + '% · Retención ' + escH(retP) + '%' + (pronto && info ? ' · con el pronto pago descontado en la base imponible' : '') + '.</div>';
+                'AUTOFACTURA solicitada · Dynamo emitirá tu factura de este viaje 7 días tras al finalizar el servicio, con fecha emisión la fecha de entrega. (ej. <span style="font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--purple);">Dynamo-' + escH(afc) + '-' + (new Date()).getFullYear() + '-1</span>) · IVA ' + escH(ivaP) + '% · Retención ' + escH(retP) + '%' + (pronto && info ? ' · con el pronto pago descontado en la base imponible' : '') + '.</div>';
         }
         document.getElementById('ok-resumen').innerHTML = html;
         // Email donde se enviará la orden de carga: el de su ficha (existente) o
