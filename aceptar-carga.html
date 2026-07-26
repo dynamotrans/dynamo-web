@@ -2381,7 +2381,7 @@
         // Transportista, vehículo y conductor.
         html += cardSec(ICO.emp, 'Transportista', empNom, chip('CIF / DNI', empCif));
         html += cardSec(ICO.truck, 'Vehículo', okVal('f-camion'),
-            chip('Matrícula tractora', okVal('f-tractora')) + chip('Remolque', okVal('f-remolque')));
+            chip('Tractora', okVal('f-tractora')) + chip('Remolque', okVal('f-remolque')));
         html += cardSec(ICO.user, 'Conductor', okVal('f-chofer'),
             chip('DNI / NIE', okVal('f-dnichofer')) + chip('Teléfono', okVal('f-pref') + ' ' + okVal('f-tfno')));
         // Precio: caja verde como la de la oferta, con el pronto pago si aplica.
