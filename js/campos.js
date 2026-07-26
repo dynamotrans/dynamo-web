@@ -37,6 +37,17 @@
     function esEmail(el) { return attr(el, 'type') === 'email' || attr(el, 'inputmode') === 'email'; }
     function esTel(el) { return attr(el, 'type') === 'tel' || attr(el, 'inputmode') === 'tel'; }
 
+    // Red de seguridad: al enfocar un campo de teléfono/email, garantizar el
+    // atributo `inputmode` correcto para que el MÓVIL abra el teclado numérico
+    // (tel) o el de email, no el de texto. type="tel"/type="email" ya lo hacen,
+    // pero esto refuerza cualquier campo creado dinámicamente que se olvidara.
+    document.addEventListener('focusin', function (e) {
+        var el = e.target;
+        if (!el || el.tagName !== 'INPUT') return;
+        if (esTel(el) && attr(el, 'inputmode') !== 'tel') el.setAttribute('inputmode', 'tel');
+        else if (esEmail(el) && attr(el, 'inputmode') !== 'email') el.setAttribute('inputmode', 'email');
+    }, true);
+
     document.addEventListener('input', function (e) {
         var el = e.target;
         if (!el || el.tagName !== 'INPUT' || el.disabled || el.readOnly) return;

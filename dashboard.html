@@ -6839,7 +6839,7 @@
             '<div class="modal-form-row"><label>Nombre y apellidos</label>' +
             '<input type="text" id="edNombre" value="' + escapeHtml(nombre) + '"></div>' +
             '<div class="modal-form-row"><label>Teléfono</label>' +
-            '<input type="tel" id="edTel" value="' + escapeHtml(tel) + '"></div>' +
+            '<input type="tel" inputmode="tel" id="edTel" value="' + escapeHtml(tel) + '"></div>' +
             '<div class="modal-form-row"><label>Email <span style="color:var(--gray-500);font-weight:600;">· no editable</span></label>' +
             '<input type="email" value="' + escapeHtml(email) + '" disabled style="background:var(--gray-100);color:var(--gray-500);cursor:not-allowed;"></div>' +
             '<div class="modal-form-row"><label>Rol <span style="color:var(--gray-500);font-weight:600;">· no editable</span></label>' +
@@ -12990,9 +12990,9 @@
             sub: 'Modifica solo los datos editables',
             body:
                 '<div class="modal-form-row"><label>Persona de contacto en origen</label><input type="text" value="Carlos López"></div>' +
-                '<div class="modal-form-row"><label>Teléfono origen</label><input type="tel" value="+34 612 345 678"></div>' +
+                '<div class="modal-form-row"><label>Teléfono origen</label><input type="tel" inputmode="tel" value="+34 612 345 678"></div>' +
                 '<div class="modal-form-row"><label>Persona de contacto en destino</label><input type="text" value="María Sánchez"></div>' +
-                '<div class="modal-form-row"><label>Teléfono destino</label><input type="tel" value="+34 698 123 456"></div>' +
+                '<div class="modal-form-row"><label>Teléfono destino</label><input type="tel" inputmode="tel" value="+34 698 123 456"></div>' +
                 '<div class="modal-form-row"><label>Anotaciones</label><textarea>Carga frágil. Acceso por muelle norte.</textarea></div>',
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
                     '<button class="btn-primary" onclick="cargaGuardar(\'' + escapeHtml(ref) + '\')">Guardar cambios</button>'
