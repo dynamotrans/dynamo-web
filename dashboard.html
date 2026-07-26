@@ -22014,6 +22014,23 @@
             }
             // Recalcula el precio con los tipos de lugar de la confirmación:
             // base (sin recargo, del paso 1) × (1 + suma de recargos por tipo).
+            // Mini-icono de PDF (presupuesto) dentro de la línea "Base imponible"
+            // de la caja de precio de la confirmación. Se llama tras CADA render
+            // de la caja (hay dos ramas: precio del tarifador y precio manual).
+            function injectPresuIco(box) {
+                if (!box) return;
+                var baseK = box.querySelector('.alm-price-base .k');
+                if (!baseK || baseK.querySelector('.ptar-presu-ico')) return;
+                var tip = document.createElement('span');
+                tip.className = 'ptar-has-tip ptar-presu-ico';
+                tip.setAttribute('data-ptar-presu-pdf', '');
+                tip.setAttribute('tabindex', '0');
+                tip.setAttribute('role', 'button');
+                tip.setAttribute('aria-label', 'Ver o guardar el PDF de este precio');
+                tip.innerHTML = '<svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>' +
+                    '<span class="ptar-tip-pop" role="tooltip">Ver o guardar el <strong>presupuesto en PDF</strong> de este precio. ¿Solo estás viendo la tarifa y aún no vas a crear el envío? Es orientativo: si confirmas el envío en otro momento, puede variar (precios dinámicos). Se abre en una pestaña nueva.</span>';
+                baseK.appendChild(tip);
+            }
             function recalcConfPrice() {
                 if (!pendingData) return;
                 // PRECIO MANUAL fijado en el formulario: manda él — se OMITE el
@@ -22026,7 +22043,7 @@
                     // fijado a mano" (eso es jerga interna, no un concepto).
                     pendingData.precioRows = [];
                     var boxM = confirmCard.querySelector('[data-ptar-conf-price]');
-                    if (boxM) { boxM.hidden = false; window.__renderPriceBox(boxM, pm, []); }
+                    if (boxM) { boxM.hidden = false; window.__renderPriceBox(boxM, pm, []); injectPresuIco(boxM); }
                     var sumPM = summaryEl.querySelector('[data-sum-precio]');
                     if (sumPM) sumPM.textContent = String(pm).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €';
                     return;
@@ -22077,21 +22094,7 @@
                     box.hidden = !precio;
                     if (precio) {
                         window.__renderPriceBox(box, precio, rows);
-                        // Mini-icono de PDF junto a "Base imponible": abre el
-                        // presupuesto orientativo en una pestaña nueva (tooltip
-                        // explica que es orientativo y no vinculante).
-                        var baseK = box.querySelector('.alm-price-base .k');
-                        if (baseK) {
-                            var tip = document.createElement('span');
-                            tip.className = 'ptar-has-tip ptar-presu-ico';
-                            tip.setAttribute('data-ptar-presu-pdf', '');
-                            tip.setAttribute('tabindex', '0');
-                            tip.setAttribute('role', 'button');
-                            tip.setAttribute('aria-label', 'Ver o guardar el PDF de este precio');
-                            tip.innerHTML = '<svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>' +
-                                '<span class="ptar-tip-pop" role="tooltip">Ver o guardar el <strong>presupuesto en PDF</strong> de este precio. ¿Solo estás viendo la tarifa y aún no vas a crear el envío? Es orientativo: si confirmas el envío en otro momento, puede variar (precios dinámicos). Se abre en una pestaña nueva.</span>';
-                            baseK.appendChild(tip);
-                        }
+                        injectPresuIco(box);
                     }
                 }
                 var sumP = summaryEl.querySelector('[data-sum-precio]');
