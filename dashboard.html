@@ -3185,6 +3185,9 @@
             background: white;
             transition: border-color 0.18s, box-shadow 0.18s;
         }
+        /* Estrella ★ discreta: marca el punto de ruta que es el SITIO HABITUAL
+           (principal). Va en la esquina superior izquierda, sin molestar. */
+        .ptar-fav-star { position: absolute; top: -8px; left: -5px; font-size: 13px; line-height: 1; color: #f5b301; text-shadow: 0 0 3px #fff, 0 1px 2px rgba(0,0,0,0.25); pointer-events: none; z-index: 3; }
         .ptar-input-wrap:hover,
         .ptar-input-wrap:focus-within { border-color: var(--purple); }
         .ptar-input-wrap:focus-within { box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
@@ -20188,6 +20191,9 @@
                 if (b.getFullYear() !== a.getFullYear()) ensureFests(cc, b.getFullYear());
             }
             function renderEta() {
+                // Estrella ★ del sitio habitual: se re-evalúa en cada cambio de
+                // ruta (elegir/borrar sitio, reordenar…).
+                if (typeof syncPrincipalStar === 'function') syncPrincipalStar();
                 // La comparativa Dynamo del envío manual se refresca SIEMPRE
                 // tras cada repintado de la ETA (también al borrar sitios,
                 // donde renderEta sale pronto sin re-sellar precioTs).
@@ -20649,7 +20655,30 @@
                     if (typeof syncTipoSitioIcon === 'function') { syncTipoSitioIcon(a.wrap, a.tipo.value); syncTipoSitioIcon(b.wrap, b.tipo.value); }
                 }
                 renderEta(); if (typeof syncGrupajeVentana === 'function') syncGrupajeVentana();
+                syncPrincipalStar();
             }
+            // Estrella ★ discreta en el punto que contiene el SITIO PRINCIPAL
+            // (almacén habitual). Se basa en el siteKey, así la estrella sigue al
+            // sitio aunque se reordene la ruta.
+            function syncPrincipalStar() {
+                var prin = window.__sitioPrincipal;
+                routeSlots().forEach(function (sl) {
+                    var w = sl.wrap; if (!w) return;
+                    var isPrin = !!(prin && w.dataset.siteKey === prin);
+                    var star = w.querySelector('.ptar-fav-star');
+                    if (isPrin && !star) {
+                        star = document.createElement('span');
+                        star.className = 'ptar-fav-star';
+                        star.textContent = '★';
+                        star.title = 'Tu sitio habitual (marcado con estrella en Sitios)';
+                        star.setAttribute('aria-label', 'Sitio habitual');
+                        w.appendChild(star);
+                    } else if (!isPrin && star) {
+                        star.parentNode.removeChild(star);
+                    }
+                });
+            }
+            window.__ptarSyncPrincipalStar = syncPrincipalStar;
             // Arrastrar-y-soltar: se coge el asa ☰ de un punto y se mueve arriba/
             // abajo; al cruzar cada fila, el contenido se reordena en vivo (con
             // swapSlot), dando la sensación de mover físicamente la tarjeta.
@@ -20726,6 +20755,9 @@
                 origWrap.dataset.siteKey = key; delete origWrap.dataset.gsite;
                 origWrap.classList.add('ptar-picked'); origWrap.classList.remove('ptar-error');
                 origInput.readOnly = true;
+                // Mostrar la × de borrar/cambiar (igual que al elegir a mano).
+                var oClr = origWrap.querySelector('.ptar-clear'); if (oClr) oClr.hidden = false;
+                syncPrincipalStar();
                 var oTipo = card.querySelector('[data-ptar-tipoorig]');
                 if (oTipo && s.tipoLugar) {
                     for (var oi = 0; oi < oTipo.options.length; oi++) {
