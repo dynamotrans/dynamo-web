@@ -1545,8 +1545,9 @@
     // después (INCLUIDOS sábados y domingos). La estima Dynamo (aquí, mock: día
     // de carga + 1); se puede cambiar. En producción la calcula el backend.
     var DOW = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-    // Fechas SIEMPRE con año (dd/mm/yyyy). fmtDMlabel lo incluye.
-    function fmtDMlabel(d) { return DOW[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear(); }
+    // Fechas SIEMPRE con año a 2 dígitos (dd/mm/yy) — formato único de la
+    // plataforma (Vie 10/07/26). fmtDMlabel lo incluye.
+    function fmtDMlabel(d) { return DOW[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + ('0' + (d.getFullYear() % 100)).slice(-2); }
     function parseLabelFecha(s) {
         var m = String(s || '').match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
         if (!m) return null;
@@ -1563,7 +1564,7 @@
         var cand = new Date(y, +m[2] - 1, +m[1]);
         var hace30 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
         if (cand < hace30) y++;
-        return label + '/' + y;
+        return label + '/' + ('0' + (y % 100)).slice(-2); // año a 2 dígitos (dd/mm/yy)
     }
     function montarEntregaFecha() {
         var feCarga = document.getElementById('f-fechacarga');
