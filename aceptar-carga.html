@@ -787,7 +787,7 @@
                     <div class="fac-detail" id="autofacPanel" hidden>
                         <div class="af-nom-lbl">Así numeraríamos tus autofacturas:</div>
                         <div class="af-nom-ex" id="afNomEx">—</div>
-                        <div class="af-nom-note">Dynamo · tu CIF/NIF · nº correlativo de tus viajes (empieza en 1).</div>
+                        <div class="af-nom-note">Dynamo · tu CIF/NIF · año · nº correlativo de tus viajes (empieza en 1). El año es el de la fecha de emisión de la factura.</div>
                         <div class="af-fisc">
                             <div class="af-fisc-row">
                                 <label for="af-iva">IVA</label>
@@ -1281,8 +1281,11 @@
         afPrefillFromFicha();
         // Nomenclatura de ejemplo (3 primeras autofacturas del transportista).
         var cif = afCif();
+        // Año de la nomenclatura = año de la FECHA DE EMISIÓN de la factura
+        // (que es 24-48 h tras la entrega). El correlativo empieza en 1 cada año.
+        var afYear = (new Date()).getFullYear();
         var ex = document.getElementById('afNomEx');
-        if (ex) ex.innerHTML = ['Dynamo-' + cif + '-1', 'Dynamo-' + cif + '-2', 'Dynamo-' + cif + '-3'].map(escH).join('<br>');
+        if (ex) ex.innerHTML = [1, 2, 3].map(function (n) { return 'Dynamo-' + cif + '-' + afYear + '-' + n; }).map(escH).join('<br>');
         // Desglose de la autofactura: base − pronto pago (si aplica) → IVA − retención.
         var br = document.getElementById('afBreak');
         if (!br) return;
@@ -2295,7 +2298,7 @@
             var ivaSel2 = document.getElementById('af-iva'), retSel2 = document.getElementById('af-ret');
             var ivaP = ivaSel2 ? ivaSel2.value : '21', retP = retSel2 ? retSel2.value : '1';
             html += '<div class="pago-contado" style="background:rgba(51,0,204,0.05);border-color:rgba(51,0,204,0.28);color:var(--navy);font-size:0.82rem;font-weight:700;text-align:left;">' +
-                'AUTOFACTURA solicitada · Dynamo emitirá tu factura de este viaje al finalizar el servicio (ej. <span style="font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--purple);">Dynamo-' + escH(afc) + '-1</span>) · IVA ' + escH(ivaP) + '% · Retención ' + escH(retP) + '%' + (pronto && info ? ' · con el pronto pago descontado en la base imponible' : '') + '.</div>';
+                'AUTOFACTURA solicitada · Dynamo emitirá tu factura de este viaje al finalizar el servicio (ej. <span style="font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--purple);">Dynamo-' + escH(afc) + '-' + (new Date()).getFullYear() + '-1</span>) · IVA ' + escH(ivaP) + '% · Retención ' + escH(retP) + '%' + (pronto && info ? ' · con el pronto pago descontado en la base imponible' : '') + '.</div>';
         }
         document.getElementById('ok-resumen').innerHTML = html;
         // Email donde se enviará la orden de carga: el de su ficha (existente) o
