@@ -1251,10 +1251,12 @@
         box.hidden = false;
         document.getElementById('pc-total').textContent = fmtEur(info.total) + ' €';
         // Pronto pago: cobro a 5 días (verde negrita) · Sin pronto pago: 60 días (rojo).
-        var p5 = fechaPagoDias(5), p60 = fechaPagoDias(60);
+        // El vencimiento a 60 días se cuenta desde la fecha de ENTREGA (la factura
+        // se emite en la entrega = carga + tránsito; en el mock, +1 día → +61 total).
+        var p5 = fechaPagoDias(5), p60 = fechaPagoDias(61);
         document.getElementById('pc-when').innerHTML = p5 ? '(pago el ' + escH(p5) + ', en 5 días)' : '';
         document.getElementById('pc-alt').innerHTML = 'Sin pronto pago: <span class="pc-red">' + escH(fmtEur(info.base)) + ' € a 60 días</span>' +
-            (p60 ? ' (se pagaría el <span class="pc-red">' + escH(p60) + '</span>, si la factura coincide con la fecha de envío)' : '') + '.';
+            (p60 ? ' (se pagaría el <span class="pc-red">' + escH(p60) + '</span>, si la factura coincide con la fecha de entrega)' : '') + '.';
     }
     // ---- AUTOFACTURA: Dynamo emite la factura por el transportista ----
     // CIF/NIF del transportista identificado (o del alta). Normalizado.
