@@ -2021,10 +2021,13 @@
             .dash-recomienda-btns { width: 100%; }
             .dash-recomienda-btns > button { flex: 1; min-width: 0; padding-left: 0.4rem; padding-right: 0.4rem; font-size: var(--fs-m); }
         }
-        /* Mini-icono de PDF (presupuesto) junto a "Base imponible". */
-        .ptar-presu-ico { display: inline-flex; align-items: center; margin-left: 0.4rem; vertical-align: middle; color: var(--purple); cursor: pointer; }
-        .ptar-presu-ico .ptar-tip-ico { width: 16px; height: 16px; opacity: 0.7; }
+        /* Mini-iconos junto a "Base imponible": documento (abre PDF) + ℹ (tooltip).
+           Área de toque amplia (padding) y separación clara para que en móvil se
+           acierte cada uno sin fallar. */
+        .ptar-presu-ico { display: inline-flex; align-items: center; justify-content: center; margin-left: 0.25rem; padding: 6px; vertical-align: middle; color: var(--purple); cursor: pointer; border-radius: 7px; -webkit-tap-highlight-color: transparent; }
+        .ptar-presu-ico .ptar-tip-ico { width: 18px; height: 18px; opacity: 0.75; }
         .ptar-presu-ico:hover .ptar-tip-ico { opacity: 1; }
+        .ptar-presu-ico:hover, .ptar-presu-ico:active, .ptar-presu-ico.tip-open { background: rgba(51,0,204,0.08); }
         /* Discreción comercial (confirmación de envío) */
         .ptar-discrecion { border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 0.7rem 0.8rem; background: var(--gray-50); margin-bottom: 0; }
         .ptar-discrecion .ptar-confirm-check { margin: 0; }
@@ -14912,11 +14915,13 @@
         // reenvía el clic al control (abre el desplegable y tapa el tooltip).
         // Cancelamos esa acción por defecto cuando el clic cae en el ℹ.
         document.addEventListener('click', function (e) {
-            var t = e.target.closest && e.target.closest('.ptar-has-tip');
-            // Solo cuando el ℹ está DENTRO de un <label> (evita que el label
-            // abra su desplegable). Los tooltips clicables (con su propia acción,
-            // p. ej. el icono de PDF junto al precio) NO se interceptan.
-            if (t && t.closest('label')) { e.preventDefault(); e.stopPropagation(); }
+            // Un clic/tap sobre CUALQUIER ℹ (.ptar-has-tip) solo abre su tooltip:
+            // se cancela la acción por defecto (que el label abra su desplegable)
+            // y se evita que el clic dispare otros handlers. El icono de PDF NO es
+            // un .ptar-has-tip (es un botón aparte), así que su clic no se toca.
+            if (e.target.closest && e.target.closest('.ptar-has-tip')) {
+                e.preventDefault(); e.stopPropagation();
+            }
         }, true);
         // Cierra los tooltips al tocar/clicar fuera (móvil y desktop).
         ['touchstart', 'pointerdown'].forEach(function (ev) {
