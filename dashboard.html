@@ -2026,8 +2026,15 @@
            acierte cada uno sin fallar. */
         .ptar-presu-ico { display: inline-flex; align-items: center; justify-content: center; margin-left: 0.25rem; padding: 6px; vertical-align: middle; color: var(--purple); cursor: pointer; border-radius: 7px; -webkit-tap-highlight-color: transparent; }
         .ptar-presu-ico .ptar-tip-ico { width: 18px; height: 18px; opacity: 0.75; }
-        .ptar-presu-ico:hover .ptar-tip-ico { opacity: 1; }
-        .ptar-presu-ico:hover, .ptar-presu-ico:active, .ptar-presu-ico.tip-open { background: rgba(51,0,204,0.08); }
+        .ptar-presu-ico.tip-open .ptar-tip-ico { opacity: 1; }
+        /* Fondo al pulsar (tip-open) o mientras se toca (:active) SIEMPRE; el
+           :hover solo con puntero real, para que en móvil (iOS) el fondo no se
+           quede "pegado" tras el primer toque. */
+        .ptar-presu-ico:active, .ptar-presu-ico.tip-open { background: rgba(51,0,204,0.08); }
+        @media (hover: hover) {
+            .ptar-presu-ico:hover .ptar-tip-ico { opacity: 1; }
+            .ptar-presu-ico:hover { background: rgba(51,0,204,0.08); }
+        }
         /* Discreción comercial (confirmación de envío) */
         .ptar-discrecion { border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 0.7rem 0.8rem; background: var(--gray-50); margin-bottom: 0; }
         .ptar-discrecion .ptar-confirm-check { margin: 0; }
@@ -14913,7 +14920,15 @@
             if (!t) return;
             var willOpen = !t.classList.contains('tip-open');
             document.querySelectorAll('.ptar-has-tip.tip-open').forEach(function (h) { h.classList.remove('tip-open'); });
-            if (willOpen) { placeTip(t); t.classList.add('tip-open'); }
+            if (willOpen) {
+                // Mostrar PRIMERO y colocar después: medir el tooltip cuando ya
+                // es visible da la posición correcta al PRIMER toque (medirlo
+                // oculto/recién insertado lo dejaba fuera de pantalla). Se re-coloca
+                // en el siguiente frame por si el layout aún estaba asentándose.
+                t.classList.add('tip-open');
+                placeTip(t);
+                requestAnimationFrame(function () { placeTip(t); });
+            }
         }, { passive: true });
         // El ℹ suele ir dentro de un <label for=...>: al pulsarlo, el label
         // reenvía el clic al control (abre el desplegable y tapa el tooltip).
