@@ -32,7 +32,7 @@
     h1 { font-size: 1.25rem; text-align: center; margin-bottom: 0.2rem; }
     .sub { text-align: center; color: var(--gray-500); font-size: 0.85rem; margin-bottom: 1rem; }
     .viaje { background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.9rem 1rem; margin-bottom: 1rem; }
-    .viaje dt { font-size: 0.68rem; font-weight: 800; color: var(--gray-500); margin-top: 0.55rem; }
+    .viaje dt { font-size: 0.72rem; font-weight: 800; color: var(--gray-500); margin-top: 0.55rem; }
     .viaje dt:first-child { margin-top: 0; }
     .viaje dd { font-size: 0.92rem; font-weight: 700; }
     .viaje .v-sub { display: block; font-size: 0.74rem; font-weight: 600; color: var(--gray-500); margin-top: 2px; }
@@ -45,13 +45,13 @@
     .of-pt-est { font-size: 0.88rem; font-weight: 700; color: var(--navy); margin-top: 0.35rem; }
     .of-pt-est b { font-weight: 900; }
     .v-details { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem 1rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--gray-300); }
-    .v-details .vd-k { font-size: 0.68rem; font-weight: 800; color: var(--gray-500); }
+    .v-details .vd-k { font-size: 0.72rem; font-weight: 800; color: var(--gray-500); }
     .v-details .vd-v { font-size: 0.9rem; font-weight: 700; color: var(--navy); }
     /* ---- Oferta en TARJETAS (pantalla del formulario): recogida/entrega, fecha
        destacada y mercancía con chips. Legible en el móvil del transportista. ---- */
     #viajeBox { background: transparent; border: none; padding: 0; margin-bottom: 1rem; }
     .of-envio { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; background: #ece8fb; border: 1px solid rgba(51,0,204,0.22); border-radius: 11px; padding: 0.55rem 0.85rem; margin-bottom: 0.7rem; }
-    .of-envio .of-envio-lbl { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--purple); }
+    .of-envio .of-envio-lbl { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--purple); }
     .of-envio > span:last-child { font-size: 1rem; font-weight: 900; color: var(--navy); }
     .of-route { display: grid; gap: 0.6rem; margin-bottom: 0.7rem; }
     @media (min-width: 520px) { .of-route { grid-template-columns: 1fr 1fr; } }
@@ -76,7 +76,7 @@
     .of-merc { background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.8rem 0.9rem; }
     .of-merc-head { display: flex; align-items: center; gap: 0.6rem; }
     .of-merc-ico { flex: none; line-height: 0; color: var(--purple); }
-    .of-merc-lbl { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--purple); }
+    .of-merc-lbl { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--purple); }
     .of-merc-tipo { font-size: 1rem; font-weight: 900; color: var(--navy); }
     /* Chips del detalle en rejilla de 2 columnas: cada fila es una pareja
        (metros+peso · palets+tipo de carga · trampilla+NIMA). */
@@ -84,10 +84,10 @@
     /* Chip a fila completa (Tipo de carga va solo en su fila). */
     .of-chip.of-chip-full { grid-column: 1 / -1; }
     .of-chip { display: flex; flex-direction: column; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 9px; padding: 0.34rem 0.6rem; }
-    .of-chip .of-chip-k { font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: var(--gray-500); }
+    .of-chip .of-chip-k { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: var(--gray-500); }
     .of-chip .of-chip-v { font-size: 0.88rem; font-weight: 800; color: var(--navy); }
     .of-dm { margin-top: 0.75rem; padding-top: 0.7rem; border-top: 1px dashed var(--gray-300); font-size: 0.86rem; font-weight: 600; color: var(--gray-700); line-height: 1.45; }
-    .of-dm b { display: block; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gray-500); margin-bottom: 0.22rem; }
+    .of-dm b { display: block; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gray-500); margin-bottom: 0.22rem; }
     .pago-contado { margin-top: 0.7rem; background: rgba(34,165,90,0.1); border: 1.5px solid var(--green); border-radius: 10px; padding: 0.6rem 0.75rem; font-size: 0.9rem; font-weight: 800; color: var(--green-dark); }
     .pago-contado .imp { font-size: 1.25rem; }
     .pago-contado .base-nota { font-size: 0.78rem; font-weight: 600; opacity: 0.85; }
@@ -187,7 +187,7 @@
     .empresa-resumen .er-nombre { font-size: 1rem; font-weight: 900; color: var(--purple); }
     .empresa-resumen .er-cif { font-size: 0.8rem; font-weight: 700; color: var(--gray-700); margin-top: 1px; }
     .empresa-resumen .er-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem 0.9rem; margin-top: 0.6rem; }
-    .empresa-resumen .er-k { font-size: 0.66rem; font-weight: 800; color: var(--gray-500); }
+    .empresa-resumen .er-k { font-size: 0.72rem; font-weight: 800; color: var(--gray-500); }
     .empresa-resumen .er-v { font-size: 0.85rem; font-weight: 700; }
     .empresa-resumen .er-cambiar { margin-top: 0.6rem; font-size: 0.76rem; font-weight: 800; color: var(--purple); background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; }
     /* Subida de documentos por TIPO en el alta (cajas grandes tipo drop). */
@@ -252,17 +252,17 @@
     .fac-detail .pc-lbl { font-size: 0.8rem; font-weight: 700; color: var(--navy); min-width: 0; flex: 1 1 auto; }
     .fac-detail .pc-amount { font-size: 1.12rem; font-weight: 900; color: var(--green-dark); white-space: nowrap; flex: 0 0 auto; }
     .fac-detail .pc-when { color: var(--green-dark); font-weight: 800; font-size: 0.72rem; }
-    .fac-detail .pc-sub { font-size: 0.7rem; font-weight: 600; color: var(--gray-500); margin-top: 0.5rem; }
+    .fac-detail .pc-sub { font-size: 0.72rem; font-weight: 600; color: var(--gray-500); margin-top: 0.5rem; }
     .fac-detail .pc-alt { font-size: 0.74rem; font-weight: 600; color: var(--gray-500); margin-top: 0.4rem; line-height: 1.5; }
     .fac-detail .pc-red { color: var(--red); font-weight: 800; }
     .af-nom-lbl { font-size: 0.72rem; font-weight: 700; color: var(--gray-500); }
     .af-nom-ex { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; font-weight: 700; color: var(--purple); margin: 0.25rem 0; line-height: 1.65; word-break: break-all; }
-    .af-nom-note { font-size: 0.68rem; color: var(--gray-500); }
+    .af-nom-note { font-size: 0.72rem; color: var(--gray-500); }
     .af-fisc { display: flex; gap: 0.7rem; margin-top: 0.65rem; }
     .af-fisc-row { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; }
-    .af-fisc-row label { font-size: 0.66rem; font-weight: 800; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.02em; }
+    .af-fisc-row label { font-size: 0.72rem; font-weight: 800; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.02em; }
     .af-fisc-row select { width: 100%; height: 40px; border: 1.5px solid var(--gray-300); border-radius: 9px; padding: 0 0.55rem; font-size: 0.86rem; font-weight: 600; color: var(--navy); background: #fff; }
-    .af-fisc-note { font-size: 0.7rem; color: var(--gray-600); margin-top: 0.5rem; line-height: 1.45; }
+    .af-fisc-note { font-size: 0.72rem; color: var(--gray-600); margin-top: 0.5rem; line-height: 1.45; }
     .af-break { margin-top: 0.6rem; padding-top: 0.55rem; border-top: 1px dashed var(--gray-300); font-size: 0.8rem; }
     .af-break .afb-row { display: flex; justify-content: space-between; gap: 0.75rem; padding: 1.5px 0; color: var(--gray-700); font-weight: 600; }
     .af-break .afb-row .afb-neg { color: var(--red); }
@@ -394,7 +394,7 @@
     .lang-btn { display: flex; align-items: center; gap: 0.3rem; cursor: pointer; background: #fff; border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 0.3rem 0.7rem 0.3rem 0.45rem; font: inherit; font-size: 0.78rem; font-weight: 700; color: var(--gray-700); transition: all 0.2s; box-shadow: 0 4px 14px rgba(10,2,48,0.08); }
     .lang-btn:hover { border-color: var(--purple); }
     .lang-btn .flag { font-size: 1.1rem; line-height: 1; }
-    .lang-btn .arrow { font-size: 0.6rem; margin-left: 0.15rem; transition: transform 0.2s; }
+    .lang-btn .arrow { font-size: 0.72rem; margin-left: 0.15rem; transition: transform 0.2s; }
     .lang-btn.open .arrow { transform: rotate(180deg); }
     .lang-dropdown { position: absolute; top: calc(100% + 6px); right: 0; z-index: 10001; background: #fff; border-radius: 14px; border: 1.5px solid var(--gray-200); box-shadow: 0 12px 40px rgba(0,0,0,0.12); padding: 0.5rem; display: none; min-width: 170px; max-height: 350px; overflow-y: auto; }
     .lang-dropdown.open { display: block; animation: langPop 0.2s ease; }
