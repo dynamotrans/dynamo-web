@@ -4090,7 +4090,11 @@
         /* Teléfonos con prefijo de país: desplegable (+34 por defecto) + número */
         .tel-group { display: flex; gap: 0.4rem; }
         .tel-group .tel-pref { flex: 0 0 auto; width: 116px; min-width: 0; }
-        .tel-group input { flex: 1 1 auto; min-width: 0; }
+        .tel-group input[type="tel"], .tel-group input:not([type="hidden"]) { flex: 1 1 auto; min-width: 0; }
+        /* Con selector delante + aviso de obligatorio: el aviso cae debajo a
+           todo el ancho (el número input lo busca en su parentNode = .tel-group). */
+        .tel-group-wrap { flex-wrap: wrap; }
+        .tel-group-wrap .sitio-req-msg { flex: 0 0 100%; }
         .ptar-terms-box {
             border: 1.5px solid var(--gray-200); border-radius: 10px;
             padding: 0.7rem 0.8rem; background: var(--gray-50);
@@ -6839,7 +6843,9 @@
             '<div class="modal-form-row"><label>Nombre y apellidos</label>' +
             '<input type="text" id="edNombre" value="' + escapeHtml(nombre) + '"></div>' +
             '<div class="modal-form-row"><label>Teléfono</label>' +
-            '<input type="tel" inputmode="tel" id="edTel" value="' + escapeHtml(tel) + '"></div>' +
+            '<div class="tel-group"><select id="edTel-pref" class="tel-pref" aria-label="Prefijo de país">' +
+            TEL_PREFIJOS.map(function (p) { return '<option value="' + p[0] + '"' + (p[0] === telSplit(tel).pref ? ' selected' : '') + '>' + p[0] + ' ' + p[1] + '</option>'; }).join('') +
+            '</select><input type="tel" inputmode="tel" id="edTel" value="' + escapeHtml(telSplit(tel).num) + '" placeholder="600 000 000"></div></div>' +
             '<div class="modal-form-row"><label>Email <span style="color:var(--gray-500);font-weight:600;">· no editable</span></label>' +
             '<input type="email" value="' + escapeHtml(email) + '" disabled style="background:var(--gray-100);color:var(--gray-500);cursor:not-allowed;"></div>' +
             '<div class="modal-form-row"><label>Rol <span style="color:var(--gray-500);font-weight:600;">· no editable</span></label>' +
@@ -6857,10 +6863,9 @@
     }
     function guardarDatosCuenta() {
         var n = document.getElementById('edNombre');
-        var t = document.getElementById('edTel');
         var err = document.getElementById('edDatosErr');
         var nombre = n ? n.value.trim() : '';
-        var tel = t ? t.value.trim() : '';
+        var tel = telValue('edTel') || '';
         if (!nombre) {
             if (err) err.classList.add('show');
             if (n) { n.classList.add('sitio-f-err'); n.focus(); }
@@ -9008,7 +9013,7 @@
                     '<div><label>Dirección (calle y número)</label><input class="sitio-f-lock" value="' + escapeHtml(sp.calle || s.dir || '') + '" readonly tabindex="-1"></div>' +
                     (sp.resto ? '<div><label>CP, localidad, provincia y país</label><input class="sitio-f-lock" value="' + escapeHtml(sp.resto) + '" readonly tabindex="-1"></div>' : '') +
                     req('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
-                    req('Teléfono', 'tfno', s.tfno, 'Ej. +34 612 345 678') +
+                    telSitioField('almc', 'tfno', s.tfno, null, true) +
                     opt('Contacto', 'contacto', s.contacto, 'Persona de contacto') +
                     opt('Notas del sitio', 'notas', s.notas, 'Ej. referencia de entrega, pedir cita…', true) +
                     opt('Enlace de Google Maps', 'maps', s.maps, 'https://maps.app.goo.gl/…') +
@@ -9190,7 +9195,8 @@
             var site = {};
             if (s.key) { var s0 = siteDe(s.key) || {}; Object.keys(s0).forEach(function (k) { site[k] = s0[k]; }); }
             else { site.dir = s.dir; site.freq = 1; }
-            site.empresa = val('empresa'); site.horario = val('horario'); site.tfno = val('tfno');
+            site.empresa = val('empresa'); site.horario = val('horario');
+            site.tfno = combinaTelPref(box.querySelector('[data-almc-f="tfno"]'));
             site.contacto = val('contacto') || null; site.notas = val('notas') || null;
             var mp = val('maps'); if (mp) site.maps = mp;
             // El reparto va en camión pequeño a ZONA URBANA → el sitio de
@@ -10924,6 +10930,52 @@
         return pref + ' ' + num;
     }
     window.telValue = telValue;
+    // Prefijo (dial) de un campo de teléfono con selector: se lee del input
+    // oculto que deja js/prefijos.js dentro de .pref-wrap (o del <select> aún
+    // sin enhancear). El número visible NO lleva el prefijo (va en el selector).
+    function telPrefDe(elOrGroup) {
+        if (!elOrGroup) return '+34';
+        var g = (elOrGroup.classList && elOrGroup.classList.contains('tel-group'))
+            ? elOrGroup : (elOrGroup.closest ? elOrGroup.closest('.tel-group') : null);
+        if (!g) return '+34';
+        var h = g.querySelector('.pref-wrap input[type="hidden"]');
+        if (h && h.value) return h.value;
+        var s = g.querySelector('select.tel-pref');
+        return (s && s.value) || '+34';
+    }
+    // Combina el prefijo elegido con el número tecleado de un campo con selector.
+    // numInput = el input visible del número (el que lleva data-*-f="tfno").
+    function combinaTelPref(numInput) {
+        var num = ((numInput && numInput.value) || '').trim();
+        if (!num) return '';
+        if (/^\+/.test(num)) return num;   // ya viene completo (prefill externo)
+        return telPrefDe(numInput) + ' ' + num;
+    }
+    // Campo de TELÉFONO para las fichas de sitio (confirmación de envío y de
+    // almacenamiento): SELECTOR de prefijo mundial DELANTE + número. El número
+    // conserva su data-{pfx}-f="tfno" (así la validación/guardado por atributo
+    // siguen igual); el prefijo se une al leer con combinaTelPref(). El <select>
+    // lleva class tel-pref → lo enhancea el MutationObserver de montarTelPref.
+    // tel-group SIN etiqueta (para filas que ya traen su <label> aparte).
+    function telGroupHTML(val, attrs) {
+        var s = telSplit(val);
+        var opts = TEL_PREFIJOS.map(function (p) { return '<option value="' + p[0] + '"' + (p[0] === s.pref ? ' selected' : '') + '>' + p[0] + ' ' + p[1] + '</option>'; }).join('');
+        return '<div class="tel-group"><select class="tel-pref" aria-label="Prefijo de país">' + opts + '</select>' +
+            '<input type="tel" inputmode="tel"' + (attrs || '') + ' value="' + escapeHtml(s.num) + '" placeholder="600 000 000"></div>';
+    }
+    function telSitioField(pfx, f, val, id, required) {
+        var s = telSplit(val);
+        var opts = TEL_PREFIJOS.map(function (p) { return '<option value="' + p[0] + '"' + (p[0] === s.pref ? ' selected' : '') + '>' + p[0] + ' ' + p[1] + '</option>'; }).join('');
+        var idAttr = (id != null && id !== '') ? ' data-' + pfx + '-id="' + id + '"' : '';
+        var reqAttr = required ? ' data-' + pfx + '-req' : '';
+        var lbl = 'Teléfono' + (required ? '' : ' <span style="color:var(--gray-500);font-weight:600;">· opcional</span>');
+        return '<div><label>' + lbl + '</label>' +
+            '<div class="tel-group tel-group-wrap">' +
+                '<select class="tel-pref" aria-label="Prefijo de país">' + opts + '</select>' +
+                '<input type="tel" inputmode="tel" data-' + pfx + '-f="' + f + '"' + idAttr + reqAttr + ' value="' + escapeHtml(s.num) + '" placeholder="600 000 000">' +
+                (required ? '<div class="sitio-req-msg">Este campo es obligatorio.</div>' : '') +
+            '</div></div>';
+    }
     // Montar el selector de prefijo MUNDIAL (js/prefijos.js) sobre cualquier
     // <select class="tel-pref"> que aparezca (las fichas se generan en modales,
     // por eso se observa el DOM). El <select> se sustituye por un input oculto
@@ -12990,9 +13042,9 @@
             sub: 'Modifica solo los datos editables',
             body:
                 '<div class="modal-form-row"><label>Persona de contacto en origen</label><input type="text" value="Carlos López"></div>' +
-                '<div class="modal-form-row"><label>Teléfono origen</label><input type="tel" inputmode="tel" value="+34 612 345 678"></div>' +
+                '<div class="modal-form-row"><label>Teléfono origen</label>' + telGroupHTML('+34 612 345 678') + '</div>' +
                 '<div class="modal-form-row"><label>Persona de contacto en destino</label><input type="text" value="María Sánchez"></div>' +
-                '<div class="modal-form-row"><label>Teléfono destino</label><input type="tel" inputmode="tel" value="+34 698 123 456"></div>' +
+                '<div class="modal-form-row"><label>Teléfono destino</label>' + telGroupHTML('+34 698 123 456') + '</div>' +
                 '<div class="modal-form-row"><label>Anotaciones</label><textarea>Carga frágil. Acceso por muelle norte.</textarea></div>',
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
                     '<button class="btn-primary" onclick="cargaGuardar(\'' + escapeHtml(ref) + '\')">Guardar cambios</button>'
@@ -21798,7 +21850,8 @@
                         document.querySelectorAll('[data-sitio-id="' + id + '"]').forEach(function (el) {
                             var f = el.getAttribute('data-sitio-f');
                             if (!f) return;   // (el select de tipo no tiene data-sitio-f)
-                            var v = el.value.trim() || null;
+                            // Teléfono: unir el prefijo del selector con el número.
+                            var v = (f === 'tfno' ? combinaTelPref(el) : el.value.trim()) || null;
                             if (v) tocado = true;
                             b2[f] = v;
                         });
@@ -21830,7 +21883,8 @@
                     document.querySelectorAll('[data-sitio-id="' + id + '"]').forEach(function (el) {
                         var f = el.getAttribute('data-sitio-f');
                         if (!f) return;   // ignora el select de tipo (sin data-sitio-f)
-                        var v = el.value.trim() || null;
+                        // Teléfono: unir el prefijo del selector con el número.
+                        var v = (f === 'tfno' ? combinaTelPref(el) : el.value.trim()) || null;
                         // Email ya registrado: no se puede BORRAR del todo (regla
                         // del sitio) — solo sustituir por otro. Vacío → se conserva.
                         if (f === 'email' && !v && base.email) return;
@@ -22672,7 +22726,7 @@
                                                 '<div><label>CP, localidad, provincia y país' + lockInfoIcon() + '</label><input class="sitio-f-lock" value="' + escapeHtml(sp.resto || '') + '" readonly tabindex="-1"></div>';
                                         })() +
                                         inpReq('Horario', 'horario', '', 'Ej. L-V 8:00-14:00') +
-                                        inpReq('Teléfono', 'tfno', '', 'Ej. +34 612 345 678') +
+                                        telSitioField('sitio', 'tfno', '', p.id, true) +
                                         TEL_NOTA_HTML +
                                         inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','contacto', '', 'Persona de contacto') +
                                         '<div class="full"><label>Enlace de Google Maps <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="maps" data-sitio-id="' + p.id + '" value="" placeholder="https://maps.app.goo.gl/…"></div>' +
@@ -22740,7 +22794,7 @@
                                     inpLock('Dirección (calle y número)', calleVal, !dirVal) +
                                     inpLock('CP, localidad, provincia y país', dirVal, !calleVal) +
                                     inpReq('Horario', 'horario', s.horario, 'Ej. L-V 8:00-14:00') +
-                                    inpReq('Teléfono', 'tfno', s.tfno) +
+                                    telSitioField('sitio', 'tfno', s.tfno, p.id, true) +
                                     TEL_NOTA_HTML +
                                     inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','contacto', s.contacto, 'Persona de contacto') +
                                     // Enlace de Google Maps: si el sitio YA tiene
