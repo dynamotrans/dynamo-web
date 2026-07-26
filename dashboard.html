@@ -2021,12 +2021,11 @@
             .dash-recomienda-btns { width: 100%; }
             .dash-recomienda-btns > button { flex: 1; min-width: 0; padding-left: 0.4rem; padding-right: 0.4rem; font-size: var(--fs-m); }
         }
+        /* Mini-icono de PDF (presupuesto) junto a "Base imponible". */
+        .ptar-presu-ico { display: inline-flex; align-items: center; margin-left: 0.4rem; vertical-align: middle; color: var(--purple); cursor: pointer; }
+        .ptar-presu-ico .ptar-tip-ico { width: 16px; height: 16px; opacity: 0.7; }
+        .ptar-presu-ico:hover .ptar-tip-ico { opacity: 1; }
         /* Discreción comercial (confirmación de envío) */
-        .ptar-presu-box { margin-bottom: 0.75rem; }
-        .ptar-presu-note { margin: 0.5rem 0 0; font-size: var(--fs-s); color: var(--gray-500); line-height: 1.45; }
-        .ptar-presu-share { display: flex; gap: 0.5rem; align-items: center; }
-        .ptar-presu-act { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; font-size: var(--fs-s); font-weight: 600; padding: 0.5rem 0.85rem; border-radius: 9px; border: 1.5px solid var(--gray-200); background: #fff; color: var(--navy); cursor: pointer; transition: border-color .15s, background .15s; }
-        .ptar-presu-act:hover { border-color: var(--purple); background: rgba(51,0,204,0.04); }
         .ptar-discrecion { border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 0.7rem 0.8rem; background: var(--gray-50); margin-bottom: 0; }
         .ptar-discrecion .ptar-confirm-check { margin: 0; }
         .ptar-discrecion-aviso { margin-top: 0.6rem; padding: 0.7rem 0.8rem; border-radius: 8px; background: rgba(51,0,204,0.07); border: 1px solid rgba(51,0,204,0.28); color: var(--purple); font-size: var(--fs-m); line-height: 1.5; font-weight: 600; }
@@ -5651,21 +5650,6 @@
                      con crédito → transferencia/domiciliación (confirma directo);
                      sin crédito → pago por adelantado. -->
                 <div class="ptar-pay" data-ptar-pay hidden></div>
-                <!-- Presupuesto orientativo (opcional): para el cliente que solo
-                     está viendo tarifa y aún no va a crear el envío. Abre el PDF
-                     en el visor del navegador (ahí puede imprimir/descargar). -->
-                <div class="ptar-presu-box">
-                    <div class="ptar-presu-share">
-                        <button type="button" class="ptar-presu-act" data-ptar-presu-pdf>
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-                            Ver / guardar PDF de este precio
-                        </button>
-                        <span class="ptar-has-tip" tabindex="0" role="button" aria-label="Más información sobre el presupuesto en PDF">
-                            <svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
-                            <span class="ptar-tip-pop" role="tooltip">¿Aún no vas a crear el envío y solo estás viendo la tarifa? Puedes ver o guardar el <strong>presupuesto en PDF</strong>. Es orientativo: si confirmas el envío en otro momento, puede variar (precios dinámicos).</span>
-                        </span>
-                    </div>
-                </div>
                 <!-- Discreción comercial (opcional): el conductor no revela el
                      destino en la carga ni el origen en la entrega. -->
                 <div class="ptar-discrecion">
@@ -14928,9 +14912,11 @@
         // reenvía el clic al control (abre el desplegable y tapa el tooltip).
         // Cancelamos esa acción por defecto cuando el clic cae en el ℹ.
         document.addEventListener('click', function (e) {
-            if (e.target.closest && e.target.closest('.ptar-has-tip')) {
-                e.preventDefault(); e.stopPropagation();
-            }
+            var t = e.target.closest && e.target.closest('.ptar-has-tip');
+            // Solo cuando el ℹ está DENTRO de un <label> (evita que el label
+            // abra su desplegable). Los tooltips clicables (con su propia acción,
+            // p. ej. el icono de PDF junto al precio) NO se interceptan.
+            if (t && t.closest('label')) { e.preventDefault(); e.stopPropagation(); }
         }, true);
         // Cierra los tooltips al tocar/clicar fuera (móvil y desktop).
         ['touchstart', 'pointerdown'].forEach(function (ev) {
@@ -22089,7 +22075,24 @@
                 var box = confirmCard.querySelector('[data-ptar-conf-price]');
                 if (box) {
                     box.hidden = !precio;
-                    if (precio) window.__renderPriceBox(box, precio, rows);
+                    if (precio) {
+                        window.__renderPriceBox(box, precio, rows);
+                        // Mini-icono de PDF junto a "Base imponible": abre el
+                        // presupuesto orientativo en una pestaña nueva (tooltip
+                        // explica que es orientativo y no vinculante).
+                        var baseK = box.querySelector('.alm-price-base .k');
+                        if (baseK) {
+                            var tip = document.createElement('span');
+                            tip.className = 'ptar-has-tip ptar-presu-ico';
+                            tip.setAttribute('data-ptar-presu-pdf', '');
+                            tip.setAttribute('tabindex', '0');
+                            tip.setAttribute('role', 'button');
+                            tip.setAttribute('aria-label', 'Ver o guardar el PDF de este precio');
+                            tip.innerHTML = '<svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>' +
+                                '<span class="ptar-tip-pop" role="tooltip">Ver o guardar el <strong>presupuesto en PDF</strong> de este precio. ¿Solo estás viendo la tarifa y aún no vas a crear el envío? Es orientativo: si confirmas el envío en otro momento, puede variar (precios dinámicos). Se abre en una pestaña nueva.</span>';
+                            baseK.appendChild(tip);
+                        }
+                    }
                 }
                 var sumP = summaryEl.querySelector('[data-sum-precio]');
                 if (sumP) sumP.textContent = eur + ' €';
