@@ -252,7 +252,7 @@
     .fac-detail .pc-lbl { font-size: 0.8rem; font-weight: 700; color: var(--navy); min-width: 0; flex: 1 1 auto; }
     .fac-detail .pc-amount { font-size: 1.12rem; font-weight: 900; color: var(--green-dark); white-space: nowrap; flex: 0 0 auto; }
     .fac-detail .pc-when { color: var(--green-dark); font-weight: 800; font-size: 0.72rem; }
-    .fac-detail .pc-sub { font-size: 0.7rem; font-weight: 600; color: var(--gray-500); margin-top: 0.15rem; }
+    .fac-detail .pc-sub { font-size: 0.7rem; font-weight: 600; color: var(--gray-500); margin-top: 0.5rem; }
     .fac-detail .pc-alt { font-size: 0.74rem; font-weight: 600; color: var(--gray-500); margin-top: 0.4rem; line-height: 1.5; }
     .fac-detail .pc-red { color: var(--red); font-weight: 800; }
     .af-nom-lbl { font-size: 0.72rem; font-weight: 700; color: var(--gray-500); }
@@ -775,8 +775,8 @@
                     </label>
                     <div class="fac-detail" id="prontoCalc" hidden>
                         <div class="pc-line"><span class="pc-lbl">Precio con pronto pago <span class="pc-when" id="pc-when"></span></span><span class="pc-amount" id="pc-total">—</span></div>
-                        <div class="pc-sub">Es la <strong>base imponible</strong> ya con el pronto pago aplicado (sin IVA). El IVA se calcula sobre este importe en la factura.</div>
                         <div class="pc-alt" id="pc-alt"></div>
+                        <div class="pc-sub">Precios sin IVA/retención, estos se aplicarán sobre este importe en la factura.</div>
                     </div>
 
                     <!-- 2) AUTOFACTURA -->
