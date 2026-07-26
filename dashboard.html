@@ -22589,7 +22589,7 @@
                         // "· obligatorio" + mensaje. Se pinta rojo si queda vacío
                         // y bloquea la confirmación. Contacto y Notas son opcionales.
                         function inpReq(lbl, f, val, ph) {
-                            return '<div><label>' + lbl + ' <span class="sitio-req">· obligatorio</span></label>' +
+                            return '<div><label>' + lbl + '</label>' +
                                 '<input data-sitio-f="' + f + '" data-sitio-id="' + p.id + '" data-sitio-req value="' + escapeHtml(val || '') + '" placeholder="' + (ph || '') + '">' +
                                 '<div class="sitio-req-msg">Este campo es obligatorio.</div></div>';
                         }
