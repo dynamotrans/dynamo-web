@@ -3205,6 +3205,12 @@
         .ptar-fav-tip.tip-open .ptar-tip-ico { opacity: 1; }
         .ptar-fav-tip:active, .ptar-fav-tip.tip-open { background: rgba(51,0,204,0.08); }
         @media (hover: hover) { .ptar-fav-tip:hover .ptar-tip-ico { opacity: 1; } }
+        /* ℹ del "Email de avisos del sitio" (detalle sintetizado en tooltip). */
+        .sitio-email-tip { display: inline-flex; align-items: center; justify-content: center; padding: 5px; margin: -5px 2px -5px 2px; border-radius: 6px; color: var(--gray-500); vertical-align: middle; -webkit-tap-highlight-color: transparent; }
+        .sitio-email-tip .ptar-tip-ico { width: 14px; height: 14px; opacity: 0.6; }
+        .sitio-email-tip.tip-open .ptar-tip-ico { opacity: 1; }
+        .sitio-email-tip:active, .sitio-email-tip.tip-open { background: rgba(51,0,204,0.08); }
+        @media (hover: hover) { .sitio-email-tip:hover .ptar-tip-ico { opacity: 1; } }
         .ptar-input-wrap:hover,
         .ptar-input-wrap:focus-within { border-color: var(--purple); }
         .ptar-input-wrap:focus-within { box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
@@ -17173,6 +17179,18 @@
         if (m > 3) return { calle: dir.slice(0, m).replace(/[\s,;·–-]+$/, ''), resto: dir.slice(m).replace(/^[\s,;·–-]+/, '') };
         return { calle: dir, resto: '' };
     }
+    // Etiqueta + tooltip del "Email de avisos del sitio" (texto sintetizado; el
+    // detalle va en el ℹ). Compartido por la ficha de Sitios y la confirmación.
+    function sitioEmailLabel() {
+        return '<label><span style="color:var(--green);">Email de avisos del sitio</span> <span style="color:var(--gray-500);font-weight:600;">· opcional</span>' +
+            '<span class="ptar-has-tip sitio-email-tip" tabindex="0" role="button" aria-label="Para qué sirve el email de avisos del sitio">' +
+                '<svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>' +
+                '<span class="ptar-tip-pop" role="tooltip">Avisamos a este sitio de sus <strong>recogidas y entregas</strong> (previsión de hora, qué recogemos o qué mercancía llega); pon el email del <strong>responsable de almacén</strong>. <strong>Discreción total</strong>: el sitio nunca ve el origen ni el destino, ni tus precios, ni datos de terceros.</span>' +
+            '</span></label>';
+    }
+    function sitioEmailHint() {
+        return '<div style="font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;margin-top:0.3rem;">Avisamos al sitio de sus recogidas y entregas, con total discreción. <a href="#" onclick="openEjemploAvisoSitio(); return false;" style="color:var(--purple);font-weight:700;">Ver ejemplo →</a></div>';
+    }
     function sitioFormHTML(s, esNuevo) {
         s = s || {};
         function inp(lbl, id, val, ph, full) {
@@ -17202,6 +17220,11 @@
               '<div id="sitioDupWarn" class="modal-warn-box" hidden></div>'
             : '') +
             '<div class="ptar-sitio-grid">' +
+                // EMAIL de avisos del sitio: primero de todo, destacado (borde verde).
+                '<div style="grid-column:1/-1;">' + sitioEmailLabel() +
+                '<input id="sitio-f-email" type="text" inputmode="email" value="' + escapeHtml(s.email || '') + '" placeholder="almacen@empresa.com, recepcion@empresa.com" style="border:1.5px solid var(--green);">' +
+                '<div class="sitio-email-err" id="sitioEmailErr" hidden style="font-size: var(--fs-s);color:#b42318;font-weight:700;margin-top:0.3rem;"></div>' +
+                sitioEmailHint() + '</div>' +
                 inp('Empresa', 'sitio-f-empresa', s.empresa, 'Ej. Talleres Vega e Hijos S.L.') +
                 '<div><label>Tipo de lugar' + (tipoHas ? '' : ' <span class="sitio-req">· obligatorio</span>') + '</label><select id="sitio-f-tipo">' + tipoOpts + '</select></div>' +
                 inp('Horario', 'sitio-f-horario', s.horario, 'Ej. L-V 8:00-14:00') +
@@ -17209,12 +17232,6 @@
                 inp('CP, localidad, provincia y país', 'sitio-f-dir', s.dir, 'Ej. 41001, Sevilla, España', true) +
                 telField('sitio-f-tfno', 'Teléfono', s.tfno) +
                 inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','sitio-f-contacto', s.contacto, 'Persona de contacto') +
-                // EMAIL de avisos del sitio: opcional pero destacado (borde verde).
-                '<div style="grid-column:1/-1;"><label><span style="color:var(--green);">Email de avisos del sitio</span> <span style="color:var(--gray-500);font-weight:600;">· opcional · si hay varios, sepáralos por comas</span></label>' +
-                '<input id="sitio-f-email" type="text" inputmode="email" value="' + escapeHtml(s.email || '') + '" placeholder="almacen@empresa.com, recepcion@empresa.com" style="border:1.5px solid var(--green);">' +
-                '<div class="sitio-email-err" id="sitioEmailErr" hidden style="font-size: var(--fs-s);color:#b42318;font-weight:700;margin-top:0.3rem;"></div>' +
-                '<div style="font-size: var(--fs-s);color:#0f6b3a;line-height:1.5;margin-top:0.3rem;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg> <strong>Muy útil</strong>: lo usaremos para avisar a este sitio de las <strong>recogidas y entregas</strong> — previsión de hora, qué vamos a recoger o qué mercancía llega — para que estén informados en tiempo real. Pon el email de la <strong>persona de almacén o responsable de recepcionar la mercancía</strong>.</div>' +
-                '<div style="font-size: var(--fs-s);color:var(--gray-700);line-height:1.5;margin-top:0.3rem;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> <strong>Discreción total</strong>: el sitio <strong>nunca ve el origen ni el destino</strong> de la mercancía, ni tus precios, ni datos de terceros — solo lo necesario para recepcionar o preparar. <a href="#" onclick="openEjemploAvisoSitio(); return false;" style="color:var(--purple);font-weight:800;">Ver ejemplo del aviso que recibiría →</a></div></div>' +
                 inp('<span style="color:var(--green);">Notas del sitio</span> <span style="color:var(--gray-500);font-weight:600;">· opcional</span>', 'sitio-f-notas', s.notas, 'Ej. referencia de carga/entrega, pedir cita, báscula…', true) +
                 inp('Enlace de Google Maps', 'sitio-f-maps', s.maps, 'https://maps.app.goo.gl/…', true) +
             '</div>';
@@ -22610,10 +22627,9 @@
                         // Email de avisos del sitio (mismo campo y textos que la
                         // ficha de Sitios): se consolida vía data-sitio-f="email".
                         function emailField(val) {
-                            return '<div class="full"><label><span style="color:var(--green);">Email de avisos del sitio</span> <span style="color:var(--gray-500);font-weight:600;">· opcional · si hay varios, sepáralos por comas</span></label>' +
+                            return '<div class="full">' + sitioEmailLabel() +
                                 '<input data-sitio-f="email" data-sitio-id="' + p.id + '" type="text" inputmode="email" value="' + escapeHtml(val || '') + '" placeholder="almacen@empresa.com, recepcion@empresa.com" style="border:1.5px solid var(--green);">' +
-                                '<div style="font-size: var(--fs-s);color:#0f6b3a;line-height:1.5;margin-top:0.3rem;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg> <strong>Muy útil</strong>: lo usaremos para avisar a este sitio de las <strong>recogidas y entregas</strong> — previsión de hora, qué recogemos o qué mercancía llega. Pon el email de la <strong>persona de almacén o responsable de recepcionar</strong>.</div>' +
-                                '<div style="font-size: var(--fs-s);color:var(--gray-700);line-height:1.5;margin-top:0.3rem;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> <strong>Discreción total</strong>: el sitio <strong>nunca ve el origen ni el destino</strong> de la mercancía, ni tus precios, ni datos de terceros. <a href="#" onclick="openEjemploAvisoSitio(); return false;" style="color:var(--purple);font-weight:800;">Ver ejemplo del aviso →</a></div></div>';
+                                sitioEmailHint() + '</div>';
                         }
                         // Campo OBLIGATORIO (empresa, horario, teléfono): marca
                         // "· obligatorio" + mensaje. Se pinta rojo si queda vacío
@@ -22633,6 +22649,7 @@
                                 '<div class="ptar-sitio-body">' +
                                     '<div class="ptar-sitio-body-meta">Dirección sin ficha — completa los datos obligatorios (empresa, horario y teléfono) y se guardará como sitio en tu agenda.</div>' +
                                     '<div class="ptar-sitio-grid">' +
+                                        emailField('') +
                                         inpReq('Empresa', 'empresa', '', 'Ej. Talleres Vega e Hijos S.L.') +
                                         tipoLock +
                                         (function () {
@@ -22646,7 +22663,6 @@
                                         inpReq('Teléfono', 'tfno', '', 'Ej. +34 612 345 678') +
                                         TEL_NOTA_HTML +
                                         inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','contacto', '', 'Persona de contacto') +
-                                        emailField('') +
                                         '<div class="full"><label style="color:var(--green);">Notas del sitio <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="" placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…"></div>' +
                                         '<div class="full"><label>Enlace de Google Maps <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="maps" data-sitio-id="' + p.id + '" value="" placeholder="https://maps.app.goo.gl/…"></div>' +
                                     '</div>' +
@@ -22700,6 +22716,7 @@
                             '<div class="ptar-sitio-body">' +
                                 '<div class="ptar-sitio-body-meta">' + escapeHtml(fuente) + mapsLink + '</div>' +
                                 '<div class="ptar-sitio-grid">' +
+                                    emailField(s.email) +
                                     // Empresa: si el sitio YA tiene nombre (sitio
                                     // existente), se BLOQUEA aquí — el nombre solo
                                     // se cambia en la sección Sitios. Solo un sitio
@@ -22714,7 +22731,6 @@
                                     inpReq('Teléfono', 'tfno', s.tfno) +
                                     TEL_NOTA_HTML +
                                     inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','contacto', s.contacto, 'Persona de contacto') +
-                                    emailField(s.email) +
                                     '<div class="full"><label style="color:var(--green);">Notas del sitio <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="notas" data-sitio-id="' + p.id + '" value="' + escapeHtml(s.notas || '') + '" placeholder="Ej. referencia de carga/entrega, pedir cita, báscula…"></div>' +
                                     // Enlace de Google Maps: si el sitio YA tiene
                                     // uno, se BLOQUEA (se cambia en Sitios); si está
