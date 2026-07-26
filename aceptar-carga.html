@@ -233,9 +233,9 @@
     .pronto input { width: 19px; height: 19px; flex: none; margin-top: 2px; accent-color: var(--green); }
     .pronto-calc { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed rgba(34,165,90,0.45); }
     .pronto-calc .pc-line { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
-    .pronto-calc .pc-lbl { font-size: 0.82rem; font-weight: 700; color: var(--navy); }
-    .pronto-calc .pc-amount { font-size: 1.18rem; font-weight: 900; color: var(--green-dark); white-space: nowrap; }
-    .pronto-calc .pc-when { color: var(--green-dark); font-weight: 800; font-size: 0.76rem; white-space: nowrap; }
+    .pronto-calc .pc-lbl { font-size: 0.82rem; font-weight: 700; color: var(--navy); min-width: 0; flex: 1 1 auto; }
+    .pronto-calc .pc-amount { font-size: 1.18rem; font-weight: 900; color: var(--green-dark); white-space: nowrap; flex: 0 0 auto; }
+    .pronto-calc .pc-when { color: var(--green-dark); font-weight: 800; font-size: 0.76rem; }
     .pronto-calc .pc-sub { font-size: 0.72rem; font-weight: 600; color: var(--gray-500); margin-top: 0.15rem; }
     .pronto-calc .pc-alt { font-size: 0.76rem; font-weight: 600; color: var(--gray-500); margin-top: 0.45rem; line-height: 1.5; }
     .pronto-calc .pc-red { color: var(--red); font-weight: 800; }
@@ -249,9 +249,9 @@
     .fac-chk input { width: 18px; height: 18px; flex: none; margin-top: 1px; accent-color: var(--purple); }
     .fac-detail { margin: 0.5rem 0 0.2rem 1.55rem; padding: 0.6rem 0.7rem; background: #fff; border: 1px solid var(--gray-200); border-radius: 9px; }
     .fac-detail .pc-line { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
-    .fac-detail .pc-lbl { font-size: 0.8rem; font-weight: 700; color: var(--navy); }
-    .fac-detail .pc-amount { font-size: 1.12rem; font-weight: 900; color: var(--green-dark); white-space: nowrap; }
-    .fac-detail .pc-when { color: var(--green-dark); font-weight: 800; font-size: 0.72rem; white-space: nowrap; }
+    .fac-detail .pc-lbl { font-size: 0.8rem; font-weight: 700; color: var(--navy); min-width: 0; flex: 1 1 auto; }
+    .fac-detail .pc-amount { font-size: 1.12rem; font-weight: 900; color: var(--green-dark); white-space: nowrap; flex: 0 0 auto; }
+    .fac-detail .pc-when { color: var(--green-dark); font-weight: 800; font-size: 0.72rem; }
     .fac-detail .pc-sub { font-size: 0.7rem; font-weight: 600; color: var(--gray-500); margin-top: 0.15rem; }
     .fac-detail .pc-alt { font-size: 0.74rem; font-weight: 600; color: var(--gray-500); margin-top: 0.4rem; line-height: 1.5; }
     .fac-detail .pc-red { color: var(--red); font-weight: 800; }
