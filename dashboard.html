@@ -3306,16 +3306,17 @@
         .ptar-sug .sug-hint .sug-hint-txt { color: var(--gray-500); font-size: var(--fs-m); font-weight: 600; }
         /* Sitio/dirección seleccionado: el campo queda como chip bloqueado
            (se cambia solo con el botón ×, no editando el texto). */
-        /* Controles ▲▼ para reordenar puntos de la ruta (recogida/entrega). */
-        .ptar-reorder { display: inline-flex; flex-direction: column; gap: 2px; flex: 0 0 auto; margin-left: 2px; }
-        .ptar-reorder button {
+        /* Asa para ARRASTRAR y reordenar puntos de la ruta (recogida/entrega). */
+        .ptar-drag {
             display: inline-flex; align-items: center; justify-content: center;
-            width: 26px; height: 20px; padding: 0; border-radius: 6px;
-            border: 1.5px solid var(--gray-200); background: #fff; color: var(--purple);
-            cursor: pointer; transition: border-color .15s, background .15s, opacity .15s;
+            flex: 0 0 auto; width: 30px; align-self: stretch; margin-left: 2px;
+            color: var(--gray-400); cursor: grab; touch-action: none; border-radius: 8px;
+            transition: color .15s, background .15s;
         }
-        .ptar-reorder button:hover:not(:disabled) { border-color: var(--purple); background: rgba(51,0,204,0.05); }
-        .ptar-reorder button:disabled { opacity: 0.3; cursor: default; }
+        .ptar-drag:hover { color: var(--purple); background: rgba(51,0,204,0.05); }
+        .ptar-drag:active, body.ptar-dragging-active .ptar-drag { cursor: grabbing; }
+        .ptar-route-row.ptar-dragging { outline: 2px solid var(--purple); outline-offset: 1px; border-radius: 10px; background: rgba(51,0,204,0.05); }
+        body.ptar-dragging-active { user-select: none; -webkit-user-select: none; }
         .ptar-input-wrap.ptar-picked { background: rgba(51,0,204,0.05); border-color: rgba(51,0,204,0.35); }
         .ptar-input-wrap.ptar-picked input { background: transparent; font-weight: 600; cursor: default; }
         /* El chip del almacén elegido es clicable (reabre el desplegable). */
@@ -20658,29 +20659,68 @@
                 }
                 renderEta(); if (typeof syncGrupajeVentana === 'function') syncGrupajeVentana();
             }
+            // Arrastrar-y-soltar: se coge el asa ☰ de un punto y se mueve arriba/
+            // abajo; al cruzar cada fila, el contenido se reordena en vivo (con
+            // swapSlot), dando la sensación de mover físicamente la tarjeta.
+            var dragState = null;
+            function onDragMove(e) {
+                if (!dragState) return;
+                var y = e.clientY, rows = dragState.rows, target = dragState.idx;
+                for (var i = 0; i < rows.length; i++) {
+                    var r = rows[i].getBoundingClientRect();
+                    if (i === 0 && y < r.top + r.height / 2) { target = 0; break; }
+                    if (i === rows.length - 1 && y > r.bottom - r.height / 2) { target = rows.length - 1; break; }
+                    if (y >= r.top && y <= r.bottom) { target = i; break; }
+                }
+                while (target > dragState.idx) {
+                    swapSlot(dragState.slots[dragState.idx], dragState.slots[dragState.idx + 1]);
+                    rows[dragState.idx].classList.remove('ptar-dragging'); dragState.idx++; rows[dragState.idx].classList.add('ptar-dragging');
+                }
+                while (target < dragState.idx) {
+                    swapSlot(dragState.slots[dragState.idx], dragState.slots[dragState.idx - 1]);
+                    rows[dragState.idx].classList.remove('ptar-dragging'); dragState.idx--; rows[dragState.idx].classList.add('ptar-dragging');
+                }
+            }
+            function endDrag() {
+                if (!dragState) return;
+                dragState.rows.forEach(function (r) { r.classList.remove('ptar-dragging'); });
+                document.body.classList.remove('ptar-dragging-active');
+                window.removeEventListener('pointermove', onDragMove);
+                dragState = null;
+            }
+            function startDrag(e, row) {
+                if (e.button != null && e.button !== 0) return;   // solo botón principal
+                e.preventDefault();
+                var slots = routeSlots();
+                var rows = slots.map(function (s) { return s.wrap.closest('.ptar-route-row'); });
+                var idx = rows.indexOf(row);
+                if (idx < 0 || rows.length < 2) return;
+                dragState = { rows: rows, slots: slots, idx: idx };
+                row.classList.add('ptar-dragging');
+                document.body.classList.add('ptar-dragging-active');
+                window.addEventListener('pointermove', onDragMove);
+                window.addEventListener('pointerup', endDrag, { once: true });
+                window.addEventListener('pointercancel', endDrag, { once: true });
+            }
             function renderReorder() {
                 var slots = routeSlots();
-                // Limpiar controles previos.
                 slots.forEach(function (sl) {
                     var row = sl.wrap && sl.wrap.closest ? sl.wrap.closest('.ptar-route-row') : null;
                     sl.row = row;
-                    var old = row && row.querySelector('.ptar-reorder');
+                    var old = row && row.querySelector('.ptar-drag');
                     if (old) old.parentNode.removeChild(old);
                 });
                 if (slots.length < 2) return;   // con un solo punto no hay nada que reordenar
-                var upSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>';
-                var dnSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
-                slots.forEach(function (sl, i) {
+                slots.forEach(function (sl) {
                     if (!sl.row) return;
-                    var ctrl = document.createElement('span');
-                    ctrl.className = 'ptar-reorder';
-                    ctrl.innerHTML = '<button type="button" aria-label="Mover arriba">' + upSvg + '</button><button type="button" aria-label="Mover abajo">' + dnSvg + '</button>';
-                    var upB = ctrl.children[0], dnB = ctrl.children[1];
-                    if (i === 0) upB.disabled = true;
-                    if (i === slots.length - 1) dnB.disabled = true;
-                    upB.addEventListener('click', function () { swapSlot(slots[i], slots[i - 1]); });
-                    dnB.addEventListener('click', function () { swapSlot(slots[i], slots[i + 1]); });
-                    sl.row.appendChild(ctrl);
+                    var handle = document.createElement('span');
+                    handle.className = 'ptar-drag';
+                    handle.setAttribute('aria-label', 'Arrastrar para reordenar');
+                    handle.setAttribute('title', 'Arrastra para reordenar');
+                    handle.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="16" x2="20" y2="16"/></svg>';
+                    var theRow = sl.row;
+                    handle.addEventListener('pointerdown', function (e) { startDrag(e, theRow); });
+                    sl.row.appendChild(handle);
                 });
             }
             window.__ptarRenderReorder = renderReorder;
