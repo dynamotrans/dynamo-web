@@ -775,7 +775,7 @@
                     </label>
                     <div class="fac-detail" id="prontoCalc" hidden>
                         <div class="pc-line"><span class="pc-lbl">Precio con pronto pago <span class="pc-when" id="pc-when"></span></span><span class="pc-amount" id="pc-total">—</span></div>
-                        <div class="pc-sub">base imponible (impuestos no incluidos)</div>
+                        <div class="pc-sub">Es la <strong>base imponible</strong> ya con el pronto pago aplicado (sin IVA). El IVA se calcula sobre este importe en la factura.</div>
                         <div class="pc-alt" id="pc-alt"></div>
                     </div>
 
@@ -1234,7 +1234,7 @@
         if (!base) return '';
         var d = new Date(base); d.setDate(d.getDate() + n);
         var dd = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
-        return dd[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear();
+        return dd[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + ('0' + (d.getFullYear() % 100)).slice(-2);
     }
     // Pinta la línea de precio con pronto pago bajo el check. El detalle solo se
     // muestra cuando la casilla está MARCADA (opción discreta, de segundo nivel).
