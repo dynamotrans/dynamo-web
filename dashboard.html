@@ -3185,9 +3185,10 @@
             background: white;
             transition: border-color 0.18s, box-shadow 0.18s;
         }
-        /* Estrella ★ discreta: marca el punto de ruta que es el SITIO HABITUAL
-           (principal). Va en la esquina superior izquierda, sin molestar. */
-        .ptar-fav-star { position: absolute; top: -8px; left: -5px; font-size: 13px; line-height: 1; color: #f5b301; text-shadow: 0 0 3px #fff, 0 1px 2px rgba(0,0,0,0.25); pointer-events: none; z-index: 3; }
+        /* Línea de ayuda discreta bajo el campo del SITIO HABITUAL (principal). */
+        .ptar-fav-cap { display: flex; align-items: center; gap: 0.35rem; margin: 0.3rem 0 0 0.1rem; font-size: var(--fs-s); font-weight: 600; color: var(--gray-500); }
+        .ptar-fav-cap strong { color: var(--navy); font-weight: 700; }
+        .ptar-fav-cap-star { color: #f5b301; font-size: 13px; line-height: 1; }
         .ptar-input-wrap:hover,
         .ptar-input-wrap:focus-within { border-color: var(--purple); }
         .ptar-input-wrap:focus-within { box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
@@ -20657,24 +20658,25 @@
                 renderEta(); if (typeof syncGrupajeVentana === 'function') syncGrupajeVentana();
                 syncPrincipalStar();
             }
-            // Estrella ★ discreta en el punto que contiene el SITIO PRINCIPAL
-            // (almacén habitual). Se basa en el siteKey, así la estrella sigue al
+            // Línea de ayuda discreta BAJO el punto que contiene el SITIO
+            // PRINCIPAL (almacén habitual). Se basa en el siteKey, así sigue al
             // sitio aunque se reordene la ruta.
             function syncPrincipalStar() {
                 var prin = window.__sitioPrincipal;
                 routeSlots().forEach(function (sl) {
                     var w = sl.wrap; if (!w) return;
+                    var row = w.closest ? w.closest('.ptar-route-row') : null;
+                    if (!row || !row.parentNode) return;
                     var isPrin = !!(prin && w.dataset.siteKey === prin);
-                    var star = w.querySelector('.ptar-fav-star');
-                    if (isPrin && !star) {
-                        star = document.createElement('span');
-                        star.className = 'ptar-fav-star';
-                        star.textContent = '★';
-                        star.title = 'Tu sitio habitual (marcado con estrella en Sitios)';
-                        star.setAttribute('aria-label', 'Sitio habitual');
-                        w.appendChild(star);
-                    } else if (!isPrin && star) {
-                        star.parentNode.removeChild(star);
+                    var next = row.nextElementSibling;
+                    var hasCap = next && next.classList && next.classList.contains('ptar-fav-cap');
+                    if (isPrin && !hasCap) {
+                        var c = document.createElement('div');
+                        c.className = 'ptar-fav-cap';
+                        c.innerHTML = '<span class="ptar-fav-cap-star" aria-hidden="true">★</span> Tu <strong>almacén principal</strong> · origen por defecto';
+                        row.parentNode.insertBefore(c, row.nextSibling);
+                    } else if (!isPrin && hasCap) {
+                        next.parentNode.removeChild(next);
                     }
                 });
             }
