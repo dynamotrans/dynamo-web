@@ -28,7 +28,7 @@
                y los 16px fijos de inputs móviles (anti-zoom iOS). */
             --fs-s: 0.72rem;
             --fs-m: 0.82rem;
-            --fs-l: 0.9rem;
+            --fs-l: 0.92rem;
             --purple:       #3300cc;
             --purple-dark:  #220099;
             --purple-light: #5533dd;
@@ -1084,7 +1084,7 @@
             position: fixed; left: 50%; transform: translateX(-50%);
             bottom: calc(1.1rem + env(safe-area-inset-bottom)); z-index: 95;
             background: var(--purple); color: #fff; font: inherit;
-            font-size: 0.8rem; font-weight: 800; letter-spacing: 0.2px;
+            font-size: var(--fs-m); font-weight: 800; letter-spacing: 0.2px;
             padding: 0.6rem 1.05rem; border: none; border-radius: 999px;
             box-shadow: 0 8px 24px rgba(51,0,204,0.4), 0 3px 10px rgba(10,2,48,0.2);
             display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer;
@@ -1092,7 +1092,7 @@
         }
         .nc-scroll-hint[hidden] { display: none; }
         .nc-scroll-hint:hover { background: var(--purple-light); }
-        .nc-scroll-hint .nsh-arrow { display: inline-block; font-size: 0.95rem; animation: nshBounce 1.1s ease infinite; }
+        .nc-scroll-hint .nsh-arrow { display: inline-block; font-size: var(--fs-l); animation: nshBounce 1.1s ease infinite; }
         @keyframes nshBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
         @media (prefers-reduced-motion: reduce) { .nc-scroll-hint .nsh-arrow { animation: none; } }
 
@@ -3872,7 +3872,7 @@
         .eta-opt-rec .eta-opt-eur { color: var(--green-dark); }
         .eta-opt-go { font-size: var(--fs-s); font-weight: 800; color: var(--purple); }
         .eta-opt-rec .eta-opt-go { color: var(--green-dark); }
-        .eta-badge { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: #fff; background: var(--green); border-radius: 999px; padding: 0.1rem 0.45rem; }
+        .eta-badge { font-size: var(--fs-s); font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: #fff; background: var(--green); border-radius: 999px; padding: 0.1rem 0.45rem; }
 
         /* Label con tooltip (ℹ): el texto de ayuda sale al pasar por encima,
            sin ocupar layout. Reutilizable en cualquier .ptar-label. */
@@ -4013,19 +4013,19 @@
         .sum2-box .sum2-cell { background: var(--gray-50); border: none; border-radius: 8px; padding: 0.32rem 0.55rem; }
         .sum2-box .sum2-grid { gap: 0.35rem; }
         .sum2-cell { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 10px; padding: 0.5rem 0.7rem; }
-        .sum2-k { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: var(--gray-500); margin-bottom: 0.1rem; }
+        .sum2-k { font-size: var(--fs-s); font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: var(--gray-500); margin-bottom: 0.1rem; }
         .sum2-v { font-size: var(--fs-l); font-weight: 800; color: var(--navy); line-height: 1.3; }
         .sum2-merc { background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.7rem 0.8rem; }
         .sum2-merc-head { display: flex; align-items: center; gap: 0.45rem; color: var(--purple); margin-bottom: 0.55rem; }
-        .sum2-merc-head span { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+        .sum2-merc-head span { font-size: var(--fs-s); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
         .sum2-merc-head svg { width: 17px; height: 17px; }
         /* Rejilla de mercancía: 2 columnas SIEMPRE, celdas pequeñas y compactas. */
         .sum2-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
         .sum2-grid .sum2-cell { padding: 0.38rem 0.55rem; border-radius: 9px; }
-        .sum2-grid .sum2-k { font-size: 0.56rem; margin-bottom: 0.05rem; }
+        .sum2-grid .sum2-k { font-size: var(--fs-s); margin-bottom: 0.05rem; }
         .sum2-grid .sum2-v { font-size: var(--fs-m); font-weight: 800; }
         .sum2-dm { margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px dashed var(--gray-300); font-size: var(--fs-m); font-weight: 600; color: var(--gray-700); line-height: 1.4; }
-        .sum2-dm b { display: block; font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gray-500); margin-bottom: 0.2rem; }
+        .sum2-dm b { display: block; font-size: var(--fs-s); font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gray-500); margin-bottom: 0.2rem; }
         .sum2-fecha-cell { background: rgba(34,165,90,0.1); border: 1px solid rgba(34,165,90,0.45); border-radius: 10px; padding: 0.5rem 0.7rem; }
         .sum2-fecha-cell .sum2-k { color: #0f5132; }
         .sum2-fecha { font-size: var(--fs-l); font-weight: 800; color: #0f5132; display: flex; align-items: center; gap: 0.4rem; line-height: 1.3; }
