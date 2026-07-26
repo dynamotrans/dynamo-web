@@ -4097,6 +4097,7 @@
                (.form-2col-side > * + *), igual que el resto de bloques. */
         }
         .ptar-terms-box .ptar-confirm-check { margin: 0; }
+        .ptar-terms-line { margin: 0; font-size: var(--fs-m); font-weight: 600; color: var(--gray-700); line-height: 1.5; }
         .ptar-terms-link {
             display: inline-block; margin: 0.5rem 0 0 1.75rem;
             font-size: var(--fs-m); font-weight: 700; color: var(--purple);
@@ -5698,14 +5699,10 @@
                      paso extra. Se rellena en showConfirmStep/recalcConfPrice. -->
                 <div class="ptar-legal-box" data-ptar-legal hidden></div>
                 <div class="ptar-terms-box">
-                    <label class="ptar-confirm-check">
-                        <input type="checkbox" data-ptar-check-terms>
-                        <span>He leído y acepto las <a href="#" class="ptar-inline-link" data-ptar-show-terms>condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L. (obligatorio).</span>
-                    </label>
+                    <p class="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> confirmas que has leído y aceptas las <a href="#" class="ptar-inline-link" data-ptar-show-terms>condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L.</p>
                 </div>
-                <div class="ptar-terms-warn" data-ptar-terms-warn>⚠ No has aceptado las condiciones generales de transporte. Marca la casilla para poder confirmar el envío.</div>
                 <div class="ptar-actions ptar-actions-confirm">
-                    <button type="button" class="btn-primary btn-visual-disabled" data-ptar-final-confirm>Crear envío</button>
+                    <button type="button" class="btn-primary" data-ptar-final-confirm>Crear envío</button>
                     <button type="button" class="btn-ghost" data-ptar-back>← Editar datos</button>
                 </div>
             </div><!-- /form-2col-side -->
@@ -22962,16 +22959,13 @@
                     title: 'Condiciones generales de transporte',
                     sub: 'Dynamo Operador Logístico, S.L. — B01596360',
                     body: tpl ? tpl.innerHTML : '<p>Texto no disponible.</p>',
-                    footer: '<button class="btn-primary" data-ptar-terms-accept style="flex:1;">He leído y acepto</button>'
+                    footer: '<button class="btn-primary" data-ptar-terms-accept style="flex:1;">Cerrar</button>'
                 });
-                // "He leído y acepto" → marca la casilla y cierra la ventana.
+                // Ya no hay casilla que marcar (la aceptación es implícita al
+                // pulsar "Crear envío"): el botón solo cierra la ventana.
                 setTimeout(function () {
                     var acc = document.querySelector('[data-ptar-terms-accept]');
                     if (acc) acc.addEventListener('click', function () {
-                        if (chkTerms) chkTerms.checked = true;
-                        if (checkLbl) checkLbl.classList.remove('check-error');
-                        if (termsWarn) termsWarn.classList.remove('show');
-                        refreshConfirmEnabled();
                         closeDashModal();
                     });
                 }, 0);

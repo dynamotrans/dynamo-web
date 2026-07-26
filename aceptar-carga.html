@@ -417,6 +417,25 @@
     #google_translate_element { position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none; }
     .goog-te-spinner-pos, .goog-te-spinner-pos *, img.goog-te-spinner, .goog-te-gadget-icon, .goog-te-gadget-simple { display: none !important; }
     iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
+    /* Línea de aceptación implícita bajo el botón Aceptar carga (sustituye al
+       antiguo check): texto + enlace a condiciones, sin casilla. */
+    .terms-line { margin: 0.5rem auto 0.7rem; max-width: 640px; font-size: var(--fs-s); font-weight: 600; color: var(--gray-500); line-height: 1.5; text-align: center; }
+    .terms-line a { color: var(--purple); font-weight: 800; text-decoration: underline; cursor: pointer; }
+    /* Modal de condiciones generales (mismo texto que el panel) */
+    .cond-modal { position: fixed; inset: 0; z-index: 4000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .cond-backdrop { position: absolute; inset: 0; background: rgba(10,2,48,0.55); }
+    .cond-card { position: relative; background: #fff; border-radius: 16px; max-width: 640px; width: 100%; max-height: 88vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(10,2,48,0.35); overflow: hidden; }
+    .cond-card h2 { font-size: 1.05rem; color: var(--navy); margin: 1.1rem 1.2rem 0.15rem; padding-right: 2rem; }
+    .cond-sub { font-size: var(--fs-s); color: var(--gray-500); font-weight: 600; margin: 0 1.2rem 0.6rem; }
+    .cond-close { position: absolute; top: 0.7rem; right: 0.7rem; width: 34px; height: 34px; border: none; background: var(--gray-100); border-radius: 50%; color: var(--navy); font-size: 1rem; cursor: pointer; line-height: 1; }
+    .cond-close:hover { background: var(--gray-200); }
+    .cond-body { overflow-y: auto; padding: 0.4rem 1.2rem 0.6rem; -webkit-overflow-scrolling: touch; }
+    .cond-body h4 { font-size: var(--fs-l); color: var(--purple); margin: 0.9rem 0 0.25rem; }
+    .cond-body p, .cond-body li { font-size: var(--fs-m); color: var(--gray-700); line-height: 1.5; margin: 0 0 0.4rem; }
+    .cond-body ul { margin: 0 0 0.5rem 1.1rem; }
+    .cond-body a { color: var(--purple); font-weight: 700; }
+    .cond-foot { border-top: 1px solid var(--gray-200); padding: 0.7rem 1.2rem; text-align: right; }
+    .cond-foot button { background: var(--purple); color: #fff; border: none; border-radius: 10px; padding: 0.6rem 1.4rem; font-size: var(--fs-m); font-weight: 800; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -822,6 +841,7 @@
                  al pulsarlo, la validación resalta lo que falte (empezando
                  por la identificación). -->
             <div class="warn" id="fWarn">⚠ Revisa los campos marcados: son obligatorios.</div>
+            <p class="terms-line">Al pulsar <strong>«Aceptar carga»</strong> aceptas las <a href="#" id="termsLink" onclick="abrirCondiciones(event)">condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L.</p>
             <button type="button" class="btn" onclick="aceptar()">Aceptar carga</button>
         </div>
 
@@ -880,10 +900,90 @@
     <button type="button" class="scroll-hint" id="scrollHint" hidden onclick="window.scrollBy({ top: Math.round(window.innerHeight * 0.7), behavior: 'smooth' });"><span id="sh-text">Desliza para ACEPTAR</span> <span class="sh-arrow" aria-hidden="true">↓</span></button>
     <p class="foot"><a href="https://dynamotrans.com">dynamotrans.com</a></p>
 
+    <!-- MODAL: condiciones generales de transporte. MISMO texto que el panel
+         (dashboard.html #ptar-terms-template). Duplicado a propósito porque son
+         archivos estáticos independientes; en el rebuild a Next.js será una
+         FUENTE ÚNICA compartida. Si se edita el texto en el panel, replicar aquí. -->
+    <div class="cond-modal" id="condModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="condTitle" hidden>
+        <div class="cond-backdrop" onclick="cerrarCondiciones()"></div>
+        <div class="cond-card" role="document">
+            <button class="cond-close" onclick="cerrarCondiciones()" aria-label="Cerrar">✕</button>
+            <h2 id="condTitle">Condiciones generales de transporte</h2>
+            <p class="cond-sub">Dynamo Operador Logístico, S.L. — B01596360</p>
+            <div class="cond-body">
+                <h4>1. Facturación y documentos — sólo vía digital</h4>
+                <p>Las facturas y albaranes se envían exclusivamente por email; no se realizan envíos en papel. Si el cliente tiene referencias internas de envío/transporte, debe informarnos para asignarlas correctamente y facilitar trazabilidad, revisión y facturación.</p>
+                <p>Los documentos de transporte (albaranes, CMR, pedidos, etc.) que facilitaremos tras finalizar el servicio serán los entregados en mano en carga y entrega. Cualquier documento enviado por vía digital no será tenido en cuenta, ya que dificulta la operativa al no llevar impresora los camiones. Si el camión debe llevar documentación adicional, hágala llegar directamente al cargador o destinatario para que la entreguen al conductor en mano.</p>
+                <h4>2. Aceptación de la orden de carga</h4>
+                <p>La ausencia de rechazo escrito a este email en un plazo de <strong>8 horas</strong> desde su envío y/o la realización del servicio equivalen a aceptación total de la orden de carga y todas sus condiciones.</p>
+                <p>Se presume que ningún cliente cargaría mercancía de alto valor (hasta 250.000 €) sin verificar previamente las matrículas del camión asignado. Si el cliente no solicita la matrícula por email antes de cargar, se entiende que ha aceptado íntegramente la orden de carga y sus condiciones, eximiendo a Dynamo de toda responsabilidad posterior. Lo mismo aplica si las matrículas se comunican por WhatsApp u otro medio distinto al email: la responsabilidad de verificación recae igualmente en el cliente.</p>
+                <h4>3. Declaración de mercancía y ADR</h4>
+                <ul>
+                    <li><strong>Declaración del cargador.</strong> El cliente garantiza que la mercancía NO está sujeta a normativa ADR (ni por naturaleza ni por cantidad, excediendo los límites de la exención 1.1.3.6), salvo notificación previa, expresa y por escrito antes de contratar.</li>
+                    <li><strong>Derecho de rechazo en carga.</strong> Si el transportista detecta en origen que la mercancía es ADR y no se ha declarado, rechazará inmediatamente la carga. Al no haber sido informada previamente, la agencia no puede garantizar equipación reglamentaria, placas naranja ni titulación ADR del conductor.</li>
+                    <li><strong>Costes y falso desplazamiento.</strong> La omisión de la naturaleza peligrosa será causa de cancelación por causas imputables al cargador. Se facturará el <strong>100% del transporte contratado</strong> en concepto de falso desplazamiento, daños y perjuicios y lucro cesante por pérdida de disponibilidad del vehículo.</li>
+                    <li><strong>Exención y sanciones.</strong> Dynamo queda eximida de toda responsabilidad civil, administrativa o penal derivada del transporte de mercancías peligrosas no declaradas. Cualquier sanción (LOTT/ADR), coste de paralización, limpieza de vía o trasvase será repercutida íntegramente al cliente.</li>
+                </ul>
+                <h4>4. Aranceles e impuestos de importación</h4>
+                <p>Si el cliente o destinatario en el país de destino no abona aranceles, impuestos u otros gastos de importación exigidos por aduanas, Dynamo o el transportista subcontratado podrá adelantar dichos pagos para evitar demoras o bloqueos. El cliente se compromete a reembolsar la totalidad en un plazo máximo de <strong>7 días</strong> desde la notificación con justificantes. Esta condición es vinculante desde el momento de la contratación del servicio y prevalece sobre cualquier acuerdo con terceros en destino.</p>
+                <h4>5. Comunicaciones y urgencias</h4>
+                <p>El único medio válido para notificaciones relacionadas con la orden de carga es el email mediante la propia orden de carga enviada. No se aceptarán notificaciones por WhatsApp ni otros medios alternativos. Para urgencias o incidencias en el transporte, el cliente puede contactar 24h en el teléfono <strong>+34 955 225 945</strong>.</p>
+                <h4>6. Condiciones de transporte</h4>
+                <ul>
+                    <li>En mercancía a granel con cobro por peso transportado, la tarifa se aplicará en €/Tn con un importe <strong>mínimo facturable de 25 Tn</strong>. El peso válido será el de báscula en origen.</li>
+                    <li>Dimensiones interiores y pesos máximos pueden consultarse en <a href="https://www.dynamotrans.es" target="_blank" rel="noopener">www.dynamotrans.es</a> o llamando al +34 955 225 945.</li>
+                    <li>Las fechas de recogida y/o entrega pueden sufrir modificaciones en ocasiones.</li>
+                    <li>En grupajes o cargas parciales, salvo pacto contrario reflejado en la orden, la mercancía podrá ser transbordada a otro camión o recolocada para optimizar rutas.</li>
+                </ul>
+                <h4>7. Fuerza mayor y sustitución de medios</h4>
+                <p>Dynamo no será responsable de penalizaciones, sanciones ni costes derivados de retrasos siempre que se deban a causas de fuerza mayor debidamente justificadas (entre otras: enfermedad repentina del conductor, accidentes de tráfico, averías mecánicas no previsibles o inclemencias meteorológicas graves). En tales casos comunicará de inmediato la incidencia y, siempre que sea posible, designará vehículo o conductor alternativo. El cliente reconoce expresamente que el retraso no será considerado incumplimiento ni generará derecho a indemnización o penalización, salvo prueba de dolo o negligencia grave por parte de Dynamo.</p>
+                <h4>8. Horarios, penalizaciones y cancelaciones</h4>
+                <ul>
+                    <li>Se contempla <strong>1 hora para carga y 1 hora para descarga</strong>. A partir de ese tiempo se aplicará un coste conforme al art. 2.2 del Real Decreto-ley 3/2022 a razón de <strong>2 veces el IPREM diario</strong> (referencia 2024: 20,00 €/h — 40,00 €/h).</li>
+                    <li>Si el cliente cancela el servicio <strong>después de las 9:00 AM del día hábil anterior</strong> a la carga, Dynamo se reserva el derecho a facturar el servicio completo en concepto de indemnización.</li>
+                </ul>
+                <h4>9. Accesos, permisos y medios en carga/descarga</h4>
+                <p>El lugar de carga y descarga debe ser accesible para tráiler y disponer de medios adecuados (muelle, carretilla elevadora, puente grúa, etc.). Si la carga o entrega requieren permisos especiales (ayuntamiento, puertos, aeropuertos, etc.), el cliente deberá gestionarlos, eximiendo a Dynamo de toda responsabilidad o coste derivado. En caso de imposibilidad de acceso, demoras o sanciones por permisos no gestionados, el cliente asumirá los costes correspondientes.</p>
+                <h4>10. Dynamo como operador — exención de responsabilidad</h4>
+                <p>Dynamo actúa como organizador del servicio y no realiza la ejecución material del transporte, que es llevada a cabo por transportistas efectivos subcontratados. El cliente acepta expresamente que:</p>
+                <ul>
+                    <li>La responsabilidad sobre la mercancía recae <strong>exclusivamente en el transportista efectivo</strong>, único obligado a responder por pérdidas, daños o siniestros durante el transporte.</li>
+                    <li>Dynamo no asumirá ninguna responsabilidad económica por daño, pérdida, robo o siniestro de la mercancía.</li>
+                    <li>El seguro de transporte es obligación exclusiva del transportista efectivo; el seguro en origen corresponde al cargador y en destino al descargador. Si dichos seguros no estuvieran en vigor, no cubrieran el siniestro o fueran insuficientes, Dynamo queda exonerada de cualquier reclamación.</li>
+                    <li>En caso de siniestro, el cliente reclamará directamente al transportista efectivo o a su compañía de seguros, renunciando expresamente a cualquier reclamación contra Dynamo.</li>
+                </ul>
+                <h4>11. No circunvención</h4>
+                <p>El cliente reconoce que los transportistas y colaboradores presentados por Dynamo forman parte de su red comercial y su know-how. En consecuencia, se obliga a no contratar — directa o indirectamente — los servicios de transporte de dichos proveedores al margen de la intermediación de Dynamo durante <strong>18 meses</strong> tras la última operación realizada. El incumplimiento facultará a Dynamo a reclamar una indemnización fija y única de <strong>6.000 €</strong> (seis mil euros) en concepto de cláusula penal por daños y perjuicios, con independencia del volumen de servicios contravenidos. La contratación directa, además, exime a Dynamo de cualquier responsabilidad sobre mercancía, seguros, plazos de entrega o incidencias derivadas de dicha relación.</p>
+                <h4>12. Mercancía no recepcionada / falta de instrucciones del cliente</h4>
+                <p>Si la mercancía no es recepcionada por el destinatario y el cliente o cargador no se hace cargo de la misma (por decisión expresa, omisión de respuesta, falta de instrucciones o ausencia de indicaciones tras ser requerido), siempre que no sea imputable a Dynamo, y como consecuencia la mercancía deba ser almacenada provisionalmente por Dynamo, el cliente reconoce y acepta que: los costes de almacenaje, custodia y manipulación son de su exclusiva cuenta desde el primer día; Dynamo actúa como depositario involuntario; transcurridos <strong>7 días</strong> naturales desde el primer requerimiento de retirada podrá consignar la mercancía por cuenta y riesgo del cliente; y transcurridos <strong>30 días</strong> podrá, en los supuestos legalmente permitidos, proceder a su destrucción, dejando constancia documental. En ningún caso la falta de retirada transmite la propiedad ni exonera de los costes devengados.</p>
+                <h4>13. Disponibilidad y ajustes de tarifa</h4>
+                <p>La validez de este presupuesto queda sujeta a la disponibilidad real de flota en la zona y fechas solicitadas. En caso de falta de vehículos o cambios de mercado, la tarifa podría sufrir modificaciones para garantizar el servicio. Cualquier variación se comunicará al cliente para su validación previa.</p>
+                <h4>14. Garantías y confirmación — la recogida nunca está garantizada al 100%</h4>
+                <p>La recogida nunca está garantizada al 100%. En circunstancias normales se cumple, pero pueden darse incidencias ajenas a nuestra voluntad (retraso del camión asignado, una devolución que debía descargar antes de cargar, una demanda no prevista sin vehículos, un accidente, retenciones graves de tráfico, etc.). La falta de disponibilidad de vehículos que suponga cancelar o posponer la carga a otra fecha no dará lugar a penalizaciones, reclamaciones de daños y perjuicios ni retenciones de pagos. El servicio solo se considerará confirmado una vez se emita la orden de carga definitiva, se ejecute la carga y se finalice con su entrega.</p>
+            </div>
+            <div class="cond-foot"><button type="button" onclick="cerrarCondiciones()">Cerrar</button></div>
+        </div>
+    </div>
+
 <!-- Selector de prefijos telefónicos mundial, buscable y localizado -->
 <script src="/js/prefijos.js"></script>
 <script>
     function q(k, def) { var v = new URLSearchParams(location.search).get(k); return v || def; }
+    // Modal de condiciones generales (enlace bajo el botón Aceptar carga).
+    function abrirCondiciones(e) {
+        if (e) e.preventDefault();
+        var m = document.getElementById('condModal');
+        if (!m) return;
+        m.hidden = false; m.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+    }
+    function cerrarCondiciones() {
+        var m = document.getElementById('condModal');
+        if (!m) return;
+        m.hidden = true; m.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarCondiciones(); });
     // Iconos SVG de línea (REGLA del proyecto: nada de emoticonos en la UI;
     // solo banderas del selector de idioma y glifos ✕/⚠/★).
     function svgIco(paths, size) {
