@@ -1285,7 +1285,7 @@
         // (que es 24-48 h tras la entrega). El correlativo empieza en 1 cada año.
         var afYear = (new Date()).getFullYear();
         var ex = document.getElementById('afNomEx');
-        if (ex) ex.innerHTML = [1, 2, 3].map(function (n) { return 'Dynamo-' + cif + '-' + afYear + '-' + n; }).map(escH).join('<br>');
+        if (ex) ex.innerHTML = [1, 2].map(function (n) { return 'Dynamo-' + cif + '-' + afYear + '-' + n; }).map(escH).join('<br>');
         // Desglose de la autofactura: base − pronto pago (si aplica) → IVA − retención.
         var br = document.getElementById('afBreak');
         if (!br) return;
