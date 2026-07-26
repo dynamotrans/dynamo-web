@@ -3198,9 +3198,13 @@
         .ptar-fav-cap { display: flex; align-items: center; gap: 0.3rem; margin: 0.1rem 0 0.55rem 0.1rem; font-size: var(--fs-s); font-weight: 600; color: var(--gray-500); }
         .ptar-fav-cap strong { color: var(--navy); font-weight: 700; }
         .ptar-fav-cap-star { color: #f5b301; font-size: 13px; line-height: 1; }
-        .ptar-fav-tip { color: var(--gray-500); }
-        .ptar-fav-tip .ptar-tip-ico { width: 14px; height: 14px; opacity: 0.6; }
+        /* Zona de toque amplia (padding con margen negativo para no descuadrar
+           la línea) — igual que el ℹ del precio, para acertar bien en móvil. */
+        .ptar-fav-tip { display: inline-flex; align-items: center; justify-content: center; padding: 6px; margin: -6px 0 -6px -3px; border-radius: 7px; color: var(--gray-500); -webkit-tap-highlight-color: transparent; }
+        .ptar-fav-tip .ptar-tip-ico { width: 15px; height: 15px; opacity: 0.6; }
         .ptar-fav-tip.tip-open .ptar-tip-ico { opacity: 1; }
+        .ptar-fav-tip:active, .ptar-fav-tip.tip-open { background: rgba(51,0,204,0.08); }
+        @media (hover: hover) { .ptar-fav-tip:hover .ptar-tip-ico { opacity: 1; } }
         .ptar-input-wrap:hover,
         .ptar-input-wrap:focus-within { border-color: var(--purple); }
         .ptar-input-wrap:focus-within { box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
