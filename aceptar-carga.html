@@ -17,7 +17,7 @@
            --fs-s metadatos/labels pequeños · --fs-m cuerpo/labels · --fs-l
            párrafos/avisos. Fuera de escala solo el display (títulos/precios
            ≥1rem) y los 16px de inputs (anti-zoom iOS). NO inventar tamaños. */
-        --fs-s: 0.72rem; --fs-m: 0.82rem; --fs-l: 0.92rem;
+        --fs-s: 0.82rem; --fs-m: 0.82rem; --fs-l: 0.92rem; /* --fs-s = alias de --fs-m: el nivel 0,72 se eliminó */
     }
     * { margin: 0; padding: 0; box-sizing: border-box; min-width: 0; }
     /* El atributo hidden SIEMPRE gana: sin esto, cualquier regla propia con
@@ -692,11 +692,11 @@
                 <div class="sec-title">Entrega <span class="op" style="font-weight:600;color:var(--gray-500);">· estimada</span></div>
                 <div class="row2">
                     <div>
-                        <label for="f-fechaentrega">Fecha estimada de entrega</label>
+                        <label for="f-fechaentrega">Fecha estimada</label>
                         <select id="f-fechaentrega"></select>
                     </div>
                     <div>
-                        <label for="f-horaentrega">Hora estimada de entrega *</label>
+                        <label for="f-horaentrega">Hora estimada *</label>
                         <select id="f-horaentrega"></select>
                     </div>
                 </div>

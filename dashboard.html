@@ -20,13 +20,14 @@
     <script src="/js/prefijos.js"></script>
     <style>
         :root {
-            /* ESCALA DE TEXTO ÚNICA (3 niveles). NO inventar tamaños nuevos:
-               S = meta (metadatos, th de tabla, badges, notas al pie)
-               M = estándar (tablas, labels, chips, sidebar, detalle)
-               L = párrafo (modales, avisos, explicaciones, condiciones)
-               Fuera de escala solo display (títulos ≥1rem, precios, stats)
-               y los 16px fijos de inputs móviles (anti-zoom iOS). */
-            --fs-s: 0.72rem;
+            /* ESCALA DE TEXTO ÚNICA. NO inventar tamaños nuevos.
+               El nivel 0,72 (antiguo S) se ELIMINÓ: ahora solo 2 tamaños de
+               cuerpo, M = 0,82 (estándar: tablas, labels, chips, meta, notas)
+               y L = 0,92 (párrafo: modales, avisos, explicaciones). --fs-s se
+               mantiene como ALIAS de M (= 0,82) para no reescribir cientos de
+               referencias. Fuera de escala solo display (títulos ≥1rem, precios,
+               stats) y los 16px fijos de inputs móviles (anti-zoom iOS). */
+            --fs-s: 0.82rem; /* alias de --fs-m (el nivel 0,72 se eliminó) */
             --fs-m: 0.82rem;
             --fs-l: 0.92rem;
             --purple:       #3300cc;
