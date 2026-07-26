@@ -241,6 +241,33 @@
     .pronto-calc .pc-red { color: var(--red); font-weight: 800; }
     .pronto-calc.off { opacity: 0.62; }
     .pronto-calc.off .pc-amount { color: var(--gray-700); }
+    /* Opciones de facturación/cobro: discretas, de segundo nivel. */
+    .fac-opts { margin-top: 1rem; background: var(--gray-100); border: 1.5px solid var(--gray-200); border-radius: 12px; padding: 0.7rem 0.85rem; }
+    .fac-title { font-size: 0.72rem; font-weight: 800; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 0.5rem; }
+    .fac-title .op { text-transform: none; letter-spacing: 0; font-weight: 600; }
+    .fac-chk { display: flex; gap: 0.55rem; align-items: flex-start; font-size: 0.82rem; font-weight: 600; color: var(--navy); margin: 0.55rem 0 0; cursor: pointer; text-transform: none; }
+    .fac-chk input { width: 18px; height: 18px; flex: none; margin-top: 1px; accent-color: var(--purple); }
+    .fac-detail { margin: 0.5rem 0 0.2rem 1.55rem; padding: 0.6rem 0.7rem; background: #fff; border: 1px solid var(--gray-200); border-radius: 9px; }
+    .fac-detail .pc-line { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
+    .fac-detail .pc-lbl { font-size: 0.8rem; font-weight: 700; color: var(--navy); }
+    .fac-detail .pc-amount { font-size: 1.12rem; font-weight: 900; color: var(--green-dark); white-space: nowrap; }
+    .fac-detail .pc-when { color: var(--green-dark); font-weight: 800; font-size: 0.72rem; white-space: nowrap; }
+    .fac-detail .pc-sub { font-size: 0.7rem; font-weight: 600; color: var(--gray-500); margin-top: 0.15rem; }
+    .fac-detail .pc-alt { font-size: 0.74rem; font-weight: 600; color: var(--gray-500); margin-top: 0.4rem; line-height: 1.5; }
+    .fac-detail .pc-red { color: var(--red); font-weight: 800; }
+    .af-nom-lbl { font-size: 0.72rem; font-weight: 700; color: var(--gray-500); }
+    .af-nom-ex { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; font-weight: 700; color: var(--purple); margin: 0.25rem 0; line-height: 1.65; word-break: break-all; }
+    .af-nom-note { font-size: 0.68rem; color: var(--gray-500); }
+    .af-fisc { display: flex; gap: 0.7rem; margin-top: 0.65rem; }
+    .af-fisc-row { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; }
+    .af-fisc-row label { font-size: 0.66rem; font-weight: 800; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.02em; }
+    .af-fisc-row select { width: 100%; height: 40px; border: 1.5px solid var(--gray-300); border-radius: 9px; padding: 0 0.55rem; font-size: 0.86rem; font-weight: 600; color: var(--navy); background: #fff; }
+    .af-fisc-note { font-size: 0.7rem; color: var(--gray-600); margin-top: 0.5rem; line-height: 1.45; }
+    .af-break { margin-top: 0.6rem; padding-top: 0.55rem; border-top: 1px dashed var(--gray-300); font-size: 0.8rem; }
+    .af-break .afb-row { display: flex; justify-content: space-between; gap: 0.75rem; padding: 1.5px 0; color: var(--gray-700); font-weight: 600; }
+    .af-break .afb-row .afb-neg { color: var(--red); }
+    .af-break .afb-tot { border-top: 1px solid var(--gray-200); margin-top: 0.3rem; padding-top: 0.35rem; color: var(--navy); font-weight: 900; }
+    .af-break .afb-tot .afb-v { color: var(--purple); }
     .btn { width: 100%; margin-top: 1.1rem; background: var(--purple); color: #fff; border: none; border-radius: 12px; padding: 0.95rem; font: inherit; font-weight: 800; font-size: 1.02rem; cursor: pointer; }
     .btn:hover { background: var(--purple-light); }
     /* ---- CONTRAOFERTA: proponer otro precio (barra ±10 %, pasos de 10 €) ---- */
@@ -735,19 +762,50 @@
                 </div>
                 </div>
 
-                <!-- PRONTO PAGO OCULTO de momento (decisión del usuario 2026-07-22:
-                     "ya vemos en otro momento"). El código queda intacto: para
-                     reactivarlo en una demo, añadir ?pp=1 a la URL; para volver
-                     a mostrarlo de serie, quitar el atributo hidden. -->
-                <div class="pronto" hidden>
-                    <label class="chk">
-                        <input type="checkbox" id="f-pronto" onchange="renderProntoCalc()">
-                        <span><strong>Quiero PRONTO PAGO:</strong> cobro en <strong>5 días tras recibir factura</strong> después de finalizar el servicio, con un <strong>descuento del 3,5%</strong> (mínimo 25&nbsp;€).</span>
+                <!-- OPCIONES DE FACTURACIÓN Y COBRO (segundo nivel, discretas):
+                     1) Pronto pago (−3%, mín. 20 €). 2) Autofactura (Dynamo emite
+                     la factura por el transportista al finalizar el servicio). -->
+                <div class="fac-opts">
+                    <div class="fac-title">Facturación y cobro <span class="op">· opcional</span></div>
+
+                    <!-- 1) PRONTO PAGO -->
+                    <label class="chk fac-chk">
+                        <input type="checkbox" id="f-pronto" onchange="onFacChange()">
+                        <span><strong>Pronto pago</strong> · cobro a <strong>5 días</strong> tras la factura con <strong>−3%</strong> de descuento (mínimo 20&nbsp;€).</span>
                     </label>
-                    <div class="pronto-calc" id="prontoCalc" hidden>
-                        <div class="pc-line"><span class="pc-lbl">Precio total con pronto pago <span class="pc-when" id="pc-when"></span></span><span class="pc-amount" id="pc-total">—</span></div>
+                    <div class="fac-detail" id="prontoCalc" hidden>
+                        <div class="pc-line"><span class="pc-lbl">Precio con pronto pago <span class="pc-when" id="pc-when"></span></span><span class="pc-amount" id="pc-total">—</span></div>
                         <div class="pc-sub">base imponible (impuestos no incluidos)</div>
                         <div class="pc-alt" id="pc-alt"></div>
+                    </div>
+
+                    <!-- 2) AUTOFACTURA -->
+                    <label class="chk fac-chk">
+                        <input type="checkbox" id="f-autofac" onchange="onFacChange()">
+                        <span><strong>Autofactura</strong> · que <strong>Dynamo</strong> emita por ti la factura de este viaje cuando finalice el servicio.</span>
+                    </label>
+                    <div class="fac-detail" id="autofacPanel" hidden>
+                        <div class="af-nom-lbl">Así numeraríamos tus autofacturas:</div>
+                        <div class="af-nom-ex" id="afNomEx">—</div>
+                        <div class="af-nom-note">Dynamo · tu CIF/NIF · nº correlativo de tus viajes (empieza en 1).</div>
+                        <div class="af-fisc">
+                            <div class="af-fisc-row">
+                                <label for="af-iva">IVA</label>
+                                <select id="af-iva" onchange="renderAutofac()">
+                                    <option value="21">21% (España)</option>
+                                    <option value="0">0% (Intracomunitario)</option>
+                                </select>
+                            </div>
+                            <div class="af-fisc-row">
+                                <label for="af-ret">Retención IRPF</label>
+                                <select id="af-ret" onchange="renderAutofac()">
+                                    <option value="1">1%</option>
+                                    <option value="0">0%</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="af-fisc-note">Traemos tu <strong>IVA</strong> y <strong>retención</strong> de tu ficha; cámbialos aquí si no fueran correctos. <strong>Sin el IVA no podemos autofacturarte.</strong></div>
+                        <div class="af-break" id="afBreak"></div>
                     </div>
                 </div>
 
@@ -874,7 +932,7 @@
     // el backend busca en la base real y solo devuelve TU empresa).
     var TRANS_DEMO = [
         {
-            cif: 'B58830217', empresa: 'Transportes Iberia Express S.L.', ciudad: 'Madrid', flota: '8 camiones', bolsa: 'Wtransnet', bolsaCod: '482113', tel: '+34 916 402 118', email: 'trafico@iberiaexpress-trans.es',
+            cif: 'B58830217', empresa: 'Transportes Iberia Express S.L.', ciudad: 'Madrid', flota: '8 camiones', bolsa: 'Wtransnet', bolsaCod: '482113', tel: '+34 916 402 118', email: 'trafico@iberiaexpress-trans.es', iva: 21, retencion: 1,
             matriculas: ['4521 JKL', '7890 MNP', '1234 ABC'], remolques: ['R2345 DEF', 'R6677 GHJ'],
             pares: { '4521 JKL': 'R2345 DEF', '7890 MNP': 'R6677 GHJ', '1234 ABC': 'R2345 DEF' },
             paresChofer: { '4521 JKL': 0, '7890 MNP': 1, '1234 ABC': 0 },
@@ -884,7 +942,7 @@
             ]
         },
         {
-            cif: 'B72153042', empresa: 'LogiSur Cargo S.L.', ciudad: 'Sevilla', flota: '12 camiones', bolsa: 'Timocom', bolsaCod: '917426', tel: '+34 954 771 530', email: 'operaciones@logisurcargo.com',
+            cif: 'B72153042', empresa: 'LogiSur Cargo S.L.', ciudad: 'Sevilla', flota: '12 camiones', bolsa: 'Timocom', bolsaCod: '917426', tel: '+34 954 771 530', email: 'operaciones@logisurcargo.com', iva: 21, retencion: 1,
             matriculas: ['3344 SUR', '5566 CDZ'], remolques: ['R8899 SEV'],
             pares: { '3344 SUR': 'R8899 SEV', '5566 CDZ': '' },
             paresChofer: { '3344 SUR': 0, '5566 CDZ': 0 },
@@ -893,12 +951,12 @@
             ]
         },
         {
-            cif: 'B91234567', empresa: 'Transportes Andévalo S.L.', ciudad: 'Huelva', flota: '5 camiones', bolsa: '—', tel: '+34 959 240 087', email: 'trafico@andevalotrans.es',
+            cif: 'B91234567', empresa: 'Transportes Andévalo S.L.', ciudad: 'Huelva', flota: '5 camiones', bolsa: '—', tel: '+34 959 240 087', email: 'trafico@andevalotrans.es', iva: 0, retencion: 1,
             matriculas: ['1122 HUE'], remolques: [], pares: { '1122 HUE': '' },
             conductores: []
         },
         {
-            cif: '29876543P', empresa: 'José Martín Ruiz · autónomo', ciudad: 'Córdoba', flota: '1 camión', bolsa: '—', tel: '+34 638 220 471', email: 'jmartin.transportes@gmail.com',
+            cif: '29876543P', empresa: 'José Martín Ruiz · autónomo', ciudad: 'Córdoba', flota: '1 camión', bolsa: '—', tel: '+34 638 220 471', email: 'jmartin.transportes@gmail.com', iva: 21, retencion: 1,
             matriculas: ['9080 COR'], remolques: ['R4040 COR'], pares: { '9080 COR': 'R4040 COR' },
             paresChofer: { '9080 COR': 0 },
             conductores: [
@@ -1131,22 +1189,21 @@
                 });
             }
         })();
-        // PRONTO PAGO oculto por defecto (se retomará más adelante).
-        // pp=1 lo vuelve a mostrar para demos.
-        if (q('pp', '') === '1') {
-            var prShow = document.querySelector('.pronto');
-            if (prShow) prShow.hidden = false;
-        }
-        // pp=0 → PRONTO PAGO no disponible.
+        // pp=0 → PRONTO PAGO no disponible en esta carga (la autofactura sigue).
         if (q('pp', '') === '0') {
-            var pr = document.querySelector('.pronto');
-            pr.style.background = 'var(--gray-100)';
-            pr.style.borderColor = 'var(--gray-300)';
-            pr.innerHTML = '<label class="chk" style="color:var(--gray-500);cursor:not-allowed;">' +
-                '<input type="checkbox" disabled>' +
-                '<span><strong>PRONTO PAGO no disponible temporalmente.</strong> En esta carga no se puede ofrecer el cobro anticipado a 5&nbsp;días tras factura; el pago es CONTADO en las condiciones habituales.</span></label>';
+            var ppChk = document.getElementById('f-pronto');
+            if (ppChk) {
+                ppChk.checked = false; ppChk.disabled = true;
+                var ppLbl = ppChk.closest('.fac-chk');
+                if (ppLbl) {
+                    ppLbl.style.opacity = '0.55'; ppLbl.style.cursor = 'not-allowed';
+                    var sp = ppLbl.querySelector('span');
+                    if (sp) sp.innerHTML = '<strong>Pronto pago no disponible</strong> en esta carga · el pago va a las condiciones habituales.';
+                }
+            }
+            var pcx = document.getElementById('prontoCalc'); if (pcx) pcx.hidden = true;
         }
-        renderProntoCalc();
+        renderProntoCalc(); renderAutofac();
     })();
 
     // ---- Precio: parseo/formato es-ES (2 decimales) y cálculo de pronto pago ----
@@ -1158,11 +1215,11 @@
         return isNaN(n) ? NaN : n;
     }
     function fmtEur(n) { return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-    // Descuento pronto pago: 3,5% con mínimo 25 €. Total = base − descuento.
+    // Descuento pronto pago: 3% con mínimo 20 €. Total = base − descuento.
     function prontoPagoInfo() {
         var base = window._basePrecio;
         if (isNaN(base) || base <= 0) return null;
-        var desc = Math.max(base * 0.035, 25);
+        var desc = Math.max(base * 0.03, 20);
         if (desc > base) desc = base;
         return { base: base, desc: desc, total: base - desc };
     }
@@ -1178,13 +1235,14 @@
         var dd = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
         return dd[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear();
     }
-    // Pinta la línea de precio con pronto pago bajo el check (si hay precio).
+    // Pinta la línea de precio con pronto pago bajo el check. El detalle solo se
+    // muestra cuando la casilla está MARCADA (opción discreta, de segundo nivel).
     function renderProntoCalc() {
         var box = document.getElementById('prontoCalc');
         var chk = document.getElementById('f-pronto');
-        if (!box) return; // pp=0 → la caja se sustituyó, no hay calc
+        if (!box) return;
         var info = prontoPagoInfo();
-        if (!info) { box.hidden = true; return; }
+        if (!info || !(chk && chk.checked)) { box.hidden = true; return; }
         box.hidden = false;
         document.getElementById('pc-total').textContent = fmtEur(info.total) + ' €';
         // Pronto pago: cobro a 5 días (verde negrita) · Sin pronto pago: 60 días (rojo).
@@ -1192,8 +1250,65 @@
         document.getElementById('pc-when').innerHTML = p5 ? '(pago el ' + escH(p5) + ', en 5 días)' : '';
         document.getElementById('pc-alt').innerHTML = 'Sin pronto pago: <span class="pc-red">' + escH(fmtEur(info.base)) + ' € a 60 días</span>' +
             (p60 ? ' (se pagaría el <span class="pc-red">' + escH(p60) + '</span>, si la factura coincide con la fecha de envío)' : '') + '.';
-        box.classList.toggle('off', !(chk && chk.checked));
     }
+    // ---- AUTOFACTURA: Dynamo emite la factura por el transportista ----
+    // CIF/NIF del transportista identificado (o del alta). Normalizado.
+    function afCif() {
+        var e = (typeof selEmpresa === 'function') ? selEmpresa() : (window._empresaSel || null);
+        var c = e ? e.cif : ((document.getElementById('alta-cif') || {}).value || '');
+        c = String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        return c || 'TUCIF';
+    }
+    var _afPrefilled = false;
+    // Rellena una vez IVA/retención desde la ficha del transportista (al abrir).
+    function afPrefillFromFicha() {
+        if (_afPrefilled) return;
+        var e = (typeof selEmpresa === 'function') ? selEmpresa() : (window._empresaSel || null);
+        var ivaSel = document.getElementById('af-iva'), retSel = document.getElementById('af-ret');
+        if (e) {
+            if (e.iva != null && ivaSel && ivaSel.querySelector('option[value="' + e.iva + '"]')) ivaSel.value = String(e.iva);
+            if (e.retencion != null && retSel && retSel.querySelector('option[value="' + e.retencion + '"]')) retSel.value = String(e.retencion);
+        }
+        _afPrefilled = true;
+    }
+    function renderAutofac() {
+        var chk = document.getElementById('f-autofac');
+        var panel = document.getElementById('autofacPanel');
+        if (!panel) return;
+        if (!chk || !chk.checked) { panel.hidden = true; return; }
+        panel.hidden = false;
+        afPrefillFromFicha();
+        // Nomenclatura de ejemplo (3 primeras autofacturas del transportista).
+        var cif = afCif();
+        var ex = document.getElementById('afNomEx');
+        if (ex) ex.innerHTML = ['Dynamo-' + cif + '-1', 'Dynamo-' + cif + '-2', 'Dynamo-' + cif + '-3'].map(escH).join('<br>');
+        // Desglose de la autofactura: base − pronto pago (si aplica) → IVA − retención.
+        var br = document.getElementById('afBreak');
+        if (!br) return;
+        var base = window._basePrecio;
+        if (isNaN(base) || base <= 0) { br.innerHTML = '<div class="afb-row">Introduce/acuerda antes el precio del viaje.</div>'; return; }
+        var pronto = document.getElementById('f-pronto');
+        var descPP = 0;
+        if (pronto && pronto.checked) { var ppi = prontoPagoInfo(); descPP = ppi ? ppi.desc : 0; }
+        var baseNeta = base - descPP;
+        var ivaSel = document.getElementById('af-iva'), retSel = document.getElementById('af-ret');
+        var ivaPct = parseFloat(ivaSel ? ivaSel.value : '21') || 0;
+        var retPct = parseFloat(retSel ? retSel.value : '0') || 0;
+        var iva = baseNeta * ivaPct / 100;
+        var ret = baseNeta * retPct / 100;
+        var total = baseNeta + iva - ret;
+        function r(k, v, neg) { return '<div class="afb-row"><span>' + escH(k) + '</span><span' + (neg ? ' class="afb-neg"' : '') + '>' + (neg ? '−' : '') + escH(fmtEur(Math.abs(v))) + ' €</span></div>'; }
+        var h = r('Base imponible', base);
+        if (descPP > 0) { h += r('Pronto pago (−3%)', descPP, true); h += r('Base tras pronto pago', baseNeta); }
+        h += r('IVA (' + ivaPct + '%)', iva);
+        if (retPct > 0) h += r('Retención IRPF (−' + retPct + '%)', ret, true);
+        h += '<div class="afb-row afb-tot"><span>Total autofactura</span><span class="afb-v">' + escH(fmtEur(total)) + ' €</span></div>';
+        br.innerHTML = h;
+    }
+    // Cambio en cualquiera de las dos opciones → recalcula ambas (el pronto pago
+    // afecta a la base de la autofactura).
+    function onFacChange() { renderProntoCalc(); renderAutofac(); }
+    window.onFacChange = onFacChange; window.renderAutofac = renderAutofac;
 
     // ---- Buscar la empresa por CIF/DNI ----
     // Al pulsar Buscar se muestra un spinner y se BLOQUEA el campo + botón
@@ -1258,6 +1373,8 @@
             document.getElementById('altaForm').style.display = 'block';
             window._telFicha = ''; window._telConfirm = ''; window._codIntentos = 3;
             window._altaMode = true; window._empresaSel = null;
+            _afPrefilled = false;   // alta nueva → IVA/retención en blanco (por defecto 21% / 1%)
+            if (typeof renderAutofac === 'function') renderAutofac();
             ampliarReservaAlta(); // alta nueva → la reserva se amplía a 6 min
             altaBolsaSync();
             montarDesplegables();
@@ -1294,6 +1411,8 @@
         window._telConfirm = (tel.match(/\d/g) || []).join('').slice(-3);
         window._codIntentos = 3;
         window._empresaSel = hit;
+        _afPrefilled = false;   // re-traer IVA/retención de la ficha recién identificada
+        if (typeof renderAutofac === 'function') renderAutofac();
         document.getElementById('empresaResumen').classList.add('show');
         // Revelar el resto del formulario y montar los desplegables.
         montarDesplegables();
@@ -1314,6 +1433,8 @@
     }
     function cambiarEmpresa() {
         window._empresaSel = null; window._altaMode = false;
+        _afPrefilled = false;   // al cambiar de empresa, re-traer IVA/retención
+        if (typeof renderAutofac === 'function') renderAutofac();
         document.getElementById('empresaResumen').classList.remove('show');
         document.getElementById('altaForm').style.display = 'none';
         window._telFicha = ''; window._telConfirm = ''; window._codIntentos = 3;
@@ -1993,7 +2114,7 @@
         var tg = document.getElementById('contraToggle'), bx = document.getElementById('contraBox');
         if (bx) bx.hidden = true;
         if (tg) tg.classList.remove('open');
-        renderProntoCalc(); // el pronto pago recalcula sobre el precio acordado
+        onFacChange(); // pronto pago + autofactura recalculan sobre el precio acordado
         if (pago) pago.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
     // Validación completa del formulario (identidad + campos obligatorios).
@@ -2163,6 +2284,16 @@
                 '<div style="font-size:0.82rem;font-weight:700;margin-top:0.25rem;">PRONTO PAGO aplicado: −' + escH(fmtEur(info.desc)) + ' € · cobro a 5 días' + (fechaPagoDias(5) ? ' (pago el ' + escH(fechaPagoDias(5)) + ')' : '') + '</div>' + contraNota + '</div>';
         } else if (imp) {
             html += '<div class="pago-contado"><span class="imp">' + escH(imp) + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)' + (info ? ' · a 60 días' : '') + '</span>' + contraNota + '</div>';
+        }
+        // AUTOFACTURA solicitada: nota discreta en el resumen aceptado. Al
+        // finalizar el servicio, administración de Dynamo emitirá la factura.
+        var autofac = document.getElementById('f-autofac') && document.getElementById('f-autofac').checked;
+        if (autofac) {
+            var afc = afCif();
+            var ivaSel2 = document.getElementById('af-iva'), retSel2 = document.getElementById('af-ret');
+            var ivaP = ivaSel2 ? ivaSel2.value : '21', retP = retSel2 ? retSel2.value : '1';
+            html += '<div class="pago-contado" style="background:rgba(51,0,204,0.05);border-color:rgba(51,0,204,0.28);color:var(--navy);font-size:0.82rem;font-weight:700;text-align:left;">' +
+                'AUTOFACTURA solicitada · Dynamo emitirá tu factura de este viaje al finalizar el servicio (ej. <span style="font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--purple);">Dynamo-' + escH(afc) + '-1</span>) · IVA ' + escH(ivaP) + '% · Retención ' + escH(retP) + '%' + (pronto && info ? ' · con el pronto pago descontado en la base imponible' : '') + '.</div>';
         }
         document.getElementById('ok-resumen').innerHTML = html;
         // Email donde se enviará la orden de carga: el de su ficha (existente) o
