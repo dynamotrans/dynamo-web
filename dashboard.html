@@ -10259,11 +10259,16 @@
     function almacenCatGuardar(idx) {
         function v(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
         var empresa = v('sitio-f-empresa'), calle = v('sitio-f-calle'), dirCP = v('sitio-f-dir');
-        if (!empresa || !(calle || dirCP)) {
-            ['sitio-f-empresa', 'sitio-f-calle'].forEach(function (id) { var el = document.getElementById(id); if (el && !el.value.trim()) el.style.borderColor = '#dc2626'; });
+        var tipoEl = document.getElementById('sitio-f-tipo');
+        // Mínimos obligatorios (mismo formulario que Sitios): Empresa · Tipo ·
+        // Dirección (calle) · CP/localidad/provincia/país.
+        if (!empresa || !calle || !dirCP || !(tipoEl && tipoEl.value)) {
+            [['sitio-f-empresa', empresa], ['sitio-f-calle', calle], ['sitio-f-dir', dirCP]].forEach(function (pair) {
+                var el = document.getElementById(pair[0]); if (el && !pair[1]) el.style.borderColor = '#dc2626';
+            });
+            if (tipoEl && !tipoEl.value) tipoEl.style.borderColor = '#dc2626';
             return;
         }
-        var tipoEl = document.getElementById('sitio-f-tipo');
         var dispEl = document.getElementById('almc-f-disp');
         var edit = (idx != null && idx >= 0 && idx < DYNAMO_ALMACENES.length);
         var a = edit ? DYNAMO_ALMACENES[idx] : {};
@@ -17277,12 +17282,12 @@
                 '<div class="sitio-email-err" id="sitioEmailErr" hidden style="font-size: var(--fs-s);color:#b42318;font-weight:700;margin-top:0.3rem;"></div>' +
                 sitioEmailHint() + '</div>' +
                 inp('<span style="color:var(--green);">Notas del sitio</span> <span style="color:var(--gray-500);font-weight:600;">· opcional</span>', 'sitio-f-notas', s.notas, 'Ej. referencia de carga/entrega, pedir cita, báscula…', true) +
-                inp('Empresa', 'sitio-f-empresa', s.empresa, 'Ej. Talleres Vega e Hijos S.L.') +
+                inp('Empresa <span class="sitio-req">· obligatorio</span>', 'sitio-f-empresa', s.empresa, 'Ej. Talleres Vega e Hijos S.L.') +
                 '<div><label>Tipo de lugar' + (tipoHas ? '' : ' <span class="sitio-req">· obligatorio</span>') + '</label><select id="sitio-f-tipo">' + tipoOpts + '</select></div>' +
-                inp('Horario', 'sitio-f-horario', s.horario, 'Ej. L-V 8:00-14:00') +
-                inp('Dirección (calle y número)', 'sitio-f-calle', s.calle, '', true) +
-                inp('CP, localidad, provincia y país', 'sitio-f-dir', s.dir, 'Ej. 41001, Sevilla, España', true) +
-                telField('sitio-f-tfno', 'Teléfono', s.tfno) +
+                inp('Horario <span style="color:var(--gray-500);font-weight:600;">· opcional</span>', 'sitio-f-horario', s.horario, 'Ej. L-V 8:00-14:00') +
+                inp('Dirección (calle y número) <span class="sitio-req">· obligatorio</span>', 'sitio-f-calle', s.calle, '', true) +
+                inp('CP, localidad, provincia y país <span class="sitio-req">· obligatorio</span>', 'sitio-f-dir', s.dir, 'Ej. 41001, Sevilla, España', true) +
+                telField('sitio-f-tfno', 'Teléfono <span style="color:var(--gray-500);font-weight:600;">· opcional</span>', s.tfno) +
                 inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','sitio-f-contacto', s.contacto, 'Persona de contacto') +
                 inp('Enlace de Google Maps', 'sitio-f-maps', s.maps, 'https://maps.app.goo.gl/…', true) +
             '</div>';
@@ -17477,10 +17482,14 @@
         // (el placeholder tiene value vacío).
         if (tipoEl && tipoEl.value) base.tipoLugar = tipoEl.value;
         if (!base.freq) base.freq = 1;
-        if (!base.empresa || !(base.calle || base.dir) || !(tipoEl && tipoEl.value)) {
-            ['sitio-f-empresa', 'sitio-f-calle'].forEach(function (id) {
-                var el = document.getElementById(id);
-                if (el && !el.value.trim()) el.style.borderColor = '#dc2626';
+        // Campos MÍNIMOS obligatorios (crear/editar sitio): Empresa · Tipo de
+        // lugar · Dirección (calle y número) · CP, localidad, provincia y país.
+        // Se valida el CP con su campo REAL (sitio-f-dir), no base.dir, que hace
+        // fallback a la calle. Horario, teléfono y email son opcionales.
+        var cpRaw = v('sitio-f-dir');
+        if (!base.empresa || !base.calle || !cpRaw || !(tipoEl && tipoEl.value)) {
+            [['sitio-f-empresa', base.empresa], ['sitio-f-calle', base.calle], ['sitio-f-dir', cpRaw]].forEach(function (pair) {
+                var el = document.getElementById(pair[0]); if (el && !pair[1]) el.style.borderColor = '#dc2626';
             });
             if (tipoEl && !tipoEl.value) { tipoEl.style.borderColor = '#dc2626'; }
             return;
