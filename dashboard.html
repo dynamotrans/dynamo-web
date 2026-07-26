@@ -1319,6 +1319,15 @@
             background: #1a1530;
             border-color: #1a1530;
         }
+        /* "Confirmar envío" del modal IMPORTANTE: mismo look que "Crear envío"
+           del paso 4 — morado (no navy) y grande. */
+        .dash-modal-footer .btn-primary.btn-confirm-envio {
+            background: var(--purple); border-color: var(--purple);
+            min-height: 64px; font-size: 1.12rem; font-weight: 800; border-radius: 14px;
+        }
+        .dash-modal-footer .btn-primary.btn-confirm-envio:hover {
+            background: var(--purple-light); border-color: var(--purple-light);
+        }
         .dash-modal-footer .btn-secondary {
             background: white;
             color: var(--gray-700);
@@ -4161,8 +4170,8 @@
         .ptar-actions .btn-primary,
         .ptar-actions .btn-secondary { flex: 1; min-width: 180px; }
         .ptar-actions .btn-ghost { flex: 0 0 auto; }
-        /* Confirmación: apiladas — Confirmar envío grande arriba, Editar datos
-           debajo como última opción. */
+        /* Confirmación: apiladas — «← Editar datos» arriba, «Crear envío»
+           grande (morado) debajo como acción principal. */
         .ptar-actions-confirm { flex-direction: column; gap: 0.6rem; }
         .ptar-actions-confirm .btn-primary {
             flex: none; width: 100%; min-height: 64px;
@@ -5707,8 +5716,8 @@
                     <p class="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> confirmas que has leído y aceptas las <a href="#" class="ptar-inline-link" data-ptar-show-terms>condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L.</p>
                 </div>
                 <div class="ptar-actions ptar-actions-confirm">
-                    <button type="button" class="btn-primary" data-ptar-final-confirm>Crear envío</button>
                     <button type="button" class="btn-ghost" data-ptar-back>← Editar datos</button>
+                    <button type="button" class="btn-primary" data-ptar-final-confirm>Crear envío</button>
                 </div>
             </div><!-- /form-2col-side -->
             </div><!-- /form-2col -->
@@ -23004,7 +23013,7 @@
                     body: legal.bodyNoTitle,
                     footer:
                         '<button class="btn-ghost" onclick="closeDashModal();" style="flex:1;">Editar datos</button>' +
-                        '<button class="btn-primary" data-ptar-modal-confirm style="flex:1;">' + (legal.esPrepago ? 'Confirmar (pago pendiente)' : 'Confirmar carga') + '</button>'
+                        '<button class="btn-primary btn-confirm-envio" data-ptar-modal-confirm style="flex:1;">' + (legal.esPrepago ? 'Confirmar (pago pendiente)' : 'Confirmar envío') + '</button>'
                 });
                 setTimeout(function () {
                     var cb = document.querySelector('[data-ptar-modal-confirm]');
