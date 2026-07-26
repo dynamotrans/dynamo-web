@@ -17097,10 +17097,20 @@
     }
     // Sitio PRINCIPAL (almacén de la empresa): se marca con la estrella de la
     // tabla de Sitios. Queda anclado arriba y se pone como ORIGEN por defecto al
-    // crear un envío. Estado de sesión (mockup determinista, sin localStorage).
-    window.__sitioPrincipal = window.__sitioPrincipal || null;
+    // crear un envío. Se PERSISTE en localStorage (excepción a la regla de "sin
+    // persistencia": es una preferencia, no un dato de negocio) para que
+    // sobreviva a recargas; en producción vivirá en el perfil del cliente.
+    var SITIO_PRIN_KEY = 'dynamoSitioPrincipal';
+    (function () {
+        try { window.__sitioPrincipal = localStorage.getItem(SITIO_PRIN_KEY) || null; }
+        catch (e) { window.__sitioPrincipal = window.__sitioPrincipal || null; }
+    })();
     window.__toggleSitioPrincipal = function (key) {
         window.__sitioPrincipal = (window.__sitioPrincipal === key) ? null : key;
+        try {
+            if (window.__sitioPrincipal) localStorage.setItem(SITIO_PRIN_KEY, window.__sitioPrincipal);
+            else localStorage.removeItem(SITIO_PRIN_KEY);
+        } catch (e) {}
         var si = document.getElementById('sitiosSearch');
         renderSitiosTable(si ? si.value : '');
     };
