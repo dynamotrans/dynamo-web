@@ -34,8 +34,41 @@
         try { el.setSelectionRange(v.length, v.length); } catch (e) {}
     }
     function attr(el, n) { return (el.getAttribute(n) || '').toLowerCase(); }
-    function esEmail(el) { return attr(el, 'type') === 'email' || attr(el, 'inputmode') === 'email'; }
-    function esTel(el) { return attr(el, 'type') === 'tel' || attr(el, 'inputmode') === 'tel'; }
+
+    // Tokens de nombre para reconocer campos que NO llevan type/inputmode
+    // explícito pero SÍ son de teléfono o email (p. ej. los helpers genéricos
+    // inp()/inpReq() de las fichas de sitio en la confirmación, que salen como
+    // data-sitio-f="tfno" en texto plano). Se buscan en id, name y en TODOS los
+    // atributos data-*; el email además se detecta por una '@' en el placeholder.
+    var PHONE_RE = /(tfno|tel[eé]fono|phone|m[oó]vil|mvl)/i;
+    var EMAIL_RE = /mail/i;
+    // Tipos de input que NUNCA se sanean (aunque el nombre despiste).
+    var IGNORAR = { search: 1, number: 1, password: 1, checkbox: 1, radio: 1, range: 1, date: 1, color: 1, file: 1, hidden: 1 };
+
+    function blob(el) {
+        var s = (el.id || '') + ' ' + (el.name || '');
+        var a = el.attributes;
+        for (var i = 0; i < a.length; i++) { if (a[i].name.indexOf('data-') === 0) s += ' ' + a[i].value; }
+        return s;
+    }
+    function tipoBase(el) {
+        var t = attr(el, 'type'), im = attr(el, 'inputmode');
+        if (t === 'email' || im === 'email') return 'email';
+        if (t === 'tel' || im === 'tel') return 'tel';
+        return '';
+    }
+    function esEmail(el) {
+        var base = tipoBase(el);
+        if (base) return base === 'email';
+        if (IGNORAR[attr(el, 'type')]) return false;
+        return EMAIL_RE.test(blob(el)) || (el.getAttribute('placeholder') || '').indexOf('@') >= 0;
+    }
+    function esTel(el) {
+        var base = tipoBase(el);
+        if (base) return base === 'tel';
+        if (IGNORAR[attr(el, 'type')]) return false;
+        return PHONE_RE.test(blob(el));
+    }
 
     // Red de seguridad: al enfocar un campo de teléfono/email, garantizar el
     // atributo `inputmode` correcto para que el MÓVIL abra el teclado numérico
