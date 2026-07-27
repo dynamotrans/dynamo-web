@@ -17,7 +17,7 @@
            --fs-s metadatos/labels pequeños · --fs-m cuerpo/labels · --fs-l
            párrafos/avisos. Fuera de escala solo el display (títulos/precios
            ≥1rem) y los 16px de inputs (anti-zoom iOS). NO inventar tamaños. */
-        --fs-s: 0.82rem; --fs-m: 0.82rem; --fs-l: 0.92rem; /* --fs-s = alias de --fs-m: el nivel 0,72 se eliminó */
+        --fs-s: 0.82rem; --fs-m: 0.82rem; --fs-l: 0.92rem; --fs-d1: 1.1rem; --fs-d2: 1.2rem; --fs-d3: 1.3rem; --fs-d4: 1.7rem; /* --fs-s = alias de --fs-m: el nivel 0,72 se eliminó */
     }
     * { margin: 0; padding: 0; box-sizing: border-box; min-width: 0; }
     /* El atributo hidden SIEMPRE gana: sin esto, cualquier regla propia con
@@ -34,7 +34,7 @@
     .card { background: #fff; border: 1px solid var(--gray-200); border-radius: 16px; padding: 1.3rem 1.2rem; width: 100%; max-width: 640px; box-shadow: 0 10px 34px rgba(10,2,48,0.07); }
     .brand { display: flex; align-items: center; gap: 0.6rem; justify-content: center; margin-bottom: 0.9rem; }
     .brand img { height: 40px; }
-    h1 { font-size: 1.25rem; text-align: center; margin-bottom: 0.2rem; }
+    h1 { font-size: var(--fs-d2); text-align: center; margin-bottom: 0.2rem; }
     .sub { text-align: center; color: var(--gray-500); font-size: var(--fs-m); margin-bottom: 1rem; }
     .viaje { background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.9rem 1rem; margin-bottom: 1rem; }
     .viaje dt { font-size: var(--fs-s); font-weight: 800; color: var(--gray-500); margin-top: 0.55rem; }
@@ -94,7 +94,7 @@
     .of-dm { margin-top: 0.75rem; padding-top: 0.7rem; border-top: 1px dashed var(--gray-300); font-size: var(--fs-l); font-weight: 600; color: var(--gray-700); line-height: 1.45; }
     .of-dm b { display: block; font-size: var(--fs-s); font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gray-500); margin-bottom: 0.22rem; }
     .pago-contado { margin-top: 0.7rem; background: rgba(34,165,90,0.1); border: 1.5px solid var(--green); border-radius: 10px; padding: 0.6rem 0.75rem; font-size: var(--fs-l); font-weight: 800; color: var(--green-dark); }
-    .pago-contado .imp { font-size: 1.25rem; }
+    .pago-contado .imp { font-size: var(--fs-d2); }
     .pago-contado .base-nota { font-size: var(--fs-m); font-weight: 600; opacity: 0.85; }
     label { display: block; font-size: var(--fs-s); font-weight: 800; color: var(--gray-700); margin: 0.75rem 0 0.25rem; }
     label .op { color: var(--gray-500); font-weight: 600; }
@@ -128,12 +128,12 @@
     .tel-modal-backdrop { position: absolute; inset: 0; background: rgba(10,2,48,0.55); backdrop-filter: blur(3px); }
     .tel-modal-card { position: relative; background: #fff; border-radius: 18px; padding: 1.35rem 1.15rem 1.15rem; max-width: 390px; width: 100%; box-shadow: 0 18px 50px rgba(20,10,60,0.35); text-align: center; }
     /* Texto GRANDE: quien confirma es un chófer con el móvil. */
-    .tel-modal-card h2 { font-size: 1.3rem; font-weight: 900; color: var(--navy); margin: 0 0 0.9rem; }
+    .tel-modal-card h2 { font-size: var(--fs-d3); font-weight: 900; color: var(--navy); margin: 0 0 0.9rem; }
     .tel-modal-card .tm-box { text-align: center; padding: 1rem 0.9rem; background: rgba(51,0,204,0.05); border: 1.5px solid rgba(51,0,204,0.25); border-radius: 12px; margin-bottom: 1rem; }
     .tel-modal-card .tm-linea { font-size: 1rem; font-weight: 700; color: var(--gray-700); line-height: 1.45; }
-    .tel-modal-card .tm-linea span { display: block; color: var(--navy); font-size: 1.35rem; font-weight: 900; letter-spacing: 0.04em; margin-top: 0.15rem; }
+    .tel-modal-card .tm-linea span { display: block; color: var(--navy); font-size: var(--fs-d3); font-weight: 900; letter-spacing: 0.04em; margin-top: 0.15rem; }
     .tel-modal-card .tm-box label { display: block; font-size: 1rem; font-weight: 700; color: var(--navy); margin: 0.8rem 0 0.45rem; text-transform: none; line-height: 1.4; }
-    .tel-modal-card #tm-tel3 { max-width: 170px; margin: 0 auto; display: block; font-size: 1.7rem; padding: 0.45rem 0.5rem; letter-spacing: 0.35em; text-align: center; font-weight: 900; }
+    .tel-modal-card #tm-tel3 { max-width: 170px; margin: 0 auto; display: block; font-size: var(--fs-d4); padding: 0.45rem 0.5rem; letter-spacing: 0.35em; text-align: center; font-weight: 900; }
     .tel-modal-card .tm-err { color: var(--red); font-size: var(--fs-l); font-weight: 800; margin-top: 0.5rem; }
     .tel-modal-card .btn { margin-top: 0; }
     .tel-modal-card .tm-volver { background: none; border: none; margin-top: 0.85rem; padding: 0.5rem 1rem; font-size: var(--fs-l); font-weight: 800; color: var(--gray-500); text-decoration: underline; cursor: pointer; }
@@ -142,7 +142,7 @@
     .tel-modal-card .vc-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.8rem; padding: 0.5rem 0; border-bottom: 1px dashed rgba(51,0,204,0.18); }
     .tel-modal-card .vc-row:last-child { border-bottom: none; }
     .tel-modal-card .vc-k { font-size: var(--fs-l); font-weight: 700; color: var(--gray-700); }
-    .tel-modal-card .vc-v { font-size: 1.05rem; font-weight: 900; color: var(--navy); text-align: right; }
+    .tel-modal-card .vc-v { font-size: var(--fs-d1); font-weight: 900; color: var(--navy); text-align: right; }
     .tel-modal-card .vc-falta { color: var(--red); font-size: var(--fs-l); }
     .tel-modal-card .vc-nota { font-size: var(--fs-l); font-weight: 600; color: var(--gray-700); line-height: 1.5; margin: 0 0 0.4rem; text-align: left; }
     .btn-sec { display: block; width: 100%; margin-top: 0.7rem; background: #fff; color: var(--purple); border: 1.5px solid var(--purple); border-radius: 12px; padding: 0.85rem; font: inherit; font-weight: 800; font-size: var(--fs-l); cursor: pointer; }
@@ -210,7 +210,7 @@
     .doc-list { list-style: none; margin: 0.4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
     .doc-list li { display: flex; align-items: center; gap: 0.45rem; background: #fff; border: 1px solid var(--gray-200); border-radius: 8px; padding: 0.35rem 0.55rem; font-size: var(--fs-m); font-weight: 700; color: var(--navy); }
     .doc-list li .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .doc-list li button { border: none; background: none; color: var(--gray-500); font-size: 1.05rem; line-height: 1; cursor: pointer; padding: 0 0.2rem; }
+    .doc-list li button { border: none; background: none; color: var(--gray-500); font-size: var(--fs-d1); line-height: 1; cursor: pointer; padding: 0 0.2rem; }
     .doc-list li button:hover { color: var(--red); }
     /* Resto del formulario, oculto hasta identificar la empresa */
     #restForm { display: none; }
@@ -239,7 +239,7 @@
     .pronto-calc { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed rgba(34,165,90,0.45); }
     .pronto-calc .pc-line { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
     .pronto-calc .pc-lbl { font-size: var(--fs-m); font-weight: 700; color: var(--navy); min-width: 0; flex: 1 1 auto; }
-    .pronto-calc .pc-amount { font-size: 1.18rem; font-weight: 900; color: var(--green-dark); white-space: nowrap; flex: 0 0 auto; }
+    .pronto-calc .pc-amount { font-size: var(--fs-d1); font-weight: 900; color: var(--green-dark); white-space: nowrap; flex: 0 0 auto; }
     .pronto-calc .pc-when { color: var(--green-dark); font-weight: 800; font-size: var(--fs-s); }
     .pronto-calc .pc-sub { font-size: var(--fs-s); font-weight: 600; color: var(--gray-500); margin-top: 0.15rem; }
     .pronto-calc .pc-alt { font-size: var(--fs-s); font-weight: 600; color: var(--gray-500); margin-top: 0.45rem; line-height: 1.5; }
@@ -255,7 +255,7 @@
     .fac-detail { margin: 0.5rem 0 0.2rem 1.55rem; padding: 0.6rem 0.7rem; background: #fff; border: 1px solid var(--gray-200); border-radius: 9px; }
     .fac-detail .pc-line { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
     .fac-detail .pc-lbl { font-size: var(--fs-m); font-weight: 700; color: var(--navy); min-width: 0; flex: 1 1 auto; }
-    .fac-detail .pc-amount { font-size: 1.12rem; font-weight: 900; color: var(--green-dark); white-space: nowrap; flex: 0 0 auto; }
+    .fac-detail .pc-amount { font-size: var(--fs-d1); font-weight: 900; color: var(--green-dark); white-space: nowrap; flex: 0 0 auto; }
     .fac-detail .pc-when { color: var(--green-dark); font-weight: 800; font-size: var(--fs-s); }
     .fac-detail .pc-sub { font-size: var(--fs-s); font-weight: 600; color: var(--gray-500); margin-top: 0.5rem; }
     .fac-detail .pc-alt { font-size: var(--fs-s); font-weight: 600; color: var(--gray-500); margin-top: 0.4rem; line-height: 1.5; }
@@ -273,7 +273,7 @@
     .af-break .afb-row .afb-neg { color: var(--red); }
     .af-break .afb-tot { border-top: 1px solid var(--gray-200); margin-top: 0.3rem; padding-top: 0.35rem; color: var(--navy); font-weight: 900; }
     .af-break .afb-tot .afb-v { color: var(--purple); }
-    .btn { width: 100%; margin-top: 1.1rem; background: var(--purple); color: #fff; border: none; border-radius: 12px; padding: 0.95rem; font: inherit; font-weight: 800; font-size: 1.02rem; cursor: pointer; }
+    .btn { width: 100%; margin-top: 1.1rem; background: var(--purple); color: #fff; border: none; border-radius: 12px; padding: 0.95rem; font: inherit; font-weight: 800; font-size: var(--fs-d1); cursor: pointer; }
     .btn:hover { background: var(--purple-light); }
     /* ---- CONTRAOFERTA: proponer otro precio (barra ±10 %, pasos de 10 €) ---- */
     .contra-toggle { display: block; width: 100%; margin: -0.3rem 0 1rem; background: none; border: none; color: var(--purple); font: inherit; font-size: var(--fs-l); font-weight: 800; cursor: pointer; padding: 0.2rem 0; text-align: center; }
@@ -282,7 +282,7 @@
     .contra-box { background: #fff; border: 1.5px dashed rgba(51,0,204,0.4); border-radius: 12px; padding: 0.9rem 1rem 1rem; margin: -0.4rem 0 1rem; }
     .contra-box input[type=range] { width: 100%; accent-color: var(--purple); height: 34px; margin-top: 0.4rem; }
     .contra-minmax { display: flex; justify-content: space-between; font-size: var(--fs-s); font-weight: 700; color: var(--gray-500); }
-    .contra-precio { margin-top: 0.5rem; font-size: 1.4rem; font-weight: 900; color: var(--purple); }
+    .contra-precio { margin-top: 0.5rem; font-size: var(--fs-d3); font-weight: 900; color: var(--purple); }
     .contra-precio .base-nota { font-size: var(--fs-m); font-weight: 600; color: var(--gray-500); }
     .contra-delta { font-size: var(--fs-m); font-weight: 700; color: var(--gray-500); margin-top: 2px; }
     .btn-contra { margin-top: 0.9rem; background: var(--navy); }
@@ -293,11 +293,11 @@
     /* Estado de la propuesta EN EL PROPIO PANEL (analizando / rechazada). */
     .contra-status { text-align: center; padding: 0.3rem 0 0.2rem; }
     .contra-status .contra-spin { width: 42px; height: 42px; border-width: 4px; margin: 0.2rem auto 0.7rem; }
-    .cs-title { font-size: 1.05rem; font-weight: 900; color: var(--navy); }
+    .cs-title { font-size: var(--fs-d1); font-weight: 900; color: var(--navy); }
     .cs-agente { font-size: var(--fs-l); font-weight: 700; color: var(--purple); margin-top: 0.2rem; }
     .cs-sub { font-size: var(--fs-l); font-weight: 700; color: var(--navy); margin-top: 0.3rem; line-height: 1.45; }
     .cs-box { margin-top: 0.7rem; background: rgba(51,0,204,0.06); border: 1.5px solid rgba(51,0,204,0.28); border-radius: 10px; padding: 0.6rem 0.75rem; font-size: var(--fs-l); font-weight: 700; color: var(--navy); text-align: left; line-height: 1.5; }
-    .cs-no { width: 46px; height: 46px; border-radius: 50%; background: rgba(220,38,38,0.12); color: var(--red); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.6rem; font-size: 1.3rem; font-weight: 900; }
+    .cs-no { width: 46px; height: 46px; border-radius: 50%; background: rgba(220,38,38,0.12); color: var(--red); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.6rem; font-size: var(--fs-d3); font-weight: 900; }
     .aviso { font-size: var(--fs-s); color: var(--gray-500); line-height: 1.5; margin-top: 0.7rem; text-align: center; }
     .warn { display: none; margin-top: 0.7rem; background: #fdecec; border: 1px solid #f5b5b5; color: #b42318; border-radius: 10px; padding: 0.6rem 0.75rem; font-size: var(--fs-m); font-weight: 700; }
     .warn.show { display: block; }
@@ -319,12 +319,12 @@
        (sin % — se montaba con el texto largo). */
     .tw-lbl { margin-top: 0.45rem; text-align: center; font-size: var(--fs-m); font-weight: 700; color: var(--gray-500); line-height: 1.45; }
     .tw-lbl strong { color: var(--purple); }
-    .chk-row .chk-cd strong { color: var(--purple); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+    .chk-row .chk-cd strong { color: var(--purple); font-size: var(--fs-d1); font-variant-numeric: tabular-nums; }
     /* Pantallas "ya no disponible" / "tiempo agotado" */
     .stop-screen { display: none; text-align: center; padding: 1.6rem 0.6rem; }
     .stop-screen.show { display: block; }
     /* Subtítulo de "ya no disponible": grande y legible (lo lee en el móvil). */
-    #takenScreen .sub { font-size: 1.08rem; font-weight: 700; color: var(--navy); line-height: 1.45; }
+    #takenScreen .sub { font-size: var(--fs-d1); font-weight: 700; color: var(--navy); line-height: 1.45; }
     .stop-ico { width: 74px; height: 74px; border-radius: 50%; background: rgba(220,53,53,0.12); color: var(--red); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.9rem; font-size: 2rem; font-weight: 900; }
     .stop-ico.amber { background: rgba(245,166,35,0.15); color: #b8860b; }
     .stop-ico.viendo { background: rgba(51,0,204,0.1); color: var(--purple); }
@@ -340,12 +340,12 @@
     /* Estado "en trámite": un solo mensaje grande y limpio, con spinner. */
     .tramite-box { display: flex; align-items: center; justify-content: center; gap: 0.65rem; padding: 1.3rem 1rem; }
     .tramite-box .tramite-spin { width: 22px; height: 22px; flex: none; border: 3px solid rgba(51,0,204,0.2); border-top-color: var(--purple); border-radius: 50%; animation: spin 0.8s linear infinite; }
-    .tramite-box .tramite-txt { font-size: 1.12rem; font-weight: 900; color: var(--purple); line-height: 1.35; }
+    .tramite-box .tramite-txt { font-size: var(--fs-d1); font-weight: 900; color: var(--purple); line-height: 1.35; }
     @media (prefers-reduced-motion: reduce) { .tramite-box .tramite-spin { animation: none; } }
     /* Banner de reserva temporal (contador de 3 min) */
     /* Banner de reserva: fijo arriba (sticky) para verlo siempre al hacer scroll. */
     .reserva-banner { position: sticky; top: 0; z-index: 30; margin: 0 0 1rem; background: #ece8fb; border: 1.5px solid rgba(51,0,204,0.35); border-radius: 12px; padding: 0.7rem 0.85rem; font-size: var(--fs-m); font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 0.5rem; line-height: 1.4; box-shadow: 0 2px 10px rgba(20,10,60,0.1); }
-    .reserva-banner .rb-timer { font-size: 1.05rem; font-weight: 900; color: var(--purple); font-variant-numeric: tabular-nums; }
+    .reserva-banner .rb-timer { font-size: var(--fs-d1); font-weight: 900; color: var(--purple); font-variant-numeric: tabular-nums; }
     /* El banner de reserva es sticky: cualquier scrollIntoView debe dejar
        hueco para que el destino no quede escondido debajo. */
     #empresaResumen, #altaForm, #identBlock, #sec-carga { scroll-margin-top: 108px; }
@@ -398,7 +398,7 @@
     .lang-selector { position: fixed; top: 0.8rem; right: 0.8rem; z-index: 10000; }
     .lang-btn { display: flex; align-items: center; gap: 0.3rem; cursor: pointer; background: #fff; border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 0.3rem 0.7rem 0.3rem 0.45rem; font: inherit; font-size: var(--fs-m); font-weight: 700; color: var(--gray-700); transition: all 0.2s; box-shadow: 0 4px 14px rgba(10,2,48,0.08); }
     .lang-btn:hover { border-color: var(--purple); }
-    .lang-btn .flag { font-size: 1.1rem; line-height: 1; }
+    .lang-btn .flag { font-size: var(--fs-d1); line-height: 1; }
     .lang-btn .arrow { font-size: var(--fs-s); margin-left: 0.15rem; transition: transform 0.2s; }
     .lang-btn.open .arrow { transform: rotate(180deg); }
     .lang-dropdown { position: absolute; top: calc(100% + 6px); right: 0; z-index: 10001; background: #fff; border-radius: 14px; border: 1.5px solid var(--gray-200); box-shadow: 0 12px 40px rgba(0,0,0,0.12); padding: 0.5rem; display: none; min-width: 170px; max-height: 350px; overflow-y: auto; }
@@ -407,7 +407,7 @@
     .lang-option { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.7rem; border-radius: 8px; cursor: pointer; transition: background 0.15s; font: inherit; font-size: var(--fs-m); font-weight: 600; color: var(--gray-700); border: none; background: none; width: 100%; text-align: left; }
     .lang-option:hover { background: var(--gray-100); }
     .lang-option.active { background: rgba(51,0,204,0.07); color: var(--purple); }
-    .lang-option .flag { font-size: 1.2rem; }
+    .lang-option .flag { font-size: var(--fs-d2); }
     .flag-svg { display: inline-block; width: 18px; height: 12px; border-radius: 2px; vertical-align: middle; box-shadow: 0 0 0 1px rgba(0,0,0,0.10); }
     /* Ocultar por completo la UI de Google Translate */
     .goog-te-banner-frame, #goog-gt-tt, .goog-te-balloon-frame, .goog-te-gadget { display: none !important; }
@@ -425,7 +425,7 @@
     .cond-modal { position: fixed; inset: 0; z-index: 4000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
     .cond-backdrop { position: absolute; inset: 0; background: rgba(10,2,48,0.55); }
     .cond-card { position: relative; background: #fff; border-radius: 16px; max-width: 640px; width: 100%; max-height: 88vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(10,2,48,0.35); overflow: hidden; }
-    .cond-card h2 { font-size: 1.05rem; color: var(--navy); margin: 1.1rem 1.2rem 0.15rem; padding-right: 2rem; }
+    .cond-card h2 { font-size: var(--fs-d1); color: var(--navy); margin: 1.1rem 1.2rem 0.15rem; padding-right: 2rem; }
     .cond-sub { font-size: var(--fs-s); color: var(--gray-500); font-weight: 600; margin: 0 1.2rem 0.6rem; }
     .cond-close { position: absolute; top: 0.7rem; right: 0.7rem; width: 34px; height: 34px; border: none; background: var(--gray-100); border-radius: 50%; color: var(--navy); font-size: 1rem; cursor: pointer; line-height: 1; }
     .cond-close:hover { background: var(--gray-200); }
@@ -497,7 +497,7 @@
         <div class="stop-screen" id="errorScreen">
             <div class="stop-ico amber"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
             <h1>Estamos haciendo labores de mantenimiento</h1>
-            <p class="sub" style="font-size:1.02rem;font-weight:700;color:var(--navy);">En este momento no podemos comprobar la disponibilidad de la carga.<br>Por favor, <strong>vuelve a intentarlo más tarde</strong> o contáctanos:</p>
+            <p class="sub" style="font-size:var(--fs-d1);font-weight:700;color:var(--navy);">En este momento no podemos comprobar la disponibilidad de la carga.<br>Por favor, <strong>vuelve a intentarlo más tarde</strong> o contáctanos:</p>
             <button type="button" class="dudas-toggle" style="margin-top:0.8rem;" aria-expanded="false" onclick="toggleDudas(this)">Contáctanos <span class="dt-chev" aria-hidden="true">▾</span></button>
             <div class="contact-btns" hidden>
                 <a class="cbtn cbtn-call" href="tel:+34955225945"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Llamar</a>
@@ -2199,7 +2199,7 @@
                 var cpmax = parseFloat(q('cpmax', '')) || Math.round(((base + np) / 2) / 10) * 10;
                 pane.innerHTML = '<div class="contra-status">' +
                     '<div class="cs-title">Respuesta del agente</div>' +
-                    '<div class="cs-sub">No podemos llegar a <strong>' + escH(fmtEur(np) + ' €') + '</strong>. Nuestra oferta <strong>MÁXIMA</strong>: <strong style="color:var(--purple);font-size:1.2rem;">' + escH(fmtEur(cpmax) + ' €') + '</strong>.</div>' +
+                    '<div class="cs-sub">No podemos llegar a <strong>' + escH(fmtEur(np) + ' €') + '</strong>. Nuestra oferta <strong>MÁXIMA</strong>: <strong style="color:var(--purple);font-size:var(--fs-d2);">' + escH(fmtEur(cpmax) + ' €') + '</strong>.</div>' +
                     '<button type="button" class="btn" style="margin-top:0.8rem;" onclick="aceptarOfertaMax(' + cpmax + ')">Aplicar ' + escH(fmtEur(cpmax) + ' €') + ' a la oferta</button>' +
                     '<div class="cs-sub" style="font-size:var(--fs-m);color:var(--gray-500);margin-top:0.5rem;">O identifícate abajo y acepta al precio original de ' + escH(fmtEur(base) + ' €') + '.</div></div>';
             } else {

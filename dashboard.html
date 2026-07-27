@@ -31,6 +31,12 @@
             --fs-s: 0.82rem; /* alias de --fs-m (el nivel 0,72 se eliminó) */
             --fs-m: 0.82rem;
             --fs-l: 0.92rem;
+            /* ESCALA DE DISPLAY (títulos/precios/números, ≥1rem) unificada en 4:
+               d1 títulos de tarjeta/modal, CTA, precios normales · d2 destacados ·
+               d3 h2 de sección, importes/stats · d4 números "héroe". El 1rem base
+               (botones, ✕, títulos pequeños) y los iconos grandes (✓ 1,8 · stop
+               2rem) quedan fuera, a propósito. NO inventar tamaños intermedios. */
+            --fs-d1: 1.1rem; --fs-d2: 1.2rem; --fs-d3: 1.3rem; --fs-d4: 1.7rem;
             --purple:       #3300cc;
             --purple-dark:  #220099;
             --purple-light: #5533dd;
@@ -133,7 +139,7 @@
             border-bottom: 1px solid var(--gray-200);
         }
         .sidebar-brand img { height: 28px; width: auto; }
-        .sidebar-brand-name { font-weight: 900; font-size: 1.05rem; letter-spacing: -0.3px; }
+        .sidebar-brand-name { font-weight: 900; font-size: var(--fs-d1); letter-spacing: -0.3px; }
         .sidebar-brand-sub  { font-size: var(--fs-s); opacity: 0.6; letter-spacing: 0; }
         /* Los enlaces scrollean si no caben; el pie queda SIEMPRE anclado
            abajo y visible (min-height:0 permite encoger al flex item). */
@@ -214,7 +220,7 @@
             border: 1.5px solid var(--purple); border-radius: 12px; padding: 1rem 1.05rem;
             background: rgba(51,0,204,0.04); margin-bottom: 0.9rem;
         }
-        .cub-result .cub-r-big { font-size: 1.6rem; font-weight: 900; color: var(--purple); line-height: 1.1; }
+        .cub-result .cub-r-big { font-size: var(--fs-d4); font-weight: 900; color: var(--purple); line-height: 1.1; }
         .cub-result .cub-r-lbl { font-size: var(--fs-s); color: var(--gray-500); font-weight: 700; text-transform: none; }
         .cub-result .cub-r-row { display: flex; justify-content: space-between; align-items: baseline; padding: 0.35rem 0; border-top: 1px solid rgba(51,0,204,0.12); }
         .cub-result .cub-r-row:first-of-type { border-top: none; }
@@ -472,7 +478,7 @@
             display: flex; align-items: center; justify-content: center;
             background: linear-gradient(135deg, var(--purple), var(--purple-light)); color: #fff;
         }
-        .maint-title { font-size: 1.5rem; font-weight: 900; color: var(--navy); line-height: 1.15; }
+        .maint-title { font-size: var(--fs-d4); font-weight: 900; color: var(--navy); line-height: 1.15; }
         .maint-sub { font-size: var(--fs-l); color: var(--gray-600); margin-top: 0.6rem; line-height: 1.5; }
         .maint-block {
             display: flex; gap: 0.8rem; text-align: left; margin-top: 1.3rem;
@@ -532,7 +538,7 @@
         .maint-control:has(.maint-control-btn.maint-on) { border-color: #fca5a5; background: #fef2f2; }
         @media (max-width: 480px) {
             .maint-card { padding: 1.7rem 1.2rem; }
-            .maint-title { font-size: 1.28rem; }
+            .maint-title { font-size: var(--fs-d2); }
             .maint-btn { flex-basis: 100%; }
         }
 
@@ -1128,7 +1134,7 @@
             position: absolute; top: 0.8rem; right: 0.8rem;
             width: 32px; height: 32px; border-radius: 50%;
             border: none; background: var(--gray-100); color: var(--gray-700);
-            font-size: 1.2rem; line-height: 1; cursor: pointer;
+            font-size: var(--fs-d2); line-height: 1; cursor: pointer;
         }
         .phone-modal-close:hover { background: var(--gray-200); color: var(--navy); }
         .phone-modal-icon {
@@ -1138,7 +1144,7 @@
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 10px 28px rgba(255,122,0,0.3);
         }
-        .phone-modal-card h3 { font-size: 1.2rem; font-weight: 900; color: var(--navy); margin-bottom: 0.5rem; }
+        .phone-modal-card h3 { font-size: var(--fs-d2); font-weight: 900; color: var(--navy); margin-bottom: 0.5rem; }
         .phone-modal-sub { font-size: var(--fs-l); color: var(--gray-700); line-height: 1.5; margin-bottom: 1rem; }
         .phone-modal-sub strong { color: var(--navy); }
         .phone-modal-options { display: flex; gap: 0.6rem; margin-bottom: 1rem; }
@@ -1223,7 +1229,7 @@
         @keyframes dashSpin { to { transform: rotate(360deg); } }
         .dash-loading-text { font-size: var(--fs-l); font-weight: 700; color: var(--navy); }
         @media (prefers-reduced-motion: reduce) { .dash-loading-spinner { animation-duration: 1.6s; } }
-        .dash-modal-title { font-size: 1.1rem; font-weight: 900; color: var(--navy); line-height: 1.25; }
+        .dash-modal-title { font-size: var(--fs-d1); font-weight: 900; color: var(--navy); line-height: 1.25; }
         .dash-modal-sub { font-size: var(--fs-m); color: var(--gray-500); margin-top: 0.2rem; }
         .dash-modal-body { margin-bottom: 1.1rem; }
         /* Aviso de suspensión: CAJA roja con la línea + "Ampliar para ver más"
@@ -1323,7 +1329,7 @@
            del paso 4 — morado (no navy) y grande. */
         .dash-modal-footer .btn-primary.btn-confirm-envio {
             background: var(--purple); border-color: var(--purple);
-            min-height: 64px; font-size: 1.12rem; font-weight: 800; border-radius: 14px;
+            min-height: 64px; font-size: var(--fs-d1); font-weight: 800; border-radius: 14px;
         }
         .dash-modal-footer .btn-primary.btn-confirm-envio:hover {
             background: var(--purple-light); border-color: var(--purple-light);
@@ -1545,7 +1551,7 @@
         /* Nuestra flota (sección de la web pública portada al panel) */
         .dash-flota { margin-top: 1.8rem; }
         .dash-flota-eyebrow { font-size: var(--fs-s); font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--green); margin: 0 0 0.15rem; }
-        .dash-flota-title { font-size: 1.15rem; font-weight: 900; color: var(--navy); margin: 0 0 0.15rem; }
+        .dash-flota-title { font-size: var(--fs-d1); font-weight: 900; color: var(--navy); margin: 0 0 0.15rem; }
         .dash-flota-desc { font-size: var(--fs-m); color: var(--gray-500); margin: 0 0 1rem; }
         .veh-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
         @media (max-width: 900px) { .veh-grid { grid-template-columns: 1fr; } }
@@ -1648,7 +1654,7 @@
         .modal-file-item .mfi-name:hover, .modal-file-item .mfi-name:focus-visible { color: var(--purple); text-decoration: underline; }
         .modal-file-item .mfi-del {
             border: none; background: transparent; color: var(--gray-500);
-            font-size: 1.15rem; line-height: 1; cursor: pointer; padding: 0 0.25rem; flex-shrink: 0;
+            font-size: var(--fs-d1); line-height: 1; cursor: pointer; padding: 0 0.25rem; flex-shrink: 0;
         }
         .modal-file-item .mfi-del:hover { color: var(--red); }
         /* Valoración del transportista (1-5 estrellas), solo en entregados */
@@ -1673,7 +1679,7 @@
             color: white; display: flex; align-items: center; justify-content: center;
             font-size: 1.8rem; box-shadow: 0 10px 28px rgba(34,165,90,0.32);
         }
-        .modal-success-title { font-size: 1.1rem; font-weight: 900; color: var(--navy); margin-bottom: 0.35rem; }
+        .modal-success-title { font-size: var(--fs-d1); font-weight: 900; color: var(--navy); margin-bottom: 0.35rem; }
         .modal-success-text { font-size: var(--fs-m); color: var(--gray-500); line-height: 1.5; }
         @media (max-width: 600px) {
             .dash-modal { padding: 1rem 0.6rem; }
@@ -1727,7 +1733,7 @@
             letter-spacing: 0;
         }
         .stat-card-value {
-            font-size: 1.5rem; font-weight: 900; color: var(--navy); line-height: 1;
+            font-size: var(--fs-d4); font-weight: 900; color: var(--navy); line-height: 1;
         }
         .stat-card-trend {
             font-size: var(--fs-s); font-weight: 700;
@@ -2079,7 +2085,7 @@
             color: white;
         }
         .dash-cta-text { color: white; }
-        .dash-cta-text h4 { font-size: 1.05rem; font-weight: 900; }
+        .dash-cta-text h4 { font-size: var(--fs-d1); font-weight: 900; }
         .dash-cta-text p  { font-size: var(--fs-m); opacity: 0.85; margin-top: 0.15rem; }
         .dash-cta-purple { background: linear-gradient(135deg, var(--purple), var(--purple-light)); box-shadow: 0 8px 22px rgba(51,0,204,0.3); }
         .dash-cta-green  { background: linear-gradient(135deg, var(--green), #4dc97a);             box-shadow: 0 8px 22px rgba(34,165,90,0.3); }
@@ -2206,11 +2212,11 @@
         .alm-price-row .v { font-weight: 700; color: var(--navy); }
         .alm-price-total { border-top: 1px dashed var(--gray-200); margin-top: 0.4rem; padding-top: 0.55rem; }
         .alm-price-total .k { font-weight: 800; color: var(--navy); font-size: var(--fs-l); }
-        .alm-price-total .v { font-weight: 900; color: var(--purple); font-size: 1.15rem; }
+        .alm-price-total .v { font-weight: 900; color: var(--purple); font-size: var(--fs-d1); }
         /* Base imponible DESTACADA (grande y morada) con separador arriba. */
         .alm-price-base { border-top: 1px dashed var(--gray-200); margin-top: 0.4rem; padding-top: 0.55rem; }
         .alm-price-base .k { font-weight: 800; color: var(--navy); font-size: 1rem; }
-        .alm-price-base .v { font-weight: 900; color: var(--purple); font-size: 1.35rem; }
+        .alm-price-base .v { font-weight: 900; color: var(--purple); font-size: var(--fs-d3); }
         /* IVA y Total con IVA: discretos debajo (gris claro y pequeño). */
         .alm-price-sub { padding: 0.1rem 0; }
         .alm-price-sub .k { color: var(--gray-500); font-weight: 600; font-size: var(--fs-m); }
@@ -2375,7 +2381,7 @@
             display: flex; align-items: center; justify-content: space-between;
             margin-bottom: 1rem; flex-wrap: wrap; gap: 0.8rem;
         }
-        .sec-header h2 { font-size: 1.3rem; font-weight: 900; color: var(--navy); }
+        .sec-header h2 { font-size: var(--fs-d3); font-weight: 900; color: var(--navy); }
         .sec-header-actions { display: flex; gap: 0.5rem; }
         /* Cabeceras con botón de CREAR (+ Nuevo envío / + Reportar incidencia /
            + Crear sitio / + Nuevo almacenamiento…): formato página → título
@@ -2853,9 +2859,9 @@
         #sec-cargas[data-vista="mapa"] .pagination,
         #sec-cargas[data-vista="mapa"] > .filters { display: none; }
         .cal-head { display: flex; align-items: center; gap: 0.6rem; margin: 0.2rem 0 0.7rem; }
-        .cal-title { font-weight: 800; color: var(--navy); font-size: 1.05rem; }
+        .cal-title { font-weight: 800; color: var(--navy); font-size: var(--fs-d1); }
         .cal-hoy-tag { font-size: var(--fs-s); font-weight: 800; color: var(--purple); background: rgba(51,0,204,0.08); border-radius: 6px; padding: 1px 7px; vertical-align: 2px; }
-        .cal-nav { width: 36px; height: 36px; border: 1.5px solid var(--gray-300); border-radius: 9px; background: #fff; font-size: 1.15rem; font-weight: 700; color: var(--navy); cursor: pointer; display: flex; align-items: center; justify-content: center; flex: none; }
+        .cal-nav { width: 36px; height: 36px; border: 1.5px solid var(--gray-300); border-radius: 9px; background: #fff; font-size: var(--fs-d1); font-weight: 700; color: var(--navy); cursor: pointer; display: flex; align-items: center; justify-content: center; flex: none; }
         .cal-nav[disabled] { opacity: 0.35; cursor: default; }
         .cal-nav-hoy { width: auto; padding: 0 0.8rem; font-size: var(--fs-m); }
         .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
@@ -3825,7 +3831,7 @@
         /* Desplegable de urgencia: ROJO en Fecha fija · VERDE en 1 a 3 días. */
         select.ptar-urg-rojo { color: #dc2626; font-weight: 800; }
         select.ptar-urg-verde { color: var(--green-dark); font-weight: 800; }
-        .ptar-eta-data .ptar-eta-precio { color: var(--purple); font-weight: 900; font-size: 1.05rem; }
+        .ptar-eta-data .ptar-eta-precio { color: var(--purple); font-weight: 900; font-size: var(--fs-d1); }
         .ptar-eta-data .ptar-eta-precio .ptar-iva { color: var(--gray-500); font-weight: 600; font-size: var(--fs-s); white-space: nowrap; }
         .ptar-eta-pricebox { margin: 0.35rem 0 0; }
         .ptar-eta-data .ptar-eta-stat { color: var(--gray-700); font-weight: 600; }
@@ -3879,7 +3885,7 @@
         /* Ahorro respecto a la fecha elegida (más cara): verde y en negrita. */
         .eta-opt-ahorro { display: block; font-size: var(--fs-m); font-weight: 800; color: var(--green-dark); margin-top: 0.2rem; }
         .eta-opt-price { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-        .eta-opt-eur { font-size: 1.02rem; font-weight: 900; color: var(--navy); white-space: nowrap; }
+        .eta-opt-eur { font-size: var(--fs-d1); font-weight: 900; color: var(--navy); white-space: nowrap; }
         .eta-opt-rec .eta-opt-eur { color: var(--green-dark); }
         .eta-opt-go { font-size: var(--fs-s); font-weight: 800; color: var(--purple); }
         .eta-opt-rec .eta-opt-go { color: var(--green-dark); }
@@ -3956,7 +3962,7 @@
             box-shadow: 0 1px 3px rgba(10,2,48,0.04);
         }
         .ptar-confirm-heading {
-            font-size: 1.1rem; font-weight: 800; color: var(--navy);
+            font-size: var(--fs-d1); font-weight: 800; color: var(--navy);
             margin-bottom: 0.3rem;
         }
         .ptar-confirm-lead {
@@ -4175,7 +4181,7 @@
         .ptar-actions-confirm { flex-direction: column; gap: 0.6rem; }
         .ptar-actions-confirm .btn-primary {
             flex: none; width: 100%; min-height: 64px;
-            font-size: 1.12rem; font-weight: 800; border-radius: 14px;
+            font-size: var(--fs-d1); font-weight: 800; border-radius: 14px;
         }
         .ptar-actions-confirm .btn-ghost { flex: none; width: 100%; }
         /* Acciones del form de crear envío: 2 columnas (Crear envío | Guardar
@@ -4185,7 +4191,7 @@
         .ptar-actions-main .btn-primary,
         .ptar-actions-main .btn-secondary {
             flex: none; min-width: 0; min-height: 60px;
-            font-size: 1.02rem; font-weight: 800;
+            font-size: var(--fs-d1); font-weight: 800;
         }
         .ptar-actions-main .btn-ghost {
             grid-column: 1 / -1; width: 100%; min-height: 52px; font-size: var(--fs-l);
@@ -4319,10 +4325,10 @@
             .stats-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.7rem; }
             .stats-row-4 { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
             .dash-top-row { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
-            .stat-card-value { font-size: 1.45rem; }
+            .stat-card-value { font-size: var(--fs-d3); }
             .stats-row-4 .stat-card { padding: 0.7rem 0.6rem; }
             .stats-row-4 .stat-card-label { font-size: var(--fs-s); }
-            .stats-row-4 .stat-card-value { font-size: 1.2rem; }
+            .stats-row-4 .stat-card-value { font-size: var(--fs-d2); }
             .stats-row-4 .stat-card-trend { font-size: var(--fs-s); }
             .dash-ctas { grid-template-columns: 1fr; }
             /* Botones a 2 columnas en móvil. */
@@ -4363,7 +4369,7 @@
             .stats-row-4 { grid-template-columns: repeat(2, 1fr); gap: 0.35rem; }
             .stats-row-4 .stat-card { padding: 0.55rem 0.4rem; }
             .stats-row-4 .stat-card-label { font-size: var(--fs-s); letter-spacing: 0; }
-            .stats-row-4 .stat-card-value { font-size: 1.05rem; }
+            .stats-row-4 .stat-card-value { font-size: var(--fs-d1); }
             .stats-row-4 .stat-card-trend { font-size: var(--fs-s); }
             table.data { min-width: 620px; }
             .dash-top-row { gap: 0.35rem; grid-template-columns: repeat(2, 1fr); }
@@ -4904,7 +4910,7 @@
              cuando la cuenta NO tiene envíos (recién dada de alta). Se puede
              previsualizar con ?fresh=1 (vacía los datos del mock). -->
         <div id="dashOnboarding" hidden style="background:#fff;border:1.5px solid rgba(51,0,204,0.25);border-radius:14px;padding:1rem 1.1rem;margin-bottom:1rem;">
-            <div style="font-weight:800;color:var(--navy);font-size:1.02rem;">Bienvenido a tu portal Dynamo</div>
+            <div style="font-weight:800;color:var(--navy);font-size:var(--fs-d1);">Bienvenido a tu portal Dynamo</div>
             <p style="margin:0.25rem 0 0.7rem;font-size: var(--fs-m);color:var(--gray-600);">Tres pasos y tienes tu primer transporte en marcha:</p>
             <div class="onb-steps">
                 <button type="button" class="onb-step" data-onb="sitio" onclick="showSection('sitios')">
@@ -5913,9 +5919,9 @@
         </div>
         <p style="font-size: var(--fs-l);color:var(--gray-700);margin:-0.4rem 0 0.9rem;">Cada vez que creas un envío con otro transportista indicando su precio, guardamos la comparativa con el precio Dynamo de esa ruta. Importes base sin IVA.</p>
         <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-bottom:0.9rem;">
-            <div style="flex:1;min-width:190px;padding:0.7rem 0.85rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:10px;font-weight:800;color:#0f6b3a;">Ahorrado con Dynamo<br><span style="font-size:1.2rem;" data-ah-tot-ok>—</span></div>
-            <div style="flex:1;min-width:190px;padding:0.7rem 0.85rem;background:#fdecec;border:1px solid #f5b5b5;border-radius:10px;font-weight:800;color:#b42318;">Dejado de ahorrar<br><span style="font-size:1.2rem;" data-ah-tot-ko>—</span></div>
-            <div style="flex:1;min-width:190px;padding:0.7rem 0.85rem;background:var(--gray-100);border:1px solid var(--gray-200);border-radius:10px;font-weight:800;color:var(--navy);">Ahorro posible del año<br><span style="font-size:1.2rem;" data-ah-tot-max>—</span></div>
+            <div style="flex:1;min-width:190px;padding:0.7rem 0.85rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:10px;font-weight:800;color:#0f6b3a;">Ahorrado con Dynamo<br><span style="font-size:var(--fs-d2);" data-ah-tot-ok>—</span></div>
+            <div style="flex:1;min-width:190px;padding:0.7rem 0.85rem;background:#fdecec;border:1px solid #f5b5b5;border-radius:10px;font-weight:800;color:#b42318;">Dejado de ahorrar<br><span style="font-size:var(--fs-d2);" data-ah-tot-ko>—</span></div>
+            <div style="flex:1;min-width:190px;padding:0.7rem 0.85rem;background:var(--gray-100);border:1px solid var(--gray-200);border-radius:10px;font-weight:800;color:var(--navy);">Ahorro posible del año<br><span style="font-size:var(--fs-d2);" data-ah-tot-max>—</span></div>
         </div>
         <div class="tabs" data-ah-tabs>
             <button class="tab active" data-ah-filter="todas">Todas (<span data-ah-count="todas">0</span>)</button>
@@ -6975,7 +6981,7 @@
         ov.style.cssText = 'position:fixed;inset:0;z-index:12000;background:rgba(10,2,48,0.45);display:flex;align-items:center;justify-content:center;padding:1rem;';
         ov.innerHTML =
             '<div style="background:#fff;border-radius:14px;max-width:380px;width:100%;padding:1.15rem 1.25rem;box-shadow:0 18px 50px rgba(0,0,0,0.28);">' +
-                '<div style="font-weight:800;color:var(--navy);font-size:1.02rem;margin-bottom:0.35rem;">¿Borrar documento?</div>' +
+                '<div style="font-weight:800;color:var(--navy);font-size:var(--fs-d1);margin-bottom:0.35rem;">¿Borrar documento?</div>' +
                 '<div style="font-size: var(--fs-m);color:var(--gray-700);line-height:1.5;margin-bottom:0.95rem;word-break:break-word;">Se quitará <strong>' + escapeHtml(name) + '</strong> de los adjuntos. Esta acción no se puede deshacer.</div>' +
                 '<div style="display:flex;gap:0.6rem;justify-content:flex-end;flex-wrap:wrap;">' +
                     '<button type="button" class="btn-ghost" data-doc-cancel>Cancelar</button>' +
@@ -8253,7 +8259,7 @@
         ov.style.cssText = 'position:fixed;inset:0;z-index:12000;background:rgba(10,2,48,0.45);display:flex;align-items:center;justify-content:center;padding:1rem;';
         ov.innerHTML =
             '<div style="background:#fff;border-radius:14px;max-width:380px;width:100%;padding:1.15rem 1.25rem;box-shadow:0 18px 50px rgba(0,0,0,0.28);">' +
-                '<div style="font-weight:800;color:var(--navy);font-size:1.02rem;margin-bottom:0.35rem;">¿Borrar documento?</div>' +
+                '<div style="font-weight:800;color:var(--navy);font-size:var(--fs-d1);margin-bottom:0.35rem;">¿Borrar documento?</div>' +
                 '<div style="font-size: var(--fs-m);color:var(--gray-700);line-height:1.5;margin-bottom:0.95rem;word-break:break-word;">Se quitará <strong>' + escapeHtml(name) + '</strong> de los adjuntos. Esta acción no se puede deshacer.</div>' +
                 '<div style="display:flex;gap:0.6rem;justify-content:flex-end;flex-wrap:wrap;">' +
                     '<button type="button" class="btn-ghost" data-doc-cancel>Cancelar</button>' +
@@ -10836,7 +10842,7 @@
                 '</div>';
             }).join('') +
             '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1.5px solid var(--gray-200);padding-top:0.7rem;margin-top:0.5rem;font-weight:800;color:var(--navy);">Total base (sin IVA)' +
-                '<span data-pe-total style="color:var(--purple);font-size:1.2rem;">' + eur2(tot0) + '</span></div>' +
+                '<span data-pe-total style="color:var(--purple);font-size:var(--fs-d2);">' + eur2(tot0) + '</span></div>' +
             (c.precioManual ? '<p style="font-size: var(--fs-s);color:var(--gray-500);font-weight:600;margin-top:0.5rem;">Este envío ya tiene precio fijado a mano.</p>' : '');
         openDashModal({
             icon: 'edit',
@@ -16045,7 +16051,7 @@
                 row('Precio cliente', 'penPeCli', p.impCliente != null ? p.impCliente : p.importe) +
                 row('Precio transportista', 'penPeTra', p.impTrans || 0) +
                 '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1.5px solid var(--gray-200);padding-top:0.7rem;margin-top:0.5rem;font-weight:800;color:var(--navy);">Margen (base sin IVA)' +
-                    '<span id="penPeMarg" style="font-size:1.2rem;"></span></div>',
+                    '<span id="penPeMarg" style="font-size:var(--fs-d2);"></span></div>',
             footer: '<button class="btn-ghost" onclick="closeDashModal()">Cancelar</button>' +
                 '<button class="btn-primary" onclick="penPrecioGuardar(\'' + escapeHtml(ref) + '\')">Guardar precios</button>',
             afterOpen: function () {
