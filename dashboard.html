@@ -20700,15 +20700,10 @@
                     // recomendada, fecha fija urgente, cortes, reprogramación)
                     // NO aplican — su transportista pone sus reglas. Sin aviso.
                 } else if (uv === 'corta') {
-                    // Ventana corta de grupaje: el aviso del suplemento va ANTES
-                    // del precio; la tarjeta de la 1-4 RECOMENDADA (más económica)
-                    // va DESPUÉS de la caja de precio — igual que en carga completa
-                    // se ofrece cambiar de fecha fija a la ventana recomendada.
-                    hoyHtml = '<div style="margin-bottom:0.45rem;padding:0.6rem 0.75rem;background:#fff7e6;border:1px solid #ffd591;border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#8a5a00;">' +
-                        '<strong>Recogida corta de 1 a 2 días</strong>: lleva un suplemento. Si no te corre prisa, la de 1 a 4 días es la más económica.' +
-                        '</div>';
-                    // Tarjeta clicable para pasar a la ventana 1 a 4 días (más
-                    // económica): mismo componente que la de carga completa.
+                    // Ventana corta de grupaje: el aviso de texto se retiró (2026-07-27)
+                    // porque la tarjeta clicable de la 1-4 días ya lo comunica. La
+                    // tarjeta va DESPUÉS de la caja de precio — igual que en carga
+                    // completa se ofrece cambiar a la ventana recomendada.
                     postHtml = '<div class="ptar-eta-fija" style="margin-top:0.8rem;">' +
                         '<div class="eta-fija-head"><strong>¿No te corre prisa?</strong> Cambia a la ventana <strong>más económica</strong>:</div>' +
                         '<div class="eta-opts">' +
