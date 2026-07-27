@@ -99,6 +99,10 @@
            OCULTA a cualquier rol que no sea admin. En producción el rol y la
            seguridad los impone el backend (auth + row-level security). */
         body:not([data-role="admin"]) [data-roles="admin"] { display: none !important; }
+        /* Bloques de marketing (muro de clientes, servicios y flota) SOLO tienen
+           sentido en el dashboard del CLIENTE (portada tipo web). En ADMIN se
+           ocultan por completo. */
+        body[data-role="admin"] .dash-carousels { display: none !important; }
         /* La columna "Estado" de Incidencias la gestiona Dynamo: oculta al cliente. */
         body:not([data-role="admin"]) .inc-col-estado { display: none !important; }
         /* Envíos: columnas internas ocultas al cliente (Cliente·CIF, P.
@@ -5999,41 +6003,10 @@
             </div>
             <div class="rec-card">
                 <div class="rec-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
-                <h3>Tablas de cubicaje</h3>
+                <h3>Medidas de los camiones</h3>
                 <p>Medidas y capacidades de cada tipo de camión (metros, palets y peso máximo).</p>
-                <button type="button" class="btn-secondary" data-rec-cubicaje-toggle onclick="recToggleCubicaje(this)">Ver tablas</button>
+                <button type="button" class="btn-secondary" onclick="recVerMedidasCamion()">Ver medidas</button>
             </div>
-        </div>
-        <!-- Tablas de cubicaje (plegadas): datos de la flota (mismos que la
-             sección "Tipos de vehículo"). -->
-        <div class="rec-cubicaje" data-rec-cubicaje hidden>
-            <div class="rec-cub-tables">
-                <div class="rec-cub-t">
-                    <h4>Trailer Tauliner — Lona corredera</h4>
-                    <table class="data"><tbody>
-                        <tr><td>Largo interior</td><td><strong>13,5 m</strong></td></tr>
-                        <tr><td>Ancho interior</td><td><strong>2,42 m</strong></td></tr>
-                        <tr><td>Altura interior</td><td><strong>2,70 m</strong></td></tr>
-                        <tr><td>Volumen aprox.</td><td><strong>88 m³</strong></td></tr>
-                        <tr><td>Carga máx. mercancía</td><td><strong>24.000 kg</strong></td></tr>
-                        <tr><td>Palés europeos (120×80)</td><td><strong>33 uds.</strong></td></tr>
-                        <tr><td>Palés americanos (120×100)</td><td><strong>26 uds.</strong></td></tr>
-                    </tbody></table>
-                </div>
-                <div class="rec-cub-t">
-                    <h4>Rígido con plataforma</h4>
-                    <table class="data"><tbody>
-                        <tr><td>Largo útil</td><td><strong>8 m</strong></td></tr>
-                        <tr><td>Ancho interior</td><td><strong>2,40 m</strong></td></tr>
-                        <tr><td>Altura</td><td><strong>2,70 m</strong></td></tr>
-                        <tr><td>Volumen aprox.</td><td><strong>51 m³</strong></td></tr>
-                        <tr><td>Carga máx.</td><td><strong>14 Tn</strong></td></tr>
-                        <tr><td>Palés europeos (120×80)</td><td><strong>20 uds.</strong></td></tr>
-                        <tr><td>Palés americanos (120×100)</td><td><strong>16 uds.</strong></td></tr>
-                    </tbody></table>
-                </div>
-            </div>
-            <p style="font-size: var(--fs-s);color:var(--gray-500);margin-top:0.5rem;">Equivalencias orientativas: 1 metro lineal ≈ 2,5 palés europeos.</p>
         </div>
     </section>
 
@@ -7821,14 +7794,46 @@
         setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
     }
     window.cartaPorteVaciaPDF = cartaPorteVaciaPDF;
-    // ===== RECURSOS: desplegar/plegar las tablas de cubicaje =====
-    function recToggleCubicaje(btn) {
-        var box = document.querySelector('[data-rec-cubicaje]');
-        if (!box) return;
-        box.hidden = !box.hidden;
-        if (btn) btn.textContent = box.hidden ? 'Ver tablas' : 'Ocultar tablas';
+    // ===== RECURSOS: medidas de los camiones (ventana emergente) =====
+    // Datos de la flota (mismos que la sección "Tipos de vehículo").
+    function recVerMedidasCamion() {
+        var body =
+            '<div class="rec-cub-tables">' +
+                '<div class="rec-cub-t">' +
+                    '<h4>Trailer Tauliner — Lona corredera</h4>' +
+                    '<table class="data"><tbody>' +
+                        '<tr><td>Largo interior</td><td><strong>13,2 m</strong></td></tr>' +
+                        '<tr><td>Ancho interior</td><td><strong>2,40 m</strong></td></tr>' +
+                        '<tr><td>Altura interior</td><td><strong>2,70 m</strong></td></tr>' +
+                        '<tr><td>Volumen aprox.</td><td><strong>88 m³</strong></td></tr>' +
+                        '<tr><td>Carga máx. mercancía</td><td><strong>24.000 kg</strong></td></tr>' +
+                        '<tr><td>Palés europeos (120×80)</td><td><strong>33 uds.</strong></td></tr>' +
+                        '<tr><td>Palés americanos (120×100)</td><td><strong>26 uds.</strong></td></tr>' +
+                    '</tbody></table>' +
+                '</div>' +
+                '<div class="rec-cub-t">' +
+                    '<h4>Rígido con plataforma</h4>' +
+                    '<table class="data"><tbody>' +
+                        '<tr><td>Largo útil</td><td><strong>8 m</strong></td></tr>' +
+                        '<tr><td>Ancho interior</td><td><strong>2,40 m</strong></td></tr>' +
+                        '<tr><td>Altura</td><td><strong>2,70 m</strong></td></tr>' +
+                        '<tr><td>Volumen aprox.</td><td><strong>51 m³</strong></td></tr>' +
+                        '<tr><td>Carga máx.</td><td><strong>14.000 kg</strong></td></tr>' +
+                        '<tr><td>Palés europeos (120×80)</td><td><strong>20 uds.</strong></td></tr>' +
+                        '<tr><td>Palés americanos (120×100)</td><td><strong>16 uds.</strong></td></tr>' +
+                    '</tbody></table>' +
+                '</div>' +
+            '</div>' +
+            '<p style="font-size: var(--fs-s);color:var(--gray-500);margin-top:0.6rem;">Equivalencias orientativas: 1 metro lineal ≈ 2,5 palés europeos · 2 palés americanos.</p>';
+        openDashModal({
+            icon: 'truck',
+            title: 'Medidas de los camiones',
+            sub: 'Capacidades de cada tipo de camión (metros, palés y peso máximo)',
+            body: body,
+            footer: '<button class="btn-primary" onclick="closeDashModal()" style="flex:1;">Cerrar</button>'
+        });
     }
-    window.recToggleCubicaje = recToggleCubicaje;
+    window.recVerMedidasCamion = recVerMedidasCamion;
     // ===== CUBICADOR =====
     // Parser heurístico: por cada línea, cantidad + medidas (LxAxH, cm o m) +
     // peso (kg/t) + palet europeo/americano si no hay medidas. Calcula bultos,
