@@ -178,7 +178,7 @@
         }
         #opCompara .opc-title { font-size: var(--fs-s); font-weight: 800; color: var(--purple); text-transform: none; margin-bottom: 0.25rem; }
         #opCompara .opc-line { font-size: var(--fs-m); color: var(--gray-700); margin-top: 0.15rem; }
-        #opCompara .opc-precio { color: var(--purple); font-size: 1rem; font-weight: 800; }
+        #opCompara .opc-precio { color: var(--purple); font-size: var(--fs-d1); font-weight: 800; }
         #opCompara .opc-ahorro { color: #0f6b3a; font-weight: 700; }
         #opCompara .opc-cta {
             display: inline-block; margin-top: 0.35rem; border: none; cursor: pointer;
@@ -199,7 +199,7 @@
             background: rgba(51,0,204,0.08); color: var(--purple);
         }
         .rec-ico svg { width: 22px; height: 22px; }
-        .rec-card h3 { font-size: 1rem; font-weight: 800; color: var(--navy); margin: 0; }
+        .rec-card h3 { font-size: var(--fs-d1); font-weight: 800; color: var(--navy); margin: 0; }
         .rec-card p { font-size: var(--fs-m); color: var(--gray-600); margin: 0 0 0.5rem; line-height: 1.45; flex: 1; }
         .rec-card .btn-secondary { align-self: flex-start; }
         .rec-cubicaje { margin-top: 1.1rem; }
@@ -461,7 +461,7 @@
             font: inherit; font-size: var(--fs-m); font-weight: 700; cursor: pointer;
         }
         .maint-lang-cur { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--navy); }
-        .maint-lang-cur .flag { font-size: 1rem; line-height: 1; }
+        .maint-lang-cur .flag { font-size: var(--fs-d1); line-height: 1; }
         .maint-lang-chev { color: var(--gray-500); transition: transform 0.18s; }
         .maint-lang-toggle[aria-expanded="true"] .maint-lang-chev { transform: rotate(180deg); }
         .maint-lang-menu {
@@ -472,7 +472,7 @@
             text-align: left;
         }
         .maint-lang-menu[hidden] { display: none; }
-        .maint-lang-menu .lang-pill .flag { font-size: 1rem; line-height: 1; }
+        .maint-lang-menu .lang-pill .flag { font-size: var(--fs-d1); line-height: 1; }
         .maint-icon {
             width: 68px; height: 68px; border-radius: 18px; margin: 0 auto 1.1rem;
             display: flex; align-items: center; justify-content: center;
@@ -886,7 +886,7 @@
         .user-menu-head-avatar {
             width: 42px; height: 42px; border-radius: 50%;
             background: linear-gradient(135deg, var(--purple), var(--green));
-            color: white; font-weight: 900; font-size: 1rem;
+            color: white; font-weight: 900; font-size: var(--fs-d1);
             display: flex; align-items: center; justify-content: center;
             flex-shrink: 0;
         }
@@ -941,7 +941,7 @@
         }
         .lang-pill:hover { background: rgba(51,0,204,0.06); color: var(--purple); }
         .lang-pill.active { background: rgba(51,0,204,0.10); border-color: rgba(51,0,204,0.25); color: var(--purple); }
-        .lang-pill .flag { font-size: 1rem; line-height: 1; }
+        .lang-pill .flag { font-size: var(--fs-d1); line-height: 1; }
         /* Banderas sin emoji oficial (Cataluña · País Vasco) como SVG. */
         .flag-svg { display: inline-block; width: 18px; height: 12px; border-radius: 2px; vertical-align: middle; box-shadow: 0 0 0 1px rgba(0,0,0,0.10); }
         .lang-pill svg { flex: none; }
@@ -1194,7 +1194,7 @@
             position: absolute; top: 0.85rem; right: 0.9rem;
             width: 34px; height: 34px; border-radius: 50%;
             border: none; background: var(--gray-100); color: var(--gray-700);
-            font-size: 1rem; cursor: pointer; font-weight: 700;
+            font-size: var(--fs-d1); cursor: pointer; font-weight: 700;
             display: flex; align-items: center; justify-content: center;
         }
         .dash-modal-close:hover { background: var(--gray-200); color: var(--navy); }
@@ -1561,7 +1561,7 @@
         }
         .veh-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--purple), var(--green)); }
         .veh-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(51,0,204,0.1); }
-        .veh-card h3 { font-size: 1rem; font-weight: 800; color: var(--navy); margin-bottom: 0.7rem; display: flex; align-items: center; gap: 0.5rem; }
+        .veh-card h3 { font-size: var(--fs-d1); font-weight: 800; color: var(--navy); margin-bottom: 0.7rem; display: flex; align-items: center; gap: 0.5rem; }
         .veh-icon { flex-shrink: 0; }
         .veh-card p { color: var(--gray-500); font-size: var(--fs-m); line-height: 1.6; margin-bottom: 0.7rem; }
         .veh-card p strong { color: var(--navy); }
@@ -2215,7 +2215,7 @@
         .alm-price-total .v { font-weight: 900; color: var(--purple); font-size: var(--fs-d1); }
         /* Base imponible DESTACADA (grande y morada) con separador arriba. */
         .alm-price-base { border-top: 1px dashed var(--gray-200); margin-top: 0.4rem; padding-top: 0.55rem; }
-        .alm-price-base .k { font-weight: 800; color: var(--navy); font-size: 1rem; }
+        .alm-price-base .k { font-weight: 800; color: var(--navy); font-size: var(--fs-d1); }
         .alm-price-base .v { font-weight: 900; color: var(--purple); font-size: var(--fs-d3); }
         /* IVA y Total con IVA: discretos debajo (gris claro y pequeño). */
         .alm-price-sub { padding: 0.1rem 0; }
@@ -2347,7 +2347,7 @@
         .alm-combo .alm-rep-x {
             position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
             width: 26px; height: 26px; border-radius: 50%; border: none; cursor: pointer;
-            background: var(--gray-200); color: var(--navy); font-size: 1rem; font-weight: 800; line-height: 1;
+            background: var(--gray-200); color: var(--navy); font-size: var(--fs-d1); font-weight: 800; line-height: 1;
         }
         .alm-combo input.alm-picked {
             background: rgba(51,0,204,0.06); border-color: rgba(51,0,204,0.45);
@@ -6331,7 +6331,7 @@
             <div class="form-2col-side">
                 <div class="alm-price" id="almPrice"></div>
                 <p class="alm-err" id="almErr"></p>
-                <button class="btn-primary" style="width:100%;height:56px;font-size:1rem;" onclick="almSolicitar();return false;">Crear almacenamiento</button>
+                <button class="btn-primary" style="width:100%;height:56px;font-size:var(--fs-d1);" onclick="almSolicitar();return false;">Crear almacenamiento</button>
                 <button type="button" class="btn-ghost" style="width:100%;height:48px;margin-top:0.6rem;" onclick="showSection('dashboard');return false;">Cancelar</button>
             </div><!-- /form-2col-side -->
             </div><!-- /form-2col -->
@@ -9056,7 +9056,7 @@
                     '</div>' +
                     '<div class="ptar-terms-warn" id="almcTermsWarn">⚠ No has aceptado las condiciones generales de transporte. Marca la casilla para poder confirmar el almacenamiento.</div>' +
                     '<p class="alm-err" id="almcErr"></p>' +
-                    '<button class="btn-primary" style="width:100%;height:56px;font-size:1rem;margin-top:0.4rem;" onclick="almCrear();return false;">Confirmar almacenamiento</button>' +
+                    '<button class="btn-primary" style="width:100%;height:56px;font-size:var(--fs-d1);margin-top:0.4rem;" onclick="almCrear();return false;">Confirmar almacenamiento</button>' +
                     '<button class="btn-ghost" style="width:100%;height:48px;margin-top:0.6rem;" onclick="almBackToForm();return false;">← Editar datos</button>' +
                 '</div>' +
             '</div>';

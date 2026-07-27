@@ -57,7 +57,7 @@
     #viajeBox { background: transparent; border: none; padding: 0; margin-bottom: 1rem; }
     .of-envio { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; background: #ece8fb; border: 1px solid rgba(51,0,204,0.22); border-radius: 11px; padding: 0.55rem 0.85rem; margin-bottom: 0.7rem; }
     .of-envio .of-envio-lbl { font-size: var(--fs-s); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--purple); }
-    .of-envio > span:last-child { font-size: 1rem; font-weight: 900; color: var(--navy); }
+    .of-envio > span:last-child { font-size: var(--fs-d1); font-weight: 900; color: var(--navy); }
     .of-route { display: grid; gap: 0.6rem; margin-bottom: 0.7rem; }
     @media (min-width: 520px) { .of-route { grid-template-columns: 1fr 1fr; } }
     .of-pt { background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.72rem 0.85rem 0.78rem; }
@@ -82,7 +82,7 @@
     .of-merc-head { display: flex; align-items: center; gap: 0.6rem; }
     .of-merc-ico { flex: none; line-height: 0; color: var(--purple); }
     .of-merc-lbl { font-size: var(--fs-s); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--purple); }
-    .of-merc-tipo { font-size: 1rem; font-weight: 900; color: var(--navy); }
+    .of-merc-tipo { font-size: var(--fs-d1); font-weight: 900; color: var(--navy); }
     /* Chips del detalle en rejilla de 2 columnas: cada fila es una pareja
        (metros+peso · palets+tipo de carga · trampilla+NIMA). */
     .of-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.7rem; }
@@ -130,9 +130,9 @@
     /* Texto GRANDE: quien confirma es un chófer con el móvil. */
     .tel-modal-card h2 { font-size: var(--fs-d3); font-weight: 900; color: var(--navy); margin: 0 0 0.9rem; }
     .tel-modal-card .tm-box { text-align: center; padding: 1rem 0.9rem; background: rgba(51,0,204,0.05); border: 1.5px solid rgba(51,0,204,0.25); border-radius: 12px; margin-bottom: 1rem; }
-    .tel-modal-card .tm-linea { font-size: 1rem; font-weight: 700; color: var(--gray-700); line-height: 1.45; }
+    .tel-modal-card .tm-linea { font-size: var(--fs-d1); font-weight: 700; color: var(--gray-700); line-height: 1.45; }
     .tel-modal-card .tm-linea span { display: block; color: var(--navy); font-size: var(--fs-d3); font-weight: 900; letter-spacing: 0.04em; margin-top: 0.15rem; }
-    .tel-modal-card .tm-box label { display: block; font-size: 1rem; font-weight: 700; color: var(--navy); margin: 0.8rem 0 0.45rem; text-transform: none; line-height: 1.4; }
+    .tel-modal-card .tm-box label { display: block; font-size: var(--fs-d1); font-weight: 700; color: var(--navy); margin: 0.8rem 0 0.45rem; text-transform: none; line-height: 1.4; }
     .tel-modal-card #tm-tel3 { max-width: 170px; margin: 0 auto; display: block; font-size: var(--fs-d4); padding: 0.45rem 0.5rem; letter-spacing: 0.35em; text-align: center; font-weight: 900; }
     .tel-modal-card .tm-err { color: var(--red); font-size: var(--fs-l); font-weight: 800; margin-top: 0.5rem; }
     .tel-modal-card .btn { margin-top: 0; }
@@ -189,7 +189,7 @@
     /* Resumen de la empresa encontrada */
     .empresa-resumen { display: none; margin-top: 0.7rem; background: rgba(51,0,204,0.05); border: 1.5px solid rgba(51,0,204,0.28); border-radius: 12px; padding: 0.8rem 0.9rem; }
     .empresa-resumen.show { display: block; }
-    .empresa-resumen .er-nombre { font-size: 1rem; font-weight: 900; color: var(--purple); }
+    .empresa-resumen .er-nombre { font-size: var(--fs-d1); font-weight: 900; color: var(--purple); }
     .empresa-resumen .er-cif { font-size: var(--fs-m); font-weight: 700; color: var(--gray-700); margin-top: 1px; }
     .empresa-resumen .er-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem 0.9rem; margin-top: 0.6rem; }
     .empresa-resumen .er-k { font-size: var(--fs-s); font-weight: 800; color: var(--gray-500); }
@@ -335,7 +335,7 @@
     .taken-data .tk-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.72rem 0.95rem; }
     .taken-data .tk-row + .tk-row { border-top: 1px solid var(--gray-200); }
     .taken-data .tk-k { font-size: var(--fs-s); font-weight: 700; color: var(--gray-500); flex: none; }
-    .taken-data .tk-v { font-size: 1rem; font-weight: 800; color: var(--navy); letter-spacing: 0.03em; text-align: right; word-break: break-word; }
+    .taken-data .tk-v { font-size: var(--fs-d1); font-weight: 800; color: var(--navy); letter-spacing: 0.03em; text-align: right; word-break: break-word; }
     .taken-data .tk-rel { display: block; font-size: var(--fs-m); font-weight: 600; color: var(--gray-500); margin-top: 2px; letter-spacing: 0; }
     /* Estado "en trámite": un solo mensaje grande y limpio, con spinner. */
     .tramite-box { display: flex; align-items: center; justify-content: center; gap: 0.65rem; padding: 1.3rem 1rem; }
@@ -427,7 +427,7 @@
     .cond-card { position: relative; background: #fff; border-radius: 16px; max-width: 640px; width: 100%; max-height: 88vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(10,2,48,0.35); overflow: hidden; }
     .cond-card h2 { font-size: var(--fs-d1); color: var(--navy); margin: 1.1rem 1.2rem 0.15rem; padding-right: 2rem; }
     .cond-sub { font-size: var(--fs-s); color: var(--gray-500); font-weight: 600; margin: 0 1.2rem 0.6rem; }
-    .cond-close { position: absolute; top: 0.7rem; right: 0.7rem; width: 34px; height: 34px; border: none; background: var(--gray-100); border-radius: 50%; color: var(--navy); font-size: 1rem; cursor: pointer; line-height: 1; }
+    .cond-close { position: absolute; top: 0.7rem; right: 0.7rem; width: 34px; height: 34px; border: none; background: var(--gray-100); border-radius: 50%; color: var(--navy); font-size: var(--fs-d1); cursor: pointer; line-height: 1; }
     .cond-close:hover { background: var(--gray-200); }
     .cond-body { overflow-y: auto; padding: 0.4rem 1.2rem 0.6rem; -webkit-overflow-scrolling: touch; }
     .cond-body h4 { font-size: var(--fs-l); color: var(--purple); margin: 0.9rem 0 0.25rem; }
