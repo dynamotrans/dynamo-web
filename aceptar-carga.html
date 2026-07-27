@@ -422,7 +422,7 @@
     .terms-line { margin: 0.5rem auto 0.7rem; max-width: 640px; font-size: var(--fs-s); font-weight: 600; color: var(--gray-500); line-height: 1.5; text-align: center; }
     .terms-line a { color: var(--purple); font-weight: 800; text-decoration: underline; cursor: pointer; }
     /* Modal de condiciones generales (mismo texto que el panel) */
-    .cond-modal { position: fixed; inset: 0; z-index: 4000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .cond-modal { position: fixed; inset: 0; z-index: 10050; display: flex; align-items: center; justify-content: center; padding: 1rem; }
     .cond-backdrop { position: absolute; inset: 0; background: rgba(10,2,48,0.55); }
     .cond-card { position: relative; background: #fff; border-radius: 16px; max-width: 640px; width: 100%; max-height: 88vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(10,2,48,0.35); overflow: hidden; }
     .cond-card h2 { font-size: var(--fs-d1); color: var(--navy); margin: 1.1rem 1.2rem 0.15rem; padding-right: 2rem; }
@@ -974,6 +974,11 @@
         if (e) e.preventDefault();
         var m = document.getElementById('condModal');
         if (!m) return;
+        // Mover el modal a <body> para que NO herede el contexto de apilamiento
+        // de la tarjeta (si no, el selector de idioma se pinta por encima) y
+        // ocultar ese selector mientras se leen las condiciones.
+        if (m.parentNode !== document.body) document.body.appendChild(m);
+        var lang = document.querySelector('.lang-selector'); if (lang) lang.style.visibility = 'hidden';
         m.hidden = false; m.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
     }
@@ -981,6 +986,7 @@
         var m = document.getElementById('condModal');
         if (!m) return;
         m.hidden = true; m.setAttribute('aria-hidden', 'true');
+        var lang = document.querySelector('.lang-selector'); if (lang) lang.style.visibility = '';
         document.body.style.overflow = '';
     }
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarCondiciones(); });
