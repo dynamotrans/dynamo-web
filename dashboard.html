@@ -20705,13 +20705,21 @@
                     // NO aplican — su transportista pone sus reglas. Sin aviso.
                 } else if (uv === 'corta') {
                     // Ventana corta de grupaje: el aviso del suplemento va ANTES
-                    // del precio; la tarjeta de la 1-4 RECOMENDADA va DESPUÉS de
-                    // la caja de precio (orden pedido por el usuario 2026-07-22).
+                    // del precio; la tarjeta de la 1-4 RECOMENDADA (más económica)
+                    // va DESPUÉS de la caja de precio — igual que en carga completa
+                    // se ofrece cambiar de fecha fija a la ventana recomendada.
                     hoyHtml = '<div style="margin-bottom:0.45rem;padding:0.6rem 0.75rem;background:#fff7e6;border:1px solid #ffd591;border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#8a5a00;">' +
                         '<strong>Recogida corta de 1 a 2 días</strong>: lleva un suplemento. Si no te corre prisa, la de 1 a 4 días es la más económica.' +
                         '</div>';
-                    // La caja clicable para cambiar precio/ventana solo se muestra
-                    // en fecha fija (petición del usuario): aquí solo el aviso.
+                    // Tarjeta clicable para pasar a la ventana 1 a 4 días (más
+                    // económica): mismo componente que la de carga completa.
+                    postHtml = '<div class="ptar-eta-fija" style="margin-top:0.8rem;">' +
+                        '<div class="eta-fija-head"><strong>¿No te corre prisa?</strong> Cambia a la ventana <strong>más económica</strong>:</div>' +
+                        '<div class="eta-opts">' +
+                            etaOpt('eta-opt-rec', icoVent, 'Recogida de 1 a 4 días', 'Recomendada',
+                                'Lo más barato y seguro: el 80% de las veces cargamos en los 2 primeros días.',
+                                eur2(subAntesFija), '__ptarUsarVentana', cortaExtra) +
+                        '</div></div>';
                 } else if (uv === 'estandar') {
                     // Ventana estándar (1-3 / 1-4): sin aviso ni tarjeta (la caja
                     // clicable para cambiar precio/ventana solo sale en fecha fija).
@@ -23007,7 +23015,7 @@
                         '<summary><span class="susp-more">Ampliar para ver más</span></summary>' +
                         '<div class="susp-cuerpo">' +
                             '<p>Por parte de Dynamo, se hará lo posible para evitar o minimizar los costes en favor del cliente, <strong>pero la legislación es muy clara y, si el transportista decide aplicar los gastos estando en su derecho, deben ser asumidos por el cliente.</strong></p>' +
-                            '<p>La cancelación reiterada de envíos puede conllevar la suspensión temporal o definitiva de la cuenta <strong>si se detecta un uso fraudulento, abusivo o irresponsable</strong>. Por encima de <strong>3 cancelaciones</strong> en tus últimos 10 envíos confirmados la cuenta puede ser suspendida. (Tienes ' + _cancEn10 + ' cancelación' + (_cancEn10 === 1 ? '' : 'es') + ' en tus últimos 10 envíos confirmados).</p>' +
+                            '<p><strong>La cancelación reiterada de envíos puede conllevar la suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso fraudulento, abusivo o irresponsable. Por encima de 3 cancelaciones en tus últimos 10 envíos confirmados la cuenta puede ser suspendida. (Tienes ' + _cancEn10 + ' cancelación' + (_cancEn10 === 1 ? '' : 'es') + ' en tus últimos 10 envíos confirmados).</p>' +
                         '</div>' +
                     '</details>';
                 var cancelBody;
@@ -23030,7 +23038,7 @@
                         '<div style="margin-bottom:0.8rem;padding:0.7rem 0.8rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#0f6b3a;">' +
                         '✅ <strong>Cancelación gratuita hasta el ' + corteTxt + '</strong> (quedan <strong>' + remTxt + '</strong>).' +
                         '</div>' +
-                        '<p style="font-size: var(--fs-m);line-height:1.55;color:var(--gray-700);margin:0;">Si el cliente cancela el servicio <strong>después</strong>, <strong>Dynamo Operador Logístico, S.L.</strong> se reserva el derecho de <strong>facturar el servicio completo</strong> en concepto de indemnización.</p>' +
+                        '<p style="font-size: var(--fs-m);line-height:1.55;color:var(--gray-700);margin:0;"><strong>Si el cliente cancela el servicio después</strong>, Dynamo Operador Logístico, S.L. se reserva el derecho de <strong>facturar el servicio completo</strong> en concepto de indemnización para el transportista.</p>' +
                         suspBloque;
                 }
                 var titulo = '<div class="ptar-legal-head"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> IMPORTANTE: vas a confirmar un pedido de transporte</div>';
