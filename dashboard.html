@@ -2872,8 +2872,11 @@
         #sec-cargas[data-vista="mapa"] .pagination,
         #sec-cargas[data-vista="mapa"] > .filters { display: none; }
         .cal-head { display: flex; align-items: center; gap: 0.6rem; margin: 0.2rem 0 0.7rem; }
-        .cal-title { font-weight: 800; color: var(--navy); font-size: var(--fs-d1); }
-        .cal-hoy-tag { font-size: var(--fs-s); font-weight: 800; color: var(--purple); background: rgba(51,0,204,0.08); border-radius: 6px; padding: 1px 7px; vertical-align: 2px; }
+        /* Ancho FIJO (basado en el mes más largo, "Septiembre 2026") para que
+           las flechas ‹ › no se muevan al cambiar de mes; texto centrado. */
+        .cal-title { font-weight: 800; color: var(--navy); font-size: var(--fs-d1); min-width: 10em; text-align: center; }
+        /* Mes actual: se pinta en morado (sin etiqueta "mes actual"). */
+        .cal-title-hoy { color: var(--purple); }
         .cal-nav { width: 36px; height: 36px; border: 1.5px solid var(--gray-300); border-radius: 9px; background: #fff; font-size: var(--fs-d1); font-weight: 700; color: var(--navy); cursor: pointer; display: flex; align-items: center; justify-content: center; flex: none; }
         .cal-nav[disabled] { opacity: 0.35; cursor: default; }
         .cal-nav-hoy { width: auto; padding: 0 0.8rem; font-size: var(--fs-m); }
@@ -9944,7 +9947,7 @@
         });
         var h = '<div class="cal-head">' +
             '<button type="button" class="cal-nav" onclick="calMes(-1)"' + (CAL_ENVIOS.off <= -3 ? ' disabled' : '') + ' aria-label="Mes anterior">‹</button>' +
-            '<div class="cal-title">' + MESES[m] + ' ' + y + (CAL_ENVIOS.off === 0 ? ' <span class="cal-hoy-tag">mes actual</span>' : '') + '</div>' +
+            '<div class="cal-title' + (CAL_ENVIOS.off === 0 ? ' cal-title-hoy' : '') + '">' + MESES[m] + ' ' + y + '</div>' +
             '<button type="button" class="cal-nav" onclick="calMes(1)"' + (CAL_ENVIOS.off >= 3 ? ' disabled' : '') + ' aria-label="Mes siguiente">›</button>' +
             '</div>';
         h += '<div class="cal-grid cal-dow"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div>';
@@ -20752,7 +20755,15 @@
                 setPrecioCalculando(true);
                 priceCalcTimer = setTimeout(function () {
                     priceCalcTimer = null;
-                    window.__renderPriceBox(pbox, precio, precioRows, fromPrice);
+                    // Tras el skeleton de "calculando", el contador SIEMPRE cuenta
+                    // hacia arriba hasta el precio. Arranca por debajo del objetivo
+                    // (encadena desde el valor previo si es menor; si no, desde ~40%
+                    // del precio) para que el efecto se vea SIEMPRE, aunque el
+                    // importe no haya cambiado respecto al cálculo anterior.
+                    var startFrom = (fromPrice > 0 && fromPrice < precio)
+                        ? fromPrice
+                        : Math.round(precio * 0.4 / 10) * 10;
+                    window.__renderPriceBox(pbox, precio, precioRows, startFrom);
                     setPrecioCalculando(false);
                 }, 1500);
                 lastPrice = precio;
