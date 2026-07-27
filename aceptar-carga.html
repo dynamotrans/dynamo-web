@@ -167,6 +167,8 @@
     .ac-list li .ac-sub { font-size: var(--fs-s); color: var(--gray-500); font-weight: 600; }
     .ac-list li.ac-tip { cursor: default; color: var(--gray-500); font-size: var(--fs-s); font-weight: 700; font-style: italic; }
     .ac-list li.ac-tip:hover { background: transparent; }
+    /* Opción especial "Aún no sé las matrículas" (1ª de la lista de tractora). */
+    .ac-list li.ac-first { color: var(--purple); font-weight: 800; border-bottom: 1px solid var(--gray-200); border-radius: 8px 8px 0 0; margin-bottom: 2px; flex-direction: row; align-items: center; gap: 6px; }
     .ac-newnote { font-size: var(--fs-s); color: var(--gray-500); margin-top: 0.25rem; display: none; }
     .ac-newnote.show { display: block; }
     .ac-flash { animation: acFlash 0.9s ease; }
@@ -746,7 +748,7 @@
                         <div class="ac-newnote" id="new-remolque">Se registrará como matrícula nueva.</div>
                     </div>
                 </div>
-                <p class="id-hint">Se <strong>autorrellena con datos de última carga</strong>, puedes cambiarlo.</p>
+                <p class="id-hint" id="matHint">Se <strong>autorrellena con datos de última carga</strong>, puedes cambiarlo.</p>
                 </div>
 
                 <div class="fsec fsec-conductor">
@@ -1749,6 +1751,12 @@
     ['f-tractora', 'f-remolque'].forEach(function (id) {
         document.getElementById(id).addEventListener('input', function () {
             var p = this.selectionStart; this.value = this.value.toUpperCase(); this.selectionStart = this.selectionEnd = p;
+            // Si teclea una matrícula, ya no está "pendiente": restaura la pista.
+            if (this.value.trim()) {
+                window._matriculasPend = false;
+                var h = document.getElementById('matHint');
+                if (h) h.innerHTML = 'Se <strong>autorrellena con datos de última carga</strong>, puedes cambiarlo.';
+            }
         });
     });
 
@@ -1774,7 +1782,11 @@
             if (!all.length) { acClose(list); if (note) note.classList.remove('show'); return; }
             var match = all.filter(function (it) { return acNorm(cfg.label(it)).indexOf(q) >= 0; });
             var shown = match.slice(0, 4);
-            var html = shown.map(function (it, i) {
+            // Opción especial fija arriba (p.ej. "Aún no sé las matrículas").
+            var html = cfg.firstOpt
+                ? '<li class="ac-first" data-first="1">' + escH(cfg.firstOpt.label) + '</li>'
+                : '';
+            html += shown.map(function (it, i) {
                 var sub = cfg.sub ? cfg.sub(it) : '';
                 return '<li data-i="' + all.indexOf(it) + '">' + escH(cfg.label(it)) +
                     (sub ? '<span class="ac-sub">' + escH(sub) + '</span>' : '') + '</li>';
@@ -1782,6 +1794,13 @@
             html += '<li class="ac-tip">Escribe para filtrar…</li>';
             list.innerHTML = html;
             list.classList.add('show');
+            var firstLi = list.querySelector('li[data-first]');
+            if (firstLi) firstLi.addEventListener('mousedown', function (e) {
+                e.preventDefault();
+                cfg.firstOpt.pick();
+                acClose(list);
+                if (note) note.classList.remove('show');
+            });
             // Aviso "se registrará como nueva/nuevo" si hay texto sin coincidencia exacta.
             if (note) {
                 var cur = acNorm(inp.value);
@@ -1872,9 +1891,26 @@
         inp: 'f-tractora', list: 'ac-tractora', note: 'new-tractora',
         source: function () { var e = selEmpresa(); return e ? e.matriculas : []; },
         label: function (m) { return m; },
+        // 1ª opción: el transportista puede no saber aún las matrículas → acepta
+        // igualmente y las manda antes de la carga (te las pedimos por email/WA).
+        firstOpt: {
+            label: 'Aún no sé las matrículas',
+            pick: function () {
+                var tr = document.getElementById('f-tractora'), rem = document.getElementById('f-remolque');
+                if (tr) { tr.value = ''; tr.classList.remove('err', 'valid'); }
+                if (rem) { rem.value = ''; rem.classList.remove('err', 'valid'); }
+                ['new-tractora', 'new-remolque'].forEach(function (id) { var n = document.getElementById(id); if (n) n.classList.remove('show'); });
+                window._matriculasPend = true;
+                var h = document.getElementById('matHint');
+                if (h) h.innerHTML = 'Perfecto: <strong>puedes aceptar igualmente</strong>. Te pediremos las matrículas por <strong>email o WhatsApp</strong> antes de la carga.';
+            }
+        },
         pick: function (m) {
             var tr = document.getElementById('f-tractora');
             tr.value = m; refreshFieldState(tr);
+            window._matriculasPend = false;
+            var h = document.getElementById('matHint');
+            if (h) h.innerHTML = 'Se <strong>autorrellena con datos de última carga</strong>, puedes cambiarlo.';
             var e = selEmpresa(), rem = document.getElementById('f-remolque');
             // 99% de las veces la tractora arrastra el MISMO remolque del último
             // envío: lo autorrellenamos (editable/borrable por si hoy lleva otro).
@@ -1987,7 +2023,7 @@
                                  : '<span class="vc-v vc-falta">Falta</span>') + '</div>';
                     }).join('') +
                 '</div>' +
-                '<p class="vc-nota">Si los tienes, <strong>rellénalos ahora</strong> (es un momento y agiliza tu carga). Si aún no los sabes, puedes aceptar igualmente y mandárnoslos en cuanto los tengas — te los pediremos por <strong>email o WhatsApp</strong> antes de la carga.</p>' +
+                '<p class="vc-nota">Si los tienes, <strong>rellénalos ahora</strong> (es un momento y agiliza tu carga). <strong>Si aún no los sabes, puedes aceptar igualmente y mandárnoslos en cuanto los tengas</strong> — te los pediremos por <strong>email o WhatsApp</strong> antes de la carga.</p>' +
                 '<button type="button" class="btn" onclick="vcRellenar()">Rellenar ahora</button>' +
                 '<button type="button" class="btn-sec vc-later" onclick="vcMasAdelante()">ACEPTAR CARGA · mandaré datos más adelante</button>';
         }
