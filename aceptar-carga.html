@@ -120,8 +120,9 @@
     .fsec-entrega .sec-title { color: var(--green-dark); }
     .fsec-vehiculo { background: rgba(51,0,204,0.04); border-color: rgba(51,0,204,0.25); }
     .fsec-vehiculo .sec-title { color: var(--purple); }
-    .fsec-conductor { background: rgba(10,2,48,0.03); border-color: var(--gray-300); }
-    .fsec-conductor .sec-title { color: var(--navy); }
+    /* Sub-cabecera "Conductor" dentro del MISMO cuadro que Vehículo (camión +
+       conductor = datos del medio de transporte): divisor sutil para separar. */
+    .fsec .sec-title.fsec-subhead { border-top: 1px solid rgba(51,0,204,0.15); margin-top: 1.1rem; padding-top: 0.9rem; color: var(--purple); }
     .fsec-notas { background: var(--gray-100); border-color: var(--gray-200); padding: 0.55rem 0.95rem; }
     /* Ventana de confirmación de identidad (código de 3 dígitos por email) */
     .tel-modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; }
@@ -749,10 +750,8 @@
                     </div>
                 </div>
                 <p class="id-hint" id="matHint">Se <strong>autorrellena con datos de última carga</strong>, puedes cambiarlo.</p>
-                </div>
 
-                <div class="fsec fsec-conductor">
-                <div class="sec-title">Conductor</div>
+                <div class="sec-title fsec-subhead">Conductor</div>
                 <p class="id-hint">Con estos datos, <strong>cargador y destinatario coordinan la recogida y la entrega</strong> con él y <strong>agilizan la documentación</strong>.</p>
                 <label for="f-chofer">Nombre y apellidos del conductor *</label>
                 <div class="ac-wrap">
@@ -1895,14 +1894,14 @@
         // igualmente y las manda antes de la carga (te las pedimos por email/WA).
         firstOpt: {
             label: 'Aún no sé las matrículas',
+            // Borra TODOS los datos del medio de transporte (camión + conductor):
+            // el transportista aún no sabe qué vehículo ni chófer irá. Acepta
+            // igualmente y los mandará antes de la carga.
             pick: function () {
-                var tr = document.getElementById('f-tractora'), rem = document.getElementById('f-remolque');
-                if (tr) { tr.value = ''; tr.classList.remove('err', 'valid'); }
-                if (rem) { rem.value = ''; rem.classList.remove('err', 'valid'); }
-                ['new-tractora', 'new-remolque'].forEach(function (id) { var n = document.getElementById(id); if (n) n.classList.remove('show'); });
+                limpiarVehiculoConductor();
                 window._matriculasPend = true;
                 var h = document.getElementById('matHint');
-                if (h) h.innerHTML = 'Perfecto: <strong>puedes aceptar igualmente</strong>. Te pediremos las matrículas por <strong>email o WhatsApp</strong> antes de la carga.';
+                if (h) h.innerHTML = 'Perfecto: <strong>puedes aceptar igualmente</strong>. Te pediremos las matrículas y el conductor por <strong>email o WhatsApp</strong> antes de la carga.';
             }
         },
         pick: function (m) {
