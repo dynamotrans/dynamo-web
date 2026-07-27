@@ -578,12 +578,11 @@
                  identificarse (queda "No soy yo / cambiar"). -->
             <div id="identBlock">
                 <div class="sec-title" style="border-top:none;padding-top:0;margin-top:0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Identifícate</div>
-                <label for="f-buscar-id">Tu CIF, DNI, código de bolsa, móvil o nombre de empresa *</label>
+                <label for="f-buscar-id">Tu CIF, DNI, código de bolsa, móvil o nombre de empresa. Si no sale ninguna, al pulsar <strong>Aceptar carga</strong> te damos de alta.</label>
                 <div class="idrow">
                     <input type="text" id="f-buscar-id" placeholder="B12345678, 482113, 638220471 o tu empresa" autocapitalize="characters" autocomplete="off">
                     <ul class="ac-list" id="ac-buscar"></ul>
                 </div>
-                <p class="id-hint">Escribe tu <strong>CIF</strong> (empresa), <strong>DNI/NIE</strong> (autónomo), tu <strong>código de bolsa de carga</strong>, tu <strong>teléfono móvil</strong> o el <strong>nombre de tu empresa</strong> (con 2 letras ya salen sugerencias; vale cualquier palabra del nombre) y <strong>elige tu empresa</strong> de la lista: aparecerán tus datos para que no tengas que escribirlos. Si no sale ninguna, al pulsar <strong>Aceptar carga</strong> te damos de alta.<br><span style="color:var(--gray-500);">Demo: prueba <strong>B58830217</strong>, el código de bolsa <strong>482113</strong>, el móvil <strong>638220471</strong> o escribe <strong>iberia</strong>.</span></p>
                 <div class="buscando" id="buscandoMsg"><span class="spin"></span>Consultando la base de Dynamo…</div>
                 <div class="id-nofound" id="idNoFound">No encontramos ningún transportista con ese dato (CIF/DNI, código de bolsa, teléfono o nombre). Revísalo, o contacta con Dynamo para darte de alta.</div>
             </div>
