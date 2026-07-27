@@ -23309,6 +23309,18 @@
                             geoPrefill(w, p.dir || inp.value);
                         });
                     }
+                    // FECHA de recogida por defecto (1ª disponible) al Repetir /
+                    // Modificar: estos flujos HEREDAN todo el envío y deben calcular
+                    // el precio y poder avanzar. (En un envío NUEVO desde cero la
+                    // fecha se deja SIN elegir a propósito, para forzar la elección
+                    // según la necesidad del cliente — de ahí que el precio no salga
+                    // hasta elegir fecha. Aquí, en cambio, ya hay un envío base.)
+                    if (diaSel && typeof fillDiaSelect === 'function') {
+                        var _uv = urgenciaSel ? urgenciaSel.value : 'estandar';
+                        fillDiaSelect(diaSel, mode, _uv, (typeof winDaysDe === 'function' ? winDaysDe(_uv) : (_uv === 'dia' ? 1 : 2)));
+                        var _fr = Array.prototype.filter.call(diaSel.options, function (o) { return /^\d{4}-\d{2}-\d{2}$/.test(o.value); })[0];
+                        if (_fr) diaSel.value = _fr.value;
+                    }
                     // Coordenadas de origen/destino en 2º plano → cuando llegan,
                     // renderEta pinta la caja de precio completa (desglose + ETA)
                     // exactamente como en crear envío. SIEMPRE (también Repetir):
