@@ -4132,9 +4132,12 @@
         .fiscal-fb.bad { color: #dc2626; }
         .fiscal-fb.soft { color: #b45309; }
         /* Teléfonos con prefijo de país: desplegable (+34 por defecto) + número */
-        .tel-group { display: flex; gap: 0.4rem; }
-        .tel-group .tel-pref { flex: 0 0 auto; width: 116px; min-width: 0; }
-        .tel-group input[type="tel"], .tel-group input:not([type="hidden"]) { flex: 1 1 auto; min-width: 0; }
+        .tel-group { display: flex; gap: 0.4rem; align-items: flex-start; }
+        .tel-group .tel-pref, .tel-group .pref-wrap { flex: 0 0 auto; width: 116px; min-width: 116px; }
+        /* base 0 → el número SIEMPRE se queda en línea junto al prefijo y se
+           encoge para caber (evita que baje solo en columnas estrechas, como la
+           ficha de sitio del paso de confirmación). */
+        .tel-group input[type="tel"], .tel-group input:not([type="hidden"]) { flex: 1 1 0; min-width: 0; }
         /* Con selector delante + aviso de obligatorio: el aviso cae debajo a
            todo el ancho (el número input lo busca en su parentNode = .tel-group). */
         .tel-group-wrap { flex-wrap: wrap; }
