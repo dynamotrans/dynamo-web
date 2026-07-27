@@ -2421,8 +2421,13 @@
         html += cardSec(ICO.emp, 'Transportista', empNom, chip('CIF / DNI', empCif));
         html += cardSec(ICO.truck, 'Vehículo', okVal('f-camion'),
             chip('Tractora', okVal('f-tractora')) + chip('Remolque', okVal('f-remolque')));
-        html += cardSec(ICO.user, 'Conductor', okVal('f-chofer'),
-            chip('DNI / NIE', okVal('f-dnichofer')) + chip('Teléfono', okVal('f-pref') + ' ' + okVal('f-tfno')));
+        // Conductor: solo se muestra si hay ALGÚN dato (nombre, DNI o teléfono).
+        // El teléfono solo si hay número (si no, "+34" a secas no aporta nada).
+        var condTel = okVal('f-tfno') ? (okVal('f-pref') + ' ' + okVal('f-tfno')).trim() : '';
+        var condChips = chip('DNI / NIE', okVal('f-dnichofer')) + chip('Teléfono', condTel);
+        if (okVal('f-chofer') || condChips) {
+            html += cardSec(ICO.user, 'Conductor', okVal('f-chofer'), condChips);
+        }
         // Precio: caja verde como la de la oferta, con el pronto pago si aplica.
         var imp = O.precio || okTxt('v-imp');
         var pronto = document.getElementById('f-pronto') && document.getElementById('f-pronto').checked;
