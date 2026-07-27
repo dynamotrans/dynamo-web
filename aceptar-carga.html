@@ -2393,7 +2393,7 @@
         if (pronto && info) {
             // Importe final con pronto pago aplicado (así irá también en la factura).
             html += '<div class="pago-contado"><span class="imp">' + escH(fmtEur(info.total) + ' €') + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span>' +
-                '<div style="font-size:var(--fs-m);font-weight:700;margin-top:0.25rem;">PRONTO PAGO aplicado · cobro a 5 días' + (fechaPagoDias(5) ? ' (pago el ' + escH(fechaPagoDias(5)) + ')' : '') + '</div>' + contraNota + '</div>';
+                '<div style="font-size:var(--fs-m);font-weight:700;margin-top:0.25rem;">PRONTO PAGO aplicado · cobro a 5 días fecha factura.</div>' + contraNota + '</div>';
         } else if (imp) {
             html += '<div class="pago-contado"><span class="imp">' + escH(imp) + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)' + (info ? ' · a 60 días' : '') + '</span>' + contraNota + '</div>';
         }
