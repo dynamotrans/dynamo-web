@@ -9946,7 +9946,6 @@
             '<button type="button" class="cal-nav" onclick="calMes(-1)"' + (CAL_ENVIOS.off <= -3 ? ' disabled' : '') + ' aria-label="Mes anterior">‹</button>' +
             '<div class="cal-title">' + MESES[m] + ' ' + y + (CAL_ENVIOS.off === 0 ? ' <span class="cal-hoy-tag">mes actual</span>' : '') + '</div>' +
             '<button type="button" class="cal-nav" onclick="calMes(1)"' + (CAL_ENVIOS.off >= 3 ? ' disabled' : '') + ' aria-label="Mes siguiente">›</button>' +
-            (CAL_ENVIOS.off !== 0 ? '<button type="button" class="cal-nav cal-nav-hoy" onclick="calHoy()">Mes actual</button>' : '') +
             '</div>';
         h += '<div class="cal-grid cal-dow"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div>';
         var startIdx = (new Date(y, m, 1).getDay() + 6) % 7;   // 0 = lunes
