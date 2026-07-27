@@ -11931,8 +11931,6 @@
                 ctField('usr-f-copias', 'Enviar copia a · opcional (si hay varios, sepáralos por comas)', u.copias, 'logistica@empresa.com, almacen@empresa.com', true) +
                 '<div class="sitio-email-err" id="usrCopiasErr" hidden style="grid-column:1/-1;margin-top:-0.5rem;font-size: var(--fs-s);color:#b42318;font-weight:700;"></div>' +
                 '<div style="grid-column:1/-1;margin-top:-0.5rem;font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;">Estos emails reciben COPIA de los avisos de envíos de este usuario (máximo 10).</div>' +
-                ctSelect('usr-f-visenv', 'Mis envíos: visibles para otros usuarios de mi empresa', ['Sí — visibles para mi empresa', 'No — solo yo (y administración)'], u.enviosVisibles === false ? 'No — solo yo (y administración)' : 'Sí — visibles para mi empresa') +
-                '<div style="grid-column:1/-1;margin-top:-0.5rem;font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;">Al OCULTARLOS, los envíos creados por este usuario dejan de verse en el listado del resto de usuarios de su empresa (la administración de Dynamo siempre los ve). En producción lo impone el servidor (RLS).</div>' +
                 tipoHtml +
                 ctSelect('usr-f-estado', 'Estado de la cuenta', ['Activa', 'Suspendida', 'Pendiente de verificación'], u.estadoCuenta || 'Activa') +
                 ctField('usr-f-nombre', 'Nombre y apellidos *', u.nombre, 'Nombre y apellidos', true) +
@@ -12133,8 +12131,6 @@
         else if (!u.tipo) u.tipo = 'Cliente';
         var estEl = document.getElementById('usr-f-estado');
         u.estadoCuenta = estEl ? estEl.value : 'Activa';
-        var visEl = document.getElementById('usr-f-visenv');
-        if (visEl) u.enviosVisibles = /^Sí/.test(visEl.value);
         u.dni = v('usr-f-dni') || null;
         u.tfno = telValue('usr-f-tfno');
         u.empresa = v('usr-f-empresa') || null;
