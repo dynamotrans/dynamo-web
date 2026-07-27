@@ -5137,7 +5137,7 @@
         </div>
         <div class="filters">
             <input type="search" placeholder="Buscar por cualquier dato: nº, empresa, dirección, teléfono, ruta, mercancía…">
-            <select class="filter-estado" data-carga-operador aria-label="Filtrar por operador de transporte"
+            <select class="filter-estado" data-carga-operador data-roles="admin" aria-label="Filtrar por operador de transporte"
                     onchange="TABLE_STATE.cargas.operador=this.value;TABLE_STATE.cargas.page=1;renderCargasTable();">
                 <option value="">Operador</option>
             </select>
