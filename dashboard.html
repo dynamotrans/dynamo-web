@@ -16145,6 +16145,23 @@
         _penEditRef = p ? p.ref : null;
         _penEnvioSel = p ? p.envio : null;
         var tipoOpts = '<option value="">Selecciona el tipo…</option>' + PEN_TIPOS.map(function (t) { return '<option>' + t + '</option>'; }).join('');
+        // Rol: el CLIENTE solo VE las penalizaciones (no crea, edita, confirma
+        // ni cancela). Para no-admin el modal es de solo lectura.
+        var esAdminPen = (window.getRole ? window.getRole() : 'admin') === 'admin';
+        // Adjuntos (solo admin): mismo patrón que Incidencias. Sirve para subir
+        // el GPS/tacógrafo del camión (justificar esperas en carga/descarga),
+        // fotos, albaranes u otros documentos que respalden la penalización.
+        var penAdjHtml = esAdminPen
+            ? '<div class="modal-form-row"><label>Adjuntar fotos / documentos</label>' +
+                '<div class="modal-file-drop" onclick="document.getElementById(\'penFiles\').click()">' +
+                '<div id="penFilesLabel"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> Selecciona archivos o arrástralos aquí</div>' +
+                '<div class="modal-file-drop-sub">JPG, PNG, PDF · máx 10 MB cada uno</div>' +
+                '</div>' +
+                '<input type="file" id="penFiles" multiple accept="image/*,.pdf" style="display:none">' +
+                '<ul class="modal-file-list" id="penFilesList"></ul>' +
+                '<div style="font-size:var(--fs-s);color:var(--gray-500);margin-top:0.35rem;line-height:1.45;">P. ej. el <strong>GPS o tacógrafo del camión</strong> para justificar esperas en carga o descarga, fotos, albaranes u otros documentos.</div>' +
+                '</div>'
+            : '';
         var body =
             (p ? ctMetaHTML(p) : '') +
             '<div class="modal-form-row"><label>Envío referenciado</label>' +
@@ -16154,10 +16171,8 @@
             '<div class="modal-form-row"><label>Tipo de penalización</label><select id="penTipo">' + tipoOpts + '</select></div>' +
             '<div class="modal-form-row"><label>Descripción</label><textarea id="penDesc" placeholder="Describe el motivo de la penalización…"></textarea></div>' +
             '<div class="modal-form-row"><label>Importe <span style="color:var(--gray-500);font-weight:600;">· sin IVA</span></label><input type="number" id="penImporte" min="0" step="10" inputmode="decimal" placeholder="0"></div>' +
+            penAdjHtml +
             '<p class="alm-err" id="penErr"></p>';
-        // Rol: el CLIENTE solo VE las penalizaciones (no crea, edita, confirma
-        // ni cancela). Para no-admin el modal es de solo lectura.
-        var esAdminPen = (window.getRole ? window.getRole() : 'admin') === 'admin';
         openDashModal({
             icon: 'alert',
             title: p ? ((esAdminPen ? 'Editar' : 'Detalle de') + ' penalización ' + p.ref) : 'Crear penalización',
@@ -16172,6 +16187,12 @@
                         : '') +
                     (esAdminPen ? '<button class="btn-primary" onclick="crearPenalizacion();return false;" style="flex:1;">Guardar penalización</button>' : ''),
             afterOpen: function () {
+                // Adjuntos (solo admin): lista con ver + confirmar borrado.
+                if (esAdminPen && document.getElementById('penFilesList')) {
+                    window._penFilesTmp = (p && p.adjuntos) ? p.adjuntos.slice() : [];
+                    bindDocsArea({ arr: window._penFilesTmp, listId: 'penFilesList', inputId: 'penFiles', labelId: 'penFilesLabel',
+                        labelDefault: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> Selecciona archivos o arrástralos aquí' });
+                }
                 var inp = document.getElementById('penEnvioInput');
                 var sug = document.getElementById('penEnvioSug');
                 var ac = document.getElementById('penAc');
@@ -16251,6 +16272,7 @@
         if (!desc) return fail('Añade una descripción de la penalización.', document.getElementById('penDesc'));
         if (!(imp > 0)) return fail('Indica un importe válido (sin IVA).', document.getElementById('penImporte'));
         var c = penEnviosList().filter(function (x) { return x.ref === _penEnvioSel; })[0] || {};
+        var adjuntos = (window._penFilesTmp || []).slice();
         var esEdicion = !!_penEditRef, refFinal;
         if (esEdicion) {
             // EDICIÓN: se actualiza la penalización existente (mismo ref y fecha).
@@ -16259,6 +16281,7 @@
                 p0.envio = _penEnvioSel; p0.tipo = tipo; p0.descripcion = desc; p0.importe = imp;
                 p0.impCliente = imp;   // el importe del formulario es el del cliente
                 p0.transportista = c.transportista || p0.transportista || null;
+                p0.adjuntos = adjuntos;
                 p0.modificadoEn = Date.now();
             }
             refFinal = _penEditRef;
@@ -16268,6 +16291,7 @@
                 ref: refFinal, envio: _penEnvioSel, tipo: tipo,
                 transportista: c.transportista || null, descripcion: desc, importe: imp, fecha: penHoyMas(0),
                 impCliente: imp, impTrans: 0,   // el del transportista se fija a mano
+                adjuntos: adjuntos,
                 creadoEn: Date.now()
             });
         }
