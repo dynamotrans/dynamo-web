@@ -23360,17 +23360,40 @@
                             geoPrefill(w, p.dir || inp.value);
                         });
                     }
-                    // FECHA de recogida por defecto (1ª disponible) al Repetir /
-                    // Modificar: estos flujos HEREDAN todo el envío y deben calcular
-                    // el precio y poder avanzar. (En un envío NUEVO desde cero la
-                    // fecha se deja SIN elegir a propósito, para forzar la elección
-                    // según la necesidad del cliente — de ahí que el precio no salga
-                    // hasta elegir fecha. Aquí, en cambio, ya hay un envío base.)
+                    // FECHA de recogida al Repetir / Modificar: se intenta poner LA
+                    // MISMA fecha del envío original; si esa fecha ya pasó (o no es
+                    // seleccionable) se pone la 1ª disponible. Estos flujos HEREDAN
+                    // todo el envío y deben calcular el precio y poder avanzar. (En
+                    // un envío NUEVO desde cero la fecha se deja SIN elegir a
+                    // propósito, para forzar la elección según la necesidad.)
                     if (diaSel && typeof fillDiaSelect === 'function') {
                         var _uv = urgenciaSel ? urgenciaSel.value : 'estandar';
-                        fillDiaSelect(diaSel, mode, _uv, (typeof winDaysDe === 'function' ? winDaysDe(_uv) : (_uv === 'dia' ? 1 : 2)));
-                        var _fr = Array.prototype.filter.call(diaSel.options, function (o) { return /^\d{4}-\d{2}-\d{2}$/.test(o.value); })[0];
-                        if (_fr) diaSel.value = _fr.value;
+                        var _wd = (typeof winDaysDe === 'function' ? winDaysDe(_uv) : (_uv === 'dia' ? 1 : 2));
+                        fillDiaSelect(diaSel, mode, _uv, _wd);
+                        // Parse de la fecha del envío ("DD/MM" o "DD/MM/AA(AA)") a ISO.
+                        var _srcIso = null;
+                        var _fm = String(src.fecha || '').match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+                        if (_fm && typeof nowMadrid === 'function') {
+                            var _yr = _fm[3] ? (_fm[3].length === 2 ? 2000 + parseInt(_fm[3], 10) : parseInt(_fm[3], 10)) : nowMadrid().getFullYear();
+                            _srcIso = _yr + '-' + ('0' + _fm[2]).slice(-2) + '-' + ('0' + _fm[1]).slice(-2);
+                        }
+                        var _minIso = (typeof firstLoadDate === 'function' && typeof isoLocal === 'function') ? isoLocal(firstLoadDate(_uv)) : null;
+                        if (_srcIso && _minIso && _srcIso >= _minIso) {
+                            // Fecha del envío aún válida → se restaura (se añade la
+                            // opción si el desplegable no la lista).
+                            if (!diaSel.querySelector('option[value="' + _srcIso + '"]')) {
+                                var _op = document.createElement('option');
+                                _op.value = _srcIso;
+                                _op.textContent = (typeof dayOrRangeLabel === 'function') ? dayOrRangeLabel(new Date(_srcIso + 'T00:00:00'), _wd) : _srcIso;
+                                var _otro = diaSel.querySelector('option[value="otro"]');
+                                if (_otro) diaSel.insertBefore(_op, _otro); else diaSel.appendChild(_op);
+                            }
+                            diaSel.value = _srcIso;
+                        } else {
+                            // Fecha pasada/no disponible → 1ª fecha disponible.
+                            var _fr = Array.prototype.filter.call(diaSel.options, function (o) { return /^\d{4}-\d{2}-\d{2}$/.test(o.value); })[0];
+                            if (_fr) diaSel.value = _fr.value;
+                        }
                     }
                     // Coordenadas de origen/destino en 2º plano → cuando llegan,
                     // renderEta pinta la caja de precio completa (desglose + ETA)
