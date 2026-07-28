@@ -439,6 +439,17 @@
     .cond-body a { color: var(--purple); font-weight: 700; }
     .cond-foot { border-top: 1px solid var(--gray-200); padding: 0.7rem 1.2rem; text-align: right; }
     .cond-foot button { background: var(--purple); color: #fff; border: none; border-radius: 10px; padding: 0.6rem 1.4rem; font-size: var(--fs-m); font-weight: 800; cursor: pointer; }
+    /* Botón "ver otras cargas disponibles" + listado de la bolsa (mockup). */
+    .btn-otras { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; margin: 0.9rem 0 0.2rem; background: #fff; color: var(--purple); border: 1.5px solid var(--purple); border-radius: 12px; padding: 0.75rem 1rem; font: inherit; font-size: var(--fs-m); font-weight: 800; cursor: pointer; line-height: 1.3; text-align: center; }
+    .btn-otras:hover { background: rgba(51,0,204,0.06); }
+    .bolsa-list { overflow-y: auto; padding: 0.5rem 1.2rem 0.4rem; -webkit-overflow-scrolling: touch; }
+    .bolsa-item { display: block; width: 100%; text-align: left; background: #fff; border: 1.5px solid var(--gray-300); border-radius: 12px; padding: 0.7rem 0.8rem; margin-bottom: 0.6rem; cursor: pointer; font: inherit; }
+    .bolsa-item:hover { border-color: var(--purple); background: rgba(51,0,204,0.04); }
+    .bolsa-ruta { font-size: var(--fs-l); font-weight: 800; color: var(--navy); }
+    .bolsa-meta { font-size: var(--fs-s); color: var(--gray-600); margin-top: 2px; line-height: 1.4; }
+    .bolsa-fila { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; margin-top: 0.4rem; }
+    .bolsa-precio { font-size: var(--fs-l); font-weight: 800; color: var(--green-dark); white-space: nowrap; }
+    .bolsa-go { font-size: var(--fs-s); font-weight: 800; color: var(--purple); white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -553,6 +564,13 @@
 
 
             <dl class="viaje" id="viajeBox"></dl>
+
+            <!-- ¿Esta carga no encaja? El transportista puede ver el resto de la
+                 bolsa de Dynamo y abrir la aceptación de cualquiera de ellas. -->
+            <button type="button" class="btn-otras" id="verOtrasBtn" onclick="abrirBolsa()">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>
+                ¿No te encaja? Ver otras cargas disponibles de Dynamo
+            </button>
 
             <!-- CONTRAOFERTA: proponer OTRO precio (barra ±10 %, pasos de 10 €). Se envía a
                  Dynamo y se confirma en esta pantalla (y por email). MOCKUP:
@@ -964,6 +982,19 @@
         </div>
     </div>
 
+    <!-- Bolsa de cargas disponibles de Dynamo (mockup). Al pulsar una, se
+         recarga la página de aceptación con los datos de esa carga. -->
+    <div class="cond-modal" id="bolsaModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="bolsaTitle" hidden>
+        <div class="cond-backdrop" onclick="cerrarBolsa()"></div>
+        <div class="cond-card" role="document">
+            <button class="cond-close" onclick="cerrarBolsa()" aria-label="Cerrar">✕</button>
+            <h2 id="bolsaTitle">Cargas disponibles de Dynamo</h2>
+            <p class="cond-sub">Pulsa una carga para ver sus datos y aceptarla</p>
+            <div class="bolsa-list" id="bolsaList"></div>
+            <div class="cond-foot"><button type="button" onclick="cerrarBolsa()">Cerrar</button></div>
+        </div>
+    </div>
+
 <!-- Selector de prefijos telefónicos mundial, buscable y localizado -->
 <script src="/js/prefijos.js"></script>
 <script src="/js/campos.js"></script>
@@ -990,6 +1021,55 @@
         document.body.style.overflow = '';
     }
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarCondiciones(); });
+
+    // ---- BOLSA DE CARGAS DISPONIBLES DE DYNAMO (mockup) ----
+    // Cada carga lleva los MISMOS parámetros que el enlace de una oferta real:
+    // al pulsarla se recarga esta misma página con esos datos → se abre su
+    // ventana de aceptación. En producción esta lista la sirve el backend.
+    var BOLSA_DEMO = [
+        { ruta: 'Barcelona → Valencia', meta: 'Paletizado · 13,2 m · 22.000 kg · Tráiler tauliner', fecha: 'Recogida Mié 22 – Jue 23/07', precio: '720,00 €',
+          params: { envio: '#GX684912', o: '08120, La Llagosta, Barcelona, España', d: '46940, Manises, Valencia, España', m: 'Paletizado', ml: '13,2 m', peso: '22.000 kg', tc: 'Lateral', p: '720,00 €', dias: 'Mié 22/07,Jue 23/07', ot: 'Almacén', dt: 'Almacén', ho: 'L-V 8:00–14:00', hd: 'L-V 8:00–18:00' } },
+        { ruta: 'Sevilla → Madrid', meta: 'No paletizada · 6 m · 8.000 kg · Tráiler tauliner', fecha: 'Recogida Jue 23/07 (fecha fija)', precio: '640,00 €',
+          params: { envio: '#GX684918', o: '41701, Dos Hermanas, Sevilla, España', d: '28031, Madrid, Madrid, España', m: 'No paletizada', ml: '6 m', peso: '8.000 kg', tc: 'Lateral y techo', p: '640,00 €', dias: 'Jue 23/07', ot: 'Almacén', dt: 'Obra' } },
+        { ruta: 'Zaragoza → Bilbao', meta: 'Paletizado · 13,2 m · 24.000 kg · Tráiler tauliner', fecha: 'Recogida Vie 24 – Lun 27/07', precio: '560,00 €',
+          params: { envio: '#GX684925', o: '50197, Zaragoza, Zaragoza, España', d: '48003, Bilbao, Bizkaia, España', m: 'Paletizado', ml: '13,2 m', peso: '24.000 kg', tc: 'Lateral', p: '560,00 €', dias: 'Vie 24/07,Lun 27/07', ot: 'Almacén', dt: 'Almacén' } },
+        { ruta: 'Valencia → Murcia', meta: 'Paletizado · 8 m · 12.000 kg · Rígido con plataforma', fecha: 'Recogida Mié 22/07 (fecha fija)', precio: '380,00 €',
+          params: { envio: '#GX684931', o: '46469, Beniparrell, Valencia, España', d: '30169, San Ginés, Murcia, España', m: 'Paletizado', ml: '8 m', peso: '12.000 kg', tc: 'Lateral', p: '380,00 €', dias: 'Mié 22/07', ot: 'Almacén', dt: 'Zona urbana', tram: '1' } },
+        { ruta: 'Madrid → Barcelona', meta: 'Paletizado · 13,2 m · 20.000 kg · Tráiler tauliner', fecha: 'Recogida Jue 23 – Sáb 25/07', precio: '760,00 €',
+          params: { envio: '#GX684940', o: '28051, Madrid, Madrid, España', d: '08040, Barcelona, Barcelona, España', m: 'Paletizado', ml: '13,2 m', peso: '20.000 kg', tc: 'Lateral y techo', p: '760,00 €', dias: 'Jue 23/07,Vie 24/07,Sáb 25/07', ot: 'Almacén', dt: 'Almacén' } }
+    ];
+    function bolsaRender() {
+        var box = document.getElementById('bolsaList'); if (!box) return;
+        box.innerHTML = BOLSA_DEMO.map(function (c, i) {
+            return '<button type="button" class="bolsa-item" onclick="irACarga(' + i + ')">' +
+                '<div class="bolsa-ruta">' + escH(c.ruta) + '</div>' +
+                '<div class="bolsa-meta">' + escH(c.meta) + '<br>' + escH(c.fecha) + '</div>' +
+                '<div class="bolsa-fila"><span class="bolsa-precio">' + escH(c.precio) + ' <span style="font-weight:600;color:var(--gray-500);font-size:var(--fs-s);">· sin IVA</span></span>' +
+                    '<span class="bolsa-go">Ver y aceptar →</span></div>' +
+            '</button>';
+        }).join('');
+    }
+    function abrirBolsa() {
+        var m = document.getElementById('bolsaModal'); if (!m) return;
+        bolsaRender();
+        if (m.parentNode !== document.body) document.body.appendChild(m);
+        var lang = document.querySelector('.lang-selector'); if (lang) lang.style.visibility = 'hidden';
+        m.hidden = false; m.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+    }
+    function cerrarBolsa() {
+        var m = document.getElementById('bolsaModal'); if (!m) return;
+        m.hidden = true; m.setAttribute('aria-hidden', 'true');
+        var lang = document.querySelector('.lang-selector'); if (lang) lang.style.visibility = '';
+        document.body.style.overflow = '';
+    }
+    function irACarga(i) {
+        var c = BOLSA_DEMO[i]; if (!c) return;
+        var qs = Object.keys(c.params).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(c.params[k]); }).join('&');
+        location.href = 'aceptar-carga.html?' + qs;
+    }
+    window.abrirBolsa = abrirBolsa; window.cerrarBolsa = cerrarBolsa; window.irACarga = irACarga;
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarBolsa(); });
     // Iconos SVG de línea (REGLA del proyecto: nada de emoticonos en la UI;
     // solo banderas del selector de idioma y glifos ✕/⚠/★).
     function svgIco(paths, size) {
