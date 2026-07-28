@@ -442,7 +442,18 @@
     /* Botón "ver otras cargas disponibles" + listado de la bolsa (mockup). */
     .btn-otras { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; margin: 0.9rem 0 0.2rem; background: #fff; color: var(--purple); border: 1.5px solid var(--purple); border-radius: 12px; padding: 0.75rem 1rem; font: inherit; font-size: var(--fs-m); font-weight: 800; cursor: pointer; line-height: 1.3; text-align: center; }
     .btn-otras:hover { background: rgba(51,0,204,0.06); }
-    .bolsa-list { overflow-y: auto; padding: 0.5rem 1.2rem 0.4rem; -webkit-overflow-scrolling: touch; }
+    /* Pantalla propia de la bolsa (no modal) con filtros. */
+    .bolsa-volver { background: none; border: none; color: var(--purple); font: inherit; font-weight: 800; font-size: var(--fs-m); cursor: pointer; padding: 0.2rem 0; display: inline-flex; align-items: center; gap: 0.35rem; }
+    .bolsa-filtros { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.6rem; margin: 0.9rem 0 0.5rem; align-items: end; }
+    .bf-field { display: flex; flex-direction: column; gap: 0.2rem; }
+    .bf-field label { font-size: var(--fs-s); font-weight: 800; color: var(--gray-700); }
+    .bf-field input, .bf-field select { width: 100%; border: 1.5px solid var(--gray-300); border-radius: 10px; padding: 0 0.6rem; height: 44px; font: inherit; font-size: 16px; background: #fff; color: var(--navy); }
+    .bf-field input:focus, .bf-field select:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
+    .bf-clear { align-self: end; height: 44px; background: var(--gray-100); border: 1.5px solid var(--gray-300); border-radius: 10px; color: var(--navy); font: inherit; font-weight: 800; font-size: var(--fs-m); cursor: pointer; padding: 0 0.8rem; }
+    .bf-clear:hover { background: var(--gray-200); }
+    .bolsa-count { font-size: var(--fs-s); color: var(--gray-500); font-weight: 700; margin: 0.2rem 0 0.6rem; }
+    .bolsa-list { padding: 0; }
+    .bolsa-empty { padding: 1.4rem 0.5rem; text-align: center; color: var(--gray-500); font-size: var(--fs-m); font-weight: 600; }
     .bolsa-item { display: block; width: 100%; text-align: left; background: #fff; border: 1.5px solid var(--gray-300); border-radius: 12px; padding: 0.7rem 0.8rem; margin-bottom: 0.6rem; cursor: pointer; font: inherit; }
     .bolsa-item:hover { border-color: var(--purple); background: rgba(51,0,204,0.04); }
     .bolsa-ruta { font-size: var(--fs-l); font-weight: 800; color: var(--navy); }
@@ -565,13 +576,6 @@
 
             <dl class="viaje" id="viajeBox"></dl>
 
-            <!-- ¿Esta carga no encaja? El transportista puede ver el resto de la
-                 bolsa de Dynamo y abrir la aceptación de cualquiera de ellas. -->
-            <button type="button" class="btn-otras" id="verOtrasBtn" onclick="abrirBolsa()">
-                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>
-                ¿No te encaja? Ver otras cargas disponibles de Dynamo
-            </button>
-
             <!-- CONTRAOFERTA: proponer OTRO precio (barra ±10 %, pasos de 10 €). Se envía a
                  Dynamo y se confirma en esta pantalla (y por email). MOCKUP:
                  la decisión se simula (cpd=ok|no, cpt=segundos). -->
@@ -591,8 +595,13 @@
                 <div id="contraStatusPane" hidden></div>
             </div>
 
-            
-            
+            <!-- ¿Esta carga no encaja? Abre la BOLSA (pantalla propia con filtros)
+                 con el resto de cargas disponibles de Dynamo. -->
+            <button type="button" class="btn-otras" id="verOtrasBtn" onclick="abrirBolsa()">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>
+                ¿No te encaja? Ver otras cargas disponibles de Dynamo
+            </button>
+
             <!-- 1) IDENTIFICACIÓN: CIF/DNI, código de bolsa, teléfono móvil de la
                  ficha o nombre de la empresa (sugerencias desde 2 letras, casa
                  cualquier palabra del nombre en cualquier orden). Se oculta al
@@ -862,6 +871,25 @@
             <button type="button" class="btn" onclick="aceptar()">Aceptar carga</button>
         </div>
 
+        <!-- BOLSA DE CARGAS DISPONIBLES DE DYNAMO — pantalla propia (no modal)
+             con filtros. Al pulsar una carga se abre su ventana de aceptación. -->
+        <div id="bolsaScreen" hidden>
+            <button type="button" class="bolsa-volver" onclick="cerrarBolsa()"><span aria-hidden="true">←</span> Volver a la oferta</button>
+            <h1 style="margin-top:0.4rem;">Cargas disponibles de Dynamo</h1>
+            <p class="sub">Filtra y pulsa una carga para ver sus datos y aceptarla.</p>
+            <div class="bolsa-filtros">
+                <div class="bf-field"><label for="bf-origen">Origen</label><input type="text" id="bf-origen" placeholder="Provincia, CP o país" oninput="bolsaRender()"></div>
+                <div class="bf-field"><label for="bf-destino">Destino</label><input type="text" id="bf-destino" placeholder="Provincia, CP o país" oninput="bolsaRender()"></div>
+                <div class="bf-field"><label for="bf-tc">Tipo de carga</label><select id="bf-tc" onchange="bolsaRender()"></select></div>
+                <div class="bf-field"><label for="bf-ml">Metros lineales</label><select id="bf-ml" onchange="bolsaRender()"></select></div>
+                <div class="bf-field"><label for="bf-peso">Peso</label><select id="bf-peso" onchange="bolsaRender()"></select></div>
+                <div class="bf-field"><label for="bf-fecha">Fecha</label><input type="text" id="bf-fecha" placeholder="Ej. 23/07" oninput="bolsaRender()"></div>
+                <button type="button" class="bf-clear" onclick="bolsaLimpiarFiltros()">Limpiar filtros</button>
+            </div>
+            <div class="bolsa-count" id="bolsaCount"></div>
+            <div class="bolsa-list" id="bolsaList"></div>
+        </div>
+
         <!-- VENTANA de datos del camión/conductor al pulsar Aceptar:
              · todo relleno → resumen "¿Son correctos?" (pueden venir del último
                envío); "No son esos datos" los VACÍA y pasa al modo faltan.
@@ -982,19 +1010,6 @@
         </div>
     </div>
 
-    <!-- Bolsa de cargas disponibles de Dynamo (mockup). Al pulsar una, se
-         recarga la página de aceptación con los datos de esa carga. -->
-    <div class="cond-modal" id="bolsaModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="bolsaTitle" hidden>
-        <div class="cond-backdrop" onclick="cerrarBolsa()"></div>
-        <div class="cond-card" role="document">
-            <button class="cond-close" onclick="cerrarBolsa()" aria-label="Cerrar">✕</button>
-            <h2 id="bolsaTitle">Cargas disponibles de Dynamo</h2>
-            <p class="cond-sub">Pulsa una carga para ver sus datos y aceptarla</p>
-            <div class="bolsa-list" id="bolsaList"></div>
-            <div class="cond-foot"><button type="button" onclick="cerrarBolsa()">Cerrar</button></div>
-        </div>
-    </div>
-
 <!-- Selector de prefijos telefónicos mundial, buscable y localizado -->
 <script src="/js/prefijos.js"></script>
 <script src="/js/campos.js"></script>
@@ -1038,9 +1053,44 @@
         { ruta: 'Madrid → Barcelona', meta: 'Paletizado · 13,2 m · 20.000 kg · Tráiler tauliner', fecha: 'Recogida Jue 23 – Sáb 25/07', precio: '760,00 €',
           params: { envio: '#GX684940', o: '28051, Madrid, Madrid, España', d: '08040, Barcelona, Barcelona, España', m: 'Paletizado', ml: '13,2 m', peso: '20.000 kg', tc: 'Lateral y techo', p: '760,00 €', dias: 'Jue 23/07,Vie 24/07,Sáb 25/07', ot: 'Almacén', dt: 'Almacén' } }
     ];
+    // Rellena una vez los desplegables de filtro con los valores presentes en
+    // la bolsa (tipo de carga, metros lineales, peso).
+    function bolsaFillSelects() {
+        function fill(id, key, todos) {
+            var sel = document.getElementById(id); if (!sel || sel.dataset.filled) return;
+            var vals = []; BOLSA_DEMO.forEach(function (c) { var v = c.params[key]; if (v && vals.indexOf(v) < 0) vals.push(v); });
+            vals.sort();
+            sel.innerHTML = '<option value="">' + todos + '</option>' + vals.map(function (v) { return '<option>' + escH(v) + '</option>'; }).join('');
+            sel.dataset.filled = '1';
+        }
+        fill('bf-tc', 'tc', 'Todas');
+        fill('bf-ml', 'ml', 'Cualquiera');
+        fill('bf-peso', 'peso', 'Cualquiera');
+    }
+    function bolsaLimpiarFiltros() {
+        ['bf-origen', 'bf-destino', 'bf-fecha'].forEach(function (id) { var e = document.getElementById(id); if (e) e.value = ''; });
+        ['bf-tc', 'bf-ml', 'bf-peso'].forEach(function (id) { var e = document.getElementById(id); if (e) e.value = ''; });
+        bolsaRender();
+    }
     function bolsaRender() {
         var box = document.getElementById('bolsaList'); if (!box) return;
-        box.innerHTML = BOLSA_DEMO.map(function (c, i) {
+        function val(id) { var e = document.getElementById(id); return e ? e.value.trim().toLowerCase() : ''; }
+        var fo = val('bf-origen'), fd = val('bf-destino'), ftc = val('bf-tc'), fml = val('bf-ml'), fpeso = val('bf-peso'), ffecha = val('bf-fecha');
+        var filtradas = BOLSA_DEMO.filter(function (c) {
+            var p = c.params;
+            if (fo && String(p.o || '').toLowerCase().indexOf(fo) < 0) return false;
+            if (fd && String(p.d || '').toLowerCase().indexOf(fd) < 0) return false;
+            if (ftc && String(p.tc || '').toLowerCase() !== ftc) return false;
+            if (fml && String(p.ml || '').toLowerCase() !== fml) return false;
+            if (fpeso && String(p.peso || '').toLowerCase() !== fpeso) return false;
+            if (ffecha && (String(p.dias || '') + ' ' + String(c.fecha || '')).toLowerCase().indexOf(ffecha) < 0) return false;
+            return true;
+        });
+        var cnt = document.getElementById('bolsaCount');
+        if (cnt) cnt.textContent = filtradas.length + (filtradas.length === 1 ? ' carga disponible' : ' cargas disponibles');
+        if (!filtradas.length) { box.innerHTML = '<div class="bolsa-empty">No hay cargas que coincidan con los filtros. Prueba a ampliarlos o pulsa «Limpiar filtros».</div>'; return; }
+        box.innerHTML = filtradas.map(function (c) {
+            var i = BOLSA_DEMO.indexOf(c);
             return '<button type="button" class="bolsa-item" onclick="irACarga(' + i + ')">' +
                 '<div class="bolsa-ruta">' + escH(c.ruta) + '</div>' +
                 '<div class="bolsa-meta">' + escH(c.meta) + '<br>' + escH(c.fecha) + '</div>' +
@@ -1050,18 +1100,19 @@
         }).join('');
     }
     function abrirBolsa() {
-        var m = document.getElementById('bolsaModal'); if (!m) return;
+        var scr = document.getElementById('bolsaScreen'); if (!scr) return;
+        bolsaFillSelects();
         bolsaRender();
-        if (m.parentNode !== document.body) document.body.appendChild(m);
-        var lang = document.querySelector('.lang-selector'); if (lang) lang.style.visibility = 'hidden';
-        m.hidden = false; m.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
+        var fs = document.getElementById('formScreen'); if (fs) fs.style.display = 'none';
+        var sh = document.getElementById('scrollHint'); if (sh) sh.hidden = true;
+        scr.hidden = false;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     function cerrarBolsa() {
-        var m = document.getElementById('bolsaModal'); if (!m) return;
-        m.hidden = true; m.setAttribute('aria-hidden', 'true');
-        var lang = document.querySelector('.lang-selector'); if (lang) lang.style.visibility = '';
-        document.body.style.overflow = '';
+        var scr = document.getElementById('bolsaScreen'); if (!scr) return;
+        scr.hidden = true;
+        var fs = document.getElementById('formScreen'); if (fs) fs.style.display = '';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     function irACarga(i) {
         var c = BOLSA_DEMO[i]; if (!c) return;
@@ -1069,7 +1120,7 @@
         location.href = 'aceptar-carga.html?' + qs;
     }
     window.abrirBolsa = abrirBolsa; window.cerrarBolsa = cerrarBolsa; window.irACarga = irACarga;
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarBolsa(); });
+    window.bolsaRender = bolsaRender; window.bolsaLimpiarFiltros = bolsaLimpiarFiltros;
     // Iconos SVG de línea (REGLA del proyecto: nada de emoticonos en la UI;
     // solo banderas del selector de idioma y glifos ✕/⚠/★).
     function svgIco(paths, size) {
