@@ -4132,12 +4132,19 @@
         .fiscal-fb.bad { color: #dc2626; }
         .fiscal-fb.soft { color: #b45309; }
         /* Teléfonos con prefijo de país: desplegable (+34 por defecto) + número */
-        .tel-group { display: flex; gap: 0.4rem; align-items: flex-start; }
-        .tel-group .tel-pref, .tel-group .pref-wrap { flex: 0 0 auto; width: 116px; min-width: 116px; }
+        /* align-items:stretch → el prefijo y el número quedan al MISMO ALTO. */
+        .tel-group { display: flex; gap: 0.4rem; align-items: stretch; }
+        .tel-group .tel-pref, .tel-group .pref-wrap { flex: 0 0 112px; width: 112px; min-width: 112px; max-width: 112px; }
         /* base 0 → el número SIEMPRE se queda en línea junto al prefijo y se
            encoge para caber (evita que baje solo en columnas estrechas, como la
            ficha de sitio del paso de confirmación). */
-        .tel-group input[type="tel"], .tel-group input:not([type="hidden"]) { flex: 1 1 0; min-width: 0; }
+        .tel-group input[type="tel"], .tel-group input:not([type="hidden"]) { flex: 1 1 0; min-width: 0; width: auto; }
+        /* El botón del prefijo (js/prefijos.js) NO impone su propio alto (44px):
+           iguala el del número y usa el tamaño de texto de la zona, sin un flag
+           gigante. Así el selector deja de verse enorme y desproporcionado. */
+        .tel-group .pref-btn { min-height: 0; height: 100%; font-size: var(--fs-m); font-weight: 700; padding: 0 0.5rem; gap: 0.3rem; }
+        .tel-group .pref-btn .pf-flag { font-size: 1rem; }
+        .tel-group .pref-btn .pf-chev { font-size: 0.65rem; }
         /* Con selector delante + aviso de obligatorio: el aviso cae debajo a
            todo el ancho (el número input lo busca en su parentNode = .tel-group). */
         .tel-group-wrap { flex-wrap: wrap; }
