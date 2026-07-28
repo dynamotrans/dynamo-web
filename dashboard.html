@@ -13534,12 +13534,22 @@
         var corte = corteCancelacionDe(src);
         var ahora = new Date();
         var trasCorte = !corte || ahora.getTime() >= corte.getTime();
+        // SIN transportista/camión asignado → la cancelación es SIEMPRE GRATIS,
+        // en cualquier momento (no hay camión que reservar el hueco). El coste
+        // (día hábil anterior · 9:00) SOLO aplica cuando YA hay camión asignado.
+        var sinCamion = !(src.transportistaAsignado || src.transportistaNombre);
         var DIAS_C = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
         // MOCK: cancelaciones en los últimos 10 envíos confirmados (backend real).
         var cancEn10 = 1;
         var suspTxt = '<p style="font-size: var(--fs-m);line-height:1.5;color:var(--gray-500);margin-top:0.7rem;">La <strong>cancelación reiterada de envíos</strong> puede conllevar la <strong>suspensión temporal o definitiva de la cuenta</strong> si se detecta un uso fraudulento, abusivo o irresponsable. Por encima de <strong>3 cancelaciones</strong> en tus últimos 10 envíos confirmados la cuenta puede ser suspendida. (Tienes ' + cancEn10 + ' cancelación' + (cancEn10 === 1 ? '' : 'es') + ' en tus últimos 10 envíos confirmados).</p>';
         var avisoHtml;
-        if (trasCorte) {
+        if (sinCamion) {
+            // Sin camión asignado → gratis siempre.
+            avisoHtml =
+                '<div style="margin-bottom:0.8rem;padding:0.7rem 0.8rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:9px;font-size: var(--fs-l);line-height:1.55;color:#0f6b3a;">' +
+                '✅ <strong>Cancelación gratuita.</strong> Este envío <strong>aún no tiene camión asignado</strong>, así que puedes cancelarlo <strong>en cualquier momento sin coste</strong>. El equipo recibirá el aviso y el transporte no se llevará a cabo.' +
+                '</div>' + suspTxt;
+        } else if (trasCorte) {
             // FUERA de la ventana: se aplica el cargo (importe del servicio).
             var impTxt = src.precio ? eur2(src.precio) : null;
             avisoHtml =
@@ -13581,7 +13591,10 @@
         var conCoste = false;
         if (c) {
             var corte = corteCancelacionDe(c);
-            conCoste = !corte || Date.now() >= corte.getTime();
+            // Solo hay coste si HAY camión asignado Y ya pasó el corte de las 9:00
+            // del día hábil anterior. Sin camión asignado → gratis siempre.
+            var sinCamion = !(c.transportistaAsignado || c.transportistaNombre);
+            conCoste = !sinCamion && (!corte || Date.now() >= corte.getTime());
             c.kind = 'cancelada';
             c.estado = 'Cancelada';
             c.estadoColor = 'gray';
@@ -13608,7 +13621,8 @@
         if (conCoste && c) {
             showModalSuccess('Envío cancelado — con coste', 'El envío ' + ref + ' se ha cancelado FUERA de plazo: se ha generado automáticamente una penalización de cancelación por el coste completo del servicio (' + eur2(c.precioCliente || 0) + ' base sin IVA). Administración la revisará y podrá acordar otro importe.');
         } else {
-            showModalSuccess('Envío cancelado', 'El envío ' + ref + ' se ha cancelado sin coste (dentro de plazo). El equipo recibirá el aviso.');
+            var motivoLibre = (c && !(c.transportistaAsignado || c.transportistaNombre)) ? ' (aún no tenía camión asignado)' : ' (dentro de plazo)';
+            showModalSuccess('Envío cancelado', 'El envío ' + ref + ' se ha cancelado sin coste' + motivoLibre + '. El equipo recibirá el aviso.');
         }
     }
     window.cargaCancelarConfirm = cargaCancelarConfirm;
@@ -23019,8 +23033,20 @@
                             '<p><strong>La cancelación reiterada de envíos puede conllevar la suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso fraudulento, abusivo o irresponsable. Por encima de 3 cancelaciones en tus últimos 10 envíos confirmados la cuenta puede ser suspendida. (Tienes ' + _cancEn10 + ' cancelación' + (_cancEn10 === 1 ? '' : 'es') + ' en tus últimos 10 envíos confirmados).</p>' +
                         '</div>' +
                     '</details>';
+                // SIN camión asignado (todo envío nuevo, y los modificados que aún
+                // no tienen transportista) → cancelar y modificar es GRATIS en
+                // cualquier momento. El coste (9:00 del día hábil anterior) solo
+                // aplica una vez hay camión asignado.
+                var _editC = window._cargaEditRef ? findCargaDataByRef(window._cargaEditRef) : null;
+                var sinCamionConf = !_editC || !(_editC.transportistaAsignado || _editC.transportistaNombre);
                 var cancelBody;
-                if (trasCorte) {
+                if (sinCamionConf) {
+                    cancelBody =
+                        '<div style="margin-bottom:0.8rem;padding:0.7rem 0.8rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#0f6b3a;">' +
+                        '✅ <strong>Cancelación y cambios gratis.</strong> Mientras este envío <strong>no tenga camión asignado</strong> puedes <strong>cancelarlo o modificarlo en cualquier momento sin coste</strong>. Una vez asignemos transportista, cancelar <strong>después de las 9:00 del día hábil anterior a la carga</strong> puede conllevar el coste completo del servicio.' +
+                        '</div>' +
+                        suspBloque;
+                } else if (trasCorte) {
                     cancelBody =
                         '<div style="margin-bottom:0.8rem;padding:0.7rem 0.8rem;background:rgba(220,38,38,0.10);border:1px solid rgba(220,38,38,0.45);border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#991b1b;">' +
                         '⚠ <strong>Cancelación con coste.</strong> Estás confirmando <strong>después de las 9:00 del primer día hábil anterior a la carga</strong>. Si cancelas a partir de ahora, puede conllevar un <strong>coste de hasta ' + eur2c(precioTotalConf) + '</strong> (el importe del servicio completo, IVA incl.). Si <strong>no tienes seguridad</strong> de que la carga está confirmada, <strong>no continúes</strong>: pulsa <strong>Editar datos</strong> y programa para otro momento.' +
