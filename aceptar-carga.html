@@ -307,6 +307,10 @@
     .ok-screen { display: none; text-align: center; padding: 1.6rem 0.6rem; }
     .ok-screen.show { display: block; }
     .ok-ico { width: 74px; height: 74px; border-radius: 50%; background: rgba(34,165,90,0.14); color: var(--green); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.9rem; }
+    /* Título "¡Carga aceptada!" destacado en caja verde para que quede
+       CLARÍSIMO que la carga ha quedado aceptada. */
+    .ok-aceptada { display: inline-flex; align-items: center; gap: 0.55rem; background: rgba(34,165,90,0.12); border: 2px solid var(--green); color: var(--green-dark); font-size: var(--fs-d3); font-weight: 900; line-height: 1.15; padding: 0.7rem 1.35rem; border-radius: 14px; margin: 0 auto 0.5rem; }
+    .ok-aceptada svg { width: 24px; height: 24px; flex: none; }
     /* Formulario oculto hasta confirmar disponibilidad */
     #formScreen { display: none; }
     #formScreen.show { display: block; }
@@ -923,7 +927,7 @@
 
         <div class="ok-screen" id="okScreen">
             <div class="ok-ico"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
-            <h1>¡Carga aceptada!</h1>
+            <h1 style="margin:0;"><span class="ok-aceptada"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>¡Carga aceptada!</span></h1>
             <p class="sub" style="margin-top:0.4rem;"><strong id="ok-ref" hidden></strong><span id="ok-alta" hidden><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;color:var(--green-dark);"><path d="M2 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="8" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg> Te damos de <strong>alta como transportista de Dynamo</strong> (pendiente de validación).</span></p>
             <button type="button" class="dudas-toggle" id="okDudasTop" style="margin:0.5rem auto 0.6rem;" aria-expanded="false" onclick="toggleDudas(this)">¿Dudas? <span class="dt-chev" aria-hidden="true">▾</span></button>
             <div class="contact-btns" hidden>
