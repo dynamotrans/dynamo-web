@@ -4275,7 +4275,12 @@
         #sec-nueva-carga[data-entry-mode="manual"] [data-ptar-conf-price],
         #sec-nueva-carga[data-entry-mode="manual"] [data-ptar-pay],
         #sec-nueva-carga[data-entry-mode="manual"] .ptar-terms-box,
+        #sec-nueva-carga[data-entry-mode="manual"] .ptar-verif-note,
         #sec-nueva-carga[data-entry-mode="manual"] [data-ptar-terms-warn] { display: none !important; }
+        /* Nota de confianza: transportistas verificados y con documentación en vigor. */
+        .ptar-verif-note { display: flex; align-items: flex-start; gap: 0.5rem; margin: 0.7rem 0; padding: 0.6rem 0.75rem; background: rgba(34,165,90,0.09); border: 1px solid rgba(34,165,90,0.4); border-radius: 10px; font-size: var(--fs-m); line-height: 1.5; color: #0f6b3a; }
+        .ptar-verif-note svg { flex: none; color: var(--green-dark); margin-top: 1px; }
+        .ptar-verif-note strong { color: #0f6b3a; }
         #sec-nueva-carga[data-entry-mode="manual"] [data-ptar-final-confirm] { opacity: 1; pointer-events: auto; }
         /* Con OTRO operador el formulario es IGUAL que con Dynamo: los
            desplegables de tipo de sitio tampoco salen (se configuran en el
@@ -5757,6 +5762,10 @@
                      Confirmar; ahora van EN ESTA MISMA pantalla para no tener un
                      paso extra. Se rellena en showConfirmStep/recalcConfPrice. -->
                 <div class="ptar-legal-box" data-ptar-legal hidden></div>
+                <div class="ptar-verif-note">
+                    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+                    <span>Todos nuestros transportistas están <strong>verificados</strong> y con la <strong>documentación en vigor</strong>.</span>
+                </div>
                 <div class="ptar-terms-box">
                     <p class="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> confirmas que has leído y aceptas las <a href="#" class="ptar-inline-link" data-ptar-show-terms>condiciones generales de transporte</a> de Dynamo Operador Logístico, S.L.</p>
                 </div>
