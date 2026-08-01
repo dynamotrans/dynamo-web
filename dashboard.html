@@ -21334,6 +21334,14 @@
                     if (!urgenciaSel) return;
                     urgenciaSel.value = 'estandar';
                     urgenciaSel.dispatchEvent(new Event('change'));
+                    // La ventana recomendada arranca SIEMPRE en el 1er día
+                    // disponible: si venías de una "fecha fija posterior" (p. ej.
+                    // martes), la ventana NO debe quedarse en martes-jueves — vuelve
+                    // al primer día (lunes) → "del lunes al miércoles".
+                    if (diaSel) {
+                        var _fr = Array.prototype.filter.call(diaSel.options, function (o) { return /^\d{4}-\d{2}-\d{2}$/.test(o.value); })[0];
+                        if (_fr && diaSel.value !== _fr.value) { diaSel.value = _fr.value; diaSel.dispatchEvent(new Event('change')); }
+                    }
                 };
                 // Elegir una fecha fija POSTERIOR (segundo día disponible): pasa
                 // de urgente (+100 €) a fecha fija normal (+50 €). Deja la
