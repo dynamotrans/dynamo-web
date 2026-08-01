@@ -1366,8 +1366,10 @@
         // Tipo (Paletizado / No paletizado…, lo elegido en crear envío) como
         // chip a ancho completo, ya no como valor grande de la cabecera.
         if (merc) vd.push(['Tipo', merc]);
-        vd.push(['Trampilla elevadora', tram]);
-        vd.push(['Requiere NIMA', nima]);
+        // Trampilla y NIMA: SOLO se muestran si aplican (Sí). Si es NO, no se
+        // muestra el dato (no aporta nada al transportista).
+        if (tram === 'Sí') vd.push(['Trampilla elevadora', tram]);
+        if (nima === 'Sí') vd.push(['Requiere NIMA', nima]);
         // Objeto ÚNICO con los datos de la oferta. De aquí se pinta la tarjeta y,
         // al aceptar, el resumen de "carga aceptada" (sin releer el DOM → robusto).
         window._oferta = {
