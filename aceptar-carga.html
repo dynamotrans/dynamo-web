@@ -32,6 +32,11 @@
         display: flex; flex-direction: column; align-items: center;
     }
     .card { background: #fff; border: 1px solid var(--gray-200); border-radius: 16px; padding: 1.3rem 1.2rem; width: 100%; max-width: 640px; box-shadow: 0 10px 34px rgba(10,2,48,0.07); }
+    /* En móvil/tablet la caja ocupa todo el ancho y el selector de idioma (fijo
+       arriba-derecha) caería sobre su esquina: se baja la caja para dejarle
+       hueco encima. En escritorio la caja va centrada y el selector queda a su
+       derecha, sin solaparse. */
+    @media (max-width: 760px) { .card { margin-top: 2.2rem; } }
     .brand { display: flex; align-items: center; gap: 0.6rem; justify-content: center; margin-bottom: 0.9rem; }
     .brand img { height: 40px; }
     h1 { font-size: var(--fs-d2); text-align: center; margin-bottom: 0.2rem; }
