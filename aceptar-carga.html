@@ -448,9 +448,9 @@
     /* Botón "ver otras cargas disponibles" + listado de la bolsa (mockup). */
     .btn-otras { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; margin: 0.9rem 0 0.2rem; background: #fff; color: var(--purple); border: 1.5px solid var(--purple); border-radius: 12px; padding: 0.75rem 1rem; font: inherit; font-size: var(--fs-m); font-weight: 800; cursor: pointer; line-height: 1.3; text-align: center; }
     .btn-otras:hover { background: rgba(51,0,204,0.06); }
-    /* Aviso de cobro garantizado (seguro de crédito) para el transportista. */
-    .cobro-garantia { display: flex; align-items: flex-start; gap: 0.55rem; margin: 0.9rem 0 0.2rem; background: rgba(34,165,90,0.1); border: 1.5px solid var(--green); border-radius: 12px; padding: 0.75rem 0.9rem; font-size: var(--fs-m); line-height: 1.5; color: var(--green-dark); }
-    .cobro-garantia strong { color: var(--green-dark); }
+    /* Aviso CESCE UNIFICADO dentro de la caja del precio (misma caja verde). */
+    .pago-contado .pago-cesce { display: flex; align-items: flex-start; gap: 0.4rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(34,165,90,0.35); font-size: var(--fs-m); font-weight: 600; line-height: 1.45; color: var(--green-dark); }
+    .pago-contado .pago-cesce svg { flex: none; margin-top: 1px; }
     /* Pantalla propia de la bolsa (no modal) con filtros. */
     .bolsa-volver { background: none; border: none; color: var(--purple); font: inherit; font-weight: 800; font-size: var(--fs-m); cursor: pointer; padding: 0.2rem 0; display: inline-flex; align-items: center; gap: 0.35rem; }
     .bolsa-filtros { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.6rem; margin: 0.9rem 0 0.5rem; align-items: end; }
@@ -584,13 +584,6 @@
 
 
             <dl class="viaje" id="viajeBox"></dl>
-
-            <!-- Confianza para el transportista: Dynamo cobra con seguro de crédito
-                 → el pago al transportista está garantizado. -->
-            <div class="cobro-garantia">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;color:var(--green-dark);"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
-                <span>Dynamo trabaja con <strong>seguro de crédito CESCE</strong>, todos los clientes están asegurados.</span>
-            </div>
 
             <!-- CONTRAOFERTA: proponer OTRO precio (barra ±10 %, pasos de 10 €). Se envía a
                  Dynamo y se confirma en esta pantalla (y por email). MOCKUP:
@@ -1416,7 +1409,9 @@
                 (chips ? '<div class="of-chips">' + chips + '</div>' : '') +
                 (dm ? '<div class="of-dm"><b>Anotaciones de la mercancía</b>' + escH(dm) + '</div>' : '') +
             '</div>' +
-            '<div class="pago-contado" id="v-pago"' + (p ? '' : ' hidden') + '><span class="imp" id="v-imp">' + escH(p) + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>';
+            '<div class="pago-contado" id="v-pago"' + (p ? '' : ' hidden') + '><span class="imp" id="v-imp">' + escH(p) + '</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span>' +
+                '<div class="pago-cesce"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg><span>Dynamo trabaja con <strong>seguro de crédito CESCE</strong>, todos los clientes están asegurados.</span></div>' +
+            '</div>';
         document.getElementById('viajeBox').innerHTML = html;
         if (p) window._basePrecio = parseEur(p);
         // ANCLA de la negociación: el precio de SALIDA de Dynamo. El rango
