@@ -14642,20 +14642,18 @@
         closeUserMenu();
 
         // Volver al original: borrar cookie googtrans en todos los dominios y recargar
+        // IMPORTANTE: el cambio de idioma NUNCA recarga ni navega la página (si
+        // no, se perdería el estado de la sección/formulario). Se traduce EN SITIO.
         if (lang === 'es') {
-            var host = location.hostname;
-            var parts = host.split('.');
-            var domains = ['', host, '.' + host];
-            if (parts.length > 2) {
-                var bare = parts.slice(1).join('.');
-                domains.push(bare, '.' + bare);
-            }
-            domains.forEach(function (d) {
-                var c = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
-                if (d) c += '; domain=' + d;
-                document.cookie = c;
-            });
-            window.location.href = location.pathname + '?lang=es&t=' + Date.now();
+            // Volver al ORIGINAL (español) sin recargar: se le pide a Google
+            // Translate que muestre el idioma de origen.
+            document.cookie = 'googtrans=/es/es; path=/';
+            document.cookie = 'googtrans=/es/es; path=/; domain=' + location.hostname;
+            document.cookie = 'googtrans=/es/es; path=/; domain=.' + location.hostname;
+            if (gtReady) doTranslate('es'); else loadGoogleTranslate();
+            var esTries = 0;
+            if (gtInitTimeout) clearInterval(gtInitTimeout);
+            gtInitTimeout = setInterval(function () { esTries++; if (doTranslate('es') || esTries >= 16) { clearInterval(gtInitTimeout); gtInitTimeout = null; } }, 250);
             return;
         }
         // Cualquier otro idioma: cookie googtrans = /es/<lang> y traducir
@@ -14665,12 +14663,12 @@
         document.cookie = 'googtrans=' + cookieVal + '; path=/; domain=.' + location.hostname;
         loadGoogleTranslate();
         if (gtReady && doTranslate(lang)) return;
-        var attempts = 0, max = 16;
+        var attempts = 0, max = 24;
         if (gtInitTimeout) clearInterval(gtInitTimeout);
+        // Reintenta aplicar la traducción; NUNCA recarga la web.
         gtInitTimeout = setInterval(function () {
             attempts++;
-            if (doTranslate(lang)) { clearInterval(gtInitTimeout); gtInitTimeout = null; }
-            else if (attempts >= max) { clearInterval(gtInitTimeout); gtInitTimeout = null; location.reload(); }
+            if (doTranslate(lang) || attempts >= max) { clearInterval(gtInitTimeout); gtInitTimeout = null; }
         }, 250);
     }
     // Al cargar la pagina, detectar idioma activo (cookie compartida con index/portal)

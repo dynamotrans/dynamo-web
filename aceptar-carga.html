@@ -2924,13 +2924,19 @@
         document.querySelectorAll('.lang-option').forEach(function (o) { o.classList.remove('active'); });
         if (typeof event !== 'undefined' && event && event.target) { var opt = event.target.closest('.lang-option'); if (opt) opt.classList.add('active'); }
         var dd = document.getElementById('langDropdown'); if (dd) dd.classList.remove('open'); if (langBtn) langBtn.classList.remove('open');
+        // IMPORTANTE: el cambio de idioma NUNCA recarga ni navega la página (si
+        // no, se perdería el estado, p. ej. la pantalla de "carga aceptada").
+        // Siempre se traduce EN SITIO con Google Translate.
         if (lang === 'es') {
-            var host = location.hostname, parts = host.split('.'), domains = ['', host, '.' + host];
-            if (parts.length > 2) { var bare = parts.slice(1).join('.'); domains.push(bare, '.' + bare); }
-            domains.forEach(function (d) { var c = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'; if (d) c += '; domain=' + d; document.cookie = c; });
+            // Volver al ORIGINAL (español) sin recargar: se le pide a Google
+            // Translate que muestre el idioma de origen.
             document.cookie = 'googtrans=/es/es; path=/';
-            try { var sel = document.querySelector('.goog-te-combo'); if (sel) { sel.value = 'es'; sel.dispatchEvent(new Event('change')); } } catch (e) { }
-            setTimeout(function () { domains.forEach(function (d) { var c = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'; if (d) c += '; domain=' + d; document.cookie = c; }); window.location.href = location.pathname + '?lang=es&t=' + Date.now(); }, 100);
+            document.cookie = 'googtrans=/es/es; path=/; domain=' + location.hostname;
+            document.cookie = 'googtrans=/es/es; path=/; domain=.' + location.hostname;
+            if (gtReady) doTranslate('es'); else loadGoogleTranslate();
+            var esTries = 0;
+            if (gtInitTimeout) clearInterval(gtInitTimeout);
+            gtInitTimeout = setInterval(function () { esTries++; if (doTranslate('es') || esTries >= 16) { clearInterval(gtInitTimeout); gtInitTimeout = null; } }, 250);
             return;
         }
         var cookieVal = '/es/' + lang;
@@ -2939,9 +2945,11 @@
         document.cookie = 'googtrans=' + cookieVal + '; path=/; domain=.' + location.hostname;
         loadGoogleTranslate();
         if (gtReady && doTranslate(lang)) return;
-        var attempts = 0, maxAttempts = 16;
+        var attempts = 0, maxAttempts = 24;
         if (gtInitTimeout) clearInterval(gtInitTimeout);
-        gtInitTimeout = setInterval(function () { attempts++; if (doTranslate(lang)) { clearInterval(gtInitTimeout); gtInitTimeout = null; } else if (attempts >= maxAttempts) { clearInterval(gtInitTimeout); gtInitTimeout = null; location.reload(); } }, 250);
+        // Reintenta aplicar la traducción; NUNCA recarga (si GT tarda, se aplica
+        // en cuanto esté listo, sin sacar al usuario de la pantalla).
+        gtInitTimeout = setInterval(function () { attempts++; if (doTranslate(lang) || attempts >= maxAttempts) { clearInterval(gtInitTimeout); gtInitTimeout = null; } }, 250);
     }
 </script>
 </body>
