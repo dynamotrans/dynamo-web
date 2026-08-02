@@ -23064,13 +23064,13 @@
                             '<p><strong>La cancelación reiterada de envíos puede conllevar la suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso fraudulento, abusivo o irresponsable. Por encima de 3 cancelaciones en tus últimos 10 envíos confirmados la cuenta puede ser suspendida. (Tienes ' + _cancEn10 + ' cancelación' + (_cancEn10 === 1 ? '' : 'es') + ' en tus últimos 10 envíos confirmados).</p>' +
                         '</div>' +
                     '</details>';
-                // El aviso "gratis mientras no haya camión" SOLO aplica al
-                // MODIFICAR un envío YA existente que aún no tiene transportista.
-                // Al CREAR un pedido nuevo (sobre todo fecha fija urgente) SÍ se
-                // muestra el aviso por tiempo (corte de las 9:00): confirmar es un
-                // compromiso en firme, aunque el camión se asigne después.
+                // SIN camión asignado (todo envío NUEVO al crearlo, y los
+                // modificados que aún no tienen transportista) → cancelar y
+                // modificar es GRATIS en cualquier momento. El coste (corte de las
+                // 9:00 del día hábil anterior) solo aplica una vez hay camión
+                // asignado. (El propio aviso ya advierte de ese coste futuro.)
                 var _editC = window._cargaEditRef ? findCargaDataByRef(window._cargaEditRef) : null;
-                var sinCamionConf = !!_editC && !(_editC.transportistaAsignado || _editC.transportistaNombre);
+                var sinCamionConf = !_editC || !(_editC.transportistaAsignado || _editC.transportistaNombre);
                 var cancelBody;
                 if (sinCamionConf) {
                     cancelBody =
