@@ -13556,7 +13556,7 @@
         var DIAS_C = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
         // MOCK: cancelaciones en los últimos 10 envíos confirmados (backend real).
         var cancEn10 = 1;
-        var suspTxt = '<p style="font-size: var(--fs-m);line-height:1.5;color:var(--gray-500);margin-top:0.7rem;">La <strong>cancelación reiterada de envíos</strong> puede conllevar la <strong>suspensión temporal o definitiva de la cuenta</strong> si se detecta un uso fraudulento, abusivo o irresponsable. Por encima de <strong>3 cancelaciones</strong> en tus últimos 10 envíos confirmados la cuenta puede ser suspendida. (Tienes ' + cancEn10 + ' cancelación' + (cancEn10 === 1 ? '' : 'es') + ' en tus últimos 10 envíos confirmados).</p>';
+        var suspTxt = '<p style="font-size: var(--fs-m);line-height:1.5;color:var(--gray-500);margin-top:0.7rem;">La <strong>cancelación o modificación reiterada de envíos</strong> puede conllevar la <strong>suspensión temporal o definitiva de la cuenta</strong> si se detecta un uso fraudulento, abusivo o irresponsable. Por encima de <strong>3 cancelaciones</strong> en tus últimos 10 envíos confirmados la cuenta puede ser suspendida. (Tienes ' + cancEn10 + ' cancelación' + (cancEn10 === 1 ? '' : 'es') + ' en tus últimos 10 envíos confirmados).</p>';
         var avisoHtml;
         if (sinCamion) {
             // Sin camión asignado → gratis siempre.
@@ -23056,12 +23056,12 @@
                 var DIAS_LC = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
                 var _cancEn10 = 1; // MOCK; en backend, conteo real de la cuenta.
                 var suspBloque =
-                    '<div class="susp-caja">La <strong>cancelación reiterada</strong> de envíos puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta.</div>' +
+                    '<div class="susp-caja">La <strong>cancelación o modificación reiterada</strong> de envíos puede conllevar la <strong>suspensión</strong> temporal o definitiva de la cuenta.</div>' +
                     '<details class="susp-details">' +
                         '<summary><span class="susp-more">Ampliar para ver más</span></summary>' +
                         '<div class="susp-cuerpo">' +
                             '<p>Por parte de Dynamo, se hará lo posible para evitar o minimizar los costes en favor del cliente, <strong>pero la legislación es muy clara y, si el transportista decide aplicar los gastos estando en su derecho, deben ser asumidos por el cliente.</strong></p>' +
-                            '<p><strong>La cancelación reiterada de envíos puede conllevar la suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso fraudulento, abusivo o irresponsable. Por encima de 3 cancelaciones en tus últimos 10 envíos confirmados la cuenta puede ser suspendida. (Tienes ' + _cancEn10 + ' cancelación' + (_cancEn10 === 1 ? '' : 'es') + ' en tus últimos 10 envíos confirmados).</p>' +
+                            '<p><strong>La cancelación o modificación reiterada de envíos puede conllevar la suspensión</strong> temporal o definitiva de la cuenta si se detecta un uso fraudulento, abusivo o irresponsable. Por encima de 3 cancelaciones en tus últimos 10 envíos confirmados la cuenta puede ser suspendida. (Tienes ' + _cancEn10 + ' cancelación' + (_cancEn10 === 1 ? '' : 'es') + ' en tus últimos 10 envíos confirmados).</p>' +
                         '</div>' +
                     '</details>';
                 // SIN camión asignado (todo envío NUEVO al crearlo, y los
