@@ -110,8 +110,13 @@
     input:focus, textarea:focus, select:focus { outline: none; border-color: var(--purple); }
     select:disabled, input:disabled { background: var(--gray-100); color: var(--gray-500); }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
-    .telrow { display: flex; gap: 0.5rem; }
-    .telrow select { width: 108px; flex: none; }
+    .telrow { display: flex; gap: 0.6rem; align-items: stretch; }
+    .telrow select, .telrow .pref-wrap { width: 112px; min-width: 112px; flex: none; }
+    /* El botón del prefijo (js/prefijos.js) se ajusta al ancho del wrap y iguala
+       el alto del número; bandera al tamaño de la zona (no un flag gigante). */
+    .telrow .pref-btn { width: 100%; min-width: 0; }
+    .telrow .pref-btn .pf-flag { font-size: 1rem; }
+    .telrow input[type=tel] { flex: 1 1 0; min-width: 0; }
     textarea { min-height: 84px; resize: vertical; }
     .err { border-color: var(--red) !important; }
     /* Cajas suaves por sección del formulario (Carga naranja = recogida,
