@@ -22681,6 +22681,45 @@
                 var hexSvg = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>';
                 // El resumen NO repite recogidas/entregas: van solo abajo, en
                 // las fichas numeradas de "Datos de los lugares".
+                // AVISO 1 — HORARIO DE VERANO (25 may – 15 sep): la mayoría de
+                // almacenes pasan a jornada intensiva (~7:00-15:00). Se pide
+                // revisar que el horario de cada sitio sea el correcto.
+                var _veranoHtml = '';
+                if (d.fechaIso) {
+                    var _fv = new Date(d.fechaIso + 'T00:00:00');
+                    var _fvm = _fv.getMonth() + 1, _fvd = _fv.getDate();
+                    var _enVerano = (_fvm > 5 || (_fvm === 5 && _fvd >= 25)) &&
+                                    (_fvm < 9 || (_fvm === 9 && _fvd <= 15));
+                    if (_enVerano) {
+                        _veranoHtml = '<div style="margin-top:0.6rem;padding:0.65rem 0.8rem;background:#fff7e6;border:1px solid #ffd591;border-radius:10px;font-size:var(--fs-m);line-height:1.5;color:#8a5a00;">' +
+                            '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><circle cx="12" cy="12" r="4.2"/><line x1="12" y1="2.5" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="21.5"/><line x1="4.6" y1="4.6" x2="6" y2="6"/><line x1="18" y1="18" x2="19.4" y2="19.4"/><line x1="2.5" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="21.5" y2="12"/><line x1="4.6" y1="19.4" x2="6" y2="18"/><line x1="18" y1="6" x2="19.4" y2="4.6"/></svg> ' +
+                            '<strong>Horario de verano.</strong> Entre el <strong>25 de mayo y el 15 de septiembre</strong> la mayoría de almacenes pasan a <strong>jornada intensiva</strong> (aprox. <strong>7:00–15:00</strong>). Revisa que el horario de cada sitio sea el correcto y, si no, <strong>actualízalo</strong> antes de confirmar.' +
+                          '</div>';
+                    }
+                }
+                // AVISO 2 — FESTIVO NACIONAL en la ventana de carga: si algún día
+                // hábil del rango de recogida cae en festivo nacional de España,
+                // se indica (posible cierre del almacén).
+                var _festConfHtml = '';
+                if (d.fechaIso && typeof getNationalHoliday === 'function') {
+                    var _hs = new Date(d.fechaIso + 'T00:00:00');
+                    var _he = d.ventanaDias <= 1 ? _hs : addBusinessDays(_hs, d.ventanaDias - 1);
+                    var _festList = [], _hd = new Date(_hs.getTime()), _hseen = {};
+                    while (_hd.getTime() <= _he.getTime()) {
+                        var _hn = getNationalHoliday(_hd);
+                        if (_hn && _hd.getDay() !== 0 && _hd.getDay() !== 6) {
+                            var _hk = fmtEtaDate(_hd) + '|' + _hn;
+                            if (!_hseen[_hk]) { _hseen[_hk] = 1; _festList.push(fmtEtaDate(_hd) + ' · ' + escapeHtml(_hn)); }
+                        }
+                        _hd.setDate(_hd.getDate() + 1);
+                    }
+                    if (_festList.length) {
+                        _festConfHtml = '<div style="margin-top:0.6rem;padding:0.65rem 0.8rem;background:#fdecec;border:1px solid #f5b5b5;border-radius:10px;font-size:var(--fs-m);line-height:1.5;color:#a01414;">' +
+                            '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ' +
+                            '<strong>Festivo nacional en la fecha de carga.</strong> ' + _festList.join(' · ') + '. Puede que el almacén esté <strong>cerrado</strong> ese día — confírmalo con el punto de recogida.' +
+                          '</div>';
+                    }
+                }
                 // TODO en UNA caja (camión + mercancía), ordenado y compacto: las
                 // celdas de dentro son mini-cajas de color suave (sin recuadros
                 // grandes), solo para separar visualmente cada dato.
@@ -22708,6 +22747,8 @@
                             '<strong>Envío en tráiler (sin trampilla).</strong> El camión <strong>no lleva medios propios</strong> de carga: asegúrate de que hay <strong>medios de carga y descarga</strong> (muelle, carretilla elevadora/toro, puente grúa…) tanto en la <strong>recogida</strong> como en la <strong>entrega</strong>.' +
                           '</div>'
                         : '') +
+                    _veranoHtml +
+                    _festConfHtml +
                     (d.refCli && d.refCli.indexOf('NUEVO') === -1 ? sumCell('Tu referencia', d.refCli, true) : '') +
                     // La banda verde "Fecha de recogida" se ELIMINA (2026-07-24):
                     // cada tarjeta de Recogida/Entrega ya muestra su fecha, no
