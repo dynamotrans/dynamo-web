@@ -5454,6 +5454,58 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
 </div>
 
+<!-- MODAL aviso de CIERRE temporal (emergente al entrar). Se muestra solo
+     mientras la fecha (Europe/Madrid) sea anterior al lunes 17-ago-2026; a
+     partir de ese día NO vuelve a salir por sí solo (auto-caducidad por fecha,
+     sin necesidad de otro despliegue). Reutiliza el componente .phone-modal. -->
+<div class="phone-modal" id="cierreModal" role="dialog" aria-modal="true" aria-labelledby="cierreModalTitle">
+    <div class="phone-modal-backdrop" onclick="cerrarCierreModal()"></div>
+    <div class="phone-modal-card">
+        <button type="button" class="phone-modal-close" onclick="cerrarCierreModal()" aria-label="Cerrar">×</button>
+        <div class="phone-modal-icon" aria-hidden="true">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <h3 id="cierreModalTitle">Estamos cerrados</h3>
+        <p class="phone-modal-sub">Desde hoy, <strong>viernes 7 de agosto</strong>, no estamos prestando servicio. Disculpa las molestias.<br>Nos reincorporamos el <strong>lunes 17 de agosto</strong>.</p>
+        <div class="phone-modal-options">
+            <button type="button" class="phone-modal-opt phone-modal-email" onclick="cerrarCierreModal()">Entendido</button>
+        </div>
+    </div>
+</div>
+<script>
+    (function () {
+        function cerrar() {
+            var m = document.getElementById('cierreModal');
+            if (m) m.classList.remove('open');
+        }
+        window.cerrarCierreModal = cerrar;
+        function abrirSiProcede() {
+            var m = document.getElementById('cierreModal');
+            if (!m) return;
+            // Fecha de HOY en Europe/Madrid como AAAA-MM-DD (comparable como texto).
+            var hoy;
+            try {
+                hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+            } catch (e) {
+                var d = new Date();
+                hoy = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            }
+            // Se muestra hasta el domingo 16 incluido; el lunes 17 ya no.
+            if (hoy < '2026-08-17') {
+                m.classList.add('open');
+                document.addEventListener('keydown', function esc(ev) {
+                    if (ev.key === 'Escape') { cerrar(); document.removeEventListener('keydown', esc); }
+                });
+            }
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', abrirSiProcede);
+        } else {
+            abrirSiProcede();
+        }
+    })();
+</script>
+
 <!-- MODAL horarios del año (se abre desde el enlace de la seccion Contacto) -->
 <div class="phone-modal" id="horariosModal" role="dialog" aria-modal="true" aria-labelledby="horModalTitle">
     <div class="phone-modal-backdrop" onclick="closeHorariosModal()"></div>
