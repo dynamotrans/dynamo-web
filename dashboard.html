@@ -22754,7 +22754,7 @@
                     (d.camion === 'tauliner'
                         ? '<div style="margin-top:0.6rem;padding:0.65rem 0.8rem;background:#fff7e6;border:1px solid #ffd591;border-radius:10px;font-size:var(--fs-m);line-height:1.5;color:#8a5a00;">' +
                             '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ' +
-                            '<strong>Envío en tráiler (sin trampilla)</strong>, asegúrate de que hay <strong>medios de carga y descarga</strong>.' +
+                            '<strong>Envío en tráiler</strong>, asegúrate de que hay <strong>medios de carga y descarga</strong>. Si requieres trampilla, añádela en el <a href="#" onclick="if(window.__ptarVolverATrampilla)window.__ptarVolverATrampilla();return false;" style="color:#8a5a00;font-weight:800;text-decoration:underline;">paso 2</a>.' +
                           '</div>'
                         : '') +
                     _veranoHtml +
@@ -23081,6 +23081,17 @@
                 pendingData = null;
             }
             if (backBtn) backBtn.addEventListener('click', exitConfirmStep);
+            // Enlace "paso 2" del aviso de tráiler: vuelve al formulario y lleva
+            // al toggle de trampilla (sección Mercancía) para poder activarla.
+            window.__ptarVolverATrampilla = function () {
+                exitConfirmStep();
+                setTimeout(function () {
+                    var t = document.querySelector('#sec-nueva-carga [data-ptar-trampilla]');
+                    var target = t ? (t.closest('.ptar-field') || t.closest('label') || t)
+                                   : document.querySelector('#sec-nueva-carga .ptar-sh-merca');
+                    if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 60);
+            };
             // Construye el BLOQUE LEGAL (hoy-para-hoy + pago adelantado + aviso de
             // cancelación según el corte + suspensión por cancelaciones). Antes
             // salía en un MODAL al pulsar Confirmar; ahora se muestra EN LA MISMA
