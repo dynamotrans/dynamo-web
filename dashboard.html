@@ -11000,7 +11000,11 @@
     // Nota ESTÁNDAR del móvil: acompaña SIEMPRE a cualquier campo de teléfono
     // de la plataforma (recomendar móvil para avisos/WhatsApp del estado del
     // envío). Pasa noNota=true solo si un caso muy concreto no la quiere.
-    var TEL_NOTA_HTML = '<div style="grid-column:1/-1;font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;margin-top:-0.4rem;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></svg> <strong>Mejor un móvil</strong>: además de llamar, permite enviar <strong>WhatsApp con avisos o notificaciones del estado del envío</strong>.</div>';
+    var TEL_NOTA_HTML = '<div style="grid-column:1/-1;font-size: var(--fs-s);color:var(--gray-500);line-height:1.45;margin-top:-0.4rem;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></svg> <strong>Mejor un móvil</strong>' +
+        '<span class="ptar-has-tip" tabindex="0" role="button" aria-label="Por qué recomendamos un móvil" style="margin-left:0.3rem;vertical-align:-2px;">' +
+            '<svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>' +
+            '<span class="ptar-tip-pop" role="tooltip">Además de llamar, permite enviar <strong>WhatsApp con avisos o notificaciones del estado del envío</strong>.</span>' +
+        '</span></div>';
     function telField(id, label, val, span, noNota) {
         var s = telSplit(val);
         return '<div' + (span ? ' style="grid-column:1/-1"' : '') + '><label>' + label + '</label>' +
