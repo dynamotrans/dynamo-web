@@ -23084,13 +23084,22 @@
             // Enlace "paso 2" del aviso de tráiler: vuelve al formulario y lleva
             // al toggle de trampilla (sección Mercancía) para poder activarla.
             window.__ptarVolverATrampilla = function () {
-                exitConfirmStep();
+                // Reutiliza la barra de pasos: pulsar "Mercancía" (paso 2) cierra la
+                // revisión y lleva el wizard AL PASO 2 (donde está la trampilla), en
+                // vez de quedarse en el paso 3 (que es donde estaba `cur`).
+                var secNC = document.getElementById('sec-nueva-carga');
+                var step2 = secNC ? secNC.querySelector('.wiz-step[data-wiz-step="2"]') : null;
+                if (step2) step2.click(); else exitConfirmStep();
                 setTimeout(function () {
-                    var t = document.querySelector('#sec-nueva-carga [data-ptar-trampilla]');
-                    var target = t ? (t.closest('.ptar-field') || t.closest('label') || t)
-                                   : document.querySelector('#sec-nueva-carga .ptar-sh-merca');
+                    if (!secNC) return;
+                    // La trampilla vive dentro del desplegable "Añadir detalle…"
+                    // (colapsado por defecto): lo abrimos si está cerrado.
+                    var toggle = secNC.querySelector('[data-ptar-notes-toggle]');
+                    if (toggle && toggle.getAttribute('aria-expanded') !== 'true') toggle.click();
+                    var t = secNC.querySelector('[data-ptar-trampilla]');
+                    var target = t ? (t.closest('.ptar-field') || t.closest('.ptar-tramp-box') || t) : null;
                     if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 60);
+                }, 200);
             };
             // Construye el BLOQUE LEGAL (hoy-para-hoy + pago adelantado + aviso de
             // cancelación según el corte + suspensión por cancelaciones). Antes
