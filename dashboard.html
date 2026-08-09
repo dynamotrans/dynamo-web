@@ -5620,12 +5620,10 @@
                             </label>
                         </div>
                         </div>
-                        <!-- Nº de NIMA: SOLO visible cuando "Requiere NIMA" está en Sí
-                             (residuos). Si no se requiere NIMA, el campo no aparece. -->
-                        <div class="ptar-field" data-ptar-nima-num-field hidden style="margin-top:0.9rem;">
-                            <label class="ptar-label" for="ptar-nima-num">Nº de NIMA</label>
-                            <input type="text" id="ptar-nima-num" data-ptar-nima-num class="ptar-select" placeholder="Nº de Identificación Medioambiental" autocomplete="off">
-                        </div>
+                        <!-- El Nº de NIMA NO se pide al cliente: el NIMA es del
+                             TRANSPORTISTA (lo aporta al aceptar la carga), no del
+                             cliente ni del sitio. El toggle "Requiere NIMA" solo indica
+                             que la mercancía es un residuo (afecta al precio). -->
                     </div>
                 </div>
 
@@ -20165,16 +20163,11 @@
             }
             if (mercaSel) mercaSel.addEventListener('change', renderEta);
             if (cargaTipoSel) cargaTipoSel.addEventListener('change', renderEta);
-            // NIMA (residuos): no cambia el camión, solo suma al precio. Además
-            // muestra/oculta el campo del Nº de NIMA (solo si se requiere).
+            // NIMA (residuos): no cambia el camión, solo suma al precio. El Nº de
+            // NIMA NO se pide al cliente — es del TRANSPORTISTA (lo aporta al aceptar
+            // la carga), no del cliente ni del sitio.
             var nimaChk = card.querySelector('[data-ptar-nima]');
-            function syncNimaNumField() {
-                var nf = card.querySelector('[data-ptar-nima-num-field]');
-                if (nf) nf.hidden = !(nimaChk && nimaChk.checked);
-            }
-            if (nimaChk) nimaChk.addEventListener('change', function () { renderEta(); syncNimaNumField(); });
-            syncNimaNumField();
-            window.__ptarSyncNimaNum = syncNimaNumField;
+            if (nimaChk) nimaChk.addEventListener('change', function () { renderEta(); });
             // ADR (mercancías peligrosas): +40% sobre el subtotal (demo).
             var adrChk = card.querySelector('[data-ptar-adr]');
             if (adrChk) adrChk.addEventListener('change', renderEta);
@@ -21925,7 +21918,7 @@
                     orig: orig, dest: dest, origCorto: origCorto, destCorto: destCorto,
                     mercaTxt: mercaTxt, mercanciaShort: mercanciaShort,
                     nima: !!(nimaChk && nimaChk.checked),
-                    nimaNum: (nimaChk && nimaChk.checked) ? ((card.querySelector('[data-ptar-nima-num]') || {}).value || '').trim() : '',
+                    nimaNum: '',   // el Nº de NIMA lo aporta el TRANSPORTISTA (no el cliente)
                     adr: !!(adrChk && adrChk.checked),
                     urgenciaTxt: urgenciaTxt, urgenciaLabel: urgenciaSel_label,
                     fechaTxt: fechaTxt, fechaLarga: fechaLarga,
@@ -23934,8 +23927,6 @@ iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
         var tx = sec.querySelector('[data-ptar-notes]');
         var rc = sec.querySelector('[data-ptar-refcli]');
         if ((tr && tr.checked) || (ni && ni.checked) || (tx && tx.value.trim()) || (rc && rc.value.trim())) setOpen(true);
-        // Mostrar/ocultar el campo Nº de NIMA según el toggle (tras prefill).
-        if (window.__ptarSyncNimaNum) window.__ptarSyncNimaNum();
     }
     window.__opcionesSync = function () { setTimeout(sync, 0); };
     window.__opcionesReset = function () { setOpen(false); };
