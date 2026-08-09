@@ -20865,7 +20865,8 @@
                 // que tarde el backend en devolver el importe.
                 var pbox = etaBox.querySelector('[data-eta-pricebox]');
                 if (priceCalcTimer) clearTimeout(priceCalcTimer);
-                pbox.innerHTML = window.__priceSkeletonHtml(precioRows);
+                // SOLO totales (Base/IVA/Total) — sin desglose de conceptos al cliente.
+                pbox.innerHTML = window.__priceSkeletonHtml([]);
                 setPrecioCalculando(true);
                 priceCalcTimer = setTimeout(function () {
                     priceCalcTimer = null;
@@ -20877,7 +20878,7 @@
                     var startFrom = (fromPrice > 0 && fromPrice < precio)
                         ? fromPrice
                         : Math.round(precio * 0.4 / 10) * 10;
-                    window.__renderPriceBox(pbox, precio, precioRows, startFrom);
+                    window.__renderPriceBox(pbox, precio, [], startFrom);
                     setPrecioCalculando(false);
                 }, 1500);
                 lastPrice = precio;
@@ -22430,7 +22431,12 @@
                 if (box) {
                     box.hidden = !precio;
                     if (precio) {
-                        window.__renderPriceBox(box, precio, rows);
+                        // Al CLIENTE se le muestran SOLO los totales (Base/IVA/Total),
+                        // sin desglose de conceptos (recargos de trampilla/NIMA/fecha
+                        // fija…): el precio viene calculado del backend y no se expone
+                        // cómo se calcula. Las filas (`rows`) se guardan en
+                        // pendingData.precioRows para uso interno/admin, pero NO se pintan.
+                        window.__renderPriceBox(box, precio, []);
                         injectPresuIco(box);
                     }
                 }
