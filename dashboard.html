@@ -17423,7 +17423,12 @@
                 inp('CP, localidad, provincia y país <span class="sitio-req">· obligatorio</span>', 'sitio-f-dir', s.dir, 'Ej. 41001, Sevilla, España', true) +
                 telField('sitio-f-tfno', 'Teléfono <span style="color:var(--gray-500);font-weight:600;">· opcional</span>', s.tfno) +
                 inp('Persona de contacto <span style="color:var(--gray-500);font-weight:600;">· opcional</span>','sitio-f-contacto', s.contacto, 'Persona de contacto') +
-                inp('Enlace de Google Maps', 'sitio-f-maps', s.maps, 'https://maps.app.goo.gl/…', true) +
+                // Enlace de Google Maps: FIJO (se rellena desde la API de Google) —
+                // el CLIENTE no lo edita en ningún sitio; solo ADMIN puede tocarlo.
+                // Si el cliente tiene otro enlace, lo pone en Notas del sitio.
+                ((window.getRole ? window.getRole() : 'admin') === 'admin'
+                    ? inp('Enlace de Google Maps', 'sitio-f-maps', s.maps, 'https://maps.app.goo.gl/…', true)
+                    : '<div class="full"><label>Enlace de Google Maps</label><input id="sitio-f-maps" class="sitio-f-lock" value="' + escapeHtml(s.maps || '') + '" readonly tabindex="-1"><div style="font-size: var(--fs-s);color:var(--gray-500);line-height:1.4;margin-top:0.2rem;">Se completa automáticamente desde Google Maps. Si tienes otro enlace, ponlo en <strong>Notas del sitio</strong>.</div></div>') +
             '</div>';
     }
     function openSitioModal(key) {
@@ -22960,7 +22965,10 @@
                                             return '<div><label>Dirección (calle y número)' + lockInfoIcon() + '</label><input class="sitio-f-lock" value="' + escapeHtml(sp.calle || '') + '" readonly tabindex="-1"></div>' +
                                                 '<div><label>CP, localidad, provincia y país' + lockInfoIcon() + '</label><input class="sitio-f-lock" value="' + escapeHtml(sp.resto || '') + '" readonly tabindex="-1"></div>';
                                         })() +
-                                        '<div class="full"><label>Enlace de Google Maps <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="maps" data-sitio-id="' + p.id + '" value="" placeholder="https://maps.app.goo.gl/…"></div>' +
+                                        // Enlace de Google Maps: solo el ADMIN puede añadirlo.
+                                        ((window.getRole ? window.getRole() : 'admin') === 'admin'
+                                            ? '<div class="full"><label>Enlace de Google Maps <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="maps" data-sitio-id="' + p.id + '" value="" placeholder="https://maps.app.goo.gl/…"></div>'
+                                            : '') +
                                     '</div>' +
                                 '</div>' +
                             '</div>';
@@ -23034,9 +23042,14 @@
                                     // Enlace de Google Maps: si el sitio YA tiene
                                     // uno, se BLOQUEA (se cambia en Sitios); si está
                                     // en blanco, editable para añadirlo.
+                                    // Enlace de Google Maps FIJO: si el sitio ya trae uno,
+                                    // se muestra bloqueado; si está en blanco, solo el ADMIN
+                                    // puede añadirlo (el cliente no edita este campo).
                                     (s.maps
                                         ? '<div class="full"><label>Enlace de Google Maps' + lockInfoIcon() + '</label><input class="sitio-f-lock" value="' + escapeHtml(s.maps) + '" readonly tabindex="-1"></div>'
-                                        : '<div class="full"><label>Enlace de Google Maps <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="maps" data-sitio-id="' + p.id + '" value="" placeholder="https://maps.app.goo.gl/…"></div>') +
+                                        : ((window.getRole ? window.getRole() : 'admin') === 'admin'
+                                            ? '<div class="full"><label>Enlace de Google Maps <span style="color:var(--gray-500);font-weight:600;">· opcional</span></label><input data-sitio-f="maps" data-sitio-id="' + p.id + '" value="" placeholder="https://maps.app.goo.gl/…"></div>'
+                                            : '')) +
                                 '</div>' +
                             '</div>' +
                         '</div>';
