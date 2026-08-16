@@ -180,7 +180,7 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 
 ### 2026-08-07 — Claude Code web (nube)
 
-> **Sesión larga: pulido del flujo de Nuevo envío (confirmación + tarifador), PWA del portal, aviso de cierre en producción y medidas de camiones.** Casi todo en **preview** (`claude/sharp-dirac-E3UIO`); a **producción** (`main`): ventana de cierre temporal, medidas de camiones y carga completa 13,6. Estado final: **main `d33e031`** · **preview `bc9b6fd`**.
+> **Sesión larga: pulido del flujo de Nuevo envío (confirmación + tarifador), PWA del portal, aviso de cierre en producción y medidas de camiones.** Casi todo en **preview** (`claude/sharp-dirac-E3UIO`); a **producción** (`main`): ventana de cierre temporal, medidas de camiones, carga completa 13,6 y peso en tramos. Estado final: **main `dc2fb19`** · **preview** (esta bitácora).
 
 **WEB PÚBLICA (`main`, producción)**:
 - **Ventana emergente de CIERRE temporal** (7–16 ago): modal al entrar (reusa `.phone-modal`), ✕/Entendido, **auto-caducidad por fecha** (solo se muestra mientras hoy < lunes 17-ago, hora Madrid; a partir del 17 no vuelve a salir sin deploy). Texto final corto: "Estamos cerrados hasta el lunes 17 de agosto. Disculpa las molestias."
@@ -196,7 +196,8 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Enlace de Google Maps FIJO**: solo lectura para el cliente en todos los sitios (ficha de Sitios + confirmación); solo el admin lo edita. El cliente pone otros enlaces en Notas.
 - **Campo "Nº de NIMA" ELIMINADO** del envío: el NIMA es del transportista (lo aporta al aceptar la carga), no del cliente/sitio. El toggle "Requiere NIMA" (Sí/No) se mantiene.
 - **Nota "transportistas verificados y documentación en vigor"** movida del paso 4 (confirmación) al **paso 1 (Ruta)**.
-- **Carga completa 13,6 m** (era 13,2) en TODO: tarifador Nuevo envío, medidas de envíos, aceptar-carga. Valor interno 13.2 preservado (solo cambia lo que ve el usuario). **Medidas de camiones** (tarjetas + tooltip + tabla) con **volúmenes recalculados** (Trailer 90 m³, Rígido 47 m³).
+- **Carga completa 13,6 m** (era 13,2) en TODO: tarifador Nuevo envío, medidas de envíos, aceptar-carga. **Primero solo el display**, luego (a petición) también el **valor interno/clave 13.2 → 13.6** en toda la lógica (panel + web pública) — ya NO queda ningún 13.2 funcional (solo 3 comentarios internos de `coefMl` y coordenadas del mapa que lo contienen por casualidad). La carga completa mantiene **33 europalets / 26 americanos** fijos (no se recalcula desde 13,6). **Medidas de camiones** (tarjetas + tooltip + tabla) con **volúmenes recalculados** (Trailer 90 m³, Rígido 47 m³).
+- **Desplegable de PESO en TRAMOS** (panel + web pública): tramos de kilos por debajo de 1 t (0-200, 200-400, 400-600, 600-800, 800 kg-1 t) + **toneladas de 2 en 2** (1-3, 3-5, 5-7 … hasta el máximo del camión). En la web pública el `fillPesoSelect` era por toneladas enteras → igualado al del panel; el mensaje de "Solicitar tarifa" usa ahora la etiqueta del tramo.
 
 **PREGUNTAS respondidas (sin código)**:
 - **Sitios se pueden borrar** (soft-delete: se quitan de agenda/buscador; los envíos ya creados conservan sus datos vía siteDe). En el mockup el borrado dura solo la sesión.
