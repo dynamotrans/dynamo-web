@@ -178,6 +178,37 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-08-07 — Claude Code web (nube)
+
+> **Sesión larga: pulido del flujo de Nuevo envío (confirmación + tarifador), PWA del portal, aviso de cierre en producción y medidas de camiones.** Casi todo en **preview** (`claude/sharp-dirac-E3UIO`); a **producción** (`main`): ventana de cierre temporal, medidas de camiones y carga completa 13,6. Estado final: **main `d33e031`** · **preview `bc9b6fd`**.
+
+**WEB PÚBLICA (`main`, producción)**:
+- **Ventana emergente de CIERRE temporal** (7–16 ago): modal al entrar (reusa `.phone-modal`), ✕/Entendido, **auto-caducidad por fecha** (solo se muestra mientras hoy < lunes 17-ago, hora Madrid; a partir del 17 no vuelve a salir sin deploy). Texto final corto: "Estamos cerrados hasta el lunes 17 de agosto. Disculpa las molestias."
+- **Medidas de camiones** (fichas de vehículo): **Trailer** Largo (interior) **13,60 m** + Ancho **2,45 m** (altura 2,70); **Rígido** Ancho **2,45 m** + Altura **2,40 m**.
+- **Carga completa = 13,6 metros** (era 13,2) en el tarifador y textos.
+
+**PORTAL / PANEL (`preview`)**:
+- **PWA — portal instalable como app**: `manifest.webmanifest` (Dynamo Portal, standalone, start_url /portal.html), `sw.js` (network-first + shell cacheado → abre sin conexión), iconos 192/512/maskable del logo cuadrado navy, `<link rel=manifest>` + registro SW en las 5 páginas del portal. Chrome/Edge ofrecen "Instalar". Verificado: manifest 200, SW active, iconos 200.
+- **CONFIRMACIÓN DE ENVÍO — avisos**: (1) **horario de verano** (25 may–15 sep, "Revisa horarios de verano de almacenes, la mayoría 7:00–15:00"), (2) **festivo nacional** en la ventana de carga (usa FESTIVOS). Ambos con icono SVG, solo cuando aplican.
+- **Aviso de TRÁILER sin trampilla**: "Envío en tráiler, asegúrate de que hay medios de carga. Si requieres trampilla (más caro y solo en rígido 8 m), añádela en el **paso 2**" — con **enlace "paso 2"** que sale de la confirmación, va al paso 2 (Mercancía), abre el desplegable de detalle y lleva al toggle de trampilla.
+- **FICHA DE SITIO (confirmación) reordenada**: editables (Horario, Teléfono, Contacto) arriba tras Email+Notas; referencia (Empresa/Tipo/Dirección/CP/Maps) abajo. Email de avisos: discreción + "Ver ejemplo →" **dentro del tooltip** del "opcional" (quitado el hint visible). Teléfono: etiqueta fusionada **"📱 Teléfono móvil ⓘ y Persona · opcional"** (móvil dentro del tooltip) + contacto sin título. Desplegable de detalle en negrita salvo "(opcional)".
+- **PRECIO al cliente = SOLO totales** (Base imponible / IVA / Total), sin desglose de conceptos (Importe de envío, Suplemento fecha fija, recargos trampilla/NIMA). El total se sigue calculando igual; los conceptos quedan como dato interno (`precioRows`). Aplica al tarifador (paso 3) y a la confirmación.
+- **Enlace de Google Maps FIJO**: solo lectura para el cliente en todos los sitios (ficha de Sitios + confirmación); solo el admin lo edita. El cliente pone otros enlaces en Notas.
+- **Campo "Nº de NIMA" ELIMINADO** del envío: el NIMA es del transportista (lo aporta al aceptar la carga), no del cliente/sitio. El toggle "Requiere NIMA" (Sí/No) se mantiene.
+- **Nota "transportistas verificados y documentación en vigor"** movida del paso 4 (confirmación) al **paso 1 (Ruta)**.
+- **Carga completa 13,6 m** (era 13,2) en TODO: tarifador Nuevo envío, medidas de envíos, aceptar-carga. Valor interno 13.2 preservado (solo cambia lo que ve el usuario). **Medidas de camiones** (tarjetas + tooltip + tabla) con **volúmenes recalculados** (Trailer 90 m³, Rígido 47 m³).
+
+**PREGUNTAS respondidas (sin código)**:
+- **Sitios se pueden borrar** (soft-delete: se quitan de agenda/buscador; los envíos ya creados conservan sus datos vía siteDe). En el mockup el borrado dura solo la sesión.
+- **Horario de sitios** = un solo campo de texto libre (no verano/invierno). Los de verano/invierno son los de atención de Dynamo.
+- **PWA vs App Store**: una PWA a secas no entra en App Store; para meterla hay que envolverla (Capacitor → WebView, cuenta Apple 99$/año, Mac+Xcode, revisión). Para B2B la PWA instalable desde Safari/Chrome es el punto dulce ahora.
+
+**DOCUMENTADO en TODO.md** (futuro, sin desarrollar): PWA del portal (hecho en mockup) + pendientes de producción · **tienda de merchandising** en la web pública (~10 artículos, pago **Stripe** — el usuario ya tiene cuenta) · **protocolo de SINIESTRO de mercancía** (aviso inmediato antes de descargar; Mapfre decide perito presencial vs fotos; reservas/daños en CMR/albarán; quién/momento/causa del daño; a reflejar en orden de carga PDF/XML, CMR e incidencias).
+
+**Método**: cada cambio verificado en Chromium headless (rol cliente/admin, nominatim mockeado) con syntax-check JS 0 errores y screenshots antes de commitear. Push directo a preview; producción con OK explícito del usuario.
+
+**Pendientes**: los 3 documentados en TODO.md + existentes. Al montar gating de roles: el admin podría ver el desglose de precio (guardado en precioRows) y editar el enlace de Maps. Opcional: unificar el estilo decimal "13,60" (ficha) vs "13,6" (tarifador).
+
 ### 2026-07-25 — Claude Code web (nube)
 
 > **Sesión de gating de rol CLIENTE en Nuevo envío + botón de presupuesto orientativo en el paso 4.** Todo en **preview** (`claude/sharp-dirac-E3UIO`), `main` sin tocar. Push directo a preview en cada cambio. Estado final: preview `465f1b1`.
