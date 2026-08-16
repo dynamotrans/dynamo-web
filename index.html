@@ -4687,7 +4687,7 @@ function updateAlmTotal() {
 
     // ---- Info de camión (define máx ml / Tn) ----
     var CAMION_INFO = {
-        tauliner: { mlMax: 13, mlReal: 13.2, pesoMax: 24, label: 'Trailer Tauliner Lona' },
+        tauliner: { mlMax: 13, mlReal: 13.6, pesoMax: 24, label: 'Trailer Tauliner Lona' },
         rigido:   { mlMax: 8,  mlReal: 8,    pesoMax: 14, label: 'Camión Rígido con trampilla elevadora' }
     };
     var PARADA_TIPOS = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento'];
@@ -4760,10 +4760,10 @@ function updateAlmTotal() {
         }
         if (mlMax === 13) {
             var opt2 = document.createElement('option');
-            opt2.value = '13.2'; opt2.textContent = '13,6 metros — carga completa (' + paletsEquiv(13.2) + ')';
+            opt2.value = '13.6'; opt2.textContent = '13,6 metros — carga completa (equivale a 33 europalets o 26 americanos)';
             sel.appendChild(opt2);
         }
-        sel.value = (mlMax === 13) ? '13.2' : String(mlMax);
+        sel.value = (mlMax === 13) ? '13.6' : String(mlMax);
     }
     function fillPesoSelect(sel, pesoMax) {
         sel.innerHTML = '';
@@ -4927,7 +4927,7 @@ function updateAlmTotal() {
         if (!urgSel) return;
         var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
         var max = info.mlReal || info.mlMax;
-        var mlv = mlSel.value === '13.2' ? 13.2 : parseFloat(mlSel.value);
+        var mlv = mlSel.value === '13.6' ? 13.6 : parseFloat(mlSel.value);
         var pesoV = parseFloat(pesoSel.value);
         // Grupaje solo si NI metros NI peso llegan al máximo. Si el peso va al
         // tope (aunque sean pocos metros) es tarifa de camión COMPLETO.
@@ -5334,7 +5334,7 @@ function updateAlmTotal() {
         var orig = origInput.value.trim();
         var dest = destInput.value.trim();
         if (!orig || !dest) return null;
-        var mlV = mlSel.value === '13.2' ? '13,6' : mlSel.value;
+        var mlV = mlSel.value === '13.6' ? '13,6' : mlSel.value;
         var pesoV = pesoSel.value;
         var camion = (CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner).label;
         var merca = mercaSel ? mercaSel.options[mercaSel.selectedIndex].text : '';
