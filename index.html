@@ -4770,11 +4770,24 @@ function updateAlmTotal() {
         var ph = document.createElement('option');
         ph.value = ''; ph.disabled = true; ph.selected = true; ph.textContent = 'Toneladas';
         sel.appendChild(ph);
-        for (var i = 1; i <= pesoMax; i++) {
+        // Tramos en KILOS por debajo de 1 tonelada (cargas pequeñas): el value
+        // es el tope del tramo en toneladas (0,2 · 0,4 · 0,6 · 0,8 · 1).
+        [[0.2, 'De 0 a 200 kg'], [0.4, 'De 200 a 400 kg'], [0.6, 'De 400 a 600 kg'],
+         [0.8, 'De 600 a 800 kg'], [1, 'De 800 kg a 1 tonelada']].forEach(function (t) {
+            var o = document.createElement('option');
+            o.value = String(t[0]); o.textContent = t[1];
+            sel.appendChild(o);
+        });
+        // A partir de 1 Tn, TRAMOS de 2 en 2 (el value es el tope): 1-3 · 3-5 · …
+        var lo = 1;
+        for (var hi = 3; lo < pesoMax; hi += 2) {
+            if (hi > pesoMax) hi = pesoMax;
             var opt = document.createElement('option');
-            opt.value = i;
-            opt.textContent = i + (i === 1 ? ' tonelada' : ' toneladas') + (i === pesoMax ? ' (máximo)' : '');
+            opt.value = hi;
+            opt.textContent = 'De ' + lo + ' a ' + hi + ' toneladas' + (hi === pesoMax ? ' (máximo)' : '');
             sel.appendChild(opt);
+            if (hi === pesoMax) break;
+            lo = hi;
         }
         sel.value = String(pesoMax);
     }
@@ -5335,7 +5348,7 @@ function updateAlmTotal() {
         var dest = destInput.value.trim();
         if (!orig || !dest) return null;
         var mlV = mlSel.value === '13.6' ? '13,6' : mlSel.value;
-        var pesoV = pesoSel.value;
+        var pesoV = (pesoSel.options[pesoSel.selectedIndex] && pesoSel.selectedIndex > 0) ? pesoSel.options[pesoSel.selectedIndex].text : pesoSel.value;
         var camion = (CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner).label;
         var merca = mercaSel ? mercaSel.options[mercaSel.selectedIndex].text : '';
         var cargatipoSel = card.querySelector('[data-ptar-cargatipo]');
@@ -5368,7 +5381,7 @@ function updateAlmTotal() {
             '• MERCANCÍA: ' + merca,
             '• TIPO DE CARGA: ' + cargatipo,
             '• METROS LINEALES: ' + mlV + ' m',
-            '• TONELADAS: ' + pesoV + ' Tn',
+            '• PESO: ' + pesoV,
             '• TRAMPILLA ELEVADORA: ' + trampV,
             '• REQUIERE NIMA: ' + nimaV,
             '• FECHA DE CARGA: ' + fechaTxt,
