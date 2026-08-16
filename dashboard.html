@@ -19421,7 +19421,7 @@
     ========================================= */
     (function () {
         var CAMION_INFO = {
-            tauliner: { mlMax: 13, mlReal: 13.2, pesoMax: 24, paletsMax: 33, label: 'Trailer Tauliner Lona' },
+            tauliner: { mlMax: 13, mlReal: 13.6, pesoMax: 24, paletsMax: 33, label: 'Trailer Tauliner Lona' },
             rigido:   { mlMax: 8,  mlReal: 8,    pesoMax: 14, paletsMax: 20, label: 'Camión Rígido con trampilla elevadora' }
         };
 
@@ -19599,11 +19599,11 @@
             // Tauliner tiene 13,6m como tope real
             if (mlMax === 13) {
                 var opt2 = document.createElement('option');
-                opt2.value = '13.2'; opt2.textContent = '13,6 metros — carga completa (' + paletsEquiv(13.2) + ')';
+                opt2.value = '13.6'; opt2.textContent = '13,6 metros — carga completa (equivale a 33 europalets o 26 americanos)';
                 sel.appendChild(opt2);
             }
             // Por defecto: carga completa (13,6 m en Tauliner; máximo en rígido).
-            sel.value = (mlMax === 13) ? '13.2' : String(mlMax);
+            sel.value = (mlMax === 13) ? '13.6' : String(mlMax);
         }
         function fillPesoSelect(sel, pesoMax) {
             sel.innerHTML = '';
@@ -19618,10 +19618,10 @@
                 o.value = String(t[0]); o.textContent = t[1];
                 sel.appendChild(o);
             });
-            // A partir de 1 Tn, TRAMOS de 4 en 4 (el value es el tope del
-            // tramo): 1-4 · 4-8 · 8-12 · … hasta el máximo del camión.
+            // A partir de 1 Tn, TRAMOS de 2 en 2 (el value es el tope del
+            // tramo): 1-3 · 3-5 · 5-7 · … hasta el máximo del camión.
             var lo = 1;
-            for (var hi = 4; lo < pesoMax; hi += 4) {
+            for (var hi = 3; lo < pesoMax; hi += 2) {
                 if (hi > pesoMax) hi = pesoMax;
                 var opt = document.createElement('option');
                 opt.value = hi;
@@ -20184,7 +20184,7 @@
             function renderOcupacion() {
                 if (!occFill || !occMeta) return;
                 var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
-                var ml = parseFloat(mlSel.value === '13.2' ? '13.2' : mlSel.value) || 0;
+                var ml = parseFloat(mlSel.value === '13.6' ? '13.6' : mlSel.value) || 0;
                 var tn = parseFloat(pesoSel.value) || 0;
                 // Estimación de palets europeos a partir de los ml (2,5/ml)
                 var palets = Math.round(ml * 2.5);
@@ -20217,7 +20217,7 @@
             function esGrupajeSel() {
                 var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
                 var max = info.mlReal || info.mlMax;
-                var mlv = mlSel.value === '13.2' ? 13.2 : parseFloat(mlSel.value);
+                var mlv = mlSel.value === '13.6' ? 13.6 : parseFloat(mlSel.value);
                 var pesoV = parseFloat(pesoSel.value);
                 return !isNaN(mlv) && mlv < max && !(!isNaN(pesoV) && pesoV >= info.pesoMax);
             }
@@ -20490,7 +20490,7 @@
                 // ese % (25%..100%), con un PRECIO MÍNIMO por tipo de envío:
                 // GRUPAJE 190 € · carga COMPLETA 320 € (ningún envío baja de ahí).
                 var occInfo = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
-                var occMl = parseFloat(mlSel.value === '13.2' ? '13.2' : mlSel.value) || 0;
+                var occMl = parseFloat(mlSel.value === '13.6' ? '13.6' : mlSel.value) || 0;
                 var occTn = parseFloat(pesoSel.value) || 0;
                 var occFactor = ocupacion(occMl, occTn, Math.round(occMl * 2.5), occInfo).pct / 100;
                 // Base fija 220 € + 1,35 €/km de carretera × ocupación. Además,
@@ -20621,10 +20621,10 @@
                 //   12-16 −2% · 16-20 −1% · 20-24 → precio íntegro.
                 var descPeso = 0, descPesoLbl = '';
                 (function () {
-                    var mlSelV = mlSel ? (mlSel.value === '13.2' ? 13.2 : parseFloat(mlSel.value)) : 0;
+                    var mlSelV = mlSel ? (mlSel.value === '13.6' ? 13.6 : parseFloat(mlSel.value)) : 0;
                     var tnV = pesoSel ? (parseFloat(pesoSel.value) || 0) : 0;
                     var esRigido = trampOn && trampOn.checked; // trampilla → rígido
-                    if (esRigido || mlSelV < 13.2 || !tnV || tnV > 20) return;
+                    if (esRigido || mlSelV < 13.6 || !tnV || tnV > 20) return;
                     var pct, pctLbl, tramo;
                     if (tnV <= 4) { pct = 0.035; pctLbl = '3,5'; tramo = '0 a 4'; }
                     else if (tnV <= 8) { pct = 0.03; pctLbl = '3'; tramo = '4 a 8'; }
@@ -21398,7 +21398,7 @@
                 };
                 window.__ptarGrupajeCompleto = function (modo) {
                     var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
-                    mlSel.value = info.mlReal === 13.2 ? '13.2' : String(info.mlMax);
+                    mlSel.value = info.mlReal === 13.6 ? '13.6' : String(info.mlMax);
                     pesoSel.value = String(info.pesoMax);
                     mlSel.dispatchEvent(new Event('change'));
                     pesoSel.dispatchEvent(new Event('change'));
@@ -21825,7 +21825,7 @@
                 }
 
                 var camion = camionSel.value;
-                var medidas = (ml === '13.2' ? '13,6' : ml) + ' m · ' + (parseInt(peso, 10) * 1000).toLocaleString('es-ES') + ' kg';
+                var medidas = (ml === '13.6' ? '13,6' : ml) + ' m · ' + (parseInt(peso, 10) * 1000).toLocaleString('es-ES') + ' kg';
                 var origCorto = orig.split(',')[0].trim();
                 var destCorto = dest.split(',')[0].trim();
                 var mercaPal = mercaSel ? mercaSel.options[mercaSel.selectedIndex].text : '';
@@ -22072,7 +22072,7 @@
                     // Precio orientativo del tarifador; si la caja ETA no llegó
                     // a calcular (sin coordenadas), fórmula base de respaldo.
                     var precioNum = d.precioMock || (Math.round(((d.camion === 'tauliner' ? 950 : 720)
-                        + (parseFloat(d.ml === '13.2' ? 13.2 : d.ml) * 70)
+                        + (parseFloat(d.ml === '13.6' ? 13.6 : d.ml) * 70)
                         + (parseFloat(d.peso) * 35)) / 10) * 10);
                     // Separador de miles SIEMPRE (es-ES no lo pone en 4 cifras)
                     function fmtEur(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
@@ -22256,7 +22256,7 @@
                     );
                 } else {
                     var base = (d.camion === 'tauliner' ? 950 : 720)
-                        + (parseFloat(d.ml === '13.2' ? 13.2 : d.ml) * 70)
+                        + (parseFloat(d.ml === '13.6' ? 13.6 : d.ml) * 70)
                         + (parseFloat(d.peso) * 35);
                     var precio = Math.round(base / 10) * 10;
                     var vigencia = (function () {
@@ -22640,7 +22640,7 @@
                 if (!confirmCard || !summaryEl) return;
                 pendingData = d;
                 var info = CAMION_INFO[d.camion] || CAMION_INFO.tauliner;
-                var mlNum = parseFloat(d.ml === '13.2' ? '13.2' : d.ml) || 0;
+                var mlNum = parseFloat(d.ml === '13.6' ? '13.6' : d.ml) || 0;
                 var tnNum = parseFloat(d.peso) || 0;
                 var occ = ocupacion(mlNum, tnNum, Math.round(mlNum * 2.5), info);
                 // Rango de fechas de carga según la ventana (cualquier día laborable)
@@ -22696,7 +22696,7 @@
                         (opDet ? '<div style="font-size:var(--fs-s);color:var(--gray-600);margin-top:0.15rem;">' + escapeHtml(opDet) + '</div>' : '') + '</div>';
                 }
                 // Detalle de la mercancía a partir de los campos elegidos.
-                var mlTxt = (d.ml === '13.2' ? '13,6' : d.ml) + ' metros';
+                var mlTxt = (d.ml === '13.6' ? '13,6' : d.ml) + ' metros';
                 var pesoKg = (Math.round(parseFloat(d.peso) * 1000)).toLocaleString('es-ES') + ' kg';
                 var cargaTipoV = cargaTipoSel ? cargaTipoSel.options[cargaTipoSel.selectedIndex].text : '';
                 var mercaV = mercaSel ? mercaSel.options[mercaSel.selectedIndex].text.split(/[—(]/)[0].trim() : '';
@@ -22795,8 +22795,8 @@
                 // Si los ml elegidos son menores, sí es grupaje → mostrar.
                 var grupajeWarn = confirmCard.querySelector('[data-ptar-grupaje-warn]');
                 if (grupajeWarn) {
-                    var camionMax = (d.camion === 'tauliner') ? 13.2 : 8;
-                    var mlNum = parseFloat(d.ml === '13.2' ? '13.2' : d.ml);
+                    var camionMax = (d.camion === 'tauliner') ? 13.6 : 8;
+                    var mlNum = parseFloat(d.ml === '13.6' ? '13.6' : d.ml);
                     var esGrupaje = mlNum < camionMax;
                     grupajeWarn.hidden = !esGrupaje;
                     // Precio de la misma ruta en CAMIÓN COMPLETO (ocupación 100%,
@@ -23453,7 +23453,7 @@
                     var mM = String(src.medidas || '').match(/([\d,.]+)\s*m\b/);
                     if (mM) {
                         var mlNum = parseFloat(mM[1].replace(',', '.'));
-                        var mlVal = mlNum >= 13 ? '13.2' : String(Math.max(1, Math.min(Math.round(mlNum), info.mlMax)));
+                        var mlVal = mlNum >= 13 ? '13.6' : String(Math.max(1, Math.min(Math.round(mlNum), info.mlMax)));
                         if (mlSel.querySelector('option[value="' + mlVal + '"]')) mlSel.value = mlVal;
                     }
                     // Peso (kg → toneladas).
