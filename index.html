@@ -4677,7 +4677,7 @@ function updateAlmTotal() {
    (definida en el script de horarios; sirve para excluir festivos ES del
    selector de fechas).
    - Ruta con paradas (recogidas/entregas, máx 2 en total)
-   - Trampilla elevadora → rígido (8 m / 14 Tn); OFF → Tauliner (13,2 m / 24 Tn)
+   - Trampilla elevadora → rígido (8 m / 14 Tn); OFF → Tauliner (13,6 m / 24 Tn)
    - Autocomplete origen/destino/paradas con Nominatim (OSM, gratis sin API key)
    - "Solicitar tarifa" → revela Email + WhatsApp con mensaje preformateado
 ========================================= */
@@ -4742,7 +4742,7 @@ function updateAlmTotal() {
 
     // ---- Selectores ML / Peso reactivos al camión ----
     // Equivalencia de metros lineales en palets (factores del cliente):
-    // 2,5 europalets/ml (13,2 m = 33 europalets = trailer completo). Solo europalets.
+    // 2,5 europalets/ml (13,6 m = 33 europalets = trailer completo). Solo europalets.
     function paletsEquiv(ml) {
         // Palets enteros: se redondea hacia abajo (no cabe medio palet).
         return Math.floor(ml * 2.5) + ' europalets';
@@ -4760,7 +4760,7 @@ function updateAlmTotal() {
         }
         if (mlMax === 13) {
             var opt2 = document.createElement('option');
-            opt2.value = '13.2'; opt2.textContent = '13,2 metros — carga completa (' + paletsEquiv(13.2) + ')';
+            opt2.value = '13.2'; opt2.textContent = '13,6 metros — carga completa (' + paletsEquiv(13.2) + ')';
             sel.appendChild(opt2);
         }
         sel.value = (mlMax === 13) ? '13.2' : String(mlMax);
@@ -4958,7 +4958,7 @@ function updateAlmTotal() {
         fillPesoSelect(pesoSel, info.pesoMax);
         syncGrupajeVentana();
     }
-    // Trampilla ON → rígido (8 m / 14 Tn); OFF → Tauliner (13,2 m / 24 Tn).
+    // Trampilla ON → rígido (8 m / 14 Tn); OFF → Tauliner (13,6 m / 24 Tn).
     if (trampChk) {
         trampChk.addEventListener('change', function () {
             var prevMl = mlSel.value, prevPeso = pesoSel.value;
@@ -5334,7 +5334,7 @@ function updateAlmTotal() {
         var orig = origInput.value.trim();
         var dest = destInput.value.trim();
         if (!orig || !dest) return null;
-        var mlV = mlSel.value === '13.2' ? '13,2' : mlSel.value;
+        var mlV = mlSel.value === '13.2' ? '13,6' : mlSel.value;
         var pesoV = pesoSel.value;
         var camion = (CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner).label;
         var merca = mercaSel ? mercaSel.options[mercaSel.selectedIndex].text : '';
