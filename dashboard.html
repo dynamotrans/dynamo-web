@@ -6143,7 +6143,7 @@
         <div class="table-wrap">
             <table class="data">
                 <thead><tr>
-                    <th>Cliente</th><th>Contacto</th><th>Domicilio fiscal</th><th>Condiciones</th><th>Creado · Modificado</th><th>Estado</th>
+                    <th>Cliente</th><th>Contacto</th><th>Domicilio fiscal</th><th>Condiciones</th><th>Factor<br><span style="font-weight:600;color:var(--gray-500);font-size: var(--fs-s);">solo admin</span></th><th>Creado · Modificado</th><th>Estado</th>
                 </tr></thead>
                 <tbody id="tbodyClientes"></tbody>
             </table>
@@ -10412,11 +10412,11 @@
     function __ctTs(diasAtras, hora) { return __ctNow - diasAtras * 86400000 + ((hora || 10) - 10) * 3600000; }
     var CLIENTES_DATA = [
         { empresa: 'Marbex Industrial S.L.', cif: 'B41552217', dir: 'Pol. Ind. La Red, C/ Cobre 14', cp: '41500', ciudad: 'Alcalá de Guadaíra', prov: 'Sevilla', pais: 'España', tfno: '+34 954 210 334', email: 'compras@marbexindustrial.es', contacto: 'Julia Gómez', plazo: 30, cesce: true, cesceImporte: 60000, dynamoImporte: 15000, factorPrecio: -3, altaPor: 'Lucía Camacho Ríos', notas: '', creadoEn: __ctTs(214, 9), modificadoEn: __ctTs(12, 13) },
-        { empresa: 'GRUPAL ART, S.L.', cif: 'B46881306', dir: 'C/ Traginers 4', cp: '46940', ciudad: 'Manises', prov: 'Valencia', pais: 'España', tfno: '+34 961 523 887', email: 'logistica@grupalart.es', contacto: 'Vicente Ferrer', plazo: 30, cesce: true, cesceImporte: 40000, dynamoImporte: 10000, notas: '', creadoEn: __ctTs(388, 12), modificadoEn: __ctTs(41, 17) },
-        { empresa: 'TRUMA STORE, S.L.', cif: 'B98455124', dir: 'Av. de la Industria 22, nave 7', cp: '28108', ciudad: 'Alcobendas', prov: 'Madrid', pais: 'España', tfno: '+34 916 620 445', email: 'pedidos@trumastore.es', contacto: 'Marta Salas', plazo: 60, cesce: true, cesceImporte: 80000, dynamoImporte: 20000, notas: 'Solo recepciona de 8:00 a 13:00.', creadoEn: __ctTs(160, 11), modificadoEn: null },
-        { empresa: 'WELDINOX', cif: 'B29617750', dir: 'Pol. La Ermita, C/ Fragua 3', cp: '29600', ciudad: 'Marbella', prov: 'Málaga', pais: 'España', tfno: '+34 952 771 209', email: 'admin@weldinox.com', contacto: 'Sergio Luque', plazo: 0, cesce: false, cesceImporte: 0, dynamoImporte: 0, notas: 'Sin crédito CESCE: siempre proforma antes de cargar.', creadoEn: __ctTs(96, 16), modificadoEn: __ctTs(5, 9) },
-        { empresa: 'CIRCULAR POLIMERI SL', cif: 'B12480331', dir: 'Ctra. N-340 km 972, nave 12', cp: '12200', ciudad: 'Onda', prov: 'Castellón', pais: 'España', tfno: '+34 964 771 655', email: 'trafico@circularpolimeri.es', contacto: 'Anna Traver', plazo: 30, cesce: true, cesceImporte: 50000, dynamoImporte: 12000, notas: '', creadoEn: __ctTs(300, 10), modificadoEn: __ctTs(88, 12) },
-        { empresa: 'Distribuciones Levante Sur S.A.', cif: 'A03998812', dir: 'C/ Alberola 18', cp: '03008', ciudad: 'Alicante', prov: 'Alicante', pais: 'España', tfno: '+34 965 108 442', email: 'operaciones@dlevantesur.es', contacto: 'Pedro Ivorra', plazo: 30, cesce: false, cesceImporte: 0, dynamoImporte: 6000, notas: 'Crédito CESCE solicitado, pendiente de resolución.', creadoEn: __ctTs(45, 13), modificadoEn: null }
+        { empresa: 'GRUPAL ART, S.L.', cif: 'B46881306', dir: 'C/ Traginers 4', cp: '46940', ciudad: 'Manises', prov: 'Valencia', pais: 'España', tfno: '+34 961 523 887', email: 'logistica@grupalart.es', contacto: 'Vicente Ferrer', plazo: 30, cesce: true, cesceImporte: 40000, dynamoImporte: 10000, factorPrecio: 0, notas: '', creadoEn: __ctTs(388, 12), modificadoEn: __ctTs(41, 17) },
+        { empresa: 'TRUMA STORE, S.L.', cif: 'B98455124', dir: 'Av. de la Industria 22, nave 7', cp: '28108', ciudad: 'Alcobendas', prov: 'Madrid', pais: 'España', tfno: '+34 916 620 445', email: 'pedidos@trumastore.es', contacto: 'Marta Salas', plazo: 60, cesce: true, cesceImporte: 80000, dynamoImporte: 20000, factorPrecio: 10, notas: 'Solo recepciona de 8:00 a 13:00.', creadoEn: __ctTs(160, 11), modificadoEn: null },
+        { empresa: 'WELDINOX', cif: 'B29617750', dir: 'Pol. La Ermita, C/ Fragua 3', cp: '29600', ciudad: 'Marbella', prov: 'Málaga', pais: 'España', tfno: '+34 952 771 209', email: 'admin@weldinox.com', contacto: 'Sergio Luque', plazo: 0, cesce: false, cesceImporte: 0, dynamoImporte: 0, factorPrecio: -7, notas: 'Sin crédito CESCE: siempre proforma antes de cargar.', creadoEn: __ctTs(96, 16), modificadoEn: __ctTs(5, 9) },
+        { empresa: 'CIRCULAR POLIMERI SL', cif: 'B12480331', dir: 'Ctra. N-340 km 972, nave 12', cp: '12200', ciudad: 'Onda', prov: 'Castellón', pais: 'España', tfno: '+34 964 771 655', email: 'trafico@circularpolimeri.es', contacto: 'Anna Traver', plazo: 30, cesce: true, cesceImporte: 50000, dynamoImporte: 12000, factorPrecio: 5, notas: '', creadoEn: __ctTs(300, 10), modificadoEn: __ctTs(88, 12) },
+        { empresa: 'Distribuciones Levante Sur S.A.', cif: 'A03998812', dir: 'C/ Alberola 18', cp: '03008', ciudad: 'Alicante', prov: 'Alicante', pais: 'España', tfno: '+34 965 108 442', email: 'operaciones@dlevantesur.es', contacto: 'Pedro Ivorra', plazo: 30, cesce: false, cesceImporte: 0, dynamoImporte: 6000, factorPrecio: -7, notas: 'Crédito CESCE solicitado, pendiente de resolución.', creadoEn: __ctTs(45, 13), modificadoEn: null }
     ];
     var TRANSPORTISTAS_DATA = [
         { empresa: 'Transportes Romero e Hijos S.L.', tipo: 'Empresa', cif: 'B90211459', dir: 'Pol. Store, C/ A nave 24', cp: '41008', ciudad: 'Sevilla', prov: 'Sevilla', pais: 'España', tfno: '+34 954 367 210', email: 'trafico@transromero.es', contacto: 'Antonio Romero', bolsa: 'WTN-482113', camiones: 12, flota: 'Tauliner y rígido', notas: '', docs: ['Seguro-CMR-AXA-2026.pdf', 'Tarjeta-transporte.pdf'], creadoEn: __ctTs(420, 9), modificadoEn: __ctTs(30, 12) },
@@ -10498,6 +10498,19 @@
     function transportistaBlob(t) {
         return normTxt([t.empresa, t.tipo, t.cif, t.dir, t.cp, t.ciudad, t.prov, t.pais, t.tfno, t.email, t.contacto, t.bolsa, t.notas, (t.adr ? 'adr' : ''), (t.docs || []).join(' ')].join(' '));
     }
+    // Etiqueta de color del FACTOR de precio del cliente (SOLO ADMIN): negativo
+    // (descuento) rojo · 0 % gris (estándar) · positivo (cobramos más) verde.
+    function factorBadge(fp) {
+        var v = (fp == null || fp === '') ? 0 : Number(fp);
+        if (isNaN(v)) v = 0;
+        var txt = (v > 0 ? '+' : (v < 0 ? '−' : '')) + Math.abs(v) + ' %';
+        var st;
+        if (v > 0)      st = 'background:rgba(34,165,90,0.14);color:#0f6b3a;';       // verde
+        else if (v < 0) st = 'background:rgba(217,48,37,0.12);color:#c0392b;';       // rojo
+        else            st = 'background:var(--gray-100);color:var(--gray-500);';     // gris
+        return '<span style="display:inline-block;padding:0.12rem 0.5rem;border-radius:999px;font-weight:800;font-size:var(--fs-s);white-space:nowrap;' + st + '">' + txt + '</span>';
+    }
+    window.factorBadge = factorBadge;
     function renderClientesTable(q) {
         var tbody = document.getElementById('tbodyClientes'); if (!tbody) return;
         var nq = normTxt(q || '');
@@ -10510,7 +10523,7 @@
         rows = ordenarRows('clientes', rows);
         var slice = pageSlice('clientes', rows, nq, 'clientesPagination', 'clientesShowing', 'Sin clientes');
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin clientes que coincidan</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-500);">Sin clientes que coincidan</td></tr>';
             return;
         }
         tbody.innerHTML = slice.map(function (r) {
@@ -10520,6 +10533,7 @@
                 '<td>' + esc(c.contacto || '—') + '<div class="meta">' + esc(c.tfno || '') + (c.email ? (c.tfno ? ' · ' : '') + esc(c.email) : '') + '</div></td>' +
                 '<td>' + esc(c.dir || '—') + '<div class="meta">' + esc([c.cp, c.ciudad, c.prov, c.pais].filter(Boolean).join(', ')) + '</div></td>' +
                 '<td>' + esc(clientePlazoTxt(c.plazo)) + '<div class="meta">' + (c.cesce ? '<span style="color:#0f6b3a;font-weight:700;">CESCE ' + eur2(c.cesceImporte || 0) + '</span>' : 'Sin crédito CESCE') + ' · Dynamo ' + eur2(c.dynamoImporte || 0) + '</div></td>' +
+                '<td>' + factorBadge(c.factorPrecio) + '</td>' +
                 '<td>' + fmtFH(c.creadoEn) + (c.modificadoEn ? '<div class="meta">Modif. ' + fmtFH(c.modificadoEn) + '</div>' : '') + '</td>' +
                 '<td>' + clienteEstadoBadge(c.estado) + '</td>' +
             '</tr>';
@@ -11325,10 +11339,15 @@
                 ctField('cli-f-cesceimp', 'Importe crédito CESCE (€)', (c.cesceImporte == null ? '' : c.cesceImporte), 'Ej. 40000', false, 'number') +
                 ctField('cli-f-dynamoimp', 'Importe crédito Dynamo (€)', (c.dynamoImporte == null ? '' : c.dynamoImporte), 'Ej. 10000', false, 'number') +
                 (function () {
-                    var fp = (c.factorPrecio == null ? 0 : c.factorPrecio);
-                    return '<div style="grid-column:1/-1"><label>Factor de precio del cliente (%) <span style="font-weight:600;color:var(--gray-500);">· de −20 % a +20 %</span> <span style="font-weight:800;color:var(--red,#d93025);">· SOLO VISIBLE ADMIN — el cliente NUNCA ve este campo</span></label>' +
-                        '<input id="cli-f-factor" type="number" min="-20" max="20" step="1" value="' + escapeHtml(String(fp)) + '" placeholder="0">' +
-                        '<div style="font-size: var(--fs-s);color:var(--gray-500);margin-top:0.3rem;line-height:1.4;">Ajuste comercial sobre el precio del tarifador (base imponible, <strong>antes de IVA</strong>). <strong>Negativo</strong> = descuento (p. ej. cliente con mucho volumen); <strong>positivo</strong> = incremento (p. ej. mercancía muy valiosa). <strong>0</strong> = precio estándar. Se aplica de forma automática a todos sus envíos.</div></div>';
+                    var fp = (c.factorPrecio == null ? -7 : c.factorPrecio);
+                    return '<div style="grid-column:1/-1"><label>Factor de precio del cliente (%) <span style="font-weight:600;color:var(--gray-500);">· de −30 % a +30 %</span> <span style="font-weight:800;color:var(--red,#d93025);">· SOLO VISIBLE ADMIN — el cliente NUNCA ve este campo</span></label>' +
+                        '<div style="display:flex;align-items:center;gap:0.7rem;margin-top:0.4rem;">' +
+                            '<span style="font-size:var(--fs-s);color:var(--gray-500);white-space:nowrap;">−30 %</span>' +
+                            '<input id="cli-f-factor" type="range" min="-30" max="30" step="1" value="' + escapeHtml(String(fp)) + '" style="flex:1;accent-color:var(--purple);" oninput="var e=document.getElementById(\'cli-f-factor-val\'); if(e){ e.innerHTML = window.factorBadge(this.value); }">' +
+                            '<span style="font-size:var(--fs-s);color:var(--gray-500);white-space:nowrap;">+30 %</span>' +
+                            '<span id="cli-f-factor-val" style="min-width:58px;text-align:center;">' + factorBadge(fp) + '</span>' +
+                        '</div>' +
+                        '<div style="font-size: var(--fs-s);color:var(--gray-500);margin-top:0.4rem;line-height:1.4;"><strong>Por defecto −7 %</strong> al dar de alta un cliente (descuento de captación); súbelo a <strong>0 %</strong> u otro valor cuando lo veas. <strong>Negativo</strong> = descuento · <strong>0</strong> = tarifa estándar · <strong>positivo</strong> = se cobra más que la tarifa oficial. Se aplica automáticamente a todos sus envíos (base imponible, antes de IVA).</div></div>';
                 })() +
                 ctField('cli-f-dir', 'Domicilio fiscal (calle y número)', c.dir, 'Calle y número', true) +
                 ctField('cli-f-cp', 'CP', c.cp, '41001') +
@@ -11439,7 +11458,7 @@
         var factorEl = document.getElementById('cli-f-factor');
         if (factorEl && factorEl.value.trim() !== '') {
             var fpv = Math.round(Number(factorEl.value));
-            c.factorPrecio = isNaN(fpv) ? 0 : Math.max(-20, Math.min(20, fpv));  // acotado −20..+20
+            c.factorPrecio = isNaN(fpv) ? 0 : Math.max(-30, Math.min(30, fpv));  // acotado −30..+30
         } else c.factorPrecio = 0;
         c.cesce = c.cesceImporte > 0;   // el crédito CESCE lo determina su importe
         c.notas = v('cli-f-notas') || null;
