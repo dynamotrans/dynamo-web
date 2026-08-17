@@ -1,0 +1,487 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="es">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="x-apple-disable-message-reformatting" />
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no" />
+<title>Dynamo Operador Logistico</title>
+<!--[if mso]>
+<xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
+<![endif]-->
+
+<!--
+  ============================================================================
+  DYNAMO — Email de prospeccion (Brevo)
+  ----------------------------------------------------------------------------
+  ETIQUETAS DE BREVO usadas:
+    {{ contact.NOMBRE }}      nombre de la empresa / contacto
+    {{ contact.PROVINCIA }}   provincia del almacen de origen
+    {{ unsubscribe }}         enlace de baja (obligatorio, lo genera Brevo)
+    {{ mirror }}              ver el email en el navegador
+  ----------------------------------------------------------------------------
+  IMAGENES: todas apuntan a https://www.dynamotrans.com/images/email/...
+  Para cambiar de hosting (p. ej. subirlas a la galeria de Brevo), busca y
+  reemplaza esa base de URL. Los archivos se generan con emails/build-assets.py
+  ----------------------------------------------------------------------------
+  BANNER dynamo + AGENCIA DE TRANSPORTE: buscar "BANNER-AT" mas abajo y pegar
+  la URL de la imagen que ya usas en Brevo.
+  ============================================================================
+-->
+
+<style type="text/css">
+  /* Reset basico */
+  body, table, td, a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+  table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
+  img { -ms-interpolation-mode:bicubic; border:0; outline:none; text-decoration:none; display:block; }
+  body { margin:0 !important; padding:0 !important; width:100% !important; }
+  a { color:#3300cc; }
+
+  /* Modo oscuro: forzamos fondos claros, si no Gmail/Apple invierten a medias */
+  :root { color-scheme: light; supported-color-schemes: light; }
+
+  @media only screen and (max-width:620px) {
+    .wrap    { width:100% !important; }
+    .px      { padding-left:20px !important; padding-right:20px !important; }
+    /* Columnas: en movil pasan a ancho completo, una debajo de otra */
+    .stack   { display:block !important; width:100% !important; max-width:100% !important; }
+    .stack-sp{ display:block !important; width:100% !important; height:12px !important;
+               font-size:12px !important; line-height:12px !important; }
+    .hide-sm { display:none !important; }
+    .stat    { width:50% !important; display:inline-block !important; padding:10px 0 !important; }
+  }
+</style>
+</head>
+
+<body style="margin:0; padding:0; background-color:#f2f3f7;">
+
+<!-- Preheader: lo que se lee en la bandeja junto al asunto -->
+<div style="display:none; font-size:1px; color:#f2f3f7; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden; mso-hide:all;">
+  Grupajes o carga completa, nacional y Europa. Dime que mueves y te paso precio hoy mismo.
+  &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
+</div>
+
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f2f3f7;">
+<tr>
+<td align="center" style="padding:24px 12px;">
+
+  <!--[if mso]><table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600"><tr><td><![endif]-->
+  <table role="presentation" class="wrap" border="0" cellpadding="0" cellspacing="0" width="600" style="width:600px; max-width:600px; background-color:#ffffff; border-radius:16px; overflow:hidden;">
+
+    <!-- ================================================ BARRA SUPERIOR ==== -->
+    <tr>
+      <td>
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+          <tr>
+            <td width="62%" height="5" bgcolor="#3300cc" style="height:5px; line-height:5px; font-size:5px;">&nbsp;</td>
+            <td width="38%" height="5" bgcolor="#22a55a" style="height:5px; line-height:5px; font-size:5px;">&nbsp;</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- ========================================================= HEADER ==== -->
+    <tr>
+      <td class="px" style="padding:22px 32px 18px 32px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+          <tr>
+            <td align="left" valign="middle">
+              <a href="https://www.dynamotrans.com/" target="_blank" style="text-decoration:none;">
+                <img src="https://www.dynamotrans.com/images/email/logo-dynamo.png" width="150" alt="Dynamo Operador Logistico" style="width:150px; height:auto; display:block;" />
+              </a>
+            </td>
+            <td align="right" valign="middle" class="hide-sm" style="font-family:Arial,Helvetica,sans-serif; font-size:11px; line-height:16px; color:#6c7282; letter-spacing:0.4px;">
+              <span style="color:#0a0230; font-weight:bold;">Always Moving.</span><br />
+              Operador de transportes desde 2012
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- =========================================================== HERO ==== -->
+    <tr>
+      <td>
+        <a href="https://www.dynamotrans.com/" target="_blank" style="text-decoration:none;">
+          <img src="https://www.dynamotrans.com/images/email/hero.jpg" width="600" alt="Grupajes y carga completa - Nacional, Europa, urgentes 24h" style="width:100%; max-width:600px; height:auto; display:block;" />
+        </a>
+      </td>
+    </tr>
+
+    <!-- ======================================================== MENSAJE ==== -->
+    <tr>
+      <td class="px" style="padding:30px 32px 6px 32px; font-family:Arial,Helvetica,sans-serif;">
+
+        <p style="margin:0 0 18px 0; font-size:15px; line-height:23px; color:#0a0230; font-weight:bold;">
+          A/A. de responsable transporte/log&iacute;stica de {{ contact.NOMBRE | default : "tu empresa" }}
+        </p>
+
+        <p style="margin:0 0 10px 0; font-size:15px; line-height:24px; color:#3d4250;">
+          Buenos d&iacute;as,
+        </p>
+
+        <p style="margin:0 0 10px 0; font-size:15px; line-height:24px; color:#3d4250;">
+          Le escribo por si <strong style="color:#0a0230;">puedo ayudarle con alg&uacute;n transporte esta semana</strong>
+          desde tu almac&eacute;n{% if contact.PROVINCIA %} de <strong style="color:#0a0230;">{{ contact.PROVINCIA }}</strong>{% endif %}.
+        </p>
+
+        <p style="margin:0 0 24px 0; font-size:15px; line-height:24px; color:#3d4250;">
+          Como sabes hacemos <strong style="color:#0a0230;">grupajes o carga completa</strong> en Nacional y tambi&eacute;n Europa.
+        </p>
+      </td>
+    </tr>
+
+    <!-- ============================================== CAJA: QUE NECESITO ==== -->
+    <tr>
+      <td class="px" style="padding:0 32px 26px 32px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f7f8fa; border:1px solid #e8eaed; border-left:4px solid #3300cc; border-radius:12px;">
+          <tr>
+            <td style="padding:20px 22px; font-family:Arial,Helvetica,sans-serif;">
+
+              <p style="margin:0 0 14px 0; font-size:15px; line-height:22px; color:#0a0230; font-weight:bold;">
+                Para darte precio s&oacute;lo necesito saber:
+              </p>
+
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td width="26" valign="top" style="padding:0 0 12px 0;">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr>
+                      <td width="20" height="20" align="center" valign="middle" bgcolor="#3300cc" style="width:20px; height:20px; border-radius:10px; font-family:Arial,Helvetica,sans-serif; font-size:11px; line-height:20px; color:#ffffff; font-weight:bold;">1</td>
+                    </tr></table>
+                  </td>
+                  <td valign="top" style="padding:0 0 12px 0; font-size:14px; line-height:21px; color:#3d4250;">
+                    Si son <strong style="color:#0a0230;">palets, maquinaria</strong>, bulto, etc.
+                  </td>
+                </tr>
+                <tr>
+                  <td width="26" valign="top" style="padding:0 0 12px 0;">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr>
+                      <td width="20" height="20" align="center" valign="middle" bgcolor="#3300cc" style="width:20px; height:20px; border-radius:10px; font-family:Arial,Helvetica,sans-serif; font-size:11px; line-height:20px; color:#ffffff; font-weight:bold;">2</td>
+                    </tr></table>
+                  </td>
+                  <td valign="top" style="padding:0 0 12px 0; font-size:14px; line-height:21px; color:#3d4250;">
+                    &iquest;<strong style="color:#0a0230;">Completa</strong> (tr&aacute;iler) o <strong style="color:#0a0230;">grupaje</strong>?
+                    <span style="color:#6c7282; font-style:italic;">(Si es grupaje: metros lineales y peso aprox).</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td width="26" valign="top">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr>
+                      <td width="20" height="20" align="center" valign="middle" bgcolor="#3300cc" style="width:20px; height:20px; border-radius:10px; font-family:Arial,Helvetica,sans-serif; font-size:11px; line-height:20px; color:#ffffff; font-weight:bold;">3</td>
+                    </tr></table>
+                  </td>
+                  <td valign="top" style="font-size:14px; line-height:21px; color:#3d4250;">
+                    <strong style="color:#0a0230;">CP y localidad de: origen y destino.</strong>
+                    <span style="color:#6c7282; font-style:italic;">(Confirmar si hay medios de carga/descarga y acceso para tr&aacute;iler; si no, pedir <strong style="color:#0a0230;">trampilla</strong>.)</span>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- ========================================================== CTAs ==== -->
+    <tr>
+      <td class="px" align="center" style="padding:0 32px 8px 32px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+          <tr>
+            <td style="padding:0 0 10px 0;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td align="center" bgcolor="#3300cc" style="border-radius:10px;">
+                    <a href="mailto:info@dynamotrans.com?subject=Solicitud%20de%20tarifa%20-%20transporte" target="_blank"
+                       style="display:block; padding:15px 20px; font-family:Arial,Helvetica,sans-serif; font-size:15px; line-height:20px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:10px;">
+                      Escr&iacute;beme y te paso tarifa &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="font-size:0;">
+              <!--[if mso]><table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td width="258" valign="top"><![endif]-->
+              <div class="stack" style="display:inline-block; width:100%; max-width:258px; vertical-align:top;">
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                  <tr>
+                    <td align="center" bgcolor="#22a55a" style="border-radius:10px;">
+                      <a href="https://wa.me/34628995709?text=Hola%20%C3%81lvaro%2C%20necesito%20tarifa%20para%20un%20transporte." target="_blank"
+                         style="display:block; padding:13px 12px; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:18px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:10px;">
+                        WhatsApp 628 995 709
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </div><!--
+              --><div class="stack-sp" style="display:inline-block; width:20px; font-size:1px; line-height:1px;">&nbsp;</div><!--
+              --><!--[if mso]></td><td width="20">&nbsp;</td><td width="258" valign="top"><![endif]-->
+              <div class="stack" style="display:inline-block; width:100%; max-width:258px; vertical-align:top;">
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                  <tr>
+                    <td align="center" bgcolor="#ffffff" style="border-radius:10px; border:2px solid #3300cc;">
+                      <a href="tel:+34955225945" target="_blank"
+                         style="display:block; padding:11px 12px; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:18px; font-weight:bold; color:#3300cc; text-decoration:none; border-radius:10px;">
+                        Llamar 955 225 945
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+              <!--[if mso]></td></tr></table><![endif]-->
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- ========================================================= FIRMA ==== -->
+    <tr>
+      <td class="px" style="padding:24px 32px 26px 32px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-top:1px solid #e8eaed;">
+          <tr>
+            <td style="padding-top:20px;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="60" valign="top">
+                    <img src="https://www.dynamotrans.com/images/email/alvaro.png" width="52" alt="Alvaro Blanco" style="width:52px; height:52px; border-radius:26px; display:block;" />
+                  </td>
+                  <td valign="middle" style="font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:21px; color:#3d4250;">
+                    <strong style="color:#0a0230; font-size:15px;">&Aacute;lvaro Blanco</strong><br />
+                    Dynamo Operador Log&iacute;stico, S.L.<br />
+                    <a href="mailto:info@dynamotrans.com" style="color:#3300cc; text-decoration:underline;">info@dynamotrans.com</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- ========================================================= CIFRAS ==== -->
+    <tr>
+      <td bgcolor="#f7f8fa" style="padding:22px 20px; border-top:1px solid #e8eaed; border-bottom:1px solid #e8eaed;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+          <tr>
+            <td class="stat" width="25%" align="center" valign="top" style="font-family:Arial,Helvetica,sans-serif;">
+              <div style="font-size:24px; line-height:28px; font-weight:bold; color:#3300cc;">+480</div>
+              <div style="font-size:11px; line-height:15px; color:#6c7282; padding-top:4px;">Clientes conf&iacute;an<br />en nosotros</div>
+            </td>
+            <td class="stat" width="25%" align="center" valign="top" style="font-family:Arial,Helvetica,sans-serif;">
+              <div style="font-size:13px; line-height:16px; color:#f9ab00; letter-spacing:1px;">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+              <div style="font-size:20px; line-height:24px; font-weight:bold; color:#3300cc; padding-top:2px;">5,0</div>
+              <div style="font-size:11px; line-height:15px; color:#6c7282; padding-top:2px;">en Google Reviews</div>
+            </td>
+            <td class="stat" width="25%" align="center" valign="top" style="font-family:Arial,Helvetica,sans-serif;">
+              <div style="font-size:24px; line-height:28px; font-weight:bold; color:#3300cc;">+13</div>
+              <div style="font-size:11px; line-height:15px; color:#6c7282; padding-top:4px;">A&ntilde;os de experiencia<br />en el sector</div>
+            </td>
+            <td class="stat" width="25%" align="center" valign="top" style="font-family:Arial,Helvetica,sans-serif;">
+              <div style="font-size:24px; line-height:28px; font-weight:bold; color:#3300cc;">24/7</div>
+              <div style="font-size:11px; line-height:15px; color:#6c7282; padding-top:4px;">Atenci&oacute;n al cliente<br />siempre disponible</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- ======================================================== RESENAS ==== -->
+    <tr>
+      <td class="px" style="padding:28px 32px 4px 32px; font-family:Arial,Helvetica,sans-serif;">
+        <p style="margin:0 0 4px 0; font-size:11px; line-height:16px; color:#3300cc; font-weight:bold; letter-spacing:0.6px;">
+          LO QUE DICEN NUESTROS CLIENTES
+        </p>
+        <p style="margin:0 0 18px 0; font-size:19px; line-height:26px; color:#0a0230; font-weight:bold;">
+          Rese&ntilde;as reales de Google
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td class="px" style="padding:0 32px 26px 32px; font-size:0;">
+        <!--[if mso]><table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td width="258" valign="top"><![endif]-->
+        <div class="stack" style="display:inline-block; width:100%; max-width:258px; vertical-align:top;">
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#ffffff; border:1px solid #e8eaed; border-radius:12px;">
+            <tr>
+              <td style="padding:16px 16px 14px 16px; font-family:Arial,Helvetica,sans-serif;">
+                <div style="font-size:12px; line-height:16px; color:#f9ab00; letter-spacing:1px;">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                <p style="margin:8px 0 12px 0; font-size:13px; line-height:20px; color:#3d4250;">
+                  &ldquo;He tramitado un porte con ellos y genial. &Aacute;lvaro Blanco muy amable, me ha buscado una buena soluci&oacute;n. Recomendable 100x100.&rdquo;
+                </p>
+                <div style="font-size:12px; line-height:16px; color:#0a0230; font-weight:bold;">Sandra</div>
+                <div style="font-size:11px; line-height:15px; color:#6c7282;">Local Guide &middot; 344 rese&ntilde;as</div>
+              </td>
+            </tr>
+          </table>
+        </div><!--
+        --><div class="stack-sp" style="display:inline-block; width:20px; font-size:1px; line-height:1px;">&nbsp;</div><!--
+        --><!--[if mso]></td><td width="20">&nbsp;</td><td width="258" valign="top"><![endif]-->
+        <div class="stack" style="display:inline-block; width:100%; max-width:258px; vertical-align:top;">
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#ffffff; border:1px solid #e8eaed; border-radius:12px;">
+            <tr>
+              <td style="padding:16px 16px 14px 16px; font-family:Arial,Helvetica,sans-serif;">
+                <div style="font-size:12px; line-height:16px; color:#f9ab00; letter-spacing:1px;">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                <p style="margin:8px 0 12px 0; font-size:13px; line-height:20px; color:#3d4250;">
+                  &ldquo;Es nuestro operador log&iacute;stico de confianza. Atento, profesional e involucrado. Lo recomendamos 100%.&rdquo;
+                </p>
+                <div style="font-size:12px; line-height:16px; color:#0a0230; font-weight:bold;">Alba Fern&aacute;ndez</div>
+                <div style="font-size:11px; line-height:15px; color:#6c7282;">2 rese&ntilde;as</div>
+              </td>
+            </tr>
+          </table>
+        </div>
+        <!--[if mso]></td></tr></table><![endif]-->
+      </td>
+    </tr>
+
+    <!-- ======================================================== CAMIONES ==== -->
+    <tr>
+      <td class="px" style="padding:6px 32px 4px 32px; font-family:Arial,Helvetica,sans-serif;">
+        <p style="margin:0 0 4px 0; font-size:11px; line-height:16px; color:#3300cc; font-weight:bold; letter-spacing:0.6px;">
+          NUESTRA FLOTA
+        </p>
+        <p style="margin:0 0 18px 0; font-size:19px; line-height:26px; color:#0a0230; font-weight:bold;">
+          Con qu&eacute; movemos tu mercanc&iacute;a
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td class="px" style="padding:0 32px 20px 32px; font-size:0;">
+        <!--[if mso]><table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td width="258" valign="top"><![endif]-->
+        <!-- Tauliner -->
+        <div class="stack" style="display:inline-block; width:100%; max-width:258px; vertical-align:top;">
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e8eaed; border-radius:12px;">
+            <tr><td height="3" bgcolor="#3300cc" style="height:3px; line-height:3px; font-size:3px; border-radius:12px 12px 0 0;">&nbsp;</td></tr>
+            <tr>
+              <td style="padding:14px 16px 16px 16px; font-family:Arial,Helvetica,sans-serif;">
+                <p style="margin:0 0 4px 0; font-size:14px; line-height:19px; color:#0a0230; font-weight:bold;">Trailer Tauliner</p>
+                <p style="margin:0 0 12px 0; font-size:11px; line-height:16px; color:#6c7282;">Cortina / lona corredera. Apertura lateral, trasera y de techo.</p>
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="font-family:Arial,Helvetica,sans-serif; font-size:12px; line-height:18px;">
+                  <tr><td style="color:#6c7282; padding:2px 0;">Largo interior</td><td align="right" style="color:#0a0230; font-weight:bold; white-space:nowrap;">13,60 m</td></tr>
+                  <tr><td style="color:#6c7282; padding:2px 0;">Carga m&aacute;x.</td><td align="right" style="color:#0a0230; font-weight:bold; white-space:nowrap;">24 Tn</td></tr>
+                  <tr><td style="color:#6c7282; padding:2px 0;">Pal&eacute; europeo</td><td align="right" style="color:#0a0230; font-weight:bold; white-space:nowrap;">33 uds.</td></tr>
+                  <tr><td style="color:#6c7282; padding:2px 0;">Pal&eacute; americano</td><td align="right" style="color:#0a0230; font-weight:bold; white-space:nowrap;">26 uds.</td></tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </div><!--
+        --><div class="stack-sp" style="display:inline-block; width:20px; font-size:1px; line-height:1px;">&nbsp;</div><!--
+        --><!--[if mso]></td><td width="20">&nbsp;</td><td width="258" valign="top"><![endif]-->
+        <!-- Rigido -->
+        <div class="stack" style="display:inline-block; width:100%; max-width:258px; vertical-align:top;">
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e8eaed; border-radius:12px;">
+            <tr><td height="3" bgcolor="#22a55a" style="height:3px; line-height:3px; font-size:3px; border-radius:12px 12px 0 0;">&nbsp;</td></tr>
+            <tr>
+              <td style="padding:14px 16px 16px 16px; font-family:Arial,Helvetica,sans-serif;">
+                <p style="margin:0 0 4px 0; font-size:14px; line-height:19px; color:#0a0230; font-weight:bold;">R&iacute;gido con plataforma</p>
+                <p style="margin:0 0 12px 0; font-size:11px; line-height:16px; color:#6c7282;">Con transpaleta. Para destinos sin muelle ni medios de descarga.</p>
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="font-family:Arial,Helvetica,sans-serif; font-size:12px; line-height:18px;">
+                  <tr><td style="color:#6c7282; padding:2px 0;">Largo</td><td align="right" style="color:#0a0230; font-weight:bold; white-space:nowrap;">8 m</td></tr>
+                  <tr><td style="color:#6c7282; padding:2px 0;">Carga m&aacute;x.</td><td align="right" style="color:#0a0230; font-weight:bold; white-space:nowrap;">14 Tn</td></tr>
+                  <tr><td style="color:#6c7282; padding:2px 0;">Pal&eacute; europeo</td><td align="right" style="color:#0a0230; font-weight:bold; white-space:nowrap;">20 uds.</td></tr>
+                  <tr><td style="color:#6c7282; padding:2px 0;">Equipamiento</td><td align="right" style="color:#0a0230; font-weight:bold; white-space:nowrap;">Trampilla</td></tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </div>
+        <!--[if mso]></td></tr></table><![endif]-->
+      </td>
+    </tr>
+
+    <!-- ======================================================= COBERTURA ==== -->
+    <tr>
+      <td class="px" style="padding:0 32px 26px 32px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#0a0230; border-radius:12px;">
+          <tr>
+            <td style="padding:20px 22px; font-family:Arial,Helvetica,sans-serif;">
+              <p style="margin:0 0 6px 0; font-size:11px; line-height:16px; color:#7ee2a8; font-weight:bold; letter-spacing:0.6px;">
+                COBERTURA
+              </p>
+              <p style="margin:0 0 8px 0; font-size:16px; line-height:23px; color:#ffffff; font-weight:bold;">
+                Toda Espa&ntilde;a &middot; Nacional 24 h &middot; y 11 pa&iacute;ses de Europa
+              </p>
+              <p style="margin:0; font-size:12px; line-height:19px; color:#b9b2d8;">
+                Portugal &middot; Francia &middot; Alemania &middot; Italia &middot; Suiza &middot; Pa&iacute;ses Bajos &middot; B&eacute;lgica &middot; Luxemburgo &middot; Austria &middot; Polonia &middot; Rep&uacute;blica Checa
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- ======================================================== CLIENTES ==== -->
+    <tr>
+      <td class="px" align="center" style="padding:0 32px 6px 32px; font-family:Arial,Helvetica,sans-serif;">
+        <p style="margin:0 0 16px 0; font-size:11px; line-height:16px; color:#3300cc; font-weight:bold; letter-spacing:0.6px;">
+          ALGUNOS DE NUESTROS CLIENTES
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td class="px" style="padding:0 32px 28px 32px;">
+        <img src="https://www.dynamotrans.com/images/email/clientes.png" width="536" alt="JYSK, BigMat, SKLUM, Strugal, ghi, Gramoflor, Quimicas Oro, Jumasa, Rimobel, Piscimar, Coavantia, Dimasiber, Transmetalicas, Hidrodiseno, Aceitunas Cazorla, TodoEmbalaje" style="width:100%; max-width:536px; height:auto; display:block;" />
+      </td>
+    </tr>
+
+    <!-- ==================================================== BANNER-AT ====== -->
+    <!-- Pega aqui la URL del banner dynamo + AGENCIA DE TRANSPORTE que ya usas
+         en Brevo (clic derecho sobre la imagen en el editor > copiar direccion).
+         Si no lo quieres, borra esta fila <tr> entera. -->
+    <tr>
+      <td class="px" style="padding:0 32px 28px 32px;">
+        <a href="https://www.dynamotrans.com/" target="_blank" style="text-decoration:none;">
+          <img src="URL_DEL_BANNER_DYNAMO_AT" width="536" alt="Dynamo y Agencia de Transporte - Carga completa, grupaje, nacional y Europa" style="width:100%; max-width:536px; height:auto; display:block; border-radius:10px;" />
+        </a>
+      </td>
+    </tr>
+
+    <!-- ===================================================== PERMISO/BAJA ==== -->
+    <tr>
+      <td class="px" style="padding:0 32px 26px 32px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f7f8fa; border:1px solid #e8eaed; border-radius:12px;">
+          <tr>
+            <td style="padding:16px 20px; font-family:Arial,Helvetica,sans-serif; font-size:13px; line-height:20px; color:#3d4250;">
+              Si me permites te mando <strong style="color:#0a0230;">1 email de vez en cuando</strong> a modo de recordatorio,
+              para que puedas pedirnos transportes o precios/tarifas para tus cargas.<br />
+              <a href="{{ unsubscribe }}" target="_blank" style="color:#3300cc; text-decoration:underline;">Si no quieres que te env&iacute;e otro email haz clic aqu&iacute;</a>
+              y no te enviar&eacute; nunca m&aacute;s un email.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+  </table>
+  <!--[if mso]></td></tr></table><![endif]-->
+
+  <!-- ========================================================== FOOTER ==== -->
+  <!--[if mso]><table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600"><tr><td><![endif]-->
+  <table role="presentation" class="wrap" border="0" cellpadding="0" cellspacing="0" width="600" style="width:600px; max-width:600px;">
+    <tr>
+      <td class="px" align="center" style="padding:22px 32px 8px 32px; font-family:Arial,Helvetica,sans-serif; font-size:11px; line-height:18px; color:#8a90a0;">
+        <strong style="color:#0a0230;">Dynamo Operador Log&iacute;stico, S.L.</strong> &middot; ESB01596360<br />
+        <a href="mailto:info@dynamotrans.com" style="color:#8a90a0; text-decoration:underline;">info@dynamotrans.com</a> &middot;
+        <a href="tel:+34955225945" style="color:#8a90a0; text-decoration:underline;">955 225 945</a> &middot;
+        <a href="https://www.dynamotrans.com/" target="_blank" style="color:#8a90a0; text-decoration:underline;">dynamotrans.com</a>
+      </td>
+    </tr>
+    <tr>
+      <td class="px" align="center" style="padding:0 32px 26px 32px; font-family:Arial,Helvetica,sans-serif; font-size:11px; line-height:18px; color:#a4a9b6;">
+        Recibes este email porque figuras como contacto profesional del sector.<br />
+        <a href="{{ unsubscribe }}" target="_blank" style="color:#8a90a0; text-decoration:underline;">Darse de baja</a> &middot;
+        <a href="{{ mirror }}" target="_blank" style="color:#8a90a0; text-decoration:underline;">Ver en el navegador</a>
+      </td>
+    </tr>
+  </table>
+  <!--[if mso]></td></tr></table><![endif]-->
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>
