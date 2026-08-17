@@ -12444,6 +12444,18 @@
     function telConductorHTML(r) {
         var tel = r.tfnoConductor;
         if (!tel) return pend(null);
+        // Servicio FINALIZADO (entregado o cancelado): para el CLIENTE el contacto
+        // del transportista DESAPARECE — evita que se quede con su teléfono y le
+        // llame directamente para darle la carga, saltándose a Dynamo como operador.
+        // El admin lo sigue viendo. (En backend + gating de roles: aplicar a TODO
+        // dato de contacto del transportista —teléfono, email— en cualquier vista
+        // del cliente una vez el envío pasa a entregado/finalizado.)
+        var esClienteTC = (window.getRole ? window.getRole() : 'admin') !== 'admin';
+        if (esClienteTC && (r.kind === 'entregada' || r.kind === 'cancelada')) {
+            return '<span class="tel-mask" tabindex="0" style="cursor:default;">No disponible' +
+                '<span class="tel-mask-i" aria-hidden="true">i</span>' +
+                '<span class="tel-mask-tip" role="tooltip">El servicio ha finalizado: el contacto del transportista ya no está disponible. Para cualquier gestión, contacta con Dynamo.</span></span>';
+        }
         var reveal = telRevealDate(r);
         var now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
         if (reveal && now.getTime() >= reveal.getTime()) {
