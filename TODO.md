@@ -211,6 +211,16 @@ Bloque consolidado para tener todo en un sitio cuando arranquemos la implementac
 - **Vercel** ya conectado al repo. Se mantiene para hosting del front (web pública + futuro panel Next.js). Cuando el panel pase a producción real, activar Deployment Protection para previews.
 - **Dominio panel**: `panel.dynamotrans.com` (subdominio dedicado para el portal). Apuntar al deploy de Vercel cuando el back esté listo.
 
+### Enfoque de MIGRACIÓN: mockup monolítico → módulos, incremental (decidido 2026-08-07)
+**Cómo se pasa de mockup a plataforma real. NO big-bang: por MÓDULOS, cimientos primero, con el mockup conviviendo hasta que cada pieza esté lista (patrón "estrangulador").**
+- **Estado de partida (deuda técnica conocida)**: el panel es **un solo archivo monolítico** `dashboard.html` (~24.000 líneas) con TODO dentro (envíos, sitios, almacenamiento, facturas, incidencias, transportistas, clientes, usuarios, mapa, penalizaciones…). Por dentro está organizado en funciones por sección (`renderCargasTable`, `telConductorHTML`…), pero **físicamente NO está partido** → hoy no se puede "desplegar solo envíos": cada push sube el archivo entero (inofensivo por ser estático). También hay **duplicación** (p. ej. el tarifador copiado en `index.html` y `dashboard.html`).
+- **PRIMER PASO de la migración**: **partir el monolito en módulos** al refactorizar a **Next.js** — cada apartado pasa a su propia carpeta/ruta con sus componentes y su API (`/portal/envios`, `/portal/sitios`, `/portal/facturas`…). A partir de ahí SÍ se trabaja/despliega **un módulo aislado** sin tocar los demás.
+- **Orden recomendado (cimientos → features)**: (1) **Infra** — crear Supabase (BD + Auth) + refactor del portal a Next.js (la web pública `/`, servicios, vehículos se queda estática, no se toca); (2) **Login/registro real** (flujo passwordless ya diseñado); (3) **Roles y gating**; (4) módulo núcleo **Envíos** (crear + listar con datos reales); (5) **Sitios**, **Almacenamiento**, **Incidencias**; (6) **Facturas** (solo lectura Holded), **Transportistas**; (7) integraciones externas al final: **Wtransnet**, **Postmark**, **WhatsApp**.
+- **Convivencia mockup + real**: mientras se construye un módulo real, el resto sigue en mockup; se activa cada módulo con un **feature flag** cuando está listo (nadie nota el cambio por debajo).
+- **Despliegue**: continuo y en trozos pequeños, el MISMO flujo actual — commit pequeño → **preview** (pruebas) → **main** (producción, Vercel despliega solo). No hay "subir la plataforma entera de una vez".
+- **Ventaja clave**: el mockup **ES la especificación** (UX + comportamiento ya validados) → construir lo real es "enchufar el backend detrás de una interfaz ya hecha", módulo a módulo. **Sin migración de datos**: la plataforma real arranca vacía y se llena con el uso.
+- **Relacionado**: extraer el tarifador a un módulo compartido (`js/tarifador.js`) para matar la duplicación panel/web — ya propuesto en su día (Paso A), no iniciado.
+
 ### Email transaccional → **Postmark** (decidido 2026-06-20)
 - Razón: deliverability líder del mercado, separa estricto transaccional vs marketing. En B2B logístico con facturas y albaranes legales no se puede permitir que un email "se pierda" en spam.
 - Coste: **$15/mes hasta 10k emails** (asumible desde el día 1).
