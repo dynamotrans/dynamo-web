@@ -59,24 +59,26 @@ Si añades `CONTACTO`, cambia el saludo por:
 
 ## 3. Imágenes
 
-Todas apuntan a `https://www.dynamotrans.com/images/email/…`. Los archivos ya
-están en el repo (`images/email/`), pero **esa carpeta tiene que estar en `main`
-para que las URLs respondan** — mientras solo esté en la rama de trabajo, las
-imágenes darán 404 en el email.
+Se sirven desde `https://www.dynamotrans.com/images/email/…`, es decir desde
+**este mismo repo publicado en Vercel** (decisión del 2026-08-17). Por eso
+`images/email/` vive en `main`: si estuviera solo en una rama de trabajo, las
+URLs darían 404 en el email.
 
-Dos opciones:
+> ⚠️ **La URL de preview de Vercel no sirve para las imágenes de un email.**
+> El proyecto tiene *SSO Protection* activado en `all_except_custom_domains`,
+> así que cualquier `*.vercel.app` pide login y el destinatario vería las
+> imágenes rotas. Solo el dominio propio (`www.dynamotrans.com`) es público.
 
-- **A — Subirlas a la galería de Brevo** (recomendada, no toca producción).
-  Brevo → Imágenes → subir los 4 archivos de `images/email/`, copiar la URL de
-  cada una y sustituirla en el HTML. Ventaja: no dependes de un deploy.
-- **B — Publicar `images/email/` en `main`.** Son solo assets estáticos, no
-  cambian nada visible de la web. Una vez en producción, las URLs del HTML
-  funcionan tal cual.
+Ventaja de tenerlas en el repo: para retocar el hero o el muro de clientes se
+edita `build-assets.py`, se regenera y se hace push. El email se actualiza solo,
+sin volver a subir nada a Brevo ni tocar la plantilla.
 
-**Falta una imagen**: el banner `dynamo + AGENCIA DE TRANSPORTE.es` no está en
-este repo. Busca `BANNER-AT` en el HTML y pega ahí la URL de la que ya usas en
-Brevo (clic derecho sobre la imagen en el editor → copiar dirección de imagen).
-Si no la quieres, borra esa fila `<tr>` entera.
+La alternativa era subirlas a la galería de Brevo; se descartó porque cada
+retoque obligaría a resubir la imagen y reeditar el HTML.
+
+El antiguo banner `dynamo + AGENCIA DE TRANSPORTE.es` se sustituyó por
+`banner-dynamo.png`, una banda de marca solo de Dynamo generada por el script
+(logo blanco de `images/4.png` + chips de servicio + barra de contacto).
 
 ### Regenerar las imágenes
 
@@ -85,9 +87,9 @@ pip install pillow
 python3 emails/build-assets.py
 ```
 
-Genera en `images/email/`: `hero.jpg`, `clientes.png`, `logo-dynamo.png` y
-`alvaro.png`. Todo en JPG/PNG a propósito: **Outlook de Windows no pinta WebP**,
-así que los `.webp` de la web no sirven en email.
+Genera en `images/email/`: `hero.jpg`, `clientes.png`, `banner-dynamo.png`,
+`logo-dynamo.png` y `alvaro.png`. Todo en JPG/PNG a propósito: **Outlook de
+Windows no pinta WebP**, así que los `.webp` de la web no sirven en email.
 
 ---
 
