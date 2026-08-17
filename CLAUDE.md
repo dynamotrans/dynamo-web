@@ -165,6 +165,14 @@ Al **crear un cliente, un transportista o un usuario** hay que comprobar SIEMPRE
 
 Un mismo CIF **puede** ser cliente Y transportista (roles/tablas distintos), pero **NUNCA** dos veces cliente, ni dos veces transportista, ni un email dos veces como usuario. Motivo: evitar cuentas duplicadas de la misma empresa (facturación partida, líos contables) y usuarios repetidos. En backend: `UNIQUE` + validación con mensaje claro; normalizar CIF/email antes de comparar. En el mockup, avisar igual al crear. (Detalle en `TODO.md`.)
 
+### 11. Contacto del transportista DESAPARECE para el cliente al finalizar el envío (anti-desintermediación) — regla de negocio (2026-08-07)
+
+Una vez el envío está **entregado o finalizado** (también cancelado), **TODO dato de contacto del transportista** (teléfono del conductor, teléfono/email de la empresa transportista, cualquier canal) **debe desaparecer de la vista del CLIENTE**. Durante el transporte en curso el cliente SÍ ve el teléfono del conductor (para coordinar recogida/entrega); en cuanto pasa a entregado, se oculta. **El admin lo sigue viendo siempre.**
+
+**Motivo**: evitar que el cliente se quede con el contacto y **llame directamente al transportista para darle la carga**, saltándose a Dynamo como operador.
+
+En el mockup: `telConductorHTML(r)` (`dashboard.html`) devuelve "No disponible" + tooltip cuando el rol no es admin y `r.kind` es `entregada`/`cancelada`. **En backend + gating de roles**: imponerlo **server-side** en CADA vista/endpoint que exponga contacto del transportista al cliente (no basta ocultarlo en el front). **A valorar** (no pedido aún): anonimizar también el **nombre de la empresa transportista** al cliente (otro vector de desintermediación), como hacen las bolsas de carga. (Detalle en `TODO.md`.)
+
 ---
 
 ## Bitácora
@@ -195,6 +203,7 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **PRECIO al cliente = SOLO totales** (Base imponible / IVA / Total), sin desglose de conceptos (Importe de envío, Suplemento fecha fija, recargos trampilla/NIMA). El total se sigue calculando igual; los conceptos quedan como dato interno (`precioRows`). Aplica al tarifador (paso 3) y a la confirmación.
 - **Enlace de Google Maps FIJO**: solo lectura para el cliente en todos los sitios (ficha de Sitios + confirmación); solo el admin lo edita. El cliente pone otros enlaces en Notas.
 - **Campo "Nº de NIMA" ELIMINADO** del envío: el NIMA es del transportista (lo aporta al aceptar la carga), no del cliente/sitio. El toggle "Requiere NIMA" (Sí/No) se mantiene.
+- **ANTI-DESINTERMEDIACIÓN — contacto del transportista desaparece al finalizar** (regla 11, nueva): una vez el envío está entregado/finalizado, el **teléfono del conductor** deja de verse para el CLIENTE ("No disponible" + tooltip); durante el transporte en curso sí lo ve; el admin siempre. Evita que el cliente llame directo al transportista saltándose a Dynamo. Documentado en `CLAUDE.md` (regla 11) y `TODO.md` (server-side pendiente + valorar anonimizar también el nombre de la empresa transportista).
 - **Nota "transportistas verificados y documentación en vigor"** movida del paso 4 (confirmación) al **paso 1 (Ruta)**.
 - **Carga completa 13,6 m** (era 13,2) en TODO: tarifador Nuevo envío, medidas de envíos, aceptar-carga. **Primero solo el display**, luego (a petición) también el **valor interno/clave 13.2 → 13.6** en toda la lógica (panel + web pública) — ya NO queda ningún 13.2 funcional (solo 3 comentarios internos de `coefMl` y coordenadas del mapa que lo contienen por casualidad). La carga completa mantiene **33 europalets / 26 americanos** fijos (no se recalcula desde 13,6). **Medidas de camiones** (tarjetas + tooltip + tabla) con **volúmenes recalculados** (Trailer 90 m³, Rígido 47 m³).
 - **Desplegable de PESO en TRAMOS** (panel + web pública): tramos de kilos por debajo de 1 t (0-200, 200-400, 400-600, 600-800, 800 kg-1 t) + **toneladas de 2 en 2** (1-3, 3-5, 5-7 … hasta el máximo del camión). En la web pública el `fillPesoSelect` era por toneladas enteras → igualado al del panel; el mensaje de "Solicitar tarifa" usa ahora la etiqueta del tramo.
