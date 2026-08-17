@@ -2927,8 +2927,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <p>Similar a un furgón tipo box/caja, con cortinas correderas en lados y techo que dan fácil acceso a la carga. El vehículo más utilizado para envíos terrestres.</p>
                 <p><strong>Ideal para:</strong> mercancía paletizada, palot/box y mercancías especiales.</p>
                 <div class="veh-specs">
-                    <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">13,2 m</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,40 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Largo (interior)</div><div class="veh-spec-value">13,60 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,45 m</div></div>
                     <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
                     <div class="veh-spec"><div class="veh-spec-label">Carga máx.</div><div class="veh-spec-value">24 Tn.</div></div>
                     <div class="veh-spec"><div class="veh-spec-label">Apertura</div><div class="veh-spec-value">Lateral, trasero y techo</div></div>
@@ -2942,8 +2942,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <p><strong>Ideal para:</strong> entregas urbanas, puntos sin muelle de carga.</p>
                 <div class="veh-specs">
                     <div class="veh-spec"><div class="veh-spec-label">Largo</div><div class="veh-spec-value">8 m</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,40 m</div></div>
-                    <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,45 m</div></div>
+                    <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,40 m</div></div>
                     <div class="veh-spec"><div class="veh-spec-label">Carga máx.</div><div class="veh-spec-value">14 Tn.</div></div>
                     <div class="veh-spec"><div class="veh-spec-label">Apertura</div><div class="veh-spec-value">Lateral, trasero y techo</div></div>
                     <div class="veh-spec"><div class="veh-spec-label">Palé europeo</div><div class="veh-spec-value">20 uds. (120x80)</div></div>
@@ -4677,7 +4677,7 @@ function updateAlmTotal() {
    (definida en el script de horarios; sirve para excluir festivos ES del
    selector de fechas).
    - Ruta con paradas (recogidas/entregas, máx 2 en total)
-   - Trampilla elevadora → rígido (8 m / 14 Tn); OFF → Tauliner (13,2 m / 24 Tn)
+   - Trampilla elevadora → rígido (8 m / 14 Tn); OFF → Tauliner (13,6 m / 24 Tn)
    - Autocomplete origen/destino/paradas con Nominatim (OSM, gratis sin API key)
    - "Solicitar tarifa" → revela Email + WhatsApp con mensaje preformateado
 ========================================= */
@@ -4687,7 +4687,7 @@ function updateAlmTotal() {
 
     // ---- Info de camión (define máx ml / Tn) ----
     var CAMION_INFO = {
-        tauliner: { mlMax: 13, mlReal: 13.2, pesoMax: 24, label: 'Trailer Tauliner Lona' },
+        tauliner: { mlMax: 13, mlReal: 13.6, pesoMax: 24, label: 'Trailer Tauliner Lona' },
         rigido:   { mlMax: 8,  mlReal: 8,    pesoMax: 14, label: 'Camión Rígido con trampilla elevadora' }
     };
     var PARADA_TIPOS = ['Almacén / Nave', 'Obra', 'Zona urbana', 'Evento'];
@@ -4742,7 +4742,7 @@ function updateAlmTotal() {
 
     // ---- Selectores ML / Peso reactivos al camión ----
     // Equivalencia de metros lineales en palets (factores del cliente):
-    // 2,5 europalets/ml (13,2 m = 33 europalets = trailer completo). Solo europalets.
+    // 2,5 europalets/ml (13,6 m = 33 europalets = trailer completo). Solo europalets.
     function paletsEquiv(ml) {
         // Palets enteros: se redondea hacia abajo (no cabe medio palet).
         return Math.floor(ml * 2.5) + ' europalets';
@@ -4760,21 +4760,34 @@ function updateAlmTotal() {
         }
         if (mlMax === 13) {
             var opt2 = document.createElement('option');
-            opt2.value = '13.2'; opt2.textContent = '13,2 metros — carga completa (' + paletsEquiv(13.2) + ')';
+            opt2.value = '13.6'; opt2.textContent = '13,6 metros — carga completa (equivale a 33 europalets o 26 americanos)';
             sel.appendChild(opt2);
         }
-        sel.value = (mlMax === 13) ? '13.2' : String(mlMax);
+        sel.value = (mlMax === 13) ? '13.6' : String(mlMax);
     }
     function fillPesoSelect(sel, pesoMax) {
         sel.innerHTML = '';
         var ph = document.createElement('option');
         ph.value = ''; ph.disabled = true; ph.selected = true; ph.textContent = 'Toneladas';
         sel.appendChild(ph);
-        for (var i = 1; i <= pesoMax; i++) {
+        // Tramos en KILOS por debajo de 1 tonelada (cargas pequeñas): el value
+        // es el tope del tramo en toneladas (0,2 · 0,4 · 0,6 · 0,8 · 1).
+        [[0.2, 'De 0 a 200 kg'], [0.4, 'De 200 a 400 kg'], [0.6, 'De 400 a 600 kg'],
+         [0.8, 'De 600 a 800 kg'], [1, 'De 800 kg a 1 tonelada']].forEach(function (t) {
+            var o = document.createElement('option');
+            o.value = String(t[0]); o.textContent = t[1];
+            sel.appendChild(o);
+        });
+        // A partir de 1 Tn, TRAMOS de 2 en 2 (el value es el tope): 1-3 · 3-5 · …
+        var lo = 1;
+        for (var hi = 3; lo < pesoMax; hi += 2) {
+            if (hi > pesoMax) hi = pesoMax;
             var opt = document.createElement('option');
-            opt.value = i;
-            opt.textContent = i + (i === 1 ? ' tonelada' : ' toneladas') + (i === pesoMax ? ' (máximo)' : '');
+            opt.value = hi;
+            opt.textContent = 'De ' + lo + ' a ' + hi + ' toneladas' + (hi === pesoMax ? ' (máximo)' : '');
             sel.appendChild(opt);
+            if (hi === pesoMax) break;
+            lo = hi;
         }
         sel.value = String(pesoMax);
     }
@@ -4927,7 +4940,7 @@ function updateAlmTotal() {
         if (!urgSel) return;
         var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
         var max = info.mlReal || info.mlMax;
-        var mlv = mlSel.value === '13.2' ? 13.2 : parseFloat(mlSel.value);
+        var mlv = mlSel.value === '13.6' ? 13.6 : parseFloat(mlSel.value);
         var pesoV = parseFloat(pesoSel.value);
         // Grupaje solo si NI metros NI peso llegan al máximo. Si el peso va al
         // tope (aunque sean pocos metros) es tarifa de camión COMPLETO.
@@ -4958,7 +4971,7 @@ function updateAlmTotal() {
         fillPesoSelect(pesoSel, info.pesoMax);
         syncGrupajeVentana();
     }
-    // Trampilla ON → rígido (8 m / 14 Tn); OFF → Tauliner (13,2 m / 24 Tn).
+    // Trampilla ON → rígido (8 m / 14 Tn); OFF → Tauliner (13,6 m / 24 Tn).
     if (trampChk) {
         trampChk.addEventListener('change', function () {
             var prevMl = mlSel.value, prevPeso = pesoSel.value;
@@ -5334,8 +5347,8 @@ function updateAlmTotal() {
         var orig = origInput.value.trim();
         var dest = destInput.value.trim();
         if (!orig || !dest) return null;
-        var mlV = mlSel.value === '13.2' ? '13,2' : mlSel.value;
-        var pesoV = pesoSel.value;
+        var mlV = mlSel.value === '13.6' ? '13,6' : mlSel.value;
+        var pesoV = (pesoSel.options[pesoSel.selectedIndex] && pesoSel.selectedIndex > 0) ? pesoSel.options[pesoSel.selectedIndex].text : pesoSel.value;
         var camion = (CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner).label;
         var merca = mercaSel ? mercaSel.options[mercaSel.selectedIndex].text : '';
         var cargatipoSel = card.querySelector('[data-ptar-cargatipo]');
@@ -5368,7 +5381,7 @@ function updateAlmTotal() {
             '• MERCANCÍA: ' + merca,
             '• TIPO DE CARGA: ' + cargatipo,
             '• METROS LINEALES: ' + mlV + ' m',
-            '• TONELADAS: ' + pesoV + ' Tn',
+            '• PESO: ' + pesoV,
             '• TRAMPILLA ELEVADORA: ' + trampV,
             '• REQUIERE NIMA: ' + nimaV,
             '• FECHA DE CARGA: ' + fechaTxt,
