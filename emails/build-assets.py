@@ -146,6 +146,48 @@ def build_clientes():
     print("clientes.png", canvas.size)
 
 
+# ------------------------------------------------------ banner de cierre
+def build_banner():
+    """Banda de marca del pie: logo blanco de la web + servicios + contacto.
+    Sustituye al antiguo banner dynamo + Agencia de Transporte."""
+    W, H, BAR = 1200, 300, 74
+    im = Image.new("RGB", (W, H), (51, 0, 204))
+    d = ImageDraw.Draw(im)
+
+    # degradado horizontal morado -> navy
+    for x in range(W):
+        t = x / W
+        d.line([(x, 0), (x, H - BAR)],
+               fill=(int(51 + (10 - 51) * t), int(0 + (2 - 0) * t), int(204 + (48 - 204) * t)))
+
+    logo = Image.open(os.path.join(ROOT, "images", "4.png")).convert("RGBA")  # logo blanco
+    logo.thumbnail((360, 360), Image.LANCZOS)
+    im.paste(logo, (56, (H - BAR - logo.size[1]) // 2 - 6), logo)
+
+    # chips de servicio a la derecha
+    f_chip = font("InstrumentSans-Bold.ttf", 26)
+    chips = [("CARGA COMPLETA", "NACIONAL"), ("GRUPAJE", "EUROPA")]
+    cy = 58
+    for left, right in chips:
+        cx = W - 56
+        for label, bg, fg in ((right, (34, 165, 90), WHITE), (left, WHITE, (10, 2, 48))):
+            tw = d.textlength(label, font=f_chip)
+            box_w = int(tw) + 40
+            d.rounded_rectangle([cx - box_w, cy, cx, cy + 46], radius=8, fill=bg)
+            d.text((cx - box_w + 20, cy + 10), label, font=f_chip, fill=fg)
+            cx -= box_w + 10
+        cy += 60
+
+    # barra inferior de contacto
+    d.rectangle([0, H - BAR, W, H], fill=(10, 2, 48))
+    f_c = font("InstrumentSans-Regular.ttf", 25)
+    txt = "955 225 945   ·   628 995 709   ·   info@dynamotrans.com   ·   dynamotrans.com"
+    d.text(((W - d.textlength(txt, font=f_c)) / 2, H - BAR + 24), txt, font=f_c, fill=(200, 195, 230))
+
+    im.save(os.path.join(OUT, "banner-dynamo.png"), optimize=True)
+    print("banner-dynamo.png", im.size)
+
+
 # --------------------------------------------------------------- foto firma
 def build_alvaro():
     im = flatten(Image.open(os.path.join(ROOT, "images", "ALVARO_circular_ZOOM.png")))
@@ -159,3 +201,4 @@ if __name__ == "__main__":
     build_hero()
     build_clientes()
     build_alvaro()
+    build_banner()
