@@ -150,6 +150,33 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-08-17 — Claude Code web (nube)
+
+> **Sesión nueva de tema: emails de Brevo.** Se crea `emails/` en el repo para diseñar las plantillas de correo FUERA del editor drag & drop de Brevo y tenerlas versionadas en git. Rama de trabajo `claude/brevo-mail-template-15nrtj`, **mergeada a `main`** (`e0e8c66`) con permiso explícito del usuario. No toca `index.html` ni el portal.
+
+**POR QUÉ FUERA DEL EDITOR DE BREVO**: el usuario tenía el email metido en un **bloque HTML** dentro del editor visual (se veía el texto de relleno *"This is an HTML block…"* colándose en la vista previa). Un bloque HTML **descarta el `<style>` y las media queries**, así que no hay responsive posible. La vía correcta es **Plantillas → Nueva plantilla → codificar tu propio diseño / importar HTML**, pegando el documento completo. A cambio, esa plantilla ya solo se edita por código — que es justo lo que se buscaba.
+
+**`emails/prospeccion-brevo.html`** — email de prospección de 600px, tablas + CSS inline + ghost tables de Outlook (`<!--[if mso]-->`):
+- Copy del usuario intacto (A/A. responsable transporte/logística → "Para darte precio sólo necesito saber" con 3 puntos numerados), más material sacado de la web pública: hero con el trailer Dynamo, cifras (+480 · 5,0★ · +13 años · 24/7), 2 reseñas reales de Google, los 2 tipos de camión con specs, cobertura (España + 11 países) y muro de 16 logos de clientes.
+- **Etiquetas de Brevo**: `{{ contact.NOMBRE }}` con filtro `default`, `{{ contact.PROVINCIA }}` dentro de un `{% if %}` (si el contacto no trae provincia, la frase se acorta sola en vez de dejar "desde tu almacén ?"), `{{ unsubscribe }}` ×2 y `{{ mirror }}`.
+- **Bug del asunto detectado**: el que tenía (`{{ contact.NOMBRE | default : "" }}, transportes esta semana?`) deja el asunto **empezando por coma** a quien no traiga NOMBRE. Documentadas 4 alternativas en el README.
+- **Apilado en móvil**: el primer intento con `display:block` sobre `<td>` NO funcionaba (el `<tr>` sigue siendo `display:table-row` y los bloques se re-envuelven en celdas anónimas). Reescrito al patrón `inline-block` + max-width + ghost tables de Outlook. Verificado en Chromium a 700px y 380px.
+- **Copy unificado a tú**: el original mezclaba usted y tú en la misma frase ("**Le** escribo por si puedo ayudar**le** … desde **tu** almacén"). Ahora "**Te** escribo por si puedo ayudar**te**…", coherente con el resto ("Como sabes", "para darte precio", "te mando 1 email").
+
+**`emails/build-assets.py`** → genera `images/email/`: `hero.jpg` (recorte panorámico de `HERO-DYNAMO.webp` con velo y titular), `clientes.png` (muro 4×4 de pastillas logo+nombre), `banner-dynamo.png`, `logo-dynamo.png` y `alvaro.png`. **Todo en JPG/PNG a propósito: Outlook de Windows no pinta WebP**, así que los `.webp` de la web no valen en email. Requiere `pillow`.
+
+**BANNER**: el antiguo `dynamo + AGENCIA DE TRANSPORTE.es` no está en este repo. El usuario pidió usar imagen de Dynamo de la web → se genera `banner-dynamo.png`, banda de marca propia (logo blanco de `images/4.png` + chips CARGA COMPLETA/NACIONAL y GRUPAJE/EUROPA + barra de contacto), misma estructura que el viejo pero solo Dynamo.
+
+**HOSTING DE LAS IMÁGENES — hallazgo importante**: el proyecto de Vercel tiene **SSO Protection en `all_except_custom_domains`**. Es decir, **cualquier URL `*.vercel.app` (incluida la de preview) pide login**, así que NO sirve para imágenes de un email: el destinatario las vería rotas. Solo `www.dynamotrans.com` es público. Por eso `images/email/` se mergeó a `main`. La alternativa (galería de Brevo) se descartó: obligaría a resubir la imagen y reeditar el HTML en cada retoque, mientras que así basta con regenerar y hacer push.
+
+**Merge a `main` verificado antes de empujar**: `git diff --stat origin/main..HEAD` = **8 archivos, todos nuevos, 0 modificados, 0 borrados**. `index.html` idéntico, nada visible cambia en `dynamotrans.com`. (Ojo: el `main` local iba por detrás de `origin/main` y `git diff HEAD~1 HEAD` mostraba `index.html` como cambiado — falsa alarma, se comprobó contra `origin/main` real antes de push.)
+
+**Pendientes**:
+- **Prueba real en clientes de correo**: enviar email de prueba desde Brevo a Gmail, Outlook y móvil antes de la primera campaña. Solo está verificado en Chromium.
+- **Sincronizar `claude/sharp-dirac-E3UIO`** (preview del portal) con `main` para que no acumule drift (regla 9). No se hizo por no empujar a esa rama sin permiso.
+- Opcional: campo `CONTACTO` en Brevo (nombre de la persona) para saludar "Buenos días, Marta" — es lo que más sube la tasa de respuesta. La línea ya está escrita en `emails/README.md`.
+- Opcional: script de API de Brevo (`POST /v3/smtp/templates`) para subir/actualizar la plantilla sin abrir el editor. Requeriría `BREVO_API_KEY` en variable de entorno, nunca en el repo.
+
 ### 2026-07-04 — Claude Code web (nube)
 
 > **Sesión de flujo del tarifador/panel + simplificación del modelo de ramas.** Trabajo de portal en **preview** (`claude/sharp-dirac-E3UIO`); un cambio público a **producción** (`main`): aviso de fecha fija en el tarifador del hero.
