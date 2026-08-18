@@ -5613,6 +5613,18 @@
                                 <span class="ptar-tramp-state" aria-hidden="true"><span class="tramp-off">No (más económico)</span><span class="tramp-on">Sí (más caro)</span></span>
                             </label>
                         </div>
+                        <div class="ptar-field">
+                            <label class="ptar-label ptar-has-tip" tabindex="0">
+                                Mercancía ADR
+                                <svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>
+                                <span class="ptar-tip-pop" role="tooltip">ADR: mercancías peligrosas (inflamables, corrosivas, tóxicas…). Exige vehículo y conductor con certificación ADR. <strong>Supone un sobrecoste</strong> (suele rondar un <strong>+50% sobre la tarifa base</strong>, aunque el importe final lo fija el tarifador al calcular).</span>
+                            </label>
+                            <label class="ptar-tramp-box">
+                                <input type="checkbox" data-ptar-adr class="ptar-switch-input">
+                                <span class="ptar-switch" aria-hidden="true"></span>
+                                <span class="ptar-tramp-state" aria-hidden="true"><span class="tramp-off">No (más económico)</span><span class="tramp-on">Sí (más caro)</span></span>
+                            </label>
+                        </div>
                         </div>
                         <!-- El Nº de NIMA NO se pide al cliente: el NIMA es del
                              TRANSPORTISTA (lo aporta al aceptar la carga), no del
@@ -20201,7 +20213,7 @@
             // la carga), no del cliente ni del sitio.
             var nimaChk = card.querySelector('[data-ptar-nima]');
             if (nimaChk) nimaChk.addEventListener('change', function () { renderEta(); });
-            // ADR (mercancías peligrosas): +40% sobre el subtotal (demo).
+            // ADR (mercancías peligrosas): +50% sobre la tarifa base (demo).
             var adrChk = card.querySelector('[data-ptar-adr]');
             if (adrChk) adrChk.addEventListener('change', renderEta);
             mlSel.addEventListener('change', function () { mlSel.classList.remove('ptar-select-error'); renderOcupacion(); syncGrupajeVentana(); renderEta(); });
@@ -20613,8 +20625,8 @@
                 var techoExtra = techoOn ? Math.round(envioNeto * 0.15 / 10) * 10 : 0;
                 var trampExtra = (trampOn && trampOn.checked) ? 60 : 0;
                 var nimaExtra  = (nimaOn && nimaOn.checked) ? 50 : 0;
-                // ADR (mercancías peligrosas): +40% sobre el subtotal (demo).
-                var adrExtra   = (adrOn && adrOn.checked) ? Math.round(envioNeto * 0.40 / 10) * 10 : 0;
+                // ADR (mercancías peligrosas): +50% sobre la tarifa base (demo).
+                var adrExtra   = (adrOn && adrOn.checked) ? Math.round(envioNeto * 0.50 / 10) * 10 : 0;
                 card.dataset.techoOn    = techoOn ? '1' : '0';
                 card.dataset.trampExtra = String(trampExtra);
                 card.dataset.nimaExtra  = String(nimaExtra);
@@ -20639,7 +20651,7 @@
                 if (techoExtra) extras.push({ k: 'Carga por techo', v: techoExtra });
                 if (trampExtra) extras.push({ k: 'Trampilla elevadora', v: trampExtra });
                 if (nimaExtra)  extras.push({ k: 'NIMA', v: nimaExtra });
-                if (adrExtra)   extras.push({ k: 'Mercancía ADR (+40%)', v: adrExtra });
+                if (adrExtra)   extras.push({ k: 'Mercancía ADR (+50%)', v: adrExtra });
                 if (preavisoExtra) extras.push({ k: fijaUrgente ? 'Suplemento Fecha fija urgente' : 'Suplemento Fecha fija', v: preavisoExtra });
                 if (cortaExtra) extras.push({ k: 'Recogida 1-2 días (suplemento)', v: cortaExtra });
                 var detalle = tipoLines.concat(extras);
@@ -22449,7 +22461,7 @@
                 if (techoExtra) extras.push({ k: 'Carga por techo', v: techoExtra });
                 if (trampExtra) extras.push({ k: 'Trampilla elevadora', v: trampExtra });
                 if (nimaExtra)  extras.push({ k: 'NIMA', v: nimaExtra });
-                if (adrExtra)   extras.push({ k: 'Mercancía ADR (+40%)', v: adrExtra });
+                if (adrExtra)   extras.push({ k: 'Mercancía ADR (+50%)', v: adrExtra });
                 if (fijaExtra)  extras.push({ k: 'Suplemento Fecha fija', v: fijaExtra });
                 if (flat)       extras.push({ k: flat >= 100 ? 'Suplemento Fecha fija urgente' : 'Suplemento Fecha fija', v: flat });
                 if (cortaExtra) extras.push({ k: 'Recogida 1-2 días (suplemento)', v: cortaExtra });
