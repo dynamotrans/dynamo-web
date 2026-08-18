@@ -5728,18 +5728,20 @@
                     <input type="number" id="ptar-precio-transp-carga" data-ptar-precio-transp min="0" step="10" inputmode="decimal" placeholder="Se autorrellena con la compra más baja">
                     <p class="ptar-admin-precio-note">Se autorrellena con la compra <strong>más baja</strong> de la tabla (tarifador o último envío más barato de esta ruta, sea del transportista que sea) y es editable. Al guardar queda como <strong>P. transportista provisional</strong> del envío — de ahí sale el margen provisional — y se ajusta después al cerrar la negociación (Asignar transportista o el editor de precios).</p>
                     <!-- NEGOCIACIÓN: variable POR ENVÍO, 4 estados internos.
-                         0 = NO negociable (fijo) · 30/60 = ± limitado, decide el
-                         SISTEMA al momento · 500 = ± amplio, lo revisa un AGENTE
-                         (máx. 2 min). El modal "Ofrecer carga" lo lee como valor
-                         inicial y desde el detalle del envío se puede alternar. -->
+                         Se define por PORCENTAJE sobre el precio del transportista,
+                         redondeado a 10 €: 0 = NO negociable (fijo) · 5/10 = ± % que
+                         decide el SISTEMA al momento · 30 = ± amplio que revisa un
+                         AGENTE (máx. 2 min). El transportista NUNCA ve el %, solo el
+                         rango en € ya calculado. El modal "Ofrecer carga" lo lee como
+                         valor inicial y desde el detalle del envío se puede alternar. -->
                     <label class="ptar-admin-precio-lbl" for="ptar-precio-neg" style="margin-top:0.6rem;">Negociación del precio (transportista)</label>
                     <select id="ptar-precio-neg" data-ptar-precio-neg class="ptar-select">
                         <option value="0" selected>NO negociable · precio fijo</option>
-                        <option value="30">Negociable ±30 € · lo decide el sistema</option>
-                        <option value="60">Negociable ±60 € · lo decide el sistema</option>
-                        <option value="500">Negociable ±500 € · lo revisa un agente (máx. 2 min)</option>
+                        <option value="5">Negociable ±5% · lo decide el sistema</option>
+                        <option value="10">Negociable ±10% · lo decide el sistema</option>
+                        <option value="30">Negociable ±30% · lo revisa un agente (máx. 2 min)</option>
                     </select>
-                    <p class="ptar-admin-precio-note">Los límites son <strong>siempre sobre este precio de salida</strong>. ±30/±60 los aprueba o rechaza el <strong>sistema</strong> al instante; ±500 lo revisa un <strong>agente</strong> (máx. 2 min). Con «NO negociable» el transportista no ve la opción de proponer.</p>
+                    <p class="ptar-admin-precio-note">El margen es un <strong>% sobre el precio de salida del transportista, redondeado a 10 €</strong>. ±5%/±10% los aprueba o rechaza el <strong>sistema</strong> al instante; ±30% lo revisa un <strong>agente</strong> (máx. 2 min). El transportista <strong>solo ve el rango en €</strong> (nunca el %). Con «NO negociable» no ve la opción de proponer.</p>
                 </div>
             </div><!-- /form-2col-side -->
             </div><!-- /form-2col -->
@@ -12738,10 +12740,13 @@
             pRec.map(function (p, i) { return 'Recogida' + nOrd(i + 2) + tipoTag(tipoDe(p.site, p.tipoLugar)) + ': ' + p.dir + '\n'; }).join('') +
             pEnt.map(function (p, i) { return 'Entrega' + nOrd(nRec + i + 1) + tipoTag(tipoDe(p.site, p.tipoLugar)) + ': ' + p.dir + '\n'; }).join('') +
             'Entrega' + nOrd(nRec + pEnt.length + 1) + tipoTag(dtTxt) + ': ' + dTxt + '\n';
-        // NEGOCIACIÓN (variable del envío, 4 estados): 0 fijo · 30/60 sistema ·
-        // 500 agente. El enlace lleva &neg=<modo> y la página de aceptación
-        // pinta la barra con ese límite; con 0 no aparece la opción. El
-        // desplegable del modal la cambia al vuelo (y se guarda en el envío).
+        // NEGOCIACIÓN (variable del envío, 4 estados, por PORCENTAJE): 0 fijo ·
+        // 5/10 % sistema · 30 % agente. El enlace lleva &neg=<%> y la página de
+        // aceptación calcula el rango en € (% sobre el precio, redondeado a 10 €)
+        // y lo pinta SIN mostrar el %; con 0 no aparece la opción. El desplegable
+        // del modal la cambia al vuelo (y se guarda en el envío).
+        // Rango en € para el mensaje (el transportista solo ve euros, nunca el %).
+        function negEuros(pct) { var p = (typeof pt === 'number' ? pt : parseInt(pt, 10)) || 0; var e = Math.round(p * pct / 100 / 10) * 10; return e < 10 ? 10 : e; }
         function buildMsg(negMode) {
             return 'DYNAMO — OFERTA DE CARGA (PAGO CONTADO)\n\n' +
                 'Envío ' + c.ref + '\n' +
@@ -12750,15 +12755,17 @@
                 'Mercancía: ' + mTxt + '\n' +
                 (dmTxt ? 'Anotaciones de la mercancía: ' + dmTxt + '\n' : '') +
                 (pt ? 'Importe: ' + eur2(pt) + ' — PAGO CONTADO\n' : '') +
-                (negMode > 0 && pt ? 'PRECIO NEGOCIABLE: desde el enlace puedes proponer otro precio (hasta ±' + negMode + ' €).\n' : '') +
+                (negMode > 0 && pt ? 'PRECIO NEGOCIABLE: desde el enlace puedes proponer otro precio (hasta ±' + negEuros(negMode) + ' €).\n' : '') +
                 '\n¿Te interesa? ACEPTA LA CARGA y rellena tus datos (empresa, matrículas y chófer) aquí:\n' +
                 (negMode > 0 ? link + '&neg=' + negMode : link) + '\n\n' +
                 (ppOn ? 'PRONTO PAGO opcional: cobro a 48 h tras finalizar el servicio con un 3% de descuento (mínimo 15 €).\n\n' : '') +
                 'Dynamo Operador de Transportes · +34 955 225 945 · info@dynamotrans.com';
         }
-        // Normaliza el modo del envío (legacy booleano → 30; por defecto FIJO).
-        var negIni = c.precioNegociable === true ? 30 : (parseInt(c.precioNegociable, 10) || 0);
-        if ([0, 30, 60, 500].indexOf(negIni) === -1) negIni = 0;
+        // Normaliza el modo del envío a % (legacy booleano/€ → tramo % equivalente;
+        // por defecto FIJO). 60 €→10% · 500 €→30% para enlaces antiguos.
+        var negIni = c.precioNegociable === true ? 10 : (parseInt(c.precioNegociable, 10) || 0);
+        if (negIni === 60) negIni = 10; else if (negIni === 500) negIni = 30;
+        if ([0, 5, 10, 30].indexOf(negIni) === -1) negIni = 0;
         window._ofertaNegData = { link: link, build: buildMsg };
         var msg = buildMsg(negIni);
         openDashModal({
@@ -12772,9 +12779,9 @@
                     '<label for="ofertaNeg" style="display:block;font-size: var(--fs-s);font-weight:800;color:var(--purple);margin-bottom:0.3rem;">Negociación del precio</label>' +
                     '<select id="ofertaNeg" class="ptar-select" onchange="ofertaNegSync()">' +
                         '<option value="0"' + (negIni === 0 ? ' selected' : '') + '>NO negociable · precio fijo</option>' +
-                        '<option value="30"' + (negIni === 30 ? ' selected' : '') + '>Negociable ±30 € · lo decide el sistema</option>' +
-                        '<option value="60"' + (negIni === 60 ? ' selected' : '') + '>Negociable ±60 € · lo decide el sistema</option>' +
-                        '<option value="500"' + (negIni === 500 ? ' selected' : '') + '>Negociable ±500 € · lo revisa un agente (máx. 2 min)</option>' +
+                        '<option value="5"' + (negIni === 5 ? ' selected' : '') + '>Negociable ±5% · lo decide el sistema</option>' +
+                        '<option value="10"' + (negIni === 10 ? ' selected' : '') + '>Negociable ±10% · lo decide el sistema</option>' +
+                        '<option value="30"' + (negIni === 30 ? ' selected' : '') + '>Negociable ±30% · lo revisa un agente (máx. 2 min)</option>' +
                     '</select></div>' : '') +
                 '<textarea id="ofertaTxt" rows="13" style="width:100%;box-sizing:border-box;padding:0.7rem 0.8rem;border:1.5px solid var(--gray-200);border-radius:10px;font:inherit;font-size: var(--fs-m);color:var(--navy);resize:vertical;">' + escapeHtml(msg) + '</textarea>' +
                 '<div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.8rem;">' +
@@ -12790,8 +12797,8 @@
         window._ofertaRef = c.ref;
     }
     window.openOfrecerCarga = openOfrecerCarga;
-    // Alterna la oferta entre NEGOCIABLE (±10 %) y precio cerrado: regenera el
-    // mensaje del textarea y el enlace de la página de aceptación. Ojo: si el
+    // Alterna la oferta entre NEGOCIABLE (±5/10/30 %) y precio cerrado: regenera
+    // el mensaje del textarea y el enlace de la página de aceptación. Ojo: si el
     // admin había editado el texto a mano, al alternar se regenera.
     function ofertaNegSync() {
         var d = window._ofertaNegData; if (!d) return;
@@ -13136,18 +13143,19 @@
                 // interno del envío, alternante desde aquí para abrir/cerrar la
                 // negociación sin pasar por crear envío.
                 (src.manual ? '' : (function () {
-                    var m = src.precioNegociable === true ? 30 : (parseInt(src.precioNegociable, 10) || 0);
-                    if ([0, 30, 60, 500].indexOf(m) === -1) m = 0;
+                    var m = src.precioNegociable === true ? 10 : (parseInt(src.precioNegociable, 10) || 0);
+                    if (m === 60) m = 10; else if (m === 500) m = 30;
+                    if ([0, 5, 10, 30].indexOf(m) === -1) m = 0;
                     function opt(v, txt) { return '<option value="' + v + '"' + (m === v ? ' selected' : '') + '>' + txt + '</option>'; }
                     return '<div class="det-block" data-roles="admin" style="margin-top:0.6rem;padding:0.6rem 0.75rem;background:rgba(51,0,204,0.05);border:1px solid rgba(51,0,204,0.2);border-radius:10px;">' +
                         '<div style="font-size: var(--fs-s);font-weight:800;color:var(--purple);margin-bottom:0.35rem;">Negociación del precio (transportista) <span style="display:inline-block;background:rgba(51,0,204,0.10);border-radius:6px;padding:1px 7px;margin-left:0.3rem;">SOLO ADMIN</span></div>' +
                         '<select class="ptar-select" onchange="cambiarNegociacion(\'' + escapeHtml(src.ref || '') + '\', this.value)">' +
                             opt(0, 'NO negociable · precio fijo') +
-                            opt(30, 'Negociable ±30 € · lo decide el sistema') +
-                            opt(60, 'Negociable ±60 € · lo decide el sistema') +
-                            opt(500, 'Negociable ±500 € · lo revisa un agente (máx. 2 min)') +
+                            opt(5, 'Negociable ±5% · lo decide el sistema') +
+                            opt(10, 'Negociable ±10% · lo decide el sistema') +
+                            opt(30, 'Negociable ±30% · lo revisa un agente (máx. 2 min)') +
                         '</select>' +
-                        '<p class="detail-doc-note" style="margin-top:0.4rem;">Los límites son siempre sobre el precio de salida del transportista. El cambio aplica a las ofertas que generes desde «Ofrecer carga».</p></div>';
+                        '<p class="detail-doc-note" style="margin-top:0.4rem;">El margen es un % sobre el precio de salida del transportista, redondeado a 10 €. El transportista solo ve el rango en € (nunca el %). Aplica a las ofertas que generes desde «Ofrecer carga».</p></div>';
                 })()) +
                 // Valoración del transportista: solo en envíos ENTREGADOS
                 // (el servicio ya se ha dado). Una única puntuación 1-5 estrellas.

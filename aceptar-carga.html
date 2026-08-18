@@ -290,7 +290,7 @@
     .af-break .afb-tot .afb-v { color: var(--purple); }
     .btn { width: 100%; margin-top: 1.1rem; background: var(--purple); color: #fff; border: none; border-radius: 12px; padding: 0.95rem; font: inherit; font-weight: 800; font-size: var(--fs-d1); cursor: pointer; }
     .btn:hover { background: var(--purple-light); }
-    /* ---- CONTRAOFERTA: proponer otro precio (barra ±10 %, pasos de 10 €) ---- */
+    /* ---- CONTRAOFERTA: proponer otro precio (barra con rango en €, pasos de 10 €) ---- */
     .contra-toggle { display: block; width: 100%; margin: -0.3rem 0 1rem; background: none; border: none; color: var(--purple); font: inherit; font-size: var(--fs-l); font-weight: 800; cursor: pointer; padding: 0.2rem 0; text-align: center; }
     .contra-toggle .ct-chev { display: inline-block; transition: transform 0.2s; }
     .contra-toggle.open .ct-chev { transform: rotate(180deg); }
@@ -598,7 +598,8 @@
 
             <dl class="viaje" id="viajeBox"></dl>
 
-            <!-- CONTRAOFERTA: proponer OTRO precio (barra ±10 %, pasos de 10 €). Se envía a
+            <!-- CONTRAOFERTA: proponer OTRO precio (barra con rango en €, pasos de 10 €;
+                 el rango es un % sobre la oferta, calculado en JS, SIN mostrar el %). Se envía a
                  Dynamo y se confirma en esta pantalla (y por email). MOCKUP:
                  la decisión se simula (cpd=ok|no, cpt=segundos). -->
             <button type="button" class="contra-toggle" id="contraToggle" hidden onclick="toggleContra()">Puedo aceptarla, pero a OTRO precio <span class="ct-chev" aria-hidden="true">▾</span></button>
@@ -606,7 +607,7 @@
                 <!-- Capa 1: proponer. Capa 2 (contraStatusPane): "analizando tu
                      precio" / rechazo, EN EL MISMO HUECO, sin cambiar de pantalla. -->
                 <div id="contraFormPane">
-                    <label for="contraRange" style="margin-top:0;">Propón tu precio · hasta un ±10 % sobre la oferta</label>
+                    <label for="contraRange" style="margin-top:0;">Propón tu precio · dentro del rango permitido sobre la oferta</label>
                     <input type="range" id="contraRange" min="0" max="100" step="5" value="50" oninput="contraPinta()">
                     <div class="contra-minmax"><span id="contraMin">—</span><span id="contraMax">—</span></div>
                     <div class="contra-precio"><span id="contraPrecio">—</span> <span class="base-nota">· base imponible (impuestos no incluidos)</span></div>
@@ -1427,28 +1428,37 @@
         document.getElementById('viajeBox').innerHTML = html;
         if (p) window._basePrecio = parseEur(p);
         // ANCLA de la negociación: el precio de SALIDA de Dynamo. El rango
-        // ±10 % se calcula SIEMPRE sobre este, nunca sobre un precio ya
-        // renegociado (si no, encadenando propuestas aceptadas se escalaría
-        // el precio indefinidamente).
+        // (% redondeado a 10 €) se calcula SIEMPRE sobre este, nunca sobre un
+        // precio ya renegociado (si no, encadenando propuestas aceptadas se
+        // escalaría el precio indefinidamente).
         window._precioOferta = window._basePrecio;
-        // Contraoferta: 4 estados de NEGOCIACIÓN por envío (los fija el admin):
+        // Contraoferta: 4 estados de NEGOCIACIÓN por envío (los fija el admin),
+        // definidos por PORCENTAJE sobre el precio de salida, redondeado a 10 €:
         //   neg=0 (o ausente) → precio FIJO, no se puede proponer.
-        //   neg=30 / neg=60  → negociable ±30/±60 €, decide el SISTEMA al momento.
-        //   neg=500          → negociable ±500 €, lo revisa un AGENTE (máx. 2 min).
-        // (compat: neg=1 → 30). La demo pelada sale ±60 salvo que se fuerce.
+        //   neg=5 / neg=10   → negociable ±5%/±10%, decide el SISTEMA al momento.
+        //   neg=30           → negociable ±30%, lo revisa un AGENTE (máx. 2 min).
+        // El transportista NUNCA ve el %, solo el rango en € ya calculado.
+        // (compat enlaces antiguos por importe fijo €: 1→5% · 60→10% · 500→30%).
+        // La demo pelada sale ±10% salvo que se fuerce.
         (function () {
             var base = window._basePrecio, tg = document.getElementById('contraToggle');
             if (!tg || isNaN(base) || base <= 0) return;
-            var v = q('neg', demo ? '60' : '0');
-            if (v === '1') v = '30';
-            window._negAmp = ({ '30': 30, '60': 60, '500': 500 })[v] || 0;
-            if (!window._negAmp) return; // precio cerrado
+            var v = q('neg', demo ? '10' : '0');
+            var legacy = { '1': '5', '60': '10', '500': '30' };
+            if (legacy[v]) v = legacy[v];
+            var pct = ({ '5': 5, '10': 10, '30': 30 })[v] || 0;
+            window._negPct = pct;
+            if (!pct) return; // precio cerrado
+            // Amplitud en € = % sobre el precio de salida, redondeada a 10 €
+            // (mínimo un escalón de 10 €). Se muestra SIEMPRE en euros.
+            var amp = Math.round(base * pct / 100 / 10) * 10; if (amp < 10) amp = 10;
+            window._negAmp = amp;
             tg.hidden = false;
             var lbl = document.querySelector('label[for="contraRange"]');
             if (lbl) lbl.textContent = 'Propón tu precio · hasta ±' + window._negAmp + ' € sobre la oferta';
-            // Las propuestas grandes (±500) las revisa una persona: se avisa ya
+            // Las propuestas grandes (±30%) las revisa una persona: se avisa ya
             // en el panel para que no espere una respuesta instantánea.
-            if (window._negAmp >= 500) {
+            if (window._negPct >= 30) {
                 var nota = document.querySelector('.contra-nota');
                 if (nota) nota.innerHTML = 'No hace falta identificarte para proponerlo. Las propuestas de este envío las revisa un <strong>agente</strong> (puede tardar <strong>hasta 2 minutos</strong>): te confirmamos en esta misma pantalla y, si aceptamos tu precio, volverás a la oferta con el <strong>nuevo precio ya aplicado</strong> para identificarte y aceptar la carga.';
             }
@@ -2297,9 +2307,9 @@
             if (e.key === 'Enter') { e.preventDefault(); telConfirmar(); }
         });
     })();
-    // ---- CONTRAOFERTA: proponer otro precio (barra ±10 %, pasos de 10 €) ----
-    // Monta la barra: rango = precio de SALIDA de Dynamo ± el límite del modo
-    // de negociación del envío (±30/±60/±500 €), pasos de 10 €. El ancla es
+    // ---- CONTRAOFERTA: proponer otro precio (barra con rango en €, pasos de 10 €) ----
+    // Monta la barra: rango = precio de SALIDA de Dynamo ± la amplitud en € del
+    // modo de negociación del envío (% redondeado a 10 €), pasos de 10 €. El ancla es
     // SIEMPRE window._precioOferta (el precio original de la oferta): aunque
     // se haya acordado otro precio, los topes NO se mueven — así no se puede
     // escalar encadenando propuestas. El cursor arranca en el precio VIGENTE.
@@ -2356,11 +2366,11 @@
         var boxTxt = email
             ? 'En unos instantes te confirmamos <strong>en esta misma pantalla</strong>. Y por si la cierras, te avisaremos <strong>también por email</strong> a <strong style="color:var(--purple);">' + escH(email) + '</strong>: si aceptamos tu precio, volverás a la oferta con el nuevo precio ya aplicado para aceptar la carga.'
             : 'En unos instantes te confirmamos en esta misma pantalla. Si aceptamos tu precio, volverás a la oferta con el nuevo precio ya aplicado para identificarte y aceptar la carga. <strong>No cierres esta pantalla: aún no te has identificado y no podríamos confirmar la carga ni avisarte por email con la orden de carga.</strong>';
-        // ±30/±60: decide el SISTEMA en segundos. ±500: lo revisa un AGENTE
+        // ±5%/±10%: decide el SISTEMA en segundos. ±30%: lo revisa un AGENTE
         // humano — máx. 2 minutos de espera (barra a 2 min), con desenlaces
         // extra: contraoferta de Dynamo (nuestra oferta máxima) o "no ha dado
         // tiempo" (queda registrada + botón Contáctanos).
-        var agente = (window._negAmp || 0) >= 500;
+        var agente = (window._negPct || 0) >= 30;
         var cpd = q('cpd', 'ok');
         var cpt = parseInt(q('cpt', agente ? '120' : '6'), 10); if (isNaN(cpt) || cpt < 1) cpt = agente ? 120 : 6;
         // Mismo estilo que "Comprobando disponibilidad": spinner + barra de
