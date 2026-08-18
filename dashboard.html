@@ -5587,13 +5587,14 @@
                         <strong>Añadir detalle de mercancía, tu nº de albarán/pedido, trampilla elevadora o NIMA</strong> (opcional)
                     </button>
                     <div class="ptar-notes-body" data-ptar-notes-body hidden>
-                        <textarea data-ptar-notes maxlength="1000" rows="3"
-                            placeholder="Detalles que debamos saber (tipo de mercancía, acceso, dimensiones especiales, instrucciones de entrega…)"></textarea>
-                        <div class="ptar-notes-counter"><span data-ptar-notes-count>0</span> / 1000</div>
-                        <div class="ptar-field" style="margin-top:0.9rem;">
+                        <div class="ptar-field">
                             <label class="ptar-label" for="ptar-refcli-carga">Tu nº de albarán/pedido</label>
                             <input type="text" id="ptar-refcli-carga" data-ptar-refcli class="ptar-select" placeholder="Ej. PED-0426 / ALB-1234">
                         </div>
+                        <textarea data-ptar-notes maxlength="1000" rows="3" style="margin-top:0.9rem;"
+                            placeholder="Detalles que debamos saber (tipo de mercancía, acceso, dimensiones especiales, instrucciones de entrega…)"></textarea>
+                        <div class="ptar-notes-counter"><span data-ptar-notes-count>0</span> / 1000</div>
+                        <!-- Trampilla + NIMA AL FINAL del desplegable (tras los campos de texto). -->
                         <div class="ptar-pair" style="margin-top:0.9rem;">
                         <div class="ptar-field">
                             <label class="ptar-label ptar-has-tip" tabindex="0">
