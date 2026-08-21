@@ -3168,7 +3168,7 @@
            Metros lineales + Peso, y Fecha de carga + Ventana. */
         .ptar-pair {
             grid-column: 1 / -1;
-            display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.7rem 0.8rem;
+            display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem 0.8rem;
         }
         .ptar-pair > .ptar-field { min-width: 0; }
         /* Toggle compacto "Trampilla" (caja con switch + Sí/No). El detalle va
@@ -4313,8 +4313,9 @@
             .ptar-select, .ptar-date { font-size: 16px; }
             .ptar-actions { flex-direction: column; }
             .ptar-actions .btn-ghost { width: 100%; }
-            /* Compactación móvil: que el formulario entre sin scroll. */
-            .ptar-pair { gap: 0.5rem; }
+            /* Compactación móvil: que el formulario entre sin scroll.
+               En móvil los 3 toggles se apilan (1 col) para que quepa el texto. */
+            .ptar-pair { grid-template-columns: 1fr; gap: 0.5rem; }
             .ptar-field { gap: 0.25rem; }
             .ptar-section-head { margin: 0.4rem 0 0.3rem; font-size: var(--fs-m); }
             .ptar-label { font-size: var(--fs-s); }
