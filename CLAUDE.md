@@ -186,6 +186,45 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-09-03 — Claude Code web (nube)
+
+> **Sesión larga: factor de cliente (admin), email de prospección Brevo, pulido del desplegable de mercancía + ADR, negociación de precio por porcentaje y mapa de cobertura sin islas/enclaves.** Casi todo en **preview** (`claude/sharp-dirac-E3UIO`); a **producción** (`main`): plantilla de email Brevo y el mapa de cobertura. Estado final: **main `4396444`** · **preview `0c97695`** (antes de esta bitácora).
+
+**FACTOR DE CLIENTE (admin) + estrategia de precios (`preview`)**:
+- **Columna "Factor" en la tabla de Clientes** (solo admin) con **etiqueta de color**: rojo = descuento (negativo), gris = 0, verde = cobra por encima de tarifa. Helper `factorBadge(fp)`.
+- **Ficha de cliente**: el factor pasa a **slider −30 … +30** (centro 0) con etiqueta en vivo; **default −7%** al abrir ficha nueva (captación). El admin lo sube a 0% u otro cuando lo ve. Clientes demo con factores variados.
+- **Docs en TODO.md**: estrategia de precios/captación (tarifador público al coste, primer envío sin margen, **factor de cliente** −7% por defecto — NO factor por envío) + **plan de migración** mockup monolítico → módulos (incremental, cimientos primero, patrón estrangulador; "sube el módulo de envíos" cuando toque real).
+
+**EMAIL DE PROSPECCIÓN BREVO (`main`)**:
+- Plantilla HTML de prospección + assets en `images/email/` (banner de cierre con el logo Dynamo). **Las imágenes se sirven desde `dynamotrans.com`** (decisión A). Instrucciones incluidas.
+
+**NUEVO ENVÍO — desplegable de mercancía (`preview`)**:
+- **Orden final**: **Trampilla elevadora · Requiere NIMA · Mercancía ADR** como PRIMERA opción; debajo, tu nº de albarán/pedido y los detalles de mercancía (0/1000). (Hubo un primer reorden que los puso al final; el usuario corrigió → toggles primero.)
+- **Toggle "Mercancía ADR" reañadido** junto a Trampilla y NIMA (estaba inerte). Tooltip ⓘ explica ADR (mercancías peligrosas, exige vehículo/conductor con certificación). En el cálculo demo suma **+50% sobre la tarifa base** (antes +40%); fluye al total, al desglose interno (`precioRows`), al objeto del envío y a la casilla 18 del CMR. (El importe final lo fija el tarifador real.)
+- **Escritorio**: los 3 toggles (Trampilla · NIMA · ADR) en una **misma fila** (`.ptar-pair` grid de 3 columnas). En **móvil** se apilan (1 columna) para que quepa "No (más económico)".
+
+**CONFIRMACIÓN DE ENVÍO — caja de paralización (`preview`)**:
+- Reescrita más concisa (sin perder info legal): incluye **1 h carga + 1 h descarga** (art. 22 **Ley 15/2009**, mod. **RDL 3/2022**), **40,00 €/h** por hora o fracción de paralización. Con línea separada y en negrita: **"Por parte de Dynamo haremos lo posible para evitar o minimizar estos costes en favor del cliente"**, pero si el transportista aplica los gastos (está en su derecho) los asume el cliente.
+- **Tooltip de peso**: en **carga completa**, cuanto menos peso, en ocasiones puede ayudar a **bajar algo el precio** (sin cifras concretas).
+
+**NEGOCIACIÓN DE PRECIO POR PORCENTAJE (`preview` — `dashboard.html` + `aceptar-carga.html`)**:
+- Los importes fijos (±30/±60/±500 €) pasan a **porcentajes**: **±5% · ±10% · ±30%** sobre el precio del transportista, **redondeado a 10 €** (mín. un escalón de 10 €).
+- **El admin elige el % y lo ve** (ficha de precio interno, modal "Ofrecer carga", detalle del envío). **El transportista NUNCA ve el %**, solo el rango en € ya calculado (barra que parte de 0 = precio fijado por Dynamo, hacia − o +).
+- **±5%/±10% los decide el sistema** al instante; **±30% lo revisa un agente** (máx. 2 min) — antes ese rol era del ±500 €.
+- El mensaje de WhatsApp/email muestra el tope en €, no el %. Compat enlaces antiguos: 60 €→10%, 500 €→30%, 1→5%. Verificado: 800 € a ±10% → banda 720–880 € sin mostrar porcentaje.
+
+**MAPA DE COBERTURA (web pública, `main` + cascada `preview`)**:
+- Al colorear los países, se **omiten Córcega, Cerdeña, Sicilia, Ceuta y Melilla** (islas/enclaves no cubiertos). Se editó `images/europa-map.svg` extrayendo esos subpaths de `es`/`it`/`fr` (es 8→5, it 16→14, fr 12→11). **Baleares se mantiene.** Bonus: el auto-encuadre del mapa ya no se estira hacia el norte de África. Identificación de subpaths verificada por bbox + screenshots (mainlands intactos).
+
+**PREGUNTA respondida (sin cambio)**:
+- **Teléfono del conductor**: se revela al cliente a las **10:00 del día hábil anterior** a la carga (opción A, se deja como está); antes, enmascarado. Y desaparece al entregar/cancelar (regla 11).
+
+**Método**: cada cambio verificado en Chromium headless (roles, nominatim mockeado, translate/nager/geojs abortados) + syntax-check JS 0 errores + screenshots antes de commitear. Push directo a preview; el mapa y el email a producción con OK explícito del usuario, main-first con cascada a preview.
+
+> ⚠️ **Nota de entorno**: a mitad de sesión el checkout local se reseteó a `claude/new-chat-3bs08u`; el trabajo estaba a salvo en `origin/claude/sharp-dirac-E3UIO` (nada perdido). Recuperado con `git fetch` + checkout. Recordatorio: lo que no está pusheado no sobrevive a un reset del contenedor.
+
+**Pendientes**: los de TODO.md (tarifa real que sustituya el MOCK del tarifador incl. % de ADR y de negociación; direcciones reales; tienda merchandising Stripe; protocolo de siniestro; migración por módulos; gating de roles server-side).
+
 ### 2026-08-07 — Claude Code web (nube)
 
 > **Sesión larga: pulido del flujo de Nuevo envío (confirmación + tarifador), PWA del portal, aviso de cierre en producción y medidas de camiones.** Casi todo en **preview** (`claude/sharp-dirac-E3UIO`); a **producción** (`main`): ventana de cierre temporal, medidas de camiones, carga completa 13,6 y peso en tramos. Estado final: **main `dc2fb19`** · **preview** (esta bitácora).
