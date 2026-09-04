@@ -8589,6 +8589,26 @@
     };
     // Pinta la caja de precio en `box` y anima los importes (encadena desde el
     // valor anterior; prevNeto fuerza el punto de partida si la caja se recreó).
+    // === Suplemento de CARGA POR TECHO — plano y por TEMPORADA (2026-09-04) ===
+    // Cargar por el techo (con grúa) se paga aparte y en verano sale más caro,
+    // que es cuando más se demanda ese tipo de camión:
+    //   · del 15 de junio al 15 de septiembre (ambos incluidos) → 90 €
+    //   · resto del año (16 sep – 14 jun)                       → 50 €
+    // La temporada la marca la FECHA DE RECOGIDA (es el día en que se carga);
+    // mientras no haya fecha elegida se toma la de hoy.
+    // (Antes era un +15% sobre el importe del envío.)
+    window.__techoSupl = function (fechaIso) {
+        var f = (typeof fechaIso === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fechaIso))
+            ? new Date(fechaIso + 'T00:00:00')
+            : new Date();
+        var m = f.getMonth() + 1, d = f.getDate();
+        var verano = (m === 6 && d >= 15) || m === 7 || m === 8 || (m === 9 && d <= 15);
+        return {
+            eur: verano ? 90 : 50,
+            verano: verano,
+            label: verano ? 'Carga por techo · verano (15 jun–15 sep)' : 'Carga por techo'
+        };
+    };
     window.__renderPriceBox = function (box, neto, extraRows, prevNeto) {
         if (!box) return;
         var pe = box.querySelector('[data-price-neto]');
@@ -20636,17 +20656,22 @@
                 // Subtotal del transporte = importe de envío + recargos por tipo.
                 var envioNeto = envioBase + tipoTotal;
                 // === Suplementos ITEMIZADOS (en euros, como filas del desglose) ===
-                //  Carga por techo (+15%) · Trampilla elevadora (+60 €) · NIMA (+50 €).
+                //  Carga por techo (90 € verano / 50 € resto) · Trampilla (+60 €) · NIMA (+50 €).
                 var trampOn = card.querySelector('[data-ptar-trampilla]');
                 var nimaOn  = card.querySelector('[data-ptar-nima]');
                 var adrOn   = card.querySelector('[data-ptar-adr]');
                 var techoOn = !!(cargaTipoSel && /techo/i.test(cargaTipoSel.value));
-                var techoExtra = techoOn ? Math.round(envioNeto * 0.15 / 10) * 10 : 0;
+                var techoInfo = window.__techoSupl(diaSel ? diaSel.value : null);
+                var techoExtra = techoOn ? techoInfo.eur : 0;
                 var trampExtra = (trampOn && trampOn.checked) ? 60 : 0;
                 var nimaExtra  = (nimaOn && nimaOn.checked) ? 50 : 0;
                 // ADR (mercancías peligrosas): +50% sobre la tarifa base (demo).
                 var adrExtra   = (adrOn && adrOn.checked) ? Math.round(envioNeto * 0.50 / 10) * 10 : 0;
                 card.dataset.techoOn    = techoOn ? '1' : '0';
+                // El importe y la etiqueta de temporada se guardan para que la
+                // confirmación y la comparativa no los recalculen por su cuenta.
+                card.dataset.techoExtra = String(techoExtra);
+                card.dataset.techoLbl   = techoInfo.label;
                 card.dataset.trampExtra = String(trampExtra);
                 card.dataset.nimaExtra  = String(nimaExtra);
                 card.dataset.adrExtra   = String(adrExtra);
@@ -20667,7 +20692,7 @@
                 // punto) + cada suplemento que aplique. Se muestra si hay alguna
                 // línea (recargo por tipo o suplemento); si no, solo Base/IVA/Total.
                 var extras = [];
-                if (techoExtra) extras.push({ k: 'Carga por techo', v: techoExtra });
+                if (techoExtra) extras.push({ k: techoInfo.label, v: techoExtra });
                 if (trampExtra) extras.push({ k: 'Trampilla elevadora', v: trampExtra });
                 if (nimaExtra)  extras.push({ k: 'NIMA', v: nimaExtra });
                 if (adrExtra)   extras.push({ k: 'Mercancía ADR (+50%)', v: adrExtra });
@@ -21323,7 +21348,9 @@
                 var nP = parseInt(card.dataset.nParadas || '0', 10) || 0;
                 var rec = parseFloat(card.dataset.recargoTipo || '0') || 0;
                 var envioNeto = base + nP * 40 + Math.round(base * rec / 10) * 10;
-                var techoExtra = card.dataset.techoOn === '1' ? Math.round(envioNeto * 0.15 / 10) * 10 : 0;
+                var techoExtra = card.dataset.techoOn === '1'
+                    ? (parseInt(card.dataset.techoExtra || '0', 10) || window.__techoSupl(diaSel ? diaSel.value : null).eur)
+                    : 0;
                 var trampExtra = parseInt(card.dataset.trampExtra || '0', 10) || 0;
                 var nimaExtra = parseInt(card.dataset.nimaExtra || '0', 10) || 0;
                 var adrExtraC = parseInt(card.dataset.adrExtra || '0', 10) || 0;
@@ -22488,7 +22515,12 @@
                 // fecha fija → preaviso.
                 var envioNeto = envioBase + tipoTotal;
                 var techoOn = card.dataset.techoOn === '1';
-                var techoExtra = techoOn ? Math.round(envioNeto * 0.15 / 10) * 10 : 0;
+                // Importe de temporada calculado en el tarifador (90 € verano /
+                // 50 € resto); de reserva, se recalcula con la fecha del envío.
+                var techoLbl = card.dataset.techoLbl || 'Carga por techo';
+                var techoExtra = techoOn
+                    ? (parseInt(card.dataset.techoExtra || '0', 10) || window.__techoSupl(pendingData.fechaIso).eur)
+                    : 0;
                 var trampExtra = parseInt(card.dataset.trampExtra || '0', 10) || 0;
                 var nimaExtra  = parseInt(card.dataset.nimaExtra || '0', 10) || 0;
                 var adrExtra   = parseInt(card.dataset.adrExtra || '0', 10) || 0;
@@ -22502,7 +22534,7 @@
                 var descPesoLbl = card.dataset.descPesoLbl || '';
                 if (descPeso) precio -= descPeso;
                 var extras = [];
-                if (techoExtra) extras.push({ k: 'Carga por techo', v: techoExtra });
+                if (techoExtra) extras.push({ k: techoLbl, v: techoExtra });
                 if (trampExtra) extras.push({ k: 'Trampilla elevadora', v: trampExtra });
                 if (nimaExtra)  extras.push({ k: 'NIMA', v: nimaExtra });
                 if (adrExtra)   extras.push({ k: 'Mercancía ADR (+50%)', v: adrExtra });
