@@ -5128,7 +5128,7 @@
                     <p>Similar a un furgón tipo box/caja, con cortinas correderas en lados y techo que dan fácil acceso a la carga. El vehículo más utilizado para envíos terrestres.</p>
                     <p><strong>Ideal para:</strong> mercancía paletizada, palot/box y mercancías especiales.</p>
                     <div class="veh-specs">
-                        <div class="veh-spec"><div class="veh-spec-label">Largo (interior)</div><div class="veh-spec-value">13,60 m</div></div>
+                        <div class="veh-spec"><div class="veh-spec-label">Largo (interior)</div><div class="veh-spec-value">13,30 m</div></div>
                         <div class="veh-spec"><div class="veh-spec-label">Ancho (interior)</div><div class="veh-spec-value">2,45 m</div></div>
                         <div class="veh-spec"><div class="veh-spec-label">Altura</div><div class="veh-spec-value">2,70 m</div></div>
                         <div class="veh-spec"><div class="veh-spec-label">Carga máx.</div><div class="veh-spec-value">24 Tn.</div></div>
@@ -6360,8 +6360,8 @@
                     <option value="0">No — lo recojo yo o pediré un transporte aparte</option>
                     <option value="1">1 camión de 4 m · 4 metros total</option>
                     <option value="2">2 camiones de 4 m · 8 metros total</option>
-                    <option value="3">3 camiones de 4 m · 12 metros total (casi tráiler completo 13,60 m)</option>
-                    <option value="4">4 camiones de 4 m · 16 metros (tráiler completo 13,60 m)</option>
+                    <option value="3">3 camiones de 4 m · 12 metros total (casi tráiler completo 13,30 m)</option>
+                    <option value="4">4 camiones de 4 m · 16 metros (tráiler completo 13,30 m)</option>
                 </select>
                 <div class="alm-note">Entrega en <strong>zona urbana</strong> en destino, <strong>radio de entrega máximo de 20 km</strong> desde el almacén, con <strong>camión de 4 m y plataforma</strong>. Un tráiler completo suele repartirse en unos 3 camiones. <strong>220 € + IVA por camión</strong>. Si la salida es en tráiler normal, se pide como <strong>nuevo envío</strong> con origen en el almacén.</div>
                 <div id="almRepDest" hidden>
@@ -7870,7 +7870,7 @@
     function recVerMedidasCamion() {
         var tablaTauliner =
             '<table class="data"><tbody>' +
-                '<tr><td>Largo interior</td><td>13,60 m</td></tr>' +
+                '<tr><td>Largo interior</td><td>13,30 m</td></tr>' +
                 '<tr><td>Ancho interior</td><td>2,45 m</td></tr>' +
                 '<tr><td>Altura interior</td><td>2,70 m</td></tr>' +
                 '<tr><td>Volumen aprox.</td><td>90 m³</td></tr>' +
@@ -10150,8 +10150,8 @@
                 '<option value="0"' + (r.reparto === 0 ? ' selected' : '') + '>No — lo recojo yo o pediré un transporte aparte</option>' +
                 '<option value="1"' + (r.reparto === 1 ? ' selected' : '') + '>1 camión de 4 m · 4 metros total</option>' +
                 '<option value="2"' + (r.reparto === 2 ? ' selected' : '') + '>2 camiones de 4 m · 8 metros total</option>' +
-                '<option value="3"' + (r.reparto === 3 ? ' selected' : '') + '>3 camiones de 4 m · 12 metros total (casi tráiler completo 13,60 m)</option>' +
-                '<option value="4"' + (r.reparto === 4 ? ' selected' : '') + '>4 camiones de 4 m · 16 metros (tráiler completo 13,60 m)</option>' +
+                '<option value="3"' + (r.reparto === 3 ? ' selected' : '') + '>3 camiones de 4 m · 12 metros total (casi tráiler completo 13,30 m)</option>' +
+                '<option value="4"' + (r.reparto === 4 ? ' selected' : '') + '>4 camiones de 4 m · 16 metros (tráiler completo 13,30 m)</option>' +
             '</select></div>' +
             '<div id="almDxRepInfo" hidden>' +
                 (r.destinoDir
@@ -11757,7 +11757,7 @@
                 '</div>' +
                 '<div id="asigHist">' + rutaHistHtml(c, null) + '</div>' +
                 '<div class="ptar-sitio-grid" style="margin-top:0.8rem;">' +
-                    ctSelect('asig-f-camion', 'Tipo de camión', ['Trailer Tauliner · 13,6 m', 'Rígido 8 m con plataforma'], c.tipoCamion || 'Trailer Tauliner · 13,6 m', true) +
+                    ctSelect('asig-f-camion', 'Tipo de camión', ['Trailer Tauliner · 13,3 m', 'Rígido 8 m con plataforma'], c.tipoCamion || 'Trailer Tauliner · 13,3 m', true) +
                     ctField('asig-f-matricula', 'Matrícula tractora', c.matricula, 'Ej. 5829MGT') +
                     ctField('asig-f-remolque', 'Matrícula remolque', c.matriculaRemolque, 'Ej. R1234BCD') +
                     ctField('asig-f-conductor', 'Conductor', c.conductor, 'Nombre del conductor') +
@@ -14194,15 +14194,15 @@
     // ---- Incidencias: datos mock + tabla paginada (mismo sistema que el resto) ----
     var INCIDENCIAS_DATA = [
         { fr: '09/07/2026', hora: '11:42', tit: 'Mercancía con palet roto a la llegada', det: '3 palets dañados de 33', envio: '#GX684814', refCli: 'PED-0419', fcarga: '08/07', ventana: 'Fija', orig: 'Sevilla', dest: 'Barcelona', med: '8,4 m · 14.500 kg', estado: 'abierta' },
-        { fr: '02/07/2026', hora: '16:08', tit: 'Retraso de 4h en la entrega', det: 'En revisión con el transportista', envio: '#GX684723', refCli: 'PED-0405', fcarga: '01/07', ventana: 'Fija', orig: 'Sevilla', dest: 'Zaragoza', med: '13,6 m · 21.000 kg', estado: 'abierta' },
-        { fr: '26/06/2026', hora: '09:15', tit: 'Falta albarán firmado', det: 'Resuelto: albarán subido al panel', envio: '#GX684691', refCli: 'PED-0398', fcarga: '24/06', ventana: '1 a 3 días', orig: 'Madrid', dest: 'Valencia', med: '13,6 m · 24.000 kg', estado: 'resuelta' },
+        { fr: '02/07/2026', hora: '16:08', tit: 'Retraso de 4h en la entrega', det: 'En revisión con el transportista', envio: '#GX684723', refCli: 'PED-0405', fcarga: '01/07', ventana: 'Fija', orig: 'Sevilla', dest: 'Zaragoza', med: '13,3 m · 21.000 kg', estado: 'abierta' },
+        { fr: '26/06/2026', hora: '09:15', tit: 'Falta albarán firmado', det: 'Resuelto: albarán subido al panel', envio: '#GX684691', refCli: 'PED-0398', fcarga: '24/06', ventana: '1 a 3 días', orig: 'Madrid', dest: 'Valencia', med: '13,3 m · 24.000 kg', estado: 'resuelta' },
         { fr: '19/06/2026', hora: '13:40', tit: 'Entrega en dirección incorrecta', det: 'Resuelto: reentrega el mismo día', envio: '#GX684655', refCli: 'COT-311', fcarga: '18/06', ventana: 'Fija', orig: 'Sevilla', dest: 'Córdoba', med: '6,0 m · 8.200 kg', estado: 'resuelta' },
         { fr: '12/06/2026', hora: '10:05', tit: 'Mercancía mojada en 2 palets', det: 'Resuelto: compensado en factura', envio: '#GX684612', refCli: 'PED-0384', fcarga: '10/06', ventana: '1 a 3 días', orig: 'Bilbao', dest: 'Sevilla', med: '10,0 m · 16.500 kg', estado: 'resuelta' },
-        { fr: '05/06/2026', hora: '17:22', tit: 'Retraso de 4h en la entrega', det: 'Resuelto: compensado en factura', envio: '#GX684580', refCli: 'PED-0377', fcarga: '04/06', ventana: 'Fija', orig: 'Sevilla', dest: 'Zaragoza', med: '13,6 m · 21.000 kg', estado: 'resuelta' },
-        { fr: '28/05/2026', hora: '08:50', tit: 'Camión llegó fuera de horario de almacén', det: 'Resuelto: nueva cita de descarga', envio: '#GX684521', refCli: 'PED-0361', fcarga: '27/05', ventana: '1 a 3 días', orig: 'Valencia', dest: 'Madrid', med: '13,6 m · 22.000 kg', estado: 'resuelta' },
+        { fr: '05/06/2026', hora: '17:22', tit: 'Retraso de 4h en la entrega', det: 'Resuelto: compensado en factura', envio: '#GX684580', refCli: 'PED-0377', fcarga: '04/06', ventana: 'Fija', orig: 'Sevilla', dest: 'Zaragoza', med: '13,3 m · 21.000 kg', estado: 'resuelta' },
+        { fr: '28/05/2026', hora: '08:50', tit: 'Camión llegó fuera de horario de almacén', det: 'Resuelto: nueva cita de descarga', envio: '#GX684521', refCli: 'PED-0361', fcarga: '27/05', ventana: '1 a 3 días', orig: 'Valencia', dest: 'Madrid', med: '13,3 m · 22.000 kg', estado: 'resuelta' },
         { fr: '20/05/2026', hora: '12:31', tit: 'Diferencia de bultos en descarga', det: 'Resuelto: recuento correcto, error de conteo', envio: '#GX684478', refCli: 'COT-289', fcarga: '19/05', ventana: 'Fija', orig: 'Sevilla', dest: 'Murcia', med: '8,4 m · 12.000 kg', estado: 'resuelta' },
-        { fr: '13/05/2026', hora: '15:47', tit: 'Falta albarán firmado', det: 'Resuelto: reclamado al transportista', envio: '#GX684432', refCli: 'PED-0340', fcarga: '12/05', ventana: '1 a 3 días', orig: 'Barcelona', dest: 'Sevilla', med: '13,6 m · 23.500 kg', estado: 'resuelta' },
-        { fr: '06/05/2026', hora: '09:58', tit: 'Paralización de 3h en la carga', det: 'Resuelto: penalización al cargador', envio: '#GX684390', refCli: 'PED-0332', fcarga: '05/05', ventana: 'Fija', orig: 'Sevilla', dest: 'Alicante', med: '13,6 m · 24.000 kg', estado: 'resuelta' }
+        { fr: '13/05/2026', hora: '15:47', tit: 'Falta albarán firmado', det: 'Resuelto: reclamado al transportista', envio: '#GX684432', refCli: 'PED-0340', fcarga: '12/05', ventana: '1 a 3 días', orig: 'Barcelona', dest: 'Sevilla', med: '13,3 m · 23.500 kg', estado: 'resuelta' },
+        { fr: '06/05/2026', hora: '09:58', tit: 'Paralización de 3h en la carga', det: 'Resuelto: penalización al cargador', envio: '#GX684390', refCli: 'PED-0332', fcarga: '05/05', ventana: 'Fija', orig: 'Sevilla', dest: 'Alicante', med: '13,3 m · 24.000 kg', estado: 'resuelta' }
     ];
     // Id interno estable por incidencia (para poder EDITAR al pulsar la fila).
     var _incSeq = 0;
@@ -15545,51 +15545,51 @@
         makeCarga('#C-2026-1285','PED-0423', mockFuturo(4),'Fija','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Paletizado','Repuestos automoción','12,0 m · 20.000 kg','programada', undefined, {
             precio: '1.420 €', tipoCarga: 'Carga completa'
         }),
-        makeCarga('#C-2026-1290','PED-0426', mockFuturo(7),'1 a 3 días','Sevilla','Madrid','Pol. Industrial Carretera de la Isla → Mercamadrid','Paletizado','Productos químicos','13,6 m · 22.000 kg','programada', undefined, {
+        makeCarga('#C-2026-1290','PED-0426', mockFuturo(7),'1 a 3 días','Sevilla','Madrid','Pol. Industrial Carretera de la Isla → Mercamadrid','Paletizado','Productos químicos','13,3 m · 22.000 kg','programada', undefined, {
             precio: '880 €', fechaAsignada: mockFuturo(7) + ' 08:00', horaCargaEst: '08:00',
             horarioOrigen: 'L-V 7:00-15:00', horarioDestino: 'L-S 0:00-24:00',
-            tipoCamion: 'Trailer Tauliner · 13,6 m', tipoCarga: 'Carga completa',
+            tipoCamion: 'Trailer Tauliner · 13,3 m', tipoCarga: 'Carga completa',
             transportistaAsignado: true, transportistaNombre: 'Transportes Beltrán S.L.',
             matricula: '4502 NDZ', conductor: 'Antonio Beltrán', tfnoConductor: '+34 644 778 332'
         }),
-        makeCarga('#C-2026-1294','PED-0430', mockFuturo(5),'1 a 3 días','Sevilla','Pamplona','Pol. Aeropuerto → Pol. Landaben','Paletizado','Componentes industriales','13,6 m · 23.500 kg','programada', undefined, {
+        makeCarga('#C-2026-1294','PED-0430', mockFuturo(5),'1 a 3 días','Sevilla','Pamplona','Pol. Aeropuerto → Pol. Landaben','Paletizado','Componentes industriales','13,3 m · 23.500 kg','programada', undefined, {
             precio: '1.340 €', tipoCarga: 'Carga completa'
         }),
-        makeCarga('#C-2026-1293','PED-0429', mockFuturo(6),'Fija','Sevilla','Valencia','Pol. Pajanosas → Puerto Valencia','Paletizado','Material eléctrico','13,6 m · 22.500 kg','programada', undefined, {
+        makeCarga('#C-2026-1293','PED-0429', mockFuturo(6),'Fija','Sevilla','Valencia','Pol. Pajanosas → Puerto Valencia','Paletizado','Material eléctrico','13,3 m · 22.500 kg','programada', undefined, {
             precio: '1.180 €', fechaAsignada: mockFuturo(6) + ' 07:00', horaCargaEst: '07:00',
             horarioOrigen: 'L-V 7:00-15:00', horarioDestino: 'L-V 6:30-14:00',
-            tipoCamion: 'Trailer Tauliner · 13,6 m', tipoCarga: 'Carga completa',
+            tipoCamion: 'Trailer Tauliner · 13,3 m', tipoCarga: 'Carga completa',
             transportistaAsignado: true, transportistaNombre: 'Dynamo (camión propio)',
             matricula: '7204 LMR / R-9852', conductor: 'Pedro Rodríguez', tfnoConductor: '+34 661 902 411'
         }),
         makeCarga('#C-2026-1292','PED-0428', mockFuturo(8),'1 a 3 días','Sevilla','Vigo','Polígono Industrial → Bouzas','Maquinaria','Pieza única','8,4 m · 11.000 kg','programada'),
-        makeCarga('#C-2026-1288','PED-0425', mockFuturo(2),'Fija','Sevilla','Barcelona','Polígono Carretera Amarilla → Mercabarna','Paletizado','Frutas y verduras','13,6 m · 24.000 kg','programada', undefined, {
+        makeCarga('#C-2026-1288','PED-0425', mockFuturo(2),'Fija','Sevilla','Barcelona','Polígono Carretera Amarilla → Mercabarna','Paletizado','Frutas y verduras','13,3 m · 24.000 kg','programada', undefined, {
             precio: '1.480 €', tipoCarga: 'Carga completa'
         }),
         makeCarga('#C-2026-1286','PED-0424', mockFuturo(9),'1 a 3 días','Sevilla','Valencia','Almacén central → Puerto','Eventos / feria','Stand modular','6,0 m · 8.200 kg','programada'),
-        makeCarga('#C-2026-1284','PED-0421','15/06','1 a 3 días','Sevilla','Madrid','Pol. Carretera de la Isla → Mercamadrid','Paletizado','Aceite envasado','13,6 m · 24.000 kg','entregada', false),
-        makeCarga('#C-2026-1283','PED-0420','13/06','Fija','Madrid','Valencia','Vallecas → Puerto','Paletizado','Bebidas refrigeradas','13,6 m · 22.000 kg','entregada'),
-        makeCarga('#C-2026-1282','PED-0419B','12/06','1 a 3 días','Sevilla','Vigo','Polígono → Bouzas','Material obra','Cerámica','13,6 m · 20.000 kg','entregada'),
+        makeCarga('#C-2026-1284','PED-0421','15/06','1 a 3 días','Sevilla','Madrid','Pol. Carretera de la Isla → Mercamadrid','Paletizado','Aceite envasado','13,3 m · 24.000 kg','entregada', false),
+        makeCarga('#C-2026-1283','PED-0420','13/06','Fija','Madrid','Valencia','Vallecas → Puerto','Paletizado','Bebidas refrigeradas','13,3 m · 22.000 kg','entregada'),
+        makeCarga('#C-2026-1282','PED-0419B','12/06','1 a 3 días','Sevilla','Vigo','Polígono → Bouzas','Material obra','Cerámica','13,3 m · 20.000 kg','entregada'),
         makeCarga('#C-2026-1278','PED-0417','11/06','Fija','Sevilla','A Coruña','Centro → Pol. Pocomaco','Paletizado','Cosméticos','10,0 m · 15.000 kg','entregada', false),
-        makeCarga('#C-2026-1276','PED-0416','11/06','1 a 3 días','Sevilla','Valencia','Almacén central → Puerto','Material','Tubos PVC','13,6 m · 22.500 kg','entregada'),
-        makeCarga('#C-2026-1275','PED-0414','10/06','1 a 3 días','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Mercancía paletizada','33 europalets','13,6 m · 22.500 kg','entregada'),
+        makeCarga('#C-2026-1276','PED-0416','11/06','1 a 3 días','Sevilla','Valencia','Almacén central → Puerto','Material','Tubos PVC','13,3 m · 22.500 kg','entregada'),
+        makeCarga('#C-2026-1275','PED-0414','10/06','1 a 3 días','Sevilla','Bilbao','Polígono Las Pajanosas → Erandio','Mercancía paletizada','33 europalets','13,3 m · 22.500 kg','entregada'),
         makeCarga('#C-2026-1273','PED-0413','09/06','Fija','Sevilla','Pamplona','Centro → Pol. Landaben','Maquinaria','1 pieza compacta','8,4 m · 9.500 kg','entregada', false),
         makeCarga('#C-2026-1272','PED-0411','05/06','Fija','Sevilla','Lisboa (PT)','Centro → Quinta da Beloura','Material de obra','Perfiles metálicos','10,0 m · 18.000 kg','entregada'),
         makeCarga('#C-2026-1270','PED-0410','03/06','1 a 3 días','Sevilla','Murcia','Centro → Pol. Cabezo Beaza','Eventos','Stand modular','6,0 m · 7.500 kg','entregada'),
-        makeCarga('#C-2026-1268','PED-0405','02/06','1 a 3 días','Sevilla','Zaragoza','Polígono → Plaza','Paletizado','Material eléctrico','13,6 m · 19.000 kg','entregada'),
-        makeCarga('#C-2026-1266','PED-0404','30/05','Fija','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Aceite oliva virgen','13,6 m · 23.500 kg','entregada'),
+        makeCarga('#C-2026-1268','PED-0405','02/06','1 a 3 días','Sevilla','Zaragoza','Polígono → Plaza','Paletizado','Material eléctrico','13,3 m · 19.000 kg','entregada'),
+        makeCarga('#C-2026-1266','PED-0404','30/05','Fija','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Aceite oliva virgen','13,3 m · 23.500 kg','entregada'),
         makeCarga('#C-2026-1264','PED-0403','28/05','1 a 3 días','Sevilla','Oviedo','Centro → Pol. Silvota','Maquinaria','Sobredimensionada','8,4 m · 12.000 kg','entregada'),
         makeCarga('#C-2026-1262','PED-0402','26/05','Fija','Sevilla','Granada','Centro → Pol. Asegra','Material obra','Áridos','10,0 m · 24.000 kg','entregada'),
-        makeCarga('#C-2026-1260','PED-0401','23/05','1 a 3 días','Sevilla','Málaga','Centro → Pol. Guadalhorce','Paletizado','Vino tinto','13,6 m · 21.000 kg','entregada', false),
-        makeCarga('#C-2026-1258','PED-0400','20/05','Fija','Sevilla','Toulouse (FR)','Centro → Eurocentre','Paletizado','Aceite oliva','13,6 m · 22.500 kg','entregada'),
+        makeCarga('#C-2026-1260','PED-0401','23/05','1 a 3 días','Sevilla','Málaga','Centro → Pol. Guadalhorce','Paletizado','Vino tinto','13,3 m · 21.000 kg','entregada', false),
+        makeCarga('#C-2026-1258','PED-0400','20/05','Fija','Sevilla','Toulouse (FR)','Centro → Eurocentre','Paletizado','Aceite oliva','13,3 m · 22.500 kg','entregada'),
         makeCarga('#C-2026-1256','PED-0399','17/05','1 a 3 días','Sevilla','Valladolid','Centro → Pol. Argales','Maquinaria','Pieza única','8,4 m · 13.000 kg','entregada'),
-        makeCarga('#C-2026-1254','PED-0398','15/05','Fija','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Tabacos','13,6 m · 24.000 kg','entregada', false),
+        makeCarga('#C-2026-1254','PED-0398','15/05','Fija','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Tabacos','13,3 m · 24.000 kg','entregada', false),
         makeCarga('#C-2026-1252','PED-0397','13/05','1 a 3 días','Sevilla','París (FR)','Centro → Rungis','Eventos','Mobiliario feria','10,0 m · 9.500 kg','entregada'),
-        makeCarga('#C-2026-1250','PED-0395','10/05','Fija','Sevilla','Lyon (FR)','Centro → Eurexpo','Paletizado','Aceite oliva','13,6 m · 23.500 kg','entregada'),
+        makeCarga('#C-2026-1250','PED-0395','10/05','Fija','Sevilla','Lyon (FR)','Centro → Eurexpo','Paletizado','Aceite oliva','13,3 m · 23.500 kg','entregada'),
         makeCarga('#C-2026-1248','PED-0393','07/05','1 a 3 días','Sevilla','Burgos','Centro → Villalonquejar','Material obra','Hormigón prefabricado','10,0 m · 22.000 kg','entregada'),
-        makeCarga('#C-2026-1246','PED-0391','04/05','Fija','Sevilla','Algeciras','Centro → Puerto','Paletizado','Exportación textil','13,6 m · 18.000 kg','entregada'),
+        makeCarga('#C-2026-1246','PED-0391','04/05','Fija','Sevilla','Algeciras','Centro → Puerto','Paletizado','Exportación textil','13,3 m · 18.000 kg','entregada'),
         makeCarga('#C-2026-1244','PED-0389','02/05','1 a 3 días','Sevilla','Cádiz','Centro → Puerto','Maquinaria','Repuestos navales','8,4 m · 11.000 kg','entregada'),
-        makeCarga('#C-2026-1242','PED-0387','30/04','Fija','Sevilla','Cartagena','Centro → Pol. Cabezo Beaza','Paletizado','Productos químicos','13,6 m · 24.000 kg','entregada')
+        makeCarga('#C-2026-1242','PED-0387','30/04','Fija','Sevilla','Cartagena','Centro → Pol. Cabezo Beaza','Paletizado','Productos químicos','13,3 m · 24.000 kg','entregada')
     ];
     // Anadir 2 entregas dinamicas (hoy + ayer) para que se vea el estado
     // "Albaran procesandose" (entregadas hoy o ayer, transportistas aun
@@ -15641,18 +15641,18 @@
             matricula: '9183 KDR', conductor: 'Luis Martínez', tfnoConductor: '+34 622 511 098',
             _phaseSim: 'enruta'
         }));
-        CARGAS_DATA.unshift(makeCarga('#C-2026-1306','PED-0441', fechaFuturaLaborable(0), 'Fija','Sevilla','Huétor Tájar','Cerramientos Ceyconse → Almacén Huétor Tájar','Paletizado','Material eléctrico','13,6 m · 21.000 kg','en-ruta', undefined, {
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1306','PED-0441', fechaFuturaLaborable(0), 'Fija','Sevilla','Huétor Tájar','Cerramientos Ceyconse → Almacén Huétor Tájar','Paletizado','Material eléctrico','13,3 m · 21.000 kg','en-ruta', undefined, {
             precio: '590 €', fechaAsignada: fechaFuturaLaborable(0) + ' 07:00', horaCargaEst: '07:00', etaEntrega: 'Hoy 15:00',
             origenSite: 'cerramientos-sevilla-cey-carmona', origenDir: '41410, Carmona, Sevilla, España',
             destinoSite: 'almacen-huetor-tajar', destinoDir: '18360, Huétor Tájar, Granada, España',
-            tipoCamion: 'Trailer Tauliner · 13,6 m', tipoCarga: 'Carga completa',
+            tipoCamion: 'Trailer Tauliner · 13,3 m', tipoCarga: 'Carga completa',
             transportistaAsignado: true, transportistaNombre: 'Dynamo (camión propio)',
             matricula: '3471 QTB', conductor: 'Andrés Gil', tfnoConductor: '+34 611 220 447',
             _phaseSim: 'entrega'
         }));
-        CARGAS_DATA.unshift(makeCarga('#C-2026-1304','PED-0439', fechaFuturaLaborable(0), 'Fija','Sevilla','Granada','Pol. Calonge → Pol. Juncaril','Paletizado','Bebidas','13,6 m · 22.000 kg','en-ruta', undefined, {
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1304','PED-0439', fechaFuturaLaborable(0), 'Fija','Sevilla','Granada','Pol. Calonge → Pol. Juncaril','Paletizado','Bebidas','13,3 m · 22.000 kg','en-ruta', undefined, {
             precio: '820 €', fechaAsignada: fechaFuturaLaborable(0) + ' 14:30', horaCargaEst: '14:30', etaEntrega: 'Hoy 19:30',
-            tipoCamion: 'Trailer Tauliner · 13,6 m', tipoCarga: 'Carga completa',
+            tipoCamion: 'Trailer Tauliner · 13,3 m', tipoCarga: 'Carga completa',
             transportistaAsignado: true, transportistaNombre: 'Transportes Beltrán S.L.',
             matricula: '5829 MGT', conductor: 'Rafael Vega', tfnoConductor: '+34 690 334 221',
             // Demo de ruta con parada extra + empresa en cada punto. El camión
@@ -15670,17 +15670,17 @@
             origenSite: 'eurocabos-sur-alcala-de-guad', origenDir: '41500, Alcalá de Guadaíra, Sevilla, España',
             destinoSite: 'almacen-malaga', destinoDir: '29006, Málaga, España',
             horarioOrigen: '7:30-15:30', horarioDestino: '6:30-17:00',
-            tipoCamion: 'Trailer Tauliner · 13,6 m', tipoCarga: 'Grupaje',
+            tipoCamion: 'Trailer Tauliner · 13,3 m', tipoCarga: 'Grupaje',
             transportistaAsignado: true, transportistaNombre: 'Dynamo (camión propio)',
             matricula: '6217 PCF', conductor: 'David Núñez', tfnoConductor: '+34 678 442 113',
             _phaseSim: 'hacia'
         }));
-        CARGAS_DATA.unshift(makeCarga('#C-2026-1298','PED-0434', fechaFuturaLaborable(1), '1 a 3 días','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Conservas','13,6 m · 23.000 kg','programada'));
-        CARGAS_DATA.unshift(makeCarga('#C-2026-1297','PED-0433', fechaFuturaLaborable(2), 'Fija','Sevilla','Valencia','Pol. Las Pajanosas → Puerto','Paletizado / Aceite','Aceite oliva virgen','13,6 m · 24.000 kg','programada'));
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1298','PED-0434', fechaFuturaLaborable(1), '1 a 3 días','Sevilla','Madrid','Centro → Mercamadrid','Paletizado','Conservas','13,3 m · 23.000 kg','programada'));
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1297','PED-0433', fechaFuturaLaborable(2), 'Fija','Sevilla','Valencia','Pol. Las Pajanosas → Puerto','Paletizado / Aceite','Aceite oliva virgen','13,3 m · 24.000 kg','programada'));
         // === SEMILLAS: envíos con pago por adelantado sin verificar todavía →
         //     estado "Pendiente de pago" (no avanzan hasta validar el pago).
-        CARGAS_DATA.unshift(makeCarga('#C-2026-1301','PED-0437', fechaFuturaLaborable(2), '1 a 3 días','Sevilla','Bilbao','Pol. Store → Pol. Erandio','Paletizado','Material eléctrico','13,6 m · 21.000 kg','programada', undefined, { precio: '980 €', pendientePago: true }));
-        CARGAS_DATA.unshift(makeCarga('#C-2026-1300','PED-0436', fechaFuturaLaborable(3), 'Fija','Sevilla','Barcelona','Centro → Mercabarna','Paletizado','Conservas vegetales','13,6 m · 22.000 kg','programada', undefined, { precio: '1.180 €', pendientePago: true }));
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1301','PED-0437', fechaFuturaLaborable(2), '1 a 3 días','Sevilla','Bilbao','Pol. Store → Pol. Erandio','Paletizado','Material eléctrico','13,3 m · 21.000 kg','programada', undefined, { precio: '980 €', pendientePago: true }));
+        CARGAS_DATA.unshift(makeCarga('#C-2026-1300','PED-0436', fechaFuturaLaborable(3), 'Fija','Sevilla','Barcelona','Centro → Mercabarna','Paletizado','Conservas vegetales','13,3 m · 22.000 kg','programada', undefined, { precio: '1.180 €', pendientePago: true }));
     })();
 
     // === MOCK: ampliar el listado de envíos hasta 70 ===
@@ -15693,16 +15693,16 @@
     (function expandMockCargas() {
         var destinos = ['Madrid','Barcelona','Valencia','Bilbao','Zaragoza','Málaga','Granada','Murcia','Valladolid','Burgos','Pamplona','Oviedo','Logroño','A Coruña','Vigo','Cádiz','Algeciras','Cartagena','Lisboa (PT)','Oporto (PT)','Toulouse (FR)','París (FR)','Lyon (FR)','Marsella (FR)'];
         var mercancias = [
-            ['Paletizado', 'Aceite envasado', '13,6 m · 24.000 kg'],
-            ['Paletizado', 'Conservas vegetales', '13,6 m · 22.000 kg'],
+            ['Paletizado', 'Aceite envasado', '13,3 m · 24.000 kg'],
+            ['Paletizado', 'Conservas vegetales', '13,3 m · 22.000 kg'],
             ['Maquinaria', 'Compresor industrial', '8,4 m · 12.500 kg'],
-            ['Paletizado', 'Bebidas', '13,6 m · 23.000 kg'],
+            ['Paletizado', 'Bebidas', '13,3 m · 23.000 kg'],
             ['Material obra', 'Perfiles metálicos', '10,0 m · 18.000 kg'],
             ['Paletizado', 'Textil', '12,0 m · 15.000 kg'],
             ['Eventos / feria', 'Stand modular', '6,0 m · 7.500 kg'],
-            ['Paletizado', 'Papel y cartón', '13,6 m · 21.500 kg'],
+            ['Paletizado', 'Papel y cartón', '13,3 m · 21.500 kg'],
             ['Maquinaria', 'Pieza única sobredim.', '8,4 m · 11.000 kg'],
-            ['Paletizado', 'Fertilizantes', '13,6 m · 24.000 kg'],
+            ['Paletizado', 'Fertilizantes', '13,3 m · 24.000 kg'],
             ['Material obra', 'Cerámica', '10,0 m · 20.000 kg'],
             ['Paletizado', 'Repuestos automoción', '12,0 m · 17.000 kg']
         ];
@@ -15732,7 +15732,7 @@
             if (i % 2 === 0) {
                 var cond = conductores[i % conductores.length];
                 extra = {
-                    precio: precioPara(dest, i), tipoCamion: 'Trailer Tauliner · 13,6 m',
+                    precio: precioPara(dest, i), tipoCamion: 'Trailer Tauliner · 13,3 m',
                     transportistaAsignado: true, transportistaNombre: transportistas[i % transportistas.length],
                     matricula: matriculas[i % matriculas.length], conductor: cond[0], tfnoConductor: cond[1]
                 };
@@ -15782,21 +15782,21 @@
         return { ref: ref, refCli: refCli, fecha: fecha, origen: origen, destino: destino, mercancia: mercancia, medidas: medidas, precio: precio, vigencia: vigencia, vigenciaColor: vigenciaColor, kind: kind };
     }
     var PRESUPUESTOS_DATA = [
-        makePresupuesto('#P-2026-0421','COT-218','18/06','Sevilla','París (FR)','Paletizado','13,6 m · 22.000 kg','1.840 €','25/06 (7 días)','green','activos'),
-        makePresupuesto('#P-2026-0420','COT-217','18/06','Sevilla','Lyon (FR)','Paletizado','13,6 m · 21.000 kg','1.720 €','25/06 (7 días)','green','activos'),
-        makePresupuesto('#P-2026-0419','COT-217B','17/06','Sevilla','Berlín (DE)','Maquinaria','13,6 m · 24.000 kg','2.350 €','24/06 (6 días)','green','activos'),
-        makePresupuesto('#P-2026-0417','COT-215','16/06','Sevilla','Milán (IT)','Paletizado / Aceite','13,6 m · 22.000 kg','2.080 €','23/06 (5 días)','green','activos'),
+        makePresupuesto('#P-2026-0421','COT-218','18/06','Sevilla','París (FR)','Paletizado','13,3 m · 22.000 kg','1.840 €','25/06 (7 días)','green','activos'),
+        makePresupuesto('#P-2026-0420','COT-217','18/06','Sevilla','Lyon (FR)','Paletizado','13,3 m · 21.000 kg','1.720 €','25/06 (7 días)','green','activos'),
+        makePresupuesto('#P-2026-0419','COT-217B','17/06','Sevilla','Berlín (DE)','Maquinaria','13,3 m · 24.000 kg','2.350 €','24/06 (6 días)','green','activos'),
+        makePresupuesto('#P-2026-0417','COT-215','16/06','Sevilla','Milán (IT)','Paletizado / Aceite','13,3 m · 22.000 kg','2.080 €','23/06 (5 días)','green','activos'),
         makePresupuesto('#P-2026-0415','COT-214','15/06','Sevilla','Roma (IT)','Material eventos','10,0 m · 12.000 kg','2.120 €','22/06 (3 días)','yellow','activos'),
-        makePresupuesto('#P-2026-0414','COT-213','15/06','Madrid','Ámsterdam (NL)','Paletizado','13,6 m · 23.000 kg','2.650 €','22/06 (3 días)','yellow','activos'),
+        makePresupuesto('#P-2026-0414','COT-213','15/06','Madrid','Ámsterdam (NL)','Paletizado','13,3 m · 23.000 kg','2.650 €','22/06 (3 días)','yellow','activos'),
         makePresupuesto('#P-2026-0413','COT-212','14/06','Sevilla','Lisboa (PT)','Maquinaria','8,4 m · 11.000 kg','980 €','21/06 (2 días)','yellow','activos'),
-        makePresupuesto('#P-2026-0412','COT-211','12/06','Sevilla','Ámsterdam (NL)','Paletizado','13,6 m · 23.500 kg','2.680 €','Caducado el 19/06','gray','caducados'),
-        makePresupuesto('#P-2026-0411','COT-210','12/06','Sevilla','Bruselas (BE)','Maquinaria','13,6 m · 22.000 kg','2.490 €','Caducado el 19/06','gray','caducados'),
-        makePresupuesto('#P-2026-0410','COT-209','10/06','Sevilla','Praga (CZ)','Paletizado','13,6 m · 24.000 kg','2.850 €','Caducado el 17/06','gray','caducados'),
-        makePresupuesto('#P-2026-0409','COT-208','10/06','Madrid','Viena (AT)','Maquinaria','13,6 m · 20.000 kg','2.580 €','Caducado el 17/06','gray','caducados'),
-        makePresupuesto('#P-2026-0408','COT-207','08/06','Sevilla','Bruselas (BE)','Maquinaria','13,6 m · 20.000 kg','2.420 €','Caducado el 15/06','gray','caducados'),
-        makePresupuesto('#P-2026-0407','COT-206','06/06','Sevilla','Hamburgo (DE)','Paletizado','13,6 m · 23.500 kg','2.940 €','Caducado el 13/06','gray','caducados'),
-        makePresupuesto('#P-2026-0405','COT-205','04/06','Sevilla','Zúrich (CH)','Maquinaria','13,6 m · 19.500 kg','2.380 €','Caducado el 11/06','gray','caducados'),
-        makePresupuesto('#P-2026-0403','COT-203','02/06','Sevilla','Liverpool (UK)','Paletizado / Aceite','13,6 m · 22.500 kg','3.120 €','Caducado el 09/06','gray','caducados')
+        makePresupuesto('#P-2026-0412','COT-211','12/06','Sevilla','Ámsterdam (NL)','Paletizado','13,3 m · 23.500 kg','2.680 €','Caducado el 19/06','gray','caducados'),
+        makePresupuesto('#P-2026-0411','COT-210','12/06','Sevilla','Bruselas (BE)','Maquinaria','13,3 m · 22.000 kg','2.490 €','Caducado el 19/06','gray','caducados'),
+        makePresupuesto('#P-2026-0410','COT-209','10/06','Sevilla','Praga (CZ)','Paletizado','13,3 m · 24.000 kg','2.850 €','Caducado el 17/06','gray','caducados'),
+        makePresupuesto('#P-2026-0409','COT-208','10/06','Madrid','Viena (AT)','Maquinaria','13,3 m · 20.000 kg','2.580 €','Caducado el 17/06','gray','caducados'),
+        makePresupuesto('#P-2026-0408','COT-207','08/06','Sevilla','Bruselas (BE)','Maquinaria','13,3 m · 20.000 kg','2.420 €','Caducado el 15/06','gray','caducados'),
+        makePresupuesto('#P-2026-0407','COT-206','06/06','Sevilla','Hamburgo (DE)','Paletizado','13,3 m · 23.500 kg','2.940 €','Caducado el 13/06','gray','caducados'),
+        makePresupuesto('#P-2026-0405','COT-205','04/06','Sevilla','Zúrich (CH)','Maquinaria','13,3 m · 19.500 kg','2.380 €','Caducado el 11/06','gray','caducados'),
+        makePresupuesto('#P-2026-0403','COT-203','02/06','Sevilla','Liverpool (UK)','Paletizado / Aceite','13,3 m · 22.500 kg','3.120 €','Caducado el 09/06','gray','caducados')
     ];
     // === MOCK: ampliar el listado de presupuestos hasta 70 ===
     // Igual que expandMockCargas: determinista, campos coherentes. Los
@@ -15808,9 +15808,9 @@
         function diasNat(n) { var d = new Date(); d.setDate(d.getDate() + n); return d; }
         var destinos = ['París (FR)','Lyon (FR)','Berlín (DE)','Hamburgo (DE)','Milán (IT)','Roma (IT)','Ámsterdam (NL)','Bruselas (BE)','Praga (CZ)','Viena (AT)','Varsovia (PL)','Zúrich (CH)','Lisboa (PT)','Oporto (PT)','Madrid','Barcelona','Valencia','Bilbao','Zaragoza','Málaga'];
         var mercancias = [
-            ['Paletizado', '13,6 m · 22.000 kg'],
-            ['Maquinaria', '13,6 m · 20.000 kg'],
-            ['Paletizado / Aceite', '13,6 m · 23.000 kg'],
+            ['Paletizado', '13,3 m · 22.000 kg'],
+            ['Maquinaria', '13,3 m · 20.000 kg'],
+            ['Paletizado / Aceite', '13,3 m · 23.000 kg'],
             ['Material eventos', '10,0 m · 12.000 kg'],
             ['Maquinaria', '8,4 m · 11.000 kg'],
             ['Paletizado', '12,0 m · 16.500 kg'],
@@ -16945,7 +16945,7 @@
     // Tipo de carga en versión corta para la columna Vehículo
     function cargaCorta(t) { if (!t) return ''; return /completa/i.test(t) ? 'Completo' : t; }
     // Deriva Completo/Grupaje a partir de los metros (los presupuestos no
-    // guardan el tipo de carga): trailer completo (13,6 m) → Completo; menos
+    // guardan el tipo de carga): trailer completo (13,3 m) → Completo; menos
     // metros → Grupaje.
     function cargaFromMedidas(medidas) {
         var m = String(medidas || '').match(/([\d,]+)\s*m/);
@@ -19038,7 +19038,7 @@
                     mockPasado(12 + seedN * 2 + k), base.ventana, base.origen, base.destino,
                     base.direcciones, base.mercancia, base.mercanciaMeta, base.medidas,
                     'entregada', undefined, {
-                        precio: pc + ' €', tipoCamion: base.tipoCamion || 'Trailer Tauliner · 13,6 m', tipoCarga: base.tipoCarga,
+                        precio: pc + ' €', tipoCamion: base.tipoCamion || 'Trailer Tauliner · 13,3 m', tipoCarga: base.tipoCarga,
                         transportistaAsignado: true, transportistaNombre: tra,
                         matricula: mats[seedN % mats.length], conductor: cond[0], tfnoConductor: cond[1]
                     });
@@ -19485,7 +19485,7 @@
     ========================================= */
     (function () {
         var CAMION_INFO = {
-            tauliner: { mlMax: 13, mlReal: 13.6, pesoMax: 24, paletsMax: 33, label: 'Trailer Tauliner Lona' },
+            tauliner: { mlMax: 13, mlReal: 13.3, pesoMax: 24, paletsMax: 33, label: 'Trailer Tauliner Lona' },
             rigido:   { mlMax: 8,  mlReal: 8,    pesoMax: 14, paletsMax: 20, label: 'Camión Rígido con trampilla elevadora' }
         };
 
@@ -19642,7 +19642,7 @@
 
         // --- ML / Peso selectores reactivos al camión ---
         // Equivalencia de metros lineales en palets (factores del cliente):
-        // 2,5 europalets/ml y 2 americanos/ml (13,6 m = 33 europalets = 26
+        // 2,5 europalets/ml y 2 americanos/ml (13,3 m = 33 europalets = 26
         // americanos = trailer completo). Palets enteros (se redondea hacia
         // abajo: no cabe medio palet).
         function paletsEquiv(ml) {
@@ -19660,14 +19660,14 @@
                 opt.textContent = i + (i === 1 ? ' metro' : ' metros') + ' (' + paletsEquiv(i) + ')';
                 sel.appendChild(opt);
             }
-            // Tauliner tiene 13,6m como tope real
+            // Tauliner tiene 13,3m como tope real
             if (mlMax === 13) {
                 var opt2 = document.createElement('option');
-                opt2.value = '13.6'; opt2.textContent = '13,6 metros — carga completa (equivale a 33 europalets o 26 americanos)';
+                opt2.value = '13.3'; opt2.textContent = '13,3 metros — carga completa (equivale a 33 europalets o 26 americanos)';
                 sel.appendChild(opt2);
             }
-            // Por defecto: carga completa (13,6 m en Tauliner; máximo en rígido).
-            sel.value = (mlMax === 13) ? '13.6' : String(mlMax);
+            // Por defecto: carga completa (13,3 m en Tauliner; máximo en rígido).
+            sel.value = (mlMax === 13) ? '13.3' : String(mlMax);
         }
         function fillPesoSelect(sel, pesoMax) {
             sel.innerHTML = '';
@@ -20207,7 +20207,7 @@
             }
             camionSel.addEventListener('change', applyCamion);
             // Trampilla elevadora → camión rígido (máx 8 m / 14 Tn).
-            // Sin trampilla → Tauliner (máx 13,6 m / 24 Tn).
+            // Sin trampilla → Tauliner (máx 13,3 m / 24 Tn).
             var trampillaChk = card.querySelector('[data-ptar-trampilla]');
             if (trampillaChk) {
                 trampillaChk.addEventListener('change', function () {
@@ -20216,7 +20216,7 @@
                     applyCamion(); // deja ml/peso al máximo del camión nuevo
                     // Al ACTIVAR la trampilla (rígido) conserva la elección si cabe
                     // en el nuevo máximo. Al DESACTIVAR (Tauliner) se queda al máximo
-                    // del trailer completo (13,6 m / 24 Tn), no al valor previo.
+                    // del trailer completo (13,3 m / 24 Tn), no al valor previo.
                     if (trampillaChk.checked) {
                         if (prevMl && mlSel.querySelector('option[value="' + prevMl + '"]')) mlSel.value = prevMl;
                         if (prevPeso && pesoSel.querySelector('option[value="' + prevPeso + '"]')) pesoSel.value = prevPeso;
@@ -20248,7 +20248,7 @@
             function renderOcupacion() {
                 if (!occFill || !occMeta) return;
                 var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
-                var ml = parseFloat(mlSel.value === '13.6' ? '13.6' : mlSel.value) || 0;
+                var ml = parseFloat(mlSel.value === '13.3' ? '13.3' : mlSel.value) || 0;
                 var tn = parseFloat(pesoSel.value) || 0;
                 // Estimación de palets europeos a partir de los ml (2,5/ml)
                 var palets = Math.round(ml * 2.5);
@@ -20281,7 +20281,7 @@
             function esGrupajeSel() {
                 var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
                 var max = info.mlReal || info.mlMax;
-                var mlv = mlSel.value === '13.6' ? 13.6 : parseFloat(mlSel.value);
+                var mlv = mlSel.value === '13.3' ? 13.3 : parseFloat(mlSel.value);
                 var pesoV = parseFloat(pesoSel.value);
                 return !isNaN(mlv) && mlv < max && !(!isNaN(pesoV) && pesoV >= info.pesoMax);
             }
@@ -20550,11 +20550,11 @@
                 // OCUPACIÓN: el % que aplica es max(coef_ml, coef_tn, coef_palets)
                 // — el que MÁS ocupa manda; uno NO limita al otro. Ej.: 3 m pero
                 // 24 Tn → el peso va al tope → 100% → tarifa de carga completa
-                // (igual que 13,6 m). El componente por distancia se escala por
+                // (igual que 13,3 m). El componente por distancia se escala por
                 // ese % (25%..100%), con un PRECIO MÍNIMO por tipo de envío:
                 // GRUPAJE 190 € · carga COMPLETA 320 € (ningún envío baja de ahí).
                 var occInfo = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
-                var occMl = parseFloat(mlSel.value === '13.6' ? '13.6' : mlSel.value) || 0;
+                var occMl = parseFloat(mlSel.value === '13.3' ? '13.3' : mlSel.value) || 0;
                 var occTn = parseFloat(pesoSel.value) || 0;
                 var occFactor = ocupacion(occMl, occTn, Math.round(occMl * 2.5), occInfo).pct / 100;
                 // Base fija 220 € + 1,35 €/km de carretera × ocupación. Además,
@@ -20677,7 +20677,7 @@
                 precio = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra + fijaExtra + preavisoExtra + cortaExtra; // base imponible
                 // === DESCUENTO POR PESO BAJO con camión LLENO en metros ===
                 // (Regla del usuario 2026-07-21, también anotada en TODO para el
-                // backend.) Solo con TAULINER a carga completa (13,6 m): si va
+                // backend.) Solo con TAULINER a carga completa (13,3 m): si va
                 // lleno de metros pero el peso es bajo, escala de descuento sobre
                 // el IMPORTE DE ENVÍO (no sobre la base total tras sumar recargos
                 // y suplementos), redondeado a la DECENA SUPERIOR:
@@ -20685,10 +20685,10 @@
                 //   12-16 −2% · 16-20 −1% · 20-24 → precio íntegro.
                 var descPeso = 0, descPesoLbl = '';
                 (function () {
-                    var mlSelV = mlSel ? (mlSel.value === '13.6' ? 13.6 : parseFloat(mlSel.value)) : 0;
+                    var mlSelV = mlSel ? (mlSel.value === '13.3' ? 13.3 : parseFloat(mlSel.value)) : 0;
                     var tnV = pesoSel ? (parseFloat(pesoSel.value) || 0) : 0;
                     var esRigido = trampOn && trampOn.checked; // trampilla → rígido
-                    if (esRigido || mlSelV < 13.6 || !tnV || tnV > 20) return;
+                    if (esRigido || mlSelV < 13.3 || !tnV || tnV > 20) return;
                     var pct, pctLbl, tramo;
                     if (tnV <= 4) { pct = 0.035; pctLbl = '3,5'; tramo = '0 a 4'; }
                     else if (tnV <= 8) { pct = 0.03; pctLbl = '3'; tramo = '4 a 8'; }
@@ -21471,7 +21471,7 @@
                 };
                 window.__ptarGrupajeCompleto = function (modo) {
                     var info = CAMION_INFO[camionSel.value] || CAMION_INFO.tauliner;
-                    mlSel.value = info.mlReal === 13.6 ? '13.6' : String(info.mlMax);
+                    mlSel.value = info.mlReal === 13.3 ? '13.3' : String(info.mlMax);
                     pesoSel.value = String(info.pesoMax);
                     mlSel.dispatchEvent(new Event('change'));
                     pesoSel.dispatchEvent(new Event('change'));
@@ -21898,7 +21898,7 @@
                 }
 
                 var camion = camionSel.value;
-                var medidas = (ml === '13.6' ? '13,6' : ml) + ' m · ' + (parseInt(peso, 10) * 1000).toLocaleString('es-ES') + ' kg';
+                var medidas = (ml === '13.3' ? '13,3' : ml) + ' m · ' + (parseInt(peso, 10) * 1000).toLocaleString('es-ES') + ' kg';
                 var origCorto = orig.split(',')[0].trim();
                 var destCorto = dest.split(',')[0].trim();
                 var mercaPal = mercaSel ? mercaSel.options[mercaSel.selectedIndex].text : '';
@@ -22155,7 +22155,7 @@
                     // Precio orientativo del tarifador; si la caja ETA no llegó
                     // a calcular (sin coordenadas), fórmula base de respaldo.
                     var precioNum = d.precioMock || (Math.round(((d.camion === 'tauliner' ? 950 : 720)
-                        + (parseFloat(d.ml === '13.6' ? 13.6 : d.ml) * 70)
+                        + (parseFloat(d.ml === '13.3' ? 13.3 : d.ml) * 70)
                         + (parseFloat(d.peso) * 35)) / 10) * 10);
                     // Separador de miles SIEMPRE (es-ES no lo pone en 4 cifras)
                     function fmtEur(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
@@ -22339,7 +22339,7 @@
                     );
                 } else {
                     var base = (d.camion === 'tauliner' ? 950 : 720)
-                        + (parseFloat(d.ml === '13.6' ? 13.6 : d.ml) * 70)
+                        + (parseFloat(d.ml === '13.3' ? 13.3 : d.ml) * 70)
                         + (parseFloat(d.peso) * 35);
                     var precio = Math.round(base / 10) * 10;
                     var vigencia = (function () {
@@ -22736,7 +22736,7 @@
                 if (!confirmCard || !summaryEl) return;
                 pendingData = d;
                 var info = CAMION_INFO[d.camion] || CAMION_INFO.tauliner;
-                var mlNum = parseFloat(d.ml === '13.6' ? '13.6' : d.ml) || 0;
+                var mlNum = parseFloat(d.ml === '13.3' ? '13.3' : d.ml) || 0;
                 var tnNum = parseFloat(d.peso) || 0;
                 var occ = ocupacion(mlNum, tnNum, Math.round(mlNum * 2.5), info);
                 // Rango de fechas de carga según la ventana (cualquier día laborable)
@@ -22792,7 +22792,7 @@
                         (opDet ? '<div style="font-size:var(--fs-s);color:var(--gray-600);margin-top:0.15rem;">' + escapeHtml(opDet) + '</div>' : '') + '</div>';
                 }
                 // Detalle de la mercancía a partir de los campos elegidos.
-                var mlTxt = (d.ml === '13.6' ? '13,6' : d.ml) + ' metros';
+                var mlTxt = (d.ml === '13.3' ? '13,3' : d.ml) + ' metros';
                 var pesoKg = (Math.round(parseFloat(d.peso) * 1000)).toLocaleString('es-ES') + ' kg';
                 var cargaTipoV = cargaTipoSel ? cargaTipoSel.options[cargaTipoSel.selectedIndex].text : '';
                 var mercaV = mercaSel ? mercaSel.options[mercaSel.selectedIndex].text.split(/[—(]/)[0].trim() : '';
@@ -22887,12 +22887,12 @@
                 // Referencia y anotaciones se muestran en el RESUMEN (solo
                 // lectura, con lo puesto en el paso 1; en blanco se omiten).
                 // Aviso de grupaje: solo si la carga NO es completa
-                // (Tauliner completo = 13,6 m; Rígido completo = 8 m).
+                // (Tauliner completo = 13,3 m; Rígido completo = 8 m).
                 // Si los ml elegidos son menores, sí es grupaje → mostrar.
                 var grupajeWarn = confirmCard.querySelector('[data-ptar-grupaje-warn]');
                 if (grupajeWarn) {
-                    var camionMax = (d.camion === 'tauliner') ? 13.6 : 8;
-                    var mlNum = parseFloat(d.ml === '13.6' ? '13.6' : d.ml);
+                    var camionMax = (d.camion === 'tauliner') ? 13.3 : 8;
+                    var mlNum = parseFloat(d.ml === '13.3' ? '13.3' : d.ml);
                     var esGrupaje = mlNum < camionMax;
                     grupajeWarn.hidden = !esGrupaje;
                     // Precio de la misma ruta en CAMIÓN COMPLETO (ocupación 100%,
@@ -23553,7 +23553,7 @@
                     var mM = String(src.medidas || '').match(/([\d,.]+)\s*m\b/);
                     if (mM) {
                         var mlNum = parseFloat(mM[1].replace(',', '.'));
-                        var mlVal = mlNum >= 13 ? '13.6' : String(Math.max(1, Math.min(Math.round(mlNum), info.mlMax)));
+                        var mlVal = mlNum >= 13 ? '13.3' : String(Math.max(1, Math.min(Math.round(mlNum), info.mlMax)));
                         if (mlSel.querySelector('option[value="' + mlVal + '"]')) mlSel.value = mlVal;
                     }
                     // Peso (kg → toneladas).

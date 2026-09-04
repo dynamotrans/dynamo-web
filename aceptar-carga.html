@@ -778,7 +778,7 @@
                 <div class="sec-title">Vehículo</div>
                 <label for="f-camion">Tipo de camión *</label>
                 <select id="f-camion" onchange="syncRemolque()">
-                    <option value="Trailer Tauliner · lona 13,6 m">Trailer Tauliner · lona corredera 13,6 m</option>
+                    <option value="Trailer Tauliner · lona 13,3 m">Trailer Tauliner · lona corredera 13,3 m</option>
                     <option value="Rígido con plataforma · 8 m">Rígido con plataforma · 8 m</option>
                 </select>
                 <div class="row2">
@@ -1073,16 +1073,16 @@
     // al pulsarla se recarga esta misma página con esos datos → se abre su
     // ventana de aceptación. En producción esta lista la sirve el backend.
     var BOLSA_DEMO = [
-        { ruta: 'Barcelona → Valencia', meta: 'Paletizado · 13,6 m · 22.000 kg · Tráiler tauliner', fecha: 'Recogida Mié 22 – Jue 23/07', precio: '720,00 €',
-          params: { envio: '#GX684912', o: '08120, La Llagosta, Barcelona, España', d: '46940, Manises, Valencia, España', m: 'Paletizado', ml: '13,6 m', peso: '22.000 kg', tc: 'Lateral', p: '720,00 €', dias: 'Mié 22/07,Jue 23/07', ot: 'Almacén', dt: 'Almacén', ho: 'L-V 8:00–14:00', hd: 'L-V 8:00–18:00' } },
+        { ruta: 'Barcelona → Valencia', meta: 'Paletizado · 13,3 m · 22.000 kg · Tráiler tauliner', fecha: 'Recogida Mié 22 – Jue 23/07', precio: '720,00 €',
+          params: { envio: '#GX684912', o: '08120, La Llagosta, Barcelona, España', d: '46940, Manises, Valencia, España', m: 'Paletizado', ml: '13,3 m', peso: '22.000 kg', tc: 'Lateral', p: '720,00 €', dias: 'Mié 22/07,Jue 23/07', ot: 'Almacén', dt: 'Almacén', ho: 'L-V 8:00–14:00', hd: 'L-V 8:00–18:00' } },
         { ruta: 'Sevilla → Madrid', meta: 'No paletizada · 6 m · 8.000 kg · Tráiler tauliner', fecha: 'Recogida Jue 23/07 (fecha fija)', precio: '640,00 €',
           params: { envio: '#GX684918', o: '41701, Dos Hermanas, Sevilla, España', d: '28031, Madrid, Madrid, España', m: 'No paletizada', ml: '6 m', peso: '8.000 kg', tc: 'Lateral y techo', p: '640,00 €', dias: 'Jue 23/07', ot: 'Almacén', dt: 'Obra' } },
-        { ruta: 'Zaragoza → Bilbao', meta: 'Paletizado · 13,6 m · 24.000 kg · Tráiler tauliner', fecha: 'Recogida Vie 24 – Lun 27/07', precio: '560,00 €',
-          params: { envio: '#GX684925', o: '50197, Zaragoza, Zaragoza, España', d: '48003, Bilbao, Bizkaia, España', m: 'Paletizado', ml: '13,6 m', peso: '24.000 kg', tc: 'Lateral', p: '560,00 €', dias: 'Vie 24/07,Lun 27/07', ot: 'Almacén', dt: 'Almacén' } },
+        { ruta: 'Zaragoza → Bilbao', meta: 'Paletizado · 13,3 m · 24.000 kg · Tráiler tauliner', fecha: 'Recogida Vie 24 – Lun 27/07', precio: '560,00 €',
+          params: { envio: '#GX684925', o: '50197, Zaragoza, Zaragoza, España', d: '48003, Bilbao, Bizkaia, España', m: 'Paletizado', ml: '13,3 m', peso: '24.000 kg', tc: 'Lateral', p: '560,00 €', dias: 'Vie 24/07,Lun 27/07', ot: 'Almacén', dt: 'Almacén' } },
         { ruta: 'Valencia → Murcia', meta: 'Paletizado · 8 m · 12.000 kg · Rígido con plataforma', fecha: 'Recogida Mié 22/07 (fecha fija)', precio: '380,00 €',
           params: { envio: '#GX684931', o: '46469, Beniparrell, Valencia, España', d: '30169, San Ginés, Murcia, España', m: 'Paletizado', ml: '8 m', peso: '12.000 kg', tc: 'Lateral', p: '380,00 €', dias: 'Mié 22/07', ot: 'Almacén', dt: 'Zona urbana', tram: '1' } },
-        { ruta: 'Madrid → Barcelona', meta: 'Paletizado · 13,6 m · 20.000 kg · Tráiler tauliner', fecha: 'Recogida Jue 23 – Sáb 25/07', precio: '760,00 €',
-          params: { envio: '#GX684940', o: '28051, Madrid, Madrid, España', d: '08040, Barcelona, Barcelona, España', m: 'Paletizado', ml: '13,6 m', peso: '20.000 kg', tc: 'Lateral y techo', p: '760,00 €', dias: 'Jue 23/07,Vie 24/07,Sáb 25/07', ot: 'Almacén', dt: 'Almacén' } }
+        { ruta: 'Madrid → Barcelona', meta: 'Paletizado · 13,3 m · 20.000 kg · Tráiler tauliner', fecha: 'Recogida Jue 23 – Sáb 25/07', precio: '760,00 €',
+          params: { envio: '#GX684940', o: '28051, Madrid, Madrid, España', d: '08040, Barcelona, Barcelona, España', m: 'Paletizado', ml: '13,3 m', peso: '20.000 kg', tc: 'Lateral y techo', p: '760,00 €', dias: 'Jue 23/07,Vie 24/07,Sáb 25/07', ot: 'Almacén', dt: 'Almacén' } }
     ];
     // Rellena una vez los desplegables de filtro con los valores presentes en
     // la bolsa (tipo de carga, metros lineales, peso).
