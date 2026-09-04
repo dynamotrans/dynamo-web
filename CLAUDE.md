@@ -186,6 +186,37 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-09-04 — Claude Code web (nube)
+
+> **Sesión de TARIFA: desglose completo de suplementos, largo real del tráiler (13,30 m) y carga por techo por temporada.** Casi todo en **preview** (`claude/sharp-dirac-E3UIO`); a **producción** (`main`): el largo del tráiler en la web pública. Estado final: **main `3338901`** · **preview `0f232dc`** (antes de esta bitácora).
+
+**ARRANQUE — rama equivocada**: la sesión se abrió en `claude/nueva-plataforma-web-wqvtqs` (clavada a `main`, sin portal). Con OK del usuario se pasó a **`claude/sharp-dirac-E3UIO`**, que es donde vive todo. ⚠️ **Aprendido**: el `CLAUDE.md` que se carga al arrancar la sesión venía de `main` (regla 1 vieja: "nunca push automático") y por eso Claude pidió confirmación 3 veces para subir a preview. La regla buena está en el `CLAUDE.md` **de preview** desde el 12-jul: **push automático a preview, confirmación solo para `main`**. Leer siempre el del checkout, no el del contexto inicial.
+
+**DESGLOSE DE LA TARIFA (`preview`)** — revierte la decisión del 09-ago de enseñar solo totales:
+- La caja de precio vuelve a mostrar **los conceptos itemizados antes de la base imponible**, en el paso *Fecha y precio* Y en la confirmación: Importe de envío · **Paradas adicionales (N × 40 €)** · recargo por **tipo de sitio de CADA punto** (Obra +5%, Zona urbana +20%…) · Carga por techo · Trampilla (60 €) · NIMA (50 €) · **Mercancía ADR (+50%)** · Suplemento **Fecha fija / Fecha fija urgente** · **Recogida 1-2 días** (ventana corta de grupaje) · **Descuento por peso bajo** en negativo.
+- **Las paradas adicionales** salen de dentro de "Importe de envío" y pasan a su **línea propia**.
+- **2 bugs cazados al hacerlo**: (1) la **confirmación no repetía el descuento por peso** → mostraba MÁS importe que el tarifador; ahora se guarda en el dataset y se replica. (2) El campo interno de precio del cliente **se autorrellena** con el precio aplicado, y eso hacía que la confirmación tomara SIEMPRE la rama de "importe cerrado" y perdiera el desglose → ahora solo cuenta como cerrado el importe **tecleado a mano**; si el autorrellenado no cuadra con la suma de conceptos, la diferencia sale como **"Ajuste de tarifa"** para que el desglose sume siempre el total.
+- **Decisión del usuario: se muestra TODO**, concepto + porcentaje donde lo hay + importe. Por coherencia, el descuento por peso pasa a **"Descuento peso entre 0 a 4 Tn (−3,5%)"** (antes se ocultaba el % por ser "cocina interna").
+
+**AVISO DE SUSPENSIÓN DENTRO DE LA CAJA VERDE (`preview`)**: "La cancelación o modificación reiterada de envíos puede conllevar la suspensión temporal o definitiva de la cuenta" (+ su *Ampliar para ver más*) colgaba **suelto debajo** de la caja de "✅ Cancelación y cambios gratis" → ahora va **dentro**, separado por una línea fina, con nueva variante `.susp-in` que hereda el verde (antes texto gris/navy y enlace morado desentonaban). Solo la caja de envío **sin camión asignado**; las otras dos variantes (coste tras el corte, y gratuita hasta el corte) siguen igual.
+
+**LARGO DEL TRÁILER: 13,60 → 13,30 m (máximo real interior)** — en TODA la plataforma:
+- **Web pública** (`main`, rama corta `fix/trailer-13-30` → merge `3338901`, con OK explícito): ficha de *Tipos de vehículo*, tarifador del hero (opción "13,3 metros — carga completa", valor interno `13.3`, mensaje a email/WhatsApp) y **plantilla de email Brevo**.
+- **Panel** (`preview`): desplegable de metros y **las 103 apariciones** de `dashboard.html` + 8 de `aceptar-carga.html` — ocupación del camión, descuento por peso, resumen, CMR, orden de transporte, almacenamiento ("tráiler completo 13,30 m") y datos de ejemplo.
+- **No cambia nada más**: 13,3 m sigue siendo carga completa (100% de ocupación) y la equivalencia se mantiene en **33 europalets / 26 americanos** (13,3 × 2,5 = 33,25 → 33; × 2 = 26,6 → 26). Cero `13,6` vivos en el repo.
+
+**CARGA POR TECHO: de +15% a IMPORTE PLANO POR TEMPORADA (`preview`)**:
+- **90 € del 15 de junio al 15 de septiembre** (ambos incluidos, temporada alta de ese camión) · **50 € el resto del año**. La temporada la marca la **fecha de recogida**; sin fecha elegida, la de hoy.
+- Helper único **`window.__techoSupl(fechaIso)`** (importe + temporada + etiqueta) usado por los **3** sitios que calculan precio (tarifador, confirmación y comparativa Dynamo del envío manual); importe y etiqueta se guardan en el dataset para que la confirmación no recalcule por su cuenta.
+- En el desglose: **"Carga por techo · verano (15 jun–15 sep)"** vs **"Carga por techo"**. Regla anotada en `TODO.md` (bloque de precios para backend), sustituyendo al viejo "Techo +15%".
+- ⚠️ Ojo al cablear la tarifa real: el **ADR (+50%) se calcula sobre el importe del envío ANTES de los suplementos**, así que el techo no entra en su base.
+
+**Método**: cada cambio verificado en Chromium headless (rol cliente y admin, red externa cortada, nominatim mockeado) + syntax-check JS 0 errores. Escenarios probados: suplementos sueltos y combinados, recargo por obra, parada adicional, ventana 1-2 días de grupaje, descuento por peso, precio tecleado a mano (sigue sin desglose) y las 4 fronteras de temporada del techo (14/06, 15/06, 15/09, 16/09). El **modal de avisos legales** no se pudo recorrer entero en headless (el asistente bloquea el paso final por validación de fichas de sitios) → esa caja se verificó renderizando su markup exacto con el CSS real; conviene un vistazo en la preview de Vercel.
+
+> 🔧 **Nota de entorno**: el asistente de Nuevo envío es ahora un **wizard de 4 pasos** (Ruta · Mercancía · Fecha y precio · Confirmar) y la caja de precio solo existe en el paso 3 (`wiz-s3`). Para automatizar: inyectar lat/lon en `[data-ptar-orig-wrap]`/`[data-ptar-dest-wrap]`, avanzar con `[data-wiz-next]` y elegir fecha; los **defaults de prueba SEV→MAD ya no existen** (el TODO que pedía quitarlos se puede dar por hecho).
+
+**Pendientes**: los de TODO.md (tarifa real que sustituya el MOCK — incluidos los % de ADR/negociación y estos nuevos importes de techo; direcciones reales; altas sin duplicados; esquema Holded; gating de roles server-side; matching de cargas a transportistas). Suelto: borrar la rama `fix/trailer-13-30` (ya mergeada) desde GitHub.
+
 ### 2026-09-03 — Claude Code web (nube)
 
 > **Sesión larga: factor de cliente (admin), email de prospección Brevo, pulido del desplegable de mercancía + ADR, negociación de precio por porcentaje y mapa de cobertura sin islas/enclaves.** Casi todo en **preview** (`claude/sharp-dirac-E3UIO`); a **producción** (`main`): plantilla de email Brevo y el mapa de cobertura. Estado final: **main `4396444`** · **preview `0c97695`** (antes de esta bitácora).
