@@ -20691,7 +20691,16 @@
                     precio -= descPeso;
                 })();
                 if (descPeso) detalle.push({ k: descPesoLbl, v: -descPeso });
-                var precioRows = detalle.length ? [{ k: 'Importe de envío', v: envioBase }].concat(detalle) : [];
+                // Se guardan para que la CONFIRMACIÓN (paso 2) repita el mismo
+                // descuento y no muestre un importe distinto al del paso 1.
+                card.dataset.descPeso = String(descPeso);
+                card.dataset.descPesoLbl = descPesoLbl;
+                // Desglose COMPLETO al cliente: importe de envío + cada parada
+                // adicional + recargos por tipo de sitio + suplementos, todo
+                // itemizado ANTES de totalizar (base imponible / IVA / total).
+                var precioRows = [{ k: 'Importe de envío', v: precioBaseN }];
+                if (nParadas) precioRows.push({ k: 'Paradas adicionales · ' + nParadas + ' × 40 €', v: nParadas * 40 });
+                precioRows = precioRows.concat(detalle);
                 // Arranca en el número que se está mostrando AHORA (no en lastPrice)
                 // para que la animación encadene aunque renderEta se llame 2 veces.
                 var shownEl = etaBox.querySelector('[data-price-neto]');
@@ -20917,8 +20926,8 @@
                 // que tarde el backend en devolver el importe.
                 var pbox = etaBox.querySelector('[data-eta-pricebox]');
                 if (priceCalcTimer) clearTimeout(priceCalcTimer);
-                // SOLO totales (Base/IVA/Total) — sin desglose de conceptos al cliente.
-                pbox.innerHTML = window.__priceSkeletonHtml([]);
+                // Desglose de conceptos + totales (Base/IVA/Total).
+                pbox.innerHTML = window.__priceSkeletonHtml(precioRows);
                 setPrecioCalculando(true);
                 priceCalcTimer = setTimeout(function () {
                     priceCalcTimer = null;
@@ -20930,7 +20939,7 @@
                     var startFrom = (fromPrice > 0 && fromPrice < precio)
                         ? fromPrice
                         : Math.round(precio * 0.4 / 10) * 10;
-                    window.__renderPriceBox(pbox, precio, [], startFrom);
+                    window.__renderPriceBox(pbox, precio, precioRows, startFrom);
                     setPrecioCalculando(false);
                 }, 1500);
                 lastPrice = precio;
@@ -21987,6 +21996,16 @@
                         var v = el ? parseFloat(String(el.value).replace(',', '.')) : NaN;
                         return (v > 0) ? Math.round(v * 100) / 100 : null;
                     })(),
+                    // ¿ese importe lo ha TECLEADO alguien, o es el autorrelleno
+                    // con el precio aplicado? Solo el tecleado a mano es un
+                    // importe cerrado (sin desglose); el autorrellenado sigue
+                    // llevando el desglose de conceptos del tarifador.
+                    precioManualTecleado: (function () {
+                        var el = card.querySelector('[data-ptar-precio-manual]');
+                        if (!el) return false;
+                        var v = String(el.value).trim();
+                        return !!v && v !== String(el.dataset.auto || '');
+                    })(),
                     // Precio TRANSPORTISTA provisional (autorrellenado con la
                     // compra más baja de la ruta; editable). Fija el P.
                     // transportista del envío → margen provisional.
@@ -22425,7 +22444,7 @@
                 if (!pendingData) return;
                 // PRECIO MANUAL fijado en el formulario: manda él — se OMITE el
                 // cálculo del tarifador (recargos y suplementos incluidos).
-                if (pendingData.precioManualVal > 0) {
+                if (pendingData.precioManualVal > 0 && pendingData.precioManualTecleado) {
                     var pm = pendingData.precioManualVal;
                     pendingData.precioMock = pm;
                     // Precio manual = importe cerrado, sin desglose: se muestra
@@ -22466,6 +22485,11 @@
                 var fijaExtra = fijaPct > 0 ? Math.round(subAntesFija * fijaPct / 10) * 10 : 0;
                 var cortaExtra = parseInt(card.dataset.cortaExtra || '0', 10) || 0;
                 var precio = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra + fijaExtra + flat + cortaExtra;
+                // Mismo descuento por peso bajo que en el paso 1 (venía calculado
+                // en el tarifador): sin esto la confirmación mostraría MÁS importe.
+                var descPeso = parseInt(card.dataset.descPeso || '0', 10) || 0;
+                var descPesoLbl = card.dataset.descPesoLbl || '';
+                if (descPeso) precio -= descPeso;
                 var extras = [];
                 if (techoExtra) extras.push({ k: 'Carga por techo', v: techoExtra });
                 if (trampExtra) extras.push({ k: 'Trampilla elevadora', v: trampExtra });
@@ -22474,8 +22498,19 @@
                 if (fijaExtra)  extras.push({ k: 'Suplemento Fecha fija', v: fijaExtra });
                 if (flat)       extras.push({ k: flat >= 100 ? 'Suplemento Fecha fija urgente' : 'Suplemento Fecha fija', v: flat });
                 if (cortaExtra) extras.push({ k: 'Recogida 1-2 días (suplemento)', v: cortaExtra });
+                if (descPeso) extras.push({ k: descPesoLbl || 'Descuento por peso', v: -descPeso });
                 var detalle = tipoLines.concat(extras);
-                var rows = detalle.length ? [{ k: 'Importe de envío', v: envioBase }].concat(detalle) : [];
+                var rows = [{ k: 'Importe de envío', v: base }];
+                if (nParadas) rows.push({ k: 'Paradas adicionales · ' + nParadas + ' × 40 €', v: nParadas * 40 });
+                rows = rows.concat(detalle);
+                // Importe AUTORRELLENADO (precio aplicado): manda sobre el del
+                // tarifador, pero se conserva el desglose — la diferencia se
+                // muestra como ajuste para que los conceptos sumen el total.
+                if (pendingData.precioManualVal > 0 && pendingData.precioManualVal !== precio) {
+                    var ajuste = Math.round((pendingData.precioManualVal - precio) * 100) / 100;
+                    if (ajuste) rows.push({ k: ajuste > 0 ? 'Ajuste de tarifa' : 'Ajuste de tarifa (descuento)', v: ajuste });
+                    precio = pendingData.precioManualVal;
+                }
                 pendingData.precioMock = precio;
                 pendingData.precioRows = rows.length ? rows : [{ k: 'Importe de envío', v: precio }];
                 var eur = String(precio).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -22483,12 +22518,9 @@
                 if (box) {
                     box.hidden = !precio;
                     if (precio) {
-                        // Al CLIENTE se le muestran SOLO los totales (Base/IVA/Total),
-                        // sin desglose de conceptos (recargos de trampilla/NIMA/fecha
-                        // fija…): el precio viene calculado del backend y no se expone
-                        // cómo se calcula. Las filas (`rows`) se guardan en
-                        // pendingData.precioRows para uso interno/admin, pero NO se pintan.
-                        window.__renderPriceBox(box, precio, []);
+                        // Desglose COMPLETO (los mismos conceptos que en el paso 1)
+                        // antes de la base imponible, el IVA y el total.
+                        window.__renderPriceBox(box, precio, rows);
                         injectPresuIco(box);
                     }
                 }
