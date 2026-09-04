@@ -1267,6 +1267,16 @@
         .susp-details .susp-cuerpo { margin-top: 0.6rem; font-size: var(--fs-m); line-height: 1.55; color: var(--gray-700); }
         .susp-details .susp-cuerpo p { margin: 0; }
         .susp-details .susp-cuerpo p + p { margin-top: 0.6rem; }
+        /* Mismo bloque de suspensión, pero DENTRO de la caja verde de
+           "Cancelación y cambios gratis": hereda el verde de la caja (si no,
+           el gris/navy/morado desentona) y se separa con una línea fina. */
+        .susp-in { margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid #b7ebcd; }
+        .susp-in .susp-caja { margin-top: 0; color: inherit; }
+        .susp-in .susp-caja strong,
+        .susp-in .susp-cuerpo,
+        .susp-in .susp-cuerpo strong,
+        .susp-in .susp-details > summary .susp-more { color: inherit; }
+        .susp-in .susp-details[open] > summary .susp-more { opacity: 0.75; }
         .dash-modal-actions {
             display: flex; gap: 0.5rem; flex-wrap: wrap;
             margin: -0.4rem 0 1.1rem;
@@ -23272,8 +23282,11 @@
                     cancelBody =
                         '<div style="margin-bottom:0.8rem;padding:0.7rem 0.8rem;background:#eafaf0;border:1px solid #b7ebcd;border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#0f6b3a;">' +
                         '✅ <strong>Cancelación y cambios gratis.</strong> Mientras este envío <strong>no tenga camión asignado</strong> puedes <strong>cancelarlo o modificarlo en cualquier momento sin coste</strong>. Una vez asignemos transportista, cancelar <strong>después de las 9:00 del día hábil anterior a la carga</strong> puede conllevar el coste completo del servicio.' +
-                        '</div>' +
-                        suspBloque;
+                        // El aviso de suspensión por cancelaciones/modificaciones
+                        // reiteradas va DENTRO de esta misma caja (antes colgaba
+                        // debajo, suelto), con su "Ampliar para ver más".
+                        '<div class="susp-in">' + suspBloque + '</div>' +
+                        '</div>';
                 } else if (trasCorte) {
                     cancelBody =
                         '<div style="margin-bottom:0.8rem;padding:0.7rem 0.8rem;background:rgba(220,38,38,0.10);border:1px solid rgba(220,38,38,0.45);border-radius:9px;font-size: var(--fs-m);line-height:1.55;color:#991b1b;">' +
