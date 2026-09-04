@@ -20696,8 +20696,9 @@
                     else if (tnV <= 16) { pct = 0.02; pctLbl = '2'; tramo = '12 a 16'; }
                     else { pct = 0.01; pctLbl = '1'; tramo = '16 a 20'; }
                     descPeso = Math.ceil(envioBase * pct / 10) * 10; // sobre el Importe de envío, decena SUPERIOR
-                    // Sin porcentaje a la vista (el % es cocina interna): solo el tramo.
-                    descPesoLbl = 'Descuento peso entre ' + tramo + ' Tn';
+                    // Con el porcentaje a la vista (2026-09-04): el desglose de la
+                    // tarifa muestra TODOS los conceptos con su % y su importe.
+                    descPesoLbl = 'Descuento peso entre ' + tramo + ' Tn (−' + pctLbl + '%)';
                     precio -= descPeso;
                 })();
                 if (descPeso) detalle.push({ k: descPesoLbl, v: -descPeso });
