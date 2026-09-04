@@ -2084,9 +2084,8 @@
             .dash-recomienda-btns { width: 100%; }
             .dash-recomienda-btns > button { flex: 1; min-width: 0; padding-left: 0.4rem; padding-right: 0.4rem; font-size: var(--fs-m); }
         }
-        /* Mini-iconos junto a "Base imponible": documento (abre PDF) + ℹ (tooltip).
-           Área de toque amplia (padding) y separación clara para que en móvil se
-           acierte cada uno sin fallar. */
+        /* Mini-icono junto a "Base imponible": documento (abre el PDF; texto
+           de ayuda al pasar por encima). Área de toque amplia (padding). */
         .ptar-presu-ico { display: inline-flex; align-items: center; justify-content: center; margin-left: 0.25rem; padding: 6px; vertical-align: middle; color: var(--purple); cursor: pointer; border-radius: 7px; -webkit-tap-highlight-color: transparent; }
         .ptar-presu-ico .ptar-tip-ico { width: 18px; height: 18px; opacity: 0.75; }
         .ptar-presu-ico.tip-open .ptar-tip-ico { opacity: 1; }
@@ -2097,6 +2096,13 @@
         @media (hover: hover) {
             .ptar-presu-ico:hover .ptar-tip-ico { opacity: 1; }
             .ptar-presu-ico:hover { background: rgba(51,0,204,0.08); }
+        }
+        /* Tooltip solo por hover (puntero real) o foco de teclado; en táctil
+           NO se abre con el tap (el tap ejecuta la acción del icono). */
+        .ptar-hover-tip { position: relative; }
+        .ptar-hover-tip:focus-visible .ptar-tip-pop { opacity: 1; visibility: visible; transform: translateY(0); }
+        @media (hover: hover) {
+            .ptar-hover-tip:hover .ptar-tip-pop { opacity: 1; visibility: visible; transform: translateY(0); }
         }
         /* Discreción comercial (confirmación de envío) */
         .ptar-discrecion { border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 0.7rem 0.8rem; background: var(--gray-50); margin-bottom: 0; }
@@ -15167,7 +15173,9 @@
             tip.style.top = top + 'px';
         }
         function onShow(e) {
-            var t = e.target.closest && e.target.closest('.ptar-has-tip');
+            // .ptar-hover-tip = tooltip SOLO al pasar por encima / enfocar (el
+            // clic y el tap hacen su acción propia, p.ej. abrir el PDF).
+            var t = e.target.closest && e.target.closest('.ptar-has-tip, .ptar-hover-tip');
             if (t) placeTip(t);
         }
         // Ratón/teclado: colocar al pasar por encima o enfocar. El CSS lo
@@ -20601,8 +20609,10 @@
                         preavisoFlat = fechaEsPasada ? 0 : preavisoFija(_selD);
                     }
                 }
-                // Mercancía no paletizada +10% (va dentro del importe de envío).
-                if (mercaSel && mercaSel.selectedIndex === 1) precio *= 1.1;
+                // Mercancía NO PALETIZADA: suplemento PLANO +70 € como concepto
+                // propio del desglose (2026-09-04; antes era +10% escondido dentro
+                // del importe de envío). En producción el importe vendrá del backend.
+                var noPaletExtra = (mercaSel && mercaSel.selectedIndex === 1) ? 70 : 0;
                 // Recargo por TIPO DE LUGAR de CADA PUNTO (Almacén 0 · Obra +5%
                 // · Evento +15% · Zona urbana +20% · Finca/Agrícola +25%). Se
                 // aplica UNA VEZ POR PUNTO: si la recogida y la entrega son finca,
@@ -20633,7 +20643,6 @@
                 // Base de ESTA ruta a ocupación 100% (camión completo): para el
                 // botón "Pasar a camión completo" del aviso de grupaje.
                 var precioFull = 220 + dist * 1.35;
-                if (mercaSel && mercaSel.selectedIndex === 1) precioFull *= 1.1;
                 if (fCli) precioFull = precioFull * (1 + fCli / 100);
                 precioFull = Math.max(320, precioFull); // mínimo carga completa
                 card.dataset.precioBaseFull = String(Math.round(precioFull / 10) * 10);
@@ -20675,13 +20684,14 @@
                 card.dataset.trampExtra = String(trampExtra);
                 card.dataset.nimaExtra  = String(nimaExtra);
                 card.dataset.adrExtra   = String(adrExtra);
+                card.dataset.noPaletExtra = String(noPaletExtra);
                 // Fecha fija: suplemento PLANO (2026-07-19, sustituye al +15%).
                 //  · Primer día disponible → +100 € (FECHA FIJA URGENTE).
                 //  · Cualquier fecha fija posterior → +50 €.
                 // Se guarda como fijaFlat; fijaPct queda a 0 (el % se retiró).
                 card.dataset.fijaPct  = '0';
                 card.dataset.fijaFlat = String(uv === 'dia' ? preavisoFlat : 0);
-                var subAntesFija = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra;
+                var subAntesFija = envioNeto + noPaletExtra + techoExtra + trampExtra + nimaExtra + adrExtra;
                 var fijaExtra = 0;
                 var preavisoExtra = (uv === 'dia') ? preavisoFlat : 0;
                 var fijaUrgente = (uv === 'dia' && preavisoFlat >= 100);
@@ -20692,6 +20702,7 @@
                 // punto) + cada suplemento que aplique. Se muestra si hay alguna
                 // línea (recargo por tipo o suplemento); si no, solo Base/IVA/Total.
                 var extras = [];
+                if (noPaletExtra) extras.push({ k: 'Mercancía no paletizada', v: noPaletExtra });
                 if (techoExtra) extras.push({ k: techoInfo.label, v: techoExtra });
                 if (trampExtra) extras.push({ k: 'Trampilla elevadora', v: trampExtra });
                 if (nimaExtra)  extras.push({ k: 'NIMA', v: nimaExtra });
@@ -20699,7 +20710,7 @@
                 if (preavisoExtra) extras.push({ k: fijaUrgente ? 'Suplemento Fecha fija urgente' : 'Suplemento Fecha fija', v: preavisoExtra });
                 if (cortaExtra) extras.push({ k: 'Recogida 1-2 días (suplemento)', v: cortaExtra });
                 var detalle = tipoLines.concat(extras);
-                precio = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra + fijaExtra + preavisoExtra + cortaExtra; // base imponible
+                precio = envioNeto + noPaletExtra + techoExtra + trampExtra + nimaExtra + adrExtra + fijaExtra + preavisoExtra + cortaExtra; // base imponible
                 // === DESCUENTO POR PESO BAJO con camión LLENO en metros ===
                 // (Regla del usuario 2026-07-21, también anotada en TODO para el
                 // backend.) Solo con TAULINER a carga completa (13,3 m): si va
@@ -21354,9 +21365,10 @@
                 var trampExtra = parseInt(card.dataset.trampExtra || '0', 10) || 0;
                 var nimaExtra = parseInt(card.dataset.nimaExtra || '0', 10) || 0;
                 var adrExtraC = parseInt(card.dataset.adrExtra || '0', 10) || 0;
+                var noPaletC = parseInt(card.dataset.noPaletExtra || '0', 10) || 0;
                 var fijaPct = parseFloat(card.dataset.fijaPct || '0') || 0;
                 var flat = parseInt(card.dataset.fijaFlat || '0', 10) || 0;
-                var sub = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtraC;
+                var sub = envioNeto + noPaletC + techoExtra + trampExtra + nimaExtra + adrExtraC;
                 var cortaC = parseInt(card.dataset.cortaExtra || '0', 10) || 0;
                 return sub + (fijaPct > 0 ? Math.round(sub * fijaPct / 10) * 10 : 0) + flat + cortaC;
             }
@@ -22456,27 +22468,22 @@
                 if (!box) return;
                 var baseK = box.querySelector('.alm-price-base .k');
                 if (!baseK || baseK.querySelector('.ptar-presu-ico')) return;
-                // 1) Icono de DOCUMENTO: abre el PDF (sin tooltip, para que en
-                //    móvil al pulsarlo no se solape con el texto de ayuda).
+                // UN SOLO icono (2026-09-04, antes documento + ℹ aparte): el
+                // DOCUMENTO abre el PDF al pulsar y muestra el texto de ayuda al
+                // PASAR POR ENCIMA (ratón) o enfocar con teclado. No lleva la
+                // clase .ptar-has-tip a propósito: esa clase cancela el clic y
+                // en móvil convierte el tap en abrir/cerrar tooltip; aquí el tap
+                // debe abrir el PDF directamente. Solo se coloca (placeTip) vía
+                // .ptar-hover-tip.
                 var pdf = document.createElement('span');
-                pdf.className = 'ptar-presu-ico';
+                pdf.className = 'ptar-presu-ico ptar-hover-tip';
                 pdf.setAttribute('data-ptar-presu-pdf', '');
                 pdf.setAttribute('tabindex', '0');
                 pdf.setAttribute('role', 'button');
-                pdf.setAttribute('aria-label', 'Ver o guardar el PDF de este precio');
-                pdf.setAttribute('title', 'Ver / guardar el PDF de este precio');
-                pdf.innerHTML = '<svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>';
+                pdf.setAttribute('aria-label', 'Ver o guardar el presupuesto en PDF de este precio');
+                pdf.innerHTML = '<svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>' +
+                    '<span class="ptar-tip-pop" role="tooltip">Pulsa para ver o guardar el <strong>presupuesto en PDF</strong> de este precio (se abre en una pestaña nueva). Es orientativo: si confirmas el envío en otro momento, puede variar (precios dinámicos).</span>';
                 baseK.appendChild(pdf);
-                // 2) Icono ℹ: SOLO muestra el tooltip (al pulsar en móvil o pasar
-                //    el ratón), no abre nada.
-                var info = document.createElement('span');
-                info.className = 'ptar-has-tip ptar-presu-ico ptar-presu-info';
-                info.setAttribute('tabindex', '0');
-                info.setAttribute('role', 'button');
-                info.setAttribute('aria-label', 'Qué es este PDF');
-                info.innerHTML = '<svg class="ptar-tip-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>' +
-                    '<span class="ptar-tip-pop" role="tooltip">Pulsa el icono del <strong>documento</strong> para ver o guardar el <strong>presupuesto en PDF</strong> de este precio (se abre en una pestaña nueva). Es orientativo: si confirmas el envío en otro momento, puede variar (precios dinámicos).</span>';
-                baseK.appendChild(info);
             }
             function recalcConfPrice() {
                 if (!pendingData) return;
@@ -22524,16 +22531,18 @@
                 var trampExtra = parseInt(card.dataset.trampExtra || '0', 10) || 0;
                 var nimaExtra  = parseInt(card.dataset.nimaExtra || '0', 10) || 0;
                 var adrExtra   = parseInt(card.dataset.adrExtra || '0', 10) || 0;
-                var subAntesFija = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra;
+                var noPaletExtra = parseInt(card.dataset.noPaletExtra || '0', 10) || 0;
+                var subAntesFija = envioNeto + noPaletExtra + techoExtra + trampExtra + nimaExtra + adrExtra;
                 var fijaExtra = fijaPct > 0 ? Math.round(subAntesFija * fijaPct / 10) * 10 : 0;
                 var cortaExtra = parseInt(card.dataset.cortaExtra || '0', 10) || 0;
-                var precio = envioNeto + techoExtra + trampExtra + nimaExtra + adrExtra + fijaExtra + flat + cortaExtra;
+                var precio = envioNeto + noPaletExtra + techoExtra + trampExtra + nimaExtra + adrExtra + fijaExtra + flat + cortaExtra;
                 // Mismo descuento por peso bajo que en el paso 1 (venía calculado
                 // en el tarifador): sin esto la confirmación mostraría MÁS importe.
                 var descPeso = parseInt(card.dataset.descPeso || '0', 10) || 0;
                 var descPesoLbl = card.dataset.descPesoLbl || '';
                 if (descPeso) precio -= descPeso;
                 var extras = [];
+                if (noPaletExtra) extras.push({ k: 'Mercancía no paletizada', v: noPaletExtra });
                 if (techoExtra) extras.push({ k: techoLbl, v: techoExtra });
                 if (trampExtra) extras.push({ k: 'Trampilla elevadora', v: trampExtra });
                 if (nimaExtra)  extras.push({ k: 'NIMA', v: nimaExtra });
@@ -22938,7 +22947,7 @@
                             var recF = parseFloat(card.dataset.recargoTipo || '0') || 0;
                             var netoF = bFull + nPF * 40 + Math.round(bFull * recF / 10) * 10;
                             var techoF = card.dataset.techoOn === '1' ? Math.round(netoF * 0.15 / 10) * 10 : 0;
-                            var totalFull = netoF + techoF + (parseInt(card.dataset.trampExtra || '0', 10) || 0) + (parseInt(card.dataset.nimaExtra || '0', 10) || 0);
+                            var totalFull = netoF + techoF + (parseInt(card.dataset.noPaletExtra || '0', 10) || 0) + (parseInt(card.dataset.trampExtra || '0', 10) || 0) + (parseInt(card.dataset.nimaExtra || '0', 10) || 0);
                             // Fecha fija = +15% sobre el completo (sin contar el
                             // posible suplemento de urgencia, que depende del día).
                             var totalFullFija = totalFull + Math.round(totalFull * 0.15 / 10) * 10;

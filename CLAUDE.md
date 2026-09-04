@@ -186,6 +186,28 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-09-04 (sesión 2) — Claude Code web (nube)
+
+> **Sesión corta: mercancía no paletizada como línea del desglose (+70 €) + icono único del PDF en la confirmación.** Todo **preview** (portal). `main` sin tocar. Rama de sesión `claude/hola-x80n0h` (copia de preview + estos commits), mergeada a **preview** con fast-forward.
+
+**ARRANQUE**: la sesión abrió en `claude/hola-x80n0h`, que venía clavada a `main` (sin `dashboard.html`). El usuario dijo "tú sabrás" con la rama → se puso esa rama **encima de preview** (`git checkout -B … origin/claude/sharp-dirac-E3UIO`), se trabajó ahí y se subió a las dos. ⚠️ Igual que ayer: el `CLAUDE.md` del contexto inicial era el de `main` (bitácora parada en julio); el bueno es el del checkout de preview.
+
+**MERCANCÍA NO PALETIZADA → +70 € COMO CONCEPTO DEL DESGLOSE (`dashboard.html`)**:
+- Antes: **+10 % escondido** dentro del "Importe de envío" (no se veía en ningún sitio). Ahora: línea propia **"Mercancía no paletizada · 70,00 €"** en la caja de precio del paso *Fecha y precio* y en la **confirmación**; también entra en la **comparativa Dynamo** del envío manual y en el botón **"Pasar a camión completo"** (los 4 sitios que suman precio). Se guarda en `card.dataset.noPaletExtra` para que la confirmación no recalcule por su cuenta (mismo patrón que trampilla/NIMA).
+- El **+70 € es provisional** (lo puso el usuario para el mock): **vendrá del backend**. Anotado en `TODO.md` (bloque de reglas de precios).
+- Verificado en Chromium headless: Sevilla→Madrid, paletizada 850 € → no paletizada **850 + 70 = 920 €** base imponible, en el paso 3 y en la confirmación; al volver a paletizada la línea desaparece.
+
+**ICONO ÚNICO JUNTO A "BASE IMPONIBLE" (confirmación)**:
+- Había **dos** iconos: documento (abre el PDF) + círculo ℹ (tooltip). Petición: unificar. Ahora **solo el documento**: al **pasar por encima** (ratón) o enfocar con teclado muestra el texto de ayuda; al pulsar/tocar abre el PDF. El ℹ se eliminó.
+- Detalle técnico: NO lleva `.ptar-has-tip` (esa clase cancela el clic y en móvil convierte el tap en abrir/cerrar tooltip). Nueva clase **`.ptar-hover-tip`** (solo hover/focus; `onShow` del posicionador la reconoce para colocar el tooltip con `placeTip`). En táctil el tap va directo al PDF, sin tooltip.
+
+**PREGUNTA DEL USUARIO — "¿qué es Ajuste de tarifa?"** (ejemplo: Importe 1230 · Descuento peso −50 · Ajuste +50 · Base 1230): es la línea que cuadra el desglose cuando el **precio aplicado** (el que autorrellena el campo interno "Cliente manual", = **media de las ventas de esa ruta en los últimos 15 días**, redondeada a la decena superior) **no coincide con lo que suma el tarifador**. El aplicado manda, y la diferencia sale como "Ajuste de tarifa" (o "(descuento)" si es negativa). En su ejemplo la media de la ruta era 1230 y el tarifador daba 1180, así que el descuento por peso quedó "anulado" por el ajuste. **Es comportamiento diseñado ayer (sesión 1), no un bug**, pero al usuario le chirría → ver pendientes.
+
+**Pendientes**:
+- **Decidir qué hacer con "Ajuste de tarifa"**: opciones (a) renombrar a algo entendible tipo "Ajuste al precio aplicado de la ruta"; (b) que el descuento por peso se aplique DESPUÉS del precio aplicado (no anulado); (c) que el aplicado solo mande cuando el admin lo teclea. Sin decidir.
+- Importe real de "no paletizada" desde el backend (hoy 70 € fijo en el front).
+- Borrar `claude/hola-x80n0h` en GitHub cuando ya no haga falta (ya está en preview).
+
 ### 2026-09-04 — Claude Code web (nube)
 
 > **Sesión de TARIFA: desglose completo de suplementos, largo real del tráiler (13,30 m) y carga por techo por temporada.** Casi todo en **preview** (`claude/sharp-dirac-E3UIO`); a **producción** (`main`): el largo del tráiler en la web pública. Estado final: **main `3338901`** · **preview `0f232dc`** (antes de esta bitácora).
