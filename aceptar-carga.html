@@ -943,12 +943,28 @@
             <div class="tel-modal-backdrop" onclick="cerrarTelConfirm()"></div>
             <div class="tel-modal-card" role="dialog" aria-modal="true" aria-labelledby="tm-title">
                 <h2 id="tm-title">Confirma que eres tú</h2>
-                <div class="tm-box">
-                    <label for="tm-tel3">Escribe los <strong>3 dígitos</strong> que te hemos enviado a tu <strong>email</strong> para confirmar *</label>
-                    <input type="tel" id="tm-tel3" inputmode="numeric" maxlength="3" placeholder="•••" autocomplete="off">
-                    <div class="tm-err" id="tm-err" style="display:none;">El código no es correcto.</div>
+                <!-- PASO 1: a QUIÉN se le manda el código. Un solo destinatario
+                     (una empresa puede tener 20+ agentes de tráfico: mandarlo a
+                     todos sería spam). La lista va ENMASCARADA. -->
+                <div id="tm-paso1">
+                    <div class="tm-box">
+                        <label for="tm-user">¿A qué email de tu empresa te enviamos el <strong>código</strong>? *</label>
+                        <select id="tm-user" onchange="tmUserSync()"></select>
+                        <div class="tm-err" id="tm-nouser" style="display:none;">Por seguridad el código solo se envía a un email ya registrado. Pregunta a un compañero que sí esté en la lista, o llámanos y te damos de alta.</div>
+                    </div>
+                    <button type="button" class="btn" id="tm-enviar" onclick="tmEnviarCodigo()">Enviar código</button>
+                    <a class="btn" id="tm-llamar" href="tel:+34955225945" style="display:none;background:var(--green-dark);">Llamar a Dynamo</a>
                 </div>
-                <button type="button" class="btn" onclick="telConfirmar()">Confirmar y ACEPTAR carga</button>
+                <!-- PASO 2: teclear el código recibido. -->
+                <div id="tm-paso2" hidden>
+                    <div class="tm-box">
+                        <label for="tm-tel3">Escribe los <strong>3 dígitos</strong> que hemos enviado a <strong id="tm-dest">tu email</strong> *</label>
+                        <input type="tel" id="tm-tel3" inputmode="numeric" maxlength="3" placeholder="•••" autocomplete="off">
+                        <div class="tm-err" id="tm-err" style="display:none;">El código no es correcto.</div>
+                    </div>
+                    <button type="button" class="btn" onclick="telConfirmar()">Confirmar y ACEPTAR carga</button>
+                    <button type="button" class="tm-volver" id="tm-cambiar" onclick="tmCambiarDest()">Enviarlo a otro email</button>
+                </div>
                 <button type="button" class="tm-volver" onclick="cerrarTelConfirm()">Volver</button>
             </div>
         </div>
@@ -1206,6 +1222,35 @@
     var TRANS_DEMO = [
         {
             cif: 'B58830217', empresa: 'Transportes Iberia Express S.L.', ciudad: 'Madrid', flota: '8 camiones', bolsa: 'Wtransnet', bolsaCod: '482113', tel: '+34 916 402 118', email: 'trafico@iberiaexpress-trans.es', iva: 21, retencion: 1,
+            // USUARIOS de la empresa (rol transportista). Cada email es un
+            // USUARIO de la plataforma: todos son de tráfico y ven lo mismo; el
+            // email de contabilidad vive en la ficha de la EMPRESA y NO es
+            // usuario (no acepta cargas). Empresa grande a propósito (22
+            // agentes) para probar el desplegable con muchas opciones.
+            usuarios: [
+                { n: 'José Luis Ramírez', e: 'jose.ramirez@iberiaexpress-trans.es', t: '+34 916 402 118' },
+                { n: 'Marta Peña Soler', e: 'marta.pena@iberiaexpress-trans.es', t: '+34 916 402 204' },
+                { n: 'Andrés Vidal Roca', e: 'andres.vidal@iberiaexpress-trans.es', t: '+34 916 402 317' },
+                { n: 'Nuria Ferrer Gil', e: 'nuria.ferrer@iberiaexpress-trans.es', t: '+34 916 402 425' },
+                { n: 'Iván Casado Mur', e: 'ivan.casado@iberiaexpress-trans.es', t: '+34 916 402 536' },
+                { n: 'Lorena Ríos Paz', e: 'lorena.rios@iberiaexpress-trans.es', t: '+34 916 402 648' },
+                { n: 'Óscar Bravo Lima', e: 'oscar.bravo@iberiaexpress-trans.es', t: '+34 916 402 759' },
+                { n: 'Paula Miró Sanz', e: 'paula.miro@iberiaexpress-trans.es', t: '+34 916 402 861' },
+                { n: 'Rubén Ferrán Gil', e: 'ruben.ferran@iberiaexpress-trans.es', t: '+34 916 402 972' },
+                { n: 'Sara Nogal Vega', e: 'sara.nogal@iberiaexpress-trans.es', t: '+34 916 402 183' },
+                { n: 'Tomás Ibarra Ruy', e: 'tomas.ibarra@iberiaexpress-trans.es', t: '+34 916 402 294' },
+                { n: 'Alba Cortés Mena', e: 'alba.cortes@iberiaexpress-trans.es', t: '+34 916 402 305' },
+                { n: 'Diego Salas Font', e: 'diego.salas@iberiaexpress-trans.es', t: '+34 916 402 416' },
+                { n: 'Elena Prat Bosch', e: 'elena.prat@iberiaexpress-trans.es', t: '+34 916 402 527' },
+                { n: 'Hugo Marín Cano', e: 'hugo.marin@iberiaexpress-trans.es', t: '+34 916 402 638' },
+                { n: 'Irene Vila Mora', e: 'irene.vila@iberiaexpress-trans.es', t: '+34 916 402 749' },
+                { n: 'Javier Roldán Paz', e: 'javier.roldan@iberiaexpress-trans.es', t: '+34 916 402 850' },
+                { n: 'Lucía Serna Gil', e: 'lucia.serna@iberiaexpress-trans.es', t: '+34 916 402 961' },
+                { n: 'Mario Duarte Rey', e: 'mario.duarte@iberiaexpress-trans.es', t: '+34 916 402 172' },
+                { n: 'Noelia Pons Vidal', e: 'noelia.pons@iberiaexpress-trans.es', t: '+34 916 402 283' },
+                { n: 'Raúl Estévez Lara', e: 'raul.estevez@iberiaexpress-trans.es', t: '+34 916 402 394' },
+                { n: 'Silvia Ocaña Gil', e: 'silvia.ocana@iberiaexpress-trans.es', t: '+34 916 402 405' }
+            ],
             matriculas: ['4521 JKL', '7890 MNP', '1234 ABC'], remolques: ['R2345 DEF', 'R6677 GHJ'],
             pares: { '4521 JKL': 'R2345 DEF', '7890 MNP': 'R6677 GHJ', '1234 ABC': 'R2345 DEF' },
             paresChofer: { '4521 JKL': 0, '7890 MNP': 1, '1234 ABC': 0 },
@@ -1216,6 +1261,11 @@
         },
         {
             cif: 'B72153042', empresa: 'LogiSur Cargo S.L.', ciudad: 'Sevilla', flota: '12 camiones', bolsa: 'Timocom', bolsaCod: '917426', tel: '+34 954 771 530', email: 'operaciones@logisurcargo.com', iva: 21, retencion: 1,
+            usuarios: [
+                { n: 'Carmen Robles Nieto', e: 'operaciones@logisurcargo.com', t: '+34 954 771 530' },
+                { n: 'Miguel Ángel Toro', e: 'miguel.toro@logisurcargo.com', t: '+34 954 771 612' },
+                { n: 'Rocío Barea Luna', e: 'rocio.barea@logisurcargo.com', t: '+34 954 771 704' }
+            ],
             matriculas: ['3344 SUR', '5566 CDZ'], remolques: ['R8899 SEV'],
             pares: { '3344 SUR': 'R8899 SEV', '5566 CDZ': '' },
             paresChofer: { '3344 SUR': 0, '5566 CDZ': 0 },
@@ -1225,11 +1275,13 @@
         },
         {
             cif: 'B91234567', empresa: 'Transportes Andévalo S.L.', ciudad: 'Huelva', flota: '5 camiones', bolsa: '—', tel: '+34 959 240 087', email: 'trafico@andevalotrans.es', iva: 0, retencion: 1,
+            usuarios: [{ n: 'Francisco Vázquez Mora', e: 'trafico@andevalotrans.es', t: '+34 959 240 087' }],
             matriculas: ['1122 HUE'], remolques: [], pares: { '1122 HUE': '' },
             conductores: []
         },
         {
             cif: '29876543P', empresa: 'José Martín Ruiz · autónomo', ciudad: 'Córdoba', flota: '1 camión', bolsa: '—', tel: '+34 638 220 471', email: 'jmartin.transportes@gmail.com', iva: 21, retencion: 1,
+            usuarios: [{ n: 'José Martín Ruiz', e: 'jmartin.transportes@gmail.com', t: '+34 638 220 471' }],
             matriculas: ['9080 COR'], remolques: ['R4040 COR'], pares: { '9080 COR': 'R4040 COR' },
             paresChofer: { '9080 COR': 0 },
             conductores: [
@@ -1265,6 +1317,18 @@
         var d = s.replace(/^\+\d+\s*/, '').replace(/\D/g, '');
         if (d.length <= 3) return pref + '***';
         return pref + d.slice(0, d.length - 3) + '***';
+    }
+    // Email ENMASCARADO para elegir destinatario sin exponer el directorio de
+    // contactos de la empresa: 2 primeros + 2 últimos caracteres de la parte
+    // local, el dominio entero (que es público). "jose.ramirez@x.es" → "jo****ez@x.es".
+    function maskEmail2(e) {
+        e = String(e || '').trim();
+        var i = e.lastIndexOf('@');
+        if (i < 1) return e ? '****' : '';
+        var loc = e.slice(0, i), dom = e.slice(i);
+        if (loc.length <= 2) return '****' + dom;
+        if (loc.length <= 4) return loc.slice(0, 1) + '****' + loc.slice(-1) + dom;
+        return loc.slice(0, 2) + '****' + loc.slice(-2) + dom;
     }
     function maskFront5(s) {
         s = String(s || '').trim();
@@ -1693,8 +1757,14 @@
         telLn.hidden = !hit.tel;
         if (hit.tel) telLn.textContent = 'Teléfono: ' + maskTelFront5(hit.tel);
         var emLn = document.getElementById('er-email-linea');
-        emLn.hidden = !hit.email;
-        if (hit.email) emLn.textContent = 'Email: ' + maskFront5(hit.email);
+        // NO se lista el directorio de emails de la empresa (la URL es pública:
+        // cualquiera podría teclear un CIF y llevarse los contactos). Solo el
+        // número de usuarios de tráfico dados de alta; los emails se ven
+        // enmascarados y de uno en uno al elegir destinatario del código.
+        var nUs = (hit.usuarios || []).length;
+        emLn.hidden = !nUs && !hit.email;
+        if (nUs) emLn.textContent = 'Usuarios de tráfico dados de alta: ' + nUs;
+        else if (hit.email) emLn.textContent = 'Email: ' + maskFront5(hit.email);
         // Confirmación de identidad: código de 3 dígitos ENVIADO AL EMAIL de
         // su ficha, pedido en una VENTANA al pulsar "Aceptar carga". 3 intentos;
         // al 3º fallido se bloquea y la carga se libera. MOCK: en la demo el
@@ -1702,9 +1772,13 @@
         // (el backend generará y enviará el código real por email).
         var tel = hit.tel || '';
         window._telFicha = tel;
+        // Código de reserva (empresas sin usuarios dados de alta): el de la
+        // ficha. Con usuarios, cada uno tiene el SUYO y se fija al elegir
+        // destinatario (así el código además identifica QUIÉN acepta).
         window._telConfirm = (tel.match(/\d/g) || []).join('').slice(-3);
         window._codIntentos = 3;
         window._empresaSel = hit;
+        window._userSel = null;
         _afPrefilled = false;   // re-traer IVA/retención de la ficha recién identificada
         if (typeof renderAutofac === 'function') renderAutofac();
         document.getElementById('empresaResumen').classList.add('show');
@@ -2264,9 +2338,74 @@
         var inp = document.getElementById('tm-tel3');
         inp.value = ''; inp.classList.remove('err');
         document.getElementById('tm-err').style.display = 'none';
+        var emp = window._empresaSel || {};
+        var us = emp.usuarios || [];
+        var sel = document.getElementById('tm-user');
+        // Desplegable con los usuarios de la empresa, ENMASCARADOS y con una
+        // sola selección: mandar el código a los 22 agentes de una empresa
+        // grande sería spam, y enseñar la lista en claro regalaría su
+        // directorio a cualquiera que teclee el CIF (la URL es pública).
+        sel.innerHTML = us.map(function (u, i) {
+            return '<option value="' + i + '">' + escH(maskEmail2(u.e)) + '</option>';
+        }).join('') + '<option value="none">No soy ninguno de estos…</option>';
+        document.getElementById('tm-nouser').style.display = 'none';
+        document.getElementById('tm-enviar').style.display = '';
+        document.getElementById('tm-llamar').style.display = 'none';
         document.getElementById('telModal').hidden = false;
+        if (us.length > 1) {
+            // Varios usuarios → se elige a cuál se le manda.
+            document.getElementById('tm-paso1').hidden = false;
+            document.getElementById('tm-paso2').hidden = true;
+            setTimeout(function () { sel.focus(); }, 80);
+        } else {
+            // Un solo usuario (o ficha sin usuarios) → directo al código.
+            if (us.length === 1) tmFijarDestino(us[0]);
+            else document.getElementById('tm-dest').textContent = 'tu email';
+            document.getElementById('tm-paso1').hidden = true;
+            document.getElementById('tm-paso2').hidden = false;
+            document.getElementById('tm-cambiar').style.display = 'none';
+            setTimeout(function () { inp.focus(); }, 80);
+        }
+    }
+    // Fija el destinatario del código: en la demo el código válido son los 3
+    // últimos dígitos del teléfono de ESE usuario (el backend generará y
+    // enviará un código real distinto por usuario).
+    function tmFijarDestino(u) {
+        window._userSel = u;
+        window._telConfirm = ((u.t || '').match(/\d/g) || []).join('').slice(-3);
+        document.getElementById('tm-dest').textContent = maskEmail2(u.e);
+    }
+    // "No soy ninguno de estos": NUNCA se manda el código a un email tecleado
+    // en el momento (sería regalar la carga a cualquiera). Se ofrece llamar.
+    function tmUserSync() {
+        var esNone = document.getElementById('tm-user').value === 'none';
+        document.getElementById('tm-nouser').style.display = esNone ? 'block' : 'none';
+        document.getElementById('tm-enviar').style.display = esNone ? 'none' : '';
+        document.getElementById('tm-llamar').style.display = esNone ? '' : 'none';
+    }
+    function tmEnviarCodigo() {
+        var sel = document.getElementById('tm-user');
+        if (sel.value === 'none') { tmUserSync(); return; }
+        var us = (window._empresaSel || {}).usuarios || [];
+        var u = us[parseInt(sel.value, 10)];
+        if (!u) return;
+        tmFijarDestino(u);
+        document.getElementById('tm-paso1').hidden = true;
+        document.getElementById('tm-paso2').hidden = false;
+        document.getElementById('tm-cambiar').style.display = '';
+        var inp = document.getElementById('tm-tel3');
+        inp.value = ''; inp.classList.remove('err');
+        document.getElementById('tm-err').style.display = 'none';
         setTimeout(function () { inp.focus(); }, 80);
     }
+    // Volver a elegir destinatario (los intentos NO se reinician).
+    function tmCambiarDest() {
+        document.getElementById('tm-paso2').hidden = true;
+        document.getElementById('tm-paso1').hidden = false;
+        tmUserSync();
+    }
+    window.tmUserSync = tmUserSync; window.tmEnviarCodigo = tmEnviarCodigo;
+    window.tmCambiarDest = tmCambiarDest;
     function cerrarTelConfirm() { document.getElementById('telModal').hidden = true; }
     function telConfirmar() {
         if (window._reservaExpirada) { cerrarTelConfirm(); expirarReserva(); return; }
@@ -2596,7 +2735,9 @@
         html += cardSec(ICO.box, 'Mercancía', '', mercChips,
             O.dm ? '<div class="of-dm"><b>Anotaciones de la mercancía</b>' + escH(O.dm) + '</div>' : '');
         // Transportista, vehículo y conductor.
-        html += cardSec(ICO.emp, 'Transportista', empNom, chip('CIF / DNI', empCif));
+        html += cardSec(ICO.emp, 'Transportista', empNom,
+            chip('CIF / DNI', empCif) +
+            (window._userSel ? chip('Aceptada por', window._userSel.n + ' · ' + window._userSel.e) : ''));
         html += cardSec(ICO.truck, 'Vehículo', okVal('f-camion'),
             chip('Tractora', okVal('f-tractora')) + chip('Remolque', okVal('f-remolque')));
         // Conductor: solo se muestra si hay ALGÚN dato (nombre, DNI o teléfono).
@@ -2632,7 +2773,10 @@
         document.getElementById('ok-resumen').innerHTML = html;
         // Email donde se enviará la orden de carga: el de su ficha (existente) o
         // el que tecleó en el alta.
-        var email = (window._empresaSel && window._empresaSel.email) || okVal('alta-email') || 'tu email';
+        // La orden de carga va al email del USUARIO que ha aceptado (el que ha
+        // validado el código), no al genérico de la empresa.
+        var email = (window._userSel && window._userSel.e) ||
+            (window._empresaSel && window._empresaSel.email) || okVal('alta-email') || 'tu email';
         document.getElementById('ok-email').textContent = email;
         document.getElementById('ok-email-top').textContent = email;
         window._reservaCerrada = true; // aceptada: la reserva ya no aplica
