@@ -22208,6 +22208,13 @@
                         d.origCorto, d.destCorto, d.origCorto + ' → ' + d.destCorto,
                         d.mercanciaShort, '', d.medidas, 'programada', undefined, {
                             creadoEn: prevCarga ? (prevCarga.creadoEn || Date.now()) : Date.now(),
+                            // Fecha de la ÚLTIMA modificación (2026-09-10): la
+                            // creación no se toca nunca al editar; esta se
+                            // resella en cada guardado. Al crear va a null.
+                            // En backend, además, esta marca es la que dispara
+                            // la espera de 3 min antes de publicar en bolsas
+                            // (ver TODO.md) — cada edición reinicia la cuenta.
+                            modificadoEn: prevCarga ? Date.now() : null,
                             precio: fmtEur(precioNum) + ' €',
                             // Sin crédito → pago por adelantado: el envío nace
                             // "Pendiente de pago" y no avanza hasta validar el pago.
