@@ -631,7 +631,7 @@
                  identificarse (queda "No soy yo / cambiar"). -->
             <div id="identBlock">
                 <div class="sec-title" style="border-top:none;padding-top:0;margin-top:0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Identifícate</div>
-                <label for="f-buscar-id">Tu CIF, DNI, código de bolsa, móvil o nombre de empresa. Si no sale ninguna, al pulsar <strong>Aceptar carga</strong> te damos de alta.</label>
+                <label for="f-buscar-id">Tu CIF, DNI, código de bolsa (Wtransnet, Teleroute, etc.), teléfono o nombre de empresa. Si no sale ninguna, al pulsar <strong>Aceptar carga</strong> te damos de alta.</label>
                 <div class="idrow">
                     <input type="text" id="f-buscar-id" placeholder="B12345678, 482113, 638220471 o tu empresa" autocapitalize="characters" autocomplete="off">
                     <ul class="ac-list" id="ac-buscar"></ul>
@@ -2599,7 +2599,7 @@
             var val = normId(idInput.value);
             if (!val) {
                 idInput.classList.add('err');
-                if (warn) { warn.textContent = '⚠ Escribe tu CIF/DNI, código de bolsa, móvil o nombre de empresa para poder aceptar la carga.'; warn.classList.add('show'); }
+                if (warn) { warn.textContent = '⚠ Escribe tu CIF/DNI, código de bolsa, teléfono o nombre de empresa para poder aceptar la carga.'; warn.classList.add('show'); }
                 idInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
                 return false;
             }
