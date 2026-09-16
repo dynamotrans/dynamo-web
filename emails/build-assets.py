@@ -82,7 +82,7 @@ def build_hero():
 
     f_tit = font("InstrumentSans-Bold.ttf", 54)
     f_sub = font("InstrumentSans-Regular.ttf", 34)
-    TIT, SUB = "Grupajes y carga completa", "Nacional  \u00b7  Europa  \u00b7  Urgentes 24 h"
+    TIT, SUB = "Grupajes y Carga Completa", "Nacional  \u00b7  Europa  \u00b7  Urgentes 24 h"
 
     # Sombra difusa detras del texto, por si el velo no basta en algun punto
     sh = Image.new("RGBA", (1200, 460), (0, 0, 0, 0))
