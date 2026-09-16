@@ -150,6 +150,42 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-09-16 — Claude Code web (nube)
+
+> **Continuación de la plantilla de email de Brevo.** Todo en `claude/brevo-mail-template-15nrtj` y mergeado a `main`. No toca `index.html` ni el portal: solo `emails/` e `images/email/`.
+
+**LA PLANTILLA YA ESTÁ FUNCIONANDO EN BREVO.** Aprendizajes de montarla, que valen para la próxima:
+
+- El paso de email de una automatización **no apunta a una plantilla guardada**: lleva su **propio mensaje incrustado** (#89, #90…). Al duplicar la automatización se duplica el mensaje. No hay selector de plantilla: hay que **borrar el mensaje con la papelera** y volver a añadir contenido eligiendo *Crear desde cero → Código HTML personalizado* (o *Usar plantilla*).
+- Una plantilla creada con drag & drop **no se puede convertir** a HTML. Hay que crear otra.
+- **El asunto y el texto de vista previa viven en el paso**, no en la plantilla, y **pisan** a los de la plantilla.
+- **El `{% if %}` de Brevo SÍ funciona** en esta cuenta. Confirmado comparando dos envíos al mismo contacto (sin PROVINCIA) con 5 minutos de diferencia: la plantilla vieja dejaba *"desde tu almacén ?"* y la nueva cierra la frase en *"desde tu almacén."*.
+
+**CAMBIOS DE DISEÑO DEL DÍA** (`emails/prospeccion-brevo.html`):
+- **Ficha de Álvaro arriba del todo**, decisión del usuario ("la persona genera confianza"): titular en negrita *"¿Puedo ayudarte con algún transporte esta semana?"*, foto de 88px, nombre, empresa, *Tu gestor de transporte*, valoración de Google (5,0 · +480 clientes · Atención 24/7) y **tres botones al 33%** (WhatsApp / Mail / Llamar).
+- **Orden nuevo**: cabecera → ficha → "qué necesito saber" → hero → mensaje → CTAs → despedida. Lo accionable queda antes del scroll.
+- **Fuera "13 años"** de todo el email (ficha + barra de cifras, que baja a 3 casillas).
+- Claim de cabecera *"Always Moving. / Transporte de Mercancías. / España y Europa."*, ahora **también visible en móvil** (clases `.clm` y `.lgo`).
+- Despedida con WhatsApp, teléfono y correo, los tres enlazados.
+- Copy unificado a **tú** y trailer a **13,30 m** (máximo real; 33 europalets y 26 americanos siguen cabiendo: 11×1,2 m y 13×1,0 m).
+
+**HERO REGENERADO**: el titular blanco se perdía sobre la cabina blanca del camión. `build_hero()` añade velo inferior más fuerte, **velo lateral izquierdo** (oscurece donde vive el texto y deja limpio el trailer morado) y **sombra difusa** con `GaussianBlur`. Titular a *"Grupajes y Carga Completa"*.
+
+**TÉCNICA DE MAQUETACIÓN — anotado porque costó**:
+- Para columnas que se apilan en móvil: `inline-block` + `max-width` + ghost tables de Outlook. `display:block` sobre `<td>` NO funciona (el `<tr>` sigue siendo `table-row` y los bloques se re-envuelven en celdas anónimas).
+- Truco útil: dos bloques con **`min-width` fijo** se reparten solos sin media query — se apilan donde no caben y se ponen en fila donde sí. Es lo que hace la valoración (126px): apilada en la columna de 162px del escritorio, en dos columnas en los 278px del móvil.
+- **Medir en el navegador, no estimar**: el contenedor de la ficha mide **278px** en móvil, no los 304 calculados a mano. Dos intentos fallaron por 2px.
+- Los tres botones de la ficha van en **tabla**, no en inline-block, justo para que NO se apilen nunca.
+
+**PREVISUALIZACIÓN**: artifact con conmutador escritorio/móvil en https://claude.ai/artifact/7CPmCbhXaUYawBG53gahWj — el marco usa **container queries** (umbral 500px) para disparar el responsive real del email. Se genera con el script del scratchpad a partir del HTML, incrustando las imágenes en base64.
+
+**Pendientes**:
+- **Probar en clientes de correo reales** (Gmail, Outlook Windows, móvil) y pasar el email por **mail-tester.com** antes de soltar volumen. Solo está verificado en Chromium.
+- **Poner `Hola` como valor por defecto del chip NOMBRE** en el asunto del paso #58, o los contactos sin nombre reciben un asunto que empieza por coma.
+- **Sacar la automatización de pausa** (Gestionar estado).
+- Sincronizar `claude/sharp-dirac-E3UIO` con `main` (regla 9).
+- Opcionales: campo `CONTACTO` en Brevo; script de API de Brevo; quitar el bloque de CTAs duplicado (hay 6 botones en el email).
+
 ### 2026-08-17 — Claude Code web (nube)
 
 > **Sesión nueva de tema: emails de Brevo.** Se crea `emails/` en el repo para diseñar las plantillas de correo FUERA del editor drag & drop de Brevo y tenerlas versionadas en git. Rama de trabajo `claude/brevo-mail-template-15nrtj`, **mergeada a `main`** (`e0e8c66`) con permiso explícito del usuario. No toca `index.html` ni el portal.
