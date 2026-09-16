@@ -11,7 +11,7 @@ produccion; /emails/ podria chocar con el rewrite catch-all de vercel.json).
 """
 
 import os
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "images", "email")
@@ -63,18 +63,37 @@ def build_hero():
         im = im.crop((0, top, w, top + new_h))
     im = im.resize((1200, 460), Image.LANCZOS)
 
-    # velo oscuro inferior para que se lea el texto sobreimpreso
+    # Velo inferior: sube bastante porque el titular cae sobre la cabina blanca
     veil = Image.new("RGBA", (1200, 460), (0, 0, 0, 0))
     vd = ImageDraw.Draw(veil)
     for y in range(460):
-        a = int(200 * max(0, (y - 150) / 310) ** 1.4)
+        a = int(215 * max(0, (y - 110) / 350) ** 1.15)
         vd.line([(0, y), (1200, y)], fill=(6, 2, 30, a))
-    im = Image.alpha_composite(im.convert("RGBA"), veil).convert("RGB")
+    im = Image.alpha_composite(im.convert("RGBA"), veil)
+
+    # Velo lateral izquierdo: oscurece donde vive el texto y deja limpio el
+    # trailer morado de la derecha
+    side = Image.new("RGBA", (1200, 460), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(side)
+    for x in range(1200):
+        a = int(150 * max(0, 1 - x / 660) ** 1.4)
+        sd.line([(x, 0), (x, 460)], fill=(6, 2, 30, a))
+    im = Image.alpha_composite(im, side)
+
+    f_tit = font("InstrumentSans-Bold.ttf", 54)
+    f_sub = font("InstrumentSans-Regular.ttf", 34)
+    TIT, SUB = "Grupajes y Carga Completa", "Nacional  \u00b7  Europa  \u00b7  Urgentes 24 h"
+
+    # Sombra difusa detras del texto, por si el velo no basta en algun punto
+    sh = Image.new("RGBA", (1200, 460), (0, 0, 0, 0))
+    shd = ImageDraw.Draw(sh)
+    shd.text((56, 302), TIT, font=f_tit, fill=(0, 0, 0, 200))
+    shd.text((56, 374), SUB, font=f_sub, fill=(0, 0, 0, 180))
+    im = Image.alpha_composite(im, sh.filter(ImageFilter.GaussianBlur(8))).convert("RGB")
 
     d = ImageDraw.Draw(im)
-    d.text((56, 300), "Grupajes y carga completa", font=font("InstrumentSans-Bold.ttf", 54), fill=WHITE)
-    d.text((56, 372), "Nacional  ·  Europa  ·  Urgentes 24 h",
-           font=font("InstrumentSans-Regular.ttf", 34), fill=(214, 210, 235))
+    d.text((56, 300), TIT, font=f_tit, fill=WHITE)
+    d.text((56, 372), SUB, font=f_sub, fill=(226, 223, 242))
     im.save(os.path.join(OUT, "hero.jpg"), quality=82, optimize=True, progressive=True)
     print("hero.jpg", im.size)
 
