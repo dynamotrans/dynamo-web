@@ -186,6 +186,42 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-09-16 — Claude Code web (nube)
+
+> **Continuación de la plantilla de email de Brevo.** Todo en `claude/brevo-mail-template-15nrtj` y mergeado a `main`. No toca `index.html` ni el portal: solo `emails/` e `images/email/`.
+
+**LA PLANTILLA YA ESTÁ FUNCIONANDO EN BREVO.** Aprendizajes de montarla, que valen para la próxima:
+
+- El paso de email de una automatización **no apunta a una plantilla guardada**: lleva su **propio mensaje incrustado** (#89, #90…). Al duplicar la automatización se duplica el mensaje. No hay selector de plantilla: hay que **borrar el mensaje con la papelera** y volver a añadir contenido eligiendo *Crear desde cero → Código HTML personalizado* (o *Usar plantilla*).
+- Una plantilla creada con drag & drop **no se puede convertir** a HTML. Hay que crear otra.
+- **El asunto y el texto de vista previa viven en el paso**, no en la plantilla, y **pisan** a los de la plantilla.
+- **El `{% if %}` de Brevo SÍ funciona** en esta cuenta. Confirmado comparando dos envíos al mismo contacto (sin PROVINCIA) con 5 minutos de diferencia: la plantilla vieja dejaba *"desde tu almacén ?"* y la nueva cierra la frase en *"desde tu almacén."*.
+
+**CAMBIOS DE DISEÑO DEL DÍA** (`emails/prospeccion-brevo.html`):
+- **Ficha de Álvaro arriba del todo**, decisión del usuario ("la persona genera confianza"): titular en negrita *"¿Puedo ayudarte con algún transporte esta semana?"*, foto de 88px, nombre, empresa, *Tu gestor de transporte*, valoración de Google (5,0 · +480 clientes · Atención 24/7) y **tres botones al 33%** (WhatsApp / Mail / Llamar).
+- **Orden nuevo**: cabecera → ficha → "qué necesito saber" → hero → mensaje → CTAs → despedida. Lo accionable queda antes del scroll.
+- **Fuera "13 años"** de todo el email (ficha + barra de cifras, que baja a 3 casillas).
+- Claim de cabecera *"Always Moving. / Transporte de Mercancías. / España y Europa."*, ahora **también visible en móvil** (clases `.clm` y `.lgo`).
+- Despedida con WhatsApp, teléfono y correo, los tres enlazados.
+- Copy unificado a **tú** y trailer a **13,30 m** (máximo real; 33 europalets y 26 americanos siguen cabiendo: 11×1,2 m y 13×1,0 m).
+
+**HERO REGENERADO**: el titular blanco se perdía sobre la cabina blanca del camión. `build_hero()` añade velo inferior más fuerte, **velo lateral izquierdo** (oscurece donde vive el texto y deja limpio el trailer morado) y **sombra difusa** con `GaussianBlur`. Titular a *"Grupajes y Carga Completa"*.
+
+**TÉCNICA DE MAQUETACIÓN — anotado porque costó**:
+- Para columnas que se apilan en móvil: `inline-block` + `max-width` + ghost tables de Outlook. `display:block` sobre `<td>` NO funciona (el `<tr>` sigue siendo `table-row` y los bloques se re-envuelven en celdas anónimas).
+- Truco útil: dos bloques con **`min-width` fijo** se reparten solos sin media query — se apilan donde no caben y se ponen en fila donde sí. Es lo que hace la valoración (126px): apilada en la columna de 162px del escritorio, en dos columnas en los 278px del móvil.
+- **Medir en el navegador, no estimar**: el contenedor de la ficha mide **278px** en móvil, no los 304 calculados a mano. Dos intentos fallaron por 2px.
+- Los tres botones de la ficha van en **tabla**, no en inline-block, justo para que NO se apilen nunca.
+
+**PREVISUALIZACIÓN**: artifact con conmutador escritorio/móvil en https://claude.ai/artifact/7CPmCbhXaUYawBG53gahWj — el marco usa **container queries** (umbral 500px) para disparar el responsive real del email. Se genera con el script del scratchpad a partir del HTML, incrustando las imágenes en base64.
+
+**Pendientes**:
+- **Probar en clientes de correo reales** (Gmail, Outlook Windows, móvil) y pasar el email por **mail-tester.com** antes de soltar volumen. Solo está verificado en Chromium.
+- **Poner `Hola` como valor por defecto del chip NOMBRE** en el asunto del paso #58, o los contactos sin nombre reciben un asunto que empieza por coma.
+- **Sacar la automatización de pausa** (Gestionar estado).
+- Sincronizar `claude/sharp-dirac-E3UIO` con `main` (regla 9).
+- Opcionales: campo `CONTACTO` en Brevo; script de API de Brevo; quitar el bloque de CTAs duplicado (hay 6 botones en el email).
+
 ### 2026-09-04 (sesión 2) — Claude Code web (nube)
 
 > **Sesión corta: mercancía no paletizada como línea del desglose (+70 €) + icono único del PDF en la confirmación.** Todo **preview** (portal). `main` sin tocar. Rama de sesión `claude/hola-x80n0h` (copia de preview + estos commits), mergeada a **preview** con fast-forward.
@@ -278,7 +314,32 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 
 **Pendientes**: los de TODO.md (tarifa real que sustituya el MOCK del tarifador incl. % de ADR y de negociación; direcciones reales; tienda merchandising Stripe; protocolo de siniestro; migración por módulos; gating de roles server-side).
 
-### 2026-08-07 — Claude Code web (nube)
+### 2026-08-17 — Claude Code web (nube)
+
+> **Sesión nueva de tema: emails de Brevo.** Se crea `emails/` en el repo para diseñar las plantillas de correo FUERA del editor drag & drop de Brevo y tenerlas versionadas en git. Rama de trabajo `claude/brevo-mail-template-15nrtj`, **mergeada a `main`** (`e0e8c66`) con permiso explícito del usuario. No toca `index.html` ni el portal.
+
+**POR QUÉ FUERA DEL EDITOR DE BREVO**: el usuario tenía el email metido en un **bloque HTML** dentro del editor visual (se veía el texto de relleno *"This is an HTML block…"* colándose en la vista previa). Un bloque HTML **descarta el `<style>` y las media queries**, así que no hay responsive posible. La vía correcta es **Plantillas → Nueva plantilla → codificar tu propio diseño / importar HTML**, pegando el documento completo. A cambio, esa plantilla ya solo se edita por código — que es justo lo que se buscaba.
+
+**`emails/prospeccion-brevo.html`** — email de prospección de 600px, tablas + CSS inline + ghost tables de Outlook (`<!--[if mso]-->`):
+- Copy del usuario intacto (A/A. responsable transporte/logística → "Para darte precio sólo necesito saber" con 3 puntos numerados), más material sacado de la web pública: hero con el trailer Dynamo, cifras (+480 · 5,0★ · +13 años · 24/7), 2 reseñas reales de Google, los 2 tipos de camión con specs, cobertura (España + 11 países) y muro de 16 logos de clientes.
+- **Etiquetas de Brevo**: `{{ contact.NOMBRE }}` con filtro `default`, `{{ contact.PROVINCIA }}` dentro de un `{% if %}` (si el contacto no trae provincia, la frase se acorta sola en vez de dejar "desde tu almacén ?"), `{{ unsubscribe }}` ×2 y `{{ mirror }}`.
+- **Bug del asunto detectado**: el que tenía (`{{ contact.NOMBRE | default : "" }}, transportes esta semana?`) deja el asunto **empezando por coma** a quien no traiga NOMBRE. Documentadas 4 alternativas en el README.
+- **Apilado en móvil**: el primer intento con `display:block` sobre `<td>` NO funcionaba (el `<tr>` sigue siendo `display:table-row` y los bloques se re-envuelven en celdas anónimas). Reescrito al patrón `inline-block` + max-width + ghost tables de Outlook. Verificado en Chromium a 700px y 380px.
+- **Copy unificado a tú**: el original mezclaba usted y tú en la misma frase ("**Le** escribo por si puedo ayudar**le** … desde **tu** almacén"). Ahora "**Te** escribo por si puedo ayudar**te**…", coherente con el resto ("Como sabes", "para darte precio", "te mando 1 email").
+
+**`emails/build-assets.py`** → genera `images/email/`: `hero.jpg` (recorte panorámico de `HERO-DYNAMO.webp` con velo y titular), `clientes.png` (muro 4×4 de pastillas logo+nombre), `banner-dynamo.png`, `logo-dynamo.png` y `alvaro.png`. **Todo en JPG/PNG a propósito: Outlook de Windows no pinta WebP**, así que los `.webp` de la web no valen en email. Requiere `pillow`.
+
+**BANNER**: el antiguo `dynamo + AGENCIA DE TRANSPORTE.es` no está en este repo. El usuario pidió usar imagen de Dynamo de la web → se genera `banner-dynamo.png`, banda de marca propia (logo blanco de `images/4.png` + chips CARGA COMPLETA/NACIONAL y GRUPAJE/EUROPA + barra de contacto), misma estructura que el viejo pero solo Dynamo.
+
+**HOSTING DE LAS IMÁGENES — hallazgo importante**: el proyecto de Vercel tiene **SSO Protection en `all_except_custom_domains`**. Es decir, **cualquier URL `*.vercel.app` (incluida la de preview) pide login**, así que NO sirve para imágenes de un email: el destinatario las vería rotas. Solo `www.dynamotrans.com` es público. Por eso `images/email/` se mergeó a `main`. La alternativa (galería de Brevo) se descartó: obligaría a resubir la imagen y reeditar el HTML en cada retoque, mientras que así basta con regenerar y hacer push.
+
+**Merge a `main` verificado antes de empujar**: `git diff --stat origin/main..HEAD` = **8 archivos, todos nuevos, 0 modificados, 0 borrados**. `index.html` idéntico, nada visible cambia en `dynamotrans.com`. (Ojo: el `main` local iba por detrás de `origin/main` y `git diff HEAD~1 HEAD` mostraba `index.html` como cambiado — falsa alarma, se comprobó contra `origin/main` real antes de push.)
+
+**Pendientes**:
+- **Prueba real en clientes de correo**: enviar email de prueba desde Brevo a Gmail, Outlook y móvil antes de la primera campaña. Solo está verificado en Chromium.
+- **Sincronizar `claude/sharp-dirac-E3UIO`** (preview del portal) con `main` para que no acumule drift (regla 9). No se hizo por no empujar a esa rama sin permiso.
+- Opcional: campo `CONTACTO` en Brevo (nombre de la persona) para saludar "Buenos días, Marta" — es lo que más sube la tasa de respuesta. La línea ya está escrita en `emails/README.md`.
+- Opcional: script de API de Brevo (`POST /v3/smtp/templates`) para subir/actualizar la plantilla sin abrir el editor. Requeriría `BREVO_API_KEY` en variable de entorno, nunca en el repo.### 2026-08-07 — Claude Code web (nube)
 
 > **Sesión larga: pulido del flujo de Nuevo envío (confirmación + tarifador), PWA del portal, aviso de cierre en producción y medidas de camiones.** Casi todo en **preview** (`claude/sharp-dirac-E3UIO`); a **producción** (`main`): ventana de cierre temporal, medidas de camiones, carga completa 13,6 y peso en tramos. Estado final: **main `dc2fb19`** · **preview** (esta bitácora).
 
@@ -579,7 +640,6 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 **OTROS**: usuario demo → **Marbex Industrial S.L.** (inventada, fuera Talsa). "Ver todos" en Mis últimos envíos. Etiqueta "CP, localidad, provincia y país". Revertido `overscroll-behavior-y:none` (bloqueaba pull-to-refresh y amortiguación en iOS; el "espacio fantasma" era caché). **Preview compartible**: para que externos prueben el mockup sin cuenta, desactivar **Vercel Authentication** en Settings → Deployment Protection del proyecto `dynamo-web` y compartir el enlace del preview (los previews no se indexan).
 
 **Pendientes** (en TODO.md): aplicar el fix del micro-brinco al muro de clientes de la web pública (`main`, con OK); validar recargos por tipo de lugar y tarifa real con el cliente.
-
 ### 2026-07-04 — Claude Code web (nube)
 
 > **Sesión de flujo del tarifador/panel + simplificación del modelo de ramas.** Trabajo de portal en **preview** (`claude/sharp-dirac-E3UIO`); un cambio público a **producción** (`main`): aviso de fecha fija en el tarifador del hero.

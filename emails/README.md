@@ -133,10 +133,10 @@ sin exclamaciones, y menos de ~50 caracteres.
 
 ## 6. Detalle del texto
 
-En el original se mezclaba usted y tú en la misma frase ("Le escribo por si
-puedo ayudar**le** … desde **tu** almacén"). Lo he dejado tal cual para no
-cambiarte el copy, pero conviene unificar a tú, que es lo que usa el resto del
-email. Si quieres, se cambia en un minuto.
+El original mezclaba usted y tú en la misma frase ("**Le** escribo por si puedo
+ayudar**le** … desde **tu** almacén"). Unificado a **tú** el 2026-08-17, que es
+lo que ya usaba el resto del email ("Como sabes", "para darte precio", "te mando
+1 email"): ahora dice "**Te** escribo por si puedo ayudar**te**…".
 
 ---
 
