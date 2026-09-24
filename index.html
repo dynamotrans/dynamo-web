@@ -1392,6 +1392,64 @@
         }
         .cobertura-map-box svg path.covered:hover,
         .cobertura-map-box svg path.covered.spotlight { fill: var(--purple); }
+        /* === Capa de ENVÍOS EN CURSO sobre el mapa ===
+           Fase 1 (España): las 10 ciudades principales con rutas entre ellas.
+           Fase 2 (Europa): rutas de ida y vuelta entre España y cada país.
+           Todo son elementos SVG dentro del propio mapa, así que escalan
+           solos con el viewBox. */
+        .cobertura-map-box svg .mapa-capa {
+            opacity: 0; transition: opacity 0.7s ease; pointer-events: none;
+        }
+        .cobertura-map-box svg .mapa-capa.visible { opacity: 1; }
+        .cobertura-map-box svg .ciudad-punto {
+            fill: var(--purple); stroke: #fff; stroke-width: 0.45;
+        }
+        .cobertura-map-box svg .ciudad-halo {
+            fill: var(--purple); opacity: 0.18;
+            transform-box: fill-box; transform-origin: center;
+            animation: ciudadLatido 2.4s ease-out infinite;
+        }
+        @keyframes ciudadLatido {
+            0%   { transform: scale(0.6); opacity: 0.35; }
+            70%  { transform: scale(2.2); opacity: 0; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+        .cobertura-map-box svg .ciudad-txt {
+            font-family: 'Inter', sans-serif; font-weight: 700;
+            font-size: 3.4px; fill: var(--navy);
+            paint-order: stroke; stroke: #fff; stroke-width: 1.1px;
+            stroke-linejoin: round; text-anchor: middle;
+        }
+        /* Rutas: la línea discontinua "corre" para dar sensación de envío
+           en movimiento. La ida va hacia fuera y la vuelta hacia dentro. */
+        .cobertura-map-box svg .ruta {
+            fill: none; stroke-linecap: round;
+            stroke: var(--purple); stroke-width: 0.55;
+            stroke-dasharray: 2.2 3.4; opacity: 0.75;
+            animation: rutaFlujo 1.6s linear infinite;
+        }
+        .cobertura-map-box svg .ruta-ida {
+            fill: none; stroke-linecap: round;
+            stroke: var(--green); stroke-width: 0.9;
+            stroke-dasharray: 3.2 5.2; opacity: 0.85;
+            animation: rutaFlujo 2.2s linear infinite;
+        }
+        .cobertura-map-box svg .ruta-vuelta {
+            fill: none; stroke-linecap: round;
+            stroke: var(--purple); stroke-width: 0.9;
+            stroke-dasharray: 3.2 5.2; opacity: 0.6;
+            animation: rutaFlujoInv 2.6s linear infinite;
+        }
+        @keyframes rutaFlujo    { to { stroke-dashoffset: -5.6; } }
+        @keyframes rutaFlujoInv { to { stroke-dashoffset:  8.4; } }
+        /* Sin animaciones si el usuario las ha desactivado en su sistema */
+        @media (prefers-reduced-motion: reduce) {
+            .cobertura-map-box svg .ruta,
+            .cobertura-map-box svg .ruta-ida,
+            .cobertura-map-box svg .ruta-vuelta,
+            .cobertura-map-box svg .ciudad-halo { animation: none; }
+            .cobertura-map-box svg .mapa-capa { transition: none; }
+        }
         .cobertura-tooltip {
             position: fixed;
             background: var(--navy); color: white;
@@ -4121,39 +4179,181 @@ function openLegal(tab) {
                     if (spotlit) { spotlit.classList.remove('spotlight'); spotlit = null; }
                     hideTooltip();
                 }
+                // La intro (España -> Europa) y el ciclo de países arrancan
+                // cuando el mapa entra en pantalla, no al cargar la página:
+                // si no, los 3 segundos de España se gastan con el usuario
+                // todavía arriba del todo.
+                var arrancarIntro = null;   // lo asigna el bloque de encuadre
+                var faseEuropa = false;
                 if ('IntersectionObserver' in window) {
                     var io = new IntersectionObserver(function (entries) {
                         entries.forEach(function (e) {
                             mapVisible = e.isIntersecting;
-                            if (mapVisible) startCycle();
-                            else stopCycle();
+                            if (mapVisible) {
+                                if (arrancarIntro) arrancarIntro();
+                                if (faseEuropa) startCycle();
+                            } else stopCycle();
                         });
                     }, { threshold: 0.05 });
                     io.observe(box);
                 } else {
-                    startCycle();
+                    mapVisible = true;
                 }
                 // El tooltip es position:fixed, al hacer scroll en iPad/movil
                 // se quedaba "pegado" en pantalla. Lo escondemos en cuanto
                 // empieza cualquier scroll
                 window.addEventListener('scroll', function () { hideTooltip(); }, { passive: true });
-                // Ajusta automaticamente el viewBox del SVG al area de los
-                // paises cubiertos -> el resto desaparece del encuadre
+                // === ENCUADRES: primero ESPAÑA, luego EUROPA ===
+                // El de Europa es el área de los países cubiertos (el resto
+                // se queda fuera del encuadre); el de España, el país solo.
                 var svg = box.querySelector('svg');
-                if (svg && covered.length) {
+                function encuadre(paths, pad) {
                     var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-                    covered.forEach(function (p) {
+                    paths.forEach(function (p) {
                         var b = p.getBBox();
                         if (b.x < minX) minX = b.x;
                         if (b.y < minY) minY = b.y;
                         if (b.x + b.width  > maxX) maxX = b.x + b.width;
                         if (b.y + b.height > maxY) maxY = b.y + b.height;
                     });
-                    var pad = 10;
-                    svg.setAttribute('viewBox',
-                        (minX - pad) + ' ' + (minY - pad) + ' ' +
-                        (maxX - minX + pad * 2) + ' ' + (maxY - minY + pad * 2)
-                    );
+                    return [minX - pad, minY - pad, maxX - minX + pad * 2, maxY - minY + pad * 2];
+                }
+                if (svg && covered.length) {
+                    var VB_EUROPA = encuadre(covered, 10);
+                    var pathEs = box.querySelector('svg path#es');
+                    var VB_ESPANA = pathEs ? encuadre([pathEs], 7) : VB_EUROPA;
+                    montarEnviosEnCurso(svg, box, VB_ESPANA, VB_EUROPA);
+                }
+
+                // Dibuja las dos capas de "envíos en curso" y encadena la
+                // secuencia: 3 s con España y sus rutas nacionales, zoom out
+                // a Europa y rutas de ida y vuelta con cada país.
+                function montarEnviosEnCurso(svg, box, VB_ES, VB_EU) {
+                    var NS = 'http://www.w3.org/2000/svg';
+                    var reduce = window.matchMedia &&
+                        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                    // Proyección lon/lat -> coordenadas del SVG. Es una afín
+                    // AJUSTADA A LA PENÍNSULA (calibrada con Cabo Touriñán,
+                    // Menorca, Tarifa, Estaca de Bares y Cabo da Roca): el mapa
+                    // no es Mercator plano, así que solo vale por aquí.
+                    function proy(lon, lat) {
+                        return { x: 9.30671 * lon + 2.95498 * lat + 92.9697,
+                                 y: 1.26112 * lon - 12.33079 * lat + 945.4834 };
+                    }
+                    var CIUDADES = [
+                        { n: 'A Coruña',   lon: -8.40, lat: 43.36 },
+                        { n: 'Bilbao',     lon: -2.93, lat: 43.26 },
+                        { n: 'Zaragoza',   lon: -0.88, lat: 41.65 },
+                        { n: 'Barcelona',  lon:  2.17, lat: 41.39 },
+                        { n: 'Valladolid', lon: -4.72, lat: 41.65 },
+                        { n: 'Madrid',     lon: -3.70, lat: 40.42 },
+                        { n: 'Valencia',   lon: -0.38, lat: 39.47 },
+                        { n: 'Murcia',     lon: -1.13, lat: 37.99 },
+                        { n: 'Sevilla',    lon: -5.98, lat: 37.39 },
+                        { n: 'Málaga',     lon: -4.42, lat: 36.72 }
+                    ].map(function (c) { var q = proy(c.lon, c.lat); c.x = q.x; c.y = q.y; return c; });
+                    // Rutas nacionales (índices de CIUDADES): los corredores
+                    // reales, no todos contra todos (quedaría una maraña).
+                    var RUTAS_ES = [[5,3],[5,8],[5,6],[5,1],[5,0],[5,9],[3,6],[6,7],[8,9],[2,3],[4,5]];
+                    // Arco curvado entre dos puntos (la curva da sensación de
+                    // trayecto, y separa la ida de la vuelta).
+                    function arco(a, b, curv) {
+                        var dx = b.x - a.x, dy = b.y - a.y;
+                        var cx = (a.x + b.x) / 2 - dy * curv;
+                        var cy = (a.y + b.y) / 2 + dx * curv;
+                        return 'M' + a.x.toFixed(2) + ',' + a.y.toFixed(2) +
+                               ' Q' + cx.toFixed(2) + ',' + cy.toFixed(2) +
+                               ' ' + b.x.toFixed(2) + ',' + b.y.toFixed(2);
+                    }
+                    function capa() {
+                        var g = document.createElementNS(NS, 'g');
+                        g.setAttribute('class', 'mapa-capa');
+                        svg.appendChild(g); return g;
+                    }
+                    function ruta(g, d, clase, retardo) {
+                        var pth = document.createElementNS(NS, 'path');
+                        pth.setAttribute('d', d);
+                        pth.setAttribute('class', clase);
+                        if (retardo) pth.style.animationDelay = retardo + 's';
+                        g.appendChild(pth); return pth;
+                    }
+                    // ---- Capa 1: España, ciudades + rutas nacionales ----
+                    var capaEs = capa();
+                    RUTAS_ES.forEach(function (r, i) {
+                        ruta(capaEs, arco(CIUDADES[r[0]], CIUDADES[r[1]], 0.14), 'ruta', (i % 5) * 0.3);
+                    });
+                    CIUDADES.forEach(function (c) {
+                        var halo = document.createElementNS(NS, 'circle');
+                        halo.setAttribute('cx', c.x.toFixed(2)); halo.setAttribute('cy', c.y.toFixed(2));
+                        halo.setAttribute('r', '1.5'); halo.setAttribute('class', 'ciudad-halo');
+                        halo.style.animationDelay = (Math.random() * 2).toFixed(2) + 's';
+                        capaEs.appendChild(halo);
+                        var pt = document.createElementNS(NS, 'circle');
+                        pt.setAttribute('cx', c.x.toFixed(2)); pt.setAttribute('cy', c.y.toFixed(2));
+                        pt.setAttribute('r', '1.15'); pt.setAttribute('class', 'ciudad-punto');
+                        capaEs.appendChild(pt);
+                        var t = document.createElementNS(NS, 'text');
+                        // Las de más al sur llevan el nombre debajo para no
+                        // salirse del encuadre por arriba.
+                        var abajo = c.y > 474;
+                        t.setAttribute('x', c.x.toFixed(2));
+                        t.setAttribute('y', (c.y + (abajo ? 4.6 : -2.6)).toFixed(2));
+                        t.setAttribute('class', 'ciudad-txt');
+                        t.textContent = c.n;
+                        capaEs.appendChild(t);
+                    });
+                    // ---- Capa 2: Europa, ida y vuelta con cada país ----
+                    var capaEu = capa();
+                    var madrid = CIUDADES[5];
+                    covered.forEach(function (p, i) {
+                        var code = p.id.toLowerCase();
+                        if (code === 'es' || code === 'gb-nir') return;  // origen / isla ya cubierta por ie
+                        var b = p.getBBox();
+                        var destino = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+                        ruta(capaEu, arco(madrid, destino,  0.12), 'ruta-ida',    (i % 6) * 0.35);
+                        ruta(capaEu, arco(destino, madrid, 0.12), 'ruta-vuelta', (i % 6) * 0.35 + 0.6);
+                    });
+                    // Madrid se mantiene marcado en la vista de Europa: es el
+                    // punto del que salen y al que vuelven todas las rutas.
+                    var mpt = document.createElementNS(NS, 'circle');
+                    mpt.setAttribute('cx', madrid.x.toFixed(2)); mpt.setAttribute('cy', madrid.y.toFixed(2));
+                    mpt.setAttribute('r', '1.8'); mpt.setAttribute('class', 'ciudad-punto');
+                    capaEu.appendChild(mpt);
+
+                    // ---- Secuencia ----
+                    function ponVB(v) { svg.setAttribute('viewBox', v.join(' ')); }
+                    function animarVB(desde, hasta, ms, fin) {
+                        var t0 = null;
+                        function paso(ts) {
+                            if (t0 === null) t0 = ts;
+                            var t = Math.min(1, (ts - t0) / ms);
+                            var e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; // easeInOutCubic
+                            ponVB(desde.map(function (v, i) { return v + (hasta[i] - v) * e; }));
+                            if (t < 1) requestAnimationFrame(paso); else if (fin) fin();
+                        }
+                        requestAnimationFrame(paso);
+                    }
+                    if (reduce) {   // sin animación: directo a Europa
+                        ponVB(VB_EU); capaEu.classList.add('visible');
+                        faseEuropa = true;
+                        return;
+                    }
+                    ponVB(VB_ES);
+                    var lanzada = false;
+                    arrancarIntro = function () {
+                        if (lanzada) return;      // la intro se ve una sola vez
+                        lanzada = true;
+                        capaEs.classList.add('visible');
+                        setTimeout(function () {
+                            capaEs.classList.remove('visible');
+                            animarVB(VB_ES, VB_EU, 1700, function () {
+                                capaEu.classList.add('visible');
+                                faseEuropa = true;
+                                if (mapVisible) startCycle();
+                            });
+                        }, 3000);
+                    };
+                    if (mapVisible) arrancarIntro();
                 }
             })
             .catch(function (err) { console.warn('Mapa Europa: no se pudo cargar', err); });
