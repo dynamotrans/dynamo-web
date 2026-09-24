@@ -4226,7 +4226,7 @@ function openLegal(tab) {
                 }
 
                 // Dibuja las dos capas de "envíos en curso" y encadena la
-                // secuencia: 3 s con España y sus rutas nacionales, zoom out
+                // secuencia: 1,5 s con España y sus rutas nacionales, zoom out
                 // a Europa y rutas de ida y vuelta con cada país.
                 function montarEnviosEnCurso(svg, box, VB_ES, VB_EU) {
                     var NS = 'http://www.w3.org/2000/svg';
@@ -4351,7 +4351,7 @@ function openLegal(tab) {
                                 faseEuropa = true;
                                 if (mapVisible) startCycle();
                             });
-                        }, 3000);
+                        }, 1500);
                     };
                     if (mapVisible) arrancarIntro();
                 }
