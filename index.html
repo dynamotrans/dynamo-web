@@ -1398,7 +1398,7 @@
            Todo son elementos SVG dentro del propio mapa, así que escalan
            solos con el viewBox. */
         .cobertura-map-box svg .mapa-capa {
-            /* Fundido corto a propósito: la fase España dura 0,8 s, así que
+            /* Fundido corto a propósito: la fase España dura 1 s, así que
                con 0,7 s de fundido apenas se veía la capa entera antes del
                zoom. Con 0,3 s queda a la vista el tiempo suficiente. */
             opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
@@ -4229,7 +4229,7 @@ function openLegal(tab) {
                 }
 
                 // Dibuja las dos capas de "envíos en curso" y encadena la
-                // secuencia: 0,8 s con España y sus rutas nacionales, zoom out
+                // secuencia: 1 s con España y sus rutas nacionales, zoom out
                 // a Europa y rutas de ida y vuelta con cada país.
                 function montarEnviosEnCurso(svg, box, VB_ES, VB_EU) {
                     var NS = 'http://www.w3.org/2000/svg';
@@ -4354,7 +4354,7 @@ function openLegal(tab) {
                                 faseEuropa = true;
                                 if (mapVisible) startCycle();
                             });
-                        }, 800);
+                        }, 1000);
                     };
                     if (mapVisible) arrancarIntro();
                 }
