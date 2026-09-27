@@ -20,6 +20,11 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 
 ## 💡 Ideas / Futuro
 <!-- Mejoras a considerar -->
+- [ ] **DECA (documentos de transporte) en Vercel Blob** (decidido 2026-09-27, desde la sesión de BSL). Cada DECA = un registro de texto + un PDF plano. Va en **Blob**, NO en la base de datos de la plataforma grande (esa irá a Supabase/Postgres más adelante y podrá leer los DECA ya guardados):
+  - **Paso previo (lo hace el usuario en Vercel, Claude no tiene permiso para crear stores)**: Storage → Create → Blob → nombre **`dynamo-deca`**, acceso **Private**, región París (cdg1) o Frankfurt (fra1), conectado **solo** a `dynamo-web` (Production + Preview). Así el token `BLOB_READ_WRITE_TOKEN` de Dynamo solo ve sus datos; BSL y Montes Blanco tienen/tendrán su propio store (`montesblanco-blog`, público, para el blog)
+  - **Estructura de carpetas**: `deca/AAAA/MM/DECA-AAAA-NNNN.json` (datos) + `deca/AAAA/MM/DECA-AAAA-NNNN.pdf` (PDF), mismo nombre para que vayan juntos, numeración correlativa por año
+  - **Borrado automático**: Vercel Cron diario (en `vercel.json`, protegido con `CRON_SECRET`) que borra las carpetas `deca/AAAA/MM/` más antiguas que el plazo de conservación. **Confirmar el plazo con la gestoría antes de programarlo** (los documentos de control de transporte suelen exigir guardarse ≥ 1 año)
+  - Referencia de cómo está hecho en BSL (`dynamotrans/BSL-web`): `api/_lib.js` (sesiones HMAC), `api/solicitud*.js` (guardar JSON + archivos en Blob privado), `api/doc.js` (servir archivos privados con sesión)
 - [ ] **Backend del panel cliente** (Supabase + n8n) — diseñado en mockup, pendiente de implementar:
   - **Cargas / presupuestos / facturas**: las listas del panel son mockup con datos en JS (28 + 19 + 38 entries). Cuando exista backend, sustituir los arrays por `fetch()` a endpoints REST/GraphQL con paginación server-side. Refactorizar `renderTable()` a async
   - **Filtros**: los actuales son frontend (filtrado en cliente sobre el array). En backend: query params en el GET (`?estado=programada&desde=...&q=...&page=2`). Debounce 300ms en el search input
