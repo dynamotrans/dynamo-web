@@ -1,0 +1,53 @@
+/* ===========================================================
+   idiomas.css — selector de idiomas (ÚNICO en todo el sitio)
+   Lo usan index.html y las hojas de sección (/grupajes, …).
+   El HTML del selector y la lista de idiomas los pinta
+   js/idiomas.js: aquí solo vive su aspecto.
+   Si cambias algo de este archivo, cambia en TODAS las páginas.
+   =========================================================== */
+.lang-selector { position: relative; }
+.lang-btn {
+    display: flex; align-items: center; gap: 0.3rem; cursor: pointer;
+    background: var(--gray-100, #f7f8fa); border: 1.5px solid var(--gray-200, #e8eaed);
+    border-radius: 10px; padding: 0.3rem 0.7rem 0.3rem 0.45rem;
+    font-family: inherit; font-size: 0.78rem; font-weight: 700;
+    color: var(--gray-700, #3d4452); transition: all 0.2s;
+}
+.lang-btn:hover { border-color: var(--purple, #3300cc); background: #fff; }
+.lang-btn .flag { font-size: 1.1rem; line-height: 1; }
+.lang-btn .arrow { font-size: 0.6rem; margin-left: 0.15rem; transition: transform 0.2s; }
+.lang-btn.open .arrow { transform: rotate(180deg); }
+.lang-dropdown {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 9999;
+    background: #fff; border-radius: 14px; border: 1.5px solid var(--gray-200, #e8eaed);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.12); padding: 0.5rem;
+    display: none; min-width: 170px; max-height: 350px; overflow-y: auto;
+}
+.lang-dropdown.open { display: block; animation: langPop 0.2s ease; }
+@keyframes langPop { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
+.lang-option {
+    display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.7rem;
+    border-radius: 8px; cursor: pointer; transition: background 0.15s;
+    font-family: inherit; font-size: 0.82rem; font-weight: 600;
+    color: var(--gray-700, #3d4452); border: none; background: none;
+    width: 100%; text-align: left;
+}
+.lang-option:hover { background: var(--gray-100, #f7f8fa); }
+.lang-option.active { background: rgba(51,0,204,0.07); color: var(--purple, #3300cc); }
+.lang-option .flag { font-size: 1.2rem; }
+.flag-svg { display: inline-block; width: 18px; height: 12px; border-radius: 2px; vertical-align: middle; box-shadow: 0 0 0 1px rgba(0,0,0,0.10); }
+@media (max-width: 768px) { .lang-btn { padding: 0.25rem 0.5rem; font-size: 0.75rem; } }
+
+/* --- Google Translate: su interfaz nunca se ve --- */
+.goog-te-banner-frame { display: none !important; visibility: hidden !important; }
+#goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+.goog-te-gadget { display: none !important; }
+body { top: 0 !important; position: static !important; }
+.skiptranslate { display: none !important; height: 0 !important; overflow: hidden !important; }
+.goog-text-highlight { background: none !important; box-shadow: none !important; }
+#google_translate_element { position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none; }
+/* El "spinner" de carga de Google Translate a veces se queda colgado en la
+   esquina (bug conocido de GT). Lo ocultamos siempre. */
+.goog-te-spinner-pos, .goog-te-spinner-pos *, img.goog-te-spinner,
+.goog-te-gadget-icon, .goog-te-gadget-simple { display: none !important; }
+iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }

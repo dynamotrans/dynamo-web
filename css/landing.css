@@ -28,7 +28,7 @@ a{color:var(--purple)}
 .lp-logo{display:flex;align-items:center;gap:.55rem;text-decoration:none;flex:none}
 .lp-logo img{height:34px;width:auto}
 .lp-logo span{font-size:.62rem;font-weight:800;color:var(--navy);line-height:1.15;letter-spacing:.02em}
-.lp-top-cta{margin-left:auto;flex:none;background:var(--purple);color:#fff;text-decoration:none;
+.lp-top-cta{flex:none;background:var(--purple);color:#fff;text-decoration:none;
             font-weight:800;font-size:.8rem;padding:.55rem 1rem;border-radius:10px;white-space:nowrap}
 .lp-top-cta:hover{background:var(--purple-dark)}
 
@@ -157,3 +157,7 @@ a{color:var(--purple)}
   .lp-logo span{display:none}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* selector de idiomas en la barra superior (su estilo está en idiomas.css) */
+.lp-top-right{margin-left:auto;display:flex;align-items:center;gap:.6rem;flex:none}
+@media(max-width:480px){.lp-top-cta{padding:.5rem .8rem;font-size:.75rem}}
