@@ -1,0 +1,15 @@
+# Archivos que se versionan en git pero NO se publican en la web.
+# Sin esto, cualquiera podría descargarlos desde dynamotrans.com/<ruta>.
+
+# Notas internas del proyecto (bitácora, pendientes, reglas de negocio, precios…)
+*.md
+
+# Generador de las hojas de sección (se ejecuta en local, no en el servidor)
+tools/
+
+# Plantillas de email de Brevo (las IMÁGENES de images/email/ sí se publican:
+# el email las carga desde dynamotrans.com)
+emails/
+
+# Automatizaciones de GitHub
+.github/
