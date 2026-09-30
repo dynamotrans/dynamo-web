@@ -3486,6 +3486,16 @@ function switchLegalTab(tab, btn) {
     var el = document.getElementById(tabMap[tab]);
     if (el) el.classList.add('active');
 }
+// Las hojas de seccion (/grupajes, /contacto...) enlazan al aviso legal de la home
+// con hash: /#aviso-legal, /#privacidad y /#cookies. Aqui se abre la pestaña correcta.
+function openLegalFromHash() {
+    var map = { '#aviso-legal': 'aviso', '#privacidad': 'privacidad', '#cookies': 'cookies' };
+    var tab = map[window.location.hash];
+    if (tab) openLegal(tab);
+}
+window.addEventListener('hashchange', openLegalFromHash);
+window.addEventListener('DOMContentLoaded', openLegalFromHash);
+
 function openLegal(tab) {
     var tabs = document.querySelectorAll('.legal-tab');
     var idx = tab === 'aviso' ? 0 : tab === 'privacidad' ? 1 : 2;
@@ -3510,20 +3520,21 @@ function openLegal(tab) {
         <div class="f-col">
             <h4>Servicios</h4>
             <ul>
-                <li><a href="#servicios">Grupajes Nacionales e Internacional</a></li>
-                <li><a href="#servicios">Carga Completa</a></li>
-                <li><a href="#servicios">Transporte Europa</a></li>
-                <li><a href="#servicios">Urgentes 24h</a></li>
-                <li><a href="#contacto">Cotización Online</a></li>
+                <li><a href="/grupajes">Grupajes Nacionales e Internacional</a></li>
+                <li><a href="/carga-completa">Carga Completa</a></li>
+                <li><a href="/transporte-internacional">Transporte Europa · Import/Export</a></li>
+                <li><a href="/vehiculos">Tipos de vehículo</a></li>
+                <li><a href="/contacto">Cotización Online</a></li>
             </ul>
         </div>
         <div class="f-col">
             <h4>Empresa</h4>
             <ul>
                 <li><a href="#nosotros">Sobre Dynamo</a></li>
-                <li><a href="#nosotros">Nuestro equipo</a></li>
-                <li><a href="#clientes">Clientes</a></li>
-                <li><a href="#contacto">Contacto</a></li>
+                <li><a href="/mercancias">Qué transportamos</a></li>
+                <li><a href="/cobertura">Cobertura España y Europa</a></li>
+                <li><a href="/opiniones">Opiniones de clientes</a></li>
+                <li><a href="/contacto">Contacto</a></li>
             </ul>
         </div>
         <div class="f-col">
