@@ -186,6 +186,37 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Pendiente**: lo que quedó a medias
 -->
 
+### 2026-09-21 a 2026-09-30 — Claude Code web (nube)
+
+> **Sesión larga: mapa de cobertura ANIMADO (España → Europa), Dinamarca, datos de contacto en el hero, sellos de hora en los envíos y análisis del módulo DeCA.** A **producción** (`main`) todo lo de la web pública; a **preview** los sellos de hora y el texto de `aceptar-carga.html`. Estado final: **main `b200981`** · **preview `c26cc83`** (sin drift, preview ya lleva `main` dentro).
+
+**MAPA DE COBERTURA ANIMADO (`index.html` → `main`)** — lo grande de la sesión:
+- El mapa de *Nuestra cobertura* arranca **encuadrado en España**, mantiene esa vista **1 segundo** y hace **zoom-out animado a Europa** (1,7 s, `easeInOutCubic` sobre el `viewBox`). Cuenta la historia del negocio: primero nacional, luego Europa.
+- **Fase España**: las **10 ciudades principales** (A Coruña, Bilbao, Zaragoza, Barcelona, Valladolid, Madrid, Valencia, Murcia, Sevilla, Málaga) con nombre, punto y halo latiendo, y **11 rutas curvas** entre ellas con el trazo en movimiento (`stroke-dasharray` + `stroke-dashoffset`) simulando envíos en curso.
+- **Fase Europa**: arcos **de ida (verde) y vuelta (morado)** entre Madrid y cada país cubierto, también en movimiento.
+- **Proyección calculada**: el SVG de Europa **no es Mercator** (es cónico). Un ajuste global daba errores de 10-30 unidades; se resolvió con un **ajuste afín local para la península** (`proy(lon,lat)`), y las ciudades caen donde deben.
+- La animación **no arranca hasta que el mapa es visible** (IntersectionObserver) y el ciclo de países se para al salir de pantalla. `prefers-reduced-motion` desactiva todo el movimiento.
+- **Iteración de tiempos** a petición: 3 s → 1,5 s → 0,80 s → **1 s** (definitivo). Al bajar de 1,5 s el fundido de 0,7 s se comía la fase, así que la transición de `.mapa-capa` bajó a **0,3 s**.
+- ⚠️ **Aprendido midiendo**: cronometrar desde `scrollIntoView` mete la latencia del scroll suave (daba 2017 ms para una fase de 800). La medición buena es *capa España visible → el viewBox empieza a moverse*.
+- **Bug cazado**: los arcos internacionales salían como **cuñas negras** — `.ruta-ida`/`.ruta-vuelta` no heredaban el `fill:none` de `.ruta`.
+
+**DINAMARCA (`index.html` + `images/europa-map.svg` → `main`)**:
+- Añadida al mapa y a **las 4 listas de países** del texto + al `areaServed` del JSON-LD, para que mapa y texto digan lo mismo.
+- Criterio del usuario: **solo continental, salvo que haya carretera o puente**. Se editaron a mano los subpaths del SVG (`dk` de 17 a 14): fuera **Bornholm, Læsø y Samsø** (solo ferry); se quedan las islas unidas por puente. **Técnica a recordar**: los subpaths encadenan `m` relativas desde el punto final del anterior, así que al borrar uno hay que **convertir a `M` absoluta** el arranque de todos los siguientes o se desplazan.
+- **Sin decidir**: si aplicar el mismo criterio a **Baleares** (hoy se mantiene, única excepción) y a **Irlanda** (país cubierto entero, se llega en ferry).
+
+**DATOS DE CONTACTO EN EL HERO (`index.html` → `main`)**: el desplegable *Contacta* muestra ahora el dato entre paréntesis junto a cada canal — e-Mail (info@dynamotrans.com) · WhatsApp (+34 628 995 709) · Teléfono (+34 955 225 945) — en línea propia bajo el nombre del canal, sin romper el horario que ya iba debajo.
+
+**SELLOS DE HORA DEL ENVÍO (`dashboard.html` → preview)**: cada envío guarda **`creadoEn`** (se fija al crear y ya no cambia) y **`modificadoEn`** (se sella en cada modificación; `null` mientras no se toque). Es la base de la **publicación diferida en bolsas de carga** (ver TODO): no publicar hasta **3 minutos** después de la creación o de la última modificación, para no republicar veinte veces mientras se corrige la carga.
+
+**`aceptar-carga.html` (preview)**: el texto de ayuda del buscador pasa a *"Tu CIF, DNI, código de bolsa (Wtransnet, Teleroute, etc.), **teléfono** o nombre de empresa"* — ejemplos de bolsa concretos y "teléfono" en vez de "móvil". Mismo cambio en el aviso de campo vacío.
+
+**MÓDULO DeCA — análisis y propuesta (NADA movido todavía)**: el usuario subió `dynamo-ordenes-deca.zip` (generadores Python de orden de carga / CMR / DeCA con QR, ruta Next.js, prototipos de web y PDF de referencia aprobados) y pidió montarlo **en Vercel Blob, dentro de este mismo proyecto**. Revisado contra el repo real y entregada propuesta. Tres hechos que lo condicionan, anotados en TODO.md con la propuesta completa: (1) el repo es **100 % estático** (sin `package.json`, sin `api/`) → la ruta App Router **no vale tal cual**; (2) `vercel.json` tiene un **catch-all** `/(.*)` → `/index.html` que se tragaría `/deca/<token>`; (3) **todo fichero del repo se sirve** → los `.py` serían descargables sin un `.vercelignore`. Aclarado al usuario que **el PDF se genera antes** (local/Cowork, segundos) y el escaneo del QR solo **sirve** un PDF ya hecho (décimas de segundo): no se genera nada en caliente. **Pendiente: 4 decisiones suyas** (ver TODO.md) antes de tocar un fichero.
+
+**Pendientes nuevos anotados en TODO.md**: **curva de precio de verano** (sube del 15-jul al pico ~+40% a mediados y baja hasta el 30-ago; la mete él en el tarifador, aquí solo queda apuntado) · **repaso de seguridad de 20 puntos** para cuando haya backend · **publicación diferida en bolsas (3 min)** · **módulo DeCA** con la propuesta y sus 4 decisiones.
+
+**Suelto**: borrar en GitHub las ramas ya mergeadas `fix/mapa-animado`, `fix/mapa-tiempo`, `fix/mapa-tiempo-080`, `fix/mapa-tiempo-1s`, `fix/cobertura-dinamarca`, `fix/contacto-datos` y `fix/trailer-13-30` (el entorno da 403 al borrar remotas).
+
 ### 2026-09-16 — Claude Code web (nube)
 
 > **Continuación de la plantilla de email de Brevo.** Todo en `claude/brevo-mail-template-15nrtj` y mergeado a `main`. No toca `index.html` ni el portal: solo `emails/` e `images/email/`.
