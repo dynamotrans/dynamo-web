@@ -295,7 +295,7 @@ PAGINAS.append(pagina(
     <h2>Qué entra en un <span>tráiler completo</span></h2>
     <div class="lp-specs">
       <div class="lp-spec"><div class="lp-spec-l">Largo (interior)</div><div class="lp-spec-v">13,30 m</div></div>
-      <div class="lp-spec"><div class="lp-spec-l">Ancho (interior)</div><div class="lp-spec-v">2,45 m</div></div>
+      <div class="lp-spec"><div class="lp-spec-l">Ancho (interior)</div><div class="lp-spec-v">2,40 m</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Altura</div><div class="lp-spec-v">2,70 m</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Carga máx.</div><div class="lp-spec-v">24 Tn</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Palé europeo</div><div class="lp-spec-v">33 uds. (120x80)</div></div>
@@ -377,7 +377,7 @@ PAGINAS.append(pagina(
     <p class="lp-sub">Similar a un furgón tipo caja, con cortinas correderas en lados y techo que dan fácil acceso a la carga. El vehículo más utilizado para envíos terrestres. Ideal para mercancía paletizada, palot/box y mercancías especiales.</p>
     <div class="lp-specs">
       <div class="lp-spec"><div class="lp-spec-l">Largo (interior)</div><div class="lp-spec-v">13,30 m</div></div>
-      <div class="lp-spec"><div class="lp-spec-l">Ancho (interior)</div><div class="lp-spec-v">2,45 m</div></div>
+      <div class="lp-spec"><div class="lp-spec-l">Ancho (interior)</div><div class="lp-spec-v">2,40 m</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Altura</div><div class="lp-spec-v">2,70 m</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Carga máx.</div><div class="lp-spec-v">24 Tn</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Apertura</div><div class="lp-spec-v">Lateral, trasero y techo</div></div>
@@ -390,7 +390,7 @@ PAGINAS.append(pagina(
     <p class="lp-sub">Tipo tauliner con cortinas correderas. Ideal para cargas donde no existen medios de carga y/o descarga en destino: entregas urbanas y puntos sin muelle.</p>
     <div class="lp-specs">
       <div class="lp-spec"><div class="lp-spec-l">Largo</div><div class="lp-spec-v">8 m</div></div>
-      <div class="lp-spec"><div class="lp-spec-l">Ancho (interior)</div><div class="lp-spec-v">2,45 m</div></div>
+      <div class="lp-spec"><div class="lp-spec-l">Ancho (interior)</div><div class="lp-spec-v">2,40 m</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Altura</div><div class="lp-spec-v">2,40 m</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Carga máx.</div><div class="lp-spec-v">14 Tn</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Apertura</div><div class="lp-spec-v">Lateral, trasero y techo</div></div>
