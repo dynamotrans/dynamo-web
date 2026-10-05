@@ -33,6 +33,23 @@ El usuario trabaja desde 2 Macs diferentes usando GitHub Codespaces para mantene
 - **Cajas de aviso/nota** → los patrones existentes (`.warn`, `.pago-contado`, `.ptar-admin-precio-note`, etc.).
 Antes de crear un control, buscar cómo está hecho el equivalente más parecido en la página y copiar su patrón. Si de verdad no existe un componente equivalente, crearlo siguiendo la escala de texto y los colores de `:root` y dejarlo como clase reutilizable (no inline).
 
+### 0-quinquies. MEDIDAS OFICIALES de los camiones (dato único de todo el proyecto)
+**(Fijado por el usuario, 2026-10-05.)** Estas son las medidas buenas y van IGUALES en la web pública, las hojas de sección y el panel. Ya han bailado dos veces (13,60↔13,30 y 2,45↔2,40), así que al tocar una hay que repasar **los tres sitios**:
+
+| | Tráiler tauliner | Rígido con plataforma |
+|---|---|---|
+| Largo (interior) | **13,30 m** | 8 m |
+| **Ancho (interior)** | **2,40 m (máximo, SIEMPRE)** | **2,40 m** |
+| Altura (interior) | 2,70 m | 2,40 m |
+| Carga máx. | 24 Tn | 14 Tn |
+| Palés europeos (120×80) | 33 uds. | 20 uds. |
+| Palés americanos (120×100) | 26 uds. | 16 uds. |
+| Volumen aprox. | 86 m³ | 46 m³ |
+
+El **volumen se recalcula** (largo × ancho × alto) cada vez que cambie una medida; no es un número fijo. Los palés **no** se recalculan: son los que caben de verdad.
+
+**Dónde vive cada copia**: `index.html` (fichas de *Tipos de vehículo*) · `tools/generar-hojas-seccion.py` → regenera `/vehiculos` y `/carga-completa` · `dashboard.html` (fichas del panel, tooltip de metros lineales y tabla de *Ver medidas del camión*).
+
 ### 1. Push: automático a PREVIEW, con confirmación a PRODUCCIÓN
 **(Actualizado 2026-07-12 a petición del usuario: "sube directo sin preguntarme".)**
 
