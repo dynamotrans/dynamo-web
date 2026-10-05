@@ -296,7 +296,7 @@ PAGINAS.append(pagina(
     <div class="lp-specs">
       <div class="lp-spec"><div class="lp-spec-l">Largo (interior)</div><div class="lp-spec-v">13,30 m</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Ancho (interior)</div><div class="lp-spec-v">2,40 m</div></div>
-      <div class="lp-spec"><div class="lp-spec-l">Altura</div><div class="lp-spec-v">2,70 m</div></div>
+      <div class="lp-spec"><div class="lp-spec-l">Altura (interior)</div><div class="lp-spec-v">2,70 m</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Carga máx.</div><div class="lp-spec-v">24 Tn</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Palé europeo</div><div class="lp-spec-v">33 uds. (120x80)</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Palé americano</div><div class="lp-spec-v">26 uds. (120x100)</div></div>
@@ -378,7 +378,7 @@ PAGINAS.append(pagina(
     <div class="lp-specs">
       <div class="lp-spec"><div class="lp-spec-l">Largo (interior)</div><div class="lp-spec-v">13,30 m</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Ancho (interior)</div><div class="lp-spec-v">2,40 m</div></div>
-      <div class="lp-spec"><div class="lp-spec-l">Altura</div><div class="lp-spec-v">2,70 m</div></div>
+      <div class="lp-spec"><div class="lp-spec-l">Altura (interior)</div><div class="lp-spec-v">2,70 m</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Carga máx.</div><div class="lp-spec-v">24 Tn</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Apertura</div><div class="lp-spec-v">Lateral, trasero y techo</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Palé europeo</div><div class="lp-spec-v">33 uds. (120x80)</div></div>
@@ -391,7 +391,7 @@ PAGINAS.append(pagina(
     <div class="lp-specs">
       <div class="lp-spec"><div class="lp-spec-l">Largo</div><div class="lp-spec-v">8 m</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Ancho (interior)</div><div class="lp-spec-v">2,40 m</div></div>
-      <div class="lp-spec"><div class="lp-spec-l">Altura</div><div class="lp-spec-v">2,40 m</div></div>
+      <div class="lp-spec"><div class="lp-spec-l">Altura (interior)</div><div class="lp-spec-v">2,40 m</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Carga máx.</div><div class="lp-spec-v">14 Tn</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Apertura</div><div class="lp-spec-v">Lateral, trasero y techo</div></div>
       <div class="lp-spec"><div class="lp-spec-l">Palé europeo</div><div class="lp-spec-v">20 uds. (120x80)</div></div>
