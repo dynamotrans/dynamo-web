@@ -182,6 +182,24 @@ Al **crear un cliente, un transportista o un usuario** hay que comprobar SIEMPRE
 
 Un mismo CIF **puede** ser cliente Y transportista (roles/tablas distintos), pero **NUNCA** dos veces cliente, ni dos veces transportista, ni un email dos veces como usuario. Motivo: evitar cuentas duplicadas de la misma empresa (facturación partida, líos contables) y usuarios repetidos. En backend: `UNIQUE` + validación con mensaje claro; normalizar CIF/email antes de comparar. En el mockup, avisar igual al crear. (Detalle en `TODO.md`.)
 
+### 12. TODO queda sellado con FECHA Y HORA — auditoría universal (regla del usuario, 2026-10-06)
+**Regla dura y transversal de TODA la plataforma: no hay registro sin fecha y hora, ni cambio sin rastro de quién lo hizo.** No es solo de envíos: aplica a clientes, transportistas, usuarios, sitios, almacenamientos, incidencias, penalizaciones, facturas, documentos… **a todo.**
+
+**1. Las cuatro columnas que lleva CADA tabla, sin excepción**
+`creado_en` · `creado_por` · `modificado_en` · `modificado_por`. Siempre `timestamptz` y **siempre con la hora del SERVIDOR** (`now()` de Postgres), **nunca la del navegador** — el reloj del móvil del usuario puede estar mal o manipulado, y estos sellos tienen valor probatorio.
+
+**2. Tabla `auditoria`, append-only (la verdad completa)**
+Una fila por cada alta, modificación y baja de cualquier tabla: `tabla`, `registro_id`, `accion` (alta/modificacion/baja), `quien`, `cuando`, y `cambios jsonb` con el **antes y el después** de los campos tocados. **NUNCA se edita ni se borra.** Si alguien baja un precio o cambia un CIF, tiene que poder verse quién y cuándo.
+
+**3. Se impone con TRIGGERS de Postgres, no desde el código de la aplicación**
+Si lo hace el front o la API, cualquier olvido (o cualquier atajo) se salta la auditoría. En trigger de base de datos **no hay forma de escribir sin dejar rastro**.
+
+**4. Hitos de negocio con hora propia** (además de la auditoría general, porque se consultan mucho y alimentan reglas de precio — ver el bloque de *REGISTRO DE TIEMPOS* en `TODO.md`): envío **creado** · **modificado** · **publicado en bolsa** · **ofertado** a cada transportista · **enlace abierto** · **reservado** · **transportista asignado** · **matrícula asignada** · **orden de transporte enviada** · **CMR firmado** · **cargado** · **entregado** · **cancelado** · **incidencia**; y **alta/modificación de cliente** y **de transportista**.
+
+**5. Zona horaria**: se guarda SIEMPRE en `timestamptz` (UTC por dentro) y se **muestra en `Europe/Madrid`**. Así sobrevive a los cambios de hora de verano/invierno y a que alguien entre desde otro país.
+
+**Motivo**: (a) **reglas de precio por tiempo** (si a las 15:30 de la víspera no hay transportista asignado, sube el precio — ya documentado); (b) **defensa ante una reclamación** (cuándo se avisó, cuándo se aceptó, cuándo se entregó); (c) **analítica real** de la operativa (cuánto tarda de media una carga en asignarse); (d) **saber quién tocó qué** cuando algo no cuadra.
+
 ### 11. Contacto del transportista DESAPARECE para el cliente al finalizar el envío (anti-desintermediación) — regla de negocio (2026-08-07)
 
 Una vez el envío está **entregado o finalizado** (también cancelado), **TODO dato de contacto del transportista** (teléfono del conductor, teléfono/email de la empresa transportista, cualquier canal) **debe desaparecer de la vista del CLIENTE**. Durante el transporte en curso el cliente SÍ ve el teléfono del conductor (para coordinar recogida/entrega); en cuanto pasa a entregado, se oculta. **El admin lo sigue viendo siempre.**
