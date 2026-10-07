@@ -5,7 +5,7 @@
 >
 > **Leído el 2026-10-06 por MCP de Google Drive** (no es una suposición, son las columnas reales):
 > - `IA-DYNAMO-2030` — ID `11hUKWFHu0cirk-IAGIiVPETFxwt5_Lo4QAHmYlUtO8o` — 14 hojas
-> - `DYNAMO-GX-INDEX` — ID `1qZCqtkisu6ovBMLO-NkMcuync1f_miIoTQiNhS_7l9o` — 1 hoja, 300 filas, se toca a diario
+> - `DYNAMO-GX-INDEX` — **FUERA DE ALCANCE** (decisión del usuario 2026-10-07: es para facturas, no tiene nada que ver con la futura plataforma). Solo se usa `IA-DYNAMO-2030`.
 >
 > Reglas que manda este esquema: **regla 12 de CLAUDE.md** (fecha y hora + auditoría en TODO),
 > **regla 10** (altas sin duplicados) y el pendiente 🔥 de **Holded 1:1**.
@@ -58,6 +58,99 @@ columnas sin inventarse nada. Lo que eso exige y hoy NO está en el Sheet:
 `pais_codigo_iso` (hoy el país va como texto libre), `descuento_porcentaje`.
 Los 4 campos de control (`EN HOLDED?`, `FACTURADO?`, `ALB REC?`, `ESTADO VIAJE`) **sí** van en
 `envios` como banderas de sincronización.
+
+---
+
+## 0-bis. EL DICCIONARIO (`validaciones_descripcion`): qué dice y qué falta
+
+La plantilla de documentación está montada en las filas 2-6 de cada pestaña, con esta leyenda:
+
+| Fila | Para qué es | Valores que admite |
+|---|---|---|
+| 2 | **Formato** | `texto \| alfanumerico \| longitud_fija: 11`, `fecha \| ISO-8601`, `boolenano (1/0)`, `numero \| >0 <6000`, `%`, `regex_email \| max_length:80`, `lista_controlada` |
+| 3 | **Rango de valores o fechas** | p. ej. `incremento = +7 respecto a la referencia anterior`, `1-0`, `60` |
+| 4 | **Lista de elementos posibles** | o `lista: no aplica` |
+| 5 | **Valor obligatorio** | `obligatorio` / `opcional` / `automatico` |
+| 6 | **Descripción** | notas aclaratorias + ejemplo OK y ejemplo mal |
+
+⚠️ **Está empezada, no cumplimentada.** La leyenda existe y unas cuantas columnas de
+`dy_cargas_hoja`, `dy_ticket_hoja` y `dy_clientes_hoja` tienen valores, pero la gran mayoría de las
+~250 columnas del libro están en blanco en esas filas. **No es un problema**: el sitio natural de
+esa documentación es el propio Postgres (`COMMENT ON COLUMN` + `CHECK`), y la vamos rellenando al
+escribir el DDL, que es donde además *se cumple* en vez de solo estar escrita.
+
+⚠️ **Limitación técnica encontrada**: el libro **no se puede exportar completo** (Drive devuelve
+"File too large" por las ~30.000 filas formateadas de `dy_cargas_hoja`). Se lee por trozos. Para
+futuras lecturas conviene borrar el formato de las filas vacías, o trabajar sobre una copia
+recortada.
+
+### Lo que SÍ está escrito y es oro (reglas de negocio que no estaban en ningún otro sitio)
+
+**1. La referencia GX — formato real**
+```
+formato: texto | alfanumerico | longitud_fija: 11
+rango: debe seguir el patrón GX + numero largo ; incremento = +7 respecto a la referencia anterior
+obligatorio (unicidad requerida)
+descripcion: identificador unico de la carga. Formato: GX + numero correlativo largo.
+El primer referencia de carga comenzó en el GX100888689.
+El incremento entre una referencia y la siguiente es SIEMPRE +7.
+```
+- **11 caracteres fijos**: `GX` + 9 dígitos. ⚠️ El mockup usa `#GX######` (GX + 6 dígitos = 8
+  caracteres). **No coincide con el formato real** → hay que igualar el mockup.
+- El **+7** hay que implementarlo como secuencia propia: `CREATE SEQUENCE gx_seq START 100888689
+  INCREMENT BY 7;` y la referencia como columna generada. **Nunca** `MAX(ref)+7` desde la
+  aplicación: con dos envíos a la vez, los dos leen el mismo máximo y colisionan.
+- ⚠️ **Nota de seguridad**: un correlativo de paso fijo es **enumerable**. Si el GX viaja en la URL
+  pública de `aceptar-carga.html?e=GX…` (decisión del 2026-07-20: una sola URL por envío, sin
+  token), adivinar cargas ajenas es trivial: 1 de cada 7 números acierta. Si esa URL se mantiene
+  sin token, el enlace debe llevar **además** un identificador aleatorio (`uuid` o token corto),
+  no el GX. El GX se queda para la operativa y la facturación.
+
+**2. Los IDs de las demás tablas llevan prefijo**
+`cliente_id` → `C-10000`, `C-10001`, `C-10002` · `id_lugar` → `L-10000` ·
+`dy_lugar_anotaciones_cliente.id_lugar` → `LA-10000`.
+Mismo patrón previsible para transportistas y contactos. Se mantiene: es legible por humanos y sirve
+para hablar por teléfono ("el cliente C-10042"). En Postgres: `id uuid` interno **+** `codigo text
+UNIQUE` generado con su prefijo y secuencia. Las dos cosas (el uuid para las FK, el código para la
+gente).
+
+**3. `ticket_tipo` — la lista completa**
+`incidencia transporte` · `cancelación transporte` · `cambio fecha/hora carga` ·
+`facturación consulta` · `pago consulta` → `enum`.
+
+**4. `tipo_de_lugar` — la lista**
+`ALMACÉN` · `OBRA` · `EVENTO` · `FINCA` · … (el panel añade *Nave* y *Zona urbana*; hay que cerrar
+la lista única, porque de ella cuelgan los recargos del tarifador: Obra +5%, Zona urbana +20%,
+Evento +15%, Finca +25%).
+
+**5. `cliente_factor_tarifa` — rango ±3%**
+> *"si admite precios superior o inferior poder ajustar segun tipologia cliente: **+-3%**"*
+
+⚠️ **Choca con el panel**, donde el slider va de **−30 a +30** con default **−7%** (captación).
+Hay que decidir cuál manda antes de poner el `CHECK`. Mi lectura: el ±3% era el ajuste fino
+original y el −30/+30 es lo que de verdad usas hoy → el `CHECK` debería ser `BETWEEN -30 AND 30`,
+pero lo confirmas tú.
+
+**6. `cliente_recargo_pago_tarde` (%)**
+> *"si paga muy tarde aplicar recargo %"* — recargo por cliente moroso. **No está en el panel**:
+hay que añadirlo a la ficha de cliente.
+
+**7. `cliente_negociar_tarifa` (1/0) — regla de texto condicional**
+> *"El cliente puede ofrecer otro precio diferente y en ese caso, si está apto para contraofertar
+> con el booleano 1/0 activado con 1, entonces se le pone coletilla al precio de: «En caso que la
+> tarifa no le encaje, contraoferte su tarifa objetivo, pero no aseguramos tener disponibilidad».
+> En caso que el booleano sea 0, no se le pone la coletilla."*
+
+Es una regla de negocio completa que **no está implementada en el mockup**. Va a `clientes` como
+`permite_contraoferta boolean` y la coletilla a la tabla `plantillas`.
+
+**8. `cliente_plazo_vencimientos` = 60**
+60 días por defecto, con la nota *"nombrar varios para seleccionar"* → lista cerrada
+(`0 / 30 / 60 / 90`), que es lo que ya hace el panel (0/30/60).
+
+**9. Las columnas `MAIL_COMERCIAL_*` confirmadas como documento renderizado**
+Dentro llevan el encabezado `DYNAMO OPERADOR LOGISTICO S.L. | www.dynamotrans.com` y
+`🚛 Detalles del Envío`. Son el email ya montado → tabla `plantillas`, no columna por envío.
 
 ---
 
@@ -346,83 +439,237 @@ usuario) — eso no lo había previsto y es buena idea.
 
 ---
 
-## 6. ESQUEMA PROPUESTO — 16 tablas
+## 6. LAS TABLAS — las 5 tuyas + 15 más
 
-```
-NÚCLEO
-  clientes                 ← dy_clientes_hoja (menos agregados y concatenar)
-  transportistas           ← dy_transportistas_hoja
-  contactos                ← los *_contacto_1/2 de clientes, transportistas y lugares (1-N)
-  usuarios                 ← dy_contactos_… + Supabase Auth (sin columna de contraseña)
-  lugares                  ← dy_lugar
-  lugar_notas_cliente      ← dy_lugar_anotaciones_cliente (lugar_id + cliente_id + notas)
+Tus cinco son correctas y son el núcleo. Pero cinco no bastan: hay cosas que **hoy caben en el
+Sheet solo porque Sheets te deja meter varios datos en una celda**, y en Postgres necesitan sitio
+propio. Lista completa, por grupos:
 
-ENVÍO
-  envios                   ← dy_cargas_hoja, de 123 a ~55 columnas
-  envio_puntos             ← las 42 columnas de recogida/parada_1..4/entrega
-  envio_hitos              ← los 14 hitos de la regla 12 (1-N, incluye ofertas)
-  envio_ofertas            ← a qué transportistas se ofreció, cuándo, si abrió el enlace
+### A. NÚCLEO — las que dijiste (con un matiz en "contactos")
 
-OPERATIVA
-  tickets                  ← dy_ticket_hoja
-  penalizaciones           ← NUEVA (existe en el panel, no en el Sheet)
-  almacenamientos          ← NUEVA (#AX######)
-  documentos               ← NUEVA (Supabase Storage: CMR, albarán, seguros, adjuntos)
+| # | Tabla | Viene de | Nota |
+|---|---|---|---|
+| 1 | **`clientes`** | `dy_clientes_hoja` | Sin los 9 agregados ni los `*_concatenar`. Con las columnas que exige Holded. |
+| 2 | **`transportistas`** | `dy_transportistas_hoja` | Proveedores. `UNIQUE (cif)` — regla 10. |
+| 3 | **`lugares`** | `dy_lugar` | Sitios de recogida/entrega + almacenes Dynamo. |
+| 4 | **`contactos`** | los `*_contacto_1/2` de las 3 hojas | Persona de contacto de una empresa. 1-N. |
+| 5 | **`usuarios`** | `dy_contactos_clientes_transportistas_hoja` | Quien hace **login**. Supabase Auth. |
+| 6 | **`envios`** | `dy_cargas_hoja` | De 123 a ~55 columnas. |
 
-SISTEMA
-  parametros               ← dy_bbdd_auxiliar (diésel €/l, tabla ml→Tn→palés, diccionario)
-  auditoria                ← NUEVA, append-only, por triggers (regla 12)
+> **⚠️ El matiz: `contactos` y `usuarios` son DOS tablas, no una.**
+> Tú los describes juntos ("contactos que son usuarios asignados a clientes/proveedor para tema
+> acceso a web"). Pero son dos cosas con vidas distintas:
+> - **`contactos`** = la persona de la empresa con la que hablas. `trafico@cointrans.es`,
+>   `oficinaperfeval@gmail.com`. El **90% de estos nunca va a entrar al portal**. Hay 6 en ABC
+>   Logistic. Tienen función (tráfico / contabilidad / conductor).
+> - **`usuarios`** = quien tiene credenciales. Email **único** (regla 10), rol
+>   (admin/empleado/cliente/transportista), estado de cuenta, 2FA el día que lo pongas. Tú y tu
+>   hermano sois usuarios y **no pertenecéis a ningún cliente**.
+>
+> Si los metes en una tabla: o tienes miles de filas de "usuario" sin login (y la columna
+> `clave_acceso_web_dynamo` vacía, como ahora), o no puedes guardar los 6 emails de tráfico de un
+> transportista que nunca entrará al portal. Un contacto **puede** tener un usuario asociado
+> (`contacto.usuario_id` opcional) — eso es el enlace, no la fusión.
 
-VISTAS (no tablas)
-  v_holded_pedido_venta    ← dy_holded_pedido_venta, columnas 1:1 de Holded
-  v_holded_pedido_compra   ← dy_holded_pedido_compra
-  v_wtransnet              ← dy_fichero_wtransnet
-  v_gx_index               ← DYNAMO-GX-INDEX
-  mv_cliente_metricas      ← los contadores de cliente (refresco programado)
-  mv_transportista_metricas← los contadores de transportista
-```
+### B. DERIVADAS DEL ENVÍO — obligatorias, no opcionales
 
-`dy_cargas_hoja` pasa de **123 columnas a unas 55**: −42 de puntos de ruta, −9 de agregados,
-−8 de concatenar, −6 de plantillas de email, −5 de payloads de integración, +las 4 de la regla 12.
+| # | Tabla | Por qué no cabe en `envios` |
+|---|---|---|
+| 7 | **`envio_puntos`** | Hoy son **42 columnas** (`recogida_*`, `parada_1..4_*`, `entrega_*`). Una fila por punto: `orden`, `tipo`, `lugar_id`, `hora_prevista`, `km_hasta_siguiente`. Techo actual: 4 paradas por diseño de la hoja. Con tabla: las que haga falta. |
+| 8 | **`envio_hitos`** | Los 14 sellos de la regla 12. Tienes 2. "Ofertado a cada transportista" es 1-N: no cabe en columna. |
+| 9 | **`envio_ofertas`** | A quién se ofreció, a qué precio, con qué banda de negociación (±5/±10/±30%), si abrió el enlace, si reservó, cuándo caducó. Hoy es `transportista_emails_unicos_ruta_provincias`: un texto con emails pegados. |
+
+### C. DEL TRANSPORTISTA — responde a tu pregunta de las matrículas
+
+| # | Tabla | Por qué |
+|---|---|---|
+| 10 | **`vehiculos`** | **Sí, tabla propia.** Razonado en §7. |
+| 11 | **`conductores`** | Mismo caso que las matrículas: nombre, DNI, teléfono, WhatsApp. Se repiten en cada envío y hay datos (el DNI para firmar el CMR) que no tienen dónde vivir. |
+
+### D. OPERATIVA — existen en el panel pero NO en el Sheet
+
+| # | Tabla | Estado |
+|---|---|---|
+| 12 | **`tickets`** | ✅ Ya la tienes (`dy_ticket_hoja`). |
+| 13 | **`penalizaciones`** | ❌ Falta. En el panel: cancelación, paralización, compensación, parada adicional, con generación automática al cancelar fuera de plazo. |
+| 14 | **`almacenamientos`** | ❌ Falta. Códigos `#AX######`, reparto urbano radio 20 km. |
+| 15 | **`documentos`** | ❌ Falta. CMR firmado, albarán, seguro CMR, tarjeta de transporte, adjuntos de incidencia. Fichero en **Supabase Storage** + metadatos aquí. |
+| 16 | **`firmas_cmr`** | ❌ Falta. DNI/NIE + nombre + email + sello de tiempo + hash. Es el valor probatorio de la firma del CMR. |
+
+### E. SOPORTE
+
+| # | Tabla | Nota |
+|---|---|---|
+| 17 | **`lugar_notas_cliente`** | ✅ Ya la tienes (`dy_lugar_anotaciones_cliente`). **Buen diseño**: la nota privada de un cliente sobre un sitio compartido. Se queda tal cual. |
+| 18 | **`tarifas`** | ❌ **La que más falta.** Ver abajo. |
+| 19 | **`parametros`** | `dy_bbdd_auxiliar`: diésel €/l, tabla ml→Tn→palés, diccionario. |
+| 20 | **`plantillas`** | Las `MAIL_COMERCIAL_*`, la coletilla de contraoferta, los textos de orden y proforma. |
+| 21 | **`auditoria`** | Regla 12. Append-only, por triggers. |
+
+> **⚠️ `tarifas` es el agujero más grande del Sheet.** No hay **ni una** tabla de precios. Hoy las
+> reglas viven repartidas entre el front del mockup y medias históricas:
+> mínimo **220 €** · **1,35 €/km** · no paletizado **+70 €** · carga por techo **90 €** (15 jun–15
+> sep) / **50 €** resto · ADR **+50%** · trampilla **60 €** · NIMA **50 €** · parada adicional
+> **40 €** · recargos por tipo de lugar (obra +5%, urbana +20%, evento +15%, finca +25%) ·
+> descuento por peso bajo · suplemento fecha fija · paralización **40 €/h**.
+>
+> Y **cambian con el tiempo** (la curva de precio de verano que tienes apuntada: sube del 15-jul al
+> pico de mediados de agosto y baja al 30-ago). Por eso no son constantes en el código: es una
+> tabla con **vigencia** (`concepto`, `valor`, `tipo` (fijo/€ por km/%), `vigente_desde`,
+> `vigente_hasta`). Así el envío de agosto se recalcula con la tarifa de agosto para siempre, y
+> cambiar un precio no exige un deploy.
+
+**Total: 21 tablas + 6 vistas** (`v_holded_pedido_venta`, `v_holded_pedido_compra`, `v_wtransnet`,
+`mv_cliente_metricas`, `mv_transportista_metricas`, `v_envios_panel`).
 
 ---
 
-## 7. ORDEN DE TRABAJO
+## 7. MATRÍCULAS: tabla propia. Y el mismo razonamiento para conductores
 
-1. **Proyecto Supabase** en región **Frankfurt (eu-central-1)** — RGPD, datos en la UE.
-   Esto solo lo puede hacer el usuario. ⚠️ Las claves **nunca** se pegan en el chat; viven en
-   variables de entorno de Vercel/Supabase. La `service_role` se salta toda la seguridad.
-2. **`parametros` + catálogos/enums** (tipos de lugar, de camión, de carga, estados). Cimientos.
-3. **`clientes` + `transportistas` + `contactos`**, con las columnas que exige Holded y los
-   `UNIQUE` de la regla 10.
-4. **`lugares`** + `lugar_notas_cliente`.
-5. **`auditoria` + los triggers** → ANTES de meter un solo envío, para que todo nazca auditado.
-6. **`envios` + `envio_puntos` + `envio_hitos` + `envio_ofertas`**.
-7. **Operativa**: tickets, penalizaciones, almacenamientos, documentos.
-8. **Vistas de exportación** (Holded, Wtransnet, GX-INDEX) → el día que se enchufa, los ficheros
-   actuales siguen saliendo igual.
-9. **RLS por rol** (admin / cliente / transportista / empleado) — la matriz de permisos del TODO.
-   El gating del front **no es seguridad**: se impone aquí.
-10. **Migración de datos** con los scripts de partición del punto 3, en seco y revisando los raros.
+> *"Igual derivado de envíos, ¿podríamos crear tabla de matrículas? ¿O se toman de la de envíos
+> para no repetir info?"*
 
-Patrón **estrangulador**: el Sheet sigue vivo y manda mientras se monta cada módulo; se va cortando
-de uno en uno. Nunca un corte total.
+**Tabla propia, `vehiculos`.** Cuatro razones, de menos a más importante:
+
+**1. La matrícula no es del envío, es del transportista.** Una tractora hace 50 envíos al año. Si
+el único sitio donde vive es la columna del envío, el dato está **50 veces repetido** — que es
+justo lo que querías evitar. Tu intuición es correcta; la conclusión es la contraria a lo que
+temías: la tabla propia es la que *quita* repetición, no la que la añade.
+
+**2. Hay datos del vehículo que hoy no tienen dónde vivir.** Tipo (tractora / remolque / rígido),
+caducidad de la **ITV**, del **seguro**, de la **tarjeta de transporte**, certificación **ADR**,
+NIMA asociado, si lleva **trampilla**. Hoy nada de eso se puede guardar. Y en cuanto lo tengas,
+sale gratis una cosa que vale dinero: **avisar de que el seguro de un transportista caduca la
+semana que viene antes de darle una carga**.
+
+**3. Ya estás parseando ese texto a mano.** En `aceptar-carga.html` autocompletas tractora,
+remolque y conductor del historial, y resuelves la **pareja tractora↔remolque** y el conductor que
+la llevó la última vez (`pares` y `paresChofer` en `TRANS_DEMO`). Eso hoy sale de partir la cadena
+`"2547JSV // R0847BDV"`. Con tabla es una consulta de dos líneas, y deja de romperse cuando alguien
+escribe `9658-MKH | R-7530-BDV` con otro separador.
+
+**4. Normalización.** La misma matrícula está escrita de 4 formas distintas en tu hoja
+(`3848 JFJ`, `8221-LXV`, `2547JSV`, `0826 MPR`). Con tabla y `UNIQUE` sobre la matrícula
+normalizada, existe **una sola vez** y se escribe sola.
+
+### Pero el envío además guarda su copia
+
+```
+envios.vehiculo_tractora_id   uuid  → FK a vehiculos   (para navegar, filtrar, avisar de ITV)
+envios.matricula_tractora     text        (congelada: lo que de verdad fue)
+envios.matricula_remolque     text
+envios.conductor_id           uuid  → FK a conductores
+envios.conductor_nombre       text        (congelado, para el CMR)
+```
+
+Es el mismo patrón del §4: **FK al maestro + copia de lo aplicado**. Motivo concreto: un camión se
+vende o se da de baja, un conductor se va de la empresa, una matrícula se transfiere. El CMR del
+año pasado tiene que seguir diciendo la matrícula que **realmente** cargó, aunque hoy ese vehículo
+ya no exista en la flota de nadie. Sin la copia congelada, borrar un vehículo te reescribe la
+historia.
+
+Y ojo con el dato que hoy va de polizón en la misma celda: `"... .-- NIMA: 5000113855"`. El NIMA es
+del **transportista** (así lo decidiste el 2026-08-07: lo aporta él al aceptar la carga, no es del
+cliente), así que vive en `transportistas.nima` y se congela en el envío si se usó.
 
 ---
 
-## 8. PREGUNTAS ABIERTAS para el usuario
+## 8. HOJA DE RUTA — qué hago yo y qué tienes que hacer tú
 
-1. **`tipo_concepto`** (col Y de cargas) — ¿qué valores tiene? ¿Es el concepto de facturación
-   (porte / almacenaje / paralización)? Define si va a `enum` o a tabla de catálogo.
-2. **`referencia_continua_carga`** (col B) — ¿es un contador secuencial propio además del GX?
-3. **`cliente_verificado_hoja_cif_o_mail`** — ¿verificación manual, o VIES/AEAT?
-4. **`transportista_wtransnet`** — ¿es el código de socio de la bolsa? (en el panel está como
-   "código de bolsa de carga").
-5. **`riesgo_disponible` / `riesgo_cliente_euros`** — ¿los dos son CESCE, o uno es el crédito
-   interno de Dynamo? En el panel hay dos importes separados (CESCE y Dynamo).
-6. **`cliente_tipo_urgencia_defecto_dias`**, **`cliente_tipo_mercancia_porcentaje`**,
-   **`valor_mercancia_porcentaje`** — ¿son los recargos del tarifador por cliente?
-7. **`dy_polos_capitalyciudadesindustriales`** — ¿la querías rellenar con polos industriales y
-   quedó a medias? (hoy es copia de `dy_bbdd_auxiliar`).
-8. **Clientes y transportistas reales**: las hojas tienen el rango formateado hasta 20.005 y 10.005
-   filas. ¿Cuántos registros reales hay? (para dimensionar la migración).
+> *"¿Dame hoja de ruta o cómo habilito siguiente paso una vez saber tablas? ¿Es montar bbdd
+> supabase?"*
+
+Sí: el siguiente paso es crear la base de datos. El reparto es este.
+
+### PASO 1 — Solo tú (10 minutos, una vez)
+
+1. Entrar en **supabase.com** → *New project*.
+2. **Región: Frankfurt (eu-central-1)**. Importa: RGPD, los datos de tus clientes se quedan en la UE.
+3. Nombre: `dynamo`. Plan Free para empezar (se sube cuando haga falta; el Free aguanta de sobra
+   el desarrollo).
+4. Guardar la **contraseña de la base de datos** en tu gestor de contraseñas.
+5. Decirme **solo**: "proyecto creado".
+
+**⚠️ No me pegues NUNCA ninguna clave en el chat.** Ni la `anon`, ni la `service_role`, ni la
+contraseña, ni la cadena de conexión. La `service_role` **se salta toda la seguridad** de la base
+de datos: quien la tiene, lo puede leer y borrar todo. Las claves van a las variables de entorno de
+Vercel y de Supabase, y yo no necesito verlas para escribir el esquema.
+
+### PASO 2 — Yo, sin tocar tu cuenta
+
+Escribo las migraciones como ficheros SQL en el repo, en `supabase/migrations/`, numeradas:
+
+```
+supabase/migrations/
+  0001_enums_y_catalogos.sql
+  0002_auditoria_y_triggers.sql
+  0003_clientes_transportistas_contactos.sql
+  0004_usuarios_y_roles.sql
+  0005_lugares.sql
+  0006_vehiculos_conductores.sql
+  0007_envios.sql
+  0008_envio_puntos_hitos_ofertas.sql
+  0009_operativa.sql
+  0010_tarifas_parametros_plantillas.sql
+  0011_vistas_holded_wtransnet.sql
+  0012_rls_politicas.sql
+```
+
+Tú los abres y los pegas en el **SQL Editor** de Supabase, uno a uno, en orden. Yo veo el SQL, tú
+lo ejecutas. Cero secretos de por medio, y queda todo versionado en git: si algo sale mal, se
+revierte.
+
+### PASO 3 — El orden, y por qué ese orden
+
+| Orden | Qué | Por qué va ahí |
+|---|---|---|
+| 1 | Enums y catálogos | Tipos de lugar, camión, carga, estados, `ticket_tipo`. Todo lo demás los referencia. |
+| 2 | **`auditoria` + triggers** | **Antes de meter un solo registro.** Si va después, los primeros datos nacen sin rastro y la regla 12 queda con un agujero desde el día 1. |
+| 3 | Clientes, transportistas, contactos | Con las columnas de Holded y los `UNIQUE` de la regla 10. |
+| 4 | Usuarios y roles | Supabase Auth. Sin columna de contraseña. |
+| 5 | Lugares + notas de cliente | |
+| 6 | Vehículos y conductores | Cuelgan del transportista. |
+| 7-8 | Envíos + puntos + hitos + ofertas | Lo más complejo, y necesita todo lo anterior montado. |
+| 9 | Tickets, penalizaciones, almacenamientos, documentos | |
+| 10 | Tarifas, parámetros, plantillas | |
+| 11 | Vistas de exportación | El día que se enchufa, los ficheros de Holded y Wtransnet siguen saliendo igual que hoy. |
+| 12 | **RLS (seguridad por filas)** | Un cliente solo ve lo suyo, un transportista solo sus viajes. **El gating del front no es seguridad**: se impone aquí, en la base de datos. |
+
+### PASO 4 — Migrar los datos
+
+Scripts de carga con la partición del §3 (matrículas, emails múltiples, CP+población, puntos de
+ruta). En seco primero, revisando a mano los raros. El Sheet **sigue siendo la verdad** mientras se
+monta cada módulo: se corta de uno en uno (patrón estrangulador), nunca de golpe.
+
+### Lo que NO cambia todavía
+
+El mockup (`dashboard.html`) sigue funcionando con sus datos de prueba. La base de datos se monta
+en paralelo y no se conecta nada hasta que un módulo esté completo. Nada de esto toca `main` ni la
+web pública.
+
+---
+
+## 9. LO QUE NECESITO DE TI PARA EMPEZAR A ESCRIBIR SQL
+
+Sin esto no puedo cerrar el DDL de los pasos 1-3. Las 4 primeras son las que bloquean:
+
+1. **`cliente_factor_tarifa`: ¿±3% o −30/+30?** El diccionario del Sheet dice ±3%, el panel tiene
+   un slider de −30 a +30 con default −7%. ¿Cuál es la buena?
+2. **`tipo_concepto`** (col Y de cargas): ¿qué valores tiene? ¿Es el concepto de facturación
+   (porte / almacenaje / paralización / penalización)?
+3. **`riesgo_disponible` y `riesgo_cliente_euros`**: ¿son los dos CESCE, o uno es el crédito
+   interno de Dynamo? En el panel hay dos importes separados.
+4. **`tipo_de_lugar`: la lista definitiva.** El Sheet dice ALMACÉN / OBRA / EVENTO / FINCA; el panel
+   usa Almacén/Nave · Obra · Zona urbana · Evento · Finca. Hay que cerrarla porque de ella cuelgan
+   los recargos del tarifador.
+
+Menos urgentes:
+
+5. **`referencia_continua_carga`** (col B): ¿es un segundo contador además del GX?
+6. **`cliente_verificado_hoja_cif_o_mail`**: ¿verificación a mano, o VIES/AEAT?
+7. **`transportista_wtransnet`**: ¿es el código de socio de la bolsa?
+8. **`cliente_tipo_urgencia_defecto_dias`**, **`cliente_tipo_mercancia_porcentaje`**,
+   **`valor_mercancia_porcentaje`**: ¿son recargos del tarifador por cliente?
+9. **¿Cuántos clientes y transportistas reales hay?** Las hojas están formateadas hasta 20.005 y
+   10.005 filas, pero eso es formato, no datos. (En `dy_cargas_hoja` el volcado da ~30.160 líneas
+   con contenido, pero muchas son celdas con saltos de línea, no envíos.)
