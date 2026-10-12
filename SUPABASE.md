@@ -673,3 +673,140 @@ Menos urgentes:
 9. **¿Cuántos clientes y transportistas reales hay?** Las hojas están formateadas hasta 20.005 y
    10.005 filas, pero eso es formato, no datos. (En `dy_cargas_hoja` el volcado da ~30.160 líneas
    con contenido, pero muchas son celdas con saltos de línea, no envíos.)
+
+---
+
+## 10. LAS "TIPOLOGÍAS": enum vs catálogo, y dónde vive el recargo
+
+> Decidido hablando el 2026-10-12, a partir de dos preguntas del usuario: *"¿el enum tiene
+> limitado el número de variables?"* y *"tipo camión o tipo carga llevan recargos para tema de
+> tarifas, entonces no puede ser enum"*.
+>
+> ⚠️ **Esta sección CORRIGE lo que dije antes en esta misma conversación.** Había dado como
+> criterio *"si lleva datos propios (un recargo) → catálogo"*, y es impreciso: **el recargo no
+> vive en la tipología**, vive en `tarifas` con vigencia. Todas las tipologías llevan recargo, así
+> que eso no distingue nada.
+
+### 10.1 Lo que el enum SÍ y NO puede hacer (probado en PostgreSQL 16)
+
+| Operación | Enum | Catálogo (tabla) |
+|---|---|---|
+| **Cuántos valores aguanta** | **2.000 probados sin problema** — el número NO es el límite | sin límite |
+| Longitud de la etiqueta | 63 bytes (`NAMEDATALEN`, por documentación) | sin límite práctico |
+| **Añadir** un valor | ✅ `ALTER TYPE … ADD VALUE` | ✅ `INSERT` |
+| **Renombrar** | ✅ `ALTER TYPE … RENAME VALUE` (PG 10+) | ✅ `UPDATE` |
+| **Borrar** un valor | ❌ **el comando NO EXISTE** | ✅ `DELETE` (y la FK frena si hay filas) |
+| **Jubilar** sin tocar el histórico | ❌ **imposible** | ✅ `activo = false` |
+| Ponerlo en medio del orden | ⚠️ hay que decir `AFTER 'x'` | ✅ columna `orden` |
+| Añadir y usar en la MISMA transacción | ❌ `ERROR: unsafe use of new value` | ✅ sin problema |
+| Editarlo sin deploy | ❌ necesita migración | ✅ desde el panel |
+
+**Dos hallazgos que importan y no son evidentes:**
+
+**1. Renombrar NO sirve para jubilar un valor: reescribe el histórico.** Las filas guardan una
+referencia interna, no el texto, así que al renombrar la etiqueta **cambia lo que dicen todos los
+registros pasados**, al instante:
+
+```
+ANTES                          DESPUÉS de renombrar puerto → NO_USAR
+envío 2 | puerto        ───►   envío 2 | NO_USAR
+envío 3 | puerto               envío 3 | NO_USAR
+```
+
+Y el nombre viejo deja de existir (`ERROR: invalid input value for enum: "puerto"`). Eso es
+falsear el pasado, justo lo que la **regla 12** existe para impedir. Renombrar sirve para lo que
+es: **corregir un nombre mal escrito** (ahí sí queremos que todas las filas cambien).
+
+**2. No se puede añadir un valor y usarlo en la misma transacción.** Afecta a NUESTRAS
+migraciones: un fichero `.sql` se ejecuta como una transacción, así que añadir un valor nuevo y
+rellenar filas con él **hay que partirlo en dos migraciones**.
+
+### 10.2 EL CRITERIO (el bueno)
+
+> **¿Añadir un valor obliga a escribir código nuevo?**
+> **SÍ → enum. NO (es solo una opción más del desplegable que cobra X) → catálogo.**
+
+Y un segundo criterio, decisivo en la práctica: **¿vas a querer jubilar algún valor algún día?**
+Si la respuesta es sí, tiene que ser catálogo, porque el enum no puede.
+
+### 10.3 Clasificación final
+
+| Tipología | Decisión | Por qué |
+|---|---|---|
+| `estado_envio`, `estado_asignacion` | **enum** | Si cambia un estado, el código cambia igual. Y que no se pueda borrar es **una protección**: impide tirar "entregado" habiendo miles de envíos entregados. |
+| `rol_usuario`, `estado_cuenta` | **enum** | Seguridad: lista cerrada a propósito, la toca una migración revisada. |
+| `tipo_vehiculo` (tractora/remolque/rígido) | **enum** | Estructural. |
+| `forma_carga` (lateral / techo) | **enum** | 3 valores que cambian el flujo del formulario. |
+| `tipo_carga` (completa / grupaje) | **enum** | **No lo elige nadie: se DERIVA** de los metros lineales (13,30 → completa). El código se ramifica en todas partes (ocupación, descuento por peso, publicación en bolsa). Un tercer valor sería reescribir el tarifador, no meter una fila. |
+| **`tipos_mercancia`** | **catálogo** | Crece libremente y el código no se ramifica: solo busca su recargo. |
+| **`tipos_lugar`** | **catálogo** ⚠️ *cambio respecto a la 0001* | Hoy son 5, pero es plausible añadir *Puerto* o *Centro comercial*. Y hay que poder **jubilar** uno sin tocar el histórico. |
+| **`tipos_camion`** | **catálogo** ⚠️ *cambio respecto a la 0001* | Ver abajo: no por el recargo, por las **medidas**. |
+| `tipos_ticket`, motivos de penalización | **catálogo** | Los administra el usuario. |
+
+### 10.4 `tipos_camion` a catálogo resuelve la regla 0-quinquies
+
+El tipo de camión arrastra las **medidas oficiales** (13,30 × 2,40 × 2,70 m · 24 Tn · 33
+europalés · 26 americanos · 86 m³). Según la **regla 0-quinquies** de `CLAUDE.md`, esas medidas
+*"ya han bailado dos veces"* y viven **copiadas en tres sitios**: `index.html`,
+`tools/generar-hojas-seccion.py` y `dashboard.html`.
+
+Con un catálogo son **una fila**: se cambia el ancho una vez y cambia en todas partes, con el
+volumen como columna generada (largo × ancho × alto). **La regla 0-quinquies desaparece sola.**
+
+⚠️ **Matiz honesto**: la web pública es HTML estático y **hoy no puede leer la base de datos**, así
+que las tres copias siguen hasta que el repo pase a Next.js. El catálogo es la fuente única a
+partir de ese momento; mientras, la regla 0-quinquies sigue en vigor tal cual.
+
+```sql
+create table tipos_camion (
+  codigo              text primary key,       -- 'trailer_tauliner' | 'rigido_plataforma'
+  etiqueta            text not null,
+  largo_interior_m    numeric(4,2) not null,
+  ancho_interior_m    numeric(4,2) not null,
+  alto_interior_m     numeric(4,2) not null,
+  carga_maxima_tn     numeric(5,2) not null,
+  palets_europeos     smallint not null,      -- NO se recalcula: son los que caben de verdad
+  palets_americanos   smallint not null,
+  volumen_m3          numeric(6,2)
+    generated always as (largo_interior_m * ancho_interior_m * alto_interior_m) stored,
+  tiene_trampilla     boolean not null default false,
+  orden               smallint not null default 0,
+  activo              boolean not null default true
+  -- + las 4 columnas de la regla 12
+);
+```
+
+### 10.5 El argumento que decide: integridad en `tarifas`
+
+`tarifas.clave` guarda a qué valor aplica cada recargo (`'obra'`, `'rigido_plataforma'`).
+
+- Si la tipología es **catálogo** → eso es una **clave ajena de verdad**: la base de datos rechaza
+  `'rigido_platforma'` con un typo.
+- Si es **enum** → `tarifas.clave` es texto suelto, y un typo deja una **regla de precio muerta
+  que no cobra nada y no avisa a nadie**.
+
+→ **Regla práctica: cualquier tipología que aparezca en `tarifas` va a catálogo.** Para las que se
+queden como enum y aun así necesiten una tarifa, hay que validar `clave` con un trigger (no se
+puede con un `CHECK` porque el cast de enum lanza excepción en vez de devolver falso).
+
+### 10.6 Dónde vive el recargo: NUNCA en la tipología
+
+```
+tipos_lugar       → la LISTA      (codigo, etiqueta, orden, activo)
+tarifas           → el PRECIO     (concepto, clave, valor, aplica_sobre, vigente_desde/hasta)
+envio_precio_lineas → lo COBRADO  (el desglose congelado de ese envío)
+```
+
+Si el recargo viviera en `tipos_lugar`, al subir "Obra" del 5 % al 8 % en marzo **los envíos de
+febrero se recalcularían con el 8 %** y los márgenes históricos cambiarían solos. Mismo error que
+la caché de "último precio" (§4).
+
+### 10.7 Pendiente de aplicar
+
+- [ ] **Revisar la migración `0001`**: `tipo_lugar` y `tipo_camion` pasan de enum a catálogo, y
+      `recargos_tipo_lugar` se absorbe en `tarifas` (migración 0010) para no tener una tabla de
+      recargos por tipología. **Pendiente del OK del usuario** — nada ejecutado todavía, así que
+      se corrige el fichero en sitio, sin migración de arreglo.
+- [ ] Al montar `tarifas`: `orden_aplicacion` y `aplica_sobre`, porque ya hay una regla que lo
+      exige — **el ADR +50 % se calcula sobre el importe ANTES de los suplementos**, así que la
+      carga por techo no entra en su base.
