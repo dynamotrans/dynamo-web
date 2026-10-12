@@ -1,2 +1,21 @@
 # Claude Code local settings (permisos específicos de cada máquina)
 .claude/settings.local.json
+
+# ---- SECRETOS: nunca al repositorio ----
+# Hoy no existe ningún .env en el proyecto, pero esto va ANTES de que haya claves
+# de Supabase: un secreto commiteado se queda en el historial de git para siempre,
+# y rotarlo después no borra el commit.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---- Dependencias y artefactos de build (cuando el repo pase a Next.js) ----
+node_modules/
+.next/
+dist/
+build/
+.vercel/
+*.log
+.DS_Store
