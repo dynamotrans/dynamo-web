@@ -208,6 +208,26 @@ Una vez el envío está **entregado o finalizado** (también cancelado), **TODO 
 
 En el mockup: `telConductorHTML(r)` (`dashboard.html`) devuelve "No disponible" + tooltip cuando el rol no es admin y `r.kind` es `entregada`/`cancelada`. **En backend + gating de roles**: imponerlo **server-side** en CADA vista/endpoint que exponga contacto del transportista al cliente (no basta ocultarlo en el front). **A valorar** (no pedido aún): anonimizar también el **nombre de la empresa transportista** al cliente (otro vector de desintermediación), como hacen las bolsas de carga. (Detalle en `TODO.md`.)
 
+### 13. MAPAS Y GEOCODIFICACIÓN: **SIEMPRE Google Maps API. NUNCA OpenStreetMap.** (regla del usuario, 2026-10-12)
+**Decisión cerrada del usuario:** todo lo que sea mapas, direcciones, autocompletado, geocodificación y distancias va con la **API de Google Maps** (el usuario ya tiene clave y cuenta). **Nada de OpenStreetMap / Nominatim**, ni como respaldo.
+
+⚠️ **Estado REAL del código a 2026-10-12 (comprobado, no supuesto): esto todavía NO se cumple.**
+- **CERO** llamadas a la API de Google Maps en el repo (`maps.googleapis.com`, `google.maps`, Places, Routes: 0 coincidencias).
+- **6 llamadas a Nominatim** vivas: `index.html:4716` (tarifador público, en PRODUCCIÓN) y `dashboard.html` líneas 8951, 17426, 19760, 21149, 23558.
+- Los `maps.app.goo.gl` del proyecto **no son API**: son enlaces que se pegan a mano en la ficha del sitio.
+- Otros terceros que se llaman desde el navegador y conviene recordar: `get.geojs.io` (país por IP, para priorizar resultados) y `date.nager.at` (festivos regionales, vía `js/festivos.js`).
+
+**Por tanto hay una MIGRACIÓN pendiente** (anotada en `TODO.md`): sustituir los 6 puntos por Google Places Autocomplete + Geocoding (+ Distance Matrix o Routes para los km). Al hacerla:
+- La clave de Maps **es pública por fuerza** (la usa el navegador) → la protección son las **restricciones de la clave**: referente HTTP solo `dynamotrans.com`, restricción por API, **cuota diaria** y clave distinta para preview y producción. Detalle en `PRODUCCION.md` §06.
+- **Se paga por uso** → mantener el debounce, usar **sesiones** de Places (se factura por sesión bien usada, no por tecla) y **cachear** las búsquedas repetidas, que son casi siempre los mismos polígonos y CP. Detalle en `PRODUCCION.md` §07.
+- Es **cambio público** (toca `index.html`) → arranca desde `main` por rama corta (regla 8), con OK explícito.
+
+### 14. Antes de PRODUCCIÓN: repasar `PRODUCCION.md` (regla del usuario, 2026-10-12)
+Existe `PRODUCCION.md` en la raíz: **checklist de lanzamiento de 14 puntos** (los 10 de una guía de *production readiness* + 4 que faltaban: **backups con restauración probada**, **auditoría**, **RGPD** y **control de coste**). Cada punto lleva qué exige, el estado de hoy, qué hay que hacer en la plataforma real y **cómo se comprueba**.
+
+**No aplica al mockup estático de hoy** — es para cuando la plataforma vaya sobre Supabase + código. Pero se repasa **entero antes de abrir el portal a clientes**, y se actualiza cada vez que un punto pase a cumplido.
+
+
 ---
 
 ## Bitácora
