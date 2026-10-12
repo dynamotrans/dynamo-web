@@ -810,3 +810,100 @@ la caché de "último precio" (§4).
 - [ ] Al montar `tarifas`: `orden_aplicacion` y `aplica_sobre`, porque ya hay una regla que lo
       exige — **el ADR +50 % se calcula sobre el importe ANTES de los suplementos**, así que la
       carga por techo no entra en su base.
+
+### 10.8 ⚠️ CORRECCIÓN: `forma_carga` mezclaba dos ejes (destapado por el usuario, 2026-10-12)
+
+El usuario preguntó: *"tipo de carga: lateral, superior, trasera, **todas**… ¿enum?"*. Ese **"todas"**
+es la prueba de que **no es una lista de opciones, es un CONJUNTO**: un enum guarda un valor y no
+puede decir "lateral + trasera".
+
+Y hay confirmación en su propio fichero de bolsa. Columnas reales de `dy_fichero_wtransnet`:
+
+```
+Paletizado | Arriba | Lateral | Detrás | Sirve Lateral Bajo      (valores S/N)
+```
+
+Cinco **banderas independientes**, no una lista. Y `Paletizado` va **aparte**.
+
+**Lo que puse en la migración 0001 está mal:**
+
+```sql
+-- MAL: mezcla "¿va paletizada?" con "¿por dónde se carga?"
+create type forma_carga as enum ('paletizado_lateral','no_paletizada_lateral','no_paletizada_techo');
+```
+
+Con ese enum es **imposible** expresar "paletizada, por lateral y por detrás", que es un caso normal.
+
+**Lo correcto — dos ejes separados, booleanos, 1:1 con Wtransnet:**
+
+```sql
+paletizado          boolean not null default true,   -- eje 1  (= Paletizado)
+carga_lateral       boolean not null default true,   -- eje 2  (= Lateral)
+carga_superior      boolean not null default false,  --        (= Arriba)
+carga_trasera       boolean not null default true,   --        (= Detrás)
+carga_lateral_bajo  boolean not null default false   --        (= Sirve Lateral Bajo)
+```
+
+- **"Todas" NO es un valor**: es un botón del formulario que marca las tres. Dato derivado, no guardado.
+- La **exportación a Wtransnet** pasa a ser copia directa, sin traducir.
+- ⚠️ Ojo con la **carga por techo**: `carga_superior = true` es lo que dispara el suplemento de
+  **90 € (15 jun–15 sep) / 50 € resto**, así que la línea de `tarifas` va contra esa bandera.
+- **El mismo juego de banderas va en DOS tablas**: en `envios` (por dónde NECESITA cargarse) y en
+  `vehiculos` (por dónde PUEDE cargarse). De ahí sale gratis el **matching de cargas a
+  transportistas** que está pendiente: se cruzan las banderas.
+
+→ El tipo `forma_carga` **se elimina** de la 0001. No es enum ni catálogo: son columnas booleanas.
+
+### 10.9 Añadir un valor a un enum: probado sobre 500.000 filas
+
+Respuesta a *"si añado un rol nuevo o estado nuevo, ¿se podrá?"*. **Sí, y es trivial:**
+
+```
+ALTER TYPE rol_usuario ADD VALUE 'contable';          →  1,1 ms  (con 500.000 filas)
+ALTER TYPE rol_usuario ADD VALUE 'auditor' AFTER 'empleado';   →  se coloca en su sitio
+```
+
+- **No reescribe la tabla ni la bloquea**: es un cambio solo de catálogo del sistema.
+- Las filas existentes quedan **intactas** (los 125.000 `cliente` siguen siendo `cliente`).
+- Se puede **colocar en el orden** que quieras con `AFTER` / `BEFORE`.
+
+**Las tres pegas reales, sin adornos:**
+1. Es **una línea de SQL** en el SQL Editor, no un clic en el panel.
+2. Si la misma migración quiere **usar** el valor nuevo, hay que **partirla en dos ficheros**
+   (`ERROR: unsafe use of new value`).
+3. **No se puede quitar después.** Un nombre mal puesto se queda (renombrar reescribe el histórico,
+   §10.1).
+
+**Contexto que relativiza la pega 1**: añadir un estado nuevo nunca es solo la línea de SQL —
+necesita su color de badge, su pestaña de filtro y repasar las políticas de RLS. El SQL es la parte
+pequeña del trabajo, así que ahí el enum no frena nada.
+
+### 10.10 RESUMEN FINAL de las tipologías (propuesta cerrada, pendiente de aplicar)
+
+**ENUM — solo 5.** Aparecen en políticas de RLS, filtros y badges por toda la app, y si cambian hay
+que tocar código igual. Que no se puedan borrar valores es **una protección**, no un estorbo:
+
+`estado_envio` · `estado_asignacion` · `rol_usuario` · `estado_cuenta` ·
+`estado_operativo_transportista`
+
+**CATÁLOGO — todo lo demás** (editable desde el panel, sin deploy, con `activo` para jubilar):
+
+`tipos_camion` · `tipos_lugar` · `tipos_mercancia` · `tipos_vehiculo` · `tipos_concepto` (Holded) ·
+`tipos_ticket` · `estados_ticket` · `prioridades_ticket` · `funciones_contacto` ·
+motivos de penalización
+
+**NI UNO NI OTRO — se derivan o son banderas:**
+- `tipo_carga` (completa / grupaje) → **columna generada** desde los metros lineales. No hay lista.
+- `forma_carga` → **5 columnas booleanas** (§10.8). No hay lista.
+
+**El agujero del catálogo (typo silencioso en un `WHERE`) se tapa con:**
+1. Los códigos declarados **una sola vez en TypeScript** como tipo cerrado → el compilador caza el
+   typo antes de llegar a la base de datos. Cubre la práctica totalidad de las consultas.
+2. Una **prueba que recorre las políticas de RLS y las vistas** comprobando que cada literal que
+   comparan existe de verdad en su catálogo. Cubre justo donde dolería.
+
+> **Por qué 5 enums y no 0**: probado en Postgres — la clave ajena de un catálogo protege lo que
+> ESCRIBES, no lo que PREGUNTAS. Un `where estado = 'entergado'` devuelve **0 en silencio** (había
+> 2 entregas), y una **política de RLS con un estado mal escrito SE CREA tan contenta** y no
+> protege nada. Con enum, las dos cosas revientan con error. En estados y roles eso no es un bug de
+> datos, es un agujero de seguridad.
