@@ -141,36 +141,26 @@ Para evitar que cambios de la web pública se queden "atascados" solo en preview
 
 Razón: la rama del portal es `main + código del portal`. `git merge preview → main` arrastraría el portal a producción (prohibido). Pero `main → preview` es seguro. Por tanto el sentido del flujo siempre es **main primero, preview después**.
 
-### 9. Dos ramas: main / preview — quién contiene qué y cómo se propaga
-
-Estructura del proyecto (simplificada el **2026-07-04**; antes existía además una rama `lab` permanente que se **eliminó por redundante** para 1 dev — sus contenidos eran idénticos a preview y solo generaba cascadas y conflictos de merge):
+### 9. DOS RAMAS, y ya está (simplificado el 2026-10-19)
+Antes había tres (`main`, la rama de trabajo `claude/sharp-dirac-E3UIO` y `pruebas`) y el usuario lo dijo claro: *"va a ser un lío"*. Tenía razón — la rama de trabajo no aportaba nada que `pruebas` no haga, y obligaba a sincronizar a mano.
 
 ```
-main                        → dynamotrans.com (producción pública)
-claude/sharp-dirac-E3UIO    → preview (portal + web pública validada, URL preview Vercel)
+main      →  dynamotrans.com                                          →  la WEB PÚBLICA
+pruebas   →  dynamo-web-git-pruebas-dynamotrans-projects.vercel.app   →  la PLATAFORMA
 ```
 
-**Inheritance**: `preview` = `main` + código del portal/panel encima.
+**`pruebas` = `main` + la plataforma.** Es la rama de trabajo de Claude **y** la que el usuario abre para ver el portal. Una sola cosa, un solo sitio: lo que Claude sube, el usuario lo ve.
 
-**Default working branch para Claude**: `preview` (claude/sharp-dirac-E3UIO).
+**Claude commitea directamente en `pruebas`.** Ya no hay rama intermedia ni paso de sincronización.
 
-**Experimentos / features que NO van a producción todavía** (facturación con Holded, multi-rol con transportistas/proveedores, etc.): **NO** se usa una rama permanente. Se crea una **rama corta** desde `preview` con prefijo `lab/<algo>` (p.ej. `lab/facturacion-holded`). Vercel le da su propia URL de preview automáticamente. Vive lo que haga falta y luego se mergea a `preview` (solo con orden explícita) o se borra. Sin sandbox permanente.
+**Historia**: `claude/sharp-dirac-E3UIO` se queda en GitHub como histórico, pero **no se usa más**. Todo su contenido está dentro de `pruebas` (verificado: ramas idénticas al hacer el cambio).
 
-**Confirmación visible obligatoria**: cada commit y cambio de rama Claude lo anuncia ("Subido a preview (`abc`)", "Creo rama `lab/x`", etc.). Si hay duda sobre qué rama tocar, preguntar antes de editar.
+**Experimentos** que no deben verse ni en pruebas → rama corta `lab/<algo>` desde `pruebas`. No compila (regla 15), así que no gasta nada; se mergea a `pruebas` solo con orden explícita.
 
-**Propagación tras merges** (ya solo 2 destinos vivos, sin cascada a lab):
-
-| Acción | Pasos |
-|---|---|
-| Cambio público | rama corta `fix/<x>` desde `origin/main` → merge a `main` + push → luego `git merge main` en preview + push (para que preview no acumule drift) |
-| Promoción de un experimento | `git merge lab/<x>` en preview (**solo con orden explícita**) + push. Después preguntar si algo va también a `main` |
-
-**Reglas duras**:
-- El portal NUNCA se mergea a `main` sin frase explícita (regla 7).
-- Una rama de experimento `lab/<x>` NUNCA se mergea a `preview` sin orden EXPLÍCITA del usuario.
-- Los cambios públicos SIEMPRE arrancan desde `main` (regla 8), nunca desde preview.
-
-**Drift**: como `preview = main + portal`, tras cada cambio público hay que `git merge main` en preview para que no se acumule drift entre las dos copias de la web pública.
+**Reglas duras que siguen en pie**:
+- El portal NUNCA se mergea a `main` sin frase explícita (regla 7). O sea: **nunca `git merge pruebas → main`**.
+- Los cambios de web pública SIEMPRE arrancan desde `origin/main` por rama corta `fix/<algo>` (regla 8).
+- Tras un cambio público: `git merge main` en `pruebas`, para que no se acumule drift.
 
 ### 10. Altas SIN duplicados (unicidad obligatoria) — regla de negocio (2026-07-23)
 
@@ -228,41 +218,38 @@ Existe `PRODUCCION.md` en la raíz: **checklist de lanzamiento de 14 puntos** (l
 **No aplica al mockup estático de hoy** — es para cuando la plataforma vaya sobre Supabase + código. Pero se repasa **entero antes de abrir el portal a clientes**, y se actualiza cada vez que un punto pase a cumplido.
 
 
-### 15. FORMA DE TRABAJAR CON VERCEL (regla del usuario, 2026-10-19)
-**Motivo: no pagar compilaciones que no se usan.** Antes, cada commit de la rama de trabajo generaba una versión de prueba (de los 8 últimos despliegues del proyecto, 7 eran eso).
+### 15. QUÉ SE PUBLICA Y DÓNDE (regla del usuario, 2026-10-19)
 
-**Configurado** en `vercel.json`, en la rama de trabajo Y en `main` (Vercel lee esta configuración del commit que despliega, así que tiene que estar en las dos):
+| Si se toca… | Va a… | El usuario lo ve en… | ¿Pregunto? |
+|---|---|---|---|
+| **La PLATAFORMA** (portal, panel, `dashboard.html`, `aceptar-carga.html`, registro/verificar/crear-password, `firmar-cmr.html`) | `pruebas` | `https://dynamo-web-git-pruebas-dynamotrans-projects.vercel.app` | **No** |
+| **La WEB PÚBLICA** (`index.html`, hojas de sección, `vercel.json`, imágenes, SEO, copy) | `main` por rama corta `fix/<algo>` desde `origin/main` | **`dynamotrans.com`** | **No** |
+
+Las dos **sobre la marcha y sin preguntar**. Razón de cada una, dicha por el usuario:
+- La web pública **ya está en producción, funcionando y aprobada** (`dynamotrans.com` y `www.dynamotrans.com` verificados en Vercel), así que un arreglo va directo. Si fuera a pruebas se quedaría **atascado** — que es el problema del que nació la regla 8 (el logo de "Por qué elegirnos" pasó días solo en preview).
+- La plataforma **no está en producción todavía**, así que no hay dos sitios: solo pruebas.
+
+**Cada subida de la plataforma se publica.** El usuario lo pidió así: *"hay que publicarla directamente cada vez que se compila una subida de cambios"*. Como Claude commitea directamente en `pruebas` (regla 9), eso pasa solo: un push = una compilación = el usuario lo ve. Para que no se dispare el número de compilaciones, Claude **agrupa el trabajo en un push por cambio pedido**, no tres.
+
+**No gastan compilación** (configurado en `vercel.json`, en `main` y en `pruebas`):
 ```json
 "git": { "deploymentEnabled": {
   "claude/**": false, "claude/*": false, "fix/**": false, "lab/**": false
 } }
 ```
-`main` y `pruebas` **no** aparecen → lo no listado vale `true`, así que siguen desplegando. Acepta patrón glob (minimatch), verificado en la documentación de Vercel. Comprobado en los despliegues: un commit a la rama de trabajo ya **no** genera compilación; `main` y `pruebas` **sí**.
+Las ramas cortas `fix/**` no necesitan su propia vista previa: lo público va aprobado y se ve en `dynamotrans.com` al mergear. `main` y `pruebas` no aparecen en el mapa → lo no listado vale `true` y siguen desplegando. Acepta patrón glob (minimatch), verificado en la documentación de Vercel y en los despliegues reales.
 
-#### Las tres ramas vivas y qué publica cada una
-
-| Rama | Dónde se ve | Qué lleva |
-|---|---|---|
-| `main` | **`dynamotrans.com`** (dominio definitivo, verificado, en producción) | Solo la **web pública** |
-| **`pruebas`** | `https://dynamo-web-git-pruebas-dynamotrans-projects.vercel.app` | main + **la plataforma** (portal y panel) |
-| `claude/sharp-dirac-E3UIO` | nada, no compila | donde Claude commitea el trabajo en curso |
-
-⚠️ La URL de `*.vercel.app` **pide iniciar sesión en Vercel** (el proyecto tiene SSO Protection en `all_except_custom_domains`). El usuario la ve porque es el dueño; alguien de fuera, no.
-
-#### Por defecto, según QUÉ se toca
-
-- **PLATAFORMA (portal, panel, `dashboard.html`, `aceptar-carga.html`, registro/verificar/crear-password, `firmar-cmr.html`)** → **a `pruebas`, sobre la marcha y sin preguntar.** No tiene destino de producción todavía, así que no hay dos sitios: solo pruebas. Claude pasa la dirección cada vez que haya **algo que mirar** (una pantalla, un cambio visible). Un commit de SQL, de documentación o de bitácora no se publica: no hay nada que ver y costaría una compilación igual.
-- **WEB PÚBLICA (`index.html`, hojas de sección, `vercel.json`, imágenes, SEO, copy)** → **a producción, sobre la marcha y sin preguntar**, por rama corta `fix/<algo>` desde `origin/main` (regla 8). Nunca se queda solo en pruebas: eso es justo el problema que la regla 8 vino a resolver. Después, `git merge main` en `pruebas` para que no haya drift.
+⚠️ La URL de `*.vercel.app` **pide iniciar sesión en Vercel** (SSO Protection en `all_except_custom_domains`). El usuario entra porque es el dueño; de fuera no se ve.
 
 #### Órdenes explícitas que cambian el destino
-- **«súbelo a pruebas»** → solo a `pruebas`, aunque sea de web pública. No se toca `main`.
-- **«publícalo»** → pasar a `main` lo que esté en `pruebas`… **con el límite de la regla 7** (ver abajo).
+- **«súbelo a pruebas»** → un cambio de web pública va solo a `pruebas`, para verlo antes. No se toca `main`.
+- **«publícalo»** → pasa a `main` lo que esté en `pruebas`, **respetando la regla 7**: solo la parte de web pública, por cherry-pick o rama corta. Nunca la rama entera.
 
-#### EL DÍA QUE LA PLATAFORMA PASE A PRODUCCIÓN (decisión del usuario, ya tomada)
-Cuando el portal tenga su sitio en producción, se le da la vuelta: **todo va a producción sobre la marcha**, y a `pruebas` **solo cuando el usuario lo diga explícitamente**. Hasta entonces manda el reparto de arriba.
+#### EL DÍA QUE LA PLATAFORMA PASE A PRODUCCIÓN (ya decidido)
+Se da la vuelta: **todo va a producción sobre la marcha** y a `pruebas` **solo cuando el usuario lo diga**. Hasta entonces manda la tabla de arriba.
 
-#### ⚠️ LÍMITE QUE NO SE SALTA: la regla 7
-`pruebas` lleva el panel entero. **Nunca** `git merge pruebas → main` ni `git merge claude/... → main`: serían **+32.000 líneas** y publicarían en `dynamotrans.com` el panel con datos comerciales (sitios, CIFs, factor de cliente, precios de transportista, márgenes) y un `portal.html` con el **login abierto en modo demo**. El portal sale a producción **solo** con la frase explícita del usuario (*"publica el portal"*). El sentido del flujo sigue siendo `main → pruebas`, nunca al revés.
+#### ⚠️ LÍMITE QUE NO SE SALTA
+**Nunca `git merge pruebas → main`.** Serían **+32.000 líneas** y publicarían en `dynamotrans.com` el panel con datos comerciales (sitios, CIFs, factor de cliente, precios de transportista, márgenes) y un `portal.html` con el **login abierto en modo demo**. El portal sale solo con la frase explícita del usuario (regla 7). El sentido del flujo es `main → pruebas`, nunca al revés.
 
 **Siempre decírselo sin tecnicismos**: si el cambio está en producción o en pruebas, y la dirección donde verlo.
 
