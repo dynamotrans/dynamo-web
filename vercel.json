@@ -1,4 +1,13 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "claude/**": false,
+      "claude/*": false,
+      "fix/**": false,
+      "lab/**": false
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
