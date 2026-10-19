@@ -27,8 +27,8 @@ clave tuya**: yo escribo el SQL, tú lo ejecutas.
 | `0004_usuarios_y_roles.sql` | `usuarios` sobre Supabase Auth, perfil automático al registrarse, protección del último admin | ✅ listo |
 | `0005_lugares.sql` | `lugares` con dirección partida y borrado suave, `lugar_notas_cliente` | ✅ listo |
 | `0006_vehiculos_conductores.sql` | `vehiculos` (matrículas) y `conductores` | ✅ listo |
-| `0007_envios.sql` | `envios` | pendiente |
-| `0008_envio_puntos_hitos_ofertas.sql` | ruta, los 14 hitos, ofertas a transportistas | pendiente |
+| `0007_envios_y_paradas.sql` | `envios` (sin direcciones) + `envio_paradas` (ruta ilimitada), triggers de origen/destino, validación de ruta, vistas y RLS | ✅ listo |
+| `0008_hitos_y_ofertas.sql` | los 14 hitos y las ofertas a transportistas (la ruta ya va en la 0007) | pendiente |
 | `0009_operativa.sql` | `tickets`, `penalizaciones`, `almacenamientos`, `documentos`, `firmas_cmr` | pendiente |
 | `0010_tarifas_parametros_plantillas.sql` | tarifas con vigencia, parámetros, plantillas de texto | pendiente |
 | `0011_vistas_holded_wtransnet.sql` | vistas de exportación + métricas de cliente/transportista | pendiente |
@@ -36,7 +36,7 @@ clave tuya**: yo escribo el SQL, tú lo ejecutas.
 
 ## Verificado en local
 
-Las 0001-0006 se han ejecutado contra un **PostgreSQL 16 real** (el mismo motor que usa
+Las 0001-0007 se han ejecutado contra un **PostgreSQL 16 real** (el mismo motor que usa
 Supabase) con un stub mínimo de `auth.users` y `auth.uid()`. Pruebas que pasan:
 
 - Alta de cliente → código `C-10000` automático, `creado_en` y `creado_por` sellados.
@@ -81,3 +81,31 @@ todavía a qué empresa pertenece, así que fallaba: **nadie podía darse de alt
 Corregido — la pertenencia solo se exige cuando la cuenta pasa a `activa`, que son las
 tres fases que ya tiene el portal (se registra → Dynamo lo verifica y lo engancha →
 se activa). Revisando el SQL a ojo no se veía; ejecutándolo, salió en la primera prueba.
+
+### Añadido al verificar la 0007 (envíos y paradas)
+
+- **Ruta de 6 paradas** (4 recogidas + 2 entregas, orden 1-6) y **ruta mixta**
+  (cargar → descargar → cargar → descargar). Sin techo de paradas.
+- **Origen y destino salen solos**: el trigger rellena `cp_origen`/`cp_destino`/`num_paradas`
+  en `envios` desde las paradas. No se escriben a mano, así que no se pueden desincronizar.
+- `tipo_carga` **se deriva** de los metros: 13,60 m → `completa`, 6 m → `grupaje`.
+- Dos paradas con el mismo `orden` se rechazan; un `tipo` que no sea carga/descarga también.
+- **El `DEFERRABLE` del UNIQUE hace falta de verdad**, probado con las dos versiones:
+  un `update … set orden = orden + 1` contra un UNIQUE normal da
+  `duplicate key value violates unique constraint`; con `DEFERRABLE` funciona, porque la
+  comprobación pasa de ser fila a fila a ser al final de la sentencia. Sin esto, reordenar
+  paradas es imposible.
+- `renumerar_paradas()` compacta los huecos (1,3,5,6,7,8 → 1,2,3,4,5,6).
+- **Un envío no se puede confirmar con la ruta coja**: 0 paradas, 1 parada, o la última
+  siendo carga → rechazado con el mensaje y el GX. Con carga + descarga, pasa. Y una vez
+  confirmado, quitar paradas hasta dejarlo cojo también se rechaza. Un **borrador** sí puede
+  estar a medias, que es lo que necesita el asistente de 4 pasos.
+- Borrar el envío **arrastra sus paradas** (cascade).
+- **RLS probada con dos clientes y un admin** (con el rol `authenticated` como en Supabase):
+  el cliente B pidiendo el envío de A **por su UUID exacto** recibe **0 filas**; sus paradas,
+  **0 filas**; intentar ponerlo a su nombre → `UPDATE 0` y el dueño no cambia; colgar una
+  parada en el envío de A → `new row violates row-level security policy`; borrar las paradas
+  de A → `DELETE 0`. Y con lo suyo trabaja con normalidad. El admin ve los 3 envíos.
+- **Nadie puede borrar un envío** (no hay política de DELETE, a propósito: se cancela).
+- **Regla 11 verificada**: en ruta el cliente ve el teléfono del conductor; al pasar a
+  entregado, `null`. El admin lo sigue viendo, con el precio del transportista y el margen.
