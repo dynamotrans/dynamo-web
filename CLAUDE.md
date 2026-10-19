@@ -228,6 +228,38 @@ Existe `PRODUCCION.md` en la raíz: **checklist de lanzamiento de 14 puntos** (l
 **No aplica al mockup estático de hoy** — es para cuando la plataforma vaya sobre Supabase + código. Pero se repasa **entero antes de abrir el portal a clientes**, y se actualiza cada vez que un punto pase a cumplido.
 
 
+### 15. FORMA DE TRABAJAR CON VERCEL — tres niveles (regla del usuario, 2026-10-19)
+**Motivo: no pagar compilaciones que no se usan.** Antes, cada commit de la rama de trabajo generaba una versión de prueba en Vercel (de los 8 últimos despliegues, 7 eran eso).
+
+**Ya configurado** en `vercel.json`, en la rama de trabajo Y en `main` (Vercel lee esta configuración del commit que despliega, así que tiene que estar en las dos):
+```json
+"git": { "deploymentEnabled": {
+  "claude/**": false, "claude/*": false, "fix/**": false, "lab/**": false
+} }
+```
+`main` y `pruebas` **no** aparecen en el mapa → lo no listado vale `true`, así que siguen desplegando. Acepta patrón glob (minimatch), verificado en la documentación de Vercel.
+
+**Los tres niveles:**
+
+| El usuario dice | Qué hace Claude | Dónde se ve |
+|---|---|---|
+| *(nada — por defecto)* | Commit + push a la rama de trabajo **y a `main`**. Sale en producción solo. | `dynamotrans.com` |
+| **«súbelo a pruebas»** | Solo a la rama **`pruebas`** (crearla desde `main` si no existe; si existe, ponerla al día con `main` antes). **NO** a `main`. | la URL de preview de Vercel, que Claude le pasa |
+| **«publícalo»** | Pasar a `main` lo que está en `pruebas`. | `dynamotrans.com` |
+
+Mientras no diga «publícalo», lo de `pruebas` **se queda en pruebas**.
+
+**Siempre decirle, sin tecnicismos**: si el cambio está en producción o en pruebas, y la dirección donde verlo.
+
+#### ⚠️ EXCEPCIÓN QUE NO SE SALTA: el PORTAL (regla 7)
+El «por defecto va a producción» vale para la **web pública**. **NO vale para el portal.** La rama de trabajo contiene hoy el panel entero (`dashboard.html` 24.086 líneas, `aceptar-carga.html`, `registro.html`, `verificar.html`, `crear-password.html`, `firmar-cmr.html` y un `portal.html` con el login abierto en modo demo). Un merge de la rama de trabajo a `main` son **+32.008 líneas** y publicaría todo eso en `dynamotrans.com`, que es exactamente lo que la regla 7 prohíbe sin frase explícita.
+
+**Por tanto, con la regla 15 activa:**
+- Un cambio de **web pública** → rama corta `fix/<algo>` desde `origin/main` → merge a `main` (regla 8). Eso lleva **solo ese cambio**, nunca el portal.
+- Un cambio del **portal/panel** → se queda en la rama de trabajo, pase lo que pase, hasta que el usuario diga literalmente *"publica el portal"* (regla 7).
+- **NUNCA** `git merge rama-de-trabajo → main`. El sentido sigue siendo `main → rama de trabajo`, nunca al revés.
+
+
 ---
 
 ## Bitácora
