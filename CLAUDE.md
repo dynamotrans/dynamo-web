@@ -228,36 +228,43 @@ Existe `PRODUCCION.md` en la raíz: **checklist de lanzamiento de 14 puntos** (l
 **No aplica al mockup estático de hoy** — es para cuando la plataforma vaya sobre Supabase + código. Pero se repasa **entero antes de abrir el portal a clientes**, y se actualiza cada vez que un punto pase a cumplido.
 
 
-### 15. FORMA DE TRABAJAR CON VERCEL — tres niveles (regla del usuario, 2026-10-19)
-**Motivo: no pagar compilaciones que no se usan.** Antes, cada commit de la rama de trabajo generaba una versión de prueba en Vercel (de los 8 últimos despliegues, 7 eran eso).
+### 15. FORMA DE TRABAJAR CON VERCEL (regla del usuario, 2026-10-19)
+**Motivo: no pagar compilaciones que no se usan.** Antes, cada commit de la rama de trabajo generaba una versión de prueba (de los 8 últimos despliegues del proyecto, 7 eran eso).
 
-**Ya configurado** en `vercel.json`, en la rama de trabajo Y en `main` (Vercel lee esta configuración del commit que despliega, así que tiene que estar en las dos):
+**Configurado** en `vercel.json`, en la rama de trabajo Y en `main` (Vercel lee esta configuración del commit que despliega, así que tiene que estar en las dos):
 ```json
 "git": { "deploymentEnabled": {
   "claude/**": false, "claude/*": false, "fix/**": false, "lab/**": false
 } }
 ```
-`main` y `pruebas` **no** aparecen en el mapa → lo no listado vale `true`, así que siguen desplegando. Acepta patrón glob (minimatch), verificado en la documentación de Vercel.
+`main` y `pruebas` **no** aparecen → lo no listado vale `true`, así que siguen desplegando. Acepta patrón glob (minimatch), verificado en la documentación de Vercel. Comprobado en los despliegues: un commit a la rama de trabajo ya **no** genera compilación; `main` y `pruebas` **sí**.
 
-**Los tres niveles:**
+#### Las tres ramas vivas y qué publica cada una
 
-| El usuario dice | Qué hace Claude | Dónde se ve |
+| Rama | Dónde se ve | Qué lleva |
 |---|---|---|
-| *(nada — por defecto)* | Commit + push a la rama de trabajo **y a `main`**. Sale en producción solo. | `dynamotrans.com` |
-| **«súbelo a pruebas»** | Solo a la rama **`pruebas`** (crearla desde `main` si no existe; si existe, ponerla al día con `main` antes). **NO** a `main`. | la URL de preview de Vercel, que Claude le pasa |
-| **«publícalo»** | Pasar a `main` lo que está en `pruebas`. | `dynamotrans.com` |
+| `main` | **`dynamotrans.com`** (dominio definitivo, verificado, en producción) | Solo la **web pública** |
+| **`pruebas`** | `https://dynamo-web-git-pruebas-dynamotrans-projects.vercel.app` | main + **la plataforma** (portal y panel) |
+| `claude/sharp-dirac-E3UIO` | nada, no compila | donde Claude commitea el trabajo en curso |
 
-Mientras no diga «publícalo», lo de `pruebas` **se queda en pruebas**.
+⚠️ La URL de `*.vercel.app` **pide iniciar sesión en Vercel** (el proyecto tiene SSO Protection en `all_except_custom_domains`). El usuario la ve porque es el dueño; alguien de fuera, no.
 
-**Siempre decirle, sin tecnicismos**: si el cambio está en producción o en pruebas, y la dirección donde verlo.
+#### Por defecto, según QUÉ se toca
 
-#### ⚠️ EXCEPCIÓN QUE NO SE SALTA: el PORTAL (regla 7)
-El «por defecto va a producción» vale para la **web pública**. **NO vale para el portal.** La rama de trabajo contiene hoy el panel entero (`dashboard.html` 24.086 líneas, `aceptar-carga.html`, `registro.html`, `verificar.html`, `crear-password.html`, `firmar-cmr.html` y un `portal.html` con el login abierto en modo demo). Un merge de la rama de trabajo a `main` son **+32.008 líneas** y publicaría todo eso en `dynamotrans.com`, que es exactamente lo que la regla 7 prohíbe sin frase explícita.
+- **PLATAFORMA (portal, panel, `dashboard.html`, `aceptar-carga.html`, registro/verificar/crear-password, `firmar-cmr.html`)** → **a `pruebas`, sobre la marcha y sin preguntar.** No tiene destino de producción todavía, así que no hay dos sitios: solo pruebas. Claude pasa la dirección cada vez que haya **algo que mirar** (una pantalla, un cambio visible). Un commit de SQL, de documentación o de bitácora no se publica: no hay nada que ver y costaría una compilación igual.
+- **WEB PÚBLICA (`index.html`, hojas de sección, `vercel.json`, imágenes, SEO, copy)** → **a producción, sobre la marcha y sin preguntar**, por rama corta `fix/<algo>` desde `origin/main` (regla 8). Nunca se queda solo en pruebas: eso es justo el problema que la regla 8 vino a resolver. Después, `git merge main` en `pruebas` para que no haya drift.
 
-**Por tanto, con la regla 15 activa:**
-- Un cambio de **web pública** → rama corta `fix/<algo>` desde `origin/main` → merge a `main` (regla 8). Eso lleva **solo ese cambio**, nunca el portal.
-- Un cambio del **portal/panel** → se queda en la rama de trabajo, pase lo que pase, hasta que el usuario diga literalmente *"publica el portal"* (regla 7).
-- **NUNCA** `git merge rama-de-trabajo → main`. El sentido sigue siendo `main → rama de trabajo`, nunca al revés.
+#### Órdenes explícitas que cambian el destino
+- **«súbelo a pruebas»** → solo a `pruebas`, aunque sea de web pública. No se toca `main`.
+- **«publícalo»** → pasar a `main` lo que esté en `pruebas`… **con el límite de la regla 7** (ver abajo).
+
+#### EL DÍA QUE LA PLATAFORMA PASE A PRODUCCIÓN (decisión del usuario, ya tomada)
+Cuando el portal tenga su sitio en producción, se le da la vuelta: **todo va a producción sobre la marcha**, y a `pruebas` **solo cuando el usuario lo diga explícitamente**. Hasta entonces manda el reparto de arriba.
+
+#### ⚠️ LÍMITE QUE NO SE SALTA: la regla 7
+`pruebas` lleva el panel entero. **Nunca** `git merge pruebas → main` ni `git merge claude/... → main`: serían **+32.000 líneas** y publicarían en `dynamotrans.com` el panel con datos comerciales (sitios, CIFs, factor de cliente, precios de transportista, márgenes) y un `portal.html` con el **login abierto en modo demo**. El portal sale a producción **solo** con la frase explícita del usuario (*"publica el portal"*). El sentido del flujo sigue siendo `main → pruebas`, nunca al revés.
+
+**Siempre decírselo sin tecnicismos**: si el cambio está en producción o en pruebas, y la dirección donde verlo.
 
 
 ---
