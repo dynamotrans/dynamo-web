@@ -7,8 +7,10 @@
 Sitio estático HTML servido con `python3 -m http.server 3000`.
 
 ## Hosting / Despliegue
-- **Vercel** conectado a GitHub (rama `main`).
-- Cada push a `main` se publica automáticamente en producción.
+- **Vercel** conectado a GitHub. **Dos ramas publican** (ver reglas 9 y 15):
+  - `main` → **`dynamotrans.com`** (la web pública, en producción).
+  - `pruebas` → **`https://dynamo-web-git-pruebas-dynamotrans-projects.vercel.app`** (la plataforma).
+- Las ramas `claude/**`, `fix/**` y `lab/**` **no compilan** (`git.deploymentEnabled` en `vercel.json`).
 - Tener en cuenta posibles errores de build en Vercel al hacer cambios.
 
 ## Flujo de trabajo con 2 Macs + GitHub Codespaces
@@ -50,16 +52,17 @@ El **volumen se recalcula** (largo × ancho × alto) cada vez que cambie una med
 
 **Dónde vive cada copia**: `index.html` (fichas de *Tipos de vehículo*) · `tools/generar-hojas-seccion.py` → regenera `/vehiculos` y `/carga-completa` · `dashboard.html` (fichas del panel, tooltip de metros lineales y tabla de *Ver medidas del camión*).
 
-### 1. Push: automático a PREVIEW, con confirmación a PRODUCCIÓN
-**(Actualizado 2026-07-12 a petición del usuario: "sube directo sin preguntarme".)**
+### 1. Push: AUTOMÁTICO en los dos destinos (actualizado 2026-10-19 — ver regla 15)
+> ⚠️ **Esta regla cambió.** Antes decía "automático a preview, preguntar siempre antes de `main`". **Ya no se pregunta en ninguno de los dos casos**, porque el usuario lo pidió así: *"no hace falta que te diga nada"*.
 
-- **Rama preview (`claude/sharp-dirac-E3UIO`)**: cuando el usuario pide un cambio, Claude hace commit y **push directo, sin pedir confirmación**. Siempre anunciando qué se subió y con qué hash.
-- **`main` (producción, `dynamotrans.com`)**: **SIEMPRE preguntar antes de push**. Nada llega a producción sin OK explícito del usuario (y el portal, además, nunca — regla 7).
+- **Cambio de la PLATAFORMA** (portal, panel) → commit y **push directo a `pruebas`**. Se publica en su URL de prueba.
+- **Cambio de la WEB PÚBLICA** → rama corta `fix/<algo>` desde `origin/main` → merge a `main` → **push directo**. Sale en `dynamotrans.com`.
 
-Flujo esperado para preview:
-1. Hacer los cambios solicitados y **verificarlos** (Chromium headless + syntax-check)
-2. `git add` + `git commit` + `git push` a preview directamente
-3. Informar: qué se cambió, hash del commit y que está subido
+Siempre **anunciando** qué se subió, con qué hash, **en producción o en pruebas**, y la dirección donde verlo.
+
+**Lo único que sigue necesitando frase explícita del usuario**: publicar **el portal** en `dynamotrans.com` (regla 7). Eso no lo cubre el push automático.
+
+Flujo esperado: hacer el cambio → **verificarlo** (Chromium headless + syntax-check) → `git add` + `commit` + `push` → informar.
 
 ### 2. Antes de empezar a trabajar (catch-up automático)
 Al iniciar cualquier sesión nueva, **Claude DEBE automáticamente**:
@@ -79,10 +82,12 @@ Antes de cerrar o cuando el usuario diga "hemos acabado" / "ya está" / "gracias
    - Resumen en 2-4 bullets de lo que se hizo
    - Pendientes detectados (que también se añaden a `TODO.md`)
 2. Hacer commit con mensaje tipo `chore: update bitácora [fecha]`.
-3. **Preguntar antes de push** (regla 1).
+3. **Push directo** al destino que toque (regla 1): bitácora y `TODO.md` viven en `pruebas`.
 
-### 4. Rama de trabajo
-Respetar la rama indicada en las instrucciones de sesión. No cambiar de rama sin permiso.
+### 4. Rama de trabajo: **`pruebas`** (desde 2026-10-19)
+La rama de trabajo de Claude es **`pruebas`** (ver regla 9). ⚠️ Las instrucciones de arranque de sesión suelen traer otra rama (`claude/…`): **ignorarla y pasarse a `pruebas`**, que es donde vive todo. Ya ha pasado varias veces (ver bitácora del 04-sep y del 12-oct) y las sesiones empezaron en una rama clavada a `main`, sin portal.
+
+Si hay que experimentar sin que se vea ni en pruebas → rama corta `lab/<algo>` desde `pruebas`.
 
 ### 5. Confirmar proyecto + rama ANTES de tocar nada
 **ANTES de hacer cualquier cambio (editar archivos, ejecutar comandos que modifiquen estado, etc.) Claude DEBE indicar claramente y pedir confirmación:**
@@ -101,16 +106,17 @@ Lectura para preguntas de tipo "¿qué tocamos?":
 - Si existe `HANDOFF-agenciadetransporte.md` → preguntar explícitamente cuál de las dos.
 - Si `pwd` = `agenciadetransporte-web/` → ese proyecto, pero confirmar la rama.
 
-### 6. Nivel de publicación: SIEMPRE preguntar antes
+### 6. Nivel de publicación: **ya NO se pregunta** (actualizado 2026-10-19 — ver regla 15)
+> ⚠️ **Esta regla cambió.** Antes había que preguntar A) preview o B) producción antes de cada subida. **Ya no**: el destino lo decide **qué se toca**, no una pregunta.
 
-Antes de subir cualquier cambio, preguntar al usuario qué nivel de publicación quiere:
+| Si se toca… | Va a… | Se ve en… |
+|---|---|---|
+| La **plataforma** (portal, panel) | `pruebas` | la URL de prueba |
+| La **web pública** | `main` | `dynamotrans.com` |
 
-- **A) Solo preview** (push a la rama de feature → URL privada de Vercel tipo `dynamo-web-git-<rama>-dynamotrans-projects.vercel.app`, nadie más la ve, no afecta `dynamotrans.com`)
-- **B) Producción** (merge a `main` + push a `main` → publica en `dynamotrans.com` tras 1-2 min de build de Vercel)
+**Órdenes que cambian el destino**: «súbelo a pruebas» (un cambio público va solo a pruebas, para verlo antes) · «publícalo» (pasa a `main` lo que esté en pruebas, respetando la regla 7).
 
-Por defecto, asumir A (preview) cuando el cambio es del **portal** o de páginas en desarrollo. Promover a B solo con OK explícito del usuario.
-
-Razón: el portal está aún en mockup mientras la web pública debe verse pulida en producción. Hay que poder iterar el portal sin que se vea fuera, y publicar pequeños fixes de la web sin arrastrar el portal a producción.
+Razón de que lo público vaya directo: **ya está en producción, funcionando y aprobado**. Si fuera a pruebas se quedaría atascado, que es el problema del que nació la regla 8.
 
 ### 7. Estrategia de ramas (web pública vs portal mockup)
 
@@ -118,10 +124,10 @@ Razón: el portal está aún en mockup mientras la web pública debe verse pulid
 
 Mientras el portal sea mockup HTML estático en este mismo repo:
 - **Web pública** (`index.html`, hojas de servicios, etc.): cambios pequeños → branch corto desde `main` (`fix/<algo>`) → preview → OK → merge a `main` inmediatamente
-- **Portal mockup** (`portal.html`, `registro.html`, `verificar.html`, `crear-password.html` y futuras páginas): se queda en `claude/sharp-dirac-E3UIO` (rama feature). Solo preview Vercel. Nunca producción salvo orden explícita
+- **Portal mockup** (`portal.html`, `registro.html`, `verificar.html`, `crear-password.html` y futuras páginas): se queda en **`pruebas`**. Solo la URL de prueba de Vercel. Nunca producción salvo orden explícita
 - Si hay que hacer un fix público mientras la rama del portal está viva: trabajar desde `main` en una rama corta, mergear, y opcionalmente rebasear la rama del portal sobre el nuevo `main` para no acumular drift
 
-**Estado actual de `main` (producción) respecto al portal:** solo `portal.html` con login básico bloqueado y badge "Próximamente". Los archivos avanzados (`registro.html`, `verificar.html`, `crear-password.html`) NO están en `main`, solo en la rama feature.
+**Estado actual de `main` (producción) respecto al portal:** solo `portal.html` con login básico bloqueado y badge "Próximamente". Los archivos avanzados (`registro.html`, `verificar.html`, `crear-password.html`, `dashboard.html`, `aceptar-carga.html`, `firmar-cmr.html`) NO están en `main`, solo en `pruebas`. Un merge de `pruebas` a `main` son **+32.000 líneas**.
 
 Cuando el portal pase de mockup a app real (backend, auth, dashboard con datos):
 - **Refactorizamos ESTE MISMO repo a Next.js** (decisión 2026-06-10): se queda en `dynamotrans.com`, no se separa en subdominio
@@ -137,9 +143,9 @@ Para evitar que cambios de la web pública se queden "atascados" solo en preview
 - **Cualquier cambio de web pública** (`index.html`, `vercel.json`, imágenes, SEO, copy, etc.) → **arrancar en `main`** vía rama corta `fix/<algo>` desde `origin/main`
 - Mergear a `main` → push → desplegado en `dynamotrans.com`
 - Después, **rebasear/mergear la rama del portal sobre el nuevo `main`** para que preview tenga también el cambio. Así nunca hay drift entre las dos webs públicas
-- **NUNCA hacer cambios de web pública directamente en la rama del portal** (`claude/sharp-dirac-E3UIO`). Si se nos cuela uno por error, cherry-pick a `main` el mismo día
+- **NUNCA hacer cambios de web pública directamente en `pruebas`**. Si se nos cuela uno por error, cherry-pick a `main` el mismo día
 
-Razón: la rama del portal es `main + código del portal`. `git merge preview → main` arrastraría el portal a producción (prohibido). Pero `main → preview` es seguro. Por tanto el sentido del flujo siempre es **main primero, preview después**.
+Razón: `pruebas` es `main + código del portal`. `git merge pruebas → main` arrastraría el portal a producción (prohibido). Pero `main → pruebas` es seguro. Por tanto el sentido del flujo siempre es **main primero, pruebas después**.
 
 ### 9. DOS RAMAS, y ya está (simplificado el 2026-10-19)
 Antes había tres (`main`, la rama de trabajo `claude/sharp-dirac-E3UIO` y `pruebas`) y el usuario lo dijo claro: *"va a ser un lío"*. Tenía razón — la rama de trabajo no aportaba nada que `pruebas` no haga, y obligaba a sincronizar a mano.
