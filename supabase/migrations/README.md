@@ -147,47 +147,60 @@ Los permisos de la 0013 (RLS) cierran la escritura directa.
 
 ### Añadido al verificar la 0009 (restricciones de servicio)
 
-Probado en PostgreSQL 16.13, montando envíos de verdad e intentando confirmarlos:
+Probado en PostgreSQL 16.13 montando envíos de verdad e intentando confirmarlos.
 
-- **Sevilla → Zúrich**: bloqueado. **Sevilla → Madrid** y **Portugal → Madrid**: pasan.
-- **Canarias** bloqueada tanto por CP `35xxx` (Las Palmas) como `38xxx` (Tenerife).
-  **Ceuta y Melilla** (`51`/`52`) también.
-- **Baleares, la regla que no es un sí/no**: `07009` con **6 m de grupaje → bloqueado**;
-  el mismo destino con **13,30 m de camión completo → pasa**. Funciona porque
-  `tipo_carga` es una columna generada de los metros lineales (0007), así que no hay que
-  marcar nada a mano.
-- **Una parada INTERMEDIA en Tenerife bloquea el envío** aunque origen y destino sean
-  peninsulares. Es lo que no haría una comprobación de solo origen/destino.
-- **El borrador con una dirección de Suiza SÍ se guarda** (el asistente de 4 pasos no se
-  pelea con la base de datos); lo que no se puede es **confirmarlo**.
-- **El interruptor `activa`**: apagar la fila de Suiza deja pasar el envío al instante, y
-  volver a encenderla lo bloquea otra vez. Sin desplegar nada y sin perder la fila.
-- **`solo_admin`**: el mismo envío a Irlanda se bloquea para quien no es admin y pasa en
-  cuanto el usuario es admin activo.
-- **`avisa`**: deja pasar el envío y el mensaje sigue consultable para mostrarlo.
-- **Regla 12**: 0 tablas sin rastro, y las altas y los dos cambios del interruptor quedan
-  en la auditoría.
+**Las rutas:**
 
-### Añadido 2026-10-21: Irlanda e islas
+- **Sevilla → Zúrich** bloqueado; **Sevilla → Madrid** y **Portugal → Madrid** pasan.
+- **Canarias** bloqueada por los dos CP (`35xxx` Las Palmas y `38xxx` Tenerife), y
+  **Ceuta/Melilla** (`51`/`52`) también.
+- **Córcega, Cerdeña y Sicilia** bloqueadas (el mapa de la web pública ya las omitía
+  desde el 3-sep, pero nada paraba un envío a Palermo), **sin llevarse por delante lo
+  continental**: Ajaccio, Palermo y Cagliari se bloquean; **Lyon, Milán, Nápoles y Roma
+  pasan**. ⚠️ Los prefijos italianos (07-09 Cerdeña, 90-98 Sicilia) **los tiene que
+  confirmar el usuario**: uno de más bloquearía una ruta peninsular de verdad.
+- **Baleares y Irlanda, la regla que no es un sí/no**: `07009` y Dublín con **6 m de
+  grupaje → bloqueados**; los mismos destinos con **13,30 m de completo → pasan**.
+  Funciona porque `tipo_carga` es una columna generada de los metros lineales (0007),
+  así que no hay que marcar nada a mano.
+- **Una parada INTERMEDIA bloquea el envío**: una entrega en Tenerife, o en Zúrich como
+  parada 2 de 3, revientan aunque los extremos sean peninsulares. Es lo que no haría una
+  comprobación de solo "origen y destino".
+- **Carga y descarga se distinguen**: con la regla de Suiza puesta en `descarga`,
+  **recoger** en Zúrich y entregar en Madrid **pasa**, y entregar en Zúrich no.
+- **El borrador con una dirección prohibida SÍ se guarda** (el asistente de 4 pasos no
+  se pelea con la base de datos); lo que no se puede es **confirmarlo**.
+- **`solo_admin`**: el mismo envío se bloquea para quien no es admin y pasa en cuanto el
+  usuario es admin activo. **`avisa`** deja pasar y el mensaje sigue consultable.
+- **El interruptor `activa`** abre y cierra el destino en vivo, sin desplegar nada.
+- **Regla 12**: 0 tablas sin rastro; las altas y los cambios del interruptor quedan en la
+  auditoría con el email de quien los hizo.
 
-- **Irlanda solo camión completo** (decisión del usuario, cierra la pregunta abierta del
-  21-sep): Dublín con 6 m de grupaje **se bloquea**, con 13,30 m **pasa**.
-- ⚠️ **Hueco encontrado al probarlo**: **Belfast pasa**, porque Irlanda del Norte viaja
-  con código de país **`GB`** y la fila de Irlanda es `IE`. Y Gran Bretaña **no tiene
-  regla**, así que hoy un envío a Mánchester también pasaría aunque GB no esté en la
-  cobertura. Pendiente de decisión del usuario (ver `TODO.md`).
-- **Córcega, Cerdeña y Sicilia**: el mapa de la web pública ya las omite a propósito
-  (decisión del 3-sep), pero no había nada que parase un envío a Palermo. Añadidas, y
-  comprobado que **no se llevan por delante las rutas continentales**: Ajaccio, Palermo
-  y Cagliari se bloquean; **Lyon, Milán, Nápoles y Roma pasan**. ⚠️ Los prefijos
-  italianos (07-09 Cerdeña, 90-98 Sicilia) **los tiene que confirmar el usuario**: uno de
-  más bloquearía una ruta peninsular de verdad.
+**Lo que ya existe no se toca** (el escenario que pidió el usuario: Suiza abierta, hay
+viajes a Suiza, y después se cierra la ruta). Probado en tres fases con un envío suizo
+**en ruta** en el momento del cierre:
 
-### ⚠️ Segundo fallo encontrado al probar
+| Con Suiza ya cerrada… | Resultado |
+|---|---|
+| Sellar la hora de entrega de la parada suiza | **pasa** |
+| Corregir el nombre de la empresa suiza | **pasa** |
+| Anotar los km del tramo | **pasa** |
+| Marcar el envío suizo como **entregado** | **pasa** |
+| Crear un envío **nuevo** a Zúrich | **bloqueado** |
+| Añadir una entrega en Zúrich a un envío **ya vivo** | **bloqueado** |
 
-La primera versión solo tenía fechas de vigencia, con la restricción lógica
-`vigente_hasta >= vigente_desde`. Eso impide **apagar hoy una regla que empieza hoy**:
-para abrir Suiza habría que esperar al día siguiente, que es justo lo contrario de
-"manual y rápido editable". Se añadió la columna **`activa`** (interruptor de ahora
-mismo) **junto a** la vigencia (cambios planificados: "desde el 1 de enero servimos
-Suiza"). Son dos preguntas distintas y hacen falta las dos.
+### ⚠️ Dos fallos encontrados al probar, y por eso se prueba
+
+**1. La restricción no podía vivir dentro de `validar_ruta_envio`.** Esa función la llama
+también el trigger que protege la ruta cada vez que se **toca** una parada de un envío
+vivo. Si la comprobación hubiera ido ahí, el día que se cerrara Suiza **habrían reventado
+todos los envíos suizos en curso** al primer cambio: no se podría ni sellar la hora de
+entrega. Por eso van separadas: `validar_ruta_envio` (0007) sigue mirando **solo la
+estructura** y no se toca, y `validar_restricciones_envio` (0009) se llama **solo al
+generar** — al confirmar, y al añadir una parada nueva a un envío vivo.
+
+**2. Con solo fechas de vigencia no se podía apagar hoy una regla que empieza hoy**
+(`vigente_hasta >= vigente_desde`), así que para abrir Suiza habría que esperar al día
+siguiente — lo contrario de "manual y rápido editable". De ahí la columna **`activa`**
+(interruptor de ahora mismo) **junto a** la vigencia (cambios planificados: "desde el 1
+de enero servimos Suiza"). Son dos preguntas distintas y hacen falta las dos.
