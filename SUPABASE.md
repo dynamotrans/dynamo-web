@@ -607,12 +607,13 @@ supabase/migrations/
   0004_usuarios_y_roles.sql
   0005_lugares.sql
   0006_vehiculos_conductores.sql
-  0007_envios.sql
-  0008_envio_puntos_hitos_ofertas.sql
-  0009_operativa.sql
-  0010_tarifas_parametros_plantillas.sql
-  0011_vistas_holded_wtransnet.sql
-  0012_rls_politicas.sql
+  0007_envios_y_paradas.sql
+  0008_distancias_cache.sql
+  0009_hitos_y_ofertas.sql
+  0010_operativa.sql
+  0011_tarifas_parametros_plantillas.sql
+  0012_vistas_holded_wtransnet.sql
+  0013_rls_politicas.sql
 ```
 
 Tú los abres y los pegas en el **SQL Editor** de Supabase, uno a uno, en orden. Yo veo el SQL, tú

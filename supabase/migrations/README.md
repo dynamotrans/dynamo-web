@@ -28,15 +28,16 @@ clave tuya**: yo escribo el SQL, tú lo ejecutas.
 | `0005_lugares.sql` | `lugares` con dirección partida y borrado suave, `lugar_notas_cliente` | ✅ listo |
 | `0006_vehiculos_conductores.sql` | `vehiculos` (matrículas) y `conductores` | ✅ listo |
 | `0007_envios_y_paradas.sql` | `envios` (sin direcciones) + `envio_paradas` (ruta ilimitada), triggers de origen/destino, validación de ruta, vistas y RLS | ✅ listo |
-| `0008_hitos_y_ofertas.sql` | los 14 hitos y las ofertas a transportistas (la ruta ya va en la 0007) | pendiente |
-| `0009_operativa.sql` | `tickets`, `penalizaciones`, `almacenamientos`, `documentos`, `firmas_cmr` | pendiente |
-| `0010_tarifas_parametros_plantillas.sql` | tarifas con vigencia, parámetros, plantillas de texto | pendiente |
-| `0011_vistas_holded_wtransnet.sql` | vistas de exportación + métricas de cliente/transportista | pendiente |
-| `0012_rls_politicas.sql` | seguridad por filas (RLS) por rol | pendiente |
+| `0008_distancias_cache.sql` | caché de los kilómetros de Google: por **sitio** (exacta) y por **código postal** (tarifador público), con invalidación automática al mudarse una empresa | ✅ listo |
+| `0009_hitos_y_ofertas.sql` | los 14 hitos y las ofertas a transportistas (la ruta ya va en la 0007) | pendiente |
+| `0010_operativa.sql` | `tickets`, `penalizaciones`, `almacenamientos`, `documentos`, `firmas_cmr` | pendiente |
+| `0011_tarifas_parametros_plantillas.sql` | tarifas con vigencia, parámetros, plantillas de texto. **Bloqueada**: falta el libro de tarifar del usuario y el código del Apps Script | pendiente |
+| `0012_vistas_holded_wtransnet.sql` | vistas de exportación + métricas de cliente/transportista | pendiente |
+| `0013_rls_politicas.sql` | seguridad por filas (RLS) por rol | pendiente |
 
 ## Verificado en local
 
-Las 0001-0007 se han ejecutado contra un **PostgreSQL 16 real** (el mismo motor que usa
+Las 0001-0008 se han ejecutado contra un **PostgreSQL 16 real** (el mismo motor que usa
 Supabase) con un stub mínimo de `auth.users` y `auth.uid()`. Pruebas que pasan:
 
 - Alta de cliente → código `C-10000` automático, `creado_en` y `creado_por` sellados.
@@ -109,3 +110,36 @@ se activa). Revisando el SQL a ojo no se veía; ejecutándolo, salió en la prim
 - **Nadie puede borrar un envío** (no hay política de DELETE, a propósito: se cancela).
 - **Regla 11 verificada**: en ruta el cliente ve el teléfono del conductor; al pasar a
   entregado, `null`. El admin lo sigue viendo, con el precio del transportista y el margen.
+
+### Añadido al verificar la 0008 (caché de distancias)
+
+Probado en PostgreSQL 16.13 con los dos casos que el usuario señaló como riesgo:
+
+- Se guardan los km de una ruta y se vuelven a leer: **acierto de caché**, no se pregunta
+  a Google otra vez.
+- **La empresa se muda al polígono de al lado** (1,8 km): la `version_geo` del sitio pasa
+  de 1 a 2 sola, la fila vieja **deja de coincidir** y la consulta devuelve vacío → el
+  servidor pregunta a Google. Se invalida **sin borrar nada ni acordarse de nada**.
+- **La fila vieja sigue ahí** (531,40 km con versión 1, junto a los 533,10 km con versión 2):
+  es el registro de con qué kilómetros se tarificó el envío de antes de la mudanza.
+- **Editar el horario del sitio NO invalida** la caché: la versión solo sube con las
+  coordenadas. Se mira con `is distinct from`, así que pasar de "sin coordenadas" a
+  "con coordenadas" también cuenta como mudanza.
+- **El sentido importa**: guardar A→B no contesta a B→A (no siempre miden lo mismo:
+  sentidos únicos, enlaces de autovía).
+- **El filtro de antigüedad** funciona: con una ventana de 0 segundos la misma fila ya no
+  vale (las carreteras cambian; se abre una variante y la ruta de siempre mide otra cosa).
+- Origen = destino se **rechaza**.
+- **CP**: `2400-016`, `2400 016` y `2400016` son **el mismo** código postal, así que no se
+  duplica la fila ni se paga dos veces; al reguardar, **actualiza** (1 fila, 615,00 km).
+  `08185` **conserva el cero** (si el CP fuera número sería 8185).
+- **Regla 12**: `v_tablas_sin_rastro` sigue devolviendo **0 filas**, y las cuatro escrituras
+  quedan en la auditoría con el email de quien las hizo.
+- El chivato `v_distancias_caducadas` dice **por qué** cada fila está muerta
+  ("un extremo se mudó" / "más de 12 meses"). No borra nada.
+
+**Límite conocido y a propósito**: que no se pueda guardar un kilometraje con una versión
+vieja lo garantiza la **función** (`fn_guardar_km_lugares` lee ella misma la versión actual),
+no una restricción de la tabla. No se puede poner una clave ajena compuesta a
+`(id, version_geo)` porque **borraría justo las filas históricas** que queremos conservar.
+Los permisos de la 0013 (RLS) cierran la escritura directa.
