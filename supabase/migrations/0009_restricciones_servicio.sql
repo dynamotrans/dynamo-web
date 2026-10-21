@@ -279,11 +279,32 @@ insert into restricciones_servicio (nombre, pais_codigo_iso, prefijos_cp, tipo_c
    'A Baleares solo hacemos camión completo, no grupaje. Cambia el envío a carga '
    'completa o escríbenos.'),
 
+  -- Mismo caso que Baleares, y por el mismo motivo: se llega en ferry, así que va el
+  -- tráiler entero en el barco y el grupaje no sale. (Decisión del usuario 2026-10-21,
+  -- que cierra la pregunta que quedó abierta el 2026-09-21 con el criterio "solo
+  -- continental, salvo que haya carretera o puente".)
+  ('Irlanda solo camión completo', 'IE', null, 'grupaje', 'bloquea',
+   'A Irlanda solo hacemos camión completo, no grupaje. Cambia el envío a carga '
+   'completa o escríbenos.'),
+
   -- No las nombró hoy, pero ya están fuera por decisión suya del 2026-09-03: el mapa de
   -- cobertura de la web pública omite Ceuta y Melilla a propósito, y las provincias de
   -- almacenamiento también. Se deja coherente. Si alguna vez se sirven, se cierra la fila.
   ('Ceuta y Melilla', 'ES', array['51','52'], null, 'bloquea',
-   'No damos servicio en Ceuta ni Melilla. Escríbenos y te buscamos una alternativa.');
+   'No damos servicio en Ceuta ni Melilla. Escríbenos y te buscamos una alternativa.'),
+
+  -- Mismo caso: el mapa de cobertura de la web pública omite a propósito Córcega,
+  -- Cerdeña y Sicilia (decisión del usuario 2026-09-03, se editaron los subpaths del
+  -- SVG), pero no había nada que impidiera pedir un envío a Palermo. Se deja coherente.
+  -- ⚠️ PREFIJOS A CONFIRMAR POR EL USUARIO: Córcega = CP franceses 20xxx (seguro);
+  --    Cerdeña = CAP italianos 07-09 y Sicilia = 90-98 (comprobar antes de darlos por
+  --    buenos: un prefijo de más bloquearía una ruta peninsular italiana de verdad).
+  ('Córcega', 'FR', array['20'], null, 'bloquea',
+   'No damos servicio en Córcega. Escríbenos y te buscamos una alternativa.'),
+
+  ('Cerdeña y Sicilia', 'IT',
+   array['07','08','09','90','91','92','93','94','95','96','97','98'], null, 'bloquea',
+   'No damos servicio en Cerdeña ni Sicilia. Escríbenos y te buscamos una alternativa.');
 
 
 -- =====================================================================================

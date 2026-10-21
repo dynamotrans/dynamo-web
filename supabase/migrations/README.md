@@ -168,6 +168,21 @@ Probado en PostgreSQL 16.13, montando envíos de verdad e intentando confirmarlo
 - **Regla 12**: 0 tablas sin rastro, y las altas y los dos cambios del interruptor quedan
   en la auditoría.
 
+### Añadido 2026-10-21: Irlanda e islas
+
+- **Irlanda solo camión completo** (decisión del usuario, cierra la pregunta abierta del
+  21-sep): Dublín con 6 m de grupaje **se bloquea**, con 13,30 m **pasa**.
+- ⚠️ **Hueco encontrado al probarlo**: **Belfast pasa**, porque Irlanda del Norte viaja
+  con código de país **`GB`** y la fila de Irlanda es `IE`. Y Gran Bretaña **no tiene
+  regla**, así que hoy un envío a Mánchester también pasaría aunque GB no esté en la
+  cobertura. Pendiente de decisión del usuario (ver `TODO.md`).
+- **Córcega, Cerdeña y Sicilia**: el mapa de la web pública ya las omite a propósito
+  (decisión del 3-sep), pero no había nada que parase un envío a Palermo. Añadidas, y
+  comprobado que **no se llevan por delante las rutas continentales**: Ajaccio, Palermo
+  y Cagliari se bloquean; **Lyon, Milán, Nápoles y Roma pasan**. ⚠️ Los prefijos
+  italianos (07-09 Cerdeña, 90-98 Sicilia) **los tiene que confirmar el usuario**: uno de
+  más bloquearía una ruta peninsular de verdad.
+
 ### ⚠️ Segundo fallo encontrado al probar
 
 La primera versión solo tenía fechas de vigencia, con la restricción lógica
