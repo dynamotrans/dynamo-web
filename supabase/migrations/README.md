@@ -29,15 +29,16 @@ clave tuya**: yo escribo el SQL, tú lo ejecutas.
 | `0006_vehiculos_conductores.sql` | `vehiculos` (matrículas) y `conductores` | ✅ listo |
 | `0007_envios_y_paradas.sql` | `envios` (sin direcciones) + `envio_paradas` (ruta ilimitada), triggers de origen/destino, validación de ruta, vistas y RLS | ✅ listo |
 | `0008_distancias_cache.sql` | caché de los kilómetros de Google: por **sitio** (exacta) y por **código postal** (tarifador público), con invalidación automática al mudarse una empresa | ✅ listo |
-| `0009_hitos_y_ofertas.sql` | los 14 hitos y las ofertas a transportistas (la ruta ya va en la 0007) | pendiente |
-| `0010_operativa.sql` | `tickets`, `penalizaciones`, `almacenamientos`, `documentos`, `firmas_cmr` | pendiente |
-| `0011_tarifas_parametros_plantillas.sql` | tarifas con vigencia, parámetros, plantillas de texto. **Bloqueada**: falta el libro de tarifar del usuario y el código del Apps Script | pendiente |
-| `0012_vistas_holded_wtransnet.sql` | vistas de exportación + métricas de cliente/transportista | pendiente |
-| `0013_rls_politicas.sql` | seguridad por filas (RLS) por rol | pendiente |
+| `0009_restricciones_servicio.sql` | dónde **no** se da servicio y dónde **solo con camión completo**, en tabla editable con interruptor y vigencia | ✅ listo |
+| `0010_hitos_y_ofertas.sql` | los 14 hitos y las ofertas a transportistas (la ruta ya va en la 0007) | pendiente |
+| `0011_operativa.sql` | `tickets`, `penalizaciones`, `almacenamientos`, `documentos`, `firmas_cmr` | pendiente |
+| `0012_tarifas_parametros_plantillas.sql` | tarifas con vigencia, parámetros, plantillas de texto. **Bloqueada**: falta el libro de tarifar del usuario y el código del Apps Script | pendiente |
+| `0013_vistas_holded_wtransnet.sql` | vistas de exportación + métricas de cliente/transportista | pendiente |
+| `0014_rls_politicas.sql` | seguridad por filas (RLS) por rol | pendiente |
 
 ## Verificado en local
 
-Las 0001-0008 se han ejecutado contra un **PostgreSQL 16 real** (el mismo motor que usa
+Las 0001-0009 se han ejecutado contra un **PostgreSQL 16 real** (el mismo motor que usa
 Supabase) con un stub mínimo de `auth.users` y `auth.uid()`. Pruebas que pasan:
 
 - Alta de cliente → código `C-10000` automático, `creado_en` y `creado_por` sellados.
@@ -143,3 +144,35 @@ vieja lo garantiza la **función** (`fn_guardar_km_lugares` lee ella misma la ve
 no una restricción de la tabla. No se puede poner una clave ajena compuesta a
 `(id, version_geo)` porque **borraría justo las filas históricas** que queremos conservar.
 Los permisos de la 0013 (RLS) cierran la escritura directa.
+
+### Añadido al verificar la 0009 (restricciones de servicio)
+
+Probado en PostgreSQL 16.13, montando envíos de verdad e intentando confirmarlos:
+
+- **Sevilla → Zúrich**: bloqueado. **Sevilla → Madrid** y **Portugal → Madrid**: pasan.
+- **Canarias** bloqueada tanto por CP `35xxx` (Las Palmas) como `38xxx` (Tenerife).
+  **Ceuta y Melilla** (`51`/`52`) también.
+- **Baleares, la regla que no es un sí/no**: `07009` con **6 m de grupaje → bloqueado**;
+  el mismo destino con **13,30 m de camión completo → pasa**. Funciona porque
+  `tipo_carga` es una columna generada de los metros lineales (0007), así que no hay que
+  marcar nada a mano.
+- **Una parada INTERMEDIA en Tenerife bloquea el envío** aunque origen y destino sean
+  peninsulares. Es lo que no haría una comprobación de solo origen/destino.
+- **El borrador con una dirección de Suiza SÍ se guarda** (el asistente de 4 pasos no se
+  pelea con la base de datos); lo que no se puede es **confirmarlo**.
+- **El interruptor `activa`**: apagar la fila de Suiza deja pasar el envío al instante, y
+  volver a encenderla lo bloquea otra vez. Sin desplegar nada y sin perder la fila.
+- **`solo_admin`**: el mismo envío a Irlanda se bloquea para quien no es admin y pasa en
+  cuanto el usuario es admin activo.
+- **`avisa`**: deja pasar el envío y el mensaje sigue consultable para mostrarlo.
+- **Regla 12**: 0 tablas sin rastro, y las altas y los dos cambios del interruptor quedan
+  en la auditoría.
+
+### ⚠️ Segundo fallo encontrado al probar
+
+La primera versión solo tenía fechas de vigencia, con la restricción lógica
+`vigente_hasta >= vigente_desde`. Eso impide **apagar hoy una regla que empieza hoy**:
+para abrir Suiza habría que esperar al día siguiente, que es justo lo contrario de
+"manual y rápido editable". Se añadió la columna **`activa`** (interruptor de ahora
+mismo) **junto a** la vigencia (cambios planificados: "desde el 1 de enero servimos
+Suiza"). Son dos preguntas distintas y hacen falta las dos.
