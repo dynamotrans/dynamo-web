@@ -78,6 +78,11 @@
 --   3. En el front → para que se vea el mensaje al momento. Eso es solo comodidad: el
 --      front NO es seguridad.
 --
+-- IRLANDA, PARTIDA POR LA ADUANA (usuario 2026-10-21): la República de Irlanda (IE) SÍ
+-- se sirve —está en la UE, sin aduana, en ferry desde Santander o Bilbao— pero solo con
+-- camión completo. Irlanda del Norte y Gran Bretaña NO, porque llevan aduana. Irlanda
+-- del Norte viaja con código `GB`, así que una sola fila de `GB` cubre las dos.
+--
 -- SE BLOQUEA LA RUTA, NO LA FICHA DEL SITIO. Un cliente puede tener su domicilio fiscal
 -- en Las Palmas y cargar desde la península: la ficha se crea sin problema.
 --
@@ -367,13 +372,30 @@ insert into restricciones_servicio
    'A Baleares solo hacemos camión completo, no grupaje. Cambia el envío a carga '
    'completa o escríbenos.'),
 
-  -- Decisión del usuario 2026-10-21, que cierra la pregunta abierta el 2026-09-21 con
-  -- el criterio "solo continental, salvo que haya carretera o puente".
-  -- ⚠️ Cubre la República de Irlanda (IE). Irlanda del Norte viaja con código GB y hoy
-  --    NO tiene regla; pendiente de decisión del usuario (ver TODO.md).
-  ('Irlanda solo camión completo', 'IE', null, 'cualquier_punto', 'grupaje', 'bloquea',
+  -- IRLANDA SE PARTE EN DOS, Y LA FRONTERA ES LA ADUANA (usuario, 2026-10-21):
+  --
+  --   · REPÚBLICA DE IRLANDA (IE) → SÍ se sirve. Está en la UE, no hay aduana, la
+  --     mercancía va en ferry desde Santander o Bilbao. Pero **solo camión completo**,
+  --     igual que Baleares: va el tráiler entero en el barco, el grupaje no sale.
+  --
+  --   · IRLANDA DEL NORTE y GRAN BRETAÑA → NO se sirven. Llevan aduana.
+  --
+  -- Y aquí la geografía ayuda: Irlanda del Norte **viaja con el código de país `GB`**,
+  -- no `IE`. Como no se sirve ninguna de las dos partes de GB, **una sola fila de `GB`
+  -- las cubre a las dos** y no hace falta ningún campo nuevo.
+  --
+  -- ⚠️ Si algún día se quisiera Irlanda del Norte (CP que empiezan por `BT`) pero NO el
+  --    resto de Gran Bretaña, entonces SÍ haría falta añadir a la tabla un campo "todo
+  --    el país SALVO estos CP": hoy los prefijos solo sirven para prohibir, no para
+  --    permitir, y las zonas postales británicas son ~120, no se pueden enumerar.
+  ('Irlanda (República) solo camión completo', 'IE', null, 'cualquier_punto', 'grupaje',
+   'bloquea',
    'A Irlanda solo hacemos camión completo, no grupaje. Cambia el envío a carga '
-   'completa o escríbenos.');
+   'completa o escríbenos.'),
+
+  ('Gran Bretaña e Irlanda del Norte', 'GB', null, 'cualquier_punto', null, 'bloquea',
+   'No damos servicio en Gran Bretaña ni en Irlanda del Norte. Escríbenos y te buscamos '
+   'una alternativa.');
 
 
 -- =====================================================================================

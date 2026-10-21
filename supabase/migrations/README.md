@@ -159,6 +159,12 @@ Probado en PostgreSQL 16.13 montando envíos de verdad e intentando confirmarlos
   continental**: Ajaccio, Palermo y Cagliari se bloquean; **Lyon, Milán, Nápoles y Roma
   pasan**. ⚠️ Los prefijos italianos (07-09 Cerdeña, 90-98 Sicilia) **los tiene que
   confirmar el usuario**: uno de más bloquearía una ruta peninsular de verdad.
+- **Irlanda partida por la aduana** (criterio del usuario): **Dublín con 13,30 m pasa**
+  (está en la UE, sin aduana, ferry desde Santander o Bilbao), **Dublín con 6 m de
+  grupaje se bloquea**, y **Belfast y Mánchester se bloquean** los dos. Irlanda del Norte
+  viaja con código de país `GB`, así que **una sola fila de `GB` cubre las dos partes**
+  que no se sirven y no hizo falta ningún campo nuevo. Recoger en Londres también se
+  bloquea.
 - **Baleares y Irlanda, la regla que no es un sí/no**: `07009` y Dublín con **6 m de
   grupaje → bloqueados**; los mismos destinos con **13,30 m de completo → pasan**.
   Funciona porque `tipo_carga` es una columna generada de los metros lineales (0007),
