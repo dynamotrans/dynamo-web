@@ -12,6 +12,15 @@
 >
 > **Cómo se usa.** Cada punto tiene: qué exige · estado hoy · qué hay que hacer en la
 > plataforma real · **cómo se comprueba** (si no se puede comprobar, no está hecho).
+>
+> ⚠️ **ESTA LISTA ES UNA PUERTA, NO UNA SUGERENCIA** (petición del usuario, 2026-10-25:
+> *"cuando montemos en real, debe estar todo muy seguro, acuérdate de revisarlo"*).
+> El día que el usuario autorice publicar el portal (regla 7 de `CLAUDE.md`), **lo
+> primero que se hace es repasar esto entero, antes del merge**. Un punto solo pasa a
+> cumplido con una comprobación que lo demuestre; *"creo que sí"* no cumple nada.
+> Los seis que más pesan, por orden: **permisos por fila probados · quitar el login
+> demo de `portal.html` · vistas por rol (RLS filtra filas, NO columnas) · copias con
+> restauración probada · RGPD · CSP**. Detalle en la regla 14-bis de `CLAUDE.md`.
 
 | # | Punto | Hoy (mockup) | En la plataforma real |
 |---|---|---|---|

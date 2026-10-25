@@ -122,6 +122,8 @@ Razón de que lo público vaya directo: **ya está en producción, funcionando y
 
 **⚠️ Regla dura del portal:** el portal **NUNCA se mergea a `main` ni se publica en `dynamotrans.com`** hasta que el usuario lo diga literalmente con una frase explícita tipo *"publica el portal"* / *"sube el portal a producción"* / *"mergea el portal a main"*. Está previsto que esa autorización llegue **dentro de unos meses**, no antes. Si hay dudas → preguntar. **NUNCA asumir.**
 
+> ⚠️ **Y cuando llegue esa frase, el merge NO es el primer paso.** Lo primero es repasar `PRODUCCION.md` entero, con pruebas que lo demuestren. Ver **regla 14-bis**.
+
 Mientras el portal sea mockup HTML estático en este mismo repo:
 - **Web pública** (`index.html`, hojas de servicios, etc.): cambios pequeños → branch corto desde `main` (`fix/<algo>`) → preview → OK → merge a `main` inmediatamente
 - **Portal mockup** (`portal.html`, `registro.html`, `verificar.html`, `crear-password.html` y futuras páginas): se queda en **`pruebas`**. Solo la URL de prueba de Vercel. Nunca producción salvo orden explícita
@@ -222,6 +224,27 @@ En el mockup: `telConductorHTML(r)` (`dashboard.html`) devuelve "No disponible" 
 Existe `PRODUCCION.md` en la raíz: **checklist de lanzamiento de 14 puntos** (los 10 de una guía de *production readiness* + 4 que faltaban: **backups con restauración probada**, **auditoría**, **RGPD** y **control de coste**). Cada punto lleva qué exige, el estado de hoy, qué hay que hacer en la plataforma real y **cómo se comprueba**.
 
 **No aplica al mockup estático de hoy** — es para cuando la plataforma vaya sobre Supabase + código. Pero se repasa **entero antes de abrir el portal a clientes**, y se actualiza cada vez que un punto pase a cumplido.
+
+#### 14-bis. ES UNA PUERTA, NO UN RECORDATORIO (petición del usuario, 2026-10-25)
+
+> *"Cuando montemos en real, debe estar todo muy seguro, acuérdate de revisarlo."*
+
+Claude **no se acuerda entre sesiones**: cada sesión arranca de cero y solo sabe lo que está escrito aquí. Por eso esto no es un recordatorio, es un **paso obligatorio enganchado a la regla 7**:
+
+**El día que el usuario diga la frase explícita («publica el portal» / «sube el portal a producción»), lo PRIMERO que se hace NO es el merge: es repasar `PRODUCCION.md` entero.** Si el repaso no está hecho, no se publica, aunque el usuario tenga prisa. Si él insiste tras explicárselo, se publica y se deja escrito en la bitácora qué puntos quedaron sin cumplir.
+
+**El repaso se hace con pruebas, no con opiniones.** Un punto solo pasa a cumplido cuando hay una comprobación que lo demuestra (una consulta que falla al intentar leer datos de otro cliente, una restauración de copia de seguridad cronometrada, una cabecera que se ve en la respuesta real). *"Creo que sí"* no cumple ningún punto. La columna **"cómo se comprueba"** de `PRODUCCION.md` existe justo para esto.
+
+**Los seis que hay que mirar sí o sí, por orden de gravedad** (lo demás de la lista también, pero estos son los que arruinan el día):
+
+1. **Permisos por fila (RLS) activos y PROBADOS.** La clave `anon` va dentro del navegador por diseño y cualquiera la saca del código de la página. Sin permisos por fila, esa clave lee **la base de datos entera**: clientes, precios, márgenes. Es como se filtran los proyectos de Supabase. No basta escribir la migración: hay que probar que el cliente A no puede leer los envíos del cliente B.
+2. **Quitar el login en modo demo de `portal.html`.** Hoy acepta cualquier email y contraseña. Vive solo en `pruebas` y esa URL pide iniciar sesión en Vercel, así que de fuera no se ve — pero **no puede llegar a producción jamás**.
+3. **Vistas por rol.** Los permisos por fila filtran **filas, no columnas**. El factor de tarifa, el precio del transportista y el margen son columnas de tablas que el cliente sí puede consultar. Ocultarlas necesita **vistas**, que es otra cosa.
+4. **Copias de seguridad con restauración PROBADA** (punto 11).
+5. **RGPD** (punto 13): hay DNIs de conductores y firmas de CMR.
+6. **CSP** (punto 06), probada antes en `pruebas` porque mal puesta rompe Google Translate y el tarifador **en silencio**.
+
+**Y la frase que lo resume**: *el front no es seguridad*. Todo lo que hoy el panel esconde con JavaScript (factor del cliente, margen, precio del transportista, secciones de admin) lo esconde solo de los ojos. **Cada una de esas reglas hay que volver a imponerla en el servidor.**
 
 
 ### 15. QUÉ SE PUBLICA Y DÓNDE (regla del usuario, 2026-10-19)
