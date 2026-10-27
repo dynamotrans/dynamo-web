@@ -42,6 +42,19 @@ a{color:var(--purple)}
 .lp-menu a:hover{color:var(--purple)}
 .lp-menu a[aria-current="page"]{color:var(--purple);border-bottom-color:var(--purple)}
 
+/* Banda bajo el menu: deja claro que la pagina cubre SOLO esa seccion
+   y da salida a la web completa (la one-page). */
+.lp-solo{background:#f3f0ff;border-bottom:1px solid #e4dcff}
+.lp-solo-in{max-width:1080px;margin:0 auto;padding:.5rem 1.25rem;display:flex;
+  align-items:center;justify-content:space-between;gap:.5rem 1rem;flex-wrap:wrap}
+.lp-solo-txt{font-size:.78rem;line-height:1.35;color:var(--gray-700)}
+.lp-solo-txt b{color:var(--purple);font-weight:800}
+.lp-solo-cta{flex:none;display:inline-flex;align-items:center;gap:.35rem;
+  font-size:.78rem;font-weight:700;color:var(--purple);text-decoration:none}
+.lp-solo-cta svg{width:14px;height:14px;flex:none;transition:transform .25s ease}
+.lp-solo-cta:hover{text-decoration:underline}
+.lp-solo-cta:hover svg{transform:translateX(3px)}
+
 /* ---------- hero ---------- */
 .lp-hero{position:relative;background:var(--navy);color:#fff;overflow:hidden}
 .lp-hero-bg{position:absolute;inset:0;object-fit:cover;width:100%;height:100%;opacity:.28}
@@ -138,7 +151,7 @@ a{color:var(--purple)}
              color:rgba(255,255,255,.45)}
 
 /* banner de cookies */
-.lp-cookie{position:fixed;left:0;right:0;bottom:0;z-index:90;display:none;
+.lp-cookie{position:fixed;left:0;right:0;bottom:0;z-index:999;display:none;
            background:var(--navy);color:rgba(255,255,255,.85);padding:1rem 1.25rem;
            box-shadow:0 -6px 24px rgba(0,0,0,.25)}
 .lp-cookie.show{display:block}

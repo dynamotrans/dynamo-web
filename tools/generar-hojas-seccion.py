@@ -84,6 +84,41 @@ def relacionados(actual):
       <p style="margin-top:1.2rem"><a href="/">← Volver a la web completa de Dynamo</a></p>
     </div></section>"""
 
+# --- FAB de contacto (avatar de Alvaro): mismo componente que la one-page ---
+# El CSS vive en /css/fab.css y el comportamiento en /js/fab.js (necesita
+# /js/festivos.js antes para saltarse los festivos en la linea de estado).
+_grande = lambda ico, n: ico.replace('width="16"', 'width="%d"' % n).replace('height="16"', 'height="%d"' % n) \
+                            .replace('width="17"', 'width="%d"' % n).replace('height="17"', 'height="%d"' % n)
+FAB = """<div class="contact-fab-wrap" id="contactFab">
+  <button class="contact-fab" id="contactFabBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Abrir opciones de contacto">
+    <span class="contact-fab-name" aria-hidden="true">
+      <span class="contact-fab-name-title">&Aacute;lvaro Blanco de Dynamo</span>
+      <span class="contact-fab-name-status">En l&iacute;nea &middot; Respondo enseguida</span>
+    </span>
+    <img src="/images/ALVARO_circular_ZOOM.png" alt="&Aacute;lvaro &mdash; Contacto Dynamo Transportes">
+  </button>
+  <div class="contact-fab-actions" role="menu" aria-label="Canales de contacto">
+    <a class="contact-fab-action act-email" role="menuitem" href="__MAILTO__" aria-label="Enviar email">__I_MAIL__</a>
+    <a class="contact-fab-action act-wa" role="menuitem" target="_blank" rel="noopener" href="__WA__" aria-label="Contactar por WhatsApp">__I_WA__</a>
+    <a class="contact-fab-action act-call" role="menuitem" href="__TEL__" aria-label="Llamar por tel&eacute;fono">__I_TEL__</a>
+  </div>
+</div>"""
+FAB = (FAB.replace("__MAILTO__", MAILTO).replace("__WA__", WA).replace("__TEL__", TEL)
+          .replace("__I_MAIL__", _grande(ICO_MAIL, 20)).replace("__I_WA__", _grande(ICO_WA, 20))
+          .replace("__I_TEL__", _grande(ICO_TEL, 20)))
+
+ICO_FLECHA = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+              'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+              '<line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>')
+
+def solo(actual):
+    """Banda que deja claro que la pagina cubre SOLO esa seccion, con salida a la web completa."""
+    titulo = dict(MENU)[actual]
+    return (f'<div class="lp-solo"><div class="lp-solo-in">'
+            f'<span class="lp-solo-txt">Est&aacute;s viendo solo la secci&oacute;n <b>{titulo}</b></span>'
+            f'<a class="lp-solo-cta" href="/">Ver toda la web de Dynamo {ICO_FLECHA}</a>'
+            f'</div></div>')
+
 TRUST = """<div class="lp-trust"><div class="lp-trust-in">
   <div><div class="lp-trust-n">+480</div><div class="lp-trust-l">Clientes confían en nosotros</div></div>
   <div><div class="lp-trust-s">★★★★★</div><div class="lp-trust-n" style="font-size:1.2rem">5,0</div><div class="lp-trust-l">en Google Reviews</div></div>
@@ -127,16 +162,25 @@ COOKIE = """<div class="lp-cookie" id="lpCookie" role="dialog" aria-label="Aviso
   </div>
 </div>
 <script>
+// --lp-cookie-h = alto real del aviso. El FAB del avatar lo lee para
+// apartarse mientras el aviso esta en pantalla y volver a su sitio al cerrarlo.
+function lpCookieAlto(){
+  var el=document.getElementById('lpCookie');
+  var h=(el && el.classList.contains('show')) ? el.offsetHeight : 0;
+  document.documentElement.style.setProperty('--lp-cookie-h', h+'px');
+}
 function lpCookie(c){
   var d=new Date(); d.setFullYear(d.getFullYear()+1);
   document.cookie='cookie_consent='+c+'; expires='+d.toUTCString()+'; path=/; SameSite=Lax';
   var g=(c==='accept')?'granted':'denied';
   gtag('consent','update',{ad_user_data:g,ad_personalization:g,ad_storage:g,analytics_storage:g});
   document.getElementById('lpCookie').classList.remove('show');
+  lpCookieAlto();
 }
 if(document.cookie.indexOf('cookie_consent=')===-1){
-  setTimeout(function(){document.getElementById('lpCookie').classList.add('show');},900);
+  setTimeout(function(){document.getElementById('lpCookie').classList.add('show');lpCookieAlto();},900);
 }
+window.addEventListener('resize', lpCookieAlto);
 </script>"""
 
 PLANTILLA = """<!DOCTYPE html>
@@ -170,7 +214,10 @@ PLANTILLA = """<!DOCTYPE html>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/landing.css">
 <link rel="stylesheet" href="/css/idiomas.css">
+<link rel="stylesheet" href="/css/fab.css">
 <script defer src="/js/idiomas.js"></script>
+<script defer src="/js/festivos.js"></script>
+<script defer src="/js/fab.js"></script>
 
 <script type="application/ld+json">
 {{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
@@ -197,6 +244,7 @@ PLANTILLA = """<!DOCTYPE html>
   </div>
 </div></header>
 {menu}
+{solo}
 
 <section class="lp-hero">
   {herobg}
@@ -219,6 +267,7 @@ PLANTILLA = """<!DOCTYPE html>
 </div></section>
 
 {foot}
+{fab}
 {cookie}
 </body>
 </html>
@@ -229,7 +278,8 @@ def pagina(slug, title, desc, eyebrow, h1, lead, cuerpo, herobg="", areaserved='
     return PLANTILLA.format(
         ghead=GHEAD, title=html.escape(title, quote=True), desc=html.escape(desc, quote=True),
         base=BASE, slug=slug, h1=h1, h1txt=html.escape(h1txt, quote=True), eyebrow=eyebrow,
-        lead=lead, cuerpo=cuerpo, menu=menu(slug), trust=TRUST, herobg=herobg,
+        lead=lead, cuerpo=cuerpo, menu=menu(slug), solo=solo(slug), fab=FAB,
+        trust=TRUST, herobg=herobg,
         botones=botones(), botones_end=botones(), relacionados=relacionados(slug),
         foot=FOOT, cookie=COOKIE, areaserved=areaserved)
 
