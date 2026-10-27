@@ -183,7 +183,13 @@ a{color:var(--purple)}
 .lp-end .lp-btns{justify-content:center}
 
 /* pie */
-.lp-foot{background:var(--navy);color:rgba(255,255,255,.6);font-size:.82rem;padding:2.2rem 0 1.6rem}
+/* El aviso de cookies es fijo al fondo y tapaba el final del pie, donde
+   viven los enlaces de aviso legal, privacidad y cookies: no se podian
+   pulsar hasta aceptar o rechazar. El pie se separa lo que mide el aviso
+   (--lp-cookie-h, que publica el propio aviso) y vuelve a su sitio al
+   cerrarlo. */
+.lp-foot{background:var(--navy);color:rgba(255,255,255,.6);font-size:.82rem;
+  padding:2.2rem 0 calc(1.6rem + var(--lp-cookie-h, 0px));transition:padding-bottom .3s ease}
 .lp-foot a{color:rgba(255,255,255,.75);text-decoration:none}
 .lp-foot a:hover{text-decoration:underline}
 .lp-foot-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:1.6rem}
@@ -192,6 +198,12 @@ a{color:var(--purple)}
 .lp-foot-bot{border-top:1px solid rgba(255,255,255,.12);margin-top:1.6rem;padding-top:1rem;
              display:flex;flex-wrap:wrap;gap:.6rem;justify-content:space-between;font-size:.76rem;
              color:rgba(255,255,255,.45)}
+
+/* El avatar flotante vive en la esquina inferior derecha y se comia los
+   ultimos enlaces del pie (Privacidad y Cookies), que quedaban debajo y
+   no se podian pulsar. Se reserva su hueco. Por debajo de 600px el pie
+   ya se apila y los enlaces caen a la izquierda, libres. */
+@media(min-width:601px){.lp-foot-bot{padding-right:170px}}
 
 /* banner de cookies */
 .lp-cookie{position:fixed;left:0;right:0;bottom:0;z-index:999;display:none;
