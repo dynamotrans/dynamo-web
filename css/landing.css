@@ -25,9 +25,18 @@ a{color:var(--purple)}
         backdrop-filter:blur(10px);border-bottom:1px solid var(--gray-200)}
 .lp-top-in{max-width:1080px;margin:0 auto;padding:.55rem 1.25rem;
            display:flex;align-items:center;gap:1rem}
-.lp-logo{display:flex;align-items:center;gap:.55rem;text-decoration:none;flex:none}
-.lp-logo img{height:34px;width:auto}
-.lp-logo span{font-size:.62rem;font-weight:800;color:var(--navy);line-height:1.15;letter-spacing:.02em}
+.lp-logo{display:flex;align-items:center;gap:.7rem;text-decoration:none;flex:none}
+.lp-logo img{height:45px;width:auto;object-fit:contain}
+/* Mismas medidas y mismo separador que el claim del navbar de index.html,
+   para que las dos cabeceras se vean iguales. */
+.lp-logo span{font-size:.82rem;font-weight:700;color:var(--navy);line-height:1.1;
+  letter-spacing:.2px;text-align:left;padding-left:.7rem;border-left:1.5px solid var(--gray-200)}
+/* Oculto SOLO en el rango tablet, donde el menu de secciones aprieta.
+   En movil se ve, igual que en la portada. */
+@media(min-width:769px) and (max-width:1024px){.lp-logo span{display:none}}
+@media(max-width:768px){.lp-logo img{height:35px}
+  .lp-logo span{font-size:.7rem;padding-left:.5rem}}
+@media(max-width:500px){.lp-logo img{height:28px}}
 .lp-top-cta{flex:none;background:var(--purple);color:#fff;text-decoration:none;
             font-weight:800;font-size:.8rem;padding:.55rem 1rem;border-radius:10px;white-space:nowrap}
 .lp-top-cta:hover{background:var(--purple-dark)}
@@ -105,10 +114,20 @@ a{color:var(--purple)}
 .lp-card.dark h3{color:#fff}
 
 /* fichas técnicas */
-.lp-specs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.55rem;margin-top:1rem}
-.lp-spec{background:var(--gray-100);border:1px solid var(--gray-200);border-radius:10px;padding:.6rem .75rem}
-.lp-spec-l{font-size:.68rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.06em}
-.lp-spec-v{font-size:.95rem;font-weight:800;color:var(--navy)}
+/* Mismo aspecto que las fichas de vehiculo de index.html (.veh-spec):
+   fondo gris, sin borde, etiqueta gris en mayusculas y valor en morado.
+   Columnas FIJAS (4 en escritorio, 2 en movil) en vez de auto-fit: con
+   auto-fit las 7 fichas se apretaban en una sola fila y el texto partia.
+   Las fichas de texto largo (Apertura, Equipamiento) ocupan dos columnas
+   para que no partan y para que las filas cuadren. */
+.lp-specs{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-top:1rem}
+/* Borde fino: a diferencia de la portada, estas fichas caen tambien sobre
+   secciones de fondo gris, donde el relleno gris claro se perderia. */
+.lp-spec{background:var(--gray-100);border:1px solid var(--gray-200);border-radius:10px;padding:.6rem .8rem}
+.lp-spec-wide{grid-column:span 2}
+.lp-spec-l{font-size:.65rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px}
+.lp-spec-v{font-size:.9rem;font-weight:800;color:var(--purple);margin-top:2px}
+@media(max-width:860px){.lp-specs{grid-template-columns:repeat(2,1fr)}}
 
 /* chips de países */
 .lp-chips{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:1.2rem}
@@ -167,10 +186,23 @@ a{color:var(--purple)}
   .lp-trust-in{grid-template-columns:repeat(2,1fr);gap:1.1rem}
   .lp-foot-grid{grid-template-columns:1fr;gap:1.3rem}
   .lp-btns .lp-btn{flex:1 1 100%;justify-content:center}
-  .lp-logo span{display:none}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 /* selector de idiomas en la barra superior (su estilo está en idiomas.css) */
 .lp-top-right{margin-left:auto;display:flex;align-items:center;gap:.6rem;flex:none}
 @media(max-width:480px){.lp-top-cta{padding:.5rem .8rem;font-size:.75rem}}
+/* Pantallas estrechas: la barra superior lleva logo + claim + idiomas + CTA
+   y a 360px no cabia (se salia 23px). Se aprietan margenes y separaciones
+   en vez de esconder el claim, que es lo que se quiere ver. */
+@media(max-width:420px){
+  .lp-top-in{padding:.55rem .85rem}
+  .lp-logo{gap:.5rem}
+  .lp-top-right{gap:.4rem}
+  .lp-top-cta{padding:.45rem .55rem;font-size:.7rem}
+  .lp-menu-in,.lp-solo-in{padding-left:.85rem;padding-right:.85rem}
+}
+/* Por debajo de 345px (iPhone SE antiguo) ya no cabe el boton de la barra.
+   Se retira: justo debajo, en el hero, estan los tres CTA grandes de pedir
+   tarifa, asi que no se pierde ninguna via de contacto. */
+@media(max-width:345px){.lp-top-cta{display:none}}
