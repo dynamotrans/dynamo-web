@@ -218,6 +218,7 @@ PLANTILLA = """<!DOCTYPE html>
 <script defer src="/js/idiomas.js"></script>
 <script defer src="/js/festivos.js"></script>
 <script defer src="/js/fab.js"></script>
+<script defer src="/js/mapa-cobertura.js"></script>
 
 <script type="application/ld+json">
 {{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
@@ -405,12 +406,18 @@ PAGINAS.append(pagina(
   "Cobertura en España y <em>Europa</em>",
   "Servicio nacional en 24 h en toda la península y tráfico regular con doce países europeos, en grupaje y en carga completa.",
   f"""<section class="lp-sec"><div class="lp-wrap">
-    <h2>Toda <span>España</span></h2>
+    <h2>El mapa de nuestra <span>cobertura</span></h2>
+    <div class="lp-mapa" id="lp-mapa-box"><p class="lp-mapa-cargando">Cargando el mapa&hellip;</p></div>
+    <div class="lp-mapa-leyenda">
+      <span><i class="si"></i> Donde damos servicio</span>
+      <span><i class="no"></i> Fuera de cobertura</span>
+    </div>
+    <h2 style="margin-top:2.4rem">Toda <span>España</span></h2>
     <p class="lp-sub">Recogidas y entregas en cualquier provincia peninsular, con salidas diarias. Trabajamos desde Sevilla con oficinas en Madrid, Barcelona, Valencia y Bilbao.</p>
     <h2 style="margin-top:2.2rem">Y estos países de <span>Europa</span></h2>
     <div class="lp-chips"><span class="lp-chip es">España</span>{chips_eu}</div>
     <p class="lp-sub" style="font-size:.85rem;color:var(--gray-500)">Transporte por carretera en territorio continental; a las islas llegamos donde hay carretera o puente.</p>
-    <p style="margin-top:1.4rem"><a href="/#cobertura"><strong>Ver el mapa interactivo de cobertura en la web →</strong></a></p>
+    <p style="margin-top:1.4rem"><a href="/#cobertura"><strong>Ver el mapa animado en la portada →</strong></a></p>
   </div></section>""",
   "", AREA_EU))
 
