@@ -88,10 +88,6 @@
     {
       "source": "/contacto",
       "destination": "/contacto.html"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
     }
   ]
 }
