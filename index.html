@@ -2321,6 +2321,29 @@
             .g-item:nth-child(1) { grid-column:span 1; }
         }
         @keyframes chatPop { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+        /* ---- Enlaces a las páginas de sección ----------------------------------
+           Cada sección de la portada tiene su página propia (/grupajes, /cobertura…).
+           Estos enlaces las señalan desde el contenido: le sirven al visitante que
+           quiere profundizar y son la señal que Google necesita para encontrarlas
+           (antes solo colgaban del pie, que es la posición más débil). */
+        .sec-link{display:inline-flex;align-items:center;gap:.4rem;font-weight:700;
+            font-size:0.92rem;color:var(--purple);text-decoration:none;line-height:1.3;}
+        .sec-link svg{width:16px;height:16px;flex:0 0 auto;transition:transform .25s ease;}
+        .sec-link:hover{color:var(--purple-dark);text-decoration:underline;}
+        .sec-link:hover svg{transform:translateX(4px);}
+        .sec-link:focus-visible{outline:2px solid var(--purple);outline-offset:3px;border-radius:4px;}
+        .sec-link-wrap{text-align:center;margin:2.2rem 0 0;}
+        .svc-card-body .sec-link{margin-top:.8rem;font-size:0.86rem;}
+        /* Sobre fondo morado (cuerpo de las tarjetas y franja de contacto) el morado
+           no se lee: ahí el enlace va en blanco y el hover en verde de marca. */
+        .svc-grid > .svc-card:not(.svc-almacen) .svc-card-body .sec-link,
+        .cta-sec .sec-link{color:#fff;}
+        .svc-grid > .svc-card:not(.svc-almacen) .svc-card-body .sec-link:hover,
+        .cta-sec .sec-link:hover{color:var(--green);text-decoration:underline;}
+        /* .cta-sec tiene un velo ::before; sin esto el enlace quedaría por detrás. */
+        .cta-sec .sec-link-wrap{position:relative;z-index:1;}
+        @media (prefers-reduced-motion:reduce){.sec-link svg{transition:none;}}
     </style>
     <!-- Registro único de festivos (nacionales 12 países). Fuente compartida con
          el portal; cambiar festivos solo aquí: /js/festivos.js -->
@@ -2812,6 +2835,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <div class="testi-google"><svg width="14" height="14" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Google</div>
             </div>
         </div>
+        <p class="sec-link-wrap reveal"><a class="sec-link" href="/opiniones">Leer todas las opiniones<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a></p>
     </div>
 </section>
 
@@ -2833,6 +2857,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <div class="svc-card-body">
                     <h3><span class="svc-title-hl">Grupajes</span> <span class="svc-sub">Nacionales e Internacional</span></h3>
                     <p>Comparte espacio y optimiza costes. Mercancía paletizada y cargas especiales. Recogida en 24h, entrega en 24-48h.</p>
+                    <a class="sec-link" href="/grupajes">Ver grupajes en detalle<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
                 </div>
             </div>
             <div class="svc-card svc-featured reveal" style="transition-delay:.1s">
@@ -2843,6 +2868,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <div class="svc-card-body">
                     <h3><span class="svc-title-hl">Carga Completa</span> <span class="svc-sub">Nacionales e Internacional</span></h3>
                     <p>El camión es tuyo. Sin transbordos: máxima seguridad, rapidez y entrega directa origen-destino.</p>
+                    <a class="sec-link" href="/carga-completa">Ver carga completa en detalle<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
                 </div>
             </div>
             <div class="svc-card reveal" style="transition-delay:.2s">
@@ -2853,6 +2879,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <div class="svc-card-body">
                     <h3><span class="svc-title-hl">Importación</span></h3>
                     <p>Hasta la puerta de tu empresa, desde cualquier punto de Europa, con plazos garantizados y máxima calidad.</p>
+                    <a class="sec-link" href="/transporte-internacional">Ver transporte internacional<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
                 </div>
             </div>
             <div class="svc-card reveal" style="transition-delay:.3s">
@@ -2863,6 +2890,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <div class="svc-card-body">
                     <h3><span class="svc-title-hl">Exportación</span></h3>
                     <p>Portugal, Francia, Alemania, Italia, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia, República Checa, Irlanda (Norte y Sur) y Dinamarca.</p>
+                    <a class="sec-link" href="/transporte-internacional">Ver países y plazos<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
                 </div>
             </div>
         </div>
@@ -2880,6 +2908,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <div class="cobertura-map-box" id="cobertura-map-box">
             <div class="cobertura-tooltip" id="europaTooltip" aria-hidden="true"></div>
         </div>
+        <p class="sec-link-wrap reveal"><a class="sec-link" href="/cobertura">Ver toda la cobertura<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a></p>
     </div>
 </section>
 
@@ -2910,6 +2939,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <p>Deportivos, culturales, conciertos, teatros, festivales, empresariales, exposiciones, políticos.</p>
             </div>
         </div>
+        <p class="sec-link-wrap reveal"><a class="sec-link" href="/mercancias">Ver todas las mercancías<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a></p>
     </div>
 </section>
 
@@ -2979,6 +3009,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <p class="veh-nota reveal" style="text-align:center;max-width:700px;margin:2rem auto 0;font-size:0.82rem;color:var(--gray-500);line-height:1.6;padding:1rem 1.5rem;background:white;border-radius:12px;border:1px solid var(--gray-200);">
             Trabajamos <strong style="color:var(--navy);">exclusivamente con trailer tauliner (lona corredera) y rígido con plataforma (lona corredera)</strong>. No disponemos de pisos móviles, bañeras basculantes, frigoríficos ni servicio de granel o temperatura controlada.
         </p>
+        <p class="sec-link-wrap reveal"><a class="sec-link" href="/vehiculos">Ver medidas y capacidades<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a></p>
     </div>
 </section>
 
