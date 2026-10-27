@@ -5,6 +5,13 @@
    pointer-events:none en el contenedor para que su caja invisible no
    capture clics. Se reactivan en la foto y, al abrir, en los iconos.
    ======================================================================== */
+/* El componente no depende del reset de la pagina: sus pseudo-elementos
+   (punto verde, aro, chips de horario) miden siempre en border-box, igual
+   que en index.html. Sin esto el punto verde sale un 30% mas grande. */
+.contact-fab-wrap, .contact-fab-wrap *,
+.contact-fab-wrap *::before, .contact-fab-wrap *::after,
+.contact-fab::before, .contact-fab::after { box-sizing: border-box; }
+
 .contact-fab-wrap { position:fixed; bottom:calc(1.8rem + var(--lp-cookie-h, 0px)); right:1.8rem; transition:bottom .3s ease; z-index:998; display:flex; flex-direction:column-reverse; align-items:center; gap:0.85rem; pointer-events:none; }
 .contact-fab {
     width:130px; height:130px; border-radius:50%; border:none; padding:0; cursor:pointer;
