@@ -120,6 +120,30 @@ a{color:var(--purple)}
    auto-fit las 7 fichas se apretaban en una sola fila y el texto partia.
    Las fichas de texto largo (Apertura, Equipamiento) ocupan dos columnas
    para que no partan y para que las filas cuadren. */
+/* Mapa de cobertura de /cobertura. Lo rellena js/mapa-cobertura.js, que
+   solo actua si existe #lp-mapa-box; en el resto de hojas no hace nada. */
+/* Caja acotada y centrada: a todo el ancho del contenedor (1080px) el
+   mapa se iba a ~880px de alto, y al limitarlo quedaba un hueco enorme
+   a los lados. Asi llena su caja y mantiene una altura razonable. */
+.lp-mapa{position:relative;margin:1.2rem auto 0;max-width:560px;padding:1rem;min-height:230px;
+  background:var(--gray-50);border:1px solid var(--gray-200);border-radius:16px}
+/* Tope de alto: sin el, a 1080px de ancho el mapa se iba a ~880px y se
+   comia la pantalla entera. El SVG se centra dentro de su caja. */
+.lp-mapa svg{width:100%;height:auto;max-height:470px;display:block;margin:0 auto}
+@media(max-width:760px){.lp-mapa{padding:.7rem;min-height:190px}
+  .lp-mapa svg{max-height:330px}}
+.lp-mapa svg path[id]{fill:#ecedf1;stroke:#fff;stroke-width:.4}
+.lp-mapa svg path.cubierto{fill:var(--purple)}
+.lp-mapa-cargando{position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;text-align:center;padding:1rem;font-size:.82rem;color:var(--gray-500)}
+.lp-mapa.listo .lp-mapa-cargando{display:none}
+.lp-mapa-leyenda{display:flex;flex-wrap:wrap;justify-content:center;gap:.4rem 1.2rem;margin-top:.8rem;
+  font-size:.78rem;font-weight:600;color:var(--gray-700)}
+.lp-mapa-leyenda span{display:inline-flex;align-items:center;gap:.4rem}
+.lp-mapa-leyenda i{width:13px;height:13px;border-radius:4px;flex:none}
+.lp-mapa-leyenda i.si{background:var(--purple)}
+.lp-mapa-leyenda i.no{background:#ecedf1;border:1px solid var(--gray-300)}
+
 .lp-specs{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-top:1rem}
 /* Borde fino: a diferencia de la portada, estas fichas caen tambien sobre
    secciones de fondo gris, donde el relleno gris claro se perderia. */
