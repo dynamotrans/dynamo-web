@@ -1824,7 +1824,12 @@
         /* =========================================
            FOOTER
         ========================================= */
-        footer { background: var(--navy); padding: 3.5rem 2rem 1.5rem; }
+        /* El aviso de cookies es fijo al fondo y tapaba el final del pie,
+           donde estan los enlaces legales: no se podian pulsar hasta
+           aceptar o rechazar. --cookie-h lo publica el propio aviso. */
+        footer { background: var(--navy);
+            padding: 3.5rem 2rem calc(1.5rem + var(--cookie-h, 0px));
+            transition: padding-bottom 0.3s ease; }
         .footer-grid { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:3rem; padding-bottom:3rem; border-bottom:1px solid rgba(255,255,255,0.07); }
         .f-logo { font-size:1.6rem; font-weight:900; color:white; letter-spacing:-1px; margin-bottom:0.3rem; }
         .f-logo span { color:var(--green); }
@@ -1839,6 +1844,10 @@
         .f-col ul li a { color:rgba(255,255,255,0.5); text-decoration:none; font-size:0.82rem; transition:color 0.25s; }
         .f-col ul li a:hover { color:var(--green); }
         .f-bottom { max-width:1200px; margin:1.5rem auto 0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.8rem; font-size:0.77rem; color:rgba(255,255,255,0.3); }
+        /* El avatar flotante ocupa la esquina inferior derecha y tapaba
+           'Privacidad' y 'Cookies', que no se podian pulsar. Se reserva su
+           hueco. Por debajo de 600px el pie se apila y quedan libres. */
+        @media (min-width:601px) { .f-bottom { padding-right: 170px; } }
 
         /* =========================================
            FLOAT WA
@@ -4447,6 +4456,7 @@ function setCookieConsent(choice) {
     var d = new Date(); d.setFullYear(d.getFullYear() + 1);
     document.cookie = 'cookie_consent=' + choice + '; expires=' + d.toUTCString() + '; path=/; SameSite=Lax';
     document.getElementById('cookieBanner').classList.remove('show');
+    altoAvisoCookies();
 
     // Google Consent Mode v2 update
     if (choice === 'accept') {
@@ -4465,10 +4475,19 @@ function setCookieConsent(choice) {
         });
     }
 }
+// Publica el alto real del aviso en --cookie-h para que el pie se separe y
+// sus enlaces legales queden siempre pulsables.
+function altoAvisoCookies() {
+    var el = document.getElementById('cookieBanner');
+    var h = (el && el.classList.contains('show')) ? el.offsetHeight : 0;
+    document.documentElement.style.setProperty('--cookie-h', h + 'px');
+}
+window.addEventListener('resize', altoAvisoCookies);
 (function() {
     if (document.cookie.indexOf('cookie_consent=') === -1) {
         setTimeout(function() {
             document.getElementById('cookieBanner').classList.add('show');
+            altoAvisoCookies();
         }, 1500);
     }
 })();
