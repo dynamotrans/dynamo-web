@@ -344,6 +344,11 @@
     .bolsas-txt strong { color: var(--purple); }
     .bolsas-logos { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.4rem; margin-top: 0.6rem; }
     .bolsas-logos span { background: #fff; border: 1px solid var(--gray-200); border-radius: 8px; padding: 0.3rem 0.6rem; font-size: var(--fs-s); font-weight: 800; color: var(--purple); }
+    /* Nota que sale solo si el transportista elige "No tengo bolsa de carga":
+       no se le bloquea el alta, pero se le avisa de que no es automatica. */
+    .bolsas-nota { display: none; margin-top: 0.6rem; background: #fff; border: 1.5px solid var(--orange); border-radius: 10px; padding: 0.6rem 0.75rem; font-size: var(--fs-m); color: #8a5a00; line-height: 1.45; }
+    .bolsas-nota.on { display: block; }
+    .bolsas-nota strong { color: var(--orange); }
     .bolsas-logos img { height: 22px; width: auto; display: block; background: #fff; border: 1px solid var(--gray-200); border-radius: 8px; padding: 0.25rem 0.5rem; object-fit: contain; }
 
     .chk-row { max-width: 320px; margin: 0 auto; display: flex; justify-content: space-between; align-items: baseline; font-size: var(--fs-m); font-weight: 700; color: var(--gray-500); }
@@ -700,6 +705,12 @@
                             <label for="alta-bolsa">Código bolsa de carga *</label>
                             <input type="text" id="alta-bolsa" placeholder="Ej. 482113">
                         </div>
+                    </div>
+                    <div class="bolsas-nota" id="altaSinBolsa">
+                        <strong>Tu alta quedar&aacute; pendiente de revisi&oacute;n.</strong> Trabajamos con
+                        transportistas dados de alta en una bolsa del grupo Alpega. Sin ella podemos darte de
+                        alta igualmente, pero un agente de Dynamo tiene que revisar tu documentaci&oacute;n
+                        antes de asignarte cargas.
                     </div>
                     <label for="alta-dir">Domicilio fiscal (calle y número) *</label>
                     <input type="text" id="alta-dir" placeholder="Calle y número">
@@ -1392,6 +1403,8 @@
         // vacía y se deshabilita. Con una bolsa real → se pide el código.
         if (t.value === 'Ninguna' || t.value === '') { c.value = t.value === 'Ninguna' ? 'Ninguna' : ''; c.disabled = true; c.classList.remove('err'); }
         else { if (c.value === 'Ninguna' || c.value === '') c.value = ''; c.disabled = false; }
+        var nota = document.getElementById('altaSinBolsa');
+        if (nota) nota.classList.toggle('on', t.value === 'Ninguna');
         if (t.value) t.classList.remove('err');   // rojo→verde al elegir
         // La documentación del alta se pide SIEMPRE (antes solo sin bolsa).
         setTimeout(updateScrollHint, 60);
