@@ -333,6 +333,19 @@
     /* Barra de progreso + contador de la comprobación de disponibilidad */
     .chk-bar-wrap { max-width: 320px; height: 10px; margin: 1.3rem auto 0.5rem; background: var(--gray-200); border-radius: 999px; overflow: hidden; }
     .chk-bar { height: 100%; width: 0; background: linear-gradient(90deg, var(--purple), var(--green)); border-radius: 999px; transition: width 0.08s linear; }
+    /* Aviso de BOLSAS DE CARGA: solo se trabaja con transportistas dados de
+       alta en una bolsa del grupo Alpega. Sale en la pantalla de "comprobando
+       disponibilidad" (aprovecha la espera) y en el formulario de alta.
+       Las pastillas de texto son PROVISIONALES: cuando haya logos, se
+       sustituye cada <span> por <img src="images/bolsas/xxx.png" alt="...">
+       y el CSS ya los coloca igual. */
+    .bolsas { margin-top: 1.3rem; background: rgba(51,0,204,0.05); border: 1.5px solid rgba(51,0,204,0.22); border-radius: 10px; padding: 0.7rem 0.8rem; }
+    .bolsas-txt { font-size: var(--fs-m); color: var(--navy); line-height: 1.45; margin: 0; text-align: center; }
+    .bolsas-txt strong { color: var(--purple); }
+    .bolsas-logos { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.4rem; margin-top: 0.6rem; }
+    .bolsas-logos span { background: #fff; border: 1px solid var(--gray-200); border-radius: 8px; padding: 0.3rem 0.6rem; font-size: var(--fs-s); font-weight: 800; color: var(--purple); }
+    .bolsas-logos img { height: 22px; width: auto; display: block; background: #fff; border: 1px solid var(--gray-200); border-radius: 8px; padding: 0.25rem 0.5rem; object-fit: contain; }
+
     .chk-row { max-width: 320px; margin: 0 auto; display: flex; justify-content: space-between; align-items: baseline; font-size: var(--fs-m); font-weight: 700; color: var(--gray-500); }
     /* Etiqueta de la espera de trámite: una sola línea centrada bajo la barra
        (sin % — se montaba con el texto largo). */
@@ -516,6 +529,16 @@
             <p class="sub">Estamos verificando si la carga <strong id="chk-ref">—</strong> sigue disponible.</p>
             <div class="chk-bar-wrap"><div class="chk-bar" id="chk-bar"></div></div>
             <div class="chk-row"><span class="chk-pct" id="chk-pct">0%</span><span class="chk-cd"><strong id="chk-count">3</strong> s</span></div>
+            <div class="bolsas">
+                <p class="bolsas-txt">Solo trabajamos con transportistas dados de alta en una
+                   <strong>bolsa de carga del grupo Alpega</strong>.</p>
+                <!-- LOGOS: cuando los tengas, sustituye cada <span> por
+                     <img src="images/bolsas/wtransnet.png" alt="Wtransnet"> y
+                     listo: el CSS ya los coloca igual. -->
+                <div class="bolsas-logos">
+                    <span>Wtransnet</span><span>Teleroute</span><span>Bursa&nbsp;Transport</span><span>123cargo</span>
+                </div>
+            </div>
         </div>
 
         <!-- 0-bis) YA NO DISPONIBLE: la aceptó otro transportista. Datos del que
@@ -660,10 +683,18 @@
                             <input type="text" id="alta-cif" placeholder="B12345678 / 12345678Z" autocapitalize="characters">
                         </div>
                     </div>
+                    <div class="bolsas" style="margin-bottom:0.7rem;">
+                        <p class="bolsas-txt">Para trabajar con Dynamo tienes que estar dado de alta en una
+                           <strong>bolsa de carga del grupo Alpega</strong>.</p>
+                        <!-- LOGOS: mismo cambio que en la pantalla de comprobación. -->
+                        <div class="bolsas-logos">
+                            <span>Wtransnet</span><span>Teleroute</span><span>Bursa&nbsp;Transport</span><span>123cargo</span>
+                        </div>
+                    </div>
                     <div class="row2">
                         <div>
                             <label for="alta-bolsa-tipo">Bolsa de carga *</label>
-                            <select id="alta-bolsa-tipo" onchange="altaBolsaSync()"><option value="" selected disabled>Selecciona tu bolsa de carga…</option><option value="Wtransnet">Wtransnet</option><option value="Teleroute">Teleroute</option><option value="Bursa">Bursa</option><option value="Ninguna">No tengo bolsa de carga</option></select>
+                            <select id="alta-bolsa-tipo" onchange="altaBolsaSync()"><option value="" selected disabled>Selecciona tu bolsa de carga…</option><option value="Wtransnet">Wtransnet</option><option value="Teleroute">Teleroute</option><option value="Bursa Transport">Bursa Transport</option><option value="123cargo">123cargo</option><option value="Ninguna">No tengo bolsa de carga</option></select>
                         </div>
                         <div>
                             <label for="alta-bolsa">Código bolsa de carga *</label>
