@@ -580,7 +580,18 @@ do $$ declare e uuid := current_setting('prueba.envio')::uuid;
     update envios set vehiculo_camion_id = rem where id = e;
     raise exception 'FALLO 25 · se ha puesto un remolque como camion';
   exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
-  raise notice 'OK 25 · camion y remolque cuadran: un rigido nunca lleva remolque';
+  -- Autónomo que viene SUBCONTRATADO: su camión "suele venir" con otra empresa, o con
+  -- ninguna. Se tiene que poder poner igual.
+  insert into vehiculos (transportista_id, matricula, tipo) values (null, '5555 MNP', 'tractora')
+    returning id into tra;
+  update envios set vehiculo_camion_id = tra, matricula_camion = '5555 MNP' where id = e;
+  insert into conductores (nombre, documento) values ('Autonomo Subcontratado', '12345678Z');
+  begin
+    insert into conductores (nombre, documento, transportista_id)
+      values ('El mismo con otra empresa', '12345678-z', t);
+    raise exception 'FALLO 25 · el mismo conductor (mismo DNI) se ha dado de alta dos veces';
+  exception when unique_violation then null; end;
+  raise notice 'OK 25 · rigido sin remolque; camiones y conductores libres (pueden venir subcontratados)';
 end $$;
 
 -- ---- 26. La vista del cliente sigue sin enseñar lo interno ---------------------------
