@@ -65,7 +65,8 @@ reconstruir nada.
 | `20261102160000_clientes_transportistas_ajustes.sql` | revisión con el usuario: `nombre` → `razon_social` + `nombre_comercial` + `nombre_visible` (calculada); transportistas: `bolsa` + `codigo_bolsa` (solo bolsas de Alpega) y `pronto_pago` por transportista | ✅ listo |
 | `20261102170000_contactos_usuarios_ajustes.sql` | revisión con el usuario: `idioma` y `cargo` en contactos y usuarios, `recibe_avisos` en contactos, `limite_ppto_diario` → `limite_consultas_precio_diario` | ✅ listo |
 | `20261102180000_lugares_ajustes.sql` | revisión con el usuario: `requiere_cita` (no por defecto) y `tiene_medios_carga` (sí por defecto) en sitios | ✅ listo |
-| `20261102190000_lugares_visibilidad.sql` | **quién ve cada sitio** (opción A del usuario, «compartido pero discreto»): agenda `cliente_agenda_lugares`, cada cliente ve solo lo que creó o usó + almacenes Dynamo; una sola ficha por nave; solo la edita quien la creó; «borrar» = quitar de tu agenda; deduplicación al dar de alta (solo servidor) | ✅ listo |
+| `20261102190000_lugares_visibilidad.sql` | **quién ve cada sitio** (opción A del usuario, «compartido pero discreto»): agenda `cliente_agenda_lugares`, cada cliente ve solo lo que creó o usó + almacenes Dynamo; una sola ficha por nave; solo la edita quien la creó; «borrar» = quitar de tu agenda; deduplicación al dar de alta (solo servidor) | ⚠️ sustituida por la siguiente |
+| `20261102200000_lugares_por_cliente.sql` | **cada cliente sus sitios** (el usuario lo cambió al pensar en casos reales: notas personales y teléfonos que cambiarían a otro cliente): `lugares.cliente_id` obligatorio salvo almacenes Dynamo; cada cliente ve, edita y borra solo los suyos; un envío solo usa sitios de su cliente. Fuera la agenda compartida y `lugar_notas_cliente` (las notas van en la ficha) | ✅ listo |
 | `AAAAMMDDhhmmss_operativa.sql` | `tickets`, `penalizaciones`, `almacenamientos`, `documentos`, `firmas_cmr` | pendiente |
 | `AAAAMMDDhhmmss_tarifas_plantillas.sql` | tarifas con vigencia y plantillas de texto (la tabla `parametros` ya la crea la 0010: aquí solo se le añaden claves). **Bloqueada**: falta el libro de tarifar del usuario y el código del Apps Script | pendiente |
 | `AAAAMMDDhhmmss_vistas_holded_wtransnet.sql` | vistas de exportación + métricas de cliente/transportista | pendiente |
@@ -334,3 +335,20 @@ parada, el conductor lo leería del código de la página.
   `validar_pin_parada` y comprueba quién es el transportista antes de llamarlas.
 - Vista del transportista con **sus** ofertas sin el % de banda (va con las políticas, 0014).
 - Pasar el envío a `cargando` / `en_ruta` al validar el PIN de la primera carga: decidir.
+
+
+### Sitios: de "compartidos" a "cada cliente los suyos" (2026-11-02)
+
+Primero se montó «compartido pero discreto» (una ficha por nave, cada cliente ve las que usa).
+Al pensarlo con casos reales el usuario prefirió **una ficha por cliente**, y tiene razón:
+- las notas son personales («Manolo, el de cargas, es amigo de Pepe mi primo»);
+- en una ficha compartida, si un cliente cambia el teléfono o el horario, se le cambia al otro sin enterarse;
+- y el segundo cliente no podía corregir nada de una nave que no había creado.
+
+Precio aceptado: si dos clientes cargan en la misma nave hay **dos fichas**. Para estadísticas
+por nave real se puede añadir más adelante un **enlace interno, solo de Dynamo**, entre fichas
+que sean el mismo sitio (por ejemplo `sitio_maestro_id`). No se monta ahora.
+
+**Fallo cazado al probar:** con los sitios borrados ocultos para el cliente, **borrar no
+funcionaba**: Postgres exige que la fila siga visible tras un UPDATE, y el borrado suave es un
+UPDATE. El cliente ve también sus propios borrados; el panel filtra `borrado = false`.

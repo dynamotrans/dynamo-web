@@ -20,7 +20,7 @@
 | `dy_cargas_hoja` | **123** (A→DS) | El envío. El corazón de todo | `envios` + `envio_paradas` + `envio_hitos` |
 | `dy_ticket_hoja` | 17 | Incidencias / tickets | `tickets` |
 | `dy_lugar` | 18 | Catálogo de sitios | `lugares` + `lugar_contactos` |
-| `dy_lugar_anotaciones_cliente` | 5 | Notas privadas de un cliente sobre un sitio | `lugar_notas_cliente` |
+| `dy_lugar_anotaciones_cliente` | 5 | Notas privadas de un cliente sobre un sitio | `lugares.anotaciones` (cada cliente tiene sus propias fichas desde 2026-11-02) |
 | `dy_clientes_hoja` | 44 | Clientes | `clientes` + `contactos` |
 | `dy_transportistas_hoja` | 34 | Transportistas | `transportistas` + `contactos` |
 | `dy_contactos_clientes_transportistas_hoja` | 13 | Usuarios de acceso al portal | `usuarios` (Supabase Auth) + `contactos` |
@@ -500,7 +500,7 @@ propio. Lista completa, por grupos:
 
 | # | Tabla | Nota |
 |---|---|---|
-| 17 | **`lugar_notas_cliente`** | ✅ Ya la tienes (`dy_lugar_anotaciones_cliente`). **Buen diseño**: la nota privada de un cliente sobre un sitio compartido. Se queda tal cual. |
+| 17 | ~~`lugar_notas_cliente`~~ | **Quitada el 2026-11-02**: el usuario decidió que cada cliente tenga sus propias fichas de sitio, así que sus notas van en la propia ficha (`lugares.anotaciones`). |
 | 18 | **`tarifas`** | ❌ **La que más falta.** Ver abajo. |
 | 19 | **`parametros`** | `dy_bbdd_auxiliar`: diésel €/l, tabla ml→Tn→palés, diccionario. |
 | 20 | **`plantillas`** | Las `MAIL_COMERCIAL_*`, la coletilla de contraoferta, los textos de orden y proforma. |

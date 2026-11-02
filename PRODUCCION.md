@@ -99,8 +99,9 @@ crear clientes). **Faltan las políticas por rol** (0914) y sus dos riesgos anot
     el margen. Son columnas, así que hace falte una **vista** por rol, porque RLS filtra
     filas y no columnas.
   - **El transportista NUNCA ve** su `estado_operativo` ni su `valoracion_dynamo`.
-  - Las **notas privadas de cliente sobre un lugar** (`lugar_notas_cliente`): la de un
-    cliente no la puede leer otro.
+  - **Los sitios son de cada cliente** (`lugares.cliente_id`, decisión 2026-11-02): un
+    cliente no puede leer ni editar los sitios, notas ni contactos de otro. Ya probado en
+    el arnés (`tools/probar-migraciones`, comprobaciones 21-23).
 
 **Cómo se comprueba**: tests de aislamiento. Dos clientes, cada uno con un envío; con el
 token del cliente A pedir el envío del cliente B por su id directo y **esperar 0 filas**,
