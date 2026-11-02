@@ -607,3 +607,84 @@ do $$ declare cols text; begin
   end if;
   raise notice 'OK 26 · la vista del cliente no ensena precio del transportista, margen ni factor';
 end $$;
+
+-- =====================================================================================
+-- ENVÍOS MANUALES: el cliente con su propio transportista (v1.0, 2026-11-02)
+-- =====================================================================================
+-- ---- 27. Cada cliente su catálogo de operadores, privado ----------------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare o uuid; begin
+  insert into operadores (razon_social, cif, email)
+    values ('Transportes Iberia Express S.L.', 'B58830217', 'trafico@iberia.prueba') returning id into o;
+  perform set_config('prueba.operador_a', o::text, false);
+  begin
+    insert into operadores (razon_social, cif) values ('Iberia repetida', 'b-58830217');
+    raise exception 'FALLO 27 · el mismo CIF esta dos veces en el catalogo del cliente';
+  exception when unique_violation then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+set role authenticated;
+do $$ declare n int; begin
+  select count(*) into n from operadores;
+  if n <> 0 then raise exception 'FALLO 27 · FUGA: B ve los operadores de A'; end if;
+  insert into operadores (razon_social, cif) values ('Iberia para B', 'B58830217');  -- otro cliente, sí
+  raise notice 'OK 27 · cada cliente tiene su catalogo de operadores privado, sin CIF repetidos';
+end $$;
+reset role;
+
+-- ---- 28. El envío manual: Dynamo no interviene en nada -------------------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare e uuid; o uuid := current_setting('prueba.operador_a')::uuid; begin
+  insert into envios (cliente_id, metros_lineales, operador_id, precio_acordado_operador)
+    values (cliente_del_usuario(), 13.30, o, 950) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  -- Destino donde DYNAMO no da servicio: al transportista del cliente no le afecta.
+  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion, pais_codigo_iso)
+    values (e, 2, 'descarga', '8001', 'Zurich', 'CH');
+  update envios set estado = 'programado' where id = e;
+  perform set_config('prueba.envio_manual', e::text, false);
+  if not (select es_manual from v_envios_cliente where id = e)
+     or (select precio_acordado_operador from v_envios_cliente where id = e) <> 950 then
+    raise exception 'FALLO 28 · el cliente no ve su envio manual con su precio acordado';
+  end if;
+end $$;
+reset role;
+do $$ declare e uuid := current_setting('prueba.envio_manual')::uuid; begin
+  if exists (select 1 from envio_parada_pines where envio_id = e) then
+    raise exception 'FALLO 28 · se han generado PIN en un envio manual';
+  end if;
+  begin
+    perform ofertar_envio(e, current_setting('prueba.transp')::uuid, 'email', 500);
+    raise exception 'FALLO 28 · Dynamo ha ofertado un envio manual a su red';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  begin
+    update envios set importe_cliente = 1000 where id = e;
+    raise exception 'FALLO 28 · un envio manual tiene precio de Dynamo';
+  exception when check_violation then null; end;
+  begin
+    update envios set operador_id = (select id from operadores where razon_social = 'Iberia para B')
+     where id = e;
+    raise exception 'FALLO 28 · un envio usa el operador de OTRO cliente';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  raise notice 'OK 28 · envio manual: sin ofertas, sin PIN, sin precio de Dynamo ni zonas de Dynamo';
+end $$;
+
+-- ---- 29. Y un envío de Dynamo a Zúrich SIGUE bloqueado ----------------------------
+do $$ declare e uuid; begin
+  insert into envios (cliente_id, metros_lineales)
+    values ((select id from clientes where cif = 'B44444444'), 13.30) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion, pais_codigo_iso)
+    values (e, 2, 'descarga', '8001', 'Zurich', 'CH');
+  begin
+    update envios set estado = 'programado' where id = e;
+    raise exception 'FALLO 29 · Dynamo ha aceptado un envio a una zona donde no da servicio';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  raise notice 'OK 29 · las zonas sin servicio siguen bloqueando los envios de Dynamo';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
