@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { COOKIE_RECORDAR, duracionSegunRecordar } from '@/lib/supabase/recordar';
 
 // Refresca la sesión de Supabase en cada petición de la plataforma y protege /panel:
 // sin sesión, a la página de entrada.
@@ -9,6 +10,7 @@ export async function middleware(request: NextRequest) {
   const clave = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !clave) return respuesta;   // sin configurar: la página lo explica
 
+  const mantener = request.cookies.get(COOKIE_RECORDAR)?.value !== '0';
   const supabase = createServerClient(url, clave, {
     cookies: {
       getAll() {
@@ -17,7 +19,7 @@ export async function middleware(request: NextRequest) {
       setAll(lista) {
         lista.forEach(({ name, value }) => request.cookies.set(name, value));
         respuesta = NextResponse.next({ request });
-        lista.forEach(({ name, value, options }) => respuesta.cookies.set(name, value, options));
+        lista.forEach(({ name, value, options }) => respuesta.cookies.set(name, value, duracionSegunRecordar(options, mantener)));
       },
     },
   });

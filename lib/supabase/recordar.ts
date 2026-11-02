@@ -1,0 +1,11 @@
+// "Recordarme" (pantalla de entrada). Si se desmarca, las cookies de la sesión pasan a ser
+// de sesión del navegador: al cerrarlo, hay que volver a entrar. Marcado (por defecto),
+// la sesión se conserva. La marca vive en su propia cookie para que el middleware, que
+// renueva la sesión en cada visita, respete la misma elección.
+export const COOKIE_RECORDAR = 'dyn_recordar';
+type OpcionesCookie = { maxAge?: number; expires?: Date | number | string } & Record<string, unknown>;
+export function duracionSegunRecordar<T extends OpcionesCookie>(options: T, recordar: boolean): T {
+  if (recordar) return options;
+  const { maxAge: _m, expires: _e, ...resto } = options;
+  return resto as T;
+}

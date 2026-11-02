@@ -1,0 +1,183 @@
+/* Pantalla de entrada: COPIA EXACTA del diseño de portal.html (regla 0-quater).
+   Los estilos vienen tal cual de ese archivo; si se cambia allí, cambiar aquí. */
+.portal-page { min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column;
+  color: var(--navy); -webkit-font-smoothing: antialiased; padding-bottom: env(safe-area-inset-bottom); }
+:where(.portal-page *, .portal-page *::before, .portal-page *::after) { margin: 0; padding: 0; box-sizing: border-box; }
+:root { --fs-s: 0.82rem; --fs-d4: 1.7rem; --gray-200: #e8eaed; }
+.portal-bg {
+    position: fixed; inset: 0; z-index: 0;
+    background:
+        radial-gradient(circle at 15% 20%, rgba(51,0,204,0.10), transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(34,165,90,0.08), transparent 40%),
+        linear-gradient(135deg, #f7f8fa 0%, #ffffff 100%);
+}
+.portal-bg::before {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+        linear-gradient(rgba(51,0,204,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(51,0,204,0.04) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+}
+.portal-wrap {
+    position: relative; z-index: 1;
+    flex: 1; display: flex;
+    /* "safe center": centra solo si el contenido cabe en el viewport.
+       Si es mas alto que la pantalla, cae a flex-start y se scrollea
+       (asi en movil con login + extras no se corta el fondo) */
+    align-items: safe center; justify-content: center;
+    padding: 2rem 1.2rem;
+}
+.portal-card {
+    width: 100%; max-width: 440px;
+    background: white;
+    border-radius: 22px;
+    box-shadow: 0 30px 80px rgba(10,2,48,0.12), 0 8px 20px rgba(10,2,48,0.04);
+    border: 1px solid rgba(51,0,204,0.06);
+    padding: 2.2rem 2rem 1.8rem;
+    position: relative;
+    overflow: hidden;
+    animation: portalCardIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+}
+@keyframes portalCardIn {
+    0%   { opacity: 0; transform: translateY(28px) scale(0.94); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.portal-bg { animation: portalBgIn 0.7s ease both; }
+@keyframes portalBgIn {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+}
+.portal-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:4px;
+    background: linear-gradient(90deg, var(--purple), var(--purple-light), var(--green));
+}
+.portal-logo { display: flex; justify-content: center; margin-bottom: 1rem; }
+.portal-logo img { height: 44px; width: auto; }
+.portal-title {
+    text-align: center; font-size: var(--fs-d4); font-weight: 900;
+    color: var(--navy); letter-spacing: -0.5px; line-height: 1.15;
+    margin-bottom: 0.35rem;
+}
+.portal-subtitle {
+    text-align: center; font-size: var(--fs-m); color: var(--gray-500);
+    margin-bottom: 1.3rem; line-height: 1.5;
+}
+.portal-badge {
+    display: flex; align-items: center; justify-content: center; gap: 0.45rem;
+    background: linear-gradient(135deg, rgba(255,122,0,0.10), rgba(255,212,0,0.10));
+    border: 1px solid rgba(255,122,0,0.25);
+    color: var(--orange);
+    padding: 0.55rem 0.9rem; border-radius: 10px;
+    font-size: var(--fs-s); font-weight: 800;
+    letter-spacing: 0.8px; text-transform: uppercase;
+    margin-bottom: 1.4rem;
+}
+.portal-badge .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--orange); animation: portalDot 1.6s ease-in-out infinite;
+}
+@keyframes portalDot { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
+
+.portal-field { margin-bottom: 0.95rem; }
+.portal-label {
+    display: block; font-size: var(--fs-s); font-weight: 800;
+    color: var(--gray-500); text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 0.4rem;
+}
+.portal-input-wrap { position: relative; }
+.portal-input-wrap svg {
+    position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%);
+    width: 16px; height: 16px; color: var(--gray-500); pointer-events: none;
+}
+.portal-input {
+    width: 100%; padding: 0.85rem 0.9rem 0.85rem 2.4rem;
+    border-radius: 11px; border: 1.5px solid var(--gray-200);
+    background: white; color: var(--navy);
+    font-size: 16px; font-weight: 600;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    outline: none;
+}
+.portal-input::placeholder { color: var(--gray-500); opacity: 0.7; }
+.portal-input:hover { border-color: rgba(51,0,204,0.4); }
+.portal-input:focus { border-color: var(--purple); box-shadow: 0 0 0 4px rgba(51,0,204,0.08); }
+.portal-input:disabled { background: var(--gray-100); color: var(--gray-500); cursor: not-allowed; }
+
+.portal-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.2rem; font-size: var(--fs-m);
+}
+.portal-check { display: flex; align-items: center; gap: 0.45rem; color: var(--gray-700); cursor: pointer; }
+.portal-check input { cursor: pointer; accent-color: var(--purple); }
+.portal-forgot { color: var(--purple); text-decoration: none; font-weight: 700; }
+.portal-forgot:hover { text-decoration: underline; }
+
+.portal-submit {
+    width: 100%; padding: 0.95rem; border: none; border-radius: 12px;
+    background: linear-gradient(135deg, var(--purple), var(--purple-light));
+    color: white; font-size: var(--fs-l); font-weight: 900;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+}
+.portal-submit:hover { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(51,0,204,0.28); }
+.portal-submit:active { transform: translateY(0); }
+.portal-submit svg { width: 14px; height: 14px; }
+
+.portal-create {
+    width: 100%; padding: 0.85rem; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    background: white; color: var(--purple);
+    border: 1.5px solid var(--purple);
+    font-size: var(--fs-l); font-weight: 900; letter-spacing: 0.5px;
+    text-decoration: none; text-transform: uppercase;
+    transition: all 0.2s; box-sizing: border-box;
+}
+.portal-create:hover { background: var(--purple); color: white; transform: translateY(-1px); box-shadow: 0 8px 22px rgba(51,0,204,0.25); }
+.portal-create svg { width: 16px; height: 16px; }
+
+.portal-divider {
+    display: flex; align-items: center; gap: 0.8rem;
+    margin: 1.3rem 0 1rem; color: var(--gray-500);
+    font-size: var(--fs-s); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+.portal-divider::before, .portal-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--gray-200);
+}
+.portal-info {
+    background: rgba(51,0,204,0.04);
+    border: 1px solid rgba(51,0,204,0.08);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    font-size: var(--fs-m); color: var(--gray-700); line-height: 1.55;
+    margin-bottom: 1rem;
+}
+.portal-info strong { color: var(--purple); }
+
+.portal-back {
+    display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+    color: var(--gray-500); text-decoration: none; font-size: var(--fs-m); font-weight: 700;
+    padding: 0.6rem; border-radius: 10px; transition: background 0.2s;
+}
+.portal-back:hover { background: var(--gray-100); color: var(--navy); }
+.portal-back svg { width: 14px; height: 14px; }
+
+.portal-foot {
+    position: relative; z-index: 1;
+    text-align: center; padding: 1rem;
+    font-size: var(--fs-s); color: var(--gray-500);
+}
+.portal-foot a { color: var(--gray-500); text-decoration: none; }
+.portal-foot a:hover { color: var(--purple); }
+
+@media (max-width: 480px) {
+    .portal-wrap { padding: 1.2rem 1rem; }
+    .portal-card { padding: 1.8rem 1.4rem 1.4rem; border-radius: 18px; }
+    .portal-title { font-size: var(--fs-d3); }
+}
+
+.portal-card .warn { margin-bottom: 1rem; }
+.portal-submit:disabled { opacity: 0.7; cursor: wait; transform: none; box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .portal-card, .portal-bg { animation: none; } }
+.portal-card > .portal-back { margin-top: 0.9rem; }
