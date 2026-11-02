@@ -5,15 +5,15 @@
 *.md
 
 # Generador de las hojas de sección (se ejecuta en local, no en el servidor)
-tools/
+/tools/
 
 # Plantillas de email de Brevo (las IMÁGENES de images/email/ sí se publican:
 # el email las carga desde dynamotrans.com)
-emails/
+/emails/
 
 # Automatizaciones de GitHub
-.github/
+/.github/
 
 # Migraciones de la base de datos: no hacen falta para compilar la web.
 # (OJO: scripts/ NO va aqui: lo necesita la compilacion de Next.js en pruebas.)
-supabase/
+/supabase/
