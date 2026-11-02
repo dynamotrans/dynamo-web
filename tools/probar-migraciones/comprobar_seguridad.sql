@@ -537,28 +537,24 @@ end $$;
 -- =====================================================================================
 -- FLOTA (2026-11-02)
 -- =====================================================================================
--- ---- 24. Matrículas españolas con su formato; extranjeras en suave -------------------
+-- ---- 24. Matrículas: sin duplicados aunque se escriban distinto ----------------------
 do $$ declare t uuid := current_setting('prueba.transp')::uuid; begin
   insert into vehiculos (transportista_id, matricula, tipo) values (t, '1234 lbc', 'tractora');
   insert into vehiculos (transportista_id, matricula, tipo) values (t, 'R-5678-BCD', 'remolque');
-  insert into vehiculos (transportista_id, matricula, tipo) values (t, 'SE-1234-AB', 'tractora');
   insert into vehiculos (transportista_id, matricula, tipo) values (t, '9876 KJH', 'rigido');
-  insert into vehiculos (transportista_id, matricula, tipo, pais_matricula) values (t, 'WGM 12345', 'tractora', 'PL');
-  begin
-    insert into vehiculos (transportista_id, matricula, tipo) values (t, '1234 LB', 'tractora');
-    raise exception 'FALLO 24 · se ha aceptado una matricula espanola incompleta';
-  exception when check_violation then null; end;
-  begin
-    insert into vehiculos (transportista_id, matricula, tipo) values (t, '5678 BCD', 'remolque');
-    raise exception 'FALLO 24 · se ha aceptado un remolque espanol sin la R';
-  exception when check_violation then null; end;
+  insert into vehiculos (transportista_id, matricula, tipo) values (t, 'WGM 12345', 'tractora');
   begin
     insert into vehiculos (transportista_id, matricula, tipo) values (t, '1234-LBC', 'tractora');
     raise exception 'FALLO 24 · se ha duplicado una matricula escrita de otra forma';
   exception when unique_violation then null; end;
-  -- La misma matrícula en otro país sí puede existir.
-  insert into vehiculos (transportista_id, matricula, tipo, pais_matricula) values (t, '1234LBC', 'tractora', 'PT');
-  raise notice 'OK 24 · matriculas espanolas con formato exacto, extranjeras en suave, sin duplicados';
+  begin
+    insert into vehiculos (transportista_id, matricula, tipo) values (t, 'X1', 'tractora');
+    raise exception 'FALLO 24 · se ha aceptado una matricula de 2 caracteres';
+  exception when check_violation then null; end;
+  if exists (select 1 from information_schema.columns where column_name = 'tiene_whatsapp') then
+    raise exception 'FALLO 24 · sigue existiendo alguna columna tiene_whatsapp';
+  end if;
+  raise notice 'OK 24 · matriculas sin duplicados; sin columnas tiene_whatsapp (movil = WhatsApp)';
 end $$;
 
 -- ---- 25. Un rígido no lleva remolque; las piezas tienen que cuadrar ------------------
@@ -566,7 +562,7 @@ do $$ declare e uuid := current_setting('prueba.envio')::uuid;
               t uuid := current_setting('prueba.transp')::uuid;
               rig uuid; tra uuid; rem uuid; begin
   select id into rig from vehiculos where transportista_id = t and tipo = 'rigido' limit 1;
-  select id into tra from vehiculos where transportista_id = t and tipo = 'tractora' and pais_matricula = 'ES' limit 1;
+  select id into tra from vehiculos where transportista_id = t and tipo = 'tractora' and matricula = '1234 lbc';
   select id into rem from vehiculos where transportista_id = t and tipo = 'remolque' limit 1;
   update envios set vehiculo_camion_id = tra, vehiculo_remolque_id = rem,
                     matricula_camion = '1234 LBC', matricula_remolque = 'R 5678 BCD' where id = e;
