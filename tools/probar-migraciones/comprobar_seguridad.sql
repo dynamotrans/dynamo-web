@@ -436,3 +436,14 @@ do $$ declare c uuid; k uuid; begin
    where id = current_setting('prueba.u_cli')::uuid;
   raise notice 'OK 19 · idioma, recibe_avisos, cargo y limite de consultas de precio';
 end $$;
+
+-- ---- 20. Sitios: cita previa (no por defecto) y medios de carga (sí por defecto) -----
+do $$ declare l uuid; begin
+  insert into lugares (nombre_empresa) values ('Nave Prueba') returning id into l;
+  if (select requiere_cita from lugares where id = l)
+     or not (select tiene_medios_carga from lugares where id = l) then
+    raise exception 'FALLO 20 · por defecto deberia ser: sin cita previa y con medios de carga';
+  end if;
+  update lugares set requiere_cita = true, tiene_medios_carga = false where id = l;
+  raise notice 'OK 20 · sitios: sin cita previa y con medios de carga por defecto';
+end $$;

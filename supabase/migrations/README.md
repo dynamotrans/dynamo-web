@@ -64,6 +64,7 @@ reconstruir nada.
 | `20261102091000_hitos_y_ofertas.sql` | `parametros`, `envio_hitos` (append-only), `envio_ofertas`, `envio_reservas` (bloqueo de 3 min + aceptación atómica + contraoferta), PIN de recogida/entrega (`envio_parada_pines` + `pin_intentos`) | ✅ listo |
 | `20261102160000_clientes_transportistas_ajustes.sql` | revisión con el usuario: `nombre` → `razon_social` + `nombre_comercial` + `nombre_visible` (calculada); transportistas: `bolsa` + `codigo_bolsa` (solo bolsas de Alpega) y `pronto_pago` por transportista | ✅ listo |
 | `20261102170000_contactos_usuarios_ajustes.sql` | revisión con el usuario: `idioma` y `cargo` en contactos y usuarios, `recibe_avisos` en contactos, `limite_ppto_diario` → `limite_consultas_precio_diario` | ✅ listo |
+| `20261102180000_lugares_ajustes.sql` | revisión con el usuario: `requiere_cita` (no por defecto) y `tiene_medios_carga` (sí por defecto) en sitios | ✅ listo |
 | `AAAAMMDDhhmmss_operativa.sql` | `tickets`, `penalizaciones`, `almacenamientos`, `documentos`, `firmas_cmr` | pendiente |
 | `AAAAMMDDhhmmss_tarifas_plantillas.sql` | tarifas con vigencia y plantillas de texto (la tabla `parametros` ya la crea la 0010: aquí solo se le añaden claves). **Bloqueada**: falta el libro de tarifar del usuario y el código del Apps Script | pendiente |
 | `AAAAMMDDhhmmss_vistas_holded_wtransnet.sql` | vistas de exportación + métricas de cliente/transportista | pendiente |
