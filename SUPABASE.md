@@ -635,7 +635,7 @@ supabase/migrations/
   20261102091000_hitos_y_ofertas.sql
   AAAAMMDDhhmmss_operativa.sql
   AAAAMMDDhhmmss_tarifas_plantillas.sql
-  AAAAMMDDhhmmss_vistas_holded_wtransnet.sql
+  20261103020000_exportaciones_holded_wtransnet.sql   (hecha)
   20261103010000_permisos_por_rol.sql   (hecha)
 ```
 

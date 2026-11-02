@@ -1057,3 +1057,98 @@ do $$ declare emp uuid; begin
   raise notice 'OK 41 · el cliente ve su empresa sin el factor; nadie se cambia el rol; solo admin concede admin';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- =====================================================================================
+-- EXPORTACIONES HOLDED Y WTRANSNET (2026-11-03)
+-- =====================================================================================
+-- ---- 42. Las cabeceras son EXACTAMENTE las de las plantillas del Sheet --------------
+do $$ declare got text[]; exp text[]; v text; begin
+  foreach v in array array['v_holded_pedido_venta','v_holded_pedido_compra','v_wtransnet'] loop
+    select array_agg(column_name::text order by ordinal_position) into got
+      from information_schema.columns where table_schema = 'public' and table_name = v;
+    exp := case v
+      when 'v_holded_pedido_venta' then array['ESTADO VIAJE','EN HOLDED?','FACTURADO?','ALB REC?',
+        'PLAZO PAGO','Num Pedido (referencia_gx_carga)','Formato de numeración','Fecha dd/mm/yyyy',
+        'Fecha de vencimiento dd/mm/yyyy','Descripción','Nombre del contacto','NIF','Dirección',
+        'Población','Código postal','Provincia','País','Concepto','Descripción del producto','SKU',
+        'Precio unidad','Unidades','Descuento %','IVA %','Retención %','Rec. de eq. %','Operación',
+        'Forma de pago (ID)','Tags separados por -','Nombre canal de venta','Cuenta canal de venta',
+        'Moneda','Cambio de moneda']
+      when 'v_holded_pedido_compra' then array['ESTADO VIAJE','EN HOLDED?','FACTURADO?','ALB REC?',
+        'PLAZO PAGO','Num Pedido (referencia_gx_carga)','Formato de numeración','Fecha dd/mm/yyyy',
+        'Fecha de vencimiento dd/mm/yyyy','Descripción','Nombre del contacto','NIF','Dirección',
+        'Población','Código postal','Provincia','País','Concepto','Descripción del producto','SKU',
+        'Precio unidad','Unidades','Unidades recibidas','Descuento','IVA %','Retención %',
+        'Rec. de eq. %','Operación','Forma de pago (ID)','Tags separados por -',
+        'Nombre canal de venta','Cuenta canal de venta','Moneda','Cambio de moneda']
+      else array['ESTADO VIAJE','CLIENTE','REF.','Referencia','Fecha disponibilidad','País origen',
+        'CP origen','Localidad origen','País destino','CP destino','Localidad destino','Tipo Bolsa',
+        'Tipo Vehiculo','Especialidad','Peso','Largo','Adr','Paletizado','Intercambio Palets',
+        'Localizador GPS','Arriba','Lateral','Detrás','Sirve Frigorifico','Sirve Lateral Bajo',
+        'Misma Especialidad','Comentarios Públicos','Precio','Activar Serv. Alerta'] end;
+    if got is distinct from exp then
+      raise exception 'FALLO 42 · % no tiene las columnas de la plantilla. Tiene: %', v, got;
+    end if;
+  end loop;
+  raise notice 'OK 42 · Holded venta (33), compra (34) y Wtransnet (29): columnas y orden identicos a las plantillas';
+end $$;
+
+-- ---- 43. Venta y compra: el porte y las penalizaciones como líneas del mismo pedido -
+do $$ declare e uuid := current_setting('prueba.envio')::uuid; gx text; n int; begin
+  select referencia_gx into gx from envios where id = e;
+  update envios set estado = 'entregado', fecha_carga_real = current_date where id = e;
+  update penalizaciones set estado = 'confirmada' where envio_id = e and importe_cliente = 200;
+  select count(*) into n from v_holded_pedido_venta where "Num Pedido (referencia_gx_carga)" = gx;
+  if n <> 2 then raise exception 'FALLO 43 · el pedido de venta deberia tener 2 lineas (porte + penalizacion), tiene %', n; end if;
+  if not exists (select 1 from v_holded_pedido_venta where "Num Pedido (referencia_gx_carga)" = gx
+                 and "Concepto" = 'porte' and "Precio unidad" = 1000 and "Fecha dd/mm/yyyy" = to_char(current_date,'DD/MM/YYYY')) then
+    raise exception 'FALLO 43 · la linea del porte no lleva el importe o la fecha dd/mm/yyyy';
+  end if;
+  select count(*) into n from v_holded_pedido_compra where "Num Pedido (referencia_gx_carga)" = gx
+    and "Concepto" = 'porte' and "Precio unidad" = 800 and "Unidades recibidas" = 1;
+  if n <> 1 then raise exception 'FALLO 43 · el pedido de compra no lleva el porte del transportista'; end if;
+  if exists (select 1 from v_holded_pedido_venta v join envios x on x.referencia_gx = v."Num Pedido (referencia_gx_carga)"
+             where x.operador_id is not null) then
+    raise exception 'FALLO 43 · un envio MANUAL del cliente ha salido en los pedidos de Holded';
+  end if;
+  raise notice 'OK 43 · Holded: porte y penalizaciones confirmadas como lineas del mismo pedido; sin envios manuales';
+end $$;
+
+-- ---- 44. Wtransnet: solo lo programado sin transportista y quieto ------------------
+do $$ declare e uuid; gx text; n int; begin
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista,
+                      anotaciones_cliente, carga_superior)
+    values ((select id from clientes where cif = 'B44444444'), 13.30, 24, 1100, 900,
+            'Llamar a Pepe al 600111222, es para Mercadona', true) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  select referencia_gx into gx from envios where id = e;
+  -- Recién tocado: todavía NO sale (espera de 3 minutos).
+  if exists (select 1 from v_wtransnet where "REF." = gx) then
+    raise exception 'FALLO 44 · un envio recien modificado ha salido ya en la bolsa';
+  end if;
+  update parametros set valor = '0' where clave = 'bolsa_espera_minutos';
+  select count(*) into n from v_wtransnet where "REF." = gx and "Peso" = 24000 and "Arriba" = 'S'
+     and "Tipo Bolsa" = 'Completa' and "Comentarios Públicos" = '' and "País destino" = 'ES';
+  if n <> 1 then raise exception 'FALLO 44 · el envio no sale bien en el fichero de Wtransnet'; end if;
+  if exists (select 1 from v_wtransnet where "REF." = (select referencia_gx from envios
+             where id = current_setting('prueba.envio')::uuid)) then
+    raise exception 'FALLO 44 · un envio ya entregado ha salido en la bolsa';
+  end if;
+  update parametros set valor = '3' where clave = 'bolsa_espera_minutos';
+  raise notice 'OK 44 · Wtransnet: solo programados sin transportista y quietos 3 min; nunca las notas del cliente';
+end $$;
+
+-- ---- 45. Nadie que no sea Dynamo ve las exportaciones ------------------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if (select count(*) from v_holded_pedido_venta) + (select count(*) from v_holded_pedido_compra)
+     + (select count(*) from v_wtransnet) <> 0 then
+    raise exception 'FALLO 45 · un cliente ve las exportaciones de Holded o Wtransnet';
+  end if;
+  raise notice 'OK 45 · las exportaciones solo las ve Dynamo';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

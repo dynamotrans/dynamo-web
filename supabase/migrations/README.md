@@ -73,7 +73,7 @@ reconstruir nada.
 | `20261102240000_envios_manuales.sql` | **envíos manuales (v1.0)**: catálogo privado `operadores` de cada cliente; en `envios`, `operador_id` (null = Dynamo), `precio_acordado_operador` y `es_manual`. Un envío manual no lleva transportista ni precios de Dynamo, no se oferta ni se reserva, no genera PIN y no le afectan las zonas sin servicio de Dynamo | ✅ listo |
 | `20261103000000_operativa.sql` | `tipos_incidencia` + `incidencias` (INC-), `tipos_penalizacion` + `penalizaciones` (PEN-, automática al cancelar tarde con camión y retirada al deshacer), `almacenamientos` (AX + 6 cifras), `documentos` (datos; el fichero en Storage), `firmas_cmr` (append-only) | ✅ listo |
 | `AAAAMMDDhhmmss_tarifas_plantillas.sql` | tarifas con vigencia y plantillas de texto (la tabla `parametros` ya la crea la 0010: aquí solo se le añaden claves). **Bloqueada**: falta el libro de tarifar del usuario y el código del Apps Script | pendiente |
-| `AAAAMMDDhhmmss_vistas_holded_wtransnet.sql` | vistas de exportación + métricas de cliente/transportista | pendiente |
+| `20261103020000_exportaciones_holded_wtransnet.sql` | `v_holded_pedido_venta` (33 col.), `v_holded_pedido_compra` (34) y `v_wtransnet` (29) con **las cabeceras exactas** de las plantillas del Sheet; el porte y las penalizaciones confirmadas son líneas del mismo pedido; Wtransnet solo publica lo programado sin transportista y quieto 3 min; banderas `facturado_venta` / `facturado_compra`; ajustes de Holded en `parametros` | ✅ listo |
 | `20261103010000_permisos_por_rol.sql` | **permisos por rol**: Dynamo lee las tablas; cliente y transportista leen por funciones (`mis_envios`, `mis_viajes`, `mis_ofertas`, `mi_empresa`…) que solo dan sus filas y sus columnas; los envíos solo los escriben Dynamo y el servidor (el cliente cancela con `cancelar_mi_envio`); contactos, usuarios (nadie se cambia el rol, solo admin concede admin), flota, auditoría | ✅ listo |
 
 ## Seguridad por defecto: RLS en TODAS las tablas desde que nacen (2026-11-02)
@@ -393,3 +393,22 @@ Comprobaciones 31 a 37 del arnés. Lo no obvio:
   firmados con caducidad, nunca públicos) con sus políticas, y el de las firmas.
 - **Firmas del CMR**: append-only, las escribe solo el servidor (quien firma no tiene cuenta),
   dejan hito `cmr_firmado`, y el cliente ve las de sus envíos.
+
+
+### Exportaciones a Holded y Wtransnet (2026-11-03)
+
+Comprobaciones 42 a 45. Pedir la vista en **CSV** a la API de Supabase da el fichero listo para
+importar, con la cabecera exacta de la plantilla.
+
+**A confirmar con una importación real** (anotado también en la propia migración):
+- **Holded · "Operación"**: España → `general`, resto de la UE → `intracomunitaria`, fuera →
+  `exportacion`. Es la regla habitual del IVA en transporte, pero el texto exacto que espera Holded
+  y el criterio fiscal los tiene que validar el asesor.
+- **Holded · "Formato de numeración" y "canal de venta"**: vacíos hasta que se rellenen en
+  `parametros` (`holded_formato_numeracion_*`, `holded_canal_*`).
+- **Wtransnet · "Tipo Bolsa", "Tipo Vehiculo", "Especialidad"**: puestos como Completa/Grupaje,
+  Trailer/Rigido y Lona; **"Peso" en kg**. Comprobar con un fichero que Wtransnet haya aceptado.
+- **Wtransnet · "Comentarios Públicos"**: sale SIEMPRE vacío a propósito. Las anotaciones del
+  cliente pueden llevar teléfonos o el nombre de su cliente final, y la bolsa es pública.
+- **"CLIENTE"** en el fichero de Wtransnet es columna interna de la hoja; con discreción comercial
+  sale vacía.
