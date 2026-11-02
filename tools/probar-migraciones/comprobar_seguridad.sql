@@ -1152,3 +1152,31 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- =====================================================================================
+-- FESTIVOS (2026-11-03)
+-- =====================================================================================
+-- ---- 46. El corte de cancelación salta los festivos --------------------------------
+do $$ begin
+  -- Carga miércoles 9-dic-2026: el martes 8 es la Inmaculada → corte el lunes 7, 9:00 Madrid.
+  if corte_cancelacion('2026-12-09') <> '2026-12-07 08:00:00+00' then
+    raise exception 'FALLO 46 · Inmaculada: %', corte_cancelacion('2026-12-09');
+  end if;
+  -- Carga lunes de Pascua 6-abr-2026: viernes 3 y jueves 2 son festivos → miércoles 1, 9:00 (UTC+2).
+  if corte_cancelacion('2026-04-06') <> '2026-04-01 07:00:00+00' then
+    raise exception 'FALLO 46 · Semana Santa: %', corte_cancelacion('2026-04-06');
+  end if;
+  -- Un festivo de comunidad solo cuenta si se pide esa comunidad.
+  insert into festivos (fecha, region, nombre) values ('2026-03-02', 'ES-AN', 'Festivo de prueba');
+  if corte_cancelacion('2026-03-03') <> '2026-03-02 08:00:00+00' then
+    raise exception 'FALLO 46 · sin comunidad no deberia contar el festivo andaluz';
+  end if;
+  if corte_cancelacion('2026-03-03', 'ES', 'ES-AN') <> '2026-02-27 08:00:00+00' then
+    raise exception 'FALLO 46 · en Andalucia deberia saltar al viernes 27: %',
+      corte_cancelacion('2026-03-03', 'ES', 'ES-AN');
+  end if;
+  if (select count(*) from festivos where extract(year from fecha) = 2030 and region is null) <> 11 then
+    raise exception 'FALLO 46 · faltan festivos nacionales de 2030';
+  end if;
+  raise notice 'OK 46 · el corte de cancelacion salta fines de semana y festivos (nacionales y de comunidad)';
+end $$;

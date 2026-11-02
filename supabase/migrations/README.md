@@ -72,7 +72,8 @@ reconstruir nada.
 | `20261102230000_flota_libre.sql` | **flota libre** (caso del usuario: el autónomo contratado directo puede venir subcontratado por otro transportista): camión y conductor ya no están atados a un transportista (`transportista_id` = «con quién suele venir», opcional); un camión existe una vez por matrícula y un conductor una vez por DNI; el envío ya no exige que el camión sea del transportista asignado. Se mantiene: un rígido no lleva remolque | ✅ listo |
 | `20261102240000_envios_manuales.sql` | **envíos manuales (v1.0)**: catálogo privado `operadores` de cada cliente; en `envios`, `operador_id` (null = Dynamo), `precio_acordado_operador` y `es_manual`. Un envío manual no lleva transportista ni precios de Dynamo, no se oferta ni se reserva, no genera PIN y no le afectan las zonas sin servicio de Dynamo | ✅ listo |
 | `20261103000000_operativa.sql` | `tipos_incidencia` + `incidencias` (INC-), `tipos_penalizacion` + `penalizaciones` (PEN-, automática al cancelar tarde con camión y retirada al deshacer), `almacenamientos` (AX + 6 cifras), `documentos` (datos; el fichero en Storage), `firmas_cmr` (append-only) | ✅ listo |
-| `AAAAMMDDhhmmss_tarifas_plantillas.sql` | tarifas con vigencia y plantillas de texto (la tabla `parametros` ya la crea la 0010: aquí solo se le añaden claves). **Bloqueada**: falta el libro de tarifar del usuario y el código del Apps Script | pendiente |
+| `20261103030000_festivos.sql` | tabla `festivos` (nacionales, de comunidad y locales; editable por Dynamo), sembrados los nacionales de España 2026-2030 con la misma lista que `js/festivos.js`; `es_dia_habil()`; el **corte de cancelación ya salta festivos** | ✅ listo |
+| `AAAAMMDDhhmmss_tarifas_plantillas.sql` | tarifas con vigencia y plantillas de texto (la tabla `parametros` ya la crea la 0010: aquí solo se le añaden claves). **LA ÚLTIMA, por decisión del usuario (2026-11-03): «cuando todo esté montado hacemos esto»**. Necesitará su libro de tarifar y el código del Apps Script | pendiente (al final) |
 | `20261103020000_exportaciones_holded_wtransnet.sql` | `v_holded_pedido_venta` (33 col.), `v_holded_pedido_compra` (34) y `v_wtransnet` (29) con **las cabeceras exactas** de las plantillas del Sheet; el porte y las penalizaciones confirmadas son líneas del mismo pedido; Wtransnet solo publica lo programado sin transportista y quieto 3 min; banderas `facturado_venta` / `facturado_compra`; ajustes de Holded en `parametros` | ✅ listo |
 | `20261103010000_permisos_por_rol.sql` | **permisos por rol**: Dynamo lee las tablas; cliente y transportista leen por funciones (`mis_envios`, `mis_viajes`, `mis_ofertas`, `mi_empresa`…) que solo dan sus filas y sus columnas; los envíos solo los escriben Dynamo y el servidor (el cliente cancela con `cancelar_mi_envio`); contactos, usuarios (nadie se cambia el rol, solo admin concede admin), flota, auditoría | ✅ listo |
 
@@ -372,9 +373,9 @@ mueven fuera de Dynamo (oportunidad comercial). Probado en el arnés (comprobaci
 Comprobaciones 31 a 37 del arnés. Lo no obvio:
 
 - **Corte de cancelación** (`corte_cancelacion`): 9:00 de Madrid del día hábil anterior, bien en
-  verano (UTC+2) e invierno (UTC+1). ⚠️ **Salta fines de semana pero NO festivos**: los festivos
-  viven hoy en `js/festivos.js`, en el navegador. Pendiente: tabla de festivos en la base (o que el
-  servidor la consulte) para que un envío del día siguiente a un festivo tenga el corte correcto.
+  verano (UTC+2) e invierno (UTC+1). **Desde `20261103030000_festivos.sql` salta también los
+  festivos** (comprobación 46: Inmaculada, Semana Santa y un festivo de comunidad). La penalización
+  automática usa los nacionales; los de comunidad se usan si se pasa la región.
 - **Penalización automática**: cancelar un envío de Dynamo **con camión asignado** después del
   corte crea la de *Cancelación* por el **servicio entero** (importe cliente y transportista).
   Deshacer la cancelación la **retira** (queda como cancelada, no se borra)… salvo que Dynamo la
