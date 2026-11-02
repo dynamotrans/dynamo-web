@@ -37,7 +37,7 @@ do $$ declare lista text; begin
 end $$;
 
 -- ---- Sembrar datos como administrador (el dueño se salta RLS) ------------------------
-insert into clientes (nombre, cif) values ('Cliente Prueba S.L.', 'B12345678');
+insert into clientes (razon_social, cif) values ('Cliente Prueba S.L.', 'B12345678');
 insert into auth.users (email, raw_user_meta_data)
   values ('alta@prueba.es', '{"nombre":"Alta de Prueba"}');
 
@@ -68,7 +68,7 @@ end $$;
 
 -- ---- 5. La API anónima no puede escribir ---------------------------------------------
 do $$ begin
-  insert into clientes (nombre, cif) values ('Intruso', 'B87654321');
+  insert into clientes (razon_social, cif) values ('Intruso', 'B87654321');
   raise exception 'FALLO 5 · la clave pública (anon) PUEDE crear clientes';
 exception when insufficient_privilege then
   raise notice 'OK 5 · con la clave pública no se puede escribir';
@@ -125,9 +125,9 @@ end $$;
 
 -- ---- Sembrar: cliente con PIN obligatorio, transportista, envío de 2 puntos ----------
 do $$ declare c uuid; t uuid; e uuid; p1 uuid; p2 uuid; begin
-  insert into clientes (nombre, cif, exige_pin) values ('Cliente PIN S.L.', 'B22222222', true)
+  insert into clientes (razon_social, cif, exige_pin) values ('Cliente PIN S.L.', 'B22222222', true)
     returning id into c;
-  insert into transportistas (nombre, cif) values ('Transportes Prueba S.L.', 'B33333333')
+  insert into transportistas (razon_social, cif) values ('Transportes Prueba S.L.', 'B33333333')
     returning id into t;
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
     values (c, 13.30, 20, 1000, 800) returning id into e;
@@ -365,3 +365,43 @@ do $$ declare e uuid := current_setting('prueba.envio')::uuid; n int; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- =====================================================================================
+-- AJUSTES DE CLIENTES Y TRANSPORTISTAS (2026-11-02)
+-- =====================================================================================
+-- ---- 18. Nombre visible, bolsa de carga y pronto pago por transportista --------------
+do $$ declare t uuid; c uuid; e uuid; o uuid; begin
+  insert into clientes (razon_social, nombre_comercial, cif)
+    values ('Marbex Industrial S.L.', 'Marbex', 'B44444444') returning id into c;
+  if (select nombre_visible from clientes where id = c) <> 'Marbex' then
+    raise exception 'FALLO 18 · el nombre visible no usa el nombre comercial';
+  end if;
+  update clientes set nombre_comercial = '  ' where id = c;
+  if (select nombre_visible from clientes where id = c) <> 'Marbex Industrial S.L.' then
+    raise exception 'FALLO 18 · sin nombre comercial deberia verse la razon social';
+  end if;
+
+  begin
+    insert into transportistas (razon_social, cif, codigo_bolsa) values ('Sin Bolsa SL', 'B55555555', '12345');
+    raise exception 'FALLO 18 · se ha guardado un codigo de bolsa sin decir de que bolsa';
+  exception when check_violation then null;
+  end;
+  begin
+    insert into transportistas (razon_social, cif, bolsa) values ('Bolsa Rara SL', 'B66666666', 'timocom');
+    raise exception 'FALLO 18 · se ha aceptado una bolsa que no es de Alpega';
+  exception when check_violation then null;
+  end;
+
+  insert into transportistas (razon_social, cif, bolsa, codigo_bolsa, pronto_pago)
+    values ('Sin Pronto Pago SL', 'B77777777', 'teleroute', 'TR-998', false) returning id into t;
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista)
+    values (c, 4, 400, 300) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion) values (e, 1, 'carga', '41001', 'Sevilla');
+  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion) values (e, 2, 'descarga', '29001', 'Malaga');
+  update envios set estado = 'programado' where id = e;
+  o := ofertar_envio(e, t, 'email', 300, 10::smallint, true);
+  if (select pronto_pago from envio_ofertas where id = o) then
+    raise exception 'FALLO 18 · a un transportista sin pronto pago se le ha ofertado con pronto pago';
+  end if;
+  raise notice 'OK 18 · razon social + nombre comercial, solo bolsas de Alpega, pronto pago por transportista';
+end $$;

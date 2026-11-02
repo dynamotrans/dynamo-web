@@ -48,6 +48,8 @@ reconstruir nada.
 
 ## Estado
 
+> Las pendientes llevan `AAAAMMDDhhmmss` porque su fecha será la del día en que se escriban: tienen que ir **después** de la última aplicada, o Supabase las aplicaría desordenadas.
+
 | Fichero | Qué monta | Estado |
 |---|---|---|
 | `20261102090100_enums_y_secuencias.sql` | Enums, catálogo de recargos por tipo de lugar, secuencias de código (incluida la del GX con paso +7) | ✅ listo |
@@ -60,10 +62,11 @@ reconstruir nada.
 | `20261102090800_distancias_cache.sql` | caché de los kilómetros de Google: por **sitio** (exacta) y por **código postal** (tarifador público), con invalidación automática al mudarse una empresa | ✅ listo |
 | `20261102090900_restricciones_servicio.sql` | dónde **no** se da servicio y dónde **solo con camión completo**, en tabla editable con interruptor y vigencia | ✅ listo |
 | `20261102091000_hitos_y_ofertas.sql` | `parametros`, `envio_hitos` (append-only), `envio_ofertas`, `envio_reservas` (bloqueo de 3 min + aceptación atómica + contraoferta), PIN de recogida/entrega (`envio_parada_pines` + `pin_intentos`) | ✅ listo |
-| `20261102091100_operativa.sql` | `tickets`, `penalizaciones`, `almacenamientos`, `documentos`, `firmas_cmr` | pendiente |
-| `20261102091200_tarifas_parametros_plantillas.sql` | tarifas con vigencia y plantillas de texto (la tabla `parametros` ya la crea la 0010: aquí solo se le añaden claves). **Bloqueada**: falta el libro de tarifar del usuario y el código del Apps Script | pendiente |
-| `20261102091300_vistas_holded_wtransnet.sql` | vistas de exportación + métricas de cliente/transportista | pendiente |
-| `20261102091400_rls_politicas.sql` | las **políticas** por rol (el RLS ya está ACTIVADO en las 15 tablas, cerrado por defecto: ver «Seguridad por defecto» abajo). Ojo a los dos riesgos anotados ahí | pendiente |
+| `20261102160000_clientes_transportistas_ajustes.sql` | revisión con el usuario: `nombre` → `razon_social` + `nombre_comercial` + `nombre_visible` (calculada); transportistas: `bolsa` + `codigo_bolsa` (solo bolsas de Alpega) y `pronto_pago` por transportista | ✅ listo |
+| `AAAAMMDDhhmmss_operativa.sql` | `tickets`, `penalizaciones`, `almacenamientos`, `documentos`, `firmas_cmr` | pendiente |
+| `AAAAMMDDhhmmss_tarifas_plantillas.sql` | tarifas con vigencia y plantillas de texto (la tabla `parametros` ya la crea la 0010: aquí solo se le añaden claves). **Bloqueada**: falta el libro de tarifar del usuario y el código del Apps Script | pendiente |
+| `AAAAMMDDhhmmss_vistas_holded_wtransnet.sql` | vistas de exportación + métricas de cliente/transportista | pendiente |
+| `AAAAMMDDhhmmss_rls_politicas.sql` | las **políticas** por rol (el RLS ya está ACTIVADO en las 15 tablas, cerrado por defecto: ver «Seguridad por defecto» abajo). Ojo a los dos riesgos anotados ahí | pendiente |
 
 ## Seguridad por defecto: RLS en TODAS las tablas desde que nacen (2026-11-02)
 
@@ -94,7 +97,7 @@ lo demostró con la clave pública (`anon`), antes y después del arreglo:
 4. Chivato nuevo **`v_tablas_sin_rls`**, gemelo de `v_tablas_sin_rastro`: **0 filas
    siempre**. Es la comprobación que vale también en producción.
 
-**⚠️ Dos riesgos que hay que resolver Y PROBAR en `…091400_rls_politicas.sql`:**
+**⚠️ Dos riesgos que hay que resolver Y PROBAR en `…_rls_politicas.sql`:**
 
 - **Validaciones que dejan pasar en silencio.** `validar_restricciones_envio`,
   `validar_ruta_envio` y las de la caché de km se ejecutan **con los permisos de quien

@@ -633,10 +633,10 @@ supabase/migrations/
   20261102090800_distancias_cache.sql
   20261102090900_restricciones_servicio.sql
   20261102091000_hitos_y_ofertas.sql
-  20261102091100_operativa.sql
-  20261102091200_tarifas_parametros_plantillas.sql
-  20261102091300_vistas_holded_wtransnet.sql
-  20261102091400_rls_politicas.sql
+  AAAAMMDDhhmmss_operativa.sql
+  AAAAMMDDhhmmss_tarifas_plantillas.sql
+  AAAAMMDDhhmmss_vistas_holded_wtransnet.sql
+  AAAAMMDDhhmmss_rls_politicas.sql
 ```
 
 **Cómo llegan a Supabase: por la integración de GitHub, NO pegándolas a mano.** (Corrección

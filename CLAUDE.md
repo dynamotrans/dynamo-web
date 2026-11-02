@@ -307,10 +307,14 @@ seguridad. Si dice `HAY FALLOS`, no se sube. Las pruebas se amplían con cada mi
 3. Toda función `SECURITY DEFINER` → `set search_path` fijado. Las herramientas internas,
    revocadas de `anon` y `authenticated`.
 
-**Pruebas vs. real.** `dynamo-pruebas` es el de pruebas: mientras no tenga datos reales,
-las migraciones **se pueden reescribir** y reaplicar desde cero. El proyecto real se crea
-el día del lanzamiento (regla 14-bis antes), y desde ese momento **una migración aplicada
-no se edita jamás**: cada cambio es un fichero nuevo.
+**Una migración ya aplicada NO se edita: cada cambio es un fichero NUEVO** (ya ahora, en
+pruebas). Supabase no vuelve a ejecutar una migración que ya aplicó, así que editarla deja
+el fichero y la base de datos diciendo cosas distintas. Ejemplo: la revisión de clientes y
+transportistas del 2026-11-02 va en `20261102160000_clientes_transportistas_ajustes.sql`,
+no tocando la 0003. Cambiar columnas en `dynamo-pruebas` no cuesta nada porque no hay datos
+reales; el proyecto real se crea el día del lanzamiento (regla 14-bis antes).
+**Nombres de tablas y columnas: siempre por migración desde aquí, NUNCA a mano en el panel
+de Supabase** (se desincronizaría con el repositorio).
 
 ---
 
