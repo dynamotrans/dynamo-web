@@ -405,3 +405,34 @@ do $$ declare t uuid; c uuid; e uuid; o uuid; begin
   end if;
   raise notice 'OK 18 · razon social + nombre comercial, solo bolsas de Alpega, pronto pago por transportista';
 end $$;
+
+-- =====================================================================================
+-- AJUSTES DE CONTACTOS Y USUARIOS (2026-11-02)
+-- =====================================================================================
+-- ---- 19. Idioma, avisos, cargo y límite de consultas ---------------------------------
+do $$ declare c uuid; k uuid; begin
+  select id into c from clientes where cif = 'B44444444';
+  insert into contactos (cliente_id, nombre, cargo, email, idioma, recibe_avisos)
+    values (c, 'Marta Ruiz', 'Jefa de trafico', 'marta@marbex.prueba', 'pl', true) returning id into k;
+  if (select idioma from contactos where id = k) <> 'pl' then
+    raise exception 'FALLO 19 · el idioma del contacto no se guarda';
+  end if;
+  insert into contactos (cliente_id, email) values (c, 'otro@marbex.prueba') returning id into k;
+  if (select idioma || '/' || recibe_avisos from contactos where id = k) <> 'es/false' then
+    raise exception 'FALLO 19 · por defecto deberia ser espanol y sin avisos';
+  end if;
+  begin
+    insert into contactos (cliente_id, email, idioma) values (c, 'raro@marbex.prueba', 'polaco');
+    raise exception 'FALLO 19 · se ha aceptado un idioma que no es un codigo valido';
+  exception when check_violation then null;
+  end;
+  begin
+    update usuarios set limite_consultas_precio_diario = 0
+     where id = current_setting('prueba.u_cli')::uuid;
+    raise exception 'FALLO 19 · se ha aceptado un limite de consultas de 0';
+  exception when check_violation then null;
+  end;
+  update usuarios set limite_consultas_precio_diario = 50, cargo = 'Compras', idioma = 'pt'
+   where id = current_setting('prueba.u_cli')::uuid;
+  raise notice 'OK 19 · idioma, recibe_avisos, cargo y limite de consultas de precio';
+end $$;

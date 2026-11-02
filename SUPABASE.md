@@ -434,7 +434,7 @@ las almacena con hash (bcrypt) y gestiona el reset. En el esquema no existe ning
 contraseña: `usuarios.id` es el `auth.users.id` de Supabase y punto.
 
 Esa hoja es, además, el sitio exacto donde se aplica la **regla 10**: `UNIQUE` sobre el email.
-Lo bueno que ya tiene y se queda: `limite_ppto_diario` y `limite_cargas_diario` (anti-abuso por
+Lo bueno que ya tiene y se queda: `limite_consultas_precio_diario` y `limite_cargas_diario` (anti-abuso por
 usuario) — eso no lo había previsto y es buena idea.
 
 ---
