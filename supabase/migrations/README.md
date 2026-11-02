@@ -65,6 +65,7 @@ reconstruir nada.
 | `20261102160000_clientes_transportistas_ajustes.sql` | revisión con el usuario: `nombre` → `razon_social` + `nombre_comercial` + `nombre_visible` (calculada); transportistas: `bolsa` + `codigo_bolsa` (solo bolsas de Alpega) y `pronto_pago` por transportista | ✅ listo |
 | `20261102170000_contactos_usuarios_ajustes.sql` | revisión con el usuario: `idioma` y `cargo` en contactos y usuarios, `recibe_avisos` en contactos, `limite_ppto_diario` → `limite_consultas_precio_diario` | ✅ listo |
 | `20261102180000_lugares_ajustes.sql` | revisión con el usuario: `requiere_cita` (no por defecto) y `tiene_medios_carga` (sí por defecto) en sitios | ✅ listo |
+| `20261102190000_lugares_visibilidad.sql` | **quién ve cada sitio** (opción A del usuario, «compartido pero discreto»): agenda `cliente_agenda_lugares`, cada cliente ve solo lo que creó o usó + almacenes Dynamo; una sola ficha por nave; solo la edita quien la creó; «borrar» = quitar de tu agenda; deduplicación al dar de alta (solo servidor) | ✅ listo |
 | `AAAAMMDDhhmmss_operativa.sql` | `tickets`, `penalizaciones`, `almacenamientos`, `documentos`, `firmas_cmr` | pendiente |
 | `AAAAMMDDhhmmss_tarifas_plantillas.sql` | tarifas con vigencia y plantillas de texto (la tabla `parametros` ya la crea la 0010: aquí solo se le añaden claves). **Bloqueada**: falta el libro de tarifar del usuario y el código del Apps Script | pendiente |
 | `AAAAMMDDhhmmss_vistas_holded_wtransnet.sql` | vistas de exportación + métricas de cliente/transportista | pendiente |

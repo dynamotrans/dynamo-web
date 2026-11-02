@@ -447,3 +447,114 @@ do $$ declare l uuid; begin
   update lugares set requiere_cita = true, tiene_medios_carga = false where id = l;
   raise notice 'OK 20 · sitios: sin cita previa y con medios de carga por defecto';
 end $$;
+
+-- =====================================================================================
+-- QUIÉN VE CADA SITIO: "compartido pero discreto" (opción A, 2026-11-02)
+-- =====================================================================================
+-- Cliente A = 'Cliente PIN S.L.' (usuario prueba.u_cli) · Cliente B = Marbex (usuario nuevo)
+do $$ declare b uuid; begin
+  insert into auth.users (email) values ('compras@marbex.prueba') returning id into b;
+  update usuarios set rol = 'cliente', estado = 'activa',
+         cliente_id = (select id from clientes where cif = 'B44444444') where id = b;
+  perform set_config('prueba.u_cli_b', b::text, false);
+  insert into lugares (nombre_empresa, es_almacen_dynamo, codigo_postal)
+    values ('Almacen Dynamo Sevilla', true, '41016');
+end $$;
+
+-- ---- 21. A crea un sitio: A lo ve, B no ---------------------------------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare l uuid; n int; begin
+  insert into lugares (nombre_empresa, codigo_postal) values ('Nave Secreta de A', '28001')
+    returning id into l;                                   -- con RETURNING, como la app
+  perform set_config('prueba.lugar_a', l::text, false);
+  select count(*) into n from cliente_agenda_lugares where lugar_id = l;
+  if n <> 1 then raise exception 'FALLO 21 · el sitio creado no ha entrado en la agenda de A'; end if;
+  select count(*) into n from lugares where es_almacen_dynamo;
+  if n <> 1 then raise exception 'FALLO 21 · A no ve los almacenes Dynamo'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+set role authenticated;
+do $$ declare n int; begin
+  select count(*) into n from lugares where nombre_empresa = 'Nave Secreta de A';
+  if n <> 0 then raise exception 'FALLO 21 · FUGA: el cliente B ve el sitio que creo A'; end if;
+  select count(*) into n from lugares where es_almacen_dynamo;
+  if n <> 1 then raise exception 'FALLO 21 · B no ve los almacenes Dynamo'; end if;
+  raise notice 'OK 21 · un cliente ve sus sitios y los almacenes Dynamo, nunca los de otro cliente';
+end $$;
+
+-- ---- 22. B no puede montar un envío a la nave de A ----------------------------------
+do $$ declare e uuid; begin
+  insert into envios (cliente_id, metros_lineales) values (cliente_del_usuario(), 4) returning id into e;
+  begin
+    insert into envio_paradas (envio_id, orden, tipo, lugar_id, cp, poblacion)
+      values (e, 1, 'carga', current_setting('prueba.lugar_a')::uuid, '28001', 'Madrid');
+    raise exception 'FALLO 22 · B ha usado en su envio un sitio que no ve';
+  exception when insufficient_privilege then null;
+  end;
+  raise notice 'OK 22 · un cliente no puede usar en sus envios un sitio que no tiene en su agenda';
+end $$;
+reset role;
+
+-- ---- 23. Dynamo monta un envío de B a la nave de A: B pasa a verla, sin duplicar ----
+do $$ declare e uuid; begin
+  insert into envios (cliente_id, metros_lineales)
+    values ((select id from clientes where cif = 'B44444444'), 4) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, lugar_id, cp, poblacion)
+    values (e, 1, 'carga', current_setting('prueba.lugar_a')::uuid, '28001', 'Madrid');
+  if (select count(*) from lugares where nombre_empresa = 'Nave Secreta de A') <> 1 then
+    raise exception 'FALLO 23 · se ha duplicado la ficha del sitio';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+set role authenticated;
+do $$ declare l uuid := current_setting('prueba.lugar_a')::uuid; n int; begin
+  select count(*) into n from lugares where id = l;
+  if n <> 1 then raise exception 'FALLO 23 · tras usarlo en un envio, B no ve el sitio'; end if;
+  -- B no lo creó: no puede cambiar la dirección que también ve A.
+  update lugares set calle = 'Calle inventada 1' where id = l;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'FALLO 23 · B ha modificado un sitio que creo otro cliente'; end if;
+  -- B lo quita de su agenda: deja de verlo, pero el sitio sigue existiendo para A.
+  delete from cliente_agenda_lugares where lugar_id = l;
+  select count(*) into n from lugares where id = l;
+  if n <> 0 then raise exception 'FALLO 23 · B sigue viendo el sitio tras quitarlo de su agenda'; end if;
+  raise notice 'OK 23 · un sitio compartido es UNA ficha; solo la edita quien la creo; quitarla de la agenda no la borra';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare l uuid := current_setting('prueba.lugar_a')::uuid; n int; begin
+  select count(*) into n from lugares where id = l;
+  if n <> 1 then raise exception 'FALLO 24 · A ha perdido su sitio porque B lo quito de su agenda'; end if;
+  update lugares set horarios = 'L-V 7:00-15:00' where id = l;
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'FALLO 24 · A no puede editar el sitio que creo'; end if;
+  begin
+    update lugares set borrado = true, borrado_en = now() where id = l;
+    raise exception 'FALLO 24 · un cliente ha borrado un sitio para todos';
+  exception when insufficient_privilege then null;
+  end;
+  raise notice 'OK 24 · quien crea el sitio lo edita; borrarlo para todos solo lo hace Dynamo';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 25. Deduplicar al dar de alta: misma nave → misma ficha en su agenda ----------
+do $$ declare l uuid; b uuid := (select id from clientes where cif = 'B44444444'); begin
+  l := lugar_existente_o_nuevo_en_agenda(b, 'NAVE secreta de a.', ' 28001 ');
+  if l is distinct from current_setting('prueba.lugar_a')::uuid then
+    raise exception 'FALLO 25 · no ha encontrado la nave que ya existia';
+  end if;
+  if not exists (select 1 from cliente_agenda_lugares where cliente_id = b and lugar_id = l) then
+    raise exception 'FALLO 25 · no la ha anadido a la agenda de B';
+  end if;
+  if lugar_existente_o_nuevo_en_agenda(b, 'Nave Nueva', '28001') is not null then
+    raise exception 'FALLO 25 · ha devuelto una nave que no existe';
+  end if;
+  if has_function_privilege('authenticated', 'lugar_existente_o_nuevo_en_agenda(uuid,text,text)', 'execute') then
+    raise exception 'FALLO 25 · un cliente podria sondear que naves existen';
+  end if;
+  raise notice 'OK 25 · al dar de alta una nave que ya existe, se reutiliza la ficha (solo el servidor)';
+end $$;
