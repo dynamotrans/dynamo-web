@@ -59,9 +59,9 @@ reconstruir nada.
 | `20261102090700_envios_y_paradas.sql` | `envios` (sin direcciones) + `envio_paradas` (ruta ilimitada), triggers de origen/destino, validación de ruta, vistas y RLS | ✅ listo |
 | `20261102090800_distancias_cache.sql` | caché de los kilómetros de Google: por **sitio** (exacta) y por **código postal** (tarifador público), con invalidación automática al mudarse una empresa | ✅ listo |
 | `20261102090900_restricciones_servicio.sql` | dónde **no** se da servicio y dónde **solo con camión completo**, en tabla editable con interruptor y vigencia | ✅ listo |
-| `20261102091000_hitos_y_ofertas.sql` | los 14 hitos y las ofertas a transportistas (la ruta ya va en la 0007) | pendiente |
+| `20261102091000_hitos_y_ofertas.sql` | `parametros`, `envio_hitos` (append-only), `envio_ofertas`, `envio_reservas` (bloqueo de 3 min + aceptación atómica + contraoferta), PIN de recogida/entrega (`envio_parada_pines` + `pin_intentos`) | ✅ listo |
 | `20261102091100_operativa.sql` | `tickets`, `penalizaciones`, `almacenamientos`, `documentos`, `firmas_cmr` | pendiente |
-| `20261102091200_tarifas_parametros_plantillas.sql` | tarifas con vigencia, parámetros, plantillas de texto. **Bloqueada**: falta el libro de tarifar del usuario y el código del Apps Script | pendiente |
+| `20261102091200_tarifas_parametros_plantillas.sql` | tarifas con vigencia y plantillas de texto (la tabla `parametros` ya la crea la 0010: aquí solo se le añaden claves). **Bloqueada**: falta el libro de tarifar del usuario y el código del Apps Script | pendiente |
 | `20261102091300_vistas_holded_wtransnet.sql` | vistas de exportación + métricas de cliente/transportista | pendiente |
 | `20261102091400_rls_politicas.sql` | las **políticas** por rol (el RLS ya está ACTIVADO en las 15 tablas, cerrado por defecto: ver «Seguridad por defecto» abajo). Ojo a los dos riesgos anotados ahí | pendiente |
 
@@ -285,3 +285,44 @@ generar** — al confirmar, y al añadir una parada nueva a un envío vivo.
 siguiente — lo contrario de "manual y rápido editable". De ahí la columna **`activa`**
 (interruptor de ahora mismo) **junto a** la vigencia (cambios planificados: "desde el 1
 de enero servimos Suiza"). Son dos preguntas distintas y hacen falta las dos.
+
+
+### Añadido al verificar la 0010 (hitos, ofertas, reservas y PIN)
+
+El arnés ya no solo mira permisos: **recorre una carga de punta a punta** intentando romperla
+(comprobaciones 8 a 17 de `tools/probar-migraciones/comprobar_seguridad.sql`).
+
+| Qué se intenta | Resultado |
+|---|---|
+| Llamar a reservar / aceptar / validar PIN con la clave pública o con una cuenta normal | **bloqueado**: solo el servidor |
+| Confirmar un envío de un cliente con PIN | salen solos los hitos `creado` + `confirmado` y un PIN de 4 cifras por punto |
+| Modificar o borrar un hito, incluso como dueño de la base | **bloqueado** (append-only) |
+| Que dos transportistas reserven la misma carga | el segundo ve **"en trámite"** |
+| Pasan los 3 minutos sin aceptar | la reserva **caduca sola** y el siguiente la coge |
+| Aceptar a un precio fuera de la banda | **rechazado** |
+| Contraoferta +24 % con banda del 30 % | queda **pendiente de Dynamo**; al aprobarla se asigna a ese precio |
+| Reservar una carga ya asignada | **"tomada"** |
+| Validar la entrega antes que la recogida | **se deja**, con hito `pin_fuera_de_orden` (decisión 2026-11-02) |
+| 3 PIN incorrectos | **bloqueado** + incidencia; acertar después **no** desbloquea |
+| Un transportista lee la tabla de PIN | **0 filas** (ve sus paradas, nunca el código) |
+| Un transportista valida a mano u oferta una carga | **bloqueado** |
+| Dynamo valida a mano sin explicar por qué | **bloqueado**; con nota, queda **quién** lo hizo |
+| El cliente mira a quién se ofertó su carga | **0 filas**: solo ve los hitos útiles para él |
+
+**Por qué el PIN va en tabla propia y no en `envio_paradas`:** el transportista **sí** lee las
+paradas de su envío, y la seguridad por filas filtra filas, no columnas. Como columna de la
+parada, el conductor lo leería del código de la página.
+
+**Fallos cazados al probar:**
+1. `fn_auditar()` identifica cada registro por su columna `id`: `parametros` (con clave como
+   identificador) y los PIN (con la parada) reventaban al primer INSERT. Ahora llevan `id`.
+2. **Con "sin límite de tiempo" (la decisión del usuario), validar el PIN se rompía**: el null
+   de JSON convertido a texto es la palabra `'null'`, que no es un número. Se lee con `#>> '{}'`.
+
+**Pendiente de esta parte (no es de base de datos):**
+- El **código de confirmación por email** al aceptar (3 intentos, ver `TODO.md`): necesita el
+  envío de emails, va con la función del servidor.
+- La función del servidor que envuelve `reservar_envio` / `aceptar_reserva` /
+  `validar_pin_parada` y comprueba quién es el transportista antes de llamarlas.
+- Vista del transportista con **sus** ofertas sin el % de banda (va con las políticas, 0014).
+- Pasar el envío a `cargando` / `en_ruta` al validar el PIN de la primera carga: decidir.

@@ -95,3 +95,273 @@ do $$ declare n bigint; begin
   raise notice 'OK 7 · el servidor (service_role) sigue teniendo acceso completo';
 end $$;
 reset role;
+
+-- =====================================================================================
+-- 0010 · HITOS, OFERTAS, RESERVAS Y PIN — el flujo completo de una carga
+-- =====================================================================================
+-- Aquí NO basta con mirar permisos: se recorre una carga de verdad, de punta a punta,
+-- intentando romperla como lo haría alguien de fuera.
+
+-- ---- 8. Las funciones de la página pública no se pueden llamar con la clave pública --
+do $$ declare fallos text := ''; f text; r text; begin
+  foreach f in array array[
+    'reservar_envio(uuid,inet,text)', 'aceptar_reserva(uuid,uuid,uuid,numeric)',
+    'liberar_reserva(uuid,text)', 'validar_pin_parada(uuid,text,inet,text)',
+    'registrar_hito(uuid,tipo_hito,uuid,uuid,jsonb,text)',
+    'cerrar_aceptacion(uuid,uuid,uuid,numeric)', 'caducar_reservas(uuid)',
+    'preparar_pines_envio(uuid)', 'parametro(text)', 'pin_aleatorio(integer)'] loop
+    foreach r in array array['anon','authenticated'] loop
+      if has_function_privilege(r, f, 'execute') then fallos := fallos || r || '→' || f || ' '; end if;
+    end loop;
+  end loop;
+  foreach f in array array[
+    'ofertar_envio(uuid,uuid,text,numeric,smallint,boolean)', 'validar_pin_manual(uuid,text)',
+    'regenerar_pin_parada(uuid)', 'resolver_contraoferta(uuid,boolean)'] loop
+    if has_function_privilege('anon', f, 'execute') then fallos := fallos || 'anon→' || f || ' '; end if;
+  end loop;
+  if fallos <> '' then raise exception 'FALLO 8 · funciones llamables desde la API: %', fallos; end if;
+  raise notice 'OK 8 · reservar, aceptar y validar PIN solo los puede llamar el servidor';
+end $$;
+
+-- ---- Sembrar: cliente con PIN obligatorio, transportista, envío de 2 puntos ----------
+do $$ declare c uuid; t uuid; e uuid; p1 uuid; p2 uuid; begin
+  insert into clientes (nombre, cif, exige_pin) values ('Cliente PIN S.L.', 'B22222222', true)
+    returning id into c;
+  insert into transportistas (nombre, cif) values ('Transportes Prueba S.L.', 'B33333333')
+    returning id into t;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
+    values (c, 13.30, 20, 1000, 800) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion, pais_codigo_iso)
+    values (e, 1, 'carga', '41001', 'Sevilla', 'ES') returning id into p1;
+  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion, pais_codigo_iso)
+    values (e, 2, 'descarga', '28001', 'Madrid', 'ES') returning id into p2;
+  update envios set estado = 'programado' where id = e;
+  perform set_config('prueba.cliente', c::text, false);
+  perform set_config('prueba.transp',  t::text, false);
+  perform set_config('prueba.envio',   e::text, false);
+  perform set_config('prueba.p1',      p1::text, false);
+  perform set_config('prueba.p2',      p2::text, false);
+end $$;
+
+-- ---- 9. Los hitos y los PIN salen solos al confirmar ---------------------------------
+do $$ declare e uuid := current_setting('prueba.envio')::uuid; n int; begin
+  select count(*) into n from envio_hitos where envio_id = e and hito in ('creado','confirmado');
+  if n <> 2 then raise exception 'FALLO 9 · esperaba hitos creado+confirmado, hay %', n; end if;
+  if (select confirmado_en from envios where id = e) is null then
+    raise exception 'FALLO 9 · confirmado_en no se ha sellado';
+  end if;
+  select count(*) into n from envio_parada_pines where envio_id = e and pin ~ '^[0-9]{4}$';
+  if n <> 2 then raise exception 'FALLO 9 · esperaba 2 PIN de 4 cifras, hay %', n; end if;
+  raise notice 'OK 9 · al confirmar quedan sellados los hitos y se generan los PIN de 4 cifras';
+end $$;
+
+-- ---- 10. Los registros append-only no se pueden tocar ---------------------------------
+do $$ begin
+  begin update envio_hitos set hito = 'cancelado';
+        raise exception 'FALLO 10 · se ha podido modificar un hito';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  begin delete from envio_hitos;
+        raise exception 'FALLO 10 · se ha podido borrar un hito';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  raise notice 'OK 10 · los hitos no se pueden modificar ni borrar (ni siquiera el dueño)';
+end $$;
+
+-- ---- 11. Reserva: solo uno a la vez, y caduca sola -----------------------------------
+do $$ declare e uuid := current_setting('prueba.envio')::uuid; o uuid; tok uuid; r jsonb; r2 jsonb; begin
+  o := ofertar_envio(e, current_setting('prueba.transp')::uuid, 'email', 800, 10::smallint);
+  if (select banda_euros from envio_ofertas where id = o) <> 80 then
+    raise exception 'FALLO 11 · la banda del 10%% sobre 800 deberia ser 80 EUR';
+  end if;
+  if (select estado_asignacion from envios where id = e) <> 'ofertada'
+     or (select primera_oferta_en from envios where id = e) is null then
+    raise exception 'FALLO 11 · ofertar no ha marcado el envio como ofertado';
+  end if;
+  select token into tok from envio_ofertas where id = o;
+  r := reservar_envio(tok, '10.0.0.1');
+  if r->>'resultado' <> 'reservada' then raise exception 'FALLO 11 · primera reserva: %', r; end if;
+  r2 := reservar_envio((select token_publico from envios where id = e), '10.0.0.2');
+  if r2->>'resultado' <> 'en_tramite' then
+    raise exception 'FALLO 11 · DOS transportistas tienen la misma carga a la vez: %', r2;
+  end if;
+  -- Simular que pasan los 3 minutos.
+  update envio_reservas set desde = now() - interval '10 min', hasta = now() - interval '7 min'
+   where id = (r->>'reserva_id')::uuid;
+  r2 := reservar_envio((select token_publico from envios where id = e), '10.0.0.2');
+  if r2->>'resultado' <> 'reservada' then
+    raise exception 'FALLO 11 · la reserva caducada no ha liberado la carga: %', r2;
+  end if;
+  if (select estado from envio_reservas where id = (r->>'reserva_id')::uuid) <> 'caducada' then
+    raise exception 'FALLO 11 · la reserva vieja no consta como caducada';
+  end if;
+  perform set_config('prueba.reserva', r2->>'reserva_id', false);
+  raise notice 'OK 11 · solo un transportista puede tener la carga reservada, y a los 3 min se libera';
+end $$;
+
+-- ---- 12. Aceptar: precio fuera de banda no; dentro sí; después, carga tomada --------
+do $$ declare e uuid := current_setting('prueba.envio')::uuid;
+              res uuid := current_setting('prueba.reserva')::uuid;
+              t uuid := current_setting('prueba.transp')::uuid; r jsonb; begin
+  -- Esta reserva entró por el enlace general (sin oferta): banda 0, solo vale el precio fijado.
+  r := aceptar_reserva(res, t, null, 1000);
+  if r->>'resultado' <> 'precio_fuera_de_banda' then
+    raise exception 'FALLO 12 · se ha aceptado un precio fuera de banda: %', r;
+  end if;
+  r := aceptar_reserva(res, t, null, null);
+  if r->>'resultado' <> 'aceptada' then raise exception 'FALLO 12 · aceptar: %', r; end if;
+  if (select transportista_id from envios where id = e) <> t
+     or (select estado_asignacion from envios where id = e) <> 'confirmada'
+     or (select asignado_en from envios where id = e) is null then
+    raise exception 'FALLO 12 · el envio no ha quedado asignado';
+  end if;
+  if not exists (select 1 from envio_hitos where envio_id = e and hito = 'transportista_asignado') then
+    raise exception 'FALLO 12 · falta el hito transportista_asignado';
+  end if;
+  r := reservar_envio((select token_publico from envios where id = e));
+  if r->>'resultado' <> 'tomada' then
+    raise exception 'FALLO 12 · una carga ya asignada se puede volver a reservar: %', r;
+  end if;
+  raise notice 'OK 12 · aceptar revalida la reserva y el precio; una carga asignada queda tomada';
+end $$;
+
+-- ---- 13. Contraoferta: hasta el 10%% sola, por encima a revisión de Dynamo -----------
+do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t uuid := current_setting('prueba.transp')::uuid;
+              e uuid; o uuid; r jsonb; begin
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista)
+    values (c, 6, 600, 500) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion) values (e, 1, 'carga', '41001', 'Sevilla');
+  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion) values (e, 2, 'descarga', '46001', 'Valencia');
+  update envios set estado = 'programado' where id = e;
+  o := ofertar_envio(e, t, 'email', 500, 30::smallint);          -- banda 150 EUR
+  r := reservar_envio((select token from envio_ofertas where id = o));
+  r := aceptar_reserva((r->>'reserva_id')::uuid, t, null, 620);  -- +24%: dentro de banda, >10%
+  if r->>'resultado' <> 'pendiente_revision' then
+    raise exception 'FALLO 13 · una contraoferta del 24%% deberia ir a revision: %', r;
+  end if;
+  r := resolver_contraoferta((select id from envio_reservas where envio_id = e and estado = 'pendiente_revision'), true);
+  if r->>'resultado' <> 'aceptada' or (select importe_transportista from envios where id = e) <> 620 then
+    raise exception 'FALLO 13 · aprobar la contraoferta no asigna al precio propuesto: %', r;
+  end if;
+  raise notice 'OK 13 · contraoferta: dentro del 10%% la decide el sistema, por encima la aprueba Dynamo';
+end $$;
+
+-- ---- 14. PIN: 3 fallos bloquean, y el bloqueo no se salta acertando después ---------
+do $$ declare p1 uuid := current_setting('prueba.p1')::uuid; p2 uuid := current_setting('prueba.p2')::uuid;
+              buen text; malo text; r jsonb; begin
+  -- Entrega ANTES que recogida: se deja, con aviso (decisión del 2026-11-02).
+  select pin into buen from envio_parada_pines where parada_id = p2;
+  r := validar_pin_parada(p2, buen, '10.0.0.9');
+  if r->>'resultado' <> 'validado' or r->>'aviso' is null then
+    raise exception 'FALLO 14 · entrega antes que recogida deberia validar con aviso: %', r;
+  end if;
+  if not exists (select 1 from envio_hitos where parada_id = p2 and hito = 'pin_fuera_de_orden') then
+    raise exception 'FALLO 14 · falta el hito pin_fuera_de_orden';
+  end if;
+  if (select hora_real from envio_paradas where id = p2) is null then
+    raise exception 'FALLO 14 · validar el PIN no ha sellado la hora real del punto';
+  end if;
+
+  select pin into buen from envio_parada_pines where parada_id = p1;
+  malo := lpad(((buen::int + 1) % 10000)::text, 4, '0');
+  r := validar_pin_parada(p1, malo);
+  if r->>'resultado' <> 'incorrecto' or (r->>'intentos_restantes')::int <> 2 then
+    raise exception 'FALLO 14 · primer fallo: %', r; end if;
+  r := validar_pin_parada(p1, malo);
+  r := validar_pin_parada(p1, malo);
+  if r->>'resultado' <> 'bloqueado' then raise exception 'FALLO 14 · 3 fallos no bloquean: %', r; end if;
+  r := validar_pin_parada(p1, buen);
+  if r->>'resultado' <> 'bloqueado' then
+    raise exception 'FALLO 14 · tras bloquearse, el PIN bueno sigue entrando: %', r;
+  end if;
+  if (select count(*) from pin_intentos where parada_id = p1) <> 4 then
+    raise exception 'FALLO 14 · no se han registrado los 4 intentos';
+  end if;
+  if not exists (select 1 from envio_hitos where parada_id = p1 and hito = 'incidencia') then
+    raise exception 'FALLO 14 · el bloqueo no ha generado incidencia';
+  end if;
+  raise notice 'OK 14 · PIN: 3 fallos lo bloquean, acertar luego no lo desbloquea, todo queda registrado';
+end $$;
+
+-- ---- Usuarios de prueba: un admin, un transportista y un cliente ---------------------
+do $$ declare a uuid; t uuid; c uuid; begin
+  insert into auth.users (email) values ('admin@dynamo.prueba') returning id into a;
+  update usuarios set rol = 'admin', estado = 'activa' where id = a;
+  insert into auth.users (email) values ('trafico@transportes.prueba') returning id into t;
+  update usuarios set rol = 'transportista', estado = 'activa',
+         transportista_id = current_setting('prueba.transp')::uuid where id = t;
+  insert into auth.users (email) values ('compras@cliente.prueba') returning id into c;
+  update usuarios set rol = 'cliente', estado = 'activa',
+         cliente_id = current_setting('prueba.cliente')::uuid where id = c;
+  perform set_config('prueba.u_admin',  a::text, false);
+  perform set_config('prueba.u_transp', t::text, false);
+  perform set_config('prueba.u_cli',    c::text, false);
+end $$;
+
+-- ---- 15. El transportista ve las paradas de su envío pero NUNCA el PIN ---------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.envio')::uuid; n int; begin
+  select count(*) into n from envio_paradas where envio_id = e;
+  if n <> 2 then raise exception 'FALLO 15 · el transportista no ve las paradas de su envio (%)', n; end if;
+  select count(*) into n from envio_parada_pines;
+  if n <> 0 then raise exception 'FALLO 15 · FUGA: el transportista puede LEER % PIN', n; end if;
+  select count(*) into n from envio_ofertas;
+  if n <> 0 then raise exception 'FALLO 15 · el transportista ve las ofertas (y su banda %%)'; end if;
+  select count(*) into n from envio_hitos where envio_id = e and hito in ('ofertado','enlace_abierto','reservado');
+  if n <> 0 then raise exception 'FALLO 15 · el transportista ve hitos internos (%)', n; end if;
+  select count(*) into n from envio_hitos where envio_id = e and hito = 'transportista_asignado';
+  if n = 0 then raise exception 'FALLO 15 · el transportista no ve que tiene la carga asignada'; end if;
+  raise notice 'OK 15 · el transportista ve sus paradas e hitos utiles, pero no el PIN ni las ofertas';
+end $$;
+
+-- ---- 16. Validar a mano: solo Dynamo, y con explicación ------------------------------
+do $$ begin
+  perform validar_pin_manual(current_setting('prueba.p1')::uuid, 'me lo dijo el chofer');
+  raise exception 'FALLO 16 · un TRANSPORTISTA ha podido validar un PIN a mano';
+exception when insufficient_privilege then null;
+end $$;
+do $$ begin
+  perform ofertar_envio(current_setting('prueba.envio')::uuid, null, 'bolsa_wtransnet', 1);
+  raise exception 'FALLO 16 · un TRANSPORTISTA ha podido ofertar una carga';
+exception when insufficient_privilege then null;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare p1 uuid := current_setting('prueba.p1')::uuid; r jsonb; begin
+  begin perform validar_pin_manual(p1, 'ok');
+        raise exception 'FALLO 16 · se ha validado a mano sin explicar por que';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  r := validar_pin_manual(p1, 'Sin cobertura en nave. Llamo Juan (chofer), confirmado con muelle.');
+  if r->>'resultado' <> 'validado_manual' then raise exception 'FALLO 16 · %', r; end if;
+  raise notice 'OK 16 · solo Dynamo valida a mano, con nota obligatoria, y queda quien lo hizo';
+end $$;
+reset role;
+do $$ begin
+  if (select validado_por from envio_parada_pines where parada_id = current_setting('prueba.p1')::uuid)
+     is distinct from current_setting('prueba.u_admin')::uuid then
+    raise exception 'FALLO 16 · no consta QUIEN de Dynamo valido a mano';
+  end if;
+end $$;
+
+-- ---- 17. El cliente ve su envío y sus hitos, pero no el PIN ni la cocina -----------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.envio')::uuid; n int; begin
+  select count(*) into n from envio_hitos where envio_id = e;
+  if n = 0 then raise exception 'FALLO 17 · el cliente no ve los hitos de su envio'; end if;
+  select count(*) into n from envio_hitos where envio_id = e
+    and hito in ('ofertado','enlace_abierto','reservado','reserva_caducada','contraoferta_propuesta');
+  if n <> 0 then raise exception 'FALLO 17 · el cliente ve a quien se oferto su carga (%)', n; end if;
+  select count(*) into n from envio_parada_pines;
+  if n <> 0 then raise exception 'FALLO 17 · FUGA: el cliente puede leer los PIN'; end if;
+  select count(*) into n from envio_reservas;
+  if n <> 0 then raise exception 'FALLO 17 · el cliente ve las reservas'; end if;
+  raise notice 'OK 17 · el cliente ve la vida de su envio, pero no ofertas, reservas ni PIN';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
