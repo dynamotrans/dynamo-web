@@ -688,3 +688,16 @@ do $$ declare e uuid; begin
   raise notice 'OK 29 · las zonas sin servicio siguen bloqueando los envios de Dynamo';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 30. Dynamo SÍ ve los envíos manuales de sus clientes (decisión 2026-11-02) -----
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare n int; begin
+  select count(*) into n from envios where id = current_setting('prueba.envio_manual')::uuid;
+  if n <> 1 then raise exception 'FALLO 30 · Dynamo no ve el envio manual del cliente'; end if;
+  select count(*) into n from operadores;
+  if n < 2 then raise exception 'FALLO 30 · Dynamo no ve los operadores de sus clientes'; end if;
+  raise notice 'OK 30 · Dynamo ve los envios manuales y los operadores de sus clientes';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

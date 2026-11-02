@@ -356,3 +356,10 @@ que sean el mismo sitio (por ejemplo `sitio_maestro_id`). No se monta ahora.
 **Fallo cazado al probar:** con los sitios borrados ocultos para el cliente, **borrar no
 funcionaba**: Postgres exige que la fila siga visible tras un UPDATE, y el borrado suave es un
 UPDATE. El cliente ve también sus propios borrados; el panel filtra `borrado = false`.
+
+
+### Envíos manuales: Dynamo SÍ los ve (decisión del usuario, 2026-11-02)
+
+Cerrada la duda que quedó abierta en julio. El admin de Dynamo ve los envíos manuales de sus
+clientes, con su operador y el precio que pactaron: sirve para darles soporte y para ver cuánto
+mueven fuera de Dynamo (oportunidad comercial). Probado en el arnés (comprobación 30).
