@@ -533,3 +533,70 @@ do $$ declare e uuid; b uuid := (select id from clientes where cif = 'B44444444'
     values (e, 1, 'carga', (select id from lugares where es_almacen_dynamo limit 1), '41016', 'Sevilla');
   raise notice 'OK 23 · un envio solo usa sitios de su propio cliente o almacenes Dynamo';
 end $$;
+
+-- =====================================================================================
+-- FLOTA (2026-11-02)
+-- =====================================================================================
+-- ---- 24. Matrículas españolas con su formato; extranjeras en suave -------------------
+do $$ declare t uuid := current_setting('prueba.transp')::uuid; begin
+  insert into vehiculos (transportista_id, matricula, tipo) values (t, '1234 lbc', 'tractora');
+  insert into vehiculos (transportista_id, matricula, tipo) values (t, 'R-5678-BCD', 'remolque');
+  insert into vehiculos (transportista_id, matricula, tipo) values (t, 'SE-1234-AB', 'tractora');
+  insert into vehiculos (transportista_id, matricula, tipo) values (t, '9876 KJH', 'rigido');
+  insert into vehiculos (transportista_id, matricula, tipo, pais_matricula) values (t, 'WGM 12345', 'tractora', 'PL');
+  begin
+    insert into vehiculos (transportista_id, matricula, tipo) values (t, '1234 LB', 'tractora');
+    raise exception 'FALLO 24 · se ha aceptado una matricula espanola incompleta';
+  exception when check_violation then null; end;
+  begin
+    insert into vehiculos (transportista_id, matricula, tipo) values (t, '5678 BCD', 'remolque');
+    raise exception 'FALLO 24 · se ha aceptado un remolque espanol sin la R';
+  exception when check_violation then null; end;
+  begin
+    insert into vehiculos (transportista_id, matricula, tipo) values (t, '1234-LBC', 'tractora');
+    raise exception 'FALLO 24 · se ha duplicado una matricula escrita de otra forma';
+  exception when unique_violation then null; end;
+  -- La misma matrícula en otro país sí puede existir.
+  insert into vehiculos (transportista_id, matricula, tipo, pais_matricula) values (t, '1234LBC', 'tractora', 'PT');
+  raise notice 'OK 24 · matriculas espanolas con formato exacto, extranjeras en suave, sin duplicados';
+end $$;
+
+-- ---- 25. Un rígido no lleva remolque; las piezas tienen que cuadrar ------------------
+do $$ declare e uuid := current_setting('prueba.envio')::uuid;
+              t uuid := current_setting('prueba.transp')::uuid;
+              rig uuid; tra uuid; rem uuid; begin
+  select id into rig from vehiculos where transportista_id = t and tipo = 'rigido' limit 1;
+  select id into tra from vehiculos where transportista_id = t and tipo = 'tractora' and pais_matricula = 'ES' limit 1;
+  select id into rem from vehiculos where transportista_id = t and tipo = 'remolque' limit 1;
+  update envios set vehiculo_camion_id = tra, vehiculo_remolque_id = rem,
+                    matricula_camion = '1234 LBC', matricula_remolque = 'R 5678 BCD' where id = e;
+  if not exists (select 1 from envio_hitos where envio_id = e and hito = 'matricula_asignada'
+                 and datos->>'camion' = '1234 LBC') then
+    raise exception 'FALLO 25 · al poner la matricula no ha salido el hito con el camion';
+  end if;
+  begin
+    update envios set vehiculo_camion_id = rig where id = e;
+    raise exception 'FALLO 25 · se ha puesto un rigido CON remolque';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  update envios set vehiculo_camion_id = rig, vehiculo_remolque_id = null,
+                    matricula_camion = '9876 KJH', matricula_remolque = null where id = e;
+  begin
+    update envios set vehiculo_camion_id = rem where id = e;
+    raise exception 'FALLO 25 · se ha puesto un remolque como camion';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  raise notice 'OK 25 · camion y remolque cuadran: un rigido nunca lleva remolque';
+end $$;
+
+-- ---- 26. La vista del cliente sigue sin enseñar lo interno ---------------------------
+do $$ declare cols text; begin
+  select string_agg(column_name, ', ') into cols from information_schema.columns
+   where table_name = 'v_envios_cliente'
+     and column_name in ('importe_transportista','margen_euros','factor_tarifa_aplicado',
+                         'transportista_id','transportista_nima','primera_oferta_en');
+  if cols is not null then raise exception 'FALLO 26 · la vista del cliente ensena: %', cols; end if;
+  if not exists (select 1 from information_schema.columns
+                 where table_name = 'v_envios_cliente' and column_name = 'matricula_camion') then
+    raise exception 'FALLO 26 · la vista del cliente no tiene matricula_camion';
+  end if;
+  raise notice 'OK 26 · la vista del cliente no ensena precio del transportista, margen ni factor';
+end $$;
