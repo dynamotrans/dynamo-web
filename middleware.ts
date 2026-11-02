@@ -1,0 +1,41 @@
+import { createServerClient } from '@supabase/ssr';
+import { NextResponse, type NextRequest } from 'next/server';
+
+// Refresca la sesión de Supabase en cada petición de la plataforma y protege /panel:
+// sin sesión, a la página de entrada.
+export async function middleware(request: NextRequest) {
+  let respuesta = NextResponse.next({ request });
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const clave = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !clave) return respuesta;   // sin configurar: la página lo explica
+
+  const supabase = createServerClient(url, clave, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(lista) {
+        lista.forEach(({ name, value }) => request.cookies.set(name, value));
+        respuesta = NextResponse.next({ request });
+        lista.forEach(({ name, value, options }) => respuesta.cookies.set(name, value, options));
+      },
+    },
+  });
+
+  // getUser() valida el token contra Supabase (no se fía de la cookie a ciegas).
+  const { data: { user } } = await supabase.auth.getUser();
+  const enLogin = request.nextUrl.pathname.startsWith('/panel/entrar');
+  if (!user && !enLogin) {
+    const destino = request.nextUrl.clone();
+    destino.pathname = '/panel/entrar';
+    return NextResponse.redirect(destino);
+  }
+  if (user && enLogin) {
+    const destino = request.nextUrl.clone();
+    destino.pathname = '/panel';
+    return NextResponse.redirect(destino);
+  }
+  return respuesta;
+}
+
+export const config = { matcher: ['/panel', '/panel/:path*'] };

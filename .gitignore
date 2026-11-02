@@ -19,3 +19,7 @@ build/
 .vercel/
 *.log
 .DS_Store
+
+# Next.js: public/ se genera al compilar copiando la web estatica (scripts/copiar-estaticos.mjs)
+/public/
+*.tsbuildinfo

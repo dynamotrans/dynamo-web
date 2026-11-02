@@ -316,6 +316,33 @@ reales; el proyecto real se crea el día del lanzamiento (regla 14-bis antes).
 **Nombres de tablas y columnas: siempre por migración desde aquí, NUNCA a mano en el panel
 de Supabase** (se desincronizaría con el repositorio).
 
+
+### 17. LA PLATAFORMA REAL ES NEXT.JS, SOLO EN `pruebas` (desde 2026-11-03)
+
+**Fase 1 del plan por etapas** (aprobado por el usuario el 2026-11-03: A = solo Dynamo por
+dentro, B = clientes, C = transportistas). La app nueva vive en `/panel` (entrar en
+`/panel/entrar`); el mockup (`dashboard.html` y compañía) sigue en pie como referencia hasta
+que cada pantalla esté pasada a datos reales (patrón estrangulador).
+
+**Cómo está montado, y por qué:**
+- `main` (dynamotrans.com) **sigue siendo HTML estático, sin Next.js**. No tiene `package.json`.
+- En `pruebas`: `package.json`, `app/`, `lib/`, `components/`, `middleware.ts`, `next.config.mjs`
+  y en `vercel.json` `"framework": "nextjs"`. Vercel compila Next.js **solo en esta rama**.
+- **La web pública sigue en la RAÍZ** también en `pruebas`. `scripts/copiar-estaticos.mjs` la
+  copia a `public/` al compilar (`public/` está en `.gitignore`). Así los cambios públicos que
+  bajan de `main` (regla 8) **no chocan** al fusionar. NUNCA mover los `.html` a `public/` en git.
+- Efecto bueno: con Next.js solo se sirve lo de `public/`, así que `CLAUDE.md`, `supabase/` o
+  `package.json` dan 404 en la URL de pruebas (comprobado).
+- Al fusionar `main → pruebas`, si `vercel.json` choca: quedarse con las líneas de `framework`,
+  `buildCommand` e `installCommand` de `pruebas` y con el resto de `main`.
+- **Variables en Vercel** (Settings → Environment Variables, entorno *Preview*):
+  `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Las pega el usuario. La clave de
+  servicio de Supabase **nunca** en una variable `NEXT_PUBLIC_` ni en el chat.
+- **Lectura por rol** (ver migración `permisos_por_rol`): Dynamo lee las tablas; cliente y
+  transportista usan `mis_envios()` / `mis_viajes()`. Nunca leer `envios` con la sesión de un cliente.
+- Antes de subir: `npm run build` sin errores + comprobar en Chromium (`/`, una hoja de sección,
+  `/panel/entrar`). Versiones de paquetes fijadas exactas y con al menos 2 semanas.
+
 ---
 
 ## Bitácora

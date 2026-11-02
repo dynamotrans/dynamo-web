@@ -1,0 +1,25 @@
+{
+  "name": "dynamo-plataforma",
+  "private": true,
+  "description": "Plataforma de Dynamo (Next.js) + web publica estatica. Solo en la rama pruebas.",
+  "scripts": {
+    "copiar-estaticos": "node scripts/copiar-estaticos.mjs",
+    "dev": "node scripts/copiar-estaticos.mjs && next dev",
+    "build": "node scripts/copiar-estaticos.mjs && next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.117.3",
+    "next": "15.5.28",
+    "react": "19.2.9",
+    "react-dom": "19.2.9"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.1",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "typescript": "5.9.3"
+  },
+  "engines": { "node": ">=20" }
+}

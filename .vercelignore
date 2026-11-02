@@ -13,3 +13,7 @@ emails/
 
 # Automatizaciones de GitHub
 .github/
+
+# Migraciones de la base de datos: no hacen falta para compilar la web.
+# (OJO: scripts/ NO va aqui: lo necesita la compilacion de Next.js en pruebas.)
+supabase/
