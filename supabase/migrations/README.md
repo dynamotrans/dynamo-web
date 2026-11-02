@@ -71,7 +71,7 @@ reconstruir nada.
 | `20261102220000_quitar_whatsapp_y_pais_matricula.sql` | fuera `tiene_whatsapp` de contactos y conductores (regla del usuario: **si es móvil, se da por hecho que tiene WhatsApp**; lo decide la app por el número) y fuera `pais_matricula` (y con él la comprobación estricta del formato español) | ✅ listo |
 | `20261102230000_flota_libre.sql` | **flota libre** (caso del usuario: el autónomo contratado directo puede venir subcontratado por otro transportista): camión y conductor ya no están atados a un transportista (`transportista_id` = «con quién suele venir», opcional); un camión existe una vez por matrícula y un conductor una vez por DNI; el envío ya no exige que el camión sea del transportista asignado. Se mantiene: un rígido no lleva remolque | ✅ listo |
 | `20261102240000_envios_manuales.sql` | **envíos manuales (v1.0)**: catálogo privado `operadores` de cada cliente; en `envios`, `operador_id` (null = Dynamo), `precio_acordado_operador` y `es_manual`. Un envío manual no lleva transportista ni precios de Dynamo, no se oferta ni se reserva, no genera PIN y no le afectan las zonas sin servicio de Dynamo | ✅ listo |
-| `AAAAMMDDhhmmss_operativa.sql` | `tickets`, `penalizaciones`, `almacenamientos`, `documentos`, `firmas_cmr` | pendiente |
+| `20261103000000_operativa.sql` | `tipos_incidencia` + `incidencias` (INC-), `tipos_penalizacion` + `penalizaciones` (PEN-, automática al cancelar tarde con camión y retirada al deshacer), `almacenamientos` (AX + 6 cifras), `documentos` (datos; el fichero en Storage), `firmas_cmr` (append-only) | ✅ listo |
 | `AAAAMMDDhhmmss_tarifas_plantillas.sql` | tarifas con vigencia y plantillas de texto (la tabla `parametros` ya la crea la 0010: aquí solo se le añaden claves). **Bloqueada**: falta el libro de tarifar del usuario y el código del Apps Script | pendiente |
 | `AAAAMMDDhhmmss_vistas_holded_wtransnet.sql` | vistas de exportación + métricas de cliente/transportista | pendiente |
 | `AAAAMMDDhhmmss_rls_politicas.sql` | las **políticas** por rol (el RLS ya está ACTIVADO en las 15 tablas, cerrado por defecto: ver «Seguridad por defecto» abajo). Ojo a los dos riesgos anotados ahí | pendiente |
@@ -363,3 +363,31 @@ UPDATE. El cliente ve también sus propios borrados; el panel filtra `borrado = 
 Cerrada la duda que quedó abierta en julio. El admin de Dynamo ve los envíos manuales de sus
 clientes, con su operador y el precio que pactaron: sirve para darles soporte y para ver cuánto
 mueven fuera de Dynamo (oportunidad comercial). Probado en el arnés (comprobación 30).
+
+
+### Añadido al verificar la operativa (2026-11-03)
+
+Comprobaciones 31 a 37 del arnés. Lo no obvio:
+
+- **Corte de cancelación** (`corte_cancelacion`): 9:00 de Madrid del día hábil anterior, bien en
+  verano (UTC+2) e invierno (UTC+1). ⚠️ **Salta fines de semana pero NO festivos**: los festivos
+  viven hoy en `js/festivos.js`, en el navegador. Pendiente: tabla de festivos en la base (o que el
+  servidor la consulte) para que un envío del día siguiente a un festivo tenga el corte correcto.
+- **Penalización automática**: cancelar un envío de Dynamo **con camión asignado** después del
+  corte crea la de *Cancelación* por el **servicio entero** (importe cliente y transportista).
+  Deshacer la cancelación la **retira** (queda como cancelada, no se borra)… salvo que Dynamo la
+  haya renegociado (`editada_a_mano`), que se queda.
+- **El cliente ve sus penalizaciones con `mis_penalizaciones()`**, no leyendo la tabla: la seguridad
+  por filas filtra filas, no columnas, y la tabla lleva lo que se paga al transportista. **Este es el
+  patrón para las vistas por rol** que faltan (envíos: el cliente no debe leer `importe_transportista`
+  ni el margen leyendo `envios` directamente). Va en la migración de políticas por rol.
+- **Documentos**: el cliente ve lo marcado `visible_cliente` de lo suyo (albarán, CMR) y las fotos y
+  adjuntos que sube él a sus incidencias. Nunca el seguro o la tarjeta del transportista ni la
+  orden interna. Máximo 5 en la ficha de cada transportista.
+  **Fallo cazado:** la primera versión dejaba ver al cliente *cualquier* documento que constara
+  como subido por él; si alguien de Dynamo trabajaba con una sesión mal puesta, un documento interno
+  quedaba a la vista. Ahora lo "subido por mí" solo cuenta para fotos y adjuntos de incidencias.
+- **Pendiente al conectar**: crear en Supabase Storage el bucket **`documentos` PRIVADO** (enlaces
+  firmados con caducidad, nunca públicos) con sus políticas, y el de las firmas.
+- **Firmas del CMR**: append-only, las escribe solo el servidor (quien firma no tiene cuenta),
+  dejan hito `cmr_firmado`, y el cliente ve las de sus envíos.

@@ -701,3 +701,226 @@ do $$ declare n int; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- =====================================================================================
+-- OPERATIVA (2026-11-03): incidencias, penalizaciones, almacenamientos, documentos, CMR
+-- =====================================================================================
+-- ---- 31. El corte de cancelación: 9:00 de Madrid del día hábil anterior -------------
+do $$ begin
+  -- Carga el lunes 9-nov-2026 → corte el viernes 6 a las 9:00 de Madrid (8:00 UTC).
+  if corte_cancelacion('2026-11-09') <> '2026-11-06 08:00:00+00' then
+    raise exception 'FALLO 31 · corte de un lunes: %', corte_cancelacion('2026-11-09');
+  end if;
+  -- Carga el martes 10 → corte el lunes 9 a las 9:00.
+  if corte_cancelacion('2026-11-10') <> '2026-11-09 08:00:00+00' then
+    raise exception 'FALLO 31 · corte de un martes: %', corte_cancelacion('2026-11-10');
+  end if;
+  -- En verano Madrid es UTC+2: carga el miércoles 15-jul-2026 → martes 14 a las 7:00 UTC.
+  if corte_cancelacion('2026-07-15') <> '2026-07-14 07:00:00+00' then
+    raise exception 'FALLO 31 · corte en horario de verano: %', corte_cancelacion('2026-07-15');
+  end if;
+  raise notice 'OK 31 · corte de cancelacion: 9:00 de Madrid del dia habil anterior (verano e invierno)';
+end $$;
+
+-- ---- 32. Penalización automática al cancelar tarde, y se retira al deshacer --------
+do $$ declare e uuid := current_setting('prueba.envio')::uuid; p record; e2 uuid; begin
+  update envios set fecha_carga_desde = current_date where id = e;   -- el corte ya pasó
+  update envios set estado = 'cancelado' where id = e;
+  select * into p from penalizaciones where envio_id = e and generada_auto;
+  if p.id is null then raise exception 'FALLO 32 · cancelar tarde con camion no ha penalizado'; end if;
+  if p.importe_cliente is distinct from (select importe_cliente from envios where id = e) then
+    raise exception 'FALLO 32 · la penalizacion no es el coste completo del servicio';
+  end if;
+  update envios set estado = 'programado' where id = e;            -- deshacer la cancelación
+  if (select estado from penalizaciones where id = p.id) <> 'cancelada' then
+    raise exception 'FALLO 32 · deshacer la cancelacion no ha retirado la penalizacion';
+  end if;
+  -- Dentro de plazo (carga dentro de un mes): gratis.
+  update envios set fecha_carga_desde = current_date + 30, estado = 'cancelado' where id = e;
+  if (select count(*) from penalizaciones where envio_id = e and estado <> 'cancelada') <> 0 then
+    raise exception 'FALLO 32 · ha penalizado una cancelacion dentro de plazo';
+  end if;
+  update envios set estado = 'programado' where id = e;
+  -- Una automática que Dynamo renegocia NO desaparece al deshacer.
+  update envios set fecha_carga_desde = current_date, estado = 'cancelado' where id = e;
+  update penalizaciones set importe_cliente = 200 where envio_id = e and estado = 'pendiente_confirmar';
+  update envios set estado = 'programado' where id = e;
+  if not exists (select 1 from penalizaciones where envio_id = e and importe_cliente = 200
+                 and estado = 'pendiente_confirmar' and editada_a_mano) then
+    raise exception 'FALLO 32 · una penalizacion renegociada por Dynamo se ha retirado sola';
+  end if;
+  raise notice 'OK 32 · cancelar tarde con camion penaliza el servicio entero; deshacer la retira (si no se renegocio)';
+end $$;
+
+-- ---- 33. El cliente ve SUS penalizaciones, sin lo que se paga al transportista -----
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare n int; begin
+  select count(*) into n from penalizaciones;
+  if n <> 0 then raise exception 'FALLO 33 · el cliente lee la tabla de penalizaciones entera'; end if;
+  select count(*) into n from mis_penalizaciones();
+  if n <> 1 then raise exception 'FALLO 33 · el cliente no ve su penalizacion (%)', n; end if;
+  raise notice 'OK 33 · el cliente ve sus penalizaciones sin el importe del transportista';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+set role authenticated;
+do $$ begin
+  if (select count(*) from mis_penalizaciones()) <> 0 then
+    raise exception 'FALLO 33 · FUGA: B ve las penalizaciones de A';
+  end if;
+end $$;
+reset role;
+
+-- ---- 34. Incidencias: cada cliente las suyas; resolverlas es de Dynamo -------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare i uuid; begin
+  insert into incidencias (tipo_id, envio_id, titulo, detalle)
+    values ((select id from tipos_incidencia where clave = 'incidencia_transporte'),
+            current_setting('prueba.envio')::uuid, 'Palet roto a la llegada', '3 de 33')
+    returning id into i;
+  perform set_config('prueba.incidencia', i::text, false);
+  if (select cliente_id from incidencias where id = i) is distinct from cliente_del_usuario() then
+    raise exception 'FALLO 34 · la incidencia no ha quedado a nombre del cliente';
+  end if;
+  begin
+    update incidencias set estado = 'resuelto' where id = i;
+    raise exception 'FALLO 34 · el cliente ha dado por resuelta su incidencia';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+set role authenticated;
+do $$ begin
+  if (select count(*) from incidencias) <> 0 then raise exception 'FALLO 34 · FUGA: B ve incidencias de A'; end if;
+end $$;
+reset role;
+do $$ declare i uuid := current_setting('prueba.incidencia')::uuid; begin
+  if not exists (select 1 from envio_hitos where envio_id = current_setting('prueba.envio')::uuid
+                 and hito = 'incidencia' and datos ? 'incidencia') then
+    raise exception 'FALLO 34 · abrir la incidencia no ha dejado hito en el envio';
+  end if;
+  update incidencias set estado = 'resuelto', resolucion = 'Abonado al cliente' where id = i;
+  if (select resuelto_en from incidencias where id = i) is null then
+    raise exception 'FALLO 34 · resolver no ha sellado la hora';
+  end if;
+  raise notice 'OK 34 · incidencias: cada cliente las suyas, con hito en el envio; resolver es de Dynamo';
+end $$;
+
+-- ---- 35. Almacenamientos: solo en almacén Dynamo con sitio; entrega en sitio propio -
+do $$ declare alm uuid := (select id from lugares where es_almacen_dynamo limit 1); begin
+  update lugares set disponible = true where id = alm;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare alm uuid := (select id from lugares where es_almacen_dynamo limit 1); a uuid; begin
+  insert into almacenamientos (almacen_id, fecha_entrada, fecha_salida, num_trailers,
+                               importe_almacenaje)
+    values (alm, current_date + 4, current_date + 10, 1, 240) returning id into a;
+  if (select codigo from almacenamientos where id = a) !~ '^AX[0-9]{6}$' then
+    raise exception 'FALLO 35 · el codigo no es AX + 6 cifras';
+  end if;
+  begin
+    insert into almacenamientos (almacen_id, fecha_entrada, fecha_salida)
+      values (current_setting('prueba.lugar_a')::uuid, current_date, current_date + 2);
+    raise exception 'FALLO 35 · se ha almacenado en un sitio que no es almacen Dynamo';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  begin
+    update almacenamientos set estado = 'confirmado' where id = a;
+    raise exception 'FALLO 35 · el cliente ha confirmado su propio almacenamiento';
+  exception when insufficient_privilege then null; end;
+  perform set_config('prueba.alm', a::text, false);
+end $$;
+reset role;
+do $$ declare alm uuid := (select id from lugares where es_almacen_dynamo limit 1);
+              c uuid := current_setting('prueba.cliente')::uuid; begin
+  update lugares set disponible = false where id = alm;
+  begin
+    insert into almacenamientos (cliente_id, almacen_id, fecha_entrada, fecha_salida)
+      values (c, alm, current_date, current_date + 3);
+    raise exception 'FALLO 35 · un almacen COMPLETO ha admitido una entrada';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  -- Lo que ya estaba dentro no se rompe por marcar el almacén completo.
+  update almacenamientos set estado = 'confirmado' where id = current_setting('prueba.alm')::uuid;
+  update lugares set disponible = true where id = alm;
+  begin
+    insert into almacenamientos (cliente_id, almacen_id, fecha_entrada, fecha_salida,
+                                 num_repartos, lugar_entrega_id)
+      values (c, alm, current_date, current_date + 3, 1, current_setting('prueba.lugar_b')::uuid);
+    raise exception 'FALLO 35 · el reparto va a un sitio de OTRO cliente';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  raise notice 'OK 35 · almacenamientos AX: solo en almacen Dynamo con sitio, reparto a sitio propio, confirma Dynamo';
+end $$;
+
+-- ---- 36. Documentos: cada uno lo suyo; el seguro del transportista no lo ve el cliente
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare t uuid := current_setting('prueba.transp')::uuid; k int; begin
+  insert into documentos (tipo, transportista_id, storage_ruta, nombre_archivo)
+    values ('seguro_cmr', t, 'transp/seguro.pdf', 'seguro.pdf');
+  insert into documentos (tipo, envio_id, storage_ruta, nombre_archivo, visible_cliente)
+    values ('albaran', current_setting('prueba.envio')::uuid, 'envios/albaran.pdf', 'albaran.pdf', true);
+  insert into documentos (tipo, envio_id, transportista_id, storage_ruta, nombre_archivo)
+    values ('orden_transporte', current_setting('prueba.envio')::uuid, t, 'envios/orden.pdf', 'orden.pdf');
+  for k in 2..5 loop
+    insert into documentos (tipo, transportista_id, storage_ruta, nombre_archivo)
+      values ('otro', t, 'transp/doc' || k || '.pdf', 'doc.pdf');
+  end loop;
+  begin
+    insert into documentos (tipo, transportista_id, storage_ruta, nombre_archivo)
+      values ('otro', t, 'transp/doc6.pdf', 'doc6.pdf');
+    raise exception 'FALLO 36 · el transportista tiene mas de 5 documentos en su ficha';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare n int; begin
+  insert into documentos (tipo, incidencia_id, storage_ruta, nombre_archivo)
+    values ('foto_incidencia', current_setting('prueba.incidencia')::uuid, 'inc/foto1.jpg', 'foto1.jpg');
+  select count(*) into n from documentos where tipo in ('albaran','foto_incidencia');
+  if n <> 2 then raise exception 'FALLO 36 · el cliente no ve su albaran y su foto (%)', n; end if;
+  select count(*) into n from documentos where tipo in ('seguro_cmr','orden_transporte','otro');
+  if n <> 0 then raise exception 'FALLO 36 · el cliente ve documentos internos (%)', n; end if;
+  begin
+    insert into documentos (tipo, envio_id, storage_ruta, nombre_archivo)
+      values ('albaran', current_setting('prueba.envio')::uuid, 'envios/falso.pdf', 'falso.pdf');
+    raise exception 'FALLO 36 · el cliente ha subido un albaran por su cuenta';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+set role authenticated;
+do $$ begin
+  if (select count(*) from documentos) <> 0 then raise exception 'FALLO 36 · FUGA: B ve documentos de A'; end if;
+  raise notice 'OK 36 · documentos: cada cliente los suyos; seguros y ordenes internas no; maximo 5 por transportista';
+end $$;
+reset role;
+
+-- ---- 37. Firmas del CMR: solo el servidor las escribe, y nadie las cambia ----------
+do $$ declare f uuid; begin
+  insert into firmas_cmr (envio_id, rol, nombre, documento, documento_validado,
+                          firma_storage_ruta, ip)
+    values (current_setting('prueba.envio')::uuid, 'remitente', 'Juan Garcia', '12345678Z', true,
+            'firmas/f1.png', '10.0.0.7') returning id into f;
+  begin
+    update firmas_cmr set nombre = 'Otro' where id = f;
+    raise exception 'FALLO 37 · se ha modificado una firma';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  if not exists (select 1 from envio_hitos where hito = 'cmr_firmado'
+                 and envio_id = current_setting('prueba.envio')::uuid) then
+    raise exception 'FALLO 37 · firmar no ha dejado el hito cmr_firmado';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if (select count(*) from firmas_cmr) <> 1 then raise exception 'FALLO 37 · el cliente no ve la firma de su CMR'; end if;
+  begin
+    insert into firmas_cmr (envio_id, rol, nombre, documento, firma_storage_ruta)
+      values (current_setting('prueba.envio')::uuid, 'destinatario', 'Falso', 'X', 'f.png');
+    raise exception 'FALLO 37 · un cliente ha escrito una firma';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 37 · firmas del CMR: las escribe solo el servidor, no se pueden cambiar, el cliente ve las suyas';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
