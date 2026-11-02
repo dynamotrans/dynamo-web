@@ -581,14 +581,36 @@ cliente), así que vive en `transportistas.nima` y se congela en el envío si se
 
 Sí: el siguiente paso es crear la base de datos. El reparto es este.
 
-### PASO 1 — Solo tú (10 minutos, una vez)
+### PASO 1 — Solo tú · ✅ HECHO (proyecto creado el 2026-10) · decisión de ENTORNOS (2026-11-02)
 
-1. Entrar en **supabase.com** → *New project*.
-2. **Región: Frankfurt (eu-central-1)**. Importa: RGPD, los datos de tus clientes se quedan en la UE.
-3. Nombre: `dynamo`. Plan Free para empezar (se sube cuando haga falta; el Free aguanta de sobra
-   el desarrollo).
-4. Guardar la **contraseña de la base de datos** en tu gestor de contraseñas.
-5. Decirme **solo**: "proyecto creado".
+**Lo que hay:** un proyecto en el plan Free, región **Irlanda (eu-west-1)** — no Frankfurt como
+decía aquí; da igual: es UE (RGPD cumplido) y la diferencia de latencia desde España es de
+milisegundos. **La región no se puede cambiar** después, y no merece la pena rehacerlo. Lo único
+que deja apuntado: cuando el backend corra en Vercel, fijar su región en **Dublín** para que las
+consultas no crucen media Europa.
+
+**DECISIÓN — este proyecto es el de PRUEBAS, no el real.** Razones: (1) no hay datos reales —
+el panel lleva datos inventados en el código y no está conectado a nada; (2) estas semanas vamos
+a crear, mirar, cambiar y BORRAR tablas, y eso se hace en pruebas; (3) el portal no sale a
+producción hasta dentro de meses (regla 7). **El proyecto real se crea el día del lanzamiento**,
+limpio, desde estas mismas migraciones, eligiendo a conciencia región, plan Pro, copias de
+seguridad probadas y el resto de `PRODUCCION.md`.
+
+| | Hoy | El día del lanzamiento |
+|---|---|---|
+| Proyecto Supabase | `dynamo-pruebas` (este, Free) | se crea `dynamo-produccion` (Pro, con copias) |
+| Rama de GitHub que lo alimenta | `pruebas` | `main` |
+| Datos | inventados, se pueden borrar | reales, intocables |
+| Cambios de esquema | se reescriben las migraciones y se reaplican desde cero | SOLO migraciones nuevas; las aplicadas no se editan jamás |
+
+Pendiente tuyo: renombrarlo en *Ajustes → General* a **`dynamo-pruebas`** (solo es la etiqueta del
+panel). El cartel naranja «principal · PRODUCCIÓN» que pinta Supabase es SU nombre para la base
+de datos principal del proyecto, no significa que sea tu producción.
+
+**El plan Free duerme el proyecto tras ~1 semana sin uso** ("Project is paused"): se pulsa
+*Resume project* y vuelve en 2-3 minutos con todo intacto. Molesto, inofensivo.
+
+La **contraseña de la base de datos** va en tu gestor de contraseñas. Ahí y en ningún otro sitio.
 
 **⚠️ No me pegues NUNCA ninguna clave en el chat.** Ni la `anon`, ni la `service_role`, ni la
 contraseña, ni la cadena de conexión. La `service_role` **se salta toda la seguridad** de la base
@@ -617,9 +639,23 @@ supabase/migrations/
   20261102091400_rls_politicas.sql
 ```
 
-Tú los abres y los pegas en el **SQL Editor** de Supabase, uno a uno, en orden. Yo veo el SQL, tú
-lo ejecutas. Cero secretos de por medio, y queda todo versionado en git: si algo sale mal, se
-revierte.
+**Cómo llegan a Supabase: por la integración de GitHub, NO pegándolas a mano.** (Corrección
+2026-10-27 de lo que decía aquí antes.) Si se pegan en el SQL Editor funcionan, pero el registro
+de migraciones de Supabase se queda vacío y el día que se conecte la automatización intentaría
+aplicar las nueve otra vez y fallaría todo. Conectando GitHub desde el principio, cada push a la
+rama vigilada aplica las migraciones nuevas y lleva la cuenta. Funciona en el plan Free (solo las
+*preview branches* por pull request son de Pro).
+
+Configuración (en el panel: *Ajustes → Integraciones → GitHub*): repositorio
+`dynamotrans/dynamo-web` · **rama de producción: `pruebas`** (ahí viven las migraciones; `main`
+es la web pública y no tiene ninguna) · carpeta `supabase` · *Deploy to production* activado.
+Requiere `supabase/config.toml` (está, mínimo a propósito: todo lo que declare ese fichero se
+despliega y pisa lo del panel).
+
+Motivo de fondo: **desde el entorno de Claude no se alcanza Supabase** (el proxy lo bloquea), así
+que yo no puedo aplicar nada. Yo escribo y pruebo contra un Postgres real; subo a `pruebas`;
+Supabase aplica. Y como yo tampoco veo el resultado, tras cada despliegue el usuario mira el
+*Table Editor* (o pega el error) y me lo dice.
 
 ### PASO 3 — El orden, y por qué ese orden
 
