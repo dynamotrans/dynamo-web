@@ -313,6 +313,13 @@ DNI/NIE y teléfono de conductores, y **firmas de CMR con valor probatorio**.
   un marcador o un hash en la tabla de origen — y **no borrar** la fila de auditoría.
   Está ya comentado en el SQL de `conductores.documento` y `usuarios.documento`.
 - Aviso de privacidad y registro de actividades de tratamiento actualizados antes de abrir.
+- **Asistente de IA de Supabase: compartición de datos DESACTIVADA.** En *Ajustes de la
+  organización → General → Privacidad de datos* hay un selector que decide si Supabase envía
+  el esquema y/o los **registros** de la base de datos a proveedores de IA externos para que su
+  asistente responda mejor. Con DNIs de conductores y firmas de CMR dentro, **no hay base
+  jurídica** para eso. Hoy (2026-11-02) está en *Desactivado*; **cómo se comprueba**: abrir esa
+  pantalla antes del lanzamiento y verificar que sigue en *Desactivado*. "Esquema solamente"
+  sería discutible; "Esquema y registros" es inaceptable.
 
 ---
 
