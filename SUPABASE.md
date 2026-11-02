@@ -597,24 +597,24 @@ Vercel y de Supabase, y yo no necesito verlas para escribir el esquema.
 
 ### PASO 2 — Yo, sin tocar tu cuenta
 
-Escribo las migraciones como ficheros SQL en el repo, en `supabase/migrations/`, numeradas:
+Escribo las migraciones como ficheros SQL en el repo, en `supabase/migrations/`, con marca de tiempo en el nombre (formato oficial de Supabase, `AAAAMMDDhhmmss_nombre.sql`; el orden lo da la fecha):
 
 ```
 supabase/migrations/
-  0001_enums_y_catalogos.sql
-  0002_auditoria_y_triggers.sql
-  0003_clientes_transportistas_contactos.sql
-  0004_usuarios_y_roles.sql
-  0005_lugares.sql
-  0006_vehiculos_conductores.sql
-  0007_envios_y_paradas.sql
-  0008_distancias_cache.sql
-  0009_restricciones_servicio.sql
-  0010_hitos_y_ofertas.sql
-  0011_operativa.sql
-  0012_tarifas_parametros_plantillas.sql
-  0013_vistas_holded_wtransnet.sql
-  0014_rls_politicas.sql
+  20261102090100_enums_y_secuencias.sql
+  20261102090200_auditoria_y_sellos.sql
+  20261102090300_clientes_transportistas_contactos.sql
+  20261102090400_usuarios_y_roles.sql
+  20261102090500_lugares.sql
+  20261102090600_vehiculos_conductores.sql
+  20261102090700_envios_y_paradas.sql
+  20261102090800_distancias_cache.sql
+  20261102090900_restricciones_servicio.sql
+  20261102091000_hitos_y_ofertas.sql
+  20261102091100_operativa.sql
+  20261102091200_tarifas_parametros_plantillas.sql
+  20261102091300_vistas_holded_wtransnet.sql
+  20261102091400_rls_politicas.sql
 ```
 
 Tú los abres y los pegas en el **SQL Editor** de Supabase, uno a uno, en orden. Yo veo el SQL, tú

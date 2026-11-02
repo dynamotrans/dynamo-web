@@ -72,7 +72,7 @@ base de datos y no por el front.
 **Hoy**: no hay base de datos. El mockup muestra todo a todos a propósito, mientras se
 diseña.
 
-**En la plataforma real** — migración `0012_rls_politicas.sql`:
+**En la plataforma real** — migración `20261102091400_rls_politicas.sql`:
 
 - `ENABLE ROW LEVEL SECURITY` + `FORCE ROW LEVEL SECURITY` en **todas** las tablas.
   Sin `FORCE`, el dueño de la tabla se salta las políticas.
@@ -286,7 +286,7 @@ firmados y la trazabilidad de las reclamaciones.
 
 ## 12 · Auditoría  ✅
 
-**Ya hecha** — es la **regla 12** de `CLAUDE.md` y la migración `0002_auditoria_y_sellos.sql`:
+**Ya hecha** — es la **regla 12** de `CLAUDE.md` y la migración `20261102090200_auditoria_y_sellos.sql`:
 las cuatro columnas en todas las tablas con hora del servidor, tabla `auditoria`
 append-only con el antes y el después en `jsonb`, impuesta con **triggers** y no desde el
 código, y la vista `v_tablas_sin_rastro` como chivato.

@@ -1,0 +1,8 @@
+# Configuración MÍNIMA del proyecto Supabase, solo para que la integración con
+# GitHub reconozca la carpeta y aplique ./migrations al hacer push a `pruebas`.
+#
+# A propósito NO se declaran aquí Auth, API, Storage ni nada más: cualquier
+# sección que aparezca en este fichero se despliega a producción y PISA lo que
+# esté configurado en el panel de Supabase. Lo que se configure en el panel,
+# se queda en el panel.
+project_id = "dynamo-web"

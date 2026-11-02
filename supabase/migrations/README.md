@@ -21,20 +21,20 @@ clave tuya**: yo escribo el SQL, tú lo ejecutas.
 
 | Fichero | Qué monta | Estado |
 |---|---|---|
-| `0001_enums_y_secuencias.sql` | Enums, catálogo de recargos por tipo de lugar, secuencias de código (incluida la del GX con paso +7) | ✅ listo |
-| `0002_auditoria_y_sellos.sql` | Tabla `auditoria` append-only, `fn_sellar()`, `fn_auditar()`, `activar_rastro()` | ✅ listo |
-| `0003_clientes_transportistas_contactos.sql` | `clientes`, `transportistas`, `contactos` | ✅ listo |
-| `0004_usuarios_y_roles.sql` | `usuarios` sobre Supabase Auth, perfil automático al registrarse, protección del último admin | ✅ listo |
-| `0005_lugares.sql` | `lugares` con dirección partida y borrado suave, `lugar_notas_cliente` | ✅ listo |
-| `0006_vehiculos_conductores.sql` | `vehiculos` (matrículas) y `conductores` | ✅ listo |
-| `0007_envios_y_paradas.sql` | `envios` (sin direcciones) + `envio_paradas` (ruta ilimitada), triggers de origen/destino, validación de ruta, vistas y RLS | ✅ listo |
-| `0008_distancias_cache.sql` | caché de los kilómetros de Google: por **sitio** (exacta) y por **código postal** (tarifador público), con invalidación automática al mudarse una empresa | ✅ listo |
-| `0009_restricciones_servicio.sql` | dónde **no** se da servicio y dónde **solo con camión completo**, en tabla editable con interruptor y vigencia | ✅ listo |
-| `0010_hitos_y_ofertas.sql` | los 14 hitos y las ofertas a transportistas (la ruta ya va en la 0007) | pendiente |
-| `0011_operativa.sql` | `tickets`, `penalizaciones`, `almacenamientos`, `documentos`, `firmas_cmr` | pendiente |
-| `0012_tarifas_parametros_plantillas.sql` | tarifas con vigencia, parámetros, plantillas de texto. **Bloqueada**: falta el libro de tarifar del usuario y el código del Apps Script | pendiente |
-| `0013_vistas_holded_wtransnet.sql` | vistas de exportación + métricas de cliente/transportista | pendiente |
-| `0014_rls_politicas.sql` | seguridad por filas (RLS) por rol | pendiente |
+| `20261102090100_enums_y_secuencias.sql` | Enums, catálogo de recargos por tipo de lugar, secuencias de código (incluida la del GX con paso +7) | ✅ listo |
+| `20261102090200_auditoria_y_sellos.sql` | Tabla `auditoria` append-only, `fn_sellar()`, `fn_auditar()`, `activar_rastro()` | ✅ listo |
+| `20261102090300_clientes_transportistas_contactos.sql` | `clientes`, `transportistas`, `contactos` | ✅ listo |
+| `20261102090400_usuarios_y_roles.sql` | `usuarios` sobre Supabase Auth, perfil automático al registrarse, protección del último admin | ✅ listo |
+| `20261102090500_lugares.sql` | `lugares` con dirección partida y borrado suave, `lugar_notas_cliente` | ✅ listo |
+| `20261102090600_vehiculos_conductores.sql` | `vehiculos` (matrículas) y `conductores` | ✅ listo |
+| `20261102090700_envios_y_paradas.sql` | `envios` (sin direcciones) + `envio_paradas` (ruta ilimitada), triggers de origen/destino, validación de ruta, vistas y RLS | ✅ listo |
+| `20261102090800_distancias_cache.sql` | caché de los kilómetros de Google: por **sitio** (exacta) y por **código postal** (tarifador público), con invalidación automática al mudarse una empresa | ✅ listo |
+| `20261102090900_restricciones_servicio.sql` | dónde **no** se da servicio y dónde **solo con camión completo**, en tabla editable con interruptor y vigencia | ✅ listo |
+| `20261102091000_hitos_y_ofertas.sql` | los 14 hitos y las ofertas a transportistas (la ruta ya va en la 0007) | pendiente |
+| `20261102091100_operativa.sql` | `tickets`, `penalizaciones`, `almacenamientos`, `documentos`, `firmas_cmr` | pendiente |
+| `20261102091200_tarifas_parametros_plantillas.sql` | tarifas con vigencia, parámetros, plantillas de texto. **Bloqueada**: falta el libro de tarifar del usuario y el código del Apps Script | pendiente |
+| `20261102091300_vistas_holded_wtransnet.sql` | vistas de exportación + métricas de cliente/transportista | pendiente |
+| `20261102091400_rls_politicas.sql` | seguridad por filas (RLS) por rol | pendiente |
 
 ## Verificado en local
 
