@@ -319,6 +319,8 @@ parada, el conductor lo leería del código de la página.
 2. **Con "sin límite de tiempo" (la decisión del usuario), validar el PIN se rompía**: el null
    de JSON convertido a texto es la palabra `'null'`, que no es un número. Se lee con `#>> '{}'`.
 
+**PIN = fase v3 (decisión del usuario 2026-11-02).** Queda en la base de datos pero **apagado** (`exige_pin` vale `false` por defecto en sitios y clientes): en la v1.0 no se genera ningún PIN. No se borra porque ya está aplicado en `dynamo-pruebas` y probado; quitarlo costaría una migración más sin ningún beneficio.
+
 **Pendiente de esta parte (no es de base de datos):**
 - El **código de confirmación por email** al aceptar (3 intentos, ver `TODO.md`): necesita el
   envío de emails, va con la función del servidor.
