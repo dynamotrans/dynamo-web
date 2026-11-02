@@ -1,21 +1,50 @@
 # Migraciones de Supabase — Dynamo
 
-Cada fichero se ejecuta **una vez y en orden** en el **SQL Editor** de Supabase
-(Dashboard → SQL Editor → New query → pegar → Run). Están numerados a propósito: el
-0002 tiene que estar antes de cualquier tabla de datos.
+Cada fichero se aplica **una vez y en orden**. El nombre lleva fecha y hora
+(`AAAAMMDDhhmmss_nombre.sql`, formato oficial de Supabase) y **el orden lo da esa fecha**:
+la de auditoría (`…090200`) tiene que ir antes de cualquier tabla de datos.
 
-## Cómo ejecutarlas
+## Cómo llegan a Supabase (desde 2026-11-02)
 
-1. Abrir el fichero, copiar **todo** el contenido.
-2. Pegarlo en el SQL Editor de Supabase y pulsar **Run**.
-3. Si sale verde, seguir con el siguiente. Si sale rojo, **parar** y pegarme el error.
-4. Después de cada una, comprobar la regla 12:
-   ```sql
-   select * from v_tablas_sin_rastro;   -- debe devolver 0 filas
-   ```
+**No se pegan a mano.** Proyecto `dynamo-pruebas` conectado a GitHub
+(*Settings → Integrations → GitHub*):
 
-No hace falta instalar nada ni usar la CLI de Supabase. Y **no me hace falta ninguna
-clave tuya**: yo escribo el SQL, tú lo ejecutas.
+| Campo | Valor | Por qué |
+|---|---|---|
+| Repositorio | `dynamotrans/dynamo-web` | |
+| Working directory | **`.`** | pide la carpeta que **contiene** `supabase/`, que está en la raíz. Con `supabase/` buscaría `supabase/supabase/` y no aplicaría nada, sin dar error claro |
+| Deploy to production | activado | |
+| Production branch | **`pruebas`** | las migraciones viven ahí; `main` es la web pública y no tiene ninguna |
+| Branching | desactivado | es de pago (Pro) |
+
+Cada push a `pruebas` aplica las migraciones nuevas, cada una en su transacción, y
+Supabase lleva la cuenta de cuáles ya están. Pegarlas en el SQL Editor funcionaría, pero
+dejaría ese registro vacío y el siguiente despliegue intentaría aplicarlas otra vez.
+
+**Desde el entorno de Claude no se alcanza Supabase** (el proxy lo bloquea): Claude
+escribe y prueba aquí, sube a `pruebas`, Supabase aplica. El resultado se mira en el panel
+(*Última migración* en la portada del proyecto) o en el estado del commit en GitHub.
+
+### Mientras sea `dynamo-pruebas` vs. el día que haya datos reales
+
+- **Ahora (sin datos reales)**: si algo del esquema no convence, **se reescriben** las
+  migraciones y se reaplica todo desde cero. Es el momento de equivocarse.
+- **Con datos reales**: una migración aplicada **no se edita jamás**. Cada cambio es un
+  fichero nuevo. Editar uno ya aplicado no lo vuelve a ejecutar: solo rompe la
+  correspondencia entre lo que dicen los ficheros y lo que hay en la base.
+
+## Antes de cada push que toque migraciones: el arnés
+
+```bash
+tools/probar-migraciones/probar.sh
+```
+
+Levanta un PostgreSQL de usar y tirar **que imita a Supabase** (roles `anon`,
+`authenticated`, `service_role`, esquema `auth` y —lo decisivo— **los privilegios por
+defecto que conceden a la API todo lo que se crea en `public`**), aplica todas las
+migraciones en orden y lanza las comprobaciones de `comprobar_seguridad.sql`. Si dice
+`HAY FALLOS`, no se sube. Está en el repositorio para que cualquier sesión lo repita sin
+reconstruir nada.
 
 ## Estado
 
@@ -34,12 +63,58 @@ clave tuya**: yo escribo el SQL, tú lo ejecutas.
 | `20261102091100_operativa.sql` | `tickets`, `penalizaciones`, `almacenamientos`, `documentos`, `firmas_cmr` | pendiente |
 | `20261102091200_tarifas_parametros_plantillas.sql` | tarifas con vigencia, parámetros, plantillas de texto. **Bloqueada**: falta el libro de tarifar del usuario y el código del Apps Script | pendiente |
 | `20261102091300_vistas_holded_wtransnet.sql` | vistas de exportación + métricas de cliente/transportista | pendiente |
-| `20261102091400_rls_politicas.sql` | seguridad por filas (RLS) por rol | pendiente |
+| `20261102091400_rls_politicas.sql` | las **políticas** por rol (el RLS ya está ACTIVADO en las 15 tablas, cerrado por defecto: ver «Seguridad por defecto» abajo). Ojo a los dos riesgos anotados ahí | pendiente |
+
+## Seguridad por defecto: RLS en TODAS las tablas desde que nacen (2026-11-02)
+
+**El fallo, encontrado justo antes del primer despliegue.** 12 de las 15 tablas y las 5
+vistas se habían escrito sin seguridad por filas. En un Postgres normal no se nota; en
+Supabase sí, porque **todo lo que se crea en `public` queda concedido a la API**. El arnés
+lo demostró con la clave pública (`anon`), antes y después del arreglo:
+
+| Comprobación | Antes | Después |
+|---|---|---|
+| Tablas sin RLS | **12** (`clientes`, `usuarios`, `transportistas`, `lugares`…) | 0 |
+| Vistas que se saltan el RLS | **5** | 0 |
+| Filas visibles con la clave pública | `clientes`, `usuarios`, `recargos`, `restricciones` y una vista | ninguna |
+| Crear un cliente con la clave pública | **se podía** | rechazado |
+| Llamar a `activar_rastro()` (crea triggers) desde la API | **se podía** | rechazado |
+| Registrarse crea el perfil | sí | sí (el trigger es `SECURITY DEFINER`) |
+| El servidor (`service_role`) lo ve todo | sí | sí |
+
+**El arreglo, y la regla para toda migración futura:**
+
+1. **Toda tabla nueva** lleva `alter table X enable row level security;` **en la misma
+   migración** que la crea. Misma transacción: la tabla no existe ni un instante abierta.
+   Sin políticas, la API no ve ni escribe nada; solo el servidor y el dueño.
+2. **Toda vista** se crea `with (security_invoker = true)`: así respeta el RLS de quien
+   consulta. Sin eso corre como su dueño y se salta el RLS de las tablas que lee.
+3. **Herramientas internas** (chivatos, `activar_rastro`) revocadas de `public`, `anon`
+   y `authenticated`.
+4. Chivato nuevo **`v_tablas_sin_rls`**, gemelo de `v_tablas_sin_rastro`: **0 filas
+   siempre**. Es la comprobación que vale también en producción.
+
+**⚠️ Dos riesgos que hay que resolver Y PROBAR en `…091400_rls_politicas.sql`:**
+
+- **Validaciones que dejan pasar en silencio.** `validar_restricciones_envio`,
+  `validar_ruta_envio` y las de la caché de km se ejecutan **con los permisos de quien
+  llama** y leen `restricciones_servicio`, `lugares`, `distancias_*`, que ahora están
+  cerradas. Hoy da igual: nadie puede crear envíos por la API. Pero el día que una
+  política abra `envios`/`envio_paradas` a los clientes, si esas funciones no pueden leer
+  las restricciones **no encontrarán ninguna y dejarán pasar un envío a Suiza sin avisar**.
+  Solución: hacerlas `SECURITY DEFINER` con `search_path` fijado, o dar `SELECT` a esas
+  tablas de referencia. Prueba obligatoria: con el token de un cliente, intentar crear un
+  envío a Zúrich y **esperar el bloqueo**, no un éxito.
+- **`FORCE ROW LEVEL SECURITY`.** `PRODUCCION.md` §02 lo pide para que el dueño no se
+  salte las políticas, y es correcto, pero activarlo a ciegas **rompe** los triggers
+  `SECURITY DEFINER` que escriben como el dueño (el perfil al registrarse, la auditoría):
+  quedarían sujetos al RLS. Cada uno necesita su política o una excepción explícita, y el
+  arnés tiene que seguir dando `OK 3` (registrarse crea el perfil).
 
 ## Verificado en local
 
 Las 0001-0009 se han ejecutado contra un **PostgreSQL 16 real** (el mismo motor que usa
-Supabase) con un stub mínimo de `auth.users` y `auth.uid()`. Pruebas que pasan:
+Supabase) con un stub mínimo de `auth.users` y `auth.uid()` (hoy, el arnés `tools/probar-migraciones/`). Pruebas que pasan:
 
 - Alta de cliente → código `C-10000` automático, `creado_en` y `creado_por` sellados.
 - **Regla 10**: `B-91234567` y `b91234567 ` se reconocen como el mismo CIF y el segundo

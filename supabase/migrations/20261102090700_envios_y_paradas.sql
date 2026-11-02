@@ -360,7 +360,7 @@ comment on function renumerar_paradas(uuid) is
 -- =====================================================================================
 -- 7. LEER UN ENVÍO CON SUS PARADAS ORDENADAS
 -- =====================================================================================
-create or replace view v_envios_con_paradas as
+create or replace view v_envios_con_paradas with (security_invoker = true) as
 select e.*,
        (select jsonb_agg(jsonb_build_object(
                  'id', p.id, 'orden', p.orden, 'tipo', p.tipo,
@@ -381,7 +381,7 @@ comment on view v_envios_con_paradas is
 -- REGLA 11 (anti-desintermediación): al CLIENTE se le oculta el contacto del
 -- transportista en cuanto el envío está entregado o cancelado. RLS filtra FILAS, no
 -- columnas → hace falta una vista. El admin sigue viéndolo todo.
-create or replace view v_envios_cliente as
+create or replace view v_envios_cliente with (security_invoker = true) as
 select e.id, e.referencia_gx, e.referencia_cliente, e.cliente_id, e.estado,
        e.estado_asignacion, e.fecha_carga_desde, e.fecha_carga_hasta, e.fecha_carga_real,
        e.fecha_entrega_estimada, e.descripcion_mercancia, e.toneladas, e.metros_lineales,

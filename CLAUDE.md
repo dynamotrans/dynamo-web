@@ -283,6 +283,35 @@ Se da la vuelta: **todo va a producción sobre la marcha** y a `pruebas` **solo 
 **Siempre decírselo sin tecnicismos**: si el cambio está en producción o en pruebas, y la dirección donde verlo.
 
 
+
+### 16. MIGRACIONES DE SUPABASE: cómo se escriben, se prueban y se despliegan (2026-11-02)
+
+**Dónde y cómo se llaman.** `supabase/migrations/AAAAMMDDhhmmss_nombre.sql` (formato
+oficial; el orden lo da la fecha). Viven **solo en `pruebas`**.
+
+**Cómo llegan a Supabase.** Por la **integración de GitHub** del proyecto `dynamo-pruebas`
+(rama de producción `pruebas`, *working directory* `.`). Cada push a `pruebas` aplica las
+nuevas. **Nunca se pegan a mano** en el SQL Editor: dejaría vacío el registro de
+migraciones. **Claude no alcanza Supabase** desde su entorno: escribe y prueba aquí, sube,
+y el resultado se mira en el panel o en el estado del commit en GitHub.
+
+**Antes de CADA push que toque `supabase/`**: `tools/probar-migraciones/probar.sh`. Imita
+a Supabase (roles de la API + privilegios por defecto) y lanza las comprobaciones de
+seguridad. Si dice `HAY FALLOS`, no se sube. Las pruebas se amplían con cada migración.
+
+**Seguridad por defecto, obligatoria en toda migración** (el arnés lo comprueba):
+1. Toda tabla nueva → `alter table X enable row level security;` **en la misma
+   migración**. En Supabase, una tabla sin RLS está abierta a cualquiera con la clave
+   pública: lo demostró el arnés el 2026-11-02 con 12 tablas que se habían escrito así.
+2. Toda vista → `with (security_invoker = true)`. Si no, se salta el RLS.
+3. Toda función `SECURITY DEFINER` → `set search_path` fijado. Las herramientas internas,
+   revocadas de `anon` y `authenticated`.
+
+**Pruebas vs. real.** `dynamo-pruebas` es el de pruebas: mientras no tenga datos reales,
+las migraciones **se pueden reescribir** y reaplicar desde cero. El proyecto real se crea
+el día del lanzamiento (regla 14-bis antes), y desde ese momento **una migración aplicada
+no se edita jamás**: cada cambio es un fichero nuevo.
+
 ---
 
 ## Bitácora

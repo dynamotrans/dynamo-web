@@ -131,3 +131,16 @@ comment on column conductores.telefono is
 
 select activar_rastro('vehiculos');
 select activar_rastro('conductores');
+
+-- =====================================================================================
+-- SEGURIDAD POR FILAS (RLS), ACTIVADA DESDE EL NACIMIENTO
+-- =====================================================================================
+-- En Supabase, todo lo que se crea en `public` queda concedido a la API (roles `anon`
+-- y `authenticated`). Una tabla SIN RLS es una tabla abierta a cualquiera con la
+-- clave pública. Con RLS y SIN políticas, la API no ve ni escribe nada: solo el
+-- servidor (service_role) y el dueño. Va en la misma transacción que el CREATE, así
+-- que no hay un solo instante en que la tabla esté expuesta. Las políticas que abren
+-- lo justo a cada rol llegan en 20261102091400_rls_politicas.sql.
+-- Comprobación: `select * from v_tablas_sin_rls;` tiene que devolver 0 filas.
+alter table vehiculos   enable row level security;
+alter table conductores enable row level security;

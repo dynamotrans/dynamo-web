@@ -69,13 +69,24 @@
 **Qué exige**: que cada usuario solo lea y modifique sus propias filas, impuesto por la
 base de datos y no por el front.
 
-**Hoy**: no hay base de datos. El mockup muestra todo a todos a propósito, mientras se
-diseña.
+**Hoy** (2026-11-02): la base de **pruebas** existe (`dynamo-pruebas`). **El RLS está
+ACTIVADO en las 15 tablas desde que nacen, cerrado por defecto**: sin políticas, la API no
+ve ni escribe nada. Probado con el arnés `tools/probar-migraciones/probar.sh` (8
+comprobaciones; antes del arreglo, la clave pública leía `clientes` y `usuarios` y podía
+crear clientes). **Faltan las políticas por rol** (0914) y sus dos riesgos anotados en
+`supabase/migrations/README.md`. El mockup sigue mostrando todo a todos, a propósito.
+
+**Comprobación rápida en cualquier base (pruebas o real)**:
+`select * from v_tablas_sin_rls;` → **0 filas**.
 
 **En la plataforma real** — migración `20261102091400_rls_politicas.sql`:
 
-- `ENABLE ROW LEVEL SECURITY` + `FORCE ROW LEVEL SECURITY` en **todas** las tablas.
-  Sin `FORCE`, el dueño de la tabla se salta las políticas.
+- `ENABLE ROW LEVEL SECURITY` en **todas** las tablas — ✅ hecho, en la propia migración
+  de cada tabla. Toda vista con `security_invoker = true` — ✅ hecho.
+- `FORCE ROW LEVEL SECURITY`: sin él, el dueño de la tabla se salta las políticas. **Pero
+  activarlo a ciegas rompe** los triggers `SECURITY DEFINER` que escriben como dueño (el
+  perfil al registrarse, la auditoría). Se hace en la 0914, tabla a tabla, con el arnés
+  verde.
 - Política por rol, partiendo de **denegar por defecto**: el cliente solo sus envíos, el
   transportista solo los viajes que tiene asignados, el empleado según la matriz, el
   admin todo.

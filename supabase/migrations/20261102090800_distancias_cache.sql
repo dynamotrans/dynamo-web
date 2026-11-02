@@ -342,7 +342,7 @@ comment on function fn_guardar_km_cp(char, text, char, text, numeric, integer, t
 -- =====================================================================================
 -- No borra nada (las filas viejas son el registro de con qué km se tarificó). Solo deja
 -- ver cuánta caché está muerta y por qué, para saber si el gasto en Google va a subir.
-create or replace view v_distancias_caducadas as
+create or replace view v_distancias_caducadas with (security_invoker = true) as
 select d.id,
        lo.nombre_empresa                            as origen,
        ld.nombre_empresa                            as destino,
@@ -363,3 +363,16 @@ select d.id,
 comment on view v_distancias_caducadas is
   'Filas de caché que ya no se van a usar y por qué (un extremo se mudó, o son viejas). '
   'Informativa: no se borra nada.';
+
+-- =====================================================================================
+-- SEGURIDAD POR FILAS (RLS), ACTIVADA DESDE EL NACIMIENTO
+-- =====================================================================================
+-- En Supabase, todo lo que se crea en `public` queda concedido a la API (roles `anon`
+-- y `authenticated`). Una tabla SIN RLS es una tabla abierta a cualquiera con la
+-- clave pública. Con RLS y SIN políticas, la API no ve ni escribe nada: solo el
+-- servidor (service_role) y el dueño. Va en la misma transacción que el CREATE, así
+-- que no hay un solo instante en que la tabla esté expuesta. Las políticas que abren
+-- lo justo a cada rol llegan en 20261102091400_rls_politicas.sql.
+-- Comprobación: `select * from v_tablas_sin_rls;` tiene que devolver 0 filas.
+alter table distancias_lugares enable row level security;
+alter table distancias_cp      enable row level security;

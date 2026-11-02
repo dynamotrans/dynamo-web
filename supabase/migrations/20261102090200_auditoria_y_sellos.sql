@@ -201,7 +201,7 @@ comment on function activar_rastro(text) is
 -- 6. COMPROBACIÓN: ninguna tabla de datos sin rastro
 -- -------------------------------------------------------------------------------------
 -- Ejecutar esto después de cada migración. Si devuelve filas, falta un activar_rastro().
-create or replace view v_tablas_sin_rastro as
+create or replace view v_tablas_sin_rastro with (security_invoker = true) as
 select c.relname as tabla
 from   pg_class c
 join   pg_namespace n on n.oid = c.relnamespace
@@ -212,6 +212,22 @@ where  n.nspname = 'public'
          select 1 from pg_trigger t
          where t.tgrelid = c.oid and t.tgname = 'tg_auditar_' || c.relname
        );
+
+-- Chivato gemelo: tablas de public SIN seguridad por filas, es decir, abiertas por la
+-- API de Supabase a cualquiera con la clave pública. Tiene que devolver 0 filas
+-- SIEMPRE. Si una migración futura crea una tabla y olvida el RLS, sale aquí.
+create or replace view v_tablas_sin_rls with (security_invoker = true) as
+select c.relname as tabla
+from   pg_class c
+join   pg_namespace n on n.oid = c.relnamespace
+where  n.nspname = 'public'
+  and  c.relkind = 'r'
+  and  not c.relrowsecurity;
+
+-- Los dos chivatos y activar_rastro() son herramientas de administración y de
+-- migraciones, no de la API: fuera de los roles con los que entra la API.
+revoke all     on v_tablas_sin_rastro, v_tablas_sin_rls from public, anon, authenticated;
+revoke execute on function activar_rastro(text)          from public, anon, authenticated;
 
 comment on view v_tablas_sin_rastro is
   'Chivato de la regla 12: si devuelve filas, esas tablas se pueden modificar sin dejar '
