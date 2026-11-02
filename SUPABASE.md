@@ -17,7 +17,7 @@
 | Hoja | Columnas | Qué es | Destino en Supabase |
 |---|---|---|---|
 | `dy_dashboard_hoja` | — (vacía) | Vista/panel | Vistas SQL, no tabla |
-| `dy_cargas_hoja` | **123** (A→DS) | El envío. El corazón de todo | `envios` + `envio_puntos` + `envio_hitos` |
+| `dy_cargas_hoja` | **123** (A→DS) | El envío. El corazón de todo | `envios` + `envio_paradas` + `envio_hitos` |
 | `dy_ticket_hoja` | 17 | Incidencias / tickets | `tickets` |
 | `dy_lugar` | 18 | Catálogo de sitios | `lugares` + `lugar_contactos` |
 | `dy_lugar_anotaciones_cliente` | 5 | Notas privadas de un cliente sobre un sitio | `lugar_notas_cliente` |
@@ -342,7 +342,7 @@ En `DYNAMO-GX-INDEX` van juntos. Y los internacionales rompen cualquier validaci
 `hora_etp`, `resumen_direccion`, `provincia_pais`, `km_n_n+1`) + las 7 de recogida + las 7 de
 entrega = **42 columnas** para la ruta.
 
-→ tabla **`envio_puntos`**: `envio_id`, `orden` (1,2,3…), `tipo` (recogida|parada|entrega),
+→ tabla **`envio_paradas`**: `envio_id`, `orden` (1,2,3…), `tipo` (recogida|parada|entrega),
 `lugar_id`, `hora_prevista`, `km_hasta_siguiente`, `anotaciones_cliente`.
 Esto solo quita **~42 de las 123 columnas** de `dy_cargas_hoja`, y de paso te deja hacer envíos
 con 5, 6 o 20 paradas sin tocar el esquema (hoy el techo son 4, por diseño de la hoja).
@@ -475,7 +475,7 @@ propio. Lista completa, por grupos:
 
 | # | Tabla | Por qué no cabe en `envios` |
 |---|---|---|
-| 7 | **`envio_puntos`** | Hoy son **42 columnas** (`recogida_*`, `parada_1..4_*`, `entrega_*`). Una fila por punto: `orden`, `tipo`, `lugar_id`, `hora_prevista`, `km_hasta_siguiente`. Techo actual: 4 paradas por diseño de la hoja. Con tabla: las que haga falta. |
+| 7 | **`envio_paradas`** | Hoy son **42 columnas** (`recogida_*`, `parada_1..4_*`, `entrega_*`). Una fila por punto: `orden`, `tipo`, `lugar_id`, `hora_prevista`, `km_hasta_siguiente`. Techo actual: 4 paradas por diseño de la hoja. Con tabla: las que haga falta. |
 | 8 | **`envio_hitos`** | Los 14 sellos de la regla 12. Tienes 2. "Ofertado a cada transportista" es 1-N: no cabe en columna. |
 | 9 | **`envio_ofertas`** | A quién se ofreció, a qué precio, con qué banda de negociación (±5/±10/±30%), si abrió el enlace, si reservó, cuándo caducó. Hoy es `transportista_emails_unicos_ruta_provincias`: un texto con emails pegados. |
 
