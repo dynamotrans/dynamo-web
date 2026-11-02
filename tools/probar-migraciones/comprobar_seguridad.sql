@@ -304,8 +304,10 @@ end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
 set role authenticated;
 do $$ declare e uuid := current_setting('prueba.envio')::uuid; n int; begin
-  select count(*) into n from envio_paradas where envio_id = e;
-  if n <> 2 then raise exception 'FALLO 15 · el transportista no ve las paradas de su envio (%)', n; end if;
+  select jsonb_array_length(paradas) into n from mis_viajes() where id = e;
+  if n is distinct from 2 then raise exception 'FALLO 15 · el transportista no ve las paradas de su viaje (%)', n; end if;
+  select count(*) into n from envio_paradas;
+  if n <> 0 then raise exception 'FALLO 15 · el transportista lee la tabla de paradas directamente'; end if;
   select count(*) into n from envio_parada_pines;
   if n <> 0 then raise exception 'FALLO 15 · FUGA: el transportista puede LEER % PIN', n; end if;
   select count(*) into n from envio_ofertas;
@@ -594,18 +596,14 @@ do $$ declare e uuid := current_setting('prueba.envio')::uuid;
   raise notice 'OK 25 · rigido sin remolque; camiones y conductores libres (pueden venir subcontratados)';
 end $$;
 
--- ---- 26. La vista del cliente sigue sin enseñar lo interno ---------------------------
-do $$ declare cols text; begin
-  select string_agg(column_name, ', ') into cols from information_schema.columns
-   where table_name = 'v_envios_cliente'
-     and column_name in ('importe_transportista','margen_euros','factor_tarifa_aplicado',
-                         'transportista_id','transportista_nima','primera_oferta_en');
-  if cols is not null then raise exception 'FALLO 26 · la vista del cliente ensena: %', cols; end if;
-  if not exists (select 1 from information_schema.columns
-                 where table_name = 'v_envios_cliente' and column_name = 'matricula_camion') then
-    raise exception 'FALLO 26 · la vista del cliente no tiene matricula_camion';
-  end if;
-  raise notice 'OK 26 · la vista del cliente no ensena precio del transportista, margen ni factor';
+-- ---- 26. Lo que el cliente lee de sus envíos no enseña lo interno -------------------
+do $$ declare r text := pg_get_function_result('mis_envios()'::regprocedure); w text; begin
+  foreach w in array array['importe_transportista','margen_euros','factor_tarifa_aplicado',
+                           'transportista_id','transportista_nima','primera_oferta_en'] loop
+    if r ~ ('\m' || w || '\M') then raise exception 'FALLO 26 · mis_envios() ensena %', w; end if;
+  end loop;
+  if r !~ '\mmatricula_camion\M' then raise exception 'FALLO 26 · mis_envios() no tiene matricula_camion'; end if;
+  raise notice 'OK 26 · lo que el cliente lee de sus envios no ensena precio del transportista, margen ni factor';
 end $$;
 
 -- =====================================================================================
@@ -635,11 +633,10 @@ end $$;
 reset role;
 
 -- ---- 28. El envío manual: Dynamo no interviene en nada -------------------------------
-select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
-set role authenticated;
+-- El envío lo crea el SERVIDOR (como todos los envíos); el cliente lo lee con mis_envios().
 do $$ declare e uuid; o uuid := current_setting('prueba.operador_a')::uuid; begin
   insert into envios (cliente_id, metros_lineales, operador_id, precio_acordado_operador)
-    values (cliente_del_usuario(), 13.30, o, 950) returning id into e;
+    values (current_setting('prueba.cliente')::uuid, 13.30, o, 950) returning id into e;
   insert into envio_paradas (envio_id, orden, tipo, cp, poblacion, pais_codigo_iso)
     values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
   -- Destino donde DYNAMO no da servicio: al transportista del cliente no le afecta.
@@ -647,12 +644,17 @@ do $$ declare e uuid; o uuid := current_setting('prueba.operador_a')::uuid; begi
     values (e, 2, 'descarga', '8001', 'Zurich', 'CH');
   update envios set estado = 'programado' where id = e;
   perform set_config('prueba.envio_manual', e::text, false);
-  if not (select es_manual from v_envios_cliente where id = e)
-     or (select precio_acordado_operador from v_envios_cliente where id = e) <> 950 then
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.envio_manual')::uuid; begin
+  if not coalesce((select es_manual from mis_envios() where id = e), false)
+     or (select precio_acordado_operador from mis_envios() where id = e) <> 950 then
     raise exception 'FALLO 28 · el cliente no ve su envio manual con su precio acordado';
   end if;
 end $$;
 reset role;
+select set_config('request.jwt.claim.sub', '', false);
 do $$ declare e uuid := current_setting('prueba.envio_manual')::uuid; begin
   if exists (select 1 from envio_parada_pines where envio_id = e) then
     raise exception 'FALLO 28 · se han generado PIN en un envio manual';
@@ -923,4 +925,135 @@ do $$ begin
   raise notice 'OK 37 · firmas del CMR: las escribe solo el servidor, no se pueden cambiar, el cliente ve las suyas';
 end $$;
 reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- =====================================================================================
+-- PERMISOS POR ROL (2026-11-03)
+-- =====================================================================================
+-- ---- 38. El cliente NO lee la tabla de envíos ni se pone el precio -------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare n int; begin
+  select count(*) into n from envios;
+  if n <> 0 then raise exception 'FALLO 38 · el cliente lee la tabla envios (y con ella el margen)'; end if;
+  select count(*) into n from mis_envios();
+  if n < 2 then raise exception 'FALLO 38 · el cliente no ve sus envios con mis_envios() (%)', n; end if;
+  begin
+    insert into envios (cliente_id, metros_lineales, importe_cliente)
+      values (cliente_del_usuario(), 13.30, 1);
+    raise exception 'FALLO 38 · el cliente ha creado un envio poniendose el precio (1 EUR)';
+  exception when insufficient_privilege then null; end;
+  update envios set importe_cliente = 1 where cliente_id = cliente_del_usuario();
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'FALLO 38 · el cliente ha cambiado el precio de su envio'; end if;
+  raise notice 'OK 38 · el cliente lee sus envios por mis_envios(); no ve la tabla ni toca precios';
+end $$;
+
+-- ---- 39. El cliente cancela SU envío por la función; el de otro, no ----------------
+do $$ declare r jsonb; begin
+  r := cancelar_mi_envio(current_setting('prueba.envio')::uuid, 'Ya no hace falta');
+  if r->>'resultado' <> 'cancelado' then raise exception 'FALLO 39 · cancelar mi envio: %', r; end if;
+  begin
+    perform cancelar_mi_envio((select id from envios limit 1));   -- no ve ninguno: null
+    raise exception 'FALLO 39 · se ha podido cancelar un envio inexistente o ajeno';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$ declare e uuid; r jsonb; begin
+  select id into e from envios where cliente_id = (select id from clientes where cif = 'B44444444')
+   and estado <> 'cancelado' limit 1;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  set local role authenticated;
+  begin
+    r := cancelar_mi_envio(e);
+    raise exception 'FALLO 39 · A ha cancelado un envio de B';
+  exception when insufficient_privilege then null; end;
+  reset role;
+  update envios set estado = 'programado' where id = current_setting('prueba.envio')::uuid;
+  raise notice 'OK 39 · cada cliente cancela solo sus envios, y por la funcion (con su penalizacion)';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 40. El transportista ve SU precio y nada del cliente ---------------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ declare r text; n int; begin
+  r := pg_get_function_result('mis_viajes()'::regprocedure);
+  if r ~ '\mimporte_cliente\M' or r ~ '\mmargen' or r ~ '\mcliente_id\M' then
+    raise exception 'FALLO 40 · mis_viajes() ensena datos del cliente: %', r;
+  end if;
+  select count(*) into n from mis_viajes() where importe_transportista is not null;
+  if n < 1 then raise exception 'FALLO 40 · el transportista no ve su precio'; end if;
+  select count(*) into n from transportistas;
+  if n <> 0 then raise exception 'FALLO 40 · el transportista lee la tabla de transportistas'; end if;
+  r := pg_get_function_result('mi_empresa_transportista()'::regprocedure);
+  if r ~ 'estado_operativo|valoracion|pronto_pago|anotaciones' then
+    raise exception 'FALLO 40 · el transportista ve sus datos internos: %', r;
+  end if;
+  if (select count(*) from mi_empresa_transportista()) <> 1 then
+    raise exception 'FALLO 40 · el transportista no ve su propia empresa';
+  end if;
+  raise notice 'OK 40 · el transportista ve su viaje y su precio; ni el precio del cliente ni sus datos internos';
+end $$;
+reset role;
+
+-- El email de contabilidad del transportista no lo ve el transportista.
+do $$ declare t uuid := current_setting('prueba.transp')::uuid; begin
+  insert into contactos (transportista_id, funcion, email) values (t, 'trafico', 'trafico@t.prueba');
+  insert into contactos (transportista_id, funcion, email) values (t, 'contabilidad', 'conta@t.prueba');
+end $$;
+set role authenticated;
+do $$ begin
+  if exists (select 1 from contactos where funcion = 'contabilidad') then
+    raise exception 'FALLO 40 · el transportista ve su email de contabilidad';
+  end if;
+  if not exists (select 1 from contactos where funcion = 'trafico') then
+    raise exception 'FALLO 40 · el transportista no ve su contacto de trafico';
+  end if;
+end $$;
+reset role;
+
+-- ---- 41. El cliente ve su empresa sin el factor; nadie se cambia el rol ------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare r text := pg_get_function_result('mi_empresa()'::regprocedure); begin
+  if r ~ 'factor|riesgo|recargo|verificado|anotaciones' then
+    raise exception 'FALLO 41 · el cliente ve datos internos de su ficha: %', r;
+  end if;
+  if (select count(*) from clientes) <> 0 then raise exception 'FALLO 41 · el cliente lee la tabla clientes'; end if;
+  if (select count(*) from mi_empresa()) <> 1 then raise exception 'FALLO 41 · el cliente no ve su empresa'; end if;
+  begin
+    update usuarios set rol = 'admin' where id = auth.uid();
+    raise exception 'FALLO 41 · un cliente se ha hecho ADMIN a si mismo';
+  exception when insufficient_privilege then null; end;
+  update usuarios set nombre = 'Juan Compras', idioma = 'ca' where id = auth.uid();  -- lo suyo, sí
+  if (select count(*) from usuarios where id <> auth.uid()
+        and coalesce(cliente_id, '00000000-0000-0000-0000-000000000000') <> cliente_del_usuario()) <> 0 then
+    raise exception 'FALLO 41 · el cliente ve usuarios de otras empresas';
+  end if;
+end $$;
+reset role;
+-- Un EMPLEADO no puede conceder admin; un admin no se cambia su propio rol.
+do $$ declare emp uuid; begin
+  insert into auth.users (email) values ('empleado@dynamo.prueba') returning id into emp;
+  update usuarios set rol = 'empleado', estado = 'activa' where id = emp;
+  perform set_config('request.jwt.claim.sub', emp::text, false);
+  set local role authenticated;
+  begin
+    update usuarios set rol = 'admin' where id = current_setting('prueba.u_cli')::uuid;
+    raise exception 'FALLO 41 · un empleado ha concedido el rol de admin';
+  exception when insufficient_privilege then null; end;
+  reset role;
+  -- Un segundo admin, para que no salte antes la otra protección (no dejar sin admins).
+  insert into auth.users (email) values ('admin2@dynamo.prueba') returning id into emp;
+  update usuarios set rol = 'admin', estado = 'activa' where id = emp;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  set local role authenticated;
+  begin
+    update usuarios set rol = 'empleado' where id = current_setting('prueba.u_admin')::uuid;
+    raise exception 'FALLO 41 · un admin se ha cambiado su propio rol';
+  exception when insufficient_privilege then null; end;
+  reset role;
+  raise notice 'OK 41 · el cliente ve su empresa sin el factor; nadie se cambia el rol; solo admin concede admin';
+end $$;
 select set_config('request.jwt.claim.sub', '', false);

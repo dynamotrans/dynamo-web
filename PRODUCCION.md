@@ -69,39 +69,44 @@
 **Qué exige**: que cada usuario solo lea y modifique sus propias filas, impuesto por la
 base de datos y no por el front.
 
-**Hoy** (2026-11-02): la base de **pruebas** existe (`dynamo-pruebas`). **El RLS está
-ACTIVADO en las 15 tablas desde que nacen, cerrado por defecto**: sin políticas, la API no
-ve ni escribe nada. Probado con el arnés `tools/probar-migraciones/probar.sh` (8
-comprobaciones; antes del arreglo, la clave pública leía `clientes` y `usuarios` y podía
-crear clientes). **Faltan las políticas por rol** (0914) y sus dos riesgos anotados en
-`supabase/migrations/README.md`. El mockup sigue mostrando todo a todos, a propósito.
+**Hoy** (2026-11-03): **políticas por rol HECHAS y PROBADAS** en `dynamo-pruebas`
+(migración `20261103010000_permisos_por_rol.sql`). El arnés `tools/probar-migraciones/probar.sh`
+recorre **41 comprobaciones** con dos clientes, un transportista, un empleado y dos admins.
+El mockup sigue mostrando todo a todos, a propósito: la web aún no está conectada.
+
+**El modelo** (la frase clave: *la seguridad por filas filtra FILAS, no COLUMNAS*):
+- **Dynamo** (admin/empleado) lee y escribe las tablas.
+- **Cliente y transportista leen por FUNCIONES** que devuelven solo sus filas y solo sus
+  columnas: `mis_envios()`, `mis_viajes()`, `mis_ofertas()`, `mi_empresa()`,
+  `mi_empresa_transportista()`, `mis_penalizaciones()`, `mis_penalizaciones_transportista()`.
+  **No leen** `envios`, `envio_paradas`, `clientes`, `transportistas` ni `penalizaciones`.
+- **Los envíos los escriben solo Dynamo y el servidor**: el cliente crea y modifica a través del
+  servidor, que **recalcula el precio**. Su única escritura directa es `cancelar_mi_envio()`.
+- Lo que el cliente gestiona solo y no lleva dinero (sus sitios, operadores, contactos,
+  incidencias, almacenamientos) va por tabla con su política.
 
 **Comprobación rápida en cualquier base (pruebas o real)**:
 `select * from v_tablas_sin_rls;` → **0 filas**.
 
-**En la plataforma real** — migración `20261102091400_rls_politicas.sql`:
+**Cumplido y probado:**
+- ✅ `ENABLE ROW LEVEL SECURITY` en **todas** las tablas, en la propia migración de cada una;
+  toda vista con `security_invoker = true`.
+- ✅ **Regla 11**: `mis_envios()` quita nombre y teléfono del conductor al entregar o cancelar.
+- ✅ **El cliente NUNCA ve** factor de tarifa, riesgo, precio del transportista ni margen
+  (comprobaciones 26, 33, 38, 41). Tampoco puede **ponerse el precio** (38).
+- ✅ **El transportista NUNCA ve** su estado operativo, su valoración, su pronto pago, su email
+  de contabilidad, el precio del cliente ni quién es el cliente (40).
+- ✅ **Sitios, operadores, incidencias, documentos y almacenamientos**: cada cliente lo suyo (21-36).
+- ✅ **Roles**: nadie se cambia su propio rol; solo un admin concede admin (41).
 
-- `ENABLE ROW LEVEL SECURITY` en **todas** las tablas — ✅ hecho, en la propia migración
-  de cada tabla. Toda vista con `security_invoker = true` — ✅ hecho.
-- `FORCE ROW LEVEL SECURITY`: sin él, el dueño de la tabla se salta las políticas. **Pero
-  activarlo a ciegas rompe** los triggers `SECURITY DEFINER` que escriben como dueño (el
-  perfil al registrarse, la auditoría). Se hace en la 0914, tabla a tabla, con el arnés
-  verde.
-- Política por rol, partiendo de **denegar por defecto**: el cliente solo sus envíos, el
-  transportista solo los viajes que tiene asignados, el empleado según la matriz, el
-  admin todo.
-- **Las reglas de negocio que YA están decididas y hay que imponer aquí**, no en el front:
-  - **Regla 11 (anti-desintermediación)**: el teléfono del conductor y los datos de
-    contacto del transportista **desaparecen para el cliente** cuando el envío pasa a
-    entregado o cancelado. Hoy solo lo oculta `telConductorHTML()` en JavaScript, que no
-    es seguridad: hay que filtrarlo en la política.
-  - **El cliente NUNCA ve**: `factor_tarifa_porcentaje`, el precio del transportista ni
-    el margen. Son columnas, así que hace falte una **vista** por rol, porque RLS filtra
-    filas y no columnas.
-  - **El transportista NUNCA ve** su `estado_operativo` ni su `valoracion_dynamo`.
-  - **Los sitios son de cada cliente** (`lugares.cliente_id`, decisión 2026-11-02): un
-    cliente no puede leer ni editar los sitios, notas ni contactos de otro. Ya probado en
-    el arnés (`tools/probar-migraciones`, comprobaciones 21-23).
+**Pendiente:**
+- `FORCE ROW LEVEL SECURITY`: sin él, el dueño de la tabla se salta las políticas. No aplica a
+  la API (entra como `anon`/`authenticated`), pero sí a una conexión directa con la contraseña
+  de la base. **Activarlo a ciegas rompe** los triggers `SECURITY DEFINER` que escriben como
+  dueño (el perfil al registrarse, la auditoría, los hitos). Se decide antes del lanzamiento,
+  tabla a tabla, con el arnés verde. Mientras: la contraseña de la base, solo en el gestor.
+- **La función del servidor** que crea y modifica envíos (recalcula el precio) y las que envuelven
+  reservar/aceptar carga: es código de la app, no de la base. Cuando exista, probarla igual.
 
 **Cómo se comprueba**: tests de aislamiento. Dos clientes, cada uno con un envío; con el
 token del cliente A pedir el envío del cliente B por su id directo y **esperar 0 filas**,

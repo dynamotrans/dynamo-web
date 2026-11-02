@@ -636,7 +636,7 @@ supabase/migrations/
   AAAAMMDDhhmmss_operativa.sql
   AAAAMMDDhhmmss_tarifas_plantillas.sql
   AAAAMMDDhhmmss_vistas_holded_wtransnet.sql
-  AAAAMMDDhhmmss_rls_politicas.sql
+  20261103010000_permisos_por_rol.sql   (hecha)
 ```
 
 **Cómo llegan a Supabase: por la integración de GitHub, NO pegándolas a mano.** (Corrección

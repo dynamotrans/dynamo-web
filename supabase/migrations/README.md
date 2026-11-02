@@ -74,7 +74,7 @@ reconstruir nada.
 | `20261103000000_operativa.sql` | `tipos_incidencia` + `incidencias` (INC-), `tipos_penalizacion` + `penalizaciones` (PEN-, automática al cancelar tarde con camión y retirada al deshacer), `almacenamientos` (AX + 6 cifras), `documentos` (datos; el fichero en Storage), `firmas_cmr` (append-only) | ✅ listo |
 | `AAAAMMDDhhmmss_tarifas_plantillas.sql` | tarifas con vigencia y plantillas de texto (la tabla `parametros` ya la crea la 0010: aquí solo se le añaden claves). **Bloqueada**: falta el libro de tarifar del usuario y el código del Apps Script | pendiente |
 | `AAAAMMDDhhmmss_vistas_holded_wtransnet.sql` | vistas de exportación + métricas de cliente/transportista | pendiente |
-| `AAAAMMDDhhmmss_rls_politicas.sql` | las **políticas** por rol (el RLS ya está ACTIVADO en las 15 tablas, cerrado por defecto: ver «Seguridad por defecto» abajo). Ojo a los dos riesgos anotados ahí | pendiente |
+| `20261103010000_permisos_por_rol.sql` | **permisos por rol**: Dynamo lee las tablas; cliente y transportista leen por funciones (`mis_envios`, `mis_viajes`, `mis_ofertas`, `mi_empresa`…) que solo dan sus filas y sus columnas; los envíos solo los escriben Dynamo y el servidor (el cliente cancela con `cancelar_mi_envio`); contactos, usuarios (nadie se cambia el rol, solo admin concede admin), flota, auditoría | ✅ listo |
 
 ## Seguridad por defecto: RLS en TODAS las tablas desde que nacen (2026-11-02)
 
@@ -105,7 +105,9 @@ lo demostró con la clave pública (`anon`), antes y después del arreglo:
 4. Chivato nuevo **`v_tablas_sin_rls`**, gemelo de `v_tablas_sin_rastro`: **0 filas
    siempre**. Es la comprobación que vale también en producción.
 
-**⚠️ Dos riesgos que hay que resolver Y PROBAR en `…_rls_politicas.sql`:**
+**Los dos riesgos que quedaron anotados aquí (resueltos el 2026-11-03 con los permisos por rol):** el primero desaparece porque **los clientes no escriben envíos**: los escriben Dynamo y el servidor, que sí leen las restricciones (y la comprobación 29 confirma que un envío de Dynamo a Zúrich se bloquea). El segundo (`FORCE`) queda pendiente y anotado en `PRODUCCION.md` §02.
+
+**Texto original:**
 
 - **Validaciones que dejan pasar en silencio.** `validar_restricciones_envio`,
   `validar_ruta_envio` y las de la caché de km se ejecutan **con los permisos de quien
