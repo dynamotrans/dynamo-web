@@ -1175,7 +1175,7 @@ do $$ begin
     raise exception 'FALLO 46 · en Andalucia deberia saltar al viernes 27: %',
       corte_cancelacion('2026-03-03', 'ES', 'ES-AN');
   end if;
-  if (select count(*) from festivos where extract(year from fecha) = 2030 and region is null) <> 11 then
+  if (select count(*) from festivos_entre('2030-01-01', '2030-12-31')) <> 11 then
     raise exception 'FALLO 46 · faltan festivos nacionales de 2030';
   end if;
   raise notice 'OK 46 · el corte de cancelacion salta fines de semana y festivos (nacionales y de comunidad)';
@@ -1345,3 +1345,39 @@ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- =====================================================================================
+-- FESTIVOS QUE SE REPITEN SOLOS (2026-11-03)
+-- =====================================================================================
+-- ---- 51. Los nacionales valen todos los años, sin listarlos uno a uno ---------------
+do $$ begin
+  if (select count(*) from festivos where region is null and pais_codigo_iso = 'ES') <> 11 then
+    raise exception 'FALLO 51 · deberian quedar 11 filas de nacionales, hay %',
+      (select count(*) from festivos where region is null and pais_codigo_iso = 'ES');
+  end if;
+  -- Muy lejos en el tiempo: 1 de noviembre de 2047 (viernes) y Viernes Santo de 2040 (30-mar).
+  if es_dia_habil('2047-11-01') then raise exception 'FALLO 51 · 1-nov-2047 no es festivo'; end if;
+  if es_dia_habil('2040-03-30') then raise exception 'FALLO 51 · Viernes Santo 2040 no cae'; end if;
+  if not es_dia_habil('2040-03-26') then raise exception 'FALLO 51 · el lunes 26-mar-2040 si es habil'; end if;
+  if (select count(*) from festivos_entre('2051-01-01', '2051-12-31')) <> 11 then
+    raise exception 'FALLO 51 · en 2051 tiene que haber 11 nacionales: %',
+      (select count(*) from festivos_entre('2051-01-01', '2051-12-31'));
+  end if;
+  -- Un festivo de un solo año no se repite.
+  insert into festivos (fecha, region, nombre) values ('2027-02-28', 'ES-AN', 'Andalucía 2027');
+  if (select count(*) from festivos_entre('2028-02-28', '2028-02-28', 'ES', 'ES-AN')) <> 0 then
+    raise exception 'FALLO 51 · un festivo de un solo anio se ha repetido';
+  end if;
+  -- Uno que se repite con fin: vale hasta vigente_hasta y luego no.
+  insert into festivos (fecha, region, nombre, repetir, vigente_hasta)
+       values ('2026-09-08', 'ES-AS', 'Prueba con fin', 'cada_anio', '2029-12-31');
+  if es_dia_habil('2028-09-08', 'ES', 'ES-AS') then raise exception 'FALLO 51 · 2028 deberia ser festivo'; end if;
+  if not es_dia_habil('2031-09-08', 'ES', 'ES-AS') then raise exception 'FALLO 51 · 2031 ya no deberia serlo'; end if;
+  -- Un Pascua mal escrito (fecha que no casa con los días desde Pascua) se rechaza.
+  begin
+    insert into festivos (fecha, nombre, repetir, dias_desde_pascua) values ('2026-04-10', 'Mal', 'pascua', 1);
+    raise exception 'FALLO 51 · se acepto un festivo de Pascua incoherente';
+  exception when check_violation then null;
+  end;
+  raise notice 'OK 51 · los festivos se repiten solos (cada anio y por Pascua) y los puntuales no';
+end $$;

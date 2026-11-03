@@ -88,13 +88,13 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, children
   return (
     <>
       <aside className={`sidebar${lateral ? ' open' : ''}`} id="sidebar">
-        <div className="sidebar-brand">
+        <Link href="/panel/envios" className="sidebar-brand" aria-label="Ir al inicio del panel">
           <img src="/images/2.png" alt="Dynamo" />
           <div>
             <div className="sidebar-brand-name notranslate" translate="no">Logistics</div>
             <div className="sidebar-brand-sub">{PORTAL_TXT[rol]}</div>
           </div>
-        </div>
+        </Link>
         <nav className="sidebar-nav">
           {menuDe(rol).map((b, i) => (
             <div key={i} style={{ display: 'contents' }}>

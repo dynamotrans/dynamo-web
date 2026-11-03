@@ -15,3 +15,11 @@ a.tab { text-decoration: none; display: inline-block; }
    rejilla da estilo a TODOS sus input y label, así que se le devuelve el suyo. */
 .ptar-sitio-grid label.ptar-tramp-box { display: flex; margin-bottom: 0; color: inherit; font-weight: 400; }
 .ptar-sitio-grid .ptar-switch-input { position: absolute; opacity: 0; width: 0; height: 0; padding: 0; border: 0; }
+/* Un solo logo en pantalla: en escritorio manda el del lateral (que lleva al inicio) y
+   el de la barra superior se oculta; en móvil el lateral va escondido y queda el de arriba. */
+a.sidebar-brand { text-decoration: none; color: inherit; }
+@media (min-width: 769px) {
+  .topbar-leftbar .topbar-brand { display: none; }
+  /* Sin el logo, la cajita de la izquierda se queda vacía en Dynamo (no lleva Soporte). */
+  .topbar-leftbar:not(:has(.topbar-contact-wrap)) { display: none; }
+}

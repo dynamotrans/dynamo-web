@@ -25,17 +25,20 @@ export default async function PaginaNuevoEnvio() {
   }
 
   const hoy = new Date().toISOString().slice(0, 10);
+  const hasta = new Date(Date.now() + 400 * 86400000).toISOString().slice(0, 10);
   const [cli, lug, fes] = await Promise.all([
     supabase.from('clientes').select('id, nombre_visible, cif').order('nombre_visible').limit(2000),
     supabase.from('lugares')
       .select('id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible')
       .eq('borrado', false).order('nombre_empresa').limit(5000),
-    supabase.from('festivos').select('fecha').is('region', null).eq('pais_codigo_iso', 'ES').gte('fecha', hoy).limit(200),
+    // Nacionales de los próximos 13 meses, con su fecha real de cada año (los que se
+    // repiten, como el 1 de noviembre o Viernes Santo, los resuelve la base de datos).
+    supabase.rpc('festivos_entre', { p_desde: hoy, p_hasta: hasta }),
   ]);
 
   const clientes: ClienteOpcion[] = (cli.data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible, cif: c.cif }));
   const sitios: SitioOpcion[] = (lug.data ?? []) as SitioOpcion[];
-  const festivos = (fes.data ?? []).map((f) => f.fecha as string);
+  const festivos = ((fes.data ?? []) as { fecha: string }[]).map((f) => f.fecha);
   const error = cli.error?.message || lug.error?.message || null;
 
   return <NuevoEnvio clientes={clientes} sitios={sitios} festivos={festivos} error={error} />;
