@@ -38,13 +38,13 @@ const masDias = (iso: string, n: number) => { const d = new Date(`${iso}T12:00:0
 const IcoAlm = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21V9l9-5 9 5v12" /><path d="M3 21h18" /><rect x="8" y="13" width="8" height="8" /></svg>;
 const diasTxt = (n: number) => (n === 0 ? 'mismo día' : `${n} día${n > 1 ? 's' : ''}`);
 
-export default function Almacenamientos({ filas, almacenes, clientes, error }: {
-  filas: AlmacenamientoFila[]; almacenes: AlmacenOpcion[]; clientes: Cliente[]; error: string | null;
+export default function Almacenamientos({ filas, almacenes, clientes, error, abrir }: {
+  abrir?: boolean; filas: AlmacenamientoFila[]; almacenes: AlmacenOpcion[]; clientes: Cliente[]; error: string | null;
 }) {
   const router = useRouter();
   const [pestana, setPestana] = useState<EstadoAlm | 'todos'>('pendiente_confirmar');
   const [q, setQ] = useState('');
-  const [ficha, setFicha] = useState<{ fila: AlmacenamientoFila | null } | null>(null);
+  const [ficha, setFicha] = useState<{ fila: AlmacenamientoFila | null } | null>(abrir ? { fila: null } : null);
 
   const cuenta = useMemo(() => {
     const c: Record<string, number> = { todos: filas.length };
@@ -100,8 +100,8 @@ export default function Almacenamientos({ filas, almacenes, clientes, error }: {
           </tbody>
         </table>
       </div>
-      {ficha && <FichaAlmacenamiento fila={ficha.fila} almacenes={almacenes} clientes={clientes} onCerrar={() => setFicha(null)}
-        onHecho={() => { setFicha(null); router.refresh(); }} />}
+      {ficha && <FichaAlmacenamiento fila={ficha.fila} almacenes={almacenes} clientes={clientes} onCerrar={() => { setFicha(null); if (abrir) router.replace('/panel/almacenamientos'); }}
+        onHecho={() => { setFicha(null); if (abrir) router.replace('/panel/almacenamientos'); router.refresh(); }} />}
     </section>
   );
 }

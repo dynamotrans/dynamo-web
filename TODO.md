@@ -47,6 +47,11 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       (CIF, dirección, Wtransnet, O.T.) a `parametros` para no tocar código si cambian. El contenido y las
       condiciones salen de la orden real GX61034 (feb. 2026); si el paquete DeCA aprobado (`FORMATOS.md`)
       trae otro diseño, se adapta cuando el usuario lo pase.
+- [ ] **Dashboards cliente y admin (pasados 2026-11-03)** — falta: en el del cliente, el **CESCE** (estado de
+      cobertura del mockup) cuando se decida de dónde sale; en el de admin, lo que el usuario quiera añadir
+      («luego te digo todo»: ventas y margen del mes, envíos por día, transportistas más usados…). La línea de
+      pronto pago ya es real (la impone la base de datos al ofertar). `/panel` sigue abriendo Envíos: si se
+      prefiere que abra el dashboard, es una línea en `app/panel/(app)/page.tsx`.
 - [ ] **Almacenamientos, Incidencias y Penalizaciones (pasadas 2026-11-03, solo Dynamo)** — falta: (1) **adjuntos**
       (fotos, GPS/tacógrafo, albaranes) en incidencias y penalizaciones: necesita Supabase Storage con
       permisos; (2) que el **cliente** las vea y abra incidencias o pida almacenamientos (etapa B, con

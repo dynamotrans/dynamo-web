@@ -26,3 +26,20 @@ a.sidebar-brand { text-decoration: none; color: inherit; }
 
 /* Botones que son enlaces (abrir un PDF en el visor): mismo aspecto que los botones. */
 .dash-modal-actions a.btn-primary, .dash-modal-actions a.btn-secondary { text-decoration: none; }
+
+/* Dashboard: los pasos de bienvenida y el «Ver todos» son enlaces de Next (en el mockup
+   eran botones o <a> dentro de un div): mismo aspecto sin subrayado. */
+.onb-step { text-decoration: none; color: inherit; }
+.mini-list-head .mini-list-ver {
+  font-size: var(--fs-s); color: #fff; font-weight: 800; background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 999px; padding: 0.3rem 0.75rem; white-space: nowrap; flex: none; transition: background 0.15s, border-color 0.15s;
+}
+.mini-list-card:hover .mini-list-head .mini-list-ver { background: rgba(255,255,255,0.28); border-color: rgba(255,255,255,0.7); }
+/* Opciones del desplegable que son enlaces (navegan a otra pantalla): como los botones. */
+.btn-dropdown-menu a {
+  display: flex; align-items: center; gap: 0.6rem; width: 100%; text-align: left; text-decoration: none;
+  font: inherit; font-size: var(--fs-l); font-weight: 600; color: var(--navy);
+  border-radius: 8px; padding: 0.6rem 0.7rem; box-sizing: border-box;
+}
+.btn-dropdown-menu a svg { color: var(--purple); flex: none; }
+.btn-dropdown-menu a:hover { background: rgba(51,0,204,0.07); color: var(--purple); }

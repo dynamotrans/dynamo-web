@@ -5,7 +5,7 @@ import Almacenamientos, { type AlmacenamientoFila, type AlmacenOpcion } from '@/
 export const dynamic = 'force-dynamic';
 
 // Almacenamientos (solo Dynamo en la etapa A): diseño de #sec-almacenes de dashboard.html.
-export default async function PaginaAlmacenamientos() {
+export default async function PaginaAlmacenamientos({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const s = await sesion();
   if (!s) return null;
   const { supabase, perfil } = s;
@@ -40,5 +40,6 @@ export default async function PaginaAlmacenamientos() {
     semana: l.precio_almacenamiento_semana != null ? Number(l.precio_almacenamiento_semana) : def.semana,
     reparto: l.precio_reparto != null ? Number(l.precio_reparto) : def.reparto,
   }));
-  return <Almacenamientos filas={filas} almacenes={opciones} clientes={(clientes.data ?? []) as any} error={alm.error?.message ?? null} />;
+  const abrir = !!(await searchParams).abrir;
+  return <Almacenamientos abrir={abrir} filas={filas} almacenes={opciones} clientes={(clientes.data ?? []) as any} error={alm.error?.message ?? null} />;
 }

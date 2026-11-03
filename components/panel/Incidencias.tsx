@@ -42,7 +42,7 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
   const router = useRouter();
   const [pestana, setPestana] = useState<'abiertas' | 'resueltas' | 'todas'>('abiertas');
   const [q, setQ] = useState('');
-  const [ficha, setFicha] = useState<{ fila: IncidenciaFila | null; envio?: string | null } | null>(nuevaPara ? { fila: null, envio: nuevaPara } : null);
+  const [ficha, setFicha] = useState<{ fila: IncidenciaFila | null; envio?: string | null } | null>(nuevaPara != null ? { fila: null, envio: nuevaPara || null } : null);
 
   const cuenta = useMemo(() => ({ abiertas: filas.filter((x) => abierta(x.estado)).length, resueltas: filas.filter((x) => !abierta(x.estado)).length, todas: filas.length }), [filas]);
   const lista = useMemo(() => {
@@ -51,7 +51,7 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
       && (!w.length || (() => { const b = norm([x.codigo, x.tipo, x.titulo, x.detalle, x.cliente, x.envio?.referencia_gx, x.envio?.referencia_cliente,
         x.envio?.origen, x.envio?.destino, ESTADOS.find(([k]) => k === x.estado)?.[1], fecha(diaMadrid(x.creado_en))].filter(Boolean).join(' ')); return w.every((t) => b.includes(t)); })()));
   }, [filas, pestana, q]);
-  const cerrar = () => { setFicha(null); if (nuevaPara) router.replace('/panel/incidencias'); };
+  const cerrar = () => { setFicha(null); if (nuevaPara != null) router.replace('/panel/incidencias'); };
 
   return (
     <section className="section active" id="sec-incidencias">

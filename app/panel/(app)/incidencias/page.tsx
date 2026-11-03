@@ -37,5 +37,5 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
     } : null,
   }));
   return <Incidencias filas={filas} tipos={(tipos.data ?? []) as any} clientes={(clientes.data ?? []) as any} envios={envios}
-    nuevaPara={sp.nueva ?? null} error={inc.error?.message ?? null} />;
+    nuevaPara={sp.nueva ?? (sp.abrir ? '' : null)} error={inc.error?.message ?? null} />;
 }

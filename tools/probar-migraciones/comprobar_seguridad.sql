@@ -1755,3 +1755,48 @@ do $$ begin
   raise notice 'OK 60 · almacenamientos, incidencias y penalizaciones: Dynamo las gestiona; el cliente no crea penalizaciones ni lee sus importes';
 end $$;
 reset role;
+
+-- =====================================================================================
+-- ---- 61. Línea de pronto pago: lo anticipado consume la línea; agotada, no se ofrece --
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare st jsonb; e uuid; o uuid; begin
+  if pronto_pago_descuento(800) <> 24 or pronto_pago_descuento(100) <> 20 then
+    raise exception 'FALLO 61 · descuento de pronto pago: % %', pronto_pago_descuento(800), pronto_pago_descuento(100);
+  end if;
+  st := pronto_pago_estado();
+  -- La carga aceptada con pronto pago de la prueba 59 (800 EUR) ya consume 776 EUR.
+  if (st ->> 'usado')::numeric <> 776 or jsonb_array_length(st -> 'anticipos') <> 1 or not (st ->> 'activo')::boolean then
+    raise exception 'FALLO 61 · estado de la linea: %', st;
+  end if;
+  update parametros set valor = '500' where clave = 'pronto_pago_linea_euros';
+  if (pronto_pago_estado() ->> 'activo')::boolean then raise exception 'FALLO 61 · linea agotada y sigue activa'; end if;
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3,
+                       'fecha_carga_desde', current_date + 25, 'importe_cliente', 1000, 'importe_transportista', 800),
+    jsonb_build_array(
+      jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'A', 'direccion', 'C/ 1', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B', 'direccion', 'C/ 2', 'codigo_postal', '28001', 'poblacion', 'Madrid'))
+  )).id into e;
+  o := ofertar_envio(e, null, 'bolsa_wtransnet', 800, 10::smallint, true);
+  if (select pronto_pago from envio_ofertas where id = o) then raise exception 'FALLO 61 · oferta con pronto pago y la linea agotada'; end if;
+  update parametros set valor = '50000' where clave = 'pronto_pago_linea_euros';
+  update parametros set valor = 'false' where clave = 'pronto_pago_encendido';
+  o := ofertar_envio(e, null, 'bolsa_teleroute', 800, 10::smallint, true);
+  if (select pronto_pago from envio_ofertas where id = o) then raise exception 'FALLO 61 · oferta con pronto pago y la linea apagada'; end if;
+  update parametros set valor = 'true' where clave = 'pronto_pago_encendido';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if jsonb_array_length(pronto_pago_estado() -> 'anticipos') <> 0 then raise exception 'FALLO 61 · un cliente ve los anticipos'; end if;
+end $$;
+reset role;
+set role anon;
+do $$ begin
+  begin perform pronto_pago_estado(); raise exception 'FALLO 61 · anon lee la linea de pronto pago';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 61 · linea de pronto pago: lo anticipado (60 dias) la consume; agotada o apagada, las ofertas salen sin pronto pago';
+end $$;
+reset role;
