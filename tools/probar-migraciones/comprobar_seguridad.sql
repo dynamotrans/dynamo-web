@@ -2248,3 +2248,52 @@ do $$ declare e uuid := current_setting('prueba.e72')::uuid; v record; r text; j
   raise notice 'OK 72 · etapa B: solicitud del cliente, precio de Dynamo, aceptar (programa) y cancelar el suyo; sitios ajenos no';
 end $$;
 reset role;
+
+-- ---- 73. Etapa C: el transportista hace su viaje desde el panel ------------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; begin
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 8, 'fecha_carga_desde', current_date + 15, 'importe_cliente', 900, 'importe_transportista', 750),
+    jsonb_build_array(
+      jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Muelle 73', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 73', 'codigo_postal', '28001', 'poblacion', 'Madrid'))
+  )).id into e;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid, estado_asignacion = 'confirmada' where id = e;
+  perform set_config('prueba.e73', e::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e73')::uuid; v record; tok uuid; begin
+  select * into v from mis_viajes() m where m.id = e;
+  if v.id is null or jsonb_array_length(v.paradas) <> 2 or v.importe_transportista <> 750 then raise exception 'FALLO 73 · no ve su viaje con sus paradas: %', v; end if;
+  perform marcar_mi_viaje(e, 'hacia_la_carga');
+  perform marcar_mi_viaje(e, 'en_ruta');
+  begin
+    perform marcar_mi_viaje(e, 'cargando');
+    raise exception 'FALLO 73 · el viaje vuelve atrás';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  select * into v from mis_viajes() m where m.id = e;
+  if v.estado <> 'en_ruta' or v.fecha_carga_real is null then raise exception 'FALLO 73 · marcar en ruta no deja la fecha de carga: %', v; end if;
+  -- Su albarán, sí; en el viaje de otro, no.
+  insert into documentos (envio_id, tipo, storage_bucket, storage_ruta, nombre_archivo) values (e, 'albaran', 'documentos', 'u/x/y/albaran.pdf', 'albaran.pdf');
+  begin
+    insert into documentos (envio_id, tipo, storage_bucket, storage_ruta, nombre_archivo)
+    values (current_setting('prueba.e72')::uuid, 'albaran', 'documentos', 'u/x/z/a.pdf', 'a.pdf');
+    raise exception 'FALLO 73 · sube documentos a un viaje que no es suyo';
+  exception when insufficient_privilege then null;
+  end;
+  -- Otro viaje: ni marcarlo ni su CMR.
+  begin
+    perform marcar_mi_viaje(current_setting('prueba.e72')::uuid, 'hacia_la_carga');
+    raise exception 'FALLO 73 · marca un viaje que no es suyo';
+  exception when insufficient_privilege then null;
+  end;
+  tok := mi_enlace_cmr(e);
+  if tok is null or mi_enlace_cmr(e) <> tok then raise exception 'FALLO 73 · el enlace del CMR no es estable'; end if;
+  perform marcar_mi_viaje(e, 'entregado');
+  raise notice 'OK 73 · etapa C: el transportista ve su viaje, lo marca solo hacia delante, sube su albarán y abre su CMR; lo ajeno no';
+end $$;
+reset role;

@@ -9,13 +9,16 @@ export type MiPenalizacion = { id: string; codigo: string; envio_id: string; ref
 
 const ESTADO: Record<string, [string, string]> = { pendiente_confirmar: ['En revisión', 'prog'], confirmada: ['Confirmada', 'red'] };
 
-export default function MisPenalizaciones({ filas, error }: { filas: MiPenalizacion[]; error: string | null }) {
+// esTransportista: las del transportista, con SU importe (mis_penalizaciones_transportista()).
+export default function MisPenalizaciones({ filas, error, esTransportista = false }: { filas: MiPenalizacion[]; error: string | null; esTransportista?: boolean }) {
   return (
     <section className="section active" id="sec-penalizaciones">
       <div className="sec-header"><h2>Penalizaciones</h2></div>
       <p style={{ margin: '-0.4rem 0 1rem', fontSize: 'var(--fs-l)', color: 'var(--gray-500)', maxWidth: 820, lineHeight: 1.5 }}>
-        Costes que se aplican a un envío por una cancelación fuera de plazo, una paralización del camión o una parada que no estaba prevista.
-        Si no estás conforme con alguna, abre una <Link href="/panel/incidencias?abrir=1" style={{ color: 'var(--purple)', fontWeight: 700 }}>incidencia</Link> y la revisamos.
+        {esTransportista
+          ? <>Lo que se te descuenta o se te abona en un viaje (un retraso, una paralización, una parada de más…). Si no estás conforme con alguna, llámanos al <a href="tel:+34955225945" style={{ color: 'var(--purple)', fontWeight: 700 }}>+34 955 225 945</a> y la revisamos.</>
+          : <>Costes que se aplican a un envío por una cancelación fuera de plazo, una paralización del camión o una parada que no estaba prevista.
+            Si no estás conforme con alguna, abre una <Link href="/panel/incidencias?abrir=1" style={{ color: 'var(--purple)', fontWeight: 700 }}>incidencia</Link> y la revisamos.</>}
       </p>
       {error && <div className="pt-aviso error">No se han podido cargar las penalizaciones: {error}</div>}
       <div className="table-wrap">

@@ -100,7 +100,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
               <tr><td colSpan={columnas} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
                 {filas.length === 0 ? 'Todavía no hay envíos.' : 'Sin envíos en este filtro'}
               </td></tr>
-            ) : trozo.map((e) => <FilaEnvio key={e.id} e={e} rol={rol} dynamo={dynamo} creador={e.creado_por ? nombres[e.creado_por] : undefined} href={rol !== 'transportista' ? url({ p: pag, ver: e.id }) : undefined} />)}
+            ) : trozo.map((e) => <FilaEnvio key={e.id} e={e} rol={rol} dynamo={dynamo} creador={e.creado_por ? nombres[e.creado_por] : undefined} href={url({ p: pag, ver: e.id })} />)}
           </tbody>
         </table>
       </div>

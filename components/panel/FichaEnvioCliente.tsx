@@ -14,6 +14,7 @@ import { euros, fecha, ventana } from '@/lib/formato';
 import { creadoTxt, estadoVisual } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import { responderPrecio, cancelarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
+import { enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
 
 const HITOS: Record<string, string> = {
   creado: 'Solicitud creada', confirmado: 'Envío confirmado', transportista_asignado: 'Transportista asignado',
@@ -32,6 +33,7 @@ const ICO = {
   x: ['M18 6 6 18', 'M6 6l12 12'],
   repetir: ['M17 1l4 4-4 4', 'M3 11V9a4 4 0 0 1 4-4h14', 'M7 23l-4-4 4-4', 'M21 13v2a4 4 0 0 1-4 4H3'],
   check: ['M20 6 9 17l-5-5'],
+  firma: ['M12 20h9', 'M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z'],
 };
 function Celda({ l, children, span }: { l: string; children: React.ReactNode; span?: boolean }) {
   return <div style={span ? { gridColumn: '1/-1' } : undefined}><label>{l}</label><span className="v">{children ?? '—'}</span></div>;
@@ -93,8 +95,18 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
     );
   }
 
+  async function abrirCmr() {
+    const w = window.open('about:blank', '_blank');
+    setTrabajando('Abriendo el CMR');
+    const r = await enlaceCmrPropio(e.id);
+    setTrabajando(null);
+    if (!r.ok) { w?.close(); setAviso({ ok: false, txt: r.error }); return; }
+    if (w) w.location.href = `/cmr/${r.token}`; else window.location.href = `/cmr/${r.token}`;
+  }
+
   const acciones = (
     <>
+      {!manual && ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'entregado'].includes(e.estado) && <button className="btn-secondary" onClick={abrirCmr} disabled={!!trabajando}><I d={ICO.firma} />CMR digital</button>}
       {cancelable && <button className="btn-secondary" onClick={() => setVista('cancelar')}><I d={ICO.x} />{e.estado === 'borrador' ? 'Cancelar solicitud' : 'Cancelar envío'}</button>}
       {!pendientePrecio && !porAceptar && <a className="btn-secondary" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>}
       {!manual && <a className="btn-secondary" href={`/panel/nuevo-envio?repetir=${e.id}`}><I d={ICO.repetir} />Repetir envío</a>}

@@ -5,6 +5,8 @@ import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import FichaEnvio from '@/components/panel/FichaEnvio';
 import { cargarFicha, cargarTransportistasParaAsignar } from '@/lib/fichaEnvio';
 import FichaEnvioCliente from '@/components/panel/FichaEnvioCliente';
+import FichaViaje from '@/components/panel/FichaViaje';
+import OfertasAbiertas, { type Oferta } from '@/components/panel/OfertasAbiertas';
 
 export const dynamic = 'force-dynamic';
 export default async function PaginaEnvios({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -104,14 +106,23 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       fichaCli = { ...fichaCli, hitos: hit ?? [] };
     }
   }
+  // Etapa C: el TRANSPORTISTA, su ficha de viaje y sus ofertas abiertas.
+  let fichaViaje: any = null, ofertas: Oferta[] = [];
+  if (rol === 'transportista') {
+    if (sp.ver) fichaViaje = filas.find((x) => x.id === sp.ver) ?? null;
+    const { data } = await supabase.rpc('mis_ofertas');
+    ofertas = (data ?? []) as Oferta[];
+  }
   const sinVer = new URLSearchParams(Object.entries(sp).filter(([k, v]) => k !== 'ver' && v) as [string, string][]).toString();
   const cerrarHref = `/panel/envios${sinVer ? `?${sinVer}` : ''}`;
 
   return (
     <>
+      {ofertas.length > 0 && <OfertasAbiertas ofertas={ofertas} />}
       <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} error={error ?? errorFicha} nuevo={sp.nuevo} nota={nota} />
       {ficha && <FichaEnvio key={ficha.envio.id} ficha={ficha} transportistas={transportistas} cerrarHref={cerrarHref} />}
       {fichaCli && <FichaEnvioCliente key={fichaCli.id} e={fichaCli} cerrarHref={cerrarHref} />}
+      {fichaViaje && <FichaViaje key={fichaViaje.id} e={fichaViaje} cerrarHref={cerrarHref} />}
     </>
   );
 }

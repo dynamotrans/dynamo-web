@@ -19,7 +19,10 @@ export default async function PaginaPenalizaciones({ searchParams }: { searchPar
       const { data, error } = await supabase.rpc('mis_penalizaciones');
       return <MisPenalizaciones filas={(data ?? []) as MiPenalizacion[]} error={error?.message ?? null} />;
     }
-    return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección todavía no está disponible para tu cuenta.</div></div></section>;
+    // Etapa C: el transportista, las suyas con SU importe.
+    const { data, error } = await supabase.rpc('mis_penalizaciones_transportista');
+    const filas = ((data ?? []) as any[]).map((x) => ({ ...x, importe_cliente: x.importe_transportista }));
+    return <MisPenalizaciones esTransportista filas={filas as MiPenalizacion[]} error={error?.message ?? null} />;
   }
   const sp = await searchParams;
   const [pen, tipos, envios] = await Promise.all([

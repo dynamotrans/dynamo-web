@@ -20,6 +20,14 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] Avisos del mockup en el paso 4: ~~horario de verano, festivo en la ventana, tráiler sin trampilla~~
       (hechos 2026-11-03). Quedan para cuando el CLIENTE cree sus envíos (etapa B, con tarifador): precios
       dinámicos a +7 días, aceptar las condiciones generales y forma de pago (CESCE).
+- [ ] **Etapa C (transportista) — HECHO lo principal (2026-11-03)**: en *Mis viajes* ve las **cargas que se le
+      ofrecen** (con el rango en euros, enlazan a «aceptar carga») y, en cada viaje, la ruta con **horario y teléfono
+      de cada muelle**, su precio, botones para marcar **hacia la carga → cargando → en ruta → entregado** (solo hacia
+      delante), **subir el albarán**, CMR firmado, fotos y GPS, y abrir el **CMR digital**; y sus **penalizaciones**
+      (con su importe). **Falta**: (a) descargar la **orden de carga en PDF** desde su panel (hoy la ruta del PDF lee
+      tablas que solo ve Dynamo: hace falta una función de lectura propia); (b) la **página del conductor con PIN**
+      (las funciones `validar_pin_parada` ya existen; falta la pantalla y mandar el PIN al muelle — Postmark/WhatsApp);
+      (c) que pueda abrir **incidencias** (hoy: teléfono); (d) su ficha de empresa y flota desde *Mi cuenta*.
 - [ ] **Etapa B (cliente) — HECHO lo principal (2026-11-03)**: el cliente pide su envío como **solicitud** (sin
       precio: el tarifador es lo último), Dynamo le pone precio («Poner precio» en la ficha; pestaña *Solicitudes de
       precio*; cifra en el dashboard admin) y el cliente lo **acepta** con las condiciones generales (o lo rechaza) desde

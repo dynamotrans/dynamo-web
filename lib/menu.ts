@@ -31,6 +31,7 @@ export function menuDe(rol: Rol): Bloque[] {
   if (rol === 'transportista') {
     return [{ items: [
       { slug: 'envios', titulo: 'Mis viajes', icono: 'camion', listo: true, destacado: true },
+      { slug: 'penalizaciones', titulo: 'Penalizaciones', icono: 'penalizaciones' },
       { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
     ] }];
   }
