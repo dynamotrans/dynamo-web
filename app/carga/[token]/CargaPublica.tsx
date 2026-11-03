@@ -231,14 +231,15 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
     setTrabajando(false);
     if (x.resultado === 'aceptada' || x.resultado === 'pendiente_revision') { router.refresh(); return; }
     const msg: Record<string, string> = {
-      transportista_no_encontrado: 'No encontramos ese CIF en Dynamo. Revísalo, o contáctanos para darte de alta (solo trabajamos con transportistas de bolsas del grupo Alpega).',
+      transportista_no_encontrado: `No encontramos ese CIF en Dynamo. Revísalo, o contáctanos para darte de alta (solo trabajamos con transportistas de bolsas del grupo Alpega).${x.intentos_restantes != null ? ` Te quedan ${x.intentos_restantes} intento${x.intentos_restantes === 1 ? '' : 's'}.` : ''}`,
+      demasiados_intentos: 'Demasiados intentos con CIF que no están en Dynamo: por seguridad, la reserva se ha liberado. Llámanos al +34 955 225 945 y te la asignamos.',
       falta_cif: 'Escribe tu CIF / NIF para identificarte.',
       transportista_no_activo: 'Tu ficha de transportista no está activa ahora mismo. Contáctanos.',
       precio_fuera_de_banda: `El precio tiene que estar entre ${euros(x.minimo)} y ${euros(x.maximo)}.`,
       reserva_caducada: 'Se ha agotado el tiempo de reserva.', tomada: 'La carga ya la ha cogido otro transportista.',
     };
     setError(msg[x.resultado] ?? x.error ?? 'No se ha podido aceptar. Vuelve a intentarlo.');
-    if (x.resultado === 'reserva_caducada' || x.resultado === 'tomada') router.refresh();
+    if (x.resultado === 'reserva_caducada' || x.resultado === 'tomada' || x.resultado === 'demasiados_intentos') router.refresh();
   }
 
   return (

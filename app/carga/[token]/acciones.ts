@@ -30,7 +30,7 @@ export async function reservar(token: string): Promise<{ resultado: string; hast
 
 export type Aceptacion = { cif: string; precio: number | null; pronto_pago: boolean; camion: string; remolque: string; conductor: string; telefono: string };
 
-export async function aceptar(token: string, a: Aceptacion): Promise<{ resultado: string; minimo?: number; maximo?: number; error?: string }> {
+export async function aceptar(token: string, a: Aceptacion): Promise<{ resultado: string; minimo?: number; maximo?: number; intentos_restantes?: number; error?: string }> {
   const sb = supabasePublico();
   const reserva = (await cookies()).get(cookieReserva(token))?.value;
   if (!sb || !reserva) return { resultado: 'error', error: 'Tu reserva no está en este navegador. Vuelve a abrir el enlace.' };
@@ -38,9 +38,10 @@ export async function aceptar(token: string, a: Aceptacion): Promise<{ resultado
   const { data, error } = await sb.rpc('aceptar_oferta_publica', {
     p_reserva: reserva, p_cif: a.cif, p_precio: a.precio, p_pronto_pago: a.pronto_pago,
     p_camion: a.camion, p_remolque: a.remolque, p_conductor: a.conductor, p_telefono: a.telefono,
+    p_ip: ((await headers()).get('x-forwarded-for') ?? '').split(',')[0].trim() || null,
   });
   if (error) return { resultado: 'error', error: ERROR_CONEXION };
-  return data as { resultado: string; minimo?: number; maximo?: number };
+  return data as { resultado: string; minimo?: number; maximo?: number; intentos_restantes?: number };
 }
 
 export async function liberar(token: string): Promise<void> {

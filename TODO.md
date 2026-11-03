@@ -92,7 +92,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] **Ofrecer carga + página pública `/carga/<enlace>` (hecho 2026-11-03)** — ANTES DE PRODUCCIÓN:
       (1) **código por email al aceptar desde un enlace de bolsa** (hoy basta con saber un CIF de la base de
       datos para aceptar en nombre de otro; necesita Postmark — aviso T2 de NOTIFICACIONES.md), con bloqueo a
-      los 3 fallos (D5); (2) **límite de intentos** por IP en reservar/aceptar (Vercel Firewall o tabla propia).
+      los 3 fallos (D5); (2) ~~límite de intentos~~ (hecho 2026-11-03: 5 CIF fallidos por reserva y 20 al día por carga, con registro; por IP no sirve porque todo llega desde el servidor web — para eso, Vercel Firewall).
       Falta además: el **envío automático** de la oferta por WhatsApp/email (T1, hoy se copia el enlace o se
       abre WhatsApp/email a mano), el **alta online** de un transportista que no está en Dynamo, el tablón de
       **otras cargas disponibles**, el **selector de idioma** de la página y el **aviso a Dynamo** de una

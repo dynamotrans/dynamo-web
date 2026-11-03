@@ -2394,3 +2394,37 @@ do $$ begin
   raise notice 'OK 77 · documentación de la empresa: el transportista sube la suya, no la de otro';
 end $$;
 reset role;
+
+-- ---- 78. Aceptar carga por enlace: límite de CIF a lo bruto --------------------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; o uuid; tok uuid; begin
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3, 'fecha_carga_desde', current_date + 21, 'importe_cliente', 1000, 'importe_transportista', 800),
+    jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'A78', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+                      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'B78', 'codigo_postal', '28001', 'poblacion', 'Madrid')))).id into e;
+  o := ofertar_envio(e, null, 'bolsa_wtransnet', 800, 0::smallint, false);
+  select token into tok from envio_ofertas where id = o;
+  perform set_config('prueba.tok78', tok::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok78')::uuid; r jsonb; a jsonb; i int; begin
+  r := reservar_envio(tok, null, 'prueba78');
+  for i in 1..4 loop
+    a := aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'Z0000000' || i, p_ip => '10.0.0.1');
+    if a ->> 'resultado' <> 'transportista_no_encontrado' then raise exception 'FALLO 78 · intento %: %', i, a; end if;
+  end loop;
+  a := aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'Z00000005');
+  if a ->> 'resultado' <> 'demasiados_intentos' then raise exception 'FALLO 78 · al 5.º fallo no corta: %', a; end if;
+  -- Y la reserva queda libre: aunque ahora acierte el CIF, ya no vale.
+  a := aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'B59000059');
+  if a ->> 'resultado' = 'aceptada' then raise exception 'FALLO 78 · acepta con una reserva cortada por intentos'; end if;
+  begin
+    if (select count(*) from intentos_carga_publica) <> 0 then raise exception 'FALLO 78 · anon lee los intentos'; end if;
+  exception when insufficient_privilege then null;
+  end;
+  raise notice 'OK 78 · aceptar carga: 5 CIF fallidos y la reserva se libera; los intentos quedan registrados y anon no los lee';
+end $$;
+reset role;
