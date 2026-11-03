@@ -1,6 +1,6 @@
 'use server';
 
-import { sesion, esDynamo } from '@/lib/sesion';
+import { sesion, esGestor } from '@/lib/sesion';
 import type { ContactoDatos } from '@/lib/contactos';
 import { validarHorario, tramosDe, type GrupoHorario } from '@/lib/horarios';
 import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosServidor';
@@ -33,7 +33,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 async function puede() {
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa') return null;
-  if (!esDynamo(s.perfil.rol) && s.perfil.rol !== 'cliente') return null;
+  if (!esGestor(s.perfil.rol) && s.perfil.rol !== 'cliente') return null;
   return s;
 }
 
@@ -41,7 +41,7 @@ export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParez
   const s = await puede();
   if (!s) return { ok: false, error: 'No tienes permiso para gestionar sitios.' };
   const esAlmacen = !!d.almacen;
-  if (esAlmacen && !esDynamo(s.perfil!.rol)) return { ok: false, error: 'Los almacenes Dynamo solo los gestiona Dynamo.' };
+  if (esAlmacen && !esGestor(s.perfil!.rol)) return { ok: false, error: 'Los almacenes Dynamo solo los gestiona Dynamo.' };
   if (!esAlmacen && !d.cliente_id) return { ok: false, error: 'Elige de qué cliente es el sitio.' };
   const precioMal = [d.almacen?.precio_almacenamiento_semana, d.almacen?.precio_reparto].some((v) => v != null && (!Number.isFinite(v) || v < 0));
   if (precioMal) return { ok: false, error: 'Los precios tienen que ser un número (o vacíos para usar los de por defecto).' };
@@ -83,7 +83,7 @@ export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParez
     emails_avisos: emails,
   };
   // El enlace de Google Maps solo lo toca Dynamo (en el mockup, el cliente lo ve fijo).
-  if (esDynamo(s.perfil!.rol)) fila.url_google_maps = vacio(d.url_google_maps);
+  if (esGestor(s.perfil!.rol)) fila.url_google_maps = vacio(d.url_google_maps);
   if (esAlmacen) {
     fila.disponible = d.almacen!.disponible;
     fila.precio_almacenamiento_semana = d.almacen!.precio_almacenamiento_semana;

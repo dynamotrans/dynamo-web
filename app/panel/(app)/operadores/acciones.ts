@@ -1,6 +1,6 @@
 'use server';
 
-import { sesion, esDynamo } from '@/lib/sesion';
+import { sesion, esGestor } from '@/lib/sesion';
 
 export type OperadorDatos = {
   cliente_id: string | null; razon_social: string; cif: string; telefono: string; email: string;
@@ -20,7 +20,7 @@ const vacio = (s: string) => (s ?? '').trim() || null;
 // Dynamo gestiona el de cualquier cliente; un cliente, el suyo (lo impone la base de datos).
 async function quien() {
   const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !(esDynamo(s.perfil.rol) || s.perfil.rol === 'cliente')) return null;
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !(esGestor(s.perfil.rol) || s.perfil.rol === 'cliente')) return null;
   return s;
 }
 
@@ -28,7 +28,7 @@ export async function guardarOperador(id: string | null, d: OperadorDatos): Prom
   const s = await quien();
   if (!s) return { ok: false, error: 'No tienes permiso para gestionar transportistas.' };
   if (!d.razon_social.trim() || !d.cif.trim()) return { ok: false, error: 'El nombre y el CIF/NIF son obligatorios.' };
-  const dynamo = esDynamo(s.perfil!.rol);
+  const dynamo = esGestor(s.perfil!.rol);
   if (dynamo && !id && !d.cliente_id) return { ok: false, error: 'Elige de qué cliente es este transportista.' };
   const tel = (d.telefono ?? '').replace(/[\s().-]/g, '');
   const fila: Record<string, unknown> = {

@@ -50,8 +50,10 @@ export const ESTADO_ASIGNACION: Record<string, string> = {
 };
 
 export const ROL: Record<string, string> = {
-  admin: 'Administrador',
-  empleado: 'Empleado',
+  admin: 'Admin Master',
+  empleado: 'Empleado gestor',
+  admin_lectura: 'Admin lectura',
+  empleado_lectura: 'Empleado lectura',
   cliente: 'Cliente',
   transportista: 'Transportista',
 };

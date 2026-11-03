@@ -1,6 +1,6 @@
 'use server';
 
-import { sesion, esDynamo, type Rol } from '@/lib/sesion';
+import { sesion, esDynamo, esGestor, type Rol } from '@/lib/sesion';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { origen } from '@/lib/origen';
 
@@ -24,9 +24,11 @@ function traducir(msg: string): string {
   if (/permission denied|row-level security/i.test(msg)) return 'No tienes permiso para hacer esto.';
   return msg;   // los mensajes de las reglas de la base de datos ya vienen en castellano
 }
+const ROLES_VALIDOS: Rol[] = ['admin', 'empleado', 'admin_lectura', 'empleado_lectura', 'cliente', 'transportista'];
+
 async function soloDynamo() {
   const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) return null;
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return null;
   return s;
 }
 // La empresa que corresponde a cada rol (y nada más).
@@ -58,7 +60,8 @@ export async function cambiarRol(id: string, rol: Rol, emailConfirmacion: string
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo gestiona usuarios.' };
   if (id === s.perfil!.id) return { ok: false, error: 'Nadie puede cambiar su propio rol.' };
-  if (rol === 'admin' && s.perfil!.rol !== 'admin') return { ok: false, error: 'Solo un administrador puede conceder el rol de administrador.' };
+  if (!ROLES_VALIDOS.includes(rol)) return { ok: false, error: 'Ese tipo de usuario no existe.' };
+  if ((rol === 'admin' || rol === 'admin_lectura') && s.perfil!.rol !== 'admin') return { ok: false, error: 'Solo el Admin Master puede conceder el rol Admin Master o Admin lectura.' };
   const { data: u } = await s.supabase.from('usuarios').select('email').eq('id', id).single();
   if (!u || emailConfirmacion.trim().toLowerCase() !== String(u.email).toLowerCase()) {
     return { ok: false, error: 'El email no coincide. Escríbelo exactamente para confirmar el cambio de rol.' };
@@ -78,7 +81,8 @@ export async function invitarUsuario(d: Invitacion): Promise<Res> {
   const email = d.email.trim().toLowerCase();
   if (!EMAIL.test(email)) return { ok: false, error: 'El email no es válido.' };
   if (!d.nombre.trim()) return { ok: false, error: 'Pon el nombre y apellidos.' };
-  if (d.rol === 'admin' && s.perfil!.rol !== 'admin') return { ok: false, error: 'Solo un administrador puede dar de alta a otro administrador.' };
+  if (!ROLES_VALIDOS.includes(d.rol)) return { ok: false, error: 'Ese tipo de usuario no existe.' };
+  if ((d.rol === 'admin' || d.rol === 'admin_lectura') && s.perfil!.rol !== 'admin') return { ok: false, error: 'Solo el Admin Master puede dar de alta un Admin Master o un Admin lectura.' };
   if (d.rol === 'cliente' && !d.cliente_id) return { ok: false, error: 'Elige de qué cliente es el usuario.' };
   if (d.rol === 'transportista' && !d.transportista_id) return { ok: false, error: 'Elige de qué transportista es el usuario.' };
   const { data: ya } = await s.supabase.from('usuarios').select('id').ilike('email', email).maybeSingle();

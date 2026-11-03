@@ -21,15 +21,18 @@ export type UsuarioFila = UsuarioDatos & {
   envios: number; cancelados: number; cancelados_ult10: number;
 };
 
-const ROLES: [Rol, string][] = [['admin', 'Admin'], ['empleado', 'Empleado'], ['cliente', 'Cliente'], ['transportista', 'Transportista']];
+const ROLES: [Rol, string][] = [['admin', 'Admin Master'], ['admin_lectura', 'Admin lectura'], ['empleado', 'Empleado gestor'], ['empleado_lectura', 'Empleado lectura'], ['cliente', 'Cliente'], ['transportista', 'Transportista']];
 const ROL_COLOR: Record<Rol, [string, string]> = {
   admin: ['rgba(51,0,204,0.10)', 'var(--purple)'], empleado: ['rgba(15,23,42,0.08)', 'var(--navy)'],
+  admin_lectura: ['rgba(51,0,204,0.05)', '#5b3fd6'], empleado_lectura: ['rgba(15,23,42,0.04)', 'var(--gray-700)'],
   cliente: ['rgba(15,107,58,0.10)', '#0f6b3a'], transportista: ['rgba(255,122,0,0.12)', '#b45309'],
 };
 // Qué puede hacer cada rol: se enseña ANTES de confirmar un cambio (mockup).
 const ROL_DESC: Record<Rol, string> = {
-  admin: 'Acceso TOTAL a la plataforma: precios de compra y márgenes, todos los clientes y transportistas, penalizaciones, gestión de usuarios (incluidos los roles) y configuración.',
-  empleado: 'Operativa interna del equipo Dynamo: envíos y almacenamientos de todos los clientes, incidencias, penalizaciones y catálogos. Sin gestión de usuarios ni configuración.',
+  admin: 'Admin Master: acceso TOTAL a la plataforma. Lo ve todo y lo cambia todo: precios de compra y márgenes, clientes y transportistas, penalizaciones, usuarios (incluidos los roles) y parámetros.',
+  admin_lectura: 'Lo VE TODO, igual que el Admin Master (precios de compra, márgenes, usuarios, parámetros…), pero NO PUEDE CAMBIAR NADA: no crea, no edita y no borra.',
+  empleado: 'Empleado gestor: operativa interna del equipo Dynamo. Crea, edita y borra envíos, almacenamientos, incidencias, penalizaciones, clientes, transportistas y sitios. No cambia los parámetros.',
+  empleado_lectura: 'Supervisor: ve lo mismo que un Empleado gestor, pero NO PUEDE CAMBIAR NADA: no crea, no edita y no borra.',
   cliente: 'Solo SUS envíos, almacenamientos, facturas, albaranes e incidencias. No ve precios de compra, márgenes ni datos de otros clientes.',
   transportista: 'Solo los envíos que se le asignen y su documentación. No crea envíos ni ve datos de clientes.',
 };
@@ -38,7 +41,9 @@ const IDIOMAS: [string, string][] = [['es', 'Español'], ['pt', 'Portugués'], [
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const nombreRol = (r: Rol) => ROLES.find(([k]) => k === r)?.[1] ?? r;
-const interno = (r: Rol) => r === 'admin' || r === 'empleado';
+const interno = (r: Rol) => r === 'admin' || r === 'empleado' || r === 'admin_lectura' || r === 'empleado_lectura';
+// Lo que lo ve TODO (también lo de administración): solo lo concede el Admin Master.
+const nivelAdmin = (r: Rol) => r === 'admin' || r === 'admin_lectura';
 
 function ChipRol({ rol }: { rol: Rol }) {
   const [bg, fg] = ROL_COLOR[rol];
@@ -351,8 +356,8 @@ function CambiarRol({ u, yo, clientes, transportistas, onCerrar, onHecho }: {
   // Regla dura (también en la base de datos): una cuenta ya atada a la empresa de un
   // cliente o transportista nunca pasa a interna.
   const prohibido = !!(u.cliente_id || u.transportista_id) && interno(nuevo);
-  const sinPermiso = nuevo === 'admin' && yo.rol !== 'admin';
-  const rojo = (nuevo === 'admin' || prohibido) && !igual;
+  const sinPermiso = nivelAdmin(nuevo) && yo.rol !== 'admin';
+  const rojo = (nivelAdmin(nuevo) || prohibido) && !igual;
 
   async function confirmar() {
     setError(null);
@@ -389,8 +394,8 @@ function CambiarRol({ u, yo, clientes, transportistas, onCerrar, onHecho }: {
         color: rojo ? '#991b1b' : 'var(--gray-700)' }}>
         {igual ? 'Es el rol que ya tiene: no hay nada que cambiar.'
           : prohibido ? <><strong>No permitido:</strong> un email de <strong>{nombreRol(u.rol)}</strong> nunca puede pasar a <strong>{nombreRol(nuevo)}</strong>. Para hacerlo personal interno hay que borrar el usuario y darlo de alta de nuevo, normalmente con un email de Dynamo.</>
-          : sinPermiso ? <><strong>Solo un administrador</strong> puede conceder el rol de administrador.</>
-          : <>{nuevo === 'admin' ? <strong>Vas a conceder acceso de administrador. </strong> : <strong>{nombreRol(nuevo)}: </strong>}{ROL_DESC[nuevo]}</>}
+          : sinPermiso ? <><strong>Solo el Admin Master</strong> puede conceder el rol <strong>{nombreRol(nuevo)}</strong>.</>
+          : <>{nuevo === 'admin' ? <strong>Vas a conceder acceso de administrador. </strong> : nuevo === 'admin_lectura' ? <strong>Vas a dar acceso a TODO (solo para mirar). </strong> : <strong>{nombreRol(nuevo)}: </strong>}{ROL_DESC[nuevo]}</>}
       </div>
       {!igual && !prohibido && !sinPermiso && (
         <div className="ptar-sitio-grid">
@@ -440,7 +445,7 @@ function Invitar({ yo, clientes, transportistas, onCerrar, onHecho }: {
         <div>
           <label htmlFor="inv-rol">Tipo de usuario</label>
           <select id="inv-rol" value={d.rol} onChange={(e) => setD({ ...d, rol: e.target.value as Rol, cliente_id: '', transportista_id: '' })}>
-            {ROLES.filter(([k]) => k !== 'admin' || yo.rol === 'admin').map(([k, n]) => <option key={k} value={k}>{n}</option>)}
+            {ROLES.filter(([k]) => !nivelAdmin(k) || yo.rol === 'admin').map(([k, n]) => <option key={k} value={k}>{n}</option>)}
           </select>
         </div>
         <SelectorEmpresa id="inv-empresa" rol={d.rol} cliente_id={d.cliente_id} transportista_id={d.transportista_id}

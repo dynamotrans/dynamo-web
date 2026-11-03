@@ -1,6 +1,6 @@
 'use server';
 
-import { sesion, esDynamo } from '@/lib/sesion';
+import { sesion, esGestor } from '@/lib/sesion';
 
 export type IncidenciaDatos = {
   envio_id: string | null; cliente_id: string | null; tipo_id: string;
@@ -20,7 +20,7 @@ export async function guardarIncidencia(id: string | null, d: IncidenciaDatos): 
   if (!s?.perfil || s.perfil.estado !== 'activa') return { ok: false, error: 'No tienes permiso para hacer esto.' };
   const transportista = s.perfil.rol === 'transportista';
   const cliente = s.perfil.rol === 'cliente' || transportista;   // los dos «de fuera»: mismas limitaciones
-  if (!cliente && !esDynamo(s.perfil.rol)) return { ok: false, error: 'No tienes permiso para hacer esto.' };
+  if (!cliente && !esGestor(s.perfil.rol)) return { ok: false, error: 'No tienes permiso para hacer esto.' };
   if (transportista && !id && !d.envio_id) return { ok: false, error: 'Elige el viaje de la incidencia.' };
   // El CLIENTE abre y amplía las suyas, o las retira; el estado, la prioridad y la
   // resolución son de Dynamo (y lo vuelve a imponer la base de datos).

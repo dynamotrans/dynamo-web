@@ -467,6 +467,8 @@ body {
     border-radius: 14px; padding: 0.95rem 1rem;
 }
 .maint-block-icon { flex: none; color: var(--purple); margin-top: 0.1rem; }
+/* Aviso de los roles de solo lectura, arriba de cada pantalla del panel. */
+.aviso-lectura { margin: 0 0 1rem; background: rgba(51,0,204,0.05); border-color: rgba(51,0,204,0.18); }
 .maint-block-body { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
 .maint-block-body strong { font-size: var(--fs-l); color: var(--navy); font-weight: 800; }
 .maint-block-body span { font-size: var(--fs-m); color: var(--gray-600); line-height: 1.45; }

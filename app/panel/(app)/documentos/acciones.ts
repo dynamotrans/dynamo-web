@@ -1,7 +1,7 @@
 'use server';
 
 import { randomUUID } from 'node:crypto';
-import { esDynamo } from '@/lib/sesion';
+import { esGestor } from '@/lib/sesion';
 import { supabaseServidor } from '@/lib/supabase/server';
 
 // Documentos del almacén de archivos. El fichero se sube desde el navegador directamente a
@@ -49,7 +49,7 @@ export async function rutaDeSubida(d: Dueno, nombre: string): Promise<Res<{ ruta
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa') return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
   if (!valido(d)) return { ok: false, error: 'No se sabe a qué pertenece el documento.' };
-  const base = esDynamo(s.perfil.rol) ? `${CARPETA[d.campo]}/${d.id}` : `u/${s.perfil.id}`;
+  const base = esGestor(s.perfil.rol) ? `${CARPETA[d.campo]}/${d.id}` : `u/${s.perfil.id}`;
   return { ok: true, ruta: `${base}/${randomUUID()}/${sano(nombre)}` };
 }
 
@@ -72,14 +72,14 @@ export async function registrarDocumento(d: Dueno, f: { tipo: string; ruta: stri
 // «Quitar» = borrado suave de la fila: el fichero se conserva (valor de prueba).
 export async function quitarDocumento(id: string): Promise<Res> {
   const s = await sesion();
-  if (!s?.perfil || !esDynamo(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo quita documentos.' };
+  if (!s?.perfil || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo quita documentos.' };
   const { error } = await s.supabase.from('documentos').update({ borrado: true, borrado_en: new Date().toISOString() }).eq('id', id);
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
 export async function visibleParaCliente(id: string, visible: boolean): Promise<Res> {
   const s = await sesion();
-  if (!s?.perfil || !esDynamo(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo decide qué ve el cliente.' };
+  if (!s?.perfil || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo decide qué ve el cliente.' };
   const { error } = await s.supabase.from('documentos').update({ visible_cliente: visible }).eq('id', id);
   return error ? { ok: false, error: error.message } : { ok: true };
 }

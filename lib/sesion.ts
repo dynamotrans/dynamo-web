@@ -2,7 +2,9 @@ import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import { supabaseServidor } from '@/lib/supabase/server';
 
-export type Rol = 'admin' | 'empleado' | 'cliente' | 'transportista';
+export type { Rol } from './roles';
+import type { Rol } from './roles';
+export { esDynamo, esGestor, esSoloLectura, AVISO_SOLO_LECTURA } from './roles';
 export type Perfil = {
   id: string; email: string; nombre: string | null; rol: Rol;
   estado: 'activa' | 'pendiente_verificacion' | 'suspendida';
@@ -31,7 +33,6 @@ export const sesion = cache(async () => {
   return { supabase, user, perfil: (perfil as Perfil | null), empresa };
 });
 
-export const esDynamo = (rol?: string | null) => rol === 'admin' || rol === 'empleado';
 
 // Iniciales para el avatar ("Juan García" → "JG"; sin nombre, del email).
 export function iniciales(nombre: string | null | undefined, email: string): string {

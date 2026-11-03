@@ -6,9 +6,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { ICONOS, menuDe, type Enlace, type Grupo } from '@/lib/menu';
-import type { Rol } from '@/lib/sesion';
+import { esDynamo, esSoloLectura, type Rol } from '@/lib/roles';
 
-const ROL_TXT: Record<Rol, string> = { admin: 'Administrador', empleado: 'Empleado', cliente: 'Cliente', transportista: 'Transportista' };
+const ROL_TXT: Record<Rol, string> = { admin: 'Admin Master', empleado: 'Empleado gestor', admin_lectura: 'Admin lectura', empleado_lectura: 'Empleado lectura', cliente: 'Cliente', transportista: 'Transportista' };
 
 function Ico({ k, size = 18 }: { k: keyof typeof ICONOS; size?: number }) {
   return (
@@ -125,7 +125,7 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, children
               <Link href={inicio} className="topbar-brand" aria-label="Ir al inicio del panel">
                 <img src="/images/2.png" alt="Dynamo" />
               </Link>
-              {rol !== 'admin' && rol !== 'empleado' && (
+              {!esDynamo(rol) && (
                 <div className="topbar-contact-wrap">
                   <button type="button" className="topbar-contact-btn" aria-haspopup="menu" aria-expanded={menu === 'soporte'}
                           aria-label="Soporte con Álvaro" onClick={() => setMenu(menu === 'soporte' ? null : 'soporte')}>
@@ -195,7 +195,20 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, children
             </div>
           </div>
         </header>
-        <div className="content">{children}</div>
+        <div className="content">
+          {esSoloLectura(rol) && (
+            <div className="maint-block aviso-lectura" role="note">
+              <div className="maint-block-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+              </div>
+              <div className="maint-block-body">
+                <strong>Modo solo lectura · {ROL_TXT[rol]}</strong>
+                <span>Puedes ver toda la plataforma, pero no crear, cambiar ni borrar nada. Si pulsas un botón de guardar, te dirá que no tienes permiso.</span>
+              </div>
+            </div>
+          )}
+          {children}
+        </div>
       </div>
     </>
   );

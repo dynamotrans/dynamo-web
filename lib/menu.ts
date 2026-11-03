@@ -1,7 +1,7 @@
 // Menú lateral del panel: el mismo de dashboard.html (orden, nombres e iconos).
 // `listo` = pantalla ya pasada a datos reales; el resto lleva a un aviso de
 // "se está pasando a la plataforma real" hasta que toque (patrón estrangulador).
-import type { Rol } from './sesion';
+import { esDynamo, type Rol } from './roles';
 
 export const ICONOS: Record<string, string> = {
   dashboard: '<rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/>',
@@ -35,7 +35,7 @@ export function menuDe(rol: Rol): Bloque[] {
       { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
     ] }];
   }
-  const dynamo = rol === 'admin' || rol === 'empleado';
+  const dynamo = esDynamo(rol);
   const otras: Enlace[] = [
     { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },
     { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },

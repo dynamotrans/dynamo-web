@@ -1,6 +1,6 @@
 'use server';
 
-import { sesion, esDynamo } from '@/lib/sesion';
+import { sesion, esGestor } from '@/lib/sesion';
 import { randomUUID, createHash } from 'node:crypto';
 import { pdfDeEnvioDynamo } from '@/lib/pdf/generar';
 
@@ -15,7 +15,7 @@ function traducir(msg: string): string {
 }
 async function soloDynamo() {
   const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) return null;
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return null;
   return s;
 }
 
@@ -207,7 +207,7 @@ export async function valorarTransportista(envio: string, nota: number | null, c
 // de lo que se mandó, aunque el envío cambie después. Solo Dynamo.
 export async function archivarPdf(envioId: string, documento: 'orden-de-carga' | 'cmr'): Promise<{ ok: boolean; error?: string; aviso?: string }> {
   const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo guarda copias.' };
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo guarda copias.' };
   const r = await pdfDeEnvioDynamo(s.supabase, envioId, documento, s.perfil.id);
   if ('error' in r) return { ok: false, error: r.error };
   const fecha = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '').replace(/^(\d{8})(\d{4})$/, '$1-$2');

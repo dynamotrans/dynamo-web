@@ -1,6 +1,6 @@
 'use server';
 
-import { sesion, esDynamo } from '@/lib/sesion';
+import { sesion, esGestor } from '@/lib/sesion';
 
 export type PenalizacionDatos = {
   envio_id: string; tipo_id: string; descripcion: string;
@@ -16,7 +16,7 @@ function traducir(msg: string): string {
 }
 async function dynamo() {
   const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) return null;
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return null;
   return s.supabase;
 }
 

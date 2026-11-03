@@ -2593,3 +2593,69 @@ do $$ begin
   update parametros set valor = '""' where clave = 'dynamo_iban';
   raise notice 'OK 84 · parámetros: solo el administrador escribe; IBAN, banco, titular y CIF solo desde Supabase';
 end $$;
+
+-- ---- 85. Roles de solo lectura: lo ven todo, no escriben nada ---------------------------
+do $$ declare lista text; begin
+  -- Toda política que deja LEER a es_admin() tiene su gemela con ve_todo() (si mañana se
+  -- añade una tabla nueva y se olvida, este chivato lo dice).
+  select string_agg(distinct p.tablename, ', ') into lista
+    from pg_policies p
+   where p.schemaname = 'public' and p.cmd in ('SELECT', 'ALL') and p.qual ~ 'es_admin\(\)'
+     and not exists (select 1 from pg_policies q where q.schemaname = 'public' and q.tablename = p.tablename
+                       and q.cmd = 'SELECT' and q.qual ~ 've_todo\(\)');
+  if lista is not null then raise exception 'FALLO 85 · tablas que lee Dynamo y NO los de solo lectura: %', lista; end if;
+end $$;
+do $$ declare al uuid; el uuid; begin
+  insert into auth.users (email) values ('adminlectura85@dynamo.prueba') returning id into al;
+  insert into auth.users (email) values ('empleadolectura85@dynamo.prueba') returning id into el;
+  update usuarios set rol = 'admin_lectura', estado = 'activa' where id = al;
+  update usuarios set rol = 'empleado_lectura', estado = 'activa' where id = el;
+  perform set_config('prueba.u_al85', al::text, false);
+  perform set_config('prueba.u_el85', el::text, false);
+end $$;
+do $$ declare quien text; n int; begin
+  foreach quien in array array['prueba.u_al85', 'prueba.u_el85'] loop
+    perform set_config('request.jwt.claim.sub', current_setting(quien), false);
+    set local role authenticated;
+    if (select count(*) from clientes) = 0 then raise exception 'FALLO 85 · % no ve los clientes', quien; end if;
+    if (select count(*) from usuarios) < 3 then raise exception 'FALLO 85 · % no ve los usuarios', quien; end if;
+    if not exists (select 1 from parametros where clave = 'dynamo_cif') then raise exception 'FALLO 85 · % no ve los parámetros', quien; end if;
+    perform * from altas_pendientes();
+    update clientes set razon_social = razon_social || ' X';
+    get diagnostics n = row_count;
+    if n > 0 then raise exception 'FALLO 85 · % (solo lectura) cambia clientes', quien; end if;
+    delete from clientes; get diagnostics n = row_count;
+    if n > 0 then raise exception 'FALLO 85 · % (solo lectura) borra clientes', quien; end if;
+    update parametros set valor = valor; get diagnostics n = row_count;
+    if n > 0 then raise exception 'FALLO 85 · % (solo lectura) cambia parámetros', quien; end if;
+    begin
+      insert into clientes (razon_social, cif) values ('Intruso S.L.', 'B87654321');
+      raise exception 'FALLO 85 · % (solo lectura) da de alta un cliente', quien;
+    exception when insufficient_privilege then null;
+    end;
+    begin
+      update usuarios set rol = 'admin' where id = auth.uid();
+      if exists (select 1 from usuarios where id = auth.uid() and rol = 'admin') then
+        raise exception 'FALLO 85 · % se sube a sí mismo a admin', quien;
+      end if;
+    exception when insufficient_privilege then null;
+    end;
+    reset role;
+  end loop;
+end $$;
+-- Un Empleado gestor no puede crear un Admin lectura (lo vería todo): solo el Admin Master.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_emp84'), false);
+set role authenticated;
+do $$ begin
+  begin
+    update usuarios set rol = 'admin_lectura' where email = 'alta@prueba.es';
+    if exists (select 1 from usuarios where email = 'alta@prueba.es' and rol = 'admin_lectura') then
+      raise exception 'FALLO 85 · un empleado concede Admin lectura';
+    end if;
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+do $$ begin
+  raise notice 'OK 85 · Admin lectura y Empleado lectura lo leen todo y no escriben nada; Admin lectura solo lo da el Admin Master';
+end $$;

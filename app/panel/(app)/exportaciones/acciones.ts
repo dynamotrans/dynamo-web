@@ -1,12 +1,12 @@
 'use server';
 
-import { sesion, esDynamo } from '@/lib/sesion';
+import { sesion, esGestor } from '@/lib/sesion';
 import type { Fichero } from '@/lib/exportaciones';
 
 // Marcar (o desmarcar) envíos como ya pasados a Holded / publicados en la bolsa.
 export async function marcarExportados(fichero: Fichero, refs: string[], quitar = false): Promise<{ ok: true; n: number } | { ok: false; error: string }> {
   const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo.' };
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo.' };
   if (!['venta', 'compra', 'bolsa'].includes(fichero)) return { ok: false, error: 'Fichero no válido.' };
   const lista = [...new Set(refs.filter((r) => /^GX\d+$/.test(r)))];
   if (!lista.length) return { ok: false, error: 'No hay ningún envío que marcar.' };
@@ -18,7 +18,7 @@ export async function marcarExportados(fichero: Fichero, refs: string[], quitar 
 // la factura del transportista (columna FACTURADO? de los ficheros de Holded).
 export async function marcarFacturados(lado: 'venta' | 'compra', refs: string[], valor: boolean): Promise<{ ok: true; n: number } | { ok: false; error: string }> {
   const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo.' };
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo.' };
   const lista = [...new Set(refs.filter((r) => /^GX\d+$/.test(r)))];
   if (!lista.length) return { ok: false, error: 'No hay ningún envío que marcar.' };
   const { data, error } = await s.supabase.rpc('marcar_facturados', { p_lado: lado, p_refs: lista, p_valor: valor });

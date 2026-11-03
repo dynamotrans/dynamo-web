@@ -1,6 +1,6 @@
 'use server';
 
-import { sesion, esDynamo } from '@/lib/sesion';
+import { sesion, esGestor } from '@/lib/sesion';
 
 export type ParadaNueva = {
   tipo: 'carga' | 'descarga';
@@ -64,7 +64,7 @@ function traducir(msg: string): string {
 export async function crearEnvio(envio: EnvioNuevo, paradas: ParadaNueva[]):
   Promise<{ ok: true; referencia_gx: string } | { ok: false; error: string }> {
   const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) {
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) {
     return { ok: false, error: 'Solo el equipo de Dynamo puede crear envíos por ahora.' };
   }
   // Comprobaciones básicas aquí también (la base de datos vuelve a comprobarlo todo).
@@ -84,7 +84,7 @@ export async function crearEnvio(envio: EnvioNuevo, paradas: ParadaNueva[]):
 export async function crearClienteRapido(razon_social: string, cif: string, pais_codigo_iso: string):
   Promise<{ ok: true; cliente: { id: string; nombre: string; cif: string } } | { ok: false; error: string }> {
   const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) {
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) {
     return { ok: false, error: 'Solo el equipo de Dynamo puede dar de alta clientes.' };
   }
   const rs = razon_social.trim(), c = cif.trim().toUpperCase();
@@ -100,7 +100,7 @@ export async function crearClienteRapido(razon_social: string, cif: string, pais
 // mantienen; las demás se crean; las que no vienen se quitan. Lo comprueba la base de datos.
 export async function cambiarRuta(envio: string, paradas: (ParadaNueva & { id?: string })[]): Promise<{ ok: true } | { ok: false; error: string }> {
   const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo puede cambiar la ruta.' };
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo puede cambiar la ruta.' };
   if (paradas.length < 2) return { ok: false, error: 'Falta la recogida o la entrega.' };
   const { error } = await s.supabase.rpc('cambiar_ruta_envio', { p_envio: envio, p_paradas: paradas.map((p) => (p.id ? { id: p.id } : p)) });
   if (error) return { ok: false, error: traducir(error.message) };
@@ -125,7 +125,7 @@ export async function crearSolicitud(envio: Omit<EnvioNuevo, 'cliente_id' | 'imp
 // Dynamo pone precio a la solicitud de un cliente (el cliente lo acepta después).
 export async function proponerPrecio(envio: string, importe: number, importeT: number | null): Promise<{ ok: true; aviso?: string } | { ok: false; error: string }> {
   const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) return { ok: false, error: 'Solo Dynamo pone precio.' };
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) return { ok: false, error: 'Solo Dynamo pone precio.' };
   if (!(importe > 0)) return { ok: false, error: 'Pon el precio del cliente (base sin IVA).' };
   if (importeT != null && !(importeT >= 0)) return { ok: false, error: 'El precio del transportista no es válido.' };
   const { error } = await s.supabase.rpc('proponer_precio_solicitud', { p_envio: envio, p_importe: importe, p_importe_transportista: importeT });

@@ -1,6 +1,6 @@
 'use server';
 
-import { sesion, esDynamo } from '@/lib/sesion';
+import { sesion, esGestor } from '@/lib/sesion';
 import type { ContactoDatos } from '@/lib/contactos';
 import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosServidor';
 
@@ -31,7 +31,7 @@ const vacio = (s: string) => (s ?? '').trim() || null;
 export async function guardarTransportista(id: string | null, d: TransportistaDatos):
   Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) {
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esGestor(s.perfil.rol)) {
     return { ok: false, error: 'Solo el equipo de Dynamo gestiona transportistas.' };
   }
   if (!d.razon_social.trim() || !d.cif.trim()) return { ok: false, error: 'La empresa y el CIF/NIF son obligatorios.' };

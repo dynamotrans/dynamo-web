@@ -317,6 +317,10 @@ seguridad. Si dice `HAY FALLOS`, no se sube. Las pruebas se amplían con cada mi
 2. Toda vista → `with (security_invoker = true)`. Si no, se salta el RLS.
 3. Toda función `SECURITY DEFINER` → `set search_path` fijado. Las herramientas internas,
    revocadas de `anon` y `authenticated`.
+4. **Roles de solo lectura** (Admin lectura, Empleado lectura, desde 2026-11-03): toda política que
+   deja LEER a `es_admin()` necesita su gemela `for select to authenticated using (ve_todo())`; para
+   escribir, siempre `es_admin()`. El arnés lo comprueba (prueba 85). En la app: `esDynamo()` = ver,
+   `esGestor()` = cambiar (lib/roles.ts); toda acción que guarde algo exige `esGestor()`.
 
 **Una migración ya aplicada NO se edita: cada cambio es un fichero NUEVO** (ya ahora, en
 pruebas). Supabase no vuelve a ejecutar una migración que ya aplicó, así que editarla deja
