@@ -27,8 +27,9 @@ export default async function PaginaExportaciones() {
   for (const k of ['venta', 'compra'] as const) hecho[k] = datos[k].filter((f) => f['EN HOLDED?'] === 'SI').map((f) => String(f[FICHEROS[k].ref]));
   const refsBolsa = datos.bolsa.map((f) => String(f['REF.']));
   if (refsBolsa.length) {
-    const { data } = await supabase.from('envios').select('referencia_gx').in('referencia_gx', refsBolsa).not('publicado_en_bolsa_en', 'is', null);
-    hecho.bolsa = (data ?? []).map((e: any) => e.referencia_gx as string);
+    // Publicado y sin cambios desde entonces (si se modificó después, vuelve a pendiente).
+    const { data } = await supabase.from('envios').select('referencia_gx, publicado_en_bolsa_en, modificado_en').in('referencia_gx', refsBolsa).not('publicado_en_bolsa_en', 'is', null);
+    hecho.bolsa = (data ?? []).filter((e: any) => !e.modificado_en || e.modificado_en <= e.publicado_en_bolsa_en).map((e: any) => e.referencia_gx as string);
   }
   const columnas = {} as Record<Fichero, string[]>;
   claves.forEach((k) => { columnas[k] = datos[k][0] ? Object.keys(datos[k][0]) : []; });

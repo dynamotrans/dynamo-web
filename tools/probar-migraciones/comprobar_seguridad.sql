@@ -2428,3 +2428,21 @@ do $$ declare tok uuid := current_setting('prueba.tok78')::uuid; r jsonb; a json
   raise notice 'OK 78 · aceptar carga: 5 CIF fallidos y la reserva se libera; los intentos quedan registrados y anon no los lee';
 end $$;
 reset role;
+
+-- ---- 79. Facturado desde el panel y republicar en la bolsa lo modificado -----------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare ref text; t1 timestamptz; n int; begin
+  select referencia_gx into ref from envios where id = current_setting('prueba.e59')::uuid;
+  n := marcar_facturados('venta', array[ref]);
+  if n <> 1 or not (select facturado_venta from envios where referencia_gx = ref) then raise exception 'FALLO 79 · no marca facturado (%)', n; end if;
+  if exists (select 1 from v_holded_pedido_venta where "Num Pedido (referencia_gx_carga)" = ref and "FACTURADO?" <> 'SI') then raise exception 'FALLO 79 · la vista no lo da por facturado'; end if;
+  -- Bolsa: publicado en la prueba 66 y modificado después (en otra transacción) → se republica;
+  -- justo después, sin más cambios, ya no.
+  n := marcar_exportados('bolsa', array[ref]);
+  if n <> 1 then raise exception 'FALLO 79 · no republica lo modificado (%)', n; end if;
+  n := marcar_exportados('bolsa', array[ref]);
+  if n <> 0 then raise exception 'FALLO 79 · republica sin cambios (%)', n; end if;
+  raise notice 'OK 79 · exportaciones: facturado desde el panel; la bolsa vuelve a publicar lo modificado';
+end $$;
+reset role;

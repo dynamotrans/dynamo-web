@@ -13,14 +13,14 @@ export const FICHEROS: Record<Fichero, {
     ref: 'Num Pedido (referencia_gx_carga)', fecha: 'Fecha dd/mm/yyyy',
     marcar: 'Marcar como pasados a Holded', marcado: 'pasados a Holded', desmarcar: 'Volver a pendientes',
     columnas: [['Num Pedido (referencia_gx_carga)', 'Pedido'], ['Fecha dd/mm/yyyy', 'Fecha'], ['Nombre del contacto', 'Cliente'],
-      ['Concepto', 'Concepto'], ['Descripción del producto', 'Descripción'], ['Precio unidad', 'Importe (sin IVA)'], ['ESTADO VIAJE', 'Estado'], ['ALB REC?', 'Albarán']],
+      ['Concepto', 'Concepto'], ['Descripción del producto', 'Descripción'], ['Precio unidad', 'Importe (sin IVA)'], ['ESTADO VIAJE', 'Estado'], ['ALB REC?', 'Albarán'], ['FACTURADO?', 'Facturado']],
   },
   compra: {
     vista: 'v_holded_pedido_compra', titulo: 'Pedidos de compra', sub: 'Holded · a transportistas', archivo: 'Holded-pedidos-compra',
     ref: 'Num Pedido (referencia_gx_carga)', fecha: 'Fecha dd/mm/yyyy',
     marcar: 'Marcar como pasados a Holded', marcado: 'pasados a Holded', desmarcar: 'Volver a pendientes',
     columnas: [['Num Pedido (referencia_gx_carga)', 'Pedido'], ['Fecha dd/mm/yyyy', 'Fecha'], ['Nombre del contacto', 'Transportista'],
-      ['Concepto', 'Concepto'], ['Descripción del producto', 'Descripción'], ['Precio unidad', 'Importe (sin IVA)'], ['ESTADO VIAJE', 'Estado'], ['ALB REC?', 'Albarán']],
+      ['Concepto', 'Concepto'], ['Descripción del producto', 'Descripción'], ['Precio unidad', 'Importe (sin IVA)'], ['ESTADO VIAJE', 'Estado'], ['ALB REC?', 'Albarán'], ['FACTURADO?', 'Factura recibida']],
   },
   bolsa: {
     vista: 'v_wtransnet', titulo: 'Bolsa de carga', sub: 'Wtransnet · sin transportista', archivo: 'Wtransnet',

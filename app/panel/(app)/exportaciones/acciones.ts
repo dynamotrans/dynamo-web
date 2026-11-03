@@ -13,3 +13,14 @@ export async function marcarExportados(fichero: Fichero, refs: string[], quitar 
   const { data, error } = await s.supabase.rpc('marcar_exportados', { p_fichero: fichero, p_refs: lista, p_quitar: quitar });
   return error ? { ok: false, error: /42501|permission/i.test(error.message) ? 'No tienes permiso para hacer esto.' : error.message } : { ok: true, n: Number(data) };
 }
+
+// Marcar (o desmarcar) como facturados: venta = ya facturado al cliente; compra = ya llegó
+// la factura del transportista (columna FACTURADO? de los ficheros de Holded).
+export async function marcarFacturados(lado: 'venta' | 'compra', refs: string[], valor: boolean): Promise<{ ok: true; n: number } | { ok: false; error: string }> {
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo.' };
+  const lista = [...new Set(refs.filter((r) => /^GX\d+$/.test(r)))];
+  if (!lista.length) return { ok: false, error: 'No hay ningún envío que marcar.' };
+  const { data, error } = await s.supabase.rpc('marcar_facturados', { p_lado: lado, p_refs: lista, p_valor: valor });
+  return error ? { ok: false, error: /42501|permission/i.test(error.message) ? 'No tienes permiso para hacer esto.' : error.message } : { ok: true, n: Number(data) };
+}
