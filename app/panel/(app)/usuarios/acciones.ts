@@ -53,25 +53,25 @@ export async function guardarUsuario(id: string, rol: Rol, d: UsuarioDatos): Pro
   return error ? { ok: false, error: traducir(error.message) } : { ok: true };
 }
 
-// Cambiar el rol: acción aparte, con el email del usuario tecleado como confirmación
-// (mockup). Las reglas duras las vuelve a comprobar la base de datos.
-export async function cambiarRol(id: string, rol: Rol, emailConfirmacion: string,
+// Cambiar el rol: acción aparte; hay que escribir «Confirmo». Las reglas duras las
+// vuelve a comprobar la base de datos. El Admin Master no se da desde la web (Supabase).
+const confirmado = (t: string) => t.trim().toLowerCase() === 'confirmo';
+const SOLO_SUPABASE = 'El Admin Master solo se nombra desde Supabase (Table Editor → usuarios), nunca desde la web.';
+export async function cambiarRol(id: string, rol: Rol, confirmacion: string,
                                  cliente_id: string, transportista_id: string): Promise<Res> {
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo gestiona usuarios.' };
   if (id === s.perfil!.id) return { ok: false, error: 'Nadie puede cambiar su propio rol.' };
   if (!ROLES_VALIDOS.includes(rol)) return { ok: false, error: 'Ese tipo de usuario no existe.' };
-  if ((rol === 'admin' || rol === 'admin_lectura') && s.perfil!.rol !== 'admin') return { ok: false, error: 'Solo el Admin Master puede conceder el rol Admin Master o Admin lectura.' };
-  const { data: u } = await s.supabase.from('usuarios').select('email').eq('id', id).single();
-  if (!u || emailConfirmacion.trim().toLowerCase() !== String(u.email).toLowerCase()) {
-    return { ok: false, error: 'El email no coincide. Escríbelo exactamente para confirmar el cambio de rol.' };
-  }
+  if (rol === 'admin') return { ok: false, error: SOLO_SUPABASE };
+  if (rol === 'admin_lectura' && s.perfil!.rol !== 'admin') return { ok: false, error: 'Solo el Admin Master puede conceder el rol Admin lectura.' };
+  if (!confirmado(confirmacion)) return { ok: false, error: 'Escribe «Confirmo» para cambiar el rol.' };
   const { error } = await s.supabase.from('usuarios')
     .update({ rol, ...empresaDe(rol, cliente_id, transportista_id) }).eq('id', id);
   return error ? { ok: false, error: traducir(error.message) } : { ok: true };
 }
 
-export type Invitacion = { email: string; nombre: string; rol: Rol; cliente_id: string; transportista_id: string; telefono: string; cargo: string };
+export type Invitacion = { email: string; nombre: string; rol: Rol; cliente_id: string; transportista_id: string; telefono: string; cargo: string; confirmacion?: string };
 
 // Alta de un usuario: Supabase le manda un email con el enlace para CREAR SU CONTRASEÑA
 // (Dynamo nunca la ve ni la escribe). Luego se le pone rol y empresa con la sesión del admin.
@@ -82,7 +82,9 @@ export async function invitarUsuario(d: Invitacion): Promise<Res> {
   if (!EMAIL.test(email)) return { ok: false, error: 'El email no es válido.' };
   if (!d.nombre.trim()) return { ok: false, error: 'Pon el nombre y apellidos.' };
   if (!ROLES_VALIDOS.includes(d.rol)) return { ok: false, error: 'Ese tipo de usuario no existe.' };
-  if ((d.rol === 'admin' || d.rol === 'admin_lectura') && s.perfil!.rol !== 'admin') return { ok: false, error: 'Solo el Admin Master puede dar de alta un Admin Master o un Admin lectura.' };
+  if (d.rol === 'admin') return { ok: false, error: SOLO_SUPABASE };
+  if (d.rol === 'admin_lectura' && s.perfil!.rol !== 'admin') return { ok: false, error: 'Solo el Admin Master puede dar de alta un Admin lectura.' };
+  if (!confirmado(d.confirmacion ?? '')) return { ok: false, error: 'Escribe «Confirmo» para dar de alta este tipo de usuario.' };
   if (d.rol === 'cliente' && !d.cliente_id) return { ok: false, error: 'Elige de qué cliente es el usuario.' };
   if (d.rol === 'transportista' && !d.transportista_id) return { ok: false, error: 'Elige de qué transportista es el usuario.' };
   const { data: ya } = await s.supabase.from('usuarios').select('id').ilike('email', email).maybeSingle();

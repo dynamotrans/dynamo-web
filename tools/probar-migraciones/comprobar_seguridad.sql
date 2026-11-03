@@ -2692,3 +2692,42 @@ do $$ declare c jsonb; begin
   raise notice 'OK 86 · contadores del panel: cada uno cuenta solo lo que ve; cobertura de crédito sin importes y solo del cliente';
 end $$;
 reset role;
+
+-- ---- 87. Admin Master: solo desde Supabase, nunca por la API --------------------------------
+do $$ declare u uuid; begin
+  insert into auth.users (email) values ('candidato87@dynamo.prueba') returning id into u;
+  update usuarios set rol = 'empleado', estado = 'activa' where id = u;
+  perform set_config('prueba.u87', u::text, false);
+end $$;
+-- Ni un Admin Master con su sesión…
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  begin
+    update usuarios set rol = 'admin' where id = current_setting('prueba.u87')::uuid;
+    raise exception 'FALLO 87 · un Admin Master nombra otro Admin Master desde la web';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+-- …ni el servidor con la clave de servicio…
+select set_config('request.jwt.claim.sub', '', false);
+set role service_role;
+do $$ begin
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  begin
+    update usuarios set rol = 'admin' where id = current_setting('prueba.u87')::uuid;
+    raise exception 'FALLO 87 · la clave de servicio nombra un Admin Master';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+-- …desde Supabase (el dueño, conexión directa) sí.
+do $$ begin
+  update usuarios set rol = 'admin' where id = current_setting('prueba.u87')::uuid;
+  if not exists (select 1 from usuarios where id = current_setting('prueba.u87')::uuid and rol = 'admin') then
+    raise exception 'FALLO 87 · ni desde Supabase se puede nombrar un Admin Master';
+  end if;
+  update usuarios set rol = 'empleado' where id = current_setting('prueba.u87')::uuid;
+  raise notice 'OK 87 · Admin Master solo desde Supabase: ni otro admin ni la clave de servicio lo crean';
+end $$;

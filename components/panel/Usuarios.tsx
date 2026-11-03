@@ -29,7 +29,7 @@ const ROL_COLOR: Record<Rol, [string, string]> = {
 };
 // Qué puede hacer cada rol: se enseña ANTES de confirmar un cambio (mockup).
 const ROL_DESC: Record<Rol, string> = {
-  admin: 'Admin Master: acceso TOTAL a la plataforma. Lo ve todo y lo cambia todo: precios de compra y márgenes, clientes y transportistas, penalizaciones, usuarios (incluidos los roles) y parámetros.',
+  admin: 'Admin Master: acceso TOTAL a la plataforma. Lo ve todo y lo cambia todo: precios de compra y márgenes, clientes y transportistas, penalizaciones, usuarios (incluidos los roles) y parámetros. Solo se nombra desde Supabase.',
   admin_lectura: 'Lo VE TODO, igual que el Admin Master (precios de compra, márgenes, usuarios, parámetros…), pero NO PUEDE CAMBIAR NADA: no crea, no edita y no borra.',
   empleado: 'Empleado gestor: operativa interna del equipo Dynamo. Crea, edita y borra envíos, almacenamientos, incidencias, penalizaciones, clientes, transportistas y sitios. No cambia los parámetros.',
   empleado_lectura: 'Supervisor: ve lo mismo que un Empleado gestor, pero NO PUEDE CAMBIAR NADA: no crea, no edita y no borra.',
@@ -44,6 +44,21 @@ const nombreRol = (r: Rol) => ROLES.find(([k]) => k === r)?.[1] ?? r;
 const interno = (r: Rol) => r === 'admin' || r === 'empleado' || r === 'admin_lectura' || r === 'empleado_lectura';
 // Lo que lo ve TODO (también lo de administración): solo lo concede el Admin Master.
 const nivelAdmin = (r: Rol) => r === 'admin' || r === 'admin_lectura';
+// El Admin Master NO se da desde la web: solo desde Supabase (la base de datos lo impide).
+const ROLES_ELEGIBLES = ROLES.filter(([k]) => k !== 'admin');
+const confirmado = (t: string) => t.trim().toLowerCase() === 'confirmo';
+
+// Campo «escribe Confirmo» que valida la elección de un tipo de usuario.
+function CampoConfirmo({ id, valor, onCambio }: { id: string; valor: string; onCambio: (v: string) => void }) {
+  const ok = confirmado(valor);
+  return (
+    <div style={{ gridColumn: '1/-1' }}>
+      <label htmlFor={id}>Para seleccionar este rol, <strong>escribe «Confirmo»</strong></label>
+      <input id={id} type="text" autoComplete="off" spellCheck={false} placeholder="Confirmo" value={valor} onChange={(e) => onCambio(e.target.value)}
+        style={ok ? { borderColor: 'var(--green)', boxShadow: '0 0 0 3px rgba(34,165,90,0.15)' } : undefined} />
+    </div>
+  );
+}
 
 function ChipRol({ rol }: { rol: Rol }) {
   const [bg, fg] = ROL_COLOR[rol];
@@ -349,22 +364,22 @@ function CambiarRol({ u, yo, clientes, transportistas, onCerrar, onHecho }: {
 }) {
   const [nuevo, setNuevo] = useState<Rol>(u.rol);
   const [emp, setEmp] = useState({ cliente_id: u.cliente_id, transportista_id: u.transportista_id });
-  const [email, setEmail] = useState('');
+  const [conf, setConf] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
   const igual = nuevo === u.rol;
   // Regla dura (también en la base de datos): una cuenta ya atada a la empresa de un
   // cliente o transportista nunca pasa a interna.
   const prohibido = !!(u.cliente_id || u.transportista_id) && interno(nuevo);
-  const sinPermiso = nivelAdmin(nuevo) && yo.rol !== 'admin';
+  const sinPermiso = nuevo === 'admin' || (nuevo === 'admin_lectura' && yo.rol !== 'admin');
   const rojo = (nivelAdmin(nuevo) || prohibido) && !igual;
 
   async function confirmar() {
     setError(null);
     if (igual || prohibido || sinPermiso) return;
-    if (email.trim().toLowerCase() !== u.email.toLowerCase()) { setError('El email no coincide. Escríbelo exactamente para confirmar el cambio de rol.'); return; }
+    if (!confirmado(conf)) { setError('Escribe «Confirmo» para cambiar el rol.'); return; }
     setTrabajando(true);
-    const r = await cambiarRol(u.id, nuevo, email, emp.cliente_id, emp.transportista_id);
+    const r = await cambiarRol(u.id, nuevo, conf, emp.cliente_id, emp.transportista_id);
     setTrabajando(false);
     if (!r.ok) { setError(r.error); return; }
     onHecho(`${u.email} pasa de ${nombreRol(u.rol)} a ${nombreRol(nuevo)}. Queda en el registro de auditoría.`);
@@ -374,14 +389,15 @@ function CambiarRol({ u, yo, clientes, transportistas, onCerrar, onHecho }: {
     <Modal abierto titulo={`Cambiar rol — ${u.email}`} sub={`Rol actual: ${nombreRol(u.rol)}`} icono={<IcoUsuario />} onCerrar={onCerrar}
       pie={<>
         <button className="btn-ghost" onClick={onCerrar} disabled={trabajando}>Cancelar</button>
-        <button className="btn-primary" onClick={confirmar} disabled={trabajando || igual || prohibido || sinPermiso}
+        <button className="btn-primary" onClick={confirmar} disabled={trabajando || igual || prohibido || sinPermiso || !confirmado(conf)}
           style={rojo && !prohibido ? { background: 'var(--red)' } : undefined}>Cambiar rol</button>
       </>}>
       <div className="ptar-sitio-grid">
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="rol-nuevo">Nuevo rol</label>
           <select id="rol-nuevo" value={nuevo} onChange={(e) => { setNuevo(e.target.value as Rol); setError(null); }}>
-            {ROLES.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
+            {u.rol === 'admin' && <option value="admin" disabled>Admin Master (solo desde Supabase)</option>}
+            {ROLES_ELEGIBLES.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
           </select>
         </div>
         {!igual && !prohibido && !interno(nuevo) && (
@@ -394,15 +410,12 @@ function CambiarRol({ u, yo, clientes, transportistas, onCerrar, onHecho }: {
         color: rojo ? '#991b1b' : 'var(--gray-700)' }}>
         {igual ? 'Es el rol que ya tiene: no hay nada que cambiar.'
           : prohibido ? <><strong>No permitido:</strong> un email de <strong>{nombreRol(u.rol)}</strong> nunca puede pasar a <strong>{nombreRol(nuevo)}</strong>. Para hacerlo personal interno hay que borrar el usuario y darlo de alta de nuevo, normalmente con un email de Dynamo.</>
-          : sinPermiso ? <><strong>Solo el Admin Master</strong> puede conceder el rol <strong>{nombreRol(nuevo)}</strong>.</>
-          : <>{nuevo === 'admin' ? <strong>Vas a conceder acceso de administrador. </strong> : nuevo === 'admin_lectura' ? <strong>Vas a dar acceso a TODO (solo para mirar). </strong> : <strong>{nombreRol(nuevo)}: </strong>}{ROL_DESC[nuevo]}</>}
+          : sinPermiso ? (nuevo === 'admin' ? <><strong>El Admin Master solo se nombra desde Supabase</strong> (Table Editor → usuarios), nunca desde la web.</> : <><strong>Solo el Admin Master</strong> puede conceder el rol <strong>{nombreRol(nuevo)}</strong>.</>)
+          : <>{nuevo === 'admin_lectura' ? <strong>Vas a dar acceso a TODO (solo para mirar). </strong> : <strong>{nombreRol(nuevo)}: </strong>}{ROL_DESC[nuevo]}</>}
       </div>
       {!igual && !prohibido && !sinPermiso && (
         <div className="ptar-sitio-grid">
-          <div style={{ gridColumn: '1/-1' }}>
-            <label htmlFor="rol-email">Cambiar el rol es delicado: para confirmar, <strong>escribe el email del usuario</strong></label>
-            <input id="rol-email" type="text" inputMode="email" autoComplete="off" placeholder={u.email} value={email} onChange={(e) => setEmail(e.target.value)} />
-          </div>
+          <CampoConfirmo id="rol-confirmo" valor={conf} onCambio={(v) => { setConf(v); setError(null); }} />
         </div>
       )}
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
@@ -416,13 +429,16 @@ function Invitar({ yo, clientes, transportistas, onCerrar, onHecho }: {
   yo: { id: string; rol: Rol }; clientes: Empresa[]; transportistas: Empresa[]; onCerrar: () => void; onHecho: (t: string) => void;
 }) {
   const [d, setD] = useState({ email: '', nombre: '', rol: 'cliente' as Rol, cliente_id: '', transportista_id: '', cargo: '' });
+  const [conf, setConf] = useState('');
   const [tel, setTel] = useState({ pref: '+34', num: '' });
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
 
   async function enviar() {
-    setError(null); setTrabajando(true);
-    const r = await invitarUsuario({ ...d, telefono: telDe(tel) });
+    setError(null);
+    if (!confirmado(conf)) { setError('Escribe «Confirmo» para dar de alta este tipo de usuario.'); return; }
+    setTrabajando(true);
+    const r = await invitarUsuario({ ...d, telefono: telDe(tel), confirmacion: conf });
     setTrabajando(false);
     if (!r.ok) { setError(r.error); return; }
     onHecho(`Invitación enviada a ${d.email.trim().toLowerCase()}. Le llega un email para crear su contraseña.`);
@@ -431,7 +447,7 @@ function Invitar({ yo, clientes, transportistas, onCerrar, onHecho }: {
     <Modal abierto titulo="Nuevo usuario" sub="Alta de un email de acceso a la plataforma" icono={<IcoUsuario />} onCerrar={onCerrar}
       pie={<>
         <button className="btn-ghost" onClick={onCerrar} disabled={trabajando}>Cancelar</button>
-        <button className="btn-primary" onClick={enviar} disabled={trabajando}>Enviar invitación</button>
+        <button className="btn-primary" onClick={enviar} disabled={trabajando || !confirmado(conf)}>Enviar invitación</button>
       </>}>
       <div className="ptar-sitio-grid">
         <div style={{ gridColumn: '1/-1' }}>
@@ -444,8 +460,8 @@ function Invitar({ yo, clientes, transportistas, onCerrar, onHecho }: {
         </div>
         <div>
           <label htmlFor="inv-rol">Tipo de usuario</label>
-          <select id="inv-rol" value={d.rol} onChange={(e) => setD({ ...d, rol: e.target.value as Rol, cliente_id: '', transportista_id: '' })}>
-            {ROLES.filter(([k]) => !nivelAdmin(k) || yo.rol === 'admin').map(([k, n]) => <option key={k} value={k}>{n}</option>)}
+          <select id="inv-rol" value={d.rol} onChange={(e) => { setD({ ...d, rol: e.target.value as Rol, cliente_id: '', transportista_id: '' }); setConf(''); }}>
+            {ROLES_ELEGIBLES.filter(([k]) => !nivelAdmin(k) || yo.rol === 'admin').map(([k, n]) => <option key={k} value={k}>{n}</option>)}
           </select>
         </div>
         <SelectorEmpresa id="inv-empresa" rol={d.rol} cliente_id={d.cliente_id} transportista_id={d.transportista_id}
@@ -455,6 +471,7 @@ function Invitar({ yo, clientes, transportistas, onCerrar, onHecho }: {
           <label htmlFor="inv-cargo">Cargo</label>
           <input id="inv-cargo" type="text" value={d.cargo} placeholder="Jefe de tráfico, administración…" onChange={(e) => setD({ ...d, cargo: e.target.value })} />
         </div>
+        <CampoConfirmo id="inv-confirmo" valor={conf} onCambio={(v) => { setConf(v); setError(null); }} />
       </div>
       <div style={{ marginTop: '0.8rem', padding: '0.7rem 0.8rem', borderRadius: 9, fontSize: 'var(--fs-m)', lineHeight: 1.55, background: 'var(--gray-50)', border: '1px solid var(--gray-200)', color: 'var(--gray-700)' }}>
         <strong>{nombreRol(d.rol)}: </strong>{ROL_DESC[d.rol]}

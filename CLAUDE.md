@@ -321,6 +321,9 @@ seguridad. Si dice `HAY FALLOS`, no se sube. Las pruebas se amplían con cada mi
    deja LEER a `es_admin()` necesita su gemela `for select to authenticated using (ve_todo())`; para
    escribir, siempre `es_admin()`. El arnés lo comprueba (prueba 85). En la app: `esDynamo()` = ver,
    `esGestor()` = cambiar (lib/roles.ts); toda acción que guarde algo exige `esGestor()`.
+   El **Admin Master** solo se nombra desde Supabase (Table Editor → `usuarios` → `rol = admin`), nunca
+   desde la web ni con la clave de servicio (migración `admin_master_solo_supabase`, prueba 87). Cambiar
+   un rol o dar de alta un usuario pide escribir «Confirmo».
 
 **Una migración ya aplicada NO se edita: cada cambio es un fichero NUEVO** (ya ahora, en
 pruebas). Supabase no vuelve a ejecutar una migración que ya aplicó, así que editarla deja
