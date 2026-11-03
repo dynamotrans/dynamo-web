@@ -2498,3 +2498,36 @@ do $$ declare j jsonb; begin
   raise notice 'OK 81 · orden de carga y CMR por el enlace: solo con la reserva aceptada, sin datos del cliente';
 end $$;
 reset role;
+
+-- ---- 82. Bultos, embalaje y volumen del CMR: Dynamo y el cliente, con sus límites --------
+select set_config('prueba.e82', coalesce((select e.id::text from envios e where e.cliente_id = current_setting('prueba.cliente')::uuid
+   and e.estado in ('borrador', 'programado', 'hacia_la_carga') and e.operador_id is null
+   and not exists (select 1 from firmas_cmr f where f.envio_id = e.id) limit 1), ''), false);
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare e uuid; j jsonb; begin
+  if current_setting('prueba.e82') = '' then raise exception 'FALLO 82 · no hay envío del cliente sin cargar en los datos de prueba'; end if;
+  e := current_setting('prueba.e82')::uuid;
+  perform poner_datos_cmr(e, 33, 'Palet europeo', 86);
+  j := datos_cmr_envio(e);
+  if (j ->> 'numero_bultos')::int <> 33 or j ->> 'embalaje' <> 'Palet europeo' or (j ->> 'volumen_m3')::numeric <> 86 then
+    raise exception 'FALLO 82 · no guarda los datos del CMR: %', j;
+  end if;
+  begin
+    perform poner_datos_cmr(e, 0, null, null);
+    raise exception 'FALLO 82 · acepta 0 bultos';
+  exception when check_violation then null;
+  end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ begin
+  begin
+    perform poner_datos_cmr(current_setting('prueba.e82')::uuid, 1, null, null);
+    raise exception 'FALLO 82 · el transportista cambia los datos del CMR';
+  exception when insufficient_privilege then null;
+  end;
+  raise notice 'OK 82 · bultos, embalaje y volumen del CMR: los pone el cliente antes de cargar; el transportista no';
+end $$;
+reset role;

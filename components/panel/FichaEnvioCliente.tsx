@@ -6,6 +6,7 @@
 // el camión no va hacia la carga, reportar una incidencia y repetir el envío.
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import DatosCmr from './DatosCmr';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
@@ -201,6 +202,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
         <Celda l="Medidas">{[e.metros_lineales != null && `${txtNum(e.metros_lineales)} m`, e.toneladas != null && `${txtNum(e.toneladas)} Tn`].filter(Boolean).join(' · ') || '—'}</Celda>
         <Celda l="Requisitos" span>{[e.plataforma_elevadora && 'Trampilla elevadora', e.nima_requerido && 'Requiere NIMA', e.adr && 'Mercancía ADR'].filter(Boolean).join(' · ') || 'Ninguno'}</Celda>
         {e.anotaciones_cliente && <Celda l="Anotaciones" span>{e.anotaciones_cliente}</Celda>}
+        {e.estado !== 'cancelado' && <DatosCmr envioId={e.id} puedeEditar={['borrador', 'programado', 'hacia_la_carga'].includes(e.estado)} bloquearSiFirmado />}
       </div></div>
 
       {!porAceptar && <>

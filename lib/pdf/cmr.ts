@@ -111,8 +111,8 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
 
     // 6-12: tabla de la mercancía
     dato(40, 385, [{ t: e.referencia_gx ?? '—', s: 7.2 }]);
-    dato(117, 385, [{ t: '—', b: false }]);
-    dato(196, 385, [{ t: e.paletizado === false ? 'Sin paletizar' : 'Palets', s: 7.4, b: false }]);
+    dato(117, 385, [{ t: e.numero_bultos != null ? String(e.numero_bultos) : '—', s: 8, b: e.numero_bultos != null }]);
+    dato(196, 385, [{ t: e.embalaje || (e.paletizado === false ? 'Sin paletizar' : 'Palets'), s: 7.4, b: false }]);
     dato(276, 385, [
       { t: e.descripcion_mercancia || '—', s: 8 },
       { t: e.metros_lineales != null ? `Ocupación: ${num(e.metros_lineales)} m lineales` : '', s: 7, b: false },
@@ -120,7 +120,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     ], 24);
     dato(388, 385, [{ t: '—', b: false }]);
     dato(437, 385, [{ t: e.toneladas != null ? `${importe(Number(e.toneladas) * 1000).replace(/,00$/, '')} kg` : '—', s: 8 }]);
-    dato(508, 385, [{ t: '—', b: false }]);
+    dato(508, 385, [{ t: e.volumen_m3 != null ? `${num(e.volumen_m3)} m³` : '—', s: 8, b: e.volumen_m3 != null }]);
 
     // 13 Instrucciones del remitente: otras paradas y anotaciones
     const otras = [

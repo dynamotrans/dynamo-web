@@ -59,8 +59,8 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       (1) **mandarla sola** al transportista por email con el PDF adjunto (aviso T4, necesita Postmark) y
       apuntar el hito `orden_transporte_enviada`; hoy se abre, se guarda y se adjunta a mano; (2) ~~que el
       transportista la **descargue desde su página** `/carga/<enlace>` tras aceptar~~ (hecho 2026-11-03, también el CMR digital); (3) ~~CMR firmable~~ **hecho 2026-11-03** (ver «CMR digital» abajo); (4) **información de ruta**
-      de la orden real (km, litros y € de gasoil) cuando haya Google Routes; (5) nº de **bultos/palets** y
-      volumen en el CMR (casillas 7, 8 y 12: hoy el envío no los guarda); (6) ~~datos fijos de Dynamo a `parametros`~~
+      de la orden real (km, litros y € de gasoil) cuando haya Google Routes; (5) ~~nº de **bultos/palets** y
+      volumen en el CMR (casillas 7, 8 y 12)~~ (hecho 2026-11-03: se rellenan en la ficha del envío, Dynamo o el cliente antes de cargar); (6) ~~datos fijos de Dynamo a `parametros`~~
       (hecho 2026-11-03: claves `dynamo_*`, se cambian en Parámetros). El contenido y las
       condiciones salen de la orden real GX61034 (feb. 2026); si el paquete DeCA aprobado (`FORMATOS.md`)
       trae otro diseño, se adapta cuando el usuario lo pase.

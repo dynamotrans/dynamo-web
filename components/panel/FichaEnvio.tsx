@@ -6,6 +6,7 @@
 // Cancelar / Deshacer). Todo lo vuelve a comprobar el servidor y la base de datos.
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import DatosCmr from './DatosCmr';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
@@ -288,6 +289,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
         <Celda l="Forma de carga">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_superior && 'Techo'].filter(Boolean).join(', ') || '—'}</Celda>
         <Celda l="Requisitos" span>{[e.plataforma_elevadora && 'Trampilla elevadora', e.nima_requerido && 'Requiere NIMA', e.adr && 'Mercancía ADR', e.paletizado === false && 'No paletizada'].filter(Boolean).join(' · ') || 'Ninguno'}</Celda>
         {e.anotaciones_cliente && <Celda l="Anotaciones" span>{e.anotaciones_cliente}</Celda>}
+        <DatosCmr envioId={e.id} puedeEditar={e.estado !== 'cancelado'} />
       </div></div>
 
       <h4 className="modal-section-title">Precio</h4>
