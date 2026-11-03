@@ -40,6 +40,7 @@ export default async function PaginaAlmacenamientos({ searchParams }: { searchPa
     semana: l.precio_almacenamiento_semana != null ? Number(l.precio_almacenamiento_semana) : def.semana,
     reparto: l.precio_reparto != null ? Number(l.precio_reparto) : def.reparto,
   }));
-  const abrir = !!(await searchParams).abrir;
-  return <Almacenamientos abrir={abrir} filas={filas} almacenes={opciones} clientes={(clientes.data ?? []) as any} error={alm.error?.message ?? null} />;
+  const sp = await searchParams;
+  const abrir = !!sp.abrir;
+  return <Almacenamientos abrir={abrir} pestanaInicial={sp.tab === 'pago' ? 'pago' : undefined} filas={filas} almacenes={opciones} clientes={(clientes.data ?? []) as any} error={alm.error?.message ?? null} />;
 }

@@ -2659,3 +2659,36 @@ reset role;
 do $$ begin
   raise notice 'OK 85 · Admin lectura y Empleado lectura lo leen todo y no escriben nada; Admin lectura solo lo da el Admin Master';
 end $$;
+
+-- ---- 86. Contadores del panel y cobertura de crédito: cada uno, lo suyo --------------------
+set role anon;
+do $$ begin
+  begin
+    perform contadores_panel();
+    raise exception 'FALLO 86 · un anónimo pide los contadores del panel';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+do $$ declare total_dynamo int; begin
+  select count(*) into total_dynamo from incidencias where estado in ('abierto', 'en_curso');
+  perform set_config('prueba.inc86', total_dynamo::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+set role authenticated;
+do $$ declare c jsonb; begin
+  c := contadores_panel();
+  if (c ->> 'incidencias')::int > (select count(*) from incidencias) then raise exception 'FALLO 86 · el cliente cuenta incidencias que no ve'; end if;
+  if c ? 'altas' then raise exception 'FALLO 86 · el cliente ve el contador de altas de Dynamo'; end if;
+  if mi_cobertura_credito() not in ('disponible', 'nulo', 'sinclasif') then raise exception 'FALLO 86 · cobertura de crédito sin estado: %', mi_cobertura_credito(); end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_al85'), false);
+set role authenticated;
+do $$ declare c jsonb; begin
+  c := contadores_panel();
+  if (c ->> 'incidencias')::int <> current_setting('prueba.inc86')::int then raise exception 'FALLO 86 · el Admin lectura no cuenta todas las incidencias: %', c; end if;
+  if mi_cobertura_credito() is not null then raise exception 'FALLO 86 · un usuario de Dynamo tiene cobertura de cliente'; end if;
+  raise notice 'OK 86 · contadores del panel: cada uno cuenta solo lo que ve; cobertura de crédito sin importes y solo del cliente';
+end $$;
+reset role;

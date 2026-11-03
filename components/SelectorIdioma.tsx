@@ -47,10 +47,11 @@ function aplicar(lang: string) {
   return true;
 }
 let cargado = false;
+let incluidos = IDIOMAS.slice(1).map((x) => x[0]).join(',');
 function cargarGT() {
   if (cargado) return; cargado = true;
   window.googleTranslateElementInit = () => {
-    new window.google.translate.TranslateElement({ pageLanguage: 'es', autoDisplay: false, includedLanguages: IDIOMAS.slice(1).map((x) => x[0]).join(',') }, 'google_translate_element');
+    new window.google.translate.TranslateElement({ pageLanguage: 'es', autoDisplay: false, includedLanguages: incluidos }, 'google_translate_element');
   };
   const s = document.createElement('script');
   s.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
@@ -60,6 +61,27 @@ function cargarGT() {
 function insistir(lang: string, veces = 24) {
   let n = 0;
   const t = setInterval(() => { n++; if (aplicar(lang) || n >= veces) clearInterval(t); }, 250);
+}
+
+/** El motor del selector, para otros diseños (el menú del usuario del panel). */
+export function useIdiomaGT(codigos: string[]): [string, (lang: string) => void] {
+  const [actual, setActual] = useState('es');
+  useEffect(() => {
+    parcheReact();
+    incluidos = codigos.filter((c) => c !== 'es').join(',');
+    const m = document.cookie.match(/googtrans=\/es\/([\w-]+)/);
+    const lang = m?.[1] && codigos.includes(m[1]) ? m[1] : 'es';
+    setActual(lang);
+    if (lang !== 'es') { setTimeout(cargarGT, 200); insistir(lang, 30); } else setTimeout(cargarGT, 800);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const elegir = (lang: string) => {
+    setActual(lang);
+    ponerCookie(`/es/${lang}`);
+    cargarGT();
+    if (!aplicar(lang)) insistir(lang);
+  };
+  return [actual, elegir];
 }
 
 export default function SelectorIdioma() {

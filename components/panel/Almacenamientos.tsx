@@ -42,11 +42,11 @@ const IcoAlm = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
 const sinPagar = (f: AlmacenamientoFila) => f.pago_adelantado && !f.pagado_en && f.estado !== 'cancelado';
 const diasTxt = (n: number) => (n === 0 ? 'mismo día' : `${n} día${n > 1 ? 's' : ''}`);
 
-export default function Almacenamientos({ filas, almacenes, clientes, error, abrir }: {
-  abrir?: boolean; filas: AlmacenamientoFila[]; almacenes: AlmacenOpcion[]; clientes: Cliente[]; error: string | null;
+export default function Almacenamientos({ filas, almacenes, clientes, error, abrir, pestanaInicial }: {
+  abrir?: boolean; filas: AlmacenamientoFila[]; almacenes: AlmacenOpcion[]; clientes: Cliente[]; error: string | null; pestanaInicial?: 'pago';
 }) {
   const router = useRouter();
-  const [pestana, setPestana] = useState<EstadoAlm | 'todos' | 'pago'>('pendiente_confirmar');
+  const [pestana, setPestana] = useState<EstadoAlm | 'todos' | 'pago'>(pestanaInicial ?? 'pendiente_confirmar');
   const [q, setQ] = useState('');
   const [ficha, setFicha] = useState<{ fila: AlmacenamientoFila | null } | null>(abrir ? { fila: null } : null);
 

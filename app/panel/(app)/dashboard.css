@@ -216,7 +216,10 @@ body {
 .cub-detalle table.data td:last-child, .cub-detalle table.data th:last-child { text-align: right; }
 .cub-detalle .cub-warn { color: #b45309; font-weight: 700; }
 /* Grupos desplegables "Otras gestiones" del sidebar (cliente y admin) */
-#sgOtrasBtn .sl-txt, #sgAdminBtn .sl-txt { flex: 1; white-space: nowrap; }
+#sgOtrasBtn .sl-txt, #sgAdminBtn .sl-txt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Números de un grupo cerrado: pegados al texto, sin empujar ni pisarlo. */
+#sgOtrasBtn, #sgAdminBtn { gap: 0.55rem; }
+#sgOtrasBtn .badge, #sgAdminBtn .badge { flex: none; margin-left: 0; padding: 0.1rem 0.38rem; }
 #sgOtrasBtn .badge, #sgAdminBtn .badge { margin-left: 0.3rem; }
 .sg-chev { flex: none; color: var(--gray-500); transition: transform 0.18s; }
 #sgOtrasBtn.sg-open .sg-chev, #sgAdminBtn.sg-open .sg-chev { transform: rotate(180deg); }
