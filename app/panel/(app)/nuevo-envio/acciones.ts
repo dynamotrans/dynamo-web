@@ -9,22 +9,38 @@ export type ParadaNueva = {
   provincia?: string; pais_codigo_iso?: string; tipo_lugar?: string; horarios?: string;
   guardar_en_agenda?: boolean;
   contacto_nombre?: string; contacto_telefono?: string;   // del sitio nuevo que se guarda en la agenda
+  horario_tramos?: { dia: number; abre: string; cierra: string }[];   // su horario, si no es el de por defecto
   referencia?: string; anotaciones?: string;
 };
 
 // Persona y teléfono del sitio nuevo guardado en la agenda: como contacto PRINCIPAL del
 // sitio (el que sale en la orden de carga y en el CMR). Se busca el sitio que acaba de
 // crear la base de datos por la posición de la parada en la ruta.
-async function contactosDeSitiosNuevos(sb: any, envioId: string, paradas: ParadaNueva[]) {
-  const con = paradas.map((p, i) => ({ p, i })).filter(({ p }) => p.guardar_en_agenda && !p.lugar_id && (p.contacto_telefono || '').replace(/[^\d]/g, '').length >= 6);
-  if (!con.length) return;
-  const { data } = await sb.from('envio_paradas').select('orden, lugar_id').eq('envio_id', envioId).order('orden');
-  const filas = (data ?? []) as { orden: number; lugar_id: string | null }[];
-  for (const { p, i } of con) {
+// Y su horario, si se cambió (si no, la base de datos le pone el de por defecto). Va
+// después de crear el envío, que es cuando existe el sitio.
+async function contactosDeSitiosNuevos(sb: any, envioId: string, paradas: ParadaNueva[], esCliente = false) {
+  const nuevos = paradas.map((p, i) => ({ p, i })).filter(({ p }) => p.guardar_en_agenda && !p.lugar_id);
+  const conContacto = nuevos.filter(({ p }) => (p.contacto_telefono || '').replace(/[^\d]/g, '').length >= 6);
+  const conHorario = nuevos.filter(({ p }) => p.horario_tramos?.length);
+  if (!conContacto.length && !conHorario.length) return;
+  // Dynamo lee las paradas; el cliente no puede (solo con mis_envios(), que las trae).
+  let filas: { orden: number; lugar_id: string | null }[] = [];
+  if (esCliente) {
+    const { data } = await sb.rpc('mis_envios').eq('id', envioId).maybeSingle();
+    filas = (((data as any)?.paradas ?? []) as { orden: number; lugar_id: string | null }[]).sort((a, b) => a.orden - b.orden);
+  } else {
+    const { data } = await sb.from('envio_paradas').select('orden, lugar_id').eq('envio_id', envioId).order('orden');
+    filas = (data ?? []) as { orden: number; lugar_id: string | null }[];
+  }
+  for (const { p, i } of conContacto) {
     const lugar = filas[i]?.lugar_id;
     if (!lugar) continue;
     const tel = (p.contacto_telefono ?? '').replace(/[^\d+]/g, '');
     await sb.from('contactos').insert({ lugar_id: lugar, nombre: (p.contacto_nombre ?? '').trim() || null, telefono: tel, es_principal: true });
+  }
+  for (const { p, i } of conHorario) {
+    const lugar = filas[i]?.lugar_id;
+    if (lugar) await sb.rpc('guardar_horario', { p_lugar: lugar, p_tramos: p.horario_tramos });
   }
 }
 export type EnvioNuevo = {
@@ -101,7 +117,8 @@ export async function crearSolicitud(envio: Omit<EnvioNuevo, 'cliente_id' | 'imp
   if (paradas.length < 2) return { ok: false, error: 'Falta la recogida o la entrega.' };
   const { data, error } = await s.supabase.rpc('crear_solicitud_envio', { p_envio: envio, p_paradas: paradas });
   if (error) return { ok: false, error: traducir(error.message) };
-  const fila = (Array.isArray(data) ? data[0] : data) as { referencia_gx: string } | undefined;
+  const fila = (Array.isArray(data) ? data[0] : data) as { id?: string; referencia_gx: string } | undefined;
+  if (fila?.id) await contactosDeSitiosNuevos(s.supabase, fila.id, paradas, true);
   return { ok: true, referencia_gx: fila?.referencia_gx ?? '' };
 }
 
@@ -124,6 +141,7 @@ export async function crearEnvioManual(envio: Omit<EnvioNuevo, 'cliente_id' | 'i
   if (paradas.length < 2) return { ok: false, error: 'Falta la recogida o la entrega.' };
   const { data, error } = await s.supabase.rpc('crear_envio_manual', { p_envio: envio, p_paradas: paradas });
   if (error) return { ok: false, error: traducir(error.message) };
-  const fila = (Array.isArray(data) ? data[0] : data) as { referencia_gx: string } | undefined;
+  const fila = (Array.isArray(data) ? data[0] : data) as { id?: string; referencia_gx: string } | undefined;
+  if (fila?.id) await contactosDeSitiosNuevos(s.supabase, fila.id, paradas, true);
   return { ok: true, referencia_gx: fila?.referencia_gx ?? '' };
 }

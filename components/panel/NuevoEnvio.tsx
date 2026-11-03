@@ -11,6 +11,8 @@ import { fecha as fmtFecha, euros as eur } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
 import { PAISES } from '@/lib/paises';
 import { TIPOS_LUGAR } from './TipoSitio';
+import EditorHorario from './EditorHorario';
+import { HORARIO_POR_DEFECTO, validarHorario, tramosDe, type GrupoHorario } from '@/lib/horarios';
 
 // principal_id: el sitio con la estrella en Sitios (se pone solo como primera recogida).
 export type ClienteOpcion = { id: string; nombre: string; cif: string; principal_id?: string | null };
@@ -24,6 +26,7 @@ type SitioNuevo = {
   nombre_empresa: string; direccion: string; codigo_postal: string; poblacion: string;
   provincia: string; pais_codigo_iso: string; tipo_lugar: string; horarios: string; guardar: boolean;
   contacto: string; telefono: string;
+  horario: GrupoHorario[] | null;   // null = el de por defecto
 };
 type Punto = { k: number; tipo: 'carga' | 'descarga'; sitio: SitioOpcion | null; nuevo: SitioNuevo | null; parada_id?: string };
 // Envío de partida: «Repetir envío» (todo relleno salvo la fecha) o «Cambiar ruta».
@@ -38,7 +41,7 @@ export type Base = {
 };
 
 const FORMAS = ['Lateral', 'Trasera', 'Techo', 'Lateral y trasera', 'Lateral y techo', 'Trasera y techo', 'Lateral, trasera y techo'];
-const VACIO: SitioNuevo = { nombre_empresa: '', direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES', tipo_lugar: 'almacen_nave', horarios: '', guardar: true, contacto: '', telefono: '' };
+const VACIO: SitioNuevo = { nombre_empresa: '', direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES', tipo_lugar: 'almacen_nave', horarios: '', guardar: true, contacto: '', telefono: '', horario: null };
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const num = (s: string) => { const v = Number(String(s).replace(/\./g, '').replace(',', '.')); return Number.isFinite(v) ? v : NaN; };
@@ -223,7 +226,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
       const n = p.nuevo!;
       return { tipo: p.tipo, nombre_empresa: n.nombre_empresa, direccion: n.direccion, codigo_postal: n.codigo_postal, poblacion: n.poblacion,
         provincia: n.provincia, pais_codigo_iso: n.pais_codigo_iso, tipo_lugar: n.tipo_lugar, horarios: n.horarios, guardar_en_agenda: n.guardar,
-        contacto_nombre: n.contacto, contacto_telefono: n.telefono };
+        contacto_nombre: n.contacto, contacto_telefono: n.telefono, horario_tramos: n.horario ? tramosDe(n.horario) : undefined };
     }));
     if (!r.ok) { setEnviando(false); setAviso(r.error); return; }
     router.push(`/panel/envios?ver=${base.envio.id}`);
@@ -242,7 +245,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
         tipo: p.tipo, nombre_empresa: n.nombre_empresa, direccion: n.direccion, codigo_postal: n.codigo_postal,
         poblacion: n.poblacion, provincia: n.provincia, pais_codigo_iso: n.pais_codigo_iso,
         tipo_lugar: n.tipo_lugar, horarios: n.horarios, guardar_en_agenda: n.guardar, referencia: ref,
-        contacto_nombre: n.contacto, contacto_telefono: n.telefono,
+        contacto_nombre: n.contacto, contacto_telefono: n.telefono, horario_tramos: n.horario ? tramosDe(n.horario) : undefined,
       };
     });
     const f = forma.toLowerCase();
@@ -710,7 +713,8 @@ function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, onCambi
     return sitios.filter((s) => !w || norm([s.nombre_empresa, s.direccion, s.codigo_postal, s.poblacion, s.provincia].filter(Boolean).join(' ')).includes(w)).slice(0, 8);
   }, [sitios, q]);
   const rec = punto.tipo === 'carga';
-  const listo = form && form.nombre_empresa.trim() && form.poblacion.trim() && form.codigo_postal.trim();
+  const malHorario = form?.horario ? validarHorario(form.horario) : null;
+  const listo = form && form.nombre_empresa.trim() && form.poblacion.trim() && form.codigo_postal.trim() && !malHorario;
 
   return (
     <>
@@ -771,7 +775,19 @@ function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, onCambi
           <select className="ptar-select" value={form.tipo_lugar} onChange={(e) => setForm({ ...form, tipo_lugar: e.target.value })}>
             {TIPOS_LUGAR.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
           </select>
-          <p className="ptar-admin-precio-note">Horario: se le pone el de por defecto (L-J 8:00-14:00 y 15:00-17:30 · V 8:00-14:00). Si es otro, cámbialo luego en <strong>Sitios</strong>.</p>
+          <label className="ptar-admin-precio-lbl" style={{ marginTop: '0.6rem' }}>Horario</label>
+          {form.horario ? (
+            <>
+              <EditorHorario valor={form.horario} onCambio={(g) => setForm({ ...form, horario: g })} />
+              <button type="button" className="btn-ghost" style={{ marginTop: '0.3rem' }} onClick={() => setForm({ ...form, horario: null })}>Usar el de por defecto</button>
+              {!form.guardar && <p className="ptar-admin-precio-note">El horario solo se guarda si el sitio se guarda en la agenda.</p>}
+            </>
+          ) : (
+            <p className="ptar-admin-precio-note" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              El de por defecto: L-J 8:00-14:00 y 15:00-17:30 · V 8:00-14:00.
+              <button type="button" className="btn-ghost" style={{ padding: '0.2rem 0.6rem' }} onClick={() => setForm({ ...form, horario: HORARIO_POR_DEFECTO.map((g) => ({ dias: [...g.dias], tramos: g.tramos.map((t) => ({ ...t })) })) })}>Cambiarlo</button>
+            </p>
+          )}
           <label className="ptar-confirm-check" style={{ marginTop: '0.7rem' }}>
             <input type="checkbox" checked={form.guardar} onChange={(e) => setForm({ ...form, guardar: e.target.checked })} />
             <span>Guardarlo en la <strong>agenda de sitios</strong> del cliente</span>
@@ -781,7 +797,7 @@ function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, onCambi
               onClick={() => { if (listo) { onCambio({ sitio: null, nuevo: form }); setForm(null); } }}>Usar este sitio</button>
             <button type="button" className="btn-ghost" onClick={() => setForm(null)}>Cancelar</button>
           </div>
-          {!listo && <p className="ptar-admin-precio-note">Empresa, código postal y población son obligatorios.</p>}
+          {!listo && <p className="ptar-admin-precio-note">{malHorario ?? 'Empresa, código postal y población son obligatorios.'}</p>}
         </div>
       )}
     </>
