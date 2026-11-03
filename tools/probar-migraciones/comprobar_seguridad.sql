@@ -2313,3 +2313,31 @@ do $$ declare j jsonb; begin
   raise notice 'OK 74 · orden de carga del transportista: solo su viaje y sin datos del cliente';
 end $$;
 reset role;
+
+-- ---- 75. Incidencias del transportista: suyas, de sus viajes, y el cliente no las ve ---
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ declare i uuid; begin
+  insert into incidencias (envio_id, tipo_id, titulo, detalle)
+  values (current_setting('prueba.e73')::uuid, (select id from tipos_incidencia limit 1), 'El muelle no carga', 'Llevo 2 h esperando')
+  returning id into i;
+  if not exists (select 1 from incidencias where id = i and transportista_id = current_setting('prueba.transp')::uuid and cliente_id is null) then
+    raise exception 'FALLO 75 · la incidencia del transportista no queda suya o lleva cliente';
+  end if;
+  begin
+    insert into incidencias (envio_id, tipo_id, titulo, detalle)
+    values (current_setting('prueba.e72')::uuid, (select id from tipos_incidencia limit 1), 'X', 'Y');
+    raise exception 'FALLO 75 · abre incidencia en un viaje que no es suyo';
+  exception when insufficient_privilege then null;
+  end;
+  perform set_config('prueba.inc75', i::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from incidencias where id = current_setting('prueba.inc75')::uuid) then raise exception 'FALLO 75 · el cliente ve la incidencia del transportista'; end if;
+  if exists (select 1 from envio_hitos where envio_id = current_setting('prueba.e73')::uuid and datos::text like '%muelle no carga%') then raise exception 'FALLO 75 · el cliente lee en el historial lo que escribió el transportista'; end if;
+  raise notice 'OK 75 · incidencias del transportista: solo de sus viajes, suyas, y el cliente no las ve';
+end $$;
+reset role;

@@ -37,9 +37,10 @@ const IcoAviso = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="non
 const horaMadrid = (iso: string) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 const diaMadrid = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(iso));
 
-export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara, error, esCliente = false }: {
+export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara, error, esCliente = false, esTransportista = false }: {
   filas: IncidenciaFila[]; tipos: Opcion[]; clientes: Opcion[]; envios: EnvioLigero[]; nuevaPara: string | null; error: string | null;
-  esCliente?: boolean;   // el CLIENTE ve y abre las suyas; el estado, la prioridad y la resolución son de Dynamo
+  esCliente?: boolean;   // el CLIENTE (o el transportista) ve y abre las suyas; el estado, la prioridad y la resolución son de Dynamo
+  esTransportista?: boolean;   // el viaje es obligatorio y solo ve las que abre él
 }) {
   const router = useRouter();
   const [pestana, setPestana] = useState<'abiertas' | 'resueltas' | 'todas'>('abiertas');
@@ -100,15 +101,15 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
           </tbody>
         </table>
       </div>
-      {ficha && <FichaIncidencia esCliente={esCliente} fila={ficha.fila} envioInicial={ficha.envio ?? null} tipos={tipos} clientes={clientes} envios={envios}
+      {ficha && <FichaIncidencia esCliente={esCliente} esTransportista={esTransportista} fila={ficha.fila} envioInicial={ficha.envio ?? null} tipos={tipos} clientes={clientes} envios={envios}
         onCerrar={cerrar} onHecho={() => { cerrar(); router.refresh(); }} />}
     </section>
   );
 }
 
-function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar, onHecho, esCliente }: {
+function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar, onHecho, esCliente, esTransportista = false }: {
   fila: IncidenciaFila | null; envioInicial: string | null; tipos: Opcion[]; clientes: Opcion[]; envios: EnvioLigero[];
-  onCerrar: () => void; onHecho: () => void; esCliente: boolean;
+  onCerrar: () => void; onHecho: () => void; esCliente: boolean; esTransportista?: boolean;
 }) {
   // El cliente solo puede tocarla mientras está abierta (después la lleva Dynamo).
   const soloLectura = esCliente && !!fila && fila.estado !== 'abierto';
@@ -128,6 +129,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
     if (!datos.tipo_id) { setError('Elige el tipo de incidencia.'); return; }
     if (!datos.detalle.trim()) { setError('Cuenta lo ocurrido en el detalle de la incidencia.'); return; }
     if (!esCliente && !datos.envio_id && !datos.cliente_id) { setError('Elige el envío o, si no va sobre un envío, el cliente.'); return; }
+    if (esTransportista && !datos.envio_id) { setError('Elige el viaje de la incidencia.'); return; }
     setTrabajando(texto ?? (fila ? 'Guardando incidencia' : 'Creando incidencia'));
     const r = await guardarIncidencia(fila?.id ?? null, datos);
     setTrabajando(null);
@@ -162,7 +164,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
         </div>
       )}
       <div className="modal-form-row">
-        <label>Envío relacionado <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></label>
+        <label>{esTransportista ? 'Viaje *' : <>Envío relacionado <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></>}</label>
         <BuscaEnvio envios={envios} valor={d.envio_id} onCambio={(v) => set('envio_id', v)} />
       </div>
       {!d.envio_id && !esCliente && (
@@ -221,7 +223,9 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
         {fila ? <Documentos dueno={{ campo: 'incidencia_id', id: fila.id }} tipos={esCliente ? ['foto_incidencia', 'adjunto'] : ['foto_incidencia', 'albaran', 'adjunto', 'otro']} editable={!soloLectura} />
           : <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: 0 }}>Guarda la incidencia y, al abrirla, podrás adjuntar fotos y documentos.</p>}
       </div>
-      <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.2rem 0 0', lineHeight: 1.45 }}>Una incidencia sobre un envío queda también en su <strong>historial</strong>.</p>
+      <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.2rem 0 0', lineHeight: 1.45 }}>{esTransportista
+        ? <>La ve el equipo de Dynamo al momento. Si es urgente (daños, el muelle no carga), llama además al <a href="tel:+34955225945" style={{ color: 'var(--purple)', fontWeight: 700 }}>+34 955 225 945</a>. Si hay daños, haz fotos <strong>antes de descargar</strong>.</>
+        : <>Una incidencia sobre un envío queda también en su <strong>historial</strong>.</>}</p>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>

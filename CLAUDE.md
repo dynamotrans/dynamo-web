@@ -52,6 +52,11 @@ El **volumen se recalcula** (largo × ancho × alto) cada vez que cambie una med
 
 **Dónde vive cada copia**: `index.html` (fichas de *Tipos de vehículo*) · `tools/generar-hojas-seccion.py` → regenera `/vehiculos` y `/carga-completa` · `dashboard.html` (fichas del panel, tooltip de metros lineales y tabla de *Ver medidas del camión*).
 
+### 0-sexies. TRABAJAR SIN PARAR: solo se para cuando hace falta el usuario (regla del usuario, 2026-11-03)
+> *"Solamente cuando necesites de mí, porque hay que implementar algunas cosas o decidir cosas más importantes, pues entonces sí, hay que parar."*
+
+Cuando el usuario pide seguir con la lista, Claude **encadena las tareas sin preguntar** entre una y otra: hace, prueba, sube y pasa a la siguiente. **Solo para** cuando de verdad necesita al usuario: algo que solo él puede hacer (una cuenta, una clave en Vercel/Supabase, un dato de negocio como la tarifa) o una **decisión importante** de negocio o que no se pueda deshacer. Al parar, deja un resumen de lo hecho y una lista clara de lo que necesita. Las reglas duras siguen en pie igual (nada a `main` del portal, regla 7; repaso de `PRODUCCION.md`, regla 14-bis).
+
 ### 1. Push: AUTOMÁTICO en los dos destinos (actualizado 2026-10-19 — ver regla 15)
 > ⚠️ **Esta regla cambió.** Antes decía "automático a preview, preguntar siempre antes de `main`". **Ya no se pregunta en ninguno de los dos casos**, porque el usuario lo pidió así: *"no hace falta que te diga nada"*.
 

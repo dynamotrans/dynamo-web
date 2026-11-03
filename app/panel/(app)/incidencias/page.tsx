@@ -15,14 +15,15 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
   const sp = await searchParams;
   // ---- Etapa B: el CLIENTE ve y abre las suyas (la base de datos solo le deja las suyas)
   if (!esDynamo(perfil.rol)) {
-    if (perfil.rol !== 'cliente') {
-      return <section className="section active"><div className="pt-aviso info" style={{ maxWidth: 640 }}><div>Para cualquier incidencia de un viaje, llámanos al +34 955 225 945 o escríbenos por WhatsApp al +34 628 995 709.</div></div></section>;
+    if (perfil.rol !== 'cliente' && perfil.rol !== 'transportista') {
+      return <section className="section active"><div className="pt-aviso info" style={{ maxWidth: 640 }}><div>Para cualquier incidencia, llámanos al +34 955 225 945 o escríbenos por WhatsApp al +34 628 995 709.</div></div></section>;
     }
+    const esT = perfil.rol === 'transportista';
     const [inc, tipos, mis] = await Promise.all([
       supabase.from('incidencias').select('id, codigo, envio_id, cliente_id, tipo_id, titulo, detalle, estado, prioridad, resolucion, resuelto_en, creado_en, modificado_en, tipos_incidencia(nombre)')
         .order('creado_en', { ascending: false }).limit(2000),
       supabase.from('tipos_incidencia').select('id, nombre, activo').order('orden'),
-      supabase.rpc('mis_envios').neq('estado', 'borrador').limit(3000),
+      supabase.rpc(esT ? 'mis_viajes' : 'mis_envios').neq('estado', 'borrador').limit(3000),
     ]);
     const envios: EnvioLigero[] = ((mis.data ?? []) as any[]).map((e) => ({
       id: e.id, referencia_gx: e.referencia_gx, referencia_cliente: e.referencia_cliente, estado: e.estado, es_manual: e.es_manual,
@@ -31,7 +32,7 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
       origen: [e.codigo_postal_origen, e.poblacion_origen].filter(Boolean).join(' '), destino: [e.codigo_postal_destino, e.poblacion_destino].filter(Boolean).join(' '),
       descripcion_mercancia: e.descripcion_mercancia, metros_lineales: e.metros_lineales, toneladas: e.toneladas,
       matricula_camion: e.matricula_camion, matricula_remolque: e.matricula_remolque, conductor_nombre: e.conductor_nombre,
-      importe_cliente: e.importe_cliente, importe_transportista: null,
+      importe_cliente: esT ? e.importe_transportista : e.importe_cliente, importe_transportista: null,
     }));
     const porId = new Map(envios.map((e) => [e.id, e]));
     const filas: IncidenciaFila[] = (inc.data ?? []).map((x: any) => {
@@ -42,7 +43,7 @@ export default async function PaginaIncidencias({ searchParams }: { searchParams
         envio: e ? { referencia_gx: e.referencia_gx, referencia_cliente: e.referencia_cliente, fecha_carga_desde: e.fecha_carga_desde, fecha_carga_hasta: e.fecha_carga_hasta,
           origen: e.origen, destino: e.destino, metros_lineales: e.metros_lineales, toneladas: e.toneladas } : null };
     });
-    return <Incidencias esCliente filas={filas} tipos={(tipos.data ?? []) as any} clientes={[]} envios={envios}
+    return <Incidencias esCliente esTransportista={esT} filas={filas} tipos={(tipos.data ?? []) as any} clientes={[]} envios={envios}
       nuevaPara={sp.nueva ?? (sp.abrir ? '' : null)} error={inc.error?.message ?? null} />;
   }
   const [inc, tipos, clientes, envios] = await Promise.all([

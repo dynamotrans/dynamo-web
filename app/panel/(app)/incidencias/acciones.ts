@@ -18,8 +18,10 @@ function traducir(msg: string): string {
 export async function guardarIncidencia(id: string | null, d: IncidenciaDatos): Promise<Res> {
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa') return { ok: false, error: 'No tienes permiso para hacer esto.' };
-  const cliente = s.perfil.rol === 'cliente';
+  const transportista = s.perfil.rol === 'transportista';
+  const cliente = s.perfil.rol === 'cliente' || transportista;   // los dos «de fuera»: mismas limitaciones
   if (!cliente && !esDynamo(s.perfil.rol)) return { ok: false, error: 'No tienes permiso para hacer esto.' };
+  if (transportista && !id && !d.envio_id) return { ok: false, error: 'Elige el viaje de la incidencia.' };
   // El CLIENTE abre y amplía las suyas, o las retira; el estado, la prioridad y la
   // resolución son de Dynamo (y lo vuelve a imponer la base de datos).
   if (cliente) {
@@ -30,7 +32,7 @@ export async function guardarIncidencia(id: string | null, d: IncidenciaDatos): 
       envio_id: d.envio_id, tipo_id: d.tipo_id, titulo: d.titulo.trim() || d.detalle.trim().slice(0, 80), detalle: d.detalle.trim(),
       estado: d.estado === 'cancelado' ? 'cancelado' : 'abierto',
     };
-    if (!id) fila.cliente_id = yo?.cliente_id ?? null;
+    if (!id && !transportista) fila.cliente_id = yo?.cliente_id ?? null;   // la del transportista la completa la base de datos
     const q = id ? s.supabase.from('incidencias').update(fila).eq('id', id).select('id').single()
                  : s.supabase.from('incidencias').insert(fila).select('id').single();
     const { data, error } = await q;
