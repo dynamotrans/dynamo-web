@@ -17,7 +17,26 @@ function traducir(msg: string): string {
 
 export async function guardarIncidencia(id: string | null, d: IncidenciaDatos): Promise<Res> {
   const s = await sesion();
-  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) return { ok: false, error: 'Esta sección todavía es solo del equipo de Dynamo.' };
+  if (!s?.perfil || s.perfil.estado !== 'activa') return { ok: false, error: 'No tienes permiso para hacer esto.' };
+  const cliente = s.perfil.rol === 'cliente';
+  if (!cliente && !esDynamo(s.perfil.rol)) return { ok: false, error: 'No tienes permiso para hacer esto.' };
+  // El CLIENTE abre y amplía las suyas, o las retira; el estado, la prioridad y la
+  // resolución son de Dynamo (y lo vuelve a imponer la base de datos).
+  if (cliente) {
+    if (!d.tipo_id) return { ok: false, error: 'Elige el tipo de incidencia.' };
+    if (!d.detalle.trim()) return { ok: false, error: 'Cuenta lo ocurrido en el detalle de la incidencia.' };
+    const { data: yo } = await s.supabase.from('usuarios').select('cliente_id').eq('id', s.user.id).maybeSingle();
+    const fila: Record<string, unknown> = {
+      envio_id: d.envio_id, tipo_id: d.tipo_id, titulo: d.titulo.trim() || d.detalle.trim().slice(0, 80), detalle: d.detalle.trim(),
+      estado: d.estado === 'cancelado' ? 'cancelado' : 'abierto',
+    };
+    if (!id) fila.cliente_id = yo?.cliente_id ?? null;
+    const q = id ? s.supabase.from('incidencias').update(fila).eq('id', id).select('id').single()
+                 : s.supabase.from('incidencias').insert(fila).select('id').single();
+    const { data, error } = await q;
+    if (error) return { ok: false, error: traducir(error.message) };
+    return { ok: true, id: data.id };
+  }
   if (!d.tipo_id) return { ok: false, error: 'Elige el tipo de incidencia.' };
   if (!d.detalle.trim()) return { ok: false, error: 'Cuenta lo ocurrido en el detalle de la incidencia.' };
   if (!d.envio_id && !d.cliente_id) return { ok: false, error: 'Elige el envío o, si no va sobre un envío, el cliente.' };

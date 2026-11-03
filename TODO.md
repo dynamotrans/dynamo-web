@@ -20,7 +20,15 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] Avisos del mockup en el paso 4: ~~horario de verano, festivo en la ventana, tráiler sin trampilla~~
       (hechos 2026-11-03). Quedan para cuando el CLIENTE cree sus envíos (etapa B, con tarifador): precios
       dinámicos a +7 días, aceptar las condiciones generales y forma de pago (CESCE).
-- [ ] Etapa B: que el CLIENTE cree sus envíos (hoy `crear_envio()` solo deja a Dynamo).
+- [ ] **Etapa B (cliente) — HECHO lo principal (2026-11-03)**: el cliente pide su envío como **solicitud** (sin
+      precio: el tarifador es lo último), Dynamo le pone precio («Poner precio» en la ficha; pestaña *Solicitudes de
+      precio*; cifra en el dashboard admin) y el cliente lo **acepta** con las condiciones generales (o lo rechaza) desde
+      su ficha del envío. También: su ficha del envío (sin datos internos), **cancelar** antes de que el camión vaya
+      hacia la carga, **Repetir envío**, sus **incidencias** (abrir, ampliar, retirar, adjuntar fotos) y sus
+      **penalizaciones** (solo su importe). **Falta**: (a) **avisar** al cliente por email/WhatsApp cuando tenga precio
+      y a Dynamo cuando llegue una solicitud (Postmark/WhatsApp); (b) el cliente con **envíos manuales** (con su
+      propio operador) desde el panel; (c) **almacenamientos** del cliente (en el mockup solo los pide Dynamo);
+      (d) cuando llegue el tarifador, el precio saldrá al momento y la solicitud dejará de hacer falta.
 - [ ] **Pantalla de Parámetros** en el panel (solo admin) para cambiar sin entrar en Supabase: descuento de
       bienvenida (−7 %) y nº de envíos (3), minutos de reserva, banda de contraoferta… (tabla `parametros`).
 - [x] ~~Clientes: campo "Alta dada por (comisiones)"~~ (hecho 2026-11-03, `clientes.alta_por`).

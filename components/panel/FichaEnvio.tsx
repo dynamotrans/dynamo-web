@@ -14,6 +14,7 @@ import { euros, fecha, ventana } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import type { Ficha, ParadaFicha, TransportistaOpcion } from '@/lib/fichaEnvio';
+import { proponerPrecio } from '@/app/panel/(app)/nuevo-envio/acciones';
 import {
   asignarTransportista, quitarTransportista, cambiarEstado, cancelarEnvio, deshacerCancelacion, modificarEnvio,
   ofrecerCarga, revocarOferta, resolverContraoferta, enlaceCmr, retirarEnlaceCmr, valorarTransportista, type DatosEnvio,
@@ -104,7 +105,7 @@ function Interruptor({ k, l, v, on }: { k: string; l: string; v: boolean; on: (b
   );
 }
 
-type Vista = 'ficha' | 'asignar' | 'estado' | 'cancelar' | 'modificar' | 'ofrecer';
+type Vista = 'ficha' | 'asignar' | 'estado' | 'cancelar' | 'modificar' | 'ofrecer' | 'precio';
 
 export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { ficha: Ficha; transportistas: TransportistaOpcion[]; cerrarHref: string }) {
   const router = useRouter();
@@ -138,6 +139,9 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
     </>
   ) : (
     <>
+      {e.estado === 'borrador' && ['pendiente_precio', 'precio_propuesto'].includes(e.solicitud_estado) && (
+        <button className="btn-primary" onClick={() => setVista('precio')}><I d={ICO.enviar} />{e.solicitud_estado === 'pendiente_precio' ? 'Poner precio' : 'Cambiar precio'}</button>
+      )}
       {!manual && e.estado === 'programado' && !ficha.transportista && (
         <button className="btn-primary" onClick={() => setVista('ofrecer')}><I d={ICO.enviar} />Ofrecer carga</button>
       )}
@@ -171,6 +175,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
   if (vista === 'estado') return <Estado ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
   if (vista === 'cancelar') return <Cancelar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
   if (vista === 'modificar') return <Modificar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
+  if (vista === 'precio') return <PonerPrecio ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
   if (vista === 'ofrecer') return <Ofrecer ficha={ficha} transportistas={transportistas} onVolver={() => { setVista('ficha'); router.refresh(); }} />;
 
   const recogidas = ficha.paradas.filter((p) => p.tipo === 'carga');
@@ -184,6 +189,15 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
       icono={<I d={ICO.ojo} />} acciones={acciones}
       pie={<button className="btn-ghost" onClick={cerrar}>Cerrar</button>}>
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
+      {e.estado === 'borrador' && e.solicitud_estado === 'pendiente_precio' && (
+        <div className="modal-warn-box"><strong>Solicitud del cliente esperando precio.</strong> Pónselo con «Poner precio»: lo verá en su panel para aceptarlo (prometemos menos de 25 minutos en horario de oficina).</div>
+      )}
+      {e.estado === 'borrador' && e.solicitud_estado === 'precio_propuesto' && (
+        <div className="pt-aviso info"><div>Precio enviado al cliente: <strong>{euros(e.importe_cliente)}</strong>{e.precio_valido_hasta ? <> · válido hasta el {creadoTxt(e.precio_valido_hasta)}</> : null}. Esperando su respuesta.</div></div>
+      )}
+      {e.solicitud_estado === 'aceptada' && e.condiciones_aceptadas_en && (
+        <div className="pt-aviso info"><div>Pedido por el cliente desde su panel. Aceptó el precio y las condiciones generales el {creadoTxt(e.condiciones_aceptadas_en)}.</div></div>
+      )}
       {ficha.contraofertas.map((c) => (
         <div key={c.id} className="modal-warn-box">
           <strong>Contraoferta pendiente:</strong> {c.transportista ?? 'Un transportista'} acepta la carga por <strong>{euros(c.precio_propuesto)}</strong>
@@ -632,6 +646,37 @@ function Modificar({ ficha, onVolver, hacer, trabajando }: SubProps) {
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>Para cambiar los sitios de la ruta, de momento cancela el envío y créalo de nuevo (cambiar la ruta desde aquí llega más adelante).</p>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {trabajando && <Cargando texto={trabajando} />}
+    </Modal>
+  );
+}
+
+// ---- Poner precio a una solicitud del cliente ----------------------------------------
+function PonerPrecio({ ficha, onVolver, hacer, trabajando }: { ficha: Ficha; onVolver: () => void; hacer: (t: string, fn: () => Promise<any>, ok?: string) => Promise<boolean>; trabajando: string | null }) {
+  const e = ficha.envio;
+  const [pc, setPc] = useState(e.importe_cliente != null ? txtNum(e.importe_cliente) : '');
+  const [pt, setPt] = useState(e.importe_transportista != null ? txtNum(e.importe_transportista) : '');
+  const [error, setError] = useState<string | null>(null);
+  const vc = aNum(pc), vt = aNum(pt);
+  return (
+    <Modal abierto onCerrar={onVolver} titulo={`Precio de la solicitud #${e.referencia_gx}`} sub={ficha.cliente?.nombre} icono={<I d={ICO.enviar} />}
+      pie={<>
+        <button className="btn-ghost" onClick={onVolver} disabled={!!trabajando}>Volver</button>
+        <button className="btn-primary" disabled={!!trabajando} onClick={() => {
+          if (!(vc != null && vc > 0)) { setError('Pon el precio del cliente (base sin IVA).'); return; }
+          if (vt != null && Number.isNaN(vt)) { setError('El precio del transportista no es válido.'); return; }
+          hacer('Enviando el precio', () => proponerPrecio(e.id, vc, vt));
+        }}>Enviar precio al cliente</button>
+      </>}>
+      {trabajando && <Cargando texto={trabajando} />}
+      <div className="ptar-admin-precio">
+        <div className="ptar-admin-precio-head">Precios <span>· el del transportista solo lo ves tú</span></div>
+        <label className="ptar-admin-precio-lbl" htmlFor="pp-pc">Cliente (base sin IVA)</label>
+        <input id="pp-pc" type="text" inputMode="decimal" placeholder="Ej. 1.230,00" value={pc} onChange={(ev) => setPc(ev.target.value)} />
+        <label className="ptar-admin-precio-lbl" htmlFor="pp-pt" style={{ marginTop: '0.6rem' }}>Transportista (base sin IVA) · opcional</label>
+        <input id="pp-pt" type="text" inputMode="decimal" placeholder="Ej. 1.050,00" value={pt} onChange={(ev) => setPt(ev.target.value)} />
+        <p className="ptar-admin-precio-note">El cliente lo verá en su panel con el IVA y lo podrá aceptar durante el plazo de validez (parámetro <strong>solicitud_validez_horas</strong>, 24 h por defecto). Al aceptarlo, el envío pasa a programado.</p>
+      </div>
+      {error && <div className="pt-aviso error" style={{ marginTop: '0.8rem' }}><div>{error}</div></div>}
     </Modal>
   );
 }

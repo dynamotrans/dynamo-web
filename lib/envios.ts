@@ -25,7 +25,12 @@ export type EnvioFila = {
   cliente: string | null; cliente_cif: string | null;
   creado_en: string | null; modificado_en: string | null; creado_por: string | null;
   paradas: Parada[];
+  solicitud_estado?: string | null;   // envío pedido por el cliente: pendiente_precio / precio_propuesto / …
 };
+
+// Solicitud del cliente esperando precio (de Dynamo) o respuesta (del cliente).
+export const esSolicitudAbierta = (e: { estado: string; solicitud_estado?: string | null }) =>
+  e.estado === 'borrador' && (e.solicitud_estado === 'pendiente_precio' || e.solicitud_estado === 'precio_propuesto');
 
 // Estado del envío (badge de la 1ª columna).
 export function estadoVisual(e: EnvioFila): { label: string; color: string } {
@@ -35,14 +40,17 @@ export function estadoVisual(e: EnvioFila): { label: string; color: string } {
     case 'hacia_la_carga': return { label: 'Llegando recogida', color: 'hacia' };
     case 'cargando': return { label: 'Cargando', color: 'cargando' };
     case 'en_ruta': return { label: 'En ruta', color: 'enruta' };
-    case 'borrador': return { label: 'Borrador', color: 'prog' };
+    case 'borrador':
+      if (e.solicitud_estado === 'pendiente_precio') return { label: 'Pendiente de precio', color: 'cargando' };
+      if (e.solicitud_estado === 'precio_propuesto') return { label: 'Precio por aceptar', color: 'hacia' };
+      return { label: 'Borrador', color: 'prog' };
     default: return { label: 'Programado', color: 'prog' };
   }
 }
 
 // Estado de asignación del transportista (columna Vehículo).
 export function asignacion(e: EnvioFila): { key: string; label: string } | null {
-  if (e.es_manual) return null;
+  if (e.es_manual || e.estado === 'borrador') return null;
   if (e.estado === 'entregado' || e.estado === 'cancelado') return null;
   if (e.transportista_asignado || e.estado_asignacion === 'confirmada' || e.estado === 'en_ruta')
     return { key: 'confirmado', label: 'Confirmado transportista' };
@@ -50,14 +58,15 @@ export function asignacion(e: EnvioFila): { key: string; label: string } | null 
 }
 
 // Pestañas de la tabla (las del mockup).
-export type Pestana = 'sin-asignar' | 'programada' | 'entregada' | 'cancelada' | 'todas';
+export type Pestana = 'solicitudes' | 'sin-asignar' | 'programada' | 'entregada' | 'cancelada' | 'todas';
 const VIVOS = ['borrador', 'programado', 'hacia_la_carga', 'cargando', 'en_ruta'];
 export function enPestana(e: EnvioFila, p: Pestana): boolean {
   if (p === 'todas') return true;
   if (p === 'entregada') return e.estado === 'entregado';
   if (p === 'cancelada') return e.estado === 'cancelado';
+  if (p === 'solicitudes') return esSolicitudAbierta(e);
   if (p === 'sin-asignar') return e.estado === 'programado' && !e.es_manual && !e.transportista_asignado;
-  return VIVOS.includes(e.estado);
+  return VIVOS.includes(e.estado) && !esSolicitudAbierta(e);
 }
 
 // --- Fechas -------------------------------------------------------------------------

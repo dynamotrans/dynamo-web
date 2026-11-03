@@ -11,6 +11,7 @@ const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCa
 const blob = (e: EnvioLigero) => norm([e.referencia_gx, e.referencia_cliente, e.cliente, e.transportista, e.origen, e.destino,
   e.matricula_camion, e.matricula_remolque, e.conductor_nombre, e.descripcion_mercancia, fecha(e.fecha_carga_desde), ESTADO_ENVIO[e.estado]].filter(Boolean).join(' '));
 
+// Sin cliente_id = lista del propio CLIENTE (etapa B): sin transportista ni datos internos.
 export function ResumenEnvio({ e }: { e: EnvioLigero }) {
   const fila = (k: string, v: React.ReactNode) => (v ? <div className="pen-sum-row"><span className="k">{k}</span><span className="v">{v}</span></div> : null);
   const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null, pt = e.importe_transportista != null ? Number(e.importe_transportista) : null;
@@ -20,14 +21,14 @@ export function ResumenEnvio({ e }: { e: EnvioLigero }) {
       {fila('Envío', <><strong>#{e.referencia_gx}</strong>{e.referencia_cliente ? ` · ${e.referencia_cliente}` : ''}</>)}
       {fila('Estado', `${ESTADO_ENVIO[e.estado] ?? e.estado}${e.es_manual ? ' · con su operador' : ''}`)}
       {fila('Cliente', e.cliente)}
-      {fila('Transportista', e.transportista ?? 'Sin asignar / pendiente')}
+      {e.cliente_id && fila('Transportista', e.transportista ?? 'Sin asignar / pendiente')}
       {fila('Matrícula', mat)}
       {fila('Fecha / días de recogida', ventana(e.fecha_carga_desde, e.fecha_carga_hasta))}
       {fila('Fecha de carga real', e.fecha_carga_real ? fecha(e.fecha_carga_real) : null)}
       {fila('Entrega estimada', e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : null)}
       {fila('Ruta', `${e.origen || '—'} → ${e.destino || '—'}`)}
       {fila('Mercancía', [e.descripcion_mercancia, e.metros_lineales != null && `${String(e.metros_lineales).replace('.', ',')} m`, e.toneladas != null && `${String(e.toneladas).replace('.', ',')} Tn`].filter(Boolean).join(' · '))}
-      {pc != null && fila('P. cliente · base sin IVA', euros(pc))}
+      {pc != null && fila(e.cliente_id ? 'P. cliente · base sin IVA' : 'Precio · base sin IVA', euros(pc))}
       {pt != null && fila('P. transportista · base sin IVA', euros(pt))}
       {pc != null && pt != null && fila('Margen · base sin IVA', <span style={{ color: pc - pt >= 0 ? '#0f6b3a' : 'var(--red)', fontWeight: 700 }}>{euros(pc - pt)}</span>)}
     </div>

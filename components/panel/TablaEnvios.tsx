@@ -10,7 +10,8 @@ import {
 // Tabla de envíos con el diseño de dashboard.html (sección #sec-cargas). Recibe los
 // datos ya leídos y con los permisos del rol aplicados en el servidor.
 const POR_PAGINA = 20;
-const PESTANAS: { f: Pestana; titulo: string; soloDynamo?: boolean }[] = [
+const PESTANAS: { f: Pestana; titulo: string; soloDynamo?: boolean; siHay?: boolean }[] = [
+  { f: 'solicitudes', titulo: 'Solicitudes de precio', siHay: true },
   { f: 'sin-asignar', titulo: 'Sin asignar transportista', soloDynamo: true },
   { f: 'programada', titulo: 'Programadas' },
   { f: 'entregada', titulo: 'Entregadas' },
@@ -28,7 +29,7 @@ type Props = {
 export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pParam, error, nuevo, nota }: Props) {
   const dynamo = esDynamo(rol);
   // ---- Pestaña, buscador y página
-  const pestanas = PESTANAS.filter((p) => dynamo || !p.soloDynamo);
+  const pestanas = PESTANAS.filter((p) => (dynamo || !p.soloDynamo) && (!p.siHay || filas.some((e) => enPestana(e, p.f)) || fParam === p.f));
   const f = (pestanas.find((p) => p.f === fParam)?.f ?? (dynamo ? 'sin-asignar' : 'programada')) as Pestana;
   const buscadas = q ? filas.filter((e) => coincide(e, q)) : filas;
   const lista = buscadas.filter((e) => enPestana(e, f));
@@ -71,7 +72,9 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
 
       {nuevo && (
         <div className="pt-aviso info" role="status"><div>
-          <strong>Envío #{nuevo} creado.</strong> Queda programado, a la espera de asignar transportista.
+          {dynamo
+            ? <><strong>Envío #{nuevo} creado.</strong> Queda programado, a la espera de asignar transportista.</>
+            : <><strong>Solicitud #{nuevo} enviada.</strong> Te pasamos el precio en menos de 25 minutos (en horario de oficina) y lo verás aquí para aceptarlo.</>}
         </div></div>
       )}
 
@@ -97,7 +100,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
               <tr><td colSpan={columnas} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
                 {filas.length === 0 ? 'Todavía no hay envíos.' : 'Sin envíos en este filtro'}
               </td></tr>
-            ) : trozo.map((e) => <FilaEnvio key={e.id} e={e} rol={rol} dynamo={dynamo} creador={e.creado_por ? nombres[e.creado_por] : undefined} href={dynamo ? url({ p: pag, ver: e.id }) : undefined} />)}
+            ) : trozo.map((e) => <FilaEnvio key={e.id} e={e} rol={rol} dynamo={dynamo} creador={e.creado_por ? nombres[e.creado_por] : undefined} href={rol !== 'transportista' ? url({ p: pag, ver: e.id }) : undefined} />)}
           </tbody>
         </table>
       </div>

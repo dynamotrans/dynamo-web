@@ -6,7 +6,7 @@
 // el tarifador llega al final (y el precio lo calculará el servidor, nunca el navegador).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { crearEnvio, crearClienteRapido, cambiarRuta, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, crearClienteRapido, cambiarRuta, crearSolicitud, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { fecha as fmtFecha, euros as eur } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
 import { PAISES } from '@/lib/paises';
@@ -79,14 +79,16 @@ const IcoMenos = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="no
 const IcoCliente = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>);
 const IcoEscudo = () => (<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>);
 
-type Props = { clientes: ClienteOpcion[]; sitios: SitioOpcion[]; festivos: string[]; nombresFestivos?: Record<string, string>; error: string | null; base?: Base | null };
+// esCliente: lo usa el propio CLIENTE (etapa B). Pide una SOLICITUD sin precio: Dynamo
+// se lo pone y él lo acepta después desde la ficha del envío.
+type Props = { clientes: ClienteOpcion[]; sitios: SitioOpcion[]; festivos: string[]; nombresFestivos?: Record<string, string>; error: string | null; base?: Base | null; esCliente?: boolean };
 
 // Del valor guardado a la opción más cercana del desplegable (que va por tramos).
 const opcionCercana = (v: number | null | undefined, opciones: string[], defecto: string) =>
   v == null ? defecto : opciones.find((o) => Number(o) >= Number(v) - 1e-9) ?? opciones[opciones.length - 1];
 const decimal = (n: number | null | undefined) => (n == null ? '' : String(n).replace('.', ','));
 
-export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, nombresFestivos = {}, error: errorCarga, base }: Props) {
+export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false }: Props) {
   const be = base?.envio;
   const enRuta = base?.modo === 'ruta';
   const puntoDe = (p: Base['paradas'][number], k: number): Punto => {
@@ -102,7 +104,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
 
   // ---- Paso 1: cliente y ruta
   const [clientes, setClientes] = useState(clientesIni);
-  const [cliente, setCliente] = useState<ClienteOpcion | null>(be ? clientesIni.find((c) => c.id === be.cliente_id) ?? null : null);
+  const [cliente, setCliente] = useState<ClienteOpcion | null>(esCliente ? clientesIni[0] ?? null : be ? clientesIni.find((c) => c.id === be.cliente_id) ?? null : null);
   const sigK = useRef(10);
   const [recogidas, setRecogidas] = useState<Punto[]>(() => {
     const l = (base?.paradas ?? []).filter((p) => p.tipo === 'carga').map((p, i) => puntoDe(p, 100 + i));
@@ -135,8 +137,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
   // ---- Paso 3: fecha y precio
   const [urgencia, setUrgencia] = useState<'dia' | 'estandar'>('estandar');
   const [fecha, setFecha] = useState('');
-  const [pc, setPc] = useState(decimal(be?.importe_cliente));
-  const [pt, setPt] = useState(decimal(be?.importe_transportista));
+  const [pc, setPc] = useState(esCliente ? '' : decimal(be?.importe_cliente));
+  const [pt, setPt] = useState(esCliente ? '' : decimal(be?.importe_transportista));
 
   // ---- Paso 4
   const [discrecion, setDiscrecion] = useState(!!be?.discrecion_comercial);
@@ -186,8 +188,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
     if (n === 2 && (!ml || !peso)) return 'Indica los metros lineales y el peso.';
     if (n === 3) {
       if (!fecha) return 'Elige la fecha de recogida.';
-      if (!(importe > 0)) return 'Pon el precio del cliente (base sin IVA).';
-      if (importeT !== null && !(importeT >= 0)) return 'El precio del transportista no es un número válido.';
+      if (!esCliente && !(importe > 0)) return 'Pon el precio del cliente (base sin IVA).';
+      if (!esCliente && importeT !== null && !(importeT >= 0)) return 'El precio del transportista no es un número válido.';
     }
     return null;
   }
@@ -235,6 +237,20 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
       };
     });
     const f = forma.toLowerCase();
+    if (esCliente) {
+      const rs = await crearSolicitud({
+        referencia_cliente: refCli, fecha_carga_desde: fecha, fecha_carga_hasta: fechaHasta,
+        descripcion_mercancia: paletizada ? 'Paletizada (mercancía general)' : 'No paletizada',
+        toneladas: Number(peso), metros_lineales: Number(ml),
+        paletizado: paletizada, carga_lateral: f.includes('lateral'), carga_trasera: f.includes('trasera'),
+        carga_superior: f.includes('techo'), plataforma_elevadora: trampilla, nima_requerido: nima, adr,
+        discrecion_comercial: discrecion, anotaciones_cliente: notas,
+      }, paradas);
+      if (!rs.ok) { setEnviando(false); setAviso(rs.error); return; }
+      router.push(`/panel/envios?f=solicitudes&nuevo=${encodeURIComponent(rs.referencia_gx)}`);
+      router.refresh();
+      return;
+    }
     const r = await crearEnvio({
       cliente_id: cliente.id, referencia_cliente: refCli,
       fecha_carga_desde: fecha, fecha_carga_hasta: fechaHasta,
@@ -303,9 +319,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
   return (
     <section className={`section active wiz-v2 wiz-s${Math.min(paso, 3)}`} id="sec-nueva-carga">
       <div className="sec-header"><h2>{enRuta ? `Cambiar ruta · #${be!.referencia_gx}` : base ? `Repetir envío · #${be!.referencia_gx}` : 'Nuevo envío'}</h2></div>
-      {enviando && <Cargando texto={enRuta ? 'Guardando la ruta' : 'Creando envío'} />}
+      {enviando && <Cargando texto={enRuta ? 'Guardando la ruta' : esCliente ? 'Enviando la solicitud' : 'Creando envío'} />}
       {base?.modo === 'repetir' && paso === 1 && (
-        <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Se ha copiado todo del envío <strong>#{be!.referencia_gx}</strong> (ruta, mercancía y precios) salvo la <strong>fecha</strong>. Revísalo y cambia lo que haga falta: se creará un envío <strong>nuevo</strong>.</div></div>
+        <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Se ha copiado todo del envío <strong>#{be!.referencia_gx}</strong> (ruta{esCliente ? ' y mercancía' : ', mercancía y precios'}) salvo la <strong>fecha</strong>. Revísalo y cambia lo que haga falta: se creará un envío <strong>nuevo</strong>.</div></div>
       )}
       {enRuta && (
         <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Cambia, quita o añade paradas y pulsa <strong>«Guardar ruta»</strong>. Las paradas que no cambies conservan su referencia y sus notas. {be!.estado !== 'programado' && be!.estado !== 'borrador' ? 'El transportista ya va hacia la carga: avísale del cambio. ' : ''}La mercancía, la fecha y el precio se cambian en «Modificar».</div></div>
@@ -314,7 +330,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
       {errorCarga && <div className="pt-aviso error">No se han podido cargar los datos: {errorCarga}</div>}
 
       {!enRuta && <div className="wiz-bar">
-        {['Ruta', 'Mercancía', 'Fecha y precio', 'Confirmar'].map((t, i) => (
+        {['Ruta', 'Mercancía', esCliente ? 'Fecha' : 'Fecha y precio', 'Confirmar'].map((t, i) => (
           <div key={t} className={`wiz-step${paso === i + 1 ? ' act' : ''}${paso > i + 1 ? ' done' : ''}`}
                onClick={() => { if (paso > i + 1) { setAviso(null); setPaso(i + 1); } }}>
             <span className="wiz-n">{i + 1}</span><span>{t}</span>
@@ -331,7 +347,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                 {paso === 1 && (<>
                   <div className="ptar-section-head">Cliente</div>
                   <div className="ptar-field ptar-field-full">
-                    {enRuta ? <div className="ptar-input-wrap ptar-picked"><IcoCliente /><input type="text" readOnly value={cliente ? `${cliente.nombre} · ${cliente.cif}` : ''} /></div> : <CampoCliente clientes={clientes} valor={cliente}
+                    {enRuta || esCliente ? <div className="ptar-input-wrap ptar-picked"><IcoCliente /><input type="text" readOnly value={cliente ? `${cliente.nombre} · ${cliente.cif}` : ''} /></div> : <CampoCliente clientes={clientes} valor={cliente}
                       onElegir={(c) => { setCliente(c); const prin = c?.principal_id ? sitios.find((x) => x.id === c.principal_id && x.cliente_id === c.id) ?? null : null; setRecogidas((l) => l.map((p, i) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : (i === 0 && prin && !p.nuevo ? prin : null) }))); setEntregas((l) => l.map((p) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : null }))); }}
                       onNuevo={(c) => { setClientes((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre))); setCliente(c); }} />}
                   </div>
@@ -452,6 +468,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                       : <span className="ptar-eta-placeholder">Elige la fecha de recogida.</span>}
                   </div>
                 </div>
+                {esCliente ? (
+                  <div className="pt-aviso info" style={{ marginTop: '0.6rem' }}><div><strong>Te pasamos el precio en menos de 25 minutos</strong> (en horario de oficina). Te llegará a tu panel y, hasta que lo aceptes, no hay ningún compromiso.</div></div>
+                ) : <>
                 <div className="ptar-field ptar-field-full ptar-admin-precio">
                   <div className="ptar-admin-precio-head">Precios internos <span>· solo administración</span></div>
                   <label className="ptar-admin-precio-lbl" htmlFor="ne-pc">Cliente (base sin IVA)</label>
@@ -461,6 +480,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                   <p className="ptar-admin-precio-note">Hasta que llegue el tarifador, el precio lo pone Dynamo a mano y queda marcado como <strong>fijado a mano</strong>.</p>
                 </div>
                 {cajaPrecio}
+                </>}
               </div>
             )}
           </div>
@@ -479,7 +499,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
 
       {paso === 4 && cliente && (
         <div className="ptar-confirm-card">
-          <h3 className="ptar-section-head ptar-sh-conf">Revisión y precio</h3>
+          <h3 className="ptar-section-head ptar-sh-conf">{esCliente ? 'Revisión' : 'Revisión y precio'}</h3>
           <div className="form-2col">
             <div className="form-2col-main">
               <div className="sum2">
@@ -520,7 +540,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
               </div>
             </div>
             <div className="form-2col-side">
-              {cajaPrecio}
+              {esCliente
+                ? <div className="pt-aviso info" style={{ marginBottom: 0 }}><div><strong>Precio:</strong> te lo pasamos en menos de 25 minutos (en horario de oficina) y lo aceptas desde el envío.</div></div>
+                : cajaPrecio}
               <div className="ptar-discrecion">
                 <label className="ptar-confirm-check">
                   <input type="checkbox" checked={discrecion} onChange={(e) => setDiscrecion(e.target.checked)} />
@@ -528,11 +550,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                 </label>
               </div>
               <div className="ptar-terms-box">
-                <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> el envío queda <strong>programado</strong> y pasa a la pestaña <strong>Sin asignar transportista</strong>.</p>
+                {esCliente
+                  ? <p className="ptar-terms-line">Al pulsar <strong>«Enviar solicitud»</strong> nos llega tu envío para ponerle precio. <strong>No hay compromiso</strong> hasta que aceptes el precio (y las condiciones generales).</p>
+                  : <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> el envío queda <strong>programado</strong> y pasa a la pestaña <strong>Sin asignar transportista</strong>.</p>}
               </div>
               {aviso && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
               <div className="ptar-actions ptar-actions-confirm">
-                <button type="button" className="btn-primary" onClick={crear} disabled={enviando}>{enviando ? 'Creando envío…' : 'Crear envío'}</button>
+                <button type="button" className="btn-primary" onClick={crear} disabled={enviando}>{enviando ? (esCliente ? 'Enviando…' : 'Creando envío…') : esCliente ? 'Enviar solicitud' : 'Crear envío'}</button>
                 <button type="button" className="btn-ghost" onClick={() => { setAviso(null); setPaso(3); }} disabled={enviando}>← Editar datos</button>
               </div>
             </div>

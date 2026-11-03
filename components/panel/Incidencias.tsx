@@ -37,8 +37,9 @@ const IcoAviso = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="non
 const horaMadrid = (iso: string) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 const diaMadrid = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(iso));
 
-export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara, error }: {
+export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara, error, esCliente = false }: {
   filas: IncidenciaFila[]; tipos: Opcion[]; clientes: Opcion[]; envios: EnvioLigero[]; nuevaPara: string | null; error: string | null;
+  esCliente?: boolean;   // el CLIENTE ve y abre las suyas; el estado, la prioridad y la resolución son de Dynamo
 }) {
   const router = useRouter();
   const [pestana, setPestana] = useState<'abiertas' | 'resueltas' | 'todas'>('abiertas');
@@ -66,7 +67,7 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
         <button className={`tab${pestana === 'todas' ? ' active' : ''}`} onClick={() => setPestana('todas')}>Todas</button>
       </div>
       <div className="filters">
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por descripción, nº de envío, cliente, ruta…" />
+        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={esCliente ? 'Buscar por descripción, nº de envío, ruta…' : 'Buscar por descripción, nº de envío, cliente, ruta…'} />
       </div>
       {error && <div className="pt-aviso error">No se han podido cargar las incidencias: {error}</div>}
       <div className="table-wrap">
@@ -87,7 +88,7 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
                 <tr key={x.id} onClick={() => setFicha({ fila: x })} style={{ cursor: 'pointer' }}>
                   <td>{fecha(diaMadrid(x.creado_en))}<div className="meta">{horaMadrid(x.creado_en)} · {x.codigo}</div></td>
                   <td><strong>{x.tipo}</strong><div className="meta">{x.titulo}</div></td>
-                  <td className="ref">{e ? <strong>#{e.referencia_gx}</strong> : '—'}<div className="meta">{x.cliente ?? ''}</div></td>
+                  <td className="ref">{e ? <strong>#{e.referencia_gx}</strong> : '—'}{!esCliente && <div className="meta">{x.cliente ?? ''}</div>}</td>
                   <td className="ref-cli">{e?.referencia_cliente ?? '—'}</td>
                   <td>{e ? <><strong>{fecha(e.fecha_carga_desde)}</strong><div className="meta">{ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</div></> : '—'}</td>
                   <td className="route">{e ? <><strong>{e.origen || '—'}</strong><span className="arrow">→</span><strong>{e.destino || '—'}</strong></> : '—'}</td>
@@ -99,16 +100,18 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
           </tbody>
         </table>
       </div>
-      {ficha && <FichaIncidencia fila={ficha.fila} envioInicial={ficha.envio ?? null} tipos={tipos} clientes={clientes} envios={envios}
+      {ficha && <FichaIncidencia esCliente={esCliente} fila={ficha.fila} envioInicial={ficha.envio ?? null} tipos={tipos} clientes={clientes} envios={envios}
         onCerrar={cerrar} onHecho={() => { cerrar(); router.refresh(); }} />}
     </section>
   );
 }
 
-function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar, onHecho }: {
+function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar, onHecho, esCliente }: {
   fila: IncidenciaFila | null; envioInicial: string | null; tipos: Opcion[]; clientes: Opcion[]; envios: EnvioLigero[];
-  onCerrar: () => void; onHecho: () => void;
+  onCerrar: () => void; onHecho: () => void; esCliente: boolean;
 }) {
+  // El cliente solo puede tocarla mientras está abierta (después la lleva Dynamo).
+  const soloLectura = esCliente && !!fila && fila.estado !== 'abierto';
   const [d, setD] = useState<IncidenciaDatos>({
     envio_id: fila?.envio_id ?? envioInicial, cliente_id: fila?.cliente_id ?? null, tipo_id: fila?.tipo_id ?? '',
     estado: fila?.estado ?? 'abierto', prioridad: fila?.prioridad ?? 'media',
@@ -124,7 +127,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
     setError(null);
     if (!datos.tipo_id) { setError('Elige el tipo de incidencia.'); return; }
     if (!datos.detalle.trim()) { setError('Cuenta lo ocurrido en el detalle de la incidencia.'); return; }
-    if (!datos.envio_id && !datos.cliente_id) { setError('Elige el envío o, si no va sobre un envío, el cliente.'); return; }
+    if (!esCliente && !datos.envio_id && !datos.cliente_id) { setError('Elige el envío o, si no va sobre un envío, el cliente.'); return; }
     setTrabajando(texto ?? (fila ? 'Guardando incidencia' : 'Creando incidencia'));
     const r = await guardarIncidencia(fila?.id ?? null, datos);
     setTrabajando(null);
@@ -146,12 +149,12 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
   }
 
   return (
-    <Modal abierto titulo={fila ? `Editar incidencia ${fila.codigo}` : 'Reportar incidencia'}
+    <Modal abierto titulo={fila ? `${soloLectura ? 'Incidencia' : 'Editar incidencia'} ${fila.codigo}` : 'Reportar incidencia'}
       sub={fila ? 'Cambia lo que necesites y guarda' : 'Cuenta lo ocurrido para actuar rápido'} icono={<IcoAviso />} onCerrar={onCerrar}
       pie={<>
         <button className="btn-ghost" onClick={onCerrar} disabled={!!trabajando}>Cerrar</button>
-        {fila && abierta(fila.estado) && <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={() => setPreguntaCancelar(true)} disabled={!!trabajando}>Cancelar incidencia</button>}
-        <button className="btn-primary" onClick={() => guardar()} disabled={!!trabajando}>Guardar incidencia</button>
+        {fila && abierta(fila.estado) && !soloLectura && <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={() => setPreguntaCancelar(true)} disabled={!!trabajando}>{esCliente ? 'Retirar incidencia' : 'Cancelar incidencia'}</button>}
+        {!soloLectura && <button className="btn-primary" onClick={() => guardar()} disabled={!!trabajando}>{fila ? 'Guardar incidencia' : 'Enviar incidencia'}</button>}
       </>}>
       {fila && (
         <div style={{ margin: '0 0 0.9rem', padding: '0.55rem 0.85rem', border: '1px solid var(--gray-200)', borderRadius: 9, background: 'var(--gray-50)', fontSize: 'var(--fs-m)', color: 'var(--gray-500)', fontWeight: 600 }}>
@@ -162,7 +165,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
         <label>Envío relacionado <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></label>
         <BuscaEnvio envios={envios} valor={d.envio_id} onCambio={(v) => set('envio_id', v)} />
       </div>
-      {!d.envio_id && (
+      {!d.envio_id && !esCliente && (
         <div className="modal-form-row">
           <label htmlFor="inc-cli">Cliente <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· si no va sobre un envío</span></label>
           <select id="inc-cli" className="ptar-select" value={d.cliente_id ?? ''} onChange={(e) => set('cliente_id', e.target.value || null)}>
@@ -179,6 +182,12 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
             {tipos.filter((t) => t.activo || t.id === d.tipo_id).map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
           </select>
         </div>
+        {esCliente ? (fila && (
+          <div style={{ gridColumn: '1/-1', fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>
+            Estado: <strong>{ESTADOS.find(([k]) => k === fila.estado)?.[1] ?? fila.estado}</strong>
+            {fila.resolucion && <> · Resolución: {fila.resolucion}</>}
+          </div>
+        )) : <>
         <div>
           <label htmlFor="inc-estado">Estado</label>
           <select id="inc-estado" className="ptar-select" value={d.estado} onChange={(e) => set('estado', e.target.value as IncidenciaDatos['estado'])}>
@@ -191,6 +200,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
             {PRIORIDADES.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
           </select>
         </div>
+        </>}
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="inc-tit">Resumen <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· una línea; si lo dejas vacío, se toma del detalle</span></label>
           <input id="inc-tit" type="text" maxLength={140} value={d.titulo} onChange={(e) => set('titulo', e.target.value)} placeholder="Ej. Palet roto en la descarga" />
@@ -200,7 +210,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
         <label htmlFor="inc-det">Detalle de la incidencia *</label>
         <textarea id="inc-det" value={d.detalle} onChange={(e) => set('detalle', e.target.value)} placeholder="Describe lo ocurrido: daños, retraso, mercancía incorrecta, falta de albarán firmado…" />
       </div>
-      {(d.estado === 'resuelto' || d.resolucion) && (
+      {!esCliente && (d.estado === 'resuelto' || d.resolucion) && (
         <div className="modal-form-row">
           <label htmlFor="inc-res">Cómo se ha resuelto</label>
           <textarea id="inc-res" value={d.resolucion} onChange={(e) => set('resolucion', e.target.value)} placeholder="Qué se hizo para cerrarla (abono, reenvío, albarán recibido…)" />
@@ -208,7 +218,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
       )}
       <div className="modal-form-row">
         <label>Adjuntar fotos / documentos</label>
-        {fila ? <Documentos dueno={{ campo: 'incidencia_id', id: fila.id }} tipos={['foto_incidencia', 'albaran', 'adjunto', 'otro']} />
+        {fila ? <Documentos dueno={{ campo: 'incidencia_id', id: fila.id }} tipos={esCliente ? ['foto_incidencia', 'adjunto'] : ['foto_incidencia', 'albaran', 'adjunto', 'otro']} editable={!soloLectura} />
           : <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: 0 }}>Guarda la incidencia y, al abrirla, podrás adjuntar fotos y documentos.</p>}
       </div>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.2rem 0 0', lineHeight: 1.45 }}>Una incidencia sobre un envío queda también en su <strong>historial</strong>.</p>

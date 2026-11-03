@@ -15,20 +15,37 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
   const { supabase, perfil } = s;
   if (!perfil || perfil.estado !== 'activa') return <AvisoCuenta perfil={perfil} />;
 
-  if (!esDynamo(perfil.rol)) {
-    return (
-      <section className="section active">
-        <div className="sec-header"><h2>Nuevo envío</h2></div>
-        <div className="pt-aviso info" style={{ maxWidth: 640 }}><div>
-          <strong>Muy pronto podrás crear tus envíos aquí.</strong> Mientras tanto, pídenoslo por
-          email a info@dynamotrans.com o por WhatsApp al +34 628 995 709 y lo creamos al momento.
-        </div></div>
-      </section>
-    );
-  }
-
   const hoy = new Date().toISOString().slice(0, 10);
   const hasta = new Date(Date.now() + 400 * 86400000).toISOString().slice(0, 10);
+
+  // ---- Etapa B: el CLIENTE pide su envío (solicitud, sin precio) --------------------
+  if (!esDynamo(perfil.rol)) {
+    if (perfil.rol !== 'cliente') {
+      return <section className="section active"><div className="pt-aviso info" style={{ maxWidth: 640 }}><div>Esta pantalla es para los clientes.</div></div></section>;
+    }
+    const [emp, lug, fes] = await Promise.all([
+      supabase.rpc('mi_empresa').maybeSingle(),
+      supabase.from('lugares')
+        .select('id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible')
+        .eq('borrado', false).order('nombre_empresa').limit(5000),
+      supabase.rpc('festivos_entre', { p_desde: hoy, p_hasta: hasta }),
+    ]);
+    const e = emp.data as any;
+    if (!e) return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Tu usuario aún no está asociado a una empresa. Escríbenos a info@dynamotrans.com.</div></div></section>;
+    let base: Base | null = null;
+    if (sp.repetir && /^[0-9a-f-]{36}$/i.test(sp.repetir)) {
+      const { data: r } = await supabase.rpc('mis_envios').eq('id', sp.repetir).maybeSingle();
+      const x = r as any;
+      if (x) base = { modo: 'repetir', envio: { ...x, cliente_id: e.id, importe_cliente: null, importe_transportista: null },
+        paradas: ((x.paradas ?? []) as any[]).map((p) => ({ id: p.id, tipo: p.tipo, lugar_id: p.lugar_id, nombre_empresa: p.nombre_empresa, direccion: p.direccion,
+          codigo_postal: p.codigo_postal, poblacion: p.poblacion, provincia: p.provincia, pais_codigo_iso: p.pais_codigo_iso })) };
+    }
+    const fesC = (fes.data ?? []) as { fecha: string; nombre: string }[];
+    return <NuevoEnvio key={sp.repetir ?? 'nuevo'} esCliente clientes={[{ id: e.id, nombre: e.nombre_comercial || e.razon_social, cif: e.cif }]}
+      sitios={(lug.data ?? []) as SitioOpcion[]} festivos={fesC.map((f) => f.fecha)} nombresFestivos={Object.fromEntries(fesC.map((f) => [f.fecha, f.nombre]))}
+      error={lug.error?.message ?? null} base={base} />;
+  }
+
   const [cli, lug, fes] = await Promise.all([
     supabase.from('clientes').select('id, nombre_visible, cif, lugar_defecto_id').order('nombre_visible').limit(2000),
     supabase.from('lugares')

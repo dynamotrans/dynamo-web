@@ -4,6 +4,7 @@ import TablaEnvios from '@/components/panel/TablaEnvios';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import FichaEnvio from '@/components/panel/FichaEnvio';
 import { cargarFicha, cargarTransportistasParaAsignar } from '@/lib/fichaEnvio';
+import FichaEnvioCliente from '@/components/panel/FichaEnvioCliente';
 
 export const dynamic = 'force-dynamic';
 export default async function PaginaEnvios({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -26,7 +27,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       'fecha_carga_desde, fecha_carga_hasta, fecha_carga_real, fecha_entrega_estimada, descripcion_mercancia, ' +
       'toneladas, metros_lineales, tipo_carga, paletizado, poblacion_origen, codigo_postal_origen, poblacion_destino, codigo_postal_destino, ' +
       'importe_cliente, importe_transportista, precio_acordado_operador, precio_fijado_a_mano, matricula_camion, ' +
-      'matricula_remolque, creado_en, modificado_en, creado_por, clientes(nombre_visible, cif), operadores(razon_social), ' +
+      'matricula_remolque, creado_en, modificado_en, creado_por, solicitud_estado, clientes(nombre_visible, cif), operadores(razon_social), ' +
       'envio_paradas(orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)';
     const TERMINADOS = 1000;
     let data: any[] = [];
@@ -90,6 +91,19 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     const [r, t] = await Promise.all([cargarFicha(supabase, sp.ver), cargarTransportistasParaAsignar(supabase)]);
     ficha = r.ficha; errorFicha = r.error; transportistas = t;
   }
+  // Ficha para el CLIENTE: con lo que ya trae mis_envios() (sin datos internos) y sus hitos visibles.
+  let fichaCli: any = null;
+  if (rol === 'cliente' && sp.ver) {
+    fichaCli = filas.find((x) => x.id === sp.ver) ?? null;
+    if (!fichaCli && /^[0-9a-f-]{36}$/i.test(sp.ver)) {
+      const { data } = await supabase.rpc('mis_envios').eq('id', sp.ver).maybeSingle();
+      fichaCli = data ?? null;
+    }
+    if (fichaCli) {
+      const { data: hit } = await supabase.from('envio_hitos').select('id, hito, cuando').eq('envio_id', fichaCli.id).order('cuando', { ascending: false }).limit(100);
+      fichaCli = { ...fichaCli, hitos: hit ?? [] };
+    }
+  }
   const sinVer = new URLSearchParams(Object.entries(sp).filter(([k, v]) => k !== 'ver' && v) as [string, string][]).toString();
   const cerrarHref = `/panel/envios${sinVer ? `?${sinVer}` : ''}`;
 
@@ -97,6 +111,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     <>
       <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} error={error ?? errorFicha} nuevo={sp.nuevo} nota={nota} />
       {ficha && <FichaEnvio key={ficha.envio.id} ficha={ficha} transportistas={transportistas} cerrarHref={cerrarHref} />}
+      {fichaCli && <FichaEnvioCliente key={fichaCli.id} e={fichaCli} cerrarHref={cerrarHref} />}
     </>
   );
 }

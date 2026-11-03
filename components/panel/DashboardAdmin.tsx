@@ -16,7 +16,7 @@ export type ProntoPago = {
   linea: number; encendido: boolean; ventana_dias: number; usado: number; disponible: number; activo: boolean;
   anticipos: { cuando: string; envio: string; transportista: string | null; importe: number; descuento: number; anticipado: number }[];
 };
-type Cifras = { enCurso: number; sinTransp: number; inc: number; pen: number; alm: number; contra: number };
+type Cifras = { enCurso: number; sinTransp: number; inc: number; pen: number; alm: number; contra: number; solicitudes: number };
 
 const ESTADO: Record<string, [string, string]> = {
   programado: ['Programado', 'prog'], hacia_la_carga: ['Llegando recogida', 'hacia'], cargando: ['Cargando', 'cargando'],
@@ -43,6 +43,7 @@ export default function DashboardAdmin({ cifras, ultimos, prontoPago, errorPP }:
         Indicadores internos de gestión: lo que hay que atender hoy y la línea de <strong>pronto pago a transportistas</strong>.
       </p>
       <div className="stats-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
+        <Cifra href="/panel/envios?f=solicitudes" label="Solicitudes sin precio" valor={cifras.solicitudes} aviso />
         <Cifra href="/panel/envios?f=programada" label="Envíos en curso" valor={cifras.enCurso} />
         <Cifra href="/panel/envios?f=sin-asignar" label="Sin transportista" valor={cifras.sinTransp} aviso />
         <Cifra href="/panel/envios" label="Contraofertas por revisar" valor={cifras.contra} aviso />

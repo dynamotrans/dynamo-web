@@ -91,3 +91,26 @@ export async function cambiarRuta(envio: string, paradas: (ParadaNueva & { id?: 
   await contactosDeSitiosNuevos(s.supabase, envio, paradas);
   return { ok: true };
 }
+
+// Etapa B: el CLIENTE pide un envío (solicitud). Sin precio: Dynamo se lo pone y él lo
+// acepta desde su panel. La base de datos fuerza que sea de SU empresa y con SUS sitios.
+export async function crearSolicitud(envio: Omit<EnvioNuevo, 'cliente_id' | 'importe_cliente' | 'importe_transportista'>, paradas: ParadaNueva[]):
+  Promise<{ ok: true; referencia_gx: string } | { ok: false; error: string }> {
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return { ok: false, error: 'Tu cuenta no puede pedir envíos todavía.' };
+  if (paradas.length < 2) return { ok: false, error: 'Falta la recogida o la entrega.' };
+  const { data, error } = await s.supabase.rpc('crear_solicitud_envio', { p_envio: envio, p_paradas: paradas });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const fila = (Array.isArray(data) ? data[0] : data) as { referencia_gx: string } | undefined;
+  return { ok: true, referencia_gx: fila?.referencia_gx ?? '' };
+}
+
+// Dynamo pone precio a la solicitud de un cliente (el cliente lo acepta después).
+export async function proponerPrecio(envio: string, importe: number, importeT: number | null): Promise<{ ok: true; aviso?: string } | { ok: false; error: string }> {
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) return { ok: false, error: 'Solo Dynamo pone precio.' };
+  if (!(importe > 0)) return { ok: false, error: 'Pon el precio del cliente (base sin IVA).' };
+  if (importeT != null && !(importeT >= 0)) return { ok: false, error: 'El precio del transportista no es válido.' };
+  const { error } = await s.supabase.rpc('proponer_precio_solicitud', { p_envio: envio, p_importe: importe, p_importe_transportista: importeT });
+  return error ? { ok: false, error: traducir(error.message) } : { ok: true, aviso: 'Precio enviado al cliente: lo verá en su panel para aceptarlo.' };
+}

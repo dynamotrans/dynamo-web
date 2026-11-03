@@ -2,6 +2,7 @@ import { sesion, esDynamo } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Penalizaciones, { type PenalizacionFila } from '@/components/panel/Penalizaciones';
 import { cargarEnviosLigeros } from '@/lib/enviosLigeros';
+import MisPenalizaciones, { type MiPenalizacion } from '@/components/panel/MisPenalizaciones';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +14,12 @@ export default async function PaginaPenalizaciones({ searchParams }: { searchPar
   const { supabase, perfil } = s;
   if (!perfil || perfil.estado !== 'activa') return <AvisoCuenta perfil={perfil} />;
   if (!esDynamo(perfil.rol)) {
-    return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección todavía es solo del equipo de Dynamo.</div></div></section>;
+    // Etapa B: el cliente ve las suyas (solo su importe). El transportista, en la etapa C.
+    if (perfil.rol === 'cliente') {
+      const { data, error } = await supabase.rpc('mis_penalizaciones');
+      return <MisPenalizaciones filas={(data ?? []) as MiPenalizacion[]} error={error?.message ?? null} />;
+    }
+    return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección todavía no está disponible para tu cuenta.</div></div></section>;
   }
   const sp = await searchParams;
   const [pen, tipos, envios] = await Promise.all([

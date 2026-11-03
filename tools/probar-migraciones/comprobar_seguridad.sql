@@ -2191,3 +2191,60 @@ do $$ begin
   raise notice 'OK 71 · «Alta dada por»: solo empleados de Dynamo (o alta online)';
 end $$;
 reset role;
+
+-- ---- 72. Etapa B: el cliente pide, Dynamo pone precio, el cliente acepta --------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare e uuid; v record; r text; j jsonb; begin
+  select s.id into e from crear_solicitud_envio(
+    jsonb_build_object('metros_lineales', 4, 'toneladas', 3, 'fecha_carga_desde', current_date + 10, 'fecha_carga_hasta', current_date + 12),
+    jsonb_build_array(
+      jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Mi almacén 72', 'codigo_postal', '41001', 'poblacion', 'Sevilla', 'guardar_en_agenda', true, 'contacto_telefono', '+34 600 72 72 72'),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Mi cliente 72', 'codigo_postal', '46001', 'poblacion', 'Valencia'))) s;
+  select * into v from mis_envios() m where m.id = e;
+  if v.estado <> 'borrador' or v.solicitud_estado <> 'pendiente_precio' or v.importe_cliente is not null then raise exception 'FALLO 72 · la solicitud no nace bien: %', v; end if;
+  -- Un sitio de OTRO cliente no se puede usar.
+  begin
+    perform crear_solicitud_envio(jsonb_build_object('fecha_carga_desde', current_date + 5),
+      jsonb_build_array(jsonb_build_object('tipo', 'carga', 'lugar_id', (select id from lugares where cliente_id <> current_setting('prueba.cliente')::uuid and not es_almacen_dynamo limit 1)),
+                        jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'X', 'poblacion', 'Cádiz')));
+    raise exception 'FALLO 72 · el cliente usa un sitio de otro cliente';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+             when insufficient_privilege then null;
+  end;
+  -- El cliente no se pone precio.
+  begin
+    perform proponer_precio_solicitud(e, 1);
+    raise exception 'FALLO 72 · el cliente se pone el precio';
+  exception when insufficient_privilege then null;
+  end;
+  perform set_config('prueba.e72', e::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  perform proponer_precio_solicitud(current_setting('prueba.e72')::uuid, 640, 520);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e72')::uuid; v record; r text; j jsonb; begin
+  select * into v from mis_envios() m where m.id = e;
+  if v.importe_cliente <> 640 or v.solicitud_estado <> 'precio_propuesto' then raise exception 'FALLO 72 · el cliente no ve el precio propuesto'; end if;
+  r := responder_precio_solicitud(e, true);
+  select * into v from mis_envios() m where m.id = e;
+  if r <> 'aceptada' or v.estado <> 'programado' or v.condiciones_aceptadas_en is null then raise exception 'FALLO 72 · aceptar no programa el envío (%): %', r, v; end if;
+  -- Y lo cancela (aún sin camión): gratis.
+  j := cancelar_mi_envio(e, 'Ya no hace falta');
+  if (j ->> 'penalizacion')::boolean or (select estado from mis_envios() m where m.id = e) <> 'cancelado' then raise exception 'FALLO 72 · cancelar sin camión no queda gratis: %', j; end if;
+  -- Uno suyo ya entregado no se cancela.
+  begin
+    perform cancelar_mi_envio(current_setting('prueba.e67')::uuid);
+    raise exception 'FALLO 72 · el cliente cancela un envío entregado';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  if exists (select 1 from mis_penalizaciones() where importe_cliente is null) then raise exception 'FALLO 72 · penalización sin importe'; end if;
+  raise notice 'OK 72 · etapa B: solicitud del cliente, precio de Dynamo, aceptar (programa) y cancelar el suyo; sitios ajenos no';
+end $$;
+reset role;
