@@ -4,7 +4,7 @@ import { datosDynamo, nombrePais } from '@/lib/pdf/datos';
 import { proforma } from '@/lib/pdf/proforma';
 
 // /panel/almacenamientos/<id>/proforma: la factura proforma (pago por adelantado). Se
-// ABRE en el visor (regla 0-bis). Solo Dynamo (es quien la manda al cliente).
+// ABRE en el visor (regla 0-bis). Dynamo y el cliente dueño (desde Administración → Proformas).
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -18,7 +18,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return Response.redirect(new URL('/panel/entrar', req.url), 302);
   const { data: yo } = await sb.from('usuarios').select('rol, estado').eq('id', user.id).maybeSingle<{ rol: string; estado: string }>();
-  if (!yo || yo.estado !== 'activa' || !esDynamo(yo.rol)) return texto('No tienes permiso para ver este documento.', 403);
+  // Dynamo, cualquiera; el cliente, solo las suyas (la seguridad por filas no le devuelve las de otro).
+  if (!yo || yo.estado !== 'activa' || !(esDynamo(yo.rol) || yo.rol === 'cliente')) return texto('No tienes permiso para ver este documento.', 403);
 
   const { data: a } = await sb.from('almacenamientos').select('*, clientes(razon_social, cif, direccion, codigo_postal, poblacion, pais_codigo_iso), ' +
     'almacen:lugares!almacenamientos_almacen_id_fkey(nombre_empresa, poblacion, provincia), entrega:lugares!almacenamientos_lugar_entrega_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion)')

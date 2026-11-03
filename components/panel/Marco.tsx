@@ -30,7 +30,8 @@ function numerosDe(slug: string, c: Contadores): { n: number; t: string; rojo?: 
     case 'envios': return x(c.envios_sin_asignar, 'Envíos sin transportista asignado');
     case 'incidencias': return x(c.incidencias, 'Incidencias abiertas');
     case 'penalizaciones': return x(c.penalizaciones, 'Penalizaciones pendientes de confirmar');
-    case 'almacenamientos': return [...x(c.alm_sin_confirmar, 'Pendiente confirmar almacén'), ...x(c.alm_sin_pagar, 'Almacenamientos pendientes de pago', true)];
+    case 'almacenamientos': return x(c.alm_sin_confirmar, 'Pendiente confirmar almacén');
+    case 'administracion': return x(c.alm_sin_pagar, 'Proformas sin pagar', true);
     case 'altas': return x(c.altas, 'Altas pendientes de revisar');
     default: return [];
   }
@@ -157,7 +158,7 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
   const avisos = [
     { href: '/panel/incidencias', t: 'Incidencias abiertas', s: 'Pendientes de resolver', cero: 'Sin incidencias abiertas', n: contadores.incidencias ?? 0, color: 'inc', ico: ICO_AVISO },
     { href: '/panel/penalizaciones', t: 'Penalizaciones abiertas', s: 'Pendientes de confirmar', cero: 'Ninguna pendiente', n: contadores.penalizaciones ?? 0, color: 'inc', ico: ICO_CIRCULO },
-    ...(esDynamo(rol) ? [{ href: '/panel/almacenamientos?tab=pago', t: 'Proformas sin pagar', s: 'Almacenamientos con pago por adelantado', cero: 'Ninguna pendiente de pago', n: contadores.alm_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
+    ...(rol !== 'transportista' ? [{ href: '/panel/administracion?tab=proformas', t: 'Proformas sin pagar', s: 'Almacenamientos con pago por adelantado', cero: 'Ninguna pendiente de pago', n: contadores.alm_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
     ...(esDynamo(rol) ? [{ href: '/panel/altas', t: 'Altas pendientes', s: 'Clientes por revisar', cero: 'Ninguna pendiente', n: contadores.altas ?? 0, color: 'inc', ico: ICO_PERSONA }] : []),
   ];
   const totalAvisos = avisos.reduce((a, x) => a + x.n, 0);

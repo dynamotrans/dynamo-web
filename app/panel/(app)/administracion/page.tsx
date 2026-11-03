@@ -1,0 +1,58 @@
+import { sesion, esDynamo, esGestor } from '@/lib/sesion';
+import AvisoCuenta from '@/components/panel/AvisoCuenta';
+import Administracion, { type ProformaFila, type AlbaranFila } from '@/components/panel/Administracion';
+
+export const dynamic = 'force-dynamic';
+
+// Administración (diseño de #sec-facturas / #sec-albaranes de dashboard.html, con una pestaña
+// más): PROFORMAS (pago por adelantado de los almacenamientos), ALBARANES (los albaranes y CMR
+// firmados subidos a los envíos) y FACTURAS (viven en Holded: llegarán al conectarlo).
+// Dynamo ve todo; el cliente, lo suyo (la seguridad por filas hace el filtro).
+export default async function PaginaAdministracion({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const s = await sesion();
+  if (!s) return null;
+  const { supabase, perfil } = s;
+  if (!perfil || perfil.estado !== 'activa') return <AvisoCuenta perfil={perfil} />;
+  const dynamo = esDynamo(perfil.rol);
+  if (!dynamo && perfil.rol !== 'cliente') {
+    return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es de los clientes y del equipo de Dynamo.</div></div></section>;
+  }
+
+  const [alm, docs] = await Promise.all([
+    supabase.from('almacenamientos').select('id, codigo, referencia_cliente, estado, fecha_entrada, fecha_salida, importe_total, iva_aplicado, pagado_en, creado_en, clientes(nombre_visible)')
+      .eq('pago_adelantado', true).neq('estado', 'cancelado').order('creado_en', { ascending: false }).limit(5000),
+    supabase.from('documentos').select('id, tipo, nombre_archivo, envio_id, creado_en, visible_cliente')
+      .in('tipo', ['albaran', 'cmr_firmado']).not('envio_id', 'is', null).eq('borrado', false)
+      .order('creado_en', { ascending: false }).limit(5000),
+  ]);
+
+  // Número y ruta del envío de cada albarán. El cliente no lee la tabla de envíos (regla
+  // de la plataforma): para él, desde mis_envios().
+  const ids = [...new Set((docs.data ?? []).map((d: any) => d.envio_id as string))];
+  const envios = new Map<string, { gx: string; ruta: string }>();
+  if (ids.length) {
+    const lista: any[] = dynamo
+      ? ((await supabase.from('envios').select('id, referencia_gx, poblacion_origen, poblacion_destino').in('id', ids)).data ?? [])
+      : ((await supabase.rpc('mis_envios').limit(5000)).data ?? []).filter((e: any) => ids.includes(e.id));
+    for (const e of lista) envios.set(e.id, { gx: e.referencia_gx, ruta: [e.poblacion_origen, e.poblacion_destino].filter(Boolean).join(' → ') });
+  }
+
+  const proformas: ProformaFila[] = (alm.data ?? []).map((a: any) => {
+    const base = Number(a.importe_total ?? 0), iva = a.iva_aplicado != null ? Number(a.iva_aplicado) : 21;
+    return {
+      id: a.id, codigo: a.codigo, referencia_cliente: a.referencia_cliente ?? '', cliente: a.clientes?.nombre_visible ?? null,
+      estado: a.estado, fecha_entrada: a.fecha_entrada, fecha_salida: a.fecha_salida,
+      base, total: Math.round(base * (1 + iva / 100) * 100) / 100, pagado_en: a.pagado_en ?? null, creado_en: a.creado_en,
+    };
+  });
+  const albaranes: AlbaranFila[] = (docs.data ?? []).map((d: any) => ({
+    id: d.id, tipo: d.tipo, nombre: d.nombre_archivo, envio_id: d.envio_id, creado_en: d.creado_en, visible_cliente: d.visible_cliente,
+    gx: envios.get(d.envio_id)?.gx ?? null, ruta: envios.get(d.envio_id)?.ruta ?? '',
+  }));
+  const tab = (await searchParams).tab;
+  return (
+    <Administracion proformas={proformas} albaranes={albaranes} dynamo={dynamo} gestor={esGestor(perfil.rol)}
+      pestanaInicial={tab === 'albaranes' || tab === 'facturas' ? tab : 'proformas'}
+      error={alm.error?.message ?? docs.error?.message ?? null} />
+  );
+}
