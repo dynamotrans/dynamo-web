@@ -31,3 +31,11 @@ export async function cancelarMiEnvio(envio: string, motivo: string): Promise<Re
     ? 'Envío cancelado. Como se ha cancelado fuera de plazo con el camión ya asignado, se aplica el coste de cancelación (lo verás en Penalizaciones).'
     : 'Envío cancelado, sin ningún coste.' };
 }
+
+// Envíos MANUALES (con su propio operador): el cliente lleva el estado.
+export async function marcarMiEnvioManual(envio: string, estado: string): Promise<Res> {
+  const s = await soloCliente();
+  if (!s) return { ok: false, error: 'Solo el cliente lleva sus envíos manuales.' };
+  const { error } = await s.supabase.rpc('marcar_mi_envio_manual', { p_envio: envio, p_estado: estado });
+  return error ? { ok: false, error: limpio(error.message) } : { ok: true, aviso: 'Estado actualizado.' };
+}

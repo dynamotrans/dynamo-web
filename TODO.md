@@ -24,8 +24,8 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       ofrecen** (con el rango en euros, enlazan a «aceptar carga») y, en cada viaje, la ruta con **horario y teléfono
       de cada muelle**, su precio, botones para marcar **hacia la carga → cargando → en ruta → entregado** (solo hacia
       delante), **subir el albarán**, CMR firmado, fotos y GPS, y abrir el **CMR digital**; y sus **penalizaciones**
-      (con su importe). La **orden de carga en PDF** también se descarga desde su viaje. **Falta**: (b) la **página del conductor con PIN**
-      (las funciones `validar_pin_parada` ya existen; falta la pantalla y mandar el PIN al muelle — Postmark/WhatsApp);
+      (con su importe). La **orden de carga en PDF** también se descarga desde su viaje. **Falta**: (b) la **página del conductor con PIN** — es de la
+      **fase v3** por decisión del usuario (2026-11-02, ver el bloque del PIN más abajo): no se monta hasta entonces;
       (c) ~~incidencias~~ (hechas 2026-11-03: de sus viajes, con fotos; el cliente no las ve); (d) su ficha de empresa y flota desde *Mi cuenta*.
 - [ ] **Etapa B (cliente) — HECHO lo principal (2026-11-03)**: el cliente pide su envío como **solicitud** (sin
       precio: el tarifador es lo último), Dynamo le pone precio («Poner precio» en la ficha; pestaña *Solicitudes de
@@ -33,8 +33,8 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       su ficha del envío. También: su ficha del envío (sin datos internos), **cancelar** antes de que el camión vaya
       hacia la carga, **Repetir envío**, sus **incidencias** (abrir, ampliar, retirar, adjuntar fotos) y sus
       **penalizaciones** (solo su importe). **Falta**: (a) **avisar** al cliente por email/WhatsApp cuando tenga precio
-      y a Dynamo cuando llegue una solicitud (Postmark/WhatsApp); (b) el cliente con **envíos manuales** (con su
-      propio operador) desde el panel; (c) **almacenamientos** del cliente (en el mockup solo los pide Dynamo);
+      y a Dynamo cuando llegue una solicitud (Postmark/WhatsApp); (b) ~~envíos manuales del cliente~~ (hechos 2026-11-03: elige
+      «Mi operador» en Nuevo envío, lleva el estado y saca la orden de transporte en PDF); (c) **almacenamientos** del cliente (en el mockup solo los pide Dynamo);
       (d) cuando llegue el tarifador, el precio saldrá al momento y la solicitud dejará de hacer falta.
 - [ ] **Pantalla de Parámetros** en el panel (solo admin) para cambiar sin entrar en Supabase: descuento de
       bienvenida (−7 %) y nº de envíos (3), minutos de reserva, banda de contraoferta… (tabla `parametros`).

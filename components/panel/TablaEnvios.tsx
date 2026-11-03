@@ -23,10 +23,10 @@ const SubBase = () => (<><br /><span style={{ fontWeight: 600, color: 'var(--gra
 
 type Props = {
   filas: EnvioFila[]; nombres: Record<string, string>; rol: Rol;
-  f?: string; q: string; p?: string; error: string | null; nuevo?: string; nota?: string | null;
+  f?: string; q: string; p?: string; error: string | null; nuevo?: string; nota?: string | null; nuevoManual?: boolean;
 };
 
-export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pParam, error, nuevo, nota }: Props) {
+export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pParam, error, nuevo, nota, nuevoManual }: Props) {
   const dynamo = esDynamo(rol);
   // ---- Pestaña, buscador y página
   const pestanas = PESTANAS.filter((p) => (dynamo || !p.soloDynamo) && (!p.siHay || filas.some((e) => enPestana(e, p.f)) || fParam === p.f));
@@ -74,6 +74,8 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
         <div className="pt-aviso info" role="status"><div>
           {dynamo
             ? <><strong>Envío #{nuevo} creado.</strong> Queda programado, a la espera de asignar transportista.</>
+            : nuevoManual
+            ? <><strong>Envío #{nuevo} creado</strong> con tu operador. Ábrelo para sacar la orden de transporte y llevar su estado.</>
             : <><strong>Solicitud #{nuevo} enviada.</strong> Te pasamos el precio en menos de 25 minutos (en horario de oficina) y lo verás aquí para aceptarlo.</>}
         </div></div>
       )}

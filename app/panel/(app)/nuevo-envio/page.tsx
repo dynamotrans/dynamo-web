@@ -23,12 +23,13 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
     if (perfil.rol !== 'cliente') {
       return <section className="section active"><div className="pt-aviso info" style={{ maxWidth: 640 }}><div>Esta pantalla es para los clientes.</div></div></section>;
     }
-    const [emp, lug, fes] = await Promise.all([
+    const [emp, lug, fes, ops] = await Promise.all([
       supabase.rpc('mi_empresa').maybeSingle(),
       supabase.from('lugares')
         .select('id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible')
         .eq('borrado', false).order('nombre_empresa').limit(5000),
       supabase.rpc('festivos_entre', { p_desde: hoy, p_hasta: hasta }),
+      supabase.from('operadores').select('id, razon_social').eq('borrado', false).order('razon_social'),
     ]);
     const e = emp.data as any;
     if (!e) return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Tu usuario aún no está asociado a una empresa. Escríbenos a info@dynamotrans.com.</div></div></section>;
@@ -43,7 +44,8 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
     const fesC = (fes.data ?? []) as { fecha: string; nombre: string }[];
     return <NuevoEnvio key={sp.repetir ?? 'nuevo'} esCliente clientes={[{ id: e.id, nombre: e.nombre_comercial || e.razon_social, cif: e.cif }]}
       sitios={(lug.data ?? []) as SitioOpcion[]} festivos={fesC.map((f) => f.fecha)} nombresFestivos={Object.fromEntries(fesC.map((f) => [f.fecha, f.nombre]))}
-      error={lug.error?.message ?? null} base={base} />;
+      error={lug.error?.message ?? null} base={base}
+      operadores={((ops.data ?? []) as any[]).map((o) => ({ id: o.id, nombre: o.razon_social }))} />;
   }
 
   const [cli, lug, fes] = await Promise.all([

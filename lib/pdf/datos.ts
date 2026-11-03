@@ -153,3 +153,29 @@ export async function cargarDatosDocTransportista(sb: SupabaseClient, id: string
     },
   };
 }
+
+// La orden de transporte de un envío MANUAL, para el CLIENTE (datos_orden_manual(): su
+// empresa, su operador y las paradas; nada de Dynamo).
+export async function cargarDatosDocManual(sb: SupabaseClient, id: string): Promise<{ datos: DatosDoc | null; error: string | null }> {
+  const { data, error } = await sb.rpc('datos_orden_manual', { p_envio: id });
+  if (error || !data) return { datos: null, error: error?.message ?? 'No se ha podido leer el envío.' };
+  const j = data as any, c = j.cliente ?? {}, o = j.porteador ?? {};
+  return {
+    error: null,
+    datos: {
+      envio: j.envio, manual: true,
+      cliente: { nombre: c.nombre, razon_social: c.razon_social, cif: c.cif, direccion: c.direccion, codigo_postal: c.codigo_postal,
+        poblacion: c.poblacion, provincia: c.provincia, pais: nombrePais(c.pais_codigo_iso), telefono: c.telefono ?? null, email: c.email ?? null, contacto: c.contacto ?? null },
+      porteador: { nombre: o.nombre, razon_social: o.razon_social, cif: o.cif, direccion: null, codigo_postal: null, poblacion: null,
+        provincia: null, pais: null, telefono: o.telefono ?? null, email: o.email ?? null, contacto: o.contacto ?? null },
+      paradas: ((j.paradas ?? []) as any[]).map((p) => ({
+        id: p.id, orden: p.orden, tipo: p.tipo, nombre_empresa: p.nombre_empresa, direccion: p.direccion, codigo_postal: p.codigo_postal,
+        poblacion: p.poblacion, provincia: p.provincia, pais: nombrePais(p.pais_codigo_iso), referencia: p.referencia, anotaciones: p.anotaciones,
+        horarios: p.horarios ?? null, url_google_maps: p.url_google_maps ?? null, notas_sitio: p.notas_sitio ?? null, tipo_lugar: null,
+        requiere_cita: !!p.requiere_cita, tiene_medios_carga: p.tiene_medios_carga !== false,
+        contacto: p.contacto_telefono || p.contacto_nombre ? { nombre: p.contacto_nombre ?? null, telefono: p.contacto_telefono ?? null } : null,
+      })),
+      pronto_pago: false, gestor: null,
+    },
+  };
+}

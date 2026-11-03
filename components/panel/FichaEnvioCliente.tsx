@@ -13,7 +13,7 @@ import CondicionesGenerales from '@/components/CondicionesGenerales';
 import { euros, fecha, ventana } from '@/lib/formato';
 import { creadoTxt, estadoVisual } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
-import { responderPrecio, cancelarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
+import { responderPrecio, cancelarMiEnvio, marcarMiEnvioManual } from '@/app/panel/(app)/envios/acciones-cliente';
 import { enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
 
 const HITOS: Record<string, string> = {
@@ -34,6 +34,7 @@ const ICO = {
   repetir: ['M17 1l4 4-4 4', 'M3 11V9a4 4 0 0 1 4-4h14', 'M7 23l-4-4 4-4', 'M21 13v2a4 4 0 0 1-4 4H3'],
   check: ['M20 6 9 17l-5-5'],
   firma: ['M12 20h9', 'M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z'],
+  doc: ['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z', 'M14 2v6h6', 'M16 13H8', 'M16 17H8'],
 };
 function Celda({ l, children, span }: { l: string; children: React.ReactNode; span?: boolean }) {
   return <div style={span ? { gridColumn: '1/-1' } : undefined}><label>{l}</label><span className="v">{children ?? '—'}</span></div>;
@@ -104,8 +105,10 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
     if (w) w.location.href = `/cmr/${r.token}`; else window.location.href = `/cmr/${r.token}`;
   }
 
+  const FASES_M: [string, string][] = [['programado', 'Programado'], ['hacia_la_carga', 'Hacia la carga'], ['cargando', 'Cargando'], ['en_ruta', 'En ruta'], ['entregado', 'Entregado']];
   const acciones = (
     <>
+      {manual && e.estado !== 'cancelado' && <a className="btn-secondary" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"><I d={ICO.doc} />Orden de transporte (PDF)</a>}
       {!manual && ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'entregado'].includes(e.estado) && <button className="btn-secondary" onClick={abrirCmr} disabled={!!trabajando}><I d={ICO.firma} />CMR digital</button>}
       {cancelable && <button className="btn-secondary" onClick={() => setVista('cancelar')}><I d={ICO.x} />{e.estado === 'borrador' ? 'Cancelar solicitud' : 'Cancelar envío'}</button>}
       {!pendientePrecio && !porAceptar && <a className="btn-secondary" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>}
@@ -120,6 +123,15 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
       {trabajando && <Cargando texto={trabajando} />}
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
 
+      {manual && e.estado !== 'cancelado' && (
+        <div className="det-block" style={{ marginBottom: '0.6rem' }}>
+          <label htmlFor="em-estado" style={{ display: 'block', marginBottom: '0.3rem', fontSize: 'var(--fs-m)', fontWeight: 700, color: 'var(--gray-700)' }}>Estado del envío <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· lo llevas tú (es con tu operador)</span></label>
+          <select id="em-estado" className="ptar-select" value={e.estado} disabled={!!trabajando}
+            onChange={(ev) => hacer('Guardando', () => marcarMiEnvioManual(e.id, ev.target.value))}>
+            {FASES_M.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+          </select>
+        </div>
+      )}
       {pendientePrecio && (
         <div className="pt-aviso info"><div><strong>Estamos calculando tu precio.</strong> Te lo pasamos en menos de 25 minutos (en horario de oficina) y te aparecerá aquí para aceptarlo. Hasta que lo aceptes no hay ningún compromiso.</div></div>
       )}

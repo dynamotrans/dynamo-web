@@ -1,6 +1,6 @@
 import { supabaseServidor } from '@/lib/supabase/server';
 import { esDynamo } from '@/lib/sesion';
-import { cargarDatosDoc, cargarDatosDocTransportista, cargarFirmasCmr } from '@/lib/pdf/datos';
+import { cargarDatosDoc, cargarDatosDocTransportista, cargarDatosDocManual, cargarFirmasCmr } from '@/lib/pdf/datos';
 import { ordenDeCarga } from '@/lib/pdf/orden';
 import { cmr } from '@/lib/pdf/cmr';
 
@@ -32,6 +32,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       dias: p.pronto_pago_dias ?? 5, plazo: p.plazo_pago_transportista_dias ?? 60 });
     const refT = String(r.datos.envio.referencia_gx ?? 'viaje').replace(/[^A-Za-z0-9-]/g, '');
     return new Response(Buffer.from(bytesT), { headers: { 'content-type': 'application/pdf', 'content-disposition': `inline; filename="Orden-de-carga-${refT}.pdf"`, 'cache-control': 'private, no-store' } });
+  }
+  // El CLIENTE: la orden de transporte de SUS envíos manuales (sin nada de Dynamo).
+  if (yo.rol === 'cliente') {
+    if (documento !== 'orden-de-carga') return texto('No tienes permiso para ver este documento.', 403);
+    const r = await cargarDatosDocManual(sb, id);
+    if (!r.datos) return texto(r.error ?? 'No se ha podido leer el envío.', 404);
+    const bytesC = await ordenDeCarga(r.datos, { pct: 0, minimo: 0, dias: 0, plazo: 0 });
+    const refC = String(r.datos.envio.referencia_gx ?? 'envio').replace(/[^A-Za-z0-9-]/g, '');
+    return new Response(Buffer.from(bytesC), { headers: { 'content-type': 'application/pdf', 'content-disposition': `inline; filename="Orden-de-transporte-${refC}.pdf"`, 'cache-control': 'private, no-store' } });
   }
   if (!esDynamo(yo.rol)) return texto('No tienes permiso para ver este documento.', 403);
 

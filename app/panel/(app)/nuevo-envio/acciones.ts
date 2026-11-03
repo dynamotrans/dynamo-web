@@ -114,3 +114,16 @@ export async function proponerPrecio(envio: string, importe: number, importeT: n
   const { error } = await s.supabase.rpc('proponer_precio_solicitud', { p_envio: envio, p_importe: importe, p_importe_transportista: importeT });
   return error ? { ok: false, error: traducir(error.message) } : { ok: true, aviso: 'Precio enviado al cliente: lo verá en su panel para aceptarlo.' };
 }
+
+// El CLIENTE crea un envío con SU propio operador (manual): Dynamo no interviene.
+export async function crearEnvioManual(envio: Omit<EnvioNuevo, 'cliente_id' | 'importe_cliente' | 'importe_transportista'> & { operador_id: string; precio_acordado_operador: number | null }, paradas: ParadaNueva[]):
+  Promise<{ ok: true; referencia_gx: string } | { ok: false; error: string }> {
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return { ok: false, error: 'Tu cuenta no puede crear envíos todavía.' };
+  if (!envio.operador_id) return { ok: false, error: 'Elige tu operador de transporte.' };
+  if (paradas.length < 2) return { ok: false, error: 'Falta la recogida o la entrega.' };
+  const { data, error } = await s.supabase.rpc('crear_envio_manual', { p_envio: envio, p_paradas: paradas });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const fila = (Array.isArray(data) ? data[0] : data) as { referencia_gx: string } | undefined;
+  return { ok: true, referencia_gx: fila?.referencia_gx ?? '' };
+}

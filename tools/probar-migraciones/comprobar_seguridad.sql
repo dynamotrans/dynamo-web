@@ -2341,3 +2341,36 @@ do $$ begin
   raise notice 'OK 75 · incidencias del transportista: solo de sus viajes, suyas, y el cliente no las ve';
 end $$;
 reset role;
+
+-- ---- 76. Envíos manuales del cliente (con su propio operador) ----------------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare o uuid; e uuid; v record; j jsonb; begin
+  insert into operadores (cliente_id, razon_social, cif) values (current_setting('prueba.cliente')::uuid, 'Mi Camionero 76', 'B76000076') returning id into o;
+  select s.id into e from crear_envio_manual(
+    jsonb_build_object('operador_id', o, 'metros_lineales', 5, 'fecha_carga_desde', current_date, 'precio_acordado_operador', 300),
+    jsonb_build_array(
+      jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Mi nave', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Mi cliente', 'codigo_postal', '29001', 'poblacion', 'Málaga'))) s;
+  select * into v from mis_envios() m where m.id = e;
+  if v.estado <> 'programado' or not v.es_manual or v.precio_acordado_operador <> 300 or v.importe_cliente is not null then raise exception 'FALLO 76 · el envío manual no nace bien: %', v; end if;
+  perform marcar_mi_envio_manual(e, 'en_ruta');
+  if (select estado from mis_envios() m where m.id = e) <> 'en_ruta' then raise exception 'FALLO 76 · no mueve su envío manual'; end if;
+  j := datos_orden_manual(e);
+  if j::text ~* 'dynamo' then raise exception 'FALLO 76 · la orden de transporte del cliente menciona a Dynamo'; end if;
+  -- Un envío de Dynamo no lo mueve el cliente.
+  begin
+    perform marcar_mi_envio_manual(current_setting('prueba.e72')::uuid, 'entregado');
+    raise exception 'FALLO 76 · el cliente mueve un envío de Dynamo';
+  exception when insufficient_privilege then null;
+  end;
+  -- Ni con el operador de otro cliente.
+  begin
+    perform crear_envio_manual(jsonb_build_object('operador_id', gen_random_uuid(), 'fecha_carga_desde', current_date),
+      jsonb_build_array(jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'X', 'poblacion', 'A'), jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Y', 'poblacion', 'B')));
+    raise exception 'FALLO 76 · crea un envío con un operador que no es suyo';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  raise notice 'OK 76 · envíos manuales del cliente: con su operador, los mueve él, orden sin Dynamo; lo de Dynamo no';
+end $$;
+reset role;

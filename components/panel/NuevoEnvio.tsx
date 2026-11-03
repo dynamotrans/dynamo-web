@@ -6,7 +6,7 @@
 // el tarifador llega al final (y el precio lo calculará el servidor, nunca el navegador).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { crearEnvio, crearClienteRapido, cambiarRuta, crearSolicitud, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, crearClienteRapido, cambiarRuta, crearSolicitud, crearEnvioManual, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { fecha as fmtFecha, euros as eur } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
 import { PAISES } from '@/lib/paises';
@@ -81,14 +81,15 @@ const IcoEscudo = () => (<svg viewBox="0 0 24 24" width="17" height="17" fill="n
 
 // esCliente: lo usa el propio CLIENTE (etapa B). Pide una SOLICITUD sin precio: Dynamo
 // se lo pone y él lo acepta después desde la ficha del envío.
-type Props = { clientes: ClienteOpcion[]; sitios: SitioOpcion[]; festivos: string[]; nombresFestivos?: Record<string, string>; error: string | null; base?: Base | null; esCliente?: boolean };
+type Props = { clientes: ClienteOpcion[]; sitios: SitioOpcion[]; festivos: string[]; nombresFestivos?: Record<string, string>; error: string | null; base?: Base | null; esCliente?: boolean;
+  operadores?: { id: string; nombre: string }[] };   // los operadores de transporte del cliente (envío manual)
 
 // Del valor guardado a la opción más cercana del desplegable (que va por tramos).
 const opcionCercana = (v: number | null | undefined, opciones: string[], defecto: string) =>
   v == null ? defecto : opciones.find((o) => Number(o) >= Number(v) - 1e-9) ?? opciones[opciones.length - 1];
 const decimal = (n: number | null | undefined) => (n == null ? '' : String(n).replace('.', ','));
 
-export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false }: Props) {
+export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, operadores = [] }: Props) {
   const be = base?.envio;
   const enRuta = base?.modo === 'ruta';
   const puntoDe = (p: Base['paradas'][number], k: number): Punto => {
@@ -108,7 +109,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
   const sigK = useRef(10);
   const [recogidas, setRecogidas] = useState<Punto[]>(() => {
     const l = (base?.paradas ?? []).filter((p) => p.tipo === 'carga').map((p, i) => puntoDe(p, 100 + i));
-    return l.length ? l : [{ k: 1, tipo: 'carga', sitio: null, nuevo: null }];
+    // El cliente: su sitio principal (la estrella de Sitios) como primera recogida.
+    const prin = esCliente && clientesIni[0]?.principal_id ? sitios.find((x) => x.id === clientesIni[0].principal_id) ?? null : null;
+    return l.length ? l : [{ k: 1, tipo: 'carga', sitio: prin, nuevo: null }];
   });
   const [entregas, setEntregas] = useState<Punto[]>(() => {
     const l = (base?.paradas ?? []).filter((p) => p.tipo === 'descarga').map((p, i) => puntoDe(p, 200 + i));
@@ -139,6 +142,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
   const [fecha, setFecha] = useState('');
   const [pc, setPc] = useState(esCliente ? '' : decimal(be?.importe_cliente));
   const [pt, setPt] = useState(esCliente ? '' : decimal(be?.importe_transportista));
+
+  // ---- Envío MANUAL (solo el cliente): con su propio operador, Dynamo no interviene.
+  const [operador, setOperador] = useState('');
+  const [precioOp, setPrecioOp] = useState('');
+  const manual = esCliente && !!operador;
+  const nombreOp = operadores.find((o) => o.id === operador)?.nombre ?? '';
 
   // ---- Paso 4
   const [discrecion, setDiscrecion] = useState(!!be?.discrecion_comercial);
@@ -237,6 +246,23 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
       };
     });
     const f = forma.toLowerCase();
+    if (manual) {
+      const po = precioOp.trim() ? num(precioOp) : null;
+      if (po != null && !(po >= 0)) { setEnviando(false); setAviso('El precio acordado no es un número válido.'); setPaso(3); return; }
+      const rm = await crearEnvioManual({
+        operador_id: operador, precio_acordado_operador: po,
+        referencia_cliente: refCli, fecha_carga_desde: fecha, fecha_carga_hasta: fechaHasta,
+        descripcion_mercancia: paletizada ? 'Paletizada (mercancía general)' : 'No paletizada',
+        toneladas: Number(peso), metros_lineales: Number(ml),
+        paletizado: paletizada, carga_lateral: f.includes('lateral'), carga_trasera: f.includes('trasera'),
+        carga_superior: f.includes('techo'), plataforma_elevadora: trampilla, nima_requerido: nima, adr,
+        discrecion_comercial: discrecion, anotaciones_cliente: notas,
+      }, paradas);
+      if (!rm.ok) { setEnviando(false); setAviso(rm.error); return; }
+      router.push(`/panel/envios?f=programada&nuevo=${encodeURIComponent(rm.referencia_gx)}&manual=1`);
+      router.refresh();
+      return;
+    }
     if (esCliente) {
       const rs = await crearSolicitud({
         referencia_cliente: refCli, fecha_carga_desde: fecha, fecha_carga_hasta: fechaHasta,
@@ -352,18 +378,28 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                       onNuevo={(c) => { setClientes((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre))); setCliente(c); }} />}
                   </div>
 
+                  {esCliente && !base && operadores.length > 0 && (<>
+                    <div className="ptar-section-head">¿Quién hace el transporte?</div>
+                    <div className="ptar-field ptar-field-full">
+                      <select className="ptar-select" aria-label="Quién hace el transporte" value={operador} onChange={(ev) => setOperador(ev.target.value)}>
+                        <option value="">Dynamo (te pasamos el precio)</option>
+                        {operadores.map((o) => <option key={o.id} value={o.id}>Mi operador: {o.nombre}</option>)}
+                      </select>
+                      {manual && <p className="ptar-admin-precio-note" style={{ marginTop: '0.4rem' }}>Envío con <strong>tu propio transportista</strong>: Dynamo no interviene en nada. La plataforma te sirve para organizarlo y sacar la <strong>orden de transporte</strong> en PDF.</p>}
+                    </div>
+                  </>)}
                   <div className="ptar-section-head">Ruta</div>
                   {recogidas.map((p, i) => (
                     <div key={p.k} className="ptar-field ptar-field-full">
                       <CampoSitio punto={p} numero={i + 1} sitios={sitiosCliente} deshabilitado={!cliente}
-                        placeholder={i === 0 ? 'Recogida · busca en la agenda del cliente' : 'Otra recogida · busca en la agenda'}
+                        placeholder={i === 0 ? (esCliente ? 'Recogida · busca en tus sitios' : 'Recogida · busca en la agenda del cliente') : 'Otra recogida · busca en la agenda'}
                         onCambio={(c) => cambiar(p, c)} onQuitar={i > 0 ? () => quitar(p) : undefined} />
                     </div>
                   ))}
                   {entregas.map((p, i) => (
                     <div key={p.k} className="ptar-field ptar-field-full">
                       <CampoSitio punto={p} numero={recogidas.length + i + 1} sitios={sitiosCliente} deshabilitado={!cliente}
-                        placeholder={i === entregas.length - 1 ? 'Entrega · busca en la agenda del cliente' : 'Otra entrega · busca en la agenda'}
+                        placeholder={i === entregas.length - 1 ? (esCliente ? 'Entrega · busca en tus sitios' : 'Entrega · busca en la agenda del cliente') : 'Otra entrega · busca en la agenda'}
                         onCambio={(c) => cambiar(p, c)} onQuitar={i < entregas.length - 1 ? () => quitar(p) : undefined} />
                     </div>
                   ))}
@@ -373,10 +409,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                       <button type="button" className="ptar-add-parada" onClick={() => nuevaParada('descarga')}><IcoMas /> Añadir entrega</button>
                     </div>
                   )}
-                  <div className="ptar-verif-note" style={{ marginTop: '0.5rem' }}>
+                  {!manual && <div className="ptar-verif-note" style={{ marginTop: '0.5rem' }}>
                     <IcoEscudo />
                     <span>Todos nuestros transportistas están <strong>verificados</strong> y con la <strong>documentación en vigor</strong>.</span>
-                  </div>
+                  </div>}
                 </>)}
 
                 {paso === 2 && (<>
@@ -468,7 +504,14 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                       : <span className="ptar-eta-placeholder">Elige la fecha de recogida.</span>}
                   </div>
                 </div>
-                {esCliente ? (
+                {manual ? (
+                  <div className="ptar-field ptar-field-full ptar-admin-precio">
+                    <div className="ptar-admin-precio-head">Precio con {nombreOp}</div>
+                    <label className="ptar-admin-precio-lbl" htmlFor="ne-pop">Precio acordado con tu transportista (sin IVA) · opcional</label>
+                    <input id="ne-pop" type="text" inputMode="decimal" placeholder="Ej. 450,00" value={precioOp} onChange={(ev) => setPrecioOp(ev.target.value)} />
+                    <p className="ptar-admin-precio-note">Solo para tu control y para la orden de transporte. Dynamo no lo ve en ningún precio suyo.</p>
+                  </div>
+                ) : esCliente ? (
                   <div className="pt-aviso info" style={{ marginTop: '0.6rem' }}><div><strong>Te pasamos el precio en menos de 25 minutos</strong> (en horario de oficina). Te llegará a tu panel y, hasta que lo aceptes, no hay ningún compromiso.</div></div>
                 ) : <>
                 <div className="ptar-field ptar-field-full ptar-admin-precio">
@@ -540,7 +583,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
               </div>
             </div>
             <div className="form-2col-side">
-              {esCliente
+              {manual
+                ? <div className="pt-aviso info" style={{ marginBottom: 0 }}><div><strong>Transporte con {nombreOp}.</strong>{precioOp.trim() ? <> Precio acordado: <strong>{eur(num(precioOp))}</strong> (sin IVA).</> : null} Dynamo no interviene.</div></div>
+                : esCliente
                 ? <div className="pt-aviso info" style={{ marginBottom: 0 }}><div><strong>Precio:</strong> te lo pasamos en menos de 25 minutos (en horario de oficina) y lo aceptas desde el envío.</div></div>
                 : cajaPrecio}
               <div className="ptar-discrecion">
@@ -550,13 +595,15 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                 </label>
               </div>
               <div className="ptar-terms-box">
-                {esCliente
+                {manual
+                  ? <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> queda programado con tu operador y puedes sacar la <strong>orden de transporte</strong> desde el envío.</p>
+                  : esCliente
                   ? <p className="ptar-terms-line">Al pulsar <strong>«Enviar solicitud»</strong> nos llega tu envío para ponerle precio. <strong>No hay compromiso</strong> hasta que aceptes el precio (y las condiciones generales).</p>
                   : <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> el envío queda <strong>programado</strong> y pasa a la pestaña <strong>Sin asignar transportista</strong>.</p>}
               </div>
               {aviso && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
               <div className="ptar-actions ptar-actions-confirm">
-                <button type="button" className="btn-primary" onClick={crear} disabled={enviando}>{enviando ? (esCliente ? 'Enviando…' : 'Creando envío…') : esCliente ? 'Enviar solicitud' : 'Crear envío'}</button>
+                <button type="button" className="btn-primary" onClick={crear} disabled={enviando}>{enviando ? (esCliente && !manual ? 'Enviando…' : 'Creando envío…') : esCliente && !manual ? 'Enviar solicitud' : 'Crear envío'}</button>
                 <button type="button" className="btn-ghost" onClick={() => { setAviso(null); setPaso(3); }} disabled={enviando}>← Editar datos</button>
               </div>
             </div>
