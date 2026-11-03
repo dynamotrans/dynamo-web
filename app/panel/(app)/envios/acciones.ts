@@ -1,6 +1,8 @@
 'use server';
 
 import { sesion, esDynamo } from '@/lib/sesion';
+import { randomUUID, createHash } from 'node:crypto';
+import { pdfDeEnvioDynamo } from '@/lib/pdf/generar';
 
 type Res = { ok: true; aviso?: string } | { ok: false; error: string };
 const vacio = (s: string | null | undefined) => (s ?? '').trim() || null;
@@ -198,4 +200,26 @@ export async function valorarTransportista(envio: string, nota: number | null, c
   if (nota != null && (!Number.isInteger(nota) || nota < 1 || nota > 5)) return { ok: false, error: 'La nota va de 1 a 5.' };
   const { error } = await s.supabase.from('envios').update({ valoracion_transportista: nota, valoracion_comentario: vacio(comentario) }).eq('id', envio);
   return error ? { ok: false, error: traducir(error.message) } : { ok: true, aviso: nota ? 'Valoración guardada.' : 'Valoración quitada.' };
+}
+
+// «Guardar copia en documentos»: la orden de carga o el CMR tal y como salen AHORA, como
+// documento del envío (queda con su huella sha256, quién y cuándo). Para tener constancia
+// de lo que se mandó, aunque el envío cambie después. Solo Dynamo.
+export async function archivarPdf(envioId: string, documento: 'orden-de-carga' | 'cmr'): Promise<{ ok: boolean; error?: string; aviso?: string }> {
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo guarda copias.' };
+  const r = await pdfDeEnvioDynamo(s.supabase, envioId, documento, s.perfil.id);
+  if ('error' in r) return { ok: false, error: r.error };
+  const fecha = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '').replace(/^(\d{8})(\d{4})$/, '$1-$2');
+  const nombre = r.nombre.replace(/\.pdf$/, `-${fecha}.pdf`);
+  const ruta = `envios/${envioId}/${randomUUID()}/${nombre}`;
+  const { error: eSubida } = await s.supabase.storage.from('documentos').upload(ruta, r.bytes, { contentType: 'application/pdf', upsert: false });
+  if (eSubida) return { ok: false, error: `No se ha podido guardar el archivo: ${eSubida.message}` };
+  const sha = createHash('sha256').update(r.bytes).digest('hex');
+  const { error } = await s.supabase.from('documentos').insert({
+    envio_id: envioId, tipo: documento === 'cmr' ? 'cmr' : 'orden_transporte', storage_bucket: 'documentos', storage_ruta: ruta,
+    nombre_archivo: nombre, tipo_mime: 'application/pdf', tamano_bytes: r.bytes.length, sha256: sha, visible_cliente: false,
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, aviso: `Copia guardada en los documentos del envío: ${nombre}.` };
 }

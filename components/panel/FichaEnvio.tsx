@@ -18,7 +18,7 @@ import type { Ficha, ParadaFicha, TransportistaOpcion } from '@/lib/fichaEnvio';
 import { proponerPrecio } from '@/app/panel/(app)/nuevo-envio/acciones';
 import {
   asignarTransportista, quitarTransportista, cambiarEstado, cancelarEnvio, deshacerCancelacion, modificarEnvio,
-  ofrecerCarga, revocarOferta, resolverContraoferta, enlaceCmr, retirarEnlaceCmr, valorarTransportista, type DatosEnvio,
+  ofrecerCarga, revocarOferta, resolverContraoferta, enlaceCmr, retirarEnlaceCmr, valorarTransportista, type DatosEnvio, archivarPdf,
 } from '@/app/panel/(app)/envios/acciones';
 
 const ESTADOS: [string, string, string][] = [
@@ -112,6 +112,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
   const router = useRouter();
   const e = ficha.envio;
   const [vista, setVista] = useState<Vista>('ficha');
+  const [verDocs, setVerDocs] = useState(0);   // para recargar la lista al guardar una copia
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const cerrar = () => router.push(cerrarHref, { scroll: false });
@@ -331,7 +332,21 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
 
       <h4 className="modal-section-title">Documentos</h4>
       <div className="det-block">
-        <Documentos dueno={{ campo: 'envio_id', id: e.id }} conVisibleCliente
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
+          {(manual || ficha.transportista) && e.estado !== 'cancelado' && (
+            <button type="button" className="btn-ghost" disabled={!!trabajando}
+              onClick={async () => { if (await hacer('Guardando la copia', () => archivarPdf(e.id, 'orden-de-carga'))) setVerDocs((n) => n + 1); }}>
+              <I d={ICO.doc} />Guardar copia de la {manual ? 'orden de transporte' : 'orden de carga'}
+            </button>
+          )}
+          {e.estado !== 'cancelado' && (
+            <button type="button" className="btn-ghost" disabled={!!trabajando}
+              onClick={async () => { if (await hacer('Guardando la copia', () => archivarPdf(e.id, 'cmr'))) setVerDocs((n) => n + 1); }}>
+              <I d={ICO.doc} />Guardar copia del CMR
+            </button>
+          )}
+        </div>
+        <Documentos key={verDocs} dueno={{ campo: 'envio_id', id: e.id }} conVisibleCliente
           tipos={['albaran', 'cmr_firmado', 'cmr', 'orden_transporte', 'foto_incidencia', 'gps_tacografo', 'otro']}
           ayuda={<>Albaranes, CMR firmados, fotos… Marca <strong>«Lo ve el cliente»</strong> en los que tenga que ver él (el albarán y el CMR firmado, normalmente).</>} />
       </div>
