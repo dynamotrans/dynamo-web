@@ -1,6 +1,7 @@
 import { sesion, esDynamo } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Clientes, { type ClienteFila, type Bienvenida } from '@/components/panel/Clientes';
+import { contactosDe } from '@/lib/contactos';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,7 @@ export default async function PaginaClientes() {
 
   const [cli, con, par, env] = await Promise.all([
     supabase.from('clientes').select('*').order('nombre_visible').limit(5000),
-    supabase.from('contactos').select('cliente_id, nombre, telefono, email').eq('es_principal', true).not('cliente_id', 'is', null),
+    supabase.from('contactos').select('id, cliente_id, nombre, cargo, funcion, telefono, email, recibe_avisos, es_principal, creado_en').not('cliente_id', 'is', null).limit(50000),
     supabase.from('parametros').select('clave, valor').in('clave', ['factor_bienvenida_pct', 'factor_bienvenida_envios']),
     // Envíos que cuentan para el descuento de bienvenida (mismo criterio que la base de datos).
     supabase.from('envios').select('cliente_id').eq('es_manual', false).not('estado', 'in', '(borrador,cancelado)').limit(100000),
@@ -25,10 +26,10 @@ export default async function PaginaClientes() {
   const bienvenida: Bienvenida = { pct: p.get('factor_bienvenida_pct') ?? -7, envios: p.get('factor_bienvenida_envios') ?? 3 };
   const cuenta = new Map<string, number>();
   (env.data ?? []).forEach((e) => cuenta.set(e.cliente_id as string, (cuenta.get(e.cliente_id as string) ?? 0) + 1));
-  const contactos = new Map((con.data ?? []).map((c) => [c.cliente_id as string, c]));
+  const porCliente = new Map<string, any[]>();
+  (con.data ?? []).forEach((c) => porCliente.set(c.cliente_id as string, [...(porCliente.get(c.cliente_id as string) ?? []), c]));
   const filas: ClienteFila[] = (cli.data ?? []).map((c: any) => {
-    const k = contactos.get(c.id);
-    return { ...c, contacto_nombre: k?.nombre ?? '', contacto_telefono: k?.telefono ?? '', contacto_email: k?.email ?? '', envios_que_cuentan: cuenta.get(c.id) ?? 0 };
+    return { ...c, contactos: contactosDe(porCliente.get(c.id) ?? []), envios_que_cuentan: cuenta.get(c.id) ?? 0 };
   });
   return <Clientes filas={filas} bienvenida={bienvenida} error={cli.error?.message ?? null} />;
 }

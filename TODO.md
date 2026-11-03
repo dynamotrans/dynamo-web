@@ -31,6 +31,11 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       del proyecto. Faltan del mockup: "enviar copia a", consultas de precio, tiempo conectado y documentos.
 - [ ] Transportistas (hecho 2026-11-03): falta la **documentación** (hoja CIF, DNI, otros · máx. 3) — necesita
       Supabase Storage con permisos; y la puntuación de **clientes** (hoy solo existe la interna de Dynamo).
+- [ ] **Horarios de los sitios** (tabla hecha 2026-11-03): (1) rellenarlos con el horario de **Google Places**
+      al conectar Maps; (2) editor de horario también en el sitio nuevo de **Nuevo envío** (hoy recibe el de
+      por defecto y se cambia en Sitios); (3) **usarlos**: hora estimada de llegada, avisar si el camión llega
+      con el sitio cerrado, horario de verano (25 may–15 sep) y festivos. Los tramos de noche (22-06) no caben:
+      se parten en dos días.
 - [ ] Sitios (hecho 2026-11-03): falta el **ejemplo del aviso** al sitio ("Ver ejemplo →" del mockup) y
       **enviar de verdad** esos avisos (n8n / Postmark) a los `contactos` con `recibe_avisos`.
 

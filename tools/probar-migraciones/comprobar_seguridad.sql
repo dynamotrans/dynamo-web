@@ -497,10 +497,15 @@ end $$;
 
 -- ---- 22. Lo que B cambia en su ficha no toca la de A --------------------------------
 do $$ declare n int; begin
-  update lugares set horarios = 'L-V 7:00-15:00' where id = current_setting('prueba.lugar_b')::uuid;
-  update lugares set horarios = 'HACKEADO' where id = current_setting('prueba.lugar_a')::uuid;
+  -- (Desde 2026-11-03 el horario va en lugar_horarios; el texto es un resumen automático.)
+  update lugar_horarios set cierra = '15:00'
+   where lugar_id = current_setting('prueba.lugar_b')::uuid and dia_semana = 1 and abre = '08:00';
+  update lugares set anotaciones = 'HACKEADO' where id = current_setting('prueba.lugar_a')::uuid;
   get diagnostics n = row_count;
   if n <> 0 then raise exception 'FALLO 22 · B ha modificado la ficha de A'; end if;
+  delete from lugar_horarios where lugar_id = current_setting('prueba.lugar_a')::uuid;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'FALLO 22 · B ha borrado el horario de A'; end if;
   update lugares set borrado = true, borrado_en = now() where id = current_setting('prueba.lugar_b')::uuid;
   select count(*) into n from lugares where id = current_setting('prueba.lugar_b')::uuid and not borrado;
   if n <> 0 then raise exception 'FALLO 22 · el sitio borrado sigue en la agenda de B'; end if;
@@ -512,7 +517,8 @@ do $$ declare n int; begin
 end $$;
 reset role;
 do $$ begin
-  if (select horarios from lugares where id = current_setting('prueba.lugar_a')::uuid) is not null then
+  if (select horarios from lugares where id = current_setting('prueba.lugar_a')::uuid)
+     is distinct from 'L-J 8:00-14:00 y 15:00-17:30 · V 8:00-14:00' then
     raise exception 'FALLO 22 · el horario de la ficha de A ha cambiado';
   end if;
   if (select anotaciones from lugares where id = current_setting('prueba.lugar_a')::uuid) not like 'Manolo%' then
@@ -1483,3 +1489,89 @@ do $$ begin
   end if;
   raise notice 'OK 54 · tipos de lugar: almacen/nave/campa, obra en zona amplia, obra en zona urbana y finca';
 end $$;
+
+-- ---- 55. Emails de avisos del sitio: lista propia, validada y con tope ---------------
+do $$ declare l uuid := current_setting('prueba.lugar_b')::uuid; begin
+  update lugares set emails_avisos = '{almacen@nave.es,recepcion@nave.es}' where id = l;
+  begin
+    update lugares set emails_avisos = '{esto-no-es-un-email}' where id = l;
+    raise exception 'FALLO 55 · se ha guardado un email de avisos no valido';
+  exception when check_violation then null;
+  end;
+  begin
+    update lugares set emails_avisos = array(select 'a' || g || '@x.es' from generate_series(1, 11) g) where id = l;
+    raise exception 'FALLO 55 · se han guardado mas de 10 emails de avisos';
+  exception when check_violation then null;
+  end;
+  raise notice 'OK 55 · emails de avisos del sitio: lista propia, validados y como mucho 10';
+end $$;
+
+-- =====================================================================================
+-- HORARIOS DE LOS SITIOS EN TABLA (2026-11-03)
+-- =====================================================================================
+-- ---- 56. Horario por defecto, resumen automático, tramos sin solapes y permisos ------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare l uuid; begin
+  insert into lugares (nombre_empresa, codigo_postal) values ('Nave con horario', '41001') returning id into l;
+  perform set_config('prueba.lugar_horario', l::text, false);
+  if (select count(*) from lugar_horarios where lugar_id = l) <> 9 then
+    raise exception 'FALLO 56 · el sitio no ha nacido con el horario por defecto';
+  end if;
+  if (select horarios from lugares where id = l) <> 'L-J 8:00-14:00 y 15:00-17:30 · V 8:00-14:00' then
+    raise exception 'FALLO 56 · resumen: %', (select horarios from lugares where id = l);
+  end if;
+  -- El cliente cambia su horario: el viernes también por la tarde, y abre el sábado.
+  delete from lugar_horarios where lugar_id = l and dia_semana = 5;
+  insert into lugar_horarios (lugar_id, dia_semana, abre, cierra) values
+    (l, 5, '08:00', '14:00'), (l, 5, '15:00', '17:30'), (l, 6, '09:00', '13:00');
+  if (select horarios from lugares where id = l) <> 'L-V 8:00-14:00 y 15:00-17:30 · S 9:00-13:00' then
+    raise exception 'FALLO 56 · resumen tras cambiar: %', (select horarios from lugares where id = l);
+  end if;
+  begin
+    insert into lugar_horarios (lugar_id, dia_semana, abre, cierra) values (l, 1, '13:00', '16:00');
+    raise exception 'FALLO 56 · se han aceptado dos tramos que se pisan';
+  exception when exclusion_violation then null;
+  end;
+  begin
+    insert into lugar_horarios (lugar_id, dia_semana, abre, cierra) values (l, 7, '18:00', '09:00');
+    raise exception 'FALLO 56 · se ha aceptado un tramo que cierra antes de abrir';
+  exception when check_violation then null;
+  end;
+  -- Guardar de una vez: sustituye todo; vacío no vale; con un tramo malo no cambia nada.
+  perform guardar_horario(l, '[{"dia":1,"abre":"07:00","cierra":"15:00"},{"dia":2,"abre":"07:00","cierra":"15:00"}]');
+  if (select horarios from lugares where id = l) <> 'L-M 7:00-15:00' then
+    raise exception 'FALLO 56 · guardar_horario: %', (select horarios from lugares where id = l);
+  end if;
+  begin
+    perform guardar_horario(l, '[]');
+    raise exception 'FALLO 56 · se ha guardado un horario vacio';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO%' then raise; end if;   -- que el propio fallo no se lo trague
+  end;
+  begin
+    perform guardar_horario(l, '[{"dia":3,"abre":"10:00","cierra":"09:00"}]');
+  exception when check_violation then null;
+  end;
+  if (select horarios from lugares where id = l) <> 'L-M 7:00-15:00' then
+    raise exception 'FALLO 56 · un horario malo ha dejado el sitio a medias';
+  end if;
+  -- El resumen no se escribe a mano.
+  update lugares set horarios = 'Siempre abierto' where id = l;
+  if (select horarios from lugares where id = l) = 'Siempre abierto' then
+    raise exception 'FALLO 56 · el resumen del horario se ha podido escribir a mano';
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+set role authenticated;
+do $$ declare n int; begin
+  select count(*) into n from lugar_horarios where lugar_id = current_setting('prueba.lugar_horario')::uuid;
+  if n <> 0 then raise exception 'FALLO 56 · FUGA: B ve el horario del sitio de A'; end if;
+  delete from lugar_horarios where lugar_id = current_setting('prueba.lugar_horario')::uuid;
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'FALLO 56 · B ha borrado el horario del sitio de A'; end if;
+  raise notice 'OK 56 · horarios en tabla: por defecto L-J 8-14 y 15-17:30 · V 8-14, resumen automatico, sin solapes, cada cliente el suyo';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

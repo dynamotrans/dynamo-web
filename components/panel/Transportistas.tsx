@@ -10,7 +10,9 @@ import Cargando from '@/components/Cargando';
 import { guardarTransportista, type TransportistaDatos } from '@/app/panel/(app)/transportistas/acciones';
 import { creadoTxt } from '@/lib/envios';
 import { fecha as fmtFecha } from '@/lib/formato';
-import { PAISES, PREFIJOS, paisDe, partirTel, telBonito } from '@/lib/paises';
+import { PAISES, telBonito } from '@/lib/paises';
+import { principal, CONTACTO_VACIO } from '@/lib/contactos';
+import EditorContactos from './EditorContactos';
 
 type Flota = { tractoras: number; rigidos: number; remolques: number; adr: boolean; matriculas: string[] };
 export type TransportistaFila = TransportistaDatos & {
@@ -62,7 +64,7 @@ const NUEVO: TransportistaDatos = {
   nima: '', almacen_logistico: false, tipo_camion_defecto: '',
   seguro_cmr_compania: '', seguro_cmr_poliza: '', seguro_cmr_vence: '',
   cuenta_contable: '', forma_pago_holded_id: '', anotaciones: '', incidencias_notas: '',
-  contacto_nombre: '', contacto_telefono: '', email_trafico: '', email_contabilidad: '',
+  contactos: [CONTACTO_VACIO('trafico')],
 };
 
 export default function Transportistas({ filas, error }: { filas: TransportistaFila[]; error: string | null }) {
@@ -78,7 +80,7 @@ export default function Transportistas({ filas, error }: { filas: TransportistaF
       .filter((t) => !fEstado || t.estado_operativo === fEstado)
       .filter((t) => !fAdr || (fAdr === 'si') === t.flota.adr)
       .filter((t) => !w || norm([t.razon_social, t.nombre_comercial, t.cif, t.codigo, t.codigo_bolsa, bolsaDe(t.bolsa),
-        t.contacto_nombre, t.contacto_telefono, t.email_trafico, t.poblacion, t.provincia, t.nima,
+        ...t.contactos.flatMap((k) => [k.nombre, k.telefono, k.email]), t.poblacion, t.provincia, t.nima,
         ...t.flota.matriculas].filter(Boolean).join(' ')).includes(w));
   }, [filas, q, fEstado, fAdr]);
 
@@ -127,7 +129,7 @@ export default function Transportistas({ filas, error }: { filas: TransportistaF
                     <div className="meta">{t.cif}{t.poblacion ? ` · ${t.poblacion}` : ''}</div>
                     <AvisoSeguro vence={t.seguro_cmr_vence} />
                   </td>
-                  <td>{t.contacto_nombre || '—'}<div className="meta">{[telBonito(t.contacto_telefono), t.email_trafico].filter(Boolean).join(' · ')}</div></td>
+                  <td>{(() => { const k = principal(t.contactos, 'trafico') ?? principal(t.contactos); return <>{k?.nombre || '—'}<div className="meta">{[telBonito(k?.telefono ?? ''), k?.email].filter(Boolean).join(' · ')}</div>{t.contactos.length > 1 && <div className="meta">+{t.contactos.length - 1} contacto{t.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
                   <td>{t.codigo_bolsa ? <><span className="dtc-mat">{t.codigo_bolsa}</span><div className="meta">{bolsaDe(t.bolsa)}</div></> : t.bolsa ? <span className="meta">{bolsaDe(t.bolsa)} · sin código</span> : '—'}</td>
                   <td>Dynamo: <Estrellas v={t.valoracion_dynamo} n={t.valoracion_dynamo_votos} /></td>
                   <td>{camiones ? <strong>{camiones} {camiones === 1 ? 'camión' : 'camiones'}</strong> : '—'}
@@ -157,9 +159,6 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
     (Object.keys(NUEVO) as (keyof TransportistaDatos)[]).forEach((k) => { o[k] = (fila as any)[k] ?? (NUEVO as any)[k]; });
     return o as TransportistaDatos;
   });
-  const tel = partirTel(d.contacto_telefono);
-  const [pref, setPref] = useState(tel.pref);
-  const [telNum, setTelNum] = useState(tel.num);
   const [textos, setTextos] = useState({ iva: String(d.iva_porcentaje), ret: String(d.retencion_porcentaje) });
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -173,7 +172,6 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
     setGuardando(true);
     const r = await guardarTransportista(fila?.id ?? null, {
       ...d, iva_porcentaje: iva ?? 21, retencion_porcentaje: ret ?? 0,
-      contacto_telefono: telNum.trim() ? pref + telNum.replace(/\D/g, '') : '',
     });
     setGuardando(false);
     if (!r.ok) { setError(r.error); return; }
@@ -255,21 +253,9 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
           </select>
         </div>
 
-        {titulo('Contacto')}
-        {campo('contacto_nombre', 'Persona de contacto', 'Nombre y apellidos', true)}
-        <div>
-          <label htmlFor="tra-tel">Teléfono</label>
-          <div className="tel-group">
-            <select className="tel-pref" aria-label="Prefijo de país" value={pref} onChange={(e) => setPref(e.target.value)}>
-              {PREFIJOS.map(([p, n]) => <option key={p} value={p}>{p} {n}</option>)}
-            </select>
-            <input id="tra-tel" type="tel" inputMode="tel" value={telNum} placeholder="600 000 000" onChange={(e) => setTelNum(e.target.value)} />
-          </div>
-        </div>
-        {campo('email_trafico', 'Email (tráfico)', 'trafico@dominio.com', false, 'email')}
-        {campo('email_contabilidad', 'Email (contabilidad)', 'contabilidad@dominio.com', false, 'email')}
-        <div />
-        {nota(<>El de <strong>tráfico</strong> se usa para los avisos de la operativa (recogidas, entregas, incidencias). El de <strong>contabilidad</strong> es <strong>SOLO ADMIN</strong> (facturas): no se le muestra al transportista ni se usa para las cargas.</>)}
+        {titulo('Personas de contacto')}
+        <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)} conFuncion funcionNueva="trafico"
+          ayuda={<>Los de <strong>tráfico</strong> reciben los avisos de la operativa (cargas, recogidas, incidencias). Los de <strong>contabilidad</strong> son <strong>SOLO ADMIN</strong> (facturas): el transportista no los ve.</>} />
 
         {titulo('Pago')}
         <div>

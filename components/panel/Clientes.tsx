@@ -10,7 +10,9 @@ import Cargando from '@/components/Cargando';
 import { guardarCliente, type ClienteDatos } from '@/app/panel/(app)/clientes/acciones';
 import { euros } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
-import { PAISES, PREFIJOS, paisDe, partirTel, telBonito } from '@/lib/paises';
+import { PAISES, paisDe, telBonito } from '@/lib/paises';
+import { principal, CONTACTO_VACIO } from '@/lib/contactos';
+import EditorContactos from './EditorContactos';
 
 export type ClienteFila = ClienteDatos & {
   id: string; codigo: string; nombre_visible: string;
@@ -43,7 +45,7 @@ const NUEVO: ClienteDatos = {
   recargo_pago_tarde_porcentaje: 0, riesgo_cesce_euros: null, riesgo_manual_euros: null,
   factor_tarifa_porcentaje: -7, factor_fijado_a_mano: false, permite_contraoferta: false, discrecion_comercial: false,
   cuenta_contable: '', forma_pago_holded_id: '', anotaciones: '',
-  contacto_nombre: '', contacto_telefono: '', contacto_email: '',
+  contactos: [CONTACTO_VACIO()],
 };
 
 export default function Clientes({ filas, error, bienvenida }: { filas: ClienteFila[]; error: string | null; bienvenida: Bienvenida }) {
@@ -55,7 +57,7 @@ export default function Clientes({ filas, error, bienvenida }: { filas: ClienteF
     const w = norm(q.trim());
     if (!w) return filas;
     return filas.filter((c) => norm([c.razon_social, c.nombre_comercial, c.cif, c.codigo, c.direccion, c.codigo_postal,
-      c.poblacion, c.provincia, paisDe(c.pais_codigo_iso), c.contacto_nombre, c.contacto_telefono, c.contacto_email,
+      c.poblacion, c.provincia, paisDe(c.pais_codigo_iso), ...c.contactos.flatMap((k) => [k.nombre, k.telefono, k.email, k.cargo]),
       c.anotaciones].filter(Boolean).join(' ')).includes(w));
   }, [filas, q]);
 
@@ -94,7 +96,7 @@ export default function Clientes({ filas, error, bienvenida }: { filas: ClienteF
               return (
                 <tr key={c.id} onClick={() => setFicha({ fila: c })} style={{ cursor: 'pointer' }}>
                   <td><strong>{c.nombre_visible}</strong><div className="meta">{c.cif}{c.nombre_comercial ? ` · ${c.razon_social}` : ''}</div></td>
-                  <td>{c.contacto_nombre || '—'}<div className="meta">{[telBonito(c.contacto_telefono), c.contacto_email].filter(Boolean).join(' · ')}</div></td>
+                  <td>{(() => { const k = principal(c.contactos); return <>{k?.nombre || '—'}<div className="meta">{[telBonito(k?.telefono ?? ''), k?.email].filter(Boolean).join(' · ')}</div>{c.contactos.length > 1 && <div className="meta">+{c.contactos.length - 1} contacto{c.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
                   <td>{c.direccion || '—'}<div className="meta">{[c.codigo_postal, c.poblacion, c.provincia, paisDe(c.pais_codigo_iso)].filter(Boolean).join(', ')}</div></td>
                   <td>{c.plazo_pago_dias === 0 ? 'Pago inmediato (0 días)' : `Crédito ${c.plazo_pago_dias} días`}
                     <div className="meta">{cesce > 0 ? <span style={{ color: '#0f6b3a', fontWeight: 700 }}>CESCE {euros(cesce)}</span> : 'Sin crédito CESCE'} · Dynamo {euros(dyn)}</div></td>
@@ -123,9 +125,6 @@ function FichaCliente({ fila, bienvenida, onCerrar, onGuardado }: { fila: Client
     (Object.keys(NUEVO) as (keyof ClienteDatos)[]).forEach((k) => { o[k] = (fila as any)[k] ?? (NUEVO as any)[k]; });
     return o as ClienteDatos;
   });
-  const tel = partirTel(d.contacto_telefono);
-  const [pref, setPref] = useState(tel.pref);
-  const [telNum, setTelNum] = useState(tel.num);
   const [textos, setTextos] = useState({
     cesce: d.riesgo_cesce_euros == null ? '' : String(d.riesgo_cesce_euros),
     dyn: d.riesgo_manual_euros == null ? '' : String(d.riesgo_manual_euros),
@@ -147,7 +146,6 @@ function FichaCliente({ fila, bienvenida, onCerrar, onGuardado }: { fila: Client
       riesgo_cesce_euros: n.cesce, riesgo_manual_euros: n.dyn,
       iva_porcentaje: n.iva ?? 21, retencion_porcentaje: n.ret ?? 0,
       recargo_equivalencia_porcentaje: n.re ?? 0, recargo_pago_tarde_porcentaje: n.tarde ?? 0,
-      contacto_telefono: telNum.trim() ? pref + telNum.replace(/\D/g, '') : '',
     });
     setGuardando(false);
     if (!r.ok) { setError(r.error); return; }
@@ -218,18 +216,9 @@ function FichaCliente({ fila, bienvenida, onCerrar, onGuardado }: { fila: Client
           </select>
         </div>
 
-        {titulo('Contacto')}
-        {campo('contacto_nombre', 'Persona de contacto', 'Nombre y apellidos', true)}
-        <div>
-          <label htmlFor="cli-tel">Teléfono</label>
-          <div className="tel-group">
-            <select className="tel-pref" aria-label="Prefijo de país" value={pref} onChange={(e) => setPref(e.target.value)}>
-              {PREFIJOS.map(([p, n]) => <option key={p} value={p}>{p} {n}</option>)}
-            </select>
-            <input id="cli-tel" type="tel" inputMode="tel" value={telNum} placeholder="600 000 000" onChange={(e) => setTelNum(e.target.value)} />
-          </div>
-        </div>
-        {campo('contacto_email', 'Email (contabilidad y gerencia)', 'administracion@dominio.com')}
+        {titulo('Personas de contacto')}
+        <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)} conFuncion
+          ayuda={<>La primera es la <strong>principal</strong> (la que sale en la tabla). Pon en <strong>Contabilidad</strong> a quien recibe las facturas.</>} />
 
         {titulo('Condiciones')}
         <div>

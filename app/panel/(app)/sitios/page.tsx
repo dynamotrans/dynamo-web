@@ -1,6 +1,8 @@
 import { sesion, esDynamo } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Sitios, { type SitioFila, type ClienteSitios } from '@/components/panel/Sitios';
+import { contactosDe } from '@/lib/contactos';
+import { gruposDe, type FilaHorario } from '@/lib/horarios';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,11 +19,12 @@ export default async function PaginaSitios() {
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es de los clientes y del equipo de Dynamo.</div></div></section>;
   }
 
-  const [lug, con] = await Promise.all([
+  const [lug, con, hor] = await Promise.all([
     supabase.from('lugares')
-      .select('id, codigo, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, url_google_maps, anotaciones, requiere_cita, tiene_medios_carga, creado_en, modificado_en')
+      .select('id, codigo, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, url_google_maps, anotaciones, requiere_cita, tiene_medios_carga, emails_avisos, creado_en, modificado_en')
       .eq('borrado', false).eq('es_almacen_dynamo', false).order('nombre_empresa').limit(10000),
-    supabase.from('contactos').select('lugar_id, nombre, telefono, email, es_principal, recibe_avisos').not('lugar_id', 'is', null).limit(50000),
+    supabase.from('contactos').select('id, lugar_id, nombre, cargo, funcion, telefono, email, recibe_avisos, es_principal, creado_en').not('lugar_id', 'is', null).limit(50000),
+    supabase.from('lugar_horarios').select('lugar_id, dia_semana, abre, cierra').limit(100000),
   ]);
 
   // Clientes (para Dynamo, todos; para un cliente, él mismo) con su sitio principal.
@@ -37,21 +40,17 @@ export default async function PaginaSitios() {
     }
   }
 
-  const contactos = new Map<string, { nombre: string; telefono: string; emails: string[] }>();
-  (con.data ?? []).forEach((c) => {
-    const k = c.lugar_id as string;
-    const x = contactos.get(k) ?? { nombre: '', telefono: '', emails: [] };
-    if (c.es_principal) { x.nombre = c.nombre ?? ''; x.telefono = c.telefono ?? ''; }
-    else if (c.recibe_avisos && c.email) x.emails.push(c.email);
-    contactos.set(k, x);
-  });
+  const horarioDe = new Map<string, FilaHorario[]>();
+  (hor.data ?? []).forEach((h) => horarioDe.set(h.lugar_id as string, [...(horarioDe.get(h.lugar_id as string) ?? []), h as FilaHorario]));
+  const porSitio = new Map<string, any[]>();
+  (con.data ?? []).forEach((c) => porSitio.set(c.lugar_id as string, [...(porSitio.get(c.lugar_id as string) ?? []), c]));
   const filas: SitioFila[] = (lug.data ?? []).map((l: any) => {
-    const c = contactos.get(l.id);
     return {
       ...l, provincia: l.provincia ?? '', horarios: l.horarios ?? '', url_google_maps: l.url_google_maps ?? '',
       anotaciones: l.anotaciones ?? '', tipo: l.tipo ?? 'almacen_nave',
-      contacto_nombre: c?.nombre === 'Contacto del sitio' ? '' : c?.nombre ?? '', contacto_telefono: c?.telefono ?? '',
-      emails_avisos: (c?.emails ?? []).join(', '),
+      contactos: contactosDe(porSitio.get(l.id) ?? []),
+      horario: gruposDe(horarioDe.get(l.id) ?? []),
+      emails_avisos: (l.emails_avisos ?? []).join(', '),
     };
   });
   return <Sitios filas={filas} clientes={clientes} dynamo={dynamo} error={lug.error?.message ?? null} />;

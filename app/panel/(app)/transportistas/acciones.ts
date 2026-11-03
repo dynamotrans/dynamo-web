@@ -1,6 +1,8 @@
 'use server';
 
 import { sesion, esDynamo } from '@/lib/sesion';
+import type { ContactoDatos } from '@/lib/contactos';
+import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosServidor';
 
 export type TransportistaDatos = {
   razon_social: string; nombre_comercial: string; cif: string;
@@ -11,8 +13,8 @@ export type TransportistaDatos = {
   nima: string; almacen_logistico: boolean; tipo_camion_defecto: string;
   seguro_cmr_compania: string; seguro_cmr_poliza: string; seguro_cmr_vence: string;
   cuenta_contable: string; forma_pago_holded_id: string; anotaciones: string; incidencias_notas: string;
-  // Contactos (tabla contactos): tráfico (persona, teléfono, email) y contabilidad (email).
-  contacto_nombre: string; contacto_telefono: string; email_trafico: string; email_contabilidad: string;
+  // Personas de contacto (tabla contactos): tráfico, contabilidad, conductores…
+  contactos: ContactoDatos[];
 };
 
 function traducir(msg: string): string {
@@ -34,6 +36,9 @@ export async function guardarTransportista(id: string | null, d: TransportistaDa
   }
   if (!d.razon_social.trim() || !d.cif.trim()) return { ok: false, error: 'La empresa y el CIF/NIF son obligatorios.' };
   if (d.codigo_bolsa.trim() && !d.bolsa) return { ok: false, error: 'Si pones código de bolsa, elige también la bolsa.' };
+  const contactos = sinVacios(d.contactos);
+  const malContacto = validarContactos(contactos);
+  if (malContacto) return { ok: false, error: malContacto };
 
   const fila = {
     razon_social: d.razon_social.trim(), nombre_comercial: vacio(d.nombre_comercial),
@@ -56,23 +61,7 @@ export async function guardarTransportista(id: string | null, d: TransportistaDa
   if (error) return { ok: false, error: traducir(error.message) };
   const tid = data.id as string;
 
-  // Un contacto principal por función. Si se vacía, se quita.
-  async function contacto(funcion: 'trafico' | 'contabilidad', c: { nombre: string | null; telefono: string | null; email: string | null }) {
-    const { data: actual } = await s!.supabase.from('contactos').select('id')
-      .eq('transportista_id', tid).eq('funcion', funcion).eq('es_principal', true).maybeSingle();
-    if (c.telefono || c.email) {
-      const v = { transportista_id: tid, funcion, es_principal: true, recibe_avisos: funcion === 'trafico', ...c,
-                  nombre: c.nombre ?? (funcion === 'trafico' ? 'Tráfico' : 'Contabilidad') };
-      const r = actual ? await s!.supabase.from('contactos').update(v).eq('id', actual.id) : await s!.supabase.from('contactos').insert(v);
-      return r.error ? traducir(r.error.message) : null;
-    }
-    if (actual) await s!.supabase.from('contactos').delete().eq('id', actual.id);
-    return null;
-  }
-  const tel = d.contacto_telefono.replace(/[^\d+]/g, '');
-  const e1 = await contacto('trafico', { nombre: vacio(d.contacto_nombre), telefono: tel.replace('+', '').length >= 6 ? tel : null, email: vacio(d.email_trafico) });
-  if (e1) return { ok: false, error: e1 };
-  const e2 = await contacto('contabilidad', { nombre: null, telefono: null, email: vacio(d.email_contabilidad) });
-  if (e2) return { ok: false, error: e2 };
+  const e2 = await guardarContactos(s.supabase, { transportista_id: tid }, contactos);
+  if (e2) return { ok: false, error: traducir(e2) };
   return { ok: true, id: tid };
 }

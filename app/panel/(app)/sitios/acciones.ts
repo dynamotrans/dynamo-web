@@ -1,14 +1,18 @@
 'use server';
 
 import { sesion, esDynamo } from '@/lib/sesion';
+import type { ContactoDatos } from '@/lib/contactos';
+import { validarHorario, tramosDe, type GrupoHorario } from '@/lib/horarios';
+import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosServidor';
 
 export type SitioDatos = {
   cliente_id: string; nombre_empresa: string; tipo: string;
   direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais_codigo_iso: string;
-  horarios: string; url_google_maps: string; anotaciones: string;
+  horario: GrupoHorario[];        // obligatorio (tabla lugar_horarios)
+  url_google_maps: string; anotaciones: string;
   requiere_cita: boolean; tiene_medios_carga: boolean;
-  contacto_nombre: string; contacto_telefono: string;
-  emails_avisos: string;          // uno o varios, separados por comas
+  contactos: ContactoDatos[];     // personas (tabla contactos, una o varias)
+  emails_avisos: string;          // uno o varios, separados por comas (lugares.emails_avisos)
 };
 type Res = { ok: true; id: string } | { ok: false; error: string; duplicado?: { id: string; nombre: string } };
 
@@ -43,11 +47,17 @@ export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParez
   const emails = [...new Set(d.emails_avisos.split(/[,;\s]+/).map((e) => e.trim().toLowerCase()).filter(Boolean))];
   if (emails.length > 10) return { ok: false, error: `Máximo 10 emails de avisos por sitio (has puesto ${emails.length}).` };
   const malo = emails.find((e) => !EMAIL.test(e));
+  if (id && emails.length === 0) {
+    const { data: antes } = await s.supabase.from('lugares').select('emails_avisos').eq('id', id).single();
+    if ((antes?.emails_avisos ?? []).length) return { ok: false, error: 'El email de avisos no se puede dejar vacío: solo se puede cambiar por otro válido.' };
+  }
   if (malo) return { ok: false, error: `«${malo}» no es un email válido. Si pones varios, sepáralos por comas.` };
 
-  const tel = d.contacto_telefono.replace(/[^\d+]/g, '');
-  const telOk = tel.replace('+', '').length >= 6 ? tel : null;
-  if (d.contacto_nombre.trim() && !telOk) return { ok: false, error: 'Para guardar la persona de contacto, pon también su teléfono.' };
+  const malHorario = validarHorario(d.horario);
+  if (malHorario) return { ok: false, error: malHorario };
+  const contactos = sinVacios(d.contactos);
+  const malContacto = validarContactos(contactos);
+  if (malContacto) return { ok: false, error: malContacto };
 
   // Aviso de duplicado (no bloquea): mismo cliente, mismo nombre y mismo código postal.
   if (!id && !aunqueParezcaRepetido) {
@@ -61,8 +71,9 @@ export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParez
     nombre_empresa: d.nombre_empresa.trim(), tipo: d.tipo || 'almacen_nave',
     direccion: d.direccion.trim(), codigo_postal: d.codigo_postal.trim(), poblacion: d.poblacion.trim(),
     provincia: vacio(d.provincia), pais_codigo_iso: d.pais_codigo_iso || 'ES',
-    horarios: vacio(d.horarios), anotaciones: vacio(d.anotaciones),
+    anotaciones: vacio(d.anotaciones),
     requiere_cita: d.requiere_cita, tiene_medios_carga: d.tiene_medios_carga,
+    emails_avisos: emails,
   };
   // El enlace de Google Maps solo lo toca Dynamo (en el mockup, el cliente lo ve fijo).
   if (esDynamo(s.perfil!.rol)) fila.url_google_maps = vacio(d.url_google_maps);
@@ -75,32 +86,11 @@ export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParez
   if (error) return { ok: false, error: traducir(error.message) };
   const lugarId = data.id as string;
 
-  // Persona de contacto del sitio (una, la principal).
-  const { data: prin } = await s.supabase.from('contactos').select('id')
-    .eq('lugar_id', lugarId).eq('es_principal', true).maybeSingle();
-  if (telOk) {
-    const c = { lugar_id: lugarId, nombre: vacio(d.contacto_nombre) ?? 'Contacto del sitio', telefono: telOk, es_principal: true };
-    const r = prin ? await s.supabase.from('contactos').update(c).eq('id', prin.id) : await s.supabase.from('contactos').insert(c);
-    if (r.error) return { ok: false, error: traducir(r.error.message) };
-  } else if (prin) {
-    await s.supabase.from('contactos').delete().eq('id', prin.id);
-  }
-
-  // Emails de avisos: uno por fila en contactos (recibe_avisos). Se quitan los que ya no
-  // están y se añaden los nuevos; los que siguen igual no se tocan (no ensucian la auditoría).
-  const { data: actuales } = await s.supabase.from('contactos').select('id, email')
-    .eq('lugar_id', lugarId).eq('recibe_avisos', true).eq('es_principal', false);
-  const ya = new Map((actuales ?? []).map((c) => [String(c.email ?? '').toLowerCase(), c.id as string]));
-  if (ya.size > 0 && emails.length === 0) {
-    return { ok: false, error: 'El email de avisos no se puede dejar vacío: solo se puede cambiar por otro válido.' };
-  }
-  const fuera = [...ya].filter(([e]) => !emails.includes(e)).map(([, i]) => i);
-  if (fuera.length) await s.supabase.from('contactos').delete().in('id', fuera);
-  const nuevos = emails.filter((e) => !ya.has(e)).map((email) => ({ lugar_id: lugarId, email, recibe_avisos: true, nombre: 'Avisos' }));
-  if (nuevos.length) {
-    const r = await s.supabase.from('contactos').insert(nuevos);
-    if (r.error) return { ok: false, error: traducir(r.error.message) };
-  }
+  // Horario: de una vez (todo o nada). Al crear, sustituye al de por defecto.
+  const eh = await s.supabase.rpc('guardar_horario', { p_lugar: lugarId, p_tramos: tramosDe(d.horario) });
+  if (eh.error) return { ok: false, error: /se pisan/i.test(eh.error.message) ? 'Hay dos tramos del mismo día que se pisan.' : traducir(eh.error.message) };
+  const e2 = await guardarContactos(s.supabase, { lugar_id: lugarId }, contactos);
+  if (e2) return { ok: false, error: traducir(e2) };
   return { ok: true, id: lugarId };
 }
 

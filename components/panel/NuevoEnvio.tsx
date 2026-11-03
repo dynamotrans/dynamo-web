@@ -602,7 +602,7 @@ function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, onCambi
           <select className="ptar-select" value={form.tipo_lugar} onChange={(e) => setForm({ ...form, tipo_lugar: e.target.value })}>
             {TIPOS_LUGAR.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
           </select>
-          <Campo l="Horario (opcional)" v={form.horarios} on={(v) => setForm({ ...form, horarios: v })} ph="Ej. L-V 8:00-14:00" />
+          <p className="ptar-admin-precio-note">Horario: se le pone el de por defecto (L-J 8:00-14:00 y 15:00-17:30 · V 8:00-14:00). Si es otro, cámbialo luego en <strong>Sitios</strong>.</p>
           <label className="ptar-confirm-check" style={{ marginTop: '0.7rem' }}>
             <input type="checkbox" checked={form.guardar} onChange={(e) => setForm({ ...form, guardar: e.target.checked })} />
             <span>Guardarlo en la <strong>agenda de sitios</strong> del cliente</span>

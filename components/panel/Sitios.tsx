@@ -11,10 +11,15 @@ import Cargando from '@/components/Cargando';
 import { IconoTipo, TIPOS_LUGAR } from './TipoSitio';
 import { guardarSitio, borrarSitio, marcarPrincipal, type SitioDatos } from '@/app/panel/(app)/sitios/acciones';
 import { creadoTxt } from '@/lib/envios';
-import { PAISES, PREFIJOS, paisDe, partirTel, telBonito } from '@/lib/paises';
+import { PAISES, paisDe, telBonito } from '@/lib/paises';
+import { principal, CONTACTO_VACIO } from '@/lib/contactos';
+import EditorContactos from './EditorContactos';
+import EditorHorario from './EditorHorario';
+import { HORARIO_POR_DEFECTO, validarHorario } from '@/lib/horarios';
 
 export type SitioFila = SitioDatos & {
   id: string; codigo: string; creado_en: string; modificado_en: string | null;
+  horarios: string | null;   // resumen legible que escribe la base de datos
 };
 export type ClienteSitios = { id: string; nombre: string; cif: string; principal_id: string | null };
 
@@ -24,8 +29,8 @@ const esNuevo = (iso: string) => Date.now() - new Date(iso).getTime() < 48 * 360
 
 const NUEVO: SitioDatos = {
   cliente_id: '', nombre_empresa: '', tipo: '', direccion: '', codigo_postal: '', poblacion: '',
-  provincia: '', pais_codigo_iso: 'ES', horarios: '', url_google_maps: '', anotaciones: '',
-  requiere_cita: false, tiene_medios_carga: true, contacto_nombre: '', contacto_telefono: '', emails_avisos: '',
+  provincia: '', pais_codigo_iso: 'ES', horario: HORARIO_POR_DEFECTO, url_google_maps: '', anotaciones: '',
+  requiere_cita: false, tiene_medios_carga: true, contactos: [CONTACTO_VACIO()], emails_avisos: '',
 };
 
 const IcoEstrella = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>);
@@ -49,7 +54,7 @@ export default function Sitios({ filas, clientes, dynamo, error }: { filas: Siti
     return filas
       .filter((f) => !filtroCliente || f.cliente_id === filtroCliente)
       .filter((f) => !w || norm([f.nombre_empresa, f.direccion, f.codigo_postal, f.poblacion, f.provincia,
-        f.contacto_nombre, f.contacto_telefono, f.emails_avisos, f.anotaciones, f.horarios,
+        ...f.contactos.flatMap((k) => [k.nombre, k.telefono, k.email]), f.emails_avisos, f.anotaciones, f.horarios,
         dynamo ? cliPorId.get(f.cliente_id)?.nombre : ''].filter(Boolean).join(' ')).includes(w))
       .sort((a, b) => {
         // Dynamo sin filtro: agrupados por cliente. Dentro de cada cliente, como en el
@@ -140,7 +145,7 @@ export default function Sitios({ filas, clientes, dynamo, error }: { filas: Siti
                   <td>{f.horarios || '—'}
                     {(f.requiere_cita || !f.tiene_medios_carga) && <div className="meta" style={{ color: '#b45309', fontWeight: 600 }}>{[f.requiere_cita && 'Con cita previa', !f.tiene_medios_carga && 'Sin medios de carga'].filter(Boolean).join(' · ')}</div>}
                   </td>
-                  <td>{telBonito(f.contacto_telefono) || '—'}{f.contacto_nombre && <div className="meta">{f.contacto_nombre}</div>}</td>
+                  <td>{(() => { const k = principal(f.contactos); return <>{telBonito(k?.telefono ?? '') || k?.email || '—'}{k?.nombre && <div className="meta">{k.nombre}</div>}{f.contactos.length > 1 && <div className="meta">+{f.contactos.length - 1} contacto{f.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
                   <td>{notas ? <span style={{ color: '#b45309' }}>⚠ {notas.slice(0, 60)}{notas.length > 60 ? '…' : ''}</span> : '—'}</td>
                 </tr>
               );
@@ -191,11 +196,9 @@ function FichaSitio({ fila, clientes, dynamo, onCerrar, onAbrir, onGuardado }: {
     if (!fila) return { ...NUEVO, cliente_id: clientes.length === 1 ? clientes[0].id : '' };
     const o: any = {};
     (Object.keys(NUEVO) as (keyof SitioDatos)[]).forEach((k) => { o[k] = (fila as any)[k] ?? (NUEVO as any)[k]; });
+    if (!o.horario?.length) o.horario = HORARIO_POR_DEFECTO;
     return o as SitioDatos;
   });
-  const tel = partirTel(d.contacto_telefono);
-  const [pref, setPref] = useState(tel.pref);
-  const [telNum, setTelNum] = useState(tel.num);
   const [error, setError] = useState<string | null>(null);
   const [repetido, setRepetido] = useState<{ id: string; nombre: string } | null>(null);
   const [confirmarBorrado, setConfirmarBorrado] = useState(false);
@@ -209,8 +212,10 @@ function FichaSitio({ fila, clientes, dynamo, onCerrar, onAbrir, onGuardado }: {
     if (!d.nombre_empresa.trim() || !d.direccion.trim() || !d.codigo_postal.trim() || !d.poblacion.trim()) {
       setError('Empresa, dirección, código postal y población son obligatorios.'); return;
     }
+    const malHorario = validarHorario(d.horario);
+    if (malHorario) { setError(malHorario); return; }
     setTrabajando(fila ? 'Guardando cambios' : 'Creando sitio');
-    const r = await guardarSitio(fila?.id ?? null, { ...d, contacto_telefono: telNum.trim() ? pref + telNum.replace(/\D/g, '') : '' }, aunqueRepetido);
+    const r = await guardarSitio(fila?.id ?? null, d, aunqueRepetido);
     setTrabajando(null);
     if (!r.ok) {
       if (r.duplicado) { setRepetido(r.duplicado); return; }
@@ -311,7 +316,6 @@ function FichaSitio({ fila, clientes, dynamo, onCerrar, onAbrir, onGuardado }: {
             {TIPOS_LUGAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
           </select>
         </div>
-        {campo('horarios', <>Horario {opc}</>, 'Ej. L-V 8:00-14:00', true)}
         {campo('direccion', <>Dirección (calle y número) {obl}</>, 'Ej. C/ Industria, 4', true)}
         {campo('codigo_postal', <>Código postal {obl}</>, '41016')}
         {campo('poblacion', <>Población {obl}</>, 'Sevilla')}
@@ -322,16 +326,11 @@ function FichaSitio({ fila, clientes, dynamo, onCerrar, onAbrir, onGuardado }: {
             {PAISES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
           </select>
         </div>
-        <div>
-          <label htmlFor="sitio-tel">Teléfono {opc}</label>
-          <div className="tel-group">
-            <select className="tel-pref" aria-label="Prefijo de país" value={pref} onChange={(e) => setPref(e.target.value)}>
-              {PREFIJOS.map(([p, n]) => <option key={p} value={p}>{p} {n}</option>)}
-            </select>
-            <input id="sitio-tel" type="tel" inputMode="tel" value={telNum} placeholder="600 000 000" onChange={(e) => setTelNum(e.target.value)} />
-          </div>
-        </div>
-        {campo('contacto_nombre', <>Persona de contacto {opc}</>, 'Persona de contacto')}
+        <div style={{ gridColumn: '1/-1', marginTop: '0.4rem' }} className="ptar-section-head">Horario de carga y descarga {obl}</div>
+        <EditorHorario valor={d.horario} onCambio={(g) => set('horario', g)} />
+        <div style={{ gridColumn: '1/-1', marginTop: '0.4rem' }} className="ptar-section-head">Personas de contacto del sitio</div>
+        <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)}
+          ayuda="Encargado de almacén, recepción… La primera es la principal (la que sale en la tabla)." />
         {interruptor('requiere_cita', 'Requiere cita previa', 'Solo carga o descarga con cita. Se avisa al transportista antes de que llegue.')}
         {interruptor('tiene_medios_carga', 'Tiene medios de carga', 'Muelle, carretilla… Si no los hay, hace falta camión con trampilla elevadora.')}
         {dynamo

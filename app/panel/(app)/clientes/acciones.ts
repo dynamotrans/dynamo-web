@@ -1,6 +1,8 @@
 'use server';
 
 import { sesion, esDynamo } from '@/lib/sesion';
+import type { ContactoDatos } from '@/lib/contactos';
+import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosServidor';
 
 export type ClienteDatos = {
   razon_social: string; nombre_comercial: string; cif: string;
@@ -11,8 +13,8 @@ export type ClienteDatos = {
   riesgo_cesce_euros: number | null; riesgo_manual_euros: number | null;
   factor_tarifa_porcentaje: number; factor_fijado_a_mano: boolean; permite_contraoferta: boolean; discrecion_comercial: boolean;
   cuenta_contable: string; forma_pago_holded_id: string; anotaciones: string;
-  // Persona de contacto principal (tabla contactos)
-  contacto_nombre: string; contacto_telefono: string; contacto_email: string;
+  // Personas de contacto (tabla contactos, una o varias)
+  contactos: ContactoDatos[];
 };
 
 function traducir(msg: string): string {
@@ -33,6 +35,9 @@ export async function guardarCliente(id: string | null, d: ClienteDatos):
     return { ok: false, error: 'Solo el equipo de Dynamo gestiona clientes.' };
   }
   if (!d.razon_social.trim() || !d.cif.trim()) return { ok: false, error: 'La razón social y el CIF/NIF son obligatorios.' };
+  const contactos = sinVacios(d.contactos);
+  const malContacto = validarContactos(contactos);
+  if (malContacto) return { ok: false, error: malContacto };
 
   const fila = {
     razon_social: d.razon_social.trim(), nombre_comercial: vacio(d.nombre_comercial),
@@ -61,21 +66,7 @@ export async function guardarCliente(id: string | null, d: ClienteDatos):
   if (error) return { ok: false, error: traducir(error.message) };
   const clienteId = data.id as string;
 
-  // Persona de contacto principal: se crea, se actualiza o se quita.
-  const tel = d.contacto_telefono.replace(/[^\d+]/g, '');
-  const telOk = tel.replace('+', '').length >= 6 ? tel : null;
-  const email = vacio(d.contacto_email);
-  const nombre = vacio(d.contacto_nombre);
-  const { data: actual } = await s.supabase.from('contactos').select('id')
-    .eq('cliente_id', clienteId).eq('es_principal', true).maybeSingle();
-  if (telOk || email) {
-    const c = { cliente_id: clienteId, nombre: nombre ?? 'Contacto principal', telefono: telOk, email, es_principal: true };
-    const r = actual
-      ? await s.supabase.from('contactos').update(c).eq('id', actual.id)
-      : await s.supabase.from('contactos').insert(c);
-    if (r.error) return { ok: false, error: traducir(r.error.message) };
-  } else if (actual) {
-    await s.supabase.from('contactos').delete().eq('id', actual.id);
-  }
+  const e2 = await guardarContactos(s.supabase, { cliente_id: clienteId }, contactos);
+  if (e2) return { ok: false, error: traducir(e2) };
   return { ok: true, id: clienteId };
 }
