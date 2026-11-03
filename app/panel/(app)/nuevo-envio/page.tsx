@@ -52,7 +52,8 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
   const clientes: ClienteOpcion[] = (cli.data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible, cif: c.cif, principal_id: c.lugar_defecto_id }));
   const sitios: SitioOpcion[] = (lug.data ?? []) as SitioOpcion[];
   const festivos = ((fes.data ?? []) as { fecha: string }[]).map((f) => f.fecha);
+  const nombresFestivos = Object.fromEntries(((fes.data ?? []) as { fecha: string; nombre: string }[]).map((f) => [f.fecha, f.nombre]));
   const error = cli.error?.message || lug.error?.message || null;
 
-  return <NuevoEnvio key={idBase ?? 'nuevo'} clientes={clientes} sitios={sitios} festivos={festivos} error={error} base={base} />;
+  return <NuevoEnvio key={idBase ?? 'nuevo'} clientes={clientes} sitios={sitios} festivos={festivos} nombresFestivos={nombresFestivos} error={error} base={base} />;
 }

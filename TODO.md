@@ -14,11 +14,12 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       Preview, restringida por referente) — ver `PRODUCCION.md` §06-07.
 - [ ] **Tarifador**: hoy el precio lo pone Dynamo a mano (`precio_fijado_a_mano`). Lo último del
       proyecto (decisión del usuario); el precio lo calculará SIEMPRE el servidor.
-- [ ] Teléfono y persona de contacto del sitio nuevo (tabla `contactos` con `lugar_id`) y horario
-      copiado a la parada.
+- [x] ~~Teléfono y persona de contacto del sitio nuevo~~ (hecho 2026-11-03: se guardan como contacto
+      principal del sitio cuando se guarda en la agenda). El horario sigue viviendo en el sitio, no en la parada.
 - [ ] Negociación del precio del transportista (±5/10/30 %) al crear: hoy se fija al ofertar.
-- [ ] Avisos del mockup en el paso 4: horario de verano, festivo en la ventana, tráiler sin trampilla,
-      precios dinámicos a +7 días, condiciones generales y forma de pago (CESCE).
+- [ ] Avisos del mockup en el paso 4: ~~horario de verano, festivo en la ventana, tráiler sin trampilla~~
+      (hechos 2026-11-03). Quedan para cuando el CLIENTE cree sus envíos (etapa B, con tarifador): precios
+      dinámicos a +7 días, aceptar las condiciones generales y forma de pago (CESCE).
 - [ ] Etapa B: que el CLIENTE cree sus envíos (hoy `crear_envio()` solo deja a Dynamo).
 - [ ] **Pantalla de Parámetros** en el panel (solo admin) para cambiar sin entrar en Supabase: descuento de
       bienvenida (−7 %) y nº de envíos (3), minutos de reserva, banda de contraoferta… (tabla `parametros`).

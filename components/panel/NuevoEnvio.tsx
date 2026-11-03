@@ -23,6 +23,7 @@ export type SitioOpcion = {
 type SitioNuevo = {
   nombre_empresa: string; direccion: string; codigo_postal: string; poblacion: string;
   provincia: string; pais_codigo_iso: string; tipo_lugar: string; horarios: string; guardar: boolean;
+  contacto: string; telefono: string;
 };
 type Punto = { k: number; tipo: 'carga' | 'descarga'; sitio: SitioOpcion | null; nuevo: SitioNuevo | null; parada_id?: string };
 // Envío de partida: «Repetir envío» (todo relleno salvo la fecha) o «Cambiar ruta».
@@ -37,7 +38,7 @@ export type Base = {
 };
 
 const FORMAS = ['Lateral', 'Trasera', 'Techo', 'Lateral y trasera', 'Lateral y techo', 'Trasera y techo', 'Lateral, trasera y techo'];
-const VACIO: SitioNuevo = { nombre_empresa: '', direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES', tipo_lugar: 'almacen_nave', horarios: '', guardar: true };
+const VACIO: SitioNuevo = { nombre_empresa: '', direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES', tipo_lugar: 'almacen_nave', horarios: '', guardar: true, contacto: '', telefono: '' };
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const num = (s: string) => { const v = Number(String(s).replace(/\./g, '').replace(',', '.')); return Number.isFinite(v) ? v : NaN; };
@@ -78,14 +79,14 @@ const IcoMenos = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="no
 const IcoCliente = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>);
 const IcoEscudo = () => (<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>);
 
-type Props = { clientes: ClienteOpcion[]; sitios: SitioOpcion[]; festivos: string[]; error: string | null; base?: Base | null };
+type Props = { clientes: ClienteOpcion[]; sitios: SitioOpcion[]; festivos: string[]; nombresFestivos?: Record<string, string>; error: string | null; base?: Base | null };
 
 // Del valor guardado a la opción más cercana del desplegable (que va por tramos).
 const opcionCercana = (v: number | null | undefined, opciones: string[], defecto: string) =>
   v == null ? defecto : opciones.find((o) => Number(o) >= Number(v) - 1e-9) ?? opciones[opciones.length - 1];
 const decimal = (n: number | null | undefined) => (n == null ? '' : String(n).replace('.', ','));
 
-export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, error: errorCarga, base }: Props) {
+export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, nombresFestivos = {}, error: errorCarga, base }: Props) {
   const be = base?.envio;
   const enRuta = base?.modo === 'ruta';
   const puntoDe = (p: Base['paradas'][number], k: number): Punto => {
@@ -210,7 +211,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, er
       if (p.sitio) return { tipo: p.tipo, lugar_id: p.sitio.id };
       const n = p.nuevo!;
       return { tipo: p.tipo, nombre_empresa: n.nombre_empresa, direccion: n.direccion, codigo_postal: n.codigo_postal, poblacion: n.poblacion,
-        provincia: n.provincia, pais_codigo_iso: n.pais_codigo_iso, tipo_lugar: n.tipo_lugar, horarios: n.horarios, guardar_en_agenda: n.guardar };
+        provincia: n.provincia, pais_codigo_iso: n.pais_codigo_iso, tipo_lugar: n.tipo_lugar, horarios: n.horarios, guardar_en_agenda: n.guardar,
+        contacto_nombre: n.contacto, contacto_telefono: n.telefono };
     }));
     if (!r.ok) { setEnviando(false); setAviso(r.error); return; }
     router.push(`/panel/envios?ver=${base.envio.id}`);
@@ -229,6 +231,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, er
         tipo: p.tipo, nombre_empresa: n.nombre_empresa, direccion: n.direccion, codigo_postal: n.codigo_postal,
         poblacion: n.poblacion, provincia: n.provincia, pais_codigo_iso: n.pais_codigo_iso,
         tipo_lugar: n.tipo_lugar, horarios: n.horarios, guardar_en_agenda: n.guardar, referencia: ref,
+        contacto_nombre: n.contacto, contacto_telefono: n.telefono,
       };
     });
     const f = forma.toLowerCase();
@@ -257,6 +260,37 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, er
   const pesoTxt = optsPeso.find(([v]) => v === peso)?.[1] ?? '';
   const camionTxt = trampilla ? 'Camión rígido con trampilla elevadora (8 m · 14 Tn)' : 'Tráiler tauliner (lona corredera)';
   const fechaTxt = fecha ? (fechaHasta && fechaHasta !== fecha ? `del ${fmtFecha(fecha)} al ${fmtFecha(fechaHasta)}` : fmtFecha(fecha)) : '';
+
+  // ---- Avisos del paso 4 (los del mockup) --------------------------------------------
+  // Verano (25 may – 15 sep): muchos almacenes hacen jornada intensiva.
+  const enVerano = (() => { if (!fecha) return false; const [, m, d] = fecha.split('-').map(Number); return (m > 5 || (m === 5 && d >= 25)) && (m < 9 || (m === 9 && d <= 15)); })();
+  // Festivo nacional dentro de los días de recogida (con el calendario se puede elegir uno).
+  const festivosEnVentana = (() => {
+    if (!fecha) return [] as string[];
+    const out: string[] = []; const [a, m, d] = fecha.split('-').map(Number); const x = new Date(a, m - 1, d);
+    while (iso(x) <= (fechaHasta || fecha)) { const k = iso(x); if (fest.has(k)) out.push(`${fmtFecha(k)} · ${nombresFestivos[k] ?? 'festivo'}`); x.setDate(x.getDate() + 1); }
+    return out;
+  })();
+  const IcoAviso = () => (<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>);
+  const IcoSol = () => (<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2" /><line x1="12" y1="2.5" x2="12" y2="4.5" /><line x1="12" y1="19.5" x2="12" y2="21.5" /><line x1="4.6" y1="4.6" x2="6" y2="6" /><line x1="18" y1="18" x2="19.4" y2="19.4" /><line x1="2.5" y1="12" x2="4.5" y2="12" /><line x1="19.5" y1="12" x2="21.5" y2="12" /><line x1="4.6" y1="19.4" x2="6" y2="18" /><line x1="18" y1="6" x2="19.4" y2="4.6" /></svg>);
+  const avisosPaso4 = (
+    <>
+      {!trampilla && (
+        <div className="pt-aviso" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoAviso /><div>
+          <strong>Envío en tráiler</strong>, asegúrate de que hay <strong>medios de carga</strong>. Si requieres trampilla (<strong>más caro y solo en camión rígido de 8 metros</strong>), añádela en el{' '}
+          <a href="#" style={{ color: 'inherit', fontWeight: 800, textDecoration: 'underline' }} onClick={(ev) => { ev.preventDefault(); setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</a>.
+        </div></div>
+      )}
+      {enVerano && (
+        <div className="pt-aviso" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoSol /><div><strong>Revisa horarios de verano</strong> de los almacenes: la mayoría hacen <strong>7:00–15:00</strong>.</div></div>
+      )}
+      {festivosEnVentana.length > 0 && (
+        <div className="pt-aviso error" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoAviso /><div>
+          <strong>Festivo nacional en la fecha de carga.</strong> {festivosEnVentana.join(' · ')}. Puede que el almacén esté <strong>cerrado</strong> ese día: confírmalo con el punto de recogida.
+        </div></div>
+      )}
+    </>
+  );
 
   const cajaPrecio = (
     <div className="ptar-confirm-price">
@@ -482,6 +516,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, er
                     {importeT !== null && <div className="sum2-cell"><div className="sum2-k">Margen</div><div className="sum2-v">{eur(importe - importeT)}</div></div>}
                   </div>
                 </div>
+                {avisosPaso4}
               </div>
             </div>
             <div className="form-2col-side">
@@ -656,6 +691,10 @@ function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, onCambi
                 {PAISES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
               </select>
             </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            <Campo l="Persona de contacto · opcional" v={form.contacto} on={(v) => setForm({ ...form, contacto: v })} ph="Ej. Lucía (muelle)" />
+            <Campo l="Teléfono · opcional" v={form.telefono} on={(v) => setForm({ ...form, telefono: v })} ph="+34 600 000 000" />
           </div>
           <label className="ptar-admin-precio-lbl" style={{ marginTop: '0.6rem' }}>Tipo de lugar</label>
           <select className="ptar-select" value={form.tipo_lugar} onChange={(e) => setForm({ ...form, tipo_lugar: e.target.value })}>
