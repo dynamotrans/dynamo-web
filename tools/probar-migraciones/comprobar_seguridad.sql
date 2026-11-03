@@ -2297,3 +2297,19 @@ do $$ declare e uuid := current_setting('prueba.e73')::uuid; v record; tok uuid;
   raise notice 'OK 73 · etapa C: el transportista ve su viaje, lo marca solo hacia delante, sube su albarán y abre su CMR; lo ajeno no';
 end $$;
 reset role;
+
+-- ---- 74. La orden de carga desde el panel del transportista -----------------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ declare j jsonb; begin
+  j := datos_orden_transportista(current_setting('prueba.e73')::uuid);
+  if j -> 'envio' ->> 'referencia_gx' is null or jsonb_array_length(j -> 'paradas') <> 2 then raise exception 'FALLO 74 · la orden no trae su viaje: %', j; end if;
+  if j::text ~ 'importe_cliente|margen|factor_tarifa' then raise exception 'FALLO 74 · la orden lleva datos del cliente de Dynamo'; end if;
+  begin
+    perform datos_orden_transportista(current_setting('prueba.e72')::uuid);
+    raise exception 'FALLO 74 · ve la orden de un viaje que no es suyo';
+  exception when insufficient_privilege then null;
+  end;
+  raise notice 'OK 74 · orden de carga del transportista: solo su viaje y sin datos del cliente';
+end $$;
+reset role;

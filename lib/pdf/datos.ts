@@ -124,3 +124,32 @@ export async function cargarDatosDoc(sb: SupabaseClient, id: string, usuarioId: 
     },
   };
 }
+
+// La orden de carga para el TRANSPORTISTA, desde datos_orden_transportista() (solo su
+// viaje, sin el cliente de Dynamo). Mismo formato que cargarDatosDoc.
+export async function cargarDatosDocTransportista(sb: SupabaseClient, id: string):
+  Promise<{ datos: DatosDoc | null; parametros: Record<string, number>; error: string | null }> {
+  const { data, error } = await sb.rpc('datos_orden_transportista', { p_envio: id });
+  if (error || !data) return { datos: null, parametros: {}, error: error?.message ?? 'No se ha podido leer el viaje.' };
+  const j = data as any, t = j.porteador ?? {};
+  const parametros: Record<string, number> = {};
+  Object.entries(j.parametros ?? {}).forEach(([k, v]) => { parametros[k] = Number(v); });
+  return {
+    error: null, parametros,
+    datos: {
+      envio: j.envio, manual: false, cliente: null,
+      porteador: { nombre: t.nombre, razon_social: t.razon_social, cif: t.cif, codigo: t.codigo, direccion: t.direccion,
+        codigo_postal: t.codigo_postal, poblacion: t.poblacion, provincia: t.provincia, pais: nombrePais(t.pais_codigo_iso),
+        telefono: t.telefono ?? null, email: t.email ?? null, contacto: t.contacto ?? null },
+      paradas: ((j.paradas ?? []) as any[]).map((p) => ({
+        id: p.id, orden: p.orden, tipo: p.tipo, nombre_empresa: p.nombre_empresa, direccion: p.direccion, codigo_postal: p.codigo_postal,
+        poblacion: p.poblacion, provincia: p.provincia, pais: nombrePais(p.pais_codigo_iso), referencia: p.referencia, anotaciones: p.anotaciones,
+        horarios: p.horarios ?? null, url_google_maps: p.url_google_maps ?? null, notas_sitio: p.notas_sitio ?? null, tipo_lugar: null,
+        requiere_cita: !!p.requiere_cita, tiene_medios_carga: p.tiene_medios_carga !== false,
+        contacto: p.contacto_telefono || p.contacto_nombre ? { nombre: p.contacto_nombre ?? null, telefono: p.contacto_telefono ?? null } : null,
+      })),
+      pronto_pago: !!j.pronto_pago,
+      gestor: null,
+    },
+  };
+}
