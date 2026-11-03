@@ -190,3 +190,12 @@ export async function retirarEnlaceCmr(enlace: string): Promise<Res> {
   const { error } = await s.supabase.from('cmr_enlaces').update({ revocado: true }).eq('id', enlace);
   return error ? { ok: false, error: traducir(error.message) } : { ok: true };
 }
+
+// Valoración del transportista (1-5) al entregar. Solo Dynamo; la media la rehace la base de datos.
+export async function valorarTransportista(envio: string, nota: number | null, comentario: string): Promise<Res> {
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo valora a los transportistas.' };
+  if (nota != null && (!Number.isInteger(nota) || nota < 1 || nota > 5)) return { ok: false, error: 'La nota va de 1 a 5.' };
+  const { error } = await s.supabase.from('envios').update({ valoracion_transportista: nota, valoracion_comentario: vacio(comentario) }).eq('id', envio);
+  return error ? { ok: false, error: traducir(error.message) } : { ok: true, aviso: nota ? 'Valoración guardada.' : 'Valoración quitada.' };
+}

@@ -54,3 +54,9 @@ a.sidebar-brand { text-decoration: none; color: inherit; }
 /* Exportaciones: la tarjeta del fichero elegido queda marcada (como el filtro activo). */
 .stat-card-link.export-activa { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.1); }
 .export-acciones { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin: 0 0 0.9rem; }
+/* Valoración del transportista (1 a 5): estrellas como botones. */
+.valora-estrellas { display: inline-flex; gap: 0.15rem; }
+.valora-estrellas button { appearance: none; border: 0; background: none; padding: 0.1rem; font-size: 1.6rem; line-height: 1; cursor: pointer; color: var(--gray-200); transition: color 0.12s, transform 0.12s; }
+.valora-estrellas button.on { color: #f5b301; }
+.valora-estrellas button:hover { transform: scale(1.12); }
+.valora-estrellas button:focus-visible { outline: 2px solid var(--purple); border-radius: 6px; }

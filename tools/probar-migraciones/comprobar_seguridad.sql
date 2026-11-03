@@ -2074,3 +2074,38 @@ exception when insufficient_privilege then
   raise notice 'OK 67 · cambiar ruta: mantiene las paradas por id, valida carga→descarga, sin paradas ajenas ni con CMR firmado, solo Dynamo';
 end $$;
 reset role;
+
+-- ---- 68. La flota se aprende sola y el transportista se valora al entregar ---------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e67')::uuid; t uuid; v record; n int; begin
+  insert into transportistas (razon_social, cif) values ('Trans Flota 68 SL', 'B68000068') returning id into t;
+  update envios set transportista_id = t, estado_asignacion = 'confirmada', matricula_camion = '6868 kkk', matricula_remolque = 'r-6868-bbb',
+                    conductor_nombre = 'José Pérez', conductor_telefono = '+34 600 111 222' where id = e;
+  select * into v from envios where id = e;
+  if v.vehiculo_camion_id is null or v.vehiculo_remolque_id is null or v.conductor_id is null then raise exception 'FALLO 68 · no da de alta la flota: %', v; end if;
+  if (select tipo from vehiculos where id = v.vehiculo_remolque_id) <> 'remolque' or (select transportista_id from vehiculos where id = v.vehiculo_camion_id) <> t then
+    raise exception 'FALLO 68 · la flota queda mal (tipo o transportista)';
+  end if;
+  if v.matricula_camion <> '6868 kkk' then raise exception 'FALLO 68 · cambia la copia en texto del envío'; end if;
+  -- La misma matrícula escrita de otra forma y el mismo conductor sin acento: no se duplican.
+  update envios set matricula_camion = null, conductor_nombre = null where id = e;
+  update envios set matricula_camion = '6868-KKK', conductor_nombre = 'jose perez' where id = e;
+  select count(*) into n from vehiculos where normaliza_matricula(matricula) = normaliza_matricula('6868KKK');
+  if n <> 1 or (select count(*) from conductores where lower(unaccent_simple(nombre)) = 'jose perez') <> 1 then raise exception 'FALLO 68 · duplica camión o conductor'; end if;
+  -- Valorar: solo entregado.
+  begin
+    update envios set valoracion_transportista = 5 where id = e;
+    raise exception 'FALLO 68 · se valora un envío sin entregar';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  update envios set estado = 'entregado' where id = e;
+  update envios set valoracion_transportista = 4 where id = e;
+  if (select valoracion_dynamo from transportistas where id = t) <> 4 or (select valoracion_dynamo_votos from transportistas where id = t) <> 1 then
+    raise exception 'FALLO 68 · la media del transportista no se actualiza';
+  end if;
+  update envios set valoracion_transportista = 2 where id = e;
+  if (select valoracion_dynamo from transportistas where id = t) <> 2 then raise exception 'FALLO 68 · cambiar la nota no rehace la media'; end if;
+  raise notice 'OK 68 · flota: camión, remolque y conductor se dan de alta solos sin duplicarse; valoración al entregar con media exacta';
+end $$;
+reset role;
