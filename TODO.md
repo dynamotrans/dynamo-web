@@ -23,7 +23,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] Etapa B: que el CLIENTE cree sus envíos (hoy `crear_envio()` solo deja a Dynamo).
 - [ ] **Pantalla de Parámetros** en el panel (solo admin) para cambiar sin entrar en Supabase: descuento de
       bienvenida (−7 %) y nº de envíos (3), minutos de reserva, banda de contraoferta… (tabla `parametros`).
-- [ ] Clientes: campo "Alta dada por (comisiones)" del mockup — no tiene columna todavía.
+- [x] ~~Clientes: campo "Alta dada por (comisiones)"~~ (hecho 2026-11-03, `clientes.alta_por`).
 - [ ] **Usuarios (hecho 2026-11-03) — para que funcionen las invitaciones y el "¿Olvidaste tu contraseña?"**:
       (1) en Vercel, variable **`SUPABASE_SERVICE_ROLE_KEY`** (entorno Preview, marcada como *Sensitive*, SIN
       `NEXT_PUBLIC_`; la pega el usuario, nunca en el chat); (2) en Supabase → Authentication → URL Configuration,

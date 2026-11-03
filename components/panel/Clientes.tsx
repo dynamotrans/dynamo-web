@@ -43,12 +43,14 @@ const NUEVO: ClienteDatos = {
   direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES',
   plazo_pago_dias: 120, iva_porcentaje: 21, retencion_porcentaje: 0, recargo_equivalencia_porcentaje: 0,
   recargo_pago_tarde_porcentaje: 0, riesgo_cesce_euros: null, riesgo_manual_euros: null,
-  factor_tarifa_porcentaje: -7, factor_fijado_a_mano: false, permite_contraoferta: false, discrecion_comercial: false,
+  factor_tarifa_porcentaje: -7, factor_fijado_a_mano: false, permite_contraoferta: false, discrecion_comercial: false, alta_por: null,
   cuenta_contable: '', forma_pago_holded_id: '', anotaciones: '',
   contactos: [CONTACTO_VACIO()],
 };
 
-export default function Clientes({ filas, error, bienvenida }: { filas: ClienteFila[]; error: string | null; bienvenida: Bienvenida }) {
+type Empleado = { id: string; nombre: string };
+
+export default function Clientes({ filas, error, bienvenida, empleados = [] }: { filas: ClienteFila[]; error: string | null; bienvenida: Bienvenida; empleados?: Empleado[] }) {
   const router = useRouter();
   const [q, setQ] = useState('');
   const [ficha, setFicha] = useState<{ fila: ClienteFila | null } | null>(null);
@@ -111,14 +113,14 @@ export default function Clientes({ filas, error, bienvenida }: { filas: ClienteF
       </div>
 
       {ficha && (
-        <FichaCliente fila={ficha.fila} bienvenida={bienvenida} onCerrar={() => setFicha(null)}
+        <FichaCliente fila={ficha.fila} bienvenida={bienvenida} empleados={empleados} onCerrar={() => setFicha(null)}
           onGuardado={() => { setFicha(null); router.refresh(); }} />
       )}
     </section>
   );
 }
 
-function FichaCliente({ fila, bienvenida, onCerrar, onGuardado }: { fila: ClienteFila | null; bienvenida: Bienvenida; onCerrar: () => void; onGuardado: () => void }) {
+function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { fila: ClienteFila | null; bienvenida: Bienvenida; empleados: Empleado[]; onCerrar: () => void; onGuardado: () => void }) {
   const [d, setD] = useState<ClienteDatos>(() => {
     if (!fila) return { ...NUEVO, factor_tarifa_porcentaje: bienvenida.pct };
     const o: any = {};
@@ -263,6 +265,15 @@ function FichaCliente({ fila, bienvenida, onCerrar, onGuardado }: { fila: Client
                 : <><strong>Automático:</strong> descuento de bienvenida de <strong>{bienvenida.pct} %</strong> durante los primeros <strong>{bienvenida.envios} envíos</strong>; después pasa solo a <strong>0 %</strong>.{fila ? <> Lleva <strong>{fila.envios_que_cuentan}</strong>.</> : null} Si mueves la barra, queda fijado a mano.</>}
             </span>
           </div>
+        </div>
+
+        <div style={{ gridColumn: '1/-1' }}>
+          <label htmlFor="cli-altapor">Alta dada por <span style={{ fontWeight: 600, color: 'var(--gray-500)' }}>· comisiones</span></label>
+          <select id="cli-altapor" value={d.alta_por ?? ''} onChange={(e) => set('alta_por', e.target.value || null)}>
+            <option value="">Alta online</option>
+            {empleados.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
+          </select>
+          <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.3rem', lineHeight: 1.4 }}>Empleado que captó o dio de alta al cliente, para el control de comisiones. Si se registró por la web queda <strong>Alta online</strong> (sin comisión de empleado).</div>
         </div>
 
         {titulo('Contabilidad (Holded)')}

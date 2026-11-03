@@ -2133,3 +2133,61 @@ do $$ begin
   raise notice 'OK 69 · buscar envíos: cada palabra, sin acentos ni comodines, y solo lo que cada uno puede ver';
 end $$;
 reset role;
+
+-- ---- 70. Mantenimiento impuesto en la base de datos ---------------------------------------
+update parametros set valor = 'true' where clave = 'mantenimiento_activo';
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin
+    insert into lugares (cliente_id, nombre_empresa, poblacion) values (current_setting('prueba.cliente')::uuid, 'En mantenimiento', 'Sevilla');
+    raise exception 'FALLO 70 · un cliente escribe con el mantenimiento encendido';
+  exception when sqlstate '55000' then null;
+  end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ declare r jsonb; begin
+  begin
+    r := firmar_cmr_publico(gen_random_uuid(), null, 'transportista', 'X', 'Y', 'ES', false, null, 'cmr/x/y.png', null, null, null);
+    -- (con un enlace inventado responde "enlace_no_valido" sin escribir: no hay nada que bloquear)
+  exception when sqlstate '55000' then null;
+  end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare l uuid; begin
+  insert into lugares (cliente_id, nombre_empresa, poblacion) values (current_setting('prueba.cliente')::uuid, 'Dynamo en mantenimiento', 'Sevilla') returning id into l;
+  delete from lugares where id = l;
+end $$;
+reset role;
+update parametros set valor = 'false' where clave = 'mantenimiento_activo';
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  -- Apagado: el cliente vuelve a poder (si sus permisos le dejan; aquí, su agenda).
+  begin
+    insert into lugares (cliente_id, nombre_empresa, poblacion) values (current_setting('prueba.cliente')::uuid, 'Fuera de mantenimiento', 'Sevilla');
+  exception when sqlstate '55000' then raise exception 'FALLO 70 · sigue bloqueado con el mantenimiento apagado';
+            when others then null;   -- otros permisos: no es cosa de esta prueba
+  end;
+  raise notice 'OK 70 · mantenimiento en la base de datos: encendido, solo Dynamo y el servidor escriben';
+end $$;
+reset role;
+
+-- ---- 71. «Alta dada por» del cliente: solo un empleado de Dynamo --------------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  update clientes set alta_por = current_setting('prueba.u_admin')::uuid where id = current_setting('prueba.cliente')::uuid;
+  begin
+    update clientes set alta_por = current_setting('prueba.u_cli')::uuid where id = current_setting('prueba.cliente')::uuid;
+    raise exception 'FALLO 71 · el alta se atribuye a un usuario que no es de Dynamo';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  update clientes set alta_por = null where id = current_setting('prueba.cliente')::uuid;
+  raise notice 'OK 71 · «Alta dada por»: solo empleados de Dynamo (o alta online)';
+end $$;
+reset role;

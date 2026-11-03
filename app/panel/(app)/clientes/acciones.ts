@@ -13,6 +13,7 @@ export type ClienteDatos = {
   riesgo_cesce_euros: number | null; riesgo_manual_euros: number | null;
   factor_tarifa_porcentaje: number; factor_fijado_a_mano: boolean; permite_contraoferta: boolean; discrecion_comercial: boolean;
   cuenta_contable: string; forma_pago_holded_id: string; anotaciones: string;
+  alta_por: string | null;   // empleado de Dynamo que captó al cliente (comisiones); null = alta online
   // Personas de contacto (tabla contactos, una o varias)
   contactos: ContactoDatos[];
 };
@@ -52,7 +53,7 @@ export async function guardarCliente(id: string | null, d: ClienteDatos):
     factor_tarifa_porcentaje: d.factor_tarifa_porcentaje, factor_fijado_a_mano: d.factor_fijado_a_mano,
     permite_contraoferta: d.permite_contraoferta, discrecion_comercial: d.discrecion_comercial,
     cuenta_contable: vacio(d.cuenta_contable), forma_pago_holded_id: vacio(d.forma_pago_holded_id),
-    anotaciones: vacio(d.anotaciones),
+    anotaciones: vacio(d.anotaciones), alta_por: d.alta_por || null,
   };
 
   // En automático el factor lo lleva la regla de la base de datos: no se envía, para no
