@@ -9,7 +9,6 @@ import { ICONOS, menuDe, type Enlace, type Grupo } from '@/lib/menu';
 import type { Rol } from '@/lib/sesion';
 
 const ROL_TXT: Record<Rol, string> = { admin: 'Administrador', empleado: 'Empleado', cliente: 'Cliente', transportista: 'Transportista' };
-const PORTAL_TXT: Record<Rol, string> = { admin: 'Portal · Dynamo', empleado: 'Portal · Dynamo', cliente: 'Portal · Cliente', transportista: 'Portal · Transportista' };
 
 function Ico({ k, size = 18 }: { k: keyof typeof ICONOS; size?: number }) {
   return (
@@ -93,10 +92,7 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, children
       <aside className={`sidebar${lateral ? ' open' : ''}`} id="sidebar">
         <Link href={inicio} className="sidebar-brand" aria-label="Ir al inicio del panel">
           <img src="/images/2.png" alt="Dynamo" />
-          <div>
-            <div className="sidebar-brand-name notranslate" translate="no">Logistics</div>
-            <div className="sidebar-brand-sub">{PORTAL_TXT[rol]}</div>
-          </div>
+          <span className="sidebar-brand-slogan notranslate" translate="no">Always<br />Moving.</span>
         </Link>
         <nav className="sidebar-nav">
           {menuDe(rol).map((b, i) => (
