@@ -1910,3 +1910,67 @@ do $$ begin
   raise notice 'OK 64 · almacen de archivos: bucket privado, cada fichero solo para quien ve su fila, subir solo a la propia carpeta';
 end $$;
 reset role;
+
+-- =====================================================================================
+-- ---- 65. CMR digital: firmar sin cuenta con el enlace, una vez por casilla ------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare tok uuid; begin
+  insert into cmr_enlaces (envio_id) values (current_setting('prueba.e59')::uuid) returning token into tok;
+  perform set_config('prueba.tok65', tok::text, false);
+  perform set_config('prueba.carga65', (select id::text from envio_paradas where envio_id = current_setting('prueba.e59')::uuid and tipo = 'carga' limit 1), false);
+  perform set_config('prueba.desc65', (select id::text from envio_paradas where envio_id = current_setting('prueba.e59')::uuid and tipo = 'descarga' limit 1), false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok65')::uuid; v jsonb; r jsonb; ruta text; begin
+  v := cmr_publico(tok);
+  if v ->> 'resultado' <> 'ok' or jsonb_array_length(v -> 'paradas') <> 2 then raise exception 'FALLO 65 · no se ve el CMR: %', v; end if;
+  if cmr_publico(gen_random_uuid()) ->> 'resultado' <> 'enlace_no_valido' then raise exception 'FALLO 65 · un enlace inventado abre el CMR'; end if;
+  -- Subir el trazo solo en la carpeta del enlace.
+  begin
+    insert into storage.objects (bucket_id, name) values ('documentos', 'cmr/' || gen_random_uuid() || '/' || gen_random_uuid() || '.png');
+    raise exception 'FALLO 65 · se sube un trazo con un enlace inventado';
+  exception when insufficient_privilege then null;
+  end;
+  ruta := 'cmr/' || tok || '/' || gen_random_uuid() || '.png';
+  insert into storage.objects (bucket_id, name) values ('documentos', ruta);
+  -- Casilla equivocada: el remitente firma en una RECOGIDA.
+  r := firmar_cmr_publico(tok, current_setting('prueba.desc65')::uuid, 'remitente', 'Ana', '12345678Z', 'ES', true, null, ruta, '1.2.3.4', 'prueba', null);
+  if r ->> 'resultado' <> 'parada_no_valida' then raise exception 'FALLO 65 · remitente en una entrega: %', r; end if;
+  r := firmar_cmr_publico(tok, current_setting('prueba.carga65')::uuid, 'remitente', 'Ana Carga', '12345678-z', 'ES', true, 'Ana@Almacen.es', ruta, '1.2.3.4', 'prueba', repeat('a', 64));
+  if r ->> 'resultado' <> 'firmada' then raise exception 'FALLO 65 · no firma: %', r; end if;
+  r := firmar_cmr_publico(tok, current_setting('prueba.carga65')::uuid, 'remitente', 'Otra', '12345678Z', 'ES', true, null, ruta, null, null, null);
+  if r ->> 'resultado' <> 'ya_firmada' then raise exception 'FALLO 65 · se firma dos veces la misma casilla'; end if;
+  -- Sin trazo subido, no hay firma.
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Pepe', 'X1234567L', 'ES', true, null, 'cmr/' || tok || '/' || gen_random_uuid() || '.png', null, null, null);
+  if r ->> 'resultado' <> 'falta_trazo' then raise exception 'FALLO 65 · firma sin trazo: %', r; end if;
+  v := cmr_publico(tok);
+  if jsonb_array_length(v -> 'firmas') <> 1 or v -> 'firmas' -> 0 ->> 'documento' <> '•••678Z' then
+    raise exception 'FALLO 65 · el documento no sale enmascarado: %', v -> 'firmas';
+  end if;
+  begin
+    if (select count(*) from firmas_cmr) <> 0 then raise exception 'FALLO 65 · FUGA: anon lee la tabla de firmas'; end if;
+  exception when insufficient_privilege then null;   -- ni siquiera puede consultarla: bien
+  end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare f record; begin
+  select * into f from firmas_cmr where envio_id = current_setting('prueba.e59')::uuid;
+  if f.documento <> '12345678Z' or f.email <> 'ana@almacen.es' or f.ip is null or not f.documento_validado then
+    raise exception 'FALLO 65 · la firma no guarda bien quién y desde dónde: %', f;
+  end if;
+  if not exists (select 1 from envio_hitos where envio_id = f.envio_id and hito = 'cmr_firmado') then raise exception 'FALLO 65 · sin hito de CMR firmado'; end if;
+  -- Retirar el enlace lo cierra al momento.
+  update cmr_enlaces set revocado = true where token = current_setting('prueba.tok65')::uuid;
+end $$;
+reset role;
+set role anon;
+do $$ begin
+  if cmr_publico(current_setting('prueba.tok65')::uuid) ->> 'resultado' <> 'enlace_no_valido' then raise exception 'FALLO 65 · el enlace retirado sigue abierto'; end if;
+  raise notice 'OK 65 · CMR digital: firma sin cuenta con enlace vigente, casilla correcta, una vez, documento enmascarado, trazo en su carpeta';
+end $$;
+reset role;

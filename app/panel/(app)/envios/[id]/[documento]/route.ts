@@ -1,6 +1,6 @@
 import { supabaseServidor } from '@/lib/supabase/server';
 import { esDynamo } from '@/lib/sesion';
-import { cargarDatosDoc } from '@/lib/pdf/datos';
+import { cargarDatosDoc, cargarFirmasCmr } from '@/lib/pdf/datos';
 import { ordenDeCarga } from '@/lib/pdf/orden';
 import { cmr } from '@/lib/pdf/cmr';
 
@@ -26,7 +26,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!datos) return texto(error ?? 'No se ha podido leer el envío.', 404);
 
   let bytes: Uint8Array;
-  if (documento === 'cmr') bytes = await cmr(datos);
+  if (documento === 'cmr') bytes = await cmr({ ...datos, firmas: await cargarFirmasCmr(sb, id) });
   else {
     const { data: ps } = await sb.from('parametros').select('clave, valor')
       .in('clave', ['pronto_pago_pct', 'pronto_pago_minimo', 'pronto_pago_dias', 'plazo_pago_transportista_dias']);

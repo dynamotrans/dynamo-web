@@ -1,0 +1,73 @@
+/* CMR digital (página pública de firma): estilos copiados de firmar-cmr.html, con
+   `body` cambiado a `.cmr-page` para no afectar al resto de la plataforma. */
+
+    .cmr-page {
+        --purple: #3300cc; --purple-light: #5b2be0; --navy: #0a0230;
+        --green: #22a55a; --green-dark: #157a3f; --orange: #ff7a00;
+        --gray-100: #f7f8fa; --gray-200: #e8eaed; --gray-300: #d5d9e0;
+        --gray-500: #7a8194; --gray-700: #3f4759; --red: #dc2626;
+    }
+    .cmr-page, .cmr-page * { margin: 0; padding: 0; box-sizing: border-box; min-width: 0; }
+    .cmr-page {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: var(--gray-100); color: var(--navy);
+        min-height: 100svh; padding: 1.2rem 1rem calc(2rem + env(safe-area-inset-bottom));
+        display: flex; flex-direction: column; align-items: center;
+    }
+    .cmr-page .card { background: #fff; border: 1px solid var(--gray-200); border-radius: 16px; padding: 1.3rem 1.2rem; width: 100%; max-width: 640px; box-shadow: 0 10px 34px rgba(10,2,48,0.07); }
+    .cmr-page .brand { display: flex; align-items: center; gap: 0.6rem; justify-content: center; margin-bottom: 0.9rem; }
+    /* br=0 (envíos con otro transportista): sin marca — el display:flex de
+       arriba pisaría el [hidden] nativo sin esta regla. */
+    .cmr-page .brand[hidden] { display: none; }
+    .cmr-page .brand img { height: 40px; }
+    .cmr-page h1 { font-size: 1.25rem; text-align: center; margin-bottom: 0.2rem; }
+    .cmr-page .sub { text-align: center; color: var(--gray-500); font-size: 0.85rem; margin-bottom: 1rem; }
+    .cmr-page .cmrbox { background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 12px; padding: 0.9rem 1rem; margin-bottom: 1rem; }
+    .cmr-page .cmrbox dt { font-size: 0.68rem; font-weight: 800; color: var(--gray-500); margin-top: 0.55rem; }
+    .cmr-page .cmrbox dt:first-child { margin-top: 0; }
+    .cmr-page .cmrbox dd { font-size: 0.92rem; font-weight: 700; }
+    .cmr-page .adr { margin-top: 0.7rem; background: #fdecec; border: 1.5px solid #f5b5b5; color: #b42318; border-radius: 10px; padding: 0.55rem 0.7rem; font-size: 0.85rem; font-weight: 800; }
+    .cmr-page .prog { text-align: center; font-size: 0.82rem; font-weight: 800; color: var(--gray-700); margin: 0.4rem 0 0.8rem; }
+    .cmr-page .prog .done-all { color: var(--green-dark); }
+    /* Bloques de firma (casillas del CMR) */
+    .cmr-page .firma { border: 1.5px dashed var(--gray-300); border-radius: 12px; padding: 0.8rem 0.9rem; margin-bottom: 0.7rem; }
+    .cmr-page .firma.firmada { border-style: solid; border-color: var(--green); background: rgba(34,165,90,0.05); }
+    .cmr-page .firma-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+    .cmr-page .firma-tit { font-size: 0.9rem; font-weight: 800; }
+    .cmr-page .firma-tit .cas { font-size: 0.68rem; font-weight: 700; color: var(--gray-500); display: block; }
+    .cmr-page .firma-btn { flex: none; background: var(--purple); color: #fff; border: none; border-radius: 9px; padding: 0.5rem 0.9rem; font: inherit; font-weight: 800; font-size: 0.85rem; cursor: pointer; }
+    .cmr-page .firma-btn:hover { background: var(--purple-light); }
+    .cmr-page .firma-estado { font-size: 0.75rem; font-weight: 700; color: var(--gray-500); margin-top: 0.35rem; }
+    .cmr-page .firma.firmada .firma-estado { color: var(--green-dark); }
+    .cmr-page .firma-img { margin-top: 0.5rem; background: #fff; border: 1px solid var(--gray-200); border-radius: 9px; padding: 0.3rem; }
+    .cmr-page .firma-img img { display: block; width: 100%; max-height: 110px; object-fit: contain; }
+    .cmr-page .banner-ok { display: none; background: rgba(34,165,90,0.12); border: 1.5px solid var(--green); color: var(--green-dark); border-radius: 12px; padding: 0.8rem 0.9rem; font-size: 0.95rem; font-weight: 800; text-align: center; margin-top: 0.9rem; }
+    .cmr-page .banner-ok.show { display: block; }
+    .cmr-page .foot { margin-top: 1rem; font-size: 0.72rem; color: var(--gray-500); text-align: center; line-height: 1.5; }
+    /* ===== Pantalla de firma (overlay a pantalla completa) ===== */
+    .cmr-page .sigov { position: fixed; inset: 0; background: rgba(10,2,48,0.55); display: none; align-items: center; justify-content: center; padding: 1rem; z-index: 50; }
+    .cmr-page .sigov.show { display: flex; }
+    .cmr-page .sigcard { background: #fff; border-radius: 16px; padding: 1rem; width: 100%; max-width: 560px; }
+    .cmr-page .sigcard h2 { font-size: 1.02rem; margin-bottom: 0.15rem; }
+    .cmr-page .sigcard .hint { font-size: 0.78rem; color: var(--gray-500); margin-bottom: 0.6rem; }
+    .cmr-page .sig-lbl { display: block; font-size: 0.7rem; font-weight: 800; color: var(--gray-700); margin: 0.55rem 0 0.2rem; }
+    .cmr-page .sig-lbl .op { color: var(--gray-500); font-weight: 600; }
+    .cmr-page .sigcard input[type=text] { width: 100%; border: 1.5px solid var(--gray-300); border-radius: 9px; padding: 0.5rem 0.65rem; font: inherit; font-size: 16px; color: var(--navy); }
+    .cmr-page .sigcard input[type=text]:focus { outline: none; border-color: var(--purple); }
+    .cmr-page .sigcard input.err { border-color: var(--red); }
+    /* País del documento + nº en la misma fila */
+    .cmr-page .sig-row { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.35fr); gap: 0.5rem; }
+    .cmr-page .sigcard select { width: 100%; border: 1.5px solid var(--gray-300); border-radius: 9px; padding: 0.5rem 0.35rem; font: inherit; font-size: 16px; color: var(--navy); background: #fff; }
+    .cmr-page .sigcard select:focus { outline: none; border-color: var(--purple); }
+    /* Resultado de la validación del documento (verde/ámbar/rojo) */
+    .cmr-page .sig-msg { display: none; margin-top: 0.25rem; font-size: 0.72rem; font-weight: 700; }
+    .cmr-page .sig-msg.err { display: block; color: var(--red); }
+    .cmr-page .sig-msg.warn { display: block; color: #9a6b00; }
+    .cmr-page .sig-msg.okv { display: block; color: var(--green-dark); }
+    .cmr-page .sig-warn { margin-top: 0.5rem; background: #fdecec; border: 1px solid #f5b5b5; color: #b42318; border-radius: 9px; padding: 0.45rem 0.6rem; font-size: 0.78rem; font-weight: 700; }
+    .cmr-page #sigCanvas { width: 100%; height: 220px; background: #fff; border: 2px dashed var(--gray-300); border-radius: 12px; touch-action: none; display: block; }
+    .cmr-page .sigbtns { display: flex; gap: 0.55rem; margin-top: 0.7rem; }
+    .cmr-page .sigbtns button { flex: 1; border-radius: 10px; padding: 0.75rem 0.5rem; font: inherit; font-weight: 800; font-size: 0.9rem; cursor: pointer; border: 1.5px solid var(--gray-300); background: #fff; color: var(--gray-700); }
+    .cmr-page .sigbtns .b-aceptar { background: var(--green); border-color: var(--green); color: #fff; }
+    .cmr-page .sigbtns .b-aceptar[disabled] { opacity: 0.45; cursor: default; }
+    .cmr-page .sigbtns .b-borrar { color: var(--red); border-color: rgba(220,38,38,0.4); }

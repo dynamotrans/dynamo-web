@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { PDFPage, RGB } from 'pdf-lib';
+import type { PDFImage, PDFPage, RGB } from 'pdf-lib';
 import { Lienzo, COLOR, A4, num, fechaCorta, limpio } from './lienzo';
 import { DYNAMO, type DatosDoc, type ParadaDoc } from './datos';
 import { importe } from '@/lib/formato';
@@ -31,6 +31,21 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     : { nombre: 'Dynamo Operador de Transportes', cif: DYNAMO.cif, tel: DYNAMO.telefono };
   const hoy = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date());
   const ROJA = COLOR.rojo, TINTA = COLOR.tinta;
+
+  // Firmas del CMR digital: 22 la PRIMERA recogida, 23 el transportista, 24 la ÚLTIMA entrega
+  // (las de otras paradas quedan en el registro de firmas, que es la prueba completa).
+  const fechaFirma = (iso: string) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)).replace(',', '');
+  const firmaDe = (rol: string, parada: string | null | undefined) => (d.firmas ?? []).find((f) => f.rol === rol && (rol === 'transportista' || f.parada_id === parada));
+  const casillas = await Promise.all(([
+    ['remitente', carga?.id, 38, 742, 150],
+    ['transportista', null, 195, 742, 165],
+    ['destinatario', entrega?.id, 369, 765, 185],
+  ] as const).map(async ([rol, parada, x, top, ancho]) => {
+    const f = firmaDe(rol, parada);
+    let img: PDFImage | null = null;
+    if (f?.png) { try { img = await l.doc.embedPng(f.png); } catch { img = null; } }
+    return f ? { f, img, x, top, ancho, alto: rol === 'destinatario' ? 24 : 40 } : null;
+  }));
 
   // Una página por ejemplar, con los mismos datos.
   for (let i = 0; i < 4; i++) {
@@ -119,6 +134,20 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     // 21 Formalizado en … a …
     dato(42, 714, [{ t: `${cli?.poblacion ?? '—'} · ${hoy}`, s: 8, b: false }]);
     // (15 Reembolso y los gastos de la 20 quedan en blanco: el CMR no lleva precios.)
+
+    // 22 · 23 · 24 Firmas (trazo + quién y cuándo). En la 24, además, lugar y fecha de recepción.
+    for (const c of casillas) {
+      if (!c) continue;
+      if (c.img) {
+        const k = Math.min(c.ancho / c.img.width, c.alto / c.img.height), w = c.img.width * k, h = c.img.height * k;
+        pg.drawImage(c.img, { x: c.x, y: A4.h - c.top - h, width: w, height: h });
+      }
+      dato(c.x, c.top + c.alto + 1, [{ t: `${c.f.nombre} · ${c.f.documento} · ${fechaFirma(c.f.firmado_en)}`, s: 6.2, b: false, max: 1 }], Math.floor(c.ancho / 3.1));
+      if (c.f.rol === 'destinatario') {
+        dato(395, 752, [{ t: entrega?.poblacion ?? '', s: 7.4, max: 1 }], 13);
+        dato(452, 752, [{ t: fechaFirma(c.f.firmado_en).slice(0, 10), s: 7.4 }], 20);
+      }
+    }
   }
   l.doc.setTitle(limpio(`CMR ${e.referencia_gx ?? ''}`));
   l.doc.setAuthor(manual ? cli?.razon_social ?? '' : DYNAMO.razon_social);

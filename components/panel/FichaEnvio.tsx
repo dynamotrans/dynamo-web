@@ -16,7 +16,7 @@ import { paisDe, telBonito } from '@/lib/paises';
 import type { Ficha, ParadaFicha, TransportistaOpcion } from '@/lib/fichaEnvio';
 import {
   asignarTransportista, quitarTransportista, cambiarEstado, cancelarEnvio, deshacerCancelacion, modificarEnvio,
-  ofrecerCarga, revocarOferta, resolverContraoferta, type DatosEnvio,
+  ofrecerCarga, revocarOferta, resolverContraoferta, enlaceCmr, retirarEnlaceCmr, type DatosEnvio,
 } from '@/app/panel/(app)/envios/acciones';
 
 const ESTADOS: [string, string, string][] = [
@@ -66,6 +66,8 @@ const CANALES: Record<string, string> = {
 const ESTADO_OFERTA: Record<string, [string, string]> = {
   activa: ['Activa', 'green'], aceptada: ['Aceptada', 'green'], caducada: ['Caducada', 'gray'], revocada: ['Retirada', 'red'], cerrada: ['Cerrada', 'gray'],
 };
+const enlaceCmrUrl = (token: string) => `${typeof window !== 'undefined' ? window.location.origin : ''}/cmr/${token}`;
+const ROL_CMR: Record<string, string> = { remitente: 'Remitente (casilla 22)', transportista: 'Transportista (casilla 23)', destinatario: 'Destinatario (casilla 24)' };
 const enlaceOferta = (token: string) => `${typeof window !== 'undefined' ? window.location.origin : ''}/carga/${token}`;
 // Mensaje listo para WhatsApp o email (como el "Ofrecer carga" del mockup): sin cliente
 // ni direcciones exactas, solo poblaciones; el detalle lo ve al aceptar.
@@ -308,6 +310,8 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
           tipos={['albaran', 'cmr_firmado', 'cmr', 'orden_transporte', 'foto_incidencia', 'gps_tacografo', 'otro']}
           ayuda={<>Albaranes, CMR firmados, fotos… Marca <strong>«Lo ve el cliente»</strong> en los que tenga que ver él (el albarán y el CMR firmado, normalmente).</>} />
       </div>
+
+      {!cancelado && <CmrDigital ficha={ficha} hacer={hacer} trabajando={trabajando} />}
 
       <h4 className="modal-section-title">Historial</h4>
       <div className="pen-envio-sum">
@@ -619,6 +623,45 @@ function Modificar({ ficha, onVolver, hacer, trabajando }: SubProps) {
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>
   );
+}
+
+// ---- CMR digital ------------------------------------------------------------------
+// Un enlace por envío para que firmen con el dedo cargador, transportista y destinatario
+// (sin cuenta). Las firmas quedan en el CMR relleno y no se borran nunca.
+function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: (t: string, fn: () => Promise<any>, ok?: string) => Promise<boolean>; trabajando: string | null }) {
+  const e = ficha.envio;
+  const [copiado, setCopiado] = useState(false);
+  const enl = ficha.cmrEnlace;
+  const recogidas = ficha.paradas.filter((p) => p.tipo === 'carga'), entregas = ficha.paradas.filter((p) => p.tipo === 'descarga');
+  const total = recogidas.length + 1 + entregas.length;
+  const lugar = (id: string | null) => { const p = ficha.paradas.find((x) => x.id === id); return p ? ` · ${p.nombre_empresa || p.poblacion || ''}` : ''; };
+  const msg = enl ? `CMR del envío #${e.referencia_gx}${e.es_manual ? '' : ' · Dynamo'}\nFirma tu casilla con el dedo aquí: ${enlaceCmrUrl(enl.token)}` : '';
+  return <>
+    <h4 className="modal-section-title">CMR digital</h4>
+    <div className="det-block">
+      <p style={{ margin: '0 0 0.6rem', fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.45 }}>Un enlace para que <strong>cargador, transportista y destinatario</strong> firmen el CMR con el dedo desde el móvil, sin crear cuenta. Cada firma queda con su documento, la hora del servidor y desde dónde se firmó, y sale en el <strong>CMR relleno</strong>.</p>
+      {enl ? (
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button className="btn-secondary" onClick={() => { navigator.clipboard?.writeText(enlaceCmrUrl(enl.token)); setCopiado(true); setTimeout(() => setCopiado(false), 1800); }}>{copiado ? 'Enlace copiado' : 'Copiar enlace'}</button>
+          <a className="btn-secondary" href={`https://wa.me/?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">WhatsApp</a>
+          <a className="btn-secondary" href={`/cmr/${enl.token}`} target="_blank" rel="noopener"><I d={ICO.ojo} />Abrir</a>
+          <button className="btn-ghost" style={{ color: '#dc2626' }} disabled={!!trabajando} onClick={() => hacer('Retirando el enlace', () => retirarEnlaceCmr(enl.id), 'Enlace del CMR retirado: ya no se abre. Las firmas hechas se conservan.')}>Retirar enlace</button>
+          <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', flexBasis: '100%' }}>Vale hasta el {fecha(enl.caduca_en.slice(0, 10))}.</span>
+        </div>
+      ) : (
+        <button className="btn-primary" disabled={!!trabajando} onClick={() => hacer('Creando el enlace', () => enlaceCmr(e.id), 'Enlace del CMR creado: cópialo o mándalo por WhatsApp.')}><I d={ICO.doc} />Crear enlace para firmar</button>
+      )}
+      <div className="pen-envio-sum" style={{ marginTop: '0.7rem' }}>
+        <div className="pen-sum-row"><span className="k"><strong>{ficha.firmasCmr.length} de {total}</strong> firmas</span><span className="v">{ficha.firmasCmr.length >= total ? <span className="badge badge-green">CMR firmado</span> : ''}</span></div>
+        {ficha.firmasCmr.map((f, i) => (
+          <div key={i} className="pen-sum-row">
+            <span className="k">{ROL_CMR[f.rol] ?? f.rol}{lugar(f.parada_id)}<br /><span style={{ color: 'var(--gray-500)' }}>{f.nombre} · {f.documento} ({f.documento_pais}){f.documento_validado ? '' : ' · documento sin comprobar'}</span></span>
+            <span className="v" style={{ whiteSpace: 'nowrap' }}>{creadoTxt(f.firmado_en)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </>;
 }
 
 // ---- Ofrecer carga ------------------------------------------------------------------

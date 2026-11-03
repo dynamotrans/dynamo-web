@@ -169,3 +169,24 @@ export async function resolverContraoferta(reserva: string, aprobar: boolean): P
   if (r === 'no_hay_contraoferta_pendiente') return { ok: false, error: 'Esa contraoferta ya no está pendiente.' };
   return { ok: true, aviso: aprobar ? 'Contraoferta aprobada: el transportista queda asignado a su precio.' : 'Contraoferta rechazada: la carga vuelve a estar ofertada.' };
 }
+
+// CMR digital: el enlace para que firmen cargador, transportista y destinatario. Uno vivo
+// por envío; si ya hay uno, se devuelve ese (así se puede volver a mandar sin invalidarlo).
+export async function enlaceCmr(envio: string): Promise<{ ok: true; token: string } | { ok: false; error: string }> {
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo genera el CMR digital.' };
+  const vivo = await s.supabase.from('cmr_enlaces').select('token').eq('envio_id', envio).eq('revocado', false).gt('caduca_en', new Date().toISOString()).maybeSingle();
+  if (vivo.data) return { ok: true, token: vivo.data.token as string };
+  // Uno caducado sin retirar ocuparía el hueco del enlace vivo: se retira antes.
+  await s.supabase.from('cmr_enlaces').update({ revocado: true }).eq('envio_id', envio).eq('revocado', false);
+  const { data, error } = await s.supabase.from('cmr_enlaces').insert({ envio_id: envio }).select('token').single();
+  return error || !data ? { ok: false, error: traducir(error?.message ?? 'No se ha podido crear el enlace.') } : { ok: true, token: data.token as string };
+}
+
+// Retirar el enlace: deja de abrirse. Las firmas ya hechas se quedan (no se borran nunca).
+export async function retirarEnlaceCmr(enlace: string): Promise<Res> {
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo gestiona el CMR digital.' };
+  const { error } = await s.supabase.from('cmr_enlaces').update({ revocado: true }).eq('id', enlace);
+  return error ? { ok: false, error: traducir(error.message) } : { ok: true };
+}

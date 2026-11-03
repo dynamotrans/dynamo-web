@@ -9,7 +9,7 @@ export type Empresa = {
   telefono: string | null; email: string | null; contacto?: string | null;
 };
 export type ParadaDoc = {
-  orden: number; tipo: 'carga' | 'descarga';
+  id: string; orden: number; tipo: 'carga' | 'descarga';
   nombre_empresa: string | null; direccion: string | null; codigo_postal: string | null; poblacion: string | null;
   provincia: string | null; pais: string | null; referencia: string | null; anotaciones: string | null;
   horarios: string | null; url_google_maps: string | null; notas_sitio: string | null; tipo_lugar: string | null;
@@ -24,7 +24,20 @@ export type DatosDoc = {
   paradas: ParadaDoc[];
   pronto_pago: boolean;
   gestor: { nombre: string; telefono: string | null; email: string | null } | null;
+  firmas?: FirmaDoc[];                   // CMR digital (solo para el CMR)
 };
+export type FirmaDoc = { rol: string; parada_id: string | null; nombre: string; documento: string; firmado_en: string; png: Uint8Array | null };
+
+// Las firmas del CMR digital con su trazo (del almacén privado; los permisos los pone la
+// base de datos). El documento va ENMASCARADO: el CMR lo reciben varias empresas.
+export async function cargarFirmasCmr(sb: SupabaseClient, envioId: string): Promise<FirmaDoc[]> {
+  const { data } = await sb.from('firmas_cmr').select('rol, parada_id, nombre, documento, firmado_en, firma_storage_ruta').eq('envio_id', envioId).order('firmado_en');
+  return Promise.all(((data ?? []) as any[]).map(async (f) => {
+    const { data: blob } = await sb.storage.from('documentos').download(f.firma_storage_ruta);
+    return { rol: f.rol, parada_id: f.parada_id, nombre: f.nombre, documento: `•••${String(f.documento).slice(-4)}`, firmado_en: f.firmado_en,
+      png: blob ? new Uint8Array(await blob.arrayBuffer()) : null };
+  }));
+}
 
 // Datos fijos de Dynamo (los mismos que la orden de carga que se manda hoy por email).
 export const DYNAMO = {
@@ -49,7 +62,7 @@ export async function cargarDatosDoc(sb: SupabaseClient, id: string, usuarioId: 
   if (!e) return { datos: null, error: 'Ese envío no existe.' };
 
   const [par, ctos, res, yo] = await Promise.all([
-    sb.from('envio_paradas').select('orden, tipo, lugar_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, ' +
+    sb.from('envio_paradas').select('id, orden, tipo, lugar_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, ' +
       'lugares(tipo, horarios, anotaciones, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden'),
     sb.from('contactos').select('cliente_id, transportista_id, lugar_id, nombre, telefono, email, funcion, es_principal')
       .or([`cliente_id.eq.${e.cliente_id}`, e.transportista_id ? `transportista_id.eq.${e.transportista_id}` : null].filter(Boolean).join(','))
@@ -100,7 +113,7 @@ export async function cargarDatosDoc(sb: SupabaseClient, id: string, usuarioId: 
       manual: !!e.es_manual,
       cliente, porteador,
       paradas: (par.data ?? []).map((p: any) => ({
-        orden: p.orden, tipo: p.tipo, nombre_empresa: p.nombre_empresa, direccion: p.direccion, codigo_postal: p.codigo_postal,
+        id: p.id, orden: p.orden, tipo: p.tipo, nombre_empresa: p.nombre_empresa, direccion: p.direccion, codigo_postal: p.codigo_postal,
         poblacion: p.poblacion, provincia: p.provincia, pais: nombrePais(p.pais_codigo_iso), referencia: p.referencia, anotaciones: p.anotaciones,
         horarios: p.lugares?.horarios ?? null, url_google_maps: p.lugares?.url_google_maps ?? null, notas_sitio: p.lugares?.anotaciones ?? null,
         tipo_lugar: p.lugares?.tipo ?? null, requiere_cita: !!p.lugares?.requiere_cita, tiene_medios_carga: p.lugares?.tiene_medios_carga !== false,
