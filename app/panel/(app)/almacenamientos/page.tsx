@@ -33,7 +33,7 @@ export default async function PaginaAlmacenamientos({ searchParams }: { searchPa
     descripcion: a.descripcion, referencia_cliente: a.referencia_cliente, anotaciones: a.anotaciones,
     importe_almacenaje: a.importe_almacenaje != null ? Number(a.importe_almacenaje) : null, importe_reparto: a.importe_reparto != null ? Number(a.importe_reparto) : null,
     importe_total: Number(a.importe_total ?? 0), iva_aplicado: a.iva_aplicado != null ? Number(a.iva_aplicado) : 21,
-    pago_adelantado: a.pago_adelantado, estado: a.estado, creado_en: a.creado_en, modificado_en: a.modificado_en,
+    pago_adelantado: a.pago_adelantado, pagado_en: a.pagado_en ?? null, estado: a.estado, creado_en: a.creado_en, modificado_en: a.modificado_en,
   }));
   const opciones: AlmacenOpcion[] = (almacenes.data ?? []).map((l: any) => ({
     id: l.id, nombre: l.nombre_empresa ?? 'Almacén Dynamo', provincia: l.provincia ?? l.poblacion ?? '', dir: dir(l), disponible: l.disponible !== false,

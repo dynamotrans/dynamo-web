@@ -60,6 +60,7 @@ export const DYNAMO = {
   direccion: 'Paseo de las Delicias 1, planta 5ª', codigo_postal: '41001', poblacion: 'Sevilla', pais: 'España',
   email: 'info@dynamotrans.com', telefono: '+34 955 225 945', movil: '+34 628 995 709',
   wtransnet: '267017', tarjeta_ot: '12548918-1', web: 'www.dynamotrans.com',
+  iban: '', banco: 'Banco Santander', bic: 'BSCHESMM',
 };
 export type DatosDynamo = typeof DYNAMO;
 export async function datosDynamo(sb: SupabaseClient): Promise<DatosDynamo> {

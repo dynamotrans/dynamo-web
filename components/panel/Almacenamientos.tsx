@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
-import { guardarAlmacenamiento, cambiarEstadoAlmacenamiento, sitiosDelCliente, type AlmacenamientoDatos, type EstadoAlm } from '@/app/panel/(app)/almacenamientos/acciones';
+import { guardarAlmacenamiento, cambiarEstadoAlmacenamiento, marcarPagadoAlmacenamiento, sitiosDelCliente, type AlmacenamientoDatos, type EstadoAlm } from '@/app/panel/(app)/almacenamientos/acciones';
 import { precioAlmacenamiento, diasAlmacen } from '@/lib/almacenamiento';
 import { euros, fecha } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
@@ -16,7 +16,7 @@ import { creadoTxt } from '@/lib/envios';
 export type AlmacenamientoFila = AlmacenamientoDatos & {
   id: string; codigo: string; cliente: string | null; almacen: string; almacen_provincia: string; almacen_dir: string; entrega: string | null;
   importe_almacenaje: number | null; importe_reparto: number | null; importe_total: number; iva_aplicado: number;
-  pago_adelantado: boolean; estado: EstadoAlm; creado_en: string; modificado_en: string | null;
+  pago_adelantado: boolean; pagado_en: string | null; estado: EstadoAlm; creado_en: string; modificado_en: string | null;
   descripcion: string; referencia_cliente: string; anotaciones: string;
 };
 export type AlmacenOpcion = { id: string; nombre: string; provincia: string; dir: string; disponible: boolean; semana: number; reparto: number };
@@ -35,27 +35,31 @@ const REPARTOS: [number, string][] = [
 ];
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const hoy = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
+const diaMadrid = (ts: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(ts));
 const masDias = (iso: string, n: number) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const IcoAlm = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21V9l9-5 9 5v12" /><path d="M3 21h18" /><rect x="8" y="13" width="8" height="8" /></svg>;
+// Pago por adelantado sin validar (lo cancelado no cuenta).
+const sinPagar = (f: AlmacenamientoFila) => f.pago_adelantado && !f.pagado_en && f.estado !== 'cancelado';
 const diasTxt = (n: number) => (n === 0 ? 'mismo día' : `${n} día${n > 1 ? 's' : ''}`);
 
 export default function Almacenamientos({ filas, almacenes, clientes, error, abrir }: {
   abrir?: boolean; filas: AlmacenamientoFila[]; almacenes: AlmacenOpcion[]; clientes: Cliente[]; error: string | null;
 }) {
   const router = useRouter();
-  const [pestana, setPestana] = useState<EstadoAlm | 'todos'>('pendiente_confirmar');
+  const [pestana, setPestana] = useState<EstadoAlm | 'todos' | 'pago'>('pendiente_confirmar');
   const [q, setQ] = useState('');
   const [ficha, setFicha] = useState<{ fila: AlmacenamientoFila | null } | null>(abrir ? { fila: null } : null);
 
   const cuenta = useMemo(() => {
     const c: Record<string, number> = { todos: filas.length };
     ESTADOS.forEach(([k]) => { c[k] = 0; });
-    filas.forEach((f) => { c[f.estado]++; });
+    c.pago = 0;
+    filas.forEach((f) => { c[f.estado]++; if (sinPagar(f)) c.pago++; });
     return c;
   }, [filas]);
   const lista = useMemo(() => {
     const w = norm(q.trim()).split(/\s+/).filter(Boolean);
-    return filas.filter((f) => (pestana === 'todos' || f.estado === pestana)
+    return filas.filter((f) => (pestana === 'todos' || (pestana === 'pago' ? sinPagar(f) : f.estado === pestana))
       && (!w.length || (() => { const b = norm([f.codigo, f.cliente, f.almacen, f.almacen_provincia, f.almacen_dir, f.entrega, f.descripcion, f.referencia_cliente, f.anotaciones].filter(Boolean).join(' ')); return w.every((t) => b.includes(t)); })()))
       // Lo vivo primero, por fecha de entrada; lo finalizado al final.
       .sort((a, b) => (Number(a.estado === 'finalizado') - Number(b.estado === 'finalizado')) || (a.fecha_entrada < b.fecha_entrada ? -1 : 1));
@@ -69,6 +73,7 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
       </div>
       <div className="tabs">
         {ESTADOS.map(([k, t]) => <button key={k} className={`tab${pestana === k ? ' active' : ''}`} onClick={() => setPestana(k)}>{t} ({cuenta[k] ?? 0})</button>)}
+        <button className={`tab${pestana === 'pago' ? ' active' : ''}`} onClick={() => setPestana('pago')}>Pendiente de pago ({cuenta.pago})</button>
         <button className={`tab${pestana === 'todos' ? ' active' : ''}`} onClick={() => setPestana('todos')}>Todos ({cuenta.todos})</button>
       </div>
       <div className="filters">
@@ -93,7 +98,9 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
                   <td>{fecha(f.fecha_entrada)}<div className="meta">{f.num_trailers} tráiler{f.num_trailers > 1 ? 'es' : ''}</div></td>
                   <td>{fecha(f.fecha_salida)}<div className="meta" style={dias > 7 ? { color: '#b45309', fontWeight: 700 } : undefined}>{diasTxt(dias)}</div></td>
                   <td>{f.num_repartos > 0 ? <>Sí · {f.num_repartos} {f.num_repartos > 1 ? 'camiones' : 'camión'}{f.entrega && <div className="meta">{f.entrega.length > 40 ? `${f.entrega.slice(0, 40)}…` : f.entrega}</div>}</> : 'No'}</td>
-                  <td><strong>{euros(f.importe_total)}</strong>{f.pago_adelantado && <div className="meta" style={{ color: 'var(--red)', fontWeight: 700 }}>Pago por adelantado</div>}</td>
+                  <td><strong>{euros(f.importe_total)}</strong>{f.pago_adelantado && (f.pagado_en
+                    ? <div className="meta" style={{ color: '#0f6b3a', fontWeight: 700 }}>Pagado el {fecha(diaMadrid(f.pagado_en))}</div>
+                    : <div className="meta" style={{ color: 'var(--red)', fontWeight: 700 }}>Pendiente de pago</div>)}</td>
                   <td><span className={`badge badge-${est[3]}`}>{est[2]}</span></td>
                 </tr>
               );
@@ -154,6 +161,14 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, onCerrar, onHecho }: {
     if (!r.ok) { setError(r.error); return; }
     onHecho();
   }
+  async function pagado(si: boolean) {
+    if (!fila) return;
+    setError(null); setTrabajando(si ? 'Marcando como pagado' : 'Deshaciendo el pago');
+    const r = await marcarPagadoAlmacenamiento(fila.id, si);
+    setTrabajando(null);
+    if (!r.ok) { setError(r.error); return; }
+    onHecho();
+  }
   async function estado(e: EstadoAlm, txt: string) {
     if (!fila) return;
     setError(null); setTrabajando(txt);
@@ -191,6 +206,12 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, onCerrar, onHecho }: {
       acciones={fila ? <>
         {paso && <button className="btn-primary" onClick={() => estado(paso[0], paso[2])} disabled={!!trabajando}>{paso[1]}</button>}
         {fila.estado === 'cancelado' && <button className="btn-primary" onClick={() => estado('pendiente_confirmar', 'Reactivando')} disabled={!!trabajando}>Reactivar</button>}
+        {fila.pago_adelantado && fila.estado !== 'cancelado' && <>
+          <a className="btn-secondary" href={`/panel/almacenamientos/${fila.id}/proforma`} target="_blank" rel="noopener">Proforma (PDF)</a>
+          {fila.pagado_en
+            ? <button className="btn-secondary" onClick={() => pagado(false)} disabled={!!trabajando}>Pagado el {fecha(diaMadrid(fila.pagado_en))} · deshacer</button>
+            : <button className="btn-primary" style={{ background: 'var(--green)' }} onClick={() => pagado(true)} disabled={!!trabajando}>Marcar como pagado</button>}
+        </>}
         {!['cancelado', 'finalizado'].includes(fila.estado) && <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={() => setPreguntaCancelar(true)} disabled={!!trabajando}>Cancelar almacenamiento</button>}
       </> : undefined}
       pie={<>

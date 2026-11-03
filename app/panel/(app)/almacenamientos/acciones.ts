@@ -76,6 +76,15 @@ export async function cambiarEstadoAlmacenamiento(id: string, estado: EstadoAlm)
   return { ok: true, id };
 }
 
+// Pago por adelantado: Dynamo marca cuándo validó el pago (o lo deshace si se equivocó).
+export async function marcarPagadoAlmacenamiento(id: string, pagado: boolean): Promise<Res> {
+  const sb = await dynamo();
+  if (!sb) return { ok: false, error: 'Esta sección todavía es solo del equipo de Dynamo.' };
+  const { error } = await sb.from('almacenamientos').update({ pagado_en: pagado ? new Date().toISOString() : null }).eq('id', id);
+  if (error) return { ok: false, error: traducir(error.message) };
+  return { ok: true, id };
+}
+
 // Sitios de un cliente, para la dirección del reparto urbano.
 // (Carga de fondo: sin sesión devuelve lista vacía en vez de redirigir a la entrada.)
 export async function sitiosDelCliente(clienteId: string): Promise<{ id: string; nombre: string; linea: string }[]> {

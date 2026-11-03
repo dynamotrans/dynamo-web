@@ -2531,3 +2531,24 @@ do $$ begin
   raise notice 'OK 82 · bultos, embalaje y volumen del CMR: los pone el cliente antes de cargar; el transportista no';
 end $$;
 reset role;
+
+-- ---- 83. Pago por adelantado del almacenamiento y datos bancarios en parámetros ----------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare j jsonb; n int; begin
+  j := datos_dynamo();
+  if j ->> 'bic' <> 'BSCHESMM' or not (j ? 'iban') then raise exception 'FALLO 83 · faltan los datos bancarios: %', j; end if;
+  update almacenamientos set pagado_en = now() where id = (select id from almacenamientos order by creado_en limit 1);
+  get diagnostics n = row_count;
+  if n > 1 then raise exception 'FALLO 83 · marca de más'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare n int; begin
+  update almacenamientos set pagado_en = now();
+  get diagnostics n = row_count;
+  if n > 0 then raise exception 'FALLO 83 · el cliente se marca sus almacenamientos como pagados'; end if;
+  raise notice 'OK 83 · pago del almacenamiento: lo marca Dynamo, el cliente no; datos bancarios en parámetros';
+end $$;
+reset role;
