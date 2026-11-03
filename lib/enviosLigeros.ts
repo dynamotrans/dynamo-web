@@ -11,15 +11,13 @@ export type EnvioLigero = {
   importe_cliente: number | null; importe_transportista: number | null;
 };
 
-// Los más recientes primero. (Con muchos miles habrá que buscar en el servidor: en TODO.)
-export async function cargarEnviosLigeros(sb: SupabaseClient, limite = 3000): Promise<EnvioLigero[]> {
-  const { data } = await sb.from('envios').select(
-    'id, referencia_gx, referencia_cliente, estado, es_manual, cliente_id, transportista_id, fecha_carga_desde, fecha_carga_hasta, ' +
-    'fecha_carga_real, fecha_entrega_estimada, codigo_postal_origen, poblacion_origen, codigo_postal_destino, poblacion_destino, ' +
-    'descripcion_mercancia, metros_lineales, toneladas, matricula_camion, matricula_remolque, conductor_nombre, importe_cliente, ' +
-    'importe_transportista, clientes(nombre_visible), transportistas(nombre_visible)')
-    .neq('estado', 'borrador').order('creado_en', { ascending: false }).limit(limite);
-  return (data ?? []).map((e: any) => ({
+const COLUMNAS = 'id, referencia_gx, referencia_cliente, estado, es_manual, cliente_id, transportista_id, fecha_carga_desde, fecha_carga_hasta, ' +
+  'fecha_carga_real, fecha_entrega_estimada, codigo_postal_origen, poblacion_origen, codigo_postal_destino, poblacion_destino, ' +
+  'descripcion_mercancia, metros_lineales, toneladas, matricula_camion, matricula_remolque, conductor_nombre, importe_cliente, ' +
+  'importe_transportista, clientes(nombre_visible), transportistas(nombre_visible)';
+
+function aLigero(e: any): EnvioLigero {
+  return {
     id: e.id, referencia_gx: e.referencia_gx, referencia_cliente: e.referencia_cliente, estado: e.estado, es_manual: e.es_manual,
     cliente_id: e.cliente_id, cliente: e.clientes?.nombre_visible ?? null,
     transportista_id: e.transportista_id, transportista: e.transportistas?.nombre_visible ?? null,
@@ -30,5 +28,20 @@ export async function cargarEnviosLigeros(sb: SupabaseClient, limite = 3000): Pr
     descripcion_mercancia: e.descripcion_mercancia, metros_lineales: e.metros_lineales, toneladas: e.toneladas,
     matricula_camion: e.matricula_camion, matricula_remolque: e.matricula_remolque, conductor_nombre: e.conductor_nombre,
     importe_cliente: e.importe_cliente, importe_transportista: e.importe_transportista,
-  }));
+  };
+}
+
+// Los más recientes primero: los que salen con el buscador vacío. El resto se busca en
+// la base de datos al escribir (buscarEnviosLigeros), así da igual que haya miles.
+export async function cargarEnviosLigeros(sb: SupabaseClient, limite = 40): Promise<EnvioLigero[]> {
+  const { data } = await sb.from('envios').select(COLUMNAS).neq('estado', 'borrador').order('creado_en', { ascending: false }).limit(limite);
+  return (data ?? []).map(aLigero);
+}
+
+// Unos envíos concretos, en el orden pedido (resultado de buscar_envios, o el ya elegido).
+export async function enviosLigerosPorId(sb: SupabaseClient, ids: string[]): Promise<EnvioLigero[]> {
+  if (!ids.length) return [];
+  const { data } = await sb.from('envios').select(COLUMNAS).in('id', ids);
+  const porId = new Map((data ?? []).map((e: any) => [e.id, aLigero(e)]));
+  return ids.map((id) => porId.get(id)).filter((e): e is EnvioLigero => !!e);
 }

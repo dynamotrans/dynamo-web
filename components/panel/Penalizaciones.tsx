@@ -181,7 +181,7 @@ function FichaPenalizacion({ fila, envioInicial, tipos, envios, onCerrar, onHech
       )}
       <div className="modal-form-row">
         <label>Envío referenciado</label>
-        <BuscaEnvio envios={envios} valor={envio} onCambio={setEnvio} />
+        <BuscaEnvio envios={envios} valor={envio} onCambio={setEnvio} remoto />
       </div>
       <div className="modal-form-row">
         <label htmlFor="pen-tipo">Tipo de penalización</label>

@@ -90,7 +90,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       `mis_penalizaciones()` sin el importe del transportista); (3) **proforma** del almacenamiento sin
       crédito y la pestaña «Pendiente de pago» (hoy no se guarda si está pagado); (4) comprobar los **20 km**
       del reparto urbano con Google; (5) avisos D4 (incidencia nueva) y C5/T9 por WhatsApp/email;
-      (6) el buscador de envíos de esas pantallas carga los últimos 3.000: con más, buscar en el servidor.
+      (6) ~~el buscador de envíos de esas pantallas carga los últimos 3.000~~ (hecho 2026-11-03: Dynamo busca en la base de datos al escribir).
 - [ ] **Ofrecer carga + página pública `/carga/<enlace>` (hecho 2026-11-03)** — ANTES DE PRODUCCIÓN:
       (1) **código por email al aceptar desde un enlace de bolsa** (hoy basta con saber un CIF de la base de
       datos para aceptar en nombre de otro; necesita Postmark — aviso T2 de NOTIFICACIONES.md), con bloqueo a
