@@ -2109,3 +2109,27 @@ do $$ declare e uuid := current_setting('prueba.e67')::uuid; t uuid; v record; n
   raise notice 'OK 68 · flota: camión, remolque y conductor se dan de alta solos sin duplicarse; valoración al entregar con media exacta';
 end $$;
 reset role;
+
+-- ---- 69. Buscar envíos en la base de datos ------------------------------------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare n int; begin
+  if not exists (select 1 from buscar_envios('cordoba parada') where buscar_envios = current_setting('prueba.e67')::uuid) then
+    raise exception 'FALLO 69 · no encuentra un envío por su parada (sin acento)';
+  end if;
+  if exists (select 1 from buscar_envios('cordoba zzzzz')) then raise exception 'FALLO 69 · encuentra con una palabra que no está'; end if;
+  if exists (select 1 from buscar_envios('')) then raise exception 'FALLO 69 · una búsqueda vacía devuelve envíos'; end if;
+  if exists (select 1 from buscar_envios('%')) then raise exception 'FALLO 69 · el comodín %% no se escapa'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  -- El cliente de prueba no tiene permiso para leer la tabla envíos directamente: no encuentra nada ajeno.
+  begin
+    if exists (select 1 from buscar_envios('Trans Flota 68')) then raise exception 'FALLO 69 · un cliente encuentra envíos de otro por el buscador'; end if;
+  exception when insufficient_privilege then null;
+  end;
+  raise notice 'OK 69 · buscar envíos: cada palabra, sin acentos ni comodines, y solo lo que cada uno puede ver';
+end $$;
+reset role;

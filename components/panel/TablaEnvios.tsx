@@ -22,10 +22,10 @@ const SubBase = () => (<><br /><span style={{ fontWeight: 600, color: 'var(--gra
 
 type Props = {
   filas: EnvioFila[]; nombres: Record<string, string>; rol: Rol;
-  f?: string; q: string; p?: string; error: string | null; nuevo?: string;
+  f?: string; q: string; p?: string; error: string | null; nuevo?: string; nota?: string | null;
 };
 
-export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pParam, error, nuevo }: Props) {
+export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pParam, error, nuevo, nota }: Props) {
   const dynamo = esDynamo(rol);
   // ---- Pestaña, buscador y página
   const pestanas = PESTANAS.filter((p) => dynamo || !p.soloDynamo);
@@ -78,6 +78,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
       {error && (
         <div className="pt-aviso error">No se han podido cargar los envíos: {error}</div>
       )}
+      {nota && <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>{nota}</div></div>}
 
       <div className="table-wrap">
         <table className="data">

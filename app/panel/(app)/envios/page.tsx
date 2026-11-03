@@ -20,17 +20,38 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   // ---- Datos, según el rol (Dynamo lee la tabla; cliente y transportista, sus funciones)
   let filas: EnvioFila[] = [];
   let error: string | null = null;
+  let nota: string | null = null;
   if (dynamo) {
-    const { data, error: e } = await supabase.from('envios').select(
-      'id, referencia_gx, referencia_cliente, estado, estado_asignacion, es_manual, transportista_id, ' +
+    const COLS = 'id, referencia_gx, referencia_cliente, estado, estado_asignacion, es_manual, transportista_id, ' +
       'fecha_carga_desde, fecha_carga_hasta, fecha_carga_real, fecha_entrega_estimada, descripcion_mercancia, ' +
       'toneladas, metros_lineales, tipo_carga, paletizado, poblacion_origen, codigo_postal_origen, poblacion_destino, codigo_postal_destino, ' +
       'importe_cliente, importe_transportista, precio_acordado_operador, precio_fijado_a_mano, matricula_camion, ' +
       'matricula_remolque, creado_en, modificado_en, creado_por, clientes(nombre_visible, cif), operadores(razon_social), ' +
-      'envio_paradas(orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)')
-      .order('creado_en', { ascending: false }).limit(1000);
-    if (e) error = e.message;
-    filas = ((data ?? []) as any[]).map((x) => ({
+      'envio_paradas(orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)';
+    const TERMINADOS = 1000;
+    let data: any[] = [];
+    if (q) {
+      // Con búsqueda: la hace la base de datos sobre TODOS los envíos (también los antiguos).
+      const { data: ids, error: e1 } = await supabase.rpc('buscar_envios', { p_q: q, p_limite: 500 });
+      if (e1) error = e1.message;
+      const lista = ((ids ?? []) as string[]);
+      if (lista.length) {
+        const r = await supabase.from('envios').select(COLS).in('id', lista);
+        if (r.error) error = r.error.message;
+        data = r.data ?? [];
+      }
+      if (lista.length >= 500) nota = 'Hay más de 500 envíos que coinciden: se ven los 500 más recientes. Afina la búsqueda.';
+    } else {
+      // Sin búsqueda: TODOS los vivos y los últimos terminados (entregados y cancelados).
+      const [vivos, fin] = await Promise.all([
+        supabase.from('envios').select(COLS).not('estado', 'in', '(entregado,cancelado)').order('creado_en', { ascending: false }).limit(5000),
+        supabase.from('envios').select(COLS).in('estado', ['entregado', 'cancelado']).order('creado_en', { ascending: false }).limit(TERMINADOS),
+      ]);
+      error = vivos.error?.message ?? fin.error?.message ?? null;
+      data = [...(vivos.data ?? []), ...(fin.data ?? [])];
+      if ((fin.data ?? []).length >= TERMINADOS) nota = `Se ven los ${TERMINADOS.toLocaleString('es-ES')} últimos envíos entregados o cancelados. Para uno más antiguo, búscalo por su número, cliente, población o matrícula.`;
+    }
+    filas = (data as any[]).map((x) => ({
       ...x, cliente: x.clientes?.nombre_visible ?? null, cliente_cif: x.clientes?.cif ?? null,
       operador: x.operadores?.razon_social ?? null, transportista_asignado: !!x.transportista_id,
       paradas: (x.envio_paradas ?? []) as Parada[],
@@ -74,7 +95,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} error={error ?? errorFicha} nuevo={sp.nuevo} />
+      <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} error={error ?? errorFicha} nuevo={sp.nuevo} nota={nota} />
       {ficha && <FichaEnvio key={ficha.envio.id} ficha={ficha} transportistas={transportistas} cerrarHref={cerrarHref} />}
     </>
   );
