@@ -386,7 +386,7 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - 🐛 **Cazado a tiempo**: los PDF que se generan fuera del visor no llevaban sus imágenes en la función de Vercel (`next.config.mjs` → `outputFileTracingIncludes`); añadidas las rutas nuevas.
 
 **Necesita al usuario** (además de lo de la entrada de abajo: Postmark, clave de servicio, Redirect URL, Google Maps, tarifa):
-1. **IBAN** de Dynamo en Parámetros → `dynamo_iban` (la proforma lo pide por teléfono mientras esté vacío).
+1. **IBAN** de Dynamo **en Supabase** (Table Editor → `parametros` → `dynamo_iban`). **Blindado** (migración `parametros_blindados`): IBAN, banco, BIC, titular y CIF NO se cambian desde la web, ni un admin — anti-fraude de cambio de IBAN. De paso se cerró un hueco: un empleado podía escribir parámetros llamando a la API; ahora solo el administrador.
 2. Al configurar Postmark: que las plantillas *Magic Link* y *Confirm signup* de Supabase Auth lleven **`{{ .Token }}`** (el código de 6 cifras del alta).
 3. **Decidir el alta online de transportistas nuevos** desde el enlace de una carga (hoy se les dice que contacten: «solo trabajamos con transportistas de bolsas del grupo Alpega»). ¿Se abre? ¿Con qué verificación (seguro, tarjeta de transporte)?
 4. Probar en `pruebas`: el alta de un cliente de punta a punta, una proforma, «Guardar copia», abrir la orden desde `/carga/<enlace>`.

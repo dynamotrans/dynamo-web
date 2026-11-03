@@ -2552,3 +2552,44 @@ do $$ declare n int; begin
   raise notice 'OK 83 · pago del almacenamiento: lo marca Dynamo, el cliente no; datos bancarios en parámetros';
 end $$;
 reset role;
+
+-- ---- 84. Parámetros: el empleado no escribe; el IBAN no se toca desde la web -------------
+do $$ declare emp uuid; begin
+  insert into auth.users (email) values ('empleado84@dynamo.prueba') returning id into emp;
+  update usuarios set rol = 'empleado', estado = 'activa' where id = emp;
+  perform set_config('prueba.u_emp84', emp::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_emp84'), false);
+set role authenticated;
+do $$ declare n int; begin
+  if not exists (select 1 from parametros where clave = 'dynamo_cif') then raise exception 'FALLO 84 · el empleado ya no lee los parámetros'; end if;
+  update parametros set valor = '999' where clave = 'solicitud_validez_horas';
+  get diagnostics n = row_count;
+  if n > 0 then raise exception 'FALLO 84 · un empleado cambia parámetros llamando a la API'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare n int; begin
+  begin
+    update parametros set valor = '"ES0000000000000000000000"' where clave = 'dynamo_iban';
+    raise exception 'FALLO 84 · un administrador cambia el IBAN desde la web';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    delete from parametros where clave = 'dynamo_cif';
+    raise exception 'FALLO 84 · se borra el CIF de Dynamo desde la web';
+  exception when insufficient_privilege then null;
+  end;
+  update parametros set valor = valor where clave = 'solicitud_validez_horas';
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'FALLO 84 · el administrador ya no puede cambiar parámetros normales'; end if;
+end $$;
+reset role;
+-- Desde Supabase (el dueño de la base de datos) sí.
+do $$ begin
+  update parametros set valor = '"ES9121000418450200051332"' where clave = 'dynamo_iban';
+  if (select valor #>> '{}' from parametros where clave = 'dynamo_iban') <> 'ES9121000418450200051332' then raise exception 'FALLO 84 · ni desde Supabase se puede poner el IBAN'; end if;
+  update parametros set valor = '""' where clave = 'dynamo_iban';
+  raise notice 'OK 84 · parámetros: solo el administrador escribe; IBAN, banco, titular y CIF solo desde Supabase';
+end $$;

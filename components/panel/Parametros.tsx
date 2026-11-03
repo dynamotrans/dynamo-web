@@ -8,6 +8,10 @@ import { useRouter } from 'next/navigation';
 import { guardarParametro } from '@/app/panel/(app)/parametros/acciones';
 import { creadoTxt } from '@/lib/envios';
 
+// Datos que deciden a quién paga el cliente: solo se cambian en Supabase (la base de datos
+// lo impone; migración parametros_blindados). Aquí se ven, sin poder tocarlos.
+const BLINDADOS = ['dynamo_iban', 'dynamo_banco', 'dynamo_bic', 'dynamo_razon_social', 'dynamo_cif'];
+
 export type ParametroFila = { clave: string; valor: unknown; descripcion: string; modificado_en: string | null };
 
 // Grupos por el principio de la clave (lo que no encaje, en «Otros»).
@@ -60,6 +64,8 @@ function Fila({ p, esAdmin }: { p: ParametroFila; esAdmin: boolean }) {
   const [v, setV] = useState(texto(p.valor));
   const [estado, setEstado] = useState<null | 'guardando' | 'ok' | string>(null);
   const cambiado = v !== texto(p.valor);
+  const blindado = BLINDADOS.includes(p.clave);
+  const puede = esAdmin && !blindado;
 
   async function guardar(valor: unknown) {
     setEstado('guardando');
@@ -81,20 +87,21 @@ function Fila({ p, esAdmin }: { p: ParametroFila; esAdmin: boolean }) {
 
   return (
     <tr>
-      <td>{p.descripcion}<div className="meta" style={{ fontFamily: 'monospace' }}>{p.clave}</div></td>
+      <td>{p.descripcion}<div className="meta" style={{ fontFamily: 'monospace' }}>{p.clave}</div>
+        {blindado && <div className="meta" style={{ color: '#b45309', fontWeight: 700 }}>Por seguridad, solo se cambia en Supabase (Table Editor → parametros).</div>}</td>
       <td style={{ minWidth: 220 }}>
         {tipo === 'si_no' ? (
           <label className="ptar-tramp-box" style={{ display: 'inline-flex' }}>
-            <input type="checkbox" className="ptar-switch-input" checked={p.valor === true} disabled={!esAdmin || estado === 'guardando'}
+            <input type="checkbox" className="ptar-switch-input" checked={p.valor === true} disabled={!puede || estado === 'guardando'}
               onChange={(e) => guardar(e.target.checked)} />
             <span className="ptar-switch" aria-hidden="true" />
             <span className="ptar-tramp-state" aria-hidden="true"><span className="tramp-off">No</span><span className="tramp-on">Sí</span></span>
           </label>
         ) : (
           <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-            <input type="text" inputMode={tipo === 'numero' ? 'decimal' : 'text'} value={v} disabled={!esAdmin} onChange={(e) => { setV(e.target.value); setEstado(null); }}
+            <input type="text" inputMode={tipo === 'numero' ? 'decimal' : 'text'} value={v} disabled={!puede} onChange={(e) => { setV(e.target.value); setEstado(null); }}
               onKeyDown={(e) => { if (e.key === 'Enter' && cambiado) guardarTexto(); }} className="param-input" style={{ maxWidth: 200 }} aria-label={p.descripcion} />
-            {esAdmin && cambiado && <button className="btn-primary" style={{ padding: '0.4rem 0.8rem' }} onClick={guardarTexto} disabled={estado === 'guardando'}>Guardar</button>}
+            {puede && cambiado && <button className="btn-primary" style={{ padding: '0.4rem 0.8rem' }} onClick={guardarTexto} disabled={estado === 'guardando'}>Guardar</button>}
           </div>
         )}
         {estado === 'guardando' && <div className="meta">Guardando…</div>}

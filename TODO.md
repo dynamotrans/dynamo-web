@@ -5,8 +5,8 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 ## 🔥 Prioridad alta
 
 ### Plataforma real (Next.js) — "Nuevo envío" v1 hecho (2026-11-03), lo que falta
-- [ ] 🙋 **Lo que necesita al usuario (2026-11-03, tarde)**: (1) poner el **IBAN** de Dynamo en Parámetros
-      (`dynamo_iban`; la proforma lo pide por teléfono mientras esté vacío); (2) **decidir el alta online de
+- [ ] 🙋 **Lo que necesita al usuario (2026-11-03, tarde)**: (1) poner el **IBAN** de Dynamo **en Supabase** (Table Editor → `parametros` → `dynamo_iban`; desde la web
+      no se puede cambiar, por seguridad; la proforma lo pide por teléfono mientras esté vacío); (2) **decidir el alta online de
       transportistas nuevos** desde el enlace de una carga (hoy: «contáctanos»; ¿se abre?, ¿qué se verifica:
       seguro CMR, tarjeta de transporte, bolsa Alpega?); (3) al montar Postmark, `{{ .Token }}` en las plantillas
       *Magic Link* y *Confirm signup* de Supabase Auth (código del alta de clientes).
@@ -93,7 +93,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       (fotos, GPS/tacógrafo, albaranes) en incidencias y penalizaciones: necesita Supabase Storage con
       permisos; (2) que el **cliente** las vea y abra incidencias o pida almacenamientos (etapa B, con
       `mis_penalizaciones()` sin el importe del transportista); (3) ~~**proforma** del almacenamiento sin
-      crédito y la pestaña «Pendiente de pago»~~ (hecho 2026-11-03; ⚠️ falta que el usuario ponga el **IBAN** en Parámetros → `dynamo_iban`); (4) comprobar los **20 km**
+      crédito y la pestaña «Pendiente de pago»~~ (hecho 2026-11-03; ⚠️ falta que el usuario ponga el **IBAN** en Supabase → `parametros` → `dynamo_iban` (blindado: desde la web no se cambia)); (4) comprobar los **20 km**
       del reparto urbano con Google; (5) avisos D4 (incidencia nueva) y C5/T9 por WhatsApp/email;
       (6) ~~el buscador de envíos de esas pantallas carga los últimos 3.000~~ (hecho 2026-11-03: Dynamo busca en la base de datos al escribir).
 - [ ] **Ofrecer carga + página pública `/carga/<enlace>` (hecho 2026-11-03)** — ANTES DE PRODUCCIÓN:
