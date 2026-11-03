@@ -9,6 +9,10 @@ import Modal from './Modal';
 import { fecha, ventana } from '@/lib/formato';
 import { FLOTA_HTML } from '@/lib/dashboardContenido';
 
+// «Nuestros servicios» y «Nuestra flota» ocultos de momento (decisión del usuario,
+// 2026-11-03). Para volver a enseñarlos basta con poner esto a true.
+const MOSTRAR_SERVICIOS_Y_FLOTA = false;
+
 export type MiniEnvio = {
   id: string; referencia_gx: string; referencia_cliente: string | null; estado: string;
   fecha_carga_desde: string | null; fecha_carga_hasta: string | null; origen: string; destino: string;
@@ -152,6 +156,7 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
             ))}
           </div>
         </div>
+        {MOSTRAR_SERVICIOS_Y_FLOTA && (<>
         <div className="dash-servicios">
           <p className="dash-flota-eyebrow">Nuestros servicios</p>
           <h4 className="dash-flota-title">Soluciones de transporte</h4>
@@ -174,6 +179,7 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
           <p className="dash-flota-desc">Disponemos del vehículo adecuado para cada tipo de carga y necesidad.</p>
           <div dangerouslySetInnerHTML={{ __html: FLOTA_HTML }} />
         </div>
+        </>)}
       </div>
 
       {ventanaAbierta === 'recomendar' && (
