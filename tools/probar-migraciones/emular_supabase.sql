@@ -19,7 +19,9 @@ create table auth.users (
   id                 uuid primary key default gen_random_uuid(),
   email              text,
   raw_user_meta_data jsonb not null default '{}'::jsonb,
-  created_at         timestamptz not null default now()
+  created_at         timestamptz not null default now(),
+  last_sign_in_at    timestamptz,          -- como en Supabase: último inicio de sesión
+  email_confirmed_at timestamptz
 );
 
 -- Supabase saca el usuario del token (JWT). Aquí se simula con un ajuste de sesión:

@@ -23,6 +23,12 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] **Pantalla de Parámetros** en el panel (solo admin) para cambiar sin entrar en Supabase: descuento de
       bienvenida (−7 %) y nº de envíos (3), minutos de reserva, banda de contraoferta… (tabla `parametros`).
 - [ ] Clientes: campo "Alta dada por (comisiones)" del mockup — no tiene columna todavía.
+- [ ] **Usuarios (hecho 2026-11-03) — para que funcionen las invitaciones y el "¿Olvidaste tu contraseña?"**:
+      (1) en Vercel, variable **`SUPABASE_SERVICE_ROLE_KEY`** (entorno Preview, marcada como *Sensitive*, SIN
+      `NEXT_PUBLIC_`; la pega el usuario, nunca en el chat); (2) en Supabase → Authentication → URL Configuration,
+      añadir a **Redirect URLs** `https://dynamo-web-git-pruebas-dynamotrans-projects.vercel.app/panel/confirmar`;
+      (3) **Postmark como SMTP de Supabase Auth**: sin él, Supabase solo entrega emails a los miembros del equipo
+      del proyecto. Faltan del mockup: "enviar copia a", consultas de precio, tiempo conectado y documentos.
 - [ ] Transportistas (hecho 2026-11-03): falta la **documentación** (hoja CIF, DNI, otros · máx. 3) — necesita
       Supabase Storage con permisos; y la puntuación de **clientes** (hoy solo existe la interna de Dynamo).
 - [ ] Sitios (hecho 2026-11-03): falta el **ejemplo del aviso** al sitio ("Ver ejemplo →" del mockup) y

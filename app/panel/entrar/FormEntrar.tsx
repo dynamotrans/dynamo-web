@@ -7,10 +7,6 @@ import Cargando from '@/components/Cargando';
 
 const inicial: EstadoEntrar = { error: null };
 
-// "¿Olvidaste tu contraseña?" abre un correo a Dynamo hasta que esté el cambio de
-// contraseña por email (pendiente en TODO.md).
-const MAIL_OLVIDO =
-  'mailto:info@dynamotrans.com?subject=' + encodeURIComponent('He olvidado mi contraseña de la plataforma');
 
 export default function FormEntrar() {
   const [estado, accion, enviando] = useActionState(entrar, inicial);
@@ -40,7 +36,7 @@ export default function FormEntrar() {
 
       <div className="portal-row">
         <label className="portal-check"><input type="checkbox" name="recordar" defaultChecked /> Recordarme</label>
-        <a href={MAIL_OLVIDO} className="portal-forgot">¿Olvidaste tu contraseña?</a>
+        <a href="/panel/olvido" className="portal-forgot">¿Olvidaste tu contraseña?</a>
       </div>
 
       <button type="submit" className="portal-submit" disabled={enviando}>

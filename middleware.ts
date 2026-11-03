@@ -26,8 +26,12 @@ export async function middleware(request: NextRequest) {
 
   // getUser() valida el token contra Supabase (no se fía de la cookie a ciegas).
   const { data: { user } } = await supabase.auth.getUser();
-  const enLogin = request.nextUrl.pathname.startsWith('/panel/entrar');
-  if (!user && !enLogin) {
+  const ruta = request.nextUrl.pathname;
+  const enLogin = ruta.startsWith('/panel/entrar');
+  // Páginas a las que se llega SIN sesión: la entrada, el enlace de los emails
+  // (invitación y cambio de contraseña) y la de pedir ese enlace.
+  const publica = enLogin || ruta.startsWith('/panel/confirmar') || ruta.startsWith('/panel/olvido');
+  if (!user && !publica) {
     const destino = request.nextUrl.clone();
     destino.pathname = '/panel/entrar';
     return NextResponse.redirect(destino);

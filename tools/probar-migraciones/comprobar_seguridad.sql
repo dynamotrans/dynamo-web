@@ -1430,3 +1430,44 @@ do $$ declare l uuid := current_setting('prueba.lugar_prin_a')::uuid; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- =====================================================================================
+-- USUARIOS EN EL PANEL (2026-11-03)
+-- =====================================================================================
+-- ---- 53. Un email de cliente o transportista nunca pasa a interno -------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare c uuid := current_setting('prueba.u_cli')::uuid; begin
+  begin
+    update usuarios set rol = 'empleado', cliente_id = null where id = c;
+    raise exception 'FALLO 53 · un cliente ha pasado a empleado';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    update usuarios set rol = 'admin', transportista_id = null where id = current_setting('prueba.u_transp')::uuid;
+    raise exception 'FALLO 53 · un transportista ha pasado a admin';
+  exception when insufficient_privilege then null;
+  end;
+  if (select count(*) from conexiones_usuarios()) = 0 then
+    raise exception 'FALLO 53 · Dynamo no ve las conexiones de los usuarios';
+  end if;
+end $$;
+reset role;
+-- Ni siquiera con la llave del servidor.
+do $$ begin
+  begin
+    update usuarios set rol = 'empleado', cliente_id = null where id = current_setting('prueba.u_cli')::uuid;
+    raise exception 'FALLO 53 · el servidor ha pasado un cliente a empleado';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if (select count(*) from conexiones_usuarios()) <> 0 then
+    raise exception 'FALLO 53 · FUGA: un cliente ve las conexiones de los usuarios';
+  end if;
+  raise notice 'OK 53 · usuarios: cliente/transportista nunca pasan a interno; las conexiones solo las ve Dynamo';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
