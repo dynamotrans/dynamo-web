@@ -11,6 +11,7 @@ import Cargando from '@/components/Cargando';
 import { IconoTipo, TIPOS_LUGAR } from './TipoSitio';
 import { guardarSitio, borrarSitio, marcarPrincipal, type SitioDatos } from '@/app/panel/(app)/sitios/acciones';
 import { creadoTxt } from '@/lib/envios';
+import { euros } from '@/lib/formato';
 import { PAISES, paisDe, telBonito } from '@/lib/paises';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import EditorContactos from './EditorContactos';
@@ -188,17 +189,25 @@ export default function Sitios({ filas, clientes, dynamo, error }: { filas: Siti
   );
 }
 
-function FichaSitio({ fila, clientes, dynamo, onCerrar, onAbrir, onGuardado }: {
+// La misma ficha sirve para los ALMACENES DYNAMO (como en el mockup: formulario idéntico
+// al de Sitios + disponibilidad y precios propios). `almacen` trae los precios por defecto.
+export function FichaSitio({ fila, clientes, dynamo, almacen, onCerrar, onAbrir, onGuardado }: {
   fila: SitioFila | null; clientes: ClienteSitios[]; dynamo: boolean;
+  almacen?: { precioSemana: number; precioReparto: number };
   onCerrar: () => void; onAbrir: (id: string) => void; onGuardado: () => void;
 }) {
   const [d, setD] = useState<SitioDatos>(() => {
-    if (!fila) return { ...NUEVO, cliente_id: clientes.length === 1 ? clientes[0].id : '' };
-    const o: any = {};
-    (Object.keys(NUEVO) as (keyof SitioDatos)[]).forEach((k) => { o[k] = (fila as any)[k] ?? (NUEVO as any)[k]; });
+    const o: any = fila ? {} : { ...NUEVO, cliente_id: clientes.length === 1 ? clientes[0].id : '' };
+    if (fila) (Object.keys(NUEVO) as (keyof SitioDatos)[]).forEach((k) => { o[k] = (fila as any)[k] ?? (NUEVO as any)[k]; });
     if (!o.horario?.length) o.horario = HORARIO_POR_DEFECTO;
+    if (almacen) o.almacen = (fila as any)?.almacen ?? { disponible: true, precio_almacenamiento_semana: null, precio_reparto: null };
     return o as SitioDatos;
   });
+  const [precios, setPrecios] = useState({
+    semana: d.almacen?.precio_almacenamiento_semana == null ? '' : String(d.almacen.precio_almacenamiento_semana).replace('.', ','),
+    reparto: d.almacen?.precio_reparto == null ? '' : String(d.almacen.precio_reparto).replace('.', ','),
+  });
+  const que = almacen ? 'almacén' : 'sitio';
   const [error, setError] = useState<string | null>(null);
   const [repetido, setRepetido] = useState<{ id: string; nombre: string } | null>(null);
   const [confirmarBorrado, setConfirmarBorrado] = useState(false);
@@ -207,15 +216,19 @@ function FichaSitio({ fila, clientes, dynamo, onCerrar, onAbrir, onGuardado }: {
 
   async function guardar(aunqueRepetido = false) {
     setError(null);
-    if (!d.cliente_id) { setError('Elige de qué cliente es el sitio.'); return; }
+    if (!almacen && !d.cliente_id) { setError('Elige de qué cliente es el sitio.'); return; }
+    const aNum = (t: string) => { const v = t.trim(); return v ? Number(v.replace(/\./g, '').replace(',', '.')) : null; };
+    const semana = aNum(precios.semana), reparto = aNum(precios.reparto);
+    if ([semana, reparto].some((v) => v != null && (!Number.isFinite(v) || v < 0))) { setError('Los precios tienen que ser un número (o vacíos para usar los de por defecto).'); return; }
+    const datos: SitioDatos = almacen ? { ...d, almacen: { disponible: d.almacen?.disponible ?? true, precio_almacenamiento_semana: semana, precio_reparto: reparto } } : d;
     if (!d.tipo) { setError('Elige el tipo de lugar.'); return; }
     if (!d.nombre_empresa.trim() || !d.direccion.trim() || !d.codigo_postal.trim() || !d.poblacion.trim()) {
       setError('Empresa, dirección, código postal y población son obligatorios.'); return;
     }
     const malHorario = validarHorario(d.horario);
     if (malHorario) { setError(malHorario); return; }
-    setTrabajando(fila ? 'Guardando cambios' : 'Creando sitio');
-    const r = await guardarSitio(fila?.id ?? null, d, aunqueRepetido);
+    setTrabajando(fila ? 'Guardando cambios' : `Creando ${que}`);
+    const r = await guardarSitio(fila?.id ?? null, datos, aunqueRepetido);
     setTrabajando(null);
     if (!r.ok) {
       if (r.duplicado) { setRepetido(r.duplicado); return; }
@@ -225,7 +238,7 @@ function FichaSitio({ fila, clientes, dynamo, onCerrar, onAbrir, onGuardado }: {
   }
   async function borrar() {
     if (!fila) return;
-    setTrabajando('Borrando sitio');
+    setTrabajando(`Borrando ${que}`);
     const r = await borrarSitio(fila.id);
     setTrabajando(null);
     if (!r.ok) { setError(r.error ?? 'No se ha podido borrar.'); setConfirmarBorrado(false); return; }
@@ -255,13 +268,13 @@ function FichaSitio({ fila, clientes, dynamo, onCerrar, onAbrir, onGuardado }: {
   const cliente = clientes.find((c) => c.id === d.cliente_id);
 
   return (
-    <Modal abierto titulo={fila ? 'Editar sitio' : 'Nuevo sitio'}
-      sub={fila ? `${fila.nombre_empresa} · ${fila.codigo}${dynamo && cliente ? ` · ${cliente.nombre}` : ''}` : 'Crea un lugar de recogida/entrega para la agenda'}
+    <Modal abierto titulo={fila ? `Editar ${que}` : `Nuevo ${que}`}
+      sub={fila ? `${fila.nombre_empresa} · ${fila.codigo}${dynamo && cliente ? ` · ${cliente.nombre}` : ''}` : almacen ? 'Alta de un almacén Dynamo en el catálogo interno' : 'Crea un lugar de recogida/entrega para la agenda'}
       icono={<IcoPin />} onCerrar={onCerrar}
       pie={<>
         <button className="btn-ghost" onClick={onCerrar} disabled={!!trabajando}>Cancelar</button>
         {fila && <button className="btn-ghost" style={{ color: '#dc2626' }} onClick={() => setConfirmarBorrado(true)} disabled={!!trabajando}>Borrar</button>}
-        <button className="btn-primary" onClick={() => guardar(false)} disabled={!!trabajando}>{fila ? 'Guardar cambios' : 'Crear sitio'}</button>
+        <button className="btn-primary" onClick={() => guardar(false)} disabled={!!trabajando}>{fila ? 'Guardar cambios' : `Crear ${que}`}</button>
       </>}>
       {fila && (
         <div className="sitio-meta-fechas">
@@ -271,7 +284,7 @@ function FichaSitio({ fila, clientes, dynamo, onCerrar, onAbrir, onGuardado }: {
       )}
       {confirmarBorrado && (
         <div className="modal-warn-box">
-          <strong>¿Borrar este sitio?</strong> Desaparece de la agenda y del buscador de envíos. Los envíos ya creados <strong>conservan la dirección</strong>.
+          <strong>¿Borrar este {que}?</strong> Desaparece {almacen ? 'del catálogo y de los desplegables' : 'de la agenda y del buscador de envíos'}. Lo ya creado <strong>conserva la dirección</strong>.
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
             <button className="btn-primary" style={{ background: '#dc2626', borderColor: '#dc2626' }} onClick={borrar}>Sí, borrar</button>
             <button className="btn-ghost" onClick={() => setConfirmarBorrado(false)}>No</button>
@@ -280,15 +293,46 @@ function FichaSitio({ fila, clientes, dynamo, onCerrar, onAbrir, onGuardado }: {
       )}
       {repetido && (
         <div className="modal-warn-box">
-          {dynamo ? 'Este cliente ya tiene' : 'Ya tienes'} un sitio muy parecido guardado: <strong>{repetido.nombre}</strong>, en el mismo código postal. Puede tener anotaciones o el teléfono bueno.
+          {almacen ? 'Ya hay un almacén Dynamo' : dynamo ? 'Este cliente ya tiene un sitio' : 'Ya tienes un sitio'} muy parecido guardado: <strong>{repetido.nombre}</strong>, en el mismo código postal. Puede tener anotaciones o el teléfono bueno.
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
             <button className="btn-secondary" onClick={() => onAbrir(repetido.id)}>Abrir el que ya existe</button>
             <button className="btn-ghost" onClick={() => guardar(true)}>Crear otro igualmente</button>
           </div>
         </div>
       )}
+      {almacen && (
+        <>
+          <div style={{ margin: '0 0 0.9rem', padding: '0.7rem 0.85rem', border: '1.5px solid var(--gray-200)', borderRadius: 10, background: 'var(--gray-50)' }}>
+            <label className="ptar-tramp-box" style={{ maxWidth: 260 }}>
+              <input type="checkbox" className="ptar-switch-input" checked={d.almacen?.disponible ?? true}
+                onChange={(e) => setD((x) => ({ ...x, almacen: { ...x.almacen!, disponible: e.target.checked } }))} />
+              <span className="ptar-switch" aria-hidden="true" />
+              <span className="ptar-tramp-state" aria-hidden="true"><span className="tramp-off">Completo</span><span className="tramp-on">Disponible</span></span>
+            </label>
+            <div style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', marginTop: '0.4rem', lineHeight: 1.45 }}>
+              Si está <strong>completo</strong>, sigue saliendo en los desplegables, pero no admite almacenamientos nuevos. Recoger o entregar en él sí se puede.
+            </div>
+          </div>
+          <div style={{ margin: '0 0 0.9rem', padding: '0.7rem 0.85rem', border: '1.5px solid var(--gray-200)', borderRadius: 10, background: 'var(--gray-50)' }}>
+            <strong style={{ color: 'var(--navy)', fontSize: 'var(--fs-l)' }}>Precios de este almacén</strong>
+            <span style={{ display: 'block', fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: '1px 0 0.6rem' }}>Base sin IVA. Vacío = el precio por defecto.</span>
+            <div className="ptar-sitio-grid">
+              <div>
+                <label htmlFor="alm-semana">Almacenamiento · 7 días / 1 semana (€)</label>
+                <input id="alm-semana" type="text" inputMode="decimal" value={precios.semana} placeholder={`${euros(almacen.precioSemana)} por defecto`}
+                  onChange={(e) => setPrecios((p) => ({ ...p, semana: e.target.value }))} />
+              </div>
+              <div>
+                <label htmlFor="alm-reparto">Reparto urbano · camión 4 m (€ / reparto)</label>
+                <input id="alm-reparto" type="text" inputMode="decimal" value={precios.reparto} placeholder={`${euros(almacen.precioReparto)} por defecto`}
+                  onChange={(e) => setPrecios((p) => ({ ...p, reparto: e.target.value }))} />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
       <div className="ptar-sitio-grid">
-        {dynamo && (
+        {dynamo && !almacen && (
           <div style={{ gridColumn: '1/-1' }}>
             <label htmlFor="sitio-cliente">Cliente {!fila && obl}</label>
             {fila

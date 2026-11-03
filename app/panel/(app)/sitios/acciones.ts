@@ -13,6 +13,8 @@ export type SitioDatos = {
   requiere_cita: boolean; tiene_medios_carga: boolean;
   contactos: ContactoDatos[];     // personas (tabla contactos, una o varias)
   emails_avisos: string;          // uno o varios, separados por comas (lugares.emails_avisos)
+  // Solo en los almacenes de Dynamo (catálogo interno): disponibilidad y tarifa propia.
+  almacen?: { disponible: boolean; precio_almacenamiento_semana: number | null; precio_reparto: number | null };
 };
 type Res = { ok: true; id: string } | { ok: false; error: string; duplicado?: { id: string; nombre: string } };
 
@@ -38,7 +40,11 @@ async function puede() {
 export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParezcaRepetido = false): Promise<Res> {
   const s = await puede();
   if (!s) return { ok: false, error: 'No tienes permiso para gestionar sitios.' };
-  if (!d.cliente_id) return { ok: false, error: 'Elige de qué cliente es el sitio.' };
+  const esAlmacen = !!d.almacen;
+  if (esAlmacen && !esDynamo(s.perfil!.rol)) return { ok: false, error: 'Los almacenes Dynamo solo los gestiona Dynamo.' };
+  if (!esAlmacen && !d.cliente_id) return { ok: false, error: 'Elige de qué cliente es el sitio.' };
+  const precioMal = [d.almacen?.precio_almacenamiento_semana, d.almacen?.precio_reparto].some((v) => v != null && (!Number.isFinite(v) || v < 0));
+  if (precioMal) return { ok: false, error: 'Los precios tienen que ser un número (o vacíos para usar los de por defecto).' };
   if (!d.nombre_empresa.trim() || !d.direccion.trim() || !d.codigo_postal.trim() || !d.poblacion.trim()) {
     return { ok: false, error: 'Empresa, dirección, código postal y población son obligatorios.' };
   }
@@ -61,8 +67,9 @@ export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParez
 
   // Aviso de duplicado (no bloquea): mismo cliente, mismo nombre y mismo código postal.
   if (!id && !aunqueParezcaRepetido) {
-    const { data: suyos } = await s.supabase.from('lugares').select('id, nombre_empresa, codigo_postal')
-      .eq('cliente_id', d.cliente_id).eq('borrado', false).eq('codigo_postal', d.codigo_postal.trim());
+    const base = s.supabase.from('lugares').select('id, nombre_empresa, codigo_postal')
+      .eq('borrado', false).eq('codigo_postal', d.codigo_postal.trim());
+    const { data: suyos } = await (esAlmacen ? base.eq('es_almacen_dynamo', true) : base.eq('cliente_id', d.cliente_id));
     const rep = (suyos ?? []).find((x) => clave(x.nombre_empresa) === clave(d.nombre_empresa));
     if (rep) return { ok: false, error: 'repetido', duplicado: { id: rep.id, nombre: rep.nombre_empresa } };
   }
@@ -77,7 +84,12 @@ export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParez
   };
   // El enlace de Google Maps solo lo toca Dynamo (en el mockup, el cliente lo ve fijo).
   if (esDynamo(s.perfil!.rol)) fila.url_google_maps = vacio(d.url_google_maps);
-  if (!id) fila.cliente_id = d.cliente_id;
+  if (esAlmacen) {
+    fila.disponible = d.almacen!.disponible;
+    fila.precio_almacenamiento_semana = d.almacen!.precio_almacenamiento_semana;
+    fila.precio_reparto = d.almacen!.precio_reparto;
+    if (!id) fila.es_almacen_dynamo = true;
+  } else if (!id) fila.cliente_id = d.cliente_id;
 
   const q = id
     ? s.supabase.from('lugares').update(fila).eq('id', id).select('id').single()

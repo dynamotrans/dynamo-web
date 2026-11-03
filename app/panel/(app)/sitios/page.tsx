@@ -1,8 +1,7 @@
 import { sesion, esDynamo } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
-import Sitios, { type SitioFila, type ClienteSitios } from '@/components/panel/Sitios';
-import { contactosDe } from '@/lib/contactos';
-import { gruposDe, type FilaHorario } from '@/lib/horarios';
+import Sitios, { type ClienteSitios } from '@/components/panel/Sitios';
+import { cargarLugares } from '@/lib/sitiosDatos';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,13 +18,7 @@ export default async function PaginaSitios() {
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es de los clientes y del equipo de Dynamo.</div></div></section>;
   }
 
-  const [lug, con, hor] = await Promise.all([
-    supabase.from('lugares')
-      .select('id, codigo, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, url_google_maps, anotaciones, requiere_cita, tiene_medios_carga, emails_avisos, creado_en, modificado_en')
-      .eq('borrado', false).eq('es_almacen_dynamo', false).order('nombre_empresa').limit(10000),
-    supabase.from('contactos').select('id, lugar_id, nombre, cargo, funcion, telefono, email, recibe_avisos, es_principal, creado_en').not('lugar_id', 'is', null).limit(50000),
-    supabase.from('lugar_horarios').select('lugar_id, dia_semana, abre, cierra').limit(100000),
-  ]);
+  const { filas, error } = await cargarLugares(supabase, false);
 
   // Clientes (para Dynamo, todos; para un cliente, él mismo) con su sitio principal.
   let clientes: ClienteSitios[] = [];
@@ -40,18 +33,5 @@ export default async function PaginaSitios() {
     }
   }
 
-  const horarioDe = new Map<string, FilaHorario[]>();
-  (hor.data ?? []).forEach((h) => horarioDe.set(h.lugar_id as string, [...(horarioDe.get(h.lugar_id as string) ?? []), h as FilaHorario]));
-  const porSitio = new Map<string, any[]>();
-  (con.data ?? []).forEach((c) => porSitio.set(c.lugar_id as string, [...(porSitio.get(c.lugar_id as string) ?? []), c]));
-  const filas: SitioFila[] = (lug.data ?? []).map((l: any) => {
-    return {
-      ...l, provincia: l.provincia ?? '', horarios: l.horarios ?? '', url_google_maps: l.url_google_maps ?? '',
-      anotaciones: l.anotaciones ?? '', tipo: l.tipo ?? 'almacen_nave',
-      contactos: contactosDe(porSitio.get(l.id) ?? []),
-      horario: gruposDe(horarioDe.get(l.id) ?? []),
-      emails_avisos: (l.emails_avisos ?? []).join(', '),
-    };
-  });
-  return <Sitios filas={filas} clientes={clientes} dynamo={dynamo} error={lug.error?.message ?? null} />;
+  return <Sitios filas={filas} clientes={clientes} dynamo={dynamo} error={error} />;
 }

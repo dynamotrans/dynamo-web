@@ -1575,3 +1575,22 @@ do $$ declare n int; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 57. Precios de los almacenes Dynamo: por defecto en parámetros, propios opcionales
+do $$ declare a uuid; begin
+  insert into lugares (nombre_empresa, es_almacen_dynamo, codigo_postal, precio_almacenamiento_semana)
+    values ('Almacen Dynamo Madrid', true, '28906', 260) returning id into a;
+  if (select valor::text from parametros where clave = 'almacen_precio_semana') <> '240'
+     or (select valor::text from parametros where clave = 'almacen_precio_reparto') <> '220' then
+    raise exception 'FALLO 57 · faltan los precios por defecto de los almacenes';
+  end if;
+  begin
+    update lugares set precio_reparto = 100 where id = current_setting('prueba.lugar_b')::uuid;
+    raise exception 'FALLO 57 · un sitio de cliente ha guardado precio de almacen';
+  exception when check_violation then null;
+  end;
+  if (select count(*) from lugar_horarios where lugar_id = a) <> 9 then
+    raise exception 'FALLO 57 · el almacen no ha nacido con el horario por defecto';
+  end if;
+  raise notice 'OK 57 · almacenes Dynamo: precio propio opcional, por defecto en parametros, solo en almacenes';
+end $$;
