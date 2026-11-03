@@ -105,11 +105,13 @@ reset role;
 -- ---- 8. Las funciones de la página pública no se pueden llamar con la clave pública --
 do $$ declare fallos text := ''; f text; r text; begin
   foreach f in array array[
-    'reservar_envio(uuid,inet,text)', 'aceptar_reserva(uuid,uuid,uuid,numeric)',
-    'liberar_reserva(uuid,text)', 'validar_pin_parada(uuid,text,inet,text)',
+    -- reservar_envio y liberar_reserva salen de esta lista el 2026-11-03: la página
+    -- pública "aceptar carga" las llama con la clave pública (ver comprobación 59).
+    'aceptar_reserva(uuid,uuid,uuid,numeric)', 'validar_pin_parada(uuid,text,inet,text)',
     'registrar_hito(uuid,tipo_hito,uuid,uuid,jsonb,text)',
     'cerrar_aceptacion(uuid,uuid,uuid,numeric)', 'caducar_reservas(uuid)',
-    'preparar_pines_envio(uuid)', 'parametro(text)', 'pin_aleatorio(integer)'] loop
+    'preparar_pines_envio(uuid)', 'parametro(text)', 'pin_aleatorio(integer)',
+    'oferta_de_token(uuid)'] loop
     foreach r in array array['anon','authenticated'] loop
       if has_function_privilege(r, f, 'execute') then fallos := fallos || r || '→' || f || ' '; end if;
     end loop;
@@ -1636,3 +1638,66 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- =====================================================================================
+-- PÁGINA PÚBLICA "ACEPTAR CARGA" (2026-11-03)
+-- =====================================================================================
+-- ---- 59. Ver, reservar y aceptar SIN sesión, por la puerta estrecha ------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; t uuid; o uuid; tok uuid; begin
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3,
+                       'fecha_carga_desde', current_date + 20, 'importe_cliente', 1000, 'importe_transportista', 800),
+    jsonb_build_array(
+      jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Almacen Secreto SL', 'direccion', 'C/ Escondida 1', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Cliente Final SA',   'direccion', 'C/ Destino 2',   'codigo_postal', '28001', 'poblacion', 'Madrid'))
+  )).id into e;
+  insert into transportistas (razon_social, cif, nima) values ('Trans Bolsa 59 SL', 'B59000059', 'NIMA-59') returning id into t;
+  o := ofertar_envio(e, null, 'bolsa_wtransnet', 800, 10::smallint, true);
+  select token into tok from envio_ofertas where id = o;
+  perform set_config('prueba.e59', e::text, false);
+  perform set_config('prueba.tok59', tok::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ declare v jsonb; r jsonb; a jsonb; c jsonb; tok uuid := current_setting('prueba.tok59')::uuid; begin
+  v := oferta_publica(tok);
+  if not (v ->> 'disponible')::boolean then raise exception 'FALLO 59 · la oferta no sale disponible: %', v; end if;
+  if v::text ~ 'Secreto|Escondida|Cliente Final|Destino 2' then
+    raise exception 'FALLO 59 · FUGA: la oferta publica ensena empresa o calle: %', v;
+  end if;
+  if (v ->> 'banda_euros')::numeric <> 80 then raise exception 'FALLO 59 · banda: %', v ->> 'banda_euros'; end if;
+  r := reservar_envio(tok, null, 'prueba');
+  if r ->> 'resultado' <> 'reservada' then raise exception 'FALLO 59 · no reserva: %', r; end if;
+  -- Otro que abre a la vez: en trámite.
+  if reservar_envio(tok, null, 'otro') ->> 'resultado' <> 'en_tramite' then raise exception 'FALLO 59 · doble reserva'; end if;
+  -- Antes de aceptar no se ven los datos completos.
+  if carga_aceptada_publica((r ->> 'reserva_id')::uuid) ->> 'resultado' <> 'viva' then
+    raise exception 'FALLO 59 · se ven los datos antes de aceptar';
+  end if;
+  if aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'X00000000') ->> 'resultado' <> 'transportista_no_encontrado' then
+    raise exception 'FALLO 59 · se ha aceptado con un CIF que no existe';
+  end if;
+  a := aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'b-59000059', null, true, '1234 abc', 'r-5678-bcd', 'Pepe', '+34 600 111 222');
+  if a ->> 'resultado' <> 'aceptada' then raise exception 'FALLO 59 · no acepta: %', a; end if;
+  c := carga_aceptada_publica((r ->> 'reserva_id')::uuid);
+  if c ->> 'resultado' <> 'aceptada' or c::text !~ 'C/ Escondida 1' or not (c ->> 'pronto_pago')::boolean
+     or c ->> 'matricula_camion' <> '1234ABC' then
+    raise exception 'FALLO 59 · datos de la carga aceptada: %', c;
+  end if;
+  if (oferta_publica(tok) ->> 'disponible')::boolean then raise exception 'FALLO 59 · sigue disponible tras aceptarla'; end if;
+  -- Lo que NO puede hacer la clave pública: aceptar sin pasar por la puerta, ni leer tablas.
+  begin
+    perform aceptar_reserva((r ->> 'reserva_id')::uuid, gen_random_uuid());
+    raise exception 'FALLO 59 · anon llama a aceptar_reserva directamente';
+  exception when insufficient_privilege then null;
+  end;
+  if (select count(*) from envios) <> 0 or (select count(*) from envio_paradas) <> 0
+     or (select count(*) from envio_reservas) <> 0 then
+    raise exception 'FALLO 59 · FUGA: anon lee envios, paradas o reservas';
+  end if;
+  raise notice 'OK 59 · aceptar carga sin sesion: oferta sin datos sensibles, reserva unica, CIF real, datos completos solo tras aceptar';
+end $$;
+reset role;

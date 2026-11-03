@@ -134,3 +134,38 @@ export async function modificarEnvio(envio: string, d: DatosEnvio, precioAntes: 
   }
   return { ok: true };
 }
+
+export type NuevaOferta = { transportista_id: string | null; canal: string; precio: number; banda_pct: number; pronto_pago: boolean };
+
+// Ofrecer la carga: crea la oferta (con su enlace) y devuelve el token del enlace.
+export async function ofrecerCarga(envio: string, o: NuevaOferta): Promise<{ ok: true; token: string } | { ok: false; error: string }> {
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo ofrece cargas.' };
+  if (!Number.isFinite(o.precio) || o.precio <= 0) return { ok: false, error: 'Pon el precio que se ofrece al transportista.' };
+  if (![0, 5, 10, 30].includes(o.banda_pct)) return { ok: false, error: 'La negociación solo puede ser 0, 5, 10 o 30 %.' };
+  if (!o.transportista_id && !o.canal.startsWith('bolsa_')) return { ok: false, error: 'Sin transportista concreto, la oferta es de bolsa.' };
+  const { data, error } = await s.supabase.rpc('ofertar_envio', {
+    p_envio: envio, p_transportista: o.transportista_id, p_canal: o.canal, p_precio: o.precio,
+    p_banda_pct: o.banda_pct, p_pronto_pago: o.pronto_pago,
+  });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const { data: of } = await s.supabase.from('envio_ofertas').select('token').eq('id', data as string).single();
+  return of ? { ok: true, token: of.token as string } : { ok: false, error: 'La oferta se ha creado, pero no se encuentra su enlace.' };
+}
+
+export async function revocarOferta(oferta: string): Promise<Res> {
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo gestiona ofertas.' };
+  const { error } = await s.supabase.from('envio_ofertas').update({ estado: 'revocada' }).eq('id', oferta).eq('estado', 'activa');
+  return error ? { ok: false, error: traducir(error.message) } : { ok: true };
+}
+
+export async function resolverContraoferta(reserva: string, aprobar: boolean): Promise<Res> {
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo resuelve contraofertas.' };
+  const { data, error } = await s.supabase.rpc('resolver_contraoferta', { p_reserva: reserva, p_aprobar: aprobar });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = (data as { resultado: string }).resultado;
+  if (r === 'no_hay_contraoferta_pendiente') return { ok: false, error: 'Esa contraoferta ya no está pendiente.' };
+  return { ok: true, aviso: aprobar ? 'Contraoferta aprobada: el transportista queda asignado a su precio.' : 'Contraoferta rechazada: la carga vuelve a estar ofertada.' };
+}

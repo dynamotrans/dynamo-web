@@ -32,11 +32,19 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] Transportistas (hecho 2026-11-03): falta la **documentación** (hoja CIF, DNI, otros · máx. 3) — necesita
       Supabase Storage con permisos; y la puntuación de **clientes** (hoy solo existe la interna de Dynamo).
 - [ ] **Ficha del envío (v1 hecha 2026-11-03)** — falta: cambiar la **ruta** (sitios) desde «Modificar» (hoy:
-      cancelar y crear otro), **Repetir envío** (Nuevo envío ya relleno), **Ofrecer carga** (con aceptar-carga),
+      cancelar y crear otro), **Repetir envío** (Nuevo envío ya relleno),
       **Reportar incidencia** y **Crear penalización** (cuando estén esas pantallas), **documentación** de la
-      operación (Storage), **orden de carga y CMR en PDF**, **negociación** ±5/10/30 %, dar de alta en `vehiculos`
+      operación (Storage), **orden de carga y CMR en PDF**, dar de alta en `vehiculos`
       y `conductores` lo que se asigna a mano (hoy solo queda en el envío), la **valoración** al entregar, y la
       ficha para el cliente y el transportista (etapas B y C; hoy solo Dynamo).
+- [ ] **Ofrecer carga + página pública `/carga/<enlace>` (hecho 2026-11-03)** — ANTES DE PRODUCCIÓN:
+      (1) **código por email al aceptar desde un enlace de bolsa** (hoy basta con saber un CIF de la base de
+      datos para aceptar en nombre de otro; necesita Postmark — aviso T2 de NOTIFICACIONES.md), con bloqueo a
+      los 3 fallos (D5); (2) **límite de intentos** por IP en reservar/aceptar (Vercel Firewall o tabla propia).
+      Falta además: el **envío automático** de la oferta por WhatsApp/email (T1, hoy se copia el enlace o se
+      abre WhatsApp/email a mano), el **alta online** de un transportista que no está en Dynamo, el tablón de
+      **otras cargas disponibles**, el **selector de idioma** de la página y el **aviso a Dynamo** de una
+      contraoferta (D3; hoy se ve en la ficha del envío).
 - [ ] **Horarios de los sitios** (tabla hecha 2026-11-03): (1) rellenarlos con el horario de **Google Places**
       al conectar Maps; (2) editor de horario también en el sitio nuevo de **Nuevo envío** (hoy recibe el de
       por defecto y se cambia en Sitios); (3) **usarlos**: hora estimada de llegada, avisar si el camión llega

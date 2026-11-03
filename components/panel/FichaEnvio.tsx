@@ -15,7 +15,7 @@ import { paisDe, telBonito } from '@/lib/paises';
 import type { Ficha, ParadaFicha, TransportistaOpcion } from '@/lib/fichaEnvio';
 import {
   asignarTransportista, quitarTransportista, cambiarEstado, cancelarEnvio, deshacerCancelacion, modificarEnvio,
-  type DatosEnvio,
+  ofrecerCarga, revocarOferta, resolverContraoferta, type DatosEnvio,
 } from '@/app/panel/(app)/envios/acciones';
 
 const ESTADOS: [string, string, string][] = [
@@ -54,7 +54,31 @@ const ICO = {
   x: ['M18 6 6 18', 'M6 6l12 12'],
   deshacer: ['M3 7v6h6', 'M21 17a9 9 0 0 0-15-6.7L3 13'],
   ojo: ['M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'],
+  enviar: ['M22 2 11 13', 'M22 2 15 22l-4-9-9-4z'],
 };
+const CANALES: Record<string, string> = {
+  email: 'Email', whatsapp: 'WhatsApp', telefono: 'Teléfono', panel: 'Panel',
+  bolsa_wtransnet: 'Bolsa · Wtransnet', bolsa_teleroute: 'Bolsa · Teleroute', bolsa_otra: 'Bolsa · otra',
+};
+const ESTADO_OFERTA: Record<string, [string, string]> = {
+  activa: ['Activa', 'green'], aceptada: ['Aceptada', 'green'], caducada: ['Caducada', 'gray'], revocada: ['Retirada', 'red'], cerrada: ['Cerrada', 'gray'],
+};
+const enlaceOferta = (token: string) => `${typeof window !== 'undefined' ? window.location.origin : ''}/carga/${token}`;
+// Mensaje listo para WhatsApp o email (como el "Ofrecer carga" del mockup): sin cliente
+// ni direcciones exactas, solo poblaciones; el detalle lo ve al aceptar.
+function mensajeOferta(f: Ficha, precio: number, token: string): string {
+  const e = f.envio;
+  const pts = (t: string) => f.paradas.filter((p) => p.tipo === t).map((p) => `${p.poblacion ?? ''}${p.codigo_postal ? ` (${p.codigo_postal.slice(0, 2)})` : ''}`).join(' + ');
+  return [
+    `Carga disponible · Dynamo · #${e.referencia_gx}`,
+    `${pts('carga')} → ${pts('descarga')}`,
+    `Recogida: ${ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}`,
+    [e.metros_lineales != null && `${txtNum(e.metros_lineales)} m`, e.toneladas != null && `${txtNum(e.toneladas)} Tn`, e.tipo_carga === 'completa' ? 'Completo' : e.tipo_carga === 'grupaje' ? 'Grupaje' : ''].filter(Boolean).join(' · '),
+    [e.plataforma_elevadora && 'Trampilla', e.nima_requerido && 'NIMA', e.adr && 'ADR'].filter(Boolean).join(' · '),
+    `Precio: ${euros(precio)} (sin IVA)`,
+    `Acéptala aquí: ${enlaceOferta(token)}`,
+  ].filter(Boolean).join('\n');
+}
 
 function Celda({ l, children, span }: { l: string; children: React.ReactNode; span?: boolean }) {
   return <div style={span ? { gridColumn: '1/-1' } : undefined}><label>{l}</label><span className="v">{children ?? '—'}</span></div>;
@@ -73,7 +97,7 @@ function Interruptor({ k, l, v, on }: { k: string; l: string; v: boolean; on: (b
   );
 }
 
-type Vista = 'ficha' | 'asignar' | 'estado' | 'cancelar' | 'modificar';
+type Vista = 'ficha' | 'asignar' | 'estado' | 'cancelar' | 'modificar' | 'ofrecer';
 
 export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { ficha: Ficha; transportistas: TransportistaOpcion[]; cerrarHref: string }) {
   const router = useRouter();
@@ -104,6 +128,9 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
     </button>
   ) : (
     <>
+      {!manual && e.estado === 'programado' && !ficha.transportista && (
+        <button className="btn-primary" onClick={() => setVista('ofrecer')}><I d={ICO.enviar} />Ofrecer carga</button>
+      )}
       {!manual && e.estado !== 'entregado' && (
         <button className={ficha.transportista ? 'btn-secondary' : 'btn-primary'} onClick={() => setVista('asignar')}>
           <I d={ICO.camion} />{ficha.transportista ? 'Cambiar transportista' : 'Asignar transportista'}
@@ -119,6 +146,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
   if (vista === 'estado') return <Estado ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
   if (vista === 'cancelar') return <Cancelar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
   if (vista === 'modificar') return <Modificar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
+  if (vista === 'ofrecer') return <Ofrecer ficha={ficha} transportistas={transportistas} onVolver={() => { setVista('ficha'); router.refresh(); }} />;
 
   const recogidas = ficha.paradas.filter((p) => p.tipo === 'carga');
   const entregas = ficha.paradas.filter((p) => p.tipo === 'descarga');
@@ -131,6 +159,17 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
       icono={<I d={ICO.ojo} />} acciones={acciones}
       pie={<button className="btn-ghost" onClick={cerrar}>Cerrar</button>}>
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
+      {ficha.contraofertas.map((c) => (
+        <div key={c.id} className="modal-warn-box">
+          <strong>Contraoferta pendiente:</strong> {c.transportista ?? 'Un transportista'} acepta la carga por <strong>{euros(c.precio_propuesto)}</strong>
+          {c.precio_base != null && <> (ofertada a {euros(c.precio_base)}, {c.precio_propuesto > c.precio_base ? '+' : ''}{euros(c.precio_propuesto - c.precio_base)})</>}.
+          Tiene la carga reservada mientras decides.
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
+            <button className="btn-primary" onClick={() => hacer('Aprobando', () => resolverContraoferta(c.id, true))}>Aprobar su precio</button>
+            <button className="btn-ghost" style={{ color: '#dc2626' }} onClick={() => hacer('Rechazando', () => resolverContraoferta(c.id, false))}>Rechazar</button>
+          </div>
+        </div>
+      ))}
 
       <h4 className="modal-section-title">Solicitud</h4>
       <div className="det-block"><div className="modal-info-grid">
@@ -168,6 +207,31 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
             </div>
             {e.nima_requerido && <div style={{ marginTop: '0.4rem', fontSize: 'var(--fs-m)' }}>NIMA del transportista: <strong>{e.transportista_nima || <Pend />}</strong></div>}
           </div>
+        </div>
+      </>}
+
+      {ficha.ofertas.length > 0 && <>
+        <h4 className="modal-section-title">Ofertas a transportistas</h4>
+        <div className="pen-envio-sum">
+          {ficha.ofertas.map((o) => {
+            const [et, ec] = ESTADO_OFERTA[o.estado] ?? [o.estado, 'gray'];
+            return (
+              <div key={o.id} className="pen-sum-row" style={{ alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                <span className="k">
+                  <strong style={{ color: 'var(--navy)' }}>{o.para ?? CANALES[o.canal] ?? o.canal}</strong>{o.para ? ` · ${CANALES[o.canal] ?? o.canal}` : ''}
+                  {' · '}{euros(o.precio)}{o.banda_euros ? ` ± ${euros(o.banda_euros)}` : ''}{o.pronto_pago ? ' · pronto pago' : ''}
+                  <br />{creadoTxt(o.enviada_en)} · {o.aperturas} apertura{o.aperturas === 1 ? '' : 's'}{o.abierta_en ? ` (1.ª ${creadoTxt(o.abierta_en)})` : ''}
+                </span>
+                <span className="v" style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                  <span className={`badge badge-${ec}`}>{et}</span>
+                  {o.estado === 'activa' && <>
+                    <button className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem' }} onClick={() => navigator.clipboard?.writeText(enlaceOferta(o.token))}>Copiar enlace</button>
+                    <button className="btn-ghost" style={{ minHeight: 30, padding: '0 0.6rem', color: '#dc2626' }} onClick={() => hacer('Retirando la oferta', () => revocarOferta(o.id), 'Oferta retirada: su enlace ya no vale.')}>Retirar</button>
+                  </>}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </>}
 
@@ -532,6 +596,108 @@ function Modificar({ ficha, onVolver, hacer, trabajando }: SubProps) {
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>Para cambiar los sitios de la ruta, de momento cancela el envío y créalo de nuevo (cambiar la ruta desde aquí llega más adelante).</p>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {trabajando && <Cargando texto={trabajando} />}
+    </Modal>
+  );
+}
+
+// ---- Ofrecer carga ------------------------------------------------------------------
+function Ofrecer({ ficha, transportistas, onVolver }: { ficha: Ficha; transportistas: TransportistaOpcion[]; onVolver: () => void }) {
+  const e = ficha.envio;
+  const sugerido = e.importe_transportista != null ? Number(e.importe_transportista)
+    : e.importe_cliente != null ? Math.round((Number(e.importe_cliente) * 0.8) / 10) * 10 : null;
+  const [para, setPara] = useState<string>('bolsa');
+  const [canal, setCanal] = useState<string>('bolsa_wtransnet');
+  const [precio, setPrecio] = useState(txtNum(sugerido));
+  const [banda, setBanda] = useState(10);
+  const [pronto, setPronto] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [trabajando, setTrabajando] = useState(false);
+  const [hecho, setHecho] = useState<{ token: string; precio: number } | null>(null);
+  const [copiado, setCopiado] = useState(false);
+  const t = transportistas.find((x) => x.id === para);
+  const activos = transportistas.filter((x) => x.estado === 'activo');
+  const pv = aNum(precio);
+  const bandaEur = pv && banda ? Math.max(10, Math.round((pv * banda) / 100 / 10) * 10) : 0;
+  const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null;
+
+  async function crear() {
+    setError(null);
+    if (pv == null || Number.isNaN(pv) || pv <= 0) { setError('Pon el precio que se ofrece al transportista.'); return; }
+    setTrabajando(true);
+    const r = await ofrecerCarga(e.id, { transportista_id: para === 'bolsa' ? null : para, canal, precio: pv, banda_pct: banda, pronto_pago: pronto });
+    setTrabajando(false);
+    if (!r.ok) { setError(r.error); return; }
+    setHecho({ token: r.token, precio: pv });
+  }
+
+  if (hecho) {
+    const msg = mensajeOferta(ficha, hecho.precio, hecho.token);
+    const tel = t?.telefono?.replace(/[^\d]/g, '');
+    return (
+      <Modal abierto onCerrar={onVolver} titulo="Oferta creada" sub={`#${e.referencia_gx} · ${t ? t.nombre : CANALES[canal]}`} icono={<I d={ICO.enviar} />}
+        pie={<button className="btn-primary" onClick={onVolver}>Volver a la ficha</button>}>
+        <div className="ptar-sitio-grid">
+          <div style={{ gridColumn: '1/-1' }}>
+            <label htmlFor="of-enlace">Enlace para aceptar la carga</label>
+            <input id="of-enlace" readOnly value={enlaceOferta(hecho.token)} onFocus={(ev) => ev.target.select()} />
+          </div>
+          <div style={{ gridColumn: '1/-1' }}>
+            <label htmlFor="of-msg">Mensaje listo para enviar</label>
+            <textarea id="of-msg" readOnly rows={8} value={msg} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.8rem' }}>
+          <button className="btn-primary" onClick={() => { navigator.clipboard?.writeText(msg); setCopiado(true); }}>{copiado ? 'Copiado' : 'Copiar mensaje'}</button>
+          <a className="btn-secondary" href={`https://wa.me/${tel ?? ''}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">WhatsApp{t && !tel ? ' (sin teléfono en su ficha)' : ''}</a>
+          <a className="btn-secondary" href={`mailto:${t?.email ?? ''}?subject=${encodeURIComponent(`Carga disponible #${e.referencia_gx}`)}&body=${encodeURIComponent(msg)}`}>Email</a>
+        </div>
+        <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>
+          El mensaje no lleva el cliente ni las direcciones: el transportista las ve al aceptar. Las aperturas del enlace y quién la acepta quedan en la ficha.
+          El envío automático por WhatsApp y email llegará con los avisos (NOTIFICACIONES.md).
+        </p>
+      </Modal>
+    );
+  }
+  return (
+    <Modal abierto onCerrar={onVolver} titulo={`Ofrecer carga · #${e.referencia_gx}`} sub="Crea un enlace para que un transportista la acepte" icono={<I d={ICO.enviar} />}
+      pie={<>
+        <button className="btn-ghost" onClick={onVolver} disabled={trabajando}>Volver</button>
+        <button className="btn-primary" onClick={crear} disabled={trabajando}>Crear oferta y enlace</button>
+      </>}>
+      <div className="ptar-sitio-grid">
+        <div style={{ gridColumn: '1/-1' }}>
+          <label htmlFor="of-para">Para</label>
+          <select id="of-para" value={para} onChange={(ev) => { setPara(ev.target.value); setCanal(ev.target.value === 'bolsa' ? 'bolsa_wtransnet' : 'whatsapp'); }}>
+            <option value="bolsa">Bolsa de cargas · enlace abierto (se identifican con su CIF)</option>
+            {activos.map((x) => <option key={x.id} value={x.id}>{x.nombre} · {x.cif}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="of-canal">Por dónde se le manda</label>
+          <select id="of-canal" value={canal} onChange={(ev) => setCanal(ev.target.value)}>
+            {(para === 'bolsa' ? ['bolsa_wtransnet', 'bolsa_teleroute', 'bolsa_otra'] : ['whatsapp', 'email', 'telefono']).map((c) => <option key={c} value={c}>{CANALES[c]}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="of-precio">Precio ofrecido (€ sin IVA)</label>
+          <input id="of-precio" type="text" inputMode="decimal" value={precio} placeholder="Ej. 800" onChange={(ev) => setPrecio(ev.target.value)} />
+          {pc != null && pv != null && !Number.isNaN(pv) && <div style={{ fontSize: 'var(--fs-s)', color: pc - pv >= 0 ? '#0f6b3a' : '#dc2626', fontWeight: 700, marginTop: '0.25rem' }}>Margen: {euros(pc - pv)}</div>}
+        </div>
+        <div style={{ gridColumn: '1/-1' }}>
+          <label htmlFor="of-banda">Negociación del precio</label>
+          <select id="of-banda" value={banda} onChange={(ev) => setBanda(Number(ev.target.value))}>
+            <option value={0}>NO negociable · precio fijo</option>
+            <option value={5}>Negociable ±5 % · lo decide el sistema</option>
+            <option value={10}>Negociable ±10 % · lo decide el sistema</option>
+            <option value={30}>Negociable ±30 % · lo revisa un agente</option>
+          </select>
+          {bandaEur > 0 && pv && <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.25rem' }}>El transportista puede proponer entre <strong>{euros(pv - bandaEur)}</strong> y <strong>{euros(pv + bandaEur)}</strong> (nunca ve el %). Lo que pase del ±10 % lo apruebas tú.</div>}
+        </div>
+        <Interruptor k="of-pronto" l="Ofrecer pronto pago" v={pronto} on={setPronto} />
+      </div>
+      {t && !t.telefono && canal === 'whatsapp' && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}>Este transportista no tiene teléfono de tráfico en su ficha: el WhatsApp se abrirá sin destinatario.</div>}
+      {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+      {trabajando && <Cargando texto="Creando la oferta" />}
     </Modal>
   );
 }
