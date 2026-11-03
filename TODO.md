@@ -104,7 +104,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       ya se guarda también en las solicitudes y los envíos manuales del cliente); (3) **usarlos**: hora estimada de llegada, avisar si el camión llega
       con el sitio cerrado, horario de verano (25 may–15 sep) y festivos. Los tramos de noche (22-06) no caben:
       se parten en dos días.
-- [ ] Sitios (hecho 2026-11-03): falta el **ejemplo del aviso** al sitio ("Ver ejemplo →" del mockup) y
+- [ ] Sitios (hecho 2026-11-03): ~~falta el **ejemplo del aviso** al sitio~~ (hecho 2026-11-03) y
       **enviar de verdad** esos avisos (n8n / Postmark) a los `contactos` con `recibe_avisos`.
 
 <!-- Cosas urgentes -->

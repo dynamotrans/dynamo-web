@@ -16,6 +16,7 @@ import { PAISES, paisDe, telBonito } from '@/lib/paises';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import EditorContactos from './EditorContactos';
 import EditorHorario from './EditorHorario';
+import EjemploAviso from './EjemploAviso';
 import { HORARIO_POR_DEFECTO, validarHorario } from '@/lib/horarios';
 
 export type SitioFila = SitioDatos & {
@@ -348,7 +349,8 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, onCerrar, onAbrir,
           <input id="sitio-emails" type="text" inputMode="email" value={d.emails_avisos} placeholder="almacen@empresa.com, recepcion@empresa.com"
             style={{ border: '1.5px solid var(--green)' }} onChange={(e) => set('emails_avisos', e.target.value)} />
           <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, marginTop: '0.25rem' }}>
-            Avisamos al sitio de sus <strong>recogidas y entregas</strong>, con <strong>total discreción</strong> (sin precios ni otros clientes). Puedes poner varios, separados por comas.
+            Avisamos al sitio de sus <strong>recogidas y entregas</strong>, con <strong>total discreción</strong> (sin precios ni otros clientes). Puedes poner varios, separados por comas.{' '}
+            <EjemploAviso />
           </div>
         </div>
         {campo('anotaciones', <><span style={{ color: 'var(--green)' }}>Notas del sitio</span> {opc}</>, 'Ej. referencia de carga/entrega, pedir cita, báscula…', true)}
