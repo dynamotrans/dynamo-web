@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { supabasePublico } from '@/lib/supabase/publico';
+import SelectorIdioma from '@/components/SelectorIdioma';
 import FirmarCmr from './FirmarCmr';
 import '../cmr.css';
 
@@ -29,6 +30,7 @@ export default async function PaginaCmr({ params }: { params: Promise<{ token: s
   } else if (sb) cmr = { resultado: 'enlace_no_valido' };
   return (
     <div className="cmr-page">
+      <SelectorIdioma />
       <FirmarCmr token={token} cmr={cmr} trazos={trazos} />
     </div>
   );

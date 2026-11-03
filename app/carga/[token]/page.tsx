@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { supabasePublico } from '@/lib/supabase/publico';
 import { cookieReserva } from '@/lib/cargaPublica';
 import CargaPublica from './CargaPublica';
+import SelectorIdioma from '@/components/SelectorIdioma';
 import '../carga.css';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +30,7 @@ export default async function PaginaCarga({ params }: { params: Promise<{ token:
   }
   return (
     <div className="carga-page">
+      <SelectorIdioma />
       <div className="card">
         <div className="brand"><img src="/images/2.png" alt="Dynamo" /></div>
         <CargaPublica token={token} oferta={!sb || error ? { resultado: 'error' } : valido ? oferta : { resultado: 'enlace_no_valido' }} reserva={reserva} />

@@ -97,7 +97,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       los 3 fallos (D5); (2) ~~límite de intentos~~ (hecho 2026-11-03: 5 CIF fallidos por reserva y 20 al día por carga, con registro; por IP no sirve porque todo llega desde el servidor web — para eso, Vercel Firewall).
       Falta además: el **envío automático** de la oferta por WhatsApp/email (T1, hoy se copia el enlace o se
       abre WhatsApp/email a mano), el **alta online** de un transportista que no está en Dynamo, el tablón de
-      **otras cargas disponibles**, el **selector de idioma** de la página y el **aviso a Dynamo** de una
+      **otras cargas disponibles**, ~~el **selector de idioma** de la página~~ (hecho 2026-11-03, también en el CMR) y el **aviso a Dynamo** de una
       contraoferta (D3; hoy se ve en la ficha del envío).
 - [ ] **Horarios de los sitios** (tabla hecha 2026-11-03): (1) rellenarlos con el horario de **Google Places**
       al conectar Maps; (2) editor de horario también en el sitio nuevo de **Nuevo envío** (hoy recibe el de

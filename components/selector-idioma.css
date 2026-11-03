@@ -1,0 +1,22 @@
+/* Selector de idiomas (de aceptar-carga.html): fijo arriba a la derecha. Motor Google
+   Translate (cookie googtrans, la misma que la web pública). */
+.lang-selector { position: fixed; top: 0.8rem; right: 0.8rem; z-index: 10000; }
+.lang-btn { display: flex; align-items: center; gap: 0.3rem; cursor: pointer; background: #fff; border: 1.5px solid var(--gray-200, #e8eaed); border-radius: 10px; padding: 0.3rem 0.6rem 0.3rem 0.45rem; font: inherit; font-size: var(--fs-m, 0.82rem); font-weight: 700; color: var(--gray-700, #374151); transition: all 0.2s; box-shadow: 0 4px 14px rgba(10,2,48,0.08); }
+.lang-btn:hover { border-color: var(--purple, #3300cc); }
+.lang-btn .flag { font-size: 1.05rem; line-height: 1; }
+.lang-btn .arrow { width: 11px; height: 11px; margin-left: 0.1rem; transition: transform 0.2s; }
+.lang-btn.open .arrow { transform: rotate(180deg); }
+.lang-dropdown { position: absolute; top: calc(100% + 6px); right: 0; z-index: 10001; background: #fff; border-radius: 14px; border: 1.5px solid var(--gray-200, #e8eaed); box-shadow: 0 12px 40px rgba(0,0,0,0.12); padding: 0.5rem; min-width: 170px; max-height: 350px; overflow-y: auto; animation: langPop 0.2s ease; }
+@keyframes langPop { 0% { opacity: 0; transform: translateY(-6px) scale(0.97); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+.lang-option { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.7rem; border-radius: 8px; cursor: pointer; transition: background 0.15s; font: inherit; font-size: var(--fs-m, 0.82rem); font-weight: 600; color: var(--gray-700, #374151); border: none; background: none; width: 100%; text-align: left; }
+.lang-option:hover { background: var(--gray-100, #f7f8fa); }
+.lang-option.active { background: rgba(51,0,204,0.07); color: var(--purple, #3300cc); }
+.lang-option .flag { font-size: 1.1rem; }
+/* Ocultar por completo la interfaz de Google Translate */
+.goog-te-banner-frame, #goog-gt-tt, .goog-te-balloon-frame, .goog-te-gadget { display: none !important; }
+body { top: 0 !important; position: static !important; }
+.skiptranslate { display: none !important; height: 0 !important; overflow: hidden !important; }
+.goog-text-highlight { background: none !important; box-shadow: none !important; }
+#google_translate_element { position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none; }
+.goog-te-spinner-pos, .goog-te-spinner-pos *, img.goog-te-spinner, .goog-te-gadget-icon, .goog-te-gadget-simple { display: none !important; }
+iframe.skiptranslate, iframe.goog-te-menu-frame { display: none !important; }
