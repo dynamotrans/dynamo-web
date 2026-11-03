@@ -16,6 +16,7 @@ import { creadoTxt } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import type { Ficha, ParadaFicha, TransportistaOpcion } from '@/lib/fichaEnvio';
 import { proponerPrecio } from '@/app/panel/(app)/nuevo-envio/acciones';
+import CampoTelefono from '@/components/CampoTelefono';
 import {
   asignarTransportista, quitarTransportista, cambiarEstado, cancelarEnvio, deshacerCancelacion, modificarEnvio,
   ofrecerCarga, revocarOferta, resolverContraoferta, enlaceCmr, retirarEnlaceCmr, valorarTransportista, type DatosEnvio, archivarPdf,
@@ -488,7 +489,7 @@ function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: SubProp
         </div>
         <div>
           <label htmlFor="as-tel">Teléfono del conductor</label>
-          <input id="as-tel" type="tel" inputMode="tel" value={tel} placeholder="+34 600 000 000" onChange={(ev) => setTel(ev.target.value)} />
+          <CampoTelefono id="as-tel" valor={tel} onCambio={setTel} />
         </div>
       </div>
       {e.nima_requerido && t && !t.nima && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}><strong>Este envío requiere NIMA</strong> y la ficha de este transportista no lo tiene. Pídeselo y ponlo en su ficha.</div>}

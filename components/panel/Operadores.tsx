@@ -11,6 +11,7 @@ import Cargando from '@/components/Cargando';
 import { guardarOperador, borrarOperador, type OperadorDatos } from '@/app/panel/(app)/operadores/acciones';
 import { creadoTxt } from '@/lib/envios';
 import { telBonito } from '@/lib/paises';
+import CampoTelefono from '@/components/CampoTelefono';
 
 export type OperadorFila = OperadorDatos & {
   id: string; cliente: string | null; creado_en: string; modificado_en: string | null; envios: number;
@@ -161,7 +162,7 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
         )}
         {campo('razon_social', 'Nombre / Razón social *', 'Ej. Transportes Iberia Express S.L.', true)}
         {campo('cif', 'CIF / NIF *', 'B12345678')}
-        {campo('telefono', 'Teléfono', '+34 600 000 000', false, 'tel')}
+        <div><label htmlFor="op-telefono">Teléfono</label><CampoTelefono id="op-telefono" valor={String(d.telefono ?? '')} onCambio={(v) => set('telefono', v as never)} /></div>
         {campo('email', 'Email', 'trafico@empresa.com', false, 'email')}
         {campo('persona_contacto', 'Persona de contacto', 'Nombre y apellidos')}
         {campo('web', 'Web', 'www.empresa.com', true)}

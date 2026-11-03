@@ -14,6 +14,7 @@ import SelectorPais from '@/components/SelectorPais';
 import { TIPOS_LUGAR } from './TipoSitio';
 import EditorHorario from './EditorHorario';
 import { HORARIO_POR_DEFECTO, validarHorario, tramosDe, type GrupoHorario } from '@/lib/horarios';
+import CampoTelefono from '@/components/CampoTelefono';
 
 // principal_id: el sitio con la estrella en Sitios (se pone solo como primera recogida).
 export type ClienteOpcion = { id: string; nombre: string; cif: string; principal_id?: string | null };
@@ -766,7 +767,10 @@ function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, onCambi
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
             <Campo l="Persona de contacto · opcional" v={form.contacto} on={(v) => setForm({ ...form, contacto: v })} ph="Ej. Lucía (muelle)" />
-            <Campo l="Teléfono · opcional" v={form.telefono} on={(v) => setForm({ ...form, telefono: v })} ph="+34 600 000 000" />
+            <div>
+              <label className="ptar-admin-precio-lbl" style={{ marginTop: '0.6rem', display: 'block' }}>Teléfono · opcional</label>
+              <CampoTelefono valor={form.telefono} onCambio={(v) => setForm({ ...form, telefono: v })} />
+            </div>
           </div>
           <label className="ptar-admin-precio-lbl" style={{ marginTop: '0.6rem' }}>Tipo de lugar</label>
           <select className="ptar-select" value={form.tipo_lugar} onChange={(e) => setForm({ ...form, tipo_lugar: e.target.value })}>

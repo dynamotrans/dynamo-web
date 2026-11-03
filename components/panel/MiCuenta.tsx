@@ -12,6 +12,7 @@ import { guardarMisDatos, type MisDatos } from '@/app/panel/(app)/mi-cuenta/acci
 import { creadoTxt } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import { ROL, fecha } from '@/lib/formato';
+import CampoTelefono from '@/components/CampoTelefono';
 
 // Los mismos idiomas que el selector de la web (y que usarán los avisos automáticos).
 const IDIOMAS: [string, string][] = [
@@ -139,7 +140,7 @@ function EditarDatos({ datos, onCerrar, onHecho }: { datos: MisDatos; onCerrar: 
           <label htmlFor="mc-nombre">Nombre y apellidos *</label>
           <input id="mc-nombre" type="text" value={d.nombre} placeholder="Nombre y apellidos" onChange={(e) => set('nombre', e.target.value)} />
         </div>
-        {campo('telefono', 'Teléfono', '+34 600 000 000', 'tel')}
+        <div><label htmlFor="mc-telefono">Teléfono</label><CampoTelefono id="mc-telefono" valor={d.telefono} onCambio={(v) => set('telefono', v)} /></div>
         {campo('documento', 'DNI / NIE', '12345678Z')}
         {campo('cargo', 'Cargo', 'Ej. Responsable de tráfico')}
         <div>

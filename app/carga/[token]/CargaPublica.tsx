@@ -11,6 +11,7 @@ import { euros, fecha, ventana } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
 import { nombreTipo } from '@/components/panel/TipoSitio';
 import { telBonito } from '@/lib/paises';
+import CampoTelefono from '@/components/CampoTelefono';
 
 type Parada = {
   orden: number; tipo: 'carga' | 'descarga'; codigo_postal: string | null; poblacion: string | null; provincia: string | null;
@@ -290,7 +291,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
         <label htmlFor="f-chofer">Nombre y apellidos del conductor</label>
         <input type="text" id="f-chofer" value={veh.conductor} placeholder="Nombre y apellidos" onChange={(e) => setVeh({ ...veh, conductor: e.target.value })} />
         <label htmlFor="f-tfno">Teléfono del conductor</label>
-        <input type="tel" id="f-tfno" value={veh.telefono} placeholder="+34 600 000 000" inputMode="tel" onChange={(e) => setVeh({ ...veh, telefono: e.target.value })} />
+        <CampoTelefono id="f-tfno" valor={veh.telefono} onCambio={(v) => setVeh({ ...veh, telefono: v })} />
         <p className="id-hint">Con estos datos, cargador y destinatario <strong>coordinan la recogida y la entrega</strong> con el conductor.</p>
       </div>
 
@@ -373,7 +374,7 @@ function Aceptada({ token, c }: { token: string; c: any }) {
             <div><label htmlFor="ok-remolque">Matrícula remolque</label><input type="text" id="ok-remolque" value={veh.remolque} autoCapitalize="characters" onChange={(e) => setVeh({ ...veh, remolque: e.target.value })} /></div>
           </div>
           <label htmlFor="ok-chofer">Conductor</label><input type="text" id="ok-chofer" value={veh.conductor} onChange={(e) => setVeh({ ...veh, conductor: e.target.value })} />
-          <label htmlFor="ok-tfno">Teléfono del conductor</label><input type="tel" id="ok-tfno" value={veh.telefono} inputMode="tel" onChange={(e) => setVeh({ ...veh, telefono: e.target.value })} />
+          <label htmlFor="ok-tfno">Teléfono del conductor</label><CampoTelefono id="ok-tfno" valor={veh.telefono} onCambio={(v) => setVeh({ ...veh, telefono: v })} />
           <button className="btn" onClick={async () => { const x = await completar(token, veh); setGuardado(x.resultado === 'guardado' ? 'Guardado. Gracias.' : 'No se ha podido guardar; contáctanos.'); }}>Guardar vehículo y conductor</button>
           {guardado && <p className="id-hint" style={{ textAlign: 'center' }}>{guardado}</p>}
         </div>

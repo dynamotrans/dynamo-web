@@ -297,7 +297,7 @@ export const esPaisValido = (c: string) => PAISES_MUNDO.some(([k]) => k === c);
 const PREF_POR_LARGO = PREFIJOS.map(([p]) => p).sort((a, b) => b.length - a.length);
 
 export function partirTel(t: string): { pref: string; num: string } {
-  const v = (t || '').replace(/\s/g, '');
+  const v = (t || '').replace(/[\s.\-()]/g, '').replace(/^00/, '+');
   const p = PREF_POR_LARGO.find((k) => v.startsWith(k));
   return p ? { pref: p, num: v.slice(p.length) } : { pref: '+34', num: v.replace(/^\+/, '') };
 }

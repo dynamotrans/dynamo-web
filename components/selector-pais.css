@@ -65,3 +65,11 @@
 .pref-empty { padding: 0.6rem 0.5rem; color: var(--gray-500, #8b90a0); font-size: 0.85rem; }
 
 @media (prefers-reduced-motion: reduce) { .pref-pop { animation: none; } }
+
+/* Teléfono = prefijo + número en una fila (components/CampoTelefono.tsx).
+   El número se encoge para caber; los dos al mismo alto. */
+.campo-tel { display: flex; gap: 0.5rem; align-items: stretch; width: 100%; }
+.campo-tel .pref-wrap { flex: 0 0 112px; width: 112px; }
+.campo-tel .pref-btn { height: 100%; font-size: var(--fs-m, 0.85rem); padding: 0 0.5rem; gap: 0.3rem; }
+.campo-tel .pref-btn .pf-flag { font-size: 1rem; }
+.campo-tel > input { flex: 1 1 0; min-width: 0; width: auto !important; }
