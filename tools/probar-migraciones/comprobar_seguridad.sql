@@ -1853,3 +1853,60 @@ end $$;
 reset role;
 update parametros set valor = 'false' where clave = 'mantenimiento_activo';
 do $$ begin raise notice 'OK 63 · mantenimiento: solo Dynamo lo enciende; cualquiera (también sin sesión) sabe si está encendido'; end $$;
+
+-- =====================================================================================
+-- ---- 64. Almacén de archivos: un fichero se descarga solo si su fila es visible ------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare d uuid; begin
+  if (select public from storage.buckets where id = 'documentos') then raise exception 'FALLO 64 · el bucket es publico'; end if;
+  insert into storage.objects (bucket_id, name) values ('documentos', 'envios/e64/albaran.pdf');
+  insert into documentos (tipo, envio_id, storage_ruta, nombre_archivo, visible_cliente)
+    values ('albaran', current_setting('prueba.e59')::uuid, 'envios/e64/albaran.pdf', 'albaran.pdf', false) returning id into d;
+  insert into storage.objects (bucket_id, name) values ('documentos', 'transportistas/t64/seguro.pdf');
+  -- (el transportista de prueba ya tiene sus 5 documentos: se le quita uno para este)
+  update documentos set borrado = true, borrado_en = now()
+   where id = (select id from documentos where transportista_id = current_setting('prueba.transp')::uuid and tipo = 'otro' and not borrado limit 1);
+  insert into documentos (tipo, transportista_id, storage_ruta, nombre_archivo)
+    values ('seguro_cmr', current_setting('prueba.transp')::uuid, 'transportistas/t64/seguro.pdf', 'seguro.pdf');
+  perform set_config('prueba.doc64', d::text, false);
+end $$;
+reset role;
+-- El cliente del envío: no ve el albarán hasta que Dynamo lo marca visible; el seguro del
+-- transportista, nunca; y no puede subir fuera de su carpeta.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from storage.objects where name = 'envios/e64/albaran.pdf') then raise exception 'FALLO 64 · el cliente ve un albaran no visible'; end if;
+  if exists (select 1 from storage.objects where name = 'transportistas/t64/seguro.pdf') then raise exception 'FALLO 64 · el cliente ve el seguro del transportista'; end if;
+  begin
+    insert into storage.objects (bucket_id, name) values ('documentos', 'envios/e64/falso.pdf');
+    raise exception 'FALLO 64 · el cliente sube fuera de su carpeta';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+update documentos set visible_cliente = true where id = current_setting('prueba.doc64')::uuid;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if not exists (select 1 from storage.objects where name = 'envios/e64/albaran.pdf') then raise exception 'FALLO 64 · el cliente no ve el albaran ya visible'; end if;
+end $$;
+reset role;
+-- El transportista ve el seguro de su ficha; sin sesión no se ve nada.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ begin
+  if not exists (select 1 from storage.objects where name = 'transportistas/t64/seguro.pdf') then raise exception 'FALLO 64 · el transportista no ve su seguro'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ begin
+  if exists (select 1 from storage.objects) then raise exception 'FALLO 64 · FUGA: sin sesion se ven ficheros'; end if;
+  raise notice 'OK 64 · almacen de archivos: bucket privado, cada fichero solo para quien ve su fila, subir solo a la propia carpeta';
+end $$;
+reset role;

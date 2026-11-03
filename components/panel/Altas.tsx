@@ -6,6 +6,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Modal from './Modal';
+import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { confirmarAlta, suspenderAlta, type NuevaEmpresa } from '@/app/panel/(app)/altas/acciones';
 import { creadoTxt } from '@/lib/envios';
@@ -128,8 +129,9 @@ function FichaAlta({ a, clientes, onCerrar, onHecho }: { a: AltaFila; clientes: 
         {fila('Empresa / Razón social', a.empresa)}
         {fila('CIF', a.cif)}
         {fila('Dirección fiscal', [a.direccion, a.codigo_postal, a.poblacion, a.provincia].filter(Boolean).join(', '))}
-        {fila('Documentos', <span style={{ color: 'var(--gray-500)' }}>Se verán cuando esté montado el almacén de archivos</span>)}
       </div>
+      <div className="ptar-section-head" style={{ marginTop: '1rem' }}>Documentación que ha subido</div>
+      <div style={{ marginTop: '0.4rem' }}><Documentos dueno={{ campo: 'usuario_id', id: a.id }} tipos={['hoja_cif', 'dni', 'otro']} editable={false} /></div>
 
       <div className="ptar-section-head" style={{ marginTop: '1rem' }}>Empresa de la cuenta</div>
       {coincide && <div className="pt-aviso" style={{ margin: '0.5rem 0' }}><div>Su CIF ya es de <strong>{coincide.nombre_visible}</strong>: lo normal es asociarla a esa empresa (un CIF solo puede ser cliente una vez).</div></div>}

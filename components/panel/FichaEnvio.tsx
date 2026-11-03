@@ -7,6 +7,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Modal from './Modal';
+import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { IconoTipo, nombreTipo } from './TipoSitio';
 import { euros, fecha, ventana } from '@/lib/formato';
@@ -300,6 +301,13 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
           ))}
         </div>
       </>}
+
+      <h4 className="modal-section-title">Documentos</h4>
+      <div className="det-block">
+        <Documentos dueno={{ campo: 'envio_id', id: e.id }} conVisibleCliente
+          tipos={['albaran', 'cmr_firmado', 'cmr', 'orden_transporte', 'foto_incidencia', 'gps_tacografo', 'otro']}
+          ayuda={<>Albaranes, CMR firmados, fotos… Marca <strong>«Lo ve el cliente»</strong> en los que tenga que ver él (el albarán y el CMR firmado, normalmente).</>} />
+      </div>
 
       <h4 className="modal-section-title">Historial</h4>
       <div className="pen-envio-sum">

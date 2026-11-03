@@ -47,9 +47,15 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       (CIF, dirección, Wtransnet, O.T.) a `parametros` para no tocar código si cambian. El contenido y las
       condiciones salen de la orden real GX61034 (feb. 2026); si el paquete DeCA aprobado (`FORMATOS.md`)
       trae otro diseño, se adapta cuando el usuario lo pase.
+- [ ] **Almacén de archivos (hecho 2026-11-03)** — en envíos, incidencias, penalizaciones, transportistas
+      (máx. 5), almacenamientos, logo de operadores y documentos del alta. Falta: (1) **probar la primera
+      subida real** en pruebas (aquí no se alcanza Supabase); (2) que el cliente suba fotos a sus incidencias y
+      el transportista su documentación (etapas B y C: la base de datos ya lo permite en su carpeta `u/<id>/`);
+      (3) que el registro público suba la hoja CIF y el DNI; (4) limpiar ficheros huérfanos si una subida se
+      corta antes de registrar su fila; (5) guardar dentro del envío el PDF de la orden de carga y el CMR
+      generados (hoy se generan al momento y no se archivan).
 - [ ] **Operadores, Mi cuenta, Altas pendientes, Mantenimiento y Parámetros (pasados 2026-11-03)** — falta:
-      (1) el **logo** del operador para su orden de transporte y los **documentos** del alta (hoja CIF, DNI):
-      necesitan Supabase Storage; (2) que el **registro público** guarde en los metadatos de Supabase Auth lo
+      (1) poner el **logo** del operador en su orden de transporte (ya se sube); (2) que el **registro público** guarde en los metadatos de Supabase Auth lo
       que escribe (empresa, CIF, dirección, teléfono, DNI) para que salga en Altas; (3) el aviso por email al
       confirmar o suspender un alta (U3); (4) el mantenimiento hoy cierra las pantallas y la página pública:
       valorar cerrarlo también en la base de datos (permisos por fila) para quien llame directamente a la API;

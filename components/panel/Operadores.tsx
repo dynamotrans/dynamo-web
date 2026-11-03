@@ -6,6 +6,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Modal from './Modal';
+import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { guardarOperador, borrarOperador, type OperadorDatos } from '@/app/panel/(app)/operadores/acciones';
 import { creadoTxt } from '@/lib/envios';
@@ -169,7 +170,11 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
           <textarea id="op-notas" rows={3} value={d.anotaciones} onChange={(e) => set('anotaciones', e.target.value)} placeholder="Lo que haga falta recordar de este transportista" />
         </div>
       </div>
-      <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.5rem 0 0' }}>El <strong>logo</strong> para la orden de transporte se podrá subir cuando esté montado el almacén de archivos.</p>
+      <div style={{ marginTop: '0.7rem' }}>
+        <label style={{ display: 'block', fontWeight: 700, color: 'var(--navy)', fontSize: 'var(--fs-m)', marginBottom: '0.3rem' }}>Logo · para la orden de transporte</label>
+        {fila ? <Documentos dueno={{ campo: 'operador_id', id: fila.id }} tipos={['logo']} max={1} soloImagen />
+          : <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: 0 }}>Crea el transportista y, al abrir su ficha, podrás subir su logo.</p>}
+      </div>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>

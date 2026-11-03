@@ -11,7 +11,7 @@
 | Canal | Proveedor | Estado | Qué hace falta |
 |---|---|---|---|
 | **WhatsApp** | **API de WhatsApp Business de Meta** (Cloud API) | El usuario tiene la API dada de alta y el número **confirmado y activo** | ID del número, ID de la cuenta de WhatsApp Business y un **token permanente** (usuario de sistema). Y las **plantillas aprobadas por Meta** (ver §4) |
-| **Email de la plataforma** (avisos, órdenes de carga, contraseñas) | **Postmark** (recomendado, ver §1.1) | Sin crear | Cuenta, **dominio verificado** (`dynamotrans.com`: registros SPF, DKIM y Return-Path en el DNS) y un token de servidor |
+| **Email de la plataforma** (avisos, órdenes de carga, contraseñas) | **Postmark** (DECIDIDO por el usuario el 2026-11-03, ver §1.1) | Sin crear (el usuario se dará de alta más adelante) | Cuenta, **dominio verificado** (`dynamotrans.com`: registros SPF, DKIM y Return-Path en el DNS) y un token de servidor |
 | **Email comercial** (campañas, prospección) | **Brevo** | Ya funciona | Nada: se queda como está |
 | **Mapas y direcciones** | **Google Maps API** (regla 13) | El usuario la tiene dada de alta | Clave en Vercel (`NEXT_PUBLIC_GOOGLE_MAPS_KEY`, solo *Preview*), **restringida** a la URL de pruebas y a Places, Geocoding y Routes |
 

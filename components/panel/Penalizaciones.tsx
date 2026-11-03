@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import BuscaEnvio from './BuscaEnvio';
+import Documentos from './Documentos';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarPenalizacion, cambiarEstadoPenalizacion } from '@/app/panel/(app)/penalizaciones/acciones';
 import { euros } from '@/lib/formato';
@@ -207,6 +208,12 @@ function FichaPenalizacion({ fila, envioInicial, tipos, envios, onCerrar, onHech
         Una <strong>paralización</strong> la pide el transportista y Dynamo la repercute al cliente: rellena los dos importes. El cliente solo ve el suyo.
         {fila?.generada_auto ? ' Si cambias los importes de una automática, queda marcada como renegociada y ya no se retira sola al deshacer la cancelación.' : ''}
       </p>
+      <div className="modal-form-row" style={{ marginTop: '0.8rem' }}>
+        <label>Adjuntar fotos / documentos</label>
+        {fila ? <Documentos dueno={{ campo: 'penalizacion_id', id: fila.id }} tipos={['gps_tacografo', 'albaran', 'cmr_firmado', 'foto_incidencia', 'otro']}
+          ayuda={<>P. ej. el <strong>GPS o tacógrafo del camión</strong> para justificar esperas en carga o descarga, fotos, albaranes u otros documentos.</>} />
+          : <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: 0 }}>Guarda la penalización y, al abrirla, podrás adjuntar el GPS o tacógrafo, fotos o albaranes.</p>}
+      </div>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>

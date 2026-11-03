@@ -6,6 +6,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Modal from './Modal';
+import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { guardarTransportista, type TransportistaDatos } from '@/app/panel/(app)/transportistas/acciones';
 import { creadoTxt } from '@/lib/envios';
@@ -315,6 +316,12 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="tra-notas">Notas internas</label>
           <textarea id="tra-notas" rows={3} placeholder="Solo visibles para el equipo Dynamo" value={d.anotaciones} onChange={(e) => set('anotaciones', e.target.value)} />
+        </div>
+        {titulo('Documentación')}
+        <div style={{ gridColumn: '1/-1' }}>
+          {fila ? <Documentos dueno={{ campo: 'transportista_id', id: fila.id }} max={5} tipos={['hoja_cif', 'seguro_cmr', 'tarjeta_transporte', 'dni', 'otro']}
+            ayuda={<>Hoja CIF, seguro CMR, tarjeta de transporte… <strong>Máximo 5.</strong> El transportista también verá los suyos cuando tenga su panel.</>} />
+            : <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: 0 }}>Crea el transportista y, al abrir su ficha, podrás subir su documentación (máx. 5).</p>}
         </div>
       </div>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}

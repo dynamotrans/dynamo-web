@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Modal from './Modal';
+import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { guardarAlmacenamiento, cambiarEstadoAlmacenamiento, sitiosDelCliente, type AlmacenamientoDatos, type EstadoAlm } from '@/app/panel/(app)/almacenamientos/acciones';
 import { precioAlmacenamiento, diasAlmacen } from '@/lib/almacenamiento';
@@ -263,6 +264,13 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, onCerrar, onHecho }: {
           <label htmlFor="alm-not">Notas internas</label>
           <input id="alm-not" type="text" value={d.anotaciones} onChange={(e) => set('anotaciones', e.target.value)} placeholder="Solo para el equipo de Dynamo" />
         </div>
+        {fila && (
+          <div style={{ gridColumn: '1/-1' }}>
+            <label>Documentos</label>
+            <Documentos dueno={{ campo: 'almacenamiento_id', id: fila.id }} conVisibleCliente tipos={['albaran', 'proforma', 'foto_incidencia', 'otro']}
+              ayuda={<>Albaranes de entrada o salida, proforma, fotos de la mercancía… Marca «Lo ve el cliente» en los que deba ver.</>} />
+          </div>
+        )}
       </div>
 
       {base && (

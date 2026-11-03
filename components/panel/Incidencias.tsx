@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import BuscaEnvio from './BuscaEnvio';
+import Documentos from './Documentos';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarIncidencia, type IncidenciaDatos } from '@/app/panel/(app)/incidencias/acciones';
 import { fecha, ventana } from '@/lib/formato';
@@ -205,9 +206,12 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
           <textarea id="inc-res" value={d.resolucion} onChange={(e) => set('resolucion', e.target.value)} placeholder="Qué se hizo para cerrarla (abono, reenvío, albarán recibido…)" />
         </div>
       )}
-      <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.2rem 0 0', lineHeight: 1.45 }}>
-        Las <strong>fotos y documentos</strong> se podrán adjuntar cuando esté montado el almacén de archivos. Una incidencia sobre un envío queda también en su <strong>historial</strong>.
-      </p>
+      <div className="modal-form-row">
+        <label>Adjuntar fotos / documentos</label>
+        {fila ? <Documentos dueno={{ campo: 'incidencia_id', id: fila.id }} tipos={['foto_incidencia', 'albaran', 'adjunto', 'otro']} />
+          : <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: 0 }}>Guarda la incidencia y, al abrirla, podrás adjuntar fotos y documentos.</p>}
+      </div>
+      <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.2rem 0 0', lineHeight: 1.45 }}>Una incidencia sobre un envío queda también en su <strong>historial</strong>.</p>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>
