@@ -1471,3 +1471,15 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 54. Tipos de lugar nuevos (2026-11-03): sin "evento" ni "zona urbana" -----------
+do $$ begin
+  if enum_range(null::tipo_lugar)::text <> '{almacen_nave,obra_zona_amplia,obra_zona_urbana,finca}' then
+    raise exception 'FALLO 54 · tipos de lugar: %', enum_range(null::tipo_lugar);
+  end if;
+  if (select count(*) from recargos_tipo_lugar) <> 4
+     or (select porcentaje from recargos_tipo_lugar where tipo = 'obra_zona_urbana') <> 20 then
+    raise exception 'FALLO 54 · los recargos no se han pasado bien';
+  end if;
+  raise notice 'OK 54 · tipos de lugar: almacen/nave/campa, obra en zona amplia, obra en zona urbana y finca';
+end $$;
