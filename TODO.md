@@ -15,7 +15,27 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       transportistas nuevos** desde el enlace de una carga (hoy: «contáctanos»; ¿se abre?, ¿qué se verifica:
       seguro CMR, tarjeta de transporte, bolsa Alpega?); (3) al montar Postmark, `{{ .Token }}` en las plantillas
       *Magic Link* y *Confirm signup* de Supabase Auth (código del alta de clientes).
-- [ ] 🔥 **NOTIFICACIONES por WhatsApp y email** — apartado MUY importante (usuario, 2026-11-03). Plan
+- [ ] 🧾 **FACTURACIÓN CON HOLDED POR API** — decisión del usuario (2026-11-03): **se queda Holded** como
+      sistema de facturación y contabilidad (cumple VeriFactu y la factura electrónica B2B que llegará; la
+      gestoría trabaja con él). La plataforma NO emite facturas propias. Plan:
+      1. **Clave**: `HOLDED_API_KEY` en **Vercel** (Preview; *Sensitive*; **sin** `NEXT_PUBLIC_`). La pega el
+         usuario, nunca en el chat ni en `parametros`. Mismo sitio que Postmark/WhatsApp (una sola puerta).
+      2. **Cola en Supabase** (tabla nueva, p. ej. `holded_cola`, con RLS y append-only como `notificaciones`):
+         la llena un **trigger** al pasar un envío a `entregado` («facturar este envío»), así no se escapa
+         ninguno. Idempotente (una factura por envío; reintentos sin duplicar).
+      3. **Trabajador en Vercel** (Vercel Cron cada pocos minutos): coge lo pendiente, crea la **factura de venta**
+         en Holded, guarda nº de factura, id y enlace al PDF en el envío; reintenta si falla; trae de vuelta el
+         **estado de cobro** (pagada / vencida).
+      4. **Administración → Facturas**: el cliente ve SUS facturas (PDF de Holded + pagada/vencida). Con eso salen
+         la campana **«Facturas vencidas»** y el **«Crédito agotado»** del punto CESCE.
+      5. **Transportistas**: sus facturas a Dynamo como **facturas de compra** en Holded; en su panel, pagada y
+         fecha de cobro. Valorar **autofacturación** (Dynamo factura en su nombre, con su acuerdo) — **que lo
+         valide la gestoría**.
+      6. **Proformas**: siguen en la plataforma (no son factura legal); al cobrar, se convierten en factura en Holded.
+      Se reutilizan los parámetros `holded_*` que ya existen (numeración, canales de venta/compra: no son secretos).
+      **Necesita al usuario**: la clave de la API de Holded + que la gestoría confirme **serie de facturas** y
+      **cuentas contables** (venta, compra, autofactura si se hace).
+ — apartado MUY importante (usuario, 2026-11-03). Plan
       completo, proveedores y catálogo de avisos en **`NOTIFICACIONES.md`**. Pendiente: que el usuario pegue
       en Vercel las credenciales de WhatsApp (Meta) y de Postmark, y revisar el catálogo caso a caso.
 - [ ] **Buscador de direcciones con Google Places** (regla 13) en el sitio nuevo de Nuevo envío Y en la
