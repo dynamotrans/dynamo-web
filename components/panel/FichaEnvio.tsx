@@ -12,7 +12,7 @@ import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { IconoTipo, nombreTipo } from './TipoSitio';
 import { euros, fecha, ventana } from '@/lib/formato';
-import { creadoTxt } from '@/lib/envios';
+import { creadoTxt, NEGOCIACION } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import type { Ficha, ParadaFicha, TransportistaOpcion } from '@/lib/fichaEnvio';
 import { proponerPrecio } from '@/app/panel/(app)/nuevo-envio/acciones';
@@ -584,6 +584,7 @@ function Modificar({ ficha, onVolver, hacer, trabajando }: SubProps) {
     paletizado: e.paletizado !== false, carga_lateral: !!e.carga_lateral, carga_trasera: !!e.carga_trasera, carga_superior: !!e.carga_superior,
     plataforma_elevadora: !!e.plataforma_elevadora, nima_requerido: !!e.nima_requerido, adr: !!e.adr,
     importe_cliente: txtNum(e.importe_cliente), importe_transportista: txtNum(e.importe_transportista), acordado: txtNum(e.precio_acordado_operador),
+    negociacion: String(e.negociacion_pct ?? 10),
     discrecion_comercial: !!e.discrecion_comercial, anotaciones_cliente: e.anotaciones_cliente ?? '',
   });
   const [paradas, setParadas] = useState(ficha.paradas.map((p) => ({ id: p.id, referencia: p.referencia ?? '', anotaciones: p.anotaciones ?? '', titulo: `${p.tipo === 'carga' ? 'Recogida' : 'Entrega'} · ${p.nombre_empresa ?? p.poblacion ?? ''}` })));
@@ -600,7 +601,7 @@ function Modificar({ ficha, onVolver, hacer, trabajando }: SubProps) {
       metros_lineales: n.metros, toneladas: n.toneladas,
       paletizado: d.paletizado, carga_lateral: d.carga_lateral, carga_trasera: d.carga_trasera, carga_superior: d.carga_superior,
       plataforma_elevadora: d.plataforma_elevadora, nima_requerido: d.nima_requerido, adr: d.adr,
-      importe_cliente: n.pc, importe_transportista: n.pt, precio_acordado_operador: n.ac,
+      importe_cliente: n.pc, importe_transportista: n.pt, precio_acordado_operador: n.ac, negociacion_pct: Number(d.negociacion),
       discrecion_comercial: d.discrecion_comercial, anotaciones_cliente: d.anotaciones_cliente,
       paradas: paradas.map(({ id, referencia, anotaciones }) => ({ id, referencia, anotaciones })),
     };
@@ -643,7 +644,13 @@ function Modificar({ ficha, onVolver, hacer, trabajando }: SubProps) {
         <div style={{ gridColumn: '1/-1', marginTop: '0.4rem' }} className="ptar-section-head">Precio (sin IVA)</div>
         {manual
           ? campo('acordado', 'Precio acordado con su transportista (€)', 'Ej. 950')
-          : <>{campo('importe_cliente', 'Precio del cliente (€)', 'Ej. 900')}{campo('importe_transportista', 'Precio del transportista (€)', 'Ej. 720')}</>}
+          : <>{campo('importe_cliente', 'Precio del cliente (€)', 'Ej. 900')}{campo('importe_transportista', 'Precio del transportista (€)', 'Ej. 720')}
+            <div style={{ gridColumn: '1/-1' }}>
+              <label htmlFor="mo-negociacion">Negociación con el transportista</label>
+              <select id="mo-negociacion" value={d.negociacion} onChange={(ev) => set('negociacion', ev.target.value)}>
+                {NEGOCIACION.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+              </select>
+            </div></>}
         {!manual && <div style={{ gridColumn: '1/-1', fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>Si cambias el precio del cliente, queda <strong>fijado a mano</strong>.</div>}
 
         <div style={{ gridColumn: '1/-1', marginTop: '0.4rem' }} className="ptar-section-head">Paradas</div>
@@ -772,7 +779,7 @@ function Ofrecer({ ficha, transportistas, onVolver }: { ficha: Ficha; transporti
   const [para, setPara] = useState<string>('bolsa');
   const [canal, setCanal] = useState<string>('bolsa_wtransnet');
   const [precio, setPrecio] = useState(txtNum(sugerido));
-  const [banda, setBanda] = useState(10);
+  const [banda, setBanda] = useState<number>(e.negociacion_pct ?? 10);
   const [pronto, setPronto] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
@@ -850,10 +857,7 @@ function Ofrecer({ ficha, transportistas, onVolver }: { ficha: Ficha; transporti
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="of-banda">Negociación del precio</label>
           <select id="of-banda" value={banda} onChange={(ev) => setBanda(Number(ev.target.value))}>
-            <option value={0}>NO negociable · precio fijo</option>
-            <option value={5}>Negociable ±5 % · lo decide el sistema</option>
-            <option value={10}>Negociable ±10 % · lo decide el sistema</option>
-            <option value={30}>Negociable ±30 % · lo revisa un agente</option>
+            {NEGOCIACION.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
           </select>
           {bandaEur > 0 && pv && <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.25rem' }}>El transportista puede proponer entre <strong>{euros(pv - bandaEur)}</strong> y <strong>{euros(pv + bandaEur)}</strong> (nunca ve el %). Lo que pase del ±10 % lo apruebas tú.</div>}
         </div>

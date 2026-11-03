@@ -26,7 +26,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       proyecto (decisión del usuario); el precio lo calculará SIEMPRE el servidor.
 - [x] ~~Teléfono y persona de contacto del sitio nuevo~~ (hecho 2026-11-03: se guardan como contacto
       principal del sitio cuando se guarda en la agenda). El horario sigue viviendo en el sitio, no en la parada.
-- [ ] Negociación del precio del transportista (±5/10/30 %) al crear: hoy se fija al ofertar.
+- [x] ~~Negociación del precio del transportista (±5/10/30 %) al crear~~ (hecho 2026-11-03: se elige en Nuevo envío y en Modificar; «Ofrecer carga» sale con ella, `envios.negociacion_pct`).
 - [ ] Avisos del mockup en el paso 4: ~~horario de verano, festivo en la ventana, tráiler sin trampilla~~
       (hechos 2026-11-03). Quedan para cuando el CLIENTE cree sus envíos (etapa B, con tarifador): precios
       dinámicos a +7 días, aceptar las condiciones generales y forma de pago (CESCE).

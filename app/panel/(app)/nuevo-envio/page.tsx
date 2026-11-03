@@ -62,7 +62,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
   const idBase = sp.ruta || sp.repetir;
   if (idBase && /^[0-9a-f-]{36}$/i.test(idBase)) {
     const [{ data: e }, { data: ps }] = await Promise.all([
-      supabase.from('envios').select('id, referencia_gx, cliente_id, estado, metros_lineales, toneladas, paletizado, carga_lateral, carga_trasera, carga_superior, plataforma_elevadora, nima_requerido, adr, anotaciones_cliente, importe_cliente, importe_transportista, discrecion_comercial').eq('id', idBase).maybeSingle(),
+      supabase.from('envios').select('id, referencia_gx, cliente_id, estado, metros_lineales, toneladas, paletizado, carga_lateral, carga_trasera, carga_superior, plataforma_elevadora, nima_requerido, adr, anotaciones_cliente, importe_cliente, importe_transportista, discrecion_comercial, negociacion_pct').eq('id', idBase).maybeSingle(),
       supabase.from('envio_paradas').select('id, tipo, lugar_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso').eq('envio_id', idBase).order('orden'),
     ]);
     if (e) base = { modo: sp.ruta ? 'ruta' : 'repetir', envio: e as Base['envio'], paradas: (ps ?? []) as Base['paradas'] };

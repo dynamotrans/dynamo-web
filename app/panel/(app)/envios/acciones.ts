@@ -94,7 +94,7 @@ export type DatosEnvio = {
   descripcion_mercancia: string; metros_lineales: number | null; toneladas: number | null;
   paletizado: boolean; carga_lateral: boolean; carga_trasera: boolean; carga_superior: boolean;
   plataforma_elevadora: boolean; nima_requerido: boolean; adr: boolean;
-  importe_cliente: number | null; importe_transportista: number | null;
+  importe_cliente: number | null; importe_transportista: number | null; negociacion_pct?: number | null;
   precio_acordado_operador: number | null;   // solo envíos manuales (con su propio transportista)
   discrecion_comercial: boolean; anotaciones_cliente: string;
   paradas: { id: string; referencia: string; anotaciones: string }[];
@@ -116,12 +116,13 @@ export async function modificarEnvio(envio: string, d: DatosEnvio, precioAntes: 
     paletizado: d.paletizado, carga_lateral: d.carga_lateral, carga_trasera: d.carga_trasera, carga_superior: d.carga_superior,
     plataforma_elevadora: d.plataforma_elevadora, nima_requerido: d.nima_requerido, adr: d.adr,
     importe_cliente: d.importe_cliente, importe_transportista: d.importe_transportista,
+    ...(d.negociacion_pct !== undefined ? { negociacion_pct: [0, 5, 10, 30].includes(d.negociacion_pct as number) ? d.negociacion_pct : null } : {}),
     discrecion_comercial: d.discrecion_comercial, anotaciones_cliente: vacio(d.anotaciones_cliente),
   };
   const { data: actual } = await s.supabase.from('envios').select('es_manual').eq('id', envio).single();
   if (actual?.es_manual) {
     // Envío manual: Dynamo no pone precios, solo se guarda el acordado con su operador.
-    delete cambios.importe_cliente; delete cambios.importe_transportista;
+    delete cambios.importe_cliente; delete cambios.importe_transportista; delete cambios.negociacion_pct;
     cambios.precio_acordado_operador = d.precio_acordado_operador;
   } else if (d.importe_cliente !== precioAntes) {
     // Si Dynamo cambia el precio del cliente, queda fijado a mano (el tarifador no lo pisará).

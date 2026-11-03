@@ -10,6 +10,7 @@ import { crearEnvio, crearClienteRapido, cambiarRuta, crearSolicitud, crearEnvio
 import { fecha as fmtFecha, euros as eur } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
 import { paisDe } from '@/lib/paises';
+import { NEGOCIACION } from '@/lib/envios';
 import SelectorPais from '@/components/SelectorPais';
 import { TIPOS_LUGAR } from './TipoSitio';
 import EditorHorario from './EditorHorario';
@@ -37,7 +38,7 @@ export type Base = {
   envio: { id: string; referencia_gx: string; cliente_id: string; estado: string; metros_lineales: number | null; toneladas: number | null;
     paletizado: boolean | null; carga_lateral: boolean; carga_trasera: boolean; carga_superior: boolean; plataforma_elevadora: boolean;
     nima_requerido: boolean; adr: boolean; anotaciones_cliente: string | null; importe_cliente: number | null; importe_transportista: number | null;
-    discrecion_comercial: boolean };
+    discrecion_comercial: boolean; negociacion_pct?: number | null };
   paradas: { id: string; tipo: 'carga' | 'descarga'; lugar_id: string | null; nombre_empresa: string | null; direccion: string | null;
     codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais_codigo_iso: string | null }[];
 };
@@ -147,6 +148,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
   const [fecha, setFecha] = useState('');
   const [pc, setPc] = useState(esCliente ? '' : decimal(be?.importe_cliente));
   const [pt, setPt] = useState(esCliente ? '' : decimal(be?.importe_transportista));
+  const [neg, setNeg] = useState<number>(be?.negociacion_pct ?? 10);
 
   // ---- Envío MANUAL (solo el cliente): con su propio operador, Dynamo no interviene.
   const [operador, setOperador] = useState('');
@@ -290,7 +292,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
       paletizado: paletizada, carga_lateral: f.includes('lateral'), carga_trasera: f.includes('trasera'),
       carga_superior: f.includes('techo'), plataforma_elevadora: trampilla, nima_requerido: nima, adr,
       importe_cliente: importe, importe_transportista: importeT,
-      discrecion_comercial: discrecion, anotaciones_cliente: notas,
+      discrecion_comercial: discrecion, anotaciones_cliente: notas, negociacion_pct: neg,
     }, paradas);
     if (!r.ok) { setEnviando(false); setAviso(r.error); return; }
     router.push(`/panel/envios?f=sin-asignar&nuevo=${encodeURIComponent(r.referencia_gx)}`);
@@ -525,6 +527,11 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                   <input id="ne-pc" type="text" inputMode="decimal" placeholder="Ej. 1.230,00" value={pc} onChange={(e) => setPc(e.target.value)} />
                   <label className="ptar-admin-precio-lbl" htmlFor="ne-pt" style={{ marginTop: '0.6rem' }}>Transportista (base sin IVA) · opcional</label>
                   <input id="ne-pt" type="text" inputMode="decimal" placeholder="Ej. 1.050,00" value={pt} onChange={(e) => setPt(e.target.value)} />
+                  <label className="ptar-admin-precio-lbl" htmlFor="ne-neg" style={{ marginTop: '0.6rem' }}>Negociación con el transportista</label>
+                  <select id="ne-neg" className="ptar-select" value={neg} onChange={(e) => setNeg(Number(e.target.value))}>
+                    {NEGOCIACION.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+                  </select>
+                  <p className="ptar-admin-precio-note">Sale ya puesta al ofrecer la carga (se puede cambiar ahí). El transportista nunca ve el %, solo el rango en euros.</p>
                   <p className="ptar-admin-precio-note">Hasta que llegue el tarifador, el precio lo pone Dynamo a mano y queda marcado como <strong>fijado a mano</strong>.</p>
                 </div>
                 {cajaPrecio}

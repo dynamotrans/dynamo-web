@@ -51,6 +51,7 @@ export type EnvioNuevo = {
   plataforma_elevadora: boolean; nima_requerido: boolean; adr: boolean;
   importe_cliente: number; importe_transportista?: number | null;
   discrecion_comercial: boolean; anotaciones_cliente?: string;
+  negociacion_pct?: number | null;   // banda de negociación por defecto al ofertar (0/5/10/30)
 };
 
 // Mensajes de la base de datos → frase entendible. Lo que no se reconoce se enseña tal
@@ -72,9 +73,14 @@ export async function crearEnvio(envio: EnvioNuevo, paradas: ParadaNueva[]):
   if (!(envio.importe_cliente > 0)) return { ok: false, error: 'Pon el precio del cliente (base sin IVA).' };
   if (paradas.length < 2) return { ok: false, error: 'Falta la recogida o la entrega.' };
 
-  const { data, error } = await s.supabase.rpc('crear_envio', { p_envio: envio, p_paradas: paradas });
+  const { negociacion_pct, ...resto } = envio;
+  if (negociacion_pct != null && ![0, 5, 10, 30].includes(negociacion_pct)) return { ok: false, error: 'La negociación del precio no es válida.' };
+  const { data, error } = await s.supabase.rpc('crear_envio', { p_envio: resto, p_paradas: paradas });
   if (error) return { ok: false, error: traducir(error.message) };
   const fila = (Array.isArray(data) ? data[0] : data) as { id: string; referencia_gx: string } | undefined;
+  if (fila?.id && negociacion_pct != null) {
+    await s.supabase.from('envios').update({ negociacion_pct }).eq('id', fila.id);
+  }
   if (fila?.id) await contactosDeSitiosNuevos(s.supabase, fila.id, paradas);
   return { ok: true, referencia_gx: fila?.referencia_gx ?? '' };
 }

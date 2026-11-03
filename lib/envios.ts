@@ -145,3 +145,12 @@ export function coincide(e: EnvioFila, q: string): boolean {
   ].filter(Boolean).join(' '));
   return n(q).split(/\s+/).filter(Boolean).every((w) => txt.includes(w));
 }
+
+// Negociación del precio del transportista (misma lista en Nuevo envío, Modificar y
+// Ofrecer carga). El transportista nunca ve el %, solo el rango en euros.
+export const NEGOCIACION: [number, string][] = [
+  [0, 'NO negociable · precio fijo'],
+  [5, 'Negociable ±5 % · lo decide el sistema'],
+  [10, 'Negociable ±10 % · lo decide el sistema'],
+  [30, 'Negociable ±30 % · lo revisa un agente'],
+];
