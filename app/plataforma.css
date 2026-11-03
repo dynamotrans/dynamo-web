@@ -1,117 +1,32 @@
-/* Colores y escala de texto del panel (dashboard.html, :root). Regla 0-quater:
-   reutilizar el diseño actual, no inventar. */
+/* Base común de la plataforma. Las pantallas llevan su propio CSS, copiado del mockup
+   (regla 0-quater): la entrada el de portal.html (panel/entrar/entrar.css) y el panel
+   el de dashboard.html (panel/(app)/dashboard.css). Aquí solo lo compartido. */
 :root {
-  --fs-m: 0.82rem; --fs-l: 0.92rem;
-  --fs-d1: 1.1rem; --fs-d2: 1.2rem; --fs-d3: 1.3rem;
-  --purple: #3300cc; --purple-dark: #220099; --purple-light: #5533dd;
-  --green: #22a55a; --green-dark: #157a3f; --orange: #ff7a00; --red: #dc2626;
+  --fs-s: 0.82rem; --fs-m: 0.82rem; --fs-l: 0.92rem;
+  --fs-d1: 1.1rem; --fs-d2: 1.2rem; --fs-d3: 1.3rem; --fs-d4: 1.7rem;
+  --purple: #3300cc; --purple-dark: #220099; --purple-light: #5533dd; --purple-nav: #1a008a;
+  --green: #22a55a; --green-dark: #157a3f; --yellow: #ffd400; --orange: #ff7a00; --red: #dc2626;
   --navy: #0a0230;
   --gray-50: #fbfbfc; --gray-100: #f7f8fa; --gray-200: #e8eaed; --gray-300: #d1d5db;
   --gray-500: #6b7280; --gray-700: #374151; --gray-900: #1f2937;
 }
-* { box-sizing: border-box; }
-html, body { margin: 0; }
+html, body { margin: 0; background: var(--gray-100); }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background: var(--gray-100); color: var(--gray-900);
-  -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+  color: var(--navy); -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
 }
 
-/* ---- Barra superior ---- */
-.pt-top {
-  background: #fff; border-bottom: 1px solid var(--gray-200);
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0.7rem 1.2rem; gap: 1rem;
-}
-.pt-logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; color: var(--navy); }
-.pt-logo img { height: 34px; width: auto; }
-.pt-logo span { font-weight: 700; font-size: var(--fs-m); border-left: 1.5px solid var(--gray-300); padding-left: 0.6rem; }
-.pt-user { display: flex; align-items: center; gap: 0.8rem; font-size: var(--fs-m); color: var(--gray-700); }
-.pt-user strong { color: var(--navy); }
-.pt-chip {
-  display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px;
-  background: rgba(51, 0, 204, 0.08); color: var(--purple); font-weight: 600; font-size: var(--fs-m);
-}
-
-/* ---- Contenido ---- */
-.pt-main { max-width: 1400px; margin: 0 auto; padding: 1.4rem 1.2rem 3rem; }
-.pt-main h1 { font-size: var(--fs-d3); color: var(--navy); margin: 0 0 0.3rem; }
-.pt-sub { color: var(--gray-500); font-size: var(--fs-l); margin: 0 0 1.2rem; }
-
-.pt-card {
-  background: #fff; border: 1px solid var(--gray-200); border-radius: 14px;
-  padding: 1.3rem 1.4rem;
-}
-
-/* ---- Botones (los del panel) ---- */
-.btn-primary, .btn-secondary, .btn-ghost {
-  display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
-  min-height: 44px; padding: 0 1.1rem; border-radius: 10px; font-weight: 700;
-  font-size: var(--fs-l); cursor: pointer; text-decoration: none; font-family: inherit;
-}
-.btn-primary { background: var(--purple); color: #fff; border: 1.5px solid var(--purple); }
-.btn-primary:hover { background: var(--purple-dark); }
-.btn-secondary { background: #fff; color: var(--purple); border: 1.5px solid var(--purple); }
-.btn-ghost { background: transparent; color: var(--gray-700); border: 1.5px solid var(--gray-300); }
-.btn-ghost:hover { border-color: var(--purple); color: var(--purple); }
-
-/* ---- Formularios ---- */
-.pt-field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
-.pt-field label { font-size: var(--fs-m); font-weight: 600; color: var(--gray-500); }
-.pt-input {
-  height: 44px; border: 1.5px solid var(--gray-300); border-radius: 10px; padding: 0 0.8rem;
-  font-size: 16px; /* 16px: evita el zoom de iOS al enfocar */ font-family: inherit; background: #fff;
-}
-.pt-input:hover, .pt-input:focus { border-color: var(--purple); outline: none; }
-
-/* ---- Avisos (patrón .warn del panel) ---- */
-.warn {
+/* Avisos de la pantalla de entrada y de "falta configurar" (patrón .warn del panel). */
+.pt-aviso {
   display: flex; gap: 0.6rem; align-items: flex-start; padding: 0.8rem 1rem;
   border-radius: 10px; font-size: var(--fs-l); line-height: 1.45; margin-bottom: 1rem;
-  background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412;
+  background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; text-align: left;
 }
-.warn.error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
-.warn.info { background: rgba(51, 0, 204, 0.05); border-color: rgba(51, 0, 204, 0.2); color: var(--navy); }
-.warn svg { flex: 0 0 auto; margin-top: 2px; }
+.pt-aviso.error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+.pt-aviso.info { background: rgba(51, 0, 204, 0.05); border-color: rgba(51, 0, 204, 0.2); color: var(--navy); }
+.pt-aviso svg { flex: 0 0 auto; margin-top: 2px; }
 
-/* ---- Tabla de envíos ---- */
-.table-wrap { overflow-x: auto; overscroll-behavior-x: contain; }
-table.data { width: 100%; border-collapse: collapse; min-width: 720px; font-size: var(--fs-m); }
-table.data th {
-  text-align: left; color: var(--gray-500); font-weight: 600; padding: 0.6rem 0.7rem;
-  border-bottom: 1px solid var(--gray-200); white-space: nowrap;
-}
-table.data td { padding: 0.75rem 0.7rem; border-bottom: 1px solid var(--gray-100); vertical-align: top; }
-table.data tr:hover td { background: var(--gray-50); }
-.ref { font-weight: 700; color: var(--navy); white-space: nowrap; }
-.muted { color: var(--gray-500); }
-.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.ruta { white-space: nowrap; }
-.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.4rem; }
-.dot.o { background: var(--orange); } .dot.d { background: var(--green); }
-.badge {
-  display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-weight: 600;
-  font-size: var(--fs-m); white-space: nowrap; background: var(--gray-200); color: var(--gray-700);
-}
-.badge.programado { background: #374151; color: #fff; }
-.badge.en_ruta, .badge.cargando, .badge.hacia_la_carga { background: #1e3a8a; color: #fff; }
-.badge.entregado { background: rgba(34, 165, 90, 0.12); color: var(--green-dark); }
-.badge.cancelado { background: #fee2e2; color: #991b1b; }
-.badge.manual { background: #fef3c7; color: #92400e; }
-.margen-pos { color: var(--green-dark); } .margen-neg { color: var(--red); }
-.vacio { text-align: center; padding: 2.5rem 1rem; color: var(--gray-500); font-size: var(--fs-l); }
-
-/* ---- Pantalla de entrada ---- */
-.pt-entrar { min-height: 100svh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
-.pt-entrar .pt-card { width: 100%; max-width: 400px; }
+/* Pantalla "falta conectar la base de datos". */
+.pt-entrar { min-height: 100svh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; box-sizing: border-box; }
+.pt-entrar .pt-card { width: 100%; max-width: 440px; background: #fff; border: 1px solid var(--gray-200); border-radius: 14px; padding: 1.3rem 1.4rem; }
 .pt-entrar .logo { display: block; height: 46px; margin: 0 auto 1.2rem; }
-.pt-entrar h1 { text-align: center; font-size: var(--fs-d2); color: var(--navy); margin: 0 0 0.3rem; }
-.pt-entrar p.sub { text-align: center; color: var(--gray-500); font-size: var(--fs-l); margin: 0 0 1.4rem; }
-.pt-entrar .btn-primary { width: 100%; }
-.pt-entrar .volver { display: block; text-align: center; margin-top: 1rem; font-size: var(--fs-m); color: var(--gray-500); }
-
-@media (max-width: 600px) {
-  .pt-top { padding: 0.6rem 0.9rem; }
-  .pt-logo span { display: none; }
-  .pt-main { padding: 1rem 0.9rem 2rem; }
-}

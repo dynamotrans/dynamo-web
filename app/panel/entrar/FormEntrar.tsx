@@ -16,7 +16,7 @@ export default function FormEntrar() {
   return (
     <form action={accion} noValidate>
       {estado.error && (
-        <div className="warn error" role="alert"><IcoAviso /><div>{estado.error}</div></div>
+        <div className="pt-aviso error" role="alert"><IcoAviso /><div>{estado.error}</div></div>
       )}
       <div className="portal-field">
         <label className="portal-label" htmlFor="portal-user">Correo electrónico</label>

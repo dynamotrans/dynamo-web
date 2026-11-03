@@ -6,7 +6,7 @@ export default function SinConfigurar() {
     <div className="pt-entrar">
       <div className="pt-card">
         <img className="logo" src="/images/2.png" alt="Dynamo" />
-        <div className="warn">
+        <div className="pt-aviso">
           <IcoAviso />
           <div>
             <strong>Falta conectar la base de datos.</strong> En Vercel → Settings →

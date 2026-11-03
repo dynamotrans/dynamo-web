@@ -1,0 +1,13 @@
+/* Ajustes mínimos para que el CSS copiado de dashboard.html (pensado para <button>)
+   se vea igual con los enlaces y formularios de la plataforma real. No cambia el diseño. */
+a.sidebar-link, a.user-menu-item, a.topbar-brand { text-decoration: none; }
+.sidebar form, .user-menu form { margin: 0; }
+.user-menu form .user-menu-item { width: 100%; }
+/* Aviso de cuenta (pendiente / suspendida) dentro del panel. */
+.cuenta-aviso { max-width: 640px; margin: 2rem auto; }
+a.tab { text-decoration: none; display: inline-block; }
+.pagination-pages a {
+  min-width: 32px; height: 32px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--gray-200); background: white; font-size: var(--fs-m); color: var(--gray-700); padding: 0 0.4rem;
+}
+.pagination-pages a.active { background: var(--purple); color: white; border-color: var(--purple); }

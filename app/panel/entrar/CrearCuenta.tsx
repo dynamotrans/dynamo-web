@@ -16,7 +16,7 @@ export default function CrearCuenta() {
         Crear cuenta
       </button>
       {abierto && (
-        <div className="warn info portal-aviso-alta" role="status">
+        <div className="pt-aviso info portal-aviso-alta" role="status">
           <IcoInfo />
           <div>
             <strong>El alta online estará disponible muy pronto.</strong> Mientras tanto, escríbenos

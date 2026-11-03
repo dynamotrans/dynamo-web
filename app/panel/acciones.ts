@@ -34,9 +34,3 @@ export async function entrar(_prev: EstadoEntrar, datos: FormData): Promise<Esta
   });
   redirect('/panel');
 }
-
-export async function salir() {
-  const supabase = await supabaseServidor();
-  if (supabase) await supabase.auth.signOut();
-  redirect('/panel/entrar');
-}

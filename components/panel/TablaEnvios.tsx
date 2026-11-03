@@ -1,0 +1,218 @@
+import Link from 'next/link';
+import { euros } from '@/lib/formato';
+import { esDynamo, type Rol } from '@/lib/sesion';
+import {
+  type EnvioFila, type Parada, type Pestana, estadoVisual, asignacion, enPestana, urgencia,
+  fechaCarga, fechaEntrega, creadoTxt, dirParada, paradasDe, medidas, coincide,
+} from '@/lib/envios';
+
+// Tabla de envíos con el diseño de dashboard.html (sección #sec-cargas). Recibe los
+// datos ya leídos y con los permisos del rol aplicados en el servidor.
+const POR_PAGINA = 20;
+const PESTANAS: { f: Pestana; titulo: string; soloDynamo?: boolean }[] = [
+  { f: 'sin-asignar', titulo: 'Sin asignar transportista', soloDynamo: true },
+  { f: 'programada', titulo: 'Programadas' },
+  { f: 'entregada', titulo: 'Entregadas' },
+  { f: 'cancelada', titulo: 'Canceladas' },
+  { f: 'todas', titulo: 'Todas' },
+];
+
+const SubBase = () => (<><br /><span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>base sin IVA</span></>);
+
+type Props = {
+  filas: EnvioFila[]; nombres: Record<string, string>; rol: Rol;
+  f?: string; q: string; p?: string; error: string | null;
+};
+
+export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pParam, error }: Props) {
+  const dynamo = esDynamo(rol);
+  // ---- Pestaña, buscador y página
+  const pestanas = PESTANAS.filter((p) => dynamo || !p.soloDynamo);
+  const f = (pestanas.find((p) => p.f === fParam)?.f ?? (dynamo ? 'sin-asignar' : 'programada')) as Pestana;
+  const buscadas = q ? filas.filter((e) => coincide(e, q)) : filas;
+  const lista = buscadas.filter((e) => enPestana(e, f));
+  const paginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
+  const pag = Math.min(Math.max(1, Number(pParam) || 1), paginas);
+  const trozo = lista.slice((pag - 1) * POR_PAGINA, pag * POR_PAGINA);
+  const url = (o: Record<string, string | number | undefined>) => {
+    const u = new URLSearchParams();
+    const v: Record<string, string | number | undefined> = { f, q: q || undefined, ...o };
+    Object.entries(v).forEach(([k, x]) => { if (x !== undefined && x !== '' && !(k === 'p' && String(x) === '1')) u.set(k, String(x)); });
+    return `/panel/envios${u.toString() ? `?${u}` : ''}`;
+  };
+
+  const columnas = 6 + (dynamo ? 4 : rol === 'cliente' ? 2 : 1);
+
+  return (
+    <section className="section active" id="sec-cargas">
+      <div className="sec-header">
+        <h2>{rol === 'transportista' ? 'Mis viajes' : 'Envíos'}</h2>
+        {rol !== 'transportista' && (
+          <div className="sec-header-actions">
+            <Link className="btn-primary" href="/panel/nuevo-envio">+ Nuevo envío</Link>
+          </div>
+        )}
+      </div>
+
+      <div className="tabs" data-table="cargas">
+        {pestanas.map((p) => (
+          <Link key={p.f} href={url({ f: p.f, p: 1 })} className={`tab${p.f === f ? ' active' : ''}`}>
+            {p.titulo} (<span>{buscadas.filter((e) => enPestana(e, p.f)).length}</span>)
+          </Link>
+        ))}
+      </div>
+
+      <form className="filters" action="/panel/envios" method="get">
+        <input type="hidden" name="f" value={f} />
+        <input type="search" name="q" defaultValue={q}
+               placeholder="Buscar por cualquier dato: nº, empresa, dirección, teléfono, ruta, mercancía…" />
+      </form>
+
+      {error && (
+        <div className="pt-aviso error">No se han podido cargar los envíos: {error}</div>
+      )}
+
+      <div className="table-wrap">
+        <table className="data">
+          <thead><tr>
+            <th>Envío</th><th>Recogida</th><th>Entrega</th>
+            {dynamo && <th className="cliente-col">Cliente · CIF</th>}
+            <th>Mercancía</th><th>Vehículo</th>
+            {rol !== 'transportista' && <th>P. cliente<SubBase /></th>}
+            {dynamo && <th className="col-ptransp">P. transportista<SubBase /></th>}
+            {dynamo && <th className="col-margen">Margen<SubBase /></th>}
+            {rol === 'transportista' && <th>Tu precio<SubBase /></th>}
+            {rol !== 'transportista' && <th>Creado por</th>}
+          </tr></thead>
+          <tbody>
+            {trozo.length === 0 ? (
+              <tr><td colSpan={columnas} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
+                {filas.length === 0 ? 'Todavía no hay envíos.' : 'Sin envíos en este filtro'}
+              </td></tr>
+            ) : trozo.map((e) => <FilaEnvio key={e.id} e={e} rol={rol} dynamo={dynamo} creador={e.creado_por ? nombres[e.creado_por] : undefined} />)}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="pagination">
+        <div className="pagination-left">
+          <span>{lista.length ? `Mostrando ${(pag - 1) * POR_PAGINA + 1}-${Math.min(pag * POR_PAGINA, lista.length)} de ${lista.length} envíos` : 'Sin envíos'}</span>
+        </div>
+        {paginas > 1 && (
+          <div className="pagination-pages">
+            {pag > 1 && <Link href={url({ p: pag - 1 })} aria-label="Anterior">‹</Link>}
+            {Array.from({ length: paginas }, (_, i) => i + 1)
+              .filter((n) => n === 1 || n === paginas || Math.abs(n - pag) <= 2)
+              .map((n, i, arr) => (
+                <span key={n} style={{ display: 'contents' }}>
+                  {i > 0 && n - arr[i - 1] > 1 && <span style={{ padding: '0 0.3rem', color: 'var(--gray-500)' }}>…</span>}
+                  <Link href={url({ p: n })} className={n === pag ? 'active' : ''}>{n}</Link>
+                </span>
+              ))}
+            {pag < paginas && <Link href={url({ p: pag + 1 })} aria-label="Siguiente">›</Link>}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Parada({ p, fechaTxt, tipo }: { p: Parada; fechaTxt: string; tipo: 'orig' | 'dest' }) {
+  return (
+    <div className="rf-stop"><div className="rf-line">
+      <span className={`rf-dot ${tipo}`} />
+      <span className="rf-txt">
+        <span className="rf-fecha"><strong>{fechaTxt}</strong></span>
+        <span className="rf-dir">{dirParada(p) || '—'}</span>
+        {p.nombre_empresa && <> <span className="rf-site">({p.nombre_empresa})</span></>}
+      </span>
+    </div></div>
+  );
+}
+
+function FilaEnvio({ e, rol, dynamo, creador }: { e: EnvioFila; rol: string; dynamo: boolean; creador?: string }) {
+  const ev = estadoVisual(e);
+  const asig = asignacion(e);
+  const { recogidas, entregas } = paradasDe(e);
+  const fc = fechaCarga(e), fe = fechaEntrega(e);
+  const manual = !!e.es_manual;
+  const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null;
+  const pt = e.importe_transportista != null ? Number(e.importe_transportista) : null;
+  const margen = pc != null && pt != null ? pc - pt : null;
+  const fijado = e.precio_fijado_a_mano ? <div className="meta-manual">fijado a mano</div> : null;
+  const completo = e.tipo_carga === 'completa';
+
+  return (
+    <tr className={urgencia(e) || undefined}>
+      <td className="ref">
+        <div className="envio-estado envio-estado-top"><span className={`badge badge-${ev.color}`}>{ev.label}</span></div>
+        <strong>#{e.referencia_gx}</strong>
+        {e.referencia_cliente && <> <span className="ref-cli-inline">({e.referencia_cliente})</span></>}
+        {rol !== 'transportista' && (
+          <div className="op-chip2-wrap">
+            {manual ? (
+              <span className="op-chip2 op-chip2-otro" title={e.operador ?? 'Otro operador'}>
+                <span className="op-chip2-ic op-chip2-ic-truck">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></svg>
+                </span>
+                <span className="op-chip2-name">{(e.operador ?? 'Otro operador').replace(/,?\s+(S\.?L\.?U?\.?|S\.?A\.?)$/i, '')}</span>
+              </span>
+            ) : (
+              <span className="op-chip2 op-chip2-dynamo" title="Dynamo Operador de Transportes">
+                <span className="op-chip2-ic"><img src="/images/dynamo-logo-sq.png" alt="" /></span>
+                <span className="op-chip2-name">Dynamo</span>
+              </span>
+            )}
+          </div>
+        )}
+      </td>
+      <td className="route-full route-rec"><div className="rf-stops"><div className="rf-col">
+        {recogidas.map((p, i) => <Parada key={i} p={p} fechaTxt={fc} tipo="orig" />)}
+      </div></div></td>
+      <td className="route-full route-ent"><div className="rf-stops"><div className="rf-col">
+        {entregas.map((p, i) => <Parada key={i} p={p} fechaTxt={fe} tipo="dest" />)}
+      </div></div></td>
+      {dynamo && (
+        <td className="cliente-col">
+          <strong>{e.cliente ?? '—'}</strong>
+          <div className="meta" style={{ whiteSpace: 'nowrap' }}>{e.cliente_cif ?? '—'}</div>
+        </td>
+      )}
+      <td className="mercancia">
+        {e.paletizado === false ? 'No paletizado' : 'Paletizado'}
+        {medidas(e) && <div className="meta meta-medidas">{medidas(e)}</div>}
+        {e.tipo_carga && (
+          <div className="meta"><span className={`carga-tag ${completo ? 'carga-completo' : 'carga-grupaje'}`}>{completo ? 'Completo' : 'Grupaje'}</span></div>
+        )}
+      </td>
+      <td className="vehiculo">
+        {asig && <div className={`asig-line asig-top asig-${asig.key}`}><span className="asig-dot" />{asig.label}</div>}
+        {e.matricula_camion ? <span className="meta-matricula">{e.matricula_camion}</span> : <span className="meta meta-pend">Sin matrícula</span>}
+        {e.matricula_remolque && <div className="meta">Remolque: <span className="meta-matricula" style={{ fontSize: 'var(--fs-s)' }}>{e.matricula_remolque}</span></div>}
+      </td>
+      {rol !== 'transportista' && (manual ? (
+        <td className="amount">
+          {e.precio_acordado_operador != null
+            ? <><span style={{ fontWeight: 800, color: 'var(--navy)' }}>{euros(e.precio_acordado_operador)}</span><div className="meta">acordado</div></>
+            : '—'}
+        </td>
+      ) : (
+        <td className={`amount${dynamo ? ' td-precio' : ''}`}><strong>{pc != null ? euros(pc) : '—'}</strong>{dynamo && fijado}</td>
+      ))}
+      {dynamo && <td className="amount td-precio col-ptransp">{manual ? '—' : <><strong>{pt != null ? euros(pt) : '—'}</strong>{fijado}</>}</td>}
+      {dynamo && (
+        <td className="amount col-margen">
+          {manual || margen == null ? '—' : <span className={margen > 0 ? 'marg-pos' : margen < 0 ? 'marg-neg' : ''}>{euros(margen)}</span>}
+        </td>
+      )}
+      {rol === 'transportista' && <td className="amount"><strong>{pt != null ? euros(pt) : '—'}</strong></td>}
+      {rol !== 'transportista' && (
+        <td className="creadopor" style={{ whiteSpace: 'nowrap', fontSize: 'var(--fs-s)', color: 'var(--gray-700)' }}>
+          <strong>{creador ?? '—'}</strong>
+          {e.creado_en && <div className="meta" style={{ whiteSpace: 'nowrap' }}>Creación: {creadoTxt(e.creado_en)}</div>}
+          {e.modificado_en && <div className="meta" style={{ whiteSpace: 'nowrap' }}>Modificación: {creadoTxt(e.modificado_en)}</div>}
+        </td>
+      )}
+    </tr>
+  );
+}

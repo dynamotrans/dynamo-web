@@ -340,6 +340,11 @@ que cada pantalla esté pasada a datos reales (patrón estrangulador).
   servicio de Supabase **nunca** en una variable `NEXT_PUBLIC_` ni en el chat.
 - **Lectura por rol** (ver migración `permisos_por_rol`): Dynamo lee las tablas; cliente y
   transportista usan `mis_envios()` / `mis_viajes()`. Nunca leer `envios` con la sesión de un cliente.
+- **Diseño = el del mockup, copiado** (regla 0-quater): la entrada usa los estilos de `portal.html`
+  (`app/panel/entrar/entrar.css`) y el panel los de `dashboard.html` (`app/panel/(app)/dashboard.css`,
+  copia literal). Cada pantalla nueva se monta con las MISMAS clases del mockup. Si se toca un estilo
+  en `dashboard.html`, se toca igual en la copia. Las pantallas aún no pasadas muestran un aviso
+  (`app/panel/(app)/[seccion]`).
 - Antes de subir: `npm run build` sin errores + comprobar en Chromium (`/`, una hoja de sección,
   `/panel/entrar`). Versiones de paquetes fijadas exactas y con al menos 2 semanas.
 

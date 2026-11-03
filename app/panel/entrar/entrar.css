@@ -177,7 +177,7 @@
     .portal-title { font-size: var(--fs-d3); }
 }
 
-.portal-card .warn { margin-bottom: 1rem; }
+.portal-card .pt-aviso { margin-bottom: 1rem; }
 .portal-submit:disabled { opacity: 0.7; cursor: wait; transform: none; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .portal-card, .portal-bg { animation: none; } }
 .portal-card > .portal-back { margin-top: 0.9rem; }
