@@ -52,3 +52,18 @@ export function validaIdFiscal(raw: string): ResultadoIdFiscal {
         for (var isf = 0; isf < SOFT.length; isf++) { if (SOFT[isf][0].test(v)) return { ok: true, soft: true, tipo: SOFT[isf][1], msg: '' }; }
         return { ok: false, tipo: null, msg: 'formato no reconocido — admite NIF/CIF/NIE españoles y nº de IVA europeo con prefijo de país (PT, FR, IT, DE, NL, BE, PL…)' };
     }
+
+// Países cuyo nº fiscal sabemos comprobar con su dígito de control (o al menos su
+// formato). Para el RESTO del mundo (Marruecos, Ucrania, EE. UU., China…) no hay
+// algoritmo público común: se admite el número tal cual y Dynamo lo revisa al
+// activar la cuenta. Así puede darse de alta un cliente de cualquier país.
+const PAISES_CON_VALIDACION = new Set(['ES', 'PT', 'FR', 'IT', 'DE', 'AT', 'BE', 'NL', 'PL', 'LU', 'CH', 'DK', 'SE', 'FI',
+  'SI', 'SK', 'HR', 'HU', 'EE', 'GR', 'RO', 'GB', 'BG', 'CZ', 'IE', 'LV', 'LT', 'MT', 'CY', 'NO']);
+
+export function validaIdFiscalPais(raw: string, pais: string): ResultadoIdFiscal {
+  const r = validaIdFiscal(raw);
+  if (!r || r.ok || PAISES_CON_VALIDACION.has((pais || 'ES').toUpperCase())) return r;
+  const v = String(raw || '').toUpperCase().replace(/[\s.\-/]/g, '');
+  if (/^[A-Z0-9]{4,20}$/.test(v)) return { ok: true, soft: true, tipo: 'Nº fiscal extranjero', msg: '' };
+  return { ok: false, tipo: null, msg: 'escribe solo letras y números (entre 4 y 20)' };
+}

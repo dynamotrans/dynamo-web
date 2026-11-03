@@ -5,7 +5,8 @@
 // la rejilla .ptar-sitio-grid de la ficha, con sus mismos campos (regla 0-quater).
 import { useState } from 'react';
 import { CONTACTO_VACIO, FUNCIONES, type ContactoDatos, type Funcion } from '@/lib/contactos';
-import { PREFIJOS, partirTel } from '@/lib/paises';
+import { partirTel } from '@/lib/paises';
+import SelectorPais from '@/components/SelectorPais';
 
 export default function EditorContactos({ valor, onCambio, conFuncion = false, funcionNueva = 'general', ayuda }: {
   valor: ContactoDatos[]; onCambio: (l: ContactoDatos[]) => void;
@@ -59,9 +60,7 @@ function Persona({ c, i, total, conFuncion, onCambio, onQuitar }: {
         <div>
           <label htmlFor={`${id}-tel`}>Teléfono</label>
           <div className="tel-group">
-            <select className="tel-pref" aria-label="Prefijo de país" value={pref} onChange={(e) => { setPref(e.target.value); ponTel(e.target.value, num); }}>
-              {PREFIJOS.map(([p, n]) => <option key={p} value={p}>{p} {n}</option>)}
-            </select>
+            <SelectorPais modo="prefijo" valor={pref} onCambio={(v) => { setPref(v); ponTel(v, num); }} />
             <input id={`${id}-tel`} type="tel" inputMode="tel" value={num} placeholder="600 000 000" onChange={(e) => ponTel(pref, e.target.value)} />
           </div>
         </div>

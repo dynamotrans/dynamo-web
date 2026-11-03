@@ -11,7 +11,8 @@ import Cargando from '@/components/Cargando';
 import { guardarTransportista, type TransportistaDatos } from '@/app/panel/(app)/transportistas/acciones';
 import { creadoTxt } from '@/lib/envios';
 import { fecha as fmtFecha } from '@/lib/formato';
-import { PAISES, telBonito } from '@/lib/paises';
+import { telBonito } from '@/lib/paises';
+import SelectorPais from '@/components/SelectorPais';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import EditorContactos from './EditorContactos';
 
@@ -249,9 +250,7 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
         {campo('provincia', 'Provincia', 'Sevilla')}
         <div>
           <label htmlFor="tra-pais">País</label>
-          <select id="tra-pais" value={d.pais_codigo_iso} onChange={(e) => set('pais_codigo_iso', e.target.value)}>
-            {PAISES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
-          </select>
+          <SelectorPais id="tra-pais" valor={d.pais_codigo_iso} onCambio={(v) => set('pais_codigo_iso', v)} />
         </div>
 
         {titulo('Personas de contacto')}

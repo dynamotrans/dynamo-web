@@ -12,7 +12,8 @@ import { IconoTipo, TIPOS_LUGAR } from './TipoSitio';
 import { guardarSitio, borrarSitio, marcarPrincipal, type SitioDatos } from '@/app/panel/(app)/sitios/acciones';
 import { creadoTxt } from '@/lib/envios';
 import { euros } from '@/lib/formato';
-import { PAISES, paisDe, telBonito } from '@/lib/paises';
+import { paisDe, telBonito } from '@/lib/paises';
+import SelectorPais from '@/components/SelectorPais';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import EditorContactos from './EditorContactos';
 import EditorHorario from './EditorHorario';
@@ -368,9 +369,7 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, onCerrar, onAbrir,
         {campo('provincia', <>Provincia {opc}</>, 'Sevilla')}
         <div>
           <label htmlFor="sitio-pais">País</label>
-          <select id="sitio-pais" value={d.pais_codigo_iso} onChange={(e) => set('pais_codigo_iso', e.target.value)}>
-            {PAISES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
-          </select>
+          <SelectorPais id="sitio-pais" valor={d.pais_codigo_iso} onCambio={(v) => set('pais_codigo_iso', v)} />
         </div>
         <div style={{ gridColumn: '1/-1', marginTop: '0.4rem' }} className="ptar-section-head">Horario de carga y descarga {obl}</div>
         <EditorHorario valor={d.horario} onCambio={(g) => set('horario', g)} />

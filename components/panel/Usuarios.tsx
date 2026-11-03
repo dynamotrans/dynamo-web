@@ -11,7 +11,8 @@ import Cargando from '@/components/Cargando';
 import { guardarUsuario, cambiarRol, cambiarEmail, invitarUsuario, reenviarInvitacion, type UsuarioDatos } from '@/app/panel/(app)/usuarios/acciones';
 import type { Rol } from '@/lib/sesion';
 import { creadoTxt } from '@/lib/envios';
-import { PREFIJOS, partirTel, telBonito } from '@/lib/paises';
+import { partirTel, telBonito } from '@/lib/paises';
+import SelectorPais from '@/components/SelectorPais';
 
 export type Empresa = { id: string; nombre: string; cif: string };
 export type UsuarioFila = UsuarioDatos & {
@@ -168,9 +169,7 @@ function Telefono({ id, valor, onCambio }: { id: string; valor: { pref: string; 
     <div>
       <label htmlFor={id}>Teléfono</label>
       <div className="tel-group">
-        <select className="tel-pref" aria-label="Prefijo de país" value={valor.pref} onChange={(e) => onCambio({ ...valor, pref: e.target.value })}>
-          {PREFIJOS.map(([p, n]) => <option key={p} value={p}>{p} {n}</option>)}
-        </select>
+        <SelectorPais modo="prefijo" valor={valor.pref} onCambio={(v) => onCambio({ ...valor, pref: v })} />
         <input id={id} type="tel" inputMode="tel" value={valor.num} placeholder="600 000 000" onChange={(e) => onCambio({ ...valor, num: e.target.value })} />
       </div>
     </div>

@@ -9,7 +9,8 @@ import { useRouter } from 'next/navigation';
 import { crearEnvio, crearClienteRapido, cambiarRuta, crearSolicitud, crearEnvioManual, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { fecha as fmtFecha, euros as eur } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
-import { PAISES } from '@/lib/paises';
+import { paisDe } from '@/lib/paises';
+import SelectorPais from '@/components/SelectorPais';
 import { TIPOS_LUGAR } from './TipoSitio';
 import EditorHorario from './EditorHorario';
 import { HORARIO_POR_DEFECTO, validarHorario, tramosDe, type GrupoHorario } from '@/lib/horarios';
@@ -69,7 +70,7 @@ function textoSitio(s: SitioOpcion | SitioNuevo): string {
   return [s.nombre_empresa, lin].filter(Boolean).join(' · ');
 }
 function direccionCompleta(s: SitioOpcion | SitioNuevo): string {
-  const pais = PAISES.find(([c]) => c === s.pais_codigo_iso)?.[1] ?? s.pais_codigo_iso;
+  const pais = paisDe(s.pais_codigo_iso);
   const prov = s.provincia && s.provincia !== s.poblacion ? s.provincia : '';
   return [s.direccion, [s.codigo_postal, s.poblacion].filter(Boolean).join(' '), prov, pais].filter(Boolean).join(', ');
 }
@@ -685,9 +686,7 @@ function CampoCliente({ clientes, valor, onElegir, onNuevo }: {
           <label className="ptar-admin-precio-lbl" htmlFor="ne-cif" style={{ marginTop: '0.6rem' }}>CIF / NIF</label>
           <input id="ne-cif" type="text" value={cif} onChange={(e) => setCif(e.target.value)} placeholder="Ej. B12345678" />
           <label className="ptar-admin-precio-lbl" htmlFor="ne-pais" style={{ marginTop: '0.6rem' }}>País</label>
-          <select id="ne-pais" className="ptar-select" value={pais} onChange={(e) => setPais(e.target.value)}>
-            {PAISES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
-          </select>
+          <SelectorPais id="ne-pais" valor={pais} onCambio={setPais} />
           {error && <div className="wiz-warn show">⚠ {error}</div>}
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.8rem' }}>
             <button type="button" className="btn-primary" onClick={guardar} disabled={guardando}>{guardando ? 'Guardando…' : 'Dar de alta'}</button>
@@ -762,9 +761,7 @@ function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, onCambi
             <Campo l="Provincia" v={form.provincia} on={(v) => setForm({ ...form, provincia: v })} ph="Sevilla" />
             <div>
               <label className="ptar-admin-precio-lbl" style={{ marginTop: '0.6rem' }}>País</label>
-              <select className="ptar-select" value={form.pais_codigo_iso} onChange={(e) => setForm({ ...form, pais_codigo_iso: e.target.value })}>
-                {PAISES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
-              </select>
+              <SelectorPais valor={form.pais_codigo_iso} onCambio={(v) => setForm({ ...form, pais_codigo_iso: v })} />
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>

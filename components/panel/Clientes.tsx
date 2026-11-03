@@ -10,7 +10,8 @@ import Cargando from '@/components/Cargando';
 import { guardarCliente, type ClienteDatos } from '@/app/panel/(app)/clientes/acciones';
 import { euros } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
-import { PAISES, paisDe, telBonito } from '@/lib/paises';
+import { paisDe, telBonito } from '@/lib/paises';
+import SelectorPais from '@/components/SelectorPais';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import EditorContactos from './EditorContactos';
 
@@ -213,9 +214,7 @@ function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { f
         {campo('provincia', 'Provincia', 'Sevilla')}
         <div>
           <label htmlFor="cli-pais">País</label>
-          <select id="cli-pais" value={d.pais_codigo_iso} onChange={(e) => set('pais_codigo_iso', e.target.value)}>
-            {PAISES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
-          </select>
+          <SelectorPais id="cli-pais" valor={d.pais_codigo_iso} onCambio={(v) => set('pais_codigo_iso', v)} />
         </div>
 
         {titulo('Personas de contacto')}

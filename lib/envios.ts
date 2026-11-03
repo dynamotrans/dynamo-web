@@ -2,6 +2,7 @@
 // (getEstadoVisual, getAsignacionEstado, highlightInfo, rutaFechasCell…) a los datos
 // reales de la base de datos.
 import { fecha } from './formato';
+import { paisDe } from './paises';
 
 export type Parada = {
   orden: number; tipo: 'carga' | 'descarga'; nombre_empresa: string | null;
@@ -111,11 +112,10 @@ export function creadoTxt(iso: string | null): string {
 }
 
 // --- Paradas ------------------------------------------------------------------------
-const PAISES: Record<string, string> = { ES: 'España', PT: 'Portugal', FR: 'Francia', DE: 'Alemania', IT: 'Italia', NL: 'Países Bajos', BE: 'Bélgica', LU: 'Luxemburgo', AT: 'Austria', PL: 'Polonia', CZ: 'Rep. Checa', CH: 'Suiza', DK: 'Dinamarca', GB: 'Reino Unido' };
 // "CP, población, provincia, país" (formato de la tabla del mockup).
 export function dirParada(p: Parada): string {
   const prov = p.provincia && p.provincia !== p.poblacion ? p.provincia : null;
-  return [p.codigo_postal, p.poblacion, prov, PAISES[p.pais_codigo_iso ?? 'ES'] ?? p.pais_codigo_iso].filter(Boolean).join(', ');
+  return [p.codigo_postal, p.poblacion, prov, paisDe(p.pais_codigo_iso ?? 'ES')].filter(Boolean).join(', ');
 }
 export function paradasDe(e: EnvioFila): { recogidas: Parada[]; entregas: Parada[] } {
   if (e.paradas?.length) {

@@ -5,15 +5,18 @@
 // contacto, que es lo que Dynamo necesita para dar de alta la empresa en «Altas».
 import { useActionState, useState } from 'react';
 import { registrar, type EstadoAlta, type DatosAlta } from './acciones';
-import { validaIdFiscal } from '@/lib/idFiscal';
-import { PAISES, PREFIJOS } from '@/lib/paises';
+import { validaIdFiscal, validaIdFiscalPais } from '@/lib/idFiscal';
+import SelectorPais from '@/components/SelectorPais';
+import { PAISES_MUNDO } from '@/lib/paises';
+
+const prefijoDe = (c: string) => PAISES_MUNDO.find(([k]) => k === c)?.[2] ?? '';
 import { IcoAviso } from '@/components/Iconos';
 import Cargando from '@/components/Cargando';
 
 const VACIO: DatosAlta = { email: '', empresa: '', cif: '', pais: 'ES', direccion: '', codigo_postal: '', poblacion: '', provincia: '', nombre: '', dni: '', prefijo: '+34', telefono: '' };
 
-function Feedback({ valor }: { valor: string }) {
-  const r = validaIdFiscal(valor);
+function Feedback({ valor, pais }: { valor: string; pais?: string }) {
+  const r = pais ? validaIdFiscalPais(valor, pais) : validaIdFiscal(valor);
   if (!r) return <div className="fiscal-fb" />;
   if (r.soft) return <div className="fiscal-fb soft">{r.tipo}: formato correcto (se verificará al activar la cuenta)</div>;
   if (r.ok) return <div className="fiscal-fb ok">{r.tipo} válido</div>;
@@ -31,6 +34,8 @@ export default function FormRegistro() {
   const ini = estado.datos ?? VACIO;
   const [cif, setCif] = useState(ini.cif);
   const [dni, setDni] = useState(ini.dni);
+  const [pais, setPais] = useState(ini.pais);
+  const [prefijo, setPrefijo] = useState(ini.prefijo);
   const k = (c: string) => `${c}-${estado.campo === c ? 'mal' : 'ok'}-${estado.error ?? ''}`;
   const rojo = (c: string) => (estado.campo === c ? { borderColor: '#dc2626' } : undefined);
 
@@ -59,13 +64,11 @@ export default function FormRegistro() {
             <input id="reg-cif" name="cif" value={cif} onChange={(e) => setCif(e.target.value)} className="portal-input" style={rojo('cif')}
                    placeholder="B12345678 / 12345678Z" autoCapitalize="characters" required />
           </div>
-          <Feedback valor={cif} />
+          <Feedback valor={cif} pais={pais} />
         </div>
         <div className="portal-field">
           <label className="portal-label" htmlFor="reg-pais">País</label>
-          <select id="reg-pais" key={k('pais')} name="pais" defaultValue={ini.pais} className="portal-input sin-ico">
-            {PAISES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
-          </select>
+          <SelectorPais id="reg-pais" name="pais" valor={pais} onCambio={(v) => { setPais(v); if (!prefijo || prefijo === prefijoDe(pais)) { const d = prefijoDe(v); if (d) setPrefijo(d); } }} className="selpais-portal" />
         </div>
         <div className="portal-field full">
           <label className="portal-label" htmlFor="reg-dir">Dirección fiscal</label>
@@ -104,9 +107,7 @@ export default function FormRegistro() {
         <div className="portal-field full">
           <label className="portal-label" htmlFor="reg-tel">Teléfono</label>
           <div className="reg-phone" style={rojo('telefono')}>
-            <select name="prefijo" key={k('prefijo')} defaultValue={ini.prefijo} aria-label="Prefijo">
-              {PREFIJOS.map(([p, n]) => <option key={p} value={p}>{p} {n}</option>)}
-            </select>
+            <SelectorPais modo="prefijo" name="prefijo" valor={prefijo} onCambio={setPrefijo} />
             <input id="reg-tel" key={k('telefono')} name="telefono" defaultValue={ini.telefono} className="reg-phone-num"
                    type="tel" inputMode="tel" placeholder="600 000 000" autoComplete="tel-national" required />
           </div>

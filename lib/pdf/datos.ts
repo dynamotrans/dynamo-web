@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { paisDe } from '@/lib/paises';
 
 // Todo lo que necesitan la orden de carga y el CMR de un envío, leído en el servidor
 // con la sesión de quien lo pide (Dynamo: las tablas; los permisos por fila deciden).
@@ -72,9 +73,7 @@ export async function datosDynamo(sb: SupabaseClient): Promise<DatosDynamo> {
 }
 
 
-const PAISES: Record<string, string> = { ES: 'España', PT: 'Portugal', FR: 'Francia', DE: 'Alemania', IT: 'Italia', NL: 'Países Bajos',
-  BE: 'Bélgica', LU: 'Luxemburgo', AT: 'Austria', PL: 'Polonia', CZ: 'República Checa', CH: 'Suiza', DK: 'Dinamarca', GB: 'Reino Unido' };
-export const nombrePais = (c: string | null | undefined) => (c ? PAISES[c.trim().toUpperCase()] ?? c : null);
+export const nombrePais = (c: string | null | undefined) => (c ? paisDe(c.trim().toUpperCase()) : null);
 
 export async function cargarDatosDoc(sb: SupabaseClient, id: string, usuarioId: string): Promise<{ datos: DatosDoc | null; error: string | null }> {
   const { data: e, error } = await sb.from('envios')

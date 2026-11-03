@@ -3,8 +3,8 @@
 import { redirect } from 'next/navigation';
 import { supabaseServidor } from '@/lib/supabase/server';
 import { origen } from '@/lib/origen';
-import { validaIdFiscal } from '@/lib/idFiscal';
-import { PAISES } from '@/lib/paises';
+import { validaIdFiscal, validaIdFiscalPais } from '@/lib/idFiscal';
+import { esPaisValido, PREFIJOS } from '@/lib/paises';
 
 // ALTA DE CLIENTE desde el portal. No hay contraseña en este paso: Supabase manda al email
 // un enlace y un código de 6 cifras; con cualquiera de los dos se entra y se crea la
@@ -29,9 +29,10 @@ export async function registrar(_prev: EstadoAlta, f: FormData): Promise<EstadoA
   const mal = (campo: EstadoAlta['campo'], error: string): EstadoAlta => ({ error, campo, datos: d });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)) return mal('email', 'Escribe un email válido: ahí te llega el código para entrar.');
   if (d.empresa.length < 2) return mal('empresa', 'Escribe el nombre de la empresa o, si eres autónomo, tu nombre completo.');
-  const id = validaIdFiscal(d.cif);
+  const id = validaIdFiscalPais(d.cif, d.pais);
   if (!id || !id.ok) return mal('cif', `El CIF / NIF no es válido${id?.tipo ? ` (${id.tipo}: ${id.msg})` : ''}. Revísalo: se usa para facturar.`);
-  if (!PAISES.some(([c]) => c === d.pais)) return mal('pais', 'Elige el país de la empresa.');
+  if (!esPaisValido(d.pais)) return mal('pais', 'Elige el país de la empresa.');
+  if (!PREFIJOS.some(([p]) => p === d.prefijo)) return mal('telefono', 'Elige el prefijo del teléfono.');
   if (d.direccion.length < 3) return mal('direccion', 'Escribe la dirección fiscal (calle y número).');
   if (!d.codigo_postal || !d.poblacion) return mal('codigo_postal', 'Escribe el código postal y la población.');
   if (d.nombre.length < 3) return mal('nombre', 'Escribe tu nombre y apellidos (la persona que usará la cuenta).');

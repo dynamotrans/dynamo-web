@@ -10,7 +10,8 @@ import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { confirmarAlta, suspenderAlta, type NuevaEmpresa } from '@/app/panel/(app)/altas/acciones';
 import { creadoTxt } from '@/lib/envios';
-import { PAISES, telBonito } from '@/lib/paises';
+import { telBonito } from '@/lib/paises';
+import SelectorPais from '@/components/SelectorPais';
 
 export type AltaFila = {
   id: string; email: string; nombre: string; telefono: string; documento: string; solicitada_en: string; confirmado_email: boolean;
@@ -150,9 +151,7 @@ function FichaAlta({ a, clientes, onCerrar, onHecho }: { a: AltaFila; clientes: 
           {campo('cif', 'CIF / NIF *')}
           <div>
             <label htmlFor="alta-pais">País</label>
-            <select id="alta-pais" className="ptar-select" value={n.pais_codigo_iso} onChange={(e) => setN((x) => ({ ...x, pais_codigo_iso: e.target.value }))}>
-              {PAISES.map(([c, nombre]) => <option key={c} value={c}>{nombre}</option>)}
-            </select>
+            <SelectorPais id="alta-pais" valor={n.pais_codigo_iso} onCambio={(v) => setN((x) => ({ ...x, pais_codigo_iso: v }))} />
           </div>
           {campo('direccion', 'Dirección (calle y número)', true)}
           {campo('codigo_postal', 'Código postal')}

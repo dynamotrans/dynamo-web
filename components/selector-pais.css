@@ -1,0 +1,67 @@
+/* Selector de país / prefijo con buscador (components/SelectorPais.tsx).
+   Copia del selector de prefijos del mockup (js/prefijos.js) + el botón de país,
+   que imita al resto de campos del panel (.ptar-select: borde 1.5px, radio 10). */
+.selpais-wrap { position: relative; min-width: 0; }
+
+.selpais-btn {
+  display: flex; align-items: center; gap: 0.5rem; width: 100%; min-height: 44px;
+  padding: 0 0.75rem; background: #fff; border: 1.5px solid var(--gray-200, #e6e8ee); border-radius: 10px;
+  font: inherit; font-size: var(--fs-m, 0.82rem); color: var(--navy, #12143a); cursor: pointer; text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.selpais-btn:hover, .selpais-btn[aria-expanded="true"] { border-color: var(--purple, #3300cc); }
+.selpais-btn:focus-visible { outline: none; border-color: var(--purple, #3300cc); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
+.selpais-btn:disabled { cursor: not-allowed; opacity: 0.6; }
+.selpais-btn .pf-flag { font-size: 1.15rem; line-height: 1; flex: none; }
+.selpais-btn .pf-code { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.selpais-btn .pf-chev, .pref-btn .pf-chev { flex: none; color: var(--gray-500, #8b90a0); }
+.selpais-btn[aria-expanded="true"] .pf-chev, .pref-btn[aria-expanded="true"] .pf-chev { transform: rotate(180deg); }
+/* Variante para el registro público (mismo alto que .portal-input). */
+.selpais-btn.selpais-portal { min-height: 50px; border-radius: 11px; font-size: 16px; padding: 0 0.9rem; }
+
+.pref-btn {
+  display: flex; align-items: center; gap: 0.4rem; width: 100%; height: 100%; min-height: 42px;
+  background: #fff; border: 1.5px solid var(--gray-300, #d7dae2); border-radius: 10px; padding: 0 0.55rem;
+  font: inherit; font-weight: 700; color: var(--navy, #12143a); cursor: pointer; line-height: 1;
+}
+.pref-btn:hover, .pref-btn[aria-expanded="true"] { border-color: var(--purple, #3300cc); }
+.pref-btn:focus-visible { outline: none; border-color: var(--purple, #3300cc); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
+.pref-btn .pf-flag { font-size: 1.1rem; }
+.pref-btn .pf-code { flex: 1; text-align: left; }
+
+/* La ventana se pinta en <body> (portal) y en position:fixed calculada por JS:
+   así no la recorta ningún contenedor con scroll ni la descoloca un padre con
+   transform (la tarjeta del registro y las ventanas modales llevan animación).
+   z-index por encima de la ventana modal del panel (10000). */
+.pref-pop {
+  position: fixed; z-index: 10050; max-width: calc(100vw - 16px); box-sizing: border-box;
+  background: #fff; border: 1.5px solid var(--gray-200, #e6e8ee); border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(10,2,48,0.22); padding: 0.55rem; text-align: left;
+  animation: selpaisPop 0.16s ease;
+}
+.pref-pop.arriba { transform: translateY(-100%); animation: none; }
+@keyframes selpaisPop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.pref-search {
+  width: 100%; height: 40px; border: 1.5px solid var(--gray-300, #d7dae2); border-radius: 9px;
+  padding: 0 0.7rem; font: inherit; font-size: 16px; margin-bottom: 0.45rem; box-sizing: border-box;
+  color: var(--navy, #12143a); background: #fff;
+}
+.pref-search:focus { outline: none; border-color: var(--purple, #3300cc); }
+.pref-list { list-style: none; margin: 0; padding: 0; max-height: 280px; overflow-y: auto; overscroll-behavior: contain; }
+.pref-list .pf-grp {
+  font-size: 0.7rem; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase;
+  color: var(--gray-500, #8b90a0); padding: 0.4rem 0.5rem 0.2rem;
+}
+.pref-item {
+  display: flex; align-items: center; gap: 0.55rem; width: 100%; background: none; border: none;
+  border-radius: 8px; padding: 0.5rem 0.55rem; font: inherit; font-size: var(--fs-m, 0.85rem);
+  color: var(--navy, #12143a); cursor: pointer; text-align: left;
+}
+.pref-item.act { background: rgba(51,0,204,0.07); }
+.pref-item.sel .pf-name { color: var(--purple, #3300cc); font-weight: 800; }
+.pref-item .pf-flag { font-size: 1.2rem; flex: none; }
+.pref-item .pf-name { flex: 1; font-weight: 600; min-width: 0; }
+.pref-item .pf-dial { color: var(--gray-500, #8b90a0); font-weight: 700; flex: none; }
+.pref-empty { padding: 0.6rem 0.5rem; color: var(--gray-500, #8b90a0); font-size: 0.85rem; }
+
+@media (prefers-reduced-motion: reduce) { .pref-pop { animation: none; } }
