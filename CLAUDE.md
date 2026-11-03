@@ -342,9 +342,14 @@ que cada pantalla esté pasada a datos reales (patrón estrangulador).
   transportista usan `mis_envios()` / `mis_viajes()`. Nunca leer `envios` con la sesión de un cliente.
 - **Diseño = el del mockup, copiado** (regla 0-quater): la entrada usa los estilos de `portal.html`
   (`app/panel/entrar/entrar.css`) y el panel los de `dashboard.html` (`app/panel/(app)/dashboard.css`,
-  copia literal). Cada pantalla nueva se monta con las MISMAS clases del mockup. Si se toca un estilo
-  en `dashboard.html`, se toca igual en la copia. Las pantallas aún no pasadas muestran un aviso
-  (`app/panel/(app)/[seccion]`).
+  copia literal). Cada pantalla nueva se monta con las MISMAS clases del mockup. Las pantallas aún
+  no pasadas muestran un aviso (`app/panel/(app)/[seccion]`).
+- **EL MOCKUP QUEDA CONGELADO (decisión del usuario, 2026-11-03).** `dashboard.html`, `portal.html` y
+  compañía ya NO se tocan: son la referencia de cómo era cada pantalla. **Todo cambio de diseño o de
+  funcionamiento de la plataforma se hace en Next.js, en `pruebas`.** Si el cambio es de una pantalla
+  que aún no está pasada, se apunta en `TODO.md` y se aplica al pasarla (no se edita el mockup). La
+  copia `dashboard.css` pasa a ser la fuente buena de los estilos. (La URL vieja de la rama
+  `claude/sharp-dirac-E3UIO` ya no compila desde el 19-oct: no sirve de referencia.)
 - Antes de subir: `npm run build` sin errores + comprobar en Chromium (`/`, una hoja de sección,
   `/panel/entrar`). Versiones de paquetes fijadas exactas y con al menos 2 semanas.
 
