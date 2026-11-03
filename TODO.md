@@ -46,7 +46,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       y a Dynamo cuando llegue una solicitud (Postmark/WhatsApp); (b) ~~envíos manuales del cliente~~ (hechos 2026-11-03: elige
       «Mi operador» en Nuevo envío, lleva el estado y saca la orden de transporte en PDF); (c) **almacenamientos** del cliente (en el mockup solo los pide Dynamo);
       (d) cuando llegue el tarifador, el precio saldrá al momento y la solicitud dejará de hacer falta.
-- [ ] **Pantalla de Parámetros** en el panel (solo admin) para cambiar sin entrar en Supabase: descuento de
+- [x] ~~**Pantalla de Parámetros**~~ (hecha 2026-11-03, `/panel/parametros`, solo el Admin Master escribe) — era: para cambiar sin entrar en Supabase: descuento de
       bienvenida (−7 %) y nº de envíos (3), minutos de reserva, banda de contraoferta… (tabla `parametros`).
 - [x] ~~Clientes: campo "Alta dada por (comisiones)"~~ (hecho 2026-11-03, `clientes.alta_por`).
 - [ ] **Usuarios (hecho 2026-11-03) — para que funcionen las invitaciones y el "¿Olvidaste tu contraseña?"**:
@@ -89,11 +89,10 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       confirmar o suspender un alta (U3); (4) el mantenimiento hoy cierra las pantallas y la página pública:
       valorar cerrarlo también en la base de datos (permisos por fila) para quien llame directamente a la API;
       (5) ~~cambiar el email de un usuario desde el panel~~ (hecho 2026-11-03: Usuarios → «Cambiar email…», con el email actual como confirmación; necesita la clave de servicio en Vercel).
-- [ ] **Dashboards cliente y admin (pasados 2026-11-03)** — falta: en el del cliente, el **CESCE** (estado de
-      cobertura del mockup) cuando se decida de dónde sale; en el de admin, lo que el usuario quiera añadir
-      («luego te digo todo»: ventas y margen del mes, envíos por día, transportistas más usados…). La línea de
-      pronto pago ya es real (la impone la base de datos al ofertar). `/panel` sigue abriendo Envíos: si se
-      prefiere que abra el dashboard, es una línea en `app/panel/(app)/page.tsx`.
+- [ ] **Dashboards cliente y admin (pasados 2026-11-03)** — ~~CESCE del cliente~~ (hecho: punto de la barra
+      superior, `mi_cobertura_credito()`) · ~~`/panel` abre el Dashboard~~ (hecho). Falta en el de admin lo que el
+      usuario quiera añadir («luego te digo todo»: ventas y margen del mes, envíos por día, transportistas más
+      usados…). «Crédito agotado» y «Facturas vencidas» necesitan la deuda viva (hoy en Holded).
 - [ ] **Almacenamientos, Incidencias y Penalizaciones (pasadas 2026-11-03, solo Dynamo)** — falta: (1) **adjuntos**
       (fotos, GPS/tacógrafo, albaranes) en incidencias y penalizaciones: necesita Supabase Storage con
       permisos; (2) que el **cliente** las vea y abra incidencias o pida almacenamientos (etapa B, con
