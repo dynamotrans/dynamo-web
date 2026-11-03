@@ -365,6 +365,27 @@ que cada pantalla esté pasada a datos reales (patrón estrangulador).
 
 Registro automático de sesiones. La entrada más reciente va arriba.
 
+### 2026-11-03 — Claude Code web (nube)
+
+> **Sesión maratoniana de la PLATAFORMA REAL (Next.js + Supabase), todo en `pruebas`.** `main` sin tocar. Se terminó la etapa A (Dynamo por dentro) y se montó lo principal de las etapas **B (cliente)** y **C (transportista)**. Último push: **`f03baab`** (Supabase y Vercel en verde en cada subida). El arnés de migraciones pasa **74 comprobaciones** de seguridad.
+
+**ETAPA A — pantallas pasadas a datos reales**: orden de carga y CMR en **PDF** (pdf-lib, calcados del mockup) · Almacenamientos, Incidencias, Penalizaciones · Dashboard cliente y admin (línea de pronto pago) · Operadores, Mi cuenta, Altas pendientes, **Modo mantenimiento**, **Parámetros** · **almacén de archivos** (bucket privado `documentos`, cada fichero solo para quien ve su fila) · **CMR digital firmable con el dedo** (`/cmr/<enlace>`, DNI validado por país en el servidor, firmas en el PDF) · **Exportaciones** a Holded (pedidos de venta y compra) y Wtransnet (CSV con las columnas de las plantillas + «marcar como pasados») · ficha del envío: **Cambiar ruta**, **Repetir envío**, **valoración** del transportista · la **flota se aprende sola** (camión/remolque/conductor asignados se dan de alta sin duplicar) · **búsqueda de envíos en la base de datos** (para cuando haya miles) · avisos del paso 4 de Nuevo envío (tráiler sin trampilla, verano, festivo) y contacto del sitio nuevo · **mantenimiento impuesto en la base de datos** · «Alta dada por» del cliente (comisiones).
+
+**ETAPA B — el cliente**: pide su envío como **solicitud sin precio** (el tarifador es lo último) → Dynamo le pone precio («Poner precio», pestaña *Solicitudes de precio*) → el cliente lo **acepta con las condiciones generales** (o lo rechaza) desde su ficha. Además: su ficha del envío sin datos internos, cancelar antes de que el camión vaya hacia la carga, repetir, sus incidencias y sus penalizaciones, y abrir el CMR digital.
+
+**ETAPA C — el transportista**: ve las **cargas que se le ofrecen**, la ficha de cada viaje con **horario y teléfono de cada muelle**, marca **hacia la carga → cargando → en ruta → entregado**, sube **albarán**/CMR firmado/fotos/GPS, abre el CMR digital, descarga su **orden de carga** y ve sus penalizaciones.
+
+**Decisiones del usuario**: notificaciones por email con **Postmark** (aún sin cuenta). Mientras no haya tarifador, el cliente pide **solicitudes** y acepta el precio que pone Dynamo (como el «te pasamos tu tarifa en 25 minutos» de la web).
+
+**Lo que necesita al usuario (sin esto no funciona del todo en pruebas)**:
+1. **Postmark**: alta de la cuenta y del dominio; ponerlo como SMTP de Supabase Auth. Sin él no salen invitaciones ni avisos (precio listo, solicitud nueva, PIN al muelle…).
+2. En Vercel (Preview): **`SUPABASE_SERVICE_ROLE_KEY`** (Sensitive, sin `NEXT_PUBLIC_`). En Supabase: añadir **`…/panel/confirmar`** a Redirect URLs.
+3. **Clave de Google Maps** (buscador de direcciones; regla 13). La migración de la web pública necesita además su OK explícito.
+4. **Datos de la tarifa** para el tarifador.
+5. Probar en `pruebas` lo que aquí no se alcanza: firmar un CMR, subir un archivo, una importación real en Holded y en Wtransnet, y rellenar las claves `holded_*` en Parámetros.
+
+**Pendientes** (detalle en `TODO.md`): página del conductor con PIN · incidencias del transportista · envíos manuales del cliente desde el panel · `FORCE RLS` y el repaso entero de `PRODUCCION.md` antes de publicar (regla 14-bis).
+
 <!-- FORMATO:
 ### YYYY-MM-DD — [Mac casa | Mac oficina | Codespace]
 - Bullet de lo que se hizo

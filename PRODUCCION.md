@@ -25,7 +25,7 @@
 | # | Punto | Hoy (mockup) | En la plataforma real |
 |---|---|---|---|
 | 01 | Front sin secretos | ✅ no aplica (sin build) | ⚠️ reglas nuevas con Next.js |
-| 02 | RLS en la base de datos | ❌ no hay BD | 🔴 **crítico** — migración 0012 |
+| 02 | RLS en la base de datos | ✅ políticas por rol probadas (74 comprobaciones) | 🟡 repetir las pruebas en el proyecto real + `FORCE RLS` |
 | 03 | Control de versiones | ✅ cumplido | ✅ se mantiene |
 | 04 | APIs de verdad | ❌ no hay | 🔴 **crítico** — precio server-side |
 | 05 | Hosting y deploy | ✅ cumplido | ✅ se mantiene |
@@ -71,7 +71,9 @@ base de datos y no por el front.
 
 **Hoy** (2026-11-03): **políticas por rol HECHAS y PROBADAS** en `dynamo-pruebas`
 (migración `20261103010000_permisos_por_rol.sql`). El arnés `tools/probar-migraciones/probar.sh`
-recorre **41 comprobaciones** con dos clientes, un transportista, un empleado y dos admins.
+recorre **74 comprobaciones** (a 2026-11-03) con dos clientes, un transportista, un empleado y dos admins,
+también las de las etapas B y C (el cliente pide y acepta su precio; el transportista marca su viaje, sube
+su albarán y descarga su orden de carga) y el **modo mantenimiento impuesto en la base de datos** (70).
 El mockup sigue mostrando todo a todos, a propósito: la web aún no está conectada.
 
 **El modelo** (la frase clave: *la seguridad por filas filtra FILAS, no COLUMNAS*):
@@ -80,8 +82,11 @@ El mockup sigue mostrando todo a todos, a propósito: la web aún no está conec
   columnas: `mis_envios()`, `mis_viajes()`, `mis_ofertas()`, `mi_empresa()`,
   `mi_empresa_transportista()`, `mis_penalizaciones()`, `mis_penalizaciones_transportista()`.
   **No leen** `envios`, `envio_paradas`, `clientes`, `transportistas` ni `penalizaciones`.
-- **Los envíos los escriben solo Dynamo y el servidor**: el cliente crea y modifica a través del
-  servidor, que **recalcula el precio**. Su única escritura directa es `cancelar_mi_envio()`.
+- **Los envíos los escriben solo Dynamo y el servidor**: el cliente no toca la tabla. Pide su envío
+  con `crear_solicitud_envio()` (sin precio: se lo pone Dynamo), lo acepta con
+  `responder_precio_solicitud()` y lo cancela con `cancelar_mi_envio()`. El transportista solo avanza
+  SU viaje con `marcar_mi_viaje()` (hacia delante). Cuando llegue el tarifador, el precio lo calculará
+  el servidor, nunca el navegador.
 - Lo que el cliente gestiona solo y no lleva dinero (sus sitios, operadores, contactos,
   incidencias, almacenamientos) va por tabla con su política.
 
