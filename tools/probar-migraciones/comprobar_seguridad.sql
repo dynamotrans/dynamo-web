@@ -1282,3 +1282,17 @@ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 49. Plazo de pago de los clientes: 120 por defecto, y admitido -----------------
+do $$ declare v_id uuid; begin
+  insert into clientes (razon_social, cif) values ('Prueba 49 SL', 'B49494949') returning id into v_id;
+  if (select plazo_pago_dias from clientes where id = v_id) <> 120 then
+    raise exception 'FALLO 49 · el plazo por defecto no es 120 dias';
+  end if;
+  begin
+    update clientes set plazo_pago_dias = 45 where id = v_id;
+    raise exception 'FALLO 49 · admite un plazo de 45 dias';
+  exception when check_violation then null;
+  end;
+  raise notice 'OK 49 · clientes: plazo de pago 120 dias por defecto (0/30/60/90/120 admitidos)';
+end $$;

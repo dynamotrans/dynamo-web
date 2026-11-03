@@ -180,6 +180,9 @@ Al **crear un cliente, un transportista o un usuario** hay que comprobar SIEMPRE
 
 Un mismo CIF **puede** ser cliente Y transportista (roles/tablas distintos), pero **NUNCA** dos veces cliente, ni dos veces transportista, ni un email dos veces como usuario. Motivo: evitar cuentas duplicadas de la misma empresa (facturación partida, líos contables) y usuarios repetidos. En backend: `UNIQUE` + validación con mensaje claro; normalizar CIF/email antes de comparar. En el mockup, avisar igual al crear. (Detalle en `TODO.md`.)
 
+### 10-bis. Plazo de pago de los CLIENTES: 120 días por defecto (regla del usuario, 2026-11-03)
+**A TODOS los clientes se les clasifica a 120 días**, aunque de palabra paguen a 30 o 60 como mucho. Motivo: la **cobertura de la aseguradora de crédito (CESCE)** — si un cliente se retrasa, sigue dentro de los 120 días cubiertos. Valores admitidos: 0 (contado), 30, 60, 90 y 120. Lo impone la base de datos (`20261103060000_plazo_pago_120.sql`, valor por defecto 120). El plazo de los **transportistas** (lo que paga Dynamo) es otra cosa y no cambia.
+
 ### 12. TODO queda sellado con FECHA Y HORA — auditoría universal (regla del usuario, 2026-10-06)
 **Regla dura y transversal de TODA la plataforma: no hay registro sin fecha y hora, ni cambio sin rastro de quién lo hizo.** No es solo de envíos: aplica a clientes, transportistas, usuarios, sitios, almacenamientos, incidencias, penalizaciones, facturas, documentos… **a todo.**
 
