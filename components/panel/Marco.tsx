@@ -157,7 +157,7 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
   const avisos = [
     { href: '/panel/incidencias', t: 'Incidencias abiertas', s: 'Pendientes de resolver', cero: 'Sin incidencias abiertas', n: contadores.incidencias ?? 0, color: 'inc', ico: ICO_AVISO },
     { href: '/panel/penalizaciones', t: 'Penalizaciones abiertas', s: 'Pendientes de confirmar', cero: 'Ninguna pendiente', n: contadores.penalizaciones ?? 0, color: 'inc', ico: ICO_CIRCULO },
-    ...(esDynamo(rol) ? [{ href: '/panel/almacenamientos?tab=pago', t: 'Pagos pendientes', s: 'Almacenamientos por pagar', cero: 'Nada pendiente de pago', n: contadores.alm_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
+    ...(esDynamo(rol) ? [{ href: '/panel/almacenamientos?tab=pago', t: 'Almacenamientos sin pagar', s: 'Pago por adelantado pendiente', cero: 'Ninguno pendiente de pago', n: contadores.alm_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
     ...(esDynamo(rol) ? [{ href: '/panel/altas', t: 'Altas pendientes', s: 'Clientes por revisar', cero: 'Ninguna pendiente', n: contadores.altas ?? 0, color: 'inc', ico: ICO_PERSONA }] : []),
   ];
   const totalAvisos = avisos.reduce((a, x) => a + x.n, 0);
