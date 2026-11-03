@@ -18,6 +18,7 @@ export const ICONOS: Record<string, string> = {
   usuarios: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/><path d="M19 8h4M21 6v4"/>',
   altas: '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/>',
   mantenimiento: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  exportar: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
   ajustes: '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
   salir: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
 };
@@ -59,6 +60,7 @@ export function menuDe(rol: Rol): Bloque[] {
         { slug: 'transportistas', titulo: 'Transportistas', icono: 'camion' },
         { slug: 'usuarios', titulo: 'Usuarios', icono: 'usuarios' },
         { slug: 'altas', titulo: 'Altas pendientes', icono: 'altas' },
+        { slug: 'exportaciones', titulo: 'Exportaciones', icono: 'exportar' },
         { slug: 'parametros', titulo: 'Parámetros', icono: 'ajustes' },
         { slug: 'mantenimiento', titulo: 'Modo mantenimiento', icono: 'mantenimiento' },
       ] },

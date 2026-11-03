@@ -1974,3 +1974,44 @@ do $$ begin
   raise notice 'OK 65 · CMR digital: firma sin cuenta con enlace vigente, casilla correcta, una vez, documento enmascarado, trazo en su carpeta';
 end $$;
 reset role;
+
+-- ---- 66. Exportaciones: marcar lo pasado a Holded / publicado en la bolsa ---------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  perform marcar_exportados('venta', array[(select 'GX000000000')]);
+  raise exception 'FALLO 66 · un cliente marca exportaciones';
+exception when insufficient_privilege then null;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ begin
+  perform marcar_exportados('venta', array['GX000000000']);
+  raise exception 'FALLO 66 · anon marca exportaciones';
+exception when insufficient_privilege then null;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare ref text; n int; e record; begin
+  select referencia_gx into ref from envios where id = current_setting('prueba.e59')::uuid;
+  n := marcar_exportados('venta', array[ref]);
+  if n <> 1 or (select pedido_venta_holded from envios where referencia_gx = ref) is distinct from ref then raise exception 'FALLO 66 · no marca la venta (%)', n; end if;
+  if marcar_exportados('venta', array[ref]) <> 0 then raise exception 'FALLO 66 · marca dos veces'; end if;
+  if exists (select 1 from v_holded_pedido_venta where "Num Pedido (referencia_gx_carga)" = ref and "EN HOLDED?" <> 'SI') then raise exception 'FALLO 66 · la vista no lo da por pasado'; end if;
+  n := marcar_exportados('venta', array[ref], true);
+  if n <> 1 or (select pedido_venta_holded from envios where referencia_gx = ref) is not null then raise exception 'FALLO 66 · no se desmarca (%, %)', n, (select pedido_venta_holded from envios where referencia_gx = ref); end if;
+  n := marcar_exportados('bolsa', array[ref]);
+  select publicado_en_bolsa_en into e from envios where referencia_gx = ref;
+  if n <> 1 or e.publicado_en_bolsa_en is null then raise exception 'FALLO 66 · no marca la bolsa'; end if;
+  if not exists (select 1 from envio_hitos where envio_id = current_setting('prueba.e59')::uuid and hito = 'publicado_bolsa') then raise exception 'FALLO 66 · sin hito de publicado en bolsa'; end if;
+  begin
+    perform marcar_exportados('facturas', array[ref]);
+    raise exception 'FALLO 66 · acepta un fichero inventado';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  raise notice 'OK 66 · exportaciones: solo Dynamo marca lo pasado a Holded o publicado en la bolsa (y lo desmarca)';
+end $$;
+reset role;

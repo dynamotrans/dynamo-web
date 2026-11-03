@@ -51,3 +51,6 @@ a.sidebar-brand { text-decoration: none; color: inherit; }
 .param-input:hover { border-color: var(--purple); }
 .param-input:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
 .param-input:disabled { background: var(--gray-50); color: var(--gray-500); }
+/* Exportaciones: la tarjeta del fichero elegido queda marcada (como el filtro activo). */
+.stat-card-link.export-activa { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.1); }
+.export-acciones { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin: 0 0 0.9rem; }
