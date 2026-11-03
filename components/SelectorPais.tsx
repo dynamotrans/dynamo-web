@@ -36,7 +36,11 @@ const FILAS: Fila[] = PAISES_MUNDO.map(([c, n, d]) => ({ c, n, d, clave: sinAcen
 const ARRIBA = PAISES_PRIMEROS.map((c) => FILAS.find((f) => f.c === c)!).filter(Boolean);
 const RESTO = FILAS.filter((f) => !PAISES_PRIMEROS.includes(f.c));
 
-export default function SelectorPais({ modo = 'pais', valor, onCambio, name, id, className, ariaLabel, disabled }: Props) {
+export default function SelectorPais({ modo = 'pais', valor: valorRecibido, onCambio, name, id, className, ariaLabel, disabled }: Props) {
+  // España por defecto (casi todo es España): si llega vacío, se muestra y se guarda ES / +34.
+  const porDefecto = modo === 'pais' ? 'ES' : '+34';
+  const valor = valorRecibido || porDefecto;
+  useEffect(() => { if (!valorRecibido && onCambio) onCambio(porDefecto); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [abierto, setAbierto] = useState(false);
   const [q, setQ] = useState('');
   const [act, setAct] = useState(0);
@@ -140,7 +144,7 @@ export default function SelectorPais({ modo = 'pais', valor, onCambio, name, id,
         onKeyDown={(e) => { if (!abierto && (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); abrir(); } }}
       >
         <span className="pf-flag" aria-hidden>{bandera(ccActual) || '🌐'}</span>
-        <span className="pf-code">{modo === 'prefijo' ? (valor || '+34') : (filaActual?.n ?? (valor || 'Elige país'))}</span>
+        <span className="pf-code">{modo === 'prefijo' ? valor : (filaActual?.n ?? valor)}</span>
         <svg className="pf-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><polyline points="6 9 12 15 18 9" /></svg>
       </button>
 
