@@ -9,7 +9,7 @@ export type ClienteDatos = {
   plazo_pago_dias: number; iva_porcentaje: number; retencion_porcentaje: number;
   recargo_equivalencia_porcentaje: number; recargo_pago_tarde_porcentaje: number;
   riesgo_cesce_euros: number | null; riesgo_manual_euros: number | null;
-  factor_tarifa_porcentaje: number; permite_contraoferta: boolean; discrecion_comercial: boolean;
+  factor_tarifa_porcentaje: number; factor_fijado_a_mano: boolean; permite_contraoferta: boolean; discrecion_comercial: boolean;
   cuenta_contable: string; forma_pago_holded_id: string; anotaciones: string;
   // Persona de contacto principal (tabla contactos)
   contacto_nombre: string; contacto_telefono: string; contacto_email: string;
@@ -44,14 +44,18 @@ export async function guardarCliente(id: string | null, d: ClienteDatos):
     recargo_equivalencia_porcentaje: d.recargo_equivalencia_porcentaje,
     recargo_pago_tarde_porcentaje: d.recargo_pago_tarde_porcentaje,
     riesgo_cesce_euros: d.riesgo_cesce_euros, riesgo_manual_euros: d.riesgo_manual_euros,
-    factor_tarifa_porcentaje: d.factor_tarifa_porcentaje,
+    factor_tarifa_porcentaje: d.factor_tarifa_porcentaje, factor_fijado_a_mano: d.factor_fijado_a_mano,
     permite_contraoferta: d.permite_contraoferta, discrecion_comercial: d.discrecion_comercial,
     cuenta_contable: vacio(d.cuenta_contable), forma_pago_holded_id: vacio(d.forma_pago_holded_id),
     anotaciones: vacio(d.anotaciones),
   };
 
+  // En automático el factor lo lleva la regla de la base de datos: no se envía, para no
+  // pisar un cambio automático hecho mientras la ficha estaba abierta.
+  const filaUpd: Record<string, unknown> = { ...fila };
+  if (!d.factor_fijado_a_mano) delete filaUpd.factor_tarifa_porcentaje;
   const q = id
-    ? s.supabase.from('clientes').update(fila).eq('id', id).select('id').single()
+    ? s.supabase.from('clientes').update(filaUpd).eq('id', id).select('id').single()
     : s.supabase.from('clientes').insert(fila).select('id').single();
   const { data, error } = await q;
   if (error) return { ok: false, error: traducir(error.message) };

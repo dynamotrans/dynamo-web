@@ -16,6 +16,9 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] Avisos del mockup en el paso 4: horario de verano, festivo en la ventana, tráiler sin trampilla,
       precios dinámicos a +7 días, condiciones generales y forma de pago (CESCE).
 - [ ] Etapa B: que el CLIENTE cree sus envíos (hoy `crear_envio()` solo deja a Dynamo).
+- [ ] **Pantalla de Parámetros** en el panel (solo admin) para cambiar sin entrar en Supabase: descuento de
+      bienvenida (−7 %) y nº de envíos (3), minutos de reserva, banda de contraoferta… (tabla `parametros`).
+- [ ] Clientes: campo "Alta dada por (comisiones)" del mockup — no tiene columna todavía.
 
 <!-- Cosas urgentes -->
 - [ ] **TARIFAS EN LA BASE DE DATOS — LO ÚLTIMO DE TODO (decisión del usuario, 2026-11-03)**: *«Esto al final del todo. Cuando todo esté montado hacemos esto.»* La migración de tarifas (tarifas con vigencia + plantillas de texto) se deja para cuando el resto de la plataforma esté montado y conectado. Ese día hará falta su **libro de tarifar** y el **código del Apps Script** (incluido el del gasóleo, `gasoil.gs`). No proponerla antes.

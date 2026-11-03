@@ -13,7 +13,10 @@ import { creadoTxt } from '@/lib/envios';
 export type ClienteFila = ClienteDatos & {
   id: string; codigo: string; nombre_visible: string;
   creado_en: string; modificado_en: string | null;
+  envios_que_cuentan: number;
 };
+// Regla del descuento de bienvenida (tabla `parametros`, migración factor_bienvenida).
+export type Bienvenida = { pct: number; envios: number };
 
 const PAISES: [string, string][] = [
   ['ES', 'España'], ['PT', 'Portugal'], ['FR', 'Francia'], ['DE', 'Alemania'], ['IT', 'Italia'],
@@ -59,12 +62,12 @@ const NUEVO: ClienteDatos = {
   direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES',
   plazo_pago_dias: 120, iva_porcentaje: 21, retencion_porcentaje: 0, recargo_equivalencia_porcentaje: 0,
   recargo_pago_tarde_porcentaje: 0, riesgo_cesce_euros: null, riesgo_manual_euros: null,
-  factor_tarifa_porcentaje: -7, permite_contraoferta: false, discrecion_comercial: false,
+  factor_tarifa_porcentaje: -7, factor_fijado_a_mano: false, permite_contraoferta: false, discrecion_comercial: false,
   cuenta_contable: '', forma_pago_holded_id: '', anotaciones: '',
   contacto_nombre: '', contacto_telefono: '', contacto_email: '',
 };
 
-export default function Clientes({ filas, error }: { filas: ClienteFila[]; error: string | null }) {
+export default function Clientes({ filas, error, bienvenida }: { filas: ClienteFila[]; error: string | null; bienvenida: Bienvenida }) {
   const router = useRouter();
   const [q, setQ] = useState('');
   const [ficha, setFicha] = useState<{ fila: ClienteFila | null } | null>(null);
@@ -116,7 +119,7 @@ export default function Clientes({ filas, error }: { filas: ClienteFila[]; error
                   <td>{c.direccion || '—'}<div className="meta">{[c.codigo_postal, c.poblacion, c.provincia, paisDe(c.pais_codigo_iso)].filter(Boolean).join(', ')}</div></td>
                   <td>{c.plazo_pago_dias === 0 ? 'Pago inmediato (0 días)' : `Crédito ${c.plazo_pago_dias} días`}
                     <div className="meta">{cesce > 0 ? <span style={{ color: '#0f6b3a', fontWeight: 700 }}>CESCE {euros(cesce)}</span> : 'Sin crédito CESCE'} · Dynamo {euros(dyn)}</div></td>
-                  <td><Factor v={Number(c.factor_tarifa_porcentaje)} /></td>
+                  <td><Factor v={Number(c.factor_tarifa_porcentaje)} /><div className="meta">{c.factor_fijado_a_mano ? 'fijado a mano' : 'automático'}</div></td>
                   <td>{creadoTxt(c.creado_en)}{c.modificado_en && <div className="meta">Modif. {creadoTxt(c.modificado_en)}</div>}</td>
                   <td><span className={`badge badge-${est[2]}`}>{est[1]}</span></td>
                 </tr>
@@ -127,16 +130,16 @@ export default function Clientes({ filas, error }: { filas: ClienteFila[]; error
       </div>
 
       {ficha && (
-        <FichaCliente fila={ficha.fila} onCerrar={() => setFicha(null)}
+        <FichaCliente fila={ficha.fila} bienvenida={bienvenida} onCerrar={() => setFicha(null)}
           onGuardado={() => { setFicha(null); router.refresh(); }} />
       )}
     </section>
   );
 }
 
-function FichaCliente({ fila, onCerrar, onGuardado }: { fila: ClienteFila | null; onCerrar: () => void; onGuardado: () => void }) {
+function FichaCliente({ fila, bienvenida, onCerrar, onGuardado }: { fila: ClienteFila | null; bienvenida: Bienvenida; onCerrar: () => void; onGuardado: () => void }) {
   const [d, setD] = useState<ClienteDatos>(() => {
-    if (!fila) return { ...NUEVO };
+    if (!fila) return { ...NUEVO, factor_tarifa_porcentaje: bienvenida.pct };
     const o: any = {};
     (Object.keys(NUEVO) as (keyof ClienteDatos)[]).forEach((k) => { o[k] = (fila as any)[k] ?? (NUEVO as any)[k]; });
     return o as ClienteDatos;
@@ -270,12 +273,27 @@ function FichaCliente({ fila, onCerrar, onGuardado }: { fila: ClienteFila | null
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', marginTop: '0.4rem' }}>
             <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', whiteSpace: 'nowrap' }}>−30 %</span>
             <input id="cli-factor" type="range" min={-30} max={30} step={1} value={d.factor_tarifa_porcentaje}
-              onChange={(e) => set('factor_tarifa_porcentaje', Number(e.target.value))} style={{ flex: 1, accentColor: 'var(--purple)', padding: 0, border: 'none' }} />
+              onChange={(e) => { set('factor_tarifa_porcentaje', Number(e.target.value)); set('factor_fijado_a_mano', true); }} style={{ flex: 1, accentColor: 'var(--purple)', padding: 0, border: 'none' }} />
             <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', whiteSpace: 'nowrap' }}>+30 %</span>
             <span style={{ minWidth: 58, textAlign: 'center' }}><Factor v={d.factor_tarifa_porcentaje} /></span>
           </div>
-          <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.4rem', lineHeight: 1.4 }}>
-            <strong>Por defecto −7 %</strong> al dar de alta un cliente (descuento de captación); súbelo a <strong>0 %</strong> u otro valor cuando lo veas.
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
+            <label className="ptar-tramp-box" style={{ flex: '0 0 auto' }}>
+              <input type="checkbox" className="ptar-switch-input" checked={d.factor_fijado_a_mano}
+                onChange={(e) => {
+                  const mano = e.target.checked;
+                  set('factor_fijado_a_mano', mano);
+                  // Vuelta al automático: se enseña ya lo que le tocará (el servidor lo recalcula igual).
+                  if (!mano) set('factor_tarifa_porcentaje', (fila?.envios_que_cuentan ?? 0) < bienvenida.envios ? bienvenida.pct : 0);
+                }} />
+              <span className="ptar-switch" aria-hidden="true" />
+              <span className="ptar-tramp-state" aria-hidden="true"><span className="tramp-off">Automático</span><span className="tramp-on">Fijado a mano</span></span>
+            </label>
+            <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', lineHeight: 1.4, flex: '1 1 260px' }}>
+              {d.factor_fijado_a_mano
+                ? <><strong>Fijado a mano:</strong> la regla automática ya no lo toca. Desactívalo para volver al automático.</>
+                : <><strong>Automático:</strong> descuento de bienvenida de <strong>{bienvenida.pct} %</strong> durante los primeros <strong>{bienvenida.envios} envíos</strong>; después pasa solo a <strong>0 %</strong>.{fila ? <> Lleva <strong>{fila.envios_que_cuentan}</strong>.</> : null} Si mueves la barra, queda fijado a mano.</>}
+            </span>
           </div>
         </div>
 

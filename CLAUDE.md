@@ -183,6 +183,9 @@ Un mismo CIF **puede** ser cliente Y transportista (roles/tablas distintos), per
 ### 10-bis. Plazo de pago de los CLIENTES: 120 días por defecto (regla del usuario, 2026-11-03)
 **A TODOS los clientes se les clasifica a 120 días**, aunque de palabra paguen a 30 o 60 como mucho. Motivo: la **cobertura de la aseguradora de crédito (CESCE)** — si un cliente se retrasa, sigue dentro de los 120 días cubiertos. Valores admitidos: 0 (contado), 30, 60, 90 y 120. Lo impone la base de datos (`20261103060000_plazo_pago_120.sql`, valor por defecto 120). El plazo de los **transportistas** (lo que paga Dynamo) es otra cosa y no cambia.
 
+### 10-ter. Descuento de BIENVENIDA automático (regla del usuario, 2026-11-03)
+Todo cliente nuevo empieza con el **factor de bienvenida (−7 %)** —el mismo que ve el tarifador online sin registrarse— durante sus **primeros X envíos** (hoy 3). Al confirmarse el último, **su factor pasa solo a 0 %**. **Si Dynamo toca el factor a mano**, el cliente queda `factor_fijado_a_mano` y **la regla ya no lo toca nunca** (se puede volver al automático desde la ficha). Las dos cifras son **parámetros** (`parametros`: `factor_bienvenida_pct` y `factor_bienvenida_envios`), editables en Supabase (Table Editor → parametros) hasta que haya pantalla de parámetros en el panel. Lo impone la base de datos (`20261103070000_factor_bienvenida.sql`); cuentan los envíos de Dynamo confirmados, no los borradores, cancelados ni manuales.
+
 ### 12. TODO queda sellado con FECHA Y HORA — auditoría universal (regla del usuario, 2026-10-06)
 **Regla dura y transversal de TODA la plataforma: no hay registro sin fecha y hora, ni cambio sin rastro de quién lo hizo.** No es solo de envíos: aplica a clientes, transportistas, usuarios, sitios, almacenamientos, incidencias, penalizaciones, facturas, documentos… **a todo.**
 

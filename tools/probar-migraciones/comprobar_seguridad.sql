@@ -1296,3 +1296,52 @@ do $$ declare v_id uuid; begin
   end;
   raise notice 'OK 49 · clientes: plazo de pago 120 dias por defecto (0/30/60/90/120 admitidos)';
 end $$;
+
+-- ---- 50. Descuento de bienvenida: −7 % los primeros 3 envíos, luego 0 %; a mano manda
+do $$ declare
+  v_admin uuid := gen_random_uuid(); v_a uuid; v_b uuid; i int;
+  p jsonb := jsonb_build_array(
+    jsonb_build_object('tipo', 'carga', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+    jsonb_build_object('tipo', 'descarga', 'codigo_postal', '28001', 'poblacion', 'Madrid'));
+begin
+  insert into auth.users (id, email) values (v_admin, 'admin50@dynamo.test');
+  update usuarios set rol = 'admin', estado = 'activa' where id = v_admin;
+  perform set_config('request.jwt.claim.sub', v_admin::text, true);
+  set local role authenticated;
+
+  insert into clientes (razon_social, cif) values ('Cliente A 50', 'B50000001') returning id into v_a;
+  insert into clientes (razon_social, cif) values ('Cliente B 50', 'B50000002') returning id into v_b;
+  if (select factor_tarifa_porcentaje from clientes where id = v_a) <> -7 then
+    raise exception 'FALLO 50 · un cliente nuevo no empieza con −7 %%';
+  end if;
+
+  -- B: Dynamo le pone +10 % a mano.
+  update clientes set factor_tarifa_porcentaje = 10 where id = v_b;
+  if not (select factor_fijado_a_mano from clientes where id = v_b) then
+    raise exception 'FALLO 50 · cambiar el factor no lo marca como fijado a mano';
+  end if;
+
+  for i in 1..3 loop
+    perform crear_envio(jsonb_build_object('cliente_id', v_a, 'importe_cliente', 500), p);
+    perform crear_envio(jsonb_build_object('cliente_id', v_b, 'importe_cliente', 500), p);
+    if i < 3 and (select factor_tarifa_porcentaje from clientes where id = v_a) <> -7 then
+      raise exception 'FALLO 50 · el descuento se quita antes de tiempo (envio %)', i;
+    end if;
+  end loop;
+  if (select factor_tarifa_porcentaje from clientes where id = v_a) <> 0 then
+    raise exception 'FALLO 50 · tras 3 envios el factor no pasa a 0 %%';
+  end if;
+  if (select factor_tarifa_porcentaje from clientes where id = v_b) <> 10 then
+    raise exception 'FALLO 50 · la regla automatica ha tocado un factor fijado a mano';
+  end if;
+
+  -- B vuelve al automatico: como ya lleva 3 envios, le toca 0 %.
+  update clientes set factor_fijado_a_mano = false where id = v_b;
+  if (select factor_tarifa_porcentaje from clientes where id = v_b) <> 0 then
+    raise exception 'FALLO 50 · al volver al automatico no se recalcula';
+  end if;
+  reset role;
+  raise notice 'OK 50 · bienvenida: −7 %% los 3 primeros envios y luego 0 %% solo; lo fijado a mano no se toca';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
