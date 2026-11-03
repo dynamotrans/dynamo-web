@@ -27,7 +27,7 @@ const HITOS: Record<string, string> = {
   creado: 'Envío creado', confirmado: 'Envío confirmado', publicado_bolsa: 'Publicado en la bolsa de cargas',
   transportista_asignado: 'Transportista asignado', transportista_quitado: 'Transportista quitado',
   matricula_asignada: 'Matrícula asignada', cargado: 'Cargado · en ruta', entregado: 'Entregado',
-  cancelado: 'Cancelado', cancelacion_deshecha: 'Cancelación deshecha', ofertado: 'Ofertado a un transportista',
+  cancelado: 'Cancelado', cancelacion_deshecha: 'Cancelación deshecha', ruta_cambiada: 'Ruta cambiada', ofertado: 'Ofertado a un transportista',
   enlace_abierto: 'Enlace de la oferta abierto', reservado: 'Reservado por un transportista',
   reserva_caducada: 'Reserva caducada', reserva_liberada: 'Reserva liberada',
   contraoferta_propuesta: 'Contraoferta propuesta', contraoferta_resuelta: 'Contraoferta resuelta',
@@ -57,6 +57,8 @@ const ICO = {
   ojo: ['M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'],
   enviar: ['M22 2 11 13', 'M22 2 15 22l-4-9-9-4z'],
   aviso: ['M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z', 'M12 9v4', 'M12 17h.01'],
+  ruta: ['M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z', 'M18 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4z', 'M6 15V9a4 4 0 0 1 4-4h6', 'M18 9v6a4 4 0 0 1-4 4H8'],
+  repetir: ['M17 1l4 4-4 4', 'M3 11V9a4 4 0 0 1 4-4h14', 'M7 23l-4-4 4-4', 'M21 13v2a4 4 0 0 1-4 4H3'],
   doc: ['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z', 'M14 2v6h6', 'M16 13H8', 'M16 17H8', 'M10 9H8'],
 };
 const CANALES: Record<string, string> = {
@@ -128,9 +130,12 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
 
   // ---- Acciones de arriba según el estado (mismo árbol que el mockup) --------------
   const acciones = cancelado ? (
-    <button className="btn-primary" onClick={() => hacer('Deshaciendo la cancelación', () => deshacerCancelacion(e.id), 'Cancelación deshecha: el envío vuelve a estar como antes.')}>
-      <I d={ICO.deshacer} />Deshacer cancelación
-    </button>
+    <>
+      <button className="btn-primary" onClick={() => hacer('Deshaciendo la cancelación', () => deshacerCancelacion(e.id), 'Cancelación deshecha: el envío vuelve a estar como antes.')}>
+        <I d={ICO.deshacer} />Deshacer cancelación
+      </button>
+      {!manual && <a className="btn-secondary" href={`/panel/nuevo-envio?repetir=${e.id}`}><I d={ICO.repetir} />Repetir envío</a>}
+    </>
   ) : (
     <>
       {!manual && e.estado === 'programado' && !ficha.transportista && (
@@ -143,6 +148,10 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
       )}
       <button className="btn-secondary" onClick={() => setVista('estado')}><I d={ICO.fase} />Cambiar estado</button>
       <button className="btn-secondary" onClick={() => setVista('modificar')}><I d={ICO.editar} />Modificar</button>
+      {['programado', 'hacia_la_carga'].includes(e.estado) && ficha.firmasCmr.length === 0 && (
+        <a className="btn-secondary" href={`/panel/nuevo-envio?ruta=${e.id}`}><I d={ICO.ruta} />Cambiar ruta</a>
+      )}
+      {!manual && <a className="btn-secondary" href={`/panel/nuevo-envio?repetir=${e.id}`}><I d={ICO.repetir} />Repetir envío</a>}
       {/* PDF: se generan al momento y se abren en el visor (regla 0-bis). La orden, cuando
           ya hay a quién mandarla. */}
       {(manual || ficha.transportista) && (

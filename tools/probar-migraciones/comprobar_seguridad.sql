@@ -2015,3 +2015,62 @@ do $$ declare ref text; n int; e record; begin
   raise notice 'OK 66 · exportaciones: solo Dynamo marca lo pasado a Holded o publicado en la bolsa (y lo desmarca)';
 end $$;
 reset role;
+
+-- ---- 67. Cambiar la ruta de un envío ya creado ------------------------------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; p1 uuid; p2 uuid; n int; begin
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 6, 'fecha_carga_desde', current_date + 25, 'importe_cliente', 700),
+    jsonb_build_array(
+      jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Origen 67 SL',  'codigo_postal', '41001', 'poblacion', 'Sevilla', 'referencia', 'REF-67'),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 67 SL', 'codigo_postal', '28001', 'poblacion', 'Madrid'))
+  )).id into e;
+  select id into p1 from envio_paradas where envio_id = e and tipo = 'carga';
+  select id into p2 from envio_paradas where envio_id = e and tipo = 'descarga';
+  -- Se mantiene la recogida, se cambia la entrega y se añade otra entrega antes.
+  perform cambiar_ruta_envio(e, jsonb_build_array(
+    jsonb_build_object('id', p1),
+    jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Parada 67', 'codigo_postal', '14001', 'poblacion', 'Córdoba'),
+    jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Nuevo destino 67', 'codigo_postal', '08001', 'poblacion', 'Barcelona')));
+  select count(*) into n from envio_paradas where envio_id = e;
+  if n <> 3 or exists (select 1 from envio_paradas where id = p2) then raise exception 'FALLO 67 · la ruta no queda como se pidió (% paradas)', n; end if;
+  if (select referencia from envio_paradas where id = p1) <> 'REF-67' or (select orden from envio_paradas where id = p1) <> 1 then raise exception 'FALLO 67 · la parada que se mantiene pierde sus datos'; end if;
+  if (select poblacion_destino from envios where id = e) <> 'Barcelona' then raise exception 'FALLO 67 · el destino del envío no se actualiza'; end if;
+  if not exists (select 1 from envio_hitos where envio_id = e and hito = 'ruta_cambiada') then raise exception 'FALLO 67 · sin hito de ruta cambiada'; end if;
+  -- Una ruta que empieza en entrega no vale.
+  begin
+    perform cambiar_ruta_envio(e, jsonb_build_array(
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'X', 'poblacion', 'Cádiz'),
+      jsonb_build_object('id', p1)));
+    raise exception 'FALLO 67 · acepta una ruta que empieza por una entrega';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  -- Una parada de OTRO envío no se puede colar.
+  begin
+    perform cambiar_ruta_envio(e, jsonb_build_array(
+      jsonb_build_object('id', (select id from envio_paradas where envio_id = current_setting('prueba.e59')::uuid and tipo = 'carga' limit 1)),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'X', 'poblacion', 'Cádiz')));
+    raise exception 'FALLO 67 · se cuela una parada de otro envío';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  perform set_config('prueba.e67', e::text, false);
+  -- Con firmas en el CMR, no se toca (el envío 59 tiene una firma de la prueba 65).
+  begin
+    perform cambiar_ruta_envio(current_setting('prueba.e59')::uuid, jsonb_build_array(
+      jsonb_build_object('tipo', 'carga', 'nombre_empresa', 'X', 'poblacion', 'Cádiz'),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Y', 'poblacion', 'Huelva')));
+    raise exception 'FALLO 67 · cambia la ruta con el CMR firmado';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  perform cambiar_ruta_envio(current_setting('prueba.e67')::uuid, '[]'::jsonb);
+  raise exception 'FALLO 67 · un cliente cambia la ruta';
+exception when insufficient_privilege then
+  raise notice 'OK 67 · cambiar ruta: mantiene las paradas por id, valida carga→descarga, sin paradas ajenas ni con CMR firmado, solo Dynamo';
+end $$;
+reset role;

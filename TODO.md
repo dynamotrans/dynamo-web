@@ -37,6 +37,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       operación (Storage), dar de alta en `vehiculos`
       y `conductores` lo que se asigna a mano (hoy solo queda en el envío), la **valoración** al entregar, y la
       ficha para el cliente y el transportista (etapas B y C; hoy solo Dynamo).
+      → **Hecho 2026-11-03**: «Cambiar ruta» (antes de cargar y sin firmas de CMR) y «Repetir envío» (asistente relleno salvo la fecha).
 - [ ] **Orden de carga y CMR en PDF (hechos 2026-11-03, botones en la ficha del envío)** — falta:
       (1) **mandarla sola** al transportista por email con el PDF adjunto (aviso T4, necesita Postmark) y
       apuntar el hito `orden_transporte_enviada`; hoy se abre, se guarda y se adjunta a mano; (2) que el

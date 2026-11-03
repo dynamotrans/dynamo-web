@@ -61,3 +61,13 @@ export async function crearClienteRapido(razon_social: string, cif: string, pais
   if (error) return { ok: false, error: traducir(error.message) };
   return { ok: true, cliente: { id: data.id, nombre: data.nombre_visible, cif: data.cif } };
 }
+
+// Cambiar la ruta de un envío ya creado (antes de cargar). Las paradas con `id` se
+// mantienen; las demás se crean; las que no vienen se quitan. Lo comprueba la base de datos.
+export async function cambiarRuta(envio: string, paradas: (ParadaNueva & { id?: string })[]): Promise<{ ok: true } | { ok: false; error: string }> {
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) return { ok: false, error: 'Solo el equipo de Dynamo puede cambiar la ruta.' };
+  if (paradas.length < 2) return { ok: false, error: 'Falta la recogida o la entrega.' };
+  const { error } = await s.supabase.rpc('cambiar_ruta_envio', { p_envio: envio, p_paradas: paradas.map((p) => (p.id ? { id: p.id } : p)) });
+  return error ? { ok: false, error: traducir(error.message) } : { ok: true };
+}

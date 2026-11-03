@@ -6,7 +6,7 @@
 // el tarifador llega al final (y el precio lo calculará el servidor, nunca el navegador).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { crearEnvio, crearClienteRapido, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, crearClienteRapido, cambiarRuta, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { fecha as fmtFecha, euros as eur } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
 import { PAISES } from '@/lib/paises';
@@ -24,7 +24,17 @@ type SitioNuevo = {
   nombre_empresa: string; direccion: string; codigo_postal: string; poblacion: string;
   provincia: string; pais_codigo_iso: string; tipo_lugar: string; horarios: string; guardar: boolean;
 };
-type Punto = { k: number; tipo: 'carga' | 'descarga'; sitio: SitioOpcion | null; nuevo: SitioNuevo | null };
+type Punto = { k: number; tipo: 'carga' | 'descarga'; sitio: SitioOpcion | null; nuevo: SitioNuevo | null; parada_id?: string };
+// Envío de partida: «Repetir envío» (todo relleno salvo la fecha) o «Cambiar ruta».
+export type Base = {
+  modo: 'repetir' | 'ruta';
+  envio: { id: string; referencia_gx: string; cliente_id: string; estado: string; metros_lineales: number | null; toneladas: number | null;
+    paletizado: boolean | null; carga_lateral: boolean; carga_trasera: boolean; carga_superior: boolean; plataforma_elevadora: boolean;
+    nima_requerido: boolean; adr: boolean; anotaciones_cliente: string | null; importe_cliente: number | null; importe_transportista: number | null;
+    discrecion_comercial: boolean };
+  paradas: { id: string; tipo: 'carga' | 'descarga'; lugar_id: string | null; nombre_empresa: string | null; direccion: string | null;
+    codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais_codigo_iso: string | null }[];
+};
 
 const FORMAS = ['Lateral', 'Trasera', 'Techo', 'Lateral y trasera', 'Lateral y techo', 'Trasera y techo', 'Lateral, trasera y techo'];
 const VACIO: SitioNuevo = { nombre_empresa: '', direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES', tipo_lugar: 'almacen_nave', horarios: '', guardar: true };
@@ -68,9 +78,22 @@ const IcoMenos = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="no
 const IcoCliente = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>);
 const IcoEscudo = () => (<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>);
 
-type Props = { clientes: ClienteOpcion[]; sitios: SitioOpcion[]; festivos: string[]; error: string | null };
+type Props = { clientes: ClienteOpcion[]; sitios: SitioOpcion[]; festivos: string[]; error: string | null; base?: Base | null };
 
-export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, error: errorCarga }: Props) {
+// Del valor guardado a la opción más cercana del desplegable (que va por tramos).
+const opcionCercana = (v: number | null | undefined, opciones: string[], defecto: string) =>
+  v == null ? defecto : opciones.find((o) => Number(o) >= Number(v) - 1e-9) ?? opciones[opciones.length - 1];
+const decimal = (n: number | null | undefined) => (n == null ? '' : String(n).replace('.', ','));
+
+export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, error: errorCarga, base }: Props) {
+  const be = base?.envio;
+  const enRuta = base?.modo === 'ruta';
+  const puntoDe = (p: Base['paradas'][number], k: number): Punto => {
+    const s = p.lugar_id ? sitios.find((x) => x.id === p.lugar_id) ?? null : null;
+    const nuevo: SitioNuevo | null = s ? null : { ...VACIO, nombre_empresa: p.nombre_empresa ?? '', direccion: p.direccion ?? '', codigo_postal: p.codigo_postal ?? '',
+      poblacion: p.poblacion ?? '', provincia: p.provincia ?? '', pais_codigo_iso: p.pais_codigo_iso ?? 'ES', guardar: false };
+    return { k, tipo: p.tipo, sitio: s, nuevo, parada_id: enRuta ? p.id : undefined };
+  };
   const router = useRouter();
   const fest = useMemo(() => new Set(festivos), [festivos]);
   const [paso, setPaso] = useState(1);
@@ -78,34 +101,44 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, er
 
   // ---- Paso 1: cliente y ruta
   const [clientes, setClientes] = useState(clientesIni);
-  const [cliente, setCliente] = useState<ClienteOpcion | null>(null);
+  const [cliente, setCliente] = useState<ClienteOpcion | null>(be ? clientesIni.find((c) => c.id === be.cliente_id) ?? null : null);
   const sigK = useRef(10);
-  const [recogidas, setRecogidas] = useState<Punto[]>([{ k: 1, tipo: 'carga', sitio: null, nuevo: null }]);
-  const [entregas, setEntregas] = useState<Punto[]>([{ k: 2, tipo: 'descarga', sitio: null, nuevo: null }]);
+  const [recogidas, setRecogidas] = useState<Punto[]>(() => {
+    const l = (base?.paradas ?? []).filter((p) => p.tipo === 'carga').map((p, i) => puntoDe(p, 100 + i));
+    return l.length ? l : [{ k: 1, tipo: 'carga', sitio: null, nuevo: null }];
+  });
+  const [entregas, setEntregas] = useState<Punto[]>(() => {
+    const l = (base?.paradas ?? []).filter((p) => p.tipo === 'descarga').map((p, i) => puntoDe(p, 200 + i));
+    return l.length ? l : [{ k: 2, tipo: 'descarga', sitio: null, nuevo: null }];
+  });
   const total = recogidas.length + entregas.length;
 
   // ---- Paso 2: mercancía
-  const [paletizada, setPaletizada] = useState(true);
-  const [trampilla, setTrampilla] = useState(false);
+  const [paletizada, setPaletizada] = useState(be ? be.paletizado !== false : true);
+  const [trampilla, setTrampilla] = useState(!!be?.plataforma_elevadora);
   const mlMax = trampilla ? 8 : 13;
   const pesoMax = trampilla ? 14 : 24;
-  const [ml, setMl] = useState('13.3');
-  const [peso, setPeso] = useState('24');
-  const [forma, setForma] = useState('Lateral');
-  const [nima, setNima] = useState(false);
-  const [adr, setAdr] = useState(false);
+  const [ml, setMl] = useState(() => opcionCercana(be?.metros_lineales, be?.plataforma_elevadora ? ['1', '2', '3', '4', '5', '6', '7', '8'] : ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '13.3'], be?.plataforma_elevadora ? '8' : '13.3'));
+  const [peso, setPeso] = useState(() => opcionCercana(be?.toneladas, ['0.2', '0.4', '0.6', '0.8', '1', '3', '5', '7', '9', '11', '13', ...(be?.plataforma_elevadora ? ['14'] : ['15', '17', '19', '21', '23', '24'])], be?.plataforma_elevadora ? '14' : '24'));
+  const [forma, setForma] = useState(() => {
+    if (!be) return 'Lateral';
+    const t = [be.carga_lateral && 'lateral', be.carga_trasera && 'trasera', be.carga_superior && 'techo'].filter(Boolean) as string[];
+    return FORMAS.find((f) => { const fl = f.toLowerCase(); return t.length > 0 && t.every((x) => fl.includes(x)) && fl.split(/,| y /).length === t.length; }) ?? 'Lateral';
+  });
+  const [nima, setNima] = useState(!!be?.nima_requerido);
+  const [adr, setAdr] = useState(!!be?.adr);
   const [refCli, setRefCli] = useState('');
-  const [notas, setNotas] = useState('');
-  const [notasAbiertas, setNotasAbiertas] = useState(false);
+  const [notas, setNotas] = useState(be?.anotaciones_cliente ?? '');
+  const [notasAbiertas, setNotasAbiertas] = useState(!!(be && (be.plataforma_elevadora || be.nima_requerido || be.adr || be.anotaciones_cliente)));
 
   // ---- Paso 3: fecha y precio
   const [urgencia, setUrgencia] = useState<'dia' | 'estandar'>('estandar');
   const [fecha, setFecha] = useState('');
-  const [pc, setPc] = useState('');
-  const [pt, setPt] = useState('');
+  const [pc, setPc] = useState(decimal(be?.importe_cliente));
+  const [pt, setPt] = useState(decimal(be?.importe_transportista));
 
   // ---- Paso 4
-  const [discrecion, setDiscrecion] = useState(false);
+  const [discrecion, setDiscrecion] = useState(!!be?.discrecion_comercial);
   const [enviando, setEnviando] = useState(false);
 
   // El aviso de "falta tal dato" se borra en cuanto se toca cualquier cosa.
@@ -133,7 +166,8 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, er
     else setEntregas((e) => [p, ...e]);   // las entregas extra van antes del destino
   }
   function cambiar(p: Punto, cambios: Partial<Punto>) {
-    const f = (l: Punto[]) => l.map((x) => (x.k === p.k ? { ...x, ...cambios } : x));
+    // Si se cambia el sitio, ya no es la parada que había (en «Cambiar ruta»).
+    const f = (l: Punto[]) => l.map((x) => (x.k === p.k ? { ...x, ...cambios, ...('sitio' in cambios || 'nuevo' in cambios ? { parada_id: undefined } : {}) } : x));
     if (p.tipo === 'carga') setRecogidas(f); else setEntregas(f);
   }
   function quitar(p: Punto) {
@@ -164,6 +198,23 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, er
   function atras() {
     setAviso(null);
     if (paso === 1) router.push('/panel/envios'); else { setPaso((p) => p - 1); window.scrollTo({ top: 0 }); }
+  }
+
+  async function guardarRuta() {
+    if (!base) return;
+    const e = errorPaso(1);
+    if (e) { setAviso(e); return; }
+    setEnviando(true); setAviso(null);
+    const r = await cambiarRuta(base.envio.id, [...recogidas, ...entregas].map((p) => {
+      if (p.parada_id) return { tipo: p.tipo, id: p.parada_id };
+      if (p.sitio) return { tipo: p.tipo, lugar_id: p.sitio.id };
+      const n = p.nuevo!;
+      return { tipo: p.tipo, nombre_empresa: n.nombre_empresa, direccion: n.direccion, codigo_postal: n.codigo_postal, poblacion: n.poblacion,
+        provincia: n.provincia, pais_codigo_iso: n.pais_codigo_iso, tipo_lugar: n.tipo_lugar, horarios: n.horarios, guardar_en_agenda: n.guardar };
+    }));
+    if (!r.ok) { setEnviando(false); setAviso(r.error); return; }
+    router.push(`/panel/envios?ver=${base.envio.id}`);
+    router.refresh();
   }
 
   async function crear() {
@@ -217,19 +268,25 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, er
 
   return (
     <section className={`section active wiz-v2 wiz-s${Math.min(paso, 3)}`} id="sec-nueva-carga">
-      <div className="sec-header"><h2>Nuevo envío</h2></div>
-      {enviando && <Cargando texto="Creando envío" />}
+      <div className="sec-header"><h2>{enRuta ? `Cambiar ruta · #${be!.referencia_gx}` : base ? `Repetir envío · #${be!.referencia_gx}` : 'Nuevo envío'}</h2></div>
+      {enviando && <Cargando texto={enRuta ? 'Guardando la ruta' : 'Creando envío'} />}
+      {base?.modo === 'repetir' && paso === 1 && (
+        <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Se ha copiado todo del envío <strong>#{be!.referencia_gx}</strong> (ruta, mercancía y precios) salvo la <strong>fecha</strong>. Revísalo y cambia lo que haga falta: se creará un envío <strong>nuevo</strong>.</div></div>
+      )}
+      {enRuta && (
+        <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Cambia, quita o añade paradas y pulsa <strong>«Guardar ruta»</strong>. Las paradas que no cambies conservan su referencia y sus notas. {be!.estado !== 'programado' && be!.estado !== 'borrador' ? 'El transportista ya va hacia la carga: avísale del cambio. ' : ''}La mercancía, la fecha y el precio se cambian en «Modificar».</div></div>
+      )}
 
       {errorCarga && <div className="pt-aviso error">No se han podido cargar los datos: {errorCarga}</div>}
 
-      <div className="wiz-bar">
+      {!enRuta && <div className="wiz-bar">
         {['Ruta', 'Mercancía', 'Fecha y precio', 'Confirmar'].map((t, i) => (
           <div key={t} className={`wiz-step${paso === i + 1 ? ' act' : ''}${paso > i + 1 ? ' done' : ''}`}
                onClick={() => { if (paso > i + 1) { setAviso(null); setPaso(i + 1); } }}>
             <span className="wiz-n">{i + 1}</span><span>{t}</span>
           </div>
         ))}
-      </div>
+      </div>}
 
       {paso < 4 && (
         <div className="ptar-card" data-ptar-mode="carga">
@@ -240,9 +297,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, er
                 {paso === 1 && (<>
                   <div className="ptar-section-head">Cliente</div>
                   <div className="ptar-field ptar-field-full">
-                    <CampoCliente clientes={clientes} valor={cliente}
+                    {enRuta ? <div className="ptar-input-wrap ptar-picked"><IcoCliente /><input type="text" readOnly value={cliente ? `${cliente.nombre} · ${cliente.cif}` : ''} /></div> : <CampoCliente clientes={clientes} valor={cliente}
                       onElegir={(c) => { setCliente(c); const prin = c?.principal_id ? sitios.find((x) => x.id === c.principal_id && x.cliente_id === c.id) ?? null : null; setRecogidas((l) => l.map((p, i) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : (i === 0 && prin && !p.nuevo ? prin : null) }))); setEntregas((l) => l.map((p) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : null }))); }}
-                      onNuevo={(c) => { setClientes((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre))); setCliente(c); }} />
+                      onNuevo={(c) => { setClientes((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre))); setCliente(c); }} />}
                   </div>
 
                   <div className="ptar-section-head">Ruta</div>
@@ -376,8 +433,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, er
 
           <div className="wiz-navwrap">
             <div className="wiz-nav">
-              <button type="button" className="btn-ghost" onClick={atras}>{paso === 1 ? 'Cancelar' : '← Atrás'}</button>
-              <button type="button" className="btn-primary" onClick={siguiente}>{paso === 3 ? 'Ver resumen →' : 'Siguiente →'}</button>
+              <button type="button" className="btn-ghost" onClick={enRuta ? () => router.push(`/panel/envios?ver=${be!.id}`) : atras}>{paso === 1 ? 'Cancelar' : '← Atrás'}</button>
+              {enRuta
+                ? <button type="button" className="btn-primary" onClick={guardarRuta} disabled={enviando}>{enviando ? 'Guardando…' : 'Guardar ruta'}</button>
+                : <button type="button" className="btn-primary" onClick={siguiente}>{paso === 3 ? 'Ver resumen →' : 'Siguiente →'}</button>}
             </div>
             {aviso && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
           </div>
@@ -555,7 +614,7 @@ function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, onCambi
           {rec ? <IcoPin /> : <IcoFlecha />}
           <input type="text" autoComplete="off" placeholder={deshabilitado ? 'Elige antes el cliente' : placeholder}
             disabled={deshabilitado} readOnly={!!elegido}
-            value={elegido ? textoSitio(elegido) + (punto.nuevo ? ' (nuevo)' : '') : q}
+            value={elegido ? textoSitio(elegido) + (punto.parada_id || !punto.nuevo ? '' : punto.nuevo.guardar ? ' (nuevo)' : ' (dirección suelta)') : q}
             onChange={(e) => { setQ(e.target.value); setAbierto(true); }}
             onFocus={() => !elegido && setAbierto(true)} onBlur={() => setTimeout(() => setAbierto(false), 150)} />
           {elegido && <button type="button" className="ptar-clear" aria-label="Cambiar sitio" onClick={() => { onCambio({ sitio: null, nuevo: null }); setQ(''); }}>✕</button>}
