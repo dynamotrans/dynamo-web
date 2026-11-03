@@ -72,7 +72,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       corta antes de registrar su fila; (5) guardar dentro del envío el PDF de la orden de carga y el CMR
       generados (hoy se generan al momento y no se archivan).
 - [ ] **Operadores, Mi cuenta, Altas pendientes, Mantenimiento y Parámetros (pasados 2026-11-03)** — falta:
-      (1) poner el **logo** del operador en su orden de transporte (ya se sube); (2) que el **registro público** guarde en los metadatos de Supabase Auth lo
+      (1) ~~logo del operador en su orden de transporte~~ (hecho 2026-11-03; PNG o JPG); (2) que el **registro público** guarde en los metadatos de Supabase Auth lo
       que escribe (empresa, CIF, dirección, teléfono, DNI) para que salga en Altas; (3) el aviso por email al
       confirmar o suspender un alta (U3); (4) el mantenimiento hoy cierra las pantallas y la página pública:
       valorar cerrarlo también en la base de datos (permisos por fila) para quien llame directamente a la API;

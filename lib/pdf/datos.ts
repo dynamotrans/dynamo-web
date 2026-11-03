@@ -25,7 +25,18 @@ export type DatosDoc = {
   pronto_pago: boolean;
   gestor: { nombre: string; telefono: string | null; email: string | null } | null;
   firmas?: FirmaDoc[];                   // CMR digital (solo para el CMR)
+  logoPorteador?: Uint8Array | null;     // envío manual: el logo del operador del cliente (si lo subió)
 };
+
+// El logo del operador de un envío manual (último subido, del almacén privado).
+export async function cargarLogoOperador(sb: SupabaseClient, operadorId: string | null | undefined): Promise<Uint8Array | null> {
+  if (!operadorId) return null;
+  const { data } = await sb.from('documentos').select('storage_ruta').eq('operador_id', operadorId).eq('tipo', 'logo').eq('borrado', false)
+    .order('creado_en', { ascending: false }).limit(1).maybeSingle<{ storage_ruta: string }>();
+  if (!data) return null;
+  const { data: blob } = await sb.storage.from('documentos').download(data.storage_ruta);
+  return blob ? new Uint8Array(await blob.arrayBuffer()) : null;
+}
 export type FirmaDoc = { rol: string; parada_id: string | null; nombre: string; documento: string; firmado_en: string; png: Uint8Array | null };
 
 // Las firmas del CMR digital con su trazo (del almacén privado; los permisos los pone la

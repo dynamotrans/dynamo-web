@@ -63,6 +63,15 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago): Promise<Uint8
   l.rect(l.x0, l.y, mitad, hCaja, COLOR.fondo);
   l.rect(xb, l.y, mitad, hCaja, COLOR.fondo);
   l.texto(l.x0 + 10, l.y + 14, manual ? 'TRANSPORTISTA' : 'TRANSPORTISTA (realiza el servicio)', 7.5, { bold: true, color: COLOR.gris });
+  // Envío manual: el logo del operador (si el cliente lo subió), arriba a la derecha de su caja.
+  if (manual && d.logoPorteador) {
+    try {
+      const esPng = d.logoPorteador[0] === 0x89;
+      const img = esPng ? await l.doc.embedPng(d.logoPorteador) : await l.doc.embedJpg(d.logoPorteador);
+      const k = Math.min(70 / img.width, 22 / img.height);
+      l.pag.drawImage(img, { x: l.x0 + mitad - 10 - img.width * k, y: A4.h - l.y - 6 - img.height * k, width: img.width * k, height: img.height * k });
+    } catch { /* un logo en un formato que el PDF no admite (webp, heic) no impide la orden */ }
+  }
   l.texto(xb + 10, l.y + 14, dchaTit, 7.5, { bold: true, color: COLOR.gris });
   const top0 = l.y;
   for (const [x, filas] of [[l.x0 + 10, izq], [xb + 10, dcha]] as const) {
