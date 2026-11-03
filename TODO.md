@@ -5,6 +5,9 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 ## 🔥 Prioridad alta
 
 ### Plataforma real (Next.js) — "Nuevo envío" v1 hecho (2026-11-03), lo que falta
+- [ ] 🔥 **NOTIFICACIONES por WhatsApp y email** — apartado MUY importante (usuario, 2026-11-03). Plan
+      completo, proveedores y catálogo de avisos en **`NOTIFICACIONES.md`**. Pendiente: que el usuario pegue
+      en Vercel las credenciales de WhatsApp (Meta) y de Postmark, y revisar el catálogo caso a caso.
 - [ ] **Buscador de direcciones con Google Places** (regla 13) en el sitio nuevo de Nuevo envío Y en la
       ficha de **Sitios** (el mockup tenía ahí "Buscar para autorrellenar": agenda + Google + dirección,
       y el aviso de duplicado comparando con Google). Hoy la dirección se escribe a mano. Hace falta la clave de Google Maps en Vercel (`NEXT_PUBLIC_GOOGLE_MAPS_KEY`, solo
