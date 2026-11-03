@@ -6,7 +6,7 @@
 // en trámite, tiempo agotado y enlace no válido.
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { reservar, aceptar, liberar, completar } from './acciones';
+import { reservar, aceptar, liberar, completar, enlaceCmr } from './acciones';
 import { euros, fecha, ventana } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
 import { nombreTipo } from '@/components/panel/TipoSitio';
@@ -317,6 +317,25 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
 }
 
 // ---- Aceptada: todos los datos de la carga ------------------------------------------
+// El CMR digital: se firma con el dedo en cada carga, en la entrega y por el conductor.
+function BotonCmr({ token }: { token: string }) {
+  const [msg, setMsg] = useState<string | null>(null);
+  const [abriendo, setAbriendo] = useState(false);
+  return (
+    <>
+      <button type="button" className="btn-sec" disabled={abriendo} onClick={async () => {
+        setAbriendo(true); setMsg(null);
+        const w = window.open('', '_blank');
+        const r = await enlaceCmr(token);
+        setAbriendo(false);
+        if (r.cmr) { if (w) w.location.href = `/cmr/${r.cmr}`; else window.location.href = `/cmr/${r.cmr}`; }
+        else { w?.close(); setMsg(r.error ?? 'No se ha podido abrir el CMR.'); }
+      }}>{abriendo ? 'Abriendo…' : 'Abrir el CMR digital para firmar'}</button>
+      {msg && <p className="id-hint" style={{ textAlign: 'center', color: 'var(--red)' }}>{msg}</p>}
+    </>
+  );
+}
+
 function Aceptada({ token, c }: { token: string; c: any }) {
   const [veh, setVeh] = useState({ camion: c.matricula_camion ?? '', remolque: c.matricula_remolque ?? '', conductor: c.conductor_nombre ?? '', telefono: c.conductor_telefono ?? '' });
   const [guardado, setGuardado] = useState<string | null>(null);
@@ -335,8 +354,15 @@ function Aceptada({ token, c }: { token: string; c: any }) {
         {c.pronto_pago && <div className="base-nota" style={{ marginTop: 2 }}>Con pronto pago: cobras {euros(precio - dto)} a {txtNum(c.pronto_pago_dias)} días de la factura.</div>}
       </div>
       <div className="pago-contado" style={{ background: 'rgba(51,0,204,0.06)', borderColor: 'rgba(51,0,204,0.28)', color: 'var(--navy)', fontWeight: 700, textAlign: 'left' }}>
-        Te mandaremos la <strong>orden de carga</strong> con todos estos datos. Guarda esta página: siempre puedes volver a ella con el mismo enlace.
+        Aquí tienes la <strong>orden de carga</strong> con todos estos datos. Guarda esta página: siempre puedes volver a ella con el mismo enlace.
       </div>
+      {c.estado !== 'cancelado' && (
+        <a className="btn" href={`/carga/${token}/orden-de-carga`} target="_blank" rel="noopener" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', boxSizing: 'border-box', marginTop: '0.4rem' }}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="13" y2="17" /></svg>
+          Ver orden de carga (PDF)
+        </a>
+      )}
+      {['programado', 'hacia_la_carga', 'cargando', 'en_ruta'].includes(c.estado) && <BotonCmr token={token} />}
       {c.discrecion_comercial && <div className="pago-contado" style={{ background: '#fff7e6', borderColor: '#ffd591', color: '#8a5a00', textAlign: 'left' }}><strong>Discreción comercial:</strong> en la carga no reveles el destino, ni en la entrega el origen.</div>}
       <div id="ok-resumen"><Oferta o={c} completa /></div>
       {editable && (

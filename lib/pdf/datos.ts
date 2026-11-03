@@ -154,13 +154,32 @@ export async function cargarDatosDocTransportista(sb: SupabaseClient, id: string
   Promise<{ datos: DatosDoc | null; parametros: Record<string, number>; error: string | null }> {
   const { data, error } = await sb.rpc('datos_orden_transportista', { p_envio: id });
   if (error || !data) return { datos: null, parametros: {}, error: error?.message ?? 'No se ha podido leer el viaje.' };
+  return { error: null, ...ordenDesdeJson(data) };
+}
+
+// Lo mismo desde el enlace público /carga/<enlace>, sin cuenta: la llave es la reserva
+// aceptada (cookie de esa página). Trae también los datos fijos de Dynamo.
+export async function cargarDatosDocPublica(sb: SupabaseClient, reserva: string):
+  Promise<{ datos: DatosDoc | null; parametros: Record<string, number>; error: string | null }> {
+  const { data, error } = await sb.rpc('datos_orden_publica', { p_reserva: reserva });
+  if (error || !data) return { datos: null, parametros: {}, error: error?.message ?? 'No se ha podido leer el viaje.' };
+  return { error: null, ...ordenDesdeJson(data) };
+}
+
+function ordenDesdeJson(data: unknown): { datos: DatosDoc; parametros: Record<string, number> } {
   const j = data as any, t = j.porteador ?? {};
   const parametros: Record<string, number> = {};
   Object.entries(j.parametros ?? {}).forEach(([k, v]) => { parametros[k] = Number(v); });
+  let dynamo: DatosDynamo | undefined;
+  if (j.dynamo) {
+    const o: Record<string, string> = { ...DYNAMO };
+    Object.keys(DYNAMO).forEach((k) => { if (j.dynamo[k]) o[k] = String(j.dynamo[k]); });
+    dynamo = o as DatosDynamo;
+  }
   return {
-    error: null, parametros,
+    parametros,
     datos: {
-      envio: j.envio, manual: false, cliente: null,
+      envio: j.envio, manual: false, cliente: null, dynamo,
       porteador: { nombre: t.nombre, razon_social: t.razon_social, cif: t.cif, codigo: t.codigo, direccion: t.direccion,
         codigo_postal: t.codigo_postal, poblacion: t.poblacion, provincia: t.provincia, pais: nombrePais(t.pais_codigo_iso),
         telefono: t.telefono ?? null, email: t.email ?? null, contacto: t.contacto ?? null },

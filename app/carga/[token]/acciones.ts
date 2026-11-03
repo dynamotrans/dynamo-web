@@ -61,3 +61,13 @@ export async function completar(token: string, d: { camion: string; remolque: st
   });
   return error ? { resultado: 'error' } : (data as { resultado: string });
 }
+
+// El enlace de firma del CMR digital de la carga aceptada (lo crea si no hay uno vivo).
+export async function enlaceCmr(token: string): Promise<{ cmr?: string; error?: string }> {
+  const sb = supabasePublico();
+  const reserva = (await cookies()).get(cookieReserva(token))?.value;
+  if (!sb || !reserva) return { error: 'Tu reserva no está en este navegador. Llámanos al +34 955 225 945.' };
+  const { data, error } = await sb.rpc('enlace_cmr_publico', { p_reserva: reserva });
+  if (error || !data) return { error: 'No se ha podido abrir el CMR. Llámanos al +34 955 225 945.' };
+  return { cmr: String(data) };
+}

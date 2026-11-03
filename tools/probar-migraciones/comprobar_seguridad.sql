@@ -2457,3 +2457,44 @@ do $$ declare j jsonb; begin
   raise notice 'OK 80 · datos fijos de Dynamo en parámetros, solo los suyos';
 end $$;
 reset role;
+
+-- ---- 81. La orden de carga desde el enlace público: solo con la reserva aceptada --------
+select set_config('prueba.res_ok', coalesce((select r.id::text from envio_reservas r join envios e on e.id = r.envio_id
+   where r.estado = 'aceptada' and e.transportista_id = r.transportista_id and e.estado <> 'cancelado' and e.operador_id is null
+   order by r.cerrada_en desc limit 1), ''), false);
+select set_config('prueba.res_no', coalesce((select id::text from envio_reservas where estado <> 'aceptada' limit 1), ''), false);
+set role anon;
+do $$ declare j jsonb; begin
+  if current_setting('prueba.res_ok') = '' then raise exception 'FALLO 81 · no hay reserva aceptada en los datos de prueba'; end if;
+  j := datos_orden_publica(current_setting('prueba.res_ok')::uuid);
+  if j -> 'envio' ->> 'referencia_gx' is null or j -> 'dynamo' ->> 'cif' is null then raise exception 'FALLO 81 · la orden no trae su viaje: %', j; end if;
+  if j::text ~ 'importe_cliente|margen|factor_tarifa' then raise exception 'FALLO 81 · la orden pública lleva datos del cliente de Dynamo'; end if;
+  begin
+    perform datos_orden_publica(gen_random_uuid());
+    raise exception 'FALLO 81 · da una orden con una reserva inventada';
+  exception when insufficient_privilege then null;
+  end;
+  if current_setting('prueba.res_no') <> '' then
+    begin
+      perform datos_orden_publica(current_setting('prueba.res_no')::uuid);
+      raise exception 'FALLO 81 · da la orden con una reserva no aceptada';
+    exception when insufficient_privilege then null;
+    end;
+  end if;
+  begin
+    perform orden_carga_json((select null::uuid));
+    raise exception 'FALLO 81 · la función interna se puede llamar sin pasar por la puerta';
+  exception when insufficient_privilege then null;
+  end;
+  if enlace_cmr_publico(current_setting('prueba.res_ok')::uuid) is null
+     or enlace_cmr_publico(current_setting('prueba.res_ok')::uuid) <> enlace_cmr_publico(current_setting('prueba.res_ok')::uuid) then
+    raise exception 'FALLO 81 · el enlace del CMR por la reserva no es estable';
+  end if;
+  begin
+    perform enlace_cmr_publico(gen_random_uuid());
+    raise exception 'FALLO 81 · da un enlace de CMR con una reserva inventada';
+  exception when insufficient_privilege then null;
+  end;
+  raise notice 'OK 81 · orden de carga y CMR por el enlace: solo con la reserva aceptada, sin datos del cliente';
+end $$;
+reset role;
