@@ -220,7 +220,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
       )}
       <div className="modal-form-row">
         <label>Adjuntar fotos / documentos</label>
-        {fila ? <Documentos dueno={{ campo: 'incidencia_id', id: fila.id }} tipos={esCliente ? ['foto_incidencia', 'adjunto'] : ['foto_incidencia', 'albaran', 'adjunto', 'otro']} editable={!soloLectura} />
+        {fila ? <Documentos dueno={{ campo: 'incidencia_id', id: fila.id }} tipos={esCliente ? ['foto_incidencia', 'adjunto'] : ['foto_incidencia', 'albaran', 'adjunto', 'otro']} editable={!soloLectura} sinQuitar={esCliente} />
           : <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: 0 }}>Guarda la incidencia y, al abrirla, podrás adjuntar fotos y documentos.</p>}
       </div>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.2rem 0 0', lineHeight: 1.45 }}>{esTransportista

@@ -26,7 +26,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       delante), **subir el albarán**, CMR firmado, fotos y GPS, y abrir el **CMR digital**; y sus **penalizaciones**
       (con su importe). La **orden de carga en PDF** también se descarga desde su viaje. **Falta**: (b) la **página del conductor con PIN** — es de la
       **fase v3** por decisión del usuario (2026-11-02, ver el bloque del PIN más abajo): no se monta hasta entonces;
-      (c) ~~incidencias~~ (hechas 2026-11-03: de sus viajes, con fotos; el cliente no las ve); (d) su ficha de empresa y flota desde *Mi cuenta*.
+      (c) ~~incidencias~~ (hechas 2026-11-03: de sus viajes, con fotos; el cliente no las ve); (d) ~~su ficha de empresa y flota desde *Mi cuenta*~~ (hecha 2026-11-03: empresa, seguro con aviso de caducidad, flota y documentación que sube él). Falta que él mismo **edite** sus datos (hoy los cambia Dynamo).
 - [ ] **Etapa B (cliente) — HECHO lo principal (2026-11-03)**: el cliente pide su envío como **solicitud** (sin
       precio: el tarifador es lo último), Dynamo le pone precio («Poner precio» en la ficha; pestaña *Solicitudes de
       precio*; cifra en el dashboard admin) y el cliente lo **acepta** con las condiciones generales (o lo rechaza) desde

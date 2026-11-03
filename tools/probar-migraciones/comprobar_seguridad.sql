@@ -2374,3 +2374,23 @@ do $$ declare o uuid; e uuid; v record; j jsonb; begin
   raise notice 'OK 76 · envíos manuales del cliente: con su operador, los mueve él, orden sin Dynamo; lo de Dynamo no';
 end $$;
 reset role;
+
+-- ---- 77. El transportista sube la documentación de SU empresa, no la de otra -------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ begin
+  -- (La ficha puede estar ya en el máximo de 5 por otras pruebas: entonces salta esa regla, que también vale.)
+  begin
+    insert into documentos (transportista_id, tipo, storage_bucket, storage_ruta, nombre_archivo)
+    values (current_setting('prueba.transp')::uuid, 'seguro_cmr', 'documentos', 'u/x/s/seguro.pdf', 'seguro.pdf');
+  exception when raise_exception then if sqlerrm not like '%Maximo 5%' then raise; end if;
+  end;
+  begin
+    insert into documentos (transportista_id, tipo, storage_bucket, storage_ruta, nombre_archivo)
+    values ((select id from transportistas where id <> current_setting('prueba.transp')::uuid limit 1), 'seguro_cmr', 'documentos', 'u/x/s/otro.pdf', 'otro.pdf');
+    raise exception 'FALLO 77 · sube documentos a la ficha de otro transportista';
+  exception when insufficient_privilege then null;
+  end;
+  raise notice 'OK 77 · documentación de la empresa: el transportista sube la suya, no la de otro';
+end $$;
+reset role;

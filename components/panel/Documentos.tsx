@@ -23,8 +23,9 @@ async function huella(f: File): Promise<string> {
   return [...new Uint8Array(h)].map((x) => x.toString(16).padStart(2, '0')).join('');
 }
 
-export default function Documentos({ dueno, tipos, max, conVisibleCliente = false, soloImagen = false, ayuda, editable = true }: {
+export default function Documentos({ dueno, tipos, max, conVisibleCliente = false, soloImagen = false, ayuda, editable = true, sinQuitar = false }: {
   dueno: Dueno; tipos: string[]; max?: number; conVisibleCliente?: boolean; soloImagen?: boolean; ayuda?: React.ReactNode; editable?: boolean;
+  sinQuitar?: boolean;   // puede subir pero no quitar (clientes y transportistas: retirar un documento es cosa de Dynamo)
 }) {
   const [docs, setDocs] = useState<DocumentoFila[] | null>(null);
   const [tipo, setTipo] = useState(tipos[0]);
@@ -107,7 +108,7 @@ export default function Documentos({ dueno, tipos, max, conVisibleCliente = fals
                   Lo ve el cliente
                 </label>
               )}
-              {editable && <button type="button" className="mfi-del" aria-label={`Quitar ${d.nombre_archivo}`} onClick={() => setQuitar(d)}>×</button>}
+              {editable && !sinQuitar && <button type="button" className="mfi-del" aria-label={`Quitar ${d.nombre_archivo}`} onClick={() => setQuitar(d)}>×</button>}
               {quitar?.id === d.id && (
                 <div style={{ flexBasis: '100%', marginTop: '0.4rem', padding: '0.5rem 0.65rem', background: '#fdecec', border: '1px solid #f5b5b5', borderRadius: 8, fontSize: 'var(--fs-m)', color: '#b42318' }}>
                   ¿Quitar «{d.nombre_archivo}»? Deja de verse aquí, pero el fichero se conserva como prueba.

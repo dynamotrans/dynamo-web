@@ -148,7 +148,7 @@ export default function FichaViaje({ e, cerrarHref }: { e: any; cerrarHref: stri
 
       <h4 className="modal-section-title">Documentos</h4>
       <div className="det-block">
-        <Documentos dueno={{ campo: 'envio_id', id: e.id }} tipos={['albaran', 'cmr_firmado', 'foto_incidencia', 'gps_tacografo', 'adjunto']} editable={e.estado !== 'cancelado'}
+        <Documentos dueno={{ campo: 'envio_id', id: e.id }} tipos={['albaran', 'cmr_firmado', 'foto_incidencia', 'gps_tacografo', 'adjunto']} editable={e.estado !== 'cancelado'} sinQuitar
           ayuda={<>Sube aquí el <strong>albarán firmado</strong> (o una foto clara) al entregar: sin él no se puede pagar el viaje. Si algo llega dañado, haz fotos <strong>antes de descargar</strong> y llámanos.</>} />
       </div>
     </Modal>
