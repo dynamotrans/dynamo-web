@@ -1,14 +1,14 @@
 import { configSupabase } from '@/lib/supabase/server';
 import SinConfigurar from '@/components/SinConfigurar';
 import FormEntrar from './FormEntrar';
+import CrearCuenta from './CrearCuenta';
 import './entrar.css';
 
 export const dynamic = 'force-dynamic';
 
 // Mismo diseño que portal.html (la pantalla de acceso aprobada), con el login real.
-// Fuera del mockup: el cartel "Modo demo" y su explicación (ya no es demo) y "Crear
-// cuenta" (el alta de clientes llega en la etapa B; hasta entonces las cuentas las da
-// Dynamo).
+// Fuera del mockup: el cartel "Modo demo" y su explicación (ya no es demo). "Crear
+// cuenta" se mantiene, pero avisa de que el alta online llega pronto (etapa B).
 export default function PaginaEntrar() {
   if (!configSupabase()) return <SinConfigurar />;
   return (
@@ -23,6 +23,7 @@ export default function PaginaEntrar() {
           <p className="portal-subtitle">Área privada para <strong>clientes</strong> de Dynamo</p>
 
           <FormEntrar />
+          <CrearCuenta />
 
           <a href="/" className="portal-back">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>

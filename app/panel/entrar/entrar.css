@@ -181,3 +181,6 @@
 .portal-submit:disabled { opacity: 0.7; cursor: wait; transform: none; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .portal-card, .portal-bg { animation: none; } }
 .portal-card > .portal-back { margin-top: 0.9rem; }
+.portal-create { cursor: pointer; font-family: inherit; }
+.portal-aviso-alta { margin: 0.8rem 0 0; text-align: left; }
+.portal-aviso-alta a { color: var(--purple); font-weight: 700; }
