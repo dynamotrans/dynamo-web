@@ -55,6 +55,7 @@ const ICO = {
   deshacer: ['M3 7v6h6', 'M21 17a9 9 0 0 0-15-6.7L3 13'],
   ojo: ['M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'],
   enviar: ['M22 2 11 13', 'M22 2 15 22l-4-9-9-4z'],
+  doc: ['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z', 'M14 2v6h6', 'M16 13H8', 'M16 17H8', 'M10 9H8'],
 };
 const CANALES: Record<string, string> = {
   email: 'Email', whatsapp: 'WhatsApp', telefono: 'Teléfono', panel: 'Panel',
@@ -138,6 +139,14 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
       )}
       <button className="btn-secondary" onClick={() => setVista('estado')}><I d={ICO.fase} />Cambiar estado</button>
       <button className="btn-secondary" onClick={() => setVista('modificar')}><I d={ICO.editar} />Modificar</button>
+      {/* PDF: se generan al momento y se abren en el visor (regla 0-bis). La orden, cuando
+          ya hay a quién mandarla. */}
+      {(manual || ficha.transportista) && (
+        <a className="btn-secondary" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener">
+          <I d={ICO.doc} />{manual ? 'Orden de transporte' : 'Orden de carga'}
+        </a>
+      )}
+      <a className="btn-secondary" href={`/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener"><I d={ICO.doc} />CMR relleno</a>
       <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={() => setVista('cancelar')}><I d={ICO.x} />Cancelar envío</button>
     </>
   );

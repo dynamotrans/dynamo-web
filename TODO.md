@@ -34,9 +34,19 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] **Ficha del envío (v1 hecha 2026-11-03)** — falta: cambiar la **ruta** (sitios) desde «Modificar» (hoy:
       cancelar y crear otro), **Repetir envío** (Nuevo envío ya relleno),
       **Reportar incidencia** y **Crear penalización** (cuando estén esas pantallas), **documentación** de la
-      operación (Storage), **orden de carga y CMR en PDF**, dar de alta en `vehiculos`
+      operación (Storage), dar de alta en `vehiculos`
       y `conductores` lo que se asigna a mano (hoy solo queda en el envío), la **valoración** al entregar, y la
       ficha para el cliente y el transportista (etapas B y C; hoy solo Dynamo).
+- [ ] **Orden de carga y CMR en PDF (hechos 2026-11-03, botones en la ficha del envío)** — falta:
+      (1) **mandarla sola** al transportista por email con el PDF adjunto (aviso T4, necesita Postmark) y
+      apuntar el hito `orden_transporte_enviada`; hoy se abre, se guarda y se adjunta a mano; (2) que el
+      transportista la **descargue desde su página** `/carga/<enlace>` tras aceptar; (3) el **CMR firmable**
+      con el dedo (`firmar-cmr.html` del mockup) con firmas selladas en el servidor; (4) **información de ruta**
+      de la orden real (km, litros y € de gasoil) cuando haya Google Routes; (5) nº de **bultos/palets** y
+      volumen en el CMR (casillas 7, 8 y 12: hoy el envío no los guarda); (6) los **datos fijos de Dynamo**
+      (CIF, dirección, Wtransnet, O.T.) a `parametros` para no tocar código si cambian. El contenido y las
+      condiciones salen de la orden real GX61034 (feb. 2026); si el paquete DeCA aprobado (`FORMATOS.md`)
+      trae otro diseño, se adapta cuando el usuario lo pase.
 - [ ] **Ofrecer carga + página pública `/carga/<enlace>` (hecho 2026-11-03)** — ANTES DE PRODUCCIÓN:
       (1) **código por email al aceptar desde un enlace de bolsa** (hoy basta con saber un CIF de la base de
       datos para aceptar en nombre de otro; necesita Postmark — aviso T2 de NOTIFICACIONES.md), con bloqueo a

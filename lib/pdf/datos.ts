@@ -1,0 +1,113 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+// Todo lo que necesitan la orden de carga y el CMR de un envío, leído en el servidor
+// con la sesión de quien lo pide (Dynamo: las tablas; los permisos por fila deciden).
+
+export type Empresa = {
+  nombre: string; razon_social: string; cif: string | null; codigo?: string | null;
+  direccion: string | null; codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais: string | null;
+  telefono: string | null; email: string | null; contacto?: string | null;
+};
+export type ParadaDoc = {
+  orden: number; tipo: 'carga' | 'descarga';
+  nombre_empresa: string | null; direccion: string | null; codigo_postal: string | null; poblacion: string | null;
+  provincia: string | null; pais: string | null; referencia: string | null; anotaciones: string | null;
+  horarios: string | null; url_google_maps: string | null; notas_sitio: string | null; tipo_lugar: string | null;
+  requiere_cita: boolean; tiene_medios_carga: boolean;
+  contacto: { nombre: string | null; telefono: string | null } | null;
+};
+export type DatosDoc = {
+  envio: any;
+  manual: boolean;                       // envío con el operador del cliente: SIN mención a Dynamo
+  cliente: Empresa | null;
+  porteador: Empresa | null;             // transportista asignado (Dynamo) u operador del cliente (manual)
+  paradas: ParadaDoc[];
+  pronto_pago: boolean;
+  gestor: { nombre: string; telefono: string | null; email: string | null } | null;
+};
+
+// Datos fijos de Dynamo (los mismos que la orden de carga que se manda hoy por email).
+export const DYNAMO = {
+  razon_social: 'Dynamo Operador Logístico, S.L.',
+  cif: 'ESB01596360',
+  direccion: 'Paseo de las Delicias 1, planta 5ª', codigo_postal: '41001', poblacion: 'Sevilla', pais: 'España',
+  email: 'info@dynamotrans.com', telefono: '+34 955 225 945', movil: '+34 628 995 709',
+  wtransnet: '267017', tarjeta_ot: '12548918-1', web: 'www.dynamotrans.com',
+};
+
+const PAISES: Record<string, string> = { ES: 'España', PT: 'Portugal', FR: 'Francia', DE: 'Alemania', IT: 'Italia', NL: 'Países Bajos',
+  BE: 'Bélgica', LU: 'Luxemburgo', AT: 'Austria', PL: 'Polonia', CZ: 'República Checa', CH: 'Suiza', DK: 'Dinamarca', GB: 'Reino Unido' };
+export const nombrePais = (c: string | null | undefined) => (c ? PAISES[c.trim().toUpperCase()] ?? c : null);
+
+export async function cargarDatosDoc(sb: SupabaseClient, id: string, usuarioId: string): Promise<{ datos: DatosDoc | null; error: string | null }> {
+  const { data: e, error } = await sb.from('envios')
+    .select('*, clientes(id, razon_social, nombre_visible, cif, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso), ' +
+      'transportistas(id, codigo, razon_social, nombre_visible, cif, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, plazo_pago_dias), ' +
+      'operadores(razon_social, cif, telefono, email, persona_contacto)')
+    .eq('id', id).maybeSingle<any>();
+  if (error) return { datos: null, error: error.message };
+  if (!e) return { datos: null, error: 'Ese envío no existe.' };
+
+  const [par, ctos, res, yo] = await Promise.all([
+    sb.from('envio_paradas').select('orden, tipo, lugar_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, ' +
+      'lugares(tipo, horarios, anotaciones, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden'),
+    sb.from('contactos').select('cliente_id, transportista_id, lugar_id, nombre, telefono, email, funcion, es_principal')
+      .or([`cliente_id.eq.${e.cliente_id}`, e.transportista_id ? `transportista_id.eq.${e.transportista_id}` : null].filter(Boolean).join(','))
+      .order('es_principal', { ascending: false }).limit(200),
+    e.transportista_id
+      ? sb.from('envio_reservas').select('pronto_pago').eq('envio_id', id).eq('transportista_id', e.transportista_id).eq('estado', 'aceptada')
+          .order('cerrada_en', { ascending: false }).limit(1).maybeSingle<{ pronto_pago: boolean | null }>()
+      : Promise.resolve({ data: null }),
+    sb.from('usuarios').select('nombre, email, telefono').eq('id', usuarioId).maybeSingle<{ nombre: string | null; email: string; telefono: string | null }>(),
+  ]);
+
+  const lugarIds = (par.data ?? []).map((p: any) => p.lugar_id).filter(Boolean) as string[];
+  const contactoLugar = new Map<string, any>();
+  if (lugarIds.length) {
+    const { data } = await sb.from('contactos').select('lugar_id, nombre, telefono').in('lugar_id', lugarIds).eq('es_principal', true);
+    (data ?? []).forEach((c: any) => contactoLugar.set(c.lugar_id, c));
+  }
+  const contactos = (ctos.data ?? []) as any[];
+  // Del cliente: el de tráfico principal, y si no, el principal de cualquier función.
+  const de = (campo: 'cliente_id' | 'transportista_id', valor: string | null) => {
+    const suyos = contactos.filter((c) => valor && c[campo] === valor);
+    return suyos.find((c) => c.funcion === 'trafico' && c.es_principal) ?? suyos.find((c) => c.funcion === 'trafico') ?? suyos.find((c) => c.es_principal) ?? suyos[0] ?? null;
+  };
+
+  const c = e.clientes, t = e.transportistas, o = e.operadores;
+  const ctoCli = de('cliente_id', e.cliente_id);
+  const cliente: Empresa | null = c ? {
+    nombre: c.nombre_visible || c.razon_social, razon_social: c.razon_social, cif: c.cif,
+    direccion: c.direccion, codigo_postal: c.codigo_postal, poblacion: c.poblacion, provincia: c.provincia, pais: nombrePais(c.pais_codigo_iso),
+    telefono: ctoCli?.telefono ?? null, email: ctoCli?.email ?? null, contacto: ctoCli?.nombre ?? null,
+  } : null;
+
+  let porteador: Empresa | null = null;
+  if (e.es_manual && o) {
+    porteador = { nombre: o.razon_social, razon_social: o.razon_social, cif: o.cif, direccion: null, codigo_postal: null, poblacion: null,
+      provincia: null, pais: null, telefono: o.telefono, email: o.email, contacto: o.persona_contacto };
+  } else if (t) {
+    const ctoT = de('transportista_id', e.transportista_id);
+    porteador = { nombre: t.nombre_visible || t.razon_social, razon_social: t.razon_social, cif: t.cif, codigo: t.codigo,
+      direccion: t.direccion, codigo_postal: t.codigo_postal, poblacion: t.poblacion, provincia: t.provincia, pais: nombrePais(t.pais_codigo_iso),
+      telefono: ctoT?.telefono ?? null, email: ctoT?.email ?? null, contacto: ctoT?.nombre ?? null };
+  }
+
+  return {
+    error: null,
+    datos: {
+      envio: { ...e, plazo_pago_transportista: t?.plazo_pago_dias ?? null },
+      manual: !!e.es_manual,
+      cliente, porteador,
+      paradas: (par.data ?? []).map((p: any) => ({
+        orden: p.orden, tipo: p.tipo, nombre_empresa: p.nombre_empresa, direccion: p.direccion, codigo_postal: p.codigo_postal,
+        poblacion: p.poblacion, provincia: p.provincia, pais: nombrePais(p.pais_codigo_iso), referencia: p.referencia, anotaciones: p.anotaciones,
+        horarios: p.lugares?.horarios ?? null, url_google_maps: p.lugares?.url_google_maps ?? null, notas_sitio: p.lugares?.anotaciones ?? null,
+        tipo_lugar: p.lugares?.tipo ?? null, requiere_cita: !!p.lugares?.requiere_cita, tiene_medios_carga: p.lugares?.tiene_medios_carga !== false,
+        contacto: p.lugar_id ? contactoLugar.get(p.lugar_id) ?? null : null,
+      })),
+      pronto_pago: !!(res.data as any)?.pronto_pago,
+      gestor: yo.data ? { nombre: yo.data.nombre || yo.data.email, telefono: yo.data.telefono, email: yo.data.email } : null,
+    },
+  };
+}

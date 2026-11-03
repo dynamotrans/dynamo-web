@@ -12,6 +12,7 @@
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.117.3",
     "next": "15.5.28",
+    "pdf-lib": "1.17.1",
     "react": "19.2.9",
     "react-dom": "19.2.9"
   },
@@ -21,5 +22,7 @@
     "@types/react-dom": "19.2.2",
     "typescript": "5.9.3"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }

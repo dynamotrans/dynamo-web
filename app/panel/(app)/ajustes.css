@@ -23,3 +23,6 @@ a.sidebar-brand { text-decoration: none; color: inherit; }
   /* Sin el logo, la cajita de la izquierda se queda vacía en Dynamo (no lleva Soporte). */
   .topbar-leftbar:not(:has(.topbar-contact-wrap)) { display: none; }
 }
+
+/* Botones que son enlaces (abrir un PDF en el visor): mismo aspecto que los botones. */
+.dash-modal-actions a.btn-primary, .dash-modal-actions a.btn-secondary { text-decoration: none; }
