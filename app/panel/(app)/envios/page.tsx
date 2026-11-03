@@ -2,6 +2,8 @@ import { sesion, esDynamo } from '@/lib/sesion';
 import type { EnvioFila, Parada } from '@/lib/envios';
 import TablaEnvios from '@/components/panel/TablaEnvios';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
+import FichaEnvio from '@/components/panel/FichaEnvio';
+import { cargarFicha, cargarTransportistasParaAsignar } from '@/lib/fichaEnvio';
 
 export const dynamic = 'force-dynamic';
 export default async function PaginaEnvios({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -61,5 +63,19 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     }
   }
 
-  return <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} error={error} nuevo={sp.nuevo} />;
+  // Ficha de un envío (?ver=<id>), encima de la lista. Solo Dynamo por ahora (etapa A).
+  let ficha = null, transportistas: Awaited<ReturnType<typeof cargarTransportistasParaAsignar>> = [], errorFicha: string | null = null;
+  if (dynamo && sp.ver) {
+    const [r, t] = await Promise.all([cargarFicha(supabase, sp.ver), cargarTransportistasParaAsignar(supabase)]);
+    ficha = r.ficha; errorFicha = r.error; transportistas = t;
+  }
+  const sinVer = new URLSearchParams(Object.entries(sp).filter(([k, v]) => k !== 'ver' && v) as [string, string][]).toString();
+  const cerrarHref = `/panel/envios${sinVer ? `?${sinVer}` : ''}`;
+
+  return (
+    <>
+      <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} error={error ?? errorFicha} nuevo={sp.nuevo} />
+      {ficha && <FichaEnvio key={ficha.envio.id} ficha={ficha} transportistas={transportistas} cerrarHref={cerrarHref} />}
+    </>
+  );
 }

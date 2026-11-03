@@ -1594,3 +1594,45 @@ do $$ declare a uuid; begin
   end if;
   raise notice 'OK 57 · almacenes Dynamo: precio propio opcional, por defecto en parametros, solo en almacenes';
 end $$;
+
+-- =====================================================================================
+-- FICHA DEL ENVÍO (2026-11-03)
+-- =====================================================================================
+-- ---- 58. Cancelar con motivo y deshacer: vuelve al estado de antes; solo Dynamo -------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid; r jsonb; v text; begin
+  select (crear_envio(
+    jsonb_build_object('cliente_id', current_setting('prueba.cliente'), 'metros_lineales', 13.3,
+                       'fecha_carga_desde', current_date + 20, 'importe_cliente', 900),
+    jsonb_build_array(
+      jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Origen 58', 'codigo_postal', '41001', 'poblacion', 'Sevilla'),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 58', 'codigo_postal', '28001', 'poblacion', 'Madrid'))
+  )).id into e;
+  update envios set estado = 'hacia_la_carga' where id = e;
+  r := cancelar_envio(e, 'El cliente ya no tiene la mercancía');
+  if (select estado from envios where id = e) <> 'cancelado' then raise exception 'FALLO 58 · no se ha cancelado'; end if;
+  if not exists (select 1 from envio_hitos where envio_id = e and hito = 'incidencia'
+                 and datos ->> 'motivo_cancelacion' = 'El cliente ya no tiene la mercancía') then
+    raise exception 'FALLO 58 · el motivo no ha quedado en el historial';
+  end if;
+  if (r ->> 'penalizacion')::boolean then raise exception 'FALLO 58 · penalizacion sin camion asignado'; end if;
+  v := deshacer_cancelacion(e);
+  if v <> 'hacia_la_carga' or (select estado from envios where id = e) <> 'hacia_la_carga' then
+    raise exception 'FALLO 58 · no ha vuelto al estado de antes: %', v;
+  end if;
+  perform set_config('prueba.envio58', e::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin
+    perform cancelar_envio(current_setting('prueba.envio58')::uuid, 'yo');
+    raise exception 'FALLO 58 · un cliente ha usado la cancelacion de Dynamo';
+  exception when insufficient_privilege then null;
+  end;
+  raise notice 'OK 58 · ficha del envio: cancelar con motivo y deshacer al estado de antes, solo Dynamo';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import FilaEnlace from './FilaEnlace';
 import { euros } from '@/lib/formato';
 import { esDynamo, type Rol } from '@/lib/sesion';
 import {
@@ -95,7 +96,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
               <tr><td colSpan={columnas} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
                 {filas.length === 0 ? 'Todavía no hay envíos.' : 'Sin envíos en este filtro'}
               </td></tr>
-            ) : trozo.map((e) => <FilaEnvio key={e.id} e={e} rol={rol} dynamo={dynamo} creador={e.creado_por ? nombres[e.creado_por] : undefined} />)}
+            ) : trozo.map((e) => <FilaEnvio key={e.id} e={e} rol={rol} dynamo={dynamo} creador={e.creado_por ? nombres[e.creado_por] : undefined} href={dynamo ? url({ p: pag, ver: e.id }) : undefined} />)}
           </tbody>
         </table>
       </div>
@@ -136,7 +137,7 @@ function Parada({ p, fechaTxt, tipo }: { p: Parada; fechaTxt: string; tipo: 'ori
   );
 }
 
-function FilaEnvio({ e, rol, dynamo, creador }: { e: EnvioFila; rol: string; dynamo: boolean; creador?: string }) {
+function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: string; dynamo: boolean; creador?: string; href?: string }) {
   const ev = estadoVisual(e);
   const asig = asignacion(e);
   const { recogidas, entregas } = paradasDe(e);
@@ -149,7 +150,7 @@ function FilaEnvio({ e, rol, dynamo, creador }: { e: EnvioFila; rol: string; dyn
   const completo = e.tipo_carga === 'completa';
 
   return (
-    <tr className={urgencia(e) || undefined}>
+    <Fila href={href} className={urgencia(e) || undefined}>
       <td className="ref">
         <div className="envio-estado envio-estado-top"><span className={`badge badge-${ev.color}`}>{ev.label}</span></div>
         <strong>#{e.referencia_gx}</strong>
@@ -219,6 +220,11 @@ function FilaEnvio({ e, rol, dynamo, creador }: { e: EnvioFila; rol: string; dyn
           {e.modificado_en && <div className="meta" style={{ whiteSpace: 'nowrap' }}>Modificación: {creadoTxt(e.modificado_en)}</div>}
         </td>
       )}
-    </tr>
+    </Fila>
   );
+}
+
+// Dynamo abre la ficha al pulsar la fila; los demás (etapas B y C) aún no tienen ficha.
+function Fila({ href, className, children }: { href?: string; className?: string; children: React.ReactNode }) {
+  return href ? <FilaEnlace href={href} className={className}>{children}</FilaEnlace> : <tr className={className}>{children}</tr>;
 }
