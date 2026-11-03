@@ -5,6 +5,11 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 ## 🔥 Prioridad alta
 
 ### Plataforma real (Next.js) — "Nuevo envío" v1 hecho (2026-11-03), lo que falta
+- [ ] 🙋 **Lo que necesita al usuario (2026-11-03, tarde)**: (1) poner el **IBAN** de Dynamo en Parámetros
+      (`dynamo_iban`; la proforma lo pide por teléfono mientras esté vacío); (2) **decidir el alta online de
+      transportistas nuevos** desde el enlace de una carga (hoy: «contáctanos»; ¿se abre?, ¿qué se verifica:
+      seguro CMR, tarjeta de transporte, bolsa Alpega?); (3) al montar Postmark, `{{ .Token }}` en las plantillas
+      *Magic Link* y *Confirm signup* de Supabase Auth (código del alta de clientes).
 - [ ] 🔥 **NOTIFICACIONES por WhatsApp y email** — apartado MUY importante (usuario, 2026-11-03). Plan
       completo, proveedores y catálogo de avisos en **`NOTIFICACIONES.md`**. Pendiente: que el usuario pegue
       en Vercel las credenciales de WhatsApp (Meta) y de Postmark, y revisar el catálogo caso a caso.

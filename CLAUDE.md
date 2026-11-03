@@ -370,6 +370,27 @@ que cada pantalla esté pasada a datos reales (patrón estrangulador).
 
 Registro automático de sesiones. La entrada más reciente va arriba.
 
+### 2026-11-03 (continuación, tarde) — Claude Code web (nube)
+
+> **Seguimos con la lista sin parar (regla 0-sexies), todo en `pruebas`.** `main` sin tocar. Cada subida en verde (Supabase + Vercel). El arnés pasa **83 comprobaciones**. Último push: **`ce0c5f2`**.
+
+- **Alta de clientes en la plataforma** (`/panel/registro`, diseño de `registro.html`): datos de la empresa con el **CIF/NIF validado** (el validador europeo del mockup, ahora en `lib/idFiscal.ts`, también en el servidor) → **código de 6 cifras** por email (`/panel/registro/codigo`, cajitas de `verificar.html`) → contraseña. La cuenta nace **pendiente** y sale en *Altas* con lo que escribió; mientras, puede subir **hoja del CIF y DNI**. «Crear cuenta» de la entrada ya lleva ahí.
+- **Transportista sin cuenta** (`/carga/<enlace>`): tras aceptar, **abre su orden de carga en PDF** y el **CMR digital** desde la misma página (llave: su reserva aceptada). **Selector de idioma** (12 idiomas) en esa página y en la de firmar el CMR.
+- **CMR**: casillas **7, 8 y 12** (bultos, embalaje, volumen) — se rellenan en la ficha del envío (Dynamo, o el cliente antes de cargar y sin firmas).
+- **Ficha del envío**: «**Guardar copia**» de la orden y del CMR en sus documentos (con huella sha256).
+- **Nuevo envío**: el sitio nuevo lleva **su horario**; y su contacto/horario se guardan también en las solicitudes y envíos manuales del cliente (antes solo en los de Dynamo — fallo corregido).
+- **Incidencias y Penalizaciones**: el buscador de envíos **busca en la base de datos** (antes cargaba 3.000).
+- **Usuarios**: «**Cambiar email…**» (con el email actual como confirmación).
+- **Sitios**: «**Ver ejemplo →**» del email de avisos.
+- **Almacenamientos**: **proforma en PDF**, pestaña **Pendiente de pago** y **Marcar como pagado**. Datos bancarios de Dynamo en Parámetros.
+- 🐛 **Cazado a tiempo**: los PDF que se generan fuera del visor no llevaban sus imágenes en la función de Vercel (`next.config.mjs` → `outputFileTracingIncludes`); añadidas las rutas nuevas.
+
+**Necesita al usuario** (además de lo de la entrada de abajo: Postmark, clave de servicio, Redirect URL, Google Maps, tarifa):
+1. **IBAN** de Dynamo en Parámetros → `dynamo_iban` (la proforma lo pide por teléfono mientras esté vacío).
+2. Al configurar Postmark: que las plantillas *Magic Link* y *Confirm signup* de Supabase Auth lleven **`{{ .Token }}`** (el código de 6 cifras del alta).
+3. **Decidir el alta online de transportistas nuevos** desde el enlace de una carga (hoy se les dice que contacten: «solo trabajamos con transportistas de bolsas del grupo Alpega»). ¿Se abre? ¿Con qué verificación (seguro, tarjeta de transporte)?
+4. Probar en `pruebas`: el alta de un cliente de punta a punta, una proforma, «Guardar copia», abrir la orden desde `/carga/<enlace>`.
+
 ### 2026-11-03 — Claude Code web (nube)
 
 > **Sesión maratoniana de la PLATAFORMA REAL (Next.js + Supabase), todo en `pruebas`.** `main` sin tocar. Se terminó la etapa A (Dynamo por dentro) y se montó lo principal de las etapas **B (cliente)** y **C (transportista)**. Último push: **`f03baab`** (Supabase y Vercel en verde en cada subida). El arnés de migraciones pasa **74 comprobaciones** de seguridad.
