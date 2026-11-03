@@ -94,7 +94,7 @@ migración nueva:
 | Con unidad | la unidad al final | `margen_euros`, `banda_pct` |
 
 Y un nombre para cada dato, en todas las tablas: **`codigo_postal`** (nunca `cp`),
-**`poblacion`** (nunca `localidad` ni `ciudad`), **`anotaciones`** (nunca `notas` ni
+**`poblacion`** (nunca `localidad` ni `ciudad`), **`direccion`** (calle y número; nunca `calle`), **`anotaciones`** (nunca `notas` ni
 `observaciones`) y **`pais_codigo_iso`** ('ES'; el nombre del país no se guarda, se saca
 del código). La prueba 47 del arnés avisa si vuelve a aparecer uno de los viejos.
 

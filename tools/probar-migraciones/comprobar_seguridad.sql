@@ -1191,7 +1191,7 @@ do $$ declare v text; begin
   select string_agg(table_name || '.' || column_name, ', ') into v
     from information_schema.columns
    where table_schema = 'public'
-     and column_name in ('cp', 'cp_origen', 'cp_destino', 'notas', 'observaciones', 'localidad', 'pais');
+     and column_name in ('cp', 'cp_origen', 'cp_destino', 'notas', 'observaciones', 'localidad', 'pais', 'calle');
   if v is not null then raise exception 'FALLO 47 · columnas con nombre viejo: %', v; end if;
 
   select string_agg(p.proname, ', ') into v
@@ -1212,3 +1212,73 @@ do $$ declare v text; begin
   if not found then raise exception 'FALLO 47 · la ruta denormalizada no se rellena'; end if;
   raise notice 'OK 47 · nombres unificados (codigo_postal, anotaciones, poblacion, pais_codigo_iso) en tablas, funciones y vistas';
 end $$;
+
+-- =====================================================================================
+-- CREAR ENVÍO (2026-11-03)
+-- =====================================================================================
+-- ---- 48. crear_envio(): de una vez, con paradas; solo Dynamo; todo o nada ----------
+do $$ declare
+  v_admin uuid := gen_random_uuid(); v_cli uuid; v_lugar uuid; r record; n int; v_cli_user uuid := gen_random_uuid();
+begin
+  insert into auth.users (id, email) values (v_admin, 'admin48@dynamo.test'), (v_cli_user, 'cli48@cliente.test');
+  update usuarios set rol = 'admin', estado = 'activa' where id = v_admin;
+  insert into clientes (razon_social, cif) values ('Prueba 48 SL', 'B48484848') returning id into v_cli;
+  insert into lugares (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia)
+    values (v_cli, 'Nave 48', 'C/ Uno 1', '41001', 'Sevilla', 'Sevilla') returning id into v_lugar;
+  update usuarios set cliente_id = v_cli, estado = 'activa' where id = v_cli_user;
+
+  -- Dynamo crea: una parada de la agenda (se copia) y otra suelta que se guarda en la agenda.
+  perform set_config('request.jwt.claim.sub', v_admin::text, true);
+  set local role authenticated;
+  select * into r from crear_envio(
+    jsonb_build_object('cliente_id', v_cli, 'fecha_carga_desde', '2026-12-14', 'fecha_carga_hasta', '2026-12-16',
+                       'metros_lineales', 13.3, 'toneladas', 24, 'importe_cliente', 1230, 'importe_transportista', 1050),
+    jsonb_build_array(
+      jsonb_build_object('tipo', 'carga', 'lugar_id', v_lugar, 'referencia', 'REF-1'),
+      jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 48', 'direccion', 'Av. Dos 2',
+                         'codigo_postal', '28001', 'poblacion', 'Madrid', 'guardar_en_agenda', true)));
+  reset role;
+  if r.referencia_gx !~ '^GX[0-9]{9}$' then raise exception 'FALLO 48 · referencia GX: %', r.referencia_gx; end if;
+  if (select estado from envios where id = r.id) <> 'programado' then raise exception 'FALLO 48 · no queda programado'; end if;
+  if (select codigo_postal_origen || '>' || codigo_postal_destino from envios where id = r.id) <> '41001>28001' then
+    raise exception 'FALLO 48 · la ruta no se rellena';
+  end if;
+  if (select direccion from envio_paradas where envio_id = r.id and orden = 1) <> 'C/ Uno 1' then
+    raise exception 'FALLO 48 · no copia la direccion del sitio';
+  end if;
+  if not exists (select 1 from lugares where cliente_id = v_cli and nombre_empresa = 'Destino 48') then
+    raise exception 'FALLO 48 · el sitio nuevo no se guarda en la agenda del cliente';
+  end if;
+  if not (select precio_fijado_a_mano from envios where id = r.id) then raise exception 'FALLO 48 · precio a mano'; end if;
+
+  -- Una ruta mal hecha (empieza por entrega) no deja NADA a medias.
+  select count(*) into n from envios where cliente_id = v_cli;
+  begin
+    perform set_config('request.jwt.claim.sub', v_admin::text, true);
+    set local role authenticated;
+    perform crear_envio(jsonb_build_object('cliente_id', v_cli),
+      jsonb_build_array(jsonb_build_object('tipo', 'descarga', 'poblacion', 'A'),
+                        jsonb_build_object('tipo', 'carga', 'poblacion', 'B')));
+    raise exception 'FALLO 48 · deja crear una ruta que empieza por entrega';
+  exception when others then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  reset role;
+  if (select count(*) from envios where cliente_id = v_cli) <> n then raise exception 'FALLO 48 · queda un envio a medias'; end if;
+
+  -- Un cliente no puede (etapa A).
+  begin
+    perform set_config('request.jwt.claim.sub', v_cli_user::text, true);
+    set local role authenticated;
+    perform crear_envio(jsonb_build_object('cliente_id', v_cli),
+      jsonb_build_array(jsonb_build_object('tipo', 'carga', 'poblacion', 'A'),
+                        jsonb_build_object('tipo', 'descarga', 'poblacion', 'B')));
+    raise exception 'FALLO 48 · un cliente crea envios';
+  exception when others then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  reset role;
+  raise notice 'OK 48 · crear_envio: de una vez con sus paradas (agenda o sueltas), todo o nada, solo Dynamo';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

@@ -61,5 +61,5 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     }
   }
 
-  return <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} error={error} />;
+  return <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} error={error} nuevo={sp.nuevo} />;
 }

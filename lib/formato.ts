@@ -6,7 +6,14 @@ export function euros(n: number | string | null | undefined): string {
   if (n === null || n === undefined || n === '') return '—';
   const v = typeof n === 'string' ? Number(n) : n;
   if (!Number.isFinite(v)) return '—';
-  return v.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  return importe(v) + ' €';
+}
+
+// "1.230,00": 2 decimales y punto de miles SIEMPRE. (toLocaleString('es-ES') no pone el
+// punto en los números de 4 cifras — "1230,00" —, por eso se hace a mano.)
+export function importe(v: number): string {
+  const [ent, dec] = Math.abs(v).toFixed(2).split('.');
+  return (v < 0 ? '-' : '') + ent.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + dec;
 }
 
 const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];

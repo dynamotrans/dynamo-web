@@ -3,6 +3,20 @@
 Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo actualiza al terminar.
 
 ## 🔥 Prioridad alta
+
+### Plataforma real (Next.js) — "Nuevo envío" v1 hecho (2026-11-03), lo que falta
+- [ ] **Buscador de direcciones con Google Places** (regla 13) en el sitio nuevo. Hoy la dirección se
+      escribe a mano. Hace falta la clave de Google Maps en Vercel (`NEXT_PUBLIC_GOOGLE_MAPS_KEY`, solo
+      Preview, restringida por referente) — ver `PRODUCCION.md` §06-07.
+- [ ] **Tarifador**: hoy el precio lo pone Dynamo a mano (`precio_fijado_a_mano`). Lo último del
+      proyecto (decisión del usuario); el precio lo calculará SIEMPRE el servidor.
+- [ ] Teléfono y persona de contacto del sitio nuevo (tabla `contactos` con `lugar_id`) y horario
+      copiado a la parada.
+- [ ] Negociación del precio del transportista (±5/10/30 %) al crear: hoy se fija al ofertar.
+- [ ] Avisos del mockup en el paso 4: horario de verano, festivo en la ventana, tráiler sin trampilla,
+      precios dinámicos a +7 días, condiciones generales y forma de pago (CESCE).
+- [ ] Etapa B: que el CLIENTE cree sus envíos (hoy `crear_envio()` solo deja a Dynamo).
+
 <!-- Cosas urgentes -->
 - [ ] **TARIFAS EN LA BASE DE DATOS — LO ÚLTIMO DE TODO (decisión del usuario, 2026-11-03)**: *«Esto al final del todo. Cuando todo esté montado hacemos esto.»* La migración de tarifas (tarifas con vigencia + plantillas de texto) se deja para cuando el resto de la plataforma esté montado y conectado. Ese día hará falta su **libro de tarifar** y el **código del Apps Script** (incluido el del gasóleo, `gasoil.gs`). No proponerla antes.
 - [ ] **🛡️ PRODUCTION-READINESS — checklist completa en `PRODUCCION.md` (14 puntos, creada 2026-10-12). Es para el despliegue de la plataforma REAL (Supabase + código), no para el mockup de hoy; se repasa entera antes de abrir el portal a clientes.** Resumen de los huecos (revisión 2026-10-12 contra la checklist de 10 puntos que pasó el usuario)**. De los 10 puntos genéricos de esa guía, el repo cumple 5, va parcial en 2 y 3 no aplican todavía (no hay backend). Lo accionable de verdad es esto, y **dos de los cuatro no están en esa lista**:

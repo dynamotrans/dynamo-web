@@ -21,10 +21,10 @@ const SubBase = () => (<><br /><span style={{ fontWeight: 600, color: 'var(--gra
 
 type Props = {
   filas: EnvioFila[]; nombres: Record<string, string>; rol: Rol;
-  f?: string; q: string; p?: string; error: string | null;
+  f?: string; q: string; p?: string; error: string | null; nuevo?: string;
 };
 
-export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pParam, error }: Props) {
+export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pParam, error, nuevo }: Props) {
   const dynamo = esDynamo(rol);
   // ---- Pestaña, buscador y página
   const pestanas = PESTANAS.filter((p) => dynamo || !p.soloDynamo);
@@ -67,6 +67,12 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
         <input type="search" name="q" defaultValue={q}
                placeholder="Buscar por cualquier dato: nº, empresa, dirección, teléfono, ruta, mercancía…" />
       </form>
+
+      {nuevo && (
+        <div className="pt-aviso info" role="status"><div>
+          <strong>Envío #{nuevo} creado.</strong> Queda programado, a la espera de asignar transportista.
+        </div></div>
+      )}
 
       {error && (
         <div className="pt-aviso error">No se han podido cargar los envíos: {error}</div>
