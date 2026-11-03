@@ -78,7 +78,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       llevar `{{ .Token }}` además del enlace — se hace al configurar Postmark); (3) el aviso por email al
       confirmar o suspender un alta (U3); (4) el mantenimiento hoy cierra las pantallas y la página pública:
       valorar cerrarlo también en la base de datos (permisos por fila) para quien llame directamente a la API;
-      (5) cambiar el email de un usuario desde el panel (hoy se pide a Dynamo).
+      (5) ~~cambiar el email de un usuario desde el panel~~ (hecho 2026-11-03: Usuarios → «Cambiar email…», con el email actual como confirmación; necesita la clave de servicio en Vercel).
 - [ ] **Dashboards cliente y admin (pasados 2026-11-03)** — falta: en el del cliente, el **CESCE** (estado de
       cobertura del mockup) cuando se decida de dónde sale; en el de admin, lo que el usuario quiera añadir
       («luego te digo todo»: ventas y margen del mes, envíos por día, transportistas más usados…). La línea de

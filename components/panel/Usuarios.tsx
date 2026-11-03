@@ -8,7 +8,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
-import { guardarUsuario, cambiarRol, invitarUsuario, reenviarInvitacion, type UsuarioDatos } from '@/app/panel/(app)/usuarios/acciones';
+import { guardarUsuario, cambiarRol, cambiarEmail, invitarUsuario, reenviarInvitacion, type UsuarioDatos } from '@/app/panel/(app)/usuarios/acciones';
 import type { Rol } from '@/lib/sesion';
 import { creadoTxt } from '@/lib/envios';
 import { PREFIJOS, partirTel, telBonito } from '@/lib/paises';
@@ -59,6 +59,7 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
   const [fRol, setFRol] = useState('');
   const [ficha, setFicha] = useState<UsuarioFila | null>(null);
   const [rolDe, setRolDe] = useState<UsuarioFila | null>(null);
+  const [emailDe, setEmailDe] = useState<UsuarioFila | null>(null);
   const [invitar, setInvitar] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
 
@@ -131,7 +132,9 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
       </div>
 
       {ficha && <FichaUsuario u={ficha} yo={yo} clientes={clientes} transportistas={transportistas}
-        onCerrar={() => setFicha(null)} onCambiarRol={() => { setRolDe(ficha); setFicha(null); }} onHecho={hecho} />}
+        onCerrar={() => setFicha(null)} onCambiarRol={() => { setRolDe(ficha); setFicha(null); }} onHecho={hecho}
+        onCambiarEmail={!interno(ficha.rol) || yo.rol === 'admin' ? () => { setEmailDe(ficha); setFicha(null); } : undefined} />}
+      {emailDe && <CambiarEmail u={emailDe} onCerrar={() => { setFicha(emailDe); setEmailDe(null); }} onHecho={hecho} />}
       {rolDe && <CambiarRol u={rolDe} yo={yo} clientes={clientes} transportistas={transportistas}
         onCerrar={() => { setFicha(rolDe); setRolDe(null); }} onHecho={hecho} />}
       {invitar && <Invitar yo={yo} clientes={clientes} transportistas={transportistas} onCerrar={() => setInvitar(false)} onHecho={hecho} />}
@@ -177,9 +180,9 @@ const telDe = (t: { pref: string; num: string }) => t.num.trim() ? t.pref + t.nu
 const IcoUsuario = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>);
 
 // ---- Ficha --------------------------------------------------------------------------
-function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol, onHecho }: {
+function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol, onCambiarEmail, onHecho }: {
   u: UsuarioFila; yo: { id: string; rol: Rol }; clientes: Empresa[]; transportistas: Empresa[];
-  onCerrar: () => void; onCambiarRol: () => void; onHecho: (t: string) => void;
+  onCerrar: () => void; onCambiarRol: () => void; onCambiarEmail?: () => void; onHecho: (t: string) => void;
 }) {
   const [d, setD] = useState<UsuarioDatos>({
     nombre: u.nombre, documento: u.documento, telefono: u.telefono, cargo: u.cargo, idioma: u.idioma || 'es',
@@ -232,7 +235,10 @@ function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol,
       <div className="ptar-sitio-grid">
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="usr-email">Email (usuario de acceso)</label>
-          <input id="usr-email" className="sitio-f-lock" readOnly tabIndex={-1} value={u.email} />
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <input id="usr-email" className="sitio-f-lock" readOnly tabIndex={-1} value={u.email} style={{ flex: 1 }} />
+            {onCambiarEmail && <button type="button" className="btn-secondary" style={{ minHeight: 34, padding: '0 0.8rem', whiteSpace: 'nowrap' }} onClick={onCambiarEmail}>Cambiar email…</button>}
+          </div>
         </div>
         <div>
           <label>Tipo de usuario</label>
@@ -297,6 +303,42 @@ function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol,
 }
 
 // ---- Cambiar el rol (acción deliberada) ---------------------------------------------
+// Cambiar el email de acceso (cuando el cliente o el transportista lo pide): con el email
+// actual tecleado como confirmación. Desde ese momento entra con el nuevo.
+function CambiarEmail({ u, onCerrar, onHecho }: { u: UsuarioFila; onCerrar: () => void; onHecho: (t: string) => void }) {
+  const [nuevo, setNuevo] = useState('');
+  const [conf, setConf] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [trabajando, setTrabajando] = useState(false);
+  async function confirmar() {
+    setError(null); setTrabajando(true);
+    const r = await cambiarEmail(u.id, nuevo, conf);
+    setTrabajando(false);
+    if (!r.ok) { setError(r.error); return; }
+    onHecho(`El usuario ${u.email} entra ahora con ${nuevo.trim().toLowerCase()}. Queda en el registro de auditoría.`);
+  }
+  return (
+    <Modal abierto titulo={`Cambiar email — ${u.email}`} sub="El email es el usuario con el que entra en la plataforma" icono={<IcoUsuario />} onCerrar={onCerrar}
+      pie={<>
+        <button className="btn-ghost" onClick={onCerrar} disabled={trabajando}>Cancelar</button>
+        <button className="btn-primary" onClick={confirmar} disabled={trabajando || !nuevo.trim() || !conf.trim()}>{trabajando ? 'Cambiando…' : 'Cambiar email'}</button>
+      </>}>
+      {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+      <div className="modal-warn-box">Hazlo solo si te lo pide <strong>el propio usuario</strong> o su empresa (por teléfono o desde su email de siempre). Desde ese momento entra con el email nuevo y su contraseña de siempre; los avisos le llegan al nuevo.</div>
+      <div className="ptar-sitio-grid">
+        <div style={{ gridColumn: '1/-1' }}>
+          <label htmlFor="email-nuevo">Email nuevo</label>
+          <input id="email-nuevo" type="email" inputMode="email" autoComplete="off" placeholder="nuevo@empresa.com" value={nuevo} onChange={(e) => setNuevo(e.target.value)} />
+        </div>
+        <div style={{ gridColumn: '1/-1' }}>
+          <label htmlFor="email-conf">Para confirmar, <strong>escribe el email actual</strong></label>
+          <input id="email-conf" type="text" inputMode="email" autoComplete="off" placeholder={u.email} value={conf} onChange={(e) => setConf(e.target.value)} />
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function CambiarRol({ u, yo, clientes, transportistas, onCerrar, onHecho }: {
   u: UsuarioFila; yo: { id: string; rol: Rol }; clientes: Empresa[]; transportistas: Empresa[];
   onCerrar: () => void; onHecho: (t: string) => void;

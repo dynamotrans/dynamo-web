@@ -112,3 +112,26 @@ export async function reenviarInvitacion(id: string): Promise<Res> {
   const { error } = await servicio.auth.admin.inviteUserByEmail(u.email as string, { redirectTo: `${await origen()}/panel/confirmar` });
   return error ? { ok: false, error: traducir(error.message) } : { ok: true };
 }
+
+// Cambiar el email (el usuario de acceso) de una cuenta, cuando el cliente o el
+// transportista lo pide. Con el email ACTUAL tecleado como confirmación, como el cambio
+// de rol. El email de una cuenta interna solo lo cambia un administrador. Supabase no
+// deja repetir email (regla 10) y el perfil se actualiza solo (trigger de la base de
+// datos). Necesita la clave de servicio: con la pública no se puede.
+export async function cambiarEmail(id: string, nuevo: string, emailConfirmacion: string): Promise<Res> {
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo el equipo de Dynamo gestiona usuarios.' };
+  const email = nuevo.trim().toLowerCase();
+  if (!EMAIL.test(email)) return { ok: false, error: 'Escribe un email válido.' };
+  const { data: u } = await s.supabase.from('usuarios').select('email, rol').eq('id', id).single();
+  if (!u) return { ok: false, error: 'Ese usuario no existe.' };
+  if (emailConfirmacion.trim().toLowerCase() !== String(u.email).toLowerCase()) {
+    return { ok: false, error: 'El email actual no coincide. Escríbelo exactamente para confirmar el cambio.' };
+  }
+  if (email === String(u.email).toLowerCase()) return { ok: false, error: 'Es el mismo email que ya tiene.' };
+  if (esDynamo(u.rol as Rol) && s.perfil!.rol !== 'admin') return { ok: false, error: 'El email de una cuenta de Dynamo solo lo cambia un administrador.' };
+  const servicio = supabaseServicio();
+  if (!servicio) return { ok: false, error: 'Falta conectar la clave de servicio de Supabase en Vercel (SUPABASE_SERVICE_ROLE_KEY).' };
+  const { error } = await servicio.auth.admin.updateUserById(id, { email, email_confirm: true });
+  return error ? { ok: false, error: traducir(error.message) } : { ok: true };
+}
