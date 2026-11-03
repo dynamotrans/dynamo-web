@@ -15,7 +15,10 @@ export default async function PaginaCarga({ params }: { params: Promise<{ token:
   const sb = supabasePublico();
   const valido = /^[0-9a-f-]{36}$/i.test(token);
   let oferta: any = null, reserva: any = null, error = false;
-  if (sb && valido) {
+  // En modo mantenimiento la página se para (sale el aviso de mantenimiento).
+  const { data: mant } = sb ? await sb.rpc('mantenimiento_activo') : { data: false };
+  if (mant) error = true;
+  else if (sb && valido) {
     const { data, error: e } = await sb.rpc('oferta_publica', { p_token: token });
     if (e) error = true; else oferta = data;
     const id = (await cookies()).get(cookieReserva(token))?.value;

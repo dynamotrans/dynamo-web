@@ -43,3 +43,11 @@ a.sidebar-brand { text-decoration: none; color: inherit; }
 }
 .btn-dropdown-menu a svg { color: var(--purple); flex: none; }
 .btn-dropdown-menu a:hover { background: rgba(51,0,204,0.07); color: var(--purple); }
+/* Parámetros: cajas de valor dentro de la tabla, con el aspecto de los campos del panel. */
+.param-input {
+  height: 38px; padding: 0 0.7rem; border: 1.5px solid var(--gray-200); border-radius: 10px; background: #fff;
+  font: inherit; font-size: var(--fs-m); color: var(--navy); width: 100%; box-sizing: border-box;
+}
+.param-input:hover { border-color: var(--purple); }
+.param-input:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(51,0,204,0.08); }
+.param-input:disabled { background: var(--gray-50); color: var(--gray-500); }

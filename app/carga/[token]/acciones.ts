@@ -9,9 +9,14 @@ import { cookieReserva } from '@/lib/cargaPublica';
 // los datos completos después. Solo la tiene quien reservó.
 const ERROR_CONEXION = 'No se puede conectar ahora mismo. Vuelve a intentarlo en un momento.';
 
+async function enMantenimiento(sb: NonNullable<ReturnType<typeof supabasePublico>>) {
+  const { data } = await sb.rpc('mantenimiento_activo');
+  return !!data;
+}
+
 export async function reservar(token: string): Promise<{ resultado: string; hasta?: string; desde?: string; ahora?: string }> {
   const sb = supabasePublico();
-  if (!sb) return { resultado: 'error' };
+  if (!sb || await enMantenimiento(sb)) return { resultado: 'error' };
   const h = await headers();
   const ip = (h.get('x-forwarded-for') ?? '').split(',')[0].trim() || null;
   const { data, error } = await sb.rpc('reservar_envio', { p_token: token, p_ip: ip, p_navegador: h.get('user-agent') });
@@ -29,6 +34,7 @@ export async function aceptar(token: string, a: Aceptacion): Promise<{ resultado
   const sb = supabasePublico();
   const reserva = (await cookies()).get(cookieReserva(token))?.value;
   if (!sb || !reserva) return { resultado: 'error', error: 'Tu reserva no está en este navegador. Vuelve a abrir el enlace.' };
+  if (await enMantenimiento(sb)) return { resultado: 'error', error: 'La plataforma está en mantenimiento. Vuelve a intentarlo en un rato o llámanos al +34 955 225 945.' };
   const { data, error } = await sb.rpc('aceptar_oferta_publica', {
     p_reserva: reserva, p_cif: a.cif, p_precio: a.precio, p_pronto_pago: a.pronto_pago,
     p_camion: a.camion, p_remolque: a.remolque, p_conductor: a.conductor, p_telefono: a.telefono,

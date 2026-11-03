@@ -47,6 +47,13 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       (CIF, dirección, Wtransnet, O.T.) a `parametros` para no tocar código si cambian. El contenido y las
       condiciones salen de la orden real GX61034 (feb. 2026); si el paquete DeCA aprobado (`FORMATOS.md`)
       trae otro diseño, se adapta cuando el usuario lo pase.
+- [ ] **Operadores, Mi cuenta, Altas pendientes, Mantenimiento y Parámetros (pasados 2026-11-03)** — falta:
+      (1) el **logo** del operador para su orden de transporte y los **documentos** del alta (hoja CIF, DNI):
+      necesitan Supabase Storage; (2) que el **registro público** guarde en los metadatos de Supabase Auth lo
+      que escribe (empresa, CIF, dirección, teléfono, DNI) para que salga en Altas; (3) el aviso por email al
+      confirmar o suspender un alta (U3); (4) el mantenimiento hoy cierra las pantallas y la página pública:
+      valorar cerrarlo también en la base de datos (permisos por fila) para quien llame directamente a la API;
+      (5) cambiar el email de un usuario desde el panel (hoy se pide a Dynamo).
 - [ ] **Dashboards cliente y admin (pasados 2026-11-03)** — falta: en el del cliente, el **CESCE** (estado de
       cobertura del mockup) cuando se decida de dónde sale; en el de admin, lo que el usuario quiera añadir
       («luego te digo todo»: ventas y margen del mes, envíos por día, transportistas más usados…). La línea de

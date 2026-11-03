@@ -1800,3 +1800,56 @@ do $$ begin
   raise notice 'OK 61 · linea de pronto pago: lo anticipado (60 dias) la consume; agotada o apagada, las ofertas salen sin pronto pago';
 end $$;
 reset role;
+
+-- =====================================================================================
+-- ---- 62. Altas pendientes: solo Dynamo ve lo que escribió quien se registra -----------
+do $$ declare n uuid; begin
+  insert into auth.users (email, raw_user_meta_data)
+    values ('alta62@empresa.prueba', '{"nombre": "Ana Alta", "empresa": "Alta 62 SL", "cif": "B62000062"}') returning id into n;
+  perform set_config('prueba.u_alta', n::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare r record; begin
+  select * into r from altas_pendientes() where email = 'alta62@empresa.prueba';
+  if r.id is null or r.datos ->> 'cif' <> 'B62000062' or r.nombre <> 'Ana Alta' then raise exception 'FALLO 62 · Dynamo no ve el alta: %', r; end if;
+  -- Confirmarla: se le asocia la empresa y pasa a activa en el mismo paso.
+  update usuarios set cliente_id = current_setting('prueba.cliente')::uuid, estado = 'activa' where id = r.id;
+  if exists (select 1 from altas_pendientes() where email = 'alta62@empresa.prueba') then raise exception 'FALLO 62 · sigue pendiente tras confirmarla'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin perform * from altas_pendientes(); raise exception 'FALLO 62 · un cliente ve las altas pendientes';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 62 · altas pendientes: solo Dynamo ve los datos del registro; confirmar = empresa + activa';
+end $$;
+reset role;
+
+-- =====================================================================================
+-- ---- 63. Modo mantenimiento: lo enciende Dynamo y lo puede consultar cualquiera --------
+set role anon;
+do $$ begin
+  if mantenimiento_activo() then raise exception 'FALLO 63 · arranca en mantenimiento'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare n int; begin
+  update parametros set valor = 'true' where clave = 'mantenimiento_activo';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'FALLO 63 · un cliente enciende el mantenimiento'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+update parametros set valor = 'true' where clave = 'mantenimiento_activo';
+reset role;
+set role anon;
+do $$ begin
+  if not mantenimiento_activo() then raise exception 'FALLO 63 · anon no ve el mantenimiento encendido'; end if;
+end $$;
+reset role;
+update parametros set valor = 'false' where clave = 'mantenimiento_activo';
+do $$ begin raise notice 'OK 63 · mantenimiento: solo Dynamo lo enciende; cualquiera (también sin sesión) sabe si está encendido'; end $$;

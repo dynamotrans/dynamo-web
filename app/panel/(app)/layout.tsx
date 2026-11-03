@@ -1,4 +1,6 @@
-import { sesion, iniciales } from '@/lib/sesion';
+import Link from 'next/link';
+import { sesion, iniciales, esDynamo } from '@/lib/sesion';
+import PantallaMantenimiento from '@/components/PantallaMantenimiento';
 import SinConfigurar from '@/components/SinConfigurar';
 import Marco from '@/components/panel/Marco';
 import './dashboard.css';
@@ -10,11 +12,20 @@ export const dynamic = 'force-dynamic';
 export default async function LayoutPanel({ children }: { children: React.ReactNode }) {
   const s = await sesion();
   if (!s) return <SinConfigurar />;
-  const { user, perfil, empresa } = s;
+  const { supabase, user, perfil, empresa } = s;
   const nombre = perfil?.nombre || user.email || '';
+  // Modo mantenimiento (lo enciende Dynamo): clientes y transportistas no entran.
+  const { data: mant } = await supabase.rpc('mantenimiento_activo');
+  const dynamo = esDynamo(perfil?.rol);
+  if (mant && !dynamo) return <PantallaMantenimiento />;
   return (
     <Marco rol={perfil?.rol ?? 'cliente'} nombre={nombre} email={user.email ?? ''}
            empresa={empresa} iniciales={iniciales(perfil?.nombre, user.email ?? '')}>
+      {mant && (
+        <div className="pt-aviso error" style={{ marginBottom: '0.9rem' }}>
+          <div><strong>Modo mantenimiento ACTIVADO:</strong> clientes y transportistas no pueden entrar ni aceptar cargas. <Link href="/panel/mantenimiento" style={{ color: 'inherit', fontWeight: 800 }}>Desactivarlo →</Link></div>
+        </div>
+      )}
       {children}
     </Marco>
   );
