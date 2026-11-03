@@ -22,16 +22,16 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     const { data, error: e } = await supabase.from('envios').select(
       'id, referencia_gx, referencia_cliente, estado, estado_asignacion, es_manual, transportista_id, ' +
       'fecha_carga_desde, fecha_carga_hasta, fecha_carga_real, fecha_entrega_estimada, descripcion_mercancia, ' +
-      'toneladas, metros_lineales, tipo_carga, paletizado, poblacion_origen, cp_origen, poblacion_destino, cp_destino, ' +
+      'toneladas, metros_lineales, tipo_carga, paletizado, poblacion_origen, codigo_postal_origen, poblacion_destino, codigo_postal_destino, ' +
       'importe_cliente, importe_transportista, precio_acordado_operador, precio_fijado_a_mano, matricula_camion, ' +
       'matricula_remolque, creado_en, modificado_en, creado_por, clientes(nombre_visible, cif), operadores(razon_social), ' +
-      'envio_paradas(orden, tipo, nombre_empresa, direccion, cp, poblacion, provincia, pais_codigo_iso)')
+      'envio_paradas(orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)')
       .order('creado_en', { ascending: false }).limit(1000);
     if (e) error = e.message;
     filas = ((data ?? []) as any[]).map((x) => ({
       ...x, cliente: x.clientes?.nombre_visible ?? null, cliente_cif: x.clientes?.cif ?? null,
       operador: x.operadores?.razon_social ?? null, transportista_asignado: !!x.transportista_id,
-      paradas: (x.envio_paradas ?? []).map((p: any) => ({ ...p, pais: p.pais_codigo_iso })),
+      paradas: (x.envio_paradas ?? []) as Parada[],
     }));
   } else {
     const { data, error: e } = await supabase.rpc(rol === 'transportista' ? 'mis_viajes' : 'mis_envios').limit(1000);

@@ -77,6 +77,27 @@ reconstruir nada.
 | `20261103020000_exportaciones_holded_wtransnet.sql` | `v_holded_pedido_venta` (33 col.), `v_holded_pedido_compra` (34) y `v_wtransnet` (29) con **las cabeceras exactas** de las plantillas del Sheet; el porte y las penalizaciones confirmadas son líneas del mismo pedido; Wtransnet solo publica lo programado sin transportista y quieto 3 min; banderas `facturado_venta` / `facturado_compra`; ajustes de Holded en `parametros` | ✅ listo |
 | `20261103010000_permisos_por_rol.sql` | **permisos por rol**: Dynamo lee las tablas; cliente y transportista leen por funciones (`mis_envios`, `mis_viajes`, `mis_ofertas`, `mi_empresa`…) que solo dan sus filas y sus columnas; los envíos solo los escriben Dynamo y el servidor (el cliente cancela con `cancelar_mi_envio`); contactos, usuarios (nadie se cambia el rol, solo admin concede admin), flota, auditoría | ✅ listo |
 
+## Convención de nombres (2026-11-03)
+
+Fijada al unificar los nombres (`20261103040000_nombres_unificados.sql`). Se sigue en toda
+migración nueva:
+
+| Qué | Cómo | Ejemplos |
+|---|---|---|
+| Tablas | plural, minúsculas, `_` | `envios`, `envio_paradas` |
+| Columnas | **sin prefijo de tabla** (`envios.estado`, no `envio_estado`) | `estado`, `cif` |
+| Relación con otra tabla | `<tabla en singular>_id` | `cliente_id`, `envio_id` |
+| Fecha y hora | `*_en` (siempre `timestamptz`) | `creado_en`, `entregado_en` |
+| Fecha sin hora | `fecha_*` (`date`) | `fecha_carga_desde` |
+| Sí / no | `es_*`, `tiene_*`, `requiere_*` | `es_manual`, `requiere_cita` |
+| Dinero | `importe_*` | `importe_cliente` |
+| Con unidad | la unidad al final | `margen_euros`, `banda_pct` |
+
+Y un nombre para cada dato, en todas las tablas: **`codigo_postal`** (nunca `cp`),
+**`poblacion`** (nunca `localidad` ni `ciudad`), **`anotaciones`** (nunca `notas` ni
+`observaciones`) y **`pais_codigo_iso`** ('ES'; el nombre del país no se guarda, se saca
+del código). La prueba 47 del arnés avisa si vuelve a aparecer uno de los viejos.
+
 ## Seguridad por defecto: RLS en TODAS las tablas desde que nacen (2026-11-02)
 
 **El fallo, encontrado justo antes del primer despliegue.** 12 de las 15 tablas y las 5
@@ -177,7 +198,7 @@ se activa). Revisando el SQL a ojo no se veía; ejecutándolo, salió en la prim
 
 - **Ruta de 6 paradas** (4 recogidas + 2 entregas, orden 1-6) y **ruta mixta**
   (cargar → descargar → cargar → descargar). Sin techo de paradas.
-- **Origen y destino salen solos**: el trigger rellena `cp_origen`/`cp_destino`/`num_paradas`
+- **Origen y destino salen solos**: el trigger rellena `codigo_postal_origen`/`codigo_postal_destino`/`num_paradas`
   en `envios` desde las paradas. No se escriben a mano, así que no se pueden desincronizar.
 - `tipo_carga` **se deriva** de los metros: 13,60 m → `completa`, 6 m → `grupaje`.
 - Dos paradas con el mismo `orden` se rechazan; un `tipo` que no sea carga/descarga también.

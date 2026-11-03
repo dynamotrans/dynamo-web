@@ -392,7 +392,7 @@ En Postgres **no hacen falta**: con este índice
 
 ```sql
 CREATE INDEX idx_envios_ruta_cliente
-  ON envios (cliente_id, cp_origen, cp_destino, fecha_carga_desde DESC);
+  ON envios (cliente_id, codigo_postal_origen, codigo_postal_destino, fecha_carga_desde DESC);
 ```
 
 la consulta *"último precio de esta ruta para este cliente"* tarda **menos de 1 ms** con 30.000

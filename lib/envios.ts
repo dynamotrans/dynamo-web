@@ -5,8 +5,8 @@ import { fecha } from './formato';
 
 export type Parada = {
   orden: number; tipo: 'carga' | 'descarga'; nombre_empresa: string | null;
-  direccion: string | null; cp: string | null; poblacion: string | null;
-  provincia: string | null; pais: string | null;
+  direccion: string | null; codigo_postal: string | null; poblacion: string | null;
+  provincia: string | null; pais_codigo_iso: string | null;
 };
 export type EnvioFila = {
   id: string; referencia_gx: string; referencia_cliente: string | null;
@@ -17,8 +17,8 @@ export type EnvioFila = {
   fecha_carga_real: string | null; fecha_entrega_estimada: string | null;
   descripcion_mercancia: string | null; toneladas: number | null; metros_lineales: number | null;
   tipo_carga: string | null; paletizado: boolean | null;
-  poblacion_origen: string | null; cp_origen: string | null;
-  poblacion_destino: string | null; cp_destino: string | null;
+  poblacion_origen: string | null; codigo_postal_origen: string | null;
+  poblacion_destino: string | null; codigo_postal_destino: string | null;
   importe_cliente: number | null; importe_transportista: number | null;
   precio_acordado_operador: number | null; precio_fijado_a_mano: boolean | null;
   matricula_camion: string | null; matricula_remolque: string | null;
@@ -106,7 +106,7 @@ const PAISES: Record<string, string> = { ES: 'España', PT: 'Portugal', FR: 'Fra
 // "CP, población, provincia, país" (formato de la tabla del mockup).
 export function dirParada(p: Parada): string {
   const prov = p.provincia && p.provincia !== p.poblacion ? p.provincia : null;
-  return [p.cp, p.poblacion, prov, PAISES[p.pais ?? 'ES'] ?? p.pais].filter(Boolean).join(', ');
+  return [p.codigo_postal, p.poblacion, prov, PAISES[p.pais_codigo_iso ?? 'ES'] ?? p.pais_codigo_iso].filter(Boolean).join(', ');
 }
 export function paradasDe(e: EnvioFila): { recogidas: Parada[]; entregas: Parada[] } {
   if (e.paradas?.length) {
@@ -114,8 +114,8 @@ export function paradasDe(e: EnvioFila): { recogidas: Parada[]; entregas: Parada
     return { recogidas: ps.filter((p) => p.tipo === 'carga'), entregas: ps.filter((p) => p.tipo === 'descarga') };
   }
   const p = (cp: string | null, pob: string | null, tipo: 'carga' | 'descarga'): Parada =>
-    ({ orden: 0, tipo, nombre_empresa: null, direccion: null, cp, poblacion: pob, provincia: null, pais: 'ES' });
-  return { recogidas: [p(e.cp_origen, e.poblacion_origen, 'carga')], entregas: [p(e.cp_destino, e.poblacion_destino, 'descarga')] };
+    ({ orden: 0, tipo, nombre_empresa: null, direccion: null, codigo_postal: cp, poblacion: pob, provincia: null, pais_codigo_iso: 'ES' });
+  return { recogidas: [p(e.codigo_postal_origen, e.poblacion_origen, 'carga')], entregas: [p(e.codigo_postal_destino, e.poblacion_destino, 'descarga')] };
 }
 
 // --- Mercancía ----------------------------------------------------------------------
@@ -131,8 +131,8 @@ export function coincide(e: EnvioFila, q: string): boolean {
   const n = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const txt = n([
     e.referencia_gx, e.referencia_cliente, e.cliente, e.cliente_cif, e.operador, e.descripcion_mercancia,
-    e.poblacion_origen, e.poblacion_destino, e.cp_origen, e.cp_destino, e.matricula_camion, e.matricula_remolque,
-    ...e.paradas.flatMap((p) => [p.nombre_empresa, p.direccion, p.cp, p.poblacion, p.provincia]),
+    e.poblacion_origen, e.poblacion_destino, e.codigo_postal_origen, e.codigo_postal_destino, e.matricula_camion, e.matricula_remolque,
+    ...e.paradas.flatMap((p) => [p.nombre_empresa, p.direccion, p.codigo_postal, p.poblacion, p.provincia]),
   ].filter(Boolean).join(' '));
   return n(q).split(/\s+/).filter(Boolean).every((w) => txt.includes(w));
 }

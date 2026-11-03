@@ -131,9 +131,9 @@ do $$ declare c uuid; t uuid; e uuid; p1 uuid; p2 uuid; begin
     returning id into t;
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
     values (c, 13.30, 20, 1000, 800) returning id into e;
-  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion, pais_codigo_iso)
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
     values (e, 1, 'carga', '41001', 'Sevilla', 'ES') returning id into p1;
-  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion, pais_codigo_iso)
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
     values (e, 2, 'descarga', '28001', 'Madrid', 'ES') returning id into p2;
   update envios set estado = 'programado' where id = e;
   perform set_config('prueba.cliente', c::text, false);
@@ -232,8 +232,8 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t uuid := curre
               e uuid; o uuid; r jsonb; begin
   insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista)
     values (c, 6, 600, 500) returning id into e;
-  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion) values (e, 1, 'carga', '41001', 'Sevilla');
-  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion) values (e, 2, 'descarga', '46001', 'Valencia');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 1, 'carga', '41001', 'Sevilla');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 2, 'descarga', '46001', 'Valencia');
   update envios set estado = 'programado' where id = e;
   o := ofertar_envio(e, t, 'email', 500, 30::smallint);          -- banda 150 EUR
   r := reservar_envio((select token from envio_ofertas where id = o));
@@ -398,8 +398,8 @@ do $$ declare t uuid; c uuid; e uuid; o uuid; begin
     values ('Sin Pronto Pago SL', 'B77777777', 'teleroute', 'TR-998', false) returning id into t;
   insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista)
     values (c, 4, 400, 300) returning id into e;
-  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion) values (e, 1, 'carga', '41001', 'Sevilla');
-  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion) values (e, 2, 'descarga', '29001', 'Malaga');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 1, 'carga', '41001', 'Sevilla');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 2, 'descarga', '29001', 'Malaga');
   update envios set estado = 'programado' where id = e;
   o := ofertar_envio(e, t, 'email', 300, 10::smallint, true);
   if (select pronto_pago from envio_ofertas where id = o) then
@@ -525,13 +525,13 @@ do $$ declare e uuid; b uuid := (select id from clientes where cif = 'B44444444'
   insert into envios (cliente_id, metros_lineales) values (b, 4) returning id into e;
   -- Ni siquiera Dynamo puede poner en un envío de B la ficha de A.
   begin
-    insert into envio_paradas (envio_id, orden, tipo, lugar_id, cp, poblacion)
+    insert into envio_paradas (envio_id, orden, tipo, lugar_id, codigo_postal, poblacion)
       values (e, 1, 'carga', current_setting('prueba.lugar_a')::uuid, '41500', 'Alcala');
     raise exception 'FALLO 23 · un envio de B ha usado la ficha de A';
   exception when raise_exception then
     if sqlerrm like 'FALLO%' then raise; end if;
   end;
-  insert into envio_paradas (envio_id, orden, tipo, lugar_id, cp, poblacion)
+  insert into envio_paradas (envio_id, orden, tipo, lugar_id, codigo_postal, poblacion)
     values (e, 1, 'carga', (select id from lugares where es_almacen_dynamo limit 1), '41016', 'Sevilla');
   raise notice 'OK 23 · un envio solo usa sitios de su propio cliente o almacenes Dynamo';
 end $$;
@@ -637,10 +637,10 @@ reset role;
 do $$ declare e uuid; o uuid := current_setting('prueba.operador_a')::uuid; begin
   insert into envios (cliente_id, metros_lineales, operador_id, precio_acordado_operador)
     values (current_setting('prueba.cliente')::uuid, 13.30, o, 950) returning id into e;
-  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion, pais_codigo_iso)
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
     values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
   -- Destino donde DYNAMO no da servicio: al transportista del cliente no le afecta.
-  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion, pais_codigo_iso)
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
     values (e, 2, 'descarga', '8001', 'Zurich', 'CH');
   update envios set estado = 'programado' where id = e;
   perform set_config('prueba.envio_manual', e::text, false);
@@ -679,9 +679,9 @@ end $$;
 do $$ declare e uuid; begin
   insert into envios (cliente_id, metros_lineales)
     values ((select id from clientes where cif = 'B44444444'), 13.30) returning id into e;
-  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion, pais_codigo_iso)
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
     values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
-  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion, pais_codigo_iso)
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
     values (e, 2, 'descarga', '8001', 'Zurich', 'CH');
   begin
     update envios set estado = 'programado' where id = e;
@@ -1120,7 +1120,7 @@ do $$ declare e uuid; gx text; n int; begin
                       anotaciones_cliente, carga_superior)
     values ((select id from clientes where cif = 'B44444444'), 13.30, 24, 1100, 900,
             'Llamar a Pepe al 600111222, es para Mercadona', true) returning id into e;
-  insert into envio_paradas (envio_id, orden, tipo, cp, poblacion, pais_codigo_iso)
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
     values (e, 1, 'carga', '41001', 'Sevilla', 'ES'), (e, 2, 'descarga', '28001', 'Madrid', 'ES');
   update envios set estado = 'programado' where id = e;
   select referencia_gx into gx from envios where id = e;
@@ -1179,4 +1179,36 @@ do $$ begin
     raise exception 'FALLO 46 · faltan festivos nacionales de 2030';
   end if;
   raise notice 'OK 46 · el corte de cancelacion salta fines de semana y festivos (nacionales y de comunidad)';
+end $$;
+
+-- =====================================================================================
+-- NOMBRES UNIFICADOS (2026-11-03)
+-- =====================================================================================
+-- ---- 47. No queda ningún nombre viejo: ni columnas, ni funciones, ni vistas --------
+-- Renombrar una columna no cambia el texto de las funciones: una que se quedara con
+-- el nombre viejo fallaría solo al usarse, en producción. Esto lo caza antes.
+do $$ declare v text; begin
+  select string_agg(table_name || '.' || column_name, ', ') into v
+    from information_schema.columns
+   where table_schema = 'public'
+     and column_name in ('cp', 'cp_origen', 'cp_destino', 'notas', 'observaciones', 'localidad', 'pais');
+  if v is not null then raise exception 'FALLO 47 · columnas con nombre viejo: %', v; end if;
+
+  select string_agg(p.proname, ', ') into v
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public'
+     and p.prosrc ~ '(\mcp_origen\M|\mcp_destino\M|\.cp\M|''cp''|\mobservaciones\M|\mlocalidad\M|\.pais\M|\mnotas\M)';
+  if v is not null then raise exception 'FALLO 47 · funciones con nombres viejos: %', v; end if;
+
+  select string_agg(c.relname, ', ') into v
+    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind = 'v'
+     and pg_get_viewdef(c.oid) ~ '(\mcp_origen\M|\mcp_destino\M|\.cp\M|''cp''|\mobservaciones\M|\mlocalidad\M|\.pais\M)';
+  if v is not null then raise exception 'FALLO 47 · vistas con nombres viejos: %', v; end if;
+
+  -- Y lo nuevo funciona de verdad: la ruta del envío se copia de las paradas.
+  perform 1 from envios e
+   where e.codigo_postal_origen is not null and e.codigo_postal_destino is not null limit 1;
+  if not found then raise exception 'FALLO 47 · la ruta denormalizada no se rellena'; end if;
+  raise notice 'OK 47 · nombres unificados (codigo_postal, anotaciones, poblacion, pais_codigo_iso) en tablas, funciones y vistas';
 end $$;
