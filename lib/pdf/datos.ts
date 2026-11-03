@@ -26,6 +26,7 @@ export type DatosDoc = {
   gestor: { nombre: string; telefono: string | null; email: string | null } | null;
   firmas?: FirmaDoc[];                   // CMR digital (solo para el CMR)
   logoPorteador?: Uint8Array | null;     // envío manual: el logo del operador del cliente (si lo subió)
+  dynamo?: DatosDynamo;                  // los datos fijos de Dynamo (de Parámetros)
 };
 
 // El logo del operador de un envío manual (último subido, del almacén privado).
@@ -51,6 +52,8 @@ export async function cargarFirmasCmr(sb: SupabaseClient, envioId: string): Prom
 }
 
 // Datos fijos de Dynamo (los mismos que la orden de carga que se manda hoy por email).
+// Los buenos viven en Parámetros (claves dynamo_*): esto es solo el respaldo si la base
+// de datos no responde.
 export const DYNAMO = {
   razon_social: 'Dynamo Operador Logístico, S.L.',
   cif: 'ESB01596360',
@@ -58,6 +61,15 @@ export const DYNAMO = {
   email: 'info@dynamotrans.com', telefono: '+34 955 225 945', movil: '+34 628 995 709',
   wtransnet: '267017', tarjeta_ot: '12548918-1', web: 'www.dynamotrans.com',
 };
+export type DatosDynamo = typeof DYNAMO;
+export async function datosDynamo(sb: SupabaseClient): Promise<DatosDynamo> {
+  const { data } = await sb.rpc('datos_dynamo');
+  const j = (data ?? {}) as Record<string, string>;
+  const o: Record<string, string> = { ...DYNAMO };
+  Object.keys(DYNAMO).forEach((k) => { if (j[k]) o[k] = j[k]; });
+  return o as DatosDynamo;
+}
+
 
 const PAISES: Record<string, string> = { ES: 'España', PT: 'Portugal', FR: 'Francia', DE: 'Alemania', IT: 'Italia', NL: 'Países Bajos',
   BE: 'Bélgica', LU: 'Luxemburgo', AT: 'Austria', PL: 'Polonia', CZ: 'República Checa', CH: 'Suiza', DK: 'Dinamarca', GB: 'Reino Unido' };

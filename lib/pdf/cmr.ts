@@ -19,6 +19,7 @@ const lineaDir = (p: ParadaDoc | undefined) => p
 
 export async function cmr(d: DatosDoc): Promise<Uint8Array> {
   const e = d.envio, manual = d.manual;
+  const D = d.dynamo ?? DYNAMO;
   const l = await Lienzo.crear();
   const fondos = await Promise.all([1, 2, 3, 4].map(async (n) => l.doc.embedJpg(await readFile(path.join(DIR_IMG, `cmr-fondo-${n}.jpg`)))));
   const logo = manual ? null : await l.doc.embedPng(await readFile(path.join(process.cwd(), 'lib', 'pdf', 'recursos', 'logo-bn.png')));
@@ -28,7 +29,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
   const cli = d.cliente;
   const porteador = manual
     ? { nombre: d.porteador?.razon_social ?? '—', cif: d.porteador?.cif ?? null, tel: d.porteador?.telefono ?? null }
-    : { nombre: 'Dynamo Operador de Transportes', cif: DYNAMO.cif, tel: DYNAMO.telefono };
+    : { nombre: 'Dynamo Operador de Transportes', cif: D.cif, tel: D.telefono };
   const hoy = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date());
   const ROJA = COLOR.rojo, TINTA = COLOR.tinta;
 
@@ -150,6 +151,6 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     }
   }
   l.doc.setTitle(limpio(`CMR ${e.referencia_gx ?? ''}`));
-  l.doc.setAuthor(manual ? cli?.razon_social ?? '' : DYNAMO.razon_social);
+  l.doc.setAuthor(manual ? cli?.razon_social ?? '' : D.razon_social);
   return l.guardar();
 }

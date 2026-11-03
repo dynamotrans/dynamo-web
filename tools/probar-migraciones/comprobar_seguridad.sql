@@ -2446,3 +2446,14 @@ do $$ declare ref text; t1 timestamptz; n int; begin
   raise notice 'OK 79 · exportaciones: facturado desde el panel; la bolsa vuelve a publicar lo modificado';
 end $$;
 reset role;
+
+-- ---- 80. Datos fijos de Dynamo en parámetros, legibles con sesión -------------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ declare j jsonb; begin
+  j := datos_dynamo();
+  if j ->> 'cif' <> 'ESB01596360' or j ->> 'wtransnet' <> '267017' then raise exception 'FALLO 80 · datos de Dynamo: %', j; end if;
+  if j ? 'factor_bienvenida_pct' or j::text ~ 'pronto_pago' then raise exception 'FALLO 80 · se cuelan otros parámetros'; end if;
+  raise notice 'OK 80 · datos fijos de Dynamo en parámetros, solo los suyos';
+end $$;
+reset role;

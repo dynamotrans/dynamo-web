@@ -1,6 +1,6 @@
 import { sesion, esDynamo } from '@/lib/sesion';
 import MiCuenta, { type TransporteDatos } from '@/components/panel/MiCuenta';
-import { DYNAMO } from '@/lib/pdf/datos';
+import { datosDynamo } from '@/lib/pdf/datos';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +14,8 @@ export default async function PaginaMiCuenta() {
   let empresa: { razon_social: string; cif: string | null; direccion: string; pais: string | null } | null = null;
   let transporte: TransporteDatos | null = null;
   if (esDynamo(perfil.rol)) {
-    empresa = { razon_social: DYNAMO.razon_social, cif: DYNAMO.cif, direccion: `${DYNAMO.direccion}, ${DYNAMO.codigo_postal} ${DYNAMO.poblacion}`, pais: 'ES' };
+    const D = await datosDynamo(supabase);
+    empresa = { razon_social: D.razon_social, cif: D.cif, direccion: `${D.direccion}, ${D.codigo_postal} ${D.poblacion}`, pais: 'ES' };
   } else {
     const { data } = await supabase.rpc(perfil.rol === 'transportista' ? 'mi_empresa_transportista' : 'mi_empresa').maybeSingle<any>();
     if (data) empresa = { razon_social: data.razon_social, cif: data.cif, pais: data.pais_codigo_iso ?? null,

@@ -1,6 +1,6 @@
 import { supabaseServidor } from '@/lib/supabase/server';
 import { esDynamo } from '@/lib/sesion';
-import { cargarDatosDoc, cargarDatosDocTransportista, cargarDatosDocManual, cargarFirmasCmr, cargarLogoOperador } from '@/lib/pdf/datos';
+import { cargarDatosDoc, cargarDatosDocTransportista, cargarDatosDocManual, cargarFirmasCmr, cargarLogoOperador, datosDynamo } from '@/lib/pdf/datos';
 import { ordenDeCarga } from '@/lib/pdf/orden';
 import { cmr } from '@/lib/pdf/cmr';
 
@@ -28,7 +28,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const r = await cargarDatosDocTransportista(sb, id);
     if (!r.datos) return texto(r.error ?? 'No se ha podido leer el viaje.', 404);
     const p = r.parametros;
-    const bytesT = await ordenDeCarga(r.datos, { pct: p.pronto_pago_pct ?? 3, minimo: p.pronto_pago_minimo ?? 20,
+    const bytesT = await ordenDeCarga({ ...r.datos, dynamo: await datosDynamo(sb) }, { pct: p.pronto_pago_pct ?? 3, minimo: p.pronto_pago_minimo ?? 20,
       dias: p.pronto_pago_dias ?? 5, plazo: p.plazo_pago_transportista_dias ?? 60 });
     const refT = String(r.datos.envio.referencia_gx ?? 'viaje').replace(/[^A-Za-z0-9-]/g, '');
     return new Response(Buffer.from(bytesT), { headers: { 'content-type': 'application/pdf', 'content-disposition': `inline; filename="Orden-de-carga-${refT}.pdf"`, 'cache-control': 'private, no-store' } });
@@ -49,6 +49,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!datos) return texto(error ?? 'No se ha podido leer el envío.', 404);
 
   let bytes: Uint8Array;
+  datos.dynamo = await datosDynamo(sb);
   if (documento === 'cmr') bytes = await cmr({ ...datos, firmas: await cargarFirmasCmr(sb, id) });
   else {
     const { data: ps } = await sb.from('parametros').select('clave, valor')
