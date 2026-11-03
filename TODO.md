@@ -20,6 +20,8 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] **Pantalla de Parámetros** en el panel (solo admin) para cambiar sin entrar en Supabase: descuento de
       bienvenida (−7 %) y nº de envíos (3), minutos de reserva, banda de contraoferta… (tabla `parametros`).
 - [ ] Clientes: campo "Alta dada por (comisiones)" del mockup — no tiene columna todavía.
+- [ ] Transportistas (hecho 2026-11-03): falta la **documentación** (hoja CIF, DNI, otros · máx. 3) — necesita
+      Supabase Storage con permisos; y la puntuación de **clientes** (hoy solo existe la interna de Dynamo).
 - [ ] Sitios (hecho 2026-11-03): falta el **ejemplo del aviso** al sitio ("Ver ejemplo →" del mockup) y
       **enviar de verdad** esos avisos (n8n / Postmark) a los `contactos` con `recibe_avisos`.
 
