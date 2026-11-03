@@ -1,0 +1,122 @@
+'use server';
+
+import { sesion, esDynamo } from '@/lib/sesion';
+
+export type SitioDatos = {
+  cliente_id: string; nombre_empresa: string; tipo: string;
+  direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais_codigo_iso: string;
+  horarios: string; url_google_maps: string; anotaciones: string;
+  requiere_cita: boolean; tiene_medios_carga: boolean;
+  contacto_nombre: string; contacto_telefono: string;
+  emails_avisos: string;          // uno o varios, separados por comas
+};
+type Res = { ok: true; id: string } | { ok: false; error: string; duplicado?: { id: string; nombre: string } };
+
+function traducir(msg: string): string {
+  if (/contactos_telefono_check/i.test(msg)) return 'El teléfono no es válido: solo números, con el prefijo del país.';
+  if (/contactos_email_check/i.test(msg)) return 'Hay un email que no es válido.';
+  if (/ck_lugares_dueno/i.test(msg)) return 'Elige de qué cliente es el sitio.';
+  if (/permission denied|42501|row-level security/i.test(msg)) return 'No tienes permiso para hacer esto.';
+  return msg;
+}
+const vacio = (s: string) => (s ?? '').trim() || null;
+// Mismo criterio que el índice de posibles duplicados de la base de datos.
+const clave = (s: string) => (s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+async function puede() {
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa') return null;
+  if (!esDynamo(s.perfil.rol) && s.perfil.rol !== 'cliente') return null;
+  return s;
+}
+
+export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParezcaRepetido = false): Promise<Res> {
+  const s = await puede();
+  if (!s) return { ok: false, error: 'No tienes permiso para gestionar sitios.' };
+  if (!d.cliente_id) return { ok: false, error: 'Elige de qué cliente es el sitio.' };
+  if (!d.nombre_empresa.trim() || !d.direccion.trim() || !d.codigo_postal.trim() || !d.poblacion.trim()) {
+    return { ok: false, error: 'Empresa, dirección, código postal y población son obligatorios.' };
+  }
+
+  // Emails de avisos: varios separados por comas, cada uno válido, máximo 10.
+  const emails = [...new Set(d.emails_avisos.split(/[,;\s]+/).map((e) => e.trim().toLowerCase()).filter(Boolean))];
+  if (emails.length > 10) return { ok: false, error: `Máximo 10 emails de avisos por sitio (has puesto ${emails.length}).` };
+  const malo = emails.find((e) => !EMAIL.test(e));
+  if (malo) return { ok: false, error: `«${malo}» no es un email válido. Si pones varios, sepáralos por comas.` };
+
+  const tel = d.contacto_telefono.replace(/[^\d+]/g, '');
+  const telOk = tel.replace('+', '').length >= 6 ? tel : null;
+  if (d.contacto_nombre.trim() && !telOk) return { ok: false, error: 'Para guardar la persona de contacto, pon también su teléfono.' };
+
+  // Aviso de duplicado (no bloquea): mismo cliente, mismo nombre y mismo código postal.
+  if (!id && !aunqueParezcaRepetido) {
+    const { data: suyos } = await s.supabase.from('lugares').select('id, nombre_empresa, codigo_postal')
+      .eq('cliente_id', d.cliente_id).eq('borrado', false).eq('codigo_postal', d.codigo_postal.trim());
+    const rep = (suyos ?? []).find((x) => clave(x.nombre_empresa) === clave(d.nombre_empresa));
+    if (rep) return { ok: false, error: 'repetido', duplicado: { id: rep.id, nombre: rep.nombre_empresa } };
+  }
+
+  const fila: Record<string, unknown> = {
+    nombre_empresa: d.nombre_empresa.trim(), tipo: d.tipo || 'almacen_nave',
+    direccion: d.direccion.trim(), codigo_postal: d.codigo_postal.trim(), poblacion: d.poblacion.trim(),
+    provincia: vacio(d.provincia), pais_codigo_iso: d.pais_codigo_iso || 'ES',
+    horarios: vacio(d.horarios), anotaciones: vacio(d.anotaciones),
+    requiere_cita: d.requiere_cita, tiene_medios_carga: d.tiene_medios_carga,
+  };
+  // El enlace de Google Maps solo lo toca Dynamo (en el mockup, el cliente lo ve fijo).
+  if (esDynamo(s.perfil!.rol)) fila.url_google_maps = vacio(d.url_google_maps);
+  if (!id) fila.cliente_id = d.cliente_id;
+
+  const q = id
+    ? s.supabase.from('lugares').update(fila).eq('id', id).select('id').single()
+    : s.supabase.from('lugares').insert(fila).select('id').single();
+  const { data, error } = await q;
+  if (error) return { ok: false, error: traducir(error.message) };
+  const lugarId = data.id as string;
+
+  // Persona de contacto del sitio (una, la principal).
+  const { data: prin } = await s.supabase.from('contactos').select('id')
+    .eq('lugar_id', lugarId).eq('es_principal', true).maybeSingle();
+  if (telOk) {
+    const c = { lugar_id: lugarId, nombre: vacio(d.contacto_nombre) ?? 'Contacto del sitio', telefono: telOk, es_principal: true };
+    const r = prin ? await s.supabase.from('contactos').update(c).eq('id', prin.id) : await s.supabase.from('contactos').insert(c);
+    if (r.error) return { ok: false, error: traducir(r.error.message) };
+  } else if (prin) {
+    await s.supabase.from('contactos').delete().eq('id', prin.id);
+  }
+
+  // Emails de avisos: uno por fila en contactos (recibe_avisos). Se quitan los que ya no
+  // están y se añaden los nuevos; los que siguen igual no se tocan (no ensucian la auditoría).
+  const { data: actuales } = await s.supabase.from('contactos').select('id, email')
+    .eq('lugar_id', lugarId).eq('recibe_avisos', true).eq('es_principal', false);
+  const ya = new Map((actuales ?? []).map((c) => [String(c.email ?? '').toLowerCase(), c.id as string]));
+  if (ya.size > 0 && emails.length === 0) {
+    return { ok: false, error: 'El email de avisos no se puede dejar vacío: solo se puede cambiar por otro válido.' };
+  }
+  const fuera = [...ya].filter(([e]) => !emails.includes(e)).map(([, i]) => i);
+  if (fuera.length) await s.supabase.from('contactos').delete().in('id', fuera);
+  const nuevos = emails.filter((e) => !ya.has(e)).map((email) => ({ lugar_id: lugarId, email, recibe_avisos: true, nombre: 'Avisos' }));
+  if (nuevos.length) {
+    const r = await s.supabase.from('contactos').insert(nuevos);
+    if (r.error) return { ok: false, error: traducir(r.error.message) };
+  }
+  return { ok: true, id: lugarId };
+}
+
+// Borrado SUAVE: sale de la agenda y del buscador; los envíos ya hechos conservan la
+// dirección. Si tenía la estrella, la base de datos se la quita sola.
+export async function borrarSitio(id: string): Promise<{ ok: boolean; error?: string }> {
+  const s = await puede();
+  if (!s) return { ok: false, error: 'No tienes permiso para borrar sitios.' };
+  const { error } = await s.supabase.from('lugares')
+    .update({ borrado: true }).eq('id', id);   // la hora la pone la base de datos
+  return error ? { ok: false, error: traducir(error.message) } : { ok: true };
+}
+
+export async function marcarPrincipal(clienteId: string, lugarId: string | null): Promise<{ ok: boolean; error?: string }> {
+  const s = await puede();
+  if (!s) return { ok: false, error: 'No tienes permiso.' };
+  const { error } = await s.supabase.rpc('marcar_sitio_principal', { p_cliente: clienteId, p_lugar: lugarId });
+  return error ? { ok: false, error: traducir(error.message) } : { ok: true };
+}

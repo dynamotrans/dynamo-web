@@ -1381,3 +1381,52 @@ do $$ begin
   end;
   raise notice 'OK 51 · los festivos se repiten solos (cada anio y por Pascua) y los puntuales no';
 end $$;
+
+-- =====================================================================================
+-- SITIO PRINCIPAL (la estrella de Sitios, 2026-11-03)
+-- =====================================================================================
+-- ---- 52. Cada cliente marca SU sitio principal; nadie marca el de otro ----------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare l uuid; c uuid := cliente_del_usuario(); begin
+  insert into lugares (nombre_empresa, codigo_postal) values ('Nave principal A', '41001') returning id into l;
+  perform set_config('prueba.lugar_prin_a', l::text, false);
+  perform marcar_sitio_principal(c, l);
+  if sitio_principal(c) is distinct from l then raise exception 'FALLO 52 · el cliente no ha podido marcar su estrella'; end if;
+  -- El sitio de otro cliente no vale como principal.
+  begin
+    perform marcar_sitio_principal(c, current_setting('prueba.lugar_b')::uuid);
+    raise exception 'FALLO 52 · se ha marcado como principal el sitio de OTRO cliente';
+  exception when check_violation then null;
+  end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
+set role authenticated;
+do $$ declare a uuid := (select cliente_id from lugares where id = current_setting('prueba.lugar_prin_a')::uuid); begin
+  -- B no puede tocar ni leer la estrella de A.
+  begin
+    perform marcar_sitio_principal(current_setting('prueba.cliente')::uuid, null);
+    raise exception 'FALLO 52 · B ha quitado la estrella de A';
+  exception when insufficient_privilege then null;
+  end;
+  if sitio_principal(current_setting('prueba.cliente')::uuid) is not null then
+    raise exception 'FALLO 52 · FUGA: B lee el sitio principal de A';
+  end if;
+end $$;
+reset role;
+-- Si A borra su sitio principal, la estrella se quita sola.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare l uuid := current_setting('prueba.lugar_prin_a')::uuid; begin
+  update lugares set borrado = true where id = l;     -- como la app: la hora la pone la BD
+  if (select borrado_en from lugares where id = l) is null then
+    raise exception 'FALLO 52 · el borrado no ha quedado con su hora';
+  end if;
+  if sitio_principal(cliente_del_usuario()) is not null then
+    raise exception 'FALLO 52 · la estrella sigue en un sitio borrado';
+  end if;
+  raise notice 'OK 52 · sitio principal: cada cliente el suyo, nunca el de otro, y se quita al borrar el sitio';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

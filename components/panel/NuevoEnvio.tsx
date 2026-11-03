@@ -9,8 +9,11 @@ import { useRouter } from 'next/navigation';
 import { crearEnvio, crearClienteRapido, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { fecha as fmtFecha, euros as eur } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
+import { PAISES } from '@/lib/paises';
+import { TIPOS_LUGAR } from './TipoSitio';
 
-export type ClienteOpcion = { id: string; nombre: string; cif: string };
+// principal_id: el sitio con la estrella en Sitios (se pone solo como primera recogida).
+export type ClienteOpcion = { id: string; nombre: string; cif: string; principal_id?: string | null };
 export type SitioOpcion = {
   id: string; cliente_id: string | null; nombre_empresa: string; tipo: string | null;
   direccion: string | null; codigo_postal: string | null; poblacion: string | null;
@@ -23,15 +26,6 @@ type SitioNuevo = {
 };
 type Punto = { k: number; tipo: 'carga' | 'descarga'; sitio: SitioOpcion | null; nuevo: SitioNuevo | null };
 
-const TIPOS_LUGAR: [string, string][] = [
-  ['almacen_nave', 'Almacén / Nave'], ['obra', 'Obra'], ['zona_urbana', 'Zona urbana'],
-  ['evento', 'Evento'], ['finca', 'Finca / Agrícola'],
-];
-const PAISES: [string, string][] = [
-  ['ES', 'España'], ['PT', 'Portugal'], ['FR', 'Francia'], ['DE', 'Alemania'], ['IT', 'Italia'],
-  ['NL', 'Países Bajos'], ['BE', 'Bélgica'], ['LU', 'Luxemburgo'], ['AT', 'Austria'],
-  ['PL', 'Polonia'], ['CZ', 'Rep. Checa'], ['CH', 'Suiza'], ['DK', 'Dinamarca'], ['GB', 'Reino Unido'],
-];
 const FORMAS = ['Lateral', 'Trasera', 'Techo', 'Lateral y trasera', 'Lateral y techo', 'Trasera y techo', 'Lateral, trasera y techo'];
 const VACIO: SitioNuevo = { nombre_empresa: '', direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES', tipo_lugar: 'almacen_nave', horarios: '', guardar: true };
 
@@ -247,7 +241,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, er
                   <div className="ptar-section-head">Cliente</div>
                   <div className="ptar-field ptar-field-full">
                     <CampoCliente clientes={clientes} valor={cliente}
-                      onElegir={(c) => { setCliente(c); setRecogidas((l) => l.map((p) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : null }))); setEntregas((l) => l.map((p) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : null }))); }}
+                      onElegir={(c) => { setCliente(c); const prin = c?.principal_id ? sitios.find((x) => x.id === c.principal_id && x.cliente_id === c.id) ?? null : null; setRecogidas((l) => l.map((p, i) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : (i === 0 && prin && !p.nuevo ? prin : null) }))); setEntregas((l) => l.map((p) => ({ ...p, sitio: p.sitio?.es_almacen_dynamo ? p.sitio : null }))); }}
                       onNuevo={(c) => { setClientes((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre))); setCliente(c); }} />
                   </div>
 

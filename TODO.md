@@ -5,8 +5,9 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 ## 🔥 Prioridad alta
 
 ### Plataforma real (Next.js) — "Nuevo envío" v1 hecho (2026-11-03), lo que falta
-- [ ] **Buscador de direcciones con Google Places** (regla 13) en el sitio nuevo. Hoy la dirección se
-      escribe a mano. Hace falta la clave de Google Maps en Vercel (`NEXT_PUBLIC_GOOGLE_MAPS_KEY`, solo
+- [ ] **Buscador de direcciones con Google Places** (regla 13) en el sitio nuevo de Nuevo envío Y en la
+      ficha de **Sitios** (el mockup tenía ahí "Buscar para autorrellenar": agenda + Google + dirección,
+      y el aviso de duplicado comparando con Google). Hoy la dirección se escribe a mano. Hace falta la clave de Google Maps en Vercel (`NEXT_PUBLIC_GOOGLE_MAPS_KEY`, solo
       Preview, restringida por referente) — ver `PRODUCCION.md` §06-07.
 - [ ] **Tarifador**: hoy el precio lo pone Dynamo a mano (`precio_fijado_a_mano`). Lo último del
       proyecto (decisión del usuario); el precio lo calculará SIEMPRE el servidor.
@@ -19,6 +20,8 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] **Pantalla de Parámetros** en el panel (solo admin) para cambiar sin entrar en Supabase: descuento de
       bienvenida (−7 %) y nº de envíos (3), minutos de reserva, banda de contraoferta… (tabla `parametros`).
 - [ ] Clientes: campo "Alta dada por (comisiones)" del mockup — no tiene columna todavía.
+- [ ] Sitios (hecho 2026-11-03): falta el **ejemplo del aviso** al sitio ("Ver ejemplo →" del mockup) y
+      **enviar de verdad** esos avisos (n8n / Postmark) a los `contactos` con `recibe_avisos`.
 
 <!-- Cosas urgentes -->
 - [ ] **TARIFAS EN LA BASE DE DATOS — LO ÚLTIMO DE TODO (decisión del usuario, 2026-11-03)**: *«Esto al final del todo. Cuando todo esté montado hacemos esto.»* La migración de tarifas (tarifas con vigencia + plantillas de texto) se deja para cuando el resto de la plataforma esté montado y conectado. Ese día hará falta su **libro de tarifar** y el **código del Apps Script** (incluido el del gasóleo, `gasoil.gs`). No proponerla antes.

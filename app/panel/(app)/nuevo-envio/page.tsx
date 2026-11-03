@@ -27,7 +27,7 @@ export default async function PaginaNuevoEnvio() {
   const hoy = new Date().toISOString().slice(0, 10);
   const hasta = new Date(Date.now() + 400 * 86400000).toISOString().slice(0, 10);
   const [cli, lug, fes] = await Promise.all([
-    supabase.from('clientes').select('id, nombre_visible, cif').order('nombre_visible').limit(2000),
+    supabase.from('clientes').select('id, nombre_visible, cif, lugar_defecto_id').order('nombre_visible').limit(2000),
     supabase.from('lugares')
       .select('id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible')
       .eq('borrado', false).order('nombre_empresa').limit(5000),
@@ -36,7 +36,7 @@ export default async function PaginaNuevoEnvio() {
     supabase.rpc('festivos_entre', { p_desde: hoy, p_hasta: hasta }),
   ]);
 
-  const clientes: ClienteOpcion[] = (cli.data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible, cif: c.cif }));
+  const clientes: ClienteOpcion[] = (cli.data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible, cif: c.cif, principal_id: c.lugar_defecto_id }));
   const sitios: SitioOpcion[] = (lug.data ?? []) as SitioOpcion[];
   const festivos = ((fes.data ?? []) as { fecha: string }[]).map((f) => f.fecha);
   const error = cli.error?.message || lug.error?.message || null;

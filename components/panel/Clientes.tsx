@@ -10,6 +10,7 @@ import Cargando from '@/components/Cargando';
 import { guardarCliente, type ClienteDatos } from '@/app/panel/(app)/clientes/acciones';
 import { euros } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
+import { PAISES, PREFIJOS, paisDe, partirTel, telBonito } from '@/lib/paises';
 
 export type ClienteFila = ClienteDatos & {
   id: string; codigo: string; nombre_visible: string;
@@ -19,17 +20,6 @@ export type ClienteFila = ClienteDatos & {
 // Regla del descuento de bienvenida (tabla `parametros`, migración factor_bienvenida).
 export type Bienvenida = { pct: number; envios: number };
 
-const PAISES: [string, string][] = [
-  ['ES', 'España'], ['PT', 'Portugal'], ['FR', 'Francia'], ['DE', 'Alemania'], ['IT', 'Italia'],
-  ['NL', 'Países Bajos'], ['BE', 'Bélgica'], ['LU', 'Luxemburgo'], ['AT', 'Austria'],
-  ['PL', 'Polonia'], ['CZ', 'Rep. Checa'], ['CH', 'Suiza'], ['DK', 'Dinamarca'], ['GB', 'Reino Unido'],
-];
-const PREFIJOS: [string, string][] = [
-  ['+34', 'España'], ['+351', 'Portugal'], ['+33', 'Francia'], ['+49', 'Alemania'], ['+39', 'Italia'],
-  ['+44', 'R. Unido'], ['+31', 'P. Bajos'], ['+32', 'Bélgica'], ['+352', 'Luxemburgo'], ['+43', 'Austria'],
-  ['+48', 'Polonia'], ['+420', 'Chequia'], ['+41', 'Suiza'], ['+40', 'Rumanía'], ['+212', 'Marruecos'],
-  ['+380', 'Ucrania'], ['+86', 'China'], ['+1', 'EE. UU.'],
-];
 const ESTADOS: [ClienteDatos['estado'], string, string][] = [
   ['activa', 'Validado', 'green'], ['pendiente_verificacion', 'Pendiente', 'orange'], ['suspendida', 'Suspendido', 'red'],
 ];
@@ -37,18 +27,6 @@ const PLAZOS: [number, string][] = [[0, 'Contado inmediato (0 días)'], [30, '30
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const num = (s: string) => { const t = String(s ?? '').trim(); if (!t) return null; const v = Number(t.replace(/\./g, '').replace(',', '.')); return Number.isFinite(v) ? v : NaN; };
-const paisDe = (c: string) => PAISES.find(([k]) => k === c)?.[1] ?? c;
-
-function partirTel(t: string): { pref: string; num: string } {
-  const v = (t || '').replace(/\s/g, '');
-  const p = [...PREFIJOS].sort((a, b) => b[0].length - a[0].length).find(([k]) => v.startsWith(k));
-  return p ? { pref: p[0], num: v.slice(p[0].length) } : { pref: '+34', num: v.replace(/^\+/, '') };
-}
-function telBonito(t: string) {
-  if (!t) return '';
-  const { pref, num: n } = partirTel(t);
-  return `${pref} ${n.replace(/(\d{3})(?=\d)/g, '$1 ')}`.trim();
-}
 
 // Etiqueta del factor (verde si cobra por encima, rojo si es descuento, gris a 0).
 function Factor({ v }: { v: number }) {
