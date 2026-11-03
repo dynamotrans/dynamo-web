@@ -190,6 +190,11 @@ del mockup es un bypass a propósito.
   silencio, sin error visible.
 - **Auth**: Supabase Auth. **2FA obligatorio para los roles admin y empleado** — son los
   que ven los precios de compra, los márgenes y todos los clientes.
+- **2FA en las cuentas de servicio** (Supabase, GitHub y Vercel) del dueño: son las tres llaves
+  de la plataforma. Supabase es además el ÚNICO sitio donde se cambian el IBAN y los datos
+  fiscales de Dynamo (migración `parametros_blindados`). Comprobación: en cada una, la página de
+  seguridad de la cuenta dice «Two-factor authentication: enabled» y hay códigos de
+  recuperación guardados.
 - **Las reglas del cambio de rol** ya decididas: solo un admin concede admin, nunca a sí
   mismo, re-autenticación antes del cambio, y siempre ≥1 admin activo (esto último ya lo
   impone la migración 0004 con un trigger). El resto va en el endpoint + RLS.

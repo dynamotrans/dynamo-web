@@ -5,6 +5,11 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 ## 🔥 Prioridad alta
 
 ### Plataforma real (Next.js) — "Nuevo envío" v1 hecho (2026-11-03), lo que falta
+- [ ] 🔐 **Verificación en dos pasos (2FA) en las tres llaves de la plataforma** (usuario, pendiente para más
+      adelante — 2026-11-03): **Supabase** (Account → Security), **GitHub** (Settings → Password and
+      authentication) y **Vercel** (Account Settings → Authentication). Con una contraseña robada de cualquiera de
+      las tres se podría cambiar el IBAN (Supabase), el código (GitHub) o las claves (Vercel). Guardar los
+      **códigos de recuperación** en el gestor de contraseñas. **Antes de abrir el portal a clientes** (regla 14-bis).
 - [ ] 🙋 **Lo que necesita al usuario (2026-11-03, tarde)**: (1) poner el **IBAN** de Dynamo **en Supabase** (Table Editor → `parametros` → `dynamo_iban`; desde la web
       no se puede cambiar, por seguridad; la proforma lo pide por teléfono mientras esté vacío); (2) **decidir el alta online de
       transportistas nuevos** desde el enlace de una carga (hoy: «contáctanos»; ¿se abre?, ¿qué se verifica:
