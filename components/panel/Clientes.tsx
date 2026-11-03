@@ -6,6 +6,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Modal from './Modal';
+import Cargando from '@/components/Cargando';
 import { guardarCliente, type ClienteDatos } from '@/app/panel/(app)/clientes/acciones';
 import { euros } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
@@ -306,6 +307,7 @@ function FichaCliente({ fila, bienvenida, onCerrar, onGuardado }: { fila: Client
         </div>
       </div>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+      {guardando && <Cargando texto={fila ? 'Guardando cambios' : 'Creando cliente'} />}
     </Modal>
   );
 }

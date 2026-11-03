@@ -30,3 +30,42 @@ body {
 .pt-entrar { min-height: 100svh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; box-sizing: border-box; }
 .pt-entrar .pt-card { width: 100%; max-width: 440px; background: #fff; border: 1px solid var(--gray-200); border-radius: 14px; padding: 1.3rem 1.4rem; }
 .pt-entrar .logo { display: block; height: 46px; margin: 0 auto 1.2rem; }
+
+/* ===== Cargando: el ARCO VERDE del logo de Dynamo girando =====
+   El cuarto de círculo verde del logo (images/2.png) da vueltas sobre un aro morado
+   fino; debajo, el logo y el texto. Se usa al cambiar de pantalla (loading.tsx) y
+   mientras se guarda algo. Aparece con un pequeño retraso para que, si la pantalla
+   carga al instante, no llegue a parpadear. */
+.dyn-cargando {
+  position: fixed; inset: 0; z-index: 20000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
+  background: rgba(247, 248, 250, 0.84);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  opacity: 0; animation: dynCargandoEntra 0.25s ease 0.12s forwards;
+}
+@keyframes dynCargandoEntra { to { opacity: 1; } }
+.dyn-cargando-rueda { position: relative; width: 84px; height: 84px; }
+/* Aro morado fino de fondo. */
+.dyn-cargando-aro { position: absolute; inset: 0; border-radius: 50%; border: 9px solid rgba(64, 13, 175, 0.12); }
+/* El arco verde del logo: un cuarto de aro grueso que gira con un "tirón" suave. */
+.dyn-cargando-arco {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 9px solid transparent; border-top-color: #7ed957; border-right-color: #7ed957;
+  transform: rotate(-45deg);
+  animation: dynGira 1.1s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;
+}
+/* Punto morado en el centro, latiendo (la "o" de dynamo). */
+.dyn-cargando-centro {
+  position: absolute; inset: 27px; border-radius: 50%; background: #400daf;
+  animation: dynLatido 1.1s ease-in-out infinite;
+}
+.dyn-cargando-logo { width: 150px; height: auto; display: block; }
+.dyn-cargando-texto { font-size: var(--fs-l); font-weight: 700; color: var(--gray-500); letter-spacing: 0.01em; }
+.dyn-cargando-texto::after { content: ''; display: inline-block; width: 1.2em; text-align: left; animation: dynPuntos 1.2s steps(4, end) infinite; }
+@keyframes dynGira { from { transform: rotate(-45deg); } to { transform: rotate(315deg); } }
+@keyframes dynLatido { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.8); opacity: 0.75; } }
+@keyframes dynPuntos { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75%, 100% { content: '...'; } }
+@media (prefers-reduced-motion: reduce) {
+  .dyn-cargando-arco { animation-duration: 2.4s; }
+  .dyn-cargando-centro, .dyn-cargando-texto::after { animation: none; }
+}

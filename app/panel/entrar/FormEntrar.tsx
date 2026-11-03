@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { entrar, type EstadoEntrar } from '../acciones';
 import { IcoAviso } from '@/components/Iconos';
+import Cargando from '@/components/Cargando';
 
 const inicial: EstadoEntrar = { error: null };
 
@@ -15,6 +16,7 @@ export default function FormEntrar() {
   const [estado, accion, enviando] = useActionState(entrar, inicial);
   return (
     <form action={accion} noValidate>
+      {enviando && <Cargando texto="Entrando" />}
       {estado.error && (
         <div className="pt-aviso error" role="alert"><IcoAviso /><div>{estado.error}</div></div>
       )}

@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { crearEnvio, crearClienteRapido, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { fecha as fmtFecha, euros as eur } from '@/lib/formato';
+import Cargando from '@/components/Cargando';
 
 export type ClienteOpcion = { id: string; nombre: string; cif: string };
 export type SitioOpcion = {
@@ -223,6 +224,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, er
   return (
     <section className={`section active wiz-v2 wiz-s${Math.min(paso, 3)}`} id="sec-nueva-carga">
       <div className="sec-header"><h2>Nuevo envío</h2></div>
+      {enviando && <Cargando texto="Creando envío" />}
 
       {errorCarga && <div className="pt-aviso error">No se han podido cargar los datos: {errorCarga}</div>}
 
