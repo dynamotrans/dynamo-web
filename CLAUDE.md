@@ -52,7 +52,22 @@ El **volumen se recalcula** (largo × ancho × alto) cada vez que cambie una med
 
 **Dónde vive cada copia**: `index.html` (fichas de *Tipos de vehículo*) · `tools/generar-hojas-seccion.py` → regenera `/vehiculos` y `/carga-completa` · `dashboard.html` (fichas del panel, tooltip de metros lineales y tabla de *Ver medidas del camión*).
 
-### 0-sexies. TRABAJAR SIN PARAR: solo se para cuando hace falta el usuario (regla del usuario, 2026-11-03)
+### 0-septies. HORARIOS DE ATENCIÓN: IGUALES en la web pública y en la plataforma (regla del usuario, 2026-11-03)
+Los horarios de atención de Dynamo (Álvaro) son **un solo dato** y tienen que decir lo mismo en `dynamotrans.com` y en el panel. Comprobado iguales el 2026-11-03:
+
+| Canal | Horario |
+|---|---|
+| Email y WhatsApp | Lunes a Viernes 8:00–18:00 (cerrado fines de semana y festivos) |
+| Teléfono habitual | L–J 9:00–14:00 y 15:00–17:00 · V 9:00–14:00 |
+| Teléfono, jornada intensiva | 8:30–15:30 · Verano (15 jun – 1 sep), Navidad (22 dic – 6 ene), Semana Santa (lun–mié santo), semana festiva local (mar–vie, Pascua +16 a +19) |
+| Agosto (6–27) | Sin teléfono: solo email y WhatsApp |
+
+**Dónde vive cada copia** (al tocar una, repasar **todas** y subir los dos lados el mismo día):
+- **Web pública** (`index.html`, rama `main`, regla 8): `SCHEDULE`, `isSummer`/`isXmas`/`isFeria`/`isHolyWeek`/`isAugustReduced`, `isOnlineHoursNow`, las etiquetas `SCHED_VOCAB` y la ventana de horarios del año (`hor-row` / `hor-intensiva`).
+- **Plataforma** (`pruebas`): `lib/atencion.ts` (horas, estado «En línea / He salido · Vuelvo…», horario de cada canal) y la ventana «Horarios de atención» en `components/panel/Marco.tsx`.
+- **Festivos nacionales**: web → `js/festivos.js`; plataforma → tabla `festivos` de Supabase (el «Vuelvo…» los lee de ahí). La lista de festivos escrita en las dos ventanas es texto fijo.
+
+: solo se para cuando hace falta el usuario (regla del usuario, 2026-11-03)
 > *"Solamente cuando necesites de mí, porque hay que implementar algunas cosas o decidir cosas más importantes, pues entonces sí, hay que parar."*
 
 Cuando el usuario pide seguir con la lista, Claude **encadena las tareas sin preguntar** entre una y otra: hace, prueba, sube y pasa a la siguiente. **Solo para** cuando de verdad necesita al usuario: algo que solo él puede hacer (una cuenta, una clave en Vercel/Supabase, un dato de negocio como la tarifa) o una **decisión importante** de negocio o que no se pueda deshacer. Al parar, deja un resumen de lo hecho y una lista clara de lo que necesita. Las reglas duras siguen en pie igual (nada a `main` del portal, regla 7; repaso de `PRODUCCION.md`, regla 14-bis).
