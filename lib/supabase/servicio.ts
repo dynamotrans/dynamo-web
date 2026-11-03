@@ -1,3 +1,4 @@
+import 'server-only';
 import { createClient } from '@supabase/supabase-js';
 
 // Cliente con la CLAVE DE SERVICIO de Supabase (variable SUPABASE_SERVICE_ROLE_KEY, que
