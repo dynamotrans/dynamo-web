@@ -2,7 +2,8 @@
 
 // Selector de idiomas de aceptar-carga.html para las páginas públicas (cargas y CMR): las
 // abren transportistas y conductores de cualquier país. Traduce EN SITIO con Google
-// Translate (nunca recarga: se perdería, p. ej., la pantalla de «carga aceptada") y
+// Translate (sin recargar al traducir; solo al VOLVER al español, que es la única forma de
+// quitar la traducción —como en la web pública—) y
 // comparte la cookie googtrans con la web pública. Las banderas son la excepción permitida
 // de la regla 0-ter.
 import { useEffect, useRef, useState } from 'react';
@@ -40,6 +41,22 @@ function ponerCookie(valor: string) {
   document.cookie = `googtrans=${valor}; path=/; domain=${h}`;
   document.cookie = `googtrans=${valor}; path=/; domain=.${h}`;
 }
+// Volver al español = QUITAR la traducción (Google no «traduce a español» una página que
+// ya es española). Igual que la web pública (js/idiomas.js): se borra la cookie googtrans
+// en todas sus variantes de dominio y se recarga la página tal cual.
+function volverAEspanol() {
+  const host = location.hostname, partes = host.split('.');
+  const dominios = ['', host, '.' + host];
+  if (partes.length > 2) { const base = partes.slice(1).join('.'); dominios.push(base, '.' + base); }
+  for (const d of dominios) for (const p of ['/', '']) {
+    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC${p ? `; path=${p}` : ''}${d ? `; domain=${d}` : ''}`;
+  }
+  try {
+    const marco = document.querySelector<HTMLIFrameElement>('iframe.goog-te-banner-frame');
+    (marco?.contentDocument?.querySelector('.goog-close-link') as HTMLElement | null)?.click();
+  } catch { /* sin banner */ }
+  setTimeout(() => location.reload(), 100);
+}
 function aplicar(lang: string) {
   const sel = document.querySelector<HTMLSelectElement>('.goog-te-combo');
   if (!sel) return false;
@@ -76,7 +93,9 @@ export function useIdiomaGT(codigos: string[]): [string, (lang: string) => void]
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const elegir = (lang: string) => {
+    if (lang === actual) return;
     setActual(lang);
+    if (lang === 'es') { volverAEspanol(); return; }
     ponerCookie(`/es/${lang}`);
     cargarGT();
     if (!aplicar(lang)) insistir(lang);
@@ -104,7 +123,10 @@ export default function SelectorIdioma() {
   }, [abierto]);
 
   const elegir = (lang: string) => {
-    setActual(lang); setAbierto(false);
+    setAbierto(false);
+    if (lang === actual) return;
+    setActual(lang);
+    if (lang === 'es') { volverAEspanol(); return; }
     ponerCookie(`/es/${lang}`);
     cargarGT();
     if (!aplicar(lang)) insistir(lang);
