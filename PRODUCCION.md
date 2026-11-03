@@ -38,6 +38,7 @@
 | 12 | **Auditoría** | ✅ hecha (regla 12) | ✅ ya montada en la 0002 |
 | 13 | **RGPD** | ❌ | 🔴 **crítico** — hay DNIs y firmas |
 | 14 | **Control de coste** | ❌ | 🔴 **crítico** |
+| 15 | **Repaso de seguridad 2026-11-03** | 🟡 dos arreglos hechos | 🔴 email de cuentas, `SITE_URL`, CSP, 2FA… |
 
 ---
 
@@ -359,6 +360,25 @@ DNI/NIE y teléfono de conductores, y **firmas de CMR con valor probatorio**.
 - **Alerta de presupuesto** por email al 50 % y al 80 %.
 - Vigilar el **plan de Supabase** según crezcan los datos: un salto de plan sorpresa a
   mitad de mes es mejor verlo venir.
+
+---
+
+## 15 · Repaso de seguridad del 2026-11-03 — lo que quedó para el lanzamiento  🔴
+
+Salió de revisar la plataforma en `pruebas` (detalle en `TODO.md`, bloque *Repaso de
+seguridad del 2026-11-03*). Lo que ya estaba bien y lo arreglado ese día está allí; aquí
+solo lo que **hay que hacer o comprobar antes de abrir el portal**.
+
+| Qué | Qué hay que hacer | Cómo se comprueba |
+|---|---|---|
+| **Cambio de email de una cuenta** (puerta para quedarse con ella) | Decidir quién puede hacerlo (¿solo el Admin Master?). Con Postmark: **aviso al email antiguo** y quién lo hizo en la auditoría. | Con un Empleado gestor, intentar cambiar el email de un cliente → debe negarse (si así se decide). Tras un cambio permitido, llega el aviso al email viejo y la auditoría dice quién fue. |
+| **Dirección fija de los enlaces de email** | En Vercel (Production): `SITE_URL=https://dynamotrans.com`. | Pedir «contraseña olvidada» en producción: el enlace del email lleva `dynamotrans.com`, nunca `*.vercel.app`. |
+| **Redirect URLs de Supabase** | Dejar **solo** las direcciones propias (producción y, si hace falta, pruebas). **Ningún comodín `*`**. | Authentication → URL Configuration: la lista no tiene `*` ni dominios ajenos. |
+| **CSP** (punto 06) | Ponerla primero en modo *Report-Only* en pruebas, revisar avisos, luego activarla. | La cabecera `Content-Security-Policy` sale en la respuesta real; Google Translate, el tarifador y los PDF siguen funcionando. |
+| **Login demo de `portal.html`** | Que no llegue a producción (quitarlo o redirigir a `/panel/entrar`). | En `dynamotrans.com/portal.html` no se entra con un email y contraseña inventados. |
+| **2FA** | Activar la verificación en dos pasos en Supabase, GitHub, Vercel y Holded (lo hace el usuario). | En la configuración de seguridad de cada cuenta figura 2FA activo. |
+| **Límite de intentos** del código de 6 cifras y de «contraseña olvidada» | Revisar Authentication → Rate Limits al configurar Postmark. | Repetir el código mal varias veces → Supabase bloquea durante un rato. |
+| **Clave de servicio** | Solo en Vercel, marcada *Sensitive*, sin `NEXT_PUBLIC_`. | En Vercel → Environment Variables; y buscar la clave en el JavaScript que descarga el navegador → 0 coincidencias. |
 
 ---
 
