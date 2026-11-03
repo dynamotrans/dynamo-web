@@ -68,12 +68,14 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       (máx. 5), almacenamientos, logo de operadores y documentos del alta. Falta: (1) **probar la primera
       subida real** en pruebas (aquí no se alcanza Supabase); (2) que el cliente suba fotos a sus incidencias y
       el transportista su documentación (etapas B y C: la base de datos ya lo permite en su carpeta `u/<id>/`);
-      (3) que el registro público suba la hoja CIF y el DNI; (4) limpiar ficheros huérfanos si una subida se
+      (3) ~~que el registro público suba la hoja CIF y el DNI~~ (hecho 2026-11-03: al entrar con la cuenta pendiente, el aviso deja subirlos); (4) limpiar ficheros huérfanos si una subida se
       corta antes de registrar su fila; (5) guardar dentro del envío el PDF de la orden de carga y el CMR
       generados (hoy se generan al momento y no se archivan).
 - [ ] **Operadores, Mi cuenta, Altas pendientes, Mantenimiento y Parámetros (pasados 2026-11-03)** — falta:
-      (1) ~~logo del operador en su orden de transporte~~ (hecho 2026-11-03; PNG o JPG); (2) que el **registro público** guarde en los metadatos de Supabase Auth lo
-      que escribe (empresa, CIF, dirección, teléfono, DNI) para que salga en Altas; (3) el aviso por email al
+      (1) ~~logo del operador en su orden de transporte~~ (hecho 2026-11-03; PNG o JPG); (2) ~~que el **registro público** guarde en los metadatos de Supabase Auth lo
+      que escribe~~ (hecho 2026-11-03: alta de clientes en `/panel/registro` → código de 6 cifras → contraseña;
+      ⚠️ **para que llegue el código**, las plantillas *Magic Link* y *Confirm signup* de Supabase Auth tienen que
+      llevar `{{ .Token }}` además del enlace — se hace al configurar Postmark); (3) el aviso por email al
       confirmar o suspender un alta (U3); (4) el mantenimiento hoy cierra las pantallas y la página pública:
       valorar cerrarlo también en la base de datos (permisos por fila) para quien llame directamente a la API;
       (5) cambiar el email de un usuario desde el panel (hoy se pide a Dynamo).

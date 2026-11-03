@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 // Mismo diseño que portal.html (la pantalla de acceso aprobada), con el login real.
 // Fuera del mockup: el cartel "Modo demo" y su explicación (ya no es demo). "Crear
-// cuenta" se mantiene, pero avisa de que el alta online llega pronto (etapa B).
+// cuenta" lleva al alta de clientes (/panel/registro).
 export default function PaginaEntrar() {
   if (!configSupabase()) return <SinConfigurar />;
   return (

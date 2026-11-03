@@ -29,8 +29,9 @@ export async function middleware(request: NextRequest) {
   const ruta = request.nextUrl.pathname;
   const enLogin = ruta.startsWith('/panel/entrar');
   // Páginas a las que se llega SIN sesión: la entrada, el enlace de los emails
-  // (invitación y cambio de contraseña) y la de pedir ese enlace.
-  const publica = enLogin || ruta.startsWith('/panel/confirmar') || ruta.startsWith('/panel/olvido');
+  // (invitación y cambio de contraseña), la de pedir ese enlace y el alta de cliente.
+  const publica = enLogin || ruta.startsWith('/panel/confirmar') || ruta.startsWith('/panel/olvido')
+    || ruta.startsWith('/panel/registro');
   if (!user && !publica) {
     const destino = request.nextUrl.clone();
     destino.pathname = '/panel/entrar';
