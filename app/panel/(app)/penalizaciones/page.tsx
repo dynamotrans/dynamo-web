@@ -1,0 +1,35 @@
+import { sesion, esDynamo } from '@/lib/sesion';
+import AvisoCuenta from '@/components/panel/AvisoCuenta';
+import Penalizaciones, { type PenalizacionFila } from '@/components/panel/Penalizaciones';
+import { cargarEnviosLigeros } from '@/lib/enviosLigeros';
+
+export const dynamic = 'force-dynamic';
+
+// Penalizaciones (solo Dynamo en la etapa A): diseño de #sec-penalizaciones de dashboard.html.
+// `?nueva=<envío>` abre la ventana de crear con ese envío ya elegido (desde su ficha).
+export default async function PaginaPenalizaciones({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const s = await sesion();
+  if (!s) return null;
+  const { supabase, perfil } = s;
+  if (!perfil || perfil.estado !== 'activa') return <AvisoCuenta perfil={perfil} />;
+  if (!esDynamo(perfil.rol)) {
+    return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección todavía es solo del equipo de Dynamo.</div></div></section>;
+  }
+  const sp = await searchParams;
+  const [pen, tipos, envios] = await Promise.all([
+    supabase.from('penalizaciones').select('id, codigo, envio_id, tipo_id, descripcion, importe_cliente, importe_transportista, estado, generada_auto, ' +
+      'editada_a_mano, creado_en, modificado_en, tipos_penalizacion(nombre), envios(referencia_gx, referencia_cliente, clientes(nombre_visible), transportistas(nombre_visible))')
+      .order('creado_en', { ascending: false }).limit(5000),
+    supabase.from('tipos_penalizacion').select('id, nombre, activo').order('orden'),
+    cargarEnviosLigeros(supabase),
+  ]);
+  const filas: PenalizacionFila[] = (pen.data ?? []).map((p: any) => ({
+    id: p.id, codigo: p.codigo, envio_id: p.envio_id, tipo_id: p.tipo_id, tipo: p.tipos_penalizacion?.nombre ?? '—',
+    descripcion: p.descripcion, importe_cliente: p.importe_cliente != null ? Number(p.importe_cliente) : null,
+    importe_transportista: p.importe_transportista != null ? Number(p.importe_transportista) : null,
+    estado: p.estado, generada_auto: p.generada_auto, editada_a_mano: p.editada_a_mano, creado_en: p.creado_en, modificado_en: p.modificado_en,
+    envio: p.envios?.referencia_gx ?? '—', referencia_cliente: p.envios?.referencia_cliente ?? null,
+    cliente: p.envios?.clientes?.nombre_visible ?? null, transportista: p.envios?.transportistas?.nombre_visible ?? null,
+  }));
+  return <Penalizaciones filas={filas} tipos={(tipos.data ?? []) as any} envios={envios} nuevaPara={sp.nueva ?? null} error={pen.error?.message ?? null} />;
+}

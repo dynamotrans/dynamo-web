@@ -1701,3 +1701,57 @@ do $$ declare v jsonb; r jsonb; a jsonb; c jsonb; tok uuid := current_setting('p
   raise notice 'OK 59 · aceptar carga sin sesion: oferta sin datos sensibles, reserva unica, CIF real, datos completos solo tras aceptar';
 end $$;
 reset role;
+
+-- =====================================================================================
+-- ---- 60. Almacenamientos, incidencias y penalizaciones desde el panel de Dynamo ------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare alm uuid; a uuid; i uuid; p uuid; e uuid; r record; begin
+  if (select count(*) from tipos_incidencia where clave in ('albaran','siniestro','transportista_conductor','otros')) <> 4 then
+    raise exception 'FALLO 60 · faltan los tipos de incidencia del panel';
+  end if;
+  e := current_setting('prueba.e59')::uuid;
+  -- Almacén Dynamo y un almacenamiento para el cliente de prueba.
+  insert into lugares (nombre_empresa, es_almacen_dynamo, direccion, codigo_postal, poblacion, provincia)
+    values ('Dynamo · Sevilla 60', true, 'C/ Almacen 60', '41016', 'Sevilla', 'Sevilla') returning id into alm;
+  insert into almacenamientos (cliente_id, almacen_id, fecha_entrada, fecha_salida, num_trailers, importe_almacenaje)
+    values (current_setting('prueba.cliente')::uuid, alm, current_date + 1, current_date + 5, 2, 480) returning id into a;
+  select * into r from almacenamientos where id = a;
+  if r.codigo !~ '^AX[0-9]{6}$' or r.importe_total <> 480 or r.estado <> 'pendiente_confirmar' then
+    raise exception 'FALLO 60 · almacenamiento: % % %', r.codigo, r.importe_total, r.estado;
+  end if;
+  update almacenamientos set estado = 'confirmado' where id = a;
+  -- Incidencia de siniestro sobre un envío: saca el cliente del envío y deja hito.
+  insert into incidencias (tipo_id, envio_id, titulo, detalle)
+    values ((select id from tipos_incidencia where clave = 'siniestro'), e, 'Palet roto', 'Llega un palet roto')
+    returning id into i;
+  if (select cliente_id from incidencias where id = i) is distinct from (select cliente_id from envios where id = e) then
+    raise exception 'FALLO 60 · la incidencia no hereda el cliente del envío';
+  end if;
+  if not exists (select 1 from envio_hitos where envio_id = e and hito = 'incidencia') then
+    raise exception 'FALLO 60 · la incidencia no deja hito en el envío';
+  end if;
+  update incidencias set estado = 'resuelto', resolucion = 'Abonado al cliente' where id = i;
+  if (select resuelto_en from incidencias where id = i) is null then raise exception 'FALLO 60 · resuelto_en vacío'; end if;
+  -- Penalización a mano y su confirmación.
+  insert into penalizaciones (envio_id, tipo_id, descripcion, importe_cliente, importe_transportista)
+    values (e, (select id from tipos_penalizacion where clave = 'paralizacion'), 'Espera 3 h en descarga', 120, 80) returning id into p;
+  update penalizaciones set estado = 'confirmada' where id = p;
+  perform set_config('prueba.alm60', a::text, false);
+  perform set_config('prueba.pen60', p::text, false);
+end $$;
+reset role;
+-- Un CLIENTE no crea penalizaciones ni ve el importe del transportista.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin
+    insert into penalizaciones (envio_id, tipo_id, importe_cliente)
+      values (current_setting('prueba.e59')::uuid, (select id from tipos_penalizacion limit 1), 1);
+    raise exception 'FALLO 60 · un cliente crea penalizaciones';
+  exception when insufficient_privilege then null;
+  end;
+  if exists (select 1 from penalizaciones) then raise exception 'FALLO 60 · un cliente lee la tabla de penalizaciones'; end if;
+  raise notice 'OK 60 · almacenamientos, incidencias y penalizaciones: Dynamo las gestiona; el cliente no crea penalizaciones ni lee sus importes';
+end $$;
+reset role;
