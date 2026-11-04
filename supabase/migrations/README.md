@@ -476,3 +476,4 @@ importar, con la cabecera exacta de la plantilla.
 | `20261104100000_almacenamientos_cliente.sql` | El cliente pide almacenamientos: precio, IVA y pago por adelantado los calcula la base de datos (trigger); no puede marcarse como pagado ni tocar notas internas. `almacenes_dynamo_tarifa()` para su pantalla. Prueba 89. |
 | `20261104110000_archivos_sueltos.sql` | `archivos_sueltos()`: lista (solo el servidor) los ficheros del almacén sin ninguna fila que los nombre y con más de 24 h; el Admin Master los borra desde Modo mantenimiento con la Storage API. Prueba 90. |
 | `20261104120000_cambio_email_registro.sql` | `registrar_cambio_email()`: el cambio de email (solo Admin Master) queda en la auditoría con su autor y el email de antes y de después. Prueba 91. |
+| `20261104130000_recursos_documentos.sql` | Documentos de Recursos (`es_recurso`, con título y descripción): los publica y quita solo Dynamo, los ve cualquier cuenta activa. Prueba 92. |

@@ -2914,3 +2914,52 @@ do $$ begin
   raise notice 'OK 91 · cambio de email: lo apunta solo el Admin Master, solo si ha pasado, con su nombre en la auditoría';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 92. Recursos: los publica solo Dynamo y los ve cualquier cuenta activa --------------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare d uuid; begin
+  insert into documentos (tipo, es_recurso, recurso_titulo, storage_ruta, nombre_archivo)
+    values ('otro', true, 'Condiciones generales', 'recursos/92/condiciones.pdf', 'condiciones.pdf') returning id into d;
+  perform set_config('prueba.rec92', d::text, false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ begin
+  if not exists (select 1 from documentos where id = current_setting('prueba.rec92')::uuid) then
+    raise exception 'FALLO 92 · un transportista no ve un recurso publicado';
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare i uuid; begin
+  if not exists (select 1 from documentos where id = current_setting('prueba.rec92')::uuid) then
+    raise exception 'FALLO 92 · un cliente no ve un recurso publicado';
+  end if;
+  -- Un cliente intenta colar su adjunto como recurso (lo vería todo el mundo).
+  select id into i from incidencias where cliente_id = current_setting('prueba.cliente')::uuid limit 1;
+  begin
+    insert into documentos (tipo, incidencia_id, es_recurso, recurso_titulo, storage_ruta, nombre_archivo)
+      values ('adjunto', i, true, 'x', 'u/x/92.pdf', '92.pdf');
+    raise exception 'FALLO 92 · un cliente publica un documento en Recursos';
+  exception when raise_exception or check_violation or insufficient_privilege then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+end $$;
+reset role;
+-- Quitado (borrado suave): ya no lo ve nadie salvo Dynamo.
+select set_config('request.jwt.claim.sub', '', false);
+update documentos set borrado = true, borrado_en = now() where id = current_setting('prueba.rec92')::uuid;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from documentos where id = current_setting('prueba.rec92')::uuid) then
+    raise exception 'FALLO 92 · un recurso quitado lo sigue viendo el cliente';
+  end if;
+  raise notice 'OK 92 · Recursos: los publica solo Dynamo, los ve cualquier cuenta activa, y al quitarlos desaparecen';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
