@@ -50,7 +50,7 @@ Antes de crear un control, buscar cómo está hecho el equivalente más parecido
 
 El **volumen se recalcula** (largo × ancho × alto) cada vez que cambie una medida; no es un número fijo. Los palés **no** se recalculan: son los que caben de verdad.
 
-**Dónde vive cada copia**: `index.html` (fichas de *Tipos de vehículo*) · `tools/generar-hojas-seccion.py` → regenera `/vehiculos` y `/carga-completa` · `dashboard.html` (fichas del panel, tooltip de metros lineales y tabla de *Ver medidas del camión*).
+**Dónde vive cada copia**: `index.html` (fichas de *Tipos de vehículo*) · `tools/generar-hojas-seccion.py` → regenera `/vehiculos` y `/carga-completa` · `dashboard.html` (fichas del panel, tooltip de metros lineales y tabla de *Ver medidas del camión*). · **plataforma** (`pruebas`): `components/panel/Recursos.tsx` (ventana *Medidas de los camiones*) y `lib/dashboardContenido.ts` (fichas de la flota, hoy ocultas).
 
 ### 0-septies. HORARIOS DE ATENCIÓN: IGUALES en la web pública y en la plataforma (regla del usuario, 2026-11-03)
 Los horarios de atención de Dynamo (Álvaro) son **un solo dato** y tienen que decir lo mismo en `dynamotrans.com` y en el panel. Comprobado iguales el 2026-11-03:

@@ -13,6 +13,7 @@ const nextConfig = {
     '/panel/envios': ['./images/2.png', './images/cmr-fondo-*.jpg', './lib/pdf/recursos/*.png'],
     '/carga/[token]/orden-de-carga': ['./images/2.png', './lib/pdf/recursos/*.png'],
     '/panel/almacenamientos/[id]/proforma': ['./images/4.png'],
+    '/panel/recursos/[documento]': ['./images/cmr-fondo-*.jpg'],
   },
   async rewrites() {
     return {
