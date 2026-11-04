@@ -118,3 +118,24 @@ table.data tr.alta-fila.alta-transportista td:first-child { box-shadow: inset 4p
 .alta-urgente { justify-self: start; font-size: var(--fs-s); font-weight: 800; color: #fff; background: #dc2626; border-radius: 6px; padding: 1px 8px; animation: altaUrgente 1.4s ease-in-out infinite; }
 @keyframes altaUrgente { 0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.45); } 50% { box-shadow: 0 0 0 5px rgba(220,38,38,0); } }
 @media (prefers-reduced-motion: reduce) { .alta-urgente { animation: none; } }
+
+/* ============================================
+   PARÁMETROS: tarjetas con el mismo tamaño de letra que las tablas
+   (texto 0,82rem, títulos 0,92rem, notas en gris). `.meta` fuera de una tabla no
+   tenía tamaño y heredaba el grande: aquí se fija para toda la pantalla.
+============================================ */
+#sec-parametros .meta { font-size: var(--fs-s); color: var(--gray-500); line-height: 1.4; }
+#sec-parametros .prm-card { padding: 0.9rem 1rem; margin-bottom: 0.7rem; font-size: var(--fs-m); color: var(--gray-700); line-height: 1.5; }
+#sec-parametros .prm-card ul { margin: 0; padding-left: 1.1rem; }
+#sec-parametros .prm-card li + li { margin-top: 0.12rem; }
+#sec-parametros .prm-cab { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+#sec-parametros .prm-titulo { font-size: var(--fs-l); font-weight: 800; color: var(--navy); }
+#sec-parametros .prm-chip { background: rgba(51,0,204,0.10); color: var(--purple); font-weight: 800; border-radius: 6px; padding: 1px 8px; font-size: var(--fs-s); }
+#sec-parametros .prm-bloque { margin-top: 0.5rem; }
+#sec-parametros .prm-bt { font-size: var(--fs-m); font-weight: 800; color: var(--navy); }
+#sec-parametros .prm-fila { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin-top: 0.5rem; }
+#sec-parametros .prm-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.7rem; margin-top: 0.8rem; padding-top: 0.7rem; border-top: 1px solid var(--gray-200); }
+#sec-parametros .prm-et { font-size: var(--fs-s); font-weight: 700; color: var(--gray-700); margin-bottom: 0.2rem; }
+#sec-parametros .param-input { font-size: var(--fs-m); }
+/* En todo el panel: el texto secundario (.meta) siempre del tamaño pequeño, también fuera de las tablas. */
+.content .meta { font-size: var(--fs-s); }

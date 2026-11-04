@@ -74,8 +74,8 @@ function CuentaBancaria({ filas }: { filas: ParametroFila[] }) {
       <div style={{ fontWeight: 700, color: valor ? 'var(--navy)' : '#b45309', fontFamily: valor && etiqueta !== 'Banco' ? 'monospace' : undefined }}>{valor || falta || '—'}</div></div>
   );
   return (
-    <div className="table-wrap" style={{ padding: '0.9rem 1rem', marginBottom: '0.7rem' }}>
-      <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: '0.5rem' }}>Cuenta bancaria de Dynamo (proformas)</div>
+    <div className="table-wrap prm-card">
+      <div className="prm-titulo" style={{ marginBottom: '0.5rem' }}>Cuenta bancaria de Dynamo (proformas)</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.7rem' }}>
         {dato('Banco', v('dynamo_banco'))}
         {dato('IBAN', ibanBonito, 'Sin poner: la proforma sale sin cuenta')}
@@ -118,9 +118,9 @@ const fechaLarga = (d: Date) => new Intl.DateTimeFormat('es-ES', { day: 'numeric
 
 function Bloque({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginTop: '0.55rem' }}>
-      <div className="meta" style={{ fontWeight: 800, color: 'var(--navy)' }}>{titulo}</div>
-      <div style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-700)', lineHeight: 1.5 }}>{children}</div>
+    <div className="prm-bloque">
+      <div className="prm-bt">{titulo}</div>
+      <div>{children}</div>
     </div>
   );
 }
@@ -131,22 +131,22 @@ function Regla({ n, titulo, quien, hoy, salta, children, claves, filas, esAdmin 
 }) {
   const ps = claves.map((k) => filas.find((p) => p.clave === k)).filter(Boolean) as ParametroFila[];
   return (
-    <div className="table-wrap" style={{ padding: '0.9rem 1rem', marginBottom: '0.7rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-        {n !== null && <span style={{ background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 800, borderRadius: 6, padding: '1px 8px', fontSize: 'var(--fs-s)' }}>REGLA {n}</span>}
-        <span style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 'var(--fs-l)' }}>{titulo}</span>
+    <div className="table-wrap prm-card">
+      <div className="prm-cab">
+        {n !== null && <span className="prm-chip">REGLA {n}</span>}
+        <span className="prm-titulo">{titulo}</span>
         <span className="meta" style={{ marginLeft: 'auto' }}>Se aplica a: <strong>{quien}</strong></span>
       </div>
-      {salta && <div className="meta" style={{ marginTop: '0.3rem', fontWeight: 700, color: salta === 'momento' ? '#b45309' : 'var(--gray-500)' }}>
+      {salta && <div className="meta" style={{ marginTop: '0.2rem', fontWeight: 700, color: salta === 'momento' ? '#b45309' : 'var(--gray-500)' }}>
         {salta === 'momento' ? 'Salta al momento: en cuanto pasa del límite.' : 'Salta en el repaso de cada hora.'}</div>}
       {children}
       {ps.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.7rem', marginTop: '0.8rem', paddingTop: '0.7rem', borderTop: '1px solid var(--gray-200)' }}>
+        <div className="prm-campos">
           {ps.map((p) => {
             const [et, ud] = ETIQUETAS[p.clave] ?? [p.descripcion, ''];
             return (
               <div key={p.clave}>
-                <div className="meta" style={{ fontWeight: 700 }}>{et}{ud && ud !== '%' ? ` (${ud})` : ud === '%' ? ' (%)' : ''}</div>
+                <div className="prm-et">{et}{ud && ud !== '%' ? ` (${ud})` : ud === '%' ? ' (%)' : ''}</div>
                 <Control p={p} esAdmin={esAdmin} etiqueta={et} />
                 <div className="meta" style={{ fontFamily: 'monospace' }}>{p.clave}{p.modificado_en ? ` · cambiado ${creadoTxt(p.modificado_en)}${antesTxt(p)}` : ''}</div>
               </div>
@@ -196,9 +196,9 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
   return (
     <>
       {/* 1. Cómo funciona */}
-      <div className="ptar-admin-precio-note" style={{ marginBottom: '0.7rem' }}>
-        <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: '0.35rem' }}>Cómo funciona, en pocas palabras</div>
-        <ul style={{ margin: 0, paddingLeft: '1.1rem', lineHeight: 1.55 }}>
+      <div className="table-wrap prm-card">
+        <div className="prm-titulo" style={{ marginBottom: '0.35rem' }}>Cómo funciona, en pocas palabras</div>
+        <ul>
           <li><strong>Cuándo — al momento:</strong> las reglas <strong>3, 4 y 5</strong> se miran en el mismo instante en que la persona pide un precio o cancela un envío. Si con esa consulta o cancelación pasa del límite, la cuenta queda suspendida en ese segundo y en su siguiente clic ya no puede seguir.</li>
           <li><strong>Cuándo — cada hora:</strong> en el minuto 17 de cada hora la plataforma repasa todas las cuentas. Es lo que pilla las reglas <strong>1 y 2</strong>, que dependen de que pase el tiempo (nadie «hace» nada que las dispare).</li>
           <li><strong>Qué hace:</strong> si una cuenta cumple <strong>una sola</strong> de las 5 reglas de abajo, la suspende: esa persona ya no puede entrar.</li>
@@ -212,9 +212,9 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
 
       {/* 2. Interruptor general */}
       <Regla n={null} titulo="Interruptor general" quien="todas las reglas" claves={[]} filas={filas} esAdmin={esAdmin}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap', marginTop: '0.55rem' }}>
+        <div className="prm-fila">
           {activa && <Control p={activa} esAdmin={esAdmin} etiqueta="Suspensión automática encendida" />}
-          <span style={{ fontSize: 'var(--fs-m)', color: encendida ? '#0f6b3a' : '#b45309', fontWeight: 700 }}>
+          <span style={{ color: encendida ? '#0f6b3a' : '#b45309', fontWeight: 700 }}>
             {encendida ? 'Encendida: suspende al momento (reglas 3, 4 y 5) y en el repaso de cada hora (todas).' : 'Apagada: no se suspende a nadie automáticamente (ni al momento, ni cada hora, ni con «Lanzar ahora»).'}
           </span>
         </div>
@@ -225,7 +225,7 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
         <Bloque titulo="Qué mira">Si la persona ha pedido algún precio en los últimos <strong>{r1} días</strong> y, en esos mismos {r1} días, <strong>nadie de su empresa</strong> ha generado ningún envío.</Bloque>
         <Bloque titulo="Cuándo se suspende">Cuando pasan las dos cosas a la vez: pide precios <strong>y</strong> su empresa no envía nada en {r1} días.</Bloque>
         <Bloque titulo="Ejemplos">
-          <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
+          <ul>
             <li>Juan (Muebles López) ha pedido 3 precios este mes. En los últimos {r1} días ni él ni nadie de Muebles López ha hecho un envío → <strong>se suspende la cuenta de Juan</strong>.</li>
             <li>Igual, pero su compañera Marta hizo un envío la semana pasada → <strong>no se suspende</strong> (cuenta la empresa, no la persona).</li>
             <li>Juan no ha pedido ningún precio en {r1} días → <strong>no se suspende</strong> por esta regla (no molesta).</li>
@@ -238,7 +238,7 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
         <Bloque titulo="Qué mira">La última vez que la persona <strong>inició sesión</strong> en la plataforma.</Bloque>
         <Bloque titulo="Cuándo se suspende">Cuando lleva más de <strong>{r2} días</strong> sin iniciar sesión {duracion(r2) && <>({duracion(r2)})</>}. Es una medida de seguridad: una cuenta olvidada es una puerta abierta.</Bloque>
         <Bloque titulo="Ejemplos">
-          <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
+          <ul>
             <li>Un transportista entró por última vez el {fechaLarga(new Date(Date.now() - (r2 + 10) * 86400000))} → hace más de {r2} días → <strong>se suspende</strong>.</li>
             <li>Un cliente que solo entra de vez en cuando, por ejemplo cada {Math.max(1, Math.floor(r2 / 2))} días, a descargar facturas → <strong>no se suspende</strong> (nunca llega a {r2} días sin entrar).</li>
           </ul>
@@ -250,7 +250,7 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
         <Bloque titulo="Qué mira">Cuántos precios pide la persona. Hoy cuenta cada <strong>solicitud de precio</strong>; cuando esté el tarifador, contará cada cálculo. Sirve para frenar a quien usa la plataforma solo para sacar precios (la competencia, por ejemplo).</Bloque>
         <Bloque titulo="Cuándo se suspende">Cuando pasa de <strong>{qd} en 24 horas</strong>, <strong>o</strong> de <strong>{qs} en 7 días</strong>, <strong>o</strong> de <strong>{qm} en 30 días</strong>. Basta con pasarse en una de las tres.</Bloque>
         <Bloque titulo="Ejemplos">
-          <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
+          <ul>
             <li>Pide {qd} precios hoy → <strong>no pasa nada</strong>. Pide el {qd + 1}.º → <strong>se suspende en ese mismo momento</strong> (no le da tiempo a pedir 3.000).</li>
             {qPorDia <= qd && <li>Pide {qPorDia} precios al día durante una semana = {qPorDia * 7} → pasa de {qs} en 7 días → <strong>se suspende</strong>, aunque ningún día pase de {qd}.</li>}
             <li>Pide pocos al día pero, sumando el mes, llega a {qm + 1} → pasa de {qm} en 30 días → <strong>se suspende</strong>.</li>
@@ -263,7 +263,7 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
         <Bloque titulo="Qué mira">De los envíos que ha pedido <strong>esa persona</strong>, cuántos ha cancelado <strong>ella misma</strong>. Las cancelaciones que hace Dynamo no cuentan. Se cuenta desde que se creó la cuenta (o desde que se reactivó).</Bloque>
         <Bloque titulo="Cuándo se suspende">Cuando ha pedido <strong>{cmin} envíos o más</strong> y ha cancelado el <strong>{cp} % o más</strong>.</Bloque>
         <Bloque titulo="Ejemplos">
-          <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
+          <ul>
             <li>Ha pedido {e4} envíos y ha cancelado {c4} → {pct(c4, e4)} % → <strong>se suspende</strong>.</li>
             {c4 > 1 && <li>Ha pedido {e4} envíos y ha cancelado {c4 - 1} → {pct(c4 - 1, e4)} % → <strong>no se suspende</strong>.</li>}
             <li>Con justo {cmin} envíos pedidos, basta con cancelar {cMin} para llegar al {cp} % → <strong>se suspende</strong>.</li>
@@ -276,7 +276,7 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
         <Bloque titulo="Qué mira">Cuántos envíos ha cancelado la persona en los <strong>últimos {cd} días</strong>, tenga los envíos que tenga.</Bloque>
         <Bloque titulo="Cuándo se suspende">Cuando cancela <strong>{cn} o más</strong> en {cd} días.</Bloque>
         <Bloque titulo="Ejemplos">
-          <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
+          <ul>
             <li>Cancela {cn} envío{cn === 1 ? '' : 's'} dentro de {cd} días → <strong>se suspende</strong>.</li>
             {cn > 1 && <li>Cancela {cn - 1} en {cd} días → <strong>no se suspende</strong> por esta regla.</li>}
             {cn > 1 && <li>Cancela {cn}, pero con más de {cd} días entre la primera y la última → <strong>no se suspende</strong> por esta regla (sí pueden contar para la regla 4).</li>}
@@ -287,9 +287,9 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
       {sueltas.length > 0 && <TablaParametros filas={sueltas} esAdmin={esAdmin} />}
 
       {/* 4. Quién caería hoy + lanzar */}
-      <div className="table-wrap" style={{ padding: '0.9rem 1rem', marginBottom: '0.7rem' }}>
-        <div style={{ fontWeight: 800, color: 'var(--navy)' }}>Si el repaso se lanzara ahora, caerían {candidatos.length}{candidatos.length ? ':' : ' (nadie).'}</div>
-        {candidatos.length > 0 && <ul style={{ margin: '0.4rem 0 0', paddingLeft: '1.1rem', lineHeight: 1.55 }}>{candidatos.map((c) => <li key={c.usuario_id}><strong>{c.email}</strong> · {c.motivo}</li>)}</ul>}
+      <div className="table-wrap prm-card">
+        <div className="prm-titulo">Si el repaso se lanzara ahora, caerían {candidatos.length}{candidatos.length ? ':' : ' (nadie).'}</div>
+        {candidatos.length > 0 && <ul style={{ marginTop: '0.4rem' }}>{candidatos.map((c) => <li key={c.usuario_id}><strong>{c.email}</strong> · {c.motivo}</li>)}</ul>}
         <div className="meta" style={{ marginTop: '0.4rem' }}>Esta lista no suspende a nadie: solo enseña lo que haría el próximo repaso (cada hora) con los números de arriba. Sirve para probar un número antes de dejarlo. «Lanzar ahora» hace el repaso sin esperar.</div>
         {esAdmin && <div style={{ marginTop: '0.6rem' }}><button className="btn-secondary" onClick={lanzar} disabled={trabajando || !encendida}>{trabajando ? 'Lanzando…' : 'Lanzar ahora'}</button>
           {!encendida && <span className="meta" style={{ marginLeft: '0.5rem' }}>El interruptor general está apagado.</span>}</div>}
