@@ -3490,3 +3490,30 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 103. Contraoferta del cliente: interruptor general + el de su ficha ----------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'false' where clave = 'contraoferta_cliente_activa';
+update clientes set permite_contraoferta = true where id = current_setting('prueba.cliente')::uuid;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if (select permitida from mi_contraoferta(current_setting('prueba.e101_3')::uuid)) then
+    raise exception 'FALLO 103 · con el general apagado, el cliente ve la contraoferta';
+  end if;
+  if (contraofertar_precio_solicitud(current_setting('prueba.e101_3')::uuid, 990))->>'resultado' <> 'no_permitida' then
+    raise exception 'FALLO 103 · con el general apagado, el cliente contraoferta';
+  end if;
+end $$;
+reset role;
+update parametros set valor = 'true' where clave = 'contraoferta_cliente_activa';
+set role authenticated;
+do $$ begin
+  if not (select permitida from mi_contraoferta(current_setting('prueba.e101_3')::uuid)) then
+    raise exception 'FALLO 103 · con los dos encendidos, no la ve';
+  end if;
+  raise notice 'OK 103 · contraoferta del cliente: solo con el interruptor general Y el de su ficha encendidos';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

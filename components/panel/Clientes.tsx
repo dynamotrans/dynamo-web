@@ -235,7 +235,7 @@ function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { f
         {texto('re', 'Recargo de equivalencia (%)', '0')}
         {texto('tarde', 'Recargo por pago tarde (%)', '0')}
         <div />
-        {interruptor('permite_contraoferta', 'Puede hacer contraoferta de precio')}
+        {interruptor('permite_contraoferta', 'Puede hacer contraoferta de precio (si además está encendida en Parámetros)')}
         {interruptor('discrecion_comercial', 'Discreción comercial por defecto')}
         {interruptor('sin_pago_previo_primer_envio', 'Empresa conocida: sin pago previo del primer envío')}
         <div className="meta" style={{ alignSelf: 'end' }}>Solo cuenta si tiene crédito disponible. Sin crédito, todos sus envíos se pagan por adelantado.</div>
