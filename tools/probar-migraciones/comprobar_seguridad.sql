@@ -3555,3 +3555,36 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t uuid := curre
   update parametros set valor = '0' where clave = 'negociacion_max_horas_carga';
   raise notice 'OK 104 · negociación del transportista: interruptor general y requisitos (minutos creada, minutos en bolsa, horas para cargar)';
 end $$;
+
+-- ---- 105. CESCE - Riesgos: manual 0 = manda CESCE; asumido sin lo prepagado; solo Dynamo --
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare c uuid; e uuid; begin
+  insert into clientes (razon_social, cif, riesgo_cesce_euros, riesgo_manual_euros) values ('Riesgo SL', 'B10030030', 10000, 0) returning id into c;
+  if (select riesgo_efectivo_euros from clientes where id = c) <> 10000 then raise exception 'FALLO 105 · con manual 0 no manda CESCE'; end if;
+  update clientes set riesgo_manual_euros = 3000 where id = c;
+  if (select riesgo_efectivo_euros from clientes where id = c) <> 3000 then raise exception 'FALLO 105 · con manual distinto de 0 no manda el manual'; end if;
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde)
+    values (c, 6, 1000, 800, current_date - 5) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 1, 'carga', '41001', 'Sevilla');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 2, 'descarga', '46001', 'Valencia');
+  update envios set estado = 'programado' where id = e;
+  perform set_config('prueba.c105', c::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare r record; begin
+  select * into r from riesgos_clientes() where cliente_id = current_setting('prueba.c105')::uuid;
+  if r.asumido <> 1210 or r.disponible <> 1790 or r.manda <> 'manual' then
+    raise exception 'FALLO 105 · riesgo asumido/disponible mal: % % %', r.asumido, r.disponible, r.manda;
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from riesgos_clientes()) then raise exception 'FALLO 105 · un cliente ve los riesgos'; end if;
+  raise notice 'OK 105 · CESCE - Riesgos: manual 0 = manda CESCE, manual ≠ 0 limita; asumido 60 días con IVA sin lo prepagado; solo Dynamo';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

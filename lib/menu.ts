@@ -4,6 +4,7 @@
 import { esDynamo, type Rol } from './roles';
 
 export const ICONOS: Record<string, string> = {
+  escudo: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>',
   dashboard: '<rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/>',
   camion: '<rect x="1" y="3" width="15" height="13" rx="1.5"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
   sitios: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
@@ -70,6 +71,7 @@ export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 
     { sep: 'Gestión interna · Admin', items: [
       { grupo: 'admin', titulo: 'Gestión interna', icono: 'capas', enlaces: [
         { slug: 'clientes', titulo: 'Clientes', icono: 'clientes' },
+        { slug: 'riesgos', titulo: 'CESCE - Riesgos', icono: 'escudo' },
         { slug: 'transportistas', titulo: 'Transportistas', icono: 'camion' },
         { slug: 'operadores', titulo: 'Transportistas de clientes', icono: 'camion' },
         { slug: 'almacenes', titulo: 'Almacenes Dynamo', icono: 'almacenesCat' },

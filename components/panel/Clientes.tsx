@@ -51,10 +51,11 @@ const NUEVO: ClienteDatos = {
 
 type Empleado = { id: string; nombre: string };
 
-export default function Clientes({ filas, error, bienvenida, empleados = [] }: { filas: ClienteFila[]; error: string | null; bienvenida: Bienvenida; empleados?: Empleado[] }) {
+export default function Clientes({ filas, error, bienvenida, empleados = [], abrir = null }: { filas: ClienteFila[]; error: string | null; bienvenida: Bienvenida; empleados?: Empleado[]; abrir?: string | null }) {
   const refrescar = useRefrescar();
   const [q, setQ] = useState('');
-  const [ficha, setFicha] = useState<{ fila: ClienteFila | null } | null>(null);
+  // ?ver=<id> (p. ej. desde CESCE - Riesgos) abre su ficha directamente.
+  const [ficha, setFicha] = useState<{ fila: ClienteFila | null } | null>(() => { const f = abrir ? filas.find((c) => c.id === abrir) : null; return f ? { fila: f } : null; });
 
   const lista = useMemo(() => {
     const w = norm(q.trim());
@@ -230,7 +231,7 @@ function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { f
         </div>
         {texto('iva', 'IVA (%)', '21')}
         {texto('cesce', 'Importe crédito CESCE (€)', 'Ej. 40000')}
-        {texto('dyn', 'Importe crédito Dynamo (€)', 'Ej. 10000')}
+        {texto('dyn', 'Importe crédito Dynamo (€) · 0 o vacío = manda CESCE', 'Ej. 10000')}
         {texto('ret', 'Retención (%)', '0')}
         {texto('re', 'Recargo de equivalencia (%)', '0')}
         {texto('tarde', 'Recargo por pago tarde (%)', '0')}

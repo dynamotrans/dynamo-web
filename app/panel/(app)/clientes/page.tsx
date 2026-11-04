@@ -6,7 +6,8 @@ import { contactosDe } from '@/lib/contactos';
 export const dynamic = 'force-dynamic';
 
 // Catálogo de clientes (solo Dynamo): diseño de #sec-clientes de dashboard.html.
-export default async function PaginaClientes() {
+export default async function PaginaClientes({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
+  const ver = (await searchParams).ver ?? null;
   const s = await sesion();
   if (!s) return null;
   const { supabase, perfil } = s;
@@ -33,5 +34,5 @@ export default async function PaginaClientes() {
   const filas: ClienteFila[] = (cli.data ?? []).map((c: any) => {
     return { ...c, contactos: contactosDe(porCliente.get(c.id) ?? []), envios_que_cuentan: cuenta.get(c.id) ?? 0 };
   });
-  return <Clientes filas={filas} bienvenida={bienvenida} empleados={empleados} error={cli.error?.message ?? null} />;
+  return <Clientes filas={filas} bienvenida={bienvenida} empleados={empleados} error={cli.error?.message ?? null} abrir={ver} />;
 }
