@@ -261,6 +261,7 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
 
       <Regla n={4} salta="momento" titulo="Cancela muchos de sus envíos" quien="clientes" hoy={porRegla(4)} claves={['autosusp_cancel_pct', 'autosusp_cancel_min_envios']} filas={filas} esAdmin={esAdmin}>
         <Bloque titulo="Qué mira">De los envíos que ha pedido <strong>esa persona</strong>, cuántos ha cancelado <strong>ella misma</strong>. Las cancelaciones que hace Dynamo no cuentan. Se cuenta desde que se creó la cuenta (o desde que se reactivó).</Bloque>
+        <Bloque titulo="Qué cancelaciones cuentan">Solo las que «hacen daño»: con <strong>camión ya asignado</strong>, o sin camión pero <strong>tarde</strong> (después de las 9:00 del día hábil anterior a la carga). Cancelar sin camión y con tiempo es gratis y <strong>no cuenta</strong>.</Bloque>
         <Bloque titulo="Cuándo se suspende">Cuando ha pedido <strong>{cmin} envíos o más</strong> y ha cancelado el <strong>{cp} % o más</strong>.</Bloque>
         <Bloque titulo="Ejemplos">
           <ul>
@@ -273,7 +274,7 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
       </Regla>
 
       <Regla n={5} salta="momento" titulo="Muchas cancelaciones seguidas" quien="clientes" hoy={porRegla(5)} claves={['autosusp_cancel_recientes', 'autosusp_cancel_recientes_dias']} filas={filas} esAdmin={esAdmin}>
-        <Bloque titulo="Qué mira">Cuántos envíos ha cancelado la persona en los <strong>últimos {cd} días</strong>, tenga los envíos que tenga.</Bloque>
+        <Bloque titulo="Qué mira">Cuántos envíos ha cancelado la persona en los <strong>últimos {cd} días</strong>, tenga los envíos que tenga. Cuentan las mismas que en la regla 4: con camión asignado, o sin camión pasadas las 9:00 del día hábil anterior a la carga.</Bloque>
         <Bloque titulo="Cuándo se suspende">Cuando cancela <strong>{cn} o más</strong> en {cd} días.</Bloque>
         <Bloque titulo="Ejemplos">
           <ul>

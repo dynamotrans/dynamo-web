@@ -3114,8 +3114,9 @@ do $$ declare e uuid; i int; begin
   update usuarios set autosusp_desde = now(), estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
   for i in 1..5 loop
-    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
-      values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800) returning id into e;
+    -- Carga hoy: cancelar es tardío (pasado el corte de las 9:00 del día hábil anterior) y cuenta.
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+      values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, current_date) returning id into e;
     insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
     insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
     update envios set estado = 'programado' where id = e;
@@ -3270,8 +3271,8 @@ do $$ declare e uuid; i int; begin
   update usuarios set autosusp_desde = now(), limite_consultas_precio_diario = null where id = current_setting('prueba.u_cli')::uuid;
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
   for i in 1..3 loop
-    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
-      values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800) returning id into e;
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+      values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, current_date) returning id into e;
     insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
     insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
     update envios set estado = 'programado' where id = e;
@@ -3828,4 +3829,26 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t1 uuid := curr
   if (select estado from envio_reservas where id = r1) <> 'rechazada' then raise exception 'FALLO 112 · la otra contraoferta no queda rechazada'; end if;
   if (resolver_contraoferta(r1, true))->>'resultado' = 'aceptada' then raise exception 'FALLO 112 · se aprueba otra después de asignada la carga'; end if;
   raise notice 'OK 112 · contraofertas: varias a la vez sin bloquear la carga; al aprobar una, las demás quedan rechazadas';
+end $$;
+
+-- ---- 113. Suspensión: cancelar sin camión y con tiempo NO cuenta ------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update usuarios set estado = 'activa', sin_autosuspension = false, autosusp_desde = now() where id = current_setting('prueba.u_cli')::uuid;
+do $$ declare e uuid; i int; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  for i in 1..4 loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+      values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, current_date + 20, current_date + 21) returning id into e;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+    update envios set estado = 'programado' where id = e;
+    update envios set estado = 'cancelado' where id = e;   -- sin camión y con 20 días: gratis
+  end loop;
+  perform set_config('request.jwt.claim.sub', '', false);
+  if (select estado from usuarios where id = current_setting('prueba.u_cli')::uuid) <> 'activa'
+     or exists (select 1 from autosuspension_candidatos() where usuario_id = current_setting('prueba.u_cli')::uuid and motivo ~ 'Regla [45]') then
+    raise exception 'FALLO 113 · cancelar sin camión y con tiempo cuenta para suspender';
+  end if;
+  raise notice 'OK 113 · suspensión: solo cuentan las cancelaciones con camión asignado o pasado el corte de las 9:00';
 end $$;
