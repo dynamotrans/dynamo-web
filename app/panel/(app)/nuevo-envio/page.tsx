@@ -74,5 +74,5 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
   const nombresFestivos = Object.fromEntries(((fes.data ?? []) as { fecha: string; nombre: string }[]).map((f) => [f.fecha, f.nombre]));
   const error = cli.error?.message || lug.error?.message || null;
 
-  return <NuevoEnvio key={idBase ?? 'nuevo'} clientes={clientes} sitios={sitios} festivos={festivos} nombresFestivos={nombresFestivos} error={error} base={base} />;
+  return <NuevoEnvio key={idBase ?? 'nuevo'} clientes={clientes} sitios={sitios} festivos={festivos} nombresFestivos={nombresFestivos} error={error} base={base} esMaster={perfil.rol === 'admin'} />;
 }

@@ -3096,3 +3096,159 @@ do $$ declare v jsonb; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 95. Suspensión automática de cuentas ----------------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; i int; begin
+  -- Contador desde cero para el cliente de prueba (como si Dynamo lo acabara de reactivar).
+  update usuarios set autosusp_desde = now(), estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  for i in 1..5 loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
+      values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800) returning id into e;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+    update envios set estado = 'programado' where id = e;
+    if i <= 2 then update envios set estado = 'cancelado' where id = e; end if;   -- 2 de 5 = 40 %
+  end loop;
+  perform set_config('request.jwt.claim.sub', '', false);
+end $$;
+-- El cliente no se puede quitar la suspensión automática, ni lanzar el proceso, ni escribir consultas.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin
+    update usuarios set sin_autosuspension = true where id = auth.uid();
+    raise exception 'FALLO 95 · el usuario se libra solo de la suspensión automática';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform autosuspender_cuentas();
+    raise exception 'FALLO 95 · un cliente lanza la suspensión automática';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into consultas_precio (usuario_id) values (auth.uid());
+    raise exception 'FALLO 95 · un cliente escribe consultas de precio a mano';
+  exception when insufficient_privilege then null; end;
+  if exists (select 1 from autosuspension_candidatos()) then
+    raise exception 'FALLO 95 · un cliente ve la lista de cuentas a suspender';
+  end if;
+end $$;
+reset role;
+-- El Admin Master lo lanza: el cliente que cancela el 40 % cae, con su motivo.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare n int; u record; begin
+  if not exists (select 1 from autosuspension_candidatos() where usuario_id = current_setting('prueba.u_cli')::uuid and motivo like 'Regla 4%') then
+    raise exception 'FALLO 95 · no detecta la regla 4 (40 %% de cancelaciones): %', (select array_agg(motivo) from autosuspension_candidatos());
+  end if;
+  n := autosuspender_cuentas();
+  select estado, suspension_motivo, suspendida_en into u from usuarios where id = current_setting('prueba.u_cli')::uuid;
+  if n < 1 or u.estado <> 'suspendida' or u.suspension_motivo not like 'Automática · Regla 4%' or u.suspendida_en is null then
+    raise exception 'FALLO 95 · no suspende con su motivo: % % %', n, u.estado, u.suspension_motivo;
+  end if;
+  -- Dynamo lo reactiva a mano: se limpia el motivo y el contador empieza de nuevo.
+  update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;
+  select estado, suspension_motivo, autosusp_desde into u from usuarios where id = current_setting('prueba.u_cli')::uuid;
+  if u.estado <> 'activa' or u.suspension_motivo is not null or u.autosusp_desde is null then
+    raise exception 'FALLO 95 · la reactivación no limpia ni reinicia el contador';
+  end if;
+  if exists (select 1 from autosuspension_candidatos() where usuario_id = current_setting('prueba.u_cli')::uuid) then
+    raise exception 'FALLO 95 · al reactivar, al día siguiente volvería a caer por lo de antes';
+  end if;
+  raise notice 'OK 95 · suspensión automática: reglas por parámetro, solo usuario, motivo guardado, reactivar reinicia el contador; el cliente no la toca';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 96. Usuarios: copia de avisos, tiempo conectado y métricas -----------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare n int; begin
+  perform latido(); perform latido(); perform latido();   -- seguidos: solo cuenta uno
+  select minutos into n from conexion_minutos where usuario_id = auth.uid();
+  if n <> 5 then raise exception 'FALLO 96 · el tiempo conectado se infla llamando seguido: % min', n; end if;
+  begin
+    update conexion_minutos set minutos = 999 where usuario_id = auth.uid();
+    if found then raise exception 'FALLO 96 · el usuario se apunta minutos a mano'; end if;
+  exception when insufficient_privilege then null; end;
+  if exists (select 1 from metricas_usuarios()) then raise exception 'FALLO 96 · un cliente ve las métricas de los usuarios'; end if;
+end $$;
+reset role;
+do $$ begin
+  begin
+    update usuarios set copias_avisos = array['bien@empresa.com', 'mal email'] where id = current_setting('prueba.u_cli')::uuid;
+    raise exception 'FALLO 96 · admite un email de copia que no vale';
+  exception when check_violation then null; end;
+  update usuarios set copias_avisos = array['logistica@empresa.com'] where id = current_setting('prueba.u_cli')::uuid;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if not exists (select 1 from metricas_usuarios() where id = current_setting('prueba.u_cli')::uuid and consultas >= 0 and ultimo_latido is not null) then
+    raise exception 'FALLO 96 · Dynamo no ve las métricas del usuario';
+  end if;
+  raise notice 'OK 96 · usuarios: copias de avisos validadas, tiempo conectado sin poder inflarlo, métricas solo para Dynamo';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 97. Tablón de otras cargas disponibles (página pública) --------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare a uuid; b uuid; c uuid; i int; e uuid; begin
+  for i in 1..3 loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+      values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, current_date + 3) returning id into e;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, provincia, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'Sevilla', 'ES');
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, provincia, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'Madrid', 'ES');
+    update envios set estado = 'programado' where id = e;
+    if i = 1 then a := e; elsif i = 2 then b := e; else c := e; end if;
+  end loop;
+  update envios set publicado_en_bolsa_en = now() where id in (a, c);   -- b NO está en bolsa
+  perform set_config('prueba.e97a', a::text, false); perform set_config('prueba.e97b', b::text, false);
+  perform set_config('prueba.tok97b', (select token_publico::text from envios where id = b), false);
+  perform set_config('prueba.tok97a', (select token_publico::text from envios where id = a), false);
+end $$;
+set role anon;
+do $$ declare l jsonb; begin
+  if otras_cargas_publicas(gen_random_uuid()) <> '[]'::jsonb then
+    raise exception 'FALLO 97 · el tablón se ve sin un enlace válido';
+  end if;
+  l := otras_cargas_publicas(current_setting('prueba.tok97b')::uuid);
+  if not exists (select 1 from jsonb_array_elements(l) x where x->>'token' = current_setting('prueba.tok97a')) then
+    raise exception 'FALLO 97 · no sale una carga publicada en bolsa: %', l;
+  end if;
+  if exists (select 1 from jsonb_array_elements(l) x where x->>'token' = current_setting('prueba.tok97b')) then
+    raise exception 'FALLO 97 · sale la propia carga (o una que no está en bolsa)';
+  end if;
+  if l::text ~* '(cliente|nombre_empresa|direccion|telefono|importe_cliente)' then
+    raise exception 'FALLO 97 · el tablón deja ver datos del cliente o del sitio';
+  end if;
+  raise notice 'OK 97 · tablón de cargas: solo con enlace válido, solo publicadas en bolsa y libres, sin datos del cliente';
+end $$;
+reset role;
+
+-- ---- 98. Fecha de carga pasada: solo el Admin Master -----------------------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_emp84'), false);
+set role authenticated;
+do $$ begin
+  begin
+    update envios set fecha_carga_desde = current_date - 30 where id = current_setting('prueba.e97a')::uuid;
+    raise exception 'FALLO 98 · un empleado pone una fecha de carga pasada';
+  exception when insufficient_privilege then null; end;
+  -- Tocar otra cosa de un envío sí puede, aunque su fecha ya haya pasado.
+  update envios set referencia_cliente = 'REF-98' where id = current_setting('prueba.e97a')::uuid;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  update envios set fecha_carga_desde = current_date - 180, fecha_carga_hasta = current_date - 180 where id = current_setting('prueba.e97a')::uuid;
+  if (select fecha_carga_desde from envios where id = current_setting('prueba.e97a')::uuid) <> current_date - 180 then
+    raise exception 'FALLO 98 · el Admin Master no puede poner una fecha pasada';
+  end if;
+  raise notice 'OK 98 · fecha de carga pasada: solo el Admin Master (también impuesto en la base de datos)';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

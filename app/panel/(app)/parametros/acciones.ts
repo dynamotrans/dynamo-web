@@ -13,3 +13,12 @@ export async function guardarParametro(clave: string, valor: unknown): Promise<{
   if (!count) return { ok: false, error: 'No existe ese parámetro.' };
   return { ok: true };
 }
+
+// Lanzar ya la suspensión automática (el proceso diario lo hace solo). Solo el Admin Master.
+export async function lanzarAutosuspension(): Promise<{ ok: true; n: number } | { ok: false; error: string }> {
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'admin') return { ok: false, error: 'Solo el Admin Master lanza la suspensión automática.' };
+  const { data, error } = await s.supabase.rpc('autosuspender_cuentas');
+  if (error) return { ok: false, error: /permission|42501/i.test(error.message) ? 'No tienes permiso para hacer esto.' : error.message };
+  return { ok: true, n: Number(data ?? 0) };
+}

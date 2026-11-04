@@ -89,14 +89,15 @@ const IcoEscudo = () => (<svg viewBox="0 0 24 24" width="17" height="17" fill="n
 // esCliente: lo usa el propio CLIENTE (etapa B). Pide una SOLICITUD sin precio: Dynamo
 // se lo pone y él lo acepta después desde la ficha del envío.
 type Props = { clientes: ClienteOpcion[]; sitios: SitioOpcion[]; festivos: string[]; nombresFestivos?: Record<string, string>; error: string | null; base?: Base | null; esCliente?: boolean;
-  operadores?: { id: string; nombre: string }[] };   // los operadores de transporte del cliente (envío manual)
+  operadores?: { id: string; nombre: string }[];      // los operadores de transporte del cliente (envío manual)
+  esMaster?: boolean };                               // Admin Master: cualquier fecha, también pasada
 
 // Del valor guardado a la opción más cercana del desplegable (que va por tramos).
 const opcionCercana = (v: number | null | undefined, opciones: string[], defecto: string) =>
   v == null ? defecto : opciones.find((o) => Number(o) >= Number(v) - 1e-9) ?? opciones[opciones.length - 1];
 const decimal = (n: number | null | undefined) => (n == null ? '' : String(n).replace('.', ','));
 
-export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, operadores = [] }: Props) {
+export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, nombresFestivos = {}, error: errorCarga, base, esCliente = false, operadores = [], esMaster = false }: Props) {
   const be = base?.envio;
   const enRuta = base?.modo === 'ruta';
   const puntoDe = (p: Base['paradas'][number], k: number): Punto => {
@@ -527,8 +528,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                   </div>
                   <div className="ptar-field-full">
                     <label className="ptar-mlabel" htmlFor="ne-otra">¿Otro día? Elígelo en el calendario</label>
-                    <input id="ne-otra" type="date" className="ptar-select" min={dias[0]} value={fecha && !dias.includes(fecha) ? fecha : ''}
+                    <input id="ne-otra" type="date" className="ptar-select" min={esMaster ? undefined : dias[0]} value={fecha && !dias.includes(fecha) ? fecha : ''}
                       onChange={(e) => setFecha(e.target.value)} />
+                    {esMaster && <p className="ptar-admin-precio-note">Como <strong>Admin Master</strong> puedes poner cualquier fecha, también pasada (p. ej. un envío que se gestionó por teléfono). Nadie más puede.</p>}
                   </div>
                 </>)}
               </div>

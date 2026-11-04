@@ -1,14 +1,33 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { COOKIE_RECORDAR, duracionSegunRecordar } from '@/lib/supabase/recordar';
+import { CABECERA_CSP, INFORME_CSP, cspPlataforma, nuevoNonce } from '@/lib/csp';
 
 // Refresca la sesión de Supabase en cada petición de la plataforma y protege /panel:
-// sin sesión, a la página de entrada.
+// sin sesión, a la página de entrada. Y en TODA la plataforma (/panel, /carga, /cmr) pone
+// la política de seguridad de contenido con una llave de un solo uso (lib/csp.ts).
 export async function middleware(request: NextRequest) {
-  let respuesta = NextResponse.next({ request });
+  const nonce = nuevoNonce();
+  const csp = cspPlataforma(nonce, process.env.NODE_ENV === 'development');
+  // Next.js lee la llave de la cabecera de la PETICIÓN y se la pone a sus propios scripts.
+  const seguir = () => {
+    const h = new Headers(request.headers);
+    h.set('x-nonce', nonce);
+    h.set(CABECERA_CSP.toLowerCase(), csp);
+    return NextResponse.next({ request: { headers: h } });
+  };
+  const conCsp = (r: NextResponse) => {
+    r.headers.set(CABECERA_CSP, csp);
+    r.headers.set('Reporting-Endpoints', `csp="${INFORME_CSP}"`);
+    return r;
+  };
+  // Páginas públicas del transportista: solo la política, sin sesión.
+  if (!request.nextUrl.pathname.startsWith('/panel')) return conCsp(seguir());
+
+  let respuesta = seguir();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const clave = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !clave) return respuesta;   // sin configurar: la página lo explica
+  if (!url || !clave) return conCsp(respuesta);   // sin configurar: la página lo explica
 
   const mantener = request.cookies.get(COOKIE_RECORDAR)?.value !== '0';
   const supabase = createServerClient(url, clave, {
@@ -18,7 +37,7 @@ export async function middleware(request: NextRequest) {
       },
       setAll(lista) {
         lista.forEach(({ name, value }) => request.cookies.set(name, value));
-        respuesta = NextResponse.next({ request });
+        respuesta = seguir();
         lista.forEach(({ name, value, options }) => respuesta.cookies.set(name, value, duracionSegunRecordar(options, mantener)));
       },
     },
@@ -42,7 +61,7 @@ export async function middleware(request: NextRequest) {
     destino.pathname = '/panel';
     return NextResponse.redirect(destino);
   }
-  return respuesta;
+  return conCsp(respuesta);
 }
 
-export const config = { matcher: ['/panel', '/panel/:path*'] };
+export const config = { matcher: ['/panel', '/panel/:path*', '/carga/:path*', '/cmr/:path*'] };

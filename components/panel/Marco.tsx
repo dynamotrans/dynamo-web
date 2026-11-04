@@ -10,6 +10,7 @@ import { esDynamo, esSoloLectura, type Rol } from '@/lib/roles';
 import { CONTACTO, HORARIO_ONLINE, estadoAtencion, horarioTelefono, semanaFestivaTexto } from '@/lib/atencion';
 import { useIdiomaGT } from '@/components/SelectorIdioma';
 import Modal from './Modal';
+import { latido } from '@/app/panel/(app)/latido';
 
 // Idiomas del menú del usuario (los del mockup). Banderas: excepción de la regla 0-ter.
 const BANDERA_CA = <svg className="flag-svg" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#fcdd09" /><rect y="1.78" width="24" height="1.78" fill="#da121a" /><rect y="5.33" width="24" height="1.78" fill="#da121a" /><rect y="8.89" width="24" height="1.78" fill="#da121a" /><rect y="12.44" width="24" height="1.78" fill="#da121a" /></svg>;
@@ -81,6 +82,12 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
     const poner = () => { const e = estadoAtencion(fest); setAtencion({ ...e, tel: horarioTelefono() }); };
     poner(); const t = setInterval(poner, 60000); return () => clearInterval(t);
   }, [fest]);
+  // Tiempo conectado: «sigo aquí» al entrar y cada 5 minutos, solo con la pestaña a la vista.
+  useEffect(() => {
+    const avisar = () => { if (document.visibilityState === 'visible') latido().catch(() => {}); };
+    avisar(); const t = setInterval(avisar, 5 * 60000);
+    return () => clearInterval(t);
+  }, []);
   const [grupos, setGrupos] = useState<Record<string, boolean>>({});
   const barra = useRef<HTMLElement>(null);
 

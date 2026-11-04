@@ -29,7 +29,7 @@
 | 03 | Control de versiones | ✅ cumplido | ✅ se mantiene |
 | 04 | APIs de verdad | ❌ no hay | 🔴 **crítico** — precio server-side |
 | 05 | Hosting y deploy | ✅ cumplido | ✅ se mantiene |
-| 06 | Seguridad | 🟡 parcial (falta CSP) | 🔴 **crítico** |
+| 06 | Seguridad | 🟡 CSP puesta en modo *solo avisar* en pruebas (2026-11-04); falta pasarla a bloquear | 🔴 **crítico** |
 | 07 | Rate limiting | ❌ no hay | 🔴 **crítico** — ahora sí cuesta dinero |
 | 08 | Caché | ✅ de facto (CDN) | 🟡 cuidado con cachear datos de usuario |
 | 09 | Escalabilidad | ✅ de facto (estático) | 🟡 colas y pooling |
@@ -185,10 +185,20 @@ del mockup es un bypass a propósito.
 
 **En la plataforma real**:
 
-- **CSP**. Es la que falta. Hay que construirla a medida porque la web carga Google
-  Translate, GTM/Ads, `cdn.jsdelivr.net` y fuentes de Google. ⚠️ **Probarla en preview
-  antes de `main`**: una CSP mal puesta rompe Google Translate y el tarifador en
-  silencio, sin error visible.
+- **CSP** — **puesta en modo *solo avisar* (Report-Only) en `pruebas` el 2026-11-04**:
+  · **Plataforma** (`/panel`, `/carga`, `/cmr`): estricta, con **llave de un solo uso (nonce)
+    por página** y `'strict-dynamic'` (la pone `middleware.ts`; reglas en `lib/csp.ts`).
+    Comprobado en Chromium: todos los scripts de Next.js llevan la llave y no salta ningún aviso.
+  · **Web pública** estática: lista de los servicios que ya usa (`next.config.mjs` → `CSP_PUBLICA`),
+    con `'unsafe-inline'` porque es HTML fijo y no admite llave.
+  · Los avisos llegan a `/api/csp-informe` y se ven en **Vercel → Logs**, buscando `[CSP]`.
+  · **Para activarla de verdad**: con unos días de informes limpios en pruebas, poner
+    `BLOQUEAR = true` en `lib/csp.ts` y cambiar la cabecera de `next.config.mjs` a
+    `Content-Security-Policy` (+ `upgrade-insecure-requests`). Probar antes Google Translate,
+    los PDF (orden, CMR, proforma), la firma del CMR y la subida de archivos.
+  · En `main` (dynamotrans.com) todavía **no** hay CSP: va con la web pública por su rama, cuando
+    la de pruebas esté limpia. ⚠️ Una CSP mal puesta rompe Google Translate y el tarifador en
+    silencio, sin error visible.
 - **Auth**: Supabase Auth. **2FA obligatorio para los roles admin y empleado** — son los
   que ven los precios de compra, los márgenes y todos los clientes.
 - **2FA en las cuentas de servicio** (Supabase, GitHub y Vercel) del dueño: son las tres llaves

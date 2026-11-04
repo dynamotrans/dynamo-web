@@ -16,7 +16,7 @@ export default async function PaginaCarga({ params }: { params: Promise<{ token:
   const { token } = await params;
   const sb = supabasePublico();
   const valido = /^[0-9a-f-]{36}$/i.test(token);
-  let oferta: any = null, reserva: any = null, error = false;
+  let oferta: any = null, reserva: any = null, error = false, otras: any[] = [];
   const altaOnline = (await cookies()).get(cookieAlta(token))?.value === '1';
   // En modo mantenimiento la página se para (sale el aviso de mantenimiento).
   const { data: mant } = sb ? await sb.rpc('mantenimiento_activo') : { data: false };
@@ -24,6 +24,8 @@ export default async function PaginaCarga({ params }: { params: Promise<{ token:
   else if (sb && valido) {
     const { data, error: e } = await sb.rpc('oferta_publica', { p_token: token });
     if (e) error = true; else oferta = data;
+    // Tablón: otras cargas de Dynamo publicadas en bolsa y libres (solo con este enlace válido).
+    if (oferta?.resultado === 'ok') { const { data: o } = await sb.rpc('otras_cargas_publicas', { p_token: token }); otras = (o ?? []) as any[]; }
     const id = (await cookies()).get(cookieReserva(token))?.value;
     if (id) {
       const { data: r } = await sb.rpc('carga_aceptada_publica', { p_reserva: id });
@@ -35,7 +37,7 @@ export default async function PaginaCarga({ params }: { params: Promise<{ token:
       <SelectorIdioma />
       <div className="card">
         <div className="brand"><img src="/images/2.png" alt="Dynamo" /></div>
-        <RefrescoProvider><CargaPublica token={token} oferta={!sb || error ? { resultado: 'error' } : valido ? oferta : { resultado: 'enlace_no_valido' }} reserva={reserva} altaOnline={altaOnline} /></RefrescoProvider>
+        <RefrescoProvider><CargaPublica token={token} oferta={!sb || error ? { resultado: 'error' } : valido ? oferta : { resultado: 'enlace_no_valido' }} reserva={reserva} altaOnline={altaOnline} otras={otras} /></RefrescoProvider>
       </div>
       <p className="foot">Dynamo Operador Logístico, S.L.</p>
     </div>

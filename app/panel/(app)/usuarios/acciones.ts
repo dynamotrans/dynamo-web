@@ -10,6 +10,8 @@ export type UsuarioDatos = {
   cliente_id: string; transportista_id: string;
   limite_consultas_precio_diario: number | null; limite_cargas_diario: number | null;
   anotaciones: string;
+  copias: string;                 // «Enviar copia a»: emails separados por comas (máx. 10)
+  sin_autosuspension: boolean;    // «No suspender nunca automáticamente»
 };
 type Res = { ok: true } | { ok: false; error: string };
 
@@ -43,12 +45,16 @@ export async function guardarUsuario(id: string, rol: Rol, d: UsuarioDatos): Pro
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo gestiona usuarios.' };
   const tel = d.telefono.replace(/[^\d+]/g, '');
+  const copias = d.copias.split(/[,;\s]+/).map((x) => x.trim().toLowerCase()).filter(Boolean);
+  if (copias.length > 10) return { ok: false, error: `Máximo 10 emails de copia (has puesto ${copias.length}).` };
+  const malo = copias.find((x) => !EMAIL.test(x));
+  if (malo) return { ok: false, error: `«${malo}» no es un email válido.` };
   const { error } = await s.supabase.from('usuarios').update({
     nombre: vacio(d.nombre), documento: vacio(d.documento)?.toUpperCase() ?? null,
     telefono: tel.replace('+', '').length >= 6 ? tel : null, cargo: vacio(d.cargo), idioma: d.idioma || 'es',
     estado: d.estado, ...empresaDe(rol, d.cliente_id, d.transportista_id),
     limite_consultas_precio_diario: d.limite_consultas_precio_diario, limite_cargas_diario: d.limite_cargas_diario,
-    anotaciones: vacio(d.anotaciones),
+    anotaciones: vacio(d.anotaciones), copias_avisos: [...new Set(copias)], sin_autosuspension: !!d.sin_autosuspension,
   }).eq('id', id);
   return error ? { ok: false, error: traducir(error.message) } : { ok: true };
 }

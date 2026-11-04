@@ -5,13 +5,14 @@
 // Los ve todo Dynamo; solo un ADMIN los cambia. Cada cambio queda en la auditoría.
 import { useMemo, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { guardarParametro } from '@/app/panel/(app)/parametros/acciones';
+import { guardarParametro, lanzarAutosuspension } from '@/app/panel/(app)/parametros/acciones';
 import { creadoTxt } from '@/lib/envios';
 
 // Datos que deciden a quién paga el cliente: solo se cambian en Supabase (la base de datos
 // lo impone; migración parametros_blindados). Aquí se ven, sin poder tocarlos.
 const BLINDADOS = ['dynamo_iban', 'dynamo_banco', 'dynamo_bic', 'dynamo_razon_social', 'dynamo_cif'];
 
+export type Candidato = { usuario_id: string; email: string; motivo: string };
 export type ParametroFila = { clave: string; valor: unknown; descripcion: string; modificado_en: string | null };
 
 // Grupos por el principio de la clave (lo que no encaje, en «Otros»).
@@ -22,17 +23,18 @@ const GRUPOS: [string, string, (k: string) => boolean][] = [
   ['almacen', 'Almacenamientos', (k) => k.startsWith('almacen')],
   ['pin', 'PIN de recogida y entrega', (k) => k.startsWith('pin_')],
   ['holded', 'Holded (facturación)', (k) => k.startsWith('holded')],
+  ['autosusp', 'Suspensión automática de cuentas', (k) => k.startsWith('autosusp_')],
   ['plataforma', 'Plataforma', (k) => k.startsWith('mantenimiento')],
 ];
 const grupoDe = (k: string) => GRUPOS.find(([, , f]) => f(k))?.[0] ?? 'otros';
 const texto = (v: unknown) => (v === null ? '' : typeof v === 'string' ? v : JSON.stringify(v));
 
-export default function Parametros({ filas, esAdmin, error }: { filas: ParametroFila[]; esAdmin: boolean; error: string | null }) {
+export default function Parametros({ filas, esAdmin, error, candidatos = [] }: { filas: ParametroFila[]; esAdmin: boolean; error: string | null; candidatos?: Candidato[] }) {
   const grupos = useMemo(() => {
     const m = new Map<string, ParametroFila[]>();
     filas.forEach((p) => m.set(grupoDe(p.clave), [...(m.get(grupoDe(p.clave)) ?? []), p]));
     return [...GRUPOS.map(([k, t]) => [k, t] as [string, string]), ['otros', 'Otros'] as [string, string]]
-      .filter(([k]) => m.has(k)).map(([k, t]) => ({ t, filas: m.get(k)! }));
+      .filter(([k]) => m.has(k)).map(([k, t]) => ({ k, t, filas: m.get(k)! }));
   }, [filas]);
   return (
     <section className="section active" id="sec-parametros">
@@ -52,9 +54,35 @@ export default function Parametros({ filas, esAdmin, error }: { filas: Parametro
               <tbody>{g.filas.map((p) => <Fila key={p.clave} p={p} esAdmin={esAdmin} />)}</tbody>
             </table>
           </div>
+          {g.k === 'autosusp' && <Autosuspension candidatos={candidatos} esAdmin={esAdmin} />}
         </div>
       ))}
     </section>
+  );
+}
+
+// Explicación de la suspensión automática + quién caería hoy + lanzarla ya.
+function Autosuspension({ candidatos, esAdmin }: { candidatos: Candidato[]; esAdmin: boolean }) {
+  const refrescar = useRefrescar();
+  const [estado, setEstado] = useState<string | null>(null);
+  const [trabajando, setTrabajando] = useState(false);
+  async function lanzar() {
+    setTrabajando(true); setEstado(null);
+    const r = await lanzarAutosuspension();
+    setTrabajando(false);
+    setEstado(r.ok ? (r.n ? `Suspendidas ${r.n} cuenta${r.n === 1 ? '' : 's'}.` : 'Ninguna cuenta cumplía las reglas.') : r.error);
+    if (r.ok) refrescar();
+  }
+  return (
+    <div className="ptar-admin-precio-note" style={{ marginTop: '0.6rem' }}>
+      <p style={{ margin: '0 0 0.4rem' }}>Cada día, a las 4:17 (hora de España en invierno), la plataforma suspende sola la cuenta de un <strong>usuario</strong> (nunca la empresa entera) que cumpla alguna regla. <strong>1</strong> pide precios y su empresa no genera envíos · <strong>2</strong> no entra en mucho tiempo · <strong>3</strong> demasiadas consultas de precio · <strong>4</strong> cancela un % alto de sus envíos · <strong>5</strong> varias cancelaciones en pocos días. Las 1, 3, 4 y 5 son para clientes; la 2, para clientes y transportistas; al equipo de Dynamo, nunca.</p>
+      <p style={{ margin: '0 0 0.4rem' }}>Hoy una «consulta de precio» es cada <strong>solicitud de precio</strong> del cliente; con el tarifador contará cada cálculo. Solo cuentan las cancelaciones que hace el propio usuario. Reactivar es a mano, desde la ficha del usuario (Usuarios), y el contador vuelve a empezar. En esa ficha también se puede marcar «No suspender nunca automáticamente».</p>
+      <strong>Si se lanzara ahora caerían {candidatos.length}:</strong>
+      {candidatos.length ? <ul style={{ margin: '0.3rem 0 0.4rem', paddingLeft: '1.1rem' }}>{candidatos.map((c) => <li key={c.usuario_id}><strong>{c.email}</strong> · {c.motivo}</li>)}</ul>
+        : <span> nadie.</span>}
+      {esAdmin && <div style={{ marginTop: '0.5rem' }}><button className="btn-secondary" onClick={lanzar} disabled={trabajando}>{trabajando ? 'Lanzando…' : 'Lanzar ahora'}</button></div>}
+      {estado && <div className="meta" style={{ marginTop: '0.35rem', fontWeight: 700 }}>{estado}</div>}
+    </div>
   );
 }
 

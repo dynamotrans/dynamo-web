@@ -19,7 +19,12 @@ export type UsuarioFila = UsuarioDatos & {
   id: string; email: string; rol: Rol; creado_en: string; modificado_en: string | null;
   ultima_conexion: string | null; email_confirmado: boolean;
   envios: number; cancelados: number; cancelados_ult10: number;
+  consultas: number; min_dia: number; min_semana: number;
+  suspension_motivo: string | null; suspendida_en: string | null;
 };
+// Minutos → «2 h 56 min» / «45 min».
+const minTxt = (n: number) => { if (!n) return '—'; const h = Math.floor(n / 60), m = n % 60; return h ? `${h} h${m ? ` ${m} min` : ''}` : `${m} min`; };
+const conversion = (u: UsuarioFila) => (u.consultas > 0 ? `${Math.round(u.envios / u.consultas * 100)} %` : '—');
 
 const ROLES: [Rol, string][] = [['admin', 'Admin Master'], ['admin_lectura', 'Admin lectura'], ['empleado', 'Empleado gestor'], ['empleado_lectura', 'Empleado lectura'], ['cliente', 'Cliente'], ['transportista', 'Transportista']];
 const ROL_COLOR: Record<Rol, [string, string]> = {
@@ -122,18 +127,18 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
         <table className="data">
           <thead><tr>
             <th>Email · usuario</th><th>Tipo</th><th>Nombre y apellidos</th><th>DNI</th><th>Teléfono</th>
-            <th>Última conexión</th><th>Envíos creados</th><th>Cancelaciones</th><th>Cancel. / envíos</th><th>Cancelados en últ. 10</th>
+            <th>Última conexión</th><th>Conexión diaria</th><th>Consultas de precio</th><th>Envíos creados</th><th>Cancelaciones</th><th>Cancel. / envíos</th><th>Cancelados en últ. 10</th>
           </tr></thead>
           <tbody>
             {lista.length === 0 ? (
-              <tr><td colSpan={10} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>Sin usuarios que coincidan</td></tr>
+              <tr><td colSpan={12} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>Sin usuarios que coincidan</td></tr>
             ) : lista.map((u) => {
               const m = metricas(u);
               return (
                 <tr key={u.id} onClick={() => { setAviso(null); setFicha(u); }} style={{ cursor: 'pointer' }}>
                   <td><strong>{u.email}</strong>{u.id === yo.id && <> <span className="badge badge-green">Tú</span></>}<div className="meta">{empresaDe(u)}</div></td>
                   <td><ChipRol rol={u.rol} />
-                    {u.estado === 'suspendida' && <div className="meta" style={{ color: '#dc2626', fontWeight: 700 }}>Suspendida</div>}
+                    {u.estado === 'suspendida' && <div className="meta" style={{ color: '#dc2626', fontWeight: 700 }} title={u.suspension_motivo ?? undefined}>{u.suspension_motivo?.startsWith('Automática') ? 'Suspendida (automática)' : 'Suspendida'}</div>}
                     {u.estado === 'pendiente_verificacion' && <div className="meta" style={{ color: '#b45309', fontWeight: 700 }}>Pendiente verif.</div>}
                     {!u.email_confirmado && <div className="meta" style={{ color: '#b45309', fontWeight: 700 }}>Invitación sin aceptar</div>}
                   </td>
@@ -141,6 +146,8 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
                   <td>{u.documento || '—'}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>{telBonito(u.telefono) || '—'}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>{u.ultima_conexion ? creadoTxt(u.ultima_conexion) : 'Sin conexiones'}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{minTxt(u.min_dia)}</td>
+                  <td className="amount">{u.rol === 'cliente' ? u.consultas : '—'}</td>
                   <td className="amount">{interno(u.rol) || u.rol === 'cliente' ? u.envios : '—'}</td>
                   <td className="amount">{m ? u.cancelados : '—'}</td>
                   <td className="amount" style={m?.alto ? { color: '#dc2626', fontWeight: 800 } : undefined}>{m ? `${m.pct} %` : '—'}</td>
@@ -207,7 +214,7 @@ function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol,
     nombre: u.nombre, documento: u.documento, telefono: u.telefono, cargo: u.cargo, idioma: u.idioma || 'es',
     estado: u.estado, cliente_id: u.cliente_id, transportista_id: u.transportista_id,
     limite_consultas_precio_diario: u.limite_consultas_precio_diario, limite_cargas_diario: u.limite_cargas_diario,
-    anotaciones: u.anotaciones,
+    anotaciones: u.anotaciones, copias: u.copias, sin_autosuspension: u.sin_autosuspension,
   });
   const [tel, setTel] = useState(partirTel(u.telefono));
   const [error, setError] = useState<string | null>(null);
@@ -274,6 +281,12 @@ function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol,
             {ESTADOS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
           </select>
         </div>
+        {u.estado === 'suspendida' && u.suspension_motivo && (
+          <div style={{ gridColumn: '1/-1' }} className="modal-warn-box">
+            <strong>{u.suspension_motivo.startsWith('Automática') ? 'Suspendida automáticamente' : 'Suspendida'}{u.suspendida_en ? ` el ${creadoTxt(u.suspendida_en)}` : ''}.</strong> {u.suspension_motivo.replace(/^Automática · /, '')}
+            {' '}Para reactivarla, pon el estado en «Activa» y guarda: el contador de las reglas vuelve a empezar desde hoy.
+          </div>
+        )}
         <SelectorEmpresa id="usr-empresa" rol={u.rol} cliente_id={d.cliente_id} transportista_id={d.transportista_id}
           clientes={clientes} transportistas={transportistas} onCambio={(c) => setD((x) => ({ ...x, ...c }))} />
         <div>
@@ -298,6 +311,21 @@ function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol,
         <div />
         {u.rol === 'cliente' && <>{limite('limite_consultas_precio_diario', 'Límite de consultas de precio al día')}{limite('limite_cargas_diario', 'Límite de envíos al día')}</>}
         <div style={{ gridColumn: '1/-1' }}>
+          <label htmlFor="usr-copias">Enviar copia a · opcional (si hay varios, sepáralos por comas; máx. 10)</label>
+          <input id="usr-copias" type="text" inputMode="email" value={d.copias} placeholder="logistica@empresa.com, almacen@empresa.com" onChange={(e) => set('copias', e.target.value)} />
+        </div>
+        {!interno(u.rol) && (
+          <div style={{ gridColumn: '1/-1' }}>
+            <label>No suspender nunca automáticamente</label>
+            <label className="ptar-tramp-box" style={{ display: 'inline-flex' }}>
+              <input type="checkbox" className="ptar-switch-input" checked={d.sin_autosuspension} onChange={(e) => set('sin_autosuspension', e.target.checked)} />
+              <span className="ptar-switch" aria-hidden="true" />
+              <span className="ptar-tramp-state" aria-hidden="true"><span className="tramp-off">No</span><span className="tramp-on">Sí</span></span>
+            </label>
+            <div className="meta" style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.25rem' }}>Las reglas de suspensión automática (Parámetros) no se le aplican. Para clientes especiales.</div>
+          </div>
+        )}
+        <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="usr-notas">Notas internas</label>
           <textarea id="usr-notas" rows={2} placeholder="Solo visibles para el equipo Dynamo" value={d.anotaciones} onChange={(e) => set('anotaciones', e.target.value)} />
         </div>
@@ -309,7 +337,11 @@ function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol,
         <label style={{ fontSize: 'var(--fs-m)', fontWeight: 700, color: 'var(--gray-500)' }}>Uso de la plataforma <span style={{ fontWeight: 600 }}>· solo lectura, lo calcula el sistema</span></label>
         <div className="pen-envio-sum" style={{ marginTop: '0.35rem' }}>
           {fila('Última conexión', u.ultima_conexion ? creadoTxt(u.ultima_conexion) : 'Sin conexiones')}
+          {fila('Conexión diaria (media, últimos 30 días)', minTxt(u.min_dia))}
+          {fila('Conexión semanal (media, últimas 4 semanas)', minTxt(u.min_semana))}
+          {u.rol === 'cliente' && fila('Consultas de precio', u.consultas)}
           {fila('Envíos creados', u.envios)}
+          {u.rol === 'cliente' && fila('Envíos / consultas (conversión)', conversion(u))}
           {fila('Cancelaciones de envíos', m ? u.cancelados : '—')}
           {fila('Cancelaciones / envíos creados', m ? <span style={m.alto ? { color: '#dc2626' } : undefined}>{m.pct} %</span> : '—')}
           {fila('Cancelados en los últimos 10 creados', m ? `${m.ult10} de 10` : '—')}

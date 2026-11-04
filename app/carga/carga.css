@@ -496,3 +496,6 @@
     .bolsa-fila { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; margin-top: 0.4rem; }
     .bolsa-precio { font-size: var(--fs-l); font-weight: 800; color: var(--green-dark); white-space: nowrap; }
     .bolsa-go { font-size: var(--fs-s); font-weight: 800; color: var(--purple); white-space: nowrap; }
+    /* El tablón usa enlaces (<a>) en vez de botones: que no hereden el azul del enlace. */
+    a.bolsa-item { color: var(--navy); }
+    a.bolsa-item .bolsa-meta { color: var(--gray-500); }

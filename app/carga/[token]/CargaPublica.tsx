@@ -101,12 +101,13 @@ function Oferta({ o, completa }: { o: any; completa?: boolean }) {
   );
 }
 
-export default function CargaPublica({ token, oferta, reserva, altaOnline = false }: { token: string; oferta: any; reserva: any; altaOnline?: boolean }) {
+export default function CargaPublica({ token, oferta, reserva, altaOnline = false, otras = [] }: { token: string; oferta: any; reserva: any; altaOnline?: boolean; otras?: OtraCarga[] }) {
   const router = useRouter();
   const refrescar = useRefrescar();
   const [trabajando, setTrabajando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const [tramite, setTramite] = useState<{ hasta: string; ahora: string } | null>(null);
+  const [verOtras, setVerOtras] = useState(false);
   const r = reserva?.resultado as string | undefined;
 
   // Contraoferta pendiente de Dynamo: se vuelve a mirar cada 10 s.
@@ -122,6 +123,13 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
   if (!oferta || oferta.resultado === 'enlace_no_valido') {
     return <Parar titulo="Este enlace no es válido"><p className="sub">Revisa que lo has copiado entero, o pídenos uno nuevo.</p><Dudas /></Parar>;
   }
+  if (verOtras && otras.length) return <OtrasCargas cargas={otras} onVolver={() => setVerOtras(false)} />;
+  const botonOtras = otras.length > 0 && (
+    <button type="button" className="btn-otras" onClick={() => { setVerOtras(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" /><path d="M15 18H9" /><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14" /><circle cx="17" cy="18" r="2" /><circle cx="7" cy="18" r="2" /></svg>
+      {oferta?.disponible ? '¿No te encaja? Ver otras cargas disponibles de Dynamo' : `Ver otras cargas disponibles de Dynamo (${otras.length})`}
+    </button>
+  );
   if (r === 'aceptada') return <Aceptada token={token} c={reserva} />;
   if (r === 'reasignada') return <Parar titulo="Esta carga ya no está a tu nombre"><p className="sub">Dynamo la ha reasignado. Si crees que es un error, contáctanos.</p><Dudas /></Parar>;
   if (r === 'pendiente_revision' && altaOnline) {
@@ -152,12 +160,13 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
   if (r === 'viva') return <Reservada token={token} o={oferta} hasta={reserva.hasta} ahora={reserva.ahora} />;
 
   if (!oferta.disponible) {
-    if (oferta.motivo === 'cancelado') return <Parar titulo="Esta carga se ha cancelado"><p className="sub">El cliente la ha cancelado. Mira otras cargas con nosotros.</p><Dudas /></Parar>;
-    if (oferta.motivo === 'caducada') return <Parar titulo="Esta oferta ha caducado" ambar icono="!"><p className="sub">Si te sigue interesando, contáctanos y te decimos si sigue libre.</p><Dudas /></Parar>;
+    if (oferta.motivo === 'cancelado') return <Parar titulo="Esta carga se ha cancelado"><p className="sub">El cliente la ha cancelado. Mira otras cargas con nosotros.</p>{botonOtras}<Dudas /></Parar>;
+    if (oferta.motivo === 'caducada') return <Parar titulo="Esta oferta ha caducado" ambar icono="!"><p className="sub">Si te sigue interesando, contáctanos y te decimos si sigue libre.</p>{botonOtras}<Dudas /></Parar>;
     return (
       <Parar titulo="Esta carga ya no está disponible">
         <p className="sub">{oferta.asignada_en ? 'Se aceptó por un transportista el:' : 'La ha cogido otro transportista.'}</p>
         {oferta.asignada_en && <p className="tk-fecha-line">{creadoTxt(oferta.asignada_en)}</p>}
+        {botonOtras}
         <Dudas />
       </Parar>
     );
@@ -187,6 +196,53 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
       <button className="btn" onClick={reservarla} disabled={trabajando}>{trabajando ? 'Reservando…' : 'Reservar y aceptar esta carga'}</button>
       <p className="id-hint" style={{ textAlign: 'center', marginTop: '0.5rem' }}>Al pulsar, la carga queda <strong>reservada para ti {txtNum(oferta.reserva_minutos ?? 3)} minutos</strong> para que la aceptes; nadie más la puede coger mientras.</p>
       {aviso && <div className="warn" style={{ display: 'block' }}>{aviso}</div>}
+      {botonOtras}
+      <div style={{ textAlign: 'center' }}><Dudas /></div>
+    </div>
+  );
+}
+
+// ---- Tablón: otras cargas de Dynamo disponibles (diseño de #bolsaScreen del mockup) ----
+export type OtraCarga = {
+  token: string; referencia: string; fecha_carga_desde: string | null; fecha_carga_hasta: string | null;
+  metros_lineales: number | null; toneladas: number | null; tipo_carga: string | null; precio: number | null;
+  origen: { codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais: string | null } | null;
+  destino: { codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais: string | null } | null;
+};
+const lugarTxt = (l: OtraCarga['origen']) => !l ? '—' : [l.poblacion, l.provincia && l.provincia !== l.poblacion ? l.provincia : null, l.pais && l.pais !== 'ES' ? l.pais : null].filter(Boolean).join(', ') || l.codigo_postal || '—';
+const sinAcentos = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+function OtrasCargas({ cargas, onVolver }: { cargas: OtraCarga[]; onVolver: () => void }) {
+  const [fo, setFo] = useState(''), [fd, setFd] = useState(''), [ftc, setFtc] = useState(''), [ff, setFf] = useState('');
+  const txtLugar = (l: OtraCarga['origen']) => sinAcentos([l?.codigo_postal, l?.poblacion, l?.provincia, l?.pais].filter(Boolean).join(' '));
+  const lista = cargas.filter((c) =>
+    (!fo || txtLugar(c.origen).includes(sinAcentos(fo))) && (!fd || txtLugar(c.destino).includes(sinAcentos(fd)))
+    && (!ftc || (ftc === 'completa') === (c.tipo_carga === 'completa'))
+    && (!ff || ventana(c.fecha_carga_desde, c.fecha_carga_hasta).toLowerCase().includes(ff.toLowerCase())));
+  return (
+    <div id="bolsaScreen">
+      <button type="button" className="bolsa-volver" onClick={onVolver}><span aria-hidden="true">←</span> Volver a la oferta</button>
+      <h1 style={{ marginTop: '0.4rem' }}>Cargas disponibles de Dynamo</h1>
+      <p className="sub">Filtra y pulsa una carga para ver sus datos y aceptarla.</p>
+      <div className="bolsa-filtros">
+        <div className="bf-field"><label htmlFor="bf-origen">Origen</label><input type="text" id="bf-origen" placeholder="Provincia, CP o país" value={fo} onChange={(e) => setFo(e.target.value)} /></div>
+        <div className="bf-field"><label htmlFor="bf-destino">Destino</label><input type="text" id="bf-destino" placeholder="Provincia, CP o país" value={fd} onChange={(e) => setFd(e.target.value)} /></div>
+        <div className="bf-field"><label htmlFor="bf-tc">Tipo de carga</label>
+          <select id="bf-tc" value={ftc} onChange={(e) => setFtc(e.target.value)}><option value="">Todas</option><option value="completa">Completo</option><option value="grupaje">Grupaje</option></select></div>
+        <div className="bf-field"><label htmlFor="bf-fecha">Fecha</label><input type="text" id="bf-fecha" placeholder="Ej. 23/07" value={ff} onChange={(e) => setFf(e.target.value)} /></div>
+        <button type="button" className="bf-clear" onClick={() => { setFo(''); setFd(''); setFtc(''); setFf(''); }}>Limpiar filtros</button>
+      </div>
+      <div className="bolsa-count">{lista.length} {lista.length === 1 ? 'carga disponible' : 'cargas disponibles'}</div>
+      <div className="bolsa-list">
+        {lista.length === 0 ? <div className="bolsa-empty">No hay cargas que coincidan con los filtros. Prueba a ampliarlos o pulsa «Limpiar filtros».</div>
+          : lista.map((c) => (
+            <a key={c.token} className="bolsa-item" href={`/carga/${c.token}`} style={{ textDecoration: 'none' }}>
+              <div className="bolsa-ruta">{lugarTxt(c.origen)} → {lugarTxt(c.destino)}</div>
+              <div className="bolsa-meta">#{c.referencia} · {[c.metros_lineales != null && `${txtNum(c.metros_lineales)} m`, c.toneladas != null && `${txtNum(c.toneladas)} Tn`, c.tipo_carga === 'completa' ? 'Completo' : 'Grupaje'].filter(Boolean).join(' · ')}<br />Carga: {ventana(c.fecha_carga_desde, c.fecha_carga_hasta)}</div>
+              <div className="bolsa-fila"><span className="bolsa-precio">{euros(c.precio)} <span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>· sin IVA</span></span>
+                <span className="bolsa-go">Ver y aceptar →</span></div>
+            </a>
+          ))}
+      </div>
       <div style={{ textAlign: 'center' }}><Dudas /></div>
     </div>
   );
