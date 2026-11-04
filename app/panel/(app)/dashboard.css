@@ -422,6 +422,20 @@ body {
 .bell-item-count.fac { background: #ef4444; }
 .bell-item-count.zero { background: var(--gray-300); color: var(--gray-600); }
 .bell-empty { padding: 1rem 0.6rem; text-align: center; color: var(--gray-500); font-size: var(--fs-m); }
+/* Novedades de la campana (avisos): nuevas resaltadas, punto de color por importancia. */
+.bell-menu { width: 360px; }
+.bell-novedades { max-height: min(60vh, 420px); overflow-y: auto; overscroll-behavior: contain; }
+.bell-nov { display: flex; gap: 0.6rem; align-items: flex-start; padding: 0.5rem; border-radius: 10px; text-decoration: none; color: inherit; }
+a.bell-nov:hover { background: var(--gray-100); }
+.bell-nov.nuevo { background: rgba(51,0,204,0.06); }
+.bell-nov-punto { flex: none; width: 9px; height: 9px; border-radius: 50%; margin-top: 0.4rem; background: var(--gray-300); }
+.bell-nov-punto.ok { background: #16a34a; }
+.bell-nov-punto.aviso { background: #f59e0b; }
+.bell-nov-punto.urgente { background: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.18); }
+.bell-nov-t { display: block; font-size: var(--fs-m); font-weight: 800; color: var(--navy); line-height: 1.3; }
+.bell-nov.nuevo .bell-nov-t::after { content: 'nuevo'; margin-left: 0.4rem; font-size: 0.68rem; font-weight: 800; color: #fff; background: var(--purple); border-radius: 999px; padding: 0 0.4rem; vertical-align: 1px; }
+.bell-nov-s { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: var(--fs-s); color: var(--gray-700); margin-top: 0.1rem; }
+.bell-nov-h { display: block; font-size: var(--fs-s); color: var(--gray-500); margin-top: 0.15rem; }
     /* ===== Modo mantenimiento (pantalla de bloqueo) ===== */
 .maint-overlay {
     position: fixed; inset: 0; z-index: 4000;

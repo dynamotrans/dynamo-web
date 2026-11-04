@@ -12,6 +12,7 @@ import { useIdiomaGT } from '@/components/SelectorIdioma';
 import Modal from './Modal';
 import SelectorVista, { VISTA_TXT } from './SelectorVista';
 import { VISTA_ADMIN, inicioDe, type OpcionVista, type Vista } from '@/lib/vistaTipo';
+import { misAvisos, marcarAvisosVistos, type Aviso } from '@/app/panel/avisos';
 
 // Idiomas del menú del usuario (los del mockup). Banderas: excepción de la regla 0-ter.
 const BANDERA_CA = <svg className="flag-svg" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#fcdd09" /><rect y="1.78" width="24" height="1.78" fill="#da121a" /><rect y="5.33" width="24" height="1.78" fill="#da121a" /><rect y="8.89" width="24" height="1.78" fill="#da121a" /><rect y="12.44" width="24" height="1.78" fill="#da121a" /></svg>;
@@ -97,6 +98,24 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
     const t = setInterval(avisar, 5 * 60000);
     return () => { clearTimeout(primero); clearInterval(t); };
   }, []);
+  // Novedades de la campana: al entrar, al cambiar de vista y cada minuto con la pestaña a la vista.
+  const [novedades, setNovedades] = useState<Aviso[]>([]);
+  const vistaClave = vista.tipo === 'admin' ? 'admin' : `${vista.tipo}:${vista.id}`;
+  useEffect(() => {
+    let vivo = true;
+    const cargar = () => { if (document.visibilityState === 'visible') misAvisos().then((a) => { if (vivo) setNovedades(a); }).catch(() => {}); };
+    cargar();
+    const t = setInterval(cargar, 60000);
+    document.addEventListener('visibilitychange', cargar);
+    return () => { vivo = false; clearInterval(t); document.removeEventListener('visibilitychange', cargar); };
+  }, [vistaClave]);
+  const nuevos = novedades.filter((a) => a.nuevo).length;
+  // Al abrir la campana se dan por vistas (siguen resaltadas mientras está abierta).
+  const abiertaCampana = menu === 'campana';
+  useEffect(() => {
+    if (abiertaCampana && nuevos > 0) marcarAvisosVistos().catch(() => {});
+    if (!abiertaCampana && nuevos > 0) setNovedades((l) => l.map((a) => ({ ...a, nuevo: false })));
+  }, [abiertaCampana]); // eslint-disable-line react-hooks/exhaustive-deps
   const [grupos, setGrupos] = useState<Record<string, boolean>>({});
   const barra = useRef<HTMLElement>(null);
 
@@ -180,7 +199,8 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
     ...(rol !== 'transportista' ? [{ href: '/panel/administracion?tab=proformas', t: 'Proformas sin pagar', s: 'Almacenamientos con pago por adelantado', cero: 'Ninguna pendiente de pago', n: contadores.alm_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
     ...(esDynamo(rol) ? [{ href: '/panel/altas', t: 'Altas pendientes', s: 'Clientes por revisar', cero: 'Ninguna pendiente', n: contadores.altas ?? 0, color: 'inc', ico: ICO_PERSONA }] : []),
   ];
-  const totalAvisos = avisos.reduce((a, x) => a + x.n, 0);
+  const pendientes = avisos.reduce((a, x) => a + x.n, 0);
+  const totalAvisos = pendientes + nuevos;
 
   return (
     <>
@@ -271,15 +291,34 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
                 <span className="topbar-ind-badge">{totalAvisos}</span>
               </button>
               <div className={`bell-menu${menu === 'campana' ? ' open' : ''}`} role="menu" aria-hidden={menu !== 'campana'}>
-                <div className="bell-menu-title">Notificaciones</div>
-                {avisos.map((a) => (
+                <div className="bell-menu-title">Por hacer</div>
+                {avisos.filter((a) => a.n > 0).map((a) => (
                   <Link key={a.href} href={a.href} className="bell-item" role="menuitem" onClick={() => setMenu(null)} style={{ textDecoration: 'none' }}>
                     <span className={`bell-item-ico ${a.color}`}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" dangerouslySetInnerHTML={{ __html: a.ico }} /></span>
                     <span className="bell-item-body"><span className="bell-item-t">{a.t}</span><span className="bell-item-s">{a.n ? a.s : a.cero}</span></span>
                     <span className={`bell-item-count ${a.n ? a.color : 'zero'}`}>{a.n}</span>
                   </Link>
                 ))}
-                {totalAvisos === 0 && <div className="bell-empty">Todo al día</div>}
+                {pendientes === 0 && <div className="bell-empty">Nada pendiente</div>}
+                <div className="bell-menu-title" style={{ marginTop: '0.3rem', borderTop: '1px solid var(--gray-200)', paddingTop: '0.6rem' }}>Novedades</div>
+                <div className="bell-novedades">
+                  {novedades.length === 0 && <div className="bell-empty">Sin novedades</div>}
+                  {novedades.map((a) => {
+                    const cuerpo = (
+                      <>
+                        <span className={`bell-nov-punto ${a.nivel}`} aria-hidden="true" />
+                        <span className="bell-item-body">
+                          <span className="bell-nov-t">{a.titulo}</span>
+                          {a.texto && <span className="bell-nov-s">{a.texto}</span>}
+                          <span className="bell-nov-h">{haceTxt(a.creado_en)}</span>
+                        </span>
+                      </>
+                    );
+                    return a.enlace
+                      ? <Link key={a.id} href={a.enlace} className={`bell-nov${a.nuevo ? ' nuevo' : ''}`} role="menuitem" onClick={() => setMenu(null)}>{cuerpo}</Link>
+                      : <div key={a.id} className={`bell-nov${a.nuevo ? ' nuevo' : ''}`} role="menuitem">{cuerpo}</div>;
+                  })}
+                </div>
               </div>
             </div>
             {rol === 'cliente' && cobertura && (
@@ -420,4 +459,17 @@ function AvisoVista({ vista, rolTxt, onCambiar }: { vista: Vista; rolTxt: string
       <button type="button" className="btn-secondary" onClick={(e) => { e.stopPropagation(); onCambiar(); }}>Cambiar de vista</button>
     </div>
   );
+}
+
+// «ahora», «hace 5 min», «hace 3 h», «ayer 17:30» o «04/11 17:30».
+function haceTxt(iso: string): string {
+  const d = new Date(iso), min = Math.round((Date.now() - d.getTime()) / 60000);
+  if (min < 1) return 'ahora';
+  if (min < 60) return `hace ${min} min`;
+  if (min < 12 * 60) return `hace ${Math.round(min / 60)} h`;
+  const f = (o: Intl.DateTimeFormatOptions) => d.toLocaleString('es-ES', { timeZone: 'Europe/Madrid', ...o });
+  const hora = f({ hour: '2-digit', minute: '2-digit' });
+  const dia = (x: Date) => x.toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid' });
+  if (dia(d) === dia(new Date(Date.now() - 86400000))) return `ayer ${hora}`;
+  return `${f({ day: '2-digit', month: '2-digit' })} ${hora}`;
 }

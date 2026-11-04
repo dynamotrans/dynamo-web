@@ -3910,7 +3910,7 @@ do $$ declare faltan text; begin
    where n.nspname = 'public' and c.relkind = 'r'
      and c.relname not in ('usuarios', 'auditoria', 'parametros', 'festivos', 'tipos_incidencia', 'tipos_penalizacion',
                            'recargos_tipo_lugar', 'restricciones_servicio', 'distancias_cp', 'distancias_lugares',
-                           'conexion_minutos', 'consultas_precio', 'intentos_carga_publica')
+                           'conexion_minutos', 'consultas_precio', 'intentos_carga_publica', 'avisos_vistos')
      and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'tg_mantenimiento');
   if faltan is not null then
     raise exception 'FALLO 115 · tablas sin el bloqueo de mantenimiento (añadirlo o justificarlo en la lista): %', faltan;
@@ -3938,3 +3938,62 @@ reset role;
 select set_config('request.jwt.claim.sub', '', false);
 update parametros set valor = 'false' where clave = 'mantenimiento_activo';
 do $$ begin raise notice 'OK 115 · mantenimiento: todas las tablas de negocio bloqueadas; las tareas automáticas siguen funcionando'; end $$;
+
+-- ---- 116. Avisos de la campana: a quién llegan y qué ven ----------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; begin
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta, solicitud_estado)
+    values (current_setting('prueba.cliente')::uuid, 6, 1000, 777, current_date + 4, current_date + 5, 'pendiente_precio') returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 1, 'carga', '41001', 'Sevilla');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 2, 'descarga', '46001', 'Valencia');
+  update envios set solicitud_estado = 'precio_propuesto' where id = e;
+  update envios set estado = 'programado', solicitud_estado = 'aceptada' where id = e;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e;
+  update envios set estado = 'cancelado' where id = e;
+  perform set_config('prueba.e116', e::text, false);
+  if not exists (select 1 from avisos where envio_id = e and para = 'dynamo' and tipo = 'solicitud') then raise exception 'FALLO 116 · Dynamo no recibe la solicitud de precio'; end if;
+  if not exists (select 1 from avisos where envio_id = e and para = 'cliente' and tipo = 'precio') then raise exception 'FALLO 116 · el cliente no recibe su precio'; end if;
+  if not exists (select 1 from avisos where envio_id = e and para = 'cliente' and tipo = 'asignado')
+     or not exists (select 1 from avisos where envio_id = e and para = 'transportista' and tipo = 'asignada') then
+    raise exception 'FALLO 116 · asignar transportista no avisa al cliente y al transportista';
+  end if;
+  if not exists (select 1 from avisos where envio_id = e and para = 'transportista' and tipo = 'cancelada' and nivel = 'urgente') then
+    raise exception 'FALLO 116 · cancelar no avisa (urgente) al transportista que tenía la carga';
+  end if;
+  if exists (select 1 from avisos where envio_id = e and para = 'cliente' and (coalesce(texto, '') || titulo) like '%777%') then
+    raise exception 'FALLO 116 · un aviso del cliente lleva el precio del transportista';
+  end if;
+end $$;
+-- El cliente: solo los de su empresa; ni los de Dynamo ni crear avisos.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare n int; begin
+  select count(*) into n from mis_avisos();
+  if n = 0 then raise exception 'FALLO 116 · el cliente no ve sus avisos'; end if;
+  if exists (select 1 from mis_avisos() where tipo in ('solicitud', 'cancelada', 'asignada')) then raise exception 'FALLO 116 · el cliente ve avisos que no son suyos'; end if;
+  if exists (select 1 from avisos where para <> 'cliente') then raise exception 'FALLO 116 · el cliente lee avisos de Dynamo o de transportistas'; end if;
+  if exists (select 1 from mis_avisos(null, current_setting('prueba.transp')::uuid) where tipo = 'asignada') then
+    raise exception 'FALLO 116 · el cliente ve los avisos de un transportista pidiéndolos';
+  end if;
+  begin
+    insert into avisos (para, tipo, titulo) values ('dynamo', 'x', 'falso');
+    raise exception 'FALLO 116 · un cliente crea avisos';
+  exception when insufficient_privilege then null;
+  end;
+  if not exists (select 1 from mis_avisos() where nuevo) then raise exception 'FALLO 116 · los avisos nuevos no salen como nuevos'; end if;
+  perform marcar_avisos_vistos();
+  if exists (select 1 from mis_avisos() where nuevo) then raise exception 'FALLO 116 · marcar como vistos no funciona'; end if;
+end $$;
+reset role;
+-- Dynamo: los suyos; con «Ver como», los de ese cliente.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if not exists (select 1 from mis_avisos() where tipo = 'solicitud') then raise exception 'FALLO 116 · Dynamo no ve sus avisos'; end if;
+  if exists (select 1 from mis_avisos() where tipo = 'precio') then raise exception 'FALLO 116 · Dynamo ve los del cliente mezclados con los suyos'; end if;
+  if not exists (select 1 from mis_avisos(current_setting('prueba.cliente')::uuid) where tipo = 'precio') then raise exception 'FALLO 116 · «Ver como» cliente no enseña sus avisos'; end if;
+  raise notice 'OK 116 · avisos: cada uno recibe los suyos (Dynamo, cliente, transportista), sin el precio del transportista para el cliente; nadie los crea a mano';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
