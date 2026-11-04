@@ -394,7 +394,7 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 
 ### 2026-11-04 — Claude Code web (nube)
 
-> **Repaso de seguridad + lo que faltaba del grupo 1, todo en `pruebas`.** `main` sin tocar. El arnés pasa **90 comprobaciones**. Último push: **`88f5af5`** (más esta bitácora).
+> **Repaso de seguridad + lo que faltaba del grupo 1, todo en `pruebas`.** `main` sin tocar. El arnés pasa **94 comprobaciones**. Último push: **`8ff6998`** (más esta bitácora).
 
 - **Repaso de seguridad**: los enlaces de los emails salen de una dirección fija (`SITE_URL` o la de Vercel), no de la cabecera Host; `import 'server-only'` en la clave de servicio. Lo pendiente, en `PRODUCCION.md` **punto 15** (lista para el lanzamiento) y en `TODO.md`.
 - **Recursos** pasada a la plataforma: CMR y carta de porte en blanco (PDF desde el servidor), mapa de Europa y medidas de los camiones (regla 0-quinquies: nueva copia en `components/panel/Recursos.tsx`).
@@ -403,7 +403,9 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 - **Nuevo envío**: aviso si la recogida cae en un día que el sitio no abre según su horario.
 - **Archivos sueltos** del almacén (subidas cortadas): el Admin Master los busca y borra desde Modo mantenimiento (prueba 90; necesita la clave de servicio).
 
-**Necesita al usuario**: decidir **quién puede cambiar el email de una cuenta** (propuesta: solo el Admin Master) · si quiere **Cubicador** y **Comparativas y ahorros** (ocultas en el mockup) · qué poner en el **Dashboard admin** · botón «Subir documento» en Recursos · lo de siempre (Postmark, clave de servicio, IBAN, Google Maps, Holded, tarifa, 2FA).
+**Segunda tanda (decisiones del usuario del mismo día)**: **cambio de email solo Admin Master**, con su nombre en la auditoría (prueba 91) · **Recursos: «Subir documento»** para el equipo (prueba 92) · **el cliente puntúa al transportista** de su envío entregado, 1-5 + comentario, editable 30 días; media interna en Transportistas (prueba 93) · **alta online de transportistas nuevos** desde el enlace de bolsa: la carga queda reservada pero **pendiente de que Dynamo verifique** (anti "transportista fantasma", prueba 94). **Cubicador descartado**. La **hora estimada de llegada** espera a la fórmula de tarifas con Google Maps. Arnés: **94 comprobaciones**.
+
+**Necesita al usuario**: qué poner en el **Dashboard admin** (por definir) · si quiere **Comparativas y ahorros** · lo de siempre (Postmark, clave de servicio, IBAN, Google Maps, Holded, tarifa, 2FA).
 
 ### 2026-11-03 (continuación, tarde) — Claude Code web (nube)
 
