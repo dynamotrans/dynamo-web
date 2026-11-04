@@ -2851,3 +2851,34 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 90. Archivos sueltos: solo los lista el servidor, y solo lo de verdad suelto --------
+reset role;
+do $$ begin
+  insert into storage.objects (bucket_id, name, created_at) values
+    ('documentos', 'u/prueba90/suelto.pdf', now() - interval '3 days'),
+    ('documentos', 'u/prueba90/reciente.pdf', now() - interval '1 hour'),
+    ('documentos', 'u/prueba90/con-fila.pdf', now() - interval '3 days');
+  insert into documentos (tipo, transportista_id, storage_ruta, nombre_archivo, borrado, borrado_en)
+    values ('otro', current_setting('prueba.transp')::uuid, 'u/prueba90/con-fila.pdf', 'con-fila.pdf', true, now());
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  begin
+    perform * from archivos_sueltos(24);
+    raise exception 'FALLO 90 · un usuario con sesión lista los archivos sueltos';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+set role service_role;
+do $$ declare r text[]; begin
+  select array_agg(ruta) into r from archivos_sueltos(1) where ruta like 'u/prueba90/%';
+  if r is distinct from array['u/prueba90/suelto.pdf'] then
+    raise exception 'FALLO 90 · la lista de sueltos no es la buena: %', r;
+  end if;
+  raise notice 'OK 90 · archivos sueltos: solo el servidor los lista; ni lo reciente ni lo que tiene fila (aunque esté quitado)';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

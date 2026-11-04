@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Cargando from '@/components/Cargando';
 import { guardarParametro } from '@/app/panel/(app)/parametros/acciones';
 import { creadoTxt } from '@/lib/envios';
+import { contarArchivosSueltos, borrarArchivosSueltos } from '@/app/panel/(app)/mantenimiento/acciones';
 
 const LLAVE = 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z';
 
@@ -62,7 +63,49 @@ export default function Mantenimiento({ activo, esAdmin, cambiado, quien }: { ac
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.8rem', maxWidth: 720 }}>
         Lo que ya está en marcha no se para: los envíos siguen su curso y las reservas abiertas caducan solas. Al desactivarlo, todo vuelve a funcionar al instante.
       </p>
+      {esAdmin && <ArchivosSueltos />}
       {trabajando && <Cargando texto={activo ? 'Abriendo la plataforma' : 'Cerrando la plataforma'} />}
     </section>
+  );
+}
+
+// Limpieza del almacén de archivos: lo que se subió pero nunca llegó a registrarse.
+function ArchivosSueltos() {
+  const [estado, setEstado] = useState<{ n: number; bytes: number } | null>(null);
+  const [hecho, setHecho] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [trabajando, setTrabajando] = useState<string | null>(null);
+  const mb = (b: number) => `${(b / 1048576).toLocaleString('es-ES', { maximumFractionDigits: 1 })} MB`;
+  async function contar() {
+    setError(null); setHecho(null); setTrabajando('Buscando archivos sueltos');
+    const r = await contarArchivosSueltos();
+    setTrabajando(null);
+    if (!r.ok) { setError(r.error); return; }
+    setEstado({ n: r.n, bytes: r.bytes });
+  }
+  async function borrar() {
+    setError(null); setTrabajando('Borrando archivos sueltos');
+    const r = await borrarArchivosSueltos();
+    setTrabajando(null);
+    if (!r.ok) { setError(r.error); return; }
+    setEstado(null); setHecho(`Hecho: ${r.borrados} archivo${r.borrados === 1 ? '' : 's'} borrado${r.borrados === 1 ? '' : 's'}.`);
+  }
+  return (
+    <div style={{ maxWidth: 720, background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 14, padding: '1.1rem 1.2rem', marginTop: '1rem' }}>
+      <strong style={{ color: 'var(--navy)' }}>Archivos sueltos</strong>
+      <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-600)', margin: '0.35rem 0 0.7rem' }}>
+        Archivos que se subieron pero no llegaron a registrarse (se cortó la conexión a mitad de la subida). No los ve nadie y solo ocupan sitio.
+        Se buscan los que llevan más de 24 horas sin dueño; los documentos de envíos, firmas y altas no se tocan nunca, ni siquiera los quitados.
+      </p>
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <button className="btn-ghost" onClick={contar} disabled={!!trabajando}>Buscar</button>
+        {estado && (estado.n > 0
+          ? <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={borrar} disabled={!!trabajando}>Borrar {estado.n} archivo{estado.n === 1 ? '' : 's'} ({mb(estado.bytes)})</button>
+          : <span style={{ fontSize: 'var(--fs-m)', color: '#0f6b3a', fontWeight: 700 }}>No hay ningún archivo suelto.</span>)}
+        {hecho && <span style={{ fontSize: 'var(--fs-m)', color: '#0f6b3a', fontWeight: 700 }}>{hecho}</span>}
+      </div>
+      {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+      {trabajando && <Cargando texto={trabajando} />}
+    </div>
   );
 }

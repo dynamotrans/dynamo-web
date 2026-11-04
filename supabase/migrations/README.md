@@ -474,3 +474,4 @@ importar, con la cabecera exacta de la plantilla.
   sale vacía.
 | `20261104090000_transportista_edita_sus_datos.sql` | El transportista cambia su NIMA, su seguro CMR y su flota (camiones y conductores: alta, datos y baja) con funciones de lista cerrada; lo fiscal solo Dynamo. Prueba 88. |
 | `20261104100000_almacenamientos_cliente.sql` | El cliente pide almacenamientos: precio, IVA y pago por adelantado los calcula la base de datos (trigger); no puede marcarse como pagado ni tocar notas internas. `almacenes_dynamo_tarifa()` para su pantalla. Prueba 89. |
+| `20261104110000_archivos_sueltos.sql` | `archivos_sueltos()`: lista (solo el servidor) los ficheros del almacén sin ninguna fila que los nombre y con más de 24 h; el Admin Master los borra desde Modo mantenimiento con la Storage API. Prueba 90. |
