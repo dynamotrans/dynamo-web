@@ -3588,3 +3588,36 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 106. Visibilidad por empresa y contacto del conductor al terminar -----------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare u2 uuid := gen_random_uuid(); e uuid; begin
+  insert into auth.users (id, email) values (u2, 'companero@cliente.test');
+  update usuarios set rol = 'cliente', estado = 'activa', cliente_id = current_setting('prueba.cliente')::uuid where id = u2;
+  perform set_config('prueba.u_cli2', u2::text, false);
+  -- Envío creado por el primer usuario, con conductor, entrega prevista hace 3 días.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_entrega_estimada, conductor_nombre, conductor_telefono)
+    values (current_setting('prueba.cliente')::uuid, 6, 600, 500, current_date - 4, current_date - 3, 'Pepe Conductor', '+34600111222') returning id into e;
+  perform set_config('request.jwt.claim.sub', '', false);
+  perform set_config('prueba.e106', e::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli2'), false);
+set role authenticated;
+do $$ declare r record; begin
+  select * into r from mis_envios() where id = current_setting('prueba.e106')::uuid;
+  if r.id is null then raise exception 'FALLO 106 · un compañero de la misma empresa no ve el envío del otro'; end if;
+  if r.conductor_telefono is not null then raise exception 'FALLO 106 · pasadas las horas tras la entrega prevista, el cliente sigue viendo el teléfono del conductor'; end if;
+end $$;
+reset role;
+update envios set fecha_entrega_estimada = current_date + 2 where id = current_setting('prueba.e106')::uuid;
+set role authenticated;
+do $$ begin
+  if (select conductor_telefono from mis_envios() where id = current_setting('prueba.e106')::uuid) is null then
+    raise exception 'FALLO 106 · antes de la entrega prevista no ve el teléfono del conductor';
+  end if;
+  raise notice 'OK 106 · los usuarios de una empresa ven todos sus envíos; el contacto del conductor se oculta al entregar/cancelar o X horas tras la entrega prevista';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
