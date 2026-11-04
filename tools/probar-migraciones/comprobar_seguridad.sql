@@ -3328,7 +3328,7 @@ select set_config('request.jwt.claim.sub', '', false);
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 update parametros set valor = 'true' where clave = 'previo_pago_activo';
-do $$ declare c uuid; e uuid; e2 uuid; t uuid := current_setting('prueba.transp')::uuid; r jsonb; begin
+do $$ declare c uuid; e uuid; e2 uuid; e3 uuid; t uuid := current_setting('prueba.transp')::uuid; r jsonb; begin
   -- Cliente nuevo SIN crédito (sin clasificar): su envío nace pendiente de pago.
   insert into clientes (razon_social, cif) values ('Sin Credito SL', 'B10010010') returning id into c;
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
@@ -3349,15 +3349,28 @@ do $$ declare c uuid; e uuid; e2 uuid; t uuid := current_setting('prueba.transp'
   perform set_config('prueba.e100', e::text, false);
   perform set_config('prueba.c100', c::text, false);
 
-  -- Cliente CON crédito: el primer envío también pide pago previo; el segundo ya no.
+  -- Cliente CON crédito: un primer envío SIN PAGAR no libra al segundo (truco: confirmar
+  -- uno de relleno, no pagarlo y cancelarlo después; revisión de seguridad 2026-11-04).
   update clientes set riesgo_cesce_euros = 5000 where id = c;
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
     values (c, 13.30, 20, 500, 400) returning id into e2;
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e2, 1, 'carga', '41001', 'Sevilla', 'ES');
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e2, 2, 'descarga', '28001', 'Madrid', 'ES');
   update envios set estado = 'programado' where id = e2;
-  if (select pago_previo from envios where id = e2) <> 'no_requerido' then
-    raise exception 'FALLO 100 · con crédito, el segundo envío pide pago previo';
+  if (select pago_previo from envios where id = e2) <> 'pendiente' then
+    raise exception 'FALLO 100 · un primer envío sin pagar libra del pago previo al segundo';
+  end if;
+  -- Pagado ese, el siguiente ya no pide pago previo.
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  update envios set pago_previo = 'pagado', pago_metodo = 'transferencia', pagado_en = now() where id = e2;
+  perform set_config('request.jwt.claim.role', '', true);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
+    values (c, 13.30, 20, 500, 400) returning id into e3;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e3, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e3, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e3;
+  if (select pago_previo from envios where id = e3) <> 'no_requerido' then
+    raise exception 'FALLO 100 · con crédito y el primero pagado, el segundo pide pago previo';
   end if;
 end $$;
 -- Empresa conocida (casilla de su ficha): con crédito, su primer envío no pide pago previo;
@@ -3747,13 +3760,21 @@ select set_config('request.jwt.claim.sub', '', false);
 do $$ declare tok uuid; begin
   insert into cmr_enlaces (envio_id) values (current_setting('prueba.e108')::uuid) returning token into tok;
   perform set_config('prueba.tok110', tok::text, false);
+  perform set_config('prueba.par110', (select id::text from envio_paradas where envio_id = current_setting('prueba.e108')::uuid and tipo = 'descarga' limit 1), false);
+  perform set_config('prueba.car110', (select id::text from envio_paradas where envio_id = current_setting('prueba.e108')::uuid and tipo = 'carga' limit 1), false);
 end $$;
 set role anon;
 do $$ declare r jsonb; begin
   if (anotar_reservas_cmr(gen_random_uuid(), null, 'destinatario', 'Faltan dos palés'))->>'resultado' <> 'enlace_no_valido' then
     raise exception 'FALLO 110 · se anotan reservas sin un enlace válido';
   end if;
-  r := anotar_reservas_cmr(current_setting('prueba.tok110')::uuid, null, 'destinatario', 'Faltan dos palés y uno llega roto');
+  -- La casilla tiene que existir y ser la suya (como al firmar).
+  if (anotar_reservas_cmr(current_setting('prueba.tok110')::uuid, gen_random_uuid(), 'destinatario', 'Faltan dos palés'))->>'resultado' <> 'parada_no_valida'
+     or (anotar_reservas_cmr(current_setting('prueba.tok110')::uuid, current_setting('prueba.car110')::uuid, 'destinatario', 'Faltan dos palés'))->>'resultado' <> 'parada_no_valida'
+     or (anotar_reservas_cmr(current_setting('prueba.tok110')::uuid, current_setting('prueba.par110')::uuid, 'remitente', 'Faltan dos palés'))->>'resultado' <> 'parada_no_valida' then
+    raise exception 'FALLO 110 · se anotan reservas en una casilla inventada o de otro';
+  end if;
+  r := anotar_reservas_cmr(current_setting('prueba.tok110')::uuid, current_setting('prueba.par110')::uuid, 'destinatario', 'Faltan dos palés y uno llega roto');
   if r->>'resultado' <> 'ok' then raise exception 'FALLO 110 · no anota las reservas: %', r; end if;
   if not exists (select 1 from reservas_cmr_publico(current_setting('prueba.tok110')::uuid)) then raise exception 'FALLO 110 · no se ven en la página del CMR'; end if;
 end $$;
@@ -3994,6 +4015,94 @@ do $$ begin
   if exists (select 1 from mis_avisos() where tipo = 'precio') then raise exception 'FALLO 116 · Dynamo ve los del cliente mezclados con los suyos'; end if;
   if not exists (select 1 from mis_avisos(current_setting('prueba.cliente')::uuid) where tipo = 'precio') then raise exception 'FALLO 116 · «Ver como» cliente no enseña sus avisos'; end if;
   raise notice 'OK 116 · avisos: cada uno recibe los suyos (Dynamo, cliente, transportista), sin el precio del transportista para el cliente; nadie los crea a mano';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 117. Revisión de seguridad del 2026-11-04 ------------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'false' where clave = 'previo_pago_activo';
+do $$ declare e uuid; f uuid; g uuid; h uuid; i uuid; j uuid; rv uuid; begin
+  -- e: publicado en bolsa (se está asignando) · f: carga hoy (pasado el corte) · g: con
+  -- contraoferta pendiente · h, i: para altas online · j: carga de hace un mes.
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (current_setting('prueba.cliente')::uuid, 6, 600, 500, current_date + 4, current_date + 5) returning id into e;
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (current_setting('prueba.cliente')::uuid, 6, 600, 500, current_date, current_date) returning id into f;
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (current_setting('prueba.cliente')::uuid, 6, 600, 500, current_date + 4, current_date + 5) returning id into g;
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (current_setting('prueba.cliente')::uuid, 6, 600, 500, current_date + 4, current_date + 5) returning id into h;
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (current_setting('prueba.cliente')::uuid, 6, 600, 500, current_date + 4, current_date + 5) returning id into i;
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (current_setting('prueba.cliente')::uuid, 6, 600, 500, current_date - 30, current_date - 30) returning id into j;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion)
+    select x, o, t, cp, p from unnest(array[e, f, g, h, i, j]) x,
+      (values (1, 'carga', '41001', 'Sevilla'), (2, 'descarga', '46001', 'Valencia')) v(o, t, cp, p);
+  update envios set estado = 'programado' where id in (e, f, g, h, i, j);
+  update envios set publicado_en_bolsa_en = now() where id = e;
+  insert into envio_reservas (envio_id, hasta, transportista_id) values (g, now() + interval '3 minutes', current_setting('prueba.transp')::uuid) returning id into rv;
+  update envio_reservas set estado = 'pendiente_revision', precio_propuesto = 500 where id = rv;
+  perform set_config('prueba.e117', e::text, false); perform set_config('prueba.f117', f::text, false);
+  perform set_config('prueba.g117', g::text, false); perform set_config('prueba.rv117', rv::text, false);
+  perform set_config('prueba.tokh117', (select token_publico::text from envios where id = h), false);
+  perform set_config('prueba.toki117', (select token_publico::text from envios where id = i), false);
+  perform set_config('prueba.tokj117', (select token_publico::text from envios where id = j), false);
+end $$;
+-- Cambios del cliente: publicado en bolsa = se está asignando; pasado el corte, tampoco.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if (pedir_cambio_envio(current_setting('prueba.e117')::uuid, current_date + 10, current_date + 11))->>'resultado' <> 'con_camion' then
+    raise exception 'FALLO 117 · el cliente cambia las fechas de una carga que ya se está asignando (publicada en bolsa)';
+  end if;
+  if (pedir_cambio_envio(current_setting('prueba.f117')::uuid, current_date + 150, current_date + 151))->>'resultado' <> 'fuera_de_plazo' then
+    raise exception 'FALLO 117 · el cliente aleja la carga pasado el corte (y así cancelaría tarde sin que cuente)';
+  end if;
+  if not (select con_camion from mi_cambio_envio(current_setting('prueba.f117')::uuid)) then
+    raise exception 'FALLO 117 · la ficha no manda a llamar pasado el corte';
+  end if;
+  -- Copias de avisos: no las cambia el dueño de la cuenta.
+  begin
+    update usuarios set copias_avisos = '{espia@ejemplo.com}' where id = auth.uid();
+    raise exception 'FALLO 117 · un cliente se pone copias de los avisos';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+-- Cancelar el envío rechaza las contraofertas pendientes.
+update envios set estado = 'cancelado' where id = current_setting('prueba.g117')::uuid;
+do $$ begin
+  if (select estado from envio_reservas where id = current_setting('prueba.rv117')::uuid) <> 'rechazada' then
+    raise exception 'FALLO 117 · cancelar el envío deja la contraoferta pendiente';
+  end if;
+end $$;
+-- Alta online: como mucho 3 pendientes por carga; los CIF que ya existen cuentan como fallo.
+set role anon;
+do $$ declare r jsonb; v jsonb; k int; begin
+  for k in 1..4 loop
+    r := reservar_envio(current_setting('prueba.tokh117')::uuid, '10.11.7.1');
+    v := alta_transportista_publica((r->>'reserva_id')::uuid, 'wtransnet', '711' || k, 'ES', 'B7110000' || k, '+3460000071' || k);
+    if k <= 3 and v->>'resultado' <> 'alta_pendiente' then raise exception 'FALLO 117 · alta online % no queda pendiente: %', k, v; end if;
+    if k = 4 and v->>'resultado' <> 'demasiadas_altas' then raise exception 'FALLO 117 · no hay tope de altas online por carga: %', v; end if;
+  end loop;
+  r := reservar_envio(current_setting('prueba.toki117')::uuid, '10.11.7.2');
+  for k in 1..8 loop
+    v := alta_transportista_publica((r->>'reserva_id')::uuid, 'wtransnet', '9999', 'ES', 'B-33333333', '+34600000000');
+    exit when v->>'resultado' <> 'ya_existe';
+  end loop;
+  if v->>'resultado' <> 'demasiados_intentos' then raise exception 'FALLO 117 · se pueden ir probando CIFs sin límite: %', v; end if;
+  -- Tablón: con el enlace de una carga reciente sí; con uno de hace un mes, nada.
+  if jsonb_array_length(otras_cargas_publicas(current_setting('prueba.tokh117')::uuid)) = 0 then
+    raise exception 'FALLO 117 · el tablón no enseña nada con un enlace reciente';
+  end if;
+  if jsonb_array_length(otras_cargas_publicas(current_setting('prueba.tokj117')::uuid)) <> 0 then
+    raise exception 'FALLO 117 · el tablón sigue funcionando con un enlace antiguo';
+  end if;
+  raise notice 'OK 117 · revisión de seguridad: cambios con la carga asignándose o fuera de plazo, contraofertas al cancelar, topes del alta online, tablón y datos de la cuenta';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);

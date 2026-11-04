@@ -83,7 +83,8 @@ export async function pedirCambio(envio: string, desde: string, hasta: string, d
   const ERR: Record<string, string> = {
     envio_manual: 'Es un envío con tu propio transportista: cámbialo tú directamente.',
     no_modificable: 'El envío ya está en marcha: para cambiar algo, llámanos al +34 955 225 945.',
-    con_camion: 'Tu envío ya tiene camión asignado: no se puede modificar desde aquí. Llámanos URGENTE al +34 955 225 945 y lo vemos con el conductor.',
+    con_camion: 'Tu envío ya tiene camión o lo estamos asignando: no se puede modificar desde aquí. Llámanos URGENTE al +34 955 225 945.',
+    fuera_de_plazo: 'Falta muy poco para la carga: para cambiar algo, llámanos URGENTE al +34 955 225 945.',
     ya_pendiente: 'Ya tienes un cambio pendiente en este envío: espera a que te contestemos.',
     fechas_no_validas: 'Revisa las fechas: a partir de mañana, la segunda no antes que la primera y como mucho a 6 meses.',
     sin_cambios: 'No has cambiado nada.', detalle_largo: 'El texto es demasiado largo (máximo 1.000 caracteres).',

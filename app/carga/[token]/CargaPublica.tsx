@@ -492,6 +492,7 @@ function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { t
       datos_no_validos: x.error ?? `Revisa ${campos[x.campo ?? ''] ?? 'los datos'}.`,
       reserva_caducada: 'Se ha agotado el tiempo de reserva.', tomada: 'La carga ya la ha cogido otro transportista.',
       oferta_personal: 'Esta oferta es para otra empresa.', demasiados_intentos: 'Demasiados intentos con esta carga. Llámanos al +34 955 225 945.',
+      demasiadas_altas: 'Ahora mismo no podemos tramitar más altas online para esta carga. Llámanos al +34 955 225 945 y te damos de alta.',
       precio_fuera_de_banda: `El precio tiene que estar entre ${euros(x.minimo)} y ${euros(x.maximo)}.`,
     };
     setError(msg[x.resultado] ?? x.error ?? 'No se ha podido completar el alta. Vuelve a intentarlo o llámanos.');

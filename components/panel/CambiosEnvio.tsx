@@ -105,7 +105,8 @@ export function PedirCambio({ e, cambio, hacer, onLlamar }: { e: any; cambio: an
   );
 }
 
-// Ventana «llámanos»: el envío ya tiene camión (o va en marcha) y no se puede modificar desde
+// Ventana «llámanos»: el envío ya tiene camión, se está asignando, va en marcha o ha pasado
+// la hora límite (9:00 del día hábil anterior), y no se puede modificar desde
 // aquí. Dynamo lo contrasta con el conductor; si no es viable, se cancela y se reasigna camión.
 export function LlamarCambio({ e, onVolver }: { e: any; onVolver: () => void }) {
   const ref = `#${e.referencia_gx}`;
@@ -121,7 +122,8 @@ export function LlamarCambio({ e, onVolver }: { e: any; onVolver: () => void }) 
     <Modal abierto onCerrar={onVolver} titulo={`Cambiar el envío ${ref}`}
       pie={<button className="btn-ghost" onClick={onVolver}>Volver al envío</button>}>
       <div className="modal-warn-box">
-        <strong style={{ color: '#b42318' }}>{['hacia_la_carga', 'cargando', 'en_ruta'].includes(e.estado) ? 'Tu envío ya está en marcha' : 'Tu envío ya tiene camión asignado'}: no se puede modificar desde la plataforma.</strong>
+        <strong style={{ color: '#b42318' }}>{['hacia_la_carga', 'cargando', 'en_ruta'].includes(e.estado) ? 'Tu envío ya está en marcha'
+          : dentro === false ? 'Falta muy poco para la carga' : 'Tu envío ya tiene camión o lo estamos asignando'}: no se puede modificar desde la plataforma.</strong>
         <div style={{ marginTop: '0.35rem' }}>Si necesitas cambiar algo (fechas, horario, dirección, mercancía…), <strong>llámanos URGENTE</strong>: cuanto antes lo sepamos, más fácil es arreglarlo.</div>
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', margin: '0.9rem 0' }}>
