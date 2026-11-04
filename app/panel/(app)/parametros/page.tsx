@@ -14,11 +14,19 @@ export default async function PaginaParametros() {
   if (!esDynamo(perfil.rol)) {
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es solo del equipo de Dynamo.</div></div></section>;
   }
-  const [{ data, error }, cand] = await Promise.all([
-    supabase.from('parametros').select('clave, valor, descripcion, modificado_en').order('clave'),
+  const [{ data, error }, cand, aud] = await Promise.all([
+    supabase.from('parametros').select('id, clave, valor, descripcion, modificado_en').order('clave'),
     // Quién caería HOY si se lanzara la suspensión automática (solo se mira, no se toca).
     supabase.rpc('autosuspension_candidatos'),
+    // Valor anterior de cada parámetro: el último cambio de «valor» en la auditoría.
+    supabase.from('auditoria').select('registro_id, cambios, cuando').eq('tabla', 'parametros').eq('accion', 'modificacion')
+      .order('cuando', { ascending: false }).limit(3000),
   ]);
-  return <Parametros filas={(data ?? []) as ParametroFila[]} esAdmin={perfil.rol === 'admin'} error={error?.message ?? null}
+  const anterior = new Map<string, unknown>();
+  for (const a of (aud.data ?? []) as { registro_id: string; cambios: any }[]) {
+    if (!anterior.has(a.registro_id) && a.cambios?.valor) anterior.set(a.registro_id, a.cambios.valor.antes);
+  }
+  const filas = ((data ?? []) as (ParametroFila & { id: string })[]).map((p) => ({ ...p, anterior: anterior.has(p.id) ? anterior.get(p.id) : undefined }));
+  return <Parametros filas={filas} esAdmin={perfil.rol === 'admin'} error={error?.message ?? null}
                      candidatos={(cand.data ?? []) as Candidato[]} />;
 }

@@ -15,7 +15,9 @@ const BLINDADOS = ['dynamo_iban', 'dynamo_banco', 'dynamo_bic', 'dynamo_razon_so
 const BANCO = ['dynamo_banco', 'dynamo_iban', 'dynamo_bic'];
 
 export type Candidato = { usuario_id: string; email: string; motivo: string };
-export type ParametroFila = { clave: string; valor: unknown; descripcion: string; modificado_en: string | null };
+export type ParametroFila = { clave: string; valor: unknown; descripcion: string; modificado_en: string | null; anterior?: unknown };
+// «03/11/26 · 13:31 (antes: 220)»: el valor que tenía justo antes del último cambio.
+const antesTxt = (p: ParametroFila) => p.anterior === undefined ? '' : ` (antes: ${p.anterior === null ? 'vacío' : typeof p.anterior === 'boolean' ? (p.anterior ? 'Sí' : 'No') : texto(p.anterior)})`;
 
 // Grupos por el principio de la clave (lo que no encaje, en «Otros»).
 const GRUPOS: [string, string, (k: string) => boolean][] = [
@@ -146,7 +148,7 @@ function Regla({ n, titulo, quien, hoy, salta, children, claves, filas, esAdmin 
               <div key={p.clave}>
                 <div className="meta" style={{ fontWeight: 700 }}>{et}{ud && ud !== '%' ? ` (${ud})` : ud === '%' ? ' (%)' : ''}</div>
                 <Control p={p} esAdmin={esAdmin} etiqueta={et} />
-                <div className="meta" style={{ fontFamily: 'monospace' }}>{p.clave}{p.modificado_en ? ` · cambiado ${creadoTxt(p.modificado_en)}` : ''}</div>
+                <div className="meta" style={{ fontFamily: 'monospace' }}>{p.clave}{p.modificado_en ? ` · cambiado ${creadoTxt(p.modificado_en)}${antesTxt(p)}` : ''}</div>
               </div>
             );
           })}
@@ -365,7 +367,7 @@ function Fila({ p, esAdmin }: { p: ParametroFila; esAdmin: boolean }) {
       <td>{p.descripcion}<div className="meta" style={{ fontFamily: 'monospace' }}>{p.clave}</div>
         {BLINDADOS.includes(p.clave) && <div className="meta" style={{ color: '#b45309', fontWeight: 700 }}>Por seguridad, solo se cambia en Supabase (Table Editor → parametros).</div>}</td>
       <td style={{ minWidth: 220 }}><Control p={p} esAdmin={esAdmin} /></td>
-      <td>{p.modificado_en ? creadoTxt(p.modificado_en) : '—'}</td>
+      <td>{p.modificado_en ? <>{creadoTxt(p.modificado_en)}{antesTxt(p) && <div className="meta">{antesTxt(p).trim()}</div>}</> : '—'}</td>
     </tr>
   );
 }
