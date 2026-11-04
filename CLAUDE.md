@@ -409,6 +409,8 @@ Registro automático de sesiones. La entrada más reciente va arriba.
 
 **Cuarta tanda**: Parámetros → **suspensión automática explicada regla a regla** con ejemplos hechos con los números puestos · la suspensión pasa a ser **al momento** para consultas y cancelaciones (reglas 3, 4, 5) y el repaso general **cada hora** (prueba 99) · **«Ver como»** arriba a la izquierda para el equipo de Dynamo (gestión interna morado / un cliente azul / un transportista naranja): menú del perfil elegido y solo sus datos (`lib/vista.ts`, cookie `dyn_vista`, solo filtra, no da permisos) · **Altas pendientes** con transportistas (naranja) y clientes (azul), fecha y hora, espera d/h/min y barra de 5 min de oficina (L-V 8:30-17:30) que pasa a URGENTE · Transportistas de los clientes: **Dynamo fija arriba** y texto de tranquilidad · fuera de Recursos el mapa de Europa. Arnés: **99 comprobaciones**. Pendiente decidido por el usuario: **previo pago de envíos** (ver TODO).
 
+**Confirmado por el usuario (2026-11-04)**: el «Application error» que salía un instante al cargar el panel **ya no sale** (arreglo de `b9064c5`: el latido pasó de acción de servidor lanzada al montar a `POST /api/latido` con 4 s de retraso). Si vuelve: mirar primero cualquier acción de servidor que se dispare en un `useEffect` al cargar.
+
 **Necesita al usuario**: qué poner en el **Dashboard admin** (por definir) · si quiere **Comparativas y ahorros** · lo de siempre (Postmark, clave de servicio, IBAN, Google Maps, Holded, tarifa, 2FA).
 
 ### 2026-11-03 (continuación, tarde) — Claude Code web (nube)
