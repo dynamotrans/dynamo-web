@@ -8,6 +8,7 @@ export { esDynamo, esGestor, esSoloLectura, AVISO_SOLO_LECTURA } from './roles';
 export type Perfil = {
   id: string; email: string; nombre: string | null; rol: Rol;
   estado: 'activa' | 'pendiente_verificacion' | 'suspendida';
+  suspension_motivo?: string | null; suspendida_en?: string | null;   // para la pantalla de cuenta suspendida
 };
 
 // Sesión del usuario para el panel: una sola lectura por petición (cache), la usan el
@@ -19,7 +20,7 @@ export const sesion = cache(async () => {
   if (!user) redirect('/panel/entrar');
 
   const { data: perfil } = await supabase
-    .from('usuarios').select('id, email, nombre, rol, estado').eq('id', user.id).maybeSingle();
+    .from('usuarios').select('id, email, nombre, rol, estado, suspension_motivo, suspendida_en').eq('id', user.id).maybeSingle();
 
   // Nombre de la empresa para el pie del menú lateral.
   let empresa = 'Dynamo Transportes';
