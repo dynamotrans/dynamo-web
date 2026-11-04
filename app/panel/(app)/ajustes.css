@@ -139,3 +139,15 @@ table.data tr.alta-fila.alta-transportista td:first-child { box-shadow: inset 4p
 #sec-parametros .param-input { font-size: var(--fs-m); }
 /* En todo el panel: el texto secundario (.meta) siempre del tamaño pequeño, también fuera de las tablas. */
 .content .meta { font-size: var(--fs-s); }
+/* Parámetros: buscador + índice de secciones (fijo arriba al bajar) y subsecciones. */
+#sec-parametros .prm-indice { position: sticky; top: 64px; z-index: 5; background: var(--gray-50, #f7f8fa); padding: 0.5rem 0 0.6rem; margin-bottom: 0.6rem; border-bottom: 1px solid var(--gray-200); display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.8rem; }
+#sec-parametros .prm-saltos { display: flex; flex-wrap: wrap; gap: 0.35rem; width: 100%; }
+#sec-parametros .prm-salto { font-size: var(--fs-s); font-weight: 700; color: var(--purple); background: #fff; border: 1px solid rgba(51,0,204,0.25); border-radius: 999px; padding: 0.2rem 0.7rem; text-decoration: none; white-space: nowrap; }
+#sec-parametros .prm-salto:hover { background: rgba(51,0,204,0.08); }
+#sec-parametros .prm-seccion { margin-bottom: 1.4rem; scroll-margin-top: 13rem; }
+@media (max-width: 768px) {
+  #sec-parametros .prm-indice { position: static; }
+  #sec-parametros .prm-seccion { scroll-margin-top: 5rem; }
+}
+#sec-parametros .prm-sub { margin: 0 0 0.8rem 0; padding-left: 0.7rem; border-left: 3px solid rgba(51,0,204,0.18); }
+#sec-parametros .prm-sub-titulo { font-size: var(--fs-m); font-weight: 800; color: var(--navy); margin-bottom: 0.35rem; }

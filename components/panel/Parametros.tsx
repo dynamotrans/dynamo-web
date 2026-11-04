@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import { guardarParametro, lanzarAutosuspension } from '@/app/panel/(app)/parametros/acciones';
 import { creadoTxt } from '@/lib/envios';
+import { AYUDA } from '@/lib/parametrosAyuda';
 
 // Datos que deciden a quién paga el cliente: solo se cambian en Supabase (la base de datos
 // lo impone; migración parametros_blindados). Aquí se ven, sin poder tocarlos.
@@ -19,44 +20,113 @@ export type ParametroFila = { clave: string; valor: unknown; descripcion: string
 // «03/11/26 · 13:31 (antes: 220)»: el valor que tenía justo antes del último cambio.
 const antesTxt = (p: ParametroFila) => p.anterior === undefined ? '' : ` (antes: ${p.anterior === null ? 'vacío' : typeof p.anterior === 'boolean' ? (p.anterior ? 'Sí' : 'No') : texto(p.anterior)})`;
 
-// Grupos por el principio de la clave (lo que no encaje, en «Otros»).
-const GRUPOS: [string, string, (k: string) => boolean][] = [
-  ['clientes', 'Clientes y precios', (k) => k.startsWith('factor_') || k.startsWith('contraoferta_cliente')],
-  ['pronto', 'Pronto pago a transportistas', (k) => k.startsWith('pronto_pago') || k.startsWith('plazo_pago')],
-  ['ofertas', 'Transportistas: ofertas, negociación, reservas y bolsas', (k) => k.startsWith('oferta') || k.startsWith('reserva') || k.startsWith('bolsa') || k === 'contraoferta_auto_pct' || k === 'contraoferta_transportista_activa' || k.startsWith('negociacion_')],
-  ['almacen', 'Almacenamientos', (k) => k.startsWith('almacen')],
-  ['pin', 'PIN de recogida y entrega', (k) => k.startsWith('pin_')],
-  ['holded', 'Holded (facturación)', (k) => k.startsWith('holded')],
-  ['pago', 'Previo pago de envíos', (k) => k.startsWith('previo_pago')],
-  ['autosusp', 'Suspensión automática de cuentas', (k) => k.startsWith('autosusp_')],
-  ['plataforma', 'Plataforma', (k) => k.startsWith('mantenimiento')],
-  ['dynamo', 'Datos de Dynamo en los documentos', (k) => k.startsWith('dynamo_')],
+// Secciones y subsecciones, para encontrar cada cosa rápido. Cada subsección lista sus
+// claves en el orden en que se enseñan (el interruptor general, primero). Un parámetro
+// nuevo que no esté en ninguna lista sale en «Otros»: añadirlo aquí y en lib/parametrosAyuda.
+type Sub = { titulo: string; claves: string[]; banco?: boolean };
+type Seccion = { id: string; titulo: string; intro: string; subs: Sub[]; especial?: 'autosusp' };
+const SECCIONES: Seccion[] = [
+  { id: 'clientes', titulo: 'Clientes', intro: 'Precios, contraofertas y condiciones de los clientes.', subs: [
+    { titulo: 'Descuento de bienvenida', claves: ['factor_bienvenida_pct', 'factor_bienvenida_envios'] },
+    { titulo: 'Precio que das y su validez', claves: ['solicitud_validez_horas'] },
+    { titulo: 'Contraoferta del cliente', claves: ['contraoferta_cliente_activa', 'contraoferta_cliente_auto_pct', 'contraoferta_cliente_max_pct'] },
+    { titulo: 'Previo pago de envíos', claves: ['previo_pago_activo', 'previo_pago_primeros_envios'] },
+    { titulo: 'Contacto del conductor', claves: ['contacto_transportista_horas_tras_entrega'] },
+  ] },
+  { id: 'riesgos', titulo: 'CESCE - Riesgos', intro: 'Cómo se calcula el dinero pendiente de cobro de cada cliente.', subs: [
+    { titulo: 'Riesgo asumido', claves: ['riesgo_dias_asumido'] },
+  ] },
+  { id: 'transportistas', titulo: 'Transportistas', intro: 'Ofertas de cargas, negociación, bolsa y pago a transportistas.', subs: [
+    { titulo: 'Ofertas y reservas', claves: ['oferta_dias_caducidad', 'reserva_minutos'] },
+    { titulo: 'Bolsa de cargas', claves: ['bolsa_espera_minutos'] },
+    { titulo: 'Negociación (contraofertas)', claves: ['contraoferta_transportista_activa', 'contraoferta_auto_pct', 'negociacion_min_creada_min', 'negociacion_min_bolsa_min', 'negociacion_max_horas_carga', 'negociacion_min_cargas_hechas', 'negociacion_una_por_carga'] },
+    { titulo: 'Seguridad del enlace de la carga', claves: ['carga_publica_max_fallos_dia', 'carga_publica_max_fallos_reserva'] },
+    { titulo: 'Plazo de pago', claves: ['plazo_pago_transportista_dias'] },
+    { titulo: 'Pronto pago', claves: ['pronto_pago_encendido', 'pronto_pago_pct', 'pronto_pago_minimo', 'pronto_pago_dias', 'pronto_pago_linea_euros', 'pronto_pago_ventana_dias'] },
+  ] },
+  { id: 'operativa', titulo: 'Operativa', intro: 'Recogida, entrega y almacenaje.', subs: [
+    { titulo: 'PIN de recogida y entrega', claves: ['pin_cifras', 'pin_max_intentos', 'pin_orden_obliga', 'pin_ventana_horas_antes', 'pin_ventana_horas_despues'] },
+    { titulo: 'Almacenamientos', claves: ['almacen_precio_semana', 'almacen_precio_reparto'] },
+  ] },
+  { id: 'autosusp', titulo: 'Suspensión automática de cuentas', intro: 'Cuándo se suspende sola una cuenta.', subs: [], especial: 'autosusp' },
+  { id: 'facturacion', titulo: 'Facturación (Holded)', intro: 'Lo que lleva el fichero que se exporta a Holded.', subs: [
+    { titulo: 'Ventas (a clientes)', claves: ['holded_formato_numeracion_venta', 'holded_canal_venta_nombre', 'holded_canal_venta_cuenta'] },
+    { titulo: 'Compras (a transportistas)', claves: ['holded_formato_numeracion_compra', 'holded_canal_compra_nombre', 'holded_canal_compra_cuenta'] },
+  ] },
+  { id: 'plataforma', titulo: 'Plataforma', intro: 'Encender o apagar el acceso.', subs: [
+    { titulo: 'Mantenimiento', claves: ['mantenimiento_activo'] },
+  ] },
+  { id: 'dynamo', titulo: 'Datos de Dynamo en los documentos', intro: 'Lo que sale en la orden de carga, el CMR y las proformas.', subs: [
+    { titulo: 'Empresa', claves: ['dynamo_razon_social', 'dynamo_cif', 'dynamo_tarjeta_ot', 'dynamo_wtransnet'] },
+    { titulo: 'Cuenta bancaria', claves: [], banco: true },
+    { titulo: 'Dirección', claves: ['dynamo_direccion', 'dynamo_codigo_postal', 'dynamo_poblacion'] },
+    { titulo: 'Contacto', claves: ['dynamo_telefono', 'dynamo_movil', 'dynamo_email', 'dynamo_web'] },
+  ] },
 ];
-const grupoDe = (k: string) => GRUPOS.find(([, , f]) => f(k))?.[0] ?? 'otros';
+const CONOCIDAS = new Set([...SECCIONES.flatMap((s) => s.subs.flatMap((u) => u.claves)), ...BANCO]);
 const texto = (v: unknown) => (v === null ? '' : typeof v === 'string' ? v : JSON.stringify(v));
+// Quita tildes y mayúsculas para buscar («cesce» encuentra «CESCE», «dias» encuentra «días»).
+const norm = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 export default function Parametros({ filas, esAdmin, error, candidatos = [] }: { filas: ParametroFila[]; esAdmin: boolean; error: string | null; candidatos?: Candidato[] }) {
-  const grupos = useMemo(() => {
-    const m = new Map<string, ParametroFila[]>();
-    filas.filter((p) => !BANCO.includes(p.clave)).forEach((p) => m.set(grupoDe(p.clave), [...(m.get(grupoDe(p.clave)) ?? []), p]));
-    if (filas.some((p) => BANCO.includes(p.clave)) && !m.has('dynamo')) m.set('dynamo', []);
-    return [...GRUPOS.map(([k, t]) => [k, t] as [string, string]), ['otros', 'Otros'] as [string, string]]
-      .filter(([k]) => m.has(k)).map(([k, t]) => ({ k, t, filas: m.get(k)! }));
-  }, [filas]);
+  const [q, setQ] = useState('');
+  const secciones = useMemo(() => {
+    const porClave = new Map(filas.map((p) => [p.clave, p]));
+    const b = norm(q.trim());
+    const casa = (p: ParametroFila, ...extra: string[]) => !b || norm([p.clave, p.descripcion, AYUDA[p.clave]?.titulo ?? '', AYUDA[p.clave]?.explica ?? '', ...extra].join(' ')).includes(b);
+    const otros = filas.filter((p) => !CONOCIDAS.has(p.clave) && !p.clave.startsWith('autosusp_'));
+    const lista = [...SECCIONES, ...(otros.length ? [{ id: 'otros', titulo: 'Otros', intro: 'Parámetros sin sección todavía.', subs: [{ titulo: 'Sin clasificar', claves: otros.map((p) => p.clave) }] } as Seccion] : [])];
+    return lista.map((s) => {
+      if (s.especial === 'autosusp') {
+        const f = filas.filter((p) => p.clave.startsWith('autosusp_'));
+        const ver = f.length > 0 && (!b || norm(s.titulo + ' ' + s.intro + ' suspender cancelaciones consultas').includes(b) || f.some((p) => casa(p, ETIQUETAS[p.clave]?.[0] ?? '')));
+        return { ...s, filasEsp: f, subsV: [] as { titulo: string; filas: ParametroFila[]; banco?: boolean }[], ver };
+      }
+      const enSec = !!b && norm(s.titulo + ' ' + s.intro).includes(b);
+      const subsV = s.subs.map((u) => {
+        const enSub = enSec || (!!b && norm(u.titulo).includes(b));
+        const fs = u.claves.map((k) => porClave.get(k)).filter((p): p is ParametroFila => !!p).filter((p) => enSub || casa(p, s.titulo, u.titulo));
+        const banco = !!u.banco && filas.some((p) => BANCO.includes(p.clave)) && (!b || enSub || norm('banco iban bic cuenta bancaria').includes(b));
+        return { titulo: u.titulo, filas: fs, banco };
+      }).filter((u) => u.filas.length > 0 || u.banco);
+      return { ...s, filasEsp: [] as ParametroFila[], subsV, ver: subsV.length > 0 };
+    }).filter((s) => s.ver);
+  }, [filas, q]);
+  const total = secciones.reduce((n, s) => n + s.subsV.reduce((m, u) => m + u.filas.length, 0) + s.filasEsp.length, 0);
+
   return (
     <section className="section active" id="sec-parametros">
       <div className="sec-header"><h2>Parámetros</h2></div>
       <p style={{ color: 'var(--gray-500)', fontSize: 'var(--fs-m)', margin: '-0.4rem 0 0.9rem' }}>
         <span style={{ display: 'inline-block', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 700, borderRadius: 6, padding: '1px 7px', fontSize: 'var(--fs-s)', marginRight: '0.4rem' }}>SOLO ADMIN</span>
-        Los números que mueven las reglas de la plataforma. Se aplican al momento y cada cambio queda registrado (quién y cuándo).
+        Los números que mueven las reglas de la plataforma. Cada uno explica para qué sirve y trae un ejemplo con el valor que tiene puesto. Se aplican al momento y cada cambio queda registrado (quién y cuándo).
         {!esAdmin && <> Los puede <strong>ver</strong> todo el equipo; solo un <strong>administrador</strong> los cambia.</>}
       </p>
       {error && <div className="pt-aviso error"><div>No se han podido cargar: {error}</div></div>}
-      {grupos.map((g) => (
-        <div key={g.t} style={{ marginBottom: '1.1rem' }}>
-          <div className="ptar-section-head" style={{ marginBottom: '0.5rem' }}>{g.t}</div>
-          {g.k === 'dynamo' && <CuentaBancaria filas={filas} />}
-          {g.k === 'autosusp' ? <ReglasAutosuspension filas={g.filas} candidatos={candidatos} esAdmin={esAdmin} /> : <TablaParametros filas={g.filas} esAdmin={esAdmin} />}
+
+      {/* Buscador e índice: para ir directo a lo que se busca. */}
+      <div className="prm-indice">
+        <input type="search" className="param-input" placeholder="Buscar: «negociación», «PIN», «IBAN», «días»…" value={q}
+          onChange={(e) => setQ(e.target.value)} aria-label="Buscar parámetro" style={{ maxWidth: 360, width: '100%' }} />
+        {q && <span className="meta">{total ? `${total} encontrado${total === 1 ? '' : 's'}` : 'Nada con esa palabra'}</span>}
+        <nav className="prm-saltos" aria-label="Secciones de parámetros">
+          {secciones.map((s) => <a key={s.id} href={`#prm-${s.id}`} className="prm-salto">{s.titulo}</a>)}
+        </nav>
+      </div>
+
+      {secciones.map((s) => (
+        <div key={s.id} id={`prm-${s.id}`} className="prm-seccion">
+          <div className="ptar-section-head" style={{ marginBottom: '0.15rem' }}>{s.titulo}</div>
+          <div className="meta" style={{ marginBottom: '0.6rem' }}>{s.intro}</div>
+          {s.especial === 'autosusp'
+            ? <ReglasAutosuspension filas={s.filasEsp} candidatos={candidatos} esAdmin={esAdmin} />
+            : s.subsV.map((u) => (
+              <div key={u.titulo} className="prm-sub">
+                <div className="prm-sub-titulo">{u.titulo}</div>
+                {u.banco && <CuentaBancaria filas={filas} />}
+                {u.filas.length > 0 && <TablaParametros filas={u.filas} esAdmin={esAdmin} />}
+              </div>
+            ))}
         </div>
       ))}
     </section>
@@ -365,7 +435,13 @@ function TablaParametros({ filas, esAdmin }: { filas: ParametroFila[]; esAdmin: 
 function Fila({ p, esAdmin }: { p: ParametroFila; esAdmin: boolean }) {
   return (
     <tr>
-      <td>{p.descripcion}<div className="meta" style={{ fontFamily: 'monospace' }}>{p.clave}</div>
+      <td>
+        {AYUDA[p.clave] ? <>
+          <div style={{ fontWeight: 700, color: 'var(--navy)' }}>{AYUDA[p.clave].titulo}</div>
+          <div style={{ color: 'var(--gray-700)', marginTop: '0.15rem' }}>{AYUDA[p.clave].explica}</div>
+          {AYUDA[p.clave].ejemplo && <div className="meta" style={{ marginTop: '0.2rem', fontStyle: 'italic' }}>Ejemplo: {AYUDA[p.clave].ejemplo!(p.valor === null ? 'vacío' : typeof p.valor === 'boolean' ? (p.valor ? 'Sí' : 'No') : texto(p.valor))}</div>}
+        </> : p.descripcion}
+        <div className="meta" style={{ fontFamily: 'monospace' }}>{p.clave}</div>
         {BLINDADOS.includes(p.clave) && <div className="meta" style={{ color: '#b45309', fontWeight: 700 }}>Por seguridad, solo se cambia en Supabase (Table Editor → parametros).</div>}</td>
       <td style={{ minWidth: 220 }}><Control p={p} esAdmin={esAdmin} /></td>
       <td>{p.modificado_en ? <>{creadoTxt(p.modificado_en)}{antesTxt(p) && <div className="meta">{antesTxt(p).trim()}</div>}</> : '—'}</td>
