@@ -4096,6 +4096,7 @@ do $$ declare r jsonb; v jsonb; k int; begin
   end loop;
   if v->>'resultado' <> 'demasiados_intentos' then raise exception 'FALLO 117 · se pueden ir probando CIFs sin límite: %', v; end if;
   -- Tablón: con el enlace de una carga reciente sí; con uno de hace un mes, nada.
+  -- (los topes salen de Parámetros: alta_online_max_pendientes_carga = 3, tablon_enlace_dias = 14)
   if jsonb_array_length(otras_cargas_publicas(current_setting('prueba.tokh117')::uuid)) = 0 then
     raise exception 'FALLO 117 · el tablón no enseña nada con un enlace reciente';
   end if;
