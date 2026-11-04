@@ -2731,3 +2731,74 @@ do $$ begin
   update usuarios set rol = 'empleado' where id = current_setting('prueba.u87')::uuid;
   raise notice 'OK 87 · Admin Master solo desde Supabase: ni otro admin ni la clave de servicio lo crean';
 end $$;
+
+-- ---- 88. El transportista cambia SOLO sus datos operativos y SOLO su flota ----------------
+do $$ declare otro uuid; v uuid; begin
+  insert into transportistas (razon_social, cif) values ('Otro Transporte 88', 'B88888888') returning id into otro;
+  insert into vehiculos (transportista_id, matricula, tipo) values (otro, '8888 ZZZ', 'tractora') returning id into v;
+  perform set_config('prueba.otro88', otro::text, false);
+  perform set_config('prueba.veh_otro88', v::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ declare v uuid; c uuid; begin
+  -- Su NIMA y su seguro: sí.
+  perform mi_transporte_guardar('NIMA-88', 'Mapfre', 'POL-88', date '2027-01-31');
+  -- Su flota: alta de camión y conductor, cambio y baja: sí.
+  v := mi_vehiculo_guardar(null, '0088 bcd', 'rigido', date '2027-03-01', null, null, false, true);
+  perform mi_vehiculo_guardar(v, 'da igual', 'rigido', date '2027-04-01', null, null, false, true);
+  c := mi_conductor_guardar(null, 'Conductor 88', '88888888Y', 'ES', '+34600111222');
+  perform mi_flota_baja('conductor', c);
+  -- Escribir directamente en las tablas: no (ni su razón social ni su plazo de pago).
+  begin
+    update transportistas set razon_social = 'Me cambio el nombre', plazo_pago_dias = 0 where id = current_setting('prueba.transp')::uuid;
+    if found then raise exception 'FALLO 88 · el transportista cambia su razón social o su plazo de pago'; end if;
+  exception when insufficient_privilege then null;
+  end;
+  -- La flota de otro: no.
+  begin
+    perform mi_vehiculo_guardar(current_setting('prueba.veh_otro88')::uuid, 'x', 'tractora', null, null, null, false, false);
+    raise exception 'FALLO 88 · el transportista cambia un camión de otro';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  begin
+    perform mi_flota_baja('vehiculo', current_setting('prueba.veh_otro88')::uuid);
+    raise exception 'FALLO 88 · el transportista da de baja un camión de otro';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  -- Una matrícula que ya existe (aunque sea de otro): no.
+  begin
+    perform mi_vehiculo_guardar(null, '8888-zzz', 'tractora', null, null, null, false, false);
+    raise exception 'FALLO 88 · se da de alta una matrícula repetida';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+end $$;
+reset role;
+-- Un cliente no puede usar estas funciones.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin
+    perform mi_transporte_guardar('X', null, null, null);
+    raise exception 'FALLO 88 · un cliente cambia datos de un transportista';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+end $$;
+reset role;
+do $$ begin
+  if not exists (select 1 from transportistas where id = current_setting('prueba.transp')::uuid and nima = 'NIMA-88' and seguro_cmr_poliza = 'POL-88'
+                 and razon_social <> 'Me cambio el nombre' and plazo_pago_dias <> 0) then
+    raise exception 'FALLO 88 · el guardado de NIMA/seguro no ha quedado bien';
+  end if;
+  if not exists (select 1 from vehiculos where normaliza_matricula(matricula) = normaliza_matricula('0088 BCD') and itv_vence = date '2027-04-01'
+                 and modificado_por = current_setting('prueba.u_transp')::uuid) then
+    raise exception 'FALLO 88 · el camión no se ha guardado o no queda quién lo cambió';
+  end if;
+  if exists (select 1 from conductores where nombre = 'Conductor 88' and activo) then raise exception 'FALLO 88 · la baja del conductor no ha funcionado'; end if;
+  if not exists (select 1 from vehiculos where id = current_setting('prueba.veh_otro88')::uuid and activo) then raise exception 'FALLO 88 · se ha tocado la flota de otro'; end if;
+  raise notice 'OK 88 · el transportista cambia su NIMA, su seguro y su flota; ni lo fiscal, ni la flota de otro, ni un cliente';
+end $$;

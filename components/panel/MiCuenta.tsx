@@ -8,7 +8,8 @@ import { useRouter } from 'next/navigation';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
-import { guardarMisDatos, type MisDatos } from '@/app/panel/(app)/mi-cuenta/acciones';
+import { guardarMisDatos, guardarMiTransporte, guardarMiVehiculo, guardarMiConductor, darDeBajaFlota, type MisDatos, type MiVehiculo, type MiConductor } from '@/app/panel/(app)/mi-cuenta/acciones';
+import { DOC_PAISES } from '@/lib/documentoIdentidad';
 import { creadoTxt } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import { ROL, fecha } from '@/lib/formato';
@@ -25,7 +26,7 @@ export type TransporteDatos = {
   id: string; nima: string | null; bolsa: string | null; codigo_bolsa: string | null; plazo_pago_dias: number | null;
   seguro_cmr_compania: string | null; seguro_cmr_poliza: string | null; seguro_cmr_vence: string | null;
   vehiculos: { id: string; matricula: string; tipo: string; itv_vence: string | null; seguro_vence: string | null; tarjeta_transporte_vence: string | null; adr: boolean; trampilla: boolean }[];
-  conductores: { id: string; nombre: string; telefono: string | null }[];
+  conductores: { id: string; nombre: string; telefono: string | null; documento: string | null; documento_pais: string | null }[];
 };
 const TIPO_VEH: Record<string, string> = { tractora: 'Tractora', remolque: 'Remolque', rigido: 'Rígido' };
 // Fecha de caducidad: en rojo si ya pasó, en ámbar si vence en menos de 30 días.
@@ -43,6 +44,10 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
 }) {
   const router = useRouter();
   const [editar, setEditar] = useState(false);
+  const [editaTransp, setEditaTransp] = useState(false);
+  const [vehiculo, setVehiculo] = useState<MiVehiculo | null>(null);
+  const [conductor, setConductor] = useState<MiConductor | null>(null);
+  const hecho = () => { setEditaTransp(false); setVehiculo(null); setConductor(null); router.refresh(); };
   const fila = (k: string, v: React.ReactNode) => <div className="account-row"><span className="account-row-label">{k}</span><span className="account-row-value">{v || '—'}</span></div>;
   return (
     <section className="section active" id="sec-mi-cuenta">
@@ -84,19 +89,30 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
             <div className="account-row"><span className="account-row-label">Seguro CMR vence</span><span className="account-row-value"><Vence f={transporte.seguro_cmr_vence} /></span></div>
             {fila('Bolsa de carga', [transporte.bolsa, transporte.codigo_bolsa].filter(Boolean).join(' · '))}
             {fila('Plazo de pago', transporte.plazo_pago_dias != null ? `${transporte.plazo_pago_dias} días` : '')}
-            <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>Si algo ha cambiado (seguro renovado, NIMA nuevo…), súbelo en <strong>Documentación</strong> y lo actualizamos.</p>
+            <button className="btn-ghost account-edit" onClick={() => setEditaTransp(true)}>Editar NIMA y seguro</button>
+            <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>La razón social, el CIF, la dirección fiscal y la bolsa de carga los cambiamos nosotros: escríbenos si algo ha cambiado. Sube el seguro renovado en <strong>Documentación</strong>.</p>
           </div>
           <div className="account-card">
             <h3 className="account-card-title">Mi flota</h3>
             {transporte.vehiculos.length === 0 && transporte.conductores.length === 0 && <p className="account-card-desc">Aún no hay camiones ni conductores. Se añaden solos al darnos la matrícula y el conductor de cada viaje.</p>}
             {transporte.vehiculos.map((v) => (
-              <div key={v.id} className="account-row"><span className="account-row-label">{TIPO_VEH[v.tipo] ?? v.tipo}{v.trampilla ? ' · trampilla' : ''}{v.adr ? ' · ADR' : ''}</span>
-                <span className="account-row-value"><strong>{v.matricula}</strong>{v.itv_vence && <><br /><span style={{ fontSize: 'var(--fs-s)' }}>ITV: <Vence f={v.itv_vence} /></span></>}</span></div>
+              <button type="button" key={v.id} className="account-row account-row-btn" title="Editar este vehículo"
+                onClick={() => setVehiculo({ id: v.id, matricula: v.matricula, tipo: v.tipo as MiVehiculo['tipo'], itv: v.itv_vence ?? '', seguro: v.seguro_vence ?? '', tarjeta: v.tarjeta_transporte_vence ?? '', adr: v.adr, trampilla: v.trampilla })}>
+                <span className="account-row-label">{TIPO_VEH[v.tipo] ?? v.tipo}{v.trampilla ? ' · trampilla' : ''}{v.adr ? ' · ADR' : ''}</span>
+                <span className="account-row-value"><strong>{v.matricula}</strong>{v.itv_vence && <><br /><span style={{ fontSize: 'var(--fs-s)' }}>ITV: <Vence f={v.itv_vence} /></span></>}</span>
+              </button>
             ))}
             {transporte.conductores.map((c) => (
-              <div key={c.id} className="account-row"><span className="account-row-label">Conductor</span><span className="account-row-value">{c.nombre}{c.telefono ? ` · ${telBonito(c.telefono)}` : ''}</span></div>
+              <button type="button" key={c.id} className="account-row account-row-btn" title="Editar este conductor"
+                onClick={() => setConductor({ id: c.id, nombre: c.nombre, documento: c.documento ?? '', pais: c.documento_pais ?? 'ES', telefono: c.telefono ?? '' })}>
+                <span className="account-row-label">Conductor</span><span className="account-row-value">{c.nombre}{c.telefono ? ` · ${telBonito(c.telefono)}` : ''}</span>
+              </button>
             ))}
-            <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>La flota se completa sola con los camiones y conductores de tus viajes.</p>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.8rem' }}>
+              <button className="btn-ghost" onClick={() => setVehiculo({ id: null, matricula: '', tipo: 'tractora', itv: '', seguro: '', tarjeta: '', adr: false, trampilla: false })}>+ Añadir vehículo</button>
+              <button className="btn-ghost" onClick={() => setConductor({ id: null, nombre: '', documento: '', pais: 'ES', telefono: '' })}>+ Añadir conductor</button>
+            </div>
+            <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>También se completa sola con los camiones y conductores de tus viajes. Pulsa uno para cambiar sus datos o darlo de baja.</p>
           </div>
           <div className="account-card">
             <h3 className="account-card-title">Documentación</h3>
@@ -106,6 +122,10 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
         </>)}
       </div>
       {editar && <EditarDatos datos={datos} onCerrar={() => setEditar(false)} onHecho={() => { setEditar(false); router.refresh(); }} />}
+      {editaTransp && transporte && <EditarTransporte inicial={{ nima: transporte.nima ?? '', compania: transporte.seguro_cmr_compania ?? '', poliza: transporte.seguro_cmr_poliza ?? '', vence: transporte.seguro_cmr_vence ?? '' }}
+        onCerrar={() => setEditaTransp(false)} onHecho={hecho} />}
+      {vehiculo && <EditarVehiculo inicial={vehiculo} onCerrar={() => setVehiculo(null)} onHecho={hecho} />}
+      {conductor && <EditarConductor inicial={conductor} onCerrar={() => setConductor(null)} onHecho={hecho} />}
     </section>
   );
 }
@@ -153,6 +173,122 @@ function EditarDatos({ datos, onCerrar, onHecho }: { datos: MisDatos; onCerrar: 
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Los avisos por email y WhatsApp te llegarán en este idioma.</p>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
       {guardando && <Cargando texto="Guardando tus datos" />}
+    </Modal>
+  );
+}
+
+// ---- Ventanas del transportista ---------------------------------------------------------
+const ICO_CAMION = <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></svg>;
+const ICO_PERSONA = <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>;
+
+// Hook común: guardar con aviso de error y la ventana de «Guardando».
+function useGuardar(onHecho: () => void) {
+  const [error, setError] = useState<string | null>(null);
+  const [trabajando, setTrabajando] = useState<string | null>(null);
+  async function correr(texto: string, fn: () => Promise<{ ok: true } | { ok: false; error: string }>) {
+    setError(null); setTrabajando(texto);
+    const r = await fn();
+    setTrabajando(null);
+    if (!r.ok) { setError(r.error); return; }
+    onHecho();
+  }
+  return { error, trabajando, correr };
+}
+const fechaCampo = (id: string, label: string, valor: string, onCambio: (v: string) => void) => (
+  <div><label htmlFor={id}>{label}</label><input id={id} type="date" value={valor} onChange={(e) => onCambio(e.target.value)} /></div>
+);
+
+function EditarTransporte({ inicial, onCerrar, onHecho }: { inicial: { nima: string; compania: string; poliza: string; vence: string }; onCerrar: () => void; onHecho: () => void }) {
+  const [d, setD] = useState(inicial);
+  const g = useGuardar(onHecho);
+  return (
+    <Modal abierto titulo="Empresa de transporte" sub="NIMA y seguro CMR" icono={ICO_CAMION} onCerrar={onCerrar}
+      pie={<>
+        <button className="btn-ghost" onClick={onCerrar} disabled={!!g.trabajando}>Cancelar</button>
+        <button className="btn-primary" onClick={() => g.correr('Guardando', () => guardarMiTransporte(d))} disabled={!!g.trabajando}>Guardar cambios</button>
+      </>}>
+      <div className="ptar-sitio-grid">
+        <div><label htmlFor="mt-nima">NIMA</label><input id="mt-nima" type="text" value={d.nima} maxLength={40} placeholder="Solo si transportas residuos" onChange={(e) => setD({ ...d, nima: e.target.value })} /></div>
+        <div><label htmlFor="mt-comp">Compañía del seguro CMR</label><input id="mt-comp" type="text" value={d.compania} maxLength={120} placeholder="Ej. Mapfre" onChange={(e) => setD({ ...d, compania: e.target.value })} /></div>
+        <div><label htmlFor="mt-pol">Nº de póliza</label><input id="mt-pol" type="text" value={d.poliza} maxLength={60} onChange={(e) => setD({ ...d, poliza: e.target.value })} /></div>
+        {fechaCampo('mt-vence', 'Vence el', d.vence, (v) => setD({ ...d, vence: v }))}
+      </div>
+      <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Recuerda subir la póliza renovada en Documentación.</p>
+      {g.error && <div className="wiz-warn show" role="alert">⚠ {g.error}</div>}
+      {g.trabajando && <Cargando texto={g.trabajando} />}
+    </Modal>
+  );
+}
+
+function BotonBaja({ texto, onBaja, disabled }: { texto: string; onBaja: () => void; disabled: boolean }) {
+  const [seguro, setSeguro] = useState(false);
+  if (!seguro) return <button className="btn-ghost" style={{ marginRight: 'auto', color: 'var(--red)' }} onClick={() => setSeguro(true)} disabled={disabled}>Dar de baja</button>;
+  return <button className="btn-ghost" style={{ marginRight: 'auto', color: 'var(--red)', borderColor: 'var(--red)' }} onClick={onBaja} disabled={disabled}>{texto}</button>;
+}
+
+function EditarVehiculo({ inicial, onCerrar, onHecho }: { inicial: MiVehiculo; onCerrar: () => void; onHecho: () => void }) {
+  const [v, setV] = useState<MiVehiculo>(inicial);
+  const g = useGuardar(onHecho);
+  const nuevo = !v.id;
+  return (
+    <Modal abierto titulo={nuevo ? 'Añadir vehículo' : `Vehículo ${v.matricula}`} sub="Documentación y características" icono={ICO_CAMION} onCerrar={onCerrar}
+      pie={<>
+        {!nuevo && <BotonBaja texto="Sí, dar de baja" disabled={!!g.trabajando} onBaja={() => g.correr('Dando de baja', () => darDeBajaFlota('vehiculo', v.id!))} />}
+        <button className="btn-ghost" onClick={onCerrar} disabled={!!g.trabajando}>Cancelar</button>
+        <button className="btn-primary" onClick={() => g.correr('Guardando', () => guardarMiVehiculo(v))} disabled={!!g.trabajando}>{nuevo ? 'Añadir' : 'Guardar cambios'}</button>
+      </>}>
+      <div className="ptar-sitio-grid">
+        <div><label htmlFor="mv-mat">Matrícula{nuevo ? ' *' : ''}</label>
+          <input id="mv-mat" type="text" value={v.matricula} disabled={!nuevo} placeholder="1234 ABC" onChange={(e) => setV({ ...v, matricula: e.target.value.toUpperCase() })} /></div>
+        <div><label htmlFor="mv-tipo">Tipo</label>
+          <select id="mv-tipo" className="ptar-select" value={v.tipo} onChange={(e) => setV({ ...v, tipo: e.target.value as MiVehiculo['tipo'] })}>
+            <option value="tractora">Tractora</option><option value="remolque">Remolque</option><option value="rigido">Rígido</option>
+          </select></div>
+        {fechaCampo('mv-itv', 'ITV vence', v.itv, (x) => setV({ ...v, itv: x }))}
+        {fechaCampo('mv-seg', 'Seguro del vehículo vence', v.seguro, (x) => setV({ ...v, seguro: x }))}
+        {v.tipo !== 'remolque' && fechaCampo('mv-tt', 'Tarjeta de transporte vence', v.tarjeta, (x) => setV({ ...v, tarjeta: x }))}
+        {v.tipo === 'rigido' && (
+          <div>
+            <label>Trampilla elevadora</label>
+            <label className="ptar-tramp-box">
+              <input type="checkbox" className="ptar-switch-input" checked={v.trampilla} onChange={(e) => setV({ ...v, trampilla: e.target.checked })} />
+              <span className="ptar-switch" aria-hidden="true" />
+              <span className="ptar-tramp-state" aria-hidden="true"><span className="tramp-off">No</span><span className="tramp-on">Sí</span></span>
+            </label>
+          </div>
+        )}
+      </div>
+      {!nuevo && <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>La matrícula no se cambia: si es otro camión, añádelo nuevo. Dar de baja no borra los viajes que ya hizo.</p>}
+      {g.error && <div className="wiz-warn show" role="alert">⚠ {g.error}</div>}
+      {g.trabajando && <Cargando texto={g.trabajando} />}
+    </Modal>
+  );
+}
+
+function EditarConductor({ inicial, onCerrar, onHecho }: { inicial: MiConductor; onCerrar: () => void; onHecho: () => void }) {
+  const [c, setC] = useState<MiConductor>(inicial);
+  const g = useGuardar(onHecho);
+  const nuevo = !c.id;
+  return (
+    <Modal abierto titulo={nuevo ? 'Añadir conductor' : c.nombre} sub="Datos para la orden de carga y el CMR" icono={ICO_PERSONA} onCerrar={onCerrar}
+      pie={<>
+        {!nuevo && <BotonBaja texto="Sí, dar de baja" disabled={!!g.trabajando} onBaja={() => g.correr('Dando de baja', () => darDeBajaFlota('conductor', c.id!))} />}
+        <button className="btn-ghost" onClick={onCerrar} disabled={!!g.trabajando}>Cancelar</button>
+        <button className="btn-primary" onClick={() => g.correr('Guardando', () => guardarMiConductor(c))} disabled={!!g.trabajando}>{nuevo ? 'Añadir' : 'Guardar cambios'}</button>
+      </>}>
+      <div className="ptar-sitio-grid">
+        <div style={{ gridColumn: '1/-1' }}><label htmlFor="mcd-nom">Nombre y apellidos *</label>
+          <input id="mcd-nom" type="text" value={c.nombre} maxLength={120} onChange={(e) => setC({ ...c, nombre: e.target.value })} /></div>
+        <div><label htmlFor="mcd-pais">País del documento</label>
+          <select id="mcd-pais" className="ptar-select" value={c.pais} onChange={(e) => setC({ ...c, pais: e.target.value })}>
+            {DOC_PAISES.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
+          </select></div>
+        <div><label htmlFor="mcd-doc">DNI / NIE / documento</label>
+          <input id="mcd-doc" type="text" value={c.documento} maxLength={30} placeholder="12345678Z" onChange={(e) => setC({ ...c, documento: e.target.value.toUpperCase() })} /></div>
+        <div style={{ gridColumn: '1/-1' }}><label htmlFor="mcd-tel">Teléfono móvil</label><CampoTelefono id="mcd-tel" valor={c.telefono} onCambio={(v) => setC({ ...c, telefono: v })} /></div>
+      </div>
+      {g.error && <div className="wiz-warn show" role="alert">⚠ {g.error}</div>}
+      {g.trabajando && <Cargando texto={g.trabajando} />}
     </Modal>
   );
 }

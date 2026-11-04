@@ -472,3 +472,4 @@ importar, con la cabecera exacta de la plantilla.
   cliente pueden llevar teléfonos o el nombre de su cliente final, y la bolsa es pública.
 - **"CLIENTE"** en el fichero de Wtransnet es columna interna de la hoja; con discreción comercial
   sale vacía.
+| `20261104090000_transportista_edita_sus_datos.sql` | El transportista cambia su NIMA, su seguro CMR y su flota (camiones y conductores: alta, datos y baja) con funciones de lista cerrada; lo fiscal solo Dynamo. Prueba 88. |

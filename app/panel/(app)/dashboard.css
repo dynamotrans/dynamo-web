@@ -977,6 +977,10 @@ body.theme-dark .theme-switch-knob { left: 16px; }
 .account-row:last-of-type { border-bottom: none; }
 .account-row-label { color: var(--gray-500); font-weight: 600; }
 .account-row-value { color: var(--navy); font-weight: 700; text-align: right; }
+/* Fila de la ficha que se puede pulsar (flota del transportista en Mi cuenta). */
+.account-row-btn { width: 100%; background: none; border: none; border-bottom: 1px dashed var(--gray-200); padding-left: 0.3rem; padding-right: 0.3rem; font-family: inherit; color: inherit; cursor: pointer; text-align: left; border-radius: 6px; }
+.account-row-btn:hover { background: rgba(51,0,204,0.04); }
+.account-row-btn:focus-visible { outline: 2px solid var(--purple); outline-offset: 1px; }
 .account-edit { margin-top: 0.8rem; }
 .support-link {
     display: flex; align-items: center; gap: 0.55rem;
