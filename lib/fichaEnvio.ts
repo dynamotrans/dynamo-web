@@ -29,6 +29,7 @@ export type Ficha = {
   cmrEnlace: { id: string; token: string; caduca_en: string } | null;   // solo lo ve Dynamo
   firmasCmr: FirmaCmrFicha[];
   corte: string | null;   // hora límite para cancelar gratis (con camión asignado)
+  enVistaCliente?: boolean;   // Dynamo la mira desde la vista del cliente («Ver como»)
   // Previo pago (null = no lo necesita y nunca lo necesitó).
   pago: { estado: string; motivo: string | null; metodo: string | null; pagado_en: string | null; exento_motivo: string | null;
           base: number; iva: number; total: number; conCredito: boolean } | null;

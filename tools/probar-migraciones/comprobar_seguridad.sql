@@ -3852,3 +3852,42 @@ do $$ declare e uuid; i int; begin
   end if;
   raise notice 'OK 113 · suspensión: solo cuentan las cancelaciones con camión asignado o pasado el corte de las 9:00';
 end $$;
+
+-- ---- 114. Cancelar «en nombre del cliente» cuenta para él; desde gestión interna, no ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update usuarios set estado = 'activa', sin_autosuspension = false, autosusp_desde = now() where id = current_setting('prueba.u_cli')::uuid;
+do $$ declare e uuid; i int; begin
+  for i in 1..6 loop
+    perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
+      values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, current_date) returning id into e;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+    perform set_config('request.jwt.claim.sub', '', false);
+    update envios set estado = 'programado' where id = e;
+    perform set_config('prueba.e114_' || i, e::text, false);
+  end loop;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  -- 3 cancelaciones tardías desde gestión interna: no cuentan.
+  perform cancelar_envio(current_setting('prueba.e114_1')::uuid, 'error nuestro', false);
+  perform cancelar_envio(current_setting('prueba.e114_2')::uuid, 'error nuestro', false);
+  perform cancelar_envio(current_setting('prueba.e114_3')::uuid, 'error nuestro', false);
+  if (select estado from usuarios where id = current_setting('prueba.u_cli')::uuid) <> 'activa' then
+    raise exception 'FALLO 114 · cancelar desde gestión interna cuenta para el cliente';
+  end if;
+  -- 3 desde la vista del cliente (a petición suya): cuentan y suspende al momento (regla 5).
+  perform cancelar_envio(current_setting('prueba.e114_4')::uuid, 'lo pide por teléfono', true);
+  perform cancelar_envio(current_setting('prueba.e114_5')::uuid, 'lo pide por teléfono', true);
+  perform cancelar_envio(current_setting('prueba.e114_6')::uuid, 'lo pide por teléfono', true);
+  if (select estado from usuarios where id = current_setting('prueba.u_cli')::uuid) <> 'suspendida' then
+    raise exception 'FALLO 114 · cancelar en nombre del cliente no cuenta para él';
+  end if;
+  update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;
+  raise notice 'OK 114 · cancelar desde la vista del cliente cuenta como suya; desde gestión interna, no';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

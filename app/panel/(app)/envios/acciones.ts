@@ -3,6 +3,7 @@
 import { sesion, esGestor } from '@/lib/sesion';
 import { randomUUID, createHash } from 'node:crypto';
 import { pdfDeEnvioDynamo } from '@/lib/pdf/generar';
+import { vistaCruda } from '@/lib/vista';
 
 type Res = { ok: true; aviso?: string } | { ok: false; error: string };
 const vacio = (s: string | null | undefined) => (s ?? '').trim() || null;
@@ -76,7 +77,9 @@ export async function cambiarEstado(envio: string, estado: string, fechaCargaRea
 export async function cancelarEnvio(envio: string, motivo: string): Promise<Res> {
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo cancela envíos desde la ficha.' };
-  const { data, error } = await s.supabase.rpc('cancelar_envio', { p_envio: envio, p_motivo: motivo || null });
+  // Desde la vista del cliente («Ver como») es como si llamara él: cuenta como cancelación suya.
+  const enNombre = (await vistaCruda()).tipo === 'cliente';
+  const { data, error } = await s.supabase.rpc('cancelar_envio', { p_envio: envio, p_motivo: motivo || null, p_en_nombre_cliente: enNombre });
   if (error) return { ok: false, error: traducir(error.message) };
   const r = data as { penalizacion: boolean; importe: number | null };
   return { ok: true, aviso: r.penalizacion ? `Cancelado fuera de plazo con camión asignado: se ha generado la penalización de cancelación${r.importe != null ? ` (${Number(r.importe).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € sin IVA)` : ''}, pendiente de confirmar.` : 'Envío cancelado, sin coste para el cliente.' };

@@ -609,6 +609,11 @@ function Cancelar({ ficha, onVolver, hacer, trabajando }: SubProps) {
           <textarea id="ca-motivo" rows={3} value={motivo} placeholder="Ej. el cliente ya no tiene la mercancía" onChange={(ev) => setMotivo(ev.target.value)} />
         </div>
       </div>
+      <div className={ficha.enVistaCliente ? 'pt-aviso error' : 'pt-aviso info'} style={{ marginTop: '0.6rem' }}><div>
+        {ficha.enVistaCliente
+          ? <><strong>Estás en la vista del cliente:</strong> cuenta como si lo cancelara él (por ejemplo, porque te ha llamado), también para su suspensión automática.</>
+          : <><strong>Estás en gestión interna:</strong> cuenta como cancelación de Dynamo (no le afecta al cliente). Si te lo ha pedido el cliente, cancélalo desde su vista («Ver como» → el cliente).</>}
+      </div></div>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Se puede deshacer desde la ficha: el envío vuelve al estado que tenía.</p>
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>

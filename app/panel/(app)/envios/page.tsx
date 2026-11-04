@@ -109,7 +109,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   let ficha = null, transportistas: Awaited<ReturnType<typeof cargarTransportistasParaAsignar>> = [], errorFicha: string | null = null;
   if (dynamo && sp.ver) {
     const [r, t] = await Promise.all([cargarFicha(supabase, sp.ver), cargarTransportistasParaAsignar(supabase)]);
-    ficha = r.ficha; errorFicha = r.error; transportistas = t;
+    ficha = r.ficha ? { ...r.ficha, enVistaCliente: vista.tipo === 'cliente' } : null; errorFicha = r.error; transportistas = t;
   }
   // Ficha para el CLIENTE: con lo que ya trae mis_envios() (sin datos internos) y sus hitos visibles.
   let fichaCli: any = null;
