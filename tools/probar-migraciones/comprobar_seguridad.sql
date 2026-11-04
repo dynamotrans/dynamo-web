@@ -3718,3 +3718,43 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 109. Siniestro: entra siempre con prioridad crítica ------------------------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare i uuid; begin
+  insert into incidencias (tipo_id, envio_id, titulo, detalle, prioridad)
+    values ((select id from tipos_incidencia where clave = 'siniestro'), current_setting('prueba.e108')::uuid,
+            'Faltan 3 palés', 'Al llegar a descargar faltan 3 palés', 'baja') returning id into i;
+  if (select prioridad from incidencias where id = i) <> 'critica' then
+    raise exception 'FALLO 109 · un siniestro no entra como crítico';
+  end if;
+  raise notice 'OK 109 · siniestro (daño, rotura o faltante): tipo propio y siempre prioridad crítica';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 110. Reservas en el CMR: abren un siniestro crítico; solo con enlace válido -------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare tok uuid; begin
+  insert into cmr_enlaces (envio_id) values (current_setting('prueba.e108')::uuid) returning token into tok;
+  perform set_config('prueba.tok110', tok::text, false);
+end $$;
+set role anon;
+do $$ declare r jsonb; begin
+  if (anotar_reservas_cmr(gen_random_uuid(), null, 'destinatario', 'Faltan dos palés'))->>'resultado' <> 'enlace_no_valido' then
+    raise exception 'FALLO 110 · se anotan reservas sin un enlace válido';
+  end if;
+  r := anotar_reservas_cmr(current_setting('prueba.tok110')::uuid, null, 'destinatario', 'Faltan dos palés y uno llega roto');
+  if r->>'resultado' <> 'ok' then raise exception 'FALLO 110 · no anota las reservas: %', r; end if;
+  if not exists (select 1 from reservas_cmr_publico(current_setting('prueba.tok110')::uuid)) then raise exception 'FALLO 110 · no se ven en la página del CMR'; end if;
+end $$;
+reset role;
+do $$ begin
+  if not exists (select 1 from incidencias i join tipos_incidencia t on t.id = i.tipo_id
+                  where i.envio_id = current_setting('prueba.e108')::uuid and t.clave = 'siniestro' and i.prioridad = 'critica' and i.titulo like 'Reservas en el CMR%') then
+    raise exception 'FALLO 110 · las reservas no abren un siniestro crítico';
+  end if;
+  raise notice 'OK 110 · reservas en el CMR: solo con enlace válido, se ven en la página y abren un siniestro crítico para Dynamo';
+end $$;

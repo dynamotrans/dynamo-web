@@ -11,7 +11,10 @@ export async function pdfDeEnvioDynamo(sb: SupabaseClient, id: string, documento
   if (!datos) return { error: error ?? 'No se ha podido leer el envío.' };
   let bytes: Uint8Array;
   datos.dynamo = await datosDynamo(sb);
-  if (documento === 'cmr') bytes = await cmr({ ...datos, firmas: await cargarFirmasCmr(sb, id) });
+  if (documento === 'cmr') {
+    const { data: rs } = await sb.from('cmr_reservas').select('rol, texto').eq('envio_id', id).order('creado_en');
+    bytes = await cmr({ ...datos, firmas: await cargarFirmasCmr(sb, id), reservas: (rs ?? []) as { rol: string; texto: string }[] });
+  }
   else {
     const { data: ps } = await sb.from('parametros').select('clave, valor')
       .in('clave', ['pronto_pago_pct', 'pronto_pago_minimo', 'pronto_pago_dias', 'plazo_pago_transportista_dias']);

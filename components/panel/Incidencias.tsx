@@ -38,8 +38,9 @@ const IcoAviso = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="non
 const horaMadrid = (iso: string) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 const diaMadrid = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(iso));
 
-export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara, error, esCliente = false, esTransportista = false }: {
+export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara, error, esCliente = false, esTransportista = false, tipoInicial = null }: {
   filas: IncidenciaFila[]; tipos: Opcion[]; clientes: Opcion[]; envios: EnvioLigero[]; nuevaPara: string | null; error: string | null;
+  tipoInicial?: string | null;   // ?tipo=siniestro: el formulario nuevo ya con ese tipo
   esCliente?: boolean;   // el CLIENTE (o el transportista) ve y abre las suyas; el estado, la prioridad y la resolución son de Dynamo
   esTransportista?: boolean;   // el viaje es obligatorio y solo ve las que abre él
 }) {
@@ -103,22 +104,22 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
           </tbody>
         </table>
       </div>
-      {ficha && <FichaIncidencia esCliente={esCliente} esTransportista={esTransportista} fila={ficha.fila} envioInicial={ficha.envio ?? null} tipos={tipos} clientes={clientes} envios={envios}
+      {ficha && <FichaIncidencia esCliente={esCliente} esTransportista={esTransportista} fila={ficha.fila} envioInicial={ficha.envio ?? null} tipoInicial={ficha.fila ? null : tipoInicial} tipos={tipos} clientes={clientes} envios={envios}
         onCerrar={cerrar} onHecho={() => { cerrar(); refrescar(); }} />}
     </section>
   );
 }
 
-function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar, onHecho, esCliente, esTransportista = false }: {
-  fila: IncidenciaFila | null; envioInicial: string | null; tipos: Opcion[]; clientes: Opcion[]; envios: EnvioLigero[];
+function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar, onHecho, esCliente, esTransportista = false, tipoInicial = null }: {
+  fila: IncidenciaFila | null; envioInicial: string | null; tipos: Opcion[]; clientes: Opcion[]; envios: EnvioLigero[]; tipoInicial?: string | null;
   onCerrar: () => void; onHecho: () => void; esCliente: boolean; esTransportista?: boolean;
 }) {
   // El cliente solo puede tocarla mientras está abierta (después la lleva Dynamo).
   const soloLectura = esCliente && !!fila && fila.estado !== 'abierto';
   const [d, setD] = useState<IncidenciaDatos>({
-    envio_id: fila?.envio_id ?? envioInicial, cliente_id: fila?.cliente_id ?? null, tipo_id: fila?.tipo_id ?? '',
+    envio_id: fila?.envio_id ?? envioInicial, cliente_id: fila?.cliente_id ?? null, tipo_id: fila?.tipo_id ?? tipoInicial ?? '',
     estado: fila?.estado ?? 'abierto', prioridad: fila?.prioridad ?? 'media',
-    titulo: fila?.titulo ?? '', detalle: fila?.detalle ?? '', resolucion: fila?.resolucion ?? '',
+    titulo: fila?.titulo ?? (tipoInicial ? 'Siniestro: ' : ''), detalle: fila?.detalle ?? '', resolucion: fila?.resolucion ?? '',
   });
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);

@@ -107,7 +107,11 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       { t: e.conductor_nombre ? `Conductor: ${e.conductor_nombre}` : '', s: 7.4, b: false },
     ], 34);
     // 18 Reservas y observaciones del porteador
-    if (e.adr) dato(438, 290, [{ t: 'MERCANCÍA ADR (peligrosa) — Acuerdo ADR', s: 7.6, c: ROJA }], 34);
+    const QUIEN: Record<string, string> = { remitente: 'Cargador', transportista: 'Porteador', destinatario: 'Destinatario' };
+    dato(438, 290, [
+      ...(e.adr ? [{ t: 'MERCANCÍA ADR (peligrosa) — Acuerdo ADR', s: 7.6, c: ROJA }] : []),
+      ...(d.reservas ?? []).slice(0, 3).map((r) => ({ t: `Reservas (${QUIEN[r.rol] ?? r.rol}): ${r.texto}`, s: 6.8, c: ROJA, max: 3 })),
+    ], 34);
 
     // 6-12: tabla de la mercancía
     dato(40, 385, [{ t: e.referencia_gx ?? '—', s: 7.2 }]);

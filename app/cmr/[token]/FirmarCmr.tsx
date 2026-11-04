@@ -66,6 +66,9 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
               {trazos[f.ruta] && <div className="firma-img"><img src={trazos[f.ruta]} alt="Firma" /></div>}
               <div className="firma-estado">✓ Firmada el {fechaHora(f.firmado_en)} por {f.nombre} · {f.documento}{f.documento_pais && f.documento_pais !== 'XX' ? ` (${f.documento_pais})` : ''}</div>
             </> : <div className="firma-estado">Pendiente de firma</div>}
+            {(cmr.reservas ?? []).filter((r: any) => r.rol === b.rol && (b.rol === 'transportista' || r.parada_id === b.parada_id)).map((r: any, i: number) => (
+              <div key={i} className="firma-estado" style={{ color: '#b91c1c', fontWeight: 700 }}>⚠ Reservas: {r.texto}</div>
+            ))}
           </div>
         );
       })}
@@ -85,6 +88,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
   const [doc, setDoc] = useState('');
   const [nombre, setNombre] = useState(b.pre);
   const [email, setEmail] = useState('');
+  const [reservas, setReservas] = useState('');
   const [aviso, setAviso] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
 
@@ -107,7 +111,7 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
     if (v && !v.ok) { setAviso(v.msg || 'El documento no es válido.'); return; }
     if (!dibujado) { setAviso('Firma con el dedo dentro del recuadro.'); return; }
     setGuardando(true);
-    const r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email, png: canvas.current!.toDataURL('image/png') });
+    const r = await firmar(token, { parada_id: b.parada_id, rol: b.rol, nombre, documento: doc, pais, email, reservas, png: canvas.current!.toDataURL('image/png') });
     setGuardando(false);
     if (!r.ok) { setAviso(r.error); return; }
     onFirmado();
@@ -129,6 +133,10 @@ function PantallaFirma({ token, b, onCerrar, onFirmado }: { token: string; b: Bl
         <input type="text" id="sigNombre" autoComplete="off" placeholder="Nombre completo" value={nombre} onChange={(e) => setNombre(e.target.value)} />
         <label className="sig-lbl" htmlFor="sigEmail">Email <span className="op">· opcional</span></label>
         <input type="text" id="sigEmail" autoComplete="off" inputMode="email" placeholder="nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <label className="sig-lbl" htmlFor="sigReservas">Reservas <span className="op">· solo si falta algo o hay daños</span></label>
+        <textarea id="sigReservas" rows={2} maxLength={1000} placeholder="Ej. faltan 2 palés; 1 palé con el film roto y cajas aplastadas" value={reservas} onChange={(e) => setReservas(e.target.value)}
+          style={{ width: '100%', boxSizing: 'border-box', border: reservas.trim() ? '1.5px solid #dc2626' : undefined, borderRadius: 10, padding: '0.5rem 0.6rem', font: 'inherit' }} />
+        {reservas.trim() && <div className="sig-msg err">Se avisa a Dynamo al momento. Haz fotos y, si eres el destinatario, no termines la descarga sin hablar con nosotros ({'+34 955 225 945'}).</div>}
         {aviso && <div className="sig-warn">⚠ {aviso}</div>}
         <p className="hint" style={{ marginTop: '0.6rem' }}>Firma con el dedo (o el ratón) dentro del recuadro.</p>
         <canvas id="sigCanvas" ref={canvas}

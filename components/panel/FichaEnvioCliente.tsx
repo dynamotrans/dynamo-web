@@ -17,6 +17,7 @@ import { creadoTxt, estadoVisual } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import { responderPrecio, contraofertarPrecio, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
 import { PedirCambio } from './CambiosEnvio';
+import AvisoSiniestro from '@/components/AvisoSiniestro';
 import { enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
 
 const HITOS: Record<string, string> = {
@@ -142,6 +143,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
       )}
       {e.pago && e.estado !== 'cancelado' && <PagoCliente e={e} />}
       {!manual && <PedirCambio e={e} cambio={e.cambio} hacer={hacer} />}
+      {!manual && ['cargando', 'en_ruta'].includes(e.estado) && <AvisoSiniestro quien="cliente" incidenciaHref={`/panel/incidencias?nueva=${e.id}&tipo=siniestro`} />}
       {enContraoferta && (
         <div className="pt-aviso info"><div><strong>Has propuesto {euros(Number(e.contraoferta?.propuesta ?? 0))}</strong> (sin IVA) frente a nuestros {euros(pc)}. Lo estamos revisando y te contestamos aquí. Si no la aceptamos, volverás a ver nuestro precio para aceptarlo o cancelar sin coste.</div></div>
       )}

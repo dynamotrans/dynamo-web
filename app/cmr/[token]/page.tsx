@@ -21,6 +21,7 @@ export default async function PaginaCmr({ params }: { params: Promise<{ token: s
     else {
       const { data, error } = await sb.rpc('cmr_publico', { p_token: token });
       if (!error && data) cmr = data;
+      if (cmr) { const { data: rs } = await sb.rpc('reservas_cmr_publico', { p_token: token }); cmr = { ...cmr, reservas: rs ?? [] }; }
       // Las imágenes de las firmas ya hechas: enlaces firmados de 10 minutos.
       const rutas: string[] = (cmr.firmas ?? []).map((f: any) => f.ruta);
       if (rutas.length) {

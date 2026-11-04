@@ -26,6 +26,7 @@ export type DatosDoc = {
   pronto_pago: boolean;
   gestor: { nombre: string; telefono: string | null; email: string | null } | null;
   firmas?: FirmaDoc[];                   // CMR digital (solo para el CMR)
+  reservas?: { rol: string; texto: string }[];   // reservas anotadas al firmar el CMR (casilla 18)
   logoPorteador?: Uint8Array | null;     // envío manual: el logo del operador del cliente (si lo subió)
   dynamo?: DatosDynamo;                  // los datos fijos de Dynamo (de Parámetros)
 };

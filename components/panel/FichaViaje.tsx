@@ -14,6 +14,7 @@ import { euros, fecha, ventana } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import { marcarViaje, enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
+import AvisoSiniestro from '@/components/AvisoSiniestro';
 
 const FASES: [string, string, string][] = [
   ['hacia_la_carga', 'Voy hacia la carga', 'Hacia la carga'], ['cargando', 'Estoy cargando', 'Cargando'],
@@ -83,6 +84,7 @@ export default function FichaViaje({ e, cerrarHref }: { e: any; cerrarHref: stri
       pie={<button className="btn-ghost" onClick={cerrar}>Cerrar</button>}>
       {trabajando && <Cargando texto={trabajando} />}
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
+      {['hacia_la_carga', 'cargando', 'en_ruta'].includes(e.estado) && <AvisoSiniestro incidenciaHref={`/panel/incidencias?nueva=${e.id}&tipo=siniestro`} />}
       {e.discrecion_comercial && (
         <div className="modal-warn-box"><strong>Discreción comercial:</strong> en la carga no digas a dónde va la mercancía, ni en la entrega de dónde viene.</div>
       )}
