@@ -1,4 +1,5 @@
 import { sesion, esDynamo } from '@/lib/sesion';
+import { stripeListo } from '@/lib/stripe';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import type { EnvioFila, Parada } from '@/lib/envios';
 import TablaEnvios from '@/components/panel/TablaEnvios';
@@ -31,7 +32,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       'fecha_carga_desde, fecha_carga_hasta, fecha_carga_real, fecha_entrega_estimada, descripcion_mercancia, ' +
       'toneladas, metros_lineales, tipo_carga, paletizado, poblacion_origen, codigo_postal_origen, poblacion_destino, codigo_postal_destino, ' +
       'importe_cliente, importe_transportista, precio_acordado_operador, precio_fijado_a_mano, matricula_camion, ' +
-      'matricula_remolque, creado_en, modificado_en, creado_por, solicitud_estado, clientes(nombre_visible, cif), operadores(razon_social), ' +
+      'matricula_remolque, creado_en, modificado_en, creado_por, solicitud_estado, pago_previo, clientes(nombre_visible, cif), operadores(razon_social), ' +
       'envio_paradas(orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)';
     const TERMINADOS = 1000;
     let data: any[] = [];
@@ -69,6 +70,12 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       transportista_asignado: !!x.asignado_en || x.estado_asignacion === 'confirmada',
       paradas: (x.paradas ?? []) as Parada[],
     }));
+    // Previo pago (el cliente no lee la tabla de envíos: lo trae pagos_envio()).
+    if (rol === 'cliente') {
+      const { data: pagos } = await supabase.rpc('pagos_envio');
+      const pp = new Map(((pagos ?? []) as { envio_id: string; pago_previo: string }[]).map((x) => [x.envio_id, x.pago_previo]));
+      filas.forEach((f) => { f.pago_previo = pp.get(f.id) ?? null; });
+    }
     // Nombre del operador de los envíos manuales del cliente (su propio catálogo).
     const ids = [...new Set(filas.map((f: any) => f.operador_id).filter(Boolean))];
     if (ids.length) {
@@ -106,7 +113,10 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     if (fichaCli) {
       const { data: hit } = await supabase.from('envio_hitos').select('id, hito, cuando').eq('envio_id', fichaCli.id).order('cuando', { ascending: false }).limit(100);
       const { data: val } = await supabase.rpc('mi_valoracion_envio', { p_envio: fichaCli.id }).maybeSingle();
-      fichaCli = { ...fichaCli, hitos: hit ?? [], valoracion: val ?? null };
+      const { data: pg } = await supabase.rpc('pagos_envio', { p_envio: fichaCli.id }).maybeSingle();
+      // Pago con tarjeta: solo si Stripe está conectado (claves en Vercel).
+      fichaCli = { ...fichaCli, hitos: hit ?? [], valoracion: val ?? null, pago: pg ?? null,
+        tarjeta: stripeListo(), pagoVuelta: sp.pago ?? null };
     }
   }
   // Etapa C: el TRANSPORTISTA, su ficha de viaje y sus ofertas abiertas.

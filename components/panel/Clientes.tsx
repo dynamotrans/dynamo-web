@@ -44,7 +44,7 @@ const NUEVO: ClienteDatos = {
   direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES',
   plazo_pago_dias: 120, iva_porcentaje: 21, retencion_porcentaje: 0, recargo_equivalencia_porcentaje: 0,
   recargo_pago_tarde_porcentaje: 0, riesgo_cesce_euros: null, riesgo_manual_euros: null,
-  factor_tarifa_porcentaje: -7, factor_fijado_a_mano: false, permite_contraoferta: false, discrecion_comercial: false, alta_por: null,
+  factor_tarifa_porcentaje: -7, factor_fijado_a_mano: false, permite_contraoferta: false, discrecion_comercial: false, sin_pago_previo_primer_envio: false, alta_por: null,
   cuenta_contable: '', forma_pago_holded_id: '', anotaciones: '',
   contactos: [CONTACTO_VACIO()],
 };
@@ -169,7 +169,7 @@ function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { f
         onChange={(e) => setTextos((t) => ({ ...t, [k]: e.target.value }))} />
     </div>
   );
-  const interruptor = (k: 'permite_contraoferta' | 'discrecion_comercial', label: string) => (
+  const interruptor = (k: 'permite_contraoferta' | 'discrecion_comercial' | 'sin_pago_previo_primer_envio', label: string) => (
     <div>
       <label>{label}</label>
       <label className="ptar-tramp-box">
@@ -237,6 +237,8 @@ function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { f
         <div />
         {interruptor('permite_contraoferta', 'Puede hacer contraoferta de precio')}
         {interruptor('discrecion_comercial', 'Discreción comercial por defecto')}
+        {interruptor('sin_pago_previo_primer_envio', 'Empresa conocida: sin pago previo del primer envío')}
+        <div className="meta" style={{ alignSelf: 'end' }}>Solo cuenta si tiene crédito disponible. Sin crédito, todos sus envíos se pagan por adelantado.</div>
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="cli-factor">Factor de precio del cliente (%) <span style={{ fontWeight: 600, color: 'var(--gray-500)' }}>· de −30 % a +30 %</span> <span style={{ fontWeight: 800, color: 'var(--red)' }}>· SOLO VISIBLE ADMIN — el cliente NUNCA ve este campo</span></label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', marginTop: '0.4rem' }}>

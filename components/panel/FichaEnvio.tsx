@@ -18,6 +18,7 @@ import { paisDe, telBonito } from '@/lib/paises';
 import type { Ficha, ParadaFicha, TransportistaOpcion } from '@/lib/fichaEnvio';
 import { proponerPrecio } from '@/app/panel/(app)/nuevo-envio/acciones';
 import CampoTelefono from '@/components/CampoTelefono';
+import PagoPrevio from './PagoPrevio';
 import {
   asignarTransportista, quitarTransportista, cambiarEstado, cancelarEnvio, deshacerCancelacion, modificarEnvio,
   ofrecerCarga, revocarOferta, resolverContraoferta, enlaceCmr, retirarEnlaceCmr, valorarTransportista, type DatosEnvio, archivarPdf,
@@ -203,6 +204,8 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
       {e.solicitud_estado === 'aceptada' && e.condiciones_aceptadas_en && (
         <div className="pt-aviso info"><div>Pedido por el cliente desde su panel. Aceptó el precio y las condiciones generales el {creadoTxt(e.condiciones_aceptadas_en)}.</div></div>
       )}
+      {!manual && <PagoPrevio envio={e} pago={ficha.pago} hacer={hacer}
+        libre={!e.transportista_id && (e.estado_asignacion ?? 'sin_asignar') === 'sin_asignar' && !e.publicado_en_bolsa_en} />}
       {ficha.contraofertas.map((c) => (
         <div key={c.id} className="modal-warn-box">
           {c.alta_online && (

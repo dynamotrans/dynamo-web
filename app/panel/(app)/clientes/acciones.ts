@@ -12,6 +12,7 @@ export type ClienteDatos = {
   recargo_equivalencia_porcentaje: number; recargo_pago_tarde_porcentaje: number;
   riesgo_cesce_euros: number | null; riesgo_manual_euros: number | null;
   factor_tarifa_porcentaje: number; factor_fijado_a_mano: boolean; permite_contraoferta: boolean; discrecion_comercial: boolean;
+  sin_pago_previo_primer_envio: boolean;   // empresa conocida: su primer envío no se paga por adelantado (si tiene crédito)
   cuenta_contable: string; forma_pago_holded_id: string; anotaciones: string;
   alta_por: string | null;   // empleado de Dynamo que captó al cliente (comisiones); null = alta online
   // Personas de contacto (tabla contactos, una o varias)
@@ -52,6 +53,7 @@ export async function guardarCliente(id: string | null, d: ClienteDatos):
     riesgo_cesce_euros: d.riesgo_cesce_euros, riesgo_manual_euros: d.riesgo_manual_euros,
     factor_tarifa_porcentaje: d.factor_tarifa_porcentaje, factor_fijado_a_mano: d.factor_fijado_a_mano,
     permite_contraoferta: d.permite_contraoferta, discrecion_comercial: d.discrecion_comercial,
+    sin_pago_previo_primer_envio: !!d.sin_pago_previo_primer_envio,
     cuenta_contable: vacio(d.cuenta_contable), forma_pago_holded_id: vacio(d.forma_pago_holded_id),
     anotaciones: vacio(d.anotaciones), alta_por: d.alta_por || null,
   };

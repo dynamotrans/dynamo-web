@@ -9,9 +9,12 @@ import type { DatosDynamo } from './datos';
 export type DatosProforma = {
   codigo: string; referencia_cliente: string | null; creado_en: string;
   cliente: { razon_social: string; cif: string; direccion: string | null; codigo_postal: string | null; poblacion: string | null; pais: string | null };
-  almacen: string; fecha_entrada: string; fecha_salida: string; num_trailers: number; descripcion: string | null;
-  num_repartos: number; entrega: string | null;
-  importe_almacenaje: number; importe_reparto: number; iva: number;   // % de IVA
+  almacen?: string; fecha_entrada?: string; fecha_salida?: string; num_trailers?: number; descripcion?: string | null;
+  num_repartos?: number; entrega?: string | null;
+  importe_almacenaje?: number; importe_reparto?: number; iva: number;   // % de IVA
+  // Otros conceptos (p. ej. un envío con pago previo): si vienen, sustituyen a los del almacenamiento.
+  conceptos?: { titulo: string; sub: string; importe: number }[];
+  condiciones?: string;
   dynamo: DatosDynamo;
 };
 
@@ -56,13 +59,20 @@ export async function proforma(d: DatosProforma): Promise<Uint8Array> {
     l.texto(mL + 10, y + 13, sub, 8.5, { color: gris });
     y += 32;
   };
-  linea(`Almacenamiento ${d.codigo} · ${d.almacen}`,
-    `${d.num_trailers} tráiler${d.num_trailers === 1 ? '' : 'es'} · entrada ${fechaCorta(d.fecha_entrada)} · salida ${fechaCorta(d.fecha_salida)}${d.descripcion ? ` · ${d.descripcion}` : ''}`.slice(0, 120),
-    d.importe_almacenaje);
-  if (d.num_repartos > 0) linea(`Reparto urbano · ${d.num_repartos} ${d.num_repartos === 1 ? "camión" : "camiones"}`, d.entrega ? `Entrega en ${d.entrega}`.slice(0, 120) : 'Radio máximo 20 km del almacén', d.importe_reparto);
+  let base = 0;
+  if (d.conceptos) {
+    for (const c of d.conceptos) { linea(c.titulo.slice(0, 90), c.sub.slice(0, 120), c.importe); base += c.importe; }
+  } else {
+    const nt = d.num_trailers ?? 0, nr = d.num_repartos ?? 0;
+    linea(`Almacenamiento ${d.codigo} · ${d.almacen ?? ''}`,
+      `${nt} tráiler${nt === 1 ? '' : 'es'} · entrada ${fechaCorta(d.fecha_entrada ?? '')} · salida ${fechaCorta(d.fecha_salida ?? '')}${d.descripcion ? ` · ${d.descripcion}` : ''}`.slice(0, 120),
+      d.importe_almacenaje ?? 0);
+    if (nr > 0) linea(`Reparto urbano · ${nr} ${nr === 1 ? "camión" : "camiones"}`, d.entrega ? `Entrega en ${d.entrega}`.slice(0, 120) : 'Radio máximo 20 km del almacén', d.importe_reparto ?? 0);
+    base = (d.importe_almacenaje ?? 0) + (d.importe_reparto ?? 0);
+  }
   l.linea(mL, y - 8, mR, y - 8);
 
-  const base = Math.round((d.importe_almacenaje + d.importe_reparto) * 100) / 100;
+  base = Math.round(base * 100) / 100;
   const iva = Math.round(base * d.iva) / 100, total = Math.round((base + iva) * 100) / 100;
   l.texto(360, y + 8, 'Base imponible', 9.5, { color: gris }); l.textoDer(mR - 10, y + 8, eur(base), 9.5);
   l.texto(360, y + 24, `IVA (${String(d.iva).replace('.', ',')}%)`, 9.5, { color: gris }); l.textoDer(mR - 10, y + 24, eur(iva), 9.5);
@@ -91,7 +101,7 @@ export async function proforma(d: DatosProforma): Promise<Uint8Array> {
 
   // Condiciones
   l.y = y;
-  l.parrafo('El almacenamiento no se gestiona ni se reserva espacio hasta validar el pago (la validación puede tardar hasta 24 h). El plazo de entrada empieza a contar desde que validamos el pago.', 7.6, { color: gris });
+  l.parrafo(d.condiciones ?? 'El almacenamiento no se gestiona ni se reserva espacio hasta validar el pago (la validación puede tardar hasta 24 h). El plazo de entrada empieza a contar desde que validamos el pago.', 7.6, { color: gris });
 
   // Pie
   l.linea(mL, 806, mR, 806);

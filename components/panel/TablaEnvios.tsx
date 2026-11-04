@@ -12,6 +12,7 @@ import {
 const POR_PAGINA = 20;
 const PESTANAS: { f: Pestana; titulo: string; soloDynamo?: boolean; siHay?: boolean }[] = [
   { f: 'solicitudes', titulo: 'Solicitudes de precio', siHay: true },
+  { f: 'sin-pagar', titulo: 'Pendientes de pago', siHay: true },
   { f: 'sin-asignar', titulo: 'Sin asignar transportista', soloDynamo: true },
   { f: 'programada', titulo: 'Programadas' },
   { f: 'entregada', titulo: 'Entregadas' },

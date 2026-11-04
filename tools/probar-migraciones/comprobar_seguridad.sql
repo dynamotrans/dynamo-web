@@ -6,6 +6,11 @@
 -- =====================================================================================
 set client_min_messages = notice;
 
+-- Las pruebas 1-99 son anteriores al previo pago de envíos y no van de eso: se corren
+-- con él apagado (si no, el cliente de prueba, sin crédito, no podría ofertar ni asignar).
+-- La prueba 100 lo enciende.
+update parametros set valor = 'false' where clave = 'previo_pago_activo';
+
 -- ---- 1. Ninguna tabla de public sin seguridad por filas ------------------------------
 do $$ declare lista text; begin
   select string_agg(c.relname, ', ' order by c.relname) into lista
@@ -3311,5 +3316,94 @@ do $$ declare u record; begin
   update parametros set valor = 'true' where clave = 'autosusp_activa';
   update usuarios set autosusp_desde = now() where id = current_setting('prueba.u_cli')::uuid;
   raise notice 'OK 99 · suspensión al momento: la cancelación o consulta que pasa del límite se hace y la cuenta cae en ese instante; con el interruptor apagado, nada';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 100. Previo pago de envíos -------------------------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'true' where clave = 'previo_pago_activo';
+do $$ declare c uuid; e uuid; e2 uuid; t uuid := current_setting('prueba.transp')::uuid; r jsonb; begin
+  -- Cliente nuevo SIN crédito (sin clasificar): su envío nace pendiente de pago.
+  insert into clientes (razon_social, cif) values ('Sin Credito SL', 'B10010010') returning id into c;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
+    values (c, 13.30, 20, 1000, 800) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  if (select pago_previo from envios where id = e) <> 'pendiente' then
+    raise exception 'FALLO 100 · el envío de un cliente sin crédito no queda pendiente de pago: % %', (select pago_previo from envios where id = e), (select pago_motivo from envios where id = e);
+  end if;
+  -- Pendiente de pago: ni transportista, ni oferta, ni bolsa.
+  begin update envios set transportista_id = t where id = e; raise exception 'FALLO 100 · se asigna transportista sin pagar';
+  exception when insufficient_privilege then null; end;
+  begin insert into envio_ofertas (envio_id, precio_ofertado) values (e, 800); raise exception 'FALLO 100 · se oferta sin pagar';
+  exception when insufficient_privilege then null; end;
+  begin update envios set publicado_en_bolsa_en = now() where id = e; raise exception 'FALLO 100 · se publica en bolsa sin pagar';
+  exception when insufficient_privilege then null; end;
+  perform set_config('prueba.e100', e::text, false);
+  perform set_config('prueba.c100', c::text, false);
+
+  -- Cliente CON crédito: el primer envío también pide pago previo; el segundo ya no.
+  update clientes set riesgo_cesce_euros = 5000 where id = c;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
+    values (c, 13.30, 20, 500, 400) returning id into e2;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e2, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e2, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e2;
+  if (select pago_previo from envios where id = e2) <> 'no_requerido' then
+    raise exception 'FALLO 100 · con crédito, el segundo envío pide pago previo';
+  end if;
+end $$;
+-- Empresa conocida (casilla de su ficha): con crédito, su primer envío no pide pago previo;
+-- sin crédito, la casilla no la libra.
+do $$ declare c uuid; e uuid; i int; begin
+  for i in 1..2 loop
+    insert into clientes (razon_social, cif, sin_pago_previo_primer_envio, riesgo_cesce_euros)
+      values ('Conocida ' || i, 'B1002002' || i, true, case when i = 1 then 9000 end) returning id into c;
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
+      values (c, 13.30, 20, 500, 400) returning id into e;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+    update envios set estado = 'programado' where id = e;
+    if i = 1 and (select pago_previo from envios where id = e) <> 'no_requerido' then raise exception 'FALLO 100 · la casilla de empresa conocida no libra del primer envío'; end if;
+    if i = 2 and (select pago_previo from envios where id = e) <> 'pendiente' then raise exception 'FALLO 100 · la casilla libra a un cliente sin crédito'; end if;
+  end loop;
+end $$;
+-- Un cliente no marca su pago; Stripe solo lo confirma el servidor.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin perform marcar_pago_envio(current_setting('prueba.e100')::uuid, 'transferencia'); raise exception 'FALLO 100 · un cliente marca un pago';
+  exception when insufficient_privilege then null; end;
+  begin perform pago_envio_stripe(current_setting('prueba.e100')::uuid, 'pi_x', 121000); raise exception 'FALLO 100 · un cliente confirma un pago con tarjeta';
+  exception when insufficient_privilege then null; end;
+  if exists (select 1 from pagos_envio(current_setting('prueba.e100')::uuid)) then
+    raise exception 'FALLO 100 · un cliente ve el pago de un envío de otro cliente';
+  end if;
+end $$;
+reset role;
+-- Dynamo: deshacer/exento con motivo/transferencia; Stripe con el importe exacto.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e100')::uuid; r jsonb; begin
+  if (select total from pagos_envio(e)) <> 1210 then raise exception 'FALLO 100 · el total con IVA no es 1.210 €: %', (select total from pagos_envio(e)); end if;
+  if (marcar_pago_envio(e, 'exento'))->>'resultado' <> 'falta_motivo' then raise exception 'FALLO 100 · pasa sin pago previo sin motivo'; end if;
+  if (marcar_pago_envio(e, 'exento', 'CESCE positivo, empresa conocida'))->>'resultado' <> 'ok' then raise exception 'FALLO 100 · no pasa sin pago previo'; end if;
+  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e;   -- ya se puede asignar
+  if (marcar_pago_envio(e, 'deshacer'))->>'resultado' <> 'ya_ofertado' then raise exception 'FALLO 100 · deshace con transportista asignado'; end if;
+  update envios set transportista_id = null where id = e;
+  if (marcar_pago_envio(e, 'deshacer'))->>'resultado' <> 'ok' then raise exception 'FALLO 100 · no deshace'; end if;
+  if (marcar_pago_envio(e, 'transferencia'))->>'resultado' <> 'ok' or (select pago_metodo from envios where id = e) <> 'transferencia' then
+    raise exception 'FALLO 100 · no marca la transferencia';
+  end if;
+  perform marcar_pago_envio(e, 'deshacer');
+end $$;
+reset role;
+do $$ declare e uuid := current_setting('prueba.e100')::uuid; begin
+  if (pago_envio_stripe(e, 'pi_1', 100))->>'resultado' <> 'importe_distinto' then raise exception 'FALLO 100 · Stripe acepta un importe que no es el total'; end if;
+  if (pago_envio_stripe(e, 'pi_1', 121000))->>'resultado' <> 'ok' then raise exception 'FALLO 100 · Stripe no marca pagado'; end if;
+  if (pago_envio_stripe(e, 'pi_1', 121000))->>'resultado' <> 'ya_registrado' then raise exception 'FALLO 100 · el aviso repetido de Stripe no se reconoce'; end if;
+  raise notice 'OK 100 · previo pago: sin crédito o primer envío nace pendiente, no se oferta ni asigna; Dynamo lo marca (transferencia o sin pago previo con motivo) y Stripe solo con el importe exacto';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);

@@ -22,14 +22,14 @@ const IDIOMAS_PANEL: [string, React.ReactNode, string][] = [
   ['nl', '🇳🇱', 'Nederlands'], ['pl', '🇵🇱', 'Polski'], ['ro', '🇷🇴', 'Română'], ['uk', '🇺🇦', 'Українська'], ['zh-CN', '🇨🇳', '中文'],
 ];
 
-export type Contadores = Partial<Record<'envios_sin_asignar' | 'incidencias' | 'penalizaciones' | 'alm_sin_confirmar' | 'alm_sin_pagar' | 'altas', number>>;
+export type Contadores = Partial<Record<'envios_sin_asignar' | 'envios_sin_pagar' | 'incidencias' | 'penalizaciones' | 'alm_sin_confirmar' | 'alm_sin_pagar' | 'altas', number>>;
 export type Cobertura = 'disponible' | 'nulo' | 'sinclasif' | null;
 
 // Números del menú lateral por pantalla: [naranja, rojo] y qué significa cada uno.
 function numerosDe(slug: string, c: Contadores): { n: number; t: string; rojo?: boolean }[] {
   const x = (n: number | undefined, t: string, rojo = false) => (n ? [{ n, t, rojo }] : []);
   switch (slug) {
-    case 'envios': return x(c.envios_sin_asignar, 'Envíos sin transportista asignado');
+    case 'envios': return [...x(c.envios_sin_asignar, 'Envíos sin transportista asignado'), ...x(c.envios_sin_pagar, 'Envíos pendientes de pago', true)];
     case 'incidencias': return x(c.incidencias, 'Incidencias abiertas');
     case 'penalizaciones': return x(c.penalizaciones, 'Penalizaciones pendientes de confirmar');
     case 'almacenamientos': return x(c.alm_sin_confirmar, 'Pendiente confirmar almacén');
@@ -176,6 +176,7 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
   const avisos = [
     { href: '/panel/incidencias', t: 'Incidencias abiertas', s: 'Pendientes de resolver', cero: 'Sin incidencias abiertas', n: contadores.incidencias ?? 0, color: 'inc', ico: ICO_AVISO },
     { href: '/panel/penalizaciones', t: 'Penalizaciones abiertas', s: 'Pendientes de confirmar', cero: 'Ninguna pendiente', n: contadores.penalizaciones ?? 0, color: 'inc', ico: ICO_CIRCULO },
+    ...(rol !== 'transportista' ? [{ href: '/panel/envios?f=sin-pagar', t: 'Envíos pendientes de pago', s: 'Se asignan a un camión al pagar', cero: 'Ninguno pendiente de pago', n: contadores.envios_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
     ...(rol !== 'transportista' ? [{ href: '/panel/administracion?tab=proformas', t: 'Proformas sin pagar', s: 'Almacenamientos con pago por adelantado', cero: 'Ninguna pendiente de pago', n: contadores.alm_sin_pagar ?? 0, color: 'fac', ico: ICO_DOC }] : []),
     ...(esDynamo(rol) ? [{ href: '/panel/altas', t: 'Altas pendientes', s: 'Clientes por revisar', cero: 'Ninguna pendiente', n: contadores.altas ?? 0, color: 'inc', ico: ICO_PERSONA }] : []),
   ];

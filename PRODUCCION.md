@@ -389,6 +389,7 @@ solo lo que **hay que hacer o comprobar antes de abrir el portal**.
 | **2FA** | Activar la verificación en dos pasos en Supabase, GitHub, Vercel y Holded (lo hace el usuario). | En la configuración de seguridad de cada cuenta figura 2FA activo. |
 | **Límite de intentos** del código de 6 cifras y de «contraseña olvidada» | Revisar Authentication → Rate Limits al configurar Postmark. | Repetir el código mal varias veces → Supabase bloquea durante un rato. |
 | **Clave de servicio** | Solo en Vercel, marcada *Sensitive*, sin `NEXT_PUBLIC_`. | En Vercel → Environment Variables; y buscar la clave en el JavaScript que descarga el navegador → 0 coincidencias. |
+| **Stripe (pago con tarjeta del previo pago)** | En Vercel, *Sensitive*: `STRIPE_SECRET_KEY` (clave secreta, `sk_live_…` en producción, `sk_test_…` en pruebas) y `STRIPE_WEBHOOK_SECRET` (`whsec_…`). En Stripe → Developers → Webhooks: `https://<dominio>/api/stripe/webhook`, eventos `checkout.session.completed` y `checkout.session.async_payment_succeeded`. Necesita también la clave de servicio de Supabase. | Pagar un envío de prueba con la tarjeta 4242 4242 4242 4242 en modo test → el envío pasa solo a «Pendiente de asignar» y Stripe muestra el webhook con 200. Un aviso con firma falsa da 400. |
 
 ---
 

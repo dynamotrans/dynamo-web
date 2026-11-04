@@ -135,6 +135,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
           </select>
         </div>
       )}
+      {e.pago && e.estado !== 'cancelado' && <PagoCliente e={e} />}
       {pendientePrecio && (
         <div className="pt-aviso info"><div><strong>Estamos calculando tu precio.</strong> Te lo pasamos en menos de 25 minutos (en horario de oficina) y te aparecerá aquí para aceptarlo. Hasta que lo aceptes no hay ningún compromiso.</div></div>
       )}
@@ -283,4 +284,35 @@ function ValorarTransportista({ envio, v, onHecho }: { envio: string; v: { nota:
       {trabajando && <Cargando texto="Guardando tu valoración" />}
     </div>
   </>;
+}
+
+// Previo pago, visto por el cliente: qué falta, el total, la proforma y cómo pagar.
+function PagoCliente({ e }: { e: any }) {
+  const p = e.pago;
+  const total = euros(Number(p.total));
+  if (p.pago_previo === 'pendiente') {
+    return (
+      <div className="modal-warn-box" style={{ marginBottom: '0.8rem' }}>
+        {e.pagoVuelta === 'ok' && <div style={{ color: '#0f6b3a', fontWeight: 800, marginBottom: '0.4rem' }}>Pago con tarjeta hecho. En unos segundos se confirma aquí (recarga si no cambia).</div>}
+        {(e.pagoVuelta === 'error' || e.pagoVuelta === 'no_disponible') && <div style={{ color: '#b42318', fontWeight: 700, marginBottom: '0.4rem' }}>No se ha podido abrir el pago con tarjeta. Prueba otra vez en un momento o paga por transferencia.</div>}
+        {e.pagoVuelta === 'cancelado' && <div style={{ fontWeight: 700, marginBottom: '0.4rem' }}>Has salido del pago con tarjeta sin pagar. Puedes intentarlo de nuevo o pagar por transferencia.</div>}
+        <div><strong style={{ color: '#b42318' }}>Pendiente de pago · {total}</strong> (IVA incluido).</div>
+        <div style={{ marginTop: '0.3rem' }}>{p.pago_motivo?.startsWith('Primer') ? 'Es tu primer envío con nosotros: ' : ''}este envío se paga por adelantado. <strong>Lo asignamos a un camión en cuanto recibimos el pago.</strong></div>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.7rem', flexWrap: 'wrap' }}>
+          {e.tarjeta
+            ? <form action="/api/stripe/pago" method="post"><input type="hidden" name="envio" value={e.id} /><button type="submit" className="btn-primary">Pagar {total} con tarjeta</button></form>
+            : null}
+          <a className="btn-secondary" href={`/panel/envios/${e.id}/proforma`} target="_blank" rel="noopener">Ver proforma (transferencia)</a>
+        </div>
+        <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.5rem' }}>
+          {e.tarjeta ? 'Con tarjeta se confirma al momento. ' : 'El pago con tarjeta estará disponible muy pronto. '}
+          Por transferencia, usa los datos de la proforma y pon <strong>PRO-{e.referencia_gx}</strong> como concepto; lo validamos en horario de oficina (hasta 24 h).
+        </div>
+      </div>
+    );
+  }
+  if (p.pago_previo === 'pagado') {
+    return <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div><strong>Pagado</strong> {p.pago_metodo === 'stripe' ? 'con tarjeta' : 'por transferencia'}{p.pagado_en ? ` el ${creadoTxt(p.pagado_en)}` : ''} · {total}. Gracias: ya estamos asignando el camión.</div></div>;
+  }
+  return null;
 }

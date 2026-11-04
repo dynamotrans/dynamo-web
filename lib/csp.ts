@@ -17,7 +17,8 @@ export const INFORME_CSP = '/api/csp-informe';
 const comunes = [
   "object-src 'none'",
   "frame-ancestors 'none'",
-  "form-action 'self'",
+  // Stripe: el formulario «Pagar con tarjeta» redirige a su página de pago.
+  "form-action 'self' https://checkout.stripe.com",
   // 'upgrade-insecure-requests' solo vale en modo bloquear: se añade al pasar a él.
   ...(BLOQUEAR ? ['upgrade-insecure-requests'] : []),
   `report-uri ${INFORME_CSP}`,

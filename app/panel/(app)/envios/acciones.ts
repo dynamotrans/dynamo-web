@@ -224,3 +224,26 @@ export async function archivarPdf(envioId: string, documento: 'orden-de-carga' |
   if (error) return { ok: false, error: error.message };
   return { ok: true, aviso: `Copia guardada en los documentos del envío: ${nombre}.` };
 }
+
+// Previo pago: Dynamo marca la transferencia, pasa el envío sin pago previo (cobro a
+// vencimiento, con motivo), lo exige a un envío concreto o deshace lo marcado.
+export async function marcarPagoEnvio(envio: string, accion: 'transferencia' | 'exento' | 'requerir' | 'deshacer', motivo?: string): Promise<Res> {
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo marca el pago de un envío.' };
+  const { data, error } = await s.supabase.rpc('marcar_pago_envio', { p_envio: envio, p_accion: accion, p_motivo: motivo ?? null });
+  if (error) return { ok: false, error: traducir(error.message) };
+  const r = (data as { resultado: string }).resultado;
+  const ERR: Record<string, string> = {
+    no_existe: 'Ese envío no existe.', envio_manual: 'Es un envío con transportista propio del cliente: no lleva pago previo.',
+    no_pendiente: 'Ese envío ya no está pendiente de pago.', falta_motivo: 'Escribe el motivo (p. ej. «CESCE positivo, cobro a 60 días»).',
+    ya_tiene_pago: 'Ese envío ya lleva pago previo.', ya_ofertado: 'Ya está ofertado o asignado: primero quita el transportista o retira las ofertas.',
+    nada_que_deshacer: 'No hay nada que deshacer.', pagado_con_tarjeta: 'Está pagado con tarjeta: si hay que devolverlo, se hace desde Stripe.',
+  };
+  if (r !== 'ok') return { ok: false, error: ERR[r] ?? r };
+  return { ok: true, aviso: {
+    transferencia: 'Pago por transferencia registrado: el envío pasa a pendiente de asignar.',
+    exento: 'Envío pasado sin pago previo (cobro a vencimiento): ya se puede ofertar y asignar.',
+    requerir: 'El envío queda pendiente de pago: no se ofertará hasta que se pague.',
+    deshacer: 'Deshecho: el envío vuelve a estar pendiente de pago.',
+  }[accion] };
+}

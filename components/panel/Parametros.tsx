@@ -25,6 +25,7 @@ const GRUPOS: [string, string, (k: string) => boolean][] = [
   ['almacen', 'Almacenamientos', (k) => k.startsWith('almacen')],
   ['pin', 'PIN de recogida y entrega', (k) => k.startsWith('pin_')],
   ['holded', 'Holded (facturación)', (k) => k.startsWith('holded')],
+  ['pago', 'Previo pago de envíos', (k) => k.startsWith('previo_pago')],
   ['autosusp', 'Suspensión automática de cuentas', (k) => k.startsWith('autosusp_')],
   ['plataforma', 'Plataforma', (k) => k.startsWith('mantenimiento')],
   ['dynamo', 'Datos de Dynamo en los documentos', (k) => k.startsWith('dynamo_')],
