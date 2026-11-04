@@ -6,7 +6,7 @@ import { contactosDe } from '@/lib/contactos';
 export const dynamic = 'force-dynamic';
 
 // Catálogo de transportistas (solo Dynamo): diseño de #sec-transportistas de dashboard.html.
-export default async function PaginaTransportistas() {
+export default async function PaginaTransportistas({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const s = await sesion();
   if (!s) return null;
   const { supabase, perfil } = s;
@@ -44,5 +44,6 @@ export default async function PaginaTransportistas() {
       envios: envios.get(t.id) ?? 0,
     };
   });
-  return <Transportistas filas={filas} error={tra.error?.message ?? null} />;
+  const ver = (await searchParams).ver;
+  return <Transportistas filas={filas} error={tra.error?.message ?? null} abrirId={ver && /^[0-9a-f-]{36}$/i.test(ver) ? ver : undefined} />;
 }

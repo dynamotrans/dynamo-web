@@ -6,7 +6,8 @@
 // en trámite, tiempo agotado y enlace no válido.
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { reservar, aceptar, liberar, completar, enlaceCmr } from './acciones';
+import { reservar, aceptar, liberar, completar, enlaceCmr, darseDeAlta, type AltaTransportista } from './acciones';
+import SelectorPais from '@/components/SelectorPais';
 import { euros, fecha, ventana } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
 import { nombreTipo } from '@/components/panel/TipoSitio';
@@ -99,7 +100,7 @@ function Oferta({ o, completa }: { o: any; completa?: boolean }) {
   );
 }
 
-export default function CargaPublica({ token, oferta, reserva }: { token: string; oferta: any; reserva: any }) {
+export default function CargaPublica({ token, oferta, reserva, altaOnline = false }: { token: string; oferta: any; reserva: any; altaOnline?: boolean }) {
   const router = useRouter();
   const [trabajando, setTrabajando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -121,6 +122,17 @@ export default function CargaPublica({ token, oferta, reserva }: { token: string
   }
   if (r === 'aceptada') return <Aceptada token={token} c={reserva} />;
   if (r === 'reasignada') return <Parar titulo="Esta carga ya no está a tu nombre"><p className="sub">Dynamo la ha reasignado. Si crees que es un error, contáctanos.</p><Dudas /></Parar>;
+  if (r === 'pendiente_revision' && altaOnline) {
+    return (
+      <div className="stop-screen show">
+        <div className="spin spin-lg" />
+        <h1>Estamos verificando tus datos</h1>
+        <p className="sub">Ya estás dado de alta en Dynamo. Antes de confirmarte la carga comprobamos tu <strong>CIF</strong>, tu <strong>seguro CMR</strong> y tu <strong>tarjeta de transporte</strong>. Mientras tanto, la carga sigue <strong>reservada para ti</strong>. <strong>Te contestamos en esta misma pantalla</strong> (en horario de oficina, normalmente en pocos minutos).</p>
+        <p className="sub">Para ir más rápido, mándanos por WhatsApp o email la <strong>póliza del seguro CMR</strong> y la <strong>tarjeta de transporte</strong>.</p>
+        <Dudas texto="Mandar documentos o hablar con Dynamo" />
+      </div>
+    );
+  }
   if (r === 'pendiente_revision') {
     return (
       <div className="stop-screen show">
@@ -211,6 +223,8 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
   const [pronto, setPronto] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
+  const [alta, setAlta] = useState(false);
+  const [noEncontrado, setNoEncontrado] = useState(false);
 
   if (quedan === 0) {
     return (
@@ -223,6 +237,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
   const pct = num(o.pronto_pago_pct) ?? 3, minimo = num(o.pronto_pago_minimo) ?? 20;
   const precioFinal = contra ? precio : base;
   const dto = Math.max(Math.round(precioFinal * pct) / 100, minimo);
+  if (alta) return <AltaNueva token={token} cif={cif} precio={contra && precio !== base ? precio : null} pronto={pronto} texto={texto} urgente={quedan < 60000} onVolver={() => setAlta(false)} />;
 
   async function aceptarla() {
     setError(null);
@@ -232,7 +247,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
     setTrabajando(false);
     if (x.resultado === 'aceptada' || x.resultado === 'pendiente_revision') { router.refresh(); return; }
     const msg: Record<string, string> = {
-      transportista_no_encontrado: `No encontramos ese CIF en Dynamo. Revísalo, o contáctanos para darte de alta (solo trabajamos con transportistas de bolsas del grupo Alpega).${x.intentos_restantes != null ? ` Te quedan ${x.intentos_restantes} intento${x.intentos_restantes === 1 ? '' : 's'}.` : ''}`,
+      transportista_no_encontrado: `No encontramos ese CIF en Dynamo. Revísalo o, si es tu primera carga con nosotros, date de alta aquí abajo.${x.intentos_restantes != null ? ` Te quedan ${x.intentos_restantes} intento${x.intentos_restantes === 1 ? '' : 's'}.` : ''}`,
       demasiados_intentos: 'Demasiados intentos con CIF que no están en Dynamo: por seguridad, la reserva se ha liberado. Llámanos al +34 955 225 945 y te la asignamos.',
       falta_cif: 'Escribe tu CIF / NIF para identificarte.',
       transportista_no_activo: 'Tu ficha de transportista no está activa ahora mismo. Contáctanos.',
@@ -240,6 +255,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
       reserva_caducada: 'Se ha agotado el tiempo de reserva.', tomada: 'La carga ya la ha cogido otro transportista.',
     };
     setError(msg[x.resultado] ?? x.error ?? 'No se ha podido aceptar. Vuelve a intentarlo.');
+    if (x.resultado === 'transportista_no_encontrado') setNoEncontrado(true);
     if (x.resultado === 'reserva_caducada' || x.resultado === 'tomada' || x.resultado === 'demasiados_intentos') router.refresh();
   }
 
@@ -279,6 +295,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
           <div className="sec-title">Identifícate</div>
           <label htmlFor="f-cif">Tu CIF / NIF (el de tu ficha en Dynamo) *</label>
           <input type="text" id="f-cif" value={cif} placeholder="B12345678" autoCapitalize="characters" autoComplete="off" onChange={(e) => setCif(e.target.value)} />
+          <p className="id-hint">¿Primera carga con Dynamo? <a href="#" style={{ color: 'var(--purple)', fontWeight: 700 }} onClick={(ev) => { ev.preventDefault(); setAlta(true); }}>Date de alta aquí</a> y acepta la carga.</p>
         </div>
       )}
 
@@ -309,6 +326,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
       )}
 
       {error && <div className="warn" style={{ display: 'block' }}>{error}</div>}
+      {noEncontrado && !o.para_transportista && <button type="button" className="btn-sec" style={{ width: '100%', marginBottom: '0.6rem' }} onClick={() => setAlta(true)}>No estoy en Dynamo · darme de alta y aceptar</button>}
       <button className="btn" onClick={aceptarla} disabled={trabajando}>{trabajando ? 'Aceptando…' : contra && precio !== base ? 'Proponer este precio y aceptar' : 'ACEPTAR carga'}</button>
       <button type="button" className="btn-sec" style={{ display: 'block', margin: '0.7rem auto 0', background: 'none', border: 'none', color: 'var(--gray-500)', fontWeight: 700, cursor: 'pointer' }}
         onClick={async () => { await liberar(token); router.refresh(); }}>No me interesa · dejarla libre ya</button>
@@ -380,6 +398,87 @@ function Aceptada({ token, c }: { token: string; c: any }) {
         </div>
       )}
       <Dudas />
+    </div>
+  );
+}
+
+// ---- Alta online de un transportista nuevo -------------------------------------------------
+const BOLSAS: [string, string][] = [['wtransnet', 'Wtransnet'], ['teleroute', 'Teleroute'], ['bursa_transport', 'Bursa Transport'], ['123cargo', '123cargo'], ['', 'No tengo bolsa de carga']];
+function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { token: string; cif: string; precio: number | null; pronto: boolean; texto: string; urgente: boolean; onVolver: () => void }) {
+  const router = useRouter();
+  const [d, setD] = useState<AltaTransportista>({ razon_social: '', cif, pais: 'ES', direccion: '', codigo_postal: '', poblacion: '', contacto: '', telefono: '', email: '',
+    bolsa: 'wtransnet', codigo_bolsa: '', seguro_compania: '', seguro_poliza: '', seguro_vence: '', precio, pronto_pago: pronto });
+  const [error, setError] = useState<string | null>(null);
+  const [trabajando, setTrabajando] = useState(false);
+  const set = (k: keyof AltaTransportista, v: string) => setD((x) => ({ ...x, [k]: v }));
+  async function enviar() {
+    setError(null);
+    if (d.razon_social.trim().length < 2) { setError('Escribe la razón social de tu empresa.'); return; }
+    if (!d.cif.trim()) { setError('Escribe tu CIF / NIF.'); return; }
+    if (d.contacto.trim().length < 2) { setError('Escribe el nombre de la persona de contacto.'); return; }
+    if (d.telefono.replace(/[^0-9]/g, '').length < 6) { setError('Escribe un teléfono de contacto.'); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email.trim())) { setError('Escribe un email válido.'); return; }
+    setTrabajando(true);
+    const x = await darseDeAlta(token, d);
+    setTrabajando(false);
+    if (x.resultado === 'alta_pendiente') { router.refresh(); return; }
+    const campos: Record<string, string> = { razon_social: 'la razón social', cif: 'el CIF / NIF', pais: 'el país', contacto: 'la persona de contacto', telefono: 'el teléfono', email: 'el email', bolsa: 'la bolsa de carga' };
+    const msg: Record<string, string> = {
+      ya_existe: 'Ese CIF ya está dado de alta en Dynamo: vuelve atrás y acepta la carga con él.',
+      datos_no_validos: x.error ?? `Revisa ${campos[x.campo ?? ''] ?? 'los datos'}.`,
+      reserva_caducada: 'Se ha agotado el tiempo de reserva.', tomada: 'La carga ya la ha cogido otro transportista.',
+      oferta_personal: 'Esta oferta es para otra empresa.', demasiados_intentos: 'Demasiados intentos con esta carga. Llámanos al +34 955 225 945.',
+      precio_fuera_de_banda: `El precio tiene que estar entre ${euros(x.minimo)} y ${euros(x.maximo)}.`,
+    };
+    setError(msg[x.resultado] ?? x.error ?? 'No se ha podido completar el alta. Vuelve a intentarlo o llámanos.');
+    if (['reserva_caducada', 'tomada'].includes(x.resultado)) router.refresh();
+  }
+  return (
+    <div id="formScreen" className="show">
+      <h1>Date de alta en Dynamo</h1>
+      <p className="sub">Te damos de alta y la carga queda <strong>reservada para ti</strong> mientras verificamos tus datos.</p>
+      <div className={`reserva-banner${urgente ? ' urgent' : ''}`}><span>Tienes <span className="rb-timer">{texto}</span> para enviar el alta.</span></div>
+
+      <div className="sec-title">Tu empresa</div>
+      <label htmlFor="al-rs">Razón social *</label>
+      <input type="text" id="al-rs" value={d.razon_social} maxLength={150} placeholder="Transportes Ejemplo, S.L." onChange={(e) => set('razon_social', e.target.value)} />
+      <div className="row2">
+        <div><label htmlFor="al-cif">CIF / NIF *</label><input type="text" id="al-cif" value={d.cif} autoCapitalize="characters" placeholder="B12345678" onChange={(e) => set('cif', e.target.value)} /></div>
+        <div><label htmlFor="al-pais">País</label><SelectorPais modo="pais" id="al-pais" valor={d.pais} onCambio={(v) => set('pais', v)} /></div>
+      </div>
+      <label htmlFor="al-dir">Dirección</label>
+      <input type="text" id="al-dir" value={d.direccion} placeholder="Calle y número" onChange={(e) => set('direccion', e.target.value)} />
+      <div className="row2">
+        <div><label htmlFor="al-cp">Código postal</label><input type="text" id="al-cp" value={d.codigo_postal} onChange={(e) => set('codigo_postal', e.target.value)} /></div>
+        <div><label htmlFor="al-pob">Población</label><input type="text" id="al-pob" value={d.poblacion} onChange={(e) => set('poblacion', e.target.value)} /></div>
+      </div>
+
+      <div className="sec-title">Contacto de tráfico</div>
+      <label htmlFor="al-con">Nombre y apellidos *</label>
+      <input type="text" id="al-con" value={d.contacto} onChange={(e) => set('contacto', e.target.value)} />
+      <label htmlFor="al-tel">Teléfono *</label>
+      <CampoTelefono id="al-tel" valor={d.telefono} onCambio={(v) => set('telefono', v)} />
+      <label htmlFor="al-mail">Email *</label>
+      <input type="text" inputMode="email" id="al-mail" value={d.email} autoComplete="email" placeholder="trafico@tuempresa.com" onChange={(e) => set('email', e.target.value)} />
+
+      <div className="sec-title">Bolsa de carga y seguro</div>
+      <div className="row2">
+        <div><label htmlFor="al-bolsa">Bolsa de carga</label>
+          <select id="al-bolsa" value={d.bolsa} onChange={(e) => set('bolsa', e.target.value)}>{BOLSAS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></div>
+        <div><label htmlFor="al-cbolsa">Tu código en la bolsa</label><input type="text" id="al-cbolsa" value={d.codigo_bolsa} disabled={!d.bolsa} onChange={(e) => set('codigo_bolsa', e.target.value)} /></div>
+      </div>
+      <div className="row2">
+        <div><label htmlFor="al-seg">Compañía del seguro CMR</label><input type="text" id="al-seg" value={d.seguro_compania} onChange={(e) => set('seguro_compania', e.target.value)} /></div>
+        <div><label htmlFor="al-pol">Nº de póliza</label><input type="text" id="al-pol" value={d.seguro_poliza} onChange={(e) => set('seguro_poliza', e.target.value)} /></div>
+      </div>
+      <label htmlFor="al-vence">El seguro vence el</label>
+      <input type="date" id="al-vence" value={d.seguro_vence} onChange={(e) => set('seguro_vence', e.target.value)} />
+      <p className="id-hint">Antes de confirmarte la carga verificamos tu <strong>CIF</strong>, el <strong>seguro CMR en vigor</strong> y la <strong>tarjeta de transporte</strong>. Tus datos solo se usan para gestionar los transportes con Dynamo.</p>
+
+      {error && <div className="warn" style={{ display: 'block' }}>{error}</div>}
+      <button className="btn" onClick={enviar} disabled={trabajando}>{trabajando ? 'Enviando…' : 'Darme de alta y aceptar la carga'}</button>
+      <button type="button" className="btn-sec" style={{ display: 'block', margin: '0.7rem auto 0', background: 'none', border: 'none', color: 'var(--gray-500)', fontWeight: 700, cursor: 'pointer' }} onClick={onVolver}>← Volver</button>
+      <div style={{ textAlign: 'center' }}><Dudas /></div>
     </div>
   );
 }

@@ -203,7 +203,14 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
       )}
       {ficha.contraofertas.map((c) => (
         <div key={c.id} className="modal-warn-box">
-          <strong>Contraoferta pendiente:</strong> {c.transportista ?? 'Un transportista'} acepta la carga por <strong>{euros(c.precio_propuesto)}</strong>
+          {c.alta_online && (
+            <div style={{ marginBottom: '0.5rem' }}>
+              <strong style={{ color: '#b42318' }}>Transportista NUEVO, dado de alta online desde el enlace</strong> ({c.alta_online.cif}).
+              {c.alta_online.verificado ? ' Ya está verificado (activo).' : <> Antes de aprobar, <strong>comprueba su CIF, el seguro CMR en vigor y la tarjeta de transporte</strong>, y ponlo como <strong>Activo</strong> en{' '}
+                <a href={`/panel/transportistas?ver=${c.alta_online.id}`} style={{ color: 'var(--purple)', fontWeight: 700 }}>su ficha</a>. Si algo no cuadra, rechaza: la carga vuelve a quedar libre.</>}
+            </div>
+          )}
+          <strong>{c.alta_online ? 'Pide la carga:' : 'Contraoferta pendiente:'}</strong> {c.transportista ?? 'Un transportista'} acepta la carga por <strong>{euros(c.precio_propuesto)}</strong>
           {c.precio_base != null && <> (ofertada a {euros(c.precio_base)}, {c.precio_propuesto > c.precio_base ? '+' : ''}{euros(c.precio_propuesto - c.precio_base)})</>}.
           Tiene la carga reservada mientras decides.
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>

@@ -70,12 +70,13 @@ const NUEVO: TransportistaDatos = {
   contactos: [CONTACTO_VACIO('trafico')],
 };
 
-export default function Transportistas({ filas, error }: { filas: TransportistaFila[]; error: string | null }) {
+export default function Transportistas({ filas, error, abrirId }: { filas: TransportistaFila[]; error: string | null; abrirId?: string }) {
   const router = useRouter();
   const [q, setQ] = useState('');
   const [fEstado, setFEstado] = useState('');
   const [fAdr, setFAdr] = useState('');
-  const [ficha, setFicha] = useState<{ fila: TransportistaFila | null } | null>(null);
+  // ?ver=<id>: abre esa ficha (p. ej. desde el aviso de un alta online en la ficha del envío).
+  const [ficha, setFicha] = useState<{ fila: TransportistaFila | null } | null>(() => { const f = abrirId ? filas.find((x) => x.id === abrirId) : null; return f ? { fila: f } : null; });
 
   const lista = useMemo(() => {
     const w = norm(q.trim());

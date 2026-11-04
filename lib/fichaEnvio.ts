@@ -16,7 +16,8 @@ export type PenalizacionFicha = { id: string; codigo: string; tipo: string; desc
 export type OfertaFicha = { id: string; token: string; canal: string; para: string | null; precio: number; banda_euros: number;
   banda_pct: number; pronto_pago: boolean; estado: string; enviada_en: string; caduca_en: string; aperturas: number; abierta_en: string | null };
 export type FirmaCmrFicha = { rol: string; parada_id: string | null; nombre: string; documento: string; documento_pais: string; documento_validado: boolean; firmado_en: string };
-export type ContraofertaFicha = { id: string; transportista: string | null; precio_propuesto: number; precio_base: number | null; desde: string };
+export type ContraofertaFicha = { id: string; transportista: string | null; precio_propuesto: number; precio_base: number | null; desde: string;
+  alta_online?: { id: string; cif: string; verificado: boolean } | null };   // transportista nuevo dado de alta desde el enlace
 export type TransportistaOpcion = { id: string; nombre: string; cif: string; estado: string; nima: string | null;
   telefono: string | null; email: string | null;
   vehiculos: { matricula: string; tipo: string }[]; conductores: { nombre: string; telefono: string | null }[] };
@@ -42,7 +43,7 @@ export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ fic
     sb.from('envio_hitos').select('id, hito, cuando, quien, quien_origen, datos').eq('envio_id', id).order('cuando', { ascending: false }).limit(200),
     sb.from('penalizaciones').select('id, codigo, descripcion, importe_cliente, importe_transportista, estado, generada_auto, tipos_penalizacion(nombre)').eq('envio_id', id).order('creado_en'),
     sb.from('envio_ofertas').select('id, token, canal, precio_ofertado, banda_euros, banda_pct, pronto_pago, estado, enviada_en, caduca_en, aperturas, abierta_en, transportistas(nombre_visible)').eq('envio_id', id).order('enviada_en', { ascending: false }),
-    sb.from('envio_reservas').select('id, precio_propuesto, desde, oferta_id, transportistas(nombre_visible), envio_ofertas(precio_ofertado)').eq('envio_id', id).eq('estado', 'pendiente_revision'),
+    sb.from('envio_reservas').select('id, precio_propuesto, desde, oferta_id, transportistas(id, nombre_visible, cif, tags, estado_operativo), envio_ofertas(precio_ofertado)').eq('envio_id', id).eq('estado', 'pendiente_revision'),
     sb.from('cmr_enlaces').select('id, token, caduca_en').eq('envio_id', id).eq('revocado', false).gt('caduca_en', new Date().toISOString()).maybeSingle(),
     sb.from('firmas_cmr').select('rol, parada_id, nombre, documento, documento_pais, documento_validado, firmado_en').eq('envio_id', id).order('firmado_en'),
   ]);
@@ -84,7 +85,8 @@ export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ fic
         precio: Number(o.precio_ofertado), banda_euros: Number(o.banda_euros), banda_pct: o.banda_pct, pronto_pago: o.pronto_pago,
         estado: o.estado, enviada_en: o.enviada_en, caduca_en: o.caduca_en, aperturas: o.aperturas, abierta_en: o.abierta_en })),
       contraofertas: (res.data ?? []).map((r: any) => ({ id: r.id, transportista: r.transportistas?.nombre_visible ?? null,
-        precio_propuesto: Number(r.precio_propuesto), precio_base: r.envio_ofertas?.precio_ofertado != null ? Number(r.envio_ofertas.precio_ofertado) : (e.importe_transportista != null ? Number(e.importe_transportista) : null), desde: r.desde })),
+        precio_propuesto: Number(r.precio_propuesto), precio_base: r.envio_ofertas?.precio_ofertado != null ? Number(r.envio_ofertas.precio_ofertado) : (e.importe_transportista != null ? Number(e.importe_transportista) : null), desde: r.desde,
+        alta_online: (r.transportistas?.tags ?? []).includes('alta_online') ? { id: r.transportistas.id, cif: r.transportistas.cif, verificado: r.transportistas.estado_operativo === 'activo' } : null })),
       cmrEnlace: (enl.data as any) ?? null,
       firmasCmr: ((fir.data ?? []) as any[]).map((f) => ({ ...f, documento: `•••${String(f.documento).slice(-4)}` })),
       corte,

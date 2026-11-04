@@ -3019,3 +3019,71 @@ do $$ declare t uuid := (select transportista_id from envios where id = current_
   end if;
   raise notice 'OK 93 · el cliente puntúa (1-5) su envío entregado y la puede cambiar 30 días; ni Dynamo ni el transportista la tocan';
 end $$;
+
+-- ---- 94. Alta online de un transportista nuevo desde el enlace de bolsa -----------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; p1 uuid; begin
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
+    values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+  update envios set estado = 'programado' where id = e;
+  perform set_config('prueba.e94', e::text, false);
+  perform set_config('prueba.tok94', (select token_publico::text from envios where id = e), false);
+end $$;
+set role anon;
+do $$ declare r jsonb; res uuid; v jsonb; begin
+  r := reservar_envio(current_setting('prueba.tok94')::uuid, '10.9.4.1');
+  if r->>'resultado' <> 'reservada' then raise exception 'FALLO 94 · no se reserva la carga: %', r; end if;
+  res := (r->>'reserva_id')::uuid;
+  perform set_config('prueba.res94', res::text, false);
+  -- Con un CIF que ya existe: no duplica.
+  v := alta_transportista_publica(res, 'Copia SL', 'B-33333333', 'ES', null, null, null, 'Pepe', '+34600000000', 'pepe@copia.es', null, null, null, null, null);
+  if v->>'resultado' <> 'ya_existe' then raise exception 'FALLO 94 · duplica un CIF que ya existe: %', v; end if;
+  -- Con un email que no vale: no.
+  v := alta_transportista_publica(res, 'Nuevo SL', 'B94949494', 'ES', null, null, null, 'Pepe', '+34600000000', 'no-es-email', null, null, null, null, null);
+  if v->>'resultado' <> 'datos_no_validos' then raise exception 'FALLO 94 · admite un email que no vale: %', v; end if;
+  -- Bien: se da de alta y la carga queda pendiente de revisión.
+  v := alta_transportista_publica(res, 'Nuevo Transporte SL', 'B94949494', 'ES', 'C/ Uno 1', '41001', 'Sevilla', 'Pepe Ruiz', '+34 600 000 094', 'Trafico@Nuevo.es',
+                                  'wtransnet', '9494', 'Mapfre', 'P-94', date '2027-01-01', null, false, '10.9.4.1');
+  if v->>'resultado' <> 'alta_pendiente' then raise exception 'FALLO 94 · el alta online no queda pendiente: %', v; end if;
+end $$;
+reset role;
+do $$ declare t record; e record; begin
+  select * into t from transportistas where normaliza_id_fiscal(cif) = normaliza_id_fiscal('B94949494');
+  if t.estado_operativo <> 'no_ofertar' or not ('alta_online' = any(t.tags)) then
+    raise exception 'FALLO 94 · el transportista nuevo queda activo o sin marcar: % %', t.estado_operativo, t.tags;
+  end if;
+  select * into e from envios where id = current_setting('prueba.e94')::uuid;
+  if e.estado_asignacion = 'confirmada' or e.transportista_id is not null then
+    raise exception 'FALLO 94 · un desconocido se queda la carga sin revisión de Dynamo';
+  end if;
+  if (select estado from envio_reservas where id = current_setting('prueba.res94')::uuid) <> 'pendiente_revision' then
+    raise exception 'FALLO 94 · la reserva no queda pendiente de revisión';
+  end if;
+  if not exists (select 1 from contactos where transportista_id = t.id and email = 'trafico@nuevo.es' and es_principal) then
+    raise exception 'FALLO 94 · no guarda su contacto';
+  end if;
+  -- Nadie más la coge mientras Dynamo revisa.
+  if (reservar_envio((select token_publico from envios where id = e.id), '10.9.4.2'))->>'resultado' <> 'en_tramite' then
+    raise exception 'FALLO 94 · otro transportista coge la carga mientras se revisa el alta';
+  end if;
+end $$;
+-- Una vez pendiente, la misma reserva no sirve para otra alta.
+set role anon;
+do $$ declare v jsonb; begin
+  v := alta_transportista_publica(current_setting('prueba.res94')::uuid, 'Otro SL', 'B94000001', 'ES', null, null, null, 'Ana', '+34600000001', 'ana@otro.es', null, null, null, null, null);
+  if v->>'resultado' <> 'reserva_caducada' then raise exception 'FALLO 94 · una reserva ya usada da otra alta: %', v; end if;
+end $$;
+reset role;
+-- Dynamo lo aprueba y la carga pasa a ser suya.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare v jsonb; begin
+  v := resolver_contraoferta(current_setting('prueba.res94')::uuid, true);
+  if v->>'resultado' <> 'aceptada' then raise exception 'FALLO 94 · Dynamo no puede aprobar el alta: %', v; end if;
+  raise notice 'OK 94 · alta online: nuevo transportista sin duplicar CIF, sin ofertas, y la carga espera a que Dynamo la apruebe';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
