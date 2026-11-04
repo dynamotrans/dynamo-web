@@ -4107,3 +4107,58 @@ do $$ declare r jsonb; v jsonb; k int; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 118. Notas internas: solo las ve (y las escribe) Dynamo -------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+update clientes set anotaciones = 'Paga tarde: vigilar' where id = current_setting('prueba.cliente')::uuid;
+do $$ begin
+  if not exists (select 1 from notas_internas where tabla = 'clientes' and registro_id = current_setting('prueba.cliente')::uuid and texto = 'Paga tarde: vigilar') then
+    raise exception 'FALLO 118 · la nota de Dynamo no se guarda en notas_internas';
+  end if;
+  if (select anotaciones from clientes where id = current_setting('prueba.cliente')::uuid) is not null then
+    raise exception 'FALLO 118 · la nota se queda en la ficha del cliente';
+  end if;
+end $$;
+reset role;
+-- El alta online (función del sistema) guarda su nota interna, no en la ficha.
+do $$ begin
+  if not exists (select 1 from notas_internas n join transportistas t on t.id = n.registro_id
+                  where n.tabla = 'transportistas' and normaliza_id_fiscal(t.cif) = normaliza_id_fiscal('B94949494') and n.texto like 'Alta online%')
+     or exists (select 1 from transportistas where anotaciones is not null or incidencias_notas is not null) then
+    raise exception 'FALLO 118 · las notas del alta online quedan en la ficha del transportista';
+  end if;
+end $$;
+-- El cliente: ni las lee ni las escribe.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from notas_internas) then raise exception 'FALLO 118 · un cliente lee notas internas'; end if;
+  if exists (select 1 from clientes where anotaciones is not null) then raise exception 'FALLO 118 · un cliente lee la nota de su ficha'; end if;
+  begin
+    insert into notas_internas (tabla, registro_id, texto) values ('clientes', current_setting('prueba.cliente')::uuid, 'falsa');
+    raise exception 'FALLO 118 · un cliente escribe notas internas';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+-- El transportista tampoco.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from notas_internas) then raise exception 'FALLO 118 · un transportista lee notas internas'; end if;
+end $$;
+reset role;
+-- Dynamo borra la nota dejando el campo vacío.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+update clientes set anotaciones = null where id = current_setting('prueba.cliente')::uuid;
+do $$ begin
+  if exists (select 1 from notas_internas where tabla = 'clientes' and registro_id = current_setting('prueba.cliente')::uuid) then
+    raise exception 'FALLO 118 · Dynamo no puede borrar una nota';
+  end if;
+  raise notice 'OK 118 · notas internas: solo Dynamo las lee y las escribe; en las fichas la columna queda vacía';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

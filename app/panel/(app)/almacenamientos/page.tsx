@@ -2,6 +2,7 @@ import { sesion, esDynamo } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Almacenamientos, { type AlmacenamientoFila, type AlmacenOpcion } from '@/components/panel/Almacenamientos';
+import { notasInternas } from '@/lib/notasInternas';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,7 @@ export default async function PaginaAlmacenamientos({ searchParams }: { searchPa
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es de los clientes y del equipo de Dynamo.</div></div></section>;
   }
   const vista = await vistaDe(supabase, perfil.rol);
+  const notas = await notasInternas(supabase, 'almacenamientos');
   const [alm, almacenes, clientes, ps] = await Promise.all([
     filtrarVista(supabase.from('almacenamientos').select('*, clientes(nombre_visible), almacen:lugares!almacenamientos_almacen_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion, provincia), ' +
       'entrega:lugares!almacenamientos_lugar_entrega_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion)'), vista, { transportista: null })
@@ -34,7 +36,7 @@ export default async function PaginaAlmacenamientos({ searchParams }: { searchPa
     almacen_id: a.almacen_id, almacen: a.almacen?.nombre_empresa ?? 'Almacén Dynamo', almacen_provincia: a.almacen?.provincia ?? a.almacen?.poblacion ?? '',
     almacen_dir: dir(a.almacen), fecha_entrada: a.fecha_entrada, fecha_salida: a.fecha_salida, num_trailers: a.num_trailers,
     num_repartos: a.num_repartos, lugar_entrega_id: a.lugar_entrega_id, entrega: a.entrega ? `${a.entrega.nombre_empresa ?? ''} · ${dir(a.entrega)}` : null,
-    descripcion: a.descripcion, referencia_cliente: a.referencia_cliente, anotaciones: a.anotaciones,
+    descripcion: a.descripcion, referencia_cliente: a.referencia_cliente, anotaciones: notas.get(a.id)?.anotaciones ?? '',
     importe_almacenaje: a.importe_almacenaje != null ? Number(a.importe_almacenaje) : null, importe_reparto: a.importe_reparto != null ? Number(a.importe_reparto) : null,
     importe_total: Number(a.importe_total ?? 0), iva_aplicado: a.iva_aplicado != null ? Number(a.iva_aplicado) : 21,
     pago_adelantado: a.pago_adelantado, pagado_en: a.pagado_en ?? null, estado: a.estado, creado_en: a.creado_en, modificado_en: a.modificado_en,

@@ -2,6 +2,7 @@ import { sesion, esDynamo } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Clientes, { type ClienteFila, type Bienvenida } from '@/components/panel/Clientes';
 import { contactosDe } from '@/lib/contactos';
+import { notasInternas } from '@/lib/notasInternas';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,13 +17,14 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es solo del equipo de Dynamo.</div></div></section>;
   }
 
-  const [cli, con, par, env, emp] = await Promise.all([
+  const [cli, con, par, env, emp, notas] = await Promise.all([
     supabase.from('clientes').select('*').order('nombre_visible').limit(5000),
     supabase.from('contactos').select('id, cliente_id, nombre, cargo, funcion, telefono, email, recibe_avisos, es_principal, creado_en').not('cliente_id', 'is', null).limit(50000),
     supabase.from('parametros').select('clave, valor').in('clave', ['factor_bienvenida_pct', 'factor_bienvenida_envios']),
     // Envíos que cuentan para el descuento de bienvenida (mismo criterio que la base de datos).
     supabase.from('envios').select('cliente_id').eq('es_manual', false).not('estado', 'in', '(borrador,cancelado)').limit(100000),
     supabase.from('usuarios').select('id, nombre, email').in('rol', ['admin', 'empleado']).order('nombre'),
+    notasInternas(supabase, 'clientes'),
   ]);
   const empleados = (emp.data ?? []).map((u: any) => ({ id: u.id as string, nombre: (u.nombre || u.email) as string }));
   const p = new Map((par.data ?? []).map((x) => [x.clave as string, Number(x.valor)]));
@@ -32,7 +34,7 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
   const porCliente = new Map<string, any[]>();
   (con.data ?? []).forEach((c) => porCliente.set(c.cliente_id as string, [...(porCliente.get(c.cliente_id as string) ?? []), c]));
   const filas: ClienteFila[] = (cli.data ?? []).map((c: any) => {
-    return { ...c, contactos: contactosDe(porCliente.get(c.id) ?? []), envios_que_cuentan: cuenta.get(c.id) ?? 0 };
+    return { ...c, anotaciones: notas.get(c.id)?.anotaciones ?? null, contactos: contactosDe(porCliente.get(c.id) ?? []), envios_que_cuentan: cuenta.get(c.id) ?? 0 };
   });
   return <Clientes filas={filas} bienvenida={bienvenida} empleados={empleados} error={cli.error?.message ?? null} abrir={ver} />;
 }

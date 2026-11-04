@@ -2,6 +2,7 @@ import { sesion, esDynamo } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Transportistas, { type TransportistaFila } from '@/components/panel/Transportistas';
 import { contactosDe } from '@/lib/contactos';
+import { notasInternas } from '@/lib/notasInternas';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,12 +16,13 @@ export default async function PaginaTransportistas({ searchParams }: { searchPar
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es solo del equipo de Dynamo.</div></div></section>;
   }
 
-  const [tra, con, veh, env] = await Promise.all([
+  const [tra, con, veh, env, notas] = await Promise.all([
     supabase.from('transportistas').select('*').order('nombre_visible').limit(10000),
     supabase.from('contactos').select('id, transportista_id, nombre, cargo, funcion, telefono, email, recibe_avisos, es_principal, creado_en').not('transportista_id', 'is', null).limit(50000),
     supabase.from('vehiculos').select('transportista_id, matricula, tipo, adr').eq('activo', true).not('transportista_id', 'is', null).limit(50000),
     // Envíos hechos con cada transportista (lo que cuenta: no borradores ni cancelados).
     supabase.from('envios').select('transportista_id').not('transportista_id', 'is', null).not('estado', 'in', '(borrador,cancelado)').limit(200000),
+    notasInternas(supabase, 'transportistas'),
   ]);
 
   const porTransportista = new Map<string, any[]>();
@@ -39,6 +41,7 @@ export default async function PaginaTransportistas({ searchParams }: { searchPar
   const filas: TransportistaFila[] = (tra.data ?? []).map((t: any) => {
     return {
       ...t,
+      anotaciones: notas.get(t.id)?.anotaciones ?? null, incidencias_notas: notas.get(t.id)?.incidencias_notas ?? null,
       contactos: contactosDe(porTransportista.get(t.id) ?? []),
       flota: flota.get(t.id) ?? { tractoras: 0, rigidos: 0, remolques: 0, adr: false, matriculas: [] },
       envios: envios.get(t.id) ?? 0,

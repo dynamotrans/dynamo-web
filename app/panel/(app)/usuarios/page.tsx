@@ -1,6 +1,7 @@
 import { sesion, esDynamo } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Usuarios, { type UsuarioFila, type Empresa } from '@/components/panel/Usuarios';
+import { notasInternas } from '@/lib/notasInternas';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,7 @@ export default async function PaginaUsuarios() {
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es solo del equipo de Dynamo.</div></div></section>;
   }
 
-  const [usu, cli, tra, con, env, met] = await Promise.all([
+  const [usu, cli, tra, con, env, met, notas] = await Promise.all([
     supabase.from('usuarios').select('*').order('email').limit(10000),
     supabase.from('clientes').select('id, nombre_visible, cif').order('nombre_visible').limit(5000),
     supabase.from('transportistas').select('id, nombre_visible, cif').order('nombre_visible').limit(10000),
@@ -23,6 +24,7 @@ export default async function PaginaUsuarios() {
     supabase.from('envios').select('creado_por, estado, creado_en').not('creado_por', 'is', null).neq('estado', 'borrador').order('creado_en', { ascending: false }).limit(200000),
     // Consultas de precio y tiempo conectado (migración usuarios_metricas).
     supabase.rpc('metricas_usuarios'),
+    notasInternas(supabase, 'usuarios'),
   ]);
   const metr = new Map(((met.data ?? []) as { id: string; consultas: number; min_dia: number; min_semana: number; ultimo_latido: string | null }[]).map((x) => [x.id, x]));
 
@@ -44,7 +46,7 @@ export default async function PaginaUsuarios() {
     const ult = [c?.ultima_conexion, t?.ultimo_latido].filter(Boolean).sort().pop() ?? null;
     return {
       ...u, nombre: u.nombre ?? '', documento: u.documento ?? '', telefono: u.telefono ?? '', cargo: u.cargo ?? '',
-      anotaciones: u.anotaciones ?? '', cliente_id: u.cliente_id ?? '', transportista_id: u.transportista_id ?? '',
+      anotaciones: notas.get(u.id)?.anotaciones ?? '', cliente_id: u.cliente_id ?? '', transportista_id: u.transportista_id ?? '',
       ultima_conexion: ult, email_confirmado: c?.email_confirmado ?? false,
       envios: m?.envios ?? 0, cancelados: m?.cancelados ?? 0, cancelados_ult10: m?.ult10 ?? 0,
       consultas: Number(t?.consultas ?? 0), min_dia: t?.min_dia ?? 0, min_semana: t?.min_semana ?? 0,
