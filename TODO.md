@@ -42,6 +42,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       ficha de **Sitios** (el mockup tenía ahí "Buscar para autorrellenar": agenda + Google + dirección,
       y el aviso de duplicado comparando con Google). Hoy la dirección se escribe a mano. Hace falta la clave de Google Maps en Vercel (`NEXT_PUBLIC_GOOGLE_MAPS_KEY`, solo
       Preview, restringida por referente) — ver `PRODUCCION.md` §06-07.
+- [ ] **PREVIO PAGO DE ENVÍOS (decidido por el usuario 2026-11-04, sin n8n)**: el envío nace en **«Pendiente de pago»** y no se ofrece a transportistas hasta pagarse; pagado → **«Pendiente de asignar»**. Se exige a: (1) clientes **sin crédito CESCE disponible** (sin clasificar o límite 0) y (2) los **primeros envíos** de cualquier cliente (cuántos: parámetro). Formas de pago: **Stripe** (pagado solo al confirmar Stripe) o **transferencia** que marca el admin a mano. **Excepción del admin**: con CESCE positivo y empresa conocida/importante, el admin pasa el envío de «Pendiente de pago» a «Pendiente de asignar» y se cobra a vencimiento; y en la ficha del cliente, una casilla para que no le aplique el filtro de primeros envíos. Necesita del usuario: cuenta de Stripe y sus claves en Vercel (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, nunca en el chat).
 - [ ] **Tarifador**: hoy el precio lo pone Dynamo a mano (`precio_fijado_a_mano`). Lo último del
       proyecto (decisión del usuario); el precio lo calculará SIEMPRE el servidor.
 - [x] ~~Teléfono y persona de contacto del sitio nuevo~~ (hecho 2026-11-03: se guardan como contacto
