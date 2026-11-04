@@ -96,3 +96,25 @@ a.sidebar-brand { text-decoration: none; color: inherit; }
 .vista-aviso button { margin-left: auto; padding: 0.4rem 0.9rem; flex: none; }
 @media (max-width: 768px) { .vista-nombre { max-width: 120px; } }
 @media (max-width: 600px) { .vista-menu { left: 8px; right: 8px; } }
+
+/* ============================================
+   ALTAS PENDIENTES: clientes azul claro, transportistas naranja claro, reloj de atención
+============================================ */
+.alta-chip { display: inline-block; font-weight: 700; border-radius: 6px; padding: 1px 7px; font-size: var(--fs-s); }
+.alta-chip.alta-cliente { background: #dbeafe; color: #1d4ed8; }
+.alta-chip.alta-transportista { background: #ffe8d1; color: #b45309; }
+table.data tr.alta-fila { cursor: pointer; }
+table.data tr.alta-fila.alta-cliente td { background: #f3f8ff; }
+table.data tr.alta-fila.alta-transportista td { background: #fff7ef; }
+table.data tr.alta-fila.alta-cliente:hover td { background: #e8f1ff; }
+table.data tr.alta-fila.alta-transportista:hover td { background: #ffefdf; }
+table.data tr.alta-fila.alta-cliente td:first-child { box-shadow: inset 4px 0 0 #60a5fa; }
+table.data tr.alta-fila.alta-transportista td:first-child { box-shadow: inset 4px 0 0 #fb923c; }
+.alta-reloj { display: grid; gap: 4px; }
+.alta-espera { font-weight: 800; color: var(--navy); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.alta-barra { height: 7px; border-radius: 99px; background: var(--gray-200); overflow: hidden; }
+.alta-barra span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #22c55e, #f59e0b); transition: width 0.6s; }
+.alta-cola { font-size: var(--fs-s); font-weight: 700; color: var(--gray-500); }
+.alta-urgente { justify-self: start; font-size: var(--fs-s); font-weight: 800; color: #fff; background: #dc2626; border-radius: 6px; padding: 1px 8px; animation: altaUrgente 1.4s ease-in-out infinite; }
+@keyframes altaUrgente { 0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.45); } 50% { box-shadow: 0 0 0 5px rgba(220,38,38,0); } }
+@media (prefers-reduced-motion: reduce) { .alta-urgente { animation: none; } }

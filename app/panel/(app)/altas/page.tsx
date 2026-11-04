@@ -1,6 +1,6 @@
 import { sesion, esDynamo } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
-import Altas, { type AltaFila } from '@/components/panel/Altas';
+import Altas, { type AltaFila, type AltaTransportista } from '@/components/panel/Altas';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,10 +13,33 @@ export default async function PaginaAltas() {
   if (!esDynamo(perfil.rol)) {
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es solo del equipo de Dynamo.</div></div></section>;
   }
-  const [altas, clientes] = await Promise.all([
+  // Festivos nacionales del último mes y el próximo (el contador no corre en festivo).
+  const hace = new Date(Date.now() - 31 * 86400000).toISOString().slice(0, 10), luego = new Date(Date.now() + 31 * 86400000).toISOString().slice(0, 10);
+  const [altas, clientes, reservas, fes] = await Promise.all([
     supabase.rpc('altas_pendientes'),
     supabase.from('clientes').select('id, nombre_visible, cif').order('nombre_visible').limit(10000),
+    // Transportistas dados de alta online desde el enlace de una carga, esperando a Dynamo.
+    supabase.from('envio_reservas').select('id, envio_id, precio_propuesto, ' +
+      'transportistas!inner(id, nombre_visible, cif, pais_codigo_iso, bolsa, codigo_bolsa, tags, estado_operativo, creado_en, contactos(telefono)), ' +
+      'envios(referencia_gx, poblacion_origen, poblacion_destino, fecha_carga_desde, fecha_carga_hasta, importe_transportista)')
+      .eq('estado', 'pendiente_revision').limit(500),
+    supabase.rpc('festivos_entre', { p_desde: hace, p_hasta: luego }),
   ]);
+  const BOLSA: Record<string, string> = { wtransnet: 'Wtransnet', teleroute: 'Teleroute', bursa_transport: 'Bursa Transport', '123cargo': '123cargo' };
+  const transportistas: AltaTransportista[] = ((reservas.data ?? []) as any[])
+    .filter((r) => (r.transportistas?.tags ?? []).includes('alta_online'))
+    .map((r) => {
+      const t = r.transportistas, e = r.envios ?? {};
+      return {
+        reserva: r.id, envio_id: r.envio_id, id: t.id, nombre: t.nombre_visible, cif: t.cif, pais: t.pais_codigo_iso ?? '',
+        bolsa: BOLSA[t.bolsa] ?? t.bolsa ?? '', codigo_bolsa: t.codigo_bolsa ?? '', verificado: t.estado_operativo === 'activo',
+        telefono: (t.contactos ?? []).map((c: any) => c.telefono).find(Boolean) ?? '', solicitada_en: t.creado_en,
+        envio: e.referencia_gx ?? '', ruta: [e.poblacion_origen, e.poblacion_destino].filter(Boolean).join(' → '),
+        fecha_desde: e.fecha_carga_desde ?? null, fecha_hasta: e.fecha_carga_hasta ?? null,
+        precio: r.precio_propuesto != null ? Number(r.precio_propuesto) : null, precio_base: e.importe_transportista != null ? Number(e.importe_transportista) : null,
+      };
+    });
+  const festivos = ((fes.data ?? []) as { fecha: string; region?: string | null }[]).filter((f) => !f.region).map((f) => f.fecha);
   const filas: AltaFila[] = ((altas.data ?? []) as any[]).map((a) => {
     const m = a.datos ?? {};
     const t = (k: string) => (typeof m[k] === 'string' ? m[k] : '') as string;
@@ -27,5 +50,5 @@ export default async function PaginaAltas() {
       poblacion: t('poblacion'), provincia: t('provincia'), pais: t('pais') || 'ES',
     };
   });
-  return <Altas filas={filas} clientes={(clientes.data ?? []) as any} error={altas.error?.message ?? null} />;
+  return <Altas filas={filas} transportistas={transportistas} festivos={festivos} clientes={(clientes.data ?? []) as any} error={altas.error?.message ?? reservas.error?.message ?? null} />;
 }
