@@ -79,8 +79,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       añadir a **Redirect URLs** `https://dynamo-web-git-pruebas-dynamotrans-projects.vercel.app/panel/confirmar`;
       (3) **Postmark como SMTP de Supabase Auth**: sin él, Supabase solo entrega emails a los miembros del equipo
       del proyecto. ~~Faltan del mockup: "enviar copia a", consultas de precio, tiempo conectado~~ (hechos 2026-11-04, prueba 96: el tiempo conectado se mide con un «sigo aquí» del panel cada 5 min); faltan los documentos.
-- [ ] Transportistas (hecho 2026-11-03): falta la **documentación** (hoja CIF, DNI, otros · máx. 3) — necesita
-      Supabase Storage con permisos; y la puntuación de **clientes** (hoy solo existe la interna de Dynamo).
+- [ ] Transportistas (hecho 2026-11-03): ~~la **documentación** (hoja CIF, DNI, otros)~~ (hecha: máx. 5 — hoja CIF, seguro CMR, tarjeta de transporte, DNI, otro — en su ficha de Dynamo y en «Mi cuenta» del transportista; comprobado 2026-11-04); y la puntuación de **clientes** (hoy solo existe la interna de Dynamo).
 - [ ] **Ficha del envío (v1 hecha 2026-11-03)** — falta: cambiar la **ruta** (sitios) desde «Modificar» (hoy:
       cancelar y crear otro), **Repetir envío** (Nuevo envío ya relleno),
       **documentación** de la
@@ -100,8 +99,8 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       trae otro diseño, se adapta cuando el usuario lo pase.
 - [ ] **Almacén de archivos (hecho 2026-11-03)** — en envíos, incidencias, penalizaciones, transportistas
       (máx. 5), almacenamientos, logo de operadores y documentos del alta. Falta: (1) **probar la primera
-      subida real** en pruebas (aquí no se alcanza Supabase); (2) que el cliente suba fotos a sus incidencias y
-      el transportista su documentación (etapas B y C: la base de datos ya lo permite en su carpeta `u/<id>/`);
+      subida real** en pruebas (aquí no se alcanza Supabase); (2) ~~que el cliente suba fotos a sus incidencias y
+      el transportista su documentación~~ (hecho: cliente en sus incidencias; transportista en «Mi cuenta», en su viaje —albarán, CMR, fotos, GPS— y en sus incidencias; comprobado 2026-11-04);
       (3) ~~que el registro público suba la hoja CIF y el DNI~~ (hecho 2026-11-03: al entrar con la cuenta pendiente, el aviso deja subirlos); (4) ~~limpiar ficheros huérfanos~~ (hecho 2026-11-04: Modo mantenimiento → «Archivos sueltos», solo Admin Master; necesita la clave de servicio en Vercel); (5) ~~guardar dentro del envío el PDF de la orden de carga y el CMR~~
       (hecho 2026-11-03: «Guardar copia…» en Documentos de la ficha, con huella sha256; falta hacerlo solo al mandarla por email, con Postmark).
 - [ ] **Operadores, Mi cuenta, Altas pendientes, Mantenimiento y Parámetros (pasados 2026-11-03)** — falta:
@@ -116,9 +115,8 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       superior, `mi_cobertura_credito()`) · ~~`/panel` abre el Dashboard~~ (hecho). Falta en el de admin lo que el
       usuario quiera añadir («luego te digo todo»: ventas y margen del mes, envíos por día, transportistas más
       usados…). «Crédito agotado» y «Facturas vencidas» necesitan la deuda viva (hoy en Holded).
-- [ ] **Almacenamientos, Incidencias y Penalizaciones (pasadas 2026-11-03, solo Dynamo)** — falta: (1) **adjuntos**
-      (fotos, GPS/tacógrafo, albaranes) en incidencias y penalizaciones: necesita Supabase Storage con
-      permisos; (2) ~~que el **cliente** pida almacenamientos~~ (hecho 2026-11-04: los ve, los pide, los cambia o cancela mientras no estén confirmados, y abre su proforma; el precio, el IVA y el pago los pone la base de datos); (3) ~~**proforma** del almacenamiento sin
+- [ ] **Almacenamientos, Incidencias y Penalizaciones (pasadas 2026-11-03, solo Dynamo)** — falta: (1) ~~**adjuntos**
+      (fotos, GPS/tacógrafo, albaranes) en incidencias y penalizaciones~~ (hecho con el almacén de archivos; comprobado 2026-11-04); (2) ~~que el **cliente** pida almacenamientos~~ (hecho 2026-11-04: los ve, los pide, los cambia o cancela mientras no estén confirmados, y abre su proforma; el precio, el IVA y el pago los pone la base de datos); (3) ~~**proforma** del almacenamiento sin
       crédito y la pestaña «Pendiente de pago»~~ (hecho 2026-11-03; ⚠️ falta que el usuario ponga el **IBAN** en Supabase → `parametros` → `dynamo_iban` (blindado: desde la web no se cambia)); (4) comprobar los **20 km**
       del reparto urbano con Google; (5) avisos D4 (incidencia nueva) y C5/T9 por WhatsApp/email;
       (6) ~~el buscador de envíos de esas pantallas carga los últimos 3.000~~ (hecho 2026-11-03: Dynamo busca en la base de datos al escribir).
