@@ -154,7 +154,7 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
 
       {ficha && <FichaUsuario u={ficha} yo={yo} clientes={clientes} transportistas={transportistas}
         onCerrar={() => setFicha(null)} onCambiarRol={() => { setRolDe(ficha); setFicha(null); }} onHecho={hecho}
-        onCambiarEmail={!interno(ficha.rol) || yo.rol === 'admin' ? () => { setEmailDe(ficha); setFicha(null); } : undefined} />}
+        onCambiarEmail={yo.rol === 'admin' ? () => { setEmailDe(ficha); setFicha(null); } : undefined} />}
       {emailDe && <CambiarEmail u={emailDe} onCerrar={() => { setFicha(emailDe); setEmailDe(null); }} onHecho={hecho} />}
       {rolDe && <CambiarRol u={rolDe} yo={yo} clientes={clientes} transportistas={transportistas}
         onCerrar={() => { setFicha(rolDe); setRolDe(null); }} onHecho={hecho} />}

@@ -2882,3 +2882,35 @@ do $$ declare r text[]; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 91. Registro del cambio de email: solo el Admin Master y solo si ha pasado -----------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin
+    perform registrar_cambio_email(current_setting('prueba.u_cli')::uuid, 'x@x.es', 'compras@cliente.prueba');
+    raise exception 'FALLO 91 · un cliente apunta cambios de email';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare n bigint; begin
+  begin
+    perform registrar_cambio_email(current_setting('prueba.u_cli')::uuid, 'compras@cliente.prueba', 'otro@inventado.es');
+    raise exception 'FALLO 91 · se apunta un cambio de email que no ha pasado';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  perform registrar_cambio_email(current_setting('prueba.u_cli')::uuid, 'antes@cliente.prueba', (select email from usuarios where id = current_setting('prueba.u_cli')::uuid));
+end $$;
+reset role;
+do $$ begin
+  if not exists (select 1 from auditoria where tabla = 'usuarios' and registro_id = current_setting('prueba.u_cli')
+                  and quien = current_setting('prueba.u_admin')::uuid and cambios->'email'->>'antes' = 'antes@cliente.prueba') then
+    raise exception 'FALLO 91 · el cambio de email no queda en la auditoría con su autor';
+  end if;
+  raise notice 'OK 91 · cambio de email: lo apunta solo el Admin Master, solo si ha pasado, con su nombre en la auditoría';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

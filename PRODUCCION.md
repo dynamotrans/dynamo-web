@@ -371,7 +371,7 @@ solo lo que **hay que hacer o comprobar antes de abrir el portal**.
 
 | Qué | Qué hay que hacer | Cómo se comprueba |
 |---|---|---|
-| **Cambio de email de una cuenta** (puerta para quedarse con ella) | Decidir quién puede hacerlo (¿solo el Admin Master?). Con Postmark: **aviso al email antiguo** y quién lo hizo en la auditoría. | Con un Empleado gestor, intentar cambiar el email de un cliente → debe negarse (si así se decide). Tras un cambio permitido, llega el aviso al email viejo y la auditoría dice quién fue. |
+| **Cambio de email de una cuenta** (puerta para quedarse con ella) | ✅ Solo el Admin Master (2026-11-04), con autor en la auditoría. Falta, con Postmark: **aviso al email antiguo**. | Con un Empleado gestor, intentar cambiar el email de un cliente → debe negarse (si así se decide). Tras un cambio permitido, llega el aviso al email viejo y la auditoría dice quién fue. |
 | **Dirección fija de los enlaces de email** | En Vercel (Production): `SITE_URL=https://dynamotrans.com`. | Pedir «contraseña olvidada» en producción: el enlace del email lleva `dynamotrans.com`, nunca `*.vercel.app`. |
 | **Redirect URLs de Supabase** | Dejar **solo** las direcciones propias (producción y, si hace falta, pruebas). **Ningún comodín `*`**. | Authentication → URL Configuration: la lista no tiene `*` ni dominios ajenos. |
 | **CSP** (punto 06) | Ponerla primero en modo *Report-Only* en pruebas, revisar avisos, luego activarla. | La cabecera `Content-Security-Policy` sale en la respuesta real; Google Translate, el tarifador y los PDF siguen funcionando. |

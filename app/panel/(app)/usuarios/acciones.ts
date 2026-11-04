@@ -135,9 +135,14 @@ export async function cambiarEmail(id: string, nuevo: string, emailConfirmacion:
     return { ok: false, error: 'El email actual no coincide. Escríbelo exactamente para confirmar el cambio.' };
   }
   if (email === String(u.email).toLowerCase()) return { ok: false, error: 'Es el mismo email que ya tiene.' };
-  if (esDynamo(u.rol as Rol) && s.perfil!.rol !== 'admin') return { ok: false, error: 'El email de una cuenta de Dynamo solo lo cambia un administrador.' };
+  // Solo el Admin Master (decisión 2026-11-04): cambiar el email es la puerta para quedarse con una cuenta.
+  if (s.perfil!.rol !== 'admin') return { ok: false, error: 'El email de una cuenta solo lo cambia el administrador.' };
   const servicio = supabaseServicio();
   if (!servicio) return { ok: false, error: 'Falta conectar la clave de servicio de Supabase en Vercel (SUPABASE_SERVICE_ROLE_KEY).' };
   const { error } = await servicio.auth.admin.updateUserById(id, { email, email_confirm: true });
-  return error ? { ok: false, error: traducir(error.message) } : { ok: true };
+  if (error) return { ok: false, error: traducir(error.message) };
+  // Queda en la auditoría quién lo hizo (el cambio lo hace la clave de servicio, que no tiene autor).
+  const { error: eReg } = await s.supabase.rpc('registrar_cambio_email', { p_usuario: id, p_antes: String(u.email), p_despues: email });
+  if (eReg) return { ok: false, error: `El email ya está cambiado, pero no se ha podido apuntar en la auditoría: ${eReg.message}` };
+  return { ok: true };
 }
