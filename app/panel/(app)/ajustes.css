@@ -151,3 +151,25 @@ table.data tr.alta-fila.alta-transportista td:first-child { box-shadow: inset 4p
 }
 #sec-parametros .prm-sub { margin: 0 0 0.8rem 0; padding-left: 0.7rem; border-left: 3px solid rgba(51,0,204,0.18); }
 #sec-parametros .prm-sub-titulo { font-size: var(--fs-m); font-weight: 800; color: var(--navy); margin-bottom: 0.35rem; }
+/* «Para hoy»: bloques de pendientes por urgencia. */
+#sec-para-hoy .ph-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 0.9rem; align-items: start; }
+#sec-para-hoy .ph-bloque { padding: 0.8rem 0.9rem; border-left: 4px solid var(--gray-300); }
+#sec-para-hoy .ph-bloque.ph-urgente { border-left-color: #dc2626; }
+#sec-para-hoy .ph-bloque.ph-aviso { border-left-color: #f59e0b; }
+#sec-para-hoy .ph-bloque.ph-info { border-left-color: var(--purple); }
+#sec-para-hoy .ph-cab { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.5rem; }
+#sec-para-hoy .ph-num { min-width: 1.9rem; height: 1.9rem; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; font-size: var(--fs-m); padding: 0 0.45rem; background: var(--purple); }
+#sec-para-hoy .ph-num.ph-urgente { background: #dc2626; }
+#sec-para-hoy .ph-num.ph-aviso { background: #f59e0b; }
+#sec-para-hoy .ph-titulo { flex: 1; font-weight: 800; color: var(--navy); font-size: var(--fs-m); }
+#sec-para-hoy .ph-todo { font-size: var(--fs-s); font-weight: 700; color: var(--purple); text-decoration: none; white-space: nowrap; }
+#sec-para-hoy .ph-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.15rem; }
+#sec-para-hoy .ph-fila { display: grid; grid-template-columns: 1fr auto; gap: 0 0.6rem; padding: 0.45rem 0.5rem; border-radius: 8px; text-decoration: none; color: inherit; }
+#sec-para-hoy .ph-fila:hover { background: var(--gray-100); }
+#sec-para-hoy .ph-fila.urgente { background: rgba(220,38,38,0.06); }
+#sec-para-hoy .ph-t { font-weight: 700; color: var(--navy); font-size: var(--fs-m); grid-column: 1; }
+#sec-para-hoy .ph-s { font-size: var(--fs-s); color: var(--gray-500); grid-column: 1; }
+#sec-para-hoy .ph-h { font-size: var(--fs-s); color: var(--gray-500); grid-column: 2; grid-row: 1; white-space: nowrap; }
+#sec-para-hoy .ph-mas { font-size: var(--fs-s); color: var(--gray-500); padding: 0.3rem 0.5rem; }
+#sec-para-hoy .ph-vacios { margin-top: 1rem; font-size: var(--fs-s); color: var(--gray-500); }
+@media (max-width: 600px) { #sec-para-hoy .ph-grid { grid-template-columns: 1fr; } }
