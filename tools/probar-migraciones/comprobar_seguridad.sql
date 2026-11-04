@@ -3899,3 +3899,42 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 115. Mantenimiento: todas las tablas de negocio bloqueadas; las tareas automáticas pasan --
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare faltan text; begin
+  -- Toda tabla nueva tiene que llevar el bloqueo o estar en esta lista a propósito.
+  select string_agg(c.relname, ', ') into faltan
+    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind = 'r'
+     and c.relname not in ('usuarios', 'auditoria', 'parametros', 'festivos', 'tipos_incidencia', 'tipos_penalizacion',
+                           'recargos_tipo_lugar', 'restricciones_servicio', 'distancias_cp', 'distancias_lugares',
+                           'conexion_minutos', 'consultas_precio', 'intentos_carga_publica')
+     and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'tg_mantenimiento');
+  if faltan is not null then
+    raise exception 'FALLO 115 · tablas sin el bloqueo de mantenimiento (añadirlo o justificarlo en la lista): %', faltan;
+  end if;
+end $$;
+update parametros set valor = 'true' where clave = 'mantenimiento_activo';
+-- Conexión directa (como pg_cron): pasa.
+do $$ begin
+  perform registrar_hito(current_setting('prueba.e108')::uuid, 'incidencia', null, null, '{"prueba":"115"}'::jsonb);
+exception when sqlstate '55000' then raise exception 'FALLO 115 · el mantenimiento bloquea las tareas automáticas';
+end $$;
+-- Un cliente: no deja hitos (la tabla nueva también está bloqueada).
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin
+    perform registrar_hito(current_setting('prueba.e108')::uuid, 'incidencia', null, null, '{"prueba":"115b"}'::jsonb);
+    if exists (select 1 from envio_hitos where datos ->> 'prueba' = '115b') then
+      raise exception 'FALLO 115 · un cliente deja hitos con el mantenimiento encendido';
+    end if;
+  exception when sqlstate '55000' then null; when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'false' where clave = 'mantenimiento_activo';
+do $$ begin raise notice 'OK 115 · mantenimiento: todas las tablas de negocio bloqueadas; las tareas automáticas siguen funcionando'; end $$;

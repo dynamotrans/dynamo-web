@@ -108,8 +108,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       que escribe~~ (hecho 2026-11-03: alta de clientes en `/panel/registro` → código de 6 cifras → contraseña;
       ⚠️ **para que llegue el código**, las plantillas *Magic Link* y *Confirm signup* de Supabase Auth tienen que
       llevar `{{ .Token }}` además del enlace — se hace al configurar Postmark); (3) el aviso por email al
-      confirmar o suspender un alta (U3); (4) el mantenimiento hoy cierra las pantallas y la página pública:
-      valorar cerrarlo también en la base de datos (permisos por fila) para quien llame directamente a la API;
+      confirmar o suspender un alta (U3); (4) ~~cerrar el mantenimiento también en la base de datos~~ (hecho 2026-11-03, `mantenimiento_en_bd`; completado 2026-11-04 con las tablas nuevas y sin bloquear pg_cron, prueba 115);
       (5) ~~cambiar el email de un usuario desde el panel~~ (hecho 2026-11-03: Usuarios → «Cambiar email…», con el email actual como confirmación; necesita la clave de servicio en Vercel).
 - [ ] **Dashboards cliente y admin (pasados 2026-11-03)** — ~~CESCE del cliente~~ (hecho: punto de la barra
       superior, `mi_cobertura_credito()`) · ~~`/panel` abre el Dashboard~~ (hecho). Falta en el de admin lo que el
