@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { RefrescoProvider } from '@/lib/useRefrescar';
 import type { Metadata } from 'next';
 import { supabasePublico } from '@/lib/supabase/publico';
 import { cookieReserva, cookieAlta } from '@/lib/cargaPublica';
@@ -34,7 +35,7 @@ export default async function PaginaCarga({ params }: { params: Promise<{ token:
       <SelectorIdioma />
       <div className="card">
         <div className="brand"><img src="/images/2.png" alt="Dynamo" /></div>
-        <CargaPublica token={token} oferta={!sb || error ? { resultado: 'error' } : valido ? oferta : { resultado: 'enlace_no_valido' }} reserva={reserva} altaOnline={altaOnline} />
+        <RefrescoProvider><CargaPublica token={token} oferta={!sb || error ? { resultado: 'error' } : valido ? oferta : { resultado: 'enlace_no_valido' }} reserva={reserva} altaOnline={altaOnline} /></RefrescoProvider>
       </div>
       <p className="foot">Dynamo Operador Logístico, S.L.</p>
     </div>

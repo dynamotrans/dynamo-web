@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { sesion, iniciales, esDynamo } from '@/lib/sesion';
 import PantallaMantenimiento from '@/components/PantallaMantenimiento';
 import SinConfigurar from '@/components/SinConfigurar';
+import { RefrescoProvider } from '@/lib/useRefrescar';
 import Marco, { type Contadores, type Cobertura } from '@/components/panel/Marco';
 import './dashboard.css';
 import './ajustes.css';
@@ -31,6 +32,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
   ]);
   const festivos = ((fes.data ?? []) as { fecha: string; region?: string | null }[]).filter((f) => !f.region).map((f) => f.fecha);
   return (
+    <RefrescoProvider>
     <Marco rol={perfil?.rol ?? 'cliente'} nombre={nombre} email={user.email ?? ''}
            empresa={empresa} iniciales={iniciales(perfil?.nombre, user.email ?? '')}
            contadores={(cont.data ?? {}) as Contadores} cobertura={(cob.data ?? null) as Cobertura} festivos={festivos}>
@@ -41,5 +43,6 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
       )}
       {children}
     </Marco>
+    </RefrescoProvider>
   );
 }

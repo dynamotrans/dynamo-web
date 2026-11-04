@@ -5,7 +5,7 @@
 // sitio principal y ficha en la ventana del panel con la rejilla .ptar-sitio-grid.
 // Dynamo ve los sitios de todos los clientes (con la columna Cliente y su filtro).
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import { IconoTipo, TIPOS_LUGAR } from './TipoSitio';
@@ -40,7 +40,7 @@ const IcoEstrella = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentC
 const IcoPin = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>);
 
 export default function Sitios({ filas, clientes, dynamo, error }: { filas: SitioFila[]; clientes: ClienteSitios[]; dynamo: boolean; error: string | null }) {
-  const router = useRouter();
+  const refrescar = useRefrescar();
   const [q, setQ] = useState('');
   const [filtroCliente, setFiltroCliente] = useState('');
   const [porPagina, setPorPagina] = useState(20);
@@ -86,7 +86,7 @@ export default function Sitios({ filas, clientes, dynamo, error }: { filas: Siti
     const r = await marcarPrincipal(f.cliente_id, esPrincipal(f) ? null : f.id);
     setEstrella(null);
     if (!r.ok) { setAviso(r.error ?? 'No se ha podido cambiar el sitio principal.'); return; }
-    router.refresh();
+    refrescar();
   }
 
   const columnas = dynamo ? 6 : 5;
@@ -185,7 +185,7 @@ export default function Sitios({ filas, clientes, dynamo, error }: { filas: Siti
         <FichaSitio fila={ficha.fila} clientes={clientes} dynamo={dynamo}
           onCerrar={() => setFicha(null)}
           onAbrir={(id) => { const f = filas.find((x) => x.id === id); if (f) setFicha({ fila: f }); }}
-          onGuardado={() => { setFicha(null); router.refresh(); }} />
+          onGuardado={() => { setFicha(null); refrescar(); }} />
       )}
     </section>
   );

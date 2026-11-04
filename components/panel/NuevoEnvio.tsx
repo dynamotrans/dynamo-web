@@ -6,6 +6,7 @@
 // el tarifador llega al final (y el precio lo calculará el servidor, nunca el navegador).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import { crearEnvio, crearClienteRapido, cambiarRuta, crearSolicitud, crearEnvioManual, diasAbiertosDe, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { fecha as fmtFecha, euros as eur } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
@@ -105,6 +106,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
     return { k, tipo: p.tipo, sitio: s, nuevo, parada_id: enRuta ? p.id : undefined };
   };
   const router = useRouter();
+  const refrescar = useRefrescar();
   const fest = useMemo(() => new Set(festivos), [festivos]);
   const [paso, setPaso] = useState(1);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -243,7 +245,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
     }));
     if (!r.ok) { setEnviando(false); setAviso(r.error); return; }
     router.push(`/panel/envios?ver=${base.envio.id}`);
-    router.refresh();
+    refrescar();
   }
 
   async function crear() {
@@ -276,7 +278,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
       }, paradas);
       if (!rm.ok) { setEnviando(false); setAviso(rm.error); return; }
       router.push(`/panel/envios?f=programada&nuevo=${encodeURIComponent(rm.referencia_gx)}&manual=1`);
-      router.refresh();
+      refrescar();
       return;
     }
     if (esCliente) {
@@ -290,7 +292,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
       }, paradas);
       if (!rs.ok) { setEnviando(false); setAviso(rs.error); return; }
       router.push(`/panel/envios?f=solicitudes&nuevo=${encodeURIComponent(rs.referencia_gx)}`);
-      router.refresh();
+      refrescar();
       return;
     }
     const r = await crearEnvio({
@@ -305,7 +307,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
     }, paradas);
     if (!r.ok) { setEnviando(false); setAviso(r.error); return; }
     router.push(`/panel/envios?f=sin-asignar&nuevo=${encodeURIComponent(r.referencia_gx)}`);
-    router.refresh();
+    refrescar();
   }
 
   // ---- Opciones de los desplegables (las del mockup)

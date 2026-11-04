@@ -4,7 +4,7 @@
 // dashboard.html (Transportista · Contacto · Código bolsa · Puntuación · Flota · Creado).
 // La flota NO se edita aquí: sale de los vehículos dados de alta y de los envíos.
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
@@ -71,7 +71,7 @@ const NUEVO: TransportistaDatos = {
 };
 
 export default function Transportistas({ filas, error, abrirId }: { filas: TransportistaFila[]; error: string | null; abrirId?: string }) {
-  const router = useRouter();
+  const refrescar = useRefrescar();
   const [q, setQ] = useState('');
   const [fEstado, setFEstado] = useState('');
   const [fAdr, setFAdr] = useState('');
@@ -150,7 +150,7 @@ export default function Transportistas({ filas, error, abrirId }: { filas: Trans
 
       {ficha && (
         <FichaTransportista fila={ficha.fila} onCerrar={() => setFicha(null)}
-          onGuardado={() => { setFicha(null); router.refresh(); }} />
+          onGuardado={() => { setFicha(null); refrescar(); }} />
       )}
     </section>
   );

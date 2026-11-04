@@ -4,7 +4,7 @@
 // columnas que Sitios + los precios de cada almacén, y la fila teñida de verde si está
 // disponible o de rojo si está completo. La ficha es la de Sitios en modo almacén.
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import { FichaSitio, type SitioFila } from './Sitios';
 import { IconoTipo } from './TipoSitio';
 import { euros } from '@/lib/formato';
@@ -15,7 +15,7 @@ export type PreciosAlmacen = { precioSemana: number; precioReparto: number };
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 export default function Almacenes({ filas, precios, error }: { filas: SitioFila[]; precios: PreciosAlmacen; error: string | null }) {
-  const router = useRouter();
+  const refrescar = useRefrescar();
   const [q, setQ] = useState('');
   const [ficha, setFicha] = useState<{ fila: SitioFila | null } | null>(null);
 
@@ -87,7 +87,7 @@ export default function Almacenes({ filas, precios, error }: { filas: SitioFila[
         <FichaSitio fila={ficha.fila} clientes={[]} dynamo almacen={precios}
           onCerrar={() => setFicha(null)}
           onAbrir={(id) => { const f = filas.find((x) => x.id === id); if (f) setFicha({ fila: f }); }}
-          onGuardado={() => { setFicha(null); router.refresh(); }} />
+          onGuardado={() => { setFicha(null); refrescar(); }} />
       )}
     </section>
   );

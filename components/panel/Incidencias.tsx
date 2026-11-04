@@ -6,6 +6,7 @@
 // «Reportar incidencia» con el envío relacionado y su resumen).
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import BuscaEnvio from './BuscaEnvio';
@@ -43,6 +44,7 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
   esTransportista?: boolean;   // el viaje es obligatorio y solo ve las que abre él
 }) {
   const router = useRouter();
+  const refrescar = useRefrescar();
   const [pestana, setPestana] = useState<'abiertas' | 'resueltas' | 'todas'>('abiertas');
   const [q, setQ] = useState('');
   const [ficha, setFicha] = useState<{ fila: IncidenciaFila | null; envio?: string | null } | null>(nuevaPara != null ? { fila: null, envio: nuevaPara || null } : null);
@@ -102,7 +104,7 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
         </table>
       </div>
       {ficha && <FichaIncidencia esCliente={esCliente} esTransportista={esTransportista} fila={ficha.fila} envioInicial={ficha.envio ?? null} tipos={tipos} clientes={clientes} envios={envios}
-        onCerrar={cerrar} onHecho={() => { cerrar(); router.refresh(); }} />}
+        onCerrar={cerrar} onHecho={() => { cerrar(); refrescar(); }} />}
     </section>
   );
 }

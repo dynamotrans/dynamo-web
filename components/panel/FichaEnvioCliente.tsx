@@ -6,6 +6,7 @@
 // el camión no va hacia la carga, reportar una incidencia y repetir el envío.
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import DatosCmr from './DatosCmr';
 import Modal from './Modal';
 import Documentos from './Documentos';
@@ -44,6 +45,7 @@ const Pend = () => <span style={{ color: 'var(--gray-500)', fontStyle: 'italic',
 
 export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHref: string }) {
   const router = useRouter();
+  const refrescar = useRefrescar();
   const [vista, setVista] = useState<'ficha' | 'cancelar' | 'condiciones'>('ficha');
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
@@ -66,7 +68,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
     const r = await fn();
     setTrabajando(null);
     setAviso({ ok: r.ok, txt: (r.ok ? r.aviso : r.error) ?? (r.ok ? 'Hecho.' : 'No se ha podido hacer.') });
-    if (r.ok) { setVista('ficha'); router.refresh(); }
+    if (r.ok) { setVista('ficha'); refrescar(); }
   }
 
   if (vista === 'condiciones') {
@@ -228,7 +230,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
         </div>
       </>}
 
-      {e.valoracion?.puede && <ValorarTransportista envio={e.id} v={e.valoracion} onHecho={() => router.refresh()} />}
+      {e.valoracion?.puede && <ValorarTransportista envio={e.id} v={e.valoracion} onHecho={() => refrescar()} />}
 
       {(e.hitos ?? []).length > 0 && <>
         <h4 className="modal-section-title">Historial</h4>

@@ -4,7 +4,7 @@
 // ha registrado en el portal y espera verificación. Al confirmar se le asocia su empresa
 // (una que ya existe o una nueva con lo que escribió) y la cuenta queda activa.
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
@@ -24,7 +24,7 @@ const IcoUsuario = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="n
 const Chip = () => <span style={{ display: 'inline-block', background: 'rgba(51,0,204,0.10)', color: 'var(--purple)', fontWeight: 700, borderRadius: 6, padding: '1px 7px', fontSize: 'var(--fs-s)' }}>Cliente</span>;
 
 export default function Altas({ filas, clientes, error }: { filas: AltaFila[]; clientes: Cliente[]; error: string | null }) {
-  const router = useRouter();
+  const refrescar = useRefrescar();
   const [q, setQ] = useState('');
   const [ver, setVer] = useState<AltaFila | null>(null);
   const lista = useMemo(() => {
@@ -62,7 +62,7 @@ export default function Altas({ filas, clientes, error }: { filas: AltaFila[]; c
           </tbody>
         </table>
       </div>
-      {ver && <FichaAlta a={ver} clientes={clientes} onCerrar={() => setVer(null)} onHecho={() => { setVer(null); router.refresh(); }} />}
+      {ver && <FichaAlta a={ver} clientes={clientes} onCerrar={() => setVer(null)} onHecho={() => { setVer(null); refrescar(); }} />}
     </section>
   );
 }

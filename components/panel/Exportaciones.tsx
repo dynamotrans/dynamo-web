@@ -4,7 +4,7 @@
 // bolsa de Wtransnet), ver qué falta por pasar, descargarlo en CSV con las columnas EXACTAS
 // de la plantilla y, una vez importado, marcarlo para que no vuelva a salir.
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import { FICHEROS, aCsv, esImporte, mesDe, type Fichero, type FilaExport } from '@/lib/exportaciones';
 import { marcarExportados, marcarFacturados } from '@/app/panel/(app)/exportaciones/acciones';
@@ -21,7 +21,7 @@ const Ico = ({ d }: { d: string }) => <svg width="15" height="15" viewBox="0 0 2
 export default function Exportaciones({ datos, columnas, hecho, tope, error }: {
   datos: Record<Fichero, FilaExport[]>; columnas: Record<Fichero, string[]>; hecho: Record<Fichero, string[]>; tope: number; error: string | null;
 }) {
-  const router = useRouter();
+  const refrescar = useRefrescar();
   const [fichero, setFichero] = useState<Fichero>('venta');
   const [pestana, setPestana] = useState('pendientes');
   const [q, setQ] = useState('');
@@ -67,7 +67,7 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error }: {
     setTrabajando(false); setConfirmar(null);
     if (!r.ok) { setAviso({ ok: false, txt: r.error }); return; }
     setAviso({ ok: true, txt: `${r.n} envío${r.n === 1 ? '' : 's'} ${valor ? 'marcado' + (r.n === 1 ? '' : 's') + ' como facturado' + (r.n === 1 ? '' : 's') : 'vuelve' + (r.n === 1 ? '' : 'n') + ' a sin facturar'}.` });
-    router.refresh();
+    refrescar();
   }
   async function marcar(quitar: boolean) {
     setTrabajando(true); setAviso(null);
@@ -75,7 +75,7 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error }: {
     setTrabajando(false); setConfirmar(null);
     if (!r.ok) { setAviso({ ok: false, txt: r.error }); return; }
     setAviso({ ok: true, txt: quitar ? `${r.n} envío${r.n === 1 ? '' : 's'} vuelve${r.n === 1 ? '' : 'n'} a pendientes.` : `${r.n} envío${r.n === 1 ? '' : 's'} marcado${r.n === 1 ? '' : 's'} como ${F.marcado}.` });
-    router.refresh();
+    refrescar();
   }
   const elegir = (k: Fichero) => { setFichero(k); setPestana('pendientes'); setMes(''); setQ(''); setAviso(null); };
 

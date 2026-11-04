@@ -6,6 +6,7 @@
 // en trámite, tiempo agotado y enlace no válido.
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import { reservar, aceptar, liberar, completar, enlaceCmr, darseDeAlta, type AltaTransportista } from './acciones';
 import SelectorPais from '@/components/SelectorPais';
 import { euros, fecha, ventana } from '@/lib/formato';
@@ -102,6 +103,7 @@ function Oferta({ o, completa }: { o: any; completa?: boolean }) {
 
 export default function CargaPublica({ token, oferta, reserva, altaOnline = false }: { token: string; oferta: any; reserva: any; altaOnline?: boolean }) {
   const router = useRouter();
+  const refrescar = useRefrescar();
   const [trabajando, setTrabajando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const [tramite, setTramite] = useState<{ hasta: string; ahora: string } | null>(null);
@@ -115,7 +117,7 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
   }, [r, router]);
 
   if (oferta?.resultado === 'error') {
-    return <Parar titulo="Estamos haciendo labores de mantenimiento" ambar icono="!"><p className="sub">En este momento no podemos comprobar la carga. Vuelve a intentarlo en un rato o contáctanos.</p><Dudas texto="Contáctanos" /><button className="btn" onClick={() => router.refresh()}>Volver a intentarlo</button></Parar>;
+    return <Parar titulo="Estamos haciendo labores de mantenimiento" ambar icono="!"><p className="sub">En este momento no podemos comprobar la carga. Vuelve a intentarlo en un rato o contáctanos.</p><Dudas texto="Contáctanos" /><button className="btn" onClick={() => refrescar()}>Volver a intentarlo</button></Parar>;
   }
   if (!oferta || oferta.resultado === 'enlace_no_valido') {
     return <Parar titulo="Este enlace no es válido"><p className="sub">Revisa que lo has copiado entero, o pídenos uno nuevo.</p><Dudas /></Parar>;
@@ -165,9 +167,9 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
     setTrabajando(true); setAviso(null);
     const x = await reservar(token);
     setTrabajando(false);
-    if (x.resultado === 'reservada') { router.refresh(); return; }
+    if (x.resultado === 'reservada') { refrescar(); return; }
     if (x.resultado === 'en_tramite' && x.hasta && x.ahora) { setTramite({ hasta: x.hasta, ahora: x.ahora }); return; }
-    if (x.resultado === 'tomada' || x.resultado === 'enlace_no_valido') { router.refresh(); return; }
+    if (x.resultado === 'tomada' || x.resultado === 'enlace_no_valido') { refrescar(); return; }
     setAviso('No se ha podido reservar. Vuelve a intentarlo.');
   }
 
@@ -181,7 +183,7 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
       <div className="pago-contado">Precio: <span className="imp">{euros(oferta.precio)}</span> <span className="base-nota">· base imponible (impuestos no incluidos)</span>
         {num(oferta.banda_euros) ? <div className="base-nota" style={{ marginTop: 2 }}>Puedes proponer otro precio entre {euros(num(oferta.precio)! - num(oferta.banda_euros)!)} y {euros(num(oferta.precio)! + num(oferta.banda_euros)!)}.</div> : null}
       </div>
-      {(oferta.en_tramite || tramite) && <Tramite hasta={tramite?.hasta} ahora={tramite?.ahora} onLibre={() => { setTramite(null); router.refresh(); }} />}
+      {(oferta.en_tramite || tramite) && <Tramite hasta={tramite?.hasta} ahora={tramite?.ahora} onLibre={() => { setTramite(null); refrescar(); }} />}
       <button className="btn" onClick={reservarla} disabled={trabajando}>{trabajando ? 'Reservando…' : 'Reservar y aceptar esta carga'}</button>
       <p className="id-hint" style={{ textAlign: 'center', marginTop: '0.5rem' }}>Al pulsar, la carga queda <strong>reservada para ti {txtNum(oferta.reserva_minutos ?? 3)} minutos</strong> para que la aceptes; nadie más la puede coger mientras.</p>
       {aviso && <div className="warn" style={{ display: 'block' }}>{aviso}</div>}
@@ -218,6 +220,7 @@ function Tramite({ hasta, ahora, onLibre }: { hasta?: string; ahora?: string; on
 // ---- Reservada: formulario para aceptar --------------------------------------------
 function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: string; ahora: string }) {
   const router = useRouter();
+  const refrescar = useRefrescar();
   const { quedan, texto } = useCuenta(hasta, ahora);
   const base = num(o.precio) ?? 0, banda = num(o.banda_euros) ?? 0;
   const [cif, setCif] = useState('');
@@ -234,7 +237,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
     return (
       <Parar titulo="Se ha agotado el tiempo de reserva" ambar icono="!">
         <p className="sub">No se completó la aceptación a tiempo, así que la carga ha vuelto a quedar libre.</p>
-        <button className="btn" onClick={() => router.refresh()}>Volver a comprobar disponibilidad</button>
+        <button className="btn" onClick={() => refrescar()}>Volver a comprobar disponibilidad</button>
       </Parar>
     );
   }
@@ -249,7 +252,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
     setTrabajando(true);
     const x = await aceptar(token, { cif, precio: contra && precio !== base ? precio : null, pronto_pago: pronto, ...veh });
     setTrabajando(false);
-    if (x.resultado === 'aceptada' || x.resultado === 'pendiente_revision') { router.refresh(); return; }
+    if (x.resultado === 'aceptada' || x.resultado === 'pendiente_revision') { refrescar(); return; }
     const msg: Record<string, string> = {
       transportista_no_encontrado: `No encontramos ese CIF en Dynamo. Revísalo o, si es tu primera carga con nosotros, date de alta aquí abajo.${x.intentos_restantes != null ? ` Te quedan ${x.intentos_restantes} intento${x.intentos_restantes === 1 ? '' : 's'}.` : ''}`,
       demasiados_intentos: 'Demasiados intentos con CIF que no están en Dynamo: por seguridad, la reserva se ha liberado. Llámanos al +34 955 225 945 y te la asignamos.',
@@ -260,7 +263,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
     };
     setError(msg[x.resultado] ?? x.error ?? 'No se ha podido aceptar. Vuelve a intentarlo.');
     if (x.resultado === 'transportista_no_encontrado') setNoEncontrado(true);
-    if (x.resultado === 'reserva_caducada' || x.resultado === 'tomada' || x.resultado === 'demasiados_intentos') router.refresh();
+    if (x.resultado === 'reserva_caducada' || x.resultado === 'tomada' || x.resultado === 'demasiados_intentos') refrescar();
   }
 
   return (
@@ -333,7 +336,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
       {noEncontrado && !o.para_transportista && <button type="button" className="btn-sec" style={{ width: '100%', marginBottom: '0.6rem' }} onClick={() => setAlta(true)}>No estoy en Dynamo · darme de alta y aceptar</button>}
       <button className="btn" onClick={aceptarla} disabled={trabajando}>{trabajando ? 'Aceptando…' : contra && precio !== base ? 'Proponer este precio y aceptar' : 'ACEPTAR carga'}</button>
       <button type="button" className="btn-sec" style={{ display: 'block', margin: '0.7rem auto 0', background: 'none', border: 'none', color: 'var(--gray-500)', fontWeight: 700, cursor: 'pointer' }}
-        onClick={async () => { await liberar(token); router.refresh(); }}>No me interesa · dejarla libre ya</button>
+        onClick={async () => { await liberar(token); refrescar(); }}>No me interesa · dejarla libre ya</button>
       <div style={{ textAlign: 'center' }}><Dudas /></div>
     </div>
   );
@@ -410,6 +413,7 @@ function Aceptada({ token, c }: { token: string; c: any }) {
 const BOLSAS: [string, string][] = [['wtransnet', 'Wtransnet'], ['teleroute', 'Teleroute'], ['bursa_transport', 'Bursa Transport'], ['123cargo', '123cargo']];
 function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { token: string; cif: string; precio: number | null; pronto: boolean; texto: string; urgente: boolean; onVolver: () => void }) {
   const router = useRouter();
+  const refrescar = useRefrescar();
   const [d, setD] = useState<AltaTransportista>({ bolsa: 'wtransnet', codigo_bolsa: '', pais: 'ES', cif, telefono: '', precio, pronto_pago: pronto });
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
@@ -422,7 +426,7 @@ function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { t
     setTrabajando(true);
     const x = await darseDeAlta(token, d);
     setTrabajando(false);
-    if (x.resultado === 'alta_pendiente') { router.refresh(); return; }
+    if (x.resultado === 'alta_pendiente') { refrescar(); return; }
     const campos: Record<string, string> = { bolsa: 'la bolsa de cargas', codigo_bolsa: 'tu código en la bolsa', pais: 'el país', cif: 'el CIF / NIF', telefono: 'el teléfono' };
     const msg: Record<string, string> = {
       ya_existe: 'Ese CIF ya está dado de alta en Dynamo: vuelve atrás y acepta la carga con él.',
@@ -433,7 +437,7 @@ function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { t
       precio_fuera_de_banda: `El precio tiene que estar entre ${euros(x.minimo)} y ${euros(x.maximo)}.`,
     };
     setError(msg[x.resultado] ?? x.error ?? 'No se ha podido completar el alta. Vuelve a intentarlo o llámanos.');
-    if (['reserva_caducada', 'tomada'].includes(x.resultado)) router.refresh();
+    if (['reserva_caducada', 'tomada'].includes(x.resultado)) refrescar();
   }
   return (
     <div id="formScreen" className="show">

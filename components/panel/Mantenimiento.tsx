@@ -2,7 +2,7 @@
 
 // Modo mantenimiento (solo admin), con el diseño de la ventana del mockup (.maint-control).
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import Cargando from '@/components/Cargando';
 import { guardarParametro } from '@/app/panel/(app)/parametros/acciones';
 import { creadoTxt } from '@/lib/envios';
@@ -11,7 +11,7 @@ import { contarArchivosSueltos, borrarArchivosSueltos } from '@/app/panel/(app)/
 const LLAVE = 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z';
 
 export default function Mantenimiento({ activo, esAdmin, cambiado, quien }: { activo: boolean; esAdmin: boolean; cambiado: string | null; quien: string | null }) {
-  const router = useRouter();
+  const refrescar = useRefrescar();
   const [trabajando, setTrabajando] = useState(false);
   const [preguntar, setPreguntar] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +20,7 @@ export default function Mantenimiento({ activo, esAdmin, cambiado, quien }: { ac
     const r = await guardarParametro('mantenimiento_activo', !activo);
     setTrabajando(false); setPreguntar(false);
     if (!r.ok) { setError(r.error); return; }
-    router.refresh();
+    refrescar();
   }
   return (
     <section className="section active" id="sec-mantenimiento">

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { RefrescoProvider } from '@/lib/useRefrescar';
 import { supabasePublico } from '@/lib/supabase/publico';
 import SelectorIdioma from '@/components/SelectorIdioma';
 import FirmarCmr from './FirmarCmr';
@@ -31,7 +32,7 @@ export default async function PaginaCmr({ params }: { params: Promise<{ token: s
   return (
     <div className="cmr-page">
       <SelectorIdioma />
-      <FirmarCmr token={token} cmr={cmr} trazos={trazos} />
+      <RefrescoProvider><FirmarCmr token={token} cmr={cmr} trazos={trazos} /></RefrescoProvider>
     </div>
   );
 }

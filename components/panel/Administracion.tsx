@@ -5,6 +5,7 @@
 // datos reales en la plataforma. Las facturas viven en Holded (llegarán al conectarlo).
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import Cargando from '@/components/Cargando';
 import { marcarPagadoAlmacenamiento } from '@/app/panel/(app)/almacenamientos/acciones';
 import { euros, fecha } from '@/lib/formato';
@@ -27,6 +28,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
   proformas: ProformaFila[]; albaranes: AlbaranFila[]; dynamo: boolean; gestor: boolean; pestanaInicial: Pestana; error: string | null;
 }) {
   const router = useRouter();
+  const refrescar = useRefrescar();
   const [pestana, setPestana] = useState<Pestana>(pestanaInicial);
   const [filtro, setFiltro] = useState<'sin_pagar' | 'pagadas' | 'todas'>('sin_pagar');
   const [q, setQ] = useState('');
@@ -49,7 +51,7 @@ export default function Administracion({ proformas, albaranes, dynamo, gestor, p
     const r = await marcarPagadoAlmacenamiento(p.id, pagado);
     setTrabajando(null);
     if (!r.ok) { setAviso(r.error); return; }
-    router.refresh();
+    refrescar();
   }
 
   return (

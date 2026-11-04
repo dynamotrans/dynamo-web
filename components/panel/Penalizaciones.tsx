@@ -6,6 +6,7 @@
 // Margen · Fecha; ventana con «Envío referenciado» y su resumen).
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import BuscaEnvio from './BuscaEnvio';
@@ -41,6 +42,7 @@ export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error 
   filas: PenalizacionFila[]; tipos: Tipo[]; envios: EnvioLigero[]; nuevaPara: string | null; error: string | null;
 }) {
   const router = useRouter();
+  const refrescar = useRefrescar();
   const [pestana, setPestana] = useState('pendiente_confirmar');
   const [q, setQ] = useState('');
   const [tipo, setTipo] = useState('');
@@ -110,7 +112,7 @@ export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error 
         </table>
       </div>
       {ficha && <FichaPenalizacion fila={ficha.fila} envioInicial={ficha.envio ?? null} tipos={tipos} envios={envios}
-        onCerrar={cerrar} onHecho={() => { cerrar(); router.refresh(); }} />}
+        onCerrar={cerrar} onHecho={() => { cerrar(); refrescar(); }} />}
     </section>
   );
 }

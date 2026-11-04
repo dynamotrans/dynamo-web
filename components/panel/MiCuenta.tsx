@@ -3,17 +3,17 @@
 // Mi cuenta, con el diseño de #sec-mi-cuenta de dashboard.html (tarjetas .account-card):
 // datos personales (editables), seguridad y datos fiscales de la empresa (solo lectura).
 import { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
-import { guardarMisDatos, guardarMiTransporte, guardarMiVehiculo, guardarMiConductor, darDeBajaFlota, type MisDatos, type MiVehiculo, type MiConductor } from '@/app/panel/(app)/mi-cuenta/acciones';
+import { cambiarMiClave, guardarMisDatos, guardarMiTransporte, guardarMiVehiculo, guardarMiConductor, darDeBajaFlota, type MisDatos, type MiVehiculo, type MiConductor } from '@/app/panel/(app)/mi-cuenta/acciones';
 import { DOC_PAISES } from '@/lib/documentoIdentidad';
 import { creadoTxt } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import { ROL, fecha } from '@/lib/formato';
 import CampoTelefono from '@/components/CampoTelefono';
+import MedidorClave, { claveValida } from '@/components/MedidorClave';
 
 // Los mismos idiomas que el selector de la web (y que usarán los avisos automáticos).
 const IDIOMAS: [string, string][] = [
@@ -42,12 +42,14 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
   empresa: { razon_social: string; cif: string | null; direccion: string; pais: string | null } | null;
   transporte?: TransporteDatos | null;
 }) {
-  const router = useRouter();
+  const refrescar = useRefrescar();
   const [editar, setEditar] = useState(false);
   const [editaTransp, setEditaTransp] = useState(false);
+  const [cambiaClave, setCambiaClave] = useState(false);
+  const [claveCambiada, setClaveCambiada] = useState(false);
   const [vehiculo, setVehiculo] = useState<MiVehiculo | null>(null);
   const [conductor, setConductor] = useState<MiConductor | null>(null);
-  const hecho = () => { setEditaTransp(false); setVehiculo(null); setConductor(null); router.refresh(); };
+  const hecho = () => { setEditaTransp(false); setVehiculo(null); setConductor(null); refrescar(); };
   const fila = (k: string, v: React.ReactNode) => <div className="account-row"><span className="account-row-label">{k}</span><span className="account-row-value">{v || '—'}</span></div>;
   return (
     <section className="section active" id="sec-mi-cuenta">
@@ -68,7 +70,8 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
           <h3 className="account-card-title">Seguridad</h3>
           {fila('Contraseña', '••••••••')}
           {fila('Última conexión', ultimaConexion ? creadoTxt(ultimaConexion) : '')}
-          <Link className="btn-ghost account-edit" href="/panel/nueva-contrasena" style={{ textDecoration: 'none', textAlign: 'center' }}>Cambiar contraseña</Link>
+          <button className="btn-ghost account-edit" onClick={() => { setClaveCambiada(false); setCambiaClave(true); }}>Cambiar contraseña</button>
+          {claveCambiada && <p className="account-card-desc" style={{ marginTop: '0.6rem', color: '#0f6b3a', fontWeight: 700 }}>✓ Contraseña cambiada.</p>}
           <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>Para cambiar el <strong>email</strong> con el que entras, escríbenos a info@dynamotrans.com: es tu usuario y lo cambiamos nosotros.</p>
         </div>
         {empresa && (
@@ -121,7 +124,8 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
           </div>
         </>)}
       </div>
-      {editar && <EditarDatos datos={datos} onCerrar={() => setEditar(false)} onHecho={() => { setEditar(false); router.refresh(); }} />}
+      {cambiaClave && <CambiarClave onCerrar={() => setCambiaClave(false)} onHecho={() => { setCambiaClave(false); setClaveCambiada(true); }} />}
+      {editar && <EditarDatos datos={datos} onCerrar={() => setEditar(false)} onHecho={() => { setEditar(false); refrescar(); }} />}
       {editaTransp && transporte && <EditarTransporte inicial={{ nima: transporte.nima ?? '', compania: transporte.seguro_cmr_compania ?? '', poliza: transporte.seguro_cmr_poliza ?? '', vence: transporte.seguro_cmr_vence ?? '' }}
         onCerrar={() => setEditaTransp(false)} onHecho={hecho} />}
       {vehiculo && <EditarVehiculo inicial={vehiculo} onCerrar={() => setVehiculo(null)} onHecho={hecho} />}
@@ -214,6 +218,37 @@ function EditarTransporte({ inicial, onCerrar, onHecho }: { inicial: { nima: str
         {fechaCampo('mt-vence', 'Vence el', d.vence, (v) => setD({ ...d, vence: v }))}
       </div>
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Recuerda subir la póliza renovada en Documentación.</p>
+      {g.error && <div className="wiz-warn show" role="alert">⚠ {g.error}</div>}
+      {g.trabajando && <Cargando texto={g.trabajando} />}
+    </Modal>
+  );
+}
+
+const ICO_CANDADO = <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>;
+
+// Ventana «Cambiar contraseña»: la actual (por seguridad) y la nueva con su medidor.
+function CambiarClave({ onCerrar, onHecho }: { onCerrar: () => void; onHecho: () => void }) {
+  const [actual, setActual] = useState('');
+  const [nueva, setNueva] = useState('');
+  const [ver, setVer] = useState(false);
+  const g = useGuardar(onHecho);
+  const vale = !!actual && claveValida(nueva);
+  const tipo = ver ? 'text' : 'password';
+  return (
+    <Modal abierto titulo="Cambiar contraseña" sub="Escribe la actual y elige una nueva" icono={ICO_CANDADO} onCerrar={onCerrar}
+      pie={<>
+        <button className="btn-ghost" onClick={onCerrar} disabled={!!g.trabajando}>Cancelar</button>
+        <button className="btn-primary" onClick={() => g.correr('Cambiando la contraseña', () => cambiarMiClave(actual, nueva))} disabled={!!g.trabajando || !vale}>Guardar contraseña</button>
+      </>}>
+      <div className="ptar-sitio-grid" style={{ gridTemplateColumns: '1fr' }}>
+        <div><label htmlFor="cc-actual">Contraseña actual</label>
+          <input id="cc-actual" type={tipo} autoComplete="current-password" value={actual} onChange={(e) => setActual(e.target.value)} /></div>
+        <div><label htmlFor="cc-nueva">Contraseña nueva</label>
+          <input id="cc-nueva" type={tipo} autoComplete="new-password" value={nueva} onChange={(e) => setNueva(e.target.value)} /></div>
+      </div>
+      <div style={{ marginTop: '0.5rem' }}><MedidorClave clave={nueva} /></div>
+      <button type="button" className="btn-ghost" style={{ padding: '0.35rem 0.8rem' }} onClick={() => setVer((v) => !v)}>{ver ? 'Ocultar contraseñas' : 'Ver contraseñas'}</button>
+      <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>¿No recuerdas la actual? Sal y usa «¿Olvidaste tu contraseña?» en la entrada.</p>
       {g.error && <div className="wiz-warn show" role="alert">⚠ {g.error}</div>}
       {g.trabajando && <Cargando texto={g.trabajando} />}
     </Modal>

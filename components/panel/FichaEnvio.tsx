@@ -6,6 +6,7 @@
 // Cancelar / Deshacer). Todo lo vuelve a comprobar el servidor y la base de datos.
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import DatosCmr from './DatosCmr';
 import Modal from './Modal';
 import Documentos from './Documentos';
@@ -111,6 +112,7 @@ type Vista = 'ficha' | 'asignar' | 'estado' | 'cancelar' | 'modificar' | 'ofrece
 
 export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { ficha: Ficha; transportistas: TransportistaOpcion[]; cerrarHref: string }) {
   const router = useRouter();
+  const refrescar = useRefrescar();
   const e = ficha.envio;
   const [vista, setVista] = useState<Vista>('ficha');
   const [verDocs, setVerDocs] = useState(0);   // para recargar la lista al guardar una copia
@@ -128,7 +130,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
     if (!r.ok) { setAviso({ ok: false, txt: r.error ?? 'No se ha podido hacer.' }); return false; }
     setAviso({ ok: true, txt: r.aviso ?? okTxt ?? 'Hecho.' });
     setVista('ficha');
-    router.refresh();
+    refrescar();
     return true;
   }
 
@@ -179,7 +181,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
   if (vista === 'cancelar') return <Cancelar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
   if (vista === 'modificar') return <Modificar ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
   if (vista === 'precio') return <PonerPrecio ficha={ficha} onVolver={() => setVista('ficha')} hacer={hacer} trabajando={trabajando} />;
-  if (vista === 'ofrecer') return <Ofrecer ficha={ficha} transportistas={transportistas} onVolver={() => { setVista('ficha'); router.refresh(); }} />;
+  if (vista === 'ofrecer') return <Ofrecer ficha={ficha} transportistas={transportistas} onVolver={() => { setVista('ficha'); refrescar(); }} />;
 
   const recogidas = ficha.paradas.filter((p) => p.tipo === 'carga');
   const entregas = ficha.paradas.filter((p) => p.tipo === 'descarga');

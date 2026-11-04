@@ -5,8 +5,9 @@
 // transportistas (interruptor, línea editable, barra de uso y anticipos de 60 días).
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import Cargando from '@/components/Cargando';
+import Modal from './Modal';
 import { guardarLineaProntoPago, encenderProntoPago } from '@/app/panel/(app)/dashboard-admin/acciones';
 import type { MiniEnvio } from './DashboardCliente';
 import { euros, fecha, ventana } from '@/lib/formato';
@@ -80,8 +81,10 @@ export default function DashboardAdmin({ cifras, ultimos, prontoPago, errorPP }:
   );
 }
 
+const ICO_EURO = <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 7a7 7 0 1 0 0 10" /><line x1="4" y1="10" x2="14" y2="10" /><line x1="4" y1="14" x2="14" y2="14" /></svg>;
+
 function LineaProntoPago({ pp, error }: { pp: ProntoPago | null; error: string | null }) {
-  const router = useRouter();
+  const refrescar = useRefrescar();
   const [editando, setEditando] = useState(false);
   const [linea, setLinea] = useState(pp ? String(pp.linea) : '');
   const [trabajando, setTrabajando] = useState<string | null>(null);
@@ -103,7 +106,7 @@ function LineaProntoPago({ pp, error }: { pp: ProntoPago | null; error: string |
     const r = await fn();
     setTrabajando(null);
     if (!r.ok) { setFallo(r.error ?? 'No se ha podido guardar.'); return; }
-    setEditando(false); router.refresh();
+    setEditando(false); refrescar();
   }
   const aviso = (bg: string, borde: string, color: string, t: React.ReactNode) =>
     <div style={{ marginTop: '0.8rem', padding: '0.6rem 0.75rem', background: bg, border: `1px solid ${borde}`, borderRadius: 9, fontSize: 'var(--fs-m)', fontWeight: 700, color }}>{t}</div>;
@@ -116,16 +119,23 @@ function LineaProntoPago({ pp, error }: { pp: ProntoPago | null; error: string |
         {pp.encendido ? 'Apagar pronto pago' : 'Encender pronto pago'}
       </button>
       <div style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>Línea total: <strong>{euros(pp.linea)}</strong>{' '}
-        <button type="button" className="btn-ghost" style={{ padding: '0.2rem 0.6rem', fontSize: 'var(--fs-m)' }} onClick={() => { setLinea(String(pp.linea)); setEditando((v) => !v); }}>Editar línea</button>
+        <button type="button" className="btn-ghost" style={{ padding: '0.2rem 0.6rem', fontSize: 'var(--fs-m)' }} onClick={() => { setLinea(pp.linea.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })); setFallo(null); setEditando(true); }}>Editar línea</button>
       </div>
     </div>
     {editando && (
-      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.8rem', flexWrap: 'wrap' }}>
-        <input type="text" inputMode="numeric" value={linea} onChange={(e) => setLinea(e.target.value)} style={{ maxWidth: 180 }} aria-label="Línea total en euros" />
-        <button type="button" className="btn-primary" style={{ padding: '0.45rem 0.9rem' }} disabled={!!trabajando}
-          onClick={() => hacer(() => guardarLineaProntoPago(Number(linea.replace(/\./g, '').replace(',', '.'))), 'Guardando la línea')}>Guardar</button>
-        <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>Amplía o minora la línea según tesorería.</span>
-      </div>
+      <Modal abierto titulo="Línea de pronto pago" sub="Amplía o minora la línea según tesorería" icono={ICO_EURO} onCerrar={() => { setFallo(null); setEditando(false); }}
+        pie={<>
+          <button className="btn-ghost" onClick={() => { setFallo(null); setEditando(false); }} disabled={!!trabajando}>Cancelar</button>
+          <button className="btn-primary" disabled={!!trabajando}
+            onClick={() => hacer(() => guardarLineaProntoPago(Number(linea.replace(/\./g, '').replace(',', '.'))), 'Guardando la línea')}>Guardar línea</button>
+        </>}>
+        <div className="ptar-sitio-grid" style={{ gridTemplateColumns: '1fr' }}>
+          <div><label htmlFor="pp-linea">Línea total (€)</label>
+            <input id="pp-linea" type="text" inputMode="decimal" value={linea} placeholder="50.000,00" onChange={(e) => setLinea(e.target.value)} /></div>
+        </div>
+        <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Ahora mismo: <strong>{euros(pp.linea)}</strong> · anticipado en los últimos {pp.ventana_dias} días: <strong>{euros(pp.usado)}</strong>.</p>
+        {fallo && <div className="wiz-warn show" role="alert">⚠ {fallo}</div>}
+      </Modal>
     )}
     <div style={{ height: 14, borderRadius: 999, background: 'var(--gray-200)', overflow: 'hidden' }}>
       <div style={{ height: '100%', width: `${pct}%`, background: col, borderRadius: 999, transition: 'width 0.4s' }} />
@@ -148,7 +158,7 @@ function LineaProntoPago({ pp, error }: { pp: ProntoPago | null; error: string |
           <strong>{euros(a.anticipado)}</strong>
         </div>
       ))}
-    {fallo && <div className="wiz-warn show" role="alert">⚠ {fallo}</div>}
+    {fallo && !editando && <div className="wiz-warn show" role="alert">⚠ {fallo}</div>}
     {trabajando && <Cargando texto={trabajando} />}
   </>);
 }

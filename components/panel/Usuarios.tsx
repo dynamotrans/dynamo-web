@@ -5,7 +5,7 @@
 // INVITACIÓN (el usuario crea su propia contraseña) y el rol se cambia con una acción
 // aparte que pide teclear su email, como en el mockup.
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import { guardarUsuario, cambiarRol, cambiarEmail, invitarUsuario, reenviarInvitacion, type UsuarioDatos } from '@/app/panel/(app)/usuarios/acciones';
@@ -75,7 +75,7 @@ function metricas(u: UsuarioFila) {
 export default function Usuarios({ filas, clientes, transportistas, yo, error }: {
   filas: UsuarioFila[]; clientes: Empresa[]; transportistas: Empresa[]; yo: { id: string; rol: Rol }; error: string | null;
 }) {
-  const router = useRouter();
+  const refrescar = useRefrescar();
   const [q, setQ] = useState('');
   const [fRol, setFRol] = useState('');
   const [ficha, setFicha] = useState<UsuarioFila | null>(null);
@@ -94,7 +94,7 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filas, q, fRol, empresas]);
 
-  const hecho = (txt: string) => { setFicha(null); setRolDe(null); setInvitar(false); setAviso(txt); router.refresh(); };
+  const hecho = (txt: string) => { setFicha(null); setRolDe(null); setInvitar(false); setAviso(txt); refrescar(); };
 
   return (
     <section className="section active" id="sec-usuarios">

@@ -6,6 +6,7 @@
 // abre el CMR digital para que firmen en el muelle.
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
@@ -40,6 +41,7 @@ function Celda({ l, children, span }: { l: string; children: React.ReactNode; sp
 
 export default function FichaViaje({ e, cerrarHref }: { e: any; cerrarHref: string }) {
   const router = useRouter();
+  const refrescar = useRefrescar();
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
   const cerrar = () => router.push(cerrarHref, { scroll: false });
@@ -53,7 +55,7 @@ export default function FichaViaje({ e, cerrarHref }: { e: any; cerrarHref: stri
     const r = await marcarViaje(e.id, estado);
     setTrabajando(null);
     setAviso({ ok: r.ok, txt: r.ok ? r.aviso ?? 'Hecho.' : r.error });
-    if (r.ok) router.refresh();
+    if (r.ok) refrescar();
   }
   async function abrirCmr() {
     // La ventana se abre YA (si no, el navegador del móvil la bloquea) y luego se le da la dirección.

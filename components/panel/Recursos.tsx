@@ -4,7 +4,7 @@
 // «Medidas de los camiones» (.med-tabs). Las medidas son las OFICIALES (regla 0-quinquies
 // de CLAUDE.md): si cambian, cambiarlas también en index.html, en las hojas de sección y aquí.
 import { useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import { supabaseNavegador } from '@/lib/supabase/navegador';
@@ -34,7 +34,7 @@ const ICO_IMG = <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="
 const diaMadrid = (ts: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(ts));
 
 export default function Recursos({ subidos = [], gestor = false }: { subidos?: RecursoSubido[]; gestor?: boolean }) {
-  const router = useRouter();
+  const refrescar = useRefrescar();
   const [medidas, setMedidas] = useState(false);
   const [subir, setSubir] = useState(false);
   const [quitar, setQuitar] = useState<RecursoSubido | null>(null);
@@ -46,7 +46,7 @@ export default function Recursos({ subidos = [], gestor = false }: { subidos?: R
     const r = await quitarRecurso(quitar.id);
     setTrabajando(null);
     if (!r.ok) { setError(r.error); return; }
-    setQuitar(null); router.refresh();
+    setQuitar(null); refrescar();
   }
   const [tipo, setTipo] = useState<'tauliner' | 'rigido'>('tauliner');
   return (
@@ -96,7 +96,7 @@ export default function Recursos({ subidos = [], gestor = false }: { subidos?: R
         </div>
       </div>
 
-      {subir && <SubirRecurso onCerrar={() => setSubir(false)} onHecho={() => { setSubir(false); router.refresh(); }} />}
+      {subir && <SubirRecurso onCerrar={() => setSubir(false)} onHecho={() => { setSubir(false); refrescar(); }} />}
       {quitar && (
         <Modal abierto titulo="Quitar documento de Recursos" sub={quitar.titulo} onCerrar={() => setQuitar(null)}
           pie={<>

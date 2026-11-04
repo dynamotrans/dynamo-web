@@ -5,6 +5,7 @@
 // Salida · Reparto urbano · Total sin IVA · Estado; precio con la caja .alm-price).
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
@@ -49,6 +50,7 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
   modoCliente?: ModoCliente;
 }) {
   const router = useRouter();
+  const refrescar = useRefrescar();
   const [pestana, setPestana] = useState<EstadoAlm | 'todos' | 'pago'>(pestanaInicial ?? 'pendiente_confirmar');
   const [q, setQ] = useState('');
   const [ficha, setFicha] = useState<{ fila: AlmacenamientoFila | null } | null>(abrir ? { fila: null } : null);
@@ -113,7 +115,7 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
         </table>
       </div>
       {ficha && <FichaAlmacenamiento fila={ficha.fila} almacenes={almacenes} clientes={clientes} modoCliente={modoCliente} onCerrar={() => { setFicha(null); if (abrir) router.replace('/panel/almacenamientos'); }}
-        onHecho={() => { setFicha(null); if (abrir) router.replace('/panel/almacenamientos'); router.refresh(); }} />}
+        onHecho={() => { setFicha(null); if (abrir) router.replace('/panel/almacenamientos'); refrescar(); }} />}
     </section>
   );
 }

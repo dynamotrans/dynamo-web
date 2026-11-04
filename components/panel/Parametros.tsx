@@ -4,7 +4,7 @@
 // pronto pago, tarifas de almacén, PIN, reservas…) se cambia aquí, sin tocar el código.
 // Los ve todo Dynamo; solo un ADMIN los cambia. Cada cambio queda en la auditoría.
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import { guardarParametro } from '@/app/panel/(app)/parametros/acciones';
 import { creadoTxt } from '@/lib/envios';
 
@@ -59,7 +59,7 @@ export default function Parametros({ filas, esAdmin, error }: { filas: Parametro
 }
 
 function Fila({ p, esAdmin }: { p: ParametroFila; esAdmin: boolean }) {
-  const router = useRouter();
+  const refrescar = useRefrescar();
   const tipo = typeof p.valor === 'boolean' ? 'si_no' : typeof p.valor === 'number' ? 'numero' : 'texto';
   const [v, setV] = useState(texto(p.valor));
   const [estado, setEstado] = useState<null | 'guardando' | 'ok' | string>(null);
@@ -71,7 +71,7 @@ function Fila({ p, esAdmin }: { p: ParametroFila; esAdmin: boolean }) {
     setEstado('guardando');
     const r = await guardarParametro(p.clave, valor);
     setEstado(r.ok ? 'ok' : r.error);
-    if (r.ok) router.refresh();
+    if (r.ok) refrescar();
   }
   function guardarTexto() {
     if (tipo === 'numero') {

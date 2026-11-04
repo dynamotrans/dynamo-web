@@ -4,7 +4,7 @@
 // recogida · 23 transportista · 24 cada entrega) y la pantalla de firma con el dedo, con el
 // documento de identidad validado por país. La firma la guarda el servidor (acciones.ts).
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import { firmar, type DatosFirma } from './acciones';
 import { DOC_PAISES, validaDoc } from '@/lib/documentoIdentidad';
 
@@ -13,7 +13,7 @@ const fechaHora = (iso: string) => new Intl.DateTimeFormat('es-ES', { timeZone: 
 const fechaCorta = (iso: string | null) => (iso ? new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 10)}T00:00:00Z`)) : '—');
 
 export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: any; trazos: Record<string, string> }) {
-  const router = useRouter();
+  const refrescar = useRefrescar();
   const [abierto, setAbierto] = useState<Bloque | null>(null);
 
   if (cmr.resultado !== 'ok') {
@@ -71,7 +71,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
       })}
       <div className={`banner-ok${hechas === bloques.length ? ' show' : ''}`}>✓ CMR completamente firmado — todas las partes han quedado registradas.</div>
       <p className="foot">Cada firma queda registrada con la fecha y la hora del servidor, el documento de quien firma y desde dónde se firmó. Firma electrónica simple (Reglamento eIDAS).</p>
-      {abierto && <PantallaFirma token={token} b={abierto} onCerrar={() => setAbierto(null)} onFirmado={() => { setAbierto(null); router.refresh(); }} />}
+      {abierto && <PantallaFirma token={token} b={abierto} onCerrar={() => setAbierto(null)} onFirmado={() => { setAbierto(null); refrescar(); }} />}
     </div>
   );
 }

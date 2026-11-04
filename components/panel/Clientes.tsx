@@ -4,7 +4,7 @@
 // (columnas Cliente · Contacto · Domicilio fiscal · Condiciones · Factor · Creado ·
 // Estado; ficha en la ventana del panel con la rejilla .ptar-sitio-grid).
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import { guardarCliente, type ClienteDatos } from '@/app/panel/(app)/clientes/acciones';
@@ -52,7 +52,7 @@ const NUEVO: ClienteDatos = {
 type Empleado = { id: string; nombre: string };
 
 export default function Clientes({ filas, error, bienvenida, empleados = [] }: { filas: ClienteFila[]; error: string | null; bienvenida: Bienvenida; empleados?: Empleado[] }) {
-  const router = useRouter();
+  const refrescar = useRefrescar();
   const [q, setQ] = useState('');
   const [ficha, setFicha] = useState<{ fila: ClienteFila | null } | null>(null);
 
@@ -115,7 +115,7 @@ export default function Clientes({ filas, error, bienvenida, empleados = [] }: {
 
       {ficha && (
         <FichaCliente fila={ficha.fila} bienvenida={bienvenida} empleados={empleados} onCerrar={() => setFicha(null)}
-          onGuardado={() => { setFicha(null); router.refresh(); }} />
+          onGuardado={() => { setFicha(null); refrescar(); }} />
       )}
     </section>
   );

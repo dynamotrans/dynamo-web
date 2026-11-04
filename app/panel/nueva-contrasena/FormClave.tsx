@@ -5,24 +5,13 @@ import { useActionState, useState } from 'react';
 import { guardarClave, type EstadoClave } from './acciones';
 import { IcoAviso } from '@/components/Iconos';
 import Cargando from '@/components/Cargando';
-
-const REGLAS: [string, (s: string) => boolean][] = [
-  ['Mínimo 8 caracteres', (s) => s.length >= 8],
-  ['Una mayúscula', (s) => /[A-ZÁÉÍÓÚÑ]/.test(s)],
-  ['Una minúscula', (s) => /[a-záéíóúñ]/.test(s)],
-  ['Un número', (s) => /\d/.test(s)],
-  ['Un símbolo', (s) => /[^A-Za-z0-9ÁÉÍÓÚÑáéíóúñ]/.test(s)],
-];
-const NIVELES = ['Muy débil', 'Débil', 'Aceptable', 'Buena', 'Fuerte'];
-const COLORES = ['#dc2626', '#f97316', '#eab308', '#84cc16', '#22a55a'];
+import MedidorClave, { claveValida } from '@/components/MedidorClave';
 
 export default function FormClave() {
   const [estado, accion, enviando] = useActionState(guardarClave, { error: null } as EstadoClave);
   const [clave, setClave] = useState('');
   const [ver, setVer] = useState(false);
-  const cumple = REGLAS.map(([, f]) => f(clave));
-  const n = cumple.filter(Boolean).length;
-  const vale = clave.length >= 8 && n >= 3;
+  const vale = claveValida(clave);
   return (
     <form action={accion} noValidate>
       {enviando && <Cargando texto="Guardando la contraseña" />}
@@ -42,15 +31,7 @@ export default function FormClave() {
           </button>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 4, margin: '0.2rem 0 0.35rem' }} aria-hidden="true">
-        {[0, 1, 2, 3, 4].map((i) => <span key={i} style={{ flex: 1, height: 5, borderRadius: 3, background: clave && i < n ? COLORES[n - 1] : 'var(--gray-200)' }} />)}
-      </div>
-      {clave && <div style={{ fontSize: '0.8rem', fontWeight: 700, color: COLORES[Math.max(0, n - 1)], marginBottom: '0.4rem' }}>{NIVELES[Math.max(0, n - 1)]}</div>}
-      <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1rem', fontSize: '0.82rem', color: 'var(--gray-500)', display: 'grid', gap: 3 }}>
-        {REGLAS.map(([t], i) => (
-          <li key={t} style={{ color: cumple[i] ? '#0f6b3a' : undefined, fontWeight: cumple[i] ? 700 : 500 }}>{cumple[i] ? '✓' : '·'} {t}</li>
-        ))}
-      </ul>
+      <MedidorClave clave={clave} />
       <button type="submit" className="portal-submit" disabled={enviando || !vale}>
         {enviando ? 'Guardando…' : 'Guardar contraseña y entrar'}
       </button>

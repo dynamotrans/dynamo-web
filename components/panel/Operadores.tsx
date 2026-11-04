@@ -4,7 +4,7 @@
 // de #sec-operadores de dashboard.html: Dynamo como fila fija arriba (no editable), y
 // debajo los del cliente. Dynamo ve los de todos los clientes, con su columna de cliente.
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
@@ -23,7 +23,7 @@ const IcoCamion = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="no
 const TEXTO_INTRO = <>Catálogo <strong>privado</strong> de proveedores de transporte con los que se suele trabajar — vale para <strong>cualquier tipo: operadores de transporte, empresas de transporte o transportistas autónomos</strong> — para tener en un único espacio de trabajo <strong>todos los envíos controlados</strong>. <strong>Dynamo no interviene en nada</strong> en los envíos con otros transportistas (ni albaranes, ni precios, ni ningún aspecto relacionado con ellos): esto sirve solo para ver en <strong>Envíos</strong> todo unificado.</>;
 
 export default function Operadores({ filas, dynamo, clientes, error }: { filas: OperadorFila[]; dynamo: boolean; clientes: Cliente[]; error: string | null }) {
-  const router = useRouter();
+  const refrescar = useRefrescar();
   const [q, setQ] = useState('');
   const [cli, setCli] = useState('');
   const [ficha, setFicha] = useState<{ fila: OperadorFila | null } | null>(null);
@@ -81,7 +81,7 @@ export default function Operadores({ filas, dynamo, clientes, error }: { filas: 
           </tbody>
         </table>
       </div>
-      {ficha && <FichaOperador fila={ficha.fila} dynamo={dynamo} clientes={clientes} onCerrar={() => setFicha(null)} onHecho={() => { setFicha(null); router.refresh(); }} />}
+      {ficha && <FichaOperador fila={ficha.fila} dynamo={dynamo} clientes={clientes} onCerrar={() => setFicha(null)} onHecho={() => { setFicha(null); refrescar(); }} />}
     </section>
   );
 }
