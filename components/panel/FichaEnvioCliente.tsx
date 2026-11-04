@@ -14,7 +14,7 @@ import CondicionesGenerales from '@/components/CondicionesGenerales';
 import { euros, fecha, ventana } from '@/lib/formato';
 import { creadoTxt, estadoVisual } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
-import { responderPrecio, cancelarMiEnvio, marcarMiEnvioManual } from '@/app/panel/(app)/envios/acciones-cliente';
+import { responderPrecio, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
 import { enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
 
 const HITOS: Record<string, string> = {
@@ -228,6 +228,8 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
         </div>
       </>}
 
+      {e.valoracion?.puede && <ValorarTransportista envio={e.id} v={e.valoracion} onHecho={() => router.refresh()} />}
+
       {(e.hitos ?? []).length > 0 && <>
         <h4 className="modal-section-title">Historial</h4>
         <div className="pen-envio-sum">
@@ -238,4 +240,45 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
       </>}
     </Modal>
   );
+}
+
+// ---- El cliente puntúa al transportista (envío de Dynamo entregado) ----------------------
+function ValorarTransportista({ envio, v, onHecho }: { envio: string; v: { nota: number | null; comentario: string | null; editable: boolean }; onHecho: () => void }) {
+  const [nota, setNota] = useState<number | null>(v.nota ?? null);
+  const [com, setCom] = useState(v.comentario ?? '');
+  const [msg, setMsg] = useState<{ ok: boolean; txt: string } | null>(null);
+  const [trabajando, setTrabajando] = useState(false);
+  const cambiado = nota !== (v.nota ?? null) || com !== (v.comentario ?? '');
+  async function guardar() {
+    if (!nota) { setMsg({ ok: false, txt: 'Elige de 1 a 5 estrellas.' }); return; }
+    setMsg(null); setTrabajando(true);
+    const r = await valorarMiEnvio(envio, nota, com);
+    setTrabajando(false);
+    setMsg(r.ok ? { ok: true, txt: r.aviso ?? 'Valoración guardada.' } : { ok: false, txt: r.error });
+    if (r.ok) onHecho();
+  }
+  return <>
+    <h4 className="modal-section-title">¿Qué tal el transportista?</h4>
+    <div className="det-block">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
+        <div className="valora-estrellas" role="radiogroup" aria-label="Nota de 1 a 5">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button key={n} type="button" role="radio" aria-checked={nota === n} aria-label={`${n} de 5`} disabled={!v.editable}
+              className={nota != null && n <= nota ? 'on' : ''} onClick={() => setNota(n)}>★</button>
+          ))}
+        </div>
+        <span style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)' }}>{nota ? `${nota} de 5` : 'Puntúa de 1 a 5 estrellas'}</span>
+      </div>
+      {v.editable ? <>
+        <textarea rows={2} maxLength={500} style={{ marginTop: '0.6rem', width: '100%' }} placeholder="Cuéntanos qué tal (puntualidad, trato, cuidado de la mercancía…) · opcional"
+          value={com} onChange={(ev) => setCom(ev.target.value)} />
+        <div style={{ marginTop: '0.5rem' }}>
+          <button className="btn-primary" disabled={!cambiado || trabajando} onClick={guardar}>{v.nota ? 'Cambiar valoración' : 'Enviar valoración'}</button>
+        </div>
+        <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.4rem 0 0' }}>Solo la ve el equipo de Dynamo. Puedes cambiarla durante 30 días.</p>
+      </> : (v.comentario && <p style={{ margin: '0.4rem 0 0', fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>«{v.comentario}»</p>)}
+      {msg && <div className={msg.ok ? 'pt-aviso info' : 'wiz-warn show'} style={{ marginTop: '0.5rem' }} role="status"><div>{msg.txt}</div></div>}
+      {trabajando && <Cargando texto="Guardando tu valoración" />}
+    </div>
+  </>;
 }

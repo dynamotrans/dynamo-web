@@ -314,6 +314,8 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] **Hora estimada de llegada y aviso de sitio cerrado a la llegada / en la entrega**: se hace con la fórmula automática de tarifas y Google Maps (km y tiempos reales). Decisión del usuario (2026-11-04): **aún no**.
 - [x] ~~**Cubicador**~~: descartado por el usuario (2026-11-04). No se pasa a la plataforma.
 
+- [x] ~~**El cliente puntúa a los transportistas**~~ (hecho 2026-11-04): en la ficha de su envío entregado, de 1 a 5 estrellas y comentario; la cambia durante 30 días; Dynamo la ve en la ficha del envío y la media en Transportistas (el transportista no la ve). Prueba 93.
+
 ### Repaso de seguridad del 2026-11-03 (plataforma en `pruebas`)
 Comprobado con el arnés y leyendo el código. **Bien**: todas las tablas con RLS; las funciones que se llaman sin sesión son solo las del enlace de la carga y del CMR, y todas piden un enlace aleatorio (uuid) o la reserva aceptada; las herramientas internas (`ve_todo`, `festivos_entre`, `orden_carga_json`…) no las puede llamar un anónimo; la clave de servicio solo se usa en las acciones de Usuarios, con el rol comprobado antes; bucket de archivos privado (25 MB, PDF e imágenes) con enlaces firmados de 60 s; PDFs con `no-store`; `/panel` protegido en el servidor (middleware con `getUser()`).
 - [x] **Arreglado**: los enlaces de los emails (invitación, código de alta, contraseña olvidada) ya no salen de la cabecera Host de la petición sino de una dirección fija (`SITE_URL` o la que da Vercel) → `lib/origen.ts`. Evita el envenenamiento de cabecera Host.

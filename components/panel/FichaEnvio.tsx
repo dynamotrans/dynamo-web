@@ -353,6 +353,14 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
       </div>
 
       {e.estado === 'entregado' && ficha.transportista && !manual && <Valoracion ficha={ficha} hacer={hacer} trabajando={trabajando} />}
+      {e.valoracion_cliente != null && <>
+        <h4 className="modal-section-title">Valoración del cliente</h4>
+        <div className="det-block">
+          <span style={{ color: '#f5b301', fontSize: '1.2rem', letterSpacing: 1 }}>{'★'.repeat(e.valoracion_cliente)}</span><span style={{ color: 'var(--gray-200)', fontSize: '1.2rem', letterSpacing: 1 }}>{'★'.repeat(5 - e.valoracion_cliente)}</span>
+          <span style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', marginLeft: '0.5rem' }}>{e.valoracion_cliente} de 5{e.valoracion_cliente_en ? ` · ${creadoTxt(e.valoracion_cliente_en)}` : ''}</span>
+          {e.valoracion_cliente_comentario && <p style={{ margin: '0.4rem 0 0', fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>«{e.valoracion_cliente_comentario}»</p>}
+        </div>
+      </>}
 
       {!cancelado && <CmrDigital ficha={ficha} hacer={hacer} trabajando={trabajando} />}
 

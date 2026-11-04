@@ -2963,3 +2963,59 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 93. El cliente puntúa al transportista de SU envío entregado ------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  -- El envío entregado de la prueba 68 es de nuestro cliente de prueba.
+  update envios set cliente_id = current_setting('prueba.cliente')::uuid where id = current_setting('prueba.e67')::uuid and not es_manual;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e67')::uuid; r record; begin
+  select * into r from mi_valoracion_envio(e);
+  if not r.puede then raise exception 'FALLO 93 · el cliente no puede valorar su envío entregado'; end if;
+  perform valorar_mi_envio(e, 5::smallint, 'Muy puntuales');
+  perform valorar_mi_envio(e, 4::smallint, 'Puntuales');   -- la cambia dentro de los 30 días
+  begin
+    perform valorar_mi_envio(e, 9::smallint, null);
+    raise exception 'FALLO 93 · admite una nota fuera de 1-5';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  begin
+    perform valorar_mi_envio(gen_random_uuid(), 3::smallint, null);
+    raise exception 'FALLO 93 · valora un envío que no es suyo';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+  begin
+    perform valorar_mi_envio((select id from envios where cliente_id = current_setting('prueba.cliente')::uuid and estado <> 'entregado' limit 1), 3::smallint, null);
+    raise exception 'FALLO 93 · valora un envío sin entregar';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+end $$;
+reset role;
+-- Dynamo no cambia la nota del cliente.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  begin
+    update envios set valoracion_cliente = 1 where id = current_setting('prueba.e67')::uuid;
+    raise exception 'FALLO 93 · Dynamo cambia la nota que puso el cliente';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ begin
+  begin
+    perform valorar_mi_envio(current_setting('prueba.e67')::uuid, 5::smallint, null);
+    raise exception 'FALLO 93 · un transportista se pone nota';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare t uuid := (select transportista_id from envios where id = current_setting('prueba.e67')::uuid); begin
+  if (select valoracion_cliente from envios where id = current_setting('prueba.e67')::uuid) <> 4
+     or (select valoracion_clientes from transportistas where id = t) <> 4 or (select valoracion_clientes_votos from transportistas where id = t) <> 1 then
+    raise exception 'FALLO 93 · la nota o la media del cliente no quedan bien';
+  end if;
+  raise notice 'OK 93 · el cliente puntúa (1-5) su envío entregado y la puede cambiar 30 días; ni Dynamo ni el transportista la tocan';
+end $$;

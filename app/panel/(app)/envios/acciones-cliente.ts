@@ -32,6 +32,16 @@ export async function cancelarMiEnvio(envio: string, motivo: string): Promise<Re
     : 'Envío cancelado, sin ningún coste.' };
 }
 
+// Puntuar al transportista de un envío entregado (1 a 5 estrellas y comentario). Lo
+// comprueba todo la base de datos (valorar_mi_envio): su envío, de Dynamo, entregado.
+export async function valorarMiEnvio(envio: string, nota: number, comentario: string): Promise<Res> {
+  const s = await soloCliente();
+  if (!s) return { ok: false, error: 'Solo el cliente valora su envío.' };
+  const { error } = await s.supabase.rpc('valorar_mi_envio', { p_envio: envio, p_nota: Math.round(nota), p_comentario: comentario.slice(0, 500) });
+  if (error) return { ok: false, error: limpio(error.message) };
+  return { ok: true, aviso: '¡Gracias por tu valoración! Nos ayuda a trabajar con los mejores transportistas.' };
+}
+
 // Envíos MANUALES (con su propio operador): el cliente lleva el estado.
 export async function marcarMiEnvioManual(envio: string, estado: string): Promise<Res> {
   const s = await soloCliente();

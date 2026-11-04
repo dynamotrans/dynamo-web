@@ -103,7 +103,8 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     }
     if (fichaCli) {
       const { data: hit } = await supabase.from('envio_hitos').select('id, hito, cuando').eq('envio_id', fichaCli.id).order('cuando', { ascending: false }).limit(100);
-      fichaCli = { ...fichaCli, hitos: hit ?? [] };
+      const { data: val } = await supabase.rpc('mi_valoracion_envio', { p_envio: fichaCli.id }).maybeSingle();
+      fichaCli = { ...fichaCli, hitos: hit ?? [], valoracion: val ?? null };
     }
   }
   // Etapa C: el TRANSPORTISTA, su ficha de viaje y sus ofertas abiertas.

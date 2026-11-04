@@ -20,6 +20,7 @@ type Flota = { tractoras: number; rigidos: number; remolques: number; adr: boole
 export type TransportistaFila = TransportistaDatos & {
   id: string; codigo: string; nombre_visible: string;
   valoracion_dynamo: number | null; valoracion_dynamo_votos: number;
+  valoracion_clientes?: number | null; valoracion_clientes_votos?: number;
   creado_en: string; modificado_en: string | null;
   flota: Flota; envios: number;
 };
@@ -133,7 +134,7 @@ export default function Transportistas({ filas, error }: { filas: TransportistaF
                   </td>
                   <td>{(() => { const k = principal(t.contactos, 'trafico') ?? principal(t.contactos); return <>{k?.nombre || '—'}<div className="meta">{[telBonito(k?.telefono ?? ''), k?.email].filter(Boolean).join(' · ')}</div>{t.contactos.length > 1 && <div className="meta">+{t.contactos.length - 1} contacto{t.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
                   <td>{t.codigo_bolsa ? <><span className="dtc-mat">{t.codigo_bolsa}</span><div className="meta">{bolsaDe(t.bolsa)}</div></> : t.bolsa ? <span className="meta">{bolsaDe(t.bolsa)} · sin código</span> : '—'}</td>
-                  <td>Dynamo: <Estrellas v={t.valoracion_dynamo} n={t.valoracion_dynamo_votos} /></td>
+                  <td>Dynamo: <Estrellas v={t.valoracion_dynamo} n={t.valoracion_dynamo_votos} /><div className="meta">Clientes: <Estrellas v={t.valoracion_clientes ?? null} n={t.valoracion_clientes_votos ?? 0} /></div></td>
                   <td>{camiones ? <strong>{camiones} {camiones === 1 ? 'camión' : 'camiones'}</strong> : '—'}
                     {f.adr && <> <span className="badge" style={{ background: '#fdecec', color: '#b42318', border: '1px solid #f5b5b5' }}>ADR</span></>}
                     <div className="meta">{t.envios ? `${t.envios} envío${t.envios === 1 ? '' : 's'}` : 'sin envíos aún'}{f.remolques ? ` · ${f.remolques} remolque${f.remolques === 1 ? '' : 's'}` : ''}</div>
@@ -302,6 +303,13 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
             <label>Puntuación interna de Dynamo <span style={{ color: '#b42318', fontWeight: 800 }}>· SOLO ADMIN</span></label>
             <div style={caja}><Estrellas v={fila.valoracion_dynamo} n={fila.valoracion_dynamo_votos} /></div>
             {nota('No se edita: se alimenta de las valoraciones de los envíos entregados.')}
+          </div>
+        )}
+        {fila && (
+          <div style={{ gridColumn: '1/-1' }}>
+            <label>Puntuación de los clientes <span style={{ color: '#b42318', fontWeight: 800 }}>· SOLO ADMIN</span></label>
+            <div style={caja}><Estrellas v={fila.valoracion_clientes ?? null} n={fila.valoracion_clientes_votos ?? 0} /></div>
+            {nota('La ponen los clientes al recibir sus envíos (1 a 5 estrellas). El transportista no la ve.')}
           </div>
         )}
 
