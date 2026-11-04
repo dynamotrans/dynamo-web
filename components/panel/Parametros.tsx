@@ -23,7 +23,7 @@ const antesTxt = (p: ParametroFila) => p.anterior === undefined ? '' : ` (antes:
 const GRUPOS: [string, string, (k: string) => boolean][] = [
   ['clientes', 'Clientes y precios', (k) => k.startsWith('factor_') || k.startsWith('contraoferta_cliente')],
   ['pronto', 'Pronto pago a transportistas', (k) => k.startsWith('pronto_pago') || k.startsWith('plazo_pago')],
-  ['ofertas', 'Transportistas: ofertas, contraofertas, reservas y bolsas', (k) => k.startsWith('oferta') || k.startsWith('reserva') || k.startsWith('bolsa') || k === 'contraoferta_auto_pct'],
+  ['ofertas', 'Transportistas: ofertas, negociación, reservas y bolsas', (k) => k.startsWith('oferta') || k.startsWith('reserva') || k.startsWith('bolsa') || k === 'contraoferta_auto_pct' || k === 'contraoferta_transportista_activa' || k.startsWith('negociacion_')],
   ['almacen', 'Almacenamientos', (k) => k.startsWith('almacen')],
   ['pin', 'PIN de recogida y entrega', (k) => k.startsWith('pin_')],
   ['holded', 'Holded (facturación)', (k) => k.startsWith('holded')],

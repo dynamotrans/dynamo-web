@@ -26,6 +26,12 @@ export default async function PaginaCarga({ params }: { params: Promise<{ token:
     if (e) error = true; else oferta = data;
     // Tablón: otras cargas de Dynamo publicadas en bolsa y libres (solo con este enlace válido).
     if (oferta?.resultado === 'ok') { const { data: o } = await sb.rpc('otras_cargas_publicas', { p_token: token }); otras = (o ?? []) as any[]; }
+    // Negociación del precio: solo si está encendida y la carga cumple los requisitos de
+    // Parámetros (minutos creada, minutos en bolsa, horas para cargar). Si no, sin banda.
+    if (oferta?.resultado === 'ok' && Number(oferta.banda_euros) > 0) {
+      const { data: neg } = await sb.rpc('negociacion_publica', { p_token: token });
+      if (!neg) oferta = { ...oferta, banda_euros: 0 };
+    }
     const id = (await cookies()).get(cookieReserva(token))?.value;
     if (id) {
       const { data: r } = await sb.rpc('carga_aceptada_publica', { p_reserva: id });

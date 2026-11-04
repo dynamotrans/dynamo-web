@@ -10,6 +10,8 @@ set client_min_messages = notice;
 -- con él apagado (si no, el cliente de prueba, sin crédito, no podría ofertar ni asignar).
 -- La prueba 100 lo enciende.
 update parametros set valor = 'false' where clave = 'previo_pago_activo';
+-- Igual con los requisitos de la negociación del transportista (prueba 104): a 0, no se aplican.
+update parametros set valor = '0' where clave in ('negociacion_min_creada_min', 'negociacion_min_bolsa_min', 'negociacion_max_horas_carga');
 
 -- ---- 1. Ninguna tabla de public sin seguridad por filas ------------------------------
 do $$ declare lista text; begin
@@ -3517,3 +3519,39 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 104. Negociación del transportista: interruptor y requisitos ----------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'false' where clave = 'previo_pago_activo';
+do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t uuid := current_setting('prueba.transp')::uuid;
+              e uuid; o uuid; r jsonb; tok uuid; begin
+  update parametros set valor = '45' where clave = 'negociacion_min_creada_min';
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (c, 6, 600, 500, current_date + 1, current_date + 1) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 1, 'carga', '41001', 'Sevilla');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 2, 'descarga', '46001', 'Valencia');
+  update envios set estado = 'programado' where id = e;
+  o := ofertar_envio(e, t, 'email', 500, 30::smallint);
+  select token into tok from envio_ofertas where id = o;
+  -- Recién creada (menos de 45 min): ni se enseña ni se admite otro precio; al ofertado, sí.
+  if negociacion_publica(tok) then raise exception 'FALLO 104 · enseña la negociación de una carga recién creada'; end if;
+  r := reservar_envio(tok);
+  begin
+    r := aceptar_reserva((r->>'reserva_id')::uuid, t, null, 520);
+    raise exception 'FALLO 104 · admite otro precio en una carga recién creada: %', r;
+  exception when insufficient_privilege then null; end;
+  -- Con más de 45 min creada pero cargando dentro de 5 días y máximo 48 h: tampoco.
+  update parametros set valor = '0' where clave = 'negociacion_min_creada_min';
+  update parametros set valor = '48' where clave = 'negociacion_max_horas_carga';
+  update envios set fecha_carga_desde = current_date + 5, fecha_carga_hasta = current_date + 5 where id = e;
+  if negociacion_publica(tok) then raise exception 'FALLO 104 · enseña la negociación faltando más de 48 h'; end if;
+  -- Carga para mañana: sí. Y con el interruptor general apagado, no.
+  update envios set fecha_carga_desde = current_date + 1, fecha_carga_hasta = current_date + 1 where id = e;
+  if not negociacion_publica(tok) then raise exception 'FALLO 104 · no deja negociar una carga urgente sin requisitos pendientes'; end if;
+  update parametros set valor = 'false' where clave = 'contraoferta_transportista_activa';
+  if negociacion_publica(tok) then raise exception 'FALLO 104 · negocia con el interruptor general apagado'; end if;
+  update parametros set valor = 'true' where clave = 'contraoferta_transportista_activa';
+  update parametros set valor = '0' where clave = 'negociacion_max_horas_carga';
+  raise notice 'OK 104 · negociación del transportista: interruptor general y requisitos (minutos creada, minutos en bolsa, horas para cargar)';
+end $$;
