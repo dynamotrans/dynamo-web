@@ -260,3 +260,14 @@ export async function resolverContraofertaCliente(envio: string, aprobar: boolea
   if (r === 'fecha_pasada') return { ok: false, error: 'La fecha de recogida ya ha pasado: no se puede confirmar.' };
   return { ok: true, aviso: aprobar ? 'Contraoferta aprobada: el envío queda programado a su precio.' : 'Contraoferta rechazada: el cliente vuelve a ver nuestro precio para aceptarlo o cancelar.' };
 }
+
+// Cambio pedido por el CLIENTE: Dynamo lo acepta (se aplican las fechas pedidas; la ruta y
+// el precio se cambian en la ficha) o lo rechaza, con una nota para el cliente.
+export async function resolverCambio(envio: string, aceptar: boolean, nota: string): Promise<Res> {
+  const s = await soloDynamo();
+  if (!s) return { ok: false, error: 'Solo Dynamo resuelve los cambios.' };
+  const { data, error } = await s.supabase.rpc('resolver_cambio_envio', { p_envio: envio, p_aceptar: aceptar, p_nota: nota.trim() || null });
+  if (error) return { ok: false, error: traducir(error.message) };
+  if ((data as { resultado: string }).resultado !== 'ok') return { ok: false, error: 'Ese cambio ya no está pendiente.' };
+  return { ok: true, aviso: aceptar ? 'Cambio aceptado. Si pedía cambiar la ruta o afecta al precio, hazlo con «Cambiar ruta» o «Modificar».' : 'Cambio rechazado: el cliente lo ve con tu nota.' };
+}

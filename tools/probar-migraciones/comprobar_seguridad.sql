@@ -3653,3 +3653,68 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t uuid := curre
   if not negociacion_publica((select token from envio_ofertas where id = o)) then raise exception 'FALLO 107 · con los requisitos apagados no deja negociar'; end if;
   raise notice 'OK 107 · negociación: cargas mínimas, una por carga, sin bajadas recientes y máximo por carga (apagados por defecto)';
 end $$;
+
+-- ---- 108. Cambios en un envío: el cliente los pide; sin camión y solo fechas, al momento --
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; f uuid; begin
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (current_setting('prueba.cliente')::uuid, 6, 600, 500, current_date + 4, current_date + 5) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 1, 'carga', '41001', 'Sevilla');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 2, 'descarga', '46001', 'Valencia');
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (current_setting('prueba.cliente')::uuid, 6, 600, 500, current_date + 4, current_date + 5) returning id into f;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (f, 1, 'carga', '41001', 'Sevilla');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (f, 2, 'descarga', '46001', 'Valencia');
+  perform set_config('request.jwt.claim.sub', '', false);
+  update envios set estado = 'programado' where id in (e, f);
+  update envios set transportista_id = current_setting('prueba.transp')::uuid where id = f;   -- f, con camión
+  perform set_config('prueba.e108', e::text, false); perform set_config('prueba.f108', f::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if (pedir_cambio_envio(current_setting('prueba.e108')::uuid, current_date + 7, current_date + 8))->>'resultado' <> 'aplicado' then
+    raise exception 'FALLO 108 · sin camión y solo fechas no se aplica al momento';
+  end if;
+  if (pedir_cambio_envio(current_setting('prueba.f108')::uuid, current_date + 7, current_date + 8))->>'resultado' <> 'pendiente' then
+    raise exception 'FALLO 108 · con camión el cambio no queda pendiente';
+  end if;
+  if (pedir_cambio_envio(current_setting('prueba.f108')::uuid, current_date + 9, null))->>'resultado' <> 'ya_pendiente' then
+    raise exception 'FALLO 108 · admite un segundo cambio con uno pendiente';
+  end if;
+  begin
+    update envios set cambio_cliente_estado = 'aceptado' where id = current_setting('prueba.f108')::uuid;
+    if found then raise exception 'FALLO 108 · el cliente acepta su propio cambio'; end if;
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$ begin
+  if (select fecha_carga_desde from envios where id = current_setting('prueba.e108')::uuid) <> current_date + 7 then
+    raise exception 'FALLO 108 · las fechas no se han cambiado';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if (resolver_cambio_envio(current_setting('prueba.f108')::uuid, true, 'Confirmado con el transportista'))->>'resultado' <> 'ok' then
+    raise exception 'FALLO 108 · Dynamo no puede aceptar el cambio';
+  end if;
+  if (select fecha_carga_desde from envios where id = current_setting('prueba.f108')::uuid) <> current_date + 7 then
+    raise exception 'FALLO 108 · Dynamo acepta y no se aplican las fechas: % %', (select (cambio_cliente, cambio_cliente_estado, fecha_carga_desde)::text from envios where id = current_setting('prueba.f108')::uuid), current_date;
+  end if;
+end $$;
+reset role;
+-- Revisar precio: se enciende al cambiar la ruta (el hito lo pone cambiar_ruta_envio) y se
+-- apaga cuando Dynamo toca el precio.
+select registrar_hito(current_setting('prueba.f108')::uuid, 'ruta_cambiada', null, null, '{}'::jsonb);
+set role authenticated;
+do $$ begin
+  if not (select precio_revisar from envios where id = current_setting('prueba.f108')::uuid) then raise exception 'FALLO 108 · cambiar la ruta no pide revisar el precio'; end if;
+  update envios set importe_cliente = 650 where id = current_setting('prueba.f108')::uuid;
+  if (select precio_revisar from envios where id = current_setting('prueba.f108')::uuid) then raise exception 'FALLO 108 · tocar el precio no apaga «revisar precio»'; end if;
+  raise notice 'OK 108 · cambios: el cliente los pide (sin camión y solo fechas, al momento; si no, pendiente para Dynamo); cambiar la ruta pide revisar el precio';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

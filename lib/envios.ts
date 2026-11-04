@@ -28,6 +28,8 @@ export type EnvioFila = {
   paradas: Parada[];
   solicitud_estado?: string | null;   // envío pedido por el cliente: pendiente_precio / precio_propuesto / …
   pago_previo?: string | null;        // no_requerido / pendiente / pagado / exento (previo pago)
+  cambio_cliente_estado?: string | null;   // el cliente ha pedido un cambio (pendiente / aplicado / …)
+  precio_revisar?: boolean | null;         // la ruta ha cambiado y el precio no se ha revisado
 };
 
 // Envío confirmado esperando el pago previo: no se oferta ni se asigna todavía.

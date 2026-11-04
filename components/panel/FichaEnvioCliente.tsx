@@ -16,6 +16,7 @@ import { euros, fecha, ventana } from '@/lib/formato';
 import { creadoTxt, estadoVisual } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import { responderPrecio, contraofertarPrecio, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
+import { PedirCambio } from './CambiosEnvio';
 import { enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
 
 const HITOS: Record<string, string> = {
@@ -72,6 +73,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
     setTrabajando(null);
     setAviso({ ok: r.ok, txt: (r.ok ? r.aviso : r.error) ?? (r.ok ? 'Hecho.' : 'No se ha podido hacer.') });
     if (r.ok) { setVista('ficha'); refrescar(); }
+    return r.ok;
   }
 
   if (vista === 'condiciones') {
@@ -139,6 +141,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
         </div>
       )}
       {e.pago && e.estado !== 'cancelado' && <PagoCliente e={e} />}
+      {!manual && <PedirCambio e={e} cambio={e.cambio} hacer={hacer} />}
       {enContraoferta && (
         <div className="pt-aviso info"><div><strong>Has propuesto {euros(Number(e.contraoferta?.propuesta ?? 0))}</strong> (sin IVA) frente a nuestros {euros(pc)}. Lo estamos revisando y te contestamos aquí. Si no la aceptamos, volverás a ver nuestro precio para aceptarlo o cancelar sin coste.</div></div>
       )}

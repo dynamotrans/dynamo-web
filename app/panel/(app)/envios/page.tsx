@@ -32,7 +32,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       'fecha_carga_desde, fecha_carga_hasta, fecha_carga_real, fecha_entrega_estimada, descripcion_mercancia, ' +
       'toneladas, metros_lineales, tipo_carga, paletizado, poblacion_origen, codigo_postal_origen, poblacion_destino, codigo_postal_destino, ' +
       'importe_cliente, importe_transportista, precio_acordado_operador, precio_fijado_a_mano, matricula_camion, ' +
-      'matricula_remolque, creado_en, modificado_en, creado_por, solicitud_estado, pago_previo, clientes(nombre_visible, cif), operadores(razon_social), ' +
+      'matricula_remolque, creado_en, modificado_en, creado_por, solicitud_estado, pago_previo, cambio_cliente_estado, precio_revisar, clientes(nombre_visible, cif), operadores(razon_social), ' +
       'envio_paradas(orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)';
     const TERMINADOS = 1000;
     let data: any[] = [];
@@ -115,8 +115,9 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       const { data: val } = await supabase.rpc('mi_valoracion_envio', { p_envio: fichaCli.id }).maybeSingle();
       const { data: pg } = await supabase.rpc('pagos_envio', { p_envio: fichaCli.id }).maybeSingle();
       const { data: cf } = await supabase.rpc('mi_contraoferta', { p_envio: fichaCli.id }).maybeSingle();
+      const { data: cb } = await supabase.rpc('mi_cambio_envio', { p_envio: fichaCli.id }).maybeSingle();
       // Pago con tarjeta: solo si Stripe está conectado (claves en Vercel).
-      fichaCli = { ...fichaCli, hitos: hit ?? [], valoracion: val ?? null, pago: pg ?? null, contraoferta: cf ?? null,
+      fichaCli = { ...fichaCli, hitos: hit ?? [], valoracion: val ?? null, pago: pg ?? null, contraoferta: cf ?? null, cambio: cb ?? null,
         tarjeta: stripeListo(), pagoVuelta: sp.pago ?? null };
     }
   }

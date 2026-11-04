@@ -160,6 +160,8 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
     <Fila href={href} className={urgencia(e) || undefined}>
       <td className="ref">
         <div className="envio-estado envio-estado-top"><span className={`badge badge-${ev.color}`}>{ev.label}</span></div>
+        {dynamo && e.cambio_cliente_estado === 'pendiente' && <div className="meta" style={{ color: '#b45309', fontWeight: 800 }}>Cambio pedido por el cliente</div>}
+        {dynamo && e.precio_revisar && <div className="meta" style={{ color: '#b42318', fontWeight: 800 }}>Revisar precio (ruta cambiada)</div>}
         <strong>#{e.referencia_gx}</strong>
         {e.referencia_cliente && <> <span className="ref-cli-inline">({e.referencia_cliente})</span></>}
         {rol !== 'transportista' && (
