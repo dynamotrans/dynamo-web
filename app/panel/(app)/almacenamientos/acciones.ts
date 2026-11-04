@@ -96,3 +96,46 @@ export async function sitiosDelCliente(clienteId: string): Promise<{ id: string;
     .eq('cliente_id', clienteId).eq('borrado', false).order('nombre_empresa').limit(5000);
   return (data ?? []).map((l: any) => ({ id: l.id, nombre: l.nombre_empresa ?? 'Sitio', linea: [l.direccion, [l.codigo_postal, l.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', ') }));
 }
+
+// ---- El CLIENTE pide (y cambia o cancela, mientras no esté confirmado) su almacenamiento --
+// Solo manda lo que le toca; el precio, el IVA y el pago los pone la base de datos
+// (trigger fn_almacenamientos_campos_cliente), digan lo que digan la pantalla o la API.
+export type PeticionAlm = {
+  almacen_id: string; fecha_entrada: string; fecha_salida: string; num_trailers: number; num_repartos: number;
+  lugar_entrega_id: string | null; descripcion: string; referencia_cliente: string;
+};
+async function cliente() {
+  const s = await sesion();
+  if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return null;
+  return s.supabase;
+}
+export async function pedirAlmacenamiento(id: string | null, d: PeticionAlm): Promise<Res> {
+  const sb = await cliente();
+  if (!sb) return { ok: false, error: 'Tu sesión ha caducado o tu cuenta no está activa.' };
+  if (!d.almacen_id) return { ok: false, error: 'Elige el almacén Dynamo.' };
+  if (!d.fecha_entrada || !d.fecha_salida) return { ok: false, error: 'Pon la fecha de entrada y la de salida.' };
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
+  if (!id && d.fecha_entrada < hoy) return { ok: false, error: 'La fecha de entrada no puede ser anterior a hoy.' };
+  if (d.fecha_salida < d.fecha_entrada) return { ok: false, error: 'La fecha de salida no puede ser anterior a la de entrada.' };
+  if (!(d.num_trailers >= 1 && d.num_trailers <= 10)) return { ok: false, error: 'Entre 1 y 10 tráileres.' };
+  if (!(d.num_repartos >= 0 && d.num_repartos <= 4)) return { ok: false, error: 'Entre 0 y 4 camiones de reparto.' };
+  if (d.num_repartos > 0 && !d.lugar_entrega_id) return { ok: false, error: 'Con reparto urbano hay que elegir la dirección de entrega.' };
+  const fila = {
+    fecha_entrada: d.fecha_entrada, fecha_salida: d.fecha_salida, num_trailers: d.num_trailers, num_repartos: d.num_repartos,
+    lugar_entrega_id: d.num_repartos > 0 ? d.lugar_entrega_id : null,
+    descripcion: d.descripcion.trim().slice(0, 500) || null, referencia_cliente: d.referencia_cliente.trim().slice(0, 80) || null,
+  };
+  const q = id ? sb.from('almacenamientos').update(fila).eq('id', id).eq('estado', 'pendiente_confirmar').select('id, codigo').single()
+               : sb.from('almacenamientos').insert({ ...fila, almacen_id: d.almacen_id }).select('id, codigo').single();
+  const { data, error } = await q;
+  if (error) return { ok: false, error: /0 rows|PGRST116/i.test(error.message) ? 'Ya está confirmado: para cambiarlo, escríbenos.' : traducir(error.message) };
+  return { ok: true, id: data.id, codigo: data.codigo };
+}
+export async function cancelarMiAlmacenamiento(id: string): Promise<Res> {
+  const sb = await cliente();
+  if (!sb) return { ok: false, error: 'Tu sesión ha caducado o tu cuenta no está activa.' };
+  const { data, error } = await sb.from('almacenamientos').update({ estado: 'cancelado' }).eq('id', id).eq('estado', 'pendiente_confirmar').select('id');
+  if (error) return { ok: false, error: traducir(error.message) };
+  if (!data?.length) return { ok: false, error: 'Ya está confirmado: para cancelarlo, escríbenos o llámanos.' };
+  return { ok: true, id };
+}

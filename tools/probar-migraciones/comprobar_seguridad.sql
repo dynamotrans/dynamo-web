@@ -2802,3 +2802,52 @@ do $$ begin
   if not exists (select 1 from vehiculos where id = current_setting('prueba.veh_otro88')::uuid and activo) then raise exception 'FALLO 88 · se ha tocado la flota de otro'; end if;
   raise notice 'OK 88 · el transportista cambia su NIMA, su seguro y su flota; ni lo fiscal, ni la flota de otro, ni un cliente';
 end $$;
+
+-- ---- 89. Almacenamiento pedido por el cliente: el precio y el pago los pone la base -----
+do $$ declare alm uuid := (select id from lugares where es_almacen_dynamo and not borrado limit 1); begin
+  update lugares set disponible = true where id = alm;
+  perform set_config('prueba.alm89', alm::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare a uuid; r record; begin
+  if (select count(*) from almacenes_dynamo_tarifa()) = 0 then raise exception 'FALLO 89 · el cliente no ve los almacenes con su tarifa'; end if;
+  -- Intenta ponerse el precio a 1 €, marcarse como pagado, confirmarlo y escribir notas internas.
+  insert into almacenamientos (almacen_id, fecha_entrada, fecha_salida, num_trailers, num_repartos,
+                               importe_almacenaje, importe_reparto, pago_adelantado, pagado_en, anotaciones, iva_aplicado)
+    values (current_setting('prueba.alm89')::uuid, current_date + 2, current_date + 12, 2, 0,
+            1, 0, false, now(), 'nota mia', 0) returning id into a;
+  select * into r from almacenamientos where id = a;
+  -- 10 días = 2 semanas × 2 tráileres × tarifa del almacén.
+  if r.importe_almacenaje <= 1 or r.pagado_en is not null or r.anotaciones is not null or r.estado <> 'pendiente_confirmar' or r.iva_aplicado = 0 then
+    raise exception 'FALLO 89 · el cliente se pone el precio, el pago, el estado o notas internas (importe %, pagado %)', r.importe_almacenaje, r.pagado_en;
+  end if;
+  -- Luego intenta marcarse como pagado y bajarse el precio sin cambiar nada más.
+  update almacenamientos set pagado_en = now(), importe_almacenaje = 1, anotaciones = 'x' where id = a;
+  select * into r from almacenamientos where id = a;
+  if r.pagado_en is not null or r.importe_almacenaje <= 1 or r.anotaciones is not null then
+    raise exception 'FALLO 89 · el cliente se marca como pagado o se baja el precio después';
+  end if;
+  -- Alarga un día más de dos semanas: el precio se recalcula (3 semanas).
+  update almacenamientos set fecha_salida = current_date + 17 where id = a;
+  if (select importe_almacenaje from almacenamientos where id = a) <= r.importe_almacenaje then
+    raise exception 'FALLO 89 · al alargarlo no se recalcula el precio';
+  end if;
+  -- Y lo cancela él mismo mientras nadie lo ha confirmado.
+  update almacenamientos set estado = 'cancelado' where id = a;
+  if (select estado from almacenamientos where id = a) <> 'cancelado' then raise exception 'FALLO 89 · el cliente no puede cancelar su petición'; end if;
+  perform set_config('prueba.alm89b', a::text, false);
+end $$;
+reset role;
+-- Dynamo sí marca el pago (no pasa por la regla del cliente).
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  update almacenamientos set pagado_en = now() where id = current_setting('prueba.alm89b')::uuid;
+  if (select pagado_en from almacenamientos where id = current_setting('prueba.alm89b')::uuid) is null then
+    raise exception 'FALLO 89 · Dynamo no puede marcar el pago';
+  end if;
+  raise notice 'OK 89 · el cliente pide su almacenamiento: precio, IVA y pago los pone la base; no se marca pagado ni toca notas internas';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

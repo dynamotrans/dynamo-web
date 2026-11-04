@@ -473,3 +473,4 @@ importar, con la cabecera exacta de la plantilla.
 - **"CLIENTE"** en el fichero de Wtransnet es columna interna de la hoja; con discreción comercial
   sale vacía.
 | `20261104090000_transportista_edita_sus_datos.sql` | El transportista cambia su NIMA, su seguro CMR y su flota (camiones y conductores: alta, datos y baja) con funciones de lista cerrada; lo fiscal solo Dynamo. Prueba 88. |
+| `20261104100000_almacenamientos_cliente.sql` | El cliente pide almacenamientos: precio, IVA y pago por adelantado los calcula la base de datos (trigger); no puede marcarse como pagado ni tocar notas internas. `almacenes_dynamo_tarifa()` para su pantalla. Prueba 89. |

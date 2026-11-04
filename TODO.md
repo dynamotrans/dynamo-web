@@ -115,8 +115,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       usados…). «Crédito agotado» y «Facturas vencidas» necesitan la deuda viva (hoy en Holded).
 - [ ] **Almacenamientos, Incidencias y Penalizaciones (pasadas 2026-11-03, solo Dynamo)** — falta: (1) **adjuntos**
       (fotos, GPS/tacógrafo, albaranes) en incidencias y penalizaciones: necesita Supabase Storage con
-      permisos; (2) que el **cliente** las vea y abra incidencias o pida almacenamientos (etapa B, con
-      `mis_penalizaciones()` sin el importe del transportista); (3) ~~**proforma** del almacenamiento sin
+      permisos; (2) ~~que el **cliente** pida almacenamientos~~ (hecho 2026-11-04: los ve, los pide, los cambia o cancela mientras no estén confirmados, y abre su proforma; el precio, el IVA y el pago los pone la base de datos); (3) ~~**proforma** del almacenamiento sin
       crédito y la pestaña «Pendiente de pago»~~ (hecho 2026-11-03; ⚠️ falta que el usuario ponga el **IBAN** en Supabase → `parametros` → `dynamo_iban` (blindado: desde la web no se cambia)); (4) comprobar los **20 km**
       del reparto urbano con Google; (5) avisos D4 (incidencia nueva) y C5/T9 por WhatsApp/email;
       (6) ~~el buscador de envíos de esas pantallas carga los últimos 3.000~~ (hecho 2026-11-03: Dynamo busca en la base de datos al escribir).

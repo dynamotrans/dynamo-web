@@ -40,10 +40,8 @@ export function menuDe(rol: Rol): Bloque[] {
     { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },
     { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
     { slug: 'penalizaciones', titulo: 'Penalizaciones', icono: 'penalizaciones' },
-    ...(dynamo ? [
-      { slug: 'operadores', titulo: 'Transportistas', icono: 'camion' } as Enlace,
-      { slug: 'almacenamientos', titulo: 'Almacenamientos', icono: 'almacenes' } as Enlace,
-    ] : []),
+    ...(dynamo ? [{ slug: 'operadores', titulo: 'Transportistas', icono: 'camion' } as Enlace] : []),
+    { slug: 'almacenamientos', titulo: 'Almacenamientos', icono: 'almacenes' },
     { slug: 'recursos', titulo: 'Recursos', icono: 'recursos' },
   ];
   const bloques: Bloque[] = [{ items: [
