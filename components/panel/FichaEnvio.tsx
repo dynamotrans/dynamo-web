@@ -224,6 +224,9 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
       {!manual && <AvisoCambiosDynamo e={e} hacer={hacer} onModificar={() => setVista('modificar')} />}
       {!manual && <PagoPrevio envio={e} pago={ficha.pago} hacer={hacer}
         libre={!e.transportista_id && (e.estado_asignacion ?? 'sin_asignar') === 'sin_asignar' && !e.publicado_en_bolsa_en} />}
+      {ficha.contraofertas.length > 1 && (
+        <div className="pt-aviso info" style={{ marginBottom: '0.6rem' }}><div><strong>{ficha.contraofertas.length} contraofertas esperando.</strong> La carga sigue abierta: elige la que quieras; al aprobar una (o si otro la acepta al precio ofertado), las demás quedan rechazadas solas.</div></div>
+      )}
       {ficha.contraofertas.map((c) => (
         <div key={c.id} className="modal-warn-box">
           {c.alta_online && (
@@ -235,7 +238,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
           )}
           <strong>{c.alta_online ? 'Pide la carga:' : 'Contraoferta pendiente:'}</strong> {c.transportista ?? 'Un transportista'} acepta la carga por <strong>{euros(c.precio_propuesto)}</strong>
           {c.precio_base != null && <> (ofertada a {euros(c.precio_base)}, {c.precio_propuesto > c.precio_base ? '+' : ''}{euros(c.precio_propuesto - c.precio_base)})</>}.
-          Tiene la carga reservada mientras decides.
+          La carga sigue abierta a otros mientras decides.
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
             <button className="btn-primary" onClick={() => hacer('Aprobando', () => resolverContraoferta(c.id, true))}>Aprobar su precio</button>
             <button className="btn-ghost" style={{ color: '#dc2626' }} onClick={() => hacer('Rechazando', () => resolverContraoferta(c.id, false))}>Rechazar</button>

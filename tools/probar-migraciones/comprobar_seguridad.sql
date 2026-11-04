@@ -3081,10 +3081,12 @@ do $$ declare t record; e record; begin
   if t.bolsa <> 'wtransnet' or t.codigo_bolsa <> '9494' or t.cif <> 'B94949494' then
     raise exception 'FALLO 94 · no guarda la bolsa, el código o el CIF: % % %', t.bolsa, t.codigo_bolsa, t.cif;
   end if;
-  -- Nadie más la coge mientras Dynamo revisa.
-  if (reservar_envio((select token_publico from envios where id = e.id), '10.9.4.2'))->>'resultado' <> 'en_tramite' then
-    raise exception 'FALLO 94 · otro transportista coge la carga mientras se revisa el alta';
+  -- Desde el 2026-11-04 (varias contraofertas a la vez) la carga NO se bloquea mientras
+  -- Dynamo revisa el alta: otro puede reservarla (y, si la acepta, se la lleva).
+  if (reservar_envio((select token_publico from envios where id = e.id), '10.9.4.2'))->>'resultado' <> 'reservada' then
+    raise exception 'FALLO 94 · el alta pendiente sigue bloqueando la carga a los demás';
   end if;
+  perform liberar_reserva((select id from envio_reservas where envio_id = e.id and estado = 'viva'), 'prueba');
 end $$;
 -- Una vez pendiente, la misma reserva no sirve para otra alta.
 set role anon;
@@ -3646,12 +3648,8 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t uuid := curre
   perform resolver_contraoferta((select id from envio_reservas where envio_id = e and estado = 'pendiente_revision'), false);
   if negociacion_publica((select token from envio_ofertas where id = o)) then raise exception 'FALLO 107 · deja una segunda contraoferta con «una por carga»'; end if;
   update parametros set valor = 'false' where clave = 'negociacion_una_por_carga';
-  -- Máximo de contraofertas por carga: con 1, la carga (que ya tiene una) no admite más.
-  update parametros set valor = '1' where clave = 'negociacion_max_contraofertas_carga';
-  if negociacion_publica((select token from envio_ofertas where id = o)) then raise exception 'FALLO 107 · admite contraofertas por encima del máximo de la carga'; end if;
-  update parametros set valor = '0' where clave = 'negociacion_max_contraofertas_carga';
   if not negociacion_publica((select token from envio_ofertas where id = o)) then raise exception 'FALLO 107 · con los requisitos apagados no deja negociar'; end if;
-  raise notice 'OK 107 · negociación: cargas mínimas, una por carga, sin bajadas recientes y máximo por carga (apagados por defecto)';
+  raise notice 'OK 107 · negociación: cargas mínimas y una por carga (apagados por defecto)';
 end $$;
 
 -- ---- 108. Cambios en un envío: el cliente los pide; sin camión y solo fechas, al momento --
@@ -3798,3 +3796,36 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 112. Varias contraofertas a la vez: la carga no se bloquea; al aprobar una, el resto fuera --
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t1 uuid := current_setting('prueba.transp')::uuid; t2 uuid;
+              e uuid; o uuid; tok uuid; r jsonb; r1 uuid; r2 uuid; begin
+  insert into transportistas (razon_social, cif, estado_operativo) values ('Segundo Transp SL', 'B10040040', 'activo') returning id into t2;
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (c, 6, 600, 500, current_date + 1, current_date + 1) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 1, 'carga', '41001', 'Sevilla');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 2, 'descarga', '46001', 'Valencia');
+  update envios set estado = 'programado' where id = e;
+  o := ofertar_envio(e, t1, 'email', 500, 30::smallint);
+  select token into tok from envio_ofertas where id = o;
+  -- Primer transportista: contraoferta a revisión. La carga NO queda bloqueada.
+  r := reservar_envio(tok); r1 := (r->>'reserva_id')::uuid;
+  r := aceptar_reserva(r1, t1, null, 620);
+  if r->>'resultado' <> 'pendiente_revision' then raise exception 'FALLO 112 · la primera contraoferta no va a revisión: %', r; end if;
+  if (oferta_publica(tok))->>'en_tramite' = 'true' then raise exception 'FALLO 112 · una contraoferta pendiente sigue bloqueando la carga'; end if;
+  -- Segundo transportista (con su oferta): puede reservar y contraofertar también.
+  o := ofertar_envio(e, t2, 'email', 500, 30::smallint);
+  r := reservar_envio((select token from envio_ofertas where id = o));
+  if r->>'resultado' <> 'reservada' then raise exception 'FALLO 112 · el segundo no puede reservar: %', r; end if;
+  r2 := (r->>'reserva_id')::uuid;
+  r := aceptar_reserva(r2, t2, null, 610);
+  if r->>'resultado' <> 'pendiente_revision' then raise exception 'FALLO 112 · la segunda contraoferta no va a revisión: %', r; end if;
+  -- Dynamo aprueba la segunda: la primera queda rechazada sola.
+  r := resolver_contraoferta(r2, true);
+  if r->>'resultado' <> 'aceptada' then raise exception 'FALLO 112 · no aprueba la elegida: %', r; end if;
+  if (select estado from envio_reservas where id = r1) <> 'rechazada' then raise exception 'FALLO 112 · la otra contraoferta no queda rechazada'; end if;
+  if (resolver_contraoferta(r1, true))->>'resultado' = 'aceptada' then raise exception 'FALLO 112 · se aprueba otra después de asignada la carga'; end if;
+  raise notice 'OK 112 · contraofertas: varias a la vez sin bloquear la carga; al aprobar una, las demás quedan rechazadas';
+end $$;
