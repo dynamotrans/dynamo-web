@@ -206,8 +206,8 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
           {c.alta_online && (
             <div style={{ marginBottom: '0.5rem' }}>
               <strong style={{ color: '#b42318' }}>Transportista NUEVO, dado de alta online desde el enlace</strong> ({c.alta_online.cif}).
-              {c.alta_online.verificado ? ' Ya está verificado (activo).' : <> Antes de aprobar, <strong>comprueba su CIF, el seguro CMR en vigor y la tarjeta de transporte</strong>, y ponlo como <strong>Activo</strong> en{' '}
-                <a href={`/panel/transportistas?ver=${c.alta_online.id}`} style={{ color: 'var(--purple)', fontWeight: 700 }}>su ficha</a>. Si algo no cuadra, rechaza: la carga vuelve a quedar libre.</>}
+              {c.alta_online.verificado ? ' Ya está verificado (activo).' : <> Solo ha dado su bolsa, código, país, CIF y teléfono. Antes de aprobar, <strong>búscalo en la bolsa de cargas</strong>, completa en{' '}
+                <a href={`/panel/transportistas?ver=${c.alta_online.id}`} style={{ color: 'var(--purple)', fontWeight: 700 }}>su ficha</a> la razón social y lo que quieras desde allí, y ponlo como <strong>Activo</strong>. Si no está en la bolsa o algo no cuadra, rechaza: la carga vuelve a quedar libre.</>}
             </div>
           )}
           <strong>{c.alta_online ? 'Pide la carga:' : 'Contraoferta pendiente:'}</strong> {c.transportista ?? 'Un transportista'} acepta la carga por <strong>{euros(c.precio_propuesto)}</strong>

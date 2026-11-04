@@ -126,10 +126,14 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
     return (
       <div className="stop-screen show">
         <div className="spin spin-lg" />
-        <h1>Estamos verificando tus datos</h1>
-        <p className="sub">Ya estás dado de alta en Dynamo. Antes de confirmarte la carga comprobamos tu <strong>CIF</strong>, tu <strong>seguro CMR</strong> y tu <strong>tarjeta de transporte</strong>. Mientras tanto, la carga sigue <strong>reservada para ti</strong>. <strong>Te contestamos en esta misma pantalla</strong> (en horario de oficina, normalmente en pocos minutos).</p>
-        <p className="sub">Para ir más rápido, mándanos por WhatsApp o email la <strong>póliza del seguro CMR</strong> y la <strong>tarjeta de transporte</strong>.</p>
-        <Dudas texto="Mandar documentos o hablar con Dynamo" />
+        <h1>Estamos verificando tus datos, danos 3 minutos</h1>
+        <p className="sub">Comprobamos tu ficha en la bolsa de cargas y completamos tu alta. Mientras tanto, la carga sigue <strong>reservada para ti</strong>. <strong>Te contestamos en esta misma pantalla.</strong></p>
+        <p className="sub">Si quieres agilizar el alta, escríbenos o llámanos:</p>
+        <div className="contact-btns">
+          <a className="cbtn cbtn-mail" href={`mailto:${MAIL}`}>Email</a>
+          <a className="cbtn cbtn-wa" href={`https://wa.me/${WA}`} target="_blank" rel="noopener">WhatsApp</a>
+          <a className="cbtn cbtn-call" href={`tel:${TEL}`}>Llamar</a>
+        </div>
       </div>
     );
   }
@@ -403,28 +407,26 @@ function Aceptada({ token, c }: { token: string; c: any }) {
 }
 
 // ---- Alta online de un transportista nuevo -------------------------------------------------
-const BOLSAS: [string, string][] = [['wtransnet', 'Wtransnet'], ['teleroute', 'Teleroute'], ['bursa_transport', 'Bursa Transport'], ['123cargo', '123cargo'], ['', 'No tengo bolsa de carga']];
+const BOLSAS: [string, string][] = [['wtransnet', 'Wtransnet'], ['teleroute', 'Teleroute'], ['bursa_transport', 'Bursa Transport'], ['123cargo', '123cargo']];
 function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { token: string; cif: string; precio: number | null; pronto: boolean; texto: string; urgente: boolean; onVolver: () => void }) {
   const router = useRouter();
-  const [d, setD] = useState<AltaTransportista>({ razon_social: '', cif, pais: 'ES', direccion: '', codigo_postal: '', poblacion: '', contacto: '', telefono: '', email: '',
-    bolsa: 'wtransnet', codigo_bolsa: '', seguro_compania: '', seguro_poliza: '', seguro_vence: '', precio, pronto_pago: pronto });
+  const [d, setD] = useState<AltaTransportista>({ bolsa: 'wtransnet', codigo_bolsa: '', pais: 'ES', cif, telefono: '', precio, pronto_pago: pronto });
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
   const set = (k: keyof AltaTransportista, v: string) => setD((x) => ({ ...x, [k]: v }));
   async function enviar() {
     setError(null);
-    if (d.razon_social.trim().length < 2) { setError('Escribe la razón social de tu empresa.'); return; }
+    if (!d.codigo_bolsa.trim()) { setError('Escribe tu código en la bolsa de cargas.'); return; }
     if (!d.cif.trim()) { setError('Escribe tu CIF / NIF.'); return; }
-    if (d.contacto.trim().length < 2) { setError('Escribe el nombre de la persona de contacto.'); return; }
     if (d.telefono.replace(/[^0-9]/g, '').length < 6) { setError('Escribe un teléfono de contacto.'); return; }
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email.trim())) { setError('Escribe un email válido.'); return; }
     setTrabajando(true);
     const x = await darseDeAlta(token, d);
     setTrabajando(false);
     if (x.resultado === 'alta_pendiente') { router.refresh(); return; }
-    const campos: Record<string, string> = { razon_social: 'la razón social', cif: 'el CIF / NIF', pais: 'el país', contacto: 'la persona de contacto', telefono: 'el teléfono', email: 'el email', bolsa: 'la bolsa de carga' };
+    const campos: Record<string, string> = { bolsa: 'la bolsa de cargas', codigo_bolsa: 'tu código en la bolsa', pais: 'el país', cif: 'el CIF / NIF', telefono: 'el teléfono' };
     const msg: Record<string, string> = {
       ya_existe: 'Ese CIF ya está dado de alta en Dynamo: vuelve atrás y acepta la carga con él.',
+      ya_existe_bolsa: 'Ese código de bolsa ya está dado de alta en Dynamo: vuelve atrás y acepta la carga con tu CIF.',
       datos_no_validos: x.error ?? `Revisa ${campos[x.campo ?? ''] ?? 'los datos'}.`,
       reserva_caducada: 'Se ha agotado el tiempo de reserva.', tomada: 'La carga ya la ha cogido otro transportista.',
       oferta_personal: 'Esta oferta es para otra empresa.', demasiados_intentos: 'Demasiados intentos con esta carga. Llámanos al +34 955 225 945.',
@@ -438,42 +440,19 @@ function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { t
       <h1>Date de alta en Dynamo</h1>
       <p className="sub">Te damos de alta y la carga queda <strong>reservada para ti</strong> mientras verificamos tus datos.</p>
       <div className={`reserva-banner${urgente ? ' urgent' : ''}`}><span>Tienes <span className="rb-timer">{texto}</span> para enviar el alta.</span></div>
+      <div className="pago-contado" style={{ textAlign: 'left' }}>Solo trabajamos con transportistas de <strong>bolsas de cargas del grupo Alpega</strong> (Wtransnet, Teleroute…). Por eso solo te pedimos estos datos: <strong>el resto (razón social, dirección, seguro…) lo completamos nosotros desde tu ficha en la bolsa</strong>.</div>
 
-      <div className="sec-title">Tu empresa</div>
-      <label htmlFor="al-rs">Razón social *</label>
-      <input type="text" id="al-rs" value={d.razon_social} maxLength={150} placeholder="Transportes Ejemplo, S.L." onChange={(e) => set('razon_social', e.target.value)} />
       <div className="row2">
+        <div><label htmlFor="al-bolsa">Bolsa de cargas *</label>
+          <select id="al-bolsa" value={d.bolsa} onChange={(e) => set('bolsa', e.target.value)}>{BOLSAS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></div>
+        <div><label htmlFor="al-cbolsa">Tu código en la bolsa *</label><input type="text" id="al-cbolsa" value={d.codigo_bolsa} maxLength={30} placeholder="Ej.: 123456" onChange={(e) => set('codigo_bolsa', e.target.value)} /></div>
+      </div>
+      <div className="row2">
+        <div><label htmlFor="al-pais">País *</label><SelectorPais modo="pais" id="al-pais" valor={d.pais} onCambio={(v) => set('pais', v)} /></div>
         <div><label htmlFor="al-cif">CIF / NIF *</label><input type="text" id="al-cif" value={d.cif} autoCapitalize="characters" placeholder="B12345678" onChange={(e) => set('cif', e.target.value)} /></div>
-        <div><label htmlFor="al-pais">País</label><SelectorPais modo="pais" id="al-pais" valor={d.pais} onCambio={(v) => set('pais', v)} /></div>
       </div>
-      <label htmlFor="al-dir">Dirección</label>
-      <input type="text" id="al-dir" value={d.direccion} placeholder="Calle y número" onChange={(e) => set('direccion', e.target.value)} />
-      <div className="row2">
-        <div><label htmlFor="al-cp">Código postal</label><input type="text" id="al-cp" value={d.codigo_postal} onChange={(e) => set('codigo_postal', e.target.value)} /></div>
-        <div><label htmlFor="al-pob">Población</label><input type="text" id="al-pob" value={d.poblacion} onChange={(e) => set('poblacion', e.target.value)} /></div>
-      </div>
-
-      <div className="sec-title">Contacto de tráfico</div>
-      <label htmlFor="al-con">Nombre y apellidos *</label>
-      <input type="text" id="al-con" value={d.contacto} onChange={(e) => set('contacto', e.target.value)} />
       <label htmlFor="al-tel">Teléfono *</label>
       <CampoTelefono id="al-tel" valor={d.telefono} onCambio={(v) => set('telefono', v)} />
-      <label htmlFor="al-mail">Email *</label>
-      <input type="text" inputMode="email" id="al-mail" value={d.email} autoComplete="email" placeholder="trafico@tuempresa.com" onChange={(e) => set('email', e.target.value)} />
-
-      <div className="sec-title">Bolsa de carga y seguro</div>
-      <div className="row2">
-        <div><label htmlFor="al-bolsa">Bolsa de carga</label>
-          <select id="al-bolsa" value={d.bolsa} onChange={(e) => set('bolsa', e.target.value)}>{BOLSAS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></div>
-        <div><label htmlFor="al-cbolsa">Tu código en la bolsa</label><input type="text" id="al-cbolsa" value={d.codigo_bolsa} disabled={!d.bolsa} onChange={(e) => set('codigo_bolsa', e.target.value)} /></div>
-      </div>
-      <div className="row2">
-        <div><label htmlFor="al-seg">Compañía del seguro CMR</label><input type="text" id="al-seg" value={d.seguro_compania} onChange={(e) => set('seguro_compania', e.target.value)} /></div>
-        <div><label htmlFor="al-pol">Nº de póliza</label><input type="text" id="al-pol" value={d.seguro_poliza} onChange={(e) => set('seguro_poliza', e.target.value)} /></div>
-      </div>
-      <label htmlFor="al-vence">El seguro vence el</label>
-      <input type="date" id="al-vence" value={d.seguro_vence} onChange={(e) => set('seguro_vence', e.target.value)} />
-      <p className="id-hint">Antes de confirmarte la carga verificamos tu <strong>CIF</strong>, el <strong>seguro CMR en vigor</strong> y la <strong>tarjeta de transporte</strong>. Tus datos solo se usan para gestionar los transportes con Dynamo.</p>
 
       {error && <div className="warn" style={{ display: 'block' }}>{error}</div>}
       <button className="btn" onClick={enviar} disabled={trabajando}>{trabajando ? 'Enviando…' : 'Darme de alta y aceptar la carga'}</button>

@@ -3039,14 +3039,20 @@ do $$ declare r jsonb; res uuid; v jsonb; begin
   res := (r->>'reserva_id')::uuid;
   perform set_config('prueba.res94', res::text, false);
   -- Con un CIF que ya existe: no duplica.
-  v := alta_transportista_publica(res, 'Copia SL', 'B-33333333', 'ES', null, null, null, 'Pepe', '+34600000000', 'pepe@copia.es', null, null, null, null, null);
+  v := alta_transportista_publica(res, 'wtransnet', '9494', 'ES', 'B-33333333', '+34600000000');
   if v->>'resultado' <> 'ya_existe' then raise exception 'FALLO 94 · duplica un CIF que ya existe: %', v; end if;
-  -- Con un email que no vale: no.
-  v := alta_transportista_publica(res, 'Nuevo SL', 'B94949494', 'ES', null, null, null, 'Pepe', '+34600000000', 'no-es-email', null, null, null, null, null);
-  if v->>'resultado' <> 'datos_no_validos' then raise exception 'FALLO 94 · admite un email que no vale: %', v; end if;
-  -- Bien: se da de alta y la carga queda pendiente de revisión.
-  v := alta_transportista_publica(res, 'Nuevo Transporte SL', 'B94949494', 'ES', 'C/ Uno 1', '41001', 'Sevilla', 'Pepe Ruiz', '+34 600 000 094', 'Trafico@Nuevo.es',
-                                  'wtransnet', '9494', 'Mapfre', 'P-94', date '2027-01-01', null, false, '10.9.4.1');
+  -- Sin código de bolsa, o con una bolsa que no es del grupo Alpega: no.
+  v := alta_transportista_publica(res, 'wtransnet', '  ', 'ES', 'B94949494', '+34600000000');
+  if v->>'campo' <> 'codigo_bolsa' then raise exception 'FALLO 94 · admite un alta sin código de bolsa: %', v; end if;
+  v := alta_transportista_publica(res, null, '9494', 'ES', 'B94949494', '+34600000000');
+  if v->>'campo' <> 'bolsa' then raise exception 'FALLO 94 · admite un alta sin bolsa de carga: %', v; end if;
+  v := alta_transportista_publica(res, 'otra', '9494', 'ES', 'B94949494', '+34600000000');
+  if v->>'campo' <> 'bolsa' then raise exception 'FALLO 94 · admite una bolsa que no es del grupo Alpega: %', v; end if;
+  -- Sin teléfono: no.
+  v := alta_transportista_publica(res, 'wtransnet', '9494', 'ES', 'B94949494', 'abc');
+  if v->>'campo' <> 'telefono' then raise exception 'FALLO 94 · admite un alta sin teléfono: %', v; end if;
+  -- Bien: se da de alta con los cuatro datos y la carga queda pendiente de revisión.
+  v := alta_transportista_publica(res, 'wtransnet', '9494', 'ES', 'b94949494', '+34 600 000 094', null, false, '10.9.4.1');
   if v->>'resultado' <> 'alta_pendiente' then raise exception 'FALLO 94 · el alta online no queda pendiente: %', v; end if;
 end $$;
 reset role;
@@ -3062,8 +3068,11 @@ do $$ declare t record; e record; begin
   if (select estado from envio_reservas where id = current_setting('prueba.res94')::uuid) <> 'pendiente_revision' then
     raise exception 'FALLO 94 · la reserva no queda pendiente de revisión';
   end if;
-  if not exists (select 1 from contactos where transportista_id = t.id and email = 'trafico@nuevo.es' and es_principal) then
-    raise exception 'FALLO 94 · no guarda su contacto';
+  if not exists (select 1 from contactos where transportista_id = t.id and telefono = '+34600000094' and es_principal) then
+    raise exception 'FALLO 94 · no guarda su teléfono';
+  end if;
+  if t.bolsa <> 'wtransnet' or t.codigo_bolsa <> '9494' or t.cif <> 'B94949494' then
+    raise exception 'FALLO 94 · no guarda la bolsa, el código o el CIF: % % %', t.bolsa, t.codigo_bolsa, t.cif;
   end if;
   -- Nadie más la coge mientras Dynamo revisa.
   if (reservar_envio((select token_publico from envios where id = e.id), '10.9.4.2'))->>'resultado' <> 'en_tramite' then
@@ -3073,7 +3082,7 @@ end $$;
 -- Una vez pendiente, la misma reserva no sirve para otra alta.
 set role anon;
 do $$ declare v jsonb; begin
-  v := alta_transportista_publica(current_setting('prueba.res94')::uuid, 'Otro SL', 'B94000001', 'ES', null, null, null, 'Ana', '+34600000001', 'ana@otro.es', null, null, null, null, null);
+  v := alta_transportista_publica(current_setting('prueba.res94')::uuid, 'teleroute', '1111', 'ES', 'B94000001', '+34600000001');
   if v->>'resultado' <> 'reserva_caducada' then raise exception 'FALLO 94 · una reserva ya usada da otra alta: %', v; end if;
 end $$;
 reset role;

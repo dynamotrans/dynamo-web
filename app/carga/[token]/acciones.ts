@@ -76,12 +76,9 @@ export async function enlaceCmr(token: string): Promise<{ cmr?: string; error?: 
 // ---- Alta online de un transportista nuevo (CIF que no está en Dynamo) --------------------
 // Se crea su ficha y la carga queda reservada para él, PENDIENTE de que Dynamo verifique sus
 // datos (alta_transportista_publica). Solo con enlaces de bolsa y con la reserva viva.
-export type AltaTransportista = {
-  razon_social: string; cif: string; pais: string; direccion: string; codigo_postal: string; poblacion: string;
-  contacto: string; telefono: string; email: string; bolsa: string; codigo_bolsa: string;
-  seguro_compania: string; seguro_poliza: string; seguro_vence: string;
-  precio: number | null; pronto_pago: boolean;
-};
+// Solo transportistas de una bolsa del grupo Alpega: cuatro datos, el resto lo completa
+// Dynamo desde su ficha en la bolsa.
+export type AltaTransportista = { bolsa: string; codigo_bolsa: string; pais: string; cif: string; telefono: string; precio: number | null; pronto_pago: boolean };
 export async function darseDeAlta(token: string, a: AltaTransportista): Promise<{ resultado: string; minimo?: number; maximo?: number; campo?: string; error?: string }> {
   const sb = supabasePublico();
   const almacen = await cookies();
@@ -91,9 +88,7 @@ export async function darseDeAlta(token: string, a: AltaTransportista): Promise<
   const v = validaIdFiscalPais(a.cif, a.pais);
   if (!v || !v.ok) return { resultado: 'datos_no_validos', campo: 'cif', error: v?.msg || 'El CIF / NIF no es válido.' };
   const { data, error } = await sb.rpc('alta_transportista_publica', {
-    p_reserva: reserva, p_razon_social: a.razon_social, p_cif: a.cif, p_pais: a.pais, p_direccion: a.direccion, p_codigo_postal: a.codigo_postal,
-    p_poblacion: a.poblacion, p_contacto: a.contacto, p_telefono: a.telefono, p_email: a.email, p_bolsa: a.bolsa || null, p_codigo_bolsa: a.codigo_bolsa,
-    p_seguro_compania: a.seguro_compania, p_seguro_poliza: a.seguro_poliza, p_seguro_vence: /^\d{4}-\d{2}-\d{2}$/.test(a.seguro_vence) ? a.seguro_vence : null,
+    p_reserva: reserva, p_bolsa: a.bolsa || null, p_codigo_bolsa: a.codigo_bolsa, p_pais: a.pais, p_cif: a.cif, p_telefono: a.telefono,
     p_precio: a.precio, p_pronto_pago: a.pronto_pago, p_ip: ((await headers()).get('x-forwarded-for') ?? '').split(',')[0].trim() || null,
   });
   if (error) return { resultado: 'error', error: ERROR_CONEXION };
