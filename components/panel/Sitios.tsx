@@ -19,11 +19,12 @@ import { principal, CONTACTO_VACIO } from '@/lib/contactos';
 import EditorContactos from './EditorContactos';
 import EditorHorario from './EditorHorario';
 import EjemploAviso from './EjemploAviso';
-import { HORARIO_POR_DEFECTO, validarHorario } from '@/lib/horarios';
+import { HORARIO_POR_DEFECTO, HORARIO_VERANO_POR_DEFECTO, VERANO_GENERICO, MMDD, mmddTxt, validarHorario, type FechasVerano, type GrupoHorario } from '@/lib/horarios';
 
 export type SitioFila = SitioDatos & {
   id: string; codigo: string; creado_en: string; modificado_en: string | null;
   horarios: string | null;   // resumen legible que escribe la base de datos
+  horarios_verano?: string | null;
 };
 export type ClienteSitios = { id: string; nombre: string; cif: string; principal_id: string | null };
 
@@ -40,7 +41,7 @@ const NUEVO: SitioDatos = {
 const IcoEstrella = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>);
 const IcoPin = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>);
 
-export default function Sitios({ filas, clientes, dynamo, error }: { filas: SitioFila[]; clientes: ClienteSitios[]; dynamo: boolean; error: string | null }) {
+export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto }: { filas: SitioFila[]; clientes: ClienteSitios[]; dynamo: boolean; error: string | null; veranoDefecto?: FechasVerano }) {
   const refrescar = useRefrescar();
   const [q, setQ] = useState('');
   const [filtroCliente, setFiltroCliente] = useState('');
@@ -147,6 +148,7 @@ export default function Sitios({ filas, clientes, dynamo, error }: { filas: Siti
                   {dynamo && <td>{cli?.nombre ?? '—'}<div className="meta">{cli?.cif}</div></td>}
                   <td>{f.direccion || '—'}<div className="meta">{[f.codigo_postal, f.poblacion, f.provincia && f.provincia !== f.poblacion ? f.provincia : '', paisDe(f.pais_codigo_iso)].filter(Boolean).join(', ')}</div></td>
                   <td>{f.horarios || '—'}
+                    {f.verano?.activo && f.horarios_verano && <div className="meta" style={{ color: '#b45309' }}>Verano ({mmddTxt(f.verano.desde)} – {mmddTxt(f.verano.hasta)}): {f.horarios_verano}</div>}
                     {(f.requiere_cita || !f.tiene_medios_carga) && <div className="meta" style={{ color: '#b45309', fontWeight: 600 }}>{[f.requiere_cita && 'Con cita previa', !f.tiene_medios_carga && 'Sin medios de carga'].filter(Boolean).join(' · ')}</div>}
                   </td>
                   <td>{(() => { const k = principal(f.contactos); return <>{telBonito(k?.telefono ?? '') || k?.email || '—'}{k?.nombre && <div className="meta">{k.nombre}</div>}{f.contactos.length > 1 && <div className="meta">+{f.contactos.length - 1} contacto{f.contactos.length > 2 ? 's' : ''} más</div>}</>; })()}</td>
@@ -183,7 +185,7 @@ export default function Sitios({ filas, clientes, dynamo, error }: { filas: Siti
       </div>
 
       {ficha && (
-        <FichaSitio fila={ficha.fila} clientes={clientes} dynamo={dynamo}
+        <FichaSitio fila={ficha.fila} clientes={clientes} dynamo={dynamo} veranoDefecto={veranoDefecto}
           onCerrar={() => setFicha(null)}
           onAbrir={(id) => { const f = filas.find((x) => x.id === id); if (f) setFicha({ fila: f }); }}
           onGuardado={() => { setFicha(null); refrescar(); }} />
@@ -194,8 +196,8 @@ export default function Sitios({ filas, clientes, dynamo, error }: { filas: Siti
 
 // La misma ficha sirve para los ALMACENES DYNAMO (como en el mockup: formulario idéntico
 // al de Sitios + disponibilidad y precios propios). `almacen` trae los precios por defecto.
-export function FichaSitio({ fila, clientes, dynamo, almacen, onCerrar, onAbrir, onGuardado }: {
-  fila: SitioFila | null; clientes: ClienteSitios[]; dynamo: boolean;
+export function FichaSitio({ fila, clientes, dynamo, almacen, veranoDefecto = VERANO_GENERICO, onCerrar, onAbrir, onGuardado }: {
+  fila: SitioFila | null; clientes: ClienteSitios[]; dynamo: boolean; veranoDefecto?: FechasVerano;
   almacen?: { precioSemana: number; precioReparto: number };
   onCerrar: () => void; onAbrir: (id: string) => void; onGuardado: () => void;
 }) {
@@ -203,6 +205,9 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, onCerrar, onAbrir,
     const o: any = fila ? {} : { ...NUEVO, cliente_id: clientes.length === 1 ? clientes[0].id : '' };
     if (fila) (Object.keys(NUEVO) as (keyof SitioDatos)[]).forEach((k) => { o[k] = (fila as any)[k] ?? (NUEVO as any)[k]; });
     if (!o.horario?.length) o.horario = HORARIO_POR_DEFECTO;
+    const v = (fila as any)?.verano;
+    o.verano = { activo: !!v?.activo, desde: v?.desde ?? veranoDefecto.desde, hasta: v?.hasta ?? veranoDefecto.hasta,
+                 horario: v?.horario?.length ? v.horario : HORARIO_VERANO_POR_DEFECTO.map((g) => ({ dias: [...g.dias], tramos: g.tramos.map((t) => ({ ...t })) })) };
     if (almacen) o.almacen = (fila as any)?.almacen ?? { disponible: true, precio_almacenamiento_semana: null, precio_reparto: null };
     return o as SitioDatos;
   });
@@ -215,6 +220,7 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, onCerrar, onAbrir,
   const [repetido, setRepetido] = useState<{ id: string; nombre: string } | null>(null);
   const [confirmarBorrado, setConfirmarBorrado] = useState(false);
   const [trabajando, setTrabajando] = useState<string | null>(null);
+  const [tabHorario, setTabHorario] = useState<'general' | 'verano'>('general');
   const set = <K extends keyof SitioDatos>(k: K, v: SitioDatos[K]) => { setD((x) => ({ ...x, [k]: v })); setRepetido(null); };
 
   async function guardar(aunqueRepetido = false) {
@@ -229,7 +235,12 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, onCerrar, onAbrir,
       setError('Empresa, dirección, código postal y población son obligatorios.'); return;
     }
     const malHorario = validarHorario(d.horario);
-    if (malHorario) { setError(malHorario); return; }
+    if (malHorario) { setTabHorario('general'); setError(malHorario); return; }
+    if (d.verano?.activo) {
+      if (!MMDD.test(d.verano.desde) || !MMDD.test(d.verano.hasta)) { setTabHorario('verano'); setError('Pon las fechas del horario de verano.'); return; }
+      const mv = validarHorario(d.verano.horario);
+      if (mv) { setTabHorario('verano'); setError(`Horario de verano: ${mv.charAt(0).toLowerCase()}${mv.slice(1)}`); return; }
+    }
     setTrabajando(fila ? 'Guardando cambios' : `Creando ${que}`);
     const r = await guardarSitio(fila?.id ?? null, datos, aunqueRepetido);
     setTrabajando(null);
@@ -373,7 +384,15 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, onCerrar, onAbrir,
           <SelectorPais id="sitio-pais" valor={d.pais_codigo_iso} onCambio={(v) => set('pais_codigo_iso', v)} />
         </div>
         <div style={{ gridColumn: '1/-1', marginTop: '0.4rem' }} className="ptar-section-head">Horario de carga y descarga {obl}</div>
-        <EditorHorario valor={d.horario} onCambio={(g) => set('horario', g)} />
+        <div className="tabs hor-tabs" style={{ gridColumn: '1/-1', marginBottom: 0 }} role="tablist">
+          <button type="button" role="tab" aria-selected={tabHorario === 'general'} className={`tab${tabHorario === 'general' ? ' active' : ''}`} onClick={() => setTabHorario('general')}>Horario general</button>
+          <button type="button" role="tab" aria-selected={tabHorario === 'verano'} className={`tab${tabHorario === 'verano' ? ' active' : ''}`} onClick={() => setTabHorario('verano')}>
+            Horario de verano{d.verano?.activo ? <span className="badge badge-green" style={{ marginLeft: 6 }}>Activo</span> : null}
+          </button>
+        </div>
+        {tabHorario === 'general'
+          ? <EditorHorario valor={d.horario} onCambio={(g) => set('horario', g)} />
+          : <VeranoSitio v={d.verano!} generico={veranoDefecto} onCambio={(v) => set('verano', v)} />}
         <div style={{ gridColumn: '1/-1', marginTop: '0.4rem' }} className="ptar-section-head">Personas de contacto del sitio</div>
         <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)}
           ayuda="Encargado de almacén, recepción… La primera es la principal (la que sale en la tabla)." />
@@ -391,5 +410,54 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, onCerrar, onAbrir,
       {fila?.id && <Historial tabla="lugares" id={fila.id} />}
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>
+  );
+}
+
+// Pestaña «Horario de verano» de la ficha del sitio: se activa con sus fechas (cada año) y
+// su horario (por defecto lunes a viernes 7:30-15:00). Sin activar, se usa el general todo
+// el año y, al crear un envío en las fechas de verano genéricas, se avisa de revisarlo.
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+function SelectorMMDD({ id, valor, onCambio }: { id: string; valor: string; onCambio: (v: string) => void }) {
+  const [m, d] = MMDD.test(valor) ? [Number(valor.slice(0, 2)), Number(valor.slice(3))] : [6, 1];
+  const poner = (mm: number, dd: number) => onCambio(`${String(mm).padStart(2, '0')}-${String(Math.min(dd, new Date(2024, mm, 0).getDate())).padStart(2, '0')}`);
+  return (
+    <div style={{ display: 'flex', gap: '0.4rem' }}>
+      <select id={id} className="ptar-select" value={d} onChange={(e) => poner(m, Number(e.target.value))} aria-label="Día">
+        {Array.from({ length: new Date(2024, m, 0).getDate() }, (_, i) => i + 1).map((x) => <option key={x} value={x}>{x}</option>)}
+      </select>
+      <select className="ptar-select" value={m} onChange={(e) => poner(Number(e.target.value), d)} aria-label="Mes">
+        {MESES_CORTOS.map((x, i) => <option key={x} value={i + 1}>{x}</option>)}
+      </select>
+    </div>
+  );
+}
+function VeranoSitio({ v, generico, onCambio }: { v: { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] }; generico: FechasVerano;
+  onCambio: (v: { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] }) => void }) {
+  return (
+    <div style={{ gridColumn: '1/-1', display: 'grid', gap: '0.7rem' }}>
+      <div>
+        <label className="ptar-tramp-box" style={{ display: 'inline-flex' }}>
+          <input type="checkbox" className="ptar-switch-input" checked={v.activo} onChange={(e) => onCambio({ ...v, activo: e.target.checked })} aria-label="Este sitio tiene horario de verano" />
+          <span className="ptar-switch" aria-hidden="true" />
+          <span className="ptar-tramp-state" aria-hidden="true"><span className="tramp-off">No</span><span className="tramp-on">Sí</span></span>
+        </label>
+        <span style={{ marginLeft: '0.6rem', fontWeight: 700, color: 'var(--navy)' }}>Este sitio tiene horario de verano</span>
+      </div>
+      {!v.activo ? (
+        <div className="pt-aviso info" style={{ margin: 0 }}><div>
+          Se usa el <strong>horario general todo el año</strong>. Entre el <strong>{mmddTxt(generico.desde)}</strong> y el <strong>{mmddTxt(generico.hasta)}</strong> avisaremos
+          al crear un envío de que muchos almacenes cambian de horario en verano, para que lo revises.
+        </div></div>
+      ) : (
+        <>
+          <div className="ptar-sitio-grid">
+            <div><label htmlFor="ver-desde">Desde</label><SelectorMMDD id="ver-desde" valor={v.desde} onCambio={(x) => onCambio({ ...v, desde: x })} /></div>
+            <div><label htmlFor="ver-hasta">Hasta</label><SelectorMMDD id="ver-hasta" valor={v.hasta} onCambio={(x) => onCambio({ ...v, hasta: x })} /></div>
+          </div>
+          <div style={{ marginTop: '-0.3rem', fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>Se repite cada año. Fuera de esas fechas se usa el horario general.</div>
+          <EditorHorario valor={v.horario} onCambio={(g) => onCambio({ ...v, horario: g })} />
+        </>
+      )}
+    </div>
   );
 }

@@ -8,6 +8,10 @@ export async function guardarParametro(clave: string, valor: unknown): Promise<{
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'admin') return { ok: false, error: 'Solo un administrador cambia los parámetros.' };
   if (valor === undefined) return { ok: false, error: 'Falta el valor.' };
+  // Fechas del verano de los almacenes: mes-día (MM-DD), p. ej. 05-25.
+  if (clave.startsWith('verano_sitios_') && (typeof valor !== 'string' || !/^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/.test(valor))) {
+    return { ok: false, error: 'Pon la fecha como mes-día con dos cifras: por ejemplo 05-25 (25 de mayo).' };
+  }
   const { error, count } = await s.supabase.from('parametros').update({ valor }, { count: 'exact' }).eq('clave', clave);
   if (error) return { ok: false, error: /permission|row-level/i.test(error.message) ? 'No tienes permiso para hacer esto.' : error.message };
   if (!count) return { ok: false, error: 'No existe ese parámetro.' };

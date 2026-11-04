@@ -2,13 +2,14 @@
 
 import { sesion, esGestor } from '@/lib/sesion';
 import type { ContactoDatos } from '@/lib/contactos';
-import { validarHorario, tramosDe, type GrupoHorario } from '@/lib/horarios';
+import { validarHorario, tramosDe, MMDD, type GrupoHorario, type Verano } from '@/lib/horarios';
 import { guardarContactos, validarContactos, sinVacios } from '@/lib/contactosServidor';
 
 export type SitioDatos = {
   cliente_id: string; nombre_empresa: string; tipo: string;
   direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais_codigo_iso: string;
-  horario: GrupoHorario[];        // obligatorio (tabla lugar_horarios)
+  horario: GrupoHorario[];        // obligatorio (tabla lugar_horarios, temporada general)
+  verano?: Verano;                // horario de verano (opcional; temporada verano)
   url_google_maps: string; anotaciones: string;
   requiere_cita: boolean; tiene_medios_carga: boolean;
   contactos: ContactoDatos[];     // personas (tabla contactos, una o varias)
@@ -61,6 +62,11 @@ export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParez
 
   const malHorario = validarHorario(d.horario);
   if (malHorario) return { ok: false, error: malHorario };
+  if (d.verano?.activo) {
+    if (!MMDD.test(d.verano.desde) || !MMDD.test(d.verano.hasta)) return { ok: false, error: 'Pon las fechas del horario de verano (desde y hasta).' };
+    const malV = validarHorario(d.verano.horario);
+    if (malV) return { ok: false, error: `Horario de verano: ${malV.charAt(0).toLowerCase()}${malV.slice(1)}` };
+  }
   const contactos = sinVacios(d.contactos);
   const malContacto = validarContactos(contactos);
   if (malContacto) return { ok: false, error: malContacto };
@@ -101,6 +107,11 @@ export async function guardarSitio(id: string | null, d: SitioDatos, aunqueParez
   // Horario: de una vez (todo o nada). Al crear, sustituye al de por defecto.
   const eh = await s.supabase.rpc('guardar_horario', { p_lugar: lugarId, p_tramos: tramosDe(d.horario) });
   if (eh.error) return { ok: false, error: /se pisan/i.test(eh.error.message) ? 'Hay dos tramos del mismo día que se pisan.' : traducir(eh.error.message) };
+  if (d.verano) {
+    const ev = await s.supabase.rpc('guardar_horario_verano', { p_lugar: lugarId, p_activo: d.verano.activo, p_desde: d.verano.desde, p_hasta: d.verano.hasta,
+      p_tramos: d.verano.activo ? tramosDe(d.verano.horario) : [] });
+    if (ev.error) return { ok: false, error: /se pisan/i.test(ev.error.message) ? 'Horario de verano: hay dos tramos del mismo día que se pisan.' : traducir(ev.error.message) };
+  }
   const e2 = await guardarContactos(s.supabase, { lugar_id: lugarId }, contactos);
   if (e2) return { ok: false, error: traducir(e2) };
   return { ok: true, id: lugarId };

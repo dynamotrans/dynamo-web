@@ -132,7 +132,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
 - [ ] **Horarios de los sitios** (tabla hecha 2026-11-03): (1) rellenarlos con el horario de **Google Places**
       al conectar Maps; (2) ~~editor de horario también en el sitio nuevo de **Nuevo envío**~~ (hecho 2026-11-03; y el contacto del sitio nuevo
       ya se guarda también en las solicitudes y los envíos manuales del cliente); (3) **usarlos**: ~~avisar si la recogida cae en un día que el sitio no abre~~ (hecho 2026-11-04 en el paso 4 de Nuevo envío: rojo si cierra todos los días de carga, ámbar si solo alguno); falta la hora estimada de llegada y avisar si el camión llega
-      con el sitio cerrado (a esa hora, y en la entrega: necesita Google Routes), horario de verano (25 may–15 sep) y festivos. Los tramos de noche (22-06) no caben:
+      con el sitio cerrado (a esa hora, y en la entrega: necesita Google Routes), ~~horario de verano~~ (hecho 2026-11-04: pestaña «Horario de verano» en cada sitio, con fechas y tramos; el aviso del paso 4 usa el de cada día y pide revisar los que no lo tienen) y festivos. Los tramos de noche (22-06) no caben:
       se parten en dos días.
 - [ ] Sitios (hecho 2026-11-03): ~~falta el **ejemplo del aviso** al sitio~~ (hecho 2026-11-03) y
       **enviar de verdad** esos avisos (n8n / Postmark) a los `contactos` con `recibe_avisos`.

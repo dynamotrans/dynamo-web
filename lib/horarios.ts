@@ -72,3 +72,22 @@ export function diasCerrado(abiertos: number[] | null | undefined, dias: string[
   const set = new Set(abiertos);
   return dias.filter((d) => { const w = new Date(`${d}T12:00:00Z`).getUTCDay(); return !set.has(w === 0 ? 7 : w); });
 }
+
+// ---- Horario de verano ---------------------------------------------------------------
+// Fechas 'MM-DD' que se repiten cada año. Las genéricas de Dynamo están en Parámetros
+// (verano_sitios_desde / verano_sitios_hasta); estas son las de reserva si faltan.
+export type Verano = { activo: boolean; desde: string; hasta: string; horario: GrupoHorario[] };
+export type FechasVerano = { desde: string; hasta: string };
+export const VERANO_GENERICO: FechasVerano = { desde: '05-25', hasta: '09-15' };
+// Al activar el de verano, por defecto: lunes a viernes de 7:30 a 15:00.
+export const HORARIO_VERANO_POR_DEFECTO: GrupoHorario[] = [{ dias: [1, 2, 3, 4, 5], tramos: [{ abre: '07:30', cierra: '15:00' }] }];
+export const MMDD = /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+/** '05-25' → '25 de mayo' */
+export const mmddTxt = (x: string) => (MMDD.test(x) ? `${Number(x.slice(3))} de ${MESES[Number(x.slice(0, 2)) - 1]}` : x);
+/** ¿Cae la fecha (AAAA-MM-DD) entre desde y hasta (MM-DD)? Admite que cruce el año. */
+export function enTemporada(fecha: string, desde: string, hasta: string): boolean {
+  if (!MMDD.test(desde) || !MMDD.test(hasta)) return false;
+  const md = fecha.slice(5, 10);
+  return desde <= hasta ? md >= desde && md <= hasta : md >= desde || md <= hasta;
+}

@@ -38,5 +38,5 @@ export default async function PaginaSitios() {
     }
   }
 
-  return <Sitios filas={filas} clientes={clientes} dynamo={dynamo} error={error} />;
+  return <Sitios filas={filas} clientes={clientes} dynamo={dynamo} error={error} veranoDefecto={cargados.veranoDefecto} />;
 }

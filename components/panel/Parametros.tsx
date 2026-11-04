@@ -45,9 +45,10 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Plazo de pago', claves: ['plazo_pago_transportista_dias'] },
     { titulo: 'Pronto pago', claves: ['pronto_pago_encendido', 'pronto_pago_pct', 'pronto_pago_minimo', 'pronto_pago_dias', 'pronto_pago_linea_euros', 'pronto_pago_ventana_dias'] },
   ] },
-  { id: 'operativa', titulo: 'Operativa', intro: 'Recogida, entrega y almacenaje.', subs: [
+  { id: 'operativa', titulo: 'Operativa', intro: 'Recogida, entrega, almacenaje y horarios.', subs: [
     { titulo: 'PIN de recogida y entrega', claves: ['pin_cifras', 'pin_max_intentos', 'pin_orden_obliga', 'pin_ventana_horas_antes', 'pin_ventana_horas_despues'] },
     { titulo: 'Almacenamientos', claves: ['almacen_precio_semana', 'almacen_precio_reparto'] },
+    { titulo: 'Horario de verano de los almacenes', claves: ['verano_sitios_desde', 'verano_sitios_hasta'] },
   ] },
   { id: 'autosusp', titulo: 'Suspensión automática de cuentas', intro: 'Cuándo se suspende sola una cuenta.', subs: [], especial: 'autosusp' },
   { id: 'facturacion', titulo: 'Facturación (Holded)', intro: 'Lo que lleva el fichero que se exporta a Holded.', subs: [

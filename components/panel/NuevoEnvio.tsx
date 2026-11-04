@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { crearEnvio, crearClienteRapido, cambiarRuta, crearSolicitud, crearEnvioManual, diasAbiertosDe, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, crearClienteRapido, cambiarRuta, crearSolicitud, crearEnvioManual, diasAbiertosDe, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { fecha as fmtFecha, euros as eur } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
 import { paisDe } from '@/lib/paises';
@@ -15,7 +15,7 @@ import { NEGOCIACION } from '@/lib/envios';
 import SelectorPais from '@/components/SelectorPais';
 import { TIPOS_LUGAR } from './TipoSitio';
 import EditorHorario from './EditorHorario';
-import { HORARIO_POR_DEFECTO, validarHorario, tramosDe, diasCerrado, type GrupoHorario } from '@/lib/horarios';
+import { HORARIO_POR_DEFECTO, VERANO_GENERICO, validarHorario, tramosDe, enTemporada, mmddTxt, type GrupoHorario } from '@/lib/horarios';
 import CampoTelefono from '@/components/CampoTelefono';
 
 // principal_id: el sitio con la estrella en Sitios (se pone solo como primera recogida).
@@ -162,12 +162,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
   // ---- Paso 4
   const [discrecion, setDiscrecion] = useState(!!be?.discrecion_comercial);
   // Días que abre cada sitio de la agenda que se usa de recogida (se piden al llegar al paso 4).
-  const [abiertosSitio, setAbiertosSitio] = useState<Record<string, number[]>>({});
+  const [abiertosSitio, setAbiertosSitio] = useState<Record<string, HorarioSitioAviso>>({});
+  const [veranoGen, setVeranoGen] = useState(VERANO_GENERICO);
   const idsRecogida = recogidas.map((p) => p.sitio?.id).filter(Boolean).join(',');
   useEffect(() => {
-    if (paso < 3 || !idsRecogida) return;
+    if (paso < 3) return;
     let vivo = true;
-    diasAbiertosDe(idsRecogida.split(',')).then((r) => { if (vivo) setAbiertosSitio(r); }).catch(() => {});
+    diasAbiertosDe(idsRecogida ? idsRecogida.split(',') : []).then((r) => { if (vivo) { setAbiertosSitio(r.sitios); setVeranoGen(r.generico); } }).catch(() => {});
     return () => { vivo = false; };
   }, [paso, idsRecogida]);
   const [enviando, setEnviando] = useState(false);
@@ -330,15 +331,30 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
     while (iso(x) <= (fechaHasta || fecha)) { const k = iso(x); const w = x.getDay(); if (w !== 0 && w !== 6 && !fest.has(k)) out.push(k); x.setDate(x.getDate() + 1); }
     return out;
   })();
+  // Cada día, el horario que toca: el de verano si el sitio lo tiene activo y cae en sus fechas.
+  const diaSemana = (d: string) => { const w = new Date(`${d}T12:00:00Z`).getUTCDay(); return w === 0 ? 7 : w; };
   const recogidasCerradas = recogidas.flatMap((p) => {
-    const abiertos = p.sitio ? abiertosSitio[p.sitio.id] : p.nuevo ? (p.nuevo.horario ?? HORARIO_POR_DEFECTO).flatMap((g) => (g.tramos.length ? g.dias : [])) : null;
-    const cerrados = diasCerrado(abiertos, diasCarga);
-    if (!cerrados || !cerrados.length) return [];
+    const h = p.sitio ? abiertosSitio[p.sitio.id] : null;
+    const nuevos = p.nuevo ? (p.nuevo.horario ?? HORARIO_POR_DEFECTO).flatMap((g) => (g.tramos.length ? g.dias : [])) : null;
+    if (p.sitio && (!h || !h.general.length)) return [];
+    if (!p.sitio && !nuevos?.length) return [];
+    const cerrados = diasCarga.filter((d) => {
+      const abiertos = h ? (h.verano.activo && h.verano.desde && h.verano.hasta && enTemporada(d, h.verano.desde, h.verano.hasta) && h.verano.dias.length ? h.verano.dias : h.general) : nuevos!;
+      return !abiertos.includes(diaSemana(d));
+    });
+    if (!cerrados.length) return [];
     const nombre = p.sitio?.nombre_empresa ?? p.nuevo?.nombre_empresa ?? 'El punto de recogida';
     return [{ nombre, todos: cerrados.length === diasCarga.length, dias: cerrados }];
   });
-  // Verano (25 may – 15 sep): muchos almacenes hacen jornada intensiva.
-  const enVerano = (() => { if (!fecha) return false; const [, m, d] = fecha.split('-').map(Number); return (m > 5 || (m === 5 && d >= 25)) && (m < 9 || (m === 9 && d <= 15)); })();
+  // Verano de los almacenes (fechas genéricas de Dynamo, en Parámetros): los sitios de la
+  // agenda con horario de verano activo lo enseñan; los que no lo tienen, se piden revisar.
+  const enVerano = !!fecha && (enTemporada(fecha, veranoGen.desde, veranoGen.hasta) || enTemporada(fechaHasta || fecha, veranoGen.desde, veranoGen.hasta));
+  const veranoSitios = recogidas.flatMap((p) => {
+    const h = p.sitio ? abiertosSitio[p.sitio.id] : null;
+    const nombre = p.sitio?.nombre_empresa ?? p.nuevo?.nombre_empresa ?? 'El punto de recogida';
+    if (h?.verano.activo && h.verano.desde && h.verano.hasta && fecha && enTemporada(fecha, h.verano.desde, h.verano.hasta)) return [{ nombre, con: true, resumen: h.verano.resumen }];
+    return enVerano ? [{ nombre, con: false, resumen: null }] : [];
+  });
   // Festivo nacional dentro de los días de recogida (con el calendario se puede elegir uno).
   const festivosEnVentana = (() => {
     if (!fecha) return [] as string[];
@@ -356,8 +372,17 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
           <a href="#" style={{ color: 'inherit', fontWeight: 800, textDecoration: 'underline' }} onClick={(ev) => { ev.preventDefault(); setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</a>.
         </div></div>
       )}
-      {enVerano && (
-        <div className="pt-aviso" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoSol /><div><strong>Revisa horarios de verano</strong> de los almacenes: la mayoría hacen <strong>7:00–15:00</strong>.</div></div>
+      {veranoSitios.some((x) => x.con) && (
+        <div className="pt-aviso info" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoSol /><div>
+          <strong>Horario de verano:</strong> {veranoSitios.filter((x) => x.con).map((x) => `${x.nombre}: ${x.resumen ?? 'horario de verano'}`).join(' · ')}.
+        </div></div>
+      )}
+      {enVerano && (veranoSitios.some((x) => !x.con) || !veranoSitios.length) && (
+        <div className="pt-aviso" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoSol /><div>
+          <strong>Revisa horarios de verano</strong>{veranoSitios.some((x) => !x.con) ? <> de {veranoSitios.filter((x) => !x.con).map((x) => x.nombre).join(', ')}</> : ' de los almacenes'}:
+          entre el {mmddTxt(veranoGen.desde)} y el {mmddTxt(veranoGen.hasta)} muchos cambian de horario (la mayoría hacen <strong>7:00–15:00</strong>).
+          {veranoSitios.some((x) => !x.con) && <> Puedes ponerle su horario de verano en Sitios.</>}
+        </div></div>
       )}
       {recogidasCerradas.map((r) => (
         <div key={r.nombre} className={`pt-aviso${r.todos ? ' error' : ''}`} style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoAviso /><div>

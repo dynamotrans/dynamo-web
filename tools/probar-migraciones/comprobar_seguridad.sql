@@ -4162,3 +4162,43 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 119. Horario de verano de los sitios -------------------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare l uuid := current_setting('prueba.lugar_a')::uuid; begin
+  -- Sin activar: el general todo el año.
+  if exists (select 1 from horario_del_dia(l, make_date(2027, 7, 14)) where temporada = 'verano') then
+    raise exception 'FALLO 119 · sin activar, usa un horario de verano';
+  end if;
+  -- Activar sin fechas o sin horario: no.
+  begin perform guardar_horario_verano(l, true, null, '09-15', '[{"dia":1,"abre":"07:30","cierra":"15:00"}]');
+        raise exception 'FALLO 119 · activa el verano sin fechas'; exception when raise_exception then null; end;
+  begin perform guardar_horario_verano(l, true, '05-25', '09-15', '[]');
+        raise exception 'FALLO 119 · activa el verano sin horario'; exception when raise_exception then null; end;
+  -- Activar con L-V 7:30-15:00 del 25-may al 15-sep.
+  perform guardar_horario_verano(l, true, '05-25', '09-15',
+    (select jsonb_agg(jsonb_build_object('dia', d, 'abre', '07:30', 'cierra', '15:00')) from generate_series(1, 5) d));
+  -- Miércoles 14-jul-2027: verano 7:30-15:00. Miércoles 13-oct-2027: el general.
+  if not exists (select 1 from horario_del_dia(l, make_date(2027, 7, 14)) where temporada = 'verano' and abre = '07:30' and cierra = '15:00') then
+    raise exception 'FALLO 119 · en verano no usa el horario de verano';
+  end if;
+  if exists (select 1 from horario_del_dia(l, make_date(2027, 10, 13)) where temporada = 'verano') then
+    raise exception 'FALLO 119 · fuera de verano usa el horario de verano';
+  end if;
+  if (select horarios_verano from lugares where id = l) <> 'L-V 7:30-15:00' then
+    raise exception 'FALLO 119 · el resumen del verano no se escribe: %', (select horarios_verano from lugares where id = l);
+  end if;
+  if (select horarios from lugares where id = l) like '%7:30-15:00%' then
+    raise exception 'FALLO 119 · el verano pisa el resumen del horario general';
+  end if;
+  -- Desactivar: vuelve el general (los tramos de verano se conservan para la próxima vez).
+  perform guardar_horario_verano(l, false, null, null, '[]');
+  if exists (select 1 from horario_del_dia(l, make_date(2027, 7, 14)) where temporada = 'verano') then
+    raise exception 'FALLO 119 · desactivado, sigue usando el de verano';
+  end if;
+  raise notice 'OK 119 · horario de verano: se activa con fechas y tramos, cada día usa el suyo y no pisa el general';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

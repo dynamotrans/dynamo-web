@@ -14,11 +14,11 @@ export default async function PaginaAlmacenes() {
   if (!esDynamo(perfil.rol)) {
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es solo del equipo de Dynamo.</div></div></section>;
   }
-  const [{ filas, error }, par] = await Promise.all([
+  const [{ filas, error, veranoDefecto }, par] = await Promise.all([
     cargarLugares(supabase, true),
     supabase.from('parametros').select('clave, valor').in('clave', ['almacen_precio_semana', 'almacen_precio_reparto']),
   ]);
   const p = new Map((par.data ?? []).map((x) => [x.clave as string, Number(x.valor)]));
-  return <Almacenes filas={filas} error={error}
+  return <Almacenes filas={filas} error={error} veranoDefecto={veranoDefecto}
     precios={{ precioSemana: p.get('almacen_precio_semana') ?? 240, precioReparto: p.get('almacen_precio_reparto') ?? 220 }} />;
 }

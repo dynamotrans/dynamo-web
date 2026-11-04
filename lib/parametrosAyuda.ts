@@ -114,6 +114,12 @@ export const AYUDA: Record<string, Ayuda> = {
   almacen_precio_reparto: { titulo: 'Almacenaje: precio de cada reparto urbano (€)',
     explica: 'Precio sin IVA de cada reparto con camión de 4 m desde el almacén (radio de 20 km), si el almacén no tiene precio propio.',
     ejemplo: (v) => `Con ${v} €: 3 repartos = ${(3 * Number(v)).toLocaleString('es-ES')} € + IVA.` },
+  verano_sitios_desde: { titulo: 'Verano de los almacenes: desde (mes-día)',
+    explica: 'Desde esta fecha, cada año, al crear un envío se avisa de que muchos almacenes cambian de horario en verano (salvo los sitios que ya tienen su horario de verano puesto). Es también la fecha que se propone al activar el horario de verano de un sitio. Formato MM-DD.',
+    ejemplo: (v) => `Con ${v}: un envío que carga el ${v.slice(3)}/${v.slice(0, 2)} o después ya lleva el aviso «Revisa horarios de verano».` },
+  verano_sitios_hasta: { titulo: 'Verano de los almacenes: hasta (mes-día)',
+    explica: 'Hasta esta fecha, cada año. Formato MM-DD.',
+    ejemplo: (v) => `Con ${v}: a partir del día siguiente al ${v.slice(3)}/${v.slice(0, 2)} ya no se avisa.` },
   // ---- PIN de recogida y entrega -------------------------------------------------------
   pin_cifras: { titulo: 'Cifras del PIN',
     explica: 'Cuántas cifras tiene el PIN que da el sitio al conductor para confirmar la carga o la entrega.',

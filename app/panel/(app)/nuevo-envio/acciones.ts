@@ -152,14 +152,28 @@ export async function crearEnvioManual(envio: Omit<EnvioNuevo, 'cliente_id' | 'i
   return { ok: true, referencia_gx: fila?.referencia_gx ?? '' };
 }
 
-// Días de la semana en que abre cada sitio (para avisar si la recogida cae en día cerrado).
-// Solo los sitios que el usuario puede ver: lo filtra la seguridad por filas.
-export async function diasAbiertosDe(ids: string[]): Promise<Record<string, number[]>> {
+// Días de la semana en que abre cada sitio, en su horario general y en el de verano (para
+// avisar si la recogida cae en día cerrado y del horario de verano), y las fechas genéricas
+// del verano de los almacenes (Parámetros). Solo los sitios que el usuario puede ver: lo
+// filtra la seguridad por filas.
+export type HorarioSitioAviso = { general: number[]; verano: { activo: boolean; desde: string | null; hasta: string | null; dias: number[]; resumen: string | null } };
+export async function diasAbiertosDe(ids: string[]): Promise<{ sitios: Record<string, HorarioSitioAviso>; generico: { desde: string; hasta: string } }> {
   const s = await sesion();
   const limpios = [...new Set(ids)].filter((x) => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 20);
-  if (!s?.perfil || !limpios.length) return {};
-  const { data } = await s.supabase.from('lugar_horarios').select('lugar_id, dia_semana').in('lugar_id', limpios);
-  const out: Record<string, number[]> = {};
-  (data ?? []).forEach((r: any) => { (out[r.lugar_id] ??= []).includes(r.dia_semana) || out[r.lugar_id].push(r.dia_semana); });
-  return out;
+  const generico = { desde: '05-25', hasta: '09-15' };
+  if (!s?.perfil) return { sitios: {}, generico };
+  const [{ data: pv }, h, l] = await Promise.all([
+    s.supabase.from('parametros').select('clave, valor').in('clave', ['verano_sitios_desde', 'verano_sitios_hasta']),
+    limpios.length ? s.supabase.from('lugar_horarios').select('lugar_id, temporada, dia_semana').in('lugar_id', limpios) : Promise.resolve({ data: [] as any[] }),
+    limpios.length ? s.supabase.from('lugares').select('id, verano_activo, verano_desde, verano_hasta, horarios_verano').in('id', limpios) : Promise.resolve({ data: [] as any[] }),
+  ]);
+  (pv ?? []).forEach((x: any) => { if (x.clave === 'verano_sitios_desde') generico.desde = x.valor; else generico.hasta = x.valor; });
+  const sitios: Record<string, HorarioSitioAviso> = {};
+  (l.data ?? []).forEach((x: any) => { sitios[x.id] = { general: [], verano: { activo: !!x.verano_activo, desde: x.verano_desde, hasta: x.verano_hasta, dias: [], resumen: x.horarios_verano } }; });
+  (h.data ?? []).forEach((r: any) => {
+    const x = sitios[r.lugar_id]; if (!x) return;
+    const lista = r.temporada === 'verano' ? x.verano.dias : x.general;
+    if (!lista.includes(r.dia_semana)) lista.push(r.dia_semana);
+  });
+  return { sitios, generico };
 }
