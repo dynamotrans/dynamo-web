@@ -3677,14 +3677,22 @@ do $$ begin
   if (pedir_cambio_envio(current_setting('prueba.e108')::uuid, current_date + 7, current_date + 8))->>'resultado' <> 'aplicado' then
     raise exception 'FALLO 108 · sin camión y solo fechas no se aplica al momento';
   end if;
-  if (pedir_cambio_envio(current_setting('prueba.f108')::uuid, current_date + 7, current_date + 8))->>'resultado' <> 'pendiente' then
-    raise exception 'FALLO 108 · con camión el cambio no queda pendiente';
+  -- Con camión no se modifica desde la plataforma: hay que llamar (migración cambio_con_camion_llamar).
+  if (pedir_cambio_envio(current_setting('prueba.f108')::uuid, current_date + 7, current_date + 8))->>'resultado' <> 'con_camion' then
+    raise exception 'FALLO 108 · con camión deja pedir el cambio en vez de mandar a llamar';
   end if;
-  if (pedir_cambio_envio(current_setting('prueba.f108')::uuid, current_date + 9, null))->>'resultado' <> 'ya_pendiente' then
+  if (select cambio_cliente_estado from envios where id = current_setting('prueba.f108')::uuid) is not null then
+    raise exception 'FALLO 108 · con camión el cambio queda guardado';
+  end if;
+  -- Sin camión y pidiendo algo más que fechas: pendiente para Dynamo; no admite un segundo.
+  if (pedir_cambio_envio(current_setting('prueba.e108')::uuid, null, null, 'Descarga en Getafe'))->>'resultado' <> 'pendiente' then
+    raise exception 'FALLO 108 · sin camión, un cambio de ruta no queda pendiente';
+  end if;
+  if (pedir_cambio_envio(current_setting('prueba.e108')::uuid, current_date + 9, null))->>'resultado' <> 'ya_pendiente' then
     raise exception 'FALLO 108 · admite un segundo cambio con uno pendiente';
   end if;
   begin
-    update envios set cambio_cliente_estado = 'aceptado' where id = current_setting('prueba.f108')::uuid;
+    update envios set cambio_cliente_estado = 'aceptado' where id = current_setting('prueba.e108')::uuid;
     if found then raise exception 'FALLO 108 · el cliente acepta su propio cambio'; end if;
   exception when insufficient_privilege then null; end;
 end $$;
@@ -3697,11 +3705,11 @@ end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
 set role authenticated;
 do $$ begin
-  if (resolver_cambio_envio(current_setting('prueba.f108')::uuid, true, 'Confirmado con el transportista'))->>'resultado' <> 'ok' then
+  if (resolver_cambio_envio(current_setting('prueba.e108')::uuid, true, 'Hecho'))->>'resultado' <> 'ok' then
     raise exception 'FALLO 108 · Dynamo no puede aceptar el cambio';
   end if;
-  if (select fecha_carga_desde from envios where id = current_setting('prueba.f108')::uuid) <> current_date + 7 then
-    raise exception 'FALLO 108 · Dynamo acepta y no se aplican las fechas: % %', (select (cambio_cliente, cambio_cliente_estado, fecha_carga_desde)::text from envios where id = current_setting('prueba.f108')::uuid), current_date;
+  if (select cambio_cliente_estado from envios where id = current_setting('prueba.e108')::uuid) <> 'aceptado' then
+    raise exception 'FALLO 108 · Dynamo acepta y no queda aceptado';
   end if;
 end $$;
 reset role;
@@ -3713,7 +3721,7 @@ do $$ begin
   if not (select precio_revisar from envios where id = current_setting('prueba.f108')::uuid) then raise exception 'FALLO 108 · cambiar la ruta no pide revisar el precio'; end if;
   update envios set importe_cliente = 650 where id = current_setting('prueba.f108')::uuid;
   if (select precio_revisar from envios where id = current_setting('prueba.f108')::uuid) then raise exception 'FALLO 108 · tocar el precio no apaga «revisar precio»'; end if;
-  raise notice 'OK 108 · cambios: el cliente los pide (sin camión y solo fechas, al momento; si no, pendiente para Dynamo); cambiar la ruta pide revisar el precio';
+  raise notice 'OK 108 · cambios: sin camión y solo fechas, al momento; sin camión y otra cosa, pendiente para Dynamo; con camión, no (a llamar); cambiar la ruta pide revisar el precio';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);

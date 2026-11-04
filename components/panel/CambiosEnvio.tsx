@@ -3,8 +3,12 @@
 // Cambios en un envío ya confirmado.
 //  · AvisoCambiosDynamo: en la ficha de Dynamo, «revisar precio» tras cambiar la ruta y el
 //    cambio que ha pedido el cliente (aceptar / rechazar con nota).
-//  · PedirCambio: en la ficha del cliente, el botón y el formulario para pedirlo.
+//  · PedirCambio: en la ficha del cliente, el botón y el formulario para pedirlo (solo sin
+//    camión asignado). Con camión, o con el envío en marcha: «Necesito cambiar algo» abre
+//    LlamarCambio, la ventana que le pide que nos llame urgente.
 import { useState } from 'react';
+import Modal from './Modal';
+import { CONTACTO } from '@/lib/atencion';
 import { fecha, ventana } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
 import { resolverCambio } from '@/app/panel/(app)/envios/acciones';
@@ -45,7 +49,7 @@ export function AvisoCambiosDynamo({ e, hacer, onModificar }: { e: any; hacer: H
   );
 }
 
-export function PedirCambio({ e, cambio, hacer }: { e: any; cambio: any; hacer: Hacer }) {
+export function PedirCambio({ e, cambio, hacer, onLlamar }: { e: any; cambio: any; hacer: Hacer; onLlamar: () => void }) {
   const [abierto, setAbierto] = useState(false);
   const [desde, setDesde] = useState(e.fecha_carga_desde ?? '');
   const [hasta, setHasta] = useState(e.fecha_carga_hasta ?? e.fecha_carga_desde ?? '');
@@ -60,6 +64,16 @@ export function PedirCambio({ e, cambio, hacer }: { e: any; cambio: any; hacer: 
       Tu último cambio ha sido <strong>{cambio.estado === 'aceptado' ? 'aceptado' : 'rechazado'}</strong>.{cambio.nota ? <> «{cambio.nota}»</> : null}
     </div></div>
   );
+  // Con camión asignado o el envío ya en marcha: no se modifica aquí, hay que llamar.
+  const enMarcha = ['hacia_la_carga', 'cargando', 'en_ruta'].includes(e.estado);
+  if ((cambio.modificable && cambio.con_camion) || enMarcha) {
+    return (
+      <>
+        {respuesta}
+        <div style={{ marginBottom: '0.8rem' }}><button className="btn-secondary" onClick={onLlamar}>Necesito cambiar algo</button></div>
+      </>
+    );
+  }
   if (!cambio.modificable) return respuesta || null;
   return (
     <>
@@ -70,9 +84,7 @@ export function PedirCambio({ e, cambio, hacer }: { e: any; cambio: any; hacer: 
         <div className="det-block" style={{ marginBottom: '0.8rem' }}>
           <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: '0.4rem' }}>Pedir un cambio</div>
           <div className="pt-aviso" style={{ marginBottom: '0.6rem' }}><div>
-            {cambio.con_camion
-              ? <>Tu envío <strong>ya tiene camión</strong>: revisamos el cambio con el transportista antes de confirmarlo.</>
-              : <>Aún no tiene camión: si solo cambias las <strong>fechas</strong>, se aplica al momento y sin coste. Si pides otra cosa, lo revisamos (el precio puede cambiar).</>}
+            Aún no tiene camión: si solo cambias las <strong>fechas</strong>, se aplica al momento y sin coste. Si pides otra cosa, lo revisamos (el precio puede cambiar).
           </div></div>
           <div className="ptar-sitio-grid">
             <div><label htmlFor="pc-desde">Cargar desde</label><input id="pc-desde" type="date" min={manana} value={desde} onChange={(ev) => setDesde(ev.target.value)} /></div>
@@ -90,5 +102,45 @@ export function PedirCambio({ e, cambio, hacer }: { e: any; cambio: any; hacer: 
         </div>
       )}
     </>
+  );
+}
+
+// Ventana «llámanos»: el envío ya tiene camión (o va en marcha) y no se puede modificar desde
+// aquí. Dynamo lo contrasta con el conductor; si no es viable, se cancela y se reasigna camión.
+export function LlamarCambio({ e, onVolver }: { e: any; onVolver: () => void }) {
+  const ref = `#${e.referencia_gx}`;
+  const corte = e.corte ? new Date(e.corte) : null;
+  const dentro = corte ? Date.now() < corte.getTime() : null;
+  const corteTxt = corte ? corte.toLocaleString('es-ES', { timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : null;
+  const msg = `URGENTE: necesito cambiar el envío ${ref}${e.referencia_cliente ? ` (mi ref. ${e.referencia_cliente})` : ''}. El cambio es: `;
+  const btn = (href: string, txt: string, bg: string, nueva = false) => (
+    <a href={href} target={nueva ? '_blank' : undefined} rel={nueva ? 'noopener' : undefined}
+      style={{ background: bg, color: '#fff', fontWeight: 800, borderRadius: 8, padding: '0.6rem 1rem', textDecoration: 'none', textAlign: 'center', flex: '1 1 160px' }}>{txt}</a>
+  );
+  return (
+    <Modal abierto onCerrar={onVolver} titulo={`Cambiar el envío ${ref}`}
+      pie={<button className="btn-ghost" onClick={onVolver}>Volver al envío</button>}>
+      <div className="modal-warn-box">
+        <strong style={{ color: '#b42318' }}>{['hacia_la_carga', 'cargando', 'en_ruta'].includes(e.estado) ? 'Tu envío ya está en marcha' : 'Tu envío ya tiene camión asignado'}: no se puede modificar desde la plataforma.</strong>
+        <div style={{ marginTop: '0.35rem' }}>Si necesitas cambiar algo (fechas, horario, dirección, mercancía…), <strong>llámanos URGENTE</strong>: cuanto antes lo sepamos, más fácil es arreglarlo.</div>
+      </div>
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', margin: '0.9rem 0' }}>
+        {btn(CONTACTO.telHref, 'Llamar ahora', '#dc2626')}
+        {btn(`${CONTACTO.waHref}?text=${encodeURIComponent(msg)}`, 'WhatsApp', '#16a34a', true)}
+        {btn(`mailto:${CONTACTO.email}?subject=${encodeURIComponent(`URGENTE · Cambio en el envío ${ref}`)}&body=${encodeURIComponent(msg)}`, 'Email', 'var(--purple)')}
+      </div>
+      <div className="meta" style={{ margin: '-0.4rem 0 0.9rem' }}>Teléfono {CONTACTO.telefono} · WhatsApp {CONTACTO.whatsapp} · {CONTACTO.email}</div>
+      <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: '0.3rem' }}>Qué pasa cuando nos llamas</div>
+      <ol style={{ margin: 0, paddingLeft: '1.2rem', lineHeight: 1.55, color: 'var(--gray-700)' }}>
+        <li>Lo <strong>comprobamos con el conductor</strong> al momento.</li>
+        <li>Si el cambio es posible, lo hacemos nosotros. <strong>Modificar no tiene coste.</strong> (Si cambia el viaje, el precio se recalcula.)</li>
+        <li>Si no es posible, hay que <strong>cancelarle la carga a ese camión</strong> y buscar otro. Esa cancelación sigue las reglas de siempre:
+          {corteTxt
+            ? <> gratis hasta el <strong>{corteTxt}</strong>{dentro === true ? <> (<span style={{ color: '#0f6b3a', fontWeight: 700 }}>aún estás a tiempo</span>)</> : dentro === false ? <> (<span style={{ color: '#b42318', fontWeight: 700 }}>ese plazo ya ha pasado</span>)</> : null}; después, puede conllevar el <strong>coste del servicio completo</strong>.</>
+            : <> gratis hasta las 9:00 del día hábil anterior a la carga; después, puede conllevar el <strong>coste del servicio completo</strong>.</>}
+        </li>
+        <li>Las cancelaciones fuera de plazo <strong>cuentan</strong>: si se repiten, la cuenta puede quedar suspendida.</li>
+      </ol>
+    </Modal>
   );
 }

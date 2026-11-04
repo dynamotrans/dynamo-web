@@ -73,7 +73,7 @@ export async function contraofertarPrecio(envio: string, importe: number): Promi
 }
 
 // El cliente pide un cambio en su envío confirmado. Sin camión y solo fechas: al momento.
-// Con camión, o si pide algo más (ruta, mercancía…): queda pendiente para Dynamo.
+// Sin camión y algo más (ruta, mercancía…): pendiente para Dynamo. Con camión: no, a llamar.
 export async function pedirCambio(envio: string, desde: string, hasta: string, detalle: string): Promise<Res> {
   const s = await soloCliente();
   if (!s) return { ok: false, error: 'Solo el cliente pide cambios en su envío.' };
@@ -83,11 +83,12 @@ export async function pedirCambio(envio: string, desde: string, hasta: string, d
   const ERR: Record<string, string> = {
     envio_manual: 'Es un envío con tu propio transportista: cámbialo tú directamente.',
     no_modificable: 'El envío ya está en marcha: para cambiar algo, llámanos al +34 955 225 945.',
+    con_camion: 'Tu envío ya tiene camión asignado: no se puede modificar desde aquí. Llámanos URGENTE al +34 955 225 945 y lo vemos con el conductor.',
     ya_pendiente: 'Ya tienes un cambio pendiente en este envío: espera a que te contestemos.',
     fechas_no_validas: 'Revisa las fechas: a partir de mañana, la segunda no antes que la primera y como mucho a 6 meses.',
     sin_cambios: 'No has cambiado nada.', detalle_largo: 'El texto es demasiado largo (máximo 1.000 caracteres).',
   };
   if (r === 'aplicado') return { ok: true, aviso: 'Fechas cambiadas. Como aún no tiene camión, el cambio es inmediato y sin coste.' };
-  if (r === 'pendiente') return { ok: true, aviso: 'Hemos recibido tu cambio. Lo revisamos (y, si ya hay camión, lo confirmamos con el transportista) y te contestamos aquí.' };
+  if (r === 'pendiente') return { ok: true, aviso: 'Hemos recibido tu cambio. Lo revisamos y te contestamos aquí.' };
   return { ok: false, error: ERR[r] ?? r };
 }

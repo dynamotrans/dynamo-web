@@ -16,7 +16,7 @@ import { euros, fecha, ventana } from '@/lib/formato';
 import { creadoTxt, estadoVisual } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import { responderPrecio, contraofertarPrecio, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
-import { PedirCambio } from './CambiosEnvio';
+import { PedirCambio, LlamarCambio } from './CambiosEnvio';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
 import Historial from './Historial';
 import { enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
@@ -49,7 +49,7 @@ const Pend = () => <span style={{ color: 'var(--gray-500)', fontStyle: 'italic',
 export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHref: string }) {
   const router = useRouter();
   const refrescar = useRefrescar();
-  const [vista, setVista] = useState<'ficha' | 'cancelar' | 'condiciones'>('ficha');
+  const [vista, setVista] = useState<'ficha' | 'cancelar' | 'condiciones' | 'llamar'>('ficha');
   const [aviso, setAviso] = useState<{ ok: boolean; txt: string } | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [acepto, setAcepto] = useState(false);
@@ -86,6 +86,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
       </Modal>
     );
   }
+  if (vista === 'llamar') return <LlamarCambio e={e} onVolver={() => setVista('ficha')} />;
   if (vista === 'cancelar') {
     return (
       <Modal abierto onCerrar={() => setVista('ficha')} titulo={`Cancelar envío #${e.referencia_gx}`} icono={<I d={ICO.aviso} />}
@@ -143,7 +144,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
         </div>
       )}
       {e.pago && e.estado !== 'cancelado' && <PagoCliente e={e} />}
-      {!manual && <PedirCambio e={e} cambio={e.cambio} hacer={hacer} />}
+      {!manual && <PedirCambio e={e} cambio={e.cambio} hacer={hacer} onLlamar={() => setVista('llamar')} />}
       {!manual && ['cargando', 'en_ruta'].includes(e.estado) && <AvisoSiniestro quien="cliente" incidenciaHref={`/panel/incidencias?nueva=${e.id}&tipo=siniestro`} />}
       {enContraoferta && (
         <div className="pt-aviso info"><div><strong>Has propuesto {euros(Number(e.contraoferta?.propuesta ?? 0))}</strong> (sin IVA) frente a nuestros {euros(pc)}. Lo estamos revisando y te contestamos aquí. Si no la aceptamos, volverás a ver nuestro precio para aceptarlo o cancelar sin coste.</div></div>
