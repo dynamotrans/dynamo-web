@@ -392,6 +392,19 @@ que cada pantalla esté pasada a datos reales (patrón estrangulador).
 
 Registro automático de sesiones. La entrada más reciente va arriba.
 
+### 2026-11-04 — Claude Code web (nube)
+
+> **Repaso de seguridad + lo que faltaba del grupo 1, todo en `pruebas`.** `main` sin tocar. El arnés pasa **90 comprobaciones**. Último push: **`88f5af5`** (más esta bitácora).
+
+- **Repaso de seguridad**: los enlaces de los emails salen de una dirección fija (`SITE_URL` o la de Vercel), no de la cabecera Host; `import 'server-only'` en la clave de servicio. Lo pendiente, en `PRODUCCION.md` **punto 15** (lista para el lanzamiento) y en `TODO.md`.
+- **Recursos** pasada a la plataforma: CMR y carta de porte en blanco (PDF desde el servidor), mapa de Europa y medidas de los camiones (regla 0-quinquies: nueva copia en `components/panel/Recursos.tsx`).
+- **El transportista edita lo suyo** en Mi cuenta: NIMA, seguro CMR y su flota (camiones y conductores: alta, datos y baja), con funciones de lista cerrada (`mi_*`, prueba 88). Lo fiscal y la bolsa, solo Dynamo.
+- **El cliente pide almacenamientos** desde su panel (ve, pide, cambia o cancela mientras no esté confirmado, abre su proforma). 🐛 **Hueco cerrado**: antes, con su sesión, podía escribirse el precio o marcarse como pagado; ahora precio, IVA y pago los pone la base de datos (prueba 89).
+- **Nuevo envío**: aviso si la recogida cae en un día que el sitio no abre según su horario.
+- **Archivos sueltos** del almacén (subidas cortadas): el Admin Master los busca y borra desde Modo mantenimiento (prueba 90; necesita la clave de servicio).
+
+**Necesita al usuario**: decidir **quién puede cambiar el email de una cuenta** (propuesta: solo el Admin Master) · si quiere **Cubicador** y **Comparativas y ahorros** (ocultas en el mockup) · qué poner en el **Dashboard admin** · botón «Subir documento» en Recursos · lo de siempre (Postmark, clave de servicio, IBAN, Google Maps, Holded, tarifa, 2FA).
+
 ### 2026-11-03 (continuación, tarde) — Claude Code web (nube)
 
 > **Seguimos con la lista sin parar (regla 0-sexies), todo en `pruebas`.** `main` sin tocar. Cada subida en verde (Supabase + Vercel). El arnés pasa **83 comprobaciones**. Último push: **`ce0c5f2`**.

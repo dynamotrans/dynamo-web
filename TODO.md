@@ -98,8 +98,7 @@ Pendientes del proyecto. Claude lee este archivo al empezar cada sesión y lo ac
       (máx. 5), almacenamientos, logo de operadores y documentos del alta. Falta: (1) **probar la primera
       subida real** en pruebas (aquí no se alcanza Supabase); (2) que el cliente suba fotos a sus incidencias y
       el transportista su documentación (etapas B y C: la base de datos ya lo permite en su carpeta `u/<id>/`);
-      (3) ~~que el registro público suba la hoja CIF y el DNI~~ (hecho 2026-11-03: al entrar con la cuenta pendiente, el aviso deja subirlos); (4) limpiar ficheros huérfanos si una subida se
-      corta antes de registrar su fila; (5) ~~guardar dentro del envío el PDF de la orden de carga y el CMR~~
+      (3) ~~que el registro público suba la hoja CIF y el DNI~~ (hecho 2026-11-03: al entrar con la cuenta pendiente, el aviso deja subirlos); (4) ~~limpiar ficheros huérfanos~~ (hecho 2026-11-04: Modo mantenimiento → «Archivos sueltos», solo Admin Master; necesita la clave de servicio en Vercel); (5) ~~guardar dentro del envío el PDF de la orden de carga y el CMR~~
       (hecho 2026-11-03: «Guardar copia…» en Documentos de la ficha, con huella sha256; falta hacerlo solo al mandarla por email, con Postmark).
 - [ ] **Operadores, Mi cuenta, Altas pendientes, Mantenimiento y Parámetros (pasados 2026-11-03)** — falta:
       (1) ~~logo del operador en su orden de transporte~~ (hecho 2026-11-03; PNG o JPG); (2) ~~que el **registro público** guarde en los metadatos de Supabase Auth lo
