@@ -83,12 +83,6 @@ export default function Recursos({ subidos = [], gestor = false }: { subidos?: R
           <button type="button" className="btn-secondary" onClick={() => abrir('/panel/recursos/carta-de-porte')}>Ver / descargar (PDF)</button>
         </div>
         <div className="rec-card">
-          {svg(<><circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" /></>)}
-          <h3>Mapa de Europa con regiones - provincias</h3>
-          <p>Mapa de los países en los que trabajamos.</p>
-          <button type="button" className="btn-secondary" onClick={() => abrir('/images/europa-map.svg')}>Ver / descargar (SVG)</button>
-        </div>
-        <div className="rec-card">
           {svg(<><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></>)}
           <h3>Medidas de los camiones</h3>
           <p>Medidas y capacidades de cada tipo de camión (metros, palés y peso máximo).</p>
