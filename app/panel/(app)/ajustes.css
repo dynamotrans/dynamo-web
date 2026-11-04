@@ -60,3 +60,39 @@ a.sidebar-brand { text-decoration: none; color: inherit; }
 .valora-estrellas button.on { color: #f5b301; }
 .valora-estrellas button:hover { transform: scale(1.12); }
 .valora-estrellas button:focus-visible { outline: 2px solid var(--purple); border-radius: 6px; }
+
+/* ============================================
+   «VER COMO» (selector de vista del equipo de Dynamo)
+   Gestión interna morado · Cliente azul · Transportista naranja
+============================================ */
+.vista-ico { flex: none; width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; }
+.vista-ico.vista-admin { background: var(--purple); }
+.vista-ico.vista-cliente { background: #2563eb; }
+.vista-ico.vista-transportista { background: #ea7a12; }
+.vista-btn.vista-cliente { background: #eff6ff; border-color: #bfdbfe; }
+.vista-btn.vista-transportista { background: #fff4e8; border-color: #fdd2a6; }
+.vista-btn.vista-admin { background: rgba(51,0,204,0.06); border-color: rgba(51,0,204,0.2); }
+.vista-btn:hover, .vista-btn:focus-visible, .vista-btn[aria-expanded="true"] { border-color: rgba(51,0,204,0.45); box-shadow: 0 8px 22px rgba(10,2,48,0.12), 0 0 0 3px rgba(51,0,204,0.15); }
+.vista-nombre { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.vista-menu { min-width: 300px; max-width: 340px; left: 0; right: auto; transform-origin: top left; }
+.vista-titulo { font-weight: 800; color: var(--navy); font-size: var(--fs-m); padding: 0.5rem 0.6rem 0.35rem; }
+.vista-op { width: 100%; background: none; border: none; font: inherit; text-align: left; cursor: pointer; }
+.vista-op .vista-ico { width: 30px; height: 30px; }
+.vista-op.activa { background: var(--gray-100); }
+.vista-check { margin-left: auto; color: #0f6b3a; font-weight: 800; }
+.vista-nota { font-size: var(--fs-s); color: var(--gray-500); padding: 0.35rem 0.6rem 0.4rem; }
+.vista-volver { background: none; border: none; font: inherit; color: var(--purple); font-weight: 700; cursor: pointer; padding: 0.4rem 0.6rem 0; }
+.vista-buscar { width: calc(100% - 1rem); margin: 0 0.5rem 0.4rem; }
+.vista-lista { max-height: 320px; overflow-y: auto; display: grid; gap: 2px; padding: 0 0.3rem 0.3rem; }
+.vista-fila { text-align: left; background: none; border: none; font: inherit; padding: 0.5rem 0.6rem; border-radius: 8px; cursor: pointer; color: var(--navy); font-weight: 600; }
+.vista-fila.vista-cliente:hover, .vista-fila.vista-cliente.activa { background: #eff6ff; }
+.vista-fila.vista-transportista:hover, .vista-fila.vista-transportista.activa { background: #fff4e8; }
+/* Aviso arriba del contenido cuando se ve como otro perfil */
+.vista-aviso { display: flex; flex-direction: row; align-items: center; gap: 0.7rem; flex-wrap: wrap; padding: 0.6rem 0.9rem; border-radius: 12px; margin-bottom: 0.9rem; font-size: var(--fs-m); color: var(--navy); }
+.vista-aviso.vista-cliente { background: #eff6ff; border: 1px solid #bfdbfe; }
+.vista-aviso.vista-transportista { background: #fff4e8; border: 1px solid #fdd2a6; }
+.vista-aviso .vista-ico { width: 12px; height: 12px; }
+.vista-aviso > span:not(.vista-ico) { flex: 1 1 260px; min-width: 0; }
+.vista-aviso button { margin-left: auto; padding: 0.4rem 0.9rem; flex: none; }
+@media (max-width: 768px) { .vista-nombre { max-width: 120px; } }
+@media (max-width: 600px) { .vista-menu { left: 8px; right: 8px; } }

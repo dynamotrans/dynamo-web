@@ -1,4 +1,5 @@
 import { sesion, esDynamo, esGestor } from '@/lib/sesion';
+import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Administracion, { type ProformaFila, type AlbaranFila } from '@/components/panel/Administracion';
 
@@ -18,10 +19,12 @@ export default async function PaginaAdministracion({ searchParams }: { searchPar
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es de los clientes y del equipo de Dynamo.</div></div></section>;
   }
 
+  const vista = await vistaDe(supabase, perfil.rol);
   const [alm, docs] = await Promise.all([
-    supabase.from('almacenamientos').select('id, codigo, referencia_cliente, estado, fecha_entrada, fecha_salida, importe_total, iva_aplicado, pagado_en, creado_en, clientes(nombre_visible)')
+    filtrarVista(supabase.from('almacenamientos').select('id, codigo, referencia_cliente, estado, fecha_entrada, fecha_salida, importe_total, iva_aplicado, pagado_en, creado_en, clientes(nombre_visible)'), vista, { transportista: null })
       .eq('pago_adelantado', true).neq('estado', 'cancelado').order('creado_en', { ascending: false }).limit(5000),
-    supabase.from('documentos').select('id, tipo, nombre_archivo, envio_id, creado_en, visible_cliente')
+    filtrarVista(supabase.from('documentos').select(vista.tipo === 'admin' ? 'id, tipo, nombre_archivo, envio_id, creado_en, visible_cliente' : 'id, tipo, nombre_archivo, envio_id, creado_en, visible_cliente, envios!inner(cliente_id, transportista_id)'),
+      vista, { cliente: 'envios.cliente_id', transportista: 'envios.transportista_id' })
       .in('tipo', ['albaran', 'cmr_firmado']).not('envio_id', 'is', null).eq('borrado', false)
       .order('creado_en', { ascending: false }).limit(5000),
   ]);

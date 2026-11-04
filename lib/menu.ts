@@ -27,7 +27,11 @@ export type Enlace = { slug: string; titulo: string; icono: keyof typeof ICONOS;
 export type Grupo = { grupo: string; titulo: string; icono: keyof typeof ICONOS; enlaces: Enlace[] };
 export type Bloque = { sep?: string; items: (Enlace | Grupo)[] };
 
-export function menuDe(rol: Rol): Bloque[] {
+// Menú lateral. El equipo de Dynamo elige VISTA («Ver como», arriba): en la de gestión
+// interna ve su menú; en la de un cliente o un transportista, exactamente el menú de ese
+// perfil. Así nunca se mezclan los dos menús.
+export function menuDe(rol: Rol, vista: 'admin' | 'cliente' | 'transportista' = 'admin'): Bloque[] {
+  if (esDynamo(rol) && vista !== 'admin') return menuDe(vista);
   if (rol === 'transportista') {
     return [{ items: [
       { slug: 'envios', titulo: 'Mis viajes', icono: 'camion', listo: true, destacado: true },
@@ -35,44 +39,56 @@ export function menuDe(rol: Rol): Bloque[] {
       { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
     ] }];
   }
-  const dynamo = esDynamo(rol);
-  const otras: Enlace[] = [
-    { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },
-    { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
-    { slug: 'penalizaciones', titulo: 'Penalizaciones', icono: 'penalizaciones' },
-    ...(dynamo ? [{ slug: 'operadores', titulo: 'Transportistas', icono: 'camion' } as Enlace] : []),
-    { slug: 'almacenamientos', titulo: 'Almacenamientos', icono: 'almacenes' },
-    { slug: 'recursos', titulo: 'Recursos', icono: 'recursos' },
-  ];
-  const bloques: Bloque[] = [{ items: [
-    { slug: 'dashboard', titulo: 'Dashboard cliente', icono: 'dashboard' },
-    { slug: 'envios', titulo: 'Envíos', icono: 'camion', listo: true, destacado: true },
-    { slug: 'sitios', titulo: 'Sitios', icono: 'sitios' },
-    { grupo: 'otras', titulo: 'Otras gestiones', icono: 'capas', enlaces: otras },
-  ] }];
-  if (dynamo) {
-    bloques.push({ sep: 'Gestión interna · Admin', items: [
+  if (rol === 'cliente') {
+    return [{ items: [
+      { slug: 'dashboard', titulo: 'Dashboard cliente', icono: 'dashboard' },
+      { slug: 'envios', titulo: 'Envíos', icono: 'camion', listo: true, destacado: true },
+      { slug: 'sitios', titulo: 'Sitios', icono: 'sitios' },
+      { grupo: 'otras', titulo: 'Otras gestiones', icono: 'capas', enlaces: [
+        { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },
+        { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
+        { slug: 'penalizaciones', titulo: 'Penalizaciones', icono: 'penalizaciones' },
+        { slug: 'almacenamientos', titulo: 'Almacenamientos', icono: 'almacenes' },
+        { slug: 'recursos', titulo: 'Recursos', icono: 'recursos' },
+      ] },
+    ] }];
+  }
+  // Equipo de Dynamo, vista de gestión interna.
+  return [
+    { items: [
       { slug: 'dashboard-admin', titulo: 'Dashboard admin', icono: 'dashboard' },
-      { grupo: 'admin', titulo: 'Otras gestiones', icono: 'capas', enlaces: [
-        { slug: 'almacenes', titulo: 'Almacenes Dynamo', icono: 'almacenesCat' },
+      { slug: 'envios', titulo: 'Envíos', icono: 'camion', listo: true, destacado: true },
+      { grupo: 'otras', titulo: 'Operativa', icono: 'capas', enlaces: [
+        { slug: 'administracion', titulo: 'Administración', icono: 'facturas' },
+        { slug: 'incidencias', titulo: 'Incidencias', icono: 'incidencias' },
+        { slug: 'penalizaciones', titulo: 'Penalizaciones', icono: 'penalizaciones' },
+        { slug: 'almacenamientos', titulo: 'Almacenamientos', icono: 'almacenes' },
+        { slug: 'sitios', titulo: 'Sitios de los clientes', icono: 'sitios' },
+        { slug: 'recursos', titulo: 'Recursos', icono: 'recursos' },
+      ] },
+    ] },
+    { sep: 'Gestión interna · Admin', items: [
+      { grupo: 'admin', titulo: 'Gestión interna', icono: 'capas', enlaces: [
         { slug: 'clientes', titulo: 'Clientes', icono: 'clientes' },
         { slug: 'transportistas', titulo: 'Transportistas', icono: 'camion' },
+        { slug: 'operadores', titulo: 'Transportistas de clientes', icono: 'camion' },
+        { slug: 'almacenes', titulo: 'Almacenes Dynamo', icono: 'almacenesCat' },
         { slug: 'usuarios', titulo: 'Usuarios', icono: 'usuarios' },
         { slug: 'altas', titulo: 'Altas pendientes', icono: 'altas' },
         { slug: 'exportaciones', titulo: 'Exportaciones', icono: 'exportar' },
         { slug: 'parametros', titulo: 'Parámetros', icono: 'ajustes' },
         { slug: 'mantenimiento', titulo: 'Modo mantenimiento', icono: 'mantenimiento' },
       ] },
-    ] });
-  }
-  return bloques;
+    ] },
+  ];
 }
 
 // Títulos de las pantallas que aún no están pasadas (para el aviso).
 export function tituloDe(slug: string, rol: Rol): string | null {
   if (slug === 'mi-cuenta') return 'Mi cuenta';
   if (slug === 'nuevo-envio') return 'Nuevo envío';
-  for (const b of menuDe(rol)) for (const it of b.items) {
+  const menus = esDynamo(rol) ? [...menuDe(rol), ...menuDe('cliente'), ...menuDe('transportista')] : menuDe(rol);
+  for (const b of menus) for (const it of b.items) {
     if ('grupo' in it) { for (const e of it.enlaces) if (e.slug === slug) return e.titulo; }
     else if (it.slug === slug) return it.titulo;
   }

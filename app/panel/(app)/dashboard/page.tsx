@@ -1,4 +1,5 @@
 import { sesion, esDynamo } from '@/lib/sesion';
+import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import DashboardCliente, { type MiniEnvio } from '@/components/panel/DashboardCliente';
 
@@ -17,12 +18,13 @@ export default async function PaginaDashboard() {
 
   let filas: any[] = [];
   let total = 0;
+  const vista = await vistaDe(supabase, perfil.rol);
   if (dynamo) {
     const [vivos, todos] = await Promise.all([
-      supabase.from('envios').select('id, referencia_gx, referencia_cliente, estado, fecha_carga_desde, fecha_carga_hasta, fecha_carga_real, ' +
-        'codigo_postal_origen, poblacion_origen, codigo_postal_destino, poblacion_destino, metros_lineales, toneladas, descripcion_mercancia, clientes(nombre_visible)')
+      filtrarVista(supabase.from('envios').select('id, referencia_gx, referencia_cliente, estado, fecha_carga_desde, fecha_carga_hasta, fecha_carga_real, ' +
+        'codigo_postal_origen, poblacion_origen, codigo_postal_destino, poblacion_destino, metros_lineales, toneladas, descripcion_mercancia, clientes(nombre_visible)'), vista)
         .in('estado', VIVOS).order('fecha_carga_desde', { ascending: true, nullsFirst: false }).limit(2000),
-      supabase.from('envios').select('id', { count: 'exact', head: true }).neq('estado', 'borrador'),
+      filtrarVista(supabase.from('envios').select('id', { count: 'exact', head: true }), vista).neq('estado', 'borrador'),
     ]);
     filas = (vivos.data ?? []).map((x: any) => ({ ...x, cliente: x.clientes?.nombre_visible ?? null }));
     total = todos.count ?? 0;

@@ -1,4 +1,5 @@
 import { sesion, esDynamo } from '@/lib/sesion';
+import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import NuevoEnvio, { type ClienteOpcion, type SitioOpcion, type Base } from '@/components/panel/NuevoEnvio';
 
@@ -48,8 +49,10 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
       operadores={((ops.data ?? []) as any[]).map((o) => ({ id: o.id, nombre: o.razon_social }))} />;
   }
 
+  // En la vista de un cliente, el envío es para ese cliente (solo sale él en la lista).
+  const vista = await vistaDe(supabase, perfil.rol);
   const [cli, lug, fes] = await Promise.all([
-    supabase.from('clientes').select('id, nombre_visible, cif, lugar_defecto_id').order('nombre_visible').limit(2000),
+    filtrarVista(supabase.from('clientes').select('id, nombre_visible, cif, lugar_defecto_id'), vista.tipo === 'cliente' ? vista : { tipo: 'admin', id: null, nombre: null }, { cliente: 'id' }).order('nombre_visible').limit(2000),
     supabase.from('lugares')
       .select('id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible')
       .eq('borrado', false).order('nombre_empresa').limit(5000),

@@ -1,4 +1,5 @@
 import { sesion, esDynamo } from '@/lib/sesion';
+import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Almacenamientos, { type AlmacenamientoFila, type AlmacenOpcion } from '@/components/panel/Almacenamientos';
 
@@ -15,9 +16,10 @@ export default async function PaginaAlmacenamientos({ searchParams }: { searchPa
   if (!esDynamo(perfil.rol)) {
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es de los clientes y del equipo de Dynamo.</div></div></section>;
   }
+  const vista = await vistaDe(supabase, perfil.rol);
   const [alm, almacenes, clientes, ps] = await Promise.all([
-    supabase.from('almacenamientos').select('*, clientes(nombre_visible), almacen:lugares!almacenamientos_almacen_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion, provincia), ' +
-      'entrega:lugares!almacenamientos_lugar_entrega_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion)')
+    filtrarVista(supabase.from('almacenamientos').select('*, clientes(nombre_visible), almacen:lugares!almacenamientos_almacen_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion, provincia), ' +
+      'entrega:lugares!almacenamientos_lugar_entrega_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion)'), vista, { transportista: null })
       .order('fecha_entrada', { ascending: false }).limit(5000),
     supabase.from('lugares').select('id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, disponible, precio_almacenamiento_semana, precio_reparto')
       .eq('es_almacen_dynamo', true).eq('borrado', false).order('provincia'),

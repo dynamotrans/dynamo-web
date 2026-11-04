@@ -114,7 +114,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
 
   // ---- Paso 1: cliente y ruta
   const [clientes, setClientes] = useState(clientesIni);
-  const [cliente, setCliente] = useState<ClienteOpcion | null>(esCliente ? clientesIni[0] ?? null : be ? clientesIni.find((c) => c.id === be.cliente_id) ?? null : null);
+  const [cliente, setCliente] = useState<ClienteOpcion | null>(esCliente || (!be && clientesIni.length === 1) ? clientesIni[0] ?? null : be ? clientesIni.find((c) => c.id === be.cliente_id) ?? null : null);
   const sigK = useRef(10);
   const [recogidas, setRecogidas] = useState<Punto[]>(() => {
     const l = (base?.paradas ?? []).filter((p) => p.tipo === 'carga').map((p, i) => puntoDe(p, 100 + i));

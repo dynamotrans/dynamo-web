@@ -1,4 +1,5 @@
 import { sesion, esDynamo } from '@/lib/sesion';
+import { vistaDe, filtrarVista } from '@/lib/vista';
 import type { EnvioFila, Parada } from '@/lib/envios';
 import TablaEnvios from '@/components/panel/TablaEnvios';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
@@ -19,6 +20,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   const dynamo = esDynamo(rol);
   const sp = await searchParams;
   const q = (sp.q ?? '').trim();
+  const vista = await vistaDe(supabase, rol);
 
   // ---- Datos, según el rol (Dynamo lee la tabla; cliente y transportista, sus funciones)
   let filas: EnvioFila[] = [];
@@ -39,7 +41,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       if (e1) error = e1.message;
       const lista = ((ids ?? []) as string[]);
       if (lista.length) {
-        const r = await supabase.from('envios').select(COLS).in('id', lista);
+        const r = await filtrarVista(supabase.from('envios').select(COLS), vista).in('id', lista);
         if (r.error) error = r.error.message;
         data = r.data ?? [];
       }
@@ -47,8 +49,8 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     } else {
       // Sin búsqueda: TODOS los vivos y los últimos terminados (entregados y cancelados).
       const [vivos, fin] = await Promise.all([
-        supabase.from('envios').select(COLS).not('estado', 'in', '(entregado,cancelado)').order('creado_en', { ascending: false }).limit(5000),
-        supabase.from('envios').select(COLS).in('estado', ['entregado', 'cancelado']).order('creado_en', { ascending: false }).limit(TERMINADOS),
+        filtrarVista(supabase.from('envios').select(COLS), vista).not('estado', 'in', '(entregado,cancelado)').order('creado_en', { ascending: false }).limit(5000),
+        filtrarVista(supabase.from('envios').select(COLS), vista).in('estado', ['entregado', 'cancelado']).order('creado_en', { ascending: false }).limit(TERMINADOS),
       ]);
       error = vivos.error?.message ?? fin.error?.message ?? null;
       data = [...(vivos.data ?? []), ...(fin.data ?? [])];

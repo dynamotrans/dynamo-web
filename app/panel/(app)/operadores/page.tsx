@@ -1,4 +1,5 @@
 import { sesion, esDynamo } from '@/lib/sesion';
+import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Operadores, { type OperadorFila } from '@/components/panel/Operadores';
 
@@ -15,8 +16,9 @@ export default async function PaginaOperadores() {
   if (!dynamo && perfil.rol !== 'cliente') {
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es de los clientes.</div></div></section>;
   }
+  const vista = await vistaDe(supabase, perfil.rol);
   const [ops, envs, clis] = await Promise.all([
-    supabase.from('operadores').select('id, cliente_id, razon_social, cif, telefono, email, persona_contacto, web, anotaciones, creado_en, modificado_en, clientes(nombre_visible)')
+    filtrarVista(supabase.from('operadores').select('id, cliente_id, razon_social, cif, telefono, email, persona_contacto, web, anotaciones, creado_en, modificado_en, clientes(nombre_visible)'), vista, { transportista: null })
       .eq('borrado', false).order('razon_social').limit(10000),
     supabase.from('envios').select('operador_id').eq('es_manual', true).not('operador_id', 'is', null).limit(100000),
     dynamo ? supabase.from('clientes').select('id, nombre_visible').order('nombre_visible').limit(10000) : Promise.resolve({ data: [] as any[] }),

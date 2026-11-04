@@ -3,6 +3,7 @@ import { sesion, iniciales, esDynamo } from '@/lib/sesion';
 import PantallaMantenimiento from '@/components/PantallaMantenimiento';
 import SinConfigurar from '@/components/SinConfigurar';
 import { RefrescoProvider } from '@/lib/useRefrescar';
+import { vistaDe } from '@/lib/vista';
 import Marco, { type Contadores, type Cobertura } from '@/components/panel/Marco';
 import './dashboard.css';
 import './ajustes.css';
@@ -25,6 +26,13 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
   const hoy = new Date().toISOString().slice(0, 10);
   const enDosSemanas = new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10);
   const activa = perfil?.estado === 'activa';
+  // «Ver como» (solo Dynamo): la vista elegida y las listas para elegir cliente o transportista.
+  const [vista, cliV, traV] = await Promise.all([
+    vistaDe(supabase, perfil?.rol),
+    dynamo && activa ? supabase.from('clientes').select('id, nombre_visible').order('nombre_visible').limit(10000) : Promise.resolve({ data: null }),
+    dynamo && activa ? supabase.from('transportistas').select('id, nombre_visible').order('nombre_visible').limit(10000) : Promise.resolve({ data: null }),
+  ]);
+  const opc = (d: any) => ((d ?? []) as { id: string; nombre_visible: string | null }[]).map((x) => ({ id: x.id, nombre: x.nombre_visible ?? '—' }));
   const [cont, cob, fes] = await Promise.all([
     activa ? supabase.rpc('contadores_panel') : Promise.resolve({ data: null }),
     activa && perfil?.rol === 'cliente' ? supabase.rpc('mi_cobertura_credito') : Promise.resolve({ data: null }),
@@ -35,7 +43,8 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
     <RefrescoProvider>
     <Marco rol={perfil?.rol ?? 'cliente'} nombre={nombre} email={user.email ?? ''}
            empresa={empresa} iniciales={iniciales(perfil?.nombre, user.email ?? '')}
-           contadores={(cont.data ?? {}) as Contadores} cobertura={(cob.data ?? null) as Cobertura} festivos={festivos}>
+           contadores={(cont.data ?? {}) as Contadores} cobertura={(cob.data ?? null) as Cobertura} festivos={festivos}
+           vista={vista} opcionesVista={dynamo && activa ? { clientes: opc(cliV.data), transportistas: opc(traV.data) } : undefined}>
       {mant && (
         <div className="pt-aviso error" style={{ marginBottom: '0.9rem' }}>
           <div><strong>Modo mantenimiento ACTIVADO:</strong> clientes y transportistas no pueden entrar ni aceptar cargas. <Link href="/panel/mantenimiento" style={{ color: 'inherit', fontWeight: 800 }}>Desactivarlo →</Link></div>

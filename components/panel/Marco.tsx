@@ -10,6 +10,8 @@ import { esDynamo, esSoloLectura, type Rol } from '@/lib/roles';
 import { CONTACTO, HORARIO_ONLINE, estadoAtencion, horarioTelefono, semanaFestivaTexto } from '@/lib/atencion';
 import { useIdiomaGT } from '@/components/SelectorIdioma';
 import Modal from './Modal';
+import SelectorVista, { VISTA_TXT } from './SelectorVista';
+import { VISTA_ADMIN, inicioDe, type OpcionVista, type Vista } from '@/lib/vistaTipo';
 
 // Idiomas del menú del usuario (los del mockup). Banderas: excepción de la regla 0-ter.
 const BANDERA_CA = <svg className="flag-svg" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" fill="#fcdd09" /><rect y="1.78" width="24" height="1.78" fill="#da121a" /><rect y="5.33" width="24" height="1.78" fill="#da121a" /><rect y="8.89" width="24" height="1.78" fill="#da121a" /><rect y="12.44" width="24" height="1.78" fill="#da121a" /></svg>;
@@ -64,13 +66,16 @@ const Chev = ({ cls, size = 12, w = 3 }: { cls: string; size?: number; w?: numbe
 type Props = {
   rol: Rol; nombre: string; email: string; empresa: string; iniciales: string;
   contadores?: Contadores; cobertura?: Cobertura; festivos?: string[];
+  vista?: Vista; opcionesVista?: { clientes: OpcionVista[]; transportistas: OpcionVista[] };
   children: React.ReactNode;
 };
 
-export default function Marco({ rol, nombre, email, empresa, iniciales, contadores = {}, cobertura = null, festivos = [], children }: Props) {
+export default function Marco({ rol, nombre, email, empresa, iniciales, contadores = {}, cobertura = null, festivos = [], vista = VISTA_ADMIN, opcionesVista, children }: Props) {
+  // Menú del perfil que se está viendo (el equipo de Dynamo elige vista arriba).
+  const menuVisto = useMemo(() => menuDe(rol, vista.tipo), [rol, vista.tipo]);
   const ruta = usePathname();
   const [lateral, setLateral] = useState(false);
-  const [menu, setMenu] = useState<null | 'usuario' | 'soporte' | 'campana' | 'cesce'>(null);
+  const [menu, setMenu] = useState<null | 'usuario' | 'soporte' | 'campana' | 'cesce' | 'vista'>(null);
   const [idiomas, setIdiomas] = useState(false);
   const [horarios, setHorarios] = useState(false);
   const [idioma, elegirIdioma] = useIdiomaGT(IDIOMAS_PANEL.map(([c]) => c));
@@ -101,14 +106,16 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
   useEffect(() => { setLateral(false); setMenu(null); }, [ruta]);
   // Un grupo con la pantalla activa dentro se abre solo.
   useEffect(() => {
-    for (const b of menuDe(rol)) for (const it of b.items)
+    for (const b of menuVisto) for (const it of b.items)
       if ('grupo' in it && it.enlaces.some((e) => activo(e.slug))) setGrupos((g) => ({ ...g, [it.grupo]: true }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ruta, rol]);
+  }, [ruta, menuVisto]);
   // Clic fuera o Escape: cerrar desplegables.
   useEffect(() => {
     if (!menu) return;
-    const fuera = (e: MouseEvent) => { if (!barra.current?.contains(e.target as Node)) setMenu(null); };
+    // Un clic que cambia el propio menú (p. ej. pasar a la lista de clientes) quita el botón
+    // pulsado del documento: ese clic tampoco es «fuera».
+    const fuera = (e: MouseEvent) => { const t = e.target as Node; if (t.isConnected && !barra.current?.contains(t)) setMenu(null); };
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenu(null); };
     document.addEventListener('click', fuera); document.addEventListener('keydown', esc);
     return () => { document.removeEventListener('click', fuera); document.removeEventListener('keydown', esc); };
@@ -159,7 +166,7 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
   );
 
   // El logo lleva al Dashboard cliente; el transportista no tiene dashboard → Mis viajes.
-  const inicio = rol === 'transportista' ? '/panel/envios' : '/panel/dashboard';
+  const inicio = esDynamo(rol) ? inicioDe(vista.tipo) : rol === 'transportista' ? '/panel/envios' : '/panel/dashboard';
 
   // Campana: lo que hay pendiente (mismos números que el menú lateral).
   const ICO_AVISO = '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>';
@@ -182,7 +189,7 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
           <span className="sidebar-brand-slogan notranslate" translate="no">Always<br />Moving.</span>
         </Link>
         <nav className="sidebar-nav">
-          {menuDe(rol).map((b, i) => (
+          {menuVisto.map((b, i) => (
             <div key={i} style={{ display: 'contents' }}>
               {b.sep && <div className="sidebar-sep"><span>{b.sep}</span></div>}
               {b.items.map((it) => ('grupo' in it ? grupo(it) : enlace(it)))}
@@ -212,6 +219,10 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
               <Link href={inicio} className="topbar-brand" aria-label="Ir al inicio del panel">
                 <img src="/images/2.png" alt="Dynamo" />
               </Link>
+              {esDynamo(rol) && opcionesVista && (
+                <SelectorVista vista={vista} rolTxt={ROL_TXT[rol]} clientes={opcionesVista.clientes} transportistas={opcionesVista.transportistas}
+                  abierto={menu === 'vista'} onAbrir={(v) => setMenu(v ? 'vista' : null)} />
+              )}
               {(
                 <div className="topbar-contact-wrap">
                   <button type="button" className={`topbar-contact-btn${atencion.online ? '' : ' offline'}`} aria-haspopup="menu" aria-expanded={menu === 'soporte'}
@@ -363,6 +374,7 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
               </div>
             </div>
           )}
+          {vista.tipo !== 'admin' && <AvisoVista vista={vista} rolTxt={ROL_TXT[rol]} onCambiar={() => setMenu('vista')} />}
           {children}
         </div>
       </div>
@@ -395,5 +407,16 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
         </Modal>
       )}
     </>
+  );
+}
+
+// Recordatorio arriba del contenido: estás viendo la plataforma como otro perfil.
+function AvisoVista({ vista, rolTxt, onCambiar }: { vista: Vista; rolTxt: string; onCambiar: () => void }) {
+  return (
+    <div className={`vista-aviso vista-${vista.tipo}`} role="note">
+      <span className={`vista-ico vista-${vista.tipo}`} aria-hidden="true" />
+      <span>Estás viendo la plataforma como <strong>{VISTA_TXT[vista.tipo].toLowerCase()} {vista.nombre}</strong>: su menú y solo sus datos. Sigues siendo <strong>{rolTxt}</strong>: lo que cambies, cambia de verdad.</span>
+      <button type="button" className="btn-secondary" onClick={(e) => { e.stopPropagation(); onCambiar(); }}>Cambiar de vista</button>
+    </div>
   );
 }

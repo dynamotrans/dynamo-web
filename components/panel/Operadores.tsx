@@ -11,6 +11,7 @@ import Cargando from '@/components/Cargando';
 import { guardarOperador, borrarOperador, type OperadorDatos } from '@/app/panel/(app)/operadores/acciones';
 import { creadoTxt } from '@/lib/envios';
 import { telBonito } from '@/lib/paises';
+import { CONTACTO } from '@/lib/atencion';
 import CampoTelefono from '@/components/CampoTelefono';
 
 export type OperadorFila = OperadorDatos & {
@@ -20,7 +21,24 @@ type Cliente = { id: string; nombre_visible: string };
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const IcoCamion = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13" rx="1.5" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></svg>;
-const TEXTO_INTRO = <>Catálogo <strong>privado</strong> de proveedores de transporte con los que se suele trabajar — vale para <strong>cualquier tipo: operadores de transporte, empresas de transporte o transportistas autónomos</strong> — para tener en un único espacio de trabajo <strong>todos los envíos controlados</strong>. <strong>Dynamo no interviene en nada</strong> en los envíos con otros transportistas (ni albaranes, ni precios, ni ningún aspecto relacionado con ellos): esto sirve solo para ver en <strong>Envíos</strong> todo unificado.</>;
+// Texto de tranquilidad: qué es y qué NO hace Dynamo con estos transportistas.
+const CHECK = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f6b3a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: 'none', marginTop: 2 }}><polyline points="20 6 9 17 4 12" /></svg>;
+function Intro({ dynamo }: { dynamo: boolean }) {
+  const punto = (t: React.ReactNode) => <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>{CHECK}<span>{t}</span></li>;
+  return (
+    <div className="table-wrap" style={{ padding: '0.9rem 1rem', marginBottom: '0.9rem' }}>
+      <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: '0.3rem' }}>{dynamo ? 'La agenda privada de transportistas de cada cliente' : 'Tu agenda privada de transportistas'}</div>
+      <p style={{ margin: '0 0 0.6rem', fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>
+        {dynamo ? 'Aquí cada cliente guarda' : 'Guarda aquí'} los transportistas con los que {dynamo ? 'ya trabaja' : 'ya trabajas'} por {dynamo ? 'su' : 'tu'} cuenta (empresas de transporte, operadores o autónomos) para {dynamo ? 'ver' : 'ver'} <strong>todos {dynamo ? 'sus' : 'tus'} envíos juntos en Envíos</strong>: los de Dynamo y los {dynamo ? 'suyos' : 'tuyos'}, en un solo sitio.
+      </p>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '0.4rem', fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>
+        {punto(<><strong>Privado.</strong> {dynamo ? 'Cada cliente ve solo los suyos' : 'Solo lo ves tú y tu empresa'}: ningún otro cliente ni transportista de la plataforma tiene acceso.</>)}
+        {punto(<><strong>Dynamo no interviene.</strong> En los envíos con {dynamo ? 'sus' : 'tus'} transportistas no contactamos con ellos ni tocamos nada: ni precios, ni albaranes, ni condiciones. Es {dynamo ? 'su' : 'tu'} relación directa.</>)}
+        {punto(<><strong>Gratis y sin compromiso.</strong> Es solo una herramienta para {dynamo ? 'que tenga' : 'tener'} todo controlado. Se puede borrar cuando {dynamo ? 'quiera' : 'quieras'}.</>)}
+      </ul>
+    </div>
+  );
+}
 
 export default function Operadores({ filas, dynamo, clientes, error }: { filas: OperadorFila[]; dynamo: boolean; clientes: Cliente[]; error: string | null }) {
   const refrescar = useRefrescar();
@@ -39,10 +57,10 @@ export default function Operadores({ filas, dynamo, clientes, error }: { filas: 
   return (
     <section className="section active" id="sec-operadores">
       <div className="sec-header">
-        <h2>Transportistas{dynamo ? ' de los clientes' : ''} ({filas.length + (dynamo ? 0 : 1)})</h2>
+        <h2>Transportistas{dynamo ? ' de los clientes' : ''} ({filas.length + 1})</h2>
         <button className="btn-primary" onClick={() => setFicha({ fila: null })}>+ Nuevo transportista</button>
       </div>
-      <p style={{ color: 'var(--gray-500)', fontSize: 'var(--fs-m)', margin: '-0.4rem 0 0.9rem' }}>{TEXTO_INTRO}</p>
+      <Intro dynamo={dynamo} />
       <div className="filters">
         <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nombre, CIF, contacto…" />
         {dynamo && (
@@ -57,16 +75,25 @@ export default function Operadores({ filas, dynamo, clientes, error }: { filas: 
         <table className="data">
           <thead><tr><th>Operador</th>{dynamo && <th>Cliente</th>}<th>Teléfono</th><th>Email</th><th>Contacto</th><th>Notas</th></tr></thead>
           <tbody>
-            {!dynamo && (
-              <tr style={{ background: 'rgba(51,0,204,0.06)', cursor: 'default' }}>
-                <td className="ref"><strong style={{ color: 'var(--purple)' }}>Dynamo Operador de Transportes</strong>{' '}
-                  <span style={{ fontSize: 'var(--fs-s)', fontWeight: 800, background: 'var(--purple)', color: '#fff', borderRadius: 6, padding: '1px 6px', verticalAlign: 1 }}>Operador Dynamo</span></td>
-                <td>+34 955 225 945</td><td>info@dynamotrans.com</td><td>Álvaro Blanco</td><td className="notas">Ficha fija (no editable).</td>
-              </tr>
-            )}
+            {/* Dynamo, siempre la primera y fija: es el transportista de la propia plataforma. */}
+            <tr style={{ background: 'rgba(51,0,204,0.07)', cursor: 'default', boxShadow: 'inset 4px 0 0 var(--purple)' }}>
+              <td className="ref">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <img src="/images/2.png" alt="" aria-hidden="true" style={{ height: 18, width: 'auto' }} />
+                  <span style={{ fontSize: 'var(--fs-s)', fontWeight: 800, background: 'var(--purple)', color: '#fff', borderRadius: 6, padding: '1px 7px' }}>Plataforma</span>
+                </div>
+                <strong style={{ color: 'var(--purple)' }}>Dynamo Operador de Transportes</strong>
+                <div className="meta">Transportista de la plataforma · siempre disponible</div>
+              </td>
+              {dynamo && <td>Todos los clientes</td>}
+              <td>{CONTACTO.telefono}</td><td>{CONTACTO.email}</td><td>Álvaro Blanco</td>
+              <td className="notas"><span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                Ficha fija, no se edita</span></td>
+            </tr>
             {lista.length === 0 ? (
               <tr><td colSpan={cols} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
-                {filas.length ? 'Sin transportistas que coincidan con la búsqueda.' : dynamo ? 'Ningún cliente tiene todavía transportistas propios.' : 'Aún no tienes transportistas. Crea uno con «+ Nuevo transportista».'}
+                {filas.length ? 'Sin transportistas que coincidan con la búsqueda.' : dynamo ? 'Ningún cliente ha añadido todavía transportistas propios.' : 'Aún no has añadido transportistas propios. Añade uno con «+ Nuevo transportista».'}
               </td></tr>
             ) : lista.map((o) => (
               <tr key={o.id} onClick={() => setFicha({ fila: o })} style={{ cursor: 'pointer' }}>
@@ -144,7 +171,7 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
         <button className="btn-ghost" onClick={onCerrar} disabled={!!trabajando}>Cancelar</button>
         <button className="btn-primary" onClick={guardar} disabled={!!trabajando}>{fila ? 'Guardar cambios' : 'Crear transportista'}</button>
       </>}>
-      {!fila && <div style={{ marginBottom: '0.8rem', padding: '0.65rem 0.8rem', background: 'rgba(51,0,204,0.06)', border: '1px solid rgba(51,0,204,0.2)', borderRadius: 10, fontSize: 'var(--fs-m)', lineHeight: 1.55, color: 'var(--gray-700)' }}>{TEXTO_INTRO}</div>}
+      {!fila && <div style={{ marginBottom: '0.8rem', padding: '0.65rem 0.8rem', background: 'rgba(51,0,204,0.06)', border: '1px solid rgba(51,0,204,0.2)', borderRadius: 10, fontSize: 'var(--fs-m)', lineHeight: 1.55, color: 'var(--gray-700)' }}><strong>Privado y sin intervención de Dynamo.</strong> Solo lo ve {dynamo ? 'ese cliente' : 'tu empresa'}; no contactamos con este transportista ni tocamos precios, albaranes ni condiciones. Sirve para ver todos los envíos juntos en Envíos.</div>}
       {fila && (
         <div style={{ margin: '0 0 0.9rem', padding: '0.55rem 0.85rem', border: '1px solid var(--gray-200)', borderRadius: 9, background: 'var(--gray-50)', fontSize: 'var(--fs-m)', color: 'var(--gray-500)', fontWeight: 600 }}>
           Creado: {creadoTxt(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${creadoTxt(fila.modificado_en)}` : ''}

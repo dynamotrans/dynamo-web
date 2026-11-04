@@ -1,9 +1,13 @@
 import { redirect } from 'next/navigation';
-import { sesion } from '@/lib/sesion';
+import { sesion, esDynamo } from '@/lib/sesion';
+import { vistaDe } from '@/lib/vista';
+import { inicioDe } from '@/lib/vistaTipo';
 
-// /panel → el Dashboard cliente (también al entrar). El transportista no tiene
-// dashboard: su pantalla de inicio es «Mis viajes».
+// /panel → la pantalla de inicio de cada perfil: Dashboard cliente; el transportista no
+// tiene dashboard (su inicio es «Mis viajes»); el equipo de Dynamo, la de la vista elegida.
 export default async function Inicio() {
   const s = await sesion();
-  redirect(s?.perfil?.rol === 'transportista' ? '/panel/envios' : '/panel/dashboard');
+  const rol = s?.perfil?.rol;
+  if (s && esDynamo(rol)) redirect(inicioDe((await vistaDe(s.supabase, rol)).tipo));
+  redirect(rol === 'transportista' ? '/panel/envios' : '/panel/dashboard');
 }

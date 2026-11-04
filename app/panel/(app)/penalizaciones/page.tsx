@@ -1,4 +1,5 @@
 import { sesion, esDynamo } from '@/lib/sesion';
+import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Penalizaciones, { type PenalizacionFila } from '@/components/panel/Penalizaciones';
 import { cargarEnviosLigeros } from '@/lib/enviosLigeros';
@@ -25,9 +26,12 @@ export default async function PaginaPenalizaciones({ searchParams }: { searchPar
     return <MisPenalizaciones esTransportista filas={filas as MiPenalizacion[]} error={error?.message ?? null} />;
   }
   const sp = await searchParams;
+  const vista = await vistaDe(supabase, perfil.rol);
   const [pen, tipos, envios] = await Promise.all([
-    supabase.from('penalizaciones').select('id, codigo, envio_id, tipo_id, descripcion, importe_cliente, importe_transportista, estado, generada_auto, ' +
-      'editada_a_mano, creado_en, modificado_en, tipos_penalizacion(nombre), envios(referencia_gx, referencia_cliente, clientes(nombre_visible), transportistas(nombre_visible))')
+    filtrarVista(supabase.from('penalizaciones').select('id, codigo, envio_id, tipo_id, descripcion, importe_cliente, importe_transportista, estado, generada_auto, ' +
+      'editada_a_mano, creado_en, modificado_en, tipos_penalizacion(nombre), ' +
+      (vista.tipo === 'admin' ? 'envios' : 'envios!inner') + '(referencia_gx, referencia_cliente, cliente_id, transportista_id, clientes(nombre_visible), transportistas(nombre_visible))'),
+      vista, { cliente: 'envios.cliente_id', transportista: 'envios.transportista_id' })
       .order('creado_en', { ascending: false }).limit(5000),
     supabase.from('tipos_penalizacion').select('id, nombre, activo').order('orden'),
     cargarEnviosLigeros(supabase),
