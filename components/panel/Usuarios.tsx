@@ -277,9 +277,18 @@ function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol,
         </div>
         <div>
           <label htmlFor="usr-estado">Estado de la cuenta</label>
-          <select id="usr-estado" value={d.estado} onChange={(e) => set('estado', e.target.value as UsuarioDatos['estado'])}>
-            {ESTADOS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
-          </select>
+          {u.id === yo.id || u.rol === 'admin' ? (
+            // Nadie cambia el estado de su propia cuenta; el de un Admin Master, solo desde Supabase.
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minHeight: 44 }}>
+              <span className={`badge ${u.estado === 'activa' ? 'badge-green' : 'badge-orange'}`}>{ESTADOS.find(([k]) => k === u.estado)?.[1] ?? u.estado}</span>
+              <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)' }}>{u.id === yo.id ? 'Tu propia cuenta no se puede suspender' : 'Admin Master: solo se cambia desde Supabase'}</span>
+            </div>
+          ) : (
+            <select id="usr-estado" value={d.estado} onChange={(e) => set('estado', e.target.value as UsuarioDatos['estado'])}>
+              {/* «Pendiente de verificación» solo existe mientras se revisa un alta: no se vuelve a él. */}
+              {ESTADOS.filter(([k]) => k !== 'pendiente_verificacion' || u.estado === 'pendiente_verificacion').map(([k, n]) => <option key={k} value={k}>{n}</option>)}
+            </select>
+          )}
         </div>
         {u.estado === 'suspendida' && u.suspension_motivo && (
           <div style={{ gridColumn: '1/-1' }} className="modal-warn-box">

@@ -19,9 +19,9 @@ export type ParametroFila = { clave: string; valor: unknown; descripcion: string
 
 // Grupos por el principio de la clave (lo que no encaje, en «Otros»).
 const GRUPOS: [string, string, (k: string) => boolean][] = [
-  ['clientes', 'Clientes y precios', (k) => k.startsWith('factor_') || k.startsWith('contraoferta')],
+  ['clientes', 'Clientes y precios', (k) => k.startsWith('factor_') || k.startsWith('contraoferta_cliente')],
   ['pronto', 'Pronto pago a transportistas', (k) => k.startsWith('pronto_pago') || k.startsWith('plazo_pago')],
-  ['ofertas', 'Ofertas, reservas y bolsas de carga', (k) => k.startsWith('oferta') || k.startsWith('reserva') || k.startsWith('bolsa')],
+  ['ofertas', 'Transportistas: ofertas, contraofertas, reservas y bolsas', (k) => k.startsWith('oferta') || k.startsWith('reserva') || k.startsWith('bolsa') || k === 'contraoferta_auto_pct'],
   ['almacen', 'Almacenamientos', (k) => k.startsWith('almacen')],
   ['pin', 'PIN de recogida y entrega', (k) => k.startsWith('pin_')],
   ['holded', 'Holded (facturación)', (k) => k.startsWith('holded')],

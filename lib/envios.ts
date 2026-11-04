@@ -36,7 +36,7 @@ export const esPendientePago = (e: { estado: string; pago_previo?: string | null
 
 // Solicitud del cliente esperando precio (de Dynamo) o respuesta (del cliente).
 export const esSolicitudAbierta = (e: { estado: string; solicitud_estado?: string | null }) =>
-  e.estado === 'borrador' && (e.solicitud_estado === 'pendiente_precio' || e.solicitud_estado === 'precio_propuesto');
+  e.estado === 'borrador' && (e.solicitud_estado === 'pendiente_precio' || e.solicitud_estado === 'precio_propuesto' || e.solicitud_estado === 'contraoferta');
 
 // Estado del envío (badge de la 1ª columna).
 export function estadoVisual(e: EnvioFila): { label: string; color: string } {
@@ -49,6 +49,7 @@ export function estadoVisual(e: EnvioFila): { label: string; color: string } {
     case 'borrador':
       if (e.solicitud_estado === 'pendiente_precio') return { label: 'Pendiente de precio', color: 'cargando' };
       if (e.solicitud_estado === 'precio_propuesto') return { label: 'Precio por aceptar', color: 'hacia' };
+      if (e.solicitud_estado === 'contraoferta') return { label: 'Contraoferta del cliente', color: 'cargando' };
       return { label: 'Borrador', color: 'prog' };
     default: return esPendientePago(e) ? { label: 'Pendiente de pago', color: 'cargando' } : { label: 'Programado', color: 'prog' };
   }

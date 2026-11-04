@@ -3407,3 +3407,86 @@ do $$ declare e uuid := current_setting('prueba.e100')::uuid; begin
   raise notice 'OK 100 · previo pago: sin crédito o primer envío nace pendiente, no se oferta ni asigna; Dynamo lo marca (transferencia o sin pago previo con motivo) y Stripe solo con el importe exacto';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 101. Contraoferta del cliente -----------------------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update parametros set valor = 'false' where clave = 'previo_pago_activo';
+update usuarios set estado = 'activa', sin_autosuspension = true where id = current_setting('prueba.u_cli')::uuid;
+do $$ declare e uuid; i int; begin
+  update clientes set permite_contraoferta = false where id = current_setting('prueba.cliente')::uuid;
+  for i in 1..3 loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+      values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, current_date + 5, current_date + 6) returning id into e;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+    update envios set solicitud_estado = 'precio_propuesto', precio_valido_hasta = now() + interval '2 hours' where id = e;
+    perform set_config('prueba.e101_' || i, e::text, false);
+  end loop;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if (contraofertar_precio_solicitud(current_setting('prueba.e101_1')::uuid, 980))->>'resultado' <> 'no_permitida' then
+    raise exception 'FALLO 101 · contraoferta un cliente que no la tiene permitida';
+  end if;
+  begin
+    update envios set contraoferta_cliente = 1 where id = current_setting('prueba.e101_1')::uuid;
+    if found then raise exception 'FALLO 101 · el cliente escribe su contraoferta a mano'; end if;
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+update clientes set permite_contraoferta = true where id = current_setting('prueba.cliente')::uuid;
+set role authenticated;
+do $$ declare r jsonb; begin
+  -- 2 % de rebaja (auto 5 %): aceptada al instante a su precio.
+  r := contraofertar_precio_solicitud(current_setting('prueba.e101_1')::uuid, 980);
+  if r->>'resultado' <> 'aceptada' then raise exception 'FALLO 101 · una rebaja pequeña no se acepta sola: %', r; end if;
+  -- 10 %: a revisión de Dynamo.
+  r := contraofertar_precio_solicitud(current_setting('prueba.e101_2')::uuid, 900);
+  if r->>'resultado' <> 'pendiente_revision' then raise exception 'FALLO 101 · una rebaja media no va a revisión: %', r; end if;
+  -- 20 % (máximo 15 %): no se admite. Ni subir el precio.
+  if (contraofertar_precio_solicitud(current_setting('prueba.e101_3')::uuid, 800))->>'resultado' <> 'demasiado_lejos' then raise exception 'FALLO 101 · admite una rebaja por encima del máximo'; end if;
+  if (contraofertar_precio_solicitud(current_setting('prueba.e101_3')::uuid, 1100))->>'resultado' <> 'no_es_rebaja' then raise exception 'FALLO 101 · admite una «contraoferta» al alza'; end if;
+  begin perform resolver_contraoferta_cliente(current_setting('prueba.e101_2')::uuid, true); raise exception 'FALLO 101 · el cliente aprueba su propia contraoferta';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$ begin
+  if (select (estado, importe_cliente, precio_inicial_cliente)::text from envios where id = current_setting('prueba.e101_1')::uuid) <> '(programado,980.00,1000.00)' then
+    raise exception 'FALLO 101 · la aceptada al instante no queda confirmada a su precio: %', (select (estado, importe_cliente, precio_inicial_cliente)::text from envios where id = current_setting('prueba.e101_1')::uuid);
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if (resolver_contraoferta_cliente(current_setting('prueba.e101_2')::uuid, true))->>'resultado' <> 'ok' then raise exception 'FALLO 101 · Dynamo no aprueba'; end if;
+  if (select (estado, importe_cliente)::text from envios where id = current_setting('prueba.e101_2')::uuid) <> '(programado,900.00)' then
+    raise exception 'FALLO 101 · aprobada no queda confirmada a 900';
+  end if;
+  raise notice 'OK 101 · contraoferta del cliente: solo si la tiene permitida, solo a la baja; poca rebaja se acepta sola, media la revisa Dynamo, mucha no se admite';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 102. Estado de la cuenta: ni la propia, ni un Admin Master, ni volver a pendiente --
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  begin update usuarios set estado = 'suspendida' where id = auth.uid(); raise exception 'FALLO 102 · el Admin Master se suspende a sí mismo';
+  exception when insufficient_privilege then null; end;
+  begin update usuarios set estado = 'pendiente_verificacion' where id = current_setting('prueba.u_cli')::uuid; raise exception 'FALLO 102 · una cuenta vuelve a pendiente de verificación';
+  exception when insufficient_privilege then null; end;
+  update usuarios set estado = 'suspendida' where id = current_setting('prueba.u_cli')::uuid;   -- a otro, sí
+  update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_emp84'), false);
+set role authenticated;
+do $$ begin
+  begin update usuarios set estado = 'suspendida' where id = current_setting('prueba.u_admin')::uuid; raise exception 'FALLO 102 · un empleado suspende al Admin Master';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 102 · estado de la cuenta: nadie cambia el suyo, el Admin Master solo desde Supabase, y no se vuelve a pendiente';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

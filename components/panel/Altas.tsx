@@ -39,7 +39,7 @@ const Chip = ({ tipo = 'cliente' }: { tipo?: 'cliente' | 'transportista' }) => (
 const horaTxt = (iso: string) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 const eur = (n: number | null) => (n == null ? '—' : `${n.toLocaleString('es-ES', { maximumFractionDigits: 2 })} €`);
 
-// Reloj de atención de una solicitud: espera real + barra de 5 minutos de oficina.
+// Reloj de atención de una solicitud: espera real + barra de 30 minutos de oficina.
 function Reloj({ desde, fest, ahora }: { desde: string; fest: Set<string>; ahora: Date }) {
   const e = estadoCola(desde, fest, ahora);
   return (

@@ -15,7 +15,7 @@ import CondicionesGenerales from '@/components/CondicionesGenerales';
 import { euros, fecha, ventana } from '@/lib/formato';
 import { creadoTxt, estadoVisual } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
-import { responderPrecio, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
+import { responderPrecio, contraofertarPrecio, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
 import { enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
 
 const HITOS: Record<string, string> = {
@@ -60,6 +60,9 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
   const iva = Number(e.iva_aplicado ?? 21);
   const pendientePrecio = e.estado === 'borrador' && e.solicitud_estado === 'pendiente_precio';
   const porAceptar = e.estado === 'borrador' && e.solicitud_estado === 'precio_propuesto';
+  const enContraoferta = e.estado === 'borrador' && e.solicitud_estado === 'contraoferta';
+  const [miPrecio, setMiPrecio] = useState('');
+  const [proponer, setProponer] = useState(false);
   const caducado = porAceptar && e.precio_valido_hasta && new Date(e.precio_valido_hasta) < new Date();
   const cancelable = ['borrador', 'programado'].includes(e.estado);
 
@@ -136,6 +139,9 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
         </div>
       )}
       {e.pago && e.estado !== 'cancelado' && <PagoCliente e={e} />}
+      {enContraoferta && (
+        <div className="pt-aviso info"><div><strong>Has propuesto {euros(Number(e.contraoferta?.propuesta ?? 0))}</strong> (sin IVA) frente a nuestros {euros(pc)}. Lo estamos revisando y te contestamos aquí. Si no la aceptamos, volverás a ver nuestro precio para aceptarlo o cancelar sin coste.</div></div>
+      )}
       {pendientePrecio && (
         <div className="pt-aviso info"><div><strong>Estamos calculando tu precio.</strong> Te lo pasamos en menos de 25 minutos (en horario de oficina) y te aparecerá aquí para aceptarlo. Hasta que lo aceptes no hay ningún compromiso.</div></div>
       )}
@@ -158,7 +164,20 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.8rem', flexWrap: 'wrap' }}>
             <button className="btn-primary" disabled={!acepto || !!trabajando} onClick={() => hacer('Confirmando el envío', () => responderPrecio(e.id, true))}><I d={ICO.check} />Aceptar precio y confirmar envío</button>
             <button className="btn-ghost" disabled={!!trabajando} onClick={() => hacer('Rechazando', () => responderPrecio(e.id, false))}>Rechazar</button>
+            {e.contraoferta?.permitida && !caducado && !proponer && <button className="btn-ghost" disabled={!!trabajando} onClick={() => setProponer(true)}>Proponer otro precio</button>}
           </div>
+          {proponer && (
+            <div style={{ marginTop: '0.8rem', paddingTop: '0.7rem', borderTop: '1px solid var(--gray-200)' }}>
+              <label htmlFor="cf-precio" style={{ fontWeight: 700 }}>Tu precio (sin IVA, €)</label>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.3rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <input id="cf-precio" type="text" inputMode="decimal" value={miPrecio} onChange={(ev) => setMiPrecio(ev.target.value)} placeholder="Ej. 950" style={{ maxWidth: 160 }} />
+                <button className="btn-primary" disabled={!acepto || !!trabajando || !(Number(miPrecio.replace(',', '.')) > 0)}
+                  onClick={() => hacer('Enviando tu propuesta', () => contraofertarPrecio(e.id, Number(miPrecio.replace(',', '.'))))}>Enviar mi propuesta</button>
+                <button className="btn-ghost" onClick={() => setProponer(false)}>Volver</button>
+              </div>
+              <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.4rem 0 0' }}>Marca antes la casilla de las condiciones. Si tu precio se acerca al nuestro, se acepta al momento; si no, lo revisamos y te contestamos aquí. Hasta entonces, el nuestro sigue en pie.</p>
+            </div>
+          )}
         </div>
       )}
 

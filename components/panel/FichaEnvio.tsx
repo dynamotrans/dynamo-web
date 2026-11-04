@@ -21,7 +21,7 @@ import CampoTelefono from '@/components/CampoTelefono';
 import PagoPrevio from './PagoPrevio';
 import {
   asignarTransportista, quitarTransportista, cambiarEstado, cancelarEnvio, deshacerCancelacion, modificarEnvio,
-  ofrecerCarga, revocarOferta, resolverContraoferta, enlaceCmr, retirarEnlaceCmr, valorarTransportista, type DatosEnvio, archivarPdf,
+  ofrecerCarga, revocarOferta, resolverContraoferta, resolverContraofertaCliente, enlaceCmr, retirarEnlaceCmr, valorarTransportista, type DatosEnvio, archivarPdf,
 } from '@/app/panel/(app)/envios/acciones';
 
 const ESTADOS: [string, string, string][] = [
@@ -197,6 +197,21 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
       {e.estado === 'borrador' && e.solicitud_estado === 'pendiente_precio' && (
         <div className="modal-warn-box"><strong>Solicitud del cliente esperando precio.</strong> Pónselo con «Poner precio»: lo verá en su panel para aceptarlo (prometemos menos de 25 minutos en horario de oficina).</div>
+      )}
+      {e.estado === 'borrador' && e.solicitud_estado === 'contraoferta' && e.contraoferta_cliente != null && (
+        <div className="modal-warn-box" style={{ marginBottom: '0.8rem' }}>
+          <strong>Contraoferta del cliente:</strong> propone <strong>{euros(Number(e.contraoferta_cliente))}</strong> (sin IVA) frente a nuestros {euros(e.importe_cliente)}
+          {e.importe_cliente ? <> ({Math.round((1 - Number(e.contraoferta_cliente) / Number(e.importe_cliente)) * 1000) / 10} % menos)</> : null}
+          {e.importe_transportista != null && <> · coste del transporte previsto {euros(e.importe_transportista)}, margen con su precio {euros(Number(e.contraoferta_cliente) - Number(e.importe_transportista))}</>}.
+          Ya aceptó las condiciones al proponerlo.
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
+            <button className="btn-primary" onClick={() => hacer('Aprobando', () => resolverContraofertaCliente(e.id, true))}>Aprobar su precio y confirmar el envío</button>
+            <button className="btn-ghost" style={{ color: '#dc2626' }} onClick={() => hacer('Rechazando', () => resolverContraofertaCliente(e.id, false))}>Rechazar (vuelve a ver nuestro precio)</button>
+          </div>
+        </div>
+      )}
+      {e.precio_inicial_cliente != null && e.contraoferta_cliente != null && e.solicitud_estado === 'aceptada' && (
+        <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Precio conseguido por <strong>contraoferta del cliente</strong>: {euros(e.importe_cliente)} (le dimos {euros(e.precio_inicial_cliente)}).</div></div>
       )}
       {e.estado === 'borrador' && e.solicitud_estado === 'precio_propuesto' && (
         <div className="pt-aviso info"><div>Precio enviado al cliente: <strong>{euros(e.importe_cliente)}</strong>{e.precio_valido_hasta ? <> · válido hasta el {creadoTxt(e.precio_valido_hasta)}</> : null}. Esperando su respuesta.</div></div>

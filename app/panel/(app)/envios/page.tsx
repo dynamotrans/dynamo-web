@@ -114,8 +114,9 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       const { data: hit } = await supabase.from('envio_hitos').select('id, hito, cuando').eq('envio_id', fichaCli.id).order('cuando', { ascending: false }).limit(100);
       const { data: val } = await supabase.rpc('mi_valoracion_envio', { p_envio: fichaCli.id }).maybeSingle();
       const { data: pg } = await supabase.rpc('pagos_envio', { p_envio: fichaCli.id }).maybeSingle();
+      const { data: cf } = await supabase.rpc('mi_contraoferta', { p_envio: fichaCli.id }).maybeSingle();
       // Pago con tarjeta: solo si Stripe está conectado (claves en Vercel).
-      fichaCli = { ...fichaCli, hitos: hit ?? [], valoracion: val ?? null, pago: pg ?? null,
+      fichaCli = { ...fichaCli, hitos: hit ?? [], valoracion: val ?? null, pago: pg ?? null, contraoferta: cf ?? null,
         tarjeta: stripeListo(), pagoVuelta: sp.pago ?? null };
     }
   }
