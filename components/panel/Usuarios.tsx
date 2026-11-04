@@ -82,6 +82,7 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
 }) {
   const refrescar = useRefrescar();
   const [q, setQ] = useState('');
+  const [fEstado, setFEstado] = useState('');
   const [fRol, setFRol] = useState('');
   const [ficha, setFicha] = useState<UsuarioFila | null>(null);
   const [rolDe, setRolDe] = useState<UsuarioFila | null>(null);
@@ -95,9 +96,11 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
   const lista = useMemo(() => {
     const w = norm(q.trim());
     return filas.filter((u) => !fRol || u.rol === fRol)
+      .filter((u) => !fEstado || (fEstado === 'suspendida_auto' ? u.estado === 'suspendida' && !!u.suspension_motivo?.startsWith('Automática')
+        : fEstado === 'invitacion' ? !u.email_confirmado : u.estado === fEstado))
       .filter((u) => !w || norm([u.email, u.nombre, u.documento, u.telefono, u.cargo, nombreRol(u.rol), empresaDe(u)].join(' ')).includes(w));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filas, q, fRol, empresas]);
+  }, [filas, q, fRol, fEstado, empresas]);
 
   const hecho = (txt: string) => { setFicha(null); setRolDe(null); setInvitar(false); setAviso(txt); refrescar(); };
 
@@ -119,6 +122,14 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
           <option value="">Tipo: todos</option>
           {ROLES.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
         </select>
+        <select value={fEstado} onChange={(e) => setFEstado(e.target.value)} aria-label="Filtrar por estado de la cuenta">
+          <option value="">Estado: todos</option>
+          <option value="activa">Activa ({filas.filter((u) => u.estado === 'activa').length})</option>
+          <option value="pendiente_verificacion">Pendiente de verificación ({filas.filter((u) => u.estado === 'pendiente_verificacion').length})</option>
+          <option value="suspendida">Suspendida ({filas.filter((u) => u.estado === 'suspendida').length})</option>
+          <option value="suspendida_auto">Suspendida automáticamente ({filas.filter((u) => u.estado === 'suspendida' && u.suspension_motivo?.startsWith('Automática')).length})</option>
+          <option value="invitacion">Invitación sin aceptar ({filas.filter((u) => !u.email_confirmado).length})</option>
+        </select>
       </div>
       {error && <div className="pt-aviso error">No se han podido cargar los usuarios: {error}</div>}
       {aviso && <div className="pt-aviso info">{aviso}</div>}
@@ -126,20 +137,23 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
       <div className="table-wrap">
         <table className="data">
           <thead><tr>
-            <th>Email · usuario</th><th>Tipo</th><th>Nombre y apellidos</th><th>DNI</th><th>Teléfono</th>
+            <th>Email · usuario</th><th>Tipo</th><th>Estado</th><th>Nombre y apellidos</th><th>DNI</th><th>Teléfono</th>
             <th>Última conexión</th><th>Conexión diaria</th><th>Consultas de precio</th><th>Envíos creados</th><th>Cancelaciones</th><th>Cancel. / envíos</th><th>Cancelados en últ. 10</th>
           </tr></thead>
           <tbody>
             {lista.length === 0 ? (
-              <tr><td colSpan={12} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>Sin usuarios que coincidan</td></tr>
+              <tr><td colSpan={13} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>Sin usuarios que coincidan</td></tr>
             ) : lista.map((u) => {
               const m = metricas(u);
               return (
                 <tr key={u.id} onClick={() => { setAviso(null); setFicha(u); }} style={{ cursor: 'pointer' }}>
                   <td><strong>{u.email}</strong>{u.id === yo.id && <> <span className="badge badge-green">Tú</span></>}<div className="meta">{empresaDe(u)}</div></td>
-                  <td><ChipRol rol={u.rol} />
-                    {u.estado === 'suspendida' && <div className="meta" style={{ color: '#dc2626', fontWeight: 700 }} title={u.suspension_motivo ?? undefined}>{u.suspension_motivo?.startsWith('Automática') ? 'Suspendida (automática)' : 'Suspendida'}</div>}
-                    {u.estado === 'pendiente_verificacion' && <div className="meta" style={{ color: '#b45309', fontWeight: 700 }}>Pendiente verif.</div>}
+                  <td><ChipRol rol={u.rol} /></td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
+                    {u.estado === 'activa' ? <span className="badge badge-green">Activa</span>
+                      : u.estado === 'suspendida' ? <span className="badge badge-red" title={u.suspension_motivo ?? undefined}>{u.suspension_motivo?.startsWith('Automática') ? 'Suspendida (auto)' : 'Suspendida'}</span>
+                      : <span className="badge badge-orange">Pendiente verif.</span>}
+                    {u.estado === 'suspendida' && u.suspendida_en && <div className="meta">desde {creadoTxt(u.suspendida_en)}</div>}
                     {!u.email_confirmado && <div className="meta" style={{ color: '#b45309', fontWeight: 700 }}>Invitación sin aceptar</div>}
                   </td>
                   <td>{u.nombre || '—'}{u.cargo && <div className="meta">{u.cargo}</div>}</td>
