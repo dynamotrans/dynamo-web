@@ -3621,3 +3621,35 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 107. Negociación: requisitos extra del transportista -----------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t uuid := current_setting('prueba.transp')::uuid; e uuid; o uuid; r jsonb; begin
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (c, 6, 600, 500, current_date + 1, current_date + 1) returning id into e;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 1, 'carga', '41001', 'Sevilla');
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 2, 'descarga', '46001', 'Valencia');
+  update envios set estado = 'programado' where id = e;
+  o := ofertar_envio(e, t, 'email', 500, 30::smallint);
+  -- Mínimo de 999 cargas hechas: con la oferta personal ya se sabe quién es → no se enseña.
+  update parametros set valor = '999' where clave = 'negociacion_min_cargas_hechas';
+  if negociacion_publica((select token from envio_ofertas where id = o)) then raise exception 'FALLO 107 · negocia un transportista sin las cargas mínimas'; end if;
+  r := reservar_envio((select token from envio_ofertas where id = o));
+  begin r := aceptar_reserva((r->>'reserva_id')::uuid, t, null, 580); raise exception 'FALLO 107 · admite la contraoferta sin las cargas mínimas';
+  exception when insufficient_privilege then null; end;
+  update parametros set valor = '0' where clave = 'negociacion_min_cargas_hechas';
+  -- Una por carga: la primera va a revisión y se rechaza; la segunda ya no.
+  update parametros set valor = 'true' where clave = 'negociacion_una_por_carga';
+  r := aceptar_reserva((select id from envio_reservas where envio_id = e and estado = 'viva' limit 1), t, null, 600);
+  if r->>'resultado' <> 'pendiente_revision' then raise exception 'FALLO 107 · la primera contraoferta no va a revisión: %', r; end if;
+  perform resolver_contraoferta((select id from envio_reservas where envio_id = e and estado = 'pendiente_revision'), false);
+  if negociacion_publica((select token from envio_ofertas where id = o)) then raise exception 'FALLO 107 · deja una segunda contraoferta con «una por carga»'; end if;
+  update parametros set valor = 'false' where clave = 'negociacion_una_por_carga';
+  -- Máximo de contraofertas por carga: con 1, la carga (que ya tiene una) no admite más.
+  update parametros set valor = '1' where clave = 'negociacion_max_contraofertas_carga';
+  if negociacion_publica((select token from envio_ofertas where id = o)) then raise exception 'FALLO 107 · admite contraofertas por encima del máximo de la carga'; end if;
+  update parametros set valor = '0' where clave = 'negociacion_max_contraofertas_carga';
+  if not negociacion_publica((select token from envio_ofertas where id = o)) then raise exception 'FALLO 107 · con los requisitos apagados no deja negociar'; end if;
+  raise notice 'OK 107 · negociación: cargas mínimas, una por carga, sin bajadas recientes y máximo por carga (apagados por defecto)';
+end $$;

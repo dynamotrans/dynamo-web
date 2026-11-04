@@ -41,7 +41,7 @@ export async function aceptar(token: string, a: Aceptacion): Promise<{ resultado
     p_camion: a.camion, p_remolque: a.remolque, p_conductor: a.conductor, p_telefono: a.telefono,
     p_ip: ((await headers()).get('x-forwarded-for') ?? '').split(',')[0].trim() || null,
   });
-  if (error) return { resultado: 'error', error: ERROR_CONEXION };
+  if (error) return { resultado: 'error', error: /no se puede negociar/i.test(error.message) ? `${error.message.replace(/^.*?(Ahora no se puede)/, '$1')} Puedes aceptarla al precio ofertado.` : ERROR_CONEXION };
   return data as { resultado: string; minimo?: number; maximo?: number; intentos_restantes?: number };
 }
 
@@ -91,7 +91,7 @@ export async function darseDeAlta(token: string, a: AltaTransportista): Promise<
     p_reserva: reserva, p_bolsa: a.bolsa || null, p_codigo_bolsa: a.codigo_bolsa, p_pais: a.pais, p_cif: a.cif, p_telefono: a.telefono,
     p_precio: a.precio, p_pronto_pago: a.pronto_pago, p_ip: ((await headers()).get('x-forwarded-for') ?? '').split(',')[0].trim() || null,
   });
-  if (error) return { resultado: 'error', error: ERROR_CONEXION };
+  if (error) return { resultado: 'error', error: /no se puede negociar/i.test(error.message) ? `${error.message.replace(/^.*?(Ahora no se puede)/, '$1')} Puedes aceptarla al precio ofertado.` : ERROR_CONEXION };
   const r = data as { resultado: string; minimo?: number; maximo?: number; campo?: string };
   if (r.resultado === 'alta_pendiente') almacen.set(cookieAlta(token), '1', { httpOnly: true, sameSite: 'lax', secure: true, path: '/carga', maxAge: 60 * 60 * 24 * 30 });
   return r;
