@@ -122,8 +122,8 @@ function Bloque({ titulo, children }: { titulo: string; children: React.ReactNod
   );
 }
 
-function Regla({ n, titulo, quien, hoy, children, claves, filas, esAdmin }: {
-  n: number | null; titulo: string; quien: string; hoy?: number; children: React.ReactNode;
+function Regla({ n, titulo, quien, hoy, salta, children, claves, filas, esAdmin }: {
+  n: number | null; titulo: string; quien: string; hoy?: number; salta?: 'momento' | 'hora'; children: React.ReactNode;
   claves: string[]; filas: ParametroFila[]; esAdmin: boolean;
 }) {
   const ps = claves.map((k) => filas.find((p) => p.clave === k)).filter(Boolean) as ParametroFila[];
@@ -134,6 +134,8 @@ function Regla({ n, titulo, quien, hoy, children, claves, filas, esAdmin }: {
         <span style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 'var(--fs-l)' }}>{titulo}</span>
         <span className="meta" style={{ marginLeft: 'auto' }}>Se aplica a: <strong>{quien}</strong></span>
       </div>
+      {salta && <div className="meta" style={{ marginTop: '0.3rem', fontWeight: 700, color: salta === 'momento' ? '#b45309' : 'var(--gray-500)' }}>
+        {salta === 'momento' ? 'Salta al momento: en cuanto pasa del límite.' : 'Salta en el repaso de cada hora.'}</div>}
       {children}
       {ps.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.7rem', marginTop: '0.8rem', paddingTop: '0.7rem', borderTop: '1px solid var(--gray-200)' }}>
@@ -194,7 +196,8 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
       <div className="ptar-admin-precio-note" style={{ marginBottom: '0.7rem' }}>
         <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: '0.35rem' }}>Cómo funciona, en pocas palabras</div>
         <ul style={{ margin: 0, paddingLeft: '1.1rem', lineHeight: 1.55 }}>
-          <li><strong>Cuándo:</strong> cada noche, a las <strong>4:17</strong> (5:17 en verano, hora de España), la plataforma repasa todas las cuentas.</li>
+          <li><strong>Cuándo — al momento:</strong> las reglas <strong>3, 4 y 5</strong> se miran en el mismo instante en que la persona pide un precio o cancela un envío. Si con esa consulta o cancelación pasa del límite, la cuenta queda suspendida en ese segundo y en su siguiente clic ya no puede seguir.</li>
+          <li><strong>Cuándo — cada hora:</strong> en el minuto 17 de cada hora la plataforma repasa todas las cuentas. Es lo que pilla las reglas <strong>1 y 2</strong>, que dependen de que pase el tiempo (nadie «hace» nada que las dispare).</li>
           <li><strong>Qué hace:</strong> si una cuenta cumple <strong>una sola</strong> de las 5 reglas de abajo, la suspende: esa persona ya no puede entrar.</li>
           <li><strong>A quién:</strong> solo a la <strong>persona</strong> (su usuario), nunca a la empresa entera ni a sus compañeros. Al equipo de Dynamo, nunca.</li>
           <li><strong>Dónde se ve:</strong> en <strong>Usuarios</strong> sale como «Suspendida (automática)» y, en su ficha, el motivo exacto (qué regla y con qué números).</li>
@@ -209,13 +212,13 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap', marginTop: '0.55rem' }}>
           {activa && <Control p={activa} esAdmin={esAdmin} etiqueta="Suspensión automática encendida" />}
           <span style={{ fontSize: 'var(--fs-m)', color: encendida ? '#0f6b3a' : '#b45309', fontWeight: 700 }}>
-            {encendida ? 'Encendida: la revisión de cada noche suspende a quien cumpla una regla.' : 'Apagada: no se suspende a nadie automáticamente (ni de noche ni con «Lanzar ahora»).'}
+            {encendida ? 'Encendida: suspende al momento (reglas 3, 4 y 5) y en el repaso de cada hora (todas).' : 'Apagada: no se suspende a nadie automáticamente (ni al momento, ni cada hora, ni con «Lanzar ahora»).'}
           </span>
         </div>
       </Regla>
 
       {/* 3. Las reglas */}
-      <Regla n={1} titulo="Pide precios pero no hace envíos" quien="clientes" hoy={porRegla(1)} claves={['autosusp_sin_envios_dias']} filas={filas} esAdmin={esAdmin}>
+      <Regla n={1} salta="hora" titulo="Pide precios pero no hace envíos" quien="clientes" hoy={porRegla(1)} claves={['autosusp_sin_envios_dias']} filas={filas} esAdmin={esAdmin}>
         <Bloque titulo="Qué mira">Si la persona ha pedido algún precio en los últimos <strong>{r1} días</strong> y, en esos mismos {r1} días, <strong>nadie de su empresa</strong> ha generado ningún envío.</Bloque>
         <Bloque titulo="Cuándo se suspende">Cuando pasan las dos cosas a la vez: pide precios <strong>y</strong> su empresa no envía nada en {r1} días.</Bloque>
         <Bloque titulo="Ejemplos">
@@ -228,7 +231,7 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
         <Bloque titulo="No se aplica">A cuentas con menos de {r1} días, ni durante los {r1} días siguientes a reactivarla.</Bloque>
       </Regla>
 
-      <Regla n={2} titulo="No entra nunca" quien="clientes y transportistas" hoy={porRegla(2)} claves={['autosusp_sin_acceso_dias']} filas={filas} esAdmin={esAdmin}>
+      <Regla n={2} salta="hora" titulo="No entra nunca" quien="clientes y transportistas" hoy={porRegla(2)} claves={['autosusp_sin_acceso_dias']} filas={filas} esAdmin={esAdmin}>
         <Bloque titulo="Qué mira">La última vez que la persona <strong>inició sesión</strong> en la plataforma.</Bloque>
         <Bloque titulo="Cuándo se suspende">Cuando lleva más de <strong>{r2} días</strong> sin iniciar sesión {duracion(r2) && <>({duracion(r2)})</>}. Es una medida de seguridad: una cuenta olvidada es una puerta abierta.</Bloque>
         <Bloque titulo="Ejemplos">
@@ -240,12 +243,12 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
         <Bloque titulo="No se aplica">A cuentas con menos de {r2} días, ni durante los {r2} días siguientes a reactivarla.</Bloque>
       </Regla>
 
-      <Regla n={3} titulo="Demasiadas consultas de precio" quien="clientes" hoy={porRegla(3)} claves={['autosusp_consultas_dia', 'autosusp_consultas_semana', 'autosusp_consultas_mes']} filas={filas} esAdmin={esAdmin}>
+      <Regla n={3} salta="momento" titulo="Demasiadas consultas de precio" quien="clientes" hoy={porRegla(3)} claves={['autosusp_consultas_dia', 'autosusp_consultas_semana', 'autosusp_consultas_mes']} filas={filas} esAdmin={esAdmin}>
         <Bloque titulo="Qué mira">Cuántos precios pide la persona. Hoy cuenta cada <strong>solicitud de precio</strong>; cuando esté el tarifador, contará cada cálculo. Sirve para frenar a quien usa la plataforma solo para sacar precios (la competencia, por ejemplo).</Bloque>
         <Bloque titulo="Cuándo se suspende">Cuando pasa de <strong>{qd} en 24 horas</strong>, <strong>o</strong> de <strong>{qs} en 7 días</strong>, <strong>o</strong> de <strong>{qm} en 30 días</strong>. Basta con pasarse en una de las tres.</Bloque>
         <Bloque titulo="Ejemplos">
           <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
-            <li>Pide {qd} precios hoy → <strong>no pasa nada</strong>. Pide el {qd + 1}.º → <strong>se suspende</strong> esa noche.</li>
+            <li>Pide {qd} precios hoy → <strong>no pasa nada</strong>. Pide el {qd + 1}.º → <strong>se suspende en ese mismo momento</strong> (no le da tiempo a pedir 3.000).</li>
             {qPorDia <= qd && <li>Pide {qPorDia} precios al día durante una semana = {qPorDia * 7} → pasa de {qs} en 7 días → <strong>se suspende</strong>, aunque ningún día pase de {qd}.</li>}
             <li>Pide pocos al día pero, sumando el mes, llega a {qm + 1} → pasa de {qm} en 30 días → <strong>se suspende</strong>.</li>
           </ul>
@@ -253,7 +256,7 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
         <Bloque titulo="Para un cliente concreto">El máximo de 24 horas se puede subir (o bajar) solo para él en Usuarios → su ficha → «Límite de consultas de precio al día». Si está vacío, vale el de aquí.</Bloque>
       </Regla>
 
-      <Regla n={4} titulo="Cancela muchos de sus envíos" quien="clientes" hoy={porRegla(4)} claves={['autosusp_cancel_pct', 'autosusp_cancel_min_envios']} filas={filas} esAdmin={esAdmin}>
+      <Regla n={4} salta="momento" titulo="Cancela muchos de sus envíos" quien="clientes" hoy={porRegla(4)} claves={['autosusp_cancel_pct', 'autosusp_cancel_min_envios']} filas={filas} esAdmin={esAdmin}>
         <Bloque titulo="Qué mira">De los envíos que ha pedido <strong>esa persona</strong>, cuántos ha cancelado <strong>ella misma</strong>. Las cancelaciones que hace Dynamo no cuentan. Se cuenta desde que se creó la cuenta (o desde que se reactivó).</Bloque>
         <Bloque titulo="Cuándo se suspende">Cuando ha pedido <strong>{cmin} envíos o más</strong> y ha cancelado el <strong>{cp} % o más</strong>.</Bloque>
         <Bloque titulo="Ejemplos">
@@ -266,7 +269,7 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
         </Bloque>
       </Regla>
 
-      <Regla n={5} titulo="Muchas cancelaciones seguidas" quien="clientes" hoy={porRegla(5)} claves={['autosusp_cancel_recientes', 'autosusp_cancel_recientes_dias']} filas={filas} esAdmin={esAdmin}>
+      <Regla n={5} salta="momento" titulo="Muchas cancelaciones seguidas" quien="clientes" hoy={porRegla(5)} claves={['autosusp_cancel_recientes', 'autosusp_cancel_recientes_dias']} filas={filas} esAdmin={esAdmin}>
         <Bloque titulo="Qué mira">Cuántos envíos ha cancelado la persona en los <strong>últimos {cd} días</strong>, tenga los envíos que tenga.</Bloque>
         <Bloque titulo="Cuándo se suspende">Cuando cancela <strong>{cn} o más</strong> en {cd} días.</Bloque>
         <Bloque titulo="Ejemplos">
@@ -282,9 +285,9 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
 
       {/* 4. Quién caería hoy + lanzar */}
       <div className="table-wrap" style={{ padding: '0.9rem 1rem', marginBottom: '0.7rem' }}>
-        <div style={{ fontWeight: 800, color: 'var(--navy)' }}>Si la revisión se lanzara ahora, caerían {candidatos.length}{candidatos.length ? ':' : ' (nadie).'}</div>
+        <div style={{ fontWeight: 800, color: 'var(--navy)' }}>Si el repaso se lanzara ahora, caerían {candidatos.length}{candidatos.length ? ':' : ' (nadie).'}</div>
         {candidatos.length > 0 && <ul style={{ margin: '0.4rem 0 0', paddingLeft: '1.1rem', lineHeight: 1.55 }}>{candidatos.map((c) => <li key={c.usuario_id}><strong>{c.email}</strong> · {c.motivo}</li>)}</ul>}
-        <div className="meta" style={{ marginTop: '0.4rem' }}>Esta lista no suspende a nadie: solo enseña lo que haría la revisión de esta noche con los números de arriba. Sirve para probar un número antes de dejarlo.</div>
+        <div className="meta" style={{ marginTop: '0.4rem' }}>Esta lista no suspende a nadie: solo enseña lo que haría el próximo repaso (cada hora) con los números de arriba. Sirve para probar un número antes de dejarlo. «Lanzar ahora» hace el repaso sin esperar.</div>
         {esAdmin && <div style={{ marginTop: '0.6rem' }}><button className="btn-secondary" onClick={lanzar} disabled={trabajando || !encendida}>{trabajando ? 'Lanzando…' : 'Lanzar ahora'}</button>
           {!encendida && <span className="meta" style={{ marginLeft: '0.5rem' }}>El interruptor general está apagado.</span>}</div>}
         {estado && <div className="meta" style={{ marginTop: '0.35rem', fontWeight: 700 }}>{estado}</div>}

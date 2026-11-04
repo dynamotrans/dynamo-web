@@ -3252,3 +3252,64 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 99. Suspensión al momento (consultas y cancelaciones) ----------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; i int; begin
+  update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid and estado <> 'activa';
+  update usuarios set autosusp_desde = now(), limite_consultas_precio_diario = null where id = current_setting('prueba.u_cli')::uuid;
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+  for i in 1..3 loop
+    insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
+      values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800) returning id into e;
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
+    insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
+    update envios set estado = 'programado' where id = e;
+    perform set_config('prueba.e99_' || i, e::text, false);
+  end loop;
+  perform set_config('request.jwt.claim.sub', '', false);
+end $$;
+-- El cliente cancela él mismo: a la 3.ª en pocos días (regla 5) queda suspendido EN ESE MOMENTO.
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  perform cancelar_mi_envio(current_setting('prueba.e99_1')::uuid);
+  perform cancelar_mi_envio(current_setting('prueba.e99_2')::uuid);
+  if (select estado from usuarios where id = auth.uid()) <> 'activa' then
+    raise exception 'FALLO 99 · suspende antes de pasar el límite';
+  end if;
+  perform cancelar_mi_envio(current_setting('prueba.e99_3')::uuid);
+end $$;
+reset role;
+do $$ declare u record; begin
+  select estado, suspension_motivo into u from usuarios where id = current_setting('prueba.u_cli')::uuid;
+  if u.estado <> 'suspendida' or u.suspension_motivo not like 'Automática (al momento) · Regla 5%' then
+    raise exception 'FALLO 99 · la 3.ª cancelación no suspende al momento: % %', u.estado, u.suspension_motivo;
+  end if;
+  if (select estado from envios where id = current_setting('prueba.e99_3')::uuid) <> 'cancelado' then
+    raise exception 'FALLO 99 · la cancelación que pasa del límite no se hace';
+  end if;
+  -- Reactivado: ahora 16 consultas de precio en un día (máximo 15) → al momento, regla 3.
+  update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;
+  for i in 1..15 loop insert into consultas_precio (usuario_id, cliente_id) values (current_setting('prueba.u_cli')::uuid, current_setting('prueba.cliente')::uuid); end loop;
+  if (select estado from usuarios where id = current_setting('prueba.u_cli')::uuid) <> 'activa' then
+    raise exception 'FALLO 99 · suspende con 15 consultas (el máximo es «más de 15»)';
+  end if;
+  insert into consultas_precio (usuario_id, cliente_id) values (current_setting('prueba.u_cli')::uuid, current_setting('prueba.cliente')::uuid);
+  select estado, suspension_motivo into u from usuarios where id = current_setting('prueba.u_cli')::uuid;
+  if u.estado <> 'suspendida' or u.suspension_motivo not like 'Automática (al momento) · Regla 3%' then
+    raise exception 'FALLO 99 · la consulta 16 no suspende al momento: % %', u.estado, u.suspension_motivo;
+  end if;
+  -- Con el interruptor apagado no suspende a nadie.
+  update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;
+  update parametros set valor = 'false' where clave = 'autosusp_activa';
+  insert into consultas_precio (usuario_id, cliente_id) values (current_setting('prueba.u_cli')::uuid, current_setting('prueba.cliente')::uuid);
+  if (select estado from usuarios where id = current_setting('prueba.u_cli')::uuid) <> 'activa' then
+    raise exception 'FALLO 99 · suspende con el interruptor general apagado';
+  end if;
+  update parametros set valor = 'true' where clave = 'autosusp_activa';
+  update usuarios set autosusp_desde = now() where id = current_setting('prueba.u_cli')::uuid;
+  raise notice 'OK 99 · suspensión al momento: la cancelación o consulta que pasa del límite se hace y la cuenta cae en ese instante; con el interruptor apagado, nada';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
