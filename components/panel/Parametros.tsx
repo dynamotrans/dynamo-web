@@ -11,6 +11,8 @@ import { creadoTxt } from '@/lib/envios';
 // Datos que deciden a quién paga el cliente: solo se cambian en Supabase (la base de datos
 // lo impone; migración parametros_blindados). Aquí se ven, sin poder tocarlos.
 const BLINDADOS = ['dynamo_iban', 'dynamo_banco', 'dynamo_bic', 'dynamo_razon_social', 'dynamo_cif'];
+// La cuenta bancaria se enseña junta, en una sola caja (son tres datos de lo mismo).
+const BANCO = ['dynamo_banco', 'dynamo_iban', 'dynamo_bic'];
 
 export type Candidato = { usuario_id: string; email: string; motivo: string };
 export type ParametroFila = { clave: string; valor: unknown; descripcion: string; modificado_en: string | null };
@@ -25,6 +27,7 @@ const GRUPOS: [string, string, (k: string) => boolean][] = [
   ['holded', 'Holded (facturación)', (k) => k.startsWith('holded')],
   ['autosusp', 'Suspensión automática de cuentas', (k) => k.startsWith('autosusp_')],
   ['plataforma', 'Plataforma', (k) => k.startsWith('mantenimiento')],
+  ['dynamo', 'Datos de Dynamo en los documentos', (k) => k.startsWith('dynamo_')],
 ];
 const grupoDe = (k: string) => GRUPOS.find(([, , f]) => f(k))?.[0] ?? 'otros';
 const texto = (v: unknown) => (v === null ? '' : typeof v === 'string' ? v : JSON.stringify(v));
@@ -32,7 +35,8 @@ const texto = (v: unknown) => (v === null ? '' : typeof v === 'string' ? v : JSO
 export default function Parametros({ filas, esAdmin, error, candidatos = [] }: { filas: ParametroFila[]; esAdmin: boolean; error: string | null; candidatos?: Candidato[] }) {
   const grupos = useMemo(() => {
     const m = new Map<string, ParametroFila[]>();
-    filas.forEach((p) => m.set(grupoDe(p.clave), [...(m.get(grupoDe(p.clave)) ?? []), p]));
+    filas.filter((p) => !BANCO.includes(p.clave)).forEach((p) => m.set(grupoDe(p.clave), [...(m.get(grupoDe(p.clave)) ?? []), p]));
+    if (filas.some((p) => BANCO.includes(p.clave)) && !m.has('dynamo')) m.set('dynamo', []);
     return [...GRUPOS.map(([k, t]) => [k, t] as [string, string]), ['otros', 'Otros'] as [string, string]]
       .filter(([k]) => m.has(k)).map(([k, t]) => ({ k, t, filas: m.get(k)! }));
   }, [filas]);
@@ -48,6 +52,7 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
       {grupos.map((g) => (
         <div key={g.t} style={{ marginBottom: '1.1rem' }}>
           <div className="ptar-section-head" style={{ marginBottom: '0.5rem' }}>{g.t}</div>
+          {g.k === 'dynamo' && <CuentaBancaria filas={filas} />}
           <div className="table-wrap">
             <table className="data">
               <thead><tr><th style={{ width: '45%' }}>Para qué sirve</th><th>Valor</th><th>Último cambio</th></tr></thead>
@@ -58,6 +63,29 @@ export default function Parametros({ filas, esAdmin, error, candidatos = [] }: {
         </div>
       ))}
     </section>
+  );
+}
+
+// La cuenta bancaria de Dynamo (proformas), en una sola caja y solo para ver: por seguridad
+// (fraude de cambio de IBAN) solo se cambia en Supabase. Por dentro siguen siendo tres datos.
+function CuentaBancaria({ filas }: { filas: ParametroFila[] }) {
+  const v = (k: string) => texto(filas.find((p) => p.clave === k)?.valor ?? '').trim();
+  const iban = v('dynamo_iban');
+  const ibanBonito = iban.replace(/\s+/g, '').replace(/(.{4})/g, '$1 ').trim();
+  const dato = (etiqueta: string, valor: string, falta?: string) => (
+    <div><div className="meta" style={{ fontWeight: 700 }}>{etiqueta}</div>
+      <div style={{ fontWeight: 700, color: valor ? 'var(--navy)' : '#b45309', fontFamily: valor && etiqueta !== 'Banco' ? 'monospace' : undefined }}>{valor || falta || '—'}</div></div>
+  );
+  return (
+    <div className="table-wrap" style={{ padding: '0.9rem 1rem', marginBottom: '0.7rem' }}>
+      <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: '0.5rem' }}>Cuenta bancaria de Dynamo (proformas)</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.7rem' }}>
+        {dato('Banco', v('dynamo_banco'))}
+        {dato('IBAN', ibanBonito, 'Sin poner: la proforma sale sin cuenta')}
+        {dato('BIC / SWIFT', v('dynamo_bic'))}
+      </div>
+      <div className="meta" style={{ color: '#b45309', fontWeight: 700, marginTop: '0.6rem' }}>Por seguridad, solo se cambia en Supabase (Table Editor → parametros → dynamo_banco, dynamo_iban y dynamo_bic).</div>
+    </div>
   );
 }
 
