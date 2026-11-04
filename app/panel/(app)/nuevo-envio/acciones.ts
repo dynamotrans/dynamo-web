@@ -151,3 +151,15 @@ export async function crearEnvioManual(envio: Omit<EnvioNuevo, 'cliente_id' | 'i
   if (fila?.id) await contactosDeSitiosNuevos(s.supabase, fila.id, paradas, true);
   return { ok: true, referencia_gx: fila?.referencia_gx ?? '' };
 }
+
+// Días de la semana en que abre cada sitio (para avisar si la recogida cae en día cerrado).
+// Solo los sitios que el usuario puede ver: lo filtra la seguridad por filas.
+export async function diasAbiertosDe(ids: string[]): Promise<Record<string, number[]>> {
+  const s = await sesion();
+  const limpios = [...new Set(ids)].filter((x) => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 20);
+  if (!s?.perfil || !limpios.length) return {};
+  const { data } = await s.supabase.from('lugar_horarios').select('lugar_id, dia_semana').in('lugar_id', limpios);
+  const out: Record<string, number[]> = {};
+  (data ?? []).forEach((r: any) => { (out[r.lugar_id] ??= []).includes(r.dia_semana) || out[r.lugar_id].push(r.dia_semana); });
+  return out;
+}

@@ -64,3 +64,11 @@ export function resumenHorario(g: GrupoHorario[]): string {
   }
   return partes.join(' · ');
 }
+
+// Días (AAAA-MM-DD) de una lista en los que el sitio NO abre según su horario (días de la
+// semana con algún tramo). Sin horario conocido devuelve null: no se avisa de nada.
+export function diasCerrado(abiertos: number[] | null | undefined, dias: string[]): string[] | null {
+  if (!abiertos || !abiertos.length) return null;
+  const set = new Set(abiertos);
+  return dias.filter((d) => { const w = new Date(`${d}T12:00:00Z`).getUTCDay(); return !set.has(w === 0 ? 7 : w); });
+}

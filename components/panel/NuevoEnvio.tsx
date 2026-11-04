@@ -6,7 +6,7 @@
 // el tarifador llega al final (y el precio lo calculará el servidor, nunca el navegador).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { crearEnvio, crearClienteRapido, cambiarRuta, crearSolicitud, crearEnvioManual, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, crearClienteRapido, cambiarRuta, crearSolicitud, crearEnvioManual, diasAbiertosDe, type ParadaNueva } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { fecha as fmtFecha, euros as eur } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
 import { paisDe } from '@/lib/paises';
@@ -14,7 +14,7 @@ import { NEGOCIACION } from '@/lib/envios';
 import SelectorPais from '@/components/SelectorPais';
 import { TIPOS_LUGAR } from './TipoSitio';
 import EditorHorario from './EditorHorario';
-import { HORARIO_POR_DEFECTO, validarHorario, tramosDe, type GrupoHorario } from '@/lib/horarios';
+import { HORARIO_POR_DEFECTO, validarHorario, tramosDe, diasCerrado, type GrupoHorario } from '@/lib/horarios';
 import CampoTelefono from '@/components/CampoTelefono';
 
 // principal_id: el sitio con la estrella en Sitios (se pone solo como primera recogida).
@@ -158,6 +158,15 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
 
   // ---- Paso 4
   const [discrecion, setDiscrecion] = useState(!!be?.discrecion_comercial);
+  // Días que abre cada sitio de la agenda que se usa de recogida (se piden al llegar al paso 4).
+  const [abiertosSitio, setAbiertosSitio] = useState<Record<string, number[]>>({});
+  const idsRecogida = recogidas.map((p) => p.sitio?.id).filter(Boolean).join(',');
+  useEffect(() => {
+    if (paso < 3 || !idsRecogida) return;
+    let vivo = true;
+    diasAbiertosDe(idsRecogida.split(',')).then((r) => { if (vivo) setAbiertosSitio(r); }).catch(() => {});
+    return () => { vivo = false; };
+  }, [paso, idsRecogida]);
   const [enviando, setEnviando] = useState(false);
 
   // El aviso de "falta tal dato" se borra en cuanto se toca cualquier cosa.
@@ -311,6 +320,20 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
   const fechaTxt = fecha ? (fechaHasta && fechaHasta !== fecha ? `del ${fmtFecha(fecha)} al ${fmtFecha(fechaHasta)}` : fmtFecha(fecha)) : '';
 
   // ---- Avisos del paso 4 (los del mockup) --------------------------------------------
+  // Recogida en un día que el sitio no abre (según su horario en Sitios o el del sitio nuevo).
+  const diasCarga = (() => {
+    if (!fecha) return [] as string[];
+    const out: string[] = []; const [a, m, d] = fecha.split('-').map(Number); const x = new Date(a, m - 1, d);
+    while (iso(x) <= (fechaHasta || fecha)) { const k = iso(x); const w = x.getDay(); if (w !== 0 && w !== 6 && !fest.has(k)) out.push(k); x.setDate(x.getDate() + 1); }
+    return out;
+  })();
+  const recogidasCerradas = recogidas.flatMap((p) => {
+    const abiertos = p.sitio ? abiertosSitio[p.sitio.id] : p.nuevo ? (p.nuevo.horario ?? HORARIO_POR_DEFECTO).flatMap((g) => (g.tramos.length ? g.dias : [])) : null;
+    const cerrados = diasCerrado(abiertos, diasCarga);
+    if (!cerrados || !cerrados.length) return [];
+    const nombre = p.sitio?.nombre_empresa ?? p.nuevo?.nombre_empresa ?? 'El punto de recogida';
+    return [{ nombre, todos: cerrados.length === diasCarga.length, dias: cerrados }];
+  });
   // Verano (25 may – 15 sep): muchos almacenes hacen jornada intensiva.
   const enVerano = (() => { if (!fecha) return false; const [, m, d] = fecha.split('-').map(Number); return (m > 5 || (m === 5 && d >= 25)) && (m < 9 || (m === 9 && d <= 15)); })();
   // Festivo nacional dentro de los días de recogida (con el calendario se puede elegir uno).
@@ -333,6 +356,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
       {enVerano && (
         <div className="pt-aviso" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoSol /><div><strong>Revisa horarios de verano</strong> de los almacenes: la mayoría hacen <strong>7:00–15:00</strong>.</div></div>
       )}
+      {recogidasCerradas.map((r) => (
+        <div key={r.nombre} className={`pt-aviso${r.todos ? ' error' : ''}`} style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoAviso /><div>
+          {r.todos
+            ? <><strong>{r.nombre} está cerrado</strong> {r.dias.length > 1 ? 'todos los días de carga' : 'el día de carga'} ({r.dias.map((d) => fmtFecha(d)).join(', ')}) según su horario. Cambia la fecha o revisa su horario en Sitios.</>
+            : <><strong>{r.nombre} no abre</strong> el {r.dias.map((d) => fmtFecha(d)).join(', ')} según su horario: la carga tendrá que hacerse otro día de la ventana.</>}
+        </div></div>
+      ))}
       {festivosEnVentana.length > 0 && (
         <div className="pt-aviso error" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoAviso /><div>
           <strong>Festivo nacional en la fecha de carga.</strong> {festivosEnVentana.join(' · ')}. Puede que el almacén esté <strong>cerrado</strong> ese día: confírmalo con el punto de recogida.
