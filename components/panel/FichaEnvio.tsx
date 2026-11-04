@@ -19,6 +19,7 @@ import type { Ficha, ParadaFicha, TransportistaOpcion } from '@/lib/fichaEnvio';
 import { proponerPrecio } from '@/app/panel/(app)/nuevo-envio/acciones';
 import CampoTelefono from '@/components/CampoTelefono';
 import PagoPrevio from './PagoPrevio';
+import Historial from './Historial';
 import { AvisoCambiosDynamo } from './CambiosEnvio';
 import {
   asignarTransportista, quitarTransportista, cambiarEstado, cancelarEnvio, deshacerCancelacion, modificarEnvio,
@@ -408,6 +409,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
           </div>
         ))}
       </div>
+      <Historial tabla="envios" id={e.id} />
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>
   );

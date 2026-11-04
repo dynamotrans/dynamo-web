@@ -3758,3 +3758,43 @@ do $$ begin
   end if;
   raise notice 'OK 110 · reservas en el CMR: solo con enlace válido, se ven en la página y abren un siniestro crítico para Dynamo';
 end $$;
+
+-- ---- 111. Historial: quién hizo qué y cuándo, para Dynamo y para el cliente dueño -------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+update envios set importe_transportista = 777, referencia_cliente = 'REF-111' where id = current_setting('prueba.e106')::uuid;
+do $$ begin
+  if not exists (select 1 from historial_registro('envios', current_setting('prueba.e106')::uuid) where 'importe_transportista' = any (campos)) then
+    raise exception 'FALLO 111 · Dynamo no ve en el historial el cambio del precio del transportista';
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli2'), false);
+set role authenticated;
+do $$ declare r record; begin
+  if not exists (select 1 from historial_registro('envios', current_setting('prueba.e106')::uuid) where accion = 'alta' and quien_email = 'compras@cliente.prueba') then
+    raise exception 'FALLO 111 · el compañero no ve quién creó el envío';
+  end if;
+  if exists (select 1 from historial_registro('envios', current_setting('prueba.e106')::uuid) where 'importe_transportista' = any (campos)) then
+    raise exception 'FALLO 111 · el cliente ve cambios del precio del transportista';
+  end if;
+  select * into r from historial_registro('envios', current_setting('prueba.e106')::uuid) where 'referencia_cliente' = any (campos) limit 1;
+  if r.quien_nombre not like 'Dynamo%' or r.quien_email is not null then
+    raise exception 'FALLO 111 · un cambio de Dynamo no sale como «Dynamo · nombre» sin email: % %', r.quien_nombre, r.quien_email;
+  end if;
+  if not exists (select 1 from autores_mis_envios() where envio_id = current_setting('prueba.e106')::uuid and creado_email = 'compras@cliente.prueba') then
+    raise exception 'FALLO 111 · la lista del cliente no sabe quién creó el envío';
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from historial_registro('envios', current_setting('prueba.e106')::uuid)) then
+    raise exception 'FALLO 111 · alguien de fuera (un transportista) ve el historial del envío de un cliente';
+  end if;
+  raise notice 'OK 111 · historial: Dynamo lo ve todo; el cliente, quién creó y tocó cada cosa (sin datos internos ni contacto del transportista); nadie más';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

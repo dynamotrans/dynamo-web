@@ -6,6 +6,7 @@
 // Dynamo ve los sitios de todos los clientes (con la columna Cliente y su filtro).
 import { useEffect, useMemo, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
+import Historial from './Historial';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import { IconoTipo, TIPOS_LUGAR } from './TipoSitio';
@@ -387,6 +388,7 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, onCerrar, onAbrir,
             </div>}
       </div>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+      {fila?.id && <Historial tabla="lugares" id={fila.id} />}
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>
   );

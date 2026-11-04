@@ -7,6 +7,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
+import Historial from './Historial';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import BuscaEnvio from './BuscaEnvio';
@@ -230,6 +231,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
         ? <>La ve el equipo de Dynamo al momento. Si es urgente (daños, el muelle no carga), llama además al <a href="tel:+34955225945" style={{ color: 'var(--purple)', fontWeight: 700 }}>+34 955 225 945</a>. Si hay daños, haz fotos <strong>antes de descargar</strong>.</>
         : <>Una incidencia sobre un envío queda también en su <strong>historial</strong>.</>}</p>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+      {fila?.id && <Historial tabla="incidencias" id={fila.id} />}
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>
   );

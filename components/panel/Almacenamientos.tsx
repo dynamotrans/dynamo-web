@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
+import Historial from './Historial';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
@@ -323,6 +324,7 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, modoCliente, onCerrar,
       {!fila && modoCliente && <div className="alm-note">El precio queda fijado al pedirlo. Te confirmamos el almacén en cuanto lo revisemos.</div>}
       {fila && !cambiaPrecio && editable && <div className="alm-note">Precio congelado al crear el almacenamiento. Si cambias fechas, tráileres o reparto, se recalcula con la tarifa del almacén.</div>}
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+      {fila?.id && <Historial tabla="almacenamientos" id={fila.id} />}
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>
   );

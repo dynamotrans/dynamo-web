@@ -5,6 +5,7 @@
 // debajo los del cliente. Dynamo ve los de todos los clientes, con su columna de cliente.
 import { useMemo, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
+import Historial from './Historial';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
@@ -204,6 +205,7 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
           : <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: 0 }}>Crea el transportista y, al abrir su ficha, podrás subir su logo.</p>}
       </div>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
+      {fila?.id && <Historial tabla="operadores" id={fila.id} />}
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>
   );

@@ -18,6 +18,7 @@ import { paisDe, telBonito } from '@/lib/paises';
 import { responderPrecio, contraofertarPrecio, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
 import { PedirCambio } from './CambiosEnvio';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
+import Historial from './Historial';
 import { enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
 
 const HITOS: Record<string, string> = {
@@ -265,6 +266,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
           ))}
         </div>
       </>}
+      <Historial tabla="envios" id={e.id} />
     </Modal>
   );
 }

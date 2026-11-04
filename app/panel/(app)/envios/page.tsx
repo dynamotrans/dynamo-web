@@ -25,6 +25,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
 
   // ---- Datos, según el rol (Dynamo lee la tabla; cliente y transportista, sus funciones)
   let filas: EnvioFila[] = [];
+  const nombresCliente = new Map<string, string>();
   let error: string | null = null;
   let nota: string | null = null;
   if (dynamo) {
@@ -70,6 +71,14 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       transportista_asignado: !!x.asignado_en || x.estado_asignacion === 'confirmada',
       paradas: (x.paradas ?? []) as Parada[],
     }));
+    // Quién creó cada envío (columna «Creado por» también para el cliente).
+    if (rol === 'cliente') {
+      const { data: au } = await supabase.rpc('autores_mis_envios');
+      ((au ?? []) as { envio_id: string; creado_por: string | null; creado_email: string | null }[]).forEach((x) => {
+        const f = filas.find((y) => y.id === x.envio_id);
+        if (f && x.creado_por) { f.creado_por = `autor:${x.envio_id}`; nombresCliente.set(`autor:${x.envio_id}`, x.creado_email && x.creado_email !== x.creado_por ? `${x.creado_por} · ${x.creado_email}` : x.creado_por); }
+      });
+    }
     // Previo pago (el cliente no lee la tabla de envíos: lo trae pagos_envio()).
     if (rol === 'cliente') {
       const { data: pagos } = await supabase.rpc('pagos_envio');
@@ -87,7 +96,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   filas.sort((a, b) => (b.creado_en ?? '').localeCompare(a.creado_en ?? ''));
 
   // Quién creó cada envío (columna "Creado por"). Dynamo ve a todos los usuarios.
-  const nombres = new Map<string, string>();
+  const nombres = new Map<string, string>(nombresCliente);
   if (dynamo) {
     const ids = [...new Set(filas.map((f) => f.creado_por).filter(Boolean))] as string[];
     if (ids.length) {
