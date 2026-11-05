@@ -3695,11 +3695,11 @@ end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
 do $$ begin
-  if (pedir_cambio_envio(current_setting('prueba.e108')::uuid, current_date + 7, current_date + 8))->>'resultado' <> 'aplicado' then
+  if (pedir_cambio_envio(current_setting('prueba.e108')::uuid, sumar_dias_habiles(current_date, 7)))->>'resultado' <> 'aplicado' then
     raise exception 'FALLO 108 · sin camión y solo fechas no se aplica al momento';
   end if;
   -- Con camión no se modifica desde la plataforma: hay que llamar (migración cambio_con_camion_llamar).
-  if (pedir_cambio_envio(current_setting('prueba.f108')::uuid, current_date + 7, current_date + 8))->>'resultado' <> 'con_camion' then
+  if (pedir_cambio_envio(current_setting('prueba.f108')::uuid, sumar_dias_habiles(current_date, 7)))->>'resultado' <> 'con_camion' then
     raise exception 'FALLO 108 · con camión deja pedir el cambio en vez de mandar a llamar';
   end if;
   if (select estado_cambio_cliente from envios where id = current_setting('prueba.f108')::uuid) is not null then
@@ -3709,7 +3709,7 @@ do $$ begin
   if (pedir_cambio_envio(current_setting('prueba.e108')::uuid, null, null, 'Descarga en Getafe'))->>'resultado' <> 'pendiente' then
     raise exception 'FALLO 108 · sin camión, un cambio de ruta no queda pendiente';
   end if;
-  if (pedir_cambio_envio(current_setting('prueba.e108')::uuid, current_date + 9, null))->>'resultado' <> 'ya_pendiente' then
+  if (pedir_cambio_envio(current_setting('prueba.e108')::uuid, sumar_dias_habiles(current_date, 9), null))->>'resultado' <> 'ya_pendiente' then
     raise exception 'FALLO 108 · admite un segundo cambio con uno pendiente';
   end if;
   begin
@@ -3719,7 +3719,7 @@ do $$ begin
 end $$;
 reset role;
 do $$ begin
-  if (select fecha_carga_desde from envios where id = current_setting('prueba.e108')::uuid) <> current_date + 7 then
+  if (select fecha_carga_desde from envios where id = current_setting('prueba.e108')::uuid) <> sumar_dias_habiles(current_date, 7) then
     raise exception 'FALLO 108 · las fechas no se han cambiado';
   end if;
 end $$;
@@ -4063,10 +4063,10 @@ end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
 do $$ begin
-  if (pedir_cambio_envio(current_setting('prueba.e117')::uuid, current_date + 10, current_date + 11))->>'resultado' <> 'con_camion' then
+  if (pedir_cambio_envio(current_setting('prueba.e117')::uuid, sumar_dias_habiles(current_date, 10)))->>'resultado' <> 'con_camion' then
     raise exception 'FALLO 117 · el cliente cambia las fechas de una carga que ya se está asignando (publicada en bolsa)';
   end if;
-  if (pedir_cambio_envio(current_setting('prueba.f117')::uuid, current_date + 150, current_date + 151))->>'resultado' <> 'fuera_de_plazo' then
+  if (pedir_cambio_envio(current_setting('prueba.f117')::uuid, sumar_dias_habiles(current_date, 100)))->>'resultado' <> 'fuera_de_plazo' then
     raise exception 'FALLO 117 · el cliente aleja la carga pasado el corte (y así cancelaría tarde sin que cuente)';
   end if;
   if not (select con_camion from mi_cambio_envio(current_setting('prueba.f117')::uuid)) then
@@ -5309,3 +5309,89 @@ do $$ declare f text; l uuid; begin
   delete from sitios where id = l;
   raise notice 'OK 148 · textos: «envío» para todo, anulado sin pago, camión completo (tráiler o rígido), horarios «Lunes a viernes 8:00–18:00»';
 end $$;
+
+-- ---- 149. Fecha de carga al pagar: primer día posible y mismo tipo de fecha ---------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e uuid; w uuid; z uuid; begin
+  -- Mismas reglas que el tarifador: siguiente día hábil antes del corte (fija 12:00, ventana 14:00).
+  if primera_fecha_carga(true, '2026-11-11 10:00 Europe/Madrid') <> date '2026-11-12'
+     or primera_fecha_carga(true, '2026-11-11 13:00 Europe/Madrid') <> date '2026-11-13'
+     or primera_fecha_carga(false, '2026-11-11 13:00 Europe/Madrid') <> date '2026-11-12'
+     or primera_fecha_carga(false, '2026-11-13 15:00 Europe/Madrid') <> date '2026-11-17' then
+    raise exception 'FALLO 149 · primer día posible mal calculado';
+  end if;
+  if dias_ventana_carga(date '2026-11-13', date '2026-11-17') <> 3 or dias_ventana_carga(date '2026-11-12', null) <> 1
+     or sumar_dias_habiles(date '2026-11-13', 1) <> date '2026-11-16' then
+    raise exception 'FALLO 149 · días hábiles de la ventana mal contados';
+  end if;
+  -- e: fecha fija hoy · w: ventana desde hoy · z: fecha fija con tiempo de sobra.
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta, fecha_entrega_estimada)
+    values (current_setting('prueba.cliente')::uuid, 6, 600, 500, current_date, current_date, sumar_dias_habiles(current_date, 1)) returning id into e;
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (current_setting('prueba.cliente')::uuid, 6, 600, 500, current_date, sumar_dias_habiles(current_date, 2)) returning id into w;
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta)
+    values (current_setting('prueba.cliente')::uuid, 6, 600, 500, sumar_dias_habiles(current_date, 5), sumar_dias_habiles(current_date, 5)) returning id into z;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion)
+    select x, o, t, cp, p from unnest(array[e, w, z]) x, (values (1, 'carga', '41001', 'Sevilla'), (2, 'descarga', '46001', 'Valencia')) v(o, t, cp, p);
+  update envios set estado = 'programado' where id in (e, w, z);
+  perform set_config('prueba.e149', e::text, false); perform set_config('prueba.w149', w::text, false); perform set_config('prueba.z149', z::text, false);
+  perform set_config('prueba.n149', dias_ventana_carga(current_date, sumar_dias_habiles(current_date, 2))::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare e uuid := current_setting('prueba.e149')::uuid; w uuid := current_setting('prueba.w149')::uuid; z uuid := current_setting('prueba.z149')::uuid;
+        n int := current_setting('prueba.n149')::int; x record; begin
+  perform marcar_pago_envio(i, 'requerir') from unnest(array[e, w, z]) i where (select estado_pago_previo from envios where id = i) = 'no_requerido';
+  if exists (select 1 from envios where id in (e, w, z) and estado_pago_previo <> 'pendiente') then raise exception 'FALLO 149 · montaje: no quedan pendientes de pago'; end if;
+  -- Pendientes de pago: la fecha no se toca hasta que pagan.
+  if (select fecha_carga_desde from envios where id = e) <> current_date then raise exception 'FALLO 149 · la fecha se mueve antes de pagar'; end if;
+  perform marcar_pago_envio(e, 'transferencia');
+  perform marcar_pago_envio(w, 'exento', 'Empresa conocida');
+  perform marcar_pago_envio(z, 'transferencia');
+  select * into x from envios where id = e;
+  if x.fecha_carga_desde <> primera_fecha_carga(true) or x.fecha_carga_hasta <> x.fecha_carga_desde then
+    raise exception 'FALLO 149 · fecha fija pagada tarde: % – % (esperado %)', x.fecha_carga_desde, x.fecha_carga_hasta, primera_fecha_carga(true);
+  end if;
+  if x.fecha_entrega_estimada < x.fecha_carga_hasta then raise exception 'FALLO 149 · la entrega queda antes de la carga'; end if;
+  select * into x from envios where id = w;
+  if x.fecha_carga_desde <> primera_fecha_carga(false) or x.fecha_carga_hasta <> sumar_dias_habiles(x.fecha_carga_desde, n - 1) then
+    raise exception 'FALLO 149 · la ventana pasada sin pago previo no conserva sus % días hábiles: % – %', n, x.fecha_carga_desde, x.fecha_carga_hasta;
+  end if;
+  if (select fecha_carga_desde from envios where id = z) <> sumar_dias_habiles(current_date, 5) then
+    raise exception 'FALLO 149 · se mueve la fecha de un envío pagado a tiempo';
+  end if;
+  if (select count(*) from envio_hitos where envio_id in (e, w) and hito = 'fecha_carga_movida') <> 2
+     or exists (select 1 from envio_hitos where envio_id = z and hito = 'fecha_carga_movida') then
+    raise exception 'FALLO 149 · hitos de la fecha movida';
+  end if;
+  if not exists (select 1 from avisos where envio_id = e and para = 'cliente' and tipo = 'pagado' and texto like '%primer día posible: ' || fecha_texto(primera_fecha_carga(true)) || '.')
+     or exists (select 1 from avisos where envio_id = z and para = 'cliente' and texto like '%primer día posible%') then
+    raise exception 'FALLO 149 · el aviso al cliente no cuenta la fecha nueva';
+  end if;
+end $$;
+-- Después de pagar, el cliente mueve la fecha sin cambiar el tipo de fecha.
+reset role;
+update parametros set valor = '0' where clave = 'primer_dia_corte_fija_hora';   -- así el primer día posible es el 2.º día hábil, a cualquier hora
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare z uuid := current_setting('prueba.z149')::uuid; sab date := current_date + ((13 - extract(isodow from current_date)::int) % 7); begin
+  if (pedir_cambio_envio(z, sab))->>'resultado' <> 'dia_no_habil' then raise exception 'FALLO 149 · deja cargar en sábado'; end if;
+  if (pedir_cambio_envio(z, sumar_dias_habiles(current_date, 8), sumar_dias_habiles(current_date, 10)))->>'resultado' <> 'ventana_distinta' then
+    raise exception 'FALLO 149 · una fecha fija pagada se convierte en ventana';
+  end if;
+  if (pedir_cambio_envio(z, sumar_dias_habiles(current_date, 1)))->>'resultado' <> 'antes_de_lo_posible' then
+    raise exception 'FALLO 149 · deja adelantar la carga antes del primer día posible';
+  end if;
+  if (pedir_cambio_envio(z, sumar_dias_habiles(current_date, 8)))->>'resultado' <> 'aplicado'
+     or (select fecha_carga_hasta from envios where id = z) <> sumar_dias_habiles(current_date, 8) then
+    raise exception 'FALLO 149 · no deja mover la fecha fija pagada (o la convierte en ventana)';
+  end if;
+  if not exists (select 1 from mis_hitos(current_setting('prueba.e149')::uuid) where hito = 'fecha_carga_movida') then
+    raise exception 'FALLO 149 · el cliente no ve que su carga se movió';
+  end if;
+end $$;
+reset role;
+update parametros set valor = '12' where clave = 'primer_dia_corte_fija_hora';
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin raise notice 'OK 149 · fecha de carga al pagar: si llega tarde, al primer día posible con el mismo tipo de fecha; luego se mueve sin cambiar de tipo'; end $$;

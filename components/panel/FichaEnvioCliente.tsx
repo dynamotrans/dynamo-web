@@ -27,6 +27,7 @@ const HITOS: Record<string, string> = {
   creado: 'Solicitud creada', confirmado: 'Envío confirmado', transportista_asignado: 'Transportista asignado',
   matricula_asignada: 'Camión asignado', cargado: 'Cargado · en ruta', entregado: 'Entregado', cancelado: 'Cancelado',
   cancelacion_deshecha: 'Cancelación deshecha', ruta_cambiada: 'Ruta cambiada', cmr_firmado: 'CMR firmado',
+  fecha_carga_movida: 'Fecha de carga movida (el pago llegó tarde)',
 };
 const txtNum = (n: number | null | undefined) => (n == null ? '' : String(n).replace('.', ','));
 const I = ({ d }: { d: string[] }) => (
@@ -331,7 +332,7 @@ function PagoCliente({ e }: { e: any }) {
         {e.pagoVuelta === 'caducado' && <div style={{ color: '#b42318', fontWeight: 700, marginBottom: '0.4rem' }}>Ha pasado el plazo para pagar este envío: se va a anular. Vuelve a pedirlo con «Repetir envío».</div>}
         {e.pagoVuelta === 'cancelado' && <div style={{ fontWeight: 700, marginBottom: '0.4rem' }}>Has salido del pago con tarjeta sin pagar. Puedes intentarlo de nuevo o pagar por transferencia.</div>}
         <div><strong style={{ color: '#b42318' }}>Pendiente de pago · {total}</strong> (IVA incluido).</div>
-        <div style={{ marginTop: '0.3rem' }}>{p.pago_motivo?.startsWith('Primer') ? 'Es tu primer envío con nosotros: ' : ''}este envío se paga por adelantado. <strong>Lo asignamos a un camión en cuanto recibimos el pago.</strong></div>
+        <div style={{ marginTop: '0.3rem' }}>{p.pago_motivo?.startsWith('Primer') ? 'Es tu primer envío con nosotros: ' : ''}este envío se paga por adelantado. <strong>Lo asignamos a un camión en cuanto recibimos el pago.</strong> La fecha de carga se confirma al recibirlo: si llega cuando ya no da tiempo, la carga pasa al primer día posible (con el mismo tipo de fecha que elegiste) y te avisamos.</div>
         {p.pago_limite && <div style={{ marginTop: '0.3rem' }}>Paga antes del <strong>{fechaHora(p.pago_limite)}</strong>. Si no nos llega el pago, el envío se anula solo y tendrás que volver a pedirlo (con el precio de ese momento).</div>}
         {p.precio_provisional ? (
           <div style={{ marginTop: '0.3rem' }}>Como el precio es <strong>provisional</strong>, el pago se pide cuando lo revisemos{e.revision?.fecha_revision_precio ? <> (el <strong>{fecha(e.revision.fecha_revision_precio)}</strong>)</> : null}, ya con el precio definitivo. Desde ese momento tendrás un plazo para pagar.</div>

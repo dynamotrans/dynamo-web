@@ -2,6 +2,7 @@
 
 import { mensajeError } from '@/lib/mensajeError';
 import { sesion } from '@/lib/sesion';
+import { fecha } from '@/lib/formato';
 
 // Lo que el CLIENTE puede hacer con un envío suyo. Todo pasa por funciones de la base de
 // datos que comprueban que el envío es suyo (no hay escritura directa en `envios`).
@@ -91,16 +92,20 @@ export async function contraofertarPrecio(envio: string, importe: number): Promi
 export async function pedirCambio(envio: string, desde: string, hasta: string, detalle: string): Promise<Res> {
   const s = await soloCliente();
   if (!s) return { ok: false, error: 'Solo el cliente pide cambios en su envío.' };
-  const { data, error } = await s.supabase.rpc('pedir_cambio_envio', { p_envio: envio, p_desde: desde || null, p_hasta: hasta || desde || null, p_detalle: detalle.trim() || null });
+  const { data, error } = await s.supabase.rpc('pedir_cambio_envio', { p_envio: envio, p_desde: desde || null, p_hasta: hasta || null, p_detalle: detalle.trim() || null });
   if (error) return { ok: false, error: limpio(error.message) };
-  const r = (data as { resultado: string }).resultado;
+  const x = data as { resultado: string; primera_fecha?: string; dias?: number };
+  const r = x.resultado;
   const ERR: Record<string, string> = {
     envio_manual: 'Es un envío con tu propio transportista: cámbialo tú directamente.',
     no_modificable: 'El envío ya está en marcha: para cambiar algo, llámanos al +34 955 225 945.',
     con_camion: 'Tu envío ya tiene camión o lo estamos asignando: no se puede modificar desde aquí. Llámanos URGENTE al +34 955 225 945.',
     fuera_de_plazo: 'Falta muy poco para la carga: para cambiar algo, llámanos URGENTE al +34 955 225 945.',
     ya_pendiente: 'Ya tienes un cambio pendiente en este envío: espera a que te contestemos.',
-    fechas_no_validas: 'Revisa las fechas: a partir de mañana, la segunda no antes que la primera y como mucho a 6 meses.',
+    fechas_no_validas: 'Revisa la fecha: como mucho a 6 meses vista.',
+    dia_no_habil: 'Ese día no se carga: elige un día de lunes a viernes que no sea festivo.',
+    antes_de_lo_posible: `Tan pronto no llegamos: el primer día posible es el ${fecha(x.primera_fecha)}.`,
+    ventana_distinta: `Se mantiene el tipo de fecha que elegiste (${x.dias === 1 ? 'fecha fija' : `ventana de ${x.dias} días hábiles`}): elige solo el primer día.`,
     sin_cambios: 'No has cambiado nada.', detalle_largo: 'El texto es demasiado largo (máximo 1.000 caracteres).',
   };
   if (r === 'aplicado') return { ok: true, aviso: 'Fechas cambiadas. Como aún no tiene camión, el cambio es inmediato y sin coste.' };

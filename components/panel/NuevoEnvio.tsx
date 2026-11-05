@@ -59,13 +59,14 @@ function sumarHabiles(desde: string, n: number, fest: Set<string>): string {
   return iso(x);
 }
 // Primer día de recogida posible: el siguiente día hábil, si se pide antes del corte de
-// hoy (fecha fija 12:00, ventana 14:00, hora de Madrid); si no, el siguiente.
-function primerDia(urg: 'dia' | 'estandar', fest: Set<string>): string {
-  const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hour12: false }).formatToParts(new Date());
+// hoy (horas de corte de Parámetros: fecha fija 12:00, ventana 14:00, hora de Madrid); si no,
+// el siguiente. Las mismas reglas que primera_fecha_carga() en la base de datos.
+function primerDia(urg: 'dia' | 'estandar', fest: Set<string>, cortes?: { fija?: number; ventana?: number }): string {
+  const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date());
   const v = (t: string) => Number(p.find((x) => x.type === t)?.value);
   const hoy = `${v('year')}-${String(v('month')).padStart(2, '0')}-${String(v('day')).padStart(2, '0')}`;
-  const corte = urg === 'dia' ? 12 : 14;
-  return sumarHabiles(hoy, v('hour') < corte ? 1 : 2, fest);
+  const corte = urg === 'dia' ? (cortes?.fija ?? 12) : (cortes?.ventana ?? 14);
+  return sumarHabiles(hoy, v('hour') + v('minute') / 60 < corte ? 1 : 2, fest);
 }
 
 function textoSitio(s: SitioOpcion | SitioNuevo): string {
@@ -92,7 +93,8 @@ type Props = { clientes: ClienteOpcion[]; sitios: SitioOpcion[]; festivos: strin
   operadores?: { id: string; nombre: string }[];      // los operadores de transporte del cliente (envío manual)
   esMaster?: boolean;                                 // Admin Master: cualquier fecha, también pasada
   reglas?: ReglasPrecio | null };                     // antelación máxima y precio provisional (parámetros)
-export type ReglasPrecio = { antelacion_max_dias: number; cerrado_dias: number; revision_dias_habiles: number; margen_pct: number };
+export type ReglasPrecio = { antelacion_max_dias: number; cerrado_dias: number; revision_dias_habiles: number; margen_pct: number;
+  corte_fija_hora?: number; corte_ventana_hora?: number };   // horas de corte para cargar el siguiente día hábil
 
 // Del valor guardado a la opción más cercana del desplegable (que va por tramos).
 const opcionCercana = (v: number | null | undefined, opciones: string[], defecto: string) =>
@@ -181,10 +183,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
   const ventanaDias = urgencia === 'estandar' ? 3 : 1;
   const fechaHasta = fecha ? (ventanaDias > 1 ? sumarHabiles(fecha, ventanaDias - 1, fest) : fecha) : '';
   const dias = useMemo(() => {
-    const out: string[] = []; let d = primerDia(urgencia, fest);
+    const out: string[] = []; let d = primerDia(urgencia, fest, { fija: reglas?.corte_fija_hora, ventana: reglas?.corte_ventana_hora });
     for (let i = 0; i < 10; i++) { out.push(d); d = sumarHabiles(d, 1, fest); }
     return out;
-  }, [urgencia, fest]);
+  }, [urgencia, fest, reglas]);
 
   const sitiosCliente = useMemo(
     () => sitios.filter((s) => s.es_almacen_dynamo || (cliente && s.cliente_id === cliente.id)),

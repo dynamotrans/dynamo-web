@@ -53,10 +53,11 @@ export function AvisoCambiosDynamo({ e, hacer, onModificar }: { e: any; hacer: H
 export function PedirCambio({ e, cambio, hacer, onLlamar }: { e: any; cambio: any; hacer: Hacer; onLlamar: () => void }) {
   const [abierto, setAbierto] = useState(false);
   const [desde, setDesde] = useState(e.fecha_carga_desde ?? '');
-  const [hasta, setHasta] = useState(e.fecha_carga_hasta ?? e.fecha_carga_desde ?? '');
   const [detalle, setDetalle] = useState('');
   if (!cambio) return null;
   const manana = hoyMadrid(1);
+  // Se mantiene el tipo de fecha elegido (y pagado): fija = un día; ventana = los mismos días hábiles.
+  const fija = !e.fecha_carga_hasta || e.fecha_carga_hasta === e.fecha_carga_desde;
   if (cambio.estado === 'pendiente') {
     return <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div><strong>Has pedido un cambio</strong>{cambio.en ? ` el ${fechaHora(cambio.en)}` : ''}. Lo estamos revisando{cambio.con_camion ? ' con el transportista' : ''} y te contestamos aquí.</div></div>;
   }
@@ -88,8 +89,10 @@ export function PedirCambio({ e, cambio, hacer, onLlamar }: { e: any; cambio: an
             Aún no tiene camión: si solo cambias las <strong>fechas</strong>, se aplica al momento y sin coste. Si pides otra cosa, lo revisamos (el precio puede cambiar).
           </div></div>
           <div className="ptar-sitio-grid">
-            <div><label htmlFor="pc-desde">Cargar desde</label><input id="pc-desde" type="date" min={manana} value={desde} onChange={(ev) => setDesde(ev.target.value)} /></div>
-            <div><label htmlFor="pc-hasta">Hasta</label><input id="pc-hasta" type="date" min={desde || manana} value={hasta} onChange={(ev) => setHasta(ev.target.value)} /></div>
+            <div><label htmlFor="pc-desde">{fija ? 'Fecha de carga' : 'Primer día de la ventana'}</label><input id="pc-desde" type="date" min={manana} value={desde} onChange={(ev) => setDesde(ev.target.value)} /></div>
+            <div className="meta" style={{ alignSelf: 'end' }}>{fija
+              ? 'Es una fecha fija: sigue siendo un solo día.'
+              : 'Mantienes tu ventana: el último día lo calculamos con los mismos días hábiles que ahora (sin fines de semana ni festivos).'}</div>
             <div style={{ gridColumn: '1/-1' }}>
               <label htmlFor="pc-detalle">¿Algo más? (dirección, mercancía, horario…) · opcional</label>
               <textarea id="pc-detalle" rows={3} maxLength={1000} value={detalle} onChange={(ev) => setDetalle(ev.target.value)} placeholder="Ej. la descarga pasa a ser en nuestra nave de Getafe" />
@@ -97,7 +100,7 @@ export function PedirCambio({ e, cambio, hacer, onLlamar }: { e: any; cambio: an
           </div>
           <div className="meta" style={{ marginTop: '0.3rem' }}>Ahora: {ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}{e.fecha_entrega_estimada ? ` · entrega prevista ${fecha(e.fecha_entrega_estimada)}` : ''}.</div>
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
-            <button className="btn-primary" onClick={async () => { const r = await hacer('Enviando el cambio', () => pedirCambio(e.id, desde, hasta, detalle)); if (r !== false) setAbierto(false); }}>Enviar cambio</button>
+            <button className="btn-primary" onClick={async () => { const r = await hacer('Enviando el cambio', () => pedirCambio(e.id, desde, '', detalle)); if (r !== false) setAbierto(false); }}>Enviar cambio</button>
             <button className="btn-ghost" onClick={() => setAbierto(false)}>Volver</button>
           </div>
         </div>
