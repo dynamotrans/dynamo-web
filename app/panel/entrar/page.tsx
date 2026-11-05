@@ -9,8 +9,9 @@ export const dynamic = 'force-dynamic';
 // Mismo diseño que portal.html (la pantalla de acceso aprobada), con el login real.
 // Fuera del mockup: el cartel "Modo demo" y su explicación (ya no es demo). "Crear
 // cuenta" lleva al alta de clientes (/panel/registro).
-export default function PaginaEntrar() {
+export default async function PaginaEntrar({ searchParams }: { searchParams: Promise<{ sesion?: string }> }) {
   if (!configSupabase()) return <SinConfigurar />;
+  const caducada = (await searchParams).sesion === 'caducada';
   return (
     <div className="portal-page">
       <div className="portal-bg" />
@@ -22,7 +23,7 @@ export default function PaginaEntrar() {
           <h1 id="portal-title" className="portal-title">Acceso al portal</h1>
           <p className="portal-subtitle">Área privada para <strong>clientes</strong> de Dynamo</p>
 
-          <FormEntrar />
+          <FormEntrar caducada={caducada} />
           <CrearCuenta />
 
           <a href="/" className="portal-back">

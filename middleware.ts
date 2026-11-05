@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { COOKIE_RECORDAR, duracionSegunRecordar } from '@/lib/supabase/recordar';
+import { sesionCaducada } from '@/lib/supabase/duracionSesion';
 import { CABECERA_CSP, INFORME_CSP, cspPlataforma, nuevoNonce } from '@/lib/csp';
 
 // Refresca la sesión de Supabase en cada petición de la plataforma y protege /panel:
@@ -55,6 +56,17 @@ export async function middleware(request: NextRequest) {
     const destino = request.nextUrl.clone();
     destino.pathname = '/panel/entrar';
     return NextResponse.redirect(destino);
+  }
+  // Pasados los días de Parámetros sin volver a escribir la contraseña: se cierra la
+  // sesión de este dispositivo y se vuelve a la entrada (con el aviso).
+  if (user && !publica && await sesionCaducada(supabase, mantener)) {
+    await supabase.auth.signOut({ scope: 'local' });
+    const destino = request.nextUrl.clone();
+    destino.pathname = '/panel/entrar';
+    destino.search = '?sesion=caducada';
+    const r = NextResponse.redirect(destino);
+    respuesta.cookies.getAll().forEach((c) => r.cookies.set(c));   // las cookies ya borradas
+    return r;
   }
   if (user && enLogin) {
     const destino = request.nextUrl.clone();

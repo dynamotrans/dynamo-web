@@ -8,11 +8,15 @@ import Cargando from '@/components/Cargando';
 const inicial: EstadoEntrar = { error: null };
 
 
-export default function FormEntrar() {
+// caducada: viene del middleware al pasar los días de Parámetros sin escribir la contraseña.
+export default function FormEntrar({ caducada = false }: { caducada?: boolean }) {
   const [estado, accion, enviando] = useActionState(entrar, inicial);
   return (
     <form action={accion} noValidate>
       {enviando && <Cargando texto="Entrando" />}
+      {caducada && !estado.error && (
+        <div className="pt-aviso info" role="status"><div>Por seguridad, hace tiempo que no escribías tu contraseña: vuelve a entrar.</div></div>
+      )}
       {estado.error && (
         <div className="pt-aviso error" role="alert"><IcoAviso /><div>{estado.error}</div></div>
       )}

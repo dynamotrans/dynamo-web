@@ -5395,3 +5395,22 @@ reset role;
 update parametros set valor = '12' where clave = 'primer_dia_corte_fija_hora';
 select set_config('request.jwt.claim.sub', '', false);
 do $$ begin raise notice 'OK 149 · fecha de carga al pagar: si llega tarde, al primer día posible con el mismo tipo de fecha; luego se mueve sin cambiar de tipo'; end $$;
+
+-- ---- 150. Duración de la sesión: días de Parámetros, solo con sesión ---------------------
+reset role;
+set role anon;
+do $$ begin
+  begin perform duracion_sesion(); raise exception 'FALLO 150 · sin sesión se leen los días de la sesión';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare d jsonb := duracion_sesion(); begin
+  if (d ->> 'recordar_dias')::numeric <> 90 or (d ->> 'dias')::numeric <> 30 then
+    raise exception 'FALLO 150 · días de la sesión: %', d;
+  end if;
+  raise notice 'OK 150 · duración de la sesión: 90 días con «Recordarme», 30 sin él, desde Parámetros y solo con sesión';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

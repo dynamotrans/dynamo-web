@@ -61,6 +61,7 @@ const SECCIONES: Seccion[] = [
   ] },
   { id: 'plataforma', titulo: 'Plataforma', intro: 'Acceso y protección de datos.', subs: [
     { titulo: 'Mantenimiento', claves: ['mantenimiento_activo'] },
+    { titulo: 'Sesión: días sin volver a escribir la contraseña', claves: ['sesion_recordar_dias', 'sesion_dias'] },
     { titulo: 'Protección de datos', claves: ['rgpd_limpieza_activa', 'rgpd_telefono_conductor_anios'] },
   ] },
   { id: 'dynamo', titulo: 'Datos de Dynamo en los documentos', intro: 'Lo que sale en la orden de carga, el CMR y las proformas.', subs: [
