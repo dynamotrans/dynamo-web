@@ -39,7 +39,7 @@ const HITOS: Record<string, string> = {
   enlace_abierto: 'Enlace de la oferta abierto', reservado: 'Reservado por un transportista',
   reserva_caducada: 'Reserva caducada', reserva_liberada: 'Reserva liberada',
   contraoferta_propuesta: 'Contraoferta propuesta', contraoferta_resuelta: 'Contraoferta resuelta',
-  orden_transporte_enviada: 'Orden de transporte enviada', cmr_firmado: 'CMR firmado',
+  orden_carga_enviada: 'Orden de carga enviada', cmr_firmado: 'CMR firmado',
   pin_enviado: 'PIN enviado', pin_validado: 'PIN validado', pin_validado_manual: 'PIN validado a mano',
   pin_fuera_de_orden: 'PIN fuera de orden', pin_bloqueado: 'PIN bloqueado', incidencia: 'Nota / incidencia',
 };
@@ -89,7 +89,7 @@ function mensajeOferta(f: Ficha, precio: number, token: string): string {
     `${pts('carga')} → ${pts('descarga')}`,
     `Recogida: ${ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}`,
     [e.metros_lineales != null && `${txtNum(e.metros_lineales)} m`, e.toneladas != null && `${txtNum(e.toneladas)} Tn`, e.tipo_carga === 'completa' ? 'Completo' : e.tipo_carga === 'grupaje' ? 'Grupaje' : ''].filter(Boolean).join(' · '),
-    [e.plataforma_elevadora && 'Trampilla', e.nima_requerido && 'NIMA', e.adr && 'ADR'].filter(Boolean).join(' · '),
+    [e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'NIMA', e.adr && 'ADR'].filter(Boolean).join(' · '),
     `Precio: ${euros(precio)} (sin IVA)`,
     `Acéptala aquí: ${enlaceOferta(token)}`,
   ].filter(Boolean).join('\n');
@@ -148,8 +148,8 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
     </>
   ) : (
     <>
-      {e.estado === 'borrador' && ['pendiente_precio', 'precio_propuesto'].includes(e.solicitud_estado) && (
-        <button className="btn-primary" onClick={() => setVista('precio')}><I d={ICO.enviar} />{e.solicitud_estado === 'pendiente_precio' ? 'Poner precio' : 'Cambiar precio'}</button>
+      {e.estado === 'borrador' && ['pendiente_precio', 'precio_propuesto'].includes(e.estado_solicitud) && (
+        <button className="btn-primary" onClick={() => setVista('precio')}><I d={ICO.enviar} />{e.estado_solicitud === 'pendiente_precio' ? 'Poner precio' : 'Cambiar precio'}</button>
       )}
       {!manual && e.estado === 'programado' && !ficha.transportista && (
         <button className="btn-primary" onClick={() => setVista('ofrecer')}><I d={ICO.enviar} />Ofrecer carga</button>
@@ -169,7 +169,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
           ya hay a quién mandarla. */}
       {(manual || ficha.transportista) && (
         <a className="btn-secondary" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener">
-          <I d={ICO.doc} />{manual ? 'Orden de transporte' : 'Orden de carga'}
+          <I d={ICO.doc} />{'Orden de carga'}
         </a>
       )}
       <a className="btn-secondary" href={`/panel/envios/${e.id}/cmr`} target="_blank" rel="noopener"><I d={ICO.doc} />CMR relleno</a>
@@ -198,14 +198,14 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
       icono={<I d={ICO.ojo} />} acciones={acciones}
       pie={<button className="btn-ghost" onClick={cerrar}>Cerrar</button>}>
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
-      {e.estado === 'borrador' && e.solicitud_estado === 'pendiente_precio' && (
+      {e.estado === 'borrador' && e.estado_solicitud === 'pendiente_precio' && (
         <div className="modal-warn-box"><strong>Solicitud del cliente esperando precio.</strong> Pónselo con «Poner precio»: lo verá en su panel para aceptarlo (prometemos menos de 25 minutos en horario de oficina).</div>
       )}
-      {e.estado === 'borrador' && e.solicitud_estado === 'contraoferta' && e.contraoferta_cliente != null && (
+      {e.estado === 'borrador' && e.estado_solicitud === 'contraoferta' && e.importe_contraoferta_cliente != null && (
         <div className="modal-warn-box" style={{ marginBottom: '0.8rem' }}>
-          <strong>Contraoferta del cliente:</strong> propone <strong>{euros(Number(e.contraoferta_cliente))}</strong> (sin IVA) frente a nuestros {euros(e.importe_cliente)}
-          {e.importe_cliente ? <> ({Math.round((1 - Number(e.contraoferta_cliente) / Number(e.importe_cliente)) * 1000) / 10} % menos)</> : null}
-          {e.importe_transportista != null && <> · coste del transporte previsto {euros(e.importe_transportista)}, margen con su precio {euros(Number(e.contraoferta_cliente) - Number(e.importe_transportista))}</>}.
+          <strong>Contraoferta del cliente:</strong> propone <strong>{euros(Number(e.importe_contraoferta_cliente))}</strong> (sin IVA) frente a nuestros {euros(e.importe_cliente)}
+          {e.importe_cliente ? <> ({Math.round((1 - Number(e.importe_contraoferta_cliente) / Number(e.importe_cliente)) * 1000) / 10} % menos)</> : null}
+          {e.importe_transportista != null && <> · coste del transporte previsto {euros(e.importe_transportista)}, margen con su precio {euros(Number(e.importe_contraoferta_cliente) - Number(e.importe_transportista))}</>}.
           Ya aceptó las condiciones al proponerlo.
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
             <button className="btn-primary" onClick={() => hacer('Aprobando', () => resolverContraofertaCliente(e.id, true))}>Aprobar su precio y confirmar el envío</button>
@@ -213,13 +213,13 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
           </div>
         </div>
       )}
-      {e.precio_inicial_cliente != null && e.contraoferta_cliente != null && e.solicitud_estado === 'aceptada' && (
-        <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Precio conseguido por <strong>contraoferta del cliente</strong>: {euros(e.importe_cliente)} (le dimos {euros(e.precio_inicial_cliente)}).</div></div>
+      {e.importe_cliente_inicial != null && e.importe_contraoferta_cliente != null && e.estado_solicitud === 'aceptada' && (
+        <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Precio conseguido por <strong>contraoferta del cliente</strong>: {euros(e.importe_cliente)} (le dimos {euros(e.importe_cliente_inicial)}).</div></div>
       )}
-      {e.estado === 'borrador' && e.solicitud_estado === 'precio_propuesto' && (
-        <div className="pt-aviso info"><div>Precio enviado al cliente: <strong>{euros(e.importe_cliente)}</strong>{e.precio_valido_hasta ? <> · válido hasta el {creadoTxt(e.precio_valido_hasta)}</> : null}. Esperando su respuesta.</div></div>
+      {e.estado === 'borrador' && e.estado_solicitud === 'precio_propuesto' && (
+        <div className="pt-aviso info"><div>Precio enviado al cliente: <strong>{euros(e.importe_cliente)}</strong>{e.precio_caduca_en ? <> · válido hasta el {creadoTxt(e.precio_caduca_en)}</> : null}. Esperando su respuesta.</div></div>
       )}
-      {e.solicitud_estado === 'aceptada' && e.condiciones_aceptadas_en && (
+      {e.estado_solicitud === 'aceptada' && e.condiciones_aceptadas_en && (
         <div className="pt-aviso info"><div>Pedido por el cliente desde su panel. Aceptó el precio y las condiciones generales el {creadoTxt(e.condiciones_aceptadas_en)}.</div></div>
       )}
       {!manual && <AvisoCambiosDynamo e={e} hacer={hacer} onModificar={() => setVista('modificar')} />}
@@ -282,7 +282,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
               <span className="dtc-item"><label>Conductor</label><span className="dtc-v">{e.conductor_nombre || <Pend />}</span></span>
               <span className="dtc-item"><label>Teléfono</label><span className="dtc-v">{e.conductor_telefono ? <a href={`tel:${e.conductor_telefono}`} style={{ color: 'var(--purple)', fontWeight: 600 }}>{telBonito(e.conductor_telefono)}</a> : <Pend />}</span></span>
             </div>
-            {e.nima_requerido && <div style={{ marginTop: '0.4rem', fontSize: 'var(--fs-m)' }}>NIMA del transportista: <strong>{e.transportista_nima || <Pend />}</strong></div>}
+            {e.requiere_nima && <div style={{ marginTop: '0.4rem', fontSize: 'var(--fs-m)' }}>NIMA del transportista: <strong>{e.transportista_nima || <Pend />}</strong></div>}
           </div>
         </div>
       </>}
@@ -323,8 +323,8 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
         <Celda l="Mercancía">{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</Celda>
         <Celda l="Medidas">{[e.metros_lineales != null && `${txtNum(e.metros_lineales)} m`, e.toneladas != null && `${txtNum(e.toneladas)} Tn`].filter(Boolean).join(' · ') || '—'}</Celda>
         <Celda l="Tipo de carga">{e.tipo_carga === 'completa' ? 'Completo' : e.tipo_carga === 'grupaje' ? 'Grupaje' : '—'}</Celda>
-        <Celda l="Forma de carga">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_superior && 'Techo'].filter(Boolean).join(', ') || '—'}</Celda>
-        <Celda l="Requisitos" span>{[e.plataforma_elevadora && 'Trampilla elevadora', e.nima_requerido && 'Requiere NIMA', e.adr && 'Mercancía ADR', e.paletizado === false && 'No paletizada'].filter(Boolean).join(' · ') || 'Ninguno'}</Celda>
+        <Celda l="Forma de carga">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_techo && 'Techo'].filter(Boolean).join(', ') || '—'}</Celda>
+        <Celda l="Requisitos" span>{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'Requiere NIMA', e.adr && 'Mercancía ADR', e.paletizado === false && 'No paletizada'].filter(Boolean).join(' · ') || 'Ninguno'}</Celda>
         {e.anotaciones_cliente && <Celda l="Anotaciones" span>{e.anotaciones_cliente}</Celda>}
         <DatosCmr envioId={e.id} puedeEditar={e.estado !== 'cancelado'} />
       </div></div>
@@ -340,8 +340,8 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
         ) : pc == null ? <div className="modal-info-grid"><Celda l="Precio" span><Pend /></Celda></div> : (
           <div className="alm-price" style={{ margin: 0 }}>
             <div className="alm-price-row alm-price-base"><span className="k">Base imponible</span><span className="v">{euros(pc)}</span></div>
-            <div className="alm-price-row alm-price-sub"><span className="k">IVA ({txtNum(e.iva_aplicado ?? 21)} %)</span><span className="v">{euros(pc * Number(e.iva_aplicado ?? 21) / 100)}</span></div>
-            <div className="alm-price-row alm-price-sub"><span className="k">Total (IVA incl.)</span><span className="v">{euros(pc * (1 + Number(e.iva_aplicado ?? 21) / 100))}</span></div>
+            <div className="alm-price-row alm-price-sub"><span className="k">IVA ({txtNum(e.iva_pct ?? 21)} %)</span><span className="v">{euros(pc * Number(e.iva_pct ?? 21) / 100)}</span></div>
+            <div className="alm-price-row alm-price-sub"><span className="k">Total (IVA incl.)</span><span className="v">{euros(pc * (1 + Number(e.iva_pct ?? 21) / 100))}</span></div>
             <SelloPrecio r={e} />
           </div>
         )}
@@ -349,7 +349,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
           <div className="pen-envio-sum" style={{ marginTop: '0.6rem' }}>
             <div className="pen-sum-row"><span className="k">P. transportista <span style={{ color: 'var(--red)', fontWeight: 800 }}>· solo admin</span></span><span className="v">{pt != null ? euros(pt) : '—'}</span></div>
             <div className="pen-sum-row"><span className="k">Margen</span><span className="v" style={{ color: e.margen_euros == null ? undefined : Number(e.margen_euros) >= 0 ? '#0f6b3a' : '#dc2626', fontWeight: 800 }}>{e.margen_euros != null ? euros(e.margen_euros) : '—'}</span></div>
-            {e.factor_tarifa_aplicado != null && <div className="pen-sum-row"><span className="k">Factor del cliente aplicado</span><span className="v">{txtNum(e.factor_tarifa_aplicado)} %</span></div>}
+            {e.factor_tarifa_pct != null && <div className="pen-sum-row"><span className="k">Factor del cliente aplicado</span><span className="v">{txtNum(e.factor_tarifa_pct)} %</span></div>}
             {e.precio_fijado_a_mano && <div className="pen-sum-row"><span className="k">Precio</span><span className="v">fijado a mano</span></div>}
           </div>
         )}
@@ -373,7 +373,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
           {(manual || ficha.transportista) && e.estado !== 'cancelado' && (
             <button type="button" className="btn-ghost" disabled={!!trabajando}
               onClick={async () => { if (await hacer('Guardando la copia', () => archivarPdf(e.id, 'orden-de-carga'))) setVerDocs((n) => n + 1); }}>
-              <I d={ICO.doc} />Guardar copia de la {manual ? 'orden de transporte' : 'orden de carga'}
+              <I d={ICO.doc} />Guardar copia de la {'orden de carga'}
             </button>
           )}
           {e.estado !== 'cancelado' && (
@@ -384,7 +384,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
           )}
         </div>
         <Documentos key={verDocs} dueno={{ campo: 'envio_id', id: e.id }} conVisibleCliente
-          tipos={['albaran', 'cmr_firmado', 'cmr', 'orden_transporte', 'foto_incidencia', 'gps_tacografo', 'otro']}
+          tipos={['albaran', 'cmr_firmado', 'cmr', 'orden_carga', 'foto_incidencia', 'gps_tacografo', 'otro']}
           ayuda={<>Albaranes, CMR firmados, fotos… Marca <strong>«Lo ve el cliente»</strong> en los que tenga que ver él (el albarán y el CMR firmado, normalmente).</>} />
       </div>
 
@@ -444,7 +444,7 @@ function Punto({ p, cls, num, label }: { p: ParadaFicha; cls: 'rec' | 'ent'; num
           </div>
         )}
         {(s?.requiere_cita || s?.tiene_medios_carga === false) && (
-          <div style={{ fontSize: 'var(--fs-m)', color: '#b45309', fontWeight: 600, marginTop: 2 }}>{[s?.requiere_cita && 'Con cita previa', s?.tiene_medios_carga === false && 'Sin medios de carga (hace falta trampilla)'].filter(Boolean).join(' · ')}</div>
+          <div style={{ fontSize: 'var(--fs-m)', color: '#b45309', fontWeight: 600, marginTop: 2 }}>{[s?.requiere_cita && 'Con cita previa', s?.tiene_medios_carga === false && 'Sin medios de carga (hace falta plataforma elevadora)'].filter(Boolean).join(' · ')}</div>
         )}
         {p.referencia && <div style={{ fontSize: 'var(--fs-m)', marginTop: 2 }}>Referencia: <strong>{p.referencia}</strong></div>}
         {[s?.anotaciones, p.anotaciones].filter(Boolean).map((n, i) => (
@@ -556,7 +556,7 @@ function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: SubProp
           <CampoTelefono id="as-tel" valor={tel} onCambio={setTel} />
         </div>
       </div>
-      {e.nima_requerido && t && !t.nima && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}><strong>Este envío requiere NIMA</strong> y la ficha de este transportista no lo tiene. Pídeselo y ponlo en su ficha.</div>}
+      {e.requiere_nima && t && !t.nima && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}><strong>Este envío requiere NIMA</strong> y la ficha de este transportista no lo tiene. Pídeselo y ponlo en su ficha.</div>}
       {t?.estado === 'no_ofertar' && <div className="modal-warn-box" style={{ marginTop: '0.8rem' }}>Este transportista está marcado como <strong>no ofertar</strong>: se le puede dar carga, pero revisa por qué.</div>}
       <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>Las matrículas y el conductor se pueden dejar para más tarde. Queda en el historial quién asignó y a qué hora.</p>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
@@ -650,8 +650,8 @@ function Modificar({ ficha, onVolver, hacer, trabajando }: SubProps) {
     referencia_cliente: e.referencia_cliente ?? '', fecha_carga_desde: e.fecha_carga_desde ?? '', fecha_carga_hasta: e.fecha_carga_hasta ?? '',
     fecha_entrega_estimada: e.fecha_entrega_estimada ?? '', descripcion_mercancia: e.descripcion_mercancia ?? '',
     metros: txtNum(e.metros_lineales), toneladas: txtNum(e.toneladas),
-    paletizado: e.paletizado !== false, carga_lateral: !!e.carga_lateral, carga_trasera: !!e.carga_trasera, carga_superior: !!e.carga_superior,
-    plataforma_elevadora: !!e.plataforma_elevadora, nima_requerido: !!e.nima_requerido, adr: !!e.adr,
+    paletizado: e.paletizado !== false, carga_lateral: !!e.carga_lateral, carga_trasera: !!e.carga_trasera, carga_techo: !!e.carga_techo,
+    requiere_plataforma_elevadora: !!e.requiere_plataforma_elevadora, requiere_nima: !!e.requiere_nima, adr: !!e.adr,
     importe_cliente: txtNum(e.importe_cliente), importe_transportista: txtNum(e.importe_transportista), acordado: txtNum(e.precio_acordado_operador),
     negociacion: String(e.negociacion_pct ?? 10),
     discrecion_comercial: !!e.discrecion_comercial, anotaciones_cliente: e.anotaciones_cliente ?? '',
@@ -668,8 +668,8 @@ function Modificar({ ficha, onVolver, hacer, trabajando }: SubProps) {
       referencia_cliente: d.referencia_cliente, fecha_carga_desde: d.fecha_carga_desde, fecha_carga_hasta: d.fecha_carga_hasta,
       fecha_entrega_estimada: d.fecha_entrega_estimada, descripcion_mercancia: d.descripcion_mercancia,
       metros_lineales: n.metros, toneladas: n.toneladas,
-      paletizado: d.paletizado, carga_lateral: d.carga_lateral, carga_trasera: d.carga_trasera, carga_superior: d.carga_superior,
-      plataforma_elevadora: d.plataforma_elevadora, nima_requerido: d.nima_requerido, adr: d.adr,
+      paletizado: d.paletizado, carga_lateral: d.carga_lateral, carga_trasera: d.carga_trasera, carga_techo: d.carga_techo,
+      requiere_plataforma_elevadora: d.requiere_plataforma_elevadora, requiere_nima: d.requiere_nima, adr: d.adr,
       importe_cliente: n.pc, importe_transportista: n.pt, precio_acordado_operador: n.ac, negociacion_pct: Number(d.negociacion),
       discrecion_comercial: d.discrecion_comercial, anotaciones_cliente: d.anotaciones_cliente,
       paradas: paradas.map(({ id, referencia, anotaciones }) => ({ id, referencia, anotaciones })),
@@ -704,9 +704,9 @@ function Modificar({ ficha, onVolver, hacer, trabajando }: SubProps) {
         {sw('paletizado', 'Paletizada')}
         {sw('carga_lateral', 'Carga lateral')}
         {sw('carga_trasera', 'Carga trasera')}
-        {sw('carga_superior', 'Carga por techo')}
-        {sw('plataforma_elevadora', 'Trampilla elevadora')}
-        {sw('nima_requerido', 'Requiere NIMA')}
+        {sw('carga_techo', 'Carga por techo')}
+        {sw('requiere_plataforma_elevadora', 'Plataforma elevadora')}
+        {sw('requiere_nima', 'Requiere NIMA')}
         {sw('adr', 'Mercancía ADR')}
         {sw('discrecion_comercial', 'Discreción comercial')}
 

@@ -17,8 +17,8 @@ import { creadoTxt } from '@/lib/envios';
 
 export type AlmacenamientoFila = AlmacenamientoDatos & {
   id: string; codigo: string; cliente: string | null; almacen: string; almacen_provincia: string; almacen_dir: string; entrega: string | null;
-  importe_almacenaje: number | null; importe_reparto: number | null; importe_total: number; iva_aplicado: number;
-  pago_adelantado: boolean; pagado_en: string | null; estado: EstadoAlm; creado_en: string; modificado_en: string | null;
+  importe_almacenaje: number | null; importe_reparto: number | null; importe_total: number; iva_pct: number;
+  requiere_pago_previo: boolean; pagado_en: string | null; estado: EstadoAlm; creado_en: string; modificado_en: string | null;
   descripcion: string; referencia_cliente: string; anotaciones: string;
 };
 export type AlmacenOpcion = { id: string; nombre: string; provincia: string; dir: string; disponible: boolean; semana: number; reparto: number };
@@ -43,7 +43,7 @@ const diaMadrid = (ts: string) => new Intl.DateTimeFormat('en-CA', { timeZone: '
 const masDias = (iso: string, n: number) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const IcoAlm = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21V9l9-5 9 5v12" /><path d="M3 21h18" /><rect x="8" y="13" width="8" height="8" /></svg>;
 // Pago por adelantado sin validar (lo cancelado no cuenta).
-const sinPagar = (f: AlmacenamientoFila) => f.pago_adelantado && !f.pagado_en && f.estado !== 'cancelado';
+const sinPagar = (f: AlmacenamientoFila) => f.requiere_pago_previo && !f.pagado_en && f.estado !== 'cancelado';
 const diasTxt = (n: number) => (n === 0 ? 'mismo día' : `${n} día${n > 1 ? 's' : ''}`);
 
 export default function Almacenamientos({ filas, almacenes, clientes, error, abrir, pestanaInicial, modoCliente }: {
@@ -105,7 +105,7 @@ export default function Almacenamientos({ filas, almacenes, clientes, error, abr
                   <td>{fecha(f.fecha_entrada)}<div className="meta">{f.num_trailers} tráiler{f.num_trailers > 1 ? 'es' : ''}</div></td>
                   <td>{fecha(f.fecha_salida)}<div className="meta" style={dias > 7 ? { color: '#b45309', fontWeight: 700 } : undefined}>{diasTxt(dias)}</div></td>
                   <td>{f.num_repartos > 0 ? <>Sí · {f.num_repartos} {f.num_repartos > 1 ? 'camiones' : 'camión'}{f.entrega && <div className="meta">{f.entrega.length > 40 ? `${f.entrega.slice(0, 40)}…` : f.entrega}</div>}</> : 'No'}</td>
-                  <td><strong>{euros(f.importe_total)}</strong>{f.pago_adelantado && (f.pagado_en
+                  <td><strong>{euros(f.importe_total)}</strong>{f.requiere_pago_previo && (f.pagado_en
                     ? <div className="meta" style={{ color: '#0f6b3a', fontWeight: 700 }}>Pagado el {fecha(diaMadrid(f.pagado_en))}</div>
                     : <div className="meta" style={{ color: 'var(--red)', fontWeight: 700 }}>Pendiente de pago</div>)}</td>
                   <td><span className={`badge badge-${est[3]}`}>{est[2]}</span></td>
@@ -152,7 +152,7 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, modoCliente, onCerrar,
   const precio = alm ? precioAlmacenamiento(d, alm) : null;
   // En una ficha ya creada se enseña el precio congelado, salvo que cambie algo que lo mueve.
   const base = cambiaPrecio ? precio : { semanas: 0, almacenaje: fila!.importe_almacenaje ?? 0, reparto: fila!.importe_reparto ?? 0, total: fila!.importe_total };
-  const iva = fila?.iva_aplicado ?? 21;
+  const iva = fila?.iva_pct ?? 21;
   const dias = diasAlmacen(d.fecha_entrada, d.fecha_salida);
   // El cliente solo cambia lo suyo mientras Dynamo no lo ha confirmado.
   const editable = !fila || (modoCliente ? fila.estado === 'pendiente_confirmar' : ['pendiente_confirmar', 'confirmado'].includes(fila.estado));
@@ -219,7 +219,7 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, modoCliente, onCerrar,
       acciones={fila ? <>
         {paso && <button className="btn-primary" onClick={() => estado(paso[0], paso[2])} disabled={!!trabajando}>{paso[1]}</button>}
         {!modoCliente && fila.estado === 'cancelado' && <button className="btn-primary" onClick={() => estado('pendiente_confirmar', 'Reactivando')} disabled={!!trabajando}>Reactivar</button>}
-        {fila.pago_adelantado && fila.estado !== 'cancelado' && <>
+        {fila.requiere_pago_previo && fila.estado !== 'cancelado' && <>
           <a className="btn-secondary" href={`/panel/almacenamientos/${fila.id}/proforma`} target="_blank" rel="noopener">Proforma (PDF)</a>
           {modoCliente ? (fila.pagado_en && <span className="badge badge-entregado" style={{ alignSelf: 'center' }}>Pagado el {fecha(diaMadrid(fila.pagado_en))}</span>) : fila.pagado_en
             ? <button className="btn-secondary" onClick={() => pagado(false)} disabled={!!trabajando}>Pagado el {fecha(diaMadrid(fila.pagado_en))} · deshacer</button>

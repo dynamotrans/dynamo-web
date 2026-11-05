@@ -42,7 +42,7 @@ export default async function PaginaTransportistas({ searchParams }: { searchPar
   const filas: TransportistaFila[] = (tra.data ?? []).map((t: any) => {
     return {
       ...t,
-      anotaciones: notas.get(t.id)?.anotaciones ?? null, incidencias_notas: notas.get(t.id)?.incidencias_notas ?? null,
+      anotaciones: notas.get(t.id)?.anotaciones ?? null, anotaciones_incidencias: notas.get(t.id)?.anotaciones_incidencias ?? null,
       contactos: contactosDe(porTransportista.get(t.id) ?? []),
       flota: flota.get(t.id) ?? { tractoras: 0, rigidos: 0, remolques: 0, adr: false, matriculas: [] },
       envios: envios.get(t.id) ?? 0,

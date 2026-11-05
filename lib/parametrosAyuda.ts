@@ -32,10 +32,10 @@ export const AYUDA: Record<string, Ayuda> = {
     explica: 'El cliente deja de ver nombre y teléfono del conductor estas horas después del final del día de entrega previsto (para que no os salten). Si lo marcas entregado antes, deja de verlo al momento.',
     ejemplo: (v) => `Con ${v} h: entrega prevista el martes → el miércoles a las ${String(Number(v) % 24).padStart(2, '0')}:00 el cliente ya no ve el contacto.` },
   // ---- Previo pago -------------------------------------------------------------------
-  previo_pago_activo: { titulo: 'Previo pago: interruptor general',
+  pago_previo_activo: { titulo: 'Previo pago: interruptor general',
     explica: 'Si está encendido, los envíos de clientes sin crédito disponible y los primeros envíos de cada cliente se pagan por adelantado: no se ofertan ni se asignan hasta que pagan (tarjeta o transferencia) o los pasas tú sin pago previo.',
     ejemplo: () => 'Encendido: un cliente nuevo confirma su primer envío → queda «Pendiente de pago» con su proforma.' },
-  previo_pago_primeros_envios: { titulo: 'Primeros envíos con previo pago',
+  pago_previo_primeros_envios: { titulo: 'Primeros envíos con previo pago',
     explica: 'Cuántos de los primeros envíos de cada cliente se pagan por adelantado, aunque tenga crédito (salvo que en su ficha marques «empresa conocida»). 0 = ninguno.',
     ejemplo: (v) => `Con ${v}: ${Number(v) === 1 ? 'solo el primer envío' : `los ${v} primeros envíos`} de un cliente nuevo se paga${Number(v) === 1 ? '' : 'n'} antes; los siguientes, a su plazo.` },
   envio_antelacion_max_dias: { titulo: 'Antelación máxima para programar',
@@ -53,7 +53,7 @@ export const AYUDA: Record<string, Ayuda> = {
   precio_revision_respuesta_horas: { titulo: 'Revisión del precio: horas para contestar',
     explica: 'Si el precio sube y el cliente no acepta ni cancela en estas horas, te llega un aviso urgente para llamarle.',
     ejemplo: (v) => `Con ${v} h: subida enviada el lunes a las 10:00 → si no contesta, aviso el ${Number(v) === 24 ? 'martes a las 10:00' : `${v} h después`}.` },
-  previo_pago_horas: { titulo: 'Horas para pagar',
+  pago_previo_horas: { titulo: 'Horas para pagar',
     explica: 'Un envío pendiente de pago se puede pagar (tarjeta o transferencia con la proforma) durante estas horas desde que queda pendiente. Pasado el plazo se anula solo: el cliente recibe un aviso y tiene que volver a pedirlo, con el precio de ese momento y otra vez pendiente de pago. No cuenta como cancelación suya. Desde la ficha del envío puedes «Ampliar el plazo».',
     ejemplo: (v) => `Con ${v} h: confirma el lunes a las 10:00 → puede pagar hasta ${Number(v) === 24 ? 'el martes a las 10:00' : `${v} horas después`}; si no, el envío se anula.` },
   // ---- CESCE - Riesgos -------------------------------------------------------------

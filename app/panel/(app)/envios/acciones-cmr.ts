@@ -6,7 +6,7 @@ import { sesion } from '@/lib/sesion';
 
 // Bultos, embalaje y volumen (casillas 7, 8 y 12 del CMR). Los límites (quién y hasta
 // cuándo) los pone la base de datos: poner_datos_cmr().
-export type DatosCmr = { numero_bultos: number | null; embalaje: string | null; volumen_m3: number | null; firmado: boolean };
+export type DatosCmr = { num_bultos: number | null; embalaje: string | null; volumen_m3: number | null; firmado: boolean };
 
 export async function leerDatosCmr(envioId: string): Promise<DatosCmr | null> {
   const s = await sesion();

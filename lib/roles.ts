@@ -1,7 +1,7 @@
 // Roles de la plataforma y qué puede hacer cada uno (sin nada del servidor: lo usan
 // también los componentes del navegador, como el marco y el menú).
 // En pantalla: admin = «Admin Master», empleado = «Empleado gestor»; los de lectura lo
-// ven todo y no tocan nada (lo impone la base de datos: ve_todo() / es_admin()).
+// ven todo y no tocan nada (lo impone la base de datos: ve_todo() / es_equipo_dynamo()).
 export type Rol = 'admin' | 'empleado' | 'admin_lectura' | 'empleado_lectura' | 'cliente' | 'transportista';
 /** Cualquier usuario de Dynamo, también los de solo lectura: para VER. */
 export const esDynamo = (rol?: string | null) =>

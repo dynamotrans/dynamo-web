@@ -63,10 +63,10 @@ function Estrellas({ v, n }: { v: number | null; n: number }) {
 const NUEVO: TransportistaDatos = {
   razon_social: '', nombre_comercial: '', cif: '', estado_operativo: 'activo', bolsa: 'wtransnet', codigo_bolsa: '',
   direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES',
-  plazo_pago_dias: 60, pronto_pago: true, iva_porcentaje: 21, retencion_porcentaje: 0,
-  nima: '', almacen_logistico: false, tipo_camion_defecto: '',
+  plazo_pago_dias: 60, pronto_pago: true, iva_pct: 21, retencion_pct: 0,
+  nima: '', tiene_almacen: false, tipo_camion_defecto: '',
   seguro_cmr_compania: '', seguro_cmr_poliza: '', seguro_cmr_vence: '',
-  cuenta_contable: '', forma_pago_holded_id: '', anotaciones: '', incidencias_notas: '',
+  cuenta_contable: '', holded_forma_pago_ref: '', anotaciones: '', anotaciones_incidencias: '',
   contactos: [CONTACTO_VACIO('trafico')],
 };
 
@@ -163,7 +163,7 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
     (Object.keys(NUEVO) as (keyof TransportistaDatos)[]).forEach((k) => { o[k] = (fila as any)[k] ?? (NUEVO as any)[k]; });
     return o as TransportistaDatos;
   });
-  const [textos, setTextos] = useState({ iva: String(d.iva_porcentaje), ret: String(d.retencion_porcentaje) });
+  const [textos, setTextos] = useState({ iva: String(d.iva_pct), ret: String(d.retencion_pct) });
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const set = <K extends keyof TransportistaDatos>(k: K, v: TransportistaDatos[K]) => setD((x) => ({ ...x, [k]: v }));
@@ -175,7 +175,7 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
     if (Number.isNaN(iva) || Number.isNaN(ret)) { setError('El IVA o la retención no son un número.'); return; }
     setGuardando(true);
     const r = await guardarTransportista(fila?.id ?? null, {
-      ...d, iva_porcentaje: iva ?? 21, retencion_porcentaje: ret ?? 0,
+      ...d, iva_pct: iva ?? 21, retencion_pct: ret ?? 0,
     });
     setGuardando(false);
     if (!r.ok) { setError(r.error); return; }
@@ -189,7 +189,7 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
         onChange={(e) => set(id, e.target.value as never)} />
     </div>
   );
-  const interruptor = (k: 'pronto_pago' | 'almacen_logistico', label: string, ayuda?: string) => (
+  const interruptor = (k: 'pronto_pago' | 'tiene_almacen', label: string, ayuda?: string) => (
     <div>
       <label>{label}</label>
       <label className="ptar-tramp-box">
@@ -278,7 +278,7 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
             {CAMIONES.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
           </select>
         </div>
-        {interruptor('almacen_logistico', 'Tiene almacén logístico')}
+        {interruptor('tiene_almacen', 'Tiene almacén logístico')}
         <div />
         {campo('seguro_cmr_compania', 'Seguro CMR · compañía', 'Ej. Mapfre')}
         {campo('seguro_cmr_poliza', 'Seguro CMR · nº de póliza', 'Ej. 0961-…')}
@@ -316,10 +316,10 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
 
         {titulo('Contabilidad (Holded) y notas')}
         {campo('cuenta_contable', 'Cuenta contable', 'Ej. 40000123')}
-        {campo('forma_pago_holded_id', 'Forma de pago en Holded (ID)', 'Ej. 5f2a…')}
+        {campo('holded_forma_pago_ref', 'Forma de pago en Holded (ID)', 'Ej. 5f2a…')}
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="tra-inc">Incidencias (historial)</label>
-          <textarea id="tra-inc" rows={2} placeholder="Retrasos, daños, no presentados…" value={d.incidencias_notas} onChange={(e) => set('incidencias_notas', e.target.value)} />
+          <textarea id="tra-inc" rows={2} placeholder="Retrasos, daños, no presentados…" value={d.anotaciones_incidencias} onChange={(e) => set('anotaciones_incidencias', e.target.value)} />
         </div>
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="tra-notas">Notas internas</label>

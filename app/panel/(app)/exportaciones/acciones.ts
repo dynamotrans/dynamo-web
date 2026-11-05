@@ -10,7 +10,7 @@ export async function marcarExportados(fichero: Fichero, refs: string[], quitar 
   if (!['venta', 'compra', 'bolsa'].includes(fichero)) return { ok: false, error: 'Fichero no válido.' };
   const lista = [...new Set(refs.filter((r) => /^GX\d+$/.test(r)))];
   if (!lista.length) return { ok: false, error: 'No hay ningún envío que marcar.' };
-  const { data, error } = await s.supabase.rpc('marcar_exportados', { p_fichero: fichero, p_refs: lista, p_quitar: quitar });
+  const { data, error } = await s.supabase.rpc('marcar_exportados', { p_fichero: fichero, p_refs: lista, p_valor: !quitar });
   return error ? { ok: false, error: /42501|permission/i.test(error.message) ? 'No tienes permiso para hacer esto.' : error.message } : { ok: true, n: Number(data) };
 }
 

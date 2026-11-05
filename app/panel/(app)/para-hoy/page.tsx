@@ -26,18 +26,18 @@ export default async function PaginaParaHoy() {
     return <section className="section active"><div className="pt-aviso" style={{ maxWidth: 640 }}><div>«Para hoy» es de la gestión interna: vuelve a la vista de Dynamo (arriba, «Ver como»).</div></div></section>;
   }
   const hoy = hoyMadrid(), manana = masDias(hoy, 1);
-  const ENV = 'id, referencia_gx, fecha_carga_desde, fecha_carga_hasta, importe_cliente, contraoferta_cliente, creado_en, cambio_cliente_en, modificado_en, precio_revision_fecha, precio_revision_anterior, precio_revision_nuevo, precio_revision_en, precio_revision_recordado, clientes(nombre_visible)';
+  const ENV = 'id, referencia_gx, fecha_carga_desde, fecha_carga_hasta, importe_cliente, importe_contraoferta_cliente, creado_en, cambio_cliente_en, modificado_en, fecha_revision_precio, importe_revision_anterior, importe_revision_nuevo, revision_precio_en, revision_precio_recordada, clientes(nombre_visible)';
   const cnt = { count: 'exact' as const };
   const [sinCamion, solicitudes, cofCli, cofTra, cambios, revisar, sinPagar, inc, pen, altas, alm, revPrecio, subidas] = await Promise.all([
     supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('es_manual', false).is('transportista_id', null)
-      .neq('pago_previo', 'pendiente').lte('fecha_carga_desde', manana).order('fecha_carga_desde').limit(MAX),
-    supabase.from('envios').select(ENV, cnt).eq('estado', 'borrador').eq('solicitud_estado', 'pendiente_precio').order('creado_en').limit(MAX),
-    supabase.from('envios').select(ENV, cnt).eq('estado', 'borrador').eq('solicitud_estado', 'contraoferta').order('modificado_en').limit(MAX),
+      .neq('estado_pago_previo', 'pendiente').lte('fecha_carga_desde', manana).order('fecha_carga_desde').limit(MAX),
+    supabase.from('envios').select(ENV, cnt).eq('estado', 'borrador').eq('estado_solicitud', 'pendiente_precio').order('creado_en').limit(MAX),
+    supabase.from('envios').select(ENV, cnt).eq('estado', 'borrador').eq('estado_solicitud', 'contraoferta').order('modificado_en').limit(MAX),
     supabase.from('envio_reservas').select('id, envio_id, precio_propuesto, cerrada_en, desde, envios(referencia_gx, importe_transportista), transportistas(nombre_visible, tags)', cnt)
       .eq('estado', 'pendiente_revision').order('desde').limit(MAX),
-    supabase.from('envios').select(ENV, cnt).eq('cambio_cliente_estado', 'pendiente').order('cambio_cliente_en').limit(MAX),
-    supabase.from('envios').select(ENV, cnt).eq('precio_revisar', true).not('estado', 'in', '(entregado,cancelado)').order('fecha_carga_desde').limit(MAX),
-    supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('pago_previo', 'pendiente').order('fecha_carga_desde').limit(MAX),
+    supabase.from('envios').select(ENV, cnt).eq('estado_cambio_cliente', 'pendiente').order('cambio_cliente_en').limit(MAX),
+    supabase.from('envios').select(ENV, cnt).eq('requiere_revision_precio', true).not('estado', 'in', '(entregado,cancelado)').order('fecha_carga_desde').limit(MAX),
+    supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('estado_pago_previo', 'pendiente').order('fecha_carga_desde').limit(MAX),
     supabase.from('incidencias').select('id, titulo, prioridad, creado_en, envios(referencia_gx), tipos_incidencia(clave, nombre)', cnt)
       .in('estado', ['abierto', 'en_curso']).order('creado_en').limit(50),
     supabase.from('penalizaciones').select('id, importe_cliente, importe_transportista, creado_en, envios(referencia_gx), tipos_penalizacion(nombre)', cnt)
@@ -45,8 +45,8 @@ export default async function PaginaParaHoy() {
     supabase.from('usuarios').select('id, email, nombre, rol, creado_en', cnt).eq('estado', 'pendiente_verificacion').is('cliente_id', null).is('transportista_id', null).order('creado_en').limit(MAX),
     supabase.from('almacenamientos').select('id, codigo, fecha_entrada, creado_en, clientes(nombre_visible)', cnt).eq('estado', 'pendiente_confirmar').order('fecha_entrada').limit(MAX),
     // Revisión del precio de los envíos programados con mucha antelación.
-    supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('precio_revision', 'revisar').order('fecha_carga_desde').limit(MAX),
-    supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('precio_revision', 'esperando_cliente').order('precio_revision_en').limit(MAX),
+    supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('estado_revision_precio', 'revisar').order('fecha_carga_desde').limit(MAX),
+    supabase.from('envios').select(ENV, cnt).eq('estado', 'programado').eq('estado_revision_precio', 'esperando_cliente').order('revision_precio_en').limit(MAX),
   ]);
 
   const cli = (e: any) => e?.clientes?.nombre_visible ?? 'Cliente';
@@ -71,7 +71,7 @@ export default async function PaginaParaHoy() {
       filas: ((solicitudes.data ?? []) as any[]).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`, s: `Carga ${fechas(e)}`, desde: e.creado_en })) },
     { id: 'contraofertas-clientes', nivel: 'aviso', titulo: 'Contraofertas de clientes', total: cofCli.count ?? 0, todo: '/panel/envios',
       filas: ((cofCli.data ?? []) as any[]).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
-        s: `Propone ${euros(e.contraoferta_cliente)} (le dimos ${euros(e.importe_cliente)})`, desde: e.modificado_en })) },
+        s: `Propone ${euros(e.importe_contraoferta_cliente)} (le dimos ${euros(e.importe_cliente)})`, desde: e.modificado_en })) },
     { id: 'contraofertas-transportistas', nivel: 'aviso', titulo: 'Contraofertas de transportistas', total: cofTra.count ?? 0, todo: '/panel/envios',
       filas: ((cofTra.data ?? []) as any[]).map((r) => ({ href: ficha(r.envio_id), t: `#${r.envios?.referencia_gx ?? ''} · ${r.transportistas?.nombre_visible ?? 'Transportista'}`,
         s: `Propone ${euros(r.precio_propuesto)} (ofertado ${euros(r.envios?.importe_transportista)})${(r.transportistas?.tags ?? []).includes('alta_online') ? ' · ALTA ONLINE: revisar la empresa' : ''}`, desde: r.desde })) },
@@ -82,11 +82,11 @@ export default async function PaginaParaHoy() {
     { id: 'revision-precio', nivel: 'aviso', titulo: 'Revisar el precio (programados con antelación)', total: revPrecio.count ?? 0, todo: '/panel/envios',
       filas: ((revPrecio.data ?? []) as any[]).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
         s: `Carga ${fechas(e)} · precio provisional ${euros(e.importe_cliente)}: pon el de hoy`, desde: null })) },
-    { id: 'subidas-precio', nivel: ((subidas.data ?? []) as any[]).some((e) => e.precio_revision_recordado) ? 'urgente' : 'info',
+    { id: 'subidas-precio', nivel: ((subidas.data ?? []) as any[]).some((e) => e.revision_precio_recordada) ? 'urgente' : 'info',
       titulo: 'Subidas de precio esperando al cliente', total: subidas.count ?? 0, todo: '/panel/envios',
       filas: ((subidas.data ?? []) as any[]).map((e) => ({ href: ficha(e.id), t: `#${e.referencia_gx} · ${cli(e)}`,
-        s: `De ${euros(e.precio_revision_anterior)} a ${euros(e.precio_revision_nuevo)}${e.precio_revision_recordado ? ' · NO CONTESTA: llámale' : ''}`,
-        desde: e.precio_revision_en, urgente: !!e.precio_revision_recordado })) },
+        s: `De ${euros(e.importe_revision_anterior)} a ${euros(e.importe_revision_nuevo)}${e.revision_precio_recordada ? ' · NO CONTESTA: llámale' : ''}`,
+        desde: e.revision_precio_en, urgente: !!e.revision_precio_recordada })) },
     { id: 'altas', nivel: 'aviso', titulo: 'Altas pendientes', total: altas.count ?? 0, todo: '/panel/altas',
       filas: ((altas.data ?? []) as any[]).map((u) => ({ href: '/panel/altas', t: u.nombre || u.email, s: u.email, desde: u.creado_en })) },
     { id: 'penalizaciones', nivel: 'info', titulo: 'Penalizaciones por confirmar', total: pen.count ?? 0, todo: '/panel/penalizaciones',

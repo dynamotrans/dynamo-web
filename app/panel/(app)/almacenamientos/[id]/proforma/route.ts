@@ -33,7 +33,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     fecha_entrada: a.fecha_entrada, fecha_salida: a.fecha_salida, num_trailers: a.num_trailers, descripcion: a.descripcion,
     num_repartos: a.num_repartos,
     entrega: a.entrega ? [a.entrega.nombre_empresa, a.entrega.direccion, [a.entrega.codigo_postal, a.entrega.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', ') : null,
-    importe_almacenaje: Number(a.importe_almacenaje ?? 0), importe_reparto: Number(a.importe_reparto ?? 0), iva: Number(a.iva_aplicado ?? 21),
+    importe_almacenaje: Number(a.importe_almacenaje ?? 0), importe_reparto: Number(a.importe_reparto ?? 0), iva: Number(a.iva_pct ?? 21),
     dynamo: await datosDynamo(sb),
   });
   return new Response(Buffer.from(bytes), { headers: { 'content-type': 'application/pdf',

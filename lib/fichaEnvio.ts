@@ -101,7 +101,7 @@ export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ fic
       cmrEnlace: (enl.data as any) ?? null,
       firmasCmr: ((fir.data ?? []) as any[]).map((f) => ({ ...f, documento: `•••${String(f.documento).slice(-4)}` })),
       corte,
-      pago: pg ? { estado: pg.pago_previo, motivo: pg.pago_motivo, metodo: pg.pago_metodo, pagado_en: pg.pagado_en, exento_motivo: e.pago_exento_motivo ?? null,
+      pago: pg ? { estado: pg.estado_pago_previo, motivo: pg.pago_motivo, metodo: pg.pago_metodo, pagado_en: pg.pagado_en, exento_motivo: e.pago_exento_motivo ?? null,
         base: Number(pg.base), iva: Number(pg.iva), total: Number(pg.total), conCredito: Number(e.clientes?.riesgo_efectivo_euros ?? 0) > 0, limite: pg.pago_limite ?? null, provisional: !!pg.precio_provisional } : null,
       margenRevision: Number((reg.data as any)?.margen_pct ?? 5),
     },

@@ -230,8 +230,8 @@ function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol,
   const [d, setD] = useState<UsuarioDatos>({
     nombre: u.nombre, documento: u.documento, telefono: u.telefono, cargo: u.cargo, idioma: u.idioma || 'es',
     estado: u.estado, cliente_id: u.cliente_id, transportista_id: u.transportista_id,
-    limite_consultas_precio_diario: u.limite_consultas_precio_diario, limite_cargas_diario: u.limite_cargas_diario,
-    anotaciones: u.anotaciones, copias: u.copias, sin_autosuspension: u.sin_autosuspension,
+    limite_consultas_precio_diario: u.limite_consultas_precio_diario, limite_envios_diario: u.limite_envios_diario,
+    anotaciones: u.anotaciones, copias: u.copias, exento_autosuspension: u.exento_autosuspension,
   });
   const [tel, setTel] = useState(partirTel(u.telefono));
   const [error, setError] = useState<string | null>(null);
@@ -253,7 +253,7 @@ function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol,
     if (!r.ok) { setError(r.error); return; }
     onHecho(`Invitación reenviada a ${u.email}.`);
   }
-  const limite = (k: 'limite_consultas_precio_diario' | 'limite_cargas_diario', label: string) => (
+  const limite = (k: 'limite_consultas_precio_diario' | 'limite_envios_diario', label: string) => (
     <div>
       <label htmlFor={`usr-${k}`}>{label}</label>
       <input id={`usr-${k}`} type="text" inputMode="numeric" placeholder="Sin límite" value={d[k] ?? ''}
@@ -337,7 +337,7 @@ function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol,
           <input id="usr-cargo" type="text" value={d.cargo} placeholder="Jefe de tráfico, administración…" onChange={(e) => set('cargo', e.target.value)} />
         </div>
         <div />
-        {u.rol === 'cliente' && <>{limite('limite_consultas_precio_diario', 'Límite de consultas de precio al día')}{limite('limite_cargas_diario', 'Límite de envíos al día')}</>}
+        {u.rol === 'cliente' && <>{limite('limite_consultas_precio_diario', 'Límite de consultas de precio al día')}{limite('limite_envios_diario', 'Límite de envíos al día')}</>}
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="usr-copias">Enviar copia a · opcional (si hay varios, sepáralos por comas; máx. 10)</label>
           <input id="usr-copias" type="text" inputMode="email" value={d.copias} placeholder="logistica@empresa.com, almacen@empresa.com" onChange={(e) => set('copias', e.target.value)} />
@@ -346,7 +346,7 @@ function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol,
           <div style={{ gridColumn: '1/-1' }}>
             <label>No suspender nunca automáticamente</label>
             <label className="ptar-tramp-box" style={{ display: 'inline-flex' }}>
-              <input type="checkbox" className="ptar-switch-input" checked={d.sin_autosuspension} onChange={(e) => set('sin_autosuspension', e.target.checked)} />
+              <input type="checkbox" className="ptar-switch-input" checked={d.exento_autosuspension} onChange={(e) => set('exento_autosuspension', e.target.checked)} />
               <span className="ptar-switch" aria-hidden="true" />
               <span className="ptar-tramp-state" aria-hidden="true"><span className="tramp-off">No</span><span className="tramp-on">Sí</span></span>
             </label>

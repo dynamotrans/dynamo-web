@@ -22,8 +22,8 @@ export default async function PaginaAdministracion({ searchParams }: { searchPar
 
   const vista = await vistaDe(supabase, perfil.rol);
   const [alm, docs] = await Promise.all([
-    leerTodo(filtrarVista(supabase.from('almacenamientos').select('id, codigo, referencia_cliente, estado, fecha_entrada, fecha_salida, importe_total, iva_aplicado, pagado_en, creado_en, clientes(nombre_visible)'), vista, { transportista: null })
-      .eq('pago_adelantado', true).neq('estado', 'cancelado').order('creado_en', { ascending: false }), 5000),
+    leerTodo(filtrarVista(supabase.from('almacenamientos').select('id, codigo, referencia_cliente, estado, fecha_entrada, fecha_salida, importe_total, iva_pct, pagado_en, creado_en, clientes(nombre_visible)'), vista, { transportista: null })
+      .eq('requiere_pago_previo', true).neq('estado', 'cancelado').order('creado_en', { ascending: false }), 5000),
     leerTodo(filtrarVista(supabase.from('documentos').select(vista.tipo === 'admin' ? 'id, tipo, nombre_archivo, envio_id, creado_en, visible_cliente' : 'id, tipo, nombre_archivo, envio_id, creado_en, visible_cliente, envios!inner(cliente_id, transportista_id)'),
       vista, { cliente: 'envios.cliente_id', transportista: 'envios.transportista_id' })
       .in('tipo', ['albaran', 'cmr_firmado']).not('envio_id', 'is', null).eq('borrado', false)
@@ -42,7 +42,7 @@ export default async function PaginaAdministracion({ searchParams }: { searchPar
   }
 
   const proformas: ProformaFila[] = (alm.data ?? []).map((a: any) => {
-    const base = Number(a.importe_total ?? 0), iva = a.iva_aplicado != null ? Number(a.iva_aplicado) : 21;
+    const base = Number(a.importe_total ?? 0), iva = a.iva_pct != null ? Number(a.iva_pct) : 21;
     return {
       id: a.id, codigo: a.codigo, referencia_cliente: a.referencia_cliente ?? '', cliente: a.clientes?.nombre_visible ?? null,
       estado: a.estado, fecha_entrada: a.fecha_entrada, fecha_salida: a.fecha_salida,

@@ -116,7 +116,7 @@ export default function FichaViaje({ e, cerrarHref }: { e: any; cerrarHref: stri
               <div className="det-punto-head">
                 <span className={`ptar-route-num ${rec ? 'rec' : 'ent'}`}>{n}</span>
                 <span className="det-punto-label">{rec ? `Recogida ${n}` : `Entrega ${n}`}</span>
-                {p.hora_real && <span className="det-punto-tipo">Hecha: {creadoTxt(p.hora_real)}</span>}
+                {p.realizado_en && <span className="det-punto-tipo">Hecha: {creadoTxt(p.realizado_en)}</span>}
               </div>
               <div className="det-punto-body">
                 {p.nombre_empresa && <strong>{p.url_google_maps ? <a href={p.url_google_maps} target="_blank" rel="noopener" style={{ color: 'var(--purple)' }}>{p.nombre_empresa}</a> : p.nombre_empresa}</strong>}
@@ -146,8 +146,8 @@ export default function FichaViaje({ e, cerrarHref }: { e: any; cerrarHref: stri
       <div className="det-block"><div className="modal-info-grid">
         <Celda l="Mercancía">{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</Celda>
         <Celda l="Medidas">{[e.metros_lineales != null && `${txtNum(e.metros_lineales)} m`, e.toneladas != null && `${txtNum(e.toneladas)} Tn`].filter(Boolean).join(' · ') || '—'}</Celda>
-        <Celda l="Forma de carga">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_superior && 'Techo'].filter(Boolean).join(', ') || '—'}</Celda>
-        <Celda l="Requisitos">{[e.plataforma_elevadora && 'Trampilla elevadora', e.nima_requerido && 'NIMA', e.adr && 'Mercancía ADR'].filter(Boolean).join(' · ') || 'Ninguno'}</Celda>
+        <Celda l="Forma de carga">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_techo && 'Techo'].filter(Boolean).join(', ') || '—'}</Celda>
+        <Celda l="Requisitos">{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'NIMA', e.adr && 'Mercancía ADR'].filter(Boolean).join(' · ') || 'Ninguno'}</Celda>
       </div></div>
 
       <h4 className="modal-section-title">Documentos</h4>

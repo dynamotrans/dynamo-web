@@ -10,10 +10,10 @@ export type TransportistaDatos = {
   estado_operativo: 'activo' | 'no_ofertar' | 'suspendido';
   bolsa: string; codigo_bolsa: string;
   direccion: string; codigo_postal: string; poblacion: string; provincia: string; pais_codigo_iso: string;
-  plazo_pago_dias: number; pronto_pago: boolean; iva_porcentaje: number; retencion_porcentaje: number;
-  nima: string; almacen_logistico: boolean; tipo_camion_defecto: string;
+  plazo_pago_dias: number; pronto_pago: boolean; iva_pct: number; retencion_pct: number;
+  nima: string; tiene_almacen: boolean; tipo_camion_defecto: string;
   seguro_cmr_compania: string; seguro_cmr_poliza: string; seguro_cmr_vence: string;
-  cuenta_contable: string; forma_pago_holded_id: string; anotaciones: string; incidencias_notas: string;
+  cuenta_contable: string; holded_forma_pago_ref: string; anotaciones: string; anotaciones_incidencias: string;
   // Personas de contacto (tabla contactos): tráfico, contabilidad, conductores…
   contactos: ContactoDatos[];
 };
@@ -48,12 +48,12 @@ export async function guardarTransportista(id: string | null, d: TransportistaDa
     direccion: vacio(d.direccion), codigo_postal: vacio(d.codigo_postal), poblacion: vacio(d.poblacion),
     provincia: vacio(d.provincia), pais_codigo_iso: d.pais_codigo_iso || 'ES',
     plazo_pago_dias: d.plazo_pago_dias, pronto_pago: d.pronto_pago,
-    iva_porcentaje: d.iva_porcentaje, retencion_porcentaje: d.retencion_porcentaje,
-    nima: vacio(d.nima), almacen_logistico: d.almacen_logistico, tipo_camion_defecto: d.tipo_camion_defecto || null,
+    iva_pct: d.iva_pct, retencion_pct: d.retencion_pct,
+    nima: vacio(d.nima), tiene_almacen: d.tiene_almacen, tipo_camion_defecto: d.tipo_camion_defecto || null,
     seguro_cmr_compania: vacio(d.seguro_cmr_compania), seguro_cmr_poliza: vacio(d.seguro_cmr_poliza),
     seguro_cmr_vence: d.seguro_cmr_vence || null,
-    cuenta_contable: vacio(d.cuenta_contable), forma_pago_holded_id: vacio(d.forma_pago_holded_id),
-    anotaciones: vacio(d.anotaciones), incidencias_notas: vacio(d.incidencias_notas),
+    cuenta_contable: vacio(d.cuenta_contable), holded_forma_pago_ref: vacio(d.holded_forma_pago_ref),
+    anotaciones: vacio(d.anotaciones), anotaciones_incidencias: vacio(d.anotaciones_incidencias),
   };
   const q = id
     ? s.supabase.from('transportistas').update(fila).eq('id', id).select('id').single()

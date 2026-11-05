@@ -26,19 +26,19 @@ export type EnvioFila = {
   cliente: string | null; cliente_cif: string | null;
   creado_en: string | null; modificado_en: string | null; creado_por: string | null;
   paradas: Parada[];
-  solicitud_estado?: string | null;   // envío pedido por el cliente: pendiente_precio / precio_propuesto / …
-  pago_previo?: string | null;        // no_requerido / pendiente / pagado / exento (previo pago)
-  cambio_cliente_estado?: string | null;   // el cliente ha pedido un cambio (pendiente / aplicado / …)
-  precio_revisar?: boolean | null;         // la ruta ha cambiado y el precio no se ha revisado
+  estado_solicitud?: string | null;   // envío pedido por el cliente: pendiente_precio / precio_propuesto / …
+  estado_pago_previo?: string | null;        // no_requerido / pendiente / pagado / exento (previo pago)
+  estado_cambio_cliente?: string | null;   // el cliente ha pedido un cambio (pendiente / aplicado / …)
+  requiere_revision_precio?: boolean | null;         // la ruta ha cambiado y el precio no se ha revisado
 };
 
 // Envío confirmado esperando el pago previo: no se oferta ni se asigna todavía.
-export const esPendientePago = (e: { estado: string; pago_previo?: string | null }) =>
-  e.estado === 'programado' && e.pago_previo === 'pendiente';
+export const esPendientePago = (e: { estado: string; estado_pago_previo?: string | null }) =>
+  e.estado === 'programado' && e.estado_pago_previo === 'pendiente';
 
 // Solicitud del cliente esperando precio (de Dynamo) o respuesta (del cliente).
-export const esSolicitudAbierta = (e: { estado: string; solicitud_estado?: string | null }) =>
-  e.estado === 'borrador' && (e.solicitud_estado === 'pendiente_precio' || e.solicitud_estado === 'precio_propuesto' || e.solicitud_estado === 'contraoferta');
+export const esSolicitudAbierta = (e: { estado: string; estado_solicitud?: string | null }) =>
+  e.estado === 'borrador' && (e.estado_solicitud === 'pendiente_precio' || e.estado_solicitud === 'precio_propuesto' || e.estado_solicitud === 'contraoferta');
 
 // Estado del envío (badge de la 1ª columna).
 export function estadoVisual(e: EnvioFila): { label: string; color: string } {
@@ -49,9 +49,9 @@ export function estadoVisual(e: EnvioFila): { label: string; color: string } {
     case 'cargando': return { label: 'Cargando', color: 'cargando' };
     case 'en_ruta': return { label: 'En ruta', color: 'enruta' };
     case 'borrador':
-      if (e.solicitud_estado === 'pendiente_precio') return { label: 'Pendiente de precio', color: 'cargando' };
-      if (e.solicitud_estado === 'precio_propuesto') return { label: 'Precio por aceptar', color: 'hacia' };
-      if (e.solicitud_estado === 'contraoferta') return { label: 'Contraoferta del cliente', color: 'cargando' };
+      if (e.estado_solicitud === 'pendiente_precio') return { label: 'Pendiente de precio', color: 'cargando' };
+      if (e.estado_solicitud === 'precio_propuesto') return { label: 'Precio por aceptar', color: 'hacia' };
+      if (e.estado_solicitud === 'contraoferta') return { label: 'Contraoferta del cliente', color: 'cargando' };
       return { label: 'Borrador', color: 'prog' };
     default: return esPendientePago(e) ? { label: 'Pendiente de pago', color: 'cargando' } : { label: 'Programado', color: 'prog' };
   }

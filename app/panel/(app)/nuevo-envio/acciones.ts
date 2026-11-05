@@ -48,8 +48,8 @@ export type EnvioNuevo = {
   cliente_id: string; referencia_cliente?: string;
   fecha_carga_desde: string; fecha_carga_hasta: string;
   descripcion_mercancia?: string; toneladas: number; metros_lineales: number;
-  paletizado: boolean; carga_lateral: boolean; carga_trasera: boolean; carga_superior: boolean;
-  plataforma_elevadora: boolean; nima_requerido: boolean; adr: boolean;
+  paletizado: boolean; carga_lateral: boolean; carga_trasera: boolean; carga_techo: boolean;
+  requiere_plataforma_elevadora: boolean; requiere_nima: boolean; adr: boolean;
   importe_cliente: number; importe_transportista?: number | null;
   discrecion_comercial: boolean; anotaciones_cliente?: string;
   negociacion_pct?: number | null;   // banda de negociación por defecto al ofertar (0/5/10/30)
@@ -76,7 +76,7 @@ export async function crearEnvio(envio: EnvioNuevo, paradas: ParadaNueva[]):
 
   const { negociacion_pct, ...resto } = envio;
   if (negociacion_pct != null && ![0, 5, 10, 30].includes(negociacion_pct)) return { ok: false, error: 'La negociación del precio no es válida.' };
-  const { data, error } = await s.supabase.rpc('crear_envio', { p_envio: resto, p_paradas: paradas });
+  const { data, error } = await s.supabase.rpc('crear_envio', { p_datos: resto, p_paradas: paradas });
   if (error) return { ok: false, error: traducir(error.message) };
   const fila = (Array.isArray(data) ? data[0] : data) as { id: string; referencia_gx: string } | undefined;
   if (fila?.id && negociacion_pct != null) {
@@ -98,9 +98,9 @@ export async function crearClienteRapido(razon_social: string, cif: string, pais
   if (!rs || !c) return { ok: false, error: 'Escribe la razón social y el CIF/NIF.' };
   const { data, error } = await s.supabase.from('clientes')
     .insert({ razon_social: rs, cif: c, pais_codigo_iso: pais_codigo_iso || 'ES' })
-    .select('id, nombre_visible, cif, iva_porcentaje').single();
+    .select('id, nombre_visible, cif, iva_pct').single();
   if (error) return { ok: false, error: traducir(error.message) };
-  return { ok: true, cliente: { id: data.id, nombre: data.nombre_visible, cif: data.cif, iva: data.iva_porcentaje } };
+  return { ok: true, cliente: { id: data.id, nombre: data.nombre_visible, cif: data.cif, iva: data.iva_pct } };
 }
 
 // Cambiar la ruta de un envío ya creado (antes de cargar). Las paradas con `id` se
@@ -122,7 +122,7 @@ export async function crearSolicitud(envio: Omit<EnvioNuevo, 'cliente_id' | 'imp
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return { ok: false, error: 'Tu cuenta no puede pedir envíos todavía.' };
   if (paradas.length < 2) return { ok: false, error: 'Falta la recogida o la entrega.' };
-  const { data, error } = await s.supabase.rpc('crear_solicitud_envio', { p_envio: envio, p_paradas: paradas });
+  const { data, error } = await s.supabase.rpc('crear_solicitud_envio', { p_datos: envio, p_paradas: paradas });
   if (error) return { ok: false, error: traducir(error.message) };
   const fila = (Array.isArray(data) ? data[0] : data) as { id?: string; referencia_gx: string } | undefined;
   if (fila?.id) await contactosDeSitiosNuevos(s.supabase, fila.id, paradas, true);
@@ -146,7 +146,7 @@ export async function crearEnvioManual(envio: Omit<EnvioNuevo, 'cliente_id' | 'i
   if (!s?.perfil || s.perfil.estado !== 'activa' || s.perfil.rol !== 'cliente') return { ok: false, error: 'Tu cuenta no puede crear envíos todavía.' };
   if (!envio.operador_id) return { ok: false, error: 'Elige tu operador de transporte.' };
   if (paradas.length < 2) return { ok: false, error: 'Falta la recogida o la entrega.' };
-  const { data, error } = await s.supabase.rpc('crear_envio_manual', { p_envio: envio, p_paradas: paradas });
+  const { data, error } = await s.supabase.rpc('crear_envio_manual', { p_datos: envio, p_paradas: paradas });
   if (error) return { ok: false, error: traducir(error.message) };
   const fila = (Array.isArray(data) ? data[0] : data) as { id?: string; referencia_gx: string } | undefined;
   if (fila?.id) await contactosDeSitiosNuevos(s.supabase, fila.id, paradas, true);

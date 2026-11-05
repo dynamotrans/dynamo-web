@@ -49,7 +49,7 @@ export async function guardarAlmacenamiento(id: string | null, d: Almacenamiento
     const [{ data: alm }, { data: ps }, { data: cli }] = await Promise.all([
       sb.from('sitios').select('precio_almacenamiento_semana, precio_reparto').eq('id', d.almacen_id).maybeSingle(),
       sb.from('parametros').select('clave, valor').in('clave', ['almacen_precio_semana', 'almacen_precio_reparto']),
-      sb.from('clientes').select('riesgo_efectivo_euros, iva_porcentaje').eq('id', d.cliente_id).maybeSingle(),
+      sb.from('clientes').select('riesgo_efectivo_euros, iva_pct').eq('id', d.cliente_id).maybeSingle(),
     ]);
     const p = new Map((ps ?? []).map((x: any) => [x.clave, Number(x.valor)]));
     const precio = precioAlmacenamiento(d, {
@@ -58,9 +58,9 @@ export async function guardarAlmacenamiento(id: string | null, d: Almacenamiento
     });
     fila.importe_almacenaje = precio.almacenaje;
     fila.importe_reparto = precio.reparto;
-    fila.iva_aplicado = cli?.iva_porcentaje ?? 21;
+    fila.iva_pct = cli?.iva_pct ?? 21;
     // Sin crédito (CESCE o de Dynamo), se paga por adelantado con proforma.
-    fila.pago_adelantado = !(Number(cli?.riesgo_efectivo_euros) > 0);
+    fila.requiere_pago_previo = !(Number(cli?.riesgo_efectivo_euros) > 0);
   }
   const q = id ? sb.from('almacenamientos').update(fila).eq('id', id).select('id, codigo').single()
                : sb.from('almacenamientos').insert(fila).select('id, codigo').single();

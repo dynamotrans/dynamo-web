@@ -7,7 +7,7 @@ import { nombreTipo } from '@/components/panel/TipoSitio';
 
 // ORDEN DE CARGA que Dynamo manda al transportista (el contenido y las condiciones son los
 // de la orden que se manda hoy por email, p. ej. la GX61034 de febrero de 2026).
-// En un envío MANUAL (el cliente con su propio operador) sale como ORDEN DE TRANSPORTE del
+// En un envío MANUAL (el cliente con su propio operador) sale como ORDEN DE CARGA del
 // cliente a su operador, SIN ninguna mención a Dynamo (como en el mockup).
 
 export type ParamsPago = { pct: number; minimo: number; dias: number; plazo: number };
@@ -32,7 +32,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago): Promise<Uint8
     l.texto(l.x0, 72, 'Ordenante del transporte', 8.5, { color: COLOR.gris });
   }
   const der = A4.w - l.margen.der;
-  l.textoDer(der, 52, manual ? 'ORDEN DE TRANSPORTE' : 'ORDEN DE CARGA', 16, { bold: true, color: COLOR.morado });
+  l.textoDer(der, 52, 'ORDEN DE CARGA', 16, { bold: true, color: COLOR.morado });
   l.textoDer(der, 66, `Referencia de viaje: ${ref}`, 10, { bold: true });
   l.textoDer(der, 78, `Emitida el ${emitida}`, 8, { color: COLOR.gris });
   l.y = 92;
@@ -115,7 +115,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago): Promise<Uint8
     if (pa.contacto?.telefono || pa.contacto?.nombre) filas.push(['Contacto', [pa.contacto?.nombre, pa.contacto?.telefono].filter(Boolean).join(': ')]);
     if (pa.referencia) filas.push(['Referencia', pa.referencia, true]);
     if (pa.tipo_sitio) filas.push(['Tipo de sitio', nombreTipo(pa.tipo_sitio)]);
-    const avisos = [pa.requiere_cita && 'Con cita previa', !pa.tiene_medios_carga && 'Sin medios de carga: el camión debe llevar trampilla elevadora'].filter(Boolean) as string[];
+    const avisos = [pa.requiere_cita && 'Con cita previa', !pa.tiene_medios_carga && 'Sin medios de carga: el camión debe llevar plataforma elevadora'].filter(Boolean) as string[];
     if (avisos.length) filas.push(['Atención', avisos.join(' · '), true]);
     if (pa.url_google_maps) filas.push(['Google Maps', pa.url_google_maps]);
     for (const n2 of [pa.notas_sitio, pa.anotaciones].filter(Boolean) as string[]) filas.push(['Indicaciones', n2]);
@@ -157,15 +157,15 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago): Promise<Uint8
     l.y += 8;
   };
   seccion('MERCANCÍA Y VEHÍCULO');
-  const forma = [e.carga_lateral && 'lateral', e.carga_trasera && 'trasera', e.carga_superior && 'por techo'].filter(Boolean).join(', ');
+  const forma = [e.carga_lateral && 'lateral', e.carga_trasera && 'trasera', e.carga_techo && 'por techo'].filter(Boolean).join(', ');
   kv([
     ['Mercancía', [e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada'),
       e.toneladas != null ? `${num(e.toneladas)} Tn` : null, e.metros_lineales != null ? `${num(e.metros_lineales)} metros lineales` : null,
-      e.numero_bultos != null ? `${e.numero_bultos} bultos${e.embalaje ? ` (${e.embalaje})` : ''}` : null,
+      e.num_bultos != null ? `${e.num_bultos} bultos${e.embalaje ? ` (${e.embalaje})` : ''}` : null,
       e.volumen_m3 != null ? `${num(e.volumen_m3)} m³` : null].filter(Boolean).join(' · '), { bold: true }],
-    ['Tipo de transporte', e.plataforma_elevadora ? 'Camión rígido con trampilla elevadora' : 'Tautliner (lona corredera)'],
+    ['Tipo de transporte', e.requiere_plataforma_elevadora ? 'Camión rígido con plataforma elevadora' : 'Tautliner (lona corredera)'],
     ['Tipo de carga', `${e.tipo_carga === 'completa' ? 'Carga completa' : 'Grupaje / carga parcial'}${forma ? ` · carga ${forma}` : ''}`],
-    ['Requisitos', [e.nima_requerido && `Requiere NIMA${e.transportista_nima ? ` (${e.transportista_nima})` : ''}`, e.adr && 'MERCANCÍA ADR (peligrosa)'].filter(Boolean).join(' · '), { bold: true, rojo: !!e.adr }],
+    ['Requisitos', [e.requiere_nima && `Requiere NIMA${e.transportista_nima ? ` (${e.transportista_nima})` : ''}`, e.adr && 'MERCANCÍA ADR (peligrosa)'].filter(Boolean).join(' · '), { bold: true, rojo: !!e.adr }],
     ['Importante', 'El transportista solo está autorizado a recoger la mercancía descrita en esta orden. Si el cargador quiere cargar otra mercancía, avísenos antes para autorizarla. No está permitido el transbordo: si lo necesita, avise antes para consultarlo con el cliente.'],
   ]);
   seccion('MATRÍCULAS Y CONDUCTOR');
@@ -224,14 +224,14 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago): Promise<Uint8
   const pags = l.doc.getPages();
   pags.forEach((pg, i) => {
     const pie = manual
-      ? `Orden de transporte ${ref} · emitida por ${d.cliente?.razon_social ?? ''} · ${emitida}`
+      ? `Orden de carga ${ref} · emitida por ${d.cliente?.razon_social ?? ''} · ${emitida}`
       : `${D.razon_social} · CIF ${D.cif} · O.T. ${D.tarjeta_ot} · Urgencias 24 h ${D.telefono} · ${ref}`;
     pg.drawLine({ start: { x: l.x0, y: 40 }, end: { x: der, y: 40 }, thickness: 0.6, color: COLOR.grisClaro });
     l.texto(l.x0, A4.h - 28, pie, 7, { color: COLOR.gris, pag: pg });
     const n = `Página ${i + 1} de ${pags.length}`;
     l.texto(der - l.medida(n, 7), A4.h - 28, n, 7, { color: COLOR.gris, pag: pg });
   });
-  l.doc.setTitle(`${manual ? 'Orden de transporte' : 'Orden de carga'} ${ref}`);
+  l.doc.setTitle(`${'Orden de carga'} ${ref}`);
   l.doc.setAuthor(manual ? d.cliente?.razon_social ?? '' : D.razon_social);
   return l.guardar();
 }

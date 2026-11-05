@@ -31,7 +31,7 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Precio que das y su validez', claves: ['solicitud_validez_horas'] },
     { titulo: 'Antelación y revisión del precio', claves: ['envio_antelacion_max_dias', 'precio_cerrado_dias', 'precio_revision_dias_habiles', 'precio_revision_margen_pct', 'precio_revision_respuesta_horas'] },
     { titulo: 'Contraoferta del cliente', claves: ['contraoferta_cliente_activa', 'contraoferta_cliente_auto_pct', 'contraoferta_cliente_max_pct'] },
-    { titulo: 'Previo pago de envíos', claves: ['previo_pago_activo', 'previo_pago_primeros_envios', 'previo_pago_horas'] },
+    { titulo: 'Previo pago de envíos', claves: ['pago_previo_activo', 'pago_previo_primeros_envios', 'pago_previo_horas'] },
     { titulo: 'Contacto del conductor', claves: ['contacto_transportista_horas_tras_entrega'] },
   ] },
   { id: 'riesgos', titulo: 'CESCE - Riesgos', intro: 'Cómo se calcula el dinero pendiente de cobro de cada cliente.', subs: [
@@ -166,20 +166,20 @@ function CuentaBancaria({ filas }: { filas: ParametroFila[] }) {
 // exactas viven en la base de datos: autosuspension_candidatos() (migración
 // 20261104170000_suspension_automatica). Si se toca una regla allí, actualizar este texto.
 const ETIQUETAS: Record<string, [string, string]> = {
-  autosusp_sin_envios_dias: ['Días sin envíos', 'días'],
-  autosusp_sin_acceso_dias: ['Días sin entrar', 'días'],
-  autosusp_consultas_dia: ['Máximo en 24 horas', 'consultas'],
-  autosusp_consultas_semana: ['Máximo en 7 días', 'consultas'],
-  autosusp_consultas_mes: ['Máximo en 30 días', 'consultas'],
-  autosusp_cancel_pct: ['Porcentaje de cancelaciones', '%'],
-  autosusp_cancel_min_envios: ['Envíos mínimos antes de mirar el %', 'envíos'],
-  autosusp_cancel_recientes: ['Número de cancelaciones', ''],
-  autosusp_cancel_recientes_dias: ['En cuántos días', 'días'],
+  autosuspension_sin_envios_dias: ['Días sin envíos', 'días'],
+  autosuspension_sin_acceso_dias: ['Días sin entrar', 'días'],
+  autosuspension_consultas_dia: ['Máximo en 24 horas', 'consultas'],
+  autosuspension_consultas_semana: ['Máximo en 7 días', 'consultas'],
+  autosuspension_consultas_mes: ['Máximo en 30 días', 'consultas'],
+  autosuspension_cancel_pct: ['Porcentaje de cancelaciones', '%'],
+  autosuspension_cancel_min_envios: ['Envíos mínimos antes de mirar el %', 'envíos'],
+  autosuspension_cancel_recientes: ['Número de cancelaciones', ''],
+  autosuspension_cancel_recientes_dias: ['En cuántos días', 'días'],
 };
-// Valores por defecto de la base de datos (p_num), por si falta alguno.
+// Valores por defecto de la base de datos (parametro_num), por si falta alguno.
 const DEFECTO: Record<string, number> = {
-  autosusp_sin_envios_dias: 45, autosusp_sin_acceso_dias: 400, autosusp_consultas_dia: 15, autosusp_consultas_semana: 30,
-  autosusp_consultas_mes: 60, autosusp_cancel_pct: 30, autosusp_cancel_min_envios: 5, autosusp_cancel_recientes: 3, autosusp_cancel_recientes_dias: 10,
+  autosuspension_sin_envios_dias: 45, autosuspension_sin_acceso_dias: 400, autosuspension_consultas_dia: 15, autosuspension_consultas_semana: 30,
+  autosuspension_consultas_mes: 60, autosuspension_cancel_pct: 30, autosuspension_cancel_min_envios: 5, autosuspension_cancel_recientes: 3, autosuspension_cancel_recientes_dias: 10,
 };
 const pct = (a: number, b: number) => (b ? Math.round((a * 100) / b) : 0);
 function duracion(d: number) {
@@ -243,7 +243,7 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
     const x = Number(filas.find((p) => p.clave === k)?.valor);
     return Number.isFinite(x) ? x : DEFECTO[k];
   };
-  const activa = filas.find((p) => p.clave === 'autosusp_activa');
+  const activa = filas.find((p) => p.clave === 'autosuspension_activa');
   const encendida = activa?.valor === true;
   const porRegla = (n: number) => candidatos.filter((c) => c.motivo.startsWith(`Regla ${n}:`)).length;
   async function lanzar() {
@@ -254,18 +254,18 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
     if (r.ok) refrescar();
   }
 
-  const r1 = num('autosusp_sin_envios_dias');
-  const r2 = num('autosusp_sin_acceso_dias');
-  const [qd, qs, qm] = [num('autosusp_consultas_dia'), num('autosusp_consultas_semana'), num('autosusp_consultas_mes')];
-  const [cp, cmin] = [num('autosusp_cancel_pct'), num('autosusp_cancel_min_envios')];
-  const [cn, cd] = [num('autosusp_cancel_recientes'), num('autosusp_cancel_recientes_dias')];
+  const r1 = num('autosuspension_sin_envios_dias');
+  const r2 = num('autosuspension_sin_acceso_dias');
+  const [qd, qs, qm] = [num('autosuspension_consultas_dia'), num('autosuspension_consultas_semana'), num('autosuspension_consultas_mes')];
+  const [cp, cmin] = [num('autosuspension_cancel_pct'), num('autosuspension_cancel_min_envios')];
+  const [cn, cd] = [num('autosuspension_cancel_recientes'), num('autosuspension_cancel_recientes_dias')];
   // Ejemplos de la regla 3: cuántas al día durante una semana hacen pasarse del máximo semanal.
   const qPorDia = Math.ceil((qs + 1) / 7);
   // Ejemplos de la regla 4.
   const e4 = Math.max(10, cmin);
   const c4 = Math.ceil((e4 * cp) / 100);
   const cMin = Math.ceil((cmin * cp) / 100);
-  const usadas = new Set(['autosusp_activa', ...Object.keys(ETIQUETAS)]);
+  const usadas = new Set(['autosuspension_activa', ...Object.keys(ETIQUETAS)]);
   const sueltas = filas.filter((p) => !usadas.has(p.clave));
 
   return (
@@ -296,7 +296,7 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
       </Regla>
 
       {/* 3. Las reglas */}
-      <Regla n={1} salta="hora" titulo="Pide precios pero no hace envíos" quien="clientes" hoy={porRegla(1)} claves={['autosusp_sin_envios_dias']} filas={filas} esAdmin={esAdmin}>
+      <Regla n={1} salta="hora" titulo="Pide precios pero no hace envíos" quien="clientes" hoy={porRegla(1)} claves={['autosuspension_sin_envios_dias']} filas={filas} esAdmin={esAdmin}>
         <Bloque titulo="Qué mira">Si la persona ha pedido algún precio en los últimos <strong>{r1} días</strong> y, en esos mismos {r1} días, <strong>nadie de su empresa</strong> ha generado ningún envío.</Bloque>
         <Bloque titulo="Cuándo se suspende">Cuando pasan las dos cosas a la vez: pide precios <strong>y</strong> su empresa no envía nada en {r1} días.</Bloque>
         <Bloque titulo="Ejemplos">
@@ -309,7 +309,7 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
         <Bloque titulo="No se aplica">A cuentas con menos de {r1} días, ni durante los {r1} días siguientes a reactivarla.</Bloque>
       </Regla>
 
-      <Regla n={2} salta="hora" titulo="No entra nunca" quien="clientes y transportistas" hoy={porRegla(2)} claves={['autosusp_sin_acceso_dias']} filas={filas} esAdmin={esAdmin}>
+      <Regla n={2} salta="hora" titulo="No entra nunca" quien="clientes y transportistas" hoy={porRegla(2)} claves={['autosuspension_sin_acceso_dias']} filas={filas} esAdmin={esAdmin}>
         <Bloque titulo="Qué mira">La última vez que la persona <strong>inició sesión</strong> en la plataforma.</Bloque>
         <Bloque titulo="Cuándo se suspende">Cuando lleva más de <strong>{r2} días</strong> sin iniciar sesión {duracion(r2) && <>({duracion(r2)})</>}. Es una medida de seguridad: una cuenta olvidada es una puerta abierta.</Bloque>
         <Bloque titulo="Ejemplos">
@@ -321,7 +321,7 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
         <Bloque titulo="No se aplica">A cuentas con menos de {r2} días, ni durante los {r2} días siguientes a reactivarla.</Bloque>
       </Regla>
 
-      <Regla n={3} salta="momento" titulo="Demasiadas consultas de precio" quien="clientes" hoy={porRegla(3)} claves={['autosusp_consultas_dia', 'autosusp_consultas_semana', 'autosusp_consultas_mes']} filas={filas} esAdmin={esAdmin}>
+      <Regla n={3} salta="momento" titulo="Demasiadas consultas de precio" quien="clientes" hoy={porRegla(3)} claves={['autosuspension_consultas_dia', 'autosuspension_consultas_semana', 'autosuspension_consultas_mes']} filas={filas} esAdmin={esAdmin}>
         <Bloque titulo="Qué mira">Cuántos precios pide la persona. Hoy cuenta cada <strong>solicitud de precio</strong>; cuando esté el tarifador, contará cada cálculo. Sirve para frenar a quien usa la plataforma solo para sacar precios (la competencia, por ejemplo).</Bloque>
         <Bloque titulo="Cuándo se suspende">Cuando pasa de <strong>{qd} en 24 horas</strong>, <strong>o</strong> de <strong>{qs} en 7 días</strong>, <strong>o</strong> de <strong>{qm} en 30 días</strong>. Basta con pasarse en una de las tres.</Bloque>
         <Bloque titulo="Ejemplos">
@@ -334,7 +334,7 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
         <Bloque titulo="Para un cliente concreto">El máximo de 24 horas se puede subir (o bajar) solo para él en Usuarios → su ficha → «Límite de consultas de precio al día». Si está vacío, vale el de aquí.</Bloque>
       </Regla>
 
-      <Regla n={4} salta="momento" titulo="Cancela muchos de sus envíos" quien="clientes" hoy={porRegla(4)} claves={['autosusp_cancel_pct', 'autosusp_cancel_min_envios']} filas={filas} esAdmin={esAdmin}>
+      <Regla n={4} salta="momento" titulo="Cancela muchos de sus envíos" quien="clientes" hoy={porRegla(4)} claves={['autosuspension_cancel_pct', 'autosuspension_cancel_min_envios']} filas={filas} esAdmin={esAdmin}>
         <Bloque titulo="Qué mira">De los envíos que ha pedido <strong>esa persona</strong>, cuántos ha cancelado <strong>ella misma</strong>. Las cancelaciones que hace Dynamo no cuentan. Se cuenta desde que se creó la cuenta (o desde que se reactivó).</Bloque>
         <Bloque titulo="Qué cancelaciones cuentan">Solo las que «hacen daño»: con <strong>camión ya asignado</strong>, o sin camión pero <strong>tarde</strong> (después de las 9:00 del día hábil anterior a la carga). Cancelar sin camión y con tiempo es gratis y <strong>no cuenta</strong>.</Bloque>
         <Bloque titulo="Cuándo se suspende">Cuando ha pedido <strong>{cmin} envíos o más</strong> y ha cancelado el <strong>{cp} % o más</strong>.</Bloque>
@@ -348,7 +348,7 @@ function ReglasAutosuspension({ filas, candidatos, esAdmin }: { filas: Parametro
         </Bloque>
       </Regla>
 
-      <Regla n={5} salta="momento" titulo="Muchas cancelaciones seguidas" quien="clientes" hoy={porRegla(5)} claves={['autosusp_cancel_recientes', 'autosusp_cancel_recientes_dias']} filas={filas} esAdmin={esAdmin}>
+      <Regla n={5} salta="momento" titulo="Muchas cancelaciones seguidas" quien="clientes" hoy={porRegla(5)} claves={['autosuspension_cancel_recientes', 'autosuspension_cancel_recientes_dias']} filas={filas} esAdmin={esAdmin}>
         <Bloque titulo="Qué mira">Cuántos envíos ha cancelado la persona en los <strong>últimos {cd} días</strong>, tenga los envíos que tenga. Cuentan las mismas que en la regla 4: con camión asignado, o sin camión pasadas las 9:00 del día hábil anterior a la carga.</Bloque>
         <Bloque titulo="Cuándo se suspende">Cuando cancela <strong>{cn} o más</strong> en {cd} días.</Bloque>
         <Bloque titulo="Ejemplos">

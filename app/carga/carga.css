@@ -84,7 +84,7 @@
     .of-merc-lbl { font-size: var(--fs-s); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--purple); }
     .of-merc-tipo { font-size: var(--fs-d1); font-weight: 900; color: var(--navy); }
     /* Chips del detalle en rejilla de 2 columnas: cada fila es una pareja
-       (metros+peso · palets+tipo de carga · trampilla+NIMA). */
+       (metros+peso · palets+tipo de carga · plataforma elevadora+NIMA). */
     .of-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.7rem; }
     /* Chip a fila completa (Tipo de carga va solo en su fila). */
     .of-chip.of-chip-full { grid-column: 1 / -1; }

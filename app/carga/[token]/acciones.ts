@@ -20,7 +20,7 @@ export async function reservar(token: string): Promise<{ resultado: string; hast
   if (!sb || await enMantenimiento(sb)) return { resultado: 'error' };
   const h = await headers();
   const ip = (h.get('x-forwarded-for') ?? '').split(',')[0].trim() || null;
-  const { data, error } = await sb.rpc('reservar_envio', { p_token: token, p_ip: ip, p_navegador: h.get('user-agent') });
+  const { data, error } = await sb.rpc('reservar_envio_publico', { p_token: token, p_ip: ip, p_navegador: h.get('user-agent') });
   if (error) return { resultado: 'error' };
   const r = data as { resultado: string; reserva_id?: string; hasta?: string; desde?: string; ahora?: string };
   if (r.resultado === 'reservada' && r.reserva_id) {
@@ -38,7 +38,7 @@ export async function aceptar(token: string, a: Aceptacion): Promise<{ resultado
   if (await enMantenimiento(sb)) return { resultado: 'error', error: 'La plataforma está en mantenimiento. Vuelve a intentarlo en un rato o llámanos al +34 955 225 945.' };
   const { data, error } = await sb.rpc('aceptar_oferta_publica', {
     p_reserva: reserva, p_cif: a.cif, p_precio: a.precio, p_pronto_pago: a.pronto_pago,
-    p_camion: a.camion, p_remolque: a.remolque, p_conductor: a.conductor, p_telefono: a.telefono,
+    p_matricula_camion: a.camion, p_matricula_remolque: a.remolque, p_conductor_nombre: a.conductor, p_telefono: a.telefono,
     p_ip: ((await headers()).get('x-forwarded-for') ?? '').split(',')[0].trim() || null,
   });
   if (error) return { resultado: 'error', error: /no se puede negociar/i.test(error.message) ? `${error.message.replace(/^.*?(Ahora no se puede)/, '$1')} Puedes aceptarla al precio ofertado.` : ERROR_CONEXION };
@@ -49,7 +49,7 @@ export async function liberar(token: string): Promise<void> {
   const sb = supabasePublico();
   const almacen = await cookies();
   const reserva = almacen.get(cookieReserva(token))?.value;
-  if (sb && reserva) await sb.rpc('liberar_reserva', { p_reserva: reserva, p_motivo: 'el transportista no la quiere' });
+  if (sb && reserva) await sb.rpc('liberar_reserva_publica', { p_reserva: reserva, p_motivo: 'el transportista no la quiere' });
   almacen.delete({ name: cookieReserva(token), path: '/carga' });
 }
 
@@ -58,7 +58,7 @@ export async function completar(token: string, d: { camion: string; remolque: st
   const reserva = (await cookies()).get(cookieReserva(token))?.value;
   if (!sb || !reserva) return { resultado: 'error' };
   const { data, error } = await sb.rpc('completar_carga_publica', {
-    p_reserva: reserva, p_camion: d.camion, p_remolque: d.remolque, p_conductor: d.conductor, p_telefono: d.telefono,
+    p_reserva: reserva, p_matricula_camion: d.camion, p_matricula_remolque: d.remolque, p_conductor_nombre: d.conductor, p_telefono: d.telefono,
   });
   return error ? { resultado: 'error' } : (data as { resultado: string; conductor?: string | null; telefono?: string | null });
 }
@@ -69,7 +69,7 @@ export async function sugerirFlota(token: string, d: { matricula?: string; condu
   const sb = supabasePublico();
   const reserva = (await cookies()).get(cookieReserva(token))?.value;
   if (!sb || !reserva) return null;
-  const { data, error } = await sb.rpc('flota_sugerencia_publica', { p_reserva: reserva, p_matricula: d.matricula ?? null, p_conductor: d.conductor ?? null });
+  const { data, error } = await sb.rpc('flota_sugerencia_publica', { p_reserva: reserva, p_matricula: d.matricula ?? null, p_conductor_nombre: d.conductor ?? null });
   if (error || (data as any)?.resultado !== 'ok') return null;
   return { conductor: (data as any).conductor ?? null, telefono: (data as any).telefono ?? null };
 }

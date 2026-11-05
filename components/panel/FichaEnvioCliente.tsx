@@ -61,13 +61,13 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
   const paradas: any[] = e.paradas ?? [];
   const recogidas = paradas.filter((p) => p.tipo === 'carga'), entregas = paradas.filter((p) => p.tipo === 'descarga');
   const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null;
-  const iva = Number(e.iva_aplicado ?? 21);
-  const pendientePrecio = e.estado === 'borrador' && e.solicitud_estado === 'pendiente_precio';
-  const porAceptar = e.estado === 'borrador' && e.solicitud_estado === 'precio_propuesto';
-  const enContraoferta = e.estado === 'borrador' && e.solicitud_estado === 'contraoferta';
+  const iva = Number(e.iva_pct ?? 21);
+  const pendientePrecio = e.estado === 'borrador' && e.estado_solicitud === 'pendiente_precio';
+  const porAceptar = e.estado === 'borrador' && e.estado_solicitud === 'precio_propuesto';
+  const enContraoferta = e.estado === 'borrador' && e.estado_solicitud === 'contraoferta';
   const [miPrecio, setMiPrecio] = useState('');
   const [proponer, setProponer] = useState(false);
-  const caducado = porAceptar && e.precio_valido_hasta && new Date(e.precio_valido_hasta) < new Date();
+  const caducado = porAceptar && e.precio_caduca_en && new Date(e.precio_caduca_en) < new Date();
   const cancelable = ['borrador', 'programado'].includes(e.estado);
 
   async function hacer(texto: string, fn: () => Promise<{ ok: boolean; error?: string; aviso?: string }>) {
@@ -120,7 +120,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
   const FASES_M: [string, string][] = [['programado', 'Programado'], ['hacia_la_carga', 'Hacia la carga'], ['cargando', 'Cargando'], ['en_ruta', 'En ruta'], ['entregado', 'Entregado']];
   const acciones = (
     <>
-      {manual && e.estado !== 'cancelado' && <a className="btn-secondary" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"><I d={ICO.doc} />Orden de transporte (PDF)</a>}
+      {manual && e.estado !== 'cancelado' && <a className="btn-secondary" href={`/panel/envios/${e.id}/orden-de-carga`} target="_blank" rel="noopener"><I d={ICO.doc} />Orden de carga (PDF)</a>}
       {!manual && ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'entregado'].includes(e.estado) && <button className="btn-secondary" onClick={abrirCmr} disabled={!!trabajando}><I d={ICO.firma} />CMR digital</button>}
       {cancelable && <button className="btn-secondary" onClick={() => setVista('cancelar')}><I d={ICO.x} />{e.estado === 'borrador' ? 'Cancelar solicitud' : 'Cancelar envío'}</button>}
       {!pendientePrecio && !porAceptar && <a className="btn-secondary" href={`/panel/incidencias?nueva=${e.id}`}><I d={ICO.aviso} />Reportar incidencia</a>}
@@ -163,8 +163,8 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
           </div>
           {caducado ? (
             <div className="pt-aviso" style={{ marginTop: '0.7rem', marginBottom: 0 }}><div>Este precio ha <strong>caducado</strong> (los precios del transporte cambian cada día). Pulsa «Aceptar» y te pasamos uno nuevo al momento, o llámanos.</div></div>
-          ) : e.precio_valido_hasta && (
-            <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Precio válido hasta el {creadoTxt(e.precio_valido_hasta)}.</p>
+          ) : e.precio_caduca_en && (
+            <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Precio válido hasta el {creadoTxt(e.precio_caduca_en)}.</p>
           )}
           <label className="ptar-confirm-check" style={{ marginTop: '0.7rem' }}>
             <input type="checkbox" checked={acepto} onChange={(ev) => setAcepto(ev.target.checked)} />
@@ -231,7 +231,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
       <div className="det-block"><div className="modal-info-grid">
         <Celda l="Mercancía">{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</Celda>
         <Celda l="Medidas">{[e.metros_lineales != null && `${txtNum(e.metros_lineales)} m`, e.toneladas != null && `${txtNum(e.toneladas)} Tn`].filter(Boolean).join(' · ') || '—'}</Celda>
-        <Celda l="Requisitos" span>{[e.plataforma_elevadora && 'Trampilla elevadora', e.nima_requerido && 'Requiere NIMA', e.adr && 'Mercancía ADR'].filter(Boolean).join(' · ') || 'Ninguno'}</Celda>
+        <Celda l="Requisitos" span>{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'Requiere NIMA', e.adr && 'Mercancía ADR'].filter(Boolean).join(' · ') || 'Ninguno'}</Celda>
         {e.anotaciones_cliente && <Celda l="Anotaciones" span>{e.anotaciones_cliente}</Celda>}
         {e.estado !== 'cancelado' && <DatosCmr envioId={e.id} puedeEditar={['borrador', 'programado', 'hacia_la_carga'].includes(e.estado)} bloquearSiFirmado />}
       </div></div>
@@ -320,7 +320,7 @@ function ValorarTransportista({ envio, v, onHecho }: { envio: string; v: { nota:
 function PagoCliente({ e }: { e: any }) {
   const p = e.pago;
   const total = euros(Number(p.total));
-  if (p.pago_previo === 'pendiente') {
+  if (p.estado_pago_previo === 'pendiente') {
     return (
       <div className="modal-warn-box" style={{ marginBottom: '0.8rem' }}>
         {e.pagoVuelta === 'ok' && <div style={{ color: '#0f6b3a', fontWeight: 800, marginBottom: '0.4rem' }}>Pago con tarjeta hecho. En unos segundos se confirma aquí (recarga si no cambia).</div>}
@@ -331,7 +331,7 @@ function PagoCliente({ e }: { e: any }) {
         <div style={{ marginTop: '0.3rem' }}>{p.pago_motivo?.startsWith('Primer') ? 'Es tu primer envío con nosotros: ' : ''}este envío se paga por adelantado. <strong>Lo asignamos a un camión en cuanto recibimos el pago.</strong></div>
         {p.pago_limite && <div style={{ marginTop: '0.3rem' }}>Paga antes del <strong>{creadoTxt(p.pago_limite)}</strong>. Si no nos llega el pago, el envío se anula solo y tendrás que volver a pedirlo (con el precio de ese momento).</div>}
         {p.precio_provisional ? (
-          <div style={{ marginTop: '0.3rem' }}>Como el precio es <strong>provisional</strong>, el pago se pide cuando lo revisemos{e.revision?.precio_revision_fecha ? <> (el <strong>{fecha(e.revision.precio_revision_fecha)}</strong>)</> : null}, ya con el precio definitivo. Desde ese momento tendrás un plazo para pagar.</div>
+          <div style={{ marginTop: '0.3rem' }}>Como el precio es <strong>provisional</strong>, el pago se pide cuando lo revisemos{e.revision?.fecha_revision_precio ? <> (el <strong>{fecha(e.revision.fecha_revision_precio)}</strong>)</> : null}, ya con el precio definitivo. Desde ese momento tendrás un plazo para pagar.</div>
         ) : <>
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.7rem', flexWrap: 'wrap' }}>
           {e.tarjeta
@@ -347,7 +347,7 @@ function PagoCliente({ e }: { e: any }) {
       </div>
     );
   }
-  if (p.pago_previo === 'pagado') {
+  if (p.estado_pago_previo === 'pagado') {
     return <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div><strong>Pagado</strong> {p.pago_metodo === 'stripe' ? 'con tarjeta' : 'por transferencia'}{p.pagado_en ? ` el ${creadoTxt(p.pagado_en)}` : ''} · {total}. Gracias: ya estamos asignando el camión.</div></div>;
   }
   return null;

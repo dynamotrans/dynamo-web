@@ -254,7 +254,7 @@ pago por uso será Google Maps (ver abajo).
 - **Brevo / email y WhatsApp**: se pagan por envío. Límite por usuario y por día.
 - **Endpoints de creación**: envíos, presupuestos, incidencias. Los límites por usuario
   **ya existen como columnas** en la tabla `usuarios` (`limite_consultas_precio_diario`,
-  `limite_cargas_diario`, venían de tu Sheet) — solo hay que cablearlos.
+  `limite_envios_diario`, venían de tu Sheet) — solo hay que cablearlos.
 - **Login y recuperación de contraseña**: límite por IP, o te prueban contraseñas.
 - Devolver **429** con un mensaje claro, y **registrar quién abusa**.
 

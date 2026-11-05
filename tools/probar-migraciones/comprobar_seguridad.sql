@@ -9,7 +9,7 @@ set client_min_messages = notice;
 -- Las pruebas 1-99 son anteriores al previo pago de envíos y no van de eso: se corren
 -- con él apagado (si no, el cliente de prueba, sin crédito, no podría ofertar ni asignar).
 -- La prueba 100 lo enciende.
-update parametros set valor = 'false' where clave = 'previo_pago_activo';
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
 -- Igual con los requisitos de la negociación del transportista (prueba 104): a 0, no se aplican.
 update parametros set valor = '0' where clave in ('negociacion_min_creada_min', 'negociacion_min_bolsa_min', 'negociacion_max_horas_carga');
 -- Y con la revisión del precio de los envíos lejanos (prueba 129): sin ella, todo precio es cerrado.
@@ -114,7 +114,7 @@ reset role;
 -- ---- 8. Las funciones de la página pública no se pueden llamar con la clave pública --
 do $$ declare fallos text := ''; f text; r text; begin
   foreach f in array array[
-    -- reservar_envio y liberar_reserva salen de esta lista el 2026-11-03: la página
+    -- reservar_envio_publico y liberar_reserva_publica salen de esta lista el 2026-11-03: la página
     -- pública "aceptar carga" las llama con la clave pública (ver comprobación 59).
     'aceptar_reserva(uuid,uuid,uuid,numeric)', 'validar_pin_parada(uuid,text,inet,text)',
     'registrar_hito(uuid,tipo_hito,uuid,uuid,jsonb,text)',
@@ -136,7 +136,7 @@ end $$;
 
 -- ---- Sembrar: cliente con PIN obligatorio, transportista, envío de 2 puntos ----------
 do $$ declare c uuid; t uuid; e uuid; p1 uuid; p2 uuid; begin
-  insert into clientes (razon_social, cif, exige_pin) values ('Cliente PIN S.L.', 'B22222222', true)
+  insert into clientes (razon_social, cif, requiere_pin) values ('Cliente PIN S.L.', 'B22222222', true)
     returning id into c;
   insert into transportistas (razon_social, cif) values ('Transportes Prueba S.L.', 'B33333333')
     returning id into t;
@@ -192,16 +192,16 @@ do $$ declare e uuid := current_setting('prueba.envio')::uuid; o uuid; tok uuid;
     raise exception 'FALLO 11 · ofertar no ha marcado el envio como ofertado';
   end if;
   select token into tok from envio_ofertas where id = o;
-  r := reservar_envio(tok, '10.0.0.1');
+  r := reservar_envio_publico(tok, '10.0.0.1');
   if r->>'resultado' <> 'reservada' then raise exception 'FALLO 11 · primera reserva: %', r; end if;
-  r2 := reservar_envio((select token_publico from envios where id = e), '10.0.0.2');
+  r2 := reservar_envio_publico((select token_publico from envios where id = e), '10.0.0.2');
   if r2->>'resultado' <> 'en_tramite' then
     raise exception 'FALLO 11 · DOS transportistas tienen la misma carga a la vez: %', r2;
   end if;
   -- Simular que pasan los 3 minutos.
   update envio_reservas set desde = now() - interval '10 min', hasta = now() - interval '7 min'
    where id = (r->>'reserva_id')::uuid;
-  r2 := reservar_envio((select token_publico from envios where id = e), '10.0.0.2');
+  r2 := reservar_envio_publico((select token_publico from envios where id = e), '10.0.0.2');
   if r2->>'resultado' <> 'reservada' then
     raise exception 'FALLO 11 · la reserva caducada no ha liberado la carga: %', r2;
   end if;
@@ -231,7 +231,7 @@ do $$ declare e uuid := current_setting('prueba.envio')::uuid;
   if not exists (select 1 from envio_hitos where envio_id = e and hito = 'transportista_asignado') then
     raise exception 'FALLO 12 · falta el hito transportista_asignado';
   end if;
-  r := reservar_envio((select token_publico from envios where id = e));
+  r := reservar_envio_publico((select token_publico from envios where id = e));
   if r->>'resultado' <> 'tomada' then
     raise exception 'FALLO 12 · una carga ya asignada se puede volver a reservar: %', r;
   end if;
@@ -247,7 +247,7 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t uuid := curre
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 2, 'descarga', '46001', 'Valencia');
   update envios set estado = 'programado' where id = e;
   o := ofertar_envio(e, t, 'email', 500, 30::smallint);          -- banda 150 EUR
-  r := reservar_envio((select token from envio_ofertas where id = o));
+  r := reservar_envio_publico((select token from envio_ofertas where id = o));
   r := aceptar_reserva((r->>'reserva_id')::uuid, t, null, 620);  -- +24%: dentro de banda, >10%
   if r->>'resultado' <> 'pendiente_revision' then
     raise exception 'FALLO 13 · una contraoferta del 24%% deberia ir a revision: %', r;
@@ -271,7 +271,7 @@ do $$ declare p1 uuid := current_setting('prueba.p1')::uuid; p2 uuid := current_
   if not exists (select 1 from envio_hitos where parada_id = p2 and hito = 'pin_fuera_de_orden') then
     raise exception 'FALLO 14 · falta el hito pin_fuera_de_orden';
   end if;
-  if (select hora_real from envio_paradas where id = p2) is null then
+  if (select realizado_en from envio_paradas where id = p2) is null then
     raise exception 'FALLO 14 · validar el PIN no ha sellado la hora real del punto';
   end if;
 
@@ -618,7 +618,7 @@ end $$;
 
 -- ---- 26. Lo que el cliente lee de sus envíos no enseña lo interno -------------------
 do $$ declare r text := pg_get_function_result('mis_envios()'::regprocedure); w text; begin
-  foreach w in array array['importe_transportista','margen_euros','factor_tarifa_aplicado',
+  foreach w in array array['importe_transportista','margen_euros','factor_tarifa_pct',
                            'transportista_id','transportista_nima','primera_oferta_en'] loop
     if r ~ ('\m' || w || '\M') then raise exception 'FALLO 26 · mis_envios() ensena %', w; end if;
   end loop;
@@ -883,7 +883,7 @@ do $$ declare t uuid := current_setting('prueba.transp')::uuid; k int; begin
   insert into documentos (tipo, envio_id, storage_ruta, nombre_archivo, visible_cliente)
     values ('albaran', current_setting('prueba.envio')::uuid, 'envios/albaran.pdf', 'albaran.pdf', true);
   insert into documentos (tipo, envio_id, transportista_id, storage_ruta, nombre_archivo)
-    values ('orden_transporte', current_setting('prueba.envio')::uuid, t, 'envios/orden.pdf', 'orden.pdf');
+    values ('orden_carga', current_setting('prueba.envio')::uuid, t, 'envios/orden.pdf', 'orden.pdf');
   for k in 2..5 loop
     insert into documentos (tipo, transportista_id, storage_ruta, nombre_archivo)
       values ('otro', t, 'transp/doc' || k || '.pdf', 'doc.pdf');
@@ -901,7 +901,7 @@ do $$ declare n int; begin
     values ('foto_incidencia', current_setting('prueba.incidencia')::uuid, 'u/' || current_setting('prueba.u_cli') || '/f1/foto1.jpg', 'foto1.jpg');
   select count(*) into n from documentos where tipo in ('albaran','foto_incidencia');
   if n <> 2 then raise exception 'FALLO 36 · el cliente no ve su albaran y su foto (%)', n; end if;
-  select count(*) into n from documentos where tipo in ('seguro_cmr','orden_transporte','otro');
+  select count(*) into n from documentos where tipo in ('seguro_cmr','orden_carga','otro');
   if n <> 0 then raise exception 'FALLO 36 · el cliente ve documentos internos (%)', n; end if;
   begin
     insert into documentos (tipo, envio_id, storage_ruta, nombre_archivo)
@@ -1138,7 +1138,7 @@ end $$;
 -- ---- 44. Wtransnet: solo lo programado sin transportista y quieto ------------------
 do $$ declare e uuid; gx text; n int; begin
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista,
-                      anotaciones_cliente, carga_superior)
+                      anotaciones_cliente, carga_techo)
     values ((select id from clientes where cif = 'B44444444'), 13.30, 24, 1100, 900,
             'Llamar a Pepe al 600111222, es para Mercadona', true) returning id into e;
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
@@ -1332,12 +1332,12 @@ begin
 
   insert into clientes (razon_social, cif) values ('Cliente A 50', 'B50000001') returning id into v_a;
   insert into clientes (razon_social, cif) values ('Cliente B 50', 'B50000002') returning id into v_b;
-  if (select factor_tarifa_porcentaje from clientes where id = v_a) <> -7 then
+  if (select factor_tarifa_pct from clientes where id = v_a) <> -7 then
     raise exception 'FALLO 50 · un cliente nuevo no empieza con −7 %%';
   end if;
 
   -- B: Dynamo le pone +10 % a mano.
-  update clientes set factor_tarifa_porcentaje = 10 where id = v_b;
+  update clientes set factor_tarifa_pct = 10 where id = v_b;
   if not (select factor_fijado_a_mano from clientes where id = v_b) then
     raise exception 'FALLO 50 · cambiar el factor no lo marca como fijado a mano';
   end if;
@@ -1345,20 +1345,20 @@ begin
   for i in 1..3 loop
     perform crear_envio(jsonb_build_object('cliente_id', v_a, 'importe_cliente', 500), p);
     perform crear_envio(jsonb_build_object('cliente_id', v_b, 'importe_cliente', 500), p);
-    if i < 3 and (select factor_tarifa_porcentaje from clientes where id = v_a) <> -7 then
+    if i < 3 and (select factor_tarifa_pct from clientes where id = v_a) <> -7 then
       raise exception 'FALLO 50 · el descuento se quita antes de tiempo (envio %)', i;
     end if;
   end loop;
-  if (select factor_tarifa_porcentaje from clientes where id = v_a) <> 0 then
+  if (select factor_tarifa_pct from clientes where id = v_a) <> 0 then
     raise exception 'FALLO 50 · tras 3 envios el factor no pasa a 0 %%';
   end if;
-  if (select factor_tarifa_porcentaje from clientes where id = v_b) <> 10 then
+  if (select factor_tarifa_pct from clientes where id = v_b) <> 10 then
     raise exception 'FALLO 50 · la regla automatica ha tocado un factor fijado a mano';
   end if;
 
   -- B vuelve al automatico: como ya lleva 3 envios, le toca 0 %.
   update clientes set factor_fijado_a_mano = false where id = v_b;
-  if (select factor_tarifa_porcentaje from clientes where id = v_b) <> 0 then
+  if (select factor_tarifa_pct from clientes where id = v_b) <> 0 then
     raise exception 'FALLO 50 · al volver al automatico no se recalcula';
   end if;
   reset role;
@@ -1684,10 +1684,10 @@ do $$ declare v jsonb; r jsonb; a jsonb; c jsonb; tok uuid := current_setting('p
     raise exception 'FALLO 59 · FUGA: la oferta publica ensena empresa o calle: %', v;
   end if;
   if (v ->> 'banda_euros')::numeric <> 80 then raise exception 'FALLO 59 · banda: %', v ->> 'banda_euros'; end if;
-  r := reservar_envio(tok, null, 'prueba');
+  r := reservar_envio_publico(tok, null, 'prueba');
   if r ->> 'resultado' <> 'reservada' then raise exception 'FALLO 59 · no reserva: %', r; end if;
   -- Otro que abre a la vez: en trámite.
-  if reservar_envio(tok, null, 'otro') ->> 'resultado' <> 'en_tramite' then raise exception 'FALLO 59 · doble reserva'; end if;
+  if reservar_envio_publico(tok, null, 'otro') ->> 'resultado' <> 'en_tramite' then raise exception 'FALLO 59 · doble reserva'; end if;
   -- Antes de aceptar no se ven los datos completos.
   if carga_aceptada_publica((r ->> 'reserva_id')::uuid) ->> 'resultado' <> 'viva' then
     raise exception 'FALLO 59 · se ven los datos antes de aceptar';
@@ -2012,11 +2012,11 @@ set role authenticated;
 do $$ declare ref text; n int; e record; begin
   select referencia_gx into ref from envios where id = current_setting('prueba.e59')::uuid;
   n := marcar_exportados('venta', array[ref]);
-  if n <> 1 or (select pedido_venta_holded from envios where referencia_gx = ref) is distinct from ref then raise exception 'FALLO 66 · no marca la venta (%)', n; end if;
+  if n <> 1 or (select holded_pedido_venta from envios where referencia_gx = ref) is distinct from ref then raise exception 'FALLO 66 · no marca la venta (%)', n; end if;
   if marcar_exportados('venta', array[ref]) <> 0 then raise exception 'FALLO 66 · marca dos veces'; end if;
   if exists (select 1 from v_holded_pedido_venta where "Num Pedido (referencia_gx_carga)" = ref and "EN HOLDED?" <> 'SI') then raise exception 'FALLO 66 · la vista no lo da por pasado'; end if;
-  n := marcar_exportados('venta', array[ref], true);
-  if n <> 1 or (select pedido_venta_holded from envios where referencia_gx = ref) is not null then raise exception 'FALLO 66 · no se desmarca (%, %)', n, (select pedido_venta_holded from envios where referencia_gx = ref); end if;
+  n := marcar_exportados('venta', array[ref], false);   -- false = quitar la marca
+  if n <> 1 or (select holded_pedido_venta from envios where referencia_gx = ref) is not null then raise exception 'FALLO 66 · no se desmarca (%, %)', n, (select holded_pedido_venta from envios where referencia_gx = ref); end if;
   n := marcar_exportados('bolsa', array[ref]);
   select publicado_en_bolsa_en into e from envios where referencia_gx = ref;
   if n <> 1 or e.publicado_en_bolsa_en is null then raise exception 'FALLO 66 · no marca la bolsa'; end if;
@@ -2106,7 +2106,7 @@ do $$ declare e uuid := current_setting('prueba.e67')::uuid; t uuid; v record; n
   -- La misma matrícula escrita de otra forma y el mismo conductor sin acento: no se duplican.
   update envios set matricula_camion = null, conductor_nombre = null where id = e;
   update envios set matricula_camion = '6868-KKK', conductor_nombre = 'jose perez' where id = e;
-  select count(*) into n from vehiculos where normaliza_matricula(matricula) = normaliza_matricula('6868KKK');
+  select count(*) into n from vehiculos where normalizar_matricula(matricula) = normalizar_matricula('6868KKK');
   if n <> 1 or (select count(*) from conductores where lower(unaccent_simple(nombre)) = 'jose perez') <> 1 then raise exception 'FALLO 68 · duplica camión o conductor'; end if;
   -- Valorar: solo entregado.
   begin
@@ -2217,7 +2217,7 @@ do $$ declare e uuid; v record; r text; j jsonb; begin
       jsonb_build_object('tipo', 'carga',    'nombre_empresa', 'Mi almacén 72', 'codigo_postal', '41001', 'poblacion', 'Sevilla', 'guardar_en_agenda', true, 'contacto_telefono', '+34 600 72 72 72'),
       jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Mi cliente 72', 'codigo_postal', '46001', 'poblacion', 'Valencia'))) s;
   select * into v from mis_envios() m where m.id = e;
-  if v.estado <> 'borrador' or v.solicitud_estado <> 'pendiente_precio' or v.importe_cliente is not null then raise exception 'FALLO 72 · la solicitud no nace bien: %', v; end if;
+  if v.estado <> 'borrador' or v.estado_solicitud <> 'pendiente_precio' or v.importe_cliente is not null then raise exception 'FALLO 72 · la solicitud no nace bien: %', v; end if;
   -- Un sitio de OTRO cliente no se puede usar.
   begin
     perform crear_solicitud_envio(jsonb_build_object('fecha_carga_desde', current_date + 5),
@@ -2246,7 +2246,7 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), fals
 set role authenticated;
 do $$ declare e uuid := current_setting('prueba.e72')::uuid; v record; r text; j jsonb; begin
   select * into v from mis_envios() m where m.id = e;
-  if v.importe_cliente <> 640 or v.solicitud_estado <> 'precio_propuesto' then raise exception 'FALLO 72 · el cliente no ve el precio propuesto'; end if;
+  if v.importe_cliente <> 640 or v.estado_solicitud <> 'precio_propuesto' then raise exception 'FALLO 72 · el cliente no ve el precio propuesto'; end if;
   r := responder_precio_solicitud(e, true);
   select * into v from mis_envios() m where m.id = e;
   if r <> 'aceptada' or v.estado <> 'programado' or v.condiciones_aceptadas_en is null then raise exception 'FALLO 72 · aceptar no programa el envío (%): %', r, v; end if;
@@ -2426,7 +2426,7 @@ reset role;
 select set_config('request.jwt.claim.sub', '', false);
 set role anon;
 do $$ declare tok uuid := current_setting('prueba.tok78')::uuid; r jsonb; a jsonb; i int; begin
-  r := reservar_envio(tok, null, 'prueba78');
+  r := reservar_envio_publico(tok, null, 'prueba78');
   for i in 1..4 loop
     a := aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'Z0000000' || i, p_ip => '10.0.0.1');
     if a ->> 'resultado' <> 'transportista_no_encontrado' then raise exception 'FALLO 78 · intento %: %', i, a; end if;
@@ -2525,7 +2525,7 @@ do $$ declare e uuid; j jsonb; begin
   e := current_setting('prueba.e82')::uuid;
   perform poner_datos_cmr(e, 33, 'Palet europeo', 86);
   j := datos_cmr_envio(e);
-  if (j ->> 'numero_bultos')::int <> 33 or j ->> 'embalaje' <> 'Palet europeo' or (j ->> 'volumen_m3')::numeric <> 86 then
+  if (j ->> 'num_bultos')::int <> 33 or j ->> 'embalaje' <> 'Palet europeo' or (j ->> 'volumen_m3')::numeric <> 86 then
     raise exception 'FALLO 82 · no guarda los datos del CMR: %', j;
   end if;
   begin
@@ -2611,11 +2611,11 @@ end $$;
 
 -- ---- 85. Roles de solo lectura: lo ven todo, no escriben nada ---------------------------
 do $$ declare lista text; begin
-  -- Toda política que deja LEER a es_admin() tiene su gemela con ve_todo() (si mañana se
+  -- Toda política que deja LEER a es_equipo_dynamo() tiene su gemela con ve_todo() (si mañana se
   -- añade una tabla nueva y se olvida, este chivato lo dice).
   select string_agg(distinct p.tablename, ', ') into lista
     from pg_policies p
-   where p.schemaname = 'public' and p.cmd in ('SELECT', 'ALL') and p.qual ~ 'es_admin\(\)'
+   where p.schemaname = 'public' and p.cmd in ('SELECT', 'ALL') and p.qual ~ 'es_equipo_dynamo\(\)'
      and not exists (select 1 from pg_policies q where q.schemaname = 'public' and q.tablename = p.tablename
                        and q.cmd = 'SELECT' and q.qual ~ 've_todo\(\)');
   if lista is not null then raise exception 'FALLO 85 · tablas que lee Dynamo y NO los de solo lectura: %', lista; end if;
@@ -2758,12 +2758,12 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), f
 set role authenticated;
 do $$ declare v uuid; c uuid; begin
   -- Su NIMA y su seguro: sí.
-  perform mi_transporte_guardar('NIMA-88', 'Mapfre', 'POL-88', date '2027-01-31');
+  perform guardar_mis_datos_transporte('NIMA-88', 'Mapfre', 'POL-88', date '2027-01-31');
   -- Su flota: alta de camión y conductor, cambio y baja: sí.
-  v := mi_vehiculo_guardar(null, '0088 bcd', 'rigido', date '2027-03-01', null, null, false, true);
-  perform mi_vehiculo_guardar(v, '0088 BCD', 'rigido', date '2027-04-01', null, null, false, true);
-  c := mi_conductor_guardar(null, 'Conductor 88', '88888888Y', 'ES', '+34600111222');
-  perform mi_flota_baja('conductor', c);
+  v := guardar_mi_vehiculo(null, '0088 bcd', 'rigido', date '2027-03-01', null, null, false, true);
+  perform guardar_mi_vehiculo(v, '0088 BCD', 'rigido', date '2027-04-01', null, null, false, true);
+  c := guardar_mi_conductor(null, 'Conductor 88', '88888888Y', 'ES', '+34600111222');
+  perform dar_baja_mi_flota('conductor', c);
   -- Escribir directamente en las tablas: no (ni su razón social ni su plazo de pago).
   begin
     update transportistas set razon_social = 'Me cambio el nombre', plazo_pago_dias = 0 where id = current_setting('prueba.transp')::uuid;
@@ -2772,20 +2772,20 @@ do $$ declare v uuid; c uuid; begin
   end;
   -- La flota de otro: no.
   begin
-    perform mi_vehiculo_guardar(current_setting('prueba.veh_otro88')::uuid, 'x', 'tractora', null, null, null, false, false);
+    perform guardar_mi_vehiculo(current_setting('prueba.veh_otro88')::uuid, 'x', 'tractora', null, null, null, false, false);
     raise exception 'FALLO 88 · el transportista cambia un camión de otro';
   exception when raise_exception or insufficient_privilege then
     if sqlerrm like 'FALLO%' then raise; end if;
   end;
   begin
-    perform mi_flota_baja('vehiculo', current_setting('prueba.veh_otro88')::uuid);
+    perform dar_baja_mi_flota('vehiculo', current_setting('prueba.veh_otro88')::uuid);
     raise exception 'FALLO 88 · el transportista da de baja un camión de otro';
   exception when raise_exception or insufficient_privilege then
     if sqlerrm like 'FALLO%' then raise; end if;
   end;
   -- Una matrícula que ya existe (aunque sea de otro): no.
   begin
-    perform mi_vehiculo_guardar(null, '8888-zzz', 'tractora', null, null, null, false, false);
+    perform guardar_mi_vehiculo(null, '8888-zzz', 'tractora', null, null, null, false, false);
     raise exception 'FALLO 88 · se da de alta una matrícula repetida';
   exception when raise_exception then
     if sqlerrm like 'FALLO%' then raise; end if;
@@ -2797,7 +2797,7 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), fals
 set role authenticated;
 do $$ begin
   begin
-    perform mi_transporte_guardar('X', null, null, null);
+    perform guardar_mis_datos_transporte('X', null, null, null);
     raise exception 'FALLO 88 · un cliente cambia datos de un transportista';
   exception when raise_exception or insufficient_privilege then
     if sqlerrm like 'FALLO%' then raise; end if;
@@ -2809,7 +2809,7 @@ do $$ begin
                  and razon_social <> 'Me cambio el nombre' and plazo_pago_dias <> 0) then
     raise exception 'FALLO 88 · el guardado de NIMA/seguro no ha quedado bien';
   end if;
-  if not exists (select 1 from vehiculos where normaliza_matricula(matricula) = normaliza_matricula('0088 BCD') and itv_vence = date '2027-04-01'
+  if not exists (select 1 from vehiculos where normalizar_matricula(matricula) = normalizar_matricula('0088 BCD') and itv_vence = date '2027-04-01'
                  and modificado_por = current_setting('prueba.u_transp')::uuid) then
     raise exception 'FALLO 88 · el camión no se ha guardado o no queda quién lo cambió';
   end if;
@@ -2829,12 +2829,12 @@ do $$ declare a uuid; r record; begin
   if (select count(*) from almacenes_dynamo_tarifa()) = 0 then raise exception 'FALLO 89 · el cliente no ve los almacenes con su tarifa'; end if;
   -- Intenta ponerse el precio a 1 €, marcarse como pagado, confirmarlo y escribir notas internas.
   insert into almacenamientos (almacen_id, fecha_entrada, fecha_salida, num_trailers, num_repartos,
-                               importe_almacenaje, importe_reparto, pago_adelantado, pagado_en, anotaciones, iva_aplicado)
+                               importe_almacenaje, importe_reparto, requiere_pago_previo, pagado_en, anotaciones, iva_pct)
     values (current_setting('prueba.alm89')::uuid, current_date + 2, current_date + 12, 2, 0,
             1, 0, false, now(), 'nota mia', 0) returning id into a;
   select * into r from almacenamientos where id = a;
   -- 10 días = 2 semanas × 2 tráileres × tarifa del almacén.
-  if r.importe_almacenaje <= 1 or r.pagado_en is not null or r.anotaciones is not null or r.estado <> 'pendiente_confirmar' or r.iva_aplicado = 0 then
+  if r.importe_almacenaje <= 1 or r.pagado_en is not null or r.anotaciones is not null or r.estado <> 'pendiente_confirmar' or r.iva_pct = 0 then
     raise exception 'FALLO 89 · el cliente se pone el precio, el pago, el estado o notas internas (importe %, pagado %)', r.importe_almacenaje, r.pagado_en;
   end if;
   -- Luego intenta marcarse como pagado y bajarse el precio sin cambiar nada más.
@@ -3049,7 +3049,7 @@ do $$ declare e uuid; p1 uuid; begin
 end $$;
 set role anon;
 do $$ declare r jsonb; res uuid; v jsonb; begin
-  r := reservar_envio(current_setting('prueba.tok94')::uuid, '10.9.4.1');
+  r := reservar_envio_publico(current_setting('prueba.tok94')::uuid, '10.9.4.1');
   if r->>'resultado' <> 'reservada' then raise exception 'FALLO 94 · no se reserva la carga: %', r; end if;
   res := (r->>'reserva_id')::uuid;
   perform set_config('prueba.res94', res::text, false);
@@ -3072,7 +3072,7 @@ do $$ declare r jsonb; res uuid; v jsonb; begin
 end $$;
 reset role;
 do $$ declare t record; e record; begin
-  select * into t from transportistas where normaliza_id_fiscal(cif) = normaliza_id_fiscal('B94949494');
+  select * into t from transportistas where normalizar_id_fiscal(cif) = normalizar_id_fiscal('B94949494');
   if t.estado_operativo <> 'no_ofertar' or not ('alta_online' = any(t.tags)) then
     raise exception 'FALLO 94 · el transportista nuevo queda activo o sin marcar: % %', t.estado_operativo, t.tags;
   end if;
@@ -3091,10 +3091,10 @@ do $$ declare t record; e record; begin
   end if;
   -- Desde el 2026-11-04 (varias contraofertas a la vez) la carga NO se bloquea mientras
   -- Dynamo revisa el alta: otro puede reservarla (y, si la acepta, se la lleva).
-  if (reservar_envio((select token_publico from envios where id = e.id), '10.9.4.2'))->>'resultado' <> 'reservada' then
+  if (reservar_envio_publico((select token_publico from envios where id = e.id), '10.9.4.2'))->>'resultado' <> 'reservada' then
     raise exception 'FALLO 94 · el alta pendiente sigue bloqueando la carga a los demás';
   end if;
-  perform liberar_reserva((select id from envio_reservas where envio_id = e.id and estado = 'viva'), 'prueba');
+  perform liberar_reserva_publica((select id from envio_reservas where envio_id = e.id and estado = 'viva'), 'prueba');
 end $$;
 -- Una vez pendiente, la misma reserva no sirve para otra alta.
 set role anon;
@@ -3119,7 +3119,7 @@ reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ declare e uuid; i int; begin
   -- Contador desde cero para el cliente de prueba (como si Dynamo lo acabara de reactivar).
-  update usuarios set autosusp_desde = now(), estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;
+  update usuarios set autosuspension_desde_en = now(), estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
   for i in 1..5 loop
     -- Carga hoy: cancelar es tardío (pasado el corte de las 9:00 del día hábil anterior) y cuenta.
@@ -3137,7 +3137,7 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), fals
 set role authenticated;
 do $$ begin
   begin
-    update usuarios set sin_autosuspension = true where id = auth.uid();
+    update usuarios set exento_autosuspension = true where id = auth.uid();
     raise exception 'FALLO 95 · el usuario se libra solo de la suspensión automática';
   exception when insufficient_privilege then null; end;
   begin
@@ -3167,8 +3167,8 @@ do $$ declare n int; u record; begin
   end if;
   -- Dynamo lo reactiva a mano: se limpia el motivo y el contador empieza de nuevo.
   update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;
-  select estado, suspension_motivo, autosusp_desde into u from usuarios where id = current_setting('prueba.u_cli')::uuid;
-  if u.estado <> 'activa' or u.suspension_motivo is not null or u.autosusp_desde is null then
+  select estado, suspension_motivo, autosuspension_desde_en into u from usuarios where id = current_setting('prueba.u_cli')::uuid;
+  if u.estado <> 'activa' or u.suspension_motivo is not null or u.autosuspension_desde_en is null then
     raise exception 'FALLO 95 · la reactivación no limpia ni reinicia el contador';
   end if;
   if exists (select 1 from autosuspension_candidatos() where usuario_id = current_setting('prueba.u_cli')::uuid) then
@@ -3195,10 +3195,10 @@ end $$;
 reset role;
 do $$ begin
   begin
-    update usuarios set copias_avisos = array['bien@empresa.com', 'mal email'] where id = current_setting('prueba.u_cli')::uuid;
+    update usuarios set emails_copia_avisos = array['bien@empresa.com', 'mal email'] where id = current_setting('prueba.u_cli')::uuid;
     raise exception 'FALLO 96 · admite un email de copia que no vale';
   exception when check_violation then null; end;
-  update usuarios set copias_avisos = array['logistica@empresa.com'] where id = current_setting('prueba.u_cli')::uuid;
+  update usuarios set emails_copia_avisos = array['logistica@empresa.com'] where id = current_setting('prueba.u_cli')::uuid;
 end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
 set role authenticated;
@@ -3276,7 +3276,7 @@ reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ declare e uuid; i int; begin
   update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid and estado <> 'activa';
-  update usuarios set autosusp_desde = now(), limite_consultas_precio_diario = null where id = current_setting('prueba.u_cli')::uuid;
+  update usuarios set autosuspension_desde_en = now(), limite_consultas_precio_diario = null where id = current_setting('prueba.u_cli')::uuid;
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
   for i in 1..3 loop
     insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
@@ -3321,13 +3321,13 @@ do $$ declare u record; begin
   end if;
   -- Con el interruptor apagado no suspende a nadie.
   update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;
-  update parametros set valor = 'false' where clave = 'autosusp_activa';
+  update parametros set valor = 'false' where clave = 'autosuspension_activa';
   insert into consultas_precio (usuario_id, cliente_id) values (current_setting('prueba.u_cli')::uuid, current_setting('prueba.cliente')::uuid);
   if (select estado from usuarios where id = current_setting('prueba.u_cli')::uuid) <> 'activa' then
     raise exception 'FALLO 99 · suspende con el interruptor general apagado';
   end if;
-  update parametros set valor = 'true' where clave = 'autosusp_activa';
-  update usuarios set autosusp_desde = now() where id = current_setting('prueba.u_cli')::uuid;
+  update parametros set valor = 'true' where clave = 'autosuspension_activa';
+  update usuarios set autosuspension_desde_en = now() where id = current_setting('prueba.u_cli')::uuid;
   raise notice 'OK 99 · suspensión al momento: la cancelación o consulta que pasa del límite se hace y la cuenta cae en ese instante; con el interruptor apagado, nada';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
@@ -3335,7 +3335,7 @@ select set_config('request.jwt.claim.sub', '', false);
 -- ---- 100. Previo pago de envíos -------------------------------------------------------
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
-update parametros set valor = 'true' where clave = 'previo_pago_activo';
+update parametros set valor = 'true' where clave = 'pago_previo_activo';
 do $$ declare c uuid; e uuid; e2 uuid; e3 uuid; t uuid := current_setting('prueba.transp')::uuid; r jsonb; begin
   -- Cliente nuevo SIN crédito (sin clasificar): su envío nace pendiente de pago.
   insert into clientes (razon_social, cif) values ('Sin Credito SL', 'B10010010') returning id into c;
@@ -3344,8 +3344,8 @@ do $$ declare c uuid; e uuid; e2 uuid; e3 uuid; t uuid := current_setting('prueb
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
   update envios set estado = 'programado' where id = e;
-  if (select pago_previo from envios where id = e) <> 'pendiente' then
-    raise exception 'FALLO 100 · el envío de un cliente sin crédito no queda pendiente de pago: % %', (select pago_previo from envios where id = e), (select pago_motivo from envios where id = e);
+  if (select estado_pago_previo from envios where id = e) <> 'pendiente' then
+    raise exception 'FALLO 100 · el envío de un cliente sin crédito no queda pendiente de pago: % %', (select estado_pago_previo from envios where id = e), (select pago_motivo from envios where id = e);
   end if;
   -- Pendiente de pago: ni transportista, ni oferta, ni bolsa.
   begin update envios set transportista_id = t where id = e; raise exception 'FALLO 100 · se asigna transportista sin pagar';
@@ -3365,19 +3365,19 @@ do $$ declare c uuid; e uuid; e2 uuid; e3 uuid; t uuid := current_setting('prueb
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e2, 1, 'carga', '41001', 'Sevilla', 'ES');
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e2, 2, 'descarga', '28001', 'Madrid', 'ES');
   update envios set estado = 'programado' where id = e2;
-  if (select pago_previo from envios where id = e2) <> 'pendiente' then
+  if (select estado_pago_previo from envios where id = e2) <> 'pendiente' then
     raise exception 'FALLO 100 · un primer envío sin pagar libra del pago previo al segundo';
   end if;
   -- Pagado ese, el siguiente ya no pide pago previo.
   perform set_config('request.jwt.claim.role', 'service_role', true);
-  update envios set pago_previo = 'pagado', pago_metodo = 'transferencia', pagado_en = now() where id = e2;
+  update envios set estado_pago_previo = 'pagado', pago_metodo = 'transferencia', pagado_en = now() where id = e2;
   perform set_config('request.jwt.claim.role', '', true);
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
     values (c, 13.30, 20, 500, 400) returning id into e3;
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e3, 1, 'carga', '41001', 'Sevilla', 'ES');
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e3, 2, 'descarga', '28001', 'Madrid', 'ES');
   update envios set estado = 'programado' where id = e3;
-  if (select pago_previo from envios where id = e3) <> 'no_requerido' then
+  if (select estado_pago_previo from envios where id = e3) <> 'no_requerido' then
     raise exception 'FALLO 100 · con crédito y el primero pagado, el segundo pide pago previo';
   end if;
 end $$;
@@ -3385,15 +3385,15 @@ end $$;
 -- sin crédito, la casilla no la libra.
 do $$ declare c uuid; e uuid; i int; begin
   for i in 1..2 loop
-    insert into clientes (razon_social, cif, sin_pago_previo_primer_envio, riesgo_cesce_euros)
+    insert into clientes (razon_social, cif, exento_pago_previo_primer_envio, riesgo_cesce_euros)
       values ('Conocida ' || i, 'B1002002' || i, true, case when i = 1 then 9000 end) returning id into c;
     insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista)
       values (c, 13.30, 20, 500, 400) returning id into e;
     insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
     insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
     update envios set estado = 'programado' where id = e;
-    if i = 1 and (select pago_previo from envios where id = e) <> 'no_requerido' then raise exception 'FALLO 100 · la casilla de empresa conocida no libra del primer envío'; end if;
-    if i = 2 and (select pago_previo from envios where id = e) <> 'pendiente' then raise exception 'FALLO 100 · la casilla libra a un cliente sin crédito'; end if;
+    if i = 1 and (select estado_pago_previo from envios where id = e) <> 'no_requerido' then raise exception 'FALLO 100 · la casilla de empresa conocida no libra del primer envío'; end if;
+    if i = 2 and (select estado_pago_previo from envios where id = e) <> 'pendiente' then raise exception 'FALLO 100 · la casilla libra a un cliente sin crédito'; end if;
   end loop;
 end $$;
 -- Un cliente no marca su pago; Stripe solo lo confirma el servidor.
@@ -3437,8 +3437,8 @@ select set_config('request.jwt.claim.sub', '', false);
 -- ---- 101. Contraoferta del cliente -----------------------------------------------------
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
-update parametros set valor = 'false' where clave = 'previo_pago_activo';
-update usuarios set estado = 'activa', sin_autosuspension = true where id = current_setting('prueba.u_cli')::uuid;
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
+update usuarios set estado = 'activa', exento_autosuspension = true where id = current_setting('prueba.u_cli')::uuid;
 do $$ declare e uuid; i int; begin
   update clientes set permite_contraoferta = false where id = current_setting('prueba.cliente')::uuid;
   for i in 1..3 loop
@@ -3446,7 +3446,7 @@ do $$ declare e uuid; i int; begin
       values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, current_date + 5, current_date + 6) returning id into e;
     insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
     insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 2, 'descarga', '28001', 'Madrid', 'ES');
-    update envios set solicitud_estado = 'precio_propuesto', precio_valido_hasta = now() + interval '2 hours' where id = e;
+    update envios set estado_solicitud = 'precio_propuesto', precio_caduca_en = now() + interval '2 hours' where id = e;
     perform set_config('prueba.e101_' || i, e::text, false);
   end loop;
 end $$;
@@ -3457,7 +3457,7 @@ do $$ begin
     raise exception 'FALLO 101 · contraoferta un cliente que no la tiene permitida';
   end if;
   begin
-    update envios set contraoferta_cliente = 1 where id = current_setting('prueba.e101_1')::uuid;
+    update envios set importe_contraoferta_cliente = 1 where id = current_setting('prueba.e101_1')::uuid;
     if found then raise exception 'FALLO 101 · el cliente escribe su contraoferta a mano'; end if;
   exception when insufficient_privilege then null; end;
 end $$;
@@ -3479,8 +3479,8 @@ do $$ declare r jsonb; begin
 end $$;
 reset role;
 do $$ begin
-  if (select (estado, importe_cliente, precio_inicial_cliente)::text from envios where id = current_setting('prueba.e101_1')::uuid) <> '(programado,980.00,1000.00)' then
-    raise exception 'FALLO 101 · la aceptada al instante no queda confirmada a su precio: %', (select (estado, importe_cliente, precio_inicial_cliente)::text from envios where id = current_setting('prueba.e101_1')::uuid);
+  if (select (estado, importe_cliente, importe_cliente_inicial)::text from envios where id = current_setting('prueba.e101_1')::uuid) <> '(programado,980.00,1000.00)' then
+    raise exception 'FALLO 101 · la aceptada al instante no queda confirmada a su precio: %', (select (estado, importe_cliente, importe_cliente_inicial)::text from envios where id = current_setting('prueba.e101_1')::uuid);
   end if;
 end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
@@ -3547,7 +3547,7 @@ select set_config('request.jwt.claim.sub', '', false);
 -- ---- 104. Negociación del transportista: interruptor y requisitos ----------------------
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
-update parametros set valor = 'false' where clave = 'previo_pago_activo';
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
 do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t uuid := current_setting('prueba.transp')::uuid;
               e uuid; o uuid; r jsonb; tok uuid; begin
   update parametros set valor = '45' where clave = 'negociacion_min_creada_min';
@@ -3560,7 +3560,7 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t uuid := curre
   select token into tok from envio_ofertas where id = o;
   -- Recién creada (menos de 45 min): ni se enseña ni se admite otro precio; al ofertado, sí.
   if negociacion_publica(tok) then raise exception 'FALLO 104 · enseña la negociación de una carga recién creada'; end if;
-  r := reservar_envio(tok);
+  r := reservar_envio_publico(tok);
   begin
     r := aceptar_reserva((r->>'reserva_id')::uuid, t, null, 520);
     raise exception 'FALLO 104 · admite otro precio en una carga recién creada: %', r;
@@ -3659,7 +3659,7 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t uuid := curre
   -- Mínimo de 999 cargas hechas: con la oferta personal ya se sabe quién es → no se enseña.
   update parametros set valor = '999' where clave = 'negociacion_min_cargas_hechas';
   if negociacion_publica((select token from envio_ofertas where id = o)) then raise exception 'FALLO 107 · negocia un transportista sin las cargas mínimas'; end if;
-  r := reservar_envio((select token from envio_ofertas where id = o));
+  r := reservar_envio_publico((select token from envio_ofertas where id = o));
   begin r := aceptar_reserva((r->>'reserva_id')::uuid, t, null, 580); raise exception 'FALLO 107 · admite la contraoferta sin las cargas mínimas';
   exception when insufficient_privilege then null; end;
   update parametros set valor = '0' where clave = 'negociacion_min_cargas_hechas';
@@ -3702,7 +3702,7 @@ do $$ begin
   if (pedir_cambio_envio(current_setting('prueba.f108')::uuid, current_date + 7, current_date + 8))->>'resultado' <> 'con_camion' then
     raise exception 'FALLO 108 · con camión deja pedir el cambio en vez de mandar a llamar';
   end if;
-  if (select cambio_cliente_estado from envios where id = current_setting('prueba.f108')::uuid) is not null then
+  if (select estado_cambio_cliente from envios where id = current_setting('prueba.f108')::uuid) is not null then
     raise exception 'FALLO 108 · con camión el cambio queda guardado';
   end if;
   -- Sin camión y pidiendo algo más que fechas: pendiente para Dynamo; no admite un segundo.
@@ -3713,7 +3713,7 @@ do $$ begin
     raise exception 'FALLO 108 · admite un segundo cambio con uno pendiente';
   end if;
   begin
-    update envios set cambio_cliente_estado = 'aceptado' where id = current_setting('prueba.e108')::uuid;
+    update envios set estado_cambio_cliente = 'aceptado' where id = current_setting('prueba.e108')::uuid;
     if found then raise exception 'FALLO 108 · el cliente acepta su propio cambio'; end if;
   exception when insufficient_privilege then null; end;
 end $$;
@@ -3729,7 +3729,7 @@ do $$ begin
   if (resolver_cambio_envio(current_setting('prueba.e108')::uuid, true, 'Hecho'))->>'resultado' <> 'ok' then
     raise exception 'FALLO 108 · Dynamo no puede aceptar el cambio';
   end if;
-  if (select cambio_cliente_estado from envios where id = current_setting('prueba.e108')::uuid) <> 'aceptado' then
+  if (select estado_cambio_cliente from envios where id = current_setting('prueba.e108')::uuid) <> 'aceptado' then
     raise exception 'FALLO 108 · Dynamo acepta y no queda aceptado';
   end if;
 end $$;
@@ -3739,9 +3739,9 @@ reset role;
 select registrar_hito(current_setting('prueba.f108')::uuid, 'ruta_cambiada', null, null, '{}'::jsonb);
 set role authenticated;
 do $$ begin
-  if not (select precio_revisar from envios where id = current_setting('prueba.f108')::uuid) then raise exception 'FALLO 108 · cambiar la ruta no pide revisar el precio'; end if;
+  if not (select requiere_revision_precio from envios where id = current_setting('prueba.f108')::uuid) then raise exception 'FALLO 108 · cambiar la ruta no pide revisar el precio'; end if;
   update envios set importe_cliente = 650 where id = current_setting('prueba.f108')::uuid;
-  if (select precio_revisar from envios where id = current_setting('prueba.f108')::uuid) then raise exception 'FALLO 108 · tocar el precio no apaga «revisar precio»'; end if;
+  if (select requiere_revision_precio from envios where id = current_setting('prueba.f108')::uuid) then raise exception 'FALLO 108 · tocar el precio no apaga «revisar precio»'; end if;
   raise notice 'OK 108 · cambios: sin camión y solo fechas, al momento; sin camión y otra cosa, pendiente para Dynamo; con camión, no (a llamar); cambiar la ruta pide revisar el precio';
 end $$;
 reset role;
@@ -3773,16 +3773,16 @@ do $$ declare tok uuid; begin
 end $$;
 set role anon;
 do $$ declare r jsonb; begin
-  if (anotar_reservas_cmr(gen_random_uuid(), null, 'destinatario', 'Faltan dos palés'))->>'resultado' <> 'enlace_no_valido' then
+  if (anotar_reservas_cmr_publico(gen_random_uuid(), null, 'destinatario', 'Faltan dos palés'))->>'resultado' <> 'enlace_no_valido' then
     raise exception 'FALLO 110 · se anotan reservas sin un enlace válido';
   end if;
   -- La casilla tiene que existir y ser la suya (como al firmar).
-  if (anotar_reservas_cmr(current_setting('prueba.tok110')::uuid, gen_random_uuid(), 'destinatario', 'Faltan dos palés'))->>'resultado' <> 'parada_no_valida'
-     or (anotar_reservas_cmr(current_setting('prueba.tok110')::uuid, current_setting('prueba.car110')::uuid, 'destinatario', 'Faltan dos palés'))->>'resultado' <> 'parada_no_valida'
-     or (anotar_reservas_cmr(current_setting('prueba.tok110')::uuid, current_setting('prueba.par110')::uuid, 'remitente', 'Faltan dos palés'))->>'resultado' <> 'parada_no_valida' then
+  if (anotar_reservas_cmr_publico(current_setting('prueba.tok110')::uuid, gen_random_uuid(), 'destinatario', 'Faltan dos palés'))->>'resultado' <> 'parada_no_valida'
+     or (anotar_reservas_cmr_publico(current_setting('prueba.tok110')::uuid, current_setting('prueba.car110')::uuid, 'destinatario', 'Faltan dos palés'))->>'resultado' <> 'parada_no_valida'
+     or (anotar_reservas_cmr_publico(current_setting('prueba.tok110')::uuid, current_setting('prueba.par110')::uuid, 'remitente', 'Faltan dos palés'))->>'resultado' <> 'parada_no_valida' then
     raise exception 'FALLO 110 · se anotan reservas en una casilla inventada o de otro';
   end if;
-  r := anotar_reservas_cmr(current_setting('prueba.tok110')::uuid, current_setting('prueba.par110')::uuid, 'destinatario', 'Faltan dos palés y uno llega roto');
+  r := anotar_reservas_cmr_publico(current_setting('prueba.tok110')::uuid, current_setting('prueba.par110')::uuid, 'destinatario', 'Faltan dos palés y uno llega roto');
   if r->>'resultado' <> 'ok' then raise exception 'FALLO 110 · no anota las reservas: %', r; end if;
   if not exists (select 1 from reservas_cmr_publico(current_setting('prueba.tok110')::uuid)) then raise exception 'FALLO 110 · no se ven en la página del CMR'; end if;
 end $$;
@@ -3849,13 +3849,13 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; t1 uuid := curr
   o := ofertar_envio(e, t1, 'email', 500, 30::smallint);
   select token into tok from envio_ofertas where id = o;
   -- Primer transportista: contraoferta a revisión. La carga NO queda bloqueada.
-  r := reservar_envio(tok); r1 := (r->>'reserva_id')::uuid;
+  r := reservar_envio_publico(tok); r1 := (r->>'reserva_id')::uuid;
   r := aceptar_reserva(r1, t1, null, 620);
   if r->>'resultado' <> 'pendiente_revision' then raise exception 'FALLO 112 · la primera contraoferta no va a revisión: %', r; end if;
   if (oferta_publica(tok))->>'en_tramite' = 'true' then raise exception 'FALLO 112 · una contraoferta pendiente sigue bloqueando la carga'; end if;
   -- Segundo transportista (con su oferta): puede reservar y contraofertar también.
   o := ofertar_envio(e, t2, 'email', 500, 30::smallint);
-  r := reservar_envio((select token from envio_ofertas where id = o));
+  r := reservar_envio_publico((select token from envio_ofertas where id = o));
   if r->>'resultado' <> 'reservada' then raise exception 'FALLO 112 · el segundo no puede reservar: %', r; end if;
   r2 := (r->>'reserva_id')::uuid;
   r := aceptar_reserva(r2, t2, null, 610);
@@ -3871,7 +3871,7 @@ end $$;
 -- ---- 113. Suspensión: cancelar sin camión y con tiempo NO cuenta ------------------------
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
-update usuarios set estado = 'activa', sin_autosuspension = false, autosusp_desde = now() where id = current_setting('prueba.u_cli')::uuid;
+update usuarios set estado = 'activa', exento_autosuspension = false, autosuspension_desde_en = now() where id = current_setting('prueba.u_cli')::uuid;
 do $$ declare e uuid; i int; begin
   perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
   for i in 1..4 loop
@@ -3893,7 +3893,7 @@ end $$;
 -- ---- 114. Cancelar «en nombre del cliente» cuenta para él; desde gestión interna, no ----
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
-update usuarios set estado = 'activa', sin_autosuspension = false, autosusp_desde = now() where id = current_setting('prueba.u_cli')::uuid;
+update usuarios set estado = 'activa', exento_autosuspension = false, autosuspension_desde_en = now() where id = current_setting('prueba.u_cli')::uuid;
 do $$ declare e uuid; i int; begin
   for i in 1..6 loop
     perform set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
@@ -3972,12 +3972,12 @@ do $$ begin raise notice 'OK 115 · mantenimiento: todas las tablas de negocio b
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ declare e uuid; begin
-  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta, solicitud_estado)
+  insert into envios (cliente_id, metros_lineales, importe_cliente, importe_transportista, fecha_carga_desde, fecha_carga_hasta, estado_solicitud)
     values (current_setting('prueba.cliente')::uuid, 6, 1000, 777, current_date + 4, current_date + 5, 'pendiente_precio') returning id into e;
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 1, 'carga', '41001', 'Sevilla');
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion) values (e, 2, 'descarga', '46001', 'Valencia');
-  update envios set solicitud_estado = 'precio_propuesto' where id = e;
-  update envios set estado = 'programado', solicitud_estado = 'aceptada' where id = e;
+  update envios set estado_solicitud = 'precio_propuesto' where id = e;
+  update envios set estado = 'programado', estado_solicitud = 'aceptada' where id = e;
   update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e;
   update envios set estado = 'cancelado' where id = e;
   perform set_config('prueba.e116', e::text, false);
@@ -4030,7 +4030,7 @@ select set_config('request.jwt.claim.sub', '', false);
 -- ---- 117. Revisión de seguridad del 2026-11-04 ------------------------------------------
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
-update parametros set valor = 'false' where clave = 'previo_pago_activo';
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
 do $$ declare e uuid; f uuid; g uuid; h uuid; i uuid; j uuid; rv uuid; begin
   -- e: publicado en bolsa (se está asignando) · f: carga hoy (pasado el corte) · g: con
   -- contraoferta pendiente · h, i: para altas online · j: carga de hace un mes.
@@ -4074,7 +4074,7 @@ do $$ begin
   end if;
   -- Copias de avisos: no las cambia el dueño de la cuenta.
   begin
-    update usuarios set copias_avisos = '{espia@ejemplo.com}' where id = auth.uid();
+    update usuarios set emails_copia_avisos = '{espia@ejemplo.com}' where id = auth.uid();
     raise exception 'FALLO 117 · un cliente se pone copias de los avisos';
   exception when insufficient_privilege then null;
   end;
@@ -4092,12 +4092,12 @@ end $$;
 set role anon;
 do $$ declare r jsonb; v jsonb; k int; begin
   for k in 1..4 loop
-    r := reservar_envio(current_setting('prueba.tokh117')::uuid, '10.11.7.1');
+    r := reservar_envio_publico(current_setting('prueba.tokh117')::uuid, '10.11.7.1');
     v := alta_transportista_publica((r->>'reserva_id')::uuid, 'wtransnet', '711' || k, 'ES', 'B7110000' || k, '+3460000071' || k);
     if k <= 3 and v->>'resultado' <> 'alta_pendiente' then raise exception 'FALLO 117 · alta online % no queda pendiente: %', k, v; end if;
     if k = 4 and v->>'resultado' <> 'demasiadas_altas' then raise exception 'FALLO 117 · no hay tope de altas online por carga: %', v; end if;
   end loop;
-  r := reservar_envio(current_setting('prueba.toki117')::uuid, '10.11.7.2');
+  r := reservar_envio_publico(current_setting('prueba.toki117')::uuid, '10.11.7.2');
   for k in 1..8 loop
     v := alta_transportista_publica((r->>'reserva_id')::uuid, 'wtransnet', '9999', 'ES', 'B-33333333', '+34600000000');
     exit when v->>'resultado' <> 'ya_existe';
@@ -4133,8 +4133,8 @@ reset role;
 -- El alta online (función del sistema) guarda su nota interna, no en la ficha.
 do $$ begin
   if not exists (select 1 from notas_internas n join transportistas t on t.id = n.registro_id
-                  where n.tabla = 'transportistas' and normaliza_id_fiscal(t.cif) = normaliza_id_fiscal('B94949494') and n.texto like 'Alta online%')
-     or exists (select 1 from transportistas where anotaciones is not null or incidencias_notas is not null) then
+                  where n.tabla = 'transportistas' and normalizar_id_fiscal(t.cif) = normalizar_id_fiscal('B94949494') and n.texto like 'Alta online%')
+     or exists (select 1 from transportistas where anotaciones is not null or anotaciones_incidencias is not null) then
     raise exception 'FALLO 118 · las notas del alta online quedan en la ficha del transportista';
   end if;
 end $$;
@@ -4220,10 +4220,10 @@ select guardar_horario_verano(current_setting('prueba.sitio_a')::uuid, true, '06
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ begin
-  if horario_sitio_txt(current_setting('prueba.sitio_a')::uuid, make_date(2027, 7, 14)) <> 'L-V 7:30-15:00 (horario de verano)' then
-    raise exception 'FALLO 120 · en verano no da el horario de verano: %', horario_sitio_txt(current_setting('prueba.sitio_a')::uuid, make_date(2027, 7, 14));
+  if horario_sitio_texto(current_setting('prueba.sitio_a')::uuid, make_date(2027, 7, 14)) <> 'L-V 7:30-15:00 (horario de verano)' then
+    raise exception 'FALLO 120 · en verano no da el horario de verano: %', horario_sitio_texto(current_setting('prueba.sitio_a')::uuid, make_date(2027, 7, 14));
   end if;
-  if horario_sitio_txt(current_setting('prueba.sitio_a')::uuid, make_date(2027, 10, 13)) like '%verano%' then
+  if horario_sitio_texto(current_setting('prueba.sitio_a')::uuid, make_date(2027, 10, 13)) like '%verano%' then
     raise exception 'FALLO 120 · fuera de verano da el horario de verano';
   end if;
   raise notice 'OK 120 · horario de verano en los envíos: cada parada lleva el horario de su fecha';
@@ -4347,7 +4347,7 @@ do $$ begin
     raise exception 'FALLO 123 · el cliente ya no ve los cambios normales de su almacenamiento';
   end if;
   if exists (select 1 from horario_del_dia(current_setting('prueba.sitio_b')::uuid, current_date))
-     or horario_sitio_txt(current_setting('prueba.sitio_b')::uuid, current_date) is not null then
+     or horario_sitio_texto(current_setting('prueba.sitio_b')::uuid, current_date) is not null then
     raise exception 'FALLO 123 · un cliente lee el horario del sitio de otro cliente';
   end if;
   if (verano_sitios_fechas() ->> 'desde') is null then raise exception 'FALLO 123 · un cliente no puede leer las fechas de verano'; end if;
@@ -4374,7 +4374,7 @@ do $$ declare rv uuid; begin
     raise exception 'FALLO 124 · se puede modificar la auditoría fuera de la limpieza';
   exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
   end;
-  perform liberar_reserva(rv, 'prueba');
+  perform liberar_reserva_publica(rv, 'prueba');
   raise notice 'OK 124 · la auditoría no guarda IP de reservas y solo la limpieza RGPD la puede tocar';
 end $$;
 
@@ -4458,7 +4458,7 @@ select set_config('request.jwt.claim.sub', '', false);
 -- ---- 128. Plazo para pagar: pasado el plazo, el envío pendiente de pago se anula solo ------
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
-update parametros set valor = 'true' where clave = 'previo_pago_activo';
+update parametros set valor = 'true' where clave = 'pago_previo_activo';
 do $$ declare c uuid; e uuid; e2 uuid; r jsonb; begin
   insert into clientes (razon_social, cif) values ('Paga Tarde SL', 'B12812812') returning id into c;
   for i in 1..2 loop
@@ -4469,11 +4469,11 @@ do $$ declare c uuid; e uuid; e2 uuid; r jsonb; begin
     update envios set estado = 'programado' where id = e2;
     if i = 1 then e := e2; end if;
   end loop;
-  if (select pago_previo from envios where id = e) <> 'pendiente' or (select pago_pendiente_desde from envios where id = e) is null then
+  if (select estado_pago_previo from envios where id = e) <> 'pendiente' or (select pago_pendiente_en from envios where id = e) is null then
     raise exception 'FALLO 128 · el envío pendiente de pago no apunta desde cuándo';
   end if;
   perform set_config('request.jwt.claim.role', 'service_role', true);
-  update envios set pago_pendiente_desde = now() - interval '30 hours' where id = e;
+  update envios set pago_pendiente_en = now() - interval '30 hours' where id = e;
   perform set_config('request.jwt.claim.role', '', true);
   -- Pasado el plazo (24 h + margen) se anula; el que está en plazo, no.
   perform caducar_pagos_pendientes();
@@ -4511,13 +4511,13 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
-update parametros set valor = 'false' where clave = 'previo_pago_activo';
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
 
 
 -- ---- 129. Revisión del precio de los envíos programados con mucha antelación ----------------
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
-update parametros set valor = 'false' where clave = 'previo_pago_activo';
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
 update parametros set valor = '7' where clave = 'precio_cerrado_dias';
 create or replace function pg_temp.envio129(c uuid, dias int, imp numeric) returns uuid language plpgsql as $$
 declare e uuid; begin
@@ -4530,26 +4530,26 @@ declare e uuid; begin
 end $$;
 do $$ declare c uuid := current_setting('prueba.cliente')::uuid; e uuid; e2 uuid; r jsonb; begin
   e := pg_temp.envio129(c, 30, 1000);
-  if (select precio_revision from envios where id = e) is distinct from 'pendiente' or (select precio_revision_fecha from envios where id = e) is null
+  if (select estado_revision_precio from envios where id = e) is distinct from 'pendiente' or (select fecha_revision_precio from envios where id = e) is null
      or (select precio_calculado_en from envios where id = e) is null then
     raise exception 'FALLO 129 · un envío a 30 días no queda con precio provisional y fecha de revisión';
   end if;
-  if (select precio_revision_fecha from envios where id = e) >= (select fecha_carga_desde from envios where id = e) then
+  if (select fecha_revision_precio from envios where id = e) >= (select fecha_carga_desde from envios where id = e) then
     raise exception 'FALLO 129 · la revisión no cae antes de la carga';
   end if;
   e2 := pg_temp.envio129(c, 3, 1000);
-  if (select precio_revision from envios where id = e2) is not null then raise exception 'FALLO 129 · un envío a 3 días no tiene precio cerrado'; end if;
+  if (select estado_revision_precio from envios where id = e2) is not null then raise exception 'FALLO 129 · un envío a 3 días no tiene precio cerrado'; end if;
   -- Con precio provisional: ni camión ni ofertas.
   begin update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e; raise exception 'FALLO 129 · se asigna camión con precio provisional';
   exception when insufficient_privilege then null; end;
   begin insert into envio_ofertas (envio_id, precio_ofertado) values (e, 800); raise exception 'FALLO 129 · se oferta con precio provisional';
   exception when insufficient_privilege then null; end;
   -- Nadie toca las columnas de la revisión a mano.
-  update envios set precio_revision = 'hecha' where id = e;
-  if (select precio_revision from envios where id = e) <> 'pendiente' then raise exception 'FALLO 129 · se cierra el precio sin pasar por la revisión'; end if;
+  update envios set estado_revision_precio = 'hecha' where id = e;
+  if (select estado_revision_precio from envios where id = e) <> 'pendiente' then raise exception 'FALLO 129 · se cierra el precio sin pasar por la revisión'; end if;
   -- Revisión: +2 % se mantiene; -10 % baja; +20 % espera al cliente.
   r := revisar_precio_envio(e, 1020);
-  if r->>'resultado' <> 'mantenido' or (select importe_cliente from envios where id = e) <> 1000 or (select precio_revision from envios where id = e) <> 'hecha' then
+  if r->>'resultado' <> 'mantenido' or (select importe_cliente from envios where id = e) <> 1000 or (select estado_revision_precio from envios where id = e) <> 'hecha' then
     raise exception 'FALLO 129 · una variación pequeña cambia el precio: %', r;
   end if;
   update envios set transportista_id = current_setting('prueba.transp')::uuid where id = e;   -- precio definitivo: ya se asigna
@@ -4561,7 +4561,7 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; e uuid; e2 uuid
   e := pg_temp.envio129(c, 40, 1000);
   r := revisar_precio_envio(e, 1200);
   if r->>'resultado' <> 'subida' or (select importe_cliente from envios where id = e) <> 1000
-     or (select precio_revision from envios where id = e) <> 'esperando_cliente' then
+     or (select estado_revision_precio from envios where id = e) <> 'esperando_cliente' then
     raise exception 'FALLO 129 · la subida se aplica sin que acepte el cliente';
   end if;
   if not exists (select 1 from avisos where para = 'cliente' and tipo = 'precio_subida' and envio_id = e) then raise exception 'FALLO 129 · no se avisa al cliente de la subida'; end if;
@@ -4572,11 +4572,11 @@ do $$ declare c uuid := current_setting('prueba.cliente')::uuid; e uuid; e2 uuid
   -- La tarea de cada hora: los que llegan a su fecha pasan a «revisar»; las subidas sin respuesta, aviso.
   e := pg_temp.envio129(c, 40, 1000);
   perform set_config('dynamo.revision_precio', 'on', true);
-  update envios set precio_revision_fecha = (now() at time zone 'Europe/Madrid')::date where id = e;
-  update envios set precio_revision_en = now() - interval '30 hours' where id = current_setting('prueba.e129b')::uuid;
+  update envios set fecha_revision_precio = (now() at time zone 'Europe/Madrid')::date where id = e;
+  update envios set revision_precio_en = now() - interval '30 hours' where id = current_setting('prueba.e129b')::uuid;
   perform set_config('dynamo.revision_precio', 'off', true);
   perform revisar_precios_programados();
-  if (select precio_revision from envios where id = e) <> 'revisar' then raise exception 'FALLO 129 · llegada la fecha, el precio no pasa a «revisar»'; end if;
+  if (select estado_revision_precio from envios where id = e) <> 'revisar' then raise exception 'FALLO 129 · llegada la fecha, el precio no pasa a «revisar»'; end if;
   if not exists (select 1 from avisos where para = 'dynamo' and tipo = 'precio_sin_respuesta' and envio_id = current_setting('prueba.e129b')::uuid) then
     raise exception 'FALLO 129 · no se avisa a Dynamo de la subida sin respuesta';
   end if;
@@ -4587,7 +4587,7 @@ set role authenticated;
 do $$ begin
   begin perform revisar_precio_envio(current_setting('prueba.e129a')::uuid, 500); raise exception 'FALLO 129 · un cliente revisa su precio';
   exception when insufficient_privilege then null; end;
-  if (select precio_revision_nuevo from revision_precio_envio(current_setting('prueba.e129a')::uuid)) <> 1200 then raise exception 'FALLO 129 · el cliente no ve el nuevo precio'; end if;
+  if (select importe_revision_nuevo from ver_revision_precio_envio(current_setting('prueba.e129a')::uuid)) <> 1200 then raise exception 'FALLO 129 · el cliente no ve el nuevo precio'; end if;
   if (responder_subida_precio(current_setting('prueba.e129a')::uuid, true))->>'resultado' <> 'aceptado' then raise exception 'FALLO 129 · el cliente no acepta la subida'; end if;
   if (responder_subida_precio(current_setting('prueba.e129b')::uuid, false))->>'resultado' <> 'cancelado' then raise exception 'FALLO 129 · el cliente no cancela tras la subida'; end if;
   -- Antelación máxima (120 días): más lejos, no (la regla salta antes que los permisos).
@@ -4606,18 +4606,18 @@ do $$ begin
   if exists (select 1 from penalizaciones where envio_id = current_setting('prueba.e129b')::uuid) then raise exception 'FALLO 129 · cancelar tras la subida genera penalización'; end if;
 end $$;
 -- Previo pago: con precio provisional el plazo para pagar no corre; empieza con la revisión.
-update parametros set valor = 'true' where clave = 'previo_pago_activo';
+update parametros set valor = 'true' where clave = 'pago_previo_activo';
 do $$ declare c uuid; e uuid; begin
   insert into clientes (razon_social, cif) values ('Lejano SL', 'B12912912') returning id into c;
   e := pg_temp.envio129(c, 40, 1000);
-  if (select (pago_previo, pago_pendiente_desde is null) from envios where id = e) <> ('pendiente'::text, true) then
+  if (select (estado_pago_previo, pago_pendiente_en is null) from envios where id = e) <> ('pendiente'::text, true) then
     raise exception 'FALLO 129 · con precio provisional ya corre el plazo para pagar';
   end if;
   perform revisar_precio_envio(e, 1000);
-  if (select pago_pendiente_desde from envios where id = e) is null then raise exception 'FALLO 129 · tras la revisión no empieza el plazo para pagar'; end if;
+  if (select pago_pendiente_en from envios where id = e) is null then raise exception 'FALLO 129 · tras la revisión no empieza el plazo para pagar'; end if;
   raise notice 'OK 129 · revisión de precio: cerrado a ≤7 días, provisional más lejos (sin camión ni ofertas), una revisión con margen, la subida la acepta o cancela gratis el cliente y el pago espera al precio definitivo';
 end $$;
-update parametros set valor = 'false' where clave = 'previo_pago_activo';
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
 update parametros set valor = '100000' where clave = 'precio_cerrado_dias';
 
 -- ---- 130. Diccionario de datos: todo descrito dentro de Supabase ---------------------------
@@ -4660,19 +4660,19 @@ select set_config('request.jwt.claim.sub', '', false);
 -- ---- 131. IVA del cliente en el envío y asignar a mano = asignado ------------------------
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
-update parametros set valor = 'false' where clave = 'previo_pago_activo';
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
 do $$ declare c uuid; c2 uuid; e uuid; t uuid := current_setting('prueba.transp')::uuid; begin
   insert into clientes (razon_social, cif, pais_codigo_iso) values ('Client Portugal Lda', 'PT131131131', 'PT') returning id into c;
-  if (select iva_porcentaje from clientes where id = c) <> 0 then raise exception 'FALLO 131 · un cliente de fuera de España nace con IVA'; end if;
+  if (select iva_pct from clientes where id = c) <> 0 then raise exception 'FALLO 131 · un cliente de fuera de España nace con IVA'; end if;
   insert into clientes (razon_social, cif) values ('Iva España SL', 'B13113113') returning id into c2;
-  if (select iva_porcentaje from clientes where id = c2) <> 21 then raise exception 'FALLO 131 · un cliente de España no nace con el 21 %%'; end if;
+  if (select iva_pct from clientes where id = c2) <> 21 then raise exception 'FALLO 131 · un cliente de España no nace con el 21 %%'; end if;
   update clientes set pais_codigo_iso = 'FR' where id = c2;
-  if (select iva_porcentaje from clientes where id = c2) <> 0 then raise exception 'FALLO 131 · al cambiar de país no cambia el IVA'; end if;
-  update clientes set pais_codigo_iso = 'ES', iva_porcentaje = 7 where id = c2;   -- a mano (p. ej. Canarias)
-  if (select iva_porcentaje from clientes where id = c2) <> 7 then raise exception 'FALLO 131 · se pisa el IVA puesto a mano'; end if;
-  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, iva_aplicado)
+  if (select iva_pct from clientes where id = c2) <> 0 then raise exception 'FALLO 131 · al cambiar de país no cambia el IVA'; end if;
+  update clientes set pais_codigo_iso = 'ES', iva_pct = 7 where id = c2;   -- a mano (p. ej. Canarias)
+  if (select iva_pct from clientes where id = c2) <> 7 then raise exception 'FALLO 131 · se pisa el IVA puesto a mano'; end if;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, iva_pct)
     values (c, 13.30, 20, 1000, 800, 21) returning id into e;
-  if (select iva_aplicado from envios where id = e) <> 0 then raise exception 'FALLO 131 · el envío no toma el IVA de su cliente'; end if;
+  if (select iva_pct from envios where id = e) <> 0 then raise exception 'FALLO 131 · el envío no toma el IVA de su cliente'; end if;
   if (select total from pago_envio_importes(e)) <> 1000 then raise exception 'FALLO 131 · el cobro no usa el IVA del envío'; end if;
   -- Asignar a mano = asignado; quitarlo, sin asignar.
   insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso) values (e, 1, 'carga', '41001', 'Sevilla', 'ES');
@@ -4819,7 +4819,7 @@ end $$;
 -- ---- 136. Arreglos pequeños del repaso del diccionario -------------------------------------
 reset role;
 do $$ declare t uuid := current_setting('prueba.transp')::uuid; v uuid; begin
-  begin update transportistas set iva_porcentaje = 150 where id = t; raise exception 'FALLO 136 · IVA del transportista de 150 %%';
+  begin update transportistas set iva_pct = 150 where id = t; raise exception 'FALLO 136 · IVA del transportista de 150 %%';
   exception when check_violation then null; end;
   if (select column_default from information_schema.columns where table_name = 'envios' and column_name = 'carga_trasera') <> 'false' then
     raise exception 'FALLO 136 · carga_trasera sigue marcada por defecto';
@@ -4914,7 +4914,7 @@ end $$;
 -- ---- 139. Arreglos de la revisión de lógica ----------------------------------------------
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
-update parametros set valor = 'false' where clave = 'previo_pago_activo';
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
 do $$ declare e uuid; begin
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
     values (current_setting('prueba.cliente')::uuid, 13.30, 20, 1000, 800, current_date + 3) returning id into e;
@@ -4929,13 +4929,13 @@ do $$ declare e uuid; begin
 end $$;
 set role anon;
 do $$ declare r jsonb; a jsonb; begin
-  r := reservar_envio(current_setting('prueba.tok139')::uuid, '10.1.3.9');
+  r := reservar_envio_publico(current_setting('prueba.tok139')::uuid, '10.1.3.9');
   a := aceptar_oferta_publica((r ->> 'reserva_id')::uuid, 'B59000059');
   if coalesce(a ->> 'resultado', '') not in ('aceptada', 'pendiente_revision') then raise exception 'FALLO 139 · aceptar desde el tablón (sin oferta) falla: %', a; end if;
 end $$;
 reset role;
 -- Cobro con tarjeta por otro importe: aviso y el envío no se anula por falta de pago.
-update parametros set valor = 'true' where clave = 'previo_pago_activo';
+update parametros set valor = 'true' where clave = 'pago_previo_activo';
 do $$ declare c uuid; e uuid; begin
   insert into clientes (razon_social, cif) values ('Cobro 139 SL', 'B13913913') returning id into c;
   insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde)
@@ -4949,18 +4949,18 @@ do $$ declare c uuid; e uuid; begin
     raise exception 'FALLO 139 · el cobro no aplicado no queda apuntado ni avisa a Dynamo';
   end if;
   perform set_config('request.jwt.claim.role', 'service_role', true);
-  update envios set pago_pendiente_desde = now() - interval '5 days' where id = e;
+  update envios set pago_pendiente_en = now() - interval '5 days' where id = e;
   perform set_config('request.jwt.claim.role', '', true);
   perform caducar_pagos_pendientes();
   if (select estado from envios where id = e) <> 'programado' then raise exception 'FALLO 139 · se anula un envío con un cobro con tarjeta recibido'; end if;
   perform set_config('prueba.e139p', e::text, false);
 end $$;
-update parametros set valor = 'false' where clave = 'previo_pago_activo';
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
 -- Solicitudes: rechazar no cuenta; aceptar solo el precio visto; deshacer vuelve a solicitud.
 do $$ declare a uuid; b uuid; begin
-  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, solicitud_estado, precio_valido_hasta)
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, estado_solicitud, precio_caduca_en)
     values (current_setting('prueba.cliente')::uuid, 8, 10, 500, 400, current_date + 3, 'precio_propuesto', now() + interval '2 hours') returning id into a;
-  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, solicitud_estado, precio_valido_hasta)
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, importe_transportista, fecha_carga_desde, estado_solicitud, precio_caduca_en)
     values (current_setting('prueba.cliente')::uuid, 8, 10, 500, 400, current_date + 3, 'precio_propuesto', now() + interval '2 hours') returning id into b;
   perform set_config('prueba.s139a', a::text, false);
   perform set_config('prueba.s139b', b::text, false);
@@ -5122,7 +5122,7 @@ select set_config('request.jwt.claim.sub', '', false);
 -- ---- 143. Reglas de asignación y estado en la base de datos; funciones para n8n --------
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
-update parametros set valor = 'false' where clave = 'previo_pago_activo';
+update parametros set valor = 'false' where clave = 'pago_previo_activo';
 do $$ declare t uuid; e uuid; begin
   insert into transportistas (razon_social, cif, nima) values ('Suspendido 143 SL', 'B14314314', 'NIMA-143') returning id into t;
   update transportistas set estado_operativo = 'suspendido' where id = t;
@@ -5180,8 +5180,29 @@ do $$ begin
     perform asignar_transportista(current_setting('prueba.e143')::uuid, current_setting('prueba.transp')::uuid);
     raise exception 'FALLO 143 · un cliente asigna transportistas';
   exception when insufficient_privilege then null; end;
-  if (select iva_porcentaje from mi_empresa()) is null then raise exception 'FALLO 143 · mi_empresa no da el IVA del cliente'; end if;
+  if (select iva_pct from mi_empresa()) is null then raise exception 'FALLO 143 · mi_empresa no da el IVA del cliente'; end if;
   raise notice 'OK 143 · asignación y fase con reglas en la base de datos (suspendido, sin camión, NIMA, limpieza), funciones para n8n, IVA en mi_empresa';
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 144. Fase 2 de nombres: no queda ningún nombre viejo ------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare v text; begin
+  select string_agg(x, ', ') into v from (
+    select 'columna ' || c.relname || '.' || a.attname x from pg_attribute a join pg_class c on c.oid = a.attrelid
+     where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'v') and a.attnum > 0 and not a.attisdropped and a.attname = any (array['almacen_logistico', 'anotar_reservas_cmr', 'autosusp_desde', 'autosusp_en_curso', 'autosusp_revisar', 'cambio_cliente_estado', 'carga_superior', 'contraoferta_cliente', 'copias_avisos', 'es_admin', 'es_administrador', 'estado_ticket', 'euros_txt', 'exige_pin', 'factor_tarifa_aplicado', 'factor_tarifa_porcentaje', 'fn_fuera_de_cobertura', 'fn_guardar_km_cp', 'fn_guardar_km_sitios', 'fn_km_cp', 'fn_km_sitios', 'fn_restriccion_punto', 'fn_restricciones_ruta', 'forma_pago_holded_id', 'hora_real', 'horario_sitio_txt', 'incidencias_notas', 'iva_aplicado', 'iva_porcentaje', 'km_hasta_siguiente', 'km_total', 'liberar_reserva', 'limite_cargas_diario', 'logo_url', 'mi_conductor_guardar', 'mi_flota_baja', 'mi_transporte_guardar', 'mi_vehiculo_guardar', 'nima_requerido', 'normaliza_cp', 'normaliza_id_fiscal', 'normaliza_matricula', 'numero_bultos', 'orden_transporte_enviada', 'p_num', 'pago_adelantado', 'pago_pendiente_desde', 'pago_previo', 'pais_destino', 'pais_origen', 'paletizado_lateral', 'pedido_compra_holded', 'pedido_venta_holded', 'plataforma_elevadora', 'plataforma_elevadora_defecto', 'plazo_pago_aplicado', 'precio_inicial_cliente', 'precio_revisar', 'precio_revision', 'precio_revision_anterior', 'precio_revision_en', 'precio_revision_fecha', 'precio_revision_nuevo', 'precio_revision_recordado', 'precio_valido_hasta', 'prioridad_ticket', 'recargo_equivalencia_porcentaje', 'recargo_pago_tarde_porcentaje', 'reservar_envio', 'retencion_aplicada', 'retencion_porcentaje', 'revision_precio_envio', 'sin_autosuspension', 'sin_pago_previo_primer_envio', 'sitio_defecto_id', 'solicitud_estado', 'stripe_pago', 'tipo_entidad', 'tipo_ticket', 'trampilla'])
+    union all select 'función ' || proname from pg_proc where pronamespace = 'public'::regnamespace and proname = any (array['almacen_logistico', 'anotar_reservas_cmr', 'autosusp_desde', 'autosusp_en_curso', 'autosusp_revisar', 'cambio_cliente_estado', 'carga_superior', 'contraoferta_cliente', 'copias_avisos', 'es_admin', 'es_administrador', 'estado_ticket', 'euros_txt', 'exige_pin', 'factor_tarifa_aplicado', 'factor_tarifa_porcentaje', 'fn_fuera_de_cobertura', 'fn_guardar_km_cp', 'fn_guardar_km_sitios', 'fn_km_cp', 'fn_km_sitios', 'fn_restriccion_punto', 'fn_restricciones_ruta', 'forma_pago_holded_id', 'hora_real', 'horario_sitio_txt', 'incidencias_notas', 'iva_aplicado', 'iva_porcentaje', 'km_hasta_siguiente', 'km_total', 'liberar_reserva', 'limite_cargas_diario', 'logo_url', 'mi_conductor_guardar', 'mi_flota_baja', 'mi_transporte_guardar', 'mi_vehiculo_guardar', 'nima_requerido', 'normaliza_cp', 'normaliza_id_fiscal', 'normaliza_matricula', 'numero_bultos', 'orden_transporte_enviada', 'p_num', 'pago_adelantado', 'pago_pendiente_desde', 'pago_previo', 'pais_destino', 'pais_origen', 'paletizado_lateral', 'pedido_compra_holded', 'pedido_venta_holded', 'plataforma_elevadora', 'plataforma_elevadora_defecto', 'plazo_pago_aplicado', 'precio_inicial_cliente', 'precio_revisar', 'precio_revision', 'precio_revision_anterior', 'precio_revision_en', 'precio_revision_fecha', 'precio_revision_nuevo', 'precio_revision_recordado', 'precio_valido_hasta', 'prioridad_ticket', 'recargo_equivalencia_porcentaje', 'recargo_pago_tarde_porcentaje', 'reservar_envio', 'retencion_aplicada', 'retencion_porcentaje', 'revision_precio_envio', 'sin_autosuspension', 'sin_pago_previo_primer_envio', 'sitio_defecto_id', 'solicitud_estado', 'stripe_pago', 'tipo_entidad', 'tipo_ticket', 'trampilla'])
+    union all select 'tipo ' || typname from pg_type where typnamespace = 'public'::regnamespace and typname = any (array['almacen_logistico', 'anotar_reservas_cmr', 'autosusp_desde', 'autosusp_en_curso', 'autosusp_revisar', 'cambio_cliente_estado', 'carga_superior', 'contraoferta_cliente', 'copias_avisos', 'es_admin', 'es_administrador', 'estado_ticket', 'euros_txt', 'exige_pin', 'factor_tarifa_aplicado', 'factor_tarifa_porcentaje', 'fn_fuera_de_cobertura', 'fn_guardar_km_cp', 'fn_guardar_km_sitios', 'fn_km_cp', 'fn_km_sitios', 'fn_restriccion_punto', 'fn_restricciones_ruta', 'forma_pago_holded_id', 'hora_real', 'horario_sitio_txt', 'incidencias_notas', 'iva_aplicado', 'iva_porcentaje', 'km_hasta_siguiente', 'km_total', 'liberar_reserva', 'limite_cargas_diario', 'logo_url', 'mi_conductor_guardar', 'mi_flota_baja', 'mi_transporte_guardar', 'mi_vehiculo_guardar', 'nima_requerido', 'normaliza_cp', 'normaliza_id_fiscal', 'normaliza_matricula', 'numero_bultos', 'orden_transporte_enviada', 'p_num', 'pago_adelantado', 'pago_pendiente_desde', 'pago_previo', 'pais_destino', 'pais_origen', 'paletizado_lateral', 'pedido_compra_holded', 'pedido_venta_holded', 'plataforma_elevadora', 'plataforma_elevadora_defecto', 'plazo_pago_aplicado', 'precio_inicial_cliente', 'precio_revisar', 'precio_revision', 'precio_revision_anterior', 'precio_revision_en', 'precio_revision_fecha', 'precio_revision_nuevo', 'precio_revision_recordado', 'precio_valido_hasta', 'prioridad_ticket', 'recargo_equivalencia_porcentaje', 'recargo_pago_tarde_porcentaje', 'reservar_envio', 'retencion_aplicada', 'retencion_porcentaje', 'revision_precio_envio', 'sin_autosuspension', 'sin_pago_previo_primer_envio', 'sitio_defecto_id', 'solicitud_estado', 'stripe_pago', 'tipo_entidad', 'tipo_ticket', 'trampilla'])
+    union all select 'valor ' || enumlabel from pg_enum where enumlabel in ('paletizado_lateral', 'orden_transporte_enviada')
+    union all select 'función que usa ' || p.proname || ' → ' || t from pg_proc p, unnest(array['almacen_logistico', 'anotar_reservas_cmr', 'autosusp_desde', 'autosusp_en_curso', 'autosusp_revisar', 'cambio_cliente_estado', 'carga_superior', 'contraoferta_cliente', 'copias_avisos', 'es_admin', 'es_administrador', 'estado_ticket', 'euros_txt', 'exige_pin', 'factor_tarifa_aplicado', 'factor_tarifa_porcentaje', 'fn_fuera_de_cobertura', 'fn_guardar_km_cp', 'fn_guardar_km_sitios', 'fn_km_cp', 'fn_km_sitios', 'fn_restriccion_punto', 'fn_restricciones_ruta', 'forma_pago_holded_id', 'hora_real', 'horario_sitio_txt', 'incidencias_notas', 'iva_aplicado', 'iva_porcentaje', 'km_hasta_siguiente', 'km_total', 'liberar_reserva', 'limite_cargas_diario', 'logo_url', 'mi_conductor_guardar', 'mi_flota_baja', 'mi_transporte_guardar', 'mi_vehiculo_guardar', 'nima_requerido', 'normaliza_cp', 'normaliza_id_fiscal', 'normaliza_matricula', 'numero_bultos', 'orden_transporte_enviada', 'p_num', 'pago_adelantado', 'pago_pendiente_desde', 'pago_previo', 'pais_destino', 'pais_origen', 'paletizado_lateral', 'pedido_compra_holded', 'pedido_venta_holded', 'plataforma_elevadora', 'plataforma_elevadora_defecto', 'plazo_pago_aplicado', 'precio_inicial_cliente', 'precio_revisar', 'precio_revision', 'precio_revision_anterior', 'precio_revision_en', 'precio_revision_fecha', 'precio_revision_nuevo', 'precio_revision_recordado', 'precio_valido_hasta', 'prioridad_ticket', 'recargo_equivalencia_porcentaje', 'recargo_pago_tarde_porcentaje', 'reservar_envio', 'retencion_aplicada', 'retencion_porcentaje', 'revision_precio_envio', 'sin_autosuspension', 'sin_pago_previo_primer_envio', 'sitio_defecto_id', 'solicitud_estado', 'stripe_pago', 'tipo_entidad', 'tipo_ticket', 'trampilla']) t
+     where p.pronamespace = 'public'::regnamespace and t <> 'trampilla' and p.prosrc ~ ('\m' || t || '\M')
+    union all select 'parámetro ' || clave from parametros where clave like 'autosusp\_%' or clave like 'previo\_pago\_%'
+    union all select 'documento ' || tipo from documentos where tipo = 'orden_transporte') q;
+  if v is not null then raise exception 'FALLO 144 · quedan nombres viejos: %', v; end if;
+  if not exists (select 1 from pg_proc where proname = 'es_equipo_dynamo') or not exists (select 1 from pg_proc where proname = 'es_admin_master') then
+    raise exception 'FALLO 144 · faltan es_equipo_dynamo / es_admin_master';
+  end if;
+  raise notice 'OK 144 · nombres homogéneos: ningún nombre viejo en tablas, vistas, funciones, tipos, parámetros ni documentos';
+end $$;

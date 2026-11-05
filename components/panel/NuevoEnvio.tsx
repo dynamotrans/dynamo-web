@@ -37,8 +37,8 @@ type Punto = { k: number; tipo: 'carga' | 'descarga'; sitio: SitioOpcion | null;
 export type Base = {
   modo: 'repetir' | 'ruta';
   envio: { id: string; referencia_gx: string; cliente_id: string; estado: string; metros_lineales: number | null; toneladas: number | null;
-    paletizado: boolean | null; carga_lateral: boolean; carga_trasera: boolean; carga_superior: boolean; plataforma_elevadora: boolean;
-    nima_requerido: boolean; adr: boolean; anotaciones_cliente: string | null; importe_cliente: number | null; importe_transportista: number | null;
+    paletizado: boolean | null; carga_lateral: boolean; carga_trasera: boolean; carga_techo: boolean; requiere_plataforma_elevadora: boolean;
+    requiere_nima: boolean; adr: boolean; anotaciones_cliente: string | null; importe_cliente: number | null; importe_transportista: number | null;
     discrecion_comercial: boolean; negociacion_pct?: number | null };
   paradas: { id: string; tipo: 'carga' | 'descarga'; sitio_id: string | null; nombre_empresa: string | null; direccion: string | null;
     codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais_codigo_iso: string | null }[];
@@ -132,21 +132,21 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
 
   // ---- Paso 2: mercancía
   const [paletizada, setPaletizada] = useState(be ? be.paletizado !== false : true);
-  const [trampilla, setTrampilla] = useState(!!be?.plataforma_elevadora);
-  const mlMax = trampilla ? 8 : 13;
-  const pesoMax = trampilla ? 14 : 24;
-  const [ml, setMl] = useState(() => opcionCercana(be?.metros_lineales, be?.plataforma_elevadora ? ['1', '2', '3', '4', '5', '6', '7', '8'] : ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '13.3'], be?.plataforma_elevadora ? '8' : '13.3'));
-  const [peso, setPeso] = useState(() => opcionCercana(be?.toneladas, ['0.2', '0.4', '0.6', '0.8', '1', '3', '5', '7', '9', '11', '13', ...(be?.plataforma_elevadora ? ['14'] : ['15', '17', '19', '21', '23', '24'])], be?.plataforma_elevadora ? '14' : '24'));
+  const [plataforma, setPlataforma] = useState(!!be?.requiere_plataforma_elevadora);
+  const mlMax = plataforma ? 8 : 13;
+  const pesoMax = plataforma ? 14 : 24;
+  const [ml, setMl] = useState(() => opcionCercana(be?.metros_lineales, be?.requiere_plataforma_elevadora ? ['1', '2', '3', '4', '5', '6', '7', '8'] : ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '13.3'], be?.requiere_plataforma_elevadora ? '8' : '13.3'));
+  const [peso, setPeso] = useState(() => opcionCercana(be?.toneladas, ['0.2', '0.4', '0.6', '0.8', '1', '3', '5', '7', '9', '11', '13', ...(be?.requiere_plataforma_elevadora ? ['14'] : ['15', '17', '19', '21', '23', '24'])], be?.requiere_plataforma_elevadora ? '14' : '24'));
   const [forma, setForma] = useState(() => {
     if (!be) return 'Lateral';
-    const t = [be.carga_lateral && 'lateral', be.carga_trasera && 'trasera', be.carga_superior && 'techo'].filter(Boolean) as string[];
+    const t = [be.carga_lateral && 'lateral', be.carga_trasera && 'trasera', be.carga_techo && 'techo'].filter(Boolean) as string[];
     return FORMAS.find((f) => { const fl = f.toLowerCase(); return t.length > 0 && t.every((x) => fl.includes(x)) && fl.split(/,| y /).length === t.length; }) ?? 'Lateral';
   });
-  const [nima, setNima] = useState(!!be?.nima_requerido);
+  const [nima, setNima] = useState(!!be?.requiere_nima);
   const [adr, setAdr] = useState(!!be?.adr);
   const [refCli, setRefCli] = useState('');
   const [notas, setNotas] = useState(be?.anotaciones_cliente ?? '');
-  const [notasAbiertas, setNotasAbiertas] = useState(!!(be && (be.plataforma_elevadora || be.nima_requerido || be.adr || be.anotaciones_cliente)));
+  const [notasAbiertas, setNotasAbiertas] = useState(!!(be && (be.requiere_plataforma_elevadora || be.requiere_nima || be.adr || be.anotaciones_cliente)));
 
   // ---- Paso 3: fecha y precio
   const [urgencia, setUrgencia] = useState<'dia' | 'estandar'>('estandar');
@@ -293,7 +293,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
         descripcion_mercancia: paletizada ? 'Paletizada (mercancía general)' : 'No paletizada',
         toneladas: Number(peso), metros_lineales: Number(ml),
         paletizado: paletizada, carga_lateral: f.includes('lateral'), carga_trasera: f.includes('trasera'),
-        carga_superior: f.includes('techo'), plataforma_elevadora: trampilla, nima_requerido: nima, adr,
+        carga_techo: f.includes('techo'), requiere_plataforma_elevadora: plataforma, requiere_nima: nima, adr,
         discrecion_comercial: discrecion, anotaciones_cliente: notas,
       }, paradas);
       if (!rm.ok) { setEnviando(false); setAviso(rm.error); return; }
@@ -307,7 +307,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
         descripcion_mercancia: paletizada ? 'Paletizada (mercancía general)' : 'No paletizada',
         toneladas: Number(peso), metros_lineales: Number(ml),
         paletizado: paletizada, carga_lateral: f.includes('lateral'), carga_trasera: f.includes('trasera'),
-        carga_superior: f.includes('techo'), plataforma_elevadora: trampilla, nima_requerido: nima, adr,
+        carga_techo: f.includes('techo'), requiere_plataforma_elevadora: plataforma, requiere_nima: nima, adr,
         discrecion_comercial: discrecion, anotaciones_cliente: notas,
       }, paradas);
       if (!rs.ok) { setEnviando(false); setAviso(rs.error); return; }
@@ -321,7 +321,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
       descripcion_mercancia: paletizada ? 'Paletizada (mercancía general)' : 'No paletizada',
       toneladas: Number(peso), metros_lineales: Number(ml),
       paletizado: paletizada, carga_lateral: f.includes('lateral'), carga_trasera: f.includes('trasera'),
-      carga_superior: f.includes('techo'), plataforma_elevadora: trampilla, nima_requerido: nima, adr,
+      carga_techo: f.includes('techo'), requiere_plataforma_elevadora: plataforma, requiere_nima: nima, adr,
       importe_cliente: importe, importe_transportista: importeT,
       discrecion_comercial: discrecion, anotaciones_cliente: notas, negociacion_pct: neg,
     }, paradas);
@@ -338,7 +338,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
   for (let lo = 1, hi = 3; lo < pesoMax; hi += 2) { if (hi > pesoMax) hi = pesoMax; optsPeso.push([String(hi), `De ${lo} a ${hi} toneladas${hi === pesoMax ? ' (máximo)' : ''}`]); if (hi === pesoMax) break; lo = hi; }
   const mlTxt = optsMl.find(([v]) => v === ml)?.[1] ?? '';
   const pesoTxt = optsPeso.find(([v]) => v === peso)?.[1] ?? '';
-  const camionTxt = trampilla ? 'Camión rígido con trampilla elevadora (8 m · 14 Tn)' : 'Tráiler tauliner (lona corredera)';
+  const camionTxt = plataforma ? 'Camión rígido con plataforma elevadora (8 m · 14 Tn)' : 'Tráiler tauliner (lona corredera)';
   // Precio provisional: si la carga está a más de N días, se revisa antes (parámetros).
   const diasHasta = fecha ? Math.round((Date.parse(`${fecha}T12:00:00Z`) - Date.parse(`${new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())}T12:00:00Z`)) / 86400000) : 0;
   const provisional = !!reglas && !!fecha && diasHasta > reglas.cerrado_dias;
@@ -395,9 +395,9 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
   const IcoSol = () => (<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2" /><line x1="12" y1="2.5" x2="12" y2="4.5" /><line x1="12" y1="19.5" x2="12" y2="21.5" /><line x1="4.6" y1="4.6" x2="6" y2="6" /><line x1="18" y1="18" x2="19.4" y2="19.4" /><line x1="2.5" y1="12" x2="4.5" y2="12" /><line x1="19.5" y1="12" x2="21.5" y2="12" /><line x1="4.6" y1="19.4" x2="6" y2="18" /><line x1="18" y1="6" x2="19.4" y2="4.6" /></svg>);
   const avisosPaso4 = (
     <>
-      {!trampilla && (
+      {!plataforma && (
         <div className="pt-aviso" style={{ marginTop: '0.6rem', marginBottom: 0 }}><IcoAviso /><div>
-          <strong>Envío en tráiler</strong>, asegúrate de que hay <strong>medios de carga</strong>. Si requieres trampilla (<strong>más caro y solo en camión rígido de 8 metros</strong>), añádela en el{' '}
+          <strong>Envío en tráiler</strong>, asegúrate de que hay <strong>medios de carga</strong>. Si requieres plataforma elevadora (<strong>más caro y solo en camión rígido de 8 metros</strong>), añádela en el{' '}
           <a href="#" style={{ color: 'inherit', fontWeight: 800, textDecoration: 'underline' }} onClick={(ev) => { ev.preventDefault(); setNotasAbiertas(true); setPaso(2); window.scrollTo({ top: 0 }); }}>paso 2</a>.
         </div></div>
       )}
@@ -481,7 +481,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                         <option value="">Dynamo (te pasamos el precio)</option>
                         {operadores.map((o) => <option key={o.id} value={o.id}>Mi operador: {o.nombre}</option>)}
                       </select>
-                      {manual && <p className="ptar-admin-precio-note" style={{ marginTop: '0.4rem' }}>Envío con <strong>tu propio transportista</strong>: Dynamo no interviene en nada. La plataforma te sirve para organizarlo y sacar la <strong>orden de transporte</strong> en PDF.</p>}
+                      {manual && <p className="ptar-admin-precio-note" style={{ marginTop: '0.4rem' }}>Envío con <strong>tu propio transportista</strong>: Dynamo no interviene en nada. La plataforma te sirve para organizarlo y sacar la <strong>orden de carga</strong> en PDF.</p>}
                     </div>
                   </>)}
                   <div className="ptar-section-head">Ruta</div>
@@ -541,13 +541,13 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                   <div className="ptar-notes-wrap ptar-field-full">
                     <button type="button" className="ptar-notes-toggle" aria-expanded={notasAbiertas} onClick={() => setNotasAbiertas((v) => !v)}>
                       <span className="pnt-icon" aria-hidden="true">{notasAbiertas ? '−' : '+'}</span>
-                      <strong>Añadir detalle de mercancía, nº de albarán/pedido, trampilla elevadora o NIMA</strong> (opcional)
+                      <strong>Añadir detalle de mercancía, nº de albarán/pedido, plataforma elevadora o NIMA</strong> (opcional)
                     </button>
                     {notasAbiertas && (
                       <div className="ptar-notes-body">
                         <div className="ptar-pair">
-                          <Interruptor titulo="Trampilla elevadora" valor={trampilla}
-                            onCambio={(v) => { setTrampilla(v); setMl(v ? '8' : '13.3'); setPeso(v ? '14' : '24'); }} />
+                          <Interruptor titulo="Plataforma elevadora" valor={plataforma}
+                            onCambio={(v) => { setPlataforma(v); setMl(v ? '8' : '13.3'); setPeso(v ? '14' : '24'); }} />
                           <Interruptor titulo="Requiere NIMA" valor={nima} onCambio={setNima} />
                           <Interruptor titulo="Mercancía ADR" valor={adr} onCambio={setAdr} />
                         </div>
@@ -608,7 +608,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                     <div className="ptar-admin-precio-head">Precio con {nombreOp}</div>
                     <label className="ptar-admin-precio-lbl" htmlFor="ne-pop">Precio acordado con tu transportista (sin IVA) · opcional</label>
                     <input id="ne-pop" type="text" inputMode="decimal" placeholder="Ej. 450,00" value={precioOp} onChange={(ev) => setPrecioOp(ev.target.value)} />
-                    <p className="ptar-admin-precio-note">Solo para tu control y para la orden de transporte. Dynamo no lo ve en ningún precio suyo.</p>
+                    <p className="ptar-admin-precio-note">Solo para tu control y para la orden de carga. Dynamo no lo ve en ningún precio suyo.</p>
                   </div>
                 ) : esCliente ? (
                   <div className="pt-aviso info" style={{ marginTop: '0.6rem' }}><div><strong>Te pasamos el precio en menos de 25 minutos</strong> (en horario de oficina). Te llegará a tu panel y, hasta que lo aceptes, no hay ningún compromiso.</div></div>
@@ -701,7 +701,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
               </div>
               <div className="ptar-terms-box">
                 {manual
-                  ? <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> queda programado con tu operador y puedes sacar la <strong>orden de transporte</strong> desde el envío.</p>
+                  ? <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> queda programado con tu operador y puedes sacar la <strong>orden de carga</strong> desde el envío.</p>
                   : esCliente
                   ? <p className="ptar-terms-line">Al pulsar <strong>«Enviar solicitud»</strong> nos llega tu envío para ponerle precio. <strong>No hay compromiso</strong> hasta que aceptes el precio (y las condiciones generales).</p>
                   : <p className="ptar-terms-line">Al pulsar <strong>«Crear envío»</strong> el envío queda <strong>programado</strong> y pasa a la pestaña <strong>Sin asignar transportista</strong>.</p>}
@@ -719,7 +719,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
   );
 }
 
-// ---- Interruptor Sí/No (el de Trampilla/NIMA del mockup, regla 0-quater) --------
+// ---- Interruptor Sí/No (el de plataforma elevadora/NIMA del mockup, regla 0-quater) --------
 function Interruptor({ titulo, valor, onCambio }: { titulo: string; valor: boolean; onCambio: (v: boolean) => void }) {
   return (
     <div className="ptar-field">

@@ -33,7 +33,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const refT = String(r.datos.envio.referencia_gx ?? 'viaje').replace(/[^A-Za-z0-9-]/g, '');
     return new Response(Buffer.from(bytesT), { headers: { 'content-type': 'application/pdf', 'content-disposition': `inline; filename="Orden-de-carga-${refT}.pdf"`, 'cache-control': 'private, no-store' } });
   }
-  // El CLIENTE: la orden de transporte de SUS envíos manuales (sin nada de Dynamo).
+  // El CLIENTE: la orden de carga de SUS envíos manuales (sin nada de Dynamo).
   if (yo.rol === 'cliente') {
     if (documento !== 'orden-de-carga') return texto('No tienes permiso para ver este documento.', 403);
     const r = await cargarDatosDocManual(sb, id);

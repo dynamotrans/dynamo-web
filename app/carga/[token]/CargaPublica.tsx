@@ -57,7 +57,7 @@ function Parar({ titulo, children, icono = '✕', ambar = false }: { titulo: str
 function Oferta({ o, completa }: { o: any; completa?: boolean }) {
   const paradas: Parada[] = o.paradas ?? [];
   const rec = paradas.filter((p) => p.tipo === 'carga'), ent = paradas.filter((p) => p.tipo === 'descarga');
-  const forma = [o.carga_lateral && 'Lateral', o.carga_trasera && 'Trasera', o.carga_superior && 'Techo'].filter(Boolean).join(' y ');
+  const forma = [o.carga_lateral && 'Lateral', o.carga_trasera && 'Trasera', o.carga_techo && 'Techo'].filter(Boolean).join(' y ');
   return (
     <>
       <div className="of-envio"><span className="of-envio-lbl">Envío</span><span>#{o.referencia}</span></div>
@@ -75,7 +75,7 @@ function Oferta({ o, completa }: { o: any; completa?: boolean }) {
               {completa && p.nombre_empresa && <div className="of-pt-loc" style={{ color: 'var(--navy)' }}>{p.url_google_maps ? <a href={p.url_google_maps} target="_blank" rel="noopener" style={{ color: 'var(--purple)' }}>{p.nombre_empresa}</a> : p.nombre_empresa}</div>}
               <div className="of-pt-loc">{[completa ? p.direccion : null, [p.codigo_postal, p.poblacion].filter(Boolean).join(' '), p.provincia && p.provincia !== p.poblacion ? p.provincia : ''].filter(Boolean).join(', ')}</div>
               {p.horarios && <div className="of-pt-hor">Horario: {p.horarios}</div>}
-              {(p.requiere_cita || !p.tiene_medios_carga) && <div className="of-pt-hor" style={{ color: '#b45309', fontWeight: 700 }}>{[p.requiere_cita && 'Con cita previa', !p.tiene_medios_carga && 'Sin medios de carga (trampilla)'].filter(Boolean).join(' · ')}</div>}
+              {(p.requiere_cita || !p.tiene_medios_carga) && <div className="of-pt-hor" style={{ color: '#b45309', fontWeight: 700 }}>{[p.requiere_cita && 'Con cita previa', !p.tiene_medios_carga && 'Sin medios de carga (plataforma elevadora)'].filter(Boolean).join(' · ')}</div>}
               {completa && p.contacto?.telefono && <div className="of-pt-hor">Contacto: <a href={`tel:${p.contacto.telefono}`} style={{ color: 'var(--purple)', fontWeight: 700 }}>{telBonito(p.contacto.telefono)}</a>{p.contacto.nombre ? ` (${p.contacto.nombre})` : ''}</div>}
               {completa && p.referencia && <div className="of-pt-hor">Referencia: <strong style={{ color: 'var(--navy)' }}>{p.referencia}</strong></div>}
               {completa && [p.notas_sitio, p.anotaciones].filter(Boolean).map((n, k) => <div key={k} className="of-pt-hor" style={{ color: '#b45309' }}>⚠ {n}</div>)}
@@ -92,8 +92,8 @@ function Oferta({ o, completa }: { o: any; completa?: boolean }) {
             {o.toneladas != null && <div className="of-chip"><span className="of-chip-k">Peso</span><span className="of-chip-v">{txtNum(o.toneladas)} Tn</span></div>}
             <div className="of-chip"><span className="of-chip-k">Tipo de carga</span><span className="of-chip-v">{o.tipo_carga === 'completa' ? 'Completo' : 'Grupaje'}</span></div>
             {forma && <div className="of-chip"><span className="of-chip-k">Carga por</span><span className="of-chip-v">{forma}</span></div>}
-            {o.plataforma_elevadora && <div className="of-chip"><span className="of-chip-k">Camión</span><span className="of-chip-v">Con trampilla</span></div>}
-            {o.nima_requerido && <div className="of-chip"><span className="of-chip-k">Residuos</span><span className="of-chip-v">Requiere NIMA</span></div>}
+            {o.requiere_plataforma_elevadora && <div className="of-chip"><span className="of-chip-k">Camión</span><span className="of-chip-v">Con plataforma elevadora</span></div>}
+            {o.requiere_nima && <div className="of-chip"><span className="of-chip-k">Residuos</span><span className="of-chip-v">Requiere NIMA</span></div>}
             {o.adr && <div className="of-chip of-chip-full"><span className="of-chip-k">Mercancía</span><span className="of-chip-v" style={{ color: 'var(--red)' }}>ADR · peligrosa</span></div>}
           </div>
         </div>

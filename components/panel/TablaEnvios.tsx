@@ -93,7 +93,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
           {dynamo
             ? <><strong>Envío #{nuevo} creado.</strong> Queda programado, a la espera de asignar transportista.</>
             : nuevoManual
-            ? <><strong>Envío #{nuevo} creado</strong> con tu operador. Ábrelo para sacar la orden de transporte y llevar su estado.</>
+            ? <><strong>Envío #{nuevo} creado</strong> con tu operador. Ábrelo para sacar la orden de carga y llevar su estado.</>
             : <><strong>Solicitud #{nuevo} enviada.</strong> Te pasamos el precio en menos de 25 minutos (en horario de oficina) y lo verás aquí para aceptarlo.</>}
         </div></div>
       )}
@@ -186,8 +186,8 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
     <Fila href={href} className={urgencia(e) || undefined}>
       <td className="ref">
         <div className="envio-estado envio-estado-top"><span className={`badge badge-${ev.color}`}>{ev.label}</span></div>
-        {dynamo && e.cambio_cliente_estado === 'pendiente' && <div className="meta" style={{ color: '#b45309', fontWeight: 800 }}>Cambio pedido por el cliente</div>}
-        {dynamo && e.precio_revisar && <div className="meta" style={{ color: '#b42318', fontWeight: 800 }}>Revisar precio (ruta cambiada)</div>}
+        {dynamo && e.estado_cambio_cliente === 'pendiente' && <div className="meta" style={{ color: '#b45309', fontWeight: 800 }}>Cambio pedido por el cliente</div>}
+        {dynamo && e.requiere_revision_precio && <div className="meta" style={{ color: '#b42318', fontWeight: 800 }}>Revisar precio (ruta cambiada)</div>}
         <strong>#{e.referencia_gx}</strong>
         {e.referencia_cliente && <> <span className="ref-cli-inline">({e.referencia_cliente})</span></>}
         {rol !== 'transportista' && (

@@ -3168,7 +3168,7 @@ table.data td.actions { text-align: right; white-space: nowrap; }
     display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem 0.8rem;
 }
 .ptar-pair > .ptar-field { min-width: 0; }
-/* Toggle compacto "Trampilla" (caja con switch + Sí/No). El detalle va
+/* Toggle compacto "Plataforma elevadora" (caja con switch + Sí/No). El detalle va
    en el tooltip ℹ del label. */
 .ptar-tramp-box {
     display: flex; align-items: center; gap: 0.5rem;

@@ -198,7 +198,7 @@ function ordenDesdeJson(data: unknown): { datos: DatosDoc; parametros: Record<st
   };
 }
 
-// La orden de transporte de un envío MANUAL, para el CLIENTE (datos_orden_manual(): su
+// La orden de carga de un envío MANUAL, para el CLIENTE (datos_orden_manual(): su
 // empresa, su operador y las paradas; nada de Dynamo).
 export async function cargarDatosDocManual(sb: SupabaseClient, id: string): Promise<{ datos: DatosDoc | null; error: string | null }> {
   const { data, error } = await sb.rpc('datos_orden_manual', { p_envio: id });

@@ -29,8 +29,8 @@ export default async function PaginaSitios() {
   // Clientes (para Dynamo, todos; para un cliente, él mismo) con su sitio principal.
   let clientes: ClienteSitios[] = [];
   if (dynamo) {
-    const { data } = await leerTodo(filtrarVista(supabase.from('clientes').select('id, nombre_visible, cif, sitio_defecto_id'), vista, { cliente: 'id' }).order('nombre_visible'), 5000);
-    clientes = (data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible, cif: c.cif, principal_id: c.sitio_defecto_id }));
+    const { data } = await leerTodo(filtrarVista(supabase.from('clientes').select('id, nombre_visible, cif, sitio_principal_id'), vista, { cliente: 'id' }).order('nombre_visible'), 5000);
+    clientes = (data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible, cif: c.cif, principal_id: c.sitio_principal_id }));
   } else {
     const { data: e } = await supabase.rpc('mi_empresa').maybeSingle<{ id: string; razon_social: string; nombre_comercial: string | null; cif: string }>();
     if (e) {

@@ -46,7 +46,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
           codigo_postal: p.codigo_postal, poblacion: p.poblacion, provincia: p.provincia, pais_codigo_iso: p.pais_codigo_iso })) };
     }
     const fesC = (fes.data ?? []) as { fecha: string; nombre: string }[];
-    return <NuevoEnvio key={sp.repetir ?? 'nuevo'} esCliente clientes={[{ id: e.id, nombre: e.nombre_comercial || e.razon_social, cif: e.cif, iva: e.iva_porcentaje ?? null }]}
+    return <NuevoEnvio key={sp.repetir ?? 'nuevo'} esCliente clientes={[{ id: e.id, nombre: e.nombre_comercial || e.razon_social, cif: e.cif, iva: e.iva_pct ?? null }]}
       sitios={(lug.data ?? []) as SitioOpcion[]} festivos={fesC.map((f) => f.fecha)} nombresFestivos={Object.fromEntries(fesC.map((f) => [f.fecha, f.nombre]))}
       error={lug.error?.message ?? null} base={base}
       operadores={((ops.data ?? []) as any[]).map((o) => ({ id: o.id, nombre: o.razon_social }))} reglas={(reg.data ?? null) as ReglasPrecio | null} />;
@@ -55,7 +55,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
   // En la vista de un cliente, el envío es para ese cliente (solo sale él en la lista).
   const vista = await vistaDe(supabase, perfil.rol);
   const [cli, lug, fes, reg] = await Promise.all([
-    leerTodo(filtrarVista(supabase.from('clientes').select('id, nombre_visible, cif, sitio_defecto_id, iva_porcentaje'), vista.tipo === 'cliente' ? vista : { tipo: 'admin', id: null, nombre: null }, { cliente: 'id' }).order('nombre_visible'), 2000),
+    leerTodo(filtrarVista(supabase.from('clientes').select('id, nombre_visible, cif, sitio_principal_id, iva_pct'), vista.tipo === 'cliente' ? vista : { tipo: 'admin', id: null, nombre: null }, { cliente: 'id' }).order('nombre_visible'), 2000),
     leerTodo(supabase.from('sitios')
       .select('id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible')
       .eq('borrado', false).order('nombre_empresa'), 5000),
@@ -69,13 +69,13 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
   const idBase = sp.ruta || sp.repetir;
   if (idBase && /^[0-9a-f-]{36}$/i.test(idBase)) {
     const [{ data: e }, { data: ps }] = await Promise.all([
-      supabase.from('envios').select('id, referencia_gx, cliente_id, estado, metros_lineales, toneladas, paletizado, carga_lateral, carga_trasera, carga_superior, plataforma_elevadora, nima_requerido, adr, anotaciones_cliente, importe_cliente, importe_transportista, discrecion_comercial, negociacion_pct').eq('id', idBase).maybeSingle(),
+      supabase.from('envios').select('id, referencia_gx, cliente_id, estado, metros_lineales, toneladas, paletizado, carga_lateral, carga_trasera, carga_techo, requiere_plataforma_elevadora, requiere_nima, adr, anotaciones_cliente, importe_cliente, importe_transportista, discrecion_comercial, negociacion_pct').eq('id', idBase).maybeSingle(),
       supabase.from('envio_paradas').select('id, tipo, sitio_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso').eq('envio_id', idBase).order('orden'),
     ]);
     if (e) base = { modo: sp.ruta ? 'ruta' : 'repetir', envio: e as Base['envio'], paradas: (ps ?? []) as Base['paradas'] };
   }
 
-  const clientes: ClienteOpcion[] = (cli.data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible, cif: c.cif, principal_id: c.sitio_defecto_id, iva: c.iva_porcentaje }));
+  const clientes: ClienteOpcion[] = (cli.data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible, cif: c.cif, principal_id: c.sitio_principal_id, iva: c.iva_pct }));
   const sitios: SitioOpcion[] = (lug.data ?? []) as SitioOpcion[];
   const festivos = ((fes.data ?? []) as { fecha: string }[]).map((f) => f.fecha);
   const nombresFestivos = Object.fromEntries(((fes.data ?? []) as { fecha: string; nombre: string }[]).map((f) => [f.fecha, f.nombre]));

@@ -42,10 +42,10 @@ function Factor({ v }: { v: number }) {
 const NUEVO: ClienteDatos = {
   razon_social: '', nombre_comercial: '', cif: '', estado: 'activa',
   direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES',
-  plazo_pago_dias: 120, iva_porcentaje: 21, retencion_porcentaje: 0, recargo_equivalencia_porcentaje: 0,
-  recargo_pago_tarde_porcentaje: 0, riesgo_cesce_euros: null, riesgo_manual_euros: null,
-  factor_tarifa_porcentaje: -7, factor_fijado_a_mano: false, permite_contraoferta: false, discrecion_comercial: false, sin_pago_previo_primer_envio: false, alta_por: null,
-  cuenta_contable: '', forma_pago_holded_id: '', anotaciones: '',
+  plazo_pago_dias: 120, iva_pct: 21, retencion_pct: 0, recargo_equivalencia_pct: 0,
+  recargo_pago_tarde_pct: 0, riesgo_cesce_euros: null, riesgo_manual_euros: null,
+  factor_tarifa_pct: -7, factor_fijado_a_mano: false, permite_contraoferta: false, discrecion_comercial: false, exento_pago_previo_primer_envio: false, alta_por: null,
+  cuenta_contable: '', holded_forma_pago_ref: '', anotaciones: '',
   contactos: [CONTACTO_VACIO()],
 };
 
@@ -104,7 +104,7 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
                   <td>{c.direccion || '—'}<div className="meta">{[c.codigo_postal, c.poblacion, c.provincia, paisDe(c.pais_codigo_iso)].filter(Boolean).join(', ')}</div></td>
                   <td>{c.plazo_pago_dias === 0 ? 'Pago inmediato (0 días)' : `Crédito ${c.plazo_pago_dias} días`}
                     <div className="meta">{cesce > 0 ? <span style={{ color: '#0f6b3a', fontWeight: 700 }}>CESCE {euros(cesce)}</span> : 'Sin crédito CESCE'} · Dynamo {euros(dyn)}</div></td>
-                  <td><Factor v={Number(c.factor_tarifa_porcentaje)} /><div className="meta">{c.factor_fijado_a_mano ? 'fijado a mano' : 'automático'}</div></td>
+                  <td><Factor v={Number(c.factor_tarifa_pct)} /><div className="meta">{c.factor_fijado_a_mano ? 'fijado a mano' : 'automático'}</div></td>
                   <td>{creadoTxt(c.creado_en)}{c.modificado_en && <div className="meta">Modif. {creadoTxt(c.modificado_en)}</div>}</td>
                   <td><span className={`badge badge-${est[2]}`}>{est[1]}</span></td>
                 </tr>
@@ -124,7 +124,7 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
 
 function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { fila: ClienteFila | null; bienvenida: Bienvenida; empleados: Empleado[]; onCerrar: () => void; onGuardado: () => void }) {
   const [d, setD] = useState<ClienteDatos>(() => {
-    if (!fila) return { ...NUEVO, factor_tarifa_porcentaje: bienvenida.pct };
+    if (!fila) return { ...NUEVO, factor_tarifa_pct: bienvenida.pct };
     const o: any = {};
     (Object.keys(NUEVO) as (keyof ClienteDatos)[]).forEach((k) => { o[k] = (fila as any)[k] ?? (NUEVO as any)[k]; });
     return o as ClienteDatos;
@@ -132,8 +132,8 @@ function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { f
   const [textos, setTextos] = useState({
     cesce: d.riesgo_cesce_euros == null ? '' : String(d.riesgo_cesce_euros),
     dyn: d.riesgo_manual_euros == null ? '' : String(d.riesgo_manual_euros),
-    iva: String(d.iva_porcentaje), ret: String(d.retencion_porcentaje),
-    re: String(d.recargo_equivalencia_porcentaje), tarde: String(d.recargo_pago_tarde_porcentaje),
+    iva: String(d.iva_pct), ret: String(d.retencion_pct),
+    re: String(d.recargo_equivalencia_pct), tarde: String(d.recargo_pago_tarde_pct),
   });
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -148,8 +148,8 @@ function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { f
     const r = await guardarCliente(fila?.id ?? null, {
       ...d,
       riesgo_cesce_euros: n.cesce, riesgo_manual_euros: n.dyn,
-      iva_porcentaje: n.iva ?? 21, retencion_porcentaje: n.ret ?? 0,
-      recargo_equivalencia_porcentaje: n.re ?? 0, recargo_pago_tarde_porcentaje: n.tarde ?? 0,
+      iva_pct: n.iva ?? 21, retencion_pct: n.ret ?? 0,
+      recargo_equivalencia_pct: n.re ?? 0, recargo_pago_tarde_pct: n.tarde ?? 0,
     });
     setGuardando(false);
     if (!r.ok) { setError(r.error); return; }
@@ -170,7 +170,7 @@ function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { f
         onChange={(e) => setTextos((t) => ({ ...t, [k]: e.target.value }))} />
     </div>
   );
-  const interruptor = (k: 'permite_contraoferta' | 'discrecion_comercial' | 'sin_pago_previo_primer_envio', label: string) => (
+  const interruptor = (k: 'permite_contraoferta' | 'discrecion_comercial' | 'exento_pago_previo_primer_envio', label: string) => (
     <div>
       <label>{label}</label>
       <label className="ptar-tramp-box">
@@ -238,16 +238,16 @@ function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { f
         <div />
         {interruptor('permite_contraoferta', 'Puede hacer contraoferta de precio (si además está encendida en Parámetros)')}
         {interruptor('discrecion_comercial', 'Discreción comercial por defecto')}
-        {interruptor('sin_pago_previo_primer_envio', 'Empresa conocida: sin pago previo del primer envío')}
+        {interruptor('exento_pago_previo_primer_envio', 'Empresa conocida: sin pago previo del primer envío')}
         <div className="meta" style={{ alignSelf: 'end' }}>Solo cuenta si tiene crédito disponible. Sin crédito, todos sus envíos se pagan por adelantado.</div>
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="cli-factor">Factor de precio del cliente (%) <span style={{ fontWeight: 600, color: 'var(--gray-500)' }}>· de −30 % a +30 %</span> <span style={{ fontWeight: 800, color: 'var(--red)' }}>· SOLO VISIBLE ADMIN — el cliente NUNCA ve este campo</span></label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', marginTop: '0.4rem' }}>
             <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', whiteSpace: 'nowrap' }}>−30 %</span>
-            <input id="cli-factor" type="range" min={-30} max={30} step={1} value={d.factor_tarifa_porcentaje}
-              onChange={(e) => { set('factor_tarifa_porcentaje', Number(e.target.value)); set('factor_fijado_a_mano', true); }} style={{ flex: 1, accentColor: 'var(--purple)', padding: 0, border: 'none' }} />
+            <input id="cli-factor" type="range" min={-30} max={30} step={1} value={d.factor_tarifa_pct}
+              onChange={(e) => { set('factor_tarifa_pct', Number(e.target.value)); set('factor_fijado_a_mano', true); }} style={{ flex: 1, accentColor: 'var(--purple)', padding: 0, border: 'none' }} />
             <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', whiteSpace: 'nowrap' }}>+30 %</span>
-            <span style={{ minWidth: 58, textAlign: 'center' }}><Factor v={d.factor_tarifa_porcentaje} /></span>
+            <span style={{ minWidth: 58, textAlign: 'center' }}><Factor v={d.factor_tarifa_pct} /></span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
             <label className="ptar-tramp-box" style={{ flex: '0 0 auto' }}>
@@ -256,7 +256,7 @@ function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { f
                   const mano = e.target.checked;
                   set('factor_fijado_a_mano', mano);
                   // Vuelta al automático: se enseña ya lo que le tocará (el servidor lo recalcula igual).
-                  if (!mano) set('factor_tarifa_porcentaje', (fila?.envios_que_cuentan ?? 0) < bienvenida.envios ? bienvenida.pct : 0);
+                  if (!mano) set('factor_tarifa_pct', (fila?.envios_que_cuentan ?? 0) < bienvenida.envios ? bienvenida.pct : 0);
                 }} />
               <span className="ptar-switch" aria-hidden="true" />
               <span className="ptar-tramp-state" aria-hidden="true"><span className="tramp-off">Automático</span><span className="tramp-on">Fijado a mano</span></span>
@@ -280,7 +280,7 @@ function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { f
 
         {titulo('Contabilidad (Holded)')}
         {campo('cuenta_contable', 'Cuenta contable', 'Ej. 43000123')}
-        {campo('forma_pago_holded_id', 'Forma de pago en Holded (ID)', 'Ej. 5f2a…')}
+        {campo('holded_forma_pago_ref', 'Forma de pago en Holded (ID)', 'Ej. 5f2a…')}
         <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="cli-notas">Notas internas</label>
           <textarea id="cli-notas" rows={3} placeholder="Solo visibles para el equipo Dynamo" value={d.anotaciones} onChange={(e) => set('anotaciones', e.target.value)} />

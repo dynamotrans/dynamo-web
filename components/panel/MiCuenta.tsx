@@ -25,7 +25,7 @@ const IDIOMAS: [string, string][] = [
 export type TransporteDatos = {
   id: string; nima: string | null; bolsa: string | null; codigo_bolsa: string | null; plazo_pago_dias: number | null;
   seguro_cmr_compania: string | null; seguro_cmr_poliza: string | null; seguro_cmr_vence: string | null;
-  vehiculos: { id: string; matricula: string; tipo: string; itv_vence: string | null; seguro_vence: string | null; tarjeta_transporte_vence: string | null; adr: boolean; trampilla: boolean }[];
+  vehiculos: { id: string; matricula: string; tipo: string; itv_vence: string | null; seguro_vence: string | null; tarjeta_transporte_vence: string | null; adr: boolean; tiene_plataforma_elevadora: boolean }[];
   conductores: { id: string; nombre: string; telefono: string | null; documento: string | null; documento_pais: string | null }[];
 };
 const TIPO_VEH: Record<string, string> = { tractora: 'Tractora', remolque: 'Remolque', rigido: 'Rígido' };
@@ -100,8 +100,8 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
             {transporte.vehiculos.length === 0 && transporte.conductores.length === 0 && <p className="account-card-desc">Aún no hay camiones ni conductores. Se añaden solos al darnos la matrícula y el conductor de cada viaje.</p>}
             {transporte.vehiculos.map((v) => (
               <button type="button" key={v.id} className="account-row account-row-btn" title="Editar este vehículo"
-                onClick={() => setVehiculo({ id: v.id, matricula: v.matricula, tipo: v.tipo as MiVehiculo['tipo'], itv: v.itv_vence ?? '', seguro: v.seguro_vence ?? '', tarjeta: v.tarjeta_transporte_vence ?? '', adr: v.adr, trampilla: v.trampilla })}>
-                <span className="account-row-label">{TIPO_VEH[v.tipo] ?? v.tipo}{v.trampilla ? ' · trampilla' : ''}{v.adr ? ' · ADR' : ''}</span>
+                onClick={() => setVehiculo({ id: v.id, matricula: v.matricula, tipo: v.tipo as MiVehiculo['tipo'], itv: v.itv_vence ?? '', seguro: v.seguro_vence ?? '', tarjeta: v.tarjeta_transporte_vence ?? '', adr: v.adr, tiene_plataforma_elevadora: v.tiene_plataforma_elevadora })}>
+                <span className="account-row-label">{TIPO_VEH[v.tipo] ?? v.tipo}{v.tiene_plataforma_elevadora ? ' · plataforma elevadora' : ''}{v.adr ? ' · ADR' : ''}</span>
                 <span className="account-row-value"><strong>{v.matricula}</strong>{v.itv_vence && <><br /><span style={{ fontSize: 'var(--fs-s)' }}>ITV: <Vence f={v.itv_vence} /></span></>}</span>
               </button>
             ))}
@@ -112,7 +112,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
               </button>
             ))}
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.8rem' }}>
-              <button className="btn-ghost" onClick={() => setVehiculo({ id: null, matricula: '', tipo: 'tractora', itv: '', seguro: '', tarjeta: '', adr: false, trampilla: false })}>+ Añadir vehículo</button>
+              <button className="btn-ghost" onClick={() => setVehiculo({ id: null, matricula: '', tipo: 'tractora', itv: '', seguro: '', tarjeta: '', adr: false, tiene_plataforma_elevadora: false })}>+ Añadir vehículo</button>
               <button className="btn-ghost" onClick={() => setConductor({ id: null, nombre: '', documento: '', pais: 'ES', telefono: '' })}>+ Añadir conductor</button>
             </div>
             <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>También se completa sola con los camiones y conductores de tus viajes. Pulsa uno para cambiar sus datos o darlo de baja.</p>
@@ -288,9 +288,9 @@ function EditarVehiculo({ inicial, onCerrar, onHecho }: { inicial: MiVehiculo; o
         {v.tipo !== 'remolque' && fechaCampo('mv-tt', 'Tarjeta de transporte vence', v.tarjeta, (x) => setV({ ...v, tarjeta: x }))}
         {v.tipo === 'rigido' && (
           <div>
-            <label>Trampilla elevadora</label>
+            <label>Plataforma elevadora</label>
             <label className="ptar-tramp-box">
-              <input type="checkbox" className="ptar-switch-input" checked={v.trampilla} onChange={(e) => setV({ ...v, trampilla: e.target.checked })} />
+              <input type="checkbox" className="ptar-switch-input" checked={v.tiene_plataforma_elevadora} onChange={(e) => setV({ ...v, tiene_plataforma_elevadora: e.target.checked })} />
               <span className="ptar-switch" aria-hidden="true" />
               <span className="ptar-tramp-state" aria-hidden="true"><span className="tramp-off">No</span><span className="tramp-on">Sí</span></span>
             </label>

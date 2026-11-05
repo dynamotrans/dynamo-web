@@ -58,7 +58,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       'fecha_carga_desde, fecha_carga_hasta, fecha_carga_real, fecha_entrega_estimada, descripcion_mercancia, ' +
       'toneladas, metros_lineales, tipo_carga, paletizado, poblacion_origen, codigo_postal_origen, poblacion_destino, codigo_postal_destino, ' +
       'importe_cliente, importe_transportista, precio_acordado_operador, precio_fijado_a_mano, matricula_camion, ' +
-      'matricula_remolque, creado_en, modificado_en, creado_por, solicitud_estado, pago_previo, cambio_cliente_estado, precio_revisar, clientes(nombre_visible, cif), operadores(razon_social), ' +
+      'matricula_remolque, creado_en, modificado_en, creado_por, estado_solicitud, estado_pago_previo, estado_cambio_cliente, requiere_revision_precio, clientes(nombre_visible, cif), operadores(razon_social), ' +
       'envio_paradas(orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)';
     const TERMINADOS = 1000;
     let data: any[] = [];
@@ -105,8 +105,8 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
     // Previo pago (el cliente no lee la tabla de envíos: lo trae pagos_envio()).
     if (rol === 'cliente') {
       const { data: pagos } = await supabase.rpc('pagos_envio');
-      const pp = new Map(((pagos ?? []) as { envio_id: string; pago_previo: string }[]).map((x) => [x.envio_id, x.pago_previo]));
-      filas.forEach((f) => { f.pago_previo = pp.get(f.id) ?? null; });
+      const pp = new Map(((pagos ?? []) as { envio_id: string; estado_pago_previo: string }[]).map((x) => [x.envio_id, x.estado_pago_previo]));
+      filas.forEach((f) => { f.estado_pago_previo = pp.get(f.id) ?? null; });
     }
     // Nombre del operador de los envíos manuales del cliente (su propio catálogo).
     const ids = [...new Set(filas.map((f: any) => f.operador_id).filter(Boolean))];
@@ -149,7 +149,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       const { data: pg } = await supabase.rpc('pagos_envio', { p_envio: fichaCli.id }).maybeSingle();
       const { data: cf } = await supabase.rpc('mi_contraoferta', { p_envio: fichaCli.id }).maybeSingle();
       const { data: cb } = await supabase.rpc('mi_cambio_envio', { p_envio: fichaCli.id }).maybeSingle();
-      const { data: rv } = await supabase.rpc('revision_precio_envio', { p_envio: fichaCli.id }).maybeSingle();
+      const { data: rv } = await supabase.rpc('ver_revision_precio_envio', { p_envio: fichaCli.id }).maybeSingle();
       // Hora límite para cancelar gratis (9:00 del día hábil anterior): sale en el aviso de «llámanos».
       const fc = fichaCli.fecha_carga_desde ?? fichaCli.fecha_carga_real;
       const { data: corte } = fc ? await supabase.rpc('corte_cancelacion', { p_fecha_carga: fc }) : { data: null };

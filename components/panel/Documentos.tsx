@@ -11,7 +11,7 @@ import { documentosDe, rutaDeSubida, registrarDocumento, quitarDocumento, visibl
 import { creadoTxt } from '@/lib/envios';
 
 export const TIPOS_DOC: Record<string, string> = {
-  albaran: 'Albarán', cmr: 'CMR', cmr_firmado: 'CMR firmado', orden_transporte: 'Orden de transporte', proforma: 'Proforma',
+  albaran: 'Albarán', cmr: 'CMR', cmr_firmado: 'CMR firmado', orden_carga: 'Orden de carga', proforma: 'Proforma',
   seguro_cmr: 'Seguro CMR', tarjeta_transporte: 'Tarjeta de transporte', foto_incidencia: 'Foto', gps_tacografo: 'GPS / tacógrafo',
   hoja_cif: 'Hoja CIF', dni: 'DNI', logo: 'Logo', adjunto: 'Adjunto', otro: 'Otro',
 };

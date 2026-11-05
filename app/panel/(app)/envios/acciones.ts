@@ -86,8 +86,8 @@ export async function deshacerCancelacion(envio: string): Promise<Res> {
 export type DatosEnvio = {
   referencia_cliente: string; fecha_carga_desde: string; fecha_carga_hasta: string; fecha_entrega_estimada: string;
   descripcion_mercancia: string; metros_lineales: number | null; toneladas: number | null;
-  paletizado: boolean; carga_lateral: boolean; carga_trasera: boolean; carga_superior: boolean;
-  plataforma_elevadora: boolean; nima_requerido: boolean; adr: boolean;
+  paletizado: boolean; carga_lateral: boolean; carga_trasera: boolean; carga_techo: boolean;
+  requiere_plataforma_elevadora: boolean; requiere_nima: boolean; adr: boolean;
   importe_cliente: number | null; importe_transportista: number | null; negociacion_pct?: number | null;
   precio_acordado_operador: number | null;   // solo envíos manuales (con su propio transportista)
   discrecion_comercial: boolean; anotaciones_cliente: string;
@@ -107,8 +107,8 @@ export async function modificarEnvio(envio: string, d: DatosEnvio, precioAntes: 
     fecha_carga_desde: d.fecha_carga_desde || null, fecha_carga_hasta: d.fecha_carga_hasta || null,
     fecha_entrega_estimada: d.fecha_entrega_estimada || null,
     descripcion_mercancia: vacio(d.descripcion_mercancia), metros_lineales: d.metros_lineales, toneladas: d.toneladas,
-    paletizado: d.paletizado, carga_lateral: d.carga_lateral, carga_trasera: d.carga_trasera, carga_superior: d.carga_superior,
-    plataforma_elevadora: d.plataforma_elevadora, nima_requerido: d.nima_requerido, adr: d.adr,
+    paletizado: d.paletizado, carga_lateral: d.carga_lateral, carga_trasera: d.carga_trasera, carga_techo: d.carga_techo,
+    requiere_plataforma_elevadora: d.requiere_plataforma_elevadora, requiere_nima: d.requiere_nima, adr: d.adr,
     importe_cliente: d.importe_cliente, importe_transportista: d.importe_transportista,
     ...(d.negociacion_pct !== undefined ? { negociacion_pct: [0, 5, 10, 30].includes(d.negociacion_pct as number) ? d.negociacion_pct : null } : {}),
     discrecion_comercial: d.discrecion_comercial, anotaciones_cliente: vacio(d.anotaciones_cliente),
@@ -160,7 +160,7 @@ export async function revocarOferta(oferta: string): Promise<Res> {
 export async function resolverContraoferta(reserva: string, aprobar: boolean): Promise<Res> {
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo resuelve contraofertas.' };
-  const { data, error } = await s.supabase.rpc('resolver_contraoferta', { p_reserva: reserva, p_aprobar: aprobar });
+  const { data, error } = await s.supabase.rpc('resolver_contraoferta', { p_reserva: reserva, p_acepta: aprobar });
   if (error) return { ok: false, error: traducir(error.message) };
   const r = (data as { resultado: string }).resultado;
   if (r === 'no_hay_contraoferta_pendiente') return { ok: false, error: 'Esa contraoferta ya no está pendiente.' };
@@ -215,7 +215,7 @@ export async function archivarPdf(envioId: string, documento: 'orden-de-carga' |
   if (eSubida) return { ok: false, error: `No se ha podido guardar el archivo: ${eSubida.message}` };
   const sha = createHash('sha256').update(r.bytes).digest('hex');
   const { error } = await s.supabase.from('documentos').insert({
-    envio_id: envioId, tipo: documento === 'cmr' ? 'cmr' : 'orden_transporte', storage_bucket: 'documentos', storage_ruta: ruta,
+    envio_id: envioId, tipo: documento === 'cmr' ? 'cmr' : 'orden_carga', storage_bucket: 'documentos', storage_ruta: ruta,
     nombre_archivo: nombre, tipo_mime: 'application/pdf', tamano_bytes: r.bytes.length, sha256: sha, visible_cliente: false,
   });
   if (error) return { ok: false, error: mensajeError(error.message) };
@@ -227,7 +227,7 @@ export async function archivarPdf(envioId: string, documento: 'orden-de-carga' |
 export async function sugerirFlota(transportista: string, d: { matricula?: string; conductor?: string }): Promise<{ conductor: string | null; telefono: string | null } | null> {
   const s = await soloDynamo();
   if (!s || !transportista) return null;
-  const { data, error } = await s.supabase.rpc('flota_sugerencia', { p_transportista: transportista, p_matricula: d.matricula ?? null, p_conductor: d.conductor ?? null });
+  const { data, error } = await s.supabase.rpc('flota_sugerencia', { p_transportista: transportista, p_matricula: d.matricula ?? null, p_conductor_nombre: d.conductor ?? null });
   if (error) return null;
   return { conductor: (data as any)?.conductor ?? null, telefono: (data as any)?.telefono ?? null };
 }
@@ -290,7 +290,7 @@ export async function marcarPagoEnvio(envio: string, accion: 'transferencia' | '
 export async function resolverContraofertaCliente(envio: string, aprobar: boolean): Promise<Res> {
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo resuelve las contraofertas.' };
-  const { data, error } = await s.supabase.rpc('resolver_contraoferta_cliente', { p_envio: envio, p_aprobar: aprobar });
+  const { data, error } = await s.supabase.rpc('resolver_contraoferta_cliente', { p_envio: envio, p_acepta: aprobar });
   if (error) return { ok: false, error: traducir(error.message) };
   const r = (data as { resultado: string }).resultado;
   if (r === 'no_pendiente') return { ok: false, error: 'Esa contraoferta ya no está pendiente.' };
@@ -303,7 +303,7 @@ export async function resolverContraofertaCliente(envio: string, aprobar: boolea
 export async function resolverCambio(envio: string, aceptar: boolean, nota: string): Promise<Res> {
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo Dynamo resuelve los cambios.' };
-  const { data, error } = await s.supabase.rpc('resolver_cambio_envio', { p_envio: envio, p_aceptar: aceptar, p_nota: nota.trim() || null });
+  const { data, error } = await s.supabase.rpc('resolver_cambio_envio', { p_envio: envio, p_acepta: aceptar, p_nota: nota.trim() || null });
   if (error) return { ok: false, error: traducir(error.message) };
   if ((data as { resultado: string }).resultado !== 'ok') return { ok: false, error: 'Ese cambio ya no está pendiente.' };
   return { ok: true, aviso: aceptar ? 'Cambio aceptado. Si pedía cambiar la ruta o afecta al precio, hazlo con «Cambiar ruta» o «Modificar».' : 'Cambio rechazado: el cliente lo ve con tu nota.' };

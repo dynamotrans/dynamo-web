@@ -9,10 +9,10 @@ export type UsuarioDatos = {
   nombre: string; documento: string; telefono: string; cargo: string; idioma: string;
   estado: 'activa' | 'pendiente_verificacion' | 'suspendida';
   cliente_id: string; transportista_id: string;
-  limite_consultas_precio_diario: number | null; limite_cargas_diario: number | null;
+  limite_consultas_precio_diario: number | null; limite_envios_diario: number | null;
   anotaciones: string;
   copias: string;                 // «Enviar copia a»: emails separados por comas (máx. 10)
-  sin_autosuspension: boolean;    // «No suspender nunca automáticamente»
+  exento_autosuspension: boolean;    // «No suspender nunca automáticamente»
 };
 type Res = { ok: true } | { ok: false; error: string };
 
@@ -54,8 +54,8 @@ export async function guardarUsuario(id: string, rol: Rol, d: UsuarioDatos): Pro
     nombre: vacio(d.nombre), documento: vacio(d.documento)?.toUpperCase() ?? null,
     telefono: tel.replace('+', '').length >= 6 ? tel : null, cargo: vacio(d.cargo), idioma: d.idioma || 'es',
     estado: d.estado, ...empresaDe(rol, d.cliente_id, d.transportista_id),
-    limite_consultas_precio_diario: d.limite_consultas_precio_diario, limite_cargas_diario: d.limite_cargas_diario,
-    anotaciones: vacio(d.anotaciones), copias_avisos: [...new Set(copias)], sin_autosuspension: !!d.sin_autosuspension,
+    limite_consultas_precio_diario: d.limite_consultas_precio_diario, limite_envios_diario: d.limite_envios_diario,
+    anotaciones: vacio(d.anotaciones), emails_copia_avisos: [...new Set(copias)], exento_autosuspension: !!d.exento_autosuspension,
   }).eq('id', id);
   return error ? { ok: false, error: traducir(error.message) } : { ok: true };
 }

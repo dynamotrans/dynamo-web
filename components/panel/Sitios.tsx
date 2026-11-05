@@ -397,7 +397,7 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, veranoDefecto = VE
         <EditorContactos valor={d.contactos} onCambio={(l) => set('contactos', l)}
           ayuda="Encargado de almacén, recepción… La primera es la principal (la que sale en la tabla)." />
         {interruptor('requiere_cita', 'Requiere cita previa', 'Solo carga o descarga con cita. Se avisa al transportista antes de que llegue.')}
-        {interruptor('tiene_medios_carga', 'Tiene medios de carga', 'Muelle, carretilla… Si no los hay, hace falta camión con trampilla elevadora.')}
+        {interruptor('tiene_medios_carga', 'Tiene medios de carga', 'Muelle, carretilla… Si no los hay, hace falta camión con plataforma elevadora.')}
         {dynamo
           ? campo('url_google_maps', 'Enlace de Google Maps', 'https://maps.app.goo.gl/…', true)
           : <div style={{ gridColumn: '1/-1' }}>

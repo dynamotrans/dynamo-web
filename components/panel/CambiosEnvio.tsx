@@ -22,13 +22,13 @@ export function AvisoCambiosDynamo({ e, hacer, onModificar }: { e: any; hacer: H
   const c = e.cambio_cliente;
   return (
     <>
-      {e.precio_revisar && (
+      {e.requiere_revision_precio && (
         <div className="modal-warn-box" style={{ marginBottom: '0.8rem' }}>
           <strong style={{ color: '#b42318' }}>La ruta ha cambiado: revisa el precio</strong> del cliente y del transportista (y, si ya hay camión, confírmalo con él).
           <div style={{ marginTop: '0.5rem' }}><button className="btn-primary" onClick={onModificar}>Revisar precio</button></div>
         </div>
       )}
-      {e.cambio_cliente_estado === 'pendiente' && c && (
+      {e.estado_cambio_cliente === 'pendiente' && c && (
         <div className="modal-warn-box" style={{ marginBottom: '0.8rem' }}>
           <strong>El cliente pide un cambio</strong>{e.cambio_cliente_en ? ` (${creadoTxt(e.cambio_cliente_en)})` : ''}:
           {fechasTxt(c) && <> nuevas fechas de carga <strong>{fechasTxt(c)}</strong> (ahora {ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}).</>}
@@ -43,7 +43,7 @@ export function AvisoCambiosDynamo({ e, hacer, onModificar }: { e: any; hacer: H
           <div className="meta" style={{ marginTop: '0.3rem' }}>Si pide cambiar la ruta o afecta al precio, hazlo después con «Cambiar ruta» o «Modificar».</div>
         </div>
       )}
-      {e.cambio_cliente_estado === 'aplicado' && c && (
+      {e.estado_cambio_cliente === 'aplicado' && c && (
         <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>El cliente cambió las fechas de carga{e.cambio_cliente_en ? ` el ${creadoTxt(e.cambio_cliente_en)}` : ''} (sin camión asignado, se aplicó solo): antes {ventana(c.antes_desde, c.antes_hasta)}.</div></div>
       )}
     </>

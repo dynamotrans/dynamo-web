@@ -46,7 +46,7 @@ export default async function PaginaUsuarios() {
       ultima_conexion: ult, email_confirmado: c?.email_confirmado ?? false,
       envios: m?.envios ?? 0, cancelados: m?.cancelados ?? 0, cancelados_ult10: m?.ult10 ?? 0,
       consultas: Number(t?.consultas ?? 0), min_dia: t?.min_dia ?? 0, min_semana: t?.min_semana ?? 0,
-      copias: (u.copias_avisos ?? []).join(', '), sin_autosuspension: !!u.sin_autosuspension,
+      copias: (u.emails_copia_avisos ?? []).join(', '), exento_autosuspension: !!u.exento_autosuspension,
       suspension_motivo: u.suspension_motivo ?? null, suspendida_en: u.suspendida_en ?? null,
     };
   });

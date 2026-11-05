@@ -16,10 +16,10 @@ export default function DatosCmr({ envioId, puedeEditar, bloquearSiFirmado = fal
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
 
-  const VACIO: Datos = { numero_bultos: null, embalaje: null, volumen_m3: null, firmado: false };
+  const VACIO: Datos = { num_bultos: null, embalaje: null, volumen_m3: null, firmado: false };
   useEffect(() => { leerDatosCmr(envioId).then((x) => setD(x ?? VACIO)); }, [envioId]);
-  const abrir = () => { setF({ b: txt(d?.numero_bultos ?? null), e: d?.embalaje ?? '', v: txt(d?.volumen_m3 ?? null) }); setError(null); setEditando(true); };
-  const resumen = d && [d.numero_bultos != null && `${d.numero_bultos} bultos`, d.embalaje, d.volumen_m3 != null && `${txt(d.volumen_m3)} m³`].filter(Boolean).join(' · ');
+  const abrir = () => { setF({ b: txt(d?.num_bultos ?? null), e: d?.embalaje ?? '', v: txt(d?.volumen_m3 ?? null) }); setError(null); setEditando(true); };
+  const resumen = d && [d.num_bultos != null && `${d.num_bultos} bultos`, d.embalaje, d.volumen_m3 != null && `${txt(d.volumen_m3)} m³`].filter(Boolean).join(' · ');
 
   if (!editando) {
     return (

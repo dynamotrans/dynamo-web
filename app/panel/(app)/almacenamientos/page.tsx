@@ -39,8 +39,8 @@ export default async function PaginaAlmacenamientos({ searchParams }: { searchPa
     num_repartos: a.num_repartos, sitio_entrega_id: a.sitio_entrega_id, entrega: a.entrega ? `${a.entrega.nombre_empresa ?? ''} · ${dir(a.entrega)}` : null,
     descripcion: a.descripcion, referencia_cliente: a.referencia_cliente, anotaciones: notas.get(a.id)?.anotaciones ?? '',
     importe_almacenaje: a.importe_almacenaje != null ? Number(a.importe_almacenaje) : null, importe_reparto: a.importe_reparto != null ? Number(a.importe_reparto) : null,
-    importe_total: Number(a.importe_total ?? 0), iva_aplicado: a.iva_aplicado != null ? Number(a.iva_aplicado) : 21,
-    pago_adelantado: a.pago_adelantado, pagado_en: a.pagado_en ?? null, estado: a.estado, creado_en: a.creado_en, modificado_en: a.modificado_en,
+    importe_total: Number(a.importe_total ?? 0), iva_pct: a.iva_pct != null ? Number(a.iva_pct) : 21,
+    requiere_pago_previo: a.requiere_pago_previo, pagado_en: a.pagado_en ?? null, estado: a.estado, creado_en: a.creado_en, modificado_en: a.modificado_en,
   }));
   const opciones: AlmacenOpcion[] = (almacenes.data ?? []).map((l: any) => ({
     id: l.id, nombre: l.nombre_empresa ?? 'Almacén Dynamo', provincia: l.provincia ?? l.poblacion ?? '', dir: dir(l), disponible: l.disponible !== false,
@@ -60,7 +60,7 @@ async function AlmacenamientosCliente({ abrir, tab }: { abrir: boolean; tab?: st
   if (!s?.perfil) return null;
   const { supabase } = s;
   const [alm, almacenes, cob, sit] = await Promise.all([
-    leerTodo(supabase.from('almacenamientos').select('id, codigo, cliente_id, almacen_id, fecha_entrada, fecha_salida, num_trailers, num_repartos, sitio_entrega_id, descripcion, referencia_cliente, importe_almacenaje, importe_reparto, importe_total, iva_aplicado, pago_adelantado, pagado_en, estado, creado_en, modificado_en, ' +
+    leerTodo(supabase.from('almacenamientos').select('id, codigo, cliente_id, almacen_id, fecha_entrada, fecha_salida, num_trailers, num_repartos, sitio_entrega_id, descripcion, referencia_cliente, importe_almacenaje, importe_reparto, importe_total, iva_pct, requiere_pago_previo, pagado_en, estado, creado_en, modificado_en, ' +
       'almacen:sitios!almacenamientos_almacen_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion, provincia), entrega:sitios!almacenamientos_sitio_entrega_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion)')
       .order('fecha_entrada', { ascending: false }), 2000),
     supabase.rpc('almacenes_dynamo_tarifa'),
@@ -76,8 +76,8 @@ async function AlmacenamientosCliente({ abrir, tab }: { abrir: boolean; tab?: st
     num_repartos: a.num_repartos, sitio_entrega_id: a.sitio_entrega_id, entrega: a.entrega ? `${a.entrega.nombre_empresa ?? ''} · ${dirDe(a.entrega)}` : null,
     descripcion: a.descripcion ?? '', referencia_cliente: a.referencia_cliente ?? '', anotaciones: '',
     importe_almacenaje: a.importe_almacenaje != null ? Number(a.importe_almacenaje) : null, importe_reparto: a.importe_reparto != null ? Number(a.importe_reparto) : null,
-    importe_total: Number(a.importe_total ?? 0), iva_aplicado: a.iva_aplicado != null ? Number(a.iva_aplicado) : 21,
-    pago_adelantado: a.pago_adelantado, pagado_en: a.pagado_en ?? null, estado: a.estado, creado_en: a.creado_en, modificado_en: a.modificado_en,
+    importe_total: Number(a.importe_total ?? 0), iva_pct: a.iva_pct != null ? Number(a.iva_pct) : 21,
+    requiere_pago_previo: a.requiere_pago_previo, pagado_en: a.pagado_en ?? null, estado: a.estado, creado_en: a.creado_en, modificado_en: a.modificado_en,
   }));
   const opciones: AlmacenOpcion[] = ((almacenes.data ?? []) as any[]).map((l) => ({
     id: l.id, nombre: l.nombre ?? 'Almacén Dynamo', provincia: l.provincia ?? l.poblacion ?? '', dir: dirDe(l), disponible: l.disponible !== false,

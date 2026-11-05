@@ -11,7 +11,7 @@ a.tab { text-decoration: none; display: inline-block; }
   border: 1px solid var(--gray-200); background: white; font-size: var(--fs-m); color: var(--gray-700); padding: 0 0.4rem;
 }
 .pagination-pages a.active { background: var(--purple); color: white; border-color: var(--purple); }
-/* El interruptor Sí/No (Trampilla/NIMA) dentro de una ficha con .ptar-sitio-grid: la
+/* El interruptor Sí/No (plataforma elevadora/NIMA) dentro de una ficha con .ptar-sitio-grid: la
    rejilla da estilo a TODOS sus input y label, así que se le devuelve el suyo. */
 .ptar-sitio-grid label.ptar-tramp-box { display: flex; margin-bottom: 0; color: inherit; font-weight: 400; }
 .ptar-sitio-grid .ptar-switch-input { position: absolute; opacity: 0; width: 0; height: 0; padding: 0; border: 0; }

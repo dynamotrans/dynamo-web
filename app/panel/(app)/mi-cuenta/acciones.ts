@@ -69,22 +69,22 @@ const limpiaError = (m: string) => mensajeError(m.replace(/^.*?ERROR:\s*/i, ''))
 export async function guardarMiTransporte(d: { nima: string; compania: string; poliza: string; vence: string }): Promise<Res> {
   const s = await soloTransportista();
   if (!s) return { ok: false, error: 'Solo un transportista con la cuenta activa puede cambiar estos datos.' };
-  const { error } = await s.supabase.rpc('mi_transporte_guardar', {
+  const { error } = await s.supabase.rpc('guardar_mis_datos_transporte', {
     p_nima: d.nima, p_seguro_compania: d.compania, p_seguro_poliza: d.poliza, p_seguro_vence: fechaOnull(d.vence),
   });
   return error ? { ok: false, error: limpiaError(error.message) } : { ok: true };
 }
 
-export type MiVehiculo = { id: string | null; matricula: string; tipo: 'tractora' | 'remolque' | 'rigido'; itv: string; seguro: string; tarjeta: string; adr: boolean; trampilla: boolean };
+export type MiVehiculo = { id: string | null; matricula: string; tipo: 'tractora' | 'remolque' | 'rigido'; itv: string; seguro: string; tarjeta: string; adr: boolean; tiene_plataforma_elevadora: boolean };
 export async function guardarMiVehiculo(v: MiVehiculo): Promise<Res> {
   const s = await soloTransportista();
   if (!s) return { ok: false, error: 'Solo un transportista con la cuenta activa puede cambiar su flota.' };
   const mat = v.matricula.trim().toUpperCase();
   if (!v.id && mat.replace(/[^A-Z0-9]/g, '').length < 4) return { ok: false, error: 'Escribe la matrícula completa.' };
   if (!['tractora', 'remolque', 'rigido'].includes(v.tipo)) return { ok: false, error: 'Elige el tipo de vehículo.' };
-  const { error } = await s.supabase.rpc('mi_vehiculo_guardar', {
-    p_id: v.id, p_matricula: mat, p_tipo: v.tipo, p_itv: fechaOnull(v.itv), p_seguro: fechaOnull(v.seguro), p_tarjeta: fechaOnull(v.tarjeta),
-    p_adr: !!v.adr, p_trampilla: v.tipo === 'rigido' && !!v.trampilla,
+  const { error } = await s.supabase.rpc('guardar_mi_vehiculo', {
+    p_id: v.id, p_matricula: mat, p_tipo: v.tipo, p_itv_vence: fechaOnull(v.itv), p_seguro_vence: fechaOnull(v.seguro), p_tarjeta_transporte_vence: fechaOnull(v.tarjeta),
+    p_adr: !!v.adr, p_plataforma_elevadora: v.tipo === 'rigido' && !!v.tiene_plataforma_elevadora,
   });
   return error ? { ok: false, error: limpiaError(error.message) } : { ok: true };
 }
@@ -103,7 +103,7 @@ export async function guardarMiConductor(c: MiConductor): Promise<Res> {
   }
   const tel = c.telefono.replace(/[\s().-]/g, '');
   if (tel && !/^\+?[0-9]{6,15}$/.test(tel)) return { ok: false, error: 'El teléfono no es válido: solo números, con el prefijo del país.' };
-  const { error } = await s.supabase.rpc('mi_conductor_guardar', {
+  const { error } = await s.supabase.rpc('guardar_mi_conductor', {
     p_id: c.id, p_nombre: c.nombre.trim(), p_documento: doc, p_documento_pais: pais, p_telefono: tel,
   });
   return error ? { ok: false, error: limpiaError(error.message) } : { ok: true };
@@ -112,6 +112,6 @@ export async function guardarMiConductor(c: MiConductor): Promise<Res> {
 export async function darDeBajaFlota(tipo: 'vehiculo' | 'conductor', id: string): Promise<Res> {
   const s = await soloTransportista();
   if (!s) return { ok: false, error: 'Solo un transportista con la cuenta activa puede cambiar su flota.' };
-  const { error } = await s.supabase.rpc('mi_flota_baja', { p_tipo: tipo, p_id: id });
+  const { error } = await s.supabase.rpc('dar_baja_mi_flota', { p_tipo: tipo, p_id: id });
   return error ? { ok: false, error: limpiaError(error.message) } : { ok: true };
 }

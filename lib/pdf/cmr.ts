@@ -115,7 +115,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
 
     // 6-12: tabla de la mercancía
     dato(40, 385, [{ t: e.referencia_gx ?? '—', s: 7.2 }]);
-    dato(117, 385, [{ t: e.numero_bultos != null ? String(e.numero_bultos) : '—', s: 8, b: e.numero_bultos != null }]);
+    dato(117, 385, [{ t: e.num_bultos != null ? String(e.num_bultos) : '—', s: 8, b: e.num_bultos != null }]);
     dato(196, 385, [{ t: e.embalaje || (e.paletizado === false ? 'Sin paletizar' : 'Palets'), s: 7.4, b: false }]);
     dato(276, 385, [
       { t: e.descripcion_mercancia || '—', s: 8 },

@@ -26,7 +26,7 @@ export default async function PaginaDashboardAdmin() {
       'codigo_postal_origen, poblacion_origen, codigo_postal_destino, poblacion_destino, metros_lineales, toneladas, descripcion_mercancia, importe_cliente, clientes(nombre_visible)')
       .neq('estado', 'borrador').order('creado_en', { ascending: false }).limit(5),
     supabase.rpc('pronto_pago_estado'),
-    cuenta(supabase.from('envios').select('id', { count: 'exact', head: true }).eq('estado', 'borrador').eq('solicitud_estado', 'pendiente_precio')),
+    cuenta(supabase.from('envios').select('id', { count: 'exact', head: true }).eq('estado', 'borrador').eq('estado_solicitud', 'pendiente_precio')),
   ]);
   const mini: (MiniEnvio & { importe: number | null })[] = (ultimos.data ?? []).map((x: any) => ({
     id: x.id, referencia_gx: x.referencia_gx, referencia_cliente: x.referencia_cliente, estado: x.estado,
