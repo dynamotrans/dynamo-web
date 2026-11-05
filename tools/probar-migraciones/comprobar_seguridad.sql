@@ -4362,3 +4362,23 @@ do $$ declare rv uuid; begin
   perform liberar_reserva(rv, 'prueba');
   raise notice 'OK 124 · la auditoría no guarda IP de reservas y solo la limpieza RGPD la puede tocar';
 end $$;
+
+-- ---- 125. Cobertura por países: fuera de la lista, bloqueado con su motivo -----------------
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare m text; begin
+  select mensaje into m from comprobar_cobertura('[{"orden":1,"tipo":"carga","pais":"ES","codigo_postal":"41001"},{"orden":2,"tipo":"descarga","pais":"RO","codigo_postal":"010011","nombre":"Bucarest"}]'::jsonb);
+  if m is null or m not like 'No trabajamos en Rumanía. Trabajamos en España, Portugal%' then raise exception 'FALLO 125 · un destino fuera de cobertura no se para con su motivo: %', m; end if;
+  if exists (select 1 from comprobar_cobertura('[{"orden":1,"tipo":"carga","pais":"ES","codigo_postal":"41001"},{"orden":2,"tipo":"descarga","pais":"PT","codigo_postal":"1000-001"}]'::jsonb)) then
+    raise exception 'FALLO 125 · bloquea una ruta que sí se hace (Sevilla-Lisboa)';
+  end if;
+  if not exists (select 1 from comprobar_cobertura('[{"orden":1,"tipo":"carga","pais":"ES","codigo_postal":"41001"},{"orden":2,"tipo":"descarga","pais":"CH","codigo_postal":"8001"}]'::jsonb)) then
+    raise exception 'FALLO 125 · un cliente no ve que Suiza como destino no se hace (las reglas solo las lee Dynamo)';
+  end if;
+  if exists (select 1 from comprobar_cobertura('[{"orden":1,"tipo":"carga","pais":"CH","codigo_postal":"8001"},{"orden":2,"tipo":"descarga","pais":"ES","codigo_postal":"41001"}]'::jsonb)) then
+    raise exception 'FALLO 125 · bloquea una recogida en Suiza (sí se hace)';
+  end if;
+  raise notice 'OK 125 · cobertura: fuera de los países en los que trabajamos se para con el motivo; las excepciones siguen igual';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

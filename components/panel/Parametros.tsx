@@ -48,6 +48,7 @@ const SECCIONES: Seccion[] = [
   { id: 'operativa', titulo: 'Operativa', intro: 'Recogida, entrega, almacenaje y horarios.', subs: [
     { titulo: 'PIN de recogida y entrega', claves: ['pin_cifras', 'pin_max_intentos', 'pin_orden_obliga', 'pin_ventana_horas_antes', 'pin_ventana_horas_despues'] },
     { titulo: 'Almacenamientos', claves: ['almacen_precio_semana', 'almacen_precio_reparto'] },
+    { titulo: 'Cobertura', claves: ['cobertura_paises'] },
     { titulo: 'Horario de verano de los almacenes', claves: ['verano_sitios_desde', 'verano_sitios_hasta'] },
   ] },
   { id: 'autosusp', titulo: 'Suspensión automática de cuentas', intro: 'Cuándo se suspende sola una cuenta.', subs: [], especial: 'autosusp' },
@@ -66,7 +67,7 @@ const SECCIONES: Seccion[] = [
   ] },
 ];
 const CONOCIDAS = new Set([...SECCIONES.flatMap((s) => s.subs.flatMap((u) => u.claves)), ...BANCO]);
-const texto = (v: unknown) => (v === null ? '' : typeof v === 'string' ? v : JSON.stringify(v));
+const texto = (v: unknown) => (v === null ? '' : typeof v === 'string' ? v : Array.isArray(v) ? v.join(', ') : JSON.stringify(v));
 // Quita tildes y mayúsculas para buscar («cesce» encuentra «CESCE», «dias» encuentra «días»).
 const norm = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 

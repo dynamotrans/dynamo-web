@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
-import { crearEnvio, crearClienteRapido, cambiarRuta, crearSolicitud, crearEnvioManual, diasAbiertosDe, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
+import { crearEnvio, crearClienteRapido, cambiarRuta, crearSolicitud, crearEnvioManual, diasAbiertosDe, comprobarCobertura, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
 import { fecha as fmtFecha, euros as eur } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
 import { paisDe } from '@/lib/paises';
@@ -222,8 +222,24 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
     }
     return null;
   }
-  function siguiente() {
-    const e = errorPaso(paso);
+  // Cobertura: tras la ruta (paso 1) y tras la mercancía (paso 2, que ya dice si es
+  // completo o grupaje: hay sitios a los que solo vamos con camión completo).
+  const [comprobando, setComprobando] = useState(false);
+  async function coberturaError(n: number): Promise<string | null> {
+    if (n !== 1 && n !== 2) return null;
+    const paradas = [...recogidas, ...entregas].map((p, i) => {
+      const x = p.sitio ?? p.nuevo;
+      return { orden: i + 1, tipo: p.tipo, pais: x?.pais_codigo_iso || 'ES', codigo_postal: x?.codigo_postal ?? '', nombre: x?.nombre_empresa ?? '' };
+    });
+    setComprobando(true);
+    const r = await comprobarCobertura(paradas, n === 2 ? (ml === '13.3' ? 'completa' : 'grupaje') : null).catch(() => []);
+    setComprobando(false);
+    const malos = r.filter((x) => x.efecto === 'bloquea' || (x.efecto === 'solo_admin' && esCliente));
+    if (!malos.length) return null;
+    return `Esta ruta no la podemos hacer: ${[...new Set(malos.map((x) => `${x.punto}: ${x.mensaje}`))].join(' · ')}`;
+  }
+  async function siguiente() {
+    const e = errorPaso(paso) ?? await coberturaError(paso);
     if (e) { setAviso(e); return; }
     setAviso(null); setPaso((p) => Math.min(4, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -604,7 +620,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
               <button type="button" className="btn-ghost" onClick={enRuta ? () => router.push(`/panel/envios?ver=${be!.id}`) : atras}>{paso === 1 ? 'Cancelar' : '← Atrás'}</button>
               {enRuta
                 ? <button type="button" className="btn-primary" onClick={guardarRuta} disabled={enviando}>{enviando ? 'Guardando…' : 'Guardar ruta'}</button>
-                : <button type="button" className="btn-primary" onClick={siguiente}>{paso === 3 ? 'Ver resumen →' : 'Siguiente →'}</button>}
+                : <button type="button" className="btn-primary" onClick={siguiente} disabled={comprobando}>{comprobando ? 'Comprobando la ruta…' : paso === 3 ? 'Ver resumen →' : 'Siguiente →'}</button>}
             </div>
             {aviso && <div className="wiz-warn show" role="alert">⚠ {aviso}</div>}
           </div>

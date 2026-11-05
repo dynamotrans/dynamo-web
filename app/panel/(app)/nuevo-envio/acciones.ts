@@ -180,3 +180,14 @@ export async function diasAbiertosDe(ids: string[]): Promise<{ sitios: Record<st
   });
   return { sitios, generico };
 }
+
+// ¿Se hace esta ruta? La misma comprobación que al confirmar (países en los que
+// trabajamos y excepciones), pero antes, para avisar en cuanto se pone la ruta. Devuelve
+// los motivos de lo que no se puede (vacío = se puede).
+export async function comprobarCobertura(paradas: { orden: number; tipo: 'carga' | 'descarga'; pais: string; codigo_postal: string; nombre: string }[],
+  tipoCarga: 'completa' | 'grupaje' | null): Promise<{ punto: string; efecto: string; mensaje: string }[]> {
+  const s = await sesion();
+  if (!s?.perfil) return [];
+  const { data } = await s.supabase.rpc('comprobar_cobertura', { p_paradas: paradas.slice(0, 20), p_tipo_carga: tipoCarga });
+  return ((data ?? []) as any[]).map((x) => ({ punto: x.punto, efecto: x.efecto, mensaje: x.mensaje }));
+}
