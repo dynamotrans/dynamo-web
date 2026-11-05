@@ -50,7 +50,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   let filas: EnvioFila[] = [];
   const nombresCliente = new Map<string, string>();
   let error: string | null = null;
-  let nota: string | null = null;
+  const nota: string | null = null;
   if (errorBusqueda) error = errorBusqueda;
   // Sin búsqueda: la base de datos cuenta cada pestaña y da los ids de la página que toca (antes
   // se leían hasta 6.000 envíos con sus paradas para enseñar 20).

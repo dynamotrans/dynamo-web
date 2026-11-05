@@ -35,7 +35,8 @@ export default function SelectorVista({ vista, rolTxt, abierto, onAbrir }: {
     opcionesVista(paso).then((l) => { if (vivo) setOpciones((o) => ({ ...o, [paso]: l })); }).catch(() => setError('No se ha podido cargar la lista.'));
     return () => { vivo = false; };
   }, [paso, opciones]);
-  const clientes = opciones.cliente ?? [], transportistas = opciones.transportista ?? [];
+  const clientes = useMemo(() => opciones.cliente ?? [], [opciones.cliente]);
+  const transportistas = useMemo(() => opciones.transportista ?? [], [opciones.transportista]);
   const cargandoLista = !!paso && !opciones[paso];
   const lista = useMemo(() => {
     const w = norm(q.trim()).split(/\s+/).filter(Boolean);

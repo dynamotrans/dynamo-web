@@ -14,7 +14,7 @@ import { useIdiomaGT } from '@/components/SelectorIdioma';
 import Modal from './Modal';
 import { EVENTO_RECARGAR } from './TirarParaRecargar';
 import SelectorVista, { VISTA_TXT } from './SelectorVista';
-import { VISTA_ADMIN, inicioDe, type OpcionVista, type Vista } from '@/lib/vistaTipo';
+import { VISTA_ADMIN, inicioDe, type Vista } from '@/lib/vistaTipo';
 import { misAvisos, marcarAvisosVistos, type Aviso } from '@/app/panel/avisos';
 
 // Idiomas del menú del usuario (los del mockup). Banderas: excepción de la regla 0-ter.

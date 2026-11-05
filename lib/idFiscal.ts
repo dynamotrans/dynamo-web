@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment -- copia tal cual del validador de registro.html, sin tipos */
 // @ts-nocheck
 // Validación del CIF/NIF/NIE español y del nº de IVA europeo (con prefijo de país),
 // copiada tal cual de registro.html (validaIdFiscal). Se usa en el navegador (aviso en
@@ -8,6 +9,8 @@ export type ResultadoIdFiscal = { ok: boolean; soft?: boolean; tipo: string | nu
 export function validaIdFiscal(raw: string): ResultadoIdFiscal {
         var v = String(raw || '').toUpperCase().replace(/[\s.\-]/g, '');
         if (!v) return null;
+        // Nº de IVA europeo de España = «ES» + el NIF/CIF/NIE (ESB01596360): se valida lo de detrás.
+        if (/^ES[0-9A-Z]\d{7}[0-9A-Z]$/.test(v)) v = v.slice(2);
         var LET = 'TRWAGMYFPDXBNJZSQVHLCKE';
         if (/^\d{8}[A-Z]$/.test(v)) { var e1 = LET[+v.slice(0, 8) % 23]; return { ok: e1 === v[8], tipo: 'DNI español', msg: 'la letra sería ' + e1 }; }
         if (/^[XYZ]\d{7}[A-Z]$/.test(v)) { var n = { X: '0', Y: '1', Z: '2' }[v[0]] + v.slice(1, 8); var e2 = LET[+n % 23]; return { ok: e2 === v[8], tipo: 'NIE (extranjero residente)', msg: 'la letra sería ' + e2 }; }

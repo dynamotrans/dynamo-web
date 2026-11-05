@@ -9,6 +9,8 @@ import { IcoAviso } from '@/components/Iconos';
 const txt = (n: number | null) => (n == null ? '' : String(n).replace('.', ','));
 const EMBALAJES = ['Palet europeo', 'Palet americano', 'Cajas', 'Big bag', 'Bobinas', 'Granel en sacos', 'Sin embalaje'];
 
+const VACIO: Datos = { num_bultos: null, embalaje: null, volumen_m3: null, firmado: false };
+
 export default function DatosCmr({ envioId, puedeEditar, bloquearSiFirmado = false }: { envioId: string; puedeEditar: boolean; bloquearSiFirmado?: boolean }) {
   const [d, setD] = useState<Datos | null>(null);
   const [editando, setEditando] = useState(false);
@@ -16,7 +18,6 @@ export default function DatosCmr({ envioId, puedeEditar, bloquearSiFirmado = fal
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
 
-  const VACIO: Datos = { num_bultos: null, embalaje: null, volumen_m3: null, firmado: false };
   useEffect(() => { leerDatosCmr(envioId).then((x) => setD(x ?? VACIO)); }, [envioId]);
   const abrir = () => { setF({ b: txt(d?.num_bultos ?? null), e: d?.embalaje ?? '', v: txt(d?.volumen_m3 ?? null) }); setError(null); setEditando(true); };
   const resumen = d && [d.num_bultos != null && `${d.num_bultos} ${d.num_bultos === 1 ? 'bulto' : 'bultos'}`, d.embalaje, d.volumen_m3 != null && `${txt(d.volumen_m3)} m³`].filter(Boolean).join(' · ');

@@ -35,6 +35,8 @@ export default function BuscadorEnvios({ f, q, desde, hasta, placeholder }: { f:
     if (limpio === q || (limpio.length === 1 && !q)) return;
     const t = setTimeout(() => { escribiendo.current = false; ir(texto, d, h); }, 400);
     return () => clearTimeout(t);
+    // Solo al cambiar el texto: las fechas y la búsqueda actual se leen tal cual estén.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [texto]);
 
   return (

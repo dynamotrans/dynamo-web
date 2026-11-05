@@ -11,7 +11,7 @@ import { supabaseServidor } from '@/lib/supabase/server';
 export type Dueno = { campo: 'envio_id' | 'incidencia_id' | 'almacenamiento_id' | 'transportista_id' | 'penalizacion_id' | 'operador_id' | 'usuario_id'; id: string };
 export type DocumentoFila = { id: string; tipo: string; nombre_archivo: string; tamano_bytes: number | null; tipo_mime: string | null;
   visible_cliente: boolean; creado_en: string; autor: string | null };
-type Res<T = {}> = ({ ok: true } & T) | { ok: false; error: string };
+type Res<T = Record<never, never>> = ({ ok: true } & T) | { ok: false; error: string };
 
 const CAMPOS = ['envio_id', 'incidencia_id', 'almacenamiento_id', 'transportista_id', 'penalizacion_id', 'operador_id', 'usuario_id'];
 const CARPETA: Record<string, string> = { envio_id: 'envios', incidencia_id: 'incidencias', almacenamiento_id: 'almacenamientos',

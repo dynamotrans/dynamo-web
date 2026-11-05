@@ -14,7 +14,7 @@ import BuscaEnvio from './BuscaEnvio';
 import Documentos from './Documentos';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarIncidencia, type IncidenciaDatos } from '@/app/panel/(app)/incidencias/acciones';
-import { fecha, ventana, pesoTn, fechaHora, metros, medidasTxt } from '@/lib/formato';
+import { fecha, ventana, fechaHora, medidasTxt } from '@/lib/formato';
 
 export type IncidenciaFila = {
   id: string; codigo: string; envio_id: string | null; cliente_id: string | null; tipo_id: string; tipo: string;
@@ -33,7 +33,6 @@ const PRIORIDADES: [IncidenciaDatos['prioridad'], string, string][] = [
 ];
 const abierta = (e: string) => e === 'abierto' || e === 'en_curso';
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-const n = (v: number | null) => (v == null ? '' : String(v).replace('.', ','));
 const IcoAviso = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>;
 const horaMadrid = (iso: string) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 const diaMadrid = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(iso));

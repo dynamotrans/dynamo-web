@@ -277,7 +277,6 @@ function Tramite({ hasta, ahora, onLibre }: { hasta?: string; ahora?: string; on
 
 // ---- Reservada: formulario para aceptar --------------------------------------------
 function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: string; ahora: string }) {
-  const router = useRouter();
   const refrescar = useRefrescar();
   const { quedan, texto } = useCuenta(hasta, ahora);
   const base = num(o.precio) ?? 0, banda = num(o.banda_euros) ?? 0;
@@ -499,7 +498,6 @@ function Aceptada({ token, c }: { token: string; c: any }) {
 // ---- Alta online de un transportista nuevo -------------------------------------------------
 const BOLSAS: [string, string][] = [['wtransnet', 'Wtransnet'], ['teleroute', 'Teleroute'], ['bursa_transport', 'Bursa Transport'], ['123cargo', '123cargo']];
 function AltaNueva({ token, cif, precio, pronto, texto, urgente, onVolver }: { token: string; cif: string; precio: number | null; pronto: boolean; texto: string; urgente: boolean; onVolver: () => void }) {
-  const router = useRouter();
   const refrescar = useRefrescar();
   const [d, setD] = useState<AltaTransportista>({ bolsa: 'wtransnet', codigo_bolsa: '', pais: 'ES', cif, telefono: '', precio, pronto_pago: pronto });
   const [error, setError] = useState<string | null>(null);

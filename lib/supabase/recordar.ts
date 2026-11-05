@@ -8,6 +8,7 @@ type OpcionesCookie = { maxAge?: number; expires?: Date | number | string } & Re
 export function duracionSegunRecordar<T extends OpcionesCookie>(options: T, recordar: boolean): T {
   const o = (process.env.NODE_ENV === 'production' ? { ...options, secure: true } : options) as T;
   if (recordar) return o;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- se quitan para que la cookie sea de sesión
   const { maxAge: _m, expires: _e, ...resto } = o;
   return resto as T;
 }

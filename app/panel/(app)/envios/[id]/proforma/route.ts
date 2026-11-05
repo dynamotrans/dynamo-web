@@ -2,7 +2,7 @@ import { supabaseServidor } from '@/lib/supabase/server';
 import { esDynamo } from '@/lib/sesion';
 import { datosDynamo, nombrePais } from '@/lib/pdf/datos';
 import { proforma } from '@/lib/pdf/proforma';
-import { fecha, pesoTn, ventana, medidasTxt } from '@/lib/formato';
+import { ventana, medidasTxt } from '@/lib/formato';
 
 // /panel/envios/<id>/proforma: la factura proforma del PREVIO PAGO de un envío. Se ABRE
 // en el visor (regla 0-bis). Dynamo, cualquiera; el cliente, solo las suyas (pagos_envio()

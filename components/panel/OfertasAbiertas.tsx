@@ -1,13 +1,12 @@
 // Ofertas de carga abiertas para el TRANSPORTISTA (mis_ofertas(): el rango en euros, nunca
 // el porcentaje). Cada una lleva a su página de aceptar carga.
-import { euros, ventana, pesoTn, fechaHora, medidasTxt } from '@/lib/formato';
+import { euros, ventana, fechaHora, medidasTxt } from '@/lib/formato';
 
 export type Oferta = { id: string; envio_id: string; referencia_gx: string; token: string; canal: string;
   precio_ofertado: number; precio_minimo: number; precio_maximo: number; pronto_pago: boolean; caduca_en: string;
   fecha_carga_desde: string | null; fecha_carga_hasta: string | null; metros_lineales: number | null; toneladas: number | null;
   poblacion_origen: string | null; poblacion_destino: string | null };
 
-const n = (x: number | null) => (x == null ? '' : String(x).replace('.', ','));
 
 export default function OfertasAbiertas({ ofertas }: { ofertas: Oferta[] }) {
   return (

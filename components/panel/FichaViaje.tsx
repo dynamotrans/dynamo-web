@@ -23,7 +23,6 @@ const FASES: [string, string, string][] = [
 const ORDEN = ['programado', 'hacia_la_carga', 'cargando', 'en_ruta', 'entregado'];
 const NOMBRE: Record<string, string> = { programado: 'Programado', hacia_la_carga: 'Hacia la carga', cargando: 'Cargando', en_ruta: 'En ruta', entregado: 'Entregado', cancelado: 'Cancelado' };
 const COLOR: Record<string, string> = { programado: 'prog', hacia_la_carga: 'hacia', cargando: 'cargando', en_ruta: 'enruta', entregado: 'entregado', cancelado: 'cancelada' };
-const txtNum = (n: number | null | undefined) => (n == null ? '' : String(n).replace('.', ','));
 const I = ({ d }: { d: string[] }) => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: '0.35rem' }}>
     {d.map((x, i) => <path key={i} d={x} />)}
@@ -102,7 +101,7 @@ export default function FichaViaje({ e, cerrarHref }: { e: any; cerrarHref: stri
 
       {activo && (
         <div className="pt-aviso info" style={{ marginTop: '0.6rem' }}><div>
-          Avísanos de cómo va el viaje con el botón de arriba: <strong>{FASES.map(([k, , t]) => t).join(' → ')}</strong>. Cada paso queda con su hora.
+          Avísanos de cómo va el viaje con el botón de arriba: <strong>{FASES.map(([, , t]) => t).join(' → ')}</strong>. Cada paso queda con su hora.
         </div></div>
       )}
 

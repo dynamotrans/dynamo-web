@@ -28,7 +28,6 @@ const PESTANAS: [string, string][] = [['pendiente_confirmar', 'Pendientes de con
 const ESTADO: Record<string, [string, string]> = { pendiente_confirmar: ['Pendiente de confirmar', 'orange'], confirmada: ['Confirmada', 'green'], cancelada: ['Cancelada', 'cancelada'] };
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const aNum = (t: string) => { const v = t.trim(); if (!v) return null; const n = Number(v.replace(/\./g, '').replace(',', '.')); return Number.isFinite(n) ? n : NaN; };
-const txtNum = (n: number | null) => (n == null ? '' : String(n).replace('.', ','));
 const sub = (t: string) => <><br /><span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>{t}</span></>;
 const Margen = ({ c, t }: { c: number | null; t: number | null }) => {
   if (c == null && t == null) return <>—</>;

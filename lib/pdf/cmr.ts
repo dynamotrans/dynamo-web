@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { PDFImage, PDFPage, RGB } from 'pdf-lib';
 import { Lienzo, COLOR, A4, num, fechaCorta, limpio } from './lienzo';
 import { DYNAMO, type DatosDoc, type ParadaDoc } from './datos';
-import { importe, pesoKg, fecha, fechaDe, fechaHora, hoyMadrid, metros } from '@/lib/formato';
+import { pesoKg, fecha, fechaDe, fechaHora, hoyMadrid, metros } from '@/lib/formato';
 import { telBonito } from '@/lib/paises';
 
 // CMR (carta de porte internacional) RELLENO, copiado del mockup: los 4 ejemplares del

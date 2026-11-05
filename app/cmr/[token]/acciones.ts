@@ -28,6 +28,7 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   // Lo que había en pantalla al firmar (sin las firmas): su huella prueba QUÉ se firmó.
   const { data: cmr } = await sb.rpc('cmr_publico', { p_token: token });
   if (!cmr || (cmr as any).resultado !== 'ok') return { ok: false, error: (cmr as any)?.resultado === 'cancelado' ? 'Este envío está cancelado.' : 'Este enlace ya no es válido.' };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- se separan las firmas para no devolverlas
   const { firmas: _f, ...contenido } = cmr as any;
   const reservas = (d.reservas ?? '').trim().slice(0, 1000);
   const sha = createHash('sha256').update(JSON.stringify(reservas ? { ...contenido, reservas } : contenido)).digest('hex');

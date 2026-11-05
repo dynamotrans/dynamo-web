@@ -3,7 +3,7 @@
 import { normalizaTel } from '@/lib/paises';
 
 import { mensajeError } from '@/lib/mensajeError';
-import { sesion, esDynamo, esGestor, type Rol } from '@/lib/sesion';
+import { sesion, esGestor, type Rol } from '@/lib/sesion';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { origen } from '@/lib/origen';
 

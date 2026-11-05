@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Modal from './Modal';
-import { fecha, ventana, pesoTn, medidasTxt } from '@/lib/formato';
+import { fecha, ventana, medidasTxt } from '@/lib/formato';
 import { FLOTA_HTML } from '@/lib/dashboardContenido';
 
 // «Nuestros servicios» y «Nuestra flota» ocultos de momento (decisión del usuario,
@@ -41,7 +41,6 @@ const SERVICIOS = [
   { t: 'Importación', chip: 'Toda Europa', img: '/images/AdobeStock_154376791.jpeg', pos: '', d: 'Hasta la puerta de tu empresa, desde cualquier punto de Europa, con plazos garantizados y máxima calidad.' },
   { t: 'Exportación', chip: 'Import & Export', img: '/images/AdobeStock_260603287.jpeg', pos: '', d: 'Portugal, Francia, Alemania, Italia, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.' },
 ];
-const n = (v: number | null) => (v == null ? '' : String(v).replace('.', ','));
 const Svg = ({ size = 16, children }: { size?: number; children: React.ReactNode }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
 );

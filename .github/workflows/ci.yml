@@ -2,7 +2,8 @@
 # rojo en GitHub antes de darlo por bueno.
 #   1. Base de datos: aplica todas las migraciones en un PostgreSQL de usar y tirar que imita a
 #      Supabase y pasa las pruebas de seguridad y de reglas (tools/probar-migraciones).
-#   2. Web: comprobación de tipos y compilación completa, igual que en Vercel.
+#   2. Web: tipos, revisión del código (ESLint), pruebas unitarias de lib/ y compilación
+#      completa, igual que en Vercel.
 name: CI
 
 on:
@@ -36,7 +37,7 @@ jobs:
           sudo bash /tmp/ci/tools/probar-migraciones/probar.sh
 
   web:
-    name: Web (tipos y compilación)
+    name: Web (tipos, revisión, pruebas y compilación)
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -48,5 +49,9 @@ jobs:
       - run: npm ci
       - name: Tipos
         run: npx tsc --noEmit
+      - name: Revisión del código (ESLint)
+        run: npm run lint
+      - name: Pruebas unitarias (lib/)
+        run: npm test
       - name: Compilación
         run: npm run build

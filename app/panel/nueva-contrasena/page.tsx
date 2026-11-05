@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { supabaseServidor } from '@/lib/supabase/server';
 import TarjetaAcceso from '@/components/TarjetaAcceso';
 import SinConfigurar from '@/components/SinConfigurar';
@@ -15,7 +16,7 @@ export default async function NuevaContrasena() {
   if (user && !(await vieneDeEnlace(supabase))) {
     return (
       <TarjetaAcceso titulo="Cambiar la contraseña">
-        <div className="pt-aviso info"><div>Para cambiar tu contraseña ve a <a href="/panel/mi-cuenta"><strong>Mi cuenta</strong></a> (te pedirá la actual). Si no la recuerdas, cierra sesión y usa «¿Olvidaste tu contraseña?».</div></div>
+        <div className="pt-aviso info"><div>Para cambiar tu contraseña ve a <Link href="/panel/mi-cuenta"><strong>Mi cuenta</strong></Link> (te pedirá la actual). Si no la recuerdas, cierra sesión y usa «¿Olvidaste tu contraseña?».</div></div>
       </TarjetaAcceso>
     );
   }

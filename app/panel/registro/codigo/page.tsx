@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { configSupabase } from '@/lib/supabase/server';
 import TarjetaAcceso from '@/components/TarjetaAcceso';
@@ -18,7 +19,7 @@ export default async function PaginaCodigo({ searchParams }: { searchParams: Pro
       <FormCodigo email={email} />
       <p className="reg-helper" style={{ marginTop: '1rem' }}>
         ¿No te llega? Mira en <strong>spam</strong> o en <strong>promociones</strong>. Si el email está mal,{' '}
-        <a href="/panel/registro" style={{ color: 'var(--purple)', fontWeight: 700 }}>vuelve a empezar</a>.
+        <Link href="/panel/registro" style={{ color: 'var(--purple)', fontWeight: 700 }}>vuelve a empezar</Link>.
       </p>
     </TarjetaAcceso>
   );

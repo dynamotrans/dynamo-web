@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { configSupabase, supabaseServidor } from '@/lib/supabase/server';
 import SinConfigurar from '@/components/SinConfigurar';
@@ -25,7 +26,7 @@ export default async function PaginaRegistro() {
           <p className="portal-subtitle">Alta de <strong>clientes</strong> en la plataforma de Dynamo</p>
           <FormRegistro />
           <div className="portal-divider">¿Ya tienes cuenta?</div>
-          <a href="/panel/entrar" className="portal-login-link">Iniciar sesión</a>
+          <Link href="/panel/entrar" className="portal-login-link">Iniciar sesión</Link>
           <a href="/" className="portal-back">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
             Volver al inicio

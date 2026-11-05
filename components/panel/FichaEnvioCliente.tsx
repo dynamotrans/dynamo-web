@@ -29,7 +29,6 @@ const HITOS: Record<string, string> = {
   cancelacion_deshecha: 'Cancelación deshecha', ruta_cambiada: 'Ruta cambiada', cmr_firmado: 'CMR firmado',
   fecha_carga_movida: 'Fecha de carga movida (el pago llegó tarde)',
 };
-const txtNum = (n: number | null | undefined) => (n == null ? '' : String(n).replace('.', ','));
 const I = ({ d }: { d: string[] }) => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: '0.35rem' }}>
     {d.map((x, i) => <path key={i} d={x} />)}

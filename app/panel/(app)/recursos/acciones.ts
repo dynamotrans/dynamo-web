@@ -8,7 +8,7 @@ import { sesion, esGestor } from '@/lib/sesion';
 // Los ve cualquier cuenta activa; los sube y los quita solo Dynamo (lo impone la base de datos:
 // migración recursos_documentos). El fichero va directo del navegador al bucket privado.
 export type RecursoSubido = { id: string; titulo: string; descripcion: string | null; nombre: string; mime: string | null; tamano: number | null; creado_en: string };
-type Res<T = {}> = ({ ok: true } & T) | { ok: false; error: string };
+type Res<T = Record<never, never>> = ({ ok: true } & T) | { ok: false; error: string };
 const sano = (n: string) => n.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^_+|_+$/g, '').slice(-80) || 'documento';
 
 async function gestor() {

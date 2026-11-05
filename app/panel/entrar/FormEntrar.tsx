@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useActionState } from 'react';
 import { entrar, type EstadoEntrar } from '../acciones';
 import { IcoAviso } from '@/components/Iconos';
@@ -40,7 +41,7 @@ export default function FormEntrar({ caducada = false }: { caducada?: boolean })
 
       <div className="portal-row">
         <label className="portal-check"><input type="checkbox" name="recordar" defaultChecked /> Recordarme</label>
-        <a href="/panel/olvido" className="portal-forgot">¿Olvidaste tu contraseña?</a>
+        <Link href="/panel/olvido" className="portal-forgot">¿Olvidaste tu contraseña?</Link>
       </div>
 
       <button type="submit" className="portal-submit" disabled={enviando}>

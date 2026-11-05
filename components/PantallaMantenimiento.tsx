@@ -38,6 +38,8 @@ export default function PantallaMantenimiento({ conSalir = true }: { conSalir?: 
           <a className="maint-btn maint-btn-tel" href="tel:+34955225945"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={P_TEL} /></svg> Teléfono</a>
         </div>
         <p className="maint-foot">Dynamo Operador Logístico, S.L.</p>
+        {/* Enlace normal a propósito: con <Link> se precargaría y cerraría la sesión sin pulsar. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         {conSalir && <a className="maint-foot" href="/panel/salir" style={{ display: 'block', textDecoration: 'underline' }}>Cerrar sesión</a>}
       </div>
     </div>
