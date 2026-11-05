@@ -16,9 +16,12 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   if (!sb || !/^[0-9a-f-]{36}$/i.test(token)) return { ok: false, error: 'Este enlace no es válido.' };
   const { data: mant } = await sb.rpc('mantenimiento_activo');
   if (mant) return { ok: false, error: 'La plataforma está en mantenimiento. Vuelve a intentarlo en un rato.' };
-  if (!d.nombre.trim() || !d.documento.trim()) return { ok: false, error: 'Indica el documento y el nombre y apellidos de quien firma.' };
-  const v = validaDoc(d.pais, d.documento);
-  if (!v.ok) return { ok: false, error: v.msg || 'El documento no es válido.' };
+  // Casilla del conductor con el DNI ya guardado en su ficha: puede dejarlo vacío (lo pone
+  // la base de datos, solo si el nombre es el del conductor del envío).
+  const usaGuardado = d.rol === 'transportista' && !d.documento.trim();
+  if (!d.nombre.trim() || (!d.documento.trim() && !usaGuardado)) return { ok: false, error: 'Indica el documento y el nombre y apellidos de quien firma.' };
+  const v = usaGuardado ? { ok: true as const, norm: '', soft: '' } : validaDoc(d.pais, d.documento);
+  if (!v.ok) return { ok: false, error: (v as any).msg || 'El documento no es válido.' };
   const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(d.png);
   const png = m ? Buffer.from(m[1], 'base64') : null;
   if (!png || png.length < 200 || png.length > 600_000 || png.subarray(0, 4).toString('hex') !== '89504e47') return { ok: false, error: 'Falta la firma: firma con el dedo dentro del recuadro.' };
@@ -26,6 +29,7 @@ export async function firmar(token: string, d: DatosFirma): Promise<{ ok: true }
   // Lo que había en pantalla al firmar (sin las firmas): su huella prueba QUÉ se firmó.
   const { data: cmr } = await sb.rpc('cmr_publico', { p_token: token });
   if (!cmr || (cmr as any).resultado !== 'ok') return { ok: false, error: (cmr as any)?.resultado === 'cancelado' ? 'Este envío está cancelado.' : 'Este enlace ya no es válido.' };
+  if (usaGuardado && !(cmr as any).conductor_documento) return { ok: false, error: 'Indica el documento de quien firma.' };
   const { firmas: _f, ...contenido } = cmr as any;
   const reservas = (d.reservas ?? '').trim().slice(0, 1000);
   const sha = createHash('sha256').update(JSON.stringify(reservas ? { ...contenido, reservas } : contenido)).digest('hex');

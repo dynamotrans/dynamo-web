@@ -4772,3 +4772,33 @@ do $$ declare res uuid := current_setting('prueba.res133')::uuid; e uuid := curr
   raise notice 'OK 134 · chófer nuevo: su teléfono o vacío (nunca el del anterior); camión nuevo: su chófer de otras veces o vacío';
 end $$;
 reset role;
+
+-- ---- 135. CMR: la casilla del conductor sale con su nombre y su DNI ---------------------
+reset role;
+do $$ declare e uuid := current_setting('prueba.env133')::uuid; t uuid; tok uuid; c uuid; begin
+  select transportista_id into t from envios where id = e;
+  update conductores set documento = '13513513B', documento_pais = 'ES' where transportista_id = t and nombre = 'Ana Conocida';
+  update envios set conductor_nombre = 'Ana Conocida', conductor_telefono = '+34600888888' where id = e;
+  update cmr_enlaces set revocado = true where envio_id = e;
+  insert into cmr_enlaces (envio_id) values (e) returning token into tok;
+  insert into storage.objects (bucket_id, name) values ('documentos', 'cmr/' || tok || '/a.png'), ('documentos', 'cmr/' || tok || '/b.png');
+  perform set_config('prueba.tok135', tok::text, false);
+end $$;
+set role anon;
+do $$ declare tok uuid := current_setting('prueba.tok135')::uuid; v jsonb; r jsonb; begin
+  v := cmr_publico(tok);
+  if v ->> 'conductor' <> 'Ana Conocida' or v ->> 'conductor_documento' <> '••••513B' then raise exception 'FALLO 135 · la casilla del conductor no sale rellena: %', v ->> 'conductor_documento'; end if;
+  if v::text like '%13513513B%' then raise exception 'FALLO 135 · el CMR enseña el DNI entero'; end if;
+  -- Otra persona con el documento vacío: no vale.
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Otra Persona', '', 'ES', false, null, 'cmr/' || tok || '/a.png', null, 'prueba', null);
+  if r ->> 'resultado' <> 'faltan_datos' then raise exception 'FALLO 135 · otra persona firma con el DNI del conductor: %', r; end if;
+  r := firmar_cmr_publico(tok, null, 'transportista', 'Ana Conocida', '', 'ES', false, null, 'cmr/' || tok || '/b.png', null, 'prueba', null);
+  if r ->> 'resultado' <> 'firmada' then raise exception 'FALLO 135 · el conductor no firma con su DNI guardado: %', r; end if;
+end $$;
+reset role;
+do $$ begin
+  if (select documento from firmas_cmr where envio_id = current_setting('prueba.env133')::uuid and rol = 'transportista') <> '13513513B' then
+    raise exception 'FALLO 135 · la firma no lleva el DNI del conductor';
+  end if;
+  raise notice 'OK 135 · CMR: la casilla del conductor sale con su nombre y su DNI (solo las últimas cifras a la vista) y firma sin reescribirlo';
+end $$;
