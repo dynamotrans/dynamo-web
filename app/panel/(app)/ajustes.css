@@ -175,3 +175,10 @@ table.data tr.alta-fila.alta-transportista td:first-child { box-shadow: inset 4p
 @media (max-width: 600px) { #sec-para-hoy .ph-grid { grid-template-columns: 1fr; } }
 /* El pie de las ventanas: si no caben los botones (móvil), pasan a otra línea. */
 .dash-modal-footer { flex-wrap: wrap; }
+/* Ventana estrecha (ordenador con la ventana pequeña, 481-640 px): el selector «Ver como»
+   se queda solo con su icono para no montarse sobre Álvaro (en móvil ya era así). */
+@media (max-width: 640px) {
+  .topbar-contact-btn.vista-btn .topbar-contact-label,
+  .topbar-contact-btn.vista-btn .topbar-contact-arrow { display: none; }
+  .topbar-contact-btn.vista-btn { padding: 0.15rem 0.3rem; }
+}
