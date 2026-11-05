@@ -173,7 +173,9 @@ export async function anonimizarUsuario(id: string, emailConfirmacion: string): 
   if (r.resultado !== 'ok') return { ok: false, error: 'No se ha podido anonimizar.' };
   const servicio = supabaseServicio();
   if (!servicio) return { ok: true, aviso: 'Datos borrados de la plataforma. Falta la clave de servicio: borra también el usuario en Supabase → Authentication.' };
-  const { error: ea } = await servicio.auth.admin.updateUserById(id, { email: r.email_anonimo, email_confirm: true, ban_duration: '876000h', user_metadata: {} });
+  const { error: ea } = await servicio.auth.admin.updateUserById(id, { email: r.email_anonimo, email_confirm: true, ban_duration: '876000h',
+    // Los datos del registro también viven en el acceso: se vacían uno a uno (por si se mezclan en vez de sustituirse).
+    user_metadata: { nombre: null, dni: null, telefono: null, empresa: null, cif: null, direccion: null, codigo_postal: null, poblacion: null, provincia: null, pais: null } });
   if (ea) return { ok: true, aviso: `Datos borrados de la plataforma, pero no del acceso (${ea.message}): bórralo en Supabase → Authentication.` };
   return { ok: true, aviso: 'Datos borrados y acceso bloqueado.' };
 }

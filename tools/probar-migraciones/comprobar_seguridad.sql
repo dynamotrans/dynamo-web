@@ -4343,3 +4343,22 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 124. Tercera tanda: la auditoría no guarda IP de reservas y no se altera fuera de la limpieza --
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare rv uuid; begin
+  insert into envio_reservas (envio_id, hasta, ip, navegador)
+    values (current_setting('prueba.e117')::uuid, now() + interval '3 minutes', '10.12.4.1', 'Navegador de prueba') returning id into rv;
+  if exists (select 1 from auditoria where tabla = 'envio_reservas' and registro_id = rv::text
+              and (cambios::text like '%10.12.4.1%' or cambios::text like '%Navegador de prueba%')) then
+    raise exception 'FALLO 124 · la auditoría copia la IP o el navegador de la reserva';
+  end if;
+  begin
+    update auditoria set cambios = '{}' where registro_id = rv::text;
+    raise exception 'FALLO 124 · se puede modificar la auditoría fuera de la limpieza';
+  exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+  perform liberar_reserva(rv, 'prueba');
+  raise notice 'OK 124 · la auditoría no guarda IP de reservas y solo la limpieza RGPD la puede tocar';
+end $$;
