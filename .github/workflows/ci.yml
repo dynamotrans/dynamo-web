@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: PostgreSQL 16
         run: |
           if ! ls /usr/lib/postgresql/*/bin/postgres >/dev/null 2>&1; then
@@ -29,15 +29,19 @@ jobs:
           fi
           sudo systemctl stop postgresql || true
       - name: Migraciones y pruebas
-        run: sudo bash tools/probar-migraciones/probar.sh
+        # El servidor corre con el usuario del sistema «postgres», que no puede leer la carpeta
+        # del runner: se copian las migraciones y las pruebas a una carpeta legible.
+        run: |
+          rm -rf /tmp/ci && mkdir -p /tmp/ci && cp -r tools supabase /tmp/ci/ && chmod -R a+rX /tmp/ci
+          sudo bash /tmp/ci/tools/probar-migraciones/probar.sh
 
   web:
     name: Web (tipos y compilación)
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
