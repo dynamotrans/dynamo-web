@@ -4,6 +4,14 @@ Tono: cercano y profesional. Tú, frases cortas, sin tecnicismos vacíos. Siempr
 Nunca precios, nunca nombres de clientes ni de transportistas. Cerrar con una llamada a la acción (WhatsApp / dynamotrans.com).
 Rotar los temas en orden; al terminar la lista, volver a empezar con enfoque nuevo.
 
+## Rotación de estilo (para no repetir imagen ni forma de titular)
+Cada semana se usa el siguiente estilo de la secuencia **v1 → v2 → v3 → v4 → v1…** (ver `render.py --help`) y el siguiente tipo de titular de **pregunta → dato → consejo → pregunta…**. Nunca dos semanas seguidas el mismo estilo. Se anota en el histórico.
+
+- v1 tarjeta morada + camión: titular de pregunta o afirmación + 2–3 frases.
+- v2 dato grande (navy + palets): kicker + número/cifra protagonista + 1–2 frases.
+- v3 foto real (velo morado arriba, camión abajo): titular + 1–2 frases; `--photo alt` alterna la foto de los dos camiones.
+- v4 fondo claro + mapa de ruta: titular + lista de 3 puntos (consejos, requisitos, pasos).
+
 | # | Tema | Idea |
 |---|------|------|
 | 1 | Grupaje vs carga completa | Cuándo compensa cada uno (13,30 m / 33 europalets) — PUBLICADO 10/11/2026 |
@@ -24,4 +32,4 @@ Rotar los temas en orden; al terminar la lista, volver a empezar con enfoque nue
 | 16 | 24/7 incidencias | Qué hacer si algo falla en ruta |
 
 ## Histórico
-- 2026-11-10 — Tema 1 — `images/redes/2026-11-10-grupaje-o-carga-completa.jpg` — Metricool post 418292247
+- 2026-11-10 — Tema 1 — estilo v1 — titular pregunta — `images/redes/2026-11-10-grupaje-o-carga-completa.jpg` — Metricool post 418292247
