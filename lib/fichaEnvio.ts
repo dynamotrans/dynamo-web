@@ -23,7 +23,8 @@ export type ContraofertaFicha = { id: string; transportista: string | null; prec
   alta_online?: { id: string; cif: string; verificado: boolean } | null };   // transportista nuevo dado de alta desde el enlace
 export type TransportistaOpcion = { id: string; nombre: string; cif: string; estado: string; nima: string | null;
   telefono: string | null; email: string | null;
-  vehiculos: { matricula: string; tipo: string }[]; conductores: { nombre: string; telefono: string | null }[] };
+  vehiculos?: { matricula: string; tipo: string }[]; conductores?: { nombre: string; telefono: string | null }[] };
+export type FlotaTransportista = { vehiculos: { matricula: string; tipo: string }[]; conductores: { nombre: string; telefono: string | null }[] };
 export type Ficha = {
   envio: any; cliente: { id: string; nombre: string; cif: string } | null;
   transportista: { id: string; nombre: string; cif: string } | null; operador: string | null;
@@ -108,22 +109,26 @@ export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ fic
   };
 }
 
-// Transportistas para "Asignar transportista", con su flota y conductores para sugerir.
+// Transportistas para "Asignar transportista" (nombre, CIF, estado y contacto de tráfico).
+// Su flota (camiones y conductores) NO viaja con la ficha: se pide al elegir uno
+// (flotaDe). Antes se mandaban al navegador todos los vehículos y conductores de todos.
 export async function cargarTransportistasParaAsignar(sb: SupabaseClient): Promise<TransportistaOpcion[]> {
-  const [tra, veh, con, cto] = await Promise.all([
+  const [tra, cto] = await Promise.all([
     leerTodo(sb.from('transportistas').select('id, nombre_visible, cif, estado_operativo, nima').order('nombre_visible'), 10000),
-    leerTodo(sb.from('vehiculos').select('transportista_id, matricula, tipo').eq('activo', true), 50000),
-    leerTodo(sb.from('conductores').select('transportista_id, nombre, telefono').eq('activo', true), 50000),
-    leerTodo(sb.from('contactos').select('transportista_id, telefono, email').eq('funcion', 'trafico').eq('es_principal', true).not('transportista_id', 'is', null), 50000),
+    leerTodo(sb.from('contactos').select('transportista_id, telefono, email').eq('funcion', 'trafico').eq('es_principal', true).not('transportista_id', 'is', null), 10000),
   ]);
   const trafico = new Map((cto.data ?? []).map((x: any) => [x.transportista_id as string, x]));
-  const v = new Map<string, { matricula: string; tipo: string }[]>();
-  (veh.data ?? []).forEach((x: any) => v.set(x.transportista_id, [...(v.get(x.transportista_id) ?? []), { matricula: x.matricula, tipo: x.tipo }]));
-  const c = new Map<string, { nombre: string; telefono: string | null }[]>();
-  (con.data ?? []).forEach((x: any) => c.set(x.transportista_id, [...(c.get(x.transportista_id) ?? []), { nombre: x.nombre, telefono: x.telefono }]));
   return (tra.data ?? []).map((t: any) => ({ id: t.id, nombre: t.nombre_visible, cif: t.cif, estado: t.estado_operativo, nima: t.nima,
-    telefono: trafico.get(t.id)?.telefono ?? null, email: trafico.get(t.id)?.email ?? null,
-    vehiculos: v.get(t.id) ?? [], conductores: c.get(t.id) ?? [] }));
+    telefono: trafico.get(t.id)?.telefono ?? null, email: trafico.get(t.id)?.email ?? null }));
+}
+
+// La flota activa de UN transportista (para sugerir matrículas y conductores al asignar).
+export async function flotaDe(sb: SupabaseClient, transportistaId: string): Promise<FlotaTransportista> {
+  const [veh, con] = await Promise.all([
+    sb.from('vehiculos').select('matricula, tipo').eq('transportista_id', transportistaId).eq('activo', true).order('matricula').limit(500),
+    sb.from('conductores').select('nombre, telefono').eq('transportista_id', transportistaId).eq('activo', true).order('nombre').limit(500),
+  ]);
+  return { vehiculos: (veh.data ?? []) as any[], conductores: (con.data ?? []) as any[] };
 }
 
 // El horario que toca a una parada según su fecha: el de verano si el sitio lo tiene activo

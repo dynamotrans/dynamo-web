@@ -5,7 +5,7 @@
 // Historial, y las acciones arriba (Asignar transportista, Cambiar estado, Modificar,
 // Cancelar / Deshacer). Todo lo vuelve a comprobar el servidor y la base de datos.
 import { SIN_CONEXION } from '@/lib/mensajeError';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
 import DatosCmr from './DatosCmr';
@@ -25,7 +25,7 @@ import Historial from './Historial';
 import { AvisoCambiosDynamo } from './CambiosEnvio';
 import {
   asignarTransportista, quitarTransportista, cambiarEstado, cancelarEnvio, deshacerCancelacion, modificarEnvio,
-  ofrecerCarga, revocarOferta, sugerirFlota, resolverContraoferta, resolverContraofertaCliente, enlaceCmr, retirarEnlaceCmr, valorarTransportista, type DatosEnvio, archivarPdf,
+  ofrecerCarga, revocarOferta, sugerirFlota, flotaTransportista, resolverContraoferta, resolverContraofertaCliente, enlaceCmr, retirarEnlaceCmr, valorarTransportista, type DatosEnvio, archivarPdf,
 } from '@/app/panel/(app)/envios/acciones';
 
 const ESTADOS: [string, string, string][] = [
@@ -472,6 +472,15 @@ function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: SubProp
   const [tel, setTel] = useState<string>(e.conductor_telefono ?? '');
   const [error, setError] = useState<string | null>(null);
   const t = transportistas.find((x) => x.id === tid);
+  // Su flota se pide al elegirlo (no viaja con la ficha la de todos los transportistas).
+  const [flota, setFlota] = useState<{ id: string; vehiculos: { matricula: string; tipo: string }[]; conductores: { nombre: string; telefono: string | null }[] } | null>(null);
+  useEffect(() => {
+    if (!tid) return;
+    let vivo = true;
+    flotaTransportista(tid).then((f) => { if (vivo) setFlota({ id: tid, ...f }); }).catch(() => {});
+    return () => { vivo = false; };
+  }, [tid]);
+  const fl = flota?.id === tid ? flota : null;
   // Camión nuevo → su chófer de otras veces (o vacío). Chófer nuevo → su teléfono (o vacío),
   // nunca los datos del chófer anterior (usuario, 2026-11-05).
   const [base, setBase] = useState({ camion: camion, conductor: conductor });
@@ -494,8 +503,8 @@ function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: SubProp
   const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null;
   const pv = aNum(precio);
   const margen = pc != null && pv != null && !Number.isNaN(pv) ? pc - pv : null;
-  const camiones = useMemo(() => (t?.vehiculos ?? []).filter((v) => v.tipo !== 'remolque'), [t]);
-  const remolques = useMemo(() => (t?.vehiculos ?? []).filter((v) => v.tipo === 'remolque'), [t]);
+  const camiones = useMemo(() => (fl?.vehiculos ?? []).filter((v) => v.tipo !== 'remolque'), [fl]);
+  const remolques = useMemo(() => (fl?.vehiculos ?? []).filter((v) => v.tipo === 'remolque'), [fl]);
 
   async function guardar() {
     setError(null);
@@ -552,7 +561,7 @@ function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: SubProp
           <label htmlFor="as-conductor">Conductor</label>
           <input id="as-conductor" list="as-conductores" type="text" value={conductor} placeholder="Nombre y apellidos"
             onChange={(ev) => setConductor(ev.target.value)} onBlur={alSalirConductor} />
-          <datalist id="as-conductores">{(t?.conductores ?? []).map((c) => <option key={c.nombre} value={c.nombre} />)}</datalist>
+          <datalist id="as-conductores">{(fl?.conductores ?? []).map((c) => <option key={c.nombre} value={c.nombre} />)}</datalist>
         </div>
         <div>
           <label htmlFor="as-tel">Teléfono del conductor</label>

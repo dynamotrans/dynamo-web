@@ -4,9 +4,9 @@
 // pulsarlo, cambiar a la vista de gestión interna o a la de un cliente o un transportista
 // concreto. Al cambiar, el menú lateral pasa a ser el de ese perfil y se ven solo sus datos.
 // Colores: gestión interna morado · cliente azul · transportista naranja.
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { cambiarVista } from '@/app/panel/vista';
+import { cambiarVista, opcionesVista } from '@/app/panel/vista';
 import { inicioDe, type OpcionVista, type Vista } from '@/lib/vistaTipo';
 import Cargando from '@/components/Cargando';
 
@@ -18,8 +18,8 @@ const ICO = {
 };
 export const VISTA_TXT = { admin: 'Gestión interna', cliente: 'Cliente', transportista: 'Transportista' } as const;
 
-export default function SelectorVista({ vista, rolTxt, clientes, transportistas, abierto, onAbrir }: {
-  vista: Vista; rolTxt: string; clientes: OpcionVista[]; transportistas: OpcionVista[];
+export default function SelectorVista({ vista, rolTxt, abierto, onAbrir }: {
+  vista: Vista; rolTxt: string;
   abierto: boolean; onAbrir: (v: boolean) => void;
 }) {
   const router = useRouter();
@@ -27,6 +27,16 @@ export default function SelectorVista({ vista, rolTxt, clientes, transportistas,
   const [q, setQ] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pendiente, start] = useTransition();
+  // La lista de clientes o transportistas se pide la primera vez que se abre.
+  const [opciones, setOpciones] = useState<{ cliente?: OpcionVista[]; transportista?: OpcionVista[] }>({});
+  useEffect(() => {
+    if (!paso || opciones[paso]) return;
+    let vivo = true;
+    opcionesVista(paso).then((l) => { if (vivo) setOpciones((o) => ({ ...o, [paso]: l })); }).catch(() => setError('No se ha podido cargar la lista.'));
+    return () => { vivo = false; };
+  }, [paso, opciones]);
+  const clientes = opciones.cliente ?? [], transportistas = opciones.transportista ?? [];
+  const cargandoLista = !!paso && !opciones[paso];
   const lista = useMemo(() => {
     const w = norm(q.trim()).split(/\s+/).filter(Boolean);
     const base = paso === 'cliente' ? clientes : paso === 'transportista' ? transportistas : [];
@@ -77,7 +87,8 @@ export default function SelectorVista({ vista, rolTxt, clientes, transportistas,
             <input type="search" className="param-input vista-buscar" autoFocus value={q} onChange={(e) => setQ(e.target.value)}
                    placeholder={paso === 'cliente' ? 'Buscar cliente…' : 'Buscar transportista…'} aria-label="Buscar" />
             <div className="vista-lista">
-              {lista.length === 0 && <div className="vista-nota">Ninguno coincide.</div>}
+              {cargandoLista && <div className="vista-nota">Cargando…</div>}
+              {!cargandoLista && lista.length === 0 && <div className="vista-nota">Ninguno coincide.</div>}
               {lista.map((o) => (
                 <button key={o.id} type="button" role="menuitem" className={`vista-fila vista-${paso}${vista.id === o.id ? ' activa' : ''}`} onClick={() => elegir(paso, o.id)}>
                   {o.nombre}

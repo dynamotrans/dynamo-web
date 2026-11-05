@@ -69,11 +69,11 @@ const Chev = ({ cls, size = 12, w = 3 }: { cls: string; size?: number; w?: numbe
 type Props = {
   rol: Rol; nombre: string; email: string; empresa: string; iniciales: string;
   contadores?: Contadores; cobertura?: Cobertura; festivos?: string[];
-  vista?: Vista; opcionesVista?: { clientes: OpcionVista[]; transportistas: OpcionVista[] };
+  vista?: Vista; verComo?: boolean;
   children: React.ReactNode;
 };
 
-export default function Marco({ rol, nombre, email, empresa, iniciales, contadores = {}, cobertura = null, festivos = [], vista = VISTA_ADMIN, opcionesVista, children }: Props) {
+export default function Marco({ rol, nombre, email, empresa, iniciales, contadores = {}, cobertura = null, festivos = [], vista = VISTA_ADMIN, verComo = false, children }: Props) {
   // Menú del perfil que se está viendo (el equipo de Dynamo elige vista arriba).
   const menuVisto = useMemo(() => menuDe(rol, vista.tipo), [rol, vista.tipo]);
   const ruta = usePathname();
@@ -242,8 +242,8 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
               <Link href={inicio} className="topbar-brand" aria-label="Ir al inicio del panel">
                 <img src="/images/2.png" alt="Dynamo" />
               </Link>
-              {esDynamo(rol) && opcionesVista && (
-                <SelectorVista vista={vista} rolTxt={ROL_TXT[rol]} clientes={opcionesVista.clientes} transportistas={opcionesVista.transportistas}
+              {esDynamo(rol) && verComo && (
+                <SelectorVista vista={vista} rolTxt={ROL_TXT[rol]}
                   abierto={menu === 'vista'} onAbrir={(v) => setMenu(v ? 'vista' : null)} />
               )}
               {(

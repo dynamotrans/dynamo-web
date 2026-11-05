@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Lista corta de envíos para elegir uno en Incidencias y Penalizaciones (buscador
-// «Envío referenciado» del mockup) y para enseñar su resumen. Solo Dynamo.
+// «Envío referenciado» del mockup) y para enseñar su resumen.
 export type EnvioLigero = {
   id: string; referencia_gx: string; referencia_cliente: string | null; estado: string; es_manual: boolean;
   cliente_id: string; cliente: string | null; transportista_id: string | null; transportista: string | null;
@@ -43,5 +43,25 @@ export async function enviosLigerosPorId(sb: SupabaseClient, ids: string[]): Pro
   if (!ids.length) return [];
   const { data } = await sb.from('envios').select(COLUMNAS).in('id', ids);
   const porId = new Map((data ?? []).map((e: any) => [e.id, aLigero(e)]));
+  return ids.map((id) => porId.get(id)).filter((e): e is EnvioLigero => !!e);
+}
+
+// Lo mismo para el CLIENTE o el TRANSPORTISTA, desde sus funciones (mis_envios_por_ids /
+// mis_viajes_por_ids): solo lo suyo y sin datos de la otra parte.
+export function ligeroDeMio(e: any, esT: boolean): EnvioLigero {
+  return {
+    id: e.id, referencia_gx: e.referencia_gx, referencia_cliente: e.referencia_cliente ?? null, estado: e.estado, es_manual: !!e.es_manual,
+    cliente_id: '', cliente: null, transportista_id: null, transportista: null,
+    fecha_carga_desde: e.fecha_carga_desde, fecha_carga_hasta: e.fecha_carga_hasta, fecha_carga_real: e.fecha_carga_real, fecha_entrega_estimada: e.fecha_entrega_estimada,
+    origen: [e.codigo_postal_origen, e.poblacion_origen].filter(Boolean).join(' '), destino: [e.codigo_postal_destino, e.poblacion_destino].filter(Boolean).join(' '),
+    descripcion_mercancia: e.descripcion_mercancia, metros_lineales: e.metros_lineales, toneladas: e.toneladas,
+    matricula_camion: e.matricula_camion, matricula_remolque: e.matricula_remolque, conductor_nombre: e.conductor_nombre,
+    importe_cliente: esT ? e.importe_transportista : e.importe_cliente, importe_transportista: null,
+  };
+}
+export async function misEnviosLigerosPorId(sb: SupabaseClient, ids: string[], esT: boolean): Promise<EnvioLigero[]> {
+  if (!ids.length) return [];
+  const { data } = await sb.rpc(esT ? 'mis_viajes_por_ids' : 'mis_envios_por_ids', { p_ids: ids });
+  const porId = new Map(((data ?? []) as any[]).map((e) => [e.id, ligeroDeMio(e, esT)]));
   return ids.map((id) => porId.get(id)).filter((e): e is EnvioLigero => !!e);
 }

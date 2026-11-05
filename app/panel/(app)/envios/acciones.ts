@@ -6,6 +6,7 @@ import { randomUUID, createHash } from 'node:crypto';
 import { pdfDeEnvioDynamo } from '@/lib/pdf/generar';
 import { vistaCruda } from '@/lib/vista';
 import { euros } from '@/lib/formato';
+import { flotaDe, type FlotaTransportista } from '@/lib/fichaEnvio';
 
 type Res = { ok: true; aviso?: string } | { ok: false; error: string };
 const vacio = (s: string | null | undefined) => (s ?? '').trim() || null;
@@ -220,6 +221,13 @@ export async function archivarPdf(envioId: string, documento: 'orden-de-carga' |
   });
   if (error) return { ok: false, error: mensajeError(error.message) };
   return { ok: true, aviso: `Copia guardada en los documentos del envío: ${nombre}.` };
+}
+
+// Asignar transportista: la flota activa del elegido (matrículas y conductores para sugerir).
+export async function flotaTransportista(transportista: string): Promise<FlotaTransportista> {
+  const s = await soloDynamo();
+  if (!s || !/^[0-9a-f-]{36}$/i.test(transportista)) return { vehiculos: [], conductores: [] };
+  return flotaDe(s.supabase, transportista);
 }
 
 // Asignar transportista: los datos conocidos de su flota (chófer de ese camión de otras

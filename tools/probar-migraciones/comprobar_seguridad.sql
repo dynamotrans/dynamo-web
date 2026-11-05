@@ -5223,3 +5223,60 @@ do $$ declare v text; c uuid; begin
   if (select cif from clientes where id = c) <> 'B14514514' then raise exception 'FALLO 145 · el CIF no se guarda normalizado: %', (select cif from clientes where id = c); end if;
   raise notice 'OK 145 · textos de la base de datos: fechas «Vie 10/07/26», teléfono y email de Parámetros, sin jerga, CIF normalizado';
 end $$;
+
+-- ---- 146. Lista de envíos por páginas: cuentas y páginas desde la base de datos ----------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare n_todas bigint; n_real bigint; p1 uuid[]; p2 uuid[]; t bigint; begin
+  select total into n_todas from envios_pestanas() where pestana = 'todas';
+  select count(*) into n_real from envios;
+  if n_todas <> n_real then raise exception 'FALLO 146 · Dynamo: la pestaña «todas» cuenta % y hay %', n_todas, n_real; end if;
+  if (select total from envios_pestanas() where pestana = 'entregada') <> (select count(*) from envios where estado = 'entregado') then
+    raise exception 'FALLO 146 · la pestaña de entregados no cuenta bien';
+  end if;
+  select array_agg(id), max(total) into p1, t from envios_pagina('todas', 1, 5);
+  select array_agg(id) into p2 from envios_pagina('todas', 2, 5);
+  if cardinality(p1) <> least(5, n_real) or t <> n_real or p1 && p2 then raise exception 'FALLO 146 · las páginas se repiten o no cuadran'; end if;
+  if exists (select 1 from envios_pagina('entregada', 1, 200) x join envios e on e.id = x.id where e.estado <> 'entregado') then
+    raise exception 'FALLO 146 · en la pestaña de entregados sale otro estado';
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from envios_pagina('todas', 1, 200) x where not exists (select 1 from mis_envios() m where m.id = x.id)) then
+    raise exception 'FALLO 146 · el cliente ve en la lista un envío que no es suyo';
+  end if;
+  if (select total from envios_pestanas() where pestana = 'todas') <> (select count(*) from mis_envios()) then
+    raise exception 'FALLO 146 · el cliente: la cuenta no coincide con sus envíos';
+  end if;
+  if (select total from envios_pestanas(gen_random_uuid(), null) where pestana = 'todas') <> (select count(*) from mis_envios()) then
+    raise exception 'FALLO 146 · el cliente puede mirar la lista de otro';
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ begin
+  if (select total from envios_pestanas() where pestana = 'todas') <> (select count(*) from mis_viajes()) then
+    raise exception 'FALLO 146 · el transportista: la cuenta no coincide con sus viajes';
+  end if;
+  raise notice 'OK 146 · lista de envíos por páginas: cuentas por pestaña y páginas desde la base de datos, cada uno lo suyo';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 147. Contador de envíos sin asignar del cliente: el mismo número, sin recorrer sus paradas ----
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if (contadores_panel() ->> 'envios_sin_asignar')::bigint <> (select count(*) from mis_envios() e where e.estado = 'programado' and not e.es_manual and coalesce(e.estado_asignacion::text, '') <> 'confirmada') then
+    raise exception 'FALLO 147 · el contador del cliente no coincide con sus envíos';
+  end if;
+  raise notice 'OK 147 · contador del panel del cliente: mismo número, más rápido';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

@@ -1,11 +1,9 @@
-import { numero } from '@/lib/formato';
 import { redirect } from 'next/navigation';
-import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import { stripeListo } from '@/lib/stripe';
 import { vistaDe, filtrarVista } from '@/lib/vista';
-import type { EnvioFila, Parada } from '@/lib/envios';
-import TablaEnvios from '@/components/panel/TablaEnvios';
+import type { EnvioFila, Parada, Pestana } from '@/lib/envios';
+import TablaEnvios, { pestanaElegida, POR_PAGINA_ENVIOS } from '@/components/panel/TablaEnvios';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import FichaEnvio from '@/components/panel/FichaEnvio';
 import { cargarFicha, cargarTransportistasParaAsignar } from '@/lib/fichaEnvio';
@@ -54,6 +52,23 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   let error: string | null = null;
   let nota: string | null = null;
   if (errorBusqueda) error = errorBusqueda;
+  // Sin búsqueda: la base de datos cuenta cada pestaña y da los ids de la página que toca (antes
+  // se leían hasta 6.000 envíos con sus paradas para enseñar 20).
+  let conteos: Record<string, number> | null = null, pestana: Pestana | undefined, pagina = 1, totalPestana = 0;
+  let idsPagina: string[] | null = idsBusqueda;
+  if (!busca) {
+    const v: any = vista;
+    const filtro = { p_cliente: v.tipo === 'cliente' ? v.id : null, p_transportista: v.tipo === 'transportista' ? v.id : null };
+    const { data: cts, error: ec } = await supabase.rpc('envios_pestanas', filtro);
+    if (ec) error = ec.message;
+    conteos = Object.fromEntries(((cts ?? []) as { pestana: string; total: number }[]).map((x) => [x.pestana, Number(x.total)]));
+    pestana = pestanaElegida(dynamo, sp.f, (p) => conteos![p] ?? 0);
+    totalPestana = conteos[pestana] ?? 0;
+    pagina = Math.min(Math.max(1, Math.floor(Number(sp.p) || 1)), Math.max(1, Math.ceil(totalPestana / POR_PAGINA_ENVIOS)));
+    const { data: pg, error: ep } = await supabase.rpc('envios_pagina', { p_pestana: pestana, p_pagina: pagina, p_por_pagina: POR_PAGINA_ENVIOS, ...filtro });
+    if (ep) error = ep.message;
+    idsPagina = ((pg ?? []) as { id: string }[]).map((x) => x.id);
+  }
   if (dynamo) {
     const COLS = 'id, referencia_gx, referencia_cliente, estado, estado_asignacion, es_manual, transportista_id, ' +
       'fecha_carga_desde, fecha_carga_hasta, fecha_carga_real, fecha_entrega_estimada, descripcion_mercancia, ' +
@@ -61,24 +76,11 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       'importe_cliente, importe_transportista, precio_acordado_operador, precio_fijado_a_mano, matricula_camion, ' +
       'matricula_remolque, creado_en, modificado_en, creado_por, estado_solicitud, estado_pago_previo, estado_cambio_cliente, requiere_revision_precio, clientes(nombre_visible, cif), operadores(razon_social), ' +
       'envio_paradas(orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)';
-    const TERMINADOS = 1000;
     let data: any[] = [];
-    if (busca) {
-      // Con búsqueda o fechas: la página de resultados que ha dado la base de datos.
-      if (idsBusqueda!.length) {
-        const r = await filtrarVista(supabase.from('envios').select(COLS), vista).in('id', idsBusqueda!);
-        if (r.error) error = r.error.message;
-        data = r.data ?? [];
-      }
-    } else {
-      // Sin búsqueda: TODOS los vivos y los últimos terminados (entregados y cancelados).
-      const [vivos, fin] = await Promise.all([
-        leerTodo(filtrarVista(supabase.from('envios').select(COLS), vista).not('estado', 'in', '(entregado,cancelado)').order('creado_en', { ascending: false }), 5000),
-        filtrarVista(supabase.from('envios').select(COLS), vista).in('estado', ['entregado', 'cancelado']).order('creado_en', { ascending: false }).limit(TERMINADOS),
-      ]);
-      error = vivos.error?.message ?? fin.error?.message ?? null;
-      data = [...(vivos.data ?? []), ...(fin.data ?? [])];
-      if ((fin.data ?? []).length >= TERMINADOS) nota = `Se ven los ${numero(TERMINADOS, 0)} últimos envíos entregados o cancelados. Para los anteriores, usa el buscador o las fechas (busca en todos los años).`;
+    if (idsPagina!.length) {
+      const r = await filtrarVista(supabase.from('envios').select(COLS), vista).in('id', idsPagina!);
+      if (r.error) error = r.error.message;
+      data = r.data ?? [];
     }
     filas = (data as any[]).map((x) => ({
       ...x, cliente: x.clientes?.nombre_visible ?? null, cliente_cif: x.clientes?.cif ?? null,
@@ -86,9 +88,9 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       paradas: (x.envio_paradas ?? []) as Parada[],
     }));
   } else {
-    const { data, error: e } = busca
-      ? (idsBusqueda!.length ? await supabase.rpc(rol === 'transportista' ? 'mis_viajes_por_ids' : 'mis_envios_por_ids', { p_ids: idsBusqueda }) : { data: [], error: null })
-      : await leerTodo(supabase.rpc(rol === 'transportista' ? 'mis_viajes' : 'mis_envios'), 5000);
+    const { data, error: e } = idsPagina!.length
+      ? await supabase.rpc(rol === 'transportista' ? 'mis_viajes_por_ids' : 'mis_envios_por_ids', { p_ids: idsPagina })
+      : { data: [], error: null };
     if (e) error = e.message;
     filas = ((data ?? []) as any[]).map((x) => ({
       ...x, cliente: null, cliente_cif: null, operador: null, creado_por: x.creado_por ?? null,
@@ -117,8 +119,9 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       filas.forEach((f: any) => { f.operador = mapa.get(f.operador_id) ?? null; });
     }
   }
-  if (idsBusqueda) { const pos = new Map(idsBusqueda.map((id, i) => [id, i])); filas.sort((a, b) => (pos.get(a.id) ?? 0) - (pos.get(b.id) ?? 0)); }
-  else filas.sort((a, b) => (b.creado_en ?? '').localeCompare(a.creado_en ?? ''));
+  // En el orden que ha dado la base de datos.
+  const pos = new Map((idsPagina ?? []).map((id, i) => [id, i]));
+  filas.sort((a, b) => (pos.get(a.id) ?? 0) - (pos.get(b.id) ?? 0));
 
   // Quién creó cada envío (columna "Creado por"). Dynamo ve a todos los usuarios.
   const nombres = new Map<string, string>(nombresCliente);
@@ -162,7 +165,15 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   // Etapa C: el TRANSPORTISTA, su ficha de viaje y sus ofertas abiertas.
   let fichaViaje: any = null, ofertas: Oferta[] = [];
   if (rol === 'transportista') {
-    if (sp.ver) fichaViaje = filas.find((x) => x.id === sp.ver) ?? null;
+    if (sp.ver) {
+      fichaViaje = filas.find((x) => x.id === sp.ver) ?? null;
+      // El viaje abierto puede no estar en la página que se ve.
+      if (!fichaViaje && /^[0-9a-f-]{36}$/i.test(sp.ver)) {
+        const { data } = await supabase.rpc('mis_viajes_por_ids', { p_ids: [sp.ver] });
+        const x = ((data ?? []) as any[])[0];
+        fichaViaje = x ? { ...x, paradas: x.paradas ?? [] } : null;
+      }
+    }
     const { data } = await supabase.rpc('mis_ofertas');
     ofertas = (data ?? []) as Oferta[];
   }
@@ -172,7 +183,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   return (
     <>
       {ofertas.length > 0 && <OfertasAbiertas ofertas={ofertas} />}
-      <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} desde={desde} hasta={hasta} busqueda={busqueda} error={error ?? errorFicha} nuevo={sp.nuevo} nota={nota} nuevoManual={!!sp.manual} />
+      <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} desde={desde} hasta={hasta} busqueda={busqueda} conteos={conteos} pestana={pestana} pagina={pagina} totalPestana={totalPestana} error={error ?? errorFicha} nuevo={sp.nuevo} nota={nota} nuevoManual={!!sp.manual} />
       {ficha && <FichaEnvio key={ficha.envio.id} ficha={ficha} transportistas={transportistas} cerrarHref={cerrarHref} />}
       {fichaCli && <FichaEnvioCliente key={fichaCli.id} e={fichaCli} cerrarHref={cerrarHref} />}
       {fichaViaje && <FichaViaje key={fichaViaje.id} e={fichaViaje} cerrarHref={cerrarHref} />}

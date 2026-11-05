@@ -168,7 +168,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
       )}
       <div className="modal-form-row">
         <label>{esTransportista ? 'Viaje *' : <>Envío relacionado <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· opcional</span></>}</label>
-        <BuscaEnvio envios={envios} valor={d.envio_id} onCambio={(v) => set('envio_id', v)} remoto={!esCliente && !esTransportista} />
+        <BuscaEnvio envios={envios} valor={d.envio_id} onCambio={(v) => set('envio_id', v)} remoto />
       </div>
       {!d.envio_id && !esCliente && (
         <div className="modal-form-row">
