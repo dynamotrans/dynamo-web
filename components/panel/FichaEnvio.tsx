@@ -24,7 +24,7 @@ import Historial from './Historial';
 import { AvisoCambiosDynamo } from './CambiosEnvio';
 import {
   asignarTransportista, quitarTransportista, cambiarEstado, cancelarEnvio, deshacerCancelacion, modificarEnvio,
-  ofrecerCarga, revocarOferta, resolverContraoferta, resolverContraofertaCliente, enlaceCmr, retirarEnlaceCmr, valorarTransportista, type DatosEnvio, archivarPdf,
+  ofrecerCarga, revocarOferta, sugerirFlota, resolverContraoferta, resolverContraofertaCliente, enlaceCmr, retirarEnlaceCmr, valorarTransportista, type DatosEnvio, archivarPdf,
 } from '@/app/panel/(app)/envios/acciones';
 
 const ESTADOS: [string, string, string][] = [
@@ -469,6 +469,25 @@ function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: SubProp
   const [tel, setTel] = useState<string>(e.conductor_telefono ?? '');
   const [error, setError] = useState<string | null>(null);
   const t = transportistas.find((x) => x.id === tid);
+  // Camión nuevo → su chófer de otras veces (o vacío). Chófer nuevo → su teléfono (o vacío),
+  // nunca los datos del chófer anterior (usuario, 2026-11-05).
+  const [base, setBase] = useState({ camion: camion, conductor: conductor });
+  const sinEsp = (x: string) => x.replace(/[^0-9a-z]/gi, '').toUpperCase();
+  const norm = (x: string) => x.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  async function alSalirCamion() {
+    if (!tid || !camion.trim() || sinEsp(camion) === sinEsp(base.camion)) return;
+    const s = await sugerirFlota(tid, { matricula: camion });
+    if (!s) return;
+    setConductor(s.conductor ?? ''); setTel(s.telefono ?? '');
+    setBase({ camion, conductor: s.conductor ?? '' });
+  }
+  async function alSalirConductor() {
+    if (!tid || !conductor.trim() || norm(conductor) === norm(base.conductor)) return;
+    const s = await sugerirFlota(tid, { conductor });
+    if (!s) return;
+    setTel(s.telefono ?? '');
+    setBase((b) => ({ ...b, conductor }));
+  }
   const pc = e.importe_cliente != null ? Number(e.importe_cliente) : null;
   const pv = aNum(precio);
   const margen = pc != null && pv != null && !Number.isNaN(pv) ? pc - pv : null;
@@ -518,7 +537,7 @@ function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: SubProp
         </div>
         <div>
           <label htmlFor="as-camion">Matrícula camión / tractora</label>
-          <input id="as-camion" list="as-camiones" type="text" value={camion} placeholder="1234ABC" onChange={(ev) => setCamion(ev.target.value)} />
+          <input id="as-camion" list="as-camiones" type="text" value={camion} placeholder="1234ABC" onChange={(ev) => setCamion(ev.target.value)} onBlur={alSalirCamion} />
           <datalist id="as-camiones">{camiones.map((v) => <option key={v.matricula} value={v.matricula}>{v.tipo === 'rigido' ? 'Rígido' : 'Tractora'}</option>)}</datalist>
         </div>
         <div>
@@ -529,7 +548,7 @@ function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: SubProp
         <div>
           <label htmlFor="as-conductor">Conductor</label>
           <input id="as-conductor" list="as-conductores" type="text" value={conductor} placeholder="Nombre y apellidos"
-            onChange={(ev) => { setConductor(ev.target.value); const c = t?.conductores.find((x) => x.nombre === ev.target.value); if (c?.telefono) setTel(c.telefono); }} />
+            onChange={(ev) => setConductor(ev.target.value)} onBlur={alSalirConductor} />
           <datalist id="as-conductores">{(t?.conductores ?? []).map((c) => <option key={c.nombre} value={c.nombre} />)}</datalist>
         </div>
         <div>

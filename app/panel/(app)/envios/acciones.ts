@@ -228,6 +228,16 @@ export async function archivarPdf(envioId: string, documento: 'orden-de-carga' |
   return { ok: true, aviso: `Copia guardada en los documentos del envío: ${nombre}.` };
 }
 
+// Asignar transportista: los datos conocidos de su flota (chófer de ese camión de otras
+// veces, o el teléfono de ese chófer). Vacío si no hay: nunca los del chófer anterior.
+export async function sugerirFlota(transportista: string, d: { matricula?: string; conductor?: string }): Promise<{ conductor: string | null; telefono: string | null } | null> {
+  const s = await soloDynamo();
+  if (!s || !transportista) return null;
+  const { data, error } = await s.supabase.rpc('flota_sugerencia', { p_transportista: transportista, p_matricula: d.matricula ?? null, p_conductor: d.conductor ?? null });
+  if (error) return null;
+  return { conductor: (data as any)?.conductor ?? null, telefono: (data as any)?.telefono ?? null };
+}
+
 // Revisión del precio de un envío con precio provisional (hoy a mano; con el tarifador, sola).
 export async function revisarPrecioEnvio(envio: string, precio: number): Promise<Res> {
   const s = await soloDynamo();

@@ -4744,3 +4744,31 @@ do $$ begin
   end if;
   raise notice 'OK 133 · completar camión y conductor desde el enlace: un campo vacío no borra lo que había';
 end $$;
+
+-- ---- 134. Los datos del chófer van con su chófer; la matrícula trae a su chófer ------------
+reset role;
+do $$ declare t uuid; c uuid; begin
+  select transportista_id, cliente_id into t, c from envios where id = current_setting('prueba.env133')::uuid;
+  insert into envios (cliente_id, transportista_id, metros_lineales, toneladas, matricula_camion, conductor_nombre, conductor_telefono)
+    values (c, t, 13.3, 20, '9999ZZZ', 'Chofer Camion', '+34600999999');
+  insert into conductores (transportista_id, nombre, telefono) values (t, 'Ana Conocida', '+34600888888');
+end $$;
+set role anon;
+do $$ declare res uuid := current_setting('prueba.res133')::uuid; e uuid := current_setting('prueba.env133')::uuid; v jsonb; begin
+  perform completar_carga_publica(res, '', '', 'Nuevo Sin Telefono', '');
+  v := carga_aceptada_publica(res);
+  if v ->> 'conductor_telefono' is not null then raise exception 'FALLO 134 · un chófer nuevo se queda con el teléfono del anterior: %', v ->> 'conductor_telefono'; end if;
+  perform completar_carga_publica(res, '', '', 'ana conocida', '');
+  if carga_aceptada_publica(res) ->> 'conductor_telefono' <> '+34600888888' then raise exception 'FALLO 134 · un chófer conocido no trae su teléfono'; end if;
+  perform completar_carga_publica(res, '', '', 'Ana Conocida', '');
+  if carga_aceptada_publica(res) ->> 'conductor_telefono' <> '+34600888888' then raise exception 'FALLO 134 · el mismo chófer pierde su teléfono'; end if;
+  if flota_sugerencia_publica(res, '9999 zzz') ->> 'conductor' <> 'Chofer Camion' then raise exception 'FALLO 134 · la pantalla no sugiere el chófer del camión'; end if;
+  perform completar_carga_publica(res, '9999 ZZZ', '', '', '');
+  v := carga_aceptada_publica(res);
+  if v ->> 'conductor_nombre' <> 'Chofer Camion' or v ->> 'conductor_telefono' <> '+34600999999' then raise exception 'FALLO 134 · un camión conocido no trae a su chófer: %', v; end if;
+  perform completar_carga_publica(res, '7777XXX', '', '', '');
+  v := carga_aceptada_publica(res);
+  if v ->> 'conductor_nombre' is not null or v ->> 'conductor_telefono' is not null then raise exception 'FALLO 134 · un camión sin historial se queda con el chófer del otro: %', v; end if;
+  raise notice 'OK 134 · chófer nuevo: su teléfono o vacío (nunca el del anterior); camión nuevo: su chófer de otras veces o vacío';
+end $$;
+reset role;

@@ -53,14 +53,25 @@ export async function liberar(token: string): Promise<void> {
   almacen.delete({ name: cookieReserva(token), path: '/carga' });
 }
 
-export async function completar(token: string, d: { camion: string; remolque: string; conductor: string; telefono: string }): Promise<{ resultado: string }> {
+export async function completar(token: string, d: { camion: string; remolque: string; conductor: string; telefono: string }): Promise<{ resultado: string; conductor?: string | null; telefono?: string | null }> {
   const sb = supabasePublico();
   const reserva = (await cookies()).get(cookieReserva(token))?.value;
   if (!sb || !reserva) return { resultado: 'error' };
   const { data, error } = await sb.rpc('completar_carga_publica', {
     p_reserva: reserva, p_camion: d.camion, p_remolque: d.remolque, p_conductor: d.conductor, p_telefono: d.telefono,
   });
-  return error ? { resultado: 'error' } : (data as { resultado: string });
+  return error ? { resultado: 'error' } : (data as { resultado: string; conductor?: string | null; telefono?: string | null });
+}
+
+// Al escribir una matrícula o un chófer: los datos que ya conocemos de su flota (el chófer
+// de ese camión de otras veces, o el teléfono de ese chófer). Vacío si no hay.
+export async function sugerirFlota(token: string, d: { matricula?: string; conductor?: string }): Promise<{ conductor: string | null; telefono: string | null } | null> {
+  const sb = supabasePublico();
+  const reserva = (await cookies()).get(cookieReserva(token))?.value;
+  if (!sb || !reserva) return null;
+  const { data, error } = await sb.rpc('flota_sugerencia_publica', { p_reserva: reserva, p_matricula: d.matricula ?? null, p_conductor: d.conductor ?? null });
+  if (error || (data as any)?.resultado !== 'ok') return null;
+  return { conductor: (data as any).conductor ?? null, telefono: (data as any).telefono ?? null };
 }
 
 // El enlace de firma del CMR digital de la carga aceptada (lo crea si no hay uno vivo).
