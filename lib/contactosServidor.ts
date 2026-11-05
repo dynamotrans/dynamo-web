@@ -1,3 +1,4 @@
+import { normalizaTel } from '@/lib/paises';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ContactoDatos } from './contactos';
 
@@ -8,7 +9,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 export function validarContactos(lista: ContactoDatos[]): string | null {
   for (const [i, c] of lista.entries()) {
     const quien = c.nombre.trim() || `el contacto ${i + 1}`;
-    const tel = c.telefono.replace(/[^\d+]/g, '');
+    const tel = normalizaTel(c.telefono);
     if (!tel && !c.email.trim()) return `Pon un teléfono o un email para ${quien}.`;
     if (tel && tel.replace('+', '').length < 6) return `El teléfono de ${quien} no es válido.`;
     if (c.email.trim() && !EMAIL.test(c.email.trim())) return `El email de ${quien} no es válido.`;
@@ -34,7 +35,7 @@ export async function guardarContactos(sb: SupabaseClient, dueno: Dueno, lista: 
   const vistos = new Set<string>();
   for (const c of lista) {
     const es_principal = !vistos.has(c.funcion); vistos.add(c.funcion);
-    const tel = c.telefono.replace(/[^\d+]/g, '');
+    const tel = normalizaTel(c.telefono);
     const fila: Record<string, unknown> = { ...dueno, nombre: c.nombre.trim() || null, cargo: c.cargo.trim() || null, funcion: c.funcion,
       telefono: tel || null, email: c.email.trim().toLowerCase() || null, recibe_avisos: c.recibe_avisos, es_principal };
     const r = c.id ? await sb.from('contactos').update(fila).eq('id', c.id) : await sb.from('contactos').insert(fila);

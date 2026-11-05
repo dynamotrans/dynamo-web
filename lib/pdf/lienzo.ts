@@ -97,15 +97,10 @@ export class Lienzo {
 }
 
 // Fechas y dinero: los formatos de la plataforma (regla 0: "1.020,00 €"; fecha "Vie 10/07/26").
-import { euros, fecha } from '@/lib/formato';
+import { euros, fecha, fechaHora, ventana, numero } from '@/lib/formato';
 export const fechaCorta = (iso: string | null | undefined) => (iso ? fecha(iso) : '');
 export const eur = (n: unknown) => euros(Number(n) || 0);
-export function ventanaTxt(desde: string | null, hasta: string | null): string {
-  if (!desde) return 'Fecha por confirmar';
-  return hasta && hasta !== desde ? `del ${fecha(desde)} al ${fecha(hasta)}` : fecha(desde);
-}
-export function ahoraMadrid(): string {
-  return new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
-    .format(new Date()).replace(',', ' ·');
-}
-export const num = (n: unknown) => (n == null || n === '' ? '' : String(Number(n)).replace('.', ','));
+export const ventanaTxt = (desde: string | null, hasta: string | null) => ventana(desde, hasta);
+export const ahoraMadrid = () => fechaHora(new Date().toISOString());
+// Metros y toneladas con 2 decimales (regla del usuario).
+export const num = (n: unknown) => (n == null || n === '' ? '' : numero(Number(n), 2));

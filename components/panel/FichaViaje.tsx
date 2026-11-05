@@ -10,8 +10,8 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
-import { euros, fecha, ventana, pesoTn } from '@/lib/formato';
-import { creadoTxt } from '@/lib/envios';
+import { euros, fecha, ventana, pesoTn, fechaHora, metros } from '@/lib/formato';
+
 import { paisDe, telBonito } from '@/lib/paises';
 import { marcarViaje, enlaceCmrPropio } from '@/app/panel/(app)/envios/acciones-transportista';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
@@ -116,7 +116,7 @@ export default function FichaViaje({ e, cerrarHref }: { e: any; cerrarHref: stri
               <div className="det-punto-head">
                 <span className={`ptar-route-num ${rec ? 'rec' : 'ent'}`}>{n}</span>
                 <span className="det-punto-label">{rec ? `Recogida ${n}` : `Entrega ${n}`}</span>
-                {p.realizado_en && <span className="det-punto-tipo">Hecha: {creadoTxt(p.realizado_en)}</span>}
+                {p.realizado_en && <span className="det-punto-tipo">Hecha: {fechaHora(p.realizado_en)}</span>}
               </div>
               <div className="det-punto-body">
                 {p.nombre_empresa && <strong>{p.url_google_maps ? <a href={p.url_google_maps} target="_blank" rel="noopener" style={{ color: 'var(--purple)' }}>{p.nombre_empresa}</a> : p.nombre_empresa}</strong>}
@@ -145,7 +145,7 @@ export default function FichaViaje({ e, cerrarHref }: { e: any; cerrarHref: stri
       <h4 className="modal-section-title">Mercancía</h4>
       <div className="det-block"><div className="modal-info-grid">
         <Celda l="Mercancía">{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</Celda>
-        <Celda l="Medidas">{[e.metros_lineales != null && `${txtNum(e.metros_lineales)} m`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</Celda>
+        <Celda l="Medidas">{[e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</Celda>
         <Celda l="Forma de carga">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_techo && 'Techo'].filter(Boolean).join(', ') || '—'}</Celda>
         <Celda l="Requisitos">{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'NIMA', e.adr && 'Mercancía ADR'].filter(Boolean).join(' · ') || 'Ninguno'}</Celda>
       </div></div>

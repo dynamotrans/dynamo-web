@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { supabaseServidor } from '@/lib/supabase/server';
 import { origen } from '@/lib/origen';
 import { validaIdFiscal, validaIdFiscalPais } from '@/lib/idFiscal';
-import { esPaisValido, PREFIJOS } from '@/lib/paises';
+import { esPaisValido, PREFIJOS, normalizaTel } from '@/lib/paises';
 
 // ALTA DE CLIENTE desde el portal. No hay contraseña en este paso: Supabase manda al email
 // un enlace y un código de 6 cifras; con cualquiera de los dos se entra y se crea la
@@ -37,9 +37,9 @@ export async function registrar(_prev: EstadoAlta, f: FormData): Promise<EstadoA
   if (!d.codigo_postal || !d.poblacion) return mal('codigo_postal', 'Escribe el código postal y la población.');
   if (d.nombre.length < 3) return mal('nombre', 'Escribe tu nombre y apellidos (la persona que usará la cuenta).');
   if (d.dni) { const r = validaIdFiscal(d.dni); if (!r || !r.ok) return mal('dni', 'El DNI / NIE no es válido. Revísalo o déjalo en blanco.'); }
-  const tel = (d.prefijo + d.telefono).replace(/[^\d+]/g, '');
+  const tel = normalizaTel(d.prefijo + d.telefono);
   if (!/^\+[0-9]{8,15}$/.test(tel)) return mal('telefono', 'Escribe un teléfono de contacto (móvil, a ser posible).');
-  if (f.get('acepto') !== 'on') return mal('acepto', 'Para crear la cuenta tienes que aceptar el Aviso Legal y la Política de Privacidad.');
+  if (f.get('acepto') !== 'on') return mal('acepto', 'Para crear la cuenta tienes que aceptar el Aviso legal y la Política de privacidad.');
 
   const supabase = await supabaseServidor(true);
   if (!supabase) return mal(undefined, 'La plataforma no está conectada a la base de datos.');

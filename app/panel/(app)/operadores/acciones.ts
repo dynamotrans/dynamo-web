@@ -1,5 +1,7 @@
 'use server';
 
+import { normalizaTel } from '@/lib/paises';
+
 import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
 
@@ -31,7 +33,7 @@ export async function guardarOperador(id: string | null, d: OperadorDatos): Prom
   if (!d.razon_social.trim() || !d.cif.trim()) return { ok: false, error: 'El nombre y el CIF/NIF son obligatorios.' };
   const dynamo = esGestor(s.perfil!.rol);
   if (dynamo && !id && !d.cliente_id) return { ok: false, error: 'Elige de qué cliente es este transportista.' };
-  const tel = (d.telefono ?? '').replace(/[\s().-]/g, '');
+  const tel = normalizaTel(d.telefono);
   const fila: Record<string, unknown> = {
     razon_social: d.razon_social.trim(), cif: d.cif.trim().toUpperCase(), telefono: tel || null, email: vacio(d.email)?.toLowerCase() ?? null,
     persona_contacto: vacio(d.persona_contacto), web: vacio(d.web), anotaciones: vacio(d.anotaciones),

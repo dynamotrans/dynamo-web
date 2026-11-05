@@ -56,11 +56,51 @@ export function fecha(d: string | null | undefined): string {
   return `${DIAS[f.getUTCDay()]} ${String(dia).padStart(2, '0')}/${String(m).padStart(2, '0')}/${String(a).slice(2)}`;
 }
 
-export function ventana(desde: string | null, hasta: string | null): string {
-  if (!desde) return 'Sin fecha';
-  if (!hasta || hasta === desde) return fecha(desde);
-  return `${fecha(desde)} – ${fecha(hasta)}`;
+// El día (en Madrid) de un instante (timestamptz): «Vie 10/07/26».
+export function fechaDe(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  return fecha(new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(iso)));
 }
+
+// Fecha y hora de un instante, en Madrid: «Vie 03/11/26 · 09:41» (decisión del usuario,
+// 2026-11-05: el mismo formato de fecha en todo, con el día de la semana).
+export function fechaHora(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date(iso));
+  const v = (t: string) => p.find((x) => x.type === t)?.value ?? '';
+  return `${fecha(`${v('year')}-${v('month')}-${v('day')}`)} · ${v('hour') === '24' ? '00' : v('hour')}:${v('minute')}`;
+}
+
+// Hace cuánto: «ahora», «hace 5 min», «hace 3 h», «ayer · 17:30» y, si es más viejo, la fecha y hora.
+export function haceTxt(iso: string | null | undefined, ahora = new Date()): string {
+  if (!iso) return '';
+  const min = Math.round((ahora.getTime() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return 'ahora';
+  if (min < 60) return `hace ${min} min`;
+  if (min < 12 * 60) return `hace ${Math.round(min / 60)} h`;
+  if (fechaDe(iso) === fechaDe(new Date(ahora.getTime() - 86400000).toISOString())) return `ayer · ${fechaHora(iso).slice(-5)}`;
+  return fechaHora(iso);
+}
+
+// Ventana de fechas: «Vie 10/07/26» o «del Vie 10/07/26 al Lun 13/07/26» (con raya se leía
+// como dos fechas alternativas). Sin fecha: «Por confirmar».
+export function ventana(desde: string | null | undefined, hasta?: string | null): string {
+  if (!desde) return 'Por confirmar';
+  if (!hasta || hasta === desde) return fecha(desde);
+  return `del ${fecha(desde)} al ${fecha(hasta)}`;
+}
+
+// Metros lineales con 2 decimales («13,30 m»), como las toneladas (decisión del usuario).
+export const metros = (m: number | string | null | undefined) => (m == null || m === '' ? '' : `${numero(m, 2)} m`);
+// «13,30 m · 20,50 Tn», sin separadores sueltos si falta uno.
+export const medidasTxt = (m: number | string | null | undefined, t: number | string | null | undefined) =>
+  [metros(m), pesoTn(t)].filter(Boolean).join(' · ');
+// «21 %» (sin decimales si es entero; si no, con 2).
+export const porcentaje = (v: number | string | null | undefined) => {
+  if (v == null || v === '') return '';
+  const n = Number(v);
+  return `${numero(n, Number.isInteger(n) ? 0 : 2)} %`;
+};
 
 export const ESTADO_ENVIO: Record<string, string> = {
   borrador: 'Borrador',

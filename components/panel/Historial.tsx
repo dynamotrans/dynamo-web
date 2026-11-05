@@ -1,9 +1,11 @@
 'use client';
 
+import { fechaHora } from '@/lib/formato';
+
 // «Quién y cuándo»: el historial de cambios de un registro (de la auditoría). Plegado de
 // entrada; al abrirlo se carga. Cada línea: fecha y hora, la acción y quién (nombre y email).
 import { useState } from 'react';
-import { creadoTxt } from '@/lib/envios';
+
 import { historialDe, type EntradaHistorial } from '@/app/panel/historial';
 
 const CAMPOS: Record<string, string> = {
@@ -58,7 +60,7 @@ export default function Historial({ tabla, id }: { tabla: Parameters<typeof hist
           {filas?.length === 0 && <div className="pen-sum-row"><span className="k">Sin cambios registrados</span><span className="v" /></div>}
           {filas?.map((h, i) => (
             <div key={i} className="pen-sum-row" style={{ alignItems: 'flex-start' }}>
-              <span className="k" style={{ whiteSpace: 'nowrap' }}>{creadoTxt(h.cuando)}</span>
+              <span className="k" style={{ whiteSpace: 'nowrap' }}>{fechaHora(h.cuando)}</span>
               <span className="v" style={{ textAlign: 'right' }}>
                 {accion(h)}
                 <div style={{ color: 'var(--gray-500)', fontWeight: 500 }}>{h.quien_nombre}{h.quien_email && h.quien_email !== h.quien_nombre ? ` · ${h.quien_email}` : ''}</div>

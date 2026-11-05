@@ -8,8 +8,8 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import { guardarCliente, type ClienteDatos } from '@/app/panel/(app)/clientes/acciones';
-import { euros } from '@/lib/formato';
-import { creadoTxt } from '@/lib/envios';
+import { euros, fechaHora } from '@/lib/formato';
+
 import { paisDe, telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
@@ -105,7 +105,7 @@ export default function Clientes({ filas, error, bienvenida, empleados = [], abr
                   <td>{c.plazo_pago_dias === 0 ? 'Pago inmediato (0 días)' : `Crédito ${c.plazo_pago_dias} días`}
                     <div className="meta">{cesce > 0 ? <span style={{ color: '#0f6b3a', fontWeight: 700 }}>CESCE {euros(cesce)}</span> : 'Sin crédito CESCE'} · Dynamo {euros(dyn)}</div></td>
                   <td><Factor v={Number(c.factor_tarifa_pct)} /><div className="meta">{c.factor_fijado_a_mano ? 'fijado a mano' : 'automático'}</div></td>
-                  <td>{creadoTxt(c.creado_en)}{c.modificado_en && <div className="meta">Modif. {creadoTxt(c.modificado_en)}</div>}</td>
+                  <td>{fechaHora(c.creado_en)}{c.modificado_en && <div className="meta">Modif. {fechaHora(c.modificado_en)}</div>}</td>
                   <td><span className={`badge badge-${est[2]}`}>{est[1]}</span></td>
                 </tr>
               );
@@ -193,7 +193,7 @@ function FichaCliente({ fila, bienvenida, empleados, onCerrar, onGuardado }: { f
       </>}>
       {fila && (
         <div style={{ margin: '0 0 0.9rem', padding: '0.55rem 0.85rem', border: '1px solid var(--gray-200)', borderRadius: 9, background: 'var(--gray-50)', fontSize: 'var(--fs-m)', color: 'var(--gray-500)', fontWeight: 600 }}>
-          Creado: {creadoTxt(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${creadoTxt(fila.modificado_en)}` : ''}
+          Creado: {fechaHora(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${fechaHora(fila.modificado_en)}` : ''}
         </div>
       )}
       <div className="ptar-sitio-grid">

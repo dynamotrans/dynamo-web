@@ -1,8 +1,7 @@
 // Lógica de presentación de la tabla de envíos, traducida de dashboard.html
 // (getEstadoVisual, getAsignacionEstado, highlightInfo, rutaFechasCell…) a los datos
 // reales de la base de datos.
-import { pesoTn } from '@/lib/formato';
-import { fecha } from './formato';
+import { fecha, ventana, medidasTxt } from './formato';
 import { paisDe } from './paises';
 
 export type Parada = {
@@ -105,21 +104,10 @@ export function urgencia(e: EnvioFila): string {
 }
 
 export function fechaCarga(e: EnvioFila): string {
-  if (e.fecha_carga_real) return fecha(e.fecha_carga_real);
-  if (!e.fecha_carga_desde) return 'Sin fecha';
-  if (!e.fecha_carga_hasta || e.fecha_carga_hasta === e.fecha_carga_desde) return fecha(e.fecha_carga_desde);
-  return `${fecha(e.fecha_carga_desde)} – ${fecha(e.fecha_carga_hasta)}`;
+  return e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta);
 }
 export function fechaEntrega(e: EnvioFila): string {
-  return e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : 'Sin programar';
-}
-
-// "03/11/26 · 09:41", en hora de Madrid (regla 12).
-export function creadoTxt(iso: string | null): string {
-  if (!iso) return '';
-  const p = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date(iso));
-  const v = (t: string) => p.find((x) => x.type === t)?.value ?? '';
-  return `${v('day')}/${v('month')}/${v('year')} · ${v('hour')}:${v('minute')}`;
+  return e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : 'Por confirmar';
 }
 
 // --- Paradas ------------------------------------------------------------------------
@@ -139,11 +127,8 @@ export function paradasDe(e: EnvioFila): { recogidas: Parada[]; entregas: Parada
 }
 
 // --- Mercancía ----------------------------------------------------------------------
-const num1 = (n: number) => n.toLocaleString('es-ES', { maximumFractionDigits: 2 });
 export function medidas(e: EnvioFila): string {
-  const m = e.metros_lineales != null ? `${num1(Number(e.metros_lineales))} m` : null;
-  const t = e.toneladas != null ? `${pesoTn(Number(e.toneladas))}` : null;
-  return [m, t].filter(Boolean).join(' · ');
+  return medidasTxt(e.metros_lineales, e.toneladas);
 }
 
 // Buscador: "cualquier dato" del envío.

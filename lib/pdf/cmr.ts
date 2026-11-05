@@ -3,7 +3,8 @@ import path from 'node:path';
 import type { PDFImage, PDFPage, RGB } from 'pdf-lib';
 import { Lienzo, COLOR, A4, num, fechaCorta, limpio } from './lienzo';
 import { DYNAMO, type DatosDoc, type ParadaDoc } from './datos';
-import { importe, pesoKg } from '@/lib/formato';
+import { importe, pesoKg, fecha, fechaDe, fechaHora, hoyMadrid, metros } from '@/lib/formato';
+import { telBonito } from '@/lib/paises';
 
 // CMR (carta de porte internacional) RELLENO, copiado del mockup: los 4 ejemplares del
 // impreso OFICIAL (remitente rojo · destinatario azul · porteador verde · administración
@@ -29,13 +30,13 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
   const cli = d.cliente;
   const porteador = manual
     ? { nombre: d.porteador?.razon_social ?? '—', cif: d.porteador?.cif ?? null, tel: d.porteador?.telefono ?? null }
-    : { nombre: 'Dynamo Operador de Transportes', cif: D.cif, tel: D.telefono };
-  const hoy = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date());
+    : { nombre: D.razon_social, cif: D.cif, tel: D.telefono };
+  const hoy = fecha(hoyMadrid());
   const ROJA = COLOR.rojo, TINTA = COLOR.tinta;
 
   // Firmas del CMR digital: 22 la PRIMERA recogida, 23 el transportista, 24 la ÚLTIMA entrega
   // (las de otras paradas quedan en el registro de firmas, que es la prueba completa).
-  const fechaFirma = (iso: string) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)).replace(',', '');
+  const fechaFirma = (iso: string) => fechaHora(iso);
   const firmaDe = (rol: string, parada: string | null | undefined) => (d.firmas ?? []).find((f) => f.rol === rol && (rol === 'transportista' || f.parada_id === parada));
   const casillas = await Promise.all(([
     ['remitente', carga?.id, 38, 742, 150],
@@ -99,7 +100,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     // 16 Porteador (nombre y, en una línea pequeña, CIF y teléfono)
     const nomLineas = l.partir(porteador.nombre, 8.4, 26 * 8.4 * 0.5, true).length;
     dato(438, 190, [{ t: porteador.nombre, s: 8.4 }], 26);
-    dato(438, 190 + nomLineas * 10, [{ t: [porteador.cif && `CIF ${porteador.cif}`, porteador.tel].filter(Boolean).join(' · '), s: 6.8, b: false }], 44);
+    dato(438, 190 + nomLineas * 10, [{ t: [porteador.cif && `CIF ${porteador.cif}`, porteador.tel && telBonito(porteador.tel)].filter(Boolean).join(' · '), s: 6.8, b: false }], 44);
     // 17 Porteadores sucesivos: el transportista efectivo, su camión y su conductor
     dato(438, 236, [
       { t: manual ? '' : d.porteador?.razon_social ?? '—', s: 7.8, max: 2 },
@@ -119,7 +120,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
     dato(196, 385, [{ t: e.embalaje || (e.paletizado === false ? 'Sin paletizar' : 'Palets'), s: 7.4, b: false }]);
     dato(276, 385, [
       { t: e.descripcion_mercancia || '—', s: 8 },
-      { t: e.metros_lineales != null ? `Ocupación: ${num(e.metros_lineales)} m lineales` : '', s: 7, b: false },
+      { t: e.metros_lineales != null ? `Ocupación: ${metros(e.metros_lineales)} lineales` : '', s: 7, b: false },
       { t: e.adr ? 'MERCANCÍA ADR' : '', s: 7.4, c: ROJA },
     ], 24);
     dato(388, 385, [{ t: '—', b: false }]);
@@ -150,7 +151,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       dato(c.x, c.top + c.alto + 1, [{ t: `${c.f.nombre} · ${c.f.documento} · ${fechaFirma(c.f.firmado_en)}`, s: 6.2, b: false, max: 1 }], Math.floor(c.ancho / 3.1));
       if (c.f.rol === 'destinatario') {
         dato(395, 752, [{ t: entrega?.poblacion ?? '', s: 7.4, max: 1 }], 13);
-        dato(452, 752, [{ t: fechaFirma(c.f.firmado_en).slice(0, 10), s: 7.4 }], 20);
+        dato(452, 752, [{ t: fechaDe(c.f.firmado_en), s: 7.4 }], 20);
       }
     }
   }

@@ -1,5 +1,7 @@
 'use server';
 
+import { normalizaTel } from '@/lib/paises';
+
 import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esGestor } from '@/lib/sesion';
 
@@ -36,7 +38,7 @@ async function contactosDeSitiosNuevos(sb: any, envioId: string, paradas: Parada
   for (const { p, i } of conContacto) {
     const sitio = filas[i]?.sitio_id;
     if (!sitio) continue;
-    const tel = (p.contacto_telefono ?? '').replace(/[^\d+]/g, '');
+    const tel = normalizaTel(p.contacto_telefono);
     await sb.from('contactos').insert({ sitio_id: sitio, nombre: (p.contacto_nombre ?? '').trim() || null, telefono: tel, es_principal: true });
   }
   for (const { p, i } of conHorario) {

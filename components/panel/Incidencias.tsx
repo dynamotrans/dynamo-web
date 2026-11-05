@@ -14,8 +14,7 @@ import BuscaEnvio from './BuscaEnvio';
 import Documentos from './Documentos';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarIncidencia, type IncidenciaDatos } from '@/app/panel/(app)/incidencias/acciones';
-import { fecha, ventana, pesoTn } from '@/lib/formato';
-import { creadoTxt } from '@/lib/envios';
+import { fecha, ventana, pesoTn, fechaHora, metros, medidasTxt } from '@/lib/formato';
 
 export type IncidenciaFila = {
   id: string; codigo: string; envio_id: string | null; cliente_id: string | null; tipo_id: string; tipo: string;
@@ -97,7 +96,7 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
                   <td className="ref-cli">{e?.referencia_cliente ?? '—'}</td>
                   <td>{e ? <><strong>{fecha(e.fecha_carga_desde)}</strong><div className="meta">{ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</div></> : '—'}</td>
                   <td className="route">{e ? <><strong>{e.origen || '—'}</strong><span className="arrow">→</span><strong>{e.destino || '—'}</strong></> : '—'}</td>
-                  <td className="amount">{e && (e.metros_lineales != null || e.toneladas != null) ? `${n(e.metros_lineales)} m · ${pesoTn(e.toneladas)}` : '—'}</td>
+                  <td className="amount">{e && (e.metros_lineales != null || e.toneladas != null) ? medidasTxt(e.metros_lineales, e.toneladas) : '—'}</td>
                   <td><span className={`badge badge-${est[2]}`}>{est[1]}</span>{pri && x.prioridad !== 'media' && abierta(x.estado) && <div style={{ marginTop: 3 }}><span className={`badge badge-${pri[2]}`}>Prioridad {pri[1].toLowerCase()}</span></div>}</td>
                 </tr>
               );
@@ -164,7 +163,7 @@ function FichaIncidencia({ fila, envioInicial, tipos, clientes, envios, onCerrar
       </>}>
       {fila && (
         <div style={{ margin: '0 0 0.9rem', padding: '0.55rem 0.85rem', border: '1px solid var(--gray-200)', borderRadius: 9, background: 'var(--gray-50)', fontSize: 'var(--fs-m)', color: 'var(--gray-500)', fontWeight: 600 }}>
-          Abierta: {creadoTxt(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${creadoTxt(fila.modificado_en)}` : ''}{fila.resuelto_en ? ` · Resuelta: ${creadoTxt(fila.resuelto_en)}` : ''}
+          Abierta: {fechaHora(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${fechaHora(fila.modificado_en)}` : ''}{fila.resuelto_en ? ` · Resuelta: ${fechaHora(fila.resuelto_en)}` : ''}
         </div>
       )}
       <div className="modal-form-row">

@@ -1,3 +1,5 @@
+import { fechaDe, porcentaje } from '@/lib/formato';
+import { telBonito } from '@/lib/paises';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Lienzo, COLOR, A4, eur, fechaCorta } from './lienzo';
@@ -41,13 +43,13 @@ export async function proforma(d: DatosProforma): Promise<Uint8Array> {
   l.texto(mL, 133, `CIF ${dy.cif}`, 9); l.texto(320, 133, `CIF ${c.cif}`, 9);
   l.texto(mL, 146, dy.email, 9, { color: gris });
   l.texto(320, 146, [c.direccion, [c.codigo_postal, c.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', '), 9, { color: gris });
-  l.texto(mL, 159, `${dy.telefono} · ${dy.web}`, 9, { color: gris }); l.texto(320, 159, c.pais ?? '', 9, { color: gris });
+  l.texto(mL, 159, `${telBonito(dy.telefono)} · ${dy.web}`, 9, { color: gris }); l.texto(320, 159, c.pais ?? '', 9, { color: gris });
 
   // Nº, fecha y referencia
   l.rect(mL, 174, mR - mL, 26, COLOR.fondo);
   const pno = `PRO-${d.codigo}`;
   l.texto(mL + 10, 184, 'Nº PROFORMA', 7.5, { bold: true, color: gris }); l.texto(mL + 10, 196, pno, 10, { bold: true });
-  l.texto(240, 184, 'FECHA', 7.5, { bold: true, color: gris }); l.texto(240, 196, fechaCorta(new Date().toISOString().slice(0, 10)), 10, { bold: true });
+  l.texto(240, 184, 'FECHA', 7.5, { bold: true, color: gris }); l.texto(240, 196, fechaDe(d.creado_en), 10, { bold: true });
   l.texto(370, 184, 'REFERENCIA', 7.5, { bold: true, color: gris }); l.texto(370, 196, d.referencia_cliente || '—', 10, { bold: true });
 
   // Conceptos
@@ -75,7 +77,7 @@ export async function proforma(d: DatosProforma): Promise<Uint8Array> {
   base = Math.round(base * 100) / 100;
   const iva = Math.round(base * d.iva) / 100, total = Math.round((base + iva) * 100) / 100;
   l.texto(360, y + 8, 'Base imponible', 9.5, { color: gris }); l.textoDer(mR - 10, y + 8, eur(base), 9.5);
-  l.texto(360, y + 24, `IVA (${String(d.iva).replace('.', ',')}%)`, 9.5, { color: gris }); l.textoDer(mR - 10, y + 24, eur(iva), 9.5);
+  l.texto(360, y + 24, `IVA (${porcentaje(d.iva)})`, 9.5, { color: gris }); l.textoDer(mR - 10, y + 24, eur(iva), 9.5);
   l.rect(348, y + 32, mR - 348, 26, morado);
   l.texto(360, y + 49, 'TOTAL A PAGAR', 10.5, { bold: true, color: blanco }); l.textoDer(mR - 10, y + 50, eur(total), 12, { bold: true, color: blanco });
   y += 84;

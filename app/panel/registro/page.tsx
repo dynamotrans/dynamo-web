@@ -33,7 +33,7 @@ export default async function PaginaRegistro() {
         </div>
       </main>
       <footer className="portal-foot">
-        © {new Date().getFullYear()} Dynamo Operador de Transportes ·{' '}
+        © {new Date().getFullYear()} Dynamo Operador Logístico, S.L. ·{' '}
         <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a>
       </footer>
     </div>

@@ -1,5 +1,7 @@
 'use server';
 
+import { normalizaTel } from '@/lib/paises';
+
 import { mensajeError } from '@/lib/mensajeError';
 import { sesion, esDynamo, esGestor, type Rol } from '@/lib/sesion';
 import { supabaseServicio } from '@/lib/supabase/servicio';
@@ -45,7 +47,7 @@ function empresaDe(rol: Rol, cliente_id: string, transportista_id: string) {
 export async function guardarUsuario(id: string, rol: Rol, d: UsuarioDatos): Promise<Res> {
   const s = await soloDynamo();
   if (!s) return { ok: false, error: 'Solo el equipo de Dynamo gestiona usuarios.' };
-  const tel = d.telefono.replace(/[^\d+]/g, '');
+  const tel = normalizaTel(d.telefono);
   const copias = d.copias.split(/[,;\s]+/).map((x) => x.trim().toLowerCase()).filter(Boolean);
   if (copias.length > 10) return { ok: false, error: `Máximo 10 emails de copia (has puesto ${copias.length}).` };
   const malo = copias.find((x) => !EMAIL.test(x));
@@ -106,7 +108,7 @@ export async function invitarUsuario(d: Invitacion): Promise<Res> {
   });
   if (error || !data.user) return { ok: false, error: traducir(error?.message ?? 'No se ha podido enviar la invitación.') };
 
-  const tel = d.telefono.replace(/[^\d+]/g, '');
+  const tel = normalizaTel(d.telefono);
   const { error: e2 } = await s.supabase.from('usuarios').update({
     nombre: d.nombre.trim(), rol: d.rol, estado: 'activa', ...empresaDe(d.rol, d.cliente_id, d.transportista_id),
     telefono: tel.replace('+', '').length >= 6 ? tel : null, cargo: vacio(d.cargo),

@@ -4,8 +4,8 @@
 // con IVA y lo que puede hacer Dynamo (transferencia recibida, pasar sin pago previo con
 // motivo, exigirlo, deshacer). Las reglas las impone la base de datos (marcar_pago_envio).
 import { useState } from 'react';
-import { euros } from '@/lib/formato';
-import { creadoTxt } from '@/lib/envios';
+import { euros, fechaHora, porcentaje } from '@/lib/formato';
+
 import type { Ficha } from '@/lib/fichaEnvio';
 import { marcarPagoEnvio, ampliarPlazoPago } from '@/app/panel/(app)/envios/acciones';
 
@@ -28,7 +28,7 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
     );
   }
   const total = <strong>{euros(pago.total)}</strong>;
-  const desglose = <span style={{ color: 'var(--gray-500)' }}> ({euros(pago.base)} + IVA {String(pago.iva).replace('.', ',')} %)</span>;
+  const desglose = <span style={{ color: 'var(--gray-500)' }}> ({euros(pago.base)} + IVA {porcentaje(pago.iva)})</span>;
 
   if (pago.estado === 'pendiente') {
     return (
@@ -44,7 +44,7 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
           </div>
         )}
         {pago.provisional && <div style={{ marginTop: '0.3rem' }}>Precio <strong>provisional</strong>: el plazo para pagar empieza cuando se revise el precio.</div>}
-        {pago.limite && <div style={{ marginTop: '0.3rem' }}>Plazo para pagar: hasta el <strong>{creadoTxt(pago.limite)}</strong>. Si no paga, el envío se anula solo y el cliente tiene que volver a pedirlo.</div>}
+        {pago.limite && <div style={{ marginTop: '0.3rem' }}>Plazo para pagar: hasta el <strong>{fechaHora(pago.limite)}</strong>. Si no paga, el envío se anula solo y el cliente tiene que volver a pedirlo.</div>}
         {!exento ? (
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
             <button className="btn-primary" onClick={() => hacer('Guardando', () => marcarPagoEnvio(envio.id, 'transferencia'))}>Ha llegado la transferencia</button>
@@ -75,7 +75,7 @@ export default function PagoPrevio({ envio, pago, libre, hacer }: {
   return (
     <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>
       {pago.estado === 'pagado'
-        ? <><strong>Pagado por adelantado</strong> {pago.metodo === 'stripe' ? 'con tarjeta' : 'por transferencia'}{pago.pagado_en ? ` el ${creadoTxt(pago.pagado_en)}` : ''} · {total}{desglose}.</>
+        ? <><strong>Pagado por adelantado</strong> {pago.metodo === 'stripe' ? 'con tarjeta' : 'por transferencia'}{pago.pagado_en ? ` el ${fechaHora(pago.pagado_en)}` : ''} · {total}{desglose}.</>
         : <><strong>Sin pago previo</strong> (cobro a vencimiento){pago.exento_motivo ? <> · {pago.exento_motivo}</> : null}. Se pedía por: {pago.motivo ?? '—'}.</>}
       {deshacer}
     </div></div>

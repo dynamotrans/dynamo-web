@@ -11,8 +11,8 @@ import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import { IconoTipo, TIPOS_SITIO } from './TipoSitio';
 import { guardarSitio, borrarSitio, marcarPrincipal, type SitioDatos } from '@/app/panel/(app)/sitios/acciones';
-import { creadoTxt } from '@/lib/envios';
-import { euros } from '@/lib/formato';
+
+import { euros, fechaHora } from '@/lib/formato';
 import { paisDe, telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
@@ -143,7 +143,7 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto }
                     {prin && <> <span className="badge badge-principal">Principal</span></>}
                     {esNuevo(f.creado_en) && <> <span className="badge badge-green">Nuevo</span></>}
                     {f.url_google_maps && <div className="meta"><a href={f.url_google_maps} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()} style={{ color: 'var(--purple)', fontWeight: 600, textDecoration: 'none' }}>Ver en Maps</a></div>}
-                    <div className="meta sitio-fechas">Creado: {creadoTxt(f.creado_en)}{f.modificado_en ? ` · Modificado: ${creadoTxt(f.modificado_en)}` : ''}</div>
+                    <div className="meta sitio-fechas">Creado: {fechaHora(f.creado_en)}{f.modificado_en ? ` · Modificado: ${fechaHora(f.modificado_en)}` : ''}</div>
                   </td>
                   {dynamo && <td>{cli?.nombre ?? '—'}<div className="meta">{cli?.cif}</div></td>}
                   <td>{f.direccion || '—'}<div className="meta">{[f.codigo_postal, f.poblacion, f.provincia && f.provincia !== f.poblacion ? f.provincia : '', paisDe(f.pais_codigo_iso)].filter(Boolean).join(', ')}</div></td>
@@ -292,8 +292,8 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, veranoDefecto = VE
       </>}>
       {fila && (
         <div className="sitio-meta-fechas">
-          <span><strong>Creado:</strong> {creadoTxt(fila.creado_en)}</span>
-          {fila.modificado_en && <span><strong>Última modificación:</strong> {creadoTxt(fila.modificado_en)}</span>}
+          <span><strong>Creado:</strong> {fechaHora(fila.creado_en)}</span>
+          {fila.modificado_en && <span><strong>Última modificación:</strong> {fechaHora(fila.modificado_en)}</span>}
         </div>
       )}
       {confirmarBorrado && (

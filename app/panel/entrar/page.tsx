@@ -19,7 +19,7 @@ export default function PaginaEntrar() {
           <div className="portal-logo">
             <a href="/" aria-label="Volver al inicio"><img src="/images/2.png" alt="Dynamo - Always Moving" /></a>
           </div>
-          <h1 id="portal-title" className="portal-title">Acceso al Portal</h1>
+          <h1 id="portal-title" className="portal-title">Acceso al portal</h1>
           <p className="portal-subtitle">Área privada para <strong>clientes</strong> de Dynamo</p>
 
           <FormEntrar />
@@ -32,7 +32,7 @@ export default function PaginaEntrar() {
         </div>
       </main>
       <footer className="portal-foot">
-        © {new Date().getFullYear()} Dynamo Operador de Transportes ·{' '}
+        © {new Date().getFullYear()} Dynamo Operador Logístico, S.L. ·{' '}
         <a href="mailto:info@dynamotrans.com">info@dynamotrans.com</a>
       </footer>
     </div>

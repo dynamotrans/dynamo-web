@@ -10,8 +10,8 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
 import { reservar, aceptar, liberar, completar, enlaceCmr, darseDeAlta, sugerirFlota, type AltaTransportista } from './acciones';
 import SelectorPais from '@/components/SelectorPais';
-import { euros, fecha, ventana, pesoTn } from '@/lib/formato';
-import { creadoTxt } from '@/lib/envios';
+import { euros, fecha, ventana, pesoTn, fechaHora, metros } from '@/lib/formato';
+
 import { nombreTipo } from '@/components/panel/TipoSitio';
 import { telBonito } from '@/lib/paises';
 import CampoTelefono from '@/components/CampoTelefono';
@@ -88,7 +88,7 @@ function Oferta({ o, completa }: { o: any; completa?: boolean }) {
             <div><div className="of-merc-lbl">Mercancía</div><div className="of-merc-tipo">{o.descripcion_mercancia || (o.paletizado === false ? 'No paletizada' : 'Paletizada')}</div></div>
           </div>
           <div className="of-chips">
-            {o.metros_lineales != null && <div className="of-chip"><span className="of-chip-k">Metros</span><span className="of-chip-v">{txtNum(o.metros_lineales)} m</span></div>}
+            {o.metros_lineales != null && <div className="of-chip"><span className="of-chip-k">Metros</span><span className="of-chip-v">{metros(o.metros_lineales)}</span></div>}
             {o.toneladas != null && <div className="of-chip"><span className="of-chip-k">Peso</span><span className="of-chip-v">{pesoTn(o.toneladas)}</span></div>}
             <div className="of-chip"><span className="of-chip-k">Tipo de carga</span><span className="of-chip-v">{o.tipo_carga === 'completa' ? 'Completo' : 'Grupaje'}</span></div>
             {forma && <div className="of-chip"><span className="of-chip-k">Carga por</span><span className="of-chip-v">{forma}</span></div>}
@@ -167,7 +167,7 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
     return (
       <Parar titulo="Esta carga ya no está disponible">
         <p className="sub">{oferta.asignada_en ? 'Se aceptó por un transportista el:' : 'La ha cogido otro transportista.'}</p>
-        {oferta.asignada_en && <p className="tk-fecha-line">{creadoTxt(oferta.asignada_en)}</p>}
+        {oferta.asignada_en && <p className="tk-fecha-line">{fechaHora(oferta.asignada_en)}</p>}
         {botonOtras}
         <Dudas />
       </Parar>
@@ -187,7 +187,7 @@ export default function CargaPublica({ token, oferta, reserva, altaOnline = fals
   return (
     <div id="formScreen" className="show">
       <h1>Carga disponible</h1>
-      <p className="sub">Oferta de <strong>Dynamo Operador de Transportes</strong>{oferta.para_transportista ? <> para <strong>{oferta.para_transportista}</strong></> : null}</p>
+      <p className="sub">Oferta de <strong>Dynamo Operador Logístico, S.L.</strong>{oferta.para_transportista ? <> para <strong>{oferta.para_transportista}</strong></> : null}</p>
       {r === 'rechazada' && <div className="warn" style={{ display: 'block', marginBottom: '0.8rem' }}>Dynamo no ha aceptado el precio que propusiste. Si quieres, puedes aceptarla al precio de la oferta.</div>}
       {r === 'caducada' && <div className="warn" style={{ display: 'block', marginBottom: '0.8rem' }}>Se agotó el tiempo de tu reserva anterior. Si sigue libre, puedes volver a reservarla.</div>}
       <Oferta o={oferta} />
@@ -239,7 +239,7 @@ function OtrasCargas({ cargas, onVolver }: { cargas: OtraCarga[]; onVolver: () =
           : lista.map((c) => (
             <a key={c.token} className="bolsa-item" href={`/carga/${c.token}`} style={{ textDecoration: 'none' }}>
               <div className="bolsa-ruta">{sitioTxt(c.origen)} → {sitioTxt(c.destino)}</div>
-              <div className="bolsa-meta">#{c.referencia} · {[c.metros_lineales != null && `${txtNum(c.metros_lineales)} m`, c.toneladas != null && `${pesoTn(c.toneladas)}`, c.tipo_carga === 'completa' ? 'Completo' : 'Grupaje'].filter(Boolean).join(' · ')}<br />Carga: {ventana(c.fecha_carga_desde, c.fecha_carga_hasta)}</div>
+              <div className="bolsa-meta">#{c.referencia} · {[c.metros_lineales != null && `${metros(c.metros_lineales)}`, c.toneladas != null && `${pesoTn(c.toneladas)}`, c.tipo_carga === 'completa' ? 'Completo' : 'Grupaje'].filter(Boolean).join(' · ')}<br />Carga: {ventana(c.fecha_carga_desde, c.fecha_carga_hasta)}</div>
               <div className="bolsa-fila"><span className="bolsa-precio">{euros(c.precio)} <span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>· sin IVA</span></span>
                 <span className="bolsa-go">Ver y aceptar →</span></div>
             </a>
@@ -327,7 +327,7 @@ function Reservada({ token, o, hasta, ahora }: { token: string; o: any; hasta: s
   return (
     <div id="formScreen" className="show">
       <h1>Pulsa el botón de abajo para aceptar la carga</h1>
-      <p className="sub">Oferta de <strong>Dynamo Operador de Transportes</strong></p>
+      <p className="sub">Oferta de <strong>Dynamo Operador Logístico, S.L.</strong></p>
       <div className={`reserva-banner${quedan < 60000 ? ' urgent' : ''}`}>
         <span>Carga <strong>reservada para ti</strong>: nadie más la puede coger durante <span className="rb-timer">{texto}</span></span>
       </div>
@@ -451,7 +451,7 @@ function Aceptada({ token, c }: { token: string; c: any }) {
       <h1 style={{ margin: 0 }}><span className="ok-aceptada">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
         {c.estado === 'cancelado' ? ' Carga cancelada por el cliente' : ' ¡Carga aceptada!'}</span></h1>
-      <p className="sub" style={{ marginTop: '0.4rem' }}>{c.transportista} · {c.aceptada_en ? creadoTxt(c.aceptada_en) : ''}</p>
+      <p className="sub" style={{ marginTop: '0.4rem' }}>{c.transportista} · {c.aceptada_en ? fechaHora(c.aceptada_en) : ''}</p>
       <div className="pago-contado" style={{ textAlign: 'left' }}>
         Precio acordado: <span className="imp">{euros(precio)}</span> <span className="base-nota">· base imponible</span>
         {c.pronto_pago && <div className="base-nota" style={{ marginTop: 2 }}>Con pronto pago: cobras {euros(precio - dto)} a {txtNum(c.pronto_pago_dias)} días de la factura.</div>}

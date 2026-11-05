@@ -2,7 +2,7 @@ import { supabaseServidor } from '@/lib/supabase/server';
 import { esDynamo } from '@/lib/sesion';
 import { datosDynamo, nombrePais } from '@/lib/pdf/datos';
 import { proforma } from '@/lib/pdf/proforma';
-import { fecha, pesoTn } from '@/lib/formato';
+import { fecha, pesoTn, ventana, medidasTxt } from '@/lib/formato';
 
 // /panel/envios/<id>/proforma: la factura proforma del PREVIO PAGO de un envío. Se ABRE
 // en el visor (regla 0-bis). Dynamo, cualquiera; el cliente, solo las suyas (pagos_envio()
@@ -37,8 +37,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   }
   if (!e) return texto('Ese envío no existe.', 404);
   const ruta = [e.poblacion_origen, e.poblacion_destino].filter(Boolean).join(' → ');
-  const cuando = e.fecha_carga_desde ? (e.fecha_carga_hasta && e.fecha_carga_hasta !== e.fecha_carga_desde ? `carga ${fecha(e.fecha_carga_desde)} – ${fecha(e.fecha_carga_hasta)}` : `carga ${fecha(e.fecha_carga_desde)}`) : '';
-  const medidas = [e.metros_lineales != null ? `${Number(e.metros_lineales).toLocaleString('es-ES')} m` : '', e.toneladas != null ? pesoTn(e.toneladas) : ''].filter(Boolean).join(' · ');
+  const cuando = e.fecha_carga_desde ? `carga ${ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}` : '';
+  const medidas = medidasTxt(e.metros_lineales, e.toneladas);
 
   const bytes = await proforma({
     codigo: p.referencia_gx, referencia_cliente: p.referencia_cliente, creado_en: e.creado_en ?? new Date().toISOString(),

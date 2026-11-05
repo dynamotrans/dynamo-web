@@ -1,5 +1,7 @@
 'use client';
 
+import { fechaHora } from '@/lib/formato';
+
 // Transportistas propios del cliente (catálogo PRIVADO, tabla `operadores`), con el diseño
 // de #sec-operadores de dashboard.html: Dynamo como fila fija arriba (no editable), y
 // debajo los del cliente. Dynamo ve los de todos los clientes, con su columna de cliente.
@@ -10,7 +12,7 @@ import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { guardarOperador, borrarOperador, type OperadorDatos } from '@/app/panel/(app)/operadores/acciones';
-import { creadoTxt } from '@/lib/envios';
+
 import { telBonito } from '@/lib/paises';
 import { CONTACTO } from '@/lib/atencion';
 import CampoTelefono from '@/components/CampoTelefono';
@@ -83,7 +85,7 @@ export default function Operadores({ filas, dynamo, clientes, error }: { filas: 
                   <img src="/images/2.png" alt="" aria-hidden="true" style={{ height: 18, width: 'auto' }} />
                   <span style={{ fontSize: 'var(--fs-s)', fontWeight: 800, background: 'var(--purple)', color: '#fff', borderRadius: 6, padding: '1px 7px' }}>Plataforma</span>
                 </div>
-                <strong style={{ color: 'var(--purple)' }}>Dynamo Operador de Transportes</strong>
+                <strong style={{ color: 'var(--purple)' }}>Dynamo Operador Logístico, S.L.</strong>
                 <div className="meta">Transportista de la plataforma · siempre disponible</div>
               </td>
               {dynamo && <td>Todos los clientes</td>}
@@ -175,7 +177,7 @@ function FichaOperador({ fila, dynamo, clientes, onCerrar, onHecho }: {
       {!fila && <div style={{ marginBottom: '0.8rem', padding: '0.65rem 0.8rem', background: 'rgba(51,0,204,0.06)', border: '1px solid rgba(51,0,204,0.2)', borderRadius: 10, fontSize: 'var(--fs-m)', lineHeight: 1.55, color: 'var(--gray-700)' }}><strong>Privado y sin intervención de Dynamo.</strong> Solo lo ve {dynamo ? 'ese cliente' : 'tu empresa'}; no contactamos con este transportista ni tocamos precios, albaranes ni condiciones. Sirve para ver todos los envíos juntos en Envíos.</div>}
       {fila && (
         <div style={{ margin: '0 0 0.9rem', padding: '0.55rem 0.85rem', border: '1px solid var(--gray-200)', borderRadius: 9, background: 'var(--gray-50)', fontSize: 'var(--fs-m)', color: 'var(--gray-500)', fontWeight: 600 }}>
-          Creado: {creadoTxt(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${creadoTxt(fila.modificado_en)}` : ''}
+          Creado: {fechaHora(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${fechaHora(fila.modificado_en)}` : ''}
         </div>
       )}
       <div className="ptar-sitio-grid">

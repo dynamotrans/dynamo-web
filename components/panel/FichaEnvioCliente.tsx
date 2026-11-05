@@ -13,8 +13,8 @@ import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import CondicionesGenerales from '@/components/CondicionesGenerales';
-import { euros, fecha, ventana, aNumero, pesoTn } from '@/lib/formato';
-import { creadoTxt, estadoVisual } from '@/lib/envios';
+import { euros, fecha, ventana, aNumero, pesoTn, fechaHora, metros, porcentaje } from '@/lib/formato';
+import { estadoVisual } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import { responderPrecio, contraofertarPrecio, cancelarMiEnvio, marcarMiEnvioManual, valorarMiEnvio } from '@/app/panel/(app)/envios/acciones-cliente';
 import { PedirCambio, LlamarCambio } from './CambiosEnvio';
@@ -161,13 +161,13 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
         <div className="det-block" style={{ borderColor: 'var(--purple)' }}>
           <div className="alm-price" style={{ margin: 0 }}>
             <div className="alm-price-row alm-price-base"><span className="k">Precio de tu envío (base imponible)</span><span className="v">{euros(pc)}</span></div>
-            <div className="alm-price-row alm-price-sub"><span className="k">IVA ({txtNum(iva)} %)</span><span className="v">{euros((pc ?? 0) * iva / 100)}</span></div>
+            <div className="alm-price-row alm-price-sub"><span className="k">IVA ({porcentaje(iva)})</span><span className="v">{euros((pc ?? 0) * iva / 100)}</span></div>
             <div className="alm-price-row alm-price-sub"><span className="k">Total (IVA incl.)</span><span className="v">{euros((pc ?? 0) * (1 + iva / 100))}</span></div>
           </div>
           {caducado ? (
             <div className="pt-aviso" style={{ marginTop: '0.7rem', marginBottom: 0 }}><div>Este precio ha <strong>caducado</strong> (los precios del transporte cambian cada día). Pulsa «Aceptar» y te pasamos uno nuevo al momento, o llámanos.</div></div>
           ) : e.precio_caduca_en && (
-            <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Precio válido hasta el {creadoTxt(e.precio_caduca_en)}.</p>
+            <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: '0.6rem 0 0' }}>Precio válido hasta el {fechaHora(e.precio_caduca_en)}.</p>
           )}
           <label className="ptar-confirm-check" style={{ marginTop: '0.7rem' }}>
             <input type="checkbox" checked={acepto} onChange={(ev) => setAcepto(ev.target.checked)} />
@@ -198,7 +198,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
         <Celda l="Nº de envío">#{e.referencia_gx}</Celda>
         <Celda l="Tu referencia">{e.referencia_cliente || '—'}</Celda>
         <Celda l="Estado">{ev.label}</Celda>
-        <Celda l="Creado">{creadoTxt(e.creado_en)}</Celda>
+        <Celda l="Creado">{fechaHora(e.creado_en)}</Celda>
         <Celda l={e.fecha_carga_real ? 'Fecha de carga' : 'Días de recogida'}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</Celda>
         <Celda l="Entrega estimada">{e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : <Pend />}</Celda>
         {e.discrecion_comercial && <Celda l="Discreción comercial" span>Activada: el conductor no revela el destino en la carga ni el origen en la entrega</Celda>}
@@ -233,7 +233,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
       <h4 className="modal-section-title">Mercancía</h4>
       <div className="det-block"><div className="modal-info-grid">
         <Celda l="Mercancía">{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</Celda>
-        <Celda l="Medidas">{[e.metros_lineales != null && `${txtNum(e.metros_lineales)} m`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</Celda>
+        <Celda l="Medidas">{[e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</Celda>
         <Celda l="Requisitos" span>{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'Requiere NIMA', e.adr && 'Mercancía ADR'].filter(Boolean).join(' · ') || 'Ninguno'}</Celda>
         {e.anotaciones_cliente && <Celda l="Anotaciones" span>{e.anotaciones_cliente}</Celda>}
         {e.estado !== 'cancelado' && <DatosCmr envioId={e.id} puedeEditar={['borrador', 'programado', 'hacia_la_carga'].includes(e.estado)} bloquearSiFirmado />}
@@ -247,7 +247,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
           ) : pc == null ? <div className="modal-info-grid"><Celda l="Precio" span>{pendientePrecio ? 'Lo estamos calculando' : <Pend />}</Celda></div> : (
             <div className="alm-price" style={{ margin: 0 }}>
               <div className="alm-price-row alm-price-base"><span className="k">Base imponible</span><span className="v">{euros(pc)}</span></div>
-              <div className="alm-price-row alm-price-sub"><span className="k">IVA ({txtNum(iva)} %)</span><span className="v">{euros(pc * iva / 100)}</span></div>
+              <div className="alm-price-row alm-price-sub"><span className="k">IVA ({porcentaje(iva)})</span><span className="v">{euros(pc * iva / 100)}</span></div>
               <div className="alm-price-row alm-price-sub"><span className="k">Total (IVA incl.)</span><span className="v">{euros(pc * (1 + iva / 100))}</span></div>
               <SelloPrecio r={e.revision} />
             </div>
@@ -269,7 +269,7 @@ export default function FichaEnvioCliente({ e, cerrarHref }: { e: any; cerrarHre
         <h4 className="modal-section-title">Historial</h4>
         <div className="pen-envio-sum">
           {(e.hitos as any[]).filter((h) => HITOS[h.hito]).map((h) => (
-            <div key={h.id} className="pen-sum-row"><span className="k" style={{ whiteSpace: 'nowrap' }}>{creadoTxt(h.cuando)}</span><span className="v" style={{ textAlign: 'right' }}>{HITOS[h.hito]}</span></div>
+            <div key={h.id} className="pen-sum-row"><span className="k" style={{ whiteSpace: 'nowrap' }}>{fechaHora(h.cuando)}</span><span className="v" style={{ textAlign: 'right' }}>{HITOS[h.hito]}</span></div>
           ))}
         </div>
       </>}
@@ -332,7 +332,7 @@ function PagoCliente({ e }: { e: any }) {
         {e.pagoVuelta === 'cancelado' && <div style={{ fontWeight: 700, marginBottom: '0.4rem' }}>Has salido del pago con tarjeta sin pagar. Puedes intentarlo de nuevo o pagar por transferencia.</div>}
         <div><strong style={{ color: '#b42318' }}>Pendiente de pago · {total}</strong> (IVA incluido).</div>
         <div style={{ marginTop: '0.3rem' }}>{p.pago_motivo?.startsWith('Primer') ? 'Es tu primer envío con nosotros: ' : ''}este envío se paga por adelantado. <strong>Lo asignamos a un camión en cuanto recibimos el pago.</strong></div>
-        {p.pago_limite && <div style={{ marginTop: '0.3rem' }}>Paga antes del <strong>{creadoTxt(p.pago_limite)}</strong>. Si no nos llega el pago, el envío se anula solo y tendrás que volver a pedirlo (con el precio de ese momento).</div>}
+        {p.pago_limite && <div style={{ marginTop: '0.3rem' }}>Paga antes del <strong>{fechaHora(p.pago_limite)}</strong>. Si no nos llega el pago, el envío se anula solo y tendrás que volver a pedirlo (con el precio de ese momento).</div>}
         {p.precio_provisional ? (
           <div style={{ marginTop: '0.3rem' }}>Como el precio es <strong>provisional</strong>, el pago se pide cuando lo revisemos{e.revision?.fecha_revision_precio ? <> (el <strong>{fecha(e.revision.fecha_revision_precio)}</strong>)</> : null}, ya con el precio definitivo. Desde ese momento tendrás un plazo para pagar.</div>
         ) : <>
@@ -351,7 +351,7 @@ function PagoCliente({ e }: { e: any }) {
     );
   }
   if (p.estado_pago_previo === 'pagado') {
-    return <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div><strong>Pagado</strong> {p.pago_metodo === 'stripe' ? 'con tarjeta' : 'por transferencia'}{p.pagado_en ? ` el ${creadoTxt(p.pagado_en)}` : ''} · {total}. Gracias: ya estamos asignando el camión.</div></div>;
+    return <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div><strong>Pagado</strong> {p.pago_metodo === 'stripe' ? 'con tarjeta' : 'por transferencia'}{p.pagado_en ? ` el ${fechaHora(p.pagado_en)}` : ''} · {total}. Gracias: ya estamos asignando el camión.</div></div>;
   }
   return null;
 }

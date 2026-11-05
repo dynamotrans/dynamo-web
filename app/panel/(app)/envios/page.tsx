@@ -1,3 +1,4 @@
+import { numero } from '@/lib/formato';
 import { redirect } from 'next/navigation';
 import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
@@ -77,7 +78,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       ]);
       error = vivos.error?.message ?? fin.error?.message ?? null;
       data = [...(vivos.data ?? []), ...(fin.data ?? [])];
-      if ((fin.data ?? []).length >= TERMINADOS) nota = `Se ven los ${TERMINADOS.toLocaleString('es-ES')} últimos envíos entregados o cancelados. Para los anteriores, usa el buscador o las fechas (busca en todos los años).`;
+      if ((fin.data ?? []).length >= TERMINADOS) nota = `Se ven los ${numero(TERMINADOS, 0)} últimos envíos entregados o cancelados. Para los anteriores, usa el buscador o las fechas (busca en todos los años).`;
     }
     filas = (data as any[]).map((x) => ({
       ...x, cliente: x.clientes?.nombre_visible ?? null, cliente_cif: x.clientes?.cif ?? null,

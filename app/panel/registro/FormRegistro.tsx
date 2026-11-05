@@ -122,8 +122,8 @@ export default function FormRegistro() {
 
       <label className="reg-terms" style={estado.campo === 'acepto' ? { color: '#dc2626' } : undefined}>
         <input type="checkbox" name="acepto" />
-        <span>He leído y acepto el <a href="/#aviso-legal" target="_blank" rel="noopener">Aviso Legal</a> y la{' '}
-          <a href="/#privacidad" target="_blank" rel="noopener">Política de Privacidad</a> de Dynamo Operador de Transportes</span>
+        <span>He leído y acepto el <a href="/#aviso-legal" target="_blank" rel="noopener">Aviso legal</a> y la{' '}
+          <a href="/#privacidad" target="_blank" rel="noopener">Política de privacidad</a> de Dynamo Operador Logístico, S.L.</span>
       </label>
 
       <p className="reg-helper">Te enviaremos un enlace y un código al email para confirmar el alta. La contraseña la eliges después.</p>

@@ -13,8 +13,7 @@ import BuscaEnvio from './BuscaEnvio';
 import Documentos from './Documentos';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarPenalizacion, cambiarEstadoPenalizacion } from '@/app/panel/(app)/penalizaciones/acciones';
-import { euros, numero } from '@/lib/formato';
-import { creadoTxt } from '@/lib/envios';
+import { euros, numero, fechaHora } from '@/lib/formato';
 
 export type PenalizacionFila = {
   id: string; codigo: string; envio_id: string; tipo_id: string; tipo: string; descripcion: string | null;
@@ -104,7 +103,7 @@ export default function Penalizaciones({ filas, tipos, envios, nuevaPara, error 
                   <td className="amount"><strong>{p.importe_cliente != null ? euros(p.importe_cliente) : '—'}</strong></td>
                   <td className="amount"><strong>{p.importe_transportista != null ? euros(p.importe_transportista) : '—'}</strong></td>
                   <td className="amount"><Margen c={p.importe_cliente} t={p.importe_transportista} /></td>
-                  <td>{creadoTxt(p.creado_en)}</td>
+                  <td>{fechaHora(p.creado_en)}</td>
                 </tr>
               );
             })}
@@ -178,7 +177,7 @@ function FichaPenalizacion({ fila, envioInicial, tipos, envios, onCerrar, onHech
       </>}>
       {fila && (
         <div style={{ margin: '0 0 0.9rem', padding: '0.55rem 0.85rem', border: '1px solid var(--gray-200)', borderRadius: 9, background: 'var(--gray-50)', fontSize: 'var(--fs-m)', color: 'var(--gray-500)', fontWeight: 600 }}>
-          Creada: {creadoTxt(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${creadoTxt(fila.modificado_en)}` : ''}
+          Creada: {fechaHora(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${fechaHora(fila.modificado_en)}` : ''}
         </div>
       )}
       <div className="modal-form-row">

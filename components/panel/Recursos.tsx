@@ -106,7 +106,7 @@ export default function Recursos({ subidos = [], gestor = false }: { subidos?: R
         sub="Capacidades de cada tipo de camión (metros, palés y peso máximo)"
         pie={<button type="button" className="btn-primary" onClick={() => setMedidas(false)} style={{ flex: 1 }}>Cerrar</button>}>
         <div className="med-tabs">
-          <button type="button" className={`med-tab${tipo === 'tauliner' ? ' active' : ''}`} onClick={() => setTipo('tauliner')}>Trailer Tauliner<br />Lona corredera</button>
+          <button type="button" className={`med-tab${tipo === 'tauliner' ? ' active' : ''}`} onClick={() => setTipo('tauliner')}>Tráiler tauliner<br />Lona corredera</button>
           <button type="button" className={`med-tab${tipo === 'rigido' ? ' active' : ''}`} onClick={() => setTipo('rigido')}>Rígido<br />con plataforma</button>
         </div>
         <div className="med-panel">

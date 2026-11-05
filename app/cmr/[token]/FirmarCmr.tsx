@@ -1,6 +1,6 @@
 'use client';
 
-import { pesoTn } from '@/lib/formato';
+import { pesoTn, metros, fecha, fechaHora } from '@/lib/formato';
 
 // CMR digital, copiado de firmar-cmr.html: resumen del CMR, un bloque por casilla (22 cada
 // recogida · 23 transportista · 24 cada entrega) y la pantalla de firma con el dedo, con el
@@ -11,8 +11,6 @@ import { firmar, type DatosFirma } from './acciones';
 import { DOC_PAISES, validaDoc } from '@/lib/documentoIdentidad';
 
 type Bloque = { clave: string; titulo: string; casilla: string; rol: DatosFirma['rol']; parada_id: string | null; pre: string; };
-const fechaHora = (iso: string) => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)).replace(',', ' ·');
-const fechaCorta = (iso: string | null) => (iso ? new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 10)}T00:00:00Z`)) : '—');
 
 export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: any; trazos: Record<string, string> }) {
   const refrescar = useRefrescar();
@@ -51,8 +49,8 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         {(cmr.transportista || cmr.matricula) && <><dt>Transportista efectivo</dt><dd>{[cmr.transportista, cmr.matricula].filter(Boolean).join(' · ')}</dd></>}
         <dt>Recogida</dt><dd>{rec.map(lugar).join(' / ') || '—'}</dd>
         <dt>Entrega</dt><dd>{ent.map(lugar).join(' / ') || '—'}</dd>
-        <dt>Fecha de carga</dt><dd>{fechaCorta(cmr.fecha_carga)}</dd>
-        <dt>Mercancía</dt><dd>{[cmr.mercancia, cmr.metros_lineales != null && `${String(cmr.metros_lineales).replace('.', ',')} m`, cmr.toneladas != null && pesoTn(cmr.toneladas)].filter(Boolean).join(' · ') || '—'}</dd>
+        <dt>Fecha de carga</dt><dd>{fecha(cmr.fecha_carga)}</dd>
+        <dt>Mercancía</dt><dd>{[cmr.mercancia, cmr.metros_lineales != null && `${metros(cmr.metros_lineales)}`, cmr.toneladas != null && pesoTn(cmr.toneladas)].filter(Boolean).join(' · ') || '—'}</dd>
         {cmr.adr && <div className="adr">⚠ MERCANCÍA ADR (peligrosa) — transporte sujeto al Acuerdo ADR</div>}
       </dl>
       <div className="prog">{hechas === bloques.length ? <span className="done-all">✓ {hechas} de {bloques.length} firmas completadas</span> : `${hechas} de ${bloques.length} firmas completadas`}</div>

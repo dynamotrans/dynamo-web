@@ -9,9 +9,9 @@ import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { cambiarMiClave, guardarMisDatos, guardarMiTransporte, guardarMiVehiculo, guardarMiConductor, darDeBajaFlota, type MisDatos, type MiVehiculo, type MiConductor } from '@/app/panel/(app)/mi-cuenta/acciones';
 import { DOC_PAISES } from '@/lib/documentoIdentidad';
-import { creadoTxt } from '@/lib/envios';
+
 import { paisDe, telBonito } from '@/lib/paises';
-import { ROL, fecha } from '@/lib/formato';
+import { ROL, fecha, fechaHora } from '@/lib/formato';
 import CampoTelefono from '@/components/CampoTelefono';
 import MedidorClave, { claveValida } from '@/components/MedidorClave';
 
@@ -69,7 +69,7 @@ export default function MiCuenta({ datos, email, rol, ultimaConexion, empresa, t
         <div className="account-card">
           <h3 className="account-card-title">Seguridad</h3>
           {fila('Contraseña', '••••••••')}
-          {fila('Última conexión', ultimaConexion ? creadoTxt(ultimaConexion) : '')}
+          {fila('Última conexión', ultimaConexion ? fechaHora(ultimaConexion) : '')}
           <button className="btn-ghost account-edit" onClick={() => { setClaveCambiada(false); setCambiaClave(true); }}>Cambiar contraseña</button>
           {claveCambiada && <p className="account-card-desc" style={{ marginTop: '0.6rem', color: '#0f6b3a', fontWeight: 700 }}>✓ Contraseña cambiada.</p>}
           <p className="account-card-desc" style={{ marginTop: '0.8rem' }}>Para cambiar el <strong>email</strong> con el que entras, escríbenos a info@dynamotrans.com: es tu usuario y lo cambiamos nosotros.</p>

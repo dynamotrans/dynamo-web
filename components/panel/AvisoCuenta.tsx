@@ -1,7 +1,7 @@
+import { fechaHora } from '@/lib/formato';
 import type { Perfil } from '@/lib/sesion';
 import Documentos from './Documentos';
 import { CONTACTO } from '@/lib/atencion';
-import { creadoTxt } from '@/lib/envios';
 
 // Cuenta sin activar o suspendida: se avisa en lugar de enseñar datos. Mientras se
 // verifica el alta, el cliente puede adelantar la hoja del CIF y su DNI (como en
@@ -57,7 +57,7 @@ function Suspendida({ perfil }: { perfil: Perfil }) {
       <div className="account-card" style={{ maxWidth: 640, borderColor: '#fca5a5' }}>
         <div className="account-card-title" style={{ color: '#b42318' }}>Tu cuenta está suspendida</div>
         <p className="account-card-desc" style={{ marginBottom: '0.6rem' }}>
-          Mientras esté suspendida no puedes ver ni crear envíos.{perfil.suspendida_en ? <> Suspendida el {creadoTxt(perfil.suspendida_en)}.</> : null}
+          Mientras esté suspendida no puedes ver ni crear envíos.{perfil.suspendida_en ? <> Suspendida el {fechaHora(perfil.suspendida_en)}.</> : null}
         </p>
         <div className="pt-aviso error" style={{ marginBottom: '0.8rem' }}><div>
           <strong>Motivo{automatica ? ' (automático)' : ''}:</strong> {motivoVisible(perfil.suspension_motivo)}

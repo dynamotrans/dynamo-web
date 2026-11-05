@@ -12,8 +12,7 @@ import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { guardarAlmacenamiento, cambiarEstadoAlmacenamiento, marcarPagadoAlmacenamiento, sitiosDelCliente, pedirAlmacenamiento, cancelarMiAlmacenamiento, type AlmacenamientoDatos, type EstadoAlm } from '@/app/panel/(app)/almacenamientos/acciones';
 import { precioAlmacenamiento, diasAlmacen } from '@/lib/almacenamiento';
-import { euros, fecha } from '@/lib/formato';
-import { creadoTxt } from '@/lib/envios';
+import { euros, fecha, fechaHora, porcentaje } from '@/lib/formato';
 
 export type AlmacenamientoFila = AlmacenamientoDatos & {
   id: string; codigo: string; cliente: string | null; almacen: string; almacen_provincia: string; almacen_dir: string; entrega: string | null;
@@ -233,7 +232,7 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, modoCliente, onCerrar,
       </>}>
       {fila && (
         <div style={{ margin: '0 0 0.9rem', padding: '0.55rem 0.85rem', border: '1px solid var(--gray-200)', borderRadius: 9, background: 'var(--gray-50)', fontSize: 'var(--fs-m)', color: 'var(--gray-500)', fontWeight: 600 }}>
-          Creado: {creadoTxt(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${creadoTxt(fila.modificado_en)}` : ''}
+          Creado: {fechaHora(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${fechaHora(fila.modificado_en)}` : ''}
         </div>
       )}
       {!editable && <div className="alm-note" style={{ margin: '0 0 0.8rem' }}>{modoCliente ? 'Ya está confirmado: para cambiar algo, escríbenos o llámanos.' : 'Con la mercancía ya en el almacén (o el servicio cerrado) los datos quedan fijos.'}</div>}
@@ -312,7 +311,7 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, modoCliente, onCerrar,
           <div className="alm-price-row"><span className="k">Almacenamiento{cambiaPrecio && precio ? ` · ${d.num_trailers} tráiler${d.num_trailers > 1 ? 'es' : ''} × ${precio.semanas} semana${precio.semanas > 1 ? 's' : ''}` : ''}</span><span className="v">{euros(base.almacenaje)}</span></div>
           {base.reparto > 0 && <div className="alm-price-row"><span className="k">Reparto urbano · {d.num_repartos} camión{d.num_repartos > 1 ? 'es' : ''}</span><span className="v">{euros(base.reparto)}</span></div>}
           <div className="alm-price-row alm-price-base"><span className="k">Base imponible</span><span className="v">{euros(base.total)}</span></div>
-          <div className="alm-price-row alm-price-sub"><span className="k">IVA ({iva} %)</span><span className="v">{euros(base.total * iva / 100)}</span></div>
+          <div className="alm-price-row alm-price-sub"><span className="k">IVA ({porcentaje(iva)})</span><span className="v">{euros(base.total * iva / 100)}</span></div>
           <div className="alm-price-row alm-price-sub"><span className="k">Total (IVA incl.)</span><span className="v">{euros(base.total * (1 + iva / 100))}</span></div>
         </div>
       )}

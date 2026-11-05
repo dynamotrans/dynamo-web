@@ -301,6 +301,9 @@ export function partirTel(t: string): { pref: string; num: string } {
   const p = PREF_POR_LARGO.find((k) => v.startsWith(k));
   return p ? { pref: p, num: v.slice(p.length) } : { pref: '+34', num: v.replace(/^\+/, '') };
 }
+// Teléfono para guardar: solo el «+» inicial y cifras (00 → +). Uno solo para toda la web.
+export const normalizaTel = (t: string | null | undefined) => (t ?? '').trim().replace(/^00/, '+').replace(/[^\d+]/g, '').replace(/(?!^)\+/g, '');
+
 export function telBonito(t: string) {
   if (!t) return '';
   const { pref, num: n } = partirTel(t);

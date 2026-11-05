@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Modal from './Modal';
-import { fecha, ventana, pesoTn } from '@/lib/formato';
+import { fecha, ventana, pesoTn, medidasTxt } from '@/lib/formato';
 import { FLOTA_HTML } from '@/lib/dashboardContenido';
 
 // «Nuestros servicios» y «Nuestra flota» ocultos de momento (decisión del usuario,
@@ -22,7 +22,7 @@ export type MiniEnvio = {
 const ESTADO: Record<string, [string, string]> = {
   programado: ['Programado', 'prog'], hacia_la_carga: ['Hacia la carga', 'hacia'], cargando: ['Cargando', 'cargando'], en_ruta: ['En ruta', 'enruta'],
 };
-const RECOMIENDA_MSG = 'Hola,\n\nos envío contacto de Dynamo Operador de Transportes. (pregunta por Álvaro Blanco)\n\nTrabajamos con ellos. Realizan grupajes y cargas completas por España y Europa.\n\nPodéis consultar online precio de envíos y generar nuevos envíos online directamente (https://dynamotrans.com).\n\nO si prefieres, también por estas vías te atienden:\n+34 955 225 945\ninfo@dynamotrans.com';
+const RECOMIENDA_MSG = 'Hola,\n\nos envío contacto de Dynamo Operador Logístico, S.L.. (pregunta por Álvaro Blanco)\n\nTrabajamos con ellos. Realizan grupajes y cargas completas por España y Europa.\n\nPodéis consultar online precio de envíos y generar nuevos envíos online directamente (https://dynamotrans.com).\n\nO si prefieres, también por estas vías te atienden:\n+34 955 225 945\ninfo@dynamotrans.com';
 // Enlace DIRECTO de reseña de la ficha de Google (el que va en las órdenes de carga).
 const GOOGLE_RESENA = 'https://g.page/r/Cdy34Hp-P-IEEBI/review';
 const LOGOS: [string, string, string][] = [
@@ -36,7 +36,7 @@ const LOGOS: [string, string, string][] = [
   ['STRUGAL.webp', 'Strugal', ''], ['COTAIN%20SA.webp', 'Cotain', ''], ['RIMOBEL.webp', 'Rimobel', ''], ['SKLUM.webp', 'SKLUM', ''],
 ];
 const SERVICIOS = [
-  { t: 'Grupajes', chip: 'Nacional 24h', img: '/images/FOTO 1 - copia55420ac5170e2.jpeg', pos: '', d: 'Comparte espacio y optimiza costes. Envío directo sin transbordos ni manipulaciones, tal y como se carga, se entrega. Mercancía paletizada y cargas especiales. Recogidas desde mismo día. Entregas desde 24h.' },
+  { t: 'Grupajes', chip: 'Nacional 24 h', img: '/images/FOTO 1 - copia55420ac5170e2.jpeg', pos: '', d: 'Comparte espacio y optimiza costes. Envío directo sin transbordos ni manipulaciones, tal y como se carga, se entrega. Mercancía paletizada y cargas especiales. Recogidas desde mismo día. Entregas desde 24h.' },
   { t: 'Carga Completa', chip: 'Tráfico directo', img: '/images/HERO-DYNAMO.webp', pos: '34% center', d: 'El camión es tuyo. Sin transbordos: máxima seguridad, rapidez y entrega directa origen-destino.' },
   { t: 'Importación', chip: 'Toda Europa', img: '/images/AdobeStock_154376791.jpeg', pos: '', d: 'Hasta la puerta de tu empresa, desde cualquier punto de Europa, con plazos garantizados y máxima calidad.' },
   { t: 'Exportación', chip: 'Import & Export', img: '/images/AdobeStock_260603287.jpeg', pos: '', d: 'Portugal, Francia, Alemania, Italia, Países Bajos, Bélgica, Luxemburgo, Austria, Polonia y República Checa.' },
@@ -124,7 +124,7 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
                   </div>
                   <div className="mini-list-right">
                     <span className={`badge badge-${est[1]}`}>{est[0]}</span>
-                    {(e.metros_lineales != null || e.toneladas != null) && <span className="mini-list-meta">{n(e.metros_lineales)} m · {pesoTn(e.toneladas)}</span>}
+                    {(e.metros_lineales != null || e.toneladas != null) && <span className="mini-list-meta">{medidasTxt(e.metros_lineales, e.toneladas)}</span>}
                     {e.mercancia && <span className="mini-list-meta">{e.mercancia}</span>}
                   </div>
                 </li>
@@ -175,7 +175,7 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
         </div>
         <div className="dash-flota">
           <p className="dash-flota-eyebrow">Nuestra flota</p>
-          <h4 className="dash-flota-title">Tipos de Vehículo</h4>
+          <h4 className="dash-flota-title">Tipos de vehículo</h4>
           <p className="dash-flota-desc">Disponemos del vehículo adecuado para cada tipo de carga y necesidad.</p>
           <div dangerouslySetInnerHTML={{ __html: FLOTA_HTML }} />
         </div>
@@ -190,7 +190,7 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
           <textarea rows={11} value={texto} onChange={(e) => setTexto(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '0.7rem 0.8rem', border: '1.5px solid var(--gray-200)', borderRadius: 10, font: 'inherit', fontSize: 'var(--fs-m)', color: 'var(--navy)', resize: 'vertical' }} />
           <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginTop: '0.8rem' }}>
             <a className="btn-primary" style={{ flex: 1, minWidth: 180, background: '#25D366', borderColor: '#25D366', textAlign: 'center', textDecoration: 'none' }} href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noopener">Compartir por WhatsApp</a>
-            <a className="btn-primary" style={{ flex: 1, minWidth: 180, textAlign: 'center', textDecoration: 'none' }} href={`mailto:?subject=${encodeURIComponent('Os recomiendo Dynamo Operador de Transportes')}&body=${encodeURIComponent(texto.replace(/\n/g, '\r\n'))}`}>Enviar por email</a>
+            <a className="btn-primary" style={{ flex: 1, minWidth: 180, textAlign: 'center', textDecoration: 'none' }} href={`mailto:?subject=${encodeURIComponent('Os recomiendo Dynamo Operador Logístico, S.L.')}&body=${encodeURIComponent(texto.replace(/\n/g, '\r\n'))}`}>Enviar por email</a>
           </div>
           <button type="button" className="btn-secondary" style={{ width: '100%', marginTop: '0.6rem' }}
             onClick={() => { navigator.clipboard?.writeText(texto).finally(() => { setCopiado(true); setTimeout(() => setCopiado(false), 1800); }); }}>{copiado ? '✓ Copiado' : 'Copiar el texto'}</button>

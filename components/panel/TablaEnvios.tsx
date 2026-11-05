@@ -1,12 +1,9 @@
 import Link from 'next/link';
 import FilaEnlace from './FilaEnlace';
 import BuscadorEnvios from './BuscadorEnvios';
-import { euros } from '@/lib/formato';
+import { euros, fechaHora, numero } from '@/lib/formato';
 import { esDynamo, type Rol } from '@/lib/sesion';
-import {
-  type EnvioFila, type Parada, type Pestana, estadoVisual, asignacion, enPestana, urgencia,
-  fechaCarga, fechaEntrega, creadoTxt, dirParada, paradasDe, medidas, coincide,
-} from '@/lib/envios';
+import { type EnvioFila, type Parada, type Pestana, estadoVisual, asignacion, enPestana, urgencia, fechaCarga, fechaEntrega, dirParada, paradasDe, medidas, coincide } from '@/lib/envios';
 
 // Tabla de envíos con el diseño de dashboard.html (sección #sec-cargas). Recibe los
 // datos ya leídos y con los permisos del rol aplicados en el servidor.
@@ -15,9 +12,9 @@ const PESTANAS: { f: Pestana; titulo: string; soloDynamo?: boolean; siHay?: bool
   { f: 'solicitudes', titulo: 'Solicitudes de precio', siHay: true },
   { f: 'sin-pagar', titulo: 'Pendientes de pago', siHay: true },
   { f: 'sin-asignar', titulo: 'Sin asignar transportista', soloDynamo: true },
-  { f: 'programada', titulo: 'Programadas' },
-  { f: 'entregada', titulo: 'Entregadas' },
-  { f: 'cancelada', titulo: 'Canceladas' },
+  { f: 'programada', titulo: 'Programados' },
+  { f: 'entregada', titulo: 'Entregados' },
+  { f: 'cancelada', titulo: 'Cancelados' },
   { f: 'todas', titulo: 'Todas' },
 ];
 
@@ -128,7 +125,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
       <div className="pagination">
         <div className="pagination-left">
           <span>{busqueda
-            ? (busqueda.total ? `Resultados ${((busqueda.pagina - 1) * busqueda.porPagina + 1).toLocaleString('es-ES')}-${Math.min(busqueda.pagina * busqueda.porPagina, busqueda.total).toLocaleString('es-ES')} de ${busqueda.total.toLocaleString('es-ES')} (todos los años)` : 'Sin resultados en todos los años. Prueba con menos palabras o sin fechas.')
+            ? (busqueda.total ? `Resultados ${numero((busqueda.pagina - 1) * busqueda.porPagina + 1, 0)}–${numero(Math.min(busqueda.pagina * busqueda.porPagina, busqueda.total), 0)} de ${numero(busqueda.total, 0)} (todos los años)` : 'Sin resultados en todos los años. Prueba con menos palabras o sin fechas.')
             : lista.length ? `Mostrando ${(pag - 1) * POR_PAGINA + 1}-${Math.min(pag * POR_PAGINA, lista.length)} de ${lista.length} envíos` : 'Sin envíos'}</span>
         </div>
         {busqueda && pbTotal > 1 && (
@@ -200,7 +197,7 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
                 <span className="op-chip2-name">{(e.operador ?? 'Otro operador').replace(/,?\s+(S\.?L\.?U?\.?|S\.?A\.?)$/i, '')}</span>
               </span>
             ) : (
-              <span className="op-chip2 op-chip2-dynamo" title="Dynamo Operador de Transportes">
+              <span className="op-chip2 op-chip2-dynamo" title="Dynamo Operador Logístico, S.L.">
                 <span className="op-chip2-ic"><img src="/images/dynamo-logo-sq.png" alt="" /></span>
                 <span className="op-chip2-name">Dynamo</span>
               </span>
@@ -251,8 +248,8 @@ function FilaEnvio({ e, rol, dynamo, creador, href }: { e: EnvioFila; rol: strin
       {rol !== 'transportista' && (
         <td className="creadopor" style={{ whiteSpace: 'nowrap', fontSize: 'var(--fs-s)', color: 'var(--gray-700)' }}>
           <strong>{creador ?? '—'}</strong>
-          {e.creado_en && <div className="meta" style={{ whiteSpace: 'nowrap' }}>Creación: {creadoTxt(e.creado_en)}</div>}
-          {e.modificado_en && <div className="meta" style={{ whiteSpace: 'nowrap' }}>Modificación: {creadoTxt(e.modificado_en)}</div>}
+          {e.creado_en && <div className="meta" style={{ whiteSpace: 'nowrap' }}>Creación: {fechaHora(e.creado_en)}</div>}
+          {e.modificado_en && <div className="meta" style={{ whiteSpace: 'nowrap' }}>Modificación: {fechaHora(e.modificado_en)}</div>}
         </td>
       )}
     </Fila>

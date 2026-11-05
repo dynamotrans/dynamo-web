@@ -1,5 +1,7 @@
 'use client';
 
+import { haceTxt } from '@/lib/formato';
+
 // Marco del panel (menú lateral + barra superior): copia de dashboard.html con las
 // mismas clases. Lo interactivo (abrir menús, menú lateral en el móvil) vive aquí.
 import Link from 'next/link';
@@ -249,7 +251,7 @@ export default function Marco({ rol, nombre, email, empresa, iniciales, contador
                   <button type="button" className={`topbar-contact-btn${atencion.online ? '' : ' offline'}`} aria-haspopup="menu" aria-expanded={menu === 'soporte'}
                           aria-label="Soporte con Álvaro" onClick={() => setMenu(menu === 'soporte' ? null : 'soporte')}>
                     <span className="topbar-contact-avatar">
-                      <img src="/images/alvaro-192.png" alt="Álvaro - Contacto Dynamo Operador de Transportes" />
+                      <img src="/images/alvaro-192.png" alt="Álvaro - Contacto Dynamo Operador Logístico, S.L." />
                       <span className="topbar-contact-dot" aria-hidden="true" />
                     </span>
                     <span className="topbar-contact-label"><span className="t-pre">Soporte:</span> <span className="t-name">Álvaro</span></span>
@@ -462,14 +464,3 @@ function AvisoVista({ vista, rolTxt, onCambiar }: { vista: Vista; rolTxt: string
 }
 
 // «ahora», «hace 5 min», «hace 3 h», «ayer 17:30» o «04/11 17:30».
-function haceTxt(iso: string): string {
-  const d = new Date(iso), min = Math.round((Date.now() - d.getTime()) / 60000);
-  if (min < 1) return 'ahora';
-  if (min < 60) return `hace ${min} min`;
-  if (min < 12 * 60) return `hace ${Math.round(min / 60)} h`;
-  const f = (o: Intl.DateTimeFormatOptions) => d.toLocaleString('es-ES', { timeZone: 'Europe/Madrid', ...o });
-  const hora = f({ hour: '2-digit', minute: '2-digit' });
-  const dia = (x: Date) => x.toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid' });
-  if (dia(d) === dia(new Date(Date.now() - 86400000))) return `ayer ${hora}`;
-  return `${f({ day: '2-digit', month: '2-digit' })} ${hora}`;
-}

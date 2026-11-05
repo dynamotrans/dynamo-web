@@ -1,5 +1,7 @@
 'use client';
 
+import { fechaHora } from '@/lib/formato';
+
 // Usuarios (solo Dynamo): diseño de #sec-usuarios de dashboard.html. Cada usuario es un
 // email de acceso de un admin, empleado, cliente o transportista. El alta es una
 // INVITACIÓN (el usuario crea su propia contraseña) y el rol se cambia con una acción
@@ -10,7 +12,7 @@ import Modal from './Modal';
 import Cargando from '@/components/Cargando';
 import { guardarUsuario, cambiarRol, cambiarEmail, invitarUsuario, reenviarInvitacion, anonimizarUsuario, type UsuarioDatos } from '@/app/panel/(app)/usuarios/acciones';
 import type { Rol } from '@/lib/sesion';
-import { creadoTxt } from '@/lib/envios';
+
 import { partirTel, telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 
@@ -154,13 +156,13 @@ export default function Usuarios({ filas, clientes, transportistas, yo, error }:
                     {u.estado === 'activa' ? <span className="badge badge-green">Activa</span>
                       : u.estado === 'suspendida' ? <span className="badge badge-red" title={u.suspension_motivo ?? undefined}>{u.suspension_motivo?.startsWith('Automática') ? 'Suspendida (auto)' : 'Suspendida'}</span>
                       : <span className="badge badge-orange">Pendiente verif.</span>}
-                    {u.estado === 'suspendida' && u.suspendida_en && <div className="meta">desde {creadoTxt(u.suspendida_en)}</div>}
+                    {u.estado === 'suspendida' && u.suspendida_en && <div className="meta">desde {fechaHora(u.suspendida_en)}</div>}
                     {!u.email_confirmado && <div className="meta" style={{ color: '#b45309', fontWeight: 700 }}>Invitación sin aceptar</div>}
                   </td>
                   <td>{u.nombre || '—'}{u.cargo && <div className="meta">{u.cargo}</div>}</td>
                   <td>{u.documento || '—'}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>{telBonito(u.telefono) || '—'}</td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{u.ultima_conexion ? creadoTxt(u.ultima_conexion) : 'Sin conexiones'}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{u.ultima_conexion ? fechaHora(u.ultima_conexion) : 'Sin conexiones'}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>{minTxt(u.min_dia)}</td>
                   <td className="amount">{u.rol === 'cliente' ? u.consultas : '—'}</td>
                   <td className="amount">{interno(u.rol) || u.rol === 'cliente' ? u.envios : '—'}</td>
@@ -272,7 +274,7 @@ function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol,
         <button className="btn-primary" onClick={guardar} disabled={!!trabajando}>Guardar cambios</button>
       </>}>
       <div style={{ margin: '0 0 0.9rem', padding: '0.55rem 0.85rem', border: '1px solid var(--gray-200)', borderRadius: 9, background: 'var(--gray-50)', fontSize: 'var(--fs-m)', color: 'var(--gray-500)', fontWeight: 600 }}>
-        Creado: {creadoTxt(u.creado_en)}{u.modificado_en ? ` · Última modificación: ${creadoTxt(u.modificado_en)}` : ''}
+        Creado: {fechaHora(u.creado_en)}{u.modificado_en ? ` · Última modificación: ${fechaHora(u.modificado_en)}` : ''}
       </div>
       {!u.email_confirmado && (
         <div className="modal-warn-box"><strong>Invitación sin aceptar.</strong> Aún no ha creado su contraseña. Si no le llegó el email (mira en spam), reenvíasela.</div>
@@ -311,7 +313,7 @@ function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol,
         </div>
         {u.estado === 'suspendida' && u.suspension_motivo && (
           <div style={{ gridColumn: '1/-1' }} className="modal-warn-box">
-            <strong>{u.suspension_motivo.startsWith('Automática') ? 'Suspendida automáticamente' : 'Suspendida'}{u.suspendida_en ? ` el ${creadoTxt(u.suspendida_en)}` : ''}.</strong> {u.suspension_motivo.replace(/^Automática · /, '')}
+            <strong>{u.suspension_motivo.startsWith('Automática') ? 'Suspendida automáticamente' : 'Suspendida'}{u.suspendida_en ? ` el ${fechaHora(u.suspendida_en)}` : ''}.</strong> {u.suspension_motivo.replace(/^Automática · /, '')}
             {' '}Para reactivarla, pon el estado en «Activa» y guarda: el contador de las reglas vuelve a empezar desde hoy.
           </div>
         )}
@@ -364,7 +366,7 @@ function FichaUsuario({ u, yo, clientes, transportistas, onCerrar, onCambiarRol,
       <div style={{ marginTop: '0.9rem' }}>
         <label style={{ fontSize: 'var(--fs-m)', fontWeight: 700, color: 'var(--gray-500)' }}>Uso de la plataforma <span style={{ fontWeight: 600 }}>· solo lectura, lo calcula el sistema</span></label>
         <div className="pen-envio-sum" style={{ marginTop: '0.35rem' }}>
-          {fila('Última conexión', u.ultima_conexion ? creadoTxt(u.ultima_conexion) : 'Sin conexiones')}
+          {fila('Última conexión', u.ultima_conexion ? fechaHora(u.ultima_conexion) : 'Sin conexiones')}
           {fila('Conexión diaria (media, últimos 30 días)', minTxt(u.min_dia))}
           {fila('Conexión semanal (media, últimas 4 semanas)', minTxt(u.min_semana))}
           {u.rol === 'cliente' && fila('Consultas de precio', u.consultas)}

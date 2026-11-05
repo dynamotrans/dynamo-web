@@ -8,7 +8,7 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import Modal from './Modal';
 import { FICHEROS, aCsv, esImporte, mesDe, type Fichero, type FilaExport } from '@/lib/exportaciones';
 import { marcarExportados, marcarFacturados } from '@/app/panel/(app)/exportaciones/acciones';
-import { euros } from '@/lib/formato';
+import { euros, numero } from '@/lib/formato';
 
 const PESTANAS: [string, string][] = [['pendientes', 'Pendientes'], ['hechos', 'Ya pasados'], ['todos', 'Todos']];
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -98,7 +98,7 @@ export default function Exportaciones({ datos, columnas, hecho, tope, error }: {
 
       {error && <div className="pt-aviso error" style={{ marginBottom: '0.8rem' }}><div>No se han podido leer algunos ficheros: {error}</div></div>}
       {aviso && <div className={`pt-aviso ${aviso.ok ? 'info' : 'error'}`} role="status" style={{ marginBottom: '0.8rem' }}><div>{aviso.txt}</div></div>}
-      {filas.length >= tope && <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Se muestran las primeras {tope.toLocaleString('es-ES')} filas de este fichero.</div></div>}
+      {filas.length >= tope && <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Se muestran las primeras {numero(tope, 0)} filas de este fichero.</div></div>}
 
       <div className="tabs">
         {PESTANAS.map(([k, t]) => <button key={k} className={`tab${pestana === k ? ' active' : ''}`} onClick={() => setPestana(k)}>{t} ({cuenta(k)})</button>)}

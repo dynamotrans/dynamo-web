@@ -9,8 +9,8 @@ import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { guardarTransportista, type TransportistaDatos } from '@/app/panel/(app)/transportistas/acciones';
-import { creadoTxt } from '@/lib/envios';
-import { fecha as fmtFecha } from '@/lib/formato';
+
+import { fecha as fmtFecha, fechaHora } from '@/lib/formato';
 import { telBonito } from '@/lib/paises';
 import SelectorPais from '@/components/SelectorPais';
 import { principal, CONTACTO_VACIO } from '@/lib/contactos';
@@ -140,7 +140,7 @@ export default function Transportistas({ filas, error, abrirId }: { filas: Trans
                     {f.adr && <> <span className="badge" style={{ background: '#fdecec', color: '#b42318', border: '1px solid #f5b5b5' }}>ADR</span></>}
                     <div className="meta">{t.envios ? `${t.envios} envío${t.envios === 1 ? '' : 's'}` : 'sin envíos aún'}{f.remolques ? ` · ${f.remolques} remolque${f.remolques === 1 ? '' : 's'}` : ''}</div>
                   </td>
-                  <td>{creadoTxt(t.creado_en)}{t.modificado_en && <div className="meta">Modif. {creadoTxt(t.modificado_en)}</div>}</td>
+                  <td>{fechaHora(t.creado_en)}{t.modificado_en && <div className="meta">Modif. {fechaHora(t.modificado_en)}</div>}</td>
                 </tr>
               );
             })}
@@ -217,7 +217,7 @@ function FichaTransportista({ fila, onCerrar, onGuardado }: { fila: Transportist
       </>}>
       {fila && (
         <div style={{ margin: '0 0 0.9rem', padding: '0.55rem 0.85rem', border: '1px solid var(--gray-200)', borderRadius: 9, background: 'var(--gray-50)', fontSize: 'var(--fs-m)', color: 'var(--gray-500)', fontWeight: 600 }}>
-          Creado: {creadoTxt(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${creadoTxt(fila.modificado_en)}` : ''}
+          Creado: {fechaHora(fila.creado_en)}{fila.modificado_en ? ` · Última modificación: ${fechaHora(fila.modificado_en)}` : ''}
         </div>
       )}
       <div className="ptar-sitio-grid">

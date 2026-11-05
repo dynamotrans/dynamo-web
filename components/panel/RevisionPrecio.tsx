@@ -4,8 +4,8 @@
 // precio_cerrado_dias, precio_revision_dias_habiles, precio_revision_margen_pct). Las
 // reglas las impone la base de datos (revisar_precio_envio, responder_subida_precio).
 import { useState } from 'react';
-import { euros, fecha } from '@/lib/formato';
-import { creadoTxt } from '@/lib/envios';
+import { euros, fecha, fechaHora } from '@/lib/formato';
+
 import { revisarPrecioEnvio } from '@/app/panel/(app)/envios/acciones';
 import { responderSubidaPrecio } from '@/app/panel/(app)/envios/acciones-cliente';
 
@@ -22,7 +22,7 @@ export function SelloPrecio({ r }: { r: Revision | null }) {
   if (!r?.precio_calculado_en) return null;
   return (
     <div style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', marginTop: '0.35rem' }}>
-      Precio del {creadoTxt(r.precio_calculado_en)}{provisional(r) ? <> · <strong style={{ color: '#b54708' }}>provisional</strong>{r.fecha_revision_precio ? `, se revisa el ${fecha(r.fecha_revision_precio)}` : ''}</> : null}
+      Precio del {fechaHora(r.precio_calculado_en)}{provisional(r) ? <> · <strong style={{ color: '#b54708' }}>provisional</strong>{r.fecha_revision_precio ? `, se revisa el ${fecha(r.fecha_revision_precio)}` : ''}</> : null}
     </div>
   );
 }
@@ -35,7 +35,7 @@ export function RevisionDynamo({ envio, r, hacer }: { envio: { id: string; estad
   if (r.estado_revision_precio === 'esperando_cliente') {
     return (
       <div className="modal-warn-box" style={{ marginBottom: '0.8rem' }}>
-        <div><strong>Subida de precio esperando al cliente:</strong> de {euros(r.importe_revision_anterior)} a <strong>{euros(r.importe_revision_nuevo)}</strong> (sin IVA), enviada el {creadoTxt(r.revision_precio_en)}.</div>
+        <div><strong>Subida de precio esperando al cliente:</strong> de {euros(r.importe_revision_anterior)} a <strong>{euros(r.importe_revision_nuevo)}</strong> (sin IVA), enviada el {fechaHora(r.revision_precio_en)}.</div>
         <div style={{ marginTop: '0.3rem' }}>Puede aceptarla o cancelar sin coste. Si no contesta, te avisamos para que le llames. No se oferta hasta que conteste.</div>
       </div>
     );

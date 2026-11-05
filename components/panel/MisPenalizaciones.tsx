@@ -1,8 +1,7 @@
 // Penalizaciones del CLIENTE (etapa B): solo lectura y solo su importe (mis_penalizaciones();
 // el del transportista nunca). Diseño de la tabla de #sec-penalizaciones del mockup.
 import Link from 'next/link';
-import { euros } from '@/lib/formato';
-import { creadoTxt } from '@/lib/envios';
+import { euros, fechaHora } from '@/lib/formato';
 
 export type MiPenalizacion = { id: string; codigo: string; envio_id: string; referencia_gx: string; tipo: string;
   descripcion: string | null; importe_cliente: number | null; estado: string; creado_en: string };
@@ -35,7 +34,7 @@ export default function MisPenalizaciones({ filas, error, esTransportista = fals
                   <td><Link href={`/panel/envios?f=todas&ver=${p.envio_id}`} style={{ color: 'var(--purple)', fontWeight: 700 }}>#{p.referencia_gx}</Link></td>
                   <td><span className="badge badge-prog">{p.tipo}</span> <span className={`badge badge-${est[1]}`}>{est[0]}</span></td>
                   <td className="amount"><strong>{p.importe_cliente != null ? euros(p.importe_cliente) : '—'}</strong></td>
-                  <td>{creadoTxt(p.creado_en)}</td>
+                  <td>{fechaHora(p.creado_en)}</td>
                 </tr>
               );
             })}

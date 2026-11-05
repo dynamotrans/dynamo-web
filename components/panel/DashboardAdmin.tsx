@@ -11,8 +11,7 @@ import Cargando from '@/components/Cargando';
 import Modal from './Modal';
 import { guardarLineaProntoPago, encenderProntoPago } from '@/app/panel/(app)/dashboard-admin/acciones';
 import type { MiniEnvio } from './DashboardCliente';
-import { euros, fecha, ventana, importe } from '@/lib/formato';
-import { creadoTxt } from '@/lib/envios';
+import { euros, fecha, ventana, importe, fechaHora } from '@/lib/formato';
 
 export type ProntoPago = {
   linea: number; encendido: boolean; ventana_dias: number; usado: number; disponible: number; activo: boolean;
@@ -154,7 +153,7 @@ function LineaProntoPago({ pp, error }: { pp: ProntoPago | null; error: string |
     {pp.anticipos.length === 0 ? <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: 0 }}>Ningún transportista ha elegido pronto pago en este periodo.</p>
       : pp.anticipos.map((a, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', flexWrap: 'wrap', border: '1px solid var(--gray-200)', borderRadius: 9, padding: '0.45rem 0.7rem', marginBottom: '0.35rem', fontSize: 'var(--fs-m)' }}>
-          <span style={{ color: 'var(--gray-500)', minWidth: 86 }}>{creadoTxt(a.cuando)}</span>
+          <span style={{ color: 'var(--gray-500)', minWidth: 86 }}>{fechaHora(a.cuando)}</span>
           <strong>#{a.envio}</strong>
           <span style={{ flex: 1, minWidth: 120 }}>{a.transportista ?? '—'}</span>
           <span style={{ color: 'var(--gray-500)' }}>{euros(a.importe)} − {euros(a.descuento)}</span>

@@ -1,12 +1,14 @@
 'use client';
 
+import { fechaHora } from '@/lib/formato';
+
 // Parámetros de la plataforma: cada regla que tiene un número (descuento de bienvenida,
 // pronto pago, tarifas de almacén, PIN, reservas…) se cambia aquí, sin tocar el código.
 // Los ve todo Dynamo; solo un ADMIN los cambia. Cada cambio queda en la auditoría.
 import { useMemo, useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import { guardarParametro, lanzarAutosuspension } from '@/app/panel/(app)/parametros/acciones';
-import { creadoTxt } from '@/lib/envios';
+
 import { AYUDA } from '@/lib/parametrosAyuda';
 
 // Datos que deciden a quién paga el cliente: solo se cambian en Supabase (la base de datos
@@ -223,7 +225,7 @@ function Regla({ n, titulo, quien, hoy, salta, children, claves, filas, esAdmin 
               <div key={p.clave}>
                 <div className="prm-et">{et}{ud && ud !== '%' ? ` (${ud})` : ud === '%' ? ' (%)' : ''}</div>
                 <Control p={p} esAdmin={esAdmin} etiqueta={et} />
-                <div className="meta" style={{ fontFamily: 'monospace' }}>{p.clave}{p.modificado_en ? ` · cambiado ${creadoTxt(p.modificado_en)}${antesTxt(p)}` : ''}</div>
+                <div className="meta" style={{ fontFamily: 'monospace' }}>{p.clave}{p.modificado_en ? ` · cambiado ${fechaHora(p.modificado_en)}${antesTxt(p)}` : ''}</div>
               </div>
             );
           })}
@@ -402,7 +404,6 @@ function Control({ p, esAdmin, etiqueta }: { p: ParametroFila; esAdmin: boolean;
     } else guardar(v);
   }
 
-
   return (
     <>
       {tipo === 'si_no' ? (
@@ -449,7 +450,7 @@ function Fila({ p, esAdmin }: { p: ParametroFila; esAdmin: boolean }) {
         <div className="meta" style={{ fontFamily: 'monospace' }}>{p.clave}</div>
         {BLINDADOS.includes(p.clave) && <div className="meta" style={{ color: '#b45309', fontWeight: 700 }}>Por seguridad, solo se cambia en Supabase (Table Editor → parametros).</div>}</td>
       <td style={{ minWidth: 220 }}><Control p={p} esAdmin={esAdmin} /></td>
-      <td>{p.modificado_en ? <>{creadoTxt(p.modificado_en)}{antesTxt(p) && <div className="meta">{antesTxt(p).trim()}</div>}</> : '—'}</td>
+      <td>{p.modificado_en ? <>{fechaHora(p.modificado_en)}{antesTxt(p) && <div className="meta">{antesTxt(p).trim()}</div>}</> : '—'}</td>
     </tr>
   );
 }

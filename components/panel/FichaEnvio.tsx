@@ -13,8 +13,8 @@ import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { IconoTipo, nombreTipo } from './TipoSitio';
-import { euros, fecha, ventana, pesoTn, numero } from '@/lib/formato';
-import { creadoTxt, NEGOCIACION } from '@/lib/envios';
+import { euros, fecha, ventana, pesoTn, numero, fechaHora, metros, fechaDe, porcentaje } from '@/lib/formato';
+import { NEGOCIACION } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import type { Ficha, ParadaFicha, TransportistaOpcion } from '@/lib/fichaEnvio';
 import { proponerPrecio } from '@/app/panel/(app)/nuevo-envio/acciones';
@@ -89,7 +89,7 @@ function mensajeOferta(f: Ficha, precio: number, token: string): string {
     `Carga disponible · Dynamo · #${e.referencia_gx}`,
     `${pts('carga')} → ${pts('descarga')}`,
     `Recogida: ${ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}`,
-    [e.metros_lineales != null && `${txtNum(e.metros_lineales)} m`, e.toneladas != null && `${pesoTn(e.toneladas)}`, e.tipo_carga === 'completa' ? 'Completo' : e.tipo_carga === 'grupaje' ? 'Grupaje' : ''].filter(Boolean).join(' · '),
+    [e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`, e.tipo_carga === 'completa' ? 'Completo' : e.tipo_carga === 'grupaje' ? 'Grupaje' : ''].filter(Boolean).join(' · '),
     [e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'NIMA', e.adr && 'ADR'].filter(Boolean).join(' · '),
     `Precio: ${euros(precio)} (sin IVA)`,
     `Acéptala aquí: ${enlaceOferta(token)}`,
@@ -220,10 +220,10 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
         <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>Precio conseguido por <strong>contraoferta del cliente</strong>: {euros(e.importe_cliente)} (le dimos {euros(e.importe_cliente_inicial)}).</div></div>
       )}
       {e.estado === 'borrador' && e.estado_solicitud === 'precio_propuesto' && (
-        <div className="pt-aviso info"><div>Precio enviado al cliente: <strong>{euros(e.importe_cliente)}</strong>{e.precio_caduca_en ? <> · válido hasta el {creadoTxt(e.precio_caduca_en)}</> : null}. Esperando su respuesta.</div></div>
+        <div className="pt-aviso info"><div>Precio enviado al cliente: <strong>{euros(e.importe_cliente)}</strong>{e.precio_caduca_en ? <> · válido hasta el {fechaHora(e.precio_caduca_en)}</> : null}. Esperando su respuesta.</div></div>
       )}
       {e.estado_solicitud === 'aceptada' && e.condiciones_aceptadas_en && (
-        <div className="pt-aviso info"><div>Pedido por el cliente desde su panel. Aceptó el precio y las condiciones generales el {creadoTxt(e.condiciones_aceptadas_en)}.</div></div>
+        <div className="pt-aviso info"><div>Pedido por el cliente desde su panel. Aceptó el precio y las condiciones generales el {fechaHora(e.condiciones_aceptadas_en)}.</div></div>
       )}
       {!manual && <AvisoCambiosDynamo e={e} hacer={hacer} onModificar={() => setVista('modificar')} />}
       {!manual && <RevisionDynamo envio={e} r={{ ...e, margen_pct: ficha.margenRevision }} hacer={hacer} />}
@@ -258,8 +258,8 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
         <Celda l="Cliente">{ficha.cliente ? <>{ficha.cliente.nombre} <span style={{ color: 'var(--gray-500)' }}>· {ficha.cliente.cif}</span></> : '—'}</Celda>
         <Celda l="Estado">{est[1]}</Celda>
         {manual && <Celda l="Operador de transporte" span><span style={{ color: '#b45309', fontWeight: 700 }}>{ficha.operador ?? '—'}</span> · envío registrado a mano (Dynamo no interviene en el transporte)</Celda>}
-        <Celda l="Creado">{creadoTxt(e.creado_en)}{ficha.creadoPor ? ` · ${ficha.creadoPor}` : ''}</Celda>
-        <Celda l="Última modificación">{e.modificado_en ? creadoTxt(e.modificado_en) : '—'}</Celda>
+        <Celda l="Creado">{fechaHora(e.creado_en)}{ficha.creadoPor ? ` · ${ficha.creadoPor}` : ''}</Celda>
+        <Celda l="Última modificación">{e.modificado_en ? fechaHora(e.modificado_en) : '—'}</Celda>
         <Celda l={e.fecha_carga_real ? 'Fecha de carga real' : 'Fecha de carga · días de recogida'}>{e.fecha_carga_real ? fecha(e.fecha_carga_real) : ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</Celda>
         <Celda l="Entrega estimada">{e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : <Pend />}</Celda>
         {e.discrecion_comercial && <Celda l="Discreción comercial" span><span style={{ color: 'var(--purple)', fontWeight: 700 }}>Activada</span> — el conductor no revela el destino en la carga ni el origen en la entrega</Celda>}
@@ -274,7 +274,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
                 ? <span className="asig-line asig-confirmado" style={{ marginTop: 0 }}><span className="asig-dot" />Confirmado transportista</span>
                 : <span className="asig-line asig-asignandose" style={{ marginTop: 0 }}><span className="asig-dot" />Asignándose transportista</span>}
             </Celda>
-            <Celda l="Transportista asignado el">{e.asignado_en ? creadoTxt(e.asignado_en) : <Pend />}</Celda>
+            <Celda l="Transportista asignado el">{e.asignado_en ? fechaHora(e.asignado_en) : <Pend />}</Celda>
             <Celda l="Precio del transportista (sin IVA)">{pt != null ? euros(pt) : <Pend />}</Celda>
           </div>
           <div className="det-transp-card">
@@ -300,7 +300,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
                 <span className="k">
                   <strong style={{ color: 'var(--navy)' }}>{o.para ?? CANALES[o.canal] ?? o.canal}</strong>{o.para ? ` · ${CANALES[o.canal] ?? o.canal}` : ''}
                   {' · '}{euros(o.precio)}{o.banda_euros ? ` ± ${euros(o.banda_euros)}` : ''}{o.pronto_pago ? ' · pronto pago' : ''}
-                  <br />{creadoTxt(o.enviada_en)} · {o.aperturas} apertura{o.aperturas === 1 ? '' : 's'}{o.abierta_en ? ` (1.ª ${creadoTxt(o.abierta_en)})` : ''}
+                  <br />{fechaHora(o.enviada_en)} · {o.aperturas} apertura{o.aperturas === 1 ? '' : 's'}{o.abierta_en ? ` (1.ª ${fechaHora(o.abierta_en)})` : ''}
                 </span>
                 <span className="v" style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                   <span className={`badge badge-${ec}`}>{et}</span>
@@ -324,7 +324,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
       <h4 className="modal-section-title">Mercancía</h4>
       <div className="det-block"><div className="modal-info-grid">
         <Celda l="Mercancía">{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</Celda>
-        <Celda l="Medidas">{[e.metros_lineales != null && `${txtNum(e.metros_lineales)} m`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</Celda>
+        <Celda l="Medidas">{[e.metros_lineales != null && `${metros(e.metros_lineales)}`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</Celda>
         <Celda l="Tipo de carga">{e.tipo_carga === 'completa' ? 'Completo' : e.tipo_carga === 'grupaje' ? 'Grupaje' : '—'}</Celda>
         <Celda l="Forma de carga">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_techo && 'Techo'].filter(Boolean).join(', ') || '—'}</Celda>
         <Celda l="Requisitos" span>{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'Requiere NIMA', e.adr && 'Mercancía ADR', e.paletizado === false && 'No paletizada'].filter(Boolean).join(' · ') || 'Ninguno'}</Celda>
@@ -343,7 +343,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
         ) : pc == null ? <div className="modal-info-grid"><Celda l="Precio" span><Pend /></Celda></div> : (
           <div className="alm-price" style={{ margin: 0 }}>
             <div className="alm-price-row alm-price-base"><span className="k">Base imponible</span><span className="v">{euros(pc)}</span></div>
-            <div className="alm-price-row alm-price-sub"><span className="k">IVA ({txtNum(e.iva_pct ?? 21)} %)</span><span className="v">{euros(pc * Number(e.iva_pct ?? 21) / 100)}</span></div>
+            <div className="alm-price-row alm-price-sub"><span className="k">IVA ({porcentaje(e.iva_pct ?? 21)})</span><span className="v">{euros(pc * Number(e.iva_pct ?? 21) / 100)}</span></div>
             <div className="alm-price-row alm-price-sub"><span className="k">Total (IVA incl.)</span><span className="v">{euros(pc * (1 + Number(e.iva_pct ?? 21) / 100))}</span></div>
             <SelloPrecio r={e} />
           </div>
@@ -396,7 +396,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
         <h4 className="modal-section-title">Valoración del cliente</h4>
         <div className="det-block">
           <span style={{ color: '#f5b301', fontSize: '1.2rem', letterSpacing: 1 }}>{'★'.repeat(e.valoracion_cliente)}</span><span style={{ color: 'var(--gray-200)', fontSize: '1.2rem', letterSpacing: 1 }}>{'★'.repeat(5 - e.valoracion_cliente)}</span>
-          <span style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', marginLeft: '0.5rem' }}>{e.valoracion_cliente} de 5{e.valoracion_cliente_en ? ` · ${creadoTxt(e.valoracion_cliente_en)}` : ''}</span>
+          <span style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', marginLeft: '0.5rem' }}>{e.valoracion_cliente} de 5{e.valoracion_cliente_en ? ` · ${fechaHora(e.valoracion_cliente_en)}` : ''}</span>
           {e.valoracion_cliente_comentario && <p style={{ margin: '0.4rem 0 0', fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>«{e.valoracion_cliente_comentario}»</p>}
         </div>
       </>}
@@ -408,7 +408,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
         {ficha.hitos.length === 0 && <div className="pen-sum-row"><span className="k">Sin movimientos</span><span className="v" /></div>}
         {ficha.hitos.map((h) => (
           <div key={h.id} className="pen-sum-row">
-            <span className="k" style={{ whiteSpace: 'nowrap' }}>{creadoTxt(h.cuando)}</span>
+            <span className="k" style={{ whiteSpace: 'nowrap' }}>{fechaHora(h.cuando)}</span>
             <span className="v" style={{ textAlign: 'right' }}>
               {HITOS[h.hito] ?? h.hito}
               {h.datos?.motivo_cancelacion && <> — «{h.datos.motivo_cancelacion}»</>}
@@ -623,9 +623,9 @@ function Cancelar({ ficha, onVolver, hacer, trabajando }: SubProps) {
       </>}>
       <div className="modal-warn-box" style={fuera ? { background: 'rgba(220,38,38,0.08)', borderColor: 'rgba(220,38,38,0.4)' } : undefined}>
         {fuera
-          ? <><strong style={{ color: '#b42318' }}>Fuera de plazo, con camión asignado:</strong> pasó la hora límite ({creadoTxt(ficha.corte)}). Se generará la <strong>penalización de cancelación por el coste completo</strong>{e.importe_cliente != null ? <> ({euros(e.importe_cliente)} sin IVA)</> : null}, pendiente de confirmar: se puede renegociar o anular en Penalizaciones.</>
+          ? <><strong style={{ color: '#b42318' }}>Fuera de plazo, con camión asignado:</strong> pasó la hora límite ({fechaHora(ficha.corte)}). Se generará la <strong>penalización de cancelación por el coste completo</strong>{e.importe_cliente != null ? <> ({euros(e.importe_cliente)} sin IVA)</> : null}, pendiente de confirmar: se puede renegociar o anular en Penalizaciones.</>
           : conCamion
-            ? <>Dentro de plazo: <strong>sin coste</strong> para el cliente. La hora límite para cancelar gratis es <strong>{ficha.corte ? creadoTxt(ficha.corte) : '—'}</strong> (9:00 del día hábil anterior a la carga).</>
+            ? <>Dentro de plazo: <strong>sin coste</strong> para el cliente. La hora límite para cancelar gratis es <strong>{ficha.corte ? fechaHora(ficha.corte) : '—'}</strong> (9:00 del día hábil anterior a la carga).</>
             : <>Sin transportista asignado: se cancela <strong>sin coste</strong>.</>}
       </div>
       <div className="ptar-sitio-grid">
@@ -825,7 +825,7 @@ function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: (t: str
           <a className="btn-secondary" href={`https://wa.me/?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener">WhatsApp</a>
           <a className="btn-secondary" href={`/cmr/${enl.token}`} target="_blank" rel="noopener"><I d={ICO.ojo} />Abrir</a>
           <button className="btn-ghost" style={{ color: '#dc2626' }} disabled={!!trabajando} onClick={() => hacer('Retirando el enlace', () => retirarEnlaceCmr(enl.id), 'Enlace del CMR retirado: ya no se abre. Las firmas hechas se conservan.')}>Retirar enlace</button>
-          <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', flexBasis: '100%' }}>Vale hasta el {fecha(enl.caduca_en.slice(0, 10))}.</span>
+          <span style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', flexBasis: '100%' }}>Vale hasta el {fechaDe(enl.caduca_en)}.</span>
         </div>
       ) : (
         <button className="btn-primary" disabled={!!trabajando} onClick={() => hacer('Creando el enlace', () => enlaceCmr(e.id), 'Enlace del CMR creado: cópialo o mándalo por WhatsApp.')}><I d={ICO.doc} />Crear enlace para firmar</button>
@@ -835,7 +835,7 @@ function CmrDigital({ ficha, hacer, trabajando }: { ficha: Ficha; hacer: (t: str
         {ficha.firmasCmr.map((f, i) => (
           <div key={i} className="pen-sum-row">
             <span className="k">{ROL_CMR[f.rol] ?? f.rol}{lugar(f.parada_id)}<br /><span style={{ color: 'var(--gray-500)' }}>{f.nombre} · {f.documento} ({f.documento_pais}){f.documento_validado ? '' : ' · documento sin comprobar'}</span></span>
-            <span className="v" style={{ whiteSpace: 'nowrap' }}>{creadoTxt(f.firmado_en)}</span>
+            <span className="v" style={{ whiteSpace: 'nowrap' }}>{fechaHora(f.firmado_en)}</span>
           </div>
         ))}
       </div>

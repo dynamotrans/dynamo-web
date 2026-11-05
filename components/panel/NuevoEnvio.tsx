@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRefrescar } from '@/lib/useRefrescar';
 import { crearEnvio, crearClienteRapido, cambiarRuta, crearSolicitud, crearEnvioManual, diasAbiertosDe, comprobarCobertura, type ParadaNueva, type HorarioSitioAviso } from '@/app/panel/(app)/nuevo-envio/acciones';
-import { fecha as fmtFecha, euros as eur } from '@/lib/formato';
+import { fecha as fmtFecha, euros as eur, hoyMadrid, porcentaje } from '@/lib/formato';
 import Cargando from '@/components/Cargando';
 import { paisDe } from '@/lib/paises';
 import { NEGOCIACION } from '@/lib/envios';
@@ -343,7 +343,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
   const diasHasta = fecha ? Math.round((Date.parse(`${fecha}T12:00:00Z`) - Date.parse(`${new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())}T12:00:00Z`)) / 86400000) : 0;
   const provisional = !!reglas && !!fecha && diasHasta > reglas.cerrado_dias;
   const maxFecha = esCliente && reglas && reglas.antelacion_max_dias > 0
-    ? new Date(Date.now() + reglas.antelacion_max_dias * 86400000).toISOString().slice(0, 10) : undefined;
+    ? hoyMadrid(reglas.antelacion_max_dias) : undefined;
   const avisoProvisional = provisional && reglas ? (
     <div className="pt-aviso" style={{ marginTop: '0.6rem' }}><div>
       <strong>Precio provisional:</strong> como faltan más de {reglas.cerrado_dias} días, el precio se revisa <strong>{reglas.revision_dias_habiles} días hábiles antes de la carga</strong>.
@@ -433,7 +433,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
   const cajaPrecio = (
     <div className="ptar-confirm-price">
       <div className="alm-price-row alm-price-base"><span className="k">Base imponible</span><span className="v">{importe > 0 ? eur(importe) : '—'}</span></div>
-      <div className="alm-price-row alm-price-sub"><span className="k">IVA ({String(ivaPct).replace('.', ',')}%)</span><span className="v">{importe > 0 ? eur(importe * ivaPct / 100) : '—'}</span></div>
+      <div className="alm-price-row alm-price-sub"><span className="k">IVA ({porcentaje(ivaPct)})</span><span className="v">{importe > 0 ? eur(importe * ivaPct / 100) : '—'}</span></div>
       <div className="alm-price-row alm-price-sub"><span className="k">Total (IVA incl.)</span><span className="v">{importe > 0 ? eur(importe * (1 + ivaPct / 100)) : '—'}</span></div>
     </div>
   );
@@ -678,7 +678,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
                 <div className="sum2-box" style={{ marginTop: '0.6rem' }}>
                   <div className="sum2-grid">
                     <div className="sum2-cell"><div className="sum2-k">Fecha de recogida</div><div className="sum2-v">{fechaTxt}</div></div>
-                    {refCli && <div className="sum2-cell"><div className="sum2-k">Su referencia</div><div className="sum2-v">{refCli}</div></div>}
+                    {refCli && <div className="sum2-cell"><div className="sum2-k">Tu referencia</div><div className="sum2-v">{refCli}</div></div>}
                     {importeT !== null && <div className="sum2-cell"><div className="sum2-k">P. transportista</div><div className="sum2-v">{eur(importeT)}</div></div>}
                     {importeT !== null && <div className="sum2-cell"><div className="sum2-k">Margen</div><div className="sum2-v">{eur(importe - importeT)}</div></div>}
                   </div>

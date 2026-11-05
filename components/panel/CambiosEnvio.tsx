@@ -9,8 +9,8 @@
 import { useState } from 'react';
 import Modal from './Modal';
 import { CONTACTO } from '@/lib/atencion';
-import { fecha, ventana, hoyMadrid } from '@/lib/formato';
-import { creadoTxt } from '@/lib/envios';
+import { fecha, ventana, hoyMadrid, fechaHora } from '@/lib/formato';
+
 import { resolverCambio } from '@/app/panel/(app)/envios/acciones';
 import { pedirCambio } from '@/app/panel/(app)/envios/acciones-cliente';
 
@@ -30,7 +30,7 @@ export function AvisoCambiosDynamo({ e, hacer, onModificar }: { e: any; hacer: H
       )}
       {e.estado_cambio_cliente === 'pendiente' && c && (
         <div className="modal-warn-box" style={{ marginBottom: '0.8rem' }}>
-          <strong>El cliente pide un cambio</strong>{e.cambio_cliente_en ? ` (${creadoTxt(e.cambio_cliente_en)})` : ''}:
+          <strong>El cliente pide un cambio</strong>{e.cambio_cliente_en ? ` (${fechaHora(e.cambio_cliente_en)})` : ''}:
           {fechasTxt(c) && <> nuevas fechas de carga <strong>{fechasTxt(c)}</strong> (ahora {ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}).</>}
           {c.detalle && <div style={{ marginTop: '0.3rem' }}>«{c.detalle}»</div>}
           {c.con_camion && <div style={{ marginTop: '0.3rem', color: '#b42318', fontWeight: 700 }}>Ya tiene camión asignado: confírmalo con el transportista antes de aceptar.</div>}
@@ -44,7 +44,7 @@ export function AvisoCambiosDynamo({ e, hacer, onModificar }: { e: any; hacer: H
         </div>
       )}
       {e.estado_cambio_cliente === 'aplicado' && c && (
-        <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>El cliente cambió las fechas de carga{e.cambio_cliente_en ? ` el ${creadoTxt(e.cambio_cliente_en)}` : ''} (sin camión asignado, se aplicó solo): antes {ventana(c.antes_desde, c.antes_hasta)}.</div></div>
+        <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div>El cliente cambió las fechas de carga{e.cambio_cliente_en ? ` el ${fechaHora(e.cambio_cliente_en)}` : ''} (sin camión asignado, se aplicó solo): antes {ventana(c.antes_desde, c.antes_hasta)}.</div></div>
       )}
     </>
   );
@@ -58,7 +58,7 @@ export function PedirCambio({ e, cambio, hacer, onLlamar }: { e: any; cambio: an
   if (!cambio) return null;
   const manana = hoyMadrid(1);
   if (cambio.estado === 'pendiente') {
-    return <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div><strong>Has pedido un cambio</strong>{cambio.en ? ` el ${creadoTxt(cambio.en)}` : ''}. Lo estamos revisando{cambio.con_camion ? ' con el transportista' : ''} y te contestamos aquí.</div></div>;
+    return <div className="pt-aviso info" style={{ marginBottom: '0.8rem' }}><div><strong>Has pedido un cambio</strong>{cambio.en ? ` el ${fechaHora(cambio.en)}` : ''}. Lo estamos revisando{cambio.con_camion ? ' con el transportista' : ''} y te contestamos aquí.</div></div>;
   }
   const respuesta = (cambio.estado === 'aceptado' || cambio.estado === 'rechazado') && (
     <div className={`pt-aviso ${cambio.estado === 'aceptado' ? 'info' : 'error'}`} style={{ marginBottom: '0.8rem' }}><div>
@@ -113,7 +113,7 @@ export function LlamarCambio({ e, onVolver }: { e: any; onVolver: () => void }) 
   const ref = `#${e.referencia_gx}`;
   const corte = e.corte ? new Date(e.corte) : null;
   const dentro = corte ? Date.now() < corte.getTime() : null;
-  const corteTxt = corte ? corte.toLocaleString('es-ES', { timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : null;
+  const corteTxt = corte ? fechaHora(corte.toISOString()) : null;
   const msg = `URGENTE: necesito cambiar el envío ${ref}${e.referencia_cliente ? ` (mi ref. ${e.referencia_cliente})` : ''}. El cambio es: `;
   const btn = (href: string, txt: string, bg: string, nueva = false) => (
     <a href={href} target={nueva ? '_blank' : undefined} rel={nueva ? 'noopener' : undefined}

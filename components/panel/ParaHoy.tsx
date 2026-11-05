@@ -1,7 +1,7 @@
+import { fechaHora } from '@/lib/formato';
 // «Para hoy»: lo que espera respuesta de Dynamo, por bloques y por urgencia. Lo que está
 // al día no ocupa sitio: sale en una línea al final.
 import Link from 'next/link';
-import { creadoTxt } from '@/lib/envios';
 
 export type Fila = { href: string; t: string; s?: string; desde: string | null; urgente?: boolean };
 export type Bloque = { id: string; nivel: 'urgente' | 'aviso' | 'info'; titulo: string; total: number; todo: string; filas: Fila[] };
@@ -10,6 +10,7 @@ export type Bloque = { id: string; nivel: 'urgente' | 'aviso' | 'info'; titulo: 
 function espera(iso: string | null): string {
   if (!iso) return '';
   const min = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (min < 1) return 'ahora';
   if (min < 60) return `hace ${min} min`;
   if (min < 48 * 60) return `hace ${Math.round(min / 60)} h`;
   return `hace ${Math.round(min / 1440)} días`;
@@ -42,7 +43,7 @@ export default function ParaHoy({ bloques, error }: { bloques: Bloque[]; error: 
                   <Link href={f.href} className={`ph-fila${f.urgente ? ' urgente' : ''}`}>
                     <span className="ph-t">{f.t}</span>
                     {f.s && <span className="ph-s">{f.s}</span>}
-                    {f.desde && <span className="ph-h" title={creadoTxt(f.desde)}>{espera(f.desde)}</span>}
+                    {f.desde && <span className="ph-h" title={fechaHora(f.desde)}>{espera(f.desde)}</span>}
                   </Link>
                 </li>
               ))}

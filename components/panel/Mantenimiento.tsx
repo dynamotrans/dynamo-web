@@ -1,11 +1,13 @@
 'use client';
 
+import { fechaHora } from '@/lib/formato';
+
 // Modo mantenimiento (solo admin), con el diseño de la ventana del mockup (.maint-control).
 import { useState } from 'react';
 import { useRefrescar } from '@/lib/useRefrescar';
 import Cargando from '@/components/Cargando';
 import { guardarParametro } from '@/app/panel/(app)/parametros/acciones';
-import { creadoTxt } from '@/lib/envios';
+
 import { contarArchivosSueltos, borrarArchivosSueltos } from '@/app/panel/(app)/mantenimiento/acciones';
 
 const LLAVE = 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z';
@@ -45,7 +47,7 @@ export default function Mantenimiento({ activo, esAdmin, cambiado, quien }: { ac
             </button>
           )}
         </div>
-        {cambiado && <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>Último cambio: {creadoTxt(cambiado)}{quien ? ` · por ${quien}` : ''}</p>}
+        {cambiado && <p style={{ fontSize: 'var(--fs-s)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>Último cambio: {fechaHora(cambiado)}{quien ? ` · por ${quien}` : ''}</p>}
         {!esAdmin && <p style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-500)', margin: '0.7rem 0 0' }}>Solo un <strong>administrador</strong> lo puede activar o desactivar.</p>}
         {preguntar && (
           <div className="pt-aviso error" style={{ marginTop: '0.9rem' }}>

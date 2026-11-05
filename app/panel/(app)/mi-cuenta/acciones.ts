@@ -1,5 +1,7 @@
 'use server';
 
+import { normalizaTel } from '@/lib/paises';
+
 import { mensajeError } from '@/lib/mensajeError';
 import { claveValida } from '@/lib/clave';
 import { sesion } from '@/lib/sesion';
@@ -15,7 +17,7 @@ export async function guardarMisDatos(d: MisDatos): Promise<{ ok: true } | { ok:
   const s = await sesion();
   if (!s?.perfil) return { ok: false, error: 'Tu sesión ha caducado. Vuelve a entrar.' };
   if (!d.nombre.trim()) return { ok: false, error: 'Pon tu nombre y apellidos.' };
-  const tel = d.telefono.replace(/[\s().-]/g, '');
+  const tel = normalizaTel(d.telefono);
   const { error } = await s.supabase.from('usuarios').update({
     nombre: d.nombre.trim(), telefono: tel || null, documento: d.documento.trim().toUpperCase() || null,
     cargo: d.cargo.trim() || null, idioma: d.idioma || 'es',
@@ -101,7 +103,7 @@ export async function guardarMiConductor(c: MiConductor): Promise<Res> {
     if (!r.ok) return { ok: false, error: r.msg ?? 'El documento no es válido.' };
     doc = r.norm;
   }
-  const tel = c.telefono.replace(/[\s().-]/g, '');
+  const tel = normalizaTel(c.telefono);
   if (tel && !/^\+?[0-9]{6,15}$/.test(tel)) return { ok: false, error: 'El teléfono no es válido: solo números, con el prefijo del país.' };
   const { error } = await s.supabase.rpc('guardar_mi_conductor', {
     p_id: c.id, p_nombre: c.nombre.trim(), p_documento: doc, p_documento_pais: pais, p_telefono: tel,
