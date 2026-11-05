@@ -4202,3 +4202,21 @@ do $$ declare l uuid := current_setting('prueba.lugar_a')::uuid; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 120. Horario de verano en los envíos: cada parada, el horario de su fecha ---------------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+select guardar_horario_verano(current_setting('prueba.lugar_a')::uuid, true, '06-01', '08-31',
+  (select jsonb_agg(jsonb_build_object('dia', d, 'abre', '07:30', 'cierra', '15:00')) from generate_series(1, 5) d));
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  if horario_sitio_txt(current_setting('prueba.lugar_a')::uuid, make_date(2027, 7, 14)) <> 'L-V 7:30-15:00 (horario de verano)' then
+    raise exception 'FALLO 120 · en verano no da el horario de verano: %', horario_sitio_txt(current_setting('prueba.lugar_a')::uuid, make_date(2027, 7, 14));
+  end if;
+  if horario_sitio_txt(current_setting('prueba.lugar_a')::uuid, make_date(2027, 10, 13)) like '%verano%' then
+    raise exception 'FALLO 120 · fuera de verano da el horario de verano';
+  end if;
+  raise notice 'OK 120 · horario de verano en los envíos: cada parada lleva el horario de su fecha';
+end $$;

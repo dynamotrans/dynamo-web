@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { enTemporada } from './horarios';
 
 // Todo lo que enseña la ficha de un envío (solo Dynamo, etapa A), leído en el servidor.
 export type ParadaFicha = {
@@ -43,7 +44,7 @@ export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ fic
   if (!e) return { ficha: null, error: 'Ese envío no existe.' };
 
   const [par, hit, pen, ofe, res, enl, fir, pag] = await Promise.all([
-    sb.from('envio_paradas').select('id, orden, tipo, lugar_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, lugares(tipo, horarios, anotaciones, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden'),
+    sb.from('envio_paradas').select('id, orden, tipo, lugar_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, fecha_desde, lugares(tipo, horarios, horarios_verano, verano_activo, verano_desde, verano_hasta, anotaciones, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden'),
     sb.from('envio_hitos').select('id, hito, cuando, quien, quien_origen, datos').eq('envio_id', id).order('cuando', { ascending: false }).limit(200),
     sb.from('penalizaciones').select('id, codigo, descripcion, importe_cliente, importe_transportista, estado, generada_auto, tipos_penalizacion(nombre)').eq('envio_id', id).order('creado_en'),
     sb.from('envio_ofertas').select('id, token, canal, precio_ofertado, banda_euros, banda_pct, pronto_pago, estado, enviada_en, caduca_en, aperturas, abierta_en, transportistas(nombre_visible)').eq('envio_id', id).order('enviada_en', { ascending: false }),
@@ -83,7 +84,7 @@ export async function cargarFicha(sb: SupabaseClient, id: string): Promise<{ fic
       creadoPor: e.creado_por ? nombres.get(e.creado_por) ?? null : null,
       paradas: (par.data ?? []).map((p: any) => ({
         ...p,
-        sitio: p.lugares ? { ...p.lugares, contacto: p.lugar_id ? contactos.get(p.lugar_id) ?? null : null } : null,
+        sitio: p.lugares ? { ...p.lugares, horarios: horarioParada(p, e), contacto: p.lugar_id ? contactos.get(p.lugar_id) ?? null : null } : null,
       })),
       hitos: (hit.data ?? []).map((h: any) => ({ id: h.id, hito: h.hito, cuando: h.cuando, quien: h.quien ? nombres.get(h.quien) ?? null : null, origen: h.quien_origen, datos: h.datos })),
       penalizaciones: (pen.data ?? []).map((p: any) => ({ ...p, tipo: p.tipos_penalizacion?.nombre ?? 'Penalización' })),
@@ -118,4 +119,17 @@ export async function cargarTransportistasParaAsignar(sb: SupabaseClient): Promi
   return (tra.data ?? []).map((t: any) => ({ id: t.id, nombre: t.nombre_visible, cif: t.cif, estado: t.estado_operativo, nima: t.nima,
     telefono: trafico.get(t.id)?.telefono ?? null, email: trafico.get(t.id)?.email ?? null,
     vehiculos: v.get(t.id) ?? [], conductores: c.get(t.id) ?? [] }));
+}
+
+// El horario que toca a una parada según su fecha: el de verano si el sitio lo tiene activo
+// y la fecha cae dentro (con «(horario de verano)»), si no el general. Fecha: la de la
+// parada; si no, la de carga (recogidas) o la de entrega estimada (entregas).
+function horarioParada(p: any, e: any): string | null {
+  const l = p.lugares;
+  const dia = p.fecha_desde ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(p.fecha_desde)) : null;
+  const f: string | null = dia ?? (p.tipo === 'carga' ? e.fecha_carga_desde : (e.fecha_entrega_estimada ?? e.fecha_carga_desde)) ?? null;
+  if (l?.verano_activo && l.horarios_verano && f && l.verano_desde && l.verano_hasta && enTemporada(f, l.verano_desde, l.verano_hasta)) {
+    return `${l.horarios_verano} (horario de verano)`;
+  }
+  return l?.horarios ?? null;
 }
