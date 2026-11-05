@@ -4613,3 +4613,40 @@ do $$ declare c uuid; e uuid; begin
 end $$;
 update parametros set valor = 'false' where clave = 'previo_pago_activo';
 update parametros set valor = '100000' where clave = 'precio_cerrado_dias';
+
+-- ---- 130. Diccionario de datos: todo descrito dentro de Supabase ---------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare v text; begin
+  select string_agg(c.relname, ', ') into v from pg_class c
+   where c.relnamespace = 'public'::regnamespace and c.relkind = 'r' and coalesce(length(obj_description(c.oid, 'pg_class')), 0) < 20;
+  if v is not null then raise exception 'FALLO 130 · tablas sin descripción: %', v; end if;
+  select string_agg(c.relname || '.' || a.attname, ', ') into v from pg_class c join pg_attribute a on a.attrelid = c.oid
+   where c.relnamespace = 'public'::regnamespace and c.relkind = 'r' and a.attnum > 0 and not a.attisdropped
+     and coalesce(col_description(c.oid, a.attnum), '') !~ '^formato: .* \| rango: .* \| lista: .* \| (obligatorio|opcional|automático)';
+  if v is not null then raise exception 'FALLO 130 · columnas sin descripción con el formato del diccionario: %', left(v, 1500); end if;
+  select string_agg(p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')', ', ') into v from pg_proc p
+   where p.pronamespace = 'public'::regnamespace and p.prorettype <> 'trigger'::regtype
+     and has_function_privilege('authenticated', p.oid, 'execute') and coalesce(length(obj_description(p.oid, 'pg_proc')), 0) < 20;
+  if v is not null then raise exception 'FALLO 130 · funciones de la API sin descripción: %', left(v, 1500); end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin perform diccionario_datos(); raise exception 'FALLO 130 · un cliente lee el diccionario de datos';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if (select count(*) from diccionario_datos() where tabla = 'lugar_horarios' and descripcion is not null) < 5 then
+    raise exception 'FALLO 130 · Dynamo no lee el diccionario';
+  end if;
+  if not exists (select 1 from funciones_api() where funcion = 'horario_del_dia') or guia_automatizaciones() not like '%crear_envio%' then
+    raise exception 'FALLO 130 · no salen las funciones o la guía';
+  end if;
+  raise notice 'OK 130 · diccionario de datos: cada tabla, columna y función de la API descrita en Supabase; solo Dynamo lo lee';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
