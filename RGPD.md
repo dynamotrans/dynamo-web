@@ -34,6 +34,8 @@ Fuera de la plataforma, pero relacionado: la **web pública** (`dynamotrans.com`
 del tarifador, WhatsApp, email, Google Translate, cookies y analítica. Revisar el aviso legal,
 la política de privacidad (`/#privacidad`) y la de cookies con el asesor.
 
+> **Decisión de Dynamo (2026-11-05): no se borra nada del histórico automáticamente** —ni teléfonos, ni DNI, ni conductores, ni IP, ni registros—. La limpieza nocturna está **apagada** (`rgpd_limpieza_activa = false`) y los plazos de la tabla de arriba quedan como **propuesta para el asesor**: si él indica que hay que aplicarlos, se enciende el interruptor en Parámetros. Los datos de una persona solo se borran **a mano**, cuando ella lo pide y la ley obliga (Gestión interna → Protección de datos).
+
 ## 3. Encargados de tratamiento (proveedores)
 
 | Proveedor | Para qué | Dónde están los datos | Comprobar |
@@ -80,7 +82,7 @@ info@dynamotrans.com, respuesta en **un mes**.
 ## 6. Pendientes
 
 **Técnicos (equipo técnico):**
-- [x] Limpieza automática cada noche (`purgar_datos_personales`, pg_cron 4:53): IP de reservas e intentos a los 90 días; tiempo conectado y consultas de precio a los 12 meses (hecho 2026-11-05).
+- [x] Limpieza automática cada noche (`purgar_datos_personales`, pg_cron 4:53) — **hecha pero APAGADA** por decisión de Dynamo (`rgpd_limpieza_activa`); se enciende solo si lo indica el asesor.
 - [x] «**Anonimizar**» (solo Admin Master): en la ficha del usuario y, para cualquier persona (usuario, contacto o conductor), en **Gestión interna → Protección de datos**, buscando por email, teléfono, DNI o nombre. La auditoría apunta qué se borró, sin los valores (hecho 2026-11-05).
 - [x] «**Exportar datos**» (JSON): cada usuario desde Mi cuenta → Editar mis datos; Dynamo desde la ficha del usuario (hecho 2026-11-05).
 - [x] Teléfono de los conductores sin viajes: la limpieza nocturna lo borra **solo si se activa** el parámetro `rgpd_telefono_conductor_anios` (hoy 0 = nunca: se conservan para portes posteriores, decisión del usuario 2026-11-05).

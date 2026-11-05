@@ -4299,7 +4299,13 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
--- Limpieza: borra el intento de hace 100 días y deja los recientes.
+-- Limpieza apagada (por defecto): no borra nada.
+do $$ declare r jsonb; begin
+  r := purgar_datos_personales();
+  if not exists (select 1 from intentos_carga_publica where motivo = 'prueba_vieja') then raise exception 'FALLO 122 · la limpieza apagada borra datos'; end if;
+end $$;
+-- Encendida: borra el intento de hace 100 días y deja los recientes.
+update parametros set valor = 'true' where clave = 'rgpd_limpieza_activa';
 do $$ declare r jsonb; begin
   r := purgar_datos_personales();
   if exists (select 1 from intentos_carga_publica where motivo = 'prueba_vieja') then raise exception 'FALLO 122 · la limpieza no borra los intentos viejos: %', r; end if;
@@ -4310,8 +4316,9 @@ do $$ declare r jsonb; begin
   exception when raise_exception then
     if sqlerrm like 'FALLO%' then raise; end if;
   end;
-  raise notice 'OK 122 · RGPD: cada uno exporta lo suyo, solo el Admin Master anonimiza (la auditoría no guarda lo borrado) y la limpieza borra solo lo caducado';
+  raise notice 'OK 122 · RGPD: cada uno exporta lo suyo, solo el Admin Master anonimiza (la auditoría no guarda lo borrado) y la limpieza (apagada por defecto) borra solo lo caducado';
 end $$;
+update parametros set valor = 'false' where clave = 'rgpd_limpieza_activa';
 
 -- ---- 123. Segunda revisión de seguridad (4-5 nov) --------------------------------------------
 reset role;
