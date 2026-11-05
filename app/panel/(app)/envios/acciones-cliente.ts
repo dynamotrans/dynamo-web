@@ -66,6 +66,7 @@ export async function contraofertarPrecio(envio: string, importe: number): Promi
     fecha_pasada: 'La fecha de recogida ya ha pasado: cancela la solicitud y pide otra.', precio_no_valido: 'Escribe un precio válido (sin IVA).',
     no_es_rebaja: 'Tu precio tiene que ser más bajo que el nuestro.',
     demasiado_lejos: 'Ese precio está demasiado lejos del nuestro. Propón uno más cercano o llámanos.',
+    demasiados_intentos: 'Has hecho varias propuestas que no podemos aceptar. Puedes aceptar nuestro precio o llamarnos al +34 955 225 945.',
   };
   if (r === 'aceptada') return { ok: true, aviso: 'Aceptado: tu envío queda programado a tu precio y buscamos el camión.' };
   if (r === 'pendiente_revision') return { ok: true, aviso: 'Hemos recibido tu propuesta. La revisamos y te contestamos aquí enseguida.' };

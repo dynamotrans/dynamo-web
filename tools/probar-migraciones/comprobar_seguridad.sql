@@ -3931,7 +3931,7 @@ do $$ declare faltan text; begin
    where n.nspname = 'public' and c.relkind = 'r'
      and c.relname not in ('usuarios', 'auditoria', 'parametros', 'festivos', 'tipos_incidencia', 'tipos_penalizacion',
                            'recargos_tipo_lugar', 'restricciones_servicio', 'distancias_cp', 'distancias_lugares',
-                           'conexion_minutos', 'consultas_precio', 'intentos_carga_publica', 'avisos_vistos')
+                           'conexion_minutos', 'consultas_precio', 'intentos_carga_publica', 'avisos_vistos', 'contraoferta_intentos')
      and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'tg_mantenimiento');
   if faltan is not null then
     raise exception 'FALLO 115 · tablas sin el bloqueo de mantenimiento (añadirlo o justificarlo en la lista): %', faltan;
@@ -4220,3 +4220,17 @@ do $$ begin
   end if;
   raise notice 'OK 120 · horario de verano en los envíos: cada parada lleva el horario de su fecha';
 end $$;
+
+-- ---- 121. Contraoferta del cliente: no se puede ir probando hasta dar con el % máximo -------
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ declare r text; k int; begin
+  for k in 1..4 loop
+    r := (contraofertar_precio_solicitud(current_setting('prueba.e101_3')::uuid, 700 + k))->>'resultado';
+  end loop;
+  if r <> 'demasiados_intentos' then raise exception 'FALLO 121 · se pueden hacer propuestas demasiado bajas sin límite: %', r; end if;
+  raise notice 'OK 121 · contraoferta del cliente: a la 3.ª propuesta demasiado baja en 24 h, no admite más ese día';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
