@@ -1,6 +1,6 @@
 'use client';
 
-// Sitios: la agenda de lugares de recogida y entrega. Diseño de #sec-sitios de
+// Sitios: la agenda de sitios de recogida y entrega. Diseño de #sec-sitios de
 // dashboard.html: tabla Empresa · Dirección · Horario · Contacto · Notas, estrella del
 // sitio principal y ficha en la ventana del panel con la rejilla .ptar-sitio-grid.
 // Dynamo ve los sitios de todos los clientes (con la columna Cliente y su filtro).
@@ -101,7 +101,7 @@ export default function Sitios({ filas, clientes, dynamo, error, veranoDefecto }
         </div>
       </div>
       <p style={{ color: 'var(--gray-500)', fontSize: 'var(--fs-m)', margin: '-0.4rem 0 0.9rem' }}>
-        <strong style={{ color: 'var(--navy)' }}>{dynamo ? 'Agenda de lugares de recogida y entrega de cada cliente.' : 'Tu agenda de lugares de recogida y entrega.'}</strong>{' '}
+        <strong style={{ color: 'var(--navy)' }}>{dynamo ? 'Agenda de sitios de recogida y entrega de cada cliente.' : 'Tu agenda de sitios de recogida y entrega.'}</strong>{' '}
         Se usan en el buscador al crear envíos.<br />
         <span style={{ color: '#8a6300' }}>★</span> La <strong style={{ color: 'var(--navy)' }}>estrella</strong> marca el <strong style={{ color: 'var(--navy)' }}>almacén principal</strong>{dynamo ? ' de cada cliente' : ''}: se pone solo como <strong>origen (recogida)</strong> al crear un envío. Solo puede haber uno; al marcar otro, se cambia. Siempre se puede cambiar en el propio envío.
       </p>
@@ -230,7 +230,7 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, veranoDefecto = VE
     const semana = aNum(precios.semana), reparto = aNum(precios.reparto);
     if ([semana, reparto].some((v) => v != null && (!Number.isFinite(v) || v < 0))) { setError('Los precios tienen que ser un número (o vacíos para usar los de por defecto).'); return; }
     const datos: SitioDatos = almacen ? { ...d, almacen: { disponible: d.almacen?.disponible ?? true, precio_almacenamiento_semana: semana, precio_reparto: reparto } } : d;
-    if (!d.tipo) { setError('Elige el tipo de lugar.'); return; }
+    if (!d.tipo) { setError('Elige el tipo de sitio.'); return; }
     if (!d.nombre_empresa.trim() || !d.direccion.trim() || !d.codigo_postal.trim() || !d.poblacion.trim()) {
       setError('Empresa, dirección, código postal y población son obligatorios.'); return;
     }
@@ -283,7 +283,7 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, veranoDefecto = VE
 
   return (
     <Modal abierto titulo={fila ? `Editar ${que}` : `Nuevo ${que}`}
-      sub={fila ? `${fila.nombre_empresa} · ${fila.codigo}${dynamo && cliente ? ` · ${cliente.nombre}` : ''}` : almacen ? 'Alta de un almacén Dynamo en el catálogo interno' : 'Crea un lugar de recogida/entrega para la agenda'}
+      sub={fila ? `${fila.nombre_empresa} · ${fila.codigo}${dynamo && cliente ? ` · ${cliente.nombre}` : ''}` : almacen ? 'Alta de un almacén Dynamo en el catálogo interno' : 'Crea un sitio de recogida/entrega para la agenda'}
       icono={<IcoPin />} onCerrar={onCerrar}
       pie={<>
         <button className="btn-ghost" onClick={onCerrar} disabled={!!trabajando}>Cancelar</button>
@@ -369,9 +369,9 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, veranoDefecto = VE
         {campo('anotaciones', <><span style={{ color: 'var(--green)' }}>Notas del sitio</span> {opc}</>, 'Ej. referencia de carga/entrega, pedir cita, báscula…', true)}
         {campo('nombre_empresa', <>Empresa {obl}</>, 'Ej. Talleres Vega e Hijos S.L.')}
         <div>
-          <label htmlFor="sitio-tipo">Tipo de lugar {!d.tipo && obl}</label>
+          <label htmlFor="sitio-tipo">Tipo de sitio {!d.tipo && obl}</label>
           <select id="sitio-tipo" value={d.tipo} onChange={(e) => set('tipo', e.target.value)}>
-            <option value="" disabled>Elige tipo de lugar…</option>
+            <option value="" disabled>Elige tipo de sitio…</option>
             {TIPOS_LUGAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
           </select>
         </div>
@@ -407,7 +407,7 @@ export function FichaSitio({ fila, clientes, dynamo, almacen, veranoDefecto = VE
             </div>}
       </div>
       {error && <div className="wiz-warn show" role="alert">⚠ {error}</div>}
-      {fila?.id && <Historial tabla="lugares" id={fila.id} />}
+      {fila?.id && <Historial tabla="sitios" id={fila.id} />}
       {trabajando && <Cargando texto={trabajando} />}
     </Modal>
   );

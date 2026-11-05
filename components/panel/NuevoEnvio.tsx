@@ -28,7 +28,7 @@ export type SitioOpcion = {
 };
 type SitioNuevo = {
   nombre_empresa: string; direccion: string; codigo_postal: string; poblacion: string;
-  provincia: string; pais_codigo_iso: string; tipo_lugar: string; horarios: string; guardar: boolean;
+  provincia: string; pais_codigo_iso: string; tipo_sitio: string; horarios: string; guardar: boolean;
   contacto: string; telefono: string;
   horario: GrupoHorario[] | null;   // null = el de por defecto
 };
@@ -40,12 +40,12 @@ export type Base = {
     paletizado: boolean | null; carga_lateral: boolean; carga_trasera: boolean; carga_superior: boolean; plataforma_elevadora: boolean;
     nima_requerido: boolean; adr: boolean; anotaciones_cliente: string | null; importe_cliente: number | null; importe_transportista: number | null;
     discrecion_comercial: boolean; negociacion_pct?: number | null };
-  paradas: { id: string; tipo: 'carga' | 'descarga'; lugar_id: string | null; nombre_empresa: string | null; direccion: string | null;
+  paradas: { id: string; tipo: 'carga' | 'descarga'; sitio_id: string | null; nombre_empresa: string | null; direccion: string | null;
     codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais_codigo_iso: string | null }[];
 };
 
 const FORMAS = ['Lateral', 'Trasera', 'Techo', 'Lateral y trasera', 'Lateral y techo', 'Trasera y techo', 'Lateral, trasera y techo'];
-const VACIO: SitioNuevo = { nombre_empresa: '', direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES', tipo_lugar: 'almacen_nave', horarios: '', guardar: true, contacto: '', telefono: '', horario: null };
+const VACIO: SitioNuevo = { nombre_empresa: '', direccion: '', codigo_postal: '', poblacion: '', provincia: '', pais_codigo_iso: 'ES', tipo_sitio: 'almacen_nave', horarios: '', guardar: true, contacto: '', telefono: '', horario: null };
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const num = (s: string) => { const v = Number(String(s).replace(/\./g, '').replace(',', '.')); return Number.isFinite(v) ? v : NaN; };
@@ -103,7 +103,7 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
   const be = base?.envio;
   const enRuta = base?.modo === 'ruta';
   const puntoDe = (p: Base['paradas'][number], k: number): Punto => {
-    const s = p.lugar_id ? sitios.find((x) => x.id === p.lugar_id) ?? null : null;
+    const s = p.sitio_id ? sitios.find((x) => x.id === p.sitio_id) ?? null : null;
     const nuevo: SitioNuevo | null = s ? null : { ...VACIO, nombre_empresa: p.nombre_empresa ?? '', direccion: p.direccion ?? '', codigo_postal: p.codigo_postal ?? '',
       poblacion: p.poblacion ?? '', provincia: p.provincia ?? '', pais_codigo_iso: p.pais_codigo_iso ?? 'ES', guardar: false };
     return { k, tipo: p.tipo, sitio: s, nuevo, parada_id: enRuta ? p.id : undefined };
@@ -257,10 +257,10 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
     setEnviando(true); setAviso(null);
     const r = await cambiarRuta(base.envio.id, [...recogidas, ...entregas].map((p) => {
       if (p.parada_id) return { tipo: p.tipo, id: p.parada_id };
-      if (p.sitio) return { tipo: p.tipo, lugar_id: p.sitio.id };
+      if (p.sitio) return { tipo: p.tipo, sitio_id: p.sitio.id };
       const n = p.nuevo!;
       return { tipo: p.tipo, nombre_empresa: n.nombre_empresa, direccion: n.direccion, codigo_postal: n.codigo_postal, poblacion: n.poblacion,
-        provincia: n.provincia, pais_codigo_iso: n.pais_codigo_iso, tipo_lugar: n.tipo_lugar, horarios: n.horarios, guardar_en_agenda: n.guardar,
+        provincia: n.provincia, pais_codigo_iso: n.pais_codigo_iso, tipo_sitio: n.tipo_sitio, horarios: n.horarios, guardar_en_agenda: n.guardar,
         contacto_nombre: n.contacto, contacto_telefono: n.telefono, horario_tramos: n.horario ? tramosDe(n.horario) : undefined };
     }));
     if (!r.ok) { setEnviando(false); setAviso(r.error); return; }
@@ -274,12 +274,12 @@ export default function NuevoEnvio({ clientes: clientesIni, sitios, festivos, no
     setEnviando(true); setAviso(null);
     const paradas: ParadaNueva[] = [...recogidas, ...entregas].map((p, i) => {
       const ref = i === 0 && refCli ? refCli : undefined;
-      if (p.sitio) return { tipo: p.tipo, lugar_id: p.sitio.id, referencia: ref };
+      if (p.sitio) return { tipo: p.tipo, sitio_id: p.sitio.id, referencia: ref };
       const n = p.nuevo!;
       return {
         tipo: p.tipo, nombre_empresa: n.nombre_empresa, direccion: n.direccion, codigo_postal: n.codigo_postal,
         poblacion: n.poblacion, provincia: n.provincia, pais_codigo_iso: n.pais_codigo_iso,
-        tipo_lugar: n.tipo_lugar, horarios: n.horarios, guardar_en_agenda: n.guardar, referencia: ref,
+        tipo_sitio: n.tipo_sitio, horarios: n.horarios, guardar_en_agenda: n.guardar, referencia: ref,
         contacto_nombre: n.contacto, contacto_telefono: n.telefono, horario_tramos: n.horario ? tramosDe(n.horario) : undefined,
       };
     });
@@ -870,8 +870,8 @@ function CampoSitio({ punto, numero, sitios, deshabilitado, placeholder, onCambi
               <CampoTelefono valor={form.telefono} onCambio={(v) => setForm({ ...form, telefono: v })} />
             </div>
           </div>
-          <label className="ptar-admin-precio-lbl" style={{ marginTop: '0.6rem' }}>Tipo de lugar</label>
-          <select className="ptar-select" value={form.tipo_lugar} onChange={(e) => setForm({ ...form, tipo_lugar: e.target.value })}>
+          <label className="ptar-admin-precio-lbl" style={{ marginTop: '0.6rem' }}>Tipo de sitio</label>
+          <select className="ptar-select" value={form.tipo_sitio} onChange={(e) => setForm({ ...form, tipo_sitio: e.target.value })}>
             {TIPOS_LUGAR.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
           </select>
           <label className="ptar-admin-precio-lbl" style={{ marginTop: '0.6rem' }}>Horario</label>

@@ -1,5 +1,7 @@
 # SUPABASE — esquema de la plataforma Dynamo
 
+> **Nota (2026-11-05):** en la base de datos la tabla `lugares` se llama ahora **`sitios`** (y `lugar_horarios` → `sitio_horarios`, `lugar_id` → `sitio_id`, `tipo_lugar` → `tipo_sitio`…; migración `20261105340000_lugares_a_sitios`). Este documento es el diseño original y conserva los nombres de entonces. Los nombres de las hojas de Google (`dy_lugar`, `id_lugar`…) no cambian.
+
 > Documento de trabajo. Punto de partida: las tablas REALES que el usuario ya tiene montadas en
 > Google Sheets. Objetivo: pasar de esas hojas a un esquema Postgres sano en Supabase.
 >

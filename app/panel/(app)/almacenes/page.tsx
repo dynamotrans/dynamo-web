@@ -1,7 +1,7 @@
 import { sesion, esDynamo } from '@/lib/sesion';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Almacenes from '@/components/panel/Almacenes';
-import { cargarLugares } from '@/lib/sitiosDatos';
+import { cargarSitios } from '@/lib/sitiosDatos';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +15,7 @@ export default async function PaginaAlmacenes() {
     return <section className="section active"><div className="pt-aviso error" style={{ maxWidth: 640 }}><div>Esta sección es solo del equipo de Dynamo.</div></div></section>;
   }
   const [{ filas, error, veranoDefecto }, par] = await Promise.all([
-    cargarLugares(supabase, true),
+    cargarSitios(supabase, true),
     supabase.from('parametros').select('clave, valor').in('clave', ['almacen_precio_semana', 'almacen_precio_reparto']),
   ]);
   const p = new Map((par.data ?? []).map((x) => [x.clave as string, Number(x.valor)]));

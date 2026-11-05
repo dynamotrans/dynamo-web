@@ -114,7 +114,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago): Promise<Uint8
     filas.push(['Dirección', [pa.direccion, [pa.codigo_postal, pa.poblacion].filter(Boolean).join(' '), pa.provincia !== pa.poblacion ? pa.provincia : null, pa.pais].filter(Boolean).join(', ')]);
     if (pa.contacto?.telefono || pa.contacto?.nombre) filas.push(['Contacto', [pa.contacto?.nombre, pa.contacto?.telefono].filter(Boolean).join(': ')]);
     if (pa.referencia) filas.push(['Referencia', pa.referencia, true]);
-    if (pa.tipo_lugar) filas.push(['Tipo de sitio', nombreTipo(pa.tipo_lugar)]);
+    if (pa.tipo_sitio) filas.push(['Tipo de sitio', nombreTipo(pa.tipo_sitio)]);
     const avisos = [pa.requiere_cita && 'Con cita previa', !pa.tiene_medios_carga && 'Sin medios de carga: el camión debe llevar trampilla elevadora'].filter(Boolean) as string[];
     if (avisos.length) filas.push(['Atención', avisos.join(' · '), true]);
     if (pa.url_google_maps) filas.push(['Google Maps', pa.url_google_maps]);

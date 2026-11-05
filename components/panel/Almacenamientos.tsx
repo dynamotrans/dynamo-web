@@ -126,11 +126,11 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, modoCliente, onCerrar,
 }) {
   const inicio = useMemo<AlmacenamientoDatos>(() => fila ? {
     cliente_id: fila.cliente_id, almacen_id: fila.almacen_id, fecha_entrada: fila.fecha_entrada, fecha_salida: fila.fecha_salida,
-    num_trailers: fila.num_trailers, num_repartos: fila.num_repartos, lugar_entrega_id: fila.lugar_entrega_id,
+    num_trailers: fila.num_trailers, num_repartos: fila.num_repartos, sitio_entrega_id: fila.sitio_entrega_id,
     descripcion: fila.descripcion ?? '', referencia_cliente: fila.referencia_cliente ?? '', anotaciones: fila.anotaciones ?? '',
   } : {
     cliente_id: '', almacen_id: '', fecha_entrada: masDias(hoy(), 1), fecha_salida: masDias(hoy(), 4),
-    num_trailers: 1, num_repartos: 0, lugar_entrega_id: null, descripcion: '', referencia_cliente: '', anotaciones: '',
+    num_trailers: 1, num_repartos: 0, sitio_entrega_id: null, descripcion: '', referencia_cliente: '', anotaciones: '',
   }, [fila]);
   const [d, setD] = useState<AlmacenamientoDatos>(inicio);
   const [sitios, setSitios] = useState<{ id: string; nombre: string; linea: string }[]>([]);
@@ -164,11 +164,11 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, modoCliente, onCerrar,
     if (!d.almacen_id) { setError('Elige el almacén Dynamo.'); return; }
     if (!fila && alm && !alm.disponible) { setError('Este almacén está COMPLETO y no admite entradas.'); return; }
     if (d.fecha_salida < d.fecha_entrada) { setError('La fecha de salida no puede ser anterior a la de entrada.'); return; }
-    if (d.num_repartos > 0 && !d.lugar_entrega_id) { setError('Con reparto urbano hay que elegir la dirección de entrega.'); return; }
+    if (d.num_repartos > 0 && !d.sitio_entrega_id) { setError('Con reparto urbano hay que elegir la dirección de entrega.'); return; }
     setTrabajando(fila ? 'Guardando almacenamiento' : modoCliente ? 'Pidiendo almacenamiento' : 'Creando almacenamiento');
     const r = modoCliente
       ? await pedirAlmacenamiento(fila?.id ?? null, { almacen_id: d.almacen_id, fecha_entrada: d.fecha_entrada, fecha_salida: d.fecha_salida, num_trailers: d.num_trailers,
-          num_repartos: d.num_repartos, lugar_entrega_id: d.lugar_entrega_id, descripcion: d.descripcion, referencia_cliente: d.referencia_cliente })
+          num_repartos: d.num_repartos, sitio_entrega_id: d.sitio_entrega_id, descripcion: d.descripcion, referencia_cliente: d.referencia_cliente })
       : await guardarAlmacenamiento(fila?.id ?? null, d, cambiaPrecio);
     setTrabajando(null);
     if (!r.ok) { setError(r.error); return; }
@@ -240,7 +240,7 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, modoCliente, onCerrar,
       <div className="ptar-sitio-grid">
         {!modoCliente && <div style={{ gridColumn: '1/-1' }}>
           <label htmlFor="alm-cli">Cliente</label>
-          <select id="alm-cli" className="ptar-select" value={d.cliente_id} disabled={!!fila} onChange={(e) => { set('cliente_id', e.target.value); set('lugar_entrega_id', null); }}>
+          <select id="alm-cli" className="ptar-select" value={d.cliente_id} disabled={!!fila} onChange={(e) => { set('cliente_id', e.target.value); set('sitio_entrega_id', null); }}>
             <option value="">Selecciona el cliente…</option>
             {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre_visible}</option>)}
           </select>
@@ -279,7 +279,7 @@ function FichaAlmacenamiento({ fila, almacenes, clientes, modoCliente, onCerrar,
         {d.num_repartos > 0 && (
           <div style={{ gridColumn: '1/-1' }}>
             <label htmlFor="alm-dest">Dirección de entrega del reparto <span style={{ color: 'var(--gray-500)', fontWeight: 600 }}>· radio máx. 20 km del almacén</span></label>
-            <select id="alm-dest" className="ptar-select" value={d.lugar_entrega_id ?? ''} disabled={!editable || (!modoCliente && !d.cliente_id)} onChange={(e) => set('lugar_entrega_id', e.target.value || null)}>
+            <select id="alm-dest" className="ptar-select" value={d.sitio_entrega_id ?? ''} disabled={!editable || (!modoCliente && !d.cliente_id)} onChange={(e) => set('sitio_entrega_id', e.target.value || null)}>
               <option value="">{modoCliente ? (sitios.length ? 'Elige uno de tus sitios…' : 'No tienes sitios: créalo antes en Sitios') : d.cliente_id ? (sitios.length ? 'Elige uno de sus sitios…' : 'Este cliente no tiene sitios: créalo en Sitios') : 'Elige antes el cliente'}</option>
               {sitios.map((s) => <option key={s.id} value={s.id}>{s.nombre} — {s.linea}</option>)}
             </select>

@@ -27,7 +27,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
     }
     const [emp, lug, fes, ops, reg] = await Promise.all([
       supabase.rpc('mi_empresa').maybeSingle(),
-      leerTodo(supabase.from('lugares')
+      leerTodo(supabase.from('sitios')
         .select('id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible')
         .eq('borrado', false).order('nombre_empresa'), 5000),
       supabase.rpc('festivos_entre', { p_desde: hoy, p_hasta: hasta }),
@@ -41,7 +41,7 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
       const { data: r } = await supabase.rpc('mis_envios').eq('id', sp.repetir).maybeSingle();
       const x = r as any;
       if (x) base = { modo: 'repetir', envio: { ...x, cliente_id: e.id, importe_cliente: null, importe_transportista: null },
-        paradas: ((x.paradas ?? []) as any[]).map((p) => ({ id: p.id, tipo: p.tipo, lugar_id: p.lugar_id, nombre_empresa: p.nombre_empresa, direccion: p.direccion,
+        paradas: ((x.paradas ?? []) as any[]).map((p) => ({ id: p.id, tipo: p.tipo, sitio_id: p.sitio_id, nombre_empresa: p.nombre_empresa, direccion: p.direccion,
           codigo_postal: p.codigo_postal, poblacion: p.poblacion, provincia: p.provincia, pais_codigo_iso: p.pais_codigo_iso })) };
     }
     const fesC = (fes.data ?? []) as { fecha: string; nombre: string }[];
@@ -54,8 +54,8 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
   // En la vista de un cliente, el envío es para ese cliente (solo sale él en la lista).
   const vista = await vistaDe(supabase, perfil.rol);
   const [cli, lug, fes, reg] = await Promise.all([
-    leerTodo(filtrarVista(supabase.from('clientes').select('id, nombre_visible, cif, lugar_defecto_id'), vista.tipo === 'cliente' ? vista : { tipo: 'admin', id: null, nombre: null }, { cliente: 'id' }).order('nombre_visible'), 2000),
-    leerTodo(supabase.from('lugares')
+    leerTodo(filtrarVista(supabase.from('clientes').select('id, nombre_visible, cif, sitio_defecto_id'), vista.tipo === 'cliente' ? vista : { tipo: 'admin', id: null, nombre: null }, { cliente: 'id' }).order('nombre_visible'), 2000),
+    leerTodo(supabase.from('sitios')
       .select('id, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, es_almacen_dynamo, disponible')
       .eq('borrado', false).order('nombre_empresa'), 5000),
     // Nacionales de los próximos 13 meses, con su fecha real de cada año (los que se
@@ -69,12 +69,12 @@ export default async function PaginaNuevoEnvio({ searchParams }: { searchParams:
   if (idBase && /^[0-9a-f-]{36}$/i.test(idBase)) {
     const [{ data: e }, { data: ps }] = await Promise.all([
       supabase.from('envios').select('id, referencia_gx, cliente_id, estado, metros_lineales, toneladas, paletizado, carga_lateral, carga_trasera, carga_superior, plataforma_elevadora, nima_requerido, adr, anotaciones_cliente, importe_cliente, importe_transportista, discrecion_comercial, negociacion_pct').eq('id', idBase).maybeSingle(),
-      supabase.from('envio_paradas').select('id, tipo, lugar_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso').eq('envio_id', idBase).order('orden'),
+      supabase.from('envio_paradas').select('id, tipo, sitio_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso').eq('envio_id', idBase).order('orden'),
     ]);
     if (e) base = { modo: sp.ruta ? 'ruta' : 'repetir', envio: e as Base['envio'], paradas: (ps ?? []) as Base['paradas'] };
   }
 
-  const clientes: ClienteOpcion[] = (cli.data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible, cif: c.cif, principal_id: c.lugar_defecto_id }));
+  const clientes: ClienteOpcion[] = (cli.data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible, cif: c.cif, principal_id: c.sitio_defecto_id }));
   const sitios: SitioOpcion[] = (lug.data ?? []) as SitioOpcion[];
   const festivos = ((fes.data ?? []) as { fecha: string }[]).map((f) => f.fecha);
   const nombresFestivos = Object.fromEntries(((fes.data ?? []) as { fecha: string; nombre: string }[]).map((f) => [f.fecha, f.nombre]));

@@ -18,7 +18,7 @@ import CampoTelefono from '@/components/CampoTelefono';
 
 type Parada = {
   orden: number; tipo: 'carga' | 'descarga'; codigo_postal: string | null; poblacion: string | null; provincia: string | null;
-  pais_codigo_iso: string | null; tipo_lugar: string | null; horarios: string | null; requiere_cita: boolean; tiene_medios_carga: boolean;
+  pais_codigo_iso: string | null; tipo_sitio: string | null; horarios: string | null; requiere_cita: boolean; tiene_medios_carga: boolean;
   // Solo en la carga aceptada:
   nombre_empresa?: string | null; direccion?: string | null; referencia?: string | null; anotaciones?: string | null;
   notas_sitio?: string | null; url_google_maps?: string | null; contacto?: { nombre: string | null; telefono: string | null } | null;
@@ -68,7 +68,7 @@ function Oferta({ o, completa }: { o: any; completa?: boolean }) {
               <div className="of-pt-head">
                 <span className="of-pt-num">{i + 1}</span>
                 <span className="of-pt-tag">{r ? 'Recogida' : 'Entrega'}</span>
-                <span className={`of-pt-tipo${p.tipo_lugar && p.tipo_lugar !== 'almacen_nave' ? ' esp' : ''}`}>({nombreTipo(p.tipo_lugar)})</span>
+                <span className={`of-pt-tipo${p.tipo_sitio && p.tipo_sitio !== 'almacen_nave' ? ' esp' : ''}`}>({nombreTipo(p.tipo_sitio)})</span>
               </div>
               {r && <div className="of-pt-fecha">{ventana(o.fecha_carga_desde, o.fecha_carga_hasta)}</div>}
               {!r && o.fecha_entrega_estimada && <div className="of-pt-fecha">Entrega estimada {fecha(o.fecha_entrega_estimada)}</div>}
@@ -211,13 +211,13 @@ export type OtraCarga = {
   origen: { codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais: string | null } | null;
   destino: { codigo_postal: string | null; poblacion: string | null; provincia: string | null; pais: string | null } | null;
 };
-const lugarTxt = (l: OtraCarga['origen']) => !l ? '—' : [l.poblacion, l.provincia && l.provincia !== l.poblacion ? l.provincia : null, l.pais && l.pais !== 'ES' ? l.pais : null].filter(Boolean).join(', ') || l.codigo_postal || '—';
+const sitioTxt = (l: OtraCarga['origen']) => !l ? '—' : [l.poblacion, l.provincia && l.provincia !== l.poblacion ? l.provincia : null, l.pais && l.pais !== 'ES' ? l.pais : null].filter(Boolean).join(', ') || l.codigo_postal || '—';
 const sinAcentos = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 function OtrasCargas({ cargas, onVolver }: { cargas: OtraCarga[]; onVolver: () => void }) {
   const [fo, setFo] = useState(''), [fd, setFd] = useState(''), [ftc, setFtc] = useState(''), [ff, setFf] = useState('');
-  const txtLugar = (l: OtraCarga['origen']) => sinAcentos([l?.codigo_postal, l?.poblacion, l?.provincia, l?.pais].filter(Boolean).join(' '));
+  const txtSitio = (l: OtraCarga['origen']) => sinAcentos([l?.codigo_postal, l?.poblacion, l?.provincia, l?.pais].filter(Boolean).join(' '));
   const lista = cargas.filter((c) =>
-    (!fo || txtLugar(c.origen).includes(sinAcentos(fo))) && (!fd || txtLugar(c.destino).includes(sinAcentos(fd)))
+    (!fo || txtSitio(c.origen).includes(sinAcentos(fo))) && (!fd || txtSitio(c.destino).includes(sinAcentos(fd)))
     && (!ftc || (ftc === 'completa') === (c.tipo_carga === 'completa'))
     && (!ff || ventana(c.fecha_carga_desde, c.fecha_carga_hasta).toLowerCase().includes(ff.toLowerCase())));
   return (
@@ -238,7 +238,7 @@ function OtrasCargas({ cargas, onVolver }: { cargas: OtraCarga[]; onVolver: () =
         {lista.length === 0 ? <div className="bolsa-empty">No hay cargas que coincidan con los filtros. Prueba a ampliarlos o pulsa «Limpiar filtros».</div>
           : lista.map((c) => (
             <a key={c.token} className="bolsa-item" href={`/carga/${c.token}`} style={{ textDecoration: 'none' }}>
-              <div className="bolsa-ruta">{lugarTxt(c.origen)} → {lugarTxt(c.destino)}</div>
+              <div className="bolsa-ruta">{sitioTxt(c.origen)} → {sitioTxt(c.destino)}</div>
               <div className="bolsa-meta">#{c.referencia} · {[c.metros_lineales != null && `${txtNum(c.metros_lineales)} m`, c.toneladas != null && `${txtNum(c.toneladas)} Tn`, c.tipo_carga === 'completa' ? 'Completo' : 'Grupaje'].filter(Boolean).join(' · ')}<br />Carga: {ventana(c.fecha_carga_desde, c.fecha_carga_hasta)}</div>
               <div className="bolsa-fila"><span className="bolsa-precio">{euros(c.precio)} <span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>· sin IVA</span></span>
                 <span className="bolsa-go">Ver y aceptar →</span></div>

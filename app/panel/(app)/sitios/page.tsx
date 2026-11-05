@@ -3,7 +3,7 @@ import { sesion, esDynamo } from '@/lib/sesion';
 import { vistaDe, filtrarVista } from '@/lib/vista';
 import AvisoCuenta from '@/components/panel/AvisoCuenta';
 import Sitios, { type ClienteSitios } from '@/components/panel/Sitios';
-import { cargarLugares } from '@/lib/sitiosDatos';
+import { cargarSitios } from '@/lib/sitiosDatos';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +21,7 @@ export default async function PaginaSitios() {
   }
 
   const vista = await vistaDe(supabase, perfil.rol);
-  const cargados = await cargarLugares(supabase, false);
+  const cargados = await cargarSitios(supabase, false);
   const error = cargados.error;
   // En la vista de un cliente, solo sus sitios.
   const filas = vista.tipo === 'cliente' ? cargados.filas.filter((f) => f.cliente_id === vista.id) : cargados.filas;
@@ -29,8 +29,8 @@ export default async function PaginaSitios() {
   // Clientes (para Dynamo, todos; para un cliente, él mismo) con su sitio principal.
   let clientes: ClienteSitios[] = [];
   if (dynamo) {
-    const { data } = await leerTodo(filtrarVista(supabase.from('clientes').select('id, nombre_visible, cif, lugar_defecto_id'), vista, { cliente: 'id' }).order('nombre_visible'), 5000);
-    clientes = (data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible, cif: c.cif, principal_id: c.lugar_defecto_id }));
+    const { data } = await leerTodo(filtrarVista(supabase.from('clientes').select('id, nombre_visible, cif, sitio_defecto_id'), vista, { cliente: 'id' }).order('nombre_visible'), 5000);
+    clientes = (data ?? []).map((c) => ({ id: c.id, nombre: c.nombre_visible, cif: c.cif, principal_id: c.sitio_defecto_id }));
   } else {
     const { data: e } = await supabase.rpc('mi_empresa').maybeSingle<{ id: string; razon_social: string; nombre_comercial: string | null; cif: string }>();
     if (e) {

@@ -1,4 +1,4 @@
-// Horario de un sitio: grupos de días con sus tramos (la tabla lugar_horarios guarda una
+// Horario de un sitio: grupos de días con sus tramos (la tabla sitio_horarios guarda una
 // fila por día y tramo; en la ficha se agrupan los días que tienen el mismo horario).
 export type Tramo = { abre: string; cierra: string };          // 'HH:MM'
 export type GrupoHorario = { dias: number[]; tramos: Tramo[] }; // dias: 1 = lunes … 7 = domingo

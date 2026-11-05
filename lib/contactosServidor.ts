@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ContactoDatos } from './contactos';
 
-type Dueno = { cliente_id: string } | { transportista_id: string } | { lugar_id: string };
+type Dueno = { cliente_id: string } | { transportista_id: string } | { sitio_id: string };
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 // Comprueba la lista antes de guardar nada (para no dejar la ficha a medias).

@@ -14,7 +14,7 @@ export type ParadaDoc = {
   id: string; orden: number; tipo: 'carga' | 'descarga';
   nombre_empresa: string | null; direccion: string | null; codigo_postal: string | null; poblacion: string | null;
   provincia: string | null; pais: string | null; referencia: string | null; anotaciones: string | null;
-  horarios: string | null; url_google_maps: string | null; notas_sitio: string | null; tipo_lugar: string | null;
+  horarios: string | null; url_google_maps: string | null; notas_sitio: string | null; tipo_sitio: string | null;
   requiere_cita: boolean; tiene_medios_carga: boolean;
   contacto: { nombre: string | null; telefono: string | null } | null;
 };
@@ -87,9 +87,9 @@ export async function cargarDatosDoc(sb: SupabaseClient, id: string, usuarioId: 
   if (!e) return { datos: null, error: 'Ese envío no existe.' };
 
   const [par, ctos, res, yo] = await Promise.all([
-    sb.from('envio_paradas').select('id, orden, tipo, lugar_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, ' +
-      'lugares(tipo, horarios, anotaciones, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden'),
-    sb.from('contactos').select('cliente_id, transportista_id, lugar_id, nombre, telefono, email, funcion, es_principal')
+    sb.from('envio_paradas').select('id, orden, tipo, sitio_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, referencia, anotaciones, ' +
+      'sitios(tipo, horarios, anotaciones, url_google_maps, requiere_cita, tiene_medios_carga)').eq('envio_id', id).order('orden'),
+    sb.from('contactos').select('cliente_id, transportista_id, sitio_id, nombre, telefono, email, funcion, es_principal')
       .or([`cliente_id.eq.${e.cliente_id}`, e.transportista_id ? `transportista_id.eq.${e.transportista_id}` : null].filter(Boolean).join(','))
       .order('es_principal', { ascending: false }).limit(200),
     e.transportista_id
@@ -99,11 +99,11 @@ export async function cargarDatosDoc(sb: SupabaseClient, id: string, usuarioId: 
     sb.from('usuarios').select('nombre, email, telefono').eq('id', usuarioId).maybeSingle<{ nombre: string | null; email: string; telefono: string | null }>(),
   ]);
 
-  const lugarIds = (par.data ?? []).map((p: any) => p.lugar_id).filter(Boolean) as string[];
-  const contactoLugar = new Map<string, any>();
-  if (lugarIds.length) {
-    const { data } = await sb.from('contactos').select('lugar_id, nombre, telefono').in('lugar_id', lugarIds).eq('es_principal', true);
-    (data ?? []).forEach((c: any) => contactoLugar.set(c.lugar_id, c));
+  const sitioIds = (par.data ?? []).map((p: any) => p.sitio_id).filter(Boolean) as string[];
+  const contactoSitio = new Map<string, any>();
+  if (sitioIds.length) {
+    const { data } = await sb.from('contactos').select('sitio_id, nombre, telefono').in('sitio_id', sitioIds).eq('es_principal', true);
+    (data ?? []).forEach((c: any) => contactoSitio.set(c.sitio_id, c));
   }
   const contactos = (ctos.data ?? []) as any[];
   // Del cliente: el de tráfico principal, y si no, el principal de cualquier función.
@@ -140,9 +140,9 @@ export async function cargarDatosDoc(sb: SupabaseClient, id: string, usuarioId: 
       paradas: (par.data ?? []).map((p: any) => ({
         id: p.id, orden: p.orden, tipo: p.tipo, nombre_empresa: p.nombre_empresa, direccion: p.direccion, codigo_postal: p.codigo_postal,
         poblacion: p.poblacion, provincia: p.provincia, pais: nombrePais(p.pais_codigo_iso), referencia: p.referencia, anotaciones: p.anotaciones,
-        horarios: p.lugares?.horarios ?? null, url_google_maps: p.lugares?.url_google_maps ?? null, notas_sitio: p.lugares?.anotaciones ?? null,
-        tipo_lugar: p.lugares?.tipo ?? null, requiere_cita: !!p.lugares?.requiere_cita, tiene_medios_carga: p.lugares?.tiene_medios_carga !== false,
-        contacto: p.lugar_id ? contactoLugar.get(p.lugar_id) ?? null : null,
+        horarios: p.sitios?.horarios ?? null, url_google_maps: p.sitios?.url_google_maps ?? null, notas_sitio: p.sitios?.anotaciones ?? null,
+        tipo_sitio: p.sitios?.tipo ?? null, requiere_cita: !!p.sitios?.requiere_cita, tiene_medios_carga: p.sitios?.tiene_medios_carga !== false,
+        contacto: p.sitio_id ? contactoSitio.get(p.sitio_id) ?? null : null,
       })),
       pronto_pago: !!(res.data as any)?.pronto_pago,
       gestor: yo.data ? { nombre: yo.data.nombre || yo.data.email, telefono: yo.data.telefono, email: yo.data.email } : null,
@@ -188,7 +188,7 @@ function ordenDesdeJson(data: unknown): { datos: DatosDoc; parametros: Record<st
       paradas: ((j.paradas ?? []) as any[]).map((p) => ({
         id: p.id, orden: p.orden, tipo: p.tipo, nombre_empresa: p.nombre_empresa, direccion: p.direccion, codigo_postal: p.codigo_postal,
         poblacion: p.poblacion, provincia: p.provincia, pais: nombrePais(p.pais_codigo_iso), referencia: p.referencia, anotaciones: p.anotaciones,
-        horarios: p.horarios ?? null, url_google_maps: p.url_google_maps ?? null, notas_sitio: p.notas_sitio ?? null, tipo_lugar: null,
+        horarios: p.horarios ?? null, url_google_maps: p.url_google_maps ?? null, notas_sitio: p.notas_sitio ?? null, tipo_sitio: null,
         requiere_cita: !!p.requiere_cita, tiene_medios_carga: p.tiene_medios_carga !== false,
         contacto: p.contacto_telefono || p.contacto_nombre ? { nombre: p.contacto_nombre ?? null, telefono: p.contacto_telefono ?? null } : null,
       })),
@@ -215,7 +215,7 @@ export async function cargarDatosDocManual(sb: SupabaseClient, id: string): Prom
       paradas: ((j.paradas ?? []) as any[]).map((p) => ({
         id: p.id, orden: p.orden, tipo: p.tipo, nombre_empresa: p.nombre_empresa, direccion: p.direccion, codigo_postal: p.codigo_postal,
         poblacion: p.poblacion, provincia: p.provincia, pais: nombrePais(p.pais_codigo_iso), referencia: p.referencia, anotaciones: p.anotaciones,
-        horarios: p.horarios ?? null, url_google_maps: p.url_google_maps ?? null, notas_sitio: p.notas_sitio ?? null, tipo_lugar: null,
+        horarios: p.horarios ?? null, url_google_maps: p.url_google_maps ?? null, notas_sitio: p.notas_sitio ?? null, tipo_sitio: null,
         requiere_cita: !!p.requiere_cita, tiene_medios_carga: p.tiene_medios_carga !== false,
         contacto: p.contacto_telefono || p.contacto_nombre ? { nombre: p.contacto_nombre ?? null, telefono: p.contacto_telefono ?? null } : null,
       })),

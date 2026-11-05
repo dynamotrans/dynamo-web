@@ -6,19 +6,19 @@ import { gruposDe, VERANO_GENERICO, type FilaHorario, type FechasVerano } from '
 
 // Carga los sitios (de los clientes) o los almacenes Dynamo con sus contactos y su
 // horario, listos para la tabla y la ficha. La usan las páginas Sitios y Almacenes.
-export async function cargarLugares(sb: SupabaseClient, almacenes: boolean): Promise<{ filas: SitioFila[]; error: string | null; veranoDefecto: FechasVerano }> {
-  const { data: lugares, error } = await leerTodo(sb.from('lugares')
+export async function cargarSitios(sb: SupabaseClient, almacenes: boolean): Promise<{ filas: SitioFila[]; error: string | null; veranoDefecto: FechasVerano }> {
+  const { data: sitios, error } = await leerTodo(sb.from('sitios')
     .select('id, codigo, cliente_id, nombre_empresa, tipo, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso, horarios, horarios_verano, verano_activo, verano_desde, verano_hasta, url_google_maps, anotaciones, requiere_cita, tiene_medios_carga, emails_avisos, disponible, precio_almacenamiento_semana, precio_reparto, creado_en, modificado_en')
     .eq('borrado', false).eq('es_almacen_dynamo', almacenes).order('nombre_empresa'), 10000);
-  const ids = (lugares ?? []).map((l) => l.id as string);
+  const ids = (sitios ?? []).map((l) => l.id as string);
   // Almacenes: son pocos, se filtra por sus ids. Sitios: pueden ser miles (la lista de ids
   // no cabría en la dirección de la consulta), así que se piden todos los de sitios: los
   // permisos por fila ya dejan solo los que esta persona puede ver.
-  const con0 = sb.from('contactos').select('id, lugar_id, nombre, cargo, funcion, telefono, email, recibe_avisos, es_principal, creado_en');
-  const hor0 = sb.from('lugar_horarios').select('lugar_id, temporada, dia_semana, abre, cierra');
+  const con0 = sb.from('contactos').select('id, sitio_id, nombre, cargo, funcion, telefono, email, recibe_avisos, es_principal, creado_en');
+  const hor0 = sb.from('sitio_horarios').select('sitio_id, temporada, dia_semana, abre, cierra');
   const [con, hor] = !ids.length ? [{ data: [] }, { data: [] }] : await Promise.all(almacenes
-    ? [leerTodo(con0.in('lugar_id', ids), 50000), leerTodo(hor0.in('lugar_id', ids), 100000)]
-    : [leerTodo(con0.not('lugar_id', 'is', null), 50000), leerTodo(hor0, 200000)]);
+    ? [leerTodo(con0.in('sitio_id', ids), 50000), leerTodo(hor0.in('sitio_id', ids), 100000)]
+    : [leerTodo(con0.not('sitio_id', 'is', null), 50000), leerTodo(hor0, 200000)]);
 
   // Fechas genéricas del verano de los almacenes (Parámetros): las que se proponen al activarlo.
   // (con una función: la tabla Parámetros solo la lee Dynamo, y los clientes también lo necesitan)
@@ -28,12 +28,12 @@ export async function cargarLugares(sb: SupabaseClient, almacenes: boolean): Pro
   const horarioDe = new Map<string, FilaHorario[]>(), veranoDe = new Map<string, FilaHorario[]>();
   (hor.data ?? []).forEach((h: any) => {
     const m = h.temporada === 'verano' ? veranoDe : horarioDe;
-    m.set(h.lugar_id, [...(m.get(h.lugar_id) ?? []), h as FilaHorario]);
+    m.set(h.sitio_id, [...(m.get(h.sitio_id) ?? []), h as FilaHorario]);
   });
   const porSitio = new Map<string, any[]>();
-  (con.data ?? []).forEach((c: any) => porSitio.set(c.lugar_id, [...(porSitio.get(c.lugar_id) ?? []), c]));
+  (con.data ?? []).forEach((c: any) => porSitio.set(c.sitio_id, [...(porSitio.get(c.sitio_id) ?? []), c]));
 
-  const filas: SitioFila[] = (lugares ?? []).map((l: any) => ({
+  const filas: SitioFila[] = (sitios ?? []).map((l: any) => ({
     ...l, cliente_id: l.cliente_id ?? '', provincia: l.provincia ?? '', horarios: l.horarios ?? '',
     url_google_maps: l.url_google_maps ?? '', anotaciones: l.anotaciones ?? '', tipo: l.tipo ?? 'almacen_nave',
     contactos: contactosDe(porSitio.get(l.id) ?? []),

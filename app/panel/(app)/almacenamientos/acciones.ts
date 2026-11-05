@@ -8,7 +8,7 @@ import { precioAlmacenamiento } from '@/lib/almacenamiento';
 
 export type AlmacenamientoDatos = {
   cliente_id: string; almacen_id: string; fecha_entrada: string; fecha_salida: string;
-  num_trailers: number; num_repartos: number; lugar_entrega_id: string | null;
+  num_trailers: number; num_repartos: number; sitio_entrega_id: string | null;
   descripcion: string; referencia_cliente: string; anotaciones: string;
 };
 export type EstadoAlm = 'pendiente_confirmar' | 'confirmado' | 'en_almacen' | 'finalizado' | 'cancelado';
@@ -39,16 +39,16 @@ export async function guardarAlmacenamiento(id: string | null, d: Almacenamiento
   if (!d.almacen_id) return { ok: false, error: 'Elige el almacén Dynamo.' };
   if (!d.fecha_entrada || !d.fecha_salida) return { ok: false, error: 'Pon la fecha de entrada y la de salida.' };
   if (d.fecha_salida < d.fecha_entrada) return { ok: false, error: 'La fecha de salida no puede ser anterior a la de entrada.' };
-  if (d.num_repartos > 0 && !d.lugar_entrega_id) return { ok: false, error: 'Con reparto urbano hay que elegir la dirección de entrega.' };
+  if (d.num_repartos > 0 && !d.sitio_entrega_id) return { ok: false, error: 'Con reparto urbano hay que elegir la dirección de entrega.' };
 
   const fila: Record<string, unknown> = {
     cliente_id: d.cliente_id, almacen_id: d.almacen_id, fecha_entrada: d.fecha_entrada, fecha_salida: d.fecha_salida,
-    num_trailers: d.num_trailers, num_repartos: d.num_repartos, lugar_entrega_id: d.num_repartos > 0 ? d.lugar_entrega_id : null,
+    num_trailers: d.num_trailers, num_repartos: d.num_repartos, sitio_entrega_id: d.num_repartos > 0 ? d.sitio_entrega_id : null,
     descripcion: d.descripcion.trim() || null, referencia_cliente: d.referencia_cliente.trim() || null, anotaciones: d.anotaciones.trim() || null,
   };
   if (!id || recalcular) {
     const [{ data: alm }, { data: ps }, { data: cli }] = await Promise.all([
-      sb.from('lugares').select('precio_almacenamiento_semana, precio_reparto').eq('id', d.almacen_id).maybeSingle(),
+      sb.from('sitios').select('precio_almacenamiento_semana, precio_reparto').eq('id', d.almacen_id).maybeSingle(),
       sb.from('parametros').select('clave, valor').in('clave', ['almacen_precio_semana', 'almacen_precio_reparto']),
       sb.from('clientes').select('riesgo_efectivo_euros, iva_porcentaje').eq('id', d.cliente_id).maybeSingle(),
     ]);
@@ -94,7 +94,7 @@ export async function sitiosDelCliente(clienteId: string): Promise<{ id: string;
   if (!sb || !clienteId) return [];
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return [];
-  const { data } = await leerTodo(sb.from('lugares').select('id, nombre_empresa, direccion, codigo_postal, poblacion')
+  const { data } = await leerTodo(sb.from('sitios').select('id, nombre_empresa, direccion, codigo_postal, poblacion')
     .eq('cliente_id', clienteId).eq('borrado', false).order('nombre_empresa'), 5000);
   return (data ?? []).map((l: any) => ({ id: l.id, nombre: l.nombre_empresa ?? 'Sitio', linea: [l.direccion, [l.codigo_postal, l.poblacion].filter(Boolean).join(' ')].filter(Boolean).join(', ') }));
 }
@@ -104,7 +104,7 @@ export async function sitiosDelCliente(clienteId: string): Promise<{ id: string;
 // (trigger fn_almacenamientos_campos_cliente), digan lo que digan la pantalla o la API.
 export type PeticionAlm = {
   almacen_id: string; fecha_entrada: string; fecha_salida: string; num_trailers: number; num_repartos: number;
-  lugar_entrega_id: string | null; descripcion: string; referencia_cliente: string;
+  sitio_entrega_id: string | null; descripcion: string; referencia_cliente: string;
 };
 async function cliente() {
   const s = await sesion();
@@ -121,10 +121,10 @@ export async function pedirAlmacenamiento(id: string | null, d: PeticionAlm): Pr
   if (d.fecha_salida < d.fecha_entrada) return { ok: false, error: 'La fecha de salida no puede ser anterior a la de entrada.' };
   if (!(d.num_trailers >= 1 && d.num_trailers <= 10)) return { ok: false, error: 'Entre 1 y 10 tráileres.' };
   if (!(d.num_repartos >= 0 && d.num_repartos <= 4)) return { ok: false, error: 'Entre 0 y 4 camiones de reparto.' };
-  if (d.num_repartos > 0 && !d.lugar_entrega_id) return { ok: false, error: 'Con reparto urbano hay que elegir la dirección de entrega.' };
+  if (d.num_repartos > 0 && !d.sitio_entrega_id) return { ok: false, error: 'Con reparto urbano hay que elegir la dirección de entrega.' };
   const fila = {
     fecha_entrada: d.fecha_entrada, fecha_salida: d.fecha_salida, num_trailers: d.num_trailers, num_repartos: d.num_repartos,
-    lugar_entrega_id: d.num_repartos > 0 ? d.lugar_entrega_id : null,
+    sitio_entrega_id: d.num_repartos > 0 ? d.sitio_entrega_id : null,
     descripcion: d.descripcion.trim().slice(0, 500) || null, referencia_cliente: d.referencia_cliente.trim().slice(0, 80) || null,
   };
   const q = id ? sb.from('almacenamientos').update(fila).eq('id', id).eq('estado', 'pendiente_confirmar').select('id, codigo').single()

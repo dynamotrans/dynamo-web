@@ -21,10 +21,10 @@ export default async function PaginaAlmacenamientos({ searchParams }: { searchPa
   const vista = await vistaDe(supabase, perfil.rol);
   const notas = await notasInternas(supabase, 'almacenamientos');
   const [alm, almacenes, clientes, ps] = await Promise.all([
-    leerTodo(filtrarVista(supabase.from('almacenamientos').select('*, clientes(nombre_visible), almacen:lugares!almacenamientos_almacen_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion, provincia), ' +
-      'entrega:lugares!almacenamientos_lugar_entrega_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion)'), vista, { transportista: null })
+    leerTodo(filtrarVista(supabase.from('almacenamientos').select('*, clientes(nombre_visible), almacen:sitios!almacenamientos_almacen_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion, provincia), ' +
+      'entrega:sitios!almacenamientos_sitio_entrega_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion)'), vista, { transportista: null })
       .order('fecha_entrada', { ascending: false }), 5000),
-    supabase.from('lugares').select('id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, disponible, precio_almacenamiento_semana, precio_reparto')
+    supabase.from('sitios').select('id, nombre_empresa, direccion, codigo_postal, poblacion, provincia, disponible, precio_almacenamiento_semana, precio_reparto')
       .eq('es_almacen_dynamo', true).eq('borrado', false).order('provincia'),
     leerTodo(supabase.from('clientes').select('id, nombre_visible, riesgo_efectivo_euros').order('nombre_visible'), 10000),
     supabase.from('parametros').select('clave, valor').in('clave', ['almacen_precio_semana', 'almacen_precio_reparto']),
@@ -36,7 +36,7 @@ export default async function PaginaAlmacenamientos({ searchParams }: { searchPa
     id: a.id, codigo: a.codigo, cliente_id: a.cliente_id, cliente: a.clientes?.nombre_visible ?? null,
     almacen_id: a.almacen_id, almacen: a.almacen?.nombre_empresa ?? 'Almacén Dynamo', almacen_provincia: a.almacen?.provincia ?? a.almacen?.poblacion ?? '',
     almacen_dir: dir(a.almacen), fecha_entrada: a.fecha_entrada, fecha_salida: a.fecha_salida, num_trailers: a.num_trailers,
-    num_repartos: a.num_repartos, lugar_entrega_id: a.lugar_entrega_id, entrega: a.entrega ? `${a.entrega.nombre_empresa ?? ''} · ${dir(a.entrega)}` : null,
+    num_repartos: a.num_repartos, sitio_entrega_id: a.sitio_entrega_id, entrega: a.entrega ? `${a.entrega.nombre_empresa ?? ''} · ${dir(a.entrega)}` : null,
     descripcion: a.descripcion, referencia_cliente: a.referencia_cliente, anotaciones: notas.get(a.id)?.anotaciones ?? '',
     importe_almacenaje: a.importe_almacenaje != null ? Number(a.importe_almacenaje) : null, importe_reparto: a.importe_reparto != null ? Number(a.importe_reparto) : null,
     importe_total: Number(a.importe_total ?? 0), iva_aplicado: a.iva_aplicado != null ? Number(a.iva_aplicado) : 21,
@@ -60,20 +60,20 @@ async function AlmacenamientosCliente({ abrir, tab }: { abrir: boolean; tab?: st
   if (!s?.perfil) return null;
   const { supabase } = s;
   const [alm, almacenes, cob, sit] = await Promise.all([
-    leerTodo(supabase.from('almacenamientos').select('id, codigo, cliente_id, almacen_id, fecha_entrada, fecha_salida, num_trailers, num_repartos, lugar_entrega_id, descripcion, referencia_cliente, importe_almacenaje, importe_reparto, importe_total, iva_aplicado, pago_adelantado, pagado_en, estado, creado_en, modificado_en, ' +
-      'almacen:lugares!almacenamientos_almacen_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion, provincia), entrega:lugares!almacenamientos_lugar_entrega_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion)')
+    leerTodo(supabase.from('almacenamientos').select('id, codigo, cliente_id, almacen_id, fecha_entrada, fecha_salida, num_trailers, num_repartos, sitio_entrega_id, descripcion, referencia_cliente, importe_almacenaje, importe_reparto, importe_total, iva_aplicado, pago_adelantado, pagado_en, estado, creado_en, modificado_en, ' +
+      'almacen:sitios!almacenamientos_almacen_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion, provincia), entrega:sitios!almacenamientos_sitio_entrega_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion)')
       .order('fecha_entrada', { ascending: false }), 2000),
     supabase.rpc('almacenes_dynamo_tarifa'),
     supabase.rpc('mi_cobertura_credito'),
     // Sus sitios (la seguridad por filas le da los suyos y los almacenes de Dynamo).
-    leerTodo(supabase.from('lugares').select('id, nombre_empresa, direccion, codigo_postal, poblacion').eq('es_almacen_dynamo', false).eq('borrado', false).order('nombre_empresa'), 5000),
+    leerTodo(supabase.from('sitios').select('id, nombre_empresa, direccion, codigo_postal, poblacion').eq('es_almacen_dynamo', false).eq('borrado', false).order('nombre_empresa'), 5000),
   ]);
   const sitios = (sit.data ?? []).map((l: any) => ({ id: l.id, nombre: l.nombre_empresa ?? 'Sitio', linea: dirDe(l) }));
   const filas: AlmacenamientoFila[] = (alm.data ?? []).map((a: any) => ({
     id: a.id, codigo: a.codigo, cliente_id: a.cliente_id, cliente: null,
     almacen_id: a.almacen_id, almacen: a.almacen?.nombre_empresa ?? 'Almacén Dynamo', almacen_provincia: a.almacen?.provincia ?? a.almacen?.poblacion ?? '',
     almacen_dir: dirDe(a.almacen), fecha_entrada: a.fecha_entrada, fecha_salida: a.fecha_salida, num_trailers: a.num_trailers,
-    num_repartos: a.num_repartos, lugar_entrega_id: a.lugar_entrega_id, entrega: a.entrega ? `${a.entrega.nombre_empresa ?? ''} · ${dirDe(a.entrega)}` : null,
+    num_repartos: a.num_repartos, sitio_entrega_id: a.sitio_entrega_id, entrega: a.entrega ? `${a.entrega.nombre_empresa ?? ''} · ${dirDe(a.entrega)}` : null,
     descripcion: a.descripcion ?? '', referencia_cliente: a.referencia_cliente ?? '', anotaciones: '',
     importe_almacenaje: a.importe_almacenaje != null ? Number(a.importe_almacenaje) : null, importe_reparto: a.importe_reparto != null ? Number(a.importe_reparto) : null,
     importe_total: Number(a.importe_total ?? 0), iva_aplicado: a.iva_aplicado != null ? Number(a.iva_aplicado) : 21,

@@ -455,13 +455,13 @@ end $$;
 
 -- ---- 20. Sitios: cita previa (no por defecto) y medios de carga (sí por defecto) -----
 do $$ declare l uuid; begin
-  insert into lugares (nombre_empresa, cliente_id)
+  insert into sitios (nombre_empresa, cliente_id)
     values ('Nave Prueba', (select id from clientes where cif = 'B44444444')) returning id into l;
-  if (select requiere_cita from lugares where id = l)
-     or not (select tiene_medios_carga from lugares where id = l) then
+  if (select requiere_cita from sitios where id = l)
+     or not (select tiene_medios_carga from sitios where id = l) then
     raise exception 'FALLO 20 · por defecto deberia ser: sin cita previa y con medios de carga';
   end if;
-  update lugares set requiere_cita = true, tiene_medios_carga = false where id = l;
+  update sitios set requiere_cita = true, tiene_medios_carga = false where id = l;
   raise notice 'OK 20 · sitios: sin cita previa y con medios de carga por defecto';
 end $$;
 
@@ -474,10 +474,10 @@ do $$ declare b uuid; begin
   update usuarios set rol = 'cliente', estado = 'activa',
          cliente_id = (select id from clientes where cif = 'B44444444') where id = b;
   perform set_config('prueba.u_cli_b', b::text, false);
-  insert into lugares (nombre_empresa, es_almacen_dynamo, codigo_postal)
+  insert into sitios (nombre_empresa, es_almacen_dynamo, codigo_postal)
     values ('Almacen Dynamo Sevilla', true, '41016');
   begin
-    insert into lugares (nombre_empresa) values ('Sitio sin duenyo');
+    insert into sitios (nombre_empresa) values ('Sitio sin duenyo');
     raise exception 'FALLO 21 · se ha creado un sitio que no es de ningun cliente';
   exception when check_violation then null;
   end;
@@ -487,11 +487,11 @@ end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
 do $$ declare l uuid; begin
-  insert into lugares (nombre_empresa, codigo_postal, anotaciones)
+  insert into sitios (nombre_empresa, codigo_postal, anotaciones)
     values ('Nave Mercaplus', '41500', 'Manolo, el de cargas, es amigo de Pepe mi primo')
     returning id into l;                                   -- con RETURNING, como la app
-  perform set_config('prueba.lugar_a', l::text, false);
-  if (select cliente_id from lugares where id = l) is distinct from cliente_del_usuario() then
+  perform set_config('prueba.sitio_a', l::text, false);
+  if (select cliente_id from sitios where id = l) is distinct from cliente_del_usuario() then
     raise exception 'FALLO 21 · el sitio creado no ha quedado a nombre del cliente';
   end if;
 end $$;
@@ -499,43 +499,43 @@ reset role;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
 set role authenticated;
 do $$ declare l uuid; n int; begin
-  select count(*) into n from lugares where nombre_empresa = 'Nave Mercaplus';
+  select count(*) into n from sitios where nombre_empresa = 'Nave Mercaplus';
   if n <> 0 then raise exception 'FALLO 21 · FUGA: B ve la ficha (y las notas) de A'; end if;
-  insert into lugares (nombre_empresa, codigo_postal, horarios)
+  insert into sitios (nombre_empresa, codigo_postal, horarios)
     values ('Nave Mercaplus', '41500', 'L-V 6:00-14:00') returning id into l;
-  perform set_config('prueba.lugar_b', l::text, false);
-  select count(*) into n from lugares where es_almacen_dynamo;
+  perform set_config('prueba.sitio_b', l::text, false);
+  select count(*) into n from sitios where es_almacen_dynamo;
   if n <> 1 then raise exception 'FALLO 21 · B no ve los almacenes Dynamo'; end if;
   raise notice 'OK 21 · cada cliente tiene su propia ficha de la nave; ninguno ve la del otro (ni sus notas)';
 end $$;
 
 -- ---- 22. Lo que B cambia en su ficha no toca la de A --------------------------------
 do $$ declare n int; begin
-  -- (Desde 2026-11-03 el horario va en lugar_horarios; el texto es un resumen automático.)
-  update lugar_horarios set cierra = '15:00'
-   where lugar_id = current_setting('prueba.lugar_b')::uuid and dia_semana = 1 and abre = '08:00';
-  update lugares set anotaciones = 'HACKEADO' where id = current_setting('prueba.lugar_a')::uuid;
+  -- (Desde 2026-11-03 el horario va en sitio_horarios; el texto es un resumen automático.)
+  update sitio_horarios set cierra = '15:00'
+   where sitio_id = current_setting('prueba.sitio_b')::uuid and dia_semana = 1 and abre = '08:00';
+  update sitios set anotaciones = 'HACKEADO' where id = current_setting('prueba.sitio_a')::uuid;
   get diagnostics n = row_count;
   if n <> 0 then raise exception 'FALLO 22 · B ha modificado la ficha de A'; end if;
-  delete from lugar_horarios where lugar_id = current_setting('prueba.lugar_a')::uuid;
+  delete from sitio_horarios where sitio_id = current_setting('prueba.sitio_a')::uuid;
   get diagnostics n = row_count;
   if n <> 0 then raise exception 'FALLO 22 · B ha borrado el horario de A'; end if;
-  update lugares set borrado = true, borrado_en = now() where id = current_setting('prueba.lugar_b')::uuid;
-  select count(*) into n from lugares where id = current_setting('prueba.lugar_b')::uuid and not borrado;
+  update sitios set borrado = true, borrado_en = now() where id = current_setting('prueba.sitio_b')::uuid;
+  select count(*) into n from sitios where id = current_setting('prueba.sitio_b')::uuid and not borrado;
   if n <> 0 then raise exception 'FALLO 22 · el sitio borrado sigue en la agenda de B'; end if;
   begin
-    update lugares set es_almacen_dynamo = true where id = current_setting('prueba.lugar_b')::uuid;
+    update sitios set es_almacen_dynamo = true where id = current_setting('prueba.sitio_b')::uuid;
   exception when others then null;
   end;
   raise notice 'OK 22 · cada cliente edita y borra solo lo suyo';
 end $$;
 reset role;
 do $$ begin
-  if (select horarios from lugares where id = current_setting('prueba.lugar_a')::uuid)
+  if (select horarios from sitios where id = current_setting('prueba.sitio_a')::uuid)
      is distinct from 'L-J 8:00-14:00 y 15:00-17:30 · V 8:00-14:00' then
     raise exception 'FALLO 22 · el horario de la ficha de A ha cambiado';
   end if;
-  if (select anotaciones from lugares where id = current_setting('prueba.lugar_a')::uuid) not like 'Manolo%' then
+  if (select anotaciones from sitios where id = current_setting('prueba.sitio_a')::uuid) not like 'Manolo%' then
     raise exception 'FALLO 22 · las notas de A se han perdido';
   end if;
 end $$;
@@ -545,14 +545,14 @@ do $$ declare e uuid; b uuid := (select id from clientes where cif = 'B44444444'
   insert into envios (cliente_id, metros_lineales) values (b, 4) returning id into e;
   -- Ni siquiera Dynamo puede poner en un envío de B la ficha de A.
   begin
-    insert into envio_paradas (envio_id, orden, tipo, lugar_id, codigo_postal, poblacion)
-      values (e, 1, 'carga', current_setting('prueba.lugar_a')::uuid, '41500', 'Alcala');
+    insert into envio_paradas (envio_id, orden, tipo, sitio_id, codigo_postal, poblacion)
+      values (e, 1, 'carga', current_setting('prueba.sitio_a')::uuid, '41500', 'Alcala');
     raise exception 'FALLO 23 · un envio de B ha usado la ficha de A';
   exception when raise_exception then
     if sqlerrm like 'FALLO%' then raise; end if;
   end;
-  insert into envio_paradas (envio_id, orden, tipo, lugar_id, codigo_postal, poblacion)
-    values (e, 1, 'carga', (select id from lugares where es_almacen_dynamo limit 1), '41016', 'Sevilla');
+  insert into envio_paradas (envio_id, orden, tipo, sitio_id, codigo_postal, poblacion)
+    values (e, 1, 'carga', (select id from sitios where es_almacen_dynamo limit 1), '41016', 'Sevilla');
   raise notice 'OK 23 · un envio solo usa sitios de su propio cliente o almacenes Dynamo';
 end $$;
 
@@ -831,12 +831,12 @@ do $$ declare i uuid := current_setting('prueba.incidencia')::uuid; begin
 end $$;
 
 -- ---- 35. Almacenamientos: solo en almacén Dynamo con sitio; entrega en sitio propio -
-do $$ declare alm uuid := (select id from lugares where es_almacen_dynamo limit 1); begin
-  update lugares set disponible = true where id = alm;
+do $$ declare alm uuid := (select id from sitios where es_almacen_dynamo limit 1); begin
+  update sitios set disponible = true where id = alm;
 end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
-do $$ declare alm uuid := (select id from lugares where es_almacen_dynamo limit 1); a uuid; begin
+do $$ declare alm uuid := (select id from sitios where es_almacen_dynamo limit 1); a uuid; begin
   insert into almacenamientos (almacen_id, fecha_entrada, fecha_salida, num_trailers,
                                importe_almacenaje)
     values (alm, current_date + 4, current_date + 10, 1, 240) returning id into a;
@@ -845,7 +845,7 @@ do $$ declare alm uuid := (select id from lugares where es_almacen_dynamo limit 
   end if;
   begin
     insert into almacenamientos (almacen_id, fecha_entrada, fecha_salida)
-      values (current_setting('prueba.lugar_a')::uuid, current_date, current_date + 2);
+      values (current_setting('prueba.sitio_a')::uuid, current_date, current_date + 2);
     raise exception 'FALLO 35 · se ha almacenado en un sitio que no es almacen Dynamo';
   exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
   begin
@@ -855,9 +855,9 @@ do $$ declare alm uuid := (select id from lugares where es_almacen_dynamo limit 
   perform set_config('prueba.alm', a::text, false);
 end $$;
 reset role;
-do $$ declare alm uuid := (select id from lugares where es_almacen_dynamo limit 1);
+do $$ declare alm uuid := (select id from sitios where es_almacen_dynamo limit 1);
               c uuid := current_setting('prueba.cliente')::uuid; begin
-  update lugares set disponible = false where id = alm;
+  update sitios set disponible = false where id = alm;
   begin
     insert into almacenamientos (cliente_id, almacen_id, fecha_entrada, fecha_salida)
       values (c, alm, current_date, current_date + 3);
@@ -865,11 +865,11 @@ do $$ declare alm uuid := (select id from lugares where es_almacen_dynamo limit 
   exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
   -- Lo que ya estaba dentro no se rompe por marcar el almacén completo.
   update almacenamientos set estado = 'confirmado' where id = current_setting('prueba.alm')::uuid;
-  update lugares set disponible = true where id = alm;
+  update sitios set disponible = true where id = alm;
   begin
     insert into almacenamientos (cliente_id, almacen_id, fecha_entrada, fecha_salida,
-                                 num_repartos, lugar_entrega_id)
-      values (c, alm, current_date, current_date + 3, 1, current_setting('prueba.lugar_b')::uuid);
+                                 num_repartos, sitio_entrega_id)
+      values (c, alm, current_date, current_date + 3, 1, current_setting('prueba.sitio_b')::uuid);
     raise exception 'FALLO 35 · el reparto va a un sitio de OTRO cliente';
   exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if; end;
   raise notice 'OK 35 · almacenamientos AX: solo en almacen Dynamo con sitio, reparto a sitio propio, confirma Dynamo';
@@ -1239,13 +1239,13 @@ end $$;
 -- =====================================================================================
 -- ---- 48. crear_envio(): de una vez, con paradas; solo Dynamo; todo o nada ----------
 do $$ declare
-  v_admin uuid := gen_random_uuid(); v_cli uuid; v_lugar uuid; r record; n int; v_cli_user uuid := gen_random_uuid();
+  v_admin uuid := gen_random_uuid(); v_cli uuid; v_sitio uuid; r record; n int; v_cli_user uuid := gen_random_uuid();
 begin
   insert into auth.users (id, email) values (v_admin, 'admin48@dynamo.test'), (v_cli_user, 'cli48@cliente.test');
   update usuarios set rol = 'admin', estado = 'activa' where id = v_admin;
   insert into clientes (razon_social, cif) values ('Prueba 48 SL', 'B48484848') returning id into v_cli;
-  insert into lugares (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia)
-    values (v_cli, 'Nave 48', 'C/ Uno 1', '41001', 'Sevilla', 'Sevilla') returning id into v_lugar;
+  insert into sitios (cliente_id, nombre_empresa, direccion, codigo_postal, poblacion, provincia)
+    values (v_cli, 'Nave 48', 'C/ Uno 1', '41001', 'Sevilla', 'Sevilla') returning id into v_sitio;
   update usuarios set cliente_id = v_cli, estado = 'activa' where id = v_cli_user;
 
   -- Dynamo crea: una parada de la agenda (se copia) y otra suelta que se guarda en la agenda.
@@ -1255,7 +1255,7 @@ begin
     jsonb_build_object('cliente_id', v_cli, 'fecha_carga_desde', '2026-12-14', 'fecha_carga_hasta', '2026-12-16',
                        'metros_lineales', 13.3, 'toneladas', 24, 'importe_cliente', 1230, 'importe_transportista', 1050),
     jsonb_build_array(
-      jsonb_build_object('tipo', 'carga', 'lugar_id', v_lugar, 'referencia', 'REF-1'),
+      jsonb_build_object('tipo', 'carga', 'sitio_id', v_sitio, 'referencia', 'REF-1'),
       jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'Destino 48', 'direccion', 'Av. Dos 2',
                          'codigo_postal', '28001', 'poblacion', 'Madrid', 'guardar_en_agenda', true)));
   reset role;
@@ -1267,7 +1267,7 @@ begin
   if (select direccion from envio_paradas where envio_id = r.id and orden = 1) <> 'C/ Uno 1' then
     raise exception 'FALLO 48 · no copia la direccion del sitio';
   end if;
-  if not exists (select 1 from lugares where cliente_id = v_cli and nombre_empresa = 'Destino 48') then
+  if not exists (select 1 from sitios where cliente_id = v_cli and nombre_empresa = 'Destino 48') then
     raise exception 'FALLO 48 · el sitio nuevo no se guarda en la agenda del cliente';
   end if;
   if not (select precio_fijado_a_mano from envios where id = r.id) then raise exception 'FALLO 48 · precio a mano'; end if;
@@ -1410,13 +1410,13 @@ end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
 do $$ declare l uuid; c uuid := cliente_del_usuario(); begin
-  insert into lugares (nombre_empresa, codigo_postal) values ('Nave principal A', '41001') returning id into l;
-  perform set_config('prueba.lugar_prin_a', l::text, false);
+  insert into sitios (nombre_empresa, codigo_postal) values ('Nave principal A', '41001') returning id into l;
+  perform set_config('prueba.sitio_prin_a', l::text, false);
   perform marcar_sitio_principal(c, l);
   if sitio_principal(c) is distinct from l then raise exception 'FALLO 52 · el cliente no ha podido marcar su estrella'; end if;
   -- El sitio de otro cliente no vale como principal.
   begin
-    perform marcar_sitio_principal(c, current_setting('prueba.lugar_b')::uuid);
+    perform marcar_sitio_principal(c, current_setting('prueba.sitio_b')::uuid);
     raise exception 'FALLO 52 · se ha marcado como principal el sitio de OTRO cliente';
   exception when check_violation then null;
   end;
@@ -1424,7 +1424,7 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
 set role authenticated;
-do $$ declare a uuid := (select cliente_id from lugares where id = current_setting('prueba.lugar_prin_a')::uuid); begin
+do $$ declare a uuid := (select cliente_id from sitios where id = current_setting('prueba.sitio_prin_a')::uuid); begin
   -- B no puede tocar ni leer la estrella de A.
   begin
     perform marcar_sitio_principal(current_setting('prueba.cliente')::uuid, null);
@@ -1439,9 +1439,9 @@ reset role;
 -- Si A borra su sitio principal, la estrella se quita sola.
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
-do $$ declare l uuid := current_setting('prueba.lugar_prin_a')::uuid; begin
-  update lugares set borrado = true where id = l;     -- como la app: la hora la pone la BD
-  if (select borrado_en from lugares where id = l) is null then
+do $$ declare l uuid := current_setting('prueba.sitio_prin_a')::uuid; begin
+  update sitios set borrado = true where id = l;     -- como la app: la hora la pone la BD
+  if (select borrado_en from sitios where id = l) is null then
     raise exception 'FALLO 52 · el borrado no ha quedado con su hora';
   end if;
   if sitio_principal(cliente_del_usuario()) is not null then
@@ -1495,26 +1495,26 @@ select set_config('request.jwt.claim.sub', '', false);
 
 -- ---- 54. Tipos de lugar nuevos (2026-11-03): sin "evento" ni "zona urbana" -----------
 do $$ begin
-  if enum_range(null::tipo_lugar)::text <> '{almacen_nave,obra_zona_amplia,obra_zona_urbana,finca}' then
-    raise exception 'FALLO 54 · tipos de lugar: %', enum_range(null::tipo_lugar);
+  if enum_range(null::tipo_sitio)::text <> '{almacen_nave,obra_zona_amplia,obra_zona_urbana,finca}' then
+    raise exception 'FALLO 54 · tipos de lugar: %', enum_range(null::tipo_sitio);
   end if;
-  if (select count(*) from recargos_tipo_lugar) <> 4
-     or (select porcentaje from recargos_tipo_lugar where tipo = 'obra_zona_urbana') <> 20 then
+  if (select count(*) from recargos_tipo_sitio) <> 4
+     or (select porcentaje from recargos_tipo_sitio where tipo = 'obra_zona_urbana') <> 20 then
     raise exception 'FALLO 54 · los recargos no se han pasado bien';
   end if;
   raise notice 'OK 54 · tipos de lugar: almacen/nave/campa, obra en zona amplia, obra en zona urbana y finca';
 end $$;
 
 -- ---- 55. Emails de avisos del sitio: lista propia, validada y con tope ---------------
-do $$ declare l uuid := current_setting('prueba.lugar_b')::uuid; begin
-  update lugares set emails_avisos = '{almacen@nave.es,recepcion@nave.es}' where id = l;
+do $$ declare l uuid := current_setting('prueba.sitio_b')::uuid; begin
+  update sitios set emails_avisos = '{almacen@nave.es,recepcion@nave.es}' where id = l;
   begin
-    update lugares set emails_avisos = '{esto-no-es-un-email}' where id = l;
+    update sitios set emails_avisos = '{esto-no-es-un-email}' where id = l;
     raise exception 'FALLO 55 · se ha guardado un email de avisos no valido';
   exception when check_violation then null;
   end;
   begin
-    update lugares set emails_avisos = array(select 'a' || g || '@x.es' from generate_series(1, 11) g) where id = l;
+    update sitios set emails_avisos = array(select 'a' || g || '@x.es' from generate_series(1, 11) g) where id = l;
     raise exception 'FALLO 55 · se han guardado mas de 10 emails de avisos';
   exception when check_violation then null;
   end;
@@ -1528,35 +1528,35 @@ end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
 do $$ declare l uuid; begin
-  insert into lugares (nombre_empresa, codigo_postal) values ('Nave con horario', '41001') returning id into l;
-  perform set_config('prueba.lugar_horario', l::text, false);
-  if (select count(*) from lugar_horarios where lugar_id = l) <> 9 then
+  insert into sitios (nombre_empresa, codigo_postal) values ('Nave con horario', '41001') returning id into l;
+  perform set_config('prueba.sitio_horario', l::text, false);
+  if (select count(*) from sitio_horarios where sitio_id = l) <> 9 then
     raise exception 'FALLO 56 · el sitio no ha nacido con el horario por defecto';
   end if;
-  if (select horarios from lugares where id = l) <> 'L-J 8:00-14:00 y 15:00-17:30 · V 8:00-14:00' then
-    raise exception 'FALLO 56 · resumen: %', (select horarios from lugares where id = l);
+  if (select horarios from sitios where id = l) <> 'L-J 8:00-14:00 y 15:00-17:30 · V 8:00-14:00' then
+    raise exception 'FALLO 56 · resumen: %', (select horarios from sitios where id = l);
   end if;
   -- El cliente cambia su horario: el viernes también por la tarde, y abre el sábado.
-  delete from lugar_horarios where lugar_id = l and dia_semana = 5;
-  insert into lugar_horarios (lugar_id, dia_semana, abre, cierra) values
+  delete from sitio_horarios where sitio_id = l and dia_semana = 5;
+  insert into sitio_horarios (sitio_id, dia_semana, abre, cierra) values
     (l, 5, '08:00', '14:00'), (l, 5, '15:00', '17:30'), (l, 6, '09:00', '13:00');
-  if (select horarios from lugares where id = l) <> 'L-V 8:00-14:00 y 15:00-17:30 · S 9:00-13:00' then
-    raise exception 'FALLO 56 · resumen tras cambiar: %', (select horarios from lugares where id = l);
+  if (select horarios from sitios where id = l) <> 'L-V 8:00-14:00 y 15:00-17:30 · S 9:00-13:00' then
+    raise exception 'FALLO 56 · resumen tras cambiar: %', (select horarios from sitios where id = l);
   end if;
   begin
-    insert into lugar_horarios (lugar_id, dia_semana, abre, cierra) values (l, 1, '13:00', '16:00');
+    insert into sitio_horarios (sitio_id, dia_semana, abre, cierra) values (l, 1, '13:00', '16:00');
     raise exception 'FALLO 56 · se han aceptado dos tramos que se pisan';
   exception when exclusion_violation then null;
   end;
   begin
-    insert into lugar_horarios (lugar_id, dia_semana, abre, cierra) values (l, 7, '18:00', '09:00');
+    insert into sitio_horarios (sitio_id, dia_semana, abre, cierra) values (l, 7, '18:00', '09:00');
     raise exception 'FALLO 56 · se ha aceptado un tramo que cierra antes de abrir';
   exception when check_violation then null;
   end;
   -- Guardar de una vez: sustituye todo; vacío no vale; con un tramo malo no cambia nada.
   perform guardar_horario(l, '[{"dia":1,"abre":"07:00","cierra":"15:00"},{"dia":2,"abre":"07:00","cierra":"15:00"}]');
-  if (select horarios from lugares where id = l) <> 'L-M 7:00-15:00' then
-    raise exception 'FALLO 56 · guardar_horario: %', (select horarios from lugares where id = l);
+  if (select horarios from sitios where id = l) <> 'L-M 7:00-15:00' then
+    raise exception 'FALLO 56 · guardar_horario: %', (select horarios from sitios where id = l);
   end if;
   begin
     perform guardar_horario(l, '[]');
@@ -1568,12 +1568,12 @@ do $$ declare l uuid; begin
     perform guardar_horario(l, '[{"dia":3,"abre":"10:00","cierra":"09:00"}]');
   exception when check_violation then null;
   end;
-  if (select horarios from lugares where id = l) <> 'L-M 7:00-15:00' then
+  if (select horarios from sitios where id = l) <> 'L-M 7:00-15:00' then
     raise exception 'FALLO 56 · un horario malo ha dejado el sitio a medias';
   end if;
   -- El resumen no se escribe a mano.
-  update lugares set horarios = 'Siempre abierto' where id = l;
-  if (select horarios from lugares where id = l) = 'Siempre abierto' then
+  update sitios set horarios = 'Siempre abierto' where id = l;
+  if (select horarios from sitios where id = l) = 'Siempre abierto' then
     raise exception 'FALLO 56 · el resumen del horario se ha podido escribir a mano';
   end if;
 end $$;
@@ -1581,9 +1581,9 @@ reset role;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli_b'), false);
 set role authenticated;
 do $$ declare n int; begin
-  select count(*) into n from lugar_horarios where lugar_id = current_setting('prueba.lugar_horario')::uuid;
+  select count(*) into n from sitio_horarios where sitio_id = current_setting('prueba.sitio_horario')::uuid;
   if n <> 0 then raise exception 'FALLO 56 · FUGA: B ve el horario del sitio de A'; end if;
-  delete from lugar_horarios where lugar_id = current_setting('prueba.lugar_horario')::uuid;
+  delete from sitio_horarios where sitio_id = current_setting('prueba.sitio_horario')::uuid;
   get diagnostics n = row_count;
   if n <> 0 then raise exception 'FALLO 56 · B ha borrado el horario del sitio de A'; end if;
   raise notice 'OK 56 · horarios en tabla: por defecto L-J 8-14 y 15-17:30 · V 8-14, resumen automatico, sin solapes, cada cliente el suyo';
@@ -1593,18 +1593,18 @@ select set_config('request.jwt.claim.sub', '', false);
 
 -- ---- 57. Precios de los almacenes Dynamo: por defecto en parámetros, propios opcionales
 do $$ declare a uuid; begin
-  insert into lugares (nombre_empresa, es_almacen_dynamo, codigo_postal, precio_almacenamiento_semana)
+  insert into sitios (nombre_empresa, es_almacen_dynamo, codigo_postal, precio_almacenamiento_semana)
     values ('Almacen Dynamo Madrid', true, '28906', 260) returning id into a;
   if (select valor::text from parametros where clave = 'almacen_precio_semana') <> '240'
      or (select valor::text from parametros where clave = 'almacen_precio_reparto') <> '220' then
     raise exception 'FALLO 57 · faltan los precios por defecto de los almacenes';
   end if;
   begin
-    update lugares set precio_reparto = 100 where id = current_setting('prueba.lugar_b')::uuid;
+    update sitios set precio_reparto = 100 where id = current_setting('prueba.sitio_b')::uuid;
     raise exception 'FALLO 57 · un sitio de cliente ha guardado precio de almacen';
   exception when check_violation then null;
   end;
-  if (select count(*) from lugar_horarios where lugar_id = a) <> 9 then
+  if (select count(*) from sitio_horarios where sitio_id = a) <> 9 then
     raise exception 'FALLO 57 · el almacen no ha nacido con el horario por defecto';
   end if;
   raise notice 'OK 57 · almacenes Dynamo: precio propio opcional, por defecto en parametros, solo en almacenes';
@@ -1725,7 +1725,7 @@ do $$ declare alm uuid; a uuid; i uuid; p uuid; e uuid; r record; begin
   end if;
   e := current_setting('prueba.e59')::uuid;
   -- Almacén Dynamo y un almacenamiento para el cliente de prueba.
-  insert into lugares (nombre_empresa, es_almacen_dynamo, direccion, codigo_postal, poblacion, provincia)
+  insert into sitios (nombre_empresa, es_almacen_dynamo, direccion, codigo_postal, poblacion, provincia)
     values ('Dynamo · Sevilla 60', true, 'C/ Almacen 60', '41016', 'Sevilla', 'Sevilla') returning id into alm;
   insert into almacenamientos (cliente_id, almacen_id, fecha_entrada, fecha_salida, num_trailers, importe_almacenaje)
     values (current_setting('prueba.cliente')::uuid, alm, current_date + 1, current_date + 5, 2, 480) returning id into a;
@@ -2153,7 +2153,7 @@ select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), fals
 set role authenticated;
 do $$ begin
   begin
-    insert into lugares (cliente_id, nombre_empresa, poblacion) values (current_setting('prueba.cliente')::uuid, 'En mantenimiento', 'Sevilla');
+    insert into sitios (cliente_id, nombre_empresa, poblacion) values (current_setting('prueba.cliente')::uuid, 'En mantenimiento', 'Sevilla');
     raise exception 'FALLO 70 · un cliente escribe con el mantenimiento encendido';
   exception when sqlstate '55000' then null;
   end;
@@ -2172,8 +2172,8 @@ reset role;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
 set role authenticated;
 do $$ declare l uuid; begin
-  insert into lugares (cliente_id, nombre_empresa, poblacion) values (current_setting('prueba.cliente')::uuid, 'Dynamo en mantenimiento', 'Sevilla') returning id into l;
-  delete from lugares where id = l;
+  insert into sitios (cliente_id, nombre_empresa, poblacion) values (current_setting('prueba.cliente')::uuid, 'Dynamo en mantenimiento', 'Sevilla') returning id into l;
+  delete from sitios where id = l;
 end $$;
 reset role;
 update parametros set valor = 'false' where clave = 'mantenimiento_activo';
@@ -2182,7 +2182,7 @@ set role authenticated;
 do $$ begin
   -- Apagado: el cliente vuelve a poder (si sus permisos le dejan; aquí, su agenda).
   begin
-    insert into lugares (cliente_id, nombre_empresa, poblacion) values (current_setting('prueba.cliente')::uuid, 'Fuera de mantenimiento', 'Sevilla');
+    insert into sitios (cliente_id, nombre_empresa, poblacion) values (current_setting('prueba.cliente')::uuid, 'Fuera de mantenimiento', 'Sevilla');
   exception when sqlstate '55000' then raise exception 'FALLO 70 · sigue bloqueado con el mantenimiento apagado';
             when others then null;   -- otros permisos: no es cosa de esta prueba
   end;
@@ -2219,7 +2219,7 @@ do $$ declare e uuid; v record; r text; j jsonb; begin
   -- Un sitio de OTRO cliente no se puede usar.
   begin
     perform crear_solicitud_envio(jsonb_build_object('fecha_carga_desde', current_date + 5),
-      jsonb_build_array(jsonb_build_object('tipo', 'carga', 'lugar_id', (select id from lugares where cliente_id <> current_setting('prueba.cliente')::uuid and not es_almacen_dynamo limit 1)),
+      jsonb_build_array(jsonb_build_object('tipo', 'carga', 'sitio_id', (select id from sitios where cliente_id <> current_setting('prueba.cliente')::uuid and not es_almacen_dynamo limit 1)),
                         jsonb_build_object('tipo', 'descarga', 'nombre_empresa', 'X', 'poblacion', 'Cádiz')));
     raise exception 'FALLO 72 · el cliente usa un sitio de otro cliente';
   exception when raise_exception then if sqlerrm like 'FALLO%' then raise; end if;
@@ -2817,8 +2817,8 @@ do $$ begin
 end $$;
 
 -- ---- 89. Almacenamiento pedido por el cliente: el precio y el pago los pone la base -----
-do $$ declare alm uuid := (select id from lugares where es_almacen_dynamo and not borrado limit 1); begin
-  update lugares set disponible = true where id = alm;
+do $$ declare alm uuid := (select id from sitios where es_almacen_dynamo and not borrado limit 1); begin
+  update sitios set disponible = true where id = alm;
   perform set_config('prueba.alm89', alm::text, false);
 end $$;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
@@ -3936,7 +3936,7 @@ do $$ declare faltan text; begin
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and c.relkind = 'r'
      and c.relname not in ('usuarios', 'auditoria', 'parametros', 'festivos', 'tipos_incidencia', 'tipos_penalizacion',
-                           'recargos_tipo_lugar', 'restricciones_servicio', 'distancias_cp', 'distancias_lugares',
+                           'recargos_tipo_sitio', 'restricciones_servicio', 'distancias_cp', 'distancias_sitios',
                            'conexion_minutos', 'consultas_precio', 'intentos_carga_publica', 'avisos_vistos', 'contraoferta_intentos')
      and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'tg_mantenimiento');
   if faltan is not null then
@@ -4173,7 +4173,7 @@ select set_config('request.jwt.claim.sub', '', false);
 reset role;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
-do $$ declare l uuid := current_setting('prueba.lugar_a')::uuid; begin
+do $$ declare l uuid := current_setting('prueba.sitio_a')::uuid; begin
   -- Sin activar: el general todo el año.
   if exists (select 1 from horario_del_dia(l, make_date(2027, 7, 14)) where temporada = 'verano') then
     raise exception 'FALLO 119 · sin activar, usa un horario de verano';
@@ -4193,10 +4193,10 @@ do $$ declare l uuid := current_setting('prueba.lugar_a')::uuid; begin
   if exists (select 1 from horario_del_dia(l, make_date(2027, 10, 13)) where temporada = 'verano') then
     raise exception 'FALLO 119 · fuera de verano usa el horario de verano';
   end if;
-  if (select horarios_verano from lugares where id = l) <> 'L-V 7:30-15:00' then
-    raise exception 'FALLO 119 · el resumen del verano no se escribe: %', (select horarios_verano from lugares where id = l);
+  if (select horarios_verano from sitios where id = l) <> 'L-V 7:30-15:00' then
+    raise exception 'FALLO 119 · el resumen del verano no se escribe: %', (select horarios_verano from sitios where id = l);
   end if;
-  if (select horarios from lugares where id = l) like '%7:30-15:00%' then
+  if (select horarios from sitios where id = l) like '%7:30-15:00%' then
     raise exception 'FALLO 119 · el verano pisa el resumen del horario general';
   end if;
   -- Desactivar: vuelve el general (los tramos de verano se conservan para la próxima vez).
@@ -4213,15 +4213,15 @@ select set_config('request.jwt.claim.sub', '', false);
 reset role;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
 set role authenticated;
-select guardar_horario_verano(current_setting('prueba.lugar_a')::uuid, true, '06-01', '08-31',
+select guardar_horario_verano(current_setting('prueba.sitio_a')::uuid, true, '06-01', '08-31',
   (select jsonb_agg(jsonb_build_object('dia', d, 'abre', '07:30', 'cierra', '15:00')) from generate_series(1, 5) d));
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ begin
-  if horario_sitio_txt(current_setting('prueba.lugar_a')::uuid, make_date(2027, 7, 14)) <> 'L-V 7:30-15:00 (horario de verano)' then
-    raise exception 'FALLO 120 · en verano no da el horario de verano: %', horario_sitio_txt(current_setting('prueba.lugar_a')::uuid, make_date(2027, 7, 14));
+  if horario_sitio_txt(current_setting('prueba.sitio_a')::uuid, make_date(2027, 7, 14)) <> 'L-V 7:30-15:00 (horario de verano)' then
+    raise exception 'FALLO 120 · en verano no da el horario de verano: %', horario_sitio_txt(current_setting('prueba.sitio_a')::uuid, make_date(2027, 7, 14));
   end if;
-  if horario_sitio_txt(current_setting('prueba.lugar_a')::uuid, make_date(2027, 10, 13)) like '%verano%' then
+  if horario_sitio_txt(current_setting('prueba.sitio_a')::uuid, make_date(2027, 10, 13)) like '%verano%' then
     raise exception 'FALLO 120 · fuera de verano da el horario de verano';
   end if;
   raise notice 'OK 120 · horario de verano en los envíos: cada parada lleva el horario de su fecha';
@@ -4344,8 +4344,8 @@ do $$ begin
   if not exists (select 1 from historial_registro('almacenamientos', current_setting('prueba.alm')::uuid) where 'num_trailers' = any (campos)) then
     raise exception 'FALLO 123 · el cliente ya no ve los cambios normales de su almacenamiento';
   end if;
-  if exists (select 1 from horario_del_dia(current_setting('prueba.lugar_b')::uuid, current_date))
-     or horario_sitio_txt(current_setting('prueba.lugar_b')::uuid, current_date) is not null then
+  if exists (select 1 from horario_del_dia(current_setting('prueba.sitio_b')::uuid, current_date))
+     or horario_sitio_txt(current_setting('prueba.sitio_b')::uuid, current_date) is not null then
     raise exception 'FALLO 123 · un cliente lee el horario del sitio de otro cliente';
   end if;
   if (verano_sitios_fechas() ->> 'desde') is null then raise exception 'FALLO 123 · un cliente no puede leer las fechas de verano'; end if;
@@ -4644,7 +4644,7 @@ reset role;
 select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
 set role authenticated;
 do $$ begin
-  if (select count(*) from diccionario_datos() where tabla = 'lugar_horarios' and descripcion is not null) < 5 then
+  if (select count(*) from diccionario_datos() where tabla = 'sitio_horarios' and descripcion is not null) < 5 then
     raise exception 'FALLO 130 · Dynamo no lee el diccionario';
   end if;
   if not exists (select 1 from funciones_api() where funcion = 'horario_del_dia') or guia_automatizaciones() not like '%crear_envio%' then
@@ -4715,9 +4715,9 @@ do $$ declare r record; begin
   if carga_aceptada_publica(r.id) ->> 'resultado' <> 'aceptada' then raise exception 'FALLO 132 · antes de la fecha de carga la llave no vale'; end if;
   -- Desde el cierre del almacén de carga ese día: cierra a las 17:00 + 4 h = 21:00.
   declare l uuid; d date := current_date + 2; begin
-    insert into lugares (nombre_empresa, cliente_id) values ('Almacén 132', (select cliente_id from envios where id = r.envio_id)) returning id into l;
+    insert into sitios (nombre_empresa, cliente_id) values ('Almacén 132', (select cliente_id from envios where id = r.envio_id)) returning id into l;
     perform guardar_horario(l, (select jsonb_agg(jsonb_build_object('dia', g, 'abre', '08:00', 'cierra', '17:00')) from generate_series(1, 7) g));
-    update envio_paradas set lugar_id = l where envio_id = r.envio_id and tipo = 'carga';
+    update envio_paradas set sitio_id = l where envio_id = r.envio_id and tipo = 'carga';
     if enlace_carga_caduca_en(r.envio_id) <> ((d + time '21:00')::timestamp at time zone 'Europe/Madrid') then
       raise exception 'FALLO 132 · la llave no caduca a las 21:00 (cierre 17:00 + 4 h): %', enlace_carga_caduca_en(r.envio_id);
     end if;
@@ -4993,7 +4993,7 @@ select set_config('request.jwt.claim.sub', '', false);
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ declare emp uuid; ca uuid; cb uuid; ua uuid; ub uuid; e2 uuid; begin
-  insert into lugares (nombre_empresa, es_almacen_dynamo, codigo_postal) values ('Almacén Dynamo 140', true, '41001');
+  insert into sitios (nombre_empresa, es_almacen_dynamo, codigo_postal) values ('Almacén Dynamo 140', true, '41001');
   insert into auth.users (email, invited_at) values ('empleado140@dynamo.prueba', now()) returning id into emp;
   update usuarios set rol = 'empleado', estado = 'activa' where id = emp;
   perform set_config('prueba.u_emp140', emp::text, false);
@@ -5012,7 +5012,7 @@ end $$;
 -- Anónimos: no leen los almacenes de Dynamo.
 set role anon;
 do $$ begin
-  if exists (select 1 from lugares where nombre_empresa = 'Almacén Dynamo 140') then raise exception 'FALLO 140 · un anónimo lee los almacenes de Dynamo'; end if;
+  if exists (select 1 from sitios where nombre_empresa = 'Almacén Dynamo 140') then raise exception 'FALLO 140 · un anónimo lee los almacenes de Dynamo'; end if;
 end $$;
 reset role;
 -- Un empleado no toca la cuenta del Admin Master.
@@ -5082,3 +5082,37 @@ end $$;
 reset role;
 drop table tarifa.prueba141;
 do $$ begin raise notice 'OK 141 · carpeta tarifa: existe, la web no entra y sus tablas nuevas nacen sin permisos para la web'; end $$;
+
+-- ---- 142. «Lugares» se llama «sitios» en toda la base de datos ---------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare v text; s uuid; n int; begin
+  select string_agg(x, ', ') into v from (
+    select 'tabla ' || relname x from pg_class where relnamespace = 'public'::regnamespace and relname ~ 'lugar'
+    union all select 'columna ' || c.relname || '.' || a.attname from pg_attribute a join pg_class c on c.oid = a.attrelid
+      where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'v', 'm') and a.attnum > 0 and not a.attisdropped and a.attname ~ 'lugar'
+    union all select 'tipo ' || typname from pg_type where typnamespace = 'public'::regnamespace and typname ~ 'lugar'
+    union all select 'función ' || proname from pg_proc where pronamespace = 'public'::regnamespace
+      and (proname ~ 'lugar' or pg_get_function_arguments(oid) ~ 'lugar' or prosrc ~ '\m(lugares|[a-z0-9_]*lugar_[a-z0-9_]*|[a-z0-9_]+_lugar[a-z0-9_]*)\M')
+    union all select 'política ' || policyname from pg_policies where schemaname = 'public' and policyname ~ 'lugar'
+    union all select 'disparador ' || tgname from pg_trigger where not tgisinternal and tgname ~ 'lugar'
+    union all select 'restricción ' || conname from pg_constraint where connamespace = 'public'::regnamespace and conname ~ 'lugar') q;
+  -- historial_registro nombra a propósito la tabla vieja para el historial de antes del cambio.
+  v := nullif(regexp_replace(coalesce(v, ''), '(, )?función historial_registro', ''), '');
+  if v is not null then raise exception 'FALLO 142 · queda «lugar» en: %', v; end if;
+  -- El historial anterior al cambio (auditoria.tabla = 'lugares') se sigue viendo.
+  select id into s from sitios where cliente_id is not null limit 1;
+  insert into auditoria (tabla, registro_id, accion, quien_origen, cambios, cuando)
+    values ('lugares', s::text, 'baja', (select quien_origen from auditoria limit 1), '{}'::jsonb, timestamptz '2026-01-02 10:00:00+01');
+  perform set_config('prueba.sitio142', s::text, false);
+  raise notice 'OK 142 · todo se llama «sitios» (tablas, columnas, funciones, políticas…) y el historial anterior se sigue viendo';
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ begin
+  if not exists (select 1 from historial_registro('sitios', current_setting('prueba.sitio142')::uuid) where cuando = timestamptz '2026-01-02 10:00:00+01') then
+    raise exception 'FALLO 142 · el historial de antes del cambio de nombre no sale en la ficha del sitio';
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

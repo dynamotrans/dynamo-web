@@ -108,7 +108,7 @@ solo, a una hora o cuando falta X tiempo).
 ### 3.3 Sitios (almacenes de recogida y entrega)
 | # | Aviso | Canal | Cuándo |
 |---|---|---|---|
-| S1 | Aviso de **recogida** / **entrega** prevista | E | Víspera, a los **emails de avisos del sitio** (`lugares.emails_avisos`). **Discreción total**: sin precios, sin otros clientes, sin origen/destino ajenos |
+| S1 | Aviso de **recogida** / **entrega** prevista | E | Víspera, a los **emails de avisos del sitio** (`sitios.emails_avisos`). **Discreción total**: sin precios, sin otros clientes, sin origen/destino ajenos |
 
 ### 3.4 Cuentas (todos los usuarios)
 | # | Aviso | Canal | Cuándo |

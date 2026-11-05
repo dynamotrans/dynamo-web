@@ -22,7 +22,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!yo || yo.estado !== 'activa' || !(esDynamo(yo.rol) || yo.rol === 'cliente')) return texto('No tienes permiso para ver este documento.', 403);
 
   const { data: a } = await sb.from('almacenamientos').select('*, clientes(razon_social, cif, direccion, codigo_postal, poblacion, pais_codigo_iso), ' +
-    'almacen:lugares!almacenamientos_almacen_id_fkey(nombre_empresa, poblacion, provincia), entrega:lugares!almacenamientos_lugar_entrega_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion)')
+    'almacen:sitios!almacenamientos_almacen_id_fkey(nombre_empresa, poblacion, provincia), entrega:sitios!almacenamientos_sitio_entrega_id_fkey(nombre_empresa, direccion, codigo_postal, poblacion)')
     .eq('id', id).maybeSingle<any>();
   if (!a) return texto('Ese almacenamiento no existe.', 404);
   const c = a.clientes ?? {};

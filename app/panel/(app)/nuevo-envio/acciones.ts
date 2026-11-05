@@ -5,9 +5,9 @@ import { sesion, esGestor } from '@/lib/sesion';
 
 export type ParadaNueva = {
   tipo: 'carga' | 'descarga';
-  lugar_id?: string | null;
+  sitio_id?: string | null;
   nombre_empresa?: string; direccion?: string; codigo_postal?: string; poblacion?: string;
-  provincia?: string; pais_codigo_iso?: string; tipo_lugar?: string; horarios?: string;
+  provincia?: string; pais_codigo_iso?: string; tipo_sitio?: string; horarios?: string;
   guardar_en_agenda?: boolean;
   contacto_nombre?: string; contacto_telefono?: string;   // del sitio nuevo que se guarda en la agenda
   horario_tramos?: { dia: number; abre: string; cierra: string }[];   // su horario, si no es el de por defecto
@@ -20,28 +20,28 @@ export type ParadaNueva = {
 // Y su horario, si se cambió (si no, la base de datos le pone el de por defecto). Va
 // después de crear el envío, que es cuando existe el sitio.
 async function contactosDeSitiosNuevos(sb: any, envioId: string, paradas: ParadaNueva[], esCliente = false) {
-  const nuevos = paradas.map((p, i) => ({ p, i })).filter(({ p }) => p.guardar_en_agenda && !p.lugar_id);
+  const nuevos = paradas.map((p, i) => ({ p, i })).filter(({ p }) => p.guardar_en_agenda && !p.sitio_id);
   const conContacto = nuevos.filter(({ p }) => (p.contacto_telefono || '').replace(/[^\d]/g, '').length >= 6);
   const conHorario = nuevos.filter(({ p }) => p.horario_tramos?.length);
   if (!conContacto.length && !conHorario.length) return;
   // Dynamo lee las paradas; el cliente no puede (solo con mis_envios(), que las trae).
-  let filas: { orden: number; lugar_id: string | null }[] = [];
+  let filas: { orden: number; sitio_id: string | null }[] = [];
   if (esCliente) {
     const { data } = await sb.rpc('mis_envios').eq('id', envioId).maybeSingle();
-    filas = (((data as any)?.paradas ?? []) as { orden: number; lugar_id: string | null }[]).sort((a, b) => a.orden - b.orden);
+    filas = (((data as any)?.paradas ?? []) as { orden: number; sitio_id: string | null }[]).sort((a, b) => a.orden - b.orden);
   } else {
-    const { data } = await sb.from('envio_paradas').select('orden, lugar_id').eq('envio_id', envioId).order('orden');
-    filas = (data ?? []) as { orden: number; lugar_id: string | null }[];
+    const { data } = await sb.from('envio_paradas').select('orden, sitio_id').eq('envio_id', envioId).order('orden');
+    filas = (data ?? []) as { orden: number; sitio_id: string | null }[];
   }
   for (const { p, i } of conContacto) {
-    const lugar = filas[i]?.lugar_id;
+    const lugar = filas[i]?.sitio_id;
     if (!lugar) continue;
     const tel = (p.contacto_telefono ?? '').replace(/[^\d+]/g, '');
-    await sb.from('contactos').insert({ lugar_id: lugar, nombre: (p.contacto_nombre ?? '').trim() || null, telefono: tel, es_principal: true });
+    await sb.from('contactos').insert({ sitio_id: lugar, nombre: (p.contacto_nombre ?? '').trim() || null, telefono: tel, es_principal: true });
   }
   for (const { p, i } of conHorario) {
-    const lugar = filas[i]?.lugar_id;
-    if (lugar) await sb.rpc('guardar_horario', { p_lugar: lugar, p_tramos: p.horario_tramos });
+    const lugar = filas[i]?.sitio_id;
+    if (lugar) await sb.rpc('guardar_horario', { p_sitio: lugar, p_tramos: p.horario_tramos });
   }
 }
 export type EnvioNuevo = {
@@ -165,8 +165,8 @@ export async function diasAbiertosDe(ids: string[]): Promise<{ sitios: Record<st
   if (!s?.perfil) return { sitios: {}, generico };
   const [{ data: pv }, h, l] = await Promise.all([
     s.supabase.rpc('verano_sitios_fechas'),
-    limpios.length ? s.supabase.from('lugar_horarios').select('lugar_id, temporada, dia_semana').in('lugar_id', limpios) : Promise.resolve({ data: [] as any[] }),
-    limpios.length ? s.supabase.from('lugares').select('id, verano_activo, verano_desde, verano_hasta, horarios_verano').in('id', limpios) : Promise.resolve({ data: [] as any[] }),
+    limpios.length ? s.supabase.from('sitio_horarios').select('sitio_id, temporada, dia_semana').in('sitio_id', limpios) : Promise.resolve({ data: [] as any[] }),
+    limpios.length ? s.supabase.from('sitios').select('id, verano_activo, verano_desde, verano_hasta, horarios_verano').in('id', limpios) : Promise.resolve({ data: [] as any[] }),
   ]);
   // Las fechas genéricas, con una función: Parámetros solo lo lee Dynamo.
   const g = pv as { desde?: string; hasta?: string } | null;
@@ -175,7 +175,7 @@ export async function diasAbiertosDe(ids: string[]): Promise<{ sitios: Record<st
   const sitios: Record<string, HorarioSitioAviso> = {};
   (l.data ?? []).forEach((x: any) => { sitios[x.id] = { general: [], verano: { activo: !!x.verano_activo, desde: x.verano_desde, hasta: x.verano_hasta, dias: [], resumen: x.horarios_verano } }; });
   (h.data ?? []).forEach((r: any) => {
-    const x = sitios[r.lugar_id]; if (!x) return;
+    const x = sitios[r.sitio_id]; if (!x) return;
     const lista = r.temporada === 'verano' ? x.verano.dias : x.general;
     if (!lista.includes(r.dia_semana)) lista.push(r.dia_semana);
   });
