@@ -4699,3 +4699,16 @@ do $$ declare c jsonb; begin
   raise notice 'OK 132 · la llave del enlace de la carga deja de valer con el viaje terminado (sin datos, sin orden, sin CMR)';
 end $$;
 reset role;
+-- Por fecha: sin marcar nada, la llave caduca 24 h después del último día de carga.
+reset role;
+do $$ declare r record; begin
+  select x.id, x.envio_id into r from envio_reservas x join envios e on e.id = x.envio_id and e.transportista_id = x.transportista_id
+   where x.estado = 'aceptada' and e.estado not in ('entregado', 'cancelado') limit 1;
+  if r.id is null then raise notice 'AVISO 132 · no queda otra carga aceptada para probar la caducidad por fecha'; return; end if;
+  update envios set fecha_carga_desde = current_date - 3, fecha_carga_hasta = current_date - 3, fecha_carga_real = null where id = r.envio_id;
+  if carga_aceptada_publica(r.id) ->> 'resultado' <> 'cerrada' then raise exception 'FALLO 132 · pasada la fecha de carga + 24 h la llave sigue valiendo'; end if;
+  update envios set fecha_carga_desde = current_date + 2, fecha_carga_hasta = current_date + 2 where id = r.envio_id;
+  if carga_aceptada_publica(r.id) ->> 'resultado' <> 'aceptada' then raise exception 'FALLO 132 · antes de la fecha de carga la llave no vale'; end if;
+  raise notice 'OK 132b · la llave caduca por fecha: final del día de carga + 24 h (parámetro), sin que nadie marque nada';
+end $$;
+
