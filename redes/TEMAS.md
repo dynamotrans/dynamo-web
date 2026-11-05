@@ -14,7 +14,7 @@ Cada semana se usa el siguiente estilo de la secuencia **v1 → v2 → v3 → v4
 
 | # | Tema | Idea |
 |---|------|------|
-| 1 | Grupaje vs carga completa | Cuándo compensa cada uno (13,30 m / 33 europalets) — PUBLICADO 10/11/2026 |
+| 1 | Grupaje vs carga completa | Cuándo compensa cada uno (13,30 m / 33 europalets) — PUBLICADO 05/11/2026 |
 | 2 | Medios de carga y descarga | Carretilla, muelle, trampilla elevadora: qué hace falta en origen y destino |
 | 3 | Palets: europeo vs americano | 120×80 vs 120×100; cuántos caben en un trailer (33 / 26) |
 | 4 | Qué es un tauliner | Lona corredera: carga lateral, trasera y por techo |
@@ -32,4 +32,4 @@ Cada semana se usa el siguiente estilo de la secuencia **v1 → v2 → v3 → v4
 | 16 | 24/7 incidencias | Qué hacer si algo falla en ruta |
 
 ## Histórico
-- 2026-11-10 — Tema 1 — estilo v1 — titular pregunta — `images/redes/2026-11-10-grupaje-o-carga-completa.jpg` — Metricool post 418292247
+- 2026-11-05 (publicado directo, no martes) — Tema 1 — estilo v1 — titular pregunta — `images/redes/2026-11-10-grupaje-o-carga-completa.jpg` — Metricool post 418299906 — https://www.instagram.com/p/DfYF65ciNbj/
