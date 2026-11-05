@@ -2755,7 +2755,7 @@ do $$ declare v uuid; c uuid; begin
   perform mi_transporte_guardar('NIMA-88', 'Mapfre', 'POL-88', date '2027-01-31');
   -- Su flota: alta de camión y conductor, cambio y baja: sí.
   v := mi_vehiculo_guardar(null, '0088 bcd', 'rigido', date '2027-03-01', null, null, false, true);
-  perform mi_vehiculo_guardar(v, 'da igual', 'rigido', date '2027-04-01', null, null, false, true);
+  perform mi_vehiculo_guardar(v, '0088 BCD', 'rigido', date '2027-04-01', null, null, false, true);
   c := mi_conductor_guardar(null, 'Conductor 88', '88888888Y', 'ES', '+34600111222');
   perform mi_flota_baja('conductor', c);
   -- Escribir directamente en las tablas: no (ni su razón social ni su plazo de pago).
@@ -4802,3 +4802,22 @@ do $$ begin
   end if;
   raise notice 'OK 135 · CMR: la casilla del conductor sale con su nombre y su DNI (solo las últimas cifras a la vista) y firma sin reescribirlo';
 end $$;
+
+-- ---- 136. Arreglos pequeños del repaso del diccionario -------------------------------------
+reset role;
+do $$ declare t uuid := current_setting('prueba.transp')::uuid; v uuid; begin
+  begin update transportistas set iva_porcentaje = 150 where id = t; raise exception 'FALLO 136 · IVA del transportista de 150 %%';
+  exception when check_violation then null; end;
+  if (select column_default from information_schema.columns where table_name = 'envios' and column_name = 'carga_trasera') <> 'false' then
+    raise exception 'FALLO 136 · carga_trasera sigue marcada por defecto';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  begin perform envios_que_cuentan(current_setting('prueba.cliente')::uuid); raise exception 'FALLO 136 · se llama a envios_que_cuentan desde la API';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 136 · IVA y retención del transportista de 0 a 100, carga trasera «no» por defecto, cifras de otros clientes cerradas';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

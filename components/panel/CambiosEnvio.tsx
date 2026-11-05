@@ -37,6 +37,7 @@ export function AvisoCambiosDynamo({ e, hacer, onModificar }: { e: any; hacer: H
           <input type="text" value={nota} onChange={(ev) => setNota(ev.target.value)} maxLength={500} placeholder="Nota para el cliente (opcional)" style={{ width: '100%', marginTop: '0.5rem' }} />
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
             <button className="btn-primary" onClick={() => hacer('Aceptando', () => resolverCambio(e.id, true, nota))}>Aceptar{fechasTxt(c) ? ' (cambia las fechas)' : ''}</button>
+            {c.detalle && <button className="btn-secondary" onClick={async () => { if (await hacer('Aceptando', () => resolverCambio(e.id, true, nota))) onModificar(); }}>Aceptar y aplicar el resto en «Modificar»</button>}
             <button className="btn-ghost" style={{ color: '#dc2626' }} onClick={() => hacer('Rechazando', () => resolverCambio(e.id, false, nota))}>Rechazar</button>
           </div>
           <div className="meta" style={{ marginTop: '0.3rem' }}>Si pide cambiar la ruta o afecta al precio, hazlo después con «Cambiar ruta» o «Modificar».</div>

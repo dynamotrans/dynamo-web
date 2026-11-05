@@ -278,7 +278,7 @@ function EditarVehiculo({ inicial, onCerrar, onHecho }: { inicial: MiVehiculo; o
       </>}>
       <div className="ptar-sitio-grid">
         <div><label htmlFor="mv-mat">Matrícula{nuevo ? ' *' : ''}</label>
-          <input id="mv-mat" type="text" value={v.matricula} disabled={!nuevo} placeholder="1234 ABC" onChange={(e) => setV({ ...v, matricula: e.target.value.toUpperCase() })} /></div>
+          <input id="mv-mat" type="text" value={v.matricula} placeholder="1234 ABC" onChange={(e) => setV({ ...v, matricula: e.target.value.toUpperCase() })} /></div>
         <div><label htmlFor="mv-tipo">Tipo</label>
           <select id="mv-tipo" className="ptar-select" value={v.tipo} onChange={(e) => setV({ ...v, tipo: e.target.value as MiVehiculo['tipo'] })}>
             <option value="tractora">Tractora</option><option value="remolque">Remolque</option><option value="rigido">Rígido</option>
