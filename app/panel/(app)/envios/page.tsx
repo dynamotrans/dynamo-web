@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { leerTodo } from '@/lib/leerTodo';
 import { sesion, esDynamo } from '@/lib/sesion';
 import { stripeListo } from '@/lib/stripe';
@@ -21,14 +22,37 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   const rol = perfil.rol;
   const dynamo = esDynamo(rol);
   const sp = await searchParams;
-  const q = (sp.q ?? '').trim();
+  const q = (sp.q ?? '').trim().slice(0, 200);
   const vista = await vistaDe(supabase, rol);
+  // Buscador (todos los años): texto y/o fechas de carga, por páginas de 100.
+  const fechaOk = (x?: string) => (/^\d{4}-\d{2}-\d{2}$/.test(x ?? '') ? x! : '');
+  const desde = fechaOk(sp.desde), hasta = fechaOk(sp.hasta);
+  const pb = Math.max(1, Math.floor(Number(sp.pb) || 1));
+  const busca = !!(q || desde || hasta);
+  let busqueda: { total: number; pagina: number; porPagina: number } | null = null;
+  let idsBusqueda: string[] | null = null;
+  let errorBusqueda: string | null = null;
+  if (busca) {
+    const POR = 100;
+    const v: any = vista;
+    const { data: res, error: eb } = await supabase.rpc('buscar_envios_pagina', {
+      p_q: q || null, p_desde: desde || null, p_hasta: hasta || null, p_pagina: pb, p_por_pagina: POR,
+      p_cliente: v.tipo === 'cliente' ? v.id : null, p_transportista: v.tipo === 'transportista' ? v.id : null,
+    });
+    if (eb) errorBusqueda = eb.message;
+    const r = (res ?? []) as { id: string; total: number }[];
+    idsBusqueda = r.map((x) => x.id);
+    busqueda = { total: Number(r[0]?.total ?? 0), pagina: pb, porPagina: POR };
+    // Un número GX exacto que solo da un envío: se abre directamente.
+    if (/^#?\s*gx\s*\d{6,}$/i.test(q) && busqueda.total === 1 && !sp.ver) redirect(`/panel/envios?ver=${r[0].id}`);
+  }
 
   // ---- Datos, según el rol (Dynamo lee la tabla; cliente y transportista, sus funciones)
   let filas: EnvioFila[] = [];
   const nombresCliente = new Map<string, string>();
   let error: string | null = null;
   let nota: string | null = null;
+  if (errorBusqueda) error = errorBusqueda;
   if (dynamo) {
     const COLS = 'id, referencia_gx, referencia_cliente, estado, estado_asignacion, es_manual, transportista_id, ' +
       'fecha_carga_desde, fecha_carga_hasta, fecha_carga_real, fecha_entrega_estimada, descripcion_mercancia, ' +
@@ -38,17 +62,13 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       'envio_paradas(orden, tipo, nombre_empresa, direccion, codigo_postal, poblacion, provincia, pais_codigo_iso)';
     const TERMINADOS = 1000;
     let data: any[] = [];
-    if (q) {
-      // Con búsqueda: la hace la base de datos sobre TODOS los envíos (también los antiguos).
-      const { data: ids, error: e1 } = await supabase.rpc('buscar_envios', { p_q: q, p_limite: 500 });
-      if (e1) error = e1.message;
-      const lista = ((ids ?? []) as string[]);
-      if (lista.length) {
-        const r = await filtrarVista(supabase.from('envios').select(COLS), vista).in('id', lista);
+    if (busca) {
+      // Con búsqueda o fechas: la página de resultados que ha dado la base de datos.
+      if (idsBusqueda!.length) {
+        const r = await filtrarVista(supabase.from('envios').select(COLS), vista).in('id', idsBusqueda!);
         if (r.error) error = r.error.message;
         data = r.data ?? [];
       }
-      if (lista.length >= 500) nota = 'Hay más de 500 envíos que coinciden: se ven los 500 más recientes. Afina la búsqueda.';
     } else {
       // Sin búsqueda: TODOS los vivos y los últimos terminados (entregados y cancelados).
       const [vivos, fin] = await Promise.all([
@@ -57,7 +77,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       ]);
       error = vivos.error?.message ?? fin.error?.message ?? null;
       data = [...(vivos.data ?? []), ...(fin.data ?? [])];
-      if ((fin.data ?? []).length >= TERMINADOS) nota = `Se ven los ${TERMINADOS.toLocaleString('es-ES')} últimos envíos entregados o cancelados. Para uno más antiguo, búscalo por su número, cliente, población o matrícula.`;
+      if ((fin.data ?? []).length >= TERMINADOS) nota = `Se ven los ${TERMINADOS.toLocaleString('es-ES')} últimos envíos entregados o cancelados. Para los anteriores, usa el buscador o las fechas (busca en todos los años).`;
     }
     filas = (data as any[]).map((x) => ({
       ...x, cliente: x.clientes?.nombre_visible ?? null, cliente_cif: x.clientes?.cif ?? null,
@@ -65,7 +85,9 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       paradas: (x.envio_paradas ?? []) as Parada[],
     }));
   } else {
-    const { data, error: e } = await leerTodo(supabase.rpc(rol === 'transportista' ? 'mis_viajes' : 'mis_envios'), 5000);
+    const { data, error: e } = busca
+      ? (idsBusqueda!.length ? await supabase.rpc(rol === 'transportista' ? 'mis_viajes_por_ids' : 'mis_envios_por_ids', { p_ids: idsBusqueda }) : { data: [], error: null })
+      : await leerTodo(supabase.rpc(rol === 'transportista' ? 'mis_viajes' : 'mis_envios'), 5000);
     if (e) error = e.message;
     filas = ((data ?? []) as any[]).map((x) => ({
       ...x, cliente: null, cliente_cif: null, operador: null, creado_por: x.creado_por ?? null,
@@ -94,7 +116,8 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
       filas.forEach((f: any) => { f.operador = mapa.get(f.operador_id) ?? null; });
     }
   }
-  filas.sort((a, b) => (b.creado_en ?? '').localeCompare(a.creado_en ?? ''));
+  if (idsBusqueda) { const pos = new Map(idsBusqueda.map((id, i) => [id, i])); filas.sort((a, b) => (pos.get(a.id) ?? 0) - (pos.get(b.id) ?? 0)); }
+  else filas.sort((a, b) => (b.creado_en ?? '').localeCompare(a.creado_en ?? ''));
 
   // Quién creó cada envío (columna "Creado por"). Dynamo ve a todos los usuarios.
   const nombres = new Map<string, string>(nombresCliente);
@@ -148,7 +171,7 @@ export default async function PaginaEnvios({ searchParams }: { searchParams: Pro
   return (
     <>
       {ofertas.length > 0 && <OfertasAbiertas ofertas={ofertas} />}
-      <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} error={error ?? errorFicha} nuevo={sp.nuevo} nota={nota} nuevoManual={!!sp.manual} />
+      <TablaEnvios filas={filas} nombres={Object.fromEntries(nombres)} rol={rol} f={sp.f} q={q} p={sp.p} desde={desde} hasta={hasta} busqueda={busqueda} error={error ?? errorFicha} nuevo={sp.nuevo} nota={nota} nuevoManual={!!sp.manual} />
       {ficha && <FichaEnvio key={ficha.envio.id} ficha={ficha} transportistas={transportistas} cerrarHref={cerrarHref} />}
       {fichaCli && <FichaEnvioCliente key={fichaCli.id} e={fichaCli} cerrarHref={cerrarHref} />}
       {fichaViaje && <FichaViaje key={fichaViaje.id} e={fichaViaje} cerrarHref={cerrarHref} />}

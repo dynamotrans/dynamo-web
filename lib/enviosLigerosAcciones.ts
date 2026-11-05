@@ -4,14 +4,15 @@ import { sesion, esDynamo } from '@/lib/sesion';
 import { enviosLigerosPorId, type EnvioLigero } from '@/lib/enviosLigeros';
 
 // Buscador «Envío referenciado» de Incidencias y Penalizaciones (Dynamo): busca en la base
-// de datos (buscar_envios: nº, pedido, cliente, CIF, ruta, matrícula, transportista…).
+// de datos (buscar_envios_pagina, con índice: nº, pedido, cliente, CIF, ruta, matrícula, transportista…).
 export async function buscarEnviosLigeros(q: string): Promise<EnvioLigero[]> {
   const s = await sesion();
   if (!s?.perfil || s.perfil.estado !== 'activa' || !esDynamo(s.perfil.rol)) return [];
   const texto = String(q ?? '').replace(/^#/, '').trim().slice(0, 120);
   if (!texto) return [];
-  const { data: ids } = await s.supabase.rpc('buscar_envios', { p_q: texto, p_limite: 8 });
-  return enviosLigerosPorId(s.supabase, (ids ?? []) as string[]);
+  // Con el índice de búsqueda (todos los años).
+  const { data } = await s.supabase.rpc('buscar_envios_pagina', { p_q: texto, p_pagina: 1, p_por_pagina: 8 });
+  return enviosLigerosPorId(s.supabase, ((data ?? []) as { id: string }[]).map((x) => x.id));
 }
 
 // Un envío ya elegido que no está entre los recientes (al abrir una ficha antigua).

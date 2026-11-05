@@ -25,22 +25,28 @@ const SubBase = () => (<><br /><span style={{ fontWeight: 600, color: 'var(--gra
 type Props = {
   filas: EnvioFila[]; nombres: Record<string, string>; rol: Rol;
   f?: string; q: string; p?: string; error: string | null; nuevo?: string; nota?: string | null; nuevoManual?: boolean;
+  // Buscador (todos los años): fechas de carga y la página de resultados de la base de datos.
+  desde?: string; hasta?: string; busqueda?: { total: number; pagina: number; porPagina: number } | null;
 };
+const hoyISO = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
 
-export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pParam, error, nuevo, nota, nuevoManual }: Props) {
+export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pParam, error, nuevo, nota, nuevoManual, desde = '', hasta = '', busqueda = null }: Props) {
   const dynamo = esDynamo(rol);
+  const modoBusqueda = !!busqueda;
   // ---- Pestaña, buscador y página
   const pestanas = PESTANAS.filter((p) => (dynamo || !p.soloDynamo) && (!p.siHay || filas.some((e) => enPestana(e, p.f)) || fParam === p.f));
   const f = (pestanas.find((p) => p.f === fParam)?.f ?? (dynamo ? 'sin-asignar' : 'programada')) as Pestana;
-  const buscadas = q ? filas.filter((e) => coincide(e, q)) : filas;
-  const lista = buscadas.filter((e) => enPestana(e, f));
+  // Con búsqueda, la base de datos ya ha filtrado (en todos los años) y pagina de 100 en 100.
+  const buscadas = modoBusqueda ? filas : q ? filas.filter((e) => coincide(e, q)) : filas;
+  const lista = modoBusqueda ? filas : buscadas.filter((e) => enPestana(e, f));
   const paginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
-  const pag = Math.min(Math.max(1, Number(pParam) || 1), paginas);
-  const trozo = lista.slice((pag - 1) * POR_PAGINA, pag * POR_PAGINA);
+  const pag = modoBusqueda ? 1 : Math.min(Math.max(1, Number(pParam) || 1), paginas);
+  const trozo = modoBusqueda ? lista : lista.slice((pag - 1) * POR_PAGINA, pag * POR_PAGINA);
+  const pbTotal = busqueda ? Math.max(1, Math.ceil(busqueda.total / busqueda.porPagina)) : 1;
   const url = (o: Record<string, string | number | undefined>) => {
     const u = new URLSearchParams();
-    const v: Record<string, string | number | undefined> = { f, q: q || undefined, ...o };
-    Object.entries(v).forEach(([k, x]) => { if (x !== undefined && x !== '' && !(k === 'p' && String(x) === '1')) u.set(k, String(x)); });
+    const v: Record<string, string | number | undefined> = { f, q: q || undefined, desde: desde || undefined, hasta: hasta || undefined, pb: busqueda && busqueda.pagina > 1 ? busqueda.pagina : undefined, ...o };
+    Object.entries(v).forEach(([k, x]) => { if (x !== undefined && x !== '' && !((k === 'p' || k === 'pb') && String(x) === '1')) u.set(k, String(x)); });
     return `/panel/envios${u.toString() ? `?${u}` : ''}`;
   };
 
@@ -57,19 +63,37 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
         )}
       </div>
 
-      <div className="tabs" data-table="cargas">
+      {!modoBusqueda && <div className="tabs" data-table="cargas">
         {pestanas.map((p) => (
           <Link key={p.f} href={url({ f: p.f, p: 1 })} className={`tab${p.f === f ? ' active' : ''}`}>
             {p.titulo} (<span>{buscadas.filter((e) => enPestana(e, p.f)).length}</span>)
           </Link>
         ))}
-      </div>
+      </div>}
 
-      <form className="filters" action="/panel/envios" method="get">
+      <form className="filters" action="/panel/envios" method="get" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
         <input type="hidden" name="f" value={f} />
-        <input type="search" name="q" defaultValue={q}
-               placeholder="Buscar por cualquier dato: nº, empresa, dirección, teléfono, ruta, mercancía…" />
+        <input type="search" name="q" defaultValue={q} style={{ flex: '1 1 260px' }}
+               placeholder={rol === 'transportista' ? 'Buscar: nº, matrícula, conductor, población…' : 'Buscar en todos los años: nº, empresa, matrícula, población, mercancía…'} />
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: 'var(--fs-s)' }}>Carga desde
+          <input type="date" name="desde" defaultValue={desde} /></label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: 'var(--fs-s)' }}>hasta
+          <input type="date" name="hasta" defaultValue={hasta} /></label>
+        <button type="submit" className="btn-primary">Buscar</button>
       </form>
+      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', margin: '-0.3rem 0 0.8rem', fontSize: 'var(--fs-s)' }}>
+        {(() => {
+          const h = hoyISO(), y = Number(h.slice(0, 4));
+          const atajos: [string, string, string][] = [
+            ['Este mes', `${h.slice(0, 7)}-01`, h], ['Este año', `${y}-01-01`, `${y}-12-31`], ['Año pasado', `${y - 1}-01-01`, `${y - 1}-12-31`], ['Todas las fechas', '', ''],
+          ];
+          return atajos.map(([t, d, hh]) => (
+            <Link key={t} className={`chip${desde === d && hasta === hh && (d || modoBusqueda) ? ' active' : ''}`} href={url({ desde: d || undefined, hasta: hh || undefined, pb: 1, p: 1 })}
+              style={{ padding: '0.2rem 0.6rem', borderRadius: 999, border: '1px solid var(--gray-300)', textDecoration: 'none' }}>{t}</Link>
+          ));
+        })()}
+        {modoBusqueda && <Link href="/panel/envios" style={{ marginLeft: 'auto' }}>✕ Quitar búsqueda</Link>}
+      </div>
 
       {nuevo && (
         <div className="pt-aviso info" role="status"><div>
@@ -101,7 +125,7 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
           <tbody>
             {trozo.length === 0 ? (
               <tr><td colSpan={columnas} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>
-                {filas.length === 0 ? 'Todavía no hay envíos.' : 'Sin envíos en este filtro'}
+                {modoBusqueda ? 'Ningún envío coincide (en todos los años).' : filas.length === 0 ? 'Todavía no hay envíos.' : 'Sin envíos en este filtro'}
               </td></tr>
             ) : trozo.map((e) => <FilaEnvio key={e.id} e={e} rol={rol} dynamo={dynamo} creador={e.creado_por ? nombres[e.creado_por] : undefined} href={url({ p: pag, ver: e.id })} />)}
           </tbody>
@@ -110,9 +134,18 @@ export default function TablaEnvios({ filas, nombres, rol, f: fParam, q, p: pPar
 
       <div className="pagination">
         <div className="pagination-left">
-          <span>{lista.length ? `Mostrando ${(pag - 1) * POR_PAGINA + 1}-${Math.min(pag * POR_PAGINA, lista.length)} de ${lista.length} envíos` : 'Sin envíos'}</span>
+          <span>{busqueda
+            ? (busqueda.total ? `Resultados ${((busqueda.pagina - 1) * busqueda.porPagina + 1).toLocaleString('es-ES')}-${Math.min(busqueda.pagina * busqueda.porPagina, busqueda.total).toLocaleString('es-ES')} de ${busqueda.total.toLocaleString('es-ES')} (todos los años)` : 'Sin resultados en todos los años. Prueba con menos palabras o sin fechas.')
+            : lista.length ? `Mostrando ${(pag - 1) * POR_PAGINA + 1}-${Math.min(pag * POR_PAGINA, lista.length)} de ${lista.length} envíos` : 'Sin envíos'}</span>
         </div>
-        {paginas > 1 && (
+        {busqueda && pbTotal > 1 && (
+          <div className="pagination-pages">
+            {busqueda.pagina > 1 && <Link href={url({ pb: busqueda.pagina - 1 })} aria-label="Anteriores">‹ Anteriores {busqueda.porPagina}</Link>}
+            <span style={{ padding: '0 0.4rem' }}>Página {busqueda.pagina} de {pbTotal}</span>
+            {busqueda.pagina < pbTotal && <Link href={url({ pb: busqueda.pagina + 1 })} aria-label="Siguientes">Siguientes {busqueda.porPagina} ›</Link>}
+          </div>
+        )}
+        {!busqueda && paginas > 1 && (
           <div className="pagination-pages">
             {pag > 1 && <Link href={url({ p: pag - 1 })} aria-label="Anterior">‹</Link>}
             {Array.from({ length: paginas }, (_, i) => i + 1)

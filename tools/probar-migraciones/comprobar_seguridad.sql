@@ -4844,3 +4844,56 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ---- 138. Buscador de envíos para años de datos ------------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare e record; begin
+  select x.id, x.referencia_gx, x.cliente_id, x.transportista_id into e from envios x
+   where x.cliente_id = current_setting('prueba.cliente')::uuid and x.transportista_id = current_setting('prueba.transp')::uuid limit 1;
+  if e.id is null then raise exception 'FALLO 138 · no hay envío de prueba con cliente y transportista'; end if;
+  update envios set matricula_camion = '1388ZXY', fecha_carga_real = date '2022-03-15' where id = e.id;
+  update envio_paradas set poblacion = 'Villabusquedilla' where envio_id = e.id and orden = 1;
+  perform set_config('prueba.e138', e.id::text, false);
+  perform set_config('prueba.ref138', e.referencia_gx, false);
+  if (select texto_busqueda from envios where id = e.id) not like '%villabusquedilla%' then raise exception 'FALLO 138 · el texto de búsqueda no recoge las paradas'; end if;
+  if exists (select 1 from auditoria where tabla = 'envios' and cambios ? 'texto_busqueda') then raise exception 'FALLO 138 · la auditoría apunta el texto de búsqueda'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+set role authenticated;
+do $$ declare n bigint; begin
+  if not exists (select 1 from buscar_envios_pagina(current_setting('prueba.ref138')) where id = current_setting('prueba.e138')::uuid) then raise exception 'FALLO 138 · Dynamo no encuentra un envío por su número'; end if;
+  if not exists (select 1 from buscar_envios_pagina('VILLABÚSQUEDILLA 1388zxy') where id = current_setting('prueba.e138')::uuid) then raise exception 'FALLO 138 · no busca por varias palabras, sin acentos ni mayúsculas'; end if;
+  if not exists (select 1 from buscar_envios_pagina('1388zxy', date '2022-01-01', date '2022-12-31')) then raise exception 'FALLO 138 · el filtro de fechas deja fuera lo que está dentro'; end if;
+  if exists (select 1 from buscar_envios_pagina('1388zxy', date '2023-01-01', null)) then raise exception 'FALLO 138 · el filtro de fechas no filtra'; end if;
+  select max(total) into n from buscar_envios_pagina(null, date '2000-01-01', null, 1, 1);
+  if n < 2 or (select count(*) from buscar_envios_pagina(null, date '2000-01-01', null, 2, 1)) <> 1 then raise exception 'FALLO 138 · la paginación no va'; end if;
+end $$;
+reset role;
+update usuarios set estado = 'activa' where id = current_setting('prueba.u_cli')::uuid;   -- lo suspendió una prueba anterior
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_cli'), false);
+set role authenticated;
+do $$ begin
+  if not exists (select 1 from buscar_envios_pagina('villabusquedilla') where id = current_setting('prueba.e138')::uuid) then raise exception 'FALLO 138 · el cliente no encuentra su envío (cli=%, estado=%)', cliente_del_usuario(), (select estado from usuarios where id = auth.uid()); end if;
+  if exists (select 1 from buscar_envios_pagina(null, date '2000-01-01') b join envios x on x.id = b.id where x.cliente_id <> current_setting('prueba.cliente')::uuid) then
+    raise exception 'FALLO 138 · el cliente encuentra envíos de otros';
+  end if;
+  if (select count(*) from mis_envios_por_ids(array[current_setting('prueba.e138')::uuid])) <> 1 then raise exception 'FALLO 138 · el cliente no lee su envío por id'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', current_setting('prueba.u_transp'), false);
+set role authenticated;
+do $$ declare v_cli text; begin
+  select lower(split_part(razon_social, ' ', 1)) into v_cli from clientes where id = current_setting('prueba.cliente')::uuid;
+  if not exists (select 1 from buscar_envios_pagina('1388zxy') where id = current_setting('prueba.e138')::uuid) then raise exception 'FALLO 138 · el transportista no encuentra su viaje por la matrícula'; end if;
+  if exists (select 1 from buscar_envios_pagina(v_cli || ' 1388zxy')) then raise exception 'FALLO 138 · el transportista encuentra viajes buscando el nombre del cliente (%)', v_cli; end if;
+  raise notice 'OK 138 · buscador: años de datos con índice, palabras sin acentos, fechas, páginas; cada uno en lo suyo y el transportista sin datos del cliente';
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare l text; plan text := ''; begin
+  set local enable_seqscan = off;
+  for l in execute 'explain select id from envios where texto_busqueda like ''%villabusq%''' loop plan := plan || l || ' '; end loop;
+  if plan not like '%idx_envios_busqueda%' then raise exception 'FALLO 138 · la búsqueda no usa el índice: %', plan; end if;
+  raise notice 'OK 138b · la búsqueda de texto usa el índice de trigramas';
+end $$;
