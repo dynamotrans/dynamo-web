@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { PDFImage, PDFPage, RGB } from 'pdf-lib';
 import { Lienzo, COLOR, A4, num, fechaCorta, limpio } from './lienzo';
 import { DYNAMO, type DatosDoc, type ParadaDoc } from './datos';
-import { importe } from '@/lib/formato';
+import { importe, pesoKg } from '@/lib/formato';
 
 // CMR (carta de porte internacional) RELLENO, copiado del mockup: los 4 ejemplares del
 // impreso OFICIAL (remitente rojo · destinatario azul · porteador verde · administración
@@ -123,7 +123,7 @@ export async function cmr(d: DatosDoc): Promise<Uint8Array> {
       { t: e.adr ? 'MERCANCÍA ADR' : '', s: 7.4, c: ROJA },
     ], 24);
     dato(388, 385, [{ t: '—', b: false }]);
-    dato(437, 385, [{ t: e.toneladas != null ? `${importe(Number(e.toneladas) * 1000).replace(/,00$/, '')} kg` : '—', s: 8 }]);
+    dato(437, 385, [{ t: e.toneladas != null ? pesoKg(Number(e.toneladas) * 1000) : '—', s: 8 }]);
     dato(508, 385, [{ t: e.volumen_m3 != null ? `${num(e.volumen_m3)} m³` : '—', s: 8, b: e.volumen_m3 != null }]);
 
     // 13 Instrucciones del remitente: otras paradas y anotaciones

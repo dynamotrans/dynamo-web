@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Modal from './Modal';
-import { fecha, ventana } from '@/lib/formato';
+import { fecha, ventana, pesoTn } from '@/lib/formato';
 import { FLOTA_HTML } from '@/lib/dashboardContenido';
 
 // «Nuestros servicios» y «Nuestra flota» ocultos de momento (decisión del usuario,
@@ -124,7 +124,7 @@ export default function DashboardCliente({ envios, activos, dynamo, sinEnvios }:
                   </div>
                   <div className="mini-list-right">
                     <span className={`badge badge-${est[1]}`}>{est[0]}</span>
-                    {(e.metros_lineales != null || e.toneladas != null) && <span className="mini-list-meta">{n(e.metros_lineales)} m · {n(e.toneladas)} Tn</span>}
+                    {(e.metros_lineales != null || e.toneladas != null) && <span className="mini-list-meta">{n(e.metros_lineales)} m · {pesoTn(e.toneladas)}</span>}
                     {e.mercancia && <span className="mini-list-meta">{e.mercancia}</span>}
                   </div>
                 </li>

@@ -13,7 +13,7 @@ import BuscaEnvio from './BuscaEnvio';
 import Documentos from './Documentos';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarPenalizacion, cambiarEstadoPenalizacion } from '@/app/panel/(app)/penalizaciones/acciones';
-import { euros } from '@/lib/formato';
+import { euros, numero } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
 
 export type PenalizacionFila = {
@@ -123,8 +123,8 @@ function FichaPenalizacion({ fila, envioInicial, tipos, envios, onCerrar, onHech
   const [envio, setEnvio] = useState<string | null>(fila?.envio_id ?? envioInicial);
   const [tipo, setTipo] = useState(fila?.tipo_id ?? '');
   const [desc, setDesc] = useState(fila?.descripcion ?? '');
-  const [ic, setIc] = useState(txtNum(fila?.importe_cliente ?? null));
-  const [it, setIt] = useState(txtNum(fila?.importe_transportista ?? null));
+  const [ic, setIc] = useState(numero(fila?.importe_cliente ?? null, 2));
+  const [it, setIt] = useState(numero(fila?.importe_transportista ?? null, 2));
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState<string | null>(null);
   const [preguntaCancelar, setPreguntaCancelar] = useState(false);

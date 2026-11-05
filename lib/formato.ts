@@ -34,6 +34,18 @@ export function aNumero(t: string | null | undefined): number | null {
   return Number.isFinite(n) ? n : NaN;
 }
 
+// 1234.5 → «1.234,50»: punto de miles, coma decimal y SIEMPRE los decimales que se pidan.
+export function numero(v: number | string | null | undefined, decimales = 2): string {
+  if (v === null || v === undefined || v === '') return '';
+  const n = typeof v === 'string' ? Number(v) : v;
+  if (!Number.isFinite(n)) return '';
+  const [ent, dec] = Math.abs(n).toFixed(decimales).split('.');
+  return (n < 0 ? '-' : '') + ent.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + (decimales ? ',' + dec : '');
+}
+// Pesos (regla del usuario, 2026-11-05): toneladas con 2 decimales, kilos sin decimales.
+export const pesoTn = (t: number | string | null | undefined) => (t == null || t === '' ? '' : `${numero(t, 2)} Tn`);
+export const pesoKg = (kg: number | string | null | undefined) => (kg == null || kg === '' ? '' : `${numero(kg, 0)} kg`);
+
 const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 // Fechas tipo "2026-07-10" (columnas `date`): se leen como día de calendario, sin zona.

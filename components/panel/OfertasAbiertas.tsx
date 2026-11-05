@@ -1,6 +1,6 @@
 // Ofertas de carga abiertas para el TRANSPORTISTA (mis_ofertas(): el rango en euros, nunca
 // el porcentaje). Cada una lleva a su página de aceptar carga.
-import { euros, ventana } from '@/lib/formato';
+import { euros, ventana, pesoTn } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
 
 export type Oferta = { id: string; envio_id: string; referencia_gx: string; token: string; canal: string;
@@ -23,7 +23,7 @@ export default function OfertasAbiertas({ ofertas }: { ofertas: Oferta[] }) {
                 <td className="ref"><strong>#{o.referencia_gx}</strong><div className="meta">Vale hasta {creadoTxt(o.caduca_en)}</div></td>
                 <td className="route"><strong>{o.poblacion_origen ?? '—'}</strong><span className="arrow">→</span><strong>{o.poblacion_destino ?? '—'}</strong></td>
                 <td>{ventana(o.fecha_carga_desde, o.fecha_carga_hasta)}</td>
-                <td className="amount">{n(o.metros_lineales)} m · {n(o.toneladas)} Tn</td>
+                <td className="amount">{n(o.metros_lineales)} m · {pesoTn(o.toneladas)}</td>
                 <td className="amount"><strong>{euros(o.precio_ofertado)}</strong>
                   {o.precio_maximo !== o.precio_ofertado && <div className="meta">Puedes proponer de {euros(o.precio_minimo)} a {euros(o.precio_maximo)}</div>}
                   {o.pronto_pago && <div className="meta" style={{ color: '#0f6b3a', fontWeight: 700 }}>Con pronto pago</div>}</td>

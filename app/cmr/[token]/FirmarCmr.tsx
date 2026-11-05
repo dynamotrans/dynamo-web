@@ -1,5 +1,7 @@
 'use client';
 
+import { pesoTn } from '@/lib/formato';
+
 // CMR digital, copiado de firmar-cmr.html: resumen del CMR, un bloque por casilla (22 cada
 // recogida · 23 transportista · 24 cada entrega) y la pantalla de firma con el dedo, con el
 // documento de identidad validado por país. La firma la guarda el servidor (acciones.ts).
@@ -50,7 +52,7 @@ export default function FirmarCmr({ token, cmr, trazos }: { token: string; cmr: 
         <dt>Recogida</dt><dd>{rec.map(lugar).join(' / ') || '—'}</dd>
         <dt>Entrega</dt><dd>{ent.map(lugar).join(' / ') || '—'}</dd>
         <dt>Fecha de carga</dt><dd>{fechaCorta(cmr.fecha_carga)}</dd>
-        <dt>Mercancía</dt><dd>{[cmr.mercancia, cmr.metros_lineales != null && `${String(cmr.metros_lineales).replace('.', ',')} m`, cmr.toneladas != null && `${String(cmr.toneladas).replace('.', ',')} Tn`].filter(Boolean).join(' · ') || '—'}</dd>
+        <dt>Mercancía</dt><dd>{[cmr.mercancia, cmr.metros_lineales != null && `${String(cmr.metros_lineales).replace('.', ',')} m`, cmr.toneladas != null && pesoTn(cmr.toneladas)].filter(Boolean).join(' · ') || '—'}</dd>
         {cmr.adr && <div className="adr">⚠ MERCANCÍA ADR (peligrosa) — transporte sujeto al Acuerdo ADR</div>}
       </dl>
       <div className="prog">{hechas === bloques.length ? <span className="done-all">✓ {hechas} de {bloques.length} firmas completadas</span> : `${hechas} de ${bloques.length} firmas completadas`}</div>

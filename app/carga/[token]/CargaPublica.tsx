@@ -10,7 +10,7 @@ import { useRefrescar } from '@/lib/useRefrescar';
 import AvisoSiniestro from '@/components/AvisoSiniestro';
 import { reservar, aceptar, liberar, completar, enlaceCmr, darseDeAlta, sugerirFlota, type AltaTransportista } from './acciones';
 import SelectorPais from '@/components/SelectorPais';
-import { euros, fecha, ventana } from '@/lib/formato';
+import { euros, fecha, ventana, pesoTn } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
 import { nombreTipo } from '@/components/panel/TipoSitio';
 import { telBonito } from '@/lib/paises';
@@ -89,7 +89,7 @@ function Oferta({ o, completa }: { o: any; completa?: boolean }) {
           </div>
           <div className="of-chips">
             {o.metros_lineales != null && <div className="of-chip"><span className="of-chip-k">Metros</span><span className="of-chip-v">{txtNum(o.metros_lineales)} m</span></div>}
-            {o.toneladas != null && <div className="of-chip"><span className="of-chip-k">Peso</span><span className="of-chip-v">{txtNum(o.toneladas)} Tn</span></div>}
+            {o.toneladas != null && <div className="of-chip"><span className="of-chip-k">Peso</span><span className="of-chip-v">{pesoTn(o.toneladas)}</span></div>}
             <div className="of-chip"><span className="of-chip-k">Tipo de carga</span><span className="of-chip-v">{o.tipo_carga === 'completa' ? 'Completo' : 'Grupaje'}</span></div>
             {forma && <div className="of-chip"><span className="of-chip-k">Carga por</span><span className="of-chip-v">{forma}</span></div>}
             {o.requiere_plataforma_elevadora && <div className="of-chip"><span className="of-chip-k">Camión</span><span className="of-chip-v">Con plataforma elevadora</span></div>}
@@ -239,7 +239,7 @@ function OtrasCargas({ cargas, onVolver }: { cargas: OtraCarga[]; onVolver: () =
           : lista.map((c) => (
             <a key={c.token} className="bolsa-item" href={`/carga/${c.token}`} style={{ textDecoration: 'none' }}>
               <div className="bolsa-ruta">{sitioTxt(c.origen)} → {sitioTxt(c.destino)}</div>
-              <div className="bolsa-meta">#{c.referencia} · {[c.metros_lineales != null && `${txtNum(c.metros_lineales)} m`, c.toneladas != null && `${txtNum(c.toneladas)} Tn`, c.tipo_carga === 'completa' ? 'Completo' : 'Grupaje'].filter(Boolean).join(' · ')}<br />Carga: {ventana(c.fecha_carga_desde, c.fecha_carga_hasta)}</div>
+              <div className="bolsa-meta">#{c.referencia} · {[c.metros_lineales != null && `${txtNum(c.metros_lineales)} m`, c.toneladas != null && `${pesoTn(c.toneladas)}`, c.tipo_carga === 'completa' ? 'Completo' : 'Grupaje'].filter(Boolean).join(' · ')}<br />Carga: {ventana(c.fecha_carga_desde, c.fecha_carga_hasta)}</div>
               <div className="bolsa-fila"><span className="bolsa-precio">{euros(c.precio)} <span style={{ fontWeight: 600, color: 'var(--gray-500)', fontSize: 'var(--fs-s)' }}>· sin IVA</span></span>
                 <span className="bolsa-go">Ver y aceptar →</span></div>
             </a>

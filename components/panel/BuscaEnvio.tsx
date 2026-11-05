@@ -5,7 +5,7 @@
 // elegirlo, debajo sale su resumen (.pen-envio-sum), con los precios solo para Dynamo.
 import { useMemo, useRef, useState, useEffect } from 'react';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
-import { euros, fecha, ventana, ESTADO_ENVIO } from '@/lib/formato';
+import { euros, fecha, ventana, ESTADO_ENVIO, pesoTn } from '@/lib/formato';
 import { buscarEnviosLigeros, envioLigero } from '@/lib/enviosLigerosAcciones';
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -28,7 +28,7 @@ export function ResumenEnvio({ e }: { e: EnvioLigero }) {
       {fila('Fecha de carga real', e.fecha_carga_real ? fecha(e.fecha_carga_real) : null)}
       {fila('Entrega estimada', e.fecha_entrega_estimada ? fecha(e.fecha_entrega_estimada) : null)}
       {fila('Ruta', `${e.origen || '—'} → ${e.destino || '—'}`)}
-      {fila('Mercancía', [e.descripcion_mercancia, e.metros_lineales != null && `${String(e.metros_lineales).replace('.', ',')} m`, e.toneladas != null && `${String(e.toneladas).replace('.', ',')} Tn`].filter(Boolean).join(' · '))}
+      {fila('Mercancía', [e.descripcion_mercancia, e.metros_lineales != null && `${String(e.metros_lineales).replace('.', ',')} m`, e.toneladas != null && pesoTn(e.toneladas)].filter(Boolean).join(' · '))}
       {pc != null && fila(e.cliente_id ? 'P. cliente · base sin IVA' : 'Precio · base sin IVA', euros(pc))}
       {pt != null && fila('P. transportista · base sin IVA', euros(pt))}
       {pc != null && pt != null && fila('Margen · base sin IVA', <span style={{ color: pc - pt >= 0 ? '#0f6b3a' : 'var(--red)', fontWeight: 700 }}>{euros(pc - pt)}</span>)}

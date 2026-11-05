@@ -1,6 +1,7 @@
 // Lógica de presentación de la tabla de envíos, traducida de dashboard.html
 // (getEstadoVisual, getAsignacionEstado, highlightInfo, rutaFechasCell…) a los datos
 // reales de la base de datos.
+import { pesoTn } from '@/lib/formato';
 import { fecha } from './formato';
 import { paisDe } from './paises';
 
@@ -141,7 +142,7 @@ export function paradasDe(e: EnvioFila): { recogidas: Parada[]; entregas: Parada
 const num1 = (n: number) => n.toLocaleString('es-ES', { maximumFractionDigits: 2 });
 export function medidas(e: EnvioFila): string {
   const m = e.metros_lineales != null ? `${num1(Number(e.metros_lineales))} m` : null;
-  const t = e.toneladas != null ? `${num1(Number(e.toneladas))} Tn` : null;
+  const t = e.toneladas != null ? `${pesoTn(Number(e.toneladas))}` : null;
   return [m, t].filter(Boolean).join(' · ');
 }
 

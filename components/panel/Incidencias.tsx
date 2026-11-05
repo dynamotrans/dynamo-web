@@ -14,7 +14,7 @@ import BuscaEnvio from './BuscaEnvio';
 import Documentos from './Documentos';
 import type { EnvioLigero } from '@/lib/enviosLigeros';
 import { guardarIncidencia, type IncidenciaDatos } from '@/app/panel/(app)/incidencias/acciones';
-import { fecha, ventana } from '@/lib/formato';
+import { fecha, ventana, pesoTn } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
 
 export type IncidenciaFila = {
@@ -97,7 +97,7 @@ export default function Incidencias({ filas, tipos, clientes, envios, nuevaPara,
                   <td className="ref-cli">{e?.referencia_cliente ?? '—'}</td>
                   <td>{e ? <><strong>{fecha(e.fecha_carga_desde)}</strong><div className="meta">{ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}</div></> : '—'}</td>
                   <td className="route">{e ? <><strong>{e.origen || '—'}</strong><span className="arrow">→</span><strong>{e.destino || '—'}</strong></> : '—'}</td>
-                  <td className="amount">{e && (e.metros_lineales != null || e.toneladas != null) ? `${n(e.metros_lineales)} m · ${n(e.toneladas)} Tn` : '—'}</td>
+                  <td className="amount">{e && (e.metros_lineales != null || e.toneladas != null) ? `${n(e.metros_lineales)} m · ${pesoTn(e.toneladas)}` : '—'}</td>
                   <td><span className={`badge badge-${est[2]}`}>{est[1]}</span>{pri && x.prioridad !== 'media' && abierta(x.estado) && <div style={{ marginTop: 3 }}><span className={`badge badge-${pri[2]}`}>Prioridad {pri[1].toLowerCase()}</span></div>}</td>
                 </tr>
               );

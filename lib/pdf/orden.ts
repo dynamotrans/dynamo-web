@@ -1,3 +1,4 @@
+import { pesoTn } from '@/lib/formato';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { rgb, type PDFImage } from 'pdf-lib';
@@ -160,7 +161,7 @@ export async function ordenDeCarga(d: DatosDoc, pago: ParamsPago): Promise<Uint8
   const forma = [e.carga_lateral && 'lateral', e.carga_trasera && 'trasera', e.carga_techo && 'por techo'].filter(Boolean).join(', ');
   kv([
     ['Mercancía', [e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada'),
-      e.toneladas != null ? `${num(e.toneladas)} Tn` : null, e.metros_lineales != null ? `${num(e.metros_lineales)} metros lineales` : null,
+      e.toneladas != null ? `${pesoTn(e.toneladas)}` : null, e.metros_lineales != null ? `${num(e.metros_lineales)} metros lineales` : null,
       e.num_bultos != null ? `${e.num_bultos} bultos${e.embalaje ? ` (${e.embalaje})` : ''}` : null,
       e.volumen_m3 != null ? `${num(e.volumen_m3)} m³` : null].filter(Boolean).join(' · '), { bold: true }],
     ['Tipo de transporte', e.requiere_plataforma_elevadora ? 'Camión rígido con plataforma elevadora' : 'Tautliner (lona corredera)'],

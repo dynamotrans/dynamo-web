@@ -12,7 +12,7 @@ import Modal from './Modal';
 import Documentos from './Documentos';
 import Cargando from '@/components/Cargando';
 import { IconoTipo, nombreTipo } from './TipoSitio';
-import { euros, fecha, ventana } from '@/lib/formato';
+import { euros, fecha, ventana, pesoTn, numero } from '@/lib/formato';
 import { creadoTxt, NEGOCIACION } from '@/lib/envios';
 import { paisDe, telBonito } from '@/lib/paises';
 import type { Ficha, ParadaFicha, TransportistaOpcion } from '@/lib/fichaEnvio';
@@ -88,7 +88,7 @@ function mensajeOferta(f: Ficha, precio: number, token: string): string {
     `Carga disponible · Dynamo · #${e.referencia_gx}`,
     `${pts('carga')} → ${pts('descarga')}`,
     `Recogida: ${ventana(e.fecha_carga_desde, e.fecha_carga_hasta)}`,
-    [e.metros_lineales != null && `${txtNum(e.metros_lineales)} m`, e.toneladas != null && `${txtNum(e.toneladas)} Tn`, e.tipo_carga === 'completa' ? 'Completo' : e.tipo_carga === 'grupaje' ? 'Grupaje' : ''].filter(Boolean).join(' · '),
+    [e.metros_lineales != null && `${txtNum(e.metros_lineales)} m`, e.toneladas != null && `${pesoTn(e.toneladas)}`, e.tipo_carga === 'completa' ? 'Completo' : e.tipo_carga === 'grupaje' ? 'Grupaje' : ''].filter(Boolean).join(' · '),
     [e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'NIMA', e.adr && 'ADR'].filter(Boolean).join(' · '),
     `Precio: ${euros(precio)} (sin IVA)`,
     `Acéptala aquí: ${enlaceOferta(token)}`,
@@ -321,7 +321,7 @@ export default function FichaEnvio({ ficha, transportistas, cerrarHref }: { fich
       <h4 className="modal-section-title">Mercancía</h4>
       <div className="det-block"><div className="modal-info-grid">
         <Celda l="Mercancía">{e.descripcion_mercancia || (e.paletizado === false ? 'No paletizada' : 'Paletizada')}</Celda>
-        <Celda l="Medidas">{[e.metros_lineales != null && `${txtNum(e.metros_lineales)} m`, e.toneladas != null && `${txtNum(e.toneladas)} Tn`].filter(Boolean).join(' · ') || '—'}</Celda>
+        <Celda l="Medidas">{[e.metros_lineales != null && `${txtNum(e.metros_lineales)} m`, e.toneladas != null && `${pesoTn(e.toneladas)}`].filter(Boolean).join(' · ') || '—'}</Celda>
         <Celda l="Tipo de carga">{e.tipo_carga === 'completa' ? 'Completo' : e.tipo_carga === 'grupaje' ? 'Grupaje' : '—'}</Celda>
         <Celda l="Forma de carga">{[e.carga_lateral && 'Lateral', e.carga_trasera && 'Trasera', e.carga_techo && 'Techo'].filter(Boolean).join(', ') || '—'}</Celda>
         <Celda l="Requisitos" span>{[e.requiere_plataforma_elevadora && 'Plataforma elevadora', e.requiere_nima && 'Requiere NIMA', e.adr && 'Mercancía ADR', e.paletizado === false && 'No paletizada'].filter(Boolean).join(' · ') || 'Ninguno'}</Celda>
@@ -462,7 +462,7 @@ type SubProps = { ficha: Ficha; onVolver: () => void; trabajando: string | null;
 function Asignar({ ficha, transportistas, onVolver, hacer, trabajando }: SubProps & { transportistas: TransportistaOpcion[] }) {
   const e = ficha.envio;
   const [tid, setTid] = useState<string>(ficha.transportista?.id ?? '');
-  const [precio, setPrecio] = useState(txtNum(e.importe_transportista));
+  const [precio, setPrecio] = useState(numero(e.importe_transportista, 2));
   const [camion, setCamion] = useState<string>(e.matricula_camion ?? '');
   const [remolque, setRemolque] = useState<string>(e.matricula_remolque ?? '');
   const [conductor, setConductor] = useState<string>(e.conductor_nombre ?? '');
@@ -649,10 +649,10 @@ function Modificar({ ficha, onVolver, hacer, trabajando }: SubProps) {
   const [d, setD] = useState({
     referencia_cliente: e.referencia_cliente ?? '', fecha_carga_desde: e.fecha_carga_desde ?? '', fecha_carga_hasta: e.fecha_carga_hasta ?? '',
     fecha_entrega_estimada: e.fecha_entrega_estimada ?? '', descripcion_mercancia: e.descripcion_mercancia ?? '',
-    metros: txtNum(e.metros_lineales), toneladas: txtNum(e.toneladas),
+    metros: txtNum(e.metros_lineales), toneladas: numero(e.toneladas, 2),
     paletizado: e.paletizado !== false, carga_lateral: !!e.carga_lateral, carga_trasera: !!e.carga_trasera, carga_techo: !!e.carga_techo,
     requiere_plataforma_elevadora: !!e.requiere_plataforma_elevadora, requiere_nima: !!e.requiere_nima, adr: !!e.adr,
-    importe_cliente: txtNum(e.importe_cliente), importe_transportista: txtNum(e.importe_transportista), acordado: txtNum(e.precio_acordado_operador),
+    importe_cliente: numero(e.importe_cliente, 2), importe_transportista: numero(e.importe_transportista, 2), acordado: numero(e.precio_acordado_operador),
     negociacion: String(e.negociacion_pct ?? 10),
     discrecion_comercial: !!e.discrecion_comercial, anotaciones_cliente: e.anotaciones_cliente ?? '',
   });
@@ -747,8 +747,8 @@ function Modificar({ ficha, onVolver, hacer, trabajando }: SubProps) {
 // ---- Poner precio a una solicitud del cliente ----------------------------------------
 function PonerPrecio({ ficha, onVolver, hacer, trabajando }: { ficha: Ficha; onVolver: () => void; hacer: (t: string, fn: () => Promise<any>, ok?: string) => Promise<boolean>; trabajando: string | null }) {
   const e = ficha.envio;
-  const [pc, setPc] = useState(e.importe_cliente != null ? txtNum(e.importe_cliente) : '');
-  const [pt, setPt] = useState(e.importe_transportista != null ? txtNum(e.importe_transportista) : '');
+  const [pc, setPc] = useState(numero(e.importe_cliente, 2));
+  const [pt, setPt] = useState(numero(e.importe_transportista, 2));
   const [error, setError] = useState<string | null>(null);
   const vc = aNum(pc), vt = aNum(pt);
   return (
@@ -847,7 +847,7 @@ function Ofrecer({ ficha, transportistas, onVolver }: { ficha: Ficha; transporti
     : e.importe_cliente != null ? Math.round((Number(e.importe_cliente) * 0.8) / 10) * 10 : null;
   const [para, setPara] = useState<string>('bolsa');
   const [canal, setCanal] = useState<string>('bolsa_wtransnet');
-  const [precio, setPrecio] = useState(txtNum(sugerido));
+  const [precio, setPrecio] = useState(numero(sugerido, 2));
   const [banda, setBanda] = useState<number>(e.negociacion_pct ?? 10);
   const [pronto, setPronto] = useState(true);
   const [error, setError] = useState<string | null>(null);

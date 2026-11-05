@@ -10,7 +10,7 @@ import Cargando from '@/components/Cargando';
 import Modal from './Modal';
 import { guardarLineaProntoPago, encenderProntoPago } from '@/app/panel/(app)/dashboard-admin/acciones';
 import type { MiniEnvio } from './DashboardCliente';
-import { euros, fecha, ventana } from '@/lib/formato';
+import { euros, fecha, ventana, importe } from '@/lib/formato';
 import { creadoTxt } from '@/lib/envios';
 
 export type ProntoPago = {
@@ -119,7 +119,7 @@ function LineaProntoPago({ pp, error }: { pp: ProntoPago | null; error: string |
         {pp.encendido ? 'Apagar pronto pago' : 'Encender pronto pago'}
       </button>
       <div style={{ fontSize: 'var(--fs-m)', color: 'var(--gray-700)' }}>Línea total: <strong>{euros(pp.linea)}</strong>{' '}
-        <button type="button" className="btn-ghost" style={{ padding: '0.2rem 0.6rem', fontSize: 'var(--fs-m)' }} onClick={() => { setLinea(pp.linea.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })); setFallo(null); setEditando(true); }}>Editar línea</button>
+        <button type="button" className="btn-ghost" style={{ padding: '0.2rem 0.6rem', fontSize: 'var(--fs-m)' }} onClick={() => { setLinea(importe(pp.linea)); setFallo(null); setEditando(true); }}>Editar línea</button>
       </div>
     </div>
     {editando && (
