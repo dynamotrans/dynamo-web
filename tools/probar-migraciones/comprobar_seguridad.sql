@@ -2398,7 +2398,7 @@ do $$ begin
   begin
     insert into documentos (transportista_id, tipo, storage_bucket, storage_ruta, nombre_archivo)
     values (current_setting('prueba.transp')::uuid, 'seguro_cmr', 'documentos', 'u/x/s/seguro.pdf', 'seguro.pdf');
-  exception when raise_exception then if sqlerrm not like '%Maximo 5%' then raise; end if;
+  exception when raise_exception then if sqlerrm not like '%Máximo 5%' then raise; end if;
   end;
   begin
     insert into documentos (transportista_id, tipo, storage_bucket, storage_ruta, nombre_archivo)
@@ -5205,4 +5205,21 @@ do $$ declare v text; begin
     raise exception 'FALLO 144 · faltan es_equipo_dynamo / es_admin_master';
   end if;
   raise notice 'OK 144 · nombres homogéneos: ningún nombre viejo en tablas, vistas, funciones, tipos, parámetros ni documentos';
+end $$;
+
+-- ---- 145. Textos que escribe la base de datos: formatos y datos de Dynamo de un solo sitio ----
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare v text; c uuid; begin
+  if fecha_texto(date '2026-07-10') <> 'Vie 10/07/26' then raise exception 'FALLO 145 · fecha_texto: %', fecha_texto(date '2026-07-10'); end if;
+  if fecha_hora_texto(timestamptz '2026-07-10 12:30:00+00') <> 'Vie 10/07/26 · 14:30' then raise exception 'FALLO 145 · fecha_hora_texto: %', fecha_hora_texto(timestamptz '2026-07-10 12:30:00+00'); end if;
+  -- El teléfono y el email de Dynamo no están escritos a mano en ninguna función (salvo el respaldo de los ayudantes).
+  select string_agg(proname, ', ') into v from pg_proc
+   where pronamespace = 'public'::regnamespace and proname not in ('tel_dynamo', 'email_dynamo')
+     and (prosrc like '%955 225 945%' or prosrc like '%info@dynamotrans.com%' or prosrc like '%append-only%' or prosrc like '%Dynamo Operador de Transportes%');
+  if v is not null then raise exception 'FALLO 145 · quedan datos de Dynamo o textos técnicos escritos a mano en: %', v; end if;
+  -- CIF y matrícula: siempre sin espacios, puntos ni guiones.
+  insert into clientes (razon_social, cif) values ('Formato 145 SL', 'b-14.514.514') returning id into c;
+  if (select cif from clientes where id = c) <> 'B14514514' then raise exception 'FALLO 145 · el CIF no se guarda normalizado: %', (select cif from clientes where id = c); end if;
+  raise notice 'OK 145 · textos de la base de datos: fechas «Vie 10/07/26», teléfono y email de Parámetros, sin jerga, CIF normalizado';
 end $$;
