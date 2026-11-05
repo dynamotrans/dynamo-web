@@ -56,8 +56,9 @@ const SECCIONES: Seccion[] = [
     { titulo: 'Ventas (a clientes)', claves: ['holded_formato_numeracion_venta', 'holded_canal_venta_nombre', 'holded_canal_venta_cuenta'] },
     { titulo: 'Compras (a transportistas)', claves: ['holded_formato_numeracion_compra', 'holded_canal_compra_nombre', 'holded_canal_compra_cuenta'] },
   ] },
-  { id: 'plataforma', titulo: 'Plataforma', intro: 'Encender o apagar el acceso.', subs: [
+  { id: 'plataforma', titulo: 'Plataforma', intro: 'Acceso y protección de datos.', subs: [
     { titulo: 'Mantenimiento', claves: ['mantenimiento_activo'] },
+    { titulo: 'Protección de datos', claves: ['rgpd_telefono_conductor_anios'] },
   ] },
   { id: 'dynamo', titulo: 'Datos de Dynamo en los documentos', intro: 'Lo que sale en la orden de carga, el CMR y las proformas.', subs: [
     { titulo: 'Empresa', claves: ['dynamo_razon_social', 'dynamo_cif', 'dynamo_tarjeta_ot', 'dynamo_wtransnet'] },
